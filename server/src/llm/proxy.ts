@@ -106,12 +106,12 @@ function mapAnthropicError(error: unknown, userId: string, meetingId: string | n
   if (error instanceof Anthropic.APIError) {
     log("error", "anthropic_failed", { userId, meetingId, status: error.status ?? null, requestId: error.requestID ?? null });
     if (error.status !== undefined && !isRetryableStatus(error.status)) {
-      return new ProviderApiError("anthropic", "upstream_rejected", `Yapay zekâ isteği reddedildi (durum ${error.status}).`);
+      return new ProviderApiError("anthropic", "upstream_rejected", `The AI request was rejected (status ${error.status}).`);
     }
-    return new ProviderApiError("anthropic", "upstream_unavailable", "Yapay zekâ servisi şu an yanıt vermiyor; biraz sonra yeniden dene.");
+    return new ProviderApiError("anthropic", "upstream_unavailable", "The AI service is not responding right now; try again shortly.");
   }
   log("error", "anthropic_failed", { userId, meetingId, error: errorName(error) });
-  return new ProviderApiError("anthropic", "upstream_unavailable", "Yapay zekâ servisi şu an yanıt vermiyor; biraz sonra yeniden dene.");
+  return new ProviderApiError("anthropic", "upstream_unavailable", "The AI service is not responding right now; try again shortly.");
 }
 
 /** Toplam girdi tokenı (önbellek okuma/yazma dahil). Saf fonksiyondur. */
@@ -222,7 +222,7 @@ async function openStream(
 export async function proxyLLM(db: D1Database, context: RequestContext, config: Config, scope: LLMScope, request: LLMRequest): Promise<Response> {
   const estimatedInput: number = estimateInputTokens(request);
   if (estimatedInput > config.llm.maxInputTokens) {
-    throw new ApiError("payload_too_large", `Girdi çok uzun (tahmini ${estimatedInput} token, en çok ${config.llm.maxInputTokens}).`);
+    throw new ApiError("payload_too_large", `Input is too long (an estimated ${estimatedInput} tokens; the limit is ${config.llm.maxInputTokens}).`);
   }
   const now: Date = context.platform.now();
   const limits: ReservationLimit[] = llmLimits(config, scope, now);
@@ -359,7 +359,7 @@ async function pumpStream(
       const retryable: boolean = isRetryableAnthropicError(error);
       log("warn", "anthropic_stream_failed", { userId: scope.userId, meetingId: scopeMeetingId(scope), error: errorName(error), retryable });
       const errorType: string = retryable ? "overloaded_error" : "api_error";
-      await forward(sseEvent("error", { type: "error", error: { type: errorType, message: "Yapay zekâ akışı yarıda kesildi." } }));
+      await forward(sseEvent("error", { type: "error", error: { type: errorType, message: "The AI stream was interrupted." } }));
       await recordOpsEvents(db, [{ kind: "provider_error", detail: "anthropic" }], now);
       if (scope.kind === "meeting") {
         await recordMeetingFailure(db, scope.userId, scope.meeting.id, "upstream_unavailable:anthropic", now);

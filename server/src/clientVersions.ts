@@ -24,7 +24,7 @@ export interface ClientVersions {
 /** `x-app-version` değeri biçime uyuyorsa kendisi; değilse `bad_request`. Saf fonksiyondur. */
 function parseAppVersion(value: string): string {
   if (!appVersionPattern.test(value)) {
-    throw new ApiError("bad_request", "x-app-version başlığı \"<sürüm> (<yapı>)\" biçiminde olmalı.");
+    throw new ApiError("bad_request", "The x-app-version header must have the form \"<version> (<build>)\".");
   }
   return value;
 }
@@ -33,7 +33,7 @@ function parseAppVersion(value: string): string {
 export function requiredAppVersion(request: Request): string {
   const value: string | null = request.headers.get("x-app-version");
   if (value === null) {
-    throw new ApiError("bad_request", "x-app-version başlığı gerekli.");
+    throw new ApiError("bad_request", "The x-app-version header is required.");
   }
   return parseAppVersion(value);
 }
@@ -49,10 +49,10 @@ export function optionalClientVersions(request: Request): ClientVersions | null 
     return null;
   }
   if (app === null || os === null) {
-    throw new ApiError("bad_request", "x-app-version ve x-os-version başlıkları birlikte gönderilmeli.");
+    throw new ApiError("bad_request", "The x-app-version and x-os-version headers must be sent together.");
   }
   if (!osVersionPattern.test(os)) {
-    throw new ApiError("bad_request", "x-os-version başlığı \"macOS <sürüm>\" biçiminde olmalı.");
+    throw new ApiError("bad_request", "The x-os-version header must have the form \"macOS <version>\".");
   }
   return { appVersion: parseAppVersion(app), osVersion: os };
 }

@@ -59,7 +59,7 @@ function stripeFailure(operation: string, userId: string | null, error: unknown)
   const status: number | null = error instanceof Stripe.errors.StripeError ? (error.statusCode ?? null) : null;
   const requestId: string | null = error instanceof Stripe.errors.StripeError ? (error.requestId ?? null) : null;
   log("error", "stripe_failed", { operation, userId, status, requestId, error: errorName(error) });
-  return new ProviderApiError("stripe", "upstream_unavailable", "Ödeme servisine ulaşılamadı; biraz sonra yeniden dene.");
+  return new ProviderApiError("stripe", "upstream_unavailable", "Could not reach the payment service; try again shortly.");
 }
 
 /** Stripe çağrısını yeniden denemeyle yapar; başarısızlıkta mesaj taşımayan istemci hatası fırlatır. */
@@ -99,7 +99,7 @@ async function customerGeneration(db: D1Database, userId: string): Promise<numbe
     .bind(userId)
     .first<{ stripe_customer_generation: number }>();
   if (row === null) {
-    throw new ApiError("unauthorized", "Hesap bulunamadı.");
+    throw new ApiError("unauthorized", "Account not found.");
   }
   return row.stripe_customer_generation;
 }
@@ -129,7 +129,7 @@ async function customerId(db: D1Database, stripe: Stripe, platform: Platform, us
     .run();
   const stored: string | null = await storedCustomerId(db, userId);
   if (stored === null) {
-    throw new ApiError("internal_error", "Stripe müşterisi kaydedilemedi.");
+    throw new ApiError("internal_error", "Could not save the Stripe customer.");
   }
   return stored;
 }
@@ -157,7 +157,7 @@ async function customerSubscriptions(stripe: Stripe, platform: Platform, custome
   );
   if (page.has_more) {
     log("alert", "stripe_subscription_list_truncated", { userId, count: page.data.length });
-    throw new ApiError("internal_error", "Abonelikler listelenemedi.");
+    throw new ApiError("internal_error", "Could not list subscriptions.");
   }
   return page.data;
 }
@@ -390,7 +390,7 @@ async function ensureReferralCoupon(stripe: Stripe, platform: Platform, spec: Re
     ));
   if (!couponMatches(coupon, spec)) {
     log("alert", "referral_coupon_mismatch", { couponId: spec.id, valid: coupon.valid, duration: coupon.duration });
-    throw new ApiError("referral_unavailable", "Davet indirimi şu an uygulanamıyor.");
+    throw new ApiError("referral_unavailable", "The referral discount can't be applied right now.");
   }
   if (existing === null) {
     log("info", "referral_coupon_created", { couponId: spec.id });
@@ -414,7 +414,7 @@ async function ensureReferralCoupon(stripe: Stripe, platform: Platform, spec: Re
 export async function createCheckout(db: D1Database, platform: Platform, config: Config, userId: string, request: CheckoutRequest): Promise<string> {
   const subscriptionExists: ApiError = new ApiError(
     "subscription_exists",
-    "Zaten bir aboneliğin var; yeni abonelik açılmaz. Ödeme yöntemini güncellemek ya da aboneliği yönetmek için Müşteri Portalı'nı aç.",
+    "You already have a subscription; a new one can't be started. Open the Customer Portal to update your payment method or manage your subscription.",
   );
   warnIfStripeTestMode(config, "checkout");
   const current: SubscriptionState | null = await subscriptionState(db, userId);
@@ -457,7 +457,7 @@ export async function createCheckout(db: D1Database, platform: Platform, config:
     }),
   );
   if (session.url === null) {
-    throw new ProviderApiError("stripe", "upstream_unavailable", "Ödeme sayfası oluşturulamadı.");
+    throw new ProviderApiError("stripe", "upstream_unavailable", "Could not create the checkout page.");
   }
   log("info", "checkout_created", { userId, plan: request.plan, referral: referral !== null });
   return session.url;
@@ -482,7 +482,7 @@ export async function createPortal(db: D1Database, platform: Platform, config: C
     return `${config.siteOrigin}/account`;
   }
   if (customer === null) {
-    throw new ApiError("subscription_required", "Henüz bir aboneliğin yok.");
+    throw new ApiError("subscription_required", "You don't have a subscription yet.");
   }
   const stripe: Stripe = stripeClient(platform, config);
   const session: Stripe.BillingPortal.Session = await callStripe(platform, "billingPortal.sessions.create", userId, () =>
@@ -651,7 +651,7 @@ async function subscriptionEventStatements(
   const current: Stripe.Subscription | null = choice.current;
   if (current === null) {
     log("alert", "stripe_subscription_missing", { eventId: event.id, userId: owner.user_id, subscriptionId: subscription.id });
-    throw new ApiError("internal_error", "Müşterinin aboneliği Stripe'ta bulunamadı.");
+    throw new ApiError("internal_error", "The customer's subscription was not found in Stripe.");
   }
   for (const duplicate of choice.duplicates) {
     await markDuplicate(db, duplicate.id, owner.user_id, customer, current.created, platform.now().getTime());
@@ -1053,11 +1053,11 @@ export async function handleStripeWebhook(db: D1Database, platform: Platform, co
     );
   } catch (error: unknown) {
     log("warn", "stripe_webhook_rejected", { error: errorName(error) });
-    throw new ApiError("webhook_invalid", "Webhook imzası geçersiz.");
+    throw new ApiError("webhook_invalid", "Invalid webhook signature.");
   }
   if (event.livemode !== (config.stripeMode === "live")) {
     log("alert", "stripe_mode_mismatch", { eventId: event.id, type: event.type, eventLivemode: event.livemode, keyMode: config.stripeMode });
-    throw new ApiError("internal_error", "Stripe anahtarının modu webhook olayıyla uyuşmuyor.");
+    throw new ApiError("internal_error", "The Stripe key mode does not match the webhook event.");
   }
   const seen: { id: string } | null = await db.prepare("SELECT id FROM stripe_events WHERE id = ?").bind(event.id).first<{ id: string }>();
   if (seen !== null) {

@@ -266,12 +266,12 @@ async function insertFirstGrant(db: D1Database, meetingId: string, chargeSeconds
 
 /** Bütçe dolu hatası. */
 function budgetExhausted(): ApiError {
-  return new ApiError("deepgram_unavailable", "Bulut canlı metni şu an kullanılamıyor; canlı metin Mac'te üretilir.");
+  return new ApiError("deepgram_unavailable", "Cloud live transcript is unavailable right now; the live transcript is produced on the Mac.");
 }
 
 /** Toplantının jeton sınırı doldu hatası. */
 function grantLimitReached(): ApiError {
-  return new ApiError("deepgram_grant_limit", "Bu toplantıda bulut canlı metnine çok sık yeniden bağlanıldı; canlı metin Mac'te sürer.");
+  return new ApiError("deepgram_grant_limit", "Too many cloud live transcript reconnects in this meeting; the live transcript continues on the Mac.");
 }
 
 /**
@@ -358,7 +358,7 @@ export async function issueDeepgramGrant(db: D1Database, platform: Platform, con
     throw budgetExhausted();
   }
   if (meeting.ended_at !== null || now.getTime() >= meeting.max_ends_at) {
-    throw new ApiError("meeting_not_active", "Toplantı kaydı bitti; bulut canlı metni yalnızca kayıt sırasında kullanılır.");
+    throw new ApiError("meeting_not_active", "The meeting recording has ended; cloud live transcript is only available while recording.");
   }
   const limit: number = deepgramGrantLimit(meeting.kind);
   await settleDeepgramMeetings(db, now);

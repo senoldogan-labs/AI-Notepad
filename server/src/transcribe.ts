@@ -74,7 +74,7 @@ const keytermsJsonSchema = z.array(z.string());
  * (mesaj değer taşımaz; terimler loglanmaz). Saf fonksiyondur.
  */
 export function decodeKeytermsHeader(value: string): string[] {
-  const invalid: ApiError = new ApiError("invalid_body", "x-keyterms başlığı dolgusuz base64url ile kodlanmış bir JSON dizgi dizisi olmalı.");
+  const invalid: ApiError = new ApiError("invalid_body", "The x-keyterms header must be a JSON array of strings encoded as unpadded base64url.");
   if (!keytermsHeaderPattern.test(value)) {
     throw invalid;
   }
@@ -114,28 +114,28 @@ export function parseTranscribeParams(url: URL, keytermsHeader: string | null, m
   const allowed: ReadonlySet<string> = new Set(["language_code", "diarize", "keyterms"]);
   for (const key of url.searchParams.keys()) {
     if (!allowed.has(key)) {
-      throw new ApiError("invalid_body", `Bilinmeyen parametre: ${key}`);
+      throw new ApiError("invalid_body", `Unknown parameter: ${key}`);
     }
   }
   const language: string | null = url.searchParams.get("language_code");
   if (language !== null && !/^[a-z]{2,3}$/.test(language)) {
-    throw new ApiError("invalid_body", "language_code ISO 639-1 ya da 639-3 olmalı.");
+    throw new ApiError("invalid_body", "language_code must be ISO 639-1 or 639-3.");
   }
   const diarize: string | null = url.searchParams.get("diarize");
   if (diarize !== null && diarize !== "true" && diarize !== "false") {
-    throw new ApiError("invalid_body", "diarize true ya da false olmalı.");
+    throw new ApiError("invalid_body", "diarize must be true or false.");
   }
   // Sorgudaki `keyterms`: 0.1.4 Mac uygulaması uyumluluğu için.
   const queryKeyterms: string[] = url.searchParams.getAll("keyterms");
   if (keytermsHeader !== null && queryKeyterms.length > 0) {
-    throw new ApiError("invalid_body", "Anahtar terimler ya x-keyterms başlığında ya keyterms sorgu parametresinde gönderilmeli, ikisinde birden değil.");
+    throw new ApiError("invalid_body", "Send key terms either in the x-keyterms header or in the keyterms query parameter, not both.");
   }
   const keyterms: string[] = keytermsHeader === null ? queryKeyterms : decodeKeytermsHeader(keytermsHeader);
   if (keyterms.length > maxKeyterms) {
-    throw new ApiError("invalid_body", `En çok ${maxKeyterms} anahtar terim gönderilebilir.`);
+    throw new ApiError("invalid_body", `At most ${maxKeyterms} key terms can be sent.`);
   }
   if (keyterms.some((term: string): boolean => !keytermSchema.safeParse(term).success)) {
-    throw new ApiError("invalid_body", "Anahtar terimlerden biri geçersiz (en çok 49 karakter, 5 kelime; <>{}[]\\ yok).");
+    throw new ApiError("invalid_body", "A key term is invalid (at most 49 characters and 5 words; no <>{}[]\\).");
   }
   return { languageCode: language, diarize: diarize === "true", keyterms };
 }
@@ -144,7 +144,7 @@ export function parseTranscribeParams(url: URL, keytermsHeader: string | null, m
 export function audioContentType(header: string | null): string {
   const type: string = (header ?? "").split(";")[0]?.trim().toLowerCase() ?? "";
   if (!wavTypes.has(type) && !flacTypes.has(type)) {
-    throw new ApiError("unsupported_media_type", "Ses türü desteklenmiyor; yalnızca PCM WAV (audio/wav) ya da 16 kHz mono FLAC (audio/flac) kabul edilir.");
+    throw new ApiError("unsupported_media_type", "Unsupported audio type; only PCM WAV (audio/wav) or 16 kHz mono FLAC (audio/flac) is accepted.");
   }
   return type;
 }
@@ -161,7 +161,7 @@ export interface WavLayout {
 }
 
 function invalidWav(reason: string): ApiError {
-  return new ApiError("invalid_body", `WAV başlığı geçersiz: ${reason}.`);
+  return new ApiError("invalid_body", `Invalid WAV header: ${reason}.`);
 }
 
 /**
@@ -176,7 +176,7 @@ export function wavLayout(head: Uint8Array): WavLayout | null {
   const view: DataView = new DataView(head.buffer, head.byteOffset, head.byteLength);
   const tag = (offset: number): string => String.fromCharCode(...head.subarray(offset, offset + 4));
   if (tag(0) !== "RIFF" || tag(8) !== "WAVE") {
-    throw invalidWav("RIFF/WAVE değil");
+    throw invalidWav("not RIFF/WAVE");
   }
   let byteRate: number | null = null;
   let offset: number = 12;
@@ -185,7 +185,7 @@ export function wavLayout(head: Uint8Array): WavLayout | null {
     const size: number = view.getUint32(offset + 4, true);
     if (id === "data") {
       if (byteRate === null) {
-        throw invalidWav("data bölümü fmt bölümünden önce");
+        throw invalidWav("data chunk comes before fmt chunk");
       }
       return { dataOffset: offset + 8, byteRate };
     }
@@ -208,14 +208,14 @@ export function wavLayout(head: Uint8Array): WavLayout | null {
         [8, 16, 24, 32].includes(bits) &&
         declaredByteRate === (sampleRate * channels * bits) / 8;
       if (!valid) {
-        throw invalidWav("PCM değil ya da biçim tutarsız");
+        throw invalidWav("not PCM or inconsistent format");
       }
       byteRate = declaredByteRate;
     }
     offset += 8 + size + (size % 2);
   }
   if (offset > maxWavHeaderBytes) {
-    throw invalidWav("data bölümü bulunamadı");
+    throw invalidWav("data chunk not found");
   }
   return null;
 }
@@ -229,7 +229,7 @@ export interface FlacStreamInfo {
 }
 
 function invalidFlac(reason: string): ApiError {
-  return new ApiError("invalid_body", `FLAC başlığı geçersiz: ${reason}.`);
+  return new ApiError("invalid_body", `Invalid FLAC header: ${reason}.`);
 }
 
 /**
@@ -243,11 +243,11 @@ export function flacStreamInfo(head: Uint8Array): FlacStreamInfo | null {
   }
   const view: DataView = new DataView(head.buffer, head.byteOffset, head.byteLength);
   if (String.fromCharCode(...head.subarray(0, 4)) !== "fLaC") {
-    throw invalidFlac("fLaC imzası yok");
+    throw invalidFlac("missing fLaC signature");
   }
   // Blok başlığı: ilk bit "son blok" işareti, kalan 7 bit tür (0 = STREAMINFO), sonraki 3 bayt uzunluk.
   if ((view.getUint8(4) & 0x7f) !== 0 || (view.getUint32(4) & 0xffffff) !== 34) {
-    throw invalidFlac("ilk metadata bloğu STREAMINFO değil");
+    throw invalidFlac("first metadata block is not STREAMINFO");
   }
   const packed: number = view.getUint32(18);
   const info: FlacStreamInfo = {
@@ -257,16 +257,16 @@ export function flacStreamInfo(head: Uint8Array): FlacStreamInfo | null {
     totalSamples: (packed & 0x0f) * 2 ** 32 + view.getUint32(22),
   };
   if (info.sampleRate !== flacSampleRate) {
-    throw invalidFlac("örnekleme hızı 16 kHz değil");
+    throw invalidFlac("sample rate is not 16 kHz");
   }
   if (info.channels !== flacChannels) {
-    throw invalidFlac("ses mono değil");
+    throw invalidFlac("audio is not mono");
   }
   if (info.bitsPerSample !== flacBitsPerSample) {
-    throw invalidFlac("örnekler 16 bit değil");
+    throw invalidFlac("samples are not 16-bit");
   }
   if (info.totalSamples === 0) {
-    throw invalidFlac("toplam örnek sayısı bildirilmemiş");
+    throw invalidFlac("total sample count is not declared");
   }
   return info;
 }
@@ -327,8 +327,8 @@ function readWavHead(reader: ReadableStreamDefaultReader<Uint8Array>, declaredBy
       const layout: WavLayout | null = wavLayout(head);
       return layout === null ? null : Math.max(0, declaredBytes - layout.dataOffset) / layout.byteRate;
     },
-    invalidWav("data bölümü bulunamadı"),
-    invalidWav("dosya başlıktan önce bitti"),
+    invalidWav("data chunk not found"),
+    invalidWav("file ends before the header"),
   );
 }
 
@@ -339,7 +339,7 @@ function readWavHead(reader: ReadableStreamDefaultReader<Uint8Array>, declaredBy
  * ve alarm yazar (`transcription_overrun`).
  */
 function readFlacHead(reader: ReadableStreamDefaultReader<Uint8Array>, declaredBytes: number): Promise<AudioHead> {
-  const tooShort: ApiError = invalidFlac("dosya STREAMINFO'dan önce bitti");
+  const tooShort: ApiError = invalidFlac("file ends before STREAMINFO");
   return readHead(
     reader,
     Math.min(flacStreamInfoBytes, declaredBytes),
@@ -349,7 +349,7 @@ function readFlacHead(reader: ReadableStreamDefaultReader<Uint8Array>, declaredB
         return null;
       }
       if (declaredBytes > flacMaxBytes(info.totalSamples)) {
-        throw invalidFlac("dosya boyutu STREAMINFO'daki örnek sayısından büyük");
+        throw invalidFlac("file size exceeds the sample count in STREAMINFO");
       }
       return info.totalSamples / info.sampleRate;
     },
@@ -475,19 +475,19 @@ export async function proxyTranscription(
   const contentType: string = audioContentType(request.headers.get("content-type"));
   const lengthHeader: string | null = request.headers.get("content-length");
   if (lengthHeader === null || !/^\d+$/.test(lengthHeader)) {
-    throw new ApiError("length_required", "Content-Length başlığı gerekli.");
+    throw new ApiError("length_required", "The Content-Length header is required.");
   }
   const declaredBytes: number = Number(lengthHeader);
   if (declaredBytes > config.transcribe.maxBytes) {
-    throw new ApiError("payload_too_large", `Ses dosyası en çok ${config.transcribe.maxBytes} bayt olabilir.`);
+    throw new ApiError("payload_too_large", `The audio file can be at most ${config.transcribe.maxBytes} bytes.`);
   }
   if (declaredBytes === 0 || request.body === null) {
-    throw new ApiError("invalid_body", "Ses dosyası boş.");
+    throw new ApiError("invalid_body", "The audio file is empty.");
   }
   const now: Date = context.platform.now();
   const uploadKey: string | null = uploadKeyFrom(request.headers.get("x-upload-key"));
   if (meeting.transcription_closed !== 0) {
-    throw new ApiError("transcription_closed", "Bu toplantının ses işleme hakkı kapandı.");
+    throw new ApiError("transcription_closed", "Audio processing for this meeting is closed.");
   }
   const usdPerHour: number = config.transcribe.usdPerHour + (params.keyterms.length > 0 ? config.transcribe.keytermsUsdPerHour : 0);
   const reader: ReadableStreamDefaultReader<Uint8Array> = request.body.getReader();
@@ -631,7 +631,7 @@ async function sendToElevenLabs(
       return { ok: false, error: uploadError, uploaded: false };
     }
     log("error", "elevenlabs_failed", { userId: meeting.user_id, meetingId: meeting.id, error: errorName(error), uploaded });
-    return { ok: false, error: new ProviderApiError("elevenlabs", "upstream_unavailable", "Konuşma tanıma servisine ulaşılamadı; yeniden dene."), uploaded };
+    return { ok: false, error: new ProviderApiError("elevenlabs", "upstream_unavailable", "Could not reach the speech recognition service; try again."), uploaded };
   }
   if (!response.ok) {
     // Üst servis gövdeyi okumadan yanıt verdiyse gönderim kendiliğinden kesilir; beklemeden kaydı arka planda tamamla.
@@ -644,8 +644,8 @@ async function sendToElevenLabs(
     const upstream: UpstreamError = new UpstreamError("elevenlabs", response.status, isRetryableStatus(response.status), "yanıt başarısız");
     log("error", "elevenlabs_failed", { userId: meeting.user_id, meetingId: meeting.id, status: upstream.status, uploaded });
     const error: ApiError = upstream.retryable
-      ? new ProviderApiError("elevenlabs", "upstream_unavailable", "Konuşma tanıma servisi şu an yanıt vermiyor; yeniden dene.")
-      : new ProviderApiError("elevenlabs", "upstream_rejected", `Konuşma tanıma isteği reddedildi (durum ${upstream.status}).`);
+      ? new ProviderApiError("elevenlabs", "upstream_unavailable", "The speech recognition service is not responding right now; try again.")
+      : new ProviderApiError("elevenlabs", "upstream_rejected", `The speech recognition request was rejected (status ${upstream.status}).`);
     return { ok: false, error, uploaded };
   }
   // Başarılı yanıt gövdenin tamamı okunduktan sonra gelir; gönderim yine de başarısız olduysa yanıt kullanılmaz.
@@ -654,7 +654,7 @@ async function sendToElevenLabs(
     await response.body?.cancel();
     log("error", "elevenlabs_upload_failed_after_response", { userId: meeting.user_id, meetingId: meeting.id, error: errorName(uploadFailure) });
     const error: ApiError =
-      uploadFailure instanceof ApiError ? uploadFailure : new ProviderApiError("elevenlabs", "upstream_unavailable", "Konuşma tanıma servisine ses gönderilemedi; yeniden dene.");
+      uploadFailure instanceof ApiError ? uploadFailure : new ProviderApiError("elevenlabs", "upstream_unavailable", "Could not send audio to the speech recognition service; try again.");
     return { ok: false, error, uploaded: false };
   }
   let body: unknown;
@@ -662,12 +662,12 @@ async function sendToElevenLabs(
     body = await response.json();
   } catch (error: unknown) {
     log("error", "elevenlabs_malformed", { userId: meeting.user_id, meetingId: meeting.id, error: errorName(error) });
-    return { ok: false, error: new ProviderApiError("elevenlabs", "upstream_unavailable", "Konuşma tanıma yanıtı okunamadı."), uploaded: true };
+    return { ok: false, error: new ProviderApiError("elevenlabs", "upstream_unavailable", "Could not read the speech recognition response."), uploaded: true };
   }
   const parsed = transcriptionSchema.safeParse(body);
   if (!parsed.success) {
     log("error", "elevenlabs_malformed", { userId: meeting.user_id, meetingId: meeting.id });
-    return { ok: false, error: new ProviderApiError("elevenlabs", "upstream_unavailable", "Konuşma tanıma yanıtı okunamadı."), uploaded: true };
+    return { ok: false, error: new ProviderApiError("elevenlabs", "upstream_unavailable", "Could not read the speech recognition response."), uploaded: true };
   }
   return { ok: true, transcription: parsed.data };
 }
@@ -689,7 +689,7 @@ async function pipeAudio(
     await writer.write(prefix);
     let total: number = head.byteLength;
     if (total > declaredBytes) {
-      throw new ApiError("payload_too_large", "Ses dosyası bildirilen boyuttan büyük.");
+      throw new ApiError("payload_too_large", "The audio file is larger than the declared size.");
     }
     if (total > 0) {
       await writer.write(head);
@@ -701,12 +701,12 @@ async function pipeAudio(
       }
       total += value.byteLength;
       if (total > declaredBytes) {
-        throw new ApiError("payload_too_large", "Ses dosyası bildirilen boyuttan büyük.");
+        throw new ApiError("payload_too_large", "The audio file is larger than the declared size.");
       }
       await writer.write(value);
     }
     if (total !== declaredBytes) {
-      throw new ApiError("invalid_body", "Ses dosyası bildirilen boyuttan küçük.");
+      throw new ApiError("invalid_body", "The audio file is smaller than the declared size.");
     }
     await writer.write(suffix);
     await writer.close();

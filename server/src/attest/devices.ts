@@ -44,7 +44,7 @@ function decodeField(value: string, field: string): Uint8Array {
     return base64Decode(value);
   } catch (error: unknown) {
     if (error instanceof Base64Error) {
-      throw new ApiError("invalid_body", `${field} base64 değil.`);
+      throw new ApiError("invalid_body", `${field} is not base64.`);
     }
     throw error;
   }
@@ -71,7 +71,7 @@ async function consumeChallenge(db: D1Database, userId: string, purpose: Challen
     .bind(now.getTime(), await sha256Hex(challenge), userId, purpose, now.getTime())
     .first<{ challenge_hash: string }>();
   if (row === null) {
-    throw new ApiError("challenge_invalid", "Meydan okuma geçersiz, süresi dolmuş ya da kullanılmış.");
+    throw new ApiError("challenge_invalid", "The challenge is invalid, expired or already used.");
   }
 }
 
@@ -96,7 +96,7 @@ export async function registerDevice(
   } catch (error: unknown) {
     if (error instanceof AttestationError) {
       log("warn", "attestation_rejected", { userId, reason: error.message });
-      throw new ApiError("attestation_invalid", "Cihaz doğrulaması başarısız.");
+      throw new ApiError("attestation_invalid", "Device attestation failed.");
     }
     throw error;
   }
@@ -119,7 +119,7 @@ export async function registerDevice(
     )
     .run();
   if (inserted.meta.changes !== 1) {
-    throw new ApiError("attestation_invalid", "Bu cihaz anahtarı zaten kayıtlı.");
+    throw new ApiError("attestation_invalid", "This device key is already registered.");
   }
   log("info", "device_attested", { userId, category: attested.validationCategory });
   return deviceId;
@@ -150,11 +150,11 @@ export async function verifyDeviceAssertion(
   try {
     clientDataRaw = JSON.parse(decodeUtf8Strict(clientDataBytes));
   } catch {
-    throw new ApiError("assertion_invalid", "Cihaz onayı geçersiz.");
+    throw new ApiError("assertion_invalid", "Invalid device assertion.");
   }
   const clientData = clientDataSchema.safeParse(clientDataRaw);
   if (!clientData.success || clientData.data.action !== action) {
-    throw new ApiError("assertion_invalid", "Cihaz onayı bu işlem için değil.");
+    throw new ApiError("assertion_invalid", "The device assertion is not for this operation.");
   }
   await consumeChallenge(db, userId, "assert", clientData.data.challenge, now);
   const deviceId: string = base64Encode(decodeField(input.keyId, "keyId"));
@@ -163,7 +163,7 @@ export async function verifyDeviceAssertion(
     .bind(deviceId)
     .first<DeviceRow>();
   if (device === null || device.environment !== config.attest.environment) {
-    throw new ApiError("assertion_invalid", "Cihaz kayıtlı değil; cihazı yeniden doğrula.");
+    throw new ApiError("assertion_invalid", "The device is not registered; attest the device again.");
   }
   let verified: VerifiedAssertion;
   try {
@@ -177,7 +177,7 @@ export async function verifyDeviceAssertion(
   } catch (error: unknown) {
     if (error instanceof AttestationError) {
       log("warn", "assertion_rejected", { userId, reason: error.message });
-      throw new ApiError("assertion_invalid", "Cihaz onayı geçersiz.");
+      throw new ApiError("assertion_invalid", "Invalid device assertion.");
     }
     throw error;
   }
@@ -186,7 +186,7 @@ export async function verifyDeviceAssertion(
     .bind(verified.counter, now.getTime(), deviceId, verified.counter)
     .run();
   if (updated.meta.changes !== 1) {
-    throw new ApiError("assertion_invalid", "Cihaz onayı yeniden kullanıldı.");
+    throw new ApiError("assertion_invalid", "The device assertion was reused.");
   }
   return deviceId;
 }

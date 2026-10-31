@@ -64,7 +64,7 @@ export function requireSiteAnalytics(config: SiteAnalyticsConfig): ActiveSiteAna
     ...(config.token === null ? ["CF_ANALYTICS_TOKEN"] : []),
   ];
   if (config.accountId === null || config.siteTag === null || config.token === null) {
-    throw new ApiError("analytics_unavailable", `Site istatistikleri kapalı: sunucuda ${missing.join(", ")} girilmemiş.`);
+    throw new ApiError("analytics_unavailable", `Site analytics is off: ${missing.join(", ")} is not set on the server.`);
   }
   return { accountId: config.accountId, siteTag: config.siteTag, token: config.token };
 }

@@ -108,7 +108,7 @@ async function requirePendingDeferredLeft(db: D1Database, config: Config, userId
     .bind(userId, now.getTime() - config.meetingGraceMs)
     .first<{ count: number }>();
   if ((row?.count ?? 0) >= maxPendingDeferredMeetings) {
-    throw new ApiError("rate_limited", `Aynı anda en çok ${maxPendingDeferredMeetings} bekleyen kayıt işlenir; diğerleri biraz sonra işlenecek.`);
+    throw new ApiError("rate_limited", `At most ${maxPendingDeferredMeetings} pending recordings are processed at once; the rest will be processed shortly.`);
   }
 }
 
@@ -194,7 +194,7 @@ async function requireDailyStartLeft(db: D1Database, config: Config, userId: str
     .bind(userId, dayKey(now))
     .first<{ meetings_started: number }>();
   if ((row?.meetings_started ?? 0) >= config.maxMeetingStartsPerDay) {
-    throw new ApiError("daily_cap_reached", `Bugün en çok ${config.maxMeetingStartsPerDay} toplantı başlatılabilir; yarın yeniden dene.`);
+    throw new ApiError("daily_cap_reached", `At most ${config.maxMeetingStartsPerDay} meetings can be started per day; try again tomorrow.`);
   }
 }
 
@@ -231,7 +231,7 @@ export async function startMeeting(
   const usage: MonthlyUsage = await monthlyUsage(db, userId, now);
   const remainingSeconds: number = config.monthlyCapSeconds - usage.usedSeconds;
   if (remainingSeconds <= 0) {
-    throw new ApiError("monthly_cap_reached", "Bu ayki kullanım sınırına ulaştın; sınır ay başında sıfırlanır.");
+    throw new ApiError("monthly_cap_reached", "You have reached this month's usage limit; it resets at the start of the month.");
   }
   const meetingId: string = randomId();
   const maxMinutes: number = subscriberMeetingMaxMinutes(config, remainingSeconds);
@@ -255,7 +255,7 @@ export async function startMeeting(
     await requirePendingDeferredLeft(db, config, userId, request.deferred, now);
     await requireDailyStartLeft(db, config, userId, now);
     log("error", "meeting_insert_failed", { userId, kind: "subscription" });
-    throw new ApiError("internal_error", "Toplantı başlatılamadı; yeniden dene.");
+    throw new ApiError("internal_error", "Could not start the meeting; try again.");
   }
   log("info", "meeting_started", { userId, meetingId, kind: "subscription", attested: deviceId !== null });
   return {
@@ -307,7 +307,7 @@ async function requireTrialDevice(
     return;
   }
   if (deviceCheckToken === null) {
-    throw new ApiError("device_check_required", "Ücretsiz deneme için bu Mac'in Apple DeviceCheck jetonu gerekiyor; uygulamayı güncelle.");
+    throw new ApiError("device_check_required", "The free trial requires this Mac's Apple DeviceCheck token; update the app.");
   }
   const bits: DeviceBits = await queryDeviceBits(context.platform, deviceCheck, deviceCheckToken, now);
   if (bits.bit0 && row.claim_started_at !== null && now.getTime() - row.claim_started_at <= trialDeviceClaimResumeMs) {
@@ -318,7 +318,7 @@ async function requireTrialDevice(
   if (bits.bit0) {
     log("info", "trial_refused", { userId, attested: false, reason: "device_used" });
     await recordTrialRefusal(db, "device_used", now);
-    throw new ApiError("trial_device_used", "Bu Mac'te ücretsiz deneme daha önce başka bir hesapla kullanıldı. Devam etmek için abone ol.");
+    throw new ApiError("trial_device_used", "The free trial was already used on this Mac with another account. Subscribe to continue.");
   }
   await db
     .prepare("UPDATE users SET trial_device_claim_started_at = ? WHERE id = ? AND trial_device_verified_at IS NULL")
@@ -480,12 +480,12 @@ function trialRefusalReason(config: Config, trial: TrialState, deviceUsed: numbe
  */
 function trialRefusalError(config: Config, reason: Exclude<TrialRefusalReason, "device_used">): ApiError {
   if (reason === "exhausted") {
-    return new ApiError("trial_exhausted", "Ücretsiz deneme toplantıların bitti (hesap ya da bu cihaz için). Devam etmek için abone ol.");
+    return new ApiError("trial_exhausted", "Your free trial meetings are used up (for this account or this device). Subscribe to continue.");
   }
   if (reason === "expired") {
-    return new ApiError("trial_exhausted", `Ücretsiz deneme süren doldu (${config.trialDays} gün). Devam etmek için abone ol.`);
+    return new ApiError("trial_exhausted", `Your free trial has expired (${config.trialDays} days). Subscribe to continue.`);
   }
-  return new ApiError("trial_ip_limit", "Bu ağdan bugün çok fazla yeni deneme başlatıldı; yarın yeniden dene ya da abone ol.");
+  return new ApiError("trial_ip_limit", "Too many new trials were started from this network today; try again tomorrow or subscribe.");
 }
 
 /**
@@ -504,7 +504,7 @@ export async function endMeeting(db: D1Database, userId: string, meetingId: stri
     .run();
   const row: MeetingRow | null = await findMeeting(db, userId, meetingId);
   if (row === null) {
-    throw new ApiError("not_found", "Toplantı oturumu bulunamadı.");
+    throw new ApiError("not_found", "Meeting session not found.");
   }
   await settleDeepgramMeetings(db, now);
   log("info", "meeting_ended", { userId, meetingId, minutes: row.minutes, tokensUsed: row.tokens_used, audioSeconds: row.audio_seconds });
@@ -606,7 +606,7 @@ export interface ReprocessedMeeting {
 export async function reprocessMeeting(db: D1Database, config: Config, userId: string, meetingId: string, now: Date): Promise<ReprocessedMeeting> {
   const row: MeetingRow | null = await findMeeting(db, userId, meetingId);
   if (row === null) {
-    throw new ApiError("not_found", "Toplantı oturumu bulunamadı.");
+    throw new ApiError("not_found", "Meeting session not found.");
   }
   const nowMs: number = now.getTime();
   if (nowMs < meetingUsableUntil(row, config.meetingGraceMs) && row.audio_seconds <= 0) {
@@ -620,7 +620,7 @@ export async function reprocessMeeting(db: D1Database, config: Config, userId: s
   const hasAccess: boolean = hasSubscriptionAccess(subscription, now, config.pastDueGraceMs) || trialMeetingsLeft(trial, config, now) > 0;
   const endMs: number = Math.min(row.ended_at ?? row.max_ends_at, row.max_ends_at);
   if (!mayReprocess(hasAccess, endMs, nowMs, reprocessWithoutAccessMs)) {
-    throw new ApiError("subscription_required", "Aboneliğin ya da denemen olmadığı için bir haftadan eski toplantı yeniden işlenemez; abone olunca işlenebilir.");
+    throw new ApiError("subscription_required", "Meetings older than a week can't be reprocessed without a subscription or trial; subscribe to reprocess them.");
   }
   // Deneme toplantısının yeniden işlenmesi deneme harcaması açar: deneme tavanı doluysa ya da ElevenLabs kullanımı
   // deneme durağını geçtiyse (yeni deneme toplantısıyla aynı kural) hak harcanmadan 503.
@@ -640,7 +640,7 @@ export async function reprocessMeeting(db: D1Database, config: Config, userId: s
     .bind(until, audioCap, reprocessTokenBudget, meetingId, userId, maxMeetingReprocesses)
     .run();
   if (updated.meta.changes !== 1) {
-    throw new ApiError("reprocess_limit_reached", `Bu toplantı en çok ${maxMeetingReprocesses} kez yeniden işlenebilir.`);
+    throw new ApiError("reprocess_limit_reached", `This meeting can be reprocessed at most ${maxMeetingReprocesses} times.`);
   }
   log("info", "meeting_reprocess_opened", { userId, meetingId, count: row.reprocess_count + 1, hasAccess, audioCap });
   return { meetingId, usableUntil: new Date(until).toISOString(), reprocessesLeft: Math.max(0, maxMeetingReprocesses - row.reprocess_count - 1) };
@@ -650,7 +650,7 @@ export async function reprocessMeeting(db: D1Database, config: Config, userId: s
 export async function requireUsableMeeting(db: D1Database, config: Config, userId: string, meetingId: string, now: Date): Promise<MeetingRow> {
   const row: MeetingRow | null = await findMeeting(db, userId, meetingId);
   if (row === null || now.getTime() >= meetingUsableUntil(row, config.meetingGraceMs)) {
-    throw new ApiError("meeting_not_active", "Toplantı oturumu açık değil; yeni bir toplantı başlat.");
+    throw new ApiError("meeting_not_active", "The meeting session is not open; start a new meeting.");
   }
   return row;
 }

@@ -37,7 +37,7 @@ export async function requireCloudflareAccess(platform: Platform, access: Cloudf
   const token: string | null = request.headers.get(accessJwtHeader);
   if (token === null || token.length === 0) {
     log("warn", "cf_access_missing", {});
-    throw new ApiError("forbidden", "Bu işleme izin yok: Cloudflare Access doğrulaması gerekli.");
+    throw new ApiError("forbidden", "This operation is not allowed: Cloudflare Access verification is required.");
   }
   const issuer: IdentityTokenIssuer = {
     displayName: "Cloudflare Access",
@@ -58,7 +58,7 @@ export async function requireCloudflareAccess(platform: Platform, access: Cloudf
   } catch (error: unknown) {
     if (error instanceof joseErrors.JOSEError) {
       log("warn", "cf_access_invalid", { error: error.code });
-      throw new ApiError("forbidden", "Bu işleme izin yok: Cloudflare Access jetonu geçersiz.");
+      throw new ApiError("forbidden", "This operation is not allowed: the Cloudflare Access token is invalid.");
     }
     throw error;
   }

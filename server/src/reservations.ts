@@ -126,7 +126,7 @@ export function meetingTokenLimit(meetingId: string, now: Date): ReservationLimi
   return {
     remainingSql: `(SELECT token_budget - tokens_used FROM meeting_sessions WHERE id = ?) - ${activeSum("tokens", "meeting_id = ? AND kind = 'llm'")}`,
     binds: [meetingId, meetingId, now.getTime()],
-    error: new ApiError("meeting_budget_exhausted", "Bu toplantının yapay zekâ bütçesi doldu."),
+    error: new ApiError("meeting_budget_exhausted", "This meeting's AI budget is used up."),
   };
 }
 
@@ -136,7 +136,7 @@ export function monthlyTokenLimit(config: Config, userId: string, now: Date): Re
   return {
     remainingSql: `? - COALESCE((SELECT input_tokens + output_tokens FROM monthly_usage WHERE user_id = ? AND month = ?), 0) - ${activeSum("tokens", "user_id = ? AND month = ?")}`,
     binds: [config.monthlyTokenCap, userId, month, userId, month, now.getTime()],
-    error: new ApiError("monthly_cap_reached", "Bu ayki yapay zekâ kullanım sınırına ulaştın; sınır ay başında sıfırlanır."),
+    error: new ApiError("monthly_cap_reached", "You have reached this month's AI usage limit; it resets at the start of the month."),
   };
 }
 
@@ -146,7 +146,7 @@ export function dailyTokenLimit(config: Config, userId: string, now: Date): Rese
   return {
     remainingSql: `? - COALESCE((SELECT tokens_used FROM daily_usage WHERE user_id = ? AND day = ?), 0) - ${activeSum("tokens", "user_id = ? AND day = ?")}`,
     binds: [config.dailyTokenCap, userId, day, userId, day, now.getTime()],
-    error: new ApiError("daily_cap_reached", "Bugünkü yapay zekâ kullanım sınırına ulaştın; yarın yeniden dene."),
+    error: new ApiError("daily_cap_reached", "You have reached today's AI usage limit; try again tomorrow."),
   };
 }
 
@@ -156,7 +156,7 @@ export function trialAccountTokenLimit(config: Config, userId: string, now: Date
   return {
     remainingSql: `? - COALESCE((SELECT trial_account_tokens_used FROM daily_usage WHERE user_id = ? AND day = ?), 0) - ${activeSum("trial_account_tokens", "user_id = ? AND day = ?")}`,
     binds: [config.trialAccountDailyTokens, userId, day, userId, day, now.getTime()],
-    error: new ApiError("daily_cap_reached", "Denemede toplantı dışı yapay zekâ kullanımının bugünkü sınırına ulaştın; yarın yeniden dene ya da abone ol."),
+    error: new ApiError("daily_cap_reached", "You have reached today's trial limit for AI use outside meetings; try again tomorrow or subscribe."),
   };
 }
 
@@ -168,7 +168,7 @@ export function subscriberAccountTokenLimit(config: Config, userId: string, now:
     binds: [config.monthlyAccountTokenCap, userId, month, userId, month, now.getTime()],
     error: new ApiError(
       "monthly_cap_reached",
-      "Bu ayki toplantı dışı yapay zekâ kullanım sınırına ulaştın (Sor, not düzenleme); toplantılar sürer, sınır ay başında sıfırlanır.",
+      "You have reached this month's limit for AI use outside meetings (Ask, note editing); meetings continue, and the limit resets at the start of the month.",
     ),
   };
 }
@@ -184,7 +184,7 @@ export function meetingAudioLimit(meetingId: string): ReservationLimit {
   return {
     remainingSql: `(SELECT CASE WHEN transcription_closed = 0 THEN COALESCE(reprocess_audio_cap, ${total}) - audio_seconds ELSE 0 END FROM meeting_sessions WHERE id = ?)`,
     binds: [meetingId],
-    error: new ApiError("audio_too_long", "Ses bu toplantının kalan ses süresini aşıyor."),
+    error: new ApiError("audio_too_long", "The audio exceeds this meeting's remaining audio time."),
   };
 }
 
@@ -193,7 +193,7 @@ export function meetingAudioIdleLimit(meetingId: string, now: Date): Reservation
   return {
     remainingSql: "CASE WHEN EXISTS (SELECT 1 FROM usage_reservations WHERE meeting_id = ? AND kind = 'audio' AND expires_at > ?) THEN 0 ELSE 1 END",
     binds: [meetingId, now.getTime()],
-    error: new ApiError("transcription_in_progress", "Bu toplantının bir ses dosyası hâlâ işleniyor; bitince yeniden dene."),
+    error: new ApiError("transcription_in_progress", "An audio file for this meeting is still being processed; try again when it finishes."),
   };
 }
 
@@ -213,7 +213,7 @@ export function monthlyAudioLimit(config: Config, userId: string, meetingId: str
     remainingSql: `(SELECT p.cap - ${used} + ${headroom} + ${overlap}
       FROM (SELECT ? AS cap, ? AS user_id, ? AS month, ? AS now, ? AS month_start, ? AS meeting_id) p)`,
     binds: [config.monthlyCapSeconds, userId, monthKey(now), now.getTime(), monthStartMs(now), meetingId],
-    error: new ApiError("monthly_cap_reached", "Bu ayki kullanım sınırı bu kaydı işlemeye yetmiyor; sınır ay başında sıfırlanır."),
+    error: new ApiError("monthly_cap_reached", "This month's remaining usage limit isn't enough to process this recording; it resets at the start of the month."),
   };
 }
 

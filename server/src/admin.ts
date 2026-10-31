@@ -201,7 +201,7 @@ export async function requireAdmin(db: D1Database, config: Config, userId: strin
     return;
   }
   log("warn", "admin_forbidden", { userId });
-  throw new ApiError("forbidden", "Bu işleme izin yok.");
+  throw new ApiError("forbidden", "This operation is not allowed.");
 }
 
 /** Bugün dahil son `count` UTC günü, eskiden yeniye. Saf fonksiyondur. */

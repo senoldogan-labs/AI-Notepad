@@ -151,7 +151,7 @@ export type BlogPostInput = z.output<typeof blogPostInputSchema>;
 /** Yoldaki kısa adı doğrular; geçersizse `bad_request`. Saf fonksiyondur. */
 export function parseBlogSlug(value: string): string {
   if (value.length > blogSlugMaxLength || !blogSlugPattern.test(value)) {
-    throw new ApiError("bad_request", "Kısa ad küçük harf, rakam ve tirelerden oluşmalı (en çok 80 karakter).");
+    throw new ApiError("bad_request", "The slug must contain only lowercase letters, digits and hyphens (at most 80 characters).");
   }
   return value;
 }
@@ -160,7 +160,7 @@ export function parseBlogSlug(value: string): string {
 export function parseBlogSha(url: URL): string {
   const sha: string | null = url.searchParams.get("sha");
   if (sha === null || !shaPattern.test(sha)) {
-    throw new ApiError("bad_request", "sha sorgu değeri (dosyanın bilinen son sürümü) gerekli.");
+    throw new ApiError("bad_request", "The sha query parameter (the last known version of the file) is required.");
   }
   return sha;
 }
@@ -168,7 +168,7 @@ export function parseBlogSha(url: URL): string {
 /** Jeton girilmişse etkin yapılandırma; girilmemişse `blog_unavailable`. Saf fonksiyondur. */
 export function requireBlog(blog: BlogConfig): ActiveBlog {
   if (blog.token === null) {
-    throw new ApiError("blog_unavailable", "Blog yayını kapalı: sunucuda GITHUB_BLOG_TOKEN girilmemiş.");
+    throw new ApiError("blog_unavailable", "Blog publishing is off: GITHUB_BLOG_TOKEN is not set on the server.");
   }
   return { owner: blog.owner, repo: blog.repo, branch: blog.branch, token: blog.token };
 }
@@ -251,7 +251,7 @@ function stringValue(raw: string): string | null {
 
 /** Dosya okunamadı: kısa adı ve sorunu taşıyan `blog_post_invalid`. Saf fonksiyondur. */
 function invalidFile(slug: string, problem: string): ApiError {
-  return new ApiError("blog_post_invalid", `${blogDirectory}/${slug}.md okunamadı: ${problem}`);
+  return new ApiError("blog_post_invalid", `${blogDirectory}/${slug}.md: ${problem}`);
 }
 
 /**
@@ -271,11 +271,11 @@ function optionalScalar(values: ReadonlyMap<string, string>, key: "updated" | "c
  */
 export function parseBlogFile(slug: string, text: string): ParsedBlogFile {
   if (!text.startsWith("---\n")) {
-    throw invalidFile(slug, "ön bilgi `---` ile başlamıyor");
+    throw invalidFile(slug, "front matter does not start with `---`");
   }
   const end: number = text.indexOf("\n---\n", 3);
   if (end < 0) {
-    throw invalidFile(slug, "ön bilginin kapanış `---` satırı yok");
+    throw invalidFile(slug, "front matter has no closing `---` line");
   }
   const values: Map<string, string> = new Map();
   for (const line of text.slice(4, end + 1).split("\n")) {
@@ -285,10 +285,10 @@ export function parseBlogFile(slug: string, text: string): ParsedBlogFile {
     const match: RegExpExecArray | null = /^([A-Za-z]+):(?: +(.*?))? *$/.exec(line);
     const key: string | undefined = match?.[1];
     if (key === undefined || !Object.hasOwn(frontMatterShape, key)) {
-      throw invalidFile(slug, `desteklenmeyen ön bilgi satırı: ${line.slice(0, 60)}`);
+      throw invalidFile(slug, `unsupported front matter line: ${line.slice(0, 60)}`);
     }
     if (values.has(key)) {
-      throw invalidFile(slug, `${key} iki kez yazılmış`);
+      throw invalidFile(slug, `${key} appears twice`);
     }
     values.set(key, match?.[2] ?? "");
   }
@@ -306,11 +306,11 @@ export function parseBlogFile(slug: string, text: string): ParsedBlogFile {
   const parsed = frontMatterSchema.safeParse(candidate);
   if (!parsed.success) {
     const fields: string = [...new Set(parsed.error.issues.map((issue: z.core.$ZodIssue): string => issue.path.join(".")))].join(", ");
-    throw invalidFile(slug, `geçersiz alanlar: ${fields}`);
+    throw invalidFile(slug, `invalid fields: ${fields}`);
   }
   const body: string = normalizedBlogBody(text.slice(end + 5));
   if (body === "") {
-    throw invalidFile(slug, "gövde boş");
+    throw invalidFile(slug, "body is empty");
   }
   return { frontMatter: parsed.data, body };
 }
@@ -392,12 +392,12 @@ async function github(platform: Platform, blog: ActiveBlog, operation: string, m
   } catch (error: unknown) {
     if (error instanceof UpstreamError) {
       throw error.retryable
-        ? new ProviderApiError("github", "upstream_unavailable", `GitHub şu an yanıt vermiyor (durum ${error.status}); biraz sonra yeniden dene.`)
-        : new ProviderApiError("github", "upstream_rejected", `GitHub isteği reddetti (durum ${error.status}); jetonun bu depoda Contents okuma ve yazma yetkisini denetle.`);
+        ? new ProviderApiError("github", "upstream_unavailable", `GitHub is not responding right now (status ${error.status}); try again shortly.`)
+        : new ProviderApiError("github", "upstream_rejected", `GitHub rejected the request (status ${error.status}); check that the token has Contents read and write access to this repository.`);
     }
     if (error instanceof TypeError || isTimeoutError(error)) {
       log("warn", "github_unreachable", { operation, method, error: errorName(error) });
-      throw new ProviderApiError("github", "upstream_unavailable", "GitHub'a ulaşılamadı; biraz sonra yeniden dene.");
+      throw new ProviderApiError("github", "upstream_unavailable", "Could not reach GitHub; try again shortly.");
     }
     throw error;
   }
@@ -406,7 +406,7 @@ async function github(platform: Platform, blog: ActiveBlog, operation: string, m
 /** GitHub yanıtı beklenen biçimde değil: gövdenin başı uyarıyla loglanır, `upstream_unavailable`. */
 function invalidGithubResponse(reply: GithubReply, operation: string, problem: string): ProviderApiError {
   log("warn", "github_response_invalid", { operation, status: reply.status, problem, body: reply.text.slice(0, 300) });
-  return new ProviderApiError("github", "upstream_unavailable", "GitHub yanıtı beklenen biçimde değil.");
+  return new ProviderApiError("github", "upstream_unavailable", "The GitHub response is not in the expected format.");
 }
 
 /** GitHub yanıtını JSON olarak şemayla okur; beklenen biçimde değilse `invalidGithubResponse`. */
@@ -427,7 +427,7 @@ function githubJson<Schema extends z.ZodType>(schema: Schema, reply: GithubReply
 /** Beklenmeyen GitHub durumu (ör. kayıtta 404: depo ya da dal yok): uyarı loglanır, `upstream_rejected`. */
 function unexpectedGithubStatus(reply: GithubReply, operation: string): ProviderApiError {
   log("warn", "github_request_failed", { operation, status: reply.status, reason: reply.text.slice(0, 300) });
-  return new ProviderApiError("github", "upstream_rejected", `GitHub beklenmeyen bir yanıt verdi (durum ${reply.status}); GITHUB_BLOG_REPO ve GITHUB_BLOG_BRANCH'i denetle.`);
+  return new ProviderApiError("github", "upstream_rejected", `GitHub returned an unexpected response (status ${reply.status}); check GITHUB_BLOG_REPO and GITHUB_BLOG_BRANCH.`);
 }
 
 const contentsFileSchema = z.object({
@@ -494,7 +494,7 @@ async function readFile(platform: Platform, blog: ActiveBlog, slug: string): Pro
   try {
     text = decodeUtf8Strict(base64Decode(file.content.replace(/\s+/g, "")));
   } catch (error: unknown) {
-    throw invalidFile(slug, `içerik çözülemedi (${errorName(error)})`);
+    throw invalidFile(slug, `could not decode content (${errorName(error)})`);
   }
   return { sha: file.sha, text };
 }
@@ -530,7 +530,7 @@ export async function listBlogPosts(platform: Platform, blog: ActiveBlog, today:
   const tree = githubJson(treeSchema, reply, "list");
   if (tree.errors !== undefined && tree.errors.length > 0) {
     log("warn", "github_graphql_failed", { operation: "list", types: tree.errors.map((error): string => error.type ?? "unknown").join(","), reason: (tree.errors[0]?.message ?? "").slice(0, 200) });
-    throw new ProviderApiError("github", "upstream_rejected", "GitHub yazı listesini vermedi; jetonun yetkisini ve GITHUB_BLOG_REPO'yu denetle.");
+    throw new ProviderApiError("github", "upstream_rejected", "GitHub did not return the post list; check the token's permissions and GITHUB_BLOG_REPO.");
   }
   const repository = tree.data?.repository ?? null;
   if (repository === null) {
@@ -542,11 +542,11 @@ export async function listBlogPosts(platform: Platform, blog: ActiveBlog, today:
     .map((entry): BlogPostSummary => {
       const slug: string = entry.name.slice(0, -3);
       if (slug.length > blogSlugMaxLength || !blogSlugPattern.test(slug)) {
-        throw invalidFile(slug, "dosya adı geçerli bir kısa ad değil");
+        throw invalidFile(slug, "file name is not a valid slug");
       }
       const text: string | null | undefined = entry.object?.text;
       if (text === null || text === undefined || entry.object?.isTruncated === true) {
-        throw invalidFile(slug, "metin okunamadı");
+        throw invalidFile(slug, "could not read the text");
       }
       return blogSummaryOf(slug, entry.oid, parseBlogFile(slug, text).frontMatter, today);
     })
@@ -557,7 +557,7 @@ export async function listBlogPosts(platform: Platform, blog: ActiveBlog, today:
 export async function getBlogPost(platform: Platform, blog: ActiveBlog, slug: string, today: string): Promise<BlogPost> {
   const file: RepoFile | null = await readFile(platform, blog, slug);
   if (file === null) {
-    throw new ApiError("not_found", "Böyle bir yazı yok.");
+    throw new ApiError("not_found", "No such post.");
   }
   return blogPostOf(slug, file.sha, parseBlogFile(slug, file.text), today);
 }
@@ -570,10 +570,10 @@ export async function getBlogPost(platform: Platform, blog: ActiveBlog, slug: st
 export async function saveBlogPost(platform: Platform, blog: ActiveBlog, slug: string, input: BlogPostInput, today: string): Promise<SavedBlogPost> {
   const current: RepoFile | null = await readFile(platform, blog, slug);
   if (input.sha === null && current !== null) {
-    throw new ApiError("blog_post_exists", "Bu kısa adla bir yazı zaten var.");
+    throw new ApiError("blog_post_exists", "A post with this slug already exists.");
   }
   if (input.sha !== null && (current === null || current.sha !== input.sha)) {
-    throw new ApiError("blog_conflict", "Yazı sen açtıktan sonra değişmiş ya da silinmiş; yeniden yükleyip dene.");
+    throw new ApiError("blog_conflict", "The post changed or was deleted after you opened it; reload and try again.");
   }
   const frontMatter: BlogFrontMatter = {
     title: input.title,
@@ -592,7 +592,7 @@ export async function saveBlogPost(platform: Platform, blog: ActiveBlog, slug: s
     ...(input.sha === null ? {} : { sha: input.sha }),
   });
   if (reply.status === 409) {
-    throw new ApiError("blog_conflict", "Yazı sen açtıktan sonra değişmiş; yeniden yükleyip dene.");
+    throw new ApiError("blog_conflict", "The post changed after you opened it; reload and try again.");
   }
   if (reply.status !== 200 && reply.status !== 201) {
     throw unexpectedGithubStatus(reply, "write");
@@ -664,7 +664,7 @@ const createCommitSchema = z.object({
 /** GraphQL hatası: türleri ve ilk mesajı uyarıyla loglanır, `upstream_rejected`. */
 function graphqlRejected(operation: string, errors: ReadonlyArray<{ readonly type?: string | undefined; readonly message: string }>): ProviderApiError {
   log("warn", "github_graphql_failed", { operation, types: errors.map((error): string => error.type ?? "unknown").join(","), reason: (errors[0]?.message ?? "").slice(0, 200) });
-  return new ProviderApiError("github", "upstream_rejected", "GitHub isteği reddetti; jetonun yetkisini ve GITHUB_BLOG_REPO'yu denetle.");
+  return new ProviderApiError("github", "upstream_rejected", "GitHub rejected the request; check the token's permissions and GITHUB_BLOG_REPO.");
 }
 
 /**
@@ -689,12 +689,12 @@ async function readDeletionState(platform: Platform, blog: ActiveBlog, slug: str
   }
   const folder = target.images;
   if (folder !== null && folder.type !== "tree") {
-    throw new ApiError("blog_post_invalid", `${imageFolderPath(slug)} bir klasör değil; depoda elle düzelt.`);
+    throw new ApiError("blog_post_invalid", `${imageFolderPath(slug)} is not a folder; fix it manually in the repository.`);
   }
   const entries: ReadonlyArray<{ readonly name: string; readonly type: string }> = folder?.object?.entries ?? [];
   const nested: string | undefined = entries.find((entry): boolean => entry.type !== "blob")?.name;
   if (nested !== undefined) {
-    throw new ApiError("blog_post_invalid", `${imageFolderPath(slug)}/${nested} dosya değil; görsel klasöründe alt klasör olamaz, depoda elle temizle.`);
+    throw new ApiError("blog_post_invalid", `${imageFolderPath(slug)}/${nested} is not a file; the image folder can't contain subfolders, clean it up manually in the repository.`);
   }
   return { headOid: target.oid, postOid: target.post?.oid ?? null, images: entries.map((entry): string => entry.name) };
 }
@@ -753,17 +753,17 @@ export async function deleteBlogPost(platform: Platform, blog: ActiveBlog, slug:
   for (let attempt: number = 1; attempt <= deletionAttempts; attempt += 1) {
     const state: DeletionState = await readDeletionState(platform, blog, slug);
     if (state.postOid === null) {
-      throw new ApiError("not_found", "Böyle bir yazı yok.");
+      throw new ApiError("not_found", "No such post.");
     }
     if (state.postOid !== sha) {
-      throw new ApiError("blog_conflict", "Yazı sen açtıktan sonra değişmiş; yeniden yükleyip dene.");
+      throw new ApiError("blog_conflict", "The post changed after you opened it; reload and try again.");
     }
     if ((await commitDeletion(platform, blog, slug, state)) === "committed") {
       return state.images.length;
     }
     log("warn", "blog_delete_stale_head", { slug, attempt });
   }
-  throw new ApiError("blog_conflict", "Depo silme sırasında sürekli değişti; biraz sonra yeniden dene.");
+  throw new ApiError("blog_conflict", "The repository kept changing during the delete; try again shortly.");
 }
 
 /** Görsel adı: küçük harf, rakam ve tire, `.webp` uzantılı; en çok 80 karakter (yazının klasöründe). */
@@ -793,7 +793,7 @@ export interface SavedBlogImage {
 /** Yoldaki görsel adını doğrular; geçersizse `bad_request`. Saf fonksiyondur. */
 export function parseBlogImageName(value: string): string {
   if (value.length > blogImageNameMaxLength || !blogImageNamePattern.test(value)) {
-    throw new ApiError("bad_request", "Görsel adı küçük harf, rakam ve tirelerden oluşmalı ve .webp ile bitmeli (en çok 80 karakter).");
+    throw new ApiError("bad_request", "The image name must contain only lowercase letters, digits and hyphens and end with .webp (at most 80 characters).");
   }
   return value;
 }
@@ -831,7 +831,7 @@ function littleEndian(bytes: Uint8Array, offset: number, length: number): number
  */
 export function webpDimensions(bytes: Uint8Array): ImageDimensions {
   if (bytes.length < 30 || !hasTag(bytes, 0, "RIFF") || !hasTag(bytes, 8, "WEBP") || littleEndian(bytes, 4, 4) + 8 !== bytes.length) {
-    throw new ApiError("unsupported_media_type", "Görsel WebP değil (RIFF/WEBP imzası yok ya da dosya eksik).");
+    throw new ApiError("unsupported_media_type", "The image is not WebP (missing RIFF/WEBP signature or truncated file).");
   }
   if (hasTag(bytes, 12, "VP8 ")) {
     return { width: littleEndian(bytes, 26, 2) & 0x3fff, height: littleEndian(bytes, 28, 2) & 0x3fff };
@@ -843,7 +843,7 @@ export function webpDimensions(bytes: Uint8Array): ImageDimensions {
   if (hasTag(bytes, 12, "VP8X")) {
     return { width: littleEndian(bytes, 24, 3) + 1, height: littleEndian(bytes, 27, 3) + 1 };
   }
-  throw new ApiError("unsupported_media_type", "Görsel WebP değil (ilk parça VP8, VP8L ya da VP8X değil).");
+  throw new ApiError("unsupported_media_type", "The image is not WebP (first chunk is not VP8, VP8L or VP8X).");
 }
 
 /**
@@ -854,11 +854,11 @@ export function webpDimensions(bytes: Uint8Array): ImageDimensions {
 export function decodeBlogImage(data: string): DecodedBlogImage {
   const bytes: Uint8Array = base64Decode(data);
   if (bytes.length > blogImageMaxBytes) {
-    throw new ApiError("payload_too_large", `Görsel en çok ${blogImageMaxBytes} bayt olabilir (gelen ${bytes.length}).`);
+    throw new ApiError("payload_too_large", `The image can be at most ${blogImageMaxBytes} bytes (received ${bytes.length}).`);
   }
   const dimensions: ImageDimensions = webpDimensions(bytes);
   if (dimensions.width === 0 || dimensions.height === 0 || dimensions.width > blogImageMaxWidth) {
-    throw new ApiError("invalid_body", `Görsel en çok ${blogImageMaxWidth} piksel genişlikte olmalı (gelen ${dimensions.width}×${dimensions.height}).`);
+    throw new ApiError("invalid_body", `The image must be at most ${blogImageMaxWidth} pixels wide (received ${dimensions.width}×${dimensions.height}).`);
   }
   return { bytes, dimensions };
 }
@@ -871,12 +871,12 @@ export function decodeBlogImage(data: string): DecodedBlogImage {
  */
 export async function saveBlogImage(platform: Platform, blog: ActiveBlog, slug: string, name: string, image: DecodedBlogImage): Promise<SavedBlogImage> {
   if ((await readFile(platform, blog, slug)) === null) {
-    throw new ApiError("not_found", "Böyle bir yazı yok; görsel eklemeden önce yazıyı kaydet.");
+    throw new ApiError("not_found", "No such post; save the post before adding images.");
   }
   const repoPath: string = `${imageFolderPath(slug)}/${name}`;
   const existing: GithubReply = await github(platform, blog, "image_read", "GET", `${contentsUrl(blog, repoPath)}?ref=${encodeURIComponent(blog.branch)}`, null);
   if (existing.status === 200) {
-    throw new ApiError("blog_image_exists", "Bu yazıda bu adla bir görsel zaten var; başka bir ad seç.");
+    throw new ApiError("blog_image_exists", "This post already has an image with this name; choose another name.");
   }
   if (existing.status !== 404) {
     throw unexpectedGithubStatus(existing, "image_read");
@@ -887,7 +887,7 @@ export async function saveBlogImage(platform: Platform, blog: ActiveBlog, slug: 
     branch: blog.branch,
   });
   if (reply.status === 409) {
-    throw new ApiError("blog_conflict", "Depo yükleme sırasında değişti; yeniden dene.");
+    throw new ApiError("blog_conflict", "The repository changed during the upload; try again.");
   }
   if (reply.status !== 201) {
     throw unexpectedGithubStatus(reply, "image_write");
