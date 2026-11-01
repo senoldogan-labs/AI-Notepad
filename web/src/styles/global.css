@@ -877,3 +877,37 @@ p {
   border-radius: 6px;
   background: var(--soft);
 }
+
+/* Kalıcı pencere (<dialog>): hesap silme onayı ve indirme cihaz denetimi (MacOnlyDialog.astro). */
+.dialog {
+  width: min(460px, 100% - 32px);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--elevation);
+}
+
+.dialog::backdrop {
+  background: light-dark(rgb(10 10 10 / 0.4), rgb(0 0 0 / 0.6));
+}
+
+.dialog__form {
+  display: grid;
+  gap: 16px;
+  padding: 28px;
+}
+
+.dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+@media (max-width: 560px) {
+  .dialog__actions .button {
+    flex: 1 1 auto;
+  }
+}

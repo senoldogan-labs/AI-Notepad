@@ -5,6 +5,7 @@ import "../styles/global.css";
 import Footer from "../components/Footer.astro";
 import Header from "../components/Header.astro";
 import PullReveal from "../components/PullReveal.astro";
+import MacOnlyDialog from "../components/MacOnlyDialog.astro";
 import { productName } from "../config";
 import { copy, type CommonCopy, type PageMeta } from "../copy";
 import type { SocialCard } from "../lib/social";
@@ -105,6 +106,7 @@ const hreflangLinks: ReadonlyArray<{ readonly lang: string; readonly href: strin
       <Footer text={common} featuresHref={featuresHref} lang={lang} />
     </div>
     <PullReveal />
+    <MacOnlyDialog text={common} />
   </body>
 </html>
 
