@@ -39,6 +39,15 @@ func serverDirectory() -> URL {
         #expect(try serverArray(source: telemetry, name: "telemetryExportFormats") == TelemetryExportFormat.allCases.map(\.rawValue))
         #expect(try serverArray(source: telemetry, name: "telemetryLanguages") == ShareLanguage.allCases.map(\.rawValue))
     }
+
+    // İlk açılış hunisinin adımları ve ayrıntıları sunucunun dizileriyle birebir aynı olmalı: eksik değer
+    // `invalid_body` alır (adım sayılmaz).
+    @Test func funnelListsMatchServer() throws {
+        let funnel: String = try String(contentsOf: serverDirectory().appending(path: "src/funnel.ts"), encoding: .utf8)
+        #expect(try serverArray(source: funnel, name: "funnelSteps") == HostedFunnelStepKind.allCases.map(\.rawValue))
+        #expect(try serverArray(source: funnel, name: "funnelSignInProviders") == HostedSignInProvider.allCases.map(\.rawValue))
+        #expect(try serverArray(source: funnel, name: "funnelFailureStages") == HostedSignInFailureStage.allCases.map(\.rawValue))
+    }
 }
 
 /// Sunucu kaynağındaki `export const <ad> = [ ... ] as const;` dizisinin dizgeleri (sırasıyla).

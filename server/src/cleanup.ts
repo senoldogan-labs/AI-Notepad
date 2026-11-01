@@ -126,7 +126,7 @@ function cleanupTargets(now: Date): CleanupTarget[] {
     { name: "client_event_durations", table: "client_event_durations", where: "day < ?", binds: [dayKey(new Date(nowMs - aggregateCounterRetentionMs))] },
     { name: "feature_usage_daily", table: "feature_usage_daily", where: "day < ?", binds: [dayKey(new Date(nowMs - aggregateCounterRetentionMs))] },
     { name: "subscription_cancellations", table: "subscription_cancellations", where: "created_at < ?", binds: [nowMs - cancellationRetentionMs] },
-    // Günlük toplamlar (token kovaları, konuşma tanıma dilleri, indirme kampanyaları) sayaçlar gibi 400 gün.
+    // Günlük toplamlar (token kovaları, konuşma tanıma dilleri, indirme kampanyaları, ilk açılış hunisi) sayaçlar gibi 400 gün.
     { name: "llm_usage_daily", table: "llm_usage_daily", where: "day < ?", binds: [dayKey(new Date(nowMs - aggregateCounterRetentionMs))] },
     {
       name: "transcription_languages_daily",
@@ -135,6 +135,7 @@ function cleanupTargets(now: Date): CleanupTarget[] {
       binds: [dayKey(new Date(nowMs - aggregateCounterRetentionMs))],
     },
     { name: "download_campaigns", table: "download_campaigns", where: "day < ?", binds: [dayKey(new Date(nowMs - aggregateCounterRetentionMs))] },
+    { name: "app_funnel_daily", table: "app_funnel_daily", where: "day < ?", binds: [dayKey(new Date(nowMs - aggregateCounterRetentionMs))] },
     { name: "daily_metrics", table: "daily_metrics", where: "day < ?", binds: [dayKey(new Date(nowMs - dailyMetricsRetentionMs))] },
     { name: "daily_revenue_metrics", table: "daily_revenue_metrics", where: "day < ?", binds: [dayKey(new Date(nowMs - dailyMetricsRetentionMs))] },
     // Gelir: önce eski faturaların iadeleri (yabancı anahtar), sonra iadesi kalmamış eski faturalar.

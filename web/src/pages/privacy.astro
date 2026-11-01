@@ -1,6 +1,6 @@
 ---
 // Gizlilik politikası. Gerçek davranışa dayanır: sunucu (server/README.md, server/src/account.ts, cleanup.ts,
-// transcribe.ts, deepgram.ts, llm/, auth/, billing.ts, referrals.ts, trialLedger.ts, deviceCheck.ts, telemetry.ts, migrations/, wrangler.jsonc), abonelik uygulaması
+// transcribe.ts, deepgram.ts, llm/, auth/, billing.ts, referrals.ts, trialLedger.ts, deviceCheck.ts, telemetry.ts, funnel.ts, migrations/, wrangler.jsonc), abonelik uygulaması
 // (App/Hosted: canlı metin Deepgram'la, kapasite dolunca ya da bağlantı yoksa Mac'te; iCloud eşitlemesi yok, güncellemeler
 // GitHub'dan; sürüm başlıkları, yapay zekâ isteğinin amacı ve Ayarlar › Genel'den kapatılabilen kullanım
 // istatistikleri) ve bu sitenin tarayıcı depolaması (public/theme.js,
@@ -84,7 +84,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       <li>
         The Mac app tells our server its version and the macOS version, and which feature each AI request is for. Unless
         you turn off “Share anonymous usage statistics” in its settings, it also sends daily reliability and
-        feature-usage counts. None of this contains meeting content (see section 6).
+        feature-usage counts, and reports its first launch and the steps of signing in. None of this contains meeting
+        content (see section 6).
       </li>
       <li>
         You can delete your account yourself at any time; the data on our server is deleted immediately, except a few
@@ -265,8 +266,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
           <tr>
             <td>
               <strong>Usage statistics.</strong> Only while “Share anonymous usage statistics” is on in the Mac app:
-              reliability and performance counts and a daily summary of which features were used, stored as daily totals
-              not linked to any account (see section 6). No meeting content
+              reliability and performance counts, a daily summary of which features were used, and the app's first launch
+              and sign-in steps, stored as daily totals not linked to any account (see section 6). No meeting content
             </td>
             <td>Finding and fixing reliability problems, measuring performance, deciding which features to improve, planning capacity and cost</td>
             <td>(f) legitimate interest in operating and improving the service; you can object by turning the setting off</td>
@@ -365,6 +366,13 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         used and its target language, whether Ask was used, how many times each integration type (for example Slack,
         Notion or Apple Notes) and each export format (for example PDF or Markdown) was used, whether your meeting archive
         was accessed over MCP, and whether the live transcript ran on your Mac.
+      </li>
+      <li>
+        <strong>First launch and sign-in steps:</strong> once, the first time the app is opened, and when you sign in:
+        that the sign-in window was opened, closed, failed (and at which stage: the window didn't open, the sign-in
+        return was rejected, our server refused the sign-in, or a network error) or completed, with the sign-in provider
+        (Apple or Google). Each step is sent with the app version, also before you have an account, and counted per day
+        without any identifier. Your IP address is used only to rate-limit these requests and is not stored.
       </li>
     </ul>
     <p>

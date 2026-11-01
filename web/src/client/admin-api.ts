@@ -225,6 +225,30 @@ export interface ProblemWindow {
 /** Huninin adımı (`subscribed_via_invite` ve `canceled` `subscribed`'ın alt kümesidir). */
 export type FunnelStep = "downloads" | "accounts" | "first_meeting" | "first_note" | "three_meetings" | "subscribed" | "subscribed_via_invite" | "canceled";
 
+/** Uygulamanın ilk açılış hunisinin adımı (sunucu `funnel.ts` `funnelSteps`). */
+export type FirstRunStep = "first_launch" | "sign_in_started" | "sign_in_canceled" | "sign_in_failed" | "signed_in";
+
+/** İlk açılış adımının ayrıntıyla sayısı (ayrıntı: sağlayıcı, başarısızlık aşaması ya da ilk açılışta boş). */
+export interface FirstRunCount {
+  readonly step: FirstRunStep;
+  readonly detail: string;
+  readonly count: number;
+}
+
+/** Bir günün ilk açılışları ve uygulamadan tamamlanan girişleri. */
+export interface FirstRunDay {
+  readonly day: string;
+  readonly firstLaunches: number;
+  readonly signedIn: number;
+}
+
+/** Son 30 günün ilk açılış hunisi: adımlar sunucunun sabit sırasıyla, günler eskiden yeniye. */
+export interface FirstRunFunnel {
+  readonly days: number;
+  readonly steps: readonly FirstRunCount[];
+  readonly byDay: readonly FirstRunDay[];
+}
+
 /** Son iptal (Unix ms). */
 export interface RecentCancellation {
   readonly userId: string;
@@ -263,6 +287,7 @@ export interface Insights {
   readonly generatedAt: number;
   readonly problems: { readonly last7Days: ProblemWindow; readonly last30Days: ProblemWindow };
   readonly funnel: { readonly days: number; readonly steps: readonly { readonly step: FunnelStep; readonly count: number }[] };
+  readonly firstRun: FirstRunFunnel;
   readonly downloads: { readonly total: number; readonly bySource: readonly DetailCount[]; readonly byReferrerHost: readonly DetailCount[] };
   readonly cancellations: {
     readonly total: number;
@@ -678,6 +703,7 @@ function nullableObjectField(object: JsonObject, key: string, response: RawRespo
 
 const segments: readonly UserSegment[] = ["subscribed", "past_due", "canceled", "trial", "free", "invited", "no_meeting", "trial_ended", "inactive", "failed"];
 const funnelSteps: readonly FunnelStep[] = ["downloads", "accounts", "first_meeting", "first_note", "three_meetings", "subscribed", "subscribed_via_invite", "canceled"];
+const firstRunSteps: readonly FirstRunStep[] = ["first_launch", "sign_in_started", "sign_in_canceled", "sign_in_failed", "signed_in"];
 const userInvites: readonly UserInvite[] = ["invited", "free_month"];
 const inviteStatuses: readonly InviteStatus[] = ["checkout", "joined", "qualified", "granted", "capped", "void"];
 const providers: readonly UserProvider[] = ["apple", "google"];
@@ -904,6 +930,7 @@ export function parseInsights(response: RawResponse, path: string): Insights {
   const body: JsonObject = parseObject(response, path);
   const problems: JsonObject = objectField(body, "problems", response, path);
   const funnel: JsonObject = objectField(body, "funnel", response, path);
+  const firstRun: JsonObject = objectField(body, "firstRun", response, path);
   const downloads: JsonObject = objectField(body, "downloads", response, path);
   const cancellations: JsonObject = objectField(body, "cancellations", response, path);
   const invites: JsonObject = objectField(body, "invites", response, path);
@@ -919,6 +946,23 @@ export function parseInsights(response: RawResponse, path: string): Insights {
         step: literalField(item, "step", funnelSteps, response, path),
         count: numberField(item, "count", response, path),
       })),
+    },
+    firstRun: {
+      days: numberField(firstRun, "days", response, path),
+      steps: objectArrayField(firstRun, "steps", response, path).map(
+        (item: JsonObject): FirstRunCount => ({
+          step: literalField(item, "step", firstRunSteps, response, path),
+          detail: stringField(item, "detail", response, path),
+          count: numberField(item, "count", response, path),
+        }),
+      ),
+      byDay: objectArrayField(firstRun, "byDay", response, path).map(
+        (item: JsonObject): FirstRunDay => ({
+          day: dayField(item, response, path),
+          firstLaunches: numberField(item, "firstLaunches", response, path),
+          signedIn: numberField(item, "signedIn", response, path),
+        }),
+      ),
     },
     downloads: {
       total: numberField(downloads, "total", response, path),

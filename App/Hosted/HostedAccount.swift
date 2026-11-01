@@ -713,8 +713,10 @@ final class HostedAccount {
         } catch {
             accountLogger.error("Giriş başlatılamadı, hata: \(String(describing: error), privacy: .private)")
             errorMessage = userFacingMessage(error: error)
+            reportHostedFunnel(step: .signInFailed(.window))
             return
         }
+        reportHostedFunnel(step: .signInStarted(provider))
         pendingBrowserSignIn = attempt
         pendingSignInProvider = provider
         defer {
@@ -728,6 +730,7 @@ final class HostedAccount {
             switch try await runWebSignIn(page: page) {
             case .canceled:
                 accountLogger.info("Giriş penceresi kapatıldı")
+                reportHostedFunnel(step: .signInCanceled(provider))
                 return
             case .callback(let url):
                 callbackURL = url
@@ -738,6 +741,7 @@ final class HostedAccount {
         } catch {
             accountLogger.error("Giriş penceresi açılamadı, hata: \(String(describing: error), privacy: .private)")
             errorMessage = userFacingMessage(error: error)
+            reportHostedFunnel(step: .signInFailed(.window))
             return
         }
         let callback: HostedBrowserSignInCallback
@@ -746,6 +750,7 @@ final class HostedAccount {
         } catch {
             accountLogger.error("Giriş dönüşü reddedildi, hata: \(String(describing: error), privacy: .private)")
             errorMessage = userFacingMessage(error: error)
+            reportHostedFunnel(step: .signInFailed(.callback))
             return
         }
         let picture: URL?
@@ -757,13 +762,20 @@ final class HostedAccount {
             picture = nil
         }
         await perform { (client: HostedClient) async throws -> Void in
-            try await endPreviousSession(client: client)
-            switch callback.provider {
-            case .apple:
-                try await client.signInWithApple(identityToken: callback.identityToken, nonce: callback.rawNonce)
-            case .google:
-                try await client.signInWithGoogle(identityToken: callback.identityToken, nonce: callback.rawNonce)
+            do {
+                try await endPreviousSession(client: client)
+                switch callback.provider {
+                case .apple:
+                    try await client.signInWithApple(identityToken: callback.identityToken, nonce: callback.rawNonce)
+                case .google:
+                    try await client.signInWithGoogle(identityToken: callback.identityToken, nonce: callback.rawNonce)
+                }
+            } catch {
+                // Hata `perform`'da kullanıcıya gösterilir; burada yalnızca huninin aşaması bildirilip yeniden fırlatılır.
+                reportHostedFunnel(step: .signInFailed(hostedSignInFailureStage(error: error)))
+                throw error
             }
+            reportHostedFunnel(step: .signedIn(callback.provider))
             if let userID = try await client.signedInUserID() {
                 saveHostedAvatar(picture: picture, userId: userID)
             }
@@ -1189,6 +1201,11 @@ final class HostedAccount {
         }
         await refresh()
     }
+}
+
+/// İlk açılış hunisinin adımını arka planda bildirir; giriş ve arayüz beklemez (bkz. `HostedTelemetryCenter.send`).
+private func reportHostedFunnel(step: HostedFunnelStep) {
+    Task { @MainActor in await HostedTelemetryCenter.shared.send(funnel: step) }
 }
 
 /// Kayıt başında sunucu oturumunun sonucu.

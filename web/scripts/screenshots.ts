@@ -550,6 +550,25 @@ function fixtures(now: Date): Readonly<Record<string, object>> {
           { step: "canceled", count: 3 },
         ],
       },
+      // İlk açılış hunisi: indirenlerin bir kısmı uygulamayı açar; açanların bir kısmı girişi dener, pencereyi kapatır
+      // ya da hata alır.
+      firstRun: {
+        days: 30,
+        steps: [
+          { step: "first_launch", detail: "", count: 236 },
+          { step: "sign_in_started", detail: "apple", count: 121 },
+          { step: "sign_in_started", detail: "google", count: 84 },
+          { step: "sign_in_canceled", detail: "apple", count: 22 },
+          { step: "sign_in_canceled", detail: "google", count: 9 },
+          { step: "sign_in_failed", detail: "window", count: 1 },
+          { step: "sign_in_failed", detail: "callback", count: 2 },
+          { step: "sign_in_failed", detail: "server", count: 3 },
+          { step: "sign_in_failed", detail: "network", count: 4 },
+          { step: "signed_in", detail: "apple", count: 96 },
+          { step: "signed_in", detail: "google", count: 72 },
+        ],
+        byDay: days.map((day: string, index: number) => ({ day, firstLaunches: wave(index, 8), signedIn: wave(index + 3, 6) })),
+      },
       downloads: {
         total: 412,
         bySource: [
@@ -1092,6 +1111,10 @@ async function capturePages(browser: Browser, base: string, outDir: string, find
         await capture(page, outDir, `${shot}-preview`, findings);
       }
       // Analiz görünümleri kabuğun içinde kayar: alttaki bölümler (tablolar) ayrı bir görüntüde.
+      if (target.name === "admin-growth") {
+        await page.evaluate((): void => document.getElementById("growth-first-run")?.scrollIntoView({ block: "start" }));
+        await capture(page, outDir, `${shot}-firstrun`, findings);
+      }
       if (["admin", "admin-revenue", "admin-growth", "admin-engagement", "admin-reliability", "admin-costs"].includes(target.name)) {
         await page.evaluate((): void => document.querySelector(".console__main")?.scrollTo(0, 100_000));
         await capture(page, outDir, `${shot}-bottom`, findings);

@@ -29,6 +29,7 @@ import { type Column, numberColumn, textColumn } from "../lib/admin-table";
 import { routes } from "../routes";
 import { clientCopy } from "../client/copy";
 import { type AdminInviteCopy, adminInviteCopy } from "../client/admin-invites-copy";
+import { type AdminFirstRunCopy, adminFirstRunCopy } from "../client/admin-first-run-copy";
 import { type AdminBlogCopy, adminBlogCopy } from "../client/admin-blog-copy";
 import { type AdminLayoutCopy, type AdminView, type NavGroup, adminLayoutCopy, navGroups } from "../client/admin-layout-copy";
 import { type AdminProductCopy, adminProductCopy } from "../client/admin-product-copy";
@@ -38,6 +39,7 @@ import { type AdminTelemetryCopy, adminTelemetryCopy, countEventKinds, durationE
 const text: AdminCopy = copy.admin;
 const layout: AdminLayoutCopy = adminLayoutCopy;
 const inviteText: AdminInviteCopy = adminInviteCopy;
+const firstRunText: AdminFirstRunCopy = adminFirstRunCopy;
 const blogText: AdminBlogCopy = adminBlogCopy;
 const productText: AdminProductCopy = adminProductCopy;
 const trendsText: AdminTrendsCopy = adminTrendsCopy;
@@ -487,6 +489,23 @@ const legendPlans: { readonly main: string; readonly accent: string } = { main: 
                   { id: "today", label: facts.refusals.today },
                 ]}
               />
+            </Section>
+
+            <Section id="growth-first-run" title={sections.firstRun.title} description={sections.firstRun.description}>
+              <TablePanel
+                id="insights-first-run"
+                title={firstRunText.title}
+                hint={firstRunText.hint}
+                columns={[textColumn(firstRunText.columns.step), numberColumn(firstRunText.columns.count), numberColumn(firstRunText.columns.rate)]}
+                span={8}
+                empty={null}
+                note={null}
+                scroll={false}
+              />
+              <div class="span-4 stack">
+                <ChartPanel id="first-launches" title={firstRunText.charts.firstLaunches} hint={null} span={4} legend={null} size="small" />
+                <ChartPanel id="first-run-signed-in" title={firstRunText.charts.signedIn} hint={null} span={4} legend={null} size="small" />
+              </div>
             </Section>
 
             <Section id="growth-acquisition" title={sections.acquisition.title} description={sections.acquisition.description}>

@@ -132,7 +132,7 @@ describe("süresi dolmuş satırların temizliği", () => {
         `INSERT INTO subscription_cancellations (stripe_subscription_id, user_id, created_at, event_created, reason) VALUES
            ('sub_c_old', ?1, ?2, 0, 'cancellation_requested'), ('sub_c_new', ?1, ?3, 0, 'cancellation_requested')`,
       ).bind(first, nowMs - 181 * dayMs, nowMs - 179 * dayMs),
-      // Günlük toplamlar 400 gün; anlık görüntü 5 yıl; gelir kayıtları 10 yıl (önce eski faturaların iadeleri).
+      // Günlük toplamlar (ilk açılış hunisi dahil) 400 gün; anlık görüntü 5 yıl; gelir kayıtları 10 yıl (önce eski faturaların iadeleri).
       env.DB.prepare("INSERT INTO llm_usage_daily (day, bucket, calls, streamed_calls, input_tokens, output_tokens) VALUES (?, 'meeting_note', 1, 1, 1, 1), (?, 'meeting_note', 1, 1, 1, 1)").bind(
         day(-401),
         day(-399),
@@ -141,6 +141,10 @@ describe("süresi dolmuş satırların temizliği", () => {
         "INSERT INTO transcription_languages_daily (day, requested, detected, requests, audio_seconds) VALUES (?, 'auto', 'tur', 1, 1), (?, 'auto', 'tur', 1, 1)",
       ).bind(day(-401), day(-399)),
       env.DB.prepare("INSERT INTO download_campaigns (day, utm_source, utm_campaign, count) VALUES (?, 'reddit', '', 1), (?, 'reddit', '', 1)").bind(day(-401), day(-399)),
+      env.DB.prepare("INSERT INTO app_funnel_daily (day, step, detail, app_version, count) VALUES (?, 'first_launch', '', '0.1.11 (20)', 1), (?, 'first_launch', '', '0.1.11 (20)', 1)").bind(
+        day(-401),
+        day(-399),
+      ),
       dailyMetricsRow(day(-1827)),
       dailyMetricsRow(day(-1825)),
       env.DB.prepare("INSERT INTO daily_revenue_metrics (day, currency, mrr_cents, paying_subscriptions) VALUES (?, 'usd', 1, 1), (?, 'usd', 1, 1)").bind(day(-1827), day(-1825)),
@@ -191,6 +195,7 @@ describe("süresi dolmuş satırların temizliği", () => {
       llm_usage_daily: 1,
       transcription_languages_daily: 1,
       download_campaigns: 1,
+      app_funnel_daily: 1,
       daily_metrics: 1,
       daily_revenue_metrics: 1,
       revenue_refunds: 1,
@@ -200,6 +205,7 @@ describe("süresi dolmuş satırların temizliği", () => {
     expect(await ids("SELECT day AS id FROM llm_usage_daily")).toEqual([day(-399)]);
     expect(await ids("SELECT day AS id FROM transcription_languages_daily")).toEqual([day(-399)]);
     expect(await ids("SELECT day AS id FROM download_campaigns")).toEqual([day(-399)]);
+    expect(await ids("SELECT day AS id FROM app_funnel_daily")).toEqual([day(-399)]);
     expect(await ids("SELECT day AS id FROM daily_metrics")).toEqual([day(-1825)]);
     expect(await ids("SELECT day AS id FROM daily_revenue_metrics")).toEqual([day(-1825)]);
     expect(await ids("SELECT invoice_id AS id FROM revenue_invoices")).toEqual(["in_recent"]);

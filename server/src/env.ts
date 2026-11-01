@@ -9,6 +9,8 @@ export interface Env {
   readonly DEEPGRAM_USER_LIMITER: RateLimit;
   /** `POST /v1/telemetry` ve `/v1/telemetry/features`: kullanıcı başına dakikada 6 (ayrıca günde 200, bkz. `telemetry.ts`). */
   readonly TELEMETRY_USER_LIMITER: RateLimit;
+  /** `POST /v1/funnel` (ilk açılış hunisi, jetonsuz): IP başına dakikada 20 (bkz. `funnel.ts`). */
+  readonly FUNNEL_IP_LIMITER: RateLimit;
 
   readonly ENVIRONMENT: string;
   readonly SITE_ORIGIN: string;
