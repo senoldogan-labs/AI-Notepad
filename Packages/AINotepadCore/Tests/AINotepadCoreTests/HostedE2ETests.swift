@@ -378,6 +378,27 @@ private func silentFlac(directory: URL) throws -> URL {
         #expect(try await !user.client.sendFeatureUsage(body: try hostedFeatureUsageBody(usage: usage)))
     }
 
+    // İlk açılış hunisi: oturumsuz istemcinin her adımı (`POST /v1/funnel`, jetonsuz) günün, ayrıntının ve uygulama
+    // sürümünün sayacına bir ekler.
+    @Test func funnelStepsCountedWithoutAccountAgainstLocalServer() async throws {
+        let baseURL: URL = try localServerBase()
+        let client: HostedClient = HostedClient(clientInfo: e2eClientInfo, baseURL: baseURL, storage: MemoryTokenStorage(tokens: nil)) { () async -> Void in }
+        #expect(try await !client.isSignedIn())
+        let steps: [HostedFunnelStep] = [
+            .firstLaunch,
+            .signInStarted(.google),
+            .signInCanceled(.apple),
+            .signInFailed(.callback),
+            .signedIn(.google),
+        ]
+        for step in steps {
+            let countSQL: String = "SELECT count FROM app_funnel_daily WHERE day = '\(utcDayKey())' AND step = '\(step.kind.rawValue)' AND detail = '\(step.detail)' AND app_version = '\(e2eClientInfo.appVersion)';"
+            let before: Int = try localD1Rows(sql: countSQL, as: EventCountRow.self).first?.count ?? 0
+            try await client.sendFunnelStep(step: step)
+            #expect(try localD1Rows(sql: countSQL, as: EventCountRow.self).first?.count == before + 1, "\(step.kind.rawValue) sayılmadı")
+        }
+    }
+
     @Test func reportsAcceptedWithAndWithoutAccountAgainstLocalServer() async throws {
         let baseURL: URL = try localServerBase()
         let diagnostics: ReportDiagnostics = currentReportDiagnostics(bundle: .main, platformName: "macOS")

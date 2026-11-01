@@ -529,7 +529,7 @@ private struct UsageStatisticsRow: View {
 
     var body: some View {
         SettingsRow(title: Text("Anonim kullanım istatistiklerini paylaş")) {
-            Text("Açıkken uygulama günde bir kez hangi özellikleri kullandığını (canlı çeviri, Sor, bağlantı ve dışa aktarma türleri) ve bağlantı kopması, not hatası gibi güvenilirlik sayılarını gönderir; bunlar hesabına bağlanmaz. Ses, metin, not, başlık ya da ad asla gönderilmez. Uygulama ve macOS sürümü ile yapay zekâ isteklerinin hangi özellik için olduğu, hizmetin işleyişi için her durumda gönderilir.")
+            Text("Açıkken uygulama günde bir kez hangi özellikleri kullandığını (canlı çeviri, Sor, bağlantı ve dışa aktarma türleri) ve bağlantı kopması, not hatası gibi güvenilirlik sayılarını gönderir; ilk açılışı ve giriş adımlarını (pencere açıldı, kapatıldı, hata verdi, tamamlandı) da sayar. Bunlar hesabına bağlanmaz. Ses, metin, not, başlık ya da ad asla gönderilmez. Uygulama ve macOS sürümü ile yapay zekâ isteklerinin hangi özellik için olduğu, hizmetin işleyişi için her durumda gönderilir.")
         } control: {
             Toggle("Anonim kullanım istatistiklerini paylaş", isOn: $shareUsageStatistics).settingsToggle()
         }
