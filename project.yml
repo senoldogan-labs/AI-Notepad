@@ -1,6 +1,9 @@
 name: AINotepad
 options:
   bundleIdPrefix: com.senoldogan
+  # Tek dosya kaynakları (ör. eklentideki iOS/Shared/RecordingIntents.swift) klasör ağacındaki
+  # gruplarına yerleşir; aksi halde aynı grup iki üst gruba girer ve Xcode 27 projeyi açmaz.
+  createIntermediateGroups: true
   # Kaynak metinler Türkçe; İngilizce çeviriler App/Localizable.xcstrings'te.
   developmentLanguage: tr
   deploymentTarget:
