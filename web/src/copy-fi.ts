@@ -47,6 +47,7 @@ export const commonFi: CommonCopy = {
     cookies: "Evästeet",
     pullThanks: "Kiitos, kun kuuntelit.",
     copyright: `© 2026 ${operator.name}`,
+    language: "Kieli",
   },
   lastUpdated: "Päivitetty",
   contents: "Tällä sivulla",

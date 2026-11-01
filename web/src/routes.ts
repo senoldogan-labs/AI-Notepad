@@ -51,23 +51,40 @@ export const routes: Readonly<Record<PageKey, string>> = {
  */
 export const indexedPages: readonly PageKey[] = ["home", "fi", "pricing", "download", "compare", "vsGranola", "vsOtter", "blog", "mcp", "contact", "privacy", "terms"];
 
+/** Sitenin dilleri (`<html lang>`, `hreflang`). */
+export type SiteLang = "en" | "fi";
+
 /**
- * Aynı sayfanın öbür dildeki hâli: `hreflang` bağlantıları, üst çubuktaki dil bağlantısı ve paylaşım kartının dili
- * bundan üretilir. Yalnızca çevrilmiş sayfaların eşi vardır.
+ * Aynı sayfanın öbür dildeki hâli: `hreflang` bağlantıları ve paylaşım kartının dili bundan üretilir. Yalnızca
+ * çevrilmiş sayfaların eşi vardır.
  */
 export interface PageAlternate {
   readonly page: PageKey;
   /** Öbür sürümün dili (`<html lang>` ve `hreflang`). */
-  readonly lang: "en" | "fi";
-  /** Dil bağlantısının metni, öbür sürümün dilinde. */
-  readonly label: string;
+  readonly lang: SiteLang;
 }
 
 /** Sayfaların dil eşleri. */
 export const pageAlternates: Readonly<Partial<Record<PageKey, PageAlternate>>> = {
-  home: { page: "fi", lang: "fi", label: "Suomeksi" },
-  fi: { page: "home", lang: "en", label: "In English" },
+  home: { page: "fi", lang: "fi" },
+  fi: { page: "home", lang: "en" },
 };
+
+/** Alt bilgideki dil seçiminin bir dili: o dilin ana sayfası ve kendi dilindeki adı. */
+export interface SiteLanguage {
+  readonly lang: SiteLang;
+  readonly page: PageKey;
+  readonly label: string;
+}
+
+/**
+ * Alt bilgideki dil seçimi. Site İngilizce ve dünyanın her yerine yazılır; öbür diller ek sürümdür, bu yüzden dil
+ * bağlantısı üst çubukta değil alt bilgidedir. Yeni bir dil buraya ve `pageAlternates`'e eklenir.
+ */
+export const siteLanguages: readonly SiteLanguage[] = [
+  { lang: "en", page: "home", label: "English" },
+  { lang: "fi", page: "fi", label: "Suomi" },
+];
 
 /** Önbelleğe alınmayan kişiye özel sayfalar. */
 export const privatePages: readonly PageKey[] = ["account", "admin"];
