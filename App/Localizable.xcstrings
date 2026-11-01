@@ -15968,13 +15968,13 @@
         }
       }
     },
-    "Açıkken uygulama günde bir kez hangi özellikleri kullandığını (canlı çeviri, Sor, bağlantı ve dışa aktarma türleri) ve bağlantı kopması, not hatası gibi güvenilirlik sayılarını gönderir; bunlar hesabına bağlanmaz. Ses, metin, not, başlık ya da ad asla gönderilmez. Uygulama ve macOS sürümü ile yapay zekâ isteklerinin hangi özellik için olduğu, hizmetin işleyişi için her durumda gönderilir.": {
+    "Açıkken uygulama günde bir kez hangi özellikleri kullandığını (canlı çeviri, Sor, bağlantı ve dışa aktarma türleri) ve bağlantı kopması, not hatası gibi güvenilirlik sayılarını gönderir; ilk açılışı ve giriş adımlarını (pencere açıldı, kapatıldı, hata verdi, tamamlandı) da sayar. Bunlar hesabına bağlanmaz. Ses, metin, not, başlık ya da ad asla gönderilmez. Uygulama ve macOS sürümü ile yapay zekâ isteklerinin hangi özellik için olduğu, hizmetin işleyişi için her durumda gönderilir.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "When on, the app sends once a day which features you used (live translation, Ask, integration and export types) and reliability counts such as connection drops and note errors; these are not linked to your account. Audio, transcripts, notes, titles or names are never sent. The app and macOS version and which feature each AI request is for are always sent, because the service needs them."
+            "value": "When on, the app sends once a day which features you used (live translation, Ask, integration and export types) and reliability counts such as connection drops and note errors, and it counts the first launch and each sign-in step (window opened, closed, failed, finished). None of this is linked to your account. Audio, transcripts, notes, titles or names are never sent. The app and macOS version and which feature each AI request is for are always sent, because the service needs them."
           }
         }
       }
