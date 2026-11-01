@@ -205,7 +205,7 @@ export async function requireSpendHeadroom(db: D1Database, config: Config, now: 
   if (await firstCeilingRefusalToday(db, "ceiling_alerted_at", now)) {
     log("alert", "daily_spend_ceiling_reached", { day: dayKey(now), spentMicroUsd: spent, ceilingMicroUsd: config.dailySpendCeilingMicroUsd });
   }
-  throw new ApiError("spend_ceiling_reached", "Servis bugün yoğun; şu an yeni istek alınamıyor. Lütfen daha sonra yeniden dene.");
+  throw new ApiError("spend_ceiling_reached", "The service is busy today and can't accept new requests right now. Please try again later.");
 }
 
 /**
@@ -224,5 +224,5 @@ export async function requireTrialSpendHeadroom(db: D1Database, config: Config, 
   if (await firstCeilingRefusalToday(db, "trial_ceiling_alerted_at", now)) {
     log("alert", "daily_trial_spend_ceiling_reached", { day: dayKey(now), spentMicroUsd: spent, ceilingMicroUsd: config.dailyTrialSpendCeilingMicroUsd });
   }
-  throw new ApiError("trial_capacity_reached", "Ücretsiz denemeler bugün kapasitede; yarın yeniden dene ya da abone ol.");
+  throw new ApiError("trial_capacity_reached", "Free trials are at capacity today; try again tomorrow or subscribe.");
 }

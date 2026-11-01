@@ -143,7 +143,7 @@ export function allowedCorsOrigin(origin: string | null, path: string, siteOrigi
 function preflight(request: Request, path: string, siteOrigin: string): Response {
   const origin: string | null = allowedCorsOrigin(request.headers.get("origin"), path, siteOrigin);
   if (origin === null) {
-    return finalizeResponse(errorResponse(new ApiError("forbidden", "Bu kaynaktan erişime izin yok.")), null);
+    return finalizeResponse(errorResponse(new ApiError("forbidden", "Access from this origin is not allowed.")), null);
   }
   const response: Response = new Response(null, {
     status: 204,
@@ -160,7 +160,7 @@ function preflight(request: Request, path: string, siteOrigin: string): Response
 async function enforceLimit(limiter: RateLimit, key: string): Promise<void> {
   const outcome: RateLimitOutcome = await limiter.limit({ key });
   if (!outcome.success) {
-    throw new ApiError("rate_limited", "Çok fazla istek; biraz bekleyip yeniden dene.");
+    throw new ApiError("rate_limited", "Too many requests; wait a moment and try again.");
   }
 }
 
@@ -191,7 +191,7 @@ async function withMeetingFailures(
 function meetingIdHeader(request: Request): string {
   const value: string | null = optionalMeetingIdHeader(request);
   if (value === null) {
-    throw new ApiError("bad_request", "x-meeting-id başlığı (toplantı oturumu kimliği) gerekli.");
+    throw new ApiError("bad_request", "The x-meeting-id header (meeting session ID) is required.");
   }
   return value;
 }
@@ -203,7 +203,7 @@ function optionalMeetingIdHeader(request: Request): string | null {
     return null;
   }
   if (!z.uuid().safeParse(value).success) {
-    throw new ApiError("bad_request", "x-meeting-id başlığı geçerli bir toplantı oturumu kimliği olmalı.");
+    throw new ApiError("bad_request", "The x-meeting-id header must be a valid meeting session ID.");
   }
   return value;
 }
@@ -222,7 +222,7 @@ function deviceKeyIdHeader(request: Request): string | null {
     return base64Encode(base64Decode(value));
   } catch (error: unknown) {
     if (error instanceof Base64Error) {
-      throw new ApiError("bad_request", "x-device-key-id base64 olmalı.");
+      throw new ApiError("bad_request", "The x-device-key-id header must be base64.");
     }
     throw error;
   }
@@ -273,7 +273,7 @@ const referralValidateSchema = z.strictObject({ code: z.string().min(1).max(32) 
 async function checkoutRequest(request: Request): Promise<CheckoutRequest> {
   if (request.headers.get("content-type") === null) {
     if ((await readBodyBytes(request, smallBodyBytes)).byteLength > 0) {
-      throw new ApiError("unsupported_media_type", "İstek gövdesi application/json olmalı.");
+      throw new ApiError("unsupported_media_type", "The request body must be application/json.");
     }
     return { plan: "monthly", referralCode: null };
   }
@@ -368,7 +368,7 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
     const body = await readJsonBody(request, meetingStartSchema, smallBodyBytes);
     if (body.device === undefined && config.attest.policy === "required") {
-      throw new ApiError("attestation_required", "Bu sürüm cihaz doğrulaması (App Attest) gerektiriyor.");
+      throw new ApiError("attestation_required", "This version requires device attestation (App Attest).");
     }
     const deviceId: string | null =
       body.device === undefined ? null : await verifyDeviceAssertion(db, context.platform, config, user.userId, "meetings.start", body.device);
@@ -538,7 +538,7 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     return routeAdmin(request, env, config, context, path, await authed(), now);
   }
 
-  throw new ApiError("not_found", "Böyle bir uç yok.");
+  throw new ApiError("not_found", "No such endpoint.");
 }
 
 const adminReportPath: RegExp = /^\/v1\/admin\/reports\/([0-9a-f-]{36})$/;
@@ -649,7 +649,7 @@ async function routeAdmin(request: Request, env: Env, config: Config, context: R
     await setReportStatus(db, reportMatch[1], body.status);
     return new Response(null, { status: 204 });
   }
-  throw new ApiError("not_found", "Böyle bir uç yok.");
+  throw new ApiError("not_found", "No such endpoint.");
 }
 
 /**
@@ -663,14 +663,14 @@ async function stripeWebhook(request: Request, env: Env, context: RequestContext
   } catch (error: unknown) {
     if (error instanceof ConfigError) {
       log("alert", "stripe_webhook_config_invalid", { fields: error.fields.join(",") });
-      return finalizeResponse(errorResponse(new ApiError("internal_error", "Sunucu yapılandırması eksik.")), null);
+      return finalizeResponse(errorResponse(new ApiError("internal_error", "Server configuration is incomplete.")), null);
     }
     throw error;
   }
   try {
     const signature: string | null = request.headers.get("stripe-signature");
     if (signature === null) {
-      throw new ApiError("webhook_invalid", "Stripe-Signature başlığı gerekli.");
+      throw new ApiError("webhook_invalid", "The Stripe-Signature header is required.");
     }
     const payload: string = new TextDecoder().decode(await readBodyBytes(request, webhookBodyBytes));
     const result: { duplicate: boolean } = await handleStripeWebhook(env.DB, context.platform, config, payload, signature);
@@ -682,7 +682,7 @@ async function stripeWebhook(request: Request, env: Env, context: RequestContext
       return finalizeResponse(errorResponse(error), null);
     }
     log("error", "unhandled_error", { path: "/v1/billing/webhook", error: errorName(error) });
-    return finalizeResponse(errorResponse(new ApiError("internal_error", "Beklenmeyen bir sunucu hatası oluştu.")), null);
+    return finalizeResponse(errorResponse(new ApiError("internal_error", "An unexpected server error occurred.")), null);
   }
 }
 
@@ -699,7 +699,7 @@ export async function handleRequest(request: Request, env: Env, context: Request
   } catch (error: unknown) {
     if (error instanceof ConfigError) {
       log("error", "config_invalid", { error: error.name, fields: error.fields.join(",") });
-      return finalizeResponse(errorResponse(new ApiError("internal_error", "Sunucu yapılandırması eksik.")), null);
+      return finalizeResponse(errorResponse(new ApiError("internal_error", "Server configuration is incomplete.")), null);
     }
     throw error;
   }
@@ -718,9 +718,9 @@ export async function handleRequest(request: Request, env: Env, context: Request
     }
     if (error instanceof UpstreamError) {
       log("error", "upstream_failed", { path, service: error.service, status: error.status });
-      return finalizeResponse(errorResponse(new ApiError("upstream_unavailable", "Bağlı bir servis şu an yanıt vermiyor; biraz sonra yeniden dene.")), corsOrigin);
+      return finalizeResponse(errorResponse(new ApiError("upstream_unavailable", "A connected service is not responding right now; try again shortly.")), corsOrigin);
     }
     log("error", "unhandled_error", { path, error: errorName(error) });
-    return finalizeResponse(errorResponse(new ApiError("internal_error", "Beklenmeyen bir sunucu hatası oluştu.")), corsOrigin);
+    return finalizeResponse(errorResponse(new ApiError("internal_error", "An unexpected server error occurred.")), corsOrigin);
   }
 }

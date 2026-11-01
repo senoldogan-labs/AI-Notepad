@@ -55,7 +55,7 @@ async function fetchJwks(platform: Platform, issuer: IdentityTokenIssuer, attemp
   const response: Response = await fetchUpstream(platform, issuer.jwksService, issuer.jwksUrl, (): RequestInit => ({ method: "GET" }), attempts, timeoutMs);
   const parsed = jwksSchema.safeParse(await response.json());
   if (!parsed.success) {
-    throw new ProviderApiError(issuer.jwksService, "upstream_unavailable", `${issuer.displayName} anahtarları okunamadı.`);
+    throw new ProviderApiError(issuer.jwksService, "upstream_unavailable", `Could not read ${issuer.displayName} keys.`);
   }
   return jwksFromParsed(parsed.data);
 }
@@ -81,7 +81,7 @@ export function tokenKeyId(identityToken: string, issuer: IdentityTokenIssuer): 
     header = decodeProtectedHeader(identityToken);
   } catch (error: unknown) {
     if (error instanceof TypeError || error instanceof joseErrors.JOSEError) {
-      throw new ApiError("invalid_token", `${issuer.displayName} kimlik jetonu geçersiz.`);
+      throw new ApiError("invalid_token", `Invalid ${issuer.displayName} identity token.`);
     }
     throw error;
   }
@@ -211,17 +211,17 @@ export async function verifyIdentityToken(
     payload = verified.payload;
   } catch (error: unknown) {
     if (error instanceof joseErrors.JOSEError) {
-      throw new ApiError("invalid_token", `${issuer.displayName} kimlik jetonu geçersiz.`);
+      throw new ApiError("invalid_token", `Invalid ${issuer.displayName} identity token.`);
     }
     throw error;
   }
   const claims = claimsSchema.safeParse(payload);
   if (!claims.success) {
-    throw new ApiError("invalid_token", `${issuer.displayName} kimlik jetonu beklenen alanları içermiyor.`);
+    throw new ApiError("invalid_token", `The ${issuer.displayName} identity token is missing expected fields.`);
   }
   const expectedNonce: string = await sha256Hex(rawNonce);
   if (!(await constantTimeEqualText(claims.data.nonce, expectedNonce))) {
-    throw new ApiError("invalid_token", `${issuer.displayName} kimlik jetonundaki nonce eşleşmiyor.`);
+    throw new ApiError("invalid_token", `The nonce in the ${issuer.displayName} identity token does not match.`);
   }
   // Nonce tek kullanımlıktır: jeton süresi bitene dek saklanır.
   const inserted: D1Result = await db
@@ -229,7 +229,7 @@ export async function verifyIdentityToken(
     .bind(expectedNonce, claims.data.exp * 1000)
     .run();
   if (inserted.meta.changes !== 1) {
-    throw new ApiError("invalid_token", `Bu ${issuer.displayName} kimlik jetonu zaten kullanıldı.`);
+    throw new ApiError("invalid_token", `This ${issuer.displayName} identity token was already used.`);
   }
   return { subject: claims.data.sub };
 }

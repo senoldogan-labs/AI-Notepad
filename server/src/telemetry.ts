@@ -183,10 +183,10 @@ export async function countTelemetryRequest(db: D1Database, userId: string, now:
     .bind(dayKey(now), userId)
     .first<{ telemetry_batches: number }>();
   if (row === null) {
-    throw new ApiError("not_found", "Hesap bulunamadı.");
+    throw new ApiError("not_found", "Account not found.");
   }
   if (row.telemetry_batches > telemetryDailyRequestCap) {
-    throw new ApiError("daily_cap_reached", "Bugünkü telemetri sınırı doldu; yarın yeniden dene.");
+    throw new ApiError("daily_cap_reached", "Today's telemetry limit is reached; try again tomorrow.");
   }
 }
 
@@ -249,7 +249,7 @@ export function featureIncrements(usage: FeatureUsage): FeatureIncrement[] {
 function requireFeatureReportDay(day: string, now: Date): void {
   const oldest: string = dayKey(new Date(now.getTime() - featureReportMaxAgeDays * dayMs));
   if (day > dayKey(now) || day < oldest) {
-    throw new ApiError("invalid_body", "İstek gövdesi geçersiz: day: too_old_or_future");
+    throw new ApiError("invalid_body", "Invalid request body: day: too_old_or_future");
   }
 }
 

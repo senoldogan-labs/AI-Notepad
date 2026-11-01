@@ -318,7 +318,7 @@ describe("blog yazılarının dosya biçimi", () => {
       text.replace("updated: 2026-10-12", "updated: 2026-09-30"),
       text.replace("updated: 2026-10-12", "updated: 12 Oct 2026"),
     ]) {
-      expect(() => parseBlogFile("x", broken)).toThrow(/geçersiz alanlar/);
+      expect(() => parseBlogFile("x", broken)).toThrow(/invalid fields/);
     }
   });
 

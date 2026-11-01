@@ -449,7 +449,7 @@ describe("deneme süresi (ilk deneme toplantısından 7 gün)", () => {
     session = await refreshed(harness, session);
     const logs = vi.spyOn(console, "log");
     const refused = await expectError(await start(harness, session, null, null), 402, "trial_exhausted");
-    expect(refused.error.message).toContain("süren doldu (7 gün)");
+    expect(refused.error.message).toContain("expired (7 days)");
     expect(logs.mock.calls.some((call: unknown[]): boolean => String(call[0]).includes('"reason":"expired"'))).toBe(true);
     logs.mockRestore();
     const expiredRefusals = await env.DB.prepare("SELECT count FROM trial_refusals WHERE day = ? AND reason = 'expired'")

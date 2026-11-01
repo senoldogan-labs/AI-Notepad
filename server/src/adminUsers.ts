@@ -727,7 +727,7 @@ export async function adminUserDetail(db: D1Database, config: Config, userId: st
     .bind(nowMs, userId, monthStartMs(now))
     .first<UserRow>();
   if (userRow === null) {
-    throw new ApiError("not_found", "Kullanıcı bulunamadı.");
+    throw new ApiError("not_found", "User not found.");
   }
   const [meetingRows, reportRows, customerRow, monthlyRow, usage, cancellationRow, invitedRow, codeRow, friendRows, counts]: [
     D1Result<MeetingRow>,

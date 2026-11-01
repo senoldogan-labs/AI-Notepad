@@ -179,7 +179,7 @@ async function ensureReferralCode(db: D1Database, userId: string, nowMs: number)
       .run();
   }
   log("alert", "referral_code_not_created", { userId });
-  throw new ApiError("internal_error", "Davet kodu oluşturulamadı.");
+  throw new ApiError("internal_error", "Could not create a referral code.");
 }
 
 /** Davet edenin sayaçları (`referrerCounts`). */
@@ -299,7 +299,7 @@ async function userIdentityHash(db: D1Database, config: Config, userId: string):
     .bind(userId)
     .first<{ provider: IdentityProvider; subject: string }>();
   if (identity === null) {
-    throw new ApiError("unauthorized", "Hesap bulunamadı.");
+    throw new ApiError("unauthorized", "Account not found.");
   }
   return trialIdentityHash(config.secrets.trialHash, identity.provider, identity.subject);
 }
@@ -368,10 +368,10 @@ function rejected(userId: string, error: ApiError): ApiError {
  */
 export async function requireReferral(db: D1Database, config: Config, userId: string, rawCode: string, now: Date): Promise<AcceptedReferral> {
   if (config.referralPolicy === "off") {
-    throw rejected(userId, new ApiError("referral_unavailable", "Davet programı şu an kapalı."));
+    throw rejected(userId, new ApiError("referral_unavailable", "The referral program is currently closed."));
   }
   const code: string = normalizeReferralCode(rawCode);
-  const invalid: ApiError = new ApiError("referral_invalid", "Bu davet kodu geçerli değil.");
+  const invalid: ApiError = new ApiError("referral_invalid", "This referral code is not valid.");
   if (!isReferralCodeShape(code)) {
     throw rejected(userId, invalid);
   }
@@ -380,12 +380,12 @@ export async function requireReferral(db: D1Database, config: Config, userId: st
     throw rejected(userId, invalid);
   }
   if (owner.user_id === userId) {
-    throw rejected(userId, new ApiError("referral_self", "Kendi davet kodunu kullanamazsın."));
+    throw rejected(userId, new ApiError("referral_self", "You can't use your own referral code."));
   }
   if (!(await canShareReferralCode(db, config, owner.user_id, await subscriptionState(db, owner.user_id), now))) {
     throw rejected(userId, invalid);
   }
-  const notEligible: ApiError = new ApiError("referral_not_eligible", "Davet kodu yalnızca ilk kez abone olan hesaplar içindir.");
+  const notEligible: ApiError = new ApiError("referral_not_eligible", "Referral codes are only for accounts subscribing for the first time.");
   const subscribedBefore: { found: number } | null = await db
     .prepare("SELECT EXISTS (SELECT 1 FROM subscriptions WHERE user_id = ?) AS found")
     .bind(userId)
@@ -406,10 +406,10 @@ export async function requireReferral(db: D1Database, config: Config, userId: st
     throw rejected(userId, notEligible);
   }
   if (await sharesDevice(db, owner.user_id, userId)) {
-    throw rejected(userId, new ApiError("referral_self", "Bu davet kodu bu cihazda kullanılamaz."));
+    throw rejected(userId, new ApiError("referral_self", "This referral code can't be used on this device."));
   }
   if ((await openReferralCount(db, owner.user_id, userId, now.getTime())) >= config.referralMaxPending) {
-    throw rejected(userId, new ApiError("referral_limit_reached", "Bu davet kodu şu an yeni arkadaş kabul etmiyor; daha sonra yeniden dene."));
+    throw rejected(userId, new ApiError("referral_limit_reached", "This referral code isn't accepting new friends right now; try again later."));
   }
   return { code, referrerUserId: owner.user_id, referredIdentityHash: identityHash };
 }

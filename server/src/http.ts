@@ -22,7 +22,7 @@ export function errorResponse(error: ApiError): Response {
 export async function readBodyBytes(request: Request, maxBytes: number): Promise<Uint8Array> {
   const declared: string | null = request.headers.get("content-length");
   if (declared !== null && Number(declared) > maxBytes) {
-    throw new ApiError("payload_too_large", `İstek gövdesi en çok ${maxBytes} bayt olabilir.`);
+    throw new ApiError("payload_too_large", `The request body can be at most ${maxBytes} bytes.`);
   }
   if (request.body === null) {
     return new Uint8Array(0);
@@ -38,7 +38,7 @@ export async function readBodyBytes(request: Request, maxBytes: number): Promise
     total += value.byteLength;
     if (total > maxBytes) {
       await reader.cancel();
-      throw new ApiError("payload_too_large", `İstek gövdesi en çok ${maxBytes} bayt olabilir.`);
+      throw new ApiError("payload_too_large", `The request body can be at most ${maxBytes} bytes.`);
     }
     chunks.push(value);
   }
@@ -55,14 +55,14 @@ export async function readBodyBytes(request: Request, maxBytes: number): Promise
 export async function readJsonBody<Schema extends z.ZodType>(request: Request, schema: Schema, maxBytes: number): Promise<z.output<Schema>> {
   const contentType: string = request.headers.get("content-type") ?? "";
   if (!contentType.toLowerCase().startsWith("application/json")) {
-    throw new ApiError("unsupported_media_type", "İstek gövdesi application/json olmalı.");
+    throw new ApiError("unsupported_media_type", "The request body must be application/json.");
   }
   const bytes: Uint8Array = await readBodyBytes(request, maxBytes);
   let raw: unknown;
   try {
     raw = JSON.parse(decodeUtf8Strict(bytes));
   } catch {
-    throw new ApiError("invalid_body", "İstek gövdesi geçerli JSON değil.");
+    throw new ApiError("invalid_body", "The request body is not valid JSON.");
   }
   return parseWithSchema(schema, raw);
 }
@@ -73,9 +73,9 @@ export function parseWithSchema<Schema extends z.ZodType>(schema: Schema, raw: u
   if (!parsed.success) {
     const problems: string = parsed.error.issues
       .slice(0, 5)
-      .map((issue: z.core.$ZodIssue): string => `${issue.path.join(".") || "(kök)"}: ${issue.code}`)
+      .map((issue: z.core.$ZodIssue): string => `${issue.path.join(".") || "(root)"}: ${issue.code}`)
       .join("; ");
-    throw new ApiError("invalid_body", `İstek gövdesi geçersiz: ${problems}`);
+    throw new ApiError("invalid_body", `Invalid request body: ${problems}`);
   }
   return parsed.data;
 }
@@ -85,7 +85,7 @@ export function bearerToken(request: Request): string {
   const header: string | null = request.headers.get("authorization");
   const match: RegExpExecArray | null = header === null ? null : /^Bearer ([A-Za-z0-9._~+/=-]+)$/.exec(header);
   if (match === null || match[1] === undefined) {
-    throw new ApiError("unauthorized", "Bearer erişim jetonu gerekli.");
+    throw new ApiError("unauthorized", "A Bearer access token is required.");
   }
   return match[1];
 }

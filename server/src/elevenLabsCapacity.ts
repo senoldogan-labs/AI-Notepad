@@ -99,7 +99,7 @@ export async function requireElevenLabsHeadroom(db: D1Database, config: Config, 
     return;
   }
   log("alert", "elevenlabs_capacity_exhausted", { addedSeconds, ...elevenLabsUsageOf(seconds, config.elevenLabs.monthlyAudioHours, cycleStart) });
-  throw new ApiError("spend_ceiling_reached", "Konuşma tanıma kapasitesi bu dönem doldu; biraz sonra yeniden dene.");
+  throw new ApiError("spend_ceiling_reached", "Speech recognition capacity is full for this period; try again shortly.");
 }
 
 /** Yeni deneme toplantısından önce: kullanım `elevenLabsTrialStopRatio`'yu geçtiyse `trial_capacity_reached`. */
@@ -109,7 +109,7 @@ export async function requireElevenLabsTrialHeadroom(db: D1Database, config: Con
     return;
   }
   log("warn", "elevenlabs_trial_stop", { ...elevenLabsUsageOf(seconds, config.elevenLabs.monthlyAudioHours, cycleStart) });
-  throw new ApiError("trial_capacity_reached", "Ücretsiz denemeler şu an kapasitede; yarın yeniden dene ya da abone ol.");
+  throw new ApiError("trial_capacity_reached", "Free trials are at capacity right now; try again tomorrow or subscribe.");
 }
 
 /** Günlük denetim (Cron): kullanım bir eşiğin üstündeyse günde bir `alert` yazar. Kullanımı döndürür. */

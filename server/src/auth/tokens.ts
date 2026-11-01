@@ -64,7 +64,7 @@ export async function verifyAccessToken(config: Config, token: string, now: Date
     });
     const familyId: unknown = payload["sid"];
     if (typeof payload.sub !== "string" || typeof familyId !== "string") {
-      throw new ApiError("invalid_token", "Erişim jetonu geçersiz.");
+      throw new ApiError("invalid_token", "Invalid access token.");
     }
     return { userId: payload.sub, familyId };
   } catch (error: unknown) {
@@ -72,7 +72,7 @@ export async function verifyAccessToken(config: Config, token: string, now: Date
       throw error;
     }
     if (error instanceof joseErrors.JOSEError) {
-      throw new ApiError("invalid_token", "Erişim jetonu geçersiz ya da süresi dolmuş.");
+      throw new ApiError("invalid_token", "The access token is invalid or expired.");
     }
     throw error;
   }
@@ -86,7 +86,7 @@ export async function authenticate(db: D1Database, config: Config, token: string
     .bind(user.familyId, user.userId)
     .first<{ revoked_at: number | null }>();
   if (family === null || family.revoked_at !== null) {
-    throw new ApiError("invalid_token", "Oturum kapatılmış; yeniden giriş yap.");
+    throw new ApiError("invalid_token", "The session was signed out; sign in again.");
   }
   return user;
 }
@@ -107,13 +107,13 @@ export async function authenticateUnlessDeleted(db: D1Database, config: Config, 
     .bind(user.userId, user.familyId)
     .first<{ user_exists: number; revoked_at: number | null; family_exists: number }>();
   if (row === null) {
-    throw new ApiError("internal_error", "Oturum denetlenemedi.");
+    throw new ApiError("internal_error", "Could not check the session.");
   }
   if (row.user_exists === 0) {
     return null;
   }
   if (row.family_exists === 0 || row.revoked_at !== null) {
-    throw new ApiError("invalid_token", "Oturum kapatılmış; yeniden giriş yap.");
+    throw new ApiError("invalid_token", "The session was signed out; sign in again.");
   }
   return user;
 }
@@ -188,21 +188,21 @@ export async function rotateRefreshToken(db: D1Database, config: Config, refresh
     .bind(tokenHash)
     .first<RefreshRow>();
   if (row === null) {
-    throw new ApiError("invalid_token", "Yenileme jetonu geçersiz.");
+    throw new ApiError("invalid_token", "Invalid refresh token.");
   }
   if (claimed) {
     return sessionFor(config, row, nextToken, now);
   }
   if (row.revoked_at !== null) {
-    throw new ApiError("invalid_token", "Oturum kapatılmış; yeniden giriş yap.");
+    throw new ApiError("invalid_token", "The session was signed out; sign in again.");
   }
   if (row.used_at === null) {
-    throw new ApiError("invalid_token", "Yenileme jetonunun süresi dolmuş.");
+    throw new ApiError("invalid_token", "The refresh token has expired.");
   }
   if (row.replaced_by === supersededMarker) {
     await revokeFamily(db, row.family_id, "refresh_superseded_reuse", now);
     log("alert", "refresh_token_superseded_reuse", { familyId: row.family_id, userId: row.user_id });
-    throw new ApiError("invalid_token", "Yenileme jetonu yeniden kullanıldı; tüm oturumlar kapatıldı.");
+    throw new ApiError("invalid_token", "The refresh token was reused; all sessions were signed out.");
   }
   if (await replaceUnusedSuccessor(db, config, row, tokenHash, nextHash, now)) {
     log("warn", "refresh_token_retried", { familyId: row.family_id, userId: row.user_id });
@@ -210,7 +210,7 @@ export async function rotateRefreshToken(db: D1Database, config: Config, refresh
   }
   await revokeFamily(db, row.family_id, "refresh_reuse", now);
   log("alert", "refresh_token_reuse", { familyId: row.family_id, userId: row.user_id });
-  throw new ApiError("invalid_token", "Yenileme jetonu yeniden kullanıldı; tüm oturumlar kapatıldı.");
+  throw new ApiError("invalid_token", "The refresh token was reused; all sessions were signed out.");
 }
 
 /**
@@ -284,7 +284,7 @@ export async function logout(db: D1Database, refreshToken: string, now: Date): P
     .bind(await sha256Hex(refreshToken))
     .first<{ family_id: string }>();
   if (row === null) {
-    throw new ApiError("invalid_token", "Yenileme jetonu geçersiz.");
+    throw new ApiError("invalid_token", "Invalid refresh token.");
   }
   await revokeFamily(db, row.family_id, "logout", now);
 }

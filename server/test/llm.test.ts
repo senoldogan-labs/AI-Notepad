@@ -336,7 +336,7 @@ describe("LLM vekili: toplantısız (hesap) çağrılar", () => {
     const session: Session = await signIn(harness);
     const before: number = harness.outbound.length;
     const refused = await expectError(await accountLLM(harness, session, basic, null), 403, "trial_not_started");
-    expect(refused.error.message).toContain("toplantı başlat");
+    expect(refused.error.message).toContain("start a meeting");
     expect(harness.outbound.length).toBe(before);
   });
 
@@ -480,7 +480,7 @@ describe("LLM vekili: toplantısız (hesap) çağrılar", () => {
     const tight: Env = envWith({ MONTHLY_ACCOUNT_TOKEN_CAP: "1150" });
     const before: number = harness.outbound.length;
     const refused = await expectError(await accountLLM(harness, session, { ...basic, max_tokens: 2000 }, tight), 403, "monthly_cap_reached");
-    expect(refused.error.message).toContain("toplantı dışı");
+    expect(refused.error.message).toContain("outside meetings");
     expect(harness.outbound.length).toBe(before);
     // Toplantıya bağlı çağrı hesap sınırına sayılmaz.
     const meeting: StartedMeetingBody = await (await startMeeting(harness, session)).json<StartedMeetingBody>();

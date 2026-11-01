@@ -145,10 +145,10 @@ export function crashPayloadSignature(payload: string): string | null {
   try {
     parsed = JSON.parse(payload);
   } catch {
-    throw new ApiError("invalid_body", "Çökme raporu (payload) geçerli JSON değil.");
+    throw new ApiError("invalid_body", "The crash report (payload) is not valid JSON.");
   }
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-    throw new ApiError("invalid_body", "Çökme raporu (payload) bir JSON nesnesi olmalı.");
+    throw new ApiError("invalid_body", "The crash report (payload) must be a JSON object.");
   }
   const metricKit = metricKitSchema.safeParse(parsed);
   if (!metricKit.success) {
@@ -224,7 +224,7 @@ export function utcDayStartMs(now: Date): number {
  */
 export async function createReport(db: D1Database, config: Config, input: ReportInput, userId: string | null, now: Date): Promise<string> {
   if (input.kind === "crash" && utf8(input.payload).byteLength > crashPayloadMaxBytes) {
-    throw new ApiError("payload_too_large", `Çökme raporu en çok ${crashPayloadMaxBytes / 1024} KB olabilir.`);
+    throw new ApiError("payload_too_large", `The crash report can be at most ${crashPayloadMaxBytes / 1024} KB.`);
   }
   const report: NewReport = newReport(input, userId);
   const id: string = randomId();
@@ -266,10 +266,10 @@ export async function createReport(db: D1Database, config: Config, input: Report
             .first<{ count: number }>();
     if (userCount !== null && userCount.count >= reportsPerUserPerDay) {
       log("warn", "reports_user_daily_cap_reached", { kind: report.kind, userId: report.userId, cap: reportsPerUserPerDay });
-      throw new ApiError("daily_cap_reached", `Bir hesaptan günde en çok ${reportsPerUserPerDay} rapor gönderilebilir; yarın yeniden dene.`);
+      throw new ApiError("daily_cap_reached", `An account can send at most ${reportsPerUserPerDay} reports per day; try again tomorrow.`);
     }
     log("warn", "reports_daily_cap_reached", { kind: report.kind, bytes: report.sizeBytes, capBytes: config.reportBytesPerDay });
-    throw new ApiError("daily_cap_reached", "Bugün çok fazla rapor alındı; yarın yeniden dene.");
+    throw new ApiError("daily_cap_reached", "Too many reports were received today; try again tomorrow.");
   }
   log("info", "report_received", { reportId: id, kind: report.kind, userId: report.userId, bytes: report.sizeBytes });
   return id;
@@ -405,7 +405,7 @@ export async function getReport(db: D1Database, id: string): Promise<ReportDetai
     .bind(id)
     .first<ReportDetailRow>();
   if (row === null) {
-    throw new ApiError("not_found", "Rapor bulunamadı.");
+    throw new ApiError("not_found", "Report not found.");
   }
   return {
     id: row.id,
@@ -428,7 +428,7 @@ export const reportStatusUpdateSchema = z.strictObject({ status: reportStatusSch
 export async function setReportStatus(db: D1Database, id: string, status: ReportStatus): Promise<void> {
   const updated: D1Result = await db.prepare("UPDATE reports SET status = ? WHERE id = ?").bind(status, id).run();
   if (updated.meta.changes !== 1) {
-    throw new ApiError("not_found", "Rapor bulunamadı.");
+    throw new ApiError("not_found", "Report not found.");
   }
   log("info", "report_status_changed", { reportId: id, status });
 }

@@ -49,7 +49,7 @@ export function llmPurposeOf(header: string | null): LLMPurpose {
     return "unattributed";
   }
   if (!isKnownPurpose(header)) {
-    throw new ApiError("llm_purpose_invalid", "x-llm-purpose başlığı bilinen bir yapay zekâ amacı olmalı.");
+    throw new ApiError("llm_purpose_invalid", "The x-llm-purpose header must be a known AI purpose.");
   }
   return header;
 }

@@ -69,7 +69,7 @@ describe("günlük harcama tavanı", () => {
     const alerts = vi.spyOn(console, "error");
     const refused: Response = await startMeeting(harness, session);
     const body = await expectError(refused, 503, "spend_ceiling_reached");
-    expect(body.error.message).toContain("daha sonra");
+    expect(body.error.message).toContain("try again later");
     expect(alerts.mock.calls.some((call: unknown[]): boolean => String(call[0]).includes('"event":"daily_spend_ceiling_reached"'))).toBe(true);
     alerts.mockRestore();
 
@@ -123,7 +123,7 @@ describe("günlük deneme harcaması tavanı", () => {
     const alertCount = (): number =>
       alerts.mock.calls.filter((call: unknown[]): boolean => String(call[0]).includes('"event":"daily_trial_spend_ceiling_reached"')).length;
     const refused = await expectError(await startMeeting(harness, await signIn(harness)), 503, "trial_capacity_reached");
-    expect(refused.error.message).toContain("abone ol");
+    expect(refused.error.message).toContain("subscribe");
     expect(alertCount()).toBe(1);
     await expectError(await llmCall(harness, trial, null), 503, "trial_capacity_reached");
     // Açık deneme toplantısı da tavandan sonra yeni deneme harcaması açamaz (yapay zekâ ve yazıya dökme).

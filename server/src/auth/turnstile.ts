@@ -30,10 +30,10 @@ export async function verifyTurnstile(platform: Platform, secretKey: string, tok
   );
   const parsed = siteverifySchema.safeParse(await response.json());
   if (!parsed.success) {
-    throw new ProviderApiError("turnstile", "upstream_unavailable", "Turnstile doğrulaması okunamadı.");
+    throw new ProviderApiError("turnstile", "upstream_unavailable", "Could not read the Turnstile verification.");
   }
   if (!parsed.data.success) {
     log("warn", "turnstile_rejected", { codes: (parsed.data["error-codes"] ?? []).join(",") });
-    throw new ApiError("turnstile_failed", "İnsan doğrulaması başarısız; sayfayı yenileyip yeniden dene.");
+    throw new ApiError("turnstile_failed", "Human verification failed; reload the page and try again.");
   }
 }

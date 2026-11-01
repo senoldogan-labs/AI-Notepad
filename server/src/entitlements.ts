@@ -280,12 +280,12 @@ export async function requireAccountLLMAccess(db: D1Database, config: Config, us
     return "subscription";
   }
   if (!isTrialStarted(trial, config)) {
-    throw new ApiError("trial_not_started", "Ücretsiz deneme ilk toplantıyla başlar; önce bir toplantı başlat.");
+    throw new ApiError("trial_not_started", "The free trial starts with your first meeting; start a meeting first.");
   }
   if (trialMeetingsLeft(trial, config, now) > 0) {
     return "trial";
   }
-  throw new ApiError("subscription_required", "Deneme bitti; toplantı dışında yapay zekâ özellikleri için abone ol.");
+  throw new ApiError("subscription_required", "Your trial has ended; subscribe to use AI features outside meetings.");
 }
 
 /**
