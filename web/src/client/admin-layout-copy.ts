@@ -147,6 +147,7 @@ export interface AdminLayoutCopy {
     readonly billing: SectionCopy;
     readonly conversion: SectionCopy;
     readonly funnel: SectionCopy;
+    readonly firstRun: SectionCopy;
     readonly acquisition: SectionCopy;
     readonly website: SectionCopy;
     readonly invites: SectionCopy;
@@ -280,6 +281,7 @@ export const adminLayoutCopy: AdminLayoutCopy = {
     billing: { title: "Billing and churn", description: "Payment problems and why people leave." },
     conversion: { title: "Conversion and margin", description: "How trials end and what each paying account earns after costs." },
     funnel: { title: "Funnel", description: "From download to subscription for accounts created in the last 30 days." },
+    firstRun: { title: "First run", description: "What happens after the download: the first launch of the Mac app and sign-in attempts." },
     acquisition: { title: "Acquisition", description: "Which buttons, sites and campaigns bring downloads." },
     website: { title: "Website", description: "Cloudflare Web Analytics for gistsmith.com." },
     invites: { title: "Invites", description: "The invite program over the last 30 days." },

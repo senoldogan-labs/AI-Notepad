@@ -7,6 +7,8 @@ private let telemetryLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepa
 
 /// Bekleyen olayların UserDefaults anahtarı (uygulama kapanınca da kalsın; sonraki açılışta gönderilir).
 private let pendingEventsKey: String = "telemetry.pendingEvents"
+/// Kurulumun ilk açılışının bildirildiği (ya da bildirilmesine gerek kalmadığı) işaret.
+private let firstLaunchReportedKey: String = "telemetry.firstLaunchReported"
 /// Özellik kullanımı durumunun anahtarı (bugün ve gönderilmeyi bekleyen gün).
 private let featureStateKey: String = "telemetry.featureState"
 /// Düzenli gönderim aralığı.
@@ -33,10 +35,12 @@ final class HostedTelemetryCenter {
     }
 
     /// Düzenli gönderimi ve arka plana geçişte gönderimi başlatır; bekleyenleri hemen gönderir (önceki oturumdan kalanlar).
+    /// Kurulumun ilk açılışı da buradan bildirilir (`reportFirstLaunch`).
     func start() {
         guard timer == nil else {
             return
         }
+        Task { await self.reportFirstLaunch() }
         observers.append(NotificationCenter.default.addObserver(forName: NSApplication.didResignActiveNotification, object: nil, queue: .main) { (_: Notification) -> Void in
             MainActor.assumeIsolated {
                 HostedTelemetryCenter.shared.flushInBackground()
@@ -53,6 +57,43 @@ final class HostedTelemetryCenter {
                 }
             }
         }
+    }
+
+    // MARK: İlk açılış hunisi
+
+    /// Huni adımını gönderir (`POST /v1/funnel`, jetonsuz); paylaşım kapalıysa hiçbir şey yapmaz. Giriş ve arayüz bunu
+    /// beklemez (çağıran ayrı görevde çağırır); gönderilemezse uyarı loglanır ve adım düşer (telemetri kritik değildir).
+    func send(funnel step: HostedFunnelStep) async {
+        guard isAllowed else {
+            return
+        }
+        do {
+            try await HostedServices.requireClient().sendFunnelStep(step: step)
+        } catch {
+            telemetryLogger.warning("Huni adımı gönderilemedi, adım: \(step.kind.rawValue, privacy: .public), ayrıntı: \(step.detail, privacy: .public), hata: \(String(describing: error), privacy: .public)")
+        }
+    }
+
+    /// Kurulumun ilk açılışını bir kez bildirir. Oturum zaten varsa (güncellemeden önce giriş yapmış kullanıcı) bu ilk
+    /// açılış değildir: bildirilmeden işaretlenir. İşaret yalnızca gönderim başarılı olunca konur; gönderilemezse
+    /// sonraki açılışta yeniden denenir. Paylaşım kapalıysa hiçbir şey yapılmaz.
+    private func reportFirstLaunch() async {
+        guard isAllowed, !UserDefaults.standard.bool(forKey: firstLaunchReportedKey) else {
+            return
+        }
+        let client: HostedClient
+        do {
+            client = try HostedServices.requireClient()
+            if try await client.isSignedIn() {
+                UserDefaults.standard.set(true, forKey: firstLaunchReportedKey)
+                return
+            }
+            try await client.sendFunnelStep(step: .firstLaunch)
+        } catch {
+            telemetryLogger.warning("İlk açılış bildirilemedi, sonraki açılışta yeniden denenecek, hata: \(String(describing: error), privacy: .public)")
+            return
+        }
+        UserDefaults.standard.set(true, forKey: firstLaunchReportedKey)
     }
 
     // MARK: Kayıt

@@ -55,6 +55,7 @@ import { type DownloadOrigin, countDownload, downloadCampaignOf, downloadSourceO
 import { type AccountLLMAccess, entitlements, requireAccountLLMAccess } from "./entitlements";
 import type { Env } from "./env";
 import { ApiError, UpstreamError } from "./errors";
+import { funnelEventSchema, recordFunnelEvent } from "./funnel";
 import { bearerToken, errorResponse, jsonResponse, optionalBearerToken, readBodyBytes, readJsonBody } from "./http";
 import { type AcceptedReferral, referralSummary, requireReferral } from "./referrals";
 import { clientIpKey } from "./ip";
@@ -506,6 +507,15 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     const body = await readJsonBody(request, featureUsageSchema, smallBodyBytes);
     await countTelemetryRequest(db, user.userId, now);
     return jsonResponse(200, { counted: await recordFeatureUsage(db, user.userId, body, now) });
+  }
+  if (path === "/v1/funnel" && method === "POST") {
+    // İlk açılış hunisi (yalnızca uygulama, jetonsuz; bkz. `funnel.ts`): IP başına dakikada 20. IP yalnızca sınırın
+    // anahtarıdır, saklanmaz.
+    await enforceLimit(env.FUNNEL_IP_LIMITER, `ip:${ipKey}`);
+    const appVersion: string = requiredAppVersion(request);
+    const body = await readJsonBody(request, funnelEventSchema, smallBodyBytes);
+    await recordFunnelEvent(db, body, appVersion, now);
+    return jsonResponse(202, {});
   }
   if (path === "/v1/download/mac/version" && method === "GET") {
     // İndirme sayfasındaki sürüm numarası. `max-age=300` yalnızca tarayıcıda işe yarar: Worker yanıtı Cloudflare

@@ -2,9 +2,13 @@
 // genel bakışın "dikkat" listesinde de): sorunlar (son 7 ve 30 gün: tavan retleri, koda göre
 // retler, servis hataları, 5xx), son 30 günün hunisi (her adımın sayısı, temel adıma oranı ve kayıp), indirmelerin
 // düğmeye ve yönlendiren siteye göre dağılımı, Stripe iptal nedenleri ve davet programının özeti (son 30 gün, nedene
-// göre düşen davetler, en çok davet edenler). Kimlik olarak yalnızca hesap UUID'si gelir.
+// göre düşen davetler, en çok davet edenler) ve uygulamanın ilk açılış hunisi (indirmeden uygulamada girişe adımlar ve
+// günlük ilk açılış ile girişler). Kimlik olarak yalnızca hesap UUID'si gelir.
 import {
   type DetailCount,
+  type FirstRunCount,
+  type FirstRunDay,
+  type FirstRunStep,
   type FunnelStep,
   type InviteReferrer,
   type InviteSummary,
@@ -13,6 +17,8 @@ import {
   type RecentCancellation,
   fetchInsights,
 } from "./admin-api";
+import { type ChartPoint, renderDailyBars } from "./admin-chart";
+import { type AdminFirstRunCopy, adminFirstRunCopy } from "./admin-first-run-copy";
 import { fillCounts, fillTable, formatCount, formatDate, formatRate, node, shortId, tableRow } from "./admin-format";
 import { type AdminInviteCopy, adminInviteCopy, inviteVoidReasonLabel } from "./admin-invites-copy";
 import { type AdminClientCopy, clientCopy, fill } from "./copy";
@@ -20,6 +26,7 @@ import { element } from "./dom";
 
 const adminText: AdminClientCopy = clientCopy.admin;
 const inviteText: AdminInviteCopy = adminInviteCopy;
+const firstRunText: AdminFirstRunCopy = adminFirstRunCopy;
 
 /** `subscribed` adımının alt kümesi olan adımlar: oranları ve kayıpları önceki satıra değil abonelere göredir. */
 const subscribedSubsets: ReadonlySet<FunnelStep> = new Set<FunnelStep>(["subscribed_via_invite", "canceled"]);
@@ -87,14 +94,14 @@ function problemRow(line: ProblemLine): HTMLTableRowElement {
 }
 
 /** Huni adımının hücresi: adı ve en büyük adıma göre çubuğu (CSP: satır içi stil yerine `<progress>`). */
-function funnelStepCell(step: FunnelStep, count: number, max: number): HTMLElement {
+function funnelStepCell(label: string, count: number, max: number): HTMLElement {
   const cell: HTMLElement = node("span", "funnel__step", "");
   const bar: HTMLProgressElement = document.createElement("progress");
   bar.className = "meter funnel__bar";
   bar.max = Math.max(max, 1);
   bar.value = count;
   bar.setAttribute("aria-hidden", "true");
-  cell.append(node("span", "", funnelStepLabel(step)), bar);
+  cell.append(node("span", "", label), bar);
   return cell;
 }
 
@@ -114,12 +121,76 @@ function funnelRows(steps: Insights["funnel"]["steps"]): HTMLTableRowElement[] {
     const previous: number | null = index === 0 ? null : subscribedSubsets.has(step.step) ? subscribed : (steps[index - 1]?.count ?? null);
     const lost: number | null = previous === null ? null : previous - step.count;
     return tableRow([
-      funnelStepCell(step.step, step.count, max),
+      funnelStepCell(funnelStepLabel(step.step), step.count, max),
       formatCount(step.count),
       previous === null ? adminText.none : formatRate(step.count, previous),
       lost === null || lost <= 0 ? adminText.none : formatCount(lost),
     ]);
   });
+}
+
+/** İlk açılış tablosunun satırı: adı, sayısı ve oranın paydası (null: oran yok). */
+interface FirstRunLine {
+  readonly label: string;
+  readonly count: number;
+  readonly base: number | null;
+}
+
+/** Adımın tüm ayrıntılarının toplamı. Saf fonksiyondur. */
+function firstRunStepTotal(steps: readonly FirstRunCount[], step: FirstRunStep): number {
+  return steps.filter((item: FirstRunCount): boolean => item.step === step).reduce((sum: number, item: FirstRunCount): number => sum + item.count, 0);
+}
+
+/** Adım ve ayrıntının sayısı (yoksa 0). Saf fonksiyondur. */
+function firstRunDetailCount(steps: readonly FirstRunCount[], step: FirstRunStep, detail: string): number {
+  return steps.find((item: FirstRunCount): boolean => item.step === step && item.detail === detail)?.count ?? 0;
+}
+
+/** Adımın adı: ilk açılış yalnızca adıyla, diğerleri ayrıntısıyla. Saf fonksiyondur. */
+function firstRunLabel(item: FirstRunCount): string {
+  const step: string = firstRunText.steps[item.step];
+  return item.detail === "" ? step : fill(firstRunText.stepWithDetail, { step, detail: firstRunText.details[item.detail] ?? item.detail });
+}
+
+/**
+ * İlk açılış tablosunun satırları: önce indirmeler, sonra sunucunun sırasıyla adımlar. Oranın paydası: ilk açılışta
+ * indirmeler, giriş başlangıcında ilk açılışlar, pencereyi kapatma ve girişte aynı sağlayıcının başlangıçları,
+ * başarısızlıkta tüm başlangıçlar. Saf fonksiyondur.
+ */
+function firstRunLines(downloads: number, steps: readonly FirstRunCount[]): FirstRunLine[] {
+  const firstLaunches: number = firstRunStepTotal(steps, "first_launch");
+  const started: number = firstRunStepTotal(steps, "sign_in_started");
+  const base = (item: FirstRunCount): number => {
+    switch (item.step) {
+      case "first_launch":
+        return downloads;
+      case "sign_in_started":
+        return firstLaunches;
+      case "sign_in_failed":
+        return started;
+      case "sign_in_canceled":
+      case "signed_in":
+        return firstRunDetailCount(steps, "sign_in_started", item.detail);
+    }
+  };
+  return [
+    { label: firstRunText.downloads, count: downloads, base: null },
+    ...steps.map((item: FirstRunCount): FirstRunLine => ({ label: firstRunLabel(item), count: item.count, base: base(item) })),
+  ];
+}
+
+/** İlk açılış satırı: adı ve en büyük satıra göre çubuğu, sayısı ve oranı. */
+function firstRunRows(lines: readonly FirstRunLine[]): HTMLTableRowElement[] {
+  const max: number = Math.max(0, ...lines.map((line: FirstRunLine): number => line.count));
+  return lines.map(
+    (line: FirstRunLine): HTMLTableRowElement =>
+      tableRow([funnelStepCell(line.label, line.count, max), formatCount(line.count), line.base === null ? adminText.none : formatRate(line.count, line.base)]),
+  );
+}
+
+/** Günlük sayıları grafiğe çevirir. Saf fonksiyondur. */
+function firstRunPoints(days: readonly FirstRunDay[], value: (day: FirstRunDay) => number): ChartPoint[] {
+  return days.map((day: FirstRunDay): ChartPoint => ({ day: day.day, parts: [{ value: value(day), tone: "main", label: "" }] }));
 }
 
 /** Ayrıntı → etiket ile sayı tablosunun satırları. */
@@ -215,6 +286,9 @@ function renderInsights(insights: Insights, onOpenUser: (id: string) => void): v
   fillTable(element("insights-problems-rows", HTMLTableSectionElement), problems.map(problemRow));
   element("insights-problems-empty", HTMLElement).classList.toggle("hidden", anyProblem);
   fillTable(element("insights-funnel-rows", HTMLTableSectionElement), funnelRows(insights.funnel.steps));
+  fillTable(element("insights-first-run-rows", HTMLTableSectionElement), firstRunRows(firstRunLines(insights.downloads.total, insights.firstRun.steps)));
+  renderDailyBars("first-launches", firstRunPoints(insights.firstRun.byDay, (day: FirstRunDay): number => day.firstLaunches), formatCount);
+  renderDailyBars("first-run-signed-in", firstRunPoints(insights.firstRun.byDay, (day: FirstRunDay): number => day.signedIn), formatCount);
   fillCountTable("insights-sources", countRows(insights.downloads.bySource, sourceLabel));
   fillCountTable("insights-referrers", countRows(insights.downloads.byReferrerHost, referrerLabel));
   fillCountTable("insights-feedback", countRows(insights.cancellations.byFeedback, feedbackLabel));

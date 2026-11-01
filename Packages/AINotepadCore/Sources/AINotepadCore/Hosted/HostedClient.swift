@@ -309,6 +309,18 @@ public actor HostedClient: HostedLLMCredentialSource {
         return try decode(HostedFeatureUsageResponse.self, data: try await authorized(path: path, method: "POST", body: body, isRetryable: isRetryableRepeatableRequest), path: path).counted
     }
 
+    /// İlk açılış hunisinin adımını gönderir (`POST /v1/funnel`, jetonsuz, sürüm başlıklarıyla; gövde
+    /// `hostedFunnelBody`). Sunucu adımı sayar: tekrar iki kez sayabileceği için yalnızca işlenmediği kesin hatalar
+    /// yeniden denenir. Oturuma dokunmadığı için aktörü beklemez.
+    public nonisolated func sendFunnelStep(step: HostedFunnelStep) async throws {
+        let path: String = "/v1/funnel"
+        let request: URLRequest = withHostedClientHeaders(
+            request: try hostedJSONRequest(baseURL: baseURL, path: path, method: "POST", body: try hostedFunnelBody(step: step), accessToken: nil, timeoutSec: hostedRequestTimeoutSec),
+            info: clientInfo
+        )
+        _ = try await sendHostedRequest(path: path, isRetryable: isRetryableOneShotRequest) { try await URLSession.shared.data(for: request) }
+    }
+
     /// Erişim jetonunu süresine bakmadan yeniler (yapay zekâ çağrısı 401 aldıysa; tek uçuşlu).
     public func refreshAccessToken() async throws {
         _ = try await refreshedTokens()

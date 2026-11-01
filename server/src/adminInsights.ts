@@ -1,12 +1,13 @@
 import { activeAccessSql, lastDays, paidSubscriptionSql } from "./admin";
+import { type FirstRunFunnel, adminFirstRun } from "./funnel";
 import { freeInviteMonthSql } from "./referrals";
 import type { OpsEventKind } from "./opsEvents";
 import { dayKey } from "./usage";
 
 /**
  * Yönetim panelinin "kullanıcıyı anlama" görünümü (`GET /v1/admin/insights`): sorunlar (son 7 ve 30 gün), ürün hunisi
- * (son 30 gün), indirmelerin kaynağı (son 30 gün), abonelik iptal nedenleri ve davet programının özeti (son 30 gün ve en
- * çok davet edenler). Hepsi mevcut tablolardan toplama sorgularıyla; kimlik olarak yalnızca hesap UUID'si döner.
+ * (son 30 gün), uygulamanın ilk açılış hunisi (son 30 gün; ilk açılış ve giriş adımları, bkz. `funnel.ts`), indirmelerin
+ * kaynağı (son 30 gün), abonelik iptal nedenleri ve davet programının özeti (son 30 gün ve en çok davet edenler). Hepsi mevcut tablolardan toplama sorgularıyla; kimlik olarak yalnızca hesap UUID'si döner.
  */
 
 /** Huni ve indirme dökümünün gün sayısı (bugün dahil). */
@@ -131,6 +132,7 @@ export interface AdminInsights {
   readonly generatedAt: string;
   readonly problems: { readonly last7Days: ProblemWindow; readonly last30Days: ProblemWindow };
   readonly funnel: Funnel;
+  readonly firstRun: FirstRunFunnel;
   readonly downloads: DownloadBreakdown;
   readonly cancellations: CancellationSummary;
   readonly invites: InviteSummary;
@@ -242,6 +244,7 @@ export async function adminInsights(db: D1Database, now: Date): Promise<AdminIns
     inviteVoidRows,
     freeMonthRow,
     topReferrerRows,
+    firstRun,
   ] = await Promise.all([
       db.prepare(opsQuery).bind(shortFirstDay).all<OpsRow>(),
       db.prepare(opsQuery).bind(longFirstDay).all<OpsRow>(),
@@ -322,6 +325,7 @@ export async function adminInsights(db: D1Database, now: Date): Promise<AdminIns
         )
         .bind(topReferrerLimit)
         .all<InviteReferrerRow>(),
+      adminFirstRun(db, lastDays(now, insightDays)),
     ]);
   const funnel: FunnelRow = funnelRow ?? { accounts: 0, first_meeting: 0, first_note: 0, three_meetings: 0, subscribed: 0, via_invite: 0, canceled: 0 };
   const inviteWindow: InviteWindowRow = inviteWindowRow ?? { checkouts: 0, joined: 0, first_payments: 0, granted: 0 };
@@ -341,6 +345,7 @@ export async function adminInsights(db: D1Database, now: Date): Promise<AdminIns
         { step: "canceled", count: funnel.canceled },
       ],
     },
+    firstRun,
     downloads: {
       total: downloadTotal?.value ?? 0,
       bySource: detailCounts(sourceRows.results),
