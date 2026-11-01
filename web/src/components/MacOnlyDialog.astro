@@ -1,0 +1,73 @@
+---
+// İndirme düğmesi bu cihazda işe yaramayacaksa açılan pencere. `data-mac-download` taşıyan bağlantıya tıklanınca
+// src/client/mac-only.ts cihaza bakar: telefon, tablet ya da Mac olmayan bilgisayarda DMG indirilmez; bunun yerine
+// indirme sayfasının bağlantısını kendine göndermesi önerilir (kopyala, paylaş, e-posta). Chrome ve Edge'in bildirdiği
+// Intel Mac ya da macOS 15'ten eski sürümde neden açılmayacağı söylenir, yine de indirmek isteyene bağlantı kalır.
+// Safari işlemciyi ve macOS sürümünü bildirmez; orada indirme olduğu gibi başlar. Her sayfada bir kez bulunur (Base.astro).
+import type { CommonCopy } from "../copy";
+import { routes } from "../routes";
+import { siteConfig } from "../site";
+
+interface Props {
+  readonly text: CommonCopy;
+}
+const { text } = Astro.props;
+const copy = text.macOnly;
+/** Kendine gönderilecek bağlantı: indirme sayfası (gereksinimler ve indirme düğmesi orada). */
+const shareUrl: string = `${siteConfig.siteOrigin}${routes.download}`;
+const mailHref: string = `mailto:?subject=${encodeURIComponent(copy.emailSubject)}&body=${encodeURIComponent(shareUrl)}`;
+---
+
+<dialog id="mac-only" class="dialog mac-only" aria-labelledby="mac-only-title" data-share-url={shareUrl}>
+  <form method="dialog" class="dialog__form">
+    <h2 class="title-m" id="mac-only-title">
+      <span data-mac-only-show="not-mac">{copy.notMacTitle}</span>
+      <span data-mac-only-show="intel">{copy.intelTitle}</span>
+      <span data-mac-only-show="old-macos">{copy.oldMacosTitle}</span>
+    </h2>
+    <p class="muted">
+      <span data-mac-only-show="not-mac">{copy.notMacText}</span>
+      <span data-mac-only-show="intel">{copy.intelText}</span>
+      <span data-mac-only-show="old-macos" data-mac-only-template={copy.oldMacosText}></span>
+    </p>
+    <div class="mac-only__send" data-mac-only-show="not-mac">
+      <button class="button button--primary" type="button" data-mac-only-copy data-copied={copy.copied} data-copy-failed={copy.copyFailed}>
+        {copy.copyLink}
+      </button>
+      <button class="button button--secondary" type="button" data-mac-only-share hidden>{copy.share}</button>
+      <a class="button button--secondary" href={mailHref}>{copy.email}</a>
+    </div>
+    <p class="small muted mac-only__status" role="status" aria-live="polite"></p>
+    <div class="dialog__actions">
+      <a class="button button--secondary" href="#" data-mac-only-anyway data-mac-only-show="intel old-macos">{copy.downloadAnyway}</a>
+      <button class="button button--secondary" value="close">{copy.close}</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+  import "../client/mac-only";
+</script>
+
+<style>
+  /* `.button` ve `.mac-only__send` görüntü türünü kendisi verir; gizlenen parça yine de görünmesin. */
+  .mac-only [hidden] {
+    display: none;
+  }
+
+  .mac-only__send {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .mac-only__status:empty {
+    display: none;
+  }
+
+  @media (max-width: 560px) {
+    .mac-only__send .button {
+      flex: 1 1 100%;
+    }
+  }
+</style>

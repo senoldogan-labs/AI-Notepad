@@ -85,7 +85,7 @@ const structuredData: string = structuredDataJson(homeStructuredData(siteConfig,
       <h1 class="display">{text.title}</h1>
       <p class="lead">{text.lead}</p>
       <div class="hero__actions">
-        <a class="button button--primary" href={heroDownloadUrl}>
+        <a class="button button--primary" href={heroDownloadUrl} data-mac-download>
           <Icon name="apple" size={16} class="button__apple" />
           {common.downloadCta}
         </a>
@@ -396,7 +396,7 @@ const structuredData: string = structuredDataJson(homeStructuredData(siteConfig,
         <h2 class="title-xl" id="final-title">{text.finalTitle}</h2>
         <p class="final__lead">{text.finalLead}</p>
         <div class="hero__actions final__actions">
-          <a class="button button--primary button--on-film" href={ctaDownloadUrl}>
+          <a class="button button--primary button--on-film" href={ctaDownloadUrl} data-mac-download>
             <Icon name="apple" size={16} class="button__apple" />
             {common.downloadCta}
           </a>

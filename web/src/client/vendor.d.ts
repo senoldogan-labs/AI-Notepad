@@ -50,3 +50,21 @@ interface Window {
   AppleID?: AppleIdGlobal;
   turnstile?: TurnstileGlobal;
 }
+
+/** Chromium'un istemci ipuçları (User-Agent Client Hints); Safari ve Firefox'ta yok. Yalnızca sitenin okuduğu alanlar. */
+interface NavigatorUAHighEntropy {
+  /** İşlemci mimarisi: "arm" ya da "x86". */
+  readonly architecture?: string;
+  /** İşletim sisteminin sürümü (macOS'ta ör. "15.1.0"). */
+  readonly platformVersion?: string;
+}
+
+interface NavigatorUAData {
+  readonly platform: string;
+  readonly mobile: boolean;
+  getHighEntropyValues(hints: readonly string[]): Promise<NavigatorUAHighEntropy>;
+}
+
+interface Navigator {
+  readonly userAgentData?: NavigatorUAData;
+}

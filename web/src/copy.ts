@@ -62,6 +62,26 @@ export interface CommonCopy {
   readonly yearlyPrice: string;
   readonly offer: string;
   readonly requirementsShort: string;
+  /**
+   * İndirme düğmesi bu cihazda işe yaramayacaksa açılan pencere (MacOnlyDialog.astro): telefon, tablet ya da Mac
+   * olmayan bilgisayar (`notMac`), Intel Mac (`intel`) ve macOS 15'ten eski Mac (`oldMacos`; `{version}` sürümle dolar).
+   */
+  readonly macOnly: {
+    readonly notMacTitle: string;
+    readonly notMacText: string;
+    readonly intelTitle: string;
+    readonly intelText: string;
+    readonly oldMacosTitle: string;
+    readonly oldMacosText: string;
+    readonly copyLink: string;
+    readonly copied: string;
+    readonly copyFailed: string;
+    readonly share: string;
+    readonly email: string;
+    readonly emailSubject: string;
+    readonly downloadAnyway: string;
+    readonly close: string;
+  };
   /** Otomatik yenileme ve iptal (Abone ol düğmesinin yanında). */
   readonly renewalNote: string;
   /** Paylaşım kartı görselinin (public/og.png) metin karşılığı. */
@@ -723,6 +743,22 @@ export const copy: Copy = {
     yearlyPrice: "$49",
     offer: "3 meetings or 7 days free, then $5.99 a month or $49 a year, taxes included",
     requirementsShort: "macOS 15 or later · Apple silicon",
+    macOnly: {
+      notMacTitle: `${productName} is a Mac app`,
+      notMacText: "It runs on Macs with Apple silicon and macOS 15 or later. Send yourself the link and download it on your Mac.",
+      intelTitle: "This Mac has an Intel processor",
+      intelText: `${productName} needs a Mac with Apple silicon (M1 or later), so it won't open on this Mac.`,
+      oldMacosTitle: `${productName} needs macOS 15 or later`,
+      oldMacosText: `This Mac runs macOS {version}. Update it in System Settings › General › Software Update, then download ${productName}.`,
+      copyLink: "Copy link",
+      copied: "Link copied",
+      copyFailed: "Couldn't copy. The link is gistsmith.com/download",
+      share: "Share link",
+      email: "Email it to me",
+      emailSubject: `${productName} for Mac`,
+      downloadAnyway: "Download anyway",
+      close: "Close",
+    },
     renewalNote: "Renews automatically every month or year, depending on your plan, until you cancel. Cancel anytime.",
     ogImageAlt: `The ${productName} logo and the tagline “${tagline}” on a soft pastel gradient, above a small sound wave.`,
     footer: {
