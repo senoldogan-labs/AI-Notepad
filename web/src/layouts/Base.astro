@@ -9,7 +9,7 @@ import { productName } from "../config";
 import { copy, type CommonCopy, type PageMeta } from "../copy";
 import type { SocialCard } from "../lib/social";
 import { ogImageSize } from "../lib/structured-data";
-import { type PageAlternate, blogFeedPath, type SitePage, pageAlternates, sitePageKey, sitePagePath } from "../routes";
+import { type PageAlternate, type SiteLang, blogFeedPath, type SitePage, pageAlternates, sitePageKey, sitePagePath } from "../routes";
 import { siteConfig } from "../site";
 
 interface Props {
@@ -21,7 +21,7 @@ interface Props {
   /** Paylaşım kartı: sabit sayfalarda `websiteCard` (public/og.png), blog yazısında kendi görseli ve tarihleri. */
   readonly social: SocialCard;
   /** Sayfanın dili (`<html lang>`, `og:locale`); varsayılan İngilizce. */
-  readonly lang?: "en" | "fi";
+  readonly lang?: SiteLang;
   /** Üst çubuk, alt bilgi ve atlama bağlantısının metinleri; varsayılan İngilizce (copy.common). */
   readonly common?: CommonCopy;
   /** Üst çubuktaki "Ominaisuudet" bağlantısının hedefi; varsayılan ana sayfanın özellikler bölümü. */
@@ -102,7 +102,7 @@ const hreflangLinks: ReadonlyArray<{ readonly lang: string; readonly href: strin
       <main id="main" tabindex="-1">
         <slot />
       </main>
-      <Footer text={common} featuresHref={featuresHref} />
+      <Footer text={common} featuresHref={featuresHref} lang={lang} />
     </div>
     <PullReveal />
   </body>

@@ -78,6 +78,8 @@ export interface CommonCopy {
     /** Sayfa sonundaki çekmede görünen kısa teşekkür (PullReveal.astro). */
     readonly pullThanks: string;
     readonly copyright: string;
+    /** Dil seçiminin erişilebilir adı (alt bilgi). */
+    readonly language: string;
   };
   readonly lastUpdated: string;
   readonly contents: string;
@@ -733,6 +735,7 @@ export const copy: Copy = {
       cookies: "Cookies",
       pullThanks: "Thanks for listening.",
       copyright: `© 2026 ${operator.name}`,
+      language: "Language",
     },
     lastUpdated: "Last updated",
     contents: "On this page",
