@@ -39,6 +39,9 @@ struct PhoneSignInGate: View {
                             .foregroundStyle(Theme.muted)
                             .multilineTextAlignment(.center)
                             .fixedSize(horizontal: false, vertical: true)
+                        // Denemenin sözü tanıtımın bir parçası: zeminsiz, adın ve tanıtımın hemen altında.
+                        PhoneTrialLine()
+                            .padding(.top, 6)
                     }
                     Spacer(minLength: 32)
                     actions
@@ -63,7 +66,7 @@ struct PhoneSignInGate: View {
         .task { await account.refresh() }
     }
 
-    /// Deneme satırı, giriş düğmeleri ve güvenli giriş açıklaması; hesap hizmeti kullanılamıyorsa yalnızca nedeni.
+    /// Giriş düğmeleri ve güvenli giriş açıklaması; hesap hizmeti kullanılamıyorsa yalnızca nedeni.
     @ViewBuilder
     private var actions: some View {
         switch account.state {
@@ -73,7 +76,6 @@ struct PhoneSignInGate: View {
                 .frame(maxWidth: .infinity)
         case .loading, .signedOut, .signedIn, .signedInStatusUnknown:
             VStack(spacing: 16) {
-                PhoneTrialBadge()
                 PhoneProviderButtons(account: account)
                 Text(account.pendingBrowserSignIn == nil
                     ? "Güvenli bir giriş sayfası açılır; parolan Apple'da ya da Google'da kalır."
@@ -87,8 +89,9 @@ struct PhoneSignInGate: View {
     }
 }
 
-/// "İlk 3 toplantı ya da 7 gün ücretsiz": vurgu renginde yıldız ve hafif vurgu zeminli, ortalı hap.
-private struct PhoneTrialBadge: View {
+/// "İlk 3 toplantı ya da 7 gün ücretsiz": vurgu renginde yıldız ve zeminsiz yazı, ortalı tek satır; adın ve tanıtımın
+/// altında durur, düğmelerin üstünde değil.
+private struct PhoneTrialLine: View {
     var body: some View {
         Label {
             Text("İlk 3 toplantı ya da 7 gün ücretsiz")
@@ -98,9 +101,6 @@ private struct PhoneTrialBadge: View {
                 .foregroundStyle(.tint)
         }
         .appFont(size: 13, weight: .medium)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 7)
-        .background(.tint.opacity(0.12), in: Capsule())
         .frame(maxWidth: .infinity)
     }
 }
