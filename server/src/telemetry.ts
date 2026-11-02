@@ -126,6 +126,8 @@ export const featureUsageSchema = z
     onDeviceLive: z.boolean(),
     // Sesle yazma 0.1.13'te geldi: önceki sürümler alanı göndermez (kullanmadı sayılır).
     dictation: z.boolean().default(false),
+    // Paylaşılan ekranın görüntüleri 0.1.13'ten sonra geldi: önceki sürümler alanı göndermez (kullanmadı sayılır).
+    screenSnapshots: z.boolean().default(false),
   })
   .refine((body: { liveTranslation: boolean; translationLanguage: string | null }): boolean => body.liveTranslation || body.translationLanguage === null, {
     path: ["translationLanguage"],
@@ -245,6 +247,7 @@ export function featureIncrements(usage: FeatureUsage): FeatureIncrement[] {
     ...flag(usage.mcp, "mcp"),
     ...flag(usage.onDeviceLive, "on_device_live"),
     ...flag(usage.dictation, "dictation"),
+    ...flag(usage.screenSnapshots, "screen_snapshots"),
   ];
 }
 

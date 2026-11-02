@@ -266,6 +266,8 @@ final class AppModel {
     var whisperModelProgress: Double?
     @ObservationIgnored private let microphone: MicrophoneCapture = MicrophoneCapture()
     @ObservationIgnored private let systemAudio: SystemAudioCapture = SystemAudioCapture()
+    /// Kayıt sırasında paylaşılan ekranın görüntüleri ve toplantıların görüntü listesi.
+    let screenSnapshots: ScreenSnapshotCenter = ScreenSnapshotCenter()
     @ObservationIgnored private var sessionTask: Task<Void, Never>?
     /// Uyku ve çıkış bildirimlerinin gözlemcileri (uygulama boyunca yaşar).
     @ObservationIgnored private var systemObservers: [any NSObjectProtocol] = []
@@ -1153,6 +1155,7 @@ final class AppModel {
         activeMeetingID = directory.lastPathComponent
         keepAwake(meetingID: directory.lastPathComponent)
         startCheckpoints(directory: directory, startedAt: startedAt, engine: engineAtStart)
+        startScreenSnapshots(meetingID: directory.lastPathComponent, directory: directory, origin: origin, isInPerson: recordingInPerson)
         // Uygulama kayıt sırasında kapanırsa toplantı açılışta "yarıda kaldı" olarak bulunur.
         saveRecord(record: liveRecord(directory: directory, startedAt: startedAt, engine: engineAtStart, status: .recording, endedAt: nil), directory: directory)
         Self.logger.info("Kayıt başladı, klasör: \(directory.lastPathComponent, privacy: .public), motor: \(engineAtStart.rawValue, privacy: .public)")
@@ -1232,6 +1235,7 @@ final class AppModel {
         audioLevels.stop()
         microphone.stop()
         systemAudio.stop()
+        screenSnapshots.stopRecording()
     }
 
     /// Kaydı duraklatır ya da sürdürür. Duraklatılınca ses sessizlikle değiştirilir: kayıt sürer, metin üretilmez,
@@ -1242,6 +1246,7 @@ final class AppModel {
         }
         isPaused.toggle()
         session.pauseGate.set(isOpen: !isPaused)
+        screenSnapshots.setPaused(isPaused)
     }
 
     /// "Sen"i (mikrofon) kapatır/açar; tercih saklanır. Hoparlörle dinlerken yankıyı kökten önler.
@@ -1353,6 +1358,7 @@ final class AppModel {
         // zararsızdır.
         microphone.stop()
         systemAudio.stop()
+        screenSnapshots.stopRecording()
         audioLevels.stop()
         consentReminderVisible = false
         #if HOSTED_EDITION

@@ -474,6 +474,7 @@ private struct GeneralSettings: View {
                 ))
                 .settingsToggle()
             }
+            ScreenSnapshotSettingsRow()
             SettingsRow(title: Text("Kayıt başlarken haber vermeyi hatırlat")) {
                 #if HOSTED_EDITION
                 Text("Panelde kısa bir hatırlatma ve toplantı sohbetine yapıştırılacak İngilizce bildirim. Kayıt yapmadan önce katılımcılara haber vermek çoğu yerde yasal zorunluluktur.")
@@ -546,7 +547,7 @@ private struct UsageStatisticsRow: View {
 
     var body: some View {
         SettingsRow(title: Text("Anonim kullanım istatistiklerini paylaş")) {
-            Text("Açıkken uygulama günde bir kez hangi özellikleri kullandığını (canlı çeviri, Sor, sesle yazma, bağlantı ve dışa aktarma türleri) ve bağlantı kopması, not hatası gibi güvenilirlik sayılarını gönderir; ilk açılışı ve giriş adımlarını (pencere açıldı, kapatıldı, hata verdi, tamamlandı) da sayar. Bunlar hesabına bağlanmaz. Ses, metin, not, başlık ya da ad asla gönderilmez. Uygulama ve macOS sürümü ile yapay zekâ isteklerinin hangi özellik için olduğu, hizmetin işleyişi için her durumda gönderilir.")
+            Text("Açıkken uygulama günde bir kez hangi özellikleri kullandığını (canlı çeviri, Sor, sesle yazma, ekran görüntüleri, bağlantı ve dışa aktarma türleri) ve bağlantı kopması, not hatası gibi güvenilirlik sayılarını gönderir; ilk açılışı ve giriş adımlarını (pencere açıldı, kapatıldı, hata verdi, tamamlandı) da sayar. Bunlar hesabına bağlanmaz. Ses, metin, not, başlık ya da ad asla gönderilmez. Uygulama ve macOS sürümü ile yapay zekâ isteklerinin hangi özellik için olduğu, hizmetin işleyişi için her durumda gönderilir.")
         } control: {
             Toggle("Anonim kullanım istatistiklerini paylaş", isOn: $shareUsageStatistics).settingsToggle()
         }
@@ -1074,7 +1075,7 @@ private struct ConnectionSettings: View {
             TaskTrackerSettings(model: model)
             ConnectionSectionHeader(
                 title: "Yapay zekâ uygulamaları", subtitle: "Claude, Cursor ve VS Code toplantılarını arayıp okuyabilir.",
-                info: "Bağlayınca uygulama toplantılarını listeleyip arar, notları ve transkriptleri okur; yalnızca okur, hiçbir şey değiştirmez. Okuduğunu kendi yapay zekâ sağlayıcısına gönderir."
+                info: "Bağlayınca uygulama toplantılarını listeleyip arar, notları, transkriptleri ve paylaşılan ekranların görüntülerini okur; yalnızca okur, hiçbir şey değiştirmez. Okuduğunu kendi yapay zekâ sağlayıcısına gönderir."
             )
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12, alignment: .top), count: 3), spacing: 12) {
                 ForEach(MCPClient.allCases, id: \.self) { (client: MCPClient) in
@@ -2411,7 +2412,7 @@ private struct MCPSettings: View {
         VStack(alignment: .leading, spacing: 0) {
             SettingsGroupHeader(title: "Diğer MCP istemcileri")
             SettingsRow(title: Text("Elle yapılandırma")) {
-                Text("Bu yapılandırmayı istemcinin MCP ayarlarına (Claude Desktop: Ayarlar › Geliştirici › Yapılandırmayı düzenle) ekle. İstemci toplantılarını listeler, arar, notları ve transkriptleri okur; yalnızca okur, hiçbir şey değiştirmez. Okunan notlar ve transkriptler istemcinin yapay zekâ sağlayıcısına (ör. Anthropic, OpenAI) gönderilir.")
+                Text("Bu yapılandırmayı istemcinin MCP ayarlarına (Claude Desktop: Ayarlar › Geliştirici › Yapılandırmayı düzenle) ekle. İstemci toplantılarını listeler, arar, notları, transkriptleri ve paylaşılan ekranların görüntülerini okur; yalnızca okur, hiçbir şey değiştirmez. Okunanlar istemcinin yapay zekâ sağlayıcısına (ör. Anthropic, OpenAI) gönderilir.")
             } control: {
                 Button(copied ? "Kopyalandı" : "Yapılandırmayı kopyala", systemImage: copied ? "checkmark" : "doc.on.doc") {
                     NSPasteboard.general.clearContents()

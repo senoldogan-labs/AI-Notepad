@@ -183,6 +183,8 @@ export interface HomeCopy {
     readonly templates: TitledText & { readonly sample: readonly string[] };
     /** Sesle yazma: kısayol etiketi ve imlecin olduğu alana yazılan örnek cümle. */
     readonly voiceTyping: TitledText & { readonly shortcut: string; readonly sample: string };
+    /** Paylaşılan ekranın görüntüleri: ekran adı, konuşulduğu an ve o ekrandayken söylenen cümle. */
+    readonly screens: TitledText & { readonly frame: string; readonly time: string; readonly quote: string };
   };
   /** Kayan entegrasyon şeridinin etiketi. */
   readonly marqueeLabel: string;
@@ -898,6 +900,13 @@ export const copy: Copy = {
         shortcut: "Hold ⌃⌥D",
         sample: "Thanks, I'll send the pricing table by Friday.",
       },
+      screens: {
+        title: "Feedback pinned to the screen",
+        text: "Turn it on and, in online calls, the Mac app keeps a snapshot each time the shared screen changes, matched to what was said while it was up. Your AI apps read both over MCP, so each comment lands on the right slide or design frame. Snapshots stay on your Mac.",
+        frame: "Pricing page",
+        time: "12:40",
+        quote: "The yearly toggle is hard to spot.",
+      },
     },
     trust: {
       eyebrow: "Privacy",
@@ -1014,7 +1023,7 @@ export const copy: Copy = {
       { icon: "note", text: "A note after every meeting: your tasks, decisions, summary and who said what" },
       { icon: "search", text: "“What did I miss?” and Ask across all your meetings" },
       { icon: "plug", text: "Send to Notion, Slack, Linear, Jira and more" },
-      { icon: "sparkle", text: "Your AI apps can read your meetings through MCP" },
+      { icon: "sparkle", text: "Your AI apps can read your meetings through MCP, including snapshots of shared screens" },
       { icon: "mic", text: "Voice typing in any Mac app, transcribed on your Mac (free with any account)" },
     ],
     startFree: "Start free",
@@ -1250,13 +1259,13 @@ export const copy: Copy = {
   mcp: {
     meta: {
       title: `${productName} MCP server: your meetings in Claude and Cursor`,
-      description: `${productName} includes a local, read-only MCP server. Let Claude, Cursor, VS Code and other MCP apps list, search and read your meeting notes and tasks.`,
+      description: `${productName} includes a local, read-only MCP server. Let Claude, Cursor, VS Code and other MCP apps list, search and read your meeting notes, tasks and shared-screen snapshots.`,
     },
     eyebrow: "MCP",
     title: "Ask your AI apps about your meetings.",
-    lead: `${productName} includes a small MCP server. Claude, Cursor, Visual Studio Code and other MCP apps can use it to list, search and read your meetings and your open tasks. It only reads; it never changes anything.`,
+    lead: `${productName} includes a small MCP server. Claude, Cursor, Visual Studio Code and other MCP apps can use it to list, search and read your meetings, your open tasks and the screens shared in your calls. It only reads; it never changes anything.`,
     toolsTitle: "What it offers",
-    toolsLead: "The server gives your AI app four tools. The app decides when to call them, usually starting with a list or a search and then opening a meeting.",
+    toolsLead: "The server gives your AI app six tools. The app decides when to call them, usually starting with a list or a search and then opening a meeting.",
     toolInputLabel: "Input",
     tools: [
       {
@@ -1278,6 +1287,16 @@ export const copy: Copy = {
         name: "list_my_tasks",
         text: "Lists the tasks from your meeting notes that are yours and not yet done, with due dates and the meeting each one came from.",
         input: "No input",
+      },
+      {
+        name: "list_screens",
+        text: "Lists the snapshots of the shared screen kept during a meeting, each with the time it was on screen and what was said meanwhile, so feedback can be tied to the exact slide or design frame. Needs “Take snapshots of the shared screen” turned on in Settings › General.",
+        input: "id from list_meetings (required); offset (optional, for long meetings)",
+      },
+      {
+        name: "get_screen",
+        text: "Returns one snapshot as an image, with what was said while it was on screen.",
+        input: "id from list_meetings and screen from list_screens (both required)",
       },
     ],
     setupTitle: "Connect it",
@@ -1314,6 +1333,7 @@ export const copy: Copy = {
       "What did I promise Nordia last week?",
       "List my open tasks from this week's meetings, grouped by due date.",
       "Find the meetings where we discussed the budget and summarise what we decided.",
+      "Go through the screens from yesterday's design review and list the feedback on each frame.",
     ],
     privacyTitle: "What it can and can't do",
     privacy: [
@@ -1324,7 +1344,7 @@ export const copy: Copy = {
       },
       {
         title: "Your AI app's provider sees what it reads",
-        text: "Notes and transcripts your AI app reads go to that app's AI provider, such as Anthropic or OpenAI, under its own terms.",
+        text: "Notes, transcripts and screen snapshots your AI app reads go to that app's AI provider, such as Anthropic or OpenAI, under its own terms.",
       },
       {
         title: "Your signed-in account only",

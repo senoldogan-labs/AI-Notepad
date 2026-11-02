@@ -10,13 +10,13 @@
 # Kullanım: scripts/make-screenshots.sh [sahne ...]   (varsayılan: site sahneleri)
 #   Site sahneleri (PNG + WebP): ana not sor canli
 #   Görsel kontrol sahneleri (yalnızca PNG): abone deneme-bitiyor deneme-bitti guncelleme ayarlar kisiler gorevler
-#   toplantilar; hiç veri olmadan (ilk açılış): toplantilar-bos gorevler-bos kisiler-bos sor-bos
+#   toplantilar ekranlar; hiç veri olmadan (ilk açılış): toplantilar-bos gorevler-bos kisiler-bos sor-bos
 # Sahneler App/DemoData.swift'teki `DemoScene` ile aynıdır (biri değişirse ikisi birlikte değişir).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 site_scenes=(ana not sor canli)
-check_scenes=(abone deneme-bitiyor deneme-bitti guncelleme ayarlar kisiler gorevler toplantilar toplantilar-bos gorevler-bos kisiler-bos sor-bos)
+check_scenes=(abone deneme-bitiyor deneme-bitti guncelleme ayarlar kisiler gorevler toplantilar ekranlar toplantilar-bos gorevler-bos kisiler-bos sor-bos)
 
 scenes=("$@")
 if [ ${#scenes[@]} -eq 0 ]; then

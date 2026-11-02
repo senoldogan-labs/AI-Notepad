@@ -1,0 +1,264 @@
+import CoreGraphics
+import Foundation
+import Testing
+@testable import AINotepadCore
+
+/// Düz renkli bir alan ve isteğe bağlı bir dikdörtgen çizilmiş deneme görüntüsü (ekran yerine).
+private func testImage(width: Int, height: Int, background: CGFloat, box: CGRect?) throws -> CGImage {
+    let context: CGContext = try #require(CGContext(
+        data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ))
+    context.setFillColor(CGColor(red: background, green: background, blue: background, alpha: 1))
+    context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+    if let box {
+        context.setFillColor(CGColor(red: 0.9, green: 0.2, blue: 0.3, alpha: 1))
+        context.fill(box)
+    }
+    return try #require(context.makeImage())
+}
+
+/// Tek renkli parmak izi.
+private func flat(_ value: UInt8) -> ScreenFingerprint {
+    ScreenFingerprint(width: screenFingerprintWidth, height: screenFingerprintHeight, luma: Array(repeating: value, count: screenFingerprintWidth * screenFingerprintHeight))
+}
+
+/// İlk `cells` hücresi `value` olan, gerisi `base` parmak izi.
+private func partly(base: UInt8, value: UInt8, cells: Int) -> ScreenFingerprint {
+    let count: Int = screenFingerprintWidth * screenFingerprintHeight
+    return ScreenFingerprint(width: screenFingerprintWidth, height: screenFingerprintHeight, luma: (0..<count).map { $0 < cells ? value : base })
+}
+
+private func paragraph(_ id: String, _ start: Double, _ end: Double, _ text: String) -> TranscriptParagraph {
+    TranscriptParagraph(id: id, speaker: .others, person: 1, startSec: start, endSec: end, text: text, turkish: nil, words: [])
+}
+
+@Suite struct ScreenSnapshotTests {
+    // Dosya adı kaydın başından geçen milisaniyeyi taşır; başka biçimdeki adlar ve yol parçaları görüntü sayılmaz.
+    @Test func fileNamesRoundTripAndRejectOtherNames() {
+        let snapshot: ScreenSnapshot = screenSnapshot(offsetSec: 12.4)
+        #expect(snapshot.id == "screen-000012400" && snapshot.fileName == "screen-000012400.jpg")
+        #expect(screenSnapshot(fileName: snapshot.fileName) == snapshot)
+        #expect(screenSnapshot(id: "screen-000012400") == snapshot)
+        for name in [".DS_Store", "screen-12400.jpg", "screen-000012400.png", "screen-00001240a.jpg", "../screen-000012400.jpg"] {
+            #expect(screenSnapshot(fileName: name) == nil, "\(name)")
+        }
+        #expect(screenSnapshot(id: "../../etc/passwd") == nil)
+    }
+
+    // İlk bakışta beklenir (ekran durulmalı); durgun ve yeni ekran saklanır; az değişen, çabuk gelen ve hâlâ değişen
+    // ekran saklanmaz; sınır dolunca durur.
+    @Test func decisionStoresSettledMeaningfulChanges() {
+        let policy: ScreenSnapshotPolicy = screenSnapshotPolicy
+        let slideA: ScreenFingerprint = flat(40)
+        let slideB: ScreenFingerprint = flat(200)
+        var state: ScreenSnapshotState = initialScreenSnapshotState(storedCount: 0)
+        #expect(screenSnapshotDecision(policy: policy, state: state, candidate: slideA, offsetSec: 3) == .unsettled)
+        state = advancedScreenSnapshotState(state: state, candidate: slideA, offsetSec: 3, stored: false)
+        #expect(screenSnapshotDecision(policy: policy, state: state, candidate: slideA, offsetSec: 6) == .store)
+        state = advancedScreenSnapshotState(state: state, candidate: slideA, offsetSec: 6, stored: true)
+        #expect(state.storedCount == 1 && state.lastStoredOffsetSec == 6)
+        // İmleç ya da tek satır: hücrelerin %5'i değişti.
+        let cursor: ScreenFingerprint = partly(base: 40, value: 200, cells: 32)
+        state = advancedScreenSnapshotState(state: state, candidate: cursor, offsetSec: 9, stored: false)
+        #expect(screenSnapshotDecision(policy: policy, state: state, candidate: cursor, offsetSec: 12) == .unchanged)
+        // Slayt değişiyor (geçiş): önceki bakıştan çok farklı, beklenir.
+        #expect(screenSnapshotDecision(policy: policy, state: state, candidate: slideB, offsetSec: 15) == .unsettled)
+        state = advancedScreenSnapshotState(state: state, candidate: slideB, offsetSec: 15, stored: false)
+        #expect(screenSnapshotDecision(policy: policy, state: state, candidate: slideB, offsetSec: 18) == .store)
+        // Son saklanandan 6 sn geçmeden gelen yeni ekran beklenir.
+        let recent: ScreenSnapshotState = ScreenSnapshotState(lastStored: slideA, lastStoredOffsetSec: 16, previousCapture: slideB, storedCount: 2)
+        #expect(screenSnapshotDecision(policy: policy, state: recent, candidate: slideB, offsetSec: 18) == .tooSoon)
+        let full: ScreenSnapshotState = ScreenSnapshotState(lastStored: slideA, lastStoredOffsetSec: 0, previousCapture: slideB, storedCount: policy.maxPerMeeting)
+        #expect(screenSnapshotDecision(policy: policy, state: full, candidate: slideB, offsetSec: 600) == .capReached)
+    }
+
+    // Boyutu farklı parmak izleri (ör. pencere değişti) tamamen değişmiş sayılır.
+    @Test func mismatchedFingerprintsCountAsChanged() {
+        let small: ScreenFingerprint = ScreenFingerprint(width: 2, height: 2, luma: [0, 0, 0, 0])
+        #expect(changedFraction(from: small, to: flat(0), cellDelta: 18) == 1)
+        #expect(changedFraction(from: flat(10), to: flat(20), cellDelta: 18) == 0)
+    }
+
+    // Gerçek görüntüden parmak izi: aynı ekran 0, slayt değişimi büyük, küçük bir ayrıntı küçük fark verir.
+    @Test func fingerprintFromImagesSeparatesSlidesFromDetails() throws {
+        let slide: CGImage = try testImage(width: 1440, height: 900, background: 0.95, box: nil)
+        let nextSlide: CGImage = try testImage(width: 1440, height: 900, background: 0.95, box: CGRect(x: 100, y: 100, width: 1000, height: 600))
+        let detail: CGImage = try testImage(width: 1440, height: 900, background: 0.95, box: CGRect(x: 700, y: 400, width: 30, height: 20))
+        let base: ScreenFingerprint = try screenFingerprint(image: slide)
+        #expect(base.luma.count == screenFingerprintWidth * screenFingerprintHeight)
+        #expect(changedFraction(from: base, to: try screenFingerprint(image: slide), cellDelta: 18) == 0)
+        #expect(changedFraction(from: base, to: try screenFingerprint(image: nextSlide), cellDelta: 18) > 0.4)
+        #expect(changedFraction(from: base, to: try screenFingerprint(image: detail), cellDelta: 18) < 0.02)
+    }
+
+    // Her görüntü, ekrandayken (bakış aralığı kadar öne alınmış aralıkta) konuşulan paragraflarla eşlenir; sınırdaki
+    // paragraf iki görüntüde de görünür; son görüntü toplantının sonuna dek sürer.
+    @Test func linksSnapshotsToOverlappingParagraphs() {
+        let snapshots: [ScreenSnapshot] = [screenSnapshot(offsetSec: 63), screenSnapshot(offsetSec: 3)]
+        let paragraphs: [TranscriptParagraph] = [
+            paragraph("a", 0, 10, "Tämä on aloitussivu."),
+            paragraph("b", 50, 70, "Siirrytään hinnoitteluun."),
+            paragraph("c", 80, 95, "Tämä painike on liian pieni."),
+        ]
+        let linked: [LinkedScreenSnapshot] = linkScreenSnapshots(snapshots: snapshots, paragraphs: paragraphs, leadSec: 3)
+        #expect(linked.map(\.snapshot.offsetSec) == [3, 63])
+        #expect(linked[0].startSec == 0 && linked[0].endSec == 60)
+        #expect(linked[0].paragraphs.map(\.id) == ["a", "b"])
+        #expect(linked[1].startSec == 60 && linked[1].endSec == nil)
+        #expect(linked[1].paragraphs.map(\.id) == ["b", "c"])
+        let excerpt: String = screenExcerpt(linked: linked[1], speakerNames: [1: "Mikko"], maxChars: 1000)
+        #expect(excerpt == "[00:50] Mikko: Siirrytään hinnoitteluun.\n[01:20] Mikko: Tämä painike on liian pieni.")
+        #expect(screenExcerpt(linked: linked[1], speakerNames: [:], maxChars: 10).count == 11)
+    }
+
+    // Görüşme penceresi seçimi: Zoom'un görüşme penceresi ana penceresine, görüşme sekmesi açık tarayıcı diğer
+    // pencerelere tercih edilir; küçük, ekranda olmayan ve üst katmandaki pencereler atlanır; yoksa nil (ana ekran).
+    @Test func picksTheMeetingWindow() {
+        let zoomHome: ScreenWindowInfo = ScreenWindowInfo(windowID: 1, bundleID: "us.zoom.xos", title: "Zoom Workplace", width: 1200, height: 800, layer: 0, isOnScreen: true)
+        let zoomMeeting: ScreenWindowInfo = ScreenWindowInfo(windowID: 2, bundleID: "us.zoom.xos", title: "Zoom Meeting", width: 1000, height: 700, layer: 0, isOnScreen: true)
+        let meetTab: ScreenWindowInfo = ScreenWindowInfo(windowID: 3, bundleID: "com.google.Chrome", title: "Meet - abc-defg-hij", width: 1600, height: 1000, layer: 0, isOnScreen: true)
+        let docsTab: ScreenWindowInfo = ScreenWindowInfo(windowID: 4, bundleID: "com.google.Chrome", title: "Roadmap - Google Docs", width: 1800, height: 1100, layer: 0, isOnScreen: true)
+        let tinyFaceTime: ScreenWindowInfo = ScreenWindowInfo(windowID: 5, bundleID: "com.apple.FaceTime", title: "", width: 200, height: 150, layer: 0, isOnScreen: true)
+        let floating: ScreenWindowInfo = ScreenWindowInfo(windowID: 6, bundleID: "us.zoom.xos", title: "Zoom Meeting", width: 1900, height: 1000, layer: 3, isOnScreen: true)
+        #expect(meetingWindow(windows: [zoomHome, zoomMeeting, docsTab])?.windowID == 2)
+        #expect(meetingWindow(windows: [zoomMeeting, meetTab, docsTab, floating])?.windowID == 3)
+        #expect(meetingWindow(windows: [zoomHome, docsTab, tinyFaceTime, floating]) == nil)
+    }
+
+    // Yakalama boyutu uzun kenarda sınırlanır, oran korunur, küçük kaynak büyütülmez.
+    @Test func captureSizeIsCapped() {
+        #expect(screenCaptureSize(width: 3024, height: 1964, maxPixelSize: 1600) == (width: 1600, height: 1039))
+        #expect(screenCaptureSize(width: 800, height: 600, maxPixelSize: 1600) == (width: 800, height: 600))
+    }
+
+    // Diskte: yazılan görüntüler sıralı listelenir (başka dosyalar atlanır), tek tek ve hepsi birden silinir; klasörü
+    // olmayan toplantı boş liste verir.
+    @Test func storesListsAndDeletesSnapshots() throws {
+        let meeting: URL = try temporaryDirectory()
+        #expect(try listScreenSnapshots(meetingDirectory: meeting).isEmpty)
+        let image: CGImage = try testImage(width: 640, height: 400, background: 0.5, box: nil)
+        let jpeg: Data = try jpegData(image: image, quality: 0.7)
+        for offset in [65.0, 3.0, 20.5] {
+            try writeScreenSnapshot(meetingDirectory: meeting, snapshot: screenSnapshot(offsetSec: offset), jpeg: jpeg)
+        }
+        try Data().write(to: screenSnapshotsDirectory(meetingDirectory: meeting).appending(path: ".DS_Store"))
+        #expect(try listScreenSnapshots(meetingDirectory: meeting).map(\.offsetSec) == [3, 20.5, 65])
+        try deleteScreenSnapshot(meetingDirectory: meeting, snapshot: screenSnapshot(offsetSec: 20.5))
+        #expect(try listScreenSnapshots(meetingDirectory: meeting).map(\.offsetSec) == [3, 65])
+        try deleteAllScreenSnapshots(meetingDirectory: meeting)
+        #expect(!FileManager.default.fileExists(atPath: screenSnapshotsDirectory(meetingDirectory: meeting).path))
+        #expect(try listScreenSnapshots(meetingDirectory: meeting).isEmpty)
+    }
+
+    // MCP'ye giden görüntü sınırı aşıyorsa sığana dek küçültülür; sığıyorsa dosya olduğu gibi gider.
+    @Test func mcpImageIsSizeCapped() throws {
+        let meeting: URL = try temporaryDirectory()
+        let image: CGImage = try testImage(width: 1600, height: 1000, background: 0.3, box: CGRect(x: 10, y: 10, width: 800, height: 500))
+        let jpeg: Data = try jpegData(image: image, quality: 1)
+        let snapshot: ScreenSnapshot = screenSnapshot(offsetSec: 1)
+        try writeScreenSnapshot(meetingDirectory: meeting, snapshot: snapshot, jpeg: jpeg)
+        let file: URL = screenSnapshotFile(meetingDirectory: meeting, snapshot: snapshot)
+        #expect(try screenImageForMCP(file: file, maxBytes: jpeg.count) == jpeg)
+        let capped: Data = try screenImageForMCP(file: file, maxBytes: jpeg.count / 3)
+        #expect(capped.count <= jpeg.count / 3 && capped.starts(with: [0xFF, 0xD8]))
+    }
+}
+
+@Suite struct MCPScreenToolTests {
+    // Gerçek stdio döngüsü ve diskteki toplantı: araç listesinde ekran araçları; list_screens görüntüleri ekrandayken
+    // konuşulanlarla verir; get_screen görüntüyü (base64 JPEG) ve alıntıyı döndürür; yanlış ve yol içeren kimlik reddedilir.
+    @Test func stdioServerListsAndReturnsScreens() throws {
+        let sessions: URL = try temporaryDirectory()
+        let folder: URL = sessions.appending(path: "20261102-100000")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let record: MeetingRecord = MeetingRecord(
+            id: "20261102-100000", title: "Design review", startedAt: Date(timeIntervalSince1970: 1_793_000_000), endedAt: nil, language: .english,
+            status: .done, failureMessage: nil, liveSegments: [],
+            finalSegments: [
+                stored("final-0", .others, 1, 5, "This is the onboarding frame."),
+                stored("final-1", .others, 1, 70, "The pricing button is too small."),
+            ],
+            translations: [:], speakerNames: [1: "Elif"], note: nil, audioDeleted: false, engine: .cloud, notice: nil, meNeedsFinalPass: nil
+        )
+        try saveMeeting(record: record, directory: folder)
+        let jpeg: Data = try jpegData(image: try testImage(width: 320, height: 200, background: 0.8, box: nil), quality: 0.7)
+        try writeScreenSnapshot(meetingDirectory: folder, snapshot: screenSnapshot(offsetSec: 4), jpeg: jpeg)
+        try writeScreenSnapshot(meetingDirectory: folder, snapshot: screenSnapshot(offsetSec: 66), jpeg: jpeg)
+
+        let requests: [String] = [
+            #"{"jsonrpc":"2.0","id":1,"method":"tools/list"}"#,
+            #"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"list_screens","arguments":{"id":"20261102-100000"}}}"#,
+            #"{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"get_screen","arguments":{"id":"20261102-100000","screen":"screen-000066000"}}}"#,
+            #"{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"get_screen","arguments":{"id":"20261102-100000","screen":"../meeting"}}}"#,
+            #"{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"list_screens","arguments":{"id":"../x"}}}"#,
+        ]
+        let input: Pipe = Pipe()
+        let output: Pipe = Pipe()
+        input.fileHandleForWriting.write(Data((requests.joined(separator: "\n") + "\n").utf8))
+        try input.fileHandleForWriting.close()
+        runMCPServer(input: input.fileHandleForReading, output: output.fileHandleForWriting, sessionsDirectories: [sessions], accessDenial: { nil }, version: "test", noteLanguage: .english, appName: "Gistsmith")
+        try output.fileHandleForWriting.close()
+        let lines: [String] = String(decoding: output.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self).split(separator: "\n").map(String.init)
+        #expect(lines.count == 5)
+        #expect(lines[0].contains("list_screens") && lines[0].contains("get_screen"))
+        #expect(lines[1].contains("2 snapshots") && lines[1].contains("screen-000004000") && lines[1].contains("onboarding frame"))
+        #expect(lines[1].contains("screen-000066000 — 01:03–end") && lines[1].contains("pricing button"))
+
+        let response: [String: JSONValue] = try JSONDecoder().decode([String: JSONValue].self, from: Data(lines[2].utf8))
+        guard case .object(let result) = response["result"], case .array(let content) = result["content"], content.count == 2,
+              case .object(let text) = content[0], case .object(let image) = content[1],
+              case .string(let excerpt) = text["text"], case .string(let base64) = image["data"] else {
+            Issue.record("get_screen yanıtı beklenen biçimde değil: \(lines[2].prefix(300))")
+            return
+        }
+        #expect(result["isError"] == .bool(false))
+        #expect(excerpt.contains("Elif: The pricing button is too small.") && !excerpt.contains("onboarding"))
+        #expect(image["type"] == .string("image") && image["mimeType"] == .string("image/jpeg"))
+        #expect(Data(base64Encoded: base64) == jpeg)
+        #expect(lines[3].contains(#""isError":true"#) && lines[3].contains("list_screens"))
+        #expect(lines[4].contains(#""isError":true"#) && lines[4].contains("list_meetings"))
+    }
+}
+
+#if os(macOS)
+/// Gerçek ekran görüntüsü testi açık mı: Ekran Kaydı izni olan bir terminalde `AINOTEPAD_SCREEN_TESTS=1`.
+private let screenTestsEnabled: Bool = ProcessInfo.processInfo.environment["AINOTEPAD_SCREEN_TESTS"] == "1"
+
+/// Sürecin şimdiye dek harcadığı işlemci süresi (kullanıcı + sistem, saniye).
+private func processCPUSeconds() -> Double {
+    var usage: rusage = rusage()
+    getrusage(RUSAGE_SELF, &usage)
+    let seconds: (timeval) -> Double = { (value: timeval) -> Double in Double(value.tv_sec) + Double(value.tv_usec) / 1_000_000 }
+    return seconds(usage.ru_utime) + seconds(usage.ru_stime)
+}
+
+@Suite(.enabled(if: screenTestsEnabled), .serialized)
+struct ScreenSnapshotCaptureTests {
+    // Gerçek ScreenCaptureKit döngüsü 60 sn: ekran durulunca en az bir görüntü saklanır, JPEG'dir ve bakış ucuzdur
+    // (ortalama işlemci kullanımı tek çekirdeğin %3'ünün altında). Görüntüler sonda silinir.
+    @MainActor @Test func realCaptureLoopIsCheap() async throws {
+        let meeting: URL = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: meeting) }
+        let recorder: ScreenSnapshotRecorder = ScreenSnapshotRecorder()
+        var events: [ScreenSnapshotEvent] = []
+        let wallStart: ContinuousClock.Instant = .now
+        let cpuStart: Double = processCPUSeconds()
+        try recorder.start(meetingDirectory: meeting, origin: .now, policy: screenSnapshotPolicy) { (event: ScreenSnapshotEvent) -> Void in
+            events.append(event)
+        }
+        try await Task.sleep(for: .seconds(60))
+        recorder.stop()
+        let cpu: Double = processCPUSeconds() - cpuStart
+        let wall: Double = (ContinuousClock.now - wallStart) / .seconds(1)
+        let percent: Double = cpu / wall * 100
+        let stored: [ScreenSnapshot] = try listScreenSnapshots(meetingDirectory: meeting)
+        let bytes: [Int] = try stored.map { try Data(contentsOf: screenSnapshotFile(meetingDirectory: meeting, snapshot: $0)).count }
+        print("Ekran görüntüsü ölçümü: CPU %\(String(format: "%.2f", percent)) (\(String(format: "%.2f", cpu)) sn / \(Int(wall)) sn), saklanan: \(stored.count), boyutlar: \(bytes)")
+        #expect(!stored.isEmpty)
+        #expect(events.allSatisfy { if case .stored = $0 { true } else { false } })
+        #expect(try stored.allSatisfy { try Data(contentsOf: screenSnapshotFile(meetingDirectory: meeting, snapshot: $0)).starts(with: [0xFF, 0xD8]) })
+        #expect(percent < 3)
+    }
+}
+#endif

@@ -53,11 +53,13 @@ enum DemoScene: String {
     case peopleEmpty = "kisiler-bos"
     /// Hiç veri yokken Sor (görsel kontrol için).
     case askEmpty = "sor-bos"
+    /// "Product weekly"nin Ekranlar sekmesi: paylaşılan ekranların görüntüleri (görsel kontrol için).
+    case screens = "ekranlar"
 
     /// Sahne örnek verilerle mi açılır; boş sahneler (ilk açılış) hiçbir şey yazmadan açılır.
     var hasSampleData: Bool {
         switch self {
-        case .home, .note, .ask, .live, .upsell, .trialEnding, .trialEnded, .update, .settings, .people, .tasks, .meetings: true
+        case .home, .note, .ask, .live, .upsell, .trialEnding, .trialEnded, .update, .settings, .people, .tasks, .meetings, .screens: true
         case .meetingsEmpty, .tasksEmpty, .peopleEmpty, .askEmpty: false
         }
     }
@@ -114,7 +116,7 @@ enum DemoModeError: Error, CustomStringConvertible {
         case .dataFolderOutsideHome(let dataFolder, let home):
             "Tanıtım modu: veri klasörü (\(dataFolder)) geçici evin (\(home)) dışında; kullanıcının verisine yazılmaz."
         case .unknownScene(let value):
-            "Tanıtım modu: sahne tanınmadı (gelen: \(value ?? "yok")); ana, not, sor, canli, abone, deneme-bitiyor, deneme-bitti, guncelleme, ayarlar, kisiler, gorevler, toplantilar, toplantilar-bos, gorevler-bos, kisiler-bos ya da sor-bos olmalı."
+            "Tanıtım modu: sahne tanınmadı (gelen: \(value ?? "yok")); ana, not, sor, canli, abone, deneme-bitiyor, deneme-bitti, guncelleme, ayarlar, kisiler, gorevler, toplantilar, toplantilar-bos, gorevler-bos, kisiler-bos, sor-bos ya da ekranlar olmalı."
         }
     }
 }
@@ -170,6 +172,9 @@ private func seedDemoData(now: Date) throws {
         let folder: URL = sessions.appending(path: record.id, directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         try saveMeeting(record: record, directory: folder)
+        if record.id == demoMeetingID(startedAt: productWeeklyStart(now: now)) {
+            try seedDemoScreenSnapshots(meetingDirectory: folder)
+        }
     }
     try savePeopleBook(book: demoPeopleBook(now: now), url: try peopleFileURL())
     try saveAskConversation(conversation: demoAskConversation(now: now), directory: try AppPaths.askHistoryDirectory())
@@ -187,6 +192,10 @@ func showDemoScene(scene: DemoScene, model: AppModel, router: MainWindowRouter, 
         router.section = .home
     case .note:
         router.section = .meetings
+        router.selectedMeetingID = demoMeetingID(startedAt: productWeeklyStart(now: now))
+    case .screens:
+        router.section = .meetings
+        model.meetingPageTabs[demoMeetingID(startedAt: productWeeklyStart(now: now))] = "screens"
         router.selectedMeetingID = demoMeetingID(startedAt: productWeeklyStart(now: now))
     case .ask:
         router.section = .ask

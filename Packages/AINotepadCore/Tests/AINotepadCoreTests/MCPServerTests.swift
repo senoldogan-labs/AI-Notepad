@@ -61,12 +61,12 @@ import Testing
         var reads: Int = 0
         let call: String = #"{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"list_meetings","arguments":{}}}"#
         let denied: String = try #require(handleMCPMessage(
-            line: call, loadRecords: { reads += 1; return [] }, accessDenial: { "Önce giriş yap." }, version: "test", noteLanguage: .english, appName: "Gistsmith"
+            line: call, loadRecords: { reads += 1; return [] }, meetingDirectory: { (_: String) -> URL? in nil }, accessDenial: { "Önce giriş yap." }, version: "test", noteLanguage: .english, appName: "Gistsmith"
         ))
         #expect(reads == 0)
         #expect(denied.contains("Önce giriş yap.") && denied.contains(#""isError":true"#))
         let allowed: String = try #require(handleMCPMessage(
-            line: call, loadRecords: { reads += 1; return [] }, accessDenial: { nil }, version: "test", noteLanguage: .english, appName: "Gistsmith"
+            line: call, loadRecords: { reads += 1; return [] }, meetingDirectory: { (_: String) -> URL? in nil }, accessDenial: { nil }, version: "test", noteLanguage: .english, appName: "Gistsmith"
         ))
         #expect(reads == 1)
         #expect(allowed.contains("No meetings."))

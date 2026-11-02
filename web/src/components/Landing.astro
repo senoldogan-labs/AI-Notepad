@@ -57,6 +57,7 @@ const featureIcons: Readonly<Record<keyof HomeCopy["features"], IconName>> = {
   followUp: "mail",
   templates: "note",
   voiceTyping: "mic",
+  screens: "image",
 };
 /** Not ekranındaki açıklama balonları (konumları stilde, note.webp'deki öğelere göre). */
 const noteCallouts: readonly ShotCallout[] = [
@@ -294,7 +295,7 @@ const structuredData: string = structuredDataJson(homeStructuredData(siteConfig,
         <p class="muted">{text.features.followUp.text}</p>
       </article>
 
-      <article class="feature feature--wide reveal">
+      <article class="feature feature--third reveal">
         <Film palette="sunset" layout="streaks" class="feature__cover">
           <ul class="templates">
             {
@@ -308,7 +309,7 @@ const structuredData: string = structuredDataJson(homeStructuredData(siteConfig,
         <p class="muted">{text.features.templates.text}</p>
       </article>
 
-      <article class="feature feature--wide feature--last reveal">
+      <article class="feature feature--third reveal">
         <Film palette="ocean" layout="clouds-left" class="feature__cover">
           <div class="voice">
             <span class="glass voice__keys"><Icon name="mic" size={14} class="" />{text.features.voiceTyping.shortcut}</span>
@@ -317,6 +318,25 @@ const structuredData: string = structuredDataJson(homeStructuredData(siteConfig,
         </Film>
         <h3 class="feature__title title-m"><span class="icon-chip icon-chip--small"><Icon name={featureIcons.voiceTyping} size={18} class="" /></span>{text.features.voiceTyping.title}</h3>
         <p class="muted">{text.features.voiceTyping.text}</p>
+      </article>
+
+      <article class="feature feature--third reveal">
+        <Film palette="violet" layout="streaks" class="feature__cover">
+          <div class="screens">
+            <div class="glass screens__frame" aria-hidden="true">
+              <span class="screens__bar" />
+              <span class="screens__block" />
+              <span class="screens__line" />
+              <span class="screens__line screens__line--short" />
+            </div>
+            <p class="glass screens__pin">
+              <span class="screens__meta"><Icon name="image" size={12} class="" />{text.features.screens.frame} · {text.features.screens.time}</span>
+              {text.features.screens.quote}
+            </p>
+          </div>
+        </Film>
+        <h3 class="feature__title title-m"><span class="icon-chip icon-chip--small"><Icon name={featureIcons.screens} size={18} class="" /></span>{text.features.screens.title}</h3>
+        <p class="muted">{text.features.screens.text}</p>
       </article>
     </div>
   </section>
@@ -957,6 +977,68 @@ const structuredData: string = structuredDataJson(homeStructuredData(siteConfig,
     background: currentColor;
   }
 
+  /* Paylaşılan ekran: küçük bir tasarım çerçevesi ve ona iğnelenmiş, o sırada söylenen cümle (durağan). */
+  .screens {
+    display: grid;
+    gap: 10px;
+    justify-items: center;
+    width: min(100%, 300px);
+  }
+
+  .screens__frame {
+    display: grid;
+    gap: 7px;
+    width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .screens__bar {
+    width: 38%;
+    height: 7px;
+    border-radius: 999px;
+    background: currentColor;
+    opacity: 0.55;
+  }
+
+  .screens__block {
+    height: 42px;
+    border-radius: 8px;
+    background: currentColor;
+    opacity: 0.14;
+  }
+
+  .screens__line {
+    height: 6px;
+    border-radius: 999px;
+    background: currentColor;
+    opacity: 0.22;
+  }
+
+  .screens__line--short {
+    width: 62%;
+  }
+
+  .screens__pin {
+    display: grid;
+    gap: 4px;
+    width: 100%;
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+  }
+
+  .screens__meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    opacity: 0.75;
+  }
+
   /* Takip e-postası: tarif düğmesi ve taslak. */
   .follow-up {
     display: grid;
@@ -1109,11 +1191,6 @@ const structuredData: string = structuredDataJson(homeStructuredData(siteConfig,
     .feature--wide,
     .feature--third {
       grid-column: span 6;
-    }
-
-    /* Yedi kart iki sütunda: sonuncusu tek başına kalmasın, satırı doldursun. */
-    .feature--last {
-      grid-column: 1 / -1;
     }
 
     .pricing-band,
