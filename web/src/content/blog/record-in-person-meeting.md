@@ -1,5 +1,5 @@
 ---
-title: How to record an in-person meeting and get notes you can use
+title: "In-person meetings: how to record them and get notes you can use"
 description: Where to put the laptop, which microphone helps, how to ask the room for consent, and how to turn a meeting around a table into a transcript and a task list.
 author: Senol Dogan
 published: 2026-11-19

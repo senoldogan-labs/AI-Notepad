@@ -3,6 +3,7 @@ title: "Live translation in Zoom, Teams and Google Meet: what each one offers"
 description: Zoom translated captions, the Teams Interpreter agent and Google Meet speech translation compared, as of November 2026, plus an option that works in any call.
 author: Senol Dogan
 published: 2026-11-10
+cover: rose
 draft: false
 ---
 

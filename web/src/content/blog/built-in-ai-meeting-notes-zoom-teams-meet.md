@@ -3,6 +3,7 @@ title: Are the AI notes built into Zoom, Teams and Google Meet enough?
 description: What the AI meeting summaries built into Zoom, Microsoft Teams and Google Meet do as of November 2026, who controls them, and when a separate note app still makes sense.
 author: Senol Dogan
 published: 2026-11-24
+cover: mint
 draft: false
 ---
 

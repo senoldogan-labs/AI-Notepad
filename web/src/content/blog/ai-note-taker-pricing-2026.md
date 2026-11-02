@@ -3,6 +3,7 @@ title: "AI note-taker pricing in 2026: Otter, Fireflies, Granola, Fathom and Gis
 description: What the popular AI meeting note-takers cost as of November 2026, what the free plans really include, and how to work out the price for your own meetings.
 author: Senol Dogan
 published: 2026-11-12
+cover: ocean
 draft: false
 ---
 

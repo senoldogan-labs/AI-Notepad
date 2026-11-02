@@ -3,6 +3,7 @@ title: "AI note-takers and GDPR: a checklist before you record a meeting in Euro
 description: What GDPR asks of you when an AI app transcribes a meeting, what the EU AI Act changed in 2026, and the questions to ask any note-taker vendor.
 author: Senol Dogan
 published: 2026-11-06
+cover: mint
 draft: false
 ---
 
