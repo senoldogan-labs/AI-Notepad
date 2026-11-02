@@ -425,6 +425,35 @@ public func cursorOffset(text: String, index: String.Index) -> Int? {
     return index.utf16Offset(in: text)
 }
 
+/// Metin düzenlemesinden sonraki imleç (UTF-16): değişen bölgenin `new` içindeki sonu. Ortak baş ve ortak son
+/// karakterlerle bulunur (yazınca eklenen harfin, silince silinen yerin hemen sonrası). Metin değişmediyse nil. Seçim
+/// bağlamasından bağımsızdır: iOS 26'da dikey `TextField` yazarken seçimi her zaman güncellemez ya da kendi iç metninin
+/// indeksini bildirir; `@` bahsi bu yüzden yazılan metinden de bulunur. Saf fonksiyondur.
+public func editedCursor(old: String, new: String) -> Int? {
+    guard old != new else {
+        return nil
+    }
+    let oldCharacters: [Character] = Array(old)
+    let newCharacters: [Character] = Array(new)
+    let prefix: Int = zip(oldCharacters, newCharacters).prefix { $0.0 == $0.1 }.count
+    let maxSuffix: Int = min(oldCharacters.count, newCharacters.count) - prefix
+    let suffix: Int = zip(oldCharacters.reversed(), newCharacters.reversed()).prefix(maxSuffix).prefix { $0.0 == $0.1 }.count
+    let end: String.Index = new.index(new.startIndex, offsetBy: newCharacters.count - suffix)
+    return end.utf16Offset(in: new)
+}
+
+/// `@` ile etiketlenebilir toplantı: kayıtta ya da işlenirken değil ve Sor'un okuyabileceği bir notu ya da metni var.
+/// Notu yazılamamış (başarısız), yarıda kalmış ya da çevrimdışı bekleyen toplantının metni de sorulabilir; tüm arşive
+/// sorulan soru bunları zaten okur. Saf fonksiyondur.
+public func isMentionableMeeting(record: MeetingRecord) -> Bool {
+    switch record.status {
+    case .recording, .processing:
+        false
+    case .done, .failed, .interrupted, .queued:
+        record.note != nil || !record.finalSegments.isEmpty || !record.liveSegments.isEmpty
+    }
+}
+
 /// İmlecin (`cursor`, UTF-16) önündeki `@` bahsi: `@` metnin başında ya da boşluktan sonra, `@` ile imleç arasında satır
 /// sonu yok ve arama en fazla `mentionQueryMaxChars` karakter. Bir kelimenin içindeki `@` (e-posta) bahis değildir.
 /// İmleç metnin dışında ya da bir harfin ortasındaysa bahis yoktur (nil). Saf fonksiyondur.
@@ -464,14 +493,15 @@ public func removingMention(text: String, cursor: Int) -> MentionTextEdit? {
     return MentionTextEdit(text: String(head + joinedTail), cursor: mention.start)
 }
 
-/// `@` önerileri: başlığında (ya da notun başlığında) aranan metin geçen bitmiş toplantılar, zaten seçilenler hariç.
+/// `@` önerileri: başlığında (ya da notun başlığında) aranan metin geçen, etiketlenebilir (`isMentionableMeeting`)
+/// toplantılar, zaten seçilenler hariç.
 /// Büyük/küçük harf, aksan ve ı/i duyarsızdır (`searchFolded`). Sıra: başlığı aramayla başlayanlar, sonra bir kelimesi
 /// aramayla başlayanlar, sonra başka yerinde geçenler; her grupta en yeni önce. Boş aramada son toplantılar. Saf
 /// fonksiyondur.
 public func mentionCandidates(records: [MeetingRecord], query: String, excluding: [String], limit: Int) -> [MeetingRecord] {
     let needle: String = searchFolded(query.trimmingCharacters(in: .whitespaces))
     let ranked: [(record: MeetingRecord, rank: Int)] = newestFirst(records: records)
-        .filter { !excluding.contains($0.id) && $0.status == .done }
+        .filter { !excluding.contains($0.id) && isMentionableMeeting(record: $0) }
         .compactMap { (record: MeetingRecord) -> (record: MeetingRecord, rank: Int)? in
             let titles: [String] = [record.note?.title, record.title].compactMap { $0 }
             return titles.compactMap { mentionRank(title: $0, foldedNeedle: needle) }.min().map { (record: record, rank: $0) }

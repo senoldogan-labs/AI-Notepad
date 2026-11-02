@@ -547,8 +547,12 @@ private struct AskComposer: View {
     let onSubmit: @MainActor (AskSubmission) -> Void
     let onStop: @MainActor () -> Void
     @State private var question: String = ""
-    /// Soru alanındaki seçim: `@` bahsi imlecin önünde aranır; alan odakta değilken nil.
+    /// Soru alanındaki seçim (kullanıcı imleci taşıyınca `cursor`'ı günceller); alan odakta değilken nil.
     @State private var selection: TextSelection?
+    /// İmlecin konumu (UTF-16): `@` bahsi bunun önünde aranır. Yazınca düzenlemeden (`editedCursor`), imleç taşınınca
+    /// seçimden güncellenir. iOS 26'da dikey `TextField` yazarken seçimi her zaman güncellemez ya da iç metninin indeksini
+    /// bildirir; yalnız seçime bakınca gerçek iPhone'da `@` önerileri hiç açılmıyordu.
+    @State private var cursor: Int?
     /// `@` ile etiketlenen toplantılar: soru yalnız onlara sorulur; soru gönderilince alandan kalkar.
     @State private var mentioned: [MeetingRecord] = []
     @FocusState private var isFocused: Bool
@@ -583,6 +587,16 @@ private struct AskComposer: View {
             field
         }
         .animation(.smooth(duration: 0.2), value: isMentioning || isPickingRecipe)
+        .onChange(of: question) { (old: String, new: String) in
+            if let edited = editedCursor(old: old, new: new) {
+                cursor = edited
+            }
+        }
+        .onChange(of: selection) { (_: TextSelection?, _: TextSelection?) in
+            if let selected = selectionCursor {
+                cursor = selected
+            }
+        }
         .padding(.horizontal, 12)
         .padding(.bottom, 8)
         .background {
@@ -653,18 +667,21 @@ private struct AskComposer: View {
         .shadow(color: .black.opacity(0.08), radius: 14, y: 4)
     }
 
-    /// İmlecin konumu (UTF-16); alan odakta değilse, birden çok seçim varsa ya da seçim bu metne ait değilse nil
+    /// Seçimin gösterdiği imleç (UTF-16); alan odakta değilse, birden çok seçim varsa ya da seçim bu metne ait değilse nil
     /// (iOS 26 boş alanda iç metninden indeks bildirir).
-    private var cursor: Int? {
+    private var selectionCursor: Int? {
         guard let selection, case .selection(let range) = selection.indices else {
             return nil
         }
         return cursorOffset(text: question, index: range.upperBound)
     }
 
-    /// İmlecin önündeki `@` bahsi.
+    /// İmlecin önündeki `@` bahsi; alan odakta değilse yok (klavye kapanınca öneriler de kapanır).
     private var mention: MentionQuery? {
-        cursor.flatMap { (cursor: Int) -> MentionQuery? in mentionQuery(text: question, cursor: cursor) }
+        guard isFocused else {
+            return nil
+        }
+        return cursor.flatMap { (cursor: Int) -> MentionQuery? in mentionQuery(text: question, cursor: cursor) }
     }
 
     /// `@` önerileri (en fazla 5); bahis yoksa boş.
@@ -694,12 +711,13 @@ private struct AskComposer: View {
     }
 
     /// Toplantıyı etikete ekler; yazılan "@…" silinir, imleç onun yerine gelir.
-    private func pick(record: MeetingRecord, cursor: Int) {
-        guard let edit = removingMention(text: question, cursor: cursor) else {
+    private func pick(record: MeetingRecord, cursor drawnCursor: Int) {
+        guard let edit = removingMention(text: question, cursor: drawnCursor) else {
             preconditionFailure("Toplantı önerisi seçildi ama imlecin önünde @ bahsi yok")
         }
         withAnimation(.smooth(duration: 0.2)) { mentioned.append(record) }
         question = edit.text
+        cursor = edit.cursor
         selection = TextSelection(insertionPoint: String.Index(utf16Offset: edit.cursor, in: edit.text))
     }
 
@@ -707,6 +725,7 @@ private struct AskComposer: View {
     private func clearQuestion() {
         question = ""
         selection = nil
+        cursor = nil
     }
 
     private func send() {

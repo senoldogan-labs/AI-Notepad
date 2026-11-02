@@ -193,6 +193,38 @@ func record(id: String, startedAt: Date, status: MeetingStatus, audioDeleted: Bo
         #expect(mentionCandidates(records: [old, new], query: "budjetti", excluding: [], limit: 5).isEmpty)
     }
 
+    // Notu yazılamamış, yarıda kalmış ya da çevrimdışı bekleyen toplantının metni sorulabilir: etiketlenir. Kayıttaki,
+    // işlenen ya da hiç metni olmayan toplantı etiketlenmez (iPhone'da tek toplantısı başarısız olanın listesi boştu).
+    @Test func mentionCandidatesIncludeAskableMeetings() {
+        let at: Date = Date(timeIntervalSince1970: 1_000)
+        let failed: MeetingRecord = record(id: "failed", startedAt: at, status: .failed, audioDeleted: false)
+        let interrupted: MeetingRecord = record(id: "interrupted", startedAt: at, status: .interrupted, audioDeleted: false)
+        let queued: MeetingRecord = record(id: "queued", startedAt: at, status: .queued, audioDeleted: false)
+        let recording: MeetingRecord = record(id: "recording", startedAt: at, status: .recording, audioDeleted: false)
+        let empty: MeetingRecord = MeetingRecord(
+            id: "empty", title: "Palaveri", startedAt: at, endedAt: nil, language: .finnish, status: .failed, failureMessage: nil,
+            liveSegments: [], finalSegments: [], translations: [:], speakerNames: [:], note: nil, audioDeleted: false, engine: .cloud,
+            notice: nil, meNeedsFinalPass: nil
+        )
+        let ids: Set<String> = Set(mentionCandidates(records: [failed, interrupted, queued, recording, empty], query: "", excluding: [], limit: 10).map(\.id))
+        #expect(ids == ["failed", "interrupted", "queued"])
+    }
+
+    // Düzenlemeden sonraki imleç: eklenen metnin sonu, silinen yerin başı; aynı harf tekrarında da doğru konum. UTF-16.
+    @Test func editedCursorFollowsTyping() {
+        #expect(editedCursor(old: "", new: "@") == 1)
+        #expect(editedCursor(old: "Bütçe ", new: "Bütçe @") == 7)
+        #expect(editedCursor(old: "ab", new: "a@b") == 2)
+        #expect(editedCursor(old: "aa", new: "aaa") == 3)
+        #expect(editedCursor(old: "Kararlar @pro neler", new: "Kararlar neler") == 9)
+        #expect(editedCursor(old: "👋 ", new: "👋 @") == 4)
+        #expect(editedCursor(old: "metin", new: "") == 0)
+        #expect(editedCursor(old: "aynı", new: "aynı") == nil)
+        // Yazılan metinden bulunan imleç `@` bahsini açar.
+        let typed: String = "Şu toplantıda @"
+        #expect(editedCursor(old: "Şu toplantıda ", new: typed).flatMap { mentionQuery(text: typed, cursor: $0) } == MentionQuery(start: 14, end: 15, query: ""))
+    }
+
     // Sıra: başlığı aramayla başlayan, sonra bir kelimesi aramayla başlayan, sonra içinde geçen; grup içinde en yeni önce.
     // Notun başlığı da aranır.
     @Test func mentionCandidatesRanking() {
