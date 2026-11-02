@@ -63,7 +63,7 @@ public final class MicrophoneCapture {
         #endif
         do {
             #if os(iOS)
-            try activateRecordingSession()
+            try await activateRecordingSession()
             sessionActivated = true
             #endif
             try startEngine(continuation: continuation)
@@ -192,7 +192,7 @@ public final class MicrophoneCapture {
             return
         }
         do {
-            try activateRecordingSession()
+            try await activateRecordingSession()
         } catch {
             Self.logger.error("Kesinti sonrası ses oturumu açılamadı, kesinti sürüyor sayılıyor, hata: \(String(describing: error), privacy: .private)")
             return
@@ -254,23 +254,30 @@ public final class MicrophoneCapture {
     /// Kayıt için ses oturumu: odadaki konuşmayı yerleşik mikrofonla alır; kayıt arka planda ve ekran kilitliyken sürer
     /// (Info.plist'te `audio` arka plan modu). Bluetooth kulaklık yalnızca çalma için (A2DP) kullanılır; kulaklık
     /// mikrofonu (HFP) sesi 16 kHz dar banda düşürdüğü için seçilmez.
-    private func activateRecordingSession() throws {
-        let session: AVAudioSession = AVAudioSession.sharedInstance()
+    /// Oturum değişikliği ana iş parçacığında değil `AudioSessionQueue`'da yapılır (sistem servisini beklerken arayüz
+    /// donmasın).
+    private func activateRecordingSession() async throws {
         do {
-            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetoothA2DP])
-            try session.setActive(true)
+            try await AudioSessionQueue.perform { (session: AVAudioSession) throws -> Void in
+                try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetoothA2DP])
+                try session.setActive(true)
+            }
         } catch {
             throw AudioCaptureError.microphoneStartFailed(code: Int32((error as NSError).code))
         }
     }
 
     /// Kayıt bitince oturum bırakılır; diğer uygulamaların sesi (müzik) kaldığı yerden sürer.
+    /// Kapatma kuyruğa bekletmeden eklenir: durdurma anında arayüz beklemez; sonraki "aç" kuyrukta ondan sonra gelir.
     private func deactivateRecordingSession() {
-        do {
-            try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-        } catch {
-            Self.logger.error("Ses oturumu kapatılamadı, hata: \(String(describing: error), privacy: .private)")
-        }
+        AudioSessionQueue.enqueue(
+            { (session: AVAudioSession) throws -> Void in
+                try session.setActive(false, options: .notifyOthersOnDeactivation)
+            },
+            onError: { (error: any Error) -> Void in
+                Self.logger.error("Ses oturumu kapatılamadı, hata: \(String(describing: error), privacy: .private)")
+            }
+        )
     }
     #endif
 
@@ -344,7 +351,7 @@ public final class MicrophoneCapture {
                     self.stopEngine()
                     #if os(iOS)
                     // Takılma ve ses servisi sıfırlanmasında oturum da kapanmış olabilir; açıkken yeniden açmak zararsız.
-                    try self.activateRecordingSession()
+                    try await self.activateRecordingSession()
                     #endif
                     try self.startEngine(continuation: continuation)
                 },
