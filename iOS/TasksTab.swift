@@ -130,13 +130,17 @@ struct TasksTab: View {
     }
 }
 
-/// Görev satırı: tamamlandı kutusu, iş, sahibi ve tarihi; istenirse toplantı adı.
+/// Görev satırı: tamamlandı kutusu, iş, sahibi ve tarihi; istenirse toplantı adı. Uzun basınca Anımsatıcılar'a eklenir
+/// (eklendiyse satırda zil görünür) ya da metni kopyalanır.
 struct PhoneTaskRow: View {
     let record: MeetingRecord
     let task: NoteTask
     let showsMeeting: Bool
     let onToggle: @MainActor () -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
+    @Environment(PhoneStore.self) private var store: PhoneStore
+    /// Anımsatıcılar'a eklenemediyse nedeni (satırın altında).
+    @State private var reminderError: String?
 
     var body: some View {
         let isDone: Bool = isTaskDone(record: record, task: task)
@@ -155,10 +159,24 @@ struct PhoneTaskRow: View {
                     .strikethrough(isDone, color: Theme.muted)
                     .foregroundStyle(isDone ? Theme.muted : Theme.ink)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(detail)
-                    .appFont(size: 12, weight: .regular)
-                    .foregroundStyle(Theme.muted)
-                    .lineLimit(1)
+                HStack(spacing: 5) {
+                    if isTaskReminded(record: record, task: task) {
+                        Image(systemName: "bell.fill")
+                            .appFont(size: 10, weight: .semibold)
+                            .foregroundStyle(appearance.accent.color)
+                            .accessibilityLabel(Text("Anımsatıcılarda"))
+                    }
+                    Text(detail)
+                        .appFont(size: 12, weight: .regular)
+                        .foregroundStyle(Theme.muted)
+                        .lineLimit(1)
+                }
+                if let reminderError {
+                    Text(reminderError)
+                        .appFont(size: 12, weight: .regular)
+                        .foregroundStyle(NoticeSeverity.attention.tint)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             Spacer(minLength: 0)
         }
@@ -168,10 +186,44 @@ struct PhoneTaskRow: View {
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.line))
         .contentShape(Rectangle())
         .sensoryFeedback(.selection, trigger: isDone)
+        .contextMenu {
+            let reminded: Bool = isTaskReminded(record: record, task: task)
+            Button(reminded ? "Anımsatıcılarda" : "Anımsatıcılara ekle", systemImage: reminded ? "bell.badge.fill" : "bell") {
+                Task { await addToReminders() }
+            }
+            .disabled(reminded || record.note == nil)
+            Button("Metni kopyala", systemImage: "doc.on.doc") {
+                UIPasteboard.general.string = task.description
+            }
+        }
+    }
+
+    /// Görevi Anımsatıcılar'a ekler; olmazsa nedeni satırın altında görünür.
+    private func addToReminders() async {
+        do {
+            try await store.addToReminders(meetingID: record.id, task: task)
+            reminderError = nil
+        } catch {
+            reminderError = phoneEventKitMessage(error: error)
+        }
     }
 
     private var detail: String {
         let meeting: [String] = showsMeeting ? [record.note?.title ?? record.title] : []
         return ([task.owner] + [task.dueDate].compactMap { $0 } + meeting).joined(separator: " · ")
+    }
+}
+
+/// Anımsatıcılar hatasının iPhone metni (Mac'teki `eventKitMessage`'ın iPhone Ayarları yoluyla). Saf fonksiyondur.
+func phoneEventKitMessage(error: any Error) -> String {
+    switch error {
+    case EventKitError.remindersAccessDenied:
+        String(localized: "Anımsatıcılar'a erişim izni yok: iPhone Ayarları › Gizlilik ve Güvenlik › Anımsatıcılar'dan \(appName)'e tam erişim ver.")
+    case EventKitError.noReminderList:
+        String(localized: "Anımsatıcılar'da liste yok: Anımsatıcılar uygulamasında bir liste oluştur.")
+    case EventKitError.saveFailed(let reason):
+        String(localized: "Anımsatıcı kaydedilemedi: \(reason)")
+    default:
+        userFacingMessage(error: error)
     }
 }

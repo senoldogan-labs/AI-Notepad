@@ -43,7 +43,12 @@ struct AINotepadiOSApp: App {
         let account: HostedAccount = HostedAccount.shared
         #if DEBUG
         if isDemoMode {
-            account.showAccountForDemo(entitlements: phoneDemoEntitlements(now: Date()), referral: nil)
+            // `--abone`: sahte hesap App Store abonesi açılır (hesap ekranı, davet; görsel kontrol).
+            if CommandLine.arguments.contains("--abone") {
+                account.showAccountForDemo(entitlements: phoneDemoAppStoreEntitlements(now: Date()), referral: phoneDemoReferral(now: Date()))
+            } else {
+                account.showAccountForDemo(entitlements: phoneDemoEntitlements(now: Date()), referral: nil)
+            }
             // `--aciklama`: yapay zekâ açıklaması yeniden gösterilir (görsel kontrol).
             UserDefaults.standard.set(!CommandLine.arguments.contains("--aciklama"), forKey: PhoneSettingsKey.aiDisclosureAccepted)
             UserDefaults.standard.set(true, forKey: PhoneSettingsKey.onboardingCompleted)
@@ -85,14 +90,25 @@ struct AINotepadiOSApp: App {
                 account: account, store: store, recorder: recorder, ask: ask, router: router, player: player, calendar: calendar,
                 crashReports: crashReports
             )
-            .environment(\.panelAppearance, .standard)
-            .font(PanelAppearance.standard.font(size: 15, weight: .regular))
-            .tint(PanelAppearance.standard.accent.color)
+            .modifier(PhoneAppearanceModifier())
             .task {
                 crashReports.start()
                 HostedTelemetryCenter.shared.start()
             }
         }
+    }
+}
+
+/// Kullanıcının görünüm ayarı (vurgu rengi) tüm arayüze: ortam, yazı ve renk tonu; ayar değişince hemen uygulanır.
+private struct PhoneAppearanceModifier: ViewModifier {
+    @AppStorage(PhoneSettingsKey.accent) private var accent: String = PanelAppearance.standard.accent.rawValue
+
+    func body(content: Content) -> some View {
+        let appearance: PanelAppearance = phoneAppearance(accentRawValue: accent)
+        content
+            .environment(\.panelAppearance, appearance)
+            .font(appearance.font(size: 15, weight: .regular))
+            .tint(appearance.accent.color)
     }
 }
 
@@ -274,6 +290,8 @@ struct RootView: View {
                 )
             }
         }
+        // Görev satırları (Kayıt, Toplantılar, Görevler) Anımsatıcılar'a eklemek için arşive buradan ulaşır.
+        .environment(store)
         .tabViewBottomAccessory(isEnabled: player.meetingID != nil) {
             MiniPlayer(player: player, store: store, router: router)
         }
@@ -391,6 +409,45 @@ final class PhoneStore {
         let updated: MeetingRecord = fresh.with(speakerNames: renamingSpeakers(names: fresh.speakerNames, edits: names))
         try saveMeeting(record: updated, directory: directory)
         upsert(record: updated)
+    }
+
+    /// Anımsatıcılar bağlantısı (görevi Anımsatıcılar'a ekleme; izin ilk eklemede sorulur).
+    @ObservationIgnored private let eventKit: EventKitConnector = EventKitConnector()
+
+    /// Görevi Apple Anımsatıcılar'a ekler ve toplantıda "eklendi" diye işaretler (Mac'teki "Anımsatıcılara ekle"). İzin
+    /// yoksa ya da kaydedilemezse hata fırlar (`EventKitError`); eklendi ama işaret yazılamadıysa yazma hatası fırlar.
+    func addToReminders(meetingID: String, task: NoteTask) async throws {
+        guard let record = meetings.first(where: { $0.id == meetingID }), let note = record.note else {
+            throw StorageError.writeFailed(path: meetingID, reason: "toplantı ya da not yok")
+        }
+        try await eventKit.addReminder(draft: reminderDraft(record: record, task: task, language: note.writtenLanguage, calendar: Calendar.current))
+        try updateMeeting(meetingID: meetingID) { (current: MeetingRecord) -> MeetingRecord in markingReminded(record: current, task: task) }
+    }
+
+    /// Toplantıya küçük bir düzenleme uygular (ad, klasör, işaretli anlar, kendi notların). Kayıttaki, işlenen ya da notu
+    /// yazılan toplantıda yapılmaz (işleme bitince kayıt bütünüyle yazılır, düzenleme kaybolurdu). Değişiklik diskteki en
+    /// güncel kayda uygulanır (Mac'te iCloud'la gelmiş düzenlemeler bellekteki eski kopyayla ezilmesin).
+    func updateMeeting(meetingID: String, change: (MeetingRecord) -> MeetingRecord) throws {
+        guard let record = meetings.first(where: { $0.id == meetingID }), record.status != .recording, record.status != .processing,
+              !regeneratingIDs.contains(meetingID) else {
+            throw StorageError.writeFailed(path: meetingID, reason: "kayıtta ya da işleniyor")
+        }
+        let directory: URL = try sessionDirectory(id: meetingID)
+        let updated: MeetingRecord = change(try loadMeeting(directory: directory))
+        try saveMeeting(record: updated, directory: directory)
+        upsert(record: updated)
+    }
+
+    /// Kendi notlarını saklar ve notu onlarla yeniden yazar (Mac'teki "Notlarım"). Notlar hemen saklanır; not yazılamazsa
+    /// notlar kalır, neden sorunlarda görünür.
+    func saveMyNotes(meetingID: String, text: String) async {
+        do {
+            try updateMeeting(meetingID: meetingID) { (record: MeetingRecord) -> MeetingRecord in record.with(myNotes: text) }
+        } catch {
+            problems = appendUnique(messages: problems, message: String(localized: "Notların kaydedilemedi: \(userFacingMessage(error: error))"))
+            return
+        }
+        await regenerateNote(meetingID: meetingID)
     }
 
     /// Görevin tamamlandı işaretini değiştirir ve toplantıyı saklar. Değişiklik diskteki en güncel kayda uygulanır

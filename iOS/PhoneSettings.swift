@@ -1,4 +1,5 @@
 import AINotepadCore
+import AINotepadUI
 import Foundation
 import os
 
@@ -18,6 +19,8 @@ enum PhoneSettingsKey {
     static let onboardingCompleted: String = "onboardingCompleted"
     /// Tema takımı (Mac'teki ayarla aynı ad; bkz. `AppTheme`).
     static let theme: String = "appearance.theme"
+    /// Vurgu rengi (`PanelAccent`; Mac'teki ayarla aynı ad): düğmeler, ölçerler, seçili sekme.
+    static let accent: String = "appearance.accent"
     /// Takvim (sıradaki toplantılar, kaydı süren etkinliğe bağlama); varsayılan kapalı, açılınca izin istenir.
     static let calendarEnabled: String = "calendar.enabled"
     /// Ses ve metnin hizmetimize ve üçüncü taraf yapay zekâ sağlayıcılarına gönderileceği açıklaması kabul edildi (ilk
@@ -88,4 +91,26 @@ func phoneStoredNoteLanguage(value stored: String) -> ShareLanguage {
 /// Kullanıcının adı (notta "senin görevlerin" ayrımı için); yoksa boş.
 func phoneUserName() -> String {
     UserDefaults.standard.string(forKey: PhoneSettingsKey.userName) ?? ""
+}
+
+/// Seçilen vurgu rengiyle iPhone görünümü: yazı ve ölçüler Mac'in varsayılanıyla aynı (Inter), yalnızca vurgu değişir.
+/// Bilinmeyen değer (eski ya da bozuk ayar) varsayılan vurgudur. Saf fonksiyondur.
+func phoneAppearance(accentRawValue: String) -> PanelAppearance {
+    let standard: PanelAppearance = .standard
+    let accent: PanelAccent = PanelAccent(rawValue: accentRawValue) ?? standard.accent
+    return PanelAppearance(
+        fontChoice: standard.fontChoice, uiScale: standard.uiScale, textSize: standard.textSize, lineSpacing: standard.lineSpacing,
+        bottomSpacing: standard.bottomSpacing, accent: accent, surface: standard.surface, surfaceOpacity: standard.surfaceOpacity
+    )
+}
+
+/// Vurgu renginin adı (Mac'teki Ayarlar › Görünüm'le aynı). Saf fonksiyondur.
+func phoneAccentName(accent: PanelAccent) -> String {
+    switch accent {
+    case .blue: String(localized: "Mavi")
+    case .green: String(localized: "Yeşil")
+    case .purple: String(localized: "Mor")
+    case .orange: String(localized: "Turuncu")
+    case .pink: String(localized: "Pembe")
+    }
 }

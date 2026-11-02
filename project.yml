@@ -317,6 +317,8 @@ targets:
         UIAppFonts: [InterVariable.ttf]
         # Takvim yalnızca Ayarlar'da açılınca okunur (sıradaki toplantılar, kaydı süren etkinliğe bağlama).
         NSCalendarsFullAccessUsageDescription: "Gistsmith sıradaki toplantılarını gösterir ve kaydı süren toplantının adı ve katılımcılarıyla kaydeder."
+        # Görev, istenince Anımsatıcılar'a eklenir (görev satırına uzun basınca).
+        NSRemindersFullAccessUsageDescription: "Gistsmith toplantı notundaki görevleri istediğinde Anımsatıcılar'a ekler."
         # Kayıt kilit ekranında ve Dynamic Island'da canlı etkinlik olarak görünür.
         NSSupportsLiveActivities: true
         # Kayıttan sonra işleme uygulamadan çıkılsa da sürer (BGContinuedProcessingTask); kimlik
