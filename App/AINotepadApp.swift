@@ -202,10 +202,39 @@ struct AINotepadApp: App {
         _panel = State(initialValue: panel)
         let island: IslandController = IslandController(model: model, onTap: { panel.toggle() })
         _island = State(initialValue: island)
-        let shortcuts: ShortcutController = ShortcutController(hotKeys: HotKeyCenter(), model: model, actions: [
-            .record: { Task { await toggleRecordingFlow(model: model, panel: panel, island: island) } },
-            .toggleWindows: { toggleWindows(panel: panel, island: island) },
-        ])
+        let hotKeys: HotKeyCenter = HotKeyCenter()
+        // Sesle yazma: kısayolla her uygulamada dikte (bkz. App/Dictation.swift). Toplantı kaydı başlarken süren dikte
+        // bırakılır.
+        let dictation: DictationController = DictationController(
+            model: model, hotKeys: hotKeys,
+            shortcutName: {
+                keyBindingDisplay(binding: hotKeys.binding(action: .dictate) ?? storedKeyBinding(key: SettingsKey.dictateShortcut, fallback: defaultDictateBinding))
+            },
+            onAction: { (action: DictationPillAction) -> Void in
+                switch action {
+                case .signIn: NotificationCenter.default.post(name: .openMainWindow, object: nil)
+                case .openSettings: openVoiceTypingSettings(router: router)
+                }
+            }
+        )
+        model.onRecordingWillStart = { dictation.cancel() }
+        let shortcuts: ShortcutController = ShortcutController(
+            hotKeys: hotKeys, model: model,
+            actions: [
+                .record: .pressOnly { Task { await toggleRecordingFlow(model: model, panel: panel, island: island) } },
+                .toggleWindows: .pressOnly { toggleWindows(panel: panel, island: island) },
+                .dictate: HotKeyHandlers(
+                    onPress: { (time: Double) -> Void in dictation.keyDown(at: time) },
+                    onRelease: { (time: Double) -> Void in dictation.keyUp(at: time) },
+                    onUnbind: { dictation.cancel() }
+                ),
+            ],
+            isActive: { (action: ShortcutAction) -> Bool in
+                isShortcutActive(
+                    action: action, signInRequired: isSignInRequired(), voiceTypingEnabled: UserDefaults.standard.bool(forKey: SettingsKey.voiceTypingEnabled)
+                )
+            }
+        )
         _shortcuts = State(initialValue: shortcuts)
         // Kayıt ya da işleme sürerken çıkış (⌘Q, Dock, menü) sorulur; toplantı yarıda kalmasın.
         QuitGuard.shared.isBusy = { model.isBusy }
@@ -247,11 +276,9 @@ struct AINotepadApp: App {
                 }
                 // Önceki açılışın çökme raporları (MetricKit) okunur ve yenileri dinlenir.
                 crashReports.start()
-                // Giriş kapısı kapalıyken (abonelik sürümü, oturum yok) genel kısayollar kaydedilmez; giriş yapılınca
-                // menü çubuğu etiketi kaydeder.
-                if !isSignInRequired() {
-                    shortcuts.registerAll()
-                }
+                // Giriş kapısı kapalıyken (abonelik sürümü, oturum yok) kayıt ve pencere kısayolları kaydedilmez; giriş
+                // yapılınca menü çubuğu etiketi kaydeder. Sesle yazma kısayolu oturumsuz da kayıtlı: basılınca giriş ister.
+                shortcuts.sync()
                 // Kurulum yalnızca ilk açılışta bir kez (tam pencere); sonra ayarlar Ayarlar'dan değişir.
                 if !UserDefaults.standard.bool(forKey: SettingsKey.onboardingCompleted) {
                     router.section = .setup
@@ -453,16 +480,13 @@ struct AINotepadApp: App {
                         updater.resumePostponedRelaunch()
                     }
                 }
-                // Giriş kapısı açılınca genel kısayollar kaydedilir, kapanınca (çıkış, hesap silme) kaldırılır.
+                // Giriş kapısı açılınca genel kısayollar kaydedilir, kapanınca (çıkış, hesap silme) kaldırılır (sesle yazma
+                // kısayolu kalır; basılınca giriş ister).
                 .onChange(of: isSignInRequired()) { (_: Bool, required: Bool) in
-                    if required {
-                        shortcuts.unregisterAll()
-                        if !model.isRecording {
-                            panel.hide()
-                            island.hide()
-                        }
-                    } else {
-                        shortcuts.registerAll()
+                    shortcuts.sync()
+                    if required, !model.isRecording {
+                        panel.hide()
+                        island.hide()
                     }
                 }
                 #if HOSTED_EDITION

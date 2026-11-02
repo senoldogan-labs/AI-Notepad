@@ -124,6 +124,8 @@ export const featureUsageSchema = z
     exports: z.record(z.enum(telemetryExportFormats), usageCountSchema),
     mcp: z.boolean(),
     onDeviceLive: z.boolean(),
+    // Sesle yazma 0.1.13'te geldi: önceki sürümler alanı göndermez (kullanmadı sayılır).
+    dictation: z.boolean().default(false),
   })
   .refine((body: { liveTranslation: boolean; translationLanguage: string | null }): boolean => body.liveTranslation || body.translationLanguage === null, {
     path: ["translationLanguage"],
@@ -242,6 +244,7 @@ export function featureIncrements(usage: FeatureUsage): FeatureIncrement[] {
     ...counted("export", usage.exports),
     ...flag(usage.mcp, "mcp"),
     ...flag(usage.onDeviceLive, "on_device_live"),
+    ...flag(usage.dictation, "dictation"),
   ];
 }
 

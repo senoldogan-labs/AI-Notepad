@@ -56,6 +56,7 @@ const featureIcons: Readonly<Record<keyof HomeCopy["features"], IconName>> = {
   ask: "search",
   followUp: "mail",
   templates: "note",
+  voiceTyping: "mic",
 };
 /** Not ekranındaki açıklama balonları (konumları stilde, note.webp'deki öğelere göre). */
 const noteCallouts: readonly ShotCallout[] = [
@@ -257,7 +258,7 @@ const structuredData: string = structuredDataJson(homeStructuredData(siteConfig,
         <p class="muted">{text.features.tasks.text}</p>
       </article>
 
-      <article class="feature reveal">
+      <article class="feature feature--third reveal">
         <Film palette="rose" layout="streaks" class="feature__cover">
           <div class="missed">
             <span class="glass missed__button">{text.features.missed.button}</span>
@@ -268,7 +269,7 @@ const structuredData: string = structuredDataJson(homeStructuredData(siteConfig,
         <p class="muted">{text.features.missed.text}</p>
       </article>
 
-      <article class="feature reveal">
+      <article class="feature feature--third reveal">
         <Film palette="violet" layout="clouds-left" class="feature__cover">
           <div class="ask">
             <p class="glass ask__question">{text.features.ask.question}</p>
@@ -279,7 +280,7 @@ const structuredData: string = structuredDataJson(homeStructuredData(siteConfig,
         <p class="muted">{text.features.ask.text}</p>
       </article>
 
-      <article class="feature reveal">
+      <article class="feature feature--third reveal">
         <Film palette="mint" layout="clouds-right" class="feature__cover">
           <div class="follow-up">
             <span class="glass follow-up__recipe"><Icon name="sparkle" size={14} class="" />{text.features.followUp.recipe}</span>
@@ -293,7 +294,7 @@ const structuredData: string = structuredDataJson(homeStructuredData(siteConfig,
         <p class="muted">{text.features.followUp.text}</p>
       </article>
 
-      <article class="feature reveal">
+      <article class="feature feature--wide reveal">
         <Film palette="sunset" layout="streaks" class="feature__cover">
           <ul class="templates">
             {
@@ -305,6 +306,17 @@ const structuredData: string = structuredDataJson(homeStructuredData(siteConfig,
         </Film>
         <h3 class="feature__title title-m"><span class="icon-chip icon-chip--small"><Icon name={featureIcons.templates} size={18} class="" /></span>{text.features.templates.title}</h3>
         <p class="muted">{text.features.templates.text}</p>
+      </article>
+
+      <article class="feature feature--wide feature--last reveal">
+        <Film palette="ocean" layout="clouds-left" class="feature__cover">
+          <div class="voice">
+            <span class="glass voice__keys"><Icon name="mic" size={14} class="" />{text.features.voiceTyping.shortcut}</span>
+            <p class="glass voice__field">{text.features.voiceTyping.sample}<span class="voice__caret" aria-hidden="true" /></p>
+          </div>
+        </Film>
+        <h3 class="feature__title title-m"><span class="icon-chip icon-chip--small"><Icon name={featureIcons.voiceTyping} size={18} class="" /></span>{text.features.voiceTyping.title}</h3>
+        <p class="muted">{text.features.voiceTyping.text}</p>
       </article>
     </div>
   </section>
@@ -791,6 +803,10 @@ const structuredData: string = structuredDataJson(homeStructuredData(siteConfig,
     grid-column: span 6;
   }
 
+  .feature--third {
+    grid-column: span 4;
+  }
+
   .feature :global(.feature__cover) {
     display: grid;
     place-items: center;
@@ -903,6 +919,42 @@ const structuredData: string = structuredDataJson(homeStructuredData(siteConfig,
     border-radius: 999px;
     font-size: 0.8125rem;
     font-weight: 600;
+  }
+
+  /* Sesle yazma: basılı tutulan kısayol ve imlecin olduğu alana yazılan cümle (imleç durağan, animasyonsuz). */
+  .voice {
+    display: grid;
+    gap: 12px;
+    justify-items: center;
+    width: min(100%, 340px);
+  }
+
+  .voice__keys {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
+
+  .voice__field {
+    width: 100%;
+    margin: 0;
+    padding: 12px 14px;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    line-height: 1.45;
+  }
+
+  .voice__caret {
+    display: inline-block;
+    width: 2px;
+    height: 1.05em;
+    margin-left: 2px;
+    vertical-align: text-bottom;
+    background: currentColor;
   }
 
   /* Takip e-postası: tarif düğmesi ve taslak. */
@@ -1054,8 +1106,14 @@ const structuredData: string = structuredDataJson(homeStructuredData(siteConfig,
     }
 
     .feature,
-    .feature--wide {
+    .feature--wide,
+    .feature--third {
       grid-column: span 6;
+    }
+
+    /* Yedi kart iki sütunda: sonuncusu tek başına kalmasın, satırı doldursun. */
+    .feature--last {
+      grid-column: 1 / -1;
     }
 
     .pricing-band,
@@ -1094,7 +1152,8 @@ const structuredData: string = structuredDataJson(homeStructuredData(siteConfig,
     }
 
     .feature,
-    .feature--wide {
+    .feature--wide,
+    .feature--third {
       grid-column: 1 / -1;
     }
 

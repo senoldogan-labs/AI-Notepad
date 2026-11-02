@@ -127,6 +127,12 @@ final class AppModel {
     @ObservationIgnored private let micMonitor: MicrophoneActivityMonitor = MicrophoneActivityMonitor()
     /// Kaydı panel ve adayla birlikte başlatır (uygulama bağlar; kendiliğinden kayıtta kullanılır).
     @ObservationIgnored var onAutoRecord: (@MainActor () async -> Void)?
+    /// Kayıt başlamak üzere (uygulama bağlar): süren sesle yazma iptal edilir.
+    @ObservationIgnored var onRecordingWillStart: (@MainActor () -> Void)?
+    /// Sesle yazma mikrofonu şu an açık mı ve en son ne zaman kapandı (bkz. `DictationController`): kendi diktemiz
+    /// "görüşme başladı" sanılıp kayıt önerilmesin ya da kendiliğinden kayıt başlamasın.
+    @ObservationIgnored var isDictationMicOpen: Bool = false
+    @ObservationIgnored var dictationMicClosedAt: Date?
     /// Kayıt şu an başlatılamıyor mu (giriş yok, deneme bitti, sınır…; uygulama bağlar): öyleyse görüşme önerisi ve
     /// takvimle kendiliğinden kayıt mikrofon ve sistem sesine dokunmaz.
     @ObservationIgnored var isStartBlocked: @MainActor () -> Bool = { false }
@@ -798,9 +804,9 @@ final class AppModel {
         modelLoad = nil
     }
 
-    #if HOSTED_EDITION
-    /// Abonelik: Mac'teki motor (hibrit oturum Mac'e geçerken ya da Mac'te başlarken çağırır); yüklü değilse model
-    /// indirilip yüklenir (ilerleme menüde ve panelde görünür). Yüklenemezse `TranscriptionError.modelLoadFailed`.
+    /// Mac'teki WhisperKit motoru (abonelikte hibrit oturum Mac'e geçerken ya da Mac'te başlarken; iki sürümde de macOS
+    /// 26'dan eski sistemde sesle yazma); yüklü değilse model indirilip yüklenir (ilerleme menüde ve panelde görünür).
+    /// Yüklenemezse `TranscriptionError.modelLoadFailed`.
     func requireLocalEngine() async throws -> WhisperKitEngine {
         if let engine {
             return engine
@@ -817,7 +823,6 @@ final class AppModel {
         }
         throw TranscriptionError.modelLoadFailed(model: liveWhisperModel, reason: reason)
     }
-    #endif
 
     private func performModelLoad() async {
         modelStatus = .loading
@@ -860,6 +865,8 @@ final class AppModel {
         guard !isRecording, !isStarting, isReadyToRecord else {
             return
         }
+        // Süren sesle yazma bırakılır: mikrofon ve (Mac'teki) motor toplantının.
+        onRecordingWillStart?()
         #if HOSTED_EDITION
         // Giriş kapısı (ikinci savunma; kayıt yolları `toggleRecordingFlow`'da da kapılı): oturum yoksa kayıt başlamaz.
         guard !HostedAccount.shared.requiresSignIn else {
@@ -2265,6 +2272,10 @@ final class AppModel {
     /// açıksa kayıt başlar ve bildirilir; değilse (10 dk'da en fazla bir) "dinlemeye başla" önerisi.
     private func microphoneStartedElsewhere() {
         guard !isRecording, !isStarting else {
+            return
+        }
+        // Mikrofonu sesle yazma açtı (izleyici 5 sn'de bir baktığından kapandıktan kısa süre sonrası da sayılır).
+        guard !isDictationMicOpen, !dictationMicClosedRecently(closedAt: dictationMicClosedAt, now: Date()) else {
             return
         }
         // Kayıt başlatılamıyorsa öneri ve kendiliğinden kayıt yapılmaz (neden Ana sayfada başlat düğmesinin yanında).

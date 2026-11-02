@@ -251,6 +251,16 @@
         }
       }
     },
+    "%@ başka bir eyleme atanmış.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is already assigned to another action."
+          }
+        }
+      }
+    },
     "%@ başka bir uygulamada kullanılıyor.": {
       "localizations": {
         "en": {
@@ -318,16 +328,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ is empty: no instructions."
-          }
-        }
-      }
-    },
-    "%@ diğer eyleme atanmış.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ is already assigned to the other action."
           }
         }
       }
@@ -2207,6 +2207,26 @@
         }
       }
     },
+    "Ana toplantı dilinle (%@) yazar; Ayarlar › Genel'den değişir. Apple'ın cihaz içi diktesi kullanılır; dil modeli gerekirse ilk kullanımda indirilir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Types in your primary meeting language (%@); change it in Settings › General. Uses Apple's on-device dictation; the language model is downloaded on first use if needed."
+          }
+        }
+      }
+    },
+    "Ana toplantı dilinle (%@) yazar; Ayarlar › Genel'den değişir. Bu Mac'te WhisperKit modeliyle çalışır (~630 MB; yoksa ilk kullanımda indirilir).": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Types in your primary meeting language (%@); change it in Settings › General. On this Mac it uses the WhisperKit model (~630 MB; downloaded on first use if missing)."
+          }
+        }
+      }
+    },
     "Anahtar (Ollama'da gerekmez)": {
       "localizations": {
         "en": {
@@ -2573,12 +2593,12 @@
         }
       }
     },
-    "Arayüz dilini, tanıma motorunu, görünümü, yapay zekâ modellerini, anahtarları ve kısayolları yönet.": {
+    "Arayüz dilini, tanıma motorunu, görünümü, yapay zekâ modellerini, anahtarları, sesle yazmayı ve kısayolları yönet.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Manage the interface language, recognition engine, appearance, AI models, keys and shortcuts."
+            "value": "Manage the interface language, recognition engine, appearance, AI models, keys, voice typing and shortcuts."
           }
         }
       }
@@ -2770,6 +2790,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Which tasks were given to me?"
+          }
+        }
+      }
+    },
+    "Basılı tut: konuştuğun sürece dinler, bırakınca yazar. Kısa dokun: eller serbest dinler; bitirmek için yeniden dokun ya da Esc'ye bas.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold: listens while you speak and types when you let go. Tap: listens hands-free; tap again or press Esc to finish."
           }
         }
       }
@@ -3470,6 +3500,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "This Mac has already used a free trial with another account. To continue, subscribe in Settings › Account."
+          }
+        }
+      }
+    },
+    "Bu Mac'teki cihaz içi dikte ana toplantı dilini (%@) desteklemiyor. Ayarlar › Genel'den başka bir ana toplantı dili seç.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On-device dictation on this Mac doesn't support your primary meeting language (%@). Choose another primary meeting language in Settings › General."
           }
         }
       }
@@ -4934,6 +4974,36 @@
         }
       }
     },
+    "Dikte modeli hazırlanıyor…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparing the dictation model…"
+          }
+        }
+      }
+    },
+    "Dikte modeli indiriliyor… %%%lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading the dictation model… %lld%%"
+          }
+        }
+      }
+    },
+    "Dil": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Language"
+          }
+        }
+      }
+    },
     "Dil algılanıyor…": {
       "extractionState": "manual",
       "localizations": {
@@ -5032,6 +5102,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Listening…"
+          }
+        }
+      }
+    },
+    "Dinliyorum · bitirmek için %@ ya da Esc": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listening · press %@ or Esc to finish"
+          }
+        }
+      }
+    },
+    "Dinliyorum · bitirmek için %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listening · press %@ to finish"
+          }
+        }
+      }
+    },
+    "Dinliyorum · bırakınca yazılır": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listening · release to type"
           }
         }
       }
@@ -5492,6 +5592,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Reachable, %lld ms"
+          }
+        }
+      }
+    },
+    "Erişilebilirlik (sesle yazma)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accessibility (voice typing)"
+          }
+        }
+      }
+    },
+    "Erişilebilirlik izni": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accessibility permission"
           }
         }
       }
@@ -6490,13 +6610,12 @@
         }
       }
     },
-    "Hesabını, arayüz dilini, görünümü, bağlantıları ve kısayolları yönet.": {
-      "extractionState": "manual",
+    "Hesabını, arayüz dilini, görünümü, bağlantıları, sesle yazmayı ve kısayolları yönet.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Manage your account, interface language, appearance, connections and shortcuts."
+            "value": "Manage your account, interface language, appearance, connections, voice typing and shortcuts."
           }
         }
       }
@@ -6601,6 +6720,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Inter (default)"
+          }
+        }
+      }
+    },
+    "İzin verilmedi: metin yalnızca panoya kopyalanır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not allowed: the text is only copied to the clipboard."
+          }
+        }
+      }
+    },
+    "İzin verilmedi; metin panoya kopyalanır": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not allowed; text is copied to the clipboard"
           }
         }
       }
@@ -7757,6 +7896,16 @@
         }
       }
     },
+    "Konuşma duyulmadı.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No speech heard."
+          }
+        }
+      }
+    },
     "Konuşma modeli hazırlanıyor…": {
       "localizations": {
         "en": {
@@ -8196,6 +8345,16 @@
         }
       }
     },
+    "Kısayol": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shortcut"
+          }
+        }
+      }
+    },
     "Kısayol kaydedilemedi: %@": {
       "localizations": {
         "en": {
@@ -8242,6 +8401,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Shortcut: %@. Change"
+          }
+        }
+      }
+    },
+    "Kısayola basıp konuş; söylediğin, imlecin olduğu yere yazılır (Mail, Slack, Notlar, tarayıcı…). Ses bu Mac'te yazıya dökülür; ses de metin de hiçbir yere gönderilmez.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Press the shortcut and speak; what you say is typed where your cursor is (Mail, Slack, Notes, a browser…). Audio is transcribed on this Mac; neither the audio nor the text is sent anywhere."
+          }
+        }
+      }
+    },
+    "Kısayola basıp konuş; söylediğin, imlecin olduğu yere yazılır (Mail, Slack, Notlar, tarayıcı…). Ses bu Mac'te yazıya dökülür; ses de metin de hiçbir yere gönderilmez. Giriş yapmış her hesapta ücretsiz ve sınırsız; deneme toplantılarından ve aylık süreden düşmez.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Press the shortcut and speak; what you say is typed where your cursor is (Mail, Slack, Notes, a browser…). Audio is transcribed on this Mac; neither the audio nor the text is sent anywhere. Free and unlimited for every signed-in account; it doesn't use trial meetings or monthly time."
           }
         }
       }
@@ -8632,12 +8811,32 @@
         }
       }
     },
+    "Metin yapıştırılamadı; panoya kopyalandı, ⌘V ile yapıştırabilirsin.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't paste the text; it's on the clipboard, so you can paste it with ⌘V."
+          }
+        }
+      }
+    },
     "Metni kopyala": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Copy text"
+          }
+        }
+      }
+    },
+    "Metni yazdığın yere yapıştırmak (⌘V) için gerekir. %@ yalnızca dikte ettiğin metni yapıştırır; tuş vuruşlarını, ekranı ya da diğer uygulamaların içeriğini okumaz. İzin yoksa metin panoya kopyalanır, ⌘V ile kendin yapıştırırsın.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Needed to paste the text where you're typing (⌘V). %@ only pastes the text you dictated; it doesn't read your keystrokes, your screen or other apps' content. Without it, the text is copied to the clipboard and you paste it with ⌘V."
           }
         }
       }
@@ -9652,6 +9851,26 @@
         }
       }
     },
+    "Panoya kopyalandı; ⌘V ile yapıştır. Doğrudan yazması için Erişilebilirlik izni ver (tıkla).": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copied to the clipboard; paste with ⌘V. To type it in directly, allow Accessibility (click here)."
+          }
+        }
+      }
+    },
+    "Parola alanına sesle yazılmaz.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice typing doesn't type into password fields."
+          }
+        }
+      }
+    },
     "PDF": {
       "localizations": {
         "en": {
@@ -9945,6 +10164,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "YOUR NOTES"
+          }
+        }
+      }
+    },
+    "Sesle yazma": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice typing"
+          }
+        }
+      }
+    },
+    "Sesle yazma için giriş yap.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to use voice typing."
           }
         }
       }
@@ -11087,6 +11326,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "MEETINGS"
+          }
+        }
+      }
+    },
+    "Toplantı kaydı sürerken sesle yazma kapalıdır (mikrofon toplantıda). Parola alanlarına yazmaz.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice typing is off while a meeting is recording (the microphone is in use). It never types into password fields."
+          }
+        }
+      }
+    },
+    "Toplantı kaydı sürüyor; mikrofon toplantıda. Kayıt bitince sesle yazabilirsin.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A meeting is recording and using the microphone. You can use voice typing once it ends."
           }
         }
       }
@@ -12840,6 +13099,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Couldn't transcribe: %@"
+          }
+        }
+      }
+    },
+    "Yazıya dökülüyor…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribing…"
           }
         }
       }
@@ -15968,13 +16237,13 @@
         }
       }
     },
-    "Açıkken uygulama günde bir kez hangi özellikleri kullandığını (canlı çeviri, Sor, bağlantı ve dışa aktarma türleri) ve bağlantı kopması, not hatası gibi güvenilirlik sayılarını gönderir; ilk açılışı ve giriş adımlarını (pencere açıldı, kapatıldı, hata verdi, tamamlandı) da sayar. Bunlar hesabına bağlanmaz. Ses, metin, not, başlık ya da ad asla gönderilmez. Uygulama ve macOS sürümü ile yapay zekâ isteklerinin hangi özellik için olduğu, hizmetin işleyişi için her durumda gönderilir.": {
+    "Açıkken uygulama günde bir kez hangi özellikleri kullandığını (canlı çeviri, Sor, sesle yazma, bağlantı ve dışa aktarma türleri) ve bağlantı kopması, not hatası gibi güvenilirlik sayılarını gönderir; ilk açılışı ve giriş adımlarını (pencere açıldı, kapatıldı, hata verdi, tamamlandı) da sayar. Bunlar hesabına bağlanmaz. Ses, metin, not, başlık ya da ad asla gönderilmez. Uygulama ve macOS sürümü ile yapay zekâ isteklerinin hangi özellik için olduğu, hizmetin işleyişi için her durumda gönderilir.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "When on, the app sends once a day which features you used (live translation, Ask, integration and export types) and reliability counts such as connection drops and note errors, and it counts the first launch and each sign-in step (window opened, closed, failed, finished). None of this is linked to your account. Audio, transcripts, notes, titles or names are never sent. The app and macOS version and which feature each AI request is for are always sent, because the service needs them."
+            "value": "When on, the app sends once a day which features you used (live translation, Ask, voice typing, integration and export types) and reliability counts such as connection drops and note errors, and it counts the first launch and each sign-in step (window opened, closed, failed, finished). None of this is linked to your account. Audio, transcripts, notes, titles or names are never sent. The app and macOS version and which feature each AI request is for are always sent, because the service needs them."
           }
         }
       }

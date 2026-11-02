@@ -8,7 +8,7 @@ import UniformTypeIdentifiers
 import os
 
 /// Ayarlar bölümleri.
-/// `--ayar genel|gorunum|llm|anahtarlar|kisayollar` başlatma argümanından açılacak sekme (görsel kontrol için); yoksa
+/// `--ayar genel|gorunum|llm|anahtarlar|baglantilar|sesle-yazma|kisayollar|tanilama` başlatma argümanından açılacak sekme (görsel kontrol için); yoksa
 /// genel. Saf fonksiyondur.
 private func launchSettingsSection(arguments: [String]) -> SettingsSection {
     guard let index = arguments.firstIndex(of: "--ayar"), arguments.indices.contains(index + 1) else {
@@ -20,6 +20,7 @@ private func launchSettingsSection(arguments: [String]) -> SettingsSection {
     case "anahtarlar": return .keys
     case "baglantilar": return .connections
     case "kisayollar": return .shortcuts
+    case "sesle-yazma": return .voiceTyping
     case "tanilama": return .diagnostics
     #if HOSTED_EDITION
     case "hesap": return .account
@@ -38,6 +39,8 @@ private enum SettingsSection: CaseIterable {
     case llm
     case keys
     case connections
+    /// Sesle yazma (dikte): aç/kapa, kısayol, Erişilebilirlik izni ve dil (bkz. App/VoiceTypingSettings.swift).
+    case voiceTyping
     case shortcuts
     /// Sürüm, sistem, hesap, bağlantı, izinler, canlı metin, güncelleme ve son hatalar (bkz. App/DiagnosticsViews.swift).
     case diagnostics
@@ -61,6 +64,7 @@ private enum SettingsSection: CaseIterable {
         case .llm: "LLM"
         case .keys: "Anahtarlar"
         case .connections: "Bağlantılar"
+        case .voiceTyping: "Sesle yazma"
         case .shortcuts: "Kısayollar"
         case .diagnostics: "Tanılama"
         }
@@ -83,9 +87,9 @@ struct SettingsPage: View {
     /// ayarı yok).
     private var settingsSubtitle: LocalizedStringKey {
         #if HOSTED_EDITION
-        "Hesabını, arayüz dilini, görünümü, bağlantıları ve kısayolları yönet."
+        "Hesabını, arayüz dilini, görünümü, bağlantıları, sesle yazmayı ve kısayolları yönet."
         #else
-        "Arayüz dilini, tanıma motorunu, görünümü, yapay zekâ modellerini, anahtarları ve kısayolları yönet."
+        "Arayüz dilini, tanıma motorunu, görünümü, yapay zekâ modellerini, anahtarları, sesle yazmayı ve kısayolları yönet."
         #endif
     }
 
@@ -99,6 +103,15 @@ struct SettingsPage: View {
         section = .account
     }
     #endif
+
+    /// İstenmişse Sesle yazma sekmesini seçer ve isteği sıfırlar.
+    private func selectVoiceTypingIfRequested() {
+        guard router.opensVoiceTypingSettings else {
+            return
+        }
+        router.opensVoiceTypingSettings = false
+        section = .voiceTyping
+    }
 
     var body: some View {
         ScrollView {
@@ -124,6 +137,7 @@ struct SettingsPage: View {
                     case .llm: LLMSettings(model: model)
                     case .keys: KeySettings(model: model)
                     case .connections: ConnectionSettings(model: model)
+                    case .voiceTyping: VoiceTypingSettings(shortcuts: shortcuts)
                     case .shortcuts: ShortcutSettings(shortcuts: shortcuts)
                     case .diagnostics: DiagnosticsSettings(model: model, updater: updater)
                     }
@@ -136,6 +150,9 @@ struct SettingsPage: View {
                 .onAppear { selectAccountIfRequested() }
                 .onChange(of: router.opensAccountSettings) { (_: Bool, _: Bool) in selectAccountIfRequested() }
                 #endif
+                // Sesle yazma hapındaki "izin ver" Ayarlar'ı Sesle yazma sekmesinde açar.
+                .onAppear { selectVoiceTypingIfRequested() }
+                .onChange(of: router.opensVoiceTypingSettings) { (_: Bool, _: Bool) in selectVoiceTypingIfRequested() }
             }
             .animation(.smooth(duration: 0.2), value: section)
             // Geniş pencerede form satırları ekran boyu uzamasın; kaydırma alanı tam genişlikte.
@@ -529,7 +546,7 @@ private struct UsageStatisticsRow: View {
 
     var body: some View {
         SettingsRow(title: Text("Anonim kullanım istatistiklerini paylaş")) {
-            Text("Açıkken uygulama günde bir kez hangi özellikleri kullandığını (canlı çeviri, Sor, bağlantı ve dışa aktarma türleri) ve bağlantı kopması, not hatası gibi güvenilirlik sayılarını gönderir; ilk açılışı ve giriş adımlarını (pencere açıldı, kapatıldı, hata verdi, tamamlandı) da sayar. Bunlar hesabına bağlanmaz. Ses, metin, not, başlık ya da ad asla gönderilmez. Uygulama ve macOS sürümü ile yapay zekâ isteklerinin hangi özellik için olduğu, hizmetin işleyişi için her durumda gönderilir.")
+            Text("Açıkken uygulama günde bir kez hangi özellikleri kullandığını (canlı çeviri, Sor, sesle yazma, bağlantı ve dışa aktarma türleri) ve bağlantı kopması, not hatası gibi güvenilirlik sayılarını gönderir; ilk açılışı ve giriş adımlarını (pencere açıldı, kapatıldı, hata verdi, tamamlandı) da sayar. Bunlar hesabına bağlanmaz. Ses, metin, not, başlık ya da ad asla gönderilmez. Uygulama ve macOS sürümü ile yapay zekâ isteklerinin hangi özellik için olduğu, hizmetin işleyişi için her durumda gönderilir.")
         } control: {
             Toggle("Anonim kullanım istatistiklerini paylaş", isOn: $shareUsageStatistics).settingsToggle()
         }
@@ -2239,7 +2256,8 @@ private struct ShortcutSettings: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ForEach(ShortcutAction.allCases, id: \.self) { (action: ShortcutAction) in
+            // Sesle yazmanın kısayolu kendi sekmesinde (aç/kapa ve izinle birlikte).
+            ForEach(ShortcutAction.allCases.filter { $0 != .dictate }, id: \.self) { (action: ShortcutAction) in
                 SettingsRow(title: Text(action.title)) {
                     if let error = shortcuts.errors[action] {
                         NoticeText(error, severity: .error)
@@ -2260,7 +2278,7 @@ private struct ShortcutSettings: View {
 }
 
 /// Tıklanınca bir sonraki tuş bileşimini kaydeden düğme.
-private struct ShortcutRecorder: View {
+struct ShortcutRecorder: View {
     let binding: KeyBinding
     let onRecord: @MainActor (KeyBinding) -> Void
     @State private var isRecording: Bool = false

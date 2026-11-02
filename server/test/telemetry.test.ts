@@ -66,6 +66,7 @@ function featureReport(day: string): Record<string, unknown> {
     exports: zeroCounts(telemetryExportFormats),
     mcp: false,
     onDeviceLive: false,
+    dictation: false,
   };
 }
 
@@ -320,6 +321,7 @@ describe("özellik kullanımı (POST /v1/telemetry/features)", () => {
       integrations: { ...zeroCounts(telemetryIntegrations), slack: 2, notion: 1 },
       exports: { ...zeroCounts(telemetryExportFormats), pdf: 3 },
       mcp: true,
+      dictation: true,
     };
     const counted: Response = await postFeatures(harness, first, report);
     expect(counted.status).toBe(200);
@@ -332,6 +334,7 @@ describe("özellik kullanımı (POST /v1/telemetry/features)", () => {
     });
     expect(await featureRows(day)).toEqual([
       { feature: "ask", value: "", users: 1, total: 1 },
+      { feature: "dictation", value: "", users: 1, total: 1 },
       { feature: "export", value: "pdf", users: 2, total: 4 },
       { feature: "export", value: "srt", users: 1, total: 2 },
       { feature: "integration", value: "notion", users: 1, total: 1 },
@@ -343,6 +346,20 @@ describe("özellik kullanımı (POST /v1/telemetry/features)", () => {
     ]);
     // Sonraki gün yeniden sayılır.
     expect(await (await postFeatures(harness, first, featureReport(dayOf(harness.clock.nowMs, -2)))).json()).toEqual({ counted: true });
+  });
+
+  it("sesle yazma alanı olmayan (önceki sürümün) raporu kabul edilir, sesle yazma sayılmaz", async () => {
+    const harness: Harness = await defaultHarness();
+    const session: Session = await signIn(harness);
+    const day: string = dayOf(harness.clock.nowMs, -1);
+    const legacy: Record<string, unknown> = Object.fromEntries(
+      Object.entries({ ...featureReport(day), ask: true }).filter(([key]: [string, unknown]): boolean => key !== "dictation"),
+    );
+    expect(await (await postFeatures(harness, session, legacy)).json()).toEqual({ counted: true });
+    expect(await featureRows(day)).toEqual([
+      { feature: "ask", value: "", users: 1, total: 1 },
+      { feature: "report", value: "", users: 1, total: 1 },
+    ]);
   });
 
   it.each([

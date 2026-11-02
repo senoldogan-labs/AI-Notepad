@@ -81,13 +81,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gistsmith uses the microphone to transcribe what you say in meetings."
+            "value": "Gistsmith uses the microphone to transcribe what you say in meetings and when you use voice typing."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gistsmith toplantıda söylediklerini yazıya dökmek için mikrofonu kullanır."
+            "value": "Gistsmith toplantıda ve sesle yazarken söylediklerini yazıya dökmek için mikrofonu kullanır."
           }
         }
       }

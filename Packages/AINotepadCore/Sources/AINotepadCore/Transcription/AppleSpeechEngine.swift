@@ -101,7 +101,7 @@ private func makeModule(choice: AppleSpeechChoice) -> any SpeechModule {
     }
 }
 
-private let speechLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "AppleSpeech")
+let speechLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "AppleSpeech")
 
 /// Toplantı dilinin cihaz içi konuşma modelini hazırlar: dil desteklenmiyorsa `unsupportedLanguage`; model yüklü
 /// değilse indirilir, ilerleme (0…1) `onProgress`'e yarım saniyede bir verilir. Sistem eskiyse `requiresNewerSystem`.
@@ -118,18 +118,25 @@ private func installedAppleSpeech(language: MeetingLanguage, onProgress: @escapi
     guard let choice = await appleSpeechChoice(language: language) else {
         throw AppleSpeechError.unsupportedLanguage(language: language.rawValue)
     }
-    let module: any SpeechModule = makeModule(choice: choice)
+    try await installSpeechAssets(module: makeModule(choice: choice), localeIdentifier: choice.localeIdentifier, onProgress: onProgress)
+    return choice
+}
+
+/// Modülün dil modeli yüklü değilse indirip kurar; ilerleme (0…1) `onProgress`'e yarım saniyede bir verilir, sonunda 1.
+/// İndirilemezse `AppleSpeechError.assetInstallFailed`.
+@available(macOS 26.0, *)
+func installSpeechAssets(module: any SpeechModule, localeIdentifier: String, onProgress: @escaping @Sendable (Double) -> Void) async throws {
     let request: AssetInstallationRequest?
     do {
         request = try await AssetInventory.assetInstallationRequest(supporting: [module])
     } catch {
-        throw AppleSpeechError.assetInstallFailed(locale: choice.localeIdentifier, reason: String(describing: error))
+        throw AppleSpeechError.assetInstallFailed(locale: localeIdentifier, reason: String(describing: error))
     }
     guard let request else {
         onProgress(1)
-        return choice
+        return
     }
-    speechLogger.info("Konuşma modeli indiriliyor, yerel ayar: \(choice.localeIdentifier, privacy: .public), modül: \(choice.kind.rawValue, privacy: .public)")
+    speechLogger.info("Konuşma modeli indiriliyor, yerel ayar: \(localeIdentifier, privacy: .public)")
     let progress: Progress = request.progress
     let reporter: Task<Void, Never> = Task {
         while !Task.isCancelled {
@@ -146,11 +153,10 @@ private func installedAppleSpeech(language: MeetingLanguage, onProgress: @escapi
     do {
         try await request.downloadAndInstall()
     } catch {
-        throw AppleSpeechError.assetInstallFailed(locale: choice.localeIdentifier, reason: String(describing: error))
+        throw AppleSpeechError.assetInstallFailed(locale: localeIdentifier, reason: String(describing: error))
     }
     onProgress(1)
-    speechLogger.info("Konuşma modeli kuruldu, yerel ayar: \(choice.localeIdentifier, privacy: .public)")
-    return choice
+    speechLogger.info("Konuşma modeli kuruldu, yerel ayar: \(localeIdentifier, privacy: .public)")
 }
 
 /// Apple'ın cihaz içi konuşma tanımasıyla (`SpeechAnalyzer`) çalışan motor: internetsiz, anahtarsız, ücretsiz.
@@ -297,7 +303,7 @@ private func analyzedFile<Module: SpeechModule>(
 
 /// Örnekleri tek bir çözümleyiciyle yazıya döker ve kesin sonuçların metnini birleştirir; konuşma yoksa boş metin.
 @available(macOS 26.0, *)
-private func analyzedText<Module: SpeechModule>(
+func analyzedText<Module: SpeechModule>(
     samples: [Float], module: Module, localeIdentifier: String, text: @escaping @Sendable (Module.Result) -> String
 ) async throws -> String {
     guard !samples.isEmpty else {
