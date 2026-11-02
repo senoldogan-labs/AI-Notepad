@@ -43,6 +43,8 @@ public final class MeetingAudioPlayer {
     #if os(iOS)
     /// Çalma için ses oturumunu bu çalar açtı: durunca bırakılır, diğer uygulamaların sesi (müzik) sürer.
     @ObservationIgnored private var ownsAudioSession: Bool = false
+    /// Ses oturumunun açılması (oturum kuyruğunda) bitince çalmayı başlatan iş; durdurulunca iptal edilir.
+    @ObservationIgnored private var sessionActivation: Task<Void, Never>?
     #endif
     @ObservationIgnored private var loadedURLs: [URL] = []
     @ObservationIgnored private var ticker: Task<Void, Never>?
@@ -75,19 +77,41 @@ public final class MeetingAudioPlayer {
         errorMessage = nil
         errorMeetingID = nil
         #if os(iOS)
-        do {
-            // Sessiz modda da çalar; konuşma için ayarlı oturum.
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio)
-            try AVAudioSession.sharedInstance().setActive(true)
-            ownsAudioSession = true
-        } catch {
-            playerLogger.error("Çalma oturumu açılamadı, hata: \(String(describing: error), privacy: .private)")
-            errorMessage = userFacingMessage(error: AudioCaptureError.playbackSessionFailed(code: Int32((error as NSError).code)))
-            errorMeetingID = meetingID
+        // Oturum açık ve açılma bitmişse hemen çalar; açılma sürüyorsa yeni konumla yeniden kurulur.
+        if ownsAudioSession && sessionActivation == nil {
+            start(at: max(0, startSec - 0.3))
             return
         }
-        #endif
+        // Oturum ana iş parçacığında değil oturum kuyruğunda açılır (sistem servisini beklerken arayüz donmasın);
+        // açılınca çalma başlar. Oturum açıldığı için durdurmada kapatılır (iptal edilse de).
+        ownsAudioSession = true
+        sessionActivation?.cancel()
+        sessionActivation = Task { [weak self] in
+            do {
+                // Sessiz modda da çalar; konuşma için ayarlı oturum.
+                try await AudioSessionQueue.perform { (session: AVAudioSession) throws -> Void in
+                    try session.setCategory(.playback, mode: .spokenAudio)
+                    try session.setActive(true)
+                }
+            } catch {
+                playerLogger.error("Çalma oturumu açılamadı, hata: \(String(describing: error), privacy: .private)")
+                guard let self, !Task.isCancelled else {
+                    return
+                }
+                self.ownsAudioSession = false
+                self.errorMessage = userFacingMessage(error: AudioCaptureError.playbackSessionFailed(code: Int32((error as NSError).code)))
+                self.errorMeetingID = meetingID
+                return
+            }
+            guard let self, !Task.isCancelled else {
+                return
+            }
+            self.sessionActivation = nil
+            self.start(at: max(0, startSec - 0.3))
+        }
+        #else
         start(at: max(0, startSec - 0.3))
+        #endif
     }
 
     public func togglePause() {
@@ -147,13 +171,19 @@ public final class MeetingAudioPlayer {
         errorMessage = nil
         errorMeetingID = nil
         #if os(iOS)
+        sessionActivation?.cancel()
+        sessionActivation = nil
         if ownsAudioSession {
             ownsAudioSession = false
-            do {
-                try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-            } catch {
-                playerLogger.error("Çalma oturumu kapatılamadı, hata: \(String(describing: error), privacy: .private)")
-            }
+            // Kapatma kuyruğa bekletmeden eklenir; açılma sürüyorsa kuyrukta ondan sonra çalışır.
+            AudioSessionQueue.enqueue(
+                { (session: AVAudioSession) throws -> Void in
+                    try session.setActive(false, options: .notifyOthersOnDeactivation)
+                },
+                onError: { (error: any Error) -> Void in
+                    playerLogger.error("Çalma oturumu kapatılamadı, hata: \(String(describing: error), privacy: .private)")
+                }
+            )
         }
         #endif
     }
