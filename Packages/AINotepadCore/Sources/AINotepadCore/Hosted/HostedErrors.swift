@@ -61,6 +61,8 @@ public enum HostedErrorCode: String, Sendable, CaseIterable, Equatable {
     case blogImageExists = "blog_image_exists"
     // Site istatistikleri yalnızca yönetim panelinindir (`server/src/siteAnalytics.ts`).
     case analyticsUnavailable = "analytics_unavailable"
+    // Apple ile girişin yetkilendirme kodu yalnızca sitenindir (`server/src/auth/appleTokens.ts`); uygulama bu ucu çağırmaz.
+    case appleTokensUnavailable = "apple_tokens_unavailable"
     case internalError = "internal_error"
 }
 
@@ -318,7 +320,8 @@ public func hostedErrorMessage(error: HostedAPIError) -> String {
     case .internalError:
         return String(localized: "Sunucuda beklenmeyen bir hata oluştu; biraz sonra yeniden dene.")
     case .badRequest, .invalidBody, .notFound, .methodNotAllowed, .lengthRequired, .unsupportedMediaType, .webhookInvalid, .llmPurposeInvalid,
-         .blogUnavailable, .blogPostExists, .blogConflict, .blogPostInvalid, .blogImageExists, .analyticsUnavailable:
+         .blogUnavailable, .blogPostExists, .blogConflict, .blogPostInvalid, .blogImageExists, .analyticsUnavailable,
+         .appleTokensUnavailable:
         return String(localized: "Bu sürüm sunucuyla uyuşmuyor. Uygulamayı güncelleyip yeniden dene.")
     }
 }
