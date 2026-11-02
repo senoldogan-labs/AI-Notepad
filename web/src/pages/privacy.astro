@@ -194,6 +194,14 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
             <td>(b) contract</td>
           </tr>
           <tr>
+            <td>
+              <strong>Sign in with Apple token.</strong> If you sign in with Apple, the refresh token Apple issues for
+              Gistsmith, encrypted, with the time it was stored. We use it for nothing else.
+            </td>
+            <td>Revoking Gistsmith's access to your Apple ID when you delete your account, as Apple asks apps that offer Sign in with Apple to do</td>
+            <td>(f) legitimate interest in carrying out your deletion request completely</td>
+          </tr>
+          <tr>
             <td><strong>Sessions.</strong> One-way hashes of sign-in tokens, with creation and expiry times</td>
             <td>Keeping you signed in; detecting stolen tokens</td>
             <td>(b) contract; (f) legitimate interest in security</td>
@@ -639,6 +647,11 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       </li>
       <li>The DeviceCheck bit for your Mac or iPhone is stored by Apple, not by us; it holds no personal details, only that the device has already given a free trial.</li>
       <li>Sign-in tokens: up to 60 days; deleted within a day after they expire or you sign out.</li>
+      <li>
+        The Sign in with Apple refresh token: while your account exists (replaced each time you sign in with Apple);
+        revoked with Apple and deleted when you delete your account. If a sign-in is abandoned before an account is
+        created, it is deleted within a day.
+      </li>
       <li>Daily usage totals: 2 days. The hashed IP records for new trials and for counting downloads: until the end of that day.</li>
       <li>Contact messages, feedback and crash reports: 180 days. Emails: for as long as needed to handle your request.</li>
       <li>Cancellation reasons and comments: 180 days; deleted immediately when you delete your account.</li>
@@ -667,7 +680,10 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       Any unfinished subscription is first cancelled immediately at Stripe; then your account, sign-in identities,
       sessions, device registrations, meeting session records, usage, subscription records (including the App Store
       subscription record), cancellation reasons, invite code and invite records linked to your account, and Stripe
-      customer link are deleted together in a single step.
+      customer link are deleted together in a single step. If you signed in with Apple, we first ask Apple to revoke
+      Gistsmith's access to your Apple ID, using the token we stored for that; the account is deleted even if Apple can't
+      be reached, and we then follow up manually. You can also stop using Sign in with Apple for Gistsmith yourself, in
+      your Apple ID settings (on iPhone: Settings › your name › Sign-In &amp; Security › Sign in with Apple).
     </p>
     <p>
       <strong>App Store subscriptions are not cancelled by deleting your account.</strong> Only you can cancel them, with

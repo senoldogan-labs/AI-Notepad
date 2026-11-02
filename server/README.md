@@ -37,7 +37,9 @@ kısa ömürlü jeton vermek için kullanılır), `GITHUB_BLOG_TOKEN` (isteğe b
 "Blog yayını"; girilmemişse blog uçları `503 blog_unavailable`; girilmişse boşluksuz ve en az 20 karakter olmalı, değilse
 her istek `500`), `CF_ANALYTICS_TOKEN` (isteğe bağlı; yönetim panelindeki site istatistikleri, aşağıda "Site
 istatistikleri"; girilmemişse uç `503 analytics_unavailable`), `REVENUECAT_WEBHOOK_AUTH` ve
-`REVENUECAT_SECRET_API_KEY` (App Store abonelikleri; aşağıda "App Store abonelikleri (RevenueCat)").
+`REVENUECAT_SECRET_API_KEY` (App Store abonelikleri; aşağıda "App Store abonelikleri (RevenueCat)"),
+`APPLE_SIGNIN_KEY_ID`, `APPLE_SIGNIN_PRIVATE_KEY` ve `APPLE_TOKEN_ENC_KEY` (Apple ile girişin jeton iptali; üçü birlikte;
+aşağıda "Apple ile giriş jetonunun iptali").
 `TRIAL_HASH_SECRET` kimlik deneme defterinin, deneme IP özetlerinin ve davet edilenin kart parmak izi özetinin HMAC
 sırrıdır (webhook da okur); değiştirilirse defterdeki eski satırlar yeni girişlerle eşleşmez (silinmiş hesabın kimliği
 denemeyi yeniden alabilir, eski davetlerin kartları yeniden kullanılabilir). `ACCESS_TOKEN_SECRET`
@@ -68,6 +70,7 @@ türetmeler dosyadaki açıklamalarda). Bu sürümle gelenler:
 | `DEEPGRAM_POLICY` | Deepgram canlı metni için tek anahtar: `on` (üretim) ya da `off` (yerel, testler, acil kapatma: jeton verilmez, `/v1/me` → `liveEngine: "whisperkit"`, uygulama canlı metni Mac'te üretir). Ayrıntı: aşağıda "Deepgram canlı metni". |
 | `DEEPGRAM_BUDGET_USD`, `DEEPGRAM_USD_PER_MINUTE` | Ücretsiz Deepgram kredisinin canlı metne ayrılan ömür boyu bütçesi (üretim 185; kredinin kalanı payı) ve akış dakikası fiyatı (Nova-3 çok dilli liste fiyatı 0,0092; temkinli). `GET /v1/admin/stats` → `deepgram: {policy, budgetUsd, estimatedUsd, percent, streamMinutes, meetings, openMeetings, usdPerMinute}`. |
 | `GITHUB_BLOG_REPO`, `GITHUB_BLOG_BRANCH` | Blog yazılarının deposu (`sahip/ad`, `senoldogann/AI-Notepad`) ve yazıların commit'lendiği dal (`main`); yazılar `web/src/content/blog/*.md`. Ayrıntı: aşağıda "Blog yayını". |
+| `APPLE_TEAM_ID`, `APPLE_SIGNIN_CLIENT_ID` | Apple ekip kimliği (`79DZ4AA4DW`; istemci sırrının `iss`'i) ve sitenin Apple ile giriş Services ID'si (`com.senoldogan.AINotepad.web`; `APPLE_CLIENT_IDS` içinde olmalı): yetkilendirme kodu bu istemciyle takas edilir. Aşağıda "Apple ile giriş jetonunun iptali". |
 | `DEVICECHECK_TEAM_ID`, `DEVICECHECK_KEY_ID` | Yetki JWT'sinin `iss`'i (Apple ekip kimliği) ve `kid`'i (DeviceCheck anahtar kimliği); `required` iken 10 karakterlik Apple biçiminde olmalı (yer tutucu `DEVICECHECK_KEY_ID_PENDING` geçmez). |
 
 Hız sınırları `ratelimits`'tedir (süre 10 ya da 60 sn): `AUTH_IP_LIMITER` (giriş, IP başına 10/dk), `API_IP_LIMITER`
@@ -111,7 +114,8 @@ toplantının ilk not anını ve hata alanlarını (`meeting_sessions.first_note
 `last_failure_at`), `0036` Stripe iptal nedenlerini (`subscription_cancellations`), `0040` davet edilenin kart parmak
 izi özetini (`referral_redemptions.card_fingerprint_hash`; aşağıda "Davet programı"), `0048` App Store aboneliklerini
 (`app_store_subscriptions`), işlenmiş RevenueCat olaylarını (`revenuecat_events`) ve günlük anlık görüntünün App Store
-sütunlarını (aşağıda "App Store abonelikleri (RevenueCat)") ekler.
+sütunlarını (aşağıda "App Store abonelikleri (RevenueCat)"), `0049` Apple ile girişin şifreli yenileme jetonlarını
+(`apple_sign_in_tokens`, Apple kimliğine bağlı; aşağıda "Apple ile giriş jetonunun iptali") ekler.
 
 ## App Store abonelikleri (RevenueCat)
 
@@ -176,6 +180,48 @@ Kurulum (sahibin bir kez yapacakları):
 4. **RevenueCat gizli anahtarı:** Project settings → API keys → Secret API key (v1, `sk_…`):
    `npx wrangler secret put REVENUECAT_SECRET_API_KEY --env production`.
 5. Göç (`npm run migrate:production`) ve dağıtım; RevenueCat panelinden "Send test event" → `200`, `outcome: "test"`.
+
+## Apple ile giriş jetonunun iptali
+
+Apple, Apple ile giriş sunan uygulamaların hesap silinince kullanıcının jetonlarını Sign in with Apple REST API ile iptal
+etmesini ister ("Offering account deletion in your app"; TN3194). Sunucu bunun için Apple'ın yenileme jetonunu saklar
+ve yalnızca silmede kullanır (`src/auth/appleTokens.ts`, göç `0049`):
+
+- **Kod:** Apple ile girişte Apple'ın yanıtı kimlik jetonuyla birlikte tek kullanımlık (5 dk) bir yetkilendirme kodu
+  taşır (`response_type=code id_token`). Site kodu `POST /v1/auth/apple/authorization-code` ile gönderir: kendi girişinde
+  girişle aynı anda, uygulama adına girişte uygulamaya dönmeden önce (uygulamalar değişmedi; dönüş parçasında yine
+  yalnızca `idToken` var). Kod uygulama adına girişte hesap oluşmadan geldiği için jeton hesap kimliğine değil Apple
+  kimliğine (`sub`) bağlıdır.
+- **Takas:** `POST https://appleid.apple.com/auth/token` (`client_id` = `APPLE_SIGNIN_CLIENT_ID`, `grant_type=authorization_code`,
+  `redirect_uri` = `<SITE_ORIGIN>/sign-in`, istemci sırrı: ES256 JWT, `kid` = `APPLE_SIGNIN_KEY_ID`, `iss` =
+  `APPLE_TEAM_ID`, `sub` = istemci, `aud` = `https://appleid.apple.com`, 5 dk ömür, her çağrıda yeniden üretilir).
+  Yanıttaki kimlik jetonunun `iss`, `aud` ve `sub`'u denetlenir; yenileme jetonu AES-256-GCM ile (`APPLE_TOKEN_ENC_KEY`,
+  ek veri `sub`) şifrelenip saklanır, aynı kimliğin yeni girişi eskisinin yerine geçer. 5xx, 429 ve ağ hatası
+  `upstream_retry` uyarısıyla 3 kez denenir. Takas başarısızsa uç `502` döner ve "Sorunlar"a `provider_error`/`apple_token`
+  sayılır; giriş bundan bağımsızdır (site hatayı konsola yazar ve girişi sürdürür). Gizli değerler girilmemişse
+  `503 apple_tokens_unavailable` (5xx olarak sayılır).
+- **İptal:** `DELETE /v1/me` Stripe'tan sonra, satırlar silinmeden önce saklanan jetonu `POST https://appleid.apple.com/auth/revoke`
+  (`token_type_hint=refresh_token`, jetonun verildiği istemciyle) ile iptal eder; Apple geçersiz jetonda da 200 döner,
+  tekrar güvenlidir. Kalıcı başarısızlıkta (Apple yanıt vermiyor, gizli değerler kaldırılmış, jeton çözülemiyor) hesap
+  yine silinir (silme hakkı), `apple_token_revoke_failed` alarmı loglanır ve "Sorunlar"a `provider_error`/`apple_revoke`
+  sayılır: elle takip gerekir (jeton artık yoktur; kullanıcıya Apple Kimliği ayarlarından "Apple ile giriş"i durdurmasını
+  söyle). Jeton satırı silme işleminde silinir.
+- **Eski hesaplar:** bu sürümden önce Apple ile giriş yapmış hesapların jetonu yoktur; bir sonraki Apple girişinde
+  kendiliğinden saklanır. O zamana dek silinirlerse iptal yapılamaz: silme yapılır ve "Sorunlar"a
+  `provider_error`/`apple_revoke_no_token` sayılır (Apple'ın yönergesi: kullanıcı Apple Kimliği ayarlarından kendisi
+  durdurabilir, https://support.apple.com/en-us/102571).
+- **Temizlik:** hesaba bağlanmamış jeton (uygulama adına giriş takastan sonra yarıda kaldı) bir gün sonra silinir.
+
+Kurulum (sahibin bir kez yapacakları):
+
+1. Apple Developer → Certificates, Identifiers & Profiles → Keys → yeni anahtar, "Sign in with Apple" yetkisi, Configure →
+   birincil App ID `com.senoldogan.AINotepad.hosted` (Services ID `com.senoldogan.AINotepad.web` bu App ID'ye bağlıdır).
+   `.p8` dosyasını indir (bir kez indirilebilir) ve anahtar kimliğini (10 karakter) not et.
+2. `npx wrangler secret put APPLE_SIGNIN_KEY_ID --env production` (anahtar kimliği),
+   `npx wrangler secret put APPLE_SIGNIN_PRIVATE_KEY --env production < AuthKey_XXXXXXXXXX.p8`,
+   `openssl rand -base64 32 | npx wrangler secret put APPLE_TOKEN_ENC_KEY --env production` (değiştirilirse saklanan
+   jetonlar çözülemez ve o hesaplar silinirken `apple_revoke` sayılır; sonraki Apple girişinde yenisi saklanır).
+3. `npm run migrate:production`, sonra dağıtım (sunucu ve site).
 
 ## Deepgram canlı metni
 
@@ -354,7 +400,7 @@ ya da kullanılmış cihaz meydan okumaları, süresi dolmuş ya da ailesi düş
 başlangıçları, 2 günden eski kullanıcı günlük kullanımı, 13 aydan eski toplantılar (deneme toplantıları önce
 `users.carried_trial_meetings`'e eklenir: deneme hakkı geri gelmez) ve aylık kullanım, 13 aydır kullanılmayan cihazlar,
 180 günden eski raporlar (durumundan bağımsız), 730 gündür güncellenmemiş kimlik deneme defteri satırları ve hesabı
-silinmiş davet edilenlerin davet satırları; 400 günden eski günlük token kovaları, konuşma tanıma dilleri ve indirme
+silinmiş davet edilenlerin davet satırları, bir günden eski ve hesaba bağlanmamış Apple ile giriş jetonları; 400 günden eski günlük token kovaları, konuşma tanıma dilleri ve indirme
 kampanyaları; 5 yıldan eski günlük anlık görüntüler; 10 yıldan eski gelir kayıtları (önce iadeleri). Aynı Cron günü gelen davet ödüllerini de verir (`referral_rewards` adımı).
 İndirme sayacı (gün başına tek satır, kişisel veri yok) silinmez. Silme tablo başına 1000 satırlık en çok 3 turdur; kalan
 ertesi gün silinir (`cleanup_incomplete` uyarısı). Her adım ayrı denenir: biri başarısız olursa `cleanup_failed` alarmı
@@ -400,10 +446,11 @@ yazılır, diğerleri çalışır ve sonunda `CleanupFailedError` fırlatılır.
 |---|---|---|
 | `GET /v1/health` | — | |
 | `POST /v1/auth/apple` | — | `{identityToken, nonce}`; Apple'a `sha256hex(nonce)` verilir; e-posta saklanmaz |
+| `POST /v1/auth/apple/authorization-code` | — | `{code}` (Apple'ın yetkilendirme kodu; site gönderir); kodu Apple'da takas eder, yenileme jetonunu şifreli saklar, `200 {stored: true}`; Apple reddederse `502 upstream_rejected`, yanıt vermezse `502 upstream_unavailable`, gizli değerler yoksa `503 apple_tokens_unavailable`. Yukarıda "Apple ile giriş jetonunun iptali" |
 | `POST /v1/auth/google` | — | `{identityToken, nonce}`; Google'a `sha256hex(nonce)` verilir. `iss` `https://accounts.google.com` ya da `accounts.google.com`, `aud` ∈ `GOOGLE_CLIENT_IDS`, RS256, nonce tek kullanımlık. Kimlik `google:<sub>`; e-posta saklanmaz. Apple hesabıyla otomatik bağlama yoktur (ayrı kullanıcı). Oturum yanıtı ve deneme kuralları Apple ile aynı |
 | `POST /v1/auth/refresh`, `/v1/auth/logout` | — | `{refreshToken}`; dönen jeton, yeniden kullanım aileyi düşürür; yalnızca hemen önceki jeton 10 dk içinde yeniden sunulursa ve halefi hiç kullanılmadıysa (yanıtı kaybolan yenileme) yeni çift verilir; kaybolan halef geçersiz işaretlenir, sonradan sunulursa tüm aile düşer. Dönüşte ailede en son kullanılmış jeton, ondan önceki ve geçersiz işaretli halefler dışındaki kullanılmış jetonlar silinir; kalanlar süresi dolana dek tutulur |
 | `GET /v1/me` | Bearer | plan, etkin kalan deneme (isteğe bağlı `x-device-key-id` ile hesap ve cihazın küçüğü; süre dolduysa 0), `trialDays`, `trialEndsAt` (ilk deneme toplantısı + `TRIAL_DAYS`, ISO 8601; deneme başlamadıysa ya da abonelikte `null`), aylık saat ve sınır, `monthlyResetsAt` (aylık sınırların sıfırlandığı an: sonraki UTC ayının başı), toplantı dışı yapay zekâ hakkı (`accountTokensUsed`, `accountTokensCap`, `accountTokensPeriod`: abonede `month` ve `MONTHLY_ACCOUNT_TOKEN_CAP`, denemede `day` ve `TRIAL_ACCOUNT_DAILY_TOKENS`; `accountTokensResetsAt`), `liveEngine` (`deepgram` / `whisperkit`, bkz. "Deepgram canlı metni"), abonelik erişimi (`active` / `grace` / `none`) ve planı (`subscription.plan`: `monthly` / `yearly`; fiyatı tanınmayan eski abonelikte `null`); `subscription.source` (`stripe` / `app_store`: asıl abonelik, bkz. "App Store abonelikleri"), `subscriptionSources` (erişim veren kaynaklar) ve `appStoreSubscription` (`{status, plan, productId, access, expiresAt, willRenew, graceEndsAt, environment, manageUrl}` ya da `null`) |
-| `DELETE /v1/me` | Bearer | hesabı siler (GDPR), `200 {deleted: true, appStoreSubscription, notice}` (`appStoreSubscription`: erişimi süren App Store aboneliği varsa `{willRenew, expiresAt, manageUrl}` ve İngilizce `notice` — Apple aboneliği silmeyle iptal olmaz, kullanıcı iPhone'da iptal etmeli; yoksa ikisi `null`; 0.1.12 ve öncesi 204 bekler ama her 2xx'i kabul eder): önce Stripe'taki bitmemiş abonelikler hemen iptal edilir (başarısızsa hiçbir şey silinmez, `502`); sonra kimlikler, oturumlar, cihazlar, toplantılar, kullanım, abonelik ve Stripe müşteri eşlemesi, deneme kayıtları ve hesabın raporları tek işlemde silinir; aynı işlemde önce her kimliğin deneme defteri satırı yazılır (harcanan deneme ve Mac doğrulaması, kimliğin HMAC özetiyle; deneme harcanmadıysa yazılmaz) (raporlar serbest metin ve e-posta taşıyabildiği için bağı kaldırılmaz, silinir; jetonsuz gönderilmiş raporlar hesaba bağlanamaz, 180 günde silinir). Bugünkü deneme başlangıcı IP özeti başına günlük sayaçta hesap bağı olmadan kalır. Stripe'taki müşteri ve faturalar vergi kayıtları için Stripe'ta kalır. Tekrarı (aynı jetonla) `200`, uyarısız |
+| `DELETE /v1/me` | Bearer | hesabı siler (GDPR), `200 {deleted: true, appStoreSubscription, notice}` (`appStoreSubscription`: erişimi süren App Store aboneliği varsa `{willRenew, expiresAt, manageUrl}` ve İngilizce `notice` — Apple aboneliği silmeyle iptal olmaz, kullanıcı iPhone'da iptal etmeli; yoksa ikisi `null`; 0.1.12 ve öncesi 204 bekler ama her 2xx'i kabul eder): önce Stripe'taki bitmemiş abonelikler hemen iptal edilir (başarısızsa hiçbir şey silinmez, `502`); sonra Apple ile girişin saklanan yenileme jetonu Apple'da iptal edilir (başarısız olsa da silme sürer; yukarıda "Apple ile giriş jetonunun iptali"); sonra kimlikler, Apple jetonu, oturumlar, cihazlar, toplantılar, kullanım, abonelik ve Stripe müşteri eşlemesi, deneme kayıtları ve hesabın raporları tek işlemde silinir; aynı işlemde önce her kimliğin deneme defteri satırı yazılır (harcanan deneme ve Mac doğrulaması, kimliğin HMAC özetiyle; deneme harcanmadıysa yazılmaz) (raporlar serbest metin ve e-posta taşıyabildiği için bağı kaldırılmaz, silinir; jetonsuz gönderilmiş raporlar hesaba bağlanamaz, 180 günde silinir). Bugünkü deneme başlangıcı IP özeti başına günlük sayaçta hesap bağı olmadan kalır. Stripe'taki müşteri ve faturalar vergi kayıtları için Stripe'ta kalır. Tekrarı (aynı jetonla) `200`, uyarısız |
 | `POST /v1/device/challenge` | Bearer | `{purpose: "attest" \| "assert"}` |
 | `POST /v1/device/attest` | Bearer | `{keyId, attestation, challenge}` (base64) |
 | `POST /v1/meetings/start` | Bearer | `{device?: {keyId, assertion, clientData}, deviceCheckToken?: <base64>, clientRef?, deferred?}`; clientData = `{"action":"meetings.start","challenge":…}`; `deviceCheckToken` (`DCDevice.generateToken()`) denemesi henüz bir Mac'e bağlanmamış hesabın deneme toplantısında gerekir (bkz. "Deneme kötüye kullanımı"); `clientRef` (`[A-Za-z0-9._-]{1,64}`) istemcinin kayıt kimliğidir: aynı kimlikle yinelenen başlatma aynı oturumu döndürür; `deferred: true` sonradan işlenen kayıttır, açık toplantıyı kapatmaz. Yeni hesabın ilk denemesi IP başına günde `TRIAL_ACCOUNTS_PER_IP_PER_DAY` (üretimde 10); kullanıcı başına günde en çok 20 başlatma; yeni toplantı açık olanı ek süresiz kapatır, reddedilen başlatma açık toplantıya dokunmaz ve sayılmaz |

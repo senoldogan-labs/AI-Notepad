@@ -8,6 +8,10 @@
 // `sessionStorage`'da durur; dönüşte `state` denetlenir. Kimlik jetonu sunucuya gönderilmez:
 // `com.senoldogan.ainotepad.hosted://auth/<apple|google>#idToken=…` ile uygulamaya iletilir, uygulama jetonu kendi ham
 // nonce'uyla sunucuya yollar.
+// Apple'ın yanıtındaki tek kullanımlık yetkilendirme kodu (`code`) uygulamaya iletilmez (uygulamalar dönüş parçasında
+// yalnızca `idToken` kabul eder): site, uygulamaya dönmeden önce kodu sunucuya gönderir
+// (`POST /v1/auth/apple/authorization-code`); sunucu onu yalnızca hesap silinince Apple'da iptal edilecek yenileme
+// jetonuna çevirir. Bu adım başarısız olsa da giriş sürer.
 
 /** Abonelik uygulamasının giriş dönüş şeması (ASWebAuthenticationSession bu şemayı yakalar). */
 export const appUrlScheme: string = "com.senoldogan.ainotepad.hosted";
@@ -136,14 +140,21 @@ export function googleAuthorizeRedirect(authorizeUrl: string, clientId: string, 
 /** Sağlayıcıdan dönüşte `#` parçasının anlamı. */
 export type ProviderReturn =
   | { readonly kind: "none" }
-  | { readonly kind: "token"; readonly state: string; readonly idToken: string }
+  | {
+      readonly kind: "token";
+      readonly state: string;
+      readonly idToken: string;
+      /** Apple'ın yetkilendirme kodu (`response_type=code id_token`); Google'da ve kod yoksa null. */
+      readonly code: string | null;
+    }
   | { readonly kind: "error"; readonly state: string | null; readonly error: string };
 
 /** Kimlik jetonu biçimi: üç base64url bölümü. */
 const jwtPattern: RegExp = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 
 /**
- * Adresin `#` parçasını sağlayıcı dönüşü olarak okur: `id_token` ve `state` varsa jeton, `error` varsa hata (ör. Apple
+ * Adresin `#` parçasını sağlayıcı dönüşü olarak okur: `id_token` ve `state` varsa jeton (Apple'ın `code`'u varsa
+ * onunla; biçimini sunucu denetler), `error` varsa hata (ör. Apple
  * `user_cancelled_authorize`, Google `access_denied`), ikisi de yoksa dönüş değil. Jeton JWT biçiminde değilse
  * `invalid_id_token` hatası. Saf fonksiyondur.
  */
@@ -164,7 +175,7 @@ export function providerReturn(hash: string): ProviderReturn {
   if (!jwtPattern.test(idToken)) {
     return { kind: "error", state, error: "invalid_id_token" };
   }
-  return { kind: "token", state, idToken };
+  return { kind: "token", state, idToken, code: params.get("code") };
 }
 
 /** Kullanıcının vazgeçtiğini bildiren sağlayıcı hata kodları. */
