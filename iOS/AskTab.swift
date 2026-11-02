@@ -277,36 +277,33 @@ struct AskTab: View {
 
     var body: some View {
         NavigationStack(path: $router.askPath) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 28) {
-                    PhoneErrorList(messages: [ask.historyError, ask.recipeError].compactMap { $0 })
-                    if !isEmpty {
-                        intro
-                        if hasRecent {
-                            recent
-                        }
-                        examplesSection
-                    }
-                }
-                .padding(16)
-            }
-            .scrollDismissesKeyboard(.interactively)
-            .overlay {
-                // Henüz toplantı ve sohbet yok: sorulacak bir şey yok, ortada kısa bir boş durum ve kayda geçiş.
+            Group {
                 if isEmpty {
+                    // Henüz toplantı ve sohbet yok: sorulacak bir şey yok, ortada kısa bir boş durum ve kayda geçiş.
                     PhoneEmptyState(symbol: "sparkle.magnifyingglass", title: "Sorulacak toplantı yok", message: "İlk toplantını kaydet; sonra notlarına buradan soru sor.") {
                         Button("Kaydı başlat", systemImage: "mic.fill") { router.tab = .record }
                             .buttonStyle(.pillPrimary)
                     }
-                }
-            }
-            .safeAreaInset(edge: .bottom) {
-                if !isEmpty {
-                    AskComposer(
-                        ask: ask, store: store, placeholder: "Sor… (@ toplantı, / tarif)", isAnswering: false,
-                        onSubmit: { (submission: AskSubmission) -> Void in startConversation(submission: submission) },
-                        onStop: { ask.stop() }
-                    )
+                } else {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 28) {
+                            PhoneErrorList(messages: [ask.historyError, ask.recipeError].compactMap { $0 })
+                            intro
+                            if hasRecent {
+                                recent
+                            }
+                            examplesSection
+                        }
+                        .padding(16)
+                    }
+                    .scrollDismissesKeyboard(.interactively)
+                    .safeAreaInset(edge: .bottom) {
+                        AskComposer(
+                            ask: ask, store: store, placeholder: "Sor… (@ toplantı, / tarif)", isAnswering: false,
+                            onSubmit: { (submission: AskSubmission) -> Void in startConversation(submission: submission) },
+                            onStop: { ask.stop() }
+                        )
+                    }
                 }
             }
             .background(Theme.background)

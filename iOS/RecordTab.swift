@@ -462,16 +462,17 @@ private struct LiveRecordingView: View {
 /// Rıza bildiriminin ekranda kalma süresi (saniye).
 private let consentToastSeconds: Double = 3
 
-/// Kayıt çubuğundaki yuvarlak simge düğmesi (İşaretle, Notlarım).
+/// Kayıt çubuğundaki yuvarlak simge düğmesi (İşaretle, Notlarım): kullanıcının vurgu renginde.
 private struct RecordingControlIcon: View {
     let systemImage: String
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
         Image(systemName: systemImage)
             .appFont(size: 19, weight: .medium)
-            .foregroundStyle(Theme.ink)
+            .foregroundStyle(appearance.accent.color)
             .frame(width: 60, height: 60)
-            .background(Theme.soft, in: Circle())
+            .background(appearance.accent.color.opacity(0.12), in: Circle())
             .contentTransition(.symbolEffect(.replace))
     }
 }

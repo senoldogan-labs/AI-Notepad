@@ -272,9 +272,9 @@ struct PhoneErrorList: View {
     }
 }
 
-/// Boş sayfa (Toplantılar, Görevler, Sor, arama sonucu): ekranın tam ortasında aynı pastel simge küresi, kısa başlık,
-/// tek cümlelik açıklama ve varsa tek eylem. Kaydırma görünümünün üstüne katman olarak konur: içerik ne kadar kısa olursa
-/// olsun yatayda ve dikeyde ortalanır.
+/// Boş sayfa (Toplantılar, Görevler, Sor, geçmiş, arama sonucu): ekranın tam ortasında aynı durgun pastel simge küresi,
+/// kısa başlık, tek cümlelik açıklama ve varsa tek eylem; arkada süs yok. Bulunduğu alanı doldurur, içerik yatayda ve
+/// dikeyde ortalanır.
 struct PhoneEmptyState<Actions: View>: View {
     let symbol: String
     let title: LocalizedStringKey
@@ -282,9 +282,27 @@ struct PhoneEmptyState<Actions: View>: View {
     @ViewBuilder let actions: () -> Actions
 
     var body: some View {
-        EmptyStateHero(symbol: symbol, title: title, message: message, palette: .sunset, steps: [], actions: actions)
-            .padding(.horizontal, 12)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        VStack(spacing: 18) {
+            EmptyStateOrb(symbol: symbol, palette: .sunset)
+                .frame(width: 150, height: 150)
+            VStack(spacing: 6) {
+                Text(title)
+                    .appFont(size: 22, weight: .regular)
+                    .tracking(-0.4)
+                    .foregroundStyle(Theme.ink)
+                Text(message)
+                    .appFont(size: 14, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .multilineTextAlignment(.center)
+            actions()
+                .padding(.top, 4)
+        }
+        .padding(.horizontal, 32)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityElement(children: .contain)
     }
 }
 
