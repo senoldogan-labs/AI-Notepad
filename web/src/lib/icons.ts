@@ -27,6 +27,7 @@ export type IconName =
   | "lock"
   | "mail"
   | "message"
+  | "mic"
   | "moon"
   | "note"
   | "pause"
@@ -95,6 +96,7 @@ export const icons: Readonly<Record<IconName, IconShape>> = {
   laptop: { style: "stroke", body: '<rect x="4.75" y="5" width="14.5" height="10" rx="2"/><path d="M2.75 18.75h18.5"/>' },
   lock: { style: "stroke", body: '<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.25 10.5V7.75a3.75 3.75 0 0 1 7.5 0v2.75M12 14.5v2"/>' },
   mail: { style: "stroke", body: '<rect x="3" y="5.25" width="18" height="13.5" rx="3"/><path d="m4 7 8 6 8-6"/>' },
+  mic: { style: "stroke", body: '<rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.75 11.5a6.25 6.25 0 0 0 12.5 0M12 17.75v2.75"/>' },
   message: { style: "stroke", body: '<path d="M20.25 11.6c0 4.2-3.7 7.4-8.25 7.4-1.15 0-2.25-.2-3.25-.57L4.5 19.75l1.2-3.5c-1.2-1.3-1.95-2.9-1.95-4.65 0-4.1 3.7-7.35 8.25-7.35s8.25 3.25 8.25 7.35Z"/>' },
   moon: { style: "stroke", body: '<path d="M19.5 14.6A8 8 0 0 1 9.4 4.5a8 8 0 1 0 10.1 10.1Z"/>' },
   note: { style: "stroke", body: '<path d="M14.25 3.75H7.5a2.25 2.25 0 0 0-2.25 2.25v12a2.25 2.25 0 0 0 2.25 2.25h9a2.25 2.25 0 0 0 2.25-2.25V8.25Z"/><path d="M14.25 3.75v4.5h4.5M8.75 12.5h6.5M8.75 16h4"/>' },

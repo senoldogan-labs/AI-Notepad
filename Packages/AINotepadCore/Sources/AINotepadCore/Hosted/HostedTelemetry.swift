@@ -172,6 +172,8 @@ public enum TelemetryFeature: Sendable, Equatable {
     case mcp
     /// Kaydın canlı metni bu Mac'te üretildi (bulut değil).
     case onDeviceLive
+    /// Sesle yazma (dikte) metni başka bir uygulamaya yapıştırdı ya da panoya kopyaladı.
+    case dictation
 }
 
 /// Bir günün (UTC) özellik kullanımı.
@@ -186,10 +188,11 @@ public struct TelemetryFeatureUsage: Sendable, Equatable, Codable {
     public let exports: [TelemetryExportFormat: Int]
     public let mcp: Bool
     public let onDeviceLive: Bool
+    public let dictation: Bool
 
     public init(
         day: String, liveTranslation: Bool, translationLanguage: ShareLanguage?, ask: Bool, integrations: [TelemetryIntegration: Int],
-        exports: [TelemetryExportFormat: Int], mcp: Bool, onDeviceLive: Bool
+        exports: [TelemetryExportFormat: Int], mcp: Bool, onDeviceLive: Bool, dictation: Bool
     ) {
         self.day = day
         self.liveTranslation = liveTranslation
@@ -199,12 +202,27 @@ public struct TelemetryFeatureUsage: Sendable, Equatable, Codable {
         self.exports = exports
         self.mcp = mcp
         self.onDeviceLive = onDeviceLive
+        self.dictation = dictation
+    }
+
+    /// Önceki sürümlerin diske yazdığı kullanım (`dictation` alanı yok) da okunur: o sürümlerde sesle yazma yoktu.
+    public init(from decoder: any Decoder) throws {
+        let container: KeyedDecodingContainer<CodingKeys> = try decoder.container(keyedBy: CodingKeys.self)
+        day = try container.decode(String.self, forKey: .day)
+        liveTranslation = try container.decode(Bool.self, forKey: .liveTranslation)
+        translationLanguage = try container.decodeIfPresent(ShareLanguage.self, forKey: .translationLanguage)
+        ask = try container.decode(Bool.self, forKey: .ask)
+        integrations = try container.decode([TelemetryIntegration: Int].self, forKey: .integrations)
+        exports = try container.decode([TelemetryExportFormat: Int].self, forKey: .exports)
+        mcp = try container.decode(Bool.self, forKey: .mcp)
+        onDeviceLive = try container.decode(Bool.self, forKey: .onDeviceLive)
+        dictation = try container.decodeIfPresent(Bool.self, forKey: .dictation) ?? false
     }
 }
 
 /// Günün boş kullanımı. Saf fonksiyondur.
 public func emptyFeatureUsage(day: String) -> TelemetryFeatureUsage {
-    TelemetryFeatureUsage(day: day, liveTranslation: false, translationLanguage: nil, ask: false, integrations: [:], exports: [:], mcp: false, onDeviceLive: false)
+    TelemetryFeatureUsage(day: day, liveTranslation: false, translationLanguage: nil, ask: false, integrations: [:], exports: [:], mcp: false, onDeviceLive: false, dictation: false)
 }
 
 /// Kullanıma özelliği işler (sayılar sınırda kalır). Saf fonksiyondur.
@@ -214,36 +232,41 @@ public func recordingFeature(usage: TelemetryFeatureUsage, feature: TelemetryFea
     case .liveTranslation(let language):
         return TelemetryFeatureUsage(
             day: usage.day, liveTranslation: true, translationLanguage: language, ask: usage.ask, integrations: usage.integrations, exports: usage.exports,
-            mcp: usage.mcp, onDeviceLive: usage.onDeviceLive
+            mcp: usage.mcp, onDeviceLive: usage.onDeviceLive, dictation: usage.dictation
         )
     case .ask:
         return TelemetryFeatureUsage(
             day: usage.day, liveTranslation: usage.liveTranslation, translationLanguage: usage.translationLanguage, ask: true, integrations: usage.integrations,
-            exports: usage.exports, mcp: usage.mcp, onDeviceLive: usage.onDeviceLive
+            exports: usage.exports, mcp: usage.mcp, onDeviceLive: usage.onDeviceLive, dictation: usage.dictation
         )
     case .integration(let integration):
         var integrations: [TelemetryIntegration: Int] = usage.integrations
         integrations[integration] = incremented(integrations[integration])
         return TelemetryFeatureUsage(
             day: usage.day, liveTranslation: usage.liveTranslation, translationLanguage: usage.translationLanguage, ask: usage.ask, integrations: integrations,
-            exports: usage.exports, mcp: usage.mcp, onDeviceLive: usage.onDeviceLive
+            exports: usage.exports, mcp: usage.mcp, onDeviceLive: usage.onDeviceLive, dictation: usage.dictation
         )
     case .export(let format):
         var exports: [TelemetryExportFormat: Int] = usage.exports
         exports[format] = incremented(exports[format])
         return TelemetryFeatureUsage(
             day: usage.day, liveTranslation: usage.liveTranslation, translationLanguage: usage.translationLanguage, ask: usage.ask, integrations: usage.integrations,
-            exports: exports, mcp: usage.mcp, onDeviceLive: usage.onDeviceLive
+            exports: exports, mcp: usage.mcp, onDeviceLive: usage.onDeviceLive, dictation: usage.dictation
         )
     case .mcp:
         return TelemetryFeatureUsage(
             day: usage.day, liveTranslation: usage.liveTranslation, translationLanguage: usage.translationLanguage, ask: usage.ask, integrations: usage.integrations,
-            exports: usage.exports, mcp: true, onDeviceLive: usage.onDeviceLive
+            exports: usage.exports, mcp: true, onDeviceLive: usage.onDeviceLive, dictation: usage.dictation
         )
     case .onDeviceLive:
         return TelemetryFeatureUsage(
             day: usage.day, liveTranslation: usage.liveTranslation, translationLanguage: usage.translationLanguage, ask: usage.ask, integrations: usage.integrations,
-            exports: usage.exports, mcp: usage.mcp, onDeviceLive: true
+            exports: usage.exports, mcp: usage.mcp, onDeviceLive: true, dictation: usage.dictation
+        )
+    case .dictation:
+        return TelemetryFeatureUsage(
+            day: usage.day, liveTranslation: usage.liveTranslation, translationLanguage: usage.translationLanguage, ask: usage.ask, integrations: usage.integrations,
+            exports: usage.exports, mcp: usage.mcp, onDeviceLive: usage.onDeviceLive, dictation: true
         )
     }
 }
@@ -259,9 +282,10 @@ private struct FeatureUsageBody: Encodable {
     let exports: [String: Int]
     let mcp: Bool
     let onDeviceLive: Bool
+    let dictation: Bool
 
     enum CodingKeys: String, CodingKey {
-        case day, liveTranslation, translationLanguage, ask, integrations, exports, mcp, onDeviceLive
+        case day, liveTranslation, translationLanguage, ask, integrations, exports, mcp, onDeviceLive, dictation
     }
 
     /// `translationLanguage` nil iken de yazılır (`null`): sunucu alanı her zaman ister.
@@ -275,6 +299,7 @@ private struct FeatureUsageBody: Encodable {
         try container.encode(exports, forKey: .exports)
         try container.encode(mcp, forKey: .mcp)
         try container.encode(onDeviceLive, forKey: .onDeviceLive)
+        try container.encode(dictation, forKey: .dictation)
     }
 }
 
@@ -288,7 +313,8 @@ public func hostedFeatureUsageBody(usage: TelemetryFeatureUsage) throws -> Data 
         integrations: Dictionary(uniqueKeysWithValues: TelemetryIntegration.allCases.map { ($0.rawValue, usage.integrations[$0] ?? 0) }),
         exports: Dictionary(uniqueKeysWithValues: TelemetryExportFormat.allCases.map { ($0.rawValue, usage.exports[$0] ?? 0) }),
         mcp: usage.mcp,
-        onDeviceLive: usage.onDeviceLive
+        onDeviceLive: usage.onDeviceLive,
+        dictation: usage.dictation
     )
     let encoder: JSONEncoder = JSONEncoder()
     encoder.outputFormatting = [.sortedKeys]

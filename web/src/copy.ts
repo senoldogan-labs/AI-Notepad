@@ -181,6 +181,8 @@ export interface HomeCopy {
     readonly ask: TitledText & { readonly question: string; readonly source: string };
     readonly followUp: TitledText & { readonly recipe: string; readonly subject: string; readonly lines: readonly string[] };
     readonly templates: TitledText & { readonly sample: readonly string[] };
+    /** Sesle yazma: kısayol etiketi ve imlecin olduğu alana yazılan örnek cümle. */
+    readonly voiceTyping: TitledText & { readonly shortcut: string; readonly sample: string };
   };
   /** Kayan entegrasyon şeridinin etiketi. */
   readonly marqueeLabel: string;
@@ -890,6 +892,12 @@ export const copy: Copy = {
         text: "Client calls, one-on-ones, interviews and lectures each get a note that puts the right things first. Or write your own.",
         sample: ["Client call", "One-on-one", "Interview", "Lecture", "Your own"],
       },
+      voiceTyping: {
+        title: "Voice typing in any app",
+        text: "Hold the shortcut, speak and let go: your words are typed wherever your cursor is, in Mail, Slack, Notes or the browser. It's transcribed on your Mac and nothing is sent anywhere. Free with any account, even after the trial.",
+        shortcut: "Hold ⌃⌥D",
+        sample: "Thanks, I'll send the pricing table by Friday.",
+      },
     },
     trust: {
       eyebrow: "Privacy",
@@ -1007,6 +1015,7 @@ export const copy: Copy = {
       { icon: "search", text: "“What did I miss?” and Ask across all your meetings" },
       { icon: "plug", text: "Send to Notion, Slack, Linear, Jira and more" },
       { icon: "sparkle", text: "Your AI apps can read your meetings through MCP" },
+      { icon: "mic", text: "Voice typing in any Mac app, transcribed on your Mac (free with any account)" },
     ],
     startFree: "Start free",
     limitsTitle: "The limits, plainly",

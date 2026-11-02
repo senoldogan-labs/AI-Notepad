@@ -442,7 +442,7 @@ private struct PermissionRow<Action: View>: View {
 
 /// Gizlilik bölümünü Sistem Ayarları'nda açar.
 @MainActor
-private func openPrivacySettings(anchor: String) {
+func openPrivacySettings(anchor: String) {
     guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?\(anchor)") else {
         return
     }

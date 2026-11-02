@@ -40,6 +40,20 @@ func serverDirectory() -> URL {
         #expect(try serverArray(source: telemetry, name: "telemetryLanguages") == ShareLanguage.allCases.map(\.rawValue))
     }
 
+    // Günlük özellik raporunun alanları sunucunun şemasıyla birebir aynı olmalı (ör. `dictation`): şema katıdır, fazla
+    // alan `invalid_body` alır, eksik zorunlu alan da.
+    @Test func featureUsageFieldsMatchServer() throws {
+        let telemetry: String = try String(contentsOf: serverDirectory().appending(path: "src/telemetry.ts"), encoding: .utf8)
+        let start: Substring = try #require(telemetry.firstRange(of: "export const featureUsageSchema = z").map { telemetry[$0.upperBound...] })
+        let body: Substring = try #require(start.firstRange(of: "\n  })").map { start[..<$0.lowerBound] })
+        let serverFields: Set<String> = Set(body.matches(of: #/\n    ([A-Za-z]+):/#).map { String($0.output.1) })
+        let usage: TelemetryFeatureUsage = emptyFeatureUsage(day: "2026-11-02")
+        let json: Any = try JSONSerialization.jsonObject(with: try hostedFeatureUsageBody(usage: usage))
+        let clientFields: Set<String> = Set(try #require(json as? [String: Any]).keys)
+        #expect(serverFields.contains("dictation"))
+        #expect(clientFields == serverFields, "İstemci: \(clientFields.sorted()), sunucu: \(serverFields.sorted())")
+    }
+
     // İlk açılış hunisinin adımları ve ayrıntıları sunucunun dizileriyle birebir aynı olmalı: eksik değer
     // `invalid_body` alır (adım sayılmaz).
     @Test func funnelListsMatchServer() throws {

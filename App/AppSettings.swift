@@ -48,6 +48,9 @@ enum SettingsKey {
     static let claudeSmartEffort: String = "claudeSmartEffort"
     static let recordShortcut: String = "shortcut.record"
     static let windowsShortcut: String = "shortcut.windows"
+    static let dictateShortcut: String = "shortcut.dictate"
+    /// Sesle yazma (dikte) açık mı: açıkken kısayolu her uygulamada çalışır.
+    static let voiceTypingEnabled: String = "voiceTyping.enabled"
     static let onboardingCompleted: String = "onboardingCompleted"
     /// "Sen" (mikrofon) kapalı mı.
     static let micMuted: String = "micMuted"
@@ -288,6 +291,8 @@ func registerDefaultSettings() {
         SettingsKey.inPersonMode: false,
         SettingsKey.meetingReminders: true,
         SettingsKey.micSuggestions: true,
+        // Sesle yazma baştan açık: kısayol (⌃⌥D) yalnızca basılınca mikrofonu açar.
+        SettingsKey.voiceTypingEnabled: true,
         SettingsKey.webhookAutoSend: false,
         SettingsKey.primaryMeetingLanguage: MeetingLanguage.finnish.rawValue,
         // Arayüz dili: Türkçe arayüzde mevcut kullanıcıların notu eskisi gibi Türkçe sürer.

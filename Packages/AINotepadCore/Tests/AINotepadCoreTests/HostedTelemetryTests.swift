@@ -61,15 +61,16 @@ private func telemetryJSON(_ data: Data) throws -> [String: Any] {
     @Test func featureBodyIsCompleteAndContentFree() throws {
         let day: String = "2026-10-29"
         let usage: TelemetryFeatureUsage = [
-            TelemetryFeature.liveTranslation(.turkish), .ask, .integration(.slack), .integration(.slack), .export(.pdf), .mcp,
+            TelemetryFeature.liveTranslation(.turkish), .ask, .integration(.slack), .integration(.slack), .export(.pdf), .mcp, .dictation,
         ].reduce(emptyFeatureUsage(day: day)) { (usage: TelemetryFeatureUsage, feature: TelemetryFeature) -> TelemetryFeatureUsage in
             recordingFeature(usage: usage, feature: feature)
         }
         let body: [String: Any] = try telemetryJSON(try hostedFeatureUsageBody(usage: usage))
-        #expect(Set(body.keys) == ["day", "liveTranslation", "translationLanguage", "ask", "integrations", "exports", "mcp", "onDeviceLive"])
+        #expect(Set(body.keys) == ["day", "liveTranslation", "translationLanguage", "ask", "integrations", "exports", "mcp", "onDeviceLive", "dictation"])
         #expect(body["day"] as? String == day)
         #expect(body["translationLanguage"] as? String == "tr")
         #expect(body["ask"] as? Bool == true && body["mcp"] as? Bool == true && body["onDeviceLive"] as? Bool == false)
+        #expect(body["dictation"] as? Bool == true)
         let integrations: [String: Int] = try #require(body["integrations"] as? [String: Int])
         #expect(Set(integrations.keys) == Set(TelemetryIntegration.allCases.map(\.rawValue)))
         #expect(integrations["slack"] == 2 && integrations["notion"] == 0)
@@ -80,6 +81,15 @@ private func telemetryJSON(_ data: Data) throws -> [String: Any] {
         let quiet: [String: Any] = try telemetryJSON(try hostedFeatureUsageBody(usage: emptyFeatureUsage(day: day)))
         #expect(quiet["translationLanguage"] is NSNull)
         #expect(quiet["liveTranslation"] as? Bool == false)
+    }
+
+    // Önceki sürümün diske yazdığı kullanım (`dictation` alanı yok) okunur; sesle yazma kullanılmamış sayılır.
+    @Test func legacyFeatureUsageDecodes() throws {
+        let stored: Data = Data(#"{"day":"2026-11-01","liveTranslation":false,"ask":true,"integrations":{},"exports":{},"mcp":false,"onDeviceLive":true}"#.utf8)
+        let usage: TelemetryFeatureUsage = try JSONDecoder().decode(TelemetryFeatureUsage.self, from: stored)
+        #expect(usage.ask && usage.onDeviceLive && !usage.dictation && usage.translationLanguage == nil)
+        let roundTrip: TelemetryFeatureUsage = try JSONDecoder().decode(TelemetryFeatureUsage.self, from: try JSONEncoder().encode(recordingFeature(usage: usage, feature: .dictation)))
+        #expect(roundTrip.dictation && roundTrip.ask)
     }
 
     // Gün dönünce önceki gün tamamlanmış sayılır ve gönderilmeyi bekler; bugünün kaydı yeniden başlar.

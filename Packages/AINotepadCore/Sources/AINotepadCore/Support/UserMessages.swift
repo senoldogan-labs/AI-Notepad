@@ -23,6 +23,8 @@ public func userFacingMessage(error: any Error) -> String {
         return onDeviceMessage(error: error)
     case let error as AppleSpeechError:
         return appleSpeechMessage(error: error)
+    case let error as DictationError:
+        return dictationMessage(error: error)
     case let error as CloudSTTError:
         return cloudMessage(error: error)
     case let error as StorageError:
