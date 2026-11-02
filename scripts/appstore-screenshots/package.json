@@ -1,0 +1,18 @@
+{
+  "name": "appstore-screenshots",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "make": "node make.ts --chrome \"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\"",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "playwright-core": "1.64.1",
+    "sharp": "0.35.5",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=26"
+  }
+}
