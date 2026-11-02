@@ -106,8 +106,11 @@ struct PhoneAccountScreen: View {
                     PhoneAccountErrorText(account: account)
                 }
             }
+            // Bağlantılar listenin altında zeminsiz ve tam ortada durur (kart değil).
             Section {
                 PhoneLegalLinks()
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
             }
         }
         .navigationTitle("Hesap")

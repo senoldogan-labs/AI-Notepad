@@ -2,68 +2,106 @@ import AINotepadCore
 import AINotepadUI
 import SwiftUI
 
-/// Giriş kapısı: oturum yokken (ya da hesabın verisi açılmamışken) uygulama yalnızca bunu gösterir — film gradyanlı
-/// kart, ad, tek cümlelik tanıtım, "Apple ile devam et" ve "Google ile devam et" (sistemin güvenli giriş sayfasında,
-/// sitedeki giriş akışıyla; bkz. `HostedAccount.signIn`), deneme satırı ve gizlilik/koşullar bağlantıları. Sekmeler,
-/// toplantılar ve kayıt yoktur. Satın alma yoktur (abonelik girişten sonra, uygulama içi satın almayla).
+/// Giriş kapısı: oturum yokken (ya da hesabın verisi açılmamışken) uygulama yalnızca bunu gösterir — ortada başlığı olan
+/// pastel kart, ad ve tek cümlelik tanıtım, deneme satırı, "Apple ile devam et" ve "Google ile devam et" (sistemin
+/// güvenli giriş sayfasında, sitedeki giriş akışıyla; bkz. `HostedAccount.signIn`) ve gizlilik/koşullar bağlantıları;
+/// hepsi ortalı. İçerik en az ekran boyundadır: büyük iPhone'da düğmeler alta yaslanır, artan boy ad bloğunun iki
+/// yanına bölünür; küçükte kaydırılır. Sekmeler, toplantılar ve kayıt yoktur. Satın alma yoktur (abonelik girişten
+/// sonra, uygulama içi satın almayla).
 struct PhoneSignInGate: View {
     let account: HostedAccount
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                FilmGradient(seed: "gistsmith-giris", palette: .violet)
-                    .overlay(alignment: .bottomLeading) {
+        GeometryReader { (proxy: GeometryProxy) in
+            ScrollView {
+                VStack(spacing: 0) {
+                    PhoneHeroCard(
+                        seed: "gistsmith-giris", palette: .violet,
+                        height: phoneHeroHeight(screenHeight: proxy.size.height, ratio: 0.38, minimum: 180, maximum: 340)
+                    ) {
                         Text("Toplantılarını dinler, notunu yazar")
                             .appFont(size: 28, weight: .regular)
                             .tracking(-0.5)
+                            .multilineTextAlignment(.center)
                             .foregroundStyle(Color.black.opacity(0.78))
-                            .padding(24)
-                    }
-                    .frame(height: 250)
-                    .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
-                    .environment(\.colorScheme, .light)
-                    .accessibilityElement(children: .combine)
-                Text(verbatim: appName)
-                    .appFont(size: 34, weight: .regular)
-                    .tracking(-0.6)
-                    .foregroundStyle(Theme.ink)
-                Text("Yüz yüze toplantılarını canlı yazıya döker; bitince notun hazır, görevlerin en üstte.")
-                    .appFont(size: 15, weight: .regular)
-                    .foregroundStyle(Theme.muted)
-                    .fixedSize(horizontal: false, vertical: true)
-                switch account.state {
-                case .unavailable(let message):
-                    NoticeText(message as String, severity: .error)
-                        .appFont(size: 14, weight: .regular)
-                case .loading, .signedOut, .signedIn, .signedInStatusUnknown:
-                    VStack(alignment: .leading, spacing: 12) {
-                        PhoneProviderButtons(account: account)
-                        Text(account.pendingBrowserSignIn == nil
-                            ? "Güvenli bir giriş sayfası açılır; parolan Apple'da ya da Google'da kalır."
-                            : "Giriş sayfasında devam et. Vazgeçersen sayfayı kapatman yeter.")
-                            .appFont(size: 12, weight: .regular)
-                            .foregroundStyle(Theme.muted)
                             .fixedSize(horizontal: false, vertical: true)
-                        Label("İlk 3 toplantı ya da 7 gün ücretsiz", systemImage: "sparkles")
-                            .appFont(size: 13, weight: .medium)
-                            .foregroundStyle(Theme.ink)
-                            .padding(.top, 2)
+                            .accessibilityAddTraits(.isHeader)
                     }
-                    .padding(.top, 4)
+                    // Artan boy kartın altı ile düğmelerin üstü arasında bölünür: ad ve tanıtım ortada kalır.
+                    Spacer(minLength: 28)
+                    VStack(spacing: 8) {
+                        Text(verbatim: appName)
+                            .appFont(size: 34, weight: .regular)
+                            .tracking(-0.6)
+                            .foregroundStyle(Theme.ink)
+                        Text("Yüz yüze toplantılarını canlı yazıya döker; bitince notun hazır, görevlerin en üstte.")
+                            .appFont(size: 15, weight: .regular)
+                            .foregroundStyle(Theme.muted)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 32)
+                    actions
+                    VStack(spacing: 10) {
+                        PhoneAccountErrorText(account: account)
+                        PhoneDeletedSubscriptionNotice(account: account)
+                        PhoneAccountDataNotice(account: account)
+                    }
+                    .padding(.top, 12)
+                    PhoneLegalLinks()
+                        .padding(.top, 20)
                 }
-                PhoneAccountErrorText(account: account)
-                PhoneDeletedSubscriptionNotice(account: account)
-                PhoneAccountDataNotice(account: account)
-                PhoneLegalLinks()
-                    .padding(.top, 8)
+                .padding(.horizontal, 24)
+                .padding(.top, 12)
+                .padding(.bottom, 12)
+                .frame(maxWidth: .infinity, minHeight: proxy.size.height)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
+            .scrollIndicators(.hidden)
+            .scrollBounceBehavior(.basedOnSize)
         }
-        .scrollIndicators(.hidden)
         .background(Theme.background.ignoresSafeArea())
         .task { await account.refresh() }
+    }
+
+    /// Deneme satırı, giriş düğmeleri ve güvenli giriş açıklaması; hesap hizmeti kullanılamıyorsa yalnızca nedeni.
+    @ViewBuilder
+    private var actions: some View {
+        switch account.state {
+        case .unavailable(let message):
+            NoticeText(message as String, severity: .error)
+                .appFont(size: 14, weight: .regular)
+                .frame(maxWidth: .infinity)
+        case .loading, .signedOut, .signedIn, .signedInStatusUnknown:
+            VStack(spacing: 16) {
+                PhoneTrialBadge()
+                PhoneProviderButtons(account: account)
+                Text(account.pendingBrowserSignIn == nil
+                    ? "Güvenli bir giriş sayfası açılır; parolan Apple'da ya da Google'da kalır."
+                    : "Giriş sayfasında devam et. Vazgeçersen sayfayı kapatman yeter.")
+                    .appFont(size: 12, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+}
+
+/// "İlk 3 toplantı ya da 7 gün ücretsiz": vurgu renginde yıldız ve hafif vurgu zeminli, ortalı hap.
+private struct PhoneTrialBadge: View {
+    var body: some View {
+        Label {
+            Text("İlk 3 toplantı ya da 7 gün ücretsiz")
+                .foregroundStyle(Theme.ink)
+        } icon: {
+            Image(systemName: "sparkles")
+                .foregroundStyle(.tint)
+        }
+        .appFont(size: 13, weight: .medium)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 7)
+        .background(.tint.opacity(0.12), in: Capsule())
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -187,109 +225,157 @@ private struct PhoneAccountDataNotice: View {
     }
 }
 
-/// Gizlilik ve koşullar (sitede).
+/// Gizlilik ve koşullar (sitede): ortalı, araya ince nokta; zemini yoktur (listede de satır zemini kaldırılır).
 struct PhoneLegalLinks: View {
     var body: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 10) {
             if let privacy = phoneLegalURL(path: "privacy") {
                 Link("Gizlilik", destination: privacy)
             }
+            Text(verbatim: "·")
+                .accessibilityHidden(true)
             if let terms = phoneLegalURL(path: "terms") {
                 Link("Koşullar", destination: terms)
             }
         }
         .appFont(size: 13, weight: .regular)
         .foregroundStyle(Theme.muted)
+        .frame(maxWidth: .infinity, alignment: .center)
     }
 }
 
 /// İlk yapay zekâ işleminden önce bir kez (girişten hemen sonra, kayıt ve Sor açılmadan): toplantı sesinin ve metninin
-/// hizmetimize ve üçüncü taraf yapay zekâ sağlayıcılarına (konuşma için Deepgram ve ElevenLabs, not için Anthropic
-/// Claude) gönderileceğini açıkça söyler; "Devam et" ile kabul edilir (App Store 5.1.2(i)). Kabul etmeyen çıkış
-/// yapabilir; hiçbir şey gönderilmez.
+/// hizmetimize ve güvenilir üçüncü taraf yapay zekâ hizmetlerine (konuşma tanıma ve not yazma) gönderileceğini, neyin
+/// neden gittiğini açıkça söyler; hizmetlerin adları uygulamada geçmez, gizlilik politikasında (sitede) listelenir.
+/// "Devam et" ile açıkça kabul edilir (App Store 5.1.2(i)). Kabul etmeyen çıkış yapabilir; hiçbir şey gönderilmez.
 struct PhoneAIDisclosure: View {
     let account: HostedAccount
     let onAccept: @MainActor () -> Void
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                Image(systemName: "lock.shield")
-                    .appFont(size: 34, weight: .regular)
-                    .foregroundStyle(.tint)
-                    .accessibilityHidden(true)
-                Text("Toplantıların nasıl işlenir")
-                    .appFont(size: 30, weight: .regular)
-                    .tracking(-0.6)
-                    .foregroundStyle(Theme.ink)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text("Yazıya dökme ve not için toplantının sesi ve metni hizmetimize ve aşağıdaki yapay zekâ sağlayıcılarına gönderilir.")
-                    .appFont(size: 15, weight: .regular)
-                    .foregroundStyle(Theme.muted)
-                    .fixedSize(horizontal: false, vertical: true)
-                VStack(alignment: .leading, spacing: 14) {
-                    disclosureRow(
-                        symbol: "waveform",
-                        title: "Konuşma: Deepgram ve ElevenLabs",
-                        text: "Kayıt sırasında ses canlı metin için Deepgram'a gider. Kayıt bitince ses, konuşmacıları ayırmak ve metni tamamlamak için sunucumuz üzerinden ElevenLabs'e gönderilir."
-                    )
-                    disclosureRow(
-                        symbol: "sparkles",
-                        title: "Not, çeviri ve Sor: Anthropic Claude",
-                        text: "Toplantı metni not, canlı çeviri ve Sor cevapları için sunucumuz üzerinden Anthropic'in Claude modeline gönderilir."
-                    )
-                    disclosureRow(
-                        symbol: "iphone",
-                        title: "Toplantıların bu iPhone'da",
-                        text: "Sunucumuz ses ve not saklamaz; kullanım sınırları için yalnızca süre ve kullanım sayıları tutulur."
-                    )
-                }
-                .padding(16)
-                .background(Theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Theme.line))
-                if let privacy = phoneLegalURL(path: "privacy") {
-                    Link(destination: privacy) {
-                        Label("Gizlilik politikasını oku", systemImage: "arrow.up.right.square")
-                            .appFont(size: 14, weight: .medium)
+        GeometryReader { (proxy: GeometryProxy) in
+            ScrollView {
+                VStack(spacing: 0) {
+                    PhoneHeroCard(
+                        seed: "gistsmith-aciklama", palette: .violet,
+                        height: phoneHeroHeight(screenHeight: proxy.size.height, ratio: 0.14, minimum: 96, maximum: 132)
+                    ) {
+                        Image(systemName: "lock.shield.fill")
+                            .appFont(size: 28, weight: .regular)
+                            .foregroundStyle(.tint)
+                            .frame(width: 66, height: 66)
+                            .background(Color.white.opacity(0.9), in: Circle())
+                            .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
+                            .accessibilityHidden(true)
                     }
-                }
-                Button {
-                    onAccept()
-                } label: {
-                    Text("Devam et")
-                        .appFont(size: 16, weight: .semibold)
-                        .foregroundStyle(Theme.background)
+                    VStack(spacing: 10) {
+                        Text("Toplantıların nasıl işlenir")
+                            .appFont(size: 28, weight: .regular)
+                            .tracking(-0.5)
+                            .foregroundStyle(Theme.ink)
+                            .accessibilityAddTraits(.isHeader)
+                        Text("Yazıya dökme ve not için toplantının sesi ve metni hizmetimize ve güvenilir üçüncü taraf yapay zekâ hizmetlerine gönderilir.")
+                            .appFont(size: 15, weight: .regular)
+                            .foregroundStyle(Theme.muted)
+                    }
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 20)
+                    VStack(alignment: .leading, spacing: 16) {
+                        disclosureRow(
+                            symbol: "waveform",
+                            title: "Konuşma tanıma",
+                            text: "Toplantının sesi canlı metin, konuşmacıları ayırma ve yazıya dökme için bir konuşma tanıma hizmetine gönderilir."
+                        )
+                        disclosureRow(
+                            symbol: "sparkles",
+                            title: "Not, çeviri ve Sor",
+                            text: "Toplantının metni not, canlı çeviri ve Sor cevapları için sunucumuz üzerinden bir yapay zekâ dil modeline gönderilir."
+                        )
+                        disclosureRow(
+                            symbol: "iphone",
+                            title: "Toplantıların bu iPhone'da",
+                            text: "Sunucumuz ses ve not saklamaz; kullanım sınırları için yalnızca süre ve kullanım sayıları tutulur."
+                        )
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 22)
+                    Text("Kullanılan hizmetler gizlilik politikasında adlarıyla listelenir.")
+                        .appFont(size: 13, weight: .regular)
+                        .foregroundStyle(Theme.muted)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 15)
-                        .background(Theme.primary, in: Capsule())
+                        .padding(.top, 20)
                 }
-                .buttonStyle(PressableCardStyle())
-                .padding(.top, 4)
-                Button("Çıkış yap") { Task { await account.signOut() } }
-                    .appFont(size: 14, weight: .regular)
-                    .foregroundStyle(Theme.muted)
-                    .frame(maxWidth: .infinity)
-                    .disabled(account.isWorking)
+                .padding(.horizontal, 24)
+                .padding(.top, 12)
+                .padding(.bottom, 20)
+                .frame(maxWidth: .infinity)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 24)
+            .scrollIndicators(.hidden)
+            .scrollBounceBehavior(.basedOnSize)
+            // Onay alta sabit: küçük iPhone'da maddeler kaysa da "Devam et" ve "Çıkış yap" hep görünür.
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                consent
+            }
         }
-        .scrollIndicators(.hidden)
         .background(Theme.background.ignoresSafeArea())
     }
 
+    /// Açık onay: gizlilik politikası bağlantısı, ne olacağının tek cümlesi, "Devam et" ve "Çıkış yap".
+    private var consent: some View {
+        VStack(spacing: 10) {
+            if let privacy = phoneLegalURL(path: "privacy") {
+                Link(destination: privacy) {
+                    Label("Gizlilik politikasını oku", systemImage: "arrow.up.right")
+                        .appFont(size: 14, weight: .semibold)
+                        .foregroundStyle(.tint)
+                }
+            }
+            Text("Devam edersen toplantıların bu şekilde işlenir. İstemezsen çıkış yap; hiçbir şey gönderilmez.")
+                .appFont(size: 12, weight: .regular)
+                .foregroundStyle(Theme.muted)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+            Button {
+                onAccept()
+            } label: {
+                PhonePrimaryButtonLabel(title: "Devam et")
+            }
+            .buttonStyle(PressableCardStyle())
+            Button("Çıkış yap") { Task { await account.signOut() } }
+                .appFont(size: 14, weight: .medium)
+                .foregroundStyle(Theme.muted)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 4)
+                .disabled(account.isWorking)
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 14)
+        .padding(.bottom, 4)
+        .background(Theme.background)
+        .overlay(alignment: .top) {
+            // Kayan maddelerle onay alanını ayıran ince çizgi.
+            Rectangle().fill(Theme.line).frame(height: 0.5)
+        }
+    }
+
+    /// Bir madde: vurgu renginde simge (hafif vurgu zeminli kare), başlık ve kısa açıklama.
     private func disclosureRow(symbol: String, title: LocalizedStringKey, text: LocalizedStringKey) -> some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: 14) {
             Image(systemName: symbol)
-                .appFont(size: 16, weight: .medium)
+                .appFont(size: 16, weight: .semibold)
                 .foregroundStyle(.tint)
-                .frame(width: 22)
+                .frame(width: 38, height: 38)
+                .background(.tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 3) {
                 Text(title).appFont(size: 15, weight: .semibold).foregroundStyle(Theme.ink)
                 Text(text).appFont(size: 13, weight: .regular).foregroundStyle(Theme.muted)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .accessibilityElement(children: .combine)
         }
     }
 }

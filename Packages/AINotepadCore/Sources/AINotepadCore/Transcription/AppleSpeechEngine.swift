@@ -384,7 +384,7 @@ private func convertedBuffer(samples: [Float], format: AVAudioFormat) throws -> 
 func appleSpeechMessage(error: AppleSpeechError) -> String {
     switch error {
     case .unsupportedLanguage(let code):
-        String(localized: "Cihaz içi konuşma tanıma bu dili desteklemiyor (\(code)). Başka bir toplantı dili seç ya da Ayarlar'dan bulut motorunu (Deepgram) seç.")
+        unsupportedLanguageMessage(code: code)
     case .assetInstallFailed:
         String(localized: "Cihaz içi konuşma modeli indirilemedi. İnternete bağlanıp yeniden dene; disk alanını kontrol et.")
     case .noAudioFormat, .audioConversionFailed:
@@ -396,4 +396,14 @@ func appleSpeechMessage(error: AppleSpeechError) -> String {
     case .requiresNewerSystem:
         String(localized: "Cihaz içi konuşma tanıma macOS 26 gerektirir. Ayarlar'dan Mac'te (WhisperKit) ya da bulut (Deepgram) motorunu seç.")
     }
+}
+
+/// Dil desteklenmiyor metni: Mac'te Ayarlar'daki bulut motoru önerilir; iPhone'da motor seçimi yoktur (canlı metin
+/// sunucu izin verdikçe bulutta), yalnızca dil değiştirilir ve hizmetin adı geçmez. Saf fonksiyondur.
+private func unsupportedLanguageMessage(code: String) -> String {
+    #if os(macOS)
+    String(localized: "Cihaz içi konuşma tanıma bu dili desteklemiyor (\(code)). Başka bir toplantı dili seç ya da Ayarlar'dan bulut motorunu (Deepgram) seç.")
+    #else
+    String(localized: "Cihaz içi konuşma tanıma bu dili desteklemiyor (\(code)). Başka bir toplantı dili seç.")
+    #endif
 }

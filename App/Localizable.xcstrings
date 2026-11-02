@@ -4409,6 +4409,17 @@
         }
       }
     },
+    "Bulut canlı metin servisi şu an yanıt veremedi. Ses kaydı sürüyor; metin toplantı sonunda kayıttan yazıya dökülür.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The cloud live transcript service isn't responding right now. Audio is still recording; the transcript is made from the recording when the meeting ends."
+          }
+        }
+      }
+    },
     "Bulut canlı metin servisine %lld sn boyunca bağlanılamadı; internet bağlantını kontrol et. Ses kaydı sürüyor; metin toplantı sonunda kayıttan yazıya dökülür.": {
       "extractionState": "manual",
       "localizations": {
@@ -4676,6 +4687,16 @@
         }
       }
     },
+    "Cevaplanıyor…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Answering…"
+          }
+        }
+      }
+    },
     "Cihaz içi (ücretsiz, anahtarsız)": {
       "localizations": {
         "en": {
@@ -4702,6 +4723,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "On-device speech recognition doesn't support this language (%@). Choose another meeting language, or choose the cloud engine (Deepgram) in Settings."
+          }
+        }
+      }
+    },
+    "Cihaz içi konuşma tanıma bu dili desteklemiyor (%@). Başka bir toplantı dili seç.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On-device speech recognition doesn't support this language (%@). Choose another meeting language."
           }
         }
       }
@@ -5089,6 +5121,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Supported languages"
+          }
+        }
+      }
+    },
+    "Devam edersen toplantıların bu şekilde işlenir. İstemezsen çıkış yap; hiçbir şey gönderilmez.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If you continue, your meetings are processed this way. If you'd rather not, sign out; nothing is sent."
           }
         }
       }
@@ -7054,6 +7096,76 @@
         }
       }
     },
+    "Konuşma tanıma": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speech recognition"
+          }
+        }
+      }
+    },
+    "Kullanılan hizmetler gizlilik politikasında adlarıyla listelenir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The services we use are listed by name in our privacy policy."
+          }
+        }
+      }
+    },
+    "Not, çeviri ve Sor": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes, translation and Ask"
+          }
+        }
+      }
+    },
+    "Son sohbetler": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recent chats"
+          }
+        }
+      }
+    },
+    "Toplantının metni not, canlı çeviri ve Sor cevapları için sunucumuz üzerinden bir yapay zekâ dil modeline gönderilir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meeting text is sent through our server to an AI language model to write notes, live translations and Ask answers."
+          }
+        }
+      }
+    },
+    "Toplantının sesi canlı metin, konuşmacıları ayırma ve yazıya dökme için bir konuşma tanıma hizmetine gönderilir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meeting audio is sent to a speech recognition service for the live transcript, telling speakers apart and the final transcript."
+          }
+        }
+      }
+    },
+    "Yazıya dökme ve not için toplantının sesi ve metni hizmetimize ve güvenilir üçüncü taraf yapay zekâ hizmetlerine gönderilir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To transcribe your meetings and write notes, the meeting audio and text are sent to our service and to trusted third-party AI services."
+          }
+        }
+      }
+    },
     "İzin verilmedi: metin yalnızca panoya kopyalanır.": {
       "localizations": {
         "en": {
@@ -7729,16 +7841,6 @@
         }
       }
     },
-    "Kayıt sırasında ses canlı metin için Deepgram'a gider. Kayıt bitince ses, konuşmacıları ayırmak ve metni tamamlamak için sunucumuz üzerinden ElevenLabs'e gönderilir.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "While you record, the audio goes to Deepgram for the live transcript. When the recording ends, the audio is sent through our server to ElevenLabs to separate speakers and complete the transcript."
-          }
-        }
-      }
-    },
     "Kayıt sırasında yazı": {
       "localizations": {
         "en": {
@@ -8374,16 +8476,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Speech is transcribed with the %@ translation flowing below; 35 languages and speaker separation."
-          }
-        }
-      }
-    },
-    "Konuşma: Deepgram ve ElevenLabs": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Speech: Deepgram and ElevenLabs"
           }
         }
       }
@@ -9758,16 +9850,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "The note, transcript and audio are deleted permanently; this can't be undone."
-          }
-        }
-      }
-    },
-    "Not, çeviri ve Sor: Anthropic Claude": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notes, translation and Ask: Anthropic Claude"
           }
         }
       }
@@ -12532,16 +12614,6 @@
         }
       }
     },
-    "Toplantı metni not, canlı çeviri ve Sor cevapları için sunucumuz üzerinden Anthropic'in Claude modeline gönderilir.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The meeting transcript is sent through our server to Anthropic's Claude model for notes, live translation and Ask answers."
-          }
-        }
-      }
-    },
     "Toplantı notları, canlı çeviri ve Sor cevapları not ve çeviri dilinde yazılır; toplantı zaten bu dildeyse çevrilmez. Önceki notlar yazıldıkları dilde kalır.": {
       "localizations": {
         "en": {
@@ -13598,16 +13670,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Transcription and notes"
-          }
-        }
-      }
-    },
-    "Yazıya dökme ve not için toplantının sesi ve metni hizmetimize ve aşağıdaki yapay zekâ sağlayıcılarına gönderilir.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "To transcribe meetings and write notes, the meeting audio and text are sent to our service and to the AI providers below."
           }
         }
       }

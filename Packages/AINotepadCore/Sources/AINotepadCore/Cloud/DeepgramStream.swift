@@ -608,7 +608,11 @@ private actor DeepgramConnection {
         socket = nil
         invalidateSession()
         deepgramLogger.error("Deepgram akışı durdu: \(String(describing: error), privacy: .private)")
-        events.yield(.failed(message: deepgramFailureMessage(error: error)))
+        let message: String = switch authorization {
+        case .apiKey: developerDeepgramFailureMessage(error: error)
+        case .temporaryToken: hostedLiveFailureMessage(error: error)
+        }
+        events.yield(.failed(message: message))
         events.finish()
     }
 }
@@ -626,11 +630,27 @@ func isTransientDeepgramTokenFailure(error: DeepgramTokenError) -> Bool {
     error.underlying is URLError || isOfflineStartError(error: error.underlying)
 }
 
-/// Kullanıcıya gösterilecek Türkçe hata metni (anahtar içermez).
-private func deepgramFailureMessage(error: any Error) -> String {
+/// Geliştirici sürümünde (kendi anahtarıyla) kullanıcıya gösterilecek Türkçe hata metni: anahtarın sahibi olduğu
+/// servisin adı geçer (anahtar içermez).
+private func developerDeepgramFailureMessage(error: any Error) -> String {
     switch error {
     case CloudSTTError.connectionFailed:
         return String(localized: "Bulut canlı metin servisine \(Int(reconnectBudgetSec)) sn boyunca bağlanılamadı; internet bağlantını kontrol et. Ses kaydı sürüyor; metin toplantı sonunda kayıttan yazıya dökülür.")
+    case let error as DeepgramTokenError:
+        return userFacingMessage(error: error.underlying)
+    default:
+        return userFacingMessage(error: error)
+    }
+}
+
+/// Abonelik sürümünde (kısa ömürlü jetonla) kullanıcıya gösterilecek Türkçe hata metni: konuşma tanıma hizmetinin adı
+/// geçmez (hizmetler gizlilik politikasında listelenir); jeton alınamadıysa sunucunun nedeni gösterilir. Saf fonksiyondur.
+func hostedLiveFailureMessage(error: any Error) -> String {
+    switch error {
+    case CloudSTTError.connectionFailed:
+        return String(localized: "Bulut canlı metin servisine \(Int(reconnectBudgetSec)) sn boyunca bağlanılamadı; internet bağlantını kontrol et. Ses kaydı sürüyor; metin toplantı sonunda kayıttan yazıya dökülür.")
+    case CloudSTTError.http, CloudSTTError.malformedMessage:
+        return String(localized: "Bulut canlı metin servisi şu an yanıt veremedi. Ses kaydı sürüyor; metin toplantı sonunda kayıttan yazıya dökülür.")
     case let error as DeepgramTokenError:
         return userFacingMessage(error: error.underlying)
     default:
