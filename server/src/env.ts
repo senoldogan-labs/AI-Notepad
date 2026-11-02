@@ -15,6 +15,10 @@ export interface Env {
   readonly ENVIRONMENT: string;
   readonly SITE_ORIGIN: string;
   readonly APPLE_CLIENT_IDS: string;
+  /** Apple geliştirici ekip kimliği (Apple ile giriş istemci sırrının `iss`'i; bkz. `auth/appleTokens.ts`). */
+  readonly APPLE_TEAM_ID: string;
+  /** Sitenin Apple ile girişte kullandığı Services ID: yetkilendirme kodu bu istemciyle takas edilir ve iptal edilir. */
+  readonly APPLE_SIGNIN_CLIENT_ID: string;
   readonly GOOGLE_CLIENT_IDS: string;
   readonly ADMIN_IDENTITIES: string;
   readonly CF_ACCESS_TEAM_DOMAIN: string;
@@ -114,4 +118,13 @@ export interface Env {
    * Yoksa `GET /v1/admin/site-analytics` `503 analytics_unavailable` döner.
    */
   readonly CF_ANALYTICS_TOKEN?: string;
+  /**
+   * Apple ile girişin yenileme jetonunu alıp hesap silinince iptal etmek için (bkz. `auth/appleTokens.ts`): Apple
+   * Developer → Keys'teki "Sign in with Apple" yetkili anahtarın kimliği, `.p8` içeriği (PKCS#8 PEM) ve jetonu D1'de
+   * şifreleyen AES-256 anahtarı (32 baytın base64'ü). Üçü birlikte girilir; hiçbiri yoksa kod ucu
+   * `503 apple_tokens_unavailable` döner ve silmede iptal yapılamaz.
+   */
+  readonly APPLE_SIGNIN_KEY_ID?: string;
+  readonly APPLE_SIGNIN_PRIVATE_KEY?: string;
+  readonly APPLE_TOKEN_ENC_KEY?: string;
 }

@@ -73,8 +73,8 @@ const dailyMetricsRetentionMs: number = 1826 * dayMs;
 const revenueRetentionMs: number = 3653 * dayMs;
 
 /**
- * Zamanlanmış temizliğin sınırları: tablo başına günde en çok 3 × 1000 satır. En kötü durumda 30 tablo koşulu × 3 tur
- * = 90 silme sorgusu + 3 toplu işlemin 6 ifadesi = 96 D1 sorgusu (Cron çağrısının diğer adımları birkaç sorgu daha
+ * Zamanlanmış temizliğin sınırları: tablo başına günde en çok 3 × 1000 satır. En kötü durumda 33 tablo koşulu × 3 tur
+ * = 99 silme sorgusu + 3 toplu işlemin 6 ifadesi = 105 D1 sorgusu (Cron çağrısının diğer adımları birkaç sorgu daha
  * ekler). Workers Paid planının çağrı başına 1000 sorgu sınırının çok altındadır; ücretsiz plana (50) dönülürse
  * `maxBatchesPerTable` 2'ye indirilmelidir. Kalan satırlar ertesi gün silinir. Koşul eklerken bu sayıyı güncelle.
  */
@@ -95,6 +95,13 @@ function cleanupTargets(now: Date): CleanupTarget[] {
   const today: string = dayKey(now);
   return [
     { name: "used_nonces", table: "used_nonces", where: "expires_at <= ?", binds: [nowMs] },
+    // Hesaba bağlanmamış Apple jetonu (uygulama adına giriş kod takasından sonra yarıda kaldı): bir gün sonra silinir.
+    {
+      name: "apple_sign_in_tokens",
+      table: "apple_sign_in_tokens",
+      where: "stored_at < ? AND NOT EXISTS (SELECT 1 FROM auth_identities a WHERE a.provider = 'apple' AND a.subject = apple_sign_in_tokens.subject)",
+      binds: [nowMs - dayMs],
+    },
     { name: "transcription_results", table: "transcription_results", where: "expires_at <= ?", binds: [nowMs] },
     { name: "device_challenges", table: "device_challenges", where: "expires_at <= ? OR used_at IS NOT NULL", binds: [nowMs] },
     {
