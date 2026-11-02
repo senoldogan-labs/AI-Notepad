@@ -128,7 +128,7 @@ describe("kimlik deneme defteri (hesap silinince deneme sıfırlanmaz)", () => {
     const first: Session = await signInWithGoogle(harness, subject);
     expect((await start(harness, first, null, null)).status).toBe(201);
     expect((await start(harness, first, null, null)).status).toBe(201);
-    expect((await deleteMe(harness, first, null)).status).toBe(204);
+    expect((await deleteMe(harness, first, null)).status).toBe(200);
 
     // Kimlik açık saklanmaz: anahtar sunucu sırrıyla HMAC özetidir.
     expect(await ledgerRow(subject)).toEqual({ trial_meetings_used: 2, device_verified: 0 });
@@ -151,7 +151,7 @@ describe("kimlik deneme defteri (hesap silinince deneme sıfırlanmaz)", () => {
       req("POST", "/v1/llm/messages", { token: again.accessToken, json: { effort: "low", max_tokens: 10, messages: [{ role: "user", content: "x" }] } }),
     );
     await expectError(account, 402, "subscription_required");
-    expect((await deleteMe(harness, again, null)).status).toBe(204);
+    expect((await deleteMe(harness, again, null)).status).toBe(200);
     const third: Session = await signInWithGoogle(harness, subject);
     expect(await trialMeetingsLeft(harness, third)).toBe(0);
   });
@@ -181,7 +181,7 @@ describe("kimlik deneme defteri (hesap silinince deneme sıfırlanmaz)", () => {
       .bind(first.userId, month)
       .run();
     expect(await monthlyHours(first)).toBe(1);
-    expect((await deleteMe(harness, first, null)).status).toBe(204);
+    expect((await deleteMe(harness, first, null)).status).toBe(200);
     const ledger = await env.DB.prepare(
       "SELECT usage_month, usage_seconds, usage_tokens, usage_account_tokens FROM trial_identity_ledger WHERE identity_hash = ?",
     )
@@ -198,7 +198,7 @@ describe("kimlik deneme defteri (hesap silinince deneme sıfırlanmaz)", () => {
     expect(seeded).toEqual({ carried_seconds: 3600, input_tokens: 1500, output_tokens: 0, account_tokens: 700 });
     again = await meetingOf(again, 30);
     expect(await monthlyHours(again)).toBe(1.5);
-    expect((await deleteMe(harness, again, null)).status).toBe(204);
+    expect((await deleteMe(harness, again, null)).status).toBe(200);
     const grown = await env.DB.prepare("SELECT usage_month, usage_seconds FROM trial_identity_ledger WHERE identity_hash = ?").bind(identityHash).first();
     expect(grown).toEqual({ usage_month: month, usage_seconds: 5400 });
 
@@ -223,7 +223,7 @@ describe("kimlik deneme defteri (hesap silinince deneme sıfırlanmaz)", () => {
     )
       .bind(first.userId, day)
       .run();
-    expect((await deleteMe(harness, first, null)).status).toBe(204);
+    expect((await deleteMe(harness, first, null)).status).toBe(200);
 
     const again: Session = await signInWithGoogle(harness, subject);
     const seeded = await env.DB.prepare("SELECT day, tokens_used, trial_account_tokens_used, meetings_started FROM daily_usage WHERE user_id = ?")
@@ -233,7 +233,7 @@ describe("kimlik deneme defteri (hesap silinince deneme sıfırlanmaz)", () => {
     // Toplantı dışı deneme payı (abone olmayan) devralınan kullanımı gösterir.
     const me = await (await harness.call(req("GET", "/v1/me", { token: again.accessToken }))).json<{ accountTokensUsed: number }>();
     expect(me.accountTokensUsed).toBe(400);
-    expect((await deleteMe(harness, again, null)).status).toBe(204);
+    expect((await deleteMe(harness, again, null)).status).toBe(200);
 
     harness.clock.nowMs += 86_400_000;
     const tomorrow: Session = await signInWithGoogle(harness, subject);
@@ -245,7 +245,7 @@ describe("kimlik deneme defteri (hesap silinince deneme sıfırlanmaz)", () => {
     const harness: Harness = await defaultHarness();
     const subject: string = `google-${crypto.randomUUID()}`;
     const session: Session = await signInWithGoogle(harness, subject);
-    expect((await deleteMe(harness, session, null)).status).toBe(204);
+    expect((await deleteMe(harness, session, null)).status).toBe(200);
     expect(await ledgerRow(subject)).toBeNull();
   });
 });
@@ -377,7 +377,7 @@ describe("Apple DeviceCheck ile Mac başına deneme", () => {
     const subject: string = `google-${crypto.randomUUID()}`;
     const first: Session = await signInWithGoogle(harness, subject);
     expect((await start(harness, first, fake.env, macToken("e"))).status).toBe(201);
-    expect((await deleteMe(harness, first, fake.env)).status).toBe(204);
+    expect((await deleteMe(harness, first, fake.env)).status).toBe(200);
     expect(await ledgerRow(subject)).toEqual({ trial_meetings_used: 1, device_verified: 1 });
 
     const again: Session = await signInWithGoogle(harness, subject);
@@ -475,7 +475,7 @@ describe("deneme süresi (ilk deneme toplantısından 7 gün)", () => {
     const first: Session = await signInWithGoogle(harness, subject);
     expect((await start(harness, first, null, null)).status).toBe(201);
     harness.clock.nowMs = startMs + 3 * dayMs;
-    expect((await deleteMe(harness, await refreshed(harness, first), null)).status).toBe(204);
+    expect((await deleteMe(harness, await refreshed(harness, first), null)).status).toBe(200);
     const identityHash: string = await trialIdentityHash(env.TRIAL_HASH_SECRET, "google", subject);
     const ledger = await env.DB.prepare("SELECT trial_started_at FROM trial_identity_ledger WHERE identity_hash = ?").bind(identityHash).first();
     expect(ledger).toEqual({ trial_started_at: startMs });

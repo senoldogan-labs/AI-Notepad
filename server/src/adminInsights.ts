@@ -1,4 +1,4 @@
-import { activeAccessSql, lastDays, paidSubscriptionSql } from "./admin";
+import { activeAccessSql, lastDays, paidSubscriptionSql, paidUserSql } from "./admin";
 import { type FirstRunFunnel, adminFirstRun } from "./funnel";
 import { freeInviteMonthSql } from "./referrals";
 import type { OpsEventKind } from "./opsEvents";
@@ -262,10 +262,12 @@ export async function adminInsights(db: D1Database, now: Date): Promise<AdminIns
              SELECT
                u.carried_trial_meetings + (SELECT COUNT(*) FROM meeting_sessions m WHERE m.user_id = u.id) AS meetings,
                EXISTS (SELECT 1 FROM meeting_sessions m WHERE m.user_id = u.id AND m.first_note_at IS NOT NULL) AS noted,
-               EXISTS (SELECT 1 FROM subscriptions s WHERE s.user_id = u.id AND ${paidSubscriptionSql}) AS subscribed,
+               ${paidUserSql("u.id")} AS subscribed,
                EXISTS (SELECT 1 FROM referral_redemptions r WHERE r.referred_user_id = u.id AND r.joined_at IS NOT NULL) AS invited,
-               EXISTS (SELECT 1 FROM subscriptions s WHERE s.user_id = u.id AND ${paidSubscriptionSql}
-                 AND (s.status = 'canceled' OR s.cancel_at IS NOT NULL)) AS canceled
+               (EXISTS (SELECT 1 FROM subscriptions s WHERE s.user_id = u.id AND ${paidSubscriptionSql}
+                 AND (s.status = 'canceled' OR s.cancel_at IS NOT NULL))
+                 OR EXISTS (SELECT 1 FROM app_store_subscriptions a WHERE a.user_id = u.id AND a.environment = 'PRODUCTION'
+                   AND a.period_type <> 'trial' AND a.status IN ('canceled', 'expired', 'refunded'))) AS canceled
              FROM users u WHERE u.created_at >= ?
            ) t`,
         )

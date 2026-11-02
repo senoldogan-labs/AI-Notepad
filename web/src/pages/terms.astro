@@ -3,7 +3,10 @@
 // server/src/account.ts, trialLedger.ts, deviceCheck.ts). Ödeme Stripe Managed Payments ile alınır: satıcı (merchant of
 // record) Link'tir; iade ve cayma hakkı Link'in şartlarına bağlıdır (link.com/terms "Sold Through Link Terms": AB
 // tüketicisine erişimden itibaren 14 gün, Link desteğine "cooling off period" gerekçesiyle başvurulur). Davet programının
-// kuralları (ödül, bekleme süresi, yıllık sınır) sunucunun davet kurallarıyla aynı tutulur.
+// kuralları (ödül, bekleme süresi, yıllık sınır) sunucunun davet kurallarıyla aynı tutulur. iPhone uygulamasının App Store
+// abonelikleri (server/src/appStore.ts) Apple'ın satışıdır: otomatik yenileme açıklaması App Store Review Guidelines
+// 3.1.2 ve developer.apple.com/app-store/subscriptions; iOS uygulaması Apple'ın standart lisans sözleşmesiyle (Standard
+// EULA) ve bu şartlarla sunulur (kendi EULA'mız yok); iptal ve iade Apple'dadır (support.apple.com/118428, /118223).
 import LegalSection from "../components/LegalSection.astro";
 import Legal from "../layouts/Legal.astro";
 import { cardStatementDescriptor, productName } from "../config";
@@ -38,6 +41,10 @@ const mail: string = `mailto:${operator.email}`;
 /** Link'in satın alma şartları (Stripe Managed Payments: satıcı Link) ve destek adresi. */
 const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
 const linkSupportUrl: string = "https://support.link.com/topics/sold-through-link";
+/** Apple'ın standart lisans sözleşmesi, abonelik yönetimi ve iade sayfaları. */
+const appleEulaUrl: string = "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/";
+const appleSubscriptionsHelpUrl: string = "https://support.apple.com/118428";
+const appleRefundUrl: string = "https://reportaproblem.apple.com";
 ---
 
 <Legal page="terms" meta={copy.termsMeta} title={copy.common.nav.terms} sections={sections}>
@@ -140,6 +147,25 @@ const linkSupportUrl: string = "https://support.link.com/topics/sold-through-lin
         Purchases are not available in some countries and regions where Stripe cannot sell, including China, Cuba, Iran,
         North Korea, Russia and Syria.
       </li>
+      <li>
+        <strong>Subscribing in the iPhone app (App Store).</strong> In our iPhone app you can also subscribe through
+        Apple's App Store with the same plans: monthly or yearly, at USD 5.99 per month or USD 49 per year, or the price
+        Apple shows for your country. App Store subscriptions are sold and billed by <strong>Apple</strong>, not by Link:
+        payment is charged to your Apple Account when you confirm the purchase, and{" "}
+        <strong>the subscription renews automatically</strong> for the same period and price unless you turn off
+        auto-renew at least 24 hours before the end of the current period; the renewal is charged within the 24 hours
+        before the period ends. If a renewal payment fails, Apple retries it and may give you a short grace period in
+        which your access continues. Price changes are announced by Apple under its rules. Apple's terms apply to the
+        purchase, and the iPhone app is licensed to you under{" "}
+        <a href={appleEulaUrl}>Apple's Standard Licensed Application End User License Agreement</a> together with these
+        terms; where they differ, these terms govern your use of the {productName} service.
+      </li>
+      <li>
+        One subscription from either source — Link on the web and in the Mac app, or the App Store in the iPhone app —
+        unlocks {productName} on your Mac and iPhone when you sign in with the same account. You don't need a second
+        subscription: we don't offer the web checkout while an App Store subscription is active. If you end up with both,
+        each is billed separately by its seller until you cancel it.
+      </li>
     </ul>
   </LegalSection>
 
@@ -150,8 +176,16 @@ const linkSupportUrl: string = "https://support.link.com/topics/sold-through-lin
       end of the period you have already paid for.
     </p>
     <p>
-      If you delete your account, any active subscription is cancelled immediately and the rest of the current period ends
-      with it. Refunds for the remaining time follow the refund rules below.
+      <strong>App Store subscriptions</strong> are managed and cancelled only with Apple: on your iPhone in Settings ›
+      your name › Subscriptions, or on a Mac in the App Store under your account's Subscriptions (see{" "}
+      <a href={appleSubscriptionsHelpUrl}>Apple's instructions</a>). We can't cancel them for you. Cancelling stops the
+      next renewal; you keep access until the end of the period you have already paid for.
+    </p>
+    <p>
+      If you delete your account, any active subscription bought through Link is cancelled immediately and the rest of the
+      current period ends with it. Refunds for the remaining time follow the refund rules below.{" "}
+      <strong>Deleting your account does not cancel an App Store subscription</strong>: Apple keeps billing it until you
+      cancel it with Apple, so cancel it first.
     </p>
   </LegalSection>
 
@@ -181,8 +215,14 @@ const linkSupportUrl: string = "https://support.link.com/topics/sold-through-lin
       </li>
     </ul>
     <p>
-      You can also write to us at <a href={mail}>{operator.email}</a> and we will help you with a request to Link. Nothing in
-      these terms limits any statutory right you have as a consumer.
+      <strong>App Store purchases.</strong> Apple is the seller of subscriptions bought in the iPhone app, so refunds and
+      the statutory right of withdrawal for them are handled by Apple under its terms. You can request a refund at{" "}
+      <a href={appleRefundUrl}>reportaproblem.apple.com</a>. We can't issue refunds for App Store purchases; when Apple
+      refunds one, the access it paid for ends.
+    </p>
+    <p>
+      You can also write to us at <a href={mail}>{operator.email}</a> and we will help you with a request to Link or Apple.
+      Nothing in these terms limits any statutory right you have as a consumer.
     </p>
   </LegalSection>
 

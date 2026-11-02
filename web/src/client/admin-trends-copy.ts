@@ -47,7 +47,7 @@ export const adminTrendsCopy: AdminTrendsCopy = {
   chartsNote:
     "Daily snapshots written by the nightly job for the finished UTC day. Days before the first snapshot are empty. Spend is the server's estimate; Deepgram counts the stream time charged to its budget.",
   charts: {
-    mrr: { title: "MRR at list price", main: "MRR", accent: null },
+    mrr: { title: "MRR: Stripe at list price + App Store net", main: "Stripe", accent: "App Store (net)" },
     subscribers: { title: "Renewing subscribers", main: "Monthly", accent: "Yearly" },
     active: { title: "Active users (7 days, with a meeting)", main: "Active users", accent: null },
     spend: { title: "Spend by provider", main: "Anthropic", accent: "ElevenLabs + Deepgram" },

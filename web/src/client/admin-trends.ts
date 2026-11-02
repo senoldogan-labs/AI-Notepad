@@ -43,7 +43,12 @@ export interface TrendSnapshot {
   readonly subscriptionsMonthly: number;
   readonly subscriptionsYearly: number;
   readonly activeUsers7d: number;
+  /** Stripe liste fiyatıyla MRR; `subscriptions*` yalnızca Stripe'tır. */
   readonly mrrListUsd: number;
+  /** App Store (üretim): yenilenecek aylık/yıllık abonelikler ve Apple komisyonu düşülmüş MRR. */
+  readonly appStoreMonthly: number;
+  readonly appStoreYearly: number;
+  readonly appStoreMrrNetUsd: number;
   readonly spendAnthropicUsd: number;
   readonly spendElevenLabsUsd: number;
   readonly spendDeepgramUsd: number;
@@ -149,6 +154,9 @@ function snapshotField(item: JsonObject, response: RawResponse, path: string): T
     subscriptionsYearly: numberField(snapshot, "subscriptionsYearly", response, path),
     activeUsers7d: numberField(snapshot, "activeUsers7d", response, path),
     mrrListUsd: numberField(snapshot, "mrrListUsd", response, path),
+    appStoreMonthly: numberField(snapshot, "appStoreMonthly", response, path),
+    appStoreYearly: numberField(snapshot, "appStoreYearly", response, path),
+    appStoreMrrNetUsd: numberField(snapshot, "appStoreMrrNetUsd", response, path),
     spendAnthropicUsd: numberField(snapshot, "spendAnthropicUsd", response, path),
     spendElevenLabsUsd: numberField(snapshot, "spendElevenLabsUsd", response, path),
     spendDeepgramUsd: numberField(snapshot, "spendDeepgramUsd", response, path),
@@ -262,13 +270,21 @@ function snapshotPoints(daily: readonly TrendDay[], parts: (snapshot: TrendSnaps
 function renderCharts(trends: AdminTrends): void {
   const daily: readonly TrendDay[] = trends.daily;
   const charts: AdminTrendsCopy["charts"] = text.charts;
-  renderSnapshots("trend-mrr", "line", snapshotPoints(daily, (s: TrendSnapshot): ChartPart[] => [{ value: s.mrrListUsd, tone: "main", label: charts.mrr.main }]), formatUsd);
+  renderSnapshots(
+    "trend-mrr",
+    "line",
+    snapshotPoints(daily, (s: TrendSnapshot): ChartPart[] => [
+      { value: s.mrrListUsd, tone: "main", label: charts.mrr.main },
+      { value: s.appStoreMrrNetUsd, tone: "accent", label: charts.mrr.accent ?? "" },
+    ]),
+    formatUsd,
+  );
   renderSnapshots(
     "trend-subscribers",
     "bars",
     snapshotPoints(daily, (s: TrendSnapshot): ChartPart[] => [
-      { value: s.subscriptionsMonthly, tone: "main", label: charts.subscribers.main },
-      { value: s.subscriptionsYearly, tone: "accent", label: charts.subscribers.accent ?? "" },
+      { value: s.subscriptionsMonthly + s.appStoreMonthly, tone: "main", label: charts.subscribers.main },
+      { value: s.subscriptionsYearly + s.appStoreYearly, tone: "accent", label: charts.subscribers.accent ?? "" },
     ]),
     formatCount,
   );

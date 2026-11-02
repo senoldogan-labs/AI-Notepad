@@ -328,7 +328,7 @@ describe("ücretsiz tam erişim", () => {
   it("hesap silme Stripe'ı çağırmadan ücretsiz erişimli hesabı siler", async () => {
     const harness: Harness = await defaultHarness();
     const { user } = await complimentaryUser(harness);
-    expect((await harness.call(req("DELETE", "/v1/me", { token: user.accessToken }))).status).toBe(204);
+    expect((await harness.call(req("DELETE", "/v1/me", { token: user.accessToken }))).status).toBe(200);
     expect(await subscriptionRow(user.userId)).toBeNull();
     const users = await env.DB.prepare("SELECT COUNT(*) AS count FROM users WHERE id = ?").bind(user.userId).first<{ count: number }>();
     expect(users?.count).toBe(0);

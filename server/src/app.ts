@@ -2,7 +2,8 @@ import { z } from "zod";
 import { identityTokenSchema, refreshSchema } from "./auth/schemas";
 import { verifyAppleIdentityToken } from "./auth/apple";
 import { verifyGoogleIdentityToken } from "./auth/google";
-import { deleteAccount } from "./account";
+import { type AccountDeletion, deleteAccount } from "./account";
+import { type RevenueCatWebhookResult, handleRevenueCatWebhook, syncAppStoreSubscription } from "./appStore";
 import { adminStats, requireAdmin } from "./admin";
 import { adminInsights } from "./adminInsights";
 import { adminOperations } from "./adminOps";
@@ -47,7 +48,15 @@ import { trialIdentityHash } from "./trialLedger";
 import { createChallenge, deviceAssertionSchema, registerDevice, verifyDeviceAssertion } from "./attest/devices";
 import { type CheckoutRequest, createCheckout, createPortal, handleStripeWebhook } from "./billing";
 import { complimentaryRequestSchema, complimentaryUntilMs, grantComplimentaryAccess, revokeComplimentaryAccess } from "./complimentary";
-import { type Config, ConfigError, type StripeWebhookConfig, parseConfig, parseStripeWebhookConfig } from "./config";
+import {
+  type Config,
+  ConfigError,
+  type RevenueCatWebhookConfig,
+  type StripeWebhookConfig,
+  parseConfig,
+  parseRevenueCatWebhookConfig,
+  parseStripeWebhookConfig,
+} from "./config";
 import { type ClientVersions, optionalClientVersions, recordClientVersions, requiredAppVersion } from "./clientVersions";
 import { Base64Error, base64Decode, base64Encode, hmacSha256Hex } from "./crypto";
 import { issueDeepgramGrant } from "./deepgram";
@@ -85,6 +94,8 @@ import { cachedTranscriptionResponse, parseTranscribeParams, proxyTranscription 
 const smallBodyBytes: number = 16 * 1024;
 /** Stripe webhook gövdesi üst sınırı. */
 const webhookBodyBytes: number = 512 * 1024;
+/** RevenueCat webhook gövdesi üst sınırı (olay birkaç KB'dir; takma ad listesi uzayabilir). */
+const revenueCatWebhookBodyBytes: number = 128 * 1024;
 
 /**
  * Site kaynağından (CORS) çağrılabilen uçlar; geri kalanı yalnızca uygulamadan (bearer, çerezsiz) çağrılır. Yönetici
@@ -341,12 +352,16 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     return jsonResponse(200, await entitlements(db, config, user.userId, deviceKeyIdHeader(request), now));
   }
   if (path === "/v1/me" && method === "DELETE") {
+    // Yanıt 200 ve gövdelidir (0.1.12 ve öncesi 204 bekler ama her 2xx'i kabul eder, gövdeye bakmaz): App Store
+    // aboneliği süren hesapta kullanıcıya Apple'da iptal etmesi söylenir (bkz. `accountDeletionResult`). Zaten silinmiş
+    // hesapta (tekrar) uyarı yoktur.
     const user: AuthedUser | null = await authenticateUnlessDeleted(db, config, bearerToken(request), now);
-    if (user !== null) {
-      await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
-      await deleteAccount(db, context.platform, config, user.userId, now);
+    if (user === null) {
+      return jsonResponse(200, { deleted: true, appStoreSubscription: null, notice: null });
     }
-    return new Response(null, { status: 204 });
+    await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
+    const deletion: AccountDeletion = await deleteAccount(db, context.platform, config, user.userId, now);
+    return jsonResponse(200, deletion);
   }
 
   if (path === "/v1/device/challenge" && method === "POST") {
@@ -472,6 +487,19 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     const body = await readJsonBody(request, referralValidateSchema, smallBodyBytes);
     const accepted: AcceptedReferral = await requireReferral(db, config, user.userId, body.code, now);
     return jsonResponse(200, { code: accepted.code });
+  }
+  if (path === "/v1/billing/app-store/sync" && method === "POST") {
+    // iPhone uygulaması App Store satın almasından (ya da geri yüklemeden) hemen sonra çağırır: webhook beklenmeden hesabın
+    // App Store aboneliği RevenueCat'ten okunur; yanıt güncel hak durumudur (`GET /v1/me` ile aynı). Gövde yoktur.
+    const user: AuthedUser = await authed();
+    await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
+    const apiKey: string | null = config.appStore.revenueCatApiKey;
+    if (apiKey === null) {
+      log("alert", "app_store_sync_unconfigured", { userId: user.userId });
+      throw new ApiError("app_store_unavailable", "App Store purchases can't be verified right now; try again later.");
+    }
+    await syncAppStoreSubscription(db, context.platform, { ...config.appStore, revenueCatApiKey: apiKey }, user.userId, null);
+    return jsonResponse(200, await entitlements(db, config, user.userId, null, context.platform.now()));
   }
   if (path === "/v1/billing/portal" && method === "POST") {
     const user: AuthedUser = await authed();
@@ -696,12 +724,49 @@ async function stripeWebhook(request: Request, env: Env, context: RequestContext
   }
 }
 
+/**
+ * RevenueCat webhook'u (`handleRevenueCatWebhook`): yalnızca RevenueCat ayarlarıyla (`parseRevenueCatWebhookConfig`)
+ * çalışır. Ayar ya da gizli değer eksikse `500` ve alarm logu (RevenueCat yeniden dener; olay kaybolmaz). RevenueCat
+ * okunamazsa (`UpstreamError`) `502`: RevenueCat yeniden dener.
+ */
+async function revenueCatWebhook(request: Request, env: Env, context: RequestContext): Promise<Response> {
+  let config: RevenueCatWebhookConfig;
+  try {
+    config = parseRevenueCatWebhookConfig(env);
+  } catch (error: unknown) {
+    if (error instanceof ConfigError) {
+      log("alert", "revenuecat_webhook_config_invalid", { fields: error.fields.join(",") });
+      return finalizeResponse(errorResponse(new ApiError("internal_error", "Server configuration is incomplete.")), null);
+    }
+    throw error;
+  }
+  try {
+    const payload: string = new TextDecoder().decode(await readBodyBytes(request, revenueCatWebhookBodyBytes));
+    const result: RevenueCatWebhookResult = await handleRevenueCatWebhook(env.DB, context.platform, config, request.headers.get("authorization"), payload);
+    return finalizeResponse(jsonResponse(200, { received: true, outcome: result.outcome, users: result.users }), null);
+  } catch (error: unknown) {
+    await recordOpsEvents(env.DB, failureEvents(error), context.platform.now());
+    if (error instanceof ApiError) {
+      return finalizeResponse(errorResponse(error), null);
+    }
+    if (error instanceof UpstreamError) {
+      log("error", "upstream_failed", { path: "/v1/webhooks/revenuecat", service: error.service, status: error.status });
+      return finalizeResponse(errorResponse(new ApiError("upstream_unavailable", "A connected service is not responding right now; try again shortly.")), null);
+    }
+    log("error", "unhandled_error", { path: "/v1/webhooks/revenuecat", error: errorName(error) });
+    return finalizeResponse(errorResponse(new ApiError("internal_error", "An unexpected server error occurred.")), null);
+  }
+}
+
 /** Worker'ın istek işleyicisi: yapılandırma, CORS, yönlendirme, tek tip hata ve güvenlik başlıkları. */
 export async function handleRequest(request: Request, env: Env, context: RequestContext): Promise<Response> {
   const url: URL = new URL(request.url);
   const path: string = url.pathname;
   if (path === "/v1/billing/webhook" && request.method === "POST") {
     return stripeWebhook(request, env, context);
+  }
+  if (path === "/v1/webhooks/revenuecat" && request.method === "POST") {
+    return revenueCatWebhook(request, env, context);
   }
   let config: Config;
   try {

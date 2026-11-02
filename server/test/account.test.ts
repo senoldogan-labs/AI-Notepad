@@ -47,7 +47,7 @@ function startFrom(harness: Harness, session: Session, clientIp: string): Promis
 }
 
 describe("DELETE /v1/me (hesap silme)", () => {
-  it("Stripe aboneliğini hemen iptal eder, hesabın tüm satırlarını siler, oturumları düşürür; tekrarı 204'tür", async () => {
+  it("Stripe aboneliğini hemen iptal eder, hesabın tüm satırlarını siler, oturumları düşürür; tekrarı 200'dür", async () => {
     const harness: Harness = await defaultHarness();
     const session: Session = await signIn(harness);
     const userId: string = session.userId;
@@ -93,8 +93,8 @@ describe("DELETE /v1/me (hesap silme)", () => {
     const familyId: string = families.results[0]?.id ?? "";
 
     const deleted: Response = await deleteMe(harness, session);
-    expect(deleted.status).toBe(204);
-    expect(await deleted.text()).toBe("");
+    expect(deleted.status).toBe(200);
+    expect(await deleted.json()).toEqual({ deleted: true, appStoreSubscription: null, notice: null });
     const tokens = await env.DB.prepare("SELECT COUNT(*) AS count FROM refresh_tokens WHERE family_id = ?").bind(familyId).first<{ count: number }>();
     expect(tokens?.count).toBe(0);
 
@@ -114,8 +114,8 @@ describe("DELETE /v1/me (hesap silme)", () => {
     await expectError(await harness.call(req("GET", "/v1/me", { token: session.accessToken })), 401, "invalid_token");
     await expectError(await harness.call(req("POST", "/v1/auth/refresh", { json: { refreshToken: session.refreshToken } })), 401, "invalid_token");
 
-    // Yanıtı kaybolan istemci aynı jetonla yeniden dener: 204, Stripe yeniden çağrılmaz.
-    expect((await deleteMe(harness, session)).status).toBe(204);
+    // Yanıtı kaybolan istemci aynı jetonla yeniden dener: 200, Stripe yeniden çağrılmaz.
+    expect((await deleteMe(harness, session)).status).toBe(200);
     expect(stripe.subscriptionLists).toHaveLength(1);
     expect(stripe.canceled).toHaveLength(1);
   });
@@ -129,7 +129,7 @@ describe("DELETE /v1/me (hesap silme)", () => {
     );
     expect(preflight.headers.get("access-control-allow-methods")).toContain("DELETE");
     const deleted: Response = await harness.call(req("DELETE", "/v1/me", { token: session.accessToken, headers: { origin: siteOrigin } }));
-    expect(deleted.status).toBe(204);
+    expect(deleted.status).toBe(200);
     expect(deleted.headers.get("access-control-allow-origin")).toBe(siteOrigin);
     expect(harness.outbound.filter((request: Request): boolean => request.url.startsWith("https://api.stripe.com/"))).toHaveLength(0);
     expect((await userRowCounts(session.userId))["users"]).toBe(0);
@@ -164,7 +164,7 @@ describe("DELETE /v1/me (hesap silme)", () => {
     const first: Session = await signIn(harness);
     const meeting: StartedMeetingBody = await (await startFrom(harness, first, ip)).json<StartedMeetingBody>();
     expect(meeting.kind).toBe("trial");
-    expect((await deleteMe(harness, first)).status).toBe(204);
+    expect((await deleteMe(harness, first)).status).toBe(200);
     // Sınır günde 3 yeni hesap: silinen hesap da sayılır.
     for (let index: number = 0; index < 2; index += 1) {
       expect((await startFrom(harness, await signIn(harness), ip)).status).toBe(201);

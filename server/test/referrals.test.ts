@@ -524,7 +524,7 @@ describe("davet ödülü", () => {
     const friendSession: Session = await signInWithGoogle(harness, subject);
     const friend = await referredFriend(harness, stripe, id, "friend", friendSession, code, false, null);
     await payInvoice(harness, stripe, friend, id("in_free"), 0, code);
-    expect((await harness.call(req("DELETE", "/v1/me", { token: friendSession.accessToken }))).status).toBe(204);
+    expect((await harness.call(req("DELETE", "/v1/me", { token: friendSession.accessToken }))).status).toBe(200);
     const anonymous = await env.DB.prepare("SELECT referred_user_id, status FROM referral_redemptions WHERE referrer_user_id = ?")
       .bind(owner.session.userId)
       .first<{ referred_user_id: string | null; status: string }>();
@@ -536,7 +536,7 @@ describe("davet ödülü", () => {
     const pendingSession: Session = await signIn(harness);
     const pending = await referredFriend(harness, stripe, id, "pending", pendingSession, code, true, null);
     await payInvoice(harness, stripe, pending, id("in_pending"), 4301, code);
-    expect((await harness.call(req("DELETE", "/v1/me", { token: owner.session.accessToken }))).status).toBe(204);
+    expect((await harness.call(req("DELETE", "/v1/me", { token: owner.session.accessToken }))).status).toBe(200);
     expect(await redemptionStatus(pendingSession.userId)).toEqual({ status: "void", void_reason: "referrer_deleted" });
     await expectError(await validate(harness, await signIn(harness), code), 404, "referral_invalid");
     harness.clock.nowMs += 31 * dayMs;
@@ -627,7 +627,7 @@ describe("yönetici MRR ve davet sayaçları", () => {
     const friend = await referredFriend(harness, stripe, id, "friend", friendSession, code, false, null);
     await payInvoice(harness, stripe, friend, id("in_free"), 0, code);
     const before: StatsBody = await adminStats(harness, admin);
-    expect((await harness.call(req("DELETE", "/v1/me", { token: owner.session.accessToken }))).status).toBe(204);
+    expect((await harness.call(req("DELETE", "/v1/me", { token: owner.session.accessToken }))).status).toBe(200);
     expect(await redemptionStatus(friendSession.userId)).toEqual({ status: "void", void_reason: "referrer_deleted" });
 
     // Davet eden silindi (kendi aboneliği sayılmaz); arkadaşın ücretsiz ayı sürer ve yine MRR'a girmez.

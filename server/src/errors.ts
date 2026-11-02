@@ -19,6 +19,8 @@ export type ErrorCode =
   | "subscription_required"
   | "subscription_exists"
   | "complimentary_subscription"
+  | "app_store_subscription"
+  | "app_store_unavailable"
   | "trial_exhausted"
   | "trial_not_started"
   | "trial_ip_limit"
@@ -74,6 +76,8 @@ const statusByCode: Readonly<Record<ErrorCode, number>> = {
   subscription_required: 402,
   subscription_exists: 409,
   complimentary_subscription: 409,
+  app_store_subscription: 409,
+  app_store_unavailable: 503,
   trial_exhausted: 402,
   trial_not_started: 403,
   trial_ip_limit: 429,

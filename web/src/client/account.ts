@@ -106,6 +106,8 @@ interface AccountView {
   readonly alert: string | null;
   readonly canSubscribe: boolean;
   readonly canManage: boolean;
+  /** Hesap silme penceresindeki App Store uyarısı (yenilenecek App Store aboneliği varsa); yoksa null. */
+  readonly deleteWarning: string | null;
 }
 
 /** Saat ölçeri kullanımın bu oranından sonra uyarır. */
@@ -187,6 +189,15 @@ function trialStatus(me: Entitlements, text: ClientCopy, locale: string, now: Da
  * fonksiyondur.
  */
 function subscriptionStatus(subscription: SubscriptionInfo, text: ClientCopy, locale: string): PlanStatus {
+  if (subscription.source === "app_store" && subscription.access !== "none") {
+    const status: PlanStatus = stripeSubscriptionStatus(subscription, text, locale);
+    return { message: text.subscriptionAppStore, facts: status.facts };
+  }
+  return stripeSubscriptionStatus(subscription, text, locale);
+}
+
+/** Aboneliğin durumu (tanımlar `subscriptionStatus`'ta; App Store iletisi olmadan). Saf fonksiyondur. */
+function stripeSubscriptionStatus(subscription: SubscriptionInfo, text: ClientCopy, locale: string): PlanStatus {
   if (subscription.complimentary) {
     if (subscription.access === "none") {
       return { message: text.subscriptionComplimentaryEnded, facts: [] };
@@ -224,9 +235,12 @@ function isPaymentOverdue(subscription: SubscriptionInfo): boolean {
   return subscription.access === "none" && !subscription.complimentary && (subscription.status === "past_due" || subscription.status === "unpaid");
 }
 
-/** Ödeme alınamadıysa Aboneliği yönet düğmesinin yanındaki uyarı: ek sürede ya da süresi geçmiş ödemede. Saf fonksiyondur. */
+/**
+ * Ödeme alınamadıysa Aboneliği yönet düğmesinin yanındaki uyarı: ek sürede ya da süresi geçmiş ödemede. App Store
+ * aboneliğinde kart Apple'dadır; durum iletisi nerede yönetileceğini söyler. Saf fonksiyondur.
+ */
 function paymentAlert(subscription: SubscriptionInfo | null, text: ClientCopy): string | null {
-  if (subscription === null || subscription.complimentary) {
+  if (subscription === null || subscription.complimentary || subscription.source === "app_store") {
     return null;
   }
   if (subscription.access === "grace") {
@@ -291,7 +305,9 @@ function hoursMeter(me: Entitlements, text: ClientCopy, locale: string): HoursMe
 
 /**
  * Sunucu yanıtından gösterilecek değerleri üretir. Aboneliği yönetme yalnızca Stripe'ta karşılığı olan (ücretsiz erişim
- * olmayan) abonelikte vardır: ücretsiz erişim bitmiş olsa da Portal'da yönetilecek bir şey yoktur. Saf fonksiyondur.
+ * ve App Store aboneliği olmayan) abonelikte vardır: ücretsiz erişim bitmiş olsa da Portal'da yönetilecek bir şey yoktur;
+ * App Store aboneliği iPhone'da yönetilir. Yenilenecek App Store aboneliğinde silme penceresi Apple'da iptal etmeyi
+ * söyler (hesap silme onu iptal etmez). Saf fonksiyondur.
  */
 export function accountView(me: Entitlements, text: ClientCopy, locale: string, now: Date): AccountView {
   const subscribed: boolean = me.plan === "subscription";
@@ -303,7 +319,11 @@ export function accountView(me: Entitlements, text: ClientCopy, locale: string, 
     hours: subscribed ? hoursMeter(me, text, locale) : null,
     alert: paymentAlert(me.subscription, text),
     canSubscribe: !subscribed,
-    canManage: me.subscription !== null && !me.subscription.complimentary,
+    canManage: me.subscription !== null && !me.subscription.complimentary && me.subscription.source === "stripe",
+    deleteWarning:
+      me.subscription !== null && me.subscription.source === "app_store" && me.subscription.access !== "none" && me.subscription.cancelAt === null
+        ? text.deleteAppStoreWarning
+        : null,
   };
 }
 
@@ -376,6 +396,9 @@ function render(view: AccountView): void {
   element("manage-button", HTMLButtonElement).classList.toggle("hidden", !view.canManage);
   element("subscribe-note", HTMLElement).classList.toggle("hidden", !view.canSubscribe);
   element("manage-note", HTMLElement).classList.toggle("hidden", view.canSubscribe || !view.canManage);
+  const deleteWarning: HTMLElement = element("delete-app-store-warning", HTMLElement);
+  deleteWarning.classList.toggle("hidden", view.deleteWarning === null);
+  deleteWarning.textContent = view.deleteWarning ?? "";
 }
 
 /** `GET /v1/me`. */

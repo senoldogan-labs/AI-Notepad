@@ -93,6 +93,10 @@ describe("süresi dolmuş satırların temizliği", () => {
         nowMs - 91 * dayMs,
         nowMs - dayMs,
       ),
+      env.DB.prepare(
+        `INSERT INTO revenuecat_events (id, type, environment, outcome, processed_at)
+         VALUES ('rc_old', 'RENEWAL', 'PRODUCTION', 'synced', ?), ('rc_recent', 'RENEWAL', 'PRODUCTION', 'synced', ?)`,
+      ).bind(nowMs - 91 * dayMs, nowMs - dayMs),
       env.DB.prepare("INSERT INTO trial_starts (user_id, ip_hash, day, created_at) VALUES (?, 'ip', ?, 0), (?, 'ip', ?, 0)").bind(
         first,
         day(-1),
@@ -176,6 +180,7 @@ describe("süresi dolmuş satırların temizliği", () => {
       refresh_tokens: 2,
       refresh_families: 2,
       stripe_events: 1,
+      revenuecat_events: 1,
       duplicate_subscriptions: 1,
       trial_starts: 1,
       deleted_trial_starts: 1,
@@ -232,6 +237,7 @@ describe("süresi dolmuş satırların temizliği", () => {
     expect(await ids("SELECT token_hash AS id FROM refresh_tokens")).toEqual(["t_live", "t_used_live", "t_used_older"]);
     expect(await ids("SELECT id FROM refresh_families")).toEqual(["f_live"]);
     expect(await ids("SELECT id FROM stripe_events")).toEqual(["evt_recent"]);
+    expect(await ids("SELECT id FROM revenuecat_events")).toEqual(["rc_recent"]);
     expect(await ids("SELECT user_id AS id FROM trial_starts")).toEqual([second]);
     expect(await ids("SELECT day AS id FROM deleted_trial_starts")).toEqual([day(0)]);
     expect(await ids("SELECT day AS id FROM daily_spend")).toEqual([day(-89), day(0)]);

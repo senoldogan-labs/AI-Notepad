@@ -21,6 +21,10 @@ public enum HostedErrorCode: String, Sendable, CaseIterable, Equatable {
     case subscriptionRequired = "subscription_required"
     case subscriptionExists = "subscription_exists"
     case complimentarySubscription = "complimentary_subscription"
+    /// Hesap App Store'dan (iPhone) abone: Stripe'ta ödeme açılmaz.
+    case appStoreSubscription = "app_store_subscription"
+    /// App Store satın alması şu an doğrulanamıyor (iPhone'un eşitleme ucu).
+    case appStoreUnavailable = "app_store_unavailable"
     case trialExhausted = "trial_exhausted"
     case trialNotStarted = "trial_not_started"
     case trialIPLimit = "trial_ip_limit"
@@ -218,6 +222,10 @@ public func hostedErrorMessage(error: HostedAPIError) -> String {
         return String(localized: "Zaten bir aboneliğin var; \"Hesabı yönet\" ile düzenleyebilirsin.")
     case .complimentarySubscription:
         return String(localized: "Hesabının ücretsiz tam erişimi var; ödenecek ya da yönetilecek bir şey yok.")
+    case .appStoreSubscription:
+        return String(localized: "Aboneliğin App Store üzerinden (iPhone). iPhone'da Ayarlar › Apple Hesabı › Abonelikler'den yönetebilirsin.")
+    case .appStoreUnavailable:
+        return String(localized: "App Store satın alması şu an doğrulanamıyor; biraz sonra yeniden dene.")
     case .trialCapacityReached:
         return String(localized: "Ücretsiz denemeler bugün kapasitede. Yarın yeniden dene ya da Ayarlar › Hesap'tan abone ol.")
     case .spendCeilingReached:

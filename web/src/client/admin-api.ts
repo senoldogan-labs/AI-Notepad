@@ -54,6 +54,8 @@ export interface AdminStats {
    * Abonelikler: `monthly` ve `yearly` yenilenecek ödenmiş aboneliklerin plana göre sayısı; `mrrUsd` aylık × aylık fiyat
    * + yıllık × yıllık fiyat / 12. `complimentary`: süren ücretsiz erişim (diğer sayılara ve gelire girmez).
    * `freeInviteMonth`: davetle gelip ücretsiz ilk ayındaki aylık aboneler (`active`'e girer, `monthly`'ye ve MRR'a girmez).
+   * `active`, `grace`, `ending`, `monthly`, `yearly` ve `mrrUsd` Stripe + App Store toplamıdır (App Store MRR'ı Apple
+   * komisyonu düşülmüş); ayrımı `bySource`'ta.
    */
   readonly subscriptions: {
     readonly active: number;
@@ -63,6 +65,7 @@ export interface AdminStats {
     readonly monthly: number;
     readonly yearly: number;
     readonly mrrUsd: number;
+    readonly bySource: { readonly stripe: SourceSubscriptions; readonly appStore: AppStoreSubscriptions };
     readonly complimentary: number;
     readonly freeInviteMonth: number;
   };
@@ -537,6 +540,58 @@ function statusField(object: JsonObject, response: RawResponse, path: string): R
   return status;
 }
 
+/** Bir ödeme kaynağının abonelikleri (Stripe'ta MRR liste fiyatıyla, App Store'da komisyon düşülmüş). */
+export interface SourceSubscriptions {
+  readonly active: number;
+  readonly grace: number;
+  readonly ending: number;
+  readonly monthly: number;
+  readonly yearly: number;
+  readonly mrrUsd: number;
+}
+
+/**
+ * App Store abonelikleri (yalnızca üretim): `grossMrrUsd` Apple komisyonundan (`commissionRate`) önce; `trial` App Store
+ * ücretsiz deneme dönemindekiler; `sandbox` erişimi süren test (TestFlight, App Review) abonelikleri, hiçbir sayıya girmez.
+ */
+export interface AppStoreSubscriptions extends SourceSubscriptions {
+  readonly grossMrrUsd: number;
+  readonly commissionRate: number;
+  readonly trial: number;
+  readonly sandbox: number;
+}
+
+/** Kaynağın sayıları. */
+function sourceSubscriptions(value: JsonObject, response: RawResponse, path: string): SourceSubscriptions {
+  return {
+    active: numberField(value, "active", response, path),
+    grace: numberField(value, "grace", response, path),
+    ending: numberField(value, "ending", response, path),
+    monthly: numberField(value, "monthly", response, path),
+    yearly: numberField(value, "yearly", response, path),
+    mrrUsd: numberField(value, "mrrUsd", response, path),
+  };
+}
+
+/** `subscriptions.bySource`: Stripe ve App Store. */
+function subscriptionSources(
+  value: JsonObject,
+  response: RawResponse,
+  path: string,
+): { readonly stripe: SourceSubscriptions; readonly appStore: AppStoreSubscriptions } {
+  const appStore: JsonObject = objectField(value, "appStore", response, path);
+  return {
+    stripe: sourceSubscriptions(objectField(value, "stripe", response, path), response, path),
+    appStore: {
+      ...sourceSubscriptions(appStore, response, path),
+      grossMrrUsd: numberField(appStore, "grossMrrUsd", response, path),
+      commissionRate: numberField(appStore, "commissionRate", response, path),
+      trial: numberField(appStore, "trial", response, path),
+      sandbox: numberField(appStore, "sandbox", response, path),
+    },
+  };
+}
+
 /** `GET /v1/admin/stats` yanıtını okur. */
 export function parseAdminStats(response: RawResponse, path: string): AdminStats {
   const body: JsonObject = parseObject(response, path);
@@ -580,6 +635,7 @@ export function parseAdminStats(response: RawResponse, path: string): AdminStats
       monthly: numberField(subscriptions, "monthly", response, path),
       yearly: numberField(subscriptions, "yearly", response, path),
       mrrUsd: numberField(subscriptions, "mrrUsd", response, path),
+      bySource: subscriptionSources(objectField(subscriptions, "bySource", response, path), response, path),
       complimentary: numberField(subscriptions, "complimentary", response, path),
       freeInviteMonth: numberField(subscriptions, "freeInviteMonth", response, path),
     },

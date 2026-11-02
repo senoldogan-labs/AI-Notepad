@@ -3,13 +3,11 @@ import type { Config } from "./config";
 import { randomId } from "./crypto";
 import { type ActiveDeviceCheck, type DeviceBits, queryDeviceBits, updateDeviceBits } from "./deviceCheck";
 import {
-  type SubscriptionState,
   type TrialState,
   deviceTrialMeetingsUsed,
-  hasSubscriptionAccess,
+  hasPaidAccess,
   isTrialExpired,
   subscriberMeetingMaxMinutes,
-  subscriptionState,
   trialMeetingsLeft,
   userTrialState,
 } from "./entitlements";
@@ -221,7 +219,7 @@ export async function startMeeting(
     return existing;
   }
   await requireSpendHeadroom(db, config, now);
-  if (!hasSubscriptionAccess(await subscriptionState(db, userId), now, config.pastDueGraceMs)) {
+  if (!(await hasPaidAccess(db, config, userId, now))) {
     await requireTrialSpendHeadroom(db, config, now);
     await requireElevenLabsTrialHeadroom(db, config, now);
     await requireTrialDevice(db, context, config, userId, request.deviceCheckToken, now);
@@ -616,8 +614,8 @@ export async function reprocessMeeting(db: D1Database, config: Config, userId: s
       reprocessesLeft: Math.max(0, maxMeetingReprocesses - row.reprocess_count),
     };
   }
-  const [subscription, trial]: [SubscriptionState | null, TrialState] = await Promise.all([subscriptionState(db, userId), userTrialState(db, userId)]);
-  const hasAccess: boolean = hasSubscriptionAccess(subscription, now, config.pastDueGraceMs) || trialMeetingsLeft(trial, config, now) > 0;
+  const [subscribed, trial]: [boolean, TrialState] = await Promise.all([hasPaidAccess(db, config, userId, now), userTrialState(db, userId)]);
+  const hasAccess: boolean = subscribed || trialMeetingsLeft(trial, config, now) > 0;
   const endMs: number = Math.min(row.ended_at ?? row.max_ends_at, row.max_ends_at);
   if (!mayReprocess(hasAccess, endMs, nowMs, reprocessWithoutAccessMs)) {
     throw new ApiError("subscription_required", "Meetings older than a week can't be reprocessed without a subscription or trial; subscribe to reprocess them.");

@@ -22,6 +22,41 @@ export interface StripePrices {
   readonly yearly: string;
 }
 
+/** App Store ürün kimlikleri (aylık ve yıllık; aynı hak, bkz. `appStore.ts`). */
+export interface AppStoreProducts {
+  readonly monthly: string;
+  readonly yearly: string;
+}
+
+/**
+ * App Store abonelikleri (iPhone uygulaması RevenueCat ile satar; bkz. `appStore.ts`). Fiyatlar App Store Connect'teki
+ * fiyatlarla elle aynı tutulur (yalnızca yönetici MRR tahmini); `commissionRate` Apple'ın payıdır (Small Business
+ * Program: 0,15), MRR ondan sonra (net) sayılır.
+ */
+export interface AppStoreConfig {
+  readonly products: AppStoreProducts;
+  /** Sandbox satın alımları (TestFlight, App Review) erişim verir mi (`REVENUECAT_ACCEPT_SANDBOX`). */
+  readonly acceptSandbox: boolean;
+  readonly priceUsdMonthly: number;
+  readonly priceUsdYearly: number;
+  readonly commissionRate: number;
+  /** RevenueCat gizli API anahtarı (`REVENUECAT_SECRET_API_KEY`); girilmemişse null (eşitleme `503 app_store_unavailable`). */
+  readonly revenueCatApiKey: string | null;
+}
+
+/**
+ * RevenueCat webhook'unun yapılandırması: yalnızca webhook'un okuduğu ayarlar (Stripe webhook'u gibi ilgisiz bir ayarın
+ * hatası abonelik olaylarını durdurmaz). Gizli değerler burada zorunludur.
+ */
+export interface RevenueCatWebhookConfig {
+  readonly environment: "development" | "production";
+  /** `Authorization` başlığının beklenen birebir değeri (`REVENUECAT_WEBHOOK_AUTH`). */
+  readonly webhookAuth: string;
+  readonly revenueCatApiKey: string;
+  readonly products: AppStoreProducts;
+  readonly acceptSandbox: boolean;
+}
+
 /** Stripe gizli ya da kısıtlı anahtarının öneki ve modu. */
 const stripeKeyPattern: RegExp = /^(?:sk|rk)_(live|test)_/;
 
@@ -177,6 +212,8 @@ export interface Config {
   readonly stripePrices: StripePrices;
   /** Stripe anahtarının modu (`sk_live_`/`rk_live_` → `live`, `sk_test_`/`rk_test_` → `test`). */
   readonly stripeMode: StripeMode;
+  /** App Store abonelikleri (RevenueCat). */
+  readonly appStore: AppStoreConfig;
   readonly secrets: {
     readonly accessToken: string;
     /** Kimlik deneme defteri (`trialIdentityHash`) ve deneme IP özetinin HMAC sırrı. */
@@ -282,6 +319,12 @@ function splitCsv(value: string): string[] {
 }
 
 const positiveInt = z.coerce.number().int().positive();
+/** App Store ürün kimliği (ters alan adı biçimi). */
+const appStoreProductId = z.string().regex(/^[A-Za-z0-9._-]{1,100}$/);
+/** `true` ya da `false` metni. */
+const booleanText = z.enum(["true", "false"]).transform((value: "true" | "false"): boolean => value === "true");
+/** RevenueCat v1 gizli API anahtarı (`sk_` önekli). */
+const revenueCatSecretKey = z.string().regex(/^sk_\S{16,}$/);
 const positiveNumber = z.coerce.number().positive();
 const secret = z.string().min(16);
 const csv = z.string().min(1).transform(splitCsv);
@@ -350,6 +393,15 @@ const envSchema = z.object({
   REFRESH_TOKEN_DAYS: positiveInt,
   STRIPE_PRICE_ID: z.string().startsWith("price_"),
   STRIPE_YEARLY_PRICE_ID: z.string().startsWith("price_"),
+  APP_STORE_PRODUCT_MONTHLY: appStoreProductId,
+  APP_STORE_PRODUCT_YEARLY: appStoreProductId,
+  APP_STORE_PRICE_USD_MONTHLY: positiveNumber,
+  APP_STORE_PRICE_USD_YEARLY: positiveNumber,
+  /** Apple'ın payı: 0 ile 1 arası (1 hariç). */
+  APP_STORE_COMMISSION_RATE: z.coerce.number().min(0).lt(1),
+  REVENUECAT_ACCEPT_SANDBOX: booleanText,
+  /** Girilmemişse App Store eşitlemesi kapalıdır (`503 app_store_unavailable`); webhook ayrıca ister. */
+  REVENUECAT_SECRET_API_KEY: revenueCatSecretKey.optional(),
   /** `sahip/ad`: GitHub kullanıcı ya da kuruluş adı ve depo adı. */
   GITHUB_BLOG_REPO: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9._-]{1,100}$/),
   /** Dal adı: boşluk, `..` ve git'in yasakladığı işaretler yok. */
@@ -382,6 +434,39 @@ const stripeWebhookSchema = envSchema.pick({
   STRIPE_YEARLY_PRICE_ID: true,
   TRIAL_HASH_SECRET: true,
 });
+
+/** RevenueCat webhook'unun okuduğu ayarlar; gizli değerler zorunludur. */
+const revenueCatWebhookSchema = envSchema
+  .pick({
+    ENVIRONMENT: true,
+    APP_STORE_PRODUCT_MONTHLY: true,
+    APP_STORE_PRODUCT_YEARLY: true,
+    REVENUECAT_ACCEPT_SANDBOX: true,
+  })
+  .extend({ REVENUECAT_WEBHOOK_AUTH: secret, REVENUECAT_SECRET_API_KEY: revenueCatSecretKey });
+
+/** İki App Store ürün kimliği; aynıysa `ConfigError` (aylık ve yıllık ayırt edilemez). Saf fonksiyondur. */
+function appStoreProductsOf(monthly: string, yearly: string): AppStoreProducts {
+  if (monthly === yearly) {
+    throw new ConfigError(["APP_STORE_PRODUCT_YEARLY"]);
+  }
+  return { monthly, yearly };
+}
+
+/** Yalnızca RevenueCat webhook'unun ayarlarını doğrular; hatada alan adlarını taşıyan `ConfigError`. */
+export function parseRevenueCatWebhookConfig(env: Env): RevenueCatWebhookConfig {
+  const parsed = revenueCatWebhookSchema.safeParse(env);
+  if (!parsed.success) {
+    throw new ConfigError(parsed.error.issues.map((issue: z.core.$ZodIssue): string => issue.path.join(".")));
+  }
+  return {
+    environment: parsed.data.ENVIRONMENT,
+    webhookAuth: parsed.data.REVENUECAT_WEBHOOK_AUTH,
+    revenueCatApiKey: parsed.data.REVENUECAT_SECRET_API_KEY,
+    products: appStoreProductsOf(parsed.data.APP_STORE_PRODUCT_MONTHLY, parsed.data.APP_STORE_PRODUCT_YEARLY),
+    acceptSandbox: parsed.data.REVENUECAT_ACCEPT_SANDBOX,
+  };
+}
 
 /** İki fiyat kimliği; aynıysa `ConfigError` (aylık ve yıllık ayırt edilemez, plan ve MRR yanlış olur). Saf fonksiyondur. */
 function stripePricesOf(monthly: string, yearly: string): StripePrices {
@@ -512,6 +597,14 @@ export function parseConfig(env: Env): Config {
     refreshTokenMs: value.REFRESH_TOKEN_DAYS * 86_400_000,
     stripePrices: stripePricesOf(value.STRIPE_PRICE_ID, value.STRIPE_YEARLY_PRICE_ID),
     stripeMode: stripeModeOf(value.STRIPE_SECRET_KEY),
+    appStore: {
+      products: appStoreProductsOf(value.APP_STORE_PRODUCT_MONTHLY, value.APP_STORE_PRODUCT_YEARLY),
+      acceptSandbox: value.REVENUECAT_ACCEPT_SANDBOX,
+      priceUsdMonthly: value.APP_STORE_PRICE_USD_MONTHLY,
+      priceUsdYearly: value.APP_STORE_PRICE_USD_YEARLY,
+      commissionRate: value.APP_STORE_COMMISSION_RATE,
+      revenueCatApiKey: value.REVENUECAT_SECRET_API_KEY ?? null,
+    },
     secrets: {
       accessToken: value.ACCESS_TOKEN_SECRET,
       trialHash: value.TRIAL_HASH_SECRET,

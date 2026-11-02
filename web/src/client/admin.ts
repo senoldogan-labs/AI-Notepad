@@ -193,10 +193,14 @@ function renderOverview(stats: AdminStats): void {
 
 /** Genel bakışın gelir eğrileri (günlük anlık görüntülerden; görüntüsüz gün boşluk). */
 function renderOverviewTrends(trends: AdminTrends): void {
-  renderSparkline("ov-mrr", trends.daily.map((day: TrendDay): number | null => day.snapshot?.mrrListUsd ?? null));
+  renderSparkline("ov-mrr", trends.daily.map((day: TrendDay): number | null => (day.snapshot === null ? null : day.snapshot.mrrListUsd + day.snapshot.appStoreMrrNetUsd)));
   renderSparkline(
     "ov-subscribers",
-    trends.daily.map((day: TrendDay): number | null => (day.snapshot === null ? null : day.snapshot.subscriptionsMonthly + day.snapshot.subscriptionsYearly)),
+    trends.daily.map((day: TrendDay): number | null =>
+      day.snapshot === null
+        ? null
+        : day.snapshot.subscriptionsMonthly + day.snapshot.subscriptionsYearly + day.snapshot.appStoreMonthly + day.snapshot.appStoreYearly,
+    ),
   );
 }
 
@@ -225,6 +229,21 @@ function renderRevenue(stats: AdminStats): void {
   setFact("rev-subscriptions", "ending", formatCount(subscriptions.ending), false);
   setFact("rev-subscriptions", "canceled", formatCount(subscriptions.canceledTotal), false);
   setFact("rev-subscriptions", "free", formatCount(subscriptions.complimentary), false);
+  const stripe: AdminStats["subscriptions"]["bySource"]["stripe"] = subscriptions.bySource.stripe;
+  const appStore: AdminStats["subscriptions"]["bySource"]["appStore"] = subscriptions.bySource.appStore;
+  setFact("rev-subscriptions", "stripe", fill(layout.facts.subscriptions.sourceValue, { active: formatCount(stripe.active), mrr: formatUsd(stripe.mrrUsd) }), false);
+  setFact(
+    "rev-subscriptions",
+    "app-store",
+    fill(layout.facts.subscriptions.appStoreValue, {
+      active: formatCount(appStore.active),
+      mrr: formatUsd(appStore.mrrUsd),
+      gross: formatUsd(appStore.grossMrrUsd),
+      fee: formatCount(Math.round(appStore.commissionRate * 100)),
+    }),
+    false,
+  );
+  setFact("rev-subscriptions", "app-store-sandbox", formatCount(appStore.sandbox), false);
 
   const billing: AdminStats["billing"] = stats.billing;
   setFact("rev-billing", "refunds", formatCount(billing.refundsLast30Days), false);

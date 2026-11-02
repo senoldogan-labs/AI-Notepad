@@ -17,7 +17,12 @@ export interface SessionTokens {
 export type SubscriptionAccess = "active" | "grace" | "none";
 
 /** Aboneliğin her durumda ortak alanları. `plan`: aylık ya da yıllık; sunucu fiyatı tanımıyorsa (eski fiyat) null. */
+/** Aboneliğin ödeme kaynağı: Stripe (site ve Mac) ya da App Store (iPhone; yalnızca Apple'da yönetilir). */
+export type SubscriptionSource = "stripe" | "app_store";
+
 interface SubscriptionBase {
+  /** Alanı bilmeyen eski sunucuda `stripe`. */
+  readonly source: SubscriptionSource;
   readonly status: string;
   readonly plan: BillingPlan | null;
   readonly currentPeriodEnd: string;
@@ -349,13 +354,26 @@ function parseSubscription(value: JsonValue | undefined, response: RawResponse, 
   const currentPeriodEnd: string = stringField(value, "currentPeriodEnd", response, path);
   const cancelAt: string | null = value["cancelAt"] === null ? null : stringField(value, "cancelAt", response, path);
   const complimentary: boolean = booleanField(value, "complimentary", response, path);
+  const source: SubscriptionSource = subscriptionSourceOf(value, response, path);
   if (access === "grace") {
-    return { status, plan, currentPeriodEnd, cancelAt, complimentary, access, graceEndsAt: stringField(value, "graceEndsAt", response, path) };
+    return { source, status, plan, currentPeriodEnd, cancelAt, complimentary, access, graceEndsAt: stringField(value, "graceEndsAt", response, path) };
   }
   if (value["graceEndsAt"] !== null) {
     throw new ApiResponseError(path, response.status, '"graceEndsAt" ek süre dışında null değil', response.text);
   }
-  return { status, plan, currentPeriodEnd, cancelAt, complimentary, access, graceEndsAt: null };
+  return { source, status, plan, currentPeriodEnd, cancelAt, complimentary, access, graceEndsAt: null };
+}
+
+/** Aboneliğin kaynağı; alan yoksa (eski sunucu) `stripe`, tanınmayan değer hatadır. */
+function subscriptionSourceOf(value: JsonObject, response: RawResponse, path: string): SubscriptionSource {
+  if (value["source"] === undefined) {
+    return "stripe";
+  }
+  const source: string = stringField(value, "source", response, path);
+  if (source !== "stripe" && source !== "app_store") {
+    throw new ApiResponseError(path, response.status, `bilinmeyen abonelik kaynağı "${source}"`, response.text);
+  }
+  return source;
 }
 
 /** `GET /v1/referral` yanıtını okur. */
