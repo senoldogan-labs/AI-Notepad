@@ -279,6 +279,9 @@ targets:
       properties:
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        # İhracat uyumu: yalnız işletim sisteminin standart şifrelemesi (HTTPS) kullanılır; App Store Connect her
+        # derlemede bu soruyu sormaz.
+        ITSAppUsesNonExemptEncryption: false
         NSHumanReadableCopyright: "© 2026 T:mi Aslan Dogan Marketing"
         # Veri klasörü (uygulamanın kendi kabında): Application Support/<ad>; Mac'teki Gistsmith'le aynı adlar.
         AINotepadDataFolderName: "$(HOSTED_DATA_FOLDER_NAME)"
