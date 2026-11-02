@@ -111,6 +111,9 @@ public func translateSentence(provider: LLMProvider, sentence: String, context: 
     }
 }
 
+/// "Ne kaçırdım?" özetinin kapsayabileceği son dakika sayısı (Ayarlar; Mac ve iPhone aynı).
+public let missedWindowMinutesRange: ClosedRange<Int> = 1...10
+
 /// Son `windowSec` saniyenin özeti için istek (not dilinde); pencere bölüm bazında seçilir (aynı konuşmacının uzun bloğu
 /// tüm toplantıyı içeri almasın). Pencerede metin yoksa nil (istek atılmaz). Saf fonksiyondur.
 public func missedSummaryRequest(segments: [LiveSegment], nowSec: Double, windowSec: Double, language: ShareLanguage) -> LLMRequest? {

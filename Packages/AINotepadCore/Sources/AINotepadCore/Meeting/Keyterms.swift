@@ -24,6 +24,17 @@ public func meetingKeyterms(records: [MeetingRecord], userName: String, limit: I
         .map { $0 }
 }
 
+/// Kayda verilen tanıma terimleri (Mac ve iPhone aynı): kullanıcının adı ve tanıma sözlüğü öne, sonra kayıtlı kişiler,
+/// en sona son toplantılardan gelen adlar ve sözlük terimleri; sınırda önce toplantılardan gelenler düşer. Takvim
+/// katılımcıları `keytermsWithAttendees` ile ayrıca öne eklenir. Saf fonksiyondur.
+public func recognitionKeyterms(userName: String, vocabulary: String, savedPeople: [String], records: [MeetingRecord], limit: Int) -> [String] {
+    keytermsWithAttendees(
+        attendees: [userName] + customVocabulary(text: vocabulary) + savedPeople,
+        keyterms: meetingKeyterms(records: records, userName: userName, limit: limit),
+        limit: limit
+    )
+}
+
 /// Terimi servis kurallarına göre temizler; uymuyorsa nil. Saf fonksiyondur.
 func sanitizedKeyterm(_ text: String) -> String? {
     let forbidden: CharacterSet = CharacterSet(charactersIn: "<>{}[]\\,;:\n\r\t")

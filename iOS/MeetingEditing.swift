@@ -80,11 +80,15 @@ struct PhoneNoteEditBar: View {
 }
 
 /// Konuşmacılara ad ver: her kişi için konuşma payı ve ad alanı. Boş ad "Konuşmacı N" etiketini geri getirir; ad
-/// transkriptte ve notta görünür (notu yeni adlarla yazmak için "Notu yenile"). "Sen" adlandırılmaz.
+/// transkriptte ve notta görünür (notu yeni adlarla yazmak için "Notu yenile"). "Sen" adlandırılmaz. Satırdaki birleştirme
+/// menüsü kişiyi başka bir konuşmacıyla birleştirir (Mac'teki "Şununla birleştir"; son geçiş aynı kişiyi ikiye böldüyse),
+/// hemen saklanır.
 struct SpeakerNamingSheet: View {
     let shares: [SpeakerShare]
     let speakerNames: [Int: String]
     let onSave: @MainActor ([Int: String]) throws -> Void
+    /// Birleştirme: ilk kişinin tüm bölümleri ikinciye geçer.
+    let onMerge: @MainActor (Int, Int) throws -> Void
     @State private var drafts: [Int: String] = [:]
     @State private var errorMessage: String?
     @Environment(\.dismiss) private var dismiss: DismissAction
@@ -156,8 +160,41 @@ struct SpeakerNamingSheet: View {
                     .monospacedDigit()
                     .foregroundStyle(Theme.muted)
             }
+            let others: [Int] = shares.compactMap(\.key.person).filter { $0 != person }
+            if !others.isEmpty {
+                Menu {
+                    Section("Şununla birleştir") {
+                        ForEach(others, id: \.self) { (target: Int) in
+                            Button(speakerDisplayName(person: target)) { merge(from: person, into: target) }
+                        }
+                    }
+                } label: {
+                    Image(systemName: "arrow.triangle.merge")
+                        .appFont(size: 15, weight: .medium)
+                        .frame(width: 36, height: 36)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel(Text("Şununla birleştir"))
+            }
         }
         .padding(.vertical, 4)
+    }
+
+    /// Kişinin görünen adı: verilmiş (ya da yazılmakta olan) ad, yoksa "Konuşmacı N".
+    private func speakerDisplayName(person: Int) -> String {
+        let name: String = (drafts[person] ?? speakerNames[person] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty ? speakerLabel(speaker: .others, person: person) : name
+    }
+
+    /// Birleştirir; birleşen kişinin yazılmakta olan adı bırakılır. Olmazsa neden sayfada görünür.
+    private func merge(from: Int, into: Int) {
+        do {
+            try onMerge(from, into)
+            drafts[from] = nil
+            errorMessage = nil
+        } catch {
+            errorMessage = String(localized: "Konuşmacılar birleştirilemedi: \(userFacingMessage(error: error))")
+        }
     }
 
     private func save() {

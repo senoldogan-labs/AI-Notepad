@@ -1586,12 +1586,10 @@ final class AppModel {
     /// terimleri (en fazla 30; ElevenLabs'ta %20 ek ücret, sınırlı tutulur).
     private var recognitionKeyterms: [String] {
         // Kullanıcının adı ve sözlüğü öne; sınırda (30) önce toplantılardan gelenler düşer.
-        let userName: String = UserDefaults.standard.string(forKey: SettingsKey.userName) ?? ""
-        return keytermsWithAttendees(
-            attendees: [userName] + customVocabulary(text: UserDefaults.standard.string(forKey: SettingsKey.customVocabulary) ?? "")
-                + peopleBook.saved.map(\.name),
-            keyterms: meetingKeyterms(records: Array(meetings.prefix(20)), userName: userName, limit: 30),
-            limit: 30
+        AINotepadCore.recognitionKeyterms(
+            userName: UserDefaults.standard.string(forKey: SettingsKey.userName) ?? "",
+            vocabulary: UserDefaults.standard.string(forKey: SettingsKey.customVocabulary) ?? "",
+            savedPeople: peopleBook.saved.map(\.name), records: Array(meetings.prefix(20)), limit: 30
         )
     }
 
@@ -3918,22 +3916,6 @@ private struct TranslationJob {
 
 /// Aynı anda en fazla bu kadar canlı çeviri isteği.
 private let maxParallelTranslations: Int = 4
-
-/// İçe aktarma hatasının kullanıcı metni. Saf fonksiyondur.
-func mediaImportMessage(error: any Error) -> String {
-    switch error {
-    case MediaImportError.noAudioTrack:
-        String(localized: "dosyada ses yok")
-    case MediaImportError.readFailed(_, let reason):
-        String(localized: "okunamadı (\(reason))")
-    case MediaImportError.writeFailed(_, let reason):
-        String(localized: "kaydedilemedi (\(reason))")
-    case HostedImportError.longerThanMeetingAllowance(let durationMinutes, let maxMinutes):
-        String(localized: "dosya \(durationMinutes) dakika; bir toplantı şu an en çok \(maxMinutes) dakika işlenebilir. Dosyayı bölüp parçaları ayrı içe aktar.")
-    default:
-        userFacingMessage(error: error)
-    }
-}
 
 /// Ses/video dosyası seçtirir (birden çok); seçilenleri içe aktarır.
 @MainActor

@@ -223,7 +223,7 @@ func applyTheme(theme: AppTheme) {
 
 /// Ayar aralıkları.
 enum SettingsRange {
-    static let missedWindowMinutes: ClosedRange<Int> = 1...10
+    static let missedWindowMinutes: ClosedRange<Int> = missedWindowMinutesRange
     static let audioRetentionDays: ClosedRange<Int> = 7...365
 }
 
@@ -528,19 +528,6 @@ func defaultNoteTemplate() -> NoteTemplate {
         customInstructions: UserDefaults.standard.string(forKey: SettingsKey.customTemplate) ?? ""
     )
 }
-
-/// Şablonun arayüz adı.
-func templateTitle(kind: NoteTemplateKind) -> LocalizedStringKey {
-    switch kind {
-    case .general: "Genel"
-    case .oneOnOne: "Birebir görüşme"
-    case .client: "Müşteri görüşmesi"
-    case .lecture: "Ders / eğitim"
-    case .interview: "İş mülakatı"
-    case .custom: "Kendi şablonum"
-    }
-}
-
 
 /// Ayarlardaki ana toplantı dili; kayıtlı değer tanınmıyorsa Fince (varsayılan) ve hata loglanır.
 func primaryMeetingLanguage() -> MeetingLanguage {

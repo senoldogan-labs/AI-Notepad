@@ -824,13 +824,18 @@ struct SpeakerCorrectionMenu: View {
     }
 }
 
-/// Asistan kartı: yükleniyor, "Ne kaçırdım?" özeti, soru cevabı ya da hata; kapatılabilir.
-struct AssistantCardView: View {
+/// Asistan kartı: yükleniyor, "Ne kaçırdım?" özeti, soru cevabı ya da hata; kapatılabilir (Mac paneli ve iPhone kaydı).
+public struct AssistantCardView: View {
     let card: AssistantCard
     let onClose: @MainActor () -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
-    var body: some View {
+    public init(card: AssistantCard, onClose: @escaping @MainActor () -> Void) {
+        self.card = card
+        self.onClose = onClose
+    }
+
+    public var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.s) {
             HStack {
                 Text(title)
