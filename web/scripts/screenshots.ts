@@ -128,6 +128,8 @@ const targets: readonly Target[] = [
   { name: "admin-user-grant", path: "/admin#users", ready: "#users-rows tr", signedIn: true, account: null },
   { name: "admin-operations", path: "/admin#operations", ready: "#ops-open-rows tr", signedIn: true, account: null },
   { name: "admin-inbox", path: "/admin#inbox", ready: "#inbox-list .inbox__item", signedIn: true, account: null },
+  // Çökmeler sekmesi: derin çağrı ağaçlı MetricKit donma raporu (kartın içinde kalmalı, özet satırı, kopyalama).
+  { name: "admin-inbox-crash", path: "/admin#inbox", ready: "#inbox-list .inbox__item", signedIn: true, account: null },
   { name: "admin-blog", path: "/admin#blog", ready: "#blog-rows tr", signedIn: true, account: null },
   { name: "admin-blog-editor", path: "/admin#blog", ready: "#blog-rows tr", signedIn: true, account: null },
 ];
@@ -257,6 +259,56 @@ function meFixture(state: AccountState, now: Date): object {
     },
   };
   return states[state];
+}
+
+/** Örnek çağrı çerçevesi ve `depth` kat iç içe alt çerçeveleri (MetricKit `callStackRootFrames` biçimi). Saf fonksiyondur. */
+function stackFrame(depth: number): object {
+  const binaries: readonly string[] = ["Gistsmith", "SwiftUI", "AppKit", "CoreFoundation", "libdispatch.dylib", "HIToolbox", "Foundation"];
+  const binaryName: string = binaries[depth % binaries.length] ?? "Gistsmith";
+  const frame: object = {
+    binaryUUID: `5F1C7A0E-${String(depth).padStart(4, "0")}-3B2D-9A41-0C6E2F8D7B${String(depth).padStart(2, "0")}`,
+    offsetIntoBinaryTextSegment: 1_327_104 + depth * 4_096,
+    sampleCount: 64 - (depth % 8),
+    binaryName,
+    address: 7_203_847_168 + depth * 65_536,
+  };
+  return depth === 0 ? frame : { ...frame, subFrames: [stackFrame(depth - 1)] };
+}
+
+/**
+ * Bildirim kutusundaki örnek çökme raporu: `MXDiagnosticPayload.jsonRepresentation()` biçiminde, ana iş parçacığı derin
+ * çağrı ağaçlı bir donma (girintili JSON kartın genişliğini çok aşar). Saf fonksiyondur.
+ */
+function crashPayloadFixture(): string {
+  return JSON.stringify({
+    timeStampBegin: "2026-11-01 09:00:00",
+    timeStampEnd: "2026-11-01 23:59:00",
+    hangDiagnostics: [
+      {
+        version: "1.0.0",
+        callStackTree: {
+          callStackPerThread: true,
+          callStacks: [
+            { threadAttributed: true, callStackRootFrames: [stackFrame(36)] },
+            { threadAttributed: false, callStackRootFrames: [stackFrame(6)] },
+          ],
+        },
+        diagnosticMetaData: {
+          appBuildVersion: "24",
+          appVersion: "0.1.12",
+          bundleIdentifier: "com.gistsmith.mac",
+          deviceType: "MacBookPro18,3",
+          hangDuration: "6.42 sec",
+          isTestFlightApp: false,
+          lowPowerModeEnabled: false,
+          osVersion: "macOS 26.1 (25B78)",
+          platformArchitecture: "arm64",
+          regionFormat: "GB",
+          pid: 4211,
+        },
+      },
+    ],
+  });
 }
 
 /** Örnek blog yazıları: yayında, taslak ve 7 günden sonraya zamanlanmış (haftalık düzen uyarısı görünür). Saf fonksiyondur. */
@@ -873,7 +925,7 @@ function fixtures(now: Date): Readonly<Record<string, object>> {
         recentCrashes: [{ id: "rep_3", status: "open", createdAt: now.getTime() - 7_200_000, appVersion: "0.1.4", os: "macOS 26.1", summary: "EXC_BAD_ACCESS · SIGSEGV" }],
       },
     },
-    "/v1/admin/reports": {
+    "/v1/admin/reports?kind=feedback": {
       items: [
         { id: "rep_1", kind: "feedback", status: "open", createdAt: now.getTime() - 3_600_000, userId: "usr_example", email: "mia@example.com", appVersion: "0.2.0", os: "macOS 26.1", summary: "Would love a keyboard shortcut to start recording" },
         { id: "rep_2", kind: "feedback", status: "open", createdAt: now.getTime() - 86_400_000, userId: null, email: null, appVersion: "0.2.0", os: "macOS 26.0", summary: "Speaker names were swapped in a long meeting" },
@@ -891,6 +943,22 @@ function fixtures(now: Date): Readonly<Record<string, object>> {
       os: "macOS 26.1",
       message: "Would love a keyboard shortcut to start recording.\nOtherwise the notes are spot on — thank you!",
       payload: null,
+    },
+    "/v1/admin/reports?kind=crash": {
+      items: [{ id: "rep_3", kind: "crash", status: "open", createdAt: now.getTime() - 7_200_000, userId: "usr_01JC7Q4Z9X2M5N8P3R6T", email: null, appVersion: "0.1.12", os: "macOS 26.1", summary: "crash report" }],
+      nextBefore: null,
+    },
+    "/v1/admin/reports/rep_3": {
+      id: "rep_3",
+      kind: "crash",
+      status: "open",
+      createdAt: now.getTime() - 7_200_000,
+      userId: "usr_01JC7Q4Z9X2M5N8P3R6T",
+      email: null,
+      appVersion: "0.1.12",
+      os: "macOS 26.1",
+      message: null,
+      payload: crashPayloadFixture(),
     },
     ...blogFixtures(now),
   };
@@ -929,6 +997,11 @@ function collectErrors(page: Page, shot: () => string, findings: Finding[]): voi
   });
 }
 
+/** Örnek yanıtın anahtarı: bildirim listesi türüne göre ayrılır (`/v1/admin/reports?kind=crash`), diğerleri yalnızca yol. Saf fonksiyondur. */
+function fixtureKey(url: URL): string {
+  return url.pathname === "/v1/admin/reports" ? `${url.pathname}?kind=${url.searchParams.get("kind") ?? ""}` : url.pathname;
+}
+
 /** API isteklerini örnek yanıtlarla karşılar; tanımsız yol 404 döner ve sorun olarak kaydedilir. */
 async function routeApi(context: BrowserContext, findings: Finding[]): Promise<void> {
   const bodies: Readonly<Record<string, object>> = fixtures(new Date());
@@ -939,7 +1012,7 @@ async function routeApi(context: BrowserContext, findings: Finding[]): Promise<v
       await route.fulfill({ status: 204, headers: cors });
       return;
     }
-    const body: object | undefined = bodies[url.pathname];
+    const body: object | undefined = bodies[fixtureKey(url)];
     if (body === undefined) {
       findings.push({ shot: "api", problem: `örnek yanıt yok: ${route.request().method()} ${url.pathname}` });
       await route.fulfill({ status: 404, headers: cors, contentType: "application/json", body: JSON.stringify({ error: { code: "not_found", message: "örnek yok" } }) });
@@ -1035,6 +1108,48 @@ async function checkOverflow(page: Page, shot: string, findings: Finding[]): Pro
   }
 }
 
+/** Çökme raporu kartın içinde kalmalı ve kendi içinde kaymalı; MetricKit özeti beklenen satır olmalı. */
+async function checkCrashReport(page: Page, shot: string, findings: Finding[]): Promise<void> {
+  const layout: { readonly preRight: number; readonly cardRight: number; readonly scrolls: boolean; readonly summary: string } = await page.evaluate(() => {
+    const pre: HTMLElement | null = document.getElementById("detail-payload");
+    const card: HTMLElement | null = document.getElementById("inbox-detail");
+    if (pre === null || card === null) {
+      throw new Error("#detail-payload ya da #inbox-detail yok");
+    }
+    return {
+      preRight: pre.getBoundingClientRect().right,
+      cardRight: card.getBoundingClientRect().right,
+      scrolls: pre.scrollWidth > pre.clientWidth && pre.scrollHeight > pre.clientHeight,
+      summary: document.getElementById("detail-payload-summary")?.textContent ?? "",
+    };
+  });
+  if (layout.preRight > layout.cardRight) {
+    findings.push({ shot, problem: `çökme raporu kartı taşıyor: ${Math.round(layout.preRight)} > ${Math.round(layout.cardRight)}` });
+  }
+  if (!layout.scrolls) {
+    findings.push({ shot, problem: "çökme raporu kendi içinde iki yönde kaymıyor" });
+  }
+  const expected: string = "Hang · 6.42 sec · 0.1.12 (24) · macOS 26.1 (25B78) · MacBookPro18,3";
+  if (layout.summary !== expected) {
+    findings.push({ shot, problem: `çökme özeti beklenmedik: "${layout.summary}" (beklenen "${expected}")` });
+  }
+}
+
+/** Kopyalama düğmesi ham raporu (kesilmeden) panoya yazmalı ve "Copied" durumuna geçmeli. */
+async function checkCrashCopy(context: BrowserContext, page: Page, base: string, shot: string, findings: Finding[]): Promise<void> {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: base });
+  await page.click("#detail-payload-copy");
+  await page.waitForSelector("#detail-payload-copy[data-copied]");
+  const copied: string = await page.evaluate((): Promise<string> => navigator.clipboard.readText());
+  if (copied !== crashPayloadFixture()) {
+    findings.push({ shot, problem: `panoya kopyalanan rapor ham rapordan farklı (${copied.length} / ${crashPayloadFixture().length} karakter)` });
+  }
+  const label: string | null = await page.getAttribute("#detail-payload-copy", "aria-label");
+  if (label !== "Copied") {
+    findings.push({ shot, problem: `kopyalama düğmesinin etiketi "Copied" değil: ${label ?? "yok"}` });
+  }
+}
+
 /** Yazı tipinin yüklenmesini bekler, taşmayı denetler ve tam sayfa görüntüsünü kaydeder. */
 async function capture(page: Page, outDir: string, shot: string, findings: Finding[]): Promise<void> {
   await page.evaluate(async (): Promise<void> => {
@@ -1089,6 +1204,12 @@ async function capturePages(browser: Browser, base: string, outDir: string, find
         await page.click("#inbox-list .inbox__item");
         await page.waitForSelector("#detail-body:not(.hidden)");
       }
+      if (target.name === "admin-inbox-crash") {
+        await page.click("#tab-crash");
+        await page.click('#inbox-list .inbox__item >> text="crash report"');
+        await page.waitForSelector("#detail-payload-summary:not(.hidden)");
+        await checkCrashReport(page, shot, findings);
+      }
       // Yayındaki yazı açılır ve kaydedilir (örnek `PUT` yanıtı aynı yazıdır): sonuç bildirimi ve paylaşım bağlantıları.
       if (target.name === "admin-blog-editor") {
         await page.click(`#blog-rows .blog-row__title >> text="Turn a meeting into a task list: a simple method"`);
@@ -1140,6 +1261,12 @@ async function capturePages(browser: Browser, base: string, outDir: string, find
         await page.waitForSelector("#blog-preview img");
         await page.evaluate((): void => document.getElementById("blog-tab-preview")?.scrollIntoView({ block: "start" }));
         await capture(page, outDir, `${shot}-preview`, findings);
+      }
+      if (target.name === "admin-inbox-crash") {
+        await page.locator("#inbox-detail").screenshot({ path: join(outDir, `${shot}-detail.png`) });
+        await checkCrashCopy(context, page, base, shot, findings);
+        await page.locator("#inbox-detail").screenshot({ path: join(outDir, `${shot}-copied.png`) });
+        await page.waitForSelector("#detail-payload-copy:not([data-copied])", { timeout: 5_000 });
       }
       // Analiz görünümleri kabuğun içinde kayar: alttaki bölümler (tablolar) ayrı bir görüntüde.
       if (target.name === "admin-growth") {

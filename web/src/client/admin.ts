@@ -5,9 +5,9 @@
 // "Yenile" açık görünümün kaynaklarını ve özet istatistikleri yeniler. Özet istatistikler (`/v1/admin/stats`) bu
 // dosyada çizilir: özet şeritleri, döküm kartları, günlük grafikler ve genel bakıştaki "dikkat" listesi (istatistikler,
 // içgörüler ve işletim verisinden). Bildirim kutusu (geri bildirim, çökme, iletişim; açık/bitti süzgeci, ayrıntı,
-// "bitti" işaretleme) da buradadır. Panel yalnızca `/v1/admin/stats` başarılı olunca şablondan eklenir; oturum yoksa ya
-// da sunucu 403 (veya yenilemesi başarısız 401) dönerse standart "sayfa bulunamadı" görünümü gösterilir, girişe
-// yönlendirilmez (panelin varlığı belli olmaz).
+// "bitti" işaretleme, çökme raporunun özeti ve kopyalama düğmeleri — admin-crash.ts) da buradadır. Panel yalnızca
+// `/v1/admin/stats` başarılı olunca şablondan eklenir; oturum yoksa ya da sunucu 403 (veya yenilemesi başarısız 401)
+// dönerse standart "sayfa bulunamadı" görünümü gösterilir, girişe yönlendirilmez (panelin varlığı belli olmaz).
 import { ApiRequestError } from "./api";
 import {
   type AdminStats,
@@ -26,6 +26,7 @@ import {
   setReportStatus,
 } from "./admin-api";
 import { type BlogView, createBlogView } from "./admin-blog";
+import { type ParsedPayload, diagnosticSummaryLine, metricKitDiagnostics, parsePayload } from "./admin-crash";
 import { type ChartPoint, renderDailyBars, renderSparkline } from "./admin-chart";
 import { fillCounts, formatCount, formatCompact, formatRate, formatTime, formatUsd } from "./admin-format";
 import { type InsightsView, createInsightsView } from "./admin-insights";
@@ -456,14 +457,60 @@ function renderList(state: InboxState, onSelect: (id: string) => void): void {
   element("inbox-more", HTMLButtonElement).classList.toggle("hidden", state.nextBefore === null);
 }
 
-/** Çökme raporu JSON'unu okunur biçimde yazar; JSON değilse olduğu gibi (uyarıyla). */
-function prettyPayload(payload: string): string {
-  try {
-    return JSON.stringify(JSON.parse(payload) as unknown, null, 2);
-  } catch (error: unknown) {
-    console.warn("crash_payload_not_json", { error: error instanceof Error ? error.message : String(error) });
-    return payload;
+/** Kopyalama düğmelerinin "kopyalandı" durumunu geri alan zamanlayıcılar (yeni kopyalama süreyi baştan başlatır). */
+const copiedTimers: Map<HTMLButtonElement, number> = new Map();
+
+/** Kopyalanınca düğme ~2 sn onay işareti ve "Copied" etiketi gösterir; ekran okuyucuya da duyurulur. */
+function showCopied(button: HTMLButtonElement): void {
+  const label: string = dataValue(button, "label");
+  const copied: string = adminText.report.copied;
+  button.dataset["copied"] = "";
+  button.setAttribute("aria-label", copied);
+  button.title = copied;
+  element("detail-copy-status", HTMLElement).textContent = copied;
+  window.clearTimeout(copiedTimers.get(button));
+  copiedTimers.set(
+    button,
+    window.setTimeout((): void => {
+      delete button.dataset["copied"];
+      button.setAttribute("aria-label", label);
+      button.title = label;
+      element("detail-copy-status", HTMLElement).textContent = "";
+      copiedTimers.delete(button);
+    }, 2000),
+  );
+}
+
+/** Düğmeye basılınca metni olduğu gibi (kesilmeden) panoya yazar; yazılamazsa panelin hata bildirimi gösterilir. */
+function bindCopy(button: HTMLButtonElement, value: string): void {
+  button.onclick = (): void => {
+    navigator.clipboard
+      .writeText(value)
+      .then((): void => showCopied(button))
+      .catch((error: unknown): void => {
+        console.error("report_copy_failed", { button: button.id, error: error instanceof Error ? error.message : String(error) });
+        showNotice(element("admin-error", HTMLElement), adminText.report.copyFailed);
+      });
+  };
+}
+
+/** Çökme raporu bölümü: MetricKit özeti (biçim tanınırsa), girintili JSON ve ham metni kopyalayan düğme. */
+function renderPayload(payload: string | null): void {
+  element("detail-payload-block", HTMLElement).classList.toggle("hidden", payload === null);
+  const summary: HTMLElement = element("detail-payload-summary", HTMLElement);
+  if (payload === null) {
+    element("detail-payload", HTMLElement).textContent = "";
+    summary.classList.add("hidden");
+    return;
   }
+  const parsed: ParsedPayload = parsePayload(payload);
+  const line: string | null = diagnosticSummaryLine(metricKitDiagnostics(parsed.json), adminText.report);
+  summary.textContent = line ?? "";
+  summary.classList.toggle("hidden", line === null);
+  const pre: HTMLElement = element("detail-payload", HTMLElement);
+  pre.textContent = parsed.pretty;
+  pre.scrollTo(0, 0);
+  bindCopy(element("detail-payload-copy", HTMLButtonElement), payload);
 }
 
 /** Ayrıntı panelini çizer; "bitti/yeniden aç" düğmesi bu bildirimin kimliğini taşır (`data-report-id`). */
@@ -474,11 +521,15 @@ function renderDetail(report: ReportDetail): void {
   element("detail-received", HTMLElement).textContent = formatTime(report.createdAt);
   element("detail-email", HTMLElement).textContent = report.email ?? "—";
   element("detail-user", HTMLElement).textContent = report.userId ?? adminText.anonymous;
+  const userCopy: HTMLButtonElement = element("detail-user-copy", HTMLButtonElement);
+  userCopy.classList.toggle("hidden", report.userId === null);
+  if (report.userId !== null) {
+    bindCopy(userCopy, report.userId);
+  }
   element("detail-app", HTMLElement).textContent = report.appVersion ?? "—";
   element("detail-os", HTMLElement).textContent = report.os ?? "—";
   element("detail-message", HTMLElement).textContent = report.message ?? adminText.noMessage;
-  element("detail-payload-block", HTMLElement).classList.toggle("hidden", report.payload === null);
-  element("detail-payload", HTMLElement).textContent = report.payload === null ? "" : prettyPayload(report.payload);
+  renderPayload(report.payload);
   const toggle: HTMLButtonElement = element("detail-toggle", HTMLButtonElement);
   toggle.dataset["reportId"] = report.id;
   toggle.dataset["next"] = report.status === "open" ? "done" : "open";

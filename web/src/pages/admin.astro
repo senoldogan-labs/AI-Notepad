@@ -1210,16 +1210,47 @@ const legendPlans: { readonly main: string; readonly accent: string } = { main: 
                     <dl class="detail__fields">
                       <div><dt>{text.fields.received}</dt><dd id="detail-received"></dd></div>
                       <div><dt>{text.fields.email}</dt><dd id="detail-email"></dd></div>
-                      <div><dt>{text.fields.user}</dt><dd id="detail-user" class="mono"></dd></div>
+                      <div>
+                        <dt>{text.fields.user}</dt>
+                        <dd class="detail__copyable">
+                          <span id="detail-user" class="mono"></span>
+                          <button
+                            id="detail-user-copy"
+                            class="icon-button icon-button--small copy-button hidden"
+                            type="button"
+                            aria-label={clientCopy.admin.report.copyUser}
+                            title={clientCopy.admin.report.copyUser}
+                            data-label={clientCopy.admin.report.copyUser}
+                          >
+                            <Icon name="copy" size={14} class="copy-button__idle" />
+                            <Icon name="check" size={14} class="copy-button__done" />
+                          </button>
+                        </dd>
+                      </div>
                       <div><dt>{text.fields.app}</dt><dd id="detail-app"></dd></div>
                       <div><dt>{text.fields.os}</dt><dd id="detail-os"></dd></div>
                     </dl>
                     <h3 class="detail__label">{text.messageTitle}</h3>
                     <p id="detail-message" class="detail__message"></p>
-                    <div id="detail-payload-block" class="hidden">
-                      <h3 class="detail__label">{text.payloadTitle}</h3>
-                      <pre id="detail-payload" class="detail__payload" tabindex="0"></pre>
+                    <div id="detail-payload-block" class="detail__payload-block hidden">
+                      <div class="detail__payload-head">
+                        <h3 class="detail__label">{text.payloadTitle}</h3>
+                        <button
+                          id="detail-payload-copy"
+                          class="icon-button copy-button"
+                          type="button"
+                          aria-label={clientCopy.admin.report.copyPayload}
+                          title={clientCopy.admin.report.copyPayload}
+                          data-label={clientCopy.admin.report.copyPayload}
+                        >
+                          <Icon name="copy" size={16} class="copy-button__idle" />
+                          <Icon name="check" size={16} class="copy-button__done" />
+                        </button>
+                      </div>
+                      <p id="detail-payload-summary" class="detail__payload-summary mono hidden"></p>
+                      <pre id="detail-payload" class="detail__payload" tabindex="0" aria-label={text.payloadTitle}></pre>
                     </div>
+                    <p id="detail-copy-status" class="visually-hidden" aria-live="polite"></p>
                   </div>
                 </div>
               </div>
