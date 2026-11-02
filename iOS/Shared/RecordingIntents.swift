@@ -32,7 +32,7 @@ struct StartRecordingIntent: AppIntent {
     static let openAppWhenRun: Bool = true
 
     #if !WIDGET_EXTENSION
-    @Dependency private var recorder: PhoneRecorder
+    @Dependency private var sessions: PhoneSessionHost
     @Dependency private var router: PhoneRouter
     #endif
 
@@ -40,7 +40,7 @@ struct StartRecordingIntent: AppIntent {
     func perform() async throws -> some IntentResult {
         #if !WIDGET_EXTENSION
         router.tab = .record
-        await recorder.start()
+        await sessions.session.recorder.start()
         #endif
         return .result()
     }
@@ -52,13 +52,13 @@ struct StopRecordingIntent: LiveActivityIntent {
     static let description: IntentDescription = IntentDescription("Süren Gistsmith kaydını bitirir; not hazırlanır.")
 
     #if !WIDGET_EXTENSION
-    @Dependency private var recorder: PhoneRecorder
+    @Dependency private var sessions: PhoneSessionHost
     #endif
 
     @MainActor
     func perform() async throws -> some IntentResult {
         #if !WIDGET_EXTENSION
-        recorder.stop()
+        sessions.session.recorder.stop()
         #endif
         return .result()
     }

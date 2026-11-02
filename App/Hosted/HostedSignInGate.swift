@@ -120,7 +120,7 @@ private struct HostedAccountDataNotice: View {
                         .buttonStyle(.hoverPlain)
                         .appFont(size: 13, weight: .medium)
                 }
-            case .relaunchRequired:
+            case .switchPending:
                 NoticeText("Başka bir hesapla giriş yaptın. Önceki hesabın kaydı ya da işlenen toplantısı bitince uygulama yeniden başlar ve bu hesabın toplantılarını açar.", severity: .info)
                     .appFont(size: 13, weight: .regular)
                     .fixedSize(horizontal: false, vertical: true)

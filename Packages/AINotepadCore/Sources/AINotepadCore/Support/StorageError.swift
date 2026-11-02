@@ -19,6 +19,8 @@ public enum StorageError: Error, Equatable {
     case invalidAccountKey(key: String)
     /// Bu süreçte başka bir hesabın verisi yüklü; yeni hesabınki için uygulama yeniden başlamalı.
     case accountSwitchRequiresRelaunch(active: String, requested: String)
+    /// Hesap değiştirilirken yüklü hesap beklenen (`expected`) değildi (hiç yüklenmedi ya da bu arada değişti).
+    case accountSwitchStale(active: String?, expected: String)
     /// Eski veri hesaba taşınırken bir öğe taşınamadı; o ve sonrakiler yerinde kaldı (`movedSoFar` öğe taşındı).
     case legacyDataMoveFailed(source: String, destination: String, reason: String, movedSoFar: Int)
 }
