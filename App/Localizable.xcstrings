@@ -1700,6 +1700,16 @@
         }
       }
     },
+    "Adını yaz": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add your name"
+          }
+        }
+      }
+    },
     "AI-Notepad": {
       "localizations": {
         "en": {
@@ -2998,6 +3008,16 @@
         }
       }
     },
+    "Başka bir kelimeyle ara.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try another word."
+          }
+        }
+      }
+    },
     "Başka bir kişiyi aç": {
       "localizations": {
         "en": {
@@ -3339,6 +3359,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Finish"
+          }
+        }
+      }
+    },
+    "Bitirdiğin görevler burada birikir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tasks you finish collect here."
           }
         }
       }
@@ -6746,6 +6776,16 @@
         }
       }
     },
+    "Henüz görev yok": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No tasks yet"
+          }
+        }
+      }
+    },
     "Henüz kimse yok": {
       "localizations": {
         "en": {
@@ -7106,6 +7146,26 @@
         }
       }
     },
+    "İlk toplantını kaydet; sonra notlarına buradan soru sor.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record your first meeting, then ask about your notes here."
+          }
+        }
+      }
+    },
+    "Kaydettiğin toplantılar notu ve görevleriyle burada durur.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your recorded meetings live here with their notes and tasks."
+          }
+        }
+      }
+    },
     "Konuşma tanıma": {
       "localizations": {
         "en": {
@@ -7142,6 +7202,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Recent chats"
+          }
+        }
+      }
+    },
+    "Sorduğun sorular burada saklanır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your questions are saved here."
+          }
+        }
+      }
+    },
+    "Sorulacak toplantı yok": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No meetings to ask about"
+          }
+        }
+      }
+    },
+    "Toplantılarda sana düşen işler burada toplanır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tasks assigned to you in meetings collect here."
           }
         }
       }
@@ -13838,6 +13928,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Subscribe for new meetings; your meetings and notes stay on this Mac."
+          }
+        }
+      }
+    },
+    "Yeni toplantılarda sana düşen işler buraya gelir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tasks from new meetings will show up here."
           }
         }
       }

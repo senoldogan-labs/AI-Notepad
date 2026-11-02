@@ -58,7 +58,11 @@ struct PhoneSettingsTab: View {
                 } header: {
                     Text("Kayıt")
                 } footer: {
-                    Text("Kayıttan önce katılımcılara haber vermek çoğu yerde yasal zorunluluktur. Süre dolunca ses dosyaları silinir, metin ve not kalır; yarıda kalan ya da başarısız toplantının sesi iki kat süre saklanır.")
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Kayıttan önce katılımcılara haber vermek çoğu yerde yasal zorunluluktur. Süre dolunca ses dosyaları silinir, metin ve not kalır; yarıda kalan ya da başarısız toplantının sesi iki kat süre saklanır.")
+                        // Kayıt ekranından taşındı: bilgi ana ekranı kalabalıklaştırıyordu.
+                        Text("Telefondaki Teams/Zoom görüşmeleri kaydedilemez (iOS izin vermez); onlar için Mac'i kullan.")
+                    }
                 }
                 CalendarSettingsSection(calendar: calendar)
                 Section {
