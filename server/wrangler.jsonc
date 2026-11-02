@@ -41,6 +41,11 @@
     "ENVIRONMENT": "development",
     "SITE_ORIGIN": "http://localhost:8788",
     "APPLE_CLIENT_IDS": "com.senoldogan.AINotepad.hosted,com.senoldogan.AINotepad.web",
+    // Apple ile girişin yenileme jetonu (yalnızca hesap silinince Apple'da iptal için; bkz. src/auth/appleTokens.ts):
+    // ekip kimliği istemci sırrının `iss`'i, Services ID sitenin girişte kullandığı istemci (APPLE_CLIENT_IDS içinde
+    // olmalı). Anahtarlar gizli değerlerdir: APPLE_SIGNIN_KEY_ID, APPLE_SIGNIN_PRIVATE_KEY, APPLE_TOKEN_ENC_KEY (README).
+    "APPLE_TEAM_ID": "79DZ4AA4DW",
+    "APPLE_SIGNIN_CLIENT_ID": "com.senoldogan.AINotepad.web",
     // Google OAuth istemci kimlikleri (açık değerler); kimlik jetonunun `aud`'u bunlardan biri olmalı. Mac uygulaması
     // Google kimlik jetonunu site üzerinden aldığı için tek istemci sitenin web istemcisidir.
     "GOOGLE_CLIENT_IDS": "461373321454-ku1ot0ildt8b9toe7aerq1imidfgu1ah.apps.googleusercontent.com",
@@ -220,6 +225,9 @@
         // Site; API özel alan adı `https://api.gistsmith.com` (Worker'ın tek adresi; workers.dev kapalı).
         "SITE_ORIGIN": "https://gistsmith.com",
         "APPLE_CLIENT_IDS": "com.senoldogan.AINotepad.hosted,com.senoldogan.AINotepad.web",
+        // Apple ile girişin jeton iptali (bkz. üstteki geliştirme `vars` açıklaması).
+        "APPLE_TEAM_ID": "79DZ4AA4DW",
+        "APPLE_SIGNIN_CLIENT_ID": "com.senoldogan.AINotepad.web",
         // Sitenin Google web istemcisi (bkz. üstteki geliştirme `vars` açıklaması). `placeholder` içeren değerle üretim
         // her istekte 500 verir (ConfigPlaceholderError).
         "GOOGLE_CLIENT_IDS": "461373321454-ku1ot0ildt8b9toe7aerq1imidfgu1ah.apps.googleusercontent.com",

@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { identityTokenSchema, refreshSchema } from "./auth/schemas";
+import { appleAuthorizationCodeSchema, identityTokenSchema, refreshSchema } from "./auth/schemas";
+import { storeAppleAuthorizationCode } from "./auth/appleTokens";
 import { verifyAppleIdentityToken } from "./auth/apple";
 import { verifyGoogleIdentityToken } from "./auth/google";
 import { type AccountDeletion, deleteAccount } from "./account";
@@ -105,6 +106,7 @@ const webRoutes: ReadonlySet<string> = new Set([
   "/v1/health",
   "/v1/download/mac/version",
   "/v1/auth/apple",
+  "/v1/auth/apple/authorization-code",
   "/v1/auth/google",
   "/v1/auth/refresh",
   "/v1/auth/logout",
@@ -321,6 +323,13 @@ async function route(request: Request, env: Env, config: Config, context: Reques
       const userId: string = await findOrCreateUser(db, "apple", identity.subject, identityHash, now);
       log("info", "login", { provider: "apple", userId });
       return jsonResponse(200, sessionBody(await startSession(db, config, userId, now)));
+    }
+    if (path === "/v1/auth/apple/authorization-code") {
+      // Giriş bundan bağımsızdır: site kodu girişten önce gönderir, hata alırsa konsola yazar ve girişi sürdürür.
+      // Kod yalnızca Apple'da yenileme jetonuna çevrilir ve hesap silinince iptal için saklanır (bkz. `appleTokens.ts`).
+      const body = await readJsonBody(request, appleAuthorizationCodeSchema, smallBodyBytes);
+      await storeAppleAuthorizationCode(db, context.platform, config.appleSignIn, body.code, now);
+      return jsonResponse(200, { stored: true });
     }
     if (path === "/v1/auth/google") {
       const body = await readJsonBody(request, identityTokenSchema, smallBodyBytes);

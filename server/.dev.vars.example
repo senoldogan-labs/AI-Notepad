@@ -18,3 +18,9 @@ DEEPGRAM_API_KEY=
 # istek 500). Yerelde sahte değerler yeter.
 # REVENUECAT_WEBHOOK_AUTH=
 # REVENUECAT_SECRET_API_KEY=
+# İsteğe bağlı: Apple ile girişin yenileme jetonu (hesap silinince Apple'da iptal). Üçü birlikte girilir; satırlar
+# yorumdayken `POST /v1/auth/apple/authorization-code` `503 apple_tokens_unavailable` döner. Apple kod takası yerel
+# adresi (localhost) dönüş adresi olarak kabul etmez: yerelde uçtan uca çalışmaz, testler Apple'ı sahteler.
+# APPLE_SIGNIN_KEY_ID=
+# APPLE_SIGNIN_PRIVATE_KEY=
+# APPLE_TOKEN_ENC_KEY=

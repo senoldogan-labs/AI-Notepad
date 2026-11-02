@@ -90,8 +90,11 @@ function prepareApple(apple: AppleIdGlobal, redirectUri: string, hashedNonce: st
 interface AppleFlow {
   /** Apple'a verilecek nonce özeti (her denemede yeni olabilir). */
   readonly nextHashedNonce: () => Promise<string>;
-  /** Kimlik jetonu geldiğinde. Hata fırlatırsa bildirim gösterilir ve yeni nonce'la yeniden hazırlanır. */
-  readonly onIdentityToken: (identityToken: string) => Promise<void>;
+  /**
+   * Kimlik jetonu ve Apple'ın yetkilendirme kodu geldiğinde. Hata fırlatırsa bildirim gösterilir ve yeni nonce'la
+   * yeniden hazırlanır.
+   */
+  readonly onIdentityToken: (identityToken: string, authorizationCode: string) => Promise<void>;
 }
 
 /** Apple düğmesini bağlar. Betik yüklenemezse düğme kapalı kalır ve Google önerilir. */
@@ -123,7 +126,7 @@ async function setUpApple(text: ClientCopy, notice: HTMLElement, redirectUri: st
         if (result.authorization.state !== attemptState) {
           throw new AppleStateError("Apple yanıtındaki state eşleşmiyor.");
         }
-        await flow.onIdentityToken(result.authorization.id_token);
+        await flow.onIdentityToken(result.authorization.id_token, result.authorization.code);
       })
       .catch(async (error: unknown): Promise<void> => {
         // Apple penceresi kapatıldıysa ya da iptal edildiyse (Apple `{error: "popup_closed_by_user"}` gibi düz nesne
@@ -141,14 +144,25 @@ async function setUpApple(text: ClientCopy, notice: HTMLElement, redirectUri: st
   });
 }
 
-/** "Uygulamaya dönülüyor…" durumunu ve yedek düğmeyi gösterip uygulamayı açar. */
-function handOffToApp(url: string): void {
+/**
+ * "Uygulamaya dönülüyor…" durumunu gösterir (giriş düğmeleri gizlenir). Yedek "uygulamayı aç" düğmesi dönüş adresi
+ * hazır olana dek (`handOffToApp`) gizlidir.
+ */
+function showReturningToApp(): void {
+  element("signin-app-open", HTMLAnchorElement).classList.add("hidden");
   element("signin-panel", HTMLElement).classList.add("hidden");
   element("signin-app-intro", HTMLElement).classList.add("hidden");
-  element("signin-app-open", HTMLAnchorElement).href = url;
   const panel: HTMLElement = element("signin-app-return", HTMLElement);
   panel.classList.remove("hidden");
   panel.focus();
+}
+
+/** "Uygulamaya dönülüyor…" durumunu ve yedek düğmeyi gösterip uygulamayı açar. */
+function handOffToApp(url: string): void {
+  showReturningToApp();
+  const open: HTMLAnchorElement = element("signin-app-open", HTMLAnchorElement);
+  open.href = url;
+  open.classList.remove("hidden");
   window.location.href = url;
 }
 
@@ -175,10 +189,35 @@ function siteNonces(): SiteNonces {
   };
 }
 
+/** Apple yetkilendirme kodunun gönderildiği uç. */
+const appleAuthorizationCodePath: string = "/v1/auth/apple/authorization-code";
+
+/**
+ * Apple'ın yetkilendirme kodunu sunucuya gönderir: sunucu onu yalnızca hesap silinince Apple'da iptal edilecek yenileme
+ * jetonuna çevirir ve saklar. Giriş buna bağlı değildir: hata konsola yazılır (sunucu da "Sorunlar"a sayar) ve
+ * fırlatılmaz. Kod tek kullanımlık olduğu için yeniden denenmez. Sayfadan ayrılmadan önce beklenir (ayrılmak isteği keser).
+ */
+async function sendAppleAuthorizationCode(code: string): Promise<void> {
+  try {
+    await send({ method: "POST", path: appleAuthorizationCodePath, body: { code }, accessToken: null, attempts: 1 });
+  } catch (error: unknown) {
+    console.warn("apple_code_store_failed", { error: error instanceof Error ? error.message : String(error) });
+  }
+}
+
 /** Kimlik jetonunu ham nonce'la sunucuya yollar, oturumu saklar ve hesap sayfasına geçer. */
 async function signInOnSite(path: "/v1/auth/apple" | "/v1/auth/google", identityToken: string, rawNonce: string, accountPath: string): Promise<void> {
   const response: RawResponse = await send({ method: "POST", path, body: { identityToken, nonce: rawNonce }, accessToken: null, attempts: 1 });
   finishSignIn(response, path, accountPath);
+}
+
+/** Sitenin Apple girişi: kodun gönderimi ve giriş birlikte yapılır; hesap sayfasına ikisi de bitince geçilir. */
+async function signInWithAppleOnSite(identityToken: string, authorizationCode: string, rawNonce: string, accountPath: string): Promise<void> {
+  const [, response]: [void, RawResponse] = await Promise.all([
+    sendAppleAuthorizationCode(authorizationCode),
+    send({ method: "POST", path: "/v1/auth/apple", body: { identityToken, nonce: rawNonce }, accessToken: null, attempts: 1 }),
+  ]);
+  finishSignIn(response, "/v1/auth/apple", accountPath);
 }
 
 /** Saklanan site Google denemesini okur ve siler (tek kullanımlık); yoksa ya da bozuksa null. */
@@ -279,7 +318,8 @@ function startSiteSignIn(text: ClientCopy, notice: HTMLElement, accountPath: str
   const appleNonces: SiteNonces = siteNonces();
   void setUpApple(text, notice, redirectUri, {
     nextHashedNonce: appleNonces.next,
-    onIdentityToken: (identityToken: string): Promise<void> => signInOnSite("/v1/auth/apple", identityToken, appleNonces.raw(), accountPath),
+    onIdentityToken: (identityToken: string, authorizationCode: string): Promise<void> =>
+      signInWithAppleOnSite(identityToken, authorizationCode, appleNonces.raw(), accountPath),
   });
   setUpGoogleRedirect(text, notice, redirectUri);
 }
@@ -340,9 +380,16 @@ function takePendingAppSignIn(): PendingAppSignIn | null {
 /**
  * Sağlayıcıdan `#` parçasıyla dönüşü işler: bekleyen deneme yoksa hata; `state` eşleşmezse ya da sağlayıcı hata
  * döndürdüyse aynı nonce özetiyle giriş yeniden gösterilir (kullanıcı vazgeçtiyse bildirim yok); jeton gelirse
- * uygulamaya iletilir. Jeton adreste ve tarayıcı geçmişinde kalmasın diye parça hemen silinir.
+ * uygulamaya iletilir (Apple'da önce yetkilendirme kodu sunucuya gönderilir; bkz. `sendAppleAuthorizationCode`). Jeton
+ * adreste ve tarayıcı geçmişinde kalmasın diye parça hemen silinir.
  */
-function finishAppReturn(text: ClientCopy, notice: HTMLElement, result: Exclude<ProviderReturn, { readonly kind: "none" }>, signInPath: string, redirectUri: string): void {
+async function finishAppReturn(
+  text: ClientCopy,
+  notice: HTMLElement,
+  result: Exclude<ProviderReturn, { readonly kind: "none" }>,
+  signInPath: string,
+  redirectUri: string,
+): Promise<void> {
   const pending: PendingAppSignIn | null = takePendingAppSignIn();
   window.history.replaceState(null, "", pending === null ? signInPath : appSignInPagePath(signInPath, pending.hashedNonce));
   if (pending === null) {
@@ -365,6 +412,12 @@ function finishAppReturn(text: ClientCopy, notice: HTMLElement, result: Exclude<
     showNotice(notice, text.errors.appReturnInvalid);
     return;
   }
+  if (pending.provider === "apple" && result.code !== null) {
+    showReturningToApp();
+    await sendAppleAuthorizationCode(result.code);
+  } else if (pending.provider === "apple") {
+    console.warn("apple_code_missing", {});
+  }
   handOffToApp(appSignInUrl(pending.provider, result.idToken));
 }
 
@@ -381,7 +434,7 @@ function main(): void {
       void finishSiteGoogleReturn(text, notice, returned, siteGoogle, dataValue(root, "accountPath"), dataValue(root, "redirectUri"));
       return;
     }
-    finishAppReturn(text, notice, returned, window.location.pathname, dataValue(root, "redirectUri"));
+    void finishAppReturn(text, notice, returned, window.location.pathname, dataValue(root, "redirectUri"));
     return;
   }
   const mode: SignInMode = signInMode(window.location.search);

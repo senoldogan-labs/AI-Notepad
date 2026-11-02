@@ -110,6 +110,32 @@ export interface BlogConfig {
 }
 
 /**
+ * Apple ile girişin jeton saklama ve iptal anahtarları (bkz. `auth/appleTokens.ts`): Apple Developer → Keys'te "Sign in
+ * with Apple" yetkili anahtarın kimliği (`APPLE_SIGNIN_KEY_ID`, JWT `kid`) ve `.p8` içeriği (`APPLE_SIGNIN_PRIVATE_KEY`,
+ * PKCS#8 PEM), yenileme jetonunu şifreleyen AES-256 anahtarı (`APPLE_TOKEN_ENC_KEY`, 32 baytın base64'ü).
+ */
+export interface AppleSignInCredentials {
+  readonly keyId: string;
+  readonly privateKeyPem: string;
+  readonly tokenEncryptionKey: Uint8Array;
+}
+
+/**
+ * Apple ile girişin sunucu tarafı (yetkilendirme kodu takası ve hesap silmede iptal). `credentials` üç gizli değerin
+ * üçü de girilmemişse null'dır: kod ucu `503 apple_tokens_unavailable` döner, silmede iptal yapılamaz ("Sorunlar"da
+ * sayılır).
+ */
+export interface AppleSignInConfig {
+  /** Apple geliştirici ekip kimliği (`APPLE_TEAM_ID`; istemci sırrının `iss`'i). */
+  readonly teamId: string;
+  /** Sitenin girişte kullandığı Services ID (`APPLE_SIGNIN_CLIENT_ID`; kod bu istemciye verilir). */
+  readonly clientId: string;
+  /** Sitenin Apple'a verdiği dönüş adresi (`<SITE_ORIGIN>/sign-in`); kod takası aynısını ister. */
+  readonly redirectUri: string;
+  readonly credentials: AppleSignInCredentials | null;
+}
+
+/**
  * Yönetim panelindeki site istatistikleri (bkz. `siteAnalytics.ts`): Cloudflare hesabı (`CF_ANALYTICS_ACCOUNT_ID`),
  * Web Analytics site etiketi (`CF_ANALYTICS_SITE_TAG`) ve gizli `CF_ANALYTICS_TOKEN`. Biri eksikse null'dır ve uç
  * `503 analytics_unavailable` döner.
@@ -204,6 +230,8 @@ export interface Config {
   readonly deepgram: DeepgramConfig;
   readonly blog: BlogConfig;
   readonly siteAnalytics: SiteAnalyticsConfig;
+  /** Apple ile girişin jeton saklama ve iptali (bkz. `AppleSignInConfig`). */
+  readonly appleSignIn: AppleSignInConfig;
   readonly dailySpendCeilingMicroUsd: number;
   /** Deneme harcamasının (deneme toplantıları ve denemedeki hesap çağrıları) günlük ayrı tavanı. */
   readonly dailyTrialSpendCeilingMicroUsd: number;
@@ -338,6 +366,14 @@ const envSchema = z.object({
   ENVIRONMENT: z.enum(["development", "production"]),
   SITE_ORIGIN: z.url(),
   APPLE_CLIENT_IDS: csv,
+  /** Apple ekip kimliği (10 karakter). */
+  APPLE_TEAM_ID: z.string().regex(/^[A-Z0-9]{10}$/),
+  /** Sitenin Services ID'si; `APPLE_CLIENT_IDS` içinde olmalı. */
+  APPLE_SIGNIN_CLIENT_ID: z.string().min(1),
+  /** Üçü birlikte girilir ya da hiçbiri (bkz. `appleSignInCredentials`). */
+  APPLE_SIGNIN_KEY_ID: z.string().optional(),
+  APPLE_SIGNIN_PRIVATE_KEY: z.string().optional(),
+  APPLE_TOKEN_ENC_KEY: z.string().optional(),
   GOOGLE_CLIENT_IDS: csv,
   ADMIN_IDENTITIES: adminIdentityList,
   CF_ACCESS_TEAM_DOMAIN: z.string().regex(/^[a-z0-9-]+\.cloudflareaccess\.com$/),
@@ -525,6 +561,10 @@ export function parseConfig(env: Env): Config {
     throw new ConfigError(["APP_ATTEST_ENVIRONMENT"]);
   }
   const deviceCheck: DeviceCheckConfig = deviceCheckConfig(value);
+  if (!value.APPLE_CLIENT_IDS.includes(value.APPLE_SIGNIN_CLIENT_ID)) {
+    throw new ConfigError(["APPLE_SIGNIN_CLIENT_ID"]);
+  }
+  const appleCredentials: AppleSignInCredentials | null = appleSignInCredentials(value);
   const deepgram: DeepgramConfig = deepgramConfig(value);
   if (value.ENVIRONMENT === "production" && deviceCheck.policy === "required" && deviceCheck.environment !== "production") {
     throw new ConfigError(["DEVICECHECK_ENVIRONMENT"]);
@@ -591,6 +631,12 @@ export function parseConfig(env: Env): Config {
       accountId: value.CF_ANALYTICS_ACCOUNT_ID === "" ? null : value.CF_ANALYTICS_ACCOUNT_ID,
       siteTag: value.CF_ANALYTICS_SITE_TAG === "" ? null : value.CF_ANALYTICS_SITE_TAG,
       token: value.CF_ANALYTICS_TOKEN ?? null,
+    },
+    appleSignIn: {
+      teamId: value.APPLE_TEAM_ID,
+      clientId: value.APPLE_SIGNIN_CLIENT_ID,
+      redirectUri: `${new URL(value.SITE_ORIGIN).origin}/sign-in`,
+      credentials: appleCredentials,
     },
     dailySpendCeilingMicroUsd: Math.round(value.DAILY_SPEND_CEILING_USD * 1_000_000),
     dailyTrialSpendCeilingMicroUsd: Math.round(value.DAILY_TRIAL_SPEND_CEILING_USD * 1_000_000),
@@ -680,6 +726,48 @@ function deepgramConfig(settings: DeepgramSettings): DeepgramConfig {
     throw new ConfigError(["DEEPGRAM_API_KEY"]);
   }
   return { access: { policy: "on", apiKey }, budgetMicroUsd, microUsdPerMinute };
+}
+
+/** Apple ile girişin gizli değerleri. */
+interface AppleSignInSettings {
+  readonly APPLE_SIGNIN_KEY_ID?: string | undefined;
+  readonly APPLE_SIGNIN_PRIVATE_KEY?: string | undefined;
+  readonly APPLE_TOKEN_ENC_KEY?: string | undefined;
+}
+
+/** base64 metni 32 bayta (AES-256 anahtarı) çözülüyor mu. Saf fonksiyondur. */
+function aes256KeyBytes(text: string): Uint8Array | null {
+  if (!/^[A-Za-z0-9+/]{43}=$/.test(text)) {
+    return null;
+  }
+  const binary: string = atob(text);
+  return binary.length === 32 ? Uint8Array.from(binary, (char: string): number => char.charCodeAt(0)) : null;
+}
+
+/**
+ * Apple ile girişin anahtarları: üç gizli değerin hiçbiri girilmemişse null (jeton saklama ve iptal kapalı). Biri bile
+ * girilmişse üçü de geçerli olmalı: anahtar kimliği Apple biçiminde (10 karakter), anahtar PKCS#8 PEM, şifreleme anahtarı
+ * 32 baytın base64'ü (`openssl rand -base64 32`); değilse geçersiz ya da eksik alanların adlarıyla `ConfigError`.
+ * Saf fonksiyondur.
+ */
+function appleSignInCredentials(settings: AppleSignInSettings): AppleSignInCredentials | null {
+  const keyId: string | undefined = settings.APPLE_SIGNIN_KEY_ID;
+  const privateKeyPem: string | undefined = settings.APPLE_SIGNIN_PRIVATE_KEY;
+  const encryptionKey: string | undefined = settings.APPLE_TOKEN_ENC_KEY;
+  if (keyId === undefined && privateKeyPem === undefined && encryptionKey === undefined) {
+    return null;
+  }
+  const keyBytes: Uint8Array | null = encryptionKey === undefined ? null : aes256KeyBytes(encryptionKey.trim());
+  const checks: ReadonlyArray<readonly [string, boolean]> = [
+    ["APPLE_SIGNIN_KEY_ID", keyId !== undefined && appleIdentifierPattern.test(keyId)],
+    ["APPLE_SIGNIN_PRIVATE_KEY", privateKeyPem !== undefined && privateKeyPem.includes("-----BEGIN PRIVATE KEY-----")],
+    ["APPLE_TOKEN_ENC_KEY", keyBytes !== null],
+  ];
+  const invalid: string[] = checks.filter(([, valid]: readonly [string, boolean]): boolean => !valid).map(([name]: readonly [string, boolean]): string => name);
+  if (invalid.length > 0 || keyId === undefined || privateKeyPem === undefined || keyBytes === null) {
+    throw new ConfigError(invalid);
+  }
+  return { keyId, privateKeyPem, tokenEncryptionKey: keyBytes };
 }
 
 /**
