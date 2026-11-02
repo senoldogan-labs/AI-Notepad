@@ -43,9 +43,6 @@ struct PhoneSignInGate: View {
                             .foregroundStyle(Theme.muted)
                             .multilineTextAlignment(.center)
                             .fixedSize(horizontal: false, vertical: true)
-                        // Denemenin sözü tanıtımın bir parçası: zeminsiz, adın ve tanıtımın hemen altında.
-                        PhoneTrialLine()
-                            .padding(.top, 6)
                     }
                     Spacer(minLength: 32)
                     actions
@@ -55,8 +52,11 @@ struct PhoneSignInGate: View {
                         PhoneAccountDataNotice(account: account)
                     }
                     .padding(.top, 12)
-                    PhoneLegalLinks()
+                    // Denemenin sözü gizlilik ve koşulların hemen üstünde; zeminsiz, alttaki açıklamalarla aynı yazı.
+                    PhoneTrialLine()
                         .padding(.top, 20)
+                    PhoneLegalLinks()
+                        .padding(.top, 8)
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 12)
@@ -93,19 +93,15 @@ struct PhoneSignInGate: View {
     }
 }
 
-/// "İlk 3 toplantı ya da 7 gün ücretsiz": vurgu renginde yıldız ve zeminsiz yazı, ortalı tek satır; adın ve tanıtımın
-/// altında durur, düğmelerin üstünde değil.
+/// "İlk 3 toplantı ya da 7 gün ücretsiz": zeminsiz, simgesiz soluk yazı (alttaki açıklamalarla aynı), ortalı; gizlilik
+/// ve koşul bağlantılarının hemen üstünde durur.
 private struct PhoneTrialLine: View {
     var body: some View {
-        Label {
-            Text("İlk 3 toplantı ya da 7 gün ücretsiz")
-                .foregroundStyle(Theme.ink)
-        } icon: {
-            Image(systemName: "sparkles")
-                .foregroundStyle(.tint)
-        }
-        .appFont(size: 13, weight: .medium)
-        .frame(maxWidth: .infinity)
+        Text("İlk 3 toplantı ya da 7 gün ücretsiz")
+            .appFont(size: 13, weight: .regular)
+            .foregroundStyle(Theme.muted)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
     }
 }
 
