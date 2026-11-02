@@ -419,6 +419,37 @@ describe("hak birleştirme (Stripe + App Store)", () => {
     expect(await portal.json<{ url: string }>()).toEqual({ url: "https://apps.apple.com/account/subscriptions" });
   });
 
+  it("davet: App Store abonesi kod alır ve kodu geçerlidir; özet ödülün Apple faturasına uygulanmadığını bildirir", async () => {
+    const harness: Harness = await defaultHarness();
+    const fake: FakeRevenueCat = stubRevenueCat(harness);
+    const appStoreOnly: Session = await signIn(harness);
+    await subscribeViaAppStore(harness, fake, appStoreOnly, subscription({ expiresMs: harness.clock.nowMs + 20 * dayMs }), monthly);
+    const summary: Response = await harness.call(req("GET", "/v1/referral", { token: appStoreOnly.accessToken }));
+    expect(summary.status).toBe(200);
+    const body = await summary.json<{ code: string | null; inviteUrl: string | null; appStoreBilled: boolean; complimentary: boolean }>();
+    expect(body.code).toMatch(/^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{8}$/);
+    expect(body.inviteUrl).toContain(`/invite?code=${body.code ?? ""}`);
+    expect(body.appStoreBilled).toBe(true);
+    expect(body.complimentary).toBe(false);
+    // Hiç abone olmamış arkadaş bu kodu web'de kullanabilir.
+    const friend: Session = await signIn(harness);
+    const validated: Response = await harness.call(req("POST", "/v1/referral/validate", { token: friend.accessToken, json: { code: body.code } }));
+    expect(validated.status).toBe(200);
+
+    // Stripe aboneliği asıl kaynaksa ödül Stripe alacağıdır.
+    const stripeOnly: Session = await signIn(harness);
+    await grantSubscription(stripeOnly.userId, "active", harness.clock.nowMs + 20 * dayMs);
+    const stripeBody = await (await harness.call(req("GET", "/v1/referral", { token: stripeOnly.accessToken }))).json<{ code: string | null; appStoreBilled: boolean }>();
+    expect(stripeBody.code).not.toBeNull();
+    expect(stripeBody.appStoreBilled).toBe(false);
+
+    // Bitmiş App Store aboneliği kod vermez.
+    const expired: Session = await signIn(harness);
+    await subscribeViaAppStore(harness, fake, expired, subscription({ expiresMs: harness.clock.nowMs - 5 * dayMs }), monthly);
+    const expiredBody = await (await harness.call(req("GET", "/v1/referral", { token: expired.accessToken }))).json<{ code: string | null }>();
+    expect(expiredBody.code).toBeNull();
+  });
+
   it("POST /v1/billing/app-store/sync: anahtar yoksa 503, varsa eşitleyip hak durumunu döndürür", async () => {
     const harness: Harness = await defaultHarness();
     const fake: FakeRevenueCat = stubRevenueCat(harness);

@@ -54,6 +54,8 @@ export interface ReferralInfo {
   readonly pending: number;
   readonly nextRewardAt: string | null;
   readonly complimentary: boolean;
+  /** Asıl abonelik App Store'dan: ödül (web ödemesinden düşülen alacak) Apple faturasına uygulanmaz. */
+  readonly appStoreBilled: boolean;
   readonly rewardsLeftThisYear: number;
   readonly rewardsPerYear: number;
   readonly rewardUsd: number;
@@ -388,6 +390,8 @@ export function parseReferral(response: RawResponse, path: string): ReferralInfo
     pending: numberField(body, "pending", response, path),
     nextRewardAt: nullableStringField(body, "nextRewardAt", response, path),
     complimentary: booleanField(body, "complimentary", response, path),
+    // Bu alanı bilmeyen eski sunucu yalnızca Stripe aboneliğine kod verir (bkz. `subscriptionSourceOf`).
+    appStoreBilled: body["appStoreBilled"] === undefined ? false : booleanField(body, "appStoreBilled", response, path),
     rewardsLeftThisYear: numberField(body, "rewardsLeftThisYear", response, path),
     rewardsPerYear: numberField(body, "rewardsPerYear", response, path),
     rewardUsd: numberField(body, "rewardUsd", response, path),

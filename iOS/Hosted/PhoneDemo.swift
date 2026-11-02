@@ -55,6 +55,15 @@ func phoneDemoAppStoreEntitlements(now: Date) -> HostedEntitlements {
     return decodedPhoneDemoEntitlements(json: json)
 }
 
+/// Tanıtım abonesinin davet bilgisi: bir arkadaş katılmış; abonelik App Store'dan olduğu için ödül yazılmaz.
+func phoneDemoReferral(now: Date) -> HostedReferral {
+    HostedReferral(
+        enabled: true, code: "K7M2QX9D", inviteUrl: URL(string: "https://gistsmith.com/invite?code=K7M2QX9D"), joined: 1, rewarded: 0,
+        pending: 1, nextRewardAt: now.addingTimeInterval(24 * 86_400), complimentary: false, appStoreBilled: true, rewardsLeftThisYear: 12,
+        rewardsPerYear: 12, rewardUsd: 5.99, holdDays: 30
+    )
+}
+
 /// Tanıtım hak durumunu sunucu yanıtıyla aynı JSON'dan çözer; çözülemezse tanıtım açılmaz (programcı hatası).
 private func decodedPhoneDemoEntitlements(json: String) -> HostedEntitlements {
     let decoder: JSONDecoder = JSONDecoder()

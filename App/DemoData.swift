@@ -279,7 +279,7 @@ private func demoEntitlements(trialLeft: Int?, now: Date) -> HostedEntitlements 
 private func demoReferral(now: Date) -> HostedReferral {
     HostedReferral(
         enabled: true, code: "K7M2QX9D", inviteUrl: URL(string: "https://gistsmith.com/invite?code=K7M2QX9D"), joined: 2, rewarded: 1,
-        pending: 1, nextRewardAt: now.addingTimeInterval(24 * 86_400), complimentary: false, rewardsLeftThisYear: 11, rewardsPerYear: 12,
+        pending: 1, nextRewardAt: now.addingTimeInterval(24 * 86_400), complimentary: false, appStoreBilled: false, rewardsLeftThisYear: 11, rewardsPerYear: 12,
         rewardUsd: 5.99, holdDays: 30
     )
 }

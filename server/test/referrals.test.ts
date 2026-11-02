@@ -38,6 +38,7 @@ interface ReferralBody {
   readonly pending: number;
   readonly nextRewardAt: string | null;
   readonly complimentary: boolean;
+  readonly appStoreBilled: boolean;
   readonly rewardsLeftThisYear: number;
   readonly rewardsPerYear: number;
   readonly rewardUsd: number;
@@ -234,6 +235,7 @@ describe("davet kodu", () => {
       pending: 0,
       nextRewardAt: null,
       complimentary: false,
+      appStoreBilled: false,
       rewardsLeftThisYear: 12,
       rewardsPerYear: 12,
       rewardUsd: 5.99,
