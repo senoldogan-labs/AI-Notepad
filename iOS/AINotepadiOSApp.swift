@@ -100,14 +100,26 @@ struct AINotepadiOSApp: App {
     }
 }
 
-/// Kullanıcının görünüm ayarı (vurgu rengi) tüm arayüze: ortam, yazı ve renk tonu; ayar değişince hemen uygulanır.
+/// Kullanıcının görünüm ayarları (vurgu rengi, yazı tipi, yazı ölçeği, okuma metni boyutu ve satır aralığı) tüm arayüze:
+/// ortam, yazı ve renk tonu; ayar değişince hemen uygulanır. Sistemin yazı boyutu (Dinamik Yazı) ayarların üstüne çarpılır.
 private struct PhoneAppearanceModifier: ViewModifier {
     @AppStorage(PhoneSettingsKey.accent) private var accent: String = PanelAppearance.standard.accent.rawValue
+    @AppStorage(PhoneSettingsKey.fontDesign) private var fontDesign: String = PanelAppearance.standard.fontChoice.storageValue
+    @AppStorage(PhoneSettingsKey.uiScale) private var uiScale: Double = PanelAppearance.standard.uiScale
+    @AppStorage(PhoneSettingsKey.textSize) private var textSize: Double = PanelAppearance.standard.textSize
+    @AppStorage(PhoneSettingsKey.lineSpacing) private var lineSpacing: Double = PanelAppearance.standard.lineSpacing
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize: DynamicTypeSize
 
     func body(content: Content) -> some View {
-        let appearance: PanelAppearance = phoneAppearance(accentRawValue: accent)
+        let standard: PanelAppearance = .standard
+        let appearance: PanelAppearance = resolvedPanelAppearance(stored: StoredAppearance(
+            fontDesign: fontDesign, uiScale: uiScale, textSize: textSize, lineSpacing: lineSpacing, bottomSpacing: standard.bottomSpacing,
+            accent: accent, surface: standard.surface.rawValue, surfaceOpacity: standard.surfaceOpacity
+        ))
+        .dynamicTypeScaled(factor: dynamicTypeFactor(size: dynamicTypeSize))
         content
             .environment(\.panelAppearance, appearance)
+            .fontDesign(appearance.systemFontDesign)
             .font(appearance.font(size: 15, weight: .regular))
             .tint(appearance.accent.color)
             // Menü biçimli seçiciler ve sistem sayfaları rengi SwiftUI ortamından değil pencereden alır.
@@ -115,6 +127,14 @@ private struct PhoneAppearanceModifier: ViewModifier {
                 applyWindowTint(color: UIColor(appearance.accent.color))
             }
     }
+}
+
+/// Dinamik Yazı boyutunun gövde metnine göre çarpanı (varsayılan boyutta 1). Erişilebilirlik boyutlarında düzen
+/// bozulmasın diye en çok iki kat.
+private func dynamicTypeFactor(size: DynamicTypeSize) -> Double {
+    let traits: UITraitCollection = UITraitCollection(preferredContentSizeCategory: UIContentSizeCategory(size))
+    let base: CGFloat = 17
+    return min(Double(UIFontMetrics(forTextStyle: .body).scaledValue(for: base, compatibleWith: traits) / base), 2)
 }
 
 /// Uygulamanın pencerelerinin vurgu rengi (UIKit denetimleri, menü biçimli seçiciler, paylaşım sayfası).

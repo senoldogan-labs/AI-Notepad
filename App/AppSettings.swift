@@ -101,18 +101,16 @@ enum SettingsKey {
     /// Konuşmacıları sesinden tanıma (ses izleri yalnızca bu Mac'te).
     static let voiceRecognition: String = "voiceRecognition"
     /// Görünüm.
-    static let theme: String = "appearance.theme"
-    static let accent: String = "appearance.accent"
-    static let fontDesign: String = "appearance.fontDesign"
-    static let textSize: String = "appearance.textSize"
-    /// Arayüz yazılarının ölçeği (1 = varsayılan).
-    static let uiScale: String = "appearance.uiScale"
-    static let lineSpacing: String = "appearance.lineSpacing"
-    static let bottomSpacing: String = "appearance.bottomSpacing"
+    static let theme: String = AppearanceKey.theme
+    static let accent: String = AppearanceKey.accent
+    static let fontDesign: String = AppearanceKey.fontDesign
+    static let textSize: String = AppearanceKey.textSize
+    static let uiScale: String = AppearanceKey.uiScale
+    static let lineSpacing: String = AppearanceKey.lineSpacing
+    static let bottomSpacing: String = AppearanceKey.bottomSpacing
     static let islandEnabled: String = "appearance.islandEnabled"
-    /// Pencere yüzeyi (dolu, buzlu cam, şeffaf cam), cam opaklığı ve zemin tonu.
-    static let surface: String = "appearance.surface"
-    static let surfaceOpacity: String = "appearance.surfaceOpacity"
+    static let surface: String = AppearanceKey.surface
+    static let surfaceOpacity: String = AppearanceKey.surfaceOpacity
     /// "Anonim kullanım istatistiklerini paylaş" (yalnızca abonelik sürümünde görünür ve kullanılır; bkz.
     /// `HostedTelemetryCenter`).
     static let shareUsageStatistics: String = shareUsageStatisticsDefaultsKey
@@ -227,11 +225,6 @@ func applyTheme(theme: AppTheme) {
 enum SettingsRange {
     static let missedWindowMinutes: ClosedRange<Int> = 1...10
     static let audioRetentionDays: ClosedRange<Int> = 7...365
-    static let textSize: ClosedRange<Double> = 11...24
-    static let uiScale: ClosedRange<Double> = 0.85...1.3
-    static let lineSpacing: ClosedRange<Double> = 0...12
-    static let bottomSpacing: ClosedRange<Double> = 0...160
-    static let surfaceOpacity: ClosedRange<Double> = 0.35...0.95
 }
 
 /// Görünüm ayarlarını varsayılana döndürür.
