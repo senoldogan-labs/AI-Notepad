@@ -313,7 +313,9 @@ struct AskTab: View {
             .toolbar(.hidden, for: .tabBar)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
+                    // Sistem geri okuyla aynı renk (sohbet ve toplantı sayfasındaki geri gibi).
                     Button("Geri", systemImage: "chevron.left") { router.leaveAsk() }
+                        .tint(Theme.ink)
                 }
             }
             .navigationDestination(for: AskRoute.self) { (route: AskRoute) in
