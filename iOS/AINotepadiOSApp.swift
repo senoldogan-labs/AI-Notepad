@@ -3,6 +3,7 @@ import AINotepadUI
 import AppIntents
 import os
 import SwiftUI
+import UIKit
 
 private let phoneAppLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "App")
 
@@ -109,6 +110,23 @@ private struct PhoneAppearanceModifier: ViewModifier {
             .environment(\.panelAppearance, appearance)
             .font(appearance.font(size: 15, weight: .regular))
             .tint(appearance.accent.color)
+            // Menü biçimli seçiciler ve sistem sayfaları rengi SwiftUI ortamından değil pencereden alır.
+            .onChange(of: accent, initial: true) { (_: String, _: String) in
+                applyWindowTint(color: UIColor(appearance.accent.color))
+            }
+    }
+}
+
+/// Uygulamanın pencerelerinin vurgu rengi (UIKit denetimleri, menü biçimli seçiciler, paylaşım sayfası).
+@MainActor
+private func applyWindowTint(color: UIColor) {
+    for scene in UIApplication.shared.connectedScenes {
+        guard let windowScene = scene as? UIWindowScene else {
+            continue
+        }
+        for window in windowScene.windows {
+            window.tintColor = color
+        }
     }
 }
 

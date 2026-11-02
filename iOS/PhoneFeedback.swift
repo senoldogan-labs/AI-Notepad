@@ -52,7 +52,7 @@ struct PhoneFeedbackForm: View {
                     Text("Hata, öneri ya da soru: doğrudan Gistsmith'in geliştiricisine yaz.")
                 }
                 Section {
-                    TextField("ad@ornek.com", text: $email)
+                    TextField("Yanıt için e-posta (isteğe bağlı)", text: $email, prompt: Text(verbatim: "ad@ornek.com").foregroundStyle(Theme.muted))
                         .textContentType(.emailAddress)
                         .keyboardType(.emailAddress)
                         .textInputAutocapitalization(.never)
