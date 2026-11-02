@@ -3,7 +3,7 @@ import AINotepadUI
 import SwiftUI
 
 /// Giriş kapısı: oturum yokken (ya da hesabın verisi açılmamışken) uygulama yalnızca bunu gösterir — ortada başlığı olan
-/// pastel kart, ad ve tek cümlelik tanıtım, deneme satırı, "Apple ile devam et" ve "Google ile devam et" (sistemin
+/// simgeli pastel kart, ad ve tek cümlelik tanıtım, deneme satırı, "Apple ile devam et" ve "Google ile devam et" (sistemin
 /// güvenli giriş sayfasında, sitedeki giriş akışıyla; bkz. `HostedAccount.signIn`) ve gizlilik/koşullar bağlantıları;
 /// hepsi ortalı. İçerik en az ekran boyundadır: büyük iPhone'da düğmeler alta yaslanır, artan boy ad bloğunun iki
 /// yanına bölünür; küçükte kaydırılır. Sekmeler, toplantılar ve kayıt yoktur. Satın alma yoktur (abonelik girişten
@@ -19,13 +19,17 @@ struct PhoneSignInGate: View {
                         seed: "gistsmith-giris", palette: .violet,
                         height: phoneHeroHeight(screenHeight: proxy.size.height, ratio: 0.38, minimum: 180, maximum: 340)
                     ) {
-                        Text("Toplantılarını dinler, notunu yazar")
-                            .appFont(size: 28, weight: .regular)
-                            .tracking(-0.5)
-                            .multilineTextAlignment(.center)
-                            .foregroundStyle(Color.black.opacity(0.78))
-                            .fixedSize(horizontal: false, vertical: true)
-                            .accessibilityAddTraits(.isHeader)
+                        // Karşılamanın ilk sayfasıyla aynı simgeler: dinler, yazıya döker, görevleri çıkarır.
+                        VStack(spacing: 22) {
+                            OnboardingSymbolRow(symbols: ["mic.fill", "captions.bubble.fill", "checklist"])
+                            Text("Toplantılarını dinler, notunu yazar")
+                                .appFont(size: 28, weight: .regular)
+                                .tracking(-0.5)
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .accessibilityAddTraits(.isHeader)
+                        }
+                        .foregroundStyle(Color.black.opacity(0.78))
                     }
                     // Artan boy kartın altı ile düğmelerin üstü arasında bölünür: ad ve tanıtım ortada kalır.
                     Spacer(minLength: 28)
