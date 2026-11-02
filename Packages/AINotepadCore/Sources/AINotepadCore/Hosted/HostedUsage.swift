@@ -36,6 +36,16 @@ public func hostedUsageLevel(fraction: Double) -> HostedUsageLevel {
     return fraction >= hostedUsageWarningFraction ? .warning : .normal
 }
 
+/// Kalan deneme toplantısına göre düzey: 1 kaldıysa dikkat, bittiyse dolu (Mac ve iPhone'daki deneme göstergeleri). Saf
+/// fonksiyondur.
+public func hostedTrialLevel(left: Int) -> HostedUsageLevel {
+    switch left {
+    case ...0: .full
+    case 1: .warning
+    default: .normal
+    }
+}
+
 /// UTC takvimi (sunucunun ay sınırı).
 private func utcCalendar() -> Calendar {
     var calendar: Calendar = Calendar(identifier: .gregorian)

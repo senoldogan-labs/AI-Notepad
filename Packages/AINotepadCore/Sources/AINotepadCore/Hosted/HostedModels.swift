@@ -155,6 +155,9 @@ public struct HostedReferral: Decodable, Sendable, Equatable {
     public let nextRewardAt: Date?
     /// Hesabın ücretsiz erişimi var: ödenecek fatura olmadığından ödül uygulanmaz.
     public let complimentary: Bool
+    /// Hesabın asıl aboneliği App Store'dan: ödül (web ödemesinden düşülen alacak) Apple faturasına uygulanmaz. Bu alanı
+    /// bilmeyen eski sunucuda nil.
+    public let appStoreBilled: Bool?
     public let rewardsLeftThisYear: Int
     public let rewardsPerYear: Int
     /// Ödülün tutarı (USD; bir aylık abonelik).
@@ -164,7 +167,7 @@ public struct HostedReferral: Decodable, Sendable, Equatable {
 
     public init(
         enabled: Bool, code: String?, inviteUrl: URL?, joined: Int, rewarded: Int, pending: Int, nextRewardAt: Date?,
-        complimentary: Bool, rewardsLeftThisYear: Int, rewardsPerYear: Int, rewardUsd: Double, holdDays: Int
+        complimentary: Bool, appStoreBilled: Bool?, rewardsLeftThisYear: Int, rewardsPerYear: Int, rewardUsd: Double, holdDays: Int
     ) {
         self.enabled = enabled
         self.code = code
@@ -174,6 +177,7 @@ public struct HostedReferral: Decodable, Sendable, Equatable {
         self.pending = pending
         self.nextRewardAt = nextRewardAt
         self.complimentary = complimentary
+        self.appStoreBilled = appStoreBilled
         self.rewardsLeftThisYear = rewardsLeftThisYear
         self.rewardsPerYear = rewardsPerYear
         self.rewardUsd = rewardUsd

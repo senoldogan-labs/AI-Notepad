@@ -633,7 +633,8 @@ interface ReferralView {
  * Davet kartının değerleri. Davetin ücretsiz ilk ayındaki hesapta sunucu kod vermez: sayı yok, not kodun ilk ücretli
  * aydan sonra açılacağını söyler. Ücretsiz erişimli hesapta arkadaşlar yine davet indirimini alır, ama ödenecek fatura
  * olmadığından 5,99 $ ödülü uygulanmaz (sunucu `referrer_complimentary` ile düşürür): yalnızca katılanlar ve bunu
- * anlatan not. Diğerlerinde dört sayı ve bekleyen ödül varsa en yakınının tahmini tarihi. Saf fonksiyondur.
+ * anlatan not. App Store abonesinde de ödül (web ödemesinden düşülen alacak) uygulanmaz: yalnızca katılanlar ve not.
+ * Diğerlerinde dört sayı ve bekleyen ödül varsa en yakınının tahmini tarihi. Saf fonksiyondur.
  */
 function referralView(referral: ReferralInfo, text: ClientCopy, locale: string): ReferralView {
   if (referral.code === null || referral.inviteUrl === null) {
@@ -642,6 +643,9 @@ function referralView(referral: ReferralInfo, text: ClientCopy, locale: string):
   const joined: ReferralStat = { label: text.referralStats.joined, value: String(referral.joined), cap: null };
   if (referral.complimentary) {
     return { stats: [joined], note: text.referralComplimentaryNote };
+  }
+  if (referral.appStoreBilled) {
+    return { stats: [joined], note: text.referralAppStoreNote };
   }
   return {
     stats: [

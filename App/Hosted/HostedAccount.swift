@@ -1008,10 +1008,33 @@ final class HostedAccount {
         }
     }
 
+    // MARK: Davet
+
+    /// Abonenin davet kodunu ve sayılarını okur (Ayarlar › Hesap açılınca; Mac ve iPhone). Abonelik erişimi yoksa ya da okunamazsa
+    /// davet bölümü görünmez (hata loglanır; davet isteğe bağlıdır, hesap ekranını bozmaz).
+    func loadReferral() async {
+        #if DEBUG
+        if isDemoMode {
+            return
+        }
+        #endif
+        guard case .signedIn(let entitlements) = state, let subscription = entitlements.subscription, subscription.access != .none else {
+            referral = nil
+            return
+        }
+        do {
+            referral = try await HostedServices.requireClient().referral()
+        } catch {
+            accountLogger.error("Davet bilgisi okunamadı, hata: \(String(describing: error), privacy: .private)")
+            referral = nil
+        }
+    }
+
     // MARK: Ödeme
 
-    // Ödeme, müşteri portalı ve davet kodu yalnızca Mac'te: iPhone uygulaması içinde App Store dışı bir satın alma yoluna
-    // yönlendirilmez (App Store 3.1.1); abonelik iPhone'da yalnızca durum olarak görünür.
+    // Ödeme, müşteri portalı ve davet kodu girme yalnızca Mac'te: iPhone uygulaması içinde App Store dışı bir satın alma
+    // yoluna yönlendirilmez (App Store 3.1.1); iPhone'da abonelik uygulama içi satın almayla alınır. Davet bağlantısını
+    // arkadaşa göndermek (yukarıda) iki yerde de vardır.
     #if os(macOS)
 
     /// Seçilen planın Stripe Checkout'unu tarayıcıda açar (`referralCode`: doğrulanmış davet kodu, yoksa nil) ve
@@ -1059,26 +1082,6 @@ final class HostedAccount {
         } catch {
             accountLogger.warning("Davet kodu doğrulanmadı, hata: \(String(describing: error), privacy: .private)")
             return .invalid(message: userFacingMessage(error: error))
-        }
-    }
-
-    /// Abonenin davet kodunu ve sayılarını okur (Ayarlar › Hesap açılınca). Abonelik erişimi yoksa ya da okunamazsa
-    /// davet bölümü görünmez (hata loglanır; davet isteğe bağlıdır, hesap ekranını bozmaz).
-    func loadReferral() async {
-        #if DEBUG
-        if isDemoMode {
-            return
-        }
-        #endif
-        guard case .signedIn(let entitlements) = state, let subscription = entitlements.subscription, subscription.access != .none else {
-            referral = nil
-            return
-        }
-        do {
-            referral = try await HostedServices.requireClient().referral()
-        } catch {
-            accountLogger.error("Davet bilgisi okunamadı, hata: \(String(describing: error), privacy: .private)")
-            referral = nil
         }
     }
 

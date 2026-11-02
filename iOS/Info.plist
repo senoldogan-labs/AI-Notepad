@@ -38,6 +38,8 @@
 	<string>Gistsmith sıradaki toplantılarını gösterir ve kaydı süren toplantının adı ve katılımcılarıyla kaydeder.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 T:mi Aslan Dogan Marketing</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>Gistsmith toplantı notundaki görevleri istediğinde Anımsatıcılar'a ekler.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>RevenueCatAPIKey</key>

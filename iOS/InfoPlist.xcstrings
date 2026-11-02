@@ -60,6 +60,23 @@
           }
         }
       }
+    },
+    "NSRemindersFullAccessUsageDescription": {
+      "comment": "Privacy - Reminders Full Access Usage Description",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith adds tasks from your meeting notes to Reminders when you ask it to."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith toplantı notundaki görevleri istediğinde Anımsatıcılar'a ekler."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

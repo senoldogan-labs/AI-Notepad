@@ -2,7 +2,7 @@ import AINotepadCore
 import AINotepadUI
 import SwiftUI
 
-/// Sekme çubuğunun üstündeki mini çalar (Apple Müzik gibi): toplantı adı, süre ve 15 sn geri (sekme çubuğu
+/// Sekme çubuğunun üstündeki mini çalar (Apple Müzik gibi): toplantı adı, süre, çalma hızı ve 15 sn geri (sekme çubuğu
 /// küçülünce gizlenir), oynat/duraklat, kapat. Ada dokununca toplantı açılır.
 struct MiniPlayer: View {
     let player: MeetingAudioPlayer
@@ -37,6 +37,20 @@ struct MiniPlayer: View {
             }
             .buttonStyle(.plain)
             if placement != .inline {
+                // Çalma hızı (Mac'teki çalar gibi): 1× → 1,25× → 1,5× → 2× → 0,75×…
+                Button {
+                    player.cycleRate()
+                } label: {
+                    Text(verbatim: phonePlaybackRateText(rate: player.rate))
+                        .appFont(size: 12, weight: .semibold)
+                        .monospacedDigit()
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(Theme.soft, in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("Çalma hızı"))
+                .accessibilityValue(Text(verbatim: phonePlaybackRateText(rate: player.rate)))
                 Button {
                     player.skip(by: -15)
                 } label: {
@@ -77,4 +91,9 @@ private struct PlayerTime: View {
             .monospacedDigit()
             .foregroundStyle(Theme.muted)
     }
+}
+
+/// Çalma hızı, ör. "1×", "1,25×" (arayüz diline göre ondalık ayırıcı). Saf fonksiyondur.
+func phonePlaybackRateText(rate: Float) -> String {
+    Double(rate).formatted(.number.precision(.fractionLength(0...2)).locale(interfaceLocale())) + "×"
 }

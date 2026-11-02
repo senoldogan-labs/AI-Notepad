@@ -1,6 +1,7 @@
 import type { Config, SubscriptionPlan } from "./config";
 import { hmacSha256Hex, randomId } from "./crypto";
-import { type SubscriptionState, isTerminalSubscription, subscriptionAccess, subscriptionState } from "./entitlements";
+import { appStoreAccess } from "./appStore";
+import { type PaidSubscriptions, type SubscriptionState, isTerminalSubscription, paidAccess, paidSubscriptions, primarySubscriptionSource, subscriptionAccess } from "./entitlements";
 import { ApiError } from "./errors";
 import { log } from "./log";
 import type { IdentityProvider } from "./auth/users";
@@ -8,7 +9,9 @@ import { trialIdentityHash } from "./trialLedger";
 
 /**
  * Davet programı ("bir ay ver, bir ay al"):
- * - Abonelik erişimi olan her hesap kişisel bir davet kodu alır (`GET /v1/referral`; ilk istekte üretilir). Davetle
+ * - Abonelik erişimi olan (Stripe ya da App Store; `paidAccess`) her hesap kişisel bir davet kodu alır
+ *   (`GET /v1/referral`; ilk istekte üretilir). App Store abonesinin ödülü Apple faturasına uygulanamaz: Stripe müşterisi
+ *   yoksa düşer (`referrer_no_customer`), özet bunu `appStoreBilled` ile bildirir. Davetle
  *   gelip ücretsiz ilk ayındaki (ilk ücretli faturası ödenmemiş) hesap kod alamaz ve kodu kabul edilmez: ücretsiz aylar
  *   hesaptan hesaba zincirlenemez (`canShareReferralCode`).
  * - Hiç abone olmamış yeni hesap kodla abone olursa: aylıkta ilk ay ücretsiz (tek seferlik %100 kupon), yıllıkta ilk
@@ -160,6 +163,12 @@ export interface ReferralSummary {
   readonly nextRewardAt: string | null;
   /** Hesabın süren ücretsiz erişimi var mı: ödenecek fatura olmadığından ödül uygulanmaz (`referrer_complimentary`). */
   readonly complimentary: boolean;
+  /**
+   * Hesabın asıl aboneliği App Store'dan mı (`primarySubscriptionSource`): ödül Stripe müşteri bakiyesine yazılır, Apple
+   * faturasına uygulanamaz; Stripe müşterisi olmayan davet edenin ödülü düşer (`referrer_no_customer`). Arkadaşın
+   * indirimi (web'de abone olursa) yine geçerlidir. İstemci bunu davet metninde dürüstçe söyler.
+   */
+  readonly appStoreBilled: boolean;
   readonly rewardsLeftThisYear: number;
   readonly rewardsPerYear: number;
   readonly rewardUsd: number;
@@ -250,12 +259,12 @@ export async function referrerCounts(db: D1Database, referrerUserId: string, now
 }
 
 /**
- * Hesap davet kodu paylaşabilir mi: abonelik erişimi var ve davetle gelip ücretsiz ilk ayında değil
+ * Hesap davet kodu paylaşabilir mi: Stripe ya da App Store aboneliğinin erişimi var (`paidAccess`) ve davetle gelip ücretsiz ilk ayında değil
  * (`freeInviteMonthSql`). Ücretsiz ayındaki hesabın kodu verilmez ve kabul edilmez: ödeme yapılmadan ücretsiz aylar
  * hesaptan hesaba zincirlenemez.
  */
-export async function canShareReferralCode(db: D1Database, config: Config, userId: string, subscription: SubscriptionState | null, now: Date): Promise<boolean> {
-  if (subscriptionAccess(subscription, now, config.pastDueGraceMs) === "none") {
+export async function canShareReferralCode(db: D1Database, config: Config, userId: string, subscriptions: PaidSubscriptions, now: Date): Promise<boolean> {
+  if (paidAccess(subscriptions, config, now) === "none") {
     return false;
   }
   const row: { found: number } | null = await db
@@ -271,8 +280,9 @@ export async function canShareReferralCode(db: D1Database, config: Config, userI
  */
 export async function referralSummary(db: D1Database, config: Config, userId: string, now: Date): Promise<ReferralSummary> {
   const nowMs: number = now.getTime();
-  const subscription: SubscriptionState | null = await subscriptionState(db, userId);
-  const eligible: boolean = config.referralPolicy === "on" && (await canShareReferralCode(db, config, userId, subscription, now));
+  const subscriptions: PaidSubscriptions = await paidSubscriptions(db, userId);
+  const subscription: SubscriptionState | null = subscriptions.stripe;
+  const eligible: boolean = config.referralPolicy === "on" && (await canShareReferralCode(db, config, userId, subscriptions, now));
   const code: string | null = eligible ? await ensureReferralCode(db, userId, nowMs) : null;
   const counts: ReferrerCounts = await referrerCounts(db, userId, nowMs);
   const complimentary: boolean = subscription !== null && subscription.complimentary && !isTerminalSubscription(subscription, now);
@@ -285,6 +295,12 @@ export async function referralSummary(db: D1Database, config: Config, userId: st
     pending: counts.pending,
     nextRewardAt: counts.nextRewardAt === null ? null : new Date(counts.nextRewardAt).toISOString(),
     complimentary,
+    appStoreBilled:
+      primarySubscriptionSource(
+        subscriptionAccess(subscription, now, config.pastDueGraceMs),
+        appStoreAccess(subscriptions.appStore, config.appStore.acceptSandbox, now),
+        subscriptions,
+      ) === "app_store",
     rewardsLeftThisYear: Math.max(0, referralRewardsPerYear - counts.recent),
     rewardsPerYear: referralRewardsPerYear,
     rewardUsd: config.priceUsdMonthly,
@@ -382,7 +398,7 @@ export async function requireReferral(db: D1Database, config: Config, userId: st
   if (owner.user_id === userId) {
     throw rejected(userId, new ApiError("referral_self", "You can't use your own referral code."));
   }
-  if (!(await canShareReferralCode(db, config, owner.user_id, await subscriptionState(db, owner.user_id), now))) {
+  if (!(await canShareReferralCode(db, config, owner.user_id, await paidSubscriptions(db, owner.user_id), now))) {
     throw rejected(userId, invalid);
   }
   const notEligible: ApiError = new ApiError("referral_not_eligible", "Referral codes are only for accounts subscribing for the first time.");

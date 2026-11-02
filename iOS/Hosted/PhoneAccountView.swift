@@ -55,8 +55,9 @@ func phoneAccountSummary(state: HostedAccountState) -> String {
     }
 }
 
-/// Hesap ekranı: giriş yapan kimlik, plan durumu (deneme, abonelik), abone olma ya da aboneliği yönetme, bu ayki
-/// kullanım, çıkış ve hesap silme. Abonelik yalnızca uygulama içi satın almayla alınır (abonelik ekranı); App Store
+/// Hesap ekranı: giriş yapan kimlik, plan ve kullanım kartı (deneme ya da abonelik; `PhoneUsageCard`), aboneliği yönetme,
+/// arkadaş daveti (abonede), çıkış ve hesap silme. Ekran açılınca hak durumu ve davet bilgisi yeniden okunur; satın alma
+/// ya da geri yüklemeden sonra ve uygulama öne gelince de hak durumu yenilenir (`HostedAccount`). Abonelik yalnızca uygulama içi satın almayla alınır (abonelik ekranı); App Store
 /// aboneliği Apple'ın penceresinde yönetilir, web (Stripe) aboneliği için bağlantı verilmez (App Store 3.1.1). Hesap
 /// silme uygulama içindedir (App Store 5.1.1(v)) ve satır içinde onaylanır.
 struct PhoneAccountScreen: View {
@@ -86,8 +87,21 @@ struct PhoneAccountScreen: View {
                         .listRowBackground(Color.clear)
                 }
             case .signedIn(let entitlements):
-                planSection(entitlements: entitlements)
-                usageSection(entitlements: entitlements)
+                Section {
+                    PhoneUsageCard(account: account, entitlements: entitlements)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets())
+                }
+                // Denemede ve sona ermiş abonelikte kartın kendisi durumu ve "Abone ol"u gösterir.
+                if phoneSubscriptionManagement(entitlements: entitlements) != .subscribe {
+                    planSection(entitlements: entitlements)
+                }
+                switch hostedPlanStatus(entitlements: entitlements) {
+                case .subscribed, .complimentary, .ending, .grace:
+                    PhoneReferralSection(account: account)
+                case .trial, .expired, .paymentOverdue:
+                    EmptyView()
+                }
                 signOutSection
                 deleteSection(entitlements: entitlements)
             case .signedInStatusUnknown(let message):
@@ -115,35 +129,26 @@ struct PhoneAccountScreen: View {
         }
         .navigationTitle("Hesap")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await account.refresh() }
+        .task {
+            await account.refresh()
+            await account.loadReferral()
+        }
     }
 
+    /// Plan durumu ve aboneliğin yönetimi. Denemede ve sona ermiş abonelikte "Abone ol" kullanım kartındadır.
     @ViewBuilder
     private func planSection(entitlements: HostedEntitlements) -> some View {
         let status: HostedPlanStatus = hostedPlanStatus(entitlements: entitlements)
         Section {
             Text(verbatim: phonePlanStatusText(status: status))
-            if case .trial(let left, let total) = status, left > 0 {
-                LabeledContent("Kalan ücretsiz toplantı", value: "\(left) / \(total)")
-                if let endsAt = entitlements.trialEndsAt {
-                    LabeledContent("Deneme bitişi", value: hostedDayText(date: endsAt))
-                } else if let days = entitlements.trialDays {
-                    Text("Deneme ilk toplantınla başlar ve \(days) gün sürer.")
-                        .foregroundStyle(Theme.muted)
-                }
-            }
             switch phoneSubscriptionManagement(entitlements: entitlements) {
-            case .subscribe:
-                Button("Abone ol") { account.showPlans() }
-                    .fontWeight(.semibold)
-                    .disabled(account.isWorking)
             case .appStore:
                 Button("Aboneliği yönet") { Task { await manageSubscription() } }
                     .disabled(account.isWorking)
             case .web:
-                Text("Aboneliğin web'de yönetiliyor.")
+                Text("Aboneliğin web'de (kartla) alındı; Mac uygulamasında Ayarlar › Hesap › Hesabı yönet'ten yönetebilirsin.")
                     .foregroundStyle(Theme.muted)
-            case .nothing:
+            case .subscribe, .nothing:
                 EmptyView()
             }
             if let manageError {
@@ -151,6 +156,10 @@ struct PhoneAccountScreen: View {
             }
         } header: {
             Text("Plan")
+        } footer: {
+            if phoneSubscriptionManagement(entitlements: entitlements) == .appStore {
+                Text("Aboneliğin App Store'dan alındı; planı değiştirmek ya da iptal etmek için \"Aboneliği yönet\"e dokun.")
+            }
         }
     }
 
@@ -165,25 +174,6 @@ struct PhoneAccountScreen: View {
             manageError = String(localized: "Apple'ın abonelik penceresi açılamadı: \(userFacingMessage(error: error))")
         }
         await account.refresh()
-    }
-
-    @ViewBuilder
-    private func usageSection(entitlements: HostedEntitlements) -> some View {
-        let fraction: Double = hostedUsageFraction(used: entitlements.monthlyHoursUsed, cap: entitlements.monthlyHoursCap)
-        Section {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(verbatim: hostedMonthlyUsageText(used: entitlements.monthlyHoursUsed, cap: entitlements.monthlyHoursCap))
-                    .monospacedDigit()
-                ProgressView(value: min(max(fraction, 0), 1))
-                    .tint(hostedUsageLevel(fraction: fraction) == .normal ? Color.accentColor : NoticeSeverity.attention.tint)
-                    .accessibilityLabel(Text("Kullanım"))
-            }
-            .padding(.vertical, 4)
-        } header: {
-            Text("Bu ayki kullanım")
-        } footer: {
-            Text("Kayıt saatlerin \(hostedResetDayText(now: Date())) tarihinde sıfırlanır.")
-        }
     }
 
     private var signOutSection: some View {

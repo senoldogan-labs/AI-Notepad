@@ -131,7 +131,7 @@ final class PaywallModel {
         #if DEBUG
         // Tanıtım modu sunucuya bağlanmaz: hak sunucudan beklenmez, sahte hesap App Store abonesi gösterilir.
         if isDemoMode {
-            account.showAccountForDemo(entitlements: phoneDemoAppStoreEntitlements(now: Date()), referral: nil)
+            account.showAccountForDemo(entitlements: phoneDemoAppStoreEntitlements(now: Date()), referral: phoneDemoReferral(now: Date()))
             send(event: .entitlementArrived)
             return
         }

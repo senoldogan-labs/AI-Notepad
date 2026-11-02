@@ -310,3 +310,56 @@ struct PhonePrimaryButtonLabel: View {
             .contentShape(Capsule())
     }
 }
+
+/// Kısa tek alanlı giriş (ad değiştirme, yeni klasör): küçük sayfa, alan odakta; boş metinle eylem kapalıdır.
+struct PhoneTextEntrySheet: View {
+    let title: LocalizedStringKey
+    let placeholder: LocalizedStringKey
+    let actionTitle: LocalizedStringKey
+    let initialText: String
+    let onSave: @MainActor (String) -> Void
+    @State private var text: String = ""
+    @FocusState private var isFocused: Bool
+    @Environment(\.dismiss) private var dismiss: DismissAction
+
+    var body: some View {
+        NavigationStack {
+            TextField(placeholder, text: $text)
+                .appFont(size: 17, weight: .regular)
+                .focused($isFocused)
+                .submitLabel(.done)
+                .onSubmit(save)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+                .background(Theme.card, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Theme.line))
+                .padding(20)
+                .frame(maxHeight: .infinity, alignment: .top)
+                .background(Theme.background)
+                .navigationTitle(title)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Vazgeç") { dismiss() }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(actionTitle, action: save)
+                            .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                }
+        }
+        .presentationDetents([.height(190)])
+        .onAppear {
+            text = initialText
+            isFocused = true
+        }
+    }
+
+    private func save() {
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return
+        }
+        onSave(text)
+        dismiss()
+    }
+}

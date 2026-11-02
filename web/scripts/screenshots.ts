@@ -182,6 +182,7 @@ function referralFixture(state: AccountState, now: Date): object {
     pending: 1,
     nextRewardAt: new Date(now.getTime() + 24 * 86_400_000).toISOString(),
     complimentary: state === "complimentary",
+    appStoreBilled: state === "app-store",
     rewardsLeftThisYear: 11,
     rewardsPerYear: 12,
     rewardUsd: 5.99,

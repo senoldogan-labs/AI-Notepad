@@ -17,6 +17,7 @@ struct PhoneSettingsTab: View {
     @AppStorage(PhoneSettingsKey.consentReminder) private var consentReminder: Bool = true
     @AppStorage(PhoneSettingsKey.audioRetentionDays) private var retentionDays: Int = 30
     @AppStorage(PhoneSettingsKey.theme) private var theme: String = AppTheme.system.rawValue
+    @AppStorage(PhoneSettingsKey.accent) private var accent: String = PanelAppearance.standard.accent.rawValue
     @AppStorage(shareUsageStatisticsDefaultsKey) private var shareUsageStatistics: Bool = true
 
     var body: some View {
@@ -38,8 +39,11 @@ struct PhoneSettingsTab: View {
                             Text(verbatim: item.displayName).tag(item.rawValue)
                         }
                     }
+                    PhoneAccentPicker(selection: $accent)
                 } header: {
                     Text("Görünüm")
+                } footer: {
+                    Text("Vurgu rengi düğmelerde, ölçerlerde ve seçili sekmede kullanılır.")
                 }
                 Section {
                     Toggle("Kayıt başlarken haber vermeyi hatırlat", isOn: $consentReminder)
@@ -94,6 +98,7 @@ struct PhoneSettingsTab: View {
                 Section("Uygulama") {
                     LabeledContent("Sürüm", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?")
                     LabeledContent("Toplantılar", value: "\(store.meetings.count)")
+                    NavigationLink("Geri bildirim gönder") { PhoneFeedbackForm() }
                     CrashReportsLink(center: crashReports)
                 }
             }
@@ -146,6 +151,35 @@ private struct CalendarSettingsSection: View {
             Text("Takvim")
         } footer: {
             Text("Kayıt ekranında sıradaki toplantılar görünür; süren bir toplantıda başlattığın kayıt onun adını ve katılımcılarını alır (adlar tanımaya da yardım eder).")
+        }
+    }
+}
+
+/// Vurgu rengi seçimi: beş renk yuvarlağı yan yana; seçilenin çevresinde halka. Mac'teki ayarla aynı renkler.
+private struct PhoneAccentPicker: View {
+    @Binding var selection: String
+
+    var body: some View {
+        HStack {
+            Text("Vurgu rengi")
+            Spacer(minLength: 12)
+            HStack(spacing: 12) {
+                ForEach(PanelAccent.allCases, id: \.self) { (accent: PanelAccent) in
+                    let isSelected: Bool = (PanelAccent(rawValue: selection) ?? PanelAppearance.standard.accent) == accent
+                    Button {
+                        selection = accent.rawValue
+                    } label: {
+                        Circle()
+                            .fill(accent.color)
+                            .frame(width: 24, height: 24)
+                            .padding(3)
+                            .overlay(Circle().strokeBorder(isSelected ? accent.color : .clear, lineWidth: 2))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text(verbatim: phoneAccentName(accent: accent)))
+                    .accessibilityAddTraits(isSelected ? .isSelected : [])
+                }
+            }
         }
     }
 }

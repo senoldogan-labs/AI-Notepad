@@ -52,6 +52,8 @@ export interface ClientCopy {
   readonly referralNextReward: string;
   /** Ücretsiz erişimli hesapta davet kartının notu: arkadaşlar indirimi alır, ödül uygulanmaz. */
   readonly referralComplimentaryNote: string;
+  /** App Store abonesinde davet kartının notu: arkadaşlar indirimi alır, ödül web ödemesinden düşüldüğü için uygulanmaz. */
+  readonly referralAppStoreNote: string;
   /**
    * Planın adı: `subscription` abonelik planı bilinmiyorsa (eski fiyat); `complimentary` yöneticinin verdiği ücretsiz
    * erişim; `none` aboneliği (ya da ücretsiz erişimi) bitmiş ve denemesi kalmamış hesap.
@@ -256,6 +258,7 @@ export const clientCopy: ClientCopy = {
   referralNextReward: "Next reward around {date}",
   referralCodeAfterFirstPayment: "Your invite code appears after your first paid month.",
   referralComplimentaryNote: "Your friends still get their invite discount. Your account is already free, so the $5.99 rewards don't apply.",
+  referralAppStoreNote: "Your friends still get their invite discount. Rewards are taken off web subscription payments; your subscription is billed by the App Store, so they don't apply.",
   plan: {
     trial: "Free trial",
     subscription: productName,

@@ -769,3 +769,15 @@ private func googleTestToken(claims: String) -> String {
         #expect(state(-10) == .reached)
     }
 }
+
+@Suite struct HostedReferralTests {
+    // `GET /v1/referral`: App Store abonesi `appStoreBilled` true alır; bu alanı bilmeyen eski sunucuda nil.
+    @Test func decodesAppStoreBilled() throws {
+        let base: String = #""enabled":true,"code":"K7M2QX9D","inviteUrl":"https://gistsmith.com/invite?code=K7M2QX9D","joined":1,"rewarded":0,"pending":1,"nextRewardAt":null,"complimentary":false,"rewardsLeftThisYear":12,"rewardsPerYear":12,"rewardUsd":5.99,"holdDays":30"#
+        let current: HostedReferral = try hostedJSONDecoder().decode(HostedReferral.self, from: Data("{\(base),\"appStoreBilled\":true}".utf8))
+        #expect(current.appStoreBilled == true)
+        #expect(current.code == "K7M2QX9D")
+        let old: HostedReferral = try hostedJSONDecoder().decode(HostedReferral.self, from: Data("{\(base)}".utf8))
+        #expect(old.appStoreBilled == nil)
+    }
+}

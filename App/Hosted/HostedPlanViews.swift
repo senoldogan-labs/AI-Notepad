@@ -6,12 +6,6 @@ import SwiftUI
 // Abonelik planları: abone olma teklifi (plan seçimi, davet kodu, deneme sonu özeti) ve Ayarlar › Hesap'taki plan ve
 // davet bölümü. Görünüm sakin ve durağandır: tek durağan film gradyanı, sürekli animasyon yok.
 
-/// Dolar tutarı arayüz dilinde, ör. "$5.99", "$49" (tam dolarda kuruş yazılmaz). Saf fonksiyondur.
-func hostedUSDText(cents: Int) -> String {
-    let amount: Decimal = Decimal(cents) / 100
-    return amount.formatted(.currency(code: "USD").precision(.fractionLength(cents % 100 == 0 ? 0 : 2)).locale(interfaceLocale()))
-}
-
 /// Yüzde metni arayüz dilinde, ör. "%32" ya da "32%". Saf fonksiyondur.
 private func hostedPercentText(percent: Int) -> String {
     (Double(percent) / 100).formatted(.percent.precision(.fractionLength(0)).locale(interfaceLocale()))
@@ -53,13 +47,6 @@ func hostedReferralDiscountText(plan: HostedBillingPlan) -> String {
         let discount: String = hostedUSDText(cents: hostedMonthlyPriceCents)
         return String(localized: "Davet uygulandı: ilk yılın \(first) (\(discount) indirim).")
     }
-}
-
-/// Arkadaşa gönderilecek davet metni (bağlantı dahil): aylıkta ilk ay ücretsiz, yıllıkta bir aylık ücret kadar indirim.
-/// Saf fonksiyondur.
-func hostedInviteText(inviteURL: URL) -> String {
-    let discount: String = hostedUSDText(cents: hostedMonthlyPriceCents)
-    return String(localized: "Toplantılarım için Gistsmith kullanıyorum: konuşulanı canlı yazıya döküyor, toplantı bitince notu ve görevleri hazırlıyor. Bu bağlantıyla abone olursan aylık planda ilk ayın ücretsiz, yıllık planda ilk yılın \(discount) indirimli: \(inviteURL.absoluteString)")
 }
 
 /// Abone olma teklifi (ana pencerede açılan kart): üstte durağan film gradyanı, uygulama simgesi ve "Gistsmith" rozeti;
@@ -470,18 +457,14 @@ struct HostedReferralRow: View {
         Group {
             if let referral = account.referral, referral.enabled, let code = referral.code, let inviteURL = referral.inviteUrl {
                 SettingsRow(title: Text("Arkadaşını davet et")) {
-                    if referral.complimentary {
-                        Text("Arkadaşın davet koduyla abone olunca aylık planda ilk ayı ücretsiz olur. Hesabın zaten ücretsiz olduğu için sana ödül yazılmaz.")
-                    } else {
-                        Text("Arkadaşın davet koduyla abone olunca aylık planda ilk ayı ücretsiz olur. Onun ilk ödemesinden \(referral.holdDays) gün sonra sana da bir ay bedava: sonraki ödemenden \(hostedUSDText(cents: Int((referral.rewardUsd * 100).rounded()))) düşülür (yılda en çok \(referral.rewardsPerYear)).")
-                    }
+                    Text(verbatim: hostedReferralRewardText(referral: referral))
                     Text(verbatim: code)
                         .font(.system(size: 17, weight: .semibold, design: .monospaced))
                         .tracking(2)
                         .foregroundStyle(Theme.ink)
                         .textSelection(.enabled)
                         .padding(.top, 4)
-                    Text(verbatim: statsText(referral: referral))
+                    Text(verbatim: hostedReferralStatsText(referral: referral))
                 } control: {
                     Button {
                         NSPasteboard.general.clearContents()
@@ -493,16 +476,5 @@ struct HostedReferralRow: View {
                 }
             }
         }
-    }
-
-    private func statsText(referral: HostedReferral) -> String {
-        if referral.complimentary {
-            return String(localized: "Katılan arkadaş: \(referral.joined)")
-        }
-        let stats: String = String(localized: "Katılan arkadaş: \(referral.joined) · Kazandığın ay: \(referral.rewarded)")
-        guard let next = referral.nextRewardAt else {
-            return stats
-        }
-        return stats + " · " + String(localized: "Sıradaki ödül: \(hostedDayText(date: next)) civarı")
     }
 }

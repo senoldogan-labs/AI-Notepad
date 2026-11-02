@@ -12,15 +12,6 @@ private func percentText(fraction: Double) -> String {
     fraction.formatted(.percent.precision(.fractionLength(0)).locale(interfaceLocale()))
 }
 
-/// Kalan deneme toplantısına göre düzey: 1 kaldıysa dikkat, bittiyse dolu. Saf fonksiyondur.
-func hostedTrialLevel(left: Int) -> HostedUsageLevel {
-    switch left {
-    case ...0: .full
-    case 1: .warning
-    default: .normal
-    }
-}
-
 /// Ölçerin yanındaki metnin rengi: olağan durumda soluk; dikkat ve dolu durumunda uyarılarla aynı renk. Saf fonksiyondur.
 @MainActor
 private func usageLevelColor(level: HostedUsageLevel) -> Color {
