@@ -63,7 +63,7 @@ private struct DictationPillHost: View {
         VStack {
             Spacer(minLength: 0)
             if controller.pill != .hidden {
-                DictationPillView(state: controller.pill, levels: controller.levels, onTap: { controller.pillTapped() })
+                DictationPillView(state: controller.pill, partialText: controller.partialText, levels: controller.levels, onTap: { controller.pillTapped() })
                     .transition(.opacity)
             }
         }
@@ -72,10 +72,12 @@ private struct DictationPillHost: View {
     }
 }
 
-/// Sakin, beyaz hap: dinlerken vurgu renginde mikrofon ve ses çubukları; yazıya dökerken küçük gösterge; mesajlarda kısa
-/// metin (amber yalnız eksik izin ve engellerde, kırmızı yalnız hatada).
+/// Sakin, beyaz hap: dinlerken vurgu renginde mikrofon ve ses çubukları, konuştukça yazılan metnin son kısmı (tek satır);
+/// yazıya dökerken küçük gösterge; mesajlarda kısa metin (amber yalnız eksik izin ve engellerde, kırmızı yalnız hatada).
 private struct DictationPillView: View {
     let state: DictationPillState
+    /// Dinlerken yazıya dökülen metin; boşsa ipucu gösterilir.
+    let partialText: String
     let levels: AudioLevels
     let onTap: @MainActor () -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
@@ -108,7 +110,14 @@ private struct DictationPillView: View {
             Image(systemName: "mic.fill")
                 .foregroundStyle(appearance.accent.color)
             LevelMeter(levels: levels)
-            if handsFree, canEscape {
+            if !partialText.isEmpty {
+                partial
+                // Eller serbestte bitirme tuşu metnin yanında kalır.
+                if handsFree {
+                    Text(verbatim: canEscape ? "\(shortcut) · Esc" : shortcut)
+                        .foregroundStyle(Theme.muted)
+                }
+            } else if handsFree, canEscape {
                 Text("Dinliyorum · bitirmek için \(shortcut) ya da Esc")
             } else if handsFree {
                 Text("Dinliyorum · bitirmek için \(shortcut)")
@@ -124,7 +133,11 @@ private struct DictationPillView: View {
             }
         case .transcribing:
             ProgressView().controlSize(.small)
-            Text("Yazıya dökülüyor…")
+            if partialText.isEmpty {
+                Text("Yazıya dökülüyor…")
+            } else {
+                partial
+            }
         case .message(let text, let severity, _):
             Image(systemName: severity.symbol)
                 .foregroundStyle(severity == .info ? appearance.accent.color : severity.tint)
@@ -132,5 +145,12 @@ private struct DictationPillView: View {
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    /// Yazılan metnin sonu: tek satır, sığmazsa baştan kısaltılır (son söylenen görünür).
+    private var partial: some View {
+        Text(verbatim: partialText)
+            .lineLimit(1)
+            .truncationMode(.head)
     }
 }

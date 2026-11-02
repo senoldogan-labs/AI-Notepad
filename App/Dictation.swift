@@ -86,14 +86,18 @@ final class DictationController {
     private let onAction: @MainActor (DictationPillAction) -> Void
     /// Hapın durumu ve dinlerken ses seviyesi.
     private(set) var pill: DictationPillState = .hidden
+    /// Dinlerken şimdiye dek yazıya dökülen metin (macOS 26+; WhisperKit'te boş kalır). Hap gösterir.
+    private(set) var partialText: String = ""
     let levels: AudioLevels = AudioLevels(count: 18, interval: 0.1)
     @ObservationIgnored private var keyState: DictationKeyState = .idle
     @ObservationIgnored private var language: MeetingLanguage = .finnish
     @ObservationIgnored private var microphone: MicrophoneCapture?
-    /// Mikrofonu açıp dinleme bitene dek örnekleri biriktirir.
-    @ObservationIgnored private var capture: Task<[Float], any Error>?
+    /// Mikrofonu açıp dinleme bitene dek parçaları yazıya dökmeye aktarır; örnek sayısını döndürür.
+    @ObservationIgnored private var capture: Task<Int, any Error>?
     /// Dilin dikte modelini (ya da WhisperKit'i) hazırlar; dinleme başlarken başlar.
-    @ObservationIgnored private var preparation: Task<any TranscriptionEngine, any Error>?
+    @ObservationIgnored private var preparation: Task<any LiveDictationEngine, any Error>?
+    /// Hazırlık bitince dinlerken yazıya döker (macOS 26+; WhisperKit mikrofon kapanınca); metni döndürür.
+    @ObservationIgnored private var transcription: Task<String, any Error>?
     @ObservationIgnored private var isPreparing: Bool = false
     /// Her dinlemede artar: eski dinlemenin geç biten hazırlığı ya da mikrofonu yenisinin durumunu bozmasın.
     @ObservationIgnored private var listeningID: Int = 0
@@ -173,7 +177,7 @@ final class DictationController {
         isPreparing = true
         preparationProgress = nil
         let language: MeetingLanguage = language
-        let preparation: Task<any TranscriptionEngine, any Error> = Task { [weak self] () async throws -> any TranscriptionEngine in
+        let preparation: Task<any LiveDictationEngine, any Error> = Task { [weak self] () async throws -> any LiveDictationEngine in
             guard let self else {
                 throw CancellationError()
             }
@@ -181,24 +185,39 @@ final class DictationController {
             return try await self.preparedEngine(language: language)
         }
         self.preparation = preparation
-        stopListeningOnFailure(of: preparation, listeningID: id)
+        // Mikrofon parçaları hazırlık bitene dek akışta bekler, sonra motora akar.
+        let (chunks, feed): (AsyncStream<[Float]>, AsyncStream<[Float]>.Continuation) = AsyncStream.makeStream(of: [Float].self)
+        let transcription: Task<String, any Error> = Task { [weak self] () async throws -> String in
+            let engine: any LiveDictationEngine = try await preparation.value
+            return try await engine.transcribe(chunks: chunks, language: language) { (text: String) -> Void in
+                Task { @MainActor in
+                    self?.partialTextChanged(text: text, listeningID: id)
+                }
+            }
+        }
+        self.transcription = transcription
+        // Hazırlık hatası da buradan gelir (yazıya dökme hazırlığı bekler).
+        stopListeningOnFailure(of: transcription, listeningID: id)
         let microphone: MicrophoneCapture = MicrophoneCapture()
         self.microphone = microphone
         model.isDictationMicOpen = true
         levels.start()
         setPill(.listening(handsFree: false, canEscape: false, shortcut: shortcutName()))
-        let capture: Task<[Float], any Error> = Task { [weak self, levels] () async throws -> [Float] in
+        let capture: Task<Int, any Error> = Task { [weak self, levels] () async throws -> Int in
+            // Mikrofon açılamasa da akış biter: yazıya dökme sonsuza dek beklemez.
+            defer { feed.finish() }
             let stream: AsyncStream<[Float]> = try await microphone.start()
             // Dinleme mikrofon açılmadan bittiyse (çok kısa basış) akış hemen kapatılır.
             if self?.microphone !== microphone {
                 microphone.stop()
             }
-            var samples: [Float] = []
+            var sampleCount: Int = 0
             for await chunk in stream {
-                samples.append(contentsOf: chunk)
+                sampleCount += chunk.count
+                feed.yield(chunk)
                 levels.record(level: audioLevel(samples: chunk))
             }
-            return samples
+            return sampleCount
         }
         self.capture = capture
         stopListeningOnFailure(of: capture, listeningID: id)
@@ -211,6 +230,19 @@ final class DictationController {
             self?.apply(event: .timeLimit)
         }
         dictationLogger.info("Sesle yazma dinliyor, dil: \(language.rawValue, privacy: .public)")
+    }
+
+    /// Bu dinlemenin ara metni değişti (eski dinlemeninki ve yapıştırıldıktan sonra geleni yok sayılır).
+    private func partialTextChanged(text: String, listeningID id: Int) {
+        guard id == listeningID else {
+            return
+        }
+        switch pill {
+        case .listening, .transcribing:
+            partialText = text
+        case .hidden, .preparing, .message:
+            return
+        }
     }
 
     /// Bu dinlemenin hazırlığı bitti (eski bir dinlemeninki yeni dinlemenin göstergesini değiştirmez).
@@ -253,7 +285,7 @@ final class DictationController {
         setPill(.listening(handsFree: true, canEscape: canEscape, shortcut: shortcutName()))
     }
 
-    /// Mikrofonu kapatır; örnekler `capture`'da kalır.
+    /// Mikrofonu kapatır; kalan ses `transcription`'a akar.
     private func closeMicrophone() {
         timeLimit?.cancel()
         timeLimit = nil
@@ -269,6 +301,8 @@ final class DictationController {
         closeMicrophone()
         capture?.cancel()
         capture = nil
+        transcription?.cancel()
+        transcription = nil
         preparation = nil
         setPill(.hidden)
         dictationLogger.info("Sesle yazma iptal edildi")
@@ -276,23 +310,25 @@ final class DictationController {
 
     private func finishListening() {
         closeMicrophone()
-        guard let capture, let preparation else {
+        guard let capture, let preparation, let transcription else {
             apply(event: .finished)
             return
         }
         self.capture = nil
         self.preparation = nil
+        self.transcription = nil
         setPill(isPreparing ? .preparing(progress: preparationProgress) : .transcribing)
-        let language: MeetingLanguage = language
         Task {
             do {
-                let samples: [Float] = try await capture.value
-                guard samples.count >= dictationMinimumSamples else {
+                let sampleCount: Int = try await capture.value
+                guard sampleCount >= dictationMinimumSamples else {
+                    transcription.cancel()
                     throw DictationError.noSpeech
                 }
-                let engine: any TranscriptionEngine = try await preparation.value
+                _ = try await preparation.value
                 setPill(.transcribing)
-                let raw: String = try await engine.transcribe(samples: samples, language: language)
+                // macOS 26+'da ses dinlerken yazıya döküldü; burada yalnız son kısım kesinleşir.
+                let raw: String = try await transcription.value
                 guard let text = dictationInsertText(raw: raw) else {
                     throw DictationError.noSpeech
                 }
@@ -309,9 +345,9 @@ final class DictationController {
     }
 
     /// Dilin motoru: macOS 26+'da Apple'ın cihaz içi diktesi, eskisinde Mac'teki WhisperKit (yüklü değilse indirilir).
-    private func preparedEngine(language: MeetingLanguage) async throws -> any TranscriptionEngine {
+    private func preparedEngine(language: MeetingLanguage) async throws -> any LiveDictationEngine {
         guard appleSpeechSupportedBySystem() else {
-            return try await model.requireLocalEngine()
+            return BatchDictation(engine: try await model.requireLocalEngine())
         }
         try await appleEngine.prepare(language: language) { [weak self] (fraction: Double) -> Void in
             Task { @MainActor in
@@ -353,6 +389,12 @@ final class DictationController {
 
     private func setPill(_ state: DictationPillState) {
         pill = state
+        switch state {
+        case .listening, .transcribing:
+            break
+        case .hidden, .preparing, .message:
+            partialText = ""
+        }
         if state == .hidden {
             window?.hide()
             return

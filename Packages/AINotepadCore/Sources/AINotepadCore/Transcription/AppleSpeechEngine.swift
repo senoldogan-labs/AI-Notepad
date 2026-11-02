@@ -339,7 +339,7 @@ func analyzedText<Module: SpeechModule>(
 }
 
 /// 16 kHz mono Float32 örnekleri modülün istediği biçimde tampona çevirir.
-private func convertedBuffer(samples: [Float], format: AVAudioFormat) throws -> AVAudioPCMBuffer {
+func convertedBuffer(samples: [Float], format: AVAudioFormat) throws -> AVAudioPCMBuffer {
     guard let sourceFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16000, channels: 1, interleaved: false),
           let source = AVAudioPCMBuffer(pcmFormat: sourceFormat, frameCapacity: AVAudioFrameCount(samples.count)),
           let channel = source.floatChannelData?[0] else {
