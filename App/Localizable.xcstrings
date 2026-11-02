@@ -4637,6 +4637,16 @@
         }
       }
     },
+    "Canlı metnin sonu beklenmeden kayıt kapatıldı; kaydın tamamı yine yazıya dökülür.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The recording was closed without waiting for the end of the live transcript; the full recording will still be transcribed."
+          }
+        }
+      }
+    },
     "Canlı panel": {
       "localizations": {
         "en": {
@@ -9374,12 +9384,22 @@
         }
       }
     },
-    "Mikrofon beklenmedik şekilde durdu. Kaydı bitirip yeniden başlat.": {
+    "Mikrofon bekleniyor": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The microphone stopped unexpectedly. Finish the recording and start again."
+            "value": "Waiting for microphone"
+          }
+        }
+      }
+    },
+    "Mikrofon beklenmedik şekilde durdu; kayıt o ana kadarki sesle bitirilip işleniyor.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The microphone stopped unexpectedly; the recording was finished with the audio captured so far and is being processed."
           }
         }
       }
@@ -9421,6 +9441,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Microphone and system audio"
+          }
+        }
+      }
+    },
+    "Mikrofon yeniden bağlandı; kayıt sürüyor.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microphone reconnected; recording continues."
+          }
+        }
+      }
+    },
+    "Mikrofon yeniden bağlanıyor… Kayıt açık; ses gelince kendiliğinden sürer.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reconnecting the microphone… The recording stays on and continues as soon as audio returns."
           }
         }
       }

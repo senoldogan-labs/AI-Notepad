@@ -5,7 +5,7 @@ import Foundation
 // Uygulama ve widget eklentisinde ortak: canlı etkinliğin verisi ve kaydı başlatan/bitiren niyetler. Eklentide
 // (`WIDGET_EXTENSION`) niyetlerin gövdesi boştur; sistem onları uygulamanın sürecinde çalıştırır.
 
-/// Kaydın canlı etkinliği: kilit ekranı ve Dynamic Island'da süre ve son cümle.
+/// Kaydın canlı etkinliği: kilit ekranı ve Dynamic Island'da başlık, süre, durum ve son cümle.
 struct RecordingActivityAttributes: ActivityAttributes {
     struct ContentState: Codable, Hashable {
         /// Son kesinleşen cümle; henüz yoksa boş.
@@ -14,9 +14,15 @@ struct RecordingActivityAttributes: ActivityAttributes {
         var speaker: String
         /// Mikrofon kapandı, son bölümler bitiriliyor.
         var isFinishing: Bool
+        /// Mikrofon kesildi (çağrı, alarm) ya da yeniden bağlanıyor; kayıt açık.
+        var isMicrophonePaused: Bool
+        /// "Bitir"e basılan an: süre burada durur; kayıt sürüyorsa nil.
+        var stoppedAt: Date?
     }
 
     let startedAt: Date
+    /// Toplantının adı (takvim etkinliği ya da "Toplantı").
+    let title: String
 }
 
 /// Toplantıyı kaydet (Kısayollar, Siri, Denetim Merkezi, Eylem düğmesi): uygulamayı açar ve kaydı başlatır.
