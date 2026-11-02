@@ -280,9 +280,13 @@ struct AskTab: View {
             Group {
                 if isEmpty {
                     // Henüz toplantı ve sohbet yok: sorulacak bir şey yok, ortada kısa bir boş durum ve kayda geçiş.
-                    PhoneEmptyState(symbol: "sparkle.magnifyingglass", title: "Sorulacak toplantı yok", message: "İlk toplantını kaydet; sonra notlarına buradan soru sor.") {
+                    PhoneEmptyScene(
+                        symbol: "sparkle.magnifyingglass", palette: .violet, title: "Sorulacak toplantı yok",
+                        message: "İlk toplantını kaydet; sonra notlarına buradan soru sor, cevap kaynağıyla gelsin."
+                    ) {
                         Button("Kaydı başlat", systemImage: "mic.fill") { router.tab = .record }
-                            .buttonStyle(.pillPrimary)
+                            .buttonStyle(.accentPill)
+                            .controlSize(.large)
                     }
                 } else {
                     ScrollView {

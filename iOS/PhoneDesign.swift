@@ -272,9 +272,33 @@ struct PhoneErrorList: View {
     }
 }
 
-/// Boş sayfa (Toplantılar, Görevler, Sor, geçmiş, arama sonucu): ekranın tam ortasında aynı durgun pastel simge küresi,
-/// kısa başlık, tek cümlelik açıklama ve varsa tek eylem; arkada süs yok. Bulunduğu alanı doldurur, içerik yatayda ve
-/// dikeyde ortalanır.
+/// Hiç veri yokken sekmenin boş sahnesi (Toplantılar, Görevler, Sor): Mac'teki boş sahneyle aynı (durgun pastel gradyan
+/// üstünde örnek not kartı, başlık, tek cümle, vurgu renkli eylemler); alanın dikey ortasında, sığmazsa kaydırılır.
+struct PhoneEmptyScene<Actions: View>: View {
+    let symbol: String
+    let palette: FilmPalette
+    let title: LocalizedStringKey
+    let message: LocalizedStringKey
+    @ViewBuilder let actions: () -> Actions
+
+    var body: some View {
+        GeometryReader { (proxy: GeometryProxy) in
+            ScrollView {
+                EmptyScene(symbol: symbol, palette: palette, title: title, message: message) {
+                    actions()
+                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 20)
+                .frame(maxWidth: .infinity, minHeight: proxy.size.height)
+            }
+            .scrollIndicators(.hidden)
+            .scrollBounceBehavior(.basedOnSize)
+        }
+    }
+}
+
+/// Sakin boş durum (arama sonucu yok, tamamlanan yok, saklanan sohbet yok): Mac'teki gibi vurgu renkli simge kutusu, kısa
+/// başlık, tek cümle ve varsa tek eylem; arkada süs yok. Bulunduğu alanı doldurur, içerik ortalanır.
 struct PhoneEmptyState<Actions: View>: View {
     let symbol: String
     let title: LocalizedStringKey
@@ -282,13 +306,12 @@ struct PhoneEmptyState<Actions: View>: View {
     @ViewBuilder let actions: () -> Actions
 
     var body: some View {
-        VStack(spacing: 18) {
-            EmptyStateOrb(symbol: symbol, palette: .sunset)
-                .frame(width: 150, height: 150)
+        VStack(spacing: 14) {
+            AccentSymbolTile(symbol: symbol, size: 60)
             VStack(spacing: 6) {
                 Text(title)
-                    .appFont(size: 22, weight: .regular)
-                    .tracking(-0.4)
+                    .appFont(size: 19, weight: .semibold)
+                    .tracking(-0.3)
                     .foregroundStyle(Theme.ink)
                 Text(message)
                     .appFont(size: 14, weight: .regular)

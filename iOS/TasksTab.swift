@@ -117,10 +117,14 @@ struct TasksTab: View {
     @ViewBuilder
     private func emptyState(hasTasks: Bool, doneCount: Int) -> some View {
         if !hasTasks {
-            PhoneEmptyState(symbol: "checklist", title: "Henüz görev yok", message: "Toplantılarda sana düşen işler burada toplanır.") {
+            PhoneEmptyScene(
+                symbol: "checklist", palette: .sunset, title: "Henüz görev yok",
+                message: "Toplantılarda sana düşen işler burada toplanır; bitirdiklerini işaretle, ilerlemen üstte görünsün."
+            ) {
                 if userName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     Button("Adını yaz", systemImage: "person.text.rectangle") { router.tab = .settings }
-                        .buttonStyle(.pillPrimary)
+                        .buttonStyle(.accentPill)
+                        .controlSize(.large)
                 }
             }
         } else if filter == .done {

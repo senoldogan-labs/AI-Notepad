@@ -34,16 +34,13 @@ struct PhoneSettingsTab: View {
                     Text("Hesap")
                 }
                 Section {
-                    Picker("Tema", selection: $theme) {
-                        ForEach(AppTheme.allCases, id: \.self) { (item: AppTheme) in
-                            Text(verbatim: item.displayName).tag(item.rawValue)
-                        }
+                    NavigationLink {
+                        PhoneAppearanceScreen()
+                    } label: {
+                        PhoneAppearanceRow(theme: theme, accent: accent)
                     }
-                    PhoneAccentPicker(selection: $accent)
                 } header: {
                     Text("Görünüm")
-                } footer: {
-                    Text("Vurgu rengi düğmelerde, ölçerlerde ve seçili sekmede kullanılır.")
                 }
                 Section {
                     Toggle("Kayıt başlarken haber vermeyi hatırlat", isOn: $consentReminder)
@@ -159,30 +156,28 @@ private struct CalendarSettingsSection: View {
     }
 }
 
-/// Vurgu rengi seçimi: beş renk yuvarlağı yan yana; seçilenin çevresinde halka. Mac'teki ayarla aynı renkler.
-private struct PhoneAccentPicker: View {
-    @Binding var selection: String
+/// Görünüm satırı: vurgu renginde simge, tema adı ve yazı tipi; dokununca Görünüm ayarları açılır.
+private struct PhoneAppearanceRow: View {
+    let theme: String
+    let accent: String
+    @AppStorage(PhoneSettingsKey.fontDesign) private var fontDesign: String = PanelAppearance.standard.fontChoice.storageValue
 
     var body: some View {
-        HStack {
-            Text("Vurgu rengi")
-            Spacer(minLength: 12)
-            HStack(spacing: 12) {
-                ForEach(PanelAccent.allCases, id: \.self) { (accent: PanelAccent) in
-                    let isSelected: Bool = (PanelAccent(rawValue: selection) ?? PanelAppearance.standard.accent) == accent
-                    Button {
-                        selection = accent.rawValue
-                    } label: {
-                        Circle()
-                            .fill(accent.color)
-                            .frame(width: 24, height: 24)
-                            .padding(3)
-                            .overlay(Circle().strokeBorder(isSelected ? accent.color : .clear, lineWidth: 2))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(Text(verbatim: phoneAccentName(accent: accent)))
-                    .accessibilityAddTraits(isSelected ? .isSelected : [])
-                }
+        let accentColor: Color = (PanelAccent(rawValue: accent) ?? PanelAppearance.standard.accent).color
+        HStack(spacing: 12) {
+            Image(systemName: "paintpalette.fill")
+                .foregroundStyle(.white)
+                .frame(width: 30, height: 30)
+                .background(accentColor, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Tema, renk ve yazı")
+                Text(verbatim: [
+                    (AppTheme(rawValue: theme) ?? .system).displayName,
+                    fontChoiceName(choice: AppFontChoice.parse(storage: fontDesign) ?? PanelAppearance.standard.fontChoice),
+                ].joined(separator: " · "))
+                .appFont(size: 13, weight: .regular)
+                .foregroundStyle(Theme.muted)
             }
         }
     }

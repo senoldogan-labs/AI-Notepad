@@ -18,6 +18,32 @@ public enum PanelFontDesign: String, Sendable, CaseIterable {
         case .monospaced: .monospaced
         }
     }
+
+    /// Ayarlardaki adı (Mac ve iPhone aynı).
+    public var displayName: String {
+        switch self {
+        case .inter: String(localized: "Inter (varsayılan)")
+        case .system: String(localized: "Sistem (SF Pro)")
+        case .rounded: String(localized: "Yuvarlak (SF Rounded)")
+        case .serif: String(localized: "Tırnaklı (New York)")
+        case .monospaced: String(localized: "Eş aralıklı (SF Mono)")
+        }
+    }
+}
+
+/// Ayarlarda tasarımların altında önerilen yüklü aileler (Mac'te ve iPhone'da bulunanlar gösterilir).
+public let curatedFontFamilies: [String] = [
+    "Avenir Next", "Helvetica Neue", "Futura", "Gill Sans", "Optima", "Charter", "Iowan Old Style", "Georgia", "Palatino", "Baskerville", "Menlo",
+]
+
+/// Önerilen ailelerden sistemde yüklü olanlar; seçili aile listede yoksa sona eklenir (seçim görünür kalsın). Saf
+/// fonksiyondur.
+public func suggestedFontFamilies(available: Set<String>, current: AppFontChoice) -> [String] {
+    let curated: [String] = curatedFontFamilies.filter { available.contains($0) }
+    guard case .installed(let family) = current, !curated.contains(family) else {
+        return curated
+    }
+    return curated + [family]
 }
 
 /// Uygulamanın yazı tipi seçimi: Inter ya da SF tasarımları, veya Mac'te yüklü herhangi bir aile (ör. Avenir Next).
@@ -62,6 +88,17 @@ public enum PanelAccent: String, Sendable, CaseIterable {
         case .purple: Color(red: 0x70 / 255, green: 0x48 / 255, blue: 0xE8 / 255)
         case .orange: Color(red: 0xE8 / 255, green: 0x59 / 255, blue: 0x0C / 255)
         case .pink: Color(red: 0xD6 / 255, green: 0x33 / 255, blue: 0x6C / 255)
+        }
+    }
+
+    /// Ayarlardaki adı (Mac ve iPhone aynı).
+    public var displayName: String {
+        switch self {
+        case .blue: String(localized: "Mavi")
+        case .green: String(localized: "Yeşil")
+        case .purple: String(localized: "Mor")
+        case .orange: String(localized: "Turuncu")
+        case .pink: String(localized: "Pembe")
         }
     }
 }
@@ -128,12 +165,35 @@ public struct PanelAppearance: Equatable, Sendable {
         familyFont(size: size, weight: weight)
     }
 
+    /// Tasarımda `base` punto olan okuma metninin "Metin boyutu"na göre boyutu: varsayılan boyutta `base`, ayar büyüdükçe
+    /// orantılı büyür (iPhone'un okuma metinleri farklı puntolarda tasarlandı; oranları korunur). Saf fonksiyondur.
+    public func readingSize(base: CGFloat) -> CGFloat {
+        base * textSize / PanelAppearance.standard.textSize
+    }
+
+    /// Tasarımda `base` olan okuma metni satır aralığının "Satır aralığı"na göre değeri (varsayılanda `base`, 0'da sıkışık).
+    /// Saf fonksiyondur.
+    public func readingLineSpacing(base: CGFloat) -> CGFloat {
+        base * lineSpacing / PanelAppearance.standard.lineSpacing
+    }
+
+    /// Yazılar sabit boyutla çizilir: büyütme yalnız `uiScale`/`textSize` ile gelir (iPhone'da Dinamik Yazı bu ikisine
+    /// çarpılır, bkz. `dynamicTypeScaled`); özel yazı tipleri ayrıca kendiliğinden büyüseydi iki kez büyürdü.
     private func familyFont(size: CGFloat, weight: Font.Weight) -> Font {
         switch fontChoice {
-        case .design(.inter): .custom(Theme.interFamily, size: size).weight(weight)
+        case .design(.inter): .custom(Theme.interFamily, fixedSize: size).weight(weight)
         case .design(let design): .system(size: size, weight: weight, design: design.design)
-        case .installed(let family): .custom(family, size: size).weight(weight)
+        case .installed(let family): .custom(family, fixedSize: size).weight(weight)
         }
+    }
+
+    /// Sistemin yazı boyutu (iPhone'da Dinamik Yazı) çarpanıyla görünüm: arayüz ölçeği ve okuma metni boyutu çarpanla
+    /// büyür, kullanıcının ayarı onun üstüne uygulanır. Saf fonksiyondur.
+    public func dynamicTypeScaled(factor: Double) -> PanelAppearance {
+        PanelAppearance(
+            fontChoice: fontChoice, uiScale: uiScale * factor, textSize: textSize * factor, lineSpacing: lineSpacing * factor,
+            bottomSpacing: bottomSpacing, accent: accent, surface: surface, surfaceOpacity: surfaceOpacity
+        )
     }
 
     /// Transkript metni.
@@ -144,6 +204,99 @@ public struct PanelAppearance: Equatable, Sendable {
     /// İki dilde soluk orijinal ve kart metinleri: gövdeden bir punto küçük.
     public var secondaryFont: Font {
         readingFont(size: max(10, textSize - 1), weight: .regular)
+    }
+}
+
+/// Görünüm ayarlarının anahtarları (Mac ve iPhone aynı adları kullanır; her cihazın ayarı kendinde kalır).
+public enum AppearanceKey {
+    public static let theme: String = "appearance.theme"
+    public static let accent: String = "appearance.accent"
+    public static let fontDesign: String = "appearance.fontDesign"
+    /// Okuma metninin (transkript, not) punto değeri.
+    public static let textSize: String = "appearance.textSize"
+    /// Arayüz yazılarının ölçeği (1 = varsayılan).
+    public static let uiScale: String = "appearance.uiScale"
+    public static let lineSpacing: String = "appearance.lineSpacing"
+    public static let bottomSpacing: String = "appearance.bottomSpacing"
+    /// Pencere yüzeyi (dolu, buzlu cam, şeffaf cam) ve cam opaklığı (yalnız Mac).
+    public static let surface: String = "appearance.surface"
+    public static let surfaceOpacity: String = "appearance.surfaceOpacity"
+}
+
+/// Görünüm ayarlarının aralıkları (Mac ve iPhone aynı).
+public enum AppearanceRange {
+    public static let textSize: ClosedRange<Double> = 11...24
+    public static let uiScale: ClosedRange<Double> = 0.85...1.3
+    public static let lineSpacing: ClosedRange<Double> = 0...12
+    public static let bottomSpacing: ClosedRange<Double> = 0...160
+    public static let surfaceOpacity: ClosedRange<Double> = 0.35...0.95
+}
+
+/// Ayarlarda saklanan ham görünüm değerleri.
+public struct StoredAppearance: Equatable, Sendable {
+    public let fontDesign: String
+    public let uiScale: Double
+    public let textSize: Double
+    public let lineSpacing: Double
+    public let bottomSpacing: Double
+    public let accent: String
+    public let surface: String
+    public let surfaceOpacity: Double
+
+    public init(
+        fontDesign: String, uiScale: Double, textSize: Double, lineSpacing: Double, bottomSpacing: Double, accent: String, surface: String,
+        surfaceOpacity: Double
+    ) {
+        self.fontDesign = fontDesign
+        self.uiScale = uiScale
+        self.textSize = textSize
+        self.lineSpacing = lineSpacing
+        self.bottomSpacing = bottomSpacing
+        self.accent = accent
+        self.surface = surface
+        self.surfaceOpacity = surfaceOpacity
+    }
+}
+
+/// Saklanan değerlerden görünüm: sayılar ayar aralığına sıkıştırılır, tanınmayan seçim (eski ya da bozuk ayar)
+/// varsayılanıdır. Mac ve iPhone aynı kuralla okur. Saf fonksiyondur.
+public func resolvedPanelAppearance(stored: StoredAppearance) -> PanelAppearance {
+    let standard: PanelAppearance = .standard
+    return PanelAppearance(
+        fontChoice: AppFontChoice.parse(storage: stored.fontDesign) ?? standard.fontChoice,
+        uiScale: clamped(value: stored.uiScale, range: AppearanceRange.uiScale),
+        textSize: clamped(value: stored.textSize, range: AppearanceRange.textSize),
+        lineSpacing: clamped(value: stored.lineSpacing, range: AppearanceRange.lineSpacing),
+        bottomSpacing: clamped(value: stored.bottomSpacing, range: AppearanceRange.bottomSpacing),
+        accent: PanelAccent(rawValue: stored.accent) ?? standard.accent,
+        surface: WindowSurface(rawValue: stored.surface) ?? standard.surface,
+        surfaceOpacity: clamped(value: stored.surfaceOpacity, range: AppearanceRange.surfaceOpacity)
+    )
+}
+
+private func clamped(value: Double, range: ClosedRange<Double>) -> Double {
+    min(max(value, range.lowerBound), range.upperBound)
+}
+
+/// Okuma metni (özet, transkript, kararlar, notların): tasarımdaki boyut ve satır aralığı kullanıcının "Metin boyutu" ve
+/// "Satır aralığı" ayarlarıyla orantılanır, yazı seçili ailededir.
+private struct ReadingText: ViewModifier {
+    let size: CGFloat
+    let weight: Font.Weight
+    let lineSpacing: CGFloat
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
+
+    func body(content: Content) -> some View {
+        content
+            .font(appearance.readingFont(size: appearance.readingSize(base: size), weight: weight))
+            .lineSpacing(appearance.readingLineSpacing(base: lineSpacing))
+    }
+}
+
+public extension View {
+    /// Okuma metni (bkz. `ReadingText`): `size` ve `lineSpacing` varsayılan görünümdeki değerlerdir.
+    func readingText(size: CGFloat, weight: Font.Weight, lineSpacing: CGFloat) -> some View {
+        modifier(ReadingText(size: size, weight: weight, lineSpacing: lineSpacing))
     }
 }
 

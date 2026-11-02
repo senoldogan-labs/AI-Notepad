@@ -5951,6 +5951,7 @@
       }
     },
     "Eş aralıklı (SF Mono)": {
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -7167,6 +7168,7 @@
       }
     },
     "Inter (varsayılan)": {
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -7212,26 +7214,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Recording; the meeting appears here when it ends."
-          }
-        }
-      }
-    },
-    "İlk toplantını kaydet; sonra notlarına buradan soru sor.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Record your first meeting, then ask about your notes here."
-          }
-        }
-      }
-    },
-    "Kaydettiğin toplantılar notu ve görevleriyle burada durur.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Your recorded meetings live here with their notes and tasks."
           }
         }
       }
@@ -7362,16 +7344,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "No meetings to ask about"
-          }
-        }
-      }
-    },
-    "Toplantılarda sana düşen işler burada toplanır.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tasks assigned to you in meetings collect here."
           }
         }
       }
@@ -9451,6 +9423,7 @@
       }
     },
     "Mavi": {
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -9780,6 +9753,7 @@
       }
     },
     "Mor": {
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -10778,6 +10752,7 @@
       }
     },
     "Pembe": {
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -11474,6 +11449,7 @@
       }
     },
     "Sistem (SF Pro)": {
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -13207,6 +13183,7 @@
       }
     },
     "Turuncu": {
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -13392,6 +13369,7 @@
       }
     },
     "Tırnaklı (New York)": {
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -14166,6 +14144,7 @@
       }
     },
     "Yeşil": {
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -14207,6 +14186,7 @@
       }
     },
     "Yuvarlak (SF Rounded)": {
+      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -18351,6 +18331,326 @@
           "stringUnit": {
             "state": "translated",
             "value": "Highlighted"
+          }
+        }
+      }
+    },
+    "Arayüz yazısı: %%%lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interface text: %lld%%"
+          }
+        }
+      }
+    },
+    "Okuma metni: %%%lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading text: %lld%%"
+          }
+        }
+      }
+    },
+    "Boyut": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Size"
+          }
+        }
+      }
+    },
+    "Arayüz yazısı başlıkları, düğmeleri ve listeleri; okuma metni ve satır aralığı notu, transkripti ve canlı metni değiştirir. iPhone'un yazı boyutu (Ayarlar › Ekran ve Parlaklık) bunların üstüne uygulanır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interface text changes titles, buttons and lists; reading text and line spacing change the note, transcript and live text. Your iPhone's text size (Settings › Display & Brightness) is applied on top."
+          }
+        }
+      }
+    },
+    "Haftalık ürün toplantısı": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weekly product meeting"
+          }
+        }
+      }
+    },
+    "Bugün · 32 dk": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Today · 32 min"
+          }
+        }
+      }
+    },
+    "Ekip yeni sürümün tarihini 14 Kasım olarak belirledi; tasarım incelemesi perşembe yapılacak ve geri bildirimler cuma toplanacak.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The team set the new release for 14 November; the design review is on Thursday and feedback is collected on Friday."
+          }
+        }
+      }
+    },
+    "Sürüm notlarını perşembeye kadar hazırla": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prepare the release notes by Thursday"
+          }
+        }
+      }
+    },
+    "Görünüm önizlemesi": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appearance preview"
+          }
+        }
+      }
+    },
+    "Önerilen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suggested"
+          }
+        }
+      }
+    },
+    "Tüm yazı tipleri": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All fonts"
+          }
+        }
+      }
+    },
+    "Yazı tipi ara": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search fonts"
+          }
+        }
+      }
+    },
+    "Tema, renk ve yazı": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Theme, colour and text"
+          }
+        }
+      }
+    },
+    "Nasıl çalışır": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How it works"
+          }
+        }
+      }
+    },
+    "İpuçları": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tips"
+          }
+        }
+      }
+    },
+    "Odada kaydet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record in the room"
+          }
+        }
+      }
+    },
+    "Telefonu masaya koy ve dokun; odadaki herkes konuşmacılara ayrılır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Put your phone on the table and tap; everyone in the room is told apart by speaker."
+          }
+        }
+      }
+    },
+    "Not, kararlar, görevler": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes, decisions, tasks"
+          }
+        }
+      }
+    },
+    "Bitince not hazır: kararlar ve sana düşen işler en üstte.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When it ends, your note is ready: decisions and your tasks at the top."
+          }
+        }
+      }
+    },
+    "“Bütçe ne oldu?” diye sor; cevap hangi toplantıdan geldiğini gösterir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask “What happened with the budget?”; the answer shows which meeting it came from."
+          }
+        }
+      }
+    },
+    "Takvimini bağla": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect your calendar"
+          }
+        }
+      }
+    },
+    "Sıradaki toplantıların burada görünür; o sırada başlattığın kayıt toplantının adını ve katılımcılarını alır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your upcoming meetings appear here; a recording you start during one takes its title and attendees."
+          }
+        }
+      }
+    },
+    "Takvimi bağla": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect calendar"
+          }
+        }
+      }
+    },
+    "Önemli anı işaretle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Highlight key moments"
+          }
+        }
+      }
+    },
+    "Kayıtta “İşaretle”ye dokun; o an notta öne çıkar.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap “Highlight” while recording; that moment stands out in the note."
+          }
+        }
+      }
+    },
+    "Kayıtta “Notlarım”a yazdıklarını not öncelik sayar.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The note puts what you write in “My notes” during recording first."
+          }
+        }
+      }
+    },
+    "Tek dokunuşla başlat": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start with one tap"
+          }
+        }
+      }
+    },
+    "Denetim Merkezi'ne ya da Kısayollar'a Gistsmith kaydını ekle.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add Gistsmith recording to Control Center or Shortcuts."
+          }
+        }
+      }
+    },
+    "Notta sana düşen görevler ayrılır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your tasks are picked out in the note."
+          }
+        }
+      }
+    },
+    "İlk toplantını kaydet; not, görevler ve transkript burada hazır olur.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record your first meeting; the note, tasks and transcript will be ready here."
+          }
+        }
+      }
+    },
+    "İlk toplantını kaydet; sonra notlarına buradan soru sor, cevap kaynağıyla gelsin.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record your first meeting; then ask your notes here and get answers with sources."
+          }
+        }
+      }
+    },
+    "Toplantılarda sana düşen işler burada toplanır; bitirdiklerini işaretle, ilerlemen üstte görünsün.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tasks assigned to you in meetings collect here; tick off what you finish and see your progress at the top."
           }
         }
       }

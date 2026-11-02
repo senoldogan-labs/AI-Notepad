@@ -93,6 +93,9 @@ private struct RecordHome: View {
                         .contentMargins(.horizontal, 20, for: .scrollContent)
                         .padding(.horizontal, -20)
                     }
+                } else {
+                    // Henüz toplantı yok: boş alan yerine nasıl çalıştığı, takvim ve ipuçları.
+                    RecordHomeGuide(calendar: calendar)
                 }
             }
             .padding(.horizontal, 20)
@@ -647,14 +650,12 @@ private struct LiveBlockView: View {
                         .foregroundStyle(Theme.muted)
                 }
                 Text("\(finalText)\(Text(partialText).foregroundStyle(Theme.muted))")
-                    .appFont(size: 18, weight: .regular)
+                    .readingText(size: 18, weight: .regular, lineSpacing: 5)
                     .foregroundStyle(Theme.ink)
-                    .lineSpacing(5)
                 if !translation.isEmpty {
                     Text(translation)
-                        .appFont(size: 15, weight: .regular)
+                        .readingText(size: 15, weight: .regular, lineSpacing: 4)
                         .foregroundStyle(Theme.muted)
-                        .lineSpacing(4)
                         .padding(.leading, 12)
                         .overlay(alignment: .leading) {
                             Capsule().fill(appearance.accent.color.opacity(0.35)).frame(width: 2)
@@ -748,7 +749,7 @@ private struct PhoneMyNotesSheet: View {
                 .appFont(size: 13, weight: .regular)
                 .foregroundStyle(Theme.muted)
             TextEditor(text: $text)
-                .appFont(size: 16, weight: .regular)
+                .readingText(size: 16, weight: .regular, lineSpacing: 3)
                 .scrollContentBackground(.hidden)
                 .focused($isFocused)
                 .padding(10)

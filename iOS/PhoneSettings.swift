@@ -18,9 +18,14 @@ enum PhoneSettingsKey {
     /// İlk açılış karşılaması bitti ya da atlandı.
     static let onboardingCompleted: String = "onboardingCompleted"
     /// Tema takımı (Mac'teki ayarla aynı ad; bkz. `AppTheme`).
-    static let theme: String = "appearance.theme"
+    static let theme: String = AppearanceKey.theme
     /// Vurgu rengi (`PanelAccent`; Mac'teki ayarla aynı ad): düğmeler, ölçerler, seçili sekme.
-    static let accent: String = "appearance.accent"
+    static let accent: String = AppearanceKey.accent
+    /// Yazı tipi (`AppFontChoice`), arayüz yazı ölçeği, okuma metni boyutu ve satır aralığı (Mac'teki ayarlarla aynı ad).
+    static let fontDesign: String = AppearanceKey.fontDesign
+    static let uiScale: String = AppearanceKey.uiScale
+    static let textSize: String = AppearanceKey.textSize
+    static let lineSpacing: String = AppearanceKey.lineSpacing
     /// Takvim (sıradaki toplantılar, kaydı süren etkinliğe bağlama); varsayılan kapalı, açılınca izin istenir.
     static let calendarEnabled: String = "calendar.enabled"
     /// Ses ve metnin hizmetimize ve üçüncü taraf yapay zekâ sağlayıcılarına gönderileceği açıklaması kabul edildi (ilk
@@ -93,24 +98,15 @@ func phoneUserName() -> String {
     UserDefaults.standard.string(forKey: PhoneSettingsKey.userName) ?? ""
 }
 
-/// Seçilen vurgu rengiyle iPhone görünümü: yazı ve ölçüler Mac'in varsayılanıyla aynı (Inter), yalnızca vurgu değişir.
-/// Bilinmeyen değer (eski ya da bozuk ayar) varsayılan vurgudur. Saf fonksiyondur.
-func phoneAppearance(accentRawValue: String) -> PanelAppearance {
-    let standard: PanelAppearance = .standard
-    let accent: PanelAccent = PanelAccent(rawValue: accentRawValue) ?? standard.accent
-    return PanelAppearance(
-        fontChoice: standard.fontChoice, uiScale: standard.uiScale, textSize: standard.textSize, lineSpacing: standard.lineSpacing,
-        bottomSpacing: standard.bottomSpacing, accent: accent, surface: standard.surface, surfaceOpacity: standard.surfaceOpacity
-    )
-}
+/// iPhone'un görünüm ayarları (yüzey ve alt boşluk Mac'e özgü; iPhone'da kullanılmaz).
+let phoneAppearanceKeys: [String] = [
+    PhoneSettingsKey.theme, PhoneSettingsKey.accent, PhoneSettingsKey.fontDesign, PhoneSettingsKey.uiScale, PhoneSettingsKey.textSize,
+    PhoneSettingsKey.lineSpacing,
+]
 
-/// Vurgu renginin adı (Mac'teki Ayarlar › Görünüm'le aynı). Saf fonksiyondur.
-func phoneAccentName(accent: PanelAccent) -> String {
-    switch accent {
-    case .blue: String(localized: "Mavi")
-    case .green: String(localized: "Yeşil")
-    case .purple: String(localized: "Mor")
-    case .orange: String(localized: "Turuncu")
-    case .pink: String(localized: "Pembe")
+/// Görünüm ayarlarını varsayılana döndürür.
+func resetPhoneAppearance(defaults: UserDefaults) {
+    for key in phoneAppearanceKeys {
+        defaults.removeObject(forKey: key)
     }
 }

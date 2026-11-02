@@ -56,9 +56,13 @@ struct MeetingsTab: View {
             .overlay {
                 // Boş arşiv ya da eşleşmeyen arama: ekranın ortasında kısa bir boş durum.
                 if store.meetings.isEmpty {
-                    PhoneEmptyState(symbol: "waveform", title: "Henüz toplantı yok", message: "Kaydettiğin toplantılar notu ve görevleriyle burada durur.") {
+                    PhoneEmptyScene(
+                        symbol: "waveform", palette: .sunset, title: "Henüz toplantı yok",
+                        message: "İlk toplantını kaydet; not, görevler ve transkript burada hazır olur."
+                    ) {
                         Button("Kaydı başlat", systemImage: "mic.fill") { router.tab = .record }
-                            .buttonStyle(.pillPrimary)
+                            .buttonStyle(.accentPill)
+                            .controlSize(.large)
                     }
                 } else if sections.isEmpty {
                     PhoneEmptyState(symbol: "magnifyingglass", title: "Eşleşen toplantı yok", message: "Başka bir kelimeyle ara.") {
@@ -591,8 +595,7 @@ private struct MeetingSummary: View {
                             }
                         }
                         Text(myNotes)
-                            .appFont(size: 15, weight: .regular)
-                            .lineSpacing(3)
+                            .readingText(size: 15, weight: .regular, lineSpacing: 3)
                             .textSelection(.enabled)
                     }
                     .padding(14)
@@ -616,8 +619,7 @@ private struct MeetingSummary: View {
                     Task { await store.editNote(meetingID: record.id, instruction: instruction) }
                 }
                 Text(note.summary)
-                    .font(appearance.readingFont(size: 18, weight: .regular))
-                    .lineSpacing(6)
+                    .readingText(size: 18, weight: .regular, lineSpacing: 6)
                     .textSelection(.enabled)
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
                     PhoneStatTile(value: meetingDurationMinutes(record: record).map { String(localized: "\($0) dk") } ?? "–", label: "süre")
@@ -652,8 +654,7 @@ private struct MeetingSummary: View {
                                     .foregroundStyle(appearance.accent.color)
                                     .frame(width: 18, alignment: .trailing)
                                 Text(item.element)
-                                    .appFont(size: 16, weight: .regular)
-                                    .lineSpacing(3)
+                                    .readingText(size: 16, weight: .regular, lineSpacing: 3)
                             }
                         }
                     }
@@ -930,7 +931,7 @@ private struct PhoneMyNotesEditor: View {
     var body: some View {
         NavigationStack {
             TextEditor(text: $text)
-                .appFont(size: 16, weight: .regular)
+                .readingText(size: 16, weight: .regular, lineSpacing: 3)
                 .focused($isFocused)
                 .padding(.horizontal, 16)
                 .scrollContentBackground(.hidden)
@@ -1029,11 +1030,10 @@ private struct TranscriptList: View {
                                     Text(paragraph.text).foregroundStyle(Theme.ink)
                                 }
                             }
-                            .font(appearance.readingFont(size: 16, weight: .regular))
-                            .lineSpacing(4)
+                            .readingText(size: 16, weight: .regular, lineSpacing: 4)
                             if let turkish = paragraph.turkish {
                                 Text(turkish)
-                                    .appFont(size: 14, weight: .regular)
+                                    .readingText(size: 14, weight: .regular, lineSpacing: 3)
                                     .foregroundStyle(Theme.muted)
                             }
                         }

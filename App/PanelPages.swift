@@ -206,15 +206,10 @@ struct AppearanceEnvironment: ViewModifier {
     @AppStorage(SettingsKey.surfaceOpacity) private var surfaceOpacity: Double = PanelAppearance.standard.surfaceOpacity
 
     func body(content: Content) -> some View {
-        let standard: PanelAppearance = .standard
-        let appearance: PanelAppearance = PanelAppearance(
-            fontChoice: AppFontChoice.parse(storage: fontDesign) ?? standard.fontChoice,
-            uiScale: min(max(uiScale, SettingsRange.uiScale.lowerBound), SettingsRange.uiScale.upperBound),
-            textSize: textSize, lineSpacing: lineSpacing, bottomSpacing: bottomSpacing,
-            accent: PanelAccent(rawValue: accent) ?? standard.accent,
-            surface: WindowSurface(rawValue: surface) ?? standard.surface,
-            surfaceOpacity: min(max(surfaceOpacity, SettingsRange.surfaceOpacity.lowerBound), SettingsRange.surfaceOpacity.upperBound)
-        )
+        let appearance: PanelAppearance = resolvedPanelAppearance(stored: StoredAppearance(
+            fontDesign: fontDesign, uiScale: uiScale, textSize: textSize, lineSpacing: lineSpacing, bottomSpacing: bottomSpacing, accent: accent,
+            surface: surface, surfaceOpacity: surfaceOpacity
+        ))
         content
             .environment(\.panelAppearance, appearance)
             .tint(appearance.accent.color)

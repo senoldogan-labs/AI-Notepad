@@ -614,18 +614,13 @@ private struct CloudSyncRow: View {
 /// yüklü aile listede yoksa o da eklenir (menü seçimi gösterebilsin).
 @MainActor
 private func fontOptions(current: String) -> [(String, Text)] {
-    let builtIn: [(String, Text)] = [
-        (AppFontChoice.design(.inter).storageValue, Text("Inter (varsayılan)")),
-        (AppFontChoice.design(.system).storageValue, Text("Sistem (SF Pro)")),
-        (AppFontChoice.design(.rounded).storageValue, Text("Yuvarlak (SF Rounded)")),
-        (AppFontChoice.design(.serif).storageValue, Text("Tırnaklı (New York)")),
-        (AppFontChoice.design(.monospaced).storageValue, Text("Eş aralıklı (SF Mono)")),
-    ]
-    let available: Set<String> = Set(NSFontManager.shared.availableFontFamilies)
-    let curated: [String] = ["Avenir Next", "Helvetica Neue", "Futura", "Gill Sans", "Optima", "Charter", "Iowan Old Style", "Georgia", "Palatino", "Baskerville", "Menlo"]
-        .filter { available.contains($0) }
-    let selectedFamily: [String] = if case .installed(let family) = AppFontChoice.parse(storage: current), !curated.contains(family) { [family] } else { [] }
-    return builtIn + (curated + selectedFamily).map { (family: String) -> (String, Text) in
+    let builtIn: [(String, Text)] = PanelFontDesign.allCases.map { (design: PanelFontDesign) -> (String, Text) in
+        (AppFontChoice.design(design).storageValue, Text(verbatim: design.displayName))
+    }
+    let families: [String] = suggestedFontFamilies(
+        available: Set(NSFontManager.shared.availableFontFamilies), current: AppFontChoice.parse(storage: current) ?? PanelAppearance.standard.fontChoice
+    )
+    return builtIn + families.map { (family: String) -> (String, Text) in
         (AppFontChoice.installed(family: family).storageValue, Text(verbatim: family).font(.custom(family, size: 13)))
     }
 }
@@ -671,7 +666,7 @@ private struct AppearanceSettings: View {
                 } control: {
                     HStack(spacing: 10) {
                         Image(systemName: "circle.dotted").foregroundStyle(Theme.muted)
-                        Slider(value: $surfaceOpacity, in: SettingsRange.surfaceOpacity, step: 0.05).frame(width: 200)
+                        Slider(value: $surfaceOpacity, in: AppearanceRange.surfaceOpacity, step: 0.05).frame(width: 200)
                         Image(systemName: "circle.fill").foregroundStyle(Theme.muted)
                     }
                 }
@@ -681,7 +676,7 @@ private struct AppearanceSettings: View {
                 EmptyView()
             } control: {
                 SettingsMenu(selection: $accent, options: PanelAccent.allCases.map { (item: PanelAccent) -> (String, Text) in
-                    (item.rawValue, Text(Image(systemName: "circle.fill")).foregroundColor(item.color) + Text(verbatim: "  ") + Text(accentName(accent: item)))
+                    (item.rawValue, Text(Image(systemName: "circle.fill")).foregroundColor(item.color) + Text(verbatim: "  ") + Text(verbatim: item.displayName))
                 })
             }
             SettingsRow(title: Text("Yazı tipi")) {
@@ -706,18 +701,18 @@ private struct AppearanceSettings: View {
             SettingsRow(title: Text("Arayüz boyutu: \(Int((uiScale * 100).rounded()))%")) {
                 Text("Menüler, başlıklar ve düğmeler dahil tüm yazılar.")
             } control: {
-                SettingsSlider(value: $uiScale, range: SettingsRange.uiScale, step: 0.05, minSymbol: "textformat.size.smaller", maxSymbol: "textformat.size.larger")
+                SettingsSlider(value: $uiScale, range: AppearanceRange.uiScale, step: 0.05, minSymbol: "textformat.size.smaller", maxSymbol: "textformat.size.larger")
             }
             SettingsRow(title: Text("Metin boyutu: \(Int(textSize)) pt")) {
                 Text("Canlı metin ve notlar.")
             } control: {
-                SettingsSlider(value: $textSize, range: SettingsRange.textSize, step: 1, minSymbol: "textformat.size.smaller", maxSymbol: "textformat.size.larger")
+                SettingsSlider(value: $textSize, range: AppearanceRange.textSize, step: 1, minSymbol: "textformat.size.smaller", maxSymbol: "textformat.size.larger")
             }
             SettingsRow(title: Text("Satır aralığı: \(Int(lineSpacing))")) {
                 EmptyView()
             } control: {
                 SettingsSlider(
-                    value: $lineSpacing, range: SettingsRange.lineSpacing, step: 1,
+                    value: $lineSpacing, range: AppearanceRange.lineSpacing, step: 1,
                     minSymbol: "arrow.down.right.and.arrow.up.left", maxSymbol: "arrow.up.left.and.arrow.down.right"
                 )
             }
@@ -725,7 +720,7 @@ private struct AppearanceSettings: View {
                 EmptyView()
             } control: {
                 SettingsSlider(
-                    value: $bottomSpacing, range: SettingsRange.bottomSpacing, step: 4,
+                    value: $bottomSpacing, range: AppearanceRange.bottomSpacing, step: 4,
                     minSymbol: "arrow.down.right.and.arrow.up.left", maxSymbol: "arrow.up.left.and.arrow.down.right"
                 )
             }
@@ -756,90 +751,6 @@ private struct AppearanceSettings: View {
                 }
             }
         }
-    }
-}
-
-/// Tema kartı: takımın zemini üstünde küçük bir kart ve iki yazı çizgisi, altında adı; seçili olan vurgu rengiyle
-/// çerçeveli. Sistem teması açık ve koyuyu çapraz bölünmüş gösterir.
-private struct ThemeSwatch: View {
-    let theme: AppTheme
-    let isSelected: Bool
-    let accent: Color
-    let onSelect: @MainActor () -> Void
-
-    var body: some View {
-        let sets: (light: ThemeColorSet, dark: ThemeColorSet) = theme.colorSets
-        Button(action: onSelect) {
-            VStack(spacing: 8) {
-                ZStack {
-                    preview(set: sets.light)
-                    if theme == .system {
-                        preview(set: sets.dark)
-                            .clipShape(DiagonalHalf())
-                    }
-                }
-                .frame(height: 64)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(isSelected ? accent : Theme.line, lineWidth: isSelected ? 2 : 1))
-                Text(themeName(theme: theme))
-                    .appFont(size: 12, weight: isSelected ? .semibold : .regular)
-                    .foregroundStyle(isSelected ? Theme.ink : Theme.muted)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.hoverPlain)
-        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
-    }
-
-    private func preview(set: ThemeColorSet) -> some View {
-        ZStack(alignment: .topLeading) {
-            Color(hex: set.background)
-            VStack(alignment: .leading, spacing: 5) {
-                RoundedRectangle(cornerRadius: 3).fill(Color(hex: set.ink)).frame(width: 34, height: 5)
-                RoundedRectangle(cornerRadius: 3).fill(Color(hex: set.muted)).frame(width: 22, height: 4)
-                RoundedRectangle(cornerRadius: 5, style: .continuous)
-                    .fill(Color(hex: set.card))
-                    .overlay(RoundedRectangle(cornerRadius: 5, style: .continuous).strokeBorder(Color(hex: set.line)))
-                    .frame(height: 22)
-            }
-            .padding(10)
-        }
-    }
-}
-
-/// Sol üstten sağ alta çapraz bölünmüş sağ-alt yarı.
-private struct DiagonalHalf: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path: Path = Path()
-        path.move(to: CGPoint(x: rect.maxX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
-        path.closeSubpath()
-        return path
-    }
-}
-
-/// Temanın adı.
-private func themeName(theme: AppTheme) -> String {
-    switch theme {
-    case .system: String(localized: "Sistem")
-    case .light: String(localized: "Açık")
-    case .dark: String(localized: "Koyu")
-    case .paper: String(localized: "Kâğıt")
-    case .sand: String(localized: "Kum")
-    case .midnight: String(localized: "Gece")
-    case .graphite: String(localized: "Grafit")
-    }
-}
-
-/// Vurgu renginin adı.
-private func accentName(accent: PanelAccent) -> String {
-    switch accent {
-    case .blue: String(localized: "Mavi")
-    case .green: String(localized: "Yeşil")
-    case .purple: String(localized: "Mor")
-    case .orange: String(localized: "Turuncu")
-    case .pink: String(localized: "Pembe")
     }
 }
 
