@@ -9,6 +9,18 @@ public enum NoteTemplateKind: String, Sendable, Codable, CaseIterable {
     case interview
     /// Kullanıcının kendi yönergesi (Ayarlar).
     case custom
+
+    /// Ayarlardaki adı (Mac ve iPhone aynı).
+    public var displayName: String {
+        switch self {
+        case .general: String(localized: "Genel")
+        case .oneOnOne: String(localized: "Birebir görüşme")
+        case .client: String(localized: "Müşteri görüşmesi")
+        case .lecture: String(localized: "Ders / eğitim")
+        case .interview: String(localized: "İş mülakatı")
+        case .custom: String(localized: "Kendi şablonum")
+        }
+    }
 }
 
 /// Toplantının not şablonu; `custom`'da yönerge kullanıcının yazdığıdır.

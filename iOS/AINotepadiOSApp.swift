@@ -4,6 +4,7 @@ import AppIntents
 import os
 import SwiftUI
 import UIKit
+import UserNotifications
 
 private let phoneAppLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "App")
 
@@ -77,6 +78,12 @@ struct AINotepadiOSApp: App {
         // ulaşır (hesap değişince kaydedici değişir, kayıt yeri değişmez).
         AppDependencyManager.shared.add(dependency: sessions)
         AppDependencyManager.shared.add(dependency: router)
+        // Toplantı hatırlatmasındaki "Dinlemeye başla" kaydı başlatır (kısayoldaki gibi).
+        PhoneNotificationDelegate.onStartRecording = { () -> Void in
+            router.tab = .record
+            Task { await sessions.session.recorder.start() }
+        }
+        UNUserNotificationCenter.current().delegate = PhoneNotificationDelegate.shared
     }
 
     var body: some Scene {
@@ -196,6 +203,9 @@ private struct PhoneAppRoot: View {
                 ask.open(conversationID: conversationID)
                 router.tab = .ask
                 router.askPath = [.conversation]
+            }
+            if CommandLine.arguments.contains("--ornek-takvim") {
+                calendar.showSampleMeetings(now: Date())
             }
             if CommandLine.arguments.contains("--ornek-kayit") {
                 recorder.showSampleRecording()
@@ -439,13 +449,23 @@ struct RootView: View {
     /// Uygulama arka plana geçti: öne dönünce yarım kalan işleme sürdürülür.
     @State private var wasInBackground: Bool = false
 
+    /// Toplantı öncesi brifing (Mac'teki "Brifing"): yeni bir Sor sohbeti açar; arşive aynı kişilerle ya da konuda önceki
+    /// görüşmeler, kararlar ve açık görevler sorulur.
+    private func startBriefing(meeting: CalendarMeeting) {
+        // Brifing yeni bir konu: önceki sohbet bağlam olmasın (önceki sohbet geçmişte kalır).
+        ask.clear()
+        ask.ask(question: briefingQuestion(meeting: meeting), meetingIDs: [], recipeTitle: nil)
+        router.askPath = [.conversation]
+        router.tab = .ask
+    }
+
     var body: some View {
         TabView(selection: $router.tab) {
             Tab("Kayıt", systemImage: "record.circle", value: PhoneTab.record) {
-                RecordTab(recorder: recorder, store: store, router: router, calendar: calendar)
+                RecordTab(recorder: recorder, store: store, router: router, calendar: calendar, onBriefing: startBriefing(meeting:))
             }
             Tab("Toplantılar", systemImage: "list.bullet.rectangle", value: PhoneTab.meetings) {
-                MeetingsTab(store: store, router: router, player: player, isRecording: recorder.phase != .idle)
+                MeetingsTab(store: store, recorder: recorder, router: router, player: player, isRecording: recorder.phase != .idle)
             }
             Tab("Sor", systemImage: "sparkle.magnifyingglass", value: PhoneTab.ask) {
                 AskTab(ask: ask, store: store, router: router)
@@ -672,27 +692,96 @@ final class PhoneStore {
 
     /// Notu yeniden yazar (Mac'teki "Notu yenile"): başarısız ya da yarım kalan toplantı da iPhone'dan düzelir.
     func regenerateNote(meetingID: String) async {
-        guard let record = meetings.first(where: { $0.id == meetingID }), record.status != .recording, record.status != .processing,
-              !regeneratingIDs.contains(meetingID) else {
+        guard let record = rewritableRecord(meetingID: meetingID) else {
             return
         }
+        await rewriteNote(record: record, reason: String(localized: "Not yenilendi"))
+    }
+
+    /// Notu başka bir şablonla yeniden yazar (Mac'teki "Şablonla yeniden yaz"); şablon toplantıda saklanır.
+    func regenerateNote(meetingID: String, template: NoteTemplate) async {
+        guard let record = rewritableRecord(meetingID: meetingID) else {
+            return
+        }
+        await rewriteNote(record: record.with(template: template), reason: String(localized: "Şablonla yeniden yazıldı"))
+    }
+
+    /// Notu yeniden yazılabilecek toplantı: kayıtta, işlenen ya da notu zaten yazılan toplantı değil.
+    private func rewritableRecord(meetingID: String) -> MeetingRecord? {
+        meetings.first { $0.id == meetingID && $0.status != .recording && $0.status != .processing && !regeneratingIDs.contains(meetingID) }
+    }
+
+    /// Notu verilen kayıtla (şablon, adlar) yeniden yazar; eski not `reason` ile geçmişe girer. Yeni not diskteki güncel
+    /// kayda uygulanır (Mac'te bu arada yapılan düzenlemeler korunur); olmazsa neden sorunlarda görünür.
+    private func rewriteNote(record: MeetingRecord, reason: String) async {
+        let meetingID: String = record.id
         regeneratingIDs.insert(meetingID)
         defer { regeneratingIDs.remove(meetingID) }
         do {
             let llm: LLMProvider = try phoneRecordedMeetingLLMProvider(recordID: meetingID)
             let directory: URL = try sessionDirectory(id: meetingID)
-            let userName: String = UserDefaults.standard.string(forKey: PhoneSettingsKey.userName) ?? ""
-            let result: MeetingRecord = await AINotepadCore.regenerateNote(record: record, directory: directory, llm: llm, userName: userName, language: phoneNoteLanguage())
+            let result: MeetingRecord = await AINotepadCore.regenerateNote(record: record, directory: directory, llm: llm, userName: phoneUserName(), language: phoneNoteLanguage())
             // Not yazılırken Mac'te değişmiş olabilir: yeni not diskteki güncel kayda uygulanır, işaretler oradan taşınır.
             let fresh: MeetingRecord = try loadMeeting(directory: directory)
             let merged: MeetingRecord = applyingRegeneratedNote(result: result, original: record, fresh: fresh)
+            // Seçilen şablon toplantıda kalır (bir sonraki "Notu yenile" de onu kullanır).
+            let templated: MeetingRecord = record.template.map { merged.with(template: $0) } ?? merged
             // Eski not geçmişe girer (⋯ › Önceki sürümler).
-            let versioned: MeetingRecord = withNoteVersion(updated: merged, previous: fresh, reason: String(localized: "Not yenilendi"), savedAt: Date())
+            let versioned: MeetingRecord = withNoteVersion(updated: templated, previous: fresh, reason: reason, savedAt: Date())
             try saveMeeting(record: versioned, directory: directory)
             upsert(record: versioned)
         } catch {
             problems = appendUnique(messages: problems, message: String(localized: "Not yenilenemedi: \(userFacingMessage(error: error))"))
         }
+    }
+
+    /// Notun verilen dildeki paylaşım kopyası (Mac'teki "Başka dilde paylaş"): daha önce çevrildiyse saklanan kopya, yoksa
+    /// not o dile çevrilir ve toplantıda saklanır (not değişince kopyalar silinir). Çevrilemezse hata fırlar; çeviri
+    /// saklanamazsa kopya yine döner, neden sorunlarda görünür.
+    func sharedNote(meetingID: String, language: ShareLanguage) async throws -> MeetingNote {
+        guard let record = meetings.first(where: { $0.id == meetingID }), let note = record.note else {
+            throw StorageError.writeFailed(path: meetingID, reason: "toplantı ya da not yok")
+        }
+        if let cached = record.sharedNotes?[language.rawValue] {
+            return cached
+        }
+        let provider: LLMProvider = try phoneAccountLLMProvider()
+        let shared: MeetingNote = try await requestStructured(
+            provider: provider, request: sharedNoteRequest(note: note, language: language, userName: phoneUserName())
+        ) { (text: String) throws -> MeetingNote in
+            try parseSharedNote(text: text, original: note).with(language: language)
+        }
+        // Çeviri sürerken not yeniden yazıldıysa eski notun çevirisi saklanmaz (yine de paylaşılır).
+        guard let current = meetings.first(where: { $0.id == meetingID }), current.note == note else {
+            return shared
+        }
+        do {
+            try updateMeeting(meetingID: meetingID) { (fresh: MeetingRecord) -> MeetingRecord in
+                fresh.note == note ? fresh.with(sharedNotes: (fresh.sharedNotes ?? [:]).merging([language.rawValue: shared]) { $1 }) : fresh
+            }
+        } catch {
+            problems = appendUnique(messages: problems, message: String(localized: "Çeviri saklanamadı: \(userFacingMessage(error: error))"))
+        }
+        return shared
+    }
+
+    /// İki konuşmacıyı birleştirir (Mac'teki "… ile birleştir"; son geçiş aynı kişiyi ikiye böldüyse): `from`un tüm
+    /// bölümleri `into`ya geçer.
+    func mergeSpeakers(meetingID: String, from: Int, into: Int) throws {
+        try updateMeeting(meetingID: meetingID) { (record: MeetingRecord) -> MeetingRecord in mergingPersons(record: record, from: from, into: into) }
+    }
+
+    /// Toplantının yalnız sesini (ve ses izlerini) siler; metin ve not kalır (Mac'teki "Sesi sil").
+    func deleteAudio(meetingID: String) throws {
+        guard meetingID != playingMeetingID, let record = meetings.first(where: { $0.id == meetingID }), record.status != .recording,
+              record.status != .processing, record.status != .queued, !regeneratingIDs.contains(meetingID) else {
+            throw StorageError.deleteFailed(path: meetingID, reason: "çalıyor, kayıtta, işleniyor ya da işlenmeyi bekliyor")
+        }
+        let directory: URL = try sessionDirectory(id: meetingID)
+        try deleteAudioFiles(directory: directory)
+        let updated: MeetingRecord = try loadMeeting(directory: directory).withAudioDeleted().with(voiceprints: nil)
+        try saveMeeting(record: updated, directory: directory)
+        upsert(record: updated)
     }
 
     /// Notu kullanıcının isteğine göre düzenler (Mac'teki "Notu değiştir": "özeti kısalt", "görevlere tarih ekle").
