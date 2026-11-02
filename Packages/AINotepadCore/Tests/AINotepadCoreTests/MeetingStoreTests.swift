@@ -144,6 +144,15 @@ func record(id: String, startedAt: Date, status: MeetingStatus, audioDeleted: Bo
 }
 
 @Suite struct MentionTests {
+    // Seçim indeksi metne aitse UTF-16 konumu; başka (daha uzun) metnin indeksiyse imleç bilinmez (nil), çökmez.
+    @Test func cursorOffsetValidatesIndex() {
+        let text: String = "Bütçe @x"
+        #expect(cursorOffset(text: text, index: text.endIndex) == 8)
+        #expect(cursorOffset(text: text, index: text.startIndex) == 0)
+        #expect(cursorOffset(text: "", index: "a".endIndex) == nil)
+        #expect(cursorOffset(text: "ab", index: "abc".endIndex) == nil)
+    }
+
     // "@" bahsi imlecin önünde aranır: kelime başında başlar, e-postadaki "@" bahis değildir, araya satır sonu girmez.
     @Test func mentionQueryAtCursor() {
         let text: String = "Bu toplantıda @perus"

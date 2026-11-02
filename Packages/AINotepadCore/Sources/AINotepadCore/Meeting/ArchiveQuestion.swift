@@ -415,6 +415,16 @@ public struct MentionTextEdit: Sendable, Equatable {
     }
 }
 
+/// Metin alanının seçim indeksinin metindeki konumu (UTF-16). İndeks bu metne ait değilse (metnin sonundan ötede)
+/// imleç bilinmiyor demektir: nil. iOS 26'da dikey `TextField` boş alanda kendi iç metninden 1 konumlu bir indeks
+/// bildirir; bağlı metin boşken bu indeksle `utf16Offset(in:)` çalışma anında çöker. Saf fonksiyondur.
+public func cursorOffset(text: String, index: String.Index) -> Int? {
+    guard index <= text.endIndex else {
+        return nil
+    }
+    return index.utf16Offset(in: text)
+}
+
 /// İmlecin (`cursor`, UTF-16) önündeki `@` bahsi: `@` metnin başında ya da boşluktan sonra, `@` ile imleç arasında satır
 /// sonu yok ve arama en fazla `mentionQueryMaxChars` karakter. Bir kelimenin içindeki `@` (e-posta) bahis değildir.
 /// İmleç metnin dışında ya da bir harfin ortasındaysa bahis yoktur (nil). Saf fonksiyondur.

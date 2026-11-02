@@ -312,7 +312,7 @@ struct AskTab: View {
                                 return
                             }
                             ask.ask(question: recipe.prompt, meetingIDs: mentioned.map(\.id), recipeTitle: recipe.title)
-                            question = ""
+                            clearQuestion()
                             withAnimation(.smooth(duration: 0.2)) { mentioned = [] }
                             isFocused = false
                         } onDelete: { (recipe: Recipe) -> Void in
@@ -461,12 +461,13 @@ struct AskTab: View {
         .shadow(color: .black.opacity(0.08), radius: 14, y: 4)
     }
 
-    /// İmlecin konumu (UTF-16); alan odakta değilse ya da birden çok seçim varsa nil.
+    /// İmlecin konumu (UTF-16); alan odakta değilse, birden çok seçim varsa ya da seçim bu metne ait değilse nil
+    /// (iOS 26 boş alanda iç metninden indeks bildirir).
     private var cursor: Int? {
         guard let selection, case .selection(let range) = selection.indices else {
             return nil
         }
-        return range.upperBound.utf16Offset(in: question)
+        return cursorOffset(text: question, index: range.upperBound)
     }
 
     /// İmlecin önündeki `@` bahsi.
@@ -510,13 +511,19 @@ struct AskTab: View {
         selection = TextSelection(insertionPoint: String.Index(utf16Offset: edit.cursor, in: edit.text))
     }
 
+    /// Soru alanını boşaltır; seçim de birlikte sıfırlanır: eski metnin indeksi boş metinde geçersizdir.
+    private func clearQuestion() {
+        question = ""
+        selection = nil
+    }
+
     private func send() {
         // Öneri seçilirken gönderilmez; eşleşen öneri yoksa soru olduğu gibi gider.
         guard !ask.isAnswering, !isMentioning, !isPickingRecipe, !question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return
         }
         ask.ask(question: question, meetingIDs: mentioned.map(\.id), recipeTitle: nil)
-        question = ""
+        clearQuestion()
         // Etiket bu soruya aitti: sohbette sorunun üstünde kalır, soru alanından kalkar.
         withAnimation(.smooth(duration: 0.2)) { mentioned = [] }
         isFocused = false

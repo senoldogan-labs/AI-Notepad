@@ -481,10 +481,25 @@ final class PhoneRecorder {
     #if DEBUG
     /// `--ornek-kayit` (yalnız Debug, görsel kontrol): mikrofon ve bulut olmadan örnek bir canlı kayıt gösterir.
     func showSampleRecording() {
+        // Çeviriler gerçek kayıttaki gibi not diline (çeviri hedefi) göre: İngilizce ya da Türkçe; başka dil için örnek
+        // çeviri yok, satırlar çevirisiz görünür.
+        let sampleTranslations: [String?] = switch phoneNoteLanguage() {
+        case .english: [
+            "Good morning, everyone, let's start the weekly meeting.",
+            "The budget is ready now and goes to the board on Friday.",
+            "Good. Who is taking care of the client presentation?",
+        ]
+        case .turkish: [
+            "Herkese günaydın, haftalık toplantıya başlayalım.",
+            "Bütçe hazır ve cuma günü yönetim kuruluna gidiyor.",
+            "Güzel. Müşteri sunumunu kim üstleniyor?",
+        ]
+        default: [nil, nil, nil]
+        }
         let sample: [(text: String, person: Int, translation: String?, isFinal: Bool)] = [
-            ("Hyvää huomenta kaikille, aloitetaan viikkopalaveri.", 1, "Herkese günaydın, haftalık toplantıya başlayalım.", true),
-            ("Budjetti on nyt valmis ja se lähtee hallitukselle perjantaina.", 1, "Bütçe hazır ve cuma günü yönetim kuruluna gidiyor.", true),
-            ("Hyvä. Kuka hoitaa asiakasesityksen?", 2, "Güzel. Müşteri sunumunu kim üstleniyor?", true),
+            ("Hyvää huomenta kaikille, aloitetaan viikkopalaveri.", 1, sampleTranslations[0], true),
+            ("Budjetti on nyt valmis ja se lähtee hallitukselle perjantaina.", 1, sampleTranslations[1], true),
+            ("Hyvä. Kuka hoitaa asiakasesityksen?", 2, sampleTranslations[2], true),
             ("Minä voin tehdä sen, kunhan saan luvut tiistaihin mennessä", 3, nil, false),
         ]
         transcript = sample.enumerated().map { (item: (offset: Int, element: (text: String, person: Int, translation: String?, isFinal: Bool))) -> LiveSegment in
