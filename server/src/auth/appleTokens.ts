@@ -142,8 +142,9 @@ export async function decryptAppleRefreshToken(keyBytes: Uint8Array, subject: st
       bytes.slice(ivBytes),
     );
   } catch (error: unknown) {
-    if (error instanceof DOMException || error instanceof Error) {
-      throw new AppleTokenDecryptError(`jeton çözülemedi: ${errorName(error)}`);
+    // WebCrypto, anahtar ya da ek veri uymazsa `OperationError` adlı DOMException fırlatır.
+    if (error instanceof DOMException) {
+      throw new AppleTokenDecryptError(`jeton çözülemedi: ${error.name}`);
     }
     throw error;
   }
@@ -275,7 +276,8 @@ export async function storeAppleAuthorizationCode(db: D1Database, platform: Plat
   try {
     grant = await exchangeAppleAuthorizationCode(platform, apple, code, now);
   } catch (error: unknown) {
-    if (error instanceof UpstreamError || error instanceof TypeError || (error instanceof DOMException && error.name === "TimeoutError")) {
+    // Apple'ın hata yanıtı ya da yeniden denemelerden sonra da süren ağ hatası / zaman aşımı.
+    if (error instanceof UpstreamError || isRetryableUpstreamError(error)) {
       log("error", "apple_token_exchange_failed", { error: errorName(error), status: error instanceof UpstreamError ? error.status : null });
       throw new ProviderApiError("apple_token", error instanceof UpstreamError && !error.retryable ? "upstream_rejected" : "upstream_unavailable", "Apple didn't accept the authorization code.");
     }
@@ -313,13 +315,7 @@ async function revokeStoredToken(platform: Platform, apple: ActiveAppleSignIn, u
     await revokeAppleRefreshToken(platform, apple, row.client_id, refreshToken, now);
     return true;
   } catch (error: unknown) {
-    if (
-      error instanceof AppleTokenDecryptError ||
-      error instanceof UpstreamError ||
-      error instanceof ConfigError ||
-      error instanceof TypeError ||
-      (error instanceof DOMException && error.name === "TimeoutError")
-    ) {
+    if (error instanceof AppleTokenDecryptError || error instanceof UpstreamError || error instanceof ConfigError || isRetryableUpstreamError(error)) {
       log("alert", "apple_token_revoke_failed", { userId, clientId: row.client_id, error: errorName(error), status: error instanceof UpstreamError ? error.status : null });
       return false;
     }
