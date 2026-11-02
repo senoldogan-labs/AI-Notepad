@@ -134,6 +134,10 @@ final class PhoneRecorder {
         if let blocked = phoneStartBlockMessage(account: account, now: Date()) {
             Self.logger.info("Hak durumu kaydı engelliyor, başlatılmadı")
             errorMessages = appendUnique(messages: [], message: blocked)
+            // Deneme bitti ya da plan sona erdi: abonelik ekranı açılır.
+            if account.requiresSubscription {
+                account.requestSubscription()
+            }
             return
         }
         phase = .starting
@@ -204,6 +208,10 @@ final class PhoneRecorder {
         } catch {
             Self.logger.error("Toplantı oturumu açılamadı, kayıt başlatılmadı, hata: \(String(describing: error), privacy: .private)")
             errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
+            // Sunucu abonelik istedi (deneme bitti, abonelik gerekli, deneme bu cihazda kullanıldı): abonelik ekranı açılır.
+            if let apiError = error as? HostedAPIError, let code = apiError.code, hostedSubscriptionRequiredCodes.contains(code) {
+                account.requestSubscription()
+            }
             // Ret aylık sınırdan ya da denemenin bitmesinden olabilir: hesap ekranı güncellensin.
             Task { await account.refresh() }
             microphone.stop()

@@ -4,8 +4,8 @@ import os
 
 // iPhone'un abonelik hesabına bağlandığı noktalar: hesap verisinin hazırlanması (Mac'teki karşılığı
 // App/Hosted/HostedAccountData.swift), kaydı engelleyen hak durumu ve plan durumunun metinleri, yasal sayfalar.
-// iPhone'da uygulama içinden App Store dışı bir satın alma yoluna yönlendirilmez (App Store 3.1.1): metinler abone
-// olmayı önermez, ödeme ya da müşteri portalı bağlantısı vermez; yalnızca durumu söyler.
+// iPhone'da abonelik yalnızca uygulama içi satın almayla (App Store, bkz. iOS/Purchases/) alınır; App Store dışı bir
+// satın alma yoluna (site, Stripe, müşteri portalı) bağlantı ya da yönlendirme yoktur (App Store 3.1.1).
 
 private let phoneHostedLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "PhoneHosted")
 
@@ -103,5 +103,52 @@ func phoneLegalURL(path: String) -> URL? {
     } catch {
         phoneHostedLogger.error("Site adresi geçersiz, yasal bağlantı gösterilmiyor, hata: \(String(describing: error), privacy: .private)")
         return nil
+    }
+}
+
+/// Abonelik ekranının kendiliğinden bir kez açılacağı durumun anahtarı (UserDefaults; gösterilince işaretlenir): deneme
+/// bitti (hesap başına bir kez) ya da abonelik sona erdi (biten dönem başına bir kez). Engel yoksa, aylık sınır dolduysa
+/// ya da ödeme gecikmişse (yeni abonelik çözmez) nil. Saf fonksiyondur.
+func phoneAutoPaywallKey(state: HostedAccountState) -> String? {
+    guard case .signedIn(let entitlements) = state, let block = hostedStartBlock(entitlements: entitlements) else {
+        return nil
+    }
+    switch block {
+    case .trialEnded:
+        return "phone.paywall.auto.trialEnded.\(entitlements.userId)"
+    case .subscriptionEnded:
+        let periodEnd: Int = Int(entitlements.subscription?.currentPeriodEnd.timeIntervalSince1970 ?? 0)
+        return "phone.paywall.auto.subscriptionEnded.\(entitlements.userId).\(periodEnd)"
+    case .monthlyCapReached, .paymentOverdue:
+        return nil
+    }
+}
+
+/// Hesap ekranında aboneliğin nerede yönetileceği.
+enum PhoneSubscriptionManagement: Equatable {
+    /// Abonelik yok (deneme ya da sona ermiş): "Abone ol" abonelik ekranını açar.
+    case subscribe
+    /// App Store aboneliği: "Aboneliği yönet" Apple'ın abonelik penceresini açar.
+    case appStore
+    /// Web (Stripe) aboneliği: yalnızca "web'de yönetiliyor" yazar; bağlantı yok (App Store 3.1.1).
+    case web
+    /// Ücretsiz tam erişim: yönetilecek bir şey yok.
+    case nothing
+}
+
+/// Hak durumundan hesap ekranının abonelik satırı: erişimi süren ya da ödemesi sorunlu App Store aboneliği Apple'da,
+/// erişimi süren ya da ödemesi gecikmiş Stripe aboneliği web'de yönetilir; ücretsiz erişimde bir şey yok; gerisinde
+/// abone olunur. Saf fonksiyondur.
+func phoneSubscriptionManagement(entitlements: HostedEntitlements) -> PhoneSubscriptionManagement {
+    if let appStore = entitlements.appStoreSubscription, appStore.access != .none || appStore.status == "billing_issue" {
+        return .appStore
+    }
+    switch hostedPlanStatus(entitlements: entitlements) {
+    case .subscribed, .ending, .grace, .paymentOverdue:
+        return entitlements.subscription?.paymentSource == .appStore ? .appStore : .web
+    case .complimentary:
+        return .nothing
+    case .trial, .expired:
+        return .subscribe
     }
 }

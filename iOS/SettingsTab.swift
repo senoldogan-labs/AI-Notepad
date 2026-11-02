@@ -29,6 +29,7 @@ struct PhoneSettingsTab: View {
                     } label: {
                         PhoneAccountRow(account: account)
                     }
+                    .accessibilityIdentifier("settings.account")
                 } header: {
                     Text("Hesap")
                 }

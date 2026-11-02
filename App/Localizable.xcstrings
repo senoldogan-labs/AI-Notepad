@@ -17144,6 +17144,386 @@
           }
         }
       }
+    },
+    "Abonelikler şu an yüklenemiyor; biraz sonra yeniden dene.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subscriptions can't be loaded right now; try again in a moment."
+          }
+        }
+      }
+    },
+    "Apple'ın abonelik penceresi açılamadı; yeniden dene.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple's subscription screen couldn't be opened; try again."
+          }
+        }
+      }
+    },
+    "App Store'a ulaşılamadı. Bağlantını denetleyip yeniden dene.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't reach the App Store. Check your connection and try again."
+          }
+        }
+      }
+    },
+    "Ödeme onay bekliyor (ör. Satın Alma İzni). Onaylanınca aboneliğin kendiliğinden açılır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The payment is waiting for approval (for example Ask to Buy). Your subscription starts automatically once it's approved."
+          }
+        }
+      }
+    },
+    "Bu cihazda satın alma kapalı (Ekran Süresi › İçerik ve Gizlilik Sınırlamaları).": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Purchases are turned off on this device (Screen Time › Content & Privacy Restrictions)."
+          }
+        }
+      }
+    },
+    "Bu abonelik şu an satın alınamıyor; biraz sonra yeniden dene.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This subscription can't be purchased right now; try again in a moment."
+          }
+        }
+      }
+    },
+    "Satın alma tamamlanamadı: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The purchase couldn't be completed: %@"
+          }
+        }
+      }
+    },
+    "Apple ödemeyi onayladı ama %@ aboneliğini henüz göremiyor. Yeniden ücret alınmaz; “Yeniden dene”ye bas ya da birkaç dakika sonra uygulamayı aç.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple confirmed the payment, but %@ can't see your subscription yet. You won't be charged again; tap “Try again” or open the app in a few minutes."
+          }
+        }
+      }
+    },
+    "Ücretsiz denemen bitti. Kayda devam etmek için bir plan seç.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your free trial has ended. Choose a plan to keep recording."
+          }
+        }
+      }
+    },
+    "Bunun için abonelik gerekiyor. Bir plan seç, hemen devam et.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This needs a subscription. Choose a plan and carry on right away."
+          }
+        }
+      }
+    },
+    "Ücretsiz denemen bitmek üzere.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your free trial is almost over."
+          }
+        }
+      }
+    },
+    "Her toplantın için tam erişim": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full access for every meeting"
+          }
+        }
+      }
+    },
+    "Mac ve iPhone'da tek abonelik": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One subscription for Mac and iPhone"
+          }
+        }
+      }
+    },
+    "Canlı yazıya dökme ve çeviri": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live transcript and translation"
+          }
+        }
+      }
+    },
+    "Yapay zekâ notları: özet, kararlar, görevler": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI notes: summary, decisions, tasks"
+          }
+        }
+      }
+    },
+    "Sor: toplantılarına sor, kaynağıyla cevap al": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask: question your meetings, get cited answers"
+          }
+        }
+      }
+    },
+    "Her ay yenilenen kayıt saatleri": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording hours that renew every month"
+          }
+        }
+      }
+    },
+    "Ayda %@ saat kayıt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ hours of recording a month"
+          }
+        }
+      }
+    },
+    "Aylık %@ karşılığı, yılda bir ödenir": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ a month, billed yearly"
+          }
+        }
+      }
+    },
+    "Her ay ödenir": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Billed monthly"
+          }
+        }
+      }
+    },
+    "aylık": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "per month"
+          }
+        }
+      }
+    },
+    "yıllık": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "per year"
+          }
+        }
+      }
+    },
+    "Satın alman tamamlanıyor…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finishing your purchase…"
+          }
+        }
+      }
+    },
+    "Bu Apple Hesabı'nda geri yüklenecek etkin abonelik yok.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There's no active subscription to restore on this Apple Account."
+          }
+        }
+      }
+    },
+    "Satın Alımları Geri Yükle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore Purchases"
+          }
+        }
+      }
+    },
+    "Ödeme, satın almayı onayladığında Apple Hesabı'ndan alınır. Abonelik, dönem bitmeden en az 24 saat önce iptal edilmezse aynı fiyat ve süreyle kendiliğinden yenilenir; yenileme ücreti dönemin son 24 saatinde alınır. Aboneliğini iPhone'da Ayarlar › adın › Abonelikler'den yönetebilir ya da iptal edebilirsin.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Payment is charged to your Apple Account when you confirm the purchase. The subscription renews automatically at the same price and length unless it's canceled at least 24 hours before the end of the current period; the renewal is charged within the last 24 hours of the period. You can manage or cancel it on your iPhone in Settings › your name › Subscriptions."
+          }
+        }
+      }
+    },
+    "Kullanım Koşulları (EULA)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terms of Use (EULA)"
+          }
+        }
+      }
+    },
+    "Aboneliğin etkin": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your subscription is active"
+          }
+        }
+      }
+    },
+    "Mac'te ve iPhone'da aynı hesapla giriş yaptığın her yerde tam erişimin var.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You have full access wherever you sign in with this account, on Mac and iPhone."
+          }
+        }
+      }
+    },
+    "Aboneliği yönet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manage subscription"
+          }
+        }
+      }
+    },
+    "Aboneliğin web'de yönetiliyor.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your subscription is managed on the web."
+          }
+        }
+      }
+    },
+    "Apple'ın abonelik penceresi açılamadı: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple's subscription screen couldn't be opened: %@"
+          }
+        }
+      }
+    },
+    "Hesabın ve sunucudaki tüm kayıtların silinir. Bu iPhone'daki toplantılar ve notlar silinmez.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your account and all your records on the server are deleted. Meetings and notes on this iPhone stay."
+          }
+        }
+      }
+    },
+    "Web aboneliğin hemen iptal edilir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your web subscription is canceled immediately."
+          }
+        }
+      }
+    },
+    "App Store aboneliğin hesabı silince iptal olmaz; Apple ücret almaya devam eder. Önce \"Aboneliği yönet\"ten iptal et.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deleting your account doesn't cancel your App Store subscription; Apple keeps charging you. Cancel it first under \"Manage subscription\"."
+          }
+        }
+      }
+    },
+    "App Store aboneliğin zaten yenilenmeyecek; yeniden ücret alınmaz.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your App Store subscription won't renew; you won't be charged again."
+          }
+        }
+      }
+    },
+    "Web aboneliğin hemen iptal edilir. App Store aboneliğin ise iptal olmaz; Apple ücret almaya devam eder. Önce \"Aboneliği yönet\"ten iptal et.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your web subscription is canceled immediately. Your App Store subscription isn't; Apple keeps charging you. Cancel it first under \"Manage subscription\"."
+          }
+        }
+      }
+    },
+    "Hesabın silindi, ama App Store aboneliğin iptal olmadı: Apple %@ tarihinde yeniden ücret alır. Aboneliği şimdi iptal et.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your account is deleted, but your App Store subscription isn't canceled: Apple charges you again on %@. Cancel the subscription now."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

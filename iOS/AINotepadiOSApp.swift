@@ -4,6 +4,8 @@ import AppIntents
 import os
 import SwiftUI
 
+private let phoneAppLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "App")
+
 /// iPhone uygulaması (Gistsmith): önce giriş (Apple ya da Google, Mac'teki Gistsmith'le aynı hesap), sonra bir kez yapay
 /// zekâ işleme açıklaması, sonra sekmeler (Kayıt, Toplantılar, Sor, Görevler, Ayarlar). Mac'le aynı çekirdeği ve
 /// görünümü kullanır; toplantılar giriş yapan hesabın bu iPhone'daki klasöründe durur (iCloud eşitlemesi yok).
@@ -48,6 +50,17 @@ struct AINotepadiOSApp: App {
         }
         #endif
         self.account = account
+        // App Store aboneliği (RevenueCat): oturum varsa hesabın kimliğiyle; tanıtım modunda anonim (sahte hesabın kimliği
+        // RevenueCat'e gönderilmez). Anahtar yoksa abonelik ekranı nedeni gösterir.
+        do {
+            #if DEBUG
+            try AppStorePurchases.shared.configure(userID: isDemoMode ? nil : account.signedInUserIDCache)
+            #else
+            try AppStorePurchases.shared.configure(userID: account.signedInUserIDCache)
+            #endif
+        } catch {
+            phoneAppLogger.error("RevenueCat yapılandırılamadı, hata: \(String(describing: error), privacy: .public)")
+        }
         let store: PhoneStore = PhoneStore()
         let recorder: PhoneRecorder = PhoneRecorder(store: store)
         let calendar: PhoneCalendar = PhoneCalendar()
@@ -117,6 +130,15 @@ private struct PhoneAppRoot: View {
             ask.loadHistory()
             store.applyRetention(now: Date())
             #if DEBUG
+            // `--paywall`: abonelik ekranı doğrudan açılır (App Store abonelik inceleme görseli).
+            if CommandLine.arguments.contains("--paywall") {
+                account.showPlans()
+            }
+            // `--sohbet <kimlik>`: saklanan Sor sohbeti açılır (ekran görüntüleri).
+            if let conversationID = launchConversationID(arguments: CommandLine.arguments) {
+                ask.open(conversationID: conversationID)
+                router.tab = .ask
+            }
             if CommandLine.arguments.contains("--ornek-kayit") {
                 recorder.showSampleRecording()
                 return
@@ -127,6 +149,15 @@ private struct PhoneAppRoot: View {
             #endif
             await recorder.resumeUnfinished()
         }
+        .onChange(of: account.signedInUserIDCache, initial: true) { (_: String?, userID: String?) in
+            // RevenueCat kimliği hesapla eşlenir: giriş, çıkış, hesap değişimi ve silme (satın alma bu hesaba yazılsın).
+            #if DEBUG
+            if isDemoMode {
+                return
+            }
+            #endif
+            AppStorePurchases.shared.syncIdentity(userID: userID)
+        }
         .onChange(of: account.queueTrigger) { (_: Int, _: Int) in
             guard account.isAccountDataLoaded else {
                 return
@@ -134,6 +165,12 @@ private struct PhoneAppRoot: View {
             Task { await recorder.runQueue() }
         }
     }
+}
+
+/// Abonelik ekranının açılma isteği (tam ekran sunum için kimlikli).
+struct PaywallRequest: Identifiable {
+    let reason: HostedUpsellMoment
+    var id: String { reason.rawValue }
 }
 
 /// Sekmeler.
@@ -171,6 +208,15 @@ func launchTab(arguments: [String]) -> PhoneTab {
         return .record
     }
     return tab
+}
+
+/// `--sohbet <kimlik>` başlatma argümanı: saklanan Sor sohbetinin kimliği (görsel kontrol için); yoksa ya da UUID değilse
+/// nil. Saf fonksiyondur.
+func launchConversationID(arguments: [String]) -> UUID? {
+    guard let index = arguments.firstIndex(of: "--sohbet"), arguments.indices.contains(index + 1) else {
+        return nil
+    }
+    return UUID(uuidString: arguments[index + 1])
 }
 
 /// `--toplanti <kimlik>` başlatma argümanı toplantıyı doğrudan açar (görsel kontrol için). Saf fonksiyondur.
@@ -221,6 +267,31 @@ struct RootView: View {
         }
         .tabViewBottomAccessory(isEnabled: player.meetingID != nil) {
             MiniPlayer(player: player, store: store, router: router)
+        }
+        // Abonelik ekranı: "Abone ol" (Hesap, kayıt kartı), deneme bitince bir kez ve sunucu aboneliği isteyince
+        // (`HostedAccount.upsell`).
+        .fullScreenCover(item: Binding<PaywallRequest?>(
+            get: { account.upsell.map { PaywallRequest(reason: $0) } },
+            set: { (request: PaywallRequest?) -> Void in
+                if request == nil {
+                    account.dismissUpsell()
+                }
+            }
+        )) { (request: PaywallRequest) in
+            PhonePaywall(account: account, reason: request.reason) { account.dismissUpsell() }
+        }
+        .onChange(of: phoneAutoPaywallKey(state: account.state), initial: true) { (_: String?, key: String?) in
+            // Deneme bitince (ya da abonelik sona erince) abonelik ekranı bir kez kendiliğinden açılır; kayıt sürerken açılmaz.
+            guard let key, recorder.phase == .idle, !UserDefaults.standard.bool(forKey: key) else {
+                return
+            }
+            #if DEBUG
+            if isDemoMode {
+                return
+            }
+            #endif
+            UserDefaults.standard.set(true, forKey: key)
+            account.showPlans()
         }
         .fullScreenCover(isPresented: Binding<Bool>(get: { !onboardingCompleted }, set: { (_: Bool) -> Void in })) {
             PhoneOnboarding {
