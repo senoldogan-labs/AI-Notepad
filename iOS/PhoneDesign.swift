@@ -271,3 +271,42 @@ struct PhoneErrorList: View {
         }
     }
 }
+
+/// Giriş ve yapay zekâ açıklaması ekranlarının üstündeki pastel kart: durağan film gradyanı (hareketsiz; bkz. tasarım
+/// kuralları), içerik ortada, açık renk düzeninde (koyu modda da pastel kalır).
+struct PhoneHeroCard<Content: View>: View {
+    let seed: String
+    let palette: FilmPalette
+    let height: CGFloat
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        FilmGradient(seed: seed, palette: palette)
+            .overlay { content().padding(24) }
+            .frame(maxWidth: .infinity)
+            .frame(height: height)
+            .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
+            .environment(\.colorScheme, .light)
+    }
+}
+
+/// Pastel kartın yüksekliği: ekranın (güvenli alan içi) belirli bir oranı, en az ve en çok sınırlarla; küçük iPhone'da
+/// düğmeler kaydırmadan görünür, büyükte kart orantılı büyür. Saf fonksiyondur.
+func phoneHeroHeight(screenHeight: CGFloat, ratio: CGFloat, minimum: CGFloat, maximum: CGFloat) -> CGFloat {
+    min(max(screenHeight * ratio, minimum), maximum)
+}
+
+/// Tam genişlik birincil düğme yazısı (koyu hap, açık yazı): giriş ve açıklama ekranlarında aynı ölçü.
+struct PhonePrimaryButtonLabel: View {
+    let title: LocalizedStringKey
+
+    var body: some View {
+        Text(title)
+            .appFont(size: 16, weight: .semibold)
+            .foregroundStyle(Theme.onPrimary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(Theme.primary, in: Capsule())
+            .contentShape(Capsule())
+    }
+}

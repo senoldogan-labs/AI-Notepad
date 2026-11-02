@@ -67,7 +67,7 @@ struct AINotepadiOSApp: App {
         // Kayıt başlarken takvimde süren toplantıya bağlanır (takvim açıksa).
         recorder.currentCalendarMeeting = { () -> CalendarMeeting? in calendar.meetingForRecording(now: Date()) }
         let router: PhoneRouter = PhoneRouter(
-            tab: launchTab(arguments: CommandLine.arguments), meetingsPath: launchMeetingPath(arguments: CommandLine.arguments)
+            tab: launchTab(arguments: CommandLine.arguments), meetingsPath: launchMeetingPath(arguments: CommandLine.arguments), askPath: []
         )
         _store = State(initialValue: store)
         _recorder = State(initialValue: recorder)
@@ -134,10 +134,11 @@ private struct PhoneAppRoot: View {
             if CommandLine.arguments.contains("--paywall") {
                 account.showPlans()
             }
-            // `--sohbet <kimlik>`: saklanan Sor sohbeti açılır (ekran görüntüleri).
+            // `--sohbet <kimlik>`: saklanan Sor sohbeti tam ekran açılır (ekran görüntüleri).
             if let conversationID = launchConversationID(arguments: CommandLine.arguments) {
                 ask.open(conversationID: conversationID)
                 router.tab = .ask
+                router.askPath = [.conversation]
             }
             if CommandLine.arguments.contains("--ornek-kayit") {
                 recorder.showSampleRecording()
@@ -145,6 +146,7 @@ private struct PhoneAppRoot: View {
             }
             if let index = CommandLine.arguments.firstIndex(of: "--soru"), CommandLine.arguments.indices.contains(index + 1) {
                 ask.ask(question: CommandLine.arguments[index + 1], meetingIDs: [], recipeTitle: nil)
+                router.askPath = [.conversation]
             }
             #endif
             await recorder.resumeUnfinished()
@@ -182,16 +184,19 @@ enum PhoneTab: String, Hashable {
     case settings = "ayarlar"
 }
 
-/// Gezinme durumu: seçili sekme ve Toplantılar'da açık toplantı (Sor'daki kaynak, görev ya da mini çalar oraya götürür).
+/// Gezinme durumu: seçili sekme, Toplantılar'da açık toplantı (Sor'daki kaynak, görev ya da mini çalar oraya götürür)
+/// ve Sor'da açık sohbet ya da geçmiş.
 @MainActor
 @Observable
 final class PhoneRouter {
     var tab: PhoneTab
     var meetingsPath: [String]
+    var askPath: [AskRoute]
 
-    init(tab: PhoneTab, meetingsPath: [String]) {
+    init(tab: PhoneTab, meetingsPath: [String], askPath: [AskRoute]) {
         self.tab = tab
         self.meetingsPath = meetingsPath
+        self.askPath = askPath
     }
 
     /// Toplantıyı Toplantılar sekmesinde açar.

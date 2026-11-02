@@ -119,3 +119,20 @@ extension CloudTests {
     }
 }
 }
+
+/// Abonelik sürümünün canlı metin hataları konuşma tanıma hizmetinin adını söylemez (adlar gizlilik politikasında).
+@Suite struct HostedLiveFailureMessageTests {
+    @Test func hostedMessagesNameNoProvider() {
+        let errors: [CloudSTTError] = [
+            .connectionFailed(service: "deepgram", reason: "akış kapandı"),
+            .http(service: "deepgram", status: 401, body: ""),
+            .http(service: "deepgram", status: 503, body: ""),
+            .malformedMessage(service: "deepgram", body: "{}"),
+        ]
+        for error in errors {
+            let message: String = hostedLiveFailureMessage(error: error)
+            #expect(!message.isEmpty)
+            #expect(!message.lowercased().contains("deepgram"), "metin: \(message)")
+        }
+    }
+}
