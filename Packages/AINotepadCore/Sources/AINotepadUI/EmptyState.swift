@@ -205,11 +205,16 @@ private struct EmptyStateSteps: View {
 
 /// Sahnenin küresi: durgun film gradyanı (paletin bulutları, grenli doku) daire içinde, arkasında aynı renklerin
 /// yumuşak parıltısı; ortada koyu mürekkep simge (pastel zeminde beyaz simge kayboluyordu).
-struct EmptyStateOrb: View {
+public struct EmptyStateOrb: View {
     let symbol: String
     let palette: FilmPalette
 
-    var body: some View {
+    public init(symbol: String, palette: FilmPalette) {
+        self.symbol = symbol
+        self.palette = palette
+    }
+
+    public var body: some View {
         ZStack {
             Circle()
                 .fill(palette.colors.base.opacity(0.22))

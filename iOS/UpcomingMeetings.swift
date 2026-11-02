@@ -3,7 +3,7 @@ import AINotepadUI
 import SwiftUI
 
 /// Kayıt ekranında sıradaki toplantılar (takvim açıksa, önümüzdeki 12 saat): saat, başlık, katılımcılar; görüşme
-/// bağlantısı varsa "Katıl". Süren toplantı "Şimdi" ile işaretlenir: o sırada başlatılan kayıt onun adını alır. Takvim
+/// bağlantısı varsa "Katıl"; sıradaki toplantı yoksa görünmez. Süren toplantı "Şimdi" ile işaretlenir: o sırada başlatılan kayıt onun adını alır. Takvim
 /// izni yoksa kısa bir uyarı ve Ayarlar'a geçiş.
 struct UpcomingCalendarSection: View {
     let calendar: PhoneCalendar
@@ -18,13 +18,10 @@ struct UpcomingCalendarSection: View {
                 let now: Date = context.date
                 let items: [CalendarMeeting] = upcomingMeetings(meetings: calendar.meetings, now: now, horizonSec: 12 * 3600)
                 let current: CalendarMeeting? = currentMeeting(meetings: calendar.meetings, now: now)
-                VStack(alignment: .leading, spacing: 10) {
-                    PhoneSectionHeader(title: "Sıradaki toplantılar", actionTitle: nil, action: nil)
-                    if items.isEmpty {
-                        Text("Önümüzdeki 12 saatte takvimde toplantı yok.")
-                            .appFont(size: 13, weight: .regular)
-                            .foregroundStyle(Theme.muted)
-                    } else {
+                // Sıradaki toplantı yoksa bölüm hiç görünmez (boş ana ekran sade kalsın).
+                if !items.isEmpty {
+                    VStack(alignment: .leading, spacing: 10) {
+                        PhoneSectionHeader(title: "Sıradaki toplantılar", actionTitle: nil, action: nil)
                         VStack(spacing: 0) {
                             ForEach(Array(items.prefix(4).enumerated()), id: \.element.id) { (item: (offset: Int, element: CalendarMeeting)) in
                                 if item.offset > 0 {

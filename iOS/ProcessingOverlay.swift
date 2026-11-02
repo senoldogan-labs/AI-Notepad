@@ -23,9 +23,16 @@ func phoneProcessingProgress(
     return PhoneProcessingProgress(meetingID: id, stepIndex: step.rawValue + 1)
 }
 
+/// Kayıt ve hazırlık odaklı tam ekrandır: kayıt sürerken, bitirilirken ve hazırlık katmanı açıkken sekme çubuğu gizlenir.
+/// Saf fonksiyondur.
+func phoneRecordingHidesTabBar(phase: RecorderPhase, progress: PhoneProcessingProgress?) -> Bool {
+    phase == .recording || phase == .finishing || progress != nil
+}
+
 /// Kayıt bitirilirken ve biten toplantı işlenirken (Mac'teki işleme katmanı gibi): arkadaki ekran durağan bulanıklaşır,
 /// ortada küçük animasyonlu simge, adımlar ve ilerleme. "Arka planda devam et" katmanı kapatır (hazırlık kartı ana
-/// ekranda kalır). Kullanıcı Kayıt sekmesinde beklediyse işleme bitince toplantının sayfası açılır.
+/// ekranda kalır). Kullanıcı Kayıt sekmesinde beklediyse işleme bitince toplantının sayfası açılır. Kayıt ve katman
+/// sürerken sekme çubuğu gizlidir (katmanın altında görünmesin).
 struct PhoneProcessingOverlayHost: ViewModifier {
     let recorder: PhoneRecorder
     let store: PhoneStore
@@ -63,6 +70,7 @@ struct PhoneProcessingOverlayHost: ViewModifier {
                 }
             }
             .animation(.easeInOut(duration: 0.3), value: progress)
+            .toolbar(phoneRecordingHidesTabBar(phase: recorder.phase, progress: progress) ? .hidden : .visible, for: .tabBar)
             .onChange(of: recorder.phase) { (_: RecorderPhase, phase: RecorderPhase) in
                 // Yeni kayıt: önceki kayıtta kapatılan katman bu kayıtta yeniden görünür.
                 if phase == .recording {

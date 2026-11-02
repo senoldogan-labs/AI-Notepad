@@ -31,101 +31,107 @@ struct TasksTab: View {
             }
         }
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    if !all.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack(alignment: .firstTextBaseline) {
-                                Text(verbatim: "\(doneCount)/\(all.count)")
-                                    .appFont(size: 30, weight: .regular)
-                                    .tracking(-0.6)
-                                    .monospacedDigit()
-                                Text("tamamlandı")
-                                    .appFont(size: 14, weight: .regular)
+            if all.isEmpty {
+                // Hiç görev yok: ilerleme ve süzgeç yerine yalnız ortada boş durum.
+                emptyState(hasTasks: false, doneCount: 0)
+                    .background(Theme.background)
+                    .navigationTitle("Görevlerim")
+            } else {
+                taskList(all: all, doneCount: doneCount, shown: shown, groups: groups)
+            }
+        }
+    }
+
+    /// Görev listesi: ilerleme, süzgeç ve toplantıya göre gruplu görevler; süzgeçte görev yoksa ortada boş durum.
+    private func taskList(
+        all: [(record: MeetingRecord, task: NoteTask)], doneCount: Int, shown: [(record: MeetingRecord, task: NoteTask)],
+        groups: [(record: MeetingRecord, tasks: [NoteTask])]
+    ) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(verbatim: "\(doneCount)/\(all.count)")
+                            .appFont(size: 30, weight: .regular)
+                            .tracking(-0.6)
+                            .monospacedDigit()
+                        Text("tamamlandı")
+                            .appFont(size: 14, weight: .regular)
+                            .foregroundStyle(Theme.muted)
+                    }
+                    ProgressView(value: Double(doneCount), total: Double(max(all.count, 1)))
+                        .tint(appearance.accent.color)
+                }
+                PillTabs(selection: $filter, options: [
+                    (TaskFilter.open, "Açık · \(all.count - doneCount)"),
+                    (TaskFilter.done, "Tamamlanan · \(doneCount)"),
+                ])
+                ForEach(groups, id: \.record.id) { (group: (record: MeetingRecord, tasks: [NoteTask])) in
+                    VStack(alignment: .leading, spacing: 8) {
+                        Button {
+                            router.open(meetingID: group.record.id)
+                        } label: {
+                            HStack(spacing: 8) {
+                                CoverBackground(seed: group.record.id)
+                                    .frame(width: 18, height: 18)
+                                    .clipShape(Circle())
+                                Text(group.record.note?.title ?? group.record.title)
+                                    .appFont(size: 13, weight: .semibold)
+                                    .lineLimit(1)
+                                Text(group.record.startedAt.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(interfaceLocale())))
+                                    .appFont(size: 12, weight: .regular)
+                                    .foregroundStyle(Theme.muted)
+                                Image(systemName: "chevron.right")
+                                    .appFont(size: 10, weight: .semibold)
                                     .foregroundStyle(Theme.muted)
                             }
-                            ProgressView(value: Double(doneCount), total: Double(max(all.count, 1)))
-                                .tint(appearance.accent.color)
+                            .foregroundStyle(Theme.ink)
                         }
-                    }
-                    PillTabs(selection: $filter, options: [
-                        (TaskFilter.open, "Açık · \(all.count - doneCount)"),
-                        (TaskFilter.done, "Tamamlanan · \(doneCount)"),
-                    ])
-                    if shown.isEmpty {
-                        if filter == .done {
-                            EmptyStateHero(
-                                symbol: "checkmark.circle", title: "Henüz tamamlanan yok",
-                                message: "Bir görevin dairesine dokununca buraya taşınır; bitirdiklerin burada birikir.", palette: .sunset, steps: []
-                            ) {
-                                EmptyView()
-                            }
-                        } else if doneCount > 0 {
-                            EmptyStateHero(
-                                symbol: "party.popper.fill", title: "Açık görevin kalmadı",
-                                message: "Hepsi tamamlandı. Yeni toplantılarda sana düşen işler buraya gelir.", palette: .sunset, steps: []
-                            ) {
-                                EmptyView()
-                            }
-                            .overlay { ConfettiBurst(palette: .sunset) }
-                        } else {
-                            EmptyStateHero(
-                                symbol: "checklist", title: "Henüz sana düşen görev yok",
-                                message: "Toplantı bitince not yazılır; içinde senin adına yazılan işler burada toplanır.",
-                                palette: .sunset,
-                                steps: [
-                                    EmptyStateStep(symbol: "mic.fill", title: "Kayıt"),
-                                    EmptyStateStep(symbol: "sparkles", title: "Not yazılır"),
-                                    EmptyStateStep(symbol: "checkmark.circle", title: "Görevlerin burada"),
-                                ]
-                            ) {
-                                if userName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                    Button("Adını yaz (görevlerin tanınsın)", systemImage: "person.text.rectangle") { router.tab = .settings }
-                                        .buttonStyle(.pillPrimary)
+                        .buttonStyle(.plain)
+                        ForEach(group.tasks, id: \.trackingKey) { (task: NoteTask) in
+                            PhoneTaskRow(record: group.record, task: task, showsMeeting: false) {
+                                withAnimation(.smooth(duration: 0.25)) {
+                                    store.toggleTask(meetingID: group.record.id, task: task)
                                 }
                             }
                         }
                     }
-                    ForEach(groups, id: \.record.id) { (group: (record: MeetingRecord, tasks: [NoteTask])) in
-                        VStack(alignment: .leading, spacing: 8) {
-                            Button {
-                                router.open(meetingID: group.record.id)
-                            } label: {
-                                HStack(spacing: 8) {
-                                    CoverBackground(seed: group.record.id)
-                                        .frame(width: 18, height: 18)
-                                        .clipShape(Circle())
-                                    Text(group.record.note?.title ?? group.record.title)
-                                        .appFont(size: 13, weight: .semibold)
-                                        .lineLimit(1)
-                                    Text(group.record.startedAt.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(interfaceLocale())))
-                                        .appFont(size: 12, weight: .regular)
-                                        .foregroundStyle(Theme.muted)
-                                    Image(systemName: "chevron.right")
-                                        .appFont(size: 10, weight: .semibold)
-                                        .foregroundStyle(Theme.muted)
-                                }
-                                .foregroundStyle(Theme.ink)
-                            }
-                            .buttonStyle(.plain)
-                            ForEach(group.tasks, id: \.trackingKey) { (task: NoteTask) in
-                                PhoneTaskRow(record: group.record, task: task, showsMeeting: false) {
-                                    withAnimation(.smooth(duration: 0.25)) {
-                                        store.toggleTask(meetingID: group.record.id, task: task)
-                                    }
-                                }
-                            }
-                        }
-                        .transition(.opacity)
-                    }
+                    .transition(.opacity)
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 8)
-                .animation(.smooth(duration: 0.3), value: shown.map(\.task.trackingKey))
             }
-            .scrollIndicators(.hidden)
-            .background(Theme.background)
-            .navigationTitle("Görevlerim")
+            .padding(.horizontal, 20)
+            .padding(.vertical, 8)
+            .animation(.smooth(duration: 0.3), value: shown.map(\.task.trackingKey))
+        }
+        .scrollIndicators(.hidden)
+        .overlay {
+            if shown.isEmpty {
+                emptyState(hasTasks: !all.isEmpty, doneCount: doneCount)
+            }
+        }
+        .background(Theme.background)
+        .navigationTitle("Görevlerim")
+    }
+
+    /// Ekranın ortasındaki boş durum: hiç görev yok, açık görev kalmadı ya da henüz tamamlanan yok.
+    @ViewBuilder
+    private func emptyState(hasTasks: Bool, doneCount: Int) -> some View {
+        if !hasTasks {
+            PhoneEmptyState(symbol: "checklist", title: "Henüz görev yok", message: "Toplantılarda sana düşen işler burada toplanır.") {
+                if userName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Button("Adını yaz", systemImage: "person.text.rectangle") { router.tab = .settings }
+                        .buttonStyle(.pillPrimary)
+                }
+            }
+        } else if filter == .done {
+            PhoneEmptyState(symbol: "checkmark.circle", title: "Henüz tamamlanan yok", message: "Bitirdiğin görevler burada birikir.") {
+                EmptyView()
+            }
+        } else if doneCount > 0 {
+            PhoneEmptyState(symbol: "party.popper.fill", title: "Açık görevin kalmadı", message: "Yeni toplantılarda sana düşen işler buraya gelir.") {
+                EmptyView()
+            }
+            .overlay { ConfettiBurst(palette: .sunset) }
         }
     }
 }

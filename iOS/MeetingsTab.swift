@@ -29,23 +29,6 @@ struct MeetingsTab: View {
                     if !store.meetings.isEmpty {
                         MeetingScopeChips(records: store.meetings, selection: $scope)
                     }
-                    if store.meetings.isEmpty {
-                        EmptyStateHero(
-                            symbol: "waveform", title: "Henüz toplantı yok",
-                            message: "Kayıt sekmesinden yüz yüze bir toplantıyı kaydet; bitince notu, görevleri ve konuşmacılı metni burada.",
-                            palette: .sunset,
-                            steps: [
-                                EmptyStateStep(symbol: "mic.fill", title: "Kayıt"),
-                                EmptyStateStep(symbol: "sparkles", title: "Not yazılır"),
-                                EmptyStateStep(symbol: "checklist", title: "Görevler hazır"),
-                            ]
-                        ) {
-                            Button("Kaydı başlat", systemImage: "mic.fill") { router.tab = .record }
-                                .buttonStyle(.pillPrimary)
-                        }
-                    } else if sections.isEmpty {
-                        EmptyStateCard(symbol: "magnifyingglass", title: "Eşleşen toplantı yok", message: nil)
-                    }
                     ForEach(sections) { (section: MeetingSection) in
                         Text(section.title)
                             .appFont(size: 13, weight: .semibold)
@@ -70,33 +53,41 @@ struct MeetingsTab: View {
                 .padding(.bottom, 24)
             }
             .scrollIndicators(.hidden)
+            .overlay {
+                // Boş arşiv ya da eşleşmeyen arama: ekranın ortasında kısa bir boş durum.
+                if store.meetings.isEmpty {
+                    PhoneEmptyState(symbol: "waveform", title: "Henüz toplantı yok", message: "Kaydettiğin toplantılar notu ve görevleriyle burada durur.") {
+                        Button("Kaydı başlat", systemImage: "mic.fill") { router.tab = .record }
+                            .buttonStyle(.pillPrimary)
+                    }
+                } else if sections.isEmpty {
+                    PhoneEmptyState(symbol: "magnifyingglass", title: "Eşleşen toplantı yok", message: "Başka bir kelimeyle ara.") {
+                        EmptyView()
+                    }
+                }
+            }
             .background(Theme.background)
             .navigationTitle("Toplantılar")
             .searchable(text: $query, prompt: "Toplantılarda ara")
             .navigationDestination(for: String.self) { (id: String) in
                 if let record = store.meetings.first(where: { $0.id == id }) {
+                    // Onay toplantı sayfasının kendisinde sorulur (listeye bağlı onay sayfa kapanana dek görünmüyordu).
                     MeetingReadView(record: record, store: store, player: player, isRecording: isRecording) {
-                        pendingDelete = record
+                        delete(record: record)
                     }
                     .navigationTransition(.zoom(sourceID: id, in: cardTransition))
                 } else {
                     // Toplantı silindi (ör. Mac'ten): boş sayfa yerine neden görünür.
-                    EmptyStateCard(symbol: "doc.questionmark", title: "Toplantı bulunamadı", message: "Bu toplantı silinmiş olabilir.")
-                        .padding(20)
-                        .frame(maxHeight: .infinity, alignment: .top)
-                        .background(Theme.background)
+                    PhoneEmptyState(symbol: "doc.questionmark", title: "Toplantı bulunamadı", message: "Bu toplantı silinmiş olabilir.") {
+                        EmptyView()
+                    }
+                    .background(Theme.background)
                 }
             }
             .refreshable { await store.reloadAndWait() }
-            .confirmationDialog(
-                "Toplantı silinsin mi?", isPresented: Binding<Bool>(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
-                titleVisibility: .visible, presenting: pendingDelete
-            ) { (record: MeetingRecord) in
-                Button("Sil", role: .destructive) { delete(record: record) }
-            } message: { (_: MeetingRecord) in
-                Text("Not, transkript ve ses kalıcı olarak silinir; geri alınamaz.")
-            }
         }
+        // Uzun basınca silme: ekranın ortasında uyarı (kartın üstünde açılan menü listeye bağlıydı, sayfadayken görünmüyordu).
+        .modifier(MeetingDeleteConfirmation(pending: $pendingDelete) { (record: MeetingRecord) -> Void in delete(record: record) })
     }
 
     private func delete(record: MeetingRecord) {
@@ -109,6 +100,30 @@ struct MeetingsTab: View {
             router.meetingsPath.removeAll { $0 == record.id }
         } catch {
             deleteError = String(localized: "Toplantı silinemedi: \(userFacingMessage(error: error))")
+        }
+    }
+}
+
+/// "Toplantı silinsin mi?" uyarısı: `pending` doluyken ekranın ortasında açılır; "Sil" onaylar, "Vazgeç" kapatır. Uyarı
+/// bağlandığı görünüm ekrandayken görünür: listede liste, toplantı sayfasında sayfa kendi uyarısını taşır.
+struct MeetingDeleteConfirmation: ViewModifier {
+    @Binding var pending: MeetingRecord?
+    let onConfirm: @MainActor (MeetingRecord) -> Void
+
+    func body(content: Content) -> some View {
+        content.alert(
+            "Toplantı silinsin mi?",
+            isPresented: Binding<Bool>(get: { pending != nil }, set: { (shown: Bool) -> Void in
+                if !shown {
+                    pending = nil
+                }
+            }),
+            presenting: pending
+        ) { (record: MeetingRecord) in
+            Button("Sil", role: .destructive) { onConfirm(record) }
+            Button("Vazgeç", role: .cancel) {}
+        } message: { (_: MeetingRecord) in
+            Text("Not, transkript ve ses kalıcı olarak silinir; geri alınamaz.")
         }
     }
 }
@@ -198,8 +213,11 @@ struct MeetingReadView: View {
     let store: PhoneStore
     let player: MeetingAudioPlayer
     let isRecording: Bool
+    /// Onaylanan silme: toplantıyı siler ve sayfayı kapatır (onay bu sayfada sorulur).
     let onDelete: @MainActor () -> Void
     @State private var pane: MeetingPane = .summary
+    /// Silme onayı bekleyen toplantı (⋯ › Sil).
+    @State private var pendingDelete: MeetingRecord?
     @State private var errorMessage: String?
     /// Konuşmacılara ad verme sayfası açık.
     @State private var isNamingSpeakers: Bool = false
@@ -320,7 +338,7 @@ struct MeetingReadView: View {
                         }
                         .disabled(record.status == .recording || record.status == .processing || store.regeneratingIDs.contains(record.id))
                     }
-                    Button("Sil", systemImage: "trash", role: .destructive, action: onDelete)
+                    Button("Sil", systemImage: "trash", role: .destructive) { pendingDelete = record }
                         .disabled(!isEditable)
                 } label: {
                     Image(systemName: "ellipsis")
@@ -328,6 +346,7 @@ struct MeetingReadView: View {
                 .accessibilityLabel("Diğer")
             }
         }
+        .modifier(MeetingDeleteConfirmation(pending: $pendingDelete) { (_: MeetingRecord) -> Void in onDelete() })
         .sheet(item: $exported) { (file: ExportedFile) in
             ActivityShareSheet(items: [file.url])
                 .presentationDetents([.medium, .large])
