@@ -141,13 +141,15 @@ public actor HostedClient: HostedLLMCredentialSource {
         }
     }
 
-    /// Hesabı siler (`DELETE /v1/me`, tekrarı zararsız) ve yerel oturumu kaldırır.
-    public func deleteAccount() async throws {
-        _ = try await authorized(path: "/v1/me", method: "DELETE", body: nil, isRetryable: isRetryableRepeatableRequest)
+    /// Hesabı siler (`DELETE /v1/me`, tekrarı zararsız) ve yerel oturumu kaldırır. Yanıt silinen hesabın süren App Store
+    /// aboneliğini söyler (Apple onu iptal etmez); eski sunucunun gövdesiz yanıtında nil.
+    public func deleteAccount() async throws -> HostedAccountDeletion? {
+        let data: Data = try await authorized(path: "/v1/me", method: "DELETE", body: nil, isRetryable: isRetryableRepeatableRequest)
         meetingID = nil
         sessionGeneration += 1
         try setTokens(nil)
         hostedLogger.info("Hesap silindi")
+        return data.isEmpty ? nil : try decode(HostedAccountDeletion.self, data: data, path: "/v1/me")
     }
 
     // MARK: Haklar, toplantı, ödeme

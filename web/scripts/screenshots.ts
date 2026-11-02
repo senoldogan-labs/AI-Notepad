@@ -47,7 +47,8 @@ type AccountState =
   | "overdue"
   | "ended"
   | "invite-month"
-  | "complimentary";
+  | "complimentary"
+  | "app-store";
 
 /** Hesap sayfasının örnek yanıtı: bir plan durumu ya da `/v1/me`'nin hiç okunamadığı durum (yeniden deneme düğmesi). */
 type AccountFixture = AccountState | "load-failed";
@@ -109,6 +110,8 @@ const targets: readonly Target[] = [
   { name: "account-ended", path: "/account", ready: "#account-content:not(.hidden)", signedIn: true, account: "ended" },
   { name: "account-invite-month", path: "/account", ready: "#referral-card:not(.hidden) #referral-note:not(.hidden)", signedIn: true, account: "invite-month" },
   { name: "account-complimentary", path: "/account", ready: "#referral-card:not(.hidden) #referral-stats .stat", signedIn: true, account: "complimentary" },
+  // iPhone'dan (App Store) abone: Stripe "Yönet" düğmesi yok, durum satırı Apple'da yönetmeyi söyler.
+  { name: "account-app-store", path: "/account", ready: "#account-content:not(.hidden)", signedIn: true, account: "app-store" },
   { name: "account-load-failed", path: "/account", ready: "#account-retry:not(.hidden)", signedIn: true, account: "load-failed" },
   // Davet koduyla gelinir: kod saklanır (sonraki hesap sayfalarında da dolar), bu yüzden hesap sayfalarından sonra.
   { name: "account-invite", path: "/account?code=k7m2-qx9d&plan=monthly", ready: "#invite-status.invite__ok", signedIn: true, account: "trial-ended" },
@@ -193,6 +196,7 @@ function meFixture(state: AccountState, now: Date): object {
   const monthlyResetsAt: string = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString();
   const base = { userId: "usr_example", trialMeetingsTotal: 3, trialDays: 7, monthlyHoursCap: 10, monthlyResetsAt };
   const subscription = (access: "active" | "grace", cancelAt: string | null): object => ({
+    source: "stripe",
     status: access === "grace" ? "past_due" : "active",
     plan: access === "grace" ? "monthly" : cancelAt === null ? "yearly" : "monthly",
     currentPeriodEnd: at(20),
@@ -240,6 +244,15 @@ function meFixture(state: AccountState, now: Date): object {
       trialEndsAt: null,
       monthlyHoursUsed: 2.3,
       subscription: { status: "active", plan: "monthly", currentPeriodEnd: at(36_500), cancelAt: null, complimentary: true, access: "active", graceEndsAt: null },
+    },
+    "app-store": {
+      ...base,
+      plan: "subscription",
+      trialMeetingsLeft: 0,
+      trialEndsAt: null,
+      monthlyHoursUsed: 1.9,
+      subscriptionSources: ["app_store"],
+      subscription: { source: "app_store", status: "active", plan: "yearly", currentPeriodEnd: at(300), cancelAt: null, complimentary: false, access: "active", graceEndsAt: null },
     },
   };
   return states[state];
@@ -370,7 +383,21 @@ function fixtures(now: Date): Readonly<Record<string, object>> {
       downloads: { total: 1284, last30Days: days.map((day: string, index: number) => ({ day, count: wave(index, 9) })) },
       users: { total: 412, newLast30Days: days.map((day: string, index: number) => ({ day, count: wave(index + 5, 3) })), byProvider: { apple: 251, google: 161 } },
       trials: { activeTrialUsers: 96, exhaustedTrialUsers: 188 },
-      subscriptions: { active: 71, grace: 2, ending: 5, canceledTotal: 14, monthly: 46, yearly: 18, mrrUsd: 349.04, complimentary: 3, freeInviteMonth: 2 },
+      subscriptions: {
+        active: 71,
+        grace: 2,
+        ending: 5,
+        canceledTotal: 14,
+        monthly: 46,
+        yearly: 18,
+        mrrUsd: 349.04,
+        bySource: {
+          stripe: { active: 59, grace: 2, ending: 4, monthly: 38, yearly: 15, mrrUsd: 288.87 },
+          appStore: { active: 12, grace: 0, ending: 1, monthly: 8, yearly: 3, mrrUsd: 51.15, grossMrrUsd: 60.17, commissionRate: 0.15, trial: 1, sandbox: 2 },
+        },
+        complimentary: 3,
+        freeInviteMonth: 2,
+      },
       referrals: { joined: 9, pending: 3, granted: 5, voided: 2, voidedByReason: [{ reason: "card_reused", count: 1 }, { reason: "refunded", count: 1 }] },
       meetings: { last30Days: days.map((day: string, index: number) => ({ day, trial: wave(index, 4), subscription: wave(index + 2, 7) })), hoursThisMonth: 213.5 },
       spend: { todayUsd: 6.42, ceilingUsd: 25, last30Days: days.map((day: string, index: number) => ({ day, usd: wave(index + 1, 2.4) + 0.5 })) },
@@ -727,6 +754,9 @@ function fixtures(now: Date): Readonly<Record<string, object>> {
                 subscriptionsYearly: 5 + Math.round((index - 50) * 0.2),
                 activeUsers7d: 40 + (index - 50) + (index % 5),
                 mrrListUsd: (20 + Math.round((index - 50) * 0.9)) * 5.99 + ((5 + Math.round((index - 50) * 0.2)) * 49) / 12,
+                appStoreMonthly: Math.round((index - 50) * 0.2),
+                appStoreYearly: Math.round((index - 50) * 0.07),
+                appStoreMrrNetUsd: (Math.round((index - 50) * 0.2) * 5.99 + (Math.round((index - 50) * 0.07) * 49) / 12) * 0.85,
                 spendAnthropicUsd: 3 + (index % 7) * 0.6,
                 spendElevenLabsUsd: 1 + (index % 4) * 0.4,
                 spendDeepgramUsd: 0.5 + (index % 3) * 0.2,

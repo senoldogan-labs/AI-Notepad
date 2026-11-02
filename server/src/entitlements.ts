@@ -1,3 +1,4 @@
+import { type AppStoreSubscription, appStoreAccess, appStoreManageUrl, appStoreSubscriptionOf } from "./appStore";
 import type { Config, SubscriptionPlan } from "./config";
 import { type LiveEngine, liveEngine } from "./deepgram";
 import { ApiError } from "./errors";
@@ -24,6 +25,28 @@ export type Plan = "trial" | "subscription";
  * `none` (erişim yok: `unpaid`, `canceled`, `incomplete_expired`, süresi geçmiş ya da bilinmeyen durum).
  */
 export type SubscriptionAccess = "active" | "grace" | "none";
+
+/** Aboneliğin ödeme kaynağı: Stripe (Mac ve site) ya da App Store (iPhone, RevenueCat). */
+export type SubscriptionSource = "stripe" | "app_store";
+
+/** App Store aboneliğinin istemciye görünen özeti (`GET /v1/me` → `appStoreSubscription`). */
+export interface AppStoreSubscriptionInfo {
+  /** Satırın durumu: `active`, `canceled` (yenilenmeyecek), `billing_issue`, `expired`, `refunded`. */
+  readonly status: string;
+  readonly plan: SubscriptionPlan | null;
+  readonly productId: string;
+  readonly access: SubscriptionAccess;
+  /** Dönem sonu (yenilenecekse yenileme anı). */
+  readonly expiresAt: string;
+  /** Dönem sonunda yenilenecek mi (`active`). */
+  readonly willRenew: boolean;
+  /** Apple'ın fatura ek süresinin sonu; erişim ek süredeyse dolu, değilse null. */
+  readonly graceEndsAt: string | null;
+  /** `PRODUCTION` ya da `SANDBOX` (TestFlight, App Review). */
+  readonly environment: string;
+  /** Apple'ın abonelik yönetim sayfası (iPhone'da Ayarlar › [ad] › Abonelikler). */
+  readonly manageUrl: string;
+}
 
 /** Toplantı dışı yapay zekâ hakkının dönemi (UTC): abonede ay, denemede gün. */
 export type AccountTokensPeriod = "month" | "day";
@@ -79,7 +102,22 @@ export interface Entitlements {
    * küçüğü (bkz. `subscriberMeetingMaxMinutes`). İstemci içe aktarılacak dosyayı kuyruğa almadan buna göre reddeder.
    */
   readonly meetingMaxMinutes: number;
+  /**
+   * Erişimi olan (`active` ya da `grace`) aboneliklerin kaynakları; erişim yoksa boş. İkisi birden olabilir (hesap hem
+   * Stripe'tan hem App Store'dan abone): istemci aboneliği nerede yöneteceğini buradan bilir.
+   */
+  readonly subscriptionSources: readonly SubscriptionSource[];
+  /** App Store aboneliği (iPhone); hiç olmadıysa null. Yalnızca eklenen bir alandır: eski istemciler yok sayar. */
+  readonly appStoreSubscription: AppStoreSubscriptionInfo | null;
+  /**
+   * Hesabın asıl aboneliği (bkz. `primarySubscriptionSource`): erişimi olan Stripe aboneliği, yoksa erişimi olan App
+   * Store aboneliği, yoksa (bitmiş) Stripe ya da App Store aboneliği. App Store aboneliği aynı biçimde yazılır (eski Mac
+   * sürümleri onu da doğru gösterir): `status` `active`/`past_due` (ek süre)/`expired`/`refunded`, `currentPeriodEnd`
+   * dönem sonu, yenilenmeyecekse `cancelAt` dönem sonu; `source` kaynağı söyler.
+   */
   readonly subscription: {
+    /** Aboneliğin ödeme kaynağı; istemci Stripe portalını ya da Apple'ın abonelik sayfasını buna göre açar. */
+    readonly source: SubscriptionSource;
     readonly status: string;
     readonly currentPeriodEnd: string;
     /** İptal edildiyse erişimin biteceği an (yenilenmez); yenilenecekse null. */
@@ -166,6 +204,86 @@ export function isTerminalSubscription(subscription: SubscriptionState, now: Dat
 /** Abonelik hak veriyor mu (`active` ya da `grace`). Saf fonksiyondur. */
 export function hasSubscriptionAccess(subscription: SubscriptionState | null, now: Date, pastDueGraceMs: number): boolean {
   return subscriptionAccess(subscription, now, pastDueGraceMs) !== "none";
+}
+
+/** İki erişimin güçlüsü (`active` > `grace` > `none`). Saf fonksiyondur. */
+export function strongerAccess(left: SubscriptionAccess, right: SubscriptionAccess): SubscriptionAccess {
+  const rank: Readonly<Record<SubscriptionAccess, number>> = { active: 2, grace: 1, none: 0 };
+  return rank[left] >= rank[right] ? left : right;
+}
+
+/** Hesabın iki kaynaktaki aboneliği. */
+export interface PaidSubscriptions {
+  readonly stripe: SubscriptionState | null;
+  readonly appStore: AppStoreSubscription | null;
+}
+
+/** Hesabın Stripe ve App Store abonelikleri. */
+export async function paidSubscriptions(db: D1Database, userId: string): Promise<PaidSubscriptions> {
+  const [stripe, appStore]: [SubscriptionState | null, AppStoreSubscription | null] = await Promise.all([
+    subscriptionState(db, userId),
+    appStoreSubscriptionOf(db, userId),
+  ]);
+  return { stripe, appStore };
+}
+
+/**
+ * Hesabın abonelik erişimi: Stripe (`subscriptionAccess`) ile App Store'un (`appStoreAccess`) güçlüsü; hangisi erişim
+ * veriyorsa hesap abonedir (Mac ve iPhone aynı hak). Saf fonksiyondur.
+ */
+export function paidAccess(subscriptions: PaidSubscriptions, config: Config, now: Date): SubscriptionAccess {
+  return strongerAccess(
+    subscriptionAccess(subscriptions.stripe, now, config.pastDueGraceMs),
+    appStoreAccess(subscriptions.appStore, config.appStore.acceptSandbox, now),
+  );
+}
+
+/** Hesabın iki kaynaktan birinde erişimi olan aboneliği var mı. */
+export async function hasPaidAccess(db: D1Database, config: Config, userId: string, now: Date): Promise<boolean> {
+  return paidAccess(await paidSubscriptions(db, userId), config, now) !== "none";
+}
+
+/**
+ * Asıl aboneliğin kaynağı: erişimi olan Stripe aboneliği, yoksa erişimi olan App Store aboneliği, yoksa var olan Stripe
+ * satırı, yoksa App Store satırı; hiçbiri yoksa null. Saf fonksiyondur.
+ */
+export function primarySubscriptionSource(stripeAccess: SubscriptionAccess, appStoreAccessValue: SubscriptionAccess, subscriptions: PaidSubscriptions): SubscriptionSource | null {
+  if (subscriptions.stripe !== null && stripeAccess !== "none") {
+    return "stripe";
+  }
+  if (subscriptions.appStore !== null && appStoreAccessValue !== "none") {
+    return "app_store";
+  }
+  if (subscriptions.stripe !== null) {
+    return "stripe";
+  }
+  return subscriptions.appStore === null ? null : "app_store";
+}
+
+/** App Store aboneliğinin `/v1/me` özeti. Saf fonksiyondur. */
+export function appStoreSubscriptionInfo(subscription: AppStoreSubscription, access: SubscriptionAccess): AppStoreSubscriptionInfo {
+  return {
+    status: subscription.status,
+    plan: subscription.plan,
+    productId: subscription.productId,
+    access,
+    expiresAt: new Date(subscription.expiresAt).toISOString(),
+    willRenew: subscription.status === "active",
+    graceEndsAt: access === "grace" && subscription.graceExpiresAt !== null ? new Date(subscription.graceExpiresAt).toISOString() : null,
+    environment: subscription.environment,
+    manageUrl: appStoreManageUrl,
+  };
+}
+
+/** App Store durumunun Stripe biçimindeki karşılığı (eski Mac sürümleri `past_due`'yu ek süre, gerisini bitmiş okur). Saf fonksiyondur. */
+function appStoreStripeLikeStatus(subscription: AppStoreSubscription, access: SubscriptionAccess): string {
+  if (access === "active") {
+    return "active";
+  }
+  if (access === "grace") {
+    return "past_due";
+  }
+  return subscription.status === "refunded" ? "refunded" : "expired";
 }
 
 /** `subscriptions` satırının durum sütunları. */
@@ -272,11 +390,8 @@ export function isTrialStarted(trial: TrialState, config: Config): boolean {
  * `TRIAL_ACCOUNT_DAILY_TOKENS`, abonelikte ayrıca `MONTHLY_ACCOUNT_TOKEN_CAP`.
  */
 export async function requireAccountLLMAccess(db: D1Database, config: Config, userId: string, now: Date): Promise<AccountLLMAccess> {
-  const [subscription, trial]: [SubscriptionState | null, TrialState] = await Promise.all([
-    subscriptionState(db, userId),
-    userTrialState(db, userId),
-  ]);
-  if (hasSubscriptionAccess(subscription, now, config.pastDueGraceMs)) {
+  const [subscriptions, trial]: [PaidSubscriptions, TrialState] = await Promise.all([paidSubscriptions(db, userId), userTrialState(db, userId)]);
+  if (paidAccess(subscriptions, config, now) !== "none") {
     return "subscription";
   }
   if (!isTrialStarted(trial, config)) {
@@ -320,22 +435,31 @@ export function hoursRoundedUp(seconds: number): number {
  * gösterim içindir, hak toplantı başlatırken imzalı onayla yeniden denetlenir.
  */
 export async function entitlements(db: D1Database, config: Config, userId: string, deviceId: string | null, now: Date): Promise<Entitlements> {
-  const [subscription, plan, trial, deviceUsed, usage, engine]: [
-    SubscriptionState | null,
+  const [subscriptions, plan, trial, deviceUsed, usage, engine]: [
+    PaidSubscriptions,
     SubscriptionPlan | null,
     TrialState,
     number | null,
     MonthlyUsage,
     LiveEngine,
   ] = await Promise.all([
-    subscriptionState(db, userId),
+    paidSubscriptions(db, userId),
     subscriptionPlan(db, userId),
     userTrialState(db, userId),
     deviceId === null ? Promise.resolve(null) : deviceTrialMeetingsUsed(db, deviceId),
     monthlyUsage(db, userId, now),
     liveEngine(db, config),
   ]);
-  const access: SubscriptionAccess = subscriptionAccess(subscription, now, config.pastDueGraceMs);
+  const subscription: SubscriptionState | null = subscriptions.stripe;
+  const appStore: AppStoreSubscription | null = subscriptions.appStore;
+  const stripeAccess: SubscriptionAccess = subscriptionAccess(subscription, now, config.pastDueGraceMs);
+  const appStoreAccessValue: SubscriptionAccess = appStoreAccess(appStore, config.appStore.acceptSandbox, now);
+  const access: SubscriptionAccess = strongerAccess(stripeAccess, appStoreAccessValue);
+  const source: SubscriptionSource | null = primarySubscriptionSource(stripeAccess, appStoreAccessValue, subscriptions);
+  const sources: SubscriptionSource[] = [
+    ...(stripeAccess === "none" ? [] : ["stripe" as const]),
+    ...(appStoreAccessValue === "none" ? [] : ["app_store" as const]),
+  ];
   const allowance: AccountTokenAllowance = await accountTokenAllowance(db, config, userId, access !== "none", now);
   const accountLeft: number = trialMeetingsLeft(trial, config, now);
   const trialEnd: number | null = access === "none" ? trialEndsAtMs(trial, config.trialDurationMs) : null;
@@ -359,17 +483,31 @@ export async function entitlements(db: D1Database, config: Config, userId: strin
     monthlyResetsAt: new Date(nextMonthStartMs(now)).toISOString(),
     meetingMaxMinutes:
       access === "none" ? config.trialMaxMeetingMinutes : subscriberMeetingMaxMinutes(config, config.monthlyCapSeconds - usage.usedSeconds),
+    subscriptionSources: sources,
+    appStoreSubscription: appStore === null ? null : appStoreSubscriptionInfo(appStore, appStoreAccessValue),
     subscription:
-      subscription === null
-        ? null
-        : {
+      source === "stripe" && subscription !== null
+        ? {
+            source,
             status: subscription.status,
             currentPeriodEnd: new Date(subscription.currentPeriodEnd).toISOString(),
             cancelAt: subscription.cancelAt === null ? null : new Date(subscription.cancelAt).toISOString(),
-            access,
-            graceEndsAt: access === "grace" ? new Date(graceEndsAtMs(subscription, config.pastDueGraceMs) ?? 0).toISOString() : null,
+            access: stripeAccess,
+            graceEndsAt: stripeAccess === "grace" ? new Date(graceEndsAtMs(subscription, config.pastDueGraceMs) ?? 0).toISOString() : null,
             plan,
             complimentary: subscription.complimentary,
-          },
+          }
+        : source === "app_store" && appStore !== null
+          ? {
+              source,
+              status: appStoreStripeLikeStatus(appStore, appStoreAccessValue),
+              currentPeriodEnd: new Date(appStore.expiresAt).toISOString(),
+              cancelAt: appStore.status === "active" ? null : new Date(appStore.expiresAt).toISOString(),
+              access: appStoreAccessValue,
+              graceEndsAt: appStoreAccessValue === "grace" && appStore.graceExpiresAt !== null ? new Date(appStore.graceExpiresAt).toISOString() : null,
+              plan: appStore.plan,
+              complimentary: false,
+            }
+          : null,
   };
 }

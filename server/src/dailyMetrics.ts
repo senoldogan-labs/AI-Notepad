@@ -1,4 +1,14 @@
-import { AggregateRowMissingError, type SubscriptionCounts, type TrialCounts, monthlyRecurringRevenueUsd, subscriptionCounts, trialCounts } from "./admin";
+import {
+  type AppStoreSubscriptionCounts,
+  AggregateRowMissingError,
+  type SubscriptionCounts,
+  type TrialCounts,
+  appStoreMrrUsd,
+  appStoreSubscriptionCounts,
+  monthlyRecurringRevenueUsd,
+  subscriptionCounts,
+  trialCounts,
+} from "./admin";
 import type { Config } from "./config";
 import { log } from "./log";
 import { utcDayStartMs } from "./reports";
@@ -25,8 +35,13 @@ export interface DailyMetrics {
   readonly meetingsSubscription: number;
   readonly trialsStarted: number;
   readonly trials: TrialCounts;
+  /** Stripe abonelikleri. */
   readonly subscriptions: SubscriptionCounts;
+  /** Stripe liste fiyatıyla MRR. */
   readonly mrrListCents: number;
+  /** App Store (üretim) abonelikleri ve Apple komisyonu düşülmüş MRR (`appStoreMrrUsd`). */
+  readonly appStore: AppStoreSubscriptionCounts;
+  readonly appStoreMrrNetCents: number;
   readonly spendAnthropicMicroUsd: number;
   readonly spendElevenLabsMicroUsd: number;
   readonly spendDeepgramMicroUsd: number;
@@ -60,7 +75,7 @@ export async function collectDailyMetrics(db: D1Database, config: Config, now: D
   const dayEndMs: number = utcDayStartMs(now);
   const dayStartMs: number = dayEndMs - dayMs;
   const day: string = dayKey(new Date(dayStartMs));
-  const [activity, spend, deepgram, trials, subscriptions, revenue] = await Promise.all([
+  const [activity, spend, deepgram, trials, subscriptions, appStore, revenue] = await Promise.all([
     db
       .prepare(
         `SELECT
@@ -82,6 +97,7 @@ export async function collectDailyMetrics(db: D1Database, config: Config, now: D
       .first<{ seconds: number }>(),
     trialCounts(db, config, dayEndMs),
     subscriptionCounts(db, config, dayEndMs),
+    appStoreSubscriptionCounts(db, dayEndMs),
     invoicedMrrByCurrency(db, dayEndMs),
   ]);
   if (activity === null) {
@@ -106,6 +122,8 @@ export async function collectDailyMetrics(db: D1Database, config: Config, now: D
     trials,
     subscriptions,
     mrrListCents: Math.round(monthlyRecurringRevenueUsd(subscriptions.monthly, subscriptions.yearly, config.priceUsdMonthly, config.priceUsdYearly) * 100),
+    appStore,
+    appStoreMrrNetCents: Math.round(appStoreMrrUsd(appStore.monthly, appStore.yearly, config.appStore).net * 100),
     spendAnthropicMicroUsd: spent.llm_micro_usd,
     spendElevenLabsMicroUsd: spent.micro_usd - spent.llm_micro_usd,
     spendDeepgramMicroUsd: Math.round((deepgram.seconds / 60) * config.deepgram.microUsdPerMinute),
@@ -141,6 +159,10 @@ function dailyMetricsStatements(db: D1Database, metrics: DailyMetrics): D1Prepar
     ["subscriptions_complimentary", subscriptions.complimentary],
     ["subscriptions_free_invite_month", subscriptions.freeInviteMonth],
     ["mrr_list_cents", metrics.mrrListCents],
+    ["app_store_active", metrics.appStore.active],
+    ["app_store_monthly", metrics.appStore.monthly],
+    ["app_store_yearly", metrics.appStore.yearly],
+    ["app_store_mrr_net_cents", metrics.appStoreMrrNetCents],
     ["spend_anthropic_micro_usd", metrics.spendAnthropicMicroUsd],
     ["spend_elevenlabs_micro_usd", metrics.spendElevenLabsMicroUsd],
     ["spend_deepgram_micro_usd", metrics.spendDeepgramMicroUsd],

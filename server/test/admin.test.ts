@@ -43,7 +43,18 @@ interface StatsBody {
   readonly downloads: { total: number; last30Days: Array<{ day: string; count: number }> };
   readonly users: { total: number; newLast30Days: Array<{ day: string; count: number }>; byProvider: { apple: number; google: number } };
   readonly trials: { activeTrialUsers: number; exhaustedTrialUsers: number };
-  readonly subscriptions: { active: number; grace: number; ending: number; canceledTotal: number; monthly: number; yearly: number; mrrUsd: number; complimentary: number; freeInviteMonth: number };
+  readonly subscriptions: {
+    active: number;
+    grace: number;
+    ending: number;
+    canceledTotal: number;
+    monthly: number;
+    yearly: number;
+    mrrUsd: number;
+    bySource: { stripe: object; appStore: object };
+    complimentary: number;
+    freeInviteMonth: number;
+  };
   readonly referrals: { joined: number; pending: number; granted: number; voided: number; voidedByReason: Array<{ reason: string; count: number }> };
   readonly meetings: { last30Days: Array<{ day: string; trial: number; subscription: number }>; hoursThisMonth: number };
   readonly spend: { todayUsd: number; ceilingUsd: number; trialTodayUsd: number; trialCeilingUsd: number; last30Days: Array<{ day: string; usd: number }> };
@@ -294,7 +305,19 @@ describe("yönetici API'si", () => {
     ]);
     expect(stats.trials).toEqual({ activeTrialUsers: 1, exhaustedTrialUsers: 1 });
     // Yenilenecek: yalnızca yöneticinin yıllık aboneliği (aylık olan iptal edilmiş) → 49 / 12 = 4,08 $.
-    expect(stats.subscriptions).toEqual({ active: 2, grace: 1, ending: 1, canceledTotal: 1, monthly: 0, yearly: 1, mrrUsd: 4.08, complimentary: 0, freeInviteMonth: 0 });
+    const appStoreNone = { active: 0, grace: 0, ending: 0, monthly: 0, yearly: 0, mrrUsd: 0, grossMrrUsd: 0, commissionRate: 0.15, trial: 0, sandbox: 0 };
+    expect(stats.subscriptions).toEqual({
+      active: 2,
+      grace: 1,
+      ending: 1,
+      canceledTotal: 1,
+      monthly: 0,
+      yearly: 1,
+      mrrUsd: 4.08,
+      bySource: { stripe: { active: 2, grace: 1, ending: 1, monthly: 0, yearly: 1, mrrUsd: 4.08 }, appStore: appStoreNone },
+      complimentary: 0,
+      freeInviteMonth: 0,
+    });
     expect(stats.referrals).toEqual({ joined: 0, pending: 0, granted: 0, voided: 0, voidedByReason: [] });
     expect(stats.meetings.last30Days.slice(28)).toEqual([
       { day: days[28], trial: 3, subscription: 0 },

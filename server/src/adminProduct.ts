@@ -1,4 +1,5 @@
-import { activeAccessSql, lastDays, paidSubscriptionSql } from "./admin";
+import { activeAccessSql, lastDays, paidSubscriptionSql, paidUserSql } from "./admin";
+import { appStoreActiveSql } from "./appStore";
 import type { DetailCount } from "./adminInsights";
 import type { Config } from "./config";
 import { deepgramStreamsPerMeeting } from "./deepgram";
@@ -188,9 +189,10 @@ export interface MeetingCost {
 }
 
 /**
- * Şu an ödeyen abonelerin (faturalı, erişimi süren, planı bilinen, davetin ücretsiz ilk ayında olmayan) o aydaki
- * kullanımının maliyeti ve liste fiyatıyla bir aylık geliri (aylık fiyat; yıllıkta fiyatın 1/12'si). Vergi, indirim ve
- * Stripe ücreti düşülmez. `grossMarginPercent` = (gelir − maliyet) / gelir × 100; gelir yoksa null.
+ * Şu an ödeyen abonelerin (Stripe'ta faturalı, erişimi süren, planı bilinen, davetin ücretsiz ilk ayında olmayan; App
+ * Store'da yenilenecek, deneme döneminde olmayan; bkz. `payersCte`) o aydaki kullanımının maliyeti ve liste fiyatıyla bir
+ * aylık geliri (aylık fiyat; yıllıkta fiyatın 1/12'si; App Store fiyatları aynıdır). Vergi, indirim, Stripe ücreti ve
+ * Apple komisyonu düşülmez. `grossMarginPercent` = (gelir − maliyet) / gelir × 100; gelir yoksa null.
  */
 export interface PayerEconomics {
   readonly users: number;
@@ -577,10 +579,18 @@ async function retention(db: D1Database, nowMs: number, day: number): Promise<Re
   return { day, eligible: row.eligible, retained: row.retained };
 }
 
-/** Şu an ödeyen abonelerin (`PayerEconomics`) CTE'si. Bağ: ?1 = şimdi. */
+/**
+ * Şu an ödeyen abonelerin (`PayerEconomics`) CTE'si: Stripe'ta faturalı, erişimi süren, davetin ücretsiz ayında olmayan;
+ * App Store'da üretim ortamında, yenilenecek, deneme döneminde olmayan abonelikler (iki kaynaktan abone hesap bir kez).
+ * Bağ: ?1 = şimdi.
+ */
 const payersCte: string = `WITH payers AS (
   SELECT s.user_id, s.plan FROM subscriptions s
   WHERE s.complimentary = 0 AND s.plan IN ('monthly', 'yearly') AND ${activeAccessSql} AND NOT ${freeInviteMonthSql}
+  UNION
+  SELECT a.user_id, a.plan FROM app_store_subscriptions a
+  WHERE a.environment = 'PRODUCTION' AND a.status = 'active' AND a.period_type <> 'trial' AND a.plan IN ('monthly', 'yearly') AND ${appStoreActiveSql}
+    AND NOT EXISTS (SELECT 1 FROM subscriptions s WHERE s.user_id = a.user_id AND s.complimentary = 0 AND ${activeAccessSql})
 )`;
 
 /**
@@ -665,7 +675,7 @@ export async function adminProduct(db: D1Database, config: Config, now: Date): P
          FROM (
            SELECT u.trial_started_at AS started_at,
              u.carried_trial_meetings + (SELECT COUNT(*) FROM meeting_sessions m WHERE m.user_id = u.id AND m.kind = 'trial') AS used,
-             EXISTS (SELECT 1 FROM subscriptions s WHERE s.user_id = u.id AND ${paidSubscriptionSql}) AS paid
+             ${paidUserSql("u.id")} AS paid
            FROM users u WHERE u.trial_started_at IS NOT NULL
          ) t`,
       )

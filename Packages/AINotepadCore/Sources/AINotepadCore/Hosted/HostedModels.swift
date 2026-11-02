@@ -47,8 +47,11 @@ public enum HostedSubscriptionAccess: String, Decodable, Sendable, Equatable {
     case none
 }
 
-/// Stripe aboneliğinin özeti (webhook'tan yazılır).
+/// Hesabın asıl aboneliğinin özeti: Stripe (webhook'tan yazılır) ya da App Store (iPhone, RevenueCat; aynı biçimde).
 public struct HostedSubscription: Decodable, Sendable, Equatable {
+    /// Ödeme kaynağı (`stripe` ya da `app_store`); alanı bilmeyen eski sunucuda nil (Stripe). Tanınmayan değer yanıtı
+    /// bozmasın diye metin olarak okunur; arayüz `paymentSource`'u kullanır.
+    public let source: String?
     /// Stripe durumu (`active`, `past_due`, `canceled`…).
     public let status: String
     public let currentPeriodEnd: Date
@@ -68,6 +71,59 @@ public struct HostedSubscription: Decodable, Sendable, Equatable {
     public var billingPlan: HostedBillingPlan? {
         plan.flatMap { (value: String) -> HostedBillingPlan? in HostedBillingPlan(rawValue: value) }
     }
+
+    /// Ödeme kaynağı; alan yoksa (eski sunucu) Stripe, tanınmıyorsa nil.
+    public var paymentSource: HostedPaymentSource? {
+        guard let source else {
+            return .stripe
+        }
+        return HostedPaymentSource(rawValue: source)
+    }
+}
+
+/// Aboneliğin ödeme kaynağı (sunucunun `source` değerleri): Stripe (Mac ve site) ya da App Store (iPhone).
+public enum HostedPaymentSource: String, Sendable, Equatable {
+    case stripe
+    case appStore = "app_store"
+}
+
+/// App Store aboneliği (`GET /v1/me` → `appStoreSubscription`): iPhone'dan alınır, yalnızca Apple'da yönetilir.
+public struct HostedAppStoreSubscription: Decodable, Sendable, Equatable {
+    /// `active`, `canceled`, `billing_issue`, `expired`, `refunded`.
+    public let status: String
+    public let plan: String?
+    public let productId: String
+    public let access: HostedSubscriptionAccess
+    public let expiresAt: Date
+    public let willRenew: Bool
+    public let graceEndsAt: Date?
+    /// `PRODUCTION` ya da `SANDBOX`.
+    public let environment: String
+    /// Apple'ın abonelik yönetim sayfası.
+    public let manageUrl: URL
+}
+
+/// `DELETE /v1/me` yanıtı. Eski sunucu gövdesiz 204 döner (o zaman nil).
+public struct HostedAccountDeletion: Decodable, Sendable, Equatable {
+    public let deleted: Bool
+    /// Silinen hesabın süren App Store aboneliği: Apple onu iptal etmez; kullanıcı iPhone'da iptal etmeli.
+    public let appStoreSubscription: HostedDeletedAppStoreSubscription?
+    /// Sunucunun İngilizce uyarısı; App Store aboneliği yoksa nil.
+    public let notice: String?
+}
+
+/// Silinen hesabın süren App Store aboneliği.
+public struct HostedDeletedAppStoreSubscription: Decodable, Sendable, Equatable {
+    public let willRenew: Bool
+    public let expiresAt: Date
+    public let manageUrl: URL
+}
+
+/// Hesabın aboneliği App Store'dan mı yönetiliyor: asıl abonelik App Store'dan ve erişimi sürüyor ya da (Stripe'ta
+/// yönetilecek abonelik yokken) App Store aboneliği var. Mac'te Stripe portalı ve ikinci satın alma gösterilmez. Saf
+/// fonksiyondur.
+public func isHostedAppStoreManaged(entitlements: HostedEntitlements) -> Bool {
+    entitlements.subscription?.paymentSource == .appStore
 }
 
 /// Abonelik planı: aylık ya da yıllık (sunucunun `plan` değerleri).
@@ -183,6 +239,10 @@ public struct HostedEntitlements: Decodable, Sendable, Equatable {
     public let monthlyResetsAt: Date?
     /// Şimdi açılacak toplantının en çok süresi ve ses hakkı (dakika; abonede aylık kalanla sınırlı); eski sunucuda nil.
     public let meetingMaxMinutes: Int?
+    /// Erişimi süren aboneliklerin kaynakları (`stripe`, `app_store`); eski sunucuda nil.
+    public let subscriptionSources: [String]?
+    /// App Store aboneliği (iPhone); hiç olmadıysa ya da eski sunucuda nil.
+    public let appStoreSubscription: HostedAppStoreSubscription?
 }
 
 /// Abonelik sürümünde canlı metni üreten motor.

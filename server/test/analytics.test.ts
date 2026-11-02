@@ -160,7 +160,7 @@ describe("gerçek gelir: Stripe webhook'u", () => {
     // Hesap silme: gelir satırı kalır, hesap bağı kalkar; silme abone kesimiyle sayılır.
     stripe.subscriptions.set("sub_rev_1", fakeSubscription("sub_rev_1", customer, "active", now, now + 30 * 86_400));
     const before: number = await opsCount("account_deleted", "subscriber", today(harness));
-    expect((await harness.call(req("DELETE", "/v1/me", { token: session.accessToken }))).status).toBe(204);
+    expect((await harness.call(req("DELETE", "/v1/me", { token: session.accessToken }))).status).toBe(200);
     expect(await opsCount("account_deleted", "subscriber", today(harness))).toBe(before + 1);
     const unlinked = await env.DB.prepare("SELECT user_id FROM revenue_invoices WHERE invoice_id = 'in_rev_1'").first<{ user_id: string | null }>();
     expect(unlinked).toEqual({ user_id: null });
@@ -177,8 +177,8 @@ describe("gerçek gelir: Stripe webhook'u", () => {
     const day: string = today(harness);
     const signupBefore: number = await opsCount("account_deleted", "signup", day);
     const trialBefore: number = await opsCount("account_deleted", "trial", day);
-    expect((await harness.call(req("DELETE", "/v1/me", { token: signup.accessToken }))).status).toBe(204);
-    expect((await harness.call(req("DELETE", "/v1/me", { token: trial.accessToken }))).status).toBe(204);
+    expect((await harness.call(req("DELETE", "/v1/me", { token: signup.accessToken }))).status).toBe(200);
+    expect((await harness.call(req("DELETE", "/v1/me", { token: trial.accessToken }))).status).toBe(200);
     expect(await opsCount("account_deleted", "signup", day)).toBe(signupBefore + 1);
     expect(await opsCount("account_deleted", "trial", day)).toBe(trialBefore + 1);
   });

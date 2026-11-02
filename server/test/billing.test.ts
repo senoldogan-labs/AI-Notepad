@@ -334,7 +334,7 @@ describe("Stripe webhook", () => {
     await send.change(id("evt_n4"), "customer.subscription.deleted", now - 5, { ...active, status: "canceled", ...details("missing_features", "Takvim yok") });
     expect(await stored()).toMatchObject({ feedback: "missing_features", comment: "Takvim yok" });
 
-    expect((await harness.call(req("DELETE", "/v1/me", { token: session.accessToken }))).status).toBe(204);
+    expect((await harness.call(req("DELETE", "/v1/me", { token: session.accessToken }))).status).toBe(200);
     expect(await stored()).toBeNull();
   });
 

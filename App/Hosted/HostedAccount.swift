@@ -849,7 +849,11 @@ final class HostedAccount {
         // Silinen hesabın açık oturum listesi (silmeden sonra oturum yoktur, hesap ondan önce okunur).
         let userID: String? = signedInUserIDCache
         await perform { (client: HostedClient) async throws -> Void in
-            try await client.deleteAccount()
+            let deletion: HostedAccountDeletion? = try await client.deleteAccount()
+            if let subscription = deletion?.appStoreSubscription {
+                // Kullanıcı silmeden önce Ayarlar › Hesap'ta uyarıyı gördü; Apple aboneliği kendisi iptal etmeli.
+                accountLogger.info("Silinen hesabın App Store aboneliği sürüyor, yenilenecek: \(subscription.willRenew, privacy: .public)")
+            }
             // Yerel temizlik yalnızca silme başarılıysa: başarısızsa (ör. çevrimdışı) hesap durur, kapatılamamış oturumları
             // izlenmeye ve çevrimdışı kayıt izni geçerli kalmalı.
             await self.clearAfterAccountDeletion(userID: userID)

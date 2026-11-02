@@ -10,6 +10,9 @@
 // platform.claude.com "Data residency"), Link (link.com/terms "Sold Through Link Terms", link.com/privacy), Deepgram
 // (developers.deepgram.com "Your Data at Deepgram" ve "Model Improvement Partnership Program": `mip_opt_out=true` ile ses
 // ve metin yalnızca istek işlenirken tutulur, model geliştirmede kullanılmaz; kullanım kayıtları içerik içermez, 90 gün).
+// App Store abonelikleri (iPhone, server/src/appStore.ts): RevenueCat işleyendir (revenuecat.com/privacy "Data
+// Processors", revenuecat.com/dpa; ABD'de AWS); Apple App Store satışında bağımsız sorumludur. Sunucu RevenueCat'ten
+// yalnızca aboneliğin ürününü, durumunu, dönemini ve sandbox işaretini okur (göç 0048).
 import LegalSection from "../components/LegalSection.astro";
 import Legal from "../layouts/Legal.astro";
 import { cardStatementDescriptor, productName } from "../config";
@@ -37,8 +40,11 @@ const sections: readonly LegalSectionInfo[] = [
   { id: "contact", title: "Contact" },
 ];
 const mail: string = `mailto:${operator.email}`;
-/** Ödeme tarafının (Stripe, Link) tüketiciye açık metinleri. */
+/** Ödeme tarafının (Stripe, Link, App Store, RevenueCat) tüketiciye açık metinleri. */
 const stripePrivacyUrl: string = "https://stripe.com/privacy";
+const applePrivacyUrl: string = "https://www.apple.com/legal/privacy/";
+const revenueCatPrivacyUrl: string = "https://www.revenuecat.com/privacy";
+const revenueCatDpaUrl: string = "https://www.revenuecat.com/dpa";
 const linkPrivacyUrl: string = "https://link.com/privacy";
 const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
 ---
@@ -229,6 +235,16 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
             </td>
             <td>Managing your subscription and access</td>
             <td>(b) contract; (c) legal obligation for accounting records</td>
+          </tr>
+          <tr>
+            <td>
+              <strong>App Store subscription.</strong> If you subscribe in the iPhone app, your account ID (used as your
+              customer ID at RevenueCat), which product you bought (monthly or yearly), its status (active, cancelled,
+              billing problem, expired or refunded), when it was bought and when the period ends, and whether it was a
+              test (sandbox) purchase. Your Apple Account and payment details stay with Apple and never reach us.
+            </td>
+            <td>Unlocking your subscription on all your devices and managing your access</td>
+            <td>(b) contract</td>
           </tr>
           <tr>
             <td>
@@ -527,8 +543,24 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
             </td>
           </tr>
           <tr>
+            <td>RevenueCat, Inc.</td>
+            <td>Processor: checking App Store purchases made in the iPhone app and telling us the subscription's status</td>
+            <td>
+              Your account ID, your App Store purchase history and receipts for {productName}, and the device type and
+              operating system of the iPhone app
+            </td>
+            <td>
+              USA (hosted on Amazon Web Services); Standard Contractual Clauses under{" "}
+              <a href={revenueCatDpaUrl}>RevenueCat's data processing addendum</a>. See also the{" "}
+              <a href={revenueCatPrivacyUrl}>RevenueCat privacy policy</a>.
+            </td>
+          </tr>
+          <tr>
             <td>Apple</td>
-            <td>Independent controller: Sign in with Apple; App Attest and DeviceCheck for our request and free-trial checks</td>
+            <td>
+              Independent controller: Sign in with Apple; App Attest and DeviceCheck for our request and free-trial checks;
+              selling, billing and refunding App Store subscriptions bought in the iPhone app
+            </td>
             <td>Sign-in identifier and email address (if you share it); device checks, without a device identifier reaching us</td>
             <td>Ireland and the USA, under Apple's privacy policy</td>
           </tr>
@@ -566,8 +598,11 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       <a href={stripePrivacyUrl}>Stripe privacy policy</a> and <a href={linkPrivacyUrl}>Link's privacy policy</a>, and the
       purchase itself is governed by <a href={linkTermsUrl}>Link's terms</a>. From them we receive only your Stripe customer
       ID, your subscription status and period, the amounts of your invoices and refunds (with currency, discount and tax)
-      and, if you cancel and give one, your cancellation reason — never your card details. We do not sell personal
-      data or share it for advertising.
+      and, if you cancel and give one, your cancellation reason — never your card details. Subscriptions bought in the
+      iPhone app are sold and billed by Apple through the App Store under its own terms and the{" "}
+      <a href={applePrivacyUrl}>Apple privacy policy</a>; RevenueCat checks those purchases for us as our processor. From
+      them we receive only the product, status and period of your App Store subscription — never your Apple Account or
+      payment details. We do not sell personal data or share it for advertising.
     </p>
   </LegalSection>
 
@@ -615,8 +650,15 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
     <p>
       You can delete your account at any time with “Delete account” on your <a href={routes.account}>account page</a>.
       Any unfinished subscription is first cancelled immediately at Stripe; then your account, sign-in identities,
-      sessions, device registrations, meeting session records, usage, subscription record, cancellation reasons, invite
-      code and invite records linked to your account, and Stripe customer link are deleted together in a single step.
+      sessions, device registrations, meeting session records, usage, subscription records (including the App Store
+      subscription record), cancellation reasons, invite code and invite records linked to your account, and Stripe
+      customer link are deleted together in a single step.
+    </p>
+    <p>
+      <strong>App Store subscriptions are not cancelled by deleting your account.</strong> Only you can cancel them, with
+      Apple: on your iPhone in Settings › your name › Subscriptions. Until you do, Apple keeps billing you, and Apple and
+      RevenueCat keep the purchase records under their own policies (RevenueCat's linked to your former account ID; ask
+      us and we will have RevenueCat delete them).
     </p>
     <p>
       What remains: a pseudonymous record of your free-trial use (a keyed one-way hash of your sign-in identity, the
