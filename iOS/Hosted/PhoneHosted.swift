@@ -15,11 +15,34 @@ private let phoneHostedLogger: Logger = Logger(subsystem: "com.senoldogan.AINote
 /// fırlar, hesap yüklenmez ve veri yerinde kalır.
 func prepareHostedAccountData(userId: String) throws -> String {
     let key: String = accountDataKey(userId: userId)
-    let ownerKeys: [String: String] = loadHostedRecordOwners().mapValues { (owner: String) -> String in accountDataKey(userId: owner) }
-    let result: LegacyMigrationResult = try migrateLegacyUserData(dataRoot: try AppPaths.applicationSupport(), accountKey: key, recordOwnerKeys: ownerKeys)
+    let result: LegacyMigrationResult = try migratePhoneLegacyData(accountKey: key)
     try AppPaths.activateAccount(key: key)
     phoneHostedLogger.info("Hesap verisi yüklendi, eski veri: \(String(describing: result.claim), privacy: .public), taşınan: \(result.moves.count, privacy: .public)")
     return key
+}
+
+/// Yüklü hesabı (`loadedKey`) giriş yapan hesapla yerinde değiştirir (iPhone kendini yeniden başlatamaz): eski veri bu
+/// hesabınsa yerinde kalanlar taşınır (başka hesabınsa dokunulmaz), sonra hesap değiştirilir. Yalnız yazan her iş
+/// kapalıyken çağrılabilir (`writers`). Taşıma başarısız olursa hata fırlar, eski hesap yüklü kalır.
+func switchHostedAccountData(userId: String, from loadedKey: String, writers: ClosedAccountWriters) throws -> String {
+    let key: String = accountDataKey(userId: userId)
+    let result: LegacyMigrationResult = try migratePhoneLegacyData(accountKey: key)
+    try AppPaths.switchAccount(from: loadedKey, to: key, writers: writers)
+    phoneHostedLogger.info("Hesap verisi değiştirildi, eski veri: \(String(describing: result.claim), privacy: .public), taşınan: \(result.moves.count, privacy: .public)")
+    return key
+}
+
+/// Bu uygulamanın kabındaki önceki (hesapsız) veriyi hesaba taşır (bkz. `migrateLegacyUserData`); bekleyen kayıtlar
+/// sahiplerine gider.
+private func migratePhoneLegacyData(accountKey: String) throws -> LegacyMigrationResult {
+    let ownerKeys: [String: String] = loadHostedRecordOwners().mapValues { (owner: String) -> String in accountDataKey(userId: owner) }
+    return try migrateLegacyUserData(dataRoot: try AppPaths.applicationSupport(), accountKey: accountKey, recordOwnerKeys: ownerKeys)
+}
+
+/// Bekleyen hesap değişimi tamamlanamadı.
+enum HostedAccountSwitchError: Error, Equatable {
+    /// Değişim bekleyen bir hesap yok (`state`: o anki veri durumu) ya da oturum bu arada değişti.
+    case noPendingSwitch(state: String)
 }
 
 /// Kaydı biten toplantının notu: kaydın kendi sunucu oturumunun bütçesinden; kaydın oturumu yoksa hesap çağrısı ve hakkı

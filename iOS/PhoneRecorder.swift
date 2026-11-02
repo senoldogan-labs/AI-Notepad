@@ -99,8 +99,9 @@ final class PhoneRecorder {
     @ObservationIgnored private let speechEngine: AppleSpeechEngine = AppleSpeechEngine()
     /// Toplantının süre sınırını izleyen görev (bkz. `watchRecordingLimit`).
     @ObservationIgnored private var recordingLimitTask: Task<Void, Never>?
-    /// Bekleyen (çevrimdışı) kayıtların kuyruğu çalışıyor (eşzamanlı tetiklemeler ikinci kez çalıştırmasın).
-    @ObservationIgnored private var isRunningQueue: Bool = false
+    /// Bekleyen (çevrimdışı) kayıtların kuyruğu çalışıyor (eşzamanlı tetiklemeler ikinci kez çalıştırmasın; hesap
+    /// değişimi biterken bekler).
+    private(set) var isRunningQueue: Bool = false
     /// Notun yazılmaya başladığı an (toplantı başına; not süresi telemetrisi, bkz. `recordNoteOutcome`).
     @ObservationIgnored private var noteWritingStartedAt: [String: ContinuousClock.Instant] = [:]
     /// Sunucunun reddettiği bekleyen kayıtlar ve reddin anı (bkz. `hostedQueueCandidates`).

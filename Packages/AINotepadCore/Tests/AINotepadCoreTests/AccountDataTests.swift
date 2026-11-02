@@ -75,24 +75,63 @@ private func fileNumber(url: URL) throws -> Int {
         #expect(AppPaths.legacyClaimFile(dataRoot: root).path == "/tmp/AINotepad Hosted/Accounts/legacy-owner")
     }
 
-    // Giriş yapan hesaba göre: giriş yoksa veri yüklü kalır, ilk girişte yüklenir, başka hesapta yeniden başlatılır.
+    // Giriş yapan hesaba göre: giriş yoksa (çıkış) veri yüklü kalır, ilk girişte yüklenir, aynı hesapla yeniden girişte
+    // kalır, başka hesapta eskisinden yenisine geçilir.
     @Test func transitionFollowsSignedInAccount() {
         #expect(accountDataTransition(loadedKey: nil, signedInKey: nil) == .keep)
         #expect(accountDataTransition(loadedKey: keyA, signedInKey: nil) == .keep)
         #expect(accountDataTransition(loadedKey: nil, signedInKey: keyA) == .activate(accountKey: keyA))
         #expect(accountDataTransition(loadedKey: keyA, signedInKey: keyA) == .keep)
-        #expect(accountDataTransition(loadedKey: keyA, signedInKey: keyB) == .relaunch(accountKey: keyB))
+        #expect(accountDataTransition(loadedKey: keyA, signedInKey: keyB) == .switchAccount(from: keyA, to: keyB))
+        #expect(accountDataTransition(loadedKey: keyB, signedInKey: keyA) == .switchAccount(from: keyB, to: keyA))
     }
 
-    // Süreç tek hesabın verisini yükler: aynı hesap yeniden yüklenebilir, başka hesap için yeniden başlatma gerekir.
-    // (Test sürecinin Info.plist'inde hesap başına veri kapalıdır; yüklenen anahtar diğer testlerin yollarını değiştirmez.)
-    @Test func processLoadsOnlyOneAccount() throws {
+    // Hesap yalnız yazan her iş kapalıyken değiştirilebilir: açık işler verildiği sırayla beklenir.
+    @Test func switchWaitsForOpenWriters() {
+        guard case .waiting(let writers) = accountSwitchReadiness(openWriters: [.processing, .askAnswering]) else {
+            Issue.record("açık işler varken hesap değiştirilebilir sayıldı")
+            return
+        }
+        #expect(writers == [.processing, .askAnswering])
+        guard case .waiting(let recording) = accountSwitchReadiness(openWriters: [.recording]) else {
+            Issue.record("kayıt sürerken hesap değiştirilebilir sayıldı")
+            return
+        }
+        #expect(recording == [.recording])
+        guard case .ready = accountSwitchReadiness(openWriters: []) else {
+            Issue.record("açık iş yokken hesap değiştirilemez sayıldı")
+            return
+        }
+    }
+
+    // Süreç bir hesabın verisini yükler: aynı hesap yeniden yüklenebilir; başka hesap `activateAccount` ile yüklenmez,
+    // yalnız yazan işler kapalıyken ve yüklü hesap beklenen hesapsa `switchAccount` ile değiştirilir. (Test sürecinin
+    // Info.plist'inde hesap başına veri kapalıdır; yüklenen anahtar diğer testlerin yollarını değiştirmez. Süreç
+    // genelindeki anahtarı değiştiren tek test budur: paralel testler birbirini bozmasın.)
+    @Test func processLoadsOneAccountAndSwitchesOnlyWhenIdle() throws {
         #expect(throws: StorageError.invalidAccountKey(key: "../x")) { try AppPaths.activateAccount(key: "../x") }
         #expect(!AppPaths.isAccountScoped(bundle: .main))
         try AppPaths.activateAccount(key: keyA)
         try AppPaths.activateAccount(key: keyA)
         #expect(AppPaths.activeAccountKey() == keyA)
         #expect(throws: StorageError.accountSwitchRequiresRelaunch(active: keyA, requested: keyB)) { try AppPaths.activateAccount(key: keyB) }
+        #expect(AppPaths.activeAccountKey() == keyA)
+        guard case .ready(let writers) = accountSwitchReadiness(openWriters: []) else {
+            Issue.record("açık iş yokken hesap değiştirilemez sayıldı")
+            return
+        }
+        // Yüklü hesap beklenen değilse (bu arada değişti) değiştirilmez.
+        #expect(throws: StorageError.accountSwitchStale(active: keyA, expected: keyB)) {
+            try AppPaths.switchAccount(from: keyB, to: keyA, writers: writers)
+        }
+        #expect(throws: StorageError.invalidAccountKey(key: "../x")) { try AppPaths.switchAccount(from: keyA, to: "../x", writers: writers) }
+        #expect(AppPaths.activeAccountKey() == keyA)
+        try AppPaths.switchAccount(from: keyA, to: keyB, writers: writers)
+        #expect(AppPaths.activeAccountKey() == keyB)
+        // Değişimden sonra yeni hesap yüklüdür: onu yeniden yüklemek bir şey değiştirmez, eskisine `activateAccount` dönmez.
+        try AppPaths.activateAccount(key: keyB)
+        #expect(throws: StorageError.accountSwitchRequiresRelaunch(active: keyB, requested: keyA)) { try AppPaths.activateAccount(key: keyA) }
+        try AppPaths.switchAccount(from: keyB, to: keyA, writers: writers)
         #expect(AppPaths.activeAccountKey() == keyA)
     }
 
