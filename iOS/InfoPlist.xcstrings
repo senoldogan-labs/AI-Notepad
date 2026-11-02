@@ -8,7 +8,7 @@
         "tr": {
           "stringUnit": {
             "state": "new",
-            "value": "AI-Notepad"
+            "value": "Gistsmith"
           }
         }
       },
@@ -21,7 +21,7 @@
         "tr": {
           "stringUnit": {
             "state": "new",
-            "value": "AINotepad"
+            "value": "Gistsmith"
           }
         }
       },
@@ -33,13 +33,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "AI-Notepad shows your upcoming meetings and saves a recording under the name and attendees of the meeting in progress."
+            "value": "Gistsmith shows your upcoming meetings and saves a recording under the name and attendees of the meeting in progress."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "AI-Notepad sıradaki toplantılarını gösterir ve kaydı süren toplantının adı ve katılımcılarıyla kaydeder."
+            "value": "Gistsmith sıradaki toplantılarını gösterir ve kaydı süren toplantının adı ve katılımcılarıyla kaydeder."
           }
         }
       }
@@ -50,13 +50,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "AI-Notepad uses the microphone to transcribe in-person meetings."
+            "value": "Gistsmith uses the microphone to transcribe in-person meetings."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "AI-Notepad yüz yüze toplantıyı yazıya dökmek için mikrofonu kullanır."
+            "value": "Gistsmith yüz yüze toplantıyı yazıya dökmek için mikrofonu kullanır."
           }
         }
       }

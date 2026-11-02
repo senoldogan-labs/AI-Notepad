@@ -191,6 +191,9 @@ targets:
           HOSTED_SITE_BASE: "https://gistsmith.com"
           HOSTED_DATA_FOLDER_NAME: "AINotepad Hosted"
           HOSTED_KEYCHAIN_SERVICE: "AINotepadHosted"
+  # iPhone uygulaması: Gistsmith (abonelik sürümü), yalnızca hesapla. Mac'teki Gistsmith'le aynı paket kimliği (Apple ile
+  # girişin birincil App ID'si), aynı sunucu ve giriş akışı (App/Hosted'daki ortak dosyalar); `HOSTED_EDITION` bayrağı
+  # açık. Kendi anahtarlarınla çalışma ve geliştirici sürümüyle iCloud eşitlemesi yok: toplantılar telefonda kalır.
   AINotepadiOS:
     type: application
     platform: iOS
@@ -211,8 +214,17 @@ targets:
         buildPhase: resources
       # Takvim bağlantısı (EventKit) Mac'le aynı.
       - path: App/EventKitConnector.swift
-      # Görünen ad (metinlerdeki ürün adı) Mac'le aynı yoldan okunur; iPhone'da "AI-Notepad".
+      # Görünen ad (metinlerdeki ürün adı) Mac'le aynı yoldan okunur; iPhone'da "Gistsmith".
       - path: App/AppName.swift
+      # Abonelik hesabı (giriş, hak durumu, toplantı oturumu, cihaz doğrulaması), sunucu bağlantı noktaları ve telemetri
+      # Mac'teki Gistsmith'le ortak; platforma özgü kısımlar dosyaların içinde `os(macOS)`/`os(iOS)` ile ayrılır.
+      - path: App/AppTelemetry.swift
+      - path: App/Hosted/HostedAccount.swift
+      - path: App/Hosted/HostedAccountScope.swift
+      - path: App/Hosted/HostedDeviceAttestation.swift
+      - path: App/Hosted/HostedSeams.swift
+      - path: App/Hosted/HostedTelemetryCenter.swift
+      - path: App/Hosted/HostedTexts.swift
     dependencies:
       - package: AINotepadCore
         product: AINotepadCore
@@ -225,41 +237,68 @@ targets:
       Release: Config/Signing.xcconfig
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.senoldogan.AINotepad
-        PRODUCT_NAME: AINotepad
+        # Mac'teki Gistsmith'le aynı App ID (Apple ile girişin birincil App ID'si; App Store'da evrensel satın alma).
+        PRODUCT_BUNDLE_IDENTIFIER: com.senoldogan.AINotepad.hosted
+        # Gistsmith.app; Swift modülü hedef adıyla kalır.
+        PRODUCT_NAME: Gistsmith
+        PRODUCT_MODULE_NAME: AINotepadiOS
         TARGETED_DEVICE_FAMILY: "1"
         SWIFT_VERSION: "6.0"
         SWIFT_STRICT_CONCURRENCY: complete
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) HOSTED_EDITION"
         SWIFT_EMIT_LOC_STRINGS: YES
         LOCALIZATION_PREFERS_STRING_CATALOGS: YES
         GENERATE_INFOPLIST_FILE: YES
+        # Mac'teki Gistsmith gibi: sistem dili ne Türkçe ne İngilizce olan telefon arayüzü İngilizce görür (kataloglarda
+        # kaynak dil Türkçe kalır).
+        DEVELOPMENT_LANGUAGE: en
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        INFOPLIST_KEY_CFBundleDisplayName: AI-Notepad
+        INFOPLIST_KEY_CFBundleDisplayName: Gistsmith
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
-        INFOPLIST_KEY_NSMicrophoneUsageDescription: "AI-Notepad yüz yüze toplantıyı yazıya dökmek için mikrofonu kullanır."
-        CODE_SIGN_ENTITLEMENTS: iOS/AINotepad.entitlements
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Gistsmith yüz yüze toplantıyı yazıya dökmek için mikrofonu kullanır."
+        # Yetki dosyası yok: giriş ASWebAuthenticationSession ile sitede (Apple ile giriş yetkisi gerekmez), iCloud
+        # eşitlemesi bu sürümde kapalı, DeviceCheck yetki istemez.
         MARKETING_VERSION: "0.1.12"
         CURRENT_PROJECT_VERSION: "21"
+      configs:
+        # Mac'teki Gistsmith'in ayarlarıyla aynı. Debug yerel sunucuya bağlanır (Simülatör Mac'in ağını paylaşır;
+        # `cd server && npm run dev`); gerçek iPhone'da Debug derlemesi localhost'a ulaşamaz, Release kullan.
+        Debug:
+          HOSTED_API_BASE: "http://localhost:8787"
+          HOSTED_SITE_BASE: "http://localhost:8788"
+          HOSTED_DATA_FOLDER_NAME: "AINotepad Hosted Debug"
+          HOSTED_KEYCHAIN_SERVICE: "AINotepadHosted.debug"
+        Release:
+          HOSTED_API_BASE: "https://api.gistsmith.com"
+          HOSTED_SITE_BASE: "https://gistsmith.com"
+          HOSTED_DATA_FOLDER_NAME: "AINotepad Hosted"
+          HOSTED_KEYCHAIN_SERVICE: "AINotepadHosted"
     info:
       path: iOS/Info.plist
       properties:
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
-        # Veri klasörü (uygulamanın kendi kabında): Application Support/AINotepad.
-        AINotepadDataFolderName: AINotepad
+        NSHumanReadableCopyright: "© 2026 T:mi Aslan Dogan Marketing"
+        # Veri klasörü (uygulamanın kendi kabında): Application Support/<ad>; Mac'teki Gistsmith'le aynı adlar.
+        AINotepadDataFolderName: "$(HOSTED_DATA_FOLDER_NAME)"
+        # Kullanıcı verisi giriş yapan hesaba göre ayrı klasörde (bkz. Packages/AINotepadCore/.../Support/AccountData.swift).
+        AINotepadAccountScopedData: true
+        HostedKeychainService: "$(HOSTED_KEYCHAIN_SERVICE)"
+        # Giriş: ASWebAuthenticationSession; dönüş (com.senoldogan.ainotepad.hosted://auth/…) adres şeması kaydı olmadan
+        # doğrudan o oturuma gelir (bkz. App/Hosted/HostedAccount.swift).
+        HostedAPIBase: "$(HOSTED_API_BASE)"
+        HostedSiteBase: "$(HOSTED_SITE_BASE)"
         # Kayıt ekran kilitliyken ve uygulama arka plandayken sürer.
         UIBackgroundModes: [audio]
         UIAppFonts: [InterVariable.ttf]
         # Takvim yalnızca Ayarlar'da açılınca okunur (sıradaki toplantılar, kaydı süren etkinliğe bağlama).
-        NSCalendarsFullAccessUsageDescription: "AI-Notepad sıradaki toplantılarını gösterir ve kaydı süren toplantının adı ve katılımcılarıyla kaydeder."
+        NSCalendarsFullAccessUsageDescription: "Gistsmith sıradaki toplantılarını gösterir ve kaydı süren toplantının adı ve katılımcılarıyla kaydeder."
         # Kayıt kilit ekranında ve Dynamic Island'da canlı etkinlik olarak görünür.
         NSSupportsLiveActivities: true
         # Kayıttan sonra işleme uygulamadan çıkılsa da sürer (BGContinuedProcessingTask); kimlik
-        # `com.senoldogan.AINotepad.process.<UUID>` biçimindedir (bkz. iOS/PhoneRecorder.swift).
-        BGTaskSchedulerPermittedIdentifiers: [com.senoldogan.AINotepad.process.*]
-        # Çökme raporlarının gittiği sunucu (`POST /v1/reports`, hesapsız); Debug ve Release aynı.
-        ReportsAPIBase: "https://api.gistsmith.com"
+        # `com.senoldogan.AINotepad.hosted.process.<UUID>` biçimindedir (bkz. iOS/PhoneRecorder.swift).
+        BGTaskSchedulerPermittedIdentifiers: [com.senoldogan.AINotepad.hosted.process.*]
   AINotepadWidgets:
     type: app-extension
     platform: iOS
@@ -273,7 +312,7 @@ targets:
       Release: Config/Signing.xcconfig
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.senoldogan.AINotepad.Widgets
+        PRODUCT_BUNDLE_IDENTIFIER: com.senoldogan.AINotepad.hosted.Widgets
         PRODUCT_NAME: AINotepadWidgets
         TARGETED_DEVICE_FAMILY: "1"
         SWIFT_VERSION: "6.0"
@@ -281,9 +320,10 @@ targets:
         SWIFT_EMIT_LOC_STRINGS: YES
         LOCALIZATION_PREFERS_STRING_CATALOGS: YES
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: AI-Notepad
+        INFOPLIST_KEY_CFBundleDisplayName: Gistsmith
+        DEVELOPMENT_LANGUAGE: en
         # Niyetlerin gövdesi eklentide boş derlenir (bkz. iOS/Shared/RecordingIntents.swift).
-        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) WIDGET_EXTENSION"
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) WIDGET_EXTENSION HOSTED_EDITION"
         MARKETING_VERSION: "0.1.12"
         CURRENT_PROJECT_VERSION: "21"
     info:

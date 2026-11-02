@@ -91,7 +91,7 @@ async function purposeRow(day: string, purpose: string): Promise<{ input_tokens:
     .first<{ input_tokens: number; output_tokens: number; calls: number }>();
 }
 
-describe("uygulama ve macOS sürümü (GET /v1/me)", () => {
+describe("uygulama ve işletim sistemi sürümü (GET /v1/me)", () => {
   it("iki başlık da varsa yazar; yoksa yazmaz; aynı sürümler bir saat içinde yeniden yazılmaz", async () => {
     const harness: Harness = await defaultHarness();
     const session: Session = await signIn(harness);
@@ -117,11 +117,19 @@ describe("uygulama ve macOS sürümü (GET /v1/me)", () => {
     expect((await versionRow(session.userId)).last_seen_at).toBe(harness.clock.nowMs);
   });
 
+  it("iPhone uygulamasının iOS sürümünü yazar (yönetim paneli Mac ile iPhone'u ayırır)", async () => {
+    const harness: Harness = await defaultHarness();
+    const session: Session = await signIn(harness);
+    expect((await me(harness, session, { "x-app-version": "0.1.12 (21)", "x-os-version": "iOS 26.1.0" })).status).toBe(200);
+    expect(await versionRow(session.userId)).toEqual({ last_app_version: "0.1.12 (21)", last_os_version: "iOS 26.1.0", last_seen_at: harness.clock.nowMs });
+  });
+
   it.each([
     ["yalnızca uygulama sürümü", { "x-app-version": "0.1.10 (19)" }],
     ["yalnızca macOS sürümü", { "x-os-version": "macOS 15.4.1" }],
     ["geçersiz uygulama sürümü", { "x-app-version": "0.1.10", "x-os-version": "macOS 15.4.1" }],
     ["geçersiz macOS sürümü", { "x-app-version": "0.1.10 (19)", "x-os-version": "Windows 11" }],
+    ["sürümsüz iOS", { "x-app-version": "0.1.10 (19)", "x-os-version": "iOS" }],
   ])("%s: 400 bad_request, satır değişmez", async (_: string, headers: Record<string, string>) => {
     const harness: Harness = await defaultHarness();
     const session: Session = await signIn(harness);

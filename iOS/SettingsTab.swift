@@ -2,13 +2,14 @@ import AINotepadCore
 import AINotepadUI
 import SwiftUI
 
-/// Ayarlar: görünüm, iCloud eşitlemesi, bulut anahtarları, kayıt (rıza hatırlatması, ses saklama), takvim, toplantı
-/// dili ve ad, sürüm.
+/// Ayarlar: hesap (giriş yapan kimlik, plan, kullanım, çıkış, hesap silme), görünüm, kayıt (rıza hatırlatması, ses
+/// saklama), takvim, toplantı dili ve ad, gizlilik (anonim kullanım istatistikleri), sürüm.
 struct PhoneSettingsTab: View {
     let store: PhoneStore
     let calendar: PhoneCalendar
-    /// Kayıttaki, işlenen ve çalan toplantılar: eşitleme açılıp kapanırken taşınmaz.
-    let excludedFromMoves: Set<String>
+    let account: HostedAccount
+    /// Kayıt ya da işleme sürüyor: çıkış ve hesap silme kapalı.
+    let isMeetingInFlight: Bool
     let crashReports: CrashReportCenter
     @AppStorage(PhoneSettingsKey.primaryMeetingLanguage) private var primaryLanguage: String = MeetingLanguage.finnish.rawValue
     @AppStorage(PhoneSettingsKey.noteLanguage) private var noteLanguage: String = defaultNoteLanguage(interfaceLanguages: Bundle.main.preferredLocalizations).rawValue
@@ -16,27 +17,20 @@ struct PhoneSettingsTab: View {
     @AppStorage(PhoneSettingsKey.consentReminder) private var consentReminder: Bool = true
     @AppStorage(PhoneSettingsKey.audioRetentionDays) private var retentionDays: Int = 30
     @AppStorage(PhoneSettingsKey.theme) private var theme: String = AppTheme.system.rawValue
-    @AppStorage(PhoneSettingsKey.engine) private var engine: String = PhoneEngine.cloud.rawValue
+    @AppStorage(shareUsageStatisticsDefaultsKey) private var shareUsageStatistics: Bool = true
 
     var body: some View {
         NavigationStack {
             List {
                 CrashReportNotice(center: crashReports)
                 Section {
-                    Picker("Yazıya dökme ve not", selection: $engine) {
-                        Text("Cihaz içi (ücretsiz, anahtarsız)").tag(PhoneEngine.onDevice.rawValue)
-                        Text("Bulut (kendi anahtarlarınla)").tag(PhoneEngine.cloud.rawValue)
-                    }
-                    if engine == PhoneEngine.onDevice.rawValue, let problem = onDeviceProblem {
-                        Label(problem, systemImage: "exclamationmark.triangle")
-                            .foregroundStyle(.orange)
+                    NavigationLink {
+                        PhoneAccountScreen(account: account, isMeetingInFlight: isMeetingInFlight)
+                    } label: {
+                        PhoneAccountRow(account: account)
                     }
                 } header: {
-                    Text("Motor")
-                } footer: {
-                    Text(engine == PhoneEngine.onDevice.rawValue
-                        ? "Apple'ın konuşma tanıması ve Apple Intelligence: ses ve metin telefondan çıkmaz. Konuşmacılar ayrılmaz; not, bulut modellerinden daha kısadır."
-                        : "Deepgram canlı metni, ElevenLabs konuşmacıları, Claude notu yazar; aşağıdaki anahtarlar gerekir.")
+                    Text("Hesap")
                 }
                 Section {
                     Picker("Tema", selection: $theme) {
@@ -46,47 +40,6 @@ struct PhoneSettingsTab: View {
                     }
                 } header: {
                     Text("Görünüm")
-                }
-                Section {
-                    Toggle("iCloud ile eşitle", isOn: Binding<Bool>(
-                        get: { store.cloud.location == .iCloud },
-                        set: { (enabled: Bool) -> Void in
-                            Task {
-                                if enabled {
-                                    await store.cloud.enable(excluding: excludedFromMoves) { store.reload() }
-                                } else {
-                                    await store.cloud.disable { store.reload() }
-                                }
-                            }
-                        }
-                    ))
-                    .disabled(store.cloud.state == .working)
-                    switch store.cloud.state {
-                    case .working:
-                        Label("Toplantılar taşınıyor…", systemImage: "arrow.triangle.2.circlepath")
-                            .foregroundStyle(Theme.muted)
-                    case .failed(let message):
-                        Label(message, systemImage: "exclamationmark.triangle")
-                            .foregroundStyle(.orange)
-                    case .idle:
-                        if store.downloadingCount > 0 {
-                            Label("\(store.downloadingCount) toplantı iCloud'dan iniyor…", systemImage: "icloud.and.arrow.down")
-                                .foregroundStyle(Theme.muted)
-                        }
-                    }
-                } header: {
-                    Text("Eşitleme")
-                } footer: {
-                    Text("Biten toplantılar iCloud Drive'a taşınır ve Mac'teki AI-Notepad'de de görünür (Mac'te de açık olmalı). Kayıt ve işleme bu iPhone'da yapılır. Kapatınca iCloud'daki toplantıların bir kopyası bu iPhone'da kalır; Mac'tekiler etkilenmez.")
-                }
-                Section {
-                    KeyRow(account: .deepgram, title: "Deepgram", purpose: "Canlı metin")
-                    KeyRow(account: .elevenlabs, title: "ElevenLabs", purpose: "Konuşmacılar ve son geçiş")
-                    KeyRow(account: .anthropic, title: "Anthropic (Claude)", purpose: "Çeviri ve not")
-                } header: {
-                    Text("Anahtarlar")
-                } footer: {
-                    Text("Mac'te Ayarlar › Anahtarlar › \"iPhone'a gönder\" dersen anahtarlar iCloud Anahtar Zinciri ile buraya gelir. Burada girdiğin anahtar yalnız bu iPhone'da saklanır ve öncelik onundur.")
                 }
                 Section {
                     Toggle("Kayıt başlarken haber vermeyi hatırlat", isOn: $consentReminder)
@@ -101,7 +54,7 @@ struct PhoneSettingsTab: View {
                 } header: {
                     Text("Kayıt")
                 } footer: {
-                    Text("Kayıttan önce katılımcılara haber vermek çoğu yerde yasal zorunluluktur. Süre dolunca ses dosyaları silinir, metin ve not kalır; yarıda kalan ya da başarısız toplantının sesi iki kat süre saklanır. iCloud eşitlemesi açıksa Mac'te kaydedilen toplantıların sesi de bu süreye göre silinir.")
+                    Text("Kayıttan önce katılımcılara haber vermek çoğu yerde yasal zorunluluktur. Süre dolunca ses dosyaları silinir, metin ve not kalır; yarıda kalan ya da başarısız toplantının sesi iki kat süre saklanır.")
                 }
                 CalendarSettingsSection(calendar: calendar)
                 Section {
@@ -123,6 +76,21 @@ struct PhoneSettingsTab: View {
                 } footer: {
                     Text("Toplantı notları, canlı çeviri ve Sor cevapları not ve çeviri dilinde yazılır; toplantı zaten bu dildeyse çevrilmez. Önceki notlar yazıldıkları dilde kalır.")
                 }
+                Section {
+                    Toggle("Anonim kullanım istatistiklerini paylaş", isOn: $shareUsageStatistics)
+                        .onChange(of: shareUsageStatistics) { (_: Bool, enabled: Bool) in
+                            if !enabled {
+                                HostedTelemetryCenter.shared.sharingDisabled()
+                            }
+                        }
+                    if let privacy = phoneLegalURL(path: "privacy") {
+                        Link("Gizlilik politikası", destination: privacy)
+                    }
+                } header: {
+                    Text("Gizlilik")
+                } footer: {
+                    Text("Günlük güvenilirlik ve özellik kullanımı sayıları, ilk açılış ve giriş adımları; toplantı içeriği, ses ya da metin içermez.")
+                }
                 Section("Uygulama") {
                     LabeledContent("Sürüm", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?")
                     LabeledContent("Toplantılar", value: "\(store.meetings.count)")
@@ -130,16 +98,6 @@ struct PhoneSettingsTab: View {
                 }
             }
             .navigationTitle("Ayarlar")
-        }
-    }
-
-    /// Cihaz içi model kullanılamıyorsa ya da ana toplantı dilini desteklemiyorsa ne yapılacağı; sorun yoksa nil.
-    private var onDeviceProblem: String? {
-        do {
-            let config: OnDeviceConfig = try onDeviceConfig()
-            return onDeviceModeWarning(config: config, primaryLanguage: phonePrimaryMeetingLanguage(), outputLanguage: phoneStoredNoteLanguage(value: noteLanguage))
-        } catch {
-            return userFacingMessage(error: error)
         }
     }
 }
@@ -172,7 +130,7 @@ private struct CalendarSettingsSection: View {
             switch calendar.state {
             case .denied:
                 VStack(alignment: .leading, spacing: 8) {
-                    Label("Takvime erişim izni yok. iPhone Ayarları › Gizlilik ve Güvenlik › Takvimler'den AI-Notepad'e tam erişim ver.", systemImage: "calendar.badge.exclamationmark")
+                    Label("Takvime erişim izni yok. iPhone Ayarları › Gizlilik ve Güvenlik › Takvimler'den Gistsmith'e tam erişim ver.", systemImage: "calendar.badge.exclamationmark")
                         .foregroundStyle(.orange)
                     if let url = URL(string: UIApplication.openSettingsURLString) {
                         Button("Ayarlar'ı aç") { openURL(url) }
@@ -188,94 +146,6 @@ private struct CalendarSettingsSection: View {
             Text("Takvim")
         } footer: {
             Text("Kayıt ekranında sıradaki toplantılar görünür; süren bir toplantıda başlattığın kayıt onun adını ve katılımcılarını alır (adlar tanımaya da yardım eder).")
-        }
-    }
-}
-
-/// Bir bulut anahtarı: kayıtlı mı, yenisini yapıştırma ve silme. Değer hiçbir zaman gösterilmez.
-private struct KeyRow: View {
-    let account: SecretAccount
-    let title: String
-    let purpose: LocalizedStringKey
-    @State private var value: String = ""
-    @State private var isSaved: Bool = false
-    /// Mac'ten iCloud Anahtar Zinciri ile gelen kopya var.
-    @State private var isFromMac: Bool = false
-    @State private var errorMessage: String?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title).appFont(size: 15, weight: .medium)
-                    Text(purpose).appFont(size: 12, weight: .regular).foregroundStyle(Theme.muted)
-                }
-                Spacer()
-                if isFromMac {
-                    Label("Mac'ten", systemImage: "icloud.fill")
-                        .appFont(size: 12, weight: .medium)
-                        .foregroundStyle(.tint)
-                } else if isSaved {
-                    Label("Kayıtlı", systemImage: "checkmark.circle.fill")
-                        .appFont(size: 12, weight: .medium)
-                        .foregroundStyle(.tint)
-                }
-            }
-            HStack {
-                SecureField(isSaved ? "Değiştirmek için yenisini yapıştır" : "Anahtarı yapıştır", text: $value)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                Button("Kaydet") { save() }
-                    .disabled(trimmedValue.isEmpty)
-            }
-            if let errorMessage {
-                Text(errorMessage).appFont(size: 12, weight: .regular).foregroundStyle(.orange)
-            }
-        }
-        .padding(.vertical, 4)
-        .swipeActions {
-            if isSaved {
-                Button("Sil", role: .destructive) { delete() }
-            }
-        }
-        .task { refresh() }
-    }
-
-    private var trimmedValue: String {
-        value.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private func save() {
-        do {
-            try saveSecret(service: keychainService, account: account, value: trimmedValue)
-            value = ""
-            errorMessage = nil
-            refresh()
-        } catch {
-            errorMessage = userFacingMessage(error: error)
-        }
-    }
-
-    private func delete() {
-        do {
-            // Hem bu iPhone'daki hem Mac'ten gelen kopya silinir (yoksa Mac'inki "Kayıtlı" kalırdı).
-            try deleteSecret(service: keychainService, account: account)
-            try deleteSyncedSecret(service: keychainService, account: account)
-            refresh()
-        } catch {
-            errorMessage = userFacingMessage(error: error)
-        }
-    }
-
-    private func refresh() {
-        do {
-            // "Mac'ten" yalnızca kullanılan kopya Mac'inkiyse (burada girilen öncelikli).
-            let hasLocal: Bool = try localSecretExists(service: keychainService, account: account)
-            let hasSynced: Bool = try syncedSecretExists(service: keychainService, account: account)
-            isFromMac = !hasLocal && hasSynced
-            isSaved = hasLocal || isFromMac
-        } catch {
-            errorMessage = userFacingMessage(error: error)
         }
     }
 }

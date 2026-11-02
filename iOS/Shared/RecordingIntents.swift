@@ -22,7 +22,7 @@ struct RecordingActivityAttributes: ActivityAttributes {
 /// Toplantıyı kaydet (Kısayollar, Siri, Denetim Merkezi, Eylem düğmesi): uygulamayı açar ve kaydı başlatır.
 struct StartRecordingIntent: AppIntent {
     static let title: LocalizedStringResource = "Toplantıyı kaydet"
-    static let description: IntentDescription = IntentDescription("AI-Notepad'i açar ve yüz yüze toplantıyı kaydetmeye başlar.")
+    static let description: IntentDescription = IntentDescription("Gistsmith'i açar ve yüz yüze toplantıyı kaydetmeye başlar.")
     static let openAppWhenRun: Bool = true
 
     #if !WIDGET_EXTENSION
@@ -43,7 +43,7 @@ struct StartRecordingIntent: AppIntent {
 /// Kaydı bitir (Kısayollar, canlı etkinlikteki düğme): uygulamayı açmadan mikrofonu kapatır; toplantı işlenir.
 struct StopRecordingIntent: LiveActivityIntent {
     static let title: LocalizedStringResource = "Kaydı bitir"
-    static let description: IntentDescription = IntentDescription("Süren AI-Notepad kaydını bitirir; not hazırlanır.")
+    static let description: IntentDescription = IntentDescription("Süren Gistsmith kaydını bitirir; not hazırlanır.")
 
     #if !WIDGET_EXTENSION
     @Dependency private var recorder: PhoneRecorder

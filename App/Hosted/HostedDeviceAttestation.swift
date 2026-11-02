@@ -19,10 +19,23 @@ private struct AssertionClientData: Encodable {
 /// Apple App Attest (DeviceCheck) bağlantısı: cihaz anahtarı bir kez sunucuya doğrulatılır, toplantı başlatırken onay
 /// eklenir. Sunucu politikası isteğe bağlıdır: `isSupported` yanlışsa (bugün macOS'ta öyle) ya da adımlardan biri
 /// başarısızsa uyarı loglanır ve onaysız devam edilir; deneme hakkı yine hesap başına sayılır.
+///
+/// iPhone'da App Attest kullanılmaz: sunucunun doğrulaması (`server/src/attest/appAttest.ts`) yalnızca macOS onayını
+/// kabul eder (macOS anahtar erişim politikası, Developer ID başlatma kategorisi); iPhone onayı her açılışta reddedilip
+/// her seferinde yeni anahtar üretilirdi. iPhone'da cihaz başına deneme DeviceCheck ile sınırlıdır (`HostedDeviceCheck`).
 enum HostedDeviceAttestation {
+    /// Bu platformda App Attest denenir mi (bkz. tür açıklaması).
+    private static var isEnabled: Bool {
+        #if os(macOS)
+        DCAppAttestService.shared.isSupported
+        #else
+        false
+        #endif
+    }
+
     /// Cihaz anahtarı yoksa üretip doğrulatır; varsa `/v1/me` için bağlantıya bildirir.
     static func prepare(client: HostedClient) async {
-        guard DCAppAttestService.shared.isSupported else {
+        guard isEnabled else {
             return
         }
         if let keyID = UserDefaults.standard.string(forKey: attestKeyDefaultsKey) {
@@ -45,7 +58,7 @@ enum HostedDeviceAttestation {
 
     /// Hassas istek için onay; App Attest yoksa, cihaz doğrulanmamışsa ya da onay üretilemezse nil (uyarı loglanır).
     static func assertion(client: HostedClient, action: String) async -> HostedDeviceAssertion? {
-        guard DCAppAttestService.shared.isSupported, let keyID = UserDefaults.standard.string(forKey: attestKeyDefaultsKey) else {
+        guard isEnabled, let keyID = UserDefaults.standard.string(forKey: attestKeyDefaultsKey) else {
             return nil
         }
         do {
@@ -65,8 +78,9 @@ enum HostedDeviceAttestation {
     }
 }
 
-/// Apple DeviceCheck jetonu: sunucu bununla Apple'da bu Mac'in iki bitini okur ve yazar (`bit0` = "bu Mac bir hesaba
-/// ücretsiz deneme verdi"); Apple sunucuya cihaz kimliği vermez. App Attest'in aksine macOS'ta çalışır. Jeton kısa
+/// Apple DeviceCheck jetonu: sunucu bununla Apple'da bu cihazın (Mac ya da iPhone) iki bitini okur ve yazar (`bit0` =
+/// "bu cihaz bir hesaba ücretsiz deneme verdi"); Apple sunucuya cihaz kimliği vermez. App Attest'in aksine macOS'ta da
+/// çalışır; iOS Simülatörü'nde desteklenmez. Jeton kısa
 /// ömürlüdür, her deneme toplantısı başlatmada yeniden üretilir ve loglanmaz.
 @MainActor
 enum HostedDeviceCheck {

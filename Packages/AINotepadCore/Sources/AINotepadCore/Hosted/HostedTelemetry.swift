@@ -20,6 +20,9 @@ public func telemetrySendingAllowed(edition: AppEdition, sharingEnabled: Bool) -
     edition == .hosted && sharingEnabled
 }
 
+/// "Anonim kullanım istatistiklerini paylaş" ayarının UserDefaults anahtarı (Mac ve iPhone'da aynı; varsayılan açık).
+public let shareUsageStatisticsDefaultsKey: String = "privacy.shareUsageStatistics"
+
 /// Sayılan güvenilirlik olayları.
 public enum TelemetryCountKind: String, Sendable, Codable, CaseIterable {
     /// Deepgram canlı metin bağlantısı koptu.

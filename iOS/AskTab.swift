@@ -4,8 +4,8 @@ import os
 import SwiftUI
 
 /// Arşiv sohbeti: soru-cevaplar ve süren cevap. Cevabı Mac'teki `askArchive` yazar (arama terimleri → parçalar → akan
-/// cevap); devam soruları önceki cevapları bağlam alır. Sohbetler her cevaptan sonra bu iPhone'da saklanır (iCloud'a
-/// eşitlenmez) ve geçmişten yeniden açılır.
+/// cevap); devam soruları önceki cevapları bağlam alır; yapay zekâ çağrısı hesabın payından (sunucu üzerinden Claude).
+/// Sohbetler her cevaptan sonra bu iPhone'da hesabın klasöründe saklanır ve geçmişten yeniden açılır.
 @MainActor
 @Observable
 final class PhoneAsk {
@@ -39,7 +39,8 @@ final class PhoneAsk {
     /// Kayıtlı tarifleri okur.
     func loadRecipes() {
         do {
-            userRecipes = try loadUserRecipes(defaults: .standard)
+            // Tarifler hesabındır (Mac'teki Gistsmith gibi): başka hesapla girince görünmez.
+            userRecipes = try loadUserRecipes(defaults: try hostedActiveAccountDefaults())
         } catch {
             recipeError = userFacingMessage(error: error)
         }
@@ -57,7 +58,7 @@ final class PhoneAsk {
 
     private func store(recipes: [Recipe]) {
         do {
-            try saveUserRecipes(recipes: recipes, defaults: .standard)
+            try saveUserRecipes(recipes: recipes, defaults: try hostedActiveAccountDefaults())
             userRecipes = recipes
         } catch {
             recipeError = userFacingMessage(error: error)
@@ -68,6 +69,15 @@ final class PhoneAsk {
     func ask(question: String, meetingIDs: [String], recipeTitle: String?) {
         let trimmed: String = question.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !isAnswering else {
+            return
+        }
+        // Deneme ilk toplantıyla başlar: henüz toplantısı olmayan denemedeki hesap önce kayıt yapmalı (sunucu
+        // çağrılmaz; diğer retler sunucunun hatasıyla gösterilir).
+        if let reason = hostedAskUnavailableReason(account: HostedAccount.shared) {
+            exchanges.append(ArchiveExchange(
+                id: UUID(), question: trimmed, scopeMeetingIDs: meetingIDs, scopeTitles: [], recipeTitle: recipeTitle, startedAt: Date(),
+                phase: .failed(reason), terms: [], passages: [], answer: ArchiveAnswer(text: "", sources: []), finishedAt: Date()
+            ))
             return
         }
         let history: [ArchiveTurn] = archiveHistory(exchanges: exchanges)
@@ -91,19 +101,16 @@ final class PhoneAsk {
         let records: [MeetingRecord] = store.meetings
         task = Task { [weak self] in
             do {
-                let provider: LLMProvider = try await phoneLLMProvider()
+                let provider: LLMProvider = try phoneAccountLLMProvider()
                 let onProgress: ArchiveProgressHandler = { [weak self] (progress: ArchiveProgress) -> Void in
                     await self?.apply(progress: progress, id: id)
                 }
                 if scoped.isEmpty {
-                    // Cihaz içi modelde dili desteklenmeyen toplantılar okunmaz.
-                    let readable: OnDeviceReadableRecords = try onDeviceAskableArchive(records: records, provider: provider, outputLanguage: phoneNoteLanguage())
                     _ = try await askArchive(
-                        question: trimmed, history: history, records: readable.records, userName: phoneUserName(), language: phoneNoteLanguage(), llm: provider,
+                        question: trimmed, history: history, records: records, userName: phoneUserName(), language: phoneNoteLanguage(), llm: provider,
                         maxChars: noteLimits(provider: provider).archiveChars, now: Date(), onProgress: onProgress
                     )
                 } else {
-                    try requireOnDeviceLanguages(provider: provider, meetingLanguages: scoped.compactMap(\.language), outputLanguage: phoneNoteLanguage())
                     _ = try await askAboutMeetings(
                         question: trimmed, history: history, records: scoped, userName: phoneUserName(), language: phoneNoteLanguage(), llm: provider,
                         maxChars: noteLimits(provider: provider).archiveChars,

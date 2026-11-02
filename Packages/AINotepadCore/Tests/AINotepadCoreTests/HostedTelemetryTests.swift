@@ -99,11 +99,15 @@ private func telemetryJSON(_ data: Data) throws -> [String: Any] {
     // Sürüm başlıkları sunucunun biçimindedir; bozuk paket sürümü açık hatadır.
     @Test func clientInfoMatchesServerFormat() throws {
         let info: HostedClientInfo = try hostedClientInfo(
-            shortVersion: "0.1.10", buildNumber: "19", operatingSystem: OperatingSystemVersion(majorVersion: 15, minorVersion: 4, patchVersion: 1)
+            shortVersion: "0.1.10", buildNumber: "19", system: .macOS, operatingSystem: OperatingSystemVersion(majorVersion: 15, minorVersion: 4, patchVersion: 1)
         )
         #expect(info == HostedClientInfo(appVersion: "0.1.10 (19)", osVersion: "macOS 15.4.1"))
+        let phone: HostedClientInfo = try hostedClientInfo(
+            shortVersion: "0.1.12", buildNumber: "21", system: .iOS, operatingSystem: OperatingSystemVersion(majorVersion: 26, minorVersion: 1, patchVersion: 0)
+        )
+        #expect(phone == HostedClientInfo(appVersion: "0.1.12 (21)", osVersion: "iOS 26.1.0"))
         #expect(throws: HostedClientError.invalidAppVersion(value: "? (?)")) {
-            try hostedClientInfo(shortVersion: "?", buildNumber: "?", operatingSystem: OperatingSystemVersion(majorVersion: 15, minorVersion: 0, patchVersion: 0))
+            try hostedClientInfo(shortVersion: "?", buildNumber: "?", system: .macOS, operatingSystem: OperatingSystemVersion(majorVersion: 15, minorVersion: 0, patchVersion: 0))
         }
     }
 }

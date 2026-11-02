@@ -112,7 +112,7 @@ async function postDeviceCheck(
       const reason: string = body.slice(0, 200);
       log("warn", "devicecheck_failed", { endpoint, status: response.status, reason });
       if (response.status === 400) {
-        throw new ApiError("device_check_invalid", "This Mac couldn't be verified with Apple DeviceCheck; reopen the app and try again.");
+        throw new ApiError("device_check_invalid", "This device couldn't be verified with Apple DeviceCheck; reopen the app and try again.");
       }
       throw new UpstreamError("devicecheck", response.status, isRetryableStatus(response.status), reason);
     },

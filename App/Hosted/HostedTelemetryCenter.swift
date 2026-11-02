@@ -1,5 +1,9 @@
 import AINotepadCore
+#if os(macOS)
 import AppKit
+#else
+import UIKit
+#endif
 import Foundation
 import os
 
@@ -11,6 +15,12 @@ private let pendingEventsKey: String = "telemetry.pendingEvents"
 private let firstLaunchReportedKey: String = "telemetry.firstLaunchReported"
 /// Özellik kullanımı durumunun anahtarı (bugün ve gönderilmeyi bekleyen gün).
 private let featureStateKey: String = "telemetry.featureState"
+/// Uygulama arka plana geçti: bekleyenler gönderilir.
+#if os(macOS)
+private let telemetryResignActiveNotification: Notification.Name = NSApplication.didResignActiveNotification
+#else
+private let telemetryResignActiveNotification: Notification.Name = UIApplication.didEnterBackgroundNotification
+#endif
 /// Düzenli gönderim aralığı.
 private let flushIntervalSec: Double = 15 * 60
 
@@ -31,7 +41,7 @@ final class HostedTelemetryCenter {
 
     /// Kayıt ve gönderim izni: abonelik sürümü ve kullanıcının paylaşım seçimi.
     private var isAllowed: Bool {
-        telemetrySendingAllowed(edition: .hosted, sharingEnabled: UserDefaults.standard.bool(forKey: SettingsKey.shareUsageStatistics))
+        telemetrySendingAllowed(edition: .hosted, sharingEnabled: UserDefaults.standard.bool(forKey: shareUsageStatisticsDefaultsKey))
     }
 
     /// Düzenli gönderimi ve arka plana geçişte gönderimi başlatır; bekleyenleri hemen gönderir (önceki oturumdan kalanlar).
@@ -41,7 +51,7 @@ final class HostedTelemetryCenter {
             return
         }
         Task { await self.reportFirstLaunch() }
-        observers.append(NotificationCenter.default.addObserver(forName: NSApplication.didResignActiveNotification, object: nil, queue: .main) { (_: Notification) -> Void in
+        observers.append(NotificationCenter.default.addObserver(forName: telemetryResignActiveNotification, object: nil, queue: .main) { (_: Notification) -> Void in
             MainActor.assumeIsolated {
                 HostedTelemetryCenter.shared.flushInBackground()
             }

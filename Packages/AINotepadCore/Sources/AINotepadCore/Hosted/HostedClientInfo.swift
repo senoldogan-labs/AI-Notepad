@@ -1,7 +1,7 @@
 import Foundation
 
 /// Uygulamanın abonelik sunucusuna bildirdiği sürümler: her istekte `x-app-version` (ör. "0.1.10 (19)") ve
-/// `x-os-version` (ör. "macOS 15.4.1") başlıkları. Sunucu sonuncuları hesabın satırına yazar (yönetim panelinde sürüm
+/// `x-os-version` (ör. "macOS 15.4.1", iPhone'da "iOS 26.1.0") başlıkları. Sunucu sonuncuları hesabın satırına yazar (yönetim panelinde sürüm
 /// benimsenmesi) ve telemetri toplamlarını uygulama sürümüyle gruplar. Hizmetin işleyişi içindir; "Anonim kullanım
 /// istatistiklerini paylaş" kapalıyken de gönderilir. İçerik taşımaz.
 public struct HostedClientInfo: Sendable, Equatable {
@@ -14,16 +14,25 @@ public struct HostedClientInfo: Sendable, Equatable {
     }
 }
 
-/// Paket sürümlerinden istemci bilgisi: pazarlama sürümü + yapı numarası ve macOS sürümü. Biçim sunucunun kabul
+/// Uygulamanın çalıştığı işletim sistemi (`x-os-version`'ın adı; sunucu `server/src/clientVersions.ts` yalnızca bunları
+/// kabul eder, yönetim paneli Mac ile iPhone'u bununla ayırır).
+public enum HostedOperatingSystem: String, Sendable {
+    case macOS
+    case iOS
+}
+
+/// Paket sürümlerinden istemci bilgisi: pazarlama sürümü + yapı numarası ve işletim sisteminin adı ve sürümü. Biçim sunucunun kabul
 /// ettiğine uymuyorsa (derleme ayarı hatası) `HostedClientError.invalidAppVersion`: geçersiz başlık her `/v1/me`'yi
 /// reddettirirdi. Saf fonksiyondur.
-public func hostedClientInfo(shortVersion: String, buildNumber: String, operatingSystem: OperatingSystemVersion) throws -> HostedClientInfo {
+public func hostedClientInfo(
+    shortVersion: String, buildNumber: String, system: HostedOperatingSystem, operatingSystem: OperatingSystemVersion
+) throws -> HostedClientInfo {
     let appVersion: String = "\(shortVersion) (\(buildNumber))"
     // `x-app-version` biçimi `server/src/clientVersions.ts` ile aynı: 2–4 bileşenli sürüm ve parantez içinde yapı numarası.
     guard appVersion.wholeMatch(of: #/[0-9]{1,4}(\.[0-9]{1,4}){1,3} \([0-9]{1,9}\)/#) != nil else {
         throw HostedClientError.invalidAppVersion(value: appVersion)
     }
-    let osVersion: String = "macOS \(operatingSystem.majorVersion).\(operatingSystem.minorVersion).\(operatingSystem.patchVersion)"
+    let osVersion: String = "\(system.rawValue) \(operatingSystem.majorVersion).\(operatingSystem.minorVersion).\(operatingSystem.patchVersion)"
     return HostedClientInfo(appVersion: appVersion, osVersion: osVersion)
 }
 

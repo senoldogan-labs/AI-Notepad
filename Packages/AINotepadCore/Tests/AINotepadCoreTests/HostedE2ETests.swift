@@ -260,6 +260,28 @@ private func silentFlac(directory: URL) throws -> URL {
 }
 
 @Suite(.enabled(if: hostedE2EEnabled), .serialized) struct HostedE2ETests {
+    // iPhone uygulaması aynı hesap ve uçlarla çalışır: `x-os-version` "iOS …" kabul edilir (eski sunucu 400 verirdi),
+    // hak durumu okunur, deneme toplantısı açılıp kapanır.
+    @Test func iPhoneClientUsesSameAccountAndMeetings() async throws {
+        let baseURL: URL = try localServerBase()
+        try resetLocalTrialStarts()
+        let seedRefreshToken: String = randomToken()
+        let userID: String = try insertSession(refreshToken: seedRefreshToken)
+        let storage: MemoryTokenStorage = MemoryTokenStorage(tokens: HostedTokens(
+            accessToken: "gecersiz", refreshToken: seedRefreshToken, accessExpiresAt: Date.distantPast, userId: userID
+        ))
+        let phoneInfo: HostedClientInfo = try hostedClientInfo(
+            shortVersion: "0.1.12", buildNumber: "21", system: .iOS, operatingSystem: OperatingSystemVersion(majorVersion: 26, minorVersion: 1, patchVersion: 0)
+        )
+        let client: HostedClient = HostedClient(clientInfo: phoneInfo, baseURL: baseURL, storage: storage) { () async -> Void in }
+        let entitlements: HostedEntitlements = try await awaitingAuthLimit { try await client.entitlements() }
+        #expect(entitlements.userId == userID)
+        let started: HostedStartedMeeting = try await client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: UUID().uuidString.lowercased(), deferred: false)
+        #expect(started.kind == "trial")
+        let finished: HostedEndedMeeting = try await client.endMeeting(meetingID: started.meetingId)
+        #expect(finished.meetingId == started.meetingId)
+    }
+
     // Oturum (yenileme jetonuyla) → /v1/me → toplantı başlat (deneme düşer) → bitir → erişim jetonu yenilenir →
     // yanıtı kaybolmuş yenilemenin 10 dakika içindeki tekrarı kabul edilir → halef kullanıldıktan sonra eski jeton
     // yeniden gelirse tüm oturumlar düşer ve istemci çıkış yapar.

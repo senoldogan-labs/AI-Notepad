@@ -1,5 +1,9 @@
 import AINotepadCore
+#if os(macOS)
 import AppKit
+#else
+import UIKit
+#endif
 import AuthenticationServices
 import Foundation
 import Network
@@ -31,6 +35,7 @@ private func makeHostedClient(bundle: Bundle) -> Result<HostedClient, HostedClie
             clientInfo: try hostedClientInfo(
                 shortVersion: bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "",
                 buildNumber: bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "",
+                system: hostedThisOperatingSystem,
                 operatingSystem: ProcessInfo.processInfo.operatingSystemVersion
             ),
             baseURL: try hostedURL(bundle: bundle, key: "HostedAPIBase"),
@@ -94,13 +99,73 @@ private enum HostedWebSignInOutcome {
     case canceled
 }
 
+/// Bu uygulamanın işletim sistemi (sunucuya `x-os-version` adıyla bildirilir).
+#if os(macOS)
+private let hostedThisOperatingSystem: HostedOperatingSystem = .macOS
+#else
+private let hostedThisOperatingSystem: HostedOperatingSystem = .iOS
+#endif
+
 /// Giriş penceresinin bağlandığı pencere (AuthenticationServices sunum sağlayıcısı; dış sistem bağlantısı, NSObject
-/// gerekir). Giriş düğmesi ana penceredeyken anahtar pencere odur.
+/// gerekir). Mac'te giriş düğmesi ana penceredeyken anahtar pencere odur; iPhone'da öndeki sahnenin anahtar penceresi.
 @MainActor
 private final class HostedWebSignInPresenter: NSObject, ASWebAuthenticationPresentationContextProviding {
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+        #if os(macOS)
         // Anahtar ya da ana pencere yoksa (ör. uygulama arka planda) sistem giriş penceresini kendi başına açar.
         NSApp.keyWindow ?? NSApp.mainWindow ?? ASPresentationAnchor()
+        #else
+        // Giriş düğmesi öndeki sahnededir; sahnesi olmayan pencere sistemin giriş sayfasını gösteremez.
+        let scenes: [UIWindowScene] = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let active: UIWindowScene? = scenes.first { $0.activationState == .foregroundActive } ?? scenes.first
+        guard let scene = active else {
+            preconditionFailure("Giriş penceresi istendi ama uygulamanın sahnesi yok")
+        }
+        return scene.keyWindow ?? scene.windows.first ?? UIWindow(windowScene: scene)
+        #endif
+    }
+}
+
+/// Uygulama öne geldi ve kapanıyor bildirimleri (hak durumu yenileme, açık sunucu oturumunu kapatma).
+#if os(macOS)
+private let hostedDidBecomeActiveNotification: Notification.Name = NSApplication.didBecomeActiveNotification
+private let hostedWillTerminateNotification: Notification.Name = NSApplication.willTerminateNotification
+#else
+private let hostedDidBecomeActiveNotification: Notification.Name = UIApplication.didBecomeActiveNotification
+private let hostedWillTerminateNotification: Notification.Name = UIApplication.willTerminateNotification
+#endif
+
+/// Girişte jetondan gelen kimlik (sağlayıcı ve e-posta): yalnızca bu cihazda, hesap ekranında kimin giriş yaptığını
+/// göstermek için saklanır.
+struct HostedSignInIdentity: Codable, Equatable {
+    let provider: HostedSignInProvider
+    let email: String?
+}
+
+/// Hesabın giriş kimliğinin anahtarı (hesap başına, yalnızca bu cihazda). Saf fonksiyondur.
+private func hostedIdentityKey(userId: String) -> String {
+    "hosted.identity.\(userId)"
+}
+
+/// Girişteki kimliği hesaba yazar; yazılamazsa uyarı loglanır (hesap ekranı kimliği göstermez, giriş etkilenmez).
+private func saveHostedIdentity(identity: HostedSignInIdentity, userId: String) {
+    do {
+        UserDefaults.standard.set(try JSONEncoder().encode(identity), forKey: hostedIdentityKey(userId: userId))
+    } catch {
+        accountLogger.warning("Giriş kimliği saklanamadı, hata: \(String(describing: error), privacy: .private)")
+    }
+}
+
+/// Hesabın saklanan giriş kimliği; yoksa nil, bozuksa nil ve hata loglanır.
+private func loadHostedIdentity(userId: String) -> HostedSignInIdentity? {
+    guard let data = UserDefaults.standard.data(forKey: hostedIdentityKey(userId: userId)) else {
+        return nil
+    }
+    do {
+        return try JSONDecoder().decode(HostedSignInIdentity.self, from: data)
+    } catch {
+        accountLogger.error("Giriş kimliği okunamadı, hata: \(String(describing: error), privacy: .private)")
+        return nil
     }
 }
 
@@ -211,6 +276,13 @@ final class HostedAccount {
         _ = avatarRevision
         return signedInUserIDCache.flatMap { (userID: String) -> URL? in UserDefaults.standard.url(forKey: hostedAvatarKey(userId: userID)) }
     }
+
+    /// Oturumdaki hesabın girişteki kimliği (sağlayıcı ve e-posta; bu cihazda saklanır); bu sürümden önce giriş yapıldıysa
+    /// nil.
+    var signedInIdentity: HostedSignInIdentity? {
+        _ = avatarRevision
+        return signedInUserIDCache.flatMap { (userID: String) -> HostedSignInIdentity? in loadHostedIdentity(userId: userID) }
+    }
     /// Son başarılı hak durumu okuması (uygulama öne gelince eskimişse yenilenir).
     @ObservationIgnored private var lastRefreshAt: Date?
     /// Yenilemenin gösterdiği hata: sonraki başarılı yenileme onu kaldırır (bağlantı gelince eski hata kalmasın).
@@ -248,7 +320,7 @@ final class HostedAccount {
                 self?.errorMessage = userFacingMessage(error: HostedClientError.sessionEnded)
             }
         })
-        observers.append(NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] (_: Notification) -> Void in
+        observers.append(NotificationCenter.default.addObserver(forName: hostedDidBecomeActiveNotification, object: nil, queue: .main) { [weak self] (_: Notification) -> Void in
             MainActor.assumeIsolated {
                 guard let self else {
                     return
@@ -271,7 +343,7 @@ final class HostedAccount {
         }
         pathMonitor.start(queue: DispatchQueue(label: "com.senoldogan.AINotepad.hosted.path"))
         // Uygulama kapanırken açık kalan sunucu oturumu kapatılmaya çalışılır (en çok 3 sn); olmazsa sonraki açılışta.
-        observers.append(NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) { [weak self] (_: Notification) -> Void in
+        observers.append(NotificationCenter.default.addObserver(forName: hostedWillTerminateNotification, object: nil, queue: .main) { [weak self] (_: Notification) -> Void in
             MainActor.assumeIsolated {
                 endOpenMeetingBeforeQuit(userID: self?.signedInUserIDCache)
             }
@@ -637,6 +709,7 @@ final class HostedAccount {
         return false
     }
 
+    #if os(macOS)
     /// Ödeme sayfası tarayıcıda açıldı: kullanıcı uygulamaya dönmeden abonelik beklenir (en çok 15 dk, giderek seyrelen
     /// aralıklarla; bkz. `hostedCheckoutWatchDelays`); görününce uygulama öne gelir, kullanıcı tarayıcıdan geri dönmek
     /// zorunda kalmaz. Önceki izleme varsa durdurulur; kullanıcı uygulamaya dönünce de durur (bkz. `refreshOnActivation`).
@@ -657,6 +730,7 @@ final class HostedAccount {
             }
         }
     }
+    #endif
 
     /// İstemcinin jetonundaki (oturumdaki) hesabın açık sunucu oturumları alanı: oturumlar o hesabın jetonuyla açılır
     /// ve kapatılır. Oturum yoksa `notSignedIn`.
@@ -734,9 +808,11 @@ final class HostedAccount {
                 return
             case .callback(let url):
                 callbackURL = url
+                #if os(macOS)
                 // Giriş varsayılan tarayıcıda (ör. Chrome penceresinde) bittiyse odak orada kalmasın: kullanıcı
                 // doğrudan uygulamaya döner.
                 NSApp.activate()
+                #endif
             }
         } catch {
             accountLogger.error("Giriş penceresi açılamadı, hata: \(String(describing: error), privacy: .private)")
@@ -761,6 +837,14 @@ final class HostedAccount {
             accountLogger.warning("Profil resmi jetondan okunamadı, hata: \(String(describing: error), privacy: .private)")
             picture = nil
         }
+        let email: String?
+        do {
+            email = try hostedIDTokenEmail(identityToken: callback.identityToken)
+        } catch {
+            // Kimlik girişe engel değil: hesap ekranı e-postasız sağlayıcıyı gösterir.
+            accountLogger.warning("E-posta jetondan okunamadı, hata: \(String(describing: error), privacy: .private)")
+            email = nil
+        }
         await perform { (client: HostedClient) async throws -> Void in
             do {
                 try await endPreviousSession(client: client)
@@ -778,6 +862,7 @@ final class HostedAccount {
             reportHostedFunnel(step: .signedIn(callback.provider))
             if let userID = try await client.signedInUserID() {
                 saveHostedAvatar(picture: picture, userId: userID)
+                saveHostedIdentity(identity: HostedSignInIdentity(provider: callback.provider, email: email), userId: userID)
             }
         }
     }
@@ -830,10 +915,10 @@ final class HostedAccount {
             try await HostedServices.requireClient().signOut()
         } catch HostedClientError.network(let path, _) {
             accountLogger.warning("Çıkış sunucuya iletilemedi (ağ), yerelde yapıldı, yol: \(path, privacy: .public)")
-            errorMessage = String(localized: "Bu Mac'te çıkış yapıldı. Sunucuya ulaşılamadı; sunucudaki oturum en geç 60 gün içinde kendiliğinden kapanır.")
+            errorMessage = hostedLocalSignOutMessage()
         } catch let error as HostedAPIError {
             accountLogger.warning("Çıkış sunucuda reddedildi, yerelde yapıldı, kod: \(error.rawCode, privacy: .public), durum: \(error.status, privacy: .public)")
-            errorMessage = String(localized: "Bu Mac'te çıkış yapıldı. Sunucuya ulaşılamadı; sunucudaki oturum en geç 60 gün içinde kendiliğinden kapanır.")
+            errorMessage = hostedLocalSignOutMessage()
         } catch {
             accountLogger.error("Çıkış yapılamadı, hata: \(String(describing: error), privacy: .private)")
             errorMessage = userFacingMessage(error: error)
@@ -856,13 +941,15 @@ final class HostedAccount {
         }
     }
 
-    /// Silinen hesabın yerel izleri: şimdiki toplantı, çevrimdışı kayıt izni ve açık oturum listesi.
+    /// Silinen hesabın yerel izleri: şimdiki toplantı, çevrimdışı kayıt izni, girişteki kimlik (e-posta) ve açık oturum
+    /// listesi.
     private func clearAfterAccountDeletion(userID: String?) {
         currentMeeting = nil
         clearHostedOfflinePermit()
         guard let userID else {
             return
         }
+        UserDefaults.standard.removeObject(forKey: hostedIdentityKey(userId: userID))
         do {
             clearHostedOpenMeetingIDs(defaults: try hostedOpenMeetingsDefaults(userID: userID))
         } catch {
@@ -871,6 +958,10 @@ final class HostedAccount {
     }
 
     // MARK: Ödeme
+
+    // Ödeme, müşteri portalı ve davet kodu yalnızca Mac'te: iPhone uygulaması içinde App Store dışı bir satın alma yoluna
+    // yönlendirilmez (App Store 3.1.1); abonelik iPhone'da yalnızca durum olarak görünür.
+    #if os(macOS)
 
     /// Seçilen planın Stripe Checkout'unu tarayıcıda açar (`referralCode`: doğrulanmış davet kodu, yoksa nil) ve
     /// abonelik görününce uygulamayı öne getirir (bkz. `watchCheckout`); bitmemiş abonelik varsa Müşteri Portalı açılır.
@@ -953,6 +1044,7 @@ final class HostedAccount {
     private func markAwaitingBillingReturn() {
         awaitingBillingReturn = true
     }
+    #endif
 
     // MARK: Toplantı
 
@@ -1174,7 +1266,18 @@ final class HostedAccount {
 
     /// Bekleyen kaydın şimdilik işlenememe nedeni (hak durumundan).
     private func queuedBlockReason(entitlements: HostedEntitlements) -> String {
+        #if os(iOS)
+        // iPhone'da abone olma önerilmez (App Store 3.1.1): yalnızca durum ve ne zaman kendiliğinden işleneceği.
         switch hostedStartBlock(entitlements: entitlements) {
+        case .trialEnded, .subscriptionEnded, .paymentOverdue:
+            return String(localized: "Hesabında etkin bir plan olmadığı için bu toplantı işlenemedi. Ses bu iPhone'da kalır; plan etkinleşince kendiliğinden işlenir.")
+        case .monthlyCapReached:
+            return String(localized: "Bu ayki kullanım sınırın dolduğu için bu toplantı işlenemedi. Ses bu iPhone'da kalır; sınır sıfırlanınca kendiliğinden işlenir.")
+        case .none:
+            return String(localized: "Bu toplantı şimdilik işlenemedi; kendiliğinden yeniden denenecek.")
+        }
+        #else
+        return switch hostedStartBlock(entitlements: entitlements) {
         case .trialEnded:
             String(localized: "Ücretsiz denemen bittiği için bu toplantı işlenemedi. Ses bu Mac'te kalır; abone olunca kendiliğinden işlenir.")
         case .monthlyCapReached:
@@ -1186,6 +1289,7 @@ final class HostedAccount {
         case .none:
             String(localized: "Bu toplantı şimdilik işlenemedi; kendiliğinden yeniden denenecek.")
         }
+        #endif
     }
 
     /// İşlemi çalıştırır, sonra durumu yeniler; hata kullanıcıya gösterilir.
@@ -1201,6 +1305,15 @@ final class HostedAccount {
         }
         await refresh()
     }
+}
+
+/// Çıkış sunucuya iletilemedi ama bu cihazda yapıldı: kullanıcıya gösterilen metin.
+private func hostedLocalSignOutMessage() -> String {
+    #if os(macOS)
+    String(localized: "Bu Mac'te çıkış yapıldı. Sunucuya ulaşılamadı; sunucudaki oturum en geç 60 gün içinde kendiliğinden kapanır.")
+    #else
+    String(localized: "Bu iPhone'da çıkış yapıldı. Sunucuya ulaşılamadı; sunucudaki oturum en geç 60 gün içinde kendiliğinden kapanır.")
+    #endif
 }
 
 /// İlk açılış hunisinin adımını arka planda bildirir; giriş ve arayüz beklemez (bkz. `HostedTelemetryCenter.send`).

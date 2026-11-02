@@ -288,7 +288,7 @@ export const adminLayoutCopy: AdminLayoutCopy = {
     activity: { title: "Activity", description: "Meetings and active accounts over time." },
     retention: { title: "Retention", description: "Weekly activity by sign-up cohort." },
     features: { title: "Features", description: "What people use in the Mac app (anonymous statistics)." },
-    platform: { title: "Versions", description: "App and macOS versions in use." },
+    platform: { title: "Versions", description: "App and OS versions (macOS, iOS) in use." },
     errors: { title: "Errors", description: "Refusals, failed service calls and server errors per day." },
     meetings: { title: "Meetings", description: "How meetings end and what goes wrong." },
     app: { title: "Mac app", description: "Crashes, connection drops and processing times reported by the app." },

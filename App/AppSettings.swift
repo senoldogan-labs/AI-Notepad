@@ -112,7 +112,7 @@ enum SettingsKey {
     static let surfaceOpacity: String = "appearance.surfaceOpacity"
     /// "Anonim kullanım istatistiklerini paylaş" (yalnızca abonelik sürümünde görünür ve kullanılır; bkz.
     /// `HostedTelemetryCenter`).
-    static let shareUsageStatistics: String = "privacy.shareUsageStatistics"
+    static let shareUsageStatistics: String = shareUsageStatisticsDefaultsKey
 }
 
 /// Arayüz dili; macOS'ta uygulama dili yeniden başlatınca uygulanır.

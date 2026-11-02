@@ -4,11 +4,13 @@ import AppIntents
 import os
 import SwiftUI
 
-/// iPhone uygulaması: sekmeler (Kayıt, Toplantılar, Sor, Görevler, Ayarlar). Mac'le aynı çekirdeği ve görünümü
-/// kullanır; toplantılar aynı klasör yapısındadır. iCloud eşitlemesi açıksa biten toplantılar iCloud kapsayıcısına
-/// taşınır ve Mac'tekilerle birlikte listelenir.
+/// iPhone uygulaması (Gistsmith): önce giriş (Apple ya da Google, Mac'teki Gistsmith'le aynı hesap), sonra bir kez yapay
+/// zekâ işleme açıklaması, sonra sekmeler (Kayıt, Toplantılar, Sor, Görevler, Ayarlar). Mac'le aynı çekirdeği ve
+/// görünümü kullanır; toplantılar giriş yapan hesabın bu iPhone'daki klasöründe durur (iCloud eşitlemesi yok).
 @main
 struct AINotepadiOSApp: App {
+    /// Abonelik hesabı (giriş, hak durumu, toplantı oturumu); Mac'teki Gistsmith'le ortak.
+    private let account: HostedAccount
     @State private var store: PhoneStore
     @State private var recorder: PhoneRecorder
     @State private var ask: PhoneAsk
@@ -30,6 +32,22 @@ struct AINotepadiOSApp: App {
             UserDefaults.standard.removeObject(forKey: PhoneSettingsKey.onboardingCompleted)
         }
         #endif
+        #if DEBUG
+        if isDemoMode {
+            activatePhoneDemoAccount()
+        }
+        #endif
+        // Hesap toplantılardan önce okunur: oturum varsa o hesabın verisi yüklenir (yoksa toplantı klasörü açılmaz).
+        let account: HostedAccount = HostedAccount.shared
+        #if DEBUG
+        if isDemoMode {
+            account.showAccountForDemo(entitlements: phoneDemoEntitlements(now: Date()), referral: nil)
+            // `--aciklama`: yapay zekâ açıklaması yeniden gösterilir (görsel kontrol).
+            UserDefaults.standard.set(!CommandLine.arguments.contains("--aciklama"), forKey: PhoneSettingsKey.aiDisclosureAccepted)
+            UserDefaults.standard.set(true, forKey: PhoneSettingsKey.onboardingCompleted)
+        }
+        #endif
+        self.account = account
         let store: PhoneStore = PhoneStore()
         let recorder: PhoneRecorder = PhoneRecorder(store: store)
         let calendar: PhoneCalendar = PhoneCalendar()
@@ -50,29 +68,70 @@ struct AINotepadiOSApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView(store: store, recorder: recorder, ask: ask, router: router, player: player, calendar: calendar, crashReports: crashReports)
-                .environment(\.panelAppearance, .standard)
-                .font(PanelAppearance.standard.font(size: 15, weight: .regular))
-                .tint(PanelAppearance.standard.accent.color)
-                .task {
-                    crashReports.start()
-                    // Saklama süresi ve yarım kalan kayıtlar listeye bakar: okuma bitince sürer.
-                    await store.reloadAndWait()
-                    ask.loadRecipes()
-                    ask.loadHistory()
-                    await store.cloud.start(excluding: recorder.busyMeetingIDs.union([player.meetingID].compactMap { $0 })) { store.reload() }
-                    store.applyRetention(now: Date())
-                    #if DEBUG
-                    if CommandLine.arguments.contains("--ornek-kayit") {
-                        recorder.showSampleRecording()
-                        return
-                    }
-                    if let index = CommandLine.arguments.firstIndex(of: "--soru"), CommandLine.arguments.indices.contains(index + 1) {
-                        ask.ask(question: CommandLine.arguments[index + 1], meetingIDs: [], recipeTitle: nil)
-                    }
-                    #endif
-                    await recorder.resumeUnfinished()
-                }
+            PhoneAppRoot(
+                account: account, store: store, recorder: recorder, ask: ask, router: router, player: player, calendar: calendar,
+                crashReports: crashReports
+            )
+            .environment(\.panelAppearance, .standard)
+            .font(PanelAppearance.standard.font(size: 15, weight: .regular))
+            .tint(PanelAppearance.standard.accent.color)
+            .task {
+                crashReports.start()
+                HostedTelemetryCenter.shared.start()
+            }
+        }
+    }
+}
+
+/// Giriş kapısı, yapay zekâ açıklaması ya da sekmeler. Hesabın verisi yüklenince (açılışta ya da ilk girişte)
+/// toplantılar, Sor geçmişi ve yarım kalan işlemeler okunur; hesap bekleyen kayıtların işlenmesini tetikleyince (ağ
+/// geldi, hak durumu okundu, uygulama öne geldi) kuyruk çalışır.
+private struct PhoneAppRoot: View {
+    let account: HostedAccount
+    let store: PhoneStore
+    let recorder: PhoneRecorder
+    let ask: PhoneAsk
+    let router: PhoneRouter
+    let player: MeetingAudioPlayer
+    let calendar: PhoneCalendar
+    let crashReports: CrashReportCenter
+    @AppStorage(PhoneSettingsKey.aiDisclosureAccepted) private var disclosureAccepted: Bool = false
+
+    var body: some View {
+        Group {
+            if account.requiresSignIn {
+                PhoneSignInGate(account: account)
+            } else if !disclosureAccepted {
+                PhoneAIDisclosure(account: account) { disclosureAccepted = true }
+            } else {
+                RootView(store: store, recorder: recorder, ask: ask, router: router, player: player, calendar: calendar, crashReports: crashReports, account: account)
+            }
+        }
+        .task(id: account.isAccountDataLoaded) {
+            guard account.isAccountDataLoaded else {
+                return
+            }
+            // Saklama süresi ve yarım kalan kayıtlar listeye bakar: okuma bitince sürer.
+            await store.reloadAndWait()
+            ask.loadRecipes()
+            ask.loadHistory()
+            store.applyRetention(now: Date())
+            #if DEBUG
+            if CommandLine.arguments.contains("--ornek-kayit") {
+                recorder.showSampleRecording()
+                return
+            }
+            if let index = CommandLine.arguments.firstIndex(of: "--soru"), CommandLine.arguments.indices.contains(index + 1) {
+                ask.ask(question: CommandLine.arguments[index + 1], meetingIDs: [], recipeTitle: nil)
+            }
+            #endif
+            await recorder.resumeUnfinished()
+        }
+        .onChange(of: account.queueTrigger) { (_: Int, _: Int) in
+            guard account.isAccountDataLoaded else {
+                return
+            }
+            Task { await recorder.runQueue() }
         }
     }
 }
@@ -131,6 +190,7 @@ struct RootView: View {
     let player: MeetingAudioPlayer
     let calendar: PhoneCalendar
     let crashReports: CrashReportCenter
+    let account: HostedAccount
     /// İlk açılış karşılaması bitti (`--karsilama` ile Debug'da yeniden gösterilir).
     @AppStorage(PhoneSettingsKey.onboardingCompleted) private var onboardingCompleted: Bool = false
     @AppStorage(PhoneSettingsKey.theme) private var theme: String = AppTheme.system.rawValue
@@ -153,7 +213,10 @@ struct RootView: View {
                 TasksTab(store: store, router: router)
             }
             Tab("Ayarlar", systemImage: "gearshape", value: PhoneTab.settings) {
-                PhoneSettingsTab(store: store, calendar: calendar, excludedFromMoves: recorder.busyMeetingIDs.union([player.meetingID].compactMap { $0 }), crashReports: crashReports)
+                PhoneSettingsTab(
+                    store: store, calendar: calendar, account: account, isMeetingInFlight: recorder.phase != .idle || !recorder.busyMeetingIDs.isEmpty,
+                    crashReports: crashReports
+                )
             }
         }
         .tabViewBottomAccessory(isEnabled: player.meetingID != nil) {
@@ -162,16 +225,9 @@ struct RootView: View {
         .fullScreenCover(isPresented: Binding<Bool>(get: { !onboardingCompleted }, set: { (_: Bool) -> Void in })) {
             PhoneOnboarding {
                 onboardingCompleted = true
-                router.tab = .settings
-            } onFinish: {
-                onboardingCompleted = true
             }
         }
         .preferredColorScheme((AppTheme(rawValue: theme) ?? .system).isDark.map { $0 ? ColorScheme.dark : ColorScheme.light })
-        // İlk açılışta anahtar yoksa cihaz içi mod seçilir (karşılama seçimi gösterir).
-        .task {
-            _ = await choosePhoneOnDeviceOnFirstRun(defaults: .standard)
-        }
         .onChange(of: theme) { (_: String, value: String) in
             let selected: AppTheme = AppTheme(rawValue: value) ?? .system
             ThemeStore.shared.set(light: selected.colorSets.light, dark: selected.colorSets.dark)
@@ -202,7 +258,8 @@ struct RootView: View {
     }
 }
 
-/// Toplantı arşivi: cihazdaki `Sessions` klasörü ve iCloud eşitlemesi açıksa iCloud kapsayıcısındaki toplantılar.
+/// Toplantı arşivi: giriş yapan hesabın bu iPhone'daki `Sessions` klasörü. (iCloud eşitlemesi bu sürümde kapalı; Mac'le
+/// eşitleme ayrı bir Gistsmith kapsayıcısıyla gelecek, `CloudSyncController` çekirdekte duruyor.)
 @MainActor
 @Observable
 final class PhoneStore {
@@ -210,30 +267,25 @@ final class PhoneStore {
     private(set) var meetings: [MeetingRecord] = []
     /// Okunamayan klasörler ya da klasöre erişim hatası (kullanıcıya gösterilir).
     private(set) var problems: [String] = []
-    /// iCloud'dan henüz inmemiş toplantı sayısı.
-    private(set) var downloadingCount: Int = 0
-    /// iCloud eşitlemesi (Ayarlar › Eşitleme).
-    let cloud: CloudSyncController = CloudSyncController()
-    /// Çalan toplantı: iCloud'a taşınmaz, sesi saklama süresiyle silinmez (dosyaları kullanımda).
+    /// Çalan toplantı: sesi saklama süresiyle silinmez (dosyaları kullanımda).
     var playingMeetingID: String?
 
-    /// Listeyi arka planda okur; art arda gelen istekleri (iCloud bildirimleri) birleştirir.
+    /// Listeyi arka planda okur; art arda gelen istekleri birleştirir.
     @ObservationIgnored private let reloader: MeetingReloader = MeetingReloader()
 
-    /// Toplantıları arka planda yeniden okur (iCloud değişikliği, taşıma); beklemeden döner.
+    /// Toplantıları arka planda yeniden okur; beklemeden döner.
     func reload() {
         Task { await reloadAndWait() }
     }
 
-    /// Toplantıları diskten yeniden okur (en yeni önce): bu iPhone'daki ve iCloud açıksa iCloud'daki. Okuma ana iş
-    /// parçacığının dışında yapılır; liste güncellenince döner.
+    /// Toplantıları diskten yeniden okur (en yeni önce). Okuma ana iş parçacığının dışında yapılır; liste güncellenince
+    /// döner.
     func reloadAndWait() async {
         await reloader.reload(load: { () async throws -> MeetingLoadResult in
-            try await loadMeetingsInBackground(location: self.cloud.activeLocation)
+            try await loadMeetingsInBackground(location: .local)
         }, apply: { (result: MeetingLoadResult) -> Void in
             self.meetings = result.meetings
             self.problems = result.failures.map { (failure: MeetingLoadFailure) -> String in "\(failure.folder): \(failure.reason)" }
-            self.downloadingCount = result.downloading.count
         }, fail: { (error: any Error) -> Void in
             self.problems = [userFacingMessage(error: error)]
         })
@@ -293,7 +345,7 @@ final class PhoneStore {
     /// nedeni sorunlarda görünür, bir sonraki açılışta yeniden denenir.
     func applyRetention(now: Date) {
         let days: Int = min(365, max(7, UserDefaults.standard.integer(forKey: PhoneSettingsKey.audioRetentionDays)))
-        // iCloud'daki toplantılar da (eşitleme açıkken biten her toplantı iCloud'a taşınır); çalan toplantının sesi kalır.
+        // Çalan toplantının sesi kalır.
         for id in audioToDelete(records: meetings.filter { $0.id != playingMeetingID }, now: now, retentionDays: days) {
             do {
                 let directory: URL = try sessionDirectory(id: id)
@@ -320,7 +372,7 @@ final class PhoneStore {
         regeneratingIDs.insert(meetingID)
         defer { regeneratingIDs.remove(meetingID) }
         do {
-            let llm: LLMProvider = try await phoneLLMProvider()
+            let llm: LLMProvider = try phoneRecordedMeetingLLMProvider(recordID: meetingID)
             let directory: URL = try sessionDirectory(id: meetingID)
             let userName: String = UserDefaults.standard.string(forKey: PhoneSettingsKey.userName) ?? ""
             let result: MeetingRecord = await AINotepadCore.regenerateNote(record: record, directory: directory, llm: llm, userName: userName, language: phoneNoteLanguage())
@@ -349,7 +401,7 @@ final class PhoneStore {
         regeneratingIDs.insert(meetingID)
         defer { regeneratingIDs.remove(meetingID) }
         do {
-            let llm: LLMProvider = try await phoneLLMProvider()
+            let llm: LLMProvider = try phoneAccountLLMProvider()
             let directory: URL = try sessionDirectory(id: meetingID)
             let edited: MeetingRecord = try await editMeetingNote(record: record, instruction: trimmed, llm: llm, userName: phoneUserName())
             guard let note = edited.note else {
@@ -398,7 +450,7 @@ final class PhoneStore {
 
     /// Toplantının klasörü (klasör adı toplantı kimliğidir).
     func sessionDirectory(id: String) throws -> URL {
-        try AppPaths.meetingDirectory(id: id, location: cloud.activeLocation)
+        try AppPaths.meetingDirectory(id: id, location: .local)
     }
 
     /// Toplantının ses kayıtları ("Diğerleri" önce); ses silindiyse ya da hiç yoksa boş.

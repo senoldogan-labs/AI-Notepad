@@ -239,17 +239,27 @@ private func llmRequest(tier: LLMTier, schema: String?) -> LLMRequest {
         func message(_ code: HostedErrorCode, _ status: Int) -> String {
             hostedErrorMessage(error: HostedAPIError(code: code, rawCode: code.rawValue, status: status, serverMessage: "", path: "/v1/meetings/start"))
         }
+        #if os(macOS)
         #expect(message(.trialExhausted, 402).contains("abone ol"))
+        #expect(message(.trialDeviceUsed, 403).contains("abone ol"))
+        #expect(hostedDeviceCheckMessage(error: .unsupported).contains("Abone"))
+        #expect(message(.trialCapacityReached, 503).contains("abone ol"))
+        #else
+        // iPhone'da uygulama içinde başka bir satın alma yoluna yönlendirilmez (App Store 3.1.1): metinler abone olmayı
+        // önermez, yalnızca durumu söyler.
+        for code in [HostedErrorCode.trialExhausted, .trialIPLimit, .trialDeviceUsed, .subscriptionRequired, .trialCapacityReached] {
+            #expect(!message(code, 402).localizedCaseInsensitiveContains("abone"), "abonelik önerisi: \(code.rawValue)")
+        }
+        #expect(!hostedDeviceCheckMessage(error: .unsupported).localizedCaseInsensitiveContains("abone"))
+        #expect(!message(.trialDeviceUsed, 403).contains("Mac"))
+        #endif
         // Deneme koşulları sunucu ayarından gelir; hata metnine sabit yazılmaz.
         #expect(!message(.trialExhausted, 402).contains("7 gün"))
         #expect(message(.trialNotStarted, 403).contains("önce bir toplantı"))
         #expect(message(.trialIPLimit, 429).contains("Yarın"))
-        #expect(message(.trialDeviceUsed, 403).contains("abone ol"))
-        #expect(hostedDeviceCheckMessage(error: .unsupported).contains("Abone"))
         #expect(message(.monthlyCapReached, 429).contains("ay başında"))
         #expect(message(.subscriptionExists, 409).contains("Hesabı yönet"))
         #expect(message(.spendCeilingReached, 503).contains("yoğun"))
-        #expect(message(.trialCapacityReached, 503).contains("abone ol"))
         #expect(message(.meetingNotActive, 409).contains("Tekrar işle"))
         #expect(message(.transcriptionClosed, 409).contains("Canlı metin"))
     }
@@ -651,6 +661,14 @@ private func googleTestToken(claims: String) -> String {
         #expect(try hostedIDTokenPicture(identityToken: google)?.absoluteString == "https://lh3.googleusercontent.com/a/abc=s96-c")
         #expect(try hostedIDTokenPicture(identityToken: googleTestToken(claims: #"{"sub":"1"}"#)) == nil)
         #expect(try hostedIDTokenPicture(identityToken: googleTestToken(claims: #"{"sub":"1","picture":"http://ornek.fi/a.png"}"#)) == nil)
+    }
+
+    // Hesap ekranındaki kimlik: jetondaki e-posta; yoksa ya da biçimsizse nil.
+    @Test func identityTokenEmail() throws {
+        #expect(try hostedIDTokenEmail(identityToken: googleTestToken(claims: #"{"sub":"1","email":"aino@ornek.fi"}"#)) == "aino@ornek.fi")
+        #expect(try hostedIDTokenEmail(identityToken: googleTestToken(claims: #"{"sub":"1"}"#)) == nil)
+        #expect(try hostedIDTokenEmail(identityToken: googleTestToken(claims: #"{"sub":"1","email":"yok"}"#)) == nil)
+        #expect(throws: HostedBrowserSignInError.self) { try hostedIDTokenEmail(identityToken: "bozuk") }
     }
 
     // Dönüş yalnızca bekleyen, süresi geçmemiş denemeyle ve aynı nonce'la kabul edilir; adres sıkı çözülür, sağlayıcı

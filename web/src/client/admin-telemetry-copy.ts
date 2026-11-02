@@ -93,11 +93,11 @@ export interface AdminTelemetryCopy {
 
 /** Telemetri görünümünün metinleri. */
 export const adminTelemetryCopy: AdminTelemetryCopy = {
-  windowNote: "Last {days} days. Counts are daily totals that are not linked to accounts, except app and macOS versions, which are the latest values per account.",
+  windowNote: "Last {days} days. Counts are daily totals that are not linked to accounts, except app and OS versions (macOS or iOS), which are the latest values per account.",
   versionsTitle: "Version adoption",
   activeUsers: "Accounts that checked in from the Mac app in the last {days} days: {users}",
   appVersionsTitle: "App versions (active accounts)",
-  osVersionsTitle: "macOS versions (active accounts)",
+  osVersionsTitle: "OS versions: macOS and iOS (active accounts)",
   versionColumns: { version: "Version", users: "Accounts", share: "Share" },
   noVersions: "No app has reported its version yet.",
   purposesTitle: "AI tokens by purpose",

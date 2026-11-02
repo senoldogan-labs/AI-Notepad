@@ -7,7 +7,9 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
 
 - `Packages/AINotepadCore/` — tüm mantık (Swift paketi). Testler buradadır.
 - `App/` — yalnızca SwiftUI/AppKit arayüzü ve yaşam döngüsü.
-- `iOS/` — iPhone uygulaması (SwiftUI); aynı paketi kullanır.
+- `iOS/` — iPhone uygulaması: Gistsmith (abonelik, `HOSTED_EDITION`, yalnız hesapla; SwiftUI); aynı paketi ve `App/Hosted`'taki
+  ortak hesap dosyalarını kullanır. Debug yerel sunucuya (`localhost:8787`) bağlanır; `--tanitim` (yalnız Debug) giriş
+  olmadan sahte deneme hesabıyla açar (Simülatör'de görsel kontrol).
 - `project.yml` — XcodeGen tanımı; `AINotepad.xcodeproj` üretilir, repoya girmez.
 - İmzalama: `Config/Local.xcconfig.example` dosyasını `Config/Local.xcconfig` olarak kopyalayıp `DEVELOPMENT_TEAM` yaz.
 

@@ -9,18 +9,6 @@ import os
 
 private let accountDataLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "HostedAccountData")
 
-/// Bu süreçte yüklü hesap verisinin durumu.
-enum HostedDataState: Equatable {
-    /// Hesap verisi yüklenmedi (açılışta oturum yoktu; giriş yapılınca yüklenir).
-    case notLoaded
-    /// Bu hesabın verisi yüklü.
-    case loaded(accountKey: String)
-    /// Hesabın verisi hazırlanamadı (ör. önceki toplantılar hesaba taşınamadı); veri yerinde kalır, neden gösterilir.
-    case failed(message: String)
-    /// Başka bir hesapla giriş yapıldı: kayıt ve işleme bitince uygulama yeniden başlar ve o hesabın verisini yükler.
-    case relaunchRequired(accountKey: String)
-}
-
 /// Eski (hesapsız) düzende standart ayarlarda duran kullanıcı içeriği: hesaba taşınır (bkz. `userContentDefaults`).
 /// Markdown klasörü ve kendiliğinden gönderim ayarları da hesabındır: B hesabının notları A'nın seçtiği klasöre ya da
 /// Apple Notlar'a gitmesin.
@@ -31,30 +19,6 @@ private let legacyUserContentDefaultsKeys: [String] = [
 /// Eski düzende uygulamanın Anahtar Zinciri servisinde duran kullanıcı bağlantıları (not hedefleri, görev araçları):
 /// hesabın servisine taşınır (bkz. `userContentKeychainService`).
 private let legacyUserContentSecretAccounts: [SecretAccount] = [.destinations, .taskTrackers]
-
-/// Hesabın kendi ayar alanı (klasörler, Sor tarifleri, dışa aktarma ayarları, açık sunucu oturumları):
-/// `<paket kimliği>.account.<anahtar>`.
-func hostedAccountDefaults(accountKey: String) throws -> UserDefaults {
-    guard isValidAccountDataKey(key: accountKey) else {
-        throw StorageError.invalidAccountKey(key: accountKey)
-    }
-    guard let bundleIdentifier = Bundle.main.bundleIdentifier else {
-        throw StorageError.writeFailed(path: Bundle.main.bundlePath, reason: "paket kimliği yok, hesabın ayar alanı adlandırılamadı")
-    }
-    let suite: String = "\(bundleIdentifier).account.\(accountKey)"
-    guard let defaults = UserDefaults(suiteName: suite) else {
-        throw StorageError.writeFailed(path: suite, reason: "hesabın ayar alanı açılamadı")
-    }
-    return defaults
-}
-
-/// Yüklü hesabın ayar alanı; hesap yüklenmediyse `accountNotSelected`.
-func hostedActiveAccountDefaults() throws -> UserDefaults {
-    guard let key = AppPaths.activeAccountKey() else {
-        throw StorageError.accountNotSelected
-    }
-    return try hostedAccountDefaults(accountKey: key)
-}
 
 /// Hesabın kendi Anahtar Zinciri servisi (not hedefleri, görev araçları): `<uygulamanın servisi>.account.<anahtar>`.
 /// Oturum jetonu uygulamanın servisinde kalır (hesaptan önce okunur).

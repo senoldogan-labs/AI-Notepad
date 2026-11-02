@@ -23,14 +23,14 @@ private func dataFolderName(plist path: String) throws -> String? {
 
 @Suite struct DataFolderTests {
     // İki Mac uygulaması ayrı klasör kullanır: abonelik sürümü geliştirici sürümünün toplantılarına, seslerine,
-    // modellerine ve kişilerine dokunmaz. iPhone uygulaması kendi kabında geliştirici adını kullanır.
+    // modellerine ve kişilerine dokunmaz. iPhone uygulaması (Gistsmith) Mac'teki abonelik sürümünün adlarını kullanır.
     @Test func macTargetsUseDifferentDataFolders() throws {
         let developer: String = try #require(try dataFolderName(plist: "App/Info.plist"), "App/Info.plist'te \(dataFolderInfoKey) yok")
         let hosted: String = try #require(try dataFolderName(plist: "App/Hosted/Info.plist"), "App/Hosted/Info.plist'te \(dataFolderInfoKey) yok")
         #expect(developer == "AINotepad")
         // Abonelik sürümünün adı yapılandırmaya göre derleme ayarından gelir (project.yml `HOSTED_DATA_FOLDER_NAME`).
         #expect(hosted == "$(HOSTED_DATA_FOLDER_NAME)")
-        #expect(try dataFolderName(plist: "iOS/Info.plist") == "AINotepad")
+        #expect(try dataFolderName(plist: "iOS/Info.plist") == "$(HOSTED_DATA_FOLDER_NAME)")
     }
 
     // Abonelik sürümünün Debug derlemesi yayındakinden ayrı veri klasörü ve Anahtar Zinciri servisi kullanır: yerel
@@ -43,14 +43,14 @@ private func dataFolderName(plist path: String) throws -> String? {
         #expect(project.contains("HOSTED_KEYCHAIN_SERVICE: \"AINotepadHosted.debug\""))
     }
 
-    // Yalnızca abonelik sürümü kullanıcı verisini hesap başına ayırır; geliştirici sürümü ve iPhone eskisi gibi
-    // klasörün kökünü kullanır.
+    // Yalnızca abonelik sürümleri (Mac'te Gistsmith ve iPhone) kullanıcı verisini hesap başına ayırır; geliştirici
+    // sürümü eskisi gibi klasörün kökünü kullanır.
     @Test func onlyHostedEditionScopesDataPerAccount() throws {
         #expect(try plistValue(plist: "App/Hosted/Info.plist", key: accountScopedDataInfoKey) as? Bool == true)
         #expect(try plistValue(plist: "App/Info.plist", key: accountScopedDataInfoKey) == nil)
-        #expect(try plistValue(plist: "iOS/Info.plist", key: accountScopedDataInfoKey) == nil)
+        #expect(try plistValue(plist: "iOS/Info.plist", key: accountScopedDataInfoKey) as? Bool == true)
         let project: String = try String(contentsOf: repositoryRoot().appending(path: "project.yml"), encoding: .utf8)
-        #expect(project.components(separatedBy: "\(accountScopedDataInfoKey): true").count == 2)
+        #expect(project.components(separatedBy: "\(accountScopedDataInfoKey): true").count == 3)
     }
 
     // Anahtar yoksa klasör tahmin edilmez: açık hata.
