@@ -3,7 +3,8 @@ import AINotepadUI
 import SwiftUI
 
 /// Kayıt sekmesi: boştayken tarih, büyük başlık, durağan pastel film gradyanlı kayıt kartı, görevler ve son toplantılar; kayıtta
-/// süre, ses dalgası, konuşmacılı canlı metin ve not dilindeki çevirisi, "İşaretle" ve "Bitir"; bitince hazırlanma adımları.
+/// odaklı tam ekran (sekme çubuğu gizli): süre, ses dalgası, konuşmacılı canlı metin ve not dilindeki çevirisi, "İşaretle"
+/// ve "Bitir"; bitince hazırlanma adımları.
 struct RecordTab: View {
     let recorder: PhoneRecorder
     let store: PhoneStore
@@ -93,9 +94,6 @@ private struct RecordHome: View {
                         .padding(.horizontal, -20)
                     }
                 }
-                Label("Telefondaki Teams/Zoom görüşmeleri kaydedilemez (iOS izin vermez); onlar için Mac'i kullan.", systemImage: "info.circle")
-                    .appFont(size: 12, weight: .regular)
-                    .foregroundStyle(Theme.muted)
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 28)
@@ -254,8 +252,9 @@ struct PressableCardStyle: ButtonStyle {
     }
 }
 
-/// Kayıt sırasında: süre, dil, ses dalgası, rıza hatırlatması, konuşmacılı canlı metin (en alta kayar), altta cam
-/// çubukta "İşaretle" ve "Bitir".
+/// Kayıt sırasında odaklı tam ekran (sekme çubuğu gizli): üstte sabit başlık (kayıt durumu, dil, büyük süre ve ses
+/// dalgası), ortada konuşmacılı canlı metin (en alta kayar), altta yüzen çubukta "İşaretle", "Bitir" ve "Notlarım". Rıza
+/// hatırlatması kayıt başında üstte 3 saniye görünen bir bildirimdir.
 private struct LiveRecordingView: View {
     let recorder: PhoneRecorder
     @State private var markedAt: Date?
@@ -266,46 +265,41 @@ private struct LiveRecordingView: View {
     }
 
     var body: some View {
-        ScrollViewReader { (proxy: ScrollViewProxy) in
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 18) {
-                    header
-                    MicrophoneNotice(status: recorder.microphoneStatus, recoveredVisible: recorder.microphoneRecoveredNoticeVisible)
-                    if recorder.consentReminderVisible {
-                        ConsentCard { withAnimation(.smooth(duration: 0.25)) { recorder.consentReminderVisible = false } }
-                            .transition(.opacity.combined(with: .move(edge: .top)))
-                    }
-                    PhoneErrorList(messages: recorder.errorMessages)
-                    if blocks.isEmpty {
-                        VStack(spacing: 10) {
-                            Image(systemName: "waveform")
-                                .appFont(size: 28, weight: .regular)
-                                .foregroundStyle(Theme.muted)
-                                .symbolEffect(.variableColor.iterative, options: .repeating)
-                            Text("Dinliyor… Konuşma başlayınca metin burada akar.")
-                                .appFont(size: 15, weight: .regular)
-                                .foregroundStyle(Theme.muted)
-                                .multilineTextAlignment(.center)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 60)
-                    }
-                    ForEach(blocks) { (block: SpeakerBlock) in
-                        LiveBlockView(block: block, translations: recorder.translations, otherLanguage: recorder.otherLanguageSegments)
-                            .transition(.opacity.combined(with: .offset(y: 8)))
-                    }
-                    Color.clear.frame(height: 1).id(bottomID)
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-                .animation(.smooth(duration: 0.3), value: blocks.map(\.id))
+        VStack(spacing: 0) {
+            header
+            VStack(spacing: 10) {
+                MicrophoneNotice(status: recorder.microphoneStatus, recoveredVisible: recorder.microphoneRecoveredNoticeVisible)
+                PhoneErrorList(messages: recorder.errorMessages)
             }
-            .scrollIndicators(.hidden)
-            .onChange(of: recorder.transcript) {
-                withAnimation(.easeOut(duration: 0.25)) { proxy.scrollTo(bottomID, anchor: .bottom) }
+            .padding(.horizontal, 20)
+            if blocks.isEmpty {
+                listening
+            } else {
+                transcript
             }
         }
         .safeAreaInset(edge: .bottom) { controls }
+        .overlay(alignment: .top) {
+            if recorder.consentReminderVisible {
+                ConsentToast { recorder.consentReminderVisible = false }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 4)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .animation(.smooth(duration: 0.35), value: recorder.consentReminderVisible)
+        .task(id: recorder.consentReminderVisible) {
+            // Hatırlatma 3 saniye sonra kendiliğinden kalkar (kalıcı kart değil); dokununca hemen kapanır.
+            guard recorder.consentReminderVisible else {
+                return
+            }
+            do {
+                try await Task.sleep(for: .seconds(consentToastSeconds))
+            } catch {
+                return
+            }
+            recorder.consentReminderVisible = false
+        }
         .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $isNotesOpen) {
             PhoneMyNotesSheet(text: Binding<String>(get: { recorder.myNotes }, set: { (text: String) -> Void in recorder.myNotes = text }))
@@ -316,13 +310,11 @@ private struct LiveRecordingView: View {
 
     private let bottomID: String = "son"
 
+    /// Sabit başlık: solda kayıt durumu, sağda dil; ortada büyük süre, altında ses dalgası ve işaretlenen an sayısı.
     private var header: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 10) {
-                RecordingDot(isFinishing: recorder.phase == .finishing)
-                if let startedAt = recorder.startedAt {
-                    ElapsedClock(startedAt: startedAt, stoppedAt: recorder.stoppedAt)
-                }
+        VStack(spacing: 18) {
+            HStack {
+                RecordingStatusPill(isFinishing: recorder.phase == .finishing)
                 Spacer()
                 Menu {
                     LanguageMenuItems { (language: MeetingLanguage) -> Void in recorder.setLanguage(language: language) }
@@ -335,17 +327,78 @@ private struct LiveRecordingView: View {
                     .foregroundStyle(Theme.ink)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 7)
-                    .background(Theme.soft, in: Capsule())
+                    .background(Theme.card, in: Capsule())
+                    .overlay(Capsule().strokeBorder(Theme.line))
                 }
                 .disabled(recorder.phase != .recording)
             }
-            PhoneLevelBars(levels: recorder.levels)
+            VStack(spacing: 12) {
+                if let startedAt = recorder.startedAt {
+                    ElapsedClock(startedAt: startedAt, stoppedAt: recorder.stoppedAt)
+                }
+                PhoneLevelBars(levels: recorder.levels)
+                    .frame(maxWidth: 280)
+                Text(recorder.highlights.isEmpty ? "" : String(localized: "\(recorder.highlights.count) an işaretlendi"))
+                    .appFont(size: 12, weight: .medium)
+                    .foregroundStyle(Theme.muted)
+                    .frame(height: 14)
+                    .contentTransition(.numericText())
+            }
         }
-        .padding(.top, 6)
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .padding(.bottom, 12)
     }
 
+    /// Henüz metin yok: kalan alanın ortasında sakin bir "Dinliyor" durumu.
+    private var listening: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "waveform")
+                .appFont(size: 26, weight: .regular)
+                .foregroundStyle(Theme.muted)
+                .symbolEffect(.variableColor.iterative, options: .repeating)
+            Text("Dinliyor… Konuşma başlayınca metin burada akar.")
+                .appFont(size: 15, weight: .regular)
+                .foregroundStyle(Theme.muted)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.horizontal, 40)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// Canlı metin: konuşmacı blokları; yeni metin gelince en alta kayar, üst kenarda başlığın altına doğru solar.
+    private var transcript: some View {
+        ScrollViewReader { (proxy: ScrollViewProxy) in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 22) {
+                    ForEach(blocks) { (block: SpeakerBlock) in
+                        LiveBlockView(block: block, translations: recorder.translations, otherLanguage: recorder.otherLanguageSegments)
+                            .transition(.opacity.combined(with: .offset(y: 8)))
+                    }
+                    Color.clear.frame(height: 1).id(bottomID)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 8)
+                .animation(.smooth(duration: 0.3), value: blocks.map(\.id))
+            }
+            .scrollIndicators(.hidden)
+            .mask {
+                VStack(spacing: 0) {
+                    LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom).frame(height: 18)
+                    Rectangle()
+                }
+            }
+            .onAppear { proxy.scrollTo(bottomID, anchor: .bottom) }
+            .onChange(of: recorder.transcript) {
+                withAnimation(.easeOut(duration: 0.25)) { proxy.scrollTo(bottomID, anchor: .bottom) }
+            }
+        }
+    }
+
+    /// Yüzen eylem çubuğu: solda "İşaretle", ortada geniş "Bitir", sağda "Notlarım"; bitirilirken yalnız durum.
     private var controls: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 14) {
             if recorder.phase == .finishing {
                 HStack(spacing: 10) {
                     ProgressView()
@@ -353,63 +406,91 @@ private struct LiveRecordingView: View {
                         .appFont(size: 14, weight: .medium)
                         .foregroundStyle(Theme.muted)
                 }
-                .frame(maxWidth: .infinity, minHeight: 56)
+                .frame(maxWidth: .infinity, minHeight: 60)
             } else {
                 Button {
                     recorder.markMoment()
                     markedAt = Date()
                 } label: {
-                    Image(systemName: markedAt.map { Date().timeIntervalSince($0) < 2 } == true ? "bookmark.fill" : "bookmark")
-                        .appFont(size: 19, weight: .medium)
-                        .foregroundStyle(Theme.ink)
-                        .frame(width: 56, height: 56)
-                        .background(Theme.soft, in: Circle())
-                        .contentTransition(.symbolEffect(.replace))
+                    RecordingControlIcon(systemImage: markedAt.map { Date().timeIntervalSince($0) < 2 } == true ? "bookmark.fill" : "bookmark")
                 }
                 .buttonStyle(PressableCardStyle())
                 .accessibilityLabel("Bu anı işaretle")
-                Button {
-                    isNotesOpen = true
-                } label: {
-                    Image(systemName: recorder.myNotes.isEmpty ? "square.and.pencil" : "square.and.pencil.circle.fill")
-                        .appFont(size: 19, weight: .medium)
-                        .foregroundStyle(Theme.ink)
-                        .frame(width: 56, height: 56)
-                        .background(Theme.soft, in: Circle())
-                }
-                .buttonStyle(PressableCardStyle())
-                .accessibilityLabel("Notlarım")
                 .sensoryFeedback(.impact(weight: .light), trigger: recorder.highlights.count)
                 Button {
                     recorder.stop()
                 } label: {
-                    Label("Bitir", systemImage: "stop.fill")
-                        .appFont(size: 17, weight: .semibold)
-                        .foregroundStyle(Theme.background)
-                        .frame(maxWidth: .infinity, minHeight: 56)
-                        .background(Theme.primary, in: Capsule())
+                    HStack(spacing: 8) {
+                        RoundedRectangle(cornerRadius: 3, style: .continuous)
+                            .fill(Color(red: 0.93, green: 0.27, blue: 0.23))
+                            .frame(width: 13, height: 13)
+                        Text("Bitir")
+                            .appFont(size: 17, weight: .semibold)
+                    }
+                    .foregroundStyle(Theme.onPrimary)
+                    .frame(maxWidth: .infinity, minHeight: 60)
+                    .background(Theme.primary, in: Capsule())
                 }
                 .buttonStyle(PressableCardStyle())
+                .accessibilityLabel("Kaydı bitir")
                 .sensoryFeedback(.success, trigger: recorder.phase)
+                Button {
+                    isNotesOpen = true
+                } label: {
+                    RecordingControlIcon(systemImage: recorder.myNotes.isEmpty ? "square.and.pencil" : "square.and.pencil.circle.fill")
+                }
+                .buttonStyle(PressableCardStyle())
+                .accessibilityLabel("Notlarım")
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 10)
-        .padding(.bottom, 6)
+        .padding(10)
+        .background(Theme.card, in: Capsule())
+        .overlay(Capsule().strokeBorder(Theme.line))
+        .shadow(color: .black.opacity(0.10), radius: 20, y: 8)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 8)
         .background {
-            Rectangle()
-                .fill(.bar)
-                .mask(LinearGradient(colors: [.clear, .black, .black], startPoint: .top, endPoint: .bottom))
-                .ignoresSafeArea()
+            // Kayan metin çubuğun arkasında zemine doğru solar.
+            LinearGradient(colors: [Theme.background.opacity(0), Theme.background], startPoint: .top, endPoint: .center)
+                .padding(.top, -24)
+                .ignoresSafeArea(edges: .bottom)
+                .allowsHitTesting(false)
         }
-        .overlay(alignment: .top) {
-            if !recorder.highlights.isEmpty {
-                Text("\(recorder.highlights.count) an işaretlendi")
-                    .appFont(size: 11, weight: .medium)
-                    .foregroundStyle(Theme.muted)
-                    .offset(y: -10)
-            }
+    }
+}
+
+/// Rıza bildiriminin ekranda kalma süresi (saniye).
+private let consentToastSeconds: Double = 3
+
+/// Kayıt çubuğundaki yuvarlak simge düğmesi (İşaretle, Notlarım).
+private struct RecordingControlIcon: View {
+    let systemImage: String
+
+    var body: some View {
+        Image(systemName: systemImage)
+            .appFont(size: 19, weight: .medium)
+            .foregroundStyle(Theme.ink)
+            .frame(width: 60, height: 60)
+            .background(Theme.soft, in: Circle())
+            .contentTransition(.symbolEffect(.replace))
+    }
+}
+
+/// Kayıt durumu hapı: kayıtta yavaşça nefes alan kırmızı nokta ve "Kaydediliyor"; bitirilirken durgun nokta ve
+/// "Bitiriliyor".
+private struct RecordingStatusPill: View {
+    let isFinishing: Bool
+
+    var body: some View {
+        HStack(spacing: 7) {
+            RecordingDot(isFinishing: isFinishing)
+            Text(isFinishing ? "Bitiriliyor" : "Kaydediliyor")
+                .appFont(size: 13, weight: .semibold)
+                .foregroundStyle(isFinishing ? Theme.muted : Theme.ink)
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(isFinishing ? AnyShapeStyle(Theme.soft) : AnyShapeStyle(Color.red.opacity(0.10)), in: Capsule())
     }
 }
 
@@ -430,9 +511,10 @@ private struct ElapsedClock: View {
 
     private func clockText(seconds: TimeInterval) -> some View {
         Text(timestamp(seconds: seconds))
-            .appFont(size: 28, weight: .regular)
-            .tracking(-0.5)
+            .appFont(size: 56, weight: .light)
+            .tracking(-1.5)
             .monospacedDigit()
+            .foregroundStyle(Theme.ink)
     }
 }
 
@@ -506,37 +588,38 @@ private struct PhoneLevelBars: View {
     }
 }
 
-/// "Katılımcılara haber ver": kayıt başında, kapatılabilir; Fince ve İngilizce söylenecek cümle.
-private struct ConsentCard: View {
+/// "Kaydettiğini katılımcılara söyle": kayıt başında üstte 3 saniye görünen bildirim (Fince ve İngilizce söylenecek
+/// cümleyle); dokununca hemen kapanır. Ayarlar'daki hatırlatma kapalıysa hiç görünmez.
+private struct ConsentToast: View {
     let onDismiss: @MainActor () -> Void
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "hand.raised.fill")
-                .appFont(size: 16, weight: .semibold)
-                .foregroundStyle(Color(red: 0.72, green: 0.52, blue: 0.32))
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Kaydettiğini katılımcılara söyle")
-                    .appFont(size: 14, weight: .semibold)
-                Text(verbatim: "„Nauhoitan tämän palaverin muistiinpanoja varten.“ · “I'm recording this meeting for my notes.”")
-                    .appFont(size: 13, weight: .regular)
-                    .foregroundStyle(Theme.muted)
-                    .fixedSize(horizontal: false, vertical: true)
+        Button(action: onDismiss) {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "hand.raised.fill")
+                    .appFont(size: 15, weight: .semibold)
+                    .foregroundStyle(Color(red: 0.72, green: 0.52, blue: 0.32))
+                    .frame(width: 34, height: 34)
+                    .background(Color(red: 0.72, green: 0.52, blue: 0.32).opacity(0.14), in: Circle())
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Kaydettiğini katılımcılara söyle")
+                        .appFont(size: 14, weight: .semibold)
+                        .foregroundStyle(Theme.ink)
+                    Text(verbatim: "„Nauhoitan tämän palaverin muistiinpanoja varten.“ · “I'm recording this meeting for my notes.”")
+                        .appFont(size: 12, weight: .regular)
+                        .foregroundStyle(Theme.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer(minLength: 0)
             }
-            Spacer(minLength: 0)
-            Button(action: onDismiss) {
-                Image(systemName: "xmark")
-                    .appFont(size: 12, weight: .bold)
-                    .foregroundStyle(Theme.muted)
-                    .frame(width: 28, height: 28)
-                    .background(Theme.soft, in: Circle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Kapat")
+            .padding(14)
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Theme.line))
+            .shadow(color: .black.opacity(0.12), radius: 18, y: 6)
         }
-        .padding(14)
-        .background(Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.line))
+        .buttonStyle(.plain)
+        .accessibilityHint("Kapat")
     }
 }
 
@@ -547,6 +630,7 @@ private struct LiveBlockView: View {
     let translations: [SegmentID: String]
     /// Sabit toplantı dilinden başka dildeki bölümler: soluk ve eğik (çevrilmez, toplantıdan atlanır).
     let otherLanguage: Set<SegmentID>
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -562,17 +646,19 @@ private struct LiveBlockView: View {
                         .foregroundStyle(Theme.muted)
                 }
                 Text("\(finalText)\(Text(partialText).foregroundStyle(Theme.muted))")
-                    .appFont(size: 17, weight: .regular)
-                    .lineSpacing(4)
+                    .appFont(size: 18, weight: .regular)
+                    .foregroundStyle(Theme.ink)
+                    .lineSpacing(5)
                 if !translation.isEmpty {
                     Text(translation)
                         .appFont(size: 15, weight: .regular)
                         .foregroundStyle(Theme.muted)
-                        .lineSpacing(3)
-                        .padding(.leading, 10)
+                        .lineSpacing(4)
+                        .padding(.leading, 12)
                         .overlay(alignment: .leading) {
-                            Capsule().fill(Theme.line).frame(width: 2)
+                            Capsule().fill(appearance.accent.color.opacity(0.35)).frame(width: 2)
                         }
+                        .padding(.top, 2)
                 }
             }
         }

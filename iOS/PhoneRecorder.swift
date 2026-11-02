@@ -74,7 +74,8 @@ final class PhoneRecorder {
     private(set) var highlights: [Highlight] = []
     /// Kullanıcının kayıt sırasında yazdığı notlar (not bunları öncelik sayar).
     var myNotes: String = ""
-    /// "Katılımcılara haber ver" kartı bu kayıtta görünür (ayar açıksa kayıt başında açılır, kapatılabilir).
+    /// "Katılımcılara haber ver" bildirimi görünür (ayar açıksa kayıt başında açılır; kayıt ekranı 3 saniye sonra ya da
+    /// dokununca kapatır).
     var consentReminderVisible: Bool = false
     let levels: AudioLevels = AudioLevels(count: 36, interval: 0.08)
 
