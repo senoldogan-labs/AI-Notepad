@@ -22,6 +22,8 @@ struct RecordTab: View {
             }
             .background(Theme.background)
             .animation(.smooth(duration: 0.35), value: recorder.phase == .recording || recorder.phase == .finishing)
+            // Bitirilirken ve biten toplantı işlenirken ekran durağan bulanıklaşır, ortada hazırlık kartı (Mac'teki gibi).
+            .modifier(PhoneProcessingOverlayHost(recorder: recorder, store: store, router: router))
         }
     }
 }
@@ -268,14 +270,7 @@ private struct LiveRecordingView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 18) {
                     header
-                    if recorder.micInterrupted {
-                        Label("Mikrofon kesildi (arama ya da alarm). Kesinti bitince kayıt kendiliğinden sürer.", systemImage: "mic.slash.fill")
-                            .appFont(size: 14, weight: .medium)
-                            .foregroundStyle(.orange)
-                            .padding(14)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    }
+                    MicrophoneNotice(status: recorder.microphoneStatus, recoveredVisible: recorder.microphoneRecoveredNoticeVisible)
                     if recorder.consentReminderVisible {
                         ConsentCard { withAnimation(.smooth(duration: 0.25)) { recorder.consentReminderVisible = false } }
                             .transition(.opacity.combined(with: .move(edge: .top)))
@@ -326,12 +321,7 @@ private struct LiveRecordingView: View {
             HStack(spacing: 10) {
                 RecordingDot(isFinishing: recorder.phase == .finishing)
                 if let startedAt = recorder.startedAt {
-                    TimelineView(.periodic(from: startedAt, by: 1)) { (context: TimelineViewDefaultContext) in
-                        Text(timestamp(seconds: context.date.timeIntervalSince(startedAt)))
-                            .appFont(size: 28, weight: .regular)
-                            .tracking(-0.5)
-                            .monospacedDigit()
-                    }
+                    ElapsedClock(startedAt: startedAt, stoppedAt: recorder.stoppedAt)
                 }
                 Spacer()
                 Menu {
@@ -420,6 +410,61 @@ private struct LiveRecordingView: View {
                     .offset(y: -10)
             }
         }
+    }
+}
+
+/// Kaydın süresi: kayıtta saniyede bir ilerler; "Bitir"e basılınca o anda durur (bitirme sürerken saymaz).
+private struct ElapsedClock: View {
+    let startedAt: Date
+    let stoppedAt: Date?
+
+    var body: some View {
+        if let stoppedAt {
+            clockText(seconds: recordingElapsedSec(startedAt: startedAt, stoppedAt: stoppedAt, now: stoppedAt))
+        } else {
+            TimelineView(.periodic(from: startedAt, by: 1)) { (context: TimelineViewDefaultContext) in
+                clockText(seconds: recordingElapsedSec(startedAt: startedAt, stoppedAt: nil, now: context.date))
+            }
+        }
+    }
+
+    private func clockText(seconds: TimeInterval) -> some View {
+        Text(timestamp(seconds: seconds))
+            .appFont(size: 28, weight: .regular)
+            .tracking(-0.5)
+            .monospacedDigit()
+    }
+}
+
+/// Mikrofonun durumu kayıt ekranında: kesinti (çağrı, alarm) ve yeniden bağlanma turuncu uyarıyla; ses geri gelince
+/// birkaç saniye vurgu renginde "yeniden bağlandı". Kayıt her durumda açık kalır.
+private struct MicrophoneNotice: View {
+    let status: MicrophoneStatus
+    let recoveredVisible: Bool
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
+
+    var body: some View {
+        switch status {
+        case .interrupted:
+            notice(text: "Mikrofon kesildi (arama ya da alarm). Kesinti bitince kayıt kendiliğinden sürer.", systemImage: "mic.slash.fill", color: .orange)
+        case .reconnecting:
+            notice(text: "Mikrofon yeniden bağlanıyor… Kayıt açık; ses gelince kendiliğinden sürer.", systemImage: "arrow.triangle.2.circlepath", color: .orange)
+        case .running:
+            if recoveredVisible {
+                notice(text: "Mikrofon yeniden bağlandı; kayıt sürüyor.", systemImage: "checkmark.circle.fill", color: appearance.accent.color)
+                    .transition(.opacity)
+            }
+        }
+    }
+
+    private func notice(text: LocalizedStringKey, systemImage: String, color: Color) -> some View {
+        Label(text, systemImage: systemImage)
+            .appFont(size: 14, weight: .medium)
+            .foregroundStyle(color)
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .accessibilityAddTraits(.updatesFrequently)
     }
 }
 

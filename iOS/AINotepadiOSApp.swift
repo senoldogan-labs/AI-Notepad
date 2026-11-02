@@ -141,6 +141,10 @@ private struct PhoneAppRoot: View {
             }
             if CommandLine.arguments.contains("--ornek-kayit") {
                 recorder.showSampleRecording()
+                // `--ornek-bitir`: örnek kayıt "Bitir"e basılmış gibi bitiriliyor (hazırlık katmanı, durmuş süre).
+                if CommandLine.arguments.contains("--ornek-bitir") {
+                    recorder.showSampleFinishing()
+                }
                 return
             }
             if let index = CommandLine.arguments.firstIndex(of: "--soru"), CommandLine.arguments.indices.contains(index + 1) {

@@ -44,6 +44,13 @@ final class PhoneRecorder {
     private static let logger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "PhoneRecorder")
     /// Aynı anda en fazla bu kadar canlı çeviri isteği.
     private static let maxParallelTranslations: Int = 4
+    /// Sesi gerçekten yakalanan akışlar: yüz yüze kayıtta odadaki herkes "Diğerleri"nde; "Sen" akışı baştan boştur.
+    private static let capturedSpeakers: Set<Speaker> = [.others]
+    /// "Bitir"den sonra canlı oturumun kapanması için en uzun bekleme (Deepgram kapanışı en çok ~5 sn + kalan sesin
+    /// yarısı); aşılırsa kayıt canlı metnin sonu beklenmeden kapatılır.
+    private static let finishingLimitSec: Double = 30
+    /// Mikrofon yeniden ses verince bildirimin ekranda kalma süresi.
+    private static let recoveryNoticeSec: Double = 4
 
     private(set) var phase: RecorderPhase = .idle
     private(set) var transcript: [LiveSegment] = []
@@ -73,8 +80,18 @@ final class PhoneRecorder {
 
     @ObservationIgnored private let store: PhoneStore
     @ObservationIgnored private let microphone: MicrophoneCapture = MicrophoneCapture()
-    /// Mikrofon telefon çağrısı ya da alarmla kesildi: kayıt ekranı uyarır, kesinti bitince kayıt sürer.
-    private(set) var micInterrupted: Bool = false
+    /// Mikrofonun durumu: kesinti (çağrı, alarm) ya da yeniden bağlanma kayıt ekranında ve canlı etkinlikte görünür;
+    /// her iki durumda kayıt açık kalır ve ses gelince kendiliğinden sürer.
+    private(set) var microphoneStatus: MicrophoneStatus = .running
+    /// Mikrofon kesinti ya da yeniden kurmadan sonra yeniden ses veriyor: kayıt ekranında birkaç saniye bildirim.
+    private(set) var microphoneRecoveredNoticeVisible: Bool = false
+    /// "Bitir"e basılan an (ya da mikrofonun beklenmedik sonu): süre burada durur, bitirme sürerken saymaz.
+    private(set) var stoppedAt: Date?
+    @ObservationIgnored private var recoveryNoticeTask: Task<Void, Never>?
+    /// "Bitir"den sonra canlı oturum takılırsa kaydı yine de kapatan bekçi (bkz. `watchFinishing`).
+    @ObservationIgnored private var finishingWatchdogTask: Task<Void, Never>?
+    /// Kapanışı başlamış kaydın kuşağı: oturum sonu (olay akışı bitti ya da bekçi) aynı kayıt için bir kez işlenir.
+    @ObservationIgnored private var endedGeneration: Int?
     /// Cihaz içi konuşma modelinin indirme ilerlemesi (0…1) kayıt başlarken; indirme yoksa nil.
     private(set) var speechModelProgress: Double?
     /// Cihaz içi konuşma tanıma motoru (Deepgram kullanılamazsa canlı metin bununla; model kayıtlar arasında bellekte kalır).
@@ -142,6 +159,11 @@ final class PhoneRecorder {
         }
         phase = .starting
         generation += 1
+        finishingWatchdogTask?.cancel()
+        finishingWatchdogTask = nil
+        stoppedAt = nil
+        microphoneStatus = .running
+        microphoneRecoveredNoticeVisible = false
         transcript = []
         translations = [:]
         translationQueue = []
@@ -166,8 +188,8 @@ final class PhoneRecorder {
         do {
             directory = try AppPaths.newSessionDirectory(startedAt: started)
             let origin: ContinuousClock.Instant = .now
-            microphone.onInterruptionChange = { [weak self] (interrupted: Bool) -> Void in
-                self?.micInterrupted = interrupted
+            microphone.onStatusChange = { [weak self] (status: MicrophoneStatus) -> Void in
+                self?.microphoneStatusChanged(status: status)
             }
             audio = clockAlignedStream(audio: try await microphone.start(), origin: origin, sampleRate: 16000, thresholdSec: 0.5)
         } catch {
@@ -227,7 +249,7 @@ final class PhoneRecorder {
         Self.logger.info("Canlı motor seçildi, motor: \(choice.engine.rawValue, privacy: .public)")
         let handle: LiveSessionHandle = runHybridLiveSession(
             config: HybridLiveSessionConfig(
-                speakers: [.others],
+                speakers: Self.capturedSpeakers,
                 local: LiveSessionConfig(
                     languageMode: .fixed(speechLanguage), segmenter: .live, recordingDirectory: directory, partialIntervalSec: 1.5,
                     minPartialSpeechSec: 1.0, languageLockAfterSec: 30, candidateLanguages: [speechLanguage]
@@ -261,7 +283,7 @@ final class PhoneRecorder {
         // Uygulama kayıt sırasında kapanırsa toplantı açılışta bulunup işlenir.
         saveRecord(record: liveRecord(recording: active, status: .recording, endedAt: nil), directory: directory)
         startCheckpoints()
-        startActivity(startedAt: started)
+        startActivity(startedAt: started, title: linkedMeeting?.title ?? String(localized: "Toplantı"))
         watchRecordingLimit(deadline: deadline)
         consentReminderVisible = UserDefaults.standard.bool(forKey: PhoneSettingsKey.consentReminder)
         Self.logger.info("Kayıt başladı, klasör: \(directory.lastPathComponent, privacy: .public), çevrimdışı: \(offline, privacy: .public)")
@@ -270,7 +292,7 @@ final class PhoneRecorder {
             for await event in handle.events {
                 self?.handle(event: event, generation: sessionGeneration)
             }
-            await self?.sessionEnded()
+            await self?.sessionEnded(sessionGeneration: sessionGeneration)
         }
     }
 
@@ -343,6 +365,8 @@ final class PhoneRecorder {
             return
         }
         phase = .finishing
+        stoppedAt = Date()
+        Self.logger.info("Kayıt bitiriliyor")
         // Kapanış (son ses, son konuşmacı etiketleri, bekleyen çeviriler) uygulama arka plana geçse de bitsin.
         if let recording = active {
             let id: String = recording.directory.lastPathComponent
@@ -352,7 +376,59 @@ final class PhoneRecorder {
         }
         levels.stop()
         microphone.stop()
-        updateActivityNow(state: RecordingActivityAttributes.ContentState(lastLine: activityLine.text, speaker: activityLine.speaker, isFinishing: true))
+        updateActivityNow(state: activityState())
+        watchFinishing()
+    }
+
+    /// "Bitir"den sonra canlı oturum (Deepgram kapanışı, cihaz içi tanımanın kalan sesi) `finishingLimitSec` içinde
+    /// kapanmazsa kayıt canlı metnin sonu beklenmeden kapatılır: ses dosyası "Bitir" anında kapanmıştır ve son geçiş
+    /// kaydın tamamını yazıya döker. Loglanır ve kayıt ekranında görünür; kullanıcı "Bitiriliyor"da takılı kalmaz.
+    private func watchFinishing() {
+        finishingWatchdogTask?.cancel()
+        let finishingGeneration: Int = generation
+        finishingWatchdogTask = Task { [weak self] in
+            do {
+                try await Task.sleep(for: .seconds(Self.finishingLimitSec))
+            } catch {
+                // İptal: yeni kayıt başladı.
+                return
+            }
+            guard let self, self.phase == .finishing, finishingGeneration == self.generation, self.endedGeneration != finishingGeneration else {
+                return
+            }
+            Self.logger.error("Canlı oturum süre içinde kapanmadı, kayıt canlı metnin sonu beklenmeden kapatılıyor, süre: \(Self.finishingLimitSec, privacy: .public) sn")
+            self.errorMessages = appendUnique(messages: self.errorMessages, message: String(localized: "Canlı metnin sonu beklenmeden kayıt kapatıldı; kaydın tamamı yine yazıya dökülür."))
+            await self.sessionEnded(sessionGeneration: finishingGeneration)
+        }
+    }
+
+    /// Mikrofonun durumu değişti: kayıt ekranı ve canlı etkinlik güncellenir; ses geri gelince kısa bildirim.
+    private func microphoneStatusChanged(status: MicrophoneStatus) {
+        let previous: MicrophoneStatus = microphoneStatus
+        microphoneStatus = status
+        guard phase == .recording else {
+            return
+        }
+        if isMicrophoneRecovery(previous: previous, current: status) {
+            Self.logger.info("Mikrofon yeniden ses veriyor, kayıt sürüyor")
+            showRecoveryNotice()
+        }
+        updateActivityNow(state: activityState())
+    }
+
+    /// "Mikrofon yeniden bağlandı" bildirimi birkaç saniye görünür.
+    private func showRecoveryNotice() {
+        recoveryNoticeTask?.cancel()
+        microphoneRecoveredNoticeVisible = true
+        recoveryNoticeTask = Task { [weak self] in
+            do {
+                try await Task.sleep(for: .seconds(Self.recoveryNoticeSec))
+            } catch {
+                // İptal: yeni bildirim geldi.
+                return
+            }
+            self?.microphoneRecoveredNoticeVisible = false
+        }
     }
 
     /// Kullanımdaki toplantılar (kayıtta ya da işleniyor).
@@ -524,8 +600,16 @@ final class PhoneRecorder {
         levels.showSample(values: [0.1, 0.4, 0.7, 0.5, 0.9, 0.3, 0.6, 0.2, 0.8, 0.5])
         phase = .recording
         consentReminderVisible = true
-        startActivity(startedAt: startedAt ?? Date())
-        updateActivityNow(state: RecordingActivityAttributes.ContentState(lastLine: sample[2].text, speaker: speakerLabel(speaker: .others, person: 2), isFinishing: false))
+        startActivity(startedAt: startedAt ?? Date(), title: String(localized: "Toplantı"))
+        updateActivityNow(state: activityState())
+    }
+
+    /// `--ornek-bitir` (yalnız Debug, görsel kontrol): örnek kayıt bitiriliyor durumunda kalır (oturum yok).
+    func showSampleFinishing() {
+        phase = .finishing
+        stoppedAt = Date()
+        levels.stop()
+        updateActivityNow(state: activityState())
     }
     #endif
 
@@ -543,16 +627,17 @@ final class PhoneRecorder {
                 // toplantıdan atlanır.
                 spokenLanguages[segment.id] = confidentSpokenLanguage(text: segment.text)
                 addForTranslation(segment: segment)
-                updateActivityThrottled(state: RecordingActivityAttributes.ContentState(
-                    lastLine: segment.text, speaker: segment.person.map { speakerLabel(speaker: segment.id.speaker, person: $0) } ?? "",
-                    isFinishing: phase == .finishing
-                ))
+                updateActivityThrottled(state: activityState())
             }
         case .languageLocked(let language):
             lockedLanguage = language
-        case .captureEnded:
-            if phase == .recording {
-                errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Mikrofon beklenmedik şekilde durdu. Kaydı bitirip yeniden başlat."))
+        case .captureEnded(let speaker):
+            // Boş "Sen" akışının sonu beklenendir (yüz yüze kayıtta hemen biter); yalnız gerçekten ses veren akış
+            // kayıt sürerken biterse mikrofon durmuştur: kayıt o ana dek kaydedilen sesle bitirilir ve işlenir.
+            if isUnexpectedCaptureEnd(speaker: speaker, capturedSpeakers: Self.capturedSpeakers, isRecording: phase == .recording) {
+                Self.logger.error("Mikrofon akışı kayıt sürerken bitti, kayıt bitiriliyor, konuşmacı: \(speaker.rawValue, privacy: .public)")
+                errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Mikrofon beklenmedik şekilde durdu; kayıt o ana kadarki sesle bitirilip işleniyor."))
+                stop()
             }
         case .recordingFailed(_, let message):
             errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Ses diske yazılamadı: \(message)"))
@@ -571,9 +656,15 @@ final class PhoneRecorder {
         }
     }
 
-    /// Oturum bitti: yarım çeviri birimleri çeviriye gider, bekleyen çeviriler (en fazla 10 sn) beklenir, toplantı
-    /// saklanıp işlenir.
-    private func sessionEnded() async {
+    /// Oturum bitti (olay akışı bitti ya da kapanış bekçisi süreyi doldurdu): yarım çeviri birimleri çeviriye gider,
+    /// bekleyen çeviriler (en fazla 10 sn) beklenir, toplantı saklanıp işlenir. Aynı kayıt için bir kez çalışır; başka
+    /// kaydın (eski oturumun geç biten akışı) sonu yok sayılır.
+    private func sessionEnded(sessionGeneration: Int) async {
+        guard sessionGeneration == generation, endedGeneration != sessionGeneration else {
+            Self.logger.info("Oturum sonu zaten işlendi ya da eski kayda ait, yok sayıldı")
+            return
+        }
+        endedGeneration = sessionGeneration
         flushAllUnits()
         let completed: Bool = await finishesWithin(seconds: 10) { [weak self] in
             while await self?.hasPendingTranslations() == true {
@@ -602,6 +693,7 @@ final class PhoneRecorder {
         guard let finished = active else {
             phase = .idle
             startedAt = nil
+            stoppedAt = nil
             return
         }
         // Kapatılacak sunucu oturumu beklemeden önce alınır. Oturum kapanana dek kayıt "bitiyor"da kalır: bu arada yeni
@@ -618,8 +710,10 @@ final class PhoneRecorder {
         active = nil
         // Biten kaydın geç çevirisi artık yazılmaz.
         generation += 1
-        let record: MeetingRecord = liveRecord(recording: finished, status: .processing, endedAt: Date())
+        let record: MeetingRecord = liveRecord(recording: finished, status: .processing, endedAt: stoppedAt ?? Date())
         startedAt = nil
+        stoppedAt = nil
+        microphoneRecoveredNoticeVisible = false
         lastMeetingID = record.id
         Self.logger.info("Kayıt bitti, toplantı: \(record.id, privacy: .public), çevrimdışı: \(finished.offline, privacy: .public)")
         if finished.offline {
@@ -820,22 +914,43 @@ final class PhoneRecorder {
         return (last.text, last.person.map { speakerLabel(speaker: last.id.speaker, person: $0) } ?? "")
     }
 
+    /// Canlı etkinliğin şimdiki durumu: son cümle, bitiriliyor mu, mikrofon bekleniyor mu, süre durduysa anı.
+    private func activityState() -> RecordingActivityAttributes.ContentState {
+        let line: (text: String, speaker: String) = activityLine
+        return RecordingActivityAttributes.ContentState(
+            lastLine: line.text, speaker: line.speaker, isFinishing: phase == .finishing, isMicrophonePaused: microphoneStatus != .running,
+            stoppedAt: stoppedAt
+        )
+    }
+
     /// Kilit ekranı ve Dynamic Island'da kaydı gösterir. Kullanıcı canlı etkinlikleri kapattıysa gösterilmez (loglanır);
-    /// kayıt etkilenmez.
-    private func startActivity(startedAt: Date) {
+    /// kayıt etkilenmez. Süre etkinlikte sistem saatiyle akar (`Text(timerInterval:)`); güncellemeler yalnız metin ve
+    /// durum içindir.
+    private func startActivity(startedAt: Date, title: String) {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else {
-            Self.logger.info("Canlı etkinlikler kapalı; kayıt kilit ekranında gösterilmiyor")
+            Self.logger.info("Canlı etkinlikler kapalı; kayıt kilit ekranında ve Dynamic Island'da gösterilmiyor")
             return
         }
+        // Uygulama kayıt sırasında kapanıp yeniden açıldıysa kalan eski etkinlik Dynamic Island'da yer tutmasın.
+        let previous: [String] = Activity<RecordingActivityAttributes>.activities.map(\.id)
         do {
             activity = try Activity.request(
-                attributes: RecordingActivityAttributes(startedAt: startedAt),
-                content: ActivityContent(state: RecordingActivityAttributes.ContentState(lastLine: "", speaker: "", isFinishing: false), staleDate: Date().addingTimeInterval(activityStaleSec)),
+                attributes: RecordingActivityAttributes(startedAt: startedAt, title: title),
+                content: activityContent(state: activityState()),
                 pushType: nil
             )
             lastActivityUpdate = .distantPast
+            Self.logger.info("Canlı etkinlik başladı, önceki etkinlik sayısı: \(previous.count, privacy: .public)")
         } catch {
             Self.logger.error("Canlı etkinlik başlatılamadı, hata: \(String(describing: error), privacy: .private)")
+        }
+        guard !previous.isEmpty else {
+            return
+        }
+        Task.detached {
+            for stale in Activity<RecordingActivityAttributes>.activities where previous.contains(stale.id) {
+                await stale.end(nil, dismissalPolicy: .immediate)
+            }
         }
     }
 
@@ -857,7 +972,7 @@ final class PhoneRecorder {
         Task.detached {
             // Etkinlik görev içinde kimliğiyle bulunur (ana aktörden başka göreve geçirilmez).
             for running in Activity<RecordingActivityAttributes>.activities where running.id == id {
-                await running.update(ActivityContent(state: state, staleDate: Date().addingTimeInterval(activityStaleSec)))
+                await running.update(activityContent(state: state))
             }
         }
     }
@@ -1043,7 +1158,7 @@ final class PhoneRecorder {
                 }
                 self.saveRecord(record: self.liveRecord(recording: recording, status: .recording, endedAt: nil), directory: recording.directory)
                 // Sessizlikte de canlı etkinlik tazelenir: uygulama kapanırsa 2 dk sonra eskimiş görünür, saymayı sürdürmez.
-                self.updateActivityNow(state: RecordingActivityAttributes.ContentState(lastLine: self.activityLine.text, speaker: self.activityLine.speaker, isFinishing: false))
+                self.updateActivityNow(state: self.activityState())
             }
         }
     }
@@ -1099,3 +1214,12 @@ private func continuedProcessingSubtitle(title: String, startedAt: Date) -> Stri
 /// Canlı etkinliğin eskimiş sayılma süresi: kayıt 30 sn'de bir tazeler; uygulama kapanırsa kilit ekranında saymayı
 /// sürdürmez.
 private let activityStaleSec: TimeInterval = 120
+
+/// Kayıt etkinliğinin önceliği: başka uygulamaların canlı etkinlikleri de varken (ör. bir sohbet ya da yolculuk
+/// uygulaması) sistem Dynamic Island'da en yüksek önceliklisini gösterir; varsayılan 0'da kayıt geri planda kalıyordu.
+private let activityRelevanceScore: Double = 100
+
+/// Canlı etkinliğin içeriği: durum, eskime anı ve öncelik.
+private func activityContent(state: RecordingActivityAttributes.ContentState) -> ActivityContent<RecordingActivityAttributes.ContentState> {
+    ActivityContent(state: state, staleDate: Date().addingTimeInterval(activityStaleSec), relevanceScore: activityRelevanceScore)
+}
