@@ -175,6 +175,7 @@ describe("süresi dolmuş satırların temizliği", () => {
       meeting_sessions: 2,
       devices: 1,
       used_nonces: 1,
+      apple_sign_in_tokens: 0,
       transcription_results: 1,
       device_challenges: 2,
       refresh_tokens: 2,
