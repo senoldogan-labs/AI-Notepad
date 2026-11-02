@@ -255,8 +255,9 @@ struct AskSubmission {
     let recipeTitle: String?
 }
 
-/// Sor sekmesinin kökü: başlangıç durumu (tanıtım kartı, son sohbetler, örnek sorular) ve altta soru alanı. Soru
-/// gönderilince ya da bir sohbet açılınca sohbet tam ekran açılır (sekme çubuğu gizli, sol üstte geri); geri kökü getirir.
+/// Sor sekmesinin kökü: başlangıç durumu (tanıtım kartı, son sohbetler, örnek sorular) ve altta soru alanı. Sor baştan
+/// sona tam ekrandır: sekme çubuğu gizli, sol üstteki geri Sor'a gelinen sekmeye döner. Soru gönderilince ya da bir
+/// sohbet açılınca sohbet üstüne açılır; onun geri oku kökü getirir.
 struct AskTab: View {
     let ask: PhoneAsk
     let store: PhoneStore
@@ -279,24 +280,45 @@ struct AskTab: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
                     PhoneErrorList(messages: [ask.historyError, ask.recipeError].compactMap { $0 })
-                    intro
-                    if hasRecent {
-                        recent
+                    if !isEmpty {
+                        intro
+                        if hasRecent {
+                            recent
+                        }
+                        examplesSection
                     }
-                    examplesSection
                 }
                 .padding(16)
             }
             .scrollDismissesKeyboard(.interactively)
+            .overlay {
+                // Henüz toplantı ve sohbet yok: sorulacak bir şey yok, ortada kısa bir boş durum ve kayda geçiş.
+                if isEmpty {
+                    PhoneEmptyState(symbol: "sparkle.magnifyingglass", title: "Sorulacak toplantı yok", message: "İlk toplantını kaydet; sonra notlarına buradan soru sor.") {
+                        Button("Kaydı başlat", systemImage: "mic.fill") { router.tab = .record }
+                            .buttonStyle(.pillPrimary)
+                    }
+                }
+            }
             .safeAreaInset(edge: .bottom) {
-                AskComposer(
-                    ask: ask, store: store, placeholder: "Sor… (@ toplantı, / tarif)", isAnswering: false,
-                    onSubmit: { (submission: AskSubmission) -> Void in startConversation(submission: submission) },
-                    onStop: { ask.stop() }
-                )
+                if !isEmpty {
+                    AskComposer(
+                        ask: ask, store: store, placeholder: "Sor… (@ toplantı, / tarif)", isAnswering: false,
+                        onSubmit: { (submission: AskSubmission) -> Void in startConversation(submission: submission) },
+                        onStop: { ask.stop() }
+                    )
+                }
             }
             .background(Theme.background)
             .navigationTitle("Sor")
+            .navigationBarTitleDisplayMode(.inline)
+            // Kökte de sekme çubuğu gizli (yalnız sohbette gizlemek yetmedi: Sor'u açan kullanıcı ilk bu ekranı görüyor).
+            .toolbar(.hidden, for: .tabBar)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Geri", systemImage: "chevron.left") { router.leaveAsk() }
+                }
+            }
             .navigationDestination(for: AskRoute.self) { (route: AskRoute) in
                 switch route {
                 case .conversation:
@@ -317,6 +339,11 @@ struct AskTab: View {
 
     private var hasRecent: Bool {
         unsavedQuestion != nil || !ask.conversations.isEmpty
+    }
+
+    /// Ne toplantı ne sohbet var: kök yalnız boş durumu gösterir.
+    private var isEmpty: Bool {
+        store.meetings.isEmpty && !hasRecent
     }
 
     private var intro: some View {
@@ -771,12 +798,13 @@ private struct AskHistoryList: View {
         }
         .overlay {
             if ask.conversations.isEmpty {
-                Text("Saklanan sohbet yok")
-                    .appFont(size: 14, weight: .regular)
-                    .foregroundStyle(Theme.muted)
+                PhoneEmptyState(symbol: "bubble.left.and.text.bubble.right", title: "Saklanan sohbet yok", message: "Sorduğun sorular burada saklanır.") {
+                    EmptyView()
+                }
             }
         }
         .navigationTitle("Geçmiş")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
     }
 }

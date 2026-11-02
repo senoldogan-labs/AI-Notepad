@@ -222,14 +222,22 @@ enum PhoneTab: String, Hashable {
     case settings = "ayarlar"
 }
 
-/// Gezinme durumu: seçili sekme, Toplantılar'da açık toplantı (Sor'daki kaynak, görev ya da mini çalar oraya götürür)
-/// ve Sor'da açık sohbet ya da geçmiş.
+/// Gezinme durumu: seçili sekme, Toplantılar'da açık toplantı (Sor'daki kaynak, görev ya da mini çalar oraya götürür),
+/// Sor'da açık sohbet ya da geçmiş ve Sor'un sol üstteki geri okunun döneceği sekme.
 @MainActor
 @Observable
 final class PhoneRouter {
-    var tab: PhoneTab
+    var tab: PhoneTab {
+        didSet {
+            if let returnTab = askReturnTarget(previous: oldValue, current: tab) {
+                askReturnTab = returnTab
+            }
+        }
+    }
     var meetingsPath: [String]
     var askPath: [AskRoute]
+    /// Sor tam ekrandır (sekme çubuğu gizli): sol üstteki geri Sor'a gelinen sekmeye döner.
+    private(set) var askReturnTab: PhoneTab = .record
 
     init(tab: PhoneTab, meetingsPath: [String], askPath: [AskRoute]) {
         self.tab = tab
@@ -237,11 +245,22 @@ final class PhoneRouter {
         self.askPath = askPath
     }
 
+    /// Sor'dan çıkar: Sor'a gelinen sekmeye döner.
+    func leaveAsk() {
+        tab = askReturnTab
+    }
+
     /// Toplantıyı Toplantılar sekmesinde açar.
     func open(meetingID: String) {
         tab = .meetings
         meetingsPath = [meetingID]
     }
+}
+
+/// Sekme değişiminde Sor'un geri okunun döneceği sekme: başka bir sekmeden Sor'a geçildiyse o sekme, yoksa nil (değişmez).
+/// Saf fonksiyondur.
+func askReturnTarget(previous: PhoneTab, current: PhoneTab) -> PhoneTab? {
+    current == .ask && previous != .ask ? previous : nil
 }
 
 /// `--sekme kayit|toplantilar|sor|gorevler|ayarlar` başlatma argümanı (görsel kontrol için); yoksa Kayıt. Saf fonksiyondur.

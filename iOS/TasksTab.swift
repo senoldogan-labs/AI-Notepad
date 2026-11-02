@@ -47,44 +47,11 @@ struct TasksTab: View {
                             ProgressView(value: Double(doneCount), total: Double(max(all.count, 1)))
                                 .tint(appearance.accent.color)
                         }
-                    }
-                    PillTabs(selection: $filter, options: [
-                        (TaskFilter.open, "Açık · \(all.count - doneCount)"),
-                        (TaskFilter.done, "Tamamlanan · \(doneCount)"),
-                    ])
-                    if shown.isEmpty {
-                        if filter == .done {
-                            EmptyStateHero(
-                                symbol: "checkmark.circle", title: "Henüz tamamlanan yok",
-                                message: "Bir görevin dairesine dokununca buraya taşınır; bitirdiklerin burada birikir.", palette: .sunset, steps: []
-                            ) {
-                                EmptyView()
-                            }
-                        } else if doneCount > 0 {
-                            EmptyStateHero(
-                                symbol: "party.popper.fill", title: "Açık görevin kalmadı",
-                                message: "Hepsi tamamlandı. Yeni toplantılarda sana düşen işler buraya gelir.", palette: .sunset, steps: []
-                            ) {
-                                EmptyView()
-                            }
-                            .overlay { ConfettiBurst(palette: .sunset) }
-                        } else {
-                            EmptyStateHero(
-                                symbol: "checklist", title: "Henüz sana düşen görev yok",
-                                message: "Toplantı bitince not yazılır; içinde senin adına yazılan işler burada toplanır.",
-                                palette: .sunset,
-                                steps: [
-                                    EmptyStateStep(symbol: "mic.fill", title: "Kayıt"),
-                                    EmptyStateStep(symbol: "sparkles", title: "Not yazılır"),
-                                    EmptyStateStep(symbol: "checkmark.circle", title: "Görevlerin burada"),
-                                ]
-                            ) {
-                                if userName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                    Button("Adını yaz (görevlerin tanınsın)", systemImage: "person.text.rectangle") { router.tab = .settings }
-                                        .buttonStyle(.pillPrimary)
-                                }
-                            }
-                        }
+                        // Hiç görev yokken ilerleme ve süzgeç gizlenir; ekranın ortasında yalnız boş durum kalır.
+                        PillTabs(selection: $filter, options: [
+                            (TaskFilter.open, "Açık · \(all.count - doneCount)"),
+                            (TaskFilter.done, "Tamamlanan · \(doneCount)"),
+                        ])
                     }
                     ForEach(groups, id: \.record.id) { (group: (record: MeetingRecord, tasks: [NoteTask])) in
                         VStack(alignment: .leading, spacing: 8) {
@@ -124,8 +91,35 @@ struct TasksTab: View {
                 .animation(.smooth(duration: 0.3), value: shown.map(\.task.trackingKey))
             }
             .scrollIndicators(.hidden)
+            .overlay {
+                if shown.isEmpty {
+                    emptyState(hasTasks: !all.isEmpty, doneCount: doneCount)
+                }
+            }
             .background(Theme.background)
             .navigationTitle("Görevlerim")
+        }
+    }
+
+    /// Ekranın ortasındaki boş durum: hiç görev yok, açık görev kalmadı ya da henüz tamamlanan yok.
+    @ViewBuilder
+    private func emptyState(hasTasks: Bool, doneCount: Int) -> some View {
+        if !hasTasks {
+            PhoneEmptyState(symbol: "checklist", title: "Henüz görev yok", message: "Toplantılarda sana düşen işler burada toplanır.") {
+                if userName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Button("Adını yaz (görevlerin tanınsın)", systemImage: "person.text.rectangle") { router.tab = .settings }
+                        .buttonStyle(.pillPrimary)
+                }
+            }
+        } else if filter == .done {
+            PhoneEmptyState(symbol: "checkmark.circle", title: "Henüz tamamlanan yok", message: "Bitirdiğin görevler burada birikir.") {
+                EmptyView()
+            }
+        } else if doneCount > 0 {
+            PhoneEmptyState(symbol: "party.popper.fill", title: "Açık görevin kalmadı", message: "Yeni toplantılarda sana düşen işler buraya gelir.") {
+                EmptyView()
+            }
+            .overlay { ConfettiBurst(palette: .sunset) }
         }
     }
 }

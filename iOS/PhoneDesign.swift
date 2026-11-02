@@ -272,6 +272,22 @@ struct PhoneErrorList: View {
     }
 }
 
+/// Boş sayfa (Toplantılar, Görevler, Sor, arama sonucu): ekranın tam ortasında aynı pastel simge küresi, kısa başlık,
+/// tek cümlelik açıklama ve varsa tek eylem. Kaydırma görünümünün üstüne katman olarak konur: içerik ne kadar kısa olursa
+/// olsun yatayda ve dikeyde ortalanır.
+struct PhoneEmptyState<Actions: View>: View {
+    let symbol: String
+    let title: LocalizedStringKey
+    let message: LocalizedStringKey
+    @ViewBuilder let actions: () -> Actions
+
+    var body: some View {
+        EmptyStateHero(symbol: symbol, title: title, message: message, palette: .sunset, steps: [], actions: actions)
+            .padding(.horizontal, 12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
 /// Giriş ve yapay zekâ açıklaması ekranlarının üstündeki pastel kart: durağan film gradyanı (hareketsiz; bkz. tasarım
 /// kuralları), içerik ortada, açık renk düzeninde (koyu modda da pastel kalır).
 struct PhoneHeroCard<Content: View>: View {

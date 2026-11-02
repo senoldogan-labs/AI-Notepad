@@ -29,23 +29,6 @@ struct MeetingsTab: View {
                     if !store.meetings.isEmpty {
                         MeetingScopeChips(records: store.meetings, selection: $scope)
                     }
-                    if store.meetings.isEmpty {
-                        EmptyStateHero(
-                            symbol: "waveform", title: "Henüz toplantı yok",
-                            message: "Kayıt sekmesinden yüz yüze bir toplantıyı kaydet; bitince notu, görevleri ve konuşmacılı metni burada.",
-                            palette: .sunset,
-                            steps: [
-                                EmptyStateStep(symbol: "mic.fill", title: "Kayıt"),
-                                EmptyStateStep(symbol: "sparkles", title: "Not yazılır"),
-                                EmptyStateStep(symbol: "checklist", title: "Görevler hazır"),
-                            ]
-                        ) {
-                            Button("Kaydı başlat", systemImage: "mic.fill") { router.tab = .record }
-                                .buttonStyle(.pillPrimary)
-                        }
-                    } else if sections.isEmpty {
-                        EmptyStateCard(symbol: "magnifyingglass", title: "Eşleşen toplantı yok", message: nil)
-                    }
                     ForEach(sections) { (section: MeetingSection) in
                         Text(section.title)
                             .appFont(size: 13, weight: .semibold)
@@ -70,6 +53,19 @@ struct MeetingsTab: View {
                 .padding(.bottom, 24)
             }
             .scrollIndicators(.hidden)
+            .overlay {
+                // Boş arşiv ya da eşleşmeyen arama: ekranın ortasında kısa bir boş durum.
+                if store.meetings.isEmpty {
+                    PhoneEmptyState(symbol: "waveform", title: "Henüz toplantı yok", message: "Kaydettiğin toplantılar notu ve görevleriyle burada durur.") {
+                        Button("Kaydı başlat", systemImage: "mic.fill") { router.tab = .record }
+                            .buttonStyle(.pillPrimary)
+                    }
+                } else if sections.isEmpty {
+                    PhoneEmptyState(symbol: "magnifyingglass", title: "Eşleşen toplantı yok", message: "Başka bir kelimeyle ara.") {
+                        EmptyView()
+                    }
+                }
+            }
             .background(Theme.background)
             .navigationTitle("Toplantılar")
             .searchable(text: $query, prompt: "Toplantılarda ara")
@@ -82,10 +78,10 @@ struct MeetingsTab: View {
                     .navigationTransition(.zoom(sourceID: id, in: cardTransition))
                 } else {
                     // Toplantı silindi (ör. Mac'ten): boş sayfa yerine neden görünür.
-                    EmptyStateCard(symbol: "doc.questionmark", title: "Toplantı bulunamadı", message: "Bu toplantı silinmiş olabilir.")
-                        .padding(20)
-                        .frame(maxHeight: .infinity, alignment: .top)
-                        .background(Theme.background)
+                    PhoneEmptyState(symbol: "doc.questionmark", title: "Toplantı bulunamadı", message: "Bu toplantı silinmiş olabilir.") {
+                        EmptyView()
+                    }
+                    .background(Theme.background)
                 }
             }
             .refreshable { await store.reloadAndWait() }
