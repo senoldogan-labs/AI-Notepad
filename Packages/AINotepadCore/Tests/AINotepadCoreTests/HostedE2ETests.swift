@@ -715,7 +715,9 @@ private func silentFlac(directory: URL) throws -> URL {
 
         let deleting: SignedInUser = try await signedInUser(baseURL: baseURL)
         let current: HostedTokens = try #require(try deleting.storage.load())
-        try await deleting.client.deleteAccount()
+        let deletion: HostedAccountDeletion? = try await deleting.client.deleteAccount()
+        // App Store aboneliği olmayan hesap: Apple'da iptal uyarısı yok.
+        #expect(deletion == HostedAccountDeletion(deleted: true, appStoreSubscription: nil, notice: nil))
         #expect(try await deleting.client.isSignedIn() == false)
         let deletedStorage: MemoryTokenStorage = MemoryTokenStorage(tokens: HostedTokens(
             accessToken: "gecersiz", refreshToken: current.refreshToken, accessExpiresAt: Date.distantPast, userId: current.userId

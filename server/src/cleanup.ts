@@ -110,6 +110,8 @@ function cleanupTargets(now: Date): CleanupTarget[] {
       binds: [],
     },
     { name: "stripe_events", table: "stripe_events", where: "processed_at < ?", binds: [nowMs - stripeEventRetentionMs] },
+    // RevenueCat olayları Stripe olaylarıyla aynı süre (RevenueCat en geç ~1,5 saat içinde yeniden dener).
+    { name: "revenuecat_events", table: "revenuecat_events", where: "processed_at < ?", binds: [nowMs - stripeEventRetentionMs] },
     { name: "duplicate_subscriptions", table: "duplicate_subscriptions", where: "created_at < ?", binds: [nowMs - duplicateSubscriptionRetentionMs] },
     { name: "trial_starts", table: "trial_starts", where: "day < ?", binds: [today] },
     { name: "deleted_trial_starts", table: "deleted_trial_starts", where: "day < ?", binds: [today] },

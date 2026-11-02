@@ -91,6 +91,8 @@ describe("haklar ve toplantı oturumları", () => {
       accountTokensResetsAt: "2026-10-16T00:00:00.000Z",
       monthlyResetsAt: "2026-11-01T00:00:00.000Z",
       meetingMaxMinutes: 90,
+      subscriptionSources: [],
+      appStoreSubscription: null,
       subscription: null,
     });
   });

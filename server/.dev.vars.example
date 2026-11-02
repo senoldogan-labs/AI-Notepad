@@ -13,3 +13,8 @@ DEEPGRAM_API_KEY=
 # ayarlı GitHub jetonu. Satır yorumdayken blog uçları `503 blog_unavailable` döner; boş değer geçersizdir. Yerelde bir
 # kayıt gerçek depoya (GITHUB_BLOG_BRANCH dalına) commit atar.
 # GITHUB_BLOG_TOKEN=
+# İsteğe bağlı: App Store abonelikleri (RevenueCat). Satırlar yorumdayken webhook 500, `POST /v1/billing/app-store/sync`
+# `503 app_store_unavailable` döner; boş değer geçersizdir (REVENUECAT_SECRET_API_KEY `sk_` ile başlamalı, değilse her
+# istek 500). Yerelde sahte değerler yeter.
+# REVENUECAT_WEBHOOK_AUTH=
+# REVENUECAT_SECRET_API_KEY=

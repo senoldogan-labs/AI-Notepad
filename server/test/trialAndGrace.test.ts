@@ -96,6 +96,7 @@ describe("past_due ek süresi", () => {
     const inGrace: MeBody = await me(harness, session);
     expect(inGrace.plan).toBe("subscription");
     expect(inGrace.subscription).toEqual({
+      source: "stripe",
       status: "past_due",
       currentPeriodEnd: new Date(periodEnd).toISOString(),
       cancelAt: null,

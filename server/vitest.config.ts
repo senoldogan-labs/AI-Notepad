@@ -11,6 +11,8 @@ const fakeSecrets: Record<string, string> = {
   STRIPE_SECRET_KEY: "sk_test_fake_0000000000000",
   STRIPE_WEBHOOK_SECRET: "whsec_test_fake_000000000",
   TURNSTILE_SECRET_KEY: "test-turnstile-secret-000",
+  REVENUECAT_WEBHOOK_AUTH: "Bearer test-revenuecat-webhook-auth-000",
+  REVENUECAT_SECRET_API_KEY: "sk_test_revenuecat_fake_000000",
 };
 
 /**

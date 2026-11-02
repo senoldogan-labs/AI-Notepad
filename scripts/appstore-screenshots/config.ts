@@ -1,0 +1,210 @@
+// App Store ekran görüntülerinin tek düzenlenebilir ayar dosyası: sahneler (başlatma argümanları ve metinler), boyutlar,
+// Simülatör ve uygulama. Metinler İngilizcedir (App Store sayfası); başlık en çok 30, alt başlık en çok 60 karakter
+// (make.ts başlamadan denetler). iPhone yalnızca yanındaki konuşmayı mikrofonla kaydeder: metinler Zoom ya da telefon
+// görüşmesi kaydettiğini söylemez.
+
+/** Sitedeki film gradyanlarının renk takımları (web/src/styles/global.css, `.film--*`). */
+export type PaletteName = "sunset" | "coral" | "ocean" | "mint" | "rose" | "violet";
+
+/** Bulutların gölgesinin olduğu taraf (sitedeki `.film--clouds-left` / `-right`). */
+export type CloudSide = "left" | "right";
+
+/** Bir film gradyanının beş rengi: zemin ve dört bulut. */
+export interface Palette {
+  readonly base: string;
+  readonly c0: string;
+  readonly c1: string;
+  readonly c2: string;
+  readonly c3: string;
+}
+
+/** Uygulamanın bir ekranı: nasıl açılacağı. `--raw-only` yalnız bunu kullanır (başlıksız, çerçevesiz çekim). */
+export interface RawScene {
+  /** Dosya adı ve `--scene` / `--raw-only` değeri. */
+  readonly id: string;
+  /** Uygulamanın başlatma argümanları (yalnız Debug derlemede tanınan görsel kontrol argümanları dahil). */
+  readonly launchArgs: readonly string[];
+  /** Açıldıktan sonra çekime dek bekleme (ms): veri okuma ve geçiş animasyonları biter. */
+  readonly settleMs: number;
+}
+
+/** Bir App Store sahnesi: uygulamanın hangi ekranla açılacağı ve görselin metni. */
+export interface Scene extends RawScene {
+  /** Başlık (en çok 30 karakter). */
+  readonly headline: string;
+  /** Tek satırlık alt başlık (en çok 60 karakter); yoksa null. */
+  readonly subhead: string | null;
+  readonly palette: PaletteName;
+  readonly clouds: CloudSide;
+}
+
+/** Çıktı boyutu (App Store Connect'in kabul ettiği piksel ölçüleri). */
+export interface OutputSize {
+  /** Klasör adı, ör. "6.9". */
+  readonly id: string;
+  readonly width: number;
+  readonly height: number;
+}
+
+/** Çekimi yapan Simülatör aygıtı: bu adla yoksa oluşturulur, her çalıştırmada silinip temiz açılır. */
+export interface SimulatorConfig {
+  readonly name: string;
+  readonly deviceType: string;
+  /** Sistem dili ve bölgesi (durum çubuğu saati, sistem metinleri). */
+  readonly languages: readonly string[];
+  readonly locale: string;
+  /** Çekimin piksel ölçüsü (aygıtın ekranı); farklı çıkarsa hat durur. */
+  readonly screenWidth: number;
+  readonly screenHeight: number;
+}
+
+/** Çekilecek uygulama. */
+export interface AppConfig {
+  readonly project: string;
+  readonly scheme: string;
+  readonly bundleId: string;
+  readonly derivedDataPath: string;
+  /** Derlenen .app'in derived data altındaki yolu. */
+  readonly productPath: string;
+  /** Uygulamanın veri klasörü, veri kabına göre (Sessions ve AskHistory buraya kopyalanır). */
+  readonly dataFolder: string;
+  /** Her sahnede verilen argümanlar: dil, onboarding atlama, ad ve görünüm. */
+  readonly commonLaunchArgs: readonly string[];
+}
+
+export const palettes: Readonly<Record<PaletteName, Palette>> = {
+  sunset: { base: "#f0ae92", c0: "#f7cdb8", c1: "#fff3e6", c2: "#c9a3e0", c3: "#e9896a" },
+  coral: { base: "#f0c49b", c0: "#f7dcc0", c1: "#fff6e8", c2: "#f2a7b4", c3: "#e0a36f" },
+  ocean: { base: "#a9bcee", c0: "#cbd6f6", c1: "#f4f1ff", c2: "#e9b9d6", c3: "#8ea3e6" },
+  mint: { base: "#a9cdb8", c0: "#cce3d4", c1: "#f6f7ea", c2: "#e9d7a8", c3: "#7fb096" },
+  rose: { base: "#eba7b5", c0: "#f6cbd4", c1: "#fff1ec", c2: "#b9c9f0", c3: "#de8aa3" },
+  violet: { base: "#c7b3ec", c0: "#ded1f5", c1: "#fff4ee", c2: "#f4c0a8", c3: "#a98bdb" },
+};
+
+/** Toplantı kimliği: tohumlayıcının "Product weekly" klasör adı, çalıştırma anında bilinir (bkz. make.ts). */
+export const productWeeklyPlaceholder: string = "{productWeekly}";
+
+/** Görsellerin sırası App Store'daki sıradır: ilk ikisi arama sonuçlarında görünür. */
+export const scenes: readonly Scene[] = [
+  {
+    id: "live",
+    headline: "Every word, as it’s spoken",
+    subhead: "Live transcript and translation for in-person meetings.",
+    launchArgs: ["--ornek-kayit"],
+    settleMs: 5000,
+    palette: "sunset",
+    clouds: "left",
+  },
+  {
+    id: "note",
+    headline: "Notes that write themselves",
+    subhead: "Summary, decisions and tasks the moment you stop.",
+    launchArgs: ["--sekme", "toplantilar", "--toplanti", productWeeklyPlaceholder],
+    settleMs: 5000,
+    palette: "ocean",
+    clouds: "right",
+  },
+  {
+    id: "tasks",
+    headline: "Never drop a follow-up",
+    subhead: "Every task from every meeting, in one list.",
+    launchArgs: ["--sekme", "gorevler"],
+    settleMs: 4000,
+    palette: "mint",
+    clouds: "left",
+  },
+  {
+    id: "ask",
+    headline: "Ask your meetings",
+    subhead: "Plain-language answers that cite the meeting.",
+    launchArgs: ["--sekme", "sor"],
+    settleMs: 4000,
+    palette: "violet",
+    clouds: "right",
+  },
+  {
+    id: "meetings",
+    headline: "Every meeting, searchable",
+    subhead: "Find any decision by title, person or word.",
+    launchArgs: ["--sekme", "toplantilar"],
+    settleMs: 4000,
+    palette: "rose",
+    clouds: "left",
+  },
+  {
+    id: "record",
+    headline: "One tap to start",
+    subhead: "Put your iPhone on the table and press record.",
+    launchArgs: ["--sekme", "kayit"],
+    settleMs: 4000,
+    palette: "coral",
+    clouds: "right",
+  },
+];
+
+/**
+ * Yalnız ham çekim olarak istenen ekranlar (`--raw-only <kimlik>`; pazarlama setine girmez). App Store Connect her
+ * abonelik için bir inceleme görseli ister: Gistsmith'in iPhone abonelik ekranı (paywall) geldiğinde onu açan argümanla
+ * buraya `{ id: "paywall", launchArgs: [...], settleMs: 4000 }` eklenir. Yukarıdaki sahneler de `--raw-only` ile çekilebilir.
+ */
+export const rawScenes: readonly RawScene[] = [];
+
+/** 6.9" zorunlu; 6.5" aynı çekimden ucuza üretilir. */
+export const outputSizes: readonly OutputSize[] = [
+  { id: "6.9", width: 1320, height: 2868 },
+  { id: "6.5", width: 1284, height: 2778 },
+];
+
+export const simulator: SimulatorConfig = {
+  name: "Gistsmith App Store 6.9",
+  deviceType: "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro-Max",
+  languages: ["en"],
+  locale: "en_US",
+  screenWidth: 1320,
+  screenHeight: 2868,
+};
+
+export const app: AppConfig = {
+  project: "AINotepad.xcodeproj",
+  scheme: "AINotepadiOS",
+  bundleId: "com.senoldogan.AINotepad",
+  derivedDataPath: ".build/xcode-appstore",
+  productPath: "Build/Products/Debug-iphonesimulator/AINotepad.app",
+  dataFolder: "Library/Application Support/AINotepad",
+  commonLaunchArgs: [
+    "-AppleLanguages",
+    "(en)",
+    "-AppleLocale",
+    "en_US",
+    "-onboardingCompleted",
+    "YES",
+    "-userName",
+    "Alex Morgan",
+    "-appearance.theme",
+    "light",
+    "-language.note",
+    "en",
+  ],
+};
+
+/** Simülatörün durum çubuğu: 9:41, tam pil, tam çekim. */
+export const statusBarOverride: readonly string[] = [
+  "--time",
+  "9:41",
+  "--batteryState",
+  "discharging",
+  "--batteryLevel",
+  "100",
+  "--cellularMode",
+  "active",
+  "--cellularBars",
+  "4",
+  "--wifiMode",
+  "active",
+  "--wifiBars",
+  "3",
+  "--dataNetwork",
+  "wifi",
+  "--operatorName",
+  "",
+];

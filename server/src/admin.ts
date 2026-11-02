@@ -1,4 +1,5 @@
-import type { Config, StripeMode } from "./config";
+import { appStoreAccessExistsSql, appStoreActiveSql, appStoreGraceSql, appStorePaidSql } from "./appStore";
+import type { AppStoreConfig, Config, StripeMode } from "./config";
 import { type DeepgramUsage, deepgramUsage } from "./deepgram";
 import { type ElevenLabsUsage, elevenLabsUsage } from "./elevenLabsCapacity";
 import { subscriptionRenewalGraceMs } from "./entitlements";
@@ -43,6 +44,10 @@ export interface AdminStats {
     readonly byProvider: { readonly apple: number; readonly google: number };
   };
   readonly trials: { readonly activeTrialUsers: number; readonly exhaustedTrialUsers: number };
+  /**
+   * Abonelikler. `active`, `grace`, `ending`, `monthly`, `yearly` ve `mrrUsd` iki kaynağın (Stripe + App Store üretim)
+   * toplamıdır; ayrımı `bySource`'ta. `canceledTotal`, `complimentary` ve `freeInviteMonth` yalnızca Stripe'tır.
+   */
   readonly subscriptions: {
     readonly active: number;
     readonly grace: number;
@@ -50,11 +55,13 @@ export interface AdminStats {
     readonly canceledTotal: number;
     /**
      * Yenilenecek ödenmiş abonelikler plan başına: `active` − `ending` − ücretsiz ilk aydaki davetli aylıklar
-     * (`freeInviteMonth`); planı tanınmayanlar hiçbirine girmez.
+     * (`freeInviteMonth`) − App Store ücretsiz deneme dönemindekiler; planı tanınmayanlar hiçbirine girmez.
      */
     readonly monthly: number;
     readonly yearly: number;
+    /** Stripe liste fiyatıyla MRR + App Store'un Apple komisyonu düşülmüş (net) MRR'ı. */
     readonly mrrUsd: number;
+    readonly bySource: { readonly stripe: SourceSubscriptionStats; readonly appStore: AppStoreSubscriptionStats };
     /** Süren ücretsiz erişim (`complimentary.ts`); yukarıdaki sayılara ve gelire girmez. */
     readonly complimentary: number;
     /**
@@ -149,6 +156,75 @@ interface ReferralCountsRow {
  */
 export function monthlyRecurringRevenueUsd(monthly: number, yearly: number, priceUsdMonthly: number, priceUsdYearly: number): number {
   return roundCents(monthly * priceUsdMonthly + (yearly * priceUsdYearly) / 12);
+}
+
+/** Bir ödeme kaynağının abonelikleri (tanımlar `adminStats` belgesinde). */
+export interface SourceSubscriptionStats {
+  readonly active: number;
+  readonly grace: number;
+  readonly ending: number;
+  readonly monthly: number;
+  readonly yearly: number;
+  /** Stripe'ta liste fiyatıyla, App Store'da komisyon düşülmüş (net). */
+  readonly mrrUsd: number;
+}
+
+/**
+ * App Store abonelikleri (yalnızca `PRODUCTION`): `grossMrrUsd` Apple komisyonundan önce, `mrrUsd` sonra
+ * (`APP_STORE_COMMISSION_RATE`); `trial` App Store ücretsiz deneme dönemindekiler (`active`'e girer, plan sayılarına ve
+ * MRR'a girmez); `sandbox` erişimi süren sandbox abonelikleri (TestFlight, App Review; hiçbir sayıya girmez).
+ */
+export interface AppStoreSubscriptionStats extends SourceSubscriptionStats {
+  readonly grossMrrUsd: number;
+  readonly commissionRate: number;
+  readonly trial: number;
+  readonly sandbox: number;
+}
+
+/** App Store abonelik sayıları (`appStoreSubscriptionCounts`). */
+export interface AppStoreSubscriptionCounts {
+  readonly active: number;
+  readonly grace: number;
+  readonly ending: number;
+  readonly monthly: number;
+  readonly yearly: number;
+  readonly trial: number;
+  readonly sandbox: number;
+}
+
+/**
+ * App Store MRR'ı (USD): Apple komisyonundan önce (`gross`) ve sonra (`net`): aylık × aylık fiyat + yıllık × yıllık fiyat
+ * / 12; net = brüt × (1 − komisyon). Vergi (Apple fiyattan düşer) ayrıca düşülmez. Yüzde bir hassasiyet. Saf fonksiyondur.
+ */
+export function appStoreMrrUsd(monthly: number, yearly: number, appStore: AppStoreConfig): { readonly gross: number; readonly net: number } {
+  const gross: number = monthly * appStore.priceUsdMonthly + (yearly * appStore.priceUsdYearly) / 12;
+  return { gross: roundCents(gross), net: roundCents(gross * (1 - appStore.commissionRate)) };
+}
+
+/**
+ * `nowMs` anındaki App Store abonelik sayıları (yalnızca `PRODUCTION`; `sandbox` ayrı): `active` erişimi süren, `grace`
+ * Apple fatura ek süresinde, `ending` erişimi sürüp yenilenmeyecek (ya da ödemesi sorunlu), `monthly`/`yearly`
+ * yenilenecek ve deneme döneminde olmayanlar plan başına, `trial` App Store ücretsiz denemesinde olanlar.
+ */
+export async function appStoreSubscriptionCounts(db: D1Database, nowMs: number): Promise<AppStoreSubscriptionCounts> {
+  const production: string = "a.environment = 'PRODUCTION'";
+  const row: AppStoreSubscriptionCounts | null = await db
+    .prepare(
+      `SELECT COALESCE(SUM(CASE WHEN ${production} AND ${appStoreActiveSql} THEN 1 ELSE 0 END), 0) AS active,
+         COALESCE(SUM(CASE WHEN ${production} AND ${appStoreGraceSql} THEN 1 ELSE 0 END), 0) AS grace,
+         COALESCE(SUM(CASE WHEN ${production} AND ${appStoreActiveSql} AND a.status <> 'active' THEN 1 ELSE 0 END), 0) AS ending,
+         COALESCE(SUM(CASE WHEN ${production} AND ${appStoreActiveSql} AND a.status = 'active' AND a.period_type <> 'trial' AND a.plan = 'monthly' THEN 1 ELSE 0 END), 0) AS monthly,
+         COALESCE(SUM(CASE WHEN ${production} AND ${appStoreActiveSql} AND a.status = 'active' AND a.period_type <> 'trial' AND a.plan = 'yearly' THEN 1 ELSE 0 END), 0) AS yearly,
+         COALESCE(SUM(CASE WHEN ${production} AND ${appStoreActiveSql} AND a.period_type = 'trial' THEN 1 ELSE 0 END), 0) AS trial,
+         COALESCE(SUM(CASE WHEN a.environment = 'SANDBOX' AND (${appStoreActiveSql} OR ${appStoreGraceSql}) THEN 1 ELSE 0 END), 0) AS sandbox
+       FROM app_store_subscriptions a`,
+    )
+    .bind(nowMs)
+    .first<AppStoreSubscriptionCounts>();
+  if (row === null) {
+    throw new AggregateRowMissingError("appStoreSubscriptionCounts");
+  }
+  return row;
 }
 
 /** Son 30 günde işlenen Stripe olaylarından ödeme sorunları (olaylar 90 gün tutulur). */
@@ -295,6 +371,14 @@ interface MonthlyUsageRow {
  */
 export const paidSubscriptionSql: string = `s.status NOT IN ('incomplete', 'incomplete_expired') AND ${billedSubscriptionSql}`;
 
+/**
+ * Hesap ödemiş (abone olmuş) sayılır mı: Stripe'ta `paidSubscriptionSql` satırı ya da App Store'da ödenmiş (üretim, deneme
+ * dönemi dışında) abonelik (`appStorePaidSql`). `userRef`: hesap kimliğinin SQL ifadesi.
+ */
+export function paidUserSql(userRef: string): string {
+  return `(EXISTS (SELECT 1 FROM subscriptions s WHERE s.user_id = ${userRef} AND ${paidSubscriptionSql}) OR ${appStorePaidSql(userRef)})`;
+}
+
 /** Ms zamanını ISO 8601'e çevirir (null korunur). Saf fonksiyondur. */
 export function isoOrNull(ms: number | null): string | null {
   return ms === null ? null : new Date(ms).toISOString();
@@ -360,9 +444,10 @@ export async function trialCounts(db: D1Database, config: Config, nowMs: number)
            COALESCE(u.trial_started_at + ?4 <= ?1, 0) AS expired
          FROM users u
        ) t
-       WHERE t.used > 0 AND NOT EXISTS (SELECT 1 FROM subscriptions s WHERE s.user_id = t.user_id AND ((${activeAccessSql}) OR (${graceAccessSql})))`,
+       WHERE t.used > 0 AND NOT EXISTS (SELECT 1 FROM subscriptions s WHERE s.user_id = t.user_id AND ((${activeAccessSql}) OR (${graceAccessSql})))
+         AND NOT ${appStoreAccessExistsSql("t.user_id", "?5")}`,
     )
-    .bind(nowMs, config.pastDueGraceMs, config.trialMeetings, config.trialDurationMs)
+    .bind(nowMs, config.pastDueGraceMs, config.trialMeetings, config.trialDurationMs, config.appStore.acceptSandbox ? 1 : 0)
     .first<TrialCounts>();
   if (row === null) {
     throw new AggregateRowMissingError("trialCounts");
@@ -396,7 +481,7 @@ export async function subscriptionCounts(db: D1Database, config: Config, nowMs: 
 
 /**
  * Yönetici istatistikleri; tümü mevcut tablolardan, toplama sorgularıyla (aralıklar dizinli). Tanımlar:
- * - `trials.activeTrialUsers`: abonelik erişimi olmayan, en az bir deneme toplantısı başlatmış ve denemesi bitmemiş
+ * - `trials.activeTrialUsers`: abonelik erişimi (Stripe ya da App Store) olmayan, en az bir deneme toplantısı başlatmış ve denemesi bitmemiş
  *   kullanıcılar; `exhaustedTrialUsers`: abonelik erişimi olmayan, tüm deneme toplantılarını kullanmış kullanıcılar.
  *   Harcanan deneme, aynı kimliğin silinmiş hesaplarından devralınanı da içerir (`users.carried_trial_meetings`);
  *   deneme süresi (`TRIAL_DAYS`) dolmuş olan da `exhaustedTrialUsers`'a sayılır.
@@ -407,9 +492,12 @@ export async function subscriptionCounts(db: D1Database, config: Config, nowMs: 
  * - `monthly`, `yearly`: yenilenecek ödenmiş abonelikler (`active` ve iptal edilmemiş) plan başına. Davetle gelip
  *   ücretsiz ilk ayındaki aylık abone `monthly`'ye girmez, `freeInviteMonth`'ta sayılır (`freeInviteMonthSql`); yıllıkta
  *   davet indirimi ilk yılda bir kez 5,99 $ olduğundan yıllık abone `yearly`'de kalır.
- * - `mrrUsd` = `monthly` × `PRICE_USD_MONTHLY` + `yearly` × `PRICE_USD_YEARLY` / 12 (`monthlyRecurringRevenueUsd`).
- *   Ödemesi başarısız (`grace`), iptal edilmiş ve planı tanınmayan abonelikler sayılmaz; vergi, davet indirimleri ve
- *   Stripe ücreti düşülmez.
+ * - Stripe `mrrUsd` = `monthly` × `PRICE_USD_MONTHLY` + `yearly` × `PRICE_USD_YEARLY` / 12
+ *   (`monthlyRecurringRevenueUsd`). Ödemesi başarısız (`grace`), iptal edilmiş ve planı tanınmayan abonelikler sayılmaz;
+ *   vergi, davet indirimleri ve Stripe ücreti düşülmez.
+ * - App Store (`bySource.appStore`, `appStoreSubscriptionCounts`): yalnızca `PRODUCTION`; `mrrUsd` Apple komisyonu
+ *   (`APP_STORE_COMMISSION_RATE`) düşülmüş, `APP_STORE_PRICE_USD_*` fiyatlarıyla (`appStoreMrrUsd`). Toplam `mrrUsd`
+ *   Stripe liste MRR'ı + App Store net MRR'ıdır. Dönüşüm (`conversion`) App Store'da ödeyenleri de sayar.
  * - `referrals`: davet programı sayaçları (`ReferralStats`).
  * - `meetings.hoursThisMonth`: bu ay (UTC) başlayan toplantıların süresi (açık olanlar şimdiye ya da en çok süreye dek).
  * - `spend`: `daily_spend` tahmini (Anthropic + ElevenLabs); `trialTodayUsd` bugünkü harcamanın deneme kısmı (ayrı
@@ -430,6 +518,7 @@ export async function adminStats(db: D1Database, config: Config, now: Date): Pro
     providerRows,
     trialRow,
     subscriptionRow,
+    appStoreRow,
     meetingRows,
     meetingMsRow,
     spendRows,
@@ -460,6 +549,7 @@ export async function adminStats(db: D1Database, config: Config, now: Date): Pro
     db.prepare("SELECT provider AS key, COUNT(*) AS count FROM auth_identities GROUP BY provider").all<KeyCountRow>(),
     trialCounts(db, config, nowMs),
     subscriptionCounts(db, config, nowMs),
+    appStoreSubscriptionCounts(db, nowMs),
     db
       .prepare(
         `SELECT strftime('%Y-%m-%d', started_at / 1000, 'unixepoch') AS day, kind, COUNT(*) AS count
@@ -483,13 +573,10 @@ export async function adminStats(db: D1Database, config: Config, now: Date): Pro
       .prepare(
         `SELECT
            (SELECT COUNT(*) FROM users WHERE trial_started_at IS NOT NULL) AS started,
-           (SELECT COUNT(*) FROM users u WHERE u.trial_started_at IS NOT NULL
-             AND EXISTS (SELECT 1 FROM subscriptions s WHERE s.user_id = u.id AND ${paidSubscriptionSql})) AS converted,
+           (SELECT COUNT(*) FROM users u WHERE u.trial_started_at IS NOT NULL AND ${paidUserSql("u.id")}) AS converted,
            (SELECT COUNT(*) FROM users WHERE trial_started_at >= ?1) AS started_recent,
-           (SELECT COUNT(*) FROM users u WHERE u.trial_started_at >= ?1
-             AND EXISTS (SELECT 1 FROM subscriptions s WHERE s.user_id = u.id AND ${paidSubscriptionSql})) AS converted_recent,
-           (SELECT COUNT(*) FROM subscriptions s JOIN users u ON u.id = s.user_id
-             WHERE u.trial_started_at IS NULL AND ${paidSubscriptionSql}) AS direct`,
+           (SELECT COUNT(*) FROM users u WHERE u.trial_started_at >= ?1 AND ${paidUserSql("u.id")}) AS converted_recent,
+           (SELECT COUNT(*) FROM users u WHERE u.trial_started_at IS NULL AND ${paidUserSql("u.id")}) AS direct`,
       )
       .bind(firstDayMs)
       .first<ConversionRow>(),
@@ -556,6 +643,9 @@ export async function adminStats(db: D1Database, config: Config, now: Date): Pro
   const providers: Map<string, number> = keyMap(providerRows.results);
   const openReports: Map<string, number> = keyMap(reportRows.results);
   const subscriptions: SubscriptionCounts = subscriptionRow;
+  const appStore: AppStoreSubscriptionCounts = appStoreRow;
+  const stripeMrrUsd: number = monthlyRecurringRevenueUsd(subscriptions.monthly, subscriptions.yearly, config.priceUsdMonthly, config.priceUsdYearly);
+  const appStoreMrr: { readonly gross: number; readonly net: number } = appStoreMrrUsd(appStore.monthly, appStore.yearly, config.appStore);
   const billingEvents: Map<string, number> = keyMap(billingRows.results);
   const monthly: MonthlyUsageRow = monthlyUsageRow ?? { audio_seconds: 0, tokens: 0, account_tokens: 0, near_cap: 0 };
 
@@ -572,13 +662,35 @@ export async function adminStats(db: D1Database, config: Config, now: Date): Pro
     },
     trials: { activeTrialUsers: trialRow.active, exhaustedTrialUsers: trialRow.exhausted },
     subscriptions: {
-      active: subscriptions.active,
-      grace: subscriptions.grace,
-      ending: subscriptions.ending,
+      active: subscriptions.active + appStore.active,
+      grace: subscriptions.grace + appStore.grace,
+      ending: subscriptions.ending + appStore.ending,
       canceledTotal: subscriptions.canceled,
-      monthly: subscriptions.monthly,
-      yearly: subscriptions.yearly,
-      mrrUsd: monthlyRecurringRevenueUsd(subscriptions.monthly, subscriptions.yearly, config.priceUsdMonthly, config.priceUsdYearly),
+      monthly: subscriptions.monthly + appStore.monthly,
+      yearly: subscriptions.yearly + appStore.yearly,
+      mrrUsd: roundCents(stripeMrrUsd + appStoreMrr.net),
+      bySource: {
+        stripe: {
+          active: subscriptions.active,
+          grace: subscriptions.grace,
+          ending: subscriptions.ending,
+          monthly: subscriptions.monthly,
+          yearly: subscriptions.yearly,
+          mrrUsd: stripeMrrUsd,
+        },
+        appStore: {
+          active: appStore.active,
+          grace: appStore.grace,
+          ending: appStore.ending,
+          monthly: appStore.monthly,
+          yearly: appStore.yearly,
+          mrrUsd: appStoreMrr.net,
+          grossMrrUsd: appStoreMrr.gross,
+          commissionRate: config.appStore.commissionRate,
+          trial: appStore.trial,
+          sandbox: appStore.sandbox,
+        },
+      },
       complimentary: subscriptions.complimentary,
       freeInviteMonth: subscriptions.freeInviteMonth,
     },

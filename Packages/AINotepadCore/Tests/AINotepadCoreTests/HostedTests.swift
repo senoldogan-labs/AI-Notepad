@@ -515,6 +515,29 @@ private func llmRequest(tier: LLMTier, schema: String?) -> LLMRequest {
         #expect(hostedUpsellMoment(entitlements: lastOne, lastShownAt: nil, trialEndedShown: false, trialEndingShown: true, now: now, intervalSec: hostedUpsellIntervalSec) == .trialNoteReady)
     }
 
+    // App Store (iPhone) aboneliği: kaynak ve App Store özeti okunur, Mac Stripe portalı yerine Apple'ı gösterir; alanları
+    // bilmeyen eski sunucunun aboneliği Stripe sayılır.
+    @Test func appStoreSubscriptionDecodes() throws {
+        let json: String = #"""
+        {"userId":"u","plan":"subscription","trialMeetingsTotal":3,"trialMeetingsLeft":0,"accountTrialMeetingsLeft":0,"deviceTrialMeetingsLeft":null,
+         "monthlyHoursUsed":0,"monthlyHoursCap":10,"subscriptionSources":["app_store"],
+         "appStoreSubscription":{"status":"active","plan":"yearly","productId":"com.senoldogan.gistsmith.yearly","access":"active",
+           "expiresAt":"2027-11-02T00:00:00.000Z","willRenew":true,"graceEndsAt":null,"environment":"PRODUCTION",
+           "manageUrl":"https://apps.apple.com/account/subscriptions"},
+         "subscription":{"source":"app_store","status":"active","complimentary":false,"currentPeriodEnd":"2027-11-02T00:00:00.000Z",
+           "cancelAt":null,"access":"active","graceEndsAt":null,"plan":"yearly"}}
+        """#
+        let entitlements: HostedEntitlements = try hostedJSONDecoder().decode(HostedEntitlements.self, from: Data(json.utf8))
+        #expect(entitlements.subscription?.paymentSource == .appStore)
+        #expect(entitlements.appStoreSubscription?.willRenew == true)
+        #expect(entitlements.subscriptionSources == ["app_store"])
+        #expect(isHostedAppStoreManaged(entitlements: entitlements))
+        let old: HostedEntitlements = try hostedJSONDecoder().decode(HostedEntitlements.self, from: Data(json
+            .replacingOccurrences(of: #""source":"app_store","#, with: "").utf8))
+        #expect(old.subscription?.paymentSource == .stripe)
+        #expect(!isHostedAppStoreManaged(entitlements: old))
+    }
+
     // Abonelik planı yanıttan okunur; tanınmayan ya da eksik plan hak yanıtını bozmaz.
     @Test func subscriptionPlanDecodes() throws {
         func subscription(_ plan: String) throws -> HostedSubscription {

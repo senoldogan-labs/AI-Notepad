@@ -8,7 +8,8 @@ import {
 } from "./config";
 import { cancellationStatements } from "./cancellations";
 import { complimentaryAccessError } from "./complimentary";
-import { type SubscriptionState, isTerminalSubscription, subscriptionState } from "./entitlements";
+import { type AppStoreSubscription, appStoreAccess, appStoreManageUrl, appStoreSubscriptionOf } from "./appStore";
+import { type SubscriptionState, isTerminalSubscription, subscriptionAccess, subscriptionState } from "./entitlements";
 import { ApiError, ProviderApiError } from "./errors";
 import { errorName, log } from "./log";
 import type { Platform } from "./platform";
@@ -421,6 +422,12 @@ export async function createCheckout(db: D1Database, platform: Platform, config:
   if (current !== null && !isTerminalSubscription(current, platform.now())) {
     throw current.complimentary ? complimentaryAccessError() : subscriptionExists;
   }
+  // App Store'dan (iPhone) abone olan hesap ikinci kez ödemesin: abonelik Apple'da yönetilir.
+  const appStore: AppStoreSubscription | null = await appStoreSubscriptionOf(db, userId);
+  if (appStoreAccess(appStore, config.appStore.acceptSandbox, platform.now()) !== "none") {
+    log("info", "checkout_refused_app_store_subscription", { userId });
+    throw appStoreSubscriptionError();
+  }
   // Kod Stripe'a gitmeden doğrulanır: reddedilen kod müşteri ya da oturum açtırmaz.
   const referral: AcceptedReferral | null =
     request.referralCode === null ? null : await requireReferral(db, config, userId, request.referralCode, platform.now());
@@ -463,14 +470,29 @@ export async function createCheckout(db: D1Database, platform: Platform, config:
   return session.url;
 }
 
+/** Hesap App Store'dan abone: Stripe'ta açılacak ya da yönetilecek bir şey yok. Saf fonksiyondur. */
+export function appStoreSubscriptionError(): ApiError {
+  return new ApiError(
+    "app_store_subscription",
+    "You're subscribed through the App Store on your iPhone. Manage or cancel it in Settings › your name › Subscriptions.",
+  );
+}
+
 /**
- * Hesap yönetimi adresi. Süren ücretsiz erişimde (`complimentary.ts`) Stripe'ta yönetilecek bir şey yoktur: Stripe
+ * Hesap yönetimi adresi. Stripe'ta erişimi olan aboneliği yoksa ve App Store aboneliği varsa (iPhone'dan abone; bitmiş
+ * olsa da) Stripe çağrılmaz, Apple'ın abonelik yönetim sayfası döner: yayındaki uygulamanın "Hesabı yönet" düğmesi de
+ * doğru yere gider. Süren ücretsiz erişimde (`complimentary.ts`) Stripe'ta yönetilecek bir şey yoktur: Stripe
  * çağrılmaz, sitedeki hesap sayfası döner (orada "Free access" yazar). Yayındaki uygulama portal adresini yalnızca
  * açar; hata kodu dönülseydi genel bir hata gösterirdi. Bitmiş ücretsiz erişimde Stripe müşterisi yoksa yine hesap
  * sayfası döner. Başka hesapta müşteri yoksa `subscription_required`.
  */
 export async function createPortal(db: D1Database, platform: Platform, config: Config, userId: string): Promise<string> {
   const current: SubscriptionState | null = await subscriptionState(db, userId);
+  const appStore: AppStoreSubscription | null = await appStoreSubscriptionOf(db, userId);
+  if (appStore !== null && subscriptionAccess(current, platform.now(), config.pastDueGraceMs) === "none") {
+    log("info", "portal_app_store_manage_page", { userId });
+    return appStoreManageUrl;
+  }
   if (current !== null && current.complimentary && !isTerminalSubscription(current, platform.now())) {
     log("info", "portal_complimentary_account_page", { userId });
     return `${config.siteOrigin}/account`;

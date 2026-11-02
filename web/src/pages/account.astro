@@ -217,6 +217,7 @@ const helpLinks: readonly { readonly href: string; readonly label: string }[] = 
     <form method="dialog" class="dialog__form">
       <h2 class="title-m" id="dialog-title">{text.dialogTitle}</h2>
       <p class="muted">{text.dialogText}</p>
+      <p id="delete-app-store-warning" class="notice notice--warn hidden" role="note"></p>
       <div class="field">
         <label for="confirm-input">{text.confirmLabel}</label>
         <input id="confirm-input" class="input" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" />

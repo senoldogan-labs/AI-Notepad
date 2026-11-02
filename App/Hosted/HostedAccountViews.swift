@@ -145,6 +145,8 @@ struct HostedAccountSettings: View {
     @ViewBuilder
     private func signedIn(entitlements: HostedEntitlements) -> some View {
         let status: HostedPlanStatus = hostedPlanStatus(entitlements: entitlements)
+        // iPhone'dan (App Store) alınan abonelik yalnızca Apple'da yönetilir: Stripe portalı ve kart güncelleme yok.
+        let appStoreManaged: Bool = isHostedAppStoreManaged(entitlements: entitlements)
         SettingsRow(title: Text("Plan")) {
             // Erişimi olan aboneliğin planı (aylık ya da yıllık); bitmiş abonelikte ve ücretsiz erişimde gösterilmez.
             if let subscription = entitlements.subscription, subscription.access != .none, !subscription.complimentary, let plan = subscription.billingPlan {
@@ -170,16 +172,24 @@ struct HostedAccountSettings: View {
             case .ending(let endsAt):
                 Text("Abonelik iptal edildi; \(hostedDayText(date: endsAt)) tarihine kadar kullanabilirsin, yenilenmez.")
             case .grace(let endsAt):
-                NoticeText("Ödeme alınamadı; erişimin \(hostedDayText(date: endsAt)) tarihine kadar sürer. \"Hesabı yönet\"ten kartını güncelle.", severity: .attention)
+                if appStoreManaged {
+                    NoticeText("Apple ödemeyi alamadı; erişimin \(hostedDayText(date: endsAt)) tarihine kadar sürer. iPhone'da Ayarlar › Apple Hesabı'ndan ödeme yöntemini güncelle.", severity: .attention)
+                } else {
+                    NoticeText("Ödeme alınamadı; erişimin \(hostedDayText(date: endsAt)) tarihine kadar sürer. \"Hesabı yönet\"ten kartını güncelle.", severity: .attention)
+                }
             case .expired(let endedAt):
                 Text("Aboneliğin \(hostedDayText(date: endedAt)) tarihinde sona erdi; toplantıların ve notların bu Mac'te.")
             case .paymentOverdue:
                 NoticeText("Ödeme alınamadı; kartını güncelleyene dek yeni toplantı başlatılamaz. \"Hesabı yönet\"ten kartını güncelle.", severity: .attention)
             }
+            if appStoreManaged {
+                Text("Aboneliğin iPhone'dan (App Store) alındı. iPhone'da Ayarlar › Apple Hesabı › Abonelikler'den yönetebilir ya da iptal edebilirsin.")
+                    .foregroundStyle(Theme.muted)
+            }
         } control: {
             HStack(spacing: 8) {
-                // Ücretsiz erişimde Stripe'ta yönetilecek bir şey yoktur.
-                if let subscription = entitlements.subscription, !subscription.complimentary {
+                // Ücretsiz erişimde ve App Store aboneliğinde Stripe'ta yönetilecek bir şey yoktur.
+                if let subscription = entitlements.subscription, !subscription.complimentary, !appStoreManaged {
                     Button("Hesabı yönet") { Task { await account.manageSubscription() } }
                         .disabled(account.isWorking)
                 }
@@ -195,6 +205,10 @@ struct HostedAccountSettings: View {
         HostedSignOutRow(account: account, isMeetingInFlight: isMeetingInFlight)
         SettingsRow(title: Text("Hesabı sil")) {
             Text("Hesabın, aboneliğin (hemen iptal edilir) ve sunucudaki tüm kayıtların silinir. Bu Mac'teki toplantılar ve notlar silinmez.")
+            // Apple aboneliği hesapla birlikte iptal edilemez; Apple iptal edilene dek ücret almaya devam eder.
+            if entitlements.appStoreSubscription?.willRenew == true {
+                NoticeText("App Store aboneliğin hesabı silince iptal olmaz; Apple ücret almaya devam eder. Önce iPhone'da Ayarlar › Apple Hesabı › Abonelikler'den iptal et.", severity: .attention)
+            }
             if isMeetingInFlight {
                 NoticeText("Kayıt ya da işleme sürüyor; bitince hesabı silebilirsin.", severity: .attention)
             } else if confirmingDelete {

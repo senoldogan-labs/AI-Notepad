@@ -17089,6 +17089,61 @@
           }
         }
       }
+    },
+    "Aboneliğin App Store üzerinden (iPhone). iPhone'da Ayarlar › Apple Hesabı › Abonelikler'den yönetebilirsin.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You're subscribed through the App Store on your iPhone. Manage it on your iPhone in Settings › Apple Account › Subscriptions."
+          }
+        }
+      }
+    },
+    "App Store satın alması şu an doğrulanamıyor; biraz sonra yeniden dene.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App Store purchases can't be verified right now; try again shortly."
+          }
+        }
+      }
+    },
+    "Apple ödemeyi alamadı; erişimin %@ tarihine kadar sürer. iPhone'da Ayarlar › Apple Hesabı'ndan ödeme yöntemini güncelle.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple couldn't collect your payment; your access continues until %@. Update your payment method on your iPhone in Settings › Apple Account."
+          }
+        }
+      }
+    },
+    "Aboneliğin iPhone'dan (App Store) alındı. iPhone'da Ayarlar › Apple Hesabı › Abonelikler'den yönetebilir ya da iptal edebilirsin.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your subscription was bought on your iPhone (App Store). Manage or cancel it on your iPhone in Settings › Apple Account › Subscriptions."
+          }
+        }
+      }
+    },
+    "App Store aboneliğin hesabı silince iptal olmaz; Apple ücret almaya devam eder. Önce iPhone'da Ayarlar › Apple Hesabı › Abonelikler'den iptal et.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deleting your account doesn't cancel your App Store subscription; Apple keeps billing you. Cancel it first on your iPhone in Settings › Apple Account › Subscriptions."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

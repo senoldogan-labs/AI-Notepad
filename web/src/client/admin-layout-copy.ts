@@ -116,6 +116,13 @@ export interface AdminLayoutCopy {
       readonly ending: string;
       readonly canceled: string;
       readonly free: string;
+      readonly stripe: string;
+      readonly appStore: string;
+      readonly appStoreSandbox: string;
+      /** Kaynak satırının değeri: `{active}` abone, `{mrr}` MRR. */
+      readonly sourceValue: string;
+      /** App Store satırının değeri: `{active}` abone, `{mrr}` net MRR, `{gross}` brüt, `{fee}` Apple payı (%). */
+      readonly appStoreValue: string;
     };
     readonly billing: {
       readonly title: string;
@@ -180,7 +187,10 @@ export const adminLayoutCopy: AdminLayoutCopy = {
   },
   periods: { lastDays: "Total, last {days} days", latest: "Latest · {day}", noData: "No data yet" },
   stats: {
-    mrr: { label: "MRR", hint: "Renewing subscriptions; yearly plans count as 1/12 a month. Free invite months are excluded, taxes included." },
+    mrr: {
+      label: "MRR",
+      hint: "Renewing subscriptions; yearly plans count as 1/12 a month. Stripe at list price, taxes included, free invite months excluded; App Store after Apple's commission.",
+    },
     subscribers: { label: "Paying subscribers", hint: "Subscriptions with access right now, including the free first month of an invite. Free access granted by an admin isn't counted." },
     newUsers: { label: "New accounts", hint: "Accounts created in the last 30 days." },
     meetings30: { label: "Meetings", hint: "Meetings started in the last 30 days, trial and subscription." },
@@ -250,6 +260,11 @@ export const adminLayoutCopy: AdminLayoutCopy = {
       ending: "Set to end",
       canceled: "Cancelled, all time",
       free: "Free access, not billed",
+      stripe: "Stripe (web and Mac)",
+      appStore: "App Store (iPhone)",
+      appStoreSandbox: "App Store test purchases (sandbox)",
+      sourceValue: "{active} · {mrr}",
+      appStoreValue: "{active} · {mrr} net ({gross} − {fee}%)",
     },
     billing: {
       title: "Billing, 30 days",

@@ -67,6 +67,14 @@ export interface Env {
   readonly REFRESH_TOKEN_DAYS: string;
   readonly STRIPE_PRICE_ID: string;
   readonly STRIPE_YEARLY_PRICE_ID: string;
+  /** App Store abonelikleri (iPhone, RevenueCat; bkz. `appStore.ts`): ürün kimlikleri, fiyatlar ve Apple komisyonu. */
+  readonly APP_STORE_PRODUCT_MONTHLY: string;
+  readonly APP_STORE_PRODUCT_YEARLY: string;
+  readonly APP_STORE_PRICE_USD_MONTHLY: string;
+  readonly APP_STORE_PRICE_USD_YEARLY: string;
+  readonly APP_STORE_COMMISSION_RATE: string;
+  /** Sandbox satın alımları (TestFlight, App Review, sandbox hesapları) erişim verir mi: `true` ya da `false`. */
+  readonly REVENUECAT_ACCEPT_SANDBOX: string;
   /** Blog yazılarının durduğu GitHub deposu (`sahip/ad`) ve yazıların işlendiği dal (bkz. `blog.ts`). */
   readonly GITHUB_BLOG_REPO: string;
   readonly GITHUB_BLOG_BRANCH: string;
@@ -82,6 +90,16 @@ export interface Env {
   readonly STRIPE_SECRET_KEY: string;
   readonly STRIPE_WEBHOOK_SECRET: string;
   readonly TURNSTILE_SECRET_KEY: string;
+  /**
+   * RevenueCat webhook'unun `Authorization` başlığının birebir değeri (panelde girilen). Yalnızca
+   * `POST /v1/webhooks/revenuecat` okur; yoksa webhook `500` döner (RevenueCat yeniden dener).
+   */
+  readonly REVENUECAT_WEBHOOK_AUTH?: string;
+  /**
+   * RevenueCat gizli API anahtarı (v1, `sk_…`): abonelik durumu `GET /v1/subscribers/{kullanıcı}` ile buradan okunur.
+   * Yoksa webhook `500`, `POST /v1/billing/app-store/sync` `503 app_store_unavailable` döner.
+   */
+  readonly REVENUECAT_SECRET_API_KEY?: string;
   /** Yalnızca `DEVICECHECK_POLICY=required` iken gerekir (Apple DeviceCheck .p8 anahtarı, PEM). */
   readonly DEVICECHECK_PRIVATE_KEY?: string;
   /** Yalnızca `DEEPGRAM_POLICY=on` iken gerekir (Deepgram API anahtarı; jeton vermek için, Member ya da üstü yetki). */

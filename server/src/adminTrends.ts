@@ -30,7 +30,13 @@ export interface TrendSnapshot {
   readonly subscriptionsYearly: number;
   readonly subscriptionsComplimentary: number;
   readonly subscriptionsFreeInviteMonth: number;
+  /** Stripe liste fiyatıyla MRR (`subscriptions*` alanları da yalnızca Stripe'tır). */
   readonly mrrListUsd: number;
+  /** App Store (üretim) abonelikleri: erişimi süren, yenilenecek aylık/yıllık ve Apple komisyonu düşülmüş MRR. */
+  readonly appStoreActive: number;
+  readonly appStoreMonthly: number;
+  readonly appStoreYearly: number;
+  readonly appStoreMrrNetUsd: number;
   readonly spendAnthropicUsd: number;
   readonly spendElevenLabsUsd: number;
   readonly spendDeepgramUsd: number;
@@ -152,6 +158,10 @@ interface SnapshotRow {
   readonly subscriptions_complimentary: number;
   readonly subscriptions_free_invite_month: number;
   readonly mrr_list_cents: number;
+  readonly app_store_active: number;
+  readonly app_store_monthly: number;
+  readonly app_store_yearly: number;
+  readonly app_store_mrr_net_cents: number;
   readonly spend_anthropic_micro_usd: number;
   readonly spend_elevenlabs_micro_usd: number;
   readonly spend_deepgram_micro_usd: number;
@@ -229,6 +239,10 @@ function snapshotOf(row: SnapshotRow, revenue: readonly RevenueMetricRow[]): Tre
     subscriptionsComplimentary: row.subscriptions_complimentary,
     subscriptionsFreeInviteMonth: row.subscriptions_free_invite_month,
     mrrListUsd: row.mrr_list_cents / 100,
+    appStoreActive: row.app_store_active,
+    appStoreMonthly: row.app_store_monthly,
+    appStoreYearly: row.app_store_yearly,
+    appStoreMrrNetUsd: row.app_store_mrr_net_cents / 100,
     spendAnthropicUsd: usdOf(row.spend_anthropic_micro_usd),
     spendElevenLabsUsd: usdOf(row.spend_elevenlabs_micro_usd),
     spendDeepgramUsd: usdOf(row.spend_deepgram_micro_usd),

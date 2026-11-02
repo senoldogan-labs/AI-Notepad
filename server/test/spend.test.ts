@@ -195,7 +195,7 @@ describe("hesap silinirken süren çağrı", () => {
         audio_seconds: 0,
       };
     const before = await spend();
-    expect((await harness.call(req("DELETE", "/v1/me", { token: session.accessToken }))).status).toBe(204);
+    expect((await harness.call(req("DELETE", "/v1/me", { token: session.accessToken }))).status).toBe(200);
     // Silme, süren ayırmaların tahminini yazar.
     expect(await spend()).toEqual({ micro_usd: before.micro_usd + 1000, audio_seconds: before.audio_seconds + 10 });
     // Üst servis yanıtı sonra gelir: kesinleştirme hata vermez, ikinci kez yazmaz, silinmiş hesaba sayaç açmaz.

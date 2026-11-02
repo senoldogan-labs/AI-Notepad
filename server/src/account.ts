@@ -1,3 +1,4 @@
+import { type AppStoreSubscription, appStoreAccess, appStoreManageUrl, appStorePaidSql, appStoreSubscriptionOf } from "./appStore";
 import { closeStripeForDeletion } from "./billing";
 import type { Config } from "./config";
 import { log } from "./log";
@@ -18,7 +19,7 @@ interface StoredIdentity {
 
 /**
  * Hesap silme sayacı (`ops_events` türü `account_deleted`; hesap satırları silinmeden, aynı toplu işlemde): ayrıntı
- * hesabın kesimidir — ödenmiş aboneliği olduysa `subscriber`, denemeye başladıysa `trial`, değilse `signup`. Hesap
+ * hesabın kesimidir — ödenmiş aboneliği (Stripe ya da App Store) olduysa `subscriber`, denemeye başladıysa `trial`, değilse `signup`. Hesap
  * yoksa (yinelenen silme) yazılmaz. Kullanıcı tutmaz.
  */
 function accountDeletedCounterStatement(db: D1Database, userId: string, now: Date): D1PreparedStatement {
@@ -26,7 +27,7 @@ function accountDeletedCounterStatement(db: D1Database, userId: string, now: Dat
     .prepare(
       `INSERT INTO ops_events (day, kind, detail, count)
        SELECT ?1, 'account_deleted',
-         CASE WHEN EXISTS (SELECT 1 FROM subscriptions s WHERE s.user_id = u.id AND ${paidSubscriptionSql}) THEN 'subscriber'
+         CASE WHEN EXISTS (SELECT 1 FROM subscriptions s WHERE s.user_id = u.id AND ${paidSubscriptionSql}) OR ${appStorePaidSql("u.id")} THEN 'subscriber'
            WHEN u.trial_started_at IS NOT NULL THEN 'trial' ELSE 'signup' END, 1
        FROM users u WHERE u.id = ?2
        ON CONFLICT(day, kind, detail) DO UPDATE SET count = count + 1`,
@@ -57,6 +58,7 @@ function accountDeletedCounterStatement(db: D1Database, userId: string, now: Dat
  * sırasında süren çağrı kesinleşirken yabancı anahtar hatası almaz, harcama da kaybolmaz.
  * Silme, "Sorunlar" sayacına hesabın kesimiyle sayılır (`accountDeletedCounterStatement`). Gelir satırları
  * (`revenue_invoices`; muhasebe kaydı) kalır, hesap bağı kaldırılır (`revenueDeletionStatement`).
+ * App Store aboneliğinin satırı (`app_store_subscriptions`) silinir; abonelik Apple'da sürer (bkz. `deleteAccount`).
  * `daily_spend` (toplam, kişisel değil), `downloads`, `download_sources`, `download_visitors`, `ops_events`,
  * `used_nonces`, `stripe_events` ve telemetri toplamları (`llm_purpose_usage`, `client_event_counts`,
  * `client_event_durations`, `feature_usage_daily`, `app_funnel_daily`) hesaba bağlı değildir; hesabın son uygulama ve
@@ -92,9 +94,47 @@ function accountDeletionStatements(db: D1Database, userId: string, identityHashe
     db.prepare("DELETE FROM monthly_usage WHERE user_id = ?").bind(userId),
     db.prepare("DELETE FROM daily_usage WHERE user_id = ?").bind(userId),
     db.prepare("DELETE FROM subscriptions WHERE user_id = ?").bind(userId),
+    db.prepare("DELETE FROM app_store_subscriptions WHERE user_id = ?").bind(userId),
     db.prepare("DELETE FROM stripe_customers WHERE user_id = ?").bind(userId),
     db.prepare("DELETE FROM users WHERE id = ?").bind(userId),
   ];
+}
+
+/**
+ * Silinen hesabın App Store aboneliği (`DELETE /v1/me` yanıtı): Apple aboneliği hesapla birlikte iptal edilemez (yalnızca
+ * kullanıcı Apple'da iptal edebilir); erişimi süren abonelik yenilenmeye devam eder. İstemci kullanıcıya iptal etmesini
+ * söyler ve `manageUrl`'yi açabilir. Erişimi süren App Store aboneliği yoksa null.
+ */
+export interface DeletedAppStoreSubscription {
+  /** Dönem sonunda Apple yeniden ücretlendirecek mi (kullanıcı iptal etmediyse true). */
+  readonly willRenew: boolean;
+  /** Dönem sonu (ISO 8601). */
+  readonly expiresAt: string;
+  readonly manageUrl: string;
+}
+
+/** `DELETE /v1/me` yanıtı. */
+export interface AccountDeletion {
+  readonly deleted: true;
+  readonly appStoreSubscription: DeletedAppStoreSubscription | null;
+  /** Kullanıcıya gösterilecek İngilizce uyarı (App Store aboneliği sürüyorsa); yoksa null. */
+  readonly notice: string | null;
+}
+
+/** App Store aboneliği süren hesabın silme uyarısı. */
+export const appStoreDeletionNotice: string =
+  "Your account is deleted, but your App Store subscription isn't canceled. Apple keeps billing it until you cancel it on your iPhone in Settings › your name › Subscriptions.";
+
+/** Silme yanıtı: erişimi süren App Store aboneliği varsa iptal uyarısıyla. Saf fonksiyondur. */
+export function accountDeletionResult(subscription: AppStoreSubscription | null, acceptSandbox: boolean, now: Date): AccountDeletion {
+  if (subscription === null || appStoreAccess(subscription, acceptSandbox, now) === "none") {
+    return { deleted: true, appStoreSubscription: null, notice: null };
+  }
+  return {
+    deleted: true,
+    appStoreSubscription: { willRenew: subscription.status === "active", expiresAt: new Date(subscription.expiresAt).toISOString(), manageUrl: appStoreManageUrl },
+    notice: appStoreDeletionNotice,
+  };
 }
 
 /**
@@ -102,10 +142,15 @@ function accountDeletionStatements(db: D1Database, userId: string, identityHashe
  * hemen iptal edilir (yeniden denemeyle; `closeStripeForDeletion`);
  * Stripe başarısız olursa hiçbir satır silinmez ve istemci yeniden dener. Sonra hesabın tüm satırları tek işlemde
  * silinir; kimliklerin deneme defteri aynı işlemde önce yazılır. Tekrar çağrı güvenlidir: iptal edilmiş abonelik atlanır, olmayan satır silinmez. Stripe'taki müşteri ve
- * faturalar vergi kayıtları için Stripe'ta kalır; sunucuda onları bu hesaba bağlayan satır kalmaz.
+ * faturalar vergi kayıtları için Stripe'ta kalır; sunucuda onları bu hesaba bağlayan satır kalmaz. App Store aboneliği
+ * iptal edilemez (Apple yalnızca kullanıcıya izin verir): silme yine yapılır, yanıt kullanıcıya iptal etmesini söyler
+ * (`accountDeletionResult`). RevenueCat'teki satın alma kaydı (bu hesap kimliğiyle) Apple aboneliği sürdükçe orada
+ * kalır; sonraki yenilemeler webhook'ta bilinmeyen hesap olarak sayılır.
  */
-export async function deleteAccount(db: D1Database, platform: Platform, config: Config, userId: string, now: Date): Promise<void> {
+export async function deleteAccount(db: D1Database, platform: Platform, config: Config, userId: string, now: Date): Promise<AccountDeletion> {
   const canceledSubscriptions: number = await closeStripeForDeletion(db, platform, config, userId);
+  const appStore: AppStoreSubscription | null = await appStoreSubscriptionOf(db, userId);
+  const result: AccountDeletion = accountDeletionResult(appStore, config.appStore.acceptSandbox, now);
   const identities: D1Result<StoredIdentity> = await db
     .prepare("SELECT provider, subject FROM auth_identities WHERE user_id = ?")
     .bind(userId)
@@ -114,5 +159,6 @@ export async function deleteAccount(db: D1Database, platform: Platform, config: 
     identities.results.map((identity: StoredIdentity): Promise<string> => trialIdentityHash(config.secrets.trialHash, identity.provider, identity.subject)),
   );
   await db.batch(accountDeletionStatements(db, userId, identityHashes, now));
-  log("info", "account_deleted", { userId, canceledSubscriptions });
+  log("info", "account_deleted", { userId, canceledSubscriptions, appStoreSubscriptionActive: result.appStoreSubscription !== null });
+  return result;
 }

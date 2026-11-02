@@ -98,6 +98,10 @@ export interface ClientCopy {
   readonly subscriptionComplimentaryUntil: string;
   /** Ücretsiz erişim bitti (hiç ödeme yapılmadı; "abonelik bitti" değil). */
   readonly subscriptionComplimentaryEnded: string;
+  /** App Store (iPhone) aboneliği: yalnızca Apple'da yönetilir. */
+  readonly subscriptionAppStore: string;
+  /** Hesap silinirken süren App Store aboneliğinin uyarısı (Apple iptal etmez). */
+  readonly deleteAppStoreWarning: string;
   readonly pillActive: string;
   readonly pillCanceling: string;
   readonly pillGrace: string;
@@ -282,6 +286,9 @@ export const clientCopy: ClientCopy = {
   subscriptionComplimentary: "Full access, free of charge. Nothing to pay or manage.",
   subscriptionComplimentaryUntil: "Full access, free of charge until {date}. Nothing to pay.",
   subscriptionComplimentaryEnded: "Your free access has ended. Subscribe to start new meetings.",
+  subscriptionAppStore: "Bought in the iPhone app. Manage or cancel it on your iPhone in Settings › your name › Subscriptions.",
+  deleteAppStoreWarning:
+    "Deleting your account doesn't cancel your App Store subscription, and Apple keeps billing it. Cancel it first on your iPhone in Settings › your name › Subscriptions.",
   pillActive: "Active",
   pillCanceling: "Ending",
   pillGrace: "Payment due",
