@@ -35,17 +35,8 @@ public struct OnboardingPanel: View {
                     .appFont(size: 15, weight: .semibold)
             }
             Spacer(minLength: 24)
-            HStack(spacing: 14) {
-                ForEach(Array(symbols.enumerated()), id: \.offset) { (item: (offset: Int, element: String)) in
-                    Image(systemName: item.element)
-                        .appFont(size: 26, weight: .medium)
-                        .frame(width: 66, height: 66)
-                        .background(.white.opacity(0.16), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(.white.opacity(0.28)))
-                        .offset(y: item.offset == 1 ? -10 : 0)
-                }
-            }
-            .frame(maxWidth: .infinity)
+            OnboardingSymbolRow(symbols: symbols)
+                .frame(maxWidth: .infinity)
             .id(seed)
             .transition(.opacity.combined(with: .scale(scale: 0.96)))
             Spacer(minLength: 24)
@@ -80,6 +71,30 @@ public struct OnboardingPanel: View {
         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous).strokeBorder(.white.opacity(0.10)))
         .animation(.smooth(duration: 0.45), value: seed)
+    }
+}
+
+/// Pastel kart üstündeki simge sırası: yarı saydam beyaz kutularda simgeler, ortadaki biraz yukarıda (karşılama ve giriş
+/// kartları aynı görünür). Rengi çevreden alır (kartlarda koyu mürekkep).
+public struct OnboardingSymbolRow: View {
+    let symbols: [String]
+
+    public init(symbols: [String]) {
+        self.symbols = symbols
+    }
+
+    public var body: some View {
+        HStack(spacing: 14) {
+            ForEach(Array(symbols.enumerated()), id: \.offset) { (item: (offset: Int, element: String)) in
+                Image(systemName: item.element)
+                    .appFont(size: 26, weight: .medium)
+                    .frame(width: 66, height: 66)
+                    .background(.white.opacity(0.16), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(.white.opacity(0.28)))
+                    .offset(y: item.offset == 1 ? -10 : 0)
+            }
+        }
+        .accessibilityHidden(true)
     }
 }
 
