@@ -1780,6 +1780,16 @@
         }
       }
     },
+    "Ad ver ya da birleştir": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name or merge"
+          }
+        }
+      }
+    },
     "Adını yaz": {
       "localizations": {
         "en": {
@@ -2703,6 +2713,16 @@
         }
       }
     },
+    "Arayüz dili iPhone Ayarları › %@ › Dil bölümünden değişir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Change the interface language in iPhone Settings › %@ › Language."
+          }
+        }
+      }
+    },
     "Arayüz dilini, tanıma motorunu, görünümü, yapay zekâ modellerini, anahtarları, sesle yazmayı ve kısayolları yönet.": {
       "localizations": {
         "en": {
@@ -3068,16 +3088,6 @@
         }
       }
     },
-    "Başka bir hesapla giriş yaptın. Bu hesabın toplantılarını açmak için Gistsmith'i uygulama değiştiriciden kapatıp yeniden aç.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "You signed in with a different account. To open this account's meetings, close Gistsmith from the app switcher and open it again."
-          }
-        }
-      }
-    },
     "Başka bir hesapla giriş yaptın. Önceki hesabın kaydı ya da işlenen toplantısı bitince uygulama yeniden başlar ve bu hesabın toplantılarını açar.": {
       "localizations": {
         "en": {
@@ -3125,6 +3135,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Open another person"
+          }
+        }
+      }
+    },
+    "Başka dilde paylaş": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share in another language"
           }
         }
       }
@@ -3218,6 +3238,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "No permission for notifications: allow %@ in System Settings › Notifications."
+          }
+        }
+      }
+    },
+    "Bildirim izni yok: iPhone Ayarları › Bildirimler › %@ bölümünden izin ver.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No notification permission: allow it in iPhone Settings › Notifications › %@."
           }
         }
       }
@@ -3504,6 +3534,16 @@
         }
       }
     },
+    "Boş": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empty"
+          }
+        }
+      }
+    },
     "Boşluk": {
       "extractionState": "manual",
       "localizations": {
@@ -3551,6 +3591,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Permanently deletes this snapshot"
+          }
+        }
+      }
+    },
+    "Brifing: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Briefing: %@"
+          }
+        }
+      }
+    },
+    "Bu hesabın toplantıları açılıyor…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opening this account's meetings…"
           }
         }
       }
@@ -5732,6 +5792,16 @@
         }
       }
     },
+    "Dosya seçilemedi: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't pick the file: %@"
+          }
+        }
+      }
+    },
     "Dosya silinemedi: %@.": {
       "extractionState": "manual",
       "localizations": {
@@ -5750,6 +5820,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Couldn't write file: %@. Check your disk space."
+          }
+        }
+      }
+    },
+    "Dosyalar'dan seç": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose from Files"
           }
         }
       }
@@ -6338,6 +6418,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Show in Finder"
+          }
+        }
+      }
+    },
+    "Fotoğraflar'dan video seç": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a video from Photos"
           }
         }
       }
@@ -7258,6 +7348,16 @@
         }
       }
     },
+    "Her cümle kayıt sırasında %@ diline çevrilir; toplantı zaten bu dildeyse çevrilmez. Kayıtta ✦ düğmesi son dakikaları özetler ve toplantıya soru sordurur.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Each sentence is translated into %@ while recording; a meeting already in that language is not translated. While recording, the ✦ button summarises the last minutes and lets you ask about the meeting."
+          }
+        }
+      }
+    },
     "Her toplantı için yeni sayfa": {
       "localizations": {
         "en": {
@@ -7391,6 +7491,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Account"
+          }
+        }
+      }
+    },
+    "Hesap değiştirilirken yüklü hesap değişti. Yeniden dene.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The loaded account changed while switching accounts. Try again."
           }
         }
       }
@@ -7575,6 +7686,196 @@
           "stringUnit": {
             "state": "translated",
             "value": "While an online call is recorded, the app looks at the screen every few seconds. When the content changes meaningfully (a slide, a design, a page), it keeps a snapshot and matches it to what was said meanwhile. If it finds the call's window (Zoom, Meet, Teams…), it captures only that window, otherwise the main display; this app's windows are never captured. Snapshots stay in the meeting's folder (synced with the meeting if iCloud sync is on) and are not sent to AI; only an MCP app you connect (such as Claude or Cursor) can read them. Deleting the meeting deletes its snapshots."
+          }
+        }
+      }
+    },
+    "Kayıt ekranında sıradaki toplantılar görünür; süren bir toplantıda başlattığın kayıt onun adını ve katılımcılarını alır (adlar tanımaya da yardım eder). Hatırlatmadaki \"Dinlemeye başla\" kaydı hemen başlatır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upcoming meetings appear on the Record screen; a recording you start during a meeting takes its title and attendees (the names also help recognition). \"Start listening\" in the reminder starts recording right away."
+          }
+        }
+      }
+    },
+    "Kayıt sırasında çeviri yapılmaz, yalnızca orijinal metin görünür; toplantı bitince %@ not yine hazırlanır. Kayıtta ✦ düğmesi son dakikaları özetler ve toplantıya soru sordurur.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing is translated while recording; only the original text is shown. A note in %@ is still prepared after the meeting. While recording, the ✦ button summarises the last minutes and lets you ask about the meeting."
+          }
+        }
+      }
+    },
+    "Kendi şablonun": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your template"
+          }
+        }
+      }
+    },
+    "Konuşmacılar birleştirilemedi: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't merge the speakers: %@"
+          }
+        }
+      }
+    },
+    "Not": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note"
+          }
+        }
+      }
+    },
+    "Not %@ diline çevriliyor…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translating the note into %@…"
+          }
+        }
+      }
+    },
+    "Not çevrilemedi: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't translate the note: %@"
+          }
+        }
+      }
+    },
+    "Notta neyin öne çıkmasını istediğini yaz. Örnek: “Riskleri ayrı bir paragrafta say, her kararın gerekçesini yaz.”": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Describe what the note should emphasise. Example: “List risks in a separate paragraph and give the reason for each decision.”"
+          }
+        }
+      }
+    },
+    "Odadaki herkes konuşmacılara ayrılır; bitince %@ notu yazar.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Everyone in the room is separated into speakers; the note in %@ is written when you finish."
+          }
+        }
+      }
+    },
+    "Ses silinemedi: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't delete the audio: %@"
+          }
+        }
+      }
+    },
+    "Ses ya da video dosyası içe aktar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import an audio or video file"
+          }
+        }
+      }
+    },
+    "Son dakikaların özetini gösterir; toplantıya soru da sorabilirsin": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shows a summary of the last minutes; you can also ask about the meeting"
+          }
+        }
+      }
+    },
+    "Tekrar işlenemedi: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't reprocess: %@"
+          }
+        }
+      }
+    },
+    "Toplantı notları, canlı çeviri ve Sor cevapları not ve çeviri dilinde yazılır. Önceki notlar yazıldıkları dilde kalır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meeting notes, live translation and Ask answers are written in the note and translation language. Earlier notes stay in the language they were written in."
+          }
+        }
+      }
+    },
+    "Toplantıya sor…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask about the meeting…"
+          }
+        }
+      }
+    },
+    "Video alınamadı: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't get the video: %@"
+          }
+        }
+      }
+    },
+    "Yapay zekâ bu kayıtta kullanılamıyor; not kayıt bitince yazılır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI isn't available for this recording; the note is written when the recording ends."
+          }
+        }
+      }
+    },
+    "Yazıldı": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set"
+          }
+        }
+      }
+    },
+    "Çeviri saklanamadı: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't save the translation: %@"
           }
         }
       }
@@ -8320,16 +8621,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Recording paused"
-          }
-        }
-      }
-    },
-    "Kayıt ekranında sıradaki toplantılar görünür; süren bir toplantıda başlattığın kayıt onun adını ve katılımcılarını alır (adlar tanımaya da yardım eder).": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Upcoming meetings appear on the Record screen; a recording you start during a meeting takes its title and attendees (the names also help recognition)."
           }
         }
       }
@@ -9211,16 +9502,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Speakers and final pass"
-          }
-        }
-      }
-    },
-    "Konuşmacılara ad ver": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Name speakers"
           }
         }
       }
@@ -13231,16 +13512,6 @@
         }
       }
     },
-    "Toplantı notları, canlı çeviri ve Sor cevapları not ve çeviri dilinde yazılır; toplantı zaten bu dildeyse çevrilmez. Önceki notlar yazıldıkları dilde kalır.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Meeting notes, live translation and Ask answers are written in the note and translation language; a meeting already in that language is not translated. Earlier notes stay in the language they were written in."
-          }
-        }
-      }
-    },
     "Toplantı notları, canlı çeviri, \"Ne kaçırdım?\" özeti ve Sor cevapları bu dilde yazılır. Önceki notlar yazıldıkları dilde kalır.": {
       "localizations": {
         "en": {
@@ -15313,6 +15584,46 @@
         }
       }
     },
+    "Önceki hesabın bir notu yazılıyor. Bitince bu hesabın toplantıları kendiliğinden açılır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A note for your previous account is being written. Once it's done, this account's meetings open automatically."
+          }
+        }
+      }
+    },
+    "Önceki hesabın kaydı sürüyor. Kayıt bitip toplantı işlenince bu hesabın toplantıları kendiliğinden açılır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your previous account's recording is still running. Once it ends and the meeting is processed, this account's meetings open automatically."
+          }
+        }
+      }
+    },
+    "Önceki hesabın Sor cevabı yazılıyor. Bitince bu hesabın toplantıları kendiliğinden açılır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An Ask answer for your previous account is being written. Once it's done, this account's meetings open automatically."
+          }
+        }
+      }
+    },
+    "Önceki hesabın toplantısı işleniyor. Bitince bu hesabın toplantıları kendiliğinden açılır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A meeting from your previous account is being processed. Once it's done, this account's meetings open automatically."
+          }
+        }
+      }
+    },
     "ÖRNEK SORULAR": {
       "localizations": {
         "en": {
@@ -16172,6 +16483,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Imported; waiting to be processed on the server."
+          }
+        }
+      }
+    },
+    "İçe aktarılıyor… Bitince sunucuda işlenir; not hazır olunca burada görünür.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importing… It is then processed on the server; the note appears here when it's ready."
           }
         }
       }

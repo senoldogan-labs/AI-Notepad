@@ -143,3 +143,20 @@ struct ActivityShareSheet: UIViewControllerRepresentable {
 
     func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }
+
+/// Paylaşılacak metin (başka dile çevrilmiş not): paylaşım sayfasını açar.
+struct SharedText: Identifiable {
+    let id: UUID = UUID()
+    let text: String
+}
+
+/// Sistem paylaşım sayfası (metin için).
+struct TextShareSheet: UIViewControllerRepresentable {
+    let text: String
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: [text], applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
+}

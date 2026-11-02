@@ -53,6 +53,9 @@ import Testing
             audioDeleted: false, engine: .cloud, notice: nil, meNeedsFinalPass: nil
         )
         #expect(meetingKeyterms(records: [record], userName: "Senol", limit: 10) == ["Senol", "Mikko", "Aino", "maahanmuuttopolitiikka", "Kela etuudet"])
+        // Tanıma terimleri: ad ve sözlük öne, sonra kayıtlı kişiler, en sona toplantılardan gelenler; sınırda onlar düşer.
+        #expect(recognitionKeyterms(userName: "Senol", vocabulary: "Kela\nOmaKanta, x", savedPeople: ["Liisa"], records: [record], limit: 6)
+            == ["Senol", "Kela", "OmaKanta", "Liisa", "Mikko", "Aino"])
         #expect(meetingKeyterms(records: [record], userName: "", limit: 2) == ["Mikko", "Aino"])
     }
 }

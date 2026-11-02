@@ -13,8 +13,9 @@ enum HostedDataState: Equatable {
     case loaded(accountKey: String)
     /// Hesabın verisi hazırlanamadı (ör. önceki toplantılar hesaba taşınamadı); veri yerinde kalır, neden gösterilir.
     case failed(message: String)
-    /// Başka bir hesapla giriş yapıldı: kayıt ve işleme bitince uygulama yeniden başlar ve o hesabın verisini yükler.
-    case relaunchRequired(accountKey: String)
+    /// Başka bir hesapla (`accountKey`) giriş yapıldı: kayıt ve işleme bitince o hesabın verisi yüklenir (Mac yeniden
+    /// başlar, iPhone hesabı yerinde değiştirir, bkz. `HostedAccount.completeAccountSwitch`).
+    case switchPending(accountKey: String)
 }
 
 /// Hesabın kendi ayar alanı (klasörler, Sor tarifleri, dışa aktarma ayarları, açık sunucu oturumları):

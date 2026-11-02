@@ -416,7 +416,7 @@ private struct GeneralSettings: View {
                 Text("Yeni toplantıların notu bu türe göre yazılır; bir toplantının notunu sonradan başka şablonla yeniden yazabilirsin (⋯ menüsü).")
             } control: {
                 SettingsMenu(selection: $noteTemplate, options: NoteTemplateKind.allCases.map { (kind: NoteTemplateKind) -> (String, Text) in
-                    (kind.rawValue, Text(templateTitle(kind: kind)))
+                    (kind.rawValue, Text(verbatim: kind.displayName))
                 })
             }
             if noteTemplate == NoteTemplateKind.custom.rawValue {

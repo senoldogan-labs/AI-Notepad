@@ -24,6 +24,12 @@ make_fixture "Alva" "sv-meeting" \
 make_fixture "Anna" "de-meeting" \
   "Guten Morgen zusammen. [[slnc 900]] Nächste Woche müssen wir den Bericht über das Budget abgeben. [[slnc 900]] Wer übernimmt die Präsentation für den Vorstand?"
 
+# Sesle yazma gecikme ölçümü: ~3 sn ve ~15 sn tek konuşmacılı dikte.
+make_fixture "Samantha" "en-dictation-short" \
+  "Please send the final report to the whole team today."
+make_fixture "Samantha" "en-dictation-long" \
+  "Hi Maria, thanks for the update on the budget. I went through the numbers this morning and they look good to me. Could you please send the final report to the whole team before Friday, and add a short summary of the open questions at the top so everyone can review them before the meeting?"
+
 # Çok konuşmacılı Fince diyalog: yüklü ilk üç fi_FI sesi sırayla konuşur.
 FI_VOICES=()
 while IFS= read -r voice; do FI_VOICES+=("$voice"); done < <(say -v '?' | sed -nE 's/^(.*[^ ]) +fi_FI .*/\1/p' | head -3)

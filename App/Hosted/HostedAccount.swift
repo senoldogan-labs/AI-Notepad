@@ -384,8 +384,8 @@ final class HostedAccount {
 
     /// Yüklü hesap verisini giriş yapan hesapla eşler (açılışta ve her hesap okumasında): giriş yoksa yüklü veri kalır
     /// (çıkış yerel veriyi silmez, kapı gizler); henüz hesap yüklenmediyse giriş yapanınki yüklenir (önceki veri
-    /// sahiplenilmediyse ona taşınır); başka bir hesabınki yüklüyse uygulama yeniden başlamalıdır (`relaunchRequired`;
-    /// uygulama kayıt ve işleme yokken yeniden başlatır).
+    /// sahiplenilmediyse ona taşınır); başka bir hesabınki yüklüyse hesap değişimi bekler (`switchPending`; kayıt ve
+    /// işleme yokken Mac yeniden başlar, iPhone hesabı yerinde değiştirir).
     private func syncAccountData(userID: String?) {
         let loadedKey: String? = AppPaths.activeAccountKey()
         #if DEBUG
@@ -414,16 +414,39 @@ final class HostedAccount {
                 accountLogger.error("Hesap verisi hazırlanamadı, hata: \(String(describing: error), privacy: .private)")
                 dataState = .failed(message: userFacingMessage(error: error))
             }
-        case .relaunch(let accountKey):
-            if dataState != .relaunchRequired(accountKey: accountKey) {
-                accountLogger.info("Başka bir hesapla giriş yapıldı, uygulama boşta olunca yeniden başlayacak")
+        case .switchAccount(_, let accountKey):
+            if dataState != .switchPending(accountKey: accountKey) {
+                accountLogger.info("Başka bir hesapla giriş yapıldı, hesap verisi boşta olunca değişecek")
             }
-            dataState = .relaunchRequired(accountKey: accountKey)
+            dataState = .switchPending(accountKey: accountKey)
         }
     }
 
-    /// Hazırlanamayan hesap verisini yeniden dener (kapıdaki "Yeniden dene"); hesap değişiminde yeniden başlatma
-    /// başarısız olduysa yeniden başlatmayı yeniden ister.
+    #if os(iOS)
+    /// Bekleyen hesap değişimini yerinde tamamlar (iPhone kendini yeniden başlatamaz): yüklü hesap giriş yapan hesapla
+    /// değiştirilir ve onun verisi yüklenir. Çağıran, yazan her işin kapandığını kanıtlar (`writers`) ve eski hesabın
+    /// bellekteki verisini önceden bırakır; yeni hesabın verisini bu çağrıdan sonra kurar. Değişim bekleyen bir hesap
+    /// yoksa (`switchPending` değil ya da oturum bu arada değişti) `noPendingSwitch`; yeni hesabın verisi hazırlanamazsa
+    /// neden kapıda görünür (`failed`; "Yeniden dene" değişimi yeniden ister) ve eski hesap yüklü kalır.
+    func completeAccountSwitch(writers: ClosedAccountWriters) throws(HostedAccountSwitchError) {
+        guard case .switchPending(let accountKey) = dataState, let userID = signedInUserIDCache, accountDataKey(userId: userID) == accountKey,
+              let loadedKey = AppPaths.activeAccountKey() else {
+            throw HostedAccountSwitchError.noPendingSwitch(state: dataState)
+        }
+        do {
+            let key: String = try switchHostedAccountData(userId: userID, from: loadedKey, writers: writers)
+            dataState = .loaded(accountKey: key)
+            dataActivations += 1
+            accountLogger.info("Hesap verisi yerinde değiştirildi")
+        } catch {
+            accountLogger.error("Hesap değiştirilemedi, hata: \(String(describing: error), privacy: .private)")
+            dataState = .failed(message: userFacingMessage(error: error))
+        }
+    }
+    #endif
+
+    /// Hazırlanamayan hesap verisini yeniden dener (kapıdaki "Yeniden dene"); hesap değişimi (Mac'te yeniden başlatma,
+    /// iPhone'da yerinde değişim) başarısız olduysa değişimi yeniden ister.
     func retryAccountData() {
         syncAccountData(userID: signedInUserIDCache)
     }
@@ -608,6 +631,13 @@ final class HostedAccount {
     func showAccountForDemo(entitlements: HostedEntitlements, referral: HostedReferral?) {
         state = .signedIn(entitlements)
         self.referral = referral
+    }
+
+    /// Tanıtım modu (`--hesap-degistir`, Simülatör'de denetim): başka bir sahte hesapla (`userId`) giriş yapılmış gibi
+    /// hesap değişimini başlatır; sunucuya bağlanılmaz.
+    func beginAccountSwitchForDemo(userId: String) {
+        signedInUserIDCache = userId
+        dataState = .switchPending(accountKey: accountDataKey(userId: userId))
     }
     #endif
 

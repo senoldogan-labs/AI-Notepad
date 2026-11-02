@@ -4,6 +4,7 @@ import AppIntents
 import os
 import SwiftUI
 import UIKit
+import UserNotifications
 
 private let phoneAppLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "App")
 
@@ -14,11 +15,9 @@ private let phoneAppLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad
 struct AINotepadiOSApp: App {
     /// Abonelik hesabı (giriş, hak durumu, toplantı oturumu); Mac'teki Gistsmith'le ortak.
     private let account: HostedAccount
-    @State private var store: PhoneStore
-    @State private var recorder: PhoneRecorder
-    @State private var ask: PhoneAsk
+    /// Yüklü hesabın bellekteki verisi (toplantılar, kaydedici, Sor, çalar); hesap değişince yenisi kurulur.
+    @State private var sessions: PhoneSessionHost
     @State private var router: PhoneRouter
-    @State private var player: MeetingAudioPlayer = MeetingAudioPlayer()
     @State private var calendar: PhoneCalendar
     /// Çökme raporları (MetricKit; yalnız bu iPhone'da, Ayarlar'da gösterilir).
     @State private var crashReports: CrashReportCenter = CrashReportCenter()
@@ -67,30 +66,29 @@ struct AINotepadiOSApp: App {
         } catch {
             phoneAppLogger.error("RevenueCat yapılandırılamadı, hata: \(String(describing: error), privacy: .public)")
         }
-        let store: PhoneStore = PhoneStore()
-        let recorder: PhoneRecorder = PhoneRecorder(store: store)
         let calendar: PhoneCalendar = PhoneCalendar()
-        // Kayıt başlarken takvimde süren toplantıya bağlanır (takvim açıksa).
-        recorder.currentCalendarMeeting = { () -> CalendarMeeting? in calendar.meetingForRecording(now: Date()) }
+        let sessions: PhoneSessionHost = PhoneSessionHost(session: makePhoneAccountSession(calendar: calendar))
         let router: PhoneRouter = PhoneRouter(
             tab: launchTab(arguments: CommandLine.arguments), meetingsPath: launchMeetingPath(arguments: CommandLine.arguments), askPath: []
         )
-        _store = State(initialValue: store)
-        _recorder = State(initialValue: recorder)
+        _sessions = State(initialValue: sessions)
         _router = State(initialValue: router)
         _calendar = State(initialValue: calendar)
-        _ask = State(initialValue: PhoneAsk(store: store))
-        // Kısayollar, Denetim Merkezi ve canlı etkinlikteki niyetler kaydediciye ve gezinmeye buradan ulaşır.
-        AppDependencyManager.shared.add(dependency: recorder)
+        // Kısayollar, Denetim Merkezi ve canlı etkinlikteki niyetler yüklü hesabın kaydedicisine ve gezinmeye buradan
+        // ulaşır (hesap değişince kaydedici değişir, kayıt yeri değişmez).
+        AppDependencyManager.shared.add(dependency: sessions)
         AppDependencyManager.shared.add(dependency: router)
+        // Toplantı hatırlatmasındaki "Dinlemeye başla" kaydı başlatır (kısayoldaki gibi).
+        PhoneNotificationDelegate.onStartRecording = { () -> Void in
+            router.tab = .record
+            Task { await sessions.session.recorder.start() }
+        }
+        UNUserNotificationCenter.current().delegate = PhoneNotificationDelegate.shared
     }
 
     var body: some Scene {
         WindowGroup {
-            PhoneAppRoot(
-                account: account, store: store, recorder: recorder, ask: ask, router: router, player: player, calendar: calendar,
-                crashReports: crashReports
-            )
+            PhoneAppRoot(account: account, sessions: sessions, router: router, calendar: calendar, crashReports: crashReports)
             .modifier(PhoneAppearanceModifier())
             .task {
                 crashReports.start()
@@ -150,36 +148,48 @@ private func applyWindowTint(color: UIColor) {
     }
 }
 
-/// Giriş kapısı, yapay zekâ açıklaması ya da sekmeler. Hesabın verisi yüklenince (açılışta ya da ilk girişte)
-/// toplantılar, Sor geçmişi ve yarım kalan işlemeler okunur; hesap bekleyen kayıtların işlenmesini tetikleyince (ağ
-/// geldi, hak durumu okundu, uygulama öne geldi) kuyruk çalışır.
+/// Giriş kapısı, yapay zekâ açıklaması ya da sekmeler. Hesabın verisi yüklenince (açılışta, ilk girişte ya da hesap
+/// değişince) toplantılar, Sor geçmişi ve yarım kalan işlemeler okunur; hesap bekleyen kayıtların işlenmesini
+/// tetikleyince (ağ geldi, hak durumu okundu, uygulama öne geldi) kuyruk çalışır. Başka bir hesapla giriş yapılınca
+/// (iPhone kendini yeniden başlatamaz) eski hesabın yazan işleri bitince hesap yerinde değişir (bkz.
+/// `switchAccountIfIdle`).
 private struct PhoneAppRoot: View {
     let account: HostedAccount
-    let store: PhoneStore
-    let recorder: PhoneRecorder
-    let ask: PhoneAsk
+    let sessions: PhoneSessionHost
     let router: PhoneRouter
-    let player: MeetingAudioPlayer
     let calendar: PhoneCalendar
     let crashReports: CrashReportCenter
     @AppStorage(PhoneSettingsKey.aiDisclosureAccepted) private var disclosureAccepted: Bool = false
 
     var body: some View {
+        let session: PhoneAccountSession = sessions.session
         Group {
             if account.requiresSignIn {
-                PhoneSignInGate(account: account)
+                PhoneSignInGate(account: account, switchWaitsFor: session.openWriters)
             } else if !disclosureAccepted {
                 PhoneAIDisclosure(account: account) { disclosureAccepted = true }
             } else {
-                RootView(store: store, recorder: recorder, ask: ask, router: router, player: player, calendar: calendar, crashReports: crashReports, account: account)
+                RootView(
+                    store: session.store, recorder: session.recorder, ask: session.ask, router: router, player: session.player, calendar: calendar,
+                    crashReports: crashReports, account: account
+                )
             }
         }
-        .task(id: account.isAccountDataLoaded) {
+        // Hesap değişince görünümlerin durumu (açık sayfalar, seçimler, kaydırma) eski hesabınkiyle kalmasın.
+        .id(sessions.generation)
+        .task(id: account.dataState) {
             guard account.isAccountDataLoaded else {
                 return
             }
-            // Saklama süresi ve yarım kalan kayıtlar listeye bakar: okuma bitince sürer.
+            let store: PhoneStore = sessions.session.store
+            let recorder: PhoneRecorder = sessions.session.recorder
+            let ask: PhoneAsk = sessions.session.ask
+            // Saklama süresi ve yarım kalan kayıtlar listeye bakar: okuma bitince sürer. Okuma sürerken hesap değiştiyse
+            // (görev iptal edildi) eski hesabın listesiyle hiçbir şey yazılmaz.
             await store.reloadAndWait()
+            guard !Task.isCancelled else {
+                return
+            }
             ask.loadRecipes()
             ask.loadHistory()
             store.applyRetention(now: Date())
@@ -193,6 +203,9 @@ private struct PhoneAppRoot: View {
                 ask.open(conversationID: conversationID)
                 router.tab = .ask
                 router.askPath = [.conversation]
+            }
+            if CommandLine.arguments.contains("--ornek-takvim") {
+                calendar.showSampleMeetings(now: Date())
             }
             if CommandLine.arguments.contains("--ornek-kayit") {
                 recorder.showSampleRecording()
@@ -208,6 +221,24 @@ private struct PhoneAppRoot: View {
             }
             #endif
             await recorder.resumeUnfinished()
+            #if DEBUG
+            // `--hesap-degistir` (tanıtım, Simülatör'de denetim): 3 sn sonra ikinci sahte hesapla giriş yapılmış gibi hesap
+            // yerinde değişir; ikinci hesapta yeniden tetiklenmez.
+            if isDemoMode, CommandLine.arguments.contains("--hesap-degistir"), AppPaths.activeAccountKey() == accountDataKey(userId: "tanitim") {
+                do {
+                    try await Task.sleep(for: .seconds(3))
+                } catch {
+                    return
+                }
+                account.beginAccountSwitchForDemo(userId: "tanitim-2")
+            }
+            #endif
+        }
+        .onChange(of: account.dataState, initial: true) { (_: HostedDataState, _: HostedDataState) in
+            switchAccountIfIdle()
+        }
+        .onChange(of: session.openWriters) { (_: [AccountDataWriter], _: [AccountDataWriter]) in
+            switchAccountIfIdle()
         }
         .onChange(of: account.signedInUserIDCache, initial: true) { (_: String?, userID: String?) in
             // RevenueCat kimliği hesapla eşlenir: giriş, çıkış, hesap değişimi ve silme (satın alma bu hesaba yazılsın).
@@ -222,8 +253,92 @@ private struct PhoneAppRoot: View {
             guard account.isAccountDataLoaded else {
                 return
             }
+            let recorder: PhoneRecorder = sessions.session.recorder
             Task { await recorder.runQueue() }
         }
+    }
+
+    /// Başka bir hesapla giriş yapıldıysa ve eski hesabın verisine yazan iş yoksa hesabı yerinde değiştirir: eski hesabın
+    /// çaları durur, hesap değişir, yeni hesabın toplantıları, kaydedicisi, Sor'u ve çaları kurulur, gezinme başa döner.
+    /// Yazan iş varsa beklenir (kapı nedenini söyler); iş bitince yeniden denenir.
+    private func switchAccountIfIdle() {
+        guard case .switchPending = account.dataState else {
+            return
+        }
+        guard case .ready(let writers) = accountSwitchReadiness(openWriters: sessions.session.openWriters) else {
+            return
+        }
+        sessions.session.close()
+        do {
+            try account.completeAccountSwitch(writers: writers)
+        } catch {
+            phoneAppLogger.error("Hesap değişimi tamamlanamadı, hata: \(String(describing: error), privacy: .public)")
+            return
+        }
+        guard account.isAccountDataLoaded else {
+            // Yeni hesabın verisi hazırlanamadı: eski hesap yüklü kalır, neden kapıda görünür.
+            return
+        }
+        sessions.replace(session: makePhoneAccountSession(calendar: calendar))
+        router.reset()
+    }
+}
+
+/// Bir hesabın bellekteki verisi ve ona yazan işler: toplantı arşivi, kaydedici (kayıt, işleme, bekleyen kayıtlar,
+/// canlı etkinlik), Sor (geçmiş, tarifler) ve çalar. Hesap değişince bütünüyle bırakılır, yenisi kurulur.
+@MainActor
+struct PhoneAccountSession {
+    let store: PhoneStore
+    let recorder: PhoneRecorder
+    let ask: PhoneAsk
+    let player: MeetingAudioPlayer
+
+    /// Hesabın verisine yazan açık işler (bkz. `accountSwitchReadiness`): kayıt, işleme, bekleyen kayıtların kuyruğu,
+    /// not yazma ve Sor cevabı.
+    var openWriters: [AccountDataWriter] {
+        let open: [(AccountDataWriter, Bool)] = [
+            (.recording, recorder.phase != .idle),
+            (.processing, !recorder.processingSteps.isEmpty),
+            (.offlineQueue, recorder.isRunningQueue),
+            (.noteEditing, !store.regeneratingIDs.isEmpty),
+            (.askAnswering, ask.isAnswering),
+        ]
+        return open.filter { $0.1 }.map { $0.0 }
+    }
+
+    /// Hesap değişmeden önce eski hesabın açık dosyalarını bırakır: çalan toplantı durur.
+    func close() {
+        player.stop()
+    }
+}
+
+/// Yüklü hesabın bellekteki verisini kurar (boş; toplantılar hesap yüklenince okunur). Kayıt başlarken takvimde süren
+/// toplantıya bağlanır (takvim açıksa).
+@MainActor
+func makePhoneAccountSession(calendar: PhoneCalendar) -> PhoneAccountSession {
+    let store: PhoneStore = PhoneStore()
+    let recorder: PhoneRecorder = PhoneRecorder(store: store)
+    recorder.currentCalendarMeeting = { () -> CalendarMeeting? in calendar.meetingForRecording(now: Date()) }
+    return PhoneAccountSession(store: store, recorder: recorder, ask: PhoneAsk(store: store), player: MeetingAudioPlayer())
+}
+
+/// Yüklü hesabın bellekteki verisinin sahibi: görünümler ve niyetler (Kısayollar, canlı etkinlik) onu buradan okur.
+/// Hesap değişince yenisiyle değiştirilir; `generation` görünümlerin kimliğidir.
+@MainActor
+@Observable
+final class PhoneSessionHost {
+    private(set) var session: PhoneAccountSession
+    /// Her hesap değişiminde artar: görünümlerin durumu sıfırlanır.
+    private(set) var generation: Int = 0
+
+    init(session: PhoneAccountSession) {
+        self.session = session
+    }
+
+    /// Eski hesabın verisini yenisiyle değiştirir (eskisi bırakılır).
+    func replace(session: PhoneAccountSession) {
+        self.session = session
+        generation += 1
     }
 }
 
@@ -268,6 +383,14 @@ final class PhoneRouter {
     /// Sor'dan çıkar: Sor'a gelinen sekmeye döner.
     func leaveAsk() {
         tab = askReturnTab
+    }
+
+    /// Hesap değişince gezinme başa döner: açık toplantı ve sohbet eski hesabındır.
+    func reset() {
+        tab = .record
+        meetingsPath = []
+        askPath = []
+        askReturnTab = .record
     }
 
     /// Toplantıyı Toplantılar sekmesinde açar.
@@ -326,13 +449,23 @@ struct RootView: View {
     /// Uygulama arka plana geçti: öne dönünce yarım kalan işleme sürdürülür.
     @State private var wasInBackground: Bool = false
 
+    /// Toplantı öncesi brifing (Mac'teki "Brifing"): yeni bir Sor sohbeti açar; arşive aynı kişilerle ya da konuda önceki
+    /// görüşmeler, kararlar ve açık görevler sorulur.
+    private func startBriefing(meeting: CalendarMeeting) {
+        // Brifing yeni bir konu: önceki sohbet bağlam olmasın (önceki sohbet geçmişte kalır).
+        ask.clear()
+        ask.ask(question: briefingQuestion(meeting: meeting), meetingIDs: [], recipeTitle: nil)
+        router.askPath = [.conversation]
+        router.tab = .ask
+    }
+
     var body: some View {
         TabView(selection: $router.tab) {
             Tab("Kayıt", systemImage: "record.circle", value: PhoneTab.record) {
-                RecordTab(recorder: recorder, store: store, router: router, calendar: calendar)
+                RecordTab(recorder: recorder, store: store, router: router, calendar: calendar, onBriefing: startBriefing(meeting:))
             }
             Tab("Toplantılar", systemImage: "list.bullet.rectangle", value: PhoneTab.meetings) {
-                MeetingsTab(store: store, router: router, player: player, isRecording: recorder.phase != .idle)
+                MeetingsTab(store: store, recorder: recorder, router: router, player: player, isRecording: recorder.phase != .idle)
             }
             Tab("Sor", systemImage: "sparkle.magnifyingglass", value: PhoneTab.ask) {
                 AskTab(ask: ask, store: store, router: router)
@@ -559,27 +692,96 @@ final class PhoneStore {
 
     /// Notu yeniden yazar (Mac'teki "Notu yenile"): başarısız ya da yarım kalan toplantı da iPhone'dan düzelir.
     func regenerateNote(meetingID: String) async {
-        guard let record = meetings.first(where: { $0.id == meetingID }), record.status != .recording, record.status != .processing,
-              !regeneratingIDs.contains(meetingID) else {
+        guard let record = rewritableRecord(meetingID: meetingID) else {
             return
         }
+        await rewriteNote(record: record, reason: String(localized: "Not yenilendi"))
+    }
+
+    /// Notu başka bir şablonla yeniden yazar (Mac'teki "Şablonla yeniden yaz"); şablon toplantıda saklanır.
+    func regenerateNote(meetingID: String, template: NoteTemplate) async {
+        guard let record = rewritableRecord(meetingID: meetingID) else {
+            return
+        }
+        await rewriteNote(record: record.with(template: template), reason: String(localized: "Şablonla yeniden yazıldı"))
+    }
+
+    /// Notu yeniden yazılabilecek toplantı: kayıtta, işlenen ya da notu zaten yazılan toplantı değil.
+    private func rewritableRecord(meetingID: String) -> MeetingRecord? {
+        meetings.first { $0.id == meetingID && $0.status != .recording && $0.status != .processing && !regeneratingIDs.contains(meetingID) }
+    }
+
+    /// Notu verilen kayıtla (şablon, adlar) yeniden yazar; eski not `reason` ile geçmişe girer. Yeni not diskteki güncel
+    /// kayda uygulanır (Mac'te bu arada yapılan düzenlemeler korunur); olmazsa neden sorunlarda görünür.
+    private func rewriteNote(record: MeetingRecord, reason: String) async {
+        let meetingID: String = record.id
         regeneratingIDs.insert(meetingID)
         defer { regeneratingIDs.remove(meetingID) }
         do {
             let llm: LLMProvider = try phoneRecordedMeetingLLMProvider(recordID: meetingID)
             let directory: URL = try sessionDirectory(id: meetingID)
-            let userName: String = UserDefaults.standard.string(forKey: PhoneSettingsKey.userName) ?? ""
-            let result: MeetingRecord = await AINotepadCore.regenerateNote(record: record, directory: directory, llm: llm, userName: userName, language: phoneNoteLanguage())
+            let result: MeetingRecord = await AINotepadCore.regenerateNote(record: record, directory: directory, llm: llm, userName: phoneUserName(), language: phoneNoteLanguage())
             // Not yazılırken Mac'te değişmiş olabilir: yeni not diskteki güncel kayda uygulanır, işaretler oradan taşınır.
             let fresh: MeetingRecord = try loadMeeting(directory: directory)
             let merged: MeetingRecord = applyingRegeneratedNote(result: result, original: record, fresh: fresh)
+            // Seçilen şablon toplantıda kalır (bir sonraki "Notu yenile" de onu kullanır).
+            let templated: MeetingRecord = record.template.map { merged.with(template: $0) } ?? merged
             // Eski not geçmişe girer (⋯ › Önceki sürümler).
-            let versioned: MeetingRecord = withNoteVersion(updated: merged, previous: fresh, reason: String(localized: "Not yenilendi"), savedAt: Date())
+            let versioned: MeetingRecord = withNoteVersion(updated: templated, previous: fresh, reason: reason, savedAt: Date())
             try saveMeeting(record: versioned, directory: directory)
             upsert(record: versioned)
         } catch {
             problems = appendUnique(messages: problems, message: String(localized: "Not yenilenemedi: \(userFacingMessage(error: error))"))
         }
+    }
+
+    /// Notun verilen dildeki paylaşım kopyası (Mac'teki "Başka dilde paylaş"): daha önce çevrildiyse saklanan kopya, yoksa
+    /// not o dile çevrilir ve toplantıda saklanır (not değişince kopyalar silinir). Çevrilemezse hata fırlar; çeviri
+    /// saklanamazsa kopya yine döner, neden sorunlarda görünür.
+    func sharedNote(meetingID: String, language: ShareLanguage) async throws -> MeetingNote {
+        guard let record = meetings.first(where: { $0.id == meetingID }), let note = record.note else {
+            throw StorageError.writeFailed(path: meetingID, reason: "toplantı ya da not yok")
+        }
+        if let cached = record.sharedNotes?[language.rawValue] {
+            return cached
+        }
+        let provider: LLMProvider = try phoneAccountLLMProvider()
+        let shared: MeetingNote = try await requestStructured(
+            provider: provider, request: sharedNoteRequest(note: note, language: language, userName: phoneUserName())
+        ) { (text: String) throws -> MeetingNote in
+            try parseSharedNote(text: text, original: note).with(language: language)
+        }
+        // Çeviri sürerken not yeniden yazıldıysa eski notun çevirisi saklanmaz (yine de paylaşılır).
+        guard let current = meetings.first(where: { $0.id == meetingID }), current.note == note else {
+            return shared
+        }
+        do {
+            try updateMeeting(meetingID: meetingID) { (fresh: MeetingRecord) -> MeetingRecord in
+                fresh.note == note ? fresh.with(sharedNotes: (fresh.sharedNotes ?? [:]).merging([language.rawValue: shared]) { $1 }) : fresh
+            }
+        } catch {
+            problems = appendUnique(messages: problems, message: String(localized: "Çeviri saklanamadı: \(userFacingMessage(error: error))"))
+        }
+        return shared
+    }
+
+    /// İki konuşmacıyı birleştirir (Mac'teki "… ile birleştir"; son geçiş aynı kişiyi ikiye böldüyse): `from`un tüm
+    /// bölümleri `into`ya geçer.
+    func mergeSpeakers(meetingID: String, from: Int, into: Int) throws {
+        try updateMeeting(meetingID: meetingID) { (record: MeetingRecord) -> MeetingRecord in mergingPersons(record: record, from: from, into: into) }
+    }
+
+    /// Toplantının yalnız sesini (ve ses izlerini) siler; metin ve not kalır (Mac'teki "Sesi sil").
+    func deleteAudio(meetingID: String) throws {
+        guard meetingID != playingMeetingID, let record = meetings.first(where: { $0.id == meetingID }), record.status != .recording,
+              record.status != .processing, record.status != .queued, !regeneratingIDs.contains(meetingID) else {
+            throw StorageError.deleteFailed(path: meetingID, reason: "çalıyor, kayıtta, işleniyor ya da işlenmeyi bekliyor")
+        }
+        let directory: URL = try sessionDirectory(id: meetingID)
+        try deleteAudioFiles(directory: directory)
+        let updated: MeetingRecord = try loadMeeting(directory: directory).withAudioDeleted().with(voiceprints: nil)
+        try saveMeeting(record: updated, directory: directory)
+        upsert(record: updated)
     }
 
     /// Notu kullanıcının isteğine göre düzenler (Mac'teki "Notu değiştir": "özeti kısalt", "görevlere tarih ekle").

@@ -19,8 +19,16 @@ struct PhoneSettingsTab: View {
     @AppStorage(PhoneSettingsKey.theme) private var theme: String = AppTheme.system.rawValue
     @AppStorage(PhoneSettingsKey.accent) private var accent: String = PanelAppearance.standard.accent.rawValue
     @AppStorage(shareUsageStatisticsDefaultsKey) private var shareUsageStatistics: Bool = true
+    @AppStorage(PhoneSettingsKey.displayMode) private var displayMode: String = DisplayMode.bilingual.rawValue
+    @AppStorage(PhoneSettingsKey.noteTemplate) private var noteTemplate: String = NoteTemplateKind.general.rawValue
+    @AppStorage(PhoneSettingsKey.customTemplate) private var customTemplate: String = ""
+    @AppStorage(PhoneSettingsKey.customVocabulary) private var vocabulary: String = ""
+    @AppStorage(PhoneSettingsKey.missedWindowMinutes) private var missedMinutes: Int = 3
+    @Environment(\.openURL) private var openURL: OpenURLAction
 
     var body: some View {
+        // Seçili not dilinin adı (arayüz dilinde): çeviri ayarlarında geçer.
+        let noteLanguageName: String = phoneStoredNoteLanguage(value: noteLanguage).interfaceName
         NavigationStack {
             List {
                 CrashReportNotice(center: crashReports)
@@ -79,7 +87,57 @@ struct PhoneSettingsTab: View {
                 } header: {
                     Text("Toplantı")
                 } footer: {
-                    Text("Toplantı notları, canlı çeviri ve Sor cevapları not ve çeviri dilinde yazılır; toplantı zaten bu dildeyse çevrilmez. Önceki notlar yazıldıkları dilde kalır.")
+                    Text("Toplantı notları, canlı çeviri ve Sor cevapları not ve çeviri dilinde yazılır. Önceki notlar yazıldıkları dilde kalır.")
+                }
+                Section {
+                    Toggle("Kayıt sırasında \(noteLanguageName) diline çevir", isOn: Binding<Bool>(
+                        get: { (DisplayMode(rawValue: displayMode) ?? .bilingual).needsLiveTranslation },
+                        set: { (enabled: Bool) -> Void in displayMode = (enabled ? DisplayMode.bilingual : .originalOnly).rawValue }
+                    ))
+                    if (DisplayMode(rawValue: displayMode) ?? .bilingual).needsLiveTranslation {
+                        Picker("Gösterim", selection: $displayMode) {
+                            Text("İki dil (orijinal + \(noteLanguageName))").tag(DisplayMode.bilingual.rawValue)
+                            Text("Sadece \(noteLanguageName)").tag(DisplayMode.turkishOnly.rawValue)
+                        }
+                    }
+                    Stepper(value: $missedMinutes, in: missedWindowMinutesRange) {
+                        Text("\"Ne kaçırdım?\" son \(missedMinutes) dakikayı özetler")
+                    }
+                } header: {
+                    Text("Canlı metin")
+                } footer: {
+                    Text((DisplayMode(rawValue: displayMode) ?? .bilingual).needsLiveTranslation
+                        ? "Her cümle kayıt sırasında \(noteLanguageName) diline çevrilir; toplantı zaten bu dildeyse çevrilmez. Kayıtta ✦ düğmesi son dakikaları özetler ve toplantıya soru sordurur."
+                        : "Kayıt sırasında çeviri yapılmaz, yalnızca orijinal metin görünür; toplantı bitince \(noteLanguageName) not yine hazırlanır. Kayıtta ✦ düğmesi son dakikaları özetler ve toplantıya soru sordurur.")
+                }
+                Section {
+                    Picker("Not şablonu", selection: $noteTemplate) {
+                        ForEach(NoteTemplateKind.allCases, id: \.self) { (kind: NoteTemplateKind) in
+                            Text(verbatim: kind.displayName).tag(kind.rawValue)
+                        }
+                    }
+                    if noteTemplate == NoteTemplateKind.custom.rawValue {
+                        NavigationLink {
+                            PhoneTextSettingScreen(
+                                title: "Kendi şablonun", key: PhoneSettingsKey.customTemplate,
+                                help: "Notta neyin öne çıkmasını istediğini yaz. Örnek: “Riskleri ayrı bir paragrafta say, her kararın gerekçesini yaz.”"
+                            )
+                        } label: {
+                            LabeledContent("Kendi şablonun", value: customTemplate.isEmpty ? String(localized: "Boş") : String(localized: "Yazıldı"))
+                        }
+                    }
+                    NavigationLink {
+                        PhoneTextSettingScreen(
+                            title: "Tanıma sözlüğü", key: PhoneSettingsKey.customVocabulary,
+                            help: "Konuşma tanımanın doğru yazması gereken adlar, şirket ve ürün adları, kısaltmalar; satır başına bir tane (2–40 karakter, en fazla 5 sözcük; en fazla 30 kullanılır). Canlı metinde ve kayıt bitince yapılan son geçişte uygulanır. Toplantılarda verdiğin konuşmacı adları ve sözlük terimleri zaten kendiliğinden eklenir."
+                        )
+                    } label: {
+                        LabeledContent("Tanıma sözlüğü", value: String(localized: "\(customVocabulary(text: vocabulary).count) terim"))
+                    }
+                } header: {
+                    Text("Not")
+                } footer: {
+                    Text("Yeni toplantıların notu bu türe göre yazılır; bir toplantının notunu sonradan başka şablonla yeniden yazabilirsin (⋯ menüsü).")
                 }
                 Section {
                     Toggle("Anonim kullanım istatistiklerini paylaş", isOn: $shareUsageStatistics)
@@ -96,11 +154,24 @@ struct PhoneSettingsTab: View {
                 } footer: {
                     Text("Günlük güvenilirlik ve özellik kullanımı sayıları, ilk açılış ve giriş adımları; toplantı içeriği, ses ya da metin içermez.")
                 }
-                Section("Uygulama") {
+                Section {
+                    // Arayüz dili iOS'ta uygulama başına iPhone Ayarları'ndan seçilir (Mac'te uygulamanın içinden).
+                    if let settings = URL(string: UIApplication.openSettingsURLString) {
+                        Button {
+                            openURL(settings)
+                        } label: {
+                            LabeledContent("Arayüz dili", value: interfaceLanguageName())
+                        }
+                        .tint(Theme.ink)
+                    }
                     LabeledContent("Sürüm", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?")
                     LabeledContent("Toplantılar", value: "\(store.meetings.count)")
                     NavigationLink("Geri bildirim gönder") { PhoneFeedbackForm() }
                     CrashReportsLink(center: crashReports)
+                } header: {
+                    Text("Uygulama")
+                } footer: {
+                    Text("Arayüz dili iPhone Ayarları › \(appName) › Dil bölümünden değişir.")
                 }
             }
             .navigationTitle("Ayarlar")
@@ -109,9 +180,11 @@ struct PhoneSettingsTab: View {
 }
 
 /// Takvim: varsayılan kapalı; açılınca iOS izni sorar. İzin yoksa nedeni ve iPhone Ayarları'na giden düğme görünür.
+/// Takvim açıkken toplantıdan 1 dk önce hatırlatma açılabilir (bildirim izni o an sorulur).
 private struct CalendarSettingsSection: View {
     let calendar: PhoneCalendar
     @AppStorage(PhoneSettingsKey.calendarEnabled) private var isEnabled: Bool = false
+    @AppStorage(PhoneSettingsKey.meetingReminders) private var remindersEnabled: Bool = false
     /// İzin isteniyor (iOS sorusu açık).
     @State private var isRequesting: Bool = false
     @Environment(\.openURL) private var openURL: OpenURLAction
@@ -145,13 +218,66 @@ private struct CalendarSettingsSection: View {
             case .failed(let message):
                 Label(message, systemImage: "exclamationmark.triangle")
                     .foregroundStyle(.orange)
-            case .off, .on:
+            case .off:
                 EmptyView()
+            case .on:
+                Toggle("Toplantıdan 1 dk önce hatırlat", isOn: Binding<Bool>(
+                    get: { remindersEnabled },
+                    set: { (enabled: Bool) -> Void in
+                        if enabled {
+                            Task { await calendar.enableReminders() }
+                        } else {
+                            calendar.disableReminders()
+                        }
+                    }
+                ))
+                if let problem = calendar.reminderProblem {
+                    Label(problem, systemImage: "bell.slash")
+                        .foregroundStyle(.orange)
+                }
             }
         } header: {
             Text("Takvim")
         } footer: {
-            Text("Kayıt ekranında sıradaki toplantılar görünür; süren bir toplantıda başlattığın kayıt onun adını ve katılımcılarını alır (adlar tanımaya da yardım eder).")
+            Text("Kayıt ekranında sıradaki toplantılar görünür; süren bir toplantıda başlattığın kayıt onun adını ve katılımcılarını alır (adlar tanımaya da yardım eder). Hatırlatmadaki \"Dinlemeye başla\" kaydı hemen başlatır.")
+        }
+    }
+}
+
+/// Çok satırlı metin ayarı (tanıma sözlüğü, kendi şablonun): üstte açıklama, altında kart içinde düzenleyici; her
+/// değişiklik hemen saklanır.
+private struct PhoneTextSettingScreen: View {
+    let title: LocalizedStringKey
+    let key: String
+    let help: LocalizedStringKey
+    @State private var text: String = ""
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(help)
+                .appFont(size: 13, weight: .regular)
+                .foregroundStyle(Theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
+            TextEditor(text: $text)
+                .appFont(size: 16, weight: .regular)
+                .scrollContentBackground(.hidden)
+                .focused($isFocused)
+                .autocorrectionDisabled()
+                .padding(10)
+                .background(Theme.card, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Theme.line))
+        }
+        .padding(20)
+        .background(Theme.background)
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            text = UserDefaults.standard.string(forKey: key) ?? ""
+            isFocused = true
+        }
+        .onChange(of: text) { (_: String, value: String) in
+            UserDefaults.standard.set(value, forKey: key)
         }
     }
 }
@@ -181,4 +307,11 @@ private struct PhoneAppearanceRow: View {
             }
         }
     }
+}
+
+/// Uygulamanın şu anki arayüz dilinin kendi dilindeki adı ("Türkçe", "English"). Saf değildir: paketin dil seçimini okur.
+private func interfaceLanguageName() -> String {
+    let code: String = Bundle.main.preferredLocalizations.first ?? "tr"
+    let locale: Locale = Locale(identifier: code)
+    return locale.localizedString(forLanguageCode: code).map { $0.capitalized(with: locale) } ?? code
 }

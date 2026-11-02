@@ -30,6 +30,8 @@ private struct ActiveRecording {
     let offline: Bool
     /// Kaydın bağlandığı takvim etkinliği (başlık ve katılımcılar kayda geçer); yoksa nil.
     let linkedMeeting: CalendarMeeting?
+    /// Notun şablonu: kayıt başlarken Ayarlar'daki varsayılan (kayıt sırasında değişmez).
+    let template: NoteTemplate
 }
 
 /// iPhone kaydı: yüz yüze toplantı (odadaki herkes telefon mikrofonundan gelir ve konuşmacılara ayrılır). Mac'teki
@@ -99,8 +101,9 @@ final class PhoneRecorder {
     @ObservationIgnored private let speechEngine: AppleSpeechEngine = AppleSpeechEngine()
     /// Toplantının süre sınırını izleyen görev (bkz. `watchRecordingLimit`).
     @ObservationIgnored private var recordingLimitTask: Task<Void, Never>?
-    /// Bekleyen (çevrimdışı) kayıtların kuyruğu çalışıyor (eşzamanlı tetiklemeler ikinci kez çalıştırmasın).
-    @ObservationIgnored private var isRunningQueue: Bool = false
+    /// Bekleyen (çevrimdışı) kayıtların kuyruğu çalışıyor (eşzamanlı tetiklemeler ikinci kez çalıştırmasın; hesap
+    /// değişimi biterken bekler).
+    private(set) var isRunningQueue: Bool = false
     /// Notun yazılmaya başladığı an (toplantı başına; not süresi telemetrisi, bkz. `recordNoteOutcome`).
     @ObservationIgnored private var noteWritingStartedAt: [String: ContinuousClock.Instant] = [:]
     /// Sunucunun reddettiği bekleyen kayıtlar ve reddin anı (bkz. `hostedQueueCandidates`).
@@ -179,6 +182,7 @@ final class PhoneRecorder {
         errorMessages = []
         highlights = []
         myNotes = ""
+        closeAssistantCard()
         // Canlı akış dil algılamaz (Deepgram da Apple konuşma tanıma da): sabit dil ya da ana toplantı dili.
         let speechLanguage: MeetingLanguage = appleSpeechLanguage(mode: languageMode, primary: phonePrimaryMeetingLanguage())
         let started: Date = Date()
@@ -245,7 +249,8 @@ final class PhoneRecorder {
         }
         // Canlı motoru sunucu seçer (Deepgram jetonu); jeton alınamazsa ya da akış durursa canlı metin bu iPhone'da.
         let choice: HostedLiveChoice = await hostedLiveChoice(
-            language: speechLanguage, keyterms: keytermsWithAttendees(attendees: linkedMeeting?.attendees ?? [], keyterms: [], limit: 30)
+            language: speechLanguage,
+            keyterms: keytermsWithAttendees(attendees: linkedMeeting?.attendees ?? [], keyterms: phoneRecognitionKeyterms(records: store.meetings), limit: 30)
         )
         Self.logger.info("Canlı motor seçildi, motor: \(choice.engine.rawValue, privacy: .public)")
         let handle: LiveSessionHandle = runHybridLiveSession(
@@ -276,7 +281,7 @@ final class PhoneRecorder {
         }
         let active: ActiveRecording = ActiveRecording(
             directory: directory, startedAt: started, handle: handle, liveLLM: liveLLM, engine: choice.engine == .deepgram ? .cloud : .local,
-            offline: offline, linkedMeeting: linkedMeeting
+            offline: offline, linkedMeeting: linkedMeeting, template: phoneNoteTemplate()
         )
         self.active = active
         startedAt = started
@@ -367,6 +372,7 @@ final class PhoneRecorder {
         }
         phase = .finishing
         stoppedAt = Date()
+        closeAssistantCard()
         Self.logger.info("Kayıt bitiriliyor")
         // Kapanış (son ses, son konuşmacı etiketleri, bekleyen çeviriler) uygulama arka plana geçse de bitsin.
         if let recording = active {
@@ -490,7 +496,22 @@ final class PhoneRecorder {
         await runQueue()
     }
 
-    /// Bekleyen ilk toplantıyı (çevrimdışı kaydedilmiş) işler (Mac'teki `runOfflineQueue`'nun karşılığı): kayıt yokken
+    /// Toplantıyı yeniden işler (Mac'teki "Tekrar işle"): son geçiş kaydın sunucu oturumu yeniden açılarak yapılır,
+    /// not yeniden yazılır. Bekleyen (çevrimdışı) kayıt önce sunucu oturumunu almalı: kuyruktan işlenir. Kayıt sürerken,
+    /// toplantı işlenirken, notu yazılırken ya da sesi silinmişse yapılmaz (hata fırlar).
+    func reprocess(meetingID: String) throws {
+        guard phase == .idle, let record = store.meetings.first(where: { $0.id == meetingID }), record.status != .recording,
+              record.status != .processing, !record.audioDeleted, !store.regeneratingIDs.contains(meetingID), processingSteps[meetingID] == nil else {
+            throw StorageError.writeFailed(path: meetingID, reason: "kayıtta, işleniyor ya da sesi yok")
+        }
+        if record.status == .queued {
+            Task { await runQueue() }
+            return
+        }
+        process(record: record.with(status: .processing, failureMessage: nil), directory: try store.sessionDirectory(id: meetingID))
+    }
+
+    /// Bekleyen ilk toplantıyı (çevrimdışı kaydedilmiş ya da içe aktarılmış) işler (Mac'teki `runOfflineQueue`'nun karşılığı): kayıt yokken
     /// sunucu oturumu hazırlanır (bkz. `HostedAccount.prepareQueuedMeeting`), sonra son geçiş ve not o oturumla üretilir.
     /// Sunucuya hâlâ ulaşılamıyorsa bekler; sunucu şimdilik işlemiyorsa (deneme bitti, sınır) kayıt bekleyen kalır ve
     /// nedeni toplantıda görünür. Açılışta, uygulama öne gelince, ağ gelince ve hak durumu okununca (`queueTrigger`) ve
@@ -745,7 +766,8 @@ final class PhoneRecorder {
         beginBackgroundTask(id: record.id)
         processingTasks[record.id] = Task {
             let finalPass: FinalPassPlan = await hostedFinalPassPlan(
-                keyterms: keytermsWithAttendees(attendees: record.attendees ?? [], keyterms: [], limit: 30), recordID: record.id
+                keyterms: keytermsWithAttendees(attendees: record.attendees ?? [], keyterms: phoneRecognitionKeyterms(records: store.meetings), limit: 30),
+                recordID: record.id
             )
             let llm: LLMProvider? = recordedMeetingLLMReportingFailure(recordID: record.id)
             let result: MeetingRecord = await processMeeting(
@@ -769,9 +791,11 @@ final class PhoneRecorder {
                 return
             }
             recordNoteOutcome(result: result, writingStartedAt: noteWritingStartedAt.removeValue(forKey: record.id))
-            saveRecord(record: result, directory: directory)
+            // Tekrar işlemede eski not geçmişe girer (ilk işlemede not yoktur; Mac'teki gibi).
+            let versioned: MeetingRecord = withNoteVersion(updated: result, previous: record, reason: String(localized: "Tekrar işlendi"), savedAt: Date())
+            saveRecord(record: versioned, directory: directory)
             processingSteps[record.id] = nil
-            finishContinuedTask(meetingID: record.id, success: result.status == .done)
+            finishContinuedTask(meetingID: record.id, success: versioned.status == .done)
             // Son geçişin ses süresi aylık kullanıma sayılır: hesap durumu yenilenir.
             await HostedAccount.shared.refresh()
             endBackgroundTask(id: record.id)
@@ -789,6 +813,154 @@ final class PhoneRecorder {
         } catch {
             errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Not yazılamadı: \(userFacingMessage(error: error))"))
             return nil
+        }
+    }
+
+    // MARK: Asistan
+
+    /// Kayıt sırasındaki asistan kartı ("Ne kaçırdım?" özeti ya da toplantıya sorulan sorunun cevabı; Mac'teki gibi).
+    private(set) var assistantCard: AssistantCard?
+    @ObservationIgnored private var assistantTask: Task<Void, Never>?
+    /// Her istekte artar: yalnızca en son isteğin sonucu karta yazılır.
+    @ObservationIgnored private var assistantRequestID: Int = 0
+
+    /// Konuşmanın asistana giden metni: kaydın sabit dili dışındaki (atlanan) bölümler girmez.
+    private var assistantTranscript: [LiveSegment] {
+        let skipped: Set<SegmentID> = otherLanguageSegments
+        return transcript.filter { !$0.text.isEmpty && !skipped.contains($0.id) }
+    }
+
+    /// Son N dakikanın (Ayarlar) not dilinde özeti ("Ne kaçırdım?"); o sürede konuşma yoksa istek atılmaz.
+    func askWhatIMissed() {
+        let minutes: Int = phoneMissedWindowMinutes()
+        let nowSec: Double = transcript.map(\.endSec).max() ?? 0
+        guard let request = missedSummaryRequest(segments: assistantTranscript, nowSec: nowSec, windowSec: Double(minutes * 60), language: phoneNoteLanguage()) else {
+            cancelAssistant()
+            assistantCard = .summary(MissedSummary(topic: String(localized: "Son \(minutes) dakikada konuşma yok."), decisions: [], askedOfYou: []))
+            return
+        }
+        runAssistant(request: request, title: String(localized: "Ne kaçırdım?")) { (text: String) throws -> AssistantCard in
+            .summary(try parseMissedSummary(text: text))
+        }
+    }
+
+    /// Toplantıda konuşulanlara göre soru (cevap not dilinde); henüz konuşma yoksa istek atılmaz.
+    func askDuringMeeting(question: String) {
+        let trimmed: String = question.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return
+        }
+        guard let request = questionRequest(segments: assistantTranscript, question: trimmed, language: phoneNoteLanguage()) else {
+            cancelAssistant()
+            assistantCard = .answer(question: trimmed, text: String(localized: "Henüz konuşma yok; sorular toplantıda konuşulanlara göre cevaplanır."))
+            return
+        }
+        runAssistant(request: request, title: String(localized: "Cevap hazırlanıyor")) { (text: String) throws -> AssistantCard in
+            .answer(question: trimmed, text: text)
+        }
+    }
+
+    /// Kartı kapatır ve süren isteği iptal eder.
+    func closeAssistantCard() {
+        cancelAssistant()
+        assistantCard = nil
+    }
+
+    /// Önceki isteği iptal edip yenisini kaydın canlı yapay zekâsıyla (toplantının sunucu oturumu) çalıştırır; sonucu
+    /// yalnızca hâlâ en son istekse karta yazar. Canlı yapay zekâ bu kayıtta yoksa neden kartta görünür.
+    private func runAssistant(request: LLMRequest, title: String, makeCard: @escaping @Sendable (String) throws -> AssistantCard) {
+        cancelAssistant()
+        guard let provider = active?.liveLLM else {
+            assistantCard = .failed(message: String(localized: "Yapay zekâ bu kayıtta kullanılamıyor; not kayıt bitince yazılır."))
+            return
+        }
+        let requestID: Int = assistantRequestID
+        assistantCard = .loading(title: title)
+        assistantTask = Task { [weak self] in
+            let card: AssistantCard
+            do {
+                card = try await requestStructured(provider: provider, request: request, parse: makeCard)
+            } catch {
+                card = .failed(message: userFacingMessage(error: error))
+            }
+            guard let self, requestID == self.assistantRequestID, !Task.isCancelled else {
+                return
+            }
+            self.assistantCard = card
+        }
+    }
+
+    private func cancelAssistant() {
+        assistantTask?.cancel()
+        assistantTask = nil
+        assistantRequestID += 1
+    }
+
+    // MARK: Dosya içe aktarma
+
+    /// İçe aktarılmakta olan dosya sayısı (ses izi dönüştürülürken).
+    private(set) var importingCount: Int = 0
+    /// İçe aktarılamayan dosyalar ve nedenleri (Toplantılar'da görünür; yeni içe aktarma temizler).
+    private(set) var importErrors: [String] = []
+
+    /// Ses ya da video dosyalarını toplantı olarak içe aktarır (Mac'teki "İçe aktar"): ses izi `others.m4a` olur
+    /// (kayıtla aynı biçim), toplantı bekleyen olarak kuyruğa girer; sunucu oturumu, son geçiş (konuşmacılar) ve not
+    /// çevrimdışı kayıt gibi kuyrukta üretilir (haklar, deneme ve aylık süre sunucuda denetlenir). Dosyalar sırayla
+    /// dönüştürülür; hepsi bitince döner. Kaynak dosyalara dokunulmaz (Dosyalar'dan seçilenler güvenlik kapsamıyla okunur).
+    func importFiles(urls: [URL]) async {
+        importErrors = []
+        importingCount += urls.count
+        for url in urls {
+            await importOne(url: url)
+            importingCount -= 1
+        }
+        await runQueue()
+    }
+
+    /// Tek dosyayı içe aktarır; olmazsa yarım klasör silinir ve neden listede görünür.
+    private func importOne(url: URL) async {
+        let accessed: Bool = url.startAccessingSecurityScopedResource()
+        defer {
+            if accessed {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+        var created: URL?
+        do {
+            let session: (url: URL, startedAt: Date) = try AppPaths.newExclusiveSessionDirectory(startedAt: Date())
+            created = session.url
+            let recordID: String = session.url.lastPathComponent
+            // Uzun dosya dönüştürülürken uygulama arka plana geçerse iOS'tan ek süre istenir.
+            beginBackgroundTask(id: recordID)
+            defer { endBackgroundTask(id: recordID) }
+            let duration: Double = try await importMediaAudio(source: url, destination: session.url.appending(path: "others.m4a"))
+            let record: MeetingRecord = importedMeetingRecord(
+                id: recordID, source: url, startedAt: session.startedAt, durationSec: duration, engine: .cloud, template: phoneNoteTemplate()
+            )
+            // Toplantının ses hakkını aşan dosya kuyruğa alınmaz: son geçiş yarıda kalır, bekleyen kayıt hiç bitmezdi.
+            // Hak durumu okunamadıysa sunucu son geçişte denetler.
+            if case .signedIn(let entitlements) = HostedAccount.shared.state {
+                try requireHostedImportFits(durationSec: duration, entitlements: entitlements)
+            }
+            // Kayıt giriş yapan hesaba yazılır: kuyruk yalnız o hesabın kayıtlarını işler (başka hesaba faturalanmaz).
+            try await HostedAccount.shared.claimQueuedRecord(recordID: recordID)
+            Self.logger.info("Dosya içe aktarıldı, toplantı: \(recordID, privacy: .public), süre: \(Int(duration), privacy: .public)")
+            saveRecord(
+                record: record.with(status: .queued, failureMessage: nil).with(notice: String(localized: "İçe aktarıldı; sunucuda işlenmeyi bekliyor.")),
+                directory: session.url
+            )
+        } catch {
+            Self.logger.error("Dosya içe aktarılamadı, hata: \(String(describing: error), privacy: .private)")
+            importErrors = appendUnique(
+                messages: importErrors, message: String(localized: "\(url.lastPathComponent) içe aktarılamadı: \(mediaImportMessage(error: error))")
+            )
+            if let created {
+                do {
+                    try FileManager.default.removeItem(at: created)
+                } catch {
+                    Self.logger.error("Yarım içe aktarma klasörü silinemedi, hata: \(String(describing: error), privacy: .private)")
+                }
+            }
         }
     }
 
@@ -1015,6 +1187,10 @@ final class PhoneRecorder {
     /// sınırı) çeviriye gider; yarım birim konuşmacı susunca (`liveTranslationUnitLimits.idleSec`) çevrilir. Toplantı
     /// not dilindeyse metin olduğu gibi kalır.
     private func addForTranslation(segment: LiveSegment) {
+        // Canlı çeviri Ayarlar'dan kapatıldıysa yalnız orijinal metin akar (not yine not dilinde yazılır).
+        guard phoneLiveTranslationEnabled() else {
+            return
+        }
         // Toplantı not dilindeyse aynı dile çeviri yapılmaz: orijinal tek başına görünür (LLM'e gitmez).
         guard needsLiveTranslation(spoken: lockedLanguage ?? fixedMeetingLanguage(mode: languageMode), noteLanguage: phoneNoteLanguage()) else {
             return
@@ -1137,6 +1313,7 @@ final class PhoneRecorder {
         )
         .with(highlights: highlights)
         .with(myNotes: myNotes)
+        .with(template: recording.template)
         // Sabit dil kayda yazılır: başka dildeki bölümler toplantı okunurken atlanır.
         .with(fixedLanguage: recordingFixedLanguage)
         // Mac'teki gibi: takvim etkinliğine bağlı kayıt katılımcıları ve etkinlik kimliğini taşır.

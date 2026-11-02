@@ -1061,9 +1061,9 @@ struct MeetingDetailPage: View {
                     model.regenerateNote(meetingID: record.id, template: NoteTemplate(kind: kind, customInstructions: UserDefaults.standard.string(forKey: SettingsKey.customTemplate) ?? ""))
                 } label: {
                     if (record.template?.kind ?? .general) == kind {
-                        Label(templateTitle(kind: kind), systemImage: "checkmark")
+                        Label(kind.displayName, systemImage: "checkmark")
                     } else {
-                        Text(templateTitle(kind: kind))
+                        Text(verbatim: kind.displayName)
                     }
                 }
             }

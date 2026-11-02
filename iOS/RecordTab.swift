@@ -10,13 +10,15 @@ struct RecordTab: View {
     let store: PhoneStore
     let router: PhoneRouter
     let calendar: PhoneCalendar
+    /// Sıradaki toplantının brifingini Sor'da açar.
+    let onBriefing: @MainActor (CalendarMeeting) -> Void
 
     var body: some View {
         NavigationStack {
             Group {
                 switch recorder.phase {
                 case .idle, .starting:
-                    RecordHome(recorder: recorder, store: store, router: router, calendar: calendar)
+                    RecordHome(recorder: recorder, store: store, router: router, calendar: calendar, onBriefing: onBriefing)
                 case .recording, .finishing:
                     LiveRecordingView(recorder: recorder)
                 }
@@ -35,6 +37,7 @@ private struct RecordHome: View {
     let store: PhoneStore
     let router: PhoneRouter
     let calendar: PhoneCalendar
+    let onBriefing: @MainActor (CalendarMeeting) -> Void
 
     var body: some View {
         let openTasks: [(record: MeetingRecord, task: NoteTask)] = myTasks(meetings: store.meetings).filter { !isTaskDone(record: $0.record, task: $0.task) }
@@ -57,7 +60,7 @@ private struct RecordHome: View {
                 if let id = recorder.lastMeetingID, let step = recorder.processingSteps[id] {
                     PreparingCard(step: step)
                 }
-                UpcomingCalendarSection(calendar: calendar, router: router)
+                UpcomingCalendarSection(calendar: calendar, router: router, canBrief: !store.meetings.isEmpty, onBriefing: onBriefing)
                 if !openTasks.isEmpty {
                     VStack(alignment: .leading, spacing: 10) {
                         PhoneSectionHeader(title: "Sana düşen görevler", actionTitle: "Tümü") { router.tab = .tasks }
@@ -154,6 +157,8 @@ private struct RecordHeroCard: View {
     let recorder: PhoneRecorder
     /// Not ve çeviri dili (Ayarlar): canlı çevirinin dili adıyla geçer.
     @AppStorage(PhoneSettingsKey.noteLanguage) private var noteLanguage: String = defaultNoteLanguage(interfaceLanguages: Bundle.main.preferredLocalizations).rawValue
+    /// Canlı çeviri kapalıysa açıklama onu anmaz.
+    @AppStorage(PhoneSettingsKey.displayMode) private var displayMode: String = DisplayMode.bilingual.rawValue
 
     var body: some View {
         VStack(spacing: 18) {
@@ -203,7 +208,13 @@ private struct RecordHeroCard: View {
                     .appFont(size: 20, weight: .semibold)
                     .tracking(-0.3)
                     .foregroundStyle(Color.black.opacity(0.8))
-                Text("Odadaki herkes konuşmacılara ayrılır, \(phoneStoredNoteLanguage(value: noteLanguage).interfaceName) çevirisi canlı akar; bitince notu yazar.")
+                Group {
+                    if (DisplayMode(rawValue: displayMode) ?? .bilingual).needsLiveTranslation {
+                        Text("Odadaki herkes konuşmacılara ayrılır, \(phoneStoredNoteLanguage(value: noteLanguage).interfaceName) çevirisi canlı akar; bitince notu yazar.")
+                    } else {
+                        Text("Odadaki herkes konuşmacılara ayrılır; bitince \(phoneStoredNoteLanguage(value: noteLanguage).interfaceName) notu yazar.")
+                    }
+                }
                     .appFont(size: 13, weight: .regular)
                     .foregroundStyle(Color.black.opacity(0.6))
                     .multilineTextAlignment(.center)
@@ -256,12 +267,15 @@ struct PressableCardStyle: ButtonStyle {
 }
 
 /// Kayıt sırasında odaklı tam ekran (sekme çubuğu gizli): üstte sabit başlık (kayıt durumu, dil, büyük süre ve ses
-/// dalgası), ortada konuşmacılı canlı metin (en alta kayar), altta yüzen çubukta "İşaretle", "Bitir" ve "Notlarım". Rıza
-/// hatırlatması kayıt başında üstte 3 saniye görünen bir bildirimdir.
+/// dalgası), ortada konuşmacılı canlı metin (en alta kayar), altta yüzen çubukta "Ne kaçırdım?", "İşaretle", "Bitir" ve
+/// "Notlarım". "Ne kaçırdım?" çubuğun üstünde asistan kartını açar; kartın altındaki alanla toplantıya soru sorulur (Mac
+/// panelindeki gibi). Rıza hatırlatması kayıt başında üstte 3 saniye görünen bir bildirimdir.
 private struct LiveRecordingView: View {
     let recorder: PhoneRecorder
     @State private var markedAt: Date?
     @State private var isNotesOpen: Bool = false
+    /// Asistana sorulacak soru (kart açıkken).
+    @State private var question: String = ""
 
     private var blocks: [SpeakerBlock] {
         groupBySpeaker(transcript: recorder.transcript.filter { !$0.text.isEmpty })
@@ -281,7 +295,16 @@ private struct LiveRecordingView: View {
                 transcript
             }
         }
-        .safeAreaInset(edge: .bottom) { controls }
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: 10) {
+                if let card = recorder.assistantCard {
+                    assistant(card: card)
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                }
+                controls
+            }
+            .animation(.smooth(duration: 0.3), value: recorder.assistantCard != nil)
+        }
         .overlay(alignment: .top) {
             if recorder.consentReminderVisible {
                 ConsentToast { recorder.consentReminderVisible = false }
@@ -399,7 +422,44 @@ private struct LiveRecordingView: View {
         }
     }
 
-    /// Yüzen eylem çubuğu: solda "İşaretle", ortada geniş "Bitir", sağda "Notlarım"; bitirilirken yalnız durum.
+    /// Asistan kartı ve altında toplantıya soru alanı; kartın "x"i ikisini de kapatır.
+    private func assistant(card: AssistantCard) -> some View {
+        VStack(spacing: 8) {
+            AssistantCardView(card: card) {
+                question = ""
+                recorder.closeAssistantCard()
+            }
+            HStack(spacing: 8) {
+                TextField("Toplantıya sor…", text: $question)
+                    .appFont(size: 15, weight: .regular)
+                    .submitLabel(.send)
+                    .onSubmit(sendQuestion)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(Theme.card, in: Capsule())
+                    .overlay(Capsule().strokeBorder(Theme.line))
+                Button(action: sendQuestion) {
+                    Image(systemName: "arrow.up")
+                        .appFont(size: 15, weight: .semibold)
+                        .foregroundStyle(Theme.onPrimary)
+                        .frame(width: 40, height: 40)
+                        .background(Theme.primary, in: Circle())
+                }
+                .buttonStyle(PressableCardStyle())
+                .disabled(question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .accessibilityLabel("Sor")
+            }
+        }
+        .padding(.horizontal, 16)
+    }
+
+    private func sendQuestion() {
+        recorder.askDuringMeeting(question: question)
+        question = ""
+    }
+
+    /// Yüzen eylem çubuğu: solda "Ne kaçırdım?" ve "İşaretle", ortada geniş "Bitir", sağda "Notlarım"; bitirilirken
+    /// yalnız durum.
     private var controls: some View {
         HStack(spacing: 14) {
             if recorder.phase == .finishing {
@@ -411,6 +471,15 @@ private struct LiveRecordingView: View {
                 }
                 .frame(maxWidth: .infinity, minHeight: 60)
             } else {
+                Button {
+                    recorder.askWhatIMissed()
+                } label: {
+                    RecordingControlIcon(systemImage: "sparkles")
+                }
+                .buttonStyle(PressableCardStyle())
+                .disabled(blocks.isEmpty)
+                .accessibilityLabel("Ne kaçırdım?")
+                .accessibilityHint("Son dakikaların özetini gösterir; toplantıya soru da sorabilirsin")
                 Button {
                     recorder.markMoment()
                     markedAt = Date()
@@ -635,6 +704,8 @@ private struct LiveBlockView: View {
     /// Sabit toplantı dilinden başka dildeki bölümler: soluk ve eğik (çevrilmez, toplantıdan atlanır).
     let otherLanguage: Set<SegmentID>
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
+    /// "Sadece çeviri" (Ayarlar › Toplantı › Gösterim): çevirisi gelen blokta orijinal gizlenir.
+    @AppStorage(PhoneSettingsKey.displayMode) private var displayMode: String = DisplayMode.bilingual.rawValue
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -649,22 +720,41 @@ private struct LiveBlockView: View {
                         .monospacedDigit()
                         .foregroundStyle(Theme.muted)
                 }
-                Text("\(finalText)\(Text(partialText).foregroundStyle(Theme.muted))")
-                    .readingText(size: 18, weight: .regular, lineSpacing: 5)
-                    .foregroundStyle(Theme.ink)
-                if !translation.isEmpty {
-                    Text(translation)
-                        .readingText(size: 15, weight: .regular, lineSpacing: 4)
-                        .foregroundStyle(Theme.muted)
-                        .padding(.leading, 12)
-                        .overlay(alignment: .leading) {
-                            Capsule().fill(appearance.accent.color.opacity(0.35)).frame(width: 2)
-                        }
-                        .padding(.top, 2)
+                if DisplayMode(rawValue: displayMode) == .turkishOnly {
+                    // Yalnız çeviri: çevirisi henüz gelmeyen metin orijinal haliyle soluk (Mac'teki gibi).
+                    if translation.isEmpty {
+                        Text("\(finalText)\(Text(partialText))")
+                            .readingText(size: 18, weight: .regular, lineSpacing: 5)
+                            .foregroundStyle(Theme.muted)
+                    } else {
+                        Text(translation)
+                            .readingText(size: 18, weight: .regular, lineSpacing: 5)
+                            .foregroundStyle(Theme.ink)
+                    }
+                } else {
+                    original
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Orijinal metin ve altında (varsa) not dilindeki çevirisi.
+    @ViewBuilder
+    private var original: some View {
+        Text("\(finalText)\(Text(partialText).foregroundStyle(Theme.muted))")
+            .readingText(size: 18, weight: .regular, lineSpacing: 5)
+            .foregroundStyle(Theme.ink)
+        if !translation.isEmpty {
+            Text(translation)
+                .readingText(size: 15, weight: .regular, lineSpacing: 4)
+                .foregroundStyle(Theme.muted)
+                .padding(.leading, 12)
+                .overlay(alignment: .leading) {
+                    Capsule().fill(appearance.accent.color.opacity(0.35)).frame(width: 2)
+                }
+                .padding(.top, 2)
+        }
     }
 
     /// Kesin bölümler; başka dildeki bölüm soluk ve eğik.

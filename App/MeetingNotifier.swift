@@ -1,5 +1,7 @@
 import AINotepadCore
+#if os(macOS)
 import CoreAudio
+#endif
 import Foundation
 import UserNotifications
 
@@ -24,7 +26,7 @@ enum NotificationError: Error, Equatable {
 }
 
 /// Toplantı bildirimleri (UserNotifications): başlamadan 1 dk önce hatırlatma ve görüşme başladı önerisi; ikisinde de
-/// "Dinlemeye başla" düğmesi.
+/// "Dinlemeye başla" düğmesi. iPhone yalnız hatırlatmayı kullanır (görüşme önerisi ve kendiliğinden kayıt Mac'e özgü).
 @MainActor
 final class MeetingNotifier {
     private let center: UNUserNotificationCenter = UNUserNotificationCenter.current()
@@ -122,6 +124,7 @@ final class MeetingNotifier {
     }
 }
 
+#if os(macOS)
 /// Varsayılan mikrofonun herhangi bir uygulamada kullanılıp kullanılmadığını (Core Audio) 5 sn'de bir denetler;
 /// kullanılmıyorken kullanılmaya başlayınca `onStart` çağrılır.
 @MainActor
@@ -171,12 +174,17 @@ private func defaultInputIsRunning() -> Bool {
     }
     return running != 0
 }
+#endif
 
 /// Bildirim izni ya da kurulumu hatasının kullanıcı metni. Saf fonksiyondur.
 func notificationMessage(error: any Error) -> String {
     switch error {
     case NotificationError.denied:
+        #if os(iOS)
+        String(localized: "Bildirim izni yok: iPhone Ayarları › Bildirimler › \(appName) bölümünden izin ver.")
+        #else
         String(localized: "Bildirim izni yok: Sistem Ayarları › Bildirimler › \(appName) bölümünden izin ver.")
+        #endif
     case NotificationError.authorizationFailed(let reason):
         String(localized: "Bildirim izni istenemedi: \(reason)")
     case NotificationError.scheduleFailed(let reason):

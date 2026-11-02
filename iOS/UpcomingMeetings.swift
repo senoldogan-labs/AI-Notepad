@@ -3,11 +3,14 @@ import AINotepadUI
 import SwiftUI
 
 /// Kayıt ekranında sıradaki toplantılar (takvim açıksa, önümüzdeki 12 saat): saat, başlık, katılımcılar; görüşme
-/// bağlantısı varsa "Katıl"; sıradaki toplantı yoksa görünmez. Süren toplantı "Şimdi" ile işaretlenir: o sırada başlatılan kayıt onun adını alır. Takvim
+/// bağlantısı varsa "Katıl", arşivde toplantı varsa "Brifing"; sıradaki toplantı yoksa görünmez. Süren toplantı "Şimdi" ile işaretlenir: o sırada başlatılan kayıt onun adını alır. Takvim
 /// izni yoksa kısa bir uyarı ve Ayarlar'a geçiş.
 struct UpcomingCalendarSection: View {
     let calendar: PhoneCalendar
     let router: PhoneRouter
+    /// Arşivde toplantı var: brifing sorulabilir (boş arşivde düğme görünmez, Mac'teki gibi).
+    let canBrief: Bool
+    let onBriefing: @MainActor (CalendarMeeting) -> Void
 
     var body: some View {
         switch calendar.state {
@@ -27,7 +30,7 @@ struct UpcomingCalendarSection: View {
                                 if item.offset > 0 {
                                     Rectangle().fill(Theme.line).frame(height: 1).padding(.leading, 14)
                                 }
-                                UpcomingMeetingRow(meeting: item.element, isCurrent: item.element.id == current?.id, now: now)
+                                UpcomingMeetingRow(meeting: item.element, isCurrent: item.element.id == current?.id, now: now, canBrief: canBrief, onBriefing: onBriefing)
                             }
                         }
                         .background(Theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
@@ -54,12 +57,16 @@ struct UpcomingCalendarSection: View {
     }
 }
 
-/// Sıradaki toplantı satırı: saat aralığı (süren ya da 10 dk içinde başlayan vurgulu), başlık, katılımcılar ve "Katıl".
+/// Sıradaki toplantı satırı: saat aralığı (süren ya da 10 dk içinde başlayan vurgulu), başlık, katılımcılar, "Brifing" ve
+/// "Katıl".
 private struct UpcomingMeetingRow: View {
     let meeting: CalendarMeeting
     /// Şu an süren toplantı: yeni kayıt buna bağlanır.
     let isCurrent: Bool
     let now: Date
+    let canBrief: Bool
+    /// Brifing: bu kişilerle ya da konuda önceki toplantılar, kararlar ve açık görevler (Sor'da açılır).
+    let onBriefing: @MainActor (CalendarMeeting) -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
@@ -91,6 +98,21 @@ private struct UpcomingMeetingRow: View {
                 }
             }
             Spacer(minLength: 8)
+            if canBrief {
+                Button {
+                    onBriefing(meeting)
+                } label: {
+                    Text("Brifing")
+                        .appFont(size: 13, weight: .semibold)
+                        .foregroundStyle(appearance.accent.color)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .background(appearance.accent.color.opacity(0.14), in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("Brifing: \(meeting.title)"))
+                .accessibilityHint(Text("Bu kişilerle ve konuda önceki toplantılar, kararlar, açık görevler"))
+            }
             if let url = meeting.joinURL {
                 Link(destination: url) {
                     Text("Katıl")

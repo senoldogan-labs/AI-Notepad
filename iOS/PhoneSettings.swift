@@ -26,8 +26,21 @@ enum PhoneSettingsKey {
     static let uiScale: String = AppearanceKey.uiScale
     static let textSize: String = AppearanceKey.textSize
     static let lineSpacing: String = AppearanceKey.lineSpacing
+    /// Konuşma tanımanın doğru yazması gereken adlar ve terimler (satır ya da virgülle; Mac'teki "Tanıma sözlüğü").
+    static let customVocabulary: String = "customVocabulary"
+    /// Yeni toplantıların not şablonu (`NoteTemplateKind`) ve "Kendi şablonum"un yönergesi (Mac'teki ayarlarla aynı ad).
+    static let noteTemplate: String = "noteTemplate"
+    static let customTemplate: String = "customTemplate"
+    /// Canlı çeviri görünümü (`DisplayMode`, Mac'teki ayarla aynı ad): `originalOnly` kayıt sırasında çevirmez,
+    /// `turkishOnly` canlı metinde yalnız çeviriyi gösterir.
+    static let displayMode: String = "displayMode"
+    /// "Ne kaçırdım?" özetinin kapsadığı son dakika sayısı (Mac'teki ayarla aynı ad).
+    static let missedWindowMinutes: String = "missedWindowMinutes"
     /// Takvim (sıradaki toplantılar, kaydı süren etkinliğe bağlama); varsayılan kapalı, açılınca izin istenir.
     static let calendarEnabled: String = "calendar.enabled"
+    /// Toplantıdan 1 dk önce "Dinlemeye başla" bildirimi (Mac'teki ayarla aynı ad); iPhone'da varsayılan kapalı, açılınca
+    /// bildirim izni istenir.
+    static let meetingReminders: String = "calendar.reminders"
     /// Ses ve metnin hizmetimize ve üçüncü taraf yapay zekâ sağlayıcılarına gönderileceği açıklaması kabul edildi (ilk
     /// yapay zekâ işleminden önce bir kez; bkz. `PhoneAIDisclosure`).
     static let aiDisclosureAccepted: String = "hosted.aiDisclosureAccepted"
@@ -39,6 +52,13 @@ func registerPhoneDefaults() {
         PhoneSettingsKey.consentReminder: true,
         PhoneSettingsKey.audioRetentionDays: 30,
         PhoneSettingsKey.primaryMeetingLanguage: MeetingLanguage.finnish.rawValue,
+        PhoneSettingsKey.customVocabulary: "",
+        PhoneSettingsKey.noteTemplate: NoteTemplateKind.general.rawValue,
+        PhoneSettingsKey.customTemplate: "",
+        // iPhone'da canlı çeviri baştan açık (kayıt kartı onu anlatır); Ayarlar › Toplantı'dan kapatılır.
+        PhoneSettingsKey.displayMode: DisplayMode.bilingual.rawValue,
+        PhoneSettingsKey.missedWindowMinutes: 3,
+        PhoneSettingsKey.meetingReminders: false,
         // Mac'teki Gistsmith gibi açık; Ayarlar › Gizlilik'ten kapatılır (bkz. `HostedTelemetryCenter`).
         shareUsageStatisticsDefaultsKey: true,
         // Arayüz dili: Türkçe arayüzde mevcut kullanıcıların notu eskisi gibi Türkçe sürer.
@@ -91,6 +111,36 @@ func phoneStoredNoteLanguage(value stored: String) -> ShareLanguage {
         return defaultNoteLanguage(interfaceLanguages: Bundle.main.preferredLocalizations)
     }
     return language
+}
+
+/// Yeni toplantının not şablonu (Ayarlar); kayıtlı tür tanınmıyorsa (loglanır) genel şablon.
+func phoneNoteTemplate() -> NoteTemplate {
+    let stored: String = UserDefaults.standard.string(forKey: PhoneSettingsKey.noteTemplate) ?? NoteTemplateKind.general.rawValue
+    guard let kind = NoteTemplateKind(rawValue: stored) else {
+        phoneSettingsLogger.error("Not şablonu tanınmadı, genel şablon kullanılıyor, değer: \(stored, privacy: .public)")
+        return .general
+    }
+    return NoteTemplate(kind: kind, customInstructions: UserDefaults.standard.string(forKey: PhoneSettingsKey.customTemplate) ?? "")
+}
+
+/// "Ne kaçırdım?" özetinin kapsadığı son dakika sayısı (Ayarlar), izin verilen aralıkta.
+func phoneMissedWindowMinutes() -> Int {
+    min(max(UserDefaults.standard.integer(forKey: PhoneSettingsKey.missedWindowMinutes), missedWindowMinutesRange.lowerBound), missedWindowMinutesRange.upperBound)
+}
+
+/// Kayıt sırasında not diline canlı çeviri açık mı (Ayarlar › Toplantı).
+func phoneLiveTranslationEnabled() -> Bool {
+    (DisplayMode(rawValue: UserDefaults.standard.string(forKey: PhoneSettingsKey.displayMode) ?? "") ?? .bilingual).needsLiveTranslation
+}
+
+/// Kayda verilen tanıma terimleri (Mac'teki gibi): adın ve tanıma sözlüğü öne, sonra son 20 toplantının konuşmacı adları
+/// ve sözlük terimleri; en fazla 30.
+@MainActor
+func phoneRecognitionKeyterms(records: [MeetingRecord]) -> [String] {
+    recognitionKeyterms(
+        userName: phoneUserName(), vocabulary: UserDefaults.standard.string(forKey: PhoneSettingsKey.customVocabulary) ?? "",
+        savedPeople: [], records: Array(records.prefix(20)), limit: 30
+    )
 }
 
 /// Kullanıcının adı (notta "senin görevlerin" ayrımı için); yoksa boş.
