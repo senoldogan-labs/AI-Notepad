@@ -84,6 +84,9 @@ export const palettes: Readonly<Record<PaletteName, Palette>> = {
 /** Toplantı kimliği: tohumlayıcının "Product weekly" klasör adı, çalıştırma anında bilinir (bkz. make.ts). */
 export const productWeeklyPlaceholder: string = "{productWeekly}";
 
+/** Sor sohbetinin kimliği: tohumlayıcının üç kaynaklı örnek sohbeti (bkz. make.ts). */
+export const askConversationPlaceholder: string = "{askConversation}";
+
 /** Görsellerin sırası App Store'daki sıradır: ilk ikisi arama sonuçlarında görünür. */
 export const scenes: readonly Scene[] = [
   {
@@ -117,7 +120,7 @@ export const scenes: readonly Scene[] = [
     id: "ask",
     headline: "Ask your meetings",
     subhead: "Plain-language answers that cite the meeting.",
-    launchArgs: ["--sekme", "sor"],
+    launchArgs: ["--sohbet", askConversationPlaceholder],
     settleMs: 4000,
     palette: "violet",
     clouds: "right",
@@ -144,10 +147,17 @@ export const scenes: readonly Scene[] = [
 
 /**
  * Yalnız ham çekim olarak istenen ekranlar (`--raw-only <kimlik>`; pazarlama setine girmez). App Store Connect her
- * abonelik için bir inceleme görseli ister: Gistsmith'in iPhone abonelik ekranı (paywall) geldiğinde onu açan argümanla
- * buraya `{ id: "paywall", launchArgs: [...], settleMs: 4000 }` eklenir. Yukarıdaki sahneler de `--raw-only` ile çekilebilir.
+ * abonelik için bir inceleme görseli ister: `paywall` uygulamanın abonelik ekranıdır (`--paywall`; paketler RevenueCat'ten,
+ * fiyatlar App Store sandbox'ından okunur: ağ gerekir, Apple Hesabı gerekmez). Yukarıdaki sahneler de `--raw-only` ile
+ * çekilebilir.
  */
-export const rawScenes: readonly RawScene[] = [];
+export const rawScenes: readonly RawScene[] = [
+  {
+    id: "paywall",
+    launchArgs: ["--paywall"],
+    settleMs: 7000,
+  },
+];
 
 /** 6.9" zorunlu; 6.5" aynı çekimden ucuza üretilir. */
 export const outputSizes: readonly OutputSize[] = [
@@ -167,11 +177,14 @@ export const simulator: SimulatorConfig = {
 export const app: AppConfig = {
   project: "AINotepad.xcodeproj",
   scheme: "AINotepadiOS",
-  bundleId: "com.senoldogan.AINotepad",
+  bundleId: "com.senoldogan.AINotepad.hosted",
   derivedDataPath: ".build/xcode-appstore",
-  productPath: "Build/Products/Debug-iphonesimulator/AINotepad.app",
-  dataFolder: "Library/Application Support/AINotepad",
+  productPath: "Build/Products/Debug-iphonesimulator/Gistsmith.app",
+  // Tanıtım hesabının (`--tanitim`, kimlik "tanitim") veri klasörü: Debug veri klasörü + Accounts/<accountDataKey("tanitim")>.
+  dataFolder: "Library/Application Support/AINotepad Hosted Debug/Accounts/840e998c43c314a273d650cdfc0a3559",
   commonLaunchArgs: [
+    // Tanıtım modu (yalnız Debug): sunucuya bağlanmadan sahte denemedeki hesapla açılır; giriş ve açıklama atlanır.
+    "--tanitim",
     "-AppleLanguages",
     "(en)",
     "-AppleLocale",

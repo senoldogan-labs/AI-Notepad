@@ -159,6 +159,14 @@ public actor HostedClient: HostedLLMCredentialSource {
         try decode(HostedEntitlements.self, data: try await authorized(path: "/v1/me", method: "GET", body: nil, isRetryable: isRetryableRepeatableRequest), path: "/v1/me")
     }
 
+    /// App Store satın almasından (ya da geri yüklemeden) hemen sonra hesabın App Store aboneliğini sunucuya RevenueCat'ten
+    /// okutur (`POST /v1/billing/app-store/sync`; webhook beklenmez) ve güncel hak durumunu döndürür (`GET /v1/me` ile
+    /// aynı). Sunucu RevenueCat'e ulaşamazsa `app_store_unavailable`.
+    public func syncAppStoreSubscription() async throws -> HostedEntitlements {
+        let path: String = "/v1/billing/app-store/sync"
+        return try decode(HostedEntitlements.self, data: try await authorized(path: path, method: "POST", body: nil, isRetryable: isRetryableRepeatableRequest), path: path)
+    }
+
     /// Toplantı oturumu açar; reddedilirse (`trial_exhausted`, `trial_device_used`, `monthly_cap_reached`…)
     /// `HostedAPIError`. `deviceCheckToken` (Apple DeviceCheck, base64) denemesi henüz bir Mac'e bağlanmamış hesabın
     /// deneme toplantısında gerekir. Açılan toplantı yapay zekâ çağrılarının toplantısı olur.

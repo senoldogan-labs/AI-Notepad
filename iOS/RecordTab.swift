@@ -112,15 +112,31 @@ func longDayTitle(date: Date, locale: Locale) -> String {
     return formatter.string(from: date)
 }
 
-/// Kayıt kartının altında hesabın durumu: kaydı engelleyen hak durumu varsa nedeni (deneme bitti, aylık sınır…; abone
-/// olma önerilmez), yoksa denemede kalan toplantılar. Abonelikte ve hak durumu okunmamışken görünmez.
+/// Kayıt kartının altında hesabın durumu: kaydı engelleyen hak durumu varsa nedeni (deneme bitti, aylık sınır…) ve
+/// abonelik çözecekse (deneme bitti, plan sona erdi) "Abone ol" (abonelik ekranı); yoksa denemede kalan toplantılar.
+/// Abonelikte ve hak durumu okunmamışken görünmez.
 private struct PhonePlanNotice: View {
     let account: HostedAccount
 
     var body: some View {
         if let blocked = phoneStartBlockMessage(account: account, now: Date()) {
-            NoticeText(blocked as String, severity: .attention)
-                .appFont(size: 13, weight: .regular)
+            VStack(alignment: .leading, spacing: 10) {
+                NoticeText(blocked as String, severity: .attention)
+                    .appFont(size: 13, weight: .regular)
+                if account.requiresSubscription {
+                    Button {
+                        account.showPlans()
+                    } label: {
+                        Text("Abone ol")
+                            .appFont(size: 15, weight: .semibold)
+                            .foregroundStyle(Color.white)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+                            .background(.tint, in: Capsule())
+                    }
+                    .buttonStyle(PressableCardStyle())
+                }
+            }
         } else if case .signedIn(let entitlements) = account.state, case .trial(let left, _) = hostedPlanStatus(entitlements: entitlements) {
             Label(String(localized: "Ücretsiz deneme: \(hostedTrialLeftText(left: left))."), systemImage: "sparkles")
                 .appFont(size: 13, weight: .medium)

@@ -1,7 +1,8 @@
 // App Store ekran görüntülerini üretir: iPhone uygulamasını Simülatör için derler, örnek toplantıları (seeder/) App Store
 // çekimlerine ayrılmış bir Simülatör aygıtına yükler, config.ts'teki her sahneyi başlatma argümanlarıyla açıp çeker ve
-// her çekimi başlıklı, çerçeveli bir görsele dönüştürür (compose.ts). Hesap ya da ağ gerekmez: veri diskten okunur,
-// canlı kayıt sahnesi uygulamanın Debug örnek kaydıdır (`--ornek-kayit`).
+// her çekimi başlıklı, çerçeveli bir görsele dönüştürür (compose.ts). Hesap gerekmez: uygulama Debug tanıtım moduyla
+// (`--tanitim`) açılır, veri diskten okunur, canlı kayıt sahnesi uygulamanın Debug örnek kaydıdır (`--ornek-kayit`).
+// Abonelik ekranı (`paywall`) paketleri RevenueCat'ten, fiyatları App Store sandbox'ından okur (ağ gerekir).
 //
 // Kullanım (repo kökünden):
 //   npm --prefix scripts/appstore-screenshots run make                         # tüm set
@@ -28,6 +29,7 @@ import {
   type OutputSize,
   palettes,
   productWeeklyPlaceholder,
+  askConversationPlaceholder,
   type RawScene,
   rawScenes,
   type Scene,
@@ -114,9 +116,21 @@ function morningTimeZone(utcHour: number): string {
   return offset >= 0 ? `Etc/GMT-${offset}` : `Etc/GMT+${-offset}`;
 }
 
-/** Sahnenin argümanları: ortak argümanlar ve sahneninkiler, yer tutucular tohumlayıcının kimlikleriyle. Saf fonksiyondur. */
+/** Yer tutucunun değeri: tohumlayıcının kimlikleri; yer tutucu değilse kendisi. Saf fonksiyondur. */
+function resolvedArgument(arg: string, manifest: SeedManifest): string {
+  switch (arg) {
+    case productWeeklyPlaceholder:
+      return manifest.productWeekly;
+    case askConversationPlaceholder:
+      return manifest.askConversation;
+    default:
+      return arg;
+  }
+}
+
+/** Sahnenin argümanları: ortak argümanlar ve sahneninkiler, yer tutucular çözülmüş. Saf fonksiyondur. */
 function launchArguments(common: readonly string[], scene: RawScene, manifest: SeedManifest): readonly string[] {
-  return [...common, ...scene.launchArgs.map((arg: string) => (arg === productWeeklyPlaceholder ? manifest.productWeekly : arg))];
+  return [...common, ...scene.launchArgs.map((arg: string) => resolvedArgument(arg, manifest))];
 }
 
 /** Komut satırını işe çevirir. */
@@ -203,7 +217,7 @@ async function captureScene(device: Simulator, scene: RawScene, args: readonly s
   for (let attempt: number = 1; attempt <= captureAttempts; attempt += 1) {
     if (!(await device.isRunning(app.bundleId))) {
       throw new CaptureError(
-        `${scene.id}: uygulama çekimden önce kapandı (büyük olasılıkla çöktü; argümanlar: ${args.join(" ")}). Çökme raporu: ~/Library/Logs/DiagnosticReports/AINotepad-*.ips`,
+        `${scene.id}: uygulama çekimden önce kapandı (büyük olasılıkla çöktü; argümanlar: ${args.join(" ")}). Çökme raporu: ~/Library/Logs/DiagnosticReports/Gistsmith-*.ips`,
       );
     }
     await device.screenshot(file);
