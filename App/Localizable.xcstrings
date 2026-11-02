@@ -1742,6 +1742,16 @@
         }
       }
     },
+    "Abonelik %@ tarihine kadar etkin, yenilenmeyecek.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subscription active until %@; it won't renew."
+          }
+        }
+      }
+    },
     "Abonelik etkin; dönem %@ tarihinde yenilenir.": {
       "extractionState": "manual",
       "localizations": {
@@ -2502,6 +2512,16 @@
         }
       }
     },
+    "Apple ile giriş yapıldı": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Signed in with Apple"
+          }
+        }
+      }
+    },
     "Apple ya da Google ile giriş": {
       "extractionState": "manual",
       "localizations": {
@@ -2933,6 +2953,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Failed: %@"
+          }
+        }
+      }
+    },
+    "Başka bir hesapla giriş yaptın. Bu hesabın toplantılarını açmak için Gistsmith'i uygulama değiştiriciden kapatıp yeniden aç.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You signed in with a different account. To open this account's meetings, close Gistsmith from the app switcher and open it again."
           }
         }
       }
@@ -3619,6 +3649,16 @@
         }
       }
     },
+    "Bu ayki kullanım": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This month's usage"
+          }
+        }
+      }
+    },
     "Bu ayki kullanım sınırın doldu; %@ tarihinde sıfırlanır.": {
       "extractionState": "manual",
       "localizations": {
@@ -3637,6 +3677,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "This meeting couldn't be processed because this month's limit is used up. The audio stays on this Mac; it's processed automatically when the limit resets."
+          }
+        }
+      }
+    },
+    "Bu ayki kullanım sınırın dolduğu için bu toplantı işlenemedi. Ses bu iPhone'da kalır; sınır sıfırlanınca kendiliğinden işlenir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This meeting couldn't be processed because this month's usage limit is reached. The audio stays on this iPhone and is processed automatically when the limit resets."
           }
         }
       }
@@ -3692,6 +3742,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Too many new trials were started from this network today. Try again tomorrow or subscribe."
+          }
+        }
+      }
+    },
+    "Bu ağdan bugün çok fazla yeni deneme başlatıldı. Yarın yeniden dene.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Too many new trials were started from this network today. Try again tomorrow."
           }
         }
       }
@@ -3768,6 +3828,16 @@
         }
       }
     },
+    "Bu cihaz Apple'ın cihaz doğrulamasını (DeviceCheck) desteklemiyor; ücretsiz deneme başlatılamıyor.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This device doesn't support Apple's device check (DeviceCheck), so the free trial can't start."
+          }
+        }
+      }
+    },
     "Bu dönüş bu girişe ait değil": {
       "extractionState": "manual",
       "localizations": {
@@ -3809,6 +3879,76 @@
         }
       }
     },
+    "Bu iPhone Apple ile doğrulanamadı (DeviceCheck). İnternet bağlantını kontrol edip yeniden dene.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This iPhone couldn't be verified with Apple (DeviceCheck). Check your internet connection and try again."
+          }
+        }
+      }
+    },
+    "Bu iPhone Apple tarafından doğrulanamadı; uygulamayı yeniden açıp tekrar dene.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple couldn't verify this iPhone; reopen the app and try again."
+          }
+        }
+      }
+    },
+    "Bu iPhone doğrulanamadı; uygulamayı yeniden açıp tekrar dene.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This iPhone couldn't be verified; reopen the app and try again."
+          }
+        }
+      }
+    },
+    "Bu iPhone'da çıkış yapıldı. Sunucuya ulaşılamadı; sunucudaki oturum en geç 60 gün içinde kendiliğinden kapanır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Signed out on this iPhone. The server couldn't be reached; the session on the server ends on its own within 60 days."
+          }
+        }
+      }
+    },
+    "Bu iPhone'da ücretsiz deneme başka bir hesapla kullanıldı.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The free trial on this iPhone was used with another account."
+          }
+        }
+      }
+    },
+    "Bu iPhone'da ücretsiz deneme daha önce başka bir hesapla kullanıldı.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The free trial on this iPhone was already used with another account."
+          }
+        }
+      }
+    },
+    "Bu iPhone'daki oturumu kapatır; toplantıların ve notların bu iPhone'da kalır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Signs out on this iPhone; your meetings and notes stay on this iPhone."
+          }
+        }
+      }
+    },
     "Bu işlem için abonelik gerekiyor. Ayarlar › Hesap'tan abone ol.": {
       "extractionState": "manual",
       "localizations": {
@@ -3816,6 +3956,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "This requires a subscription. Subscribe in Settings › Account."
+          }
+        }
+      }
+    },
+    "Bu işlem için hesabında etkin bir plan gerekiyor.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This needs an active plan on your account."
           }
         }
       }
@@ -4291,6 +4441,16 @@
         }
       }
     },
+    "Bulut canlı metni şu an kullanılamıyor; canlı metin bu iPhone'da üretiliyor.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The cloud live transcript isn't available right now; the live transcript is being made on this iPhone."
+          }
+        }
+      }
+    },
     "Bulut canlı metnine bu toplantıda çok sık yeniden bağlanıldı; canlı metin bu Mac'te sürüyor.": {
       "extractionState": "manual",
       "localizations": {
@@ -4298,6 +4458,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "The cloud live transcript reconnected too often in this meeting; the live transcript continues on this Mac."
+          }
+        }
+      }
+    },
+    "Bulut canlı metnine bu toplantıda çok sık yeniden bağlanıldı; canlı metin bu iPhone'da sürüyor.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The cloud live transcript reconnected too often in this meeting; the live transcript continues on this iPhone."
           }
         }
       }
@@ -4841,6 +5011,16 @@
         }
       }
     },
+    "Deneme ilk toplantınla başlar ve %lld gün sürer.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The trial starts with your first meeting and lasts %lld days."
+          }
+        }
+      }
+    },
     "Deneme ilk toplantıyla başlar: %@, hangisi önce dolarsa.": {
       "extractionState": "manual",
       "localizations": {
@@ -4909,6 +5089,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Supported languages"
+          }
+        }
+      }
+    },
+    "Devam et": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue"
           }
         }
       }
@@ -5545,6 +5735,16 @@
         }
       }
     },
+    "Emin misin? Hesabın ve sunucudaki tüm kayıtların kalıcı olarak silinir; bu işlem geri alınamaz.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Are you sure? Your account and all its records on our server are deleted permanently; this can't be undone."
+          }
+        }
+      }
+    },
     "En yüksek": {
       "localizations": {
         "en": {
@@ -5870,6 +6070,16 @@
         }
       }
     },
+    "Giriş sayfasında devam et. Vazgeçersen sayfayı kapatman yeter.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue on the sign-in page. To cancel, just close the page."
+          }
+        }
+      }
+    },
     "Giriş yapıldı": {
       "extractionState": "manual",
       "localizations": {
@@ -5899,6 +6109,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "You're signed in, but your account status can't be read right now. It refreshes on its own when you're back online."
+          }
+        }
+      }
+    },
+    "Giriş yapılmadı": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not signed in"
           }
         }
       }
@@ -5936,6 +6156,16 @@
         }
       }
     },
+    "Gistsmith'i açar ve yüz yüze toplantıyı kaydetmeye başlar.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens Gistsmith and starts recording an in-person meeting."
+          }
+        }
+      }
+    },
     "Git": {
       "localizations": {
         "en": {
@@ -5957,6 +6187,26 @@
         }
       }
     },
+    "Gizlilik politikası": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privacy policy"
+          }
+        }
+      }
+    },
+    "Gizlilik politikasını oku": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read the privacy policy"
+          }
+        }
+      }
+    },
     "Google ile devam et": {
       "extractionState": "manual",
       "localizations": {
@@ -5964,6 +6214,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Continue with Google"
+          }
+        }
+      }
+    },
+    "Google ile giriş yapıldı": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Signed in with Google"
           }
         }
       }
@@ -6085,6 +6345,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tasks sent"
+          }
+        }
+      }
+    },
+    "Görevler hazır": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tasks ready"
           }
         }
       }
@@ -6250,6 +6520,16 @@
         }
       }
     },
+    "Günlük güvenilirlik ve özellik kullanımı sayıları, ilk açılış ve giriş adımları; toplantı içeriği, ses ya da metin içermez.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Daily reliability and feature-usage counts, plus first launch and sign-in steps; never meeting content, audio or text."
+          }
+        }
+      }
+    },
     "Güvenli bir giriş penceresi açılır; parolan Apple'da ya da Google'da kalır.": {
       "extractionState": "manual",
       "localizations": {
@@ -6257,6 +6537,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "A secure sign-in window opens; your password stays with Apple or Google."
+          }
+        }
+      }
+    },
+    "Güvenli bir giriş sayfası açılır; parolan Apple'da ya da Google'da kalır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A secure sign-in page opens; your password stays with Apple or Google."
           }
         }
       }
@@ -6588,6 +6878,16 @@
         }
       }
     },
+    "Hesabın ve sunucudaki tüm kayıtların silinir; etkin bir abonelik varsa hemen iptal edilir. Bu iPhone'daki toplantılar ve notlar silinmez.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deletes your account and all its records on our server; an active subscription is cancelled immediately. Meetings and notes on this iPhone are not deleted."
+          }
+        }
+      }
+    },
     "Hesabın verisi henüz açılmadı. Giriş yap.": {
       "extractionState": "manual",
       "localizations": {
@@ -6610,6 +6910,16 @@
         }
       }
     },
+    "Hesabında etkin bir plan olmadığı için bu toplantı işlenemedi. Ses bu iPhone'da kalır; plan etkinleşince kendiliğinden işlenir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This meeting couldn't be processed because your account has no active plan. The audio stays on this iPhone and is processed automatically once a plan is active."
+          }
+        }
+      }
+    },
     "Hesabını, arayüz dilini, görünümü, bağlantıları, sesle yazmayı ve kısayolları yönet.": {
       "localizations": {
         "en": {
@@ -6627,6 +6937,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Account"
+          }
+        }
+      }
+    },
+    "Hesap durumu şu an okunamıyor.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Account status can't be read right now."
           }
         }
       }
@@ -6660,6 +6980,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Account unavailable"
+          }
+        }
+      }
+    },
+    "Hesap okunuyor…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loading account…"
           }
         }
       }
@@ -6811,6 +7141,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Completing the remaining text and speakers."
+          }
+        }
+      }
+    },
+    "Kalan ücretsiz toplantı": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free meetings left"
           }
         }
       }
@@ -7289,6 +7629,16 @@
         }
       }
     },
+    "Kayıt için önce giriş yap.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in first to record."
+          }
+        }
+      }
+    },
     "Kayıt klasörü oluşturulamadı: %@": {
       "localizations": {
         "en": {
@@ -7299,12 +7649,32 @@
         }
       }
     },
+    "Kayıt saatlerin %@ tarihinde sıfırlanır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your recording hours reset on %@."
+          }
+        }
+      }
+    },
     "Kayıt sekmesinden yüz yüze bir toplantıyı kaydet; Mac'teki toplantıların da iCloud eşitlemesiyle burada görünür.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Record an in-person meeting from the Record tab; your Mac's meetings also appear here with iCloud sync."
+          }
+        }
+      }
+    },
+    "Kayıt sekmesinden yüz yüze bir toplantıyı kaydet; bitince notu, görevleri ve konuşmacılı metni burada.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record an in-person meeting from the Record tab; when it ends, its note, tasks and speaker transcript are here."
           }
         }
       }
@@ -7355,6 +7725,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "No speech was detected during the recording."
+          }
+        }
+      }
+    },
+    "Kayıt sırasında ses canlı metin için Deepgram'a gider. Kayıt bitince ses, konuşmacıları ayırmak ve metni tamamlamak için sunucumuz üzerinden ElevenLabs'e gönderilir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "While you record, the audio goes to Deepgram for the live transcript. When the recording ends, the audio is sent through our server to ElevenLabs to separate speakers and complete the transcript."
           }
         }
       }
@@ -7530,6 +7910,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "A meeting that is recording or being processed can't be deleted."
+          }
+        }
+      }
+    },
+    "Kayıttan önce katılımcılara haber vermek çoğu yerde yasal zorunluluktur. Süre dolunca ses dosyaları silinir, metin ve not kalır; yarıda kalan ya da başarısız toplantının sesi iki kat süre saklanır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In many places you are legally required to tell participants before recording. When the period ends, audio files are deleted and the transcript and note stay; audio of interrupted or failed meetings is kept twice as long."
           }
         }
       }
@@ -7974,6 +8364,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Names, company and product names and abbreviations transcription should get right; one per line (2–40 characters, up to 5 words; up to 30 are used). Applied to the live transcript and the final pass after recording. Speaker names you give in meetings and glossary terms are added automatically."
+          }
+        }
+      }
+    },
+    "Konuşma yazıya dökülür, %@ çevirisi altında akar; 35 dil ve konuşmacı ayrımı.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speech is transcribed with the %@ translation flowing below; 35 languages and speaker separation."
+          }
+        }
+      }
+    },
+    "Konuşma: Deepgram ve ElevenLabs": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speech: Deepgram and ElevenLabs"
           }
         }
       }
@@ -9282,6 +9692,16 @@
         }
       }
     },
+    "Not yazılamadı: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't write the note: %@"
+          }
+        }
+      }
+    },
     "Not yazılıyor…": {
       "localizations": {
         "en": {
@@ -9338,6 +9758,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "The note, transcript and audio are deleted permanently; this can't be undone."
+          }
+        }
+      }
+    },
+    "Not, çeviri ve Sor: Anthropic Claude": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes, translation and Ask: Anthropic Claude"
           }
         }
       }
@@ -10032,6 +10462,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Plan"
+          }
+        }
+      }
+    },
+    "Planın %@ tarihinde sona erdi.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your plan ended on %@."
+          }
+        }
+      }
+    },
+    "Planın sona erdi.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your plan has ended."
           }
         }
       }
@@ -11145,6 +11595,16 @@
         }
       }
     },
+    "Sunucumuz ses ve not saklamaz; kullanım sınırları için yalnızca süre ve kullanım sayıları tutulur.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Our server doesn't store audio or notes; only durations and usage counts are kept to apply the plan limits."
+          }
+        }
+      }
+    },
     "Sunucuya ulaşılamadı; internet bağlantını kontrol et.": {
       "extractionState": "manual",
       "localizations": {
@@ -11243,6 +11703,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Finishes the current AI-Notepad recording; the note is prepared."
+          }
+        }
+      }
+    },
+    "Süren Gistsmith kaydını bitirir; not hazırlanır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finishes the current Gistsmith recording; the note is prepared."
           }
         }
       }
@@ -11447,6 +11917,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "No calendar access. Give AI-Notepad full access in iPhone Settings › Privacy & Security › Calendars."
+          }
+        }
+      }
+    },
+    "Takvime erişim izni yok. iPhone Ayarları › Gizlilik ve Güvenlik › Takvimler'den Gistsmith'e tam erişim ver.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No calendar access. Give Gistsmith full access in iPhone Settings › Privacy & Security › Calendars."
           }
         }
       }
@@ -12052,6 +12532,16 @@
         }
       }
     },
+    "Toplantı metni not, canlı çeviri ve Sor cevapları için sunucumuz üzerinden Anthropic'in Claude modeline gönderilir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The meeting transcript is sent through our server to Anthropic's Claude model for notes, live translation and Ask answers."
+          }
+        }
+      }
+    },
     "Toplantı notları, canlı çeviri ve Sor cevapları not ve çeviri dilinde yazılır; toplantı zaten bu dildeyse çevrilmez. Önceki notlar yazıldıkları dilde kalır.": {
       "localizations": {
         "en": {
@@ -12219,6 +12709,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ask my meetings"
+          }
+        }
+      }
+    },
+    "Toplantıların bu iPhone'da": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your meetings stay on this iPhone"
+          }
+        }
+      }
+    },
+    "Toplantıların nasıl işlenir": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How your meetings are processed"
           }
         }
       }
@@ -13092,6 +13602,16 @@
         }
       }
     },
+    "Yazıya dökme ve not için toplantının sesi ve metni hizmetimize ve aşağıdaki yapay zekâ sağlayıcılarına gönderilir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To transcribe meetings and write notes, the meeting audio and text are sent to our service and to the AI providers below."
+          }
+        }
+      }
+    },
     "Yazıya dökülemedi: %@": {
       "extractionState": "manual",
       "localizations": {
@@ -13420,6 +13940,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "In-person meetings are transcribed live with the %@ translation underneath; when they end the note is ready, your tasks on top."
+          }
+        }
+      }
+    },
+    "Yüz yüze toplantılarını canlı yazıya döker; bitince notun hazır, görevlerin en üstte.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribes your in-person meetings live; when they end, your note is ready with your tasks on top."
           }
         }
       }
@@ -14120,6 +14650,16 @@
         }
       }
     },
+    "Ödeme alınamadı; erişimin %@ tarihine kadar sürer.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Payment failed; your access continues until %@."
+          }
+        }
+      }
+    },
     "Ödeme alınamadı; erişimin %@ tarihine kadar sürer. \"Hesabı yönet\"ten kartını güncelle.": {
       "extractionState": "manual",
       "localizations": {
@@ -14127,6 +14667,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Payment failed; your access continues until %@. Update your card under \"Manage account\"."
+          }
+        }
+      }
+    },
+    "Ödeme alınamadığı için yeni toplantı başlatılamıyor.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New meetings can't start because a payment failed."
           }
         }
       }
@@ -14427,6 +14977,26 @@
         }
       }
     },
+    "Ücretsiz deneme için bu iPhone'un Apple doğrulaması gerekiyor; uygulamayı güncelleyip yeniden dene.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The free trial needs Apple to verify this iPhone; update the app and try again."
+          }
+        }
+      }
+    },
+    "Ücretsiz deneme: %@.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free trial: %@."
+          }
+        }
+      }
+    },
     "Ücretsiz denemeler bugün kapasitede. Yarın yeniden dene ya da Ayarlar › Hesap'tan abone ol.": {
       "extractionState": "manual",
       "localizations": {
@@ -14438,6 +15008,16 @@
         }
       }
     },
+    "Ücretsiz denemeler bugün kapasitede. Yarın yeniden dene.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free trials are at capacity today. Try again tomorrow."
+          }
+        }
+      }
+    },
     "Ücretsiz denemen bitti": {
       "extractionState": "manual",
       "localizations": {
@@ -14445,6 +15025,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Your free trial has ended"
+          }
+        }
+      }
+    },
+    "Ücretsiz denemen bitti.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your trial has ended."
           }
         }
       }
@@ -14500,6 +15090,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "1 meeting left in your free trial"
+          }
+        }
+      }
+    },
+    "Ücretsiz tam erişim.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free full access."
           }
         }
       }
@@ -14633,6 +15233,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Next"
+          }
+        }
+      }
+    },
+    "İlk 3 toplantı ya da 7 gün ücretsiz": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "First 3 meetings or 7 days free"
           }
         }
       }

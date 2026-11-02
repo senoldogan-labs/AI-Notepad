@@ -2,12 +2,6 @@ import AINotepadCore
 import AINotepadUI
 import SwiftUI
 
-/// Aylık kullanım: "Bu ay 2,5 / 10 saat". Saf fonksiyondur.
-func hostedMonthlyUsageText(used: Double, cap: Double) -> String {
-    let style: FloatingPointFormatStyle<Double> = .number.precision(.fractionLength(0...1)).locale(interfaceLocale())
-    return String(localized: "Bu ay \(used.formatted(style)) / \(cap.formatted(style)) saat")
-}
-
 /// "Apple ile devam et" (siyah hap, Apple logosu) ve "Google ile devam et" (beyaz hap, renkli "G"): seçilen sağlayıcı
 /// uygulama içi giriş penceresinde doğrudan açılır. Pencere açıkken iki düğme de kapalıdır; açılan sağlayıcının
 /// düğmesinde bekleme göstergesi döner. Giriş kapısında, kurulumda ve Ayarlar › Hesap'ta aynı.

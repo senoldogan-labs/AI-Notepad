@@ -1,16 +1,17 @@
 import { ApiError } from "./errors";
 
 /**
- * Uygulamanın sürüm başlıkları: Mac uygulaması her abonelik sunucusu isteğine `x-app-version` (pazarlama sürümü ve yapı
- * numarası, ör. "0.1.10 (19)") ve `x-os-version` (ör. "macOS 15.4.1") koyar. `GET /v1/me` sonuncularını hesabın
+ * Uygulamanın sürüm başlıkları: Mac ve iPhone uygulaması her abonelik sunucusu isteğine `x-app-version` (pazarlama sürümü
+ * ve yapı numarası, ör. "0.1.10 (19)") ve `x-os-version` (ör. "macOS 15.4.1" ya da "iOS 26.1.0") koyar; işletim sisteminin
+ * adı yönetim panelinde Mac ile iPhone'u ayırır. `GET /v1/me` sonuncularını hesabın
  * satırına yazar (yönetim panelinde sürüm benimsenmesi); telemetri toplamları uygulama sürümüyle gruplanır. İçerik
  * taşımazlar.
  */
 
 /** `x-app-version` biçimi: 2–4 bileşenli sürüm, boşluk, parantez içinde yapı numarası. */
 const appVersionPattern: RegExp = /^[0-9]{1,4}(\.[0-9]{1,4}){1,3} \([0-9]{1,9}\)$/;
-/** `x-os-version` biçimi: "macOS" ve 2–3 bileşenli sürüm. */
-const osVersionPattern: RegExp = /^macOS [0-9]{1,3}\.[0-9]{1,3}(\.[0-9]{1,3})?$/;
+/** `x-os-version` biçimi: "macOS" ya da "iOS" ve 2–3 bileşenli sürüm. */
+const osVersionPattern: RegExp = /^(macOS|iOS) [0-9]{1,3}\.[0-9]{1,3}(\.[0-9]{1,3})?$/;
 
 /** Aynı sürümlerle son görülme anı en çok bu sıklıkla yeniden yazılır (her `/v1/me` bir D1 yazımı olmasın). */
 const lastSeenRefreshMs: number = 3_600_000;
@@ -52,13 +53,13 @@ export function optionalClientVersions(request: Request): ClientVersions | null 
     throw new ApiError("bad_request", "The x-app-version and x-os-version headers must be sent together.");
   }
   if (!osVersionPattern.test(os)) {
-    throw new ApiError("bad_request", "The x-os-version header must have the form \"macOS <version>\".");
+    throw new ApiError("bad_request", "The x-os-version header must have the form \"macOS <version>\" or \"iOS <version>\".");
   }
   return { appVersion: parseAppVersion(app), osVersion: os };
 }
 
 /**
- * Hesabın son uygulama ve macOS sürümünü ve son görülme anını yazar. Sürümler aynıysa ve son görülme bir saatten
+ * Hesabın son uygulama ve işletim sistemi sürümünü ve son görülme anını yazar. Sürümler aynıysa ve son görülme bir saatten
  * yeniyse satır değişmez (yazım yapılmaz).
  */
 export async function recordClientVersions(db: D1Database, userId: string, versions: ClientVersions, now: Date): Promise<void> {

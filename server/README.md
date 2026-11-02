@@ -275,7 +275,14 @@ engel vardır:
 - **IP başına yeni deneme hesabı**: `TRIAL_ACCOUNTS_PER_IP_PER_DAY` (IP'nin HMAC özeti, gün sonunda silinir).
 
 App Attest (`APP_ATTEST_POLICY`) macOS'ta desteklenmediği için bugün cihaz sınırı vermez; kodu yerinde durur. Bu
-yüzden davet programındaki cihaz denetimi (`sharesDevice`) de Mac'te eşleşmez (aşağıda "Davet programı").
+yüzden davet programındaki cihaz denetimi (`sharesDevice`) de Mac'te eşleşmez (aşağıda "Davet programı"). iPhone
+uygulaması (aynı paket kimliği, `com.senoldogan.AINotepad.hosted`) App Attest göndermez: doğrulama (`src/attest/appAttest.ts`)
+yalnızca macOS onayını kabul eder (macOS anahtar erişim politikası, `APP_ATTEST_ALLOWED_CATEGORIES` = Developer ID);
+iPhone'da cihaz başına deneme DeviceCheck ile sınırlıdır (aynı takım anahtarı, ek ayar gerekmez).
+
+Uygulamalar her isteğe `x-app-version` (ör. `0.1.12 (21)`) ve `x-os-version` (`macOS 15.4.1` ya da `iOS 26.1.0`)
+koyar; ikisi birlikte gelmeli, biçimi `src/clientVersions.ts`'te. `GET /v1/me` sonuncularını hesabın satırına yazar;
+yönetim panelinin sürüm listesi işletim sisteminin adıyla Mac ile iPhone'u ayırır.
 
 ## Davet programı
 

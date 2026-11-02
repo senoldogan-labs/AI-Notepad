@@ -10,7 +10,7 @@ import Foundation
 // iddiasının `sha256hex(ham)` olduğunu denetler.
 
 /// Sitede girişin sağlayıcısı: dönüş adresinin yolu (`/apple`, `/google`).
-public enum HostedSignInProvider: String, Sendable, Equatable, CaseIterable {
+public enum HostedSignInProvider: String, Sendable, Equatable, CaseIterable, Codable {
     case apple
     case google
 }
@@ -155,6 +155,29 @@ public func hostedIDTokenPicture(identityToken: String) throws -> URL? {
         return nil
     }
     return url
+}
+
+/// Kimlik jetonundaki e-posta (`email`; Apple gizli aktarma adresi de verebilir): yalnızca hesap ekranında kimin giriş
+/// yaptığını göstermek için bu cihazda saklanır, sunucuya gönderilmez. E-posta yoksa ya da `@` içermiyorsa nil; gövde
+/// çözülemezse `invalidCallback`. Saf fonksiyondur.
+public func hostedIDTokenEmail(identityToken: String) throws -> String? {
+    struct Claims: Decodable {
+        let email: String?
+    }
+    let parts: [Substring] = identityToken.split(separator: ".", omittingEmptySubsequences: false)
+    guard parts.count == 3, let payload = base64URLDecoded(text: String(parts[1])) else {
+        throw HostedBrowserSignInError.invalidCallback(reason: "jeton gövdesi base64url değil")
+    }
+    let claims: Claims
+    do {
+        claims = try JSONDecoder().decode(Claims.self, from: payload)
+    } catch {
+        throw HostedBrowserSignInError.invalidCallback(reason: "jeton gövdesi JSON değil: \(error)")
+    }
+    guard let email = claims.email?.trimmingCharacters(in: .whitespacesAndNewlines), email.contains("@") else {
+        return nil
+    }
+    return email
 }
 
 /// base64url (dolgusuz) metni çözer; geçersizse nil. Saf fonksiyondur.

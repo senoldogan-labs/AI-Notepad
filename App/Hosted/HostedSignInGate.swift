@@ -6,12 +6,6 @@ import SwiftUI
 
 private let gateLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "HostedGate")
 
-/// Bu Mac'te kayıtlı oturumun kullanıcısı (Anahtar Zinciri; ağa gidilmez); oturum yoksa nil. Servis adı tanımlı
-/// değilse ya da Anahtar Zinciri okunamazsa hata fırlar.
-func hostedStoredUserID(bundle: Bundle) throws -> String? {
-    try HostedKeychainTokenStorage(service: hostedKeychainService(bundle: bundle)).load()?.userId
-}
-
 /// Sitedeki yasal sayfa (gizlilik, koşullar); site adresi geçersizse nil (bağlantı gösterilmez, hata loglanır).
 private func hostedLegalURL(path: String) -> URL? {
     do {

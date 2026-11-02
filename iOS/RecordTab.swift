@@ -49,6 +49,7 @@ private struct RecordHome: View {
                 }
                 .padding(.top, 8)
                 RecordHeroCard(recorder: recorder)
+                PhonePlanNotice(account: HostedAccount.shared)
                 PhoneErrorList(messages: recorder.errorMessages)
                 if let id = recorder.lastMeetingID, let step = recorder.processingSteps[id] {
                     PreparingCard(step: step)
@@ -111,14 +112,29 @@ func longDayTitle(date: Date, locale: Locale) -> String {
     return formatter.string(from: date)
 }
 
+/// Kayıt kartının altında hesabın durumu: kaydı engelleyen hak durumu varsa nedeni (deneme bitti, aylık sınır…; abone
+/// olma önerilmez), yoksa denemede kalan toplantılar. Abonelikte ve hak durumu okunmamışken görünmez.
+private struct PhonePlanNotice: View {
+    let account: HostedAccount
+
+    var body: some View {
+        if let blocked = phoneStartBlockMessage(account: account, now: Date()) {
+            NoticeText(blocked as String, severity: .attention)
+                .appFont(size: 13, weight: .regular)
+        } else if case .signedIn(let entitlements) = account.state, case .trial(let left, _) = hostedPlanStatus(entitlements: entitlements) {
+            Label(String(localized: "Ücretsiz deneme: \(hostedTrialLeftText(left: left))."), systemImage: "sparkles")
+                .appFont(size: 13, weight: .medium)
+                .foregroundStyle(Theme.muted)
+        }
+    }
+}
+
 /// Kayıt kartı: durağan açık pastel film gradyanı üstünde dil seçimi, büyük kayıt düğmesi (sabit hale) ve kısa açıklama.
 /// Gradyan açık tonlu olduğundan yazılar koyu mürekkeptir (Mac'teki kayıt kartı gibi).
 private struct RecordHeroCard: View {
     let recorder: PhoneRecorder
     /// Not ve çeviri dili (Ayarlar): canlı çevirinin dili adıyla geçer.
     @AppStorage(PhoneSettingsKey.noteLanguage) private var noteLanguage: String = defaultNoteLanguage(interfaceLanguages: Bundle.main.preferredLocalizations).rawValue
-    /// Motor (Ayarlar; ilk açılışta arka planda cihaz içine geçebilir): açıklama seçili motorun yaptığını söylesin.
-    @AppStorage(PhoneSettingsKey.engine) private var engine: String = PhoneEngine.cloud.rawValue
 
     var body: some View {
         VStack(spacing: 18) {
@@ -168,13 +184,7 @@ private struct RecordHeroCard: View {
                     .appFont(size: 20, weight: .semibold)
                     .tracking(-0.3)
                     .foregroundStyle(Color.black.opacity(0.8))
-                Group {
-                    if phoneStoredEngine(value: engine) == .onDevice {
-                        Text("Cihaz içi: ücretsiz ve anahtarsız, ses telefondan çıkmaz; bitince notu yazar. Konuşmacılar ayrılmaz.")
-                    } else {
-                        Text("Odadaki herkes konuşmacılara ayrılır, \(phoneStoredNoteLanguage(value: noteLanguage).interfaceName) çevirisi canlı akar; bitince notu yazar.")
-                    }
-                }
+                Text("Odadaki herkes konuşmacılara ayrılır, \(phoneStoredNoteLanguage(value: noteLanguage).interfaceName) çevirisi canlı akar; bitince notu yazar.")
                     .appFont(size: 13, weight: .regular)
                     .foregroundStyle(Color.black.opacity(0.6))
                     .multilineTextAlignment(.center)

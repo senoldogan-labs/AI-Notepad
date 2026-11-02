@@ -23,20 +23,15 @@ struct MeetingsTab: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 14) {
                     PhoneErrorList(messages: store.problems + [deleteError].compactMap { $0 })
-                    if store.downloadingCount > 0 {
-                        Label("\(store.downloadingCount) toplantı iCloud'dan iniyor…", systemImage: "icloud.and.arrow.down")
-                            .appFont(size: 13, weight: .regular)
-                            .foregroundStyle(Theme.muted)
-                    }
                     if store.meetings.isEmpty {
                         EmptyStateHero(
                             symbol: "waveform", title: "Henüz toplantı yok",
-                            message: "Kayıt sekmesinden yüz yüze bir toplantıyı kaydet; Mac'teki toplantıların da iCloud eşitlemesiyle burada görünür.",
+                            message: "Kayıt sekmesinden yüz yüze bir toplantıyı kaydet; bitince notu, görevleri ve konuşmacılı metni burada.",
                             palette: .sunset,
                             steps: [
                                 EmptyStateStep(symbol: "mic.fill", title: "Kayıt"),
                                 EmptyStateStep(symbol: "sparkles", title: "Not yazılır"),
-                                EmptyStateStep(symbol: "icloud", title: "Mac'le eşitlenir"),
+                                EmptyStateStep(symbol: "checklist", title: "Görevler hazır"),
                             ]
                         ) {
                             Button("Kaydı başlat", systemImage: "mic.fill") { router.tab = .record }
@@ -341,11 +336,6 @@ struct MeetingReadView: View {
             return
         }
         do {
-            // Mac'te kaydedilen toplantının sesi iCloud'dan henüz inmemiş olabilir: indirme başlatılır.
-            if try startDownloadingCloudAudio(directory: try store.sessionDirectory(id: record.id)) {
-                errorMessage = String(localized: "Ses iCloud'dan iniyor; birazdan yeniden dene.")
-                return
-            }
             let urls: [URL] = try store.audioURLs(record: record)
             guard !urls.isEmpty else {
                 errorMessage = String(localized: "Bu toplantının ses kaydı yok.")

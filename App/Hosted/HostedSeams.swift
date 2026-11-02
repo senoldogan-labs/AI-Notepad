@@ -5,9 +5,11 @@ import Foundation
 // Abonelik sürümünün paylaşılan koda bağlandığı noktalar (`#if HOSTED_EDITION` ile çağrılır): LLM sağlayıcısı, son
 // geçiş, kurulum eksikleri, canlı metin motoru ve rapor hedefi.
 
+#if os(macOS)
 /// Abonelik sürümünde motor seçimi gizlidir: `AppModel`'in yerel motoru WhisperKit'tir; her kaydın canlı motoru
 /// (Deepgram ya da Mac) kayıt başında sunucuya göre seçilir (`hostedLiveChoice`).
 let hostedLocalEngine: LiveEngine = .whisperKit
+#endif
 
 private let seamsLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "HostedSeams")
 
@@ -252,6 +254,7 @@ func hostedReportDestination() async throws -> ReportDestination {
     return ReportDestination(baseURL: client.baseURL, accessToken: try await client.validAccessToken())
 }
 
+#if os(macOS)
 /// Abonelikte kaydı engelleyen hak durumu (deneme bitti, aylık sınır doldu); hak durumu okunmamışsa ya da kayıt
 /// başlayabilirse nil (bkz. `hostedStartBlock`).
 @MainActor
@@ -284,3 +287,4 @@ func hostedStartBlockNotice() -> StartBlockNotice? {
         return StartBlockNotice(reason: String(localized: "Ödeme alınamadı. Kayda devam etmek için Ayarlar › Hesap'ta \"Hesabı yönet\"ten kartını güncelle."), action: .openAccount)
     }
 }
+#endif

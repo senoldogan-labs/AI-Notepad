@@ -15,29 +15,29 @@ enum RecorderPhase: Equatable {
     case finishing
 }
 
-/// Toplantı sonrası işleme için gereken anahtarlar. Kayıt başında okunur: ekran kilitliyken Anahtar Zinciri okunamaz.
-struct ProcessingKeys: Sendable {
-    /// Son geçiş (konuşmacılar); yoksa son geçiş atlanır ve nedeni toplantıda görünür.
-    let elevenLabs: String?
-    /// Çeviri ve not; yoksa canlı çeviri ve not yapılmaz.
-    let llm: LLMProvider?
-}
-
 /// Süren kayıt.
 private struct ActiveRecording {
     let directory: URL
     let startedAt: Date
     let handle: LiveSessionHandle
-    let keys: ProcessingKeys
-    /// Bulut ya da cihaz içi (Apple konuşma tanıma) kayıt; son geçiş buna göre yapılır.
+    /// Canlı çeviri: kaydın sunucu oturumunun bütçesinden (`hostedMeetingLLMProvider`); çevrimdışı kayıtta ya da
+    /// kullanılamıyorsa nil (neden kayıt ekranında görünür).
+    let liveLLM: LLMProvider?
+    /// Canlı metnin başladığı motor: bulut (Deepgram) ya da bu iPhone (Apple konuşma tanıma). Son geçiş her durumda
+    /// sunucudadır.
     let engine: RecordingEngine
+    /// Sunucuya ulaşılamadan başladı: toplantı bağlantı gelince işlenir (bkz. `runQueue`).
+    let offline: Bool
     /// Kaydın bağlandığı takvim etkinliği (başlık ve katılımcılar kayda geçer); yoksa nil.
     let linkedMeeting: CalendarMeeting?
 }
 
-/// iPhone kaydı: yüz yüze toplantı (odadaki herkes telefon mikrofonundan gelir ve konuşmacılara ayrılır). Bulutta canlı
-/// metin Deepgram, konuşmacılar ve son geçiş ElevenLabs, çeviri ve not Claude ile; cihaz içi modda metin ve son geçiş
-/// Apple'ın konuşma tanımasıyla (konuşmacısız), çeviri ve not Apple Intelligence ile. İşleme Mac'teki `processMeeting`'dir.
+/// iPhone kaydı: yüz yüze toplantı (odadaki herkes telefon mikrofonundan gelir ve konuşmacılara ayrılır). Mac'teki
+/// Gistsmith'le aynı abonelik akışı: ses hemen diske yazılır, kaydın sunucu oturumu açılır (deneme ve aylık sınır
+/// sunucuda), canlı metin sunucu izin verirse Deepgram'la (kısa ömürlü jetonla), vermezse ya da akış durursa bu
+/// iPhone'da (Apple konuşma tanıma); bitince oturum kapanır, konuşmacılar ve son geçiş sunucuda (ElevenLabs), çeviri ve
+/// not sunucu üzerinden Claude ile. Sunucuya ulaşılamazsa ve son bilinen hak durumu izin verdiyse kayıt çevrimdışı sürer,
+/// toplantı bağlantı gelince işlenir. İşleme Mac'teki `processMeeting`'dir.
 @MainActor
 @Observable
 final class PhoneRecorder {
@@ -77,8 +77,16 @@ final class PhoneRecorder {
     private(set) var micInterrupted: Bool = false
     /// Cihaz içi konuşma modelinin indirme ilerlemesi (0…1) kayıt başlarken; indirme yoksa nil.
     private(set) var speechModelProgress: Double?
-    /// Cihaz içi konuşma tanıma motoru (model kayıtlar arasında bellekte kalır).
+    /// Cihaz içi konuşma tanıma motoru (Deepgram kullanılamazsa canlı metin bununla; model kayıtlar arasında bellekte kalır).
     @ObservationIgnored private let speechEngine: AppleSpeechEngine = AppleSpeechEngine()
+    /// Toplantının süre sınırını izleyen görev (bkz. `watchRecordingLimit`).
+    @ObservationIgnored private var recordingLimitTask: Task<Void, Never>?
+    /// Bekleyen (çevrimdışı) kayıtların kuyruğu çalışıyor (eşzamanlı tetiklemeler ikinci kez çalıştırmasın).
+    @ObservationIgnored private var isRunningQueue: Bool = false
+    /// Notun yazılmaya başladığı an (toplantı başına; not süresi telemetrisi, bkz. `recordNoteOutcome`).
+    @ObservationIgnored private var noteWritingStartedAt: [String: ContinuousClock.Instant] = [:]
+    /// Sunucunun reddettiği bekleyen kayıtlar ve reddin anı (bkz. `hostedQueueCandidates`).
+    @ObservationIgnored private var queueRejections: [String: Date] = [:]
     @ObservationIgnored private var active: ActiveRecording?
     /// Canlı çevirinin cümle birimlerini kuran durum (bkz. `TranslationUnit`): kesin bölümler cümle sonuna dek birikir.
     @ObservationIgnored private var unitBuilder: TranslationUnitBuilder = .empty
@@ -109,10 +117,23 @@ final class PhoneRecorder {
         self.store = store
     }
 
-    /// Kaydı başlatır. Bulutta Deepgram ve ElevenLabs anahtarı yoksa hiçbir şey başlamaz (eksiklerin hepsi bildirilir);
-    /// cihaz içi modda dilin konuşma modeli gerekirse önce indirilir.
+    /// Kaydı başlatır. Giriş yapılmamışsa, yapay zekâ açıklaması kabul edilmemişse ya da hak durumu kaydı engelliyorsa
+    /// (deneme bitti, aylık sınır…) hiçbir şey başlamaz ve neden görünür. Mikrofon açılınca ses hemen diske yazılır,
+    /// sonra kaydın sunucu oturumu açılır; sunucu reddederse kayıt başlamaz ve yazılan ses silinir.
     func start() async {
         guard phase == .idle else {
+            return
+        }
+        let account: HostedAccount = HostedAccount.shared
+        // Giriş kapısının ikinci savunması: kısayol, Denetim Merkezi ve Eylem düğmesi kapıyı açmadan çağırabilir.
+        guard !account.requiresSignIn, UserDefaults.standard.bool(forKey: PhoneSettingsKey.aiDisclosureAccepted) else {
+            Self.logger.info("Giriş ya da açıklama onayı olmadan kayıt istendi, başlatılmadı")
+            errorMessages = appendUnique(messages: [], message: String(localized: "Kayıt için önce giriş yap."))
+            return
+        }
+        if let blocked = phoneStartBlockMessage(account: account, now: Date()) {
+            Self.logger.info("Hak durumu kaydı engelliyor, başlatılmadı")
+            errorMessages = appendUnique(messages: [], message: blocked)
             return
         }
         phase = .starting
@@ -131,38 +152,8 @@ final class PhoneRecorder {
         errorMessages = []
         highlights = []
         myNotes = ""
-        // Cihaz içi tanıma dil algılamaz: otomatikte ana toplantı diliyle başlar; dil kayıt sırasında değiştirilebilir.
+        // Canlı akış dil algılamaz (Deepgram da Apple konuşma tanıma da): sabit dil ya da ana toplantı dili.
         let speechLanguage: MeetingLanguage = appleSpeechLanguage(mode: languageMode, primary: phonePrimaryMeetingLanguage())
-        let cloudKeys: (deepgram: String, elevenLabs: String)?
-        switch phoneEngine() {
-        case .cloud:
-            let deepgram: Result<String, any Error> = await secretResult(account: .deepgram)
-            let elevenLabs: Result<String, any Error> = await secretResult(account: .elevenlabs)
-            guard case .success(let deepgramKey) = deepgram, case .success(let elevenLabsKey) = elevenLabs else {
-                for case .failure(let error) in [deepgram, elevenLabs] {
-                    errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
-                }
-                phase = .idle
-                return
-            }
-            cloudKeys = (deepgramKey, elevenLabsKey)
-        case .onDevice:
-            do {
-                _ = try await prepareAppleSpeech(language: speechLanguage) { [weak self] (fraction: Double) -> Void in
-                    Task { @MainActor in
-                        self?.speechModelProgress = fraction < 1 ? fraction : nil
-                    }
-                }
-                speechModelProgress = nil
-            } catch {
-                speechModelProgress = nil
-                errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
-                phase = .idle
-                return
-            }
-            cloudKeys = nil
-        }
-        let keys: ProcessingKeys = ProcessingKeys(elevenLabs: cloudKeys?.elevenLabs, llm: await llmProviderReportingFailure())
         let started: Date = Date()
         // Takvimde şu anki toplantı: başlık ve katılımcı adları kayda geçer, adlar tanımaya yardım eder.
         let linkedMeeting: CalendarMeeting? = currentCalendarMeeting?()
@@ -191,51 +182,147 @@ final class PhoneRecorder {
             }
             Task { @MainActor in levels.record(level: peak) }
         }
-        let handle: LiveSessionHandle
-        if let cloudKeys {
-            handle = runCloudLiveSession(
-                config: CloudSessionConfig(
-                    languageMode: languageMode, recordingDirectory: directory, deepgramKey: cloudKeys.deepgram, elevenLabsKey: cloudKeys.elevenLabs,
-                    firstDiarizationAfterSec: 15, diarizationIntervalSec: 60, diarizationWindowSec: 120, minDiarizationAudioSec: 5,
-                    languageConfidence: 0.8, keyterms: keytermsWithAttendees(attendees: linkedMeeting?.attendees ?? [], keyterms: [], limit: 30),
-                    voiceEmbedder: nil, automaticStartLanguage: phonePrimaryMeetingLanguage()
-                ),
-                // Yüz yüze: "Sen" akışı yoktur, odadaki herkes "Diğerleri" akışında konuşmacılara ayrılır.
-                meAudio: finishedAudioStream(),
-                othersAudio: metered
-            )
-        } else {
-            handle = runLiveSession(
-                config: LiveSessionConfig(
+        // Ses hemen diske yazılır: sunucu oturumu açılırken ve canlı motor seçilirken (ağ beklenirken) gelen ses de
+        // dosyada durur. Yüz yüze: "Sen" akışı yoktur, odadaki herkes "Diğerleri" akışında konuşmacılara ayrılır.
+        let recording: HybridRecording = startHybridRecording(directory: directory, meAudio: finishedAudioStream(), othersAudio: metered)
+        // Sunucu oturumu ses başladıktan sonra açılır (mikrofon açılamazsa deneme hakkı yanmasın); sunucu reddederse
+        // (deneme bitti, aylık sınır, harcama tavanı…) kayıt başlamaz, yazılan ses silinir ve neden görünür.
+        let deadline: Date
+        let offline: Bool
+        do {
+            let requestedAt: Date = Date()
+            switch try await account.startMeeting(recordID: directory.lastPathComponent) {
+            case .online(let meeting):
+                deadline = hostedRecordingDeadline(requestedAt: requestedAt, maxDurationMinutes: meeting.maxDurationMinutes, serverEndsAt: meeting.expiresAt)
+                offline = false
+            case .offline(let maxMinutes):
+                // Sunucuya ulaşılamadı: kayıt sürer (canlı metin bu iPhone'da), süre son bilinen hak durumuyla sınırlı;
+                // toplantı bağlantı gelince işlenir (bkz. `runQueue`).
+                deadline = requestedAt.addingTimeInterval(Double(maxMinutes) * 60)
+                offline = true
+            }
+        } catch {
+            Self.logger.error("Toplantı oturumu açılamadı, kayıt başlatılmadı, hata: \(String(describing: error), privacy: .private)")
+            errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
+            // Ret aylık sınırdan ya da denemenin bitmesinden olabilir: hesap ekranı güncellensin.
+            Task { await account.refresh() }
+            microphone.stop()
+            levels.stop()
+            discardRefusedRecording(directory: directory)
+            phase = .idle
+            return
+        }
+        // Canlı motoru sunucu seçer (Deepgram jetonu); jeton alınamazsa ya da akış durursa canlı metin bu iPhone'da.
+        let choice: HostedLiveChoice = await hostedLiveChoice(
+            language: speechLanguage, keyterms: keytermsWithAttendees(attendees: linkedMeeting?.attendees ?? [], keyterms: [], limit: 30)
+        )
+        Self.logger.info("Canlı motor seçildi, motor: \(choice.engine.rawValue, privacy: .public)")
+        let handle: LiveSessionHandle = runHybridLiveSession(
+            config: HybridLiveSessionConfig(
+                speakers: [.others],
+                local: LiveSessionConfig(
                     languageMode: .fixed(speechLanguage), segmenter: .live, recordingDirectory: directory, partialIntervalSec: 1.5,
                     minPartialSpeechSec: 1.0, languageLockAfterSec: 30, candidateLanguages: [speechLanguage]
                 ),
-                engine: speechEngine,
-                meAudio: finishedAudioStream(),
-                othersAudio: metered
-            )
-            // Ekranda dil görünsün (sabit dilde oturum kilit olayı yayınlamaz).
-            await handle.setLanguage(speechLanguage)
-        }
-        let recording: ActiveRecording = ActiveRecording(
-            directory: directory, startedAt: started, handle: handle, keys: keys, engine: cloudKeys == nil ? .local : .cloud,
-            linkedMeeting: linkedMeeting
+                maxPendingAudioSec: 600
+            ),
+            start: choice.start,
+            localEngine: { [weak self] () async throws -> any TranscriptionEngine in
+                guard let self else {
+                    throw CancellationError()
+                }
+                return try await self.prepareLocalSpeech(language: speechLanguage)
+            },
+            recording: recording
         )
-        active = recording
+        let liveLLM: LLMProvider?
+        do {
+            liveLLM = try hostedMeetingLLMProvider()
+        } catch {
+            // Çevrimdışı kayıtta canlı çeviri yapılmaz (not ve konuşmacılar bağlantı gelince hazırlanır).
+            errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
+            liveLLM = nil
+        }
+        let active: ActiveRecording = ActiveRecording(
+            directory: directory, startedAt: started, handle: handle, liveLLM: liveLLM, engine: choice.engine == .deepgram ? .cloud : .local,
+            offline: offline, linkedMeeting: linkedMeeting
+        )
+        self.active = active
         startedAt = started
         phase = .recording
         // Uygulama kayıt sırasında kapanırsa toplantı açılışta bulunup işlenir.
-        saveRecord(record: liveRecord(recording: recording, status: .recording, endedAt: nil), directory: directory)
+        saveRecord(record: liveRecord(recording: active, status: .recording, endedAt: nil), directory: directory)
         startCheckpoints()
         startActivity(startedAt: started)
+        watchRecordingLimit(deadline: deadline)
         consentReminderVisible = UserDefaults.standard.bool(forKey: PhoneSettingsKey.consentReminder)
-        Self.logger.info("Kayıt başladı, klasör: \(directory.lastPathComponent, privacy: .public)")
+        Self.logger.info("Kayıt başladı, klasör: \(directory.lastPathComponent, privacy: .public), çevrimdışı: \(offline, privacy: .public)")
         let sessionGeneration: Int = generation
         Task { [weak self] in
             for await event in handle.events {
                 self?.handle(event: event, generation: sessionGeneration)
             }
             await self?.sessionEnded()
+        }
+    }
+
+    /// Deepgram kullanılamayınca canlı metnin motoru: dilin cihaz içi konuşma modeli gerekirse indirilir (ilerleme kayıt
+    /// ekranında). Hazırlanamazsa hata (canlı metin durur, kayıt sürer; son geçiş kaydın tamamını yazıya döker).
+    private func prepareLocalSpeech(language: MeetingLanguage) async throws -> AppleSpeechEngine {
+        defer { speechModelProgress = nil }
+        _ = try await prepareAppleSpeech(language: language) { [weak self] (fraction: Double) -> Void in
+            Task { @MainActor in
+                self?.speechModelProgress = fraction < 1 ? fraction : nil
+            }
+        }
+        return speechEngine
+    }
+
+    /// Toplantının süre sınırından 5 dk önce kayıt ekranında uyarı, sınırda kayıt "Bitir"e basılmış gibi bitirilir ve
+    /// normal işlenir (Mac'teki gibi). Kayıt bitince (ya da yenisi başlayınca) görev kendiliğinden sona erer.
+    private func watchRecordingLimit(deadline: Date) {
+        recordingLimitTask?.cancel()
+        let limitGeneration: Int = generation
+        recordingLimitTask = Task { [weak self] in
+            var warned: Bool = false
+            while !Task.isCancelled {
+                guard let self, self.phase == .recording, limitGeneration == self.generation else {
+                    return
+                }
+                switch hostedRecordingLimitState(now: Date(), deadline: deadline, warningLeadSec: hostedLimitWarningLeadSec) {
+                case .running:
+                    break
+                case .warning:
+                    if !warned {
+                        warned = true
+                        let time: String = deadline.formatted(Date.FormatStyle(date: .omitted, time: .shortened).locale(interfaceLocale()))
+                        Self.logger.info("Toplantının süre sınırı yaklaşıyor, uyarı gösterildi")
+                        self.errorMessages = appendUnique(messages: self.errorMessages, message: String(localized: "Bu toplantının süre sınırına 5 dakika kaldı; kayıt \(time) itibarıyla bitirilecek."))
+                    }
+                case .reached:
+                    Self.logger.info("Toplantının süre sınırına ulaşıldı, kayıt bitiriliyor")
+                    recordTelemetryCount(kind: .recordingOverrun)
+                    self.errorMessages = appendUnique(messages: self.errorMessages, message: String(localized: "Bu toplantının süre sınırına ulaşıldı; kayıt bitirildi."))
+                    self.stop()
+                    return
+                }
+                do {
+                    try await Task.sleep(for: .seconds(1))
+                } catch {
+                    // İptal: kayıt bitti ya da yenisi başladı.
+                    return
+                }
+            }
+        }
+    }
+
+    /// Sunucu toplantıyı reddetti: kayıt başlamadı, o ana dek diske yazılan ses ve klasör silinir.
+    private func discardRefusedRecording(directory: URL) {
+        do {
+            try FileManager.default.removeItem(at: directory)
+        } catch {
+            Self.logger.error("Reddedilen kaydın klasörü silinemedi, klasör: \(directory.lastPathComponent, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+            errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
         }
     }
 
@@ -260,7 +347,7 @@ final class PhoneRecorder {
         updateActivityNow(state: RecordingActivityAttributes.ContentState(lastLine: activityLine.text, speaker: activityLine.speaker, isFinishing: true))
     }
 
-    /// Kullanımdaki toplantılar (kayıtta ya da işleniyor): iCloud'a taşınmaz.
+    /// Kullanımdaki toplantılar (kayıtta ya da işleniyor).
     var busyMeetingIDs: Set<String> {
         Set(processingSteps.keys).union([active?.directory.lastPathComponent].compactMap { $0 })
     }
@@ -286,13 +373,15 @@ final class PhoneRecorder {
         }
     }
 
-    /// Açılışta (ve arka plandan dönünce) bu iPhone'da kayıtta ya da işlemede kalmış toplantılar eldeki anahtarlarla
-    /// yeniden işlenir; ElevenLabs anahtarı yoksa son geçiş atlanır ve nedeni toplantıda görünür, LLM yoksa not yazılmaz
-    /// ve sonra "Notu yenile" ile yazılabilir.
+    /// Açılışta (ve arka plandan dönünce) kayıtta ya da işlemede kalmış toplantılar yeniden işlenir (son geçiş ve not
+    /// kaydın sunucu oturumuyla; oturumun ek süresi geçtiyse yeniden işleme için açılır, bkz. `hostedFinalPassPlan`), sonra
+    /// bekleyen (çevrimdışı) kayıtlar denenir.
     func resumeUnfinished() async {
         endStaleActivities()
+        guard phase == .idle else {
+            return
+        }
         // Bu oturumda işlenmekte olanlar (sahne yeniden kurulduysa) ikinci kez işlenmez: çift ücret, aynı dosyaya iki yazar.
-        // Yalnızca bu iPhone'da kaydedilenler: iCloud'daki Mac toplantısı Mac'te işlenir.
         let local: Set<String>
         do {
             local = try AppPaths.localMeetingIDs()
@@ -301,20 +390,11 @@ final class PhoneRecorder {
             return
         }
         let stale: [MeetingRecord] = staleStatusesToInterrupt(records: store.meetings.filter { local.contains($0.id) }).filter { processingSteps[$0.id] == nil }
-        guard !stale.isEmpty, phase == .idle else {
-            return
-        }
-        // Son geçiş ayara değil kaydın motoruna göre seçilir (bkz. `process`): ElevenLabs anahtarı yalnız bulutta
-        // kaydedilmiş bir toplantı kaldıysa aranır (yalnız cihaz içi kayıtlar kaldıysa "anahtar yok" görünmez).
-        let elevenLabs: String? = stale.contains { (record: MeetingRecord) -> Bool in record.engine != .local } ? await optionalElevenLabsKey() : nil
-        let keys: ProcessingKeys = ProcessingKeys(elevenLabs: elevenLabs, llm: await llmProviderReportingFailure())
         for record in stale {
             do {
                 let directory: URL = try store.sessionDirectory(id: record.id)
                 Self.logger.info("Yarıda kalan toplantı yeniden işleniyor, toplantı: \(record.id, privacy: .public)")
-                // Anahtarlar beklenirken aynı toplantı başka bir çağrıyla işlemeye girmiş olabilir: ikinci sistem görevi
-                // istenmez (sahipsiz kalıp süresi dolunca süren işlemeyi iptal ederdi).
-                guard process(record: record.with(status: .processing, failureMessage: nil), directory: directory, keys: keys) else {
+                guard process(record: record.with(status: .processing, failureMessage: nil), directory: directory) else {
                     continue
                 }
                 submitContinuedProcessing(id: record.id, subtitle: continuedProcessingSubtitle(title: record.title, startedAt: record.startedAt))
@@ -322,15 +402,104 @@ final class PhoneRecorder {
                 errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
             }
         }
+        await runQueue()
+    }
+
+    /// Bekleyen ilk toplantıyı (çevrimdışı kaydedilmiş) işler (Mac'teki `runOfflineQueue`'nun karşılığı): kayıt yokken
+    /// sunucu oturumu hazırlanır (bkz. `HostedAccount.prepareQueuedMeeting`), sonra son geçiş ve not o oturumla üretilir.
+    /// Sunucuya hâlâ ulaşılamıyorsa bekler; sunucu şimdilik işlemiyorsa (deneme bitti, sınır) kayıt bekleyen kalır ve
+    /// nedeni toplantıda görünür. Açılışta, uygulama öne gelince, ağ gelince ve hak durumu okununca (`queueTrigger`) ve
+    /// her işleme bitince tetiklenir; birer birer işler.
+    func runQueue() async {
+        guard phase == .idle, !isRunningQueue else {
+            return
+        }
+        isRunningQueue = true
+        defer { isRunningQueue = false }
+        let userID: String
+        do {
+            guard let signedIn = try await HostedAccount.shared.signedInUserID() else {
+                return
+            }
+            userID = signedIn
+        } catch {
+            Self.logger.error("Kuyruk: oturum okunamadı, hata: \(String(describing: error), privacy: .private)")
+            return
+        }
+        // Yüklü toplantılar giriş yapan hesabın değilse hiçbiri işlenmez: başka hesaba faturalanmaz.
+        guard AppPaths.activeAccountKey() == accountDataKey(userId: userID) else {
+            Self.logger.info("Kuyruk: yüklü toplantılar giriş yapan hesabın değil, işlenmedi")
+            return
+        }
+        let queued: HostedQueuedRecords = hostedQueuedRecords(
+            records: store.meetings.filter { processingSteps[$0.id] == nil }, owners: loadHostedRecordOwners(), userId: userID
+        )
+        for record in queued.foreign {
+            noteQueued(recordID: record.id, notice: String(localized: "Bu kayıt başka bir hesapla yapıldı; o hesapla giriş yapınca işlenir."))
+        }
+        // Tetikleme başına en çok bir sunucu reddi (başlatma hız sınırı canlı kayda kalsın); ilk hazır olan işlenir.
+        for record in hostedQueueCandidates(records: queued.own, rejections: queueRejections, now: Date(), cooldownSec: hostedQueueRejectionCooldownSec) {
+            let recordID: String = record.id
+            switch await HostedAccount.shared.prepareQueuedMeeting(recordID: recordID) {
+            case .waitingForNetwork:
+                return
+            case .blocked(let reason):
+                noteQueued(recordID: recordID, notice: reason)
+            case .rejected(let reason):
+                queueRejections[recordID] = Date()
+                noteQueued(recordID: recordID, notice: reason)
+                return
+            case .ready:
+                // Hazırlık sürerken kayıt başlamış ya da toplantı silinmiş olabilir.
+                guard phase == .idle, let current = store.meetings.first(where: { $0.id == recordID }), current.status == .queued else {
+                    return
+                }
+                do {
+                    let directory: URL = try store.sessionDirectory(id: recordID)
+                    Self.logger.info("Çevrimdışı kayıt işleniyor, toplantı: \(recordID, privacy: .public)")
+                    process(record: current.with(status: .processing, failureMessage: nil).with(notice: nil), directory: directory)
+                } catch {
+                    errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
+                }
+                return
+            }
+        }
+    }
+
+    /// Bekleyen kaydın işlenememe nedenini toplantıya yazar (değişmediyse dokunmaz).
+    private func noteQueued(recordID: String, notice: String) {
+        guard let current = store.meetings.first(where: { $0.id == recordID }), current.status == .queued, current.notice != notice else {
+            return
+        }
+        do {
+            saveRecord(record: current.with(notice: notice), directory: try store.sessionDirectory(id: recordID))
+        } catch {
+            errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
+        }
     }
 
     #if DEBUG
     /// `--ornek-kayit` (yalnız Debug, görsel kontrol): mikrofon ve bulut olmadan örnek bir canlı kayıt gösterir.
     func showSampleRecording() {
+        // Çeviriler gerçek kayıttaki gibi not diline (çeviri hedefi) göre: İngilizce ya da Türkçe; başka dil için örnek
+        // çeviri yok, satırlar çevirisiz görünür.
+        let sampleTranslations: [String?] = switch phoneNoteLanguage() {
+        case .english: [
+            "Good morning, everyone, let's start the weekly meeting.",
+            "The budget is ready now and goes to the board on Friday.",
+            "Good. Who is taking care of the client presentation?",
+        ]
+        case .turkish: [
+            "Herkese günaydın, haftalık toplantıya başlayalım.",
+            "Bütçe hazır ve cuma günü yönetim kuruluna gidiyor.",
+            "Güzel. Müşteri sunumunu kim üstleniyor?",
+        ]
+        default: [nil, nil, nil]
+        }
         let sample: [(text: String, person: Int, translation: String?, isFinal: Bool)] = [
-            ("Hyvää huomenta kaikille, aloitetaan viikkopalaveri.", 1, "Herkese günaydın, haftalık toplantıya başlayalım.", true),
-            ("Budjetti on nyt valmis ja se lähtee hallitukselle perjantaina.", 1, "Bütçe hazır ve cuma günü yönetim kuruluna gidiyor.", true),
-            ("Hyvä. Kuka hoitaa asiakasesityksen?", 2, "Güzel. Müşteri sunumunu kim üstleniyor?", true),
+            ("Hyvää huomenta kaikille, aloitetaan viikkopalaveri.", 1, sampleTranslations[0], true),
+            ("Budjetti on nyt valmis ja se lähtee hallitukselle perjantaina.", 1, sampleTranslations[1], true),
+            ("Hyvä. Kuka hoitaa asiakasesityksen?", 2, sampleTranslations[2], true),
             ("Minä voin tehdä sen, kunhan saan luvut tiistaihin mennessä", 3, nil, false),
         ]
         transcript = sample.enumerated().map { (item: (offset: Int, element: (text: String, person: Int, translation: String?, isFinal: Bool))) -> LiveSegment in
@@ -419,28 +588,51 @@ final class PhoneRecorder {
         microphone.stop()
         levels.stop()
         endActivity()
-        phase = .idle
+        recordingLimitTask?.cancel()
+        recordingLimitTask = nil
         consentReminderVisible = false
         guard let finished = active else {
+            phase = .idle
             startedAt = nil
             return
         }
+        // Kapatılacak sunucu oturumu beklemeden önce alınır. Oturum kapanana dek kayıt "bitiyor"da kalır: bu arada yeni
+        // kayıt başlayıp onun oturumunu ezmesin.
+        let serverMeetingID: String? = HostedAccount.shared.currentMeeting?.meetingId
+        do {
+            // Not ve son geçiş sunucunun ek süresinde aynı oturumla sürer.
+            try await HostedAccount.shared.endMeeting(meetingID: serverMeetingID)
+        } catch {
+            Self.logger.error("Toplantı oturumu kapatılamadı, hata: \(String(describing: error), privacy: .private)")
+            errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Toplantı oturumu kapatılamadı: \(userFacingMessage(error: error))"))
+        }
+        phase = .idle
         active = nil
         // Biten kaydın geç çevirisi artık yazılmaz.
         generation += 1
         let record: MeetingRecord = liveRecord(recording: finished, status: .processing, endedAt: Date())
         startedAt = nil
         lastMeetingID = record.id
-        Self.logger.info("Kayıt bitti, toplantı: \(record.id, privacy: .public)")
-        process(record: record, directory: finished.directory, keys: finished.keys)
+        Self.logger.info("Kayıt bitti, toplantı: \(record.id, privacy: .public), çevrimdışı: \(finished.offline, privacy: .public)")
+        if finished.offline {
+            // Çevrimdışı kayıt: ses ve canlı metin bu iPhone'da; son geçiş ve not bağlantı gelince (kayıt silinmez).
+            saveRecord(
+                record: record.with(status: .queued, failureMessage: nil).with(notice: String(localized: "Çevrimdışı kaydedildi; bağlantı gelince konuşmacılar ve not hazırlanır.")),
+                directory: finished.directory
+            )
+            endBackgroundTask(id: record.id)
+            return
+        }
+        process(record: record, directory: finished.directory)
     }
 
-    /// Toplantıyı işler (ses, son geçiş, not) ve saklar. Uygulama arka plana geçerse iOS'tan ek süre istenir ve varsa
-    /// sürdürülen işleme görevinin ilerlemesi güncellenir; süre yetmezse toplantı açılışta yeniden işlenir
-    /// (`resumeUnfinished`). Aynı toplantı aynı anda iki kez işlenmez (çift ücret, aynı dosyaya iki yazar). İşleme
-    /// başlatıldıysa true; toplantı zaten işleniyorsa false.
+    /// Toplantıyı işler (ses, son geçiş, not) ve saklar: son geçiş kaydın sunucu oturumuyla (`hostedFinalPassPlan`), not
+    /// o oturumun bütçesinden (oturumu yoksa hesaptan; hakkı yoksa not yazılmaz ve nedeni toplantıda görünür). Uygulama
+    /// arka plana geçerse iOS'tan ek süre istenir ve varsa sürdürülen işleme görevinin ilerlemesi güncellenir; süre
+    /// yetmezse toplantı açılışta yeniden işlenir (`resumeUnfinished`). Aynı toplantı aynı anda iki kez işlenmez (çift
+    /// ücret, aynı dosyaya iki yazar). İşleme başlatıldıysa true; toplantı zaten işleniyorsa false.
     @discardableResult
-    private func process(record: MeetingRecord, directory: URL, keys: ProcessingKeys) -> Bool {
+    private func process(record: MeetingRecord, directory: URL) -> Bool {
         guard processingSteps[record.id] == nil else {
             Self.logger.warning("Toplantı zaten işleniyor, ikinci işleme başlatılmadı, toplantı: \(record.id, privacy: .public)")
             return false
@@ -448,20 +640,21 @@ final class PhoneRecorder {
         saveRecord(record: record, directory: directory)
         processingSteps[record.id] = .convertingAudio
         beginBackgroundTask(id: record.id)
-        // Cihaz içi kayıt buluta gönderilmez: son geçiş Apple'ın konuşma tanımasıyla yapılır.
-        let finalPass: FinalPassPlan = record.engine == .local
-            ? .run(AppleSpeechFinalTranscriber(primaryLanguage: phonePrimaryMeetingLanguage()))
-            : keys.elevenLabs.map { (key: String) -> FinalPassPlan in
-                .run(ElevenLabsFinalTranscriber(apiKey: key, keyterms: []))
-            } ?? .skip(reason: String(localized: "ElevenLabs anahtarı kayıtlı değil."))
         processingTasks[record.id] = Task {
+            let finalPass: FinalPassPlan = await hostedFinalPassPlan(
+                keyterms: keytermsWithAttendees(attendees: record.attendees ?? [], keyterms: [], limit: 30), recordID: record.id
+            )
+            let llm: LLMProvider? = recordedMeetingLLMReportingFailure(recordID: record.id)
             let result: MeetingRecord = await processMeeting(
-                record: record, directory: directory, finalPass: finalPass, llm: keys.llm,
+                record: record, directory: directory, finalPass: finalPass, llm: llm,
                 languageMode: record.language.map { LanguageMode.fixed($0) } ?? .automatic, userName: phoneUserName(),
                 noteLanguage: phoneNoteLanguage(), voiceEmbedder: nil, registry: []
             ) { (step: ProcessingStep) async -> Void in
                 self.processingSteps[record.id] = step
                 self.continuedTasks[record.id]?.progress.completedUnitCount = continuedProcessingCompletedUnits(step: step)
+                if step == .writingNote {
+                    self.noteWritingStartedAt[record.id] = .now
+                }
             }
             processingTasks[record.id] = nil
             guard !Task.isCancelled else {
@@ -472,16 +665,28 @@ final class PhoneRecorder {
                 endBackgroundTask(id: record.id)
                 return
             }
+            recordNoteOutcome(result: result, writingStartedAt: noteWritingStartedAt.removeValue(forKey: record.id))
             saveRecord(record: result, directory: directory)
             processingSteps[record.id] = nil
-            // iCloud'a taşıma sistem görevine bağlanmaz (yarıda iptal edilmesin); arka plan süresiyle sürer.
             finishContinuedTask(meetingID: record.id, success: result.status == .done)
-            if result.status == .done {
-                await store.cloud.moveFinishedMeetings(excluding: busyMeetingIDs.union([store.playingMeetingID].compactMap { $0 })) { [store] in store.reload() }
-            }
+            // Son geçişin ses süresi aylık kullanıma sayılır: hesap durumu yenilenir.
+            await HostedAccount.shared.refresh()
             endBackgroundTask(id: record.id)
+            // Sıradaki bekleyen (çevrimdışı) kayıt.
+            await runQueue()
         }
         return true
+    }
+
+    /// Kaydı biten toplantının notu için sağlayıcı (bkz. `phoneRecordedMeetingLLMProvider`); kullanılamıyorsa nil ve neden
+    /// kayıt ekranında görünür (not yazılmaz, sonra "Notu yenile" ile yazılabilir).
+    private func recordedMeetingLLMReportingFailure(recordID: String) -> LLMProvider? {
+        do {
+            return try phoneRecordedMeetingLLMProvider(recordID: recordID)
+        } catch {
+            errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Not yazılamadı: \(userFacingMessage(error: error))"))
+            return nil
+        }
     }
 
     // MARK: Arka plan
@@ -690,7 +895,7 @@ final class PhoneRecorder {
         guard needsLiveTranslation(spoken: lockedLanguage ?? fixedMeetingLanguage(mode: languageMode), noteLanguage: phoneNoteLanguage()) else {
             return
         }
-        guard let provider = active?.keys.llm else {
+        guard let provider = active?.liveLLM else {
             return
         }
         do {
@@ -764,7 +969,7 @@ final class PhoneRecorder {
     }
 
     private func startQueuedTranslations() {
-        guard let provider = active?.keys.llm else {
+        guard let provider = active?.liveLLM else {
             return
         }
         while translationsInFlight < Self.maxParallelTranslations, !translationQueue.isEmpty {
@@ -844,37 +1049,6 @@ final class PhoneRecorder {
             errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Toplantı kaydedilemedi: \(userFacingMessage(error: error))"))
         }
     }
-
-    // MARK: Anahtarlar
-
-    /// Anahtarı okur; sonucu hata dahil döndürür (birden çok eksik birlikte bildirilsin diye).
-    private func secretResult(account: SecretAccount) async -> Result<String, any Error> {
-        do {
-            return .success(try await readSecretInBackground(service: keychainService, account: account))
-        } catch {
-            return .failure(error)
-        }
-    }
-
-    /// LLM sağlayıcısı (Claude ya da cihaz içi); kullanılamazsa çeviri ve not kapalı kalır ve neden bildirilir.
-    private func llmProviderReportingFailure() async -> LLMProvider? {
-        do {
-            return try await phoneLLMProvider()
-        } catch {
-            errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Çeviri ve not kapalı: \(userFacingMessage(error: error))"))
-            return nil
-        }
-    }
-
-    /// ElevenLabs anahtarı; okunamazsa nil ve neden bildirilir (son geçiş atlanır).
-    private func optionalElevenLabsKey() async -> String? {
-        do {
-            return try await readSecretInBackground(service: keychainService, account: .elevenlabs)
-        } catch {
-            errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
-            return nil
-        }
-    }
 }
 
 /// Sabit dil seçiliyse o dil; otomatikte nil. Saf fonksiyondur.
@@ -894,7 +1068,7 @@ private func finishedAudioStream() -> AsyncStream<[Float]> {
 
 /// Sürdürülen işleme görevlerinin kimlik öneki; Info.plist'teki `BGTaskSchedulerPermittedIdentifiers` joker kalıbı
 /// (`<önek>.*`, project.yml) ile aynı olmalı.
-private let continuedProcessingIdentifierPrefix: String = "com.senoldogan.AINotepad.process"
+private let continuedProcessingIdentifierPrefix: String = "com.senoldogan.AINotepad.hosted.process"
 
 /// Sürdürülen işleme görevinin tekil kimliği. Saf fonksiyondur.
 private func continuedProcessingIdentifier(suffix: String) -> String {

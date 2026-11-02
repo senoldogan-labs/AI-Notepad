@@ -200,24 +200,48 @@ public func hostedErrorMessage(error: HostedAPIError) -> String {
     }
     switch code {
     case .trialExhausted:
+        #if os(macOS)
         return String(localized: "Ücretsiz denemen bitti. Devam etmek için abone ol.")
+        #else
+        return String(localized: "Ücretsiz denemen bitti.")
+        #endif
     case .trialNotStarted:
         return String(localized: "Ücretsiz deneme ilk toplantıyla başlar; önce bir toplantı başlat.")
     case .trialIPLimit:
+        #if os(macOS)
         return String(localized: "Bu ağdan bugün çok fazla yeni deneme başlatıldı. Yarın yeniden dene ya da abone ol.")
+        #else
+        return String(localized: "Bu ağdan bugün çok fazla yeni deneme başlatıldı. Yarın yeniden dene.")
+        #endif
     case .trialDeviceUsed:
+        #if os(macOS)
         return String(localized: "Bu Mac'te ücretsiz deneme daha önce başka bir hesapla kullanıldı. Devam etmek için Ayarlar › Hesap'tan abone ol.")
+        #else
+        return String(localized: "Bu iPhone'da ücretsiz deneme daha önce başka bir hesapla kullanıldı.")
+        #endif
     case .deviceCheckRequired:
+        #if os(macOS)
         return String(localized: "Ücretsiz deneme için bu Mac'in Apple doğrulaması gerekiyor; uygulamayı güncelleyip yeniden dene.")
+        #else
+        return String(localized: "Ücretsiz deneme için bu iPhone'un Apple doğrulaması gerekiyor; uygulamayı güncelleyip yeniden dene.")
+        #endif
     case .deviceCheckInvalid:
+        #if os(macOS)
         return String(localized: "Bu Mac Apple tarafından doğrulanamadı; uygulamayı yeniden açıp tekrar dene.")
+        #else
+        return String(localized: "Bu iPhone Apple tarafından doğrulanamadı; uygulamayı yeniden açıp tekrar dene.")
+        #endif
     case .monthlyCapReached:
         // Aynı kod farklı sınırlardan gelir: hangisi olduğu isteğin yolundan (kayıt, son geçiş ya da yapay zekâ).
         return monthlyCapMessage(path: error.path)
     case .dailyCapReached:
         return dailyCapMessage(path: error.path)
     case .subscriptionRequired:
+        #if os(macOS)
         return String(localized: "Bu işlem için abonelik gerekiyor. Ayarlar › Hesap'tan abone ol.")
+        #else
+        return String(localized: "Bu işlem için hesabında etkin bir plan gerekiyor.")
+        #endif
     case .subscriptionExists:
         return String(localized: "Zaten bir aboneliğin var; \"Hesabı yönet\" ile düzenleyebilirsin.")
     case .complimentarySubscription:
@@ -227,7 +251,11 @@ public func hostedErrorMessage(error: HostedAPIError) -> String {
     case .appStoreUnavailable:
         return String(localized: "App Store satın alması şu an doğrulanamıyor; biraz sonra yeniden dene.")
     case .trialCapacityReached:
+        #if os(macOS)
         return String(localized: "Ücretsiz denemeler bugün kapasitede. Yarın yeniden dene ya da Ayarlar › Hesap'tan abone ol.")
+        #else
+        return String(localized: "Ücretsiz denemeler bugün kapasitede. Yarın yeniden dene.")
+        #endif
     case .spendCeilingReached:
         return String(localized: "Servis bugün çok yoğun; yeni toplantılar ve yapay zekâ istekleri geçici olarak durduruldu. Biraz sonra yeniden dene.")
     case .meetingNotActive:
@@ -239,9 +267,17 @@ public func hostedErrorMessage(error: HostedAPIError) -> String {
     case .transcriptionInProgress:
         return String(localized: "Bu toplantının sesi zaten işleniyor; bitince yeniden dene.")
     case .deepgramUnavailable:
+        #if os(macOS)
         return String(localized: "Bulut canlı metni şu an kullanılamıyor; canlı metin bu Mac'te üretiliyor.")
+        #else
+        return String(localized: "Bulut canlı metni şu an kullanılamıyor; canlı metin bu iPhone'da üretiliyor.")
+        #endif
     case .deepgramGrantLimit:
+        #if os(macOS)
         return String(localized: "Bulut canlı metnine bu toplantıda çok sık yeniden bağlanıldı; canlı metin bu Mac'te sürüyor.")
+        #else
+        return String(localized: "Bulut canlı metnine bu toplantıda çok sık yeniden bağlanıldı; canlı metin bu iPhone'da sürüyor.")
+        #endif
     case .meetingBudgetExhausted:
         return String(localized: "Bu toplantının yapay zekâ kullanım hakkı doldu.")
     case .referralInvalid:
@@ -266,7 +302,11 @@ public func hostedErrorMessage(error: HostedAPIError) -> String {
     case .attestationRequired:
         return String(localized: "Bu sürüm cihaz doğrulaması istiyor; uygulamayı güncelle.")
     case .attestationInvalid, .assertionInvalid, .challengeInvalid:
+        #if os(macOS)
         return String(localized: "Bu Mac doğrulanamadı; uygulamayı yeniden açıp tekrar dene.")
+        #else
+        return String(localized: "Bu iPhone doğrulanamadı; uygulamayı yeniden açıp tekrar dene.")
+        #endif
     case .upstreamRejected:
         return String(localized: "Yapay zekâ ya da konuşma tanıma servisi isteği reddetti. Sorun sürerse bize yaz.")
     case .upstreamUnavailable:
@@ -347,9 +387,17 @@ public func hostedClientMessage(error: HostedClientError) -> String {
 public func hostedDeviceCheckMessage(error: HostedDeviceCheckError) -> String {
     switch error {
     case .unsupported:
+        #if os(macOS)
         String(localized: "Bu Mac Apple'ın cihaz doğrulamasını (DeviceCheck) desteklemiyor; ücretsiz deneme başlatılamıyor. Abone olarak devam edebilirsin.")
+        #else
+        String(localized: "Bu cihaz Apple'ın cihaz doğrulamasını (DeviceCheck) desteklemiyor; ücretsiz deneme başlatılamıyor.")
+        #endif
     case .tokenFailed:
+        #if os(macOS)
         String(localized: "Bu Mac Apple ile doğrulanamadı (DeviceCheck). İnternet bağlantını kontrol edip yeniden dene.")
+        #else
+        String(localized: "Bu iPhone Apple ile doğrulanamadı (DeviceCheck). İnternet bağlantını kontrol edip yeniden dene.")
+        #endif
     }
 }
 

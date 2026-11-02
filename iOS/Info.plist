@@ -2,11 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>AINotepadAccountScopedData</key>
+	<true/>
 	<key>AINotepadDataFolderName</key>
-	<string>AINotepad</string>
+	<string>$(HOSTED_DATA_FOLDER_NAME)</string>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
-		<string>com.senoldogan.AINotepad.process.*</string>
+		<string>com.senoldogan.AINotepad.hosted.process.*</string>
 	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
@@ -24,12 +26,18 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>HostedAPIBase</key>
+	<string>$(HOSTED_API_BASE)</string>
+	<key>HostedKeychainService</key>
+	<string>$(HOSTED_KEYCHAIN_SERVICE)</string>
+	<key>HostedSiteBase</key>
+	<string>$(HOSTED_SITE_BASE)</string>
 	<key>NSCalendarsFullAccessUsageDescription</key>
-	<string>AI-Notepad sıradaki toplantılarını gösterir ve kaydı süren toplantının adı ve katılımcılarıyla kaydeder.</string>
+	<string>Gistsmith sıradaki toplantılarını gösterir ve kaydı süren toplantının adı ve katılımcılarıyla kaydeder.</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>© 2026 T:mi Aslan Dogan Marketing</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
-	<key>ReportsAPIBase</key>
-	<string>https://api.gistsmith.com</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>InterVariable.ttf</string>

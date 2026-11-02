@@ -4,8 +4,8 @@ import os
 import SwiftUI
 
 /// Arşiv sohbeti: soru-cevaplar ve süren cevap. Cevabı Mac'teki `askArchive` yazar (arama terimleri → parçalar → akan
-/// cevap); devam soruları önceki cevapları bağlam alır. Sohbetler her cevaptan sonra bu iPhone'da saklanır (iCloud'a
-/// eşitlenmez) ve geçmişten yeniden açılır.
+/// cevap); devam soruları önceki cevapları bağlam alır; yapay zekâ çağrısı hesabın payından (sunucu üzerinden Claude).
+/// Sohbetler her cevaptan sonra bu iPhone'da hesabın klasöründe saklanır ve geçmişten yeniden açılır.
 @MainActor
 @Observable
 final class PhoneAsk {
@@ -39,7 +39,8 @@ final class PhoneAsk {
     /// Kayıtlı tarifleri okur.
     func loadRecipes() {
         do {
-            userRecipes = try loadUserRecipes(defaults: .standard)
+            // Tarifler hesabındır (Mac'teki Gistsmith gibi): başka hesapla girince görünmez.
+            userRecipes = try loadUserRecipes(defaults: try hostedActiveAccountDefaults())
         } catch {
             recipeError = userFacingMessage(error: error)
         }
@@ -57,7 +58,7 @@ final class PhoneAsk {
 
     private func store(recipes: [Recipe]) {
         do {
-            try saveUserRecipes(recipes: recipes, defaults: .standard)
+            try saveUserRecipes(recipes: recipes, defaults: try hostedActiveAccountDefaults())
             userRecipes = recipes
         } catch {
             recipeError = userFacingMessage(error: error)
@@ -68,6 +69,15 @@ final class PhoneAsk {
     func ask(question: String, meetingIDs: [String], recipeTitle: String?) {
         let trimmed: String = question.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !isAnswering else {
+            return
+        }
+        // Deneme ilk toplantıyla başlar: henüz toplantısı olmayan denemedeki hesap önce kayıt yapmalı (sunucu
+        // çağrılmaz; diğer retler sunucunun hatasıyla gösterilir).
+        if let reason = hostedAskUnavailableReason(account: HostedAccount.shared) {
+            exchanges.append(ArchiveExchange(
+                id: UUID(), question: trimmed, scopeMeetingIDs: meetingIDs, scopeTitles: [], recipeTitle: recipeTitle, startedAt: Date(),
+                phase: .failed(reason), terms: [], passages: [], answer: ArchiveAnswer(text: "", sources: []), finishedAt: Date()
+            ))
             return
         }
         let history: [ArchiveTurn] = archiveHistory(exchanges: exchanges)
@@ -91,19 +101,16 @@ final class PhoneAsk {
         let records: [MeetingRecord] = store.meetings
         task = Task { [weak self] in
             do {
-                let provider: LLMProvider = try await phoneLLMProvider()
+                let provider: LLMProvider = try phoneAccountLLMProvider()
                 let onProgress: ArchiveProgressHandler = { [weak self] (progress: ArchiveProgress) -> Void in
                     await self?.apply(progress: progress, id: id)
                 }
                 if scoped.isEmpty {
-                    // Cihaz içi modelde dili desteklenmeyen toplantılar okunmaz.
-                    let readable: OnDeviceReadableRecords = try onDeviceAskableArchive(records: records, provider: provider, outputLanguage: phoneNoteLanguage())
                     _ = try await askArchive(
-                        question: trimmed, history: history, records: readable.records, userName: phoneUserName(), language: phoneNoteLanguage(), llm: provider,
+                        question: trimmed, history: history, records: records, userName: phoneUserName(), language: phoneNoteLanguage(), llm: provider,
                         maxChars: noteLimits(provider: provider).archiveChars, now: Date(), onProgress: onProgress
                     )
                 } else {
-                    try requireOnDeviceLanguages(provider: provider, meetingLanguages: scoped.compactMap(\.language), outputLanguage: phoneNoteLanguage())
                     _ = try await askAboutMeetings(
                         question: trimmed, history: history, records: scoped, userName: phoneUserName(), language: phoneNoteLanguage(), llm: provider,
                         maxChars: noteLimits(provider: provider).archiveChars,
@@ -305,7 +312,7 @@ struct AskTab: View {
                                 return
                             }
                             ask.ask(question: recipe.prompt, meetingIDs: mentioned.map(\.id), recipeTitle: recipe.title)
-                            question = ""
+                            clearQuestion()
                             withAnimation(.smooth(duration: 0.2)) { mentioned = [] }
                             isFocused = false
                         } onDelete: { (recipe: Recipe) -> Void in
@@ -454,12 +461,13 @@ struct AskTab: View {
         .shadow(color: .black.opacity(0.08), radius: 14, y: 4)
     }
 
-    /// İmlecin konumu (UTF-16); alan odakta değilse ya da birden çok seçim varsa nil.
+    /// İmlecin konumu (UTF-16); alan odakta değilse, birden çok seçim varsa ya da seçim bu metne ait değilse nil
+    /// (iOS 26 boş alanda iç metninden indeks bildirir).
     private var cursor: Int? {
         guard let selection, case .selection(let range) = selection.indices else {
             return nil
         }
-        return range.upperBound.utf16Offset(in: question)
+        return cursorOffset(text: question, index: range.upperBound)
     }
 
     /// İmlecin önündeki `@` bahsi.
@@ -503,13 +511,19 @@ struct AskTab: View {
         selection = TextSelection(insertionPoint: String.Index(utf16Offset: edit.cursor, in: edit.text))
     }
 
+    /// Soru alanını boşaltır; seçim de birlikte sıfırlanır: eski metnin indeksi boş metinde geçersizdir.
+    private func clearQuestion() {
+        question = ""
+        selection = nil
+    }
+
     private func send() {
         // Öneri seçilirken gönderilmez; eşleşen öneri yoksa soru olduğu gibi gider.
         guard !ask.isAnswering, !isMentioning, !isPickingRecipe, !question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return
         }
         ask.ask(question: question, meetingIDs: mentioned.map(\.id), recipeTitle: nil)
-        question = ""
+        clearQuestion()
         // Etiket bu soruya aitti: sohbette sorunun üstünde kalır, soru alanından kalkar.
         withAnimation(.smooth(duration: 0.2)) { mentioned = [] }
         isFocused = false

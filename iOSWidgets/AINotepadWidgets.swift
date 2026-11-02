@@ -124,7 +124,7 @@ struct RecordControl: ControlWidget {
             }
         }
         .displayName("Toplantıyı kaydet")
-        .description("AI-Notepad'i açar ve yüz yüze toplantıyı kaydetmeye başlar.")
+        .description("Gistsmith'i açar ve yüz yüze toplantıyı kaydetmeye başlar.")
     }
 }
 
@@ -186,7 +186,7 @@ private struct QuickRecordView: View {
                     Text("Toplantıyı kaydet")
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(Color(red: 0.04, green: 0.04, blue: 0.04))
-                    Text("AI-Notepad")
+                    Text(verbatim: "Gistsmith")
                         .font(.system(size: 12))
                         .foregroundStyle(Color(red: 0.45, green: 0.45, blue: 0.45))
                 }

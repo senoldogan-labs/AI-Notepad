@@ -2,10 +2,11 @@ import AINotepadCore
 import AINotepadUI
 import SwiftUI
 
-/// Çökme raporlarının gideceği sunucu: Info.plist'teki `ReportsAPIBase` (iPhone uygulamasında hesap yok, jetonsuz).
+/// Çökme raporlarının gideceği sunucu: abonelik sunucusu, rapor hesaba bağlanır (Mac'teki Gistsmith gibi; sunucu
+/// jetonsuz raporu kabul etmez, giriş yapılmamışsa `HostedClientError.notSignedIn`).
 @MainActor
 private func phoneReportDestination() async throws -> ReportDestination {
-    try anonymousReportDestination(bundle: .main)
+    try await hostedReportDestination()
 }
 
 /// Ayarlar'ın en üstünde: önceki açılışta uygulama çöktüyse bir kez sorar. "Gönder" (kullanıcının açık onayı) saklanan

@@ -68,22 +68,25 @@ const appleRefundUrl: string = "https://reportaproblem.apple.com";
 
   <LegalSection sections={sections} id="service">
     <p>
-      {productName} is a Mac app that records your meetings, shows a live transcript and optional live translation, and
-      writes a note when the meeting ends — your tasks first, then decisions and a summary. Transcription after the meeting
-      and the AI features run through our servers using our providers (see the Privacy policy); the live transcript is
-      produced on your Mac or, when available, by our speech-to-text provider from audio streamed directly from your Mac.
-      Your notes and recordings are stored on your Mac.
+      {productName} is a Mac and iPhone app that records your meetings, shows a live transcript and optional live
+      translation, and writes a note when the meeting ends — your tasks first, then decisions and a summary. The Mac app
+      records online calls and in-person meetings; the iPhone app records in-person meetings through its microphone (it
+      cannot record calls in other apps). Transcription after the meeting and the AI features run through our servers
+      using our providers (see the Privacy policy); the live transcript is produced on your device or, when available, by
+      our speech-to-text provider from audio streamed directly from your device. Your notes and recordings are stored on
+      the Mac or iPhone that recorded them; the apps do not sync them between devices.
     </p>
     <p>
-      Subject to these terms, you may download and use the app on Macs you own or control, for as long as you have an
-      account. The service requires macOS 15 or later on a Mac with Apple silicon, and an internet connection.
+      Subject to these terms, you may download and use the apps on Macs and iPhones you own or control, for as long as
+      you have an account; the same account works in both. The Mac app requires macOS 15 or later on a Mac with Apple
+      silicon, the iPhone app iOS 26.1 or later, and both need an internet connection.
     </p>
   </LegalSection>
 
   <LegalSection sections={sections} id="account">
     <ul>
       <li>You sign in with Sign in with Apple or Sign in with Google. You must be at least 18 years old.</li>
-      <li>Your account is personal. Keep your Apple or Google account and your Mac secure; you are responsible for activity under your account.</li>
+      <li>Your account is personal. Keep your Apple or Google account and your devices secure; you are responsible for activity under your account.</li>
       <li>Creating several accounts to get more free trials, or sharing an account between people, is not allowed.</li>
     </ul>
   </LegalSection>
@@ -97,8 +100,9 @@ const appleRefundUrl: string = "https://reportaproblem.apple.com";
     </p>
     <ul>
       <li>
-        There is one free trial per person and one per Mac. We keep a pseudonymous record of the sign-in identity (Apple
-        or Google account) that used a trial, and Apple DeviceCheck tells us whether a Mac has already been used for one.
+        There is one free trial per person and one per device (Mac or iPhone). We keep a pseudonymous record of the sign-in
+        identity (Apple or Google account) that used a trial, and Apple DeviceCheck tells us whether a device has already
+        been used for one.
       </li>
       <li>
         If you delete your account and sign in again with the same Apple or Google account, your trial continues where it
@@ -296,7 +300,7 @@ const appleRefundUrl: string = "https://reportaproblem.apple.com";
       Your recordings, transcripts and notes belong to you. You give us permission to process them only as needed to
       provide the service to you. Our servers don't store your audio or notes; the final transcript is kept encrypted for
       at most 2 hours so it can be re-sent, then deleted. We don't use your meeting content to train AI models.
-      Because your notes are stored on your Mac, keeping backups of your Mac is up to you.
+      Because your notes are stored on your Mac or iPhone, keeping backups of your devices is up to you.
     </p>
   </LegalSection>
 
@@ -338,7 +342,7 @@ const appleRefundUrl: string = "https://reportaproblem.apple.com";
       </li>
       <li>
         <strong>Deletion.</strong> We don't keep meeting content after processing it: transcripts and notes are returned
-        to your Mac, and you delete them there; the encrypted copy of the final transcript is deleted from our server
+        to your Mac or iPhone, and you delete them there; the encrypted copy of the final transcript is deleted from our server
         within 2 hours, or immediately when you delete your account. Our sub-processors delete it under the retention rules described in the
         Privacy policy.
       </li>
