@@ -634,7 +634,7 @@ func isAccountDataReady() -> Bool {
 /// nedenini söyler); bitince yeniden denenir. Başlatıcı çalıştırılamazsa neden kapıda görünür.
 @MainActor
 private func relaunchForAccountSwitchIfIdle(model: AppModel) {
-    guard case .relaunchRequired = HostedAccount.shared.dataState, !model.isBusy else {
+    guard case .switchPending = HostedAccount.shared.dataState, !model.isBusy else {
         return
     }
     appLogger.info("Başka bir hesapla giriş yapıldı, uygulama yeniden başlatılıyor")

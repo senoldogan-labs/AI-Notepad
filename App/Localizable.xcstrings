@@ -2967,16 +2967,6 @@
         }
       }
     },
-    "Başka bir hesapla giriş yaptın. Bu hesabın toplantılarını açmak için Gistsmith'i uygulama değiştiriciden kapatıp yeniden aç.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "You signed in with a different account. To open this account's meetings, close Gistsmith from the app switcher and open it again."
-          }
-        }
-      }
-    },
     "Başka bir hesapla giriş yaptın. Önceki hesabın kaydı ya da işlenen toplantısı bitince uygulama yeniden başlar ve bu hesabın toplantılarını açar.": {
       "localizations": {
         "en": {
@@ -3420,6 +3410,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Briefing"
+          }
+        }
+      }
+    },
+    "Bu hesabın toplantıları açılıyor…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opening this account's meetings…"
           }
         }
       }
@@ -7060,6 +7060,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Account"
+          }
+        }
+      }
+    },
+    "Hesap değiştirilirken yüklü hesap değişti. Yeniden dene.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The loaded account changed while switching accounts. Try again."
           }
         }
       }
@@ -14908,6 +14919,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sign out"
+          }
+        }
+      }
+    },
+    "Önceki hesabın bir notu yazılıyor. Bitince bu hesabın toplantıları kendiliğinden açılır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A note for your previous account is being written. Once it's done, this account's meetings open automatically."
+          }
+        }
+      }
+    },
+    "Önceki hesabın kaydı sürüyor. Kayıt bitip toplantı işlenince bu hesabın toplantıları kendiliğinden açılır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your previous account's recording is still running. Once it ends and the meeting is processed, this account's meetings open automatically."
+          }
+        }
+      }
+    },
+    "Önceki hesabın Sor cevabı yazılıyor. Bitince bu hesabın toplantıları kendiliğinden açılır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An Ask answer for your previous account is being written. Once it's done, this account's meetings open automatically."
+          }
+        }
+      }
+    },
+    "Önceki hesabın toplantısı işleniyor. Bitince bu hesabın toplantıları kendiliğinden açılır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A meeting from your previous account is being processed. Once it's done, this account's meetings open automatically."
           }
         }
       }

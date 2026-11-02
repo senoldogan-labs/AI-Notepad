@@ -12,8 +12,8 @@ import Synchronization
 
 private let accountDataLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "AccountData")
 
-/// Info.plist anahtarı: kullanıcı verisi giriş yapan hesaba göre ayrı klasörlerde mi. Yalnızca abonelik sürümü `true`
-/// yazar; anahtar yoksa veri klasörün kökündedir (geliştirici sürümü ve iPhone, değişmeden).
+/// Info.plist anahtarı: kullanıcı verisi giriş yapan hesaba göre ayrı klasörlerde mi. Yalnızca abonelik sürümleri (Mac ve
+/// iPhone Gistsmith) `true` yazar; anahtar yoksa veri klasörün kökündedir (geliştirici sürümü, değişmeden).
 public let accountScopedDataInfoKey: String = "AINotepadAccountScopedData"
 
 /// Hesap klasörlerinin üst klasörünün adı: `<veri klasörü>/Accounts`.
@@ -43,9 +43,44 @@ public func isValidAccountDataKey(key: String) -> Bool {
     key.count == 32 && key.allSatisfy { (character: Character) -> Bool in character.isHexDigit && !character.isUppercase }
 }
 
-/// Bu süreçte yüklü hesabın anahtarı. Bir kez atanır; başka bir hesaba geçmek için uygulama yeniden başlar (bellekteki
-/// toplantılar, kişiler ve süren işlemeler eski hesabın klasörüne yazmaya devam etmesin).
+/// Bu süreçte yüklü hesabın anahtarı. `activateAccount` yalnız ilk hesabı yükler; başka bir hesaba geçiş ya uygulamanın
+/// yeniden başlamasıyla (Mac) ya da yazan her iş kapandıktan sonra `switchAccount` ile (iPhone) olur: bellekteki
+/// toplantılar, kişiler ve süren işlemeler eski hesabın verisini yeni hesabın klasörüne yazmasın.
 private let activeAccountKeyStore: Mutex<String?> = Mutex(nil)
+
+/// Yüklü hesabın verisini tutan ya da ona yazan iş (bellekteki toplantılar, Sor geçmişi, açık dosyalar). Hesap yerinde
+/// değiştirilirken hiçbiri açık olmamalıdır (bkz. `accountSwitchReadiness`).
+public enum AccountDataWriter: Equatable, Sendable {
+    /// Kayıt sürüyor (mikrofon açık ya da kayıt kapanıyor).
+    case recording
+    /// Bir toplantı işleniyor (son geçiş, konuşmacılar, not).
+    case processing
+    /// Bekleyen (çevrimdışı) kayıtların kuyruğu çalışıyor.
+    case offlineQueue
+    /// Bir toplantının notu yeniden yazılıyor ya da düzenleniyor.
+    case noteEditing
+    /// Sor cevabı yazılıyor (bitince sohbet hesabın klasörüne saklanır).
+    case askAnswering
+}
+
+/// Yazan her işin kapandığının kanıtı: yalnızca `accountSwitchReadiness` (açık iş listesi boşken) üretir,
+/// `AppPaths.switchAccount` ister. Böylece hesap, açık işler denetlenmeden değiştirilemez.
+public struct ClosedAccountWriters: Sendable {
+    fileprivate init() {}
+}
+
+/// Hesabın yerinde değiştirilip değiştirilemeyeceği.
+public enum AccountSwitchReadiness: Sendable {
+    /// Açık iş yok: hesap şimdi değiştirilebilir.
+    case ready(ClosedAccountWriters)
+    /// Açık işler (verilen sırayla) bitince değiştirilebilir.
+    case waiting(for: [AccountDataWriter])
+}
+
+/// Açık işlere (`openWriters`) göre hesabın şimdi değiştirilip değiştirilemeyeceği. Saf fonksiyondur.
+public func accountSwitchReadiness(openWriters: [AccountDataWriter]) -> AccountSwitchReadiness {
+    openWriters.isEmpty ? .ready(ClosedAccountWriters()) : .waiting(for: openWriters)
+}
 
 public extension AppPaths {
     /// Uygulama kullanıcı verisini hesap başına mı ayırıyor (Info.plist, bkz. `accountScopedDataInfoKey`).
@@ -93,8 +128,25 @@ public extension AppPaths {
         }
     }
 
+    /// Yüklü hesabı (`from`) başka bir hesapla (`to`) değiştirir: sonraki tüm kullanıcı verisi okuma ve yazmaları yeni
+    /// hesabın klasörüne gider. Yalnız yazan her iş kapandıktan sonra çağrılabilir (`writers`, bkz.
+    /// `accountSwitchReadiness`); çağıran, eski hesabın bellekteki verisini (toplantılar, Sor, çalar) atıp yenisini
+    /// kurar. Yüklü hesap `from` değilse (hiç yüklenmedi ya da bu arada değişti) `accountSwitchStale`; anahtarlardan biri
+    /// geçersizse `invalidAccountKey`. Hiçbir dosyaya dokunulmaz.
+    static func switchAccount(from: String, to: String, writers: ClosedAccountWriters) throws {
+        for key in [from, to] where !isValidAccountDataKey(key: key) {
+            throw StorageError.invalidAccountKey(key: key)
+        }
+        try activeAccountKeyStore.withLock { (active: inout String?) throws -> Void in
+            guard active == from else {
+                throw StorageError.accountSwitchStale(active: active, expected: from)
+            }
+            active = to
+        }
+    }
+
     /// Kullanıcı verisinin (toplantılar, Sor geçmişi, kişiler, ses izleri) kökü. Hesap başına veri kapalıysa veri
-    /// klasörünün kendisi (geliştirici sürümü, iPhone); açıksa yüklü hesabın klasörü, hesap yüklenmediyse
+    /// klasörünün kendisi (geliştirici sürümü); açıksa yüklü hesabın klasörü, hesap yüklenmediyse
     /// `accountNotSelected` (eski ortak klasöre asla düşülmez).
     static func userDataDirectory() throws -> URL {
         guard isAccountScoped(bundle: .main) else {
@@ -119,8 +171,9 @@ public enum AccountDataTransition: Equatable, Sendable {
     case keep
     /// Henüz hesap yüklenmedi: giriş yapan hesabın verisi bu süreçte yüklenir.
     case activate(accountKey: String)
-    /// Başka bir hesabın verisi yüklü: uygulama (kayıt ve işleme yokken) yeniden başlar ve yeni hesabınkini yükler.
-    case relaunch(accountKey: String)
+    /// Başka bir hesabın (`from`) verisi yüklü, `to` giriş yaptı: yazan işler bitince Mac yeniden başlar, iPhone hesabı
+    /// yerinde değiştirir (`AppPaths.switchAccount`).
+    case switchAccount(from: String, to: String)
 }
 
 /// Yüklü hesap (`loadedKey`) ve giriş yapan hesaba (`signedInKey`) göre yapılacak iş. Saf fonksiyondur.
@@ -131,7 +184,7 @@ public func accountDataTransition(loadedKey: String?, signedInKey: String?) -> A
     guard let loadedKey else {
         return .activate(accountKey: signedInKey)
     }
-    return loadedKey == signedInKey ? .keep : .relaunch(accountKey: signedInKey)
+    return loadedKey == signedInKey ? .keep : .switchAccount(from: loadedKey, to: signedInKey)
 }
 
 /// MCP sunucusunun (dış istemcinin başlattığı ayrı süreç) arşive erişimi.

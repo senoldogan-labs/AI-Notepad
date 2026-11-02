@@ -10,6 +10,8 @@ import SwiftUI
 /// sonra, uygulama içi satın almayla).
 struct PhoneSignInGate: View {
     let account: HostedAccount
+    /// Başka bir hesapla giriş yapıldıysa hesap değişiminin beklediği, eski hesabın verisine yazan işler.
+    let switchWaitsFor: [AccountDataWriter]
 
     var body: some View {
         GeometryReader { (proxy: GeometryProxy) in
@@ -52,7 +54,7 @@ struct PhoneSignInGate: View {
                     VStack(spacing: 10) {
                         PhoneAccountErrorText(account: account)
                         PhoneDeletedSubscriptionNotice(account: account)
-                        PhoneAccountDataNotice(account: account)
+                        PhoneAccountDataNotice(account: account, switchWaitsFor: switchWaitsFor)
                     }
                     .padding(.top, 12)
                     PhoneLegalLinks()
@@ -205,9 +207,10 @@ struct PhoneAccountErrorText: View {
 }
 
 /// Giriş yapılmış ama hesabın verisi açılmamışsa nedeni: önceki toplantılar hesaba taşınamadı ("Yeniden dene"; hiçbir
-/// şey silinmedi) ya da bu açılışta başka bir hesabın verisi yüklü (iOS uygulaması kendini yeniden başlatamaz).
+/// şey silinmedi) ya da başka bir hesabın verisi yüklü ve hesap, o hesabın süren işi bitince kendiliğinden değişecek.
 private struct PhoneAccountDataNotice: View {
     let account: HostedAccount
+    let switchWaitsFor: [AccountDataWriter]
 
     var body: some View {
         if account.hasSession == true {
@@ -221,12 +224,35 @@ private struct PhoneAccountDataNotice: View {
                     Button("Yeniden dene") { account.retryAccountData() }
                         .appFont(size: 14, weight: .medium)
                 }
-            case .relaunchRequired:
-                NoticeText("Başka bir hesapla giriş yaptın. Bu hesabın toplantılarını açmak için Gistsmith'i uygulama değiştiriciden kapatıp yeniden aç.", severity: .info)
-                    .appFont(size: 13, weight: .regular)
+            case .switchPending:
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    ProgressView()
+                        .controlSize(.small)
+                    NoticeText(phoneAccountSwitchNotice(waitingFor: switchWaitsFor) as String, severity: .info)
+                        .appFont(size: 13, weight: .regular)
+                }
             }
         }
     }
+}
+
+/// Başka bir hesapla giriş yapılınca hesap değişiminin metni: beklenen bir iş yoksa hesap açılıyor; varsa eski hesabın
+/// hangi işi bittiğinde bu hesabın toplantılarının kendiliğinden açılacağı (kayıt önce, sonra işleme, not, Sor). Saf
+/// fonksiyondur.
+func phoneAccountSwitchNotice(waitingFor writers: [AccountDataWriter]) -> String {
+    if writers.contains(.recording) {
+        return String(localized: "Önceki hesabın kaydı sürüyor. Kayıt bitip toplantı işlenince bu hesabın toplantıları kendiliğinden açılır.")
+    }
+    if writers.contains(.processing) || writers.contains(.offlineQueue) {
+        return String(localized: "Önceki hesabın toplantısı işleniyor. Bitince bu hesabın toplantıları kendiliğinden açılır.")
+    }
+    if writers.contains(.noteEditing) {
+        return String(localized: "Önceki hesabın bir notu yazılıyor. Bitince bu hesabın toplantıları kendiliğinden açılır.")
+    }
+    if writers.contains(.askAnswering) {
+        return String(localized: "Önceki hesabın Sor cevabı yazılıyor. Bitince bu hesabın toplantıları kendiliğinden açılır.")
+    }
+    return String(localized: "Bu hesabın toplantıları açılıyor…")
 }
 
 /// Gizlilik ve koşullar (sitede): ortalı, araya ince nokta; zemini yoktur (listede de satır zemini kaldırılır).
