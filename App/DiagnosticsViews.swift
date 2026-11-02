@@ -139,7 +139,8 @@ private func appleEventsDiagnostics() -> DiagnosticsItem {
     }
 }
 
-/// İzinler bölümü. Sistem sesi kaydı izninin durumunu macOS sorgulatmaz.
+/// İzinler bölümü. Sistem sesi kaydı izninin durumunu macOS sorgulatmaz. Erişilebilirlik yalnızca sesle yazmanın
+/// yapıştırması için.
 @MainActor
 private func permissionDiagnostics(model: AppModel) -> DiagnosticsSection {
     DiagnosticsSection(title: String(localized: "İzinler"), items: [
@@ -148,6 +149,11 @@ private func permissionDiagnostics(model: AppModel) -> DiagnosticsSection {
         eventKitDiagnostics(label: String(localized: "Takvim"), status: EKEventStore.authorizationStatus(for: .event)),
         eventKitDiagnostics(label: String(localized: "Anımsatıcılar"), status: EKEventStore.authorizationStatus(for: .reminder)),
         appleEventsDiagnostics(),
+        DiagnosticsItem(
+            label: String(localized: "Erişilebilirlik (sesle yazma)"),
+            value: isAccessibilityTrusted() ? String(localized: "İzin verildi") : String(localized: "İzin verilmedi; metin panoya kopyalanır"),
+            status: .plain
+        ),
     ])
 }
 

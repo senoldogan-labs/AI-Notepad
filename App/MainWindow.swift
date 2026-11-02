@@ -47,6 +47,15 @@ final class MainWindowRouter {
     /// Ayarlar açılınca Hesap sekmesi seçilsin (kenar çubuğundaki kullanım göstergesi ve kullanım bildirimi; abonelik
     /// sürümü). Ayarlar sekmeyi seçince sıfırlar.
     var opensAccountSettings: Bool = false
+    /// Ayarlar açılınca Sesle yazma sekmesi seçilsin (sesle yazma hapındaki "izin ver"). Ayarlar sekmeyi seçince sıfırlar.
+    var opensVoiceTypingSettings: Bool = false
+}
+
+/// Ayarlar › Sesle yazma'yı açar.
+@MainActor
+func openVoiceTypingSettings(router: MainWindowRouter) {
+    router.opensVoiceTypingSettings = true
+    openMainWindow(router: router, section: .settings)
 }
 
 /// Ayarlar › Hesap'ı açar (abonelik sürümü: kullanım göstergesi ve bildirimleri).

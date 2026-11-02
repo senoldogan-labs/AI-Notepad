@@ -184,6 +184,12 @@ export const homeFi: HomeCopy = {
       text: "Asiakaspuhelu, kahden kesken, työhaastattelu ja luento saavat kukin muistiinpanon, jossa oikeat asiat ovat ensimmäisenä. Tai kirjoita oma pohjasi.",
       sample: ["Asiakaspuhelu", "Kahden kesken", "Työhaastattelu", "Luento", "Oma pohja"],
     },
+    voiceTyping: {
+      title: "Sanele mihin tahansa sovellukseen",
+      text: "Pidä pikanäppäintä pohjassa, puhu ja päästä irti: sanasi kirjoitetaan sinne, missä kursori on, oli se Mail, Slack, Muistiinpanot tai selain. Puhe muutetaan tekstiksi Macillasi, eikä mitään lähetetä minnekään. Maksuton millä tahansa tilillä, myös kokeilun jälkeen.",
+      shortcut: "Pidä ⌃⌥D",
+      sample: "Kiitos, lähetän hinnaston perjantaihin mennessä.",
+    },
   },
   trust: {
     eyebrow: "Tietosuoja",

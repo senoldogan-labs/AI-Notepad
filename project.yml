@@ -83,7 +83,7 @@ targets:
         ENABLE_HARDENED_RUNTIME: YES
         CODE_SIGN_ENTITLEMENTS: App/AINotepad.entitlements
         INFOPLIST_KEY_CFBundleDisplayName: AI-Notepad
-        INFOPLIST_KEY_NSMicrophoneUsageDescription: "AI-Notepad toplantıda söylediklerini yazıya dökmek için mikrofonu kullanır."
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "AI-Notepad toplantıda ve sesle yazarken söylediklerini yazıya dökmek için mikrofonu kullanır."
         MARKETING_VERSION: "0.1.12"
         CURRENT_PROJECT_VERSION: "21"
   # Abonelik sürümü: anahtarsız; yapay zekâ, son geçiş ve canlı metin jetonu (Deepgram) bizim sunucumuz (server/)
@@ -174,7 +174,7 @@ targets:
         # Packages/AINotepadCore/Sources/AINotepadCore/Hosted/HostedBrowserSignIn.swift).
         CODE_SIGN_ENTITLEMENTS: App/Hosted/AINotepadHosted.entitlements
         INFOPLIST_KEY_CFBundleDisplayName: Gistsmith
-        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Gistsmith toplantıda söylediklerini yazıya dökmek için mikrofonu kullanır."
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Gistsmith toplantıda ve sesle yazarken söylediklerini yazıya dökmek için mikrofonu kullanır."
         MARKETING_VERSION: "0.1.12"
         CURRENT_PROJECT_VERSION: "21"
       configs:

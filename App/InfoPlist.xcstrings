@@ -82,13 +82,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "AI-Notepad uses the microphone to transcribe what you say in meetings."
+            "value": "AI-Notepad uses the microphone to transcribe what you say in meetings and when you use voice typing."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "AI-Notepad toplantıda söylediklerini yazıya dökmek için mikrofonu kullanır."
+            "value": "AI-Notepad toplantıda ve sesle yazarken söylediklerini yazıya dökmek için mikrofonu kullanır."
           }
         }
       }

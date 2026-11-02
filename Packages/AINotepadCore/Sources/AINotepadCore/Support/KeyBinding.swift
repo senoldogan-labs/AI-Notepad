@@ -19,9 +19,11 @@ public enum CarbonModifier {
     public static let control: UInt32 = 0x1000
 }
 
-/// Varsayılan kısayollar: ⌃⌥R kayıt, ⌃⌥P pencereler (⌃⌥Space macOS'ta giriş kaynağı kısayoludur).
+/// Varsayılan kısayollar: ⌃⌥R kayıt, ⌃⌥P pencereler, ⌃⌥D sesle yazma (dikte) (⌃⌥Space macOS'ta giriş kaynağı
+/// kısayoludur).
 public let defaultRecordBinding: KeyBinding = KeyBinding(keyCode: 0x0F, modifiers: CarbonModifier.control | CarbonModifier.option)
 public let defaultWindowsBinding: KeyBinding = KeyBinding(keyCode: 0x23, modifiers: CarbonModifier.control | CarbonModifier.option)
+public let defaultDictateBinding: KeyBinding = KeyBinding(keyCode: 0x02, modifiers: CarbonModifier.control | CarbonModifier.option)
 
 /// ANSI klavyede tuş kodunun etiketi; bilinmeyen tuşta nil.
 private let keyNames: [UInt32: String] = [

@@ -1,7 +1,8 @@
 ---
 // Gizlilik politikası. Gerçek davranışa dayanır: sunucu (server/README.md, server/src/account.ts, cleanup.ts,
 // transcribe.ts, deepgram.ts, llm/, auth/, billing.ts, referrals.ts, trialLedger.ts, deviceCheck.ts, telemetry.ts, funnel.ts, migrations/, wrangler.jsonc), abonelik uygulaması
-// (App/Hosted: canlı metin Deepgram'la, kapasite dolunca ya da bağlantı yoksa Mac'te; iCloud eşitlemesi yok, güncellemeler
+// (App/Hosted: canlı metin Deepgram'la, kapasite dolunca ya da bağlantı yoksa Mac'te; sesle yazma tamamen Mac'te, Erişilebilirlik
+// yalnızca ⌘V için (App/Dictation.swift); iCloud eşitlemesi yok, güncellemeler
 // GitHub'dan; sürüm başlıkları, yapay zekâ isteğinin amacı ve Ayarlar › Genel'den kapatılabilen kullanım
 // istatistikleri) ve bu sitenin tarayıcı depolaması (public/theme.js,
 // src/client/session.ts). Sağlayıcıların saklama ve eğitim kuralları resmî belgelerinden alınmıştır (2026-10-29):
@@ -130,6 +131,16 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         directly to the destination you chose, using the account or address you connected. It does not pass through our
         server, and the receiving service processes it under its own terms. If you connect an AI assistant on your Mac
         through the app's MCP connection, that assistant can read your meetings and handles them under its own terms.
+      </li>
+      <li>
+        <strong>Voice typing.</strong> When you hold or tap the voice typing shortcut, the app records from your
+        microphone until you let go or stop it, and transcribes that audio on your Mac with Apple's on-device dictation
+        (macOS 26 or later) or an on-device speech model. Neither the audio nor the text is sent to us or to any provider,
+        and neither is saved; voice typing doesn't open a meeting and doesn't count toward your plan. The app then pastes
+        the text into the app you are typing in: it puts the text on the clipboard, sends ⌘V, and restores what was on
+        your clipboard. To send ⌘V it needs the macOS Accessibility permission; it uses that permission only for this
+        keystroke and does not read your keystrokes, your screen or other apps' content. Without the permission, the text
+        is only copied to your clipboard.
       </li>
     </ul>
     <p>
@@ -365,7 +376,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         <strong>Daily feature usage:</strong> once a day, which features were used that day — whether live translation was
         used and its target language, whether Ask was used, how many times each integration type (for example Slack,
         Notion or Apple Notes) and each export format (for example PDF or Markdown) was used, whether your meeting archive
-        was accessed over MCP, and whether the live transcript ran on your Mac.
+        was accessed over MCP, whether the live transcript ran on your Mac, and whether voice typing was used.
       </li>
       <li>
         <strong>First launch and sign-in steps:</strong> once, the first time the app is opened, and when you sign in:
