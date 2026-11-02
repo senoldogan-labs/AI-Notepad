@@ -32,6 +32,8 @@
 	<string>$(HOSTED_KEYCHAIN_SERVICE)</string>
 	<key>HostedSiteBase</key>
 	<string>$(HOSTED_SITE_BASE)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSCalendarsFullAccessUsageDescription</key>
 	<string>Gistsmith sıradaki toplantılarını gösterir ve kaydı süren toplantının adı ve katılımcılarıyla kaydeder.</string>
 	<key>NSHumanReadableCopyright</key>
