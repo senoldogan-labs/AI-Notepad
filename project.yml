@@ -16,6 +16,11 @@ packages:
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
     exactVersion: 2.10.1
+  # iPhone uygulamasının App Store aboneliği (yalnız iOS hedefi; Mac'te ödeme Stripe'tan, çekirdek pakete girmez).
+  # Sürüm tam sabitlenir: Package.resolved üretilen (repoya girmeyen) projenin içindedir.
+  RevenueCat:
+    url: https://github.com/RevenueCat/purchases-ios
+    exactVersion: 5.100.0
 targets:
   AINotepad:
     type: application
@@ -199,7 +204,9 @@ targets:
     platform: iOS
     sources:
       # iPhone'un izin metinleri (InfoPlist.xcstrings, tr/en) ve gizlilik bildirimi (PrivacyInfo.xcprivacy) bu klasörde.
-      - iOS
+      # StoreKit yapılandırması pakete girmez: yalnızca Xcode'daki Run (şema) kullanır.
+      - path: iOS
+        excludes: ["Purchases/Products.storekit"]
       # Ortak metin kataloğu ve gömülü Inter yazı tipi Mac uygulamasıyla paylaşılır.
       - path: App/Localizable.xcstrings
       - path: App/Fonts/InterVariable.ttf
@@ -232,6 +239,9 @@ targets:
         product: AINotepadUI
       # Canlı etkinlik, Denetim Merkezi düğmesi ve widget.
       - target: AINotepadWidgets
+      # App Store aboneliği (satın alma, geri yükleme; bkz. iOS/Purchases/).
+      - package: RevenueCat
+        product: RevenueCat
     configFiles:
       Debug: Config/Signing.xcconfig
       Release: Config/Signing.xcconfig
@@ -257,6 +267,8 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "Gistsmith yüz yüze toplantıyı yazıya dökmek için mikrofonu kullanır."
+        # RevenueCat projesi "Gistsmith", uygulama "Gistsmith iOS"; herkese açık SDK anahtarı (tasarım gereği gizli değil).
+        REVENUECAT_API_KEY: appl_ieKXerVuheTnPCIeSxTSxcEuefx
         # Yetki dosyası yok: giriş ASWebAuthenticationSession ile sitede (Apple ile giriş yetkisi gerekmez), iCloud
         # eşitlemesi bu sürümde kapalı, DeviceCheck yetki istemez.
         MARKETING_VERSION: "0.1.12"
@@ -274,6 +286,12 @@ targets:
           HOSTED_SITE_BASE: "https://gistsmith.com"
           HOSTED_DATA_FOLDER_NAME: "AINotepad Hosted"
           HOSTED_KEYCHAIN_SERVICE: "AINotepadHosted"
+    # Debug çalıştırması yerel StoreKit yapılandırmasıyla: abonelik ekranı Simülatör'de App Store Connect olmadan satın
+    # alır (Xcode ortamı işlemi; RevenueCat doğrulayabilsin diye panelde StoreKit test sertifikası yüklü olmalı, sunucu
+    # hakkı açmaz). Yalnızca Xcode'dan Run'da geçerlidir: xcodebuild/simctl başlatması gerçek sandbox'ı kullanır (Apple
+    # FB22237318). Release ve TestFlight gerçek App Store'u kullanır.
+    scheme:
+      storeKitConfiguration: iOS/Purchases/Products.storekit
     info:
       path: iOS/Info.plist
       properties:
@@ -292,6 +310,8 @@ targets:
         # doğrudan o oturuma gelir (bkz. App/Hosted/HostedAccount.swift).
         HostedAPIBase: "$(HOSTED_API_BASE)"
         HostedSiteBase: "$(HOSTED_SITE_BASE)"
+        # RevenueCat'in herkese açık iOS SDK anahtarı (gizli değildir; Debug ve Release aynı, bkz. iOS/Purchases/).
+        RevenueCatAPIKey: "$(REVENUECAT_API_KEY)"
         # Kayıt ekran kilitliyken ve uygulama arka plandayken sürer.
         UIBackgroundModes: [audio]
         UIAppFonts: [InterVariable.ttf]

@@ -40,6 +40,8 @@
 	<string>© 2026 T:mi Aslan Dogan Marketing</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
+	<key>RevenueCatAPIKey</key>
+	<string>$(REVENUECAT_API_KEY)</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>InterVariable.ttf</string>

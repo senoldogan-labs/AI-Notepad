@@ -269,6 +269,9 @@ final class HostedAccount {
     private(set) var signedInUserIDCache: String?
     /// Avatar resmi kaydedildikçe artar (aynı hesap yeniden girince de görünüm yenilensin; bkz. `avatarURL`).
     private(set) var avatarRevision: Int = 0
+    /// Son silinen hesabın süren App Store aboneliği (`DELETE /v1/me` yanıtı): Apple onu hesapla birlikte iptal etmez;
+    /// giriş kapısı kullanıcıya Apple'da iptal etmesini söyler. Yeni girişte kalkar; yoksa nil.
+    private(set) var deletedAppStoreSubscription: HostedDeletedAppStoreSubscription?
 
     /// Oturumdaki hesabın profil resmi (Google ile girişte jetondan alınır, yalnızca bu Mac'te saklanır); yoksa nil
     /// (Apple resim vermez): kenar çubuğunda hesaba özel küre görünür.
@@ -791,6 +794,7 @@ final class HostedAccount {
             return
         }
         reportHostedFunnel(step: .signInStarted(provider))
+        deletedAppStoreSubscription = nil
         pendingBrowserSignIn = attempt
         pendingSignInProvider = provider
         defer {
@@ -936,14 +940,57 @@ final class HostedAccount {
         await perform { (client: HostedClient) async throws -> Void in
             let deletion: HostedAccountDeletion? = try await client.deleteAccount()
             if let subscription = deletion?.appStoreSubscription {
-                // Kullanıcı silmeden önce Ayarlar › Hesap'ta uyarıyı gördü; Apple aboneliği kendisi iptal etmeli.
+                // Kullanıcı silmeden önce uyarıyı gördü; Apple aboneliği kendisi iptal etmeli. Uyarı silmeden sonra da
+                // görünür (iPhone'da giriş kapısında, Apple'ın abonelik penceresini açan düğmeyle).
                 accountLogger.info("Silinen hesabın App Store aboneliği sürüyor, yenilenecek: \(subscription.willRenew, privacy: .public)")
             }
+            await self.rememberDeletedAppStoreSubscription(subscription: deletion?.appStoreSubscription)
             // Yerel temizlik yalnızca silme başarılıysa: başarısızsa (ör. çevrimdışı) hesap durur, kapatılamamış oturumları
             // izlenmeye ve çevrimdışı kayıt izni geçerli kalmalı.
             await self.clearAfterAccountDeletion(userID: userID)
         }
     }
+
+    /// Silinen hesabın süren App Store aboneliğini (yoksa nil) giriş kapısında göstermek için tutar.
+    private func rememberDeletedAppStoreSubscription(subscription: HostedDeletedAppStoreSubscription?) {
+        deletedAppStoreSubscription = subscription
+    }
+
+    #if os(iOS)
+    /// App Store satın almasından ya da geri yüklemeden sonra hakkın sunucuya gelmesini bekler: önce sunucu aboneliği
+    /// RevenueCat'ten okur (`POST /v1/billing/app-store/sync`), gelmediyse webhook beklenir ve `GET /v1/me`
+    /// `hostedAppStoreEntitlementDelays` aralıklarıyla yeniden okunur. Hak gelince hesap durumu yenilenir; gelmezse
+    /// `HostedAppStoreEntitlementMissing` fırlar (ödeme Apple'da alınmıştır, yeniden denemek ödemeyi yinelemez).
+    func confirmAppStorePurchase() async throws {
+        let client: HostedClient = try HostedServices.requireClient()
+        var attempts: Int = 0
+        var lastError: String?
+        while true {
+            let latest: HostedEntitlements?
+            do {
+                latest = attempts == 0 ? try await client.syncAppStoreSubscription() : try await client.entitlements()
+                lastError = nil
+            } catch {
+                accountLogger.warning("App Store hakkı okunamadı, deneme: \(attempts + 1, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+                latest = nil
+                lastError = userFacingMessage(error: error)
+            }
+            attempts += 1
+            switch hostedEntitlementWaitStep(latest: latest, completedAttempts: attempts, delays: hostedAppStoreEntitlementDelays) {
+            case .arrived:
+                accountLogger.info("App Store hakkı sunucuda göründü, deneme: \(attempts, privacy: .public)")
+                await refresh()
+                return
+            case .retry(let seconds):
+                try await Task.sleep(for: .seconds(seconds))
+            case .gaveUp:
+                accountLogger.error("App Store hakkı sunucuda görünmedi, deneme: \(attempts, privacy: .public)")
+                await refresh()
+                throw HostedAppStoreEntitlementMissing(attempts: attempts, lastError: lastError)
+            }
+        }
+    }
+    #endif
 
     /// Silinen hesabın yerel izleri: şimdiki toplantı, çevrimdışı kayıt izni, girişteki kimlik (e-posta) ve açık oturum
     /// listesi.

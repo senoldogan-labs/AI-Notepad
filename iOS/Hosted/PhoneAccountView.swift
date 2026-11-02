@@ -55,15 +55,18 @@ func phoneAccountSummary(state: HostedAccountState) -> String {
     }
 }
 
-/// Hesap ekranı: giriş yapan kimlik, plan durumu (deneme, abonelik), bu ayki kullanım, çıkış ve hesap silme. Satın alma,
-/// ödeme ya da müşteri portalı bağlantısı yoktur (App Store 3.1.1); hesap silme uygulama içindedir (App Store
-/// 5.1.1(v)) ve satır içinde onaylanır.
+/// Hesap ekranı: giriş yapan kimlik, plan durumu (deneme, abonelik), abone olma ya da aboneliği yönetme, bu ayki
+/// kullanım, çıkış ve hesap silme. Abonelik yalnızca uygulama içi satın almayla alınır (abonelik ekranı); App Store
+/// aboneliği Apple'ın penceresinde yönetilir, web (Stripe) aboneliği için bağlantı verilmez (App Store 3.1.1). Hesap
+/// silme uygulama içindedir (App Store 5.1.1(v)) ve satır içinde onaylanır.
 struct PhoneAccountScreen: View {
     let account: HostedAccount
     /// Kayıt ya da işleme sürüyor: çıkış ve hesap silme kapalı (süren toplantının sunucu oturumu başka hesaba ya da
     /// silinmiş hesaba yazılmasın; bitince açılır).
     let isMeetingInFlight: Bool
     @State private var confirmingDelete: Bool = false
+    /// Apple'ın abonelik penceresi açılamadıysa nedeni.
+    @State private var manageError: String?
 
     var body: some View {
         List {
@@ -86,7 +89,7 @@ struct PhoneAccountScreen: View {
                 planSection(entitlements: entitlements)
                 usageSection(entitlements: entitlements)
                 signOutSection
-                deleteSection
+                deleteSection(entitlements: entitlements)
             case .signedInStatusUnknown(let message):
                 Section {
                     Text("Giriş yapıldı; hesap durumu şu an okunamıyor. Bağlantı gelince kendiliğinden yenilenir.")
@@ -126,9 +129,39 @@ struct PhoneAccountScreen: View {
                         .foregroundStyle(Theme.muted)
                 }
             }
+            switch phoneSubscriptionManagement(entitlements: entitlements) {
+            case .subscribe:
+                Button("Abone ol") { account.showPlans() }
+                    .fontWeight(.semibold)
+                    .disabled(account.isWorking)
+            case .appStore:
+                Button("Aboneliği yönet") { Task { await manageSubscription() } }
+                    .disabled(account.isWorking)
+            case .web:
+                Text("Aboneliğin web'de yönetiliyor.")
+                    .foregroundStyle(Theme.muted)
+            case .nothing:
+                EmptyView()
+            }
+            if let manageError {
+                NoticeText(manageError as String, severity: .error)
+            }
         } header: {
             Text("Plan")
         }
+    }
+
+    /// Apple'ın abonelik penceresini açar; kapanınca hak durumu yenilenir (iptal ya da plan değişikliği görünsün).
+    private func manageSubscription() async {
+        manageError = nil
+        do {
+            try await showAppStoreManageSubscriptions()
+        } catch let error as AppStorePurchaseError {
+            manageError = appStorePurchaseMessage(error: error)
+        } catch {
+            manageError = String(localized: "Apple'ın abonelik penceresi açılamadı: \(userFacingMessage(error: error))")
+        }
+        await account.refresh()
     }
 
     @ViewBuilder
@@ -163,10 +196,17 @@ struct PhoneAccountScreen: View {
         }
     }
 
-    private var deleteSection: some View {
-        Section {
+    private func deleteSection(entitlements: HostedEntitlements) -> some View {
+        let effect: HostedDeletionSubscriptionEffect = hostedDeletionSubscriptionEffect(entitlements: entitlements)
+        return Section {
             if confirmingDelete {
                 NoticeText("Emin misin? Hesabın ve sunucudaki tüm kayıtların kalıcı olarak silinir; bu işlem geri alınamaz.", severity: .error)
+                if let note = phoneDeletionSubscriptionText(effect: effect) {
+                    NoticeText(note as String, severity: phoneDeletionKeepsAppStoreRenewing(effect: effect) ? .attention : .info)
+                }
+                if phoneDeletionKeepsAppStoreRenewing(effect: effect) {
+                    Button("Aboneliği yönet") { Task { await manageSubscription() } }
+                }
                 Button("Hesabı kalıcı olarak sil", role: .destructive) {
                     confirmingDelete = false
                     Task { await account.deleteAccount() }
@@ -181,8 +221,34 @@ struct PhoneAccountScreen: View {
             if isMeetingInFlight {
                 Text("Kayıt ya da işleme sürüyor; bitince hesabı silebilirsin.")
             } else {
-                Text("Hesabın ve sunucudaki tüm kayıtların silinir; etkin bir abonelik varsa hemen iptal edilir. Bu iPhone'daki toplantılar ve notlar silinmez.")
+                Text("Hesabın ve sunucudaki tüm kayıtların silinir. Bu iPhone'daki toplantılar ve notlar silinmez.")
             }
         }
+    }
+}
+
+/// Silme onayında aboneliğe ne olacağı; süren abonelik yoksa nil. Saf fonksiyondur.
+func phoneDeletionSubscriptionText(effect: HostedDeletionSubscriptionEffect) -> String? {
+    switch effect {
+    case .none:
+        nil
+    case .stripeCanceled:
+        String(localized: "Web aboneliğin hemen iptal edilir.")
+    case .appStoreKeepsRenewing:
+        String(localized: "App Store aboneliğin hesabı silince iptal olmaz; Apple ücret almaya devam eder. Önce \"Aboneliği yönet\"ten iptal et.")
+    case .appStoreEnding:
+        String(localized: "App Store aboneliğin zaten yenilenmeyecek; yeniden ücret alınmaz.")
+    case .stripeCanceledAppStoreKeepsRenewing:
+        String(localized: "Web aboneliğin hemen iptal edilir. App Store aboneliğin ise iptal olmaz; Apple ücret almaya devam eder. Önce \"Aboneliği yönet\"ten iptal et.")
+    }
+}
+
+/// Silmeden sonra Apple'ın ücret almaya devam edeceği App Store aboneliği var mı. Saf fonksiyondur.
+func phoneDeletionKeepsAppStoreRenewing(effect: HostedDeletionSubscriptionEffect) -> Bool {
+    switch effect {
+    case .appStoreKeepsRenewing, .stripeCanceledAppStoreKeepsRenewing:
+        true
+    case .none, .stripeCanceled, .appStoreEnding:
+        false
     }
 }

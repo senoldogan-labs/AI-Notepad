@@ -5,7 +5,7 @@ import SwiftUI
 /// Giriş kapısı: oturum yokken (ya da hesabın verisi açılmamışken) uygulama yalnızca bunu gösterir — film gradyanlı
 /// kart, ad, tek cümlelik tanıtım, "Apple ile devam et" ve "Google ile devam et" (sistemin güvenli giriş sayfasında,
 /// sitedeki giriş akışıyla; bkz. `HostedAccount.signIn`), deneme satırı ve gizlilik/koşullar bağlantıları. Sekmeler,
-/// toplantılar ve kayıt yoktur. Satın alma ya da abonelik bağlantısı yoktur.
+/// toplantılar ve kayıt yoktur. Satın alma yoktur (abonelik girişten sonra, uygulama içi satın almayla).
 struct PhoneSignInGate: View {
     let account: HostedAccount
 
@@ -53,6 +53,7 @@ struct PhoneSignInGate: View {
                     .padding(.top, 4)
                 }
                 PhoneAccountErrorText(account: account)
+                PhoneDeletedSubscriptionNotice(account: account)
                 PhoneAccountDataNotice(account: account)
                 PhoneLegalLinks()
                     .padding(.top, 8)
@@ -110,6 +111,42 @@ struct PhoneProviderButtons: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 15)
+    }
+}
+
+/// Hesap silindi ama App Store aboneliği sürüyor (sunucunun silme yanıtı): Apple onu hesapla birlikte iptal etmez.
+/// Yenilenecekse kullanıcıya iptal etmesi söylenir ve Apple'ın abonelik penceresi buradan açılır.
+private struct PhoneDeletedSubscriptionNotice: View {
+    let account: HostedAccount
+    @State private var manageError: String?
+
+    var body: some View {
+        if let subscription = account.deletedAppStoreSubscription, subscription.willRenew {
+            VStack(alignment: .leading, spacing: 8) {
+                NoticeText(
+                    String(localized: "Hesabın silindi, ama App Store aboneliğin iptal olmadı: Apple \(hostedDayText(date: subscription.expiresAt)) tarihinde yeniden ücret alır. Aboneliği şimdi iptal et.") as String,
+                    severity: .attention
+                )
+                .appFont(size: 13, weight: .regular)
+                Button("Aboneliği yönet") {
+                    Task {
+                        manageError = nil
+                        do {
+                            try await showAppStoreManageSubscriptions()
+                        } catch let error as AppStorePurchaseError {
+                            manageError = appStorePurchaseMessage(error: error)
+                        } catch {
+                            manageError = String(localized: "Apple'ın abonelik penceresi açılamadı: \(userFacingMessage(error: error))")
+                        }
+                    }
+                }
+                .appFont(size: 15, weight: .semibold)
+                if let manageError {
+                    NoticeText(manageError as String, severity: .error)
+                        .appFont(size: 13, weight: .regular)
+                }
+            }
+        }
     }
 }
 
