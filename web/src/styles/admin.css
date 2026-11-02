@@ -1407,8 +1407,10 @@ html.admin-app .admin > .notice {
   padding: 18px 20px;
 }
 
+/* Tek sütun `minmax(0, 1fr)`: örtük `auto` sütun, satır kırmayan çökme raporunun genişliğine uzayıp kartı taşırır. */
 .detail {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   min-width: 0;
 }
@@ -1445,9 +1447,32 @@ html.admin-app .admin > .notice {
   overflow-wrap: anywhere;
 }
 
+.detail__payload-block {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* MetricKit özeti: tür, neden, sürüm, sistem, cihaz; uzun cihaz/sistem adları satırı taşırmaz. */
+.detail__payload-summary {
+  color: var(--ink);
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+/* Başlık solda, kopyalama düğmesi sağ üstte; düğme kayan raporun dışında kalır, satırların üstünü örtmez. */
+.detail__payload-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Satırlar kırılmaz (girinti okunur kalsın); geniş ya da uzun rapor kartın içinde iki yönde kayar. */
 .detail__payload {
-  max-height: 420px;
-  margin: 8px 0 0;
+  max-width: 100%;
+  max-height: min(420px, 60vh);
+  margin: 0;
   padding: 12px 14px;
   overflow: auto;
   border: 1px solid var(--rule);
@@ -1457,6 +1482,38 @@ html.admin-app .admin > .notice {
   font-size: 0.75rem;
   line-height: 1.5;
   white-space: pre;
+  overflow-wrap: normal;
+  tab-size: 2;
+}
+
+/* Kullanıcı kimliği ve yanındaki küçük kopyalama düğmesi. */
+.detail__copyable {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.detail__copyable .mono {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.icon-button--small {
+  flex: none;
+  width: 24px;
+  height: 24px;
+}
+
+/* Kopyalandıktan sonra ~2 sn onay işareti gösterilir (`data-copied`). */
+.copy-button .copy-button__done,
+.copy-button[data-copied] .copy-button__idle {
+  display: none;
+}
+
+.copy-button[data-copied] .copy-button__done {
+  display: block;
+  color: var(--ok);
 }
 
 /* ---------- Kullanıcılar ---------- */

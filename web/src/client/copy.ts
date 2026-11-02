@@ -149,6 +149,18 @@ export interface AdminClientCopy {
   readonly minutes: string;
   /** `{hours}`. */
   readonly hours: string;
+  /**
+   * Bildirim ayrıntısı: kopyalama düğmelerinin etiketleri, "kopyalandı" durumu, kopyalanamadı bildirimi ve MetricKit
+   * özet satırının türleri (`more`: `{count}` ek teşhis).
+   */
+  readonly report: {
+    readonly copyPayload: string;
+    readonly copyUser: string;
+    readonly copied: string;
+    readonly copyFailed: string;
+    readonly kinds: { readonly crash: string; readonly hang: string };
+    readonly more: string;
+  };
   readonly timeline: {
     readonly account_created: string;
     readonly trial_started: string;
@@ -326,6 +338,14 @@ export const clientCopy: ClientCopy = {
     meetingNotes: { deferred: "Processed later", reprocessed: "Reprocessed ×{count}", deepgram: "Deepgram", attested: "Verified Mac" },
     minutes: "{minutes} min",
     hours: "{hours} h",
+    report: {
+      copyPayload: "Copy crash report",
+      copyUser: "Copy user ID",
+      copied: "Copied",
+      copyFailed: "Couldn't copy to the clipboard.",
+      kinds: { crash: "Crash", hang: "Hang" },
+      more: "+{count} more",
+    },
     timeline: {
       account_created: "Account created",
       trial_started: "Trial started",
