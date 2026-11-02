@@ -10,19 +10,25 @@ struct MeetingsTab: View {
     /// Kayıt sürüyorsa çalma kapalıdır (mikrofon ve hoparlör aynı ses oturumunu paylaşamaz).
     let isRecording: Bool
     @State private var query: String = ""
+    /// Liste süzgeci (Mac'teki Hepsi / Görevlerim / Hatalı) ya da klasör.
+    @State private var scope: MeetingListScope = .filter(.all)
     @State private var pendingDelete: MeetingRecord?
     @State private var deleteError: String?
     /// Kart, açılan toplantıya büyüyerek geçer (kapanınca kartına döner).
     @Namespace private var cardTransition: Namespace.ID
 
     var body: some View {
+        let scoped: [MeetingRecord] = meetingsInScope(records: store.meetings, scope: scope)
         let sections: [MeetingSection] = meetingSections(
-            records: filterMeetings(records: store.meetings, query: query), now: Date(), calendar: .current, locale: interfaceLocale()
+            records: filterMeetings(records: scoped, query: query), now: Date(), calendar: .current, locale: interfaceLocale()
         )
         NavigationStack(path: $router.meetingsPath) {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 14) {
                     PhoneErrorList(messages: store.problems + [deleteError].compactMap { $0 })
+                    if !store.meetings.isEmpty {
+                        MeetingScopeChips(records: store.meetings, selection: $scope)
+                    }
                     if store.meetings.isEmpty {
                         EmptyStateHero(
                             symbol: "waveform", title: "Henüz toplantı yok",
@@ -107,6 +113,77 @@ struct MeetingsTab: View {
     }
 }
 
+/// Toplantı listesinin kapsamı: süzgeç ya da klasör.
+enum MeetingListScope: Hashable {
+    case filter(MeetingListFilter)
+    case folder(String)
+}
+
+/// Kapsama uyan toplantılar, sıra korunur. Saf fonksiyondur.
+func meetingsInScope(records: [MeetingRecord], scope: MeetingListScope) -> [MeetingRecord] {
+    switch scope {
+    case .filter(let filter): filterMeetings(records: records, listFilter: filter)
+    case .folder(let name): meetingsInFolder(records: records, folder: name)
+    }
+}
+
+/// Listenin üstündeki çipler: Tümü, Görevlerim, Hatalı (varsa) ve klasörler (sayılarıyla); yatay kayar. Seçilen kapsam
+/// artık boşsa (ör. klasör silindi) Tümü'ne döner.
+private struct MeetingScopeChips: View {
+    let records: [MeetingRecord]
+    @Binding var selection: MeetingListScope
+
+    var body: some View {
+        let mine: Int = filterMeetings(records: records, listFilter: .myTasks).count
+        let problems: Int = filterMeetings(records: records, listFilter: .problems).count
+        let folders: [FolderSummary] = meetingFolders(records: records, saved: [])
+        ScrollView(.horizontal) {
+            HStack(spacing: 8) {
+                chip(scope: .filter(.all), title: Text("Tümü"), systemImage: nil)
+                if mine > 0 {
+                    chip(scope: .filter(.myTasks), title: Text("Görevlerim \(mine)"), systemImage: "checkmark.circle")
+                }
+                if problems > 0 {
+                    chip(scope: .filter(.problems), title: Text("Sorunlu \(problems)"), systemImage: "exclamationmark.triangle")
+                }
+                ForEach(folders) { (folder: FolderSummary) in
+                    chip(scope: .folder(folder.name), title: Text(verbatim: "\(folder.name) \(folder.count)"), systemImage: "folder")
+                }
+            }
+            .padding(.horizontal, 20)
+        }
+        .scrollIndicators(.hidden)
+        .padding(.horizontal, -20)
+        .onChange(of: meetingsInScope(records: records, scope: selection).isEmpty) { (_: Bool, isEmpty: Bool) in
+            if isEmpty {
+                selection = .filter(.all)
+            }
+        }
+    }
+
+    private func chip(scope: MeetingListScope, title: Text, systemImage: String?) -> some View {
+        let isSelected: Bool = selection == scope
+        return Button {
+            withAnimation(.smooth(duration: 0.2)) { selection = scope }
+        } label: {
+            HStack(spacing: 5) {
+                if let systemImage {
+                    Image(systemName: systemImage).appFont(size: 12, weight: .semibold)
+                }
+                title.appFont(size: 14, weight: isSelected ? .semibold : .medium)
+            }
+            .monospacedDigit()
+            .foregroundStyle(isSelected ? Theme.onPrimary : Theme.ink)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(isSelected ? AnyShapeStyle(Theme.primary) : AnyShapeStyle(Theme.card), in: Capsule())
+            .overlay(Capsule().strokeBorder(isSelected ? Color.clear : Theme.line))
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
 /// Toplantı sayfasının sekmesi.
 private enum MeetingPane: Hashable {
     case summary
@@ -126,6 +203,15 @@ struct MeetingReadView: View {
     @State private var errorMessage: String?
     /// Konuşmacılara ad verme sayfası açık.
     @State private var isNamingSpeakers: Bool = false
+    /// Kendi notlarını düzenleme sayfası açık.
+    @State private var isEditingMyNotes: Bool = false
+    /// Ad değiştirme alanı açık; yazılan ad.
+    @State private var isRenaming: Bool = false
+    @State private var newTitle: String = ""
+    /// Yeni klasör adı soruluyor.
+    @State private var isCreatingFolder: Bool = false
+    /// Paylaşım sayfasıyla gönderilecek dışa aktarma dosyası.
+    @State private var exported: ExportedFile?
 
     /// Not ve adlar değiştirilebilir: kayıtta, işlenen ya da notu yazılan toplantıda değil.
     private var isEditable: Bool {
@@ -153,7 +239,7 @@ struct MeetingReadView: View {
                     case .summary:
                         MeetingSummary(
                             record: record, paragraphs: paragraphs, store: store, canPlay: canPlay, isEditable: isEditable,
-                            onNameSpeakers: { isNamingSpeakers = true }
+                            onNameSpeakers: { isNamingSpeakers = true }, onEditMyNotes: { isEditingMyNotes = true }
                         ) { (startSec: Double) -> Void in
                             play(from: startSec)
                         }
@@ -163,7 +249,11 @@ struct MeetingReadView: View {
                         if !skipped.isEmpty {
                             SkippedLanguageNote(record: record, segments: skipped)
                         }
-                        TranscriptList(record: record, paragraphs: paragraphs, player: player, canPlay: canPlay, proxy: proxy) { (startSec: Double) -> Void in
+                        TranscriptList(
+                            record: record, paragraphs: paragraphs, player: player, canPlay: canPlay, proxy: proxy,
+                            highlighted: highlightedParagraphIDs(paragraphs: paragraphs, highlights: record.highlights ?? []),
+                            isEditable: isEditable, onToggleHighlight: toggleHighlight(paragraph:)
+                        ) { (startSec: Double) -> Void in
                             play(from: startSec)
                         }
                         .transition(.opacity)
@@ -183,15 +273,33 @@ struct MeetingReadView: View {
                         ShareLink(item: shareText(record: record, note: note, language: nil)) {
                             Label("Notu paylaş", systemImage: "square.and.arrow.up")
                         }
-                        ShareLink(item: meetingMarkdown(record: record)) {
-                            Label("Markdown olarak paylaş", systemImage: "doc.text")
+                    }
+                    Menu("Dışa aktar", systemImage: "square.and.arrow.down") {
+                        ForEach(MeetingExportFormat.allCases.filter { isMeetingExportAvailable(record: record, format: $0) }) { (format: MeetingExportFormat) in
+                            Button(format.title, systemImage: format.systemImage) { export(format: format) }
                         }
                     }
-                    if !(record.finalSegments.isEmpty && record.liveSegments.isEmpty) {
-                        ShareLink(item: transcriptText(record: record)) {
-                            Label("Transkripti paylaş", systemImage: "text.alignleft")
+                    Button("Markdown olarak kopyala", systemImage: "doc.on.doc") {
+                        UIPasteboard.general.string = meetingMarkdown(record: record)
+                    }
+                    Divider()
+                    Button("Adını değiştir", systemImage: "pencil") {
+                        newTitle = record.note?.title ?? record.title
+                        isRenaming = true
+                    }
+                    .disabled(!isEditable)
+                    Menu("Klasöre taşı", systemImage: "folder") {
+                        ForEach(meetingFolders(records: store.meetings, saved: []), id: \.name) { (folder: FolderSummary) in
+                            Button(folder.name, systemImage: record.folder == folder.name ? "checkmark" : "folder") {
+                                move(folder: folder.name)
+                            }
+                        }
+                        Button("Yeni klasör…", systemImage: "folder.badge.plus") { isCreatingFolder = true }
+                        if record.folder != nil {
+                            Button("Klasörden çıkar", systemImage: "folder.badge.minus") { move(folder: nil) }
                         }
                     }
+                    .disabled(!isEditable)
                     if paragraphs.contains(where: { $0.person != nil }) {
                         Button("Konuşmacılara ad ver", systemImage: "person.text.rectangle") { isNamingSpeakers = true }
                             .disabled(!isEditable)
@@ -218,6 +326,25 @@ struct MeetingReadView: View {
                     Image(systemName: "ellipsis")
                 }
                 .accessibilityLabel("Diğer")
+            }
+        }
+        .sheet(item: $exported) { (file: ExportedFile) in
+            ActivityShareSheet(items: [file.url])
+                .presentationDetents([.medium, .large])
+        }
+        .sheet(isPresented: $isEditingMyNotes) {
+            PhoneMyNotesEditor(initialText: record.myNotes ?? "") { (text: String) -> Void in
+                Task { await store.saveMyNotes(meetingID: record.id, text: text) }
+            }
+        }
+        .sheet(isPresented: $isRenaming) {
+            PhoneTextEntrySheet(title: "Toplantının adı", placeholder: "Ad", actionTitle: "Kaydet", initialText: newTitle) { (text: String) -> Void in
+                rename(title: text)
+            }
+        }
+        .sheet(isPresented: $isCreatingFolder) {
+            PhoneTextEntrySheet(title: "Yeni klasör", placeholder: "Klasör adı", actionTitle: "Taşı", initialText: "") { (text: String) -> Void in
+                move(folder: text)
             }
         }
         .sheet(isPresented: $isNamingSpeakers) {
@@ -247,6 +374,50 @@ struct MeetingReadView: View {
             errorMessage = nil
         } catch {
             errorMessage = String(localized: "Not sürümü geri yüklenemedi: \(userFacingMessage(error: error))")
+        }
+    }
+
+    /// Toplantıyı dosya olarak yazar ve paylaşım sayfasını açar; olmazsa neden sayfada görünür.
+    private func export(format: MeetingExportFormat) {
+        do {
+            exported = ExportedFile(url: try writeMeetingExport(record: record, format: format))
+            errorMessage = nil
+        } catch {
+            errorMessage = String(localized: "Dışa aktarılamadı: \(userFacingMessage(error: error))")
+        }
+    }
+
+    /// Toplantının adını (not başlığıyla birlikte) değiştirir; boş ad yok sayılır.
+    private func rename(title: String) {
+        let trimmed: String = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return
+        }
+        apply(failure: "Ad değiştirilemedi") { (current: MeetingRecord) -> MeetingRecord in current.with(title: trimmed) }
+    }
+
+    /// Toplantıyı klasöre taşır (nil ya da boş ad klasörden çıkarır).
+    private func move(folder: String?) {
+        let trimmed: String? = folder?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let target: String? = trimmed?.isEmpty == false ? trimmed : nil
+        apply(failure: "Klasöre taşınamadı") { (current: MeetingRecord) -> MeetingRecord in current.with(folder: target) }
+    }
+
+    /// Paragrafın işaretini açar ya da kaldırır.
+    private func toggleHighlight(paragraph: TranscriptParagraph) {
+        apply(failure: "İşaret kaydedilemedi") { (current: MeetingRecord) -> MeetingRecord in
+            let paragraphs: [TranscriptParagraph] = transcriptParagraphs(record: current)
+            return current.with(highlights: togglingHighlight(highlights: current.highlights ?? [], paragraphs: paragraphs, paragraph: paragraph))
+        }
+    }
+
+    /// Düzenlemeyi diskteki güncel kayda uygular; olmazsa `failure` ve neden sayfada görünür.
+    private func apply(failure: String.LocalizationValue, change: (MeetingRecord) -> MeetingRecord) {
+        do {
+            try store.updateMeeting(meetingID: record.id, change: change)
+            errorMessage = nil
+        } catch {
+            errorMessage = "\(String(localized: failure)): \(userFacingMessage(error: error))"
         }
     }
 
@@ -360,6 +531,7 @@ private struct MeetingSummary: View {
     /// Not ve konuşmacı adları değiştirilebilir (kayıtta, işlenen ya da notu yazılan toplantıda değil).
     let isEditable: Bool
     let onNameSpeakers: @MainActor () -> Void
+    let onEditMyNotes: @MainActor () -> Void
     let onPlay: @MainActor (Double) -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
@@ -388,10 +560,17 @@ private struct MeetingSummary: View {
                 }
                 if let myNotes = record.myNotes {
                     VStack(alignment: .leading, spacing: 8) {
-                        Label("SENİN NOTLARIN", systemImage: "square.and.pencil")
-                            .appFont(size: 11, weight: .semibold)
-                            .tracking(DesignTokens.labelTracking)
-                            .foregroundStyle(appearance.accent.color)
+                        HStack {
+                            Label("SENİN NOTLARIN", systemImage: "square.and.pencil")
+                                .appFont(size: 11, weight: .semibold)
+                                .tracking(DesignTokens.labelTracking)
+                                .foregroundStyle(appearance.accent.color)
+                            Spacer()
+                            if isEditable {
+                                Button("Düzenle", action: onEditMyNotes)
+                                    .appFont(size: 13, weight: .medium)
+                            }
+                        }
                         Text(myNotes)
                             .appFont(size: 15, weight: .regular)
                             .lineSpacing(3)
@@ -405,6 +584,14 @@ private struct MeetingSummary: View {
                             .fill(appearance.accent.color.opacity(0.7))
                             .frame(width: 3)
                     }
+                }
+                if record.myNotes == nil && isEditable {
+                    Button(action: onEditMyNotes) {
+                        Label("Kendi notunu ekle", systemImage: "square.and.pencil")
+                            .appFont(size: 14, weight: .medium)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(appearance.accent.color)
                 }
                 PhoneNoteEditBar(isWorking: store.regeneratingIDs.contains(record.id), isEnabled: isEditable) { (instruction: String) -> Void in
                     Task { await store.editNote(meetingID: record.id, instruction: instruction) }
@@ -452,6 +639,18 @@ private struct MeetingSummary: View {
                         }
                     }
                 }
+                let marked: [TranscriptParagraph] = markedParagraphs
+                if !marked.isEmpty {
+                    section(title: "İşaretlediğin anlar") {
+                        VStack(alignment: .leading, spacing: 0) {
+                            ForEach(marked, id: \.id) { (paragraph: TranscriptParagraph) in
+                                HighlightRow(paragraph: paragraph, speakerNames: record.speakerNames, canPlay: canPlay) {
+                                    onPlay(paragraph.startSec)
+                                }
+                            }
+                        }
+                    }
+                }
                 if let outline = note.outline, !outline.isEmpty {
                     section(title: "Konu akışı") {
                         VStack(alignment: .leading, spacing: 0) {
@@ -490,6 +689,12 @@ private struct MeetingSummary: View {
         } else {
             EmptyStateCard(symbol: "doc.text", title: "Bu toplantının notu yok", message: nil)
         }
+    }
+
+    /// İşaretli paragraflar (kayıtta "İşaretle" ya da transkriptte uzun basarak), zaman sırasıyla.
+    private var markedParagraphs: [TranscriptParagraph] {
+        let ids: Set<String> = highlightedParagraphIDs(paragraphs: paragraphs, highlights: record.highlights ?? [])
+        return paragraphs.filter { ids.contains($0.id) }
     }
 
     private func section(title: LocalizedStringKey, @ViewBuilder content: () -> some View) -> some View {
@@ -654,6 +859,92 @@ private struct OutlineRow: View {
     }
 }
 
+/// İşaretli an: zaman, konuşmacı ve metin; dokununca oradan çalar.
+private struct HighlightRow: View {
+    let paragraph: TranscriptParagraph
+    let speakerNames: [Int: String]
+    let canPlay: Bool
+    let onPlay: @MainActor () -> Void
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
+
+    var body: some View {
+        Button(action: onPlay) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Image(systemName: "star.fill")
+                    .appFont(size: 11, weight: .semibold)
+                    .foregroundStyle(appearance.accent.color)
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text(timestamp(seconds: paragraph.startSec))
+                            .appFont(size: 12, weight: .semibold)
+                            .monospacedDigit()
+                            .foregroundStyle(appearance.accent.color)
+                        Text(paragraphLabel(paragraph: paragraph, speakerNames: speakerNames))
+                            .appFont(size: 12, weight: .medium)
+                            .foregroundStyle(Theme.muted)
+                    }
+                    Text(paragraph.text)
+                        .appFont(size: 15, weight: .regular)
+                        .foregroundStyle(Theme.ink)
+                        .lineLimit(3)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!canPlay)
+    }
+}
+
+/// Kendi notlarını düzenleme sayfası: kaydedince notlar saklanır ve toplantı notu onlarla yeniden yazılır (Mac'teki
+/// "Notlarım").
+private struct PhoneMyNotesEditor: View {
+    let initialText: String
+    let onSave: @MainActor (String) -> Void
+    @State private var text: String = ""
+    @Environment(\.dismiss) private var dismiss: DismissAction
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        NavigationStack {
+            TextEditor(text: $text)
+                .appFont(size: 16, weight: .regular)
+                .focused($isFocused)
+                .padding(.horizontal, 16)
+                .scrollContentBackground(.hidden)
+                .background(Theme.background)
+                .safeAreaInset(edge: .bottom) {
+                    Text("Kaydedince not, notlarını da hesaba katarak yeniden yazılır.")
+                        .appFont(size: 12, weight: .regular)
+                        .foregroundStyle(Theme.muted)
+                        .padding(16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .navigationTitle("Senin notların")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Vazgeç") { dismiss() }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Kaydet") {
+                            onSave(text)
+                            dismiss()
+                        }
+                        .disabled(text == initialText)
+                    }
+                }
+        }
+        .onAppear {
+            text = initialText
+            isFocused = true
+        }
+    }
+}
+
 /// Transkript: konuşmacılı paragraflar (≤30 sn), sohbet gibi rozetle. Çalan paragraf hafif dolgulu ve kelime kelime
 /// vurgulu; görünür alanın üst üçte birine kayar. Paragrafa dokununca oradan çalar.
 private struct TranscriptList: View {
@@ -662,6 +953,11 @@ private struct TranscriptList: View {
     let player: MeetingAudioPlayer
     let canPlay: Bool
     let proxy: ScrollViewProxy
+    /// İşaretli paragrafların kimlikleri (yıldızla görünür).
+    let highlighted: Set<String>
+    /// İşaret konabilir (kayıtta, işlenen ya da notu yazılan toplantıda değil).
+    let isEditable: Bool
+    let onToggleHighlight: @MainActor (TranscriptParagraph) -> Void
     let onPlay: @MainActor (Double) -> Void
     /// Çalan paragraf: yalnızca paragraf değişince yazılır (tüm liste saniyede onlarca kez yeniden çizilmesin).
     @State private var activeID: String?
@@ -700,6 +996,12 @@ private struct TranscriptList: View {
                                     .appFont(size: 11, weight: .regular)
                                     .monospacedDigit()
                                     .foregroundStyle(Theme.muted)
+                                if highlighted.contains(paragraph.id) {
+                                    Image(systemName: "star.fill")
+                                        .appFont(size: 10, weight: .semibold)
+                                        .foregroundStyle(appearance.accent.color)
+                                        .accessibilityLabel(Text("İşaretli"))
+                                }
                             }
                             Group {
                                 if isActive {
@@ -727,6 +1029,17 @@ private struct TranscriptList: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(!canPlay)
+                // Uzun basınca: işaretle (Mac'teki transkript işareti; not yenilenince öne çıkar) ve kopyala.
+                .contextMenu {
+                    let isHighlighted: Bool = highlighted.contains(paragraph.id)
+                    Button(isHighlighted ? "İşareti kaldır" : "İşaretle", systemImage: isHighlighted ? "star.slash" : "star") {
+                        onToggleHighlight(paragraph)
+                    }
+                    .disabled(!isEditable)
+                    Button("Metni kopyala", systemImage: "doc.on.doc") {
+                        UIPasteboard.general.string = paragraph.text
+                    }
+                }
                 .id(paragraph.id)
             }
         }
