@@ -2998,6 +2998,16 @@
         }
       }
     },
+    "Başka bir kelimeyle ara.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try another word."
+          }
+        }
+      }
+    },
     "Başka bir kişiyi aç": {
       "localizations": {
         "en": {
@@ -3035,16 +3045,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Starting…"
-          }
-        }
-      }
-    },
-    "Başlıkta, notta ya da metinde başka bir kelimeyle ara.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Try another word from the title, note or transcript."
           }
         }
       }
@@ -3202,22 +3202,22 @@
         }
       }
     },
-    "Bir toplantı seç": {
+    "Bir toplantı aç": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Select a meeting"
+            "value": "Open a meeting"
           }
         }
       }
     },
-    "Bir toplantının Transkript sekmesinde konuşmacıya bu adı verince toplantıları, konuşma payı ve görevleri burada görünür.": {
+    "Bir toplantının transkriptinde konuşmacıya bu adı verince toplantıları burada görünür.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "When you give a speaker this name in a meeting's Transcript tab, their meetings, talk share and tasks appear here."
+            "value": "Give a speaker this name in a meeting's transcript and their meetings appear here."
           }
         }
       }
@@ -3343,6 +3343,16 @@
         }
       }
     },
+    "Bitirdiğin görevler burada birikir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tasks you finish collect here."
+          }
+        }
+      }
+    },
     "Bitiriliyor": {
       "localizations": {
         "en": {
@@ -3400,6 +3410,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Briefing"
+          }
+        }
+      }
+    },
+    "Bu klasör boş": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This folder is empty"
           }
         }
       }
@@ -5510,6 +5530,16 @@
         }
       }
     },
+    "Dosya içe aktar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import a file"
+          }
+        }
+      }
+    },
     "Dosya okunamadı: %@.": {
       "extractionState": "manual",
       "localizations": {
@@ -6776,6 +6806,16 @@
         }
       }
     },
+    "Henüz sorulacak toplantı yok": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No meetings to ask about yet"
+          }
+        }
+      }
+    },
     "Henüz sorulmadı": {
       "localizations": {
         "en": {
@@ -6842,6 +6882,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Send to all"
+          }
+        }
+      }
+    },
+    "Hepsini göster": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show all"
           }
         }
       }
@@ -7106,6 +7156,46 @@
         }
       }
     },
+    "İlk toplantını kaydet ya da bir kaydı içe aktar; not, görevler ve transkript burada hazır olur.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record your first meeting or import a recording; the note, tasks and transcript will be ready here."
+          }
+        }
+      }
+    },
+    "İlk toplantını kaydet ya da içe aktar; sonra burada sorarsın.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record or import your first meeting, then ask about it here."
+          }
+        }
+      }
+    },
+    "İçe aktarılıyor…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importing…"
+          }
+        }
+      }
+    },
+    "Kayıt sürüyor; bitince toplantı burada görünür.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording; the meeting appears here when it ends."
+          }
+        }
+      }
+    },
     "Konuşma tanıma": {
       "localizations": {
         "en": {
@@ -7122,6 +7212,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "The services we use are listed by name in our privacy policy."
+          }
+        }
+      }
+    },
+    "Listeyi göster": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show list"
+          }
+        }
+      }
+    },
+    "Not, görevler ve transkript burada görünür.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The note, tasks and transcript appear here."
           }
         }
       }
@@ -7146,6 +7256,56 @@
         }
       }
     },
+    "Son toplantıyı aç": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open latest meeting"
+          }
+        }
+      }
+    },
+    "Sıradaki: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next: %@"
+          }
+        }
+      }
+    },
+    "Toplantı notunda senin adına yazılan işler burada toplanır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tasks assigned to you in meeting notes collect here."
+          }
+        }
+      }
+    },
+    "Toplantı sayfasındaki \"Klasöre taşı\" ile buraya ekle.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add meetings with \"Move to folder\" on a meeting's page."
+          }
+        }
+      }
+    },
+    "Toplantılara git": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Go to Meetings"
+          }
+        }
+      }
+    },
     "Toplantının metni not, canlı çeviri ve Sor cevapları için sunucumuz üzerinden bir yapay zekâ dil modeline gönderilir.": {
       "localizations": {
         "en": {
@@ -7162,6 +7322,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Meeting audio is sent to a speech recognition service for the live transcript, telling speakers apart and the final transcript."
+          }
+        }
+      }
+    },
+    "Transkriptte bir konuşmacıya ad verince kişi burada görünür; toplantıları, konuşma payı ve görevleriyle.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name a speaker in a transcript and they appear here, with their meetings, talk time and tasks."
+          }
+        }
+      }
+    },
+    "ya da ses/video dosyasını buraya sürükle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or drag an audio or video file here"
           }
         }
       }
@@ -7560,32 +7740,12 @@
         }
       }
     },
-    "Kaydı başlat ya da bir ses/video dosyasını soldaki listeye sürükle; bitince notu, görevleri ve konuşmacılı transkripti burada görürsün.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Start recording or drag an audio/video file onto the list on the left; when it's done you'll see the note, tasks and speaker transcript here."
-          }
-        }
-      }
-    },
     "Kaydı başlatınca toplantıların ve notların burada görünür.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Your meetings and notes appear here once you start recording."
-          }
-        }
-      }
-    },
-    "Kaydı başlatınca ya da bir ses/video dosyasını buraya sürükleyince toplantılar burada görünür.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Meetings appear here once you start recording or drag an audio/video file here."
           }
         }
       }
@@ -9651,16 +9811,6 @@
         }
       }
     },
-    "Not burada": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The note is here"
-          }
-        }
-      }
-    },
     "Not düzenlenemedi: %@": {
       "localizations": {
         "en": {
@@ -10131,16 +10281,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Refresh note"
-          }
-        }
-      }
-    },
-    "Notu, görevleri, konu akışını ve konuşmacılı transkripti burada görürsün.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "See the note, tasks, topic flow and speaker transcript here."
           }
         }
       }
@@ -11877,16 +12017,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Version: %@"
-          }
-        }
-      }
-    },
-    "Süzgeci \"Hepsi\" yap ya da başka bir kelimeyle ara.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Switch the filter to \"All\" or search with another word."
           }
         }
       }
@@ -14420,16 +14550,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "meetings"
-          }
-        }
-      }
-    },
-    "ya da dosya sürükle": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "or drag a file"
           }
         }
       }

@@ -24,7 +24,8 @@ struct PeoplePage: View {
         }
         let current: PersonSummary? = people.first { $0.id == selected } ?? people.first
         HStack(spacing: 0) {
-            if listVisible {
+            // Hiç kişi yokken liste sütunu gösterilmez (sahne tüm alanı kaplar); kişi defteri okunamadıysa hata için kalır.
+            if listVisible, !people.isEmpty || model.peopleBookError != nil {
                 VStack(spacing: 0) {
                     HStack(spacing: 8) {
                         HStack(spacing: 6) {
@@ -98,25 +99,18 @@ struct PeoplePage: View {
                         .id(current.id)
                         .transition(.opacity)
                     } else {
-                        ScrollView {
-                            EmptyStateHero(
-                                symbol: "person.2.fill", title: "Henüz kimse yok",
-                                message: "Konuşmacıya bir kez ad ver; kişi burada görünür, toplantıları, konuşma payı ve görevleriyle. Sık görüştüğün kişileri şimdiden ekleyebilirsin; adları konuşma tanımaya da verilir.",
-                                palette: .sunset,
-                                steps: [
-                                    EmptyStateStep(symbol: "doc.text", title: "Toplantının transkriptini aç"),
-                                    EmptyStateStep(symbol: "character.cursor.ibeam", title: "Konuşmacıya ad ver"),
-                                    EmptyStateStep(symbol: "person.crop.circle.badge.checkmark", title: "Kişi burada toplanır"),
-                                ]
+                        CenteredScroll {
+                            EmptyScene(
+                                symbol: "person.2.fill", palette: .ocean, title: "Henüz kimse yok",
+                                message: "Transkriptte bir konuşmacıya ad verince kişi burada görünür; toplantıları, konuşma payı ve görevleriyle."
                             ) {
                                 Button("Kişi ekle", systemImage: "person.badge.plus") {
                                     withAnimation(.smooth(duration: 0.25)) { isAdding = true }
                                 }
-                                .buttonStyle(.pillPrimary)
+                                .buttonStyle(.accentPill)
+                                .controlSize(.large)
                             }
-                            .padding(.top, 24)
                         }
-                        .scrollIndicators(.hidden)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -381,9 +375,9 @@ private struct PersonDetail: View {
                     stat(value: "\(person.tasks.count)", label: "görev")
                 }
                 if person.meetings.isEmpty {
-                    EmptyStatePlaceholder(
+                    QuietEmptyCard(
                         symbol: "calendar.badge.clock", title: "Henüz toplantı yok",
-                        message: "Bir toplantının Transkript sekmesinde konuşmacıya bu adı verince toplantıları, konuşma payı ve görevleri burada görünür."
+                        message: "Bir toplantının transkriptinde konuşmacıya bu adı verince toplantıları burada görünür."
                     )
                 } else {
                     VStack(alignment: .leading, spacing: 10) {

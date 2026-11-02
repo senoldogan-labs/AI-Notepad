@@ -78,6 +78,8 @@ struct AskPage: View {
                                     return
                                 }
                                 model.askArchive(question: example, meetingIDs: [], recipeTitle: nil)
+                            } onOpenMeetings: {
+                                router.section = .meetings
                             }
                         }
                         ForEach(model.archiveExchanges) { (exchange: ArchiveExchange) in
@@ -541,6 +543,8 @@ private struct AskHistoryRow: View {
 private struct AskIntro: View {
     let meetings: [MeetingRecord]
     let onAsk: @MainActor (String) -> Void
+    /// Hiç toplantı yokken: Toplantılar bölümü (kayıt ve içe aktarma orada).
+    let onOpenMeetings: @MainActor () -> Void
     /// Not ve çeviri dili (Ayarlar › Genel): cevapların dili metinde adıyla geçer.
     @AppStorage(SettingsKey.noteLanguage) private var noteLanguage: String = defaultNoteLanguage(interfaceLanguages: Bundle.main.preferredLocalizations).rawValue
 
@@ -571,26 +575,56 @@ private struct AskIntro: View {
                         .appFont(size: 14, weight: .regular)
                         .foregroundStyle(Color.black.opacity(0.66))
                         .fixedSize(horizontal: false, vertical: true)
-                    HStack(spacing: 8) {
-                        IntroStat(text: Text("\(meetings.count) toplantı"))
-                        IntroStat(text: Text("\(max(0, minutes / 60)) sa \(minutes % 60) dk konuşma"))
+                    if !meetings.isEmpty {
+                        HStack(spacing: 8) {
+                            IntroStat(text: Text("\(meetings.count) toplantı"))
+                            IntroStat(text: Text("\(max(0, minutes / 60)) sa \(minutes % 60) dk konuşma"))
+                        }
+                        .padding(.top, 4)
                     }
-                    .padding(.top, 4)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            Text("ÖRNEK SORULAR")
-                .appFont(size: 11, weight: .semibold)
-                .tracking(DesignTokens.labelTracking)
-                .foregroundStyle(Theme.muted)
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-                ForEach(Array(examples.enumerated()), id: \.element.text) { (item: (offset: Int, element: (symbol: String, text: String))) in
-                    ExampleQuestionCard(
-                        symbol: item.element.symbol, question: LocalizedStringKey(item.element.text), hint: exampleHint,
-                        palette: examplePalettes[item.offset % examplePalettes.count]
-                    ) {
-                        onAsk(String(localized: String.LocalizationValue(item.element.text)))
+            // Toplantı yokken örnek sorular boş cevap verirdi: yerine ilk toplantıya giden tek kart.
+            if meetings.isEmpty {
+                HStack(spacing: 14) {
+                    AccentSymbolTile(symbol: "waveform", size: 38)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Henüz sorulacak toplantı yok")
+                            .appFont(size: 14, weight: .medium)
+                            .foregroundStyle(Theme.ink)
+                        Text("İlk toplantını kaydet ya da içe aktar; sonra burada sorarsın.")
+                            .appFont(size: 13, weight: .regular)
+                            .foregroundStyle(Theme.muted)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
+                    Spacer(minLength: 8)
+                    Button("Toplantılara git", action: onOpenMeetings)
+                        .buttonStyle(.accentPill)
+                        .controlSize(.small)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+                .cardSurface(cornerRadius: 14)
+            } else {
+                examplesSection
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var examplesSection: some View {
+        Text("ÖRNEK SORULAR")
+            .appFont(size: 11, weight: .semibold)
+            .tracking(DesignTokens.labelTracking)
+            .foregroundStyle(Theme.muted)
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+            ForEach(Array(examples.enumerated()), id: \.element.text) { (item: (offset: Int, element: (symbol: String, text: String))) in
+                ExampleQuestionCard(
+                    symbol: item.element.symbol, question: LocalizedStringKey(item.element.text), hint: exampleHint,
+                    palette: examplePalettes[item.offset % examplePalettes.count]
+                ) {
+                    onAsk(String(localized: String.LocalizationValue(item.element.text)))
                 }
             }
         }

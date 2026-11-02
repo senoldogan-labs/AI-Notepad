@@ -64,12 +64,12 @@ enum AppEntry {
         // "--tanitim <sahne>": sahte verilerle ekran görüntüsü modu; veri geçici eve yazılır, değilse açılmaz.
         if isDemoMode {
             do {
-                _ = try demoScene(arguments: CommandLine.arguments)
+                let scene: DemoScene = try demoScene(arguments: CommandLine.arguments)
                 #if HOSTED_EDITION
                 // Abonelikte veri hesap başına: tanıtım verisi sahte bir hesabın klasörüne yazılır.
                 try AppPaths.activateAccount(key: accountDataKey(userId: "tanitim"))
                 #endif
-                try seedDemoData(now: Date())
+                try prepareDemoData(scene: scene, now: Date())
             } catch {
                 FileHandle.standardError.write(Data("\(appName) tanıtım: \(error)\n".utf8))
                 fatalError(String(describing: error))

@@ -2,7 +2,6 @@ import AINotepadCore
 import AINotepadUI
 import AppKit
 import SwiftUI
-import UniformTypeIdentifiers
 import UserNotifications
 
 /// Ana pencerenin sahne kimliği.
@@ -314,7 +313,7 @@ struct MainWindowView: View {
         case .home:
             HomePage(model: model, router: router, shortcuts: shortcuts, onStartRecording: onStartRecording, onShowPanel: onShowPanel)
         case .meetings:
-            MeetingsSplit(model: model, router: router, player: player)
+            MeetingsSplit(model: model, router: router, player: player, shortcuts: shortcuts, onStartRecording: onStartRecording)
         case .ask:
             AskPage(model: model, router: router)
         case .people:
@@ -479,7 +478,8 @@ private struct TopBar: View {
         HStack(spacing: DesignTokens.Spacing.m) {
             // Sayfanın sol listesini gizle/göster: her bölümde aynı yerde, başlığın solunda.
             switch router.section {
-            case .meetings:
+            // Hiç toplantı yokken liste sütunu yoktur (ilk açılış sahnesi tüm alanı kaplar): düğme de gizlenir.
+            case .meetings where !model.meetings.isEmpty:
                 listToggle(isVisible: $meetingsListVisible, show: "Toplantı listesini göster", hide: "Toplantı listesini gizle")
             case .people:
                 listToggle(isVisible: $peopleListVisible, show: "Kişi listesini göster", hide: "Kişi listesini gizle")
@@ -743,7 +743,7 @@ private struct HomePage: View {
 
 /// Kayıt kartında konuşma modelinin durumu: indiriliyorsa ilerleme, hazırlanamadıysa neden ve "Yeniden dene".
 /// Geliştirici sürümünde "Dinlemeye başla" neden kapalı, abonelikte canlı metin neden gecikecek, kart söyler.
-private struct LocalModelNoticeView: View {
+struct LocalModelNoticeView: View {
     let notice: LocalModelNotice
     let onRetry: @MainActor () -> Void
 
@@ -1254,7 +1254,7 @@ private struct RecentMeetingCards: View {
                 }
             }
             if model.meetings.isEmpty {
-                EmptyStateCard(symbol: "waveform", title: "Henüz toplantı yok", message: "Kaydı başlatınca toplantıların ve notların burada görünür.")
+                QuietEmptyCard(symbol: "waveform", title: "Henüz toplantı yok", message: "Kaydı başlatınca toplantıların ve notların burada görünür.")
             } else {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 16, alignment: .top)], alignment: .leading, spacing: 18) {
                     ForEach(model.meetings.prefix(6)) { (record: MeetingRecord) in
@@ -1322,8 +1322,6 @@ private struct TasksPage: View {
     let model: AppModel
     let router: MainWindowRouter
     @State private var showsDone: Bool = false
-    /// Not ve çeviri dili (Ayarlar › Genel): boş durumda notun dili adıyla geçer.
-    @AppStorage(SettingsKey.noteLanguage) private var noteLanguage: String = defaultNoteLanguage(interfaceLanguages: Bundle.main.preferredLocalizations).rawValue
 
     var body: some View {
         let all: [(record: MeetingRecord, task: NoteTask)] = myTasks(meetings: model.meetings)
@@ -1347,34 +1345,27 @@ private struct TasksPage: View {
                 }
                 if groups.isEmpty {
                     if showsDone {
-                        EmptyStateCard(
-                            symbol: "checkmark.circle", title: "Tamamlanan görev yok",
-                            message: "Bir görevin dairesine tıklayınca buraya taşınır; bitirdiklerin burada birikir."
-                        )
+                        QuietEmptyCard(symbol: "checkmark.circle", title: "Tamamlanan görev yok", message: "Bitirdiğin görevler burada birikir.")
                     } else if doneCount > 0 {
-                        EmptyStateHero(
-                            symbol: "party.popper.fill", title: "Açık görevin kalmadı",
-                            message: "Hepsi tamamlandı. Yeni toplantılarda sana düşen işler buraya gelir.", palette: .sunset, steps: []
-                        ) {
+                        EmptyScene(symbol: "party.popper.fill", palette: .coral, title: "Açık görevin kalmadı", message: "Hepsi tamamlandı.") {
                             EmptyView()
                         }
-                        .overlay { ConfettiBurst(palette: .sunset) }
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 24)
+                        .overlay { ConfettiBurst(palette: .coral) }
                     } else {
-                        EmptyStateHero(
-                            symbol: "checklist", title: "Henüz sana düşen görev yok",
-                            message: "Toplantı bitince not yazılır; içinde senin adına yazılan işler burada toplanır, tamamlayınca işaretlersin.",
-                            palette: .sunset,
-                            steps: [
-                                EmptyStateStep(symbol: "record.circle", title: "Toplantıyı kaydet"),
-                                EmptyStateStep(symbol: "sparkles", title: "\(storedNoteLanguage(value: noteLanguage).interfaceName) not yazılır"),
-                                EmptyStateStep(symbol: "checkmark.circle", title: "Görevlerin burada"),
-                            ]
+                        EmptyScene(
+                            symbol: "checklist", palette: .coral, title: "Henüz sana düşen görev yok",
+                            message: "Toplantı notunda senin adına yazılan işler burada toplanır."
                         ) {
                             if (UserDefaults.standard.string(forKey: SettingsKey.userName) ?? "").isEmpty {
                                 Button("Adını yaz (görevlerin tanınsın)", systemImage: "person.text.rectangle") { router.section = .settings }
-                                    .buttonStyle(.pillPrimary)
+                                    .buttonStyle(.accentPill)
+                                    .controlSize(.large)
                             }
                         }
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 24)
                     }
                 }
                 ForEach(groups, id: \.record.id) { (group: (record: MeetingRecord, tasks: [NoteTask])) in
@@ -1418,14 +1409,29 @@ private struct TasksPage: View {
     }
 }
 
-/// Toplantılar bölümü: solda liste (üst çubuktaki aramayla süzülür), sağda seçili toplantının sayfası.
+/// Toplantılar bölümü: solda liste (üst çubuktaki aramayla süzülür), sağda seçili toplantının sayfası. Hiç toplantı
+/// yokken liste sütunu gösterilmez; tüm alanı ilk açılış sahnesi kaplar (kayıt, içe aktarma, sıradaki toplantı).
 private struct MeetingsSplit: View {
     let model: AppModel
     let router: MainWindowRouter
     let player: MeetingAudioPlayer
+    let shortcuts: ShortcutController
+    let onStartRecording: @MainActor () -> Void
     @AppStorage(SettingsKey.meetingsListVisible) private var listVisible: Bool = true
 
     var body: some View {
+        if model.meetings.isEmpty {
+            MeetingsFirstRun(
+                model: model, router: router, recordShortcut: keyBindingDisplay(binding: shortcuts.currentBinding(action: .record)),
+                onStartRecording: onStartRecording
+            )
+            .transition(.opacity)
+        } else {
+            split
+        }
+    }
+
+    private var split: some View {
         HStack(spacing: 0) {
             // Liste üst çubuktaki düğmeyle gizlenir (düğme Toplantılar'da her zaman görünür).
             if listVisible {
@@ -1442,12 +1448,7 @@ private struct MeetingsSplit: View {
                 .frame(width: 300)
                 // Ses/video dosyası listeye bırakılınca toplantı olarak içe aktarılır.
                 .dropDestination(for: URL.self) { (urls: [URL], _: CGPoint) -> Bool in
-                    let media: [URL] = urls.filter { (url: URL) -> Bool in
-                        guard let type = UTType(filenameExtension: url.pathExtension) else {
-                            return false
-                        }
-                        return type.conforms(to: .audio) || type.conforms(to: .audiovisualContent)
-                    }
+                    let media: [URL] = mediaFileURLs(urls: urls)
                     guard !media.isEmpty else {
                         return false
                     }
@@ -1468,30 +1469,22 @@ private struct MeetingsSplit: View {
                         // Toplantı değişince ad alanları gibi durumlar sıfırlansın.
                         .id(record.id)
                         .transition(.opacity)
-                } else if model.meetings.isEmpty {
-                    ScrollView {
-                        EmptyStateHero(
-                            symbol: "waveform", title: "Henüz toplantı yok",
-                            message: "Kaydı başlat ya da bir ses/video dosyasını soldaki listeye sürükle; bitince notu, görevleri ve konuşmacılı transkripti burada görürsün.",
-                            palette: .sunset,
-                            steps: [
-                                EmptyStateStep(symbol: "record.circle", title: "Kaydı başlat"),
-                                EmptyStateStep(symbol: "square.and.arrow.down", title: "ya da dosya sürükle"),
-                                EmptyStateStep(symbol: "doc.text", title: "Not burada"),
-                            ]
-                        ) {
-                            EmptyView()
+                } else {
+                    // Seçim yokken sakin yer tutucu: en son toplantı tek tıkla açılır. Kendiliğinden açılmaz: klasör
+                    // seçince ve silince seçim bilerek boşalır, ağır toplantı sayfası (transkript, ses) istenmeden yüklenmez.
+                    QuietEmptyState(symbol: "doc.text", title: "Bir toplantı aç", message: "Not, görevler ve transkript burada görünür.") {
+                        HStack(spacing: 8) {
+                            if let latest = model.meetings.first {
+                                Button("Son toplantıyı aç") { router.selectedMeetingID = latest.id }
+                                    .buttonStyle(.pill)
+                                    .hoverHint(verbatim: latest.note?.title ?? latest.title, alignment: .center, edge: .bottom)
+                            }
+                            if !listVisible {
+                                Button("Listeyi göster", systemImage: "sidebar.left") { listVisible = true }
+                                    .buttonStyle(.pill)
+                            }
                         }
                     }
-                    .scrollIndicators(.hidden)
-                    .padding(.top, 40)
-                    .transition(.opacity)
-                } else {
-                    // Seçim yokken küçük yer tutucu: büyük sahne yalnızca hiç toplantı yokken.
-                    EmptyStatePlaceholder(
-                        symbol: "doc.text.magnifyingglass", title: "Bir toplantı seç",
-                        message: "Notu, görevleri, konu akışını ve konuşmacılı transkripti burada görürsün."
-                    )
                     .transition(.opacity)
                 }
             }

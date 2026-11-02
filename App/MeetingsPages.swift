@@ -88,14 +88,9 @@ struct MeetingsListPage: View {
                     .padding(.horizontal, DesignTokens.Spacing.m)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            if model.meetings.isEmpty {
-                EmptyStatePlaceholder(symbol: "waveform", title: "Henüz toplantı yok", message: "Kaydı başlatınca ya da bir ses/video dosyasını buraya sürükleyince toplantılar burada görünür.")
-            } else if visible.isEmpty {
-                if listFilter == .all {
-                    EmptyStatePlaceholder(symbol: "magnifyingglass", title: "Eşleşen toplantı yok", message: "Başlıkta, notta ya da metinde başka bir kelimeyle ara.")
-                } else {
-                    EmptyStatePlaceholder(symbol: "line.3.horizontal.decrease", title: "Eşleşen toplantı yok", message: "Süzgeci \"Hepsi\" yap ya da başka bir kelimeyle ara.")
-                }
+            // Hiç toplantı yokken bu liste gösterilmez (bkz. `MeetingsFirstRun`); burada yalnızca süzülmüş boş sonuçlar.
+            if visible.isEmpty {
+                emptyResult
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 2) {
@@ -130,6 +125,28 @@ struct MeetingsListPage: View {
         }
         .animation(.smooth(duration: 0.25), value: isSelecting)
         .animation(.smooth(duration: 0.25), value: isConfirmingDelete)
+    }
+
+    /// Görünen toplantı yokken: süzgeç açıksa "Hepsini göster", boş klasörde "Tüm toplantılar", aramada başka kelime.
+    @ViewBuilder
+    private var emptyResult: some View {
+        if listFilter != .all {
+            QuietEmptyState(symbol: "line.3.horizontal.decrease", title: "Eşleşen toplantı yok", message: nil) {
+                Button("Hepsini göster") { listFilter = .all }
+                    .buttonStyle(.pill)
+                    .controlSize(.small)
+            }
+        } else if query.isEmpty, folder != nil {
+            QuietEmptyState(symbol: "folder", title: "Bu klasör boş", message: "Toplantı sayfasındaki \"Klasöre taşı\" ile buraya ekle.") {
+                Button("Tüm toplantılar") { onClearFolder() }
+                    .buttonStyle(.pill)
+                    .controlSize(.small)
+            }
+        } else {
+            QuietEmptyState(symbol: "magnifyingglass", title: "Eşleşen toplantı yok", message: "Başka bir kelimeyle ara.") {
+                EmptyView()
+            }
+        }
     }
 
     /// Satır: seç modunda işaret kutusu ve tıklayınca işaretleme (kayıttaki/işlenen toplantı seçilemez); değilse açma.
@@ -503,9 +520,9 @@ struct MeetingDetailPage: View {
                             }
                         } else {
                             if isProcessing {
-                                EmptyStateCard(symbol: "hourglass", title: "Not hazırlanıyor…", message: "Bitince özet, kararlar ve görevler burada görünür.")
+                                QuietEmptyCard(symbol: "hourglass", title: "Not hazırlanıyor…", message: "Bitince özet, kararlar ve görevler burada görünür.")
                             } else {
-                                EmptyStateCard(symbol: "doc.text", title: "Bu toplantının notu yok", message: "\"Notu yenile\" ile not yeniden yazılabilir.")
+                                QuietEmptyCard(symbol: "doc.text", title: "Bu toplantının notu yok", message: "\"Notu yenile\" ile not yeniden yazılabilir.")
                             }
                         }
                     case .transcript:
@@ -519,7 +536,7 @@ struct MeetingDetailPage: View {
                             .frame(maxWidth: 820, alignment: .leading)
                         }
                         if paragraphs.isEmpty {
-                            EmptyStateCard(symbol: "text.bubble", title: "Bu toplantının metni yok", message: "Kayıt sırasında konuşma algılanmadı.")
+                            QuietEmptyCard(symbol: "text.bubble", title: "Bu toplantının metni yok", message: "Kayıt sırasında konuşma algılanmadı.")
                         }
                         TranscriptSection(
                             record: record, paragraphs: paragraphs, player: player, proxy: proxy,

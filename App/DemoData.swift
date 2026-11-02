@@ -43,6 +43,24 @@ enum DemoScene: String {
     case people = "kisiler"
     /// Görevlerim (görsel kontrol için).
     case tasks = "gorevler"
+    /// Toplantılar, seçili toplantı yok (görsel kontrol için).
+    case meetings = "toplantilar"
+    /// Hiç veri yokken Toplantılar: ilk açılış sahnesi ve takvimde sıradaki toplantı (görsel kontrol için).
+    case meetingsEmpty = "toplantilar-bos"
+    /// Hiç veri yokken Görevlerim (görsel kontrol için).
+    case tasksEmpty = "gorevler-bos"
+    /// Hiç veri yokken Kişiler (görsel kontrol için).
+    case peopleEmpty = "kisiler-bos"
+    /// Hiç veri yokken Sor (görsel kontrol için).
+    case askEmpty = "sor-bos"
+
+    /// Sahne örnek verilerle mi açılır; boş sahneler (ilk açılış) hiçbir şey yazmadan açılır.
+    var hasSampleData: Bool {
+        switch self {
+        case .home, .note, .ask, .live, .upsell, .trialEnding, .trialEnded, .update, .settings, .people, .tasks, .meetings: true
+        case .meetingsEmpty, .tasksEmpty, .peopleEmpty, .askEmpty: false
+        }
+    }
 }
 
 /// Sor sahnesinde soru alanına yazılmış taslak (görsel kontrol: `@` önerileri ve etiketler).
@@ -96,7 +114,7 @@ enum DemoModeError: Error, CustomStringConvertible {
         case .dataFolderOutsideHome(let dataFolder, let home):
             "Tanıtım modu: veri klasörü (\(dataFolder)) geçici evin (\(home)) dışında; kullanıcının verisine yazılmaz."
         case .unknownScene(let value):
-            "Tanıtım modu: sahne tanınmadı (gelen: \(value ?? "yok")); ana, not, sor, canli, abone, deneme-bitiyor, deneme-bitti, guncelleme, ayarlar, kisiler ya da gorevler olmalı."
+            "Tanıtım modu: sahne tanınmadı (gelen: \(value ?? "yok")); ana, not, sor, canli, abone, deneme-bitiyor, deneme-bitti, guncelleme, ayarlar, kisiler, gorevler, toplantilar, toplantilar-bos, gorevler-bos, kisiler-bos ya da sor-bos olmalı."
         }
     }
 }
@@ -135,8 +153,17 @@ private func requireRedirectedDataFolder() throws -> URL {
     return dataFolder
 }
 
+/// Sahnenin verisini hazırlar: veri klasörünün geçici eve yönlendirildiğini her sahnede doğrular (değilse hata), örnek
+/// verili sahnede tanıtım verisini yazar; boş sahnede klasör boş kalır.
+func prepareDemoData(scene: DemoScene, now: Date) throws {
+    _ = try requireRedirectedDataFolder()
+    if scene.hasSampleData {
+        try seedDemoData(now: now)
+    }
+}
+
 /// Tanıtım verisini (toplantılar, kişiler, Sor sohbeti) geçici veri klasörüne yazar; klasör yönlendirilmemişse hata.
-func seedDemoData(now: Date) throws {
+private func seedDemoData(now: Date) throws {
     _ = try requireRedirectedDataFolder()
     let sessions: URL = try AppPaths.sessionsDirectory()
     for record in demoMeetings(now: now) {
@@ -182,8 +209,29 @@ func showDemoScene(scene: DemoScene, model: AppModel, router: MainWindowRouter, 
         #endif
     case .people:
         router.section = .people
-    case .tasks:
+    case .tasks, .tasksEmpty:
         router.section = .tasks
+    case .meetings:
+        router.section = .meetings
+    case .meetingsEmpty:
+        router.section = .meetings
+        // Sıradaki toplantı kartı için sahte bir etkinlik. Takvim kapalıyken açılıştaki takvim kurulumu listeyi boşaltır:
+        // etkinlik ondan sonra yazılır.
+        Task {
+            do {
+                try await Task.sleep(for: .milliseconds(1500))
+            } catch {
+                return
+            }
+            model.upcomingMeetings = [CalendarMeeting(
+                id: "tanitim-design-review", title: "Design review", start: now.addingTimeInterval(25 * 60), end: now.addingTimeInterval(55 * 60),
+                attendees: ["Ayşe Demir", "Jonas Berg"], joinURL: URL(string: "https://meet.google.com/abc-defg-hij")
+            )]
+        }
+    case .peopleEmpty:
+        router.section = .people
+    case .askEmpty:
+        router.section = .ask
     case .update:
         router.section = .home
         updater.showUpdateForDemo(update: AvailableAppUpdate(
