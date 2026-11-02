@@ -17626,6 +17626,534 @@
           }
         }
       }
+    },
+    "Aboneliğin App Store'dan alındı; planı değiştirmek ya da iptal etmek için \"Aboneliği yönet\"e dokun.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your subscription was bought through the App Store; tap \"Manage subscription\" to change plans or cancel."
+          }
+        }
+      }
+    },
+    "Aboneliğin %@ tarihinde sona erdi. Toplantıların ve notların bu iPhone'da; yeni kayıt için yeniden abone ol.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your subscription ended on %@. Your meetings and notes stay on this iPhone; resubscribe to record new ones."
+          }
+        }
+      }
+    },
+    "Aboneliğin web'de (kartla) alındı; Mac uygulamasında Ayarlar › Hesap › Hesabı yönet'ten yönetebilirsin.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your subscription was bought on the web (by card); manage it in the Mac app under Settings › Account › Manage account."
+          }
+        }
+      }
+    },
+    "Ad değiştirilemedi": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't rename"
+          }
+        }
+      }
+    },
+    "Adil kullanım sınırı: bu ay kaydedilen toplantıların toplam süresi. Ay başında sıfırlanır.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fair-use limit: the total length of meetings recorded this month. Resets at the start of each month."
+          }
+        }
+      }
+    },
+    "Adını değiştir": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rename"
+          }
+        }
+      }
+    },
+    "Altyazı (SRT)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subtitles (SRT)"
+          }
+        }
+      }
+    },
+    "Anımsatıcılar'a erişim izni yok: iPhone Ayarları › Gizlilik ve Güvenlik › Anımsatıcılar'dan %@'e tam erişim ver.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No access to Reminders: give %@ full access in iPhone Settings › Privacy & Security › Reminders."
+          }
+        }
+      }
+    },
+    "Anımsatıcılara ekle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add to Reminders"
+          }
+        }
+      }
+    },
+    "Anımsatıcılarda": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In Reminders"
+          }
+        }
+      }
+    },
+    "App Store": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App Store"
+          }
+        }
+      }
+    },
+    "Arkadaşın davet bağlantınla web'den abone olunca aylık planda ilk ayı ücretsiz olur.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When a friend subscribes on the web with your invite link, their first month on the monthly plan is free."
+          }
+        }
+      }
+    },
+    "Arkadaşına ilk ayı hediye et": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Give a friend their first month"
+          }
+        }
+      }
+    },
+    "Bir ay ver, bir ay al": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Give a month, get a month"
+          }
+        }
+      }
+    },
+    "Bitiş: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ends: %@"
+          }
+        }
+      }
+    },
+    "Bu iPhone'da ücretsiz deneme başka bir hesapla kullanıldı; devam etmek için abone ol. Toplantıların ve notların bu iPhone'da kalır.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The free trial on this iPhone was used with another account; subscribe to continue. Your meetings and notes stay on this iPhone."
+          }
+        }
+      }
+    },
+    "Davet bağlantısını paylaş": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share invite link"
+          }
+        }
+      }
+    },
+    "Davet kodunu kopyala": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy invite code"
+          }
+        }
+      }
+    },
+    "Deneme bitti; yeni toplantılar için abone ol. Toplantıların ve notların bu iPhone'da kalır.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your trial has ended; subscribe for new meetings. Your meetings and notes stay on this iPhone."
+          }
+        }
+      }
+    },
+    "Deneme ilk toplantınla başlar: %@, hangisi önce dolarsa.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The trial starts with your first meeting: %@, whichever comes first."
+          }
+        }
+      }
+    },
+    "Dışa aktar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export"
+          }
+        }
+      }
+    },
+    "Dışa aktarılamadı: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't export: %@"
+          }
+        }
+      }
+    },
+    "Geri bildirim": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feedback"
+          }
+        }
+      }
+    },
+    "Görevlerim %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "My tasks %lld"
+          }
+        }
+      }
+    },
+    "Hesabın zaten ücretsiz olduğu için sana ödül yazılmaz.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your account is already free, so no reward is credited to you."
+          }
+        }
+      }
+    },
+    "Kaydedince not, notlarını da hesaba katarak yeniden yazılır.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When you save, the note is rewritten taking your notes into account."
+          }
+        }
+      }
+    },
+    "Kendi notunu ekle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add your own notes"
+          }
+        }
+      }
+    },
+    "Klasöre taşınamadı": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't move to folder"
+          }
+        }
+      }
+    },
+    "Mesajın, yazdıysan e-postan ve işaretliyse sürüm bilgisi Gistsmith'in geliştiricisinin sunucusuna gider ve hesabınla ilişkilendirilir. Toplantı içeriği gönderilmez.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your message, your email if you entered one, and the version info if checked go to the Gistsmith developer's server and are linked to your account. No meeting content is sent."
+          }
+        }
+      }
+    },
+    "Notların kaydedilemedi: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't save your notes: %@"
+          }
+        }
+      }
+    },
+    "Onun ilk ödemesinden %lld gün sonra sana da bir ay bedava: sonraki ödemenden %@ düşülür (yılda en çok %lld).": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld days after their first payment you get a free month too: %@ comes off your next payment (up to %lld a year)."
+          }
+        }
+      }
+    },
+    "Senin notların": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your notes"
+          }
+        }
+      }
+    },
+    "Sor, notu değiştirme ve notu yenileme bu paydan düşer; toplantı sırasındakiler düşmez.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask, editing a note and refreshing a note use this allowance; anything during a meeting doesn't."
+          }
+        }
+      }
+    },
+    "Sorunlu %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Issues %lld"
+          }
+        }
+      }
+    },
+    "Taşı": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move"
+          }
+        }
+      }
+    },
+    "Toplantılarım için Gistsmith kullanıyorum: konuşulanı canlı yazıya döküyor, toplantı bitince notu ve görevleri hazırlıyor. Bu bağlantıyla web'den abone olursan aylık planda ilk ayın ücretsiz, yıllık planda ilk yılın %@ indirimli: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I use Gistsmith for my meetings: it transcribes live and prepares the notes and tasks when the meeting ends. Subscribe on the web with this link and your first month on the monthly plan is free, or get %@ off your first year on the yearly plan: %@"
+          }
+        }
+      }
+    },
+    "Toplantının adı": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meeting name"
+          }
+        }
+      }
+    },
+    "Transkript (TXT)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcript (TXT)"
+          }
+        }
+      }
+    },
+    "Vurgu rengi düğmelerde, ölçerlerde ve seçili sekmede kullanılır.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The accent colour is used for buttons, meters and the selected tab."
+          }
+        }
+      }
+    },
+    "Web": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web"
+          }
+        }
+      }
+    },
+    "Web sayfası (HTML)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web page (HTML)"
+          }
+        }
+      }
+    },
+    "Yeni klasör…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New folder…"
+          }
+        }
+      }
+    },
+    "Yenileme ödemesi alınamadı ve ek süre bitti. Toplantıların ve notların bu iPhone'da; yeni kayıt için ödeme yöntemini güncelle.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The renewal payment failed and the grace period has ended. Your meetings and notes are on this iPhone; update your payment method to record again."
+          }
+        }
+      }
+    },
+    "Ödül ayı web aboneliğinin ödemesinden düşülür; aboneliğin App Store'dan alındığı için sana ödül yazılmaz.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The reward month comes off a web subscription payment; since your subscription is through the App Store, no reward is credited to you."
+          }
+        }
+      }
+    },
+    "İşaret kaydedilemedi": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't save the highlight"
+          }
+        }
+      }
+    },
+    "İşaretle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Highlight"
+          }
+        }
+      }
+    },
+    "İşaretlediğin anlar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your highlights"
+          }
+        }
+      }
+    },
+    "İşaretli": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Highlighted"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
