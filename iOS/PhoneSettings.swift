@@ -150,9 +150,14 @@ func phoneMissedWindowMinutes() -> Int {
     min(max(UserDefaults.standard.integer(forKey: PhoneSettingsKey.missedWindowMinutes), missedWindowMinutesRange.lowerBound), missedWindowMinutesRange.upperBound)
 }
 
+/// Canlı metnin gösterimi (Ayarlar › Toplantı; kayıt kartındaki "Canlı çeviri").
+func phoneDisplayMode() -> DisplayMode {
+    DisplayMode(rawValue: UserDefaults.standard.string(forKey: PhoneSettingsKey.displayMode) ?? "") ?? .bilingual
+}
+
 /// Kayıt sırasında not diline canlı çeviri açık mı (Ayarlar › Toplantı).
 func phoneLiveTranslationEnabled() -> Bool {
-    (DisplayMode(rawValue: UserDefaults.standard.string(forKey: PhoneSettingsKey.displayMode) ?? "") ?? .bilingual).needsLiveTranslation
+    phoneDisplayMode().needsLiveTranslation
 }
 
 /// Kayda verilen tanıma terimleri (Mac'teki gibi): adın ve tanıma sözlüğü öne, sonra Kişiler'e elle eklenenler, sonra son

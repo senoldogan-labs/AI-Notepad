@@ -19823,6 +19823,66 @@
           }
         }
       }
+    },
+    "Konuşmanın not dilindeki çevirisi kayıtta canlı akar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The translation into your note language streams live while recording"
+          }
+        }
+      }
+    },
+    "Duraklatıldı; bu sırada ses kaydedilmez ve yazıya dökülmez.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paused; audio isn't recorded or transcribed meanwhile."
+          }
+        }
+      }
+    },
+    "Kaydı duraklat": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause recording"
+          }
+        }
+      }
+    },
+    "Kayda devam et": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume recording"
+          }
+        }
+      }
+    },
+    "Süren Gistsmith kaydını duraklatır; duraklatılan süre kaydedilmez.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pauses the current Gistsmith recording; the paused time isn't recorded."
+          }
+        }
+      }
+    },
+    "Duraklatılan Gistsmith kaydını sürdürür.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resumes the paused Gistsmith recording."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

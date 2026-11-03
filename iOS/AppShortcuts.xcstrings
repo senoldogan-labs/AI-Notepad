@@ -11,6 +11,16 @@
         }
       }
     },
+    "${applicationName} kayda devam et": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume recording in ${applicationName}"
+          }
+        }
+      }
+    },
     "${applicationName} kaydı başlat": {
       "localizations": {
         "en": {
@@ -27,6 +37,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Finish recording in ${applicationName}"
+          }
+        }
+      }
+    },
+    "${applicationName} kaydı duraklat": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause recording in ${applicationName}"
           }
         }
       }
