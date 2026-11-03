@@ -23,7 +23,9 @@ struct FeedbackSettingsRow: View {
     @State private var isOpen: Bool = false
 
     var body: some View {
-        SettingsRow(title: Text("Geri bildirim gönder"), hint: Text("Hata, öneri ya da soru: doğrudan Gistsmith'in geliştiricisine yaz.")) {
+        SettingsRow(title: Text("Geri bildirim gönder")) {
+            Text("Hata, öneri ya da soru: doğrudan Gistsmith'in geliştiricisine yaz.")
+        } control: {
             Button("Yaz…") { isOpen = true }
         }
         .sheet(isPresented: $isOpen) {
@@ -59,10 +61,7 @@ private struct FeedbackSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            HStack(spacing: 6) {
-                Text("Geri bildirim gönder").appFont(size: 28, weight: .regular).tracking(-0.4)
-                InfoHint(Text(privacyNote))
-            }
+            Text("Geri bildirim gönder").appFont(size: 28, weight: .regular).tracking(-0.4)
             if state == .sent {
                 sent
             } else {
@@ -131,16 +130,23 @@ private struct FeedbackSheet: View {
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
             }
-            HStack(spacing: 4) {
-                Toggle("Tanılama bilgisini ekle", isOn: $includeFullDiagnostics)
-                    .toggleStyle(.checkbox)
-                    .appFont(size: 13, weight: .regular)
-                InfoHint(Text("Ayarlar › Tanılama'daki bilgi (hesap durumu, izinler, bağlantı, son hatalar) mesajın sonuna eklenir; ses, metin, not, anahtar ve jeton eklenmez."))
+            Toggle("Tanılama bilgisini ekle", isOn: $includeFullDiagnostics)
+                .toggleStyle(.checkbox)
+                .appFont(size: 13, weight: .regular)
+            if includeFullDiagnostics {
+                Text("Ayarlar › Tanılama'daki bilgi (hesap durumu, izinler, bağlantı, son hatalar) mesajın sonuna eklenir; ses, metin, not, anahtar ve jeton eklenmez.")
+                    .appFont(size: 12, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .disabled(isSending)
         .padding(18)
         .cardSurface(cornerRadius: 16)
+        Text(privacyNote)
+            .appFont(size: 12, weight: .regular)
+            .foregroundStyle(Theme.muted)
+            .fixedSize(horizontal: false, vertical: true)
         if case .failed(let reason) = state {
             NoticeText(reason as String, severity: .error)
                 .appFont(size: 13, weight: .regular)

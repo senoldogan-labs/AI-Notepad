@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// Açıklama ipucu: vurgu renginde küçük soru işareti; dokununca (tıklayınca) açıklama küçük bir baloncukta açılır.
-/// Ayar bölümlerinin altındaki uzun açıklama paragraflarının yerine bölüm başlığının ya da açıkladığı satırın yanında
-/// durur. iPhone'da baloncuk tam ekran sayfaya dönüşmez ve dokunma alanı en az 44 pt'dir; VoiceOver açıklamayı ipucu
+/// iPhone'da ayar bölümlerinin altındaki uzun açıklama paragraflarının yerine bölüm başlığının ya da açıkladığı satırın
+/// yanında durur (Mac'te açıklamalar satırların altında görünür). iPhone'da baloncuk tam ekran sayfaya dönüşmez ve dokunma alanı en az 44 pt'dir; VoiceOver açıklamayı ipucu
 /// olarak okur.
 public struct InfoHint: View {
     private let text: Text
