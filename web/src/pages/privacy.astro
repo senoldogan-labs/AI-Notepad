@@ -86,7 +86,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         Meeting audio and text go only to our AI providers to be transcribed and summarised: Deepgram for the live
         transcript (directly from your device), ElevenLabs for the final transcript and Anthropic for notes (both through our
         server, which keeps no audio or notes and holds the final transcript encrypted for up to 2 hours). Shared-screen
-        snapshots go to Anthropic with the note only if you turn on “Use screen snapshots in notes”. Deepgram keeps no
+        snapshots go to Anthropic with the note (and a few with your Ask questions) only if you turn on “Use screen
+        snapshots in notes”. Deepgram keeps no
         audio or text after transcribing; the others may keep request data for
         a time under their own retention rules (see section 8). We keep only usage numbers (how long, how many tokens) to
         apply the plan limits.
@@ -142,7 +143,10 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         to about 800 pixels and sends them with the note request through our server to Anthropic's Claude model, so the note
         can refer to what was on screen. Our server checks their number and size and passes them on; it does not store or
         log the images, and records only the number of tokens used, as for the text. Anthropic handles them on the same
-        terms as the transcript (see section 8). With the setting off, snapshots are never sent.
+        terms as the transcript (see section 8). With the same setting on, when you ask a question on the Ask page, up to 3
+        snapshots that were on screen while the transcript passages Ask read were spoken (again leaving out the unticked
+        ones) are downscaled the same way and sent with the question; the answer says how many snapshots it read. With the
+        setting off, snapshots are never sent.
       </li>
       <li>
         <strong>Calendar.</strong> If you allow calendar access, the app reads your calendar events on your device to show
@@ -181,7 +185,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       <li>
         <strong>Shared-screen snapshots (Mac app, off by default).</strong> If you turn on “Take snapshots of the shared
         screen” in Settings › General, then while you record an online meeting the app looks at the screen every few
-        seconds and keeps a still image (JPEG) whenever the content changes meaningfully, up to 300 per meeting. If it
+        seconds and keeps a still image (JPEG) whenever the content changes meaningfully, at most one every 20 seconds and up to 120 per
+        meeting; moving video and scrolling are skipped until the screen settles. If it
         finds the call's window (for example Zoom, Teams or a Google Meet tab) it captures only that window; otherwise it
         captures your main display. It never captures the app's own windows, doesn't capture while recording is paused,
         and doesn't capture in in-person mode. This uses the macOS Screen Recording permission, which you grant in System
@@ -198,7 +203,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       meeting content to perform our contract with you. Meetings also involve other people. You decide whether to record a
       meeting and what to do with the result, so for the other participants' personal data you are the controller and we
       act as your processor under GDPR Article 28: we process it only on your instructions — to transcribe the meeting and
-      write your note, including from shared-screen snapshots if you turn that on — using the sub-processors listed in
+      write your note and answer your questions, including from shared-screen snapshots if you turn that on — using the sub-processors listed in
       section 8, and never for any other purpose. You are responsible
       for telling participants that you are recording and, where the law requires it, getting their consent.
       Participants who want to use their rights should contact the person who recorded the meeting; if they contact us,
@@ -595,7 +600,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
             <td>Processor (sub-processor for meeting content): writing notes, translations and answers with the Claude model</td>
             <td>
               The relevant parts of meeting transcripts and notes, your questions, the participant names and terms you add,
-              meeting titles and the attendee names of linked calendar events, and, if you turn on “Use screen snapshots in notes”, up to 6 downscaled shared-screen snapshots per note
+              meeting titles and the attendee names of linked calendar events, and, if you turn on “Use screen snapshots in notes”, up to 6 downscaled shared-screen snapshots per note and up to 3 per Ask answer
             </td>
             <td>
               Stored in the USA; the model may run in other countries where Anthropic operates. Standard Contractual
