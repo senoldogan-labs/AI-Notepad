@@ -184,6 +184,8 @@ private struct PhoneAppRoot: View {
                     store: session.store, recorder: session.recorder, ask: session.ask, router: router, player: session.player, calendar: calendar,
                     crashReports: crashReports, account: account
                 )
+                .environment(session.integrations)
+                .modifier(PhoneIntegrationTriggers(integrations: session.integrations, isLoaded: account.isAccountDataLoaded))
                 // Kayıt sürerken oturum kapandıysa giriş kapısı kayıt bitince açılır; o zamana dek nedeni üstte görünür.
                 .safeAreaInset(edge: .top, spacing: 0) {
                     if account.requiresSignIn {
@@ -218,6 +220,12 @@ private struct PhoneAppRoot: View {
             ask.loadRecipes()
             ask.loadHistory()
             store.applyRetention(now: Date())
+            // Bağlantılar okunur; kapalıyken kaçan kendiliğinden gönderimler yapılır (Mac'teki açılış gibi).
+            let integrations: PhoneIntegrations = sessions.session.integrations
+            Task {
+                await integrations.load()
+                await integrations.processPendingAutoSends()
+            }
             #if DEBUG
             // `--paywall`: abonelik ekranı doğrudan açılır (App Store abonelik inceleme görseli).
             if CommandLine.arguments.contains("--paywall") {
@@ -317,6 +325,8 @@ struct PhoneAccountSession {
     let recorder: PhoneRecorder
     let ask: PhoneAsk
     let player: MeetingAudioPlayer
+    /// Not hedefleri ve görev araçları (Ayarlar › Bağlantılar, toplantıdaki gönderim).
+    let integrations: PhoneIntegrations
 
     /// Hesabın verisine yazan açık işler (bkz. `phoneOpenWriters`).
     var openWriters: [AccountDataWriter] {
@@ -358,7 +368,12 @@ func makePhoneAccountSession(calendar: PhoneCalendar) -> PhoneAccountSession {
     let store: PhoneStore = PhoneStore()
     let recorder: PhoneRecorder = PhoneRecorder(store: store)
     recorder.currentCalendarMeeting = { () -> CalendarMeeting? in calendar.meetingForRecording(now: Date()) }
-    return PhoneAccountSession(store: store, recorder: recorder, ask: PhoneAsk(store: store), player: MeetingAudioPlayer())
+    let integrations: PhoneIntegrations = PhoneIntegrations(store: store)
+    // Not hazır olunca bağlı hedeflere kendiliğinden gönderilir (Mac'teki işleme sonu gibi).
+    recorder.onMeetingProcessed = { (_: MeetingRecord) -> Void in
+        Task { await integrations.processPendingAutoSends() }
+    }
+    return PhoneAccountSession(store: store, recorder: recorder, ask: PhoneAsk(store: store), player: MeetingAudioPlayer(), integrations: integrations)
 }
 
 /// Yüklü hesabın bellekteki verisinin sahibi: görünümler ve niyetler (Kısayollar, canlı etkinlik) onu buradan okur.

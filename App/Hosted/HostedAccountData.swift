@@ -23,10 +23,7 @@ private let legacyUserContentSecretAccounts: [SecretAccount] = [.destinations, .
 /// Hesabın kendi Anahtar Zinciri servisi (not hedefleri, görev araçları): `<uygulamanın servisi>.account.<anahtar>`.
 /// Oturum jetonu uygulamanın servisinde kalır (hesaptan önce okunur).
 func hostedAccountKeychainService(accountKey: String) throws -> String {
-    guard isValidAccountDataKey(key: accountKey) else {
-        throw StorageError.invalidAccountKey(key: accountKey)
-    }
-    return "\(appKeychainService).account.\(accountKey)"
+    try accountKeychainService(appService: appKeychainService, accountKey: accountKey)
 }
 
 /// Yüklü hesabın Anahtar Zinciri servisi; hesap yüklenmediyse `accountNotSelected`.

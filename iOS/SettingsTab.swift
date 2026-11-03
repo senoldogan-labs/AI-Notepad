@@ -2,8 +2,9 @@ import AINotepadCore
 import AINotepadUI
 import SwiftUI
 
-/// Ayarlar: hesap (giriş yapan kimlik, plan, kullanım, çıkış, hesap silme), görünüm, kayıt (rıza hatırlatması, ses
-/// saklama), takvim, toplantı dili ve ad, gizlilik (anonim kullanım istatistikleri), sürüm.
+/// Ayarlar: hesap (giriş yapan kimlik, plan, kullanım, çıkış, hesap silme), görünüm, bağlantılar (kanallar, görev
+/// araçları), kayıt (rıza hatırlatması, ses saklama), takvim, toplantı dili ve ad, gizlilik (anonim kullanım
+/// istatistikleri), sürüm.
 struct PhoneSettingsTab: View {
     let store: PhoneStore
     let calendar: PhoneCalendar
@@ -49,6 +50,13 @@ struct PhoneSettingsTab: View {
                     }
                 } header: {
                     Text("Görünüm")
+                }
+                Section {
+                    PhoneConnectionsRow()
+                } header: {
+                    Text("Bağlantılar")
+                } footer: {
+                    Text("Notlar Slack, Teams, Discord, Notion ya da Zoom'a, görevler Linear ya da Jira'ya gider.")
                 }
                 Section {
                     Toggle("Kayıt başlarken haber vermeyi hatırlat", isOn: $consentReminder)

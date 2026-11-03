@@ -7570,6 +7570,26 @@
         }
       }
     },
+    "Kanallar okunuyor…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loading channels…"
+          }
+        }
+      }
+    },
+    "Kanallar ve görev araçları": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Channels and task tools"
+          }
+        }
+      }
+    },
     "Kayıt ve işleme bitince silinebilir": {
       "localizations": {
         "en": {
@@ -7586,6 +7606,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Show smaller"
+          }
+        }
+      }
+    },
+    "Notlar Slack, Teams, Discord, Notion ya da Zoom'a, görevler Linear ya da Jira'ya gider.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes go to Slack, Teams, Discord, Notion or Zoom; tasks go to Linear or Jira."
+          }
+        }
+      }
+    },
+    "Otomatik gönderim açık yerlere not hazır olunca gider; toplantının ⋯ menüsünden elle de gönderilir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes go to places with automatic sending on as soon as they are ready; you can also send them from a meeting’s ⋯ menu."
           }
         }
       }
@@ -7626,6 +7666,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "The server didn't respond within %lld seconds."
+          }
+        }
+      }
+    },
+    "Toplantının ⋯ menüsünden görevleri Linear ya da Jira'da iş olarak açar.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens tasks as issues in Linear or Jira from a meeting’s ⋯ menu."
           }
         }
       }

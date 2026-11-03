@@ -405,6 +405,8 @@ struct MeetingReadView: View {
                     // Not yenileme, şablonla yazma, not düzenleme ve çeviri hataları (yalnız listede kalsaydı sayfada
                     // dönen çark sessizce dururdu).
                     PhoneDismissibleErrorList(messages: store.actionProblems) { store.dismissActionProblems() }
+                    // Kanala ve görev aracına gönderimin durumu (bkz. `PhoneIntegrations`).
+                    PhoneSendStatus(meetingID: record.id)
                     if let language = translatingLanguage {
                         HStack(spacing: 10) {
                             ProgressView().controlSize(.small)
@@ -487,6 +489,8 @@ struct MeetingReadView: View {
                         UIPasteboard.general.string = meetingMarkdown(record: record)
                         recordFeatureUsage(feature: .export(.copyMarkdown))
                     }
+                    // Mac'teki "Kanala gönder" ve "Görevleri gönder".
+                    PhoneSendMenuItems(record: record)
                     // Mac'teki "Tarif": bu toplantıya tarif uygular, cevap Sor'da açılır.
                     Menu("Tarif uygula", systemImage: "wand.and.stars") {
                         ForEach(recipes) { (recipe: Recipe) in
