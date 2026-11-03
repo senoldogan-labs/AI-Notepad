@@ -89,8 +89,8 @@ private func emptyRecord() -> MeetingRecord {
         let failed: MeetingRecord = base.with(status: .failed, failureMessage: "x")
         let interrupted: MeetingRecord = base.with(status: .interrupted, failureMessage: nil)
         let records: [MeetingRecord] = [mine, others, failed, interrupted]
-        #expect(filterMeetings(records: records, listFilter: .all) == records)
-        #expect(filterMeetings(records: records, listFilter: .myTasks) == [mine])
-        #expect(filterMeetings(records: records, listFilter: .problems) == [failed, interrupted])
+        #expect(filterMeetings(records: records, listFilter: .all, userName: "") == records)
+        #expect(filterMeetings(records: records, listFilter: .myTasks, userName: "") == [mine])
+        #expect(filterMeetings(records: records, listFilter: .problems, userName: "") == [failed, interrupted])
     }
 }

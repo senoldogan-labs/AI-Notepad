@@ -125,10 +125,11 @@ func mcpTools(noteLanguage: ShareLanguage, appName: String) -> [MCPTool] {
 /// (uygulama açıkken eklenen toplantılar da görünür). `accessDenial` her araç çağrısında sorulur: neden dönerse
 /// (ör. abonelik sürümünde çıkış yapılmış) arşiv okunmaz, neden araç hatası olarak döner. Yönergeler ve araç
 /// açıklamaları notların dilini (`noteLanguage`) ve uygulamanın görünen adını (`appName`) anar. `meetingDirectory`
-/// toplantının klasörünü bulur (ekran görüntüleri oradadır). Saf değildir: `loadRecords` ve ekran araçları diski okur.
+/// toplantının klasörünü bulur (ekran görüntüleri oradadır). Notlar konuşmacı adlarıyla döner (`namedRecord`;
+/// `userName` kullanıcının görevlerini bulur). Saf değildir: `loadRecords` ve ekran araçları diski okur.
 public func handleMCPMessage(
     line: String, loadRecords: () -> [MeetingRecord], meetingDirectory: (String) -> URL?, accessDenial: () -> String?, version: String,
-    noteLanguage: ShareLanguage, appName: String
+    noteLanguage: ShareLanguage, appName: String, userName: String
 ) -> String? {
     let request: MCPRequest
     do {
@@ -172,9 +173,9 @@ public func handleMCPMessage(
             ]))
         }
         let output: MCPToolOutput = if mcpScreenToolNames.contains(name) {
-            callScreenTool(name: name, arguments: arguments, records: loadRecords(), meetingDirectory: meetingDirectory)
+            callScreenTool(name: name, arguments: arguments, records: namedRecords(records: loadRecords(), userName: userName), meetingDirectory: meetingDirectory)
         } else {
-            textOutput(callMCPTool(name: name, arguments: arguments, records: loadRecords()))
+            textOutput(callMCPTool(name: name, arguments: arguments, records: namedRecords(records: loadRecords(), userName: userName)))
         }
         return mcpResult(id: id, result: .object([
             "content": .array(output.content.map(contentJSON)),
@@ -264,9 +265,10 @@ let mcpMaxLineBytes: Int = 1_048_576
 
 /// stdio üzerinden MCP sunucusu: girişten satır satır okur, her yanıtı tek satır olarak yazar; giriş ya da çıkış
 /// kapanınca biter. `noteLanguage`: notların yazıldığı dil, `appName`: uygulamanın görünen adı (yönergelerde ve araç
-/// açıklamalarında anılır).
+/// açıklamalarında anılır), `userName`: kullanıcının adı (notlara konuşmacı adları uygulanırken görevleri bulur).
 public func runMCPServer(
-    input: FileHandle, output: FileHandle, sessionsDirectories: [URL], accessDenial: () -> String?, version: String, noteLanguage: ShareLanguage, appName: String
+    input: FileHandle, output: FileHandle, sessionsDirectories: [URL], accessDenial: () -> String?, version: String, noteLanguage: ShareLanguage, appName: String,
+    userName: String
 ) {
     var buffer: Data = Data()
     while true {
@@ -297,7 +299,7 @@ public func runMCPServer(
                 line: line, loadRecords: { loadMeetings(directories: sessionsDirectories).meetings },
                 meetingDirectory: { (meetingID: String) -> URL? in existingMeetingDirectory(sessionsDirectories: sessionsDirectories, meetingID: meetingID) },
                 accessDenial: accessDenial,
-                version: version, noteLanguage: noteLanguage, appName: appName
+                version: version, noteLanguage: noteLanguage, appName: appName, userName: userName
             ) {
                 do {
                     // Atan `write(contentsOf:)`: istemci boruyu kapatınca süreç ObjC istisnasıyla çökmez, temiz çıkar.

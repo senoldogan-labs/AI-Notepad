@@ -212,17 +212,17 @@ private func fileNumber(url: URL) throws -> Int {
         }
         let asA: String = try #require(handleMCPMessage(
             line: call, loadRecords: { loadMeetings(directories: [sessionsA]).meetings }, meetingDirectory: { (_: String) -> URL? in nil }, accessDenial: { denial(keyA) },
-            version: "test", noteLanguage: .english, appName: "Gistsmith"
+            version: "test", noteLanguage: .english, appName: "Gistsmith", userName: ""
         ))
         #expect(asA.contains("20260101-090000") && asA.contains("20260102-090000") && !asA.contains("20260103-090000"))
         let afterSwitch: String = try #require(handleMCPMessage(
             line: call, loadRecords: { loadMeetings(directories: [sessionsA]).meetings }, meetingDirectory: { (_: String) -> URL? in nil }, accessDenial: { denial(keyB) },
-            version: "test", noteLanguage: .english, appName: "Gistsmith"
+            version: "test", noteLanguage: .english, appName: "Gistsmith", userName: ""
         ))
         #expect(afterSwitch.contains("reddedildi") && !afterSwitch.contains("20260101-090000"))
         let asB: String = try #require(handleMCPMessage(
             line: call, loadRecords: { loadMeetings(directories: [sessionsB]).meetings }, meetingDirectory: { (_: String) -> URL? in nil }, accessDenial: { nil },
-            version: "test", noteLanguage: .english, appName: "Gistsmith"
+            version: "test", noteLanguage: .english, appName: "Gistsmith", userName: ""
         ))
         #expect(asB.contains("20260103-090000") && !asB.contains("20260101-090000") && !asB.contains("20260102-090000"))
     }
