@@ -341,7 +341,7 @@ private struct Sidebar: View {
 
     var body: some View {
         // Yalnızca açık (tamamlanmamış) görevler sayılır.
-        let myTaskCount: Int = myTasks(meetings: model.meetings, userName: userName).filter { !isTaskDone(record: $0.record, task: $0.task) }.count
+        let myTaskCount: Int = myTasks(namedRecords: model.namedMeetings(userName: userName)).filter { !isTaskDone(record: $0.record, task: $0.task) }.count
         VStack(alignment: .leading, spacing: 2) {
             // Trafik ışıklarına yer.
             Color.clear.frame(height: 40)
@@ -980,7 +980,7 @@ private struct Shortcuts: View {
     @AppStorage(SettingsKey.userName) private var userName: String = ""
 
     var body: some View {
-        let openTasks: Int = myTasks(meetings: model.meetings, userName: userName).filter { !isTaskDone(record: $0.record, task: $0.task) }.count
+        let openTasks: Int = myTasks(namedRecords: model.namedMeetings(userName: userName)).filter { !isTaskDone(record: $0.record, task: $0.task) }.count
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.m) {
             Text("Kısayollar").appFont(size: 15, weight: .medium)
             // Dört kart satırı doldurur; dar pencerede ikişerli iki satıra iner.
@@ -1051,7 +1051,7 @@ private struct HomeTasks: View {
     @AppStorage(SettingsKey.userName) private var userName: String = ""
 
     var body: some View {
-        let items: [(record: MeetingRecord, task: NoteTask)] = myTasks(meetings: Array(model.meetings.prefix(10)), userName: userName)
+        let items: [(record: MeetingRecord, task: NoteTask)] = myTasks(namedRecords: Array(model.namedMeetings(userName: userName).prefix(10)))
             .filter { !isTaskDone(record: $0.record, task: $0.task) }
         if !items.isEmpty {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.s) {
@@ -1266,12 +1266,12 @@ private struct RecentMeetingCards: View {
                 QuietEmptyCard(symbol: "waveform", title: "Henüz toplantı yok", message: "Kaydı başlatınca toplantıların ve notların burada görünür.")
             } else {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 16, alignment: .top)], alignment: .leading, spacing: 18) {
-                    ForEach(model.meetings.prefix(6)) { (record: MeetingRecord) in
+                    ForEach(model.namedMeetings(userName: userName).prefix(6)) { (record: MeetingRecord) in
                         Button {
                             router.selectedMeetingID = record.id
                             router.section = .meetings
                         } label: {
-                            MeetingCover(record: namedRecord(record: record, userName: userName), isProcessing: model.processingMeetingIDs.contains(record.id))
+                            MeetingCover(record: record, isProcessing: model.processingMeetingIDs.contains(record.id))
                         }
                         .buttonStyle(.hoverPlain)
                     }
@@ -1335,9 +1335,10 @@ private struct TasksPage: View {
     @AppStorage(SettingsKey.userName) private var userName: String = ""
 
     var body: some View {
-        let all: [(record: MeetingRecord, task: NoteTask)] = myTasks(meetings: model.meetings, userName: userName)
+        let named: [MeetingRecord] = model.namedMeetings(userName: userName)
+        let all: [(record: MeetingRecord, task: NoteTask)] = myTasks(namedRecords: named)
         let doneCount: Int = all.filter { isTaskDone(record: $0.record, task: $0.task) }.count
-        let groups: [(record: MeetingRecord, tasks: [NoteTask])] = namedRecords(records: model.meetings, userName: userName).compactMap { (record: MeetingRecord) -> (record: MeetingRecord, tasks: [NoteTask])? in
+        let groups: [(record: MeetingRecord, tasks: [NoteTask])] = named.compactMap { (record: MeetingRecord) -> (record: MeetingRecord, tasks: [NoteTask])? in
             let mine: [NoteTask] = (record.note?.tasks ?? []).filter { $0.isMine && isTaskDone(record: record, task: $0) == showsDone }
             return mine.isEmpty ? nil : (record: record, tasks: mine)
         }

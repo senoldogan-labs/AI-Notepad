@@ -7,7 +7,7 @@ import Testing
         let appearance: PanelAppearance = resolvedPanelAppearance(stored: StoredAppearance(
             fontDesign: "family:Georgia", uiScale: 3, textSize: 2, lineSpacing: -4, bottomSpacing: 500, accent: "teal", surface: "frosted",
             surfaceOpacity: 0.1
-        ))
+        ), isFontFamilyInstalled: { $0 == "Georgia" })
         #expect(appearance.fontChoice == .installed(family: "Georgia"))
         #expect(appearance.uiScale == AppearanceRange.uiScale.upperBound)
         #expect(appearance.textSize == AppearanceRange.textSize.lowerBound)
@@ -19,10 +19,18 @@ import Testing
 
         let unknownFont: PanelAppearance = resolvedPanelAppearance(stored: StoredAppearance(
             fontDesign: "", uiScale: 1, textSize: 14, lineSpacing: 4, bottomSpacing: 32, accent: "green", surface: "", surfaceOpacity: 0.7
-        ))
+        ), isFontFamilyInstalled: { _ in true })
         #expect(unknownFont.fontChoice == PanelAppearance.standard.fontChoice)
         #expect(unknownFont.accent == .green)
         #expect(unknownFont.surface == PanelAppearance.standard.surface)
+
+        // Kaldırılmış yazı ailesi varsayılan yazıdır; tasarımlar yüklü aileye bağlı değildir.
+        let removedFamily: PanelAppearance = resolvedPanelAppearance(stored: StoredAppearance(
+            fontDesign: "family:Removed Sans", uiScale: 1, textSize: 14, lineSpacing: 4, bottomSpacing: 32, accent: "green", surface: "",
+            surfaceOpacity: 0.7
+        ), isFontFamilyInstalled: { _ in false })
+        #expect(removedFamily.fontChoice == PanelAppearance.standard.fontChoice)
+        #expect(availableFontChoice(storage: "serif", isFamilyInstalled: { _ in false }) == .design(.serif))
     }
 
     // Okuma metni varsayılanda tasarımdaki boyut ve aralıktadır; ayar büyüdükçe orantılı büyür.
@@ -32,7 +40,7 @@ import Testing
         #expect(standard.readingLineSpacing(base: 6) == 6)
         let large: PanelAppearance = resolvedPanelAppearance(stored: StoredAppearance(
             fontDesign: "inter", uiScale: 1, textSize: 21, lineSpacing: 8, bottomSpacing: 32, accent: "orange", surface: "solid", surfaceOpacity: 0.7
-        ))
+        ), isFontFamilyInstalled: { _ in true })
         #expect(large.readingSize(base: 18) == 27)
         #expect(large.readingLineSpacing(base: 6) == 12)
     }

@@ -117,7 +117,7 @@ private struct PhoneAppearanceModifier: ViewModifier {
         let appearance: PanelAppearance = resolvedPanelAppearance(stored: StoredAppearance(
             fontDesign: fontDesign, uiScale: uiScale, textSize: textSize, lineSpacing: lineSpacing, bottomSpacing: standard.bottomSpacing,
             accent: accent, surface: standard.surface.rawValue, surfaceOpacity: standard.surfaceOpacity
-        ))
+        ), isFontFamilyInstalled: { (family: String) -> Bool in !UIFont.fontNames(forFamilyName: family).isEmpty })
         .dynamicTypeScaled(factor: dynamicTypeFactor(size: dynamicTypeSize))
         content
             .environment(\.panelAppearance, appearance)
@@ -127,6 +127,11 @@ private struct PhoneAppearanceModifier: ViewModifier {
             // Menü biçimli seçiciler ve sistem sayfaları rengi SwiftUI ortamından değil pencereden alır.
             .onChange(of: accent, initial: true) { (_: String, _: String) in
                 applyWindowTint(color: UIColor(appearance.accent.color))
+            }
+            .onChange(of: fontDesign, initial: true) { (_: String, storage: String) in
+                if case .installed(let family) = AppFontChoice.parse(storage: storage), UIFont.fontNames(forFamilyName: family).isEmpty {
+                    phoneAppLogger.warning("Seçili yazı ailesi yüklü değil, varsayılan yazı kullanılıyor; aile: \(family, privacy: .public)")
+                }
             }
     }
 }

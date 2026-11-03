@@ -353,6 +353,11 @@ func selectedLLMProviderKind() -> LLMProviderKind {
     LLMProviderKind(rawValue: UserDefaults.standard.string(forKey: SettingsKey.llmProvider) ?? "") ?? .anthropic
 }
 
+/// Kullanıcı bu eylem için bir kısayol seçip kaydetti mi (yoksa varsayılan kullanılır).
+func hasStoredKeyBinding(key: String) -> Bool {
+    UserDefaults.standard.data(forKey: key) != nil
+}
+
 /// Kayıtlı kısayol; yoksa varsayılan.
 func storedKeyBinding(key: String, fallback: KeyBinding) -> KeyBinding {
     guard let data = UserDefaults.standard.data(forKey: key) else {

@@ -174,6 +174,16 @@ final class AppModel {
     var assistantCard: AssistantCard?
     /// Kaydedilmiş toplantılar (yeniden eskiye) ve okunamayanlar.
     var meetings: [MeetingRecord] = []
+    /// `namedMeetings` için son adlandırılan notlar: görünüm her çizimde bütün notlarda etiket aramasın.
+    @ObservationIgnored private var namedMeetingsCache: NamedRecordsCache = .empty
+
+    /// Toplantılar konuşmacı adlarıyla (`namedRecords`), `meetings` ile aynı sırada; yalnız okumak için. Notu, adları ya
+    /// da kullanıcı adı değişmeyen toplantılar önbellekten gelir; `meetings` okunduğu için görünümler değişince yenilenir.
+    func namedMeetings(userName: String) -> [MeetingRecord] {
+        let result: (records: [MeetingRecord], cache: NamedRecordsCache) = namedRecords(records: meetings, userName: userName, cache: namedMeetingsCache)
+        namedMeetingsCache = result.cache
+        return result.records
+    }
     var meetingLoadFailures: [MeetingLoadFailure] = []
     /// Toplantılar listesinde gösterilen okuma hataları: okunamayan toplantılar ve iCloud eşitlemesi başarısızsa nedeni.
     /// iCloud durumu eşitlemeden okunur; toplantılar yeniden okununca silinmez.

@@ -2,6 +2,7 @@ import AINotepadCore
 import AINotepadUI
 import AppKit
 import Observation
+import os
 import SwiftUI
 
 /// Kayıt sırasındaki cam panelin sayfaları: canlı metin ve biten toplantının sonucu. Toplantılar, Ayarlar ve Kurulum
@@ -204,12 +205,15 @@ struct AppearanceEnvironment: ViewModifier {
     @AppStorage(SettingsKey.bottomSpacing) private var bottomSpacing: Double = PanelAppearance.standard.bottomSpacing
     @AppStorage(SettingsKey.surface) private var surface: String = PanelAppearance.standard.surface.rawValue
     @AppStorage(SettingsKey.surfaceOpacity) private var surfaceOpacity: Double = PanelAppearance.standard.surfaceOpacity
+    /// Yüklü yazı aileleri: seçili aile kaldırılınca varsayılan yazıya dönülür (AppKit o aileyle yazı oluşturamaz).
+    /// Yazı yüklenip kaldırılınca yenilenir.
+    @State private var installedFamilies: Set<String> = Set(NSFontManager.shared.availableFontFamilies)
 
     func body(content: Content) -> some View {
         let appearance: PanelAppearance = resolvedPanelAppearance(stored: StoredAppearance(
             fontDesign: fontDesign, uiScale: uiScale, textSize: textSize, lineSpacing: lineSpacing, bottomSpacing: bottomSpacing, accent: accent,
             surface: surface, surfaceOpacity: surfaceOpacity
-        ))
+        ), isFontFamilyInstalled: installedFamilies.contains)
         content
             .environment(\.panelAppearance, appearance)
             .tint(appearance.accent.color)
@@ -224,7 +228,23 @@ struct AppearanceEnvironment: ViewModifier {
             .onChange(of: theme, initial: true) { (_: String, value: String) in
                 applyTheme(theme: AppTheme(rawValue: value) ?? .system)
             }
+            .onReceive(NotificationCenter.default.publisher(for: NSFont.fontSetChangedNotification)) { (_: Notification) in
+                installedFamilies = Set(NSFontManager.shared.availableFontFamilies)
+            }
+            .onChange(of: StoredFontState(storage: fontDesign, installedFamilies: installedFamilies), initial: true) { (_: StoredFontState, state: StoredFontState) in
+                if case .installed(let family) = AppFontChoice.parse(storage: state.storage), !state.installedFamilies.contains(family) {
+                    appearanceLogger.warning("Seçili yazı ailesi yüklü değil, varsayılan yazı kullanılıyor; aile: \(family, privacy: .public)")
+                }
+            }
     }
+}
+
+private let appearanceLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "Appearance")
+
+/// Saklanan yazı seçimi ve yüklü aileler (yüklü olmayan aile uyarısı ikisinden biri değişince yeniden bakılır).
+private struct StoredFontState: Equatable {
+    let storage: String
+    let installedFamilies: Set<String>
 }
 
 
