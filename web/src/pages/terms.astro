@@ -7,6 +7,7 @@
 // abonelikleri (server/src/appStore.ts) Apple'ın satışıdır: otomatik yenileme açıklaması App Store Review Guidelines
 // 3.1.2 ve developer.apple.com/app-store/subscriptions; iOS uygulaması Apple'ın standart lisans sözleşmesiyle (Standard
 // EULA) ve bu şartlarla sunulur (kendi EULA'mız yok); iptal ve iade Apple'dadır (support.apple.com/118428, /118223).
+// iPhone uygulaması henüz App Store'da değildir: metin onu "App Store'a çıktığında" diye anar.
 import LegalSection from "../components/LegalSection.astro";
 import Legal from "../layouts/Legal.astro";
 import { cardStatementDescriptor, productName } from "../config";
@@ -68,10 +69,10 @@ const appleRefundUrl: string = "https://reportaproblem.apple.com";
 
   <LegalSection sections={sections} id="service">
     <p>
-      {productName} is a Mac and iPhone app that records your meetings, shows a live transcript and optional live
-      translation, and writes a note when the meeting ends — your tasks first, then decisions and a summary. The Mac app
-      records online calls and in-person meetings; the iPhone app records in-person meetings through its microphone (it
-      cannot record calls in other apps). Transcription after the meeting and the AI features run through our servers
+      {productName} is a Mac app, with an iPhone app once it is available on the App Store, that records your meetings,
+      shows a live transcript and optional live translation, and writes a note when the meeting ends — your tasks first,
+      then a summary, decisions and a glossary. The Mac app records online calls and in-person meetings; the iPhone app
+      will record in-person meetings through its microphone (it cannot record calls in other apps). Transcription after the meeting and the AI features run through our servers
       using our providers (see the Privacy policy); the live transcript is produced on your device or, when available, by
       our speech-to-text provider from audio streamed directly from your device. Your notes and recordings are stored on
       the Mac or iPhone that recorded them; the apps do not sync them between devices.
@@ -79,7 +80,7 @@ const appleRefundUrl: string = "https://reportaproblem.apple.com";
     <p>
       Subject to these terms, you may download and use the apps on Macs and iPhones you own or control, for as long as
       you have an account; the same account works in both. The Mac app requires macOS 15 or later on a Mac with Apple
-      silicon, the iPhone app iOS 26.1 or later, and both need an internet connection.
+      silicon, and the iPhone app (once available) iOS 26.1 or later; both need an internet connection.
     </p>
   </LegalSection>
 
@@ -152,7 +153,8 @@ const appleRefundUrl: string = "https://reportaproblem.apple.com";
         North Korea, Russia and Syria.
       </li>
       <li>
-        <strong>Subscribing in the iPhone app (App Store).</strong> In our iPhone app you can also subscribe through
+        <strong>Subscribing in the iPhone app (App Store).</strong> Once our iPhone app is available on the App Store,
+        you can also subscribe in it through
         Apple's App Store with the same plans: monthly or yearly, at USD 5.99 per month or USD 49 per year, or the price
         Apple shows for your country. App Store subscriptions are sold and billed by <strong>Apple</strong>, not by Link:
         payment is charged to your Apple Account when you confirm the purchase, and{" "}
@@ -165,8 +167,8 @@ const appleRefundUrl: string = "https://reportaproblem.apple.com";
         terms; where they differ, these terms govern your use of the {productName} service.
       </li>
       <li>
-        One subscription from either source — Link on the web and in the Mac app, or the App Store in the iPhone app —
-        unlocks {productName} on your Mac and iPhone when you sign in with the same account. You don't need a second
+        One subscription from either source — Link on the web and in the Mac app, or the App Store in the iPhone app once
+        it is available — unlocks {productName} on your Mac and iPhone when you sign in with the same account. You don't need a second
         subscription: we don't offer the web checkout while an App Store subscription is active. If you end up with both,
         each is billed separately by its seller until you cancel it.
       </li>
@@ -298,8 +300,8 @@ const appleRefundUrl: string = "https://reportaproblem.apple.com";
   <LegalSection sections={sections} id="content">
     <p>
       Your recordings, transcripts and notes belong to you. You give us permission to process them only as needed to
-      provide the service to you. Our servers don't store your audio or notes; the final transcript is kept encrypted for
-      at most 2 hours so it can be re-sent, then deleted. We don't use your meeting content to train AI models.
+      provide the service to you. Our servers don't store your audio or notes; the final transcript is kept encrypted so
+      it can be re-sent for 2 hours, then deleted at the next daily cleanup (within about a day). We don't use your meeting content to train AI models.
       Because your notes are stored on your Mac or iPhone, keeping backups of your devices is up to you.
     </p>
   </LegalSection>
@@ -314,7 +316,8 @@ const appleRefundUrl: string = "https://reportaproblem.apple.com";
       <li>
         <strong>Subject, purpose and duration.</strong> We process meeting audio, transcripts, notes, the participant
         names and terms you add, the title and attendee names of a calendar event you link to a meeting and, if you turn on “Use screen snapshots in notes”, a few downscaled snapshots of shared
-        screens, only to transcribe your meetings and to produce notes, translations and answers for you,
+        screens, only to transcribe your meetings, to produce notes, translations and answers for you and to create the
+        Linear or Jira issues you ask for,
         for as long as you use the service. The categories of data depend on what is said in your meetings.
       </li>
       <li>
@@ -325,7 +328,7 @@ const appleRefundUrl: string = "https://reportaproblem.apple.com";
       <li>
         <strong>Confidentiality and security.</strong> Only the operator has access to the service's systems and is bound
         by confidentiality. Meeting content is encrypted in transit; our servers keep no audio or notes, and keep the final
-        transcript encrypted for at most 2 hours so it can be re-sent; our other security
+        transcript encrypted so it can be re-sent for 2 hours, then delete it within about a day; our other security
         measures are described in the Privacy policy.
       </li>
       <li>
@@ -343,8 +346,8 @@ const appleRefundUrl: string = "https://reportaproblem.apple.com";
       </li>
       <li>
         <strong>Deletion.</strong> We don't keep meeting content after processing it: transcripts and notes are returned
-        to your Mac or iPhone, and you delete them there; the encrypted copy of the final transcript is deleted from our server
-        within 2 hours, or immediately when you delete your account. Our sub-processors delete it under the retention rules described in the
+        to your Mac or iPhone, and you delete them there; the encrypted copy of the final transcript can no longer be fetched after 2 hours and is
+        deleted from our server at the next daily cleanup (within about a day), or immediately when you delete your account. Our sub-processors delete it under the retention rules described in the
         Privacy policy.
       </li>
       <li>

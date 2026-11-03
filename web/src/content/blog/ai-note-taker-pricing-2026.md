@@ -16,7 +16,7 @@ We make one of these apps, so take this with the appropriate pinch of salt. To k
 **Otter.ai**
 - Free (Basic): 300 transcription minutes a month, up to 30 minutes per conversation, and access to your 25 most recent conversations.
 - Pro: $16.99 a month billed monthly, or $8.33 a month billed annually. 1,200 minutes a month, up to 90 minutes per conversation.
-- Business: $30 a month billed monthly, or $19.99 a month billed annually. Unlimited meeting minutes, up to 4 hours per conversation.
+- Business: $30 a month billed monthly (20% off the first 3 months for new subscribers), or $19.99 a month billed annually. Unlimited meeting minutes, up to 4 hours per conversation.
 - How it hears the meeting: a bot (OtterPilot) joins Zoom, Teams and Google Meet.
 
 **Fireflies.ai**
