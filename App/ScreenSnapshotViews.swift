@@ -53,7 +53,7 @@ struct ScreenNotesSettingsRow: View {
 
     var body: some View {
         SettingsRow(title: Text("Notlarda ekran görüntülerini kullan")) {
-            Text("Not yazılırken toplantının en çok konuşulan en fazla 6 ekran görüntüsü küçültülüp notla birlikte sunucumuza, oradan da Anthropic'e (Claude) gönderilir; not ekrana atıf yapabilir (ör. \"Fiyatlandırma slaytında, 12:40\"). Sunucumuz görüntüleri saklamaz ve loglamaz; Anthropic onları transkriptle aynı koşullarla işler. Bir görüntüyü toplantının Ekranlar sekmesinden nottan çıkarabilirsin. Kapalıyken görüntüler bu Mac'ten çıkmaz.")
+            Text("Not yazılırken toplantının en çok konuşulan en fazla 6 ekran görüntüsü küçültülüp notla birlikte sunucumuza, oradan da Anthropic'e (Claude) gönderilir; not ekrana atıf yapabilir (ör. \"Fiyatlandırma slaytında, 12:40\"). Sor'da da okunan transkript parçaları konuşulurken ekranda olan en fazla 3 görüntü soruyla aynı yoldan gider; cevabın altında kaç görüntü okunduğu yazar. Sunucumuz görüntüleri saklamaz ve loglamaz; Anthropic onları transkriptle aynı koşullarla işler. Bir görüntüyü toplantının Ekranlar sekmesinden nottan çıkarabilirsin (Sor'a da gitmez). Kapalıyken görüntüler bu Mac'ten çıkmaz.")
             if enabled, !takesSnapshots {
                 NoticeText("Görüntü alınması için \"Paylaşılan ekranın görüntülerini al\" da açık olmalı.", severity: .attention)
                     .padding(.top, 4)
@@ -118,15 +118,19 @@ struct ScreenSnapshotsSection: View {
                 LazyVStack(alignment: .leading, spacing: DesignTokens.Spacing.m) {
                     ForEach(linked) { (item: LinkedScreenSnapshot) in
                         ScreenSnapshotRow(
-                            model: model, record: record, item: item, isExpanded: expandedID == item.id, isLocked: isLocked, canPlay: canPlay,
+                            item: item, speakerNames: record.speakerNames, isExpanded: expandedID == item.id, isLocked: isLocked, canPlay: canPlay,
                             noteChoice: showsNoteChoice
                                 ? ScreenNoteChoice(
                                     isIncluded: !(model.screenSnapshots.noteExclusions[record.id] ?? []).contains(item.id),
                                     isEnabled: !model.processingMeetingIDs.contains(record.id)
                                 )
                                 : nil,
+                            isConfirmingDelete: confirmation == .one(item.id), thumbnailPixels: screenThumbnailPixels,
+                            fullPixels: screenSnapshotPolicy.maxPixelSize,
+                            loadImage: { (snapshot: ScreenSnapshot, maxPixelSize: Int) async throws -> NSImage in
+                                try await model.screenSnapshotImage(meetingID: record.id, snapshot: snapshot, maxPixelSize: maxPixelSize)
+                            },
                             onToggleNote: { model.toggleScreenNoteExclusion(meetingID: record.id, snapshot: item.snapshot) },
-                            isConfirmingDelete: confirmation == .one(item.id),
                             onToggleExpanded: { expandedID = expandedID == item.id ? nil : item.id },
                             onPlay: onPlay,
                             onAskDelete: { confirmation = .one(item.id) },
@@ -175,7 +179,7 @@ struct ScreenSnapshotsSection: View {
                 .foregroundStyle(Theme.muted)
                 .fixedSize(horizontal: false, vertical: true)
             if showsNoteChoice {
-                Text("Not yazılırken \"Notta\" işaretli görüntülerden en çok konuşulan en fazla 6'sı sunucumuza ve Anthropic'e gönderilir; işaretini kaldırdığın görüntü gönderilmez. Seçim bir sonraki notta geçerli olur.")
+                Text("Not yazılırken \"Notta\" işaretli görüntülerden en çok konuşulan en fazla 6'sı sunucumuza ve Anthropic'e gönderilir; Sor da okuduğu parçalar konuşulurken ekranda olan en fazla 3'ünü gönderir. İşaretini kaldırdığın görüntü ikisine de gönderilmez. Seçim bir sonraki notta ve soruda geçerli olur.")
                     .appFont(size: 12, weight: .regular)
                     .foregroundStyle(Theme.muted)
                     .fixedSize(horizontal: false, vertical: true)
@@ -184,181 +188,3 @@ struct ScreenSnapshotsSection: View {
     }
 }
 
-/// The row's "use in note" tick: whether it is ticked and whether it can change now (not while the note is written).
-private struct ScreenNoteChoice: Equatable {
-    let isIncluded: Bool
-    let isEnabled: Bool
-}
-
-/// Tek görüntü satırı: küçük resim (ya da büyümüş hâli), ekranda kaldığı aralık ve konuşulanlar.
-private struct ScreenSnapshotRow: View {
-    let model: AppModel
-    let record: MeetingRecord
-    let item: LinkedScreenSnapshot
-    let isExpanded: Bool
-    let isLocked: Bool
-    let canPlay: Bool
-    /// Nil when notes don't use screens (the tick is hidden).
-    let noteChoice: ScreenNoteChoice?
-    let onToggleNote: @MainActor () -> Void
-    let isConfirmingDelete: Bool
-    let onToggleExpanded: @MainActor () -> Void
-    let onPlay: @MainActor (Double) -> Void
-    let onAskDelete: @MainActor () -> Void
-    let onCancelDelete: @MainActor () -> Void
-    let onDelete: @MainActor () -> Void
-    @Environment(\.panelAppearance) private var appearance: PanelAppearance
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if isExpanded {
-                ScreenSnapshotImage(model: model, meetingID: record.id, snapshot: item.snapshot, maxPixelSize: screenSnapshotPolicy.maxPixelSize, isSelected: true, onTap: onToggleExpanded)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                details
-            } else {
-                HStack(alignment: .top, spacing: 14) {
-                    ScreenSnapshotImage(model: model, meetingID: record.id, snapshot: item.snapshot, maxPixelSize: screenThumbnailPixels, isSelected: false, onTap: onToggleExpanded)
-                        .frame(width: 240)
-                    details
-                }
-            }
-        }
-        .padding(12)
-        .background(Theme.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Theme.line))
-    }
-
-    /// Aralık, eylemler ve konuşulanlar.
-    private var details: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Button {
-                    onPlay(item.startSec)
-                } label: {
-                    Label(rangeText, systemImage: canPlay ? "play.fill" : "clock")
-                        .monospacedDigit()
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(appearance.accent.color)
-                .disabled(!canPlay)
-                .hoverHint(canPlay ? "Bu ekrandayken konuşulanları dinle" : "Bu toplantının sesi yok", alignment: .leading, edge: .bottom)
-                Spacer(minLength: 8)
-                if let noteChoice, !isConfirmingDelete {
-                    Toggle("Notta", isOn: Binding<Bool>(get: { noteChoice.isIncluded }, set: { (_: Bool) -> Void in onToggleNote() }))
-                        .toggleStyle(.checkbox)
-                        .disabled(!noteChoice.isEnabled)
-                        .hoverHint(
-                            noteChoice.isEnabled
-                                ? (noteChoice.isIncluded ? "Not yazılırken bu görüntü gönderilebilir; kaldırınca gönderilmez" : "Bu görüntü nota gönderilmez")
-                                : "Not yazılırken değiştirilemez",
-                            alignment: .trailing, edge: .bottom
-                        )
-                }
-                if isConfirmingDelete {
-                    Text("Silinsin mi?").foregroundStyle(NoticeSeverity.error.tint)
-                    Button("Sil", role: .destructive) { onDelete() }
-                    Button("Vazgeç") { onCancelDelete() }
-                } else {
-                    Button(isExpanded ? "Küçült" : "Büyüt", systemImage: isExpanded ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right") { onToggleExpanded() }
-                        .labelStyle(.iconOnly)
-                        .buttonStyle(.plain)
-                        .foregroundStyle(Theme.muted)
-                        .hoverHint(isExpanded ? "Küçült" : "Büyüt", alignment: .trailing, edge: .bottom)
-                    Button("Görüntüyü sil", systemImage: "trash") { onAskDelete() }
-                        .labelStyle(.iconOnly)
-                        .buttonStyle(.plain)
-                        .foregroundStyle(Theme.muted)
-                        .disabled(isLocked)
-                        .hoverHint(isLocked ? "Kayıt ve işleme bitince silinebilir" : "Bu görüntüyü kalıcı siler", alignment: .trailing, edge: .bottom)
-                }
-            }
-            .appFont(size: 12, weight: .medium)
-            .controlSize(.small)
-            if item.paragraphs.isEmpty {
-                Text("Bu ekrandayken konuşma yok.")
-                    .appFont(size: 12, weight: .regular)
-                    .foregroundStyle(Theme.muted)
-            } else {
-                let shown: [TranscriptParagraph] = isExpanded ? item.paragraphs : Array(item.paragraphs.prefix(3))
-                VStack(alignment: .leading, spacing: 6) {
-                    ForEach(shown) { (paragraph: TranscriptParagraph) in
-                        (Text(verbatim: paragraphLabel(paragraph: paragraph, speakerNames: record.speakerNames) + "  ").foregroundStyle(Theme.ink).fontWeight(.medium)
-                            + Text(verbatim: paragraph.text).foregroundStyle(Theme.ink))
-                            .appFont(size: 13, weight: .regular)
-                            .lineLimit(isExpanded ? nil : 3)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .textSelection(.enabled)
-                    }
-                    if shown.count < item.paragraphs.count {
-                        Text("+\(item.paragraphs.count - shown.count) paragraf daha")
-                            .appFont(size: 12, weight: .regular)
-                            .foregroundStyle(Theme.muted)
-                    }
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    /// "01:03 – 02:10" (son görüntüde yalnızca başı).
-    private var rangeText: String {
-        guard let end = item.endSec else {
-            return timestamp(seconds: item.startSec)
-        }
-        return "\(timestamp(seconds: item.startSec)) – \(timestamp(seconds: end))"
-    }
-}
-
-/// Görüntü: arka planda okunur; okunurken yer tutucu, okunamazsa nedeni. Tıklayınca büyür ya da küçülür.
-private struct ScreenSnapshotImage: View {
-    let model: AppModel
-    let meetingID: String
-    let snapshot: ScreenSnapshot
-    let maxPixelSize: Int
-    let isSelected: Bool
-    let onTap: @MainActor () -> Void
-    @State private var image: NSImage?
-    @State private var failure: String?
-    @Environment(\.panelAppearance) private var appearance: PanelAppearance
-
-    var body: some View {
-        Button {
-            onTap()
-        } label: {
-            Group {
-                if let image {
-                    Image(nsImage: image)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                } else {
-                    ZStack {
-                        Theme.soft
-                        if let failure {
-                            NoticeText(failure, severity: .error)
-                                .appFont(size: 11, weight: .regular)
-                                .padding(8)
-                        } else {
-                            ProgressView().controlSize(.small)
-                        }
-                    }
-                    .aspectRatio(16 / 10, contentMode: .fit)
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .strokeBorder(isSelected ? appearance.accent.color.opacity(0.6) : Theme.line, lineWidth: isSelected ? 1.5 : 1)
-            )
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(Text("Ekran görüntüsü, \(timestamp(seconds: snapshot.offsetSec))"))
-        .task(id: "\(snapshot.id)-\(maxPixelSize)") {
-            do {
-                image = try await model.screenSnapshotImage(meetingID: meetingID, snapshot: snapshot, maxPixelSize: maxPixelSize)
-                failure = nil
-            } catch {
-                failure = String(localized: "Görüntü okunamadı: \(userFacingMessage(error: error))")
-            }
-        }
-    }
-}
