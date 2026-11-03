@@ -124,12 +124,13 @@ final class CallAudioFileSink {
         let incoming: AVAudioFormat = AVAudioFormat(cmAudioFormatDescription: description)
         let frameCount: Int = sampleBuffer.numSamples
         let buffer: AVAudioPCMBuffer = try pcmBuffer(format: incoming, frames: frameCount)
+        // Uzunluk kopyadan önce: tampon listesindeki bayt boyutu `frameLength`'ten gelir (0 iken kopya yer bulamaz).
+        buffer.frameLength = AVAudioFrameCount(frameCount)
         do {
             try sampleBuffer.copyPCMData(fromRange: 0..<frameCount, into: buffer.mutableAudioBufferList)
         } catch {
             throw CallCaptureError.copyFailed(source: source.rawValue, status: String(describing: error))
         }
-        buffer.frameLength = AVAudioFrameCount(frameCount)
         let output: AVAudioFile = try openFile(format: incoming)
         let time: Double = sampleBuffer.presentationTimeStamp.seconds
         let silence: Int = callSilenceFrames(
@@ -188,13 +189,13 @@ final class CallAudioFileSink {
         while remaining > 0 {
             let count: Int = min(remaining, chunk)
             let buffer: AVAudioPCMBuffer = try pcmBuffer(format: format, frames: count)
-            // Yeni tampon sıfırla dolu gelmeyebilir: açıkça sıfırlanır.
+            buffer.frameLength = AVAudioFrameCount(count)
+            // Yeni tampon sıfırla dolu gelmeyebilir: açıkça sıfırlanır (bayt boyutu `frameLength`'ten gelir).
             for audioBuffer in UnsafeMutableAudioBufferListPointer(buffer.mutableAudioBufferList) {
                 if let data = audioBuffer.mData {
                     memset(data, 0, Int(audioBuffer.mDataByteSize))
                 }
             }
-            buffer.frameLength = AVAudioFrameCount(count)
             try write(file: file, buffer: buffer)
             remaining -= count
         }

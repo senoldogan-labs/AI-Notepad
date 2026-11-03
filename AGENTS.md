@@ -13,6 +13,9 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
   saklı Sor sohbetini açar; `--ornek-kayit` örnek canlı kaydı (`--ornek-bitir` ile bitiriliyor katmanını) gösterir; `--ornek-takvim` örnek sıradaki toplantıları gösterir. Abonelik RevenueCat'le (`iOS/Purchases/`); şemadaki `Products.storekit` yalnızca Xcode'da
   Run'da geçerlidir — `xcodebuild`/`simctl` başlatması StoreKit sandbox'ını kullanır (Apple FB22237318), UI testi bu
   yüzden yok.
+- Deneysel "bu iPhone'daki görüşmeyi kaydet" (`iOS/CallCapture/`, iOS 27 ScreenCaptureKit): yalnız
+  `CALL_CAPTURE_EXPERIMENT=YES` derlemesinde (Debug'da açık, Release'de kapalı; TestFlight denemesi için arşive
+  komut satırından verilir). ScreenCaptureKit Simulator SDK'sında yok: yalnız cihazda çalışır.
 - `project.yml` — XcodeGen tanımı; `AINotepad.xcodeproj` üretilir, repoya girmez.
 - İmzalama: `Config/Local.xcconfig.example` dosyasını `Config/Local.xcconfig` olarak kopyalayıp `DEVELOPMENT_TEAM` yaz.
 

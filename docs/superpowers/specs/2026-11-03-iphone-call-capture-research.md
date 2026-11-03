@@ -177,6 +177,14 @@ Derleme: `CALL_CAPTURE_EXPERIMENT=YES` ile arşivlenmiş ayrı bir TestFlight de
   `xcodebuild archive -project AINotepad.xcodeproj -scheme AINotepadiOS -configuration Release CALL_CAPTURE_EXPERIMENT=YES …`
   ve **ayrı bir derleme numarası**; bu derleme yalnız iç teste verilir, App Store incelemesine gönderilmez.
 - Görünüm metinleri `Text(verbatim:)`: deneysel ekran metin kataloğuna girmez.
+- ScreenCaptureKit **iOS Simulator SDK'sında yok** (`iPhoneSimulator27.2.sdk` yalnız ReplayKit içerir): yakalama kodu
+  `canImport(ScreenCaptureKit)` ile ayrılır, Simulator'da sayfa yalnız nedenini söyler. Test yalnız cihazda.
+- Ham dosyalar `Application Support/CallCaptureExperiment/<zaman>/` altında (`system.m4a`, `mic.m4a`, karışık
+  `Telefon görüşmesi ….m4a`); yeni kayıt öncekini siler. Parça gelmeyen aralıklar sessizlikle doldurulur (iki kaynak
+  hizalı karışsın); "boşluk" sayacı bunu gösterir — sistem sesi yalnız ses çalarken geliyorsa boşluk büyür.
+- Doğrulanan derlemeler: AINotepadiOS Debug (cihaz + Simulator), Release cihaz `CALL_CAPTURE_EXPERIMENT=NO` (Info.plist
+  `UIBackgroundModes = [audio]`, deneysel kod yok) ve `=YES` (`[audio, screen-capture]`), AINotepad, AINotepadHosted;
+  `swift test` (536 test).
 
 ## 7. App Review değerlendirmesi (özellik ürüne girerse)
 

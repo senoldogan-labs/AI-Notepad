@@ -154,7 +154,8 @@ final class CallCaptureController {
         guard phase == .picking else {
             return
         }
-        detachPicker()
+        // Seçici kayıt bitene dek etkin kalır (sistem arayüzündeki paylaşım denetimi ona bağlı olabilir); ikinci seçim
+        // yukarıdaki koşulla yok sayılır.
         let now: Date = Date()
         let folder: URL
         do {
@@ -237,6 +238,7 @@ final class CallCaptureController {
     }
 
     private func finish() async {
+        detachPicker()
         systemLevels.stop()
         microphoneLevels.stop()
         guard let output, let directory, let startedAt else {
@@ -268,6 +270,7 @@ final class CallCaptureController {
     private func fail(message: String) {
         Self.logger.error("Görüşme yakalama hatası: \(message, privacy: .public)")
         errorMessages.append(message)
+        detachPicker()
         systemLevels.stop()
         microphoneLevels.stop()
         stream = nil
