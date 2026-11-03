@@ -953,18 +953,7 @@ private struct MeetingSummary: View {
                     }
                 }
                 if !note.glossary.isEmpty {
-                    section(title: "Sözlük") {
-                        VStack(alignment: .leading, spacing: 10) {
-                            ForEach(Array(note.glossary.enumerated()), id: \.offset) { (item: (offset: Int, element: GlossaryEntry)) in
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.element.term).appFont(size: 15, weight: .semibold)
-                                    Text(item.element.meaning)
-                                        .appFont(size: 14, weight: .regular)
-                                        .foregroundStyle(Theme.muted)
-                                }
-                            }
-                        }
-                    }
+                    PhoneGlossarySection(glossary: note.glossary)
                 }
             }
         } else {
@@ -983,6 +972,81 @@ private struct MeetingSummary: View {
             PhoneSectionHeader(title: title, actionTitle: nil, action: nil)
             content()
         }
+    }
+}
+
+/// Sözlük: açılıp kapanan bölüm (Mac'teki gibi). Başlıkta terim sayısı ve ok; kapalıyken ilk terimler çip olarak,
+/// dokununca açılır; açıkken terim ve altında anlamı. Açık/kapalı tercihi tüm toplantılar için hatırlanır.
+private struct PhoneGlossarySection: View {
+    let glossary: [GlossaryEntry]
+    @AppStorage(PhoneSettingsKey.glossaryExpanded) private var isExpanded: Bool = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Button {
+                withAnimation(.smooth(duration: 0.3)) { isExpanded.toggle() }
+            } label: {
+                HStack(spacing: 8) {
+                    Text("SÖZLÜK")
+                        .appFont(size: 12, weight: .semibold)
+                        .tracking(DesignTokens.labelTracking)
+                        .foregroundStyle(Theme.muted)
+                    Text("\(glossary.count) terim")
+                        .appFont(size: 12, weight: .medium)
+                        .foregroundStyle(Theme.muted)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 1)
+                        .background(Theme.soft, in: Capsule())
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.down")
+                        .appFont(size: 12, weight: .semibold)
+                        .foregroundStyle(Theme.muted)
+                        .rotationEffect(.degrees(isExpanded ? 0 : -90))
+                }
+                .frame(minHeight: 32)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityValue(isExpanded ? Text("Sözlük açık") : Text("Sözlük kapalı"))
+            if isExpanded {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(Array(glossary.enumerated()), id: \.offset) { (item: (offset: Int, element: GlossaryEntry)) in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.element.term).appFont(size: 15, weight: .semibold)
+                            Text(item.element.meaning)
+                                .appFont(size: 14, weight: .regular)
+                                .foregroundStyle(Theme.muted)
+                        }
+                    }
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            } else {
+                // Kapalıyken ilk terimler; dokununca açılır.
+                FlowLayout(spacing: 6, lineSpacing: 6) {
+                    ForEach(glossary.prefix(6), id: \.term) { (entry: GlossaryEntry) in
+                        Text(entry.term)
+                            .appFont(size: 13, weight: .medium)
+                            .foregroundStyle(Theme.ink.opacity(0.8))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Theme.soft, in: Capsule())
+                    }
+                    if glossary.count > 6 {
+                        Text(verbatim: "+\(glossary.count - 6)")
+                            .appFont(size: 13, weight: .medium)
+                            .foregroundStyle(Theme.muted)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .overlay(Capsule().strokeBorder(Theme.line))
+                    }
+                }
+                .contentShape(Rectangle())
+                .onTapGesture { withAnimation(.smooth(duration: 0.3)) { isExpanded = true } }
+                .accessibilityHidden(true)
+                .transition(.opacity)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

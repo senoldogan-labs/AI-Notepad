@@ -61,10 +61,12 @@ struct PhoneSettingsTab: View {
                         store.applyRetention(now: Date())
                     }
                 } header: {
-                    PhoneHintHeader(
-                        title: Text("Kayıt"),
-                        hint: Text("Kayıttan önce katılımcılara haber vermek çoğu yerde yasal zorunluluktur. Süre dolunca ses dosyaları silinir, metin ve not kalır; yarıda kalan ya da başarısız toplantının sesi iki kat süre saklanır. Telefondaki Teams/Zoom görüşmeleri kaydedilemez (iOS izin vermez); onlar için Mac'i kullan.")
-                    )
+                    Text("Kayıt")
+                } footer: {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Kayıttan önce katılımcılara haber vermek çoğu yerde yasal zorunluluktur.")
+                        Text("Süre dolunca ses silinir, not kalır; Teams/Zoom görüşmeleri için Mac'i kullan.")
+                    }
                 }
                 CalendarSettingsSection(calendar: calendar)
                 Section {
@@ -79,7 +81,7 @@ struct PhoneSettingsTab: View {
                         }
                     }
                     // Etiketli satır: ad yazılınca alan yalnızca adı gösteriyor, neyin adı olduğu anlaşılmıyordu.
-                    PhoneHintRow(hint: Text("Toplantı notunda sana düşen görevleri ayırmak için kullanılır.")) {
+                    PhoneCaptionedRow(caption: Text("Notta sana düşen görevleri ayırmak için kullanılır.")) {
                         LabeledContent {
                             TextField("Adın", text: $userName, prompt: Text("İsteğe bağlı"))
                                 .multilineTextAlignment(.trailing)
@@ -91,10 +93,9 @@ struct PhoneSettingsTab: View {
                         }
                     }
                 } header: {
-                    PhoneHintHeader(
-                        title: Text("Toplantı"),
-                        hint: Text("Toplantı notları, canlı çeviri ve Sor cevapları not ve çeviri dilinde yazılır. Önceki notlar yazıldıkları dilde kalır.")
-                    )
+                    Text("Toplantı")
+                } footer: {
+                    Text("Notlar, canlı çeviri ve Sor cevapları not ve çeviri dilinde yazılır.")
                 }
                 Section {
                     Toggle("Kayıt sırasında \(noteLanguageName) diline çevir", isOn: Binding<Bool>(
@@ -111,12 +112,11 @@ struct PhoneSettingsTab: View {
                         Text("\"Ne kaçırdım?\" son \(missedMinutes) dakikayı özetler")
                     }
                 } header: {
-                    PhoneHintHeader(
-                        title: Text("Canlı metin"),
-                        hint: Text((DisplayMode(rawValue: displayMode) ?? .bilingual).needsLiveTranslation
-                            ? "Her cümle kayıt sırasında \(noteLanguageName) diline çevrilir; toplantı zaten bu dildeyse çevrilmez. Kayıtta ✦ düğmesi son dakikaları özetler ve toplantıya soru sordurur."
-                            : "Kayıt sırasında çeviri yapılmaz, yalnızca orijinal metin görünür; toplantı bitince \(noteLanguageName) not yine hazırlanır. Kayıtta ✦ düğmesi son dakikaları özetler ve toplantıya soru sordurur.")
-                    )
+                    Text("Canlı metin")
+                } footer: {
+                    Text((DisplayMode(rawValue: displayMode) ?? .bilingual).needsLiveTranslation
+                        ? "Cümleler kayıt sırasında \(noteLanguageName) diline çevrilir; ✦ özetler ve soruları yanıtlar."
+                        : "Kayıtta yalnız orijinal metin görünür; \(noteLanguageName) not yine yazılır.")
                 }
                 Section {
                     Picker("Not şablonu", selection: $noteTemplate) {
@@ -128,7 +128,7 @@ struct PhoneSettingsTab: View {
                         NavigationLink {
                             PhoneTextSettingScreen(
                                 title: "Kendi şablonun", key: PhoneSettingsKey.customTemplate,
-                                help: "Notta neyin öne çıkmasını istediğini yaz. Örnek: “Riskleri ayrı bir paragrafta say, her kararın gerekçesini yaz.”"
+                                help: "Notta neyin öne çıkacağını yaz; ör. “Riskleri ayrı say, kararların gerekçesini yaz.”"
                             )
                         } label: {
                             LabeledContent("Kendi şablonun", value: customTemplate.isEmpty ? String(localized: "Boş") : String(localized: "Yazıldı"))
@@ -137,16 +137,15 @@ struct PhoneSettingsTab: View {
                     NavigationLink {
                         PhoneTextSettingScreen(
                             title: "Tanıma sözlüğü", key: PhoneSettingsKey.customVocabulary,
-                            help: "Konuşma tanımanın doğru yazması gereken adlar, şirket ve ürün adları, kısaltmalar; satır başına bir tane (2–40 karakter, en fazla 5 sözcük; en fazla 30 kullanılır). Canlı metinde ve kayıt bitince yapılan son geçişte uygulanır. Toplantılarda verdiğin konuşmacı adları ve sözlük terimleri zaten kendiliğinden eklenir."
+                            help: "Doğru yazılması gereken adlar ve terimler; satır başına bir tane, en fazla 30."
                         )
                     } label: {
                         LabeledContent("Tanıma sözlüğü", value: String(localized: "\(customVocabulary(text: vocabulary).count) terim"))
                     }
                 } header: {
-                    PhoneHintHeader(
-                        title: Text("Not"),
-                        hint: Text("Yeni toplantıların notu bu türe göre yazılır; bir toplantının notunu sonradan başka şablonla yeniden yazabilirsin (⋯ menüsü).")
-                    )
+                    Text("Not")
+                } footer: {
+                    Text("Yeni notlar bu şablonla yazılır; eski bir notu ⋯ menüsünden yeniden yazabilirsin.")
                 }
                 Section {
                     Toggle("Anonim kullanım istatistiklerini paylaş", isOn: $shareUsageStatistics)
@@ -159,10 +158,9 @@ struct PhoneSettingsTab: View {
                         Link("Gizlilik politikası", destination: privacy)
                     }
                 } header: {
-                    PhoneHintHeader(
-                        title: Text("Gizlilik"),
-                        hint: Text("Günlük güvenilirlik ve özellik kullanımı sayıları, ilk açılış ve giriş adımları; toplantı içeriği, ses ya da metin içermez.")
-                    )
+                    Text("Gizlilik")
+                } footer: {
+                    Text("Yalnızca kullanım sayıları paylaşılır; toplantı içeriği, ses ya da metin paylaşılmaz.")
                 }
                 Section {
                     // Arayüz dili iOS'ta uygulama başına iPhone Ayarları'ndan seçilir (Mac'te uygulamanın içinden).
@@ -179,10 +177,9 @@ struct PhoneSettingsTab: View {
                     NavigationLink("Geri bildirim gönder") { PhoneFeedbackForm() }
                     CrashReportsLink(center: crashReports)
                 } header: {
-                    PhoneHintHeader(
-                        title: Text("Uygulama"),
-                        hint: Text("Arayüz dili iPhone Ayarları › \(appName) › Dil bölümünden değişir.")
-                    )
+                    Text("Uygulama")
+                } footer: {
+                    Text("Arayüz dili iPhone Ayarları › \(appName) › Dil bölümünden değişir.")
                 }
             }
             .navigationTitle("Ayarlar")
@@ -248,16 +245,15 @@ private struct CalendarSettingsSection: View {
                 }
             }
         } header: {
-            PhoneHintHeader(
-                title: Text("Takvim"),
-                hint: Text("Kayıt ekranında sıradaki toplantılar görünür; süren bir toplantıda başlattığın kayıt onun adını ve katılımcılarını alır (adlar tanımaya da yardım eder). Hatırlatmadaki \"Dinlemeye başla\" kaydı hemen başlatır.")
-            )
+            Text("Takvim")
+        } footer: {
+            Text("Sıradaki toplantılar Kayıt'ta görünür; kayıt toplantının adını ve kişilerini alır.")
         }
     }
 }
 
-/// Çok satırlı metin ayarı (tanıma sözlüğü, kendi şablonun): kart içinde düzenleyici, açıklama sağ üstteki ipucunda;
-/// her değişiklik hemen saklanır.
+/// Çok satırlı metin ayarı (tanıma sözlüğü, kendi şablonun): üstte kısa açıklama, altında kart içinde düzenleyici; her
+/// değişiklik hemen saklanır.
 private struct PhoneTextSettingScreen: View {
     let title: LocalizedStringKey
     let key: String
@@ -267,6 +263,10 @@ private struct PhoneTextSettingScreen: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            Text(help)
+                .appFont(size: 13, weight: .regular)
+                .foregroundStyle(Theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
             TextEditor(text: $text)
                 .appFont(size: 16, weight: .regular)
                 .scrollContentBackground(.hidden)
@@ -280,11 +280,6 @@ private struct PhoneTextSettingScreen: View {
         .background(Theme.background)
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                InfoHint(Text(help))
-            }
-        }
         .onAppear {
             text = UserDefaults.standard.string(forKey: key) ?? ""
             isFocused = true

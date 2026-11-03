@@ -903,10 +903,13 @@ private struct PhoneMyNotesSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 4) {
                 Label("Notlarım", systemImage: "square.and.pencil")
                     .appFont(size: 17, weight: .semibold)
-                InfoHint(Text("Önemli gördüğünü kısaca yaz; toplantı bitince not bunları öncelik sayar, gerisini transkriptten tamamlar."))
+                Text("Önemli gördüğünü yaz; toplantı notu bunlara öncelik verir.")
+                    .appFont(size: 13, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             TextEditor(text: $text)
                 .readingText(size: 16, weight: .regular, lineSpacing: 3)

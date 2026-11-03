@@ -44,6 +44,8 @@ enum PhoneSettingsKey {
     /// Ses ve metnin hizmetimize ve üçüncü taraf yapay zekâ sağlayıcılarına gönderileceği açıklaması kabul edildi (ilk
     /// yapay zekâ işleminden önce bir kez; bkz. `PhoneAIDisclosure`).
     static let aiDisclosureAccepted: String = "hosted.aiDisclosureAccepted"
+    /// Toplantı sayfasında sözlük açık mı (Mac'teki ayarla aynı ad); varsayılan kapalı, tercih tüm toplantılar için.
+    static let glossaryExpanded: String = "meeting.glossaryExpanded"
 }
 
 /// iPhone ayarlarının varsayılanları (Mac'tekilerle aynı).

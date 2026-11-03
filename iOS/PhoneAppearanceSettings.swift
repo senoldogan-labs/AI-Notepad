@@ -31,7 +31,7 @@ struct PhoneAppearanceScreen: View {
                 .padding(.vertical, 6)
             }
             Section {
-                PhoneHintRow(hint: Text("Vurgu rengi düğmelerde, ölçerlerde ve seçili sekmede kullanılır.")) {
+                PhoneCaptionedRow(caption: Text("Vurgu rengi düğmelerde, ölçerlerde ve seçili sekmede kullanılır.")) {
                     PhoneAccentPicker(selection: $accent)
                 }
                 NavigationLink {
@@ -54,10 +54,9 @@ struct PhoneAppearanceScreen: View {
                     minSymbol: "arrow.down.right.and.arrow.up.left", maxSymbol: "arrow.up.left.and.arrow.down.right"
                 )
             } header: {
-                PhoneHintHeader(
-                    title: Text("Boyut"),
-                    hint: Text("Arayüz yazısı başlıkları, düğmeleri ve listeleri; okuma metni ve satır aralığı notu, transkripti ve canlı metni değiştirir. iPhone'un yazı boyutu (Ayarlar › Ekran ve Parlaklık) bunların üstüne uygulanır.")
-                )
+                Text("Boyut")
+            } footer: {
+                Text("Arayüz yazısı düğmeleri ve listeleri, okuma metni notu ve transkripti değiştirir.")
             }
             Section {
                 Button("Görünümü varsayılana döndür") {
