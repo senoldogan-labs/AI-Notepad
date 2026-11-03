@@ -20603,6 +20603,176 @@
         }
       }
     },
+    "Takip e-postası yaz": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write follow-up email"
+          }
+        }
+      }
+    },
+    "TAKİP E-POSTASI": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FOLLOW-UP EMAIL"
+          }
+        }
+      }
+    },
+    "Takip e-postasını kapat": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close follow-up email"
+          }
+        }
+      }
+    },
+    "Notun özetinden, kararlarından ve görevlerinden katılımcılara kısa bir takip e-postası yazılır; notta olmayan bilgi eklenmez. Göndermeden önce burada düzenleyebilirsin.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A short follow-up email for the attendees is written from the note's summary, decisions and tasks; nothing that isn't in the note is added. You can edit it here before you send it."
+          }
+        }
+      }
+    },
+    "Takip e-postası yazılıyor…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Writing the follow-up email…"
+          }
+        }
+      }
+    },
+    "Takip e-postası yazılamadı: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't write the follow-up email: %@"
+          }
+        }
+      }
+    },
+    "Konu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subject"
+          }
+        }
+      }
+    },
+    "Mail'de aç": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open in Mail"
+          }
+        }
+      }
+    },
+    "Yeniden yaz": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rewrite"
+          }
+        }
+      }
+    },
+    "Takip e-postasının dili": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow-up email language"
+          }
+        }
+      }
+    },
+    "Takip e-postası kopyalandı": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow-up email copied"
+          }
+        }
+      }
+    },
+    "Mail açılamadı: taslak e-posta bağlantısına çevrilemedi. \"Kopyala\" ile yapıştırabilirsin.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't open Mail: the draft couldn't be turned into an email link. Use \"Copy\" and paste it instead."
+          }
+        }
+      }
+    },
+    "Mail açılamadı: Mac'te ayarlı bir e-posta uygulaması yok. \"Kopyala\" ile yapıştırabilirsin.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't open Mail: no email app is set up on this Mac. Use \"Copy\" and paste it instead."
+          }
+        }
+      }
+    },
+    "Bu toplantının notu yok.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This meeting has no note."
+          }
+        }
+      }
+    },
+    "Nottan kısa bir takip e-postası; göndermeden önce düzenle.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A short follow-up email from the note; edit it before you send it."
+          }
+        }
+      }
+    },
+    "Mail": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mail"
+          }
+        }
+      }
+    },
+    "Mail açılamadı: bu iPhone'da e-posta uygulaması yok. \"Paylaş\" ya da \"Kopyala\" ile gönderebilirsin.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't open Mail: there's no email app on this iPhone. Send it with \"Share\" or \"Copy\" instead."
+          }
+        }
+      }
+    },
     "Şimdi bitir": {
       "localizations": {
         "en": {

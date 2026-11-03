@@ -1308,6 +1308,26 @@ final class PhoneStore {
         }
     }
 
+    /// Toplantının notundan `language` dilinde takip e-postası taslağı yazar (Mac'teki "Takip e-postası yaz"); toplantı
+    /// değişmez, taslak saklanmaz. Çağrı not düzenleme gibi hesaptan gider (hakkı yoksa `phoneAccountLLMProvider` durur);
+    /// not yoksa `LLMError.empty`.
+    func draftFollowUpEmail(meetingID: String, language: ShareLanguage) async throws -> FollowUpEmailDraft {
+        guard let record = meetings.first(where: { $0.id == meetingID }) else {
+            throw StorageError.writeFailed(path: meetingID, reason: "toplantı yok")
+        }
+        let llm: LLMProvider = try phoneAccountLLMProvider()
+        return try await AINotepadCore.draftFollowUpEmail(record: record, userName: phoneUserName(), language: language, timeZone: TimeZone.current, llm: llm)
+    }
+
+    /// Takip e-postasının alıcıları: toplantı bir takvim etkinliğine bağlıysa katılımcıların e-posta adresleri (takvim
+    /// izni varsa), değilse boş.
+    func followUpRecipients(meetingID: String) -> [String] {
+        guard let eventID = meetings.first(where: { $0.id == meetingID })?.calendarEventID else {
+            return []
+        }
+        return eventKit.attendeeEmails(calendarEventID: eventID)
+    }
+
     /// Notun önceki sürümünü geri yükler (`index`: geçmişte yeniden eskiye sıra); şimdiki not geçmişe girer. Kayıttaki,
     /// işlenen ya da notu yazılan toplantıda yapılmaz. Seçilen sürüm diskteki güncel kayıtta aranır ve ona uygulanır
     /// (Mac'te iCloud'la gelmiş düzenlemeler ezilmesin); geçmiş bu arada değiştiyse sıra numarası değil sürümün kendisi

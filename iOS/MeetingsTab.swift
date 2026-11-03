@@ -687,6 +687,8 @@ struct MeetingReadView: View {
     @State private var isExportingClip: Bool = false
     /// "Sesi sil" satır içi onayı bekliyor (Mac'teki gibi; ayrı uyarı penceresi yok).
     @State private var isConfirmingAudioDelete: Bool = false
+    /// Takip e-postası sayfası açık: taslağın ilk dili (sayfada seçili not dili); kapalıyken nil.
+    @State private var followUpLanguage: ShareLanguage?
 
     /// Not ve adlar değiştirilebilir: kayıtta, işlenen ya da notu yazılan toplantıda değil.
     private var isEditable: Bool {
@@ -814,6 +816,9 @@ struct MeetingReadView: View {
                         recordFeatureUsage(feature: .export(.copyMarkdown))
                     }
                     .disabled(shownRecord == nil)
+                    // Mac'teki "Takip e-postası yaz": nottan e-posta taslağı (düzenle, kopyala, paylaş ya da Mail).
+                    Button("Takip e-postası yaz", systemImage: "envelope.badge") { openFollowUp() }
+                        .disabled(record.note == nil || !isEditable)
                     // Mac'teki "Kanala gönder" ve "Görevleri gönder".
                     PhoneSendMenuItems(record: record)
                     // Mac'teki "Tarif": bu toplantıya tarif uygular, cevap Sor'da açılır.
@@ -903,6 +908,11 @@ struct MeetingReadView: View {
             ActivityShareSheet(items: [file.url])
                 .presentationDetents([.medium, .large])
         }
+        .sheet(isPresented: Binding<Bool>(get: { followUpLanguage != nil }, set: { if !$0 { followUpLanguage = nil } })) {
+            if let language = followUpLanguage, let note = record.note {
+                PhoneFollowUpEmailSheet(store: store, meetingID: record.id, noteLanguage: note.writtenLanguage, initialLanguage: language)
+            }
+        }
         .sheet(isPresented: $isEditingMyNotes) {
             PhoneMyNotesEditor(initialText: record.myNotes ?? "") { (text: String) -> Void in
                 Task { await store.saveMyNotes(meetingID: record.id, text: text) }
@@ -938,6 +948,15 @@ struct MeetingReadView: View {
             }
         }
         #endif
+    }
+
+    /// Takip e-postası sayfasını açar (sayfada seçili not dilinde); hakkı yoksa abonelik ekranı açılır.
+    private func openFollowUp() {
+        guard !HostedAccount.shared.requiresSubscription else {
+            HostedAccount.shared.requestSubscription()
+            return
+        }
+        followUpLanguage = noteLanguage ?? record.note?.writtenLanguage
     }
 
     /// Notun önceki sürümünü geri yükler; olmazsa neden sayfada görünür.
@@ -1694,6 +1713,163 @@ private struct PhoneMyNotesEditor: View {
             isFocused = true
         }
     }
+}
+
+/// Takip e-postası (Mac'teki "Takip e-postası yaz"): nottan yazılan taslak; yazılırken ilerleme, olmazsa neden ve
+/// "Yeniden dene"; hazır olunca konu ve gövde düzenlenir, Kopyala, Paylaş ya da Mail (alıcılar bağlı takvim etkinliğinin
+/// katılımcıları). Dil değişince taslak o dilde yeniden yazılır; sayfa kapanınca istek iptal edilir.
+private struct PhoneFollowUpEmailSheet: View {
+    let store: PhoneStore
+    let meetingID: String
+    /// Notun yazıldığı dil (dil menüsünün başında).
+    let noteLanguage: ShareLanguage
+    @State private var language: ShareLanguage
+    @State private var phase: PhoneFollowUpPhase = .drafting
+    @State private var subject: String = ""
+    @State private var text: String = ""
+    @State private var attempt: Int = 0
+    /// Mail açılamadı ya da kopyalandı: sayfanın altında.
+    @State private var actionMessage: String?
+    @Environment(\.dismiss) private var dismiss: DismissAction
+    @Environment(\.openURL) private var openURL: OpenURLAction
+
+    init(store: PhoneStore, meetingID: String, noteLanguage: ShareLanguage, initialLanguage: ShareLanguage) {
+        self.store = store
+        self.meetingID = meetingID
+        self.noteLanguage = noteLanguage
+        _language = State(initialValue: initialLanguage)
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Nottan kısa bir takip e-postası; göndermeden önce düzenle.")
+                        .appFont(size: 13, weight: .regular)
+                        .foregroundStyle(Theme.muted)
+                    switch phase {
+                    case .drafting:
+                        HStack(spacing: 10) {
+                            ProgressView().controlSize(.small)
+                            Text("Takip e-postası yazılıyor…")
+                                .appFont(size: 14, weight: .medium)
+                                .foregroundStyle(Theme.muted)
+                        }
+                    case .failed(let message):
+                        PhoneErrorList(messages: [String(localized: "Takip e-postası yazılamadı: \(message)")])
+                        Button("Yeniden dene", systemImage: "arrow.clockwise") { attempt += 1 }
+                    case .ready:
+                        TextField("Konu", text: $subject, axis: .vertical)
+                            .appFont(size: 16, weight: .semibold)
+                            .padding(12)
+                            .background(Theme.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        TextEditor(text: $text)
+                            .readingText(size: 16, weight: .regular, lineSpacing: 3)
+                            .scrollContentBackground(.hidden)
+                            .frame(minHeight: 280)
+                            .padding(8)
+                            .background(Theme.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        if let actionMessage {
+                            Text(actionMessage)
+                                .appFont(size: 13, weight: .regular)
+                                .foregroundStyle(Theme.muted)
+                        }
+                    }
+                }
+                .padding(16)
+            }
+            .background(Theme.background)
+            .navigationTitle("Takip e-postası")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Kapat") { dismiss() }
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    languageMenu
+                }
+                if phase == .ready {
+                    ToolbarItemGroup(placement: .bottomBar) {
+                        Button("Kopyala", systemImage: "doc.on.doc") { copy() }
+                        Spacer()
+                        ShareLink(item: "\(subject)\n\n\(text)", subject: Text(subject)) {
+                            Label("Paylaş", systemImage: "square.and.arrow.up")
+                        }
+                        Spacer()
+                        Button("Mail", systemImage: "envelope") { openInMail() }
+                        Spacer()
+                        Button("Yeniden yaz", systemImage: "arrow.clockwise") { attempt += 1 }
+                    }
+                }
+            }
+        }
+        .task(id: "\(language.rawValue)-\(attempt)") {
+            phase = .drafting
+            actionMessage = nil
+            do {
+                let draft: FollowUpEmailDraft = try await store.draftFollowUpEmail(meetingID: meetingID, language: language)
+                subject = draft.subject
+                text = draft.body
+                phase = .ready
+            } catch is CancellationError {
+                return
+            } catch let error as URLError where error.code == .cancelled {
+                return
+            } catch {
+                meetingReadLogger.error("Takip e-postası yazılamadı, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+                phase = .failed(userFacingMessage(error: error))
+            }
+        }
+    }
+
+    /// Taslağın dili: notun dili, sık kullanılan Fince ve İngilizce, sonra diğer diller.
+    private var languageMenu: some View {
+        let choices: ShareLanguageChoices = shareLanguageChoices(original: noteLanguage)
+        return Menu {
+            Button(noteLanguage.interfaceName) { language = noteLanguage }
+            ForEach(choices.featured, id: \.self) { (choice: ShareLanguage) in
+                Button(choice.interfaceName) { language = choice }
+            }
+            Menu("Diğer diller") {
+                ForEach(choices.others, id: \.self) { (choice: ShareLanguage) in
+                    Button(choice.interfaceName) { language = choice }
+                }
+            }
+        } label: {
+            Label {
+                Text(verbatim: language.interfaceName)
+            } icon: {
+                Image(systemName: "globe")
+            }
+        }
+        .disabled(phase == .drafting)
+        .accessibilityLabel("Takip e-postasının dili")
+    }
+
+    /// Konu ve gövdeyi panoya kopyalar (ilk satır konu).
+    private func copy() {
+        UIPasteboard.general.string = "\(subject)\n\n\(text)"
+        actionMessage = String(localized: "Takip e-postası kopyalandı")
+    }
+
+    /// Taslağı e-posta uygulamasında yeni ileti olarak açar; alıcılar bağlı takvim etkinliğinin katılımcıları (yoksa boş).
+    private func openInMail() {
+        let draft: FollowUpEmailDraft = FollowUpEmailDraft(subject: subject, body: text)
+        guard let url = followUpMailtoURL(draft: draft, recipients: store.followUpRecipients(meetingID: meetingID)) else {
+            actionMessage = String(localized: "Mail açılamadı: taslak e-posta bağlantısına çevrilemedi. \"Kopyala\" ile yapıştırabilirsin.")
+            return
+        }
+        openURL(url) { (accepted: Bool) -> Void in
+            actionMessage = accepted ? nil : String(localized: "Mail açılamadı: bu iPhone'da e-posta uygulaması yok. \"Paylaş\" ya da \"Kopyala\" ile gönderebilirsin.")
+        }
+    }
+}
+
+/// Takip e-postası sayfasının durumu.
+private enum PhoneFollowUpPhase: Equatable {
+    case drafting
+    case ready
+    case failed(String)
 }
 
 /// Transkript: konuşmacılı paragraflar (≤30 sn), sohbet gibi rozetle. Çalan paragraf hafif dolgulu ve kelime kelime

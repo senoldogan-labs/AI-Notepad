@@ -49,7 +49,7 @@ final class EventKitConnector {
             }
             .map { (event: EKEvent) -> CalendarMeeting in
                 CalendarMeeting(
-                    id: "\(event.eventIdentifier ?? event.calendarItemIdentifier)-\(Int(event.startDate.timeIntervalSince1970))",
+                    id: Self.meetingID(event: event),
                     title: event.title ?? String(localized: "Toplantı"),
                     start: event.startDate,
                     end: event.endDate,
@@ -60,6 +60,25 @@ final class EventKitConnector {
                 )
             }
             .sorted { $0.start < $1.start }
+    }
+
+    /// Kayda bağlanan takvim toplantısının (`calendarEventID`) katılımcılarının e-posta adresleri, kullanıcının kendisi
+    /// hariç (takip e-postasının alıcıları). Takvim izni yoksa, etkinlik artık yoksa ya da katılımcıların adresi yoksa
+    /// boş: alıcılar e-posta uygulamasında elle yazılır. İzin sorulmaz.
+    func attendeeEmails(calendarEventID: String) -> [String] {
+        guard hasCalendarAccess, let start = calendarMeetingStart(id: calendarEventID) else {
+            return []
+        }
+        let predicate: NSPredicate = store.predicateForEvents(withStart: start.addingTimeInterval(-60), end: start.addingTimeInterval(60), calendars: nil)
+        guard let event = store.events(matching: predicate).first(where: { Self.meetingID(event: $0) == calendarEventID }) else {
+            return []
+        }
+        return uniqueEmailAddresses(addresses: (event.attendees ?? []).filter { !$0.isCurrentUser }.compactMap { attendeeEmailAddress(url: $0.url) })
+    }
+
+    /// Etkinliğin toplantı kimliği (`CalendarMeeting.id`, bkz. `calendarMeetingID`).
+    private static func meetingID(event: EKEvent) -> String {
+        calendarMeetingID(eventIdentifier: event.eventIdentifier ?? event.calendarItemIdentifier, start: event.startDate)
     }
 
     /// Takvimde değişiklik olunca (etkinlik eklendi, taşındı) bildirilir.
