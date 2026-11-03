@@ -413,6 +413,8 @@ private func statusText(record: MeetingRecord, isProcessing: Bool) -> String? {
 private enum MeetingTab: String {
     case summary
     case transcript
+    /// Kayıt sırasında saklanan ekran görüntüleri (yalnızca görüntüsü olan toplantıda görünür).
+    case screens
 }
 
 /// Dışa aktarmanın sonucu: başarılar sağ alttaki kısa bildirimde (bkz. `ToastCenter`), hatalar ve onaylar sayfada satır
@@ -492,8 +494,12 @@ struct MeetingDetailPage: View {
                     statusLines
                     // Sekmeler ve notun dili tek satırda: dil, iş arkadaşlarına göndermek için notun başka dildeki sürümü.
                     HStack(spacing: 10) {
-                        PillPicker(selection: $tab, options: [(MeetingTab.summary, "Özet"), (MeetingTab.transcript, "Transkript")])
-                            .frame(maxWidth: 260)
+                        let hasScreens: Bool = !(model.screenSnapshots.snapshots[record.id] ?? []).isEmpty || tab == .screens
+                        let tabs: [(value: MeetingTab, title: LocalizedStringKey)] = hasScreens
+                            ? [(.summary, "Özet"), (.transcript, "Transkript"), (.screens, "Ekranlar")]
+                            : [(.summary, "Özet"), (.transcript, "Transkript")]
+                        PillPicker(selection: $tab, options: tabs)
+                            .frame(maxWidth: hasScreens ? 390 : 260)
                         Spacer(minLength: 8)
                         if tab == .summary, let note = record.note {
                             noteLanguageMenu(original: note.writtenLanguage)
@@ -547,6 +553,11 @@ struct MeetingDetailPage: View {
                             onClip: { (paragraph: TranscriptParagraph) -> Void in exportClip(paragraph: paragraph) }
                         )
                         .frame(maxWidth: 820, alignment: .leading)
+                    case .screens:
+                        ScreenSnapshotsSection(
+                            model: model, record: record, paragraphs: paragraphs, isLocked: isLocked, canPlay: !playableAudio.isEmpty,
+                            onPlay: { (startSec: Double) -> Void in play(from: startSec) }
+                        )
                     }
                     }
                     // Sekme değişince içerik yumuşakça geçer.
@@ -565,6 +576,10 @@ struct MeetingDetailPage: View {
         }
         .onChange(of: tab) { (_: MeetingTab, selected: MeetingTab) -> Void in
             model.meetingPageTabs[record.id] = selected.rawValue
+        }
+        // Toplantının ekran görüntüleri klasöründen okunur ("Ekranlar" sekmesi yalnızca görüntü varsa görünür).
+        .task(id: record.id) {
+            await model.refreshScreenSnapshots(meetingID: record.id)
         }
         .onAppear {
             // Sayfa başka bölüme geçip dönünce yeniden kurulur: kaldığı yerden açılır. Bu toplantı çalıyorsa transkript

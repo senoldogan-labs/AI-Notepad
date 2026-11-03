@@ -190,6 +190,13 @@ export const homeFi: HomeCopy = {
       shortcut: "Pidä ⌃⌥D",
       sample: "Kiitos, lähetän hinnaston perjantaihin mennessä.",
     },
+    screens: {
+      title: "Palaute oikeaan näkymään",
+      text: "Kun otat sen käyttöön, Mac-sovellus tallentaa verkkopalaverissa kuvan aina, kun jaettu näyttö vaihtuu, ja yhdistää sen siihen, mitä samaan aikaan puhuttiin. Tekoälysovelluksesi lukevat molemmat MCP:n kautta, joten jokainen kommentti osuu oikeaan diaan tai suunnitteluruutuun. Kuvat pysyvät Macillasi.",
+      frame: "Hinnastosivu",
+      time: "12:40",
+      quote: "Vuosihinnan valitsinta on vaikea huomata.",
+    },
   },
   trust: {
     eyebrow: "Tietosuoja",

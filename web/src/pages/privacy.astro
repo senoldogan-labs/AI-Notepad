@@ -2,7 +2,8 @@
 // Gizlilik politikası. Gerçek davranışa dayanır: sunucu (server/README.md, server/src/account.ts, cleanup.ts,
 // transcribe.ts, deepgram.ts, llm/, auth/, billing.ts, referrals.ts, trialLedger.ts, deviceCheck.ts, telemetry.ts, funnel.ts, migrations/, wrangler.jsonc), abonelik uygulaması
 // (App/Hosted: canlı metin Deepgram'la, kapasite dolunca ya da bağlantı yoksa Mac'te; sesle yazma tamamen Mac'te, Erişilebilirlik
-// yalnızca ⌘V için (App/Dictation.swift); iCloud eşitlemesi yok, güncellemeler
+// yalnızca ⌘V için (App/Dictation.swift); paylaşılan ekranın görüntüleri isteğe bağlı, Mac'te kalır, yalnızca yerel MCP
+// istemcisine verilir (App/ScreenSnapshots.swift, AINotepadCore/Screen, MCP/MCPScreens.swift); iCloud eşitlemesi yok, güncellemeler
 // GitHub'dan; sürüm başlıkları, yapay zekâ isteğinin amacı ve Ayarlar › Genel'den kapatılabilen kullanım
 // istatistikleri), iPhone uygulaması (iOS/: aynı hesap ve sunucu; yüz yüze toplantı mikrofonla, yedek canlı metin Apple'ın
 // cihaz içi konuşma tanımasıyla, App Attest yok, toplantılar telefonda, kullanım istatistikleri Ayarlar › Gizlilik'te) ve bu sitenin tarayıcı depolaması (public/theme.js,
@@ -129,8 +130,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         log this text; it records only the number of tokens used.
       </li>
       <li>
-        <strong>Storage.</strong> Notes, transcripts, recordings and the people and terms you add are stored in the app's
-        folder on your Mac or iPhone. The apps do not sync them to any cloud service, and meetings recorded on one device do
+        <strong>Storage.</strong> Notes, transcripts, recordings, screen snapshots and the people and terms you add are
+        stored in the app's folder on your Mac or iPhone. The apps do not sync them to any cloud service, and meetings recorded on one device do
         not appear on the other. You can export or delete them in
         the app at any time.
       </li>
@@ -140,7 +141,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         vault), or send it to a webhook you set up (such as Zapier, Make or n8n), the app sends that content from your Mac
         directly to the destination you chose, using the account or address you connected. It does not pass through our
         server, and the receiving service processes it under its own terms. If you connect an AI assistant on your Mac
-        through the app's MCP connection, that assistant can read your meetings and handles them under its own terms.
+        through the app's MCP connection, that assistant can read your meetings (including any screen snapshots) and
+        handles them under its own terms.
       </li>
       <li>
         <strong>Voice typing (Mac app).</strong> When you hold or tap the voice typing shortcut, the app records from your
@@ -151,6 +153,20 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         your clipboard. To send ⌘V it needs the macOS Accessibility permission; it uses that permission only for this
         keystroke and does not read your keystrokes, your screen or other apps' content. Without the permission, the text
         is only copied to your clipboard.
+      </li>
+      <li>
+        <strong>Shared-screen snapshots (Mac app, off by default).</strong> If you turn on “Take snapshots of the shared
+        screen” in Settings › General, then while you record an online meeting the app looks at the screen every few
+        seconds and keeps a still image (JPEG) whenever the content changes meaningfully, up to 300 per meeting. If it
+        finds the call's window (for example Zoom, Teams or a Google Meet tab) it captures only that window; otherwise it
+        captures your main display. It never captures the app's own windows, doesn't capture while recording is paused,
+        and doesn't capture in in-person mode. This uses the macOS Screen Recording permission, which you grant in System
+        Settings. The snapshots are stored with the meeting in the app's folder on your Mac. They are not sent to us,
+        to our AI providers or to anyone else, and they are not used for notes. An AI app on your Mac can read them only
+        if you connect it through the app's MCP connection, and that app's provider then handles what it reads under its
+        own terms. You can delete one snapshot or all of a meeting's snapshots on the meeting's Screens tab; deleting the
+        meeting deletes its snapshots. Shared screens can show other people's content, so check that the participants
+        agree before you keep snapshots of what they share.
       </li>
     </ul>
     <p>
@@ -404,7 +420,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         <strong>Daily feature usage:</strong> once a day, which features were used that day — whether live translation was
         used and its target language, whether Ask was used, how many times each integration type (for example Slack,
         Notion or Apple Notes) and each export format (for example PDF or Markdown) was used, whether your meeting archive
-        was accessed over MCP, whether the live transcript ran on your device, and whether voice typing was used.
+        was accessed over MCP, whether the live transcript ran on your device, whether voice typing was used, and whether
+        shared-screen snapshots were kept (never the snapshots themselves).
       </li>
       <li>
         <strong>First launch and sign-in steps:</strong> once, the first time the app is opened, and when you sign in:

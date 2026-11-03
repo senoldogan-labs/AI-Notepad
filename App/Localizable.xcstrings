@@ -977,6 +977,46 @@
         }
       }
     },
+    "%lld ekran görüntüsü": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld screen snapshot"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld screen snapshots"
+                }
+              }
+            }
+          }
+        },
+        "tr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld ekran görüntüsü"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld ekran görüntüsü"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld görev": {
       "localizations": {
         "en": {
@@ -1615,6 +1655,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld meetings, %lld passages read · %@ s"
+          }
+        }
+      }
+    },
+    "+%lld paragraf daha": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld more paragraph"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld more paragraphs"
+                }
+              }
+            }
+          }
+        },
+        "tr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld paragraf daha"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld paragraf daha"
+                }
+              }
+            }
           }
         }
       }
@@ -2713,6 +2793,16 @@
         }
       }
     },
+    "Ayarlar › Genel'de \"Paylaşılan ekranın görüntülerini al\" açıkken, çevrimiçi görüşmede ekran değişince görüntüsü burada konuşulanlarla birlikte görünür.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "With \"Take snapshots of the shared screen\" on in Settings › General, each change of the screen in an online call shows up here with what was said."
+          }
+        }
+      }
+    },
     "Ayarlar'ı aç": {
       "localizations": {
         "en": {
@@ -2809,6 +2899,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "When on, a voiceprint (numbers that recognise a voice; this is biometric data) of everyone who speaks for more than 8 s is stored with the meeting; people you name are remembered on this Mac and named automatically in later meetings. Deleting a meeting forgets what was learned from it; deleting its audio removes its prints. Ask others before storing their voiceprints."
+          }
+        }
+      }
+    },
+    "Açıkken uygulama günde bir kez hangi özellikleri kullandığını (canlı çeviri, Sor, sesle yazma, ekran görüntüleri, bağlantı ve dışa aktarma türleri) ve bağlantı kopması, not hatası gibi güvenilirlik sayılarını gönderir; ilk açılışı ve giriş adımlarını (pencere açıldı, kapatıldı, hata verdi, tamamlandı) da sayar. Bunlar hesabına bağlanmaz. Ses, metin, not, başlık ya da ad asla gönderilmez. Uygulama ve macOS sürümü ile yapay zekâ isteklerinin hangi özellik için olduğu, hizmetin işleyişi için her durumda gönderilir.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When on, the app sends once a day which features you used (live translation, Ask, voice typing, screen snapshots, integration and export types) and reliability counts such as connection drops and note errors, and it counts the first launch and each sign-in step (window opened, closed, failed, finished). None of this is linked to your account. Audio, transcripts, notes, titles or names are never sent. The app and macOS version and which feature each AI request is for are always sent, because the service needs them."
           }
         }
       }
@@ -2946,12 +3047,12 @@
         }
       }
     },
-    "Bağlayınca uygulama toplantılarını listeleyip arar, notları ve transkriptleri okur; yalnızca okur, hiçbir şey değiştirmez. Okuduğunu kendi yapay zekâ sağlayıcısına gönderir.": {
+    "Bağlayınca uygulama toplantılarını listeleyip arar, notları, transkriptleri ve paylaşılan ekranların görüntülerini okur; yalnızca okur, hiçbir şey değiştirmez. Okuduğunu kendi yapay zekâ sağlayıcısına gönderir.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Once connected, the app lists and searches your meetings and reads notes and transcripts; it only reads and never changes anything. What it reads goes to its own AI provider."
+            "value": "Once connected, the app lists and searches your meetings and reads notes, transcripts and shared-screen snapshots; it only reads and never changes anything. What it reads goes to its own AI provider."
           }
         }
       }
@@ -3460,6 +3561,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Briefing"
+          }
+        }
+      }
+    },
+    "Bu ekrandayken konuşma yok.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nobody spoke while this was on screen."
+          }
+        }
+      }
+    },
+    "Bu ekrandayken konuşulanları dinle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listen to what was said while this was on screen"
+          }
+        }
+      }
+    },
+    "Bu görüntüyü kalıcı siler": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permanently deletes this snapshot"
           }
         }
       }
@@ -4228,12 +4359,32 @@
         }
       }
     },
+    "Bu toplantıda ekran görüntüsü yok": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No screen snapshots in this meeting"
+          }
+        }
+      }
+    },
     "Bu toplantıda sana düşen görev yok": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "No tasks for you in this meeting"
+          }
+        }
+      }
+    },
+    "Bu toplantının bütün ekran görüntüleri kalıcı silinsin mi?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permanently delete all screen snapshots of this meeting?"
           }
         }
       }
@@ -4285,6 +4436,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "This meeting has no audio recording."
+          }
+        }
+      }
+    },
+    "Bu toplantının sesi yok": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This meeting has no audio"
           }
         }
       }
@@ -4354,12 +4515,12 @@
         }
       }
     },
-    "Bu yapılandırmayı istemcinin MCP ayarlarına (Claude Desktop: Ayarlar › Geliştirici › Yapılandırmayı düzenle) ekle. İstemci toplantılarını listeler, arar, notları ve transkriptleri okur; yalnızca okur, hiçbir şey değiştirmez. Okunan notlar ve transkriptler istemcinin yapay zekâ sağlayıcısına (ör. Anthropic, OpenAI) gönderilir.": {
+    "Bu yapılandırmayı istemcinin MCP ayarlarına (Claude Desktop: Ayarlar › Geliştirici › Yapılandırmayı düzenle) ekle. İstemci toplantılarını listeler, arar, notları, transkriptleri ve paylaşılan ekranların görüntülerini okur; yalnızca okur, hiçbir şey değiştirmez. Okunanlar istemcinin yapay zekâ sağlayıcısına (ör. Anthropic, OpenAI) gönderilir.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Add this configuration to the client's MCP settings (Claude Desktop: Settings › Developer › Edit Config). The client lists, searches and reads your meetings, notes and transcripts; it only reads and never changes anything. Notes and transcripts it reads are sent to the client's AI provider (e.g. Anthropic, OpenAI)."
+            "value": "Add this configuration to the client's MCP settings (Claude Desktop: Settings › Developer › Edit Config). The client lists, searches and reads your meetings, notes, transcripts and shared-screen snapshots; it only reads and never changes anything. What it reads is sent to the client's AI provider (e.g. Anthropic, OpenAI)."
           }
         }
       }
@@ -4620,6 +4781,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "What was said about the budget?"
+          }
+        }
+      }
+    },
+    "Büyüt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enlarge"
           }
         }
       }
@@ -5846,6 +6017,86 @@
         }
       }
     },
+    "Ekran Kaydı izni gerekli. İzin verdikten sonra uygulamayı yeniden aç.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screen Recording permission is needed. After you allow it, reopen the app."
+          }
+        }
+      }
+    },
+    "Ekran görüntüleri alınamıyor: Ekran Kaydı izni yok. Sistem Ayarları › Gizlilik ve Güvenlik › Ekran ve Sistem Sesi Kaydı'nda bu uygulamaya izin verip uygulamayı yeniden aç.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can't take screen snapshots: Screen Recording permission is missing. Allow this app in System Settings › Privacy & Security › Screen & System Audio Recording, then reopen the app."
+          }
+        }
+      }
+    },
+    "Ekran görüntüleri alınamıyor: ekran bulunamadı.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can't take screen snapshots: no display was found."
+          }
+        }
+      }
+    },
+    "Ekran görüntüleri art arda alınamadı, bu kayıtta durduruldu. Kayıt sürüyor.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screen snapshots kept failing and are stopped for this recording. Recording continues."
+          }
+        }
+      }
+    },
+    "Ekran görüntüleri açılamadı: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't open the screen snapshots: %@"
+          }
+        }
+      }
+    },
+    "Ekran görüntüleri kaydedilemedi, bu kayıtta durduruldu. Disk alanını kontrol et; kayıt sürüyor.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screen snapshots couldn't be saved and are stopped for this recording. Check your disk space; recording continues."
+          }
+        }
+      }
+    },
+    "Ekran görüntüleri okunamadı: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't read the screen snapshots: %@"
+          }
+        }
+      }
+    },
+    "Ekran görüntüleri silinemedi: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't delete the screen snapshots: %@"
+          }
+        }
+      }
+    },
     "Ekran görüntülerinde gizle": {
       "localizations": {
         "en": {
@@ -5856,12 +6107,52 @@
         }
       }
     },
+    "Ekran görüntülerini kalıcı siler; metin, not ve ses kalır": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permanently deletes the screen snapshots; the transcript, note and audio stay"
+          }
+        }
+      }
+    },
+    "Ekran görüntüsü silinemedi: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't delete the screen snapshot: %@"
+          }
+        }
+      }
+    },
+    "Ekran görüntüsü, %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screen snapshot, %@"
+          }
+        }
+      }
+    },
     "Ekran paylaşımında gizli": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Hidden when screen sharing"
+          }
+        }
+      }
+    },
+    "Ekranlar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screens"
           }
         }
       }
@@ -6592,6 +6883,26 @@
         }
       }
     },
+    "Görüntü okunamadı: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't read the snapshot: %@"
+          }
+        }
+      }
+    },
+    "Görüntüyü sil": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete snapshot"
+          }
+        }
+      }
+    },
     "Görünüm": {
       "localizations": {
         "en": {
@@ -7007,12 +7318,32 @@
         }
       }
     },
+    "Hepsini sil": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete all"
+          }
+        }
+      }
+    },
     "Her cümle kayıt sırasında %@ diline çevrilir (LLM çağrısı); toplantı zaten bu dildeyse çevrilmez. Toplantı bitince %@ not (görevler, kararlar, özet) hazırlanır.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Each sentence is translated into %@ while recording (one LLM call each); a meeting already in that language is not translated. After the meeting a note in %@ (tasks, decisions, summary) is prepared."
+          }
+        }
+      }
+    },
+    "Her görüntü ekran değiştiğinde saklandı; yanında o ekrandayken konuşulanlar var. Bağladığın MCP istemcisi (ör. Claude) aynı eşleşmeyi list_screens ve get_screen ile okur.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Each snapshot was kept when the screen changed, next to what was said while it was up. An MCP app you connect (such as Claude) reads the same pairing with list_screens and get_screen."
           }
         }
       }
@@ -7285,6 +7616,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "Inter (default)"
+          }
+        }
+      }
+    },
+    "Kayıt ve işleme bitince silinebilir": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can be deleted once recording and processing finish"
+          }
+        }
+      }
+    },
+    "Küçült": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show smaller"
+          }
+        }
+      }
+    },
+    "Paylaşılan ekranın görüntülerini al": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Take snapshots of the shared screen"
+          }
+        }
+      }
+    },
+    "Silinsin mi?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete?"
+          }
+        }
+      }
+    },
+    "Sistem Ayarları'nı aç": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open System Settings"
+          }
+        }
+      }
+    },
+    "Çevrimiçi görüşme kaydında ekrana birkaç saniyede bir bakılır; içerik anlamlı değişince (slayt, tasarım, sayfa) bir görüntü saklanır ve o sırada konuşulanlarla eşlenir. Görüşme penceresi (Zoom, Meet, Teams…) bulunursa yalnızca o, yoksa ana ekran alınır; bu uygulamanın pencereleri hiç alınmaz. Görüntüler bu Mac'te toplantının klasöründe kalır ve yapay zekâya gönderilmez; yalnızca bağladığın MCP istemcisi (ör. Claude, Cursor) okuyabilir. Toplantı silinince görüntüleri de silinir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "While an online call is recorded, the app looks at the screen every few seconds. When the content changes meaningfully (a slide, a design, a page), it keeps a snapshot and matches it to what was said meanwhile. If it finds the call's window (Zoom, Meet, Teams…), it captures only that window, otherwise the main display; this app's windows are never captured. Snapshots stay on this Mac in the meeting's folder and are not sent to AI; only an MCP app you connect (such as Claude or Cursor) can read them. Deleting the meeting deletes its snapshots."
+          }
+        }
+      }
+    },
+    "Çevrimiçi görüşme kaydında ekrana birkaç saniyede bir bakılır; içerik anlamlı değişince (slayt, tasarım, sayfa) bir görüntü saklanır ve o sırada konuşulanlarla eşlenir. Görüşme penceresi (Zoom, Meet, Teams…) bulunursa yalnızca o, yoksa ana ekran alınır; bu uygulamanın pencereleri hiç alınmaz. Görüntüler toplantının klasöründe kalır (iCloud eşitlemesi açıksa toplantıyla eşitlenir) ve yapay zekâya gönderilmez; yalnızca bağladığın MCP istemcisi (ör. Claude, Cursor) okuyabilir. Toplantı silinince görüntüleri de silinir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "While an online call is recorded, the app looks at the screen every few seconds. When the content changes meaningfully (a slide, a design, a page), it keeps a snapshot and matches it to what was said meanwhile. If it finds the call's window (Zoom, Meet, Teams…), it captures only that window, otherwise the main display; this app's windows are never captured. Snapshots stay in the meeting's folder (synced with the meeting if iCloud sync is on) and are not sent to AI; only an MCP app you connect (such as Claude or Cursor) can read them. Deleting the meeting deletes its snapshots."
           }
         }
       }
@@ -17446,17 +17847,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Share anonymous usage statistics"
-          }
-        }
-      }
-    },
-    "Açıkken uygulama günde bir kez hangi özellikleri kullandığını (canlı çeviri, Sor, sesle yazma, bağlantı ve dışa aktarma türleri) ve bağlantı kopması, not hatası gibi güvenilirlik sayılarını gönderir; ilk açılışı ve giriş adımlarını (pencere açıldı, kapatıldı, hata verdi, tamamlandı) da sayar. Bunlar hesabına bağlanmaz. Ses, metin, not, başlık ya da ad asla gönderilmez. Uygulama ve macOS sürümü ile yapay zekâ isteklerinin hangi özellik için olduğu, hizmetin işleyişi için her durumda gönderilir.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "When on, the app sends once a day which features you used (live translation, Ask, voice typing, integration and export types) and reliability counts such as connection drops and note errors, and it counts the first launch and each sign-in step (window opened, closed, failed, finished). None of this is linked to your account. Audio, transcripts, notes, titles or names are never sent. The app and macOS version and which feature each AI request is for are always sent, because the service needs them."
           }
         }
       }

@@ -31,11 +31,11 @@ export const durationEventKinds = ["final_pass_duration", "note_generation_durat
 export type DurationEventKind = (typeof durationEventKinds)[number];
 
 /** Günlük özellik raporundaki özellik adları (`report`: raporu gönderen kullanıcı-günü, oranların paydası). */
-export const featureNames = ["report", "live_translation", "translation_language", "ask", "integration", "export", "mcp", "on_device_live", "dictation"] as const;
+export const featureNames = ["report", "live_translation", "translation_language", "ask", "integration", "export", "mcp", "on_device_live", "dictation", "screen_snapshots"] as const;
 export type FeatureName = (typeof featureNames)[number];
 
 /** Değeri olmayan (evet/hayır) özellikler; tabloda bu sırayla görünür. */
-export const flagFeatures = ["live_translation", "ask", "mcp", "on_device_live", "dictation"] as const;
+export const flagFeatures = ["live_translation", "ask", "mcp", "on_device_live", "dictation", "screen_snapshots"] as const;
 export type FlagFeature = (typeof flagFeatures)[number];
 
 /** Telemetri görünümünün metinleri. `{ad}` yer tutucuları değerlerle doldurulur. */
@@ -161,6 +161,7 @@ export const adminTelemetryCopy: AdminTelemetryCopy = {
     mcp: "Archive used over MCP",
     on_device_live: "Live transcript ran on the Mac",
     dictation: "Voice typing",
+    screen_snapshots: "Shared-screen snapshots",
   },
   languagesTitle: "Live translation target language",
   integrationsTitle: "Integrations by type",
