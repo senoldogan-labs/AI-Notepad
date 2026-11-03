@@ -336,7 +336,8 @@ public func sharedNoteRequest(note: MeetingNote, language: ShareLanguage, userNa
         """,
         maxTokens: 16000,
         jsonSchema: meetingNoteSchema,
-        timeoutSec: 300
+        timeoutSec: 300,
+        images: []
     )
 }
 

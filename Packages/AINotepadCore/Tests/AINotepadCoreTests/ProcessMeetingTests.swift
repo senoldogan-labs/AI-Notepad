@@ -45,6 +45,7 @@ extension CloudTests {
             languageMode: .automatic,
             userName: "Doğan",
             noteLanguage: .turkish, voiceEmbedder: nil, registry: [],
+            screens: .off,
             onStep: { (step: ProcessingStep) async -> Void in log.steps.append(step) }
         )
 
@@ -70,6 +71,7 @@ extension CloudTests {
         let result: MeetingRecord = await processMeeting(
             record: recording, directory: directory, finalPass: .stop(HostedClientError.serverOutdated(path: "/v1/meetings/{id}/reprocess")),
             llm: nil, languageMode: .automatic, userName: "Doğan", noteLanguage: .turkish, voiceEmbedder: nil, registry: [],
+            screens: .off,
             onStep: { (_: ProcessingStep) async -> Void in }
         )
         #expect(result.status == .failed)
@@ -92,6 +94,7 @@ extension CloudTests {
             record: recording, directory: directory, finalPass: .run(ElevenLabsFinalTranscriber(apiKey: "gecersiz", keyterms: [])),
             llm: .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic))), languageMode: .automatic, userName: "Doğan",
             noteLanguage: .turkish, voiceEmbedder: nil, registry: [],
+            screens: .off,
             onStep: { (_: ProcessingStep) async -> Void in }
         )
         #expect(result.status == .done, "hata: \(result.failureMessage ?? "")")
@@ -115,6 +118,7 @@ extension CloudTests {
             record: recording, directory: directory, finalPass: .run(ElevenLabsFinalTranscriber(apiKey: try cloudKey(account: .elevenlabs), keyterms: ["Aino", "raportti"])),
             llm: nil, languageMode: .fixed(.finnish), userName: "Doğan",
             noteLanguage: .turkish, voiceEmbedder: nil, registry: [],
+            screens: .off,
             onStep: { (_: ProcessingStep) async -> Void in }
         )
         let mine: [StoredSegment] = meetingSegments(record: result).filter { $0.speaker == .me }
@@ -135,6 +139,7 @@ extension CloudTests {
             record: recording, directory: directory, finalPass: .run(ElevenLabsFinalTranscriber(apiKey: try cloudKey(account: .elevenlabs), keyterms: ["Aino", "raportti"])),
             llm: nil, languageMode: .automatic, userName: "Doğan",
             noteLanguage: .turkish, voiceEmbedder: nil, registry: [],
+            screens: .off,
             onStep: { (_: ProcessingStep) async -> Void in }
         )
         #expect(result.status == .failed)

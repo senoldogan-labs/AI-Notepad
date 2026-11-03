@@ -191,7 +191,8 @@ extension CloudTests {
         try JSONEncoder().encode(ChunkedNoteProgress(fingerprint: fingerprint, completedParts: parts, state: saved)).write(to: file)
         let note: MeetingNote = try #require(try await writeMeetingNote(
             segments: segments, speakerNames: [:], userName: "Senol", template: .general, myNotes: "",
-            language: .turkish, llm: .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic))), progressFile: file
+            language: .turkish, llm: .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic))), progressFile: file,
+            screens: []
         ))
         #expect(parts > 1)
         #expect(note.tasks.map(\.description) == ["Aikataulun lähettäminen tiimille"])
@@ -212,7 +213,8 @@ extension CloudTests {
         let note: MeetingNote = try #require(try await writeMeetingNote(
             segments: segments, speakerNames: [:], userName: "Senol", template: .general,
             myNotes: "## Bana önemli\n- park yeri azalıyor → kiralık yer sor", language: .turkish, llm: .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic))),
-            progressFile: try temporaryDirectory().appending(path: "note-progress.json")
+            progressFile: try temporaryDirectory().appending(path: "note-progress.json"),
+            screens: []
         ))
         let text: String = (note.summary + " " + note.decisions.joined(separator: " ") + " " + note.tasks.map(\.description).joined(separator: " ")).lowercased()
         #expect(text.contains("park"), "\(note)")
@@ -256,7 +258,8 @@ extension CloudTests {
         ]
         let note: MeetingNote = try #require(try await writeMeetingNote(
             segments: markingHighlights(segments: segments, highlights: [Highlight(startSec: 20, endSec: nil)]), speakerNames: [:], userName: "Senol",
-            template: .general, myNotes: "", language: .turkish, llm: .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic))), progressFile: try temporaryDirectory().appending(path: "note-progress.json")
+            template: .general, myNotes: "", language: .turkish, llm: .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic))), progressFile: try temporaryDirectory().appending(path: "note-progress.json"),
+            screens: []
         ))
         let text: String = (note.summary + " " + note.decisions.joined(separator: " ")).lowercased()
         #expect(text.contains("kahve"), "\(text)")
