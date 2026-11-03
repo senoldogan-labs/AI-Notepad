@@ -5,6 +5,15 @@ import SwiftUI
 
 // MARK: Ayar
 
+/// Ekran görüntüsü ayarının açıklaması: geliştirici sürümünde görüntüler iCloud eşitlemesiyle toplantıyla birlikte eşitlenir.
+private var screenSnapshotsHelp: LocalizedStringKey {
+    #if HOSTED_EDITION
+    "Çevrimiçi görüşme kaydında ekrana birkaç saniyede bir bakılır; içerik anlamlı değişince (slayt, tasarım, sayfa) bir görüntü saklanır ve o sırada konuşulanlarla eşlenir. Görüşme penceresi (Zoom, Meet, Teams…) bulunursa yalnızca o, yoksa ana ekran alınır; bu uygulamanın pencereleri hiç alınmaz. Görüntüler bu Mac'te toplantının klasöründe kalır ve yapay zekâya gönderilmez; yalnızca bağladığın MCP istemcisi (ör. Claude, Cursor) okuyabilir. Toplantı silinince görüntüleri de silinir."
+    #else
+    "Çevrimiçi görüşme kaydında ekrana birkaç saniyede bir bakılır; içerik anlamlı değişince (slayt, tasarım, sayfa) bir görüntü saklanır ve o sırada konuşulanlarla eşlenir. Görüşme penceresi (Zoom, Meet, Teams…) bulunursa yalnızca o, yoksa ana ekran alınır; bu uygulamanın pencereleri hiç alınmaz. Görüntüler toplantının klasöründe kalır (iCloud eşitlemesi açıksa toplantıyla eşitlenir) ve yapay zekâya gönderilmez; yalnızca bağladığın MCP istemcisi (ör. Claude, Cursor) okuyabilir. Toplantı silinince görüntüleri de silinir."
+    #endif
+}
+
 /// Ayarlar › Genel: "Paylaşılan ekranın görüntülerini al" (varsayılan kapalı). Açılınca Ekran Kaydı izni istenir; izin
 /// yoksa nedeni ve Sistem Ayarları düğmesi satırın içinde görünür (ayrı pencere yok).
 struct ScreenSnapshotSettingsRow: View {
@@ -12,12 +21,7 @@ struct ScreenSnapshotSettingsRow: View {
     @State private var hasPermission: Bool = hasScreenCapturePermission()
 
     var body: some View {
-        SettingsRow(title: Text("Paylaşılan ekranın görüntülerini al")) {
-            #if HOSTED_EDITION
-            Text("Çevrimiçi görüşme kaydında ekrana birkaç saniyede bir bakılır; içerik anlamlı değişince (slayt, tasarım, sayfa) bir görüntü saklanır ve o sırada konuşulanlarla eşlenir. Görüşme penceresi (Zoom, Meet, Teams…) bulunursa yalnızca o, yoksa ana ekran alınır; bu uygulamanın pencereleri hiç alınmaz. Görüntüler bu Mac'te toplantının klasöründe kalır ve yapay zekâya gönderilmez; yalnızca bağladığın MCP istemcisi (ör. Claude, Cursor) okuyabilir. Toplantı silinince görüntüleri de silinir.")
-            #else
-            Text("Çevrimiçi görüşme kaydında ekrana birkaç saniyede bir bakılır; içerik anlamlı değişince (slayt, tasarım, sayfa) bir görüntü saklanır ve o sırada konuşulanlarla eşlenir. Görüşme penceresi (Zoom, Meet, Teams…) bulunursa yalnızca o, yoksa ana ekran alınır; bu uygulamanın pencereleri hiç alınmaz. Görüntüler toplantının klasöründe kalır (iCloud eşitlemesi açıksa toplantıyla eşitlenir) ve yapay zekâya gönderilmez; yalnızca bağladığın MCP istemcisi (ör. Claude, Cursor) okuyabilir. Toplantı silinince görüntüleri de silinir.")
-            #endif
+        SettingsRow(title: Text("Paylaşılan ekranın görüntülerini al"), hint: Text(screenSnapshotsHelp)) {
             if enabled, !hasPermission {
                 VStack(alignment: .leading, spacing: 6) {
                     NoticeText("Ekran Kaydı izni gerekli. İzin verdikten sonra uygulamayı yeniden aç.", severity: .attention)
@@ -104,13 +108,14 @@ struct ScreenSnapshotsSection: View {
         .animation(.smooth(duration: 0.2), value: confirmation)
     }
 
-    /// Sayı, açıklama ve "Hepsini sil" (satır içi onaylı).
+    /// Sayı, açıklama ipucu ve "Hepsini sil" (satır içi onaylı).
     private func header(count: Int) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: DesignTokens.Spacing.s) {
                 Text("\(count) ekran görüntüsü")
                     .appFont(size: 14, weight: .medium)
                     .foregroundStyle(Theme.ink)
+                InfoHint(Text("Her görüntü ekran değiştiğinde saklandı; yanında o ekrandayken konuşulanlar var. Bağladığın MCP istemcisi (ör. Claude) aynı eşleşmeyi list_screens ve get_screen ile okur."))
                 Spacer(minLength: 8)
                 if confirmation == .all {
                     Label("Bu toplantının bütün ekran görüntüleri kalıcı silinsin mi?", systemImage: "trash")
@@ -129,10 +134,6 @@ struct ScreenSnapshotsSection: View {
             }
             .appFont(size: 12, weight: .regular)
             .controlSize(.small)
-            Text("Her görüntü ekran değiştiğinde saklandı; yanında o ekrandayken konuşulanlar var. Bağladığın MCP istemcisi (ör. Claude) aynı eşleşmeyi list_screens ve get_screen ile okur.")
-                .appFont(size: 12, weight: .regular)
-                .foregroundStyle(Theme.muted)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

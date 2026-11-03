@@ -112,8 +112,11 @@ struct SpeakerNamingSheet: View {
                             row(share: item.element, person: person)
                         }
                     }
-                } footer: {
-                    Text("Ad transkriptte \"Konuşmacı N\" yerine görünür. Notu yeni adlarla yazmak için ⋯ › Notu yenile.")
+                } header: {
+                    PhoneHintHeader(
+                        title: Text("Adlar"),
+                        hint: Text("Ad transkriptte \"Konuşmacı N\" yerine görünür. Notu yeni adlarla yazmak için ⋯ › Notu yenile.")
+                    )
                 }
                 if !groups.minor.isEmpty {
                     Section("Kısa konuşmalar (\(groups.minor.count))") {

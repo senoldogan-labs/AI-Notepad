@@ -101,7 +101,6 @@ private struct CrashReportsList: View {
                 }
             } footer: {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("iOS'un topladığı çökme ve donma raporları yalnızca bu iPhone'da saklanır; hiçbiri kendiliğinden gönderilmez. \"Gönder\" raporu (sürüm, sistem ve hatanın yeri; toplantı içeriği ve anahtarlar yok) geliştiricinin sunucusuna yollar.")
                     if let problem = center.problem {
                         Text(problem).foregroundStyle(.orange)
                     }
@@ -112,6 +111,11 @@ private struct CrashReportsList: View {
             }
         }
         .navigationTitle("Çökme raporları")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                InfoHint(Text("iOS'un topladığı çökme ve donma raporları yalnızca bu iPhone'da saklanır; hiçbiri kendiliğinden gönderilmez. \"Gönder\" raporu (sürüm, sistem ve hatanın yeri; toplantı içeriği ve anahtarlar yok) geliştiricinin sunucusuna yollar."))
+            }
+        }
     }
 
     private func sendButton(report: CrashReport) -> some View {

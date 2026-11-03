@@ -33,20 +33,6 @@ private func meterFillColor(level: HostedUsageLevel, accent: PanelAccent) -> Col
     }
 }
 
-/// Uzun açıklama için bilgi simgesi: üstüne gelince ipucu (Ayarlar'daki bağlantı başlıklarıyla aynı).
-private struct HostedInfoHint: View {
-    let text: LocalizedStringKey
-
-    var body: some View {
-        Image(systemName: "info.circle")
-            .appFont(size: 12, weight: .regular)
-            .foregroundStyle(Theme.muted)
-            .hoverHint(text, alignment: .leading, edge: .bottom)
-            .accessibilityElement()
-            .accessibilityLabel(Text(text))
-    }
-}
-
 /// Yuvarlak uçlu kullanım ölçeri: sakin zemin üstünde vurgu renginde dolgu; %80'de dikkat, %100'de hata rengi.
 struct HostedUsageMeter: View {
     let fraction: Double
@@ -128,7 +114,7 @@ struct HostedUsageCard: View {
                     .appFont(size: 17, weight: .medium)
                     .monospacedDigit()
                     .foregroundStyle(Theme.ink)
-                HostedInfoHint(text: "Adil kullanım sınırı: bu ay kaydedilen toplantıların toplam süresi. Ay başında sıfırlanır; sınır dolunca yeni kayıt başlatılamaz.")
+                InfoHint(Text("Adil kullanım sınırı: bu ay kaydedilen toplantıların toplam süresi. Ay başında sıfırlanır; sınır dolunca yeni kayıt başlatılamaz."))
                 Spacer(minLength: 8)
                 Text(verbatim: percentText(fraction: fraction))
                     .appFont(size: 13, weight: .medium)
@@ -155,7 +141,7 @@ struct HostedUsageCard: View {
                     Text("Toplantı dışı yapay zekâ")
                         .appFont(size: 13, weight: .medium)
                         .foregroundStyle(Theme.ink)
-                    HostedInfoHint(text: "Sor, notu yeniden yazma, paylaşım çevirisi ve görev araçları bu paydan düşer; toplantı sırasındakiler düşmez.")
+                    InfoHint(Text("Sor, notu yeniden yazma, paylaşım çevirisi ve görev araçları bu paydan düşer; toplantı sırasındakiler düşmez."))
                     Spacer(minLength: 8)
                     Text(verbatim: percentText(fraction: aiFraction))
                         .appFont(size: 12, weight: .medium)
@@ -174,7 +160,7 @@ struct HostedUsageCard: View {
                 Text("Ücretsiz deneme")
                     .appFont(size: 17, weight: .medium)
                     .foregroundStyle(Theme.ink)
-                HostedInfoHint(text: "Deneme ilk toplantıyla başlar: \(hostedTrialTermsText(entitlements: entitlements)), hangisi önce dolarsa.")
+                InfoHint(Text("Deneme ilk toplantıyla başlar: \(hostedTrialTermsText(entitlements: entitlements)), hangisi önce dolarsa."))
                 Spacer(minLength: 8)
                 Text(verbatim: hostedTrialLeftText(left: left))
                     .appFont(size: 13, weight: .medium)

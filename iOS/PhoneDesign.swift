@@ -34,6 +34,41 @@ struct PhoneSectionHeader: View {
     }
 }
 
+/// Liste bölümünün başlığı: solda başlık, sağ kenarda açıklama ipucu (bölümün altındaki uzun açıklamanın yerine).
+struct PhoneHintHeader: View {
+    let title: Text
+    let hint: Text
+
+    var body: some View {
+        HStack(spacing: 8) {
+            title
+            Spacer(minLength: 8)
+            // Simge satırlardaki oklarla aynı hizada dursun (dokunma alanı simgeden geniş).
+            InfoHint(hint)
+                .padding(.trailing, -14)
+        }
+    }
+}
+
+/// Satır ve sağında açıklama ipucu (yalnız o satırı anlatan açıklama için).
+struct PhoneHintRow<Content: View>: View {
+    let hint: Text
+    let content: Content
+
+    init(hint: Text, @ViewBuilder content: () -> Content) {
+        self.hint = hint
+        self.content = content()
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            content
+            InfoHint(hint)
+                .padding(.trailing, -14)
+        }
+    }
+}
+
 /// "Bir bakışta" kutusu: büyük sayı ve altında etiket.
 struct PhoneStatTile: View {
     let value: String

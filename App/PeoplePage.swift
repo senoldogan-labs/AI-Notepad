@@ -233,15 +233,16 @@ private struct PersonForm: View {
             HStack(spacing: 16) {
                 PersonAvatar(name: name.isEmpty ? "?" : name, size: 56)
                 Text(title).appFont(size: 28, weight: .regular).tracking(-0.4)
+                InfoHint(Text("Ad konuşma tanımaya verilir; bir toplantıda konuşmacıya bu adı verince toplantıları ve görevleri burada toplanır."))
             }
             VStack(alignment: .leading, spacing: 12) {
                 if let lockedName {
                     VStack(alignment: .leading, spacing: 5) {
-                        Text("Ad").appFont(size: 12, weight: .medium).foregroundStyle(Theme.muted)
+                        HStack(spacing: 4) {
+                            Text("Ad").appFont(size: 12, weight: .medium).foregroundStyle(Theme.muted)
+                            InfoHint(Text("Ad toplantılarda verildi; değiştirmek için toplantının Transkript sekmesini kullan."))
+                        }
                         Text(lockedName).appFont(size: 14, weight: .medium)
-                        Text("Ad toplantılarda verildi; değiştirmek için toplantının Transkript sekmesini kullan.")
-                            .appFont(size: 11, weight: .regular)
-                            .foregroundStyle(Theme.muted)
                     }
                 } else {
                     field(label: "Ad", prompt: "Örn. Aino Virtanen", text: $name)
@@ -252,10 +253,6 @@ private struct PersonForm: View {
             }
             .padding(18)
             .cardSurface(cornerRadius: 16)
-            Text("Ad konuşma tanımaya verilir; bir toplantıda konuşmacıya bu adı verince toplantıları ve görevleri burada toplanır.")
-                .appFont(size: 12, weight: .regular)
-                .foregroundStyle(Theme.muted)
-                .fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 8) {
                 Button("Kaydet") { onSave(name, role, email) }
                     .buttonStyle(.pillPrimary)
