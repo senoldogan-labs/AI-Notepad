@@ -57,6 +57,8 @@ public enum AccountDataWriter: Equatable, Sendable {
     case processing
     /// Bekleyen (çevrimdışı) kayıtların kuyruğu çalışıyor.
     case offlineQueue
+    /// Dosya içe aktarılıyor (ses izi hesabın klasörüne yazılıyor, toplantı hesaba yazılacak).
+    case importing
     /// Bir toplantının notu yeniden yazılıyor ya da düzenleniyor.
     case noteEditing
     /// Sor cevabı yazılıyor (bitince sohbet hesabın klasörüne saklanır).

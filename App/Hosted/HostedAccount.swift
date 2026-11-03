@@ -817,13 +817,14 @@ final class HostedAccount {
         queueTrigger += 1
     }
 
-    /// Hak durumu henüz okunmadıysa (açılış) ya da okunamadıysa (çevrimdışı açılış) ve süren okuma yoksa okur: iPhone'da
-    /// açılışta, iki platformda ağ geri gelince ve uygulama öne gelince çağrılır.
+    /// Hak durumu henüz okunmadıysa (açılış), okunamadıysa (çevrimdışı açılış) ya da hesap hizmeti kullanılamadıysa (ör.
+    /// Anahtar Zinciri cihazın ilk kilit açılışından önce okunamadı) ve süren okuma yoksa okur: iPhone'da açılışta, iki
+    /// platformda ağ geri gelince ve uygulama öne gelince çağrılır.
     func readUnknownStatus() async {
         switch state {
-        case .loading, .signedInStatusUnknown:
+        case .loading, .signedInStatusUnknown, .unavailable:
             break
-        case .signedIn, .signedOut, .unavailable:
+        case .signedIn, .signedOut:
             return
         }
         guard !isRefreshing else {

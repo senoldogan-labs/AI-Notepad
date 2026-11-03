@@ -12,6 +12,8 @@ struct PhoneSignInGate: View {
     let account: HostedAccount
     /// Başka bir hesapla giriş yapıldıysa hesap değişiminin beklediği, eski hesabın verisine yazan işler.
     let switchWaitsFor: [AccountDataWriter]
+    /// Hesap hizmeti kullanılamıyorken "Yeniden dene"ye basıldı, okuma sürüyor.
+    @State private var isRetrying: Bool = false
 
     var body: some View {
         GeometryReader { (proxy: GeometryProxy) in
@@ -77,9 +79,24 @@ struct PhoneSignInGate: View {
     private var actions: some View {
         switch account.state {
         case .unavailable(let message):
-            NoticeText(message as String, severity: .error)
-                .appFont(size: 14, weight: .regular)
-                .frame(maxWidth: .infinity)
+            // Okuma geçici olarak olmayabilir (ör. Anahtar Zinciri cihazın ilk kilit açılışından önce okunamaz): yeniden
+            // denenir; uygulama öne gelince de kendiliğinden yeniden okunur (`HostedAccount.readUnknownStatus`).
+            VStack(spacing: 12) {
+                NoticeText(message as String, severity: .error)
+                    .appFont(size: 14, weight: .regular)
+                    .frame(maxWidth: .infinity)
+                Button {
+                    Task {
+                        isRetrying = true
+                        await account.refresh()
+                        isRetrying = false
+                    }
+                } label: {
+                    PhonePrimaryButtonLabel(title: "Yeniden dene")
+                }
+                .buttonStyle(.plain)
+                .disabled(isRetrying)
+            }
         case .loading, .signedOut, .signedIn, .signedInStatusUnknown:
             VStack(spacing: 16) {
                 PhoneProviderButtons(account: account)
@@ -233,14 +250,17 @@ private struct PhoneAccountDataNotice: View {
 }
 
 /// Başka bir hesapla giriş yapılınca hesap değişiminin metni: beklenen bir iş yoksa hesap açılıyor; varsa eski hesabın
-/// hangi işi bittiğinde bu hesabın toplantılarının kendiliğinden açılacağı (kayıt önce, sonra işleme, not, Sor). Saf
-/// fonksiyondur.
+/// hangi işi bittiğinde bu hesabın toplantılarının kendiliğinden açılacağı (kayıt önce, sonra işleme, içe aktarma, not,
+/// Sor). Saf fonksiyondur.
 func phoneAccountSwitchNotice(waitingFor writers: [AccountDataWriter]) -> String {
     if writers.contains(.recording) {
         return String(localized: "Önceki hesabın kaydı sürüyor. Kayıt bitip toplantı işlenince bu hesabın toplantıları kendiliğinden açılır.")
     }
     if writers.contains(.processing) || writers.contains(.offlineQueue) {
         return String(localized: "Önceki hesabın toplantısı işleniyor. Bitince bu hesabın toplantıları kendiliğinden açılır.")
+    }
+    if writers.contains(.importing) {
+        return String(localized: "Önceki hesaba bir dosya içe aktarılıyor. Bitince bu hesabın toplantıları kendiliğinden açılır.")
     }
     if writers.contains(.noteEditing) {
         return String(localized: "Önceki hesabın bir notu yazılıyor. Bitince bu hesabın toplantıları kendiliğinden açılır.")
