@@ -457,6 +457,11 @@ struct RootView: View {
     /// Toplantı öncesi brifing (Mac'teki "Brifing"): yeni bir Sor sohbeti açar; arşive aynı kişilerle ya da konuda önceki
     /// görüşmeler, kararlar ve açık görevler sorulur.
     private func startBriefing(meeting: CalendarMeeting) {
+        // Hakkı yoksa Sor'a geçilmez (boş sohbet açılırdı); abonelik ekranı açılır.
+        guard !account.requiresSubscription else {
+            account.requestSubscription()
+            return
+        }
         // Brifing yeni bir konu: önceki sohbet bağlam olmasın (önceki sohbet geçmişte kalır).
         ask.clear()
         ask.ask(question: briefingQuestion(meeting: meeting), meetingIDs: [], recipeTitle: nil)
@@ -466,6 +471,10 @@ struct RootView: View {
 
     /// Toplantıya tarif uygular (Mac'teki "Tarif"): yeni bir Sor sohbetinde yalnız o toplantıya sorulur.
     private func runRecipe(recipe: Recipe, meetingID: String) {
+        guard !account.requiresSubscription else {
+            account.requestSubscription()
+            return
+        }
         ask.clear()
         ask.ask(question: recipe.prompt, meetingIDs: [meetingID], recipeTitle: recipe.title)
         router.askPath = [.conversation]

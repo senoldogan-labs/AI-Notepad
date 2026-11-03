@@ -214,7 +214,10 @@ private struct PhonePersonPage: View {
             ) { (name: String, role: String, email: String) -> Void in
                 if canRename {
                     store.renamePerson(oldName: person.name, name: name, role: role, email: email)
-                    renamedID = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                    // Yazılamadıysa kişi eski adıyla kalır (neden sayfada görünür).
+                    if store.peopleBookError == nil {
+                        renamedID = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                    }
                 } else {
                     store.savePerson(name: person.name, role: role, email: email)
                 }
