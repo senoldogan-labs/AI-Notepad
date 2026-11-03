@@ -184,6 +184,17 @@ describe("yapay zekâ amacı (x-llm-purpose)", () => {
     expect((await purposeRow(day, "unattributed"))?.calls).toBe(before + 1);
   });
 
+  it("takip e-postası (follow_up_email) toplantısız hesap çağrısıdır ve kendi satırına yazılır", async () => {
+    const context: Context = await setup();
+    const day: string = dayOf(context.harness.clock.nowMs, 0);
+    const before: number = (await purposeRow(day, "follow_up_email"))?.calls ?? 0;
+    const response: Response = await context.harness.call(
+      req("POST", "/v1/llm/messages", { token: context.session.accessToken, headers: { "x-llm-purpose": "follow_up_email" }, json: basicLLM }),
+    );
+    expect(response.status).toBe(200);
+    expect((await purposeRow(day, "follow_up_email"))?.calls).toBe(before + 1);
+  });
+
   it("bilinmeyen amaç 400 llm_purpose_invalid; üst servis çağrılmaz", async () => {
     const context: Context = await setup();
     const outbound: number = context.harness.outbound.length;

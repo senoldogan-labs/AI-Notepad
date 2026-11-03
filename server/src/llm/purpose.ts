@@ -9,7 +9,7 @@ import { dayKey } from "../usage";
  * - `missed_summary`: "Ne kaçırdım?"; `live_question`: kayıt sırasında toplantı sorusu;
  * - `note`: tek parça toplantı notu; `note_chunk` ve `note_overview`: uzun toplantının parçalı notu ve birleştirmesi;
  * - `speaker_review`: konuşmacı gözden geçirmesi; `note_edit`: not düzenleme ve yeniden yazma;
- * - `shared_note_translation`: notun paylaşım diline çevirisi;
+ * - `shared_note_translation`: notun paylaşım diline çevirisi; `follow_up_email`: nottan takip e-postası taslağı;
  * - `ask_search_terms` ve `ask_answer`: Sor'un arama terimleri ve yanıtı;
  * - `task_agent`: görev aracına (Linear, Jira, Notion) iş açan ajan; `connection_test`: Ayarlar'daki bağlantı denemesi.
  */
@@ -23,6 +23,7 @@ export const llmPurposes = [
   "speaker_review",
   "note_edit",
   "shared_note_translation",
+  "follow_up_email",
   "ask_search_terms",
   "ask_answer",
   "task_agent",

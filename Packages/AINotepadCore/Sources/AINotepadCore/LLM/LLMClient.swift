@@ -34,6 +34,8 @@ public enum LLMPurpose: String, Sendable, Equatable, CaseIterable {
     case noteEdit = "note_edit"
     /// Notun paylaşım diline çevirisi.
     case sharedNoteTranslation = "shared_note_translation"
+    /// Notun takip e-postası taslağı.
+    case followUpEmail = "follow_up_email"
     /// Sor: arşivde arama terimleri.
     case askSearchTerms = "ask_search_terms"
     /// Sor: yanıt.

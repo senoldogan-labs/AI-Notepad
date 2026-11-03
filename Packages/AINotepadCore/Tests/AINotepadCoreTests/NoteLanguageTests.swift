@@ -26,6 +26,10 @@ private func noteLanguagePrompts(language: ShareLanguage) throws -> [(name: Stri
         ("not düzenleme", noteEditRequest(
             note: note, instruction: "Kısalt", segments: saved, speakerNames: [:], userName: "Doğan", language: language
         ).system),
+        ("takip e-postası", followUpEmailRequest(
+            note: note, startedAt: Date(timeIntervalSince1970: 1_792_000_000), attendees: ["Aino"], userName: "Doğan", language: language,
+            timeZone: TimeZone.gmt
+        ).system),
         ("arama terimleri", searchTermsRequest(question: "Diat?", history: [], languages: [.finnish, .turkish], language: language).system),
         ("arşiv cevabı", archiveAnswerRequest(
             question: "Diat?", passages: [], screens: [], history: [], userName: "Doğan", now: Date(timeIntervalSince1970: 1_792_000_000), language: language

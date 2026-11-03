@@ -1885,6 +1885,42 @@ final class AppModel {
         }
     }
 
+    /// Toplantının notundan `language` dilinde takip e-postası taslağı yazar (toplantı ve not değişmez, taslak saklanmaz).
+    /// Abonelikte hakkı yoksa istek gönderilmez, teklif açılır; çağrı not düzenleme gibi hesaptan gider (bkz.
+    /// `resolveLLMProvider`). Görünüm kapanınca iptal edilir.
+    func draftFollowUpEmail(meetingID: String, language: ShareLanguage) async -> FollowUpEmailOutcome {
+        guard let record = meetings.first(where: { $0.id == meetingID }), record.note != nil else {
+            return .failed(String(localized: "Bu toplantının notu yok."))
+        }
+        guard !isAIBlockedBySubscription() else {
+            return .subscriptionRequired
+        }
+        let userName: String = UserDefaults.standard.string(forKey: SettingsKey.userName) ?? ""
+        do {
+            let provider: LLMProvider = try await resolveLLMProvider()
+            let draft: FollowUpEmailDraft = try await AINotepadCore.draftFollowUpEmail(
+                record: record, userName: userName, language: language, timeZone: TimeZone.current, llm: provider
+            )
+            return .drafted(draft)
+        } catch is CancellationError {
+            return .cancelled
+        } catch let error as URLError where error.code == .cancelled {
+            return .cancelled
+        } catch {
+            Self.logger.error("Takip e-postası yazılamadı, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+            return .failed(userFacingMessage(error: error))
+        }
+    }
+
+    /// Takip e-postasının alıcıları: toplantı bir takvim etkinliğine bağlıysa katılımcıların e-posta adresleri (takvim
+    /// izni varsa), değilse boş.
+    func followUpRecipients(meetingID: String) -> [String] {
+        guard let eventID = meetings.first(where: { $0.id == meetingID })?.calendarEventID else {
+            return []
+        }
+        return eventKit.attendeeEmails(calendarEventID: eventID)
+    }
+
     /// Notu verilen kayıtla (adlar, şablon) yeniden yazıp kaydeder; eski not `reason` ile geçmişe girer.
     private func rewriteNote(record: MeetingRecord, reason: String) {
         guard !isAIBlockedBySubscription() else {
@@ -3940,4 +3976,16 @@ private func openSignInPage(url: URL) {
         return
     }
     NSWorkspace.shared.open(url)
+}
+
+
+/// Takip e-postası taslağının sonucu (bkz. `AppModel.draftFollowUpEmail`).
+enum FollowUpEmailOutcome: Equatable {
+    case drafted(FollowUpEmailDraft)
+    /// Abonelik hakkı yok: teklif açıldı, istek gönderilmedi.
+    case subscriptionRequired
+    /// Görünüm kapandı ya da yeniden istendi: hata değil.
+    case cancelled
+    /// Kullanıcıya gösterilecek neden.
+    case failed(String)
 }

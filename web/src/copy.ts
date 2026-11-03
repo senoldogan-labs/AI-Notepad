@@ -1076,6 +1076,7 @@ export const copy: Copy = {
       `Live transcript in ${spokenLanguages.length} languages, with live translation into any of ${noteLanguages.length}`,
       "A note after every meeting: your tasks with owners and due dates first, then a summary, a topic outline, decisions and a glossary",
       "Meeting templates and one-click recipes such as a follow-up email",
+      "A follow-up email drafted from the note, with its key points, decisions and action items with owners and due dates, ready to edit, copy or open in Mail",
       "“What did I miss?” summaries during the meeting",
       "Ask questions across all your meetings, with answers that cite their sources",
       "Optional snapshots of the shared screen, matched to what was said",
