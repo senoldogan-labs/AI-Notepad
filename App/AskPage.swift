@@ -116,12 +116,12 @@ struct AskPage: View {
             }
             VStack(spacing: 8) {
                 if isMentioning {
-                    MentionSuggestions(candidates: suggestions, highlighted: highlighted) { (record: MeetingRecord) -> Void in
+                    MentionSuggestions(candidates: suggestions, highlighted: highlightedIndex(count: suggestions.count)) { (record: MeetingRecord) -> Void in
                         pick(record: record)
                     }
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
                 } else if isPickingRecipe {
-                    RecipeSuggestions(recipes: recipeMatches, highlighted: highlighted) { (recipe: Recipe) -> Void in
+                    RecipeSuggestions(recipes: recipeMatches, highlighted: highlightedIndex(count: recipeMatches.count)) { (recipe: Recipe) -> Void in
                         run(recipe: recipe)
                     } onDelete: { (recipe: Recipe) -> Void in
                         model.deleteRecipe(id: recipe.id)
@@ -283,10 +283,11 @@ struct AskPage: View {
             moveHighlight(by: 1)
             return true
         case .complete:
-            guard isMentioning else {
+            let candidates: [MeetingRecord] = suggestions
+            guard !candidates.isEmpty else {
                 return false
             }
-            pick(record: suggestions[highlighted])
+            pick(record: candidates[highlightedIndex(count: candidates.count)])
             return true
         case .cancel:
             return cancel()
@@ -295,10 +296,12 @@ struct AskPage: View {
 
     /// Enter: öneri açıksa seçili satırı seçer (soru gönderilmez), değilse soruyu gönderir.
     private func submit() {
-        if isMentioning {
-            pick(record: suggestions[highlighted])
-        } else if isPickingRecipe {
-            run(recipe: recipeMatches[highlighted])
+        let candidates: [MeetingRecord] = suggestions
+        let recipes: [Recipe] = recipeMatches
+        if !candidates.isEmpty {
+            pick(record: candidates[highlightedIndex(count: candidates.count)])
+        } else if !recipes.isEmpty {
+            run(recipe: recipes[highlightedIndex(count: recipes.count)])
         } else {
             send()
         }
@@ -415,7 +418,13 @@ struct AskPage: View {
 
     private func moveHighlight(by step: Int) {
         let count: Int = isMentioning ? suggestions.count : recipeMatches.count
-        highlighted = (highlighted + step + count) % count
+        highlighted = (highlightedIndex(count: count) + step + count) % count
+    }
+
+    /// Açık listedeki (`count` > 0 satır) vurgulu satır: liste açıkken kısalırsa (toplantı silindi, eşitlemeyle gitti)
+    /// son satıra iner; Enter ve Tab listenin dışını seçmez.
+    private func highlightedIndex(count: Int) -> Int {
+        min(highlighted, count - 1)
     }
 
     #if DEBUG

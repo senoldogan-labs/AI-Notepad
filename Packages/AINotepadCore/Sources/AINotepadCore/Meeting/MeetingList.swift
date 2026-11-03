@@ -47,14 +47,14 @@ public enum MeetingListFilter: String, Sendable, CaseIterable {
 }
 
 /// Süzgece uyan toplantılar, sıra korunur; "görevlerim" konuşmacı adlarıyla kullanıcıya düşen görevleri de sayar
-/// (`namedRecord`). Saf fonksiyondur.
+/// (`namedTasks`; notun geri kalanı adlandırılmaz). Saf fonksiyondur.
 public func filterMeetings(records: [MeetingRecord], listFilter: MeetingListFilter, userName: String) -> [MeetingRecord] {
     switch listFilter {
     case .all:
         records
     case .myTasks:
         records.filter { (record: MeetingRecord) -> Bool in
-            namedRecord(record: record, userName: userName).note?.tasks.contains(where: \.isMine) ?? false
+            namedTasks(record: record, userName: userName).contains(where: \.isMine)
         }
     case .problems:
         records.filter { (record: MeetingRecord) -> Bool in record.status == .failed || record.status == .interrupted }

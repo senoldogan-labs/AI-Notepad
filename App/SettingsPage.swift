@@ -2192,9 +2192,9 @@ private struct ShortcutSettings: View {
     }
 }
 
-/// Tıklanınca bir sonraki tuş bileşimini kaydeden düğme.
+/// Tıklanınca bir sonraki tuş bileşimini kaydeden düğme. Kısayol atanmamışsa (`binding` nil) "Kısayol seç" yazar.
 struct ShortcutRecorder: View {
-    let binding: KeyBinding
+    let binding: KeyBinding?
     let onRecord: @MainActor (KeyBinding) -> Void
     @State private var isRecording: Bool = false
     @State private var monitor: Any?
@@ -2203,12 +2203,30 @@ struct ShortcutRecorder: View {
         Button {
             isRecording ? stop() : start()
         } label: {
-            Text(isRecording ? String(localized: "Tuşlara bas…") : keyBindingDisplay(binding: binding))
-                .monospaced()
-                .frame(minWidth: 110)
+            Group {
+                if isRecording {
+                    Text("Tuşlara bas…")
+                } else if let binding {
+                    Text(verbatim: keyBindingDisplay(binding: binding))
+                } else {
+                    Text("Kısayol seç")
+                }
+            }
+            .monospaced()
+            .frame(minWidth: 110)
         }
-        .accessibilityLabel(isRecording ? String(localized: "Kısayol kaydediliyor") : String(localized: "Kısayol: \(keyBindingDisplay(binding: binding)). Değiştir"))
+        .accessibilityLabel(accessibilityText)
         .onDisappear { stop() }
+    }
+
+    private var accessibilityText: String {
+        if isRecording {
+            return String(localized: "Kısayol kaydediliyor")
+        }
+        guard let binding else {
+            return String(localized: "Kısayol atanmadı. Seç")
+        }
+        return String(localized: "Kısayol: \(keyBindingDisplay(binding: binding)). Değiştir")
     }
 
     private func start() {

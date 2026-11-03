@@ -32,11 +32,12 @@ struct MeetingsListPage: View {
     @AppStorage(SettingsKey.userName) private var userName: String = ""
 
     var body: some View {
-        // Satırlar notu konuşmacı adlarıyla gösterir (başlık, görev sayısı).
-        let visible: [MeetingRecord] = namedRecords(records: filterMeetings(
+        // Satırlar notu konuşmacı adlarıyla gösterir (başlık, görev sayısı); süzgeç saklı kayıtlara uygulanır, sıra korunur.
+        let shownIDs: Set<String> = Set(filterMeetings(
             records: filterMeetings(records: meetingsInFolder(records: model.meetings, folder: folder), query: query),
             listFilter: listFilter, userName: userName
-        ), userName: userName)
+        ).map(\.id))
+        let visible: [MeetingRecord] = model.namedMeetings(userName: userName).filter { shownIDs.contains($0.id) }
         let sections: [MeetingSection] = meetingSections(records: visible, now: Date(), calendar: .current, locale: interfaceLocale())
         VStack(spacing: 0) {
             HStack(spacing: DesignTokens.Spacing.s) {

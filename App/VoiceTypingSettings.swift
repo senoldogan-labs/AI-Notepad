@@ -49,9 +49,12 @@ struct VoiceTypingSettings: View {
                 Text("Basılı tut: konuştuğun sürece dinler, bırakınca yazar. Kısa dokun: eller serbest dinler; bitirmek için yeniden dokun ya da Esc'ye bas.")
                 if let error = shortcuts.errors[.dictate] {
                     NoticeText(error, severity: .error)
+                } else if let reason = shortcuts.unsetDefaults[.dictate] {
+                    // Varsayılan kısayol çakıştı: menü uyarmaz, kısayol burada seçilir.
+                    NoticeText(String(localized: "Varsayılan kısayol atanmadı: \(reason) Sesle yazmak için bir kısayol seç."), severity: .attention)
                 }
             } control: {
-                ShortcutRecorder(binding: shortcuts.currentBinding(action: .dictate)) { (binding: KeyBinding) -> Void in
+                ShortcutRecorder(binding: shortcuts.assignedBinding(action: .dictate)) { (binding: KeyBinding) -> Void in
                     shortcuts.change(action: .dictate, binding: binding)
                 }
                 .disabled(!isEnabled)

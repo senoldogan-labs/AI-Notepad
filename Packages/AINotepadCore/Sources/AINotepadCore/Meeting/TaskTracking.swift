@@ -19,11 +19,17 @@ public extension NoteTask {
 
 /// Toplantılardan kullanıcıya düşen görevler (verilen sırada), konuşmacı adları uygulanmış (`namedRecord`): sahibi adı
 /// verilen kullanıcı olan görev de kullanıcınındır. Kayıt adlandırılmış görüntü kopyasıdır; değişiklikler kimlikle
-/// saklı kayda yapılır. Saf fonksiyondur.
+/// saklı kayda yapılır. Yalnız kullanıcıya görev düşen toplantıların notu adlandırılır (`namedTasks`). Saf fonksiyondur.
 public func myTasks(meetings: [MeetingRecord], userName: String) -> [(record: MeetingRecord, task: NoteTask)] {
-    meetings.flatMap { (stored: MeetingRecord) -> [(record: MeetingRecord, task: NoteTask)] in
-        let record: MeetingRecord = namedRecord(record: stored, userName: userName)
-        return (record.note?.tasks ?? []).filter(\.isMine).map { (record: record, task: $0) }
+    myTasks(namedRecords: meetings.filter { namedTasks(record: $0, userName: userName).contains(where: \.isMine) }.map {
+        namedRecord(record: $0, userName: userName)
+    })
+}
+
+/// Adlandırılmış toplantılardan (`namedRecords`) kullanıcıya düşen görevler, verilen sırada. Saf fonksiyondur.
+public func myTasks(namedRecords: [MeetingRecord]) -> [(record: MeetingRecord, task: NoteTask)] {
+    namedRecords.flatMap { (record: MeetingRecord) -> [(record: MeetingRecord, task: NoteTask)] in
+        (record.note?.tasks ?? []).filter(\.isMine).map { (record: record, task: $0) }
     }
 }
 

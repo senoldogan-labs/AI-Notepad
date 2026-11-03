@@ -131,7 +131,8 @@ final class DictationController {
         apply(event: .keyUp(at: time))
     }
 
-    /// Dinleme sürüyorsa sesi atıp kapatır (toplantı kaydı başlıyor, kısayol bırakıldı ya da sesle yazma kapatıldı).
+    /// Dinleme sürüyorsa sesi atıp kapatır, yazıya dökülüyorsa metni yapıştırmadan atar (toplantı kaydı başlıyor,
+    /// kısayol bırakıldı ya da sesle yazma kapatıldı).
     func cancel() {
         apply(event: .cancel)
     }
@@ -153,6 +154,7 @@ final class DictationController {
         case .enterHandsFree: enterHandsFree()
         case .finishListening: finishListening()
         case .cancelListening: cancelListening()
+        case .discardText: discardText()
         case nil: break
         }
     }
@@ -308,6 +310,13 @@ final class DictationController {
         dictationLogger.info("Sesle yazma iptal edildi")
     }
 
+    /// Yazıya dökülen metin yapıştırılmaz: dinleme kimliği değişir, süren bitirme işi (`finishListening`) metni bırakır.
+    private func discardText() {
+        listeningID += 1
+        setPill(.hidden)
+        dictationLogger.info("Sesle yazma metni yapıştırılmadan atıldı")
+    }
+
     private func finishListening() {
         closeMicrophone()
         guard let capture, let preparation, let transcription else {
@@ -317,6 +326,8 @@ final class DictationController {
         self.capture = nil
         self.preparation = nil
         self.transcription = nil
+        // Metin atılırsa (`discardText`) kimlik değişir: bu iş yapıştırmaz, hapı ve durumu yeni dinlemeye bırakır.
+        let id: Int = listeningID
         setPill(isPreparing ? .preparing(progress: preparationProgress) : .transcribing)
         Task {
             do {
@@ -326,19 +337,29 @@ final class DictationController {
                     throw DictationError.noSpeech
                 }
                 _ = try await preparation.value
+                guard id == listeningID else {
+                    throw CancellationError()
+                }
                 setPill(.transcribing)
                 // macOS 26+'da ses dinlerken yazıya döküldü; burada yalnız son kısım kesinleşir.
                 let raw: String = try await transcription.value
                 guard let text = dictationInsertText(raw: raw) else {
                     throw DictationError.noSpeech
                 }
-                try await deliver(text: text)
+                try await deliver(text: text, listeningID: id)
                 recordFeatureUsage(feature: .dictation)
-            } catch DictationError.noSpeech {
-                showMessage(text: userFacingMessage(error: DictationError.noSpeech), severity: .info, action: nil)
             } catch {
-                dictationLogger.error("Sesle yazma başarısız, hata: \(String(describing: error), privacy: .private)")
-                showMessage(text: userFacingMessage(error: error), severity: dictationFailureSeverity(error: error), action: nil)
+                // Metin atıldı: hap ve durum yeni dinlemenindir; hata da gösterilmez.
+                guard id == listeningID else {
+                    dictationLogger.info("Atılan sesle yazmanın bitirmesi durdu, neden: \(String(describing: error), privacy: .public)")
+                    return
+                }
+                if case DictationError.noSpeech = error {
+                    showMessage(text: userFacingMessage(error: DictationError.noSpeech), severity: .info, action: nil)
+                } else {
+                    dictationLogger.error("Sesle yazma başarısız, hata: \(String(describing: error), privacy: .private)")
+                    showMessage(text: userFacingMessage(error: error), severity: dictationFailureSeverity(error: error), action: nil)
+                }
             }
             apply(event: .finished)
         }
@@ -366,8 +387,12 @@ final class DictationController {
 
     // MARK: Teslim
 
-    /// Metni odaktaki uygulamaya yapıştırır; izin yoksa panoya kopyalar ve söyler.
-    private func deliver(text: String) async throws {
+    /// Metni odaktaki uygulamaya yapıştırır; izin yoksa panoya kopyalar ve söyler. Metin atıldıysa (`discardText`:
+    /// dinleme kimliği değişti) panoya da yazılmaz, `CancellationError` fırlatır.
+    private func deliver(text: String, listeningID id: Int) async throws {
+        guard id == listeningID else {
+            throw CancellationError()
+        }
         switch dictationDelivery(isAccessibilityTrusted: isAccessibilityTrusted(), isSecureInputActive: IsSecureEventInputEnabled()) {
         case .refuse(let error):
             throw error
@@ -380,6 +405,12 @@ final class DictationController {
                 severity: .attention, action: .openSettings
             )
         case .paste:
+            // Kısayolun değiştiricileri bırakılsın (⌘V'ye karışmasın). Beklerken atılmış olabilir; denetimden ⌘V'ye dek
+            // bekleme yok, iptal araya giremez.
+            await waitForModifierRelease()
+            guard id == listeningID else {
+                throw CancellationError()
+            }
             try await paste(text: text)
             setPill(.hidden)
         }
@@ -461,7 +492,8 @@ private func applyPasteboardRestore(plan: PasteboardRestore, pasteboard: NSPaste
 private let transientPasteboardType: NSPasteboard.PasteboardType = NSPasteboard.PasteboardType("org.nspasteboard.TransientType")
 
 /// Metni panoya yazar, ⌘V gönderir, sonra panoyu eski haline döndürür (bu arada başka bir şey kopyalandıysa dokunmaz).
-/// ⌘V gönderilemezse metin panoda kalır ve `DictationError.pasteEventFailed`.
+/// ⌘V gönderilemezse metin panoda kalır ve `DictationError.pasteEventFailed`. Kısayolun değiştiricilerini çağıran bekler
+/// (`waitForModifierRelease`); pano yazılıp ⌘V gönderilene dek beklenmez.
 @MainActor
 private func paste(text: String) async throws {
     let pasteboard: NSPasteboard = NSPasteboard.general
@@ -474,7 +506,6 @@ private func paste(text: String) async throws {
         throw DictationError.pasteEventFailed
     }
     let written: Int = pasteboard.changeCount
-    await waitForModifierRelease()
     try postCommandV()
     try await Task.sleep(for: pasteboardRestoreDelay)
     applyPasteboardRestore(

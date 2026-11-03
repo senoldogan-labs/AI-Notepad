@@ -49,6 +49,15 @@ enum ShortcutAction: String, CaseIterable {
         case .dictate: defaultDictateBinding
         }
     }
+
+    /// Kullanıcının seçmediği varsayılan kısayol çakışırsa eylem kısayolsuz kalır mı (menü uyarmaz): sesle yazma
+    /// varsayılan açık; kullanıcı kurmadığı bir özellik için kırmızı uyarı görmesin, kısayolu Ayarlar › Sesle yazma'da seçer.
+    var leavesConflictingDefaultUnset: Bool {
+        switch self {
+        case .record, .toggleWindows: false
+        case .dictate: true
+        }
+    }
 }
 
 /// Eylemin kısayolu şu an kayıtlı olmalı mı: kayıt ve pencere kısayolları giriş kapısı açıkken; sesle yazma ayarı
@@ -295,6 +304,15 @@ private let hotKeyCallback: EventHandlerUPP = { (_: EventHandlerCallRef?, event:
     return noErr
 }
 
+/// Kısayol başka bir kısayolla çakıştığı için mi kurulamadı (bu uygulamada, başka bir uygulamada ya da sistemde).
+/// Saf fonksiyondur.
+func isConflict(error: HotKeyError) -> Bool {
+    switch error {
+    case .duplicate, .registrationFailed, .conflictsWithSystemShortcut: true
+    case .handlerInstallFailed, .systemShortcutsUnreadable, .unusableBinding: false
+    }
+}
+
 /// Kısayolun kullanıcıya gösterilecek hata metni.
 func shortcutErrorMessage(error: any Error, binding: KeyBinding) -> String {
     let name: String = keyBindingDisplay(binding: binding)
@@ -323,6 +341,9 @@ final class ShortcutController {
     private let isActive: @MainActor (ShortcutAction) -> Bool
     /// Eylem başına son değiştirme hatası (Ayarlar'da gösterilir; eski kısayol çalışmaya devam ediyor olabilir).
     var errors: [ShortcutAction: String] = [:]
+    /// Varsayılan kısayolu çakıştığı için atanmayan eylemler ve nedeni (`leavesConflictingDefaultUnset`); menü uyarmaz,
+    /// yalnızca eylemin Ayarlar satırı gösterir.
+    private(set) var unsetDefaults: [ShortcutAction: String] = [:]
 
     init(hotKeys: HotKeyCenter, model: AppModel, actions: [ShortcutAction: HotKeyHandlers], isActive: @escaping @MainActor (ShortcutAction) -> Bool) {
         self.hotKeys = hotKeys
@@ -340,14 +361,22 @@ final class ShortcutController {
     /// giriş kapısı ve sesle yazma ayarı değişince çağrılır.
     func sync() {
         for action in ShortcutAction.allCases {
-            if isActive(action) {
-                apply(action: action, binding: storedKeyBinding(key: action.settingsKey, fallback: action.defaultBinding))
-            } else {
+            if !isActive(action) {
                 hotKeys.unbind(action: action)
                 errors[action] = nil
+                unsetDefaults[action] = nil
+            } else if action.leavesConflictingDefaultUnset, !hasStoredKeyBinding(key: action.settingsKey) {
+                applyUnchosenDefault(action: action)
+            } else {
+                apply(action: action, binding: storedKeyBinding(key: action.settingsKey, fallback: action.defaultBinding))
             }
         }
         publish()
+    }
+
+    /// Ayarlarda gösterilen kısayol: varsayılanı çakıştığı için atanmadıysa nil, değilse `currentBinding`.
+    func assignedBinding(action: ShortcutAction) -> KeyBinding? {
+        unsetDefaults[action] == nil ? currentBinding(action: action) : nil
     }
 
     /// Çalışan kısayol; kurulamadıysa ya da eylem kapalıysa kayıtlı olan.
@@ -409,11 +438,34 @@ final class ShortcutController {
         do {
             try hotKeys.bind(action: action, binding: binding, handlers: handlers)
             errors[action] = nil
+            unsetDefaults[action] = nil
         } catch {
             hotKeyLogger.error("Kısayol kurulamadı, eylem: \(action.rawValue, privacy: .public), hata: \(String(describing: error), privacy: .private)")
             errors[action] = shortcutErrorMessage(error: error, binding: binding)
         }
         publish()
+    }
+
+    /// Kullanıcının seçmediği varsayılan kısayolu kurar. Bu uygulamanın başka bir kısayoluyla, başka bir uygulamayla ya
+    /// da bir sistem kısayoluyla çakışırsa eylem kısayolsuz kalır: hata yazılmaz (menü uyarmaz), neden yalnızca
+    /// Ayarlar'da görünür (`unsetDefaults`).
+    private func applyUnchosenDefault(action: ShortcutAction) {
+        guard let handlers = actions[action] else {
+            return
+        }
+        let binding: KeyBinding = action.defaultBinding
+        do {
+            try hotKeys.bind(action: action, binding: binding, handlers: handlers)
+            errors[action] = nil
+            unsetDefaults[action] = nil
+        } catch let error as HotKeyError where isConflict(error: error) {
+            hotKeyLogger.warning("Varsayılan kısayol çakışıyor, eylem kısayolsuz bırakıldı, eylem: \(action.rawValue, privacy: .public), hata: \(String(describing: error), privacy: .public)")
+            errors[action] = nil
+            unsetDefaults[action] = shortcutErrorMessage(error: error, binding: binding)
+        } catch {
+            hotKeyLogger.error("Kısayol kurulamadı, eylem: \(action.rawValue, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+            errors[action] = shortcutErrorMessage(error: error, binding: binding)
+        }
     }
 
     /// Menüdeki kırmızı satır: yalnızca etkin olup gerçekten çalışan kısayolu olmayan eylemler (değiştirme hatasında eski

@@ -9,7 +9,7 @@ public enum DictationKeyState: Sendable, Equatable {
     case pressed(since: Double)
     /// Kısa dokunuşla başladı; yeniden dokunma, Esc ya da süre sınırı bitirir.
     case handsFree
-    /// Dinleme bitti; metin yazıya dökülüp yapıştırılıyor. Bu sırada kısayol yok sayılır.
+    /// Dinleme bitti; metin yazıya dökülüp yapıştırılıyor. Bu sırada kısayol yok sayılır; iptal metni atar.
     case transcribing
 }
 
@@ -21,7 +21,7 @@ public enum DictationKeyEvent: Sendable, Equatable {
     case escape
     /// Dinleme süre sınırına ulaştı (açık unutulan mikrofon).
     case timeLimit
-    /// Dinleme başlatılamadı ya da toplantı kaydı başladı: ses atılır.
+    /// Dinleme başlatılamadı ya da toplantı kaydı başladı: ses (yazıya dökülüyorsa metin) atılır.
     case cancel
     /// Yazıya dökme ve yapıştırma bitti (başarılı ya da hatalı).
     case finished
@@ -37,6 +37,8 @@ public enum DictationKeyEffect: Sendable, Equatable {
     case finishListening
     /// Mikrofonu kapat; sesi at.
     case cancelListening
+    /// Yazıya dökülen metni yapıştırmadan at (ör. yazıya dökerken toplantı kaydı başladı; metin öndeki uygulamaya gitmez).
+    case discardText
 }
 
 /// Yeni durum ve (varsa) yapılacak iş.
@@ -71,6 +73,8 @@ public func dictationTransition(state: DictationKeyState, event: DictationKeyEve
         return DictationKeyTransition(state: .transcribing, effect: .finishListening)
     case (.pressed, .cancel), (.handsFree, .cancel):
         return DictationKeyTransition(state: .idle, effect: .cancelListening)
+    case (.transcribing, .cancel):
+        return DictationKeyTransition(state: .idle, effect: .discardText)
     case (.transcribing, .finished):
         return DictationKeyTransition(state: .idle, effect: nil)
     case (.idle, _), (.pressed, _), (.handsFree, _), (.transcribing, _):

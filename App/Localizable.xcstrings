@@ -19643,6 +19643,46 @@
         }
       }
     },
+    "Çevrimiçi görüşme kaydında ekrana birkaç saniyede bir bakılır; içerik anlamlı değişince (slayt, tasarım, sayfa) bir görüntü saklanır ve o sırada konuşulanlarla eşlenir. Görüşme penceresi (Zoom, Meet, Teams…) bulunursa yalnızca o, yoksa ana ekran alınır; bu uygulamanın pencereleri hiç alınmaz. Görüntüler bu Mac'te toplantının klasöründe saklanır. \"Notlarda ekran görüntülerini kullan\" açık olduğu için not yazılırken ve Sor'da birkaçı küçültülüp sunucumuza, oradan da Anthropic'e (Claude) gönderilir; bağladığın MCP istemcisi (ör. Claude, Cursor) de okuyabilir. Toplantı silinince görüntüleri de silinir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "While an online call is recorded, the app looks at the screen every few seconds. When the content changes meaningfully (a slide, a design, a page), it keeps a snapshot and matches it to what was said meanwhile. If it finds the call's window (Zoom, Meet, Teams…), it captures only that window, otherwise the main display; this app's windows are never captured. Snapshots are kept on this Mac in the meeting's folder. Because \"Use screen snapshots in notes\" is on, a few of them are downsized and sent to our server and from there to Anthropic (Claude) when a note is written and in Ask; an MCP app you connect (such as Claude or Cursor) can read them too. Deleting the meeting deletes its snapshots."
+          }
+        }
+      }
+    },
+    "Varsayılan kısayol atanmadı: %@ Sesle yazmak için bir kısayol seç.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The default shortcut wasn't assigned: %@ Choose a shortcut for voice typing."
+          }
+        }
+      }
+    },
+    "Kısayol seç": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose shortcut"
+          }
+        }
+      }
+    },
+    "Kısayol atanmadı. Seç": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No shortcut assigned. Choose"
+          }
+        }
+      }
+    },
     "Hesabın silindi, ama bu cihazdaki son adım tamamlanamadı; uygulamayı kapatıp yeniden aç. App Store aboneliğin varsa hesabı silince iptal olmaz: iPhone'da Ayarlar › Apple Hesabı › Abonelikler'den iptal et.": {
       "extractionState": "manual",
       "localizations": {
