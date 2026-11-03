@@ -20,7 +20,8 @@ public func noteEditRequest(
         """,
         maxTokens: 16000,
         jsonSchema: meetingNoteSchema,
-        timeoutSec: 300
+        timeoutSec: 300,
+        images: []
     )
 }
 
@@ -37,7 +38,8 @@ public func noteOnlyEditRequest(note: MeetingNote, instruction: String, userName
         userText: noteEditInstructionAndNote(note: note, instruction: instruction),
         maxTokens: 16000,
         jsonSchema: meetingNoteSchema,
-        timeoutSec: 300
+        timeoutSec: 300,
+        images: []
     )
 }
 

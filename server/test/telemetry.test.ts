@@ -68,6 +68,7 @@ function featureReport(day: string): Record<string, unknown> {
     onDeviceLive: false,
     dictation: false,
     screenSnapshots: false,
+    screenNotes: false,
   };
 }
 
@@ -332,6 +333,7 @@ describe("özellik kullanımı (POST /v1/telemetry/features)", () => {
       mcp: true,
       dictation: true,
       screenSnapshots: true,
+      screenNotes: true,
     };
     const counted: Response = await postFeatures(harness, first, report);
     expect(counted.status).toBe(200);
@@ -352,6 +354,7 @@ describe("özellik kullanımı (POST /v1/telemetry/features)", () => {
       { feature: "live_translation", value: "", users: 1, total: 1 },
       { feature: "mcp", value: "", users: 1, total: 1 },
       { feature: "report", value: "", users: 2, total: 2 },
+      { feature: "screen_notes", value: "", users: 1, total: 1 },
       { feature: "screen_snapshots", value: "", users: 1, total: 1 },
       { feature: "translation_language", value: "tr", users: 1, total: 1 },
     ]);
@@ -364,7 +367,7 @@ describe("özellik kullanımı (POST /v1/telemetry/features)", () => {
     const session: Session = await signIn(harness);
     const day: string = dayOf(harness.clock.nowMs, -1);
     const legacy: Record<string, unknown> = Object.fromEntries(
-      Object.entries({ ...featureReport(day), ask: true }).filter(([key]: [string, unknown]): boolean => key !== "dictation" && key !== "screenSnapshots"),
+      Object.entries({ ...featureReport(day), ask: true }).filter(([key]: [string, unknown]): boolean => !["dictation", "screenSnapshots", "screenNotes"].includes(key)),
     );
     expect(await (await postFeatures(harness, session, legacy)).json()).toEqual({ counted: true });
     expect(await featureRows(day)).toEqual([

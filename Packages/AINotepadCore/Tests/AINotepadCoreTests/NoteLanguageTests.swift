@@ -15,13 +15,14 @@ private func noteLanguagePrompts(language: ShareLanguage) throws -> [(name: Stri
         ("ne kaçırdım", try #require(missedSummaryRequest(segments: live, nowSec: 12, windowSec: 180, language: language)).system),
         ("canlı soru", try #require(questionRequest(segments: live, question: "Mitä minulta pyydettiin?", language: language)).system),
         ("not", try #require(meetingNoteRequest(
-            segments: saved, speakerNames: [1: "Aino"], userName: "Doğan", template: .general, myNotes: "", language: language
+            segments: saved, speakerNames: [1: "Aino"], userName: "Doğan", template: .general, myNotes: "", language: language,
+            screens: []
         )).system),
         ("not parçası", noteChunkRequest(
             chunk: saved, part: 1, partCount: 2, state: .empty, speakerNames: [:], userName: "Doğan", template: .general, myNotes: "",
             language: language
         ).system),
-        ("not özeti", noteOverviewRequest(state: .empty, userName: "Doğan", template: .general, myNotes: "", language: language).system),
+        ("not özeti", noteOverviewRequest(state: .empty, userName: "Doğan", template: .general, myNotes: "", language: language, screens: []).system),
         ("not düzenleme", noteEditRequest(
             note: note, instruction: "Kısalt", segments: saved, speakerNames: [:], userName: "Doğan", language: language
         ).system),

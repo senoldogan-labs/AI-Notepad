@@ -48,7 +48,7 @@ private func tokens(accessExpiresAt: Date) -> HostedTokens {
 private let testClientInfo: HostedClientInfo = HostedClientInfo(appVersion: "0.1.10 (19)", osVersion: "macOS 15.4.1")
 
 private func llmRequest(tier: LLMTier, schema: String?) -> LLMRequest {
-    LLMRequest(purpose: .note, tier: tier, system: "sistem", userText: "metin", maxTokens: 2048, jsonSchema: schema, timeoutSec: 20)
+    LLMRequest(purpose: .note, tier: tier, system: "sistem", userText: "metin", maxTokens: 2048, jsonSchema: schema, timeoutSec: 20, images: [])
 }
 
 @Suite struct HostedAudioTests {
@@ -333,7 +333,7 @@ private func llmRequest(tier: LLMTier, schema: String?) -> LLMRequest {
         #expect(body["stream"] as? Bool == true)
         #expect(body["max_tokens"] as? Int == 2048)
         // Sunucu sınırının üstündeki istek sınıra iner (toplantı 8192, hesap 6144).
-        let large: LLMRequest = LLMRequest(purpose: .note, tier: .smart, system: "s", userText: "u", maxTokens: 16_000, jsonSchema: nil, timeoutSec: 30)
+        let large: LLMRequest = LLMRequest(purpose: .note, tier: .smart, system: "s", userText: "u", maxTokens: 16_000, jsonSchema: nil, timeoutSec: 30, images: [])
         let local: URL = try #require(URL(string: "http://localhost:8787"))
         let meetingRequest: URLRequest = try hostedLLMURLRequest(baseURL: local, credentials: HostedLLMCredentials(accessToken: "j", meetingID: "m"), clientInfo: testClientInfo, request: large)
         let largeMeeting: [String: Any] = try jsonObject(try #require(meetingRequest.httpBody))

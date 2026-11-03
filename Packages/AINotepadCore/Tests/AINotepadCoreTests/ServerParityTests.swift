@@ -62,6 +62,25 @@ func serverDirectory() -> URL {
         #expect(try serverArray(source: funnel, name: "funnelSignInProviders") == HostedSignInProvider.allCases.map(\.rawValue))
         #expect(try serverArray(source: funnel, name: "funnelFailureStages") == HostedSignInFailureStage.allCases.map(\.rawValue))
     }
+
+    // The screen-image caps of a note are enforced on both sides: a client sending more than the server accepts would
+    // fail every note with `screen_images_over_limit`; a server accepting more would not protect the AI budget.
+    @Test func screenNoteBudgetMatchesServer() throws {
+        let images: String = try String(contentsOf: serverDirectory().appending(path: "src/llm/images.ts"), encoding: .utf8)
+        #expect(try serverNumber(source: images, name: "screenImageMaxCount") == screenNoteBudget.maxImages)
+        #expect(try serverNumber(source: images, name: "screenImageMaxBytes") == screenNoteBudget.maxImageBytes)
+        #expect(try serverNumber(source: images, name: "screenImageMaxTotalTokens") == screenNoteBudget.maxTotalTokens)
+        let purposes: Substring = try #require(images.firstRange(of: "export const screenImagePurposes: readonly LLMPurpose[] = [").map { images[$0.upperBound...] })
+        let listed: [String] = try #require(purposes.firstRange(of: "];").map { purposes[..<$0.lowerBound] }).matches(of: #/"([a-z_]+)"/#).map { String($0.output.1) }
+        #expect(listed == [LLMPurpose.note.rawValue, LLMPurpose.noteOverview.rawValue])
+    }
+}
+
+/// Sunucu kaynağındaki `export const <ad>: number = <sayı>;` sabiti (`_` ayraçlarıyla yazılabilir).
+private func serverNumber(source: String, name: String) throws -> Int {
+    let start: Substring = try #require(source.firstRange(of: "export const \(name): number = ").map { source[$0.upperBound...] })
+    let literal: Substring = try #require(start.firstRange(of: ";").map { start[..<$0.lowerBound] })
+    return try #require(Int(literal.replacingOccurrences(of: "_", with: "")))
 }
 
 /// Sunucu kaynağındaki `export const <ad> = [ ... ] as const;` dizisinin dizgeleri (sırasıyla).

@@ -147,7 +147,8 @@ public func noteChunkRequest(
         "required":["terim","anlam"],"additionalProperties":false}}},\
         "required":["ozet","kararlar","yeniGorevler","degisenGorevler","sozluk"],"additionalProperties":false}
         """,
-        timeoutSec: 300
+        timeoutSec: 300,
+        images: []
     )
 }
 
@@ -207,8 +208,11 @@ public func applyNoteChunk(state: ChunkedNoteState, chunk: NoteChunk, startSec: 
 }
 
 /// Parçalar bitince başlık ve tüm toplantının özeti için istek (görev ve kararlar yalnızca bağlam; yeniden yazılmaz).
-/// Saf fonksiyondur.
-public func noteOverviewRequest(state: ChunkedNoteState, userName: String, template: NoteTemplate, myNotes: String, language: ShareLanguage) -> LLMRequest {
+/// In a long meeting the shared-screen images (`screens`) go only with this one request, never with the chunks: they
+/// are paid for once per note. Saf fonksiyondur.
+public func noteOverviewRequest(
+    state: ChunkedNoteState, userName: String, template: NoteTemplate, myNotes: String, language: ShareLanguage, screens: [LLMImage]
+) -> LLMRequest {
     let user: String = userName.isEmpty ? "kullanıcı" : userName
     let mine: (rule: String, block: String) = myNotesPrompt(myNotes: myNotes)
     let tasks: String = state.tasks.enumerated().map { numberedTaskLine(number: $0.offset + 1, task: $0.element) }.joined(separator: "\n")
@@ -221,6 +225,7 @@ public func noteOverviewRequest(state: ChunkedNoteState, userName: String, templ
         paragraflık özet yaz. Başlık, özet ve akış \(language.promptName) dilinde olur. akis alanına konuların sırasını yaz: her bölümün başladığı [mm:ss] zamanı (parça
         özetlerindeki aralıklardan), kısa başlığı ve tek cümlelik özeti (5–12 bölüm). Notlarda olmayan bir şey uydurma. \(templateInstructions(template: template))
         \(mine.rule)
+        \(screens.isEmpty ? "" : screenNotesRule(language: language))
         \(transcriptIsDataNote)
         """,
         userText: """
@@ -243,7 +248,8 @@ public func noteOverviewRequest(state: ChunkedNoteState, userName: String, templ
         "required":["zaman","baslik","ozet"],"additionalProperties":false}}},\
         "required":["baslik","ozet","akis"],"additionalProperties":false}
         """,
-        timeoutSec: 300
+        timeoutSec: 300,
+        images: screens
     )
 }
 
@@ -318,16 +324,18 @@ private func saveProgress(progress: ChunkedNoteProgress, file: URL) {
 /// parça öncekilerin özetini ve görevlerini görür), sonra başlık ve genel özet. Her istek boş/bozuk yanıtta yeniden
 /// sorulur. Uzun notta her parçadan sonra ilerleme `progressFile`'a yazılır: bir parça kalıcı olarak başarısız olursa
 /// "Tekrar işle" yazılan parçaları yeniden ödemeden kaldığı yerden sürer; not bitince dosya silinir. Not `language`
-/// dilinde yazılır. Metin yoksa nil.
+/// dilinde yazılır. `screens` (shared-screen images) go with exactly one request: the single note request, or the
+/// overview of a long note (chunks stay text only). Metin yoksa nil.
 public func writeMeetingNote(
     segments: [StoredSegment], speakerNames: [Int: String], userName: String, template: NoteTemplate, myNotes: String, language: ShareLanguage,
-    llm: LLMProvider, progressFile: URL
+    llm: LLMProvider, progressFile: URL, screens: [LLMImage]
 ) async throws -> MeetingNote? {
     let totalChars: Int = segments.map(\.text.count).reduce(0, +)
     let limits: NoteLimits = noteLimits(provider: llm)
     guard totalChars > limits.chunkChars else {
         guard let request = meetingNoteRequest(
-            segments: segments, speakerNames: speakerNames, userName: userName, template: template, myNotes: myNotes, language: language
+            segments: segments, speakerNames: speakerNames, userName: userName, template: template, myNotes: myNotes, language: language,
+            screens: screens
         ) else {
             return nil
         }
@@ -369,7 +377,7 @@ public func writeMeetingNote(
     let finalState: ChunkedNoteState = state
     let overviewState: ChunkedNoteState = limits.summaryChars.map { condensedNoteState(state: finalState, maxChars: $0) } ?? finalState
     let note: MeetingNote = try await requestStructured(
-        provider: llm, request: noteOverviewRequest(state: overviewState, userName: userName, template: template, myNotes: myNotes, language: language)
+        provider: llm, request: noteOverviewRequest(state: overviewState, userName: userName, template: template, myNotes: myNotes, language: language, screens: screens)
     ) { (text: String) throws -> MeetingNote in
         try parseNoteOverview(text: text, state: finalState)
     }

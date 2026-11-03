@@ -44,6 +44,28 @@ struct ScreenSnapshotSettingsRow: View {
     }
 }
 
+#if HOSTED_EDITION
+/// Settings › General: "Notlarda ekran görüntülerini kullan" (off by default, separate from taking snapshots). The text
+/// says what leaves the Mac and to whom; the per-meeting choice is on the meeting's Screens tab.
+struct ScreenNotesSettingsRow: View {
+    @AppStorage(SettingsKey.screenNotes) private var enabled: Bool = false
+    @AppStorage(SettingsKey.screenSnapshots) private var takesSnapshots: Bool = false
+
+    var body: some View {
+        SettingsRow(title: Text("Notlarda ekran görüntülerini kullan")) {
+            Text("Not yazılırken toplantının en çok konuşulan en fazla 6 ekran görüntüsü küçültülüp notla birlikte sunucumuza, oradan da Anthropic'e (Claude) gönderilir; not ekrana atıf yapabilir (ör. \"Fiyatlandırma slaytında, 12:40\"). Sunucumuz görüntüleri saklamaz ve loglamaz; Anthropic onları transkriptle aynı koşullarla işler. Bir görüntüyü toplantının Ekranlar sekmesinden nottan çıkarabilirsin. Kapalıyken görüntüler bu Mac'ten çıkmaz.")
+            if enabled, !takesSnapshots {
+                NoticeText("Görüntü alınması için \"Paylaşılan ekranın görüntülerini al\" da açık olmalı.", severity: .attention)
+                    .padding(.top, 4)
+            }
+        } control: {
+            Toggle("Notlarda ekran görüntülerini kullan", isOn: $enabled)
+                .settingsToggle()
+        }
+    }
+}
+#endif
+
 // MARK: Toplantı sayfası
 
 /// Silme onayı beklenen öğe (satır içi; ayrı uyarı penceresi yok).
@@ -66,6 +88,18 @@ struct ScreenSnapshotsSection: View {
     let onPlay: @MainActor (Double) -> Void
     @State private var expandedID: String?
     @State private var confirmation: ScreenDeleteConfirmation = .none
+    #if HOSTED_EDITION
+    @AppStorage(SettingsKey.screenNotes) private var usesScreensInNotes: Bool = false
+    #endif
+
+    /// Whether the rows show the "use in note" tick (Gistsmith with the setting on).
+    private var showsNoteChoice: Bool {
+        #if HOSTED_EDITION
+        usesScreensInNotes
+        #else
+        false
+        #endif
+    }
 
     var body: some View {
         let snapshots: [ScreenSnapshot] = model.screenSnapshots.snapshots[record.id] ?? []
@@ -85,6 +119,13 @@ struct ScreenSnapshotsSection: View {
                     ForEach(linked) { (item: LinkedScreenSnapshot) in
                         ScreenSnapshotRow(
                             model: model, record: record, item: item, isExpanded: expandedID == item.id, isLocked: isLocked, canPlay: canPlay,
+                            noteChoice: showsNoteChoice
+                                ? ScreenNoteChoice(
+                                    isIncluded: !(model.screenSnapshots.noteExclusions[record.id] ?? []).contains(item.id),
+                                    isEnabled: !model.processingMeetingIDs.contains(record.id)
+                                )
+                                : nil,
+                            onToggleNote: { model.toggleScreenNoteExclusion(meetingID: record.id, snapshot: item.snapshot) },
                             isConfirmingDelete: confirmation == .one(item.id),
                             onToggleExpanded: { expandedID = expandedID == item.id ? nil : item.id },
                             onPlay: onPlay,
@@ -133,8 +174,20 @@ struct ScreenSnapshotsSection: View {
                 .appFont(size: 12, weight: .regular)
                 .foregroundStyle(Theme.muted)
                 .fixedSize(horizontal: false, vertical: true)
+            if showsNoteChoice {
+                Text("Not yazılırken \"Notta\" işaretli görüntülerden en çok konuşulan en fazla 6'sı sunucumuza ve Anthropic'e gönderilir; işaretini kaldırdığın görüntü gönderilmez. Seçim bir sonraki notta geçerli olur.")
+                    .appFont(size: 12, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
+}
+
+/// The row's "use in note" tick: whether it is ticked and whether it can change now (not while the note is written).
+private struct ScreenNoteChoice: Equatable {
+    let isIncluded: Bool
+    let isEnabled: Bool
 }
 
 /// Tek görüntü satırı: küçük resim (ya da büyümüş hâli), ekranda kaldığı aralık ve konuşulanlar.
@@ -145,6 +198,9 @@ private struct ScreenSnapshotRow: View {
     let isExpanded: Bool
     let isLocked: Bool
     let canPlay: Bool
+    /// Nil when notes don't use screens (the tick is hidden).
+    let noteChoice: ScreenNoteChoice?
+    let onToggleNote: @MainActor () -> Void
     let isConfirmingDelete: Bool
     let onToggleExpanded: @MainActor () -> Void
     let onPlay: @MainActor (Double) -> Void
@@ -187,6 +243,17 @@ private struct ScreenSnapshotRow: View {
                 .disabled(!canPlay)
                 .hoverHint(canPlay ? "Bu ekrandayken konuşulanları dinle" : "Bu toplantının sesi yok", alignment: .leading, edge: .bottom)
                 Spacer(minLength: 8)
+                if let noteChoice, !isConfirmingDelete {
+                    Toggle("Notta", isOn: Binding<Bool>(get: { noteChoice.isIncluded }, set: { (_: Bool) -> Void in onToggleNote() }))
+                        .toggleStyle(.checkbox)
+                        .disabled(!noteChoice.isEnabled)
+                        .hoverHint(
+                            noteChoice.isEnabled
+                                ? (noteChoice.isIncluded ? "Not yazılırken bu görüntü gönderilebilir; kaldırınca gönderilmez" : "Bu görüntü nota gönderilmez")
+                                : "Not yazılırken değiştirilemez",
+                            alignment: .trailing, edge: .bottom
+                        )
+                }
                 if isConfirmingDelete {
                     Text("Silinsin mi?").foregroundStyle(NoticeSeverity.error.tint)
                     Button("Sil", role: .destructive) { onDelete() }

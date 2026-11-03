@@ -786,6 +786,48 @@ private func silentFlac(directory: URL) throws -> URL {
         #expect(try await other.client.entitlements().trialMeetingsLeft == otherBefore.trialMeetingsLeft)
         _ = try await online.endMeeting(meetingID: live.meetingId)
     }
+
+    // Screen snapshots in notes through the real client and server: the app's own pipeline (6 slides on disk →
+    // `screenNoteImages`) passes the server's caps and the raised body limit (the local server's fake Anthropic key then
+    // rejects upstream, or a real one answers); one image too many, or images on a purpose that may not carry them, are
+    // refused with `screen_images_over_limit` before any upstream call.
+    @Test func screenNoteImagesAgainstLocalServer() async throws {
+        let baseURL: URL = try localServerBase()
+        let user: SignedInUser = try await signedInUser(baseURL: baseURL)
+        try markTrialStarted(userID: user.userID, usedMeetings: 1, startedAtMs: nowMs())
+        let started: HostedStartedMeeting = try await user.client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: UUID().uuidString.lowercased(), deferred: false)
+        let meeting: URL = try temporaryDirectory()
+        for index in 0..<7 {
+            try writeTestSlide(meetingDirectory: meeting, offsetSec: Double(index) * 30 + 5, index: index + 1, width: 1600, height: 1000)
+        }
+        let record: MeetingRecord = screenNotesMeeting(seconds: 240)
+        let images: [LLMImage] = try screenNoteImages(record: record, meetingDirectory: meeting, budget: screenNoteBudget, policy: screenSnapshotPolicy)
+        #expect(images.count == screenNoteBudget.maxImages)
+        let provider: LLMProvider = .hosted(HostedLLMConfig(baseURL: baseURL, credentials: user.client, scope: .recordedMeeting(serverMeetingID: started.meetingId)))
+        let note: LLMRequest = try #require(meetingNoteRequest(
+            segments: record.liveSegments, speakerNames: [:], userName: "Doğan", template: .general, myNotes: "", language: .turkish, screens: images
+        ))
+        do {
+            _ = try await sendLLM(provider: provider, request: note)
+        } catch LLMError.hosted(let error) {
+            #expect(error.code == .upstreamRejected || error.code == .upstreamUnavailable, "\(error)")
+        }
+        let first: LLMImage = try #require(images.first)
+        let tooMany: LLMRequest = try #require(meetingNoteRequest(
+            segments: record.liveSegments, speakerNames: [:], userName: "Doğan", template: .general, myNotes: "", language: .turkish,
+            screens: images + [first]
+        ))
+        let overCount: HostedAPIError? = await hostedError { _ = try await sendLLM(provider: provider, request: tooMany) }
+        #expect(overCount?.code == .screenImagesOverLimit && overCount?.status == 413)
+        if let overCount {
+            #expect(!isRetryableHostedError(error: overCount))
+        }
+        let wrongPurpose: LLMRequest = LLMRequest(
+            purpose: .askAnswer, tier: .smart, system: "s", userText: "u", maxTokens: 1000, jsonSchema: nil, timeoutSec: 30, images: [first]
+        )
+        let refused: HostedAPIError? = await hostedError { _ = try await sendLLM(provider: provider, request: wrongPurpose) }
+        #expect(refused?.code == .screenImagesOverLimit)
+    }
 }
 
 #endif
