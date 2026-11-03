@@ -25,6 +25,7 @@ struct PhoneSettingsTab: View {
     @AppStorage(PhoneSettingsKey.displayMode) private var displayMode: String = DisplayMode.bilingual.rawValue
     @AppStorage(PhoneSettingsKey.noteTemplate) private var noteTemplate: String = NoteTemplateKind.general.rawValue
     @AppStorage(PhoneSettingsKey.customTemplate) private var customTemplate: String = ""
+    @AppStorage(PhoneSettingsKey.templateFromTitle) private var templateFromTitle: Bool = true
     @AppStorage(PhoneSettingsKey.customVocabulary) private var vocabulary: String = ""
     @AppStorage(PhoneSettingsKey.missedWindowMinutes) private var missedMinutes: Int = 3
     @Environment(\.openURL) private var openURL: OpenURLAction
@@ -144,6 +145,10 @@ struct PhoneSettingsTab: View {
                         } label: {
                             LabeledContent("Kendi şablonun", value: customTemplate.isEmpty ? String(localized: "Boş") : String(localized: "Yazıldı"))
                         }
+                    }
+                    Toggle(isOn: $templateFromTitle) {
+                        Text("Şablonu toplantı adına göre seç")
+                        Text("Ad türü gösteriyorsa (ör. \"1:1\", \"Daily\", \"Mülakat\") o şablon kullanılır; kendi şablonun hep geçerli.")
                     }
                     NavigationLink {
                         PhoneTextSettingScreen(

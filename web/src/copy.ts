@@ -975,8 +975,8 @@ export const copy: Copy = {
       },
       templates: {
         title: "Meeting templates",
-        text: "Client calls, one-on-ones, interviews and lectures each get a note that puts the right things first. Or write your own.",
-        sample: ["Client call", "One-on-one", "Interview", "Lecture", "Your own"],
+        text: "Client calls, one-on-ones, stand-ups, sprint planning, interviews and lectures each get a note that puts the right things first, picked from the meeting title. Or write your own.",
+        sample: ["Client call", "One-on-one", "Stand-up", "Sprint planning", "Interview", "Lecture", "Your own"],
       },
       voiceTyping: {
         title: "Voice typing in any app",
