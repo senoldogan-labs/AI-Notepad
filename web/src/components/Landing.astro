@@ -76,7 +76,9 @@ const launchVideo: { readonly src: string; readonly poster: string } = {
   poster: "/video/gistsmith-launch-poster.jpg",
 };
 /** Arama motorları için uygulama ve işletme bilgisi (JSON-LD). */
-const structuredData: string = structuredDataJson(homeStructuredData(siteConfig, common, text.meta, operator, text.faq, page));
+const structuredData: string = structuredDataJson(
+  homeStructuredData(siteConfig, operator, { common, meta: text.meta, faq: text.faq, features: text.featureList, trial: common.trial, page }),
+);
 ---
 
   {/* Veri bloğu: Astro işlemez ve paketlemez (`is:inline`), tarayıcı çalıştırmaz; CSP'ye takılmaz. */}

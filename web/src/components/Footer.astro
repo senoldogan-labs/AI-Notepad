@@ -1,5 +1,5 @@
 ---
-// Alt bilgi: kısa tanım, ürün, öğren (karşılaştırma, blog, MCP), hesap ve şirket (iletişim, yasal) bağlantıları; en
+// Alt bilgi: kısa tanım, ürün, öğren (karşılaştırma, diller, entegrasyonlar, blog, MCP), hesap ve şirket (iletişim, yasal) bağlantıları; en
 // altta telif satırı ve dil seçimi (routes.ts `siteLanguages`: her dil kendi ana sayfasına gider, sayfanın dili bağlantı
 // değil düz metindir). İşletmenin kimliği ve adresi gizlilik, şartlar ve iletişim sayfalarındadır (tek kaynak:
 // legal/operator.ts).
@@ -33,6 +33,9 @@ const columns: readonly { readonly title: string; readonly links: readonly { rea
       { href: routes.compare, label: text.nav.compare },
       { href: routes.vsGranola, label: copy.compare.competitors.granola.title },
       { href: routes.vsOtter, label: copy.compare.competitors.otter.title },
+      { href: routes.vsFireflies, label: copy.compare.competitors.fireflies.title },
+      { href: routes.languages, label: text.nav.languages },
+      { href: routes.integrations, label: text.nav.integrations },
       { href: routes.blog, label: text.nav.blog },
       { href: routes.mcp, label: text.nav.mcp },
     ],
@@ -49,6 +52,7 @@ const columns: readonly { readonly title: string; readonly links: readonly { rea
     links: [
       { href: routes.contact, label: text.nav.contact },
       { href: routes.privacy, label: text.nav.privacy },
+      { href: `${routes.privacy}#at-a-glance`, label: text.nav.dataHandling },
       { href: routes.terms, label: text.nav.terms },
       { href: `${routes.privacy}#website`, label: text.footer.cookies },
       { href: "/fonts/Inter-OFL.txt", label: text.footer.fontLicense },

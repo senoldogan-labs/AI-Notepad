@@ -25,6 +25,7 @@ import LegalSection from "../components/LegalSection.astro";
 import Legal from "../layouts/Legal.astro";
 import { cardStatementDescriptor, productName } from "../config";
 import { copy } from "../copy";
+import { type DataHandlingRow, dataHandling } from "../data-handling";
 import type { LegalSectionInfo } from "../lib/legal";
 import { operator } from "../legal/operator";
 import { routes } from "../routes";
@@ -63,6 +64,41 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
     service behind them and this website — why it is processed, who it is shared with, how long it is kept and how you can use your
     rights under the EU General Data Protection Regulation (GDPR).
   </p>
+
+  {/* Özet tablo (data-handling.ts): numaralı bölümlerin dışında, çapaları kalıcı (`#at-a-glance`, `#data-<id>`). */}
+  <section class="glance" id="at-a-glance" aria-labelledby="at-a-glance-title">
+    <h2 id="at-a-glance-title">{dataHandling.title}</h2>
+    <p>{dataHandling.lead}</p>
+    <div class="table-wrap">
+      <table class="stack-table table-glance">
+        <thead>
+          <tr>
+            <th scope="col">{dataHandling.columns.data}</th>
+            <th scope="col">{dataHandling.columns.where}</th>
+            <th scope="col">{dataHandling.columns.stored}</th>
+            <th scope="col">{dataHandling.columns.retention}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            dataHandling.rows.map((row: DataHandlingRow) => (
+              <tr id={`data-${row.id}`}>
+                <td>
+                  <strong>{row.data}</strong>{" "}
+                  <a class="glance__more" href={`#${row.policySection}`}>
+                    {dataHandling.details}
+                  </a>
+                </td>
+                <td>{row.where}</td>
+                <td>{row.stored}</td>
+                <td>{row.retention}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
 
   <LegalSection sections={sections} id="controller">
     <p>
@@ -174,8 +210,9 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       </li>
       <li>
         <strong>Voice typing (Mac app).</strong> When you hold or tap the voice typing shortcut, the app records from your
-        microphone until you let go or stop it, and transcribes that audio on your Mac with Apple's on-device dictation
-        (macOS 26 or later) or an on-device speech model. Neither the audio nor the text is sent to us or to any provider,
+        microphone until you let go or stop it, and transcribes that audio on your Mac: with Apple's on-device dictation on
+        macOS 26 or later, and with an on-device speech model on macOS 15 to 25 (voice typing works on every macOS version
+        the app supports). Neither the audio nor the text is sent to us or to any provider,
         and neither is saved; voice typing doesn't open a meeting and doesn't count toward your plan. The app then pastes
         the text into the app you are typing in: it puts the text on the clipboard, sends ⌘V, and restores what was on
         your clipboard. To send ⌘V it needs the macOS Accessibility permission; it uses that permission only for this
@@ -825,3 +862,38 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
     </p>
   </LegalSection>
 </Legal>
+
+<style>
+  .glance {
+    scroll-margin-top: 92px;
+  }
+
+  .glance tr {
+    scroll-margin-top: 92px;
+  }
+
+  .glance__more {
+    font-size: 0.8125rem;
+    white-space: nowrap;
+  }
+
+  /* Telefonda satırlar kart olur; her hücrenin başında sütunun adı yazar (global.css stack-table). */
+  @media (max-width: 640px) {
+    .glance td:nth-child(2)::before {
+      content: "Where it is processed";
+    }
+
+    .glance td:nth-child(3)::before {
+      content: "Stored?";
+    }
+
+    .glance td:nth-child(4)::before {
+      content: "How long";
+    }
+  }
+
+  /* Hedef satır kısa süre vurgulanır (bağlantıyla gelinince). */
+  .glance tr:target td {
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+  }
+</style>

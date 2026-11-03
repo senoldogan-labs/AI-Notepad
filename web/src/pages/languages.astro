@@ -1,0 +1,231 @@
+---
+// Diller sayfası: sayılar, konuşulan diller ve not/çeviri dilleri tabloları (lib/languages.ts, uygulamanın listeleri),
+// Türkçe ve Fince, karışık dilli toplantılar ve sık sorulan sorular (JSON-LD `FAQPage` ve gezinti izi). Metinler
+// copy.ts `languages`'tan.
+import Base from "../layouts/Base.astro";
+import CtaBand from "../components/CtaBand.astro";
+import Faq from "../components/Faq.astro";
+import { copy, type LanguagesCopy, type StatCopy, type TitledText } from "../copy";
+import { type AppLanguage, noteLanguages, spokenLanguages } from "../lib/languages";
+import { websiteCard } from "../lib/social";
+import { infoPageStructuredData, structuredDataJson } from "../lib/structured-data";
+import { pageUrl } from "../routes";
+import { siteConfig } from "../site";
+
+const text: LanguagesCopy = copy.languages;
+const structuredData: string = structuredDataJson(
+  infoPageStructuredData(siteConfig, [{ name: copy.common.nav.languages, url: pageUrl("languages", siteConfig.siteOrigin) }], text.faq),
+);
+/** Sayfadaki iki dil tablosu: çapası, başlığı, açıklaması ve dilleri. */
+const tables: readonly { readonly id: string; readonly title: string; readonly lead: string; readonly languages: readonly AppLanguage[] }[] = [
+  { id: "spoken", title: text.spokenTitle, lead: text.spokenLead, languages: spokenLanguages },
+  { id: "notes", title: text.notesTitle, lead: text.notesLead, languages: noteLanguages },
+];
+---
+
+<Base page="languages" meta={text.meta} indexed={true} social={websiteCard}>
+  {/* Veri bloğu: Astro işlemez ve paketlemez (`is:inline`), tarayıcı çalıştırmaz; CSP'ye takılmaz. */}
+  <script is:inline type="application/ld+json" set:html={structuredData} />
+  <section class="page info-intro">
+    <p class="eyebrow">{text.eyebrow}</p>
+    <h1 class="title-xl">{text.title}</h1>
+    <p class="lead">{text.lead}</p>
+    <dl class="info-stats">
+      {
+        text.stats.map((stat: StatCopy) => (
+          <div class="card info-stat">
+            <dt class="info-stat__value tabular">{stat.value}</dt>
+            <dd class="small muted">{stat.label}</dd>
+          </div>
+        ))
+      }
+    </dl>
+  </section>
+
+  <section class="page info-section" id="turkish-finnish" aria-labelledby="highlights-title">
+    <h2 class="title-l" id="highlights-title">{text.highlightsTitle}</h2>
+    <div class="info-cards">
+      {
+        text.highlights.map((item: TitledText) => (
+          <article class="card info-card">
+            <h3 class="title-m">{item.title}</h3>
+            <p class="muted">{item.text}</p>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+
+  {
+    tables.map((table) => (
+      <section class="page info-section" id={table.id} aria-labelledby={`${table.id}-title`}>
+        <div class="info-section__head">
+          <h2 class="title-l" id={`${table.id}-title`}>
+            {table.title} <span class="muted tabular">({table.languages.length})</span>
+          </h2>
+          <p class="muted">{table.lead}</p>
+        </div>
+        <div class="language-table" role="region" aria-labelledby={`${table.id}-title`} tabindex="0">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">{text.columns.name}</th>
+                <th scope="col">{text.columns.native}</th>
+                <th scope="col">{text.columns.code}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {table.languages.map((language: AppLanguage) => (
+                <tr id={`${table.id}-${language.code}`}>
+                  <th scope="row">{language.name}</th>
+                  <td lang={language.code}>{language.nativeName}</td>
+                  <td>
+                    <code>{language.code}</code>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    ))
+  }
+
+  <section class="page info-section" id="mixed" aria-labelledby="mixed-title">
+    <h2 class="title-l" id="mixed-title">{text.mixedTitle}</h2>
+    <div class="info-cards">
+      {
+        text.mixed.map((item: TitledText) => (
+          <article class="card info-card">
+            <h3 class="title-m">{item.title}</h3>
+            <p class="muted">{item.text}</p>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="page info-section info-faq" id="faq" aria-labelledby="faq-title">
+    <h2 class="title-l" id="faq-title">{text.faqTitle}</h2>
+    <Faq items={text.faq} />
+  </section>
+
+  <CtaBand id="languages-cta-title" title={copy.compare.ctaTitle} text={copy.compare.ctaText} palette="ocean" layout="clouds-left" />
+</Base>
+
+<style>
+  .info-intro {
+    display: grid;
+    gap: 18px;
+    padding-block: clamp(48px, 8vw, 96px) clamp(16px, 3vw, 28px);
+  }
+
+  .info-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin: 12px 0 0;
+  }
+
+  .info-stat {
+    display: grid;
+    gap: 6px;
+    align-content: start;
+  }
+
+  .info-stat dd {
+    margin: 0;
+  }
+
+  .info-stat__value {
+    font-size: clamp(2rem, 4vw, 2.75rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  .info-section {
+    display: grid;
+    gap: 20px;
+    margin-top: clamp(40px, 6vw, 72px);
+    scroll-margin-top: 92px;
+  }
+
+  .info-section__head {
+    display: grid;
+    gap: 8px;
+    max-width: 46rem;
+  }
+
+  .info-cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .info-card {
+    display: grid;
+    align-content: start;
+    gap: 10px;
+  }
+
+  .language-table {
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-m);
+    background: var(--card);
+  }
+
+  .language-table:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .language-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9375rem;
+  }
+
+  .language-table th,
+  .language-table td {
+    padding: 10px 18px;
+    text-align: left;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .language-table tbody tr:last-child th,
+  .language-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .language-table thead th {
+    background: var(--soft);
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .language-table tbody th {
+    font-weight: 500;
+  }
+
+  .language-table td {
+    color: var(--muted);
+  }
+
+  .language-table code {
+    font-family: var(--mono);
+    font-size: 0.875rem;
+  }
+
+  .info-faq {
+    max-width: 52rem;
+  }
+
+  @media (max-width: 760px) {
+    .info-stats,
+    .info-cards {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

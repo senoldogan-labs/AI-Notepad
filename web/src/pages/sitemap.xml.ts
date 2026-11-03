@@ -1,9 +1,10 @@
 // Site haritası: arama motorlarına açık sayfalar ve blog yazıları. Blog yazıları ve blog dizini `<lastmod>` taşır (yazının
-// `updated` ya da `published` günü; dizinde en yeni yazınınki); diğer sayfaların değişiklik günü bilinmez, yazılmaz.
-// IndexNow betiği (scripts/indexnow.ts) değişen yazıları bu dosyanın `<lastmod>` değerlerinden seçer.
+// `updated` ya da `published` günü; dizinde en yeni yazınınki); sabit sayfalar routes.ts `pageModified`'daki günü taşır,
+// orada olmayanınki yazılmaz. IndexNow betiği (scripts/indexnow.ts) değişen sayfaları bu dosyanın `<lastmod>`
+// değerlerinden seçer.
 import type { APIRoute } from "astro";
 import { type BlogPost, blogEntries, blogPost, publishedIso } from "../lib/blog";
-import { blogPostPath, type PageKey, indexedPages, pageUrl } from "../routes";
+import { blogPostPath, type PageKey, indexedPages, pageModified, pageUrl } from "../routes";
 import { siteConfig } from "../site";
 
 /** Site haritasındaki adres ve bilinen son değişiklik günü (YYYY-AA-GG; bilinmiyorsa null). */
@@ -20,10 +21,16 @@ export function sitemapXml(entries: readonly SitemapEntry[]): string {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>\n`;
 }
 
-/** Sayfanın girdisi: blog dizini en yeni yazının değişiklik gününü alır (yazı yoksa null). Saf fonksiyondur. */
+/**
+ * Sayfanın girdisi: blog dizini en yeni yazının değişiklik gününü (yazı yoksa null), diğer sayfalar `pageModified`'daki
+ * günü alır. Saf fonksiyondur.
+ */
 function pageEntry(page: PageKey, origin: string, posts: readonly BlogPost[]): SitemapEntry {
+  if (page !== "blog") {
+    return { loc: pageUrl(page, origin), lastmod: pageModified[page] ?? null };
+  }
   const newest: number | null = posts.length === 0 ? null : Math.max(...posts.map((post: BlogPost): number => post.modified.getTime()));
-  return { loc: pageUrl(page, origin), lastmod: page === "blog" && newest !== null ? publishedIso(new Date(newest)) : null };
+  return { loc: pageUrl(page, origin), lastmod: newest === null ? null : publishedIso(new Date(newest)) };
 }
 
 export const GET: APIRoute = async (): Promise<Response> => {
