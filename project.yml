@@ -90,7 +90,7 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: AI-Notepad
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "AI-Notepad toplantıda ve sesle yazarken söylediklerini yazıya dökmek için mikrofonu kullanır."
         MARKETING_VERSION: "0.1.16"
-        CURRENT_PROJECT_VERSION: "30"
+        CURRENT_PROJECT_VERSION: "31"
   # Abonelik sürümü: anahtarsız; yapay zekâ, son geçiş ve canlı metin jetonu (Deepgram) bizim sunucumuz (server/)
   # üzerinden. Canlı motoru her kayıt için sunucu seçer; sunucu Deepgram vermezse canlı metin Mac'te (WhisperKit), bkz.
   # App/Hosted/HostedSeams.swift.
@@ -181,7 +181,7 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Gistsmith
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "Gistsmith toplantıda ve sesle yazarken söylediklerini yazıya dökmek için mikrofonu kullanır."
         MARKETING_VERSION: "0.1.16"
-        CURRENT_PROJECT_VERSION: "30"
+        CURRENT_PROJECT_VERSION: "31"
       configs:
         # Yerel sunucu: `cd server && npm run dev` (http yalnızca Debug'da kabul edilir).
         Debug:
@@ -281,7 +281,7 @@ targets:
         # Yetki dosyası yok: giriş ASWebAuthenticationSession ile sitede (Apple ile giriş yetkisi gerekmez), iCloud
         # eşitlemesi bu sürümde kapalı, DeviceCheck yetki istemez.
         MARKETING_VERSION: "0.1.16"
-        CURRENT_PROJECT_VERSION: "30"
+        CURRENT_PROJECT_VERSION: "31"
       configs:
         # Mac'teki Gistsmith'in ayarlarıyla aynı. Debug yerel sunucuya bağlanır (Simülatör Mac'in ağını paylaşır;
         # `cd server && npm run dev`); gerçek iPhone'da Debug derlemesi localhost'a ulaşamaz, Release kullan.
@@ -378,7 +378,7 @@ targets:
         # Niyetlerin gövdesi eklentide boş derlenir (bkz. iOS/Shared/RecordingIntents.swift).
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) WIDGET_EXTENSION HOSTED_EDITION"
         MARKETING_VERSION: "0.1.16"
-        CURRENT_PROJECT_VERSION: "30"
+        CURRENT_PROJECT_VERSION: "31"
     info:
       path: iOSWidgets/Info.plist
       properties:
