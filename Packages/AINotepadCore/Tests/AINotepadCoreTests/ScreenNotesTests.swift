@@ -127,7 +127,7 @@ func screenNotesMeeting(seconds: Int) -> MeetingRecord {
             ScreenNoteBudget(maxImages: 6, maxImageTokens: 450, maxTotalTokens: 10, minImageTokens: 64, maxLongEdge: 1_024, maxImageBytes: 250_000),
         ]
         for budget in budgets {
-            let selected: [ScreenNoteSelection] = selectScreenNoteImages(candidates: candidates, excludedIDs: [], budget: budget, policy: screenSnapshotPolicy)
+            let selected: [ScreenNoteSelection] = selectScreenNoteImages(candidates: candidates, excludedIDs: [], budget: budget, cellDelta: screenNoteDuplicateCellDelta, duplicateFraction: screenNoteDuplicateFraction)
             #expect(selected.count <= budget.maxImages)
             #expect(selected.reduce(0) { $0 + $1.tokens } <= budget.maxTotalTokens)
             for selection in selected {
@@ -135,10 +135,10 @@ func screenNotesMeeting(seconds: Int) -> MeetingRecord {
                 #expect(selection.tokens <= budget.maxImageTokens && max(selection.size.width, selection.size.height) <= budget.maxLongEdge)
             }
         }
-        let app: [ScreenNoteSelection] = selectScreenNoteImages(candidates: candidates, excludedIDs: [], budget: screenNoteBudget, policy: screenSnapshotPolicy)
+        let app: [ScreenNoteSelection] = selectScreenNoteImages(candidates: candidates, excludedIDs: [], budget: screenNoteBudget, cellDelta: screenNoteDuplicateCellDelta, duplicateFraction: screenNoteDuplicateFraction)
         #expect(app.count == 6)
         #expect(app.reduce(0) { $0 + $1.tokens } <= 2_700)
-        #expect(selectScreenNoteImages(candidates: candidates, excludedIDs: [], budget: budgets[4], policy: screenSnapshotPolicy).isEmpty)
+        #expect(selectScreenNoteImages(candidates: candidates, excludedIDs: [], budget: budgets[4], cellDelta: screenNoteDuplicateCellDelta, duplicateFraction: screenNoteDuplicateFraction).isEmpty)
     }
 
     // The most-discussed screens win, in time order; unticked and near-identical ones (the same slide shown again)
@@ -153,13 +153,13 @@ func screenNotesMeeting(seconds: Int) -> MeetingRecord {
             screenCandidate(index: 4, speechChars: 10, width: 1600, height: 1000, fingerprint: seededFingerprint(seed: 4)),
         ]
         let budget: ScreenNoteBudget = ScreenNoteBudget(maxImages: 2, maxImageTokens: 450, maxTotalTokens: 2_700, minImageTokens: 64, maxLongEdge: 1_024, maxImageBytes: 250_000)
-        let picked: [String] = selectScreenNoteImages(candidates: candidates, excludedIDs: [], budget: budget, policy: screenSnapshotPolicy).map(\.snapshot.id)
+        let picked: [String] = selectScreenNoteImages(candidates: candidates, excludedIDs: [], budget: budget, cellDelta: screenNoteDuplicateCellDelta, duplicateFraction: screenNoteDuplicateFraction).map(\.snapshot.id)
         #expect(picked == [candidates[1].snapshot.id, candidates[3].snapshot.id])
         let withoutTop: [String] = selectScreenNoteImages(
-            candidates: candidates, excludedIDs: [candidates[1].snapshot.id], budget: budget, policy: screenSnapshotPolicy
+            candidates: candidates, excludedIDs: [candidates[1].snapshot.id], budget: budget, cellDelta: screenNoteDuplicateCellDelta, duplicateFraction: screenNoteDuplicateFraction
         ).map(\.snapshot.id)
         #expect(withoutTop == [candidates[2].snapshot.id, candidates[3].snapshot.id])
-        #expect(selectScreenNoteImages(candidates: candidates, excludedIDs: Set(candidates.map(\.snapshot.id)), budget: budget, policy: screenSnapshotPolicy).isEmpty)
+        #expect(selectScreenNoteImages(candidates: candidates, excludedIDs: Set(candidates.map(\.snapshot.id)), budget: budget, cellDelta: screenNoteDuplicateCellDelta, duplicateFraction: screenNoteDuplicateFraction).isEmpty)
     }
 
     // A long silent screen still counts: time on screen weighs like speech at ~15 characters a second.
@@ -217,6 +217,23 @@ func screenNotesMeeting(seconds: Int) -> MeetingRecord {
         #expect(tokens <= screenNoteBudget.maxTotalTokens)
         // Nothing there: no images.
         #expect(try screenNoteImages(record: screenNotesMeeting(seconds: 60), meetingDirectory: try temporaryDirectory(), budget: screenNoteBudget, policy: screenSnapshotPolicy).isEmpty)
+    }
+
+    // Slides of one template that differ only in their text are different screens: all of them stay (the cost test's
+    // fixture relies on it).
+    @Test func textOnlySlidesAreNotDuplicates() throws {
+        let meeting: URL = try temporaryDirectory()
+        let titles: [String] = ["Agenda", "Pricing", "Roadmap Q1", "Hiring", "Risks", "Next steps"]
+        for (index, title) in titles.enumerated() {
+            try writeTextSlide(meetingDirectory: meeting, offsetSec: Double(index) * 60 + 5, title: title, lines: ["Line \(index) a", "Line \(index) b"])
+        }
+        let images: [LLMImage] = try screenNoteImages(record: screenNotesMeeting(seconds: 400), meetingDirectory: meeting, budget: screenNoteBudget, policy: screenSnapshotPolicy)
+        #expect(images.count == titles.count)
+        // The same slide twice is one screen.
+        try writeTextSlide(meetingDirectory: meeting, offsetSec: 390, title: "Pricing", lines: ["Line 1 a", "Line 1 b"])
+        let roomy: ScreenNoteBudget = ScreenNoteBudget(maxImages: 10, maxImageTokens: 200, maxTotalTokens: 2_700, minImageTokens: 64, maxLongEdge: 1_024, maxImageBytes: 250_000)
+        let again: [LLMImage] = try screenNoteImages(record: screenNotesMeeting(seconds: 400), meetingDirectory: meeting, budget: roomy, policy: screenSnapshotPolicy)
+        #expect(again.count == titles.count)
     }
 
     // The big screen-size slide is redrawn at exactly the selected size (the server counts tokens from the JPEG header).

@@ -129,17 +129,17 @@ describe("Screen images: pure checks", () => {
 describe("Screen images: proxy", () => {
   it("passes image blocks through unchanged, counts their tokens in the reservation and charges real usage", async () => {
     const context: Context = await setup();
-    let upstream: { messages: Array<{ content: unknown }> } | null = null;
+    const upstream: Array<{ messages: Array<{ content: unknown }> }> = [];
     context.harness.stub(anthropicUrl, async (request: Request): Promise<Response> => {
-      upstream = await request.json<{ messages: Array<{ content: unknown }> }>();
+      upstream.push(await request.json<{ messages: Array<{ content: unknown }> }>());
       return Response.json(message(1900, 300));
     });
     const images: Uint8Array[] = [fakeJpeg(812, 448, 40_000), fakeJpeg(448, 812, 40_000)];
     const body = noteWithImages(images);
     const response: Response = await llm(context, "note", body, null);
     expect(response.status).toBe(200);
-    expect(upstream).not.toBeNull();
-    expect(upstream?.messages[0]?.content).toEqual((body as { messages: Array<{ content: unknown }> }).messages[0]?.content);
+    expect(upstream).toHaveLength(1);
+    expect(upstream[0]?.messages[0]?.content).toEqual((body as { messages: Array<{ content: unknown }> }).messages[0]?.content);
     expect(await meetingTokens(context.meeting.meetingId)).toBe(2200);
   });
 

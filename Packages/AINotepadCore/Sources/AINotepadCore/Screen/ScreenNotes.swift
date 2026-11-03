@@ -37,6 +37,14 @@ public let screenNoteBudget: ScreenNoteBudget = ScreenNoteBudget(
     maxImages: 6, maxImageTokens: 450, maxTotalTokens: 2_700, minImageTokens: 64, maxLongEdge: 1_024, maxImageBytes: 250_000
 )
 
+/// Two snapshots are the same screen for the note when fewer than `screenNoteDuplicateFraction` of their fingerprint
+/// cells differ by more than `screenNoteDuplicateCellDelta`: at most 3 of 640 cells, room for a moved cursor. Measured
+/// on 1600×1000 slides: the same slide shown again differs in 0 % of cells; slides of one template whose only change
+/// is a short title and a word or two differ in 1.1–4 %, so they all stay candidates. Much stricter than capture's
+/// "new screen" rule (20 % of cells by 18).
+public let screenNoteDuplicateCellDelta: Int = 8
+public let screenNoteDuplicateFraction: Double = 0.006
+
 /// Claude's vision patch edge (pixels).
 private let visionPatchPixels: Int = 28
 
@@ -131,12 +139,12 @@ func screenNoteScore(candidate: ScreenNoteCandidate) -> Double {
 
 /// Key snapshots for the note, in time order. Excluded ones are skipped; the rest are ranked by `screenNoteScore`
 /// (earlier first on a tie) and taken greedily: a snapshot near-identical to an already chosen one (the same slide shown
-/// again; fewer than `policy.minChangedFraction` of the fingerprint cells differ) is skipped, and each chosen image gets
+/// again; fewer than `duplicateFraction` of the fingerprint cells differ by more than `cellDelta`) is skipped, and each chosen image gets
 /// the largest size that fits both its own cap and what is left of the note's budget. Selection stops at `maxImages`
 /// or when the remaining budget is below `minImageTokens`. The sum of `tokens` therefore never exceeds
 /// `maxTotalTokens`, whatever the input. Pure function.
 public func selectScreenNoteImages(
-    candidates: [ScreenNoteCandidate], excludedIDs: Set<String>, budget: ScreenNoteBudget, policy: ScreenSnapshotPolicy
+    candidates: [ScreenNoteCandidate], excludedIDs: Set<String>, budget: ScreenNoteBudget, cellDelta: Int, duplicateFraction: Double
 ) -> [ScreenNoteSelection] {
     let ranked: [ScreenNoteCandidate] = candidates
         .filter { !excludedIDs.contains($0.snapshot.id) }
@@ -153,7 +161,7 @@ public func selectScreenNoteImages(
             return
         }
         let duplicate: Bool = chosen.contains { (picked: (candidate: ScreenNoteCandidate, selection: ScreenNoteSelection)) -> Bool in
-            changedFraction(from: picked.candidate.fingerprint, to: candidate.fingerprint, cellDelta: policy.cellDelta) < policy.minChangedFraction
+            changedFraction(from: picked.candidate.fingerprint, to: candidate.fingerprint, cellDelta: cellDelta) < duplicateFraction
         }
         guard !duplicate,
               let size = screenNoteImageSize(width: candidate.size.width, height: candidate.size.height, maxTokens: allowance, maxLongEdge: budget.maxLongEdge) else {

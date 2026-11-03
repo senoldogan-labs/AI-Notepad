@@ -31,6 +31,7 @@ AINOTEPAD_MODEL_TESTS=1 swift test --package-path Packages/AINotepadCore      # 
 AINOTEPAD_SCREEN_TESTS=1 swift test --package-path Packages/AINotepadCore --filter ScreenSnapshotCaptureTests  # gerçek ekran görüntüsü döngüsü + CPU (terminalde Ekran Kaydı izni gerekir)
 AINOTEPAD_ONDEVICE_TESTS=1 swift test --package-path Packages/AINotepadCore --filter DictationOnDeviceTests  # sesle yazma: gerçek Apple diktesi (macOS 26+)
 AINOTEPAD_CLOUD_TESTS=1 AINOTEPAD_SCENARIO_TESTS=1 swift test --package-path Packages/AINotepadCore --filter LLMScenarioTests  # pahalı: uzun toplantı × her model × max effort
+AINOTEPAD_CLOUD_TESTS=1 swift test --package-path Packages/AINotepadCore --filter ScreenNotesCostTests  # notta ekran görüntüleri: gerçek Haiku çağrısıyla ek token ve $ ölçümü (~$0.001)
 (cd server && npx wrangler dev --port 8797)   # sonra: AINOTEPAD_HOSTED_E2E=1 AINOTEPAD_HOSTED_BASE=http://127.0.0.1:8797 swift test --package-path Packages/AINotepadCore --filter HostedE2E (server/.dev.vars sahte değerlerle, migrate:local önce)
 xcodebuild -project AINotepad.xcodeproj -scheme AINotepadHosted -configuration Debug \
   -derivedDataPath .build/xcode -destination 'platform=macOS,arch=arm64' build -quiet   # abonelik sürümü (App/Hosted, HOSTED_EDITION)

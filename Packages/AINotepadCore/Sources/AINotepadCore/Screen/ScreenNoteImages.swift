@@ -82,7 +82,8 @@ public func screenNoteJPEG(file: URL, size: ScreenPixelSize, maxBytes: Int) thro
     throw ScreenImageError.encodingFailed(reason: "\(file.lastPathComponent) at \(size.width)x\(size.height) does not fit in \(maxBytes) bytes")
 }
 
-/// Edge of the small thumbnail a fingerprint is computed from (the fingerprint itself is 32×20).
+/// Edge of the thumbnail a fingerprint is computed from (the fingerprint itself is 32×20; a larger source measured the
+/// same differences).
 private let screenNoteFingerprintSource: Int = 96
 
 /// The note's screen images: the meeting's snapshots minus the unticked ones, chosen and sized by
@@ -104,7 +105,9 @@ public func screenNoteImages(record: MeetingRecord, meetingDirectory: URL, budge
     let candidates: [ScreenNoteCandidate] = screenNoteCandidates(
         snapshots: snapshots, paragraphs: transcriptParagraphs(record: record), sizes: sizes, fingerprints: fingerprints, leadSec: policy.captureIntervalSec
     )
-    return try selectScreenNoteImages(candidates: candidates, excludedIDs: excluded, budget: budget, policy: policy)
+    return try selectScreenNoteImages(
+        candidates: candidates, excludedIDs: excluded, budget: budget, cellDelta: screenNoteDuplicateCellDelta, duplicateFraction: screenNoteDuplicateFraction
+    )
         .enumerated()
         .map { (item: (offset: Int, element: ScreenNoteSelection)) throws -> LLMImage in
             LLMImage(
