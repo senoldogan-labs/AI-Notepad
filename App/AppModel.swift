@@ -1971,16 +1971,12 @@ final class AppModel {
             saveRecord(record: record.with(speakerNames: names), directory: directory)
         }
         refreshFolderCopy(meetingID: meetingID)
-        let source: String = voiceSource(meetingID: meetingID, person: person)
-        // Ad düzeltildiyse bu kişinin sesi eski addan geri alınır (yoksa sonraki toplantılarda yanlış adla tanınırdı).
-        var voices: [RegisteredVoice] = registeredVoices
-        if let previous, previous.caseInsensitiveCompare(trimmed) != .orderedSame {
-            voices = unregistering(voices: voices, name: previous, source: source, now: Date())
-        }
-        // Adı verilen kişinin sesi hatırlanır: sonraki toplantılarda (ve "Tekrar işle"de) ad kendiliğinden gelir.
-        if !trimmed.isEmpty, UserDefaults.standard.bool(forKey: SettingsKey.voiceRecognition), let voice = record.voiceprints?[person] {
-            voices = registering(voices: voices, name: trimmed, voiceprint: voice, source: source, now: Date())
-        }
+        // Ad düzeltildiyse bu kişinin sesi eski addan geri alınır; adı verilen kişinin sesi hatırlanır: sonraki
+        // toplantılarda (ve "Tekrar işle"de) ad kendiliğinden gelir.
+        let voices: [RegisteredVoice] = voicesAfterNamingSpeaker(
+            voices: registeredVoices, meetingID: meetingID, person: person, previous: previous, name: trimmed,
+            voiceprint: UserDefaults.standard.bool(forKey: SettingsKey.voiceRecognition) ? record.voiceprints?[person] : nil, now: Date()
+        )
         if voices != registeredVoices {
             storeVoices(voices: voices)
         }
@@ -2456,22 +2452,13 @@ final class AppModel {
         storeUserRecipes(userRecipes + [recipeFromQuestion(question: question, id: UUID().uuidString)])
     }
 
-    /// Agent Skill dosyalarını (`SKILL.md`) tarif olarak ekler; okunamayanların nedeni döner.
-    func importSkills(files: [URL]) -> [String] {
-        var imported: [Recipe] = []
-        var failures: [String] = []
-        for file in files {
-            do {
-                let text: String = try String(contentsOf: file, encoding: .utf8)
-                imported.append(try recipeFromSkill(text: text, file: file.lastPathComponent, id: UUID().uuidString))
-            } catch {
-                failures.append("\(file.lastPathComponent): \(userFacingMessage(error: error))")
-            }
+    /// Agent Skill dosyalarını (`SKILL.md`) tarif olarak ekler; eklenenler ve okunamayanların nedeni döner.
+    func importSkills(files: [URL]) -> SkillImportResult {
+        let result: SkillImportResult = importSkillRecipes(files: files) { UUID().uuidString }
+        if !result.recipes.isEmpty {
+            storeUserRecipes(userRecipes + result.recipes)
         }
-        if !imported.isEmpty {
-            storeUserRecipes(userRecipes + imported)
-        }
-        return failures
+        return result
     }
 
     /// Kullanıcı tarifini siler.
@@ -3487,11 +3474,7 @@ final class AppModel {
         guard peopleBookError == nil, !trimmed.isEmpty else {
             return
         }
-        storeVoices(voices: registeredVoices.map { (voice: RegisteredVoice) -> RegisteredVoice in
-            voice.name.caseInsensitiveCompare(oldName) == .orderedSame
-                ? RegisteredVoice(name: trimmed, voiceprint: voice.voiceprint, updatedAt: voice.updatedAt, contributions: voice.contributions)
-                : voice
-        })
+        storeVoices(voices: renamingVoice(voices: registeredVoices, oldName: oldName, newName: trimmed))
     }
 
     /// Kişiyi Kişiler'den kaldırır ve sesini unutur; toplantılardaki adı ve görevleri kalır.

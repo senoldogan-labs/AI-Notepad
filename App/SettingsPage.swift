@@ -2157,9 +2157,7 @@ private struct SkillSettings: View {
         guard panel.runModal() == .OK else {
             return
         }
-        let failures: [String] = model.importSkills(files: panel.urls)
-        let added: Int = panel.urls.count - failures.count
-        status = ([added > 0 ? String(localized: "\(added) beceri Sor'a tarif olarak eklendi.") : nil] + failures).compactMap { $0 }.joined(separator: "\n")
+        status = skillImportSummary(result: model.importSkills(files: panel.urls))
     }
 }
 

@@ -19763,6 +19763,326 @@
           }
         }
       }
+    },
+    "Bildirimler": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notifications"
+          }
+        }
+      }
+    },
+    "Boş alan": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free space"
+          }
+        }
+      }
+    },
+    "Bu iPhone'da": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On this iPhone"
+          }
+        }
+      }
+    },
+    "Depolama": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Storage"
+          }
+        }
+      }
+    },
+    "Dosyalar açılamadı: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't open the files: %@"
+          }
+        }
+      }
+    },
+    "Hazır · ~%lld MB": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ready · ~%lld MB"
+          }
+        }
+      }
+    },
+    "Kaydı aç: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open recording: %@"
+          }
+        }
+      }
+    },
+    "Kayıtlı ses yok.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No saved voices."
+          }
+        }
+      }
+    },
+    "Kayıtlı sesler": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved voices"
+          }
+        }
+      }
+    },
+    "Kayıtlı sesler okunamadığı için değişiklik kaydedilmedi; Tümünü unut ile sıfırlayabilirsin.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The saved voices couldn't be read, so the change wasn't saved; you can reset them with Forget all."
+          }
+        }
+      }
+    },
+    "Kişiler'den kaldırılsın mı? Toplantılardaki adı kalır, sesi unutulur.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove from People? Their name stays in meetings and their voice is forgotten."
+          }
+        }
+      }
+    },
+    "Modeller": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Models"
+          }
+        }
+      }
+    },
+    "Notu aç: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open note: %@"
+          }
+        }
+      }
+    },
+    "Ses izi (biyometrik veri) yalnız bu iPhone'da saklanır; ad verdiğin kişi sonraki toplantılarda sesinden tanınır. Başkalarının ses izini saklamadan önce onaylarını al.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voiceprints (biometric data) are stored only on this iPhone; people you name are recognized by voice in later meetings. Get others' consent before storing their voiceprint."
+          }
+        }
+      }
+    },
+    "Ses modeli": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice model"
+          }
+        }
+      }
+    },
+    "Ses modeli indiriliyor": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading voice model"
+          }
+        }
+      }
+    },
+    "Ses modelini indir (~%lld MB)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download voice model (~%lld MB)"
+          }
+        }
+      }
+    },
+    "Ses tanıma modeli denetlenemedi; modeli yeniden indir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't check the voice recognition model; download it again."
+          }
+        }
+      }
+    },
+    "Ses tanıma modeli indirilemedi. İnternet bağlantını ve boş alanı kontrol edip yeniden dene.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't download the voice recognition model. Check your internet connection and free space, then try again."
+          }
+        }
+      }
+    },
+    "Sesinden tanıma": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice recognition"
+          }
+        }
+      }
+    },
+    "Seçtiğin beceriler Sor'da \"/\" ile tarif olarak çalışır (ör. haftalık özet, takip e-postası).": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The skills you pick run as recipes in Ask with \"/\" (e.g. weekly summary, follow-up email)."
+          }
+        }
+      }
+    },
+    "Sorun bildirirken işe yarar; ses, metin, not ve anahtar yok, kopyalamadıkça hiçbir yere gitmez.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Useful when reporting a problem; no audio, text, notes or keys, and it goes nowhere unless you copy it."
+          }
+        }
+      }
+    },
+    "Toplantıların boyutu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings size"
+          }
+        }
+      }
+    },
+    "Tüm sesler unutulsun mu? Toplantılardaki adlar kalır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forget all voices? Names in meetings stay."
+          }
+        }
+      }
+    },
+    "Tümünü unut": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forget all"
+          }
+        }
+      }
+    },
+    "Unut: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forget: %@"
+          }
+        }
+      }
+    },
+    "Unutulan kişi bundan sonra sesinden tanınmaz; toplantılarda verilmiş adı kalır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A forgotten person is no longer recognized by voice; the name given in meetings stays."
+          }
+        }
+      }
+    },
+    "iPhone modeli": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone model"
+          }
+        }
+      }
+    },
+    "okunamadı: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "couldn't read: %@"
+          }
+        }
+      }
+    },
+    "~%lld MB; bir kez indirilir, kayıtlar bu iPhone'da işlenir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "~%lld MB; downloaded once, recordings are processed on this iPhone."
+          }
+        }
+      }
+    },
+    "İndiriliyor, %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading, %@"
+          }
+        }
+      }
+    },
+    "İndirilmedi": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not downloaded"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

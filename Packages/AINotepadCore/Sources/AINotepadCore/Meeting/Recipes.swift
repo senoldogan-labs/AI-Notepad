@@ -144,3 +144,35 @@ public func recipeFromSkill(text: String, file: String, id: String) throws -> Re
     let prompt: String = [front["description"], body].compactMap { $0 }.joined(separator: "\n\n")
     return Recipe(id: id, title: title, prompt: prompt, symbol: "sparkles", isBuiltIn: false)
 }
+
+/// SKILL.md dosyalarının içe aktarılması: tarife çevrilenler ve okunamayanların nedeni ("dosya: neden").
+public struct SkillImportResult: Sendable, Equatable {
+    public let recipes: [Recipe]
+    public let failures: [String]
+
+    public init(recipes: [Recipe], failures: [String]) {
+        self.recipes = recipes
+        self.failures = failures
+    }
+}
+
+/// Agent Skill dosyalarını (`SKILL.md`, UTF-8) okuyup tarife çevirir (bkz. `recipeFromSkill`); her tarife `makeID`
+/// kimlik verir. Okunamayan ya da biçimi beklenmedik dosyanın nedeni sonuçta döner, diğerleri yine eklenir. Dosyaları
+/// okur; iPhone'da belge seçiciden gelen dosyalara erişimi çağıran açar.
+public func importSkillRecipes(files: [URL], makeID: () -> String) -> SkillImportResult {
+    files.reduce(SkillImportResult(recipes: [], failures: [])) { (result: SkillImportResult, file: URL) -> SkillImportResult in
+        do {
+            let text: String = try String(contentsOf: file, encoding: .utf8)
+            let recipe: Recipe = try recipeFromSkill(text: text, file: file.lastPathComponent, id: makeID())
+            return SkillImportResult(recipes: result.recipes + [recipe], failures: result.failures)
+        } catch {
+            return SkillImportResult(recipes: result.recipes, failures: result.failures + ["\(file.lastPathComponent): \(userFacingMessage(error: error))"])
+        }
+    }
+}
+
+/// İçe aktarmanın kullanıcıya özeti: eklenen beceri sayısı (varsa) ve satır satır okunamayanlar. Saf fonksiyondur.
+public func skillImportSummary(result: SkillImportResult) -> String {
+    let added: String? = result.recipes.isEmpty ? nil : String(localized: "\(result.recipes.count) beceri Sor'a tarif olarak eklendi.")
+    return ([added] + result.failures).compactMap { $0 }.joined(separator: "\n")
+}

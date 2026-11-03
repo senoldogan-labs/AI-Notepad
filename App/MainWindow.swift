@@ -1099,9 +1099,7 @@ private struct UpcomingMeetings: View {
         let now: Date = Date()
         let items: [CalendarMeeting] = model.upcomingMeetings.filter { $0.end > now && $0.start.timeIntervalSince(now) < 12 * 3600 }
         // Bugün biten etkinlikler: kaydı olanın notu takvimden açılır (en yeni önce).
-        let earlier: [CalendarMeeting] = model.upcomingMeetings
-            .filter { $0.end <= now && Calendar.current.isDate($0.start, inSameDayAs: now) }
-            .sorted { $0.start > $1.start }
+        let earlier: [CalendarMeeting] = meetingsEndedToday(meetings: model.upcomingMeetings, now: now, calendar: Calendar.current)
         if let error = model.calendarError {
             EmptyStateCard(symbol: "calendar.badge.exclamationmark", title: "Takvim okunamadı", message: "\(error)")
         } else if !items.isEmpty || !earlier.isEmpty {

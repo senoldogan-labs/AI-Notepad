@@ -7,6 +7,7 @@
 	<key>NSPrivacyTrackingDomains</key>
 	<array/>
 	<key>NSPrivacyCollectedDataTypes</key>
+	<!-- Ses izleri (sesinden tanıma, biyometrik) yalnız bu iPhone'da hesaplanır ve saklanır (adı verilenlerin listesi cihaz yedeğine de girmez); hiçbir sunucuya gönderilmediği için toplanan veri değildir. -->
 	<array>
 		<!-- Toplantı sesi: canlı metin (Deepgram) ve son geçiş (sunucumuz üzerinden ElevenLabs) için gönderilir, saklanmaz. -->
 		<dict>
