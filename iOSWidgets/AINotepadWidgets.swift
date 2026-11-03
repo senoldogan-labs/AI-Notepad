@@ -16,8 +16,8 @@ struct AINotepadWidgetBundle: WidgetBundle {
 /// Uygulamanın turuncu vurgusu (Mac'teki varsayılan vurgu).
 private let accent: Color = Color(red: 0.91, green: 0.36, blue: 0.11)
 
-/// Kayıt sürerken kilit ekranı ve Dynamic Island: kırmızı nokta, toplantının adı, süre (sistem saatiyle akar, "Bitir"de
-/// durur), durum, son cümle (konuşmacısıyla) ve "Bitir". Etkinliğe dokunmak uygulamayı açar. Dynamic Island'da uygulama
+/// Kayıt sürerken kilit ekranı ve Dynamic Island: kırmızı nokta, toplantının adı, süre (sistem saatiyle akar,
+/// duraklatılınca ve "Bitir"de durur), durum, son cümle (konuşmacısıyla), "Duraklat"/"Devam" ve "Bitir". Etkinliğe dokunmak uygulamayı açar. Dynamic Island'da uygulama
 /// öndeyken kendi etkinliği gösterilmez (sistem davranışı); arka planda ya da başka uygulamadayken görünür.
 struct RecordingLiveActivity: Widget {
     var body: some WidgetConfiguration {
@@ -38,7 +38,7 @@ struct RecordingLiveActivity: Widget {
                     .padding(.leading, 4)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    ElapsedText(startedAt: context.attributes.startedAt, stoppedAt: context.state.stoppedAt)
+                    ElapsedText(startedAt: context.attributes.startedAt, state: context.state)
                         .font(.system(size: 15, weight: .semibold).monospacedDigit())
                         .multilineTextAlignment(.trailing)
                         .frame(maxWidth: 80, alignment: .trailing)
@@ -50,8 +50,9 @@ struct RecordingLiveActivity: Widget {
                         .lineLimit(1)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    HStack(alignment: .center, spacing: 10) {
+                    HStack(alignment: .center, spacing: 8) {
                         LastLine(state: context.state)
+                        PauseButton(state: context.state)
                         StopButton(isFinishing: context.state.isFinishing)
                     }
                     .padding(.horizontal, 4)
@@ -59,19 +60,19 @@ struct RecordingLiveActivity: Widget {
             } compactLeading: {
                 HStack(spacing: 4) {
                     StatusDot(state: context.state, size: 7)
-                    Image(systemName: context.state.isMicrophonePaused ? "mic.slash.fill" : "waveform")
+                    Image(systemName: statusSymbol(state: context.state, running: "waveform"))
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(statusColor(state: context.state))
                 }
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(Text(statusTitle(state: context.state)))
             } compactTrailing: {
-                ElapsedText(startedAt: context.attributes.startedAt, stoppedAt: context.state.stoppedAt)
+                ElapsedText(startedAt: context.attributes.startedAt, state: context.state)
                     .font(.system(size: 13, weight: .semibold).monospacedDigit())
                     .multilineTextAlignment(.trailing)
                     .frame(maxWidth: 52, alignment: .trailing)
             } minimal: {
-                Image(systemName: context.state.isMicrophonePaused ? "mic.slash.fill" : "mic.fill")
+                Image(systemName: statusSymbol(state: context.state, running: "mic.fill"))
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(statusColor(state: context.state))
                     .accessibilityLabel(Text(statusTitle(state: context.state)))
@@ -81,20 +82,31 @@ struct RecordingLiveActivity: Widget {
     }
 }
 
-/// Kaydın durum başlığı: bitiriliyor, mikrofon bekleniyor ya da kaydediliyor.
+/// Kaydın durum başlığı: bitiriliyor, duraklatıldı, mikrofon bekleniyor ya da kaydediliyor.
 private func statusTitle(state: RecordingActivityAttributes.ContentState) -> LocalizedStringResource {
     if state.isFinishing {
         return "Bitiriliyor…"
     }
+    if state.isPaused {
+        return "Duraklatıldı"
+    }
     return state.isMicrophonePaused ? "Mikrofon bekleniyor" : "Kaydediliyor"
 }
 
-/// Durumun rengi: kayıtta kırmızı, mikrofon beklenirken turuncu, bitirilirken gri.
+/// Durumun rengi: kayıtta kırmızı, mikrofon beklenirken turuncu, duraklatılmışken ve bitirilirken gri.
 private func statusColor(state: RecordingActivityAttributes.ContentState) -> Color {
-    if state.isFinishing {
+    if state.isFinishing || state.isPaused {
         return .gray
     }
     return state.isMicrophonePaused ? .orange : .red
+}
+
+/// Dynamic Island'daki durum simgesi: duraklatılmışken duraklatma, mikrofon beklenirken kapalı mikrofon.
+private func statusSymbol(state: RecordingActivityAttributes.ContentState, running: String) -> String {
+    if state.isPaused {
+        return "pause.fill"
+    }
+    return state.isMicrophonePaused ? "mic.slash.fill" : running
 }
 
 /// Durum noktası (renk `statusColor`).
@@ -110,13 +122,17 @@ private struct StatusDot: View {
     }
 }
 
-/// Kaydın süresi: sistem saatiyle akar (uygulama her saniye güncellemez); "Bitir"e basılınca o anda durur.
+/// Kaydın süresi: sistem saatiyle akar (uygulama her saniye güncellemez); duraklatılan süreyi saymaz, duraklatılınca ve
+/// "Bitir"e basılınca o anda durur.
 private struct ElapsedText: View {
     let startedAt: Date
-    let stoppedAt: Date?
+    let state: RecordingActivityAttributes.ContentState
 
     var body: some View {
-        Text(timerInterval: startedAt...Date.distantFuture, pauseTime: stoppedAt, countsDown: false, showsHours: true)
+        Text(
+            timerInterval: startedAt.addingTimeInterval(state.pausedSec)...Date.distantFuture, pauseTime: state.pausedAt ?? state.stoppedAt,
+            countsDown: false, showsHours: true
+        )
     }
 }
 
@@ -132,7 +148,7 @@ private struct LockScreenRecording: View {
                     .font(.system(size: 14, weight: .semibold))
                     .lineLimit(1)
                 Spacer(minLength: 8)
-                ElapsedText(startedAt: context.attributes.startedAt, stoppedAt: context.state.stoppedAt)
+                ElapsedText(startedAt: context.attributes.startedAt, state: context.state)
                     .font(.system(size: 14, weight: .semibold).monospacedDigit())
                     .multilineTextAlignment(.trailing)
                     .frame(maxWidth: 80, alignment: .trailing)
@@ -142,9 +158,10 @@ private struct LockScreenRecording: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(statusTitle(state: context.state))
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(context.state.isMicrophonePaused && !context.state.isFinishing ? .orange : .white.opacity(0.6))
+                        .foregroundStyle(context.state.isMicrophonePaused && !context.state.isFinishing && !context.state.isPaused ? .orange : .white.opacity(0.6))
                     LastLine(state: context.state)
                 }
+                PauseButton(state: context.state)
                 StopButton(isFinishing: context.state.isFinishing)
             }
         }
@@ -184,6 +201,32 @@ private struct StopButton: View {
             }
             .buttonStyle(.borderedProminent)
             .tint(accent)
+        }
+    }
+}
+
+/// Kaydı uygulamayı açmadan duraklatan ya da sürdüren düğme (App Intent); bitirilirken gizlenir.
+private struct PauseButton: View {
+    let state: RecordingActivityAttributes.ContentState
+
+    var body: some View {
+        if !state.isFinishing {
+            Group {
+                if state.isPaused {
+                    Button(intent: ResumeRecordingIntent()) {
+                        Image(systemName: "play.fill")
+                    }
+                    .accessibilityLabel(Text("Kayda devam et"))
+                } else {
+                    Button(intent: PauseRecordingIntent()) {
+                        Image(systemName: "pause.fill")
+                    }
+                    .accessibilityLabel(Text("Kaydı duraklat"))
+                }
+            }
+            .font(.system(size: 13, weight: .semibold))
+            .buttonStyle(.bordered)
+            .tint(.white)
         }
     }
 }

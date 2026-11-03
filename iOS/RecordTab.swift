@@ -279,7 +279,7 @@ private struct RecordHeroCard: View {
                     .tracking(-0.3)
                     .foregroundStyle(Color.black.opacity(0.8))
                 Group {
-                    if (DisplayMode(rawValue: displayMode) ?? .bilingual).needsLiveTranslation {
+                    if liveTranslationOn {
                         Text("Odadaki herkes konuşmacılara ayrılır, \(phoneStoredNoteLanguage(value: noteLanguage).interfaceName) çevirisi canlı akar; bitince notu yazar.")
                     } else {
                         Text("Odadaki herkes konuşmacılara ayrılır; bitince \(phoneStoredNoteLanguage(value: noteLanguage).interfaceName) notu yazar.")
@@ -289,6 +289,11 @@ private struct RecordHeroCard: View {
                     .foregroundStyle(Color.black.opacity(0.6))
                     .multilineTextAlignment(.center)
             }
+            // Mac'teki kayıt kartındaki gibi: canlı çeviri kayıttan önce açılıp kapatılır (açıklama buna göre değişir).
+            HeroToggleChip(title: "Canlı çeviri", isOn: liveTranslationOn) {
+                recorder.selectDisplayMode(mode: liveTranslationOn ? .originalOnly : .bilingual)
+            }
+            .accessibilityHint("Konuşmanın not dilindeki çevirisi kayıtta canlı akar")
         }
         .padding(20)
         .padding(.bottom, 6)
@@ -298,6 +303,11 @@ private struct RecordHeroCard: View {
         .overlay(RoundedRectangle(cornerRadius: 30, style: .continuous).strokeBorder(.white.opacity(0.10)))
         // Açık gradyan her temada açık görünümle çizilir (koyu temada menü ve gösterge de koyu mürekkeple kalsın).
         .environment(\.colorScheme, .light)
+    }
+
+    /// Canlı çeviri açık mı (Ayarlar › Toplantı'daki gösterimle aynı ayar).
+    private var liveTranslationOn: Bool {
+        (DisplayMode(rawValue: displayMode) ?? .bilingual).needsLiveTranslation
     }
 
     /// Düğmenin altındaki başlık: başlarken (cihaz içi konuşma modeli iniyorsa ilerlemesiyle) ya da davet.
@@ -327,6 +337,35 @@ private struct RecordButtonHalo: View {
     }
 }
 
+/// Kayıt kartındaki açılıp kapanan seçenek (Mac'teki kayıt kartı hapı): açıkken dolu beyaz kapsülde ✓, kapalıyken soluk
+/// kapsülde −.
+private struct HeroToggleChip: View {
+    let title: LocalizedStringKey
+    let isOn: Bool
+    let action: @MainActor () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Image(systemName: isOn ? "checkmark" : "minus")
+                    .appFont(size: 11, weight: .semibold)
+                    .contentTransition(.symbolEffect(.replace))
+                Text(title)
+            }
+            .appFont(size: 13, weight: .medium)
+            .foregroundStyle(isOn ? Color.black : Color.black.opacity(0.62))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(Color.white.opacity(isOn ? 0.9 : 0.45), in: Capsule())
+            .contentShape(Capsule())
+        }
+        .buttonStyle(PressableCardStyle())
+        .accessibilityValue(isOn ? Text("Etkin") : Text("Kapalı"))
+        .accessibilityAddTraits(.isToggle)
+        .sensoryFeedback(.selection, trigger: isOn)
+    }
+}
+
 /// Basınca hafifçe küçülen kart/düğme.
 struct PressableCardStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
@@ -337,28 +376,41 @@ struct PressableCardStyle: ButtonStyle {
 }
 
 /// Kayıt sırasında odaklı tam ekran (sekme çubuğu gizli): üstte sabit başlık (kayıt durumu, dil, büyük süre ve ses
-/// dalgası), ortada konuşmacılı canlı metin (en alta kayar), altta yüzen çubukta "Ne kaçırdım?", "İşaretle", "Bitir" ve
-/// "Notlarım". "Ne kaçırdım?" çubuğun üstünde asistan kartını açar; kartın altındaki alanla toplantıya soru sorulur (Mac
-/// panelindeki gibi). Rıza hatırlatması kayıt başında üstte 3 saniye görünen bir bildirimdir.
+/// dalgası), ortada konuşmacılı canlı metin (en alta kayar), altta yüzen çubukta "Ne kaçırdım?", "İşaretle", "Bitir",
+/// "Duraklat" ve "Notlarım". "Ne kaçırdım?" çubuğun üstünde asistan kartını açar; kartın altındaki alanla toplantıya
+/// soru sorulur (Mac panelindeki gibi). Rıza hatırlatması kayıt başında üstte 3 saniye görünen bir bildirimdir.
 private struct LiveRecordingView: View {
     let recorder: PhoneRecorder
     @State private var markedAt: Date?
     @State private var isNotesOpen: Bool = false
     /// Asistana sorulacak soru (kart açıkken).
     @State private var question: String = ""
+    /// "Tümünü kopyala"ya basılan an: üstte kısa "Kopyalandı" bildirimi.
+    @State private var copiedAt: Date?
+    /// Canlı çeviri (Ayarlar › Toplantı'daki gösterimle aynı ayar; ⋯ menüsünden de açılıp kapanır).
+    @AppStorage(PhoneSettingsKey.displayMode) private var displayMode: String = DisplayMode.bilingual.rawValue
 
+    /// Konuşmacı düzeltmeleri uygulanmış transkriptin blokları.
     private var blocks: [SpeakerBlock] {
-        groupBySpeaker(transcript: recorder.transcript.filter { !$0.text.isEmpty })
+        groupBySpeaker(transcript: recorder.correctedTranscript.filter { !$0.text.isEmpty })
+    }
+
+    private var liveTranslationOn: Bool {
+        (DisplayMode(rawValue: displayMode) ?? .bilingual).needsLiveTranslation
     }
 
     var body: some View {
         VStack(spacing: 0) {
             header
             VStack(spacing: 10) {
+                if recorder.isPaused, recorder.phase == .recording {
+                    PausedNotice()
+                }
                 MicrophoneNotice(status: recorder.microphoneStatus, recoveredVisible: recorder.microphoneRecoveredNoticeVisible)
                 PhoneErrorList(messages: recorder.errorMessages)
             }
             .padding(.horizontal, 20)
+            .animation(.smooth(duration: 0.25), value: recorder.isPaused)
             if blocks.isEmpty {
                 listening
             } else {
@@ -381,9 +433,27 @@ private struct LiveRecordingView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 4)
                     .transition(.opacity.combined(with: .move(edge: .top)))
+            } else if copiedAt != nil {
+                CopiedToast()
+                    .padding(.top, 4)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .animation(.smooth(duration: 0.35), value: recorder.consentReminderVisible)
+        .animation(.smooth(duration: 0.3), value: copiedAt)
+        .sensoryFeedback(.success, trigger: copiedAt) { (_: Date?, new: Date?) -> Bool in new != nil }
+        .task(id: copiedAt) {
+            // "Kopyalandı" kısa süre görünür.
+            guard copiedAt != nil else {
+                return
+            }
+            do {
+                try await Task.sleep(for: .seconds(copiedToastSeconds))
+            } catch {
+                return
+            }
+            copiedAt = nil
+        }
         .task(id: recorder.consentReminderVisible) {
             // Hatırlatma 3 saniye sonra kendiliğinden kalkar (kalıcı kart değil); dokununca hemen kapanır.
             guard recorder.consentReminderVisible else {
@@ -406,11 +476,12 @@ private struct LiveRecordingView: View {
 
     private let bottomID: String = "son"
 
-    /// Sabit başlık: solda kayıt durumu, sağda dil; ortada büyük süre, altında ses dalgası ve işaretlenen an sayısı.
+    /// Sabit başlık: solda kayıt durumu, sağda dil ve ⋯ (Tümünü kopyala, Canlı çeviri); ortada büyük süre (duraklatılan
+    /// süreyi saymaz), altında ses dalgası ve işaretlenen an sayısı.
     private var header: some View {
         VStack(spacing: 18) {
-            HStack {
-                RecordingStatusPill(isFinishing: recorder.phase == .finishing)
+            HStack(spacing: 8) {
+                RecordingStatusPill(isFinishing: recorder.phase == .finishing, isPaused: recorder.isPaused)
                 Spacer()
                 Menu {
                     LanguageMenuItems { (language: MeetingLanguage) -> Void in recorder.setLanguage(language: language) }
@@ -427,13 +498,15 @@ private struct LiveRecordingView: View {
                     .overlay(Capsule().strokeBorder(Theme.line))
                 }
                 .disabled(recorder.phase != .recording)
+                moreMenu
             }
             VStack(spacing: 12) {
                 if let startedAt = recorder.startedAt {
-                    ElapsedClock(startedAt: startedAt, stoppedAt: recorder.stoppedAt)
+                    ElapsedClock(startedAt: startedAt, stoppedAt: recorder.stoppedAt, pause: recorder.pauseClock)
                 }
                 PhoneLevelBars(levels: recorder.levels)
                     .frame(maxWidth: 280)
+                    .opacity(recorder.isPaused ? 0.35 : 1)
                 Text(recorder.highlights.isEmpty ? "" : String(localized: "\(recorder.highlights.count) an işaretlendi"))
                     .appFont(size: 12, weight: .medium)
                     .foregroundStyle(Theme.muted)
@@ -444,6 +517,32 @@ private struct LiveRecordingView: View {
         .padding(.horizontal, 20)
         .padding(.top, 8)
         .padding(.bottom, 12)
+    }
+
+    /// ⋯ menüsü (Mac panelindeki gibi): canlı metnin tümünü ekrandaki gibi kopyala, canlı çeviriyi aç/kapat.
+    private var moreMenu: some View {
+        Menu {
+            Button("Tümünü kopyala", systemImage: "doc.on.doc") {
+                copyToPasteboard(text: recorder.displayedText)
+                copiedAt = Date()
+            }
+            .disabled(blocks.isEmpty)
+            Toggle(isOn: Binding<Bool>(get: { liveTranslationOn }, set: { (isOn: Bool) -> Void in
+                recorder.selectDisplayMode(mode: isOn ? .bilingual : .originalOnly)
+            })) {
+                Label("Canlı çeviri", systemImage: "character.bubble")
+            }
+            .disabled(recorder.phase != .recording)
+        } label: {
+            Image(systemName: "ellipsis")
+                .appFont(size: 14, weight: .semibold)
+                .foregroundStyle(Theme.ink)
+                .frame(width: 34, height: 34)
+                .background(Theme.card, in: Circle())
+                .overlay(Circle().strokeBorder(Theme.line))
+                .contentShape(Circle())
+        }
+        .accessibilityLabel("Diğer")
     }
 
     /// Henüz metin yok: kalan alanın ortasında sakin bir "Dinliyor" durumu.
@@ -467,9 +566,17 @@ private struct LiveRecordingView: View {
         ScrollViewReader { (proxy: ScrollViewProxy) in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 22) {
+                    let persons: [Int] = knownPersons(transcript: recorder.correctedTranscript)
                     ForEach(blocks) { (block: SpeakerBlock) in
-                        LiveBlockView(block: block, translations: recorder.translations, otherLanguage: recorder.otherLanguageSegments)
-                            .transition(.opacity.combined(with: .offset(y: 8)))
+                        LiveBlockView(
+                            block: block, translations: recorder.translations, otherLanguage: recorder.otherLanguageSegments,
+                            failedTranslations: failedTranslationIDs(block: block, failed: recorder.failedTranslations),
+                            canRetry: recorder.phase == .recording, persons: persons, newPersonNumber: recorder.newPersonNumber,
+                            onRetry: { (ids: [SegmentID]) -> Void in recorder.retryTranslations(ids: ids) },
+                            onReassign: { (ids: [SegmentID], person: Int) -> Void in recorder.reassignBlock(segments: ids, person: person) },
+                            onMerge: { (from: Int, into: Int) -> Void in recorder.mergeLivePersons(from: from, into: into) }
+                        )
+                        .transition(.opacity.combined(with: .offset(y: 8)))
                     }
                     Color.clear.frame(height: 1).id(bottomID)
                 }
@@ -528,10 +635,10 @@ private struct LiveRecordingView: View {
         question = ""
     }
 
-    /// Yüzen eylem çubuğu: solda "Ne kaçırdım?" ve "İşaretle", ortada geniş "Bitir", sağda "Notlarım"; bitirilirken
-    /// yalnız durum.
+    /// Yüzen eylem çubuğu: solda "Ne kaçırdım?" ve "İşaretle", ortada geniş "Bitir", sağda "Duraklat"/"Devam ettir" ve
+    /// "Notlarım"; bitirilirken yalnız durum.
     private var controls: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 10) {
             if recorder.phase == .finishing {
                 HStack(spacing: 10) {
                     ProgressView()
@@ -539,7 +646,7 @@ private struct LiveRecordingView: View {
                         .appFont(size: 14, weight: .medium)
                         .foregroundStyle(Theme.muted)
                 }
-                .frame(maxWidth: .infinity, minHeight: 60)
+                .frame(maxWidth: .infinity, minHeight: 54)
             } else {
                 Button {
                     recorder.askWhatIMissed()
@@ -557,6 +664,8 @@ private struct LiveRecordingView: View {
                     RecordingControlIcon(systemImage: markedAt.map { Date().timeIntervalSince($0) < 2 } == true ? "bookmark.fill" : "bookmark")
                 }
                 .buttonStyle(PressableCardStyle())
+                // Duraklatılmışken işaretlenecek konuşma yok.
+                .disabled(recorder.isPaused)
                 .accessibilityLabel("Bu anı işaretle")
                 .sensoryFeedback(.impact(weight: .light), trigger: recorder.highlights.count)
                 Button {
@@ -570,12 +679,24 @@ private struct LiveRecordingView: View {
                             .appFont(size: 17, weight: .semibold)
                     }
                     .foregroundStyle(Theme.onPrimary)
-                    .frame(maxWidth: .infinity, minHeight: 60)
+                    .frame(maxWidth: .infinity, minHeight: 54)
                     .background(Theme.primary, in: Capsule())
                 }
                 .buttonStyle(PressableCardStyle())
                 .accessibilityLabel("Kaydı bitir")
                 .sensoryFeedback(.success, trigger: recorder.phase)
+                Button {
+                    if recorder.isPaused {
+                        recorder.resume()
+                    } else {
+                        recorder.pause()
+                    }
+                } label: {
+                    RecordingControlIcon(systemImage: recorder.isPaused ? "play.fill" : "pause.fill")
+                }
+                .buttonStyle(PressableCardStyle())
+                .accessibilityLabel(recorder.isPaused ? "Devam ettir" : "Duraklat")
+                .sensoryFeedback(.impact(weight: .medium), trigger: recorder.isPaused)
                 Button {
                     isNotesOpen = true
                 } label: {
@@ -611,43 +732,59 @@ private struct RecordingControlIcon: View {
 
     var body: some View {
         Image(systemName: systemImage)
-            .appFont(size: 19, weight: .medium)
+            .appFont(size: 18, weight: .medium)
             .foregroundStyle(appearance.accent.color)
-            .frame(width: 60, height: 60)
+            .frame(width: 54, height: 54)
             .background(appearance.accent.color.opacity(0.12), in: Circle())
             .contentTransition(.symbolEffect(.replace))
     }
 }
 
-/// Kayıt durumu hapı: kayıtta yavaşça nefes alan kırmızı nokta ve "Kaydediliyor"; bitirilirken durgun nokta ve
-/// "Bitiriliyor".
+/// "Kopyalandı" bildiriminin ekranda kalma süresi (saniye).
+private let copiedToastSeconds: Double = 1.6
+
+/// Kayıt durumu hapı: kayıtta yavaşça nefes alan kırmızı nokta ve "Kaydediliyor"; duraklatılmışken duraklatma simgesi ve
+/// "Duraklatıldı"; bitirilirken durgun nokta ve "Bitiriliyor".
 private struct RecordingStatusPill: View {
     let isFinishing: Bool
+    let isPaused: Bool
 
     var body: some View {
         HStack(spacing: 7) {
-            RecordingDot(isFinishing: isFinishing)
-            Text(isFinishing ? "Bitiriliyor" : "Kaydediliyor")
-                .appFont(size: 13, weight: .semibold)
-                .foregroundStyle(isFinishing ? Theme.muted : Theme.ink)
+            if isPaused, !isFinishing {
+                Image(systemName: "pause.fill")
+                    .appFont(size: 10, weight: .bold)
+                    .foregroundStyle(Theme.muted)
+                    .accessibilityHidden(true)
+                Text("Duraklatıldı")
+                    .appFont(size: 13, weight: .semibold)
+                    .foregroundStyle(Theme.ink)
+            } else {
+                RecordingDot(isFinishing: isFinishing)
+                Text(isFinishing ? "Bitiriliyor" : "Kaydediliyor")
+                    .appFont(size: 13, weight: .semibold)
+                    .foregroundStyle(isFinishing ? Theme.muted : Theme.ink)
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 7)
-        .background(isFinishing ? AnyShapeStyle(Theme.soft) : AnyShapeStyle(Color.red.opacity(0.10)), in: Capsule())
+        .background(isFinishing || isPaused ? AnyShapeStyle(Theme.soft) : AnyShapeStyle(Color.red.opacity(0.10)), in: Capsule())
     }
 }
 
-/// Kaydın süresi: kayıtta saniyede bir ilerler; "Bitir"e basılınca o anda durur (bitirme sürerken saymaz).
+/// Kaydın süresi: kayıtta saniyede bir ilerler; duraklatılan süreyi saymaz, duraklatılınca ve "Bitir"e basılınca o anda
+/// durur (bitirme sürerken saymaz).
 private struct ElapsedClock: View {
     let startedAt: Date
     let stoppedAt: Date?
+    let pause: PauseClock
 
     var body: some View {
-        if let stoppedAt {
-            clockText(seconds: recordingElapsedSec(startedAt: startedAt, stoppedAt: stoppedAt, now: stoppedAt))
+        if let frozenAt = stoppedAt ?? pause.pausedAt {
+            clockText(seconds: recordingActiveSec(startedAt: startedAt, stoppedAt: stoppedAt, pause: pause, now: frozenAt))
         } else {
-            TimelineView(.periodic(from: startedAt, by: 1)) { (context: TimelineViewDefaultContext) in
-                clockText(seconds: recordingElapsedSec(startedAt: startedAt, stoppedAt: nil, now: context.date))
+            TimelineView(.periodic(from: pause.timerStart(startedAt: startedAt), by: 1)) { (context: TimelineViewDefaultContext) in
+                clockText(seconds: recordingActiveSec(startedAt: startedAt, stoppedAt: nil, pause: pause, now: context.date))
             }
         }
     }
@@ -658,6 +795,34 @@ private struct ElapsedClock: View {
             .tracking(-1.5)
             .monospacedDigit()
             .foregroundStyle(Theme.ink)
+    }
+}
+
+/// Kayıt duraklatıldı: tek cümlelik açıklama.
+private struct PausedNotice: View {
+    var body: some View {
+        Label("Duraklatıldı; bu sırada ses kaydedilmez ve yazıya dökülmez.", systemImage: "pause.circle.fill")
+            .appFont(size: 14, weight: .medium)
+            .foregroundStyle(Theme.muted)
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Theme.soft, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .transition(.opacity)
+    }
+}
+
+/// "Tümünü kopyala"dan sonra üstte kısa süre görünen "Kopyalandı".
+private struct CopiedToast: View {
+    var body: some View {
+        Label("Kopyalandı", systemImage: "checkmark")
+            .appFont(size: 13, weight: .semibold)
+            .foregroundStyle(Theme.ink)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(Theme.card, in: Capsule())
+            .overlay(Capsule().strokeBorder(Theme.line))
+            .shadow(color: .black.opacity(0.10), radius: 12, y: 4)
+            .accessibilityAddTraits(.updatesFrequently)
     }
 }
 
@@ -767,30 +932,43 @@ private struct ConsentToast: View {
 }
 
 /// Bir konuşmacının ardışık cümleleri (sohbet gibi): rozet, ad ve saat; özgün metin (geçici kısım soluk) ve not dilindeki
-/// çevirisi.
+/// çevirisi. Mac panelindeki gibi: ada dokununca konuşmacı düzeltilir (bölümü başka kişiye ata, kişinin tümünü birleştir),
+/// çevirisi alınamayan cümlede "Tekrar dene", uzun basınca "Kopyala".
 private struct LiveBlockView: View {
     let block: SpeakerBlock
     let translations: [SegmentID: String]
     /// Sabit toplantı dilinden başka dildeki bölümler: soluk ve eğik (çevrilmez, toplantıdan atlanır).
     let otherLanguage: Set<SegmentID>
+    /// Bu bloğun çevirisi başarısız bölümleri.
+    let failedTranslations: [SegmentID]
+    /// Çeviri yeniden denenebilir (yalnız kayıt sürerken: sonra çevrilen cümle toplantıya yazılmaz).
+    let canRetry: Bool
+    /// Transkriptteki kişiler ve "Yeni konuşmacı"nın numarası (düzeltme menüsü).
+    let persons: [Int]
+    let newPersonNumber: Int
+    let onRetry: @MainActor ([SegmentID]) -> Void
+    let onReassign: @MainActor ([SegmentID], Int) -> Void
+    let onMerge: @MainActor (Int, Int) -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
     /// "Sadece çeviri" (Ayarlar › Toplantı › Gösterim): çevirisi gelen blokta orijinal gizlenir.
     @AppStorage(PhoneSettingsKey.displayMode) private var displayMode: String = DisplayMode.bilingual.rawValue
+
+    private var mode: DisplayMode {
+        DisplayMode(rawValue: displayMode) ?? .bilingual
+    }
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             SpeakerBadge(speaker: block.speaker, person: block.person, size: 30)
             VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 6) {
-                    Text(speakerLabel(speaker: block.speaker, person: block.person))
-                        .appFont(size: 13, weight: .semibold)
-                        .foregroundStyle(block.person.map { personColor(person: $0) } ?? Theme.ink)
+                    speakerName
                     Text(timestamp(seconds: block.startSec))
                         .appFont(size: 11, weight: .regular)
                         .monospacedDigit()
                         .foregroundStyle(Theme.muted)
                 }
-                if DisplayMode(rawValue: displayMode) == .turkishOnly {
+                if mode == .turkishOnly {
                     // Yalnız çeviri: çevirisi henüz gelmeyen metin orijinal haliyle soluk (Mac'teki gibi).
                     if translation.isEmpty {
                         Text("\(finalText)\(Text(partialText))")
@@ -804,9 +982,50 @@ private struct LiveBlockView: View {
                 } else {
                     original
                 }
+                if canRetry, !failedTranslations.isEmpty, mode.needsLiveTranslation {
+                    Button {
+                        onRetry(failedTranslations)
+                    } label: {
+                        Label("Çeviri alınamadı · Tekrar dene", systemImage: "arrow.clockwise")
+                            .appFont(size: 13, weight: .medium)
+                            .foregroundStyle(NoticeSeverity.attention.tint)
+                            .padding(.vertical, 4)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .contextMenu {
+            Button("Kopyala", systemImage: "doc.on.doc") {
+                copyToPasteboard(text: displayedPlainText(blocks: [block], translations: translations, displayMode: mode))
+            }
+        }
+    }
+
+    /// Konuşmacının adı; "Diğerleri" bloğunda dokununca düzeltme menüsü açılır (otomatik ayırma yanıldıysa).
+    @ViewBuilder
+    private var speakerName: some View {
+        let name: some View = Text(speakerLabel(speaker: block.speaker, person: block.person))
+            .appFont(size: 13, weight: .semibold)
+            .foregroundStyle(block.person.map { personColor(person: $0) } ?? Theme.ink)
+        if block.speaker == .others {
+            Menu {
+                SpeakerCorrectionMenu(block: block, persons: persons, newPersonNumber: newPersonNumber, onReassign: onReassign, onMerge: onMerge)
+            } label: {
+                HStack(spacing: 3) {
+                    name
+                    Image(systemName: "chevron.down")
+                        .appFont(size: 8, weight: .bold)
+                        .foregroundStyle(Theme.muted)
+                }
+                .contentShape(Rectangle())
+            }
+            .accessibilityHint("Konuşmacıyı düzelt")
+        } else {
+            name
+        }
     }
 
     /// Orijinal metin ve altında (varsa) not dilindeki çevirisi.

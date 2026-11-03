@@ -121,7 +121,8 @@ public struct DeepgramTokenError: Error {
     public let underlying: any Error
 }
 
-private func startDeepgramStream(
+/// Akışı verilen kimlikle başlatır (genel girişler bunu kullanır; testler anahtarla bağlanıp bağlantı olaylarını izler).
+func startDeepgramStream(
     authorization: DeepgramAuthorization, options: DeepgramListenOptions, language: MeetingLanguage, keyterms: [String],
     onConnectionEvent: @escaping @Sendable (DeepgramConnectionEvent) -> Void, audio: AsyncStream<[Float]>
 ) -> DeepgramStream {
@@ -160,8 +161,13 @@ private let deepgramSampleRate: Int = 16000
 
 /// Yeniden bağlanma için toplam süre; ağ bu kadar süre gelmezse akış kalıcı olarak durur.
 private let reconnectBudgetSec: Double = 120
-/// Bu kadar süre hiç mesaj gelmezse bağlantı kopmuş sayılır (Deepgram sessizlikte de sonuç yollar).
+/// Ses verildikten sonra bu kadar süre hiç mesaj gelmezse bağlantı kopmuş sayılır (Deepgram ses aktıkça, sessizlikte de
+/// sonuç yollar; ses gelmezken hiçbir şey yollamaz).
 private let silenceTimeoutSec: Double = 20
+/// Ses bu kadar süre gelmezse (kayıt duraklatıldı, mikrofon kesildi) Deepgram'dan son cümlenin kesin sonucu istenir.
+private let finalizeAfterIdleSec: Double = 1.5
+/// Ses gelmezken bağlantı bu aralıkla canlı tutulur (Deepgram ~10 sn veri gelmeyen bağlantıyı kapatır).
+private let keepAliveIntervalSec: Double = 4
 /// Kapanışta son sonuçlar için en fazla bekleme.
 private let closeDeadlineSec: Double = 5
 /// Tek mesajda gönderilen en fazla ses (0,5 sn): Deepgram kısa parçaları hızlı işler.
@@ -181,7 +187,13 @@ private actor DeepgramConnection {
     private var socket: URLSessionWebSocketTask?
     private var receiver: Task<Void, Never>?
     private var watchdog: Task<Void, Never>?
-    private var lastMessageAt: ContinuousClock.Instant = .now
+    /// Ses (sıraya ya da gönderime) verildi ve o andan beri mesaj gelmedi: yanıtsızlık buradan ölçülür; mesaj gelince nil.
+    private var unansweredSince: ContinuousClock.Instant?
+    /// Son ses gönderimi ve son gönderim (ses ya da denetim mesajı): ses gelmezken bağlantıyı canlı tutmak için.
+    private var lastAudioSentAt: ContinuousClock.Instant = .now
+    private var lastSentAt: ContinuousClock.Instant = .now
+    /// Son sesten sonra `Finalize` gönderildi (ses gelmeyen her ara için bir kez).
+    private var finalizedSinceAudio: Bool = true
 
     /// Henüz gönderilmemiş ses.
     private var pending: [Float] = []
@@ -242,6 +254,9 @@ private actor DeepgramConnection {
                 continue
             }
             pending += chunk
+            if unansweredSince == nil {
+                unansweredSince = .now
+            }
             await flush()
         }
         watchdog?.cancel()
@@ -302,7 +317,8 @@ private actor DeepgramConnection {
         socket = task
         connectedURL = request.url
         connectionStartSample = acknowledgedSample + unacknowledged.count
-        lastMessageAt = .now
+        unansweredSince = nil
+        lastSentAt = .now
         isConnected = true
         receiver = Task { await self.receiveLoop(task: task) }
         deepgramLogger.info("Deepgram bağlandı, başlangıç örneği: \(self.connectionStartSample, privacy: .public)")
@@ -405,17 +421,34 @@ private actor DeepgramConnection {
         }
     }
 
-    /// 20 sn hiç mesaj gelmezse bağlantıyı kopmuş say (sessizce takılan bağlantılar için).
+    /// Ses verildikten sonra 20 sn hiç mesaj gelmezse bağlantıyı kopmuş say (sessizce takılan bağlantılar için). Ses
+    /// gelmezken (duraklatma, mikrofon kesintisi) önce son cümlenin kesin sonucu istenir, sonra bağlantı canlı tutulur:
+    /// Deepgram veri gelmeyen bağlantıyı kapatır; her kapanışta yeni jetonla yeniden bağlanılırdı.
     private func watchSilence() async {
         while !Task.isCancelled {
             do {
-                try await Task.sleep(for: .seconds(5))
+                try await Task.sleep(for: .seconds(1))
             } catch {
                 // Yalnızca iptalde fırlatır: akış bitiyor.
                 return
             }
-            if isConnected, ContinuousClock.now - lastMessageAt > .seconds(silenceTimeoutSec) {
+            guard isConnected, !isReconnecting, !isClosing else {
+                continue
+            }
+            let now: ContinuousClock.Instant = .now
+            if isDeepgramUnresponsive(unansweredForSec: unansweredSince.map { durationSeconds(now - $0) }, timeoutSec: silenceTimeoutSec) {
                 await handleDisconnect(error: CloudSTTError.connectionFailed(service: "deepgram", reason: "\(Int(silenceTimeoutSec)) sn yanıt yok"))
+                continue
+            }
+            // Gönderim sürüyorsa ses akıyordur (yavaş ağ): kesin sonuç erken istenmez.
+            guard !isFlushing, pending.isEmpty, inFlight.isEmpty else {
+                continue
+            }
+            if let message = deepgramIdleMessage(
+                audioIdleSec: durationSeconds(now - lastAudioSentAt), finalizedSinceAudio: finalizedSinceAudio,
+                sinceLastSendSec: durationSeconds(now - lastSentAt), finalizeAfterSec: finalizeAfterIdleSec, keepAliveIntervalSec: keepAliveIntervalSec
+            ) {
+                await sendIdle(message: message)
             }
         }
     }
@@ -440,6 +473,12 @@ private actor DeepgramConnection {
                 // Gönderim sürerken yeniden bağlanma parçayı zaten yeniden sıraya aldıysa inFlight boştur.
                 unacknowledged += inFlight
                 inFlight = []
+                lastAudioSentAt = .now
+                lastSentAt = lastAudioSentAt
+                finalizedSinceAudio = false
+                if unansweredSince == nil {
+                    unansweredSince = lastAudioSentAt
+                }
             } catch {
                 pending = inFlight + pending
                 inFlight = []
@@ -476,8 +515,33 @@ private actor DeepgramConnection {
             guard task === socket else {
                 return
             }
-            lastMessageAt = .now
+            unansweredSince = nil
             handle(message: message)
+        }
+    }
+
+    /// Ses gelmezken denetim mesajı: `Finalize` (son cümlenin kesin sonucu) ya da `KeepAlive`. Gönderilemezse bağlantı
+    /// kopmuş sayılır.
+    private func sendIdle(message: DeepgramIdleMessage) async {
+        guard let sending = socket else {
+            return
+        }
+        let text: String = switch message {
+        case .finalize: #"{"type":"Finalize"}"#
+        case .keepAlive: #"{"type":"KeepAlive"}"#
+        }
+        do {
+            try await sending.send(.string(text))
+            lastSentAt = .now
+            if message == .finalize {
+                finalizedSinceAudio = true
+            }
+        } catch {
+            // Eski bağlantının hatası: yeni bağlantı zaten kurulu.
+            guard sending === socket else {
+                return
+            }
+            await handleDisconnect(error: error)
         }
     }
 
@@ -615,6 +679,40 @@ private actor DeepgramConnection {
         events.yield(.failed(message: message))
         events.finish()
     }
+}
+
+/// Ses gelmeyen bağlantıya gönderilecek denetim mesajı.
+enum DeepgramIdleMessage: Equatable {
+    /// Bekleyen sesin kesin sonucunu hemen iste (konuşmanın sonu sessizlik gelmeden kesinleşsin).
+    case finalize
+    /// Bağlantıyı canlı tut (Deepgram veri gelmeyen bağlantıyı ~10 sn sonra kapatır).
+    case keepAlive
+}
+
+/// Ses gelmezken gönderilecek mesaj: ses `finalizeAfterSec`'ten uzun süredir gelmiyorsa önce bir kez `Finalize`, sonra
+/// son gönderimden `keepAliveIntervalSec` geçtikçe `KeepAlive`; ses akıyorsa hiçbiri (Mac'te ses sürekli akar). Saf
+/// fonksiyondur.
+func deepgramIdleMessage(
+    audioIdleSec: Double, finalizedSinceAudio: Bool, sinceLastSendSec: Double, finalizeAfterSec: Double, keepAliveIntervalSec: Double
+) -> DeepgramIdleMessage? {
+    guard audioIdleSec >= finalizeAfterSec else {
+        return nil
+    }
+    if !finalizedSinceAudio {
+        return .finalize
+    }
+    return sinceLastSendSec >= keepAliveIntervalSec ? .keepAlive : nil
+}
+
+/// Bağlantı yanıtsız mı: ses verildi ve o andan beri `timeoutSec`'ten uzun süredir hiç mesaj gelmedi. Ses verilmediyse
+/// (duraklatma) Deepgram'ın susması beklenendir. Saf fonksiyondur.
+func isDeepgramUnresponsive(unansweredForSec: Double?, timeoutSec: Double) -> Bool {
+    (unansweredForSec ?? 0) > timeoutSec
+}
+
+/// Süre (saniye). Saf fonksiyondur.
+private func durationSeconds(_ duration: Duration) -> Double {
+    Double(duration.components.seconds) + Double(duration.components.attoseconds) / 1e18
 }
 
 /// Yeni WebSocket bağlantısı açılabilir mi: oturum geçersiz kılınmadıysa, kapanış süresi dolmadıysa ve akış kalıcı hata

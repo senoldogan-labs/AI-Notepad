@@ -234,6 +234,10 @@ private struct PhoneAppRoot: View {
             }
             if CommandLine.arguments.contains("--ornek-kayit") {
                 recorder.showSampleRecording()
+                // `--ornek-duraklat`: örnek kayıt duraklatılmış, bir cümlenin çevirisi alınamamış.
+                if CommandLine.arguments.contains("--ornek-duraklat") {
+                    recorder.showSamplePaused()
+                }
                 // `--ornek-bitir`: örnek kayıt "Bitir"e basılmış gibi bitiriliyor (hazırlık katmanı, durmuş süre).
                 if CommandLine.arguments.contains("--ornek-bitir") {
                     recorder.showSampleFinishing()

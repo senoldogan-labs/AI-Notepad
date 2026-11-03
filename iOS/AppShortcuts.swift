@@ -15,5 +15,17 @@ struct AINotepadShortcuts: AppShortcutsProvider {
             shortTitle: "Kaydı bitir",
             systemImageName: "stop.fill"
         )
+        AppShortcut(
+            intent: PauseRecordingIntent(),
+            phrases: ["\(.applicationName) kaydı duraklat"],
+            shortTitle: "Kaydı duraklat",
+            systemImageName: "pause.fill"
+        )
+        AppShortcut(
+            intent: ResumeRecordingIntent(),
+            phrases: ["\(.applicationName) kayda devam et"],
+            shortTitle: "Kayda devam et",
+            systemImageName: "play.fill"
+        )
     }
 }
