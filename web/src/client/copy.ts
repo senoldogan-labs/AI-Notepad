@@ -22,6 +22,8 @@ export interface ClientCopy {
     readonly messageTooLong: string;
     /** Ücretsiz erişimi olan hesapta Portal ya da Checkout (`complimentary_subscription`). */
     readonly complimentary: string;
+    /** App Store aboneliği sürerken Checkout (`app_store_subscription`): abonelik burada da geçerli. */
+    readonly appStoreSubscription: string;
     /** Bilinmeyen hata; `{code}` sunucunun hata koduyla değişir. */
     readonly generic: string;
   };
@@ -245,6 +247,8 @@ export const clientCopy: ClientCopy = {
     upstream: "A connected service isn't responding right now. Try again shortly.",
     messageTooLong: "Your message is too long. Please shorten it to 5,000 characters.",
     complimentary: "This account has free access; there is nothing to manage.",
+    appStoreSubscription:
+      "You already subscribe in the iPhone app, and it works here too. Manage or cancel it on your iPhone in Settings › your name › Subscriptions.",
     generic: "Something went wrong (code: {code}). Try again.",
   },
   inviteErrors: {
