@@ -55,4 +55,13 @@ private func others(_ index: Int, person: Int?) -> LiveSegment {
         #expect(knownPersons(transcript: applyCorrections(transcript: transcript, corrections: corrections)) == [1, 2])
         #expect(nextFreePerson(transcript: transcript, corrections: corrections) == 4)
     }
+
+    @Test func mergedDraftsCarryTheNameLikeTheStoredMerge() {
+        // Adsız hedefe birleşen kişinin adı geçer ("Kaydet" taşınan adı silmesin).
+        #expect(mergingSpeakerDrafts(drafts: [1: "Aino", 2: ""], from: 1, into: 2) == [2: "Aino"])
+        // Hedefin adı kalır.
+        #expect(mergingSpeakerDrafts(drafts: [1: "Aino", 2: "Mikko"], from: 1, into: 2) == [2: "Mikko"])
+        #expect(mergingSpeakerDrafts(drafts: [1: "  "], from: 1, into: 2) == [:])
+        #expect(mergingSpeakerDrafts(drafts: [1: "Aino"], from: 1, into: 1) == [1: "Aino"])
+    }
 }

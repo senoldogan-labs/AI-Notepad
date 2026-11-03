@@ -15,6 +15,9 @@ struct MeetingsTab: View {
     let player: MeetingAudioPlayer
     /// Kayıt sürüyorsa çalma kapalıdır (mikrofon ve hoparlör aynı ses oturumunu paylaşamaz).
     let isRecording: Bool
+    /// Toplantı sayfasındaki ⋯ › Tarif uygula: tarifler ve seçilen tarifi toplantıya (kimliği) Sor'da uygulayan.
+    let recipes: [Recipe]
+    let onRunRecipe: @MainActor (Recipe, String) -> Void
     @State private var query: String = ""
     /// Liste süzgeci (Mac'teki Hepsi / Görevlerim / Hatalı) ya da klasör.
     @State private var scope: MeetingListScope = .filter(.all)
@@ -40,7 +43,8 @@ struct MeetingsTab: View {
         NavigationStack(path: $router.meetingsPath) {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 14) {
-                    PhoneErrorList(messages: store.problems + recorder.importErrors + [deleteError, pickError].compactMap { $0 })
+                    PhoneErrorList(messages: store.loadProblems + recorder.importErrors + [deleteError, pickError].compactMap { $0 })
+                    PhoneDismissibleErrorList(messages: store.actionProblems) { store.dismissActionProblems() }
                     if recorder.importingCount > 0 || isLoadingVideos {
                         ImportProgressRow()
                     }
@@ -93,6 +97,13 @@ struct MeetingsTab: View {
             .searchable(text: $query, prompt: "Toplantılarda ara")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink {
+                        PhonePeopleList(store: store, router: router)
+                    } label: {
+                        Label("Kişiler", systemImage: "person.2")
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Section("Ses ya da video dosyası içe aktar") {
                             Button("Dosyalar'dan seç", systemImage: "folder") { isPickingFiles = true }
@@ -124,10 +135,12 @@ struct MeetingsTab: View {
             .navigationDestination(for: String.self) { (id: String) in
                 if let record = store.meetings.first(where: { $0.id == id }) {
                     // Onay toplantı sayfasının kendisinde sorulur (listeye bağlı onay sayfa kapanana dek görünmüyordu).
-                    MeetingReadView(record: record, store: store, player: player, isRecording: isRecording) {
+                    MeetingReadView(record: record, store: store, player: player, isRecording: isRecording, recipes: recipes) {
                         delete(record: record)
                     } onReprocess: {
                         try recorder.reprocess(meetingID: record.id)
+                    } onRunRecipe: { (recipe: Recipe) -> Void in
+                        onRunRecipe(recipe, record.id)
                     }
                     .navigationTransition(.zoom(sourceID: id, in: cardTransition))
                 } else {
@@ -320,10 +333,14 @@ struct MeetingReadView: View {
     let store: PhoneStore
     let player: MeetingAudioPlayer
     let isRecording: Bool
+    /// ⋯ › Tarif uygula: yerleşik ve kullanıcı tarifleri.
+    let recipes: [Recipe]
     /// Onaylanan silme: toplantıyı siler ve sayfayı kapatır (onay bu sayfada sorulur).
     let onDelete: @MainActor () -> Void
     /// "Tekrar işle": son geçiş ve not yeniden (bkz. `PhoneRecorder.reprocess`).
     let onReprocess: @MainActor () throws -> Void
+    /// ⋯ › Tarif uygula: seçilen tarif bu toplantıya Sor'da uygulanır.
+    let onRunRecipe: @MainActor (Recipe) -> Void
     @State private var pane: MeetingPane = .summary
     /// Silme onayı bekleyen toplantı (⋯ › Sil).
     @State private var pendingDelete: MeetingRecord?
@@ -361,6 +378,9 @@ struct MeetingReadView: View {
                     if !messages.isEmpty {
                         PhoneErrorList(messages: messages)
                     }
+                    // Not yenileme, şablonla yazma, not düzenleme ve çeviri hataları (yalnız listede kalsaydı sayfada
+                    // dönen çark sessizce dururdu).
+                    PhoneDismissibleErrorList(messages: store.actionProblems) { store.dismissActionProblems() }
                     if let language = translatingLanguage {
                         HStack(spacing: 10) {
                             ProgressView().controlSize(.small)
@@ -441,7 +461,15 @@ struct MeetingReadView: View {
                     }
                     Button("Markdown olarak kopyala", systemImage: "doc.on.doc") {
                         UIPasteboard.general.string = meetingMarkdown(record: record)
+                        recordFeatureUsage(feature: .export(.copyMarkdown))
                     }
+                    // Mac'teki "Tarif": bu toplantıya tarif uygular, cevap Sor'da açılır.
+                    Menu("Tarif uygula", systemImage: "wand.and.stars") {
+                        ForEach(recipes) { (recipe: Recipe) in
+                            Button(recipe.title, systemImage: recipe.symbol) { onRunRecipe(recipe) }
+                        }
+                    }
+                    .disabled(record.note == nil)
                     Divider()
                     Button("Adını değiştir", systemImage: "pencil") {
                         newTitle = record.note?.title ?? record.title
@@ -450,7 +478,7 @@ struct MeetingReadView: View {
                     .disabled(!isEditable)
                     Menu("Klasöre taşı", systemImage: "folder") {
                         ForEach(meetingFolders(records: store.meetings, saved: []), id: \.name) { (folder: FolderSummary) in
-                            Button(folder.name, systemImage: record.folder == folder.name ? "checkmark" : "folder") {
+                            Button(folder.name, systemImage: record.folder?.caseInsensitiveCompare(folder.name) == .orderedSame ? "checkmark" : "folder") {
                                 move(folder: folder.name)
                             }
                         }
@@ -611,6 +639,7 @@ struct MeetingReadView: View {
     private func export(format: MeetingExportFormat) {
         do {
             exported = ExportedFile(url: try writeMeetingExport(record: record, format: format))
+            recordFeatureUsage(feature: .export(format.telemetryFormat))
             errorMessage = nil
         } catch {
             errorMessage = String(localized: "Dışa aktarılamadı: \(userFacingMessage(error: error))")

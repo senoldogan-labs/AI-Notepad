@@ -49,6 +49,8 @@ struct TasksTab: View {
     ) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
+                // Görev işareti saklanamadıysa (ya da toplantı işlenirken) nedeni burada.
+                PhoneDismissibleErrorList(messages: store.actionProblems) { store.dismissActionProblems() }
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(alignment: .firstTextBaseline) {
                         Text(verbatim: "\(doneCount)/\(all.count)")

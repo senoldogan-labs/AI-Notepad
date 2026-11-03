@@ -19396,6 +19396,56 @@
         }
       }
     },
+    "Toplantı işlenirken görev işaretlenemez; işleme bitince yeniden dene.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tasks can't be checked off while the meeting is being processed; try again when it's done."
+          }
+        }
+      }
+    },
+    "Kişi bulunamadı": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Person not found"
+          }
+        }
+      }
+    },
+    "Bu kişi kaldırılmış olabilir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This person may have been removed."
+          }
+        }
+      }
+    },
+    "Kişiler'den kaldırılsın mı? Toplantılardaki adı kalır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove from People? Their name stays in your meetings."
+          }
+        }
+      }
+    },
+    "Kayıt için önce uygulamayı aç ve yapay zekâ kullanımını onayla.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open the app and accept the AI notice before recording."
+          }
+        }
+      }
+    },
     "Bir ekran görüntüsü okunamadı ya da küçültülemedi. Ekranlar sekmesinden o görüntüyü nottan çıkarıp ya da silip yeniden dene.": {
       "localizations": {
         "en": {

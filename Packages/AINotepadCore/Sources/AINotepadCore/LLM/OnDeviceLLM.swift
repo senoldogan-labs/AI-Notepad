@@ -212,6 +212,16 @@ public func deviceDefaultMeetingLanguage(preferredLanguages: [String]) -> Meetin
     return MeetingLanguage(rawValue: ["nb", "nn"].contains(base) ? "no" : base) ?? .english
 }
 
+/// iPhone'un ilk kurulumunda ana toplantı dili: kayıtlı değer yoksa ve karşılama henüz bitmediyse cihazın dili
+/// (`deviceDefaultMeetingLanguage`; kayıtlı varsayılan Fince'dir ve canlı akış dil algılamaz). Karşılamayı önceden
+/// bitirmiş kullanıcıda nil: bugüne dek Fince kaydetmişti, sessizce değişmez. Saf fonksiyondur.
+public func firstRunMeetingLanguage(storedLanguage: String?, onboardingCompleted: Bool, preferredLanguages: [String]) -> MeetingLanguage? {
+    guard storedLanguage == nil, !onboardingCompleted else {
+        return nil
+    }
+    return deviceDefaultMeetingLanguage(preferredLanguages: preferredLanguages)
+}
+
 /// Anahtarsız ilk kurulumda (cihaz içi mod) ana toplantı dili: cihazın dili (`deviceDefaultMeetingLanguage`) cihaz içi
 /// model destekliyorsa o; değilse İngilizce. Saf fonksiyondur.
 public func onDeviceDefaultMeetingLanguage(preferredLanguages: [String], languageCodes: Set<String>) -> MeetingLanguage {

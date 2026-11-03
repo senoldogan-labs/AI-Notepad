@@ -280,22 +280,6 @@ private struct PersonForm: View {
     }
 }
 
-/// Addan sabit renkli harf rozeti.
-struct PersonAvatar: View {
-    let name: String
-    let size: CGFloat
-
-    var body: some View {
-        let hash: Int = name.lowercased().unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) & 0x7FFF_FFFF }
-        Text(name.first.map { String($0).uppercased() } ?? "?")
-            .appFont(size: size * 0.42, weight: .semibold)
-            .foregroundStyle(personColor(person: hash % DesignTokens.personPalette.count + 1))
-            .frame(width: size, height: size)
-            .background(Circle().fill(personColor(person: hash % DesignTokens.personPalette.count + 1).opacity(0.15)).background(Circle().fill(Theme.card)))
-            .accessibilityHidden(true)
-    }
-}
-
 /// Kişinin sayfası: başlık (rozet, ad, ünvan, e-posta, sesi; düzenle ve kaldır), özet sayılar, toplantıları ve
 /// görevleri. Kaldırma iki adımlıdır (yanlışlıkla tıklanmasın).
 private struct PersonDetail: View {

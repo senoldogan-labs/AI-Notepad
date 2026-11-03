@@ -41,6 +41,17 @@ enum MeetingExportFormat: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Kullanım istatistiğindeki adı (Mac'teki dışa aktarmalarla aynı).
+    var telemetryFormat: TelemetryExportFormat {
+        switch self {
+        case .pdf: .pdf
+        case .html: .html
+        case .markdown: .markdown
+        case .transcriptText: .transcriptText
+        case .subtitles: .srt
+        }
+    }
+
     var systemImage: String {
         switch self {
         case .pdf: "doc.richtext"

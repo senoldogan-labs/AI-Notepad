@@ -99,6 +99,22 @@ func phoneStartBlockMessage(account: HostedAccount, now: Date) -> String? {
     return phoneStartBlockText(block: block, trialRefusedHere: account.isTrialRefusedOnThisMac, now: now)
 }
 
+/// Hâlâ geçerli hata mesajları: abonelik etkinse aboneliğin çözdüğü retler ("deneme bitti", "bu cihazda deneme
+/// kullanıldı"…) düşer (Mac'teki `resolvedErrorMessages` gibi).
+@MainActor
+func phoneUnresolvedErrors(messages: [String], account: HostedAccount) -> [String] {
+    guard case .signedIn(let entitlements) = account.state else {
+        return messages
+    }
+    switch hostedPlanStatus(entitlements: entitlements) {
+    case .subscribed, .complimentary, .ending, .grace:
+        let resolved: [String] = hostedMessagesResolvedBySubscription()
+        return messages.filter { !resolved.contains($0) }
+    case .trial, .expired, .paymentOverdue:
+        return messages
+    }
+}
+
 /// Plan durumunun iPhone metni (hesap ekranı). Saf fonksiyondur.
 func phonePlanStatusText(status: HostedPlanStatus) -> String {
     switch status {

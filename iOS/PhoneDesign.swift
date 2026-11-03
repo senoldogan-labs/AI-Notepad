@@ -307,6 +307,39 @@ struct PhoneErrorList: View {
     }
 }
 
+/// Kapatılabilen hata satırları (toplantı işlemlerinin hataları): `PhoneErrorList` gibi, sağda kapatma düğmesi.
+struct PhoneDismissibleErrorList: View {
+    let messages: [String]
+    let onDismiss: @MainActor () -> Void
+
+    var body: some View {
+        if !messages.isEmpty {
+            HStack(alignment: .top, spacing: 8) {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(messages, id: \.self) { (message: String) in
+                        Label(message, systemImage: "exclamationmark.triangle.fill")
+                            .appFont(size: 13, weight: .regular)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                Button(action: onDismiss) {
+                    Image(systemName: "xmark")
+                        .appFont(size: 11, weight: .semibold)
+                        .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Kapat")
+            }
+            .foregroundStyle(.orange)
+            .padding(.vertical, 14)
+            .padding(.leading, 14)
+            .padding(.trailing, 6)
+            .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+    }
+}
+
 /// Hiç veri yokken sekmenin boş sahnesi (Toplantılar, Görevler, Sor): Mac'teki boş sahneyle aynı (durgun pastel gradyan
 /// üstünde örnek not kartı, başlık, tek cümle, vurgu renkli eylemler); alanın dikey ortasında, sığmazsa kaydırılır.
 struct PhoneEmptyScene<Actions: View>: View {
