@@ -41,7 +41,7 @@ public let screenNoteBudget: ScreenNoteBudget = ScreenNoteBudget(
 /// cells differ by more than `screenNoteDuplicateCellDelta`: at most 3 of 640 cells, room for a moved cursor. Measured
 /// on 1600×1000 slides: the same slide shown again differs in 0 % of cells; slides of one template whose only change
 /// is a short title and a word or two differ in 1.1–4 %, so they all stay candidates. Much stricter than capture's
-/// "new screen" rule (20 % of cells by 18).
+/// "new screen" rule (33 % of cells by 18).
 public let screenNoteDuplicateCellDelta: Int = 8
 public let screenNoteDuplicateFraction: Double = 0.006
 
