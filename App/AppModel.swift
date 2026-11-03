@@ -2032,16 +2032,15 @@ final class AppModel {
 
     /// Yeni klasör oluşturur (aynı ad varsa bir şey yapmaz).
     func createFolder(name: String) {
-        let trimmed: String = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, !folders.contains(where: { $0.name.caseInsensitiveCompare(trimmed) == .orderedSame }) else {
+        guard let updated = addingFolder(saved: savedFolders, records: meetings, name: name) else {
             return
         }
-        storeFolders(folders: savedFolders + [trimmed])
+        storeFolders(folders: updated)
     }
 
     /// Klasörü siler: toplantılar silinmez, klasörsüz kalır.
     func deleteFolder(name: String) {
-        storeFolders(folders: savedFolders.filter { $0.caseInsensitiveCompare(name) != .orderedSame })
+        storeFolders(folders: removingFolder(saved: savedFolders, name: name))
         moveMeetings(ids: Set(meetingsInFolder(records: meetings, folder: name).map(\.id)), to: nil)
     }
 

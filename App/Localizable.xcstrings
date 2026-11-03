@@ -11,6 +11,17 @@
         }
       }
     },
+    "\"%@\" klasörü silinsin mi?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete the folder “%@”?"
+          }
+        }
+      }
+    },
     "\"%@\" klasörüne, hesap gerekmez": {
       "localizations": {
         "en": {
@@ -1097,6 +1108,29 @@
         }
       }
     },
+    "%lld gün kaldı": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld day left"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld days left"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld karar": {
       "localizations": {
         "en": {
@@ -1591,6 +1625,29 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld toplantı okunuyor…"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld toplantı silinsin mi?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Delete %lld meeting?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Delete %lld meetings?"
                 }
               }
             }
@@ -4297,6 +4354,17 @@
         }
       }
     },
+    "Bu toplantı silindi": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This meeting was deleted"
+          }
+        }
+      }
+    },
     "Bu toplantı silinmiş olabilir.": {
       "localizations": {
         "en": {
@@ -6412,6 +6480,17 @@
         }
       }
     },
+    "Geri yükle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore"
+          }
+        }
+      }
+    },
     "GEÇMİŞ": {
       "localizations": {
         "en": {
@@ -7570,6 +7649,39 @@
         }
       }
     },
+    "İçinde kayıttaki ya da işlenen toplantı olan klasör silinemez.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A folder with a meeting that is recording or being processed can't be deleted."
+          }
+        }
+      }
+    },
+    "Kalıcı olarak sil": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete permanently"
+          }
+        }
+      }
+    },
+    "Kalıcı olarak silinsin mi?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete permanently?"
+          }
+        }
+      }
+    },
     "Kayıt ve işleme bitince silinebilir": {
       "localizations": {
         "en": {
@@ -7590,12 +7702,45 @@
         }
       }
     },
+    "Not, transkript ve ses silinir; geri alınamaz.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The note, transcript and audio are deleted; this can't be undone."
+          }
+        }
+      }
+    },
+    "Oluştur": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create"
+          }
+        }
+      }
+    },
     "Paylaşılan ekranın görüntülerini al": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Take snapshots of the shared screen"
+          }
+        }
+      }
+    },
+    "Silinen toplantılar %lld gün burada kalır, sonra kalıcı olarak silinir.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deleted meetings stay here for %lld days, then they're deleted permanently."
           }
         }
       }
@@ -7620,12 +7765,100 @@
         }
       }
     },
+    "Son silinenler": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recently deleted"
+          }
+        }
+      }
+    },
+    "Son silinenler boş": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recently deleted is empty"
+          }
+        }
+      }
+    },
+    "Son silinenler'den geri yükleyebilirsin.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can restore it from Recently deleted."
+          }
+        }
+      }
+    },
+    "Son silinenler'e taşınır; %lld gün içinde geri yükleyebilirsin.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moves to Recently deleted; you can restore it within %lld days."
+          }
+        }
+      }
+    },
     "Sunucu %lld saniyede yanıt vermedi.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "The server didn't respond within %lld seconds."
+          }
+        }
+      }
+    },
+    "Toplantı geri yüklenemedi: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't restore the meeting: %@"
+          }
+        }
+      }
+    },
+    "Toplantı kalıcı olarak silinemedi: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't delete the meeting permanently: %@"
+          }
+        }
+      }
+    },
+    "Toplantılar silinmez, klasörsüz kalır.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings aren't deleted; they just leave the folder."
+          }
+        }
+      }
+    },
+    "Word (DOCX)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Word (DOCX)"
           }
         }
       }
@@ -10666,16 +10899,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Note template"
-          }
-        }
-      }
-    },
-    "Not, transkript ve ses kalıcı olarak silinir; geri alınamaz.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The note, transcript and audio are deleted permanently; this can't be undone."
           }
         }
       }

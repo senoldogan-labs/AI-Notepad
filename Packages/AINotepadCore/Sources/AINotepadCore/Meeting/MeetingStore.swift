@@ -284,8 +284,8 @@ public func audioToDelete(records: [MeetingRecord], now: Date, retentionDays: In
         .map(\.id)
 }
 
-/// Toplantı klasörünü kalıcı olarak siler (iPhone: Çöp Sepeti yok; silmeden önce onay sorulur). Silinemezse
-/// `deleteFailed`.
+/// Toplantı klasörünü kalıcı olarak siler (iPhone'da son silinenlerden; bkz. `deleteRecentlyDeletedMeeting`).
+/// Silinemezse `deleteFailed`.
 public func deleteMeetingDirectory(directory: URL) throws {
     try coordinatedRemoveItem(at: directory)
 }

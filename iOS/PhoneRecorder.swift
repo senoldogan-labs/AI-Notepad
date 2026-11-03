@@ -582,6 +582,13 @@ final class PhoneRecorder {
         }
     }
 
+    /// "Şimdi dene" (Mac'teki gibi): bekleyen kaydı kendiliğinden yeniden denemeyi beklemeden kuyruğu hemen çalıştırır.
+    /// Sunucunun bu kaydı az önce reddetmesinin bekleme süresi kullanıcının isteğiyle kalkar (tek kayıt, tek istek).
+    func retryQueuedNow(meetingID: String) async {
+        queueRejections[meetingID] = nil
+        await runQueue()
+    }
+
     /// Bekleyen kaydın işlenememe nedenini toplantıya yazar (değişmediyse dokunmaz).
     private func noteQueued(recordID: String, notice: String) {
         guard let current = store.meetings.first(where: { $0.id == recordID }), current.status == .queued, current.notice != notice else {

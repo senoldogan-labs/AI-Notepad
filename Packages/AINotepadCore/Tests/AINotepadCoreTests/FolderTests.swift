@@ -17,4 +17,16 @@ import Testing
         #expect(meetingsInFolder(records: records, folder: "PROJE X").count == 2)
         #expect(meetingsInFolder(records: records, folder: nil).count == 4)
     }
+
+    // Yeni klasör kırpılarak eklenir; boş ad ya da kayıtlı/kullanılan klasörle aynı ad (büyük/küçük harf duyarsız)
+    // bir şey değiştirmez. Silme büyük/küçük harf duyarsızdır, diğerlerine dokunmaz.
+    @Test func addingAndRemovingFolders() {
+        let used: MeetingRecord = record(id: "1", startedAt: Date(), status: .done, audioDeleted: false).with(folder: "Proje X")
+        #expect(addingFolder(saved: ["Ekip"], records: [used], name: "  Ders  ") == ["Ekip", "Ders"])
+        #expect(addingFolder(saved: ["Ekip"], records: [used], name: "   ") == nil)
+        #expect(addingFolder(saved: ["Ekip"], records: [used], name: "ekip") == nil)
+        #expect(addingFolder(saved: ["Ekip"], records: [used], name: "proje x") == nil)
+        #expect(removingFolder(saved: ["Ekip", "Ders"], name: "EKIP") == ["Ders"])
+        #expect(removingFolder(saved: ["Ekip"], name: "Yok") == ["Ekip"])
+    }
 }
