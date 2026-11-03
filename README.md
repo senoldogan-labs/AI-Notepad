@@ -36,8 +36,8 @@
 - **Calendar:** upcoming meetings on Home, a notification one minute before with "Start listening", a suggestion
   when another app turns on the microphone; recordings take the event's title and attendee names.
 - **Tasks:** tick tasks off, see open and done tasks, send them to Apple Reminders.
-- **Sharing:** note templates (one-on-one, client, lecture, interview, your own), a Finnish or English version of
-  the note for colleagues and the macOS share menu.
+- **Sharing:** note templates (one-on-one, client, lecture, interview, stand-up, sprint planning, your own; picked
+  from the meeting title), a Finnish or English version of the note for colleagues and the macOS share menu.
 - **In-person mode:** everyone on the microphone is separated into speakers.
 - **MCP server:** `AINotepad --mcp` lets Claude Desktop, ChatGPT and other MCP clients list, search and read your
   meetings (read-only). What the client reads is sent to that client's AI provider.

@@ -20542,6 +20542,66 @@
           }
         }
       }
+    },
+    "Günlük durum (stand-up)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Daily stand-up"
+          }
+        }
+      }
+    },
+    "Sprint planlama": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprint planning"
+          }
+        }
+      }
+    },
+    "%@ (toplantı adından)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (from the meeting title)"
+          }
+        }
+      }
+    },
+    "Şablonu toplantı adına göre seç": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pick the template from the meeting title"
+          }
+        }
+      }
+    },
+    "Takvimdeki toplantının ya da içe aktarılan dosyanın adı türünü açıkça gösteriyorsa (ör. \"1:1\", \"Birebir\", \"Daily\", \"Sprint planning\", \"Mülakat\", \"Müşteri demosu\", \"Ders\") not o şablonla yazılır; ad bir şey söylemiyorsa yukarıdaki şablon kullanılır. Seçilen şablon toplantının ⋯ menüsünde \"(toplantı adından)\" diye görünür, oradan başka şablonla yeniden yazabilirsin. \"Kendi şablonum\" seçiliyken hep o kullanılır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If the name of the calendar meeting or imported file clearly shows its type (e.g. \"1:1\", \"One-on-one\", \"Daily\", \"Sprint planning\", \"Interview\", \"Customer demo\", \"Lecture\"), the note is written with that template; if the name says nothing, the template above is used. The chosen template shows as \"(from the meeting title)\" in the meeting's ⋯ menu, where you can rewrite the note with another template. With \"My own template\" selected, it is always used."
+          }
+        }
+      }
+    },
+    "Ad türü gösteriyorsa (ör. \"1:1\", \"Daily\", \"Mülakat\") o şablon kullanılır; kendi şablonun hep geçerli.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If the name shows the type (e.g. \"1:1\", \"Daily\", \"Interview\"), that template is used; your own template always applies."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

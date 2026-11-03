@@ -31,6 +31,8 @@ enum PhoneSettingsKey {
     /// Yeni toplantıların not şablonu (`NoteTemplateKind`) ve "Kendi şablonum"un yönergesi (Mac'teki ayarlarla aynı ad).
     static let noteTemplate: String = "noteTemplate"
     static let customTemplate: String = "customTemplate"
+    /// "Şablonu toplantı adına göre seç" (Mac'teki ayarla aynı ad).
+    static let templateFromTitle: String = "noteTemplate.fromTitle"
     /// Canlı çeviri görünümü (`DisplayMode`, Mac'teki ayarla aynı ad): `originalOnly` kayıt sırasında çevirmez,
     /// `turkishOnly` canlı metinde yalnız çeviriyi gösterir.
     static let displayMode: String = "displayMode"
@@ -59,6 +61,7 @@ func registerPhoneDefaults() {
         PhoneSettingsKey.customVocabulary: "",
         PhoneSettingsKey.noteTemplate: NoteTemplateKind.general.rawValue,
         PhoneSettingsKey.customTemplate: "",
+        PhoneSettingsKey.templateFromTitle: true,
         // iPhone'da canlı çeviri baştan açık (kayıt kartı onu anlatır); Ayarlar › Toplantı'dan kapatılır.
         PhoneSettingsKey.displayMode: DisplayMode.bilingual.rawValue,
         PhoneSettingsKey.missedWindowMinutes: 3,
@@ -146,6 +149,16 @@ func phoneNoteTemplate() -> NoteTemplate {
         return .general
     }
     return NoteTemplate(kind: kind, customInstructions: UserDefaults.standard.string(forKey: PhoneSettingsKey.customTemplate) ?? "")
+}
+
+/// Adı `title` olan yeni toplantının not şablonu: "Şablonu toplantı adına göre seç" açıksa ada göre (bkz.
+/// `templateForTitle`), kapalıysa Ayarlar'daki varsayılan (Mac'teki `newMeetingNoteTemplate`).
+func phoneNewMeetingNoteTemplate(title: String) -> NoteTemplate {
+    let base: NoteTemplate = phoneNoteTemplate()
+    guard UserDefaults.standard.bool(forKey: PhoneSettingsKey.templateFromTitle) else {
+        return base
+    }
+    return templateForTitle(title: title, defaultTemplate: base)
 }
 
 /// "Ne kaçırdım?" özetinin kapsadığı son dakika sayısı (Ayarlar), izin verilen aralıkta.
