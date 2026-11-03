@@ -117,6 +117,17 @@ public enum HostedClientError: Error, Sendable, Equatable {
     case serverOutdated(path: String)
 }
 
+/// Hesap sunucuda silindi (2xx) ama bu cihazdaki son adım başarısız oldu: yanıt okunamadı ya da yerel oturum silinemedi.
+/// Hesap silinmiş sayılır: çağıran yerel temizliği yine yapar ve hatayı gösterir.
+public struct HostedAccountDeletedLocalFailure: Error, Sendable, Equatable {
+    /// Okunabildiyse silme yanıtı (süren App Store aboneliği için); okunamadıysa ya da gövde yoksa nil.
+    public let deletion: HostedAccountDeletion?
+    /// Yanıt okunamadıysa nedeni (hata ayıklama içindir).
+    public let decodeFailure: String?
+    /// Yerel oturum (Anahtar Zinciri) silinemediyse nedeni (hata ayıklama içindir).
+    public let tokenClearFailure: String?
+}
+
 /// Apple DeviceCheck jetonu üretilemedi (ücretsiz deneme toplantısı için gerekir).
 public enum HostedDeviceCheckError: Error, Sendable, Equatable {
     /// Bu Mac'te DeviceCheck desteklenmiyor.

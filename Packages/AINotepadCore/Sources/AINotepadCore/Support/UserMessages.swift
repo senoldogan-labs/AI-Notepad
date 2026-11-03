@@ -15,6 +15,8 @@ public func userFacingMessage(error: any Error) -> String {
         return hostedErrorMessage(error: error)
     case let error as HostedClientError:
         return hostedClientMessage(error: error)
+    case is HostedAccountDeletedLocalFailure:
+        return String(localized: "Hesabın silindi, ama bu cihazdaki son adım tamamlanamadı; uygulamayı kapatıp yeniden aç. App Store aboneliğin varsa hesabı silince iptal olmaz: iPhone'da Ayarlar › Apple Hesabı › Abonelikler'den iptal et.")
     case let error as HostedDeviceCheckError:
         return hostedDeviceCheckMessage(error: error)
     case let error as HostedBrowserSignInError:

@@ -19664,6 +19664,17 @@
           }
         }
       }
+    },
+    "Hesabın silindi, ama bu cihazdaki son adım tamamlanamadı; uygulamayı kapatıp yeniden aç. App Store aboneliğin varsa hesabı silince iptal olmaz: iPhone'da Ayarlar › Apple Hesabı › Abonelikler'den iptal et.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your account was deleted, but the last step on this device didn't finish; quit and reopen the app. Deleting your account doesn't cancel an App Store subscription: cancel it on your iPhone in Settings › Apple Account › Subscriptions."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
