@@ -84,7 +84,7 @@ public func screenNoteJPEG(file: URL, size: ScreenPixelSize, maxBytes: Int) thro
 
 /// Edge of the thumbnail a fingerprint is computed from (the fingerprint itself is 32×20; a larger source measured the
 /// same differences).
-private let screenNoteFingerprintSource: Int = 96
+let screenNoteFingerprintSource: Int = 96
 
 /// The note's screen images: the meeting's snapshots minus the unticked ones, chosen and sized by
 /// `selectScreenNoteImages`, each preceded in the prompt by its time label. No snapshots: none. A snapshot that cannot be

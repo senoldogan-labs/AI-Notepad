@@ -28,7 +28,7 @@ private func noteLanguagePrompts(language: ShareLanguage) throws -> [(name: Stri
         ).system),
         ("arama terimleri", searchTermsRequest(question: "Diat?", history: [], languages: [.finnish, .turkish], language: language).system),
         ("arşiv cevabı", archiveAnswerRequest(
-            question: "Diat?", passages: [], history: [], userName: "Doğan", now: Date(timeIntervalSince1970: 1_792_000_000), language: language
+            question: "Diat?", passages: [], screens: [], history: [], userName: "Doğan", now: Date(timeIntervalSince1970: 1_792_000_000), language: language
         ).system),
         ("konuşmacı incelemesi", try #require(speakerReviewRequest(
             segments: saved, speakerNames: [:], userName: "Doğan", attendees: [], language: language

@@ -152,15 +152,28 @@ public func selectScreenNoteImages(
             let (leftScore, rightScore): (Double, Double) = (screenNoteScore(candidate: left), screenNoteScore(candidate: right))
             return leftScore != rightScore ? leftScore > rightScore : left.startSec < right.startSec
         }
-    let chosen: [(candidate: ScreenNoteCandidate, selection: ScreenNoteSelection)] = ranked.reduce(
-        into: [(candidate: ScreenNoteCandidate, selection: ScreenNoteSelection)]()
-    ) { (chosen: inout [(candidate: ScreenNoteCandidate, selection: ScreenNoteSelection)], candidate: ScreenNoteCandidate) -> Void in
+    return greedyScreenSelections(ranked: ranked, budget: budget, cellDelta: cellDelta, duplicateFraction: duplicateFraction)
+        .map(\.selection)
+        .sorted { $0.startSec < $1.startSec }
+}
+
+/// Snapshots taken in the given order (best first) within `budget`: a candidate near-identical to an already chosen one
+/// is skipped, each chosen one gets the largest size that fits its own cap and what is left of the total; stops at
+/// `maxImages` or when the rest of the budget is below `minImageTokens`. Returns the chosen ones with their position in
+/// `ranked`, in choice order. The sum of `tokens` never exceeds `maxTotalTokens`. Pure function.
+func greedyScreenSelections(
+    ranked: [ScreenNoteCandidate], budget: ScreenNoteBudget, cellDelta: Int, duplicateFraction: Double
+) -> [(rank: Int, selection: ScreenNoteSelection)] {
+    let chosen: [(candidate: ScreenNoteCandidate, rank: Int, selection: ScreenNoteSelection)] = ranked.enumerated().reduce(
+        into: [(candidate: ScreenNoteCandidate, rank: Int, selection: ScreenNoteSelection)]()
+    ) { (chosen: inout [(candidate: ScreenNoteCandidate, rank: Int, selection: ScreenNoteSelection)], item: (offset: Int, element: ScreenNoteCandidate)) -> Void in
+        let candidate: ScreenNoteCandidate = item.element
         let used: Int = chosen.reduce(0) { $0 + $1.selection.tokens }
         let allowance: Int = min(budget.maxImageTokens, budget.maxTotalTokens - used)
         guard chosen.count < budget.maxImages, allowance >= budget.minImageTokens else {
             return
         }
-        let duplicate: Bool = chosen.contains { (picked: (candidate: ScreenNoteCandidate, selection: ScreenNoteSelection)) -> Bool in
+        let duplicate: Bool = chosen.contains { (picked: (candidate: ScreenNoteCandidate, rank: Int, selection: ScreenNoteSelection)) -> Bool in
             changedFraction(from: picked.candidate.fingerprint, to: candidate.fingerprint, cellDelta: cellDelta) < duplicateFraction
         }
         guard !duplicate,
@@ -169,13 +182,14 @@ public func selectScreenNoteImages(
         }
         chosen.append((
             candidate: candidate,
+            rank: item.offset,
             selection: ScreenNoteSelection(
                 snapshot: candidate.snapshot, startSec: candidate.startSec, endSec: candidate.endSec, size: size,
                 tokens: screenVisualTokens(width: size.width, height: size.height)
             )
         ))
     }
-    return chosen.map(\.selection).sorted { $0.startSec < $1.startSec }
+    return chosen.map { (rank: $0.rank, selection: $0.selection) }
 }
 
 /// Candidates from the meeting's snapshots and transcript: each snapshot's time on screen and the speech meanwhile
