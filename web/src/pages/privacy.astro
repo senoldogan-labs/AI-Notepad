@@ -22,8 +22,9 @@
 // Processors", revenuecat.com/dpa; ABD'de AWS); Apple App Store satışında bağımsız sorumludur. Sunucu RevenueCat'ten
 // yalnızca aboneliğin ürününü, durumunu, dönemini ve sandbox işaretini okur (göç 0048). Nihai metin önbelleği
 // (server/src/transcriptionCache.ts) 2 saat sonra sunulmaz, satırı günlük temizlik (cleanup.ts, cron "17 3 * * *") siler.
-// Linear/Jira iş açma ajanı (`task_agent`) ve notu paylaşım diline çevirme (`shared_note_translation`) sunucu üzerinden
-// Anthropic'e gider. Mac'teki cihaz içi konuşma modelleri (WhisperKit, SpeakerKit) Hugging Face'ten (huggingface.co,
+// Linear/Jira iş açma ajanı (`task_agent`), notu paylaşım diline çevirme (`shared_note_translation`) ve nottan takip
+// e-postası taslağı (`follow_up_email`; alıcı adresleri gönderilmez, yalnızca cihazdaki e-posta uygulamasına gider) sunucu
+// üzerinden Anthropic'e gider. Mac'teki cihaz içi konuşma modelleri (WhisperKit, SpeakerKit) Hugging Face'ten (huggingface.co,
 // argmaxinc/whisperkit-coreml) indirilir. iPhone uygulaması henüz App Store'da değildir.
 import LegalSection from "../components/LegalSection.astro";
 import Legal from "../layouts/Legal.astro";
@@ -176,9 +177,10 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         <strong>Notes, live translation, “What did I miss?” and Ask.</strong> The relevant parts of the transcript (and
         of earlier notes, when you use Ask), together with the participant names and terms you have added, are sent
         through our server to Anthropic's Claude model, and the answer returns to your device. The same applies when you
-        create Linear or Jira issues from your tasks (the tasks, the meeting title and Linear's or Jira's replies are sent)
-        and when you translate a note to send it in another language. Our server does not store or log this text; it
-        records only the number of tokens used.
+        create Linear or Jira issues from your tasks (the tasks, the meeting title and Linear's or Jira's replies are sent),
+        when you translate a note to send it in another language, and when you draft a follow-up email from a note (the
+        note, the meeting title and date, the attendee names of a linked calendar event and your name are sent). Our server
+        does not store or log this text; it records only the number of tokens used.
       </li>
       <li>
         <strong>Screen snapshots in notes (Mac app, off by default).</strong> If you also turn on “Use screen snapshots in
@@ -648,7 +650,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
             <td>
               The relevant parts of meeting transcripts and notes, your questions, the participant names and terms you add,
               meeting titles and the attendee names of linked calendar events, tasks and Linear's or Jira's replies when you
-              create issues there, notes you translate to share, and, if you turn on “Use screen snapshots in notes”, up to 6 downscaled shared-screen snapshots per note and up to 3 per Ask answer
+              create issues there, notes you translate to share or turn into a follow-up email, and, if you turn on “Use screen snapshots in notes”, up to 6 downscaled shared-screen snapshots per note and up to 3 per Ask answer
             </td>
             <td>
               Stored in the USA; the model may run in other countries where Anthropic operates. Standard Contractual

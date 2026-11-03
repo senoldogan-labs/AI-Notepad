@@ -460,6 +460,8 @@ struct MeetingDetailPage: View {
     @State private var isRenaming: Bool = false
     @State private var draftTitle: String = ""
     @FocusState private var titleFocused: Bool
+    /// Takip e-postası kartı açık: taslağın ilk dili (sayfada seçili not dili); kapalıyken nil.
+    @State private var followUpLanguage: ShareLanguage?
 
     private var isProcessing: Bool {
         model.processingMeetingIDs.contains(record.id)
@@ -496,6 +498,12 @@ struct MeetingDetailPage: View {
                             }
                         }
                     statusLines
+                    if let language = followUpLanguage, let note = record.note {
+                        FollowUpEmailCard(model: model, record: record, noteLanguage: note.writtenLanguage, initialLanguage: language) {
+                            withAnimation(.smooth(duration: 0.25)) { followUpLanguage = nil }
+                        }
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
                     // Sekmeler ve notun dili tek satırda: dil, iş arkadaşlarına göndermek için notun başka dildeki sürümü.
                     HStack(spacing: 10) {
                         let hasScreens: Bool = !(model.screenSnapshots.snapshots[record.id] ?? []).isEmpty || tab == .screens
@@ -570,6 +578,7 @@ struct MeetingDetailPage: View {
                 }
                 .animation(.smooth(duration: 0.25), value: tab)
                 .animation(.smooth(duration: 0.25), value: export)
+                .animation(.smooth(duration: 0.25), value: followUpLanguage)
                 .animation(.smooth(duration: 0.3), value: model.speakerReviews[record.id])
                 .padding(DesignTokens.Spacing.l)
                 // Geniş ana pencerede içerik okunur genişlikte kalır ve ortalanır: liste gizlenince sağda büyük boşluk
@@ -959,6 +968,11 @@ struct MeetingDetailPage: View {
     /// ya da PDF'ini iCloud bağlantısıyla paylaşır. Geniş ve dar düzenin ikisinde de menüdedir.
     @ViewBuilder
     private var webhookItem: some View {
+        // Nottan takip e-postası: kart sayfanın üstünde açılır (taslak düzenlenir, kopyalanır ya da Mail'de açılır).
+        Button("Takip e-postası yaz", systemImage: "envelope.badge") {
+            withAnimation(.smooth(duration: 0.25)) { followUpLanguage = noteLanguage ?? record.note?.writtenLanguage }
+        }
+        .disabled(record.note == nil || isLocked)
         Button("Web sayfası olarak kaydet", systemImage: "globe") { exportHTML() }
             .disabled(record.note == nil)
         #if HOSTED_EDITION
@@ -2036,6 +2050,177 @@ private struct SharedNoteSection: View {
             error = await model.generateSharedNote(meetingID: record.id, language: language)
         }
     }
+}
+
+/// Takip e-postası: notun özetinden, kararlarından ve görevlerinden yazılan taslak sayfada satır içinde (açılır pencere
+/// yok). Yazılırken ilerleme, olmazsa neden ve "Yeniden dene"; hazır olunca konu ve gövde düzenlenir, "Kopyala" ya da
+/// "Mail'de aç" (alıcılar bağlı takvim etkinliğinin katılımcıları). Dil değişince taslak o dilde yeniden yazılır.
+private struct FollowUpEmailCard: View {
+    let model: AppModel
+    let record: MeetingRecord
+    /// Notun yazıldığı dil (dil menüsünün başında).
+    let noteLanguage: ShareLanguage
+    let onClose: @MainActor () -> Void
+    @State private var language: ShareLanguage
+    @State private var phase: FollowUpEmailPhase = .drafting
+    @State private var subject: String = ""
+    @State private var text: String = ""
+    @State private var attempt: Int = 0
+    /// Kopyalama ya da Mail'de açma olmadı: neden kartta.
+    @State private var actionError: String?
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
+
+    init(model: AppModel, record: MeetingRecord, noteLanguage: ShareLanguage, initialLanguage: ShareLanguage, onClose: @escaping @MainActor () -> Void) {
+        self.model = model
+        self.record = record
+        self.noteLanguage = noteLanguage
+        self.onClose = onClose
+        _language = State(initialValue: initialLanguage)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Label {
+                    Text("TAKİP E-POSTASI").tracking(DesignTokens.labelTracking)
+                } icon: {
+                    Image(systemName: "envelope")
+                }
+                .appFont(size: 11, weight: .semibold)
+                .foregroundStyle(appearance.accent.color)
+                Spacer(minLength: 8)
+                languageMenu
+                Button("Kapat", systemImage: "xmark", action: onClose)
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.hoverPlain)
+                    .foregroundStyle(Theme.muted)
+                    .accessibilityLabel("Takip e-postasını kapat")
+            }
+            Text("Notun özetinden, kararlarından ve görevlerinden katılımcılara kısa bir takip e-postası yazılır; notta olmayan bilgi eklenmez. Göndermeden önce burada düzenleyebilirsin.")
+                .appFont(size: 12, weight: .regular)
+                .foregroundStyle(Theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
+            switch phase {
+            case .drafting:
+                HStack(spacing: 10) {
+                    ProgressView().controlSize(.small)
+                    Text("Takip e-postası yazılıyor…")
+                        .appFont(size: 13, weight: .regular)
+                        .foregroundStyle(Theme.muted)
+                }
+                .padding(.vertical, 6)
+            case .failed(let message):
+                NoticeText(String(localized: "Takip e-postası yazılamadı: \(message)"), severity: .error)
+                    .appFont(size: 12, weight: .regular)
+                    .textSelection(.enabled)
+                Button("Yeniden dene", systemImage: "arrow.clockwise") { attempt += 1 }
+                    .buttonStyle(.pill)
+            case .ready:
+                TextField("Konu", text: $subject)
+                    .textFieldStyle(.roundedBorder)
+                    .appFont(size: 13, weight: .medium)
+                TextEditor(text: $text)
+                    .appFont(size: 13, weight: .regular)
+                    .scrollContentBackground(.hidden)
+                    .padding(8)
+                    .frame(minHeight: 180, maxHeight: 360)
+                    .background(Theme.card, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Theme.line))
+                HStack(spacing: DesignTokens.Spacing.s) {
+                    Button("Mail'de aç", systemImage: "envelope") { openInMail() }
+                        .buttonStyle(.pillPrimary)
+                    Button("Kopyala", systemImage: "doc.on.doc") { copy() }
+                        .buttonStyle(.pill)
+                    Spacer(minLength: 8)
+                    Button("Yeniden yaz", systemImage: "arrow.clockwise") { attempt += 1 }
+                        .buttonStyle(.pill)
+                }
+                if let actionError {
+                    NoticeText(actionError, severity: .error)
+                        .appFont(size: 12, weight: .regular)
+                }
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: 820, alignment: .leading)
+        .cardSurface(cornerRadius: 16)
+        // Dil değişince ya da yeniden istenince taslak baştan yazılır; kart kapanınca istek iptal edilir.
+        .task(id: "\(language.rawValue)-\(attempt)") {
+            phase = .drafting
+            actionError = nil
+            switch await model.draftFollowUpEmail(meetingID: record.id, language: language) {
+            case .drafted(let draft):
+                subject = draft.subject
+                text = draft.body
+                phase = .ready
+            case .subscriptionRequired:
+                // Abonelik teklifi açıldı: kart kapanır.
+                onClose()
+            case .cancelled:
+                return
+            case .failed(let message):
+                phase = .failed(message)
+            }
+        }
+    }
+
+    /// Taslağın dili: notun dili, sık kullanılan Fince ve İngilizce, sonra diğer diller.
+    private var languageMenu: some View {
+        let choices: ShareLanguageChoices = shareLanguageChoices(original: noteLanguage)
+        return Menu {
+            Button(noteLanguage.interfaceName) { language = noteLanguage }
+            ForEach(choices.featured, id: \.self) { (choice: ShareLanguage) in
+                Button(choice.interfaceName) { language = choice }
+            }
+            Divider()
+            Menu("Diğer diller") {
+                ForEach(choices.others, id: \.self) { (choice: ShareLanguage) in
+                    Button(choice.interfaceName) { language = choice }
+                }
+            }
+        } label: {
+            Label {
+                Text(verbatim: language.interfaceName)
+            } icon: {
+                Image(systemName: "globe")
+            }
+        }
+        .menuStyle(.button)
+        .buttonStyle(.pill)
+        .fixedSize()
+        .disabled(phase == .drafting)
+        .accessibilityLabel("Takip e-postasının dili")
+    }
+
+    /// Konu ve gövdeyi panoya kopyalar (ilk satır konu).
+    private func copy() {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString("\(subject)\n\n\(text)", forType: .string)
+        actionError = nil
+        ToastCenter.shared.show(kind: .success, title: String(localized: "Takip e-postası kopyalandı"), detail: nil, action: nil)
+    }
+
+    /// Taslağı varsayılan e-posta uygulamasında yeni ileti olarak açar; alıcılar bağlı takvim etkinliğinin katılımcıları
+    /// (yoksa boş, kullanıcı yazar).
+    private func openInMail() {
+        let draft: FollowUpEmailDraft = FollowUpEmailDraft(subject: subject, body: text)
+        guard let url = followUpMailtoURL(draft: draft, recipients: model.followUpRecipients(meetingID: record.id)) else {
+            actionError = String(localized: "Mail açılamadı: taslak e-posta bağlantısına çevrilemedi. \"Kopyala\" ile yapıştırabilirsin.")
+            return
+        }
+        guard NSWorkspace.shared.open(url) else {
+            actionError = String(localized: "Mail açılamadı: Mac'te ayarlı bir e-posta uygulaması yok. \"Kopyala\" ile yapıştırabilirsin.")
+            return
+        }
+        actionError = nil
+    }
+}
+
+/// Takip e-postası kartının durumu.
+private enum FollowUpEmailPhase: Equatable {
+    case drafting
+    case ready
+    case failed(String)
 }
 
 /// Konu akışında bir bölüm: solda zaman (ses varsa tıklayınca oradan çalar) ve dikey çizgi, sağda başlık ve özet.
