@@ -32,6 +32,10 @@ struct MeetingsTab: View {
     @State private var isLoadingVideos: Bool = false
     /// Seçici ya da Fotoğraflar kopyası hatası.
     @State private var pickError: String?
+    #if CALL_CAPTURE_EXPERIMENT
+    /// Deneysel görüşme kaydı sayfası açık (yalnız `CALL_CAPTURE_EXPERIMENT` derlemesinde).
+    @State private var isCapturingCall: Bool = false
+    #endif
     /// Kart, açılan toplantıya büyüyerek geçer (kapanınca kartına döner).
     @Namespace private var cardTransition: Namespace.ID
 
@@ -109,6 +113,13 @@ struct MeetingsTab: View {
                             Button("Dosyalar'dan seç", systemImage: "folder") { isPickingFiles = true }
                             Button("Fotoğraflar'dan video seç", systemImage: "photo.on.rectangle") { isPickingVideos = true }
                         }
+                        #if CALL_CAPTURE_EXPERIMENT
+                        Section {
+                            Button { isCapturingCall = true } label: {
+                                Label { Text(verbatim: "Bu iPhone'daki görüşmeyi kaydet (deneysel)") } icon: { Image(systemName: "phone.badge.waveform") }
+                            }
+                        }
+                        #endif
                     } label: {
                         Label("İçe aktar", systemImage: "square.and.arrow.down")
                     }
@@ -125,6 +136,11 @@ struct MeetingsTab: View {
                 }
             }
             .photosPicker(isPresented: $isPickingVideos, selection: $pickedVideos, matching: .videos, photoLibrary: .shared())
+            #if CALL_CAPTURE_EXPERIMENT
+            .sheet(isPresented: $isCapturingCall) {
+                CallCaptureExperimentScreen(recorder: recorder, isRecording: isRecording)
+            }
+            #endif
             .onChange(of: pickedVideos) { (_: [PhotosPickerItem], items: [PhotosPickerItem]) in
                 guard !items.isEmpty else {
                     return
