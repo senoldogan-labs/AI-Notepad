@@ -11,7 +11,7 @@ import { ledgerOnDeletionStatement, trialIdentityHash } from "./trialLedger";
 import type { IdentityProvider } from "./auth/users";
 import { type AppleRevocationOutcome, appleTokenDeletionStatement, revokeAppleTokensForDeletion } from "./auth/appleTokens";
 import { dayKey } from "./usage";
-import { purgeSyncPrefixNow, syncDeletionStatements } from "./sync";
+import { purgeSyncPrefixNow, syncDeletionStatements, syncPrefix } from "./sync";
 
 /** Hesabın giriş kimliği. */
 interface StoredIdentity {
@@ -93,7 +93,7 @@ function accountDeletionStatements(db: D1Database, userId: string, identityHashe
     db.prepare("DELETE FROM refresh_families WHERE user_id = ?").bind(userId),
     db.prepare("DELETE FROM device_challenges WHERE user_id = ?").bind(userId),
     db.prepare("DELETE FROM transcription_results WHERE user_id = ?").bind(userId),
-    ...syncDeletionStatements(db, userId, now),
+    ...syncDeletionStatements(db, userId, syncPrefix(userId), now),
     ...userReservationRemovalStatements(db, userId),
     db.prepare("DELETE FROM meeting_sessions WHERE user_id = ?").bind(userId),
     db
@@ -172,7 +172,7 @@ export async function deleteAccount(db: D1Database, syncBucket: R2Bucket, platfo
   );
   await db.batch(accountDeletionStatements(db, userId, identityHashes, now));
   // Eşitlemenin şifreli blokları: satırlar zaten silindi (kopya erişilemez); R2 hatası günlük temizliğe kalır.
-  await purgeSyncPrefixNow(db, syncBucket, userId);
+  await purgeSyncPrefixNow(db, syncBucket, userId, syncPrefix(userId));
   log("info", "account_deleted", { userId, canceledSubscriptions, appleRevocation, appStoreSubscriptionActive: result.appStoreSubscription !== null });
   return result;
 }

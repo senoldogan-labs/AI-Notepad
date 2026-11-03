@@ -22,7 +22,8 @@ CREATE TABLE sync_accounts (
 CREATE INDEX sync_accounts_access_seen ON sync_accounts (access_seen_at);
 
 -- Index of the account's encrypted objects. A deleted object stays as a tombstone (`deleted = 1`, no blob) for 90 days
--- so other devices learn about the delete. `r2_key` is the current blob (`u/<user>/<object>/<random>`), null for a
+-- so other devices learn about the delete. `r2_key` is the current blob (`u/<user>/<epoch>/<object>/<random>`; the epoch is
+-- `sync_accounts.enabled_at`, so purging a wiped epoch never touches the blobs of sync turned on again), null for a
 -- tombstone. `updated_by_device` is the uploading device's random sync id (no hardware identifier).
 CREATE TABLE sync_objects (
   user_id TEXT NOT NULL REFERENCES users(id),

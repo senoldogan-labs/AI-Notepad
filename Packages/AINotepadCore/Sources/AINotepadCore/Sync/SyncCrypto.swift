@@ -176,6 +176,10 @@ public func syncBlobHeader(blob: Data) throws -> SyncBlobHeader {
 /// Opens a downloaded blob served as `servedRevision` of `objectID`: checks the key id, that the blob's base revision
 /// is older than the served one, and the AES-GCM tag over the associated data. Returns the payload (still compressed;
 /// see `decodeSyncPayload`).
+///
+/// Known limit: the server could still serve an older genuine blob of the same object under a newer revision (the
+/// check only proves the blob is older than what is claimed, not that it is the latest). That is a rollback, not a
+/// disclosure or forgery; the merge then treats it like a stale remote version. Accepted for phase 1.
 public func openSyncObject(
     blob: Data, accountKey: SyncAccountKey, userID: String, objectID: String, kind: SyncObjectKind, servedRevision: UInt64
 ) throws -> Data {

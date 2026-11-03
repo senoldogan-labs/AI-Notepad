@@ -10,6 +10,7 @@ import {
   syncAccountMaxObjects,
   syncCleanup,
   syncObjectMaxBytes,
+  syncEpochPrefix,
   syncPrefix,
 } from "../src/sync";
 import { parseConfig } from "../src/config";
@@ -169,6 +170,27 @@ describe("/v1/sync account", () => {
     // Turning it on again starts a new epoch: old cursors are refused.
     harness.clock.nowMs += 1000;
     expect((await harness.call(req("POST", "/v1/sync/account", { token: user.session.accessToken, json: { keyId: newKeyId() }, env: syncEnv }))).status).toBe(200);
+  });
+});
+
+describe("/v1/sync epochs", () => {
+  it("purging a wiped epoch leaves the blobs of sync turned on again untouched", async () => {
+    const harness: Harness = await defaultHarness();
+    const first: SyncUser = await syncUser(harness);
+    const oldEpoch: number = harness.clock.nowMs;
+    await putRev(harness, first, randomId(), "meeting.state", 0);
+    expect((await call(harness, first, "DELETE", "/v1/sync/account", {})).status).toBe(200);
+    harness.clock.nowMs += 1000;
+    const keyId: string = newKeyId();
+    expect((await harness.call(req("POST", "/v1/sync/account", { token: first.session.accessToken, json: { keyId }, env: syncEnv }))).status).toBe(200);
+    const again: SyncUser = { session: first.session, keyId };
+    const objectId: string = randomId();
+    await putRev(harness, again, objectId, "meeting.state", 0);
+    // The old epoch's purge runs late (e.g. it failed before) and must not delete the new blob.
+    await env.DB.prepare("INSERT INTO sync_purges (prefix, requested_at) VALUES (?, ?)").bind(syncEpochPrefix(first.session.userId, oldEpoch), oldEpoch).run();
+    await syncCleanup(env.DB, env.SYNC_BUCKET, parseConfig(env), new Date(harness.clock.nowMs), scheduledSyncCleanupLimits);
+    expect(await blobKeys(first.session.userId)).toHaveLength(1);
+    expect((await call(harness, again, "GET", `/v1/sync/objects/${objectId}`, {})).status).toBe(200);
   });
 });
 

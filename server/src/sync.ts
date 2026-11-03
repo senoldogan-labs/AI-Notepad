@@ -68,6 +68,8 @@ const syncBlobHeaderBytes: number = 4 + 16 + 8;
 export const syncBlobMinBytes: number = syncBlobHeaderBytes + 12 + 16;
 
 const dayMs: number = 86_400_000;
+/** Reads of an object while concurrent writes keep replacing its blob. */
+const readObjectAttempts: number = 3;
 /** Pages (1000 keys each) one immediate R2 purge deletes before leaving the rest to the daily cleanup. */
 const immediatePurgePages: number = 5;
 const objectPath: RegExp = /^\/v1\/sync\/objects\/([0-9a-f-]{36})$/;
@@ -122,9 +124,17 @@ export interface SyncChange {
   readonly updatedAt: number;
 }
 
-/** R2 prefix of an account's blobs. Pure function. */
+/** R2 prefix of all of an account's blobs (account deletion purges it). Pure function. */
 export function syncPrefix(userId: string): string {
   return `u/${userId}/`;
+}
+
+/**
+ * R2 prefix of one sync epoch (`sync_accounts.enabled_at`): blobs live under `u/<user>/<epoch>/<object>/<random>`, so
+ * purging a wiped epoch never touches the blobs of sync turned on again before the purge finished. Pure function.
+ */
+export function syncEpochPrefix(userId: string, epoch: number): string {
+  return `${syncPrefix(userId)}${epoch}/`;
 }
 
 /** Account body; not enabled when the row is missing. Pure function. */
@@ -297,20 +307,27 @@ async function listChanges(db: D1Database, userId: string, url: URL): Promise<ob
 /** The current blob of a live object; tombstones and unknown ids are `not_found`. */
 async function readObject(db: D1Database, bucket: R2Bucket, userId: string, objectId: string): Promise<Response> {
   await requireAccount(db, userId);
-  const row: SyncObjectRow | null = await objectRow(db, userId, objectId);
-  if (row === null || row.deleted === 1 || row.r2_key === null) {
-    throw new ApiError("not_found", "No such sync object.");
+  for (let attempt: number = 1; ; attempt += 1) {
+    const row: SyncObjectRow | null = await objectRow(db, userId, objectId);
+    if (row === null || row.deleted === 1 || row.r2_key === null) {
+      throw new ApiError("not_found", "No such sync object.");
+    }
+    const blob: R2ObjectBody | null = await bucket.get(row.r2_key);
+    if (blob !== null) {
+      return new Response(blob.body, {
+        status: 200,
+        headers: { "content-type": "application/octet-stream", "x-sync-rev": String(row.rev), "x-sync-kind": row.kind, "content-length": String(blob.size) },
+      });
+    }
+    // A concurrent write replaced the object and deleted this blob between the index read and the get: read again.
+    const latest: SyncObjectRow | null = await objectRow(db, userId, objectId);
+    if (latest?.rev === row.rev || attempt >= readObjectAttempts) {
+      // The index points to a blob that is gone without a newer revision: never expected (writes commit the index
+      // after the upload).
+      log("alert", "sync_blob_missing", { userId, objectId, rev: row.rev, attempt });
+      throw new ApiError("internal_error", "The sync object could not be read.");
+    }
   }
-  const blob: R2ObjectBody | null = await bucket.get(row.r2_key);
-  if (blob === null) {
-    // The index points to a blob that is gone: never expected (writes commit the index after the upload).
-    log("alert", "sync_blob_missing", { userId, objectId, rev: row.rev });
-    throw new ApiError("internal_error", "The sync object could not be read.");
-  }
-  return new Response(blob.body, {
-    status: 200,
-    headers: { "content-type": "application/octet-stream", "x-sync-rev": String(row.rev), "x-sync-kind": row.kind, "content-length": String(blob.size) },
-  });
 }
 
 /**
@@ -350,7 +367,7 @@ async function writeObject(
   if (account.object_count + objectDelta > syncAccountMaxObjects || account.stored_bytes + byteDelta > syncAccountMaxBytes) {
     throw new ApiError("sync_quota_exceeded", "This account's synced copy is full; delete old meetings or chats and try again.");
   }
-  const r2Key: string = `${syncPrefix(userId)}${objectId}/${randomToken(12)}`;
+  const r2Key: string = `${syncEpochPrefix(userId, account.enabled_at)}${objectId}/${randomToken(12)}`;
   await bucket.put(r2Key, blob);
   const nowMs: number = now.getTime();
   const stillAtBase: string =
@@ -361,27 +378,28 @@ async function writeObject(
     .prepare(
       `UPDATE sync_accounts SET last_rev = last_rev + 1, object_count = object_count + ?4, stored_bytes = stored_bytes + ?5,
          access_seen_at = ?6, updated_at = ?6
-       WHERE user_id = ?1 AND ${stillAtBase}`,
+       WHERE user_id = ?1 AND enabled_at = ?7 AND ${stillAtBase}`,
     )
-    .bind(userId, objectId, baseRev, objectDelta, byteDelta, nowMs);
+    .bind(userId, objectId, baseRev, objectDelta, byteDelta, nowMs, account.enabled_at);
   const write: D1PreparedStatement =
     current === null
       ? db
           .prepare(
             `INSERT INTO sync_objects (user_id, object_id, kind, rev, size, deleted, r2_key, updated_at, updated_by_device)
              SELECT ?1, ?2, ?3, last_rev, ?4, 0, ?5, ?6, ?7 FROM sync_accounts
-             WHERE user_id = ?1 AND NOT EXISTS (SELECT 1 FROM sync_objects WHERE user_id = ?1 AND object_id = ?2)
+             WHERE user_id = ?1 AND enabled_at = ?8 AND NOT EXISTS (SELECT 1 FROM sync_objects WHERE user_id = ?1 AND object_id = ?2)
              RETURNING rev`,
           )
-          .bind(userId, objectId, kind, blob.byteLength, r2Key, nowMs, device)
+          .bind(userId, objectId, kind, blob.byteLength, r2Key, nowMs, device, account.enabled_at)
       : db
           .prepare(
             `UPDATE sync_objects SET rev = (SELECT last_rev FROM sync_accounts WHERE user_id = ?1), size = ?4, deleted = 0, r2_key = ?5,
                updated_at = ?6, updated_by_device = ?7
              WHERE user_id = ?1 AND object_id = ?2 AND rev = ?3
+               AND EXISTS (SELECT 1 FROM sync_accounts WHERE user_id = ?1 AND enabled_at = ?8)
              RETURNING rev`,
           )
-          .bind(userId, objectId, baseRev, blob.byteLength, r2Key, nowMs, device);
+          .bind(userId, objectId, baseRev, blob.byteLength, r2Key, nowMs, device, account.enabled_at);
   const results: D1Result[] = await db.batch([bump, write]);
   const written: { rev: number } | undefined = (results[1]?.results as Array<{ rev: number }> | undefined)?.[0];
   if (written === undefined) {
@@ -490,14 +508,15 @@ async function deleteEnvelope(db: D1Database, userId: string, envelopeId: string
 }
 
 /**
- * Statements that remove an account's sync data from D1 and queue its R2 prefix for deletion (`sync_purges`), in
- * child-first order; part of account deletion (`account.ts`) and of `wipeSyncAccount`.
+ * Statements that remove an account's sync data from D1 and queue an R2 prefix for deletion (`sync_purges`), in
+ * child-first order: account deletion (`account.ts`) queues the whole account (`syncPrefix`), opting out and the end
+ * of retention queue the wiped epoch (`syncEpochPrefix`).
  */
-export function syncDeletionStatements(db: D1Database, userId: string, now: Date): D1PreparedStatement[] {
+export function syncDeletionStatements(db: D1Database, userId: string, prefix: string, now: Date): D1PreparedStatement[] {
   return [
     db
       .prepare("INSERT INTO sync_purges (prefix, requested_at) VALUES (?, ?) ON CONFLICT(prefix) DO UPDATE SET requested_at = excluded.requested_at")
-      .bind(syncPrefix(userId), now.getTime()),
+      .bind(prefix, now.getTime()),
     db.prepare("DELETE FROM sync_objects WHERE user_id = ?").bind(userId),
     db.prepare("DELETE FROM sync_key_envelopes WHERE user_id = ?").bind(userId),
     db.prepare("DELETE FROM sync_accounts WHERE user_id = ?").bind(userId),
@@ -534,9 +553,9 @@ export async function purgeSyncPrefix(db: D1Database, bucket: R2Bucket, prefix: 
  * Deletes the blobs of a queued prefix right away. A failure is logged and left to the daily cleanup (the D1 rows are
  * already gone and the prefix stays in `sync_purges`); it does not fail the user's request.
  */
-export async function purgeSyncPrefixNow(db: D1Database, bucket: R2Bucket, userId: string): Promise<PurgeResult> {
+export async function purgeSyncPrefixNow(db: D1Database, bucket: R2Bucket, userId: string, prefix: string): Promise<PurgeResult> {
   try {
-    return await purgeSyncPrefix(db, bucket, syncPrefix(userId), immediatePurgePages);
+    return await purgeSyncPrefix(db, bucket, prefix, immediatePurgePages);
   } catch (error: unknown) {
     log("warn", "sync_purge_deferred", { userId, error: errorName(error) });
     return { deletedBlobs: 0, complete: false };
@@ -545,9 +564,14 @@ export async function purgeSyncPrefixNow(db: D1Database, bucket: R2Bucket, userI
 
 /** Turns sync off and removes the account's whole server copy (opt-out, or "start over" with a new key). */
 export async function wipeSyncAccount(db: D1Database, bucket: R2Bucket, userId: string, now: Date): Promise<{ readonly objects: number; readonly purged: boolean }> {
+  const account: SyncAccountRow | null = await accountRow(db, userId);
+  if (account === null) {
+    return { objects: 0, purged: true };
+  }
   const count: { count: number } | null = await db.prepare("SELECT COUNT(*) AS count FROM sync_objects WHERE user_id = ? AND deleted = 0").bind(userId).first<{ count: number }>();
-  await db.batch(syncDeletionStatements(db, userId, now));
-  const purge: PurgeResult = await purgeSyncPrefixNow(db, bucket, userId);
+  const prefix: string = syncEpochPrefix(userId, account.enabled_at);
+  await db.batch(syncDeletionStatements(db, userId, prefix, now));
+  const purge: PurgeResult = await purgeSyncPrefixNow(db, bucket, userId, prefix);
   log("info", "sync_wiped", { userId, objects: count?.count ?? 0, purged: purge.complete });
   return { objects: count?.count ?? 0, purged: purge.complete };
 }
@@ -629,16 +653,16 @@ export const scheduledSyncCleanupLimits: SyncCleanupLimits = { accounts: 50, pre
  */
 export async function syncCleanup(db: D1Database, bucket: R2Bucket, config: Config, now: Date, limits: SyncCleanupLimits): Promise<SyncCleanupReport> {
   const cutoff: number = now.getTime() - syncAccessRetentionDays * dayMs;
-  const stale: D1Result<{ user_id: string }> = await db
-    .prepare("SELECT user_id FROM sync_accounts WHERE access_seen_at < ? ORDER BY access_seen_at LIMIT ?")
+  const stale: D1Result<{ user_id: string; enabled_at: number }> = await db
+    .prepare("SELECT user_id, enabled_at FROM sync_accounts WHERE access_seen_at < ? ORDER BY access_seen_at LIMIT ?")
     .bind(cutoff, limits.accounts)
-    .all<{ user_id: string }>();
+    .all<{ user_id: string; enabled_at: number }>();
   let wiped: number = 0;
-  for (const { user_id: userId } of stale.results) {
+  for (const { user_id: userId, enabled_at: epoch } of stale.results) {
     if (await hasSyncAccess(db, config, userId, now)) {
       await db.prepare("UPDATE sync_accounts SET access_seen_at = ? WHERE user_id = ?").bind(now.getTime(), userId).run();
     } else {
-      await db.batch(syncDeletionStatements(db, userId, now));
+      await db.batch(syncDeletionStatements(db, userId, syncEpochPrefix(userId, epoch), now));
       log("info", "sync_retention_wiped", { userId });
       wiped += 1;
     }
