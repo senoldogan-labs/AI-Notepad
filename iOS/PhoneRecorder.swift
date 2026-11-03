@@ -142,6 +142,8 @@ final class PhoneRecorder {
     @ObservationIgnored private var lastActivityUpdate: Date = .distantPast
     /// Kayıt başlarken takvimde süren toplantı (takvim açıksa; uygulama bağlar); başlık ve katılımcılar kayda geçer.
     @ObservationIgnored var currentCalendarMeeting: (@MainActor () -> CalendarMeeting?)?
+    /// Toplantının işlenmesi bitip kaydedildi (uygulama bağlar): notu hazırsa bağlı hedeflere kendiliğinden gider.
+    @ObservationIgnored var onMeetingProcessed: (@MainActor (MeetingRecord) -> Void)?
 
     init(store: PhoneStore) {
         self.store = store
@@ -927,6 +929,7 @@ final class PhoneRecorder {
             let versioned: MeetingRecord = withNoteVersion(updated: result, previous: record, reason: String(localized: "Tekrar işlendi"), savedAt: Date())
             saveRecord(record: versioned, directory: directory)
             processingSteps[record.id] = nil
+            onMeetingProcessed?(versioned)
             finishContinuedTask(meetingID: record.id, success: versioned.status == .done)
             // Son geçişin ses süresi aylık kullanıma sayılır: hesap durumu yenilenir.
             await HostedAccount.shared.refresh()

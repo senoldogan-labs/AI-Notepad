@@ -11,8 +11,8 @@ private let phoneHostedLogger: Logger = Logger(subsystem: "com.senoldogan.AINote
 
 /// Giriş yapan hesabın verisini bu süreç için hazırlar ve yükler: bu uygulamanın kabındaki önceki (hesapsız) veri kimse
 /// sahiplenmediyse ya da bu hesabınsa hesaba taşınır (bkz. `migrateLegacyUserData`), sonra hesap yüklenir. Mac'e özgü
-/// ayar ve bağlantı taşıması yoktur (iPhone'da kanal ve görev aracı bağlantısı yok). Taşıma başarısız olursa hata
-/// fırlar, hesap yüklenmez ve veri yerinde kalır.
+/// ayar ve bağlantı taşıması yoktur (iPhone'un kanal ve görev aracı bağlantıları baştan hesabın Anahtar Zinciri
+/// servisindedir, bkz. `PhoneIntegrations`). Taşıma başarısız olursa hata fırlar, hesap yüklenmez ve veri yerinde kalır.
 func prepareHostedAccountData(userId: String) throws -> String {
     let key: String = accountDataKey(userId: userId)
     let result: LegacyMigrationResult = try migratePhoneLegacyData(accountKey: key)

@@ -2841,11 +2841,6 @@ final class AppModel {
     /// aynı hedefe üst üste göndermesin.
     @ObservationIgnored private var notesInFlight: Set<String> = []
 
-    /// Toplantı ve hedef çiftinin anahtarı (süren ve sonucu belirsiz gönderimler). Saf fonksiyondur.
-    private func meetingDestinationKey(meetingID: String, destinationID: String) -> String {
-        "\(meetingID)|\(destinationID)"
-    }
-
     /// Ayarlardaki "Dene": örnek notu hedefe gönderir; hedef yoksa (bu arada kaldırıldı) hata metni döner.
     func sendTestNote(destinationID: String) async -> String? {
         guard let destination = destinations.first(where: { $0.id == destinationID }) else {
@@ -2952,11 +2947,10 @@ final class AppModel {
             await refreshDestinationList()
             await resolveMissingNotionIdentities()
             let uncertain: Set<String> = uncertainSends()
-            let pending: [(meetingID: String, destinationID: String)] = pendingAutoSends(records: meetings, destinations: destinations, now: Date())
-                .filter { (item: (meetingID: String, destinationID: String)) -> Bool in
-                    !(pendingSentMarks[item.meetingID] ?? []).contains(item.destinationID) && !isLocked(meetingID: item.meetingID)
-                        && !uncertain.contains(meetingDestinationKey(meetingID: item.meetingID, destinationID: item.destinationID))
-                }
+            let locked: Set<String> = Set(meetings.map(\.id).filter { isLocked(meetingID: $0) })
+            let pending: [(meetingID: String, destinationID: String)] = autoSendQueue(
+                records: meetings, destinations: destinations, now: Date(), pendingMarks: pendingSentMarks, locked: locked, uncertain: uncertain
+            )
             for item in pending {
                 // Liste kurulduktan sonra elle gönderilmeye başlandıysa ya da gönderildiyse (başka Mac'ten de) atlanır
                 // (not iki kez düşmesin).
@@ -3145,8 +3139,7 @@ final class AppModel {
               let tracker = taskTrackers.first(where: { $0.id == trackerID }) else {
             return
         }
-        let tasks: [NoteTask] = tasksInScope(tasks: note.tasks, scope: scope)
-            .filter { !isTaskSent(record: record, tracker: tracker, task: $0) && !isTaskDone(record: record, task: $0) }
+        let tasks: [NoteTask] = tasksToSend(record: record, note: note, tracker: tracker, scope: scope)
         guard !tasks.isEmpty else {
             showSendState(state: .failed(String(localized: "Gönderilecek açık görev yok (hepsi gönderilmiş ya da tamamlanmış).")), meetingID: meetingID, states: \.trackerStates)
             return
@@ -3895,24 +3888,6 @@ private func fixedLanguage(mode: LanguageMode) -> MeetingLanguage? {
         return nil
     }
     return language
-}
-
-/// Webhook gönderiminin durumu.
-enum WebhookSendState: Equatable {
-    case sending
-    case sent
-    /// Bitti, kısa özetle (ör. açılan Linear işleri).
-    case done(String)
-    case failed(String)
-}
-
-/// Gönderim sonucunun kalkma süresi: gitti 3,5 sn, hata 5 sn; gönderilirken kalır. Saf fonksiyondur.
-private func sendResultFadeDelay(state: WebhookSendState) -> Duration? {
-    switch state {
-    case .sending: nil
-    case .sent, .done: .seconds(3.5)
-    case .failed: .seconds(5)
-    }
 }
 
 /// Sırası bekleyen canlı çeviri (bir cümle birimi).

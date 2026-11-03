@@ -2,9 +2,9 @@ import AINotepadCore
 import AINotepadUI
 import SwiftUI
 
-/// Ayarlar: hesap (giriş yapan kimlik, plan, kullanım, çıkış, hesap silme), görünüm, kayıt (rıza hatırlatması, ses
-/// saklama), takvim, toplantı dili ve ad, konuşmacılar (sesinden tanıma), not, beceriler (SKILL.md), gizlilik (anonim
-/// kullanım istatistikleri), sürüm ve tanılama.
+/// Ayarlar: hesap (giriş yapan kimlik, plan, kullanım, çıkış, hesap silme), görünüm, bağlantılar (kanallar, görev
+/// araçları), kayıt (rıza hatırlatması, ses saklama), takvim, toplantı dili ve ad, konuşmacılar (sesinden tanıma), not,
+/// beceriler (SKILL.md), gizlilik (anonim kullanım istatistikleri), sürüm ve tanılama.
 struct PhoneSettingsTab: View {
     let store: PhoneStore
     /// Sor: SKILL.md'den içe aktarılan beceriler onun tariflerine eklenir.
@@ -52,6 +52,13 @@ struct PhoneSettingsTab: View {
                     }
                 } header: {
                     Text("Görünüm")
+                }
+                Section {
+                    PhoneConnectionsRow()
+                } header: {
+                    Text("Bağlantılar")
+                } footer: {
+                    Text("Notlar Slack, Teams, Discord, Notion ya da Zoom'a, görevler Linear ya da Jira'ya gider.")
                 }
                 Section {
                     Toggle("Kayıt başlarken haber vermeyi hatırlat", isOn: $consentReminder)
