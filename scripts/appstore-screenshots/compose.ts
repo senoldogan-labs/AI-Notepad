@@ -1,7 +1,8 @@
 // Ham Simülatör çekimini App Store görseline dönüştürür: üstte başlık ve alt başlık, altında CSS ile çizilmiş bir iPhone
-// çerçevesi (Apple'ın aygıt çizimleri kullanılmaz), arkada sitenin durağan pastel film gradyanı (gren, bokeh ve hareket
-// yok). Sayfa 1320 px genişlikte bir sahnede düzenlenir ve çıktı boyutuna `zoom` ile ölçeklenir: her boyutta ve her
-// sahnede aygıt aynı ölçekte ve aynı yerdedir.
+// çerçevesi (Apple'ın aygıt çizimleri kullanılmaz), arkada sitenin durağan pastel film gradyanı ve onun hafif greni
+// (sitedeki `web/public/grain.png`, aynı overlay karışımıyla; bokeh ve hareket yok). Sayfa 1320 px genişlikte bir
+// sahnede düzenlenir ve çıktı boyutuna `zoom` ile ölçeklenir: her boyutta ve her sahnede aygıt aynı ölçekte ve aynı
+// yerdedir.
 import { pathToFileURL } from "node:url";
 import { type Browser, chromium, type Page } from "playwright-core";
 import sharp, { type Metadata } from "sharp";
@@ -25,6 +26,9 @@ export interface SceneHtmlInput {
   readonly fontPath: string;
   readonly size: OutputSize;
 }
+
+/** Sitenin gren dokusu (`web/src/styles/global.css` `.film::before` ile aynı döşeme). */
+const grainUrl: string = new URL("../../web/public/grain.png", import.meta.url).href;
 
 /** Düzenin genişliği: tüm ölçüler bu genişlikte yazılır, çıktıya `zoom` ile ölçeklenir. */
 const stageWidth: number = 1320;
@@ -126,6 +130,15 @@ export function sceneHtml(input: SceneHtmlInput): string {
     background-image:
       ${cloudLayers(input.palette, input.clouds)};
   }
+  /* Film greni: sitedeki gibi overlay ile hem aydınlatır hem karartır; yalnızca zemindedir, telefonun üstüne düşmez. */
+  .grain {
+    position: absolute;
+    inset: 0;
+    background-image: url("${grainUrl}");
+    background-size: 240px 240px;
+    mix-blend-mode: overlay;
+    opacity: 0.55;
+  }
   /* Üstte metnin arkasında yumuşak beyaz ışık: başlık her paletle aynı kontrastta okunur. */
   .light {
     position: absolute;
@@ -221,6 +234,7 @@ export function sceneHtml(input: SceneHtmlInput): string {
 </style>
 </head>
 <body>
+  <div class="grain"></div>
   <div class="light"></div>
   <div class="copy">
     <h1 class="headline">${escapeHtml(input.headline)}</h1>
