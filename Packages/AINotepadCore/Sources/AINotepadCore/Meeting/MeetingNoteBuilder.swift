@@ -34,6 +34,10 @@ func noteRules(user: String, template: NoteTemplate, language: ShareLanguage) ->
       etiketi ve benimMi false. Görev yalnızca "Sen" satırında üstlenildiyse ya da kullanıcıya adıyla ("\(user)")
       verildiyse kullanıcınındır. "Ben yaparım", "minä voin", "I'll do it" gibi birinci tekil
       sözler onu söyleyen konuşmacıya aittir: başka bir konuşmacının satırındaysa sahip o konuşmacıdır, benimMi false.
+    - Adı verilmemiş kişiler transkriptte "Konuşmacı N" etiketiyle geçer. Notun her yerinde (özet, kararlar, görevler ve
+      sahipleri, konu akışı, sözlük) onları tam olarak "\(speakerLabelWord(language: language)) N" biçiminde yaz (numara aynı
+      kalır; ör. "\(speakerLabelWord(language: language)) 2"); başka bir sözcük ya da biçim kullanma. Kullanıcı adları
+      sonradan verir ve bu etiketler adlarla değiştirilir.
     - Her görev tek bir işi anlatır; farklı konuların, aşamaların ya da kişilerin işlerini tek maddede birleştirme.
       Birinin "yaparım" diye üstlendiği iş de görevdir.
     - Transkriptte olmayan bir şey uydurma; tarih yoksa boş metin ver.

@@ -38,9 +38,14 @@ struct MeetingsTab: View {
     #endif
     /// Kart, açılan toplantıya büyüyerek geçer (kapanınca kartına döner).
     @Namespace private var cardTransition: Namespace.ID
+    /// Notlardaki konuşmacı etiketleri adlarla gösterilir; adı kullanıcının adı olan konuşmacının görevleri onundur.
+    @AppStorage(PhoneSettingsKey.userName) private var userName: String = ""
 
     var body: some View {
-        let scoped: [MeetingRecord] = meetingsInScope(records: store.meetings, scope: scope)
+        // Kartlar ve sayfa notu konuşmacı adlarıyla gösterir (saklı not genel etiketleri korur, değişiklikler kimlikle
+        // saklı kayda yapılır).
+        let meetings: [MeetingRecord] = namedRecords(records: store.meetings, userName: userName)
+        let scoped: [MeetingRecord] = meetingsInScope(records: meetings, scope: scope, userName: userName)
         let sections: [MeetingSection] = meetingSections(
             records: filterMeetings(records: scoped, query: query), now: Date(), calendar: .current, locale: interfaceLocale()
         )
@@ -53,7 +58,7 @@ struct MeetingsTab: View {
                         ImportProgressRow()
                     }
                     if !store.meetings.isEmpty {
-                        MeetingScopeChips(records: store.meetings, selection: $scope)
+                        MeetingScopeChips(records: meetings, userName: userName, selection: $scope)
                     }
                     ForEach(sections) { (section: MeetingSection) in
                         Text(section.title)
@@ -149,7 +154,7 @@ struct MeetingsTab: View {
                 importVideos(items: items)
             }
             .navigationDestination(for: String.self) { (id: String) in
-                if let record = store.meetings.first(where: { $0.id == id }) {
+                if let record = meetings.first(where: { $0.id == id }) {
                     // Onay toplantı sayfasının kendisinde sorulur (listeye bağlı onay sayfa kapanana dek görünmüyordu).
                     MeetingReadView(record: record, store: store, player: player, isRecording: isRecording, recipes: recipes) {
                         delete(record: record)
@@ -271,9 +276,9 @@ enum MeetingListScope: Hashable {
 }
 
 /// Kapsama uyan toplantılar, sıra korunur. Saf fonksiyondur.
-func meetingsInScope(records: [MeetingRecord], scope: MeetingListScope) -> [MeetingRecord] {
+func meetingsInScope(records: [MeetingRecord], scope: MeetingListScope, userName: String) -> [MeetingRecord] {
     switch scope {
-    case .filter(let filter): filterMeetings(records: records, listFilter: filter)
+    case .filter(let filter): filterMeetings(records: records, listFilter: filter, userName: userName)
     case .folder(let name): meetingsInFolder(records: records, folder: name)
     }
 }
@@ -282,11 +287,12 @@ func meetingsInScope(records: [MeetingRecord], scope: MeetingListScope) -> [Meet
 /// artık boşsa (ör. klasör silindi) Tümü'ne döner.
 private struct MeetingScopeChips: View {
     let records: [MeetingRecord]
+    let userName: String
     @Binding var selection: MeetingListScope
 
     var body: some View {
-        let mine: Int = filterMeetings(records: records, listFilter: .myTasks).count
-        let problems: Int = filterMeetings(records: records, listFilter: .problems).count
+        let mine: Int = filterMeetings(records: records, listFilter: .myTasks, userName: userName).count
+        let problems: Int = filterMeetings(records: records, listFilter: .problems, userName: userName).count
         let folders: [FolderSummary] = meetingFolders(records: records, saved: [])
         ScrollView(.horizontal) {
             HStack(spacing: 8) {
@@ -305,7 +311,7 @@ private struct MeetingScopeChips: View {
         }
         .scrollIndicators(.hidden)
         .padding(.horizontal, -20)
-        .onChange(of: meetingsInScope(records: records, scope: selection).isEmpty) { (_: Bool, isEmpty: Bool) in
+        .onChange(of: meetingsInScope(records: records, scope: selection, userName: userName).isEmpty) { (_: Bool, isEmpty: Bool) in
             if isEmpty {
                 selection = .filter(.all)
             }
@@ -377,6 +383,8 @@ struct MeetingReadView: View {
     @State private var sharedText: SharedText?
     /// "Sesi sil" satır içi onayı bekliyor (Mac'teki gibi; ayrı uyarı penceresi yok).
     @State private var isConfirmingAudioDelete: Bool = false
+    /// Çevrilen notta da konuşmacı adları gösterilir.
+    @AppStorage(PhoneSettingsKey.userName) private var userName: String = ""
 
     /// Not ve adlar değiştirilebilir: kayıtta, işlenen ya da notu yazılan toplantıda değil.
     private var isEditable: Bool {
@@ -617,7 +625,8 @@ struct MeetingReadView: View {
         Task {
             defer { translatingLanguage = nil }
             do {
-                let note: MeetingNote = try await store.sharedNote(meetingID: record.id, language: language)
+                let stored: MeetingNote = try await store.sharedNote(meetingID: record.id, language: language)
+                let note: MeetingNote = namedNote(note: stored, speakerNames: record.speakerNames, userName: userName)
                 sharedText = SharedText(text: shareText(record: record, note: note, language: language))
                 errorMessage = nil
             } catch {

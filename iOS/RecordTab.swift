@@ -38,9 +38,11 @@ private struct RecordHome: View {
     let router: PhoneRouter
     let calendar: PhoneCalendar
     let onBriefing: @MainActor (CalendarMeeting) -> Void
+    /// Adı kullanıcının adı olan konuşmacının görevleri de onundur (`myTasks`).
+    @AppStorage(PhoneSettingsKey.userName) private var userName: String = ""
 
     var body: some View {
-        let openTasks: [(record: MeetingRecord, task: NoteTask)] = myTasks(meetings: store.meetings).filter { !isTaskDone(record: $0.record, task: $0.task) }
+        let openTasks: [(record: MeetingRecord, task: NoteTask)] = myTasks(meetings: store.meetings, userName: userName).filter { !isTaskDone(record: $0.record, task: $0.task) }
         ScrollView {
             VStack(alignment: .leading, spacing: 26) {
                 VStack(alignment: .leading, spacing: 6) {

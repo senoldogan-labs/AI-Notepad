@@ -2596,9 +2596,15 @@ final class AppModel {
         }
     }
 
+    /// Toplantının gösterilen ve paylaşılan hali: notunda konuşmacı adları (`namedRecord`). Yalnız okumak ve göndermek
+    /// için; kaydedilen her zaman `meetings`'teki saklı kayıttır (not genel etiketleri korur).
+    private func shownMeeting(id: String) -> MeetingRecord? {
+        meetings.first { $0.id == id }.map { namedRecord(record: $0, userName: UserDefaults.standard.string(forKey: SettingsKey.userName) ?? "") }
+    }
+
     /// Görevi Apple Anımsatıcılar'a ekler; hata varsa kullanıcı metni döner.
     func addToReminders(meetingID: String, task: NoteTask) async -> String? {
-        guard let record = meetings.first(where: { $0.id == meetingID }), let note = record.note else {
+        guard let record = shownMeeting(id: meetingID), let note = record.note else {
             return nil
         }
         do {
@@ -2767,7 +2773,7 @@ final class AppModel {
     /// Notu bir hedefe gönderir; başarılıysa toplantıya işlenir (kendiliğinden gönderim yinelemez). Hata metni döner;
     /// toplantı, not ya da hedef yoksa ve aynı gönderim zaten sürüyorsa da (iki kez düşmesin) hata metni döner.
     func sendNote(meetingID: String, destinationID: String) async -> String? {
-        guard let record = meetings.first(where: { $0.id == meetingID }) else {
+        guard let record = shownMeeting(id: meetingID) else {
             return userFacingMessage(error: NoteSendError.meetingNotFound(id: meetingID))
         }
         guard let note = record.note else {
@@ -3140,7 +3146,8 @@ final class AppModel {
         if let known = taskTrackers.first(where: { $0.id == trackerID }), known.identity == nil {
             await resolveTrackerIdentity(id: trackerID)
         }
-        guard let record = meetings.first(where: { $0.id == meetingID }), let note = record.note,
+        // Görevler konuşmacı adlarıyla gider; adı kullanıcının adı olan konuşmacının görevleri "benim" kapsamındadır.
+        guard let record = shownMeeting(id: meetingID), let note = record.note,
               let tracker = taskTrackers.first(where: { $0.id == trackerID }) else {
             return
         }
@@ -3260,7 +3267,7 @@ final class AppModel {
 
     /// Notu Apple Notlar'da uygulamanın adını taşıyan klasöre ("AI-Notepad" ya da "Gistsmith") yazar (ilk seferde macOS izin sorar); hata varsa kullanıcı metni döner.
     func sendToAppleNotes(meetingID: String) async -> String? {
-        guard let record = meetings.first(where: { $0.id == meetingID }), let note = record.note else {
+        guard let record = shownMeeting(id: meetingID), let note = record.note else {
             return nil
         }
         let source: String = appleNotesScript(html: notesHTML(record: record, note: note), folder: appName)
@@ -3278,7 +3285,7 @@ final class AppModel {
     /// Notu seçili klasöre Markdown olarak yazar (aynı toplantı aynı dosyaya); klasör seçilmediyse ya da yazılamazsa
     /// kullanıcı metni döner.
     func exportToFolder(meetingID: String) -> String? {
-        guard let record = meetings.first(where: { $0.id == meetingID }) else {
+        guard let record = shownMeeting(id: meetingID) else {
             return nil
         }
         let path: String = markdownFolder

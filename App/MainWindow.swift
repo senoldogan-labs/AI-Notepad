@@ -336,10 +336,12 @@ struct MainWindowView: View {
 private struct Sidebar: View {
     let model: AppModel
     let router: MainWindowRouter
+    /// Notlardaki konuşmacı etiketleri adlarla; adı kullanıcının adı olan konuşmacının görevleri onundur.
+    @AppStorage(SettingsKey.userName) private var userName: String = ""
 
     var body: some View {
         // Yalnızca açık (tamamlanmamış) görevler sayılır.
-        let myTaskCount: Int = myTasks(meetings: model.meetings).filter { !isTaskDone(record: $0.record, task: $0.task) }.count
+        let myTaskCount: Int = myTasks(meetings: model.meetings, userName: userName).filter { !isTaskDone(record: $0.record, task: $0.task) }.count
         VStack(alignment: .leading, spacing: 2) {
             // Trafik ışıklarına yer.
             Color.clear.frame(height: 40)
@@ -974,9 +976,11 @@ private struct Shortcuts: View {
     let model: AppModel
     let router: MainWindowRouter
     let onShowPanel: @MainActor () -> Void
+    /// Notlardaki konuşmacı etiketleri adlarla; adı kullanıcının adı olan konuşmacının görevleri onundur.
+    @AppStorage(SettingsKey.userName) private var userName: String = ""
 
     var body: some View {
-        let openTasks: Int = myTasks(meetings: model.meetings).filter { !isTaskDone(record: $0.record, task: $0.task) }.count
+        let openTasks: Int = myTasks(meetings: model.meetings, userName: userName).filter { !isTaskDone(record: $0.record, task: $0.task) }.count
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.m) {
             Text("Kısayollar").appFont(size: 15, weight: .medium)
             // Dört kart satırı doldurur; dar pencerede ikişerli iki satıra iner.
@@ -1043,9 +1047,11 @@ private struct HomeTasks: View {
     let model: AppModel
     let router: MainWindowRouter
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
+    /// Notlardaki konuşmacı etiketleri adlarla; adı kullanıcının adı olan konuşmacının görevleri onundur.
+    @AppStorage(SettingsKey.userName) private var userName: String = ""
 
     var body: some View {
-        let items: [(record: MeetingRecord, task: NoteTask)] = myTasks(meetings: Array(model.meetings.prefix(10)))
+        let items: [(record: MeetingRecord, task: NoteTask)] = myTasks(meetings: Array(model.meetings.prefix(10)), userName: userName)
             .filter { !isTaskDone(record: $0.record, task: $0.task) }
         if !items.isEmpty {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.s) {
@@ -1136,6 +1142,7 @@ private struct UpcomingMeetings: View {
         let time: String = meeting.start.formatted(Date.FormatStyle(date: .omitted, time: .shortened).locale(interfaceLocale()))
             + "–" + meeting.end.formatted(Date.FormatStyle(date: .omitted, time: .shortened).locale(interfaceLocale()))
         let record: MeetingRecord? = recordedMeeting(meeting: meeting, records: model.meetings)
+            .map { namedRecord(record: $0, userName: UserDefaults.standard.string(forKey: SettingsKey.userName) ?? "") }
         return HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(time).appFont(size: 12, weight: .medium).monospacedDigit().foregroundStyle(Theme.muted)
@@ -1241,6 +1248,8 @@ private struct TaskLine: View {
 private struct RecentMeetingCards: View {
     let model: AppModel
     let router: MainWindowRouter
+    /// Notlardaki konuşmacı etiketleri adlarla; adı kullanıcının adı olan konuşmacının görevleri onundur.
+    @AppStorage(SettingsKey.userName) private var userName: String = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.m) {
@@ -1262,7 +1271,7 @@ private struct RecentMeetingCards: View {
                             router.selectedMeetingID = record.id
                             router.section = .meetings
                         } label: {
-                            MeetingCover(record: record, isProcessing: model.processingMeetingIDs.contains(record.id))
+                            MeetingCover(record: namedRecord(record: record, userName: userName), isProcessing: model.processingMeetingIDs.contains(record.id))
                         }
                         .buttonStyle(.hoverPlain)
                     }
@@ -1322,11 +1331,13 @@ private struct TasksPage: View {
     let model: AppModel
     let router: MainWindowRouter
     @State private var showsDone: Bool = false
+    /// Notlardaki konuşmacı etiketleri adlarla; adı kullanıcının adı olan konuşmacının görevleri onundur.
+    @AppStorage(SettingsKey.userName) private var userName: String = ""
 
     var body: some View {
-        let all: [(record: MeetingRecord, task: NoteTask)] = myTasks(meetings: model.meetings)
+        let all: [(record: MeetingRecord, task: NoteTask)] = myTasks(meetings: model.meetings, userName: userName)
         let doneCount: Int = all.filter { isTaskDone(record: $0.record, task: $0.task) }.count
-        let groups: [(record: MeetingRecord, tasks: [NoteTask])] = model.meetings.compactMap { (record: MeetingRecord) -> (record: MeetingRecord, tasks: [NoteTask])? in
+        let groups: [(record: MeetingRecord, tasks: [NoteTask])] = namedRecords(records: model.meetings, userName: userName).compactMap { (record: MeetingRecord) -> (record: MeetingRecord, tasks: [NoteTask])? in
             let mine: [NoteTask] = (record.note?.tasks ?? []).filter { $0.isMine && isTaskDone(record: record, task: $0) == showsDone }
             return mine.isEmpty ? nil : (record: record, tasks: mine)
         }
@@ -1418,6 +1429,8 @@ private struct MeetingsSplit: View {
     let shortcuts: ShortcutController
     let onStartRecording: @MainActor () -> Void
     @AppStorage(SettingsKey.meetingsListVisible) private var listVisible: Bool = true
+    /// Notlardaki konuşmacı etiketleri adlarla; adı kullanıcının adı olan konuşmacının görevleri onundur.
+    @AppStorage(SettingsKey.userName) private var userName: String = ""
 
     var body: some View {
         if model.meetings.isEmpty {
@@ -1459,7 +1472,9 @@ private struct MeetingsSplit: View {
                 .transition(.move(edge: .leading).combined(with: .opacity))
             }
             ZStack {
-                if let id = router.selectedMeetingID, let record = model.meetings.first(where: { $0.id == id }) {
+                if let id = router.selectedMeetingID, let stored = model.meetings.first(where: { $0.id == id }) {
+                    // Sayfa notu konuşmacı adlarıyla gösterir; değişiklikler kimlikle saklı kayda yapılır.
+                    let record: MeetingRecord = namedRecord(record: stored, userName: userName)
                     MeetingDetailPage(model: model, player: player, record: record) {
                         router.selectedMeetingID = nil
                     } onRunRecipe: { (recipe: Recipe) -> Void in

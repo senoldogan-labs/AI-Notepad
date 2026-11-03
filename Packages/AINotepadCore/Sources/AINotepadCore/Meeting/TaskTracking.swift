@@ -3,6 +3,9 @@ import Foundation
 /// Görevin toplantı içindeki kimliği: sahibi ve işi (küçük harf, boşluklar sadeleşmiş). Not yeniden yazılınca sözcükler
 /// değişebilir; işaretler `withCarriedTaskMarks` ile benzer yeni göreve taşınır. Saf fonksiyondur.
 public func taskKey(task: NoteTask) -> String {
+    if let stored = task.storedKey {
+        return stored
+    }
     let simplify: (String) -> String = { (text: String) -> String in
         text.lowercased().split(whereSeparator: \.isWhitespace).joined(separator: " ")
     }
@@ -14,10 +17,13 @@ public extension NoteTask {
     var trackingKey: String { taskKey(task: self) }
 }
 
-/// Toplantılardan kullanıcıya düşen görevler (verilen sırada). Saf fonksiyondur.
-public func myTasks(meetings: [MeetingRecord]) -> [(record: MeetingRecord, task: NoteTask)] {
-    meetings.flatMap { (record: MeetingRecord) -> [(record: MeetingRecord, task: NoteTask)] in
-        (record.note?.tasks ?? []).filter(\.isMine).map { (record: record, task: $0) }
+/// Toplantılardan kullanıcıya düşen görevler (verilen sırada), konuşmacı adları uygulanmış (`namedRecord`): sahibi adı
+/// verilen kullanıcı olan görev de kullanıcınındır. Kayıt adlandırılmış görüntü kopyasıdır; değişiklikler kimlikle
+/// saklı kayda yapılır. Saf fonksiyondur.
+public func myTasks(meetings: [MeetingRecord], userName: String) -> [(record: MeetingRecord, task: NoteTask)] {
+    meetings.flatMap { (stored: MeetingRecord) -> [(record: MeetingRecord, task: NoteTask)] in
+        let record: MeetingRecord = namedRecord(record: stored, userName: userName)
+        return (record.note?.tasks ?? []).filter(\.isMine).map { (record: record, task: $0) }
     }
 }
 

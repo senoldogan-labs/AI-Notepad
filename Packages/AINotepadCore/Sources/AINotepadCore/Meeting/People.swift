@@ -115,9 +115,11 @@ public struct PersonSummary: Sendable, Equatable, Identifiable {
 /// Kişiler: toplantılarda konuşmacıya verilen adlar (büyük/küçük harf duyarsız tek kişi) ve elle eklenenler; her
 /// toplantıdaki konuşma süreleri, adına yazılmış görevler ve kayıtlı sesi. Kaldırılan kişi, kaldırıldıktan sonraki bir
 /// toplantıda adı yeniden verilmedikçe görünmez. Toplantısı olanlar son görüldüğü toplantıya göre, toplantısı
-/// olmayanlar en yeni eklenen önce sıralanır. Kullanıcının kendisi (görevleri Görevlerim'de) dahil değildir.
+/// olmayanlar en yeni eklenen önce sıralanır. Kullanıcının kendisi (görevleri Görevlerim'de) dahil değildir. Notlar
+/// konuşmacı adlarıyla okunur (`namedRecords`): "Konuşmacı 2"ye yazılmış görev, adı verilince o kişinindir.
 /// Saf fonksiyondur.
-public func peopleDirectory(records: [MeetingRecord], voices: [RegisteredVoice], book: PeopleBook, userName: String) -> [PersonSummary] {
+public func peopleDirectory(records storedRecords: [MeetingRecord], voices: [RegisteredVoice], book: PeopleBook, userName: String) -> [PersonSummary] {
+    let records: [MeetingRecord] = namedRecords(records: storedRecords, userName: userName)
     let entries: [(name: String, meeting: PersonMeeting)] = records.flatMap { (record: MeetingRecord) -> [(name: String, meeting: PersonMeeting)] in
         // Kullanıcıdan başka adı olmayan toplantının transkripti hiç işlenmez (arşivin çoğu).
         let hasPeople: Bool = record.speakerNames.values.contains { (value: String) -> Bool in

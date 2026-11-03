@@ -77,12 +77,29 @@ public struct NoteTask: Sendable, Equatable, Codable {
     public let dueDate: String?
     /// Kullanıcıya ("Sen") düşen görev.
     public let isMine: Bool
+    /// Display copies (see `namedTask`) keep the stored task's key here so done/reminded/sent marks still match after
+    /// speaker names replace the generic labels. Never encoded; nil for stored tasks.
+    public private(set) var storedKey: String?
 
     public init(owner: String, description: String, dueDate: String?, isMine: Bool) {
         self.owner = owner
         self.description = description
         self.dueDate = dueDate
         self.isMine = isMine
+    }
+
+    /// Copy that keeps `key` as its tracking key (`taskKey`) whatever its text says.
+    func with(storedKey key: String) -> NoteTask {
+        var copy: NoteTask = self
+        copy.storedKey = key
+        return copy
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case owner
+        case description
+        case dueDate
+        case isMine
     }
 }
 
@@ -438,6 +455,15 @@ public struct MeetingRecord: Sendable, Equatable, Codable, Identifiable {
         copy.note = newNote
         copy.sharedNotes = nil
         copy.title = newNote.title
+        return copy
+    }
+
+    /// Display copy with the note and its shared-language versions replaced (see `namedRecord`); unlike `with(note:)`
+    /// the title, shared versions and history are not reset.
+    func presenting(note newNote: MeetingNote?, sharedNotes newShared: [String: MeetingNote]?) -> MeetingRecord {
+        var copy: MeetingRecord = self
+        copy.note = newNote
+        copy.sharedNotes = newShared
         return copy
     }
 

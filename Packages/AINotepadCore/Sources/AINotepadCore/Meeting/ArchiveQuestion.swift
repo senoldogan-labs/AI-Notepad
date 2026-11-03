@@ -327,11 +327,13 @@ public enum ArchiveProgress: Sendable, Equatable {
 public typealias ArchiveProgressHandler = @Sendable (ArchiveProgress) async -> Void
 
 /// Arşive soru: arama terimleri (hızlı model) → yerel seçim → akışlı cevap (akıllı model). Parçalar en fazla
-/// `maxChars`. Her adım `onProgress` ile bildirilir; son cevap `language` dilinde döner.
+/// `maxChars`. Her adım `onProgress` ile bildirilir; son cevap `language` dilinde döner. Notlar konuşmacı adlarıyla
+/// okunur (`namedRecords`).
 public func askArchive(
-    question: String, history: [ArchiveTurn], records: [MeetingRecord], userName: String, language: ShareLanguage, llm: LLMProvider, maxChars: Int,
+    question: String, history: [ArchiveTurn], records storedRecords: [MeetingRecord], userName: String, language: ShareLanguage, llm: LLMProvider, maxChars: Int,
     now: Date, onProgress: ArchiveProgressHandler
 ) async throws -> ArchiveAnswer {
+    let records: [MeetingRecord] = namedRecords(records: storedRecords, userName: userName)
     let terms: [String] = try await requestStructured(
         provider: llm, request: searchTermsRequest(question: question, history: history, languages: archiveLanguages(records: records), language: language)
     ) { (text: String) throws -> [String] in
@@ -347,11 +349,13 @@ public func askArchive(
 }
 
 /// `@` ile seçilen toplantılara sorulan soru: yalnız bu toplantılar okunur. Hepsi sığıyorsa aranmadan tamamı okunur
-/// (seçilen toplantının her yerine bakılsın); sığmıyorsa yine bu toplantılar içinde aranır.
+/// (seçilen toplantının her yerine bakılsın); sığmıyorsa yine bu toplantılar içinde aranır. Notlar konuşmacı adlarıyla
+/// okunur (`namedRecords`).
 public func askAboutMeetings(
-    question: String, history: [ArchiveTurn], records: [MeetingRecord], userName: String, language: ShareLanguage, llm: LLMProvider, maxChars: Int,
+    question: String, history: [ArchiveTurn], records storedRecords: [MeetingRecord], userName: String, language: ShareLanguage, llm: LLMProvider, maxChars: Int,
     now: Date, onProgress: ArchiveProgressHandler
 ) async throws -> ArchiveAnswer {
+    let records: [MeetingRecord] = namedRecords(records: storedRecords, userName: userName)
     let all: [ArchivePassage] = archivePassages(records: records)
     guard all.map(\.text.count).reduce(0, +) > maxChars else {
         await onProgress(.searchTerms([]))

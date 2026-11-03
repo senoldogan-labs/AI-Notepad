@@ -20,7 +20,7 @@ struct TasksTab: View {
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
-        let all: [(record: MeetingRecord, task: NoteTask)] = myTasks(meetings: store.meetings)
+        let all: [(record: MeetingRecord, task: NoteTask)] = myTasks(meetings: store.meetings, userName: userName)
         let doneCount: Int = all.filter { isTaskDone(record: $0.record, task: $0.task) }.count
         let shown: [(record: MeetingRecord, task: NoteTask)] = all.filter { isTaskDone(record: $0.record, task: $0.task) == (filter == .done) }
         let groups: [(record: MeetingRecord, tasks: [NoteTask])] = shown.reduce(into: [(record: MeetingRecord, tasks: [NoteTask])]()) { (result: inout [(record: MeetingRecord, tasks: [NoteTask])], item: (record: MeetingRecord, task: NoteTask)) -> Void in

@@ -197,7 +197,7 @@ private func paragraph(_ id: String, _ start: Double, _ end: Double, _ text: Str
         let output: Pipe = Pipe()
         input.fileHandleForWriting.write(Data((requests.joined(separator: "\n") + "\n").utf8))
         try input.fileHandleForWriting.close()
-        runMCPServer(input: input.fileHandleForReading, output: output.fileHandleForWriting, sessionsDirectories: [sessions], accessDenial: { nil }, version: "test", noteLanguage: .english, appName: "Gistsmith")
+        runMCPServer(input: input.fileHandleForReading, output: output.fileHandleForWriting, sessionsDirectories: [sessions], accessDenial: { nil }, version: "test", noteLanguage: .english, appName: "Gistsmith", userName: "")
         try output.fileHandleForWriting.close()
         let lines: [String] = String(decoding: output.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self).split(separator: "\n").map(String.init)
         #expect(lines.count == 5)

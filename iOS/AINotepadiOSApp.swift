@@ -695,7 +695,9 @@ final class PhoneStore {
         guard let record = meetings.first(where: { $0.id == meetingID }), let note = record.note else {
             throw StorageError.writeFailed(path: meetingID, reason: "toplantı ya da not yok")
         }
-        try await eventKit.addReminder(draft: reminderDraft(record: record, task: task, language: note.writtenLanguage, calendar: Calendar.current))
+        // Anımsatıcıdaki toplantı adı ve sahip konuşmacı adlarıyla (görev zaten adlandırılmış kopyadır).
+        let shown: MeetingRecord = namedRecord(record: record, userName: phoneUserName())
+        try await eventKit.addReminder(draft: reminderDraft(record: shown, task: task, language: note.writtenLanguage, calendar: Calendar.current))
         try updateMeeting(meetingID: meetingID) { (current: MeetingRecord) -> MeetingRecord in markingReminded(record: current, task: task) }
     }
 
