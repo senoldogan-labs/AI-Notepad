@@ -188,7 +188,7 @@ func screenNotesMeeting(seconds: Int) -> MeetingRecord {
         #expect(!FileManager.default.fileExists(atPath: screenSnapshotsDirectory(meetingDirectory: meeting).appending(path: screenNoteExclusionsFileName).path))
     }
 
-    // From disk: a full meeting (300 snapshots, odd sizes, some unticked) gives at most 6 JPEGs whose real pixel sizes
+    // From disk: a full meeting (the per-meeting cap of snapshots, odd sizes, some unticked) gives at most 6 JPEGs whose real pixel sizes
     // stay within the token budget and whose bytes stay within the server's cap; labels carry the time on screen.
     @Test func imagesFromDiskStayWithinTheBudget() throws {
         let meeting: URL = try temporaryDirectory()

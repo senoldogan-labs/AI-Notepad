@@ -24,7 +24,7 @@ export const hostedEffortSchema = z.enum(["low", "medium"]);
  * İzin verilen Anthropic Messages alt kümesi: zorunlu `effort` (`low` | `medium`, varsayılan yok), `system`, yalnızca
  * metin içerikli `messages`, `max_tokens`, `output_config.format` (json_schema) ve `stream`. `model` kabul edilir ama
  * sunucu kendi modelini kullanır. Messages may also carry base64 JPEG image blocks (shared-screen snapshots for the
- * note; capped by `screenImageUsage`). Araçlar, MCP, dosyalar, URL görselleri, örnekleme parametreleri, `thinking`
+ * note and Ask; capped by `screenImageUsage`). Araçlar, MCP, dosyalar, URL görselleri, örnekleme parametreleri, `thinking`
  * (gönderilmez; düşünme `effort` ile yönetilir), `output_config.effort`, önbellek işaretleri ve bilinmeyen her alan
  * reddedilir.
  */

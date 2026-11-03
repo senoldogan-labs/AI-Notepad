@@ -118,6 +118,8 @@ describe("Screen images: pure checks", () => {
   it("raises the body limit only for purposes that may carry images", () => {
     expect(llmBodyLimitBytes(400_000, "note")).toBe(400_000 + screenImageBodyAllowanceBytes);
     expect(llmBodyLimitBytes(400_000, "note_overview")).toBe(400_000 + screenImageBodyAllowanceBytes);
+    expect(llmBodyLimitBytes(400_000, "ask_answer")).toBe(400_000 + screenImageBodyAllowanceBytes);
+    expect(llmBodyLimitBytes(400_000, "ask_search_terms")).toBe(400_000);
     expect(llmBodyLimitBytes(400_000, "live_translation")).toBe(400_000);
     expect(llmBodyLimitBytes(400_000, "note_chunk")).toBe(400_000);
     expect(llmBodyLimitBytes(400_000, "unattributed")).toBe(400_000);
@@ -161,6 +163,8 @@ describe("Screen images: proxy", () => {
     ["not a JPEG", "note", [new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])]],
     ["a purpose that may not carry images", "live_translation", [fakeJpeg(280, 280, 500)]],
     ["the chunk of a long note", "note_chunk", [fakeJpeg(280, 280, 500)]],
+    ["Ask's search terms", "ask_search_terms", [fakeJpeg(280, 280, 500)]],
+    ["too many tokens in Ask", "ask_answer", Array.from({ length: 6 }, (): Uint8Array => fakeJpeg(812, 476, 500))],
   ])("rejects %s with screen_images_over_limit and sends nothing upstream", async (_name: string, purpose: string, images: Uint8Array[]) => {
     const context: Context = await setup();
     const before: number = context.harness.outbound.length;
@@ -176,6 +180,21 @@ describe("Screen images: proxy", () => {
     expect(6 * visualTokens({ width: 30 * 28, height: 15 * 28 })).toBe(screenImageMaxTotalTokens);
     const response: Response = await llm(context, "note_overview", noteWithImages(images), null);
     expect(response.status).toBe(200);
+  });
+
+  it("accepts Ask's answer with a few screen images, on an account call (no meeting)", async () => {
+    const context: Context = await setup();
+    const upstream: Array<{ messages: Array<{ content: unknown }> }> = [];
+    context.harness.stub(anthropicUrl, async (request: Request): Promise<Response> => {
+      upstream.push(await request.json<{ messages: Array<{ content: unknown }> }>());
+      return Response.json(message(1500, 200));
+    });
+    const body = noteWithImages([fakeJpeg(812, 448, 40_000), fakeJpeg(812, 448, 40_000), fakeJpeg(812, 448, 40_000)]);
+    const response: Response = await context.harness.call(
+      req("POST", "/v1/llm/messages", { token: context.session.accessToken, headers: { "x-llm-purpose": "ask_answer" }, json: body, env: null }),
+    );
+    expect(response.status).toBe(200);
+    expect(upstream[0]?.messages[0]?.content).toEqual((body as { messages: Array<{ content: unknown }> }).messages[0]?.content);
   });
 
   it.each([

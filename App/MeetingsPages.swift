@@ -1695,23 +1695,14 @@ private struct SummaryTab: View {
         }
     }
 
-    /// Yan sütun kartı: üstte toplantının kapağından ince film gradyanı şerit ve içerik (başlık etiketi yok; içerik
-    /// kendini anlatır).
+    /// Yan sütun kartı: düz kart yüzeyinde içerik (başlık etiketi yok; içerik kendini anlatır).
     private func asideCard(@ViewBuilder content: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             content()
         }
         .padding(16)
-        .padding(.top, 3)
         .frame(maxWidth: .infinity, alignment: .leading)
         .cardSurface(cornerRadius: 16)
-        // Şerit kartın yuvarlak köşelerini izler: tüm kart boyunca çizilip üst 3 pt'ye maskelenir, kart şekliyle kırpılır.
-        .overlay {
-            CoverBackground(seed: record.id)
-                .mask(alignment: .top) { Rectangle().frame(height: 3) }
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .allowsHitTesting(false)
-        }
     }
 
     /// Bölüm: kart olmadan küçük büyük harfli başlık ve içerik (belge düzeni).

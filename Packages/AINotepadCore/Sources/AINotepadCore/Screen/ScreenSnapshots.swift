@@ -120,10 +120,24 @@ public struct ScreenSnapshotPolicy: Sendable, Equatable {
     public let maxPerMeeting: Int
     /// Parmak izi hücresinin "değişti" sayılması için gereken en küçük parlaklık farkı (0–255).
     public let cellDelta: Int
-    /// Son saklanandan en az bu oranda hücre değişmişse ekran yenidir.
+    /// Son saklanandan (hareketli bölge dışında) en az bu oranda hücre değişmişse ekran yenidir.
     public let minChangedFraction: Double
-    /// Bir önceki bakıştan bu orandan fazla hücre değiştiyse ekran hâlâ değişiyor (geçiş, kaydırma, video): beklenir.
+    /// Bir önceki bakıştan (hareketli bölge dışında) bu orandan fazla hücre değiştiyse ekran hâlâ değişiyor: beklenir.
     public let maxUnsettledFraction: Double
+    /// Hareketli hücrelerin arandığı son bakış sayısı (şimdiki dahil).
+    public let busyWindowLooks: Int
+    /// Bir hücre son `busyWindowLooks` bakışın en az bu kadarında değiştiyse hareketlidir (video, kayan yazı, konuşan
+    /// yüz). Slayt geçişi bir hücreyi en fazla iki bakışta değiştirir; bu yüzden üçtür.
+    public let busyMinChanges: Int
+    /// Ekranda hareketli bölge yokken: son `busyWindowLooks` bakışta (hareketli bölge dışında) en az bu kadar ayrı
+    /// değişim olduysa ekran oynuyor (art arda çevrilen sayfalar): durulması beklenir.
+    public let motionMinEvents: Int
+    /// Hareketli bölge varken (ekranda video oynuyor) değişimlerin sayıldığı son bakış sayısı; bu bakışlar hafızada
+    /// tutulur.
+    public let videoMotionWindowLooks: Int
+    /// Hareketli bölge varken: son `videoMotionWindowLooks` bakışta en az bu kadar ayrı değişim olduysa (videodaki
+    /// kesmeler) ekran oynuyor sayılır.
+    public let videoMotionMinEvents: Int
     /// Saklanan görüntünün uzun kenarı (piksel).
     public let maxPixelSize: Int
     /// JPEG kalitesi (0–1).
@@ -131,7 +145,8 @@ public struct ScreenSnapshotPolicy: Sendable, Equatable {
 
     public init(
         captureIntervalSec: Double, minStoreIntervalSec: Double, maxPerMeeting: Int, cellDelta: Int, minChangedFraction: Double,
-        maxUnsettledFraction: Double, maxPixelSize: Int, jpegQuality: Double
+        maxUnsettledFraction: Double, busyWindowLooks: Int, busyMinChanges: Int, motionMinEvents: Int, videoMotionWindowLooks: Int,
+        videoMotionMinEvents: Int, maxPixelSize: Int, jpegQuality: Double
     ) {
         self.captureIntervalSec = captureIntervalSec
         self.minStoreIntervalSec = minStoreIntervalSec
@@ -139,16 +154,33 @@ public struct ScreenSnapshotPolicy: Sendable, Equatable {
         self.cellDelta = cellDelta
         self.minChangedFraction = minChangedFraction
         self.maxUnsettledFraction = maxUnsettledFraction
+        self.busyWindowLooks = busyWindowLooks
+        self.busyMinChanges = busyMinChanges
+        self.motionMinEvents = motionMinEvents
+        self.videoMotionWindowLooks = videoMotionWindowLooks
+        self.videoMotionMinEvents = videoMotionMinEvents
         self.maxPixelSize = maxPixelSize
         self.jpegQuality = jpegQuality
     }
 }
 
-/// Uygulamanın kuralları: 3 sn'de bir bakılır; ekranın en az beşte biri değişip durulunca saklanır; en az 6 sn arayla,
-/// toplantı başına en fazla 300 görüntü (2 saatlik toplantıda ortalama 24 sn'de bir). Görüntü en fazla 1600 piksel.
+/// Uygulamanın kuralları:
+/// - 3 sn'de bir bakılır (32×20 hücrelik gri parmak izi; hücre parlaklığı 18'den fazla değişirse "değişti").
+/// - Son 30 sn'de (10 bakış) en az 3 kez değişen hücreler hareketlidir (konuşan yüz, kayan yazı, oynayan video,
+///   kaydırılan sayfa). Bunlar iki hücre çevresiyle genişletilip her kümenin dikdörtgenine tamamlanır (gömülü video
+///   oynatıcısı, görüşmedeki kamera kutusu) ve bütün karşılaştırmalarda sayılmaz.
+/// - Ekranın (tüm hücrelere göre) en az üçte biri son saklanandan farklıysa ve son bakıştan bu yana %10'dan azı
+///   değiştiyse saklanır; şu durumlarda beklenir: ekranda hareketli bölge yokken son 30 sn'de 3 ayrı değişim (hızla
+///   çevrilen sayfalar), varken son 60 sn'de 2 ayrı değişim (videodaki kesmeler). Art arda değişen bakışlar tek değişim
+///   sayılır (geçiş efekti olan slayt da bir kez değişmiştir).
+/// - İki görüntü arası en az 20 sn; toplantı başına en fazla 120 görüntü (2 saatte ortalama dakikada bir).
+/// 9 dakikalık bir haber videosu eski kurallarla (%20, 6 sn, hareket maskesi yok, 300 sınır) 24 görüntü vermişti.
+/// Ekranda kamera kutusu varken bir slayt, öncekinden 60 sn sonra ya da ekranda kaldığı 60 sn dolunca saklanır.
+/// Görüntü en fazla 1600 piksel.
 public let screenSnapshotPolicy: ScreenSnapshotPolicy = ScreenSnapshotPolicy(
-    captureIntervalSec: 3, minStoreIntervalSec: 6, maxPerMeeting: 300, cellDelta: 18, minChangedFraction: 0.2,
-    maxUnsettledFraction: 0.1, maxPixelSize: 1600, jpegQuality: 0.7
+    captureIntervalSec: 3, minStoreIntervalSec: 20, maxPerMeeting: 120, cellDelta: 18, minChangedFraction: 0.33,
+    maxUnsettledFraction: 0.1, busyWindowLooks: 10, busyMinChanges: 3, motionMinEvents: 3, videoMotionWindowLooks: 20,
+    videoMotionMinEvents: 2, maxPixelSize: 1600, jpegQuality: 0.7
 )
 
 /// Ekranın küçültülmüş gri parmak izi (değişim karşılaştırması için; ör. 32×20 hücre, satır satır parlaklık).
@@ -168,29 +200,101 @@ public struct ScreenFingerprint: Sendable, Equatable {
 public let screenFingerprintWidth: Int = 32
 public let screenFingerprintHeight: Int = 20
 
+/// İki parmak izi aynı boyutta mı (değilse pencere değişmiştir; hücreler karşılaştırılamaz). Saf fonksiyondur.
+func comparableFingerprints(_ old: ScreenFingerprint, _ new: ScreenFingerprint) -> Bool {
+    old.width == new.width && old.height == new.height && old.luma.count == new.luma.count && !new.luma.isEmpty
+}
+
+/// Hücre hücre değişti mi: parlaklığı `cellDelta`'dan fazla değişenler true. Boyutlar farklıysa hepsi true. Saf
+/// fonksiyondur.
+func changedCells(from old: ScreenFingerprint, to new: ScreenFingerprint, cellDelta: Int) -> [Bool] {
+    guard comparableFingerprints(old, new) else {
+        return Array(repeating: true, count: new.luma.count)
+    }
+    return zip(old.luma, new.luma).map { abs(Int($0.0) - Int($0.1)) > cellDelta }
+}
+
 /// İki parmak izi arasında değişen hücrelerin oranı (0–1): parlaklığı `cellDelta`'dan fazla değişen hücreler. Boyutlar
 /// farklıysa (pencere değişti) 1. Saf fonksiyondur.
 public func changedFraction(from old: ScreenFingerprint, to new: ScreenFingerprint, cellDelta: Int) -> Double {
-    guard old.width == new.width, old.height == new.height, old.luma.count == new.luma.count, !new.luma.isEmpty else {
+    guard comparableFingerprints(old, new) else {
         return 1
     }
-    let changed: Int = zip(old.luma, new.luma).reduce(0) { (count: Int, pair: (UInt8, UInt8)) -> Int in
-        abs(Int(pair.0) - Int(pair.1)) > cellDelta ? count + 1 : count
-    }
-    return Double(changed) / Double(new.luma.count)
+    return maskedFraction(changed: changedCells(from: old, to: new, cellDelta: cellDelta), ignored: Array(repeating: false, count: new.luma.count))
 }
 
-/// Görüntü alma durumu: son saklanan, bir önceki bakış ve saklanan sayısı.
+/// Yok sayılmayan değişmiş hücrelerin tüm hücrelere oranı (payda hep tüm ekran: maskeli büyük bir video kalan küçük
+/// değişimi büyütmez). Saf fonksiyondur.
+func maskedFraction(changed: [Bool], ignored: [Bool]) -> Double {
+    guard !changed.isEmpty, changed.count == ignored.count else {
+        return changed.isEmpty ? 0 : 1
+    }
+    let counted: Int = zip(changed, ignored).filter { $0.0 && !$0.1 }.count
+    return Double(counted) / Double(changed.count)
+}
+
+/// Hareketli bölge: son bakışlarda (`recentChanges`, her biri bir bakışın hücre değişimleri) en az `minChanges` kez
+/// değişen hücreler, `busyGrowCells` hücre çevresiyle genişletilip her bağlı kümenin (8 komşu) dikdörtgenine tamamlanır. Konuşan
+/// yüzle altındaki kayan yazı böylece tek oynatıcı dikdörtgeni olur; videodaki kesmeler o dikdörtgenin içinde kalır.
+/// Saf fonksiyondur.
+/// Hareketli hücrelerin genişletildiği çevre (hücre): yüzle altındaki kayan yazı arasındaki boşluğu kapatır.
+let busyGrowCells: Int = 2
+
+func busyRegion(recentChanges: [[Bool]], width: Int, height: Int, minChanges: Int) -> [Bool] {
+    let count: Int = width * height
+    let looks: [[Bool]] = recentChanges.filter { $0.count == count }
+    let busy: [Bool] = (0..<count).map { (cell: Int) -> Bool in
+        looks.reduce(0) { $0 + ($1[cell] ? 1 : 0) } >= minChanges
+    }
+    guard busy.contains(true) else {
+        return busy
+    }
+    let grown: [Bool] = (0..<count).map { (cell: Int) -> Bool in
+        let (x, y): (Int, Int) = (cell % width, cell / width)
+        return (max(0, y - busyGrowCells)...min(height - 1, y + busyGrowCells)).contains { (row: Int) -> Bool in
+            (max(0, x - busyGrowCells)...min(width - 1, x + busyGrowCells)).contains { busy[row * width + $0] }
+        }
+    }
+    // Bağlı kümeler ve dikdörtgenleri.
+    var label: [Int] = Array(repeating: -1, count: count)
+    var boxes: [(minX: Int, minY: Int, maxX: Int, maxY: Int)] = []
+    for seed in 0..<count where grown[seed] && label[seed] < 0 {
+        var stack: [Int] = [seed]
+        label[seed] = boxes.count
+        var box: (minX: Int, minY: Int, maxX: Int, maxY: Int) = (seed % width, seed / width, seed % width, seed / width)
+        while let cell = stack.popLast() {
+            let (x, y): (Int, Int) = (cell % width, cell / width)
+            box = (min(box.minX, x), min(box.minY, y), max(box.maxX, x), max(box.maxY, y))
+            for row in max(0, y - 1)...min(height - 1, y + 1) {
+                for column in max(0, x - 1)...min(width - 1, x + 1) where grown[row * width + column] && label[row * width + column] < 0 {
+                    label[row * width + column] = boxes.count
+                    stack.append(row * width + column)
+                }
+            }
+        }
+        boxes.append(box)
+    }
+    return (0..<count).map { (cell: Int) -> Bool in
+        let (x, y): (Int, Int) = (cell % width, cell / width)
+        return boxes.contains { x >= $0.minX && x <= $0.maxX && y >= $0.minY && y <= $0.maxY }
+    }
+}
+
+/// Görüntü alma durumu: son saklanan, bir önceki bakış, son bakışların hücre değişimleri ve saklanan sayısı.
 public struct ScreenSnapshotState: Sendable, Equatable {
     public let lastStored: ScreenFingerprint?
     public let lastStoredOffsetSec: Double?
     public let previousCapture: ScreenFingerprint?
+    /// Son bakışların (en fazla `videoMotionWindowLooks - 1`, eskiden yeniye) bir öncekine göre hücre değişimleri; önceki
+    /// bakışı olmayan bakış eklenmez.
+    public let recentChanges: [[Bool]]
     public let storedCount: Int
 
-    public init(lastStored: ScreenFingerprint?, lastStoredOffsetSec: Double?, previousCapture: ScreenFingerprint?, storedCount: Int) {
+    public init(lastStored: ScreenFingerprint?, lastStoredOffsetSec: Double?, previousCapture: ScreenFingerprint?, recentChanges: [[Bool]], storedCount: Int) {
         self.lastStored = lastStored
         self.lastStoredOffsetSec = lastStoredOffsetSec
         self.previousCapture = previousCapture
+        self.recentChanges = recentChanges
         self.storedCount = storedCount
     }
 }
@@ -198,34 +302,72 @@ public struct ScreenSnapshotState: Sendable, Equatable {
 /// Kayıt başındaki durum; toplantıda daha önce saklanmış görüntüler varsa (ör. aynı klasöre devam) sayıları sınıra
 /// dahildir. Saf fonksiyondur.
 public func initialScreenSnapshotState(storedCount: Int) -> ScreenSnapshotState {
-    ScreenSnapshotState(lastStored: nil, lastStoredOffsetSec: nil, previousCapture: nil, storedCount: storedCount)
+    ScreenSnapshotState(lastStored: nil, lastStoredOffsetSec: nil, previousCapture: nil, recentChanges: [], storedCount: storedCount)
+}
+
+/// Duraklatma boyunca ekran değişmiş olabilir: bir önceki bakış ve hareket geçmişi unutulur, sürdürünce önce durulması
+/// beklenir. Saf fonksiyondur.
+public func pausedScreenSnapshotState(state: ScreenSnapshotState) -> ScreenSnapshotState {
+    ScreenSnapshotState(
+        lastStored: state.lastStored, lastStoredOffsetSec: state.lastStoredOffsetSec, previousCapture: nil, recentChanges: [], storedCount: state.storedCount
+    )
 }
 
 /// Bir bakışın sonucu.
 public enum ScreenSnapshotDecision: Sendable, Equatable {
     /// Ekran yeni ve durgun: saklanır.
     case store
-    /// Son saklanandan anlamlı farkı yok.
+    /// Son saklanandan (hareketli bölge dışında) anlamlı farkı yok.
     case unchanged
     /// Ekran hâlâ değişiyor (ya da ilk bakış): bir sonraki bakış beklenir.
     case unsettled
+    /// Ekran son bakışlarda sık sık değişti (kesmeli video, art arda çevrilen sayfalar): durulması beklenir.
+    case moving
     /// Son saklanandan bu yana `minStoreIntervalSec` geçmedi.
     case tooSoon
     /// Toplantının sınırı doldu; kayıt boyunca başka görüntü alınmaz.
     case capReached
 }
 
-/// Yeni bakışın saklanıp saklanmayacağı: sınır doluysa hiç, ekran durulmamışsa bekle, son saklanandan yeterince farklı
-/// ve yeterince zaman geçmişse sakla. Saf fonksiyondur.
+/// Bu bakışla birlikte son bakışların hücre değişimleri (en fazla `videoMotionWindowLooks`). Saf fonksiyondur.
+private func lookChanges(policy: ScreenSnapshotPolicy, state: ScreenSnapshotState, candidate: ScreenFingerprint) -> [[Bool]] {
+    guard let previous = state.previousCapture, comparableFingerprints(previous, candidate) else {
+        return Array(state.recentChanges.suffix(max(0, policy.videoMotionWindowLooks - 1)))
+    }
+    return Array((state.recentChanges + [changedCells(from: previous, to: candidate, cellDelta: policy.cellDelta)]).suffix(policy.videoMotionWindowLooks))
+}
+
+/// Ayrı değişimlerin sayısı: art arda değişen bakışlar (`moving` true) tek değişimdir. Saf fonksiyondur.
+func motionEvents(moving: [Bool]) -> Int {
+    zip([false] + moving, moving).filter { !$0.0 && $0.1 }.count
+}
+
+/// Yeni bakışın saklanıp saklanmayacağı: sınır doluysa hiç; ekran durulmamışsa ya da son bakışlarda sık değiştiyse
+/// (hareketli bölge varken daha uzun bir pencerede, daha az değişimle) bekle; son saklanandan yeterince farklı ve yeterince zaman geçmişse sakla. Hareketli bölge (`busyRegion`) bütün
+/// karşılaştırmalarda yok sayılır. Saf fonksiyondur.
 public func screenSnapshotDecision(policy: ScreenSnapshotPolicy, state: ScreenSnapshotState, candidate: ScreenFingerprint, offsetSec: Double) -> ScreenSnapshotDecision {
     guard state.storedCount < policy.maxPerMeeting else {
         return .capReached
     }
-    guard let previous = state.previousCapture,
-          changedFraction(from: previous, to: candidate, cellDelta: policy.cellDelta) <= policy.maxUnsettledFraction else {
+    guard let previous = state.previousCapture, comparableFingerprints(previous, candidate) else {
         return .unsettled
     }
-    if let stored = state.lastStored, changedFraction(from: stored, to: candidate, cellDelta: policy.cellDelta) < policy.minChangedFraction {
+    let looks: [[Bool]] = lookChanges(policy: policy, state: state, candidate: candidate)
+    let busy: [Bool] = busyRegion(
+        recentChanges: Array(looks.suffix(policy.busyWindowLooks)), width: candidate.width, height: candidate.height, minChanges: policy.busyMinChanges
+    )
+    let current: [Bool] = changedCells(from: previous, to: candidate, cellDelta: policy.cellDelta)
+    guard maskedFraction(changed: current, ignored: busy) <= policy.maxUnsettledFraction else {
+        return .unsettled
+    }
+    let hasVideo: Bool = busy.contains(true)
+    let window: [[Bool]] = Array(looks.suffix(hasVideo ? policy.videoMotionWindowLooks : policy.busyWindowLooks))
+    let events: Int = motionEvents(moving: window.map { maskedFraction(changed: $0, ignored: busy) > policy.maxUnsettledFraction })
+    guard events < (hasVideo ? policy.videoMotionMinEvents : policy.motionMinEvents) else {
+        return .moving
+    }
+    if let stored = state.lastStored, comparableFingerprints(stored, candidate),
+       maskedFraction(changed: changedCells(from: stored, to: candidate, cellDelta: policy.cellDelta), ignored: busy) < policy.minChangedFraction {
         return .unchanged
     }
     if let storedAt = state.lastStoredOffsetSec, offsetSec - storedAt < policy.minStoreIntervalSec {
@@ -234,12 +376,18 @@ public func screenSnapshotDecision(policy: ScreenSnapshotPolicy, state: ScreenSn
     return .store
 }
 
-/// Bakıştan sonraki durum: her bakış "bir önceki" olur; saklandıysa son saklanan da odur. Saf fonksiyondur.
-public func advancedScreenSnapshotState(state: ScreenSnapshotState, candidate: ScreenFingerprint, offsetSec: Double, stored: Bool) -> ScreenSnapshotState {
-    ScreenSnapshotState(
+/// Bakıştan sonraki durum: her bakış "bir önceki" olur ve hücre değişimi hareket geçmişine girer; saklandıysa son
+/// saklanan da odur. Pencere değiştiyse (boyut farklı) hareket geçmişi sıfırlanır. Saf fonksiyondur.
+public func advancedScreenSnapshotState(
+    policy: ScreenSnapshotPolicy, state: ScreenSnapshotState, candidate: ScreenFingerprint, offsetSec: Double, stored: Bool
+) -> ScreenSnapshotState {
+    let resized: Bool = state.previousCapture.map { !comparableFingerprints($0, candidate) } ?? false
+    let changes: [[Bool]] = resized ? [] : Array(lookChanges(policy: policy, state: state, candidate: candidate).suffix(max(0, policy.videoMotionWindowLooks - 1)))
+    return ScreenSnapshotState(
         lastStored: stored ? candidate : state.lastStored,
         lastStoredOffsetSec: stored ? offsetSec : state.lastStoredOffsetSec,
         previousCapture: candidate,
+        recentChanges: changes,
         storedCount: stored ? state.storedCount + 1 : state.storedCount
     )
 }

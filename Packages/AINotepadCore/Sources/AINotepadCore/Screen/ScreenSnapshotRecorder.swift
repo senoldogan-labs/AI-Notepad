@@ -121,7 +121,7 @@ private func runSnapshotLoop(
         }
         guard !paused.get() else {
             // Duraklatma boyunca ekran değişmiş olabilir: sürdürünce önce durulması beklenir.
-            state = ScreenSnapshotState(lastStored: state.lastStored, lastStoredOffsetSec: state.lastStoredOffsetSec, previousCapture: nil, storedCount: state.storedCount)
+            state = pausedScreenSnapshotState(state: state)
             continue
         }
         do {
@@ -134,14 +134,14 @@ private func runSnapshotLoop(
             case .store:
                 let snapshot: ScreenSnapshot = screenSnapshot(offsetSec: offsetSec)
                 try writeScreenSnapshot(meetingDirectory: meetingDirectory, snapshot: snapshot, jpeg: try jpegData(image: image, quality: policy.jpegQuality))
-                state = advancedScreenSnapshotState(state: state, candidate: fingerprint, offsetSec: offsetSec, stored: true)
+                state = advancedScreenSnapshotState(policy: policy, state: state, candidate: fingerprint, offsetSec: offsetSec, stored: true)
                 await onEvent(.stored(snapshot))
             case .capReached:
                 screenLogger.info("Toplantının ekran görüntüsü sınırı doldu, sınır: \(policy.maxPerMeeting, privacy: .public)")
                 await onEvent(.capReached)
                 return
-            case .unchanged, .unsettled, .tooSoon:
-                state = advancedScreenSnapshotState(state: state, candidate: fingerprint, offsetSec: offsetSec, stored: false)
+            case .unchanged, .unsettled, .moving, .tooSoon:
+                state = advancedScreenSnapshotState(policy: policy, state: state, candidate: fingerprint, offsetSec: offsetSec, stored: false)
             }
         } catch {
             if Task.isCancelled {
