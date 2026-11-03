@@ -2157,16 +2157,6 @@
         }
       }
     },
-    "Adın (notta senin görevlerin için)": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Your name (for your tasks in the note)"
-          }
-        }
-      }
-    },
     "Adın (ör. Doğan)": {
       "localizations": {
         "en": {
@@ -2889,16 +2879,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Open · %lld"
-          }
-        }
-      }
-    },
-    "Açıkken 8 sn'den fazla konuşan herkesin ses izi (sesi tanıyan sayılar; biyometrik veridir) o toplantıyla saklanır; ad verdiğin kişininki bu Mac'te hatırlanır ve sonraki toplantılarda adı kendiliğinden gelir. Toplantı silinince ondan öğrenilen izler, sesi silinince toplantıdaki izler de silinir. Başkalarının ses izini saklamadan önce onaylarını al.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "When on, a voiceprint (numbers that recognise a voice; this is biometric data) of everyone who speaks for more than 8 s is stored with the meeting; people you name are remembered on this Mac and named automatically in later meetings. Deleting a meeting forgets what was learned from it; deleting its audio removes its prints. Ask others before storing their voiceprints."
           }
         }
       }
@@ -8920,16 +8900,6 @@
         }
       }
     },
-    "Kayıttan önce katılımcılara haber vermek çoğu yerde yasal zorunluluktur. Süre dolunca ses dosyaları silinir, metin ve not kalır; yarıda kalan ya da başarısız toplantının sesi iki kat süre saklanır.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "In many places you are legally required to tell participants before recording. When the period ends, audio files are deleted and the transcript and note stay; audio of interrupted or failed meetings is kept twice as long."
-          }
-        }
-      }
-    },
     "Kendi adınla, seçtiğin kanala": {
       "localizations": {
         "en": {
@@ -9797,26 +9767,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Shortcut: %@. Change"
-          }
-        }
-      }
-    },
-    "Kısayola basıp konuş; söylediğin, imlecin olduğu yere yazılır (Mail, Slack, Notlar, tarayıcı…). Ses bu Mac'te yazıya dökülür; ses de metin de hiçbir yere gönderilmez.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Press the shortcut and speak; what you say is typed where your cursor is (Mail, Slack, Notes, a browser…). Audio is transcribed on this Mac; neither the audio nor the text is sent anywhere."
-          }
-        }
-      }
-    },
-    "Kısayola basıp konuş; söylediğin, imlecin olduğu yere yazılır (Mail, Slack, Notlar, tarayıcı…). Ses bu Mac'te yazıya dökülür; ses de metin de hiçbir yere gönderilmez. Giriş yapmış her hesapta ücretsiz ve sınırsız; deneme toplantılarından ve aylık süreden düşmez.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Press the shortcut and speak; what you say is typed where your cursor is (Mail, Slack, Notes, a browser…). Audio is transcribed on this Mac; neither the audio nor the text is sent anywhere. Free and unlimited for every signed-in account; it doesn't use trial meetings or monthly time."
           }
         }
       }
@@ -12780,16 +12730,6 @@
         }
       }
     },
-    "Toplantı kaydı sürerken sesle yazma kapalıdır (mikrofon toplantıda). Parola alanlarına yazmaz.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Voice typing is off while a meeting is recording (the microphone is in use). It never types into password fields."
-          }
-        }
-      }
-    },
     "Toplantı kaydı sürüyor; mikrofon toplantıda. Kayıt bitince sesle yazabilirsin.": {
       "localizations": {
         "en": {
@@ -12847,16 +12787,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Couldn't read the calendar"
-          }
-        }
-      }
-    },
-    "Takvimde görüşme bağlantısı (Teams, Zoom, Meet) olan bir toplantı sürerken başka bir uygulama mikrofonu açınca kayıt kendiliğinden başlar ve bildirilir; bir kez kur, unut. Katılımcılara kaydettiğini söylemek senin sorumluluğunda.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "While a calendar meeting with a call link (Teams, Zoom, Meet) is in progress and another app turns on the microphone, recording starts automatically and you're notified. Set it once and forget it. Telling participants you're recording is your responsibility."
           }
         }
       }
@@ -13243,16 +13173,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Reprocessed"
-          }
-        }
-      }
-    },
-    "Telefondaki Teams/Zoom görüşmeleri kaydedilemez (iOS izin vermez); onlar için Mac'i kullan.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Teams/Zoom calls on the phone can't be recorded (iOS doesn't allow it); use your Mac for those."
           }
         }
       }
@@ -19366,6 +19286,116 @@
         }
       }
     },
+    "Açıkken 8 sn'den fazla konuşan herkesin ses izi (sesi tanıyan sayılar; biyometrik veridir) o toplantıyla saklanır; ad verdiğin kişininki bu Mac'te hatırlanır ve sonraki toplantılarda adı kendiliğinden gelir. Toplantı silinince ondan öğrenilen izler, sesi silinince toplantıdaki izler de silinir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When on, a voiceprint (numbers that recognise a voice; this is biometric data) of everyone who speaks for more than 8 s is stored with the meeting; people you name are remembered on this Mac and named automatically in later meetings. Deleting a meeting forgets what was learned from it; deleting its audio removes its prints."
+          }
+        }
+      }
+    },
+    "Başkalarının ses izini saklamadan önce onaylarını al.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask others before storing their voiceprints."
+          }
+        }
+      }
+    },
+    "Takvimde görüşme bağlantısı (Teams, Zoom, Meet) olan bir toplantı sürerken başka bir uygulama mikrofonu açınca kayıt kendiliğinden başlar ve bildirilir; bir kez kur, unut.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "While a calendar meeting with a call link (Teams, Zoom, Meet) is in progress and another app turns on the microphone, recording starts automatically and you're notified. Set it once and forget it."
+          }
+        }
+      }
+    },
+    "Katılımcılara kaydettiğini söylemek senin sorumluluğunda.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Telling participants you're recording is your responsibility."
+          }
+        }
+      }
+    },
+    "Kayıttan önce katılımcılara haber vermek çoğu yerde yasal zorunluluktur. Süre dolunca ses dosyaları silinir, metin ve not kalır; yarıda kalan ya da başarısız toplantının sesi iki kat süre saklanır. Telefondaki Teams/Zoom görüşmeleri kaydedilemez (iOS izin vermez); onlar için Mac'i kullan.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In many places you are legally required to tell participants before recording. When the period ends, audio files are deleted and the transcript and note stay; audio of interrupted or failed meetings is kept twice as long. Teams/Zoom calls on the phone can't be recorded (iOS doesn't allow it); use your Mac for those."
+          }
+        }
+      }
+    },
+    "Kısayola basıp konuş; söylediğin, imlecin olduğu yere yazılır (Mail, Slack, Notlar, tarayıcı…). Ses bu Mac'te yazıya dökülür; ses de metin de hiçbir yere gönderilmez. Giriş yapmış her hesapta ücretsiz ve sınırsız; deneme toplantılarından ve aylık süreden düşmez. Toplantı kaydı sürerken sesle yazma kapalıdır (mikrofon toplantıda). Parola alanlarına yazmaz.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Press the shortcut and speak; what you say is typed where your cursor is (Mail, Slack, Notes, a browser…). Audio is transcribed on this Mac; neither the audio nor the text is sent anywhere. Free and unlimited for every signed-in account; it doesn't use trial meetings or monthly time. Voice typing is off while a meeting is recording (the microphone is in use). It never types into password fields."
+          }
+        }
+      }
+    },
+    "Kısayola basıp konuş; söylediğin, imlecin olduğu yere yazılır (Mail, Slack, Notlar, tarayıcı…). Ses bu Mac'te yazıya dökülür; ses de metin de hiçbir yere gönderilmez. Toplantı kaydı sürerken sesle yazma kapalıdır (mikrofon toplantıda). Parola alanlarına yazmaz.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Press the shortcut and speak; what you say is typed where your cursor is (Mail, Slack, Notes, a browser…). Audio is transcribed on this Mac; neither the audio nor the text is sent anywhere. Voice typing is off while a meeting is recording (the microphone is in use). It never types into password fields."
+          }
+        }
+      }
+    },
+    "Adlar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Names"
+          }
+        }
+      }
+    },
+    "Açıklama": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More info"
+          }
+        }
+      }
+    },
+    "Gönderilenler": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What's sent"
+          }
+        }
+      }
+    },
+    "İsteğe bağlı": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Optional"
+          }
+        }
+      }
+    },
     "Toplantı işlenirken görev işaretlenemez; işleme bitince yeniden dene.": {
       "localizations": {
         "en": {
@@ -19522,6 +19552,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Couldn't save the choice: %@"
+          }
+        }
+      }
+    },
+    "Görüntüler notla birlikte Anthropic'e (Claude) gönderilir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Images are sent with the note to Anthropic (Claude)."
           }
         }
       }

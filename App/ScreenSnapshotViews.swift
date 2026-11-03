@@ -5,6 +5,15 @@ import SwiftUI
 
 // MARK: Ayar
 
+/// Ekran görüntüsü ayarının açıklaması: geliştirici sürümünde görüntüler iCloud eşitlemesiyle toplantıyla birlikte eşitlenir.
+private var screenSnapshotsHelp: LocalizedStringKey {
+    #if HOSTED_EDITION
+    "Çevrimiçi görüşme kaydında ekrana birkaç saniyede bir bakılır; içerik anlamlı değişince (slayt, tasarım, sayfa) bir görüntü saklanır ve o sırada konuşulanlarla eşlenir. Görüşme penceresi (Zoom, Meet, Teams…) bulunursa yalnızca o, yoksa ana ekran alınır; bu uygulamanın pencereleri hiç alınmaz. Görüntüler bu Mac'te toplantının klasöründe kalır ve yapay zekâya gönderilmez; yalnızca bağladığın MCP istemcisi (ör. Claude, Cursor) okuyabilir. Toplantı silinince görüntüleri de silinir."
+    #else
+    "Çevrimiçi görüşme kaydında ekrana birkaç saniyede bir bakılır; içerik anlamlı değişince (slayt, tasarım, sayfa) bir görüntü saklanır ve o sırada konuşulanlarla eşlenir. Görüşme penceresi (Zoom, Meet, Teams…) bulunursa yalnızca o, yoksa ana ekran alınır; bu uygulamanın pencereleri hiç alınmaz. Görüntüler toplantının klasöründe kalır (iCloud eşitlemesi açıksa toplantıyla eşitlenir) ve yapay zekâya gönderilmez; yalnızca bağladığın MCP istemcisi (ör. Claude, Cursor) okuyabilir. Toplantı silinince görüntüleri de silinir."
+    #endif
+}
+
 /// Ayarlar › Genel: "Paylaşılan ekranın görüntülerini al" (varsayılan kapalı). Açılınca Ekran Kaydı izni istenir; izin
 /// yoksa nedeni ve Sistem Ayarları düğmesi satırın içinde görünür (ayrı pencere yok).
 struct ScreenSnapshotSettingsRow: View {
@@ -12,12 +21,7 @@ struct ScreenSnapshotSettingsRow: View {
     @State private var hasPermission: Bool = hasScreenCapturePermission()
 
     var body: some View {
-        SettingsRow(title: Text("Paylaşılan ekranın görüntülerini al")) {
-            #if HOSTED_EDITION
-            Text("Çevrimiçi görüşme kaydında ekrana birkaç saniyede bir bakılır; içerik anlamlı değişince (slayt, tasarım, sayfa) bir görüntü saklanır ve o sırada konuşulanlarla eşlenir. Görüşme penceresi (Zoom, Meet, Teams…) bulunursa yalnızca o, yoksa ana ekran alınır; bu uygulamanın pencereleri hiç alınmaz. Görüntüler bu Mac'te toplantının klasöründe kalır ve yapay zekâya gönderilmez; yalnızca bağladığın MCP istemcisi (ör. Claude, Cursor) okuyabilir. Toplantı silinince görüntüleri de silinir.")
-            #else
-            Text("Çevrimiçi görüşme kaydında ekrana birkaç saniyede bir bakılır; içerik anlamlı değişince (slayt, tasarım, sayfa) bir görüntü saklanır ve o sırada konuşulanlarla eşlenir. Görüşme penceresi (Zoom, Meet, Teams…) bulunursa yalnızca o, yoksa ana ekran alınır; bu uygulamanın pencereleri hiç alınmaz. Görüntüler toplantının klasöründe kalır (iCloud eşitlemesi açıksa toplantıyla eşitlenir) ve yapay zekâya gönderilmez; yalnızca bağladığın MCP istemcisi (ör. Claude, Cursor) okuyabilir. Toplantı silinince görüntüleri de silinir.")
-            #endif
+        SettingsRow(title: Text("Paylaşılan ekranın görüntülerini al"), hint: Text(screenSnapshotsHelp)) {
             if enabled, !hasPermission {
                 VStack(alignment: .leading, spacing: 6) {
                     NoticeText("Ekran Kaydı izni gerekli. İzin verdikten sonra uygulamayı yeniden aç.", severity: .attention)
@@ -52,8 +56,8 @@ struct ScreenNotesSettingsRow: View {
     @AppStorage(SettingsKey.screenSnapshots) private var takesSnapshots: Bool = false
 
     var body: some View {
-        SettingsRow(title: Text("Notlarda ekran görüntülerini kullan")) {
-            Text("Not yazılırken toplantının en çok konuşulan en fazla 6 ekran görüntüsü küçültülüp notla birlikte sunucumuza, oradan da Anthropic'e (Claude) gönderilir; not ekrana atıf yapabilir (ör. \"Fiyatlandırma slaytında, 12:40\"). Sunucumuz görüntüleri saklamaz ve loglamaz; Anthropic onları transkriptle aynı koşullarla işler. Bir görüntüyü toplantının Ekranlar sekmesinden nottan çıkarabilirsin. Kapalıyken görüntüler bu Mac'ten çıkmaz.")
+        SettingsRow(title: Text("Notlarda ekran görüntülerini kullan"), hint: Text("Not yazılırken toplantının en çok konuşulan en fazla 6 ekran görüntüsü küçültülüp notla birlikte sunucumuza, oradan da Anthropic'e (Claude) gönderilir; not ekrana atıf yapabilir (ör. \"Fiyatlandırma slaytında, 12:40\"). Sunucumuz görüntüleri saklamaz ve loglamaz; Anthropic onları transkriptle aynı koşullarla işler. Bir görüntüyü toplantının Ekranlar sekmesinden nottan çıkarabilirsin. Kapalıyken görüntüler bu Mac'ten çıkmaz.")) {
+            Text("Görüntüler notla birlikte Anthropic'e (Claude) gönderilir.")
             if enabled, !takesSnapshots {
                 NoticeText("Görüntü alınması için \"Paylaşılan ekranın görüntülerini al\" da açık olmalı.", severity: .attention)
                     .padding(.top, 4)
@@ -145,13 +149,21 @@ struct ScreenSnapshotsSection: View {
         .animation(.smooth(duration: 0.2), value: confirmation)
     }
 
-    /// Sayı, açıklama ve "Hepsini sil" (satır içi onaylı).
+    /// Açıklama ipucunun metni; notta kullanma açıksa hangi görüntülerin gönderildiği de eklenir.
+    private var hintText: Text {
+        let base: Text = Text("Her görüntü ekran değiştiğinde saklandı; yanında o ekrandayken konuşulanlar var. Bağladığın MCP istemcisi (ör. Claude) aynı eşleşmeyi list_screens ve get_screen ile okur.")
+        guard showsNoteChoice else { return base }
+        return base + Text(verbatim: "\n\n") + Text("Not yazılırken \"Notta\" işaretli görüntülerden en çok konuşulan en fazla 6'sı sunucumuza ve Anthropic'e gönderilir; işaretini kaldırdığın görüntü gönderilmez. Seçim bir sonraki notta geçerli olur.")
+    }
+
+    /// Sayı, açıklama ipucu ve "Hepsini sil" (satır içi onaylı).
     private func header(count: Int) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: DesignTokens.Spacing.s) {
                 Text("\(count) ekran görüntüsü")
                     .appFont(size: 14, weight: .medium)
                     .foregroundStyle(Theme.ink)
+                InfoHint(hintText)
                 Spacer(minLength: 8)
                 if confirmation == .all {
                     Label("Bu toplantının bütün ekran görüntüleri kalıcı silinsin mi?", systemImage: "trash")
@@ -170,16 +182,6 @@ struct ScreenSnapshotsSection: View {
             }
             .appFont(size: 12, weight: .regular)
             .controlSize(.small)
-            Text("Her görüntü ekran değiştiğinde saklandı; yanında o ekrandayken konuşulanlar var. Bağladığın MCP istemcisi (ör. Claude) aynı eşleşmeyi list_screens ve get_screen ile okur.")
-                .appFont(size: 12, weight: .regular)
-                .foregroundStyle(Theme.muted)
-                .fixedSize(horizontal: false, vertical: true)
-            if showsNoteChoice {
-                Text("Not yazılırken \"Notta\" işaretli görüntülerden en çok konuşulan en fazla 6'sı sunucumuza ve Anthropic'e gönderilir; işaretini kaldırdığın görüntü gönderilmez. Seçim bir sonraki notta geçerli olur.")
-                    .appFont(size: 12, weight: .regular)
-                    .foregroundStyle(Theme.muted)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
         }
     }
 }

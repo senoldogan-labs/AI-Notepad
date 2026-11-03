@@ -47,12 +47,12 @@ struct PhoneFeedbackForm: View {
                         Text(verbatim: "\(length) / \(reportMessageLimit)")
                             .monospacedDigit()
                             .foregroundStyle(length > reportMessageLimit ? NoticeSeverity.error.tint : Theme.muted)
+                        InfoHint(Text("Hata, öneri ya da soru: doğrudan Gistsmith'in geliştiricisine yaz."))
+                            .padding(.trailing, -14)
                     }
-                } footer: {
-                    Text("Hata, öneri ya da soru: doğrudan Gistsmith'in geliştiricisine yaz.")
                 }
                 Section {
-                    TextField("Yanıt için e-posta (isteğe bağlı)", text: $email, prompt: Text(verbatim: "ad@ornek.com").foregroundStyle(Theme.muted))
+                    TextField("Yanıt için e-posta (isteğe bağlı)", text: $email, prompt: Text("ad@ornek.com").foregroundStyle(Theme.muted))
                         .textContentType(.emailAddress)
                         .keyboardType(.emailAddress)
                         .textInputAutocapitalization(.never)
@@ -66,8 +66,11 @@ struct PhoneFeedbackForm: View {
                         LabeledContent("Sürüm", value: diagnostics.appVersion)
                         LabeledContent("Sistem", value: diagnostics.os)
                     }
-                } footer: {
-                    Text("Mesajın, yazdıysan e-postan ve işaretliyse sürüm bilgisi Gistsmith'in geliştiricisinin sunucusuna gider ve hesabınla ilişkilendirilir. Toplantı içeriği gönderilmez.")
+                } header: {
+                    PhoneHintHeader(
+                        title: Text("Gönderilenler"),
+                        hint: Text("Mesajın, yazdıysan e-postan ve işaretliyse sürüm bilgisi Gistsmith'in geliştiricisinin sunucusuna gider ve hesabınla ilişkilendirilir. Toplantı içeriği gönderilmez.")
+                    )
                 }
                 if case .failed(let reason) = state {
                     Section {

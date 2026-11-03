@@ -901,11 +901,11 @@ private struct PhoneMyNotesSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("Notlarım", systemImage: "square.and.pencil")
-                .appFont(size: 17, weight: .semibold)
-            Text("Önemli gördüğünü kısaca yaz; toplantı bitince not bunları öncelik sayar, gerisini transkriptten tamamlar.")
-                .appFont(size: 13, weight: .regular)
-                .foregroundStyle(Theme.muted)
+            HStack(spacing: 0) {
+                Label("Notlarım", systemImage: "square.and.pencil")
+                    .appFont(size: 17, weight: .semibold)
+                InfoHint(Text("Önemli gördüğünü kısaca yaz; toplantı bitince not bunları öncelik sayar, gerisini transkriptten tamamlar."))
+            }
             TextEditor(text: $text)
                 .readingText(size: 16, weight: .regular, lineSpacing: 3)
                 .scrollContentBackground(.hidden)

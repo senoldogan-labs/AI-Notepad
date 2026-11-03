@@ -203,8 +203,7 @@ struct HostedAccountSettings: View {
             EmptyView()
         }
         HostedSignOutRow(account: account, isMeetingInFlight: isMeetingInFlight)
-        SettingsRow(title: Text("Hesabı sil")) {
-            Text("Hesabın, aboneliğin (hemen iptal edilir) ve sunucudaki tüm kayıtların silinir. Bu Mac'teki toplantılar ve notlar silinmez.")
+        SettingsRow(title: Text("Hesabı sil"), hint: Text("Hesabın, aboneliğin (hemen iptal edilir) ve sunucudaki tüm kayıtların silinir. Bu Mac'teki toplantılar ve notlar silinmez.")) {
             // Apple aboneliği hesapla birlikte iptal edilemez; Apple iptal edilene dek ücret almaya devam eder.
             if entitlements.appStoreSubscription?.willRenew == true {
                 NoticeText("App Store aboneliğin hesabı silince iptal olmaz; Apple ücret almaya devam eder. Önce iPhone'da Ayarlar › Apple Hesabı › Abonelikler'den iptal et.", severity: .attention)
@@ -240,8 +239,7 @@ private struct HostedSignOutRow: View {
     let isMeetingInFlight: Bool
 
     var body: some View {
-        SettingsRow(title: Text("Oturum")) {
-            Text("Bu Mac'teki oturumu kapatır; toplantıların ve notların bu Mac'te kalır.")
+        SettingsRow(title: Text("Oturum"), hint: Text("Bu Mac'teki oturumu kapatır; toplantıların ve notların bu Mac'te kalır.")) {
             if isMeetingInFlight {
                 NoticeText("Kayıt ya da işleme sürüyor; bitince çıkış yapabilirsin.", severity: .attention)
             }

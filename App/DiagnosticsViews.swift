@@ -393,9 +393,7 @@ struct DiagnosticsSettings: View {
         } ?? pendingErrorDiagnostics()
         let sections: [DiagnosticsSection] = collectDiagnostics(model: model, updater: updater, health: health, errors: errorSection, dateText: diagnosticsScreenDate)
         VStack(alignment: .leading, spacing: 0) {
-            SettingsRow(title: Text("Tanılama")) {
-                Text("Sorun bildirirken işe yarar: sürüm, sistem, hesap durumu, bağlantı, izinler, canlı metin, güncelleme ve son hatalar. Ses, metin, not, anahtar ve jeton yok; kopyalamadıkça hiçbir yere gitmez.")
-            } control: {
+            SettingsRow(title: Text("Tanılama"), hint: Text("Sorun bildirirken işe yarar: sürüm, sistem, hesap durumu, bağlantı, izinler, canlı metin, güncelleme ve son hatalar. Ses, metin, not, anahtar ve jeton yok; kopyalamadıkça hiçbir yere gitmez.")) {
                 HStack(spacing: 8) {
                     if isRefreshing {
                         ProgressView().controlSize(.small)
