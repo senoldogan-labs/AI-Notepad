@@ -66,7 +66,7 @@ private func checkCoreAudio(status: OSStatus, operation: String) throws {
 
 /// Kayıt sürerken mikrofonu başka bir uygulamanın kullanıp kullanmadığını 3 sn'de bir ölçer (ince Core Audio
 /// bağdaştırıcısı; karar `callEndStep`'te). Ölçüm okunamazsa `onFailure`, okunursa görüşmeye ait süreçlerle (bu
-/// uygulamanın kendisi hariç) `onSample` çağrılır.
+/// uygulamanın kendisi, Siri ve sistem konuşma servisleri hariç; bkz. `callInputProcesses`) `onSample` çağrılır.
 @MainActor
 final class CallEndWatcher {
     static let intervalSec: Double = 3
@@ -78,7 +78,7 @@ final class CallEndWatcher {
         task = Task { @MainActor in
             while !Task.isCancelled {
                 do {
-                    onSample(callInputProcesses(processes: try audioInputProcesses(), ownPID: ownPID))
+                    onSample(callInputProcesses(processes: try audioInputProcesses(), ownPID: ownPID, excludedBundlePrefixes: systemSpeechBundlePrefixes))
                 } catch {
                     onFailure(error)
                 }

@@ -76,7 +76,37 @@ import Testing
     // Bu uygulamanın kendi süreci (kayıt, sesle yazma) görüşme sayılmaz.
     @Test func ownProcessIsNotACall() {
         let processes: [AudioInputProcess] = [AudioInputProcess(pid: 42, bundleID: "com.senoldogan.AINotepad"), AudioInputProcess(pid: 7, bundleID: "us.zoom.xos")]
-        #expect(callInputProcesses(processes: processes, ownPID: 42) == [AudioInputProcess(pid: 7, bundleID: "us.zoom.xos")])
-        #expect(callInputProcesses(processes: [processes[0]], ownPID: 42).isEmpty)
+        #expect(callInputProcesses(processes: processes, ownPID: 42, excludedBundlePrefixes: systemSpeechBundlePrefixes) == [AudioInputProcess(pid: 7, bundleID: "us.zoom.xos")])
+        #expect(callInputProcesses(processes: [processes[0]], ownPID: 42, excludedBundlePrefixes: systemSpeechBundlePrefixes).isEmpty)
+    }
+
+    // Siri, dikte ve erişilebilirlik servisleri (büyük/küçük harf duyarsız) ve paketsiz sistem süreçleri görüşme sayılmaz;
+    // FaceTime, Safari/web görüşmesi (WebKit.GPU), iPhone aramaları ve üçüncü taraf uygulamalar sayılır. Kimlikler bu
+    // Mac'in Core Audio süreç listesinden.
+    @Test func systemSpeechServicesAreNotACall() {
+        let ignored: [AudioInputProcess] = [
+            AudioInputProcess(pid: 765, bundleID: "com.apple.CoreSpeech"),
+            AudioInputProcess(pid: 77595, bundleID: "com.apple.assistantd"),
+            AudioInputProcess(pid: 42370, bundleID: "com.apple.Siri"),
+            AudioInputProcess(pid: 43560, bundleID: "com.apple.SiriNCService"),
+            AudioInputProcess(pid: 11, bundleID: "com.apple.SpeechRecognitionCore.speechrecognitiond"),
+            AudioInputProcess(pid: 12, bundleID: "com.apple.speech.synthesisserver"),
+            AudioInputProcess(pid: 13, bundleID: "com.apple.dictation.DictationIM"),
+            AudioInputProcess(pid: 66759, bundleID: "com.apple.accessibility.heard"),
+            AudioInputProcess(pid: 599, bundleID: "com.apple.universalaccessd"),
+            AudioInputProcess(pid: 844, bundleID: ""),
+        ]
+        let calls: [AudioInputProcess] = [
+            AudioInputProcess(pid: 20, bundleID: "com.apple.FaceTime"),
+            AudioInputProcess(pid: 753, bundleID: "com.apple.avconferenced"),
+            AudioInputProcess(pid: 15290, bundleID: "com.apple.WebKit.GPU"),
+            AudioInputProcess(pid: 65952, bundleID: "com.apple.TelephonyUtilities"),
+            AudioInputProcess(pid: 21, bundleID: "com.apple.MobileSMS"),
+            AudioInputProcess(pid: 2236, bundleID: "com.google.Chrome"),
+            AudioInputProcess(pid: 22, bundleID: "com.microsoft.teams2"),
+        ]
+        #expect(callInputProcesses(processes: ignored + calls, ownPID: 1, excludedBundlePrefixes: systemSpeechBundlePrefixes) == calls)
+        // Liste yalnız verilen öneklerle süzülür (saf: başka liste verilirse o uygulanır).
+        #expect(callInputProcesses(processes: [ignored[0], calls[0]], ownPID: 1, excludedBundlePrefixes: []).count == 2)
     }
 }

@@ -18,10 +18,38 @@ public struct AudioInputProcess: Sendable, Equatable {
     }
 }
 
-/// Mikrofonu kullanan süreçlerden görüşmeye ait olanlar: bu uygulamanın kendisi (kayıt ve sesle yazma) sayılmaz. Saf
-/// fonksiyondur.
-public func callInputProcesses(processes: [AudioInputProcess], ownPID: Int32) -> [AudioInputProcess] {
-    processes.filter { $0.pid != ownPID }
+/// Mikrofonu kendi sürecinde tutan macOS konuşma ve asistan servislerinin paket kimliği önekleri (küçük harf).
+/// "Hey Siri"/"Siri'yi dinle", sistem diktesi, Ses Tanıma ve Sesle Denetim açıkken bu servisler mikrofonu sürekli ya da
+/// aralıklı kullanır; görüşme sayılırlarsa görüşme hiç bitmemiş görünür ya da yüz yüze kayıtta yanlış geri sayım
+/// başlar. Bu Mac'te Core Audio süreç listesinde "Siri'yi dinle" açıkken `com.apple.CoreSpeech` (corespeechd) girişi
+/// kayıt yokken de sürekli kullanıyordu; `com.apple.assistantd`, `com.apple.Siri`, `com.apple.SiriNCService`,
+/// `com.apple.accessibility.heard` (Ses Tanıma) ve `com.apple.universalaccessd` de listede görünür. Görüşme taşıyan
+/// Apple süreçleri bilerek listede yok: FaceTime (`com.apple.FaceTime`, `com.apple.avconferenced`), Safari ve web
+/// görüşmeleri (`com.apple.WebKit.GPU` mikrofonu web sayfası adına tutar), iPhone'dan aktarılan aramalar
+/// (`com.apple.TelephonyUtilities`) ve Mesajlar.
+public let systemSpeechBundlePrefixes: [String] = [
+    "com.apple.corespeech",
+    "com.apple.assistant",
+    "com.apple.siri",
+    "com.apple.speechrecognitioncore",
+    "com.apple.speech",
+    "com.apple.dictation",
+    "com.apple.accessibility",
+    "com.apple.universalaccessd",
+]
+
+/// Mikrofonu kullanan süreçlerden görüşmeye ait olanlar. Sayılmayanlar: bu uygulamanın kendisi (kayıt ve sesle yazma);
+/// paket kimliği `excludedBundlePrefixes`'tan biriyle başlayanlar (büyük/küçük harf duyarsız; bkz.
+/// `systemSpeechBundlePrefixes`); paket kimliği boş olanlar. Paketsiz süreçler bu Mac'te yalnız sistem servisleriydi
+/// (systemstats, PerfPowerServices); görüşme uygulamalarının (Zoom, Teams, tarayıcılar, FaceTime) hepsinin paket
+/// kimliği vardır. Paketsizi saymamak güvenli yöndür: en kötü durumda kayıt kendiliğinden bitmez, yanlış geri sayım
+/// başlamaz. Saf fonksiyondur.
+public func callInputProcesses(processes: [AudioInputProcess], ownPID: Int32, excludedBundlePrefixes: [String]) -> [AudioInputProcess] {
+    let prefixes: [String] = excludedBundlePrefixes.map { $0.lowercased() }
+    return processes.filter { (process: AudioInputProcess) -> Bool in
+        let bundle: String = process.bundleID.lowercased()
+        return process.pid != ownPID && !bundle.isEmpty && !prefixes.contains { bundle.hasPrefix($0) }
+    }
 }
 
 /// Görüşme sonu algılamasının süreleri (saniye).
