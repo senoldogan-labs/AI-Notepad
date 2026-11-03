@@ -33,6 +33,65 @@ private func paragraph(_ id: String, _ start: Double, _ end: Double, _ text: Str
     TranscriptParagraph(id: id, speaker: .others, person: 1, startSec: start, endSec: end, text: text, turkish: nil, words: [])
 }
 
+/// Bakışları 3 sn arayla kurallardan geçirir; saklananların zamanları.
+private func simulatedStores(frames: [ScreenFingerprint]) -> [Double] {
+    let policy: ScreenSnapshotPolicy = screenSnapshotPolicy
+    var state: ScreenSnapshotState = initialScreenSnapshotState(storedCount: 0)
+    var stored: [Double] = []
+    for (look, frame) in frames.enumerated() {
+        let offset: Double = Double(look + 1) * policy.captureIntervalSec
+        let decision: ScreenSnapshotDecision = screenSnapshotDecision(policy: policy, state: state, candidate: frame, offsetSec: offset)
+        if decision == .store {
+            stored.append(offset)
+        }
+        state = advancedScreenSnapshotState(policy: policy, state: state, candidate: frame, offsetSec: offset, stored: decision == .store)
+    }
+    return stored
+}
+
+/// Sabit bir sayıdan türeyen sözde rastgele parlaklık (videodaki hareket); her bakışta her hücre farklı.
+private func noise(cell: Int, look: Int) -> UInt8 {
+    UInt8(truncatingIfNeeded: (cell &* 2_654_435_761 &+ look &* 40_503) >> 7)
+}
+
+/// Bir slayt: üst şerit (başlık çubuğu) sabit, gövde her slaytta bütünüyle farklı desen.
+private func slideFrame(_ slide: Int) -> ScreenFingerprint {
+    ScreenFingerprint(width: screenFingerprintWidth, height: screenFingerprintHeight, luma: (0..<(screenFingerprintWidth * screenFingerprintHeight)).map { (cell: Int) -> UInt8 in
+        cell < screenFingerprintWidth * 3 ? 230 : UInt8(((cell * 37 + slide * 101) % 7) * 30 + 20)
+    })
+}
+
+/// İki parmak izinin ortası (geçiş efektinin yarısı).
+private func blend(_ first: ScreenFingerprint, _ second: ScreenFingerprint) -> ScreenFingerprint {
+    ScreenFingerprint(width: first.width, height: first.height, luma: zip(first.luma, second.luma).map { UInt8((Int($0.0) + Int($0.1)) / 2) })
+}
+
+/// Bölgedeki hücreler `value` ile boyanmış parmak izi.
+private func painted(_ base: ScreenFingerprint, region: (x: ClosedRange<Int>, y: ClosedRange<Int>), value: (Int) -> UInt8) -> ScreenFingerprint {
+    ScreenFingerprint(width: base.width, height: base.height, luma: base.luma.enumerated().map { (item: (offset: Int, element: UInt8)) -> UInt8 in
+        let (x, y): (Int, Int) = (item.offset % base.width, item.offset / base.width)
+        return region.x.contains(x) && region.y.contains(y) ? value(item.offset) : item.element
+    })
+}
+
+/// Haber videosu: oynatıcıda her `cutLooks` bakışta değişen sahne, ortada konuşan yüz ve altta kayan yazı.
+private func newsVideo(page: ScreenFingerprint, player: (x: ClosedRange<Int>, y: ClosedRange<Int>), look: Int, cutLooks: Int) -> ScreenFingerprint {
+    let shot: Int = look / cutLooks
+    let scene: ScreenFingerprint = painted(page, region: player) { UInt8((($0 * 13 + shot * 59) % 9) * 25 + 10) }
+    let middleX: Int = (player.x.lowerBound + player.x.upperBound) / 2
+    let face: (x: ClosedRange<Int>, y: ClosedRange<Int>) = (x: (middleX - 3)...(middleX + 3), y: (player.y.lowerBound + 2)...(player.y.lowerBound + 7))
+    let withFace: ScreenFingerprint = painted(scene, region: face) { noise(cell: $0, look: look) }
+    return painted(withFace, region: (x: player.x, y: player.y.upperBound...player.y.upperBound)) { noise(cell: $0, look: look) }
+}
+
+/// Kaydırılan belge: her satır kendi deseninde; `scroll` satır yukarı kaymış.
+private func documentFrame(scroll: Int) -> ScreenFingerprint {
+    ScreenFingerprint(width: screenFingerprintWidth, height: screenFingerprintHeight, luma: (0..<(screenFingerprintWidth * screenFingerprintHeight)).map { (cell: Int) -> UInt8 in
+        let row: Int = cell / screenFingerprintWidth + scroll
+        return UInt8(((row * 7 + (cell % screenFingerprintWidth) / 8 * 2) % 11) * 20 + 15)
+    })
+}
+
 @Suite struct ScreenSnapshotTests {
     // Dosya adı kaydın başından geçen milisaniyeyi taşır; başka biçimdeki adlar ve yol parçaları görüntü sayılmaz.
     @Test func fileNamesRoundTripAndRejectOtherNames() {
@@ -54,23 +113,74 @@ private func paragraph(_ id: String, _ start: Double, _ end: Double, _ text: Str
         let slideB: ScreenFingerprint = flat(200)
         var state: ScreenSnapshotState = initialScreenSnapshotState(storedCount: 0)
         #expect(screenSnapshotDecision(policy: policy, state: state, candidate: slideA, offsetSec: 3) == .unsettled)
-        state = advancedScreenSnapshotState(state: state, candidate: slideA, offsetSec: 3, stored: false)
+        state = advancedScreenSnapshotState(policy: policy, state: state, candidate: slideA, offsetSec: 3, stored: false)
         #expect(screenSnapshotDecision(policy: policy, state: state, candidate: slideA, offsetSec: 6) == .store)
-        state = advancedScreenSnapshotState(state: state, candidate: slideA, offsetSec: 6, stored: true)
+        state = advancedScreenSnapshotState(policy: policy, state: state, candidate: slideA, offsetSec: 6, stored: true)
         #expect(state.storedCount == 1 && state.lastStoredOffsetSec == 6)
-        // İmleç ya da tek satır: hücrelerin %5'i değişti.
-        let cursor: ScreenFingerprint = partly(base: 40, value: 200, cells: 32)
-        state = advancedScreenSnapshotState(state: state, candidate: cursor, offsetSec: 9, stored: false)
-        #expect(screenSnapshotDecision(policy: policy, state: state, candidate: cursor, offsetSec: 12) == .unchanged)
+        // İmleç ya da birkaç satır: hücrelerin %25'i değişti (yeni ekran için üçte biri gerekir).
+        let edited: ScreenFingerprint = partly(base: 40, value: 200, cells: 160)
+        state = advancedScreenSnapshotState(policy: policy, state: state, candidate: edited, offsetSec: 30, stored: false)
+        #expect(screenSnapshotDecision(policy: policy, state: state, candidate: edited, offsetSec: 33) == .unchanged)
         // Slayt değişiyor (geçiş): önceki bakıştan çok farklı, beklenir.
-        #expect(screenSnapshotDecision(policy: policy, state: state, candidate: slideB, offsetSec: 15) == .unsettled)
-        state = advancedScreenSnapshotState(state: state, candidate: slideB, offsetSec: 15, stored: false)
-        #expect(screenSnapshotDecision(policy: policy, state: state, candidate: slideB, offsetSec: 18) == .store)
-        // Son saklanandan 6 sn geçmeden gelen yeni ekran beklenir.
-        let recent: ScreenSnapshotState = ScreenSnapshotState(lastStored: slideA, lastStoredOffsetSec: 16, previousCapture: slideB, storedCount: 2)
-        #expect(screenSnapshotDecision(policy: policy, state: recent, candidate: slideB, offsetSec: 18) == .tooSoon)
-        let full: ScreenSnapshotState = ScreenSnapshotState(lastStored: slideA, lastStoredOffsetSec: 0, previousCapture: slideB, storedCount: policy.maxPerMeeting)
+        #expect(screenSnapshotDecision(policy: policy, state: state, candidate: slideB, offsetSec: 36) == .unsettled)
+        state = advancedScreenSnapshotState(policy: policy, state: state, candidate: slideB, offsetSec: 36, stored: false)
+        #expect(screenSnapshotDecision(policy: policy, state: state, candidate: slideB, offsetSec: 39) == .store)
+        // Son saklanandan 20 sn geçmeden gelen yeni ekran beklenir.
+        let recent: ScreenSnapshotState = ScreenSnapshotState(lastStored: slideA, lastStoredOffsetSec: 25, previousCapture: slideB, recentChanges: [], storedCount: 2)
+        #expect(screenSnapshotDecision(policy: policy, state: recent, candidate: slideB, offsetSec: 39) == .tooSoon)
+        let full: ScreenSnapshotState = ScreenSnapshotState(lastStored: slideA, lastStoredOffsetSec: 0, previousCapture: slideB, recentChanges: [], storedCount: policy.maxPerMeeting)
         #expect(screenSnapshotDecision(policy: policy, state: full, candidate: slideB, offsetSec: 600) == .capReached)
+    }
+
+    // Slayt destesi: 45 sn'de bir değişen 8 slaytın (biri geçiş efektli) her biri bir kez saklanır.
+    @Test func keepsEverySlideOfADeck() {
+        let frames: [ScreenFingerprint] = (0..<(8 * 15)).map { (look: Int) -> ScreenFingerprint in
+            let slide: Int = look / 15
+            // 3. slayda geçişte bir bakış yarı yolda yakalanır (geçiş efekti).
+            return look == 45 ? blend(slideFrame(2), slideFrame(3)) : slideFrame(slide)
+        }
+        let stored: [Double] = simulatedStores(frames: frames)
+        #expect(stored.count == 8, "\(stored)")
+        #expect(zip(stored, stored.dropFirst()).allSatisfy { $1 - $0 >= screenSnapshotPolicy.minStoreIntervalSec })
+    }
+
+    // Görüşmede paylaşılan slaytlar ve köşede sürekli oynayan kamera kutusu: kutu yok sayılır, 75 sn'lik slaytların her
+    // biri yine saklanır (öncekinden 60 sn sonra).
+    @Test func keepsSlidesNextToALiveCameraTile() {
+        let frames: [ScreenFingerprint] = (0..<(6 * 25)).map { (look: Int) -> ScreenFingerprint in
+            painted(slideFrame(look / 25), region: (x: 26...31, y: 0...4)) { noise(cell: $0, look: look) }
+        }
+        #expect(simulatedStores(frames: frames).count == 6)
+    }
+
+    // Sayfanın bir bölümünde 9 dk oynayan haber videosu (konuşan yüz, kayan yazı, 15 sn'de bir kesme): sayfa bir kez
+    // saklanır, video yeni görüntü üretmez.
+    @Test func videoInPartOfTheScreenAddsNoSnapshots() {
+        let frames: [ScreenFingerprint] = (0..<180).map { (look: Int) -> ScreenFingerprint in
+            newsVideo(page: slideFrame(0), player: (x: 4...23, y: 3...15), look: look, cutLooks: 5)
+        }
+        #expect(simulatedStores(frames: frames).count <= 1)
+    }
+
+    // Tam ekran haber videosu (kesmeler 15 ve 30 sn'de bir): en fazla bir iki görüntü.
+    @Test func fullScreenVideoAddsFewSnapshots() {
+        for cutLooks in [5, 10] {
+            let frames: [ScreenFingerprint] = (0..<180).map { (look: Int) -> ScreenFingerprint in
+                newsVideo(page: flat(30), player: (x: 0...31, y: 0...19), look: look, cutLooks: cutLooks)
+            }
+            #expect(simulatedStores(frames: frames).count <= 2, "kesme: \(cutLooks) bakış")
+        }
+    }
+
+    // Kaydırma: belge kaydırılırken görüntü alınmaz; durunca yeni konum bir kez saklanır.
+    @Test func scrollingIsKeptOnlyOnceSettled() {
+        let frames: [ScreenFingerprint] = (0..<60).map { (look: Int) -> ScreenFingerprint in
+            // 10. bakıştan 18. bakışa dek her bakışta iki satır kayar, sonra durur.
+            documentFrame(scroll: min(max(0, look - 10), 8) * 2)
+        }
+        let stored: [Double] = simulatedStores(frames: frames)
+        #expect(stored.count == 2, "\(stored)")
+        #expect(stored.last.map { $0 > 18 * screenSnapshotPolicy.captureIntervalSec } ?? false)
     }
 
     // Boyutu farklı parmak izleri (ör. pencere değişti) tamamen değişmiş sayılır.

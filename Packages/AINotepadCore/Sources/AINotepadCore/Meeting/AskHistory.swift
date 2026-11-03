@@ -15,12 +15,14 @@ public struct AskConversationTurn: Sendable, Equatable, Codable, Identifiable {
     public let finishedAt: Date
     public let terms: [String]
     public let readPassages: [ArchivePassage]
+    /// Cevapla gönderilen ekran görüntüsü sayısı; bu alan eklenmeden önce saklanan turlarda nil (bilinmiyor).
+    public let readScreens: Int?
     public let answer: String
     public let sources: [ArchivePassage]
 
     public init(
         id: UUID, question: String, scopeMeetingIDs: [String], scopeTitles: [String], recipeTitle: String?, startedAt: Date, finishedAt: Date,
-        terms: [String], readPassages: [ArchivePassage], answer: String, sources: [ArchivePassage]
+        terms: [String], readPassages: [ArchivePassage], readScreens: Int?, answer: String, sources: [ArchivePassage]
     ) {
         self.id = id
         self.question = question
@@ -31,6 +33,7 @@ public struct AskConversationTurn: Sendable, Equatable, Codable, Identifiable {
         self.finishedAt = finishedAt
         self.terms = terms
         self.readPassages = readPassages
+        self.readScreens = readScreens
         self.answer = answer
         self.sources = sources
     }

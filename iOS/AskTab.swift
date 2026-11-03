@@ -82,7 +82,7 @@ final class PhoneAsk {
         if let reason = hostedAskUnavailableReason(account: HostedAccount.shared) {
             exchanges.append(ArchiveExchange(
                 id: UUID(), question: trimmed, scopeMeetingIDs: meetingIDs, scopeTitles: [], recipeTitle: recipeTitle, startedAt: Date(),
-                phase: .failed(reason), terms: [], passages: [], answer: ArchiveAnswer(text: "", sources: []), finishedAt: Date()
+                phase: .failed(reason), terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: []), finishedAt: Date()
             ))
             return
         }
@@ -96,13 +96,13 @@ final class PhoneAsk {
             // Etiketli toplantı silinmişse soru tüm arşive genişletilmez; soru ve neden sohbette görünür.
             exchanges.append(ArchiveExchange(
                 id: id, question: trimmed, scopeMeetingIDs: meetingIDs, scopeTitles: [], recipeTitle: recipeTitle, startedAt: Date(),
-                phase: .failed(userFacingMessage(error: error)), terms: [], passages: [], answer: ArchiveAnswer(text: "", sources: []), finishedAt: Date()
+                phase: .failed(userFacingMessage(error: error)), terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: []), finishedAt: Date()
             ))
             return
         }
         exchanges.append(ArchiveExchange(
             id: id, question: trimmed, scopeMeetingIDs: scoped.map(\.id), scopeTitles: scoped.map { $0.note?.title ?? $0.title }, recipeTitle: recipeTitle, startedAt: Date(), phase: .understanding,
-            terms: [], passages: [], answer: ArchiveAnswer(text: "", sources: []), finishedAt: nil
+            terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: []), finishedAt: nil
         ))
         isAnswering = true
         let records: [MeetingRecord] = store.meetings
@@ -112,16 +112,17 @@ final class PhoneAsk {
                 let onProgress: ArchiveProgressHandler = { [weak self] (progress: ArchiveProgress) -> Void in
                     await self?.apply(progress: progress, id: id)
                 }
+                // iPhone'da ekran görüntüsü alınmaz (başka uygulamaların ekranı yakalanamaz): Sor yalnız metni okur.
                 if scoped.isEmpty {
                     _ = try await askArchive(
                         question: trimmed, history: history, records: records, userName: phoneUserName(), language: phoneNoteLanguage(), llm: provider,
-                        maxChars: noteLimits(provider: provider).archiveChars, now: Date(), onProgress: onProgress
+                        maxChars: noteLimits(provider: provider).archiveChars, screens: .off, now: Date(), onProgress: onProgress
                     )
                 } else {
                     _ = try await askAboutMeetings(
                         question: trimmed, history: history, records: scoped, userName: phoneUserName(), language: phoneNoteLanguage(), llm: provider,
                         maxChars: noteLimits(provider: provider).archiveChars,
-                        now: Date(), onProgress: onProgress
+                        screens: .off, now: Date(), onProgress: onProgress
                     )
                 }
                 self?.finish(id: id, phase: .done)
@@ -234,6 +235,8 @@ final class PhoneAsk {
                 exchange.phase = .searching
             case .passages(let passages):
                 exchange.passages = passages
+            case .screens(let count):
+                exchange.screens = count
                 exchange.phase = .writing
             case .answer(let answer):
                 exchange.answer = answer

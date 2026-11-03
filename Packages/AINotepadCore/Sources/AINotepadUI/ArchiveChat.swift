@@ -30,13 +30,15 @@ public struct ArchiveExchange: Identifiable, Equatable, Sendable {
     public var terms: [String]
     /// Okunan parçalar.
     public var passages: [ArchivePassage]
+    /// Cevapla gönderilen ekran görüntüsü sayısı (Mac, "Notlarda ekran görüntülerini kullan" açıkken; iPhone'da hep 0).
+    public var screens: Int
     /// Akan (ya da bitmiş) cevap.
     public var answer: ArchiveAnswer
     public var finishedAt: Date?
 
     public init(
         id: UUID, question: String, scopeMeetingIDs: [String], scopeTitles: [String], recipeTitle: String?, startedAt: Date, phase: Phase, terms: [String], passages: [ArchivePassage],
-        answer: ArchiveAnswer, finishedAt: Date?
+        screens: Int, answer: ArchiveAnswer, finishedAt: Date?
     ) {
         self.id = id
         self.question = question
@@ -47,6 +49,7 @@ public struct ArchiveExchange: Identifiable, Equatable, Sendable {
         self.phase = phase
         self.terms = terms
         self.passages = passages
+        self.screens = screens
         self.answer = answer
         self.finishedAt = finishedAt
     }
@@ -67,7 +70,7 @@ public func askTurn(exchange: ArchiveExchange) -> AskConversationTurn? {
     return AskConversationTurn(
         id: exchange.id, question: exchange.question, scopeMeetingIDs: exchange.scopeMeetingIDs, scopeTitles: exchange.scopeTitles,
         recipeTitle: exchange.recipeTitle, startedAt: exchange.startedAt, finishedAt: finishedAt, terms: exchange.terms, readPassages: read,
-        answer: exchange.answer.text, sources: exchange.answer.sources
+        readScreens: exchange.screens, answer: exchange.answer.text, sources: exchange.answer.sources
     )
 }
 
@@ -76,7 +79,7 @@ public func archiveExchange(turn: AskConversationTurn) -> ArchiveExchange {
     ArchiveExchange(
         id: turn.id, question: turn.question, scopeMeetingIDs: turn.scopeMeetingIDs, scopeTitles: turn.scopeTitles, recipeTitle: turn.recipeTitle,
         startedAt: turn.startedAt, phase: .done, terms: turn.terms, passages: turn.readPassages,
-        answer: ArchiveAnswer(text: turn.answer, sources: turn.sources), finishedAt: turn.finishedAt
+        screens: turn.readScreens ?? 0, answer: ArchiveAnswer(text: turn.answer, sources: turn.sources), finishedAt: turn.finishedAt
     )
 }
 
@@ -324,13 +327,17 @@ private struct AnswerFooter: View {
     }
 }
 
-/// "8 toplantıdan 42 parça okundu · 6,0 sn". Toplantılar kimliğe göre sayılır (aynı adlı yinelenen toplantılar ayrı;
-/// yazılırken gösterilen sayıyla aynı).
-private func reasoningSummary(exchange: ArchiveExchange) -> String {
+/// "8 toplantıdan 42 parça okundu · 6,0 sn"; ekran görüntüsü de gittiyse "1 toplantıdan 6 parça ve 2 ekran görüntüsü
+/// okundu · 6,0 sn". Toplantılar kimliğe göre sayılır (aynı adlı yinelenen toplantılar ayrı; yazılırken gösterilen
+/// sayıyla aynı).
+func reasoningSummary(exchange: ArchiveExchange) -> String {
     let meetings: Int = Set(exchange.passages.map(\.meetingID)).count
     let seconds: Double = (exchange.finishedAt ?? Date()).timeIntervalSince(exchange.startedAt)
     let duration: String = seconds.formatted(.number.precision(.fractionLength(1)).locale(interfaceLocale()))
-    return String(localized: "\(meetings) toplantıdan \(exchange.passages.count) parça okundu · \(duration) sn")
+    guard exchange.screens > 0 else {
+        return String(localized: "\(meetings) toplantıdan \(exchange.passages.count) parça okundu · \(duration) sn")
+    }
+    return String(localized: "\(meetings) toplantıdan \(exchange.passages.count) parça ve \(exchange.screens) ekran görüntüsü okundu · \(duration) sn")
 }
 
 /// Cevap altındaki küçük, soluk hap: simge, metin ve dönen ok; açıkken hafif dolgulu.

@@ -318,7 +318,7 @@ public func hostedErrorMessage(error: HostedAPIError) -> String {
     case .payloadTooLarge:
         return String(localized: "Gönderilen veri sunucunun sınırını aşıyor.")
     case .screenImagesOverLimit:
-        return String(localized: "Notla gönderilen ekran görüntüleri sunucunun sınırını aşıyor. Ayarlar › Genel'de \"Notlarda ekran görüntülerini kullan\"ı kapatıp ya da Ekranlar sekmesinden bazılarını nottan çıkarıp notu yenile.")
+        return String(localized: "Notla ya da soruyla gönderilen ekran görüntüleri sunucunun sınırını aşıyor. Ayarlar › Genel'de \"Notlarda ekran görüntülerini kullan\"ı kapatıp ya da Ekranlar sekmesinden bazılarını nottan çıkarıp yeniden dene.")
     case .forbidden:
         return String(localized: "Bu işleme izin yok.")
     case .internalError:

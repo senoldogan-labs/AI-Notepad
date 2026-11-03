@@ -241,6 +241,21 @@ extension AppModel {
         #endif
     }
 
+    /// Whether Ask sends a few screen snapshots with the answer: the same setting as notes (Gistsmith only). On, every
+    /// meeting's folder is given; `askScreenImages` opens only the snapshots overlapping the passages Ask read.
+    func askScreensPlan(records: [MeetingRecord]) throws -> ArchiveScreensPlan {
+        switch screenNotesPlan() {
+        case .off:
+            return .off
+        case .on:
+            var directories: [String: URL] = [:]
+            for record in records {
+                directories[record.id] = try sessionDirectory(id: record.id)
+            }
+            return .on(meetingDirectories: directories)
+        }
+    }
+
     /// Counts the feature once a note was written with snapshots: the plan was on, the note succeeded and the meeting
     /// had snapshots left after the user's unticks (the selector then always sends at least one).
     func recordScreenNotesUsage(plan: ScreenNotesPlan, result: MeetingRecord, directory: URL) {

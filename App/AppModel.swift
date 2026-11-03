@@ -2373,18 +2373,22 @@ final class AppModel {
             Self.logger.error("Etiketli toplantı bulunamadı, hata: \(String(describing: error), privacy: .private)")
             archiveExchanges.append(ArchiveExchange(
                 id: id, question: trimmed, scopeMeetingIDs: meetingIDs, scopeTitles: [], recipeTitle: recipeTitle, startedAt: Date(),
-                phase: .failed(userFacingMessage(error: error)), terms: [], passages: [], answer: ArchiveAnswer(text: "", sources: []), finishedAt: Date()
+                phase: .failed(userFacingMessage(error: error)), terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: []), finishedAt: Date()
             ))
             return
         }
         archiveExchanges.append(ArchiveExchange(
             id: id, question: trimmed, scopeMeetingIDs: scoped.map(\.id), scopeTitles: scoped.map { $0.note?.title ?? $0.title }, recipeTitle: recipeTitle, startedAt: Date(), phase: .understanding,
-            terms: [], passages: [], answer: ArchiveAnswer(text: "", sources: []), finishedAt: nil
+            terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: []), finishedAt: nil
         ))
         let records: [MeetingRecord] = meetings
         let userName: String = UserDefaults.standard.string(forKey: SettingsKey.userName) ?? ""
         archiveTask = Task { [weak self] in
             do {
+                // Model kapandıysa soru da biter.
+                guard let screens: ArchiveScreensPlan = try self?.askScreensPlan(records: records) else {
+                    return
+                }
                 let provider: LLMProvider = try await resolveLLMProvider()
                 let onProgress: ArchiveProgressHandler = { [weak self] (progress: ArchiveProgress) -> Void in
                     await self?.apply(progress: progress, id: id)
@@ -2394,13 +2398,13 @@ final class AppModel {
                     let readable: OnDeviceReadableRecords = try onDeviceAskableArchive(records: records, provider: provider, outputLanguage: selectedNoteLanguage())
                     _ = try await AINotepadCore.askArchive(
                         question: trimmed, history: history, records: readable.records, userName: userName, language: selectedNoteLanguage(), llm: provider,
-                        maxChars: noteLimits(provider: provider).archiveChars, now: Date(), onProgress: onProgress
+                        maxChars: noteLimits(provider: provider).archiveChars, screens: screens, now: Date(), onProgress: onProgress
                     )
                 } else {
                     try requireOnDeviceLanguages(provider: provider, meetingLanguages: scoped.compactMap(\.language), outputLanguage: selectedNoteLanguage())
                     _ = try await askAboutMeetings(
                         question: trimmed, history: history, records: scoped, userName: userName, language: selectedNoteLanguage(), llm: provider,
-                        maxChars: noteLimits(provider: provider).archiveChars, now: Date(),
+                        maxChars: noteLimits(provider: provider).archiveChars, screens: screens, now: Date(),
                         onProgress: onProgress
                     )
                 }
@@ -2570,6 +2574,8 @@ final class AppModel {
                 exchange.phase = .searching
             case .passages(let passages):
                 exchange.passages = passages
+            case .screens(let count):
+                exchange.screens = count
                 exchange.phase = .writing
             case .answer(let answer):
                 exchange.answer = answer

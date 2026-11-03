@@ -19293,16 +19293,6 @@
         }
       }
     },
-    "Notla gönderilen ekran görüntüleri sunucunun sınırını aşıyor. Ayarlar › Genel'de \"Notlarda ekran görüntülerini kullan\"ı kapatıp ya da Ekranlar sekmesinden bazılarını nottan çıkarıp notu yenile.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The screen snapshots sent with the note are over the server's limit. Turn off \"Use screen snapshots in notes\" in Settings › General, or untick some on the Screens tab, then refresh the note."
-          }
-        }
-      }
-    },
     "Notlarda ekran görüntülerini kullan": {
       "localizations": {
         "en": {
@@ -19313,32 +19303,12 @@
         }
       }
     },
-    "Not yazılırken toplantının en çok konuşulan en fazla 6 ekran görüntüsü küçültülüp notla birlikte sunucumuza, oradan da Anthropic'e (Claude) gönderilir; not ekrana atıf yapabilir (ör. \"Fiyatlandırma slaytında, 12:40\"). Sunucumuz görüntüleri saklamaz ve loglamaz; Anthropic onları transkriptle aynı koşullarla işler. Bir görüntüyü toplantının Ekranlar sekmesinden nottan çıkarabilirsin. Kapalıyken görüntüler bu Mac'ten çıkmaz.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "When the note is written, up to 6 of the meeting's most-discussed screen snapshots are downscaled and sent with it to our server and from there to Anthropic (Claude), so the note can refer to them (e.g. \"on the Pricing slide, 12:40\"). Our server doesn't store or log the images; Anthropic handles them on the same terms as the transcript. You can leave a snapshot out on the meeting's Screens tab. When this is off, snapshots never leave this Mac."
-          }
-        }
-      }
-    },
     "Görüntü alınması için \"Paylaşılan ekranın görüntülerini al\" da açık olmalı.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Snapshots are only taken when \"Take snapshots of the shared screen\" is on too."
-          }
-        }
-      }
-    },
-    "Not yazılırken \"Notta\" işaretli görüntülerden en çok konuşulan en fazla 6'sı sunucumuza ve Anthropic'e gönderilir; işaretini kaldırdığın görüntü gönderilmez. Seçim bir sonraki notta geçerli olur.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "When the note is written, up to 6 of the most-discussed snapshots ticked \"In note\" are sent to our server and Anthropic; an unticked snapshot is never sent. Your choice applies to the next note."
           }
         }
       }
@@ -19609,6 +19579,88 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fair-use limit: total length of meetings recorded this month."
+          }
+        }
+      }
+    },
+    "Not yazılırken toplantının en çok konuşulan en fazla 6 ekran görüntüsü küçültülüp notla birlikte sunucumuza, oradan da Anthropic'e (Claude) gönderilir; not ekrana atıf yapabilir (ör. \"Fiyatlandırma slaytında, 12:40\"). Sor'da da okunan transkript parçaları konuşulurken ekranda olan en fazla 3 görüntü soruyla aynı yoldan gider; cevabın altında kaç görüntü okunduğu yazar. Sunucumuz görüntüleri saklamaz ve loglamaz; Anthropic onları transkriptle aynı koşullarla işler. Bir görüntüyü toplantının Ekranlar sekmesinden nottan çıkarabilirsin (Sor'a da gitmez). Kapalıyken görüntüler bu Mac'ten çıkmaz.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When the note is written, up to 6 of the meeting's most-discussed screen snapshots are downscaled and sent with it to our server and from there to Anthropic (Claude), so the note can refer to them (e.g. \"on the Pricing slide, 12:40\"). In Ask, up to 3 snapshots that were on screen while the read transcript passages were spoken go the same way with your question; the answer shows how many it read. Our server doesn't store or log the images; Anthropic handles them on the same terms as the transcript. You can untick a snapshot for notes on the meeting's Screens tab (it then doesn't go to Ask either). With this off, snapshots never leave this Mac."
+          }
+        }
+      }
+    },
+    "Notla ya da soruyla gönderilen ekran görüntüleri sunucunun sınırını aşıyor. Ayarlar › Genel'de \"Notlarda ekran görüntülerini kullan\"ı kapatıp ya da Ekranlar sekmesinden bazılarını nottan çıkarıp yeniden dene.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The screen snapshots sent with the note or question are over the server's limit. Turn off \"Use screen snapshots in notes\" in Settings › General, or untick some on the Screens tab, then try again."
+          }
+        }
+      }
+    },
+    "%lld toplantıdan %lld parça ve %lld ekran görüntüsü okundu · %@ sn": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld meetings, %lld passages and %lld screen snapshots read · %@ s"
+          }
+        }
+      }
+    },
+    "Not yazılırken \"Notta\" işaretli görüntülerden en çok konuşulan en fazla 6'sı sunucumuza ve Anthropic'e gönderilir; Sor da okuduğu parçalar konuşulurken ekranda olan en fazla 3'ünü gönderir. İşaretini kaldırdığın görüntü ikisine de gönderilmez. Seçim bir sonraki notta ve soruda geçerli olur.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When the note is written, up to 6 of the snapshots ticked \"In note\" (the most-discussed ones) are sent to our server and Anthropic; Ask also sends up to 3 that were on screen while the passages it read were spoken. A snapshot you untick goes to neither. Your choice applies to the next note and question."
+          }
+        }
+      }
+    },
+    "Kayıt sırasında çeviri yapılmaz, yalnızca orijinal metin görünür; toplantı bitince %@ not yine hazırlanır. Kayıtta ✦ düğmesi son dakikaları özetler ve toplantıya soru sordurur.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing is translated while recording; only the original text is shown. A note in %@ is still prepared after the meeting. While recording, the ✦ button summarises the last minutes and lets you ask about the meeting."
+          }
+        }
+      }
+    },
+    "Adil kullanım sınırı: bu ay kaydedilen toplantıların toplam süresi. Ay başında sıfırlanır.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fair-use limit: the total length of meetings recorded this month. Resets at the start of each month."
+          }
+        }
+      }
+    },
+    "Mesajın, yazdıysan e-postan ve işaretliyse sürüm bilgisi Gistsmith'in geliştiricisinin sunucusuna gider ve hesabınla ilişkilendirilir. Toplantı içeriği gönderilmez.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your message, your email if you entered one, and the version info if checked go to the Gistsmith developer's server and are linked to your account. No meeting content is sent."
+          }
+        }
+      }
+    },
+    "Kayıttan önce katılımcılara haber vermek çoğu yerde yasal zorunluluktur. Süre dolunca ses dosyaları silinir, metin ve not kalır; yarıda kalan ya da başarısız toplantının sesi iki kat süre saklanır. Telefondaki Teams/Zoom görüşmeleri kaydedilemez (iOS izin vermez); onlar için Mac'i kullan.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In many places you are legally required to tell participants before recording. When the period ends, audio files are deleted and the transcript and note stay; audio of interrupted or failed meetings is kept twice as long. Teams/Zoom calls on the phone can't be recorded (iOS doesn't allow it); use your Mac for those."
           }
         }
       }

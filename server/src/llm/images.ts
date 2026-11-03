@@ -2,13 +2,14 @@ import { z } from "zod";
 import { ApiError } from "../errors";
 import type { LLMPurpose } from "./purpose";
 
-// Shared-screen snapshots in the AI meeting note ("Use screen snapshots in notes", off by default in the app). The
-// client picks and downscales a few key snapshots (`ScreenNotes.swift`); the server never trusts that and enforces the
-// same caps itself before anything reaches Anthropic. Images are passed through to Claude only: they are never stored
+// Shared-screen snapshots in the AI meeting note and in Ask ("Use screen snapshots in notes", off by default in the
+// app). The client picks and downscales a few key snapshots (`ScreenNotes.swift`, `AskScreens.swift`: Ask sends at most
+// 3 and 1,350 visual tokens); the server never trusts that and enforces the same caps itself before anything reaches
+// Anthropic. Images are passed through to Claude only: they are never stored
 // and never logged (only their count and estimated tokens are).
 //
-// The caps below are mirrored by the client (`screenNoteBudget` in `ScreenNotes.swift`); `ServerParityTests` reads this
-// file and fails when the two drift apart.
+// The caps below are mirrored by the client (`screenNoteBudget` in `ScreenNotes.swift`; `askScreenBudget` stays within
+// them); `ServerParityTests` reads this file and fails when the two drift apart.
 
 /** At most this many images per request. */
 export const screenImageMaxCount: number = 6;
@@ -17,8 +18,8 @@ export const screenImageMaxBytes: number = 250_000;
 /** At most this many visual tokens (Claude vision: one token per 28×28 px patch) across all images of a request. */
 export const screenImageMaxTotalTokens: number = 2_700;
 
-/** Purposes that may carry images: the single-call note and the overview of a long (chunked) note. */
-export const screenImagePurposes: readonly LLMPurpose[] = ["note", "note_overview"];
+/** Purposes that may carry images: the single-call note, the overview of a long (chunked) note and Ask's answer. */
+export const screenImagePurposes: readonly LLMPurpose[] = ["note", "note_overview", "ask_answer"];
 
 /** Base64 length of `screenImageMaxBytes` (4 characters per 3 bytes, padded). */
 const maxBase64Length: number = Math.ceil(screenImageMaxBytes / 3) * 4;
