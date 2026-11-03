@@ -16,6 +16,12 @@ export type SubscriptionPlan = "monthly" | "yearly";
 /** Davet programı anahtarı (`REFERRAL_POLICY`): `off` ise yeni kod verilmez ve kod kabul edilmez. */
 export type ReferralPolicy = "on" | "off";
 
+/**
+ * Mac ↔ iPhone eşitleme anahtarı (`SYNC_POLICY`; bkz. `sync.ts`): `off` ise `/v1/sync/…` uçları `503 sync_unavailable`
+ * döner (hesap silme ve temizlik yine eşitleme verisini siler).
+ */
+export type SyncPolicy = "on" | "off";
+
 /** Bizim abonelik fiyatlarımız (Stripe fiyat kimlikleri). */
 export interface StripePrices {
   readonly monthly: string;
@@ -170,6 +176,8 @@ export interface Config {
   readonly priceUsdYearly: number;
   /** Davet programı açık mı (`REFERRAL_POLICY`). */
   readonly referralPolicy: ReferralPolicy;
+  /** Eşitleme uçları açık mı (`SYNC_POLICY`). */
+  readonly syncPolicy: SyncPolicy;
   /**
    * Davet edenin aynı anda açık tutabileceği en çok davet (`REFERRAL_MAX_PENDING`; bkz. `referrals.openReferralCount`):
    * dolunca kodu yeni arkadaş kabul etmez (`409 referral_limit_reached`).
@@ -384,6 +392,7 @@ const envSchema = z.object({
   PRICE_USD_MONTHLY: positiveNumber,
   PRICE_USD_YEARLY: positiveNumber,
   REFERRAL_POLICY: z.enum(["on", "off"]),
+  SYNC_POLICY: z.enum(["on", "off"]),
   REFERRAL_MAX_PENDING: positiveInt,
   REPORT_BYTES_PER_DAY: positiveInt,
   APP_ATTEST_POLICY: z.enum(["required", "optional"]),
@@ -587,6 +596,7 @@ export function parseConfig(env: Env): Config {
     priceUsdMonthly: value.PRICE_USD_MONTHLY,
     priceUsdYearly: value.PRICE_USD_YEARLY,
     referralPolicy: value.REFERRAL_POLICY,
+    syncPolicy: value.SYNC_POLICY,
     referralMaxPending: value.REFERRAL_MAX_PENDING,
     reportBytesPerDay: value.REPORT_BYTES_PER_DAY,
     attest: {

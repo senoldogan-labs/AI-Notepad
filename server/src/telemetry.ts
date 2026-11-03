@@ -130,6 +130,9 @@ export const featureUsageSchema = z
     screenSnapshots: z.boolean().default(false),
     // Screen snapshots in AI notes came after screen snapshots: earlier apps omit the field (counted as not used).
     screenNotes: z.boolean().default(false),
+    // Mac ↔ iPhone sync came after screen notes: earlier apps omit the field (counted as not used). True when the
+    // account had sync turned on that day.
+    sync: z.boolean().default(false),
   })
   .refine((body: { liveTranslation: boolean; translationLanguage: string | null }): boolean => body.liveTranslation || body.translationLanguage === null, {
     path: ["translationLanguage"],
@@ -251,6 +254,7 @@ export function featureIncrements(usage: FeatureUsage): FeatureIncrement[] {
     ...flag(usage.dictation, "dictation"),
     ...flag(usage.screenSnapshots, "screen_snapshots"),
     ...flag(usage.screenNotes, "screen_notes"),
+    ...flag(usage.sync, "sync"),
   ];
 }
 
