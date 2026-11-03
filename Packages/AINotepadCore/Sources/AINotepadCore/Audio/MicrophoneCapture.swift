@@ -59,22 +59,31 @@ public final class MicrophoneCapture {
         let (stream, continuation): (AsyncStream<[Float]>, AsyncStream<[Float]>.Continuation) = AsyncStream.makeStream(of: [Float].self)
         self.continuation = continuation
         #if os(iOS)
-        var sessionActivated: Bool = false
+        // Oturum beklenirken `stop()` çağrılırsa (sayaç artar) başlatma yarıda kalır: `stop()` akışı bitirdi ve oturumu
+        // bıraktı; motor, gözlemciler ve bekçi kurulmaz, kurulsaydı mikrofon kayıt bittikten sonra da açık kalırdı.
+        let generation: Int = restartGeneration
+        do {
+            try await activateRecordingSession()
+        } catch {
+            if generation == restartGeneration {
+                continuation.finish()
+                self.continuation = nil
+            }
+            throw error
+        }
+        guard generation == restartGeneration, self.continuation != nil else {
+            Self.logger.info("Mikrofon başlatılırken yakalama durduruldu; motor kurulmadı")
+            throw CancellationError()
+        }
         #endif
         do {
-            #if os(iOS)
-            try await activateRecordingSession()
-            sessionActivated = true
-            #endif
             try startEngine(continuation: continuation)
         } catch {
             continuation.finish()
             self.continuation = nil
             #if os(iOS)
             // Açılan oturum bırakılır: yoksa diğer uygulamaların sesi (müzik) kesik kalırdı.
-            if sessionActivated {
-                deactivateRecordingSession()
-            }
+            deactivateRecordingSession()
             #endif
             throw error
         }
@@ -281,8 +290,13 @@ public final class MicrophoneCapture {
     }
     #endif
 
-    /// Giriş formatına göre tap kurar ve motoru başlatır.
+    /// Giriş formatına göre tap kurar ve motoru başlatır. Takılı tap önce sökülür: aynı girişe ikinci tap AVFoundation'da
+    /// yakalanamayan bir istisnayla uygulamayı kapatır.
     private func startEngine(continuation: AsyncStream<[Float]>.Continuation) throws {
+        if tapInstalled {
+            Self.logger.warning("Mikrofon motoru kurulurken eski tap takılıydı, sökülüyor")
+            stopEngine()
+        }
         let input: AVAudioInputNode = engine.inputNode
         let format: AVAudioFormat = input.outputFormat(forBus: 0)
         let resampler: AudioResampler = try AudioResampler(inputFormat: format)
@@ -352,6 +366,11 @@ public final class MicrophoneCapture {
                     #if os(iOS)
                     // Takılma ve ses servisi sıfırlanmasında oturum da kapanmış olabilir; açıkken yeniden açmak zararsız.
                     try await self.activateRecordingSession()
+                    // Oturum beklenirken daha yeni bir yeniden kurma başladıysa ya da yakalama durdurulduysa motor
+                    // kurulmaz: iki kurma aynı girişe ikinci tap'i takardı, durdurulan kayıtta mikrofon açık kalırdı.
+                    guard generation == self.restartGeneration, self.continuation != nil else {
+                        return
+                    }
                     #endif
                     try self.startEngine(continuation: continuation)
                 },

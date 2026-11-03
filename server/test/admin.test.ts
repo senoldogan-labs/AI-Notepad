@@ -11,6 +11,7 @@ import {
   defaultHarness,
   envWith,
   expectError,
+  grantAppStoreSubscription,
   grantSubscription,
   req,
   signIn,
@@ -582,6 +583,34 @@ describe("yönetici API'si", () => {
     for (const query of ["segment=vip", "q=abc%21", "cursor=abc", "provider=email", "sayfa=2"]) {
       await expectError(await adminGet(harness, admin, `/v1/admin/users?${query}`), 400, "invalid_body");
     }
+  });
+
+  it("kullanıcı listesi ve ayrıntısı: App Store abonesi abonedir (deneme ya da plansız değil); bitmiş App Store aboneliği değildir", async () => {
+    const harness: Harness = await defaultHarness();
+    const nowMs: number = harness.clock.nowMs;
+    const admin: Session = await signInWithGoogle(harness, adminSubject);
+    const iPhone: Session = await signIn(harness);
+    expect((await startMeeting(harness, iPhone)).status).toBe(201);
+    await grantAppStoreSubscription(iPhone.userId, { status: "active", periodType: "normal", environment: "PRODUCTION", expiresAtMs: nowMs + 20 * dayMs });
+    const lapsed: Session = await signIn(harness);
+    await grantAppStoreSubscription(lapsed.userId, { status: "expired", periodType: "normal", environment: "PRODUCTION", expiresAtMs: nowMs - 20 * dayMs });
+    // Kimlik önekiyle süzülür (dosyanın D1'i testler arasında paylaşılır, kesimler başka hesaplar da içerir).
+    const inSegment = async (userId: string, segment: string): Promise<boolean> =>
+      (await (await adminGet(harness, admin, `/v1/admin/users?q=${userId.slice(0, 8)}&segment=${segment}`)).json<UserPageBody>()).items.some(
+        (found: UserItemBody): boolean => found.id === userId,
+      );
+    const item = async (userId: string): Promise<UserItemBody | undefined> =>
+      (await (await adminGet(harness, admin, `/v1/admin/users?q=${userId.slice(0, 8)}`)).json<UserPageBody>()).items.find((found: UserItemBody): boolean => found.id === userId);
+
+    expect(await item(iPhone.userId)).toMatchObject({ plan: "subscription", subscription: null });
+    expect(await inSegment(iPhone.userId, "subscribed")).toBe(true);
+    expect(await inSegment(iPhone.userId, "trial")).toBe(false);
+    const detail: UserDetailBody = await (await adminGet(harness, admin, `/v1/admin/users/${iPhone.userId}`)).json<UserDetailBody>();
+    expect(detail.user.plan).toBe("subscription");
+
+    expect(await item(lapsed.userId)).toMatchObject({ plan: "free", subscription: null });
+    expect(await inSegment(lapsed.userId, "free")).toBe(true);
+    expect(await inSegment(lapsed.userId, "subscribed")).toBe(false);
   });
 
   it("kullanıcı ayrıntısı: toplantılar, bu ayın kullanımı, raporlar ve zaman çizelgesi; bilinmeyen kullanıcı 404", async () => {

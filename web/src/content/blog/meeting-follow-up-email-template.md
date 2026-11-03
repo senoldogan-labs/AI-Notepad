@@ -121,7 +121,7 @@ A five-minute check-in with one person rarely needs a follow-up email; a chat me
 
 Writing the email is quick. Remembering the decisions and tasks accurately is the hard part, especially if you were also running the meeting.
 
-Gistsmith, the Mac app we make, writes a note when the meeting ends, with your tasks first, then decisions and a summary. From that note, the **Follow-up email** recipe drafts this exact email: a subject line, thanks, the decisions, who does what by when, and the next step, written in the language the meeting was held in. You read it, fix anything that's off, and send it from your own email.
+Gistsmith, the Mac app we make, writes a note when the meeting ends, with your tasks first, then a summary, decisions and a glossary. From that note, the **Follow-up email** recipe drafts this exact email: a subject line, thanks, the decisions, who does what by when, and the next step, written in the language the meeting was held in. You read it, fix anything that's off, and send it from your own email.
 
 It listens on your Mac with no bot in the call, and runs on Macs with Apple silicon and macOS 15 or later. The first 3 meetings or 7 days are free without a card; after that it's $5.99 a month or $49 a year.
 

@@ -58,8 +58,9 @@ final class PhoneRecorder {
     private(set) var transcript: [LiveSegment] = []
     private(set) var translations: [SegmentID: String] = [:]
     private(set) var lockedLanguage: MeetingLanguage?
-    /// Süren kaydın kullanıcının sabitlediği dili: kayıt başında seçili sabit dil ya da kayıtta seçilen; Otomatikte nil.
-    /// Kayda yazılır; doluysa başka dildeki konuşma çevrilmez ve toplantıdan atlanır.
+    /// Süren kaydın kullanıcının sabitlediği dili: kayıt başında seçili sabit dil; Otomatikte ve kayıtta dil
+    /// değiştirildiyse nil (değişiklikten önceki konuşma önceki dildedir, süzülmez). Kayda yazılır; doluysa başka dildeki
+    /// konuşma çevrilmez ve toplantıdan atlanır.
     private(set) var recordingFixedLanguage: MeetingLanguage?
     /// Kesinleşen bölümlerin güvenle algılanan dilleri (bkz. `confidentSpokenLanguage`); bölümlerle birlikte saklanır.
     private(set) var spokenLanguages: [SegmentID: String] = [:]
@@ -464,8 +465,10 @@ final class PhoneRecorder {
             languageMode = .fixed(language)
             return
         }
-        // Elle seçilen dil kaydın sabit dili olur: başka dildeki konuşma çevrilmez ve toplantıdan atlanır.
-        recordingFixedLanguage = language
+        // Toplantıda artık iki dil var: dil süzmesi bu kayıtta kalkar, değişiklikten önce önceki dilde konuşulanlar
+        // toplantıdan atlanmasın.
+        recordingFixedLanguage = nil
+        languageSkippedSegments = []
         Task {
             await handle.setLanguage(language)
         }

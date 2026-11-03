@@ -8,7 +8,7 @@ struct PhoneSettingsTab: View {
     let store: PhoneStore
     let calendar: PhoneCalendar
     let account: HostedAccount
-    /// Kayıt ya da işleme sürüyor: çıkış ve hesap silme kapalı.
+    /// Hesabın verisine yazan bir iş sürüyor (bkz. `phoneOpenWriters`): çıkış ve hesap silme kapalı.
     let isMeetingInFlight: Bool
     let crashReports: CrashReportCenter
     @AppStorage(PhoneSettingsKey.primaryMeetingLanguage) private var primaryLanguage: String = MeetingLanguage.finnish.rawValue

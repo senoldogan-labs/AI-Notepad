@@ -1,6 +1,6 @@
 import type { Config, SubscriptionPlan } from "./config";
 import { hmacSha256Hex, randomId } from "./crypto";
-import { appStoreAccess } from "./appStore";
+import { appStoreAccess, appStorePaidSql } from "./appStore";
 import { type PaidSubscriptions, type SubscriptionState, isTerminalSubscription, paidAccess, paidSubscriptions, primarySubscriptionSource, subscriptionAccess } from "./entitlements";
 import { ApiError } from "./errors";
 import { log } from "./log";
@@ -376,8 +376,9 @@ function rejected(userId: string, error: ApiError): ApiError {
  * - biçimi bozuk, bilinmeyen ya da sahibi kod paylaşamayan (abonelik erişimi yok ya da kendisi ücretsiz davet ayında,
  *   `canShareReferralCode`) kod `referral_invalid`;
  * - kendi kodu `referral_self`;
- * - daha önce abonelik ya da ücretsiz erişim açmış (satırı olan) hesap ya da aynı giriş kimliğiyle daha önce davetle
- *   abone olmuş (hesabı silinmiş olsa da) kimlik `referral_not_eligible`;
+ * - daha önce abonelik ya da ücretsiz erişim açmış (satırı olan) hesap, iPhone'da ödemiş App Store abonesi
+ *   (`appStorePaidSql`: üretim ortamı, deneme dönemi dışında; bitmiş olsa da) ya da aynı giriş kimliğiyle daha önce
+ *   davetle abone olmuş (hesabı silinmiş olsa da) kimlik `referral_not_eligible`;
  * - sahibiyle aynı App Attest cihazını paylaşan hesap `referral_self` (Mac'te eşleşmez, bkz. `sharesDevice`);
  * - sahibinin açık davetleri `REFERRAL_MAX_PENDING`'e ulaştıysa `referral_limit_reached` (`openReferralCount`).
  * Kart denetimi ödeme sırasında olur (`referralInvoicePaidStatements`): kart Checkout'tan önce bilinmez.
@@ -403,7 +404,7 @@ export async function requireReferral(db: D1Database, config: Config, userId: st
   }
   const notEligible: ApiError = new ApiError("referral_not_eligible", "Referral codes are only for accounts subscribing for the first time.");
   const subscribedBefore: { found: number } | null = await db
-    .prepare("SELECT EXISTS (SELECT 1 FROM subscriptions WHERE user_id = ?) AS found")
+    .prepare(`SELECT (EXISTS (SELECT 1 FROM subscriptions WHERE user_id = ?1) OR ${appStorePaidSql("?1")}) AS found`)
     .bind(userId)
     .first<{ found: number }>();
   if ((subscribedBefore?.found ?? 0) === 1) {

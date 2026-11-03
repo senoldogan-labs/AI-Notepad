@@ -872,7 +872,7 @@ export const copy: Copy = {
     },
     eyebrow: "A meeting notepad for Mac",
     title: tagline,
-    lead: `${productName} transcribes the conversation live, translates it if you like, and has your note ready when the meeting ends: your tasks first, then decisions and a summary. No bot joins the call, and no one else in the meeting needs to install anything.`,
+    lead: `${productName} transcribes the conversation live, translates it if you like, and has your note ready when the meeting ends: your tasks first, then a summary, decisions and a glossary. No bot joins the call, and no one else in the meeting needs to install anything.`,
     secondaryCta: "See pricing",
     assurances: ["3 meetings or 7 days free", "No credit card"],
     demo: {
@@ -951,7 +951,7 @@ export const copy: Copy = {
       },
       tasks: {
         title: "Tasks first",
-        text: "When the meeting ends, the note is ready. Your tasks on top, with who does what by when; then decisions, a summary and a glossary. Tick tasks off or send them to Reminders.",
+        text: "When the meeting ends, the note is ready. Your tasks on top, with who does what by when; then a summary, decisions and a glossary. Tick tasks off or send them to Reminders.",
         sample: ["Write release notes · Friday", "Send pricing table · Today"],
       },
       missed: {
@@ -1060,7 +1060,7 @@ export const copy: Copy = {
       {
         question: "Where does my audio go?",
         answer:
-          "While you record, the audio streams from your Mac to Deepgram for the live transcript; Deepgram is asked not to keep it or use it for training. If that isn't available, the live transcript is produced on your Mac instead. When the meeting ends, the audio is passed through our server to ElevenLabs to separate speakers and produce the final transcript; for notes and translation the text goes to Anthropic's Claude model. Our servers don't store audio or notes; they count the duration and hold the final transcript encrypted for up to 2 hours, only so it can be re-sent if the connection drops. ElevenLabs and Anthropic may keep what they process for a time under their own retention rules (Anthropic deletes it within 30 days). If you turn on “Use screen snapshots in notes”, up to six of the meeting's screen snapshots go to Anthropic along with the transcript when the note is written, and up to three with an Ask question about that part of the meeting; otherwise snapshots never leave your Mac. The privacy policy has the details.",
+          "While you record, the audio streams from your Mac to Deepgram for the live transcript; Deepgram is asked not to keep it or use it for training. If that isn't available, the live transcript is produced on your Mac instead. When the meeting ends, the audio is passed through our server to ElevenLabs to separate speakers and produce the final transcript; for notes and translation the text goes to Anthropic's Claude model. Our servers don't store audio or notes; they count the duration and hold the final transcript encrypted, only so it can be re-sent for 2 hours if the connection drops; it is deleted at the next daily cleanup, within about a day. ElevenLabs and Anthropic may keep what they process for a time under their own retention rules (Anthropic deletes it within 30 days). If you turn on “Use screen snapshots in notes”, up to six of the meeting's screen snapshots go to Anthropic along with the transcript when the note is written, and up to three with an Ask question about that part of the meeting; otherwise snapshots never leave your Mac. The privacy policy has the details.",
       },
       {
         question: "Which languages are supported?",
@@ -1074,7 +1074,7 @@ export const copy: Copy = {
     featureList: [
       "Records online calls (Zoom, Microsoft Teams, Google Meet and any other app) with no bot joining, plus in-person meetings and imported audio or video files",
       `Live transcript in ${spokenLanguages.length} languages, with live translation into any of ${noteLanguages.length}`,
-      "A note after every meeting: your tasks with owners and due dates first, then decisions, a summary, a glossary and a topic outline",
+      "A note after every meeting: your tasks with owners and due dates first, then a summary, a topic outline, decisions and a glossary",
       "Meeting templates and one-click recipes such as a follow-up email",
       "“What did I miss?” summaries during the meeting",
       "Ask questions across all your meetings, with answers that cite their sources",
@@ -1228,7 +1228,7 @@ export const copy: Copy = {
       limits: "Up to 10 meeting hours a month and up to 4 hours per meeting",
       languages: `${spokenLanguages.length} spoken languages, including Turkish and Finnish; notes in ${noteLanguages.length}`,
       translation: `Included: what others say is translated into your language (any of ${noteLanguages.length}) within seconds`,
-      notes: "The note starts with your own tasks (with owners and due dates), then decisions, a summary and a glossary; templates for different kinds of meetings",
+      notes: "The note starts with your own tasks (with owners and due dates), then a summary, decisions and a glossary; templates for different kinds of meetings",
       ask: "Ask across all your meetings; answers cite the meetings they came from",
       voiceTyping: "Voice typing in any Mac app, transcribed on your Mac; free with any account",
       screens: "Optional snapshots of the shared screen, matched to what was said; notes and Ask can use them if you allow it",
@@ -1314,7 +1314,7 @@ export const copy: Copy = {
         summary: `Otter joins calls as a bot, has a free tier and runs on more platforms. ${productName} listens on your Mac, with no bot in the call.`,
         pricingUrl: "https://otter.ai/pricing",
         values: {
-          price: "Basic free; Pro $16.99 per user a month billed monthly ($8.33 billed annually); Business $24 per user a month billed monthly ($19.99 billed annually); Enterprise on request",
+          price: "Basic free; Pro $16.99 per user a month billed monthly ($8.33 billed annually); Business $30 per user a month billed monthly, 20% off the first 3 months for new subscribers ($19.99 billed annually); Enterprise on request",
           free: "Basic plan: 300 transcription minutes a month, up to 30 minutes per conversation and 3 file imports in total",
           capture: "Joins Zoom, Microsoft Teams and Google Meet as a bot to write notes",
           platforms: "Mac and Windows desktop apps, iOS and Android apps, Chrome extension",
@@ -1872,7 +1872,9 @@ export const copy: Copy = {
   },
   // Entegrasyonlar: her öğe uygulamanın kodunda doğrulandı (AINotepadCore Integrations/Webhook.swift, ChannelAuth.swift,
   // MCPIntegrations.swift, Destinations.swift; App/EventKitConnector.swift, MeetingsPages.swift dışa aktarma menüsü). Hepsi
-  // Mac uygulamasından doğrudan hedefe gider, sunucumuzdan geçmez.
+  // Mac uygulamasından doğrudan hedefe gider, sunucumuzdan geçmez. İki istisna sunucumuz üzerinden Anthropic'e gider
+  // (saklanmaz): Linear/Jira iş açan ajan (MCPIntegrations.swift `sendTasksToTracker`, amaç `task_agent`) ve notu
+  // paylaşım diline çevirme (App/AppModel.swift `generateSharedNote`, amaç `shared_note_translation`).
   integrations: {
     meta: {
       title: `${productName} integrations: Slack, Teams, Notion, Linear, Jira, webhooks and MCP`,
@@ -1880,7 +1882,7 @@ export const copy: Copy = {
     },
     eyebrow: "Integrations",
     title: "Your meetings, where your work happens.",
-    lead: `Everything ${productName} connects to, and how. Each integration sends from your Mac directly to the place you choose, using the account or address you connect; nothing goes through our server.`,
+    lead: `Everything ${productName} connects to, and how. Each integration sends from your Mac directly to the place you choose, using the account or address you connect. Two steps use Anthropic's Claude model through our server first: creating Linear or Jira issues, and translating a note you send in another language.`,
     groups: [
       {
         id: "notes",
@@ -1888,7 +1890,7 @@ export const copy: Copy = {
         lead: "Send the finished note to a page or a channel.",
         items: [
           { name: "Slack", text: "Post the note to a channel, through an incoming webhook or by signing in with Slack." },
-          { name: "Microsoft Teams", text: "Post the note to a channel as a card, through a Power Automate or Office webhook or by signing in with Microsoft." },
+          { name: "Microsoft Teams", text: "Post the note to a channel: as a message by signing in with Microsoft, or as a card through a Power Automate or Office webhook." },
           { name: "Discord", text: "Post the note to a channel, through a webhook or by signing in with Discord." },
           { name: "Zoom Team Chat", text: "Post the note to a channel through an incoming webhook." },
           { name: "Notion", text: "Sign in with Notion and each note becomes a page." },
@@ -1898,7 +1900,7 @@ export const copy: Copy = {
       {
         id: "tasks",
         title: "Tasks to your tracker",
-        lead: "Turn the tasks in a note, with their owners and due dates, into work items.",
+        lead: "Turn the tasks in a note, with their owners and due dates, into work items. For Linear and Jira, Anthropic's Claude model, reached through our server, works out the issue fields; the issues are created from your Mac.",
         items: [
           { name: "Linear", text: "Create Linear issues from your tasks after signing in with Linear." },
           { name: "Jira", text: "Create Jira issues from your tasks after signing in with Atlassian." },
@@ -1972,7 +1974,7 @@ export const copy: Copy = {
     ],
     privacyTitle: "What leaves your Mac",
     privacyText:
-      "Only what you send, and only to the destination you choose, using the account or address you connected. It does not pass through our server, and the receiving service handles it under its own terms. MCP apps read your meetings on your Mac; what they read is then handled by that app's provider.",
+      "Only what you send, and only to the destination you choose, using the account or address you connected. It does not pass through our server, and the receiving service handles it under its own terms. Two steps are the exception: to create Linear or Jira issues, the tasks, the meeting title and Linear's or Jira's replies go through our server to Anthropic's Claude model, and so does a note you translate to send in another language. Our server doesn't store this text. MCP apps read your meetings on your Mac; what they read is then handled by that app's provider.",
     faqTitle: "Questions",
     faq: [
       {
@@ -1985,7 +1987,7 @@ export const copy: Copy = {
       },
       {
         question: "Do integrations go through your servers?",
-        answer: "No. The Mac app sends the note or tasks directly to the destination you chose, using the account or address you connected.",
+        answer: "The note or tasks themselves don't. The Mac app sends them directly to the destination you chose, using the account or address you connected. Two steps use Anthropic's Claude model through our server, which doesn't store the text: creating Linear or Jira issues (it reads the tasks, the meeting title and Linear's or Jira's replies) and translating a note you send in another language.",
       },
       {
         question: "Can Claude or ChatGPT read my meetings?",

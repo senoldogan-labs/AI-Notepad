@@ -47,6 +47,19 @@
 				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
 			</array>
 		</dict>
+		<!-- E-posta adresi: geri bildirim formundaki isteğe bağlı yanıt adresi (yalnız girilirse; rapor hesaba bağlı saklanır, yanıt vermek için). Girişteki e-posta yalnız bu iPhone'da kalır. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeEmailAddress</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
 		<!-- App Store satın alma geçmişi: abonelik RevenueCat üzerinden doğrulanır ve hesaba bağlanır (sunucu hakkı buradan açar). -->
 		<dict>
 			<key>NSPrivacyCollectedDataType</key>

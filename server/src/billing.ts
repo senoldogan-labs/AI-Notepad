@@ -9,7 +9,7 @@ import {
 import { cancellationStatements } from "./cancellations";
 import { complimentaryAccessError } from "./complimentary";
 import { type AppStoreSubscription, appStoreAccess, appStoreManageUrl, appStoreSubscriptionOf } from "./appStore";
-import { type SubscriptionState, isTerminalSubscription, subscriptionAccess, subscriptionState } from "./entitlements";
+import { type SubscriptionState, isTerminalSubscription, subscriptionState } from "./entitlements";
 import { ApiError, ProviderApiError } from "./errors";
 import { errorName, log } from "./log";
 import type { Platform } from "./platform";
@@ -479,9 +479,10 @@ export function appStoreSubscriptionError(): ApiError {
 }
 
 /**
- * Hesap yönetimi adresi. Stripe'ta erişimi olan aboneliği yoksa ve App Store aboneliği varsa (iPhone'dan abone; bitmiş
- * olsa da) Stripe çağrılmaz, Apple'ın abonelik yönetim sayfası döner: yayındaki uygulamanın "Hesabı yönet" düğmesi de
- * doğru yere gider. Süren ücretsiz erişimde (`complimentary.ts`) Stripe'ta yönetilecek bir şey yoktur: Stripe
+ * Hesap yönetimi adresi. Stripe'ta bitmemiş aboneliği yoksa (`isTerminalSubscription`) ve App Store aboneliği varsa
+ * (iPhone'dan abone; bitmiş olsa da) Stripe çağrılmaz, Apple'ın abonelik yönetim sayfası döner: yayındaki uygulamanın
+ * "Hesabı yönet" düğmesi de doğru yere gider. Erişimi olmasa da Stripe'ta yaşayan abonelik (`incomplete`, `unpaid`, ek
+ * süresi geçmiş `past_due`) Portal'a gider: kart orada düzeltilir ya da abonelik iptal edilir. Süren ücretsiz erişimde (`complimentary.ts`) Stripe'ta yönetilecek bir şey yoktur: Stripe
  * çağrılmaz, sitedeki hesap sayfası döner (orada "Free access" yazar). Yayındaki uygulama portal adresini yalnızca
  * açar; hata kodu dönülseydi genel bir hata gösterirdi. Bitmiş ücretsiz erişimde Stripe müşterisi yoksa yine hesap
  * sayfası döner. Başka hesapta müşteri yoksa `subscription_required`.
@@ -489,7 +490,7 @@ export function appStoreSubscriptionError(): ApiError {
 export async function createPortal(db: D1Database, platform: Platform, config: Config, userId: string): Promise<string> {
   const current: SubscriptionState | null = await subscriptionState(db, userId);
   const appStore: AppStoreSubscription | null = await appStoreSubscriptionOf(db, userId);
-  if (appStore !== null && subscriptionAccess(current, platform.now(), config.pastDueGraceMs) === "none") {
+  if (appStore !== null && (current === null || isTerminalSubscription(current, platform.now()))) {
     log("info", "portal_app_store_manage_page", { userId });
     return appStoreManageUrl;
   }
@@ -632,6 +633,8 @@ type EventStatements = D1PreparedStatement[];
  *   yerini Stripe aboneliği alır. Koşul yazımın kendisinde de vardır (arada verilen ücretsiz erişim ezilmez).
  * - Davet: Stripe'ta bitmiş (`canceled`, `incomplete_expired`) aboneliklerin ücretsiz ayındaki (`joined`) davetleri
  *   düşer (`referralVoidUnpaidStatement`): ilk ücretli fatura hiç gelmeyecek.
+ * - App Store: yeni etkinleşen Stripe aboneliğinin hesabında erişimi olan App Store aboneliği varsa alarm yazılır
+ *   (`alertIfBilledTwice`); satır yine yazılır, iade kendiliğinden yapılmaz.
  * Yazım `last_event_created` ile sıralanır: eşzamanlı iki webhook'tan daha eski olayınki daha yeniyi ezmez.
  */
 async function subscriptionEventStatements(
@@ -641,6 +644,7 @@ async function subscriptionEventStatements(
   event: Stripe.Event,
   subscription: Stripe.Subscription,
   prices: StripePrices,
+  appStoreAcceptSandbox: boolean,
 ): Promise<EventStatements> {
   const customer: string = customerIdOf(subscription.customer);
   const owner: { user_id: string } | null = await db
@@ -687,6 +691,7 @@ async function subscriptionEventStatements(
       refundedPayments,
     });
   }
+  await alertIfBilledTwice(db, platform, event, owner.user_id, current, appStoreAcceptSandbox);
   const state: SubscriptionState = stateOf(current);
   const nowMs: number = platform.now().getTime();
   return [
@@ -716,6 +721,48 @@ async function subscriptionEventStatements(
       .filter((candidate: Stripe.Subscription): boolean => !isLiveInStripe(candidate))
       .map((ended: Stripe.Subscription): D1PreparedStatement => referralVoidUnpaidStatement(db, ended.id, nowMs)),
   ];
+}
+
+/**
+ * İki kaynaktan çift ödeme alarmı: iPhone'dan (App Store) abone olmadan önce açılmış bir Checkout sayfası sonradan
+ * ödenirse hesap hem Apple'a hem Stripe'a öder (App Store abonesine yeni Checkout açılmaz, ama açık kalmış sayfa
+ * ödenebilir). Geçerli Stripe aboneliği `active` ve yeni etkinleşmişse (kayıtlı satır başka abonelik ya da henüz
+ * `active` değil) ve hesabın erişimi olan App Store aboneliği varsa alarm yazılır: sahibi Stripe ödemesini elle iade
+ * eder. Aynı abonelik `active` kaldıkça sonraki olaylar yeniden alarm yazmaz.
+ */
+async function alertIfBilledTwice(
+  db: D1Database,
+  platform: Platform,
+  event: Stripe.Event,
+  userId: string,
+  current: Stripe.Subscription,
+  appStoreAcceptSandbox: boolean,
+): Promise<void> {
+  if (current.status !== "active") {
+    return;
+  }
+  const stored: { stripe_subscription_id: string; status: string } | null = await db
+    .prepare("SELECT stripe_subscription_id, status FROM subscriptions WHERE user_id = ?")
+    .bind(userId)
+    .first<{ stripe_subscription_id: string; status: string }>();
+  if (stored !== null && stored.stripe_subscription_id === current.id && stored.status === "active") {
+    return;
+  }
+  const appStore: AppStoreSubscription | null = await appStoreSubscriptionOf(db, userId);
+  if (appStore === null || appStoreAccess(appStore, appStoreAcceptSandbox, platform.now()) === "none") {
+    return;
+  }
+  log("alert", "stripe_subscription_with_app_store_access", {
+    eventId: event.id,
+    type: event.type,
+    userId,
+    subscriptionId: current.id,
+    customer: customerIdOf(current.customer),
+    latestInvoice: latestInvoiceId(current),
+    appStoreProductId: appStore.productId,
+    appStoreStatus: appStore.status,
+    appStoreExpiresAt: appStore.expiresAt,
+  });
 }
 
 /**
@@ -1027,7 +1074,7 @@ async function invoicePaidRevenueStatements(db: D1Database, event: Stripe.Event,
 async function eventStatements(db: D1Database, platform: Platform, config: StripeWebhookConfig, event: Stripe.Event): Promise<EventStatements> {
   const subscription: Stripe.Subscription | null = subscriptionFromEvent(event);
   if (subscription !== null) {
-    return subscriptionEventStatements(db, stripeClient(platform, config), platform, event, subscription, config.stripePrices);
+    return subscriptionEventStatements(db, stripeClient(platform, config), platform, event, subscription, config.stripePrices, config.appStore.acceptSandbox);
   }
   switch (event.type) {
     case "customer.deleted":

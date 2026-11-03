@@ -3,10 +3,11 @@ import AINotepadUI
 import SwiftUI
 import UIKit
 
-/// Hesap ekranındaki "Arkadaşını davet et" bölümü (Mac'teki davet satırının iPhone karşılığı): ne kazandırdığı, davet
-/// kodu (dokununca kopyalanır), sayaçlar ve davet metnini iOS paylaşım sayfasıyla gönderen düğme. Yalnızca abonelik
-/// erişimi olan ve kodu olan hesapta görünür (sunucu kodu ücretsiz davet ayındaki hesaba vermez). Bağlantı arkadaşa
-/// gider; bu uygulamada App Store dışı bir satın alma yolu açılmaz (App Store 3.1.1).
+/// Hesap ekranındaki "Arkadaşını davet et" bölümü (Mac'teki davet satırının iPhone karşılığı): davet kodu (dokununca
+/// kopyalanır), katılan arkadaş sayısı ve davet metnini iOS paylaşım sayfasıyla gönderen düğme. Yalnızca abonelik
+/// erişimi olan ve kodu olan hesapta görünür (sunucu kodu ücretsiz davet ayındaki hesaba vermez). Metinler (paylaşılan
+/// davet dahil) web'den, fiyattan, indirimden ya da ödülden söz etmez: iPhone'da App Store dışı bir satın almaya
+/// yönlendirilmez (App Store 3.1.1, 3.1.3). Ödül ve indirim Mac'te anlatılır.
 struct PhoneReferralSection: View {
     let account: HostedAccount
     @State private var copied: Bool = false
@@ -22,12 +23,11 @@ struct PhoneReferralSection: View {
                             .frame(width: 40, height: 40)
                             .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                             .accessibilityHidden(true)
-                        // Ödül yazılmayan hesapta (ücretsiz erişim, App Store aboneliği) "bir ay al" denmez.
-                        Text(referral.complimentary || referral.appStoreBilled == true ? "Arkadaşına ilk ayı hediye et" : "Bir ay ver, bir ay al")
+                        Text("Gistsmith'i arkadaşlarınla paylaş")
                             .appFont(size: 17, weight: .semibold)
                             .foregroundStyle(Theme.ink)
                     }
-                    Text(verbatim: hostedReferralRewardText(referral: referral))
+                    Text("Davet bağlantını ya da kodunu arkadaşına gönder; katılanlar burada sayılır.")
                         .appFont(size: 14, weight: .regular)
                         .foregroundStyle(Theme.muted)
                         .fixedSize(horizontal: false, vertical: true)
@@ -53,11 +53,11 @@ struct PhoneReferralSection: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(Text("Davet kodunu kopyala"))
-                    ShareLink(item: hostedInviteText(inviteURL: inviteURL)) {
+                    ShareLink(item: phoneInviteText(inviteURL: inviteURL)) {
                         PhonePrimaryButtonLabel(title: "Davet bağlantısını paylaş")
                     }
                     .buttonStyle(.plain)
-                    Text(verbatim: hostedReferralStatsText(referral: referral))
+                    Text("Katılan arkadaş: \(referral.joined)")
                         .appFont(size: 12, weight: .regular)
                         .monospacedDigit()
                         .foregroundStyle(Theme.muted)
@@ -68,4 +68,10 @@ struct PhoneReferralSection: View {
             }
         }
     }
+}
+
+/// iPhone'dan paylaşılan davet metni (bağlantı dahil): yalnızca uygulamanın ne yaptığı; web'den, fiyattan ya da
+/// indirimden söz etmez (App Store 3.1.1, 3.1.3; Mac'teki metin `hostedInviteText`). Saf fonksiyondur.
+func phoneInviteText(inviteURL: URL) -> String {
+    String(localized: "Toplantılarım için Gistsmith kullanıyorum: konuşulanı canlı yazıya döküyor, toplantı bitince notu ve görevleri hazırlıyor. Sen de bak: \(inviteURL.absoluteString)")
 }

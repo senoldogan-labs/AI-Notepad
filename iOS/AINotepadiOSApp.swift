@@ -157,8 +157,9 @@ private func applyWindowTint(color: UIColor) {
     }
 }
 
-/// Giriş kapısı, yapay zekâ açıklaması ya da sekmeler. Hesabın verisi yüklenince (açılışta, ilk girişte ya da hesap
-/// değişince) toplantılar, Sor geçmişi ve yarım kalan işlemeler okunur; hesap bekleyen kayıtların işlenmesini
+/// Giriş kapısı, yapay zekâ açıklaması ya da sekmeler. Kayıt sürerken oturum kapanırsa (`hostedSessionEnded`) sekmeler
+/// kalır ("Bitir" kaybolmasın), kapı kayıt bitip toplantı saklanınca açılır. Hesabın verisi yüklenince (açılışta, ilk
+/// girişte ya da hesap değişince) toplantılar, Sor geçmişi ve yarım kalan işlemeler okunur; hesap bekleyen kayıtların işlenmesini
 /// tetikleyince (ağ geldi, hak durumu okundu, uygulama öne geldi) kuyruk çalışır. Başka bir hesapla giriş yapılınca
 /// (iPhone kendini yeniden başlatamaz) eski hesabın yazan işleri bitince hesap yerinde değişir (bkz.
 /// `switchAccountIfIdle`).
@@ -174,7 +175,7 @@ private struct PhoneAppRoot: View {
     var body: some View {
         let session: PhoneAccountSession = sessions.session
         Group {
-            if account.requiresSignIn {
+            if phoneShowsSignInGate(requiresSignIn: account.requiresSignIn, isRecording: session.recorder.phase != .idle) {
                 PhoneSignInGate(account: account, switchWaitsFor: session.openWriters)
             } else if !disclosureAccepted {
                 PhoneAIDisclosure(account: account) { disclosureAccepted = true }
@@ -183,6 +184,17 @@ private struct PhoneAppRoot: View {
                     store: session.store, recorder: session.recorder, ask: session.ask, router: router, player: session.player, calendar: calendar,
                     crashReports: crashReports, account: account
                 )
+                // Kayıt sürerken oturum kapandıysa giriş kapısı kayıt bitince açılır; o zamana dek nedeni üstte görünür.
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    if account.requiresSignIn {
+                        NoticeText("Oturumun kapandı. Kaydı bitir; toplantı bu iPhone'da saklanır, sonra yeniden giriş yap.", severity: .attention)
+                            .appFont(size: 13, weight: .regular)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Theme.background)
+                    }
+                }
             }
         }
         // Koyu tema giriş kapısında ve yapay zekâ açıklamasında da koyu sistem denetimleriyle (renkler tüm uygulamada).
@@ -306,23 +318,37 @@ struct PhoneAccountSession {
     let ask: PhoneAsk
     let player: MeetingAudioPlayer
 
-    /// Hesabın verisine yazan açık işler (bkz. `accountSwitchReadiness`): kayıt, işleme, bekleyen kayıtların kuyruğu,
-    /// not yazma ve Sor cevabı.
+    /// Hesabın verisine yazan açık işler (bkz. `phoneOpenWriters`).
     var openWriters: [AccountDataWriter] {
-        let open: [(AccountDataWriter, Bool)] = [
-            (.recording, recorder.phase != .idle),
-            (.processing, !recorder.processingSteps.isEmpty),
-            (.offlineQueue, recorder.isRunningQueue),
-            (.noteEditing, !store.regeneratingIDs.isEmpty),
-            (.askAnswering, ask.isAnswering),
-        ]
-        return open.filter { $0.1 }.map { $0.0 }
+        phoneOpenWriters(store: store, recorder: recorder, ask: ask)
     }
 
     /// Hesap değişmeden önce eski hesabın açık dosyalarını bırakır: çalan toplantı durur.
     func close() {
         player.stop()
     }
+}
+
+/// Giriş kapısı gösterilsin mi: giriş gerekiyorsa, ama kayıt sürerken değil (oturum kayıt sırasında kapandıysa kayıt
+/// ekranı ve "Bitir" kalır; kapı kayıt bitip toplantı saklanınca açılır). Saf fonksiyondur.
+func phoneShowsSignInGate(requiresSignIn: Bool, isRecording: Bool) -> Bool {
+    requiresSignIn && !isRecording
+}
+
+/// Hesabın verisine yazan açık işler (bkz. `accountSwitchReadiness`): kayıt, işleme, bekleyen kayıtların kuyruğu, dosya
+/// içe aktarma, not yazma ve Sor cevabı. Hesap değişimi bunları bekler; çıkış ve hesap silme bunlar sürerken kapalıdır
+/// (içe aktarılan ya da yazılan toplantı başka hesabın klasörüne ya da oturumuna gitmesin).
+@MainActor
+func phoneOpenWriters(store: PhoneStore, recorder: PhoneRecorder, ask: PhoneAsk) -> [AccountDataWriter] {
+    let open: [(AccountDataWriter, Bool)] = [
+        (.recording, recorder.phase != .idle),
+        (.processing, !recorder.processingSteps.isEmpty),
+        (.offlineQueue, recorder.isRunningQueue),
+        (.importing, recorder.importingCount > 0),
+        (.noteEditing, !store.regeneratingIDs.isEmpty),
+        (.askAnswering, ask.isAnswering),
+    ]
+    return open.filter { $0.1 }.map { $0.0 }
 }
 
 /// Yüklü hesabın bellekteki verisini kurar (boş; toplantılar hesap yüklenince okunur). Kayıt başlarken takvimde süren
@@ -355,10 +381,28 @@ final class PhoneSessionHost {
     }
 }
 
-/// Abonelik ekranının açılma isteği (tam ekran sunum için kimlikli).
-struct PaywallRequest: Identifiable {
-    let reason: HostedUpsellMoment
-    var id: String { reason.rawValue }
+/// Sekmelerin üstündeki tam ekran sunum: ilk açılış karşılaması ya da abonelik ekranı (açılma nedeniyle).
+enum PhoneRootCover: Identifiable, Equatable {
+    case onboarding
+    case paywall(HostedUpsellMoment)
+
+    var id: String {
+        switch self {
+        case .onboarding:
+            "onboarding"
+        case .paywall(let reason):
+            "paywall.\(reason.rawValue)"
+        }
+    }
+}
+
+/// Gösterilecek tam ekran sunum: karşılama bitmediyse karşılama (abonelik isteği bekler), bittiyse istenen abonelik
+/// ekranı, yoksa nil. Saf fonksiyondur.
+func phoneRootCover(onboardingCompleted: Bool, upsell: HostedUpsellMoment?) -> PhoneRootCover? {
+    guard onboardingCompleted else {
+        return .onboarding
+    }
+    return upsell.map { PhoneRootCover.paywall($0) }
 }
 
 /// Sekmeler.
@@ -489,6 +533,20 @@ struct RootView: View {
         router.tab = .ask
     }
 
+    /// Deneme bitince (ya da abonelik sona erince) abonelik ekranı bir kez kendiliğinden açılır (bkz.
+    /// `phoneAutoPaywallKey`); gösterildiği, ekran görününce işaretlenir. Çağıran kayıt ve karşılama durumunu denetler.
+    private func showAutoPaywallIfDue() {
+        guard let key = phoneAutoPaywallKey(state: account.state), !UserDefaults.standard.bool(forKey: key) else {
+            return
+        }
+        #if DEBUG
+        if isDemoMode {
+            return
+        }
+        #endif
+        account.showPlans()
+    }
+
     var body: some View {
         TabView(selection: $router.tab) {
             Tab("Kayıt", systemImage: "record.circle", value: PhoneTab.record) {
@@ -508,8 +566,8 @@ struct RootView: View {
             }
             Tab("Ayarlar", systemImage: "gearshape", value: PhoneTab.settings) {
                 PhoneSettingsTab(
-                    store: store, calendar: calendar, account: account, isMeetingInFlight: recorder.phase != .idle || !recorder.busyMeetingIDs.isEmpty,
-                    crashReports: crashReports
+                    store: store, calendar: calendar, account: account,
+                    isMeetingInFlight: !phoneOpenWriters(store: store, recorder: recorder, ask: ask).isEmpty, crashReports: crashReports
                 )
             }
         }
@@ -518,37 +576,47 @@ struct RootView: View {
         .tabViewBottomAccessory(isEnabled: player.meetingID != nil) {
             MiniPlayer(player: player, store: store, router: router)
         }
-        // Abonelik ekranı: "Abone ol" (Hesap, kayıt kartı), deneme bitince bir kez ve sunucu aboneliği isteyince
-        // (`HostedAccount.upsell`).
-        .fullScreenCover(item: Binding<PaywallRequest?>(
-            get: { account.upsell.map { PaywallRequest(reason: $0) } },
-            set: { (request: PaywallRequest?) -> Void in
-                if request == nil {
+        // Tam ekran sunum tektir (iki ayrı `fullScreenCover` aynı anda sunulamaz): önce ilk açılış karşılaması, bitince
+        // abonelik ekranı ("Abone ol" — Hesap, kayıt kartı —, deneme bitince bir kez ve sunucu aboneliği isteyince;
+        // `HostedAccount.upsell`). Karşılama sürerken istenen abonelik ekranı karşılama bitince açılır.
+        .fullScreenCover(item: Binding<PhoneRootCover?>(
+            get: { phoneRootCover(onboardingCompleted: onboardingCompleted, upsell: account.upsell) },
+            set: { (cover: PhoneRootCover?) -> Void in
+                // Karşılama kendiliğinden kapanmaz (bitince `onboardingCompleted`); kapatılan sunum abonelik ekranıdır.
+                if cover == nil, onboardingCompleted {
                     account.dismissUpsell()
                 }
             }
-        )) { (request: PaywallRequest) in
-            PhonePaywall(account: account, reason: request.reason) { account.dismissUpsell() }
+        )) { (cover: PhoneRootCover) in
+            switch cover {
+            case .onboarding:
+                PhoneOnboarding {
+                    // Abonelik ekranı karşılamanın yerine aynı güncellemede geçer (karşılama kapanırken yeni sunum
+                    // başlatılmaz; sunum kimliği değişince SwiftUI birini kapatıp ötekini açar).
+                    if recorder.phase == .idle {
+                        showAutoPaywallIfDue()
+                    }
+                    onboardingCompleted = true
+                }
+            case .paywall(let reason):
+                PhonePaywall(account: account, reason: reason) { account.dismissUpsell() }
+                    .onAppear {
+                        // Kendiliğinden açılış ekran gerçekten görününce işaretlenir: sunulamadıysa bir sonraki fırsatta
+                        // yeniden açılır. Kullanıcı kendisi açtıysa da aynı durum için bir daha kendiliğinden açılmaz.
+                        if let key = phoneAutoPaywallKey(state: account.state) {
+                            UserDefaults.standard.set(true, forKey: key)
+                        }
+                    }
+            }
         }
-        // Kayıt sürerken anahtar nil: son deneme toplantısı başlarken deneme biterse ekran kayıt bitince açılır (anahtar
-        // kayıt sırasında değişip bir daha değişmediği için yoksa ancak bir sonraki açılışta açılırdı).
-        .onChange(of: recorder.phase == .idle ? phoneAutoPaywallKey(state: account.state) : nil, initial: true) { (_: String?, key: String?) in
-            // Deneme bitince (ya da abonelik sona erince) abonelik ekranı bir kez kendiliğinden açılır; kayıt sürerken açılmaz.
-            guard let key, !UserDefaults.standard.bool(forKey: key) else {
+        // Kayıt sürerken ve karşılama bitmeden anahtar nil: son deneme toplantısı başlarken deneme biterse ekran kayıt
+        // bitince, ilk açılışta karşılama bitince açılır (anahtar arada değişip bir daha değişmediği için yoksa ancak bir
+        // sonraki açılışta açılırdı).
+        .onChange(of: recorder.phase == .idle && onboardingCompleted ? phoneAutoPaywallKey(state: account.state) : nil, initial: true) { (_: String?, key: String?) in
+            guard key != nil else {
                 return
             }
-            #if DEBUG
-            if isDemoMode {
-                return
-            }
-            #endif
-            UserDefaults.standard.set(true, forKey: key)
-            account.showPlans()
-        }
-        .fullScreenCover(isPresented: Binding<Bool>(get: { !onboardingCompleted }, set: { (_: Bool) -> Void in })) {
-            PhoneOnboarding {
-                onboardingCompleted = true
-            }
+            showAutoPaywallIfDue()
         }
         .preferredColorScheme((AppTheme(rawValue: theme) ?? .system).isDark.map { $0 ? ColorScheme.dark : ColorScheme.light })
         .onChange(of: theme) { (_: String, value: String) in

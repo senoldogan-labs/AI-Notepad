@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import Stripe from "stripe";
 import { describe, expect, it, vi } from "vitest";
 import { randomToken } from "../src/crypto";
-import { type Harness, type Session, defaultHarness, envWith, expectError, grantSubscription, req, signIn } from "./helpers";
+import { type Harness, type Session, defaultHarness, envWith, expectError, grantAppStoreSubscription, grantSubscription, req, signIn } from "./helpers";
 import { type FakeStripe, type FakeSubscription, fakeSubscription, fakeSubscriptionWithPrice, stubStripeApi } from "./stripeFake";
 import { paidInvoiceAmounts } from "./stripeEvents";
 
@@ -365,6 +365,41 @@ describe("Stripe webhook", () => {
     const row = await env.DB.prepare("SELECT past_due_since FROM subscriptions WHERE user_id = ?").bind(session.userId).first<{ past_due_since: number | null }>();
     expect(row?.past_due_since).toBeNull();
     expect((await plan(harness, expired)).plan).toBe("subscription");
+  });
+
+  it("App Store abonesinin eski Checkout'u sonradan ödenirse bir kez alarm yazılır (iade ya da iptal yok); App Store'suz hesapta alarm yok", async () => {
+    const harness: Harness = await defaultHarness();
+    const stripe: FakeStripe = stubStripeApi(harness);
+    const send: Sender = sender(harness, stripe);
+    const id = uniqueIds();
+    const now: number = Math.floor(harness.clock.nowMs / 1000);
+    // Checkout iPhone'daki satın almadan önce açıldı, sonra ödendi.
+    const both = await customerSession(harness);
+    await grantAppStoreSubscription(both.session.userId, { status: "active", periodType: "normal", environment: "PRODUCTION", expiresAtMs: harness.clock.nowMs + 20 * dayMs });
+    const stripeOnly = await customerSession(harness);
+    const alerts = vi.spyOn(console, "error");
+    const late: FakeSubscription = { ...fakeSubscription(id("sub_late"), both.customer, "active", now, now + 30 * 86_400), metadata: { user_id: both.session.userId } };
+    expect((await send.change(id("evt_late_created"), "customer.subscription.created", now, late)).status).toBe(200);
+    expect((await send.change(id("evt_late_updated"), "customer.subscription.updated", now + 1, late)).status).toBe(200);
+    const plain: FakeSubscription = { ...fakeSubscription(id("sub_plain"), stripeOnly.customer, "active", now, now + 30 * 86_400), metadata: { user_id: stripeOnly.session.userId } };
+    expect((await send.change(id("evt_plain"), "customer.subscription.created", now, plain)).status).toBe(200);
+    const lines: string[] = alerts.mock.calls
+      .map((call: unknown[]): string => String(call[0]))
+      .filter((line: string): boolean => line.includes('"event":"stripe_subscription_with_app_store_access"'));
+    alerts.mockRestore();
+    expect(lines).toHaveLength(1);
+    expect(JSON.parse(lines[0] ?? "{}")).toMatchObject({
+      level: "alert",
+      eventId: id("evt_late_created"),
+      userId: both.session.userId,
+      subscriptionId: id("sub_late"),
+      customer: both.customer,
+      appStoreStatus: "active",
+    });
+    // Hesap yine yazılır; Stripe'ta hiçbir şey iade ya da iptal edilmez (sahibi inceler).
+    expect((await storedSubscription(both.session.userId))?.stripe_subscription_id).toBe(id("sub_late"));
+    expect(stripe.canceled).toEqual([]);
+    expect(stripe.refundForms).toEqual([]);
   });
 
   it("tanınmayan müşterinin yaşayan aboneliği Stripe'ta iptal edilir ve alarm yazılır; bitmişi yalnızca kaydedilir", async () => {
