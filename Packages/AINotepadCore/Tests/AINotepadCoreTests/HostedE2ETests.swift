@@ -790,7 +790,7 @@ private func silentFlac(directory: URL) throws -> URL {
     // Screen snapshots in notes through the real client and server: the app's own pipeline (6 slides on disk →
     // `screenNoteImages`) passes the server's caps and the raised body limit (the local server's fake Anthropic key then
     // rejects upstream, or a real one answers); one image too many, or images on a purpose that may not carry them, are
-    // refused with `screen_images_over_limit` before any upstream call.
+    // refused with `screen_images_over_limit` before any upstream call (Ask may carry images, editing a note may not).
     @Test func screenNoteImagesAgainstLocalServer() async throws {
         let baseURL: URL = try localServerBase()
         let user: SignedInUser = try await signedInUser(baseURL: baseURL)
@@ -823,7 +823,7 @@ private func silentFlac(directory: URL) throws -> URL {
             #expect(!isRetryableHostedError(error: overCount))
         }
         let wrongPurpose: LLMRequest = LLMRequest(
-            purpose: .askAnswer, tier: .smart, system: "s", userText: "u", maxTokens: 1000, jsonSchema: nil, timeoutSec: 30, images: [first]
+            purpose: .noteEdit, tier: .smart, system: "s", userText: "u", maxTokens: 1000, jsonSchema: nil, timeoutSec: 30, images: [first]
         )
         let refused: HostedAPIError? = await hostedError { _ = try await sendLLM(provider: provider, request: wrongPurpose) }
         #expect(refused?.code == .screenImagesOverLimit)

@@ -88,7 +88,7 @@ enum SettingsKey {
     /// Kullanıcının tanıma sözlüğü (satır başına bir ad ya da terim).
     static let customVocabulary: String = "customVocabulary"
     /// Kullanıcının oluşturduğu klasörler (boş olanlar da listede kalsın).
-    static let folders: String = "folders"
+    static let folders: String = savedFoldersKey
     /// Toplantı özetinde sözlük açık mı.
     static let glossaryExpanded: String = "meeting.glossaryExpanded"
     /// Kişiler sayfasındaki liste açık (varsayılan açık: kapalıyken diğer kişiler yalnız seçici menüde kalıp gözden
@@ -351,6 +351,11 @@ func storedNoteLanguage(value stored: String) -> ShareLanguage {
 /// Seçili LLM sağlayıcı türü.
 func selectedLLMProviderKind() -> LLMProviderKind {
     LLMProviderKind(rawValue: UserDefaults.standard.string(forKey: SettingsKey.llmProvider) ?? "") ?? .anthropic
+}
+
+/// Kullanıcı bu eylem için bir kısayol seçip kaydetti mi (yoksa varsayılan kullanılır).
+func hasStoredKeyBinding(key: String) -> Bool {
+    UserDefaults.standard.data(forKey: key) != nil
 }
 
 /// Kayıtlı kısayol; yoksa varsayılan.

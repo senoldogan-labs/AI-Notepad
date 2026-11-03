@@ -63,7 +63,7 @@ func serverDirectory() -> URL {
         #expect(try serverArray(source: funnel, name: "funnelFailureStages") == HostedSignInFailureStage.allCases.map(\.rawValue))
     }
 
-    // The screen-image caps of a note (and of Ask, which stays within them) are enforced on both sides: a client sending more than the server accepts would
+    // The screen-image caps of a note and of Ask are enforced on both sides: a client sending more than the server accepts would
     // fail every note with `screen_images_over_limit`; a server accepting more would not protect the AI budget.
     @Test func screenNoteBudgetMatchesServer() throws {
         let images: String = try String(contentsOf: serverDirectory().appending(path: "src/llm/images.ts"), encoding: .utf8)
@@ -73,8 +73,9 @@ func serverDirectory() -> URL {
         let purposes: Substring = try #require(images.firstRange(of: "export const screenImagePurposes: readonly LLMPurpose[] = [").map { images[$0.upperBound...] })
         let listed: [String] = try #require(purposes.firstRange(of: "];").map { purposes[..<$0.lowerBound] }).matches(of: #/"([a-z_]+)"/#).map { String($0.output.1) }
         #expect(listed == [LLMPurpose.note.rawValue, LLMPurpose.noteOverview.rawValue, LLMPurpose.askAnswer.rawValue])
-        // Ask sends fewer images than a note; the server's per-request caps hold for both.
-        #expect(askScreenBudget.maxImages <= screenNoteBudget.maxImages && askScreenBudget.maxTotalTokens <= screenNoteBudget.maxTotalTokens)
+        // Ask has its own, lower caps on the server (`ask_answer`); the per-image byte cap is shared.
+        #expect(try serverNumber(source: images, name: "askScreenImageMaxCount") == askScreenBudget.maxImages)
+        #expect(try serverNumber(source: images, name: "askScreenImageMaxTotalTokens") == askScreenBudget.maxTotalTokens)
         #expect(askScreenBudget.maxImageBytes == screenNoteBudget.maxImageBytes)
     }
 }

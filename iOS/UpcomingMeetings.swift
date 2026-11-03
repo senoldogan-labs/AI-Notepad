@@ -3,11 +3,14 @@ import AINotepadUI
 import SwiftUI
 
 /// Kayıt ekranında sıradaki toplantılar (takvim açıksa, önümüzdeki 12 saat): saat, başlık, katılımcılar; görüşme
-/// bağlantısı varsa "Katıl", arşivde toplantı varsa "Brifing"; sıradaki toplantı yoksa görünmez. Süren toplantı "Şimdi" ile işaretlenir: o sırada başlatılan kayıt onun adını alır. Takvim
-/// izni yoksa kısa bir uyarı ve Ayarlar'a geçiş.
+/// bağlantısı varsa "Katıl", arşivde toplantı varsa "Brifing". Süren toplantı "Şimdi" ile işaretlenir: o sırada başlatılan
+/// kayıt onun adını alır. Altında bugün biten toplantılar (Mac'teki gibi): kaydı olanın notu buradan açılır. İkisi de
+/// boşsa bölüm görünmez. Takvim izni yoksa kısa bir uyarı ve Ayarlar'a geçiş.
 struct UpcomingCalendarSection: View {
     let calendar: PhoneCalendar
     let router: PhoneRouter
+    /// Bugün biten toplantının kaydı arşivde aranır (sekmelerin ortamından).
+    @Environment(PhoneStore.self) private var store: PhoneStore
     /// Arşivde toplantı var: brifing sorulabilir (boş arşivde düğme görünmez, Mac'teki gibi).
     let canBrief: Bool
     let onBriefing: @MainActor (CalendarMeeting) -> Void
@@ -21,20 +24,22 @@ struct UpcomingCalendarSection: View {
                 let now: Date = context.date
                 let items: [CalendarMeeting] = upcomingMeetings(meetings: calendar.meetings, now: now, horizonSec: 12 * 3600)
                 let current: CalendarMeeting? = currentMeeting(meetings: calendar.meetings, now: now)
-                // Sıradaki toplantı yoksa bölüm hiç görünmez (boş ana ekran sade kalsın).
-                if !items.isEmpty {
-                    VStack(alignment: .leading, spacing: 10) {
-                        PhoneSectionHeader(title: "Sıradaki toplantılar", actionTitle: nil, action: nil)
-                        VStack(spacing: 0) {
-                            ForEach(Array(items.prefix(4).enumerated()), id: \.element.id) { (item: (offset: Int, element: CalendarMeeting)) in
-                                if item.offset > 0 {
-                                    Rectangle().fill(Theme.line).frame(height: 1).padding(.leading, 14)
-                                }
-                                UpcomingMeetingRow(meeting: item.element, isCurrent: item.element.id == current?.id, now: now, canBrief: canBrief, onBriefing: onBriefing)
+                let ended: [CalendarMeeting] = meetingsEndedToday(meetings: calendar.meetings, now: now, calendar: Calendar.current)
+                // Sıradaki ve bugün biten toplantı yoksa bölüm hiç görünmez (boş ana ekran sade kalsın).
+                if !items.isEmpty || !ended.isEmpty {
+                    VStack(alignment: .leading, spacing: 18) {
+                        if !items.isEmpty {
+                            group(title: "Sıradaki toplantılar", meetings: Array(items.prefix(4))) { (meeting: CalendarMeeting) in
+                                UpcomingMeetingRow(meeting: meeting, isCurrent: meeting.id == current?.id, now: now, canBrief: canBrief, onBriefing: onBriefing)
                             }
                         }
-                        .background(Theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Theme.line))
+                        if !ended.isEmpty {
+                            group(title: "Bugün biten toplantılar", meetings: Array(ended.prefix(4))) { (meeting: CalendarMeeting) in
+                                EndedMeetingRow(meeting: meeting, record: recordedMeeting(meeting: meeting, records: store.meetings)) { (meetingID: String) -> Void in
+                                    router.open(meetingID: meetingID)
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -54,6 +59,79 @@ struct UpcomingCalendarSection: View {
         case .off:
             EmptyView()
         }
+    }
+
+    /// Başlıklı kart: satırlar arasında ince çizgi.
+    private func group(title: LocalizedStringKey, meetings: [CalendarMeeting], @ViewBuilder row: @escaping (CalendarMeeting) -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            PhoneSectionHeader(title: title, actionTitle: nil, action: nil)
+            VStack(spacing: 0) {
+                ForEach(Array(meetings.enumerated()), id: \.element.id) { (item: (offset: Int, element: CalendarMeeting)) in
+                    if item.offset > 0 {
+                        Rectangle().fill(Theme.line).frame(height: 1).padding(.leading, 14)
+                    }
+                    row(item.element)
+                }
+            }
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Theme.line))
+        }
+    }
+}
+
+/// Bugün biten toplantı satırı (Mac'teki gibi): saat aralığı, başlık ve notun özeti; kaydı varsa "Notu aç" (not henüz
+/// yoksa "Kaydı aç") toplantıyı Toplantılar'da açar, yoksa "Kaydedilmedi".
+private struct EndedMeetingRow: View {
+    let meeting: CalendarMeeting
+    /// Etkinliğin kaydı (bkz. `recordedMeeting`); yoksa nil.
+    let record: MeetingRecord?
+    let onOpen: @MainActor (String) -> Void
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
+
+    var body: some View {
+        let format: Date.FormatStyle = Date.FormatStyle(date: .omitted, time: .shortened).locale(interfaceLocale())
+        let time: String = meeting.start.formatted(format) + "–" + meeting.end.formatted(format)
+        // Özetteki konuşmacı etiketleri adlarla (notun kendisindeki gibi).
+        let summary: String? = record.map { namedRecord(record: $0, userName: phoneUserName()) }?.note?.summary
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(verbatim: time)
+                    .appFont(size: 12, weight: .medium)
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.muted)
+                Text(meeting.title)
+                    .appFont(size: 15, weight: .medium)
+                    .foregroundStyle(Theme.ink)
+                    .lineLimit(1)
+                if let summary, !summary.isEmpty {
+                    Text(summary)
+                        .appFont(size: 12, weight: .regular)
+                        .foregroundStyle(Theme.muted)
+                        .lineLimit(1)
+                }
+            }
+            Spacer(minLength: 8)
+            if let record {
+                Button {
+                    onOpen(record.id)
+                } label: {
+                    Text(record.note == nil ? LocalizedStringKey("Kaydı aç") : LocalizedStringKey("Notu aç"))
+                        .appFont(size: 13, weight: .semibold)
+                        .foregroundStyle(appearance.accent.color)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .background(appearance.accent.color.opacity(0.14), in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(record.note == nil ? Text("Kaydı aç: \(meeting.title)") : Text("Notu aç: \(meeting.title)"))
+            } else {
+                Text("Kaydedilmedi")
+                    .appFont(size: 12, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
     }
 }
 

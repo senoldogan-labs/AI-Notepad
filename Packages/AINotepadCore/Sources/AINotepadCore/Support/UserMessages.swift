@@ -15,6 +15,8 @@ public func userFacingMessage(error: any Error) -> String {
         return hostedErrorMessage(error: error)
     case let error as HostedClientError:
         return hostedClientMessage(error: error)
+    case is HostedAccountDeletedLocalFailure:
+        return String(localized: "Hesabın silindi, ama bu cihazdaki son adım tamamlanamadı; uygulamayı kapatıp yeniden aç. App Store aboneliğin varsa hesabı silince iptal olmaz: iPhone'da Ayarlar › Apple Hesabı › Abonelikler'den iptal et.")
     case let error as HostedDeviceCheckError:
         return hostedDeviceCheckMessage(error: error)
     case let error as HostedBrowserSignInError:
@@ -37,6 +39,10 @@ public func userFacingMessage(error: any Error) -> String {
         return String(localized: "Bu bölüm yazıya dökülemedi.")
     case TranscriptionError.diarizationFailed:
         return String(localized: "Konuşmacı ayırma modeli çalışmadı (ilk kullanımda internet gerekir)")
+    case VoiceModelError.downloadFailed:
+        return String(localized: "Ses tanıma modeli indirilemedi. İnternet bağlantını ve boş alanı kontrol edip yeniden dene.")
+    case VoiceModelError.checkFailed:
+        return String(localized: "Ses tanıma modeli denetlenemedi; modeli yeniden indir.")
     case OllamaError.unreachable:
         return String(localized: "Ollama'ya ulaşılamadı. Ollama uygulamasının açık olduğunu ve adresin doğru olduğunu kontrol et.")
     case OllamaError.http:

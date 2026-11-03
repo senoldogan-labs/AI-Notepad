@@ -2,6 +2,8 @@ import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import type { Env } from "../src/env";
 import {
+  askScreenImageMaxCount,
+  askScreenImageMaxTotalTokens,
   jpegSize,
   llmBodyLimitBytes,
   screenImageBodyAllowanceBytes,
@@ -164,7 +166,9 @@ describe("Screen images: proxy", () => {
     ["a purpose that may not carry images", "live_translation", [fakeJpeg(280, 280, 500)]],
     ["the chunk of a long note", "note_chunk", [fakeJpeg(280, 280, 500)]],
     ["Ask's search terms", "ask_search_terms", [fakeJpeg(280, 280, 500)]],
-    ["too many tokens in Ask", "ask_answer", Array.from({ length: 6 }, (): Uint8Array => fakeJpeg(812, 476, 500))],
+    // Ask's own caps are lower than a note's: 4 small images, or 3 × 464 tokens = 1,392 > 1,350.
+    ["too many images in Ask", "ask_answer", Array.from({ length: askScreenImageMaxCount + 1 }, (): Uint8Array => fakeJpeg(280, 280, 500))],
+    ["too many tokens in Ask", "ask_answer", Array.from({ length: 3 }, (): Uint8Array => fakeJpeg(812, 448, 500))],
   ])("rejects %s with screen_images_over_limit and sends nothing upstream", async (_name: string, purpose: string, images: Uint8Array[]) => {
     const context: Context = await setup();
     const before: number = context.harness.outbound.length;
@@ -182,14 +186,17 @@ describe("Screen images: proxy", () => {
     expect(response.status).toBe(200);
   });
 
-  it("accepts Ask's answer with a few screen images, on an account call (no meeting)", async () => {
+  it("accepts Ask's answer at exactly its caps, on an account call (no meeting)", async () => {
     const context: Context = await setup();
     const upstream: Array<{ messages: Array<{ content: unknown }> }> = [];
     context.harness.stub(anthropicUrl, async (request: Request): Promise<Response> => {
       upstream.push(await request.json<{ messages: Array<{ content: unknown }> }>());
       return Response.json(message(1500, 200));
     });
-    const body = noteWithImages([fakeJpeg(812, 448, 40_000), fakeJpeg(812, 448, 40_000), fakeJpeg(812, 448, 40_000)]);
+    // 3 × 450 = 1,350 tokens.
+    const images: Uint8Array[] = Array.from({ length: askScreenImageMaxCount }, (): Uint8Array => fakeJpeg(30 * 28, 15 * 28, 40_000));
+    expect(askScreenImageMaxCount * visualTokens({ width: 30 * 28, height: 15 * 28 })).toBe(askScreenImageMaxTotalTokens);
+    const body = noteWithImages(images);
     const response: Response = await context.harness.call(
       req("POST", "/v1/llm/messages", { token: context.session.accessToken, headers: { "x-llm-purpose": "ask_answer" }, json: body, env: null }),
     );
@@ -202,6 +209,8 @@ describe("Screen images: proxy", () => {
     ["a URL source", { type: "image", source: { type: "url", url: "https://example.com/a.jpg" } }],
     ["a cache mark", { type: "image", source: { type: "base64", media_type: "image/jpeg", data: "/9j/" }, cache_control: { type: "ephemeral" } }],
     ["non-base64 data", { type: "image", source: { type: "base64", media_type: "image/jpeg", data: "not base64!" } }],
+    // `atob` cannot decode it; caught by the schema, never a 500.
+    ["base64 whose length is not a multiple of 4", { type: "image", source: { type: "base64", media_type: "image/jpeg", data: "/9j/4" } }],
   ])("rejects an image block with %s as invalid_body", async (_name: string, block: object) => {
     const context: Context = await setup();
     const before: number = context.harness.outbound.length;

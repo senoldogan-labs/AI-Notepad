@@ -13,6 +13,12 @@ public func clipRange(startSec: Double, endSec: Double) -> (start: Double, end: 
     (start: max(0, startSec - 0.5), end: max(startSec, endSec) + 0.5)
 }
 
+/// Klip dosyasının adı (uzantısız): toplantının adı ve paragrafın başladığı an ("Bütçe 01.05"; dosya adında ":"
+/// olmasın diye "."). Saf fonksiyondur.
+public func audioClipTitle(meetingTitle: String, startSec: Double) -> String {
+    "\(meetingTitle) \(timestamp(seconds: startSec).replacingOccurrences(of: ":", with: "."))"
+}
+
 /// Toplantının seslerinden ("Sen" ve "Diğerleri" aynı zaman çizgisinde) bir aralığı tek M4A klip olarak `destination`'a
 /// yazar; iki kayıt üst üste karışır. Aralık kaydın sonunu aşarsa kaydın sonunda biter.
 public func exportAudioClip(sources: [URL], startSec: Double, endSec: Double, destination: URL) async throws {

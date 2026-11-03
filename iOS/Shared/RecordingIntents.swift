@@ -18,6 +18,15 @@ struct RecordingActivityAttributes: ActivityAttributes {
         var isMicrophonePaused: Bool
         /// "Bitir"e basılan an: süre burada durur; kayıt sürüyorsa nil.
         var stoppedAt: Date?
+        /// Kullanıcı kaydı duraklattı: süren duraklatmanın başladığı an (süre burada durur); duraklatılmamışsa nil.
+        var pausedAt: Date?
+        /// Biten duraklatmaların toplamı (sn): sayaç kayıt başından bu kadar sonra başlamış gibi akar.
+        var pausedSec: Double
+
+        /// Duraklatılmış ve bitirilmiyor.
+        var isPaused: Bool {
+            pausedAt != nil && !isFinishing
+        }
     }
 
     let startedAt: Date
@@ -59,6 +68,42 @@ struct StopRecordingIntent: LiveActivityIntent {
     func perform() async throws -> some IntentResult {
         #if !WIDGET_EXTENSION
         sessions.session.recorder.stop()
+        #endif
+        return .result()
+    }
+}
+
+/// Kaydı duraklat (Kısayollar, canlı etkinlikteki düğme): uygulamayı açmadan sesi kaydetmeyi durdurur; kayıt açık kalır.
+struct PauseRecordingIntent: LiveActivityIntent {
+    static let title: LocalizedStringResource = "Kaydı duraklat"
+    static let description: IntentDescription = IntentDescription("Süren Gistsmith kaydını duraklatır; duraklatılan süre kaydedilmez.")
+
+    #if !WIDGET_EXTENSION
+    @Dependency private var sessions: PhoneSessionHost
+    #endif
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        #if !WIDGET_EXTENSION
+        sessions.session.recorder.pause()
+        #endif
+        return .result()
+    }
+}
+
+/// Kayda devam et (Kısayollar, canlı etkinlikteki düğme): duraklatılan kaydı uygulamayı açmadan sürdürür.
+struct ResumeRecordingIntent: LiveActivityIntent {
+    static let title: LocalizedStringResource = "Kayda devam et"
+    static let description: IntentDescription = IntentDescription("Duraklatılan Gistsmith kaydını sürdürür.")
+
+    #if !WIDGET_EXTENSION
+    @Dependency private var sessions: PhoneSessionHost
+    #endif
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        #if !WIDGET_EXTENSION
+        sessions.session.recorder.resume()
         #endif
         return .result()
     }

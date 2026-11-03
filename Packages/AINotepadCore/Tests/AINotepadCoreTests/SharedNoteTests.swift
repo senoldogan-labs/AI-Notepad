@@ -78,6 +78,51 @@ private func sampleRecord() -> MeetingRecord {
         let old: MeetingNote = MeetingNote(title: "B", summary: "S", decisions: ["d"], tasks: sampleNote.tasks, glossary: [])
         #expect(!isSharedNoteComplete(shared: old, original: sampleNote))
     }
+
+    // Seçili dildeki sürüm: tam çeviri gösterilir ve görevleri asıl görevin işaretine bağlıdır (tamamlandı çeviride de
+    // görünür, çeviride işaretlenen asıl görevi işaretler); eksik ya da olmayan çeviri nil (asıl not yerine sessizce
+    // çıkmaz); asıl dilde kayıt olduğu gibi döner.
+    @Test func sharedNoteVersionKeepsTaskMarksAndRefusesIncompleteVersions() throws {
+        let tasks: String = #"[{"sahip":"Senol","aciklama":"Prepare the slides","tarih":"Thursday","benimMi":true},{"sahip":"Mikko","aciklama":"Send the report","tarih":"Friday","benimMi":false}]"#
+        let full: String = #"{"baslik":"Budget meeting","ozet":"Aino presented the budget.","kararlar":["Marketing budget up 10%."],"gorevler":"#
+            + tasks
+            + #","sozluk":[{"terim":"budget","anlam":"the yearly budget"}],"akis":[{"zaman":"00:13","baslik":"Next year's budget","ozet":"Aino presented it."},{"zaman":"01:30","baslik":"Report timing","ozet":"Report by Friday."}]}"#
+        let english: MeetingNote = try parseSharedNote(text: full, original: sampleNote).with(language: .english)
+        let done: MeetingRecord = togglingTask(record: sampleRecord(), task: sampleNote.tasks[0])
+        let record: MeetingRecord = done.with(sharedNotes: ["en": english])
+
+        let shown: MeetingNote = try #require(sharedNoteVersion(record: record, language: .english))
+        #expect(shown.title == "Budget meeting" && shown.language == .english)
+        #expect(shown.outline?.map(\.startSec) == [12, 95])
+        #expect(shown.tasks.map(\.description) == ["Prepare the slides", "Send the report"])
+        #expect(isTaskDone(record: record, task: shown.tasks[0]))
+        #expect(!isTaskDone(record: record, task: shown.tasks[1]))
+        #expect(isTaskDone(record: togglingTask(record: record, task: shown.tasks[1]), task: sampleNote.tasks[1]))
+        // Adlar uygulanmış sayfa kaydında da (bkz. `namedRecord`) eşleşme asıl göreve bağlı kalır.
+        let named: MeetingRecord = namedRecord(record: record.with(speakerNames: [2: "Aino"]), userName: "Senol")
+        #expect(isTaskDone(record: named, task: try #require(sharedNoteVersion(record: named, language: .english)).tasks[0]))
+
+        #expect(sharedNoteVersion(record: record, language: .finnish) == nil)
+        let incomplete: MeetingNote = MeetingNote(title: "B", summary: "S", decisions: ["d"], tasks: sampleNote.tasks, glossary: [])
+        #expect(sharedNoteVersion(record: record.with(sharedNotes: ["en": incomplete]), language: .english) == nil)
+
+        #expect(recordInLanguage(record: record, language: nil) == record)
+        let translated: MeetingRecord = try #require(recordInLanguage(record: record, language: .english))
+        #expect(translated.note?.summary == "Aino presented the budget." && translated.title == "Budget meeting")
+        #expect(translated.completedTasks == record.completedTasks)
+        #expect(recordInLanguage(record: record, language: .german) == nil)
+    }
+
+    // Dil menüsü: Fince ve İngilizce önde, asıl notun dili yinelenmez, her dil bir kez.
+    @Test func shareLanguageChoicesSkipTheOriginal() {
+        let turkish: ShareLanguageChoices = shareLanguageChoices(original: .turkish)
+        #expect(turkish.featured == [.finnish, .english])
+        #expect(!turkish.others.contains(.turkish) && !turkish.others.contains(.finnish) && !turkish.others.contains(.english))
+        #expect(turkish.featured.count + turkish.others.count == ShareLanguage.allCases.count - 1)
+        let english: ShareLanguageChoices = shareLanguageChoices(original: .english)
+        #expect(english.featured == [.finnish])
+        #expect(english.others.contains(.turkish) && !english.others.contains(.english))
+    }
 }
 
 extension CloudTests {

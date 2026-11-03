@@ -1,7 +1,8 @@
 // "Data handling at a glance": her veri türü nerede işlenir, saklanır mı, ne kadar. Gizlilik politikasının başındaki
 // tablo (privacy.astro), /llms.txt ve /llms-full.txt bu tek kaynaktan üretilir. Her satır gizlilik politikasının ilgili
 // bölümüyle (3 meeting content, 6 statistics, 8 providers, 9 retention, 10 deletion) ve sunucunun davranışıyla
-// (server/src/transcribe.ts nihai metni 2 saat şifreli tutar, cleanup.ts süreleri) birebir aynı olmalı; politika
+// (server/src/transcriptionCache.ts nihai metni 2 saat şifreli tutar, satırı cleanup.ts'in günlük cron'u siler;
+// Linear/Jira ajanı ve paylaşım çevirisi sunucu üzerinden Anthropic'e gider) birebir aynı olmalı; politika
 // değişince bu dosya da değişir.
 
 /** Bir veri türünün işlenişi. `id` gizlilik sayfasında satırın kalıcı çapasıdır (`#data-<id>`); değiştirme. */
@@ -55,12 +56,12 @@ export const dataHandling: DataHandlingCopy = {
       data: "The final transcript returned by ElevenLabs",
       where: "Our server, on its way back to your device.",
       stored: "Yes, encrypted, only so it can be re-sent if the connection drops.",
-      retention: "Up to 2 hours, then deleted automatically (immediately if you delete your account)",
+      retention: "Can be re-sent for 2 hours, then deleted at the next daily cleanup, within about a day (immediately if you delete your account)",
       policySection: "meetings",
     },
     {
       id: "ai-text",
-      data: "Transcript text for notes, live translation, “What did I miss?” and Ask, with the participant names and terms you add",
+      data: "Transcript text for notes, live translation, “What did I miss?” and Ask, with the participant names and terms you add; tasks, the meeting title and Linear's or Jira's replies when you create issues there; a note you translate to send in another language",
       where: "Sent through our server to Anthropic's Claude model; the answer returns to your device.",
       stored: "Not by us: our server doesn't store or log the text and records only token counts. Anthropic doesn't train its models on it.",
       retention: "Anthropic deletes it within 30 days (up to 2 years if a request is flagged under its usage policy)",
@@ -103,7 +104,8 @@ export const dataHandling: DataHandlingCopy = {
     {
       id: "integrations",
       data: "Notes and tasks you send to Notion, Slack, Linear, a webhook and other destinations",
-      where: "Sent from your Mac directly to the destination you chose; not through our server.",
+      where:
+        "Sent from your Mac directly to the destination you chose; not through our server. Creating Linear or Jira issues and translating a note you send in another language also use Anthropic's Claude model through our server (see the row on AI text).",
       stored: "By the destination, under its own terms.",
       retention: "The destination's own rules",
       policySection: "meetings",

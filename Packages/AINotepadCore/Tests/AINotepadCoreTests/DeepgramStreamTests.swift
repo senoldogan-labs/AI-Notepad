@@ -117,6 +117,54 @@ extension CloudTests {
         #expect(joined.contains("huomenna"), "metin: \(joined)")
         #expect(finals.map(\.start) == finals.map(\.start).sorted(), "başlangıçlar: \(finals.map(\.start))")
     }
+
+    // Duraklatma (iPhone): ses 15 sn gelmez. Bağlantı kopmamalı (KeepAlive), yarım kalan cümle duraklatmada kesinleşmeli
+    // (Finalize) ve sürdürünce metin aynı zaman çizgisinde (boşluksuz) sürmeli.
+    @Test func idleAudioKeepsConnectionAndFinalizesLastSentence() async throws {
+        let key: String = try cloudKey(account: .deepgram)
+        let samples: [Float] = try loadFixture(name: "fi-dialog")
+        // 2. cümlenin ortasında ("Minulla on raportti valmiina", 4,4. sn) duraklatıldı; parça sınırında.
+        let cut: Int = 22 * 3200
+        let gapSec: Double = 15
+        let (audio, input): (AsyncStream<[Float]>, AsyncStream<[Float]>.Continuation) = AsyncStream.makeStream(of: [Float].self)
+        let clock: ContinuousClock = ContinuousClock()
+        let started: ContinuousClock.Instant = clock.now
+        Task {
+            for offset in stride(from: 0, to: samples.count, by: 3200) {
+                if offset == cut {
+                    try await Task.sleep(for: .seconds(gapSec))
+                }
+                input.yield(Array(samples[offset..<min(offset + 3200, samples.count)]))
+                try await Task.sleep(for: .milliseconds(200))
+            }
+            input.finish()
+        }
+        let connectionEvents: ConnectionEventLog = ConnectionEventLog()
+        let stream: DeepgramStream = startDeepgramStream(
+            authorization: .apiKey(key), options: developerDeepgramListenOptions, language: .finnish, keyterms: ["raportti"],
+            onConnectionEvent: { (event: DeepgramConnectionEvent) -> Void in Task { await connectionEvents.add(event: event) } }, audio: audio
+        )
+        let cutSec: Double = Double(cut) / 16000
+        let resumedAfterSec: Double = cutSec + gapSec
+        var finals: [(text: String, start: Double, end: Double, arrivedSec: Double)] = []
+        for await event in stream.events {
+            let elapsed: Duration = clock.now - started
+            let arrived: Double = Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18
+            if case .final(let text, let start, let end) = event { finals.append((text, start, end, arrived)) }
+            if case .failed(let message) = event { Issue.record("hata: \(message)") }
+        }
+        let dropped: [DeepgramConnectionEvent] = await connectionEvents.events
+        #expect(dropped.isEmpty, "bağlantı duraklatmada koptu: \(dropped)")
+        // Duraklatmadan önce gönderilen cümlenin sonu duraklatma sürerken kesinleşti.
+        let finalizedDuringPause: Bool = finals.contains { $0.end >= cutSec - 1 && $0.arrivedSec > cutSec + 1 && $0.arrivedSec < resumedAfterSec }
+        #expect(finalizedDuringPause, "kesin sonuçlar: \(finals.map { ($0.text, $0.end, $0.arrivedSec) })")
+        let joined: String = finals.map(\.text).joined(separator: " ").lowercased()
+        #expect(joined.contains("huomenna"), "metin: \(joined)")
+        // Zaman çizgisi gönderilen sese göredir: duraklatma metne boşluk olarak girmez.
+        let totalSec: Double = Double(samples.count) / 16000
+        #expect((finals.map(\.end).max() ?? 0) <= totalSec + 0.5, "son: \(finals.map(\.end).max() ?? 0), ses: \(totalSec)")
+        #expect(finals.map(\.start) == finals.map(\.start).sorted(), "başlangıçlar: \(finals.map(\.start))")
+    }
 }
 }
 
@@ -134,5 +182,14 @@ extension CloudTests {
             #expect(!message.isEmpty)
             #expect(!message.lowercased().contains("deepgram"), "metin: \(message)")
         }
+    }
+}
+
+/// Testte bildirilen Deepgram bağlantı olayları.
+private actor ConnectionEventLog {
+    private(set) var events: [DeepgramConnectionEvent] = []
+
+    func add(event: DeepgramConnectionEvent) {
+        events.append(event)
     }
 }

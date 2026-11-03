@@ -10,5 +10,10 @@ Gistsmith 0.1.16 puts the names you give speakers everywhere in your notes, and 
 - **Screens tab in narrow windows.** The Screens tab fits the side panel: the image sits on top and its time and controls in one line below.
 - **Settings explain themselves again.** The explanations are back under each setting instead of behind a question mark.
 - **Cleaner meeting cards.** The coloured strip at the top of the meeting cards is gone.
+- **Estonian, Latvian, Lithuanian and Persian meetings.** With one of these set as the meeting language, the transcript, note and Ask now keep everything that was said instead of leaving parts out as another language.
+- **Switch languages mid-meeting.** Changing the meeting language during a recording keeps what was said before the change.
+- **A snappier main window.** Home, Tasks and the meeting list no longer slow down with many named meetings, even while you record.
+- **Quieter voice typing setup.** If the voice typing shortcut clashes with another shortcut, Gistsmith leaves it unset and lets you pick one in Settings › Voice typing instead of showing a warning in the menu.
+- **More reliable details.** Text you dictate just before a meeting starts is no longer typed into another app, a screen snapshot is no longer saved after you pause, and Ask no longer closes when you pick a suggestion while meetings change.
 
 Requires macOS 15 or later on Apple silicon.

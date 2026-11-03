@@ -7,6 +7,7 @@
 	<key>NSPrivacyTrackingDomains</key>
 	<array/>
 	<key>NSPrivacyCollectedDataTypes</key>
+	<!-- Ses izleri (sesinden tanıma, biyometrik) yalnız bu iPhone'da hesaplanır ve saklanır (adı verilenlerin listesi cihaz yedeğine de girmez); hiçbir sunucuya gönderilmediği için toplanan veri değildir. -->
 	<array>
 		<!-- Toplantı sesi: canlı metin (Deepgram) ve son geçiş (sunucumuz üzerinden ElevenLabs) için gönderilir, saklanmaz. -->
 		<dict>
@@ -38,6 +39,19 @@
 		<dict>
 			<key>NSPrivacyCollectedDataType</key>
 			<string>NSPrivacyCollectedDataTypeUserID</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<!-- E-posta adresi: geri bildirim formundaki isteğe bağlı yanıt adresi (yalnız girilirse; rapor hesaba bağlı saklanır, yanıt vermek için). Girişteki e-posta yalnız bu iPhone'da kalır. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeEmailAddress</string>
 			<key>NSPrivacyCollectedDataTypeLinked</key>
 			<true/>
 			<key>NSPrivacyCollectedDataTypeTracking</key>

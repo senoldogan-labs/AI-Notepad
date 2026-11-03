@@ -29,14 +29,6 @@ func localModelNoticeText(progress: Double?) -> String {
         ?? String(localized: "Konuşma modeli hazırlanıyor…")
 }
 
-/// Toplantı sayfasındaki "Konuşmacıları gözden geçir" kartı.
-enum SpeakerReviewState: Equatable {
-    case loading
-    /// `applied`: kabul edilen öneri sayısı; sıfırdan büyükse not eski adlarla yazılmıştır ("Notu yenile").
-    case ready(review: SpeakerReview, applied: Int)
-    case failed(String)
-}
-
 /// Görünüm durumunu üreten girdiler; değişmedikçe görünüm durumu yeniden hesaplanmaz.
 private struct ViewStateInputs: Equatable {
     let transcript: [LiveSegment]
@@ -108,8 +100,9 @@ final class AppModel {
     /// Bir sonraki kaydın dil modu (kayıt sırasında dil `setLanguage` ile değişir).
     var languageMode: LanguageMode = .automatic
     var lockedLanguage: MeetingLanguage?
-    /// Süren kaydın kullanıcının sabitlediği dili: kayıt başında seçili sabit dil ya da kayıtta "Dili değiştir" ile seçilen;
-    /// Otomatikte nil. Kayda yazılır; doluysa başka dildeki konuşma çevrilmez ve toplantıdan atlanır.
+    /// Süren kaydın kullanıcının sabitlediği dili: kayıt başında seçili sabit dil; Otomatikte ve kayıtta "Dili değiştir"
+    /// kullanıldıysa nil (değişiklikten önceki konuşma önceki dildedir, süzülmez). Kayda yazılır; doluysa başka dildeki
+    /// konuşma çevrilmez ve toplantıdan atlanır.
     private(set) var recordingFixedLanguage: MeetingLanguage?
     /// Kesinleşen bölümlerin güvenle algılanan dilleri (bkz. `confidentSpokenLanguage`); bölümlerle birlikte saklanır.
     private(set) var spokenLanguages: [SegmentID: String] = [:]
@@ -174,6 +167,16 @@ final class AppModel {
     var assistantCard: AssistantCard?
     /// Kaydedilmiş toplantılar (yeniden eskiye) ve okunamayanlar.
     var meetings: [MeetingRecord] = []
+    /// `namedMeetings` için son adlandırılan notlar: görünüm her çizimde bütün notlarda etiket aramasın.
+    @ObservationIgnored private var namedMeetingsCache: NamedRecordsCache = .empty
+
+    /// Toplantılar konuşmacı adlarıyla (`namedRecords`), `meetings` ile aynı sırada; yalnız okumak için. Notu, adları ya
+    /// da kullanıcı adı değişmeyen toplantılar önbellekten gelir; `meetings` okunduğu için görünümler değişince yenilenir.
+    func namedMeetings(userName: String) -> [MeetingRecord] {
+        let result: (records: [MeetingRecord], cache: NamedRecordsCache) = namedRecords(records: meetings, userName: userName, cache: namedMeetingsCache)
+        namedMeetingsCache = result.cache
+        return result.records
+    }
     var meetingLoadFailures: [MeetingLoadFailure] = []
     /// Toplantılar listesinde gösterilen okuma hataları: okunamayan toplantılar ve iCloud eşitlemesi başarısızsa nedeni.
     /// iCloud durumu eşitlemeden okunur; toplantılar yeniden okununca silinmez.
@@ -1260,13 +1263,15 @@ final class AppModel {
         session?.micGate.set(isOpen: !isMicMuted)
     }
 
-    /// Kayıt sırasında toplantı dilini değiştirir; o andan sonraki metin yeni dille yazılır. Elle seçilen dil kaydın sabit
-    /// dili olur: başka dildeki konuşma çevrilmez ve toplantıdan atlanır.
+    /// Kayıt sırasında toplantı dilini değiştirir; o andan sonraki metin yeni dille yazılır. Toplantıda artık iki dil
+    /// var: dil süzmesi bu kayıtta kalkar (bkz. `recordingFixedLanguage`), değişiklikten önce önceki dilde konuşulanlar
+    /// toplantıdan atlanmasın.
     func setLanguage(language: MeetingLanguage) {
         guard isRecording, !isFinishing, let handle = session?.handle else {
             return
         }
-        recordingFixedLanguage = language
+        recordingFixedLanguage = nil
+        languageSkippedSegments = []
         Task {
             await handle.setLanguage(language)
         }
@@ -1890,11 +1895,7 @@ final class AppModel {
         withSessionDirectory(id: meetingID) { (directory: URL) -> Void in
             processingMeetingIDs.insert(meetingID)
             // Kabul edilen öneriler artık notta; bekleyen öneri yoksa inceleme kartı kapanır.
-            if case .ready(let review, _) = speakerReviews[meetingID] {
-                speakerReviews[meetingID] = review.hasPendingSuggestions || !review.suspicious.isEmpty
-                    ? .ready(review: review, applied: 0)
-                    : nil
-            }
+            speakerReviews[meetingID] = speakerReviewAfterNoteRewrite(state: speakerReviews[meetingID])
             Task {
                 let llm: LLMProvider? = await optionalLLMProvider()
                 let noteStartedAt: ContinuousClock.Instant = .now
@@ -1958,16 +1959,12 @@ final class AppModel {
             saveRecord(record: record.with(speakerNames: names), directory: directory)
         }
         refreshFolderCopy(meetingID: meetingID)
-        let source: String = voiceSource(meetingID: meetingID, person: person)
-        // Ad düzeltildiyse bu kişinin sesi eski addan geri alınır (yoksa sonraki toplantılarda yanlış adla tanınırdı).
-        var voices: [RegisteredVoice] = registeredVoices
-        if let previous, previous.caseInsensitiveCompare(trimmed) != .orderedSame {
-            voices = unregistering(voices: voices, name: previous, source: source, now: Date())
-        }
-        // Adı verilen kişinin sesi hatırlanır: sonraki toplantılarda (ve "Tekrar işle"de) ad kendiliğinden gelir.
-        if !trimmed.isEmpty, UserDefaults.standard.bool(forKey: SettingsKey.voiceRecognition), let voice = record.voiceprints?[person] {
-            voices = registering(voices: voices, name: trimmed, voiceprint: voice, source: source, now: Date())
-        }
+        // Ad düzeltildiyse bu kişinin sesi eski addan geri alınır; adı verilen kişinin sesi hatırlanır: sonraki
+        // toplantılarda (ve "Tekrar işle"de) ad kendiliğinden gelir.
+        let voices: [RegisteredVoice] = voicesAfterNamingSpeaker(
+            voices: registeredVoices, meetingID: meetingID, person: person, previous: previous, name: trimmed,
+            voiceprint: UserDefaults.standard.bool(forKey: SettingsKey.voiceRecognition) ? record.voiceprints?[person] : nil, now: Date()
+        )
         if voices != registeredVoices {
             storeVoices(voices: voices)
         }
@@ -2019,16 +2016,15 @@ final class AppModel {
 
     /// Yeni klasör oluşturur (aynı ad varsa bir şey yapmaz).
     func createFolder(name: String) {
-        let trimmed: String = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, !folders.contains(where: { $0.name.caseInsensitiveCompare(trimmed) == .orderedSame }) else {
+        guard let updated = addingFolder(saved: savedFolders, records: meetings, name: name) else {
             return
         }
-        storeFolders(folders: savedFolders + [trimmed])
+        storeFolders(folders: updated)
     }
 
     /// Klasörü siler: toplantılar silinmez, klasörsüz kalır.
     func deleteFolder(name: String) {
-        storeFolders(folders: savedFolders.filter { $0.caseInsensitiveCompare(name) != .orderedSame })
+        storeFolders(folders: removingFolder(saved: savedFolders, name: name))
         moveMeetings(ids: Set(meetingsInFolder(records: meetings, folder: name).map(\.id)), to: nil)
     }
 
@@ -2443,22 +2439,13 @@ final class AppModel {
         storeUserRecipes(userRecipes + [recipeFromQuestion(question: question, id: UUID().uuidString)])
     }
 
-    /// Agent Skill dosyalarını (`SKILL.md`) tarif olarak ekler; okunamayanların nedeni döner.
-    func importSkills(files: [URL]) -> [String] {
-        var imported: [Recipe] = []
-        var failures: [String] = []
-        for file in files {
-            do {
-                let text: String = try String(contentsOf: file, encoding: .utf8)
-                imported.append(try recipeFromSkill(text: text, file: file.lastPathComponent, id: UUID().uuidString))
-            } catch {
-                failures.append("\(file.lastPathComponent): \(userFacingMessage(error: error))")
-            }
+    /// Agent Skill dosyalarını (`SKILL.md`) tarif olarak ekler; eklenenler ve okunamayanların nedeni döner.
+    func importSkills(files: [URL]) -> SkillImportResult {
+        let result: SkillImportResult = importSkillRecipes(files: files) { UUID().uuidString }
+        if !result.recipes.isEmpty {
+            storeUserRecipes(userRecipes + result.recipes)
         }
-        if !imported.isEmpty {
-            storeUserRecipes(userRecipes + imported)
-        }
-        return failures
+        return result
     }
 
     /// Kullanıcı tarifini siler.
@@ -2853,11 +2840,6 @@ final class AppModel {
     /// aynı hedefe üst üste göndermesin.
     @ObservationIgnored private var notesInFlight: Set<String> = []
 
-    /// Toplantı ve hedef çiftinin anahtarı (süren ve sonucu belirsiz gönderimler). Saf fonksiyondur.
-    private func meetingDestinationKey(meetingID: String, destinationID: String) -> String {
-        "\(meetingID)|\(destinationID)"
-    }
-
     /// Ayarlardaki "Dene": örnek notu hedefe gönderir; hedef yoksa (bu arada kaldırıldı) hata metni döner.
     func sendTestNote(destinationID: String) async -> String? {
         guard let destination = destinations.first(where: { $0.id == destinationID }) else {
@@ -2964,11 +2946,10 @@ final class AppModel {
             await refreshDestinationList()
             await resolveMissingNotionIdentities()
             let uncertain: Set<String> = uncertainSends()
-            let pending: [(meetingID: String, destinationID: String)] = pendingAutoSends(records: meetings, destinations: destinations, now: Date())
-                .filter { (item: (meetingID: String, destinationID: String)) -> Bool in
-                    !(pendingSentMarks[item.meetingID] ?? []).contains(item.destinationID) && !isLocked(meetingID: item.meetingID)
-                        && !uncertain.contains(meetingDestinationKey(meetingID: item.meetingID, destinationID: item.destinationID))
-                }
+            let locked: Set<String> = Set(meetings.map(\.id).filter { isLocked(meetingID: $0) })
+            let pending: [(meetingID: String, destinationID: String)] = autoSendQueue(
+                records: meetings, destinations: destinations, now: Date(), pendingMarks: pendingSentMarks, locked: locked, uncertain: uncertain
+            )
             for item in pending {
                 // Liste kurulduktan sonra elle gönderilmeye başlandıysa ya da gönderildiyse (başka Mac'ten de) atlanır
                 // (not iki kez düşmesin).
@@ -3157,8 +3138,7 @@ final class AppModel {
               let tracker = taskTrackers.first(where: { $0.id == trackerID }) else {
             return
         }
-        let tasks: [NoteTask] = tasksInScope(tasks: note.tasks, scope: scope)
-            .filter { !isTaskSent(record: record, tracker: tracker, task: $0) && !isTaskDone(record: record, task: $0) }
+        let tasks: [NoteTask] = tasksToSend(record: record, note: note, tracker: tracker, scope: scope)
         guard !tasks.isEmpty else {
             showSendState(state: .failed(String(localized: "Gönderilecek açık görev yok (hepsi gönderilmiş ya da tamamlanmış).")), meetingID: meetingID, states: \.trackerStates)
             return
@@ -3474,11 +3454,7 @@ final class AppModel {
         guard peopleBookError == nil, !trimmed.isEmpty else {
             return
         }
-        storeVoices(voices: registeredVoices.map { (voice: RegisteredVoice) -> RegisteredVoice in
-            voice.name.caseInsensitiveCompare(oldName) == .orderedSame
-                ? RegisteredVoice(name: trimmed, voiceprint: voice.voiceprint, updatedAt: voice.updatedAt, contributions: voice.contributions)
-                : voice
-        })
+        storeVoices(voices: renamingVoice(voices: registeredVoices, oldName: oldName, newName: trimmed))
     }
 
     /// Kişiyi Kişiler'den kaldırır ve sesini unutur; toplantılardaki adı ve görevleri kalır.
@@ -3911,24 +3887,6 @@ private func fixedLanguage(mode: LanguageMode) -> MeetingLanguage? {
         return nil
     }
     return language
-}
-
-/// Webhook gönderiminin durumu.
-enum WebhookSendState: Equatable {
-    case sending
-    case sent
-    /// Bitti, kısa özetle (ör. açılan Linear işleri).
-    case done(String)
-    case failed(String)
-}
-
-/// Gönderim sonucunun kalkma süresi: gitti 3,5 sn, hata 5 sn; gönderilirken kalır. Saf fonksiyondur.
-private func sendResultFadeDelay(state: WebhookSendState) -> Duration? {
-    switch state {
-    case .sending: nil
-    case .sent, .done: .seconds(3.5)
-    case .failed: .seconds(5)
-    }
 }
 
 /// Sırası bekleyen canlı çeviri (bir cümle birimi).

@@ -272,6 +272,8 @@ export interface StripeWebhookConfig {
   readonly stripeMode: StripeMode;
   /** Abonelik fiyatları: webhook yalnızca bu fiyatlı (ya da `metadata.user_id` taşıyan) aboneliklere dokunur. */
   readonly stripePrices: StripePrices;
+  /** App Store aboneliğinin erişimi için sandbox ayarı (`REVENUECAT_ACCEPT_SANDBOX`; iki kaynaktan çift ödeme alarmı). */
+  readonly appStore: Pick<AppStoreConfig, "acceptSandbox">;
   readonly secrets: {
     readonly stripe: string;
     readonly stripeWebhook: string;
@@ -470,7 +472,10 @@ const envSchema = z.object({
   TURNSTILE_SECRET_KEY: secret,
 });
 
-/** Webhook'un okuduğu ayarlar (`envSchema`'nın parçası; deneme sırrı davetteki kart özeti içindir). */
+/**
+ * Webhook'un okuduğu ayarlar (`envSchema`'nın parçası; deneme sırrı davetteki kart özeti, sandbox ayarı App Store
+ * aboneliğinin erişimi içindir).
+ */
 const stripeWebhookSchema = envSchema.pick({
   ENVIRONMENT: true,
   STRIPE_SECRET_KEY: true,
@@ -478,6 +483,7 @@ const stripeWebhookSchema = envSchema.pick({
   STRIPE_PRICE_ID: true,
   STRIPE_YEARLY_PRICE_ID: true,
   TRIAL_HASH_SECRET: true,
+  REVENUECAT_ACCEPT_SANDBOX: true,
 });
 
 /** RevenueCat webhook'unun okuduğu ayarlar; gizli değerler zorunludur. */
@@ -536,6 +542,7 @@ export function parseStripeWebhookConfig(env: Env): StripeWebhookConfig {
     environment: parsed.data.ENVIRONMENT,
     stripeMode: stripeModeOf(parsed.data.STRIPE_SECRET_KEY),
     stripePrices: stripePricesOf(parsed.data.STRIPE_PRICE_ID, parsed.data.STRIPE_YEARLY_PRICE_ID),
+    appStore: { acceptSandbox: parsed.data.REVENUECAT_ACCEPT_SANDBOX },
     secrets: { stripe: parsed.data.STRIPE_SECRET_KEY, stripeWebhook: parsed.data.STRIPE_WEBHOOK_SECRET, trialHash: parsed.data.TRIAL_HASH_SECRET },
   };
 }

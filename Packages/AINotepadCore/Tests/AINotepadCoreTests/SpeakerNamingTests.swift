@@ -97,6 +97,25 @@ import Testing
         #expect(namedRecord(record: once, userName: "Şenol") == once)
     }
 
+    // The cached list naming shows exactly what naming each meeting does, and follows renames, note and user name changes.
+    @Test func cachedNamingMatchesNamingEachMeeting() {
+        let named: MeetingRecord = record(note: note, speakerNames: names)
+        let unnamed: MeetingRecord = MeetingRecord(
+            id: "20261103-110000", title: "Plain", startedAt: Date(timeIntervalSince1970: 1_793_004_000), endedAt: nil, language: .english,
+            status: .done, failureMessage: nil, liveSegments: [], finalSegments: [], translations: [:], speakerNames: [:],
+            note: note, audioDeleted: false, engine: .cloud, notice: nil, meNeedsFinalPass: nil
+        )
+        let first: (records: [MeetingRecord], cache: NamedRecordsCache) = namedRecords(records: [named, unnamed], userName: "Şenol", cache: .empty)
+        #expect(first.records == namedRecords(records: [named, unnamed], userName: "Şenol"))
+        #expect(namedRecords(records: [named, unnamed], userName: "Şenol", cache: first.cache).records == first.records)
+        let renamed: MeetingRecord = named.with(speakerNames: renamingSpeakers(names: names, edits: [2: "Aino"]))
+        let edited: MeetingRecord = unnamed.with(note: MeetingNote(title: "Speaker 1 only", summary: "", decisions: [], tasks: [], glossary: []))
+        for (records, userName) in [([renamed, edited], "Şenol"), ([named, unnamed], "Julia"), ([unnamed], "Şenol")] {
+            #expect(namedRecords(records: records, userName: userName, cache: first.cache).records == namedRecords(records: records, userName: userName))
+        }
+        #expect(myTasks(namedRecords: first.records).map(\.task.owner) == myTasks(meetings: [named, unnamed], userName: "Şenol").map(\.task.owner))
+    }
+
     @Test func userNameMatching() {
         #expect(isUserName(name: "şenol", userName: "Şenol Doğan"))
         #expect(isUserName(name: "Şenol Doğan", userName: "şenol doğan"))

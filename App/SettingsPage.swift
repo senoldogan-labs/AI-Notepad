@@ -1409,31 +1409,26 @@ private enum ChannelCard: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Hesapla girişin servisi (Slack, Teams, Discord); diğerlerinde nil.
-    var service: ChannelService? {
+    /// Kartın hedef türü (Mac ve iPhone'da ortak, bkz. `DestinationKind`).
+    var kind: DestinationKind {
         switch self {
         case .slack: .slack
         case .teams: .teams
         case .discord: .discord
-        case .notion, .zoom, .webhook: nil
+        case .notion: .notion
+        case .zoom: .zoom
+        case .webhook: .webhook
         }
+    }
+
+    /// Hesapla girişin servisi (Slack, Teams, Discord); diğerlerinde nil.
+    var service: ChannelService? {
+        kind.channelService
     }
 
     /// Bu karttan eklenmiş hedef mi. Saf fonksiyondur.
     func matches(destination: NoteDestination) -> Bool {
-        switch destination.target {
-        case .account(let connection): service == connection.service
-        case .notion: self == .notion
-        case .discordSignIn: self == .discord
-        case .webhook(let url):
-            switch webhookKind(url: url) {
-            case .slack: self == .slack
-            case .discord: self == .discord
-            case .teams: self == .teams
-            case .zoom: self == .zoom
-            case .generic: self == .webhook
-            }
-        }
+        destinationKind(destination: destination) == kind
     }
 }
 
@@ -2157,9 +2152,7 @@ private struct SkillSettings: View {
         guard panel.runModal() == .OK else {
             return
         }
-        let failures: [String] = model.importSkills(files: panel.urls)
-        let added: Int = panel.urls.count - failures.count
-        status = ([added > 0 ? String(localized: "\(added) beceri Sor'a tarif olarak eklendi.") : nil] + failures).compactMap { $0 }.joined(separator: "\n")
+        status = skillImportSummary(result: model.importSkills(files: panel.urls))
     }
 }
 
@@ -2192,9 +2185,9 @@ private struct ShortcutSettings: View {
     }
 }
 
-/// Tıklanınca bir sonraki tuş bileşimini kaydeden düğme.
+/// Tıklanınca bir sonraki tuş bileşimini kaydeden düğme. Kısayol atanmamışsa (`binding` nil) "Kısayol seç" yazar.
 struct ShortcutRecorder: View {
-    let binding: KeyBinding
+    let binding: KeyBinding?
     let onRecord: @MainActor (KeyBinding) -> Void
     @State private var isRecording: Bool = false
     @State private var monitor: Any?
@@ -2203,12 +2196,30 @@ struct ShortcutRecorder: View {
         Button {
             isRecording ? stop() : start()
         } label: {
-            Text(isRecording ? String(localized: "Tuşlara bas…") : keyBindingDisplay(binding: binding))
-                .monospaced()
-                .frame(minWidth: 110)
+            Group {
+                if isRecording {
+                    Text("Tuşlara bas…")
+                } else if let binding {
+                    Text(verbatim: keyBindingDisplay(binding: binding))
+                } else {
+                    Text("Kısayol seç")
+                }
+            }
+            .monospaced()
+            .frame(minWidth: 110)
         }
-        .accessibilityLabel(isRecording ? String(localized: "Kısayol kaydediliyor") : String(localized: "Kısayol: \(keyBindingDisplay(binding: binding)). Değiştir"))
+        .accessibilityLabel(accessibilityText)
         .onDisappear { stop() }
+    }
+
+    private var accessibilityText: String {
+        if isRecording {
+            return String(localized: "Kısayol kaydediliyor")
+        }
+        guard let binding else {
+            return String(localized: "Kısayol atanmadı. Seç")
+        }
+        return String(localized: "Kısayol: \(keyBindingDisplay(binding: binding)). Değiştir")
     }
 
     private func start() {

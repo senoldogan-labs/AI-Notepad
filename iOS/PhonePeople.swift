@@ -12,7 +12,7 @@ struct PhonePeopleList: View {
     @State private var isAdding: Bool = false
 
     var body: some View {
-        let people: [PersonSummary] = peopleDirectory(records: store.meetings, voices: [], book: store.peopleBook, userName: phoneUserName())
+        let people: [PersonSummary] = peopleDirectory(records: store.meetings, voices: store.voices.registered, book: store.peopleBook, userName: phoneUserName())
         let trimmed: String = query.trimmingCharacters(in: .whitespaces)
         let shown: [PersonSummary] = trimmed.isEmpty ? people : people.filter {
             $0.name.localizedCaseInsensitiveContains(trimmed) || $0.role.localizedCaseInsensitiveContains(trimmed)
@@ -91,6 +91,11 @@ private struct PhonePersonRow: View {
                 .lineLimit(1)
             }
             Spacer(minLength: 0)
+            if person.hasVoiceprint {
+                Image(systemName: "waveform.badge.checkmark")
+                    .foregroundStyle(Theme.muted)
+                    .accessibilityLabel(Text("Sesinden tanınıyor"))
+            }
             Image(systemName: "chevron.right")
                 .appFont(size: 12, weight: .semibold)
                 .foregroundStyle(Theme.muted)
@@ -116,7 +121,7 @@ private struct PhonePersonPage: View {
     @Environment(\.dismiss) private var dismiss: DismissAction
 
     var body: some View {
-        let people: [PersonSummary] = peopleDirectory(records: store.meetings, voices: [], book: store.peopleBook, userName: phoneUserName())
+        let people: [PersonSummary] = peopleDirectory(records: store.meetings, voices: store.voices.registered, book: store.peopleBook, userName: phoneUserName())
         if let person = people.first(where: { $0.id == (renamedID ?? personID) }) {
             content(person: person)
         } else {
@@ -144,11 +149,17 @@ private struct PhonePersonPage: View {
                             }
                             .appFont(size: 13, weight: .regular)
                         }
+                        // Mac'teki gibi sesin durumu; sesinden tanıma kapalıyken yalnız kayıtlı sesi olan kişide.
+                        if person.hasVoiceprint || phoneVoiceRecognitionEnabled() {
+                            Label(person.hasVoiceprint ? LocalizedStringKey("Sesinden tanınıyor") : LocalizedStringKey("Sesi henüz kayıtlı değil"), systemImage: person.hasVoiceprint ? "waveform.badge.checkmark" : "waveform")
+                                .appFont(size: 13, weight: .regular)
+                                .foregroundStyle(Theme.muted)
+                        }
                     }
                 }
                 if confirmRemove {
                     VStack(alignment: .leading, spacing: 10) {
-                        Label("Kişiler'den kaldırılsın mı? Toplantılardaki adı kalır.", systemImage: "person.crop.circle.badge.minus")
+                        Label(person.hasVoiceprint ? LocalizedStringKey("Kişiler'den kaldırılsın mı? Toplantılardaki adı kalır, sesi unutulur.") : LocalizedStringKey("Kişiler'den kaldırılsın mı? Toplantılardaki adı kalır."), systemImage: "person.crop.circle.badge.minus")
                             .appFont(size: 14, weight: .medium)
                         HStack(spacing: 10) {
                             Button("Kaldır", role: .destructive) {

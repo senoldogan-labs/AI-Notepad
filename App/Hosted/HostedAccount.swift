@@ -817,13 +817,14 @@ final class HostedAccount {
         queueTrigger += 1
     }
 
-    /// Hak durumu henüz okunmadıysa (açılış) ya da okunamadıysa (çevrimdışı açılış) ve süren okuma yoksa okur: iPhone'da
-    /// açılışta, iki platformda ağ geri gelince ve uygulama öne gelince çağrılır.
+    /// Hak durumu henüz okunmadıysa (açılış), okunamadıysa (çevrimdışı açılış) ya da hesap hizmeti kullanılamadıysa (ör.
+    /// Anahtar Zinciri cihazın ilk kilit açılışından önce okunamadı) ve süren okuma yoksa okur: iPhone'da açılışta, iki
+    /// platformda ağ geri gelince ve uygulama öne gelince çağrılır.
     func readUnknownStatus() async {
         switch state {
-        case .loading, .signedInStatusUnknown:
+        case .loading, .signedInStatusUnknown, .unavailable:
             break
-        case .signedIn, .signedOut, .unavailable:
+        case .signedIn, .signedOut:
             return
         }
         guard !isRefreshing else {
@@ -1004,17 +1005,29 @@ final class HostedAccount {
         // Silinen hesabın açık oturum listesi (silmeden sonra oturum yoktur, hesap ondan önce okunur).
         let userID: String? = signedInUserIDCache
         await perform { (client: HostedClient) async throws -> Void in
-            let deletion: HostedAccountDeletion? = try await client.deleteAccount()
-            if let subscription = deletion?.appStoreSubscription {
-                // Kullanıcı silmeden önce uyarıyı gördü; Apple aboneliği kendisi iptal etmeli. Uyarı silmeden sonra da
-                // görünür (iPhone'da giriş kapısında, Apple'ın abonelik penceresini açan düğmeyle).
-                accountLogger.info("Silinen hesabın App Store aboneliği sürüyor, yenilenecek: \(subscription.willRenew, privacy: .public)")
-            }
-            await self.rememberDeletedAppStoreSubscription(subscription: deletion?.appStoreSubscription)
             // Yerel temizlik yalnızca silme başarılıysa: başarısızsa (ör. çevrimdışı) hesap durur, kapatılamamış oturumları
             // izlenmeye ve çevrimdışı kayıt izni geçerli kalmalı.
-            await self.clearAfterAccountDeletion(userID: userID)
+            do {
+                let deletion: HostedAccountDeletion? = try await client.deleteAccount()
+                await self.finishAccountDeletion(deletion: deletion, userID: userID)
+            } catch let failure as HostedAccountDeletedLocalFailure {
+                // Sunucu hesabı sildi, bu cihazdaki son adım başarısız oldu: hesap silinmiş sayılır, hata da gösterilir.
+                await self.finishAccountDeletion(deletion: failure.deletion, userID: userID)
+                throw failure
+            }
         }
+    }
+
+    /// Sunucuda silinen hesabın bu cihazdaki sonu: süren App Store aboneliği giriş kapısında gösterilmek üzere tutulur,
+    /// yerel izler temizlenir.
+    private func finishAccountDeletion(deletion: HostedAccountDeletion?, userID: String?) {
+        if let subscription = deletion?.appStoreSubscription {
+            // Kullanıcı silmeden önce uyarıyı gördü; Apple aboneliği kendisi iptal etmeli. Uyarı silmeden sonra da
+            // görünür (iPhone'da giriş kapısında, Apple'ın abonelik penceresini açan düğmeyle).
+            accountLogger.info("Silinen hesabın App Store aboneliği sürüyor, yenilenecek: \(subscription.willRenew, privacy: .public)")
+        }
+        rememberDeletedAppStoreSubscription(subscription: deletion?.appStoreSubscription)
+        clearAfterAccountDeletion(userID: userID)
     }
 
     /// Silinen hesabın süren App Store aboneliğini (yoksa nil) giriş kapısında göstermek için tutar.

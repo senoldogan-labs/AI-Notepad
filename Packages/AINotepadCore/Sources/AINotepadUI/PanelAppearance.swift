@@ -258,12 +258,24 @@ public struct StoredAppearance: Equatable, Sendable {
     }
 }
 
-/// Saklanan değerlerden görünüm: sayılar ayar aralığına sıkıştırılır, tanınmayan seçim (eski ya da bozuk ayar)
-/// varsayılanıdır. Mac ve iPhone aynı kuralla okur. Saf fonksiyondur.
-public func resolvedPanelAppearance(stored: StoredAppearance) -> PanelAppearance {
+/// Saklanan yazı seçimi; tanınmıyorsa ya da ailesi artık yüklü değilse (`isFamilyInstalled` false döner) nil. Saf
+/// fonksiyondur.
+public func availableFontChoice(storage: String, isFamilyInstalled: (String) -> Bool) -> AppFontChoice? {
+    guard let choice = AppFontChoice.parse(storage: storage) else {
+        return nil
+    }
+    if case .installed(let family) = choice, !isFamilyInstalled(family) {
+        return nil
+    }
+    return choice
+}
+
+/// Saklanan değerlerden görünüm: sayılar ayar aralığına sıkıştırılır, tanınmayan seçim (eski ya da bozuk ayar) ve
+/// yüklü olmayan yazı ailesi (`availableFontChoice`) varsayılanıdır. Mac ve iPhone aynı kuralla okur. Saf fonksiyondur.
+public func resolvedPanelAppearance(stored: StoredAppearance, isFontFamilyInstalled: (String) -> Bool) -> PanelAppearance {
     let standard: PanelAppearance = .standard
     return PanelAppearance(
-        fontChoice: AppFontChoice.parse(storage: stored.fontDesign) ?? standard.fontChoice,
+        fontChoice: availableFontChoice(storage: stored.fontDesign, isFamilyInstalled: isFontFamilyInstalled) ?? standard.fontChoice,
         uiScale: clamped(value: stored.uiScale, range: AppearanceRange.uiScale),
         textSize: clamped(value: stored.textSize, range: AppearanceRange.textSize),
         lineSpacing: clamped(value: stored.lineSpacing, range: AppearanceRange.lineSpacing),

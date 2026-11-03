@@ -46,6 +46,8 @@ enum PhoneSettingsKey {
     static let aiDisclosureAccepted: String = "hosted.aiDisclosureAccepted"
     /// Toplantı sayfasında sözlük açık mı (Mac'teki ayarla aynı ad); varsayılan kapalı, tercih tüm toplantılar için.
     static let glossaryExpanded: String = "meeting.glossaryExpanded"
+    /// Konuşmacıları sesinden tanı (Mac'teki ayarla aynı ad; bkz. `PhoneVoices`); varsayılan kapalı.
+    static let voiceRecognition: String = "voiceRecognition"
 }
 
 /// iPhone ayarlarının varsayılanları (Mac'tekilerle aynı).
@@ -61,6 +63,7 @@ func registerPhoneDefaults() {
         PhoneSettingsKey.displayMode: DisplayMode.bilingual.rawValue,
         PhoneSettingsKey.missedWindowMinutes: 3,
         PhoneSettingsKey.meetingReminders: false,
+        PhoneSettingsKey.voiceRecognition: false,
         // Mac'teki Gistsmith gibi açık; Ayarlar › Gizlilik'ten kapatılır (bkz. `HostedTelemetryCenter`).
         shareUsageStatisticsDefaultsKey: true,
         // Arayüz dili: Türkçe arayüzde mevcut kullanıcıların notu eskisi gibi Türkçe sürer.
@@ -150,9 +153,14 @@ func phoneMissedWindowMinutes() -> Int {
     min(max(UserDefaults.standard.integer(forKey: PhoneSettingsKey.missedWindowMinutes), missedWindowMinutesRange.lowerBound), missedWindowMinutesRange.upperBound)
 }
 
+/// Canlı metnin gösterimi (Ayarlar › Toplantı; kayıt kartındaki "Canlı çeviri").
+func phoneDisplayMode() -> DisplayMode {
+    DisplayMode(rawValue: UserDefaults.standard.string(forKey: PhoneSettingsKey.displayMode) ?? "") ?? .bilingual
+}
+
 /// Kayıt sırasında not diline canlı çeviri açık mı (Ayarlar › Toplantı).
 func phoneLiveTranslationEnabled() -> Bool {
-    (DisplayMode(rawValue: UserDefaults.standard.string(forKey: PhoneSettingsKey.displayMode) ?? "") ?? .bilingual).needsLiveTranslation
+    phoneDisplayMode().needsLiveTranslation
 }
 
 /// Kayda verilen tanıma terimleri (Mac'teki gibi): adın ve tanıma sözlüğü öne, sonra Kişiler'e elle eklenenler, sonra son

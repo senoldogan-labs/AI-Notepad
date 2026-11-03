@@ -299,3 +299,22 @@ export async function grantSubscription(userId: string, status: string, periodEn
     ).bind(userId, customer, `sub_${randomToken(8)}`, status, periodEndMs, status === "past_due" ? periodEndMs : null),
   ]);
 }
+
+/** App Store abonelik satırının test alanları. */
+export interface AppStoreGrant {
+  readonly status: "active" | "canceled" | "billing_issue" | "expired" | "refunded";
+  readonly periodType: string;
+  readonly environment: "PRODUCTION" | "SANDBOX";
+  readonly expiresAtMs: number;
+}
+
+/** App Store abonelik satırı ekler (RevenueCat webhook'u dışında kısayol). */
+export async function grantAppStoreSubscription(userId: string, grant: AppStoreGrant): Promise<void> {
+  await env.DB.prepare(
+    `INSERT INTO app_store_subscriptions (user_id, store, product_id, plan, status, period_type, purchased_at, expires_at,
+       grace_expires_at, environment, last_event_id, synced_at, updated_at)
+     VALUES (?, 'app_store', 'com.senoldogan.gistsmith.monthly', 'monthly', ?, ?, ?, ?, NULL, ?, NULL, 0, 0)`,
+  )
+    .bind(userId, grant.status, grant.periodType, grant.expiresAtMs - 30 * 86_400_000, grant.expiresAtMs, grant.environment)
+    .run();
+}

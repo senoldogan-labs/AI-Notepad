@@ -97,6 +97,13 @@ public func upcomingMeetings(meetings: [CalendarMeeting], now: Date, horizonSec:
         .sorted { $0.start < $1.start }
 }
 
+/// Bugün biten toplantılar: bitmiş ve bugün (`calendar`ın gününde) başlamış etkinlikler, en yeni önce. Saf fonksiyondur.
+public func meetingsEndedToday(meetings: [CalendarMeeting], now: Date, calendar: Calendar) -> [CalendarMeeting] {
+    meetings
+        .filter { $0.end <= now && calendar.isDate($0.start, inSameDayAs: now) }
+        .sorted { $0.start > $1.start }
+}
+
 /// Hatırlatma zamanlanacak toplantılar: henüz başlamamış, `horizonSec` içinde başlayan, 8 saatten kısa; sıralı.
 /// Saf fonksiyondur.
 public func meetingsToRemind(meetings: [CalendarMeeting], now: Date, horizonSec: Double) -> [CalendarMeeting] {

@@ -28,12 +28,12 @@ import Testing
         #expect(step(.handsFree, .keyUp(at: 5)) == DictationKeyTransition(state: .handsFree, effect: nil))
     }
 
-    // İptal yalnızca dinlerken sesi atar; yazıya dökülürken kısayol ve iptal yok sayılır, bitince boşa döner.
+    // İptal dinlerken sesi, yazıya dökülürken metni atar; yazıya dökülürken kısayol yok sayılır, bitince boşa döner.
     @Test func cancelAndTranscribingAreGuarded() {
         #expect(step(.pressed(since: 0), .cancel) == DictationKeyTransition(state: .idle, effect: .cancelListening))
         #expect(step(.handsFree, .cancel) == DictationKeyTransition(state: .idle, effect: .cancelListening))
         #expect(step(.transcribing, .keyDown(at: 1)) == DictationKeyTransition(state: .transcribing, effect: nil))
-        #expect(step(.transcribing, .cancel) == DictationKeyTransition(state: .transcribing, effect: nil))
+        #expect(step(.transcribing, .cancel) == DictationKeyTransition(state: .idle, effect: .discardText))
         #expect(step(.transcribing, .finished) == DictationKeyTransition(state: .idle, effect: nil))
         #expect(step(.idle, .escape) == DictationKeyTransition(state: .idle, effect: nil))
         #expect(step(.idle, .keyUp(at: 1)) == DictationKeyTransition(state: .idle, effect: nil))

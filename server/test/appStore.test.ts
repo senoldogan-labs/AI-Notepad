@@ -2,7 +2,8 @@ import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { randomId } from "../src/crypto";
 import type { Env } from "../src/env";
-import { type Harness, type Session, defaultHarness, envWith, expectError, grantSubscription, req, signIn, signInWithGoogle, startMeeting } from "./helpers";
+import { type Harness, type Session, defaultHarness, envWith, expectError, grantAppStoreSubscription, grantSubscription, req, signIn, signInWithGoogle, startMeeting } from "./helpers";
+import { type FakeStripe, stubStripeApi } from "./stripeFake";
 
 const dayMs: number = 86_400_000;
 const webhookAuth: string = "Bearer test-revenuecat-webhook-auth-000";
@@ -417,6 +418,31 @@ describe("hak birleştirme (Stripe + App Store)", () => {
     const portal: Response = await harness.call(req("POST", "/v1/billing/portal", { token: session.accessToken }));
     expect(portal.status).toBe(200);
     expect(await portal.json<{ url: string }>()).toEqual({ url: "https://apps.apple.com/account/subscriptions" });
+  });
+
+  it("portal: Stripe'ta yaşayan (erişimsiz) abonelik App Store satırına rağmen Stripe Portal'ına gider; bitmişse Apple sayfası", async () => {
+    const harness: Harness = await defaultHarness();
+    const stripe: FakeStripe = stubStripeApi(harness);
+    const portalUrl = async (session: Session): Promise<string> => {
+      const response: Response = await harness.call(req("POST", "/v1/billing/portal", { token: session.accessToken }));
+      expect(response.status).toBe(200);
+      return (await response.json<{ url: string }>()).url;
+    };
+    const expiredAppStore = { status: "expired", periodType: "normal", environment: "PRODUCTION", expiresAtMs: harness.clock.nowMs - 5 * dayMs } as const;
+    // Ek süresi geçmiş `past_due` ve ödemesi tamamlanmamış abonelik Stripe'ta yaşar: kart Portal'da düzeltilir.
+    for (const status of ["past_due", "incomplete"]) {
+      const session: Session = await signIn(harness);
+      await grantSubscription(session.userId, status, harness.clock.nowMs - 30 * dayMs);
+      await grantAppStoreSubscription(session.userId, expiredAppStore);
+      expect(await portalUrl(session)).toMatch(/^https:\/\/billing\.stripe\.com\//);
+    }
+    expect(stripe.portalForms).toHaveLength(2);
+    // Bitmiş Stripe aboneliğinde Apple'ın sayfası döner, Stripe çağrılmaz.
+    const canceled: Session = await signIn(harness);
+    await grantSubscription(canceled.userId, "canceled", harness.clock.nowMs - 30 * dayMs);
+    await grantAppStoreSubscription(canceled.userId, expiredAppStore);
+    expect(await portalUrl(canceled)).toBe("https://apps.apple.com/account/subscriptions");
+    expect(stripe.portalForms).toHaveLength(2);
   });
 
   it("davet: App Store abonesi kod alır ve kodu geçerlidir; özet ödülün Apple faturasına uygulanmadığını bildirir", async () => {

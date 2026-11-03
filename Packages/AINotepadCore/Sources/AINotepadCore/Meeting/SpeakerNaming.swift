@@ -162,3 +162,51 @@ public func namedRecord(record: MeetingRecord, userName: String) -> MeetingRecor
 public func namedRecords(records: [MeetingRecord], userName: String) -> [MeetingRecord] {
     records.map { namedRecord(record: $0, userName: userName) }
 }
+
+/// The note's tasks as `namedRecord` shows them, without naming the rest of the note (the label search over a whole
+/// note is the costly part). Pure function.
+public func namedTasks(record: MeetingRecord, userName: String) -> [NoteTask] {
+    let tasks: [NoteTask] = record.note?.tasks ?? []
+    guard !record.speakerNames.isEmpty else {
+        return tasks
+    }
+    return tasks.map { namedTask(task: $0, speakerNames: record.speakerNames, userName: userName) }
+}
+
+/// One meeting's named note and shared-language versions (see `namedRecord`) with everything they depend on.
+public struct NamedNotes: Sendable, Equatable {
+    let userName: String
+    let speakerNames: [Int: String]
+    let note: MeetingNote?
+    let sharedNotes: [String: MeetingNote]?
+    let namedNote: MeetingNote?
+    let namedSharedNotes: [String: MeetingNote]?
+}
+
+/// Named notes of the last named list by meeting id (see `namedRecords(records:userName:cache:)`).
+public struct NamedRecordsCache: Sendable, Equatable {
+    let entries: [String: NamedNotes]
+
+    public static let empty: NamedRecordsCache = NamedRecordsCache(entries: [:])
+}
+
+/// `namedRecords`, reusing the cached named notes of meetings whose note, shared-language versions and speaker names
+/// and the user name are unchanged, so a list where one meeting changed (a recording checkpoint, a renamed speaker) runs
+/// the label search only for that meeting. Returns the named records in the given order and the cache for the next
+/// call (holding only these meetings). Pure function.
+public func namedRecords(records: [MeetingRecord], userName: String, cache: NamedRecordsCache) -> (records: [MeetingRecord], cache: NamedRecordsCache) {
+    let named: [(record: MeetingRecord, entry: NamedNotes)] = records.map { (record: MeetingRecord) -> (record: MeetingRecord, entry: NamedNotes) in
+        if let cached = cache.entries[record.id], cached.userName == userName, cached.speakerNames == record.speakerNames,
+           cached.note == record.note, cached.sharedNotes == record.sharedNotes {
+            return (record: record.presenting(note: cached.namedNote, sharedNotes: cached.namedSharedNotes), entry: cached)
+        }
+        let shown: MeetingRecord = namedRecord(record: record, userName: userName)
+        let entry: NamedNotes = NamedNotes(
+            userName: userName, speakerNames: record.speakerNames, note: record.note, sharedNotes: record.sharedNotes,
+            namedNote: shown.note, namedSharedNotes: shown.sharedNotes
+        )
+        return (record: shown, entry: entry)
+    }
+    let entries: [String: NamedNotes] = Dictionary(named.map { (key: $0.record.id, value: $0.entry) }) { (_: NamedNotes, last: NamedNotes) -> NamedNotes in last }
+    return (records: named.map(\.record), cache: NamedRecordsCache(entries: entries))
+}

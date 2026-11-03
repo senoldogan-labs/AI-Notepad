@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isoOrNull } from "./admin";
+import { appStoreAccessExistsSql } from "./appStore";
 import type { Config, SubscriptionPlan } from "./config";
 import {
   type SubscriptionAccess,
@@ -328,6 +329,14 @@ const accessSql: string = `COALESCE((s.status IN ('active', 'trialing') AND (CAS
   THEN s.current_period_end + ${subscriptionRenewalGraceMs} ELSE s.current_period_end END) > ?1)
   OR (s.status = 'past_due' AND s.past_due_since + ?2 > ?1), 0)`;
 
+/**
+ * Hesabın erişimi olan App Store aboneliği var mı (`users u`; `appStore.appStoreAccess` ≠ `none`). Sandbox ayarı sabit
+ * metin olarak girer (kullanıcı girdisi değil). Bağ: ?1 = şimdi. Saf fonksiyondur.
+ */
+function appStoreAccessSql(config: Config): string {
+  return appStoreAccessExistsSql("u.id", config.appStore.acceptSandbox ? "1" : "0");
+}
+
 /** Denemeye başlamış (ya da silinmiş hesabından deneme devralmış) hesap için SQL koşulu (`users u`). */
 const trialStartedSql: string = "(u.trial_started_at IS NOT NULL OR u.carried_trial_meetings > 0)";
 
@@ -346,28 +355,29 @@ const hasMeetingSql: string = "EXISTS (SELECT 1 FROM meeting_sessions m WHERE m.
 /**
  * Kesimin SQL koşulu (sabit metin; kullanıcı girdisi içermez). Bağlar: ?1 = şimdi, ?2 = ek süre (ms), ?8 = deneme
  * toplantı sayısı, ?9 = deneme süresi (ms), ?10 = etkinlik sınırı (şimdi − `inactiveAfterMs`). Abonelik satırı kullanıcı
- * başına tektir (`subscriptions s`, LEFT JOIN). Saf fonksiyondur.
+ * başına tektir (`subscriptions s`, LEFT JOIN). Plan kesimleri iki kaynağı birleştirir (`paidAccess` gibi): erişimi olan
+ * App Store aboneliği (`appStoreAccess`) de abonedir. Saf fonksiyondur.
  */
-function segmentSql(segment: AdminUserSegment | null): string {
+function segmentSql(segment: AdminUserSegment | null, appStoreAccess: string): string {
   switch (segment) {
     case null:
       return "1 = 1";
     case "subscribed":
-      return `${accessSql} = 1`;
+      return `(${accessSql} = 1 OR ${appStoreAccess})`;
     case "past_due":
       return "s.status = 'past_due'";
     case "canceled":
       return "s.status = 'canceled'";
     case "trial":
-      return `${trialStartedSql} AND ${accessSql} = 0`;
+      return `${trialStartedSql} AND ${accessSql} = 0 AND NOT ${appStoreAccess}`;
     case "free":
-      return `${noSubscriptionSql} AND NOT ${trialStartedSql}`;
+      return `${noSubscriptionSql} AND NOT ${trialStartedSql} AND NOT ${appStoreAccess}`;
     case "invited":
       return invitedSql;
     case "no_meeting":
       return `u.carried_trial_meetings = 0 AND NOT ${hasMeetingSql}`;
     case "trial_ended":
-      return `${trialStartedSql} AND (${noSubscriptionSql} OR s.status IN ('incomplete', 'incomplete_expired'))
+      return `${trialStartedSql} AND (${noSubscriptionSql} OR s.status IN ('incomplete', 'incomplete_expired')) AND NOT ${appStoreAccess}
         AND (u.carried_trial_meetings + (SELECT COUNT(*) FROM meeting_sessions m WHERE m.user_id = u.id AND m.kind = 'trial') >= ?8
           OR u.trial_started_at + ?9 <= ?1)`;
     case "inactive":
@@ -401,13 +411,16 @@ interface UserRow {
   readonly last_failure_code: string | null;
   readonly invited: number;
   readonly invite_free_month: number;
+  readonly app_store_access: number;
 }
 
 /**
- * Kullanıcı satırının sütunları. Bağlar: ?1 = şimdi, ?3 = ay başı (ms). Toplantı sayıları `meeting_sessions_user`
- * dizinini, son oturum yenilemesi `refresh_families_user` ve `refresh_tokens_family` dizinlerini kullanır.
+ * Kullanıcı satırının sütunları (`appStoreAccess`: `appStoreAccessSql`). Bağlar: ?1 = şimdi, ?3 = ay başı (ms).
+ * Toplantı sayıları `meeting_sessions_user` dizinini, son oturum yenilemesi `refresh_families_user` ve
+ * `refresh_tokens_family` dizinlerini kullanır. Saf fonksiyondur.
  */
-const userColumnsSql: string = `u.id, u.created_at, u.trial_started_at, u.trial_device_verified_at, u.carried_trial_meetings,
+function userColumnsSql(appStoreAccess: string): string {
+  return `u.id, u.created_at, u.trial_started_at, u.trial_device_verified_at, u.carried_trial_meetings,
   (SELECT provider FROM auth_identities a WHERE a.user_id = u.id ORDER BY provider LIMIT 1) AS provider,
   s.status, s.current_period_end, s.cancel_at, s.past_due_since, s.updated_at, s.plan, s.complimentary,
   (SELECT COUNT(*) FROM meeting_sessions m WHERE m.user_id = u.id) AS meetings,
@@ -420,7 +433,9 @@ const userColumnsSql: string = `u.id, u.created_at, u.trial_started_at, u.trial_
   (SELECT m.last_failure_code FROM meeting_sessions m WHERE m.user_id = u.id AND m.failure_count > 0
      ORDER BY m.last_failure_at DESC LIMIT 1) AS last_failure_code,
   ${invitedSql} AS invited,
-  COALESCE(s.complimentary = 0 AND s.plan = 'monthly' AND ${freeInviteMonthSql}, 0) AS invite_free_month`;
+  COALESCE(s.complimentary = 0 AND s.plan = 'monthly' AND ${freeInviteMonthSql}, 0) AS invite_free_month,
+  ${appStoreAccess} AS app_store_access`;
+}
 
 /** Satırın abonelik durumu (satır yoksa null). Saf fonksiyondur. */
 function subscriptionOf(row: UserRow): SubscriptionState | null {
@@ -435,7 +450,10 @@ function subscriptionOf(row: UserRow): SubscriptionState | null {
       };
 }
 
-/** Satırın listedeki özeti. Saf fonksiyondur. */
+/**
+ * Satırın listedeki özeti. Plan iki kaynağın birleşimidir (`paidAccess` gibi): Stripe ya da App Store erişimi varsa
+ * `subscription`. `subscription` alanı ve davet rozeti yalnızca Stripe satırını anlatır. Saf fonksiyondur.
+ */
 function userSummary(row: UserRow, config: Config, now: Date): AdminUserSummary {
   const subscription: SubscriptionState | null = subscriptionOf(row);
   const access: SubscriptionAccess = subscriptionAccess(subscription, now, config.pastDueGraceMs);
@@ -446,7 +464,7 @@ function userSummary(row: UserRow, config: Config, now: Date): AdminUserSummary 
     id: row.id,
     provider: row.provider,
     createdAt: new Date(row.created_at).toISOString(),
-    plan: access !== "none" ? "subscription" : trialStarted ? "trial" : "free",
+    plan: access !== "none" || row.app_store_access === 1 ? "subscription" : trialStarted ? "trial" : "free",
     subscription:
       subscription === null
         ? null
@@ -489,14 +507,15 @@ function inviteBadge(invited: boolean, freeMonthRow: boolean, access: Subscripti
  * sayfalar (`users_created` dizini). Satır başına alt sorgular yalnızca sayfadaki kullanıcılar için çalışır.
  */
 export async function listAdminUsers(db: D1Database, config: Config, filter: AdminUserFilter, now: Date): Promise<AdminUserPage> {
+  const appStoreAccess: string = appStoreAccessSql(config);
   const result = await db
     .prepare(
-      `SELECT ${userColumnsSql}
+      `SELECT ${userColumnsSql(appStoreAccess)}
        FROM users u LEFT JOIN subscriptions s ON s.user_id = u.id
        WHERE (?4 IS NULL OR u.id LIKE ?4 || '%')
          AND (?5 IS NULL OR EXISTS (SELECT 1 FROM auth_identities a WHERE a.user_id = u.id AND a.provider = ?5))
          AND (?6 IS NULL OR u.created_at < ?6 OR (u.created_at = ?6 AND u.id < ?7))
-         AND ${segmentSql(filter.segment)}
+         AND ${segmentSql(filter.segment, appStoreAccess)}
        ORDER BY u.created_at DESC, u.id DESC LIMIT ?11`,
     )
     .bind(
@@ -723,7 +742,7 @@ function hoursOf(seconds: number): number {
 export async function adminUserDetail(db: D1Database, config: Config, userId: string, now: Date): Promise<AdminUserDetail> {
   const nowMs: number = now.getTime();
   const userRow: UserRow | null = await db
-    .prepare(`SELECT ${userColumnsSql} FROM users u LEFT JOIN subscriptions s ON s.user_id = u.id WHERE u.id = ?2`)
+    .prepare(`SELECT ${userColumnsSql(appStoreAccessSql(config))} FROM users u LEFT JOIN subscriptions s ON s.user_id = u.id WHERE u.id = ?2`)
     .bind(nowMs, userId, monthStartMs(now))
     .first<UserRow>();
   if (userRow === null) {
