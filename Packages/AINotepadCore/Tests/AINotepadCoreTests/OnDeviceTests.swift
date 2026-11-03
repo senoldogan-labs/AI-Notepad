@@ -99,6 +99,10 @@ import Testing
         #expect(deviceDefaultMeetingLanguage(preferredLanguages: ["fi-FI"]) == .finnish)
         #expect(deviceDefaultMeetingLanguage(preferredLanguages: ["et-EE"]) == .estonian)
         #expect(deviceDefaultMeetingLanguage(preferredLanguages: ["nb-NO"]) == .norwegian)
+        // iPhone'un ilk kurulumu: cihazın dili; seçilmiş dil ya da önceden kurulmuş kullanıcı değişmez.
+        #expect(firstRunMeetingLanguage(storedLanguage: nil, onboardingCompleted: false, preferredLanguages: ["de-DE"]) == .german)
+        #expect(firstRunMeetingLanguage(storedLanguage: "fi", onboardingCompleted: false, preferredLanguages: ["de-DE"]) == nil)
+        #expect(firstRunMeetingLanguage(storedLanguage: nil, onboardingCompleted: true, preferredLanguages: ["de-DE"]) == nil)
         #expect(deviceDefaultMeetingLanguage(preferredLanguages: ["xx-YY"]) == .english)
         #expect(deviceDefaultMeetingLanguage(preferredLanguages: []) == .english)
     }

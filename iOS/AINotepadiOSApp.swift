@@ -25,6 +25,7 @@ struct AINotepadiOSApp: App {
     init() {
         registerPhoneDefaults()
         keepPhoneLegacyNoteLanguage(defaults: .standard)
+        choosePhoneMeetingLanguageOnFirstRun(defaults: .standard)
         // Tema ilk kareden önce uygulanır.
         let theme: AppTheme = AppTheme(rawValue: UserDefaults.standard.string(forKey: PhoneSettingsKey.theme) ?? "") ?? .system
         ThemeStore.shared.set(light: theme.colorSets.light, dark: theme.colorSets.dark)
@@ -190,6 +191,7 @@ private struct PhoneAppRoot: View {
             guard !Task.isCancelled else {
                 return
             }
+            store.loadPeople()
             ask.loadRecipes()
             ask.loadHistory()
             store.applyRetention(now: Date())
@@ -459,13 +461,24 @@ struct RootView: View {
         router.tab = .ask
     }
 
+    /// Toplantıya tarif uygular (Mac'teki "Tarif"): yeni bir Sor sohbetinde yalnız o toplantıya sorulur.
+    private func runRecipe(recipe: Recipe, meetingID: String) {
+        ask.clear()
+        ask.ask(question: recipe.prompt, meetingIDs: [meetingID], recipeTitle: recipe.title)
+        router.askPath = [.conversation]
+        router.tab = .ask
+    }
+
     var body: some View {
         TabView(selection: $router.tab) {
             Tab("Kayıt", systemImage: "record.circle", value: PhoneTab.record) {
                 RecordTab(recorder: recorder, store: store, router: router, calendar: calendar, onBriefing: startBriefing(meeting:))
             }
             Tab("Toplantılar", systemImage: "list.bullet.rectangle", value: PhoneTab.meetings) {
-                MeetingsTab(store: store, recorder: recorder, router: router, player: player, isRecording: recorder.phase != .idle)
+                MeetingsTab(
+                    store: store, recorder: recorder, router: router, player: player, isRecording: recorder.phase != .idle, recipes: ask.recipes,
+                    onRunRecipe: runRecipe(recipe:meetingID:)
+                )
             }
             Tab("Sor", systemImage: "sparkle.magnifyingglass", value: PhoneTab.ask) {
                 AskTab(ask: ask, store: store, router: router)
@@ -553,10 +566,21 @@ struct RootView: View {
 final class PhoneStore {
     private static let logger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "PhoneStore")
     private(set) var meetings: [MeetingRecord] = []
-    /// Okunamayan klasörler ya da klasöre erişim hatası (kullanıcıya gösterilir).
-    private(set) var problems: [String] = []
+    /// Okunamayan klasörler ya da klasöre erişim hatası (her okumada yenilenir).
+    private(set) var loadProblems: [String] = []
+    /// Toplantı işlemlerinin hataları (not yenileme, düzenleme, görev işareti…): okumayla silinmez; toplantı sayfasında
+    /// ve Görevler'de de görünür, kullanıcı kapatır (`dismissActionProblems`).
+    private(set) var actionProblems: [String] = []
+    /// Kullanıcıya gösterilen tüm sorunlar (Toplantılar listesi).
+    var problems: [String] { loadProblems + actionProblems }
     /// Çalan toplantı: sesi saklama süresiyle silinmez (dosyaları kullanımda).
     var playingMeetingID: String?
+    /// Elle eklenen ve kaldırılan kişiler (`People.json`, Mac'tekiyle aynı biçim; bkz. `PhonePeopleList`).
+    private(set) var peopleBook: PeopleBook = .empty
+    /// Kişiler defteri okunamadı ya da yazılamadı.
+    private(set) var peopleBookError: String?
+    /// Defter okundu: okunamadıysa üzerine yazılmaz (boş defterle eski kişiler silinmesin).
+    @ObservationIgnored private var peopleBookLoaded: Bool = false
 
     /// Listeyi arka planda okur; art arda gelen istekleri birleştirir.
     @ObservationIgnored private let reloader: MeetingReloader = MeetingReloader()
@@ -573,10 +597,57 @@ final class PhoneStore {
             try await loadMeetingsInBackground(location: .local)
         }, apply: { (result: MeetingLoadResult) -> Void in
             self.meetings = result.meetings
-            self.problems = result.failures.map { (failure: MeetingLoadFailure) -> String in "\(failure.folder): \(failure.reason)" }
+            self.loadProblems = result.failures.map { (failure: MeetingLoadFailure) -> String in "\(failure.folder): \(failure.reason)" }
         }, fail: { (error: any Error) -> Void in
-            self.problems = [userFacingMessage(error: error)]
+            self.loadProblems = [userFacingMessage(error: error)]
         })
+    }
+
+    /// İşlem hatalarını kapatır.
+    func dismissActionProblems() {
+        actionProblems = []
+    }
+
+    /// Kişiler defterini okur (hesabın klasöründen; Mac'teki `loadPeople`).
+    func loadPeople() {
+        do {
+            peopleBook = try loadPeopleBook(url: try peopleFileURL())
+            peopleBookLoaded = true
+            peopleBookError = nil
+        } catch {
+            Self.logger.error("Kişiler defteri okunamadı, hata: \(String(describing: error), privacy: .private)")
+            peopleBookError = userFacingMessage(error: error)
+        }
+    }
+
+    /// Kişi ekler ya da bilgilerini günceller (adı konuşma tanımaya da verilir).
+    func savePerson(name: String, role: String, email: String) {
+        storePeople(book: addingPerson(book: peopleBook, person: SavedPerson(name: name, role: role, email: email, addedAt: Date())))
+    }
+
+    /// Elle eklenen kişinin adını ve bilgilerini değiştirir.
+    func renamePerson(oldName: String, name: String, role: String, email: String) {
+        storePeople(book: renamingPerson(book: peopleBook, oldName: oldName, person: SavedPerson(name: name, role: role, email: email, addedAt: Date())))
+    }
+
+    /// Kişiyi Kişiler'den kaldırır (toplantılardaki adı kalır).
+    func removePerson(name: String) {
+        storePeople(book: removingPerson(book: peopleBook, name: name, now: Date()))
+    }
+
+    private func storePeople(book: PeopleBook) {
+        guard peopleBookLoaded else {
+            peopleBookError = String(localized: "Kişiler defteri okunamadığı için değişiklik kaydedilmedi; People.json dosyasını denetle ve uygulamayı yeniden aç.")
+            return
+        }
+        do {
+            try savePeopleBook(book: book, url: try peopleFileURL())
+            peopleBook = book
+            peopleBookError = nil
+        } catch {
+            Self.logger.error("Kişiler defteri yazılamadı, hata: \(String(describing: error), privacy: .private)")
+            peopleBookError = userFacingMessage(error: error)
+        }
     }
 
     /// Kaydedilen toplantıyı listeye yazar (her kayıtta klasör yeniden okunmaz).
@@ -634,16 +705,25 @@ final class PhoneStore {
         do {
             try updateMeeting(meetingID: meetingID) { (record: MeetingRecord) -> MeetingRecord in record.with(myNotes: text) }
         } catch {
-            problems = appendUnique(messages: problems, message: String(localized: "Notların kaydedilemedi: \(userFacingMessage(error: error))"))
+            actionProblems = appendUnique(messages: actionProblems, message: String(localized: "Notların kaydedilemedi: \(userFacingMessage(error: error))"))
             return
         }
-        await regenerateNote(meetingID: meetingID)
+        guard let record = rewritableRecord(meetingID: meetingID) else {
+            return
+        }
+        // Geçmişteki ad Mac'teki gibi (⋯ › Geri al).
+        await rewriteNote(record: record, reason: String(localized: "Kendi notlarınla yeniden yazıldı"))
     }
 
     /// Görevin tamamlandı işaretini değiştirir ve toplantıyı saklar. Değişiklik diskteki en güncel kayda uygulanır
     /// (Mac'te iCloud'la gelmiş düzenlemeler bellekteki eski kopyayla ezilmesin).
     func toggleTask(meetingID: String, task: NoteTask) {
-        guard let record = meetings.first(where: { $0.id == meetingID }), record.status != .recording, record.status != .processing else {
+        guard let record = meetings.first(where: { $0.id == meetingID }) else {
+            return
+        }
+        guard record.status != .recording, record.status != .processing else {
+            // Dokunuş boşa gitmesin: işleme bitince not bütünüyle yazılır, işaret kaybolurdu.
+            actionProblems = appendUnique(messages: actionProblems, message: String(localized: "Toplantı işlenirken görev işaretlenemez; işleme bitince yeniden dene."))
             return
         }
         do {
@@ -652,7 +732,7 @@ final class PhoneStore {
             try saveMeeting(record: updated, directory: directory)
             upsert(record: updated)
         } catch {
-            problems = appendUnique(messages: problems, message: String(localized: "Toplantı kaydedilemedi: \(userFacingMessage(error: error))"))
+            actionProblems = appendUnique(messages: actionProblems, message: String(localized: "Toplantı kaydedilemedi: \(userFacingMessage(error: error))"))
         }
     }
 
@@ -682,7 +762,7 @@ final class PhoneStore {
                 try saveMeeting(record: updated, directory: directory)
                 upsert(record: updated)
             } catch {
-                problems = appendUnique(messages: problems, message: userFacingMessage(error: error))
+                actionProblems = appendUnique(messages: actionProblems, message: userFacingMessage(error: error))
             }
         }
     }
@@ -731,7 +811,7 @@ final class PhoneStore {
             try saveMeeting(record: versioned, directory: directory)
             upsert(record: versioned)
         } catch {
-            problems = appendUnique(messages: problems, message: String(localized: "Not yenilenemedi: \(userFacingMessage(error: error))"))
+            actionProblems = appendUnique(messages: actionProblems, message: String(localized: "Not yenilenemedi: \(userFacingMessage(error: error))"))
         }
     }
 
@@ -760,7 +840,7 @@ final class PhoneStore {
                 fresh.note == note ? fresh.with(sharedNotes: (fresh.sharedNotes ?? [:]).merging([language.rawValue: shared]) { $1 }) : fresh
             }
         } catch {
-            problems = appendUnique(messages: problems, message: String(localized: "Çeviri saklanamadı: \(userFacingMessage(error: error))"))
+            actionProblems = appendUnique(messages: actionProblems, message: String(localized: "Çeviri saklanamadı: \(userFacingMessage(error: error))"))
         }
         return shared
     }
@@ -814,7 +894,7 @@ final class PhoneStore {
             upsert(record: versioned)
         } catch {
             Self.logger.error("Not düzenlenemedi, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
-            problems = appendUnique(messages: problems, message: String(localized: "Not düzenlenemedi: \(userFacingMessage(error: error))"))
+            actionProblems = appendUnique(messages: actionProblems, message: String(localized: "Not düzenlenemedi: \(userFacingMessage(error: error))"))
         }
     }
 

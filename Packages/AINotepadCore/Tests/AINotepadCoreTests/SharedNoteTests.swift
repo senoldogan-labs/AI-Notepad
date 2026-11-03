@@ -36,6 +36,10 @@ private func sampleRecord() -> MeetingRecord {
         #expect(!general.system.contains("Toplantı türü"))
         let shared: MeetingRecord = sampleRecord().with(sharedNotes: ["fi": sampleNote])
         #expect(shared.with(note: sampleNote).sharedNotes == nil)
+        // Ad değişince eski başlığın çevirileri paylaşılmasın.
+        let renamed: MeetingRecord = shared.with(title: "Yeni ad")
+        #expect(renamed.sharedNotes == nil)
+        #expect(renamed.note?.title == "Yeni ad")
     }
 
     // Paylaşım metni notun dilindeki başlıklarla; çeviride de konu akışı ve sözlük o dilin başlıklarıyla yer alır.
