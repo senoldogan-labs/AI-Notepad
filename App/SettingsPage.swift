@@ -241,6 +241,7 @@ private struct GeneralSettings: View {
     @AppStorage(SettingsKey.autoRecord) private var autoRecord: Bool = false
     @AppStorage(SettingsKey.noteTemplate) private var noteTemplate: String = NoteTemplateKind.general.rawValue
     @AppStorage(SettingsKey.customTemplate) private var customTemplate: String = ""
+    @AppStorage(SettingsKey.templateFromTitle) private var templateFromTitle: Bool = true
     @AppStorage(SettingsKey.noteLanguage) private var noteLanguage: String = defaultNoteLanguage(interfaceLanguages: Bundle.main.preferredLocalizations).rawValue
     @State private var interfaceLanguage: InterfaceLanguage = storedInterfaceLanguage()
     @State private var relaunchError: String?
@@ -436,6 +437,12 @@ private struct GeneralSettings: View {
                 }
                 .padding(.vertical, 12)
                 SettingsDivider()
+            }
+            SettingsRow(title: Text("Şablonu toplantı adına göre seç")) {
+                Text("Takvimdeki toplantının ya da içe aktarılan dosyanın adı türünü açıkça gösteriyorsa (ör. \"1:1\", \"Birebir\", \"Daily\", \"Sprint planning\", \"Mülakat\", \"Müşteri demosu\", \"Ders\") not o şablonla yazılır; ad bir şey söylemiyorsa yukarıdaki şablon kullanılır. Seçilen şablon toplantının ⋯ menüsünde \"(toplantı adından)\" diye görünür, oradan başka şablonla yeniden yazabilirsin. \"Kendi şablonum\" seçiliyken hep o kullanılır.")
+            } control: {
+                Toggle("Şablonu toplantı adına göre seç", isOn: $templateFromTitle)
+                    .settingsToggle()
             }
             SettingsRow(title: Text("Kayıt sırasında \(noteLanguageName) diline çevir")) {
                 Text(model.displayMode.needsLiveTranslation

@@ -1079,7 +1079,8 @@ struct MeetingDetailPage: View {
                     model.regenerateNote(meetingID: record.id, template: NoteTemplate(kind: kind, customInstructions: UserDefaults.standard.string(forKey: SettingsKey.customTemplate) ?? ""))
                 } label: {
                     if (record.template?.kind ?? .general) == kind {
-                        Label(kind.displayName, systemImage: "checkmark")
+                        // Toplantı adından seçilen şablon bunu belirtir.
+                        Label(record.template?.displayName ?? kind.displayName, systemImage: "checkmark")
                     } else {
                         Text(verbatim: kind.displayName)
                     }

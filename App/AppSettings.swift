@@ -59,6 +59,8 @@ enum SettingsKey {
     /// Yeni toplantıların not şablonu (`NoteTemplateKind`) ve kendi şablonunun yönergesi.
     static let noteTemplate: String = "noteTemplate"
     static let customTemplate: String = "customTemplate"
+    /// "Şablonu toplantı adına göre seç": ad türü açıkça gösteriyorsa yeni toplantı o şablonla yazılır.
+    static let templateFromTitle: String = "noteTemplate.fromTitle"
     /// Takvim: yaklaşan toplantılar, 1 dk önce hatırlatma, görüşme başlayınca öneri.
     static let calendarEnabled: String = "calendar.enabled"
     static let meetingReminders: String = "calendar.reminders"
@@ -293,6 +295,7 @@ func registerDefaultSettings() {
         SettingsKey.autoRecord: false,
         SettingsKey.noteTemplate: NoteTemplateKind.general.rawValue,
         SettingsKey.customTemplate: "",
+        SettingsKey.templateFromTitle: true,
         SettingsKey.theme: AppTheme.light.rawValue,
         SettingsKey.accent: PanelAppearance.standard.accent.rawValue,
         SettingsKey.fontDesign: PanelAppearance.standard.fontChoice.storageValue,
@@ -532,6 +535,16 @@ func defaultNoteTemplate() -> NoteTemplate {
         kind: NoteTemplateKind(rawValue: UserDefaults.standard.string(forKey: SettingsKey.noteTemplate) ?? "") ?? .general,
         customInstructions: UserDefaults.standard.string(forKey: SettingsKey.customTemplate) ?? ""
     )
+}
+
+/// Adı `title` olan yeni toplantının not şablonu: "Şablonu toplantı adına göre seç" açıksa ada göre (bkz.
+/// `templateForTitle`), kapalıysa Ayarlar'daki varsayılan.
+func newMeetingNoteTemplate(title: String) -> NoteTemplate {
+    let base: NoteTemplate = defaultNoteTemplate()
+    guard UserDefaults.standard.bool(forKey: SettingsKey.templateFromTitle) else {
+        return base
+    }
+    return templateForTitle(title: title, defaultTemplate: base)
 }
 
 /// Ayarlardaki ana toplantı dili; kayıtlı değer tanınmıyorsa Fince (varsayılan) ve hata loglanır.
