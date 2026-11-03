@@ -72,9 +72,12 @@ func myNotesPrompt(myNotes: String) -> (rule: String, block: String) {
     )
 }
 
-/// Toplantı notu isteği (akıllı model, yapılandırılmış çıktı, not dilinde); metin yoksa nil. Saf fonksiyondur.
+/// Toplantı notu isteği (akıllı model, yapılandırılmış çıktı, not dilinde); metin yoksa nil. With `screens` the
+/// shared-screen images go before the transcript and the system prompt asks the note to refer to them
+/// (`screenNotesRule`). Saf fonksiyondur.
 public func meetingNoteRequest(
-    segments: [StoredSegment], speakerNames: [Int: String], userName: String, template: NoteTemplate, myNotes: String, language: ShareLanguage
+    segments: [StoredSegment], speakerNames: [Int: String], userName: String, template: NoteTemplate, myNotes: String, language: ShareLanguage,
+    screens: [LLMImage]
 ) -> LLMRequest? {
     let transcript: String = storedLines(segments: segments, speakerNames: speakerNames)
     guard !transcript.isEmpty else {
@@ -94,12 +97,14 @@ public func meetingNoteRequest(
         2–4, uzunda 5–12 bölüm).
         \(noteRules(user: user, template: template, language: language))
         \(mine.rule)
+        \(screens.isEmpty ? "" : screenNotesRule(language: language))
         \(transcriptIsDataNote)
         """,
         userText: "\(mine.block)<transkript>\n\(transcript)\n</transkript>",
         maxTokens: 16000,
         jsonSchema: meetingNoteSchema,
-        timeoutSec: 300
+        timeoutSec: 300,
+        images: screens
     )
 }
 

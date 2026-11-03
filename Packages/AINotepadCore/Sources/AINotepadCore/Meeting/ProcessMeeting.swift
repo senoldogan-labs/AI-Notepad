@@ -99,6 +99,7 @@ public func processMeeting(
     noteLanguage: ShareLanguage,
     voiceEmbedder: (any VoiceEmbedder)?,
     registry: [RegisteredVoice],
+    screens: ScreenNotesPlan,
     onStep: @escaping @MainActor @Sendable (ProcessingStep) async -> Void
 ) async -> MeetingRecord {
     var current: MeetingRecord = record.with(status: .processing, failureMessage: nil).with(notice: nil)
@@ -134,7 +135,7 @@ public func processMeeting(
     }
 
     await onStep(.writingNote)
-    return await regenerateNote(record: current, directory: directory, llm: llm, userName: userName, language: noteLanguage)
+    return await regenerateNote(record: current, directory: directory, llm: llm, userName: userName, language: noteLanguage, screens: screens)
 }
 
 /// Sesinden tanıma: kişilerin ses izleri "Diğerleri" kaydından çıkarılır, adı olmayan kişilere kayıtlı seslerden emin
@@ -284,8 +285,12 @@ let noteProgressFileName: String = "note-progress.json"
 
 /// Yalnızca notu (yeniden) üretir: saklı bölümler ve güncel konuşmacı adlarıyla. Ses gerekmez; ad verdikten
 /// sonra notta da adlar görünsün diye kullanılır. Not `language` dilinde yazılır. Uzun notun ilerlemesi toplantı
-/// klasörüne yazılır (bkz. `writeMeetingNote`).
-public func regenerateNote(record: MeetingRecord, directory: URL, llm: LLMProvider?, userName: String, language: ShareLanguage) async -> MeetingRecord {
+/// klasörüne yazılır (bkz. `writeMeetingNote`). With `screens` on, the meeting's key screen snapshots (minus the
+/// unticked ones) go with the note (`screenNoteImages`); a snapshot that cannot be read fails the note like any other
+/// note error.
+public func regenerateNote(
+    record: MeetingRecord, directory: URL, llm: LLMProvider?, userName: String, language: ShareLanguage, screens: ScreenNotesPlan
+) async -> MeetingRecord {
     // Son geçiş "Diğerleri"ni kapsar; "Sen" için canlı bölümler; hoparlör yankısı nota girmez.
     // İşaretli anlar istemde "★" ile öne çıkar.
     let segments: [StoredSegment] = markingHighlights(segments: meetingSegments(record: record), highlights: record.highlights ?? [])
@@ -304,10 +309,15 @@ public func regenerateNote(record: MeetingRecord, directory: URL, llm: LLMProvid
     do {
         // Cihaz içi modelde toplantının ya da notun dili desteklenmiyorsa not yazılmaz (bozuk not yerine açık hata).
         try requireOnDeviceLanguages(provider: llm, meetingLanguages: record.language.map { [$0] } ?? [], outputLanguage: language)
+        let images: [LLMImage] = switch screens {
+        case .off: []
+        case .on: try screenNoteImages(record: record, meetingDirectory: directory, budget: screenNoteBudget, policy: screenSnapshotPolicy)
+        }
         guard let note = try await writeMeetingNote(
             segments: segments, speakerNames: record.speakerNames, userName: userName, template: record.template ?? .general,
             myNotes: record.myNotes ?? "", language: language, llm: llm,
-            progressFile: directory.appending(path: noteProgressFileName)
+            progressFile: directory.appending(path: noteProgressFileName),
+            screens: images
         ) else {
             return record.with(status: .done, failureMessage: nil)
         }

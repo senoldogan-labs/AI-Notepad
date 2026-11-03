@@ -1490,9 +1490,10 @@ final class AppModel {
         Task {
             let plan: FinalPassPlan = await finalPassPlan(record: record)
             let llm: LLMProvider? = await resolveLLM()
+            let screens: ScreenNotesPlan = screenNotesPlan()
             let result: MeetingRecord = await processMeeting(
                 record: record, directory: directory, finalPass: plan, llm: llm, languageMode: languageMode, userName: userName,
-                noteLanguage: selectedNoteLanguage(), voiceEmbedder: voiceEmbedderIfEnabled(), registry: registeredVoices
+                noteLanguage: selectedNoteLanguage(), voiceEmbedder: voiceEmbedderIfEnabled(), registry: registeredVoices, screens: screens
             ) { (step: ProcessingStep) async -> Void in
                 self.processingSteps[record.id] = step
                 if step == .writingNote {
@@ -1500,6 +1501,7 @@ final class AppModel {
                 }
             }
             recordNoteOutcome(result: result, writingStartedAt: noteWritingStartedAt.removeValue(forKey: record.id))
+            recordScreenNotesUsage(plan: screens, result: result, directory: directory)
             // Tekrar işlemede eski not geçmişe girer (ilk işlemede not yoktur).
             let versioned: MeetingRecord = withNoteVersion(updated: result, previous: record, reason: String(localized: "Tekrar işlendi"), savedAt: Date())
             let saved: MeetingRecord = withLatestMarks(result: versioned, start: record, directory: directory)
@@ -1896,8 +1898,12 @@ final class AppModel {
             Task {
                 let llm: LLMProvider? = await optionalLLMProvider()
                 let noteStartedAt: ContinuousClock.Instant = .now
-                let result: MeetingRecord = await AINotepadCore.regenerateNote(record: record, directory: directory, llm: llm, userName: userName, language: selectedNoteLanguage())
+                let screens: ScreenNotesPlan = screenNotesPlan()
+                let result: MeetingRecord = await AINotepadCore.regenerateNote(
+                    record: record, directory: directory, llm: llm, userName: userName, language: selectedNoteLanguage(), screens: screens
+                )
                 recordNoteOutcome(result: result, writingStartedAt: noteStartedAt)
+                recordScreenNotesUsage(plan: screens, result: result, directory: directory)
                 let versioned: MeetingRecord = withNoteVersion(updated: result, previous: record, reason: reason, savedAt: Date())
                 saveRecord(record: withLatestMarks(result: versioned, start: record, directory: directory), directory: directory)
                 processingMeetingIDs.remove(meetingID)

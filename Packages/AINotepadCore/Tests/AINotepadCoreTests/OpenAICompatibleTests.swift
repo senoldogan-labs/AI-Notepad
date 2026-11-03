@@ -10,7 +10,7 @@ private let sampleConfig: OpenAICompatibleConfig = OpenAICompatibleConfig(
     @Test func bodyHasSystemUserAndStrictSchema() throws {
         let request: LLMRequest = LLMRequest(
             purpose: .note, tier: .smart, system: "sistem", userText: "metin", maxTokens: 512,
-            jsonSchema: #"{"type":"object","properties":{"a":{"type":"string"}},"required":["a"],"additionalProperties":false}"#, timeoutSec: 30
+            jsonSchema: #"{"type":"object","properties":{"a":{"type":"string"}},"required":["a"],"additionalProperties":false}"#, timeoutSec: 30, images: []
         )
         let body: [String: Any] = try jsonObject(openAIRequestBody(request: request, model: openAIModel(config: sampleConfig, tier: request.tier), effort: .high))
         #expect(body["model"] as? String == "akilli")
@@ -76,7 +76,7 @@ struct OllamaTests {
     @Test func translatesFinnishSentence() async throws {
         let text: String = try await sendLLM(
             provider: .openAICompatible(try config()),
-            request: LLMRequest(purpose: .note, tier: .fast, system: "Cümleyi Türkçeye çevir; yalnızca çeviriyi yaz.", userText: "Hyvää huomenta kaikille.", maxTokens: 4000, jsonSchema: nil, timeoutSec: 120)
+            request: LLMRequest(purpose: .note, tier: .fast, system: "Cümleyi Türkçeye çevir; yalnızca çeviriyi yaz.", userText: "Hyvää huomenta kaikille.", maxTokens: 4000, jsonSchema: nil, timeoutSec: 120, images: [])
         )
         #expect(!text.isEmpty)
     }
@@ -86,7 +86,7 @@ struct OllamaTests {
         let parts: StreamBox = StreamBox()
         let text: String = try await streamLLM(
             provider: .openAICompatible(try config()),
-            request: LLMRequest(purpose: .note, tier: .smart, system: "Türkçe cevap ver.", userText: "Fince'de 'günaydın' nasıl denir? İki cümleyle anlat.", maxTokens: 4000, jsonSchema: nil, timeoutSec: 180)
+            request: LLMRequest(purpose: .note, tier: .smart, system: "Türkçe cevap ver.", userText: "Fince'de 'günaydın' nasıl denir? İki cümleyle anlat.", maxTokens: 4000, jsonSchema: nil, timeoutSec: 180, images: [])
         ) { (partial: String) -> Void in
             parts.append(partial)
         }

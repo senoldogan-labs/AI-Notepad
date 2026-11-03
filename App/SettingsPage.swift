@@ -475,6 +475,9 @@ private struct GeneralSettings: View {
                 .settingsToggle()
             }
             ScreenSnapshotSettingsRow()
+            #if HOSTED_EDITION
+            ScreenNotesSettingsRow()
+            #endif
             SettingsRow(title: Text("Kayıt başlarken haber vermeyi hatırlat")) {
                 #if HOSTED_EDITION
                 Text("Panelde kısa bir hatırlatma ve toplantı sohbetine yapıştırılacak İngilizce bildirim. Kayıt yapmadan önce katılımcılara haber vermek çoğu yerde yasal zorunluluktur.")
@@ -1008,7 +1011,7 @@ private func testConnection() async -> ConnectionTest {
     }
     do {
         _ = try await sendLLM(provider: provider, request: LLMRequest(
-            purpose: .connectionTest, tier: .smart, system: "Yalnızca \"tamam\" yaz.", userText: "Bağlantı denemesi", maxTokens: 4000, jsonSchema: nil, timeoutSec: 120
+            purpose: .connectionTest, tier: .smart, system: "Yalnızca \"tamam\" yaz.", userText: "Bağlantı denemesi", maxTokens: 4000, jsonSchema: nil, timeoutSec: 120, images: []
         ))
     } catch {
         return .failed(String(localized: "Not modeli: \(userFacingMessage(error: error))"))

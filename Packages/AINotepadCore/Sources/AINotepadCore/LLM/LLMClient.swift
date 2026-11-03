@@ -44,6 +44,18 @@ public enum LLMPurpose: String, Sendable, Equatable, CaseIterable {
     case connectionTest = "connection_test"
 }
 
+/// An image sent before the user text (shared-screen snapshot in a note): JPEG bytes and the text label placed right
+/// before it (e.g. its time on screen).
+public struct LLMImage: Sendable, Equatable {
+    public let label: String
+    public let jpeg: Data
+
+    public init(label: String, jpeg: Data) {
+        self.label = label
+        self.jpeg = jpeg
+    }
+}
+
 /// Tek turlu LLM isteği; sağlayıcıdan bağımsız.
 public struct LLMRequest: Sendable, Equatable {
     /// İsteğin özelliği (abonelik sunucusunda token kullanımının kovası).
@@ -56,8 +68,13 @@ public struct LLMRequest: Sendable, Equatable {
     public let jsonSchema: String?
     /// Deneme başına zaman aşımı; canlı çeviride kısa tutulur ki kuyruk tıkanmasın.
     public let timeoutSec: Double
+    /// Images sent before `userText` (only the Gistsmith server takes them; other providers reject a request with
+    /// images, see `requireNoImages`).
+    public let images: [LLMImage]
 
-    public init(purpose: LLMPurpose, tier: LLMTier, system: String, userText: String, maxTokens: Int, jsonSchema: String?, timeoutSec: Double) {
+    public init(
+        purpose: LLMPurpose, tier: LLMTier, system: String, userText: String, maxTokens: Int, jsonSchema: String?, timeoutSec: Double, images: [LLMImage]
+    ) {
         self.purpose = purpose
         self.tier = tier
         self.system = system
@@ -65,6 +82,7 @@ public struct LLMRequest: Sendable, Equatable {
         self.maxTokens = maxTokens
         self.jsonSchema = jsonSchema
         self.timeoutSec = timeoutSec
+        self.images = images
     }
 }
 
@@ -198,15 +216,26 @@ struct PreparedLLMCall: Sendable {
     let classify: @Sendable (_ status: Int, _ data: Data, _ requestID: String?) -> LLMOutcome
 }
 
+/// Providers other than the Gistsmith server send text only: a request with images is a programming error there and
+/// fails loudly instead of silently dropping them.
+func requireNoImages(request: LLMRequest, provider: String) throws {
+    guard request.images.isEmpty else {
+        throw LLMError.notConfigured(detail: "\(provider) does not take images (\(request.images.count) attached)")
+    }
+}
+
 /// İsteği seçili sağlayıcıya gönderir: 408/429/5xx/ağ hatası 3 deneme (`retry-after`'a uyarak, uyarı logu);
 /// diğer her sonuç kesindir. Cihaz içi model kendi kurallarıyla çalışır (bkz. `sendOnDevice`).
 public func sendLLM(provider: LLMProvider, request: LLMRequest) async throws -> String {
     switch provider {
     case .anthropic(let config):
+        try requireNoImages(request: request, provider: "Anthropic")
         return try await sendPreparedLLM(call: try prepareClaudeCall(config: config, request: request))
     case .openAICompatible(let config):
+        try requireNoImages(request: request, provider: "OpenAI-compatible")
         return try await sendPreparedLLM(call: try prepareOpenAICall(config: config, request: request))
     case .onDevice(let config):
+        try requireNoImages(request: request, provider: "Apple Intelligence")
         guard #available(macOS 26.0, *) else {
             throw OnDeviceLLMError.unavailable(reason: .requiresNewerSystem)
         }

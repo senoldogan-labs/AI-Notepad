@@ -111,11 +111,12 @@ import Testing
     @Test func missingLLMKeepsExistingNote() async throws {
         let note: MeetingNote = MeetingNote(title: "T", summary: "Ö", decisions: [], tasks: [], glossary: [])
         let kept: MeetingRecord = await regenerateNote(
-            record: meeting(id: "n", language: .english).with(note: note), directory: try temporaryDirectory(), llm: nil, userName: "Ada", language: .turkish
+            record: meeting(id: "n", language: .english).with(note: note), directory: try temporaryDirectory(), llm: nil, userName: "Ada", language: .turkish,
+            screens: .off
         )
         #expect(kept.status == .done)
         #expect(kept.note == note)
-        let fresh: MeetingRecord = await regenerateNote(record: meeting(id: "m", language: .english), directory: try temporaryDirectory(), llm: nil, userName: "Ada", language: .turkish)
+        let fresh: MeetingRecord = await regenerateNote(record: meeting(id: "m", language: .english), directory: try temporaryDirectory(), llm: nil, userName: "Ada", language: .turkish, screens: .off)
         #expect(fresh.status == .failed)
     }
 
@@ -142,7 +143,8 @@ import Testing
     @Test func refusesNoteBeforeRequest() async throws {
         let result: MeetingRecord = await regenerateNote(
             record: meeting(id: "fi", language: .finnish).with(status: .processing, failureMessage: nil), directory: try temporaryDirectory(),
-            llm: .onDevice(config), userName: "Ada", language: .turkish
+            llm: .onDevice(config), userName: "Ada", language: .turkish,
+            screens: .off
         )
         #expect(result.status == .failed)
         #expect(result.failureMessage?.contains("Fince desteklemiyor") == true, "mesaj: \(result.failureMessage ?? "")")
@@ -282,7 +284,8 @@ struct OnDeviceModelTests {
         #expect(english.lowercased().contains("report"), "metin: \(english)")
         let note: MeetingNote = try #require(try await writeMeetingNote(
             segments: [stored("final-0", .others, 1, 0, english)], speakerNames: [1: "Aino"], userName: "Ada", template: .general, myNotes: "", language: .turkish,
-            llm: llm, progressFile: try temporaryDirectory().appending(path: "note-progress.json")
+            llm: llm, progressFile: try temporaryDirectory().appending(path: "note-progress.json"),
+            screens: []
         ))
         #expect(!note.title.isEmpty && !note.summary.isEmpty, "not: \(note)")
 
@@ -293,7 +296,7 @@ struct OnDeviceModelTests {
             liveSegments: [], finalSegments: [stored("final-0", .others, 1, 0, finnish)], translations: [:], speakerNames: [:], note: nil,
             audioDeleted: false, engine: .local, notice: nil, meNeedsFinalPass: nil
         )
-        let refused: MeetingRecord = await regenerateNote(record: finnishRecord, directory: try temporaryDirectory(), llm: llm, userName: "Ada", language: .turkish)
+        let refused: MeetingRecord = await regenerateNote(record: finnishRecord, directory: try temporaryDirectory(), llm: llm, userName: "Ada", language: .turkish, screens: .off)
         #expect(refused.status == .failed && refused.note == nil)
         #expect(refused.failureMessage?.contains("Fince desteklemiyor") == true, "mesaj: \(refused.failureMessage ?? "")")
 

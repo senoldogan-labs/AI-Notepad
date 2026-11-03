@@ -72,6 +72,73 @@ public func hostedEffort(tier: LLMTier) -> LLMEffort {
     }
 }
 
+/// A content block of the user message: text, or a base64 JPEG image (shared-screen snapshot).
+enum HostedContentBlock: Encodable, Equatable {
+    case text(String)
+    case jpeg(Data)
+
+    private enum CodingKeys: String, CodingKey {
+        case type
+        case text
+        case source
+    }
+
+    private struct ImageSource: Encodable {
+        let type: String
+        let mediaType: String
+        let data: String
+
+        enum CodingKeys: String, CodingKey {
+            case type
+            case mediaType = "media_type"
+            case data
+        }
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container: KeyedEncodingContainer<CodingKeys> = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .text(let text):
+            try container.encode("text", forKey: .type)
+            try container.encode(text, forKey: .text)
+        case .jpeg(let data):
+            try container.encode("image", forKey: .type)
+            try container.encode(ImageSource(type: "base64", mediaType: "image/jpeg", data: data.base64EncodedString()), forKey: .source)
+        }
+    }
+}
+
+/// The user message: plain text, or (with images) blocks.
+enum HostedMessageContent: Encodable, Equatable {
+    case text(String)
+    case blocks([HostedContentBlock])
+
+    func encode(to encoder: any Encoder) throws {
+        var container: any SingleValueEncodingContainer = encoder.singleValueContainer()
+        switch self {
+        case .text(let text):
+            try container.encode(text)
+        case .blocks(let blocks):
+            try container.encode(blocks)
+        }
+    }
+}
+
+/// A message of the hosted request.
+struct HostedChatMessage: Encodable, Equatable {
+    let role: String
+    let content: HostedMessageContent
+}
+
+/// The user message of a request: text only without images (the body stays as before); with images each image comes
+/// after its label and before the text (Claude reads images best before the question). Pure function.
+func hostedUserContent(request: LLMRequest) -> HostedMessageContent {
+    guard !request.images.isEmpty else {
+        return .text(request.userText)
+    }
+    return .blocks(request.images.flatMap { [HostedContentBlock.text($0.label), .jpeg($0.jpeg)] } + [.text(request.userText)])
+}
+
 /// Sunucunun izin verdiği istek gövdesi: zorunlu `effort`, `system`, tek kullanıcı mesajı, `max_tokens`, isteğe bağlı
 /// `output_config.format` ve `stream`. Model, düşünme ve örnekleme alanları gönderilmez.
 struct HostedLLMRequestBody: Encodable {
@@ -81,7 +148,7 @@ struct HostedLLMRequestBody: Encodable {
 
     let effort: String
     let system: String
-    let messages: [LLMChatMessage]
+    let messages: [HostedChatMessage]
     let maxTokens: Int
     let outputConfig: OutputConfig?
     let stream: Bool
@@ -105,7 +172,7 @@ public func hostedLLMRequestBody(request: LLMRequest, effort: LLMEffort, maxToke
     let body: HostedLLMRequestBody = HostedLLMRequestBody(
         effort: effort.rawValue,
         system: request.system,
-        messages: [LLMChatMessage(role: "user", content: request.userText)],
+        messages: [HostedChatMessage(role: "user", content: hostedUserContent(request: request))],
         maxTokens: min(request.maxTokens, maxTokensCap),
         outputConfig: format.map { HostedLLMRequestBody.OutputConfig(format: $0) },
         stream: true

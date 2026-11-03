@@ -19415,6 +19415,116 @@
           }
         }
       }
+    },
+    "Bir ekran görüntüsü okunamadı ya da küçültülemedi. Ekranlar sekmesinden o görüntüyü nottan çıkarıp ya da silip yeniden dene.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A screen snapshot couldn't be read or downscaled. Untick it for the note or delete it on the meeting's Screens tab, then try again."
+          }
+        }
+      }
+    },
+    "Notla gönderilen ekran görüntüleri sunucunun sınırını aşıyor. Ayarlar › Genel'de \"Notlarda ekran görüntülerini kullan\"ı kapatıp ya da Ekranlar sekmesinden bazılarını nottan çıkarıp notu yenile.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The screen snapshots sent with the note are over the server's limit. Turn off \"Use screen snapshots in notes\" in Settings › General, or untick some on the Screens tab, then refresh the note."
+          }
+        }
+      }
+    },
+    "Notlarda ekran görüntülerini kullan": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use screen snapshots in notes"
+          }
+        }
+      }
+    },
+    "Not yazılırken toplantının en çok konuşulan en fazla 6 ekran görüntüsü küçültülüp notla birlikte sunucumuza, oradan da Anthropic'e (Claude) gönderilir; not ekrana atıf yapabilir (ör. \"Fiyatlandırma slaytında, 12:40\"). Sunucumuz görüntüleri saklamaz ve loglamaz; Anthropic onları transkriptle aynı koşullarla işler. Bir görüntüyü toplantının Ekranlar sekmesinden nottan çıkarabilirsin. Kapalıyken görüntüler bu Mac'ten çıkmaz.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When the note is written, up to 6 of the meeting's most-discussed screen snapshots are downscaled and sent with it to our server and from there to Anthropic (Claude), so the note can refer to them (e.g. \"on the Pricing slide, 12:40\"). Our server doesn't store or log the images; Anthropic handles them on the same terms as the transcript. You can leave a snapshot out on the meeting's Screens tab. When this is off, snapshots never leave this Mac."
+          }
+        }
+      }
+    },
+    "Görüntü alınması için \"Paylaşılan ekranın görüntülerini al\" da açık olmalı.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snapshots are only taken when \"Take snapshots of the shared screen\" is on too."
+          }
+        }
+      }
+    },
+    "Not yazılırken \"Notta\" işaretli görüntülerden en çok konuşulan en fazla 6'sı sunucumuza ve Anthropic'e gönderilir; işaretini kaldırdığın görüntü gönderilmez. Seçim bir sonraki notta geçerli olur.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When the note is written, up to 6 of the most-discussed snapshots ticked \"In note\" are sent to our server and Anthropic; an unticked snapshot is never sent. Your choice applies to the next note."
+          }
+        }
+      }
+    },
+    "Notta": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In note"
+          }
+        }
+      }
+    },
+    "Not yazılırken bu görüntü gönderilebilir; kaldırınca gönderilmez": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This snapshot may be sent when the note is written; untick to keep it out"
+          }
+        }
+      }
+    },
+    "Bu görüntü nota gönderilmez": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This snapshot isn't sent with the note"
+          }
+        }
+      }
+    },
+    "Not yazılırken değiştirilemez": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can't be changed while the note is being written"
+          }
+        }
+      }
+    },
+    "Seçim kaydedilemedi: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't save the choice: %@"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
