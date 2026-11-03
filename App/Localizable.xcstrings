@@ -7650,6 +7650,16 @@
         }
       }
     },
+    "Sunucu %lld saniyede yanıt vermedi.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server didn't respond within %lld seconds."
+          }
+        }
+      }
+    },
     "Çevrimiçi görüşme kaydında ekrana birkaç saniyede bir bakılır; içerik anlamlı değişince (slayt, tasarım, sayfa) bir görüntü saklanır ve o sırada konuşulanlarla eşlenir. Görüşme penceresi (Zoom, Meet, Teams…) bulunursa yalnızca o, yoksa ana ekran alınır; bu uygulamanın pencereleri hiç alınmaz. Görüntüler bu Mac'te toplantının klasöründe kalır ve yapay zekâya gönderilmez; yalnızca bağladığın MCP istemcisi (ör. Claude, Cursor) okuyabilir. Toplantı silinince görüntüleri de silinir.": {
       "localizations": {
         "en": {
