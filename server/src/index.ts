@@ -15,6 +15,7 @@ import { errorName, log } from "./log";
 import { retryRecorder } from "./opsEvents";
 import type { CachedJwks, Platform } from "./platform";
 import { grantDueReferralRewards } from "./referralRewards";
+import { scheduledSyncCleanupLimits, syncCleanup } from "./sync";
 
 /** Worker örneği ömrünce paylaşılan kimlik sağlayıcısı anahtarları önbelleği. */
 const jwksCache: Map<string, CachedJwks> = new Map();
@@ -46,7 +47,8 @@ export default {
   },
   /**
    * Günlük Cron Trigger: ElevenLabs kapasite denetimi (eşik üstündeyse alarm), bitirilmeden kalan toplantıların Deepgram
-   * tahmininin indirilmesi, biten günün anlık görüntüsü (`recordDailyMetrics`), süresi dolmuş satırların temizliği,
+   * tahmininin indirilmesi, biten günün anlık görüntüsü (`recordDailyMetrics`), süresi dolmuş satırların ve eşitleme
+   * kopyalarının temizliği,
    * günü gelmiş davet ödülleri ve Apple/Google anahtarlarının tazelenmesi.
    */
   async scheduled(controller: ScheduledController, env: Env): Promise<void> {
@@ -63,6 +65,8 @@ export default {
       // Deepgram tahmini indirildikten sonra: biten günün toplamları ve gün sonundaki durum (bkz. `dailyMetrics.ts`).
       { name: "daily_metrics", run: () => recordDailyMetrics(env.DB, config, now) },
       { name: "cleanup", run: () => cleanupExpiredRows(env.DB, now, scheduledCleanupLimits) },
+      // Eşitleme: erişimi 90 gün önce biten hesapların şifreli kopyası ve silme kuyruğundaki R2 önekleri (bkz. `sync.ts`).
+      { name: "sync_cleanup", run: () => syncCleanup(env.DB, env.SYNC_BUCKET, config, now, scheduledSyncCleanupLimits) },
       // Bekleme süresi dolmuş davet ödülleri (davet edenin Stripe müşteri bakiyesi; bkz. `referralRewards.ts`).
       { name: "referral_rewards", run: () => grantDueReferralRewards(env.DB, platform, config, now) },
       // Apple ve Google anahtarları önceden alınır: girişler sağlayıcıyı beklemesin (bkz. `persistedIssuerKeys`).

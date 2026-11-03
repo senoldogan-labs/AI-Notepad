@@ -55,6 +55,12 @@ export type ErrorCode =
   | "llm_purpose_invalid"
   | "screen_images_over_limit"
   | "analytics_unavailable"
+  | "sync_unavailable"
+  | "sync_not_enabled"
+  | "sync_key_mismatch"
+  | "sync_conflict"
+  | "sync_quota_exceeded"
+  | "sync_cursor_expired"
   | "webhook_invalid"
   | "internal_error";
 
@@ -114,6 +120,12 @@ const statusByCode: Readonly<Record<ErrorCode, number>> = {
   llm_purpose_invalid: 400,
   screen_images_over_limit: 413,
   analytics_unavailable: 503,
+  sync_unavailable: 503,
+  sync_not_enabled: 409,
+  sync_key_mismatch: 409,
+  sync_conflict: 409,
+  sync_quota_exceeded: 413,
+  sync_cursor_expired: 410,
   webhook_invalid: 400,
   internal_error: 500,
 };

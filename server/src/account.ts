@@ -11,6 +11,7 @@ import { ledgerOnDeletionStatement, trialIdentityHash } from "./trialLedger";
 import type { IdentityProvider } from "./auth/users";
 import { type AppleRevocationOutcome, appleTokenDeletionStatement, revokeAppleTokensForDeletion } from "./auth/appleTokens";
 import { dayKey } from "./usage";
+import { purgeSyncPrefixNow, syncDeletionStatements, syncPrefix } from "./sync";
 
 /** Hesabın giriş kimliği. */
 interface StoredIdentity {
@@ -62,6 +63,9 @@ function accountDeletedCounterStatement(db: D1Database, userId: string, now: Dat
  * App Store aboneliğinin satırı (`app_store_subscriptions`) silinir; abonelik Apple'da sürer (bkz. `deleteAccount`).
  * Apple ile girişin saklanan yenileme jetonu (`apple_sign_in_tokens`; iptali `deleteAccount`'ta, toplu işlemden önce)
  * kimlikler silinmeden önce silinir.
+ * Eşitlemenin şifreli kopyası (`sync_objects`, `sync_key_envelopes`, `sync_accounts`) aynı işlemde silinir ve R2 öneki
+ * silme kuyruğuna (`sync_purges`) yazılır (`syncDeletionStatements`); bloklar `deleteAccount`'ta hemen, kalırsa günlük
+ * temizlikte silinir.
  * `daily_spend` (toplam, kişisel değil), `downloads`, `download_sources`, `download_visitors`, `ops_events`,
  * `used_nonces`, `stripe_events` ve telemetri toplamları (`llm_purpose_usage`, `client_event_counts`,
  * `client_event_durations`, `feature_usage_daily`, `app_funnel_daily`) hesaba bağlı değildir; hesabın son uygulama ve
@@ -89,6 +93,7 @@ function accountDeletionStatements(db: D1Database, userId: string, identityHashe
     db.prepare("DELETE FROM refresh_families WHERE user_id = ?").bind(userId),
     db.prepare("DELETE FROM device_challenges WHERE user_id = ?").bind(userId),
     db.prepare("DELETE FROM transcription_results WHERE user_id = ?").bind(userId),
+    ...syncDeletionStatements(db, userId, syncPrefix(userId), now),
     ...userReservationRemovalStatements(db, userId),
     db.prepare("DELETE FROM meeting_sessions WHERE user_id = ?").bind(userId),
     db
@@ -153,7 +158,7 @@ export function accountDeletionResult(subscription: AppStoreSubscription | null,
  * (`accountDeletionResult`). RevenueCat'teki satın alma kaydı (bu hesap kimliğiyle) Apple aboneliği sürdükçe orada
  * kalır; sonraki yenilemeler webhook'ta bilinmeyen hesap olarak sayılır.
  */
-export async function deleteAccount(db: D1Database, platform: Platform, config: Config, userId: string, now: Date): Promise<AccountDeletion> {
+export async function deleteAccount(db: D1Database, syncBucket: R2Bucket, platform: Platform, config: Config, userId: string, now: Date): Promise<AccountDeletion> {
   const canceledSubscriptions: number = await closeStripeForDeletion(db, platform, config, userId);
   const appleRevocation: AppleRevocationOutcome = await revokeAppleTokensForDeletion(db, platform, config.appleSignIn, userId, now);
   const appStore: AppStoreSubscription | null = await appStoreSubscriptionOf(db, userId);
@@ -166,6 +171,8 @@ export async function deleteAccount(db: D1Database, platform: Platform, config: 
     identities.results.map((identity: StoredIdentity): Promise<string> => trialIdentityHash(config.secrets.trialHash, identity.provider, identity.subject)),
   );
   await db.batch(accountDeletionStatements(db, userId, identityHashes, now));
+  // Eşitlemenin şifreli blokları: satırlar zaten silindi (kopya erişilemez); R2 hatası günlük temizliğe kalır.
+  await purgeSyncPrefixNow(db, syncBucket, userId, syncPrefix(userId), now);
   log("info", "account_deleted", { userId, canceledSubscriptions, appleRevocation, appStoreSubscriptionActive: result.appStoreSubscription !== null });
   return result;
 }
