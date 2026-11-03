@@ -12,6 +12,10 @@ import {
   syncObjectMaxBytes,
   syncEpochPrefix,
   syncPrefix,
+  syncR2ClassABudget,
+  syncR2ClassBBudget,
+  syncR2StoredBytesBudget,
+  syncUsageMonth,
 } from "../src/sync";
 import { parseConfig } from "../src/config";
 import { type Harness, type Session, blockingLimiter, defaultHarness, envWith, expectError, grantSubscription, req, signIn } from "./helpers";
@@ -270,6 +274,45 @@ describe("/v1/sync objects", () => {
     await env.DB.prepare("UPDATE sync_accounts SET stored_bytes = 0, object_count = ? WHERE user_id = ?").bind(syncAccountMaxObjects, user.session.userId).run();
     await expectError(await put(harness, user, randomId(), "meeting.content", 0, blob(user.keyId, 0, 64)), 413, "sync_quota_exceeded");
     expect(await blobKeys(user.session.userId)).toEqual([]);
+  });
+
+  it("pauses uploads and downloads before R2's free tier runs out; deletes and opt-out still work", async () => {
+    const harness: Harness = await defaultHarness();
+    const user: SyncUser = await syncUser(harness);
+    const month: string = syncUsageMonth(new Date(harness.clock.nowMs));
+    const usage = async (): Promise<{ class_a: number; class_b: number } | null> =>
+      env.DB.prepare("SELECT class_a, class_b FROM sync_r2_usage WHERE month = ?").bind(month).first<{ class_a: number; class_b: number }>();
+    const objectId: string = randomId();
+    const before: { class_a: number; class_b: number } = (await usage()) ?? { class_a: 0, class_b: 0 };
+    await putRev(harness, user, objectId, "people", 0);
+    expect((await call(harness, user, "GET", `/v1/sync/objects/${objectId}`, {})).status).toBe(200);
+    expect(await usage()).toEqual({ class_a: before.class_a + 1, class_b: before.class_b + 1 });
+
+    // Class A spent: no upload reaches R2 this month.
+    await env.DB.prepare("UPDATE sync_r2_usage SET class_a = ? WHERE month = ?").bind(syncR2ClassABudget, month).run();
+    await expectError(await put(harness, user, randomId(), "people", 0, blob(user.keyId, 0, 64)), 503, "sync_unavailable");
+    expect(await blobKeys(user.session.userId)).toHaveLength(1);
+    // Class B spent: downloads pause too.
+    await env.DB.prepare("UPDATE sync_r2_usage SET class_b = ? WHERE month = ?").bind(syncR2ClassBBudget, month).run();
+    await expectError(await call(harness, user, "GET", `/v1/sync/objects/${objectId}`, {}), 503, "sync_unavailable");
+    expect(await usage()).toEqual({ class_a: syncR2ClassABudget, class_b: syncR2ClassBBudget });
+
+    // Storage spent across accounts: an upload that grows the copy is refused even with operations left.
+    await env.DB.prepare("UPDATE sync_r2_usage SET class_a = 0, class_b = 0 WHERE month = ?").bind(month).run();
+    const other: SyncUser = await syncUser(harness);
+    await env.DB.prepare("UPDATE sync_accounts SET stored_bytes = ? WHERE user_id = ?").bind(syncR2StoredBytesBudget, other.session.userId).run();
+    await expectError(await put(harness, user, randomId(), "people", 0, blob(user.keyId, 0, 64)), 503, "sync_unavailable");
+    await env.DB.prepare("UPDATE sync_accounts SET stored_bytes = 0 WHERE user_id = ?").bind(other.session.userId).run();
+
+    // Deleting is free and never paused; opting out still purges the blobs.
+    const second: string = randomId();
+    const secondRev: number = await putRev(harness, user, second, "prefs", 0);
+    await env.DB.prepare("UPDATE sync_r2_usage SET class_a = ? WHERE month = ?").bind(syncR2ClassABudget, month).run();
+    expect((await call(harness, user, "DELETE", `/v1/sync/objects/${second}`, { "if-match": String(secondRev) })).status).toBe(200);
+    expect((await call(harness, user, "DELETE", "/v1/sync/account", {})).status).toBe(200);
+    expect(await blobKeys(user.session.userId)).toEqual([]);
+    // The counters are shared by the whole test database: give the other tests their budget back.
+    await env.DB.prepare("UPDATE sync_r2_usage SET class_a = 0, class_b = 0 WHERE month = ?").bind(month).run();
   });
 
   it("deletes into a tombstone that other devices see; writing again resurrects it", async () => {

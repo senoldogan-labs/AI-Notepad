@@ -61,3 +61,12 @@ CREATE TABLE sync_purges (
   prefix TEXT PRIMARY KEY,
   requested_at INTEGER NOT NULL
 );
+
+-- R2 operations of all accounts per UTC month (`YYYY-MM`): uploads and purge lists are Class A, downloads Class B.
+-- Sync refuses uploads and downloads at 80% of R2's free monthly allowance so the bucket never incurs charges
+-- (src/sync.ts `syncR2ClassABudget`, `syncR2ClassBBudget`; stored bytes are summed from `sync_accounts`).
+CREATE TABLE sync_r2_usage (
+  month TEXT PRIMARY KEY,
+  class_a INTEGER NOT NULL DEFAULT 0,
+  class_b INTEGER NOT NULL DEFAULT 0
+);

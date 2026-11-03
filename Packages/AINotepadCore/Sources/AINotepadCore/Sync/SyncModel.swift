@@ -26,7 +26,7 @@ public enum SyncLimits {
     /// Live objects per account.
     public static let accountMaxObjects: Int = 20_000
     /// Stored bytes per account.
-    public static let accountMaxBytes: Int = 524_288_000
+    public static let accountMaxBytes: Int = 104_857_600
     /// Most changes per page of the change feed.
     public static let changesMaxLimit: Int = 1000
     /// Largest key envelope (base64 characters).

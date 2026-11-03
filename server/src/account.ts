@@ -172,7 +172,7 @@ export async function deleteAccount(db: D1Database, syncBucket: R2Bucket, platfo
   );
   await db.batch(accountDeletionStatements(db, userId, identityHashes, now));
   // Eşitlemenin şifreli blokları: satırlar zaten silindi (kopya erişilemez); R2 hatası günlük temizliğe kalır.
-  await purgeSyncPrefixNow(db, syncBucket, userId, syncPrefix(userId));
+  await purgeSyncPrefixNow(db, syncBucket, userId, syncPrefix(userId), now);
   log("info", "account_deleted", { userId, canceledSubscriptions, appleRevocation, appStoreSubscriptionActive: result.appStoreSubscription !== null });
   return result;
 }

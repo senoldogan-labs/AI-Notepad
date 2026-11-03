@@ -24,6 +24,11 @@ import { errorName, log } from "./log";
  * daily cleanup (`syncCleanup`, `cleanup.ts`) removes tombstones and expired pairing envelopes, wipes accounts 90 days
  * after access ended and finishes R2 deletions. Account deletion removes everything at once (`syncDeletionStatements`).
  *
+ * Free tier: R2 bills only beyond 10 GB-month of storage, 1 million Class A operations (writes, lists) and 10 million
+ * Class B operations (reads) a month. Sync stops at 80% of each budget (`syncR2…Budget`, counted in `sync_r2_usage`),
+ * so the bucket never leaves the free tier: past a budget, uploads or downloads answer `503 sync_unavailable` until the
+ * next UTC month (operations) or until deletes free space (storage). Deletes are free and never blocked.
+ *
  * The lists and limits below are mirrored by the Swift client (`ServerParityTests`).
  */
 
@@ -42,8 +47,14 @@ export type SyncEnvelopeKind = (typeof syncEnvelopeKinds)[number];
 export const syncObjectMaxBytes: number = 2_097_152;
 /** Live (not deleted) objects per account: ~10,000 meetings (state + content) with chats and people. */
 export const syncAccountMaxObjects: number = 20_000;
-/** Stored bytes per account (phase 1 text only; a heavy user stores ~22 MB a year). */
-export const syncAccountMaxBytes: number = 524_288_000;
+/** Stored bytes per account (phase 1 text only; a heavy user stores ~22 MB a year, so this holds ~4.5 years). */
+export const syncAccountMaxBytes: number = 104_857_600;
+/** Stored bytes across all accounts: 80% of R2's free 10 GB-month. */
+export const syncR2StoredBytesBudget: number = 8_000_000_000;
+/** Class A operations (uploads, purge lists) across all accounts per UTC month: 80% of R2's free million. */
+export const syncR2ClassABudget: number = 800_000;
+/** Class B operations (downloads) across all accounts per UTC month: 80% of R2's free 10 million. */
+export const syncR2ClassBBudget: number = 8_000_000;
 /** Most changes per `GET /v1/sync/changes` page. */
 export const syncChangesMaxLimit: number = 1000;
 /** Largest key envelope (base64 characters). */
@@ -122,6 +133,71 @@ export interface SyncChange {
   readonly size: number;
   readonly deleted: boolean;
   readonly updatedAt: number;
+}
+
+/** UTC month (`YYYY-MM`) that keys the `sync_r2_usage` counters. Pure function. */
+export function syncUsageMonth(now: Date): string {
+  return now.toISOString().slice(0, 7);
+}
+
+/** The answer once a free-tier budget is spent; logged as an alert so the admin sees sync paused. */
+function syncBudgetSpent(budget: string, month: string): ApiError {
+  log("alert", "sync_r2_budget_reached", { budget, month });
+  return new ApiError("sync_unavailable", "Sync is paused for now; your meetings stay on your devices. Try again later.");
+}
+
+/** Takes one Class A operation from this month's budget (atomic upsert); refuses once the budget is spent. */
+async function reserveSyncClassA(db: D1Database, now: Date): Promise<void> {
+  const month: string = syncUsageMonth(now);
+  const row: { class_a: number } | null = await db
+    .prepare(
+      `INSERT INTO sync_r2_usage (month, class_a, class_b) VALUES (?1, 1, 0)
+       ON CONFLICT (month) DO UPDATE SET class_a = class_a + 1 WHERE class_a < ?2
+       RETURNING class_a`,
+    )
+    .bind(month, syncR2ClassABudget)
+    .first<{ class_a: number }>();
+  if (row === null) {
+    throw syncBudgetSpent("class_a", month);
+  }
+}
+
+/** Takes one Class B operation from this month's budget (atomic upsert); refuses once the budget is spent. */
+async function reserveSyncClassB(db: D1Database, now: Date): Promise<void> {
+  const month: string = syncUsageMonth(now);
+  const row: { class_b: number } | null = await db
+    .prepare(
+      `INSERT INTO sync_r2_usage (month, class_a, class_b) VALUES (?1, 0, 1)
+       ON CONFLICT (month) DO UPDATE SET class_b = class_b + 1 WHERE class_b < ?2
+       RETURNING class_b`,
+    )
+    .bind(month, syncR2ClassBBudget)
+    .first<{ class_b: number }>();
+  if (row === null) {
+    throw syncBudgetSpent("class_b", month);
+  }
+}
+
+/** Counts a Class A operation that must run even past the budget (purge lists: deleting a copy is never refused). */
+async function countSyncClassA(db: D1Database, now: Date): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO sync_r2_usage (month, class_a, class_b) VALUES (?1, 1, 0)
+       ON CONFLICT (month) DO UPDATE SET class_a = class_a + 1`,
+    )
+    .bind(syncUsageMonth(now))
+    .run();
+}
+
+/** Refuses an upload that would take the stored bytes of all accounts past the storage budget. */
+async function requireSyncStorageBudget(db: D1Database, byteDelta: number, now: Date): Promise<void> {
+  const total: { bytes: number } | null = await db.prepare("SELECT COALESCE(SUM(stored_bytes), 0) AS bytes FROM sync_accounts").first<{ bytes: number }>();
+  if (total === null) {
+    throw new Error("SUM over sync_accounts returned no row.");
+  }
+  if (total.bytes + byteDelta > syncR2StoredBytesBudget) {
+    throw syncBudgetSpent("storage", syncUsageMonth(now));
+  }
 }
 
 /** R2 prefix of all of an account's blobs (account deletion purges it). Pure function. */
@@ -305,13 +381,14 @@ async function listChanges(db: D1Database, userId: string, url: URL): Promise<ob
 }
 
 /** The current blob of a live object; tombstones and unknown ids are `not_found`. */
-async function readObject(db: D1Database, bucket: R2Bucket, userId: string, objectId: string): Promise<Response> {
+async function readObject(db: D1Database, bucket: R2Bucket, userId: string, objectId: string, now: Date): Promise<Response> {
   await requireAccount(db, userId);
   for (let attempt: number = 1; ; attempt += 1) {
     const row: SyncObjectRow | null = await objectRow(db, userId, objectId);
     if (row === null || row.deleted === 1 || row.r2_key === null) {
       throw new ApiError("not_found", "No such sync object.");
     }
+    await reserveSyncClassB(db, now);
     const blob: R2ObjectBody | null = await bucket.get(row.r2_key);
     if (blob !== null) {
       return new Response(blob.body, {
@@ -367,6 +444,10 @@ async function writeObject(
   if (account.object_count + objectDelta > syncAccountMaxObjects || account.stored_bytes + byteDelta > syncAccountMaxBytes) {
     throw new ApiError("sync_quota_exceeded", "This account's synced copy is full; delete old meetings or chats and try again.");
   }
+  if (byteDelta > 0) {
+    await requireSyncStorageBudget(db, byteDelta, now);
+  }
+  await reserveSyncClassA(db, now);
   const r2Key: string = `${syncEpochPrefix(userId, account.enabled_at)}${objectId}/${randomToken(12)}`;
   await bucket.put(r2Key, blob);
   const nowMs: number = now.getTime();
@@ -534,9 +615,10 @@ export interface PurgeResult {
  * Deletes the blobs under a queued prefix, at most `maxPages` pages of 1000; when nothing is left the `sync_purges` row
  * is removed. R2 errors propagate: the row stays and the daily cleanup retries.
  */
-export async function purgeSyncPrefix(db: D1Database, bucket: R2Bucket, prefix: string, maxPages: number): Promise<PurgeResult> {
+export async function purgeSyncPrefix(db: D1Database, bucket: R2Bucket, prefix: string, maxPages: number, now: Date): Promise<PurgeResult> {
   let deletedBlobs: number = 0;
   for (let page: number = 0; page < maxPages; page += 1) {
+    await countSyncClassA(db, now);
     const listed: R2Objects = await bucket.list({ prefix, limit: 1000 });
     if (listed.objects.length === 0) {
       await db.prepare("DELETE FROM sync_purges WHERE prefix = ?").bind(prefix).run();
@@ -553,9 +635,9 @@ export async function purgeSyncPrefix(db: D1Database, bucket: R2Bucket, prefix: 
  * Deletes the blobs of a queued prefix right away. A failure is logged and left to the daily cleanup (the D1 rows are
  * already gone and the prefix stays in `sync_purges`); it does not fail the user's request.
  */
-export async function purgeSyncPrefixNow(db: D1Database, bucket: R2Bucket, userId: string, prefix: string): Promise<PurgeResult> {
+export async function purgeSyncPrefixNow(db: D1Database, bucket: R2Bucket, userId: string, prefix: string, now: Date): Promise<PurgeResult> {
   try {
-    return await purgeSyncPrefix(db, bucket, prefix, immediatePurgePages);
+    return await purgeSyncPrefix(db, bucket, prefix, immediatePurgePages, now);
   } catch (error: unknown) {
     log("warn", "sync_purge_deferred", { userId, error: errorName(error) });
     return { deletedBlobs: 0, complete: false };
@@ -571,7 +653,7 @@ export async function wipeSyncAccount(db: D1Database, bucket: R2Bucket, userId: 
   const count: { count: number } | null = await db.prepare("SELECT COUNT(*) AS count FROM sync_objects WHERE user_id = ? AND deleted = 0").bind(userId).first<{ count: number }>();
   const prefix: string = syncEpochPrefix(userId, account.enabled_at);
   await db.batch(syncDeletionStatements(db, userId, prefix, now));
-  const purge: PurgeResult = await purgeSyncPrefixNow(db, bucket, userId, prefix);
+  const purge: PurgeResult = await purgeSyncPrefixNow(db, bucket, userId, prefix, now);
   log("info", "sync_wiped", { userId, objects: count?.count ?? 0, purged: purge.complete });
   return { objects: count?.count ?? 0, purged: purge.complete };
 }
@@ -602,7 +684,7 @@ export async function routeSync(request: Request, db: D1Database, bucket: R2Buck
   if (objectMatch !== null) {
     const objectId: string = uuidOf(objectMatch);
     if (method === "GET") {
-      return readObject(db, bucket, userId, objectId);
+      return readObject(db, bucket, userId, objectId, now);
     }
     if (method === "PUT") {
       return jsonResponse(200, await writeObject(db, bucket, config, userId, objectId, request, now));
@@ -674,7 +756,7 @@ export async function syncCleanup(db: D1Database, bucket: R2Bucket, config: Conf
   let purgedPrefixes: number = 0;
   let purgedBlobs: number = 0;
   for (const { prefix } of prefixes.results) {
-    const result: PurgeResult = await purgeSyncPrefix(db, bucket, prefix, limits.pagesPerPrefix);
+    const result: PurgeResult = await purgeSyncPrefix(db, bucket, prefix, limits.pagesPerPrefix, now);
     purgedPrefixes += result.complete ? 1 : 0;
     purgedBlobs += result.deletedBlobs;
   }
