@@ -903,6 +903,7 @@ function fixtures(now: Date): Readonly<Record<string, object>> {
           { feature: "dictation", value: "", users: 48, total: 48 },
           { feature: "screen_snapshots", value: "", users: 14, total: 14 },
           { feature: "screen_notes", value: "", users: 5, total: 5 },
+          { feature: "sync", value: "", users: 7, total: 7 },
         ],
       },
     },
