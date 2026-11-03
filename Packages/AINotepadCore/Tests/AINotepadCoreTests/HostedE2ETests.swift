@@ -19,7 +19,7 @@ let hostedE2EEnabled: Bool = ProcessInfo.processInfo.environment["AINOTEPAD_HOST
 let e2eClientInfo: HostedClientInfo = HostedClientInfo(appVersion: "0.1.10 (19)", osVersion: "macOS 15.4.1")
 
 /// Bellekte oturum (Anahtar Zinciri'ne dokunulmaz).
-private final class MemoryTokenStorage: HostedTokenStorage {
+final class MemoryTokenStorage: HostedTokenStorage {
     private let tokens: Mutex<HostedTokens?>
 
     init(tokens initial: HostedTokens?) {
@@ -45,7 +45,7 @@ private final class SessionEndCounter: Sendable {
 }
 
 /// Yerel D1'de SQL çalıştırır (`wrangler d1 execute --local`; üretim veritabanına hiç dokunmaz).
-private func executeLocalD1(sql: String) throws {
+func executeLocalD1(sql: String) throws {
     let process: Process = Process()
     process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
     process.arguments = ["npx", "wrangler", "d1", "execute", "ainotepad", "--local", "--command", sql]
@@ -90,7 +90,7 @@ private func localMeetingIsEnded(meetingID: String) throws -> Bool {
 }
 
 /// Yerel D1'de sorgu çalıştırır (`--json`) ve ilk ifadenin satırlarını çözer.
-private func localD1Rows<Row: Decodable>(sql: String, as type: Row.Type) throws -> [Row] {
+func localD1Rows<Row: Decodable>(sql: String, as type: Row.Type) throws -> [Row] {
     let process: Process = Process()
     process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
     process.arguments = ["npx", "wrangler", "d1", "execute", "ainotepad", "--local", "--json", "--command", sql]
@@ -108,7 +108,7 @@ private func localD1Rows<Row: Decodable>(sql: String, as type: Row.Type) throws 
 }
 
 /// `wrangler d1 execute --json` çıktısındaki bir ifadenin satırları.
-private struct LocalD1Statement<Row: Decodable>: Decodable {
+struct LocalD1Statement<Row: Decodable>: Decodable {
     let results: [Row]
 }
 
@@ -133,7 +133,7 @@ private func queuedRecord(id: String) -> MeetingRecord {
 }
 
 /// Şimdiki an (ms, sunucunun sakladığı biçim).
-private func nowMs() -> Int {
+func nowMs() -> Int {
     Int(Date().timeIntervalSince1970 * 1000)
 }
 
@@ -149,7 +149,7 @@ private func utcMonthKey() -> String {
 /// Apple ve Google kimlik jetonları yerelde üretilemediği için oturum yerel D1'e doğrudan eklenir (kullanıcı, oturum
 /// ailesi ve yenileme jetonu; sunucunun saklama biçimi: SHA-256 onaltılık). İstemci bu jetonla `/v1/auth/refresh`
 /// üzerinden gerçek oturumu alır; giriş ucundan sonraki her adım uygulamanınkiyle aynıdır.
-private func insertSession(refreshToken: String) throws -> String {
+func insertSession(refreshToken: String) throws -> String {
     let hash: String = SHA256.hash(data: Data(refreshToken.utf8)).map { String(format: "%02x", $0) }.joined()
     let now: Int = nowMs()
     let userID: String = "e2e-\(UUID().uuidString.lowercased())"
@@ -163,20 +163,20 @@ private func insertSession(refreshToken: String) throws -> String {
 }
 
 /// Rastgele base64url jeton (sunucunun ürettiğiyle aynı biçim).
-private func randomToken() -> String {
+func randomToken() -> String {
     Data((0..<32).map { (_: Int) -> UInt8 in UInt8.random(in: 0...255) }).base64EncodedString()
         .replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
 }
 
 /// Yerel sunucunun adresi.
-private func localServerBase() throws -> URL {
+func localServerBase() throws -> URL {
     let base: String = try #require(ProcessInfo.processInfo.environment["AINOTEPAD_HOSTED_BASE"], "AINOTEPAD_HOSTED_BASE (wrangler dev adresi) gerekli")
     return try parseHostedBaseURL(value: base)
 }
 
 /// Giriş uçlarının IP hız sınırı (`AUTH_IP_LIMITER`, dakikada 10; yenileme ve çıkış da sayılır) yerelde de uygulanır:
 /// işlem `rate_limited` alırsa bir dakika beklenip yeniden denenir (en çok 3 bekleme).
-private func awaitingAuthLimit<Value: Sendable>(operation: () async throws -> Value) async throws -> Value {
+func awaitingAuthLimit<Value: Sendable>(operation: () async throws -> Value) async throws -> Value {
     for _ in 1...3 {
         do {
             return try await operation()

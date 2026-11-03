@@ -11,6 +11,13 @@ export interface Env {
   readonly TELEMETRY_USER_LIMITER: RateLimit;
   /** `POST /v1/funnel` (ilk açılış hunisi, jetonsuz): IP başına dakikada 20 (bkz. `funnel.ts`). */
   readonly FUNNEL_IP_LIMITER: RateLimit;
+  /** `/v1/sync/…` (Mac ↔ iPhone eşitleme): kullanıcı başına dakikada 300 (bkz. `sync.ts`). */
+  readonly SYNC_USER_LIMITER: RateLimit;
+  /**
+   * Eşitlenen şifreli nesnelerin R2 kovası (AB yargı bölgesi; bkz. `sync.ts`). Sunucu yalnızca uçtan uca şifreli
+   * blokları saklar: içerik anahtarı kullanıcının cihazlarındadır.
+   */
+  readonly SYNC_BUCKET: R2Bucket;
 
   readonly ENVIRONMENT: string;
   readonly SITE_ORIGIN: string;
@@ -28,6 +35,7 @@ export interface Env {
   readonly PRICE_USD_MONTHLY: string;
   readonly PRICE_USD_YEARLY: string;
   readonly REFERRAL_POLICY: string;
+  readonly SYNC_POLICY: string;
   readonly REFERRAL_MAX_PENDING: string;
   readonly REPORT_BYTES_PER_DAY: string;
   readonly APP_ATTEST_POLICY: string;
