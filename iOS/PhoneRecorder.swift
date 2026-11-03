@@ -30,7 +30,8 @@ private struct ActiveRecording {
     let offline: Bool
     /// Kaydın bağlandığı takvim etkinliği (başlık ve katılımcılar kayda geçer); yoksa nil.
     let linkedMeeting: CalendarMeeting?
-    /// Notun şablonu: kayıt başlarken Ayarlar'daki varsayılan (kayıt sırasında değişmez).
+    /// Notun şablonu: kayıt başlarken Ayarlar'daki varsayılan ya da takvim etkinliğinin adına göre seçilen (kayıt
+    /// sırasında değişmez).
     let template: NoteTemplate
     /// Duraklatma: duraklatılan ses akıştan atılır (dosyaya yazılmaz, yazıya dökülmez); mikrofon açık kalır.
     let pauseGate: RecordingPauseGate
@@ -310,7 +311,8 @@ final class PhoneRecorder {
         }
         let active: ActiveRecording = ActiveRecording(
             directory: directory, startedAt: started, handle: handle, liveLLM: liveLLM, engine: choice.engine == .deepgram ? .cloud : .local,
-            offline: offline, linkedMeeting: linkedMeeting, template: phoneNoteTemplate(), pauseGate: pauseGate
+            offline: offline, linkedMeeting: linkedMeeting, template: phoneNewMeetingNoteTemplate(title: linkedMeeting?.title ?? ""),
+            pauseGate: pauseGate
         )
         self.active = active
         startedAt = started
@@ -1084,7 +1086,8 @@ final class PhoneRecorder {
             defer { endBackgroundTask(id: recordID) }
             let duration: Double = try await importMediaAudio(source: url, destination: session.url.appending(path: "others.m4a"))
             let record: MeetingRecord = importedMeetingRecord(
-                id: recordID, source: url, startedAt: session.startedAt, durationSec: duration, engine: .cloud, template: phoneNoteTemplate()
+                id: recordID, source: url, startedAt: session.startedAt, durationSec: duration, engine: .cloud,
+                template: phoneNewMeetingNoteTemplate(title: url.deletingPathExtension().lastPathComponent)
             )
             // Toplantının ses hakkını aşan dosya kuyruğa alınmaz: son geçiş yarıda kalır, bekleyen kayıt hiç bitmezdi.
             // Hak durumu okunamadıysa sunucu son geçişte denetler.

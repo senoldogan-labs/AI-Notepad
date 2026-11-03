@@ -7,6 +7,10 @@ public enum NoteTemplateKind: String, Sendable, Codable, CaseIterable {
     case client
     case lecture
     case interview
+    /// Günlük kısa durum toplantısı (daily, stand-up).
+    case standup
+    /// Sprint planlama toplantısı.
+    case sprintPlanning
     /// Kullanıcının kendi yönergesi (Ayarlar).
     case custom
 
@@ -18,6 +22,8 @@ public enum NoteTemplateKind: String, Sendable, Codable, CaseIterable {
         case .client: String(localized: "Müşteri görüşmesi")
         case .lecture: String(localized: "Ders / eğitim")
         case .interview: String(localized: "İş mülakatı")
+        case .standup: String(localized: "Günlük durum (stand-up)")
+        case .sprintPlanning: String(localized: "Sprint planlama")
         case .custom: String(localized: "Kendi şablonum")
         }
     }
@@ -27,13 +33,27 @@ public enum NoteTemplateKind: String, Sendable, Codable, CaseIterable {
 public struct NoteTemplate: Sendable, Equatable, Codable {
     public let kind: NoteTemplateKind
     public let customInstructions: String
+    /// Tür toplantı adından seçildi (bkz. `templateForTitle`); kullanıcının seçtiği ya da Ayarlar'daki varsayılan
+    /// şablonda ve eski toplantılarda nil.
+    public let chosenFromTitle: Bool?
 
+    /// Kullanıcının seçtiği ya da Ayarlar'daki varsayılan şablon.
     public init(kind: NoteTemplateKind, customInstructions: String) {
+        self.init(kind: kind, customInstructions: customInstructions, chosenFromTitle: nil)
+    }
+
+    public init(kind: NoteTemplateKind, customInstructions: String, chosenFromTitle: Bool?) {
         self.kind = kind
         self.customInstructions = customInstructions
+        self.chosenFromTitle = chosenFromTitle
     }
 
     public static let general: NoteTemplate = NoteTemplate(kind: .general, customInstructions: "")
+
+    /// Toplantının şablon menüsündeki adı: adından seçilen tür bunu belirtir ("Birebir görüşme (toplantı adından)").
+    public var displayName: String {
+        chosenFromTitle == true ? String(localized: "\(kind.displayName) (toplantı adından)") : kind.displayName
+    }
 }
 
 /// Şablonun not istemine eklenen yönergesi (Türkçe; genel şablonda boş). Saf fonksiyondur.
@@ -49,6 +69,10 @@ public func templateInstructions(template: NoteTemplate) -> String {
         "Toplantı türü: ders ya da eğitim. Özette ana kavramları ve açıklamalarını, örnekleri, ödev ve sınav bilgilerini öne çıkar; sözlüğü kapsamlı tut."
     case .interview:
         "Toplantı türü: iş mülakatı. Özette adayın deneyimini, güçlü yanlarını, soru işaretlerini ve konuşulan koşulları (ücret, başlama tarihi) öne çıkar."
+    case .standup:
+        "Toplantı türü: günlük durum toplantısı (stand-up). Özeti kişi kişi yaz: her kişinin dün yaptıkları, bugün yapacakları ve önünü tıkayan engeller. Engelleri ve kimden yardım beklendiğini özetin başında açıkça yaz. Kişilerin olağan günlük iş planları görev değildir; görevlere yalnızca toplantıda yeni üstlenilen işleri ve engelleri kaldırmak için verilen sözleri yaz."
+    case .sprintPlanning:
+        "Toplantı türü: sprint planlama. Özette sprintin hedefini, sprinte alınan (taahhüt edilen) işleri ve sorumlularını, sprint dışında bırakılan işleri, riskleri ve bağımlılıkları, kapasiteye dair notları (izinler, tahminler, puanlar) öne çıkar; sprint hedefini ve kapsam kararlarını kararlara yaz."
     case .custom:
         template.customInstructions.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             ? ""

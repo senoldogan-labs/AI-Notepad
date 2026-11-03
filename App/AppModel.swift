@@ -1162,7 +1162,8 @@ final class AppModel {
         #endif
         liveHighlights = []
         liveMyNotes = ""
-        recordingTemplate = defaultNoteTemplate()
+        // Takvim etkinliğinin adı türü gösteriyorsa (ör. "Daily", "1:1") not o şablonla yazılır.
+        recordingTemplate = newMeetingNoteTemplate(title: linkedMeeting?.title ?? "")
         consentReminderVisible = UserDefaults.standard.bool(forKey: SettingsKey.consentReminder)
         // Yeni bitirme için hazırlanma kartı yeniden gösterilir.
         finishingCardDismissed = false
@@ -1695,7 +1696,7 @@ final class AppModel {
     /// Bu kayıt yüz yüze başladı (mod kayıt sırasında değişmez).
     @ObservationIgnored private var recordingInPerson: Bool = false
 
-    /// Bu kaydın not şablonu: kayıt başlarken Ayarlar'daki varsayılan.
+    /// Bu kaydın not şablonu: kayıt başlarken Ayarlar'daki varsayılan ya da takvim etkinliğinin adına göre seçilen.
     @ObservationIgnored private var recordingTemplate: NoteTemplate = .general
 
     /// Konuşma tanımaya verilen adlar ve terimler: kullanıcının adı, son toplantıların konuşmacı adları ve sözlük
@@ -2218,7 +2219,8 @@ final class AppModel {
             let duration: Double = try await importMediaAudio(source: url, destination: session.url.appending(path: "others.m4a"))
             let record: MeetingRecord = importedMeetingRecord(
                 id: session.url.lastPathComponent, source: url, startedAt: session.startedAt, durationSec: duration,
-                engine: liveEngine.recordingEngine, template: defaultNoteTemplate()
+                engine: liveEngine.recordingEngine,
+                template: newMeetingNoteTemplate(title: url.deletingPathExtension().lastPathComponent)
             )
             #if HOSTED_EDITION
             // Toplantının ses hakkını aşan dosya kuyruğa alınmaz: son geçiş yarıda kalır ve bekleyen kayıt hiç

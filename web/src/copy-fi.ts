@@ -186,8 +186,8 @@ export const homeFi: HomeCopy = {
     },
     templates: {
       title: "Kokousmallit",
-      text: "Asiakaspuhelu, kahden kesken, työhaastattelu ja luento saavat kukin muistiinpanon, jossa oikeat asiat ovat ensimmäisenä. Tai kirjoita oma pohjasi.",
-      sample: ["Asiakaspuhelu", "Kahden kesken", "Työhaastattelu", "Luento", "Oma pohja"],
+      text: "Asiakaspuhelu, kahden kesken, päiväpalaveri, sprintin suunnittelu, työhaastattelu ja luento saavat kukin muistiinpanon, jossa oikeat asiat ovat ensimmäisenä. Pohja valitaan kokouksen nimestä. Tai kirjoita oma pohjasi.",
+      sample: ["Asiakaspuhelu", "Kahden kesken", "Päiväpalaveri", "Sprintin suunnittelu", "Työhaastattelu", "Luento", "Oma pohja"],
     },
     voiceTyping: {
       title: "Sanele mihin tahansa sovellukseen",
