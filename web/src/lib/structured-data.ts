@@ -1,9 +1,9 @@
-// Sitenin yapılandırılmış verisi (schema.org JSON-LD): ana sayfada uygulama (`SoftwareApplication`), onu sunan işletme
-// (`Organization`) ve sık sorulan sorular (`FAQPage`); fiyat sayfasında onun soruları; blog yazılarında `BlogPosting` ve
-// gezinti izi (`BreadcrumbList`)
-// (ön bilgisinden: src/content/blog). Değerler sitenin tek kaynaklarından
-// gelir: ürün adı (config.ts), fiyat, gereksinimler ve sorular (copy.ts),
-// işletme (legal/operator.ts). `<script type="application/ld+json">` veri bloğudur, çalıştırılmaz; CSP onu engellemez.
+// Sitenin yapılandırılmış verisi (schema.org JSON-LD): ana sayfada uygulama (`SoftwareApplication`: özellik listesi,
+// aylık ve yıllık plan ile ücretsiz deneme), onu sunan işletme (`Organization`) ve sık sorulan sorular (`FAQPage`); fiyat
+// sayfasında onun soruları; karşılaştırma, dil ve entegrasyon sayfalarında gezinti izi (`BreadcrumbList`) ve varsa
+// soruları; blog yazılarında `BlogPosting` ve gezinti izi (ön bilgisinden: src/content/blog). Değerler sitenin tek
+// kaynaklarından gelir: ürün adı (config.ts), fiyat, deneme, gereksinimler, özellikler ve sorular (copy.ts), işletme
+// (legal/operator.ts). `<script type="application/ld+json">` veri bloğudur, çalıştırılmaz; CSP onu engellemez.
 import { productName, type SiteConfig } from "../config";
 import type { CommonCopy, Faq, PageMeta } from "../copy";
 import type { Operator } from "../legal/operator";
@@ -16,6 +16,8 @@ interface OrganizationNode {
   readonly name: string;
   readonly url: string;
   readonly email: string;
+  readonly logo: string;
+  readonly address: string;
 }
 
 /** Abonelik döneminin fiyat tanımı: aylık (`MON`, `P1M`) ya da yıllık (`ANN`, `P1Y`). */
@@ -38,6 +40,16 @@ interface OfferNode {
   readonly priceSpecification: PeriodPriceNode;
 }
 
+/** Ücretsiz deneme teklifi: fiyatı sıfır, koşulları `description`'da. */
+interface TrialOfferNode {
+  readonly "@type": "Offer";
+  readonly name: string;
+  readonly price: "0.00";
+  readonly priceCurrency: string;
+  readonly url: string;
+  readonly description: string;
+}
+
 /** Uygulama düğümü; yayıncı işletme düğümüne `@id` ile bağlanır. */
 interface SoftwareApplicationNode {
   readonly "@type": "SoftwareApplication";
@@ -49,8 +61,9 @@ interface SoftwareApplicationNode {
   readonly applicationCategory: "BusinessApplication";
   readonly operatingSystem: string;
   readonly processorRequirements: string;
-  /** Aylık ve yıllık plan. */
-  readonly offers: readonly [OfferNode, OfferNode];
+  readonly featureList: readonly string[];
+  /** Aylık ve yıllık plan, ücretsiz deneme. */
+  readonly offers: readonly [OfferNode, OfferNode, TrialOfferNode];
   readonly publisher: { readonly "@id": string };
 }
 
@@ -85,6 +98,12 @@ export interface StructuredDataDocument {
 export interface FaqDocument {
   readonly "@context": "https://schema.org";
   readonly "@graph": readonly [FaqPageNode];
+}
+
+/** Bilgi sayfasının JSON-LD belgesi (karşılaştırma, diller, entegrasyonlar): gezinti izi ve varsa sık sorulan sorular. */
+export interface InfoPageDocument {
+  readonly "@context": "https://schema.org";
+  readonly "@graph": readonly [BreadcrumbListNode] | readonly [BreadcrumbListNode, FaqPageNode];
 }
 
 /**
@@ -165,18 +184,22 @@ function requirements(text: string): Requirements {
   return { operatingSystem, processor };
 }
 
-/**
- * Ana sayfanın JSON-LD belgesi: uygulama, işletme ve sayfadaki sık sorulan sorular (`faq`). `page` hangi dildeki
- * gösterimin çizildiğidir (`/` ya da `/fi`): adresler ondan üretilir. Saf fonksiyondur.
- */
-export function homeStructuredData(
-  config: SiteConfig,
-  common: CommonCopy,
-  meta: PageMeta,
-  operator: Operator,
-  faq: readonly Faq[],
-  page: "home" | "fi" = "home",
-): StructuredDataDocument {
+/** Ana sayfanın JSON-LD girdileri (sayfanın diliyle: `/` ya da `/fi`). */
+export interface HomeStructuredDataInput {
+  readonly common: CommonCopy;
+  readonly meta: PageMeta;
+  readonly faq: readonly Faq[];
+  /** Uygulamanın özellikleri (`featureList`). */
+  readonly features: readonly string[];
+  /** Ücretsiz denemenin koşulları (ör. "3 meetings or 7 days…"). */
+  readonly trial: string;
+  /** Hangi dildeki gösterim çiziliyor: adresler bundan üretilir. */
+  readonly page: "home" | "fi";
+}
+
+/** Ana sayfanın JSON-LD belgesi: uygulama, işletme ve sayfadaki sık sorulan sorular. Saf fonksiyondur. */
+export function homeStructuredData(config: SiteConfig, operator: Operator, input: HomeStructuredDataInput): StructuredDataDocument {
+  const { common, meta, faq, page } = input;
   const origin: string = config.siteOrigin;
   const organizationId: string = `${origin}/#organization`;
   const pricingUrl: string = pageUrl("pricing", origin);
@@ -194,13 +217,23 @@ export function homeStructuredData(
         applicationCategory: "BusinessApplication",
         operatingSystem: needs.operatingSystem,
         processorRequirements: needs.processor,
+        featureList: input.features,
         offers: [
           planOffer(`${productName} monthly`, usdPrice(common.price), "month", pricingUrl),
           planOffer(`${productName} yearly`, usdPrice(common.yearlyPrice), "year", pricingUrl),
+          { "@type": "Offer", name: `${productName} free trial`, price: "0.00", priceCurrency: "USD", url: pageUrl("download", origin), description: input.trial },
         ],
         publisher: { "@id": organizationId },
       },
-      { "@type": "Organization", "@id": organizationId, name: operator.name, url: origin, email: operator.email },
+      {
+        "@type": "Organization",
+        "@id": organizationId,
+        name: operator.name,
+        url: origin,
+        email: operator.email,
+        logo: `${origin}/apple-touch-icon.png`,
+        address: operator.address,
+      },
       faqPageNode(faq, pageUrl(page, origin)),
     ],
   };
@@ -244,11 +277,44 @@ interface ListItemNode {
   readonly item: string;
 }
 
-/** Gezinti izi: ana sayfa › blog › yazı. */
+/** Gezinti izi: ana sayfa › … › sayfa. */
 interface BreadcrumbListNode {
   readonly "@type": "BreadcrumbList";
   readonly "@id": string;
-  readonly itemListElement: readonly [ListItemNode, ListItemNode, ListItemNode];
+  readonly itemListElement: readonly ListItemNode[];
+}
+
+/** Gezinti izinin bir basamağı: adı ve mutlak adresi. */
+export interface Crumb {
+  readonly name: string;
+  readonly url: string;
+}
+
+/** Gezinti izi: ana sayfadan başlar, basamaklar verilen sırayla, son basamak sayfanın kendisi. Saf fonksiyondur. */
+export function breadcrumbNode(config: SiteConfig, crumbs: readonly Crumb[]): BreadcrumbListNode {
+  const all: readonly Crumb[] = [{ name: productName, url: pageUrl("home", config.siteOrigin) }, ...crumbs];
+  const last: Crumb | undefined = all.at(-1);
+  if (last === undefined) {
+    throw new StructuredDataSourceError("Gezinti izi boş olamaz.");
+  }
+  return {
+    "@type": "BreadcrumbList",
+    "@id": `${last.url}#breadcrumbs`,
+    itemListElement: all.map((crumb: Crumb, index: number): ListItemNode => ({ "@type": "ListItem", position: index + 1, name: crumb.name, item: crumb.url })),
+  };
+}
+
+/**
+ * Bilgi sayfasının JSON-LD belgesi: gezinti izi ve sayfada sık sorulan sorular görünüyorsa onlar (`faq` boşsa
+ * `FAQPage` yazılmaz). Saf fonksiyondur.
+ */
+export function infoPageStructuredData(config: SiteConfig, crumbs: readonly Crumb[], faq: readonly Faq[]): InfoPageDocument {
+  const breadcrumbs: BreadcrumbListNode = breadcrumbNode(config, crumbs);
+  const page: Crumb | undefined = crumbs.at(-1);
+  if (page === undefined || faq.length === 0) {
+    return { "@context": "https://schema.org", "@graph": [breadcrumbs] };
+  }
+  return { "@context": "https://schema.org", "@graph": [breadcrumbs, faqPageNode(faq, page.url)] };
 }
 
 /** Blog yazısı sayfasının JSON-LD belgesi: yazı ve gezinti izi. */
@@ -296,15 +362,10 @@ export function blogPostingStructuredData(config: SiteConfig, operator: Operator
         author: { "@type": "Person", name: post.author },
         publisher: { "@type": "Organization", "@id": `${origin}/#organization`, name: operator.name, url: origin },
       },
-      {
-        "@type": "BreadcrumbList",
-        "@id": `${post.url}#breadcrumbs`,
-        itemListElement: [
-          { "@type": "ListItem", position: 1, name: productName, item: pageUrl("home", origin) },
-          { "@type": "ListItem", position: 2, name: post.blogName, item: pageUrl("blog", origin) },
-          { "@type": "ListItem", position: 3, name: post.title, item: post.url },
-        ],
-      },
+      breadcrumbNode(config, [
+        { name: post.blogName, url: pageUrl("blog", origin) },
+        { name: post.title, url: post.url },
+      ]),
     ],
   };
 }
@@ -313,6 +374,6 @@ export function blogPostingStructuredData(config: SiteConfig, operator: Operator
  * JSON-LD belgesini `<script>` içine güvenle yazılacak metne çevirir: `<` kaçırılır, böylece metindeki `</script>`
  * bloğu erken kapatamaz. Saf fonksiyondur.
  */
-export function structuredDataJson(document: StructuredDataDocument | FaqDocument | BlogPostingDocument): string {
+export function structuredDataJson(document: StructuredDataDocument | FaqDocument | BlogPostingDocument | InfoPageDocument): string {
   return JSON.stringify(document).replaceAll("<", "\\u003c");
 }

@@ -7,6 +7,7 @@
     "typecheck": "PUBLIC_WEB_TARGET=production astro check",
     "build": "PUBLIC_WEB_TARGET=production astro build",
     "build:local": "PUBLIC_WEB_TARGET=local astro build",
+    "test": "node --test scripts/check-dist.test.ts",
     "preview": "astro preview --port 8788",
     "serve": "node scripts/serve.ts 8788",
     "screenshots": "node scripts/screenshots.ts",

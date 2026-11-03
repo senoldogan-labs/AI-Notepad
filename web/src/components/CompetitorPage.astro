@@ -1,5 +1,5 @@
 ---
-// Bir rakiple karşılaştırma sayfası (/vs/granola, /vs/otter): giriş ve kaynak satırı, yan yana tablo, rakibin güçlü
+// Bir rakiple karşılaştırma sayfası (/vs/granola, /vs/otter, /vs/fireflies): gezinti izi (JSON-LD), giriş ve kaynak satırı, yan yana tablo, rakibin güçlü
 // olduğu yerler, "kim hangisini seçmeli" ve indirme çağrısı. Metinler ve değerler copy.ts `compare`'den.
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
@@ -8,7 +8,9 @@ import CtaBand from "./CtaBand.astro";
 import Icon from "./Icon.astro";
 import { productName } from "../config";
 import { copy, type CompareCopy, type Competitor, type CompetitorCopy, type ComparisonTopic, type PickCopy } from "../copy";
-import { type PageKey, routes } from "../routes";
+import { infoPageStructuredData, structuredDataJson } from "../lib/structured-data";
+import { type PageKey, pageUrl, routes } from "../routes";
+import { siteConfig } from "../site";
 
 interface Props {
   readonly page: PageKey;
@@ -22,9 +24,22 @@ const picks: readonly PickCopy[] = [them.pickCompetitor, them.pickUs];
 /** Kaynak bağlantısının metni: alan adı (www'suz) ve yol, ör. granola.ai/pricing. */
 const pricingAddress: URL = new URL(them.pricingUrl);
 const sourceLabel: string = `${pricingAddress.host.replace(/^www\./, "")}${pricingAddress.pathname}`;
+/** Gezinti izi: ana sayfa › karşılaştırma › bu sayfa (JSON-LD). */
+const structuredData: string = structuredDataJson(
+  infoPageStructuredData(
+    siteConfig,
+    [
+      { name: text.eyebrow, url: pageUrl("compare", siteConfig.siteOrigin) },
+      { name: them.title, url: pageUrl(page, siteConfig.siteOrigin) },
+    ],
+    [],
+  ),
+);
 ---
 
 <Base page={page} meta={them.meta} indexed={true} social={websiteCard}>
+  {/* Veri bloğu: Astro işlemez ve paketlemez (`is:inline`), tarayıcı çalıştırmaz; CSP'ye takılmaz. */}
+  <script is:inline type="application/ld+json" set:html={structuredData} />
   <section class="page narrow-intro">
     <a class="eyebrow eyebrow--link" href={routes.compare}>{text.eyebrow}</a>
     <h1 class="title-xl">{them.title}</h1>

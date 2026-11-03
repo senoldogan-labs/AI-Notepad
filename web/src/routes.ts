@@ -13,6 +13,9 @@ export type PageKey =
   | "compare"
   | "vsGranola"
   | "vsOtter"
+  | "vsFireflies"
+  | "languages"
+  | "integrations"
   | "blog"
   | "mcp"
   | "signIn"
@@ -33,6 +36,9 @@ export const routes: Readonly<Record<PageKey, string>> = {
   compare: "/compare",
   vsGranola: "/vs/granola",
   vsOtter: "/vs/otter",
+  vsFireflies: "/vs/fireflies",
+  languages: "/languages",
+  integrations: "/integrations",
   blog: "/blog",
   mcp: "/mcp",
   signIn: "/sign-in",
@@ -49,7 +55,42 @@ export const routes: Readonly<Record<PageKey, string>> = {
  * Arama motorlarına açık sayfalar. Hesap, yönetim ve 404 kişiye özel ya da içeriksizdir; giriş ve davet sayfaları
  * yalnızca bir işlemin adımıdır (aramada çıkmaları ziyaretçiye bir şey anlatmaz).
  */
-export const indexedPages: readonly PageKey[] = ["home", "fi", "pricing", "download", "compare", "vsGranola", "vsOtter", "blog", "mcp", "contact", "privacy", "terms"];
+export const indexedPages: readonly PageKey[] = [
+  "home",
+  "fi",
+  "pricing",
+  "download",
+  "compare",
+  "vsGranola",
+  "vsOtter",
+  "vsFireflies",
+  "languages",
+  "integrations",
+  "blog",
+  "mcp",
+  "contact",
+  "privacy",
+  "terms",
+];
+
+/**
+ * Sabit sayfaların son anlamlı içerik değişikliği (YYYY-AA-GG): site haritası `<lastmod>` olarak yazar, IndexNow betiği
+ * (scripts/indexnow.ts) bugün ya da dün değişen sayfaları arama motorlarına bildirir. Bir sayfanın metni ya da verisi
+ * anlamlı biçimde değişince (yeni bölüm, fiyat, karşılaştırma değerleri…) o günün tarihini yaz; yazım düzeltmesinde
+ * ilerletme. Tarihi olmayan sayfanın `<lastmod>`'u yazılmaz. Blog dizini ve yazıları tarihlerini yazılardan alır.
+ */
+export const pageModified: Readonly<Partial<Record<PageKey, string>>> = {
+  home: "2026-11-03",
+  fi: "2026-11-03",
+  download: "2026-11-03",
+  compare: "2026-11-03",
+  vsGranola: "2026-11-03",
+  vsOtter: "2026-11-03",
+  vsFireflies: "2026-11-03",
+  languages: "2026-11-03",
+  integrations: "2026-11-03",
+  privacy: "2026-11-03",
+};
 
 /** Sitenin dilleri (`<html lang>`, `hreflang`). */
 export type SiteLang = "en" | "fi";

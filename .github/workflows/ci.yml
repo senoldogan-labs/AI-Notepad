@@ -83,7 +83,7 @@ jobs:
       - name: Testler
         run: npm test
 
-  # Web sitesi (Astro, Cloudflare Pages): tipler ve yayın yapılandırmasıyla derleme.
+  # Web sitesi (Astro, Cloudflare Pages): tipler, yayın yapılandırmasıyla derleme ve derlemenin çıktı testleri.
   web:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -103,3 +103,6 @@ jobs:
         run: npm run typecheck
       - name: Derleme
         run: npm run build
+      # Derlemenin JSON-LD'si, /llms.txt ve site haritası (scripts/check-dist.test.ts).
+      - name: Çıktı testleri
+        run: npm test

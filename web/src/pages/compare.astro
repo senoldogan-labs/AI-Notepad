@@ -1,5 +1,5 @@
 ---
-// Karşılaştırma dizini: üç ürünün kısa özet tablosu ve her karşılaştırma sayfasına bir kart. Değerler copy.ts `compare`'den.
+// Karşılaştırma dizini: dört ürünün kısa özet tablosu ve her karşılaştırma sayfasına bir kart. Değerler copy.ts `compare`'den.
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
 import ComparisonTable, { type ComparisonColumn } from "../components/ComparisonTable.astro";
@@ -7,21 +7,28 @@ import CtaBand from "../components/CtaBand.astro";
 import Icon from "../components/Icon.astro";
 import { productName } from "../config";
 import { copy, type CompareCopy, type Competitor, type CompetitorCopy } from "../copy";
-import { type PageKey, routes } from "../routes";
+import { infoPageStructuredData, structuredDataJson } from "../lib/structured-data";
+import { type PageKey, pageUrl, routes } from "../routes";
+import { siteConfig } from "../site";
 
 const text: CompareCopy = copy.compare;
 /** Rakiplerin karşılaştırma sayfaları (dizindeki sırayla). */
 const competitorPages: readonly { readonly competitor: Competitor; readonly page: PageKey }[] = [
   { competitor: "granola", page: "vsGranola" },
   { competitor: "otter", page: "vsOtter" },
+  { competitor: "fireflies", page: "vsFireflies" },
 ];
 const columns: readonly ComparisonColumn[] = [
   { name: productName, values: text.us },
   ...competitorPages.map((entry): ComparisonColumn => ({ name: text.competitors[entry.competitor].name, values: text.competitors[entry.competitor].values })),
 ];
+/** Gezinti izi: ana sayfa › karşılaştırma (JSON-LD). */
+const structuredData: string = structuredDataJson(infoPageStructuredData(siteConfig, [{ name: text.eyebrow, url: pageUrl("compare", siteConfig.siteOrigin) }], []));
 ---
 
 <Base page="compare" meta={text.meta} indexed={true} social={websiteCard}>
+  {/* Veri bloğu: Astro işlemez ve paketlemez (`is:inline`), tarayıcı çalıştırmaz; CSP'ye takılmaz. */}
+  <script is:inline type="application/ld+json" set:html={structuredData} />
   <section class="page compare-intro">
     <p class="eyebrow">{text.eyebrow}</p>
     <h1 class="title-xl">{text.title}</h1>
@@ -66,7 +73,7 @@ const columns: readonly ComparisonColumn[] = [
 
   .compare-cards {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 16px;
   }
 
