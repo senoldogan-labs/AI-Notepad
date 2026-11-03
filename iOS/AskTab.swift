@@ -56,6 +56,18 @@ final class PhoneAsk {
         store(recipes: userRecipes.filter { $0.id != id })
     }
 
+    /// Agent Skill dosyalarını (`SKILL.md`, belge seçiciden) tarif olarak ekler (Mac'teki "SKILL.md içe aktar"); eklenenler
+    /// ve okunamayanların nedeni döner. Seçicinin verdiği dosyalara erişim okuma süresince açılır.
+    func importSkills(files: [URL]) -> SkillImportResult {
+        let opened: [URL] = files.filter { $0.startAccessingSecurityScopedResource() }
+        defer { opened.forEach { $0.stopAccessingSecurityScopedResource() } }
+        let result: SkillImportResult = importSkillRecipes(files: files) { UUID().uuidString }
+        if !result.recipes.isEmpty {
+            store(recipes: userRecipes + result.recipes)
+        }
+        return result
+    }
+
     private func store(recipes: [Recipe]) {
         do {
             try saveUserRecipes(recipes: recipes, defaults: try hostedActiveAccountDefaults())

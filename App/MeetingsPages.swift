@@ -773,15 +773,15 @@ struct MeetingDetailPage: View {
     /// notun dili paylaşım dili olarak yinelenmez. Adlar arayüz dilinde (kapaktaki dil çipiyle aynı: Türkçe arayüzde
     /// "İngilizce").
     private func noteLanguageMenu(original: ShareLanguage) -> some View {
-        let featured: [ShareLanguage] = [ShareLanguage.finnish, .english].filter { $0 != original }
+        let choices: ShareLanguageChoices = shareLanguageChoices(original: original)
         return Menu {
             Button(original.interfaceName) { noteLanguage = nil }
-            ForEach(featured, id: \.self) { (language: ShareLanguage) in
+            ForEach(choices.featured, id: \.self) { (language: ShareLanguage) in
                 Button(language.interfaceName) { noteLanguage = language }
             }
             Divider()
             Menu("Diğer diller") {
-                ForEach(ShareLanguage.allCases.filter { ![.finnish, .english, original].contains($0) }, id: \.self) { (language: ShareLanguage) in
+                ForEach(choices.others, id: \.self) { (language: ShareLanguage) in
                     Button(language.interfaceName) { noteLanguage = language }
                 }
             }
@@ -1320,7 +1320,7 @@ struct MeetingDetailPage: View {
         guard !sources.isEmpty else {
             return
         }
-        let title: String = "\(record.note?.title ?? record.title) \(timestamp(seconds: paragraph.startSec).replacingOccurrences(of: ":", with: "."))"
+        let title: String = audioClipTitle(meetingTitle: record.note?.title ?? record.title, startSec: paragraph.startSec)
         Task {
             do {
                 let downloads: URL = try FileManager.default.url(for: .downloadsDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
@@ -1998,9 +1998,7 @@ private struct SharedNoteSection: View {
 
     /// Gösterilecek çeviri: saklı ve asıl notun tüm bölümlerini taşıyorsa.
     private var shared: MeetingNote? {
-        record.sharedNotes?[language.rawValue].flatMap { (shared: MeetingNote) -> MeetingNote? in
-            isSharedNoteComplete(shared: shared, original: note) ? shared : nil
-        }
+        sharedNoteVersion(record: record, language: language)
     }
 
     var body: some View {

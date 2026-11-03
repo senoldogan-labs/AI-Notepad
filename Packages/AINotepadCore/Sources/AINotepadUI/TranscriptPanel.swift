@@ -796,15 +796,27 @@ struct BlockView: View {
     }
 }
 
-/// "Diğerleri" bloğunun konuşmacı düzeltme menüsü: bloğu başka kişiye ata ya da kişinin tümünü birleştir.
-struct SpeakerCorrectionMenu: View {
+/// "Diğerleri" bloğunun konuşmacı düzeltme menüsü: bloğu başka kişiye ata ya da kişinin tümünü birleştir (Mac paneli ve
+/// iPhone kaydı).
+public struct SpeakerCorrectionMenu: View {
     let block: SpeakerBlock
     let persons: [Int]
     let newPersonNumber: Int
     let onReassign: @MainActor ([SegmentID], Int) -> Void
     let onMerge: @MainActor (Int, Int) -> Void
 
-    var body: some View {
+    public init(
+        block: SpeakerBlock, persons: [Int], newPersonNumber: Int, onReassign: @escaping @MainActor ([SegmentID], Int) -> Void,
+        onMerge: @escaping @MainActor (Int, Int) -> Void
+    ) {
+        self.block = block
+        self.persons = persons
+        self.newPersonNumber = newPersonNumber
+        self.onReassign = onReassign
+        self.onMerge = onMerge
+    }
+
+    public var body: some View {
         let ids: [SegmentID] = block.segments.map(\.id)
         let others: [Int] = persons.filter { $0 != block.person }
         Section("Bu bölümü ata") {
@@ -936,7 +948,7 @@ func blockColor(block: SpeakerBlock) -> Color {
 
 /// Metni genel panoya yazar.
 @MainActor
-func copyToPasteboard(text: String) {
+public func copyToPasteboard(text: String) {
     #if os(macOS)
     NSPasteboard.general.clearContents()
     NSPasteboard.general.setString(text, forType: .string)

@@ -88,7 +88,7 @@ enum SettingsKey {
     /// Kullanıcının tanıma sözlüğü (satır başına bir ad ya da terim).
     static let customVocabulary: String = "customVocabulary"
     /// Kullanıcının oluşturduğu klasörler (boş olanlar da listede kalsın).
-    static let folders: String = "folders"
+    static let folders: String = savedFoldersKey
     /// Toplantı özetinde sözlük açık mı.
     static let glossaryExpanded: String = "meeting.glossaryExpanded"
     /// Kişiler sayfasındaki liste açık (varsayılan açık: kapalıyken diğer kişiler yalnız seçici menüde kalıp gözden

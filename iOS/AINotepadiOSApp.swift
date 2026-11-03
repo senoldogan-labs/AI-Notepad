@@ -184,6 +184,8 @@ private struct PhoneAppRoot: View {
                     store: session.store, recorder: session.recorder, ask: session.ask, router: router, player: session.player, calendar: calendar,
                     crashReports: crashReports, account: account
                 )
+                .environment(session.integrations)
+                .modifier(PhoneIntegrationTriggers(integrations: session.integrations, isLoaded: account.isAccountDataLoaded))
                 // Kayıt sürerken oturum kapandıysa giriş kapısı kayıt bitince açılır; o zamana dek nedeni üstte görünür.
                 .safeAreaInset(edge: .top, spacing: 0) {
                     if account.requiresSignIn {
@@ -215,9 +217,23 @@ private struct PhoneAppRoot: View {
                 return
             }
             store.loadPeople()
+            store.voices.load()
+            store.loadFolders()
             ask.loadRecipes()
             ask.loadHistory()
             store.applyRetention(now: Date())
+            // Bağlantılar okunur; kapalıyken kaçan kendiliğinden gönderimler yapılır (Mac'teki açılış gibi).
+            let integrations: PhoneIntegrations = sessions.session.integrations
+            Task {
+                await integrations.load()
+                await integrations.processPendingAutoSends()
+            }
+            // Son silinenlerde süresi dolan toplantılar kalıcı silinir (okuma sürerken hesap değiştiyse silinmez).
+            await store.reloadDeletedAndWait()
+            guard !Task.isCancelled else {
+                return
+            }
+            store.purgeExpiredDeleted(now: Date())
             #if DEBUG
             // `--paywall`: abonelik ekranı doğrudan açılır (App Store abonelik inceleme görseli).
             if CommandLine.arguments.contains("--paywall") {
@@ -234,6 +250,10 @@ private struct PhoneAppRoot: View {
             }
             if CommandLine.arguments.contains("--ornek-kayit") {
                 recorder.showSampleRecording()
+                // `--ornek-duraklat`: örnek kayıt duraklatılmış, bir cümlenin çevirisi alınamamış.
+                if CommandLine.arguments.contains("--ornek-duraklat") {
+                    recorder.showSamplePaused()
+                }
                 // `--ornek-bitir`: örnek kayıt "Bitir"e basılmış gibi bitiriliyor (hazırlık katmanı, durmuş süre).
                 if CommandLine.arguments.contains("--ornek-bitir") {
                     recorder.showSampleFinishing()
@@ -317,6 +337,8 @@ struct PhoneAccountSession {
     let recorder: PhoneRecorder
     let ask: PhoneAsk
     let player: MeetingAudioPlayer
+    /// Not hedefleri ve görev araçları (Ayarlar › Bağlantılar, toplantıdaki gönderim).
+    let integrations: PhoneIntegrations
 
     /// Hesabın verisine yazan açık işler (bkz. `phoneOpenWriters`).
     var openWriters: [AccountDataWriter] {
@@ -358,7 +380,12 @@ func makePhoneAccountSession(calendar: PhoneCalendar) -> PhoneAccountSession {
     let store: PhoneStore = PhoneStore()
     let recorder: PhoneRecorder = PhoneRecorder(store: store)
     recorder.currentCalendarMeeting = { () -> CalendarMeeting? in calendar.meetingForRecording(now: Date()) }
-    return PhoneAccountSession(store: store, recorder: recorder, ask: PhoneAsk(store: store), player: MeetingAudioPlayer())
+    let integrations: PhoneIntegrations = PhoneIntegrations(store: store)
+    // Not hazır olunca bağlı hedeflere kendiliğinden gönderilir (Mac'teki işleme sonu gibi).
+    recorder.onMeetingProcessed = { (_: MeetingRecord) -> Void in
+        Task { await integrations.processPendingAutoSends() }
+    }
+    return PhoneAccountSession(store: store, recorder: recorder, ask: PhoneAsk(store: store), player: MeetingAudioPlayer(), integrations: integrations)
 }
 
 /// Yüklü hesabın bellekteki verisinin sahibi: görünümler ve niyetler (Kısayollar, canlı etkinlik) onu buradan okur.
@@ -566,7 +593,7 @@ struct RootView: View {
             }
             Tab("Ayarlar", systemImage: "gearshape", value: PhoneTab.settings) {
                 PhoneSettingsTab(
-                    store: store, calendar: calendar, account: account,
+                    store: store, ask: ask, calendar: calendar, account: account,
                     isMeetingInFlight: !phoneOpenWriters(store: store, recorder: recorder, ask: ask).isEmpty, crashReports: crashReports
                 )
             }
@@ -671,6 +698,8 @@ final class PhoneStore {
     private(set) var peopleBookError: String?
     /// Defter okundu: okunamadıysa üzerine yazılmaz (boş defterle eski kişiler silinmesin).
     @ObservationIgnored private var peopleBookLoaded: Bool = false
+    /// Sesinden tanıma: kayıtlı sesler ve ses izi modeli (bkz. `PhoneVoices`).
+    let voices: PhoneVoices = PhoneVoices()
 
     /// Listeyi arka planda okur; art arda gelen istekleri birleştirir.
     @ObservationIgnored private let reloader: MeetingReloader = MeetingReloader()
@@ -715,14 +744,20 @@ final class PhoneStore {
         storePeople(book: addingPerson(book: peopleBook, person: SavedPerson(name: name, role: role, email: email, addedAt: Date())))
     }
 
-    /// Elle eklenen kişinin adını ve bilgilerini değiştirir.
+    /// Elle eklenen kişinin adını ve bilgilerini değiştirir; kayıtlı sesi yeni ada taşınır.
     func renamePerson(oldName: String, name: String, role: String, email: String) {
         storePeople(book: renamingPerson(book: peopleBook, oldName: oldName, person: SavedPerson(name: name, role: role, email: email, addedAt: Date())))
+        if peopleBookError == nil {
+            voices.personRenamed(oldName: oldName, newName: name)
+        }
     }
 
-    /// Kişiyi Kişiler'den kaldırır (toplantılardaki adı kalır).
+    /// Kişiyi Kişiler'den kaldırır ve sesini unutur (toplantılardaki adı kalır).
     func removePerson(name: String) {
         storePeople(book: removingPerson(book: peopleBook, name: name, now: Date()))
+        if peopleBookError == nil {
+            voices.personRemoved(name: name)
+        }
     }
 
     private func storePeople(book: PeopleBook) {
@@ -760,6 +795,8 @@ final class PhoneStore {
         let updated: MeetingRecord = fresh.with(speakerNames: renamingSpeakers(names: fresh.speakerNames, edits: names))
         try saveMeeting(record: updated, directory: directory)
         upsert(record: updated)
+        // Adı verilen kişinin sesi hatırlanır (sesinden tanıma açıksa); düzeltilen adın sesi eski addan geri alınır.
+        voices.speakersRenamed(meetingID: meetingID, previousNames: fresh.speakerNames, edits: names, voiceprints: fresh.voiceprints)
     }
 
     /// Anımsatıcılar bağlantısı (görevi Anımsatıcılar'a ekleme; izin ilk eklemede sorulur).
@@ -828,16 +865,184 @@ final class PhoneStore {
         }
     }
 
-    /// Toplantıyı kalıcı olarak siler (onay arayüzde sorulur). Kayıttaki, işlenen ya da notu yazılan toplantı silinmez
-    /// (not isteği boşa harcanır, silinmiş toplantı için hata görünürdü).
-    func deleteMeeting(id: String) throws {
-        guard let record = meetings.first(where: { $0.id == id }), record.status != .recording, record.status != .processing,
-              !regeneratingIDs.contains(id) else {
-            throw StorageError.deleteFailed(path: id, reason: "kayıtta, işleniyor ya da notu yazılıyor")
+    // MARK: Klasörler
+
+    /// Oluşturulan klasörler (toplantısız olanlar dahil): hesabın ayar alanında (Mac'teki Gistsmith'le aynı anahtar),
+    /// hesap verisi yüklenince okunur (bkz. `loadFolders`).
+    private(set) var savedFolders: [String] = []
+
+    /// Klasörler ve toplantı sayıları (boş klasörler dahil).
+    var folders: [FolderSummary] {
+        meetingFolders(records: meetings, saved: savedFolders)
+    }
+
+    /// Kayıtlı klasörleri okur (hesap verisi yüklenince). Okunamazsa neden sorunlarda görünür.
+    func loadFolders() {
+        do {
+            savedFolders = try hostedActiveAccountDefaults().stringArray(forKey: savedFoldersKey) ?? []
+        } catch {
+            Self.logger.error("Klasörler okunamadı, hata: \(String(describing: error), privacy: .private)")
+            actionProblems = appendUnique(messages: actionProblems, message: userFacingMessage(error: error))
         }
-        try deleteMeetingDirectory(directory: try sessionDirectory(id: id))
+    }
+
+    /// Boş klasör oluşturur (Mac'teki "+"); aynı ad varsa bir şey yapmaz.
+    func createFolder(name: String) {
+        guard let updated = addingFolder(saved: savedFolders, records: meetings, name: name) else {
+            return
+        }
+        storeFolders(folders: updated)
+    }
+
+    /// Klasörü siler (Mac'teki "Klasörü sil"): toplantılar silinmez, klasörsüz kalır. İçinde üzerinde iş süren (`locked`)
+    /// toplantı varsa silinmez (o toplantı klasörden çıkarılamaz, klasör yeniden belirirdi); arayüz bu durumda düğmeyi
+    /// kapatır. Klasörden çıkarılamayan toplantının nedeni sorunlarda görünür.
+    func deleteFolder(name: String, locked: Set<String>) {
+        let inside: [MeetingRecord] = meetingsInFolder(records: meetings, folder: name)
+        guard !inside.contains(where: { locked.contains($0.id) }) else {
+            actionProblems = appendUnique(messages: actionProblems, message: String(localized: "İçinde kayıttaki ya da işlenen toplantı olan klasör silinemez."))
+            return
+        }
+        storeFolders(folders: removingFolder(saved: savedFolders, name: name))
+        for error in moveMeetings(ids: Set(inside.map(\.id)), to: nil, locked: locked) {
+            actionProblems = appendUnique(messages: actionProblems, message: error)
+        }
+    }
+
+    /// Toplantıları klasöre taşır (nil: klasörden çıkarır; ad kırpılır, boş ad klasörden çıkarır); üzerinde iş süren
+    /// (`locked`) toplantılar atlanır. Taşınamayanların hataları (tekilleştirilmiş) döner.
+    func moveMeetings(ids: Set<String>, to folder: String?, locked: Set<String>) -> [String] {
+        let trimmed: String? = folder?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let target: String? = trimmed?.isEmpty == false ? trimmed : nil
+        return ids.subtracting(locked).sorted().reduce(into: [String]()) { (errors: inout [String], id: String) -> Void in
+            do {
+                try updateMeeting(meetingID: id) { (current: MeetingRecord) -> MeetingRecord in current.with(folder: target) }
+            } catch {
+                errors = appendUnique(messages: errors, message: "\(String(localized: "Klasöre taşınamadı")): \(userFacingMessage(error: error))")
+            }
+        }
+    }
+
+    /// Klasör listesini hesabın ayar alanına saklar; saklanamazsa neden sorunlarda görünür.
+    private func storeFolders(folders: [String]) {
+        do {
+            try hostedActiveAccountDefaults().set(folders, forKey: savedFoldersKey)
+            savedFolders = folders
+        } catch {
+            Self.logger.error("Klasörler saklanamadı, hata: \(String(describing: error), privacy: .private)")
+            actionProblems = appendUnique(messages: actionProblems, message: userFacingMessage(error: error))
+        }
+    }
+
+    // MARK: Son silinenler
+
+    /// Son silinenler (en son silinen önce): `recentlyDeletedRetentionDays` gün geri yüklenebilir, sonra kalıcı silinir.
+    private(set) var deletedMeetings: [DeletedMeeting] = []
+    /// Son silinenlerde okunamayan klasörler ya da klasöre erişim hatası (her okumada yenilenir).
+    private(set) var deletedLoadProblems: [String] = []
+    /// Her okumada ve her değişiklikte artar: süren okuma sonradan yapılan silmeyi ya da geri yüklemeyi geri almasın.
+    @ObservationIgnored private var deletedGeneration: Int = 0
+
+    /// Son silinenleri arka planda yeniden okur; liste güncellenince döner.
+    func reloadDeletedAndWait() async {
+        deletedGeneration += 1
+        let generation: Int = deletedGeneration
+        do {
+            let result: DeletedMeetingsLoadResult = try await loadRecentlyDeletedInBackground()
+            guard generation == deletedGeneration else {
+                return
+            }
+            deletedMeetings = result.meetings
+            deletedLoadProblems = result.failures.map { (failure: MeetingLoadFailure) -> String in "\(failure.folder): \(failure.reason)" }
+        } catch {
+            guard generation == deletedGeneration else {
+                return
+            }
+            deletedLoadProblems = [userFacingMessage(error: error)]
+        }
+    }
+
+    /// Toplantıları son silinenlere taşır (Mac'te Çöp Sepeti); `recentlyDeletedRetentionDays` gün geri yüklenebilir.
+    /// Üzerinde iş süren (`locked`: kayıtta, işleniyor, notu yazılıyor, sunucu oturumu hazırlanıyor) toplantı
+    /// silinmez. Silinemeyenlerin hataları (tekilleştirilmiş) döner; silinenler listeden, görevlerden, Sor'dan ve
+    /// Kişiler'den çıkar.
+    func trashMeetings(ids: Set<String>, locked: Set<String>, now: Date) -> [String] {
+        ids.sorted().reduce(into: [String]()) { (errors: inout [String], id: String) -> Void in
+            if let error = trashMeeting(id: id, locked: locked, now: now) {
+                errors = appendUnique(messages: errors, message: error)
+            }
+        }
+    }
+
+    /// Tek toplantıyı son silinenlere taşır; olmazsa kullanıcıya gösterilecek neden döner.
+    private func trashMeeting(id: String, locked: Set<String>, now: Date) -> String? {
+        guard let record = meetings.first(where: { $0.id == id }), !locked.contains(id) else {
+            return String(localized: "Kayıttaki ya da işlenen toplantı silinemez.")
+        }
+        do {
+            try moveMeetingToRecentlyDeleted(meetingDirectory: try sessionDirectory(id: id), recentlyDeleted: try AppPaths.recentlyDeletedDirectory(), deletedAt: now)
+        } catch {
+            Self.logger.error("Toplantı silinemedi, toplantı: \(id, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+            return String(localized: "Toplantı silinemedi: \(userFacingMessage(error: error))")
+        }
+        closeSpeakerReview(meetingID: id)
         meetings.removeAll { $0.id == id }
         reloader.invalidate()
+        // Bu toplantıdan öğrenilen ses izleri de geri alınır (Mac'te Çöp Sepeti'ne taşırken olduğu gibi).
+        voices.meetingDeleted(meetingID: id)
+        deletedGeneration += 1
+        deletedMeetings = newestDeletedFirst(meetings: deletedMeetings.filter { $0.id != id } + [DeletedMeeting(record: record, deletedAt: now)])
+        return nil
+    }
+
+    /// Silinen toplantıları geri yükler: listeye, görevlere, Sor'a ve Kişiler'e (klasörüyle) dönerler. Geri
+    /// yüklenemeyenlerin hataları döner; bir hata olduysa iki liste diskten yeniden okunur (yarım kalan geri yükleme
+    /// doğru listede görünsün). Geri yüklenen kayıtlar da döner (bekleyen kayıt kuyruğa döner, bkz. çağıran).
+    func restoreDeleted(ids: Set<String>) -> (restored: [MeetingRecord], errors: [String]) {
+        deletedGeneration += 1
+        var restored: [MeetingRecord] = []
+        var errors: [String] = []
+        for id in ids.sorted() {
+            do {
+                let record: MeetingRecord = try restoreMeetingFromRecentlyDeleted(
+                    id: id, recentlyDeleted: try AppPaths.recentlyDeletedDirectory(), sessions: try AppPaths.sessionsDirectory()
+                )
+                upsert(record: record)
+                deletedMeetings.removeAll { $0.id == id }
+                restored.append(record)
+            } catch {
+                Self.logger.error("Toplantı geri yüklenemedi, toplantı: \(id, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+                errors = appendUnique(messages: errors, message: String(localized: "Toplantı geri yüklenemedi: \(userFacingMessage(error: error))"))
+            }
+        }
+        if !errors.isEmpty {
+            reload()
+            Task { await reloadDeletedAndWait() }
+        }
+        return (restored: restored, errors: errors)
+    }
+
+    /// Silinen toplantıları kalıcı olarak siler (metin, not ve ses); silinemeyenlerin hataları döner.
+    func purgeDeleted(ids: Set<String>) -> [String] {
+        deletedGeneration += 1
+        return ids.sorted().reduce(into: [String]()) { (errors: inout [String], id: String) -> Void in
+            do {
+                try deleteRecentlyDeletedMeeting(id: id, recentlyDeleted: try AppPaths.recentlyDeletedDirectory())
+                deletedMeetings.removeAll { $0.id == id }
+            } catch {
+                Self.logger.error("Toplantı kalıcı silinemedi, toplantı: \(id, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+                errors = appendUnique(messages: errors, message: String(localized: "Toplantı kalıcı olarak silinemedi: \(userFacingMessage(error: error))"))
+            }
+        }
+    }
+
+    /// Süresi dolan silinen toplantıları kalıcı siler (açılışta ve Son silinenler açılınca). Silinemeyenin nedeni
+    /// sorunlarda görünür; bir sonraki denemede yeniden silinir.
+    func purgeExpiredDeleted(now: Date) {
+        let expired: [String] = deletedMeetingsToPurge(meetings: deletedMeetings, now: now, retentionDays: recentlyDeletedRetentionDays)
+        for error in purgeDeleted(ids: Set(expired)) {
+            actionProblems = appendUnique(messages: actionProblems, message: error)
+        }
     }
 
     /// Saklama süresi (Ayarlar) dolan toplantıların sesini ve ses izlerini siler; metin ve not kalır. Silinemeyenin
@@ -889,6 +1094,8 @@ final class PhoneStore {
         let meetingID: String = record.id
         regeneratingIDs.insert(meetingID)
         defer { regeneratingIDs.remove(meetingID) }
+        // Kabul edilen konuşmacı önerileri artık notta; bekleyen öneri yoksa inceleme kartı kapanır.
+        speakerReviews[meetingID] = speakerReviewAfterNoteRewrite(state: speakerReviews[meetingID])
         do {
             let llm: LLMProvider = try phoneRecordedMeetingLLMProvider(recordID: meetingID)
             let directory: URL = try sessionDirectory(id: meetingID)
@@ -911,15 +1118,16 @@ final class PhoneStore {
         }
     }
 
-    /// Notun verilen dildeki paylaşım kopyası (Mac'teki "Başka dilde paylaş"): daha önce çevrildiyse saklanan kopya, yoksa
-    /// not o dile çevrilir ve toplantıda saklanır (not değişince kopyalar silinir). Çevrilemezse hata fırlar; çeviri
-    /// saklanamazsa kopya yine döner, neden sorunlarda görünür.
-    func sharedNote(meetingID: String, language: ShareLanguage) async throws -> MeetingNote {
+    /// Notu verilen dile çevirir ve toplantıda saklar (Mac'teki notun dil menüsü; sunucuda `shared_note_translation`).
+    /// Tam bir çevirisi zaten saklıysa (`sharedNoteVersion`) bir şey yapmaz; not değişince saklı çeviriler silinir.
+    /// Çeviri sürerken not yeniden yazıldıysa eski notun çevirisi saklanmaz (sayfa yeni not için yeniden ister).
+    /// Çevrilemezse ya da saklanamazsa hata fırlar (sayfa nedeni ve "Yeniden dene"yi gösterir).
+    func translateNote(meetingID: String, language: ShareLanguage) async throws {
         guard let record = meetings.first(where: { $0.id == meetingID }), let note = record.note else {
             throw StorageError.writeFailed(path: meetingID, reason: "toplantı ya da not yok")
         }
-        if let cached = record.sharedNotes?[language.rawValue] {
-            return cached
+        if sharedNoteVersion(record: record, language: language) != nil {
+            return
         }
         let provider: LLMProvider = try phoneAccountLLMProvider()
         let shared: MeetingNote = try await requestStructured(
@@ -927,18 +1135,124 @@ final class PhoneStore {
         ) { (text: String) throws -> MeetingNote in
             try parseSharedNote(text: text, original: note).with(language: language)
         }
-        // Çeviri sürerken not yeniden yazıldıysa eski notun çevirisi saklanmaz (yine de paylaşılır).
         guard let current = meetings.first(where: { $0.id == meetingID }), current.note == note else {
-            return shared
+            Self.logger.info("Çeviri saklanmadı: not bu arada değişti, toplantı: \(meetingID, privacy: .public)")
+            return
+        }
+        try updateMeeting(meetingID: meetingID) { (fresh: MeetingRecord) -> MeetingRecord in
+            fresh.note == note ? fresh.with(sharedNotes: (fresh.sharedNotes ?? [:]).merging([language.rawValue: shared]) { $1 }) : fresh
+        }
+    }
+
+    // MARK: Konuşmacı incelemesi
+
+    /// Toplantı sayfasındaki "Gözden geçir" kartları (toplantı kimliğiyle; Mac'teki `speakerReviews`).
+    private(set) var speakerReviews: [String: SpeakerReviewState] = [:]
+    @ObservationIgnored private var speakerReviewTasks: [String: Task<Void, Never>] = [:]
+
+    /// Akıllı model transkriptin tamamını okuyup ad, birleştirme ve şüpheli an önerir (sunucuda `speaker_review`);
+    /// öneriler kartta tek tek kabul ya da reddedilir (yanlış bir öneri sessizce notu bozmasın diye otomatik uygulanmaz).
+    /// Kayıttaki, işlenen ya da notu yazılan toplantıda ya da numaralı konuşmacı yoksa yapılmaz.
+    func reviewSpeakers(meetingID: String) {
+        guard let record = meetings.first(where: { $0.id == meetingID }), record.status != .recording, record.status != .processing,
+              !regeneratingIDs.contains(meetingID) else {
+            return
+        }
+        let segments: [StoredSegment] = meetingSegments(record: record)
+        guard let request = speakerReviewRequest(
+            segments: segments, speakerNames: record.speakerNames, userName: phoneUserName(), attendees: record.attendees ?? [], language: phoneNoteLanguage()
+        ) else {
+            return
+        }
+        let persons: Set<Int> = Set(segments.compactMap(\.person))
+        let names: [Int: String] = record.speakerNames
+        speakerReviewTasks[meetingID]?.cancel()
+        speakerReviews[meetingID] = .loading
+        speakerReviewTasks[meetingID] = Task { [weak self] in
+            let state: SpeakerReviewState
+            do {
+                let provider: LLMProvider = try phoneAccountLLMProvider()
+                let review: SpeakerReview = try await requestStructured(provider: provider, request: request) { (text: String) throws -> SpeakerReview in
+                    try parseSpeakerReview(text: text, persons: persons, speakerNames: names)
+                }
+                state = .ready(review: review, applied: 0)
+            } catch {
+                // Hata gövdesi toplantı metni içerebilir: yalnızca özel (private) loglanır.
+                Self.logger.error("Konuşmacı incelemesi başarısız, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+                state = .failed(userFacingMessage(error: error))
+            }
+            // Kart kapatıldıysa ya da yeni inceleme başladıysa sonuç yazılmaz.
+            guard let self, !Task.isCancelled else {
+                return
+            }
+            self.speakerReviews[meetingID] = state
+            self.speakerReviewTasks[meetingID] = nil
+        }
+    }
+
+    /// Kartı kapatır ve süren incelemeyi iptal eder.
+    func closeSpeakerReview(meetingID: String) {
+        speakerReviewTasks[meetingID]?.cancel()
+        speakerReviewTasks[meetingID] = nil
+        speakerReviews[meetingID] = nil
+    }
+
+    /// Ad önerisini uygular (ad her yerde hemen görünür: transkript, not, görevler). Bu arada elle birleştirilen kişiye
+    /// ad verilmez, öneri yalnızca düşer. Ad saklanamazsa öneri kartta kalır, neden sorunlarda görünür.
+    func acceptNameSuggestion(meetingID: String, suggestion: SpeakerNameSuggestion) {
+        guard case .ready(let review, let applied) = speakerReviews[meetingID] else {
+            return
+        }
+        guard currentPersons(meetingID: meetingID).contains(suggestion.person) else {
+            speakerReviews[meetingID] = .ready(review: review.removingName(person: suggestion.person), applied: applied)
+            return
         }
         do {
-            try updateMeeting(meetingID: meetingID) { (fresh: MeetingRecord) -> MeetingRecord in
-                fresh.note == note ? fresh.with(sharedNotes: (fresh.sharedNotes ?? [:]).merging([language.rawValue: shared]) { $1 }) : fresh
-            }
+            try renameSpeakers(meetingID: meetingID, names: [suggestion.person: suggestion.name])
+            speakerReviews[meetingID] = .ready(review: review.removingName(person: suggestion.person), applied: applied + 1)
         } catch {
-            actionProblems = appendUnique(messages: actionProblems, message: String(localized: "Çeviri saklanamadı: \(userFacingMessage(error: error))"))
+            actionProblems = appendUnique(messages: actionProblems, message: String(localized: "Ad kaydedilemedi: \(userFacingMessage(error: error))"))
         }
-        return shared
+    }
+
+    func dismissNameSuggestion(meetingID: String, suggestion: SpeakerNameSuggestion) {
+        guard case .ready(let review, let applied) = speakerReviews[meetingID] else {
+            return
+        }
+        speakerReviews[meetingID] = .ready(review: review.removingName(person: suggestion.person), applied: applied)
+    }
+
+    /// Birleştirme önerisini uygular; kalan öneriler yeni numaralara taşınır. Birleştirilemezse öneri kartta kalır, neden
+    /// sorunlarda görünür.
+    func acceptMergeSuggestion(meetingID: String, suggestion: SpeakerMergeSuggestion) {
+        guard case .ready(let review, let applied) = speakerReviews[meetingID] else {
+            return
+        }
+        guard currentPersons(meetingID: meetingID).isSuperset(of: [suggestion.from, suggestion.into]) else {
+            speakerReviews[meetingID] = .ready(review: review.removingMerge(from: suggestion.from, into: suggestion.into), applied: applied)
+            return
+        }
+        do {
+            try mergeSpeakers(meetingID: meetingID, from: suggestion.from, into: suggestion.into)
+            speakerReviews[meetingID] = .ready(review: review.afterMerge(from: suggestion.from, into: suggestion.into), applied: applied + 1)
+        } catch {
+            actionProblems = appendUnique(messages: actionProblems, message: String(localized: "Konuşmacılar birleştirilemedi: \(userFacingMessage(error: error))"))
+        }
+    }
+
+    func dismissMergeSuggestion(meetingID: String, suggestion: SpeakerMergeSuggestion) {
+        guard case .ready(let review, let applied) = speakerReviews[meetingID] else {
+            return
+        }
+        speakerReviews[meetingID] = .ready(review: review.removingMerge(from: suggestion.from, into: suggestion.into), applied: applied)
+    }
+
+    /// Toplantının şu anki kişi numaraları (gösterilen bölümlerden).
+    private func currentPersons(meetingID: String) -> Set<Int> {
+        guard let record = meetings.first(where: { $0.id == meetingID }) else {
+            return []
+        }
+        return Set(meetingSegments(record: record).compactMap(\.person))
     }
 
     /// İki konuşmacıyı birleştirir (Mac'teki "… ile birleştir"; son geçiş aynı kişiyi ikiye böldüyse): `from`un tüm

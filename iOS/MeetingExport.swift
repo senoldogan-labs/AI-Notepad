@@ -4,15 +4,16 @@ import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 
-// Toplantının dosya olarak dışa aktarılması (Mac'teki "Dışa aktar" menüsünün iPhone karşılığı): PDF, web sayfası
-// (HTML), Markdown, transkript (TXT) ve altyazı (SRT). Dosya geçici klasöre yazılır ve iOS paylaşım sayfasıyla
+// Toplantının dosya olarak dışa aktarılması (Mac'teki "Dışa aktar" menüsünün iPhone karşılığı): PDF, Word (DOCX), web
+// sayfası (HTML), Markdown, transkript (TXT) ve altyazı (SRT). Dosya geçici klasöre yazılır ve iOS paylaşım sayfasıyla
 // gönderilir (Dosyalar'a kaydet, Mail, AirDrop…). İçerik çekirdeğin saf fonksiyonlarından gelir; PDF iPhone'da web
-// sayfasının UIKit yazdırma çizimiyle üretilir (Mac'teki AppKit belgesi iOS'ta yok). Word (DOCX) iOS'ta üretilemez
-// (`NSAttributedString` Office biçimini yalnız macOS'ta yazar).
+// sayfasının UIKit yazdırma çizimiyle üretilir (Mac'teki AppKit belgesi iOS'ta yok); Word belgesi Mac'tekiyle aynı
+// çekirdek yazıcısıyla (`meetingDOCX`).
 
 /// Dışa aktarma biçimi.
 enum MeetingExportFormat: String, CaseIterable, Identifiable {
     case pdf
+    case docx
     case html
     case markdown
     case transcriptText
@@ -23,6 +24,7 @@ enum MeetingExportFormat: String, CaseIterable, Identifiable {
     var fileExtension: String {
         switch self {
         case .pdf: "pdf"
+        case .docx: "docx"
         case .html: "html"
         case .markdown: "md"
         case .transcriptText: "txt"
@@ -34,6 +36,7 @@ enum MeetingExportFormat: String, CaseIterable, Identifiable {
     var title: LocalizedStringKey {
         switch self {
         case .pdf: "PDF"
+        case .docx: "Word (DOCX)"
         case .html: "Web sayfası (HTML)"
         case .markdown: "Markdown"
         case .transcriptText: "Transkript (TXT)"
@@ -45,6 +48,7 @@ enum MeetingExportFormat: String, CaseIterable, Identifiable {
     var telemetryFormat: TelemetryExportFormat {
         switch self {
         case .pdf: .pdf
+        case .docx: .docx
         case .html: .html
         case .markdown: .markdown
         case .transcriptText: .transcriptText
@@ -52,9 +56,18 @@ enum MeetingExportFormat: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Dosya notu taşır (notun dili seçiliyken o dildeki sürümle yazılır); transkript ve altyazı notsuzdur.
+    var carriesNote: Bool {
+        switch self {
+        case .pdf, .docx, .html, .markdown: true
+        case .transcriptText, .subtitles: false
+        }
+    }
+
     var systemImage: String {
         switch self {
         case .pdf: "doc.richtext"
+        case .docx: "doc.text.fill"
         case .html: "safari"
         case .markdown: "doc.text"
         case .transcriptText: "text.alignleft"
@@ -64,11 +77,11 @@ enum MeetingExportFormat: String, CaseIterable, Identifiable {
 }
 
 /// Toplantıda bu biçim için içerik var mı: PDF ve web sayfası not ister, transkript ve altyazı konuşma metni ister,
-/// Markdown her toplantıda vardır. Saf fonksiyondur.
+/// Markdown ve Word belgesi (başlık, tarih, varsa not ve transkript) her toplantıda vardır. Saf fonksiyondur.
 func isMeetingExportAvailable(record: MeetingRecord, format: MeetingExportFormat) -> Bool {
     switch format {
     case .pdf, .html: record.note != nil
-    case .markdown: true
+    case .markdown, .docx: true
     case .transcriptText, .subtitles: !(record.finalSegments.isEmpty && record.liveSegments.isEmpty)
     }
 }
@@ -82,9 +95,10 @@ enum MeetingExportError: Error, Equatable {
 }
 
 /// Toplantıyı seçilen biçimde geçici klasöre yazar ve dosyanın yolunu döndürür (paylaşım sayfası bu dosyayı gönderir).
-/// Ana iş parçacığında çalışır: PDF UIKit yazdırma çizicisiyle üretilir.
+/// `record` sayfada seçili dildeki haldir (`recordInLanguage`); `language` o dil (PDF ve web sayfasının başlıkları o
+/// dilde), asıl notta nil. Ana iş parçacığında çalışır: PDF UIKit yazdırma çizicisiyle üretilir.
 @MainActor
-func writeMeetingExport(record: MeetingRecord, format: MeetingExportFormat) throws -> URL {
+func writeMeetingExport(record: MeetingRecord, language: ShareLanguage?, format: MeetingExportFormat) throws -> URL {
     guard isMeetingExportAvailable(record: record, format: format) else {
         throw MeetingExportError.contentMissing(format: format.rawValue, meetingID: record.id)
     }
@@ -97,12 +111,14 @@ func writeMeetingExport(record: MeetingRecord, format: MeetingExportFormat) thro
         guard let note = record.note else {
             throw MeetingExportError.contentMissing(format: format.rawValue, meetingID: record.id)
         }
-        data = try htmlPDF(html: meetingHTML(record: record, note: note, language: nil, appName: appName), meetingID: record.id)
+        data = try htmlPDF(html: meetingHTML(record: record, note: note, language: language, appName: appName), meetingID: record.id)
     case .html:
         guard let note = record.note else {
             throw MeetingExportError.contentMissing(format: format.rawValue, meetingID: record.id)
         }
-        data = Data(meetingHTML(record: record, note: note, language: nil, appName: appName).utf8)
+        data = Data(meetingHTML(record: record, note: note, language: language, appName: appName).utf8)
+    case .docx:
+        data = meetingDOCX(record: record)
     case .markdown:
         data = Data(meetingMarkdown(record: record).utf8)
     case .transcriptText:
@@ -155,19 +171,20 @@ struct ActivityShareSheet: UIViewControllerRepresentable {
     func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }
 
-/// Paylaşılacak metin (başka dile çevrilmiş not): paylaşım sayfasını açar.
-struct SharedText: Identifiable {
-    let id: UUID = UUID()
-    let text: String
-}
-
-/// Sistem paylaşım sayfası (metin için).
-struct TextShareSheet: UIViewControllerRepresentable {
-    let text: String
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: [text], applicationActivities: nil)
+/// Paragrafın sesini (iki kayıt karışık; Mac'teki "Klip olarak kaydet") M4A klip olarak geçici klasöre yazar ve
+/// dosyanın yolunu döndürür (paylaşım sayfası bu dosyayı gönderir). Kaynaklar toplantının kayıtlarıdır
+/// (`PhoneStore.audioURLs`: işlenmişse `.m4a`, işlenmemişse `.caf`); aralık paragrafın biraz öncesinden biraz
+/// sonrasınadır (`clipRange`).
+func writeMeetingClip(record: MeetingRecord, paragraph: TranscriptParagraph, sources: [URL]) async throws -> URL {
+    let directory: URL = FileManager.default.temporaryDirectory.appending(path: "Exports/\(UUID().uuidString)", directoryHint: .isDirectory)
+    do {
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    } catch {
+        throw StorageError.writeFailed(path: directory.path, reason: error.localizedDescription)
     }
-
-    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
+    let title: String = audioClipTitle(meetingTitle: record.note?.title ?? record.title, startSec: paragraph.startSec)
+    let url: URL = try exportFileURL(directory: directory, title: title, startedAt: record.startedAt, fileExtension: "m4a")
+    let range: (start: Double, end: Double) = clipRange(startSec: paragraph.startSec, endSec: paragraph.endSec)
+    try await exportAudioClip(sources: sources, startSec: range.start, endSec: range.end, destination: url)
+    return url
 }

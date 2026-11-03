@@ -1409,31 +1409,26 @@ private enum ChannelCard: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Hesapla girişin servisi (Slack, Teams, Discord); diğerlerinde nil.
-    var service: ChannelService? {
+    /// Kartın hedef türü (Mac ve iPhone'da ortak, bkz. `DestinationKind`).
+    var kind: DestinationKind {
         switch self {
         case .slack: .slack
         case .teams: .teams
         case .discord: .discord
-        case .notion, .zoom, .webhook: nil
+        case .notion: .notion
+        case .zoom: .zoom
+        case .webhook: .webhook
         }
+    }
+
+    /// Hesapla girişin servisi (Slack, Teams, Discord); diğerlerinde nil.
+    var service: ChannelService? {
+        kind.channelService
     }
 
     /// Bu karttan eklenmiş hedef mi. Saf fonksiyondur.
     func matches(destination: NoteDestination) -> Bool {
-        switch destination.target {
-        case .account(let connection): service == connection.service
-        case .notion: self == .notion
-        case .discordSignIn: self == .discord
-        case .webhook(let url):
-            switch webhookKind(url: url) {
-            case .slack: self == .slack
-            case .discord: self == .discord
-            case .teams: self == .teams
-            case .zoom: self == .zoom
-            case .generic: self == .webhook
-            }
-        }
+        destinationKind(destination: destination) == kind
     }
 }
 
@@ -2157,9 +2152,7 @@ private struct SkillSettings: View {
         guard panel.runModal() == .OK else {
             return
         }
-        let failures: [String] = model.importSkills(files: panel.urls)
-        let added: Int = panel.urls.count - failures.count
-        status = ([added > 0 ? String(localized: "\(added) beceri Sor'a tarif olarak eklendi.") : nil] + failures).compactMap { $0 }.joined(separator: "\n")
+        status = skillImportSummary(result: model.importSkills(files: panel.urls))
     }
 }
 

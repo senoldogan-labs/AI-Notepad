@@ -2,10 +2,13 @@ import AINotepadCore
 import AINotepadUI
 import SwiftUI
 
-/// Ayarlar: hesap (giriş yapan kimlik, plan, kullanım, çıkış, hesap silme), görünüm, kayıt (rıza hatırlatması, ses
-/// saklama), takvim, toplantı dili ve ad, gizlilik (anonim kullanım istatistikleri), sürüm.
+/// Ayarlar: hesap (giriş yapan kimlik, plan, kullanım, çıkış, hesap silme), görünüm, bağlantılar (kanallar, görev
+/// araçları), kayıt (rıza hatırlatması, ses saklama), takvim, toplantı dili ve ad, konuşmacılar (sesinden tanıma), not,
+/// beceriler (SKILL.md), gizlilik (anonim kullanım istatistikleri), sürüm ve tanılama.
 struct PhoneSettingsTab: View {
     let store: PhoneStore
+    /// Sor: SKILL.md'den içe aktarılan beceriler onun tariflerine eklenir.
+    let ask: PhoneAsk
     let calendar: PhoneCalendar
     let account: HostedAccount
     /// Hesabın verisine yazan bir iş sürüyor (bkz. `phoneOpenWriters`): çıkış ve hesap silme kapalı.
@@ -49,6 +52,13 @@ struct PhoneSettingsTab: View {
                     }
                 } header: {
                     Text("Görünüm")
+                }
+                Section {
+                    PhoneConnectionsRow()
+                } header: {
+                    Text("Bağlantılar")
+                } footer: {
+                    Text("Notlar Slack, Teams, Discord, Notion ya da Zoom'a, görevler Linear ya da Jira'ya gider.")
                 }
                 Section {
                     Toggle("Kayıt başlarken haber vermeyi hatırlat", isOn: $consentReminder)
@@ -97,6 +107,7 @@ struct PhoneSettingsTab: View {
                 } footer: {
                     Text("Notlar, canlı çeviri ve Sor cevapları not ve çeviri dilinde yazılır.")
                 }
+                PhoneVoiceSettingsSection(voices: store.voices)
                 Section {
                     Toggle("Kayıt sırasında \(noteLanguageName) diline çevir", isOn: Binding<Bool>(
                         get: { (DisplayMode(rawValue: displayMode) ?? .bilingual).needsLiveTranslation },
@@ -147,6 +158,7 @@ struct PhoneSettingsTab: View {
                 } footer: {
                     Text("Yeni notlar bu şablonla yazılır; eski bir notu ⋯ menüsünden yeniden yazabilirsin.")
                 }
+                PhoneSkillImportSection(ask: ask)
                 Section {
                     Toggle("Anonim kullanım istatistiklerini paylaş", isOn: $shareUsageStatistics)
                         .onChange(of: shareUsageStatistics) { (_: Bool, enabled: Bool) in
@@ -174,6 +186,7 @@ struct PhoneSettingsTab: View {
                     }
                     LabeledContent("Sürüm", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?")
                     LabeledContent("Toplantılar", value: "\(store.meetings.count)")
+                    NavigationLink("Tanılama") { PhoneDiagnosticsScreen(account: account, store: store) }
                     NavigationLink("Geri bildirim gönder") { PhoneFeedbackForm() }
                     CrashReportsLink(center: crashReports)
                 } header: {

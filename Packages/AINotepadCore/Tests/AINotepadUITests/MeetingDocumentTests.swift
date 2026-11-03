@@ -51,9 +51,9 @@ private func sampleRecord(paragraphCount: Int) -> MeetingRecord {
         #expect(try #require(document.string).contains("numero 119"))
     }
 
-    // Word belgesi geri okununca not ve transkript metni yerinde.
+    // Çekirdeğin Word belgesi AppKit'in Office okuyucusuyla açılır; not ve transkript metni yerinde.
     @Test func docxRoundTripsNoteAndTranscript() throws {
-        let data: Data = try meetingDOCX(record: sampleRecord(paragraphCount: 4))
+        let data: Data = meetingDOCX(record: sampleRecord(paragraphCount: 4))
         let document: NSAttributedString = try NSAttributedString(
             data: data, options: [.documentType: NSAttributedString.DocumentType.officeOpenXML], documentAttributes: nil
         )

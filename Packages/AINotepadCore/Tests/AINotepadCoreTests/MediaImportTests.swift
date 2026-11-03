@@ -133,4 +133,43 @@ private final class LevelBox: @unchecked Sendable {
             try await exportAudioClip(sources: [first], startSec: 600, endSec: 610, destination: try temporaryDirectory().appending(path: "bos.m4a"))
         }
     }
+
+    // Aralık paragrafın yarım saniye öncesinden yarım saniye sonrasına; başta 0'ın altına inmez, ters aralık başlangıçtan
+    // sonra biter. Dosya adı toplantı adı ve ":" yerine "." ile an.
+    @Test func clipRangeAndTitle() {
+        let middle: (start: Double, end: Double) = clipRange(startSec: 10, endSec: 20)
+        #expect(middle.start == 9.5 && middle.end == 20.5)
+        let first: (start: Double, end: Double) = clipRange(startSec: 0.2, endSec: 3)
+        #expect(first.start == 0 && first.end == 3.5)
+        let reversed: (start: Double, end: Double) = clipRange(startSec: 8, endSec: 5)
+        #expect(reversed.start == 7.5 && reversed.end == 8.5)
+        #expect(audioClipTitle(meetingTitle: "Bütçe", startSec: 65) == "Bütçe 01.05")
+        #expect(audioClipTitle(meetingTitle: "Plan", startSec: 3725) == "Plan 1.02.05")
+    }
+
+    // iPhone'un sakladığı biçimler: işlenmemiş kayıt 16 kHz 16-bit `.caf` (`CafRecorder`), işlenmiş kayıt `.m4a`
+    // (`convertToM4A`). İkisinden (ve karışık) klip çıkar; aralık kaydın sonunu aşarsa kaydın sonunda biter.
+    @Test func exportsClipFromStoredRecordingFormats() async throws {
+        let samples: [Float] = try loadFixture(name: "fi-meeting")
+        let directory: URL = try temporaryDirectory()
+        let caf: URL = directory.appending(path: "others.caf")
+        let recorder: CafRecorder = try CafRecorder(fileURL: caf)
+        try recorder.append(samples: samples)
+        recorder.close()
+        let m4a: URL = directory.appending(path: "me.m4a")
+        try convertToM4A(source: caf, destination: m4a)
+        let total: Double = Double(samples.count) / 16000
+
+        let fromCaf: URL = directory.appending(path: "caf-klip.m4a")
+        try await exportAudioClip(sources: [caf], startSec: 1, endSec: 4, destination: fromCaf)
+        #expect(abs(try await AVURLAsset(url: fromCaf).load(.duration).seconds - 3) < 0.3)
+
+        let mixed: URL = directory.appending(path: "karisik-klip.m4a")
+        try await exportAudioClip(sources: [caf, m4a], startSec: 2, endSec: 5, destination: mixed)
+        #expect(abs(try await AVURLAsset(url: mixed).load(.duration).seconds - 3) < 0.3)
+
+        let tail: URL = directory.appending(path: "son-klip.m4a")
+        try await exportAudioClip(sources: [m4a], startSec: total - 1, endSec: total + 5, destination: tail)
+        #expect(abs(try await AVURLAsset(url: tail).load(.duration).seconds - 1) < 0.3)
+    }
 }

@@ -32,6 +32,8 @@ private struct ActiveRecording {
     let linkedMeeting: CalendarMeeting?
     /// Notun şablonu: kayıt başlarken Ayarlar'daki varsayılan (kayıt sırasında değişmez).
     let template: NoteTemplate
+    /// Duraklatma: duraklatılan ses akıştan atılır (dosyaya yazılmaz, yazıya dökülmez); mikrofon açık kalır.
+    let pauseGate: RecordingPauseGate
 }
 
 /// iPhone kaydı: yüz yüze toplantı (odadaki herkes telefon mikrofonundan gelir ve konuşmacılara ayrılır). Mac'teki
@@ -56,7 +58,13 @@ final class PhoneRecorder {
 
     private(set) var phase: RecorderPhase = .idle
     private(set) var transcript: [LiveSegment] = []
+    /// Kullanıcının kayıt sırasında yaptığı konuşmacı düzeltmeleri (otomatik ayırmanın üstüne uygulanır; Mac'teki gibi).
+    private(set) var speakerCorrections: SpeakerCorrections = .none
     private(set) var translations: [SegmentID: String] = [:]
+    /// Çevirisi başarısız bölümler (kayıt ekranında "Tekrar dene").
+    private(set) var failedTranslations: Set<SegmentID> = []
+    /// Duraklatma saati (kayıt ekranındaki ve canlı etkinlikteki süre duraklatılan zamanı saymaz).
+    private(set) var pauseClock: PauseClock = .running
     private(set) var lockedLanguage: MeetingLanguage?
     /// Süren kaydın kullanıcının sabitlediği dili: kayıt başında seçili sabit dil; Otomatikte ve kayıtta dil
     /// değiştirildiyse nil (değişiklikten önceki konuşma önceki dildedir, süzülmez). Kayda yazılır; doluysa başka dildeki
@@ -134,6 +142,8 @@ final class PhoneRecorder {
     @ObservationIgnored private var lastActivityUpdate: Date = .distantPast
     /// Kayıt başlarken takvimde süren toplantı (takvim açıksa; uygulama bağlar); başlık ve katılımcılar kayda geçer.
     @ObservationIgnored var currentCalendarMeeting: (@MainActor () -> CalendarMeeting?)?
+    /// Toplantının işlenmesi bitip kaydedildi (uygulama bağlar): notu hazırsa bağlı hedeflere kendiliğinden gider.
+    @ObservationIgnored var onMeetingProcessed: (@MainActor (MeetingRecord) -> Void)?
 
     init(store: PhoneStore) {
         self.store = store
@@ -177,7 +187,10 @@ final class PhoneRecorder {
         microphoneStatus = .running
         microphoneRecoveredNoticeVisible = false
         transcript = []
+        speakerCorrections = .none
         translations = [:]
+        failedTranslations = []
+        pauseClock = .running
         translationQueue = []
         unitBuilder = .empty
         translationUnits = []
@@ -198,13 +211,18 @@ final class PhoneRecorder {
         let linkedMeeting: CalendarMeeting? = currentCalendarMeeting?()
         let directory: URL
         let audio: AsyncStream<[Float]>
+        let pauseGate: RecordingPauseGate
         do {
             directory = try AppPaths.newSessionDirectory(startedAt: started)
             let origin: ContinuousClock.Instant = .now
             microphone.onStatusChange = { [weak self] (status: MicrophoneStatus) -> Void in
                 self?.microphoneStatusChanged(status: status)
             }
-            audio = clockAlignedStream(audio: try await microphone.start(), origin: origin, sampleRate: 16000, thresholdSec: 0.5)
+            // Duraklatma hizalanmış akışta süzülür: kesinti sonrası sessizlik dolgusu da duraklatılan aralığa düşüyorsa
+            // atılır; mikrofon duraklatmada kapanmaz (yakalama yeniden kurulmaz, ikinci dinleyici takılmaz).
+            pauseGate = RecordingPauseGate(sampleRate: 16000, origin: origin)
+            let aligned: AsyncStream<[Float]> = clockAlignedStream(audio: try await microphone.start(), origin: origin, sampleRate: 16000, thresholdSec: 0.5)
+            audio = pausableStream(audio: aligned, gate: pauseGate)
         } catch {
             errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
             phase = .idle
@@ -289,7 +307,7 @@ final class PhoneRecorder {
         }
         let active: ActiveRecording = ActiveRecording(
             directory: directory, startedAt: started, handle: handle, liveLLM: liveLLM, engine: choice.engine == .deepgram ? .cloud : .local,
-            offline: offline, linkedMeeting: linkedMeeting, template: phoneNoteTemplate()
+            offline: offline, linkedMeeting: linkedMeeting, template: phoneNoteTemplate(), pauseGate: pauseGate
         )
         self.active = active
         startedAt = started
@@ -379,9 +397,13 @@ final class PhoneRecorder {
             return
         }
         phase = .finishing
-        stoppedAt = Date()
+        let stopped: Date = Date()
+        stoppedAt = stopped
+        // Duraklatılmışken bitirildi: süre duraklatma anında kalır; ses kapısı kapalı kalır (mikrofon kapanana dek gelen
+        // ses de yazılmaz).
+        pauseClock = pauseClock.resuming(at: stopped)
         closeAssistantCard()
-        Self.logger.info("Kayıt bitiriliyor")
+        Self.logger.info("Kayıt bitiriliyor, duraklatılmış süre: \(self.pauseClock.completedSec, privacy: .public) sn")
         // Kapanış (son ses, son konuşmacı etiketleri, bekleyen çeviriler) uygulama arka plana geçse de bitsin.
         if let recording = active {
             let id: String = recording.directory.lastPathComponent
@@ -451,12 +473,43 @@ final class PhoneRecorder {
         Set(processingSteps.keys).union([active?.directory.lastPathComponent].compactMap { $0 })
     }
 
-    /// Şu anı işaretler: notta öne çıkar (söz bittikten sonra basılır; aralığı `Highlight` belirler).
+    /// Şu anı işaretler: notta öne çıkar (söz bittikten sonra basılır; aralığı `Highlight` belirler). An kaydedilen sesin
+    /// zaman çizgisindedir (duraklatılan süre düşülür; transkriptle aynı); duraklatılmışken işaretlenmez.
     func markMoment() {
-        guard phase == .recording, let startedAt else {
+        guard phase == .recording, !pauseClock.isPaused, let active else {
             return
         }
-        highlights.append(Highlight(startSec: Date().timeIntervalSince(startedAt), endSec: nil))
+        highlights.append(Highlight(startSec: active.pauseGate.keptSeconds(at: .now), endSec: nil))
+    }
+
+    /// Kayıt sürüyor ve duraklatılmış mı.
+    var isPaused: Bool {
+        pauseClock.isPaused
+    }
+
+    /// Kaydı duraklatır (Mac'teki "Duraklat"): bu andan sonraki ses dosyaya yazılmaz, yazıya dökülmez ve sunucuya
+    /// gönderilmez (son geçiş ve canlı metin bu süreyi saymaz); süre durur. Mikrofon açık kalır: kayıt arka planda ve
+    /// kilit ekranında sürer, yakalama yeniden kurulmaz. Kesinti (çağrı) duraklatmadan bağımsızdır; ikisi bir arada da
+    /// duraklatılan aralığa düşen ses atılır.
+    func pause() {
+        guard phase == .recording, !pauseClock.isPaused, let active else {
+            return
+        }
+        active.pauseGate.pause(at: .now)
+        pauseClock = pauseClock.pausing(at: Date())
+        Self.logger.info("Kayıt duraklatıldı")
+        updateActivityNow(state: activityState())
+    }
+
+    /// Duraklatılan kaydı sürdürür: ses yeniden kaydedilir ve yazıya dökülür.
+    func resume() {
+        guard phase == .recording, pauseClock.isPaused, let active else {
+            return
+        }
+        active.pauseGate.resume(at: .now)
+        pauseClock = pauseClock.resuming(at: Date())
+        Self.logger.info("Kayıt sürdürüldü, duraklatılmış süre: \(self.pauseClock.completedSec, privacy: .public) sn")
+        updateActivityNow(state: activityState())
     }
 
     /// Kayıt sırasında dili değiştirir; o andan sonraki metin yeni dille yazılır.
@@ -471,6 +524,63 @@ final class PhoneRecorder {
         languageSkippedSegments = []
         Task {
             await handle.setLanguage(language)
+        }
+    }
+
+    // MARK: Canlı metin eylemleri
+
+    /// Konuşmacı düzeltmeleri uygulanmış transkript (kayıt ekranı, asistan, canlı etkinlik ve saklanan toplantı bunu
+    /// kullanır).
+    var correctedTranscript: [LiveSegment] {
+        applyCorrections(transcript: transcript, corrections: speakerCorrections)
+    }
+
+    /// Bir bloğu başka konuşmacıya atar (otomatik ayırma yanıldıysa); sonraki ayırma pencereleri bunu ezmez.
+    func reassignBlock(segments: [SegmentID], person: Int) {
+        speakerCorrections = speakerCorrections.assigning(segments: segments, to: person)
+    }
+
+    /// Bir konuşmacının tüm bölümlerini (geçmiş ve gelecek) diğeriyle birleştirir.
+    func mergeLivePersons(from: Int, into: Int) {
+        speakerCorrections = speakerCorrections.merging(person: from, into: into)
+    }
+
+    /// "Yeni konuşmacı" seçilince verilecek, hiç kullanılmamış numara.
+    var newPersonNumber: Int {
+        nextFreePerson(transcript: transcript, corrections: speakerCorrections)
+    }
+
+    /// "Tümünü kopyala": ekrandaki gibi (gösterim ayarına göre orijinal, çeviri ya da ikisi) konuşmacılı düz metin.
+    var displayedText: String {
+        displayedPlainText(
+            blocks: groupBySpeaker(transcript: correctedTranscript.filter { !$0.text.isEmpty }), translations: translations, displayMode: phoneDisplayMode()
+        )
+    }
+
+    /// Canlı çeviriyi açar ya da kapatır (Mac'teki kayıt kartındaki "Canlı çeviri"; ayar olarak saklanır). Kayıt sürerken
+    /// açılırsa o ana dek çevrilmeyen cümleler de çevrilir (toplantıda çevirisi eksik kalmasın); birime girmiş bölüm
+    /// yeniden girmez.
+    func selectDisplayMode(mode: DisplayMode) {
+        let resumesTranslation: Bool = mode.needsLiveTranslation && !phoneDisplayMode().needsLiveTranslation
+        UserDefaults.standard.set(mode.rawValue, forKey: PhoneSettingsKey.displayMode)
+        guard resumesTranslation, phase == .recording else {
+            return
+        }
+        for segment in transcript where segment.isFinal && !segment.text.isEmpty && translations[segment.id] == nil && !failedTranslations.contains(segment.id) {
+            addForTranslation(segment: segment)
+        }
+    }
+
+    /// Başarısız çevirileri yeniden dener (Mac'teki "Tekrar dene"): verilen bölümleri içeren birimler bütünüyle yeniden
+    /// çevrilir (birim iki bloğa yayılsa da). Yalnızca kayıtta: kayıt bittikten sonra çevrilen cümle toplantıya yazılmaz.
+    func retryTranslations(ids: [SegmentID]) {
+        guard phase == .recording, active?.liveLLM != nil else {
+            return
+        }
+        // Yalnızca hâlâ başarısız bölümü olan birimler: çevrilmiş birim ikinci kez çevrilmez.
+        for unit in unitsContaining(ids: ids, units: translationUnits) where !failedTranslations.isDisjoint(with: unit.segmentIDs) {
+            failedTranslations.subtract(unit.segmentIDs)
+            queueTranslation(unit: unit)
         }
     }
 
@@ -582,6 +692,13 @@ final class PhoneRecorder {
         }
     }
 
+    /// "Şimdi dene" (Mac'teki gibi): bekleyen kaydı kendiliğinden yeniden denemeyi beklemeden kuyruğu hemen çalıştırır.
+    /// Sunucunun bu kaydı az önce reddetmesinin bekleme süresi kullanıcının isteğiyle kalkar (tek kayıt, tek istek).
+    func retryQueuedNow(meetingID: String) async {
+        queueRejections[meetingID] = nil
+        await runQueue()
+    }
+
     /// Bekleyen kaydın işlenememe nedenini toplantıya yazar (değişmediyse dokunmaz).
     private func noteQueued(recordID: String, notice: String) {
         guard let current = store.meetings.first(where: { $0.id == recordID }), current.status == .queued, current.notice != notice else {
@@ -633,6 +750,16 @@ final class PhoneRecorder {
         phase = .recording
         consentReminderVisible = true
         startActivity(startedAt: startedAt ?? Date(), title: String(localized: "Toplantı"))
+        updateActivityNow(state: activityState())
+    }
+
+    /// `--ornek-duraklat` (yalnız Debug, görsel kontrol): örnek kayıt 40 sn önce duraklatılmış; bir cümlenin çevirisi
+    /// alınamamış ("Tekrar dene").
+    func showSamplePaused() {
+        let failed: SegmentID = SegmentID(speaker: .others, index: 2)
+        translations[failed] = nil
+        failedTranslations = [failed]
+        pauseClock = PauseClock.running.pausing(at: Date().addingTimeInterval(-40))
         updateActivityNow(state: activityState())
     }
 
@@ -726,6 +853,7 @@ final class PhoneRecorder {
             phase = .idle
             startedAt = nil
             stoppedAt = nil
+            pauseClock = .running
             return
         }
         // Kapatılacak sunucu oturumu beklemeden önce alınır. Oturum kapanana dek kayıt "bitiyor"da kalır: bu arada yeni
@@ -745,6 +873,7 @@ final class PhoneRecorder {
         let record: MeetingRecord = liveRecord(recording: finished, status: .processing, endedAt: stoppedAt ?? Date())
         startedAt = nil
         stoppedAt = nil
+        pauseClock = .running
         microphoneRecoveredNoticeVisible = false
         lastMeetingID = record.id
         Self.logger.info("Kayıt bitti, toplantı: \(record.id, privacy: .public), çevrimdışı: \(finished.offline, privacy: .public)")
@@ -783,8 +912,9 @@ final class PhoneRecorder {
             let result: MeetingRecord = await processMeeting(
                 record: record, directory: directory, finalPass: finalPass, llm: llm,
                 languageMode: record.language.map { LanguageMode.fixed($0) } ?? .automatic, userName: phoneUserName(),
-                // The iPhone does not capture screens: notes are text only.
-                noteLanguage: phoneNoteLanguage(), voiceEmbedder: nil, registry: [], screens: .off
+                // The iPhone does not capture screens: notes are text only. Voiceprints are computed on this iPhone
+                // (SpeakerKit) when voice recognition is on; they never leave the device.
+                noteLanguage: phoneNoteLanguage(), voiceEmbedder: store.voices.embedderIfEnabled(), registry: store.voices.registered, screens: .off
             ) { (step: ProcessingStep) async -> Void in
                 self.processingSteps[record.id] = step
                 self.continuedTasks[record.id]?.progress.completedUnitCount = continuedProcessingCompletedUnits(step: step)
@@ -806,6 +936,7 @@ final class PhoneRecorder {
             let versioned: MeetingRecord = withNoteVersion(updated: result, previous: record, reason: String(localized: "Tekrar işlendi"), savedAt: Date())
             saveRecord(record: versioned, directory: directory)
             processingSteps[record.id] = nil
+            onMeetingProcessed?(versioned)
             finishContinuedTask(meetingID: record.id, success: versioned.status == .done)
             // Son geçişin ses süresi aylık kullanıma sayılır: hesap durumu yenilenir.
             await HostedAccount.shared.refresh()
@@ -838,7 +969,7 @@ final class PhoneRecorder {
     /// Konuşmanın asistana giden metni: kaydın sabit dili dışındaki (atlanan) bölümler girmez.
     private var assistantTranscript: [LiveSegment] {
         let skipped: Set<SegmentID> = otherLanguageSegments
-        return transcript.filter { !$0.text.isEmpty && !skipped.contains($0.id) }
+        return correctedTranscript.filter { !$0.text.isEmpty && !skipped.contains($0.id) }
     }
 
     /// Son N dakikanın (Ayarlar) not dilinde özeti ("Ne kaçırdım?"); o sürede konuşma yoksa istek atılmaz.
@@ -1092,18 +1223,19 @@ final class PhoneRecorder {
 
     /// Canlı etkinlikteki son satır: son kesinleşen cümle ve konuşmacısı.
     private var activityLine: (text: String, speaker: String) {
-        guard let last = transcript.last(where: { $0.isFinal && !$0.text.isEmpty }) else {
+        guard let last = correctedTranscript.last(where: { $0.isFinal && !$0.text.isEmpty }) else {
             return ("", "")
         }
         return (last.text, last.person.map { speakerLabel(speaker: last.id.speaker, person: $0) } ?? "")
     }
 
-    /// Canlı etkinliğin şimdiki durumu: son cümle, bitiriliyor mu, mikrofon bekleniyor mu, süre durduysa anı.
+    /// Canlı etkinliğin şimdiki durumu: son cümle, bitiriliyor mu, mikrofon bekleniyor mu, duraklatıldı mı, süre durduysa
+    /// anı ve duraklatılan süre (sayaç duraklatmayı saymaz).
     private func activityState() -> RecordingActivityAttributes.ContentState {
         let line: (text: String, speaker: String) = activityLine
         return RecordingActivityAttributes.ContentState(
             lastLine: line.text, speaker: line.speaker, isFinishing: phase == .finishing, isMicrophonePaused: microphoneStatus != .running,
-            stoppedAt: stoppedAt
+            stoppedAt: stoppedAt, pausedAt: pauseClock.pausedAt, pausedSec: pauseClock.completedSec
         )
     }
 
@@ -1275,6 +1407,11 @@ final class PhoneRecorder {
             return
         }
         translationUnits.append(unit)
+        queueTranslation(unit: unit)
+    }
+
+    /// Kaydın birimlerindeki birimi çeviri sırasına alır (ilk çeviri ya da "Tekrar dene").
+    private func queueTranslation(unit: TranslationUnit) {
         translationQueue.append(unit)
         startQueuedTranslations()
     }
@@ -1293,12 +1430,17 @@ final class PhoneRecorder {
                     let translated: String = try await translateSentence(provider: provider, sentence: unit.text, context: context, language: phoneNoteLanguage())
                     recordFeatureUsage(feature: .liveTranslation(phoneNoteLanguage()))
                     // Cümle zaten not dilindeyse (model aynen döndürdü) çeviri saklanmaz: aynı cümle iki kez görünmesin.
-                    if requestGeneration == generation, isDistinctTranslation(original: unit.text, translated: translated) {
-                        translations = applyingUnitTranslation(translations: translations, unit: unit, translation: translated)
+                    if requestGeneration == generation {
+                        if isDistinctTranslation(original: unit.text, translated: translated) {
+                            translations = applyingUnitTranslation(translations: translations, unit: unit, translation: translated)
+                        }
+                        failedTranslations.subtract(unit.segmentIDs)
                     }
                 } catch {
                     Self.logger.error("Çeviri başarısız, birim sonu: \(segmentKey(id: unit.carrierID), privacy: .public), bölüm sayısı: \(unit.segmentIDs.count, privacy: .public), hata: \(String(describing: error), privacy: .private)")
                     if requestGeneration == generation {
+                        // Cümle kaybolmasın: kayıt ekranında "Tekrar dene"de kalır.
+                        failedTranslations.formUnion(unit.segmentIDs)
                         errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Çeviri: \(userFacingMessage(error: error))"))
                     }
                 }
@@ -1319,7 +1461,7 @@ final class PhoneRecorder {
         let base: MeetingRecord = MeetingRecord(
             id: recording.directory.lastPathComponent, title: recording.linkedMeeting?.title ?? String(localized: "Toplantı"), startedAt: recording.startedAt, endedAt: endedAt,
             language: lockedLanguage, status: status, failureMessage: nil,
-            liveSegments: storedSegments(transcript: transcript, spokenLanguages: spokenLanguages), finalSegments: [],
+            liveSegments: storedSegments(transcript: correctedTranscript, spokenLanguages: spokenLanguages), finalSegments: [],
             translations: Dictionary(uniqueKeysWithValues: translations.map { (segmentKey(id: $0.key), $0.value) }),
             speakerNames: [:], note: nil, audioDeleted: false, engine: recording.engine, notice: nil, meNeedsFinalPass: nil
         )
