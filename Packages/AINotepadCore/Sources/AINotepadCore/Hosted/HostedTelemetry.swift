@@ -178,6 +178,8 @@ public enum TelemetryFeature: Sendable, Equatable {
     case screenSnapshots
     /// A note was written with shared-screen snapshots (Gistsmith setting "Use screen snapshots in notes").
     case screenNotes
+    /// Mac ↔ iPhone sync was on for the account that day.
+    case sync
 }
 
 /// Bir günün (UTC) özellik kullanımı.
@@ -195,10 +197,12 @@ public struct TelemetryFeatureUsage: Sendable, Equatable, Codable {
     public let dictation: Bool
     public let screenSnapshots: Bool
     public let screenNotes: Bool
+    public let sync: Bool
 
     public init(
         day: String, liveTranslation: Bool, translationLanguage: ShareLanguage?, ask: Bool, integrations: [TelemetryIntegration: Int],
-        exports: [TelemetryExportFormat: Int], mcp: Bool, onDeviceLive: Bool, dictation: Bool, screenSnapshots: Bool, screenNotes: Bool
+        exports: [TelemetryExportFormat: Int], mcp: Bool, onDeviceLive: Bool, dictation: Bool, screenSnapshots: Bool, screenNotes: Bool,
+        sync: Bool
     ) {
         self.day = day
         self.liveTranslation = liveTranslation
@@ -211,9 +215,10 @@ public struct TelemetryFeatureUsage: Sendable, Equatable, Codable {
         self.dictation = dictation
         self.screenSnapshots = screenSnapshots
         self.screenNotes = screenNotes
+        self.sync = sync
     }
 
-    /// Önceki sürümlerin diske yazdığı kullanım (`dictation`, `screenSnapshots`, `screenNotes` alanları yok) da okunur: o sürümlerde
+    /// Önceki sürümlerin diske yazdığı kullanım (`dictation`, `screenSnapshots`, `screenNotes`, `sync` alanları yok) da okunur: o sürümlerde
     /// bu özellikler yoktu.
     public init(from decoder: any Decoder) throws {
         let container: KeyedDecodingContainer<CodingKeys> = try decoder.container(keyedBy: CodingKeys.self)
@@ -228,12 +233,13 @@ public struct TelemetryFeatureUsage: Sendable, Equatable, Codable {
         dictation = try container.decodeIfPresent(Bool.self, forKey: .dictation) ?? false
         screenSnapshots = try container.decodeIfPresent(Bool.self, forKey: .screenSnapshots) ?? false
         screenNotes = try container.decodeIfPresent(Bool.self, forKey: .screenNotes) ?? false
+        sync = try container.decodeIfPresent(Bool.self, forKey: .sync) ?? false
     }
 }
 
 /// Günün boş kullanımı. Saf fonksiyondur.
 public func emptyFeatureUsage(day: String) -> TelemetryFeatureUsage {
-    TelemetryFeatureUsage(day: day, liveTranslation: false, translationLanguage: nil, ask: false, integrations: [:], exports: [:], mcp: false, onDeviceLive: false, dictation: false, screenSnapshots: false, screenNotes: false)
+    TelemetryFeatureUsage(day: day, liveTranslation: false, translationLanguage: nil, ask: false, integrations: [:], exports: [:], mcp: false, onDeviceLive: false, dictation: false, screenSnapshots: false, screenNotes: false, sync: false)
 }
 
 /// Kullanıma özelliği işler (sayılar sınırda kalır). Saf fonksiyondur.
@@ -243,53 +249,59 @@ public func recordingFeature(usage: TelemetryFeatureUsage, feature: TelemetryFea
     case .liveTranslation(let language):
         return TelemetryFeatureUsage(
             day: usage.day, liveTranslation: true, translationLanguage: language, ask: usage.ask, integrations: usage.integrations, exports: usage.exports,
-            mcp: usage.mcp, onDeviceLive: usage.onDeviceLive, dictation: usage.dictation, screenSnapshots: usage.screenSnapshots, screenNotes: usage.screenNotes
+            mcp: usage.mcp, onDeviceLive: usage.onDeviceLive, dictation: usage.dictation, screenSnapshots: usage.screenSnapshots, screenNotes: usage.screenNotes, sync: usage.sync
         )
     case .ask:
         return TelemetryFeatureUsage(
             day: usage.day, liveTranslation: usage.liveTranslation, translationLanguage: usage.translationLanguage, ask: true, integrations: usage.integrations,
-            exports: usage.exports, mcp: usage.mcp, onDeviceLive: usage.onDeviceLive, dictation: usage.dictation, screenSnapshots: usage.screenSnapshots, screenNotes: usage.screenNotes
+            exports: usage.exports, mcp: usage.mcp, onDeviceLive: usage.onDeviceLive, dictation: usage.dictation, screenSnapshots: usage.screenSnapshots, screenNotes: usage.screenNotes, sync: usage.sync
         )
     case .integration(let integration):
         var integrations: [TelemetryIntegration: Int] = usage.integrations
         integrations[integration] = incremented(integrations[integration])
         return TelemetryFeatureUsage(
             day: usage.day, liveTranslation: usage.liveTranslation, translationLanguage: usage.translationLanguage, ask: usage.ask, integrations: integrations,
-            exports: usage.exports, mcp: usage.mcp, onDeviceLive: usage.onDeviceLive, dictation: usage.dictation, screenSnapshots: usage.screenSnapshots, screenNotes: usage.screenNotes
+            exports: usage.exports, mcp: usage.mcp, onDeviceLive: usage.onDeviceLive, dictation: usage.dictation, screenSnapshots: usage.screenSnapshots, screenNotes: usage.screenNotes, sync: usage.sync
         )
     case .export(let format):
         var exports: [TelemetryExportFormat: Int] = usage.exports
         exports[format] = incremented(exports[format])
         return TelemetryFeatureUsage(
             day: usage.day, liveTranslation: usage.liveTranslation, translationLanguage: usage.translationLanguage, ask: usage.ask, integrations: usage.integrations,
-            exports: exports, mcp: usage.mcp, onDeviceLive: usage.onDeviceLive, dictation: usage.dictation, screenSnapshots: usage.screenSnapshots, screenNotes: usage.screenNotes
+            exports: exports, mcp: usage.mcp, onDeviceLive: usage.onDeviceLive, dictation: usage.dictation, screenSnapshots: usage.screenSnapshots, screenNotes: usage.screenNotes, sync: usage.sync
         )
     case .mcp:
         return TelemetryFeatureUsage(
             day: usage.day, liveTranslation: usage.liveTranslation, translationLanguage: usage.translationLanguage, ask: usage.ask, integrations: usage.integrations,
-            exports: usage.exports, mcp: true, onDeviceLive: usage.onDeviceLive, dictation: usage.dictation, screenSnapshots: usage.screenSnapshots, screenNotes: usage.screenNotes
+            exports: usage.exports, mcp: true, onDeviceLive: usage.onDeviceLive, dictation: usage.dictation, screenSnapshots: usage.screenSnapshots, screenNotes: usage.screenNotes, sync: usage.sync
         )
     case .onDeviceLive:
         return TelemetryFeatureUsage(
             day: usage.day, liveTranslation: usage.liveTranslation, translationLanguage: usage.translationLanguage, ask: usage.ask, integrations: usage.integrations,
-            exports: usage.exports, mcp: usage.mcp, onDeviceLive: true, dictation: usage.dictation, screenSnapshots: usage.screenSnapshots, screenNotes: usage.screenNotes
+            exports: usage.exports, mcp: usage.mcp, onDeviceLive: true, dictation: usage.dictation, screenSnapshots: usage.screenSnapshots, screenNotes: usage.screenNotes, sync: usage.sync
         )
     case .dictation:
         return TelemetryFeatureUsage(
             day: usage.day, liveTranslation: usage.liveTranslation, translationLanguage: usage.translationLanguage, ask: usage.ask, integrations: usage.integrations,
-            exports: usage.exports, mcp: usage.mcp, onDeviceLive: usage.onDeviceLive, dictation: true, screenSnapshots: usage.screenSnapshots, screenNotes: usage.screenNotes
+            exports: usage.exports, mcp: usage.mcp, onDeviceLive: usage.onDeviceLive, dictation: true, screenSnapshots: usage.screenSnapshots, screenNotes: usage.screenNotes, sync: usage.sync
         )
     case .screenSnapshots:
         return TelemetryFeatureUsage(
             day: usage.day, liveTranslation: usage.liveTranslation, translationLanguage: usage.translationLanguage, ask: usage.ask, integrations: usage.integrations,
             exports: usage.exports, mcp: usage.mcp, onDeviceLive: usage.onDeviceLive, dictation: usage.dictation, screenSnapshots: true,
-            screenNotes: usage.screenNotes
+            screenNotes: usage.screenNotes, sync: usage.sync
         )
     case .screenNotes:
         return TelemetryFeatureUsage(
             day: usage.day, liveTranslation: usage.liveTranslation, translationLanguage: usage.translationLanguage, ask: usage.ask, integrations: usage.integrations,
             exports: usage.exports, mcp: usage.mcp, onDeviceLive: usage.onDeviceLive, dictation: usage.dictation, screenSnapshots: usage.screenSnapshots,
-            screenNotes: true
+            screenNotes: true, sync: usage.sync
+        )
+    case .sync:
+        return TelemetryFeatureUsage(
+            day: usage.day, liveTranslation: usage.liveTranslation, translationLanguage: usage.translationLanguage, ask: usage.ask, integrations: usage.integrations,
+            exports: usage.exports, mcp: usage.mcp, onDeviceLive: usage.onDeviceLive, dictation: usage.dictation, screenSnapshots: usage.screenSnapshots,
+            screenNotes: usage.screenNotes, sync: true
         )
     }
 }
@@ -308,9 +320,10 @@ private struct FeatureUsageBody: Encodable {
     let dictation: Bool
     let screenSnapshots: Bool
     let screenNotes: Bool
+    let sync: Bool
 
     enum CodingKeys: String, CodingKey {
-        case day, liveTranslation, translationLanguage, ask, integrations, exports, mcp, onDeviceLive, dictation, screenSnapshots, screenNotes
+        case day, liveTranslation, translationLanguage, ask, integrations, exports, mcp, onDeviceLive, dictation, screenSnapshots, screenNotes, sync
     }
 
     /// `translationLanguage` nil iken de yazılır (`null`): sunucu alanı her zaman ister.
@@ -327,6 +340,7 @@ private struct FeatureUsageBody: Encodable {
         try container.encode(dictation, forKey: .dictation)
         try container.encode(screenSnapshots, forKey: .screenSnapshots)
         try container.encode(screenNotes, forKey: .screenNotes)
+        try container.encode(sync, forKey: .sync)
     }
 }
 
@@ -343,7 +357,7 @@ public func hostedFeatureUsageBody(usage: TelemetryFeatureUsage) throws -> Data 
         onDeviceLive: usage.onDeviceLive,
         dictation: usage.dictation,
         screenSnapshots: usage.screenSnapshots,
-        screenNotes: usage.screenNotes
+        screenNotes: usage.screenNotes, sync: usage.sync
     )
     let encoder: JSONEncoder = JSONEncoder()
     encoder.outputFormatting = [.sortedKeys]

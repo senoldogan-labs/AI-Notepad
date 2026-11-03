@@ -27,6 +27,8 @@
   // çok birkaç dakikada bir gönderir; ayrıca hesap başına günde 200 istek, bkz. src/telemetry.ts).
   // FUNNEL_IP_LIMITER: `POST /v1/funnel` (ilk açılış hunisi, jetonsuz) IP başına dakikada 20 (uygulama kurulum başına
   // bir ilk açılış ve giriş denemesi başına birkaç adım gönderir; bkz. src/funnel.ts).
+  // SYNC_USER_LIMITER: `/v1/sync/…` (Mac ↔ iPhone eşitleme) kullanıcı başına dakikada 300: ilk açılışta arşivin
+  // yüklenmesi (toplantı başına iki nesne) dakikalara yayılır, istemci 429'da `retry-after`'a uyup sürdürür.
   "ratelimits": [
     { "name": "AUTH_IP_LIMITER", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } },
     { "name": "API_IP_LIMITER", "namespace_id": "1002", "simple": { "limit": 1200, "period": 60 } },
@@ -35,8 +37,12 @@
     { "name": "REPORT_IP_LIMITER", "namespace_id": "1005", "simple": { "limit": 5, "period": 60 } },
     { "name": "DEEPGRAM_USER_LIMITER", "namespace_id": "1006", "simple": { "limit": 10, "period": 60 } },
     { "name": "TELEMETRY_USER_LIMITER", "namespace_id": "1007", "simple": { "limit": 6, "period": 60 } },
-    { "name": "FUNNEL_IP_LIMITER", "namespace_id": "1008", "simple": { "limit": 20, "period": 60 } }
+    { "name": "FUNNEL_IP_LIMITER", "namespace_id": "1008", "simple": { "limit": 20, "period": 60 } },
+    { "name": "SYNC_USER_LIMITER", "namespace_id": "1009", "simple": { "limit": 300, "period": 60 } }
   ],
+  // Mac ↔ iPhone eşitlemesinin uçtan uca şifreli nesneleri (src/sync.ts). AB yargı bölgesindeki kova; içerik anahtarı
+  // yalnızca kullanıcının cihazlarındadır. Yerelde (`wrangler dev`, testler) Miniflare yerel bir kova taklit eder.
+  "r2_buckets": [{ "binding": "SYNC_BUCKET", "bucket_name": "gistsmith-sync-dev", "jurisdiction": "eu" }],
   "vars": {
     "ENVIRONMENT": "development",
     "SITE_ORIGIN": "http://localhost:8788",
@@ -68,6 +74,9 @@
     // Davet programı (src/referrals.ts): "on" ise abonelere davet kodu verilir ve Checkout kodu kabul eder; "off" ise
     // yeni kod verilmez, kod reddedilir (`503 referral_unavailable`); hak kazanmış bekleyen ödüller yine verilir.
     "REFERRAL_POLICY": "on",
+    // Mac ↔ iPhone eşitleme (src/sync.ts): "on" ise `/v1/sync/…` uçları açık, "off" ise `503 sync_unavailable` (hesap
+    // silme ve günlük temizlik eşitleme verisini yine siler). Yerelde ve testlerde açık.
+    "SYNC_POLICY": "on",
     // Davet edenin aynı anda açık tutabileceği en çok davet: ödülü bekleyen (`joined`, `qualified`), son 24 saatte
     // Checkout'a götürülen (açık ödeme sayfası olabilir) ve son 365 günde kart yeniden kullanıldığı için düşen davetler.
     // Dolunca kod yeni arkadaşa `409 referral_limit_reached` döner; ödül verildikçe ya da davet düştükçe yer açılır.
@@ -218,8 +227,12 @@
         { "name": "REPORT_IP_LIMITER", "namespace_id": "2005", "simple": { "limit": 5, "period": 60 } },
         { "name": "DEEPGRAM_USER_LIMITER", "namespace_id": "2006", "simple": { "limit": 10, "period": 60 } },
         { "name": "TELEMETRY_USER_LIMITER", "namespace_id": "2007", "simple": { "limit": 6, "period": 60 } },
-        { "name": "FUNNEL_IP_LIMITER", "namespace_id": "2008", "simple": { "limit": 20, "period": 60 } }
+        { "name": "FUNNEL_IP_LIMITER", "namespace_id": "2008", "simple": { "limit": 20, "period": 60 } },
+        { "name": "SYNC_USER_LIMITER", "namespace_id": "2009", "simple": { "limit": 300, "period": 60 } }
       ],
+      // Bkz. üstteki geliştirme `r2_buckets` açıklaması. Kova dağıtımdan önce oluşturulmalı:
+      // `npx wrangler r2 bucket create gistsmith-sync --jurisdiction eu` (yoksa `wrangler deploy` başarısız olur).
+      "r2_buckets": [{ "binding": "SYNC_BUCKET", "bucket_name": "gistsmith-sync", "jurisdiction": "eu" }],
       "vars": {
         "ENVIRONMENT": "production",
         // Site; API özel alan adı `https://api.gistsmith.com` (Worker'ın tek adresi; workers.dev kapalı).
@@ -244,6 +257,8 @@
         "PRICE_USD_MONTHLY": "5.99",
         "PRICE_USD_YEARLY": "49",
         "REFERRAL_POLICY": "on",
+        // Bkz. üstteki geliştirme `vars` açıklaması. Kapalı: istemciler (1B) ve gizlilik metni yayınlanınca açılır.
+        "SYNC_POLICY": "off",
         // Bkz. üstteki geliştirme `vars` açıklaması.
         "REFERRAL_MAX_PENDING": "3",
         // Bkz. üstteki geliştirme `vars` açıklaması.

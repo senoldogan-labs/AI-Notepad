@@ -268,6 +268,38 @@ public struct MeetingRecord: Sendable, Equatable, Codable, Identifiable {
         self.meNeedsFinalPass = meNeedsFinalPass
     }
 
+    /// Record with every field given; sync rebuilds a meeting from its synced parts with it (`joinedMeetingRecord`).
+    init(
+        id: String, title: String, startedAt: Date, endedAt: Date?, language: MeetingLanguage?, status: MeetingStatus, failureMessage: String?,
+        liveSegments: [StoredSegment], finalSegments: [StoredSegment], translations: [String: String], speakerNames: [Int: String],
+        note: MeetingNote?, audioDeleted: Bool, engine: RecordingEngine?, notice: String?, meNeedsFinalPass: Bool?, voiceprints: [Int: Voiceprint]?,
+        completedTasks: [String]?, remindedTasks: [String]?, folder: String?, highlights: [Highlight]?, attendees: [String]?, webhookSentAt: Date?,
+        calendarEventID: String?, template: NoteTemplate?, sharedNotes: [String: MeetingNote]?, notesSentAt: Date?, myNotes: String?,
+        sentDestinationIDs: [String]?, sentTaskKeys: [String: [String]]?, noteHistory: [NoteVersion]?, fixedLanguage: MeetingLanguage?
+    ) {
+        self.init(
+            id: id, title: title, startedAt: startedAt, endedAt: endedAt, language: language, status: status, failureMessage: failureMessage,
+            liveSegments: liveSegments, finalSegments: finalSegments, translations: translations, speakerNames: speakerNames, note: note,
+            audioDeleted: audioDeleted, engine: engine, notice: notice, meNeedsFinalPass: meNeedsFinalPass
+        )
+        self.voiceprints = voiceprints
+        self.completedTasks = completedTasks
+        self.remindedTasks = remindedTasks
+        self.folder = folder
+        self.highlights = highlights
+        self.attendees = attendees
+        self.webhookSentAt = webhookSentAt
+        self.calendarEventID = calendarEventID
+        self.template = template
+        self.sharedNotes = sharedNotes
+        self.notesSentAt = notesSentAt
+        self.myNotes = myNotes
+        self.sentDestinationIDs = sentDestinationIDs
+        self.sentTaskKeys = sentTaskKeys
+        self.noteHistory = noteHistory
+        self.fixedLanguage = fixedLanguage
+    }
+
     /// Hedefe gönderildi işaretli kopya (yinelenmez).
     public func markingSent(destinationID: String) -> MeetingRecord {
         var copy: MeetingRecord = self

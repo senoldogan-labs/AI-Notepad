@@ -20476,6 +20476,72 @@
           }
         }
       }
+    },
+    "Eşitleme şu an kullanılamıyor; biraz sonra yeniden dene.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sync isn't available right now; try again shortly."
+          }
+        }
+      }
+    },
+    "Bu hesapta eşitleme kapalı; Ayarlar › Eşitleme'den açabilirsin.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sync is off for this account; you can turn it on in Settings › Sync."
+          }
+        }
+      }
+    },
+    "Bu cihazdaki eşitleme anahtarı hesabınkiyle uyuşmuyor. Diğer cihazında Ayarlar › Eşitleme › Cihaz ekle'yi kullan ya da kurtarma kodunu gir.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The sync key on this device doesn't match your account's. Use Settings › Sync › Add a device on your other device, or enter your recovery code."
+          }
+        }
+      }
+    },
+    "Bu toplantı diğer cihazda da değişti; değişiklikler birleştirilip yeniden gönderilecek.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This meeting also changed on your other device; the changes will be merged and sent again."
+          }
+        }
+      }
+    },
+    "Eşitlenen kopyanın yeri doldu; eski toplantıları ya da Sor sohbetlerini silip yeniden dene.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your synced copy is full; delete old meetings or Ask chats and try again."
+          }
+        }
+      }
+    },
+    "Eşitleme baştan yapılıyor; toplantıların yerinde kalır.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sync is starting over; your meetings stay where they are."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

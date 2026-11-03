@@ -1,5 +1,6 @@
 import { errorName, log } from "./log";
 import { expiredReservationStatements } from "./reservations";
+import { syncTombstoneRetentionDays } from "./sync";
 import { dayKey, monthKey } from "./usage";
 
 /** SQL bağ değeri. */
@@ -69,13 +70,15 @@ const aggregateCounterRetentionMs: number = 400 * dayMs;
 const cancellationRetentionMs: number = 180 * dayMs;
 /** Günlük anlık görüntü (yalnızca toplamlar; eğilimler için) 5 yıl tutulur. */
 const dailyMetricsRetentionMs: number = 1826 * dayMs;
+/** Eşitlemede silinen nesnelerin işareti (tombstone) 90 gün tutulur: diğer cihazlar silmeyi bu sürede öğrenir. */
+const syncTombstoneRetentionMs: number = syncTombstoneRetentionDays * dayMs;
 /** Gelir kayıtları (fatura ve iade tutarları) muhasebe kaydı olarak 10 yıl tutulur (Finlandiya muhasebe yasası). */
 const revenueRetentionMs: number = 3653 * dayMs;
 
 /**
- * Zamanlanmış temizliğin sınırları: tablo başına günde en çok 3 × 1000 satır. En kötü durumda 33 tablo koşulu × 3 tur
- * = 99 silme sorgusu + 3 toplu işlemin 6 ifadesi = 105 D1 sorgusu (Cron çağrısının diğer adımları birkaç sorgu daha
- * ekler). Workers Paid planının çağrı başına 1000 sorgu sınırının çok altındadır; ücretsiz plana (50) dönülürse
+ * Zamanlanmış temizliğin sınırları: tablo başına günde en çok 3 × 1000 satır. En kötü durumda 34 tablo koşulu × 3 tur
+ * = 102 silme sorgusu + 4 toplu işlemin 8 ifadesi = 110 D1 sorgusu (Cron çağrısının diğer adımları, eşitleme temizliği
+ * dahil (`syncCleanup`: en çok ~50 hesap denetimi + 20 önek), birkaç yüz sorgu daha ekler). Workers Paid planının çağrı başına 1000 sorgu sınırının çok altındadır; ücretsiz plana (50) dönülürse
  * `maxBatchesPerTable` 2'ye indirilmelidir. Kalan satırlar ertesi gün silinir. Koşul eklerken bu sayıyı güncelle.
  */
 export const scheduledCleanupLimits: CleanupLimits = { batchSize: 1000, maxBatchesPerTable: 3 };
@@ -103,6 +106,8 @@ function cleanupTargets(now: Date): CleanupTarget[] {
       binds: [nowMs - dayMs],
     },
     { name: "transcription_results", table: "transcription_results", where: "expires_at <= ?", binds: [nowMs] },
+    // Eşitlemede "cihaz ekle" mesajları 10 dakikada dolar (kurtarma zarfının süresi yoktur).
+    { name: "sync_key_envelopes", table: "sync_key_envelopes", where: "expires_at IS NOT NULL AND expires_at <= ?", binds: [nowMs] },
     { name: "device_challenges", table: "device_challenges", where: "expires_at <= ? OR used_at IS NOT NULL", binds: [nowMs] },
     {
       name: "refresh_tokens",
@@ -175,11 +180,14 @@ function cleanupTargets(now: Date): CleanupTarget[] {
  * - süresi dolmuş ayırmalar: tahmini maliyet harcamaya yazılır, satırlar silinir (`expiredReservationStatements`);
  * - 13 aydan eski toplantılar: silinmeden önce kullanıcının deneme toplantıları `users.carried_trial_meetings`'e
  *   eklenir ve deneme başlangıcı korunur (deneme hakkı geri gelmez);
- * - 13 aydır kullanılmayan cihazlar: önce toplantıların cihaz bağı kaldırılır.
+ * - 13 aydır kullanılmayan cihazlar: önce toplantıların cihaz bağı kaldırılır;
+ * - eşitlemede 90 günden eski silme işaretleri (tombstone): önce hesabın `purged_through_rev`'i silinecek en yüksek
+ *   revizyona çekilir (daha eski imleçle gelen cihaz baştan eşitler, silmeyi kaçırmaz), sonra en çok 1000 işaret silinir.
  * Saf fonksiyondur.
  */
 function cleanupBatches(db: D1Database, now: Date): CleanupBatch[] {
   const cutoff: number = now.getTime() - usageRetentionMs;
+  const tombstoneCutoff: number = now.getTime() - syncTombstoneRetentionMs;
   return [
     { name: "usage_reservations", statements: expiredReservationStatements(db, now), countIndex: 1 },
     {
@@ -204,6 +212,22 @@ function cleanupBatches(db: D1Database, now: Date): CleanupBatch[] {
       statements: [
         db.prepare("UPDATE meeting_sessions SET device_id = NULL WHERE device_id IN (SELECT id FROM devices WHERE last_used_at < ?)").bind(cutoff),
         db.prepare("DELETE FROM devices WHERE last_used_at < ?").bind(cutoff),
+      ],
+      countIndex: 1,
+    },
+    {
+      name: "sync_tombstones",
+      statements: [
+        db
+          .prepare(
+            `UPDATE sync_accounts SET purged_through_rev = MAX(purged_through_rev,
+               (SELECT MAX(o.rev) FROM sync_objects o WHERE o.user_id = sync_accounts.user_id AND o.deleted = 1 AND o.updated_at < ?1))
+             WHERE user_id IN (SELECT user_id FROM sync_objects WHERE deleted = 1 AND updated_at < ?1)`,
+          )
+          .bind(tombstoneCutoff),
+        db
+          .prepare("DELETE FROM sync_objects WHERE rowid IN (SELECT rowid FROM sync_objects WHERE deleted = 1 AND updated_at < ? LIMIT 1000)")
+          .bind(tombstoneCutoff),
       ],
       countIndex: 1,
     },
