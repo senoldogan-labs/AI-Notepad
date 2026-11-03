@@ -976,7 +976,7 @@ export const copy: Copy = {
       {
         question: "Where does my audio go?",
         answer:
-          "While you record, the audio streams from your Mac to Deepgram for the live transcript; Deepgram is asked not to keep it or use it for training. If that isn't available, the live transcript is produced on your Mac instead. When the meeting ends, the audio is passed through our server to ElevenLabs to separate speakers and produce the final transcript; for notes and translation the text goes to Anthropic's Claude model. Our servers don't store audio or notes; they count the duration and hold the final transcript encrypted for up to 2 hours, only so it can be re-sent if the connection drops. ElevenLabs and Anthropic may keep what they process for a time under their own retention rules (Anthropic deletes it within 30 days); the privacy policy has the details.",
+          "While you record, the audio streams from your Mac to Deepgram for the live transcript; Deepgram is asked not to keep it or use it for training. If that isn't available, the live transcript is produced on your Mac instead. When the meeting ends, the audio is passed through our server to ElevenLabs to separate speakers and produce the final transcript; for notes and translation the text goes to Anthropic's Claude model. Our servers don't store audio or notes; they count the duration and hold the final transcript encrypted for up to 2 hours, only so it can be re-sent if the connection drops. ElevenLabs and Anthropic may keep what they process for a time under their own retention rules (Anthropic deletes it within 30 days). If you turn on “Use screen snapshots in notes”, up to six of the meeting's screen snapshots go to Anthropic along with the transcript when the note is written; otherwise snapshots never leave your Mac. The privacy policy has the details.",
       },
       {
         question: "Which languages are supported?",
@@ -1438,10 +1438,10 @@ export const copy: Copy = {
     helpContact: "Contact support",
     dangerTitle: "Delete account",
     dangerText:
-      "Your account, sessions, device registrations and usage history are permanently deleted, and any unfinished subscription is cancelled immediately. Your notes and recordings stay on your Mac. Receipts and payment records are kept by Stripe and Link as required by law. To prevent free-trial abuse, a pseudonymous record of how many free-trial meetings your sign-in has used is kept for up to 24 months, so signing in again with the same account continues the trial instead of restarting it. If you subscribed with an invite, a pseudonymous record that you used one is also kept for up to 24 months so it can't be used twice.",
+      "Your account, sessions, device registrations and usage history are permanently deleted, and a subscription bought on this website or in the Mac app is cancelled immediately. Your notes and recordings stay on your Mac. Receipts and payment records are kept by Stripe and Link as required by law. To prevent free-trial abuse, a pseudonymous record of how many free-trial meetings your sign-in has used is kept for up to 24 months, so signing in again with the same account continues the trial instead of restarting it. If you subscribed with an invite, a pseudonymous record that you used one is also kept for up to 24 months so it can't be used twice.",
     deleteButton: "Delete account",
     dialogTitle: "Delete your account?",
-    dialogText: "This can't be undone. If you have a subscription, it is cancelled immediately and ends with your account; the remaining time is not refunded automatically.",
+    dialogText: "This can't be undone. A subscription bought on this website or in the Mac app is cancelled immediately and ends with your account; the remaining time is not refunded automatically.",
     confirmWord: "DELETE",
     confirmLabel: "Type DELETE to confirm",
     cancel: "Cancel",
