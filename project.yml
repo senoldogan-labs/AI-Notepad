@@ -256,7 +256,15 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         SWIFT_VERSION: "6.0"
         SWIFT_STRICT_CONCURRENCY: complete
-        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) HOSTED_EDITION"
+        # Deneysel: iPhone'da çalışan görüşmenin (Teams/Zoom) sesini kaydetme (iOS 27 ScreenCaptureKit; bkz.
+        # docs/superpowers/specs/2026-11-03-iphone-call-capture-research.md). YES: `iOS/CallCapture/` derlenir ve
+        # "Call capture background mode" betiği paketlenen Info.plist'e `screen-capture` arka plan modunu ekler. Release'de
+        # NO: App Store derlemesinde ne kod ne arka plan modu var. TestFlight deneme derlemesi:
+        # `xcodebuild archive … -configuration Release CALL_CAPTURE_EXPERIMENT=YES` (yalnız iç test, incelemeye gitmez).
+        CALL_CAPTURE_EXPERIMENT: NO
+        CALL_CAPTURE_CONDITION_YES: CALL_CAPTURE_EXPERIMENT
+        CALL_CAPTURE_CONDITION_NO: ""
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) HOSTED_EDITION $(CALL_CAPTURE_CONDITION_$(CALL_CAPTURE_EXPERIMENT))"
         SWIFT_EMIT_LOC_STRINGS: YES
         LOCALIZATION_PREFERS_STRING_CATALOGS: YES
         GENERATE_INFOPLIST_FILE: YES
@@ -282,11 +290,30 @@ targets:
           HOSTED_SITE_BASE: "http://localhost:8788"
           HOSTED_DATA_FOLDER_NAME: "AINotepad Hosted Debug"
           HOSTED_KEYCHAIN_SERVICE: "AINotepadHosted.debug"
+          CALL_CAPTURE_EXPERIMENT: YES
         Release:
           HOSTED_API_BASE: "https://api.gistsmith.com"
           HOSTED_SITE_BASE: "https://gistsmith.com"
           HOSTED_DATA_FOLDER_NAME: "AINotepad Hosted"
           HOSTED_KEYCHAIN_SERVICE: "AINotepadHosted"
+    # Deneysel görüşme kaydının arka plan modu (bkz. `CALL_CAPTURE_EXPERIMENT`): Info.plist işlendikten sonra, imzadan
+    # önce. NO iken mod silinir (artımlı derlemede önceki YES derlemesinden kalmasın).
+    postBuildScripts:
+      - name: Call capture background mode
+        basedOnDependencyAnalysis: false
+        inputFiles:
+          - "$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)"
+        script: |
+          plist="${TARGET_BUILD_DIR}/${INFOPLIST_PATH}"
+          has_mode() { /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes" "$plist" | grep -q "screen-capture"; }
+          if [ "${CALL_CAPTURE_EXPERIMENT}" = "YES" ]; then
+            has_mode || /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes: string screen-capture" "$plist"
+          else
+            while has_mode; do
+              index=$(/usr/libexec/PlistBuddy -c "Print :UIBackgroundModes" "$plist" | sed -e '1d' -e '$d' | awk '{$1=$1}; $0 == "screen-capture" {print NR-1; exit}')
+              /usr/libexec/PlistBuddy -c "Delete :UIBackgroundModes:${index}" "$plist"
+            done
+          fi
     # Debug çalıştırması yerel StoreKit yapılandırmasıyla: abonelik ekranı Simülatör'de App Store Connect olmadan satın
     # alır (Xcode ortamı işlemi; RevenueCat doğrulayabilsin diye panelde StoreKit test sertifikası yüklü olmalı, sunucu
     # hakkı açmaz). Yalnızca Xcode'dan Run'da geçerlidir: xcodebuild/simctl başlatması gerçek sandbox'ı kullanır (Apple
