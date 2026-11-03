@@ -773,7 +773,8 @@ final class PhoneRecorder {
             let result: MeetingRecord = await processMeeting(
                 record: record, directory: directory, finalPass: finalPass, llm: llm,
                 languageMode: record.language.map { LanguageMode.fixed($0) } ?? .automatic, userName: phoneUserName(),
-                noteLanguage: phoneNoteLanguage(), voiceEmbedder: nil, registry: []
+                // The iPhone does not capture screens: notes are text only.
+                noteLanguage: phoneNoteLanguage(), voiceEmbedder: nil, registry: [], screens: .off
             ) { (step: ProcessingStep) async -> Void in
                 self.processingSteps[record.id] = step
                 self.continuedTasks[record.id]?.progress.completedUnitCount = continuedProcessingCompletedUnits(step: step)

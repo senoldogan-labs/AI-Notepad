@@ -7,6 +7,8 @@ import os
 extension SettingsKey {
     /// Çevrimiçi görüşme kaydında paylaşılan ekranın görüntüleri alınsın mı (varsayılan kapalı; açıkça açılır).
     static let screenSnapshots: String = "screenSnapshots.enabled"
+    /// Gistsmith: whether key screen snapshots go with the AI note (off by default; images leave the Mac only then).
+    static let screenNotes: String = "screenNotes.enabled"
 }
 
 /// Ekran görüntülerinin uygulama tarafı: kayıt sırasında görüntü almayı yönetir, toplantıların görüntü listesini ve
@@ -20,6 +22,8 @@ final class ScreenSnapshotCenter {
     private(set) var snapshots: [String: [ScreenSnapshot]] = [:]
     /// Toplantı başına son okuma ya da silme hatası (toplantı sayfasında satır içinde).
     private(set) var errors: [String: String] = [:]
+    /// Per meeting: snapshots the user unticked for notes (`Screens/excluded-from-notes.json`).
+    private(set) var noteExclusions: [String: Set<String>] = [:]
     @ObservationIgnored private let recorder: ScreenSnapshotRecorder = ScreenSnapshotRecorder()
     @ObservationIgnored private let thumbnails: NSCache<NSString, NSImage> = NSCache()
     /// Görüntüsü alınan kaydın toplantısı; kayıt yokken nil.
@@ -65,12 +69,13 @@ final class ScreenSnapshotCenter {
 
     /// Toplantının görüntülerini klasöründen yeniden okur (arka planda).
     func refresh(meetingID: String, directory: URL) async {
-        let result: Result<[ScreenSnapshot], any Error> = await Task.detached(priority: .userInitiated) { () -> Result<[ScreenSnapshot], any Error> in
-            Result { try listScreenSnapshots(meetingDirectory: directory) }
+        let result: Result<([ScreenSnapshot], Set<String>), any Error> = await Task.detached(priority: .userInitiated) { () -> Result<([ScreenSnapshot], Set<String>), any Error> in
+            Result { (try listScreenSnapshots(meetingDirectory: directory), try readScreenNoteExclusions(meetingDirectory: directory)) }
         }.value
         switch result {
-        case .success(let list):
+        case .success(let (list, excluded)):
             snapshots[meetingID] = list
+            noteExclusions[meetingID] = prunedScreenNoteExclusions(excluded: excluded, snapshots: list)
             errors[meetingID] = nil
         case .failure(let error):
             Self.logger.error("Ekran görüntüleri okunamadı, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
@@ -83,6 +88,12 @@ final class ScreenSnapshotCenter {
         do {
             try deleteScreenSnapshot(meetingDirectory: directory, snapshot: snapshot)
             snapshots[meetingID] = (snapshots[meetingID] ?? []).filter { $0 != snapshot }
+            let excluded: Set<String> = noteExclusions[meetingID] ?? []
+            if excluded.contains(snapshot.id) {
+                let pruned: Set<String> = prunedScreenNoteExclusions(excluded: excluded, snapshots: snapshots[meetingID] ?? [])
+                try writeScreenNoteExclusions(meetingDirectory: directory, excluded: pruned)
+                noteExclusions[meetingID] = pruned
+            }
             thumbnails.removeObject(forKey: thumbnailKey(meetingID: meetingID, snapshot: snapshot))
             errors[meetingID] = nil
         } catch {
@@ -96,11 +107,25 @@ final class ScreenSnapshotCenter {
         do {
             try deleteAllScreenSnapshots(meetingDirectory: directory)
             snapshots[meetingID] = []
+            noteExclusions[meetingID] = []
             thumbnails.removeAllObjects()
             errors[meetingID] = nil
         } catch {
             Self.logger.error("Ekran görüntüleri silinemedi, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
             errors[meetingID] = String(localized: "Ekran görüntüleri silinemedi: \(userFacingMessage(error: error))")
+        }
+    }
+
+    /// Ticks or unticks a snapshot for notes and saves the choice in the meeting's folder; the next note uses it.
+    func toggleNoteExclusion(meetingID: String, directory: URL, snapshot: ScreenSnapshot) {
+        let updated: Set<String> = toggledScreenNoteExclusion(excluded: noteExclusions[meetingID] ?? [], snapshotID: snapshot.id)
+        do {
+            try writeScreenNoteExclusions(meetingDirectory: directory, excluded: updated)
+            noteExclusions[meetingID] = updated
+            errors[meetingID] = nil
+        } catch {
+            Self.logger.error("Nota ekleme seçimi kaydedilemedi, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+            errors[meetingID] = String(localized: "Seçim kaydedilemedi: \(userFacingMessage(error: error))")
         }
     }
 
@@ -131,6 +156,8 @@ final class ScreenSnapshotCenter {
         "\(meetingID)/\(snapshot.id)" as NSString
     }
 }
+
+private let screenNotesLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "ScreenNotes")
 
 /// Listedeki küçük resimlerin uzun kenarı (piksel; Retina'da 280 noktalık genişliğe yeter).
 let screenThumbnailPixels: Int = 640
@@ -192,6 +219,41 @@ extension AppModel {
             screenSnapshots.deleteAll(meetingID: meetingID, directory: try sessionDirectory(id: meetingID))
         } catch {
             screenSnapshots.record(error: error, meetingID: meetingID)
+        }
+    }
+
+    /// Ticks or unticks a snapshot for notes; a failure shows on the page.
+    func toggleScreenNoteExclusion(meetingID: String, snapshot: ScreenSnapshot) {
+        do {
+            screenSnapshots.toggleNoteExclusion(meetingID: meetingID, directory: try sessionDirectory(id: meetingID), snapshot: snapshot)
+        } catch {
+            screenSnapshots.record(error: error, meetingID: meetingID)
+        }
+    }
+
+    /// Whether notes are written with screen snapshots: only Gistsmith (its server is the only provider that takes images)
+    /// and only with the setting on.
+    func screenNotesPlan() -> ScreenNotesPlan {
+        #if HOSTED_EDITION
+        UserDefaults.standard.bool(forKey: SettingsKey.screenNotes) ? .on : .off
+        #else
+        .off
+        #endif
+    }
+
+    /// Counts the feature once a note was written with snapshots: the plan was on, the note succeeded and the meeting
+    /// had snapshots left after the user's unticks (the selector then always sends at least one).
+    func recordScreenNotesUsage(plan: ScreenNotesPlan, result: MeetingRecord, directory: URL) {
+        guard plan == .on, result.note != nil, result.status == .done, result.failureMessage == nil else {
+            return
+        }
+        do {
+            let excluded: Set<String> = try readScreenNoteExclusions(meetingDirectory: directory)
+            if try listScreenSnapshots(meetingDirectory: directory).contains(where: { !excluded.contains($0.id) }) {
+                recordFeatureUsage(feature: .screenNotes)
+            }
+        } catch {
+            screenNotesLogger.error("Ekran görüntüleri okunamadı (kullanım sayımı), toplantı: \(result.id, privacy: .public), hata: \(String(describing: error), privacy: .private)")
         }
     }
 

@@ -902,7 +902,7 @@ export const copy: Copy = {
       },
       screens: {
         title: "Feedback pinned to the screen",
-        text: "Turn it on and, in online calls, the Mac app keeps a snapshot each time the shared screen changes, matched to what was said while it was up. Your AI apps read both over MCP, so each comment lands on the right slide or design frame. Snapshots stay on your Mac.",
+        text: "Turn it on and, in online calls, the Mac app keeps a snapshot each time the shared screen changes, matched to what was said while it was up. Your AI apps read both over MCP, so each comment lands on the right slide or design frame. Snapshots stay on your Mac unless you also let notes use them, so the note can say which slide a point was about.",
         frame: "Pricing page",
         time: "12:40",
         quote: "The yearly toggle is hard to spot.",
