@@ -94,6 +94,9 @@ struct AINotepadiOSApp: App {
             .task {
                 crashReports.start()
                 HostedTelemetryCenter.shared.start()
+                // Hesap ve hak durumu açılışta okunur (Mac'te `AINotepadApp`'teki gibi): oturum varken giriş kapısı
+                // görünmez, okumayı başka hiçbir şey başlatmaz; yoksa Ayarlar'daki hesap satırı "okunuyor"da kalırdı.
+                await account.readUnknownStatus()
             }
         }
     }

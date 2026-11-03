@@ -264,6 +264,8 @@ final class HostedAccount {
     /// Hesap durumunun kuşağı: her okuma, çıkış ve hesap silme artırır; geç dönen eski okuma yeni durumu ezmez (çıkıştan
     /// sonra dönen okuma oturumu "giriş yapıldı" göstermez; bkz. `isCurrentSessionGeneration`).
     @ObservationIgnored private var stateGeneration: Int = 0
+    /// En yeni hesap okumasının beklediği adım (ilk okuma süresinde bitmezse loglanır; bkz. `reportOverdueLoad`).
+    @ObservationIgnored private var loadStep: HostedAccountLoadStep = .session
     /// Oturumdaki kullanıcı (Anahtar Zinciri'nden, her okumada); oturum yoksa nil. Çevrimdışı kayıt izni buna göre
     /// denetlenir (başka hesabın izni kullanılmaz).
     private(set) var signedInUserIDCache: String?
@@ -291,7 +293,7 @@ final class HostedAccount {
     /// Yenilemenin gösterdiği hata: sonraki başarılı yenileme onu kaldırır (bağlantı gelince eski hata kalmasın).
     @ObservationIgnored private var refreshErrorMessage: String?
     @ObservationIgnored private var observers: [any NSObjectProtocol] = []
-    /// Ağ geri gelince hak durumu yeniden okunur (bkz. `retryUnknownStatus`).
+    /// Ağ geri gelince hak durumu yeniden okunur (bkz. `readUnknownStatus`).
     @ObservationIgnored private let pathMonitor: NWPathMonitor = NWPathMonitor()
     /// Açık giriş penceresi: oturum bitene dek tutulmalı (yoksa sistem pencereyi kapatır).
     @ObservationIgnored private var webSession: ASWebAuthenticationSession?
@@ -329,7 +331,7 @@ final class HostedAccount {
                     return
                 }
                 Task {
-                    await self.retryUnknownStatus()
+                    await self.readUnknownStatus()
                     await self.refreshOnActivation()
                     await self.closeOrphanedMeeting()
                     self.queueTrigger += 1
@@ -491,6 +493,10 @@ final class HostedAccount {
         defer { refreshesInFlight -= 1 }
         stateGeneration += 1
         let generation: Int = stateGeneration
+        loadStep = .session
+        // İlk okuma sınırlı sürede bitmezse hesap "durumu okunamadı" gösterir (sonsuza dek "okunuyor" kalmaz).
+        let deadline: Task<Void, Never>? = state == .loading ? Task { [weak self] in await self?.reportOverdueLoad(generation: generation) } : nil
+        defer { deadline?.cancel() }
         let client: HostedClient
         let hasSession: Bool
         let userID: String?
@@ -519,7 +525,11 @@ final class HostedAccount {
             return
         }
         do {
+            loadStep = .deviceAttestation
             await HostedDeviceAttestation.prepare(client: client)
+            if isCurrentSessionGeneration(started: generation, current: stateGeneration) {
+                loadStep = .entitlements
+            }
             let received: HostedEntitlements = try await client.entitlements()
             // Bu arada çıkış yapıldıysa ya da daha yeni bir okuma başladıysa eski sonuç yazılmaz.
             guard isCurrentSessionGeneration(started: generation, current: stateGeneration) else {
@@ -561,6 +571,25 @@ final class HostedAccount {
                 state = .signedInStatusUnknown(message: message)
             }
         }
+    }
+
+    /// İlk hesap okuması `hostedAccountLoadDeadlineSec` içinde bitmediyse (oturum var, durum hâlâ "okunuyor") hesap
+    /// "durumu okunamadı" olur: ekran "Yeniden dene" gösterir, bağlantı gelince ve uygulama öne gelince yeniden okunur.
+    /// Okuma sürer; dönünce gerçek durumu yazar. Okuma süresinde biterse görev iptal edilir.
+    private func reportOverdueLoad(generation: Int) async {
+        do {
+            try await Task.sleep(for: .seconds(hostedAccountLoadDeadlineSec))
+        } catch {
+            // Okuma süresinde bitti (görev iptal edildi).
+            return
+        }
+        guard isHostedAccountLoadOverdue(
+            isAwaitingFirstRead: state == .loading, hasSession: hasSession, started: generation, current: stateGeneration
+        ) else {
+            return
+        }
+        accountLogger.warning("Hesap okuması süresinde bitmedi, adım: \(self.loadStep.rawValue, privacy: .public), süre: \(hostedAccountLoadDeadlineSec, privacy: .public)")
+        state = .signedInStatusUnknown(message: hostedAccountLoadTimeoutMessage())
     }
 
     /// Bildirimi hak durumuna göre günceller: yeni eşik aşıldıysa ve bu dönemde gösterilmediyse gösterilir ve
@@ -783,17 +812,24 @@ final class HostedAccount {
     /// Ağ geri geldi: hak durumu bilinmiyorsa yeniden okunur, kapatılamamış sunucu oturumu kapatılır ve bekleyen
     /// (çevrimdışı) kayıtlar işlenmeye başlar.
     private func networkBecameAvailable() async {
-        await retryUnknownStatus()
+        await readUnknownStatus()
         await closeOrphanedMeeting()
         queueTrigger += 1
     }
 
-    /// Hak durumu bilinmiyorsa (çevrimdışı açılış) yeniden okur; ağ geri gelince ve uygulama öne gelince çağrılır.
-    private func retryUnknownStatus() async {
-        guard case .signedInStatusUnknown = state, !isRefreshing else {
+    /// Hak durumu henüz okunmadıysa (açılış) ya da okunamadıysa (çevrimdışı açılış) ve süren okuma yoksa okur: iPhone'da
+    /// açılışta, iki platformda ağ geri gelince ve uygulama öne gelince çağrılır.
+    func readUnknownStatus() async {
+        switch state {
+        case .loading, .signedInStatusUnknown:
+            break
+        case .signedIn, .signedOut, .unavailable:
             return
         }
-        accountLogger.info("Hak durumu yeniden okunuyor (bağlantı ya da uygulama etkinleşti)")
+        guard !isRefreshing else {
+            return
+        }
+        accountLogger.info("Hak durumu okunuyor (açılış, bağlantı ya da uygulama etkinleşti)")
         await refresh()
     }
 
@@ -1389,6 +1425,11 @@ final class HostedAccount {
         }
         await refresh()
     }
+}
+
+/// İlk hesap okuması süresinde bitmedi (bkz. `reportOverdueLoad`): kullanıcıya gösterilen metin.
+private func hostedAccountLoadTimeoutMessage() -> String {
+    String(localized: "Sunucu \(Int(hostedAccountLoadDeadlineSec)) saniyede yanıt vermedi.")
 }
 
 /// Çıkış sunucuya iletilemedi ama bu cihazda yapıldı: kullanıcıya gösterilen metin.
