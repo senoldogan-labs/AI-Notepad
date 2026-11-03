@@ -230,6 +230,8 @@ targets:
       - path: App/Hosted/HostedAccount.swift
       - path: App/Hosted/HostedAccountScope.swift
       - path: App/Hosted/HostedDeviceAttestation.swift
+      # Tanılamanın hesap ve bağlantı bölümleri (Ayarlar › Tanılama) Mac'tekiyle aynı.
+      - path: App/Hosted/HostedDiagnostics.swift
       - path: App/Hosted/HostedSeams.swift
       - path: App/Hosted/HostedTelemetryCenter.swift
       - path: App/Hosted/HostedTexts.swift

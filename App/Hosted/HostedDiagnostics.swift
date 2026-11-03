@@ -76,20 +76,6 @@ private func hostedPlanDiagnostics(entitlements: HostedEntitlements, dateText: (
     }
 }
 
-/// Canlı metin bölümü (abonelik sürümü): yalnızca nerede çalıştığı, bulut ya da bu Mac. Bu açılışta kayıt yapıldıysa son
-/// kaydınki (Mac'e geçiş dahil), yoksa sunucunun önerisi. Seçimin nedeni, sağlayıcı ve model adları yazılmaz.
-@MainActor
-func hostedLiveDiagnostics(model: AppModel, account: HostedAccount) -> DiagnosticsSection {
-    let place: String
-    switch model.hostedLiveEngineInUse ?? hostedExpectedLiveEngine(account: account) {
-    case .deepgram:
-        place = String(localized: "Bulut")
-    case .whisperKit:
-        place = String(localized: "Bu Mac'te")
-    }
-    return DiagnosticsSection(title: String(localized: "Canlı metin"), items: [DiagnosticsItem(label: String(localized: "Çalıştığı yer"), value: place, status: .plain)])
-}
-
 /// Bağlantı bölümü (abonelik sürümü): yalnızca hizmete ulaşılıp ulaşılamadığı. Sunucu adresi, HTTP durumu, gecikme ve
 /// ham hata yazılmaz; adres okunamıyorsa nedeni hesap bölümünde görünür. Saf fonksiyondur.
 func hostedConnectionDiagnostics(base: Result<URL, any Error>, health: APIHealth?) -> DiagnosticsSection {

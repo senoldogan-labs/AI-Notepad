@@ -215,6 +215,7 @@ private struct PhoneAppRoot: View {
                 return
             }
             store.loadPeople()
+            store.voices.load()
             ask.loadRecipes()
             ask.loadHistory()
             store.applyRetention(now: Date())
@@ -570,7 +571,7 @@ struct RootView: View {
             }
             Tab("Ayarlar", systemImage: "gearshape", value: PhoneTab.settings) {
                 PhoneSettingsTab(
-                    store: store, calendar: calendar, account: account,
+                    store: store, ask: ask, calendar: calendar, account: account,
                     isMeetingInFlight: !phoneOpenWriters(store: store, recorder: recorder, ask: ask).isEmpty, crashReports: crashReports
                 )
             }
@@ -675,6 +676,8 @@ final class PhoneStore {
     private(set) var peopleBookError: String?
     /// Defter okundu: okunamadıysa üzerine yazılmaz (boş defterle eski kişiler silinmesin).
     @ObservationIgnored private var peopleBookLoaded: Bool = false
+    /// Sesinden tanıma: kayıtlı sesler ve ses izi modeli (bkz. `PhoneVoices`).
+    let voices: PhoneVoices = PhoneVoices()
 
     /// Listeyi arka planda okur; art arda gelen istekleri birleştirir.
     @ObservationIgnored private let reloader: MeetingReloader = MeetingReloader()
@@ -719,14 +722,20 @@ final class PhoneStore {
         storePeople(book: addingPerson(book: peopleBook, person: SavedPerson(name: name, role: role, email: email, addedAt: Date())))
     }
 
-    /// Elle eklenen kişinin adını ve bilgilerini değiştirir.
+    /// Elle eklenen kişinin adını ve bilgilerini değiştirir; kayıtlı sesi yeni ada taşınır.
     func renamePerson(oldName: String, name: String, role: String, email: String) {
         storePeople(book: renamingPerson(book: peopleBook, oldName: oldName, person: SavedPerson(name: name, role: role, email: email, addedAt: Date())))
+        if peopleBookError == nil {
+            voices.personRenamed(oldName: oldName, newName: name)
+        }
     }
 
-    /// Kişiyi Kişiler'den kaldırır (toplantılardaki adı kalır).
+    /// Kişiyi Kişiler'den kaldırır ve sesini unutur (toplantılardaki adı kalır).
     func removePerson(name: String) {
         storePeople(book: removingPerson(book: peopleBook, name: name, now: Date()))
+        if peopleBookError == nil {
+            voices.personRemoved(name: name)
+        }
     }
 
     private func storePeople(book: PeopleBook) {
@@ -764,6 +773,8 @@ final class PhoneStore {
         let updated: MeetingRecord = fresh.with(speakerNames: renamingSpeakers(names: fresh.speakerNames, edits: names))
         try saveMeeting(record: updated, directory: directory)
         upsert(record: updated)
+        // Adı verilen kişinin sesi hatırlanır (sesinden tanıma açıksa); düzeltilen adın sesi eski addan geri alınır.
+        voices.speakersRenamed(meetingID: meetingID, previousNames: fresh.speakerNames, edits: names, voiceprints: fresh.voiceprints)
     }
 
     /// Anımsatıcılar bağlantısı (görevi Anımsatıcılar'a ekleme; izin ilk eklemede sorulur).
@@ -843,6 +854,8 @@ final class PhoneStore {
         closeSpeakerReview(meetingID: id)
         meetings.removeAll { $0.id == id }
         reloader.invalidate()
+        // Bu toplantıdan öğrenilen ses izleri de geri alınır.
+        voices.meetingDeleted(meetingID: id)
     }
 
     /// Saklama süresi (Ayarlar) dolan toplantıların sesini ve ses izlerini siler; metin ve not kalır. Silinemeyenin

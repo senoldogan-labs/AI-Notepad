@@ -255,3 +255,51 @@ public func recognizedNames(voiceprints: [Int: Voiceprint], registry: [Registere
         }
     }
 }
+
+/// Toplantıdaki bir kişiye ad verilince kayıtlı sesler: ad düzeltildiyse (önceki ad farklı) bu kişinin izi eski addan
+/// geri alınır (yoksa sonraki toplantılarda yanlış adla tanınırdı); ad boş değilse ve iz verildiyse iz yeni ada eklenir
+/// (sesinden tanıma kapalıyken çağıran izi vermez). Saf fonksiyondur.
+public func voicesAfterNamingSpeaker(
+    voices: [RegisteredVoice], meetingID: String, person: Int, previous: String?, name: String, voiceprint: Voiceprint?, now: Date
+) -> [RegisteredVoice] {
+    let trimmed: String = name.trimmingCharacters(in: .whitespacesAndNewlines)
+    let source: String = voiceSource(meetingID: meetingID, person: person)
+    let corrected: [RegisteredVoice] = previous.map { (old: String) -> [RegisteredVoice] in
+        old.caseInsensitiveCompare(trimmed) != .orderedSame ? unregistering(voices: voices, name: old, source: source, now: now) : voices
+    } ?? voices
+    guard !trimmed.isEmpty, let voiceprint else {
+        return corrected
+    }
+    return registering(voices: corrected, name: trimmed, voiceprint: voiceprint, source: source, now: now)
+}
+
+/// Toplantıda birden çok kişiye birlikte ad verilince (iPhone'daki Konuşmacılar sayfası) kayıtlı sesler: yalnız adı
+/// değişen kişiler için, kişi sırasıyla `voicesAfterNamingSpeaker`. `voiceprints` kişilerin izi; sesinden tanıma
+/// kapalıyken boş verilir (düzeltilen adların izi yine geri alınır). Saf fonksiyondur.
+public func voicesAfterNamingSpeakers(
+    voices: [RegisteredVoice], meetingID: String, previousNames: [Int: String], edits: [Int: String], voiceprints: [Int: Voiceprint], now: Date
+) -> [RegisteredVoice] {
+    edits.keys.sorted().reduce(voices) { (result: [RegisteredVoice], person: Int) -> [RegisteredVoice] in
+        let name: String = (edits[person] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard name != (previousNames[person] ?? "") else {
+            return result
+        }
+        return voicesAfterNamingSpeaker(
+            voices: result, meetingID: meetingID, person: person, previous: previousNames[person], name: name, voiceprint: voiceprints[person], now: now
+        )
+    }
+}
+
+/// Kişinin adı değişince (Kişiler'de elle eklenen kişi) kayıtlı sesi yeni ada taşınır (büyük/küçük harf duyarsız); boş
+/// yeni ad değiştirmez. Saf fonksiyondur.
+public func renamingVoice(voices: [RegisteredVoice], oldName: String, newName: String) -> [RegisteredVoice] {
+    let trimmed: String = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else {
+        return voices
+    }
+    return voices.map { (voice: RegisteredVoice) -> RegisteredVoice in
+        voice.name.caseInsensitiveCompare(oldName) == .orderedSame
+            ? RegisteredVoice(name: trimmed, voiceprint: voice.voiceprint, updatedAt: voice.updatedAt, contributions: voice.contributions)
+            : voice
+    }
+}

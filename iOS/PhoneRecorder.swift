@@ -903,8 +903,9 @@ final class PhoneRecorder {
             let result: MeetingRecord = await processMeeting(
                 record: record, directory: directory, finalPass: finalPass, llm: llm,
                 languageMode: record.language.map { LanguageMode.fixed($0) } ?? .automatic, userName: phoneUserName(),
-                // The iPhone does not capture screens: notes are text only.
-                noteLanguage: phoneNoteLanguage(), voiceEmbedder: nil, registry: [], screens: .off
+                // The iPhone does not capture screens: notes are text only. Voiceprints are computed on this iPhone
+                // (SpeakerKit) when voice recognition is on; they never leave the device.
+                noteLanguage: phoneNoteLanguage(), voiceEmbedder: store.voices.embedderIfEnabled(), registry: store.voices.registered, screens: .off
             ) { (step: ProcessingStep) async -> Void in
                 self.processingSteps[record.id] = step
                 self.continuedTasks[record.id]?.progress.completedUnitCount = continuedProcessingCompletedUnits(step: step)

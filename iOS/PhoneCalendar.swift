@@ -21,7 +21,7 @@ enum PhoneCalendarState: Equatable {
 final class PhoneCalendar {
     private static let logger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "PhoneCalendar")
 
-    /// Şu andan (süren toplantılar dahil) 12 saat sonrasına kadarki etkinlikler.
+    /// Bugünün başından (bugün biten ve süren toplantılar dahil) şu andan 12 saat sonrasına kadarki etkinlikler.
     private(set) var meetings: [CalendarMeeting] = []
     private(set) var state: PhoneCalendarState = .off
     @ObservationIgnored private let eventKit: EventKitConnector = EventKitConnector()
@@ -122,7 +122,10 @@ final class PhoneCalendar {
     /// Takvimi yeniden okur; okunamazsa neden durumda görünür.
     private func refresh() {
         do {
-            meetings = try eventKit.meetings(from: Date(), hours: 12)
+            // Mac'teki gibi günün başından: Kayıt'ta "Bugün biten toplantılar" da görünsün.
+            let now: Date = Date()
+            let dayStart: Date = Calendar.current.startOfDay(for: now)
+            meetings = try eventKit.meetings(from: dayStart, hours: now.timeIntervalSince(dayStart) / 3600 + 12)
             state = .on
             scheduleReminders()
         } catch EventKitError.calendarAccessDenied {
@@ -172,6 +175,11 @@ final class PhoneCalendar {
             CalendarMeeting(
                 id: "ornek-2", title: "Asiakasesitys", start: now.addingTimeInterval(3 * 3600),
                 end: now.addingTimeInterval(4 * 3600), attendees: ["Kela", "Aino"], joinURL: nil
+            ),
+            // Bugün biten (kaydı yok): "Bugün biten toplantılar" bölümü.
+            CalendarMeeting(
+                id: "ornek-3", title: "Aamupalaveri", start: now.addingTimeInterval(-90 * 60),
+                end: now.addingTimeInterval(-60 * 60), attendees: ["Mikko"], joinURL: nil
             ),
         ]
         state = .on
