@@ -108,8 +108,9 @@ final class AppModel {
     /// Bir sonraki kaydın dil modu (kayıt sırasında dil `setLanguage` ile değişir).
     var languageMode: LanguageMode = .automatic
     var lockedLanguage: MeetingLanguage?
-    /// Süren kaydın kullanıcının sabitlediği dili: kayıt başında seçili sabit dil ya da kayıtta "Dili değiştir" ile seçilen;
-    /// Otomatikte nil. Kayda yazılır; doluysa başka dildeki konuşma çevrilmez ve toplantıdan atlanır.
+    /// Süren kaydın kullanıcının sabitlediği dili: kayıt başında seçili sabit dil; Otomatikte ve kayıtta "Dili değiştir"
+    /// kullanıldıysa nil (değişiklikten önceki konuşma önceki dildedir, süzülmez). Kayda yazılır; doluysa başka dildeki
+    /// konuşma çevrilmez ve toplantıdan atlanır.
     private(set) var recordingFixedLanguage: MeetingLanguage?
     /// Kesinleşen bölümlerin güvenle algılanan dilleri (bkz. `confidentSpokenLanguage`); bölümlerle birlikte saklanır.
     private(set) var spokenLanguages: [SegmentID: String] = [:]
@@ -1260,13 +1261,15 @@ final class AppModel {
         session?.micGate.set(isOpen: !isMicMuted)
     }
 
-    /// Kayıt sırasında toplantı dilini değiştirir; o andan sonraki metin yeni dille yazılır. Elle seçilen dil kaydın sabit
-    /// dili olur: başka dildeki konuşma çevrilmez ve toplantıdan atlanır.
+    /// Kayıt sırasında toplantı dilini değiştirir; o andan sonraki metin yeni dille yazılır. Toplantıda artık iki dil
+    /// var: dil süzmesi bu kayıtta kalkar (bkz. `recordingFixedLanguage`), değişiklikten önce önceki dilde konuşulanlar
+    /// toplantıdan atlanmasın.
     func setLanguage(language: MeetingLanguage) {
         guard isRecording, !isFinishing, let handle = session?.handle else {
             return
         }
-        recordingFixedLanguage = language
+        recordingFixedLanguage = nil
+        languageSkippedSegments = []
         Task {
             await handle.setLanguage(language)
         }
