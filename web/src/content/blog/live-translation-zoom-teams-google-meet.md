@@ -100,7 +100,7 @@ Whichever tool you use, a few habits make translation work better:
 
 Gistsmith, the Mac app we make, transcribes the meeting live in more than 30 languages and can show a translation into your language underneath each line, as people talk. It works in any call on your Mac, with no bot and nothing for the organiser to enable.
 
-When the meeting ends, the note is written in the language you choose: your tasks first, then decisions, a summary and a glossary of terms from the meeting. If you drifted off for a moment, "What did I miss?" gives you a short summary of the last few minutes.
+When the meeting ends, the note is written in the language you choose: your tasks first, then a summary, decisions and a glossary of terms from the meeting. If you drifted off for a moment, "What did I miss?" gives you a short summary of the last few minutes.
 
 It runs on Macs with Apple silicon and macOS 15 or later. The first 3 meetings or 7 days are free with no card; then it's $5.99 a month or $49 a year. See [pricing](/pricing) or [download it](/download).
 

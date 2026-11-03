@@ -62,8 +62,9 @@ func phoneAccountSummary(state: HostedAccountState) -> String {
 /// silme uygulama içindedir (App Store 5.1.1(v)) ve satır içinde onaylanır.
 struct PhoneAccountScreen: View {
     let account: HostedAccount
-    /// Kayıt ya da işleme sürüyor: çıkış ve hesap silme kapalı (süren toplantının sunucu oturumu başka hesaba ya da
-    /// silinmiş hesaba yazılmasın; bitince açılır).
+    /// Hesabın verisine yazan bir iş sürüyor (kayıt, işleme, içe aktarma, not ya da Sor; bkz. `phoneOpenWriters`): çıkış
+    /// ve hesap silme kapalı (süren işin toplantısı ya da sunucu oturumu başka hesaba ya da silinmiş hesaba yazılmasın;
+    /// bitince açılır).
     let isMeetingInFlight: Bool
     @State private var confirmingDelete: Bool = false
     /// Apple'ın abonelik penceresi açılamadıysa nedeni.
@@ -182,7 +183,7 @@ struct PhoneAccountScreen: View {
                 .disabled(account.isWorking || isMeetingInFlight)
         } footer: {
             if isMeetingInFlight {
-                Text("Kayıt ya da işleme sürüyor; bitince çıkış yapabilirsin.")
+                Text("Kayıt, içe aktarma ya da yapay zekâ işi sürüyor; bitince çıkış yapabilirsin.")
             } else {
                 Text("Toplantıların ve notların bu iPhone'da kalır.")
             }
@@ -212,7 +213,7 @@ struct PhoneAccountScreen: View {
             }
         } footer: {
             if isMeetingInFlight {
-                Text("Kayıt ya da işleme sürüyor; bitince hesabı silebilirsin.")
+                Text("Kayıt, içe aktarma ya da yapay zekâ işi sürüyor; bitince hesabı silebilirsin.")
             } else if !confirmingDelete {
                 Text("Hesabın ve sunucudaki kayıtların silinir; bu iPhone'daki toplantılar kalır.")
             }

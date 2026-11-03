@@ -86,7 +86,7 @@ There's one important rule if you do: a note app on your computer doesn't show u
 
 Gistsmith, the Mac app we make, is the "separate note app" kind. It listens to your Mac's audio and microphone, so it works the same in Zoom, Teams, Google Meet, browser calls and meetings in a room, with no bot and nothing for the host to enable.
 
-When the meeting ends, the note puts your own tasks first, then decisions and a summary. All your meetings sit in one place on your Mac, and you can ask questions across them, with answers linked to the meetings they came from. It transcribes more than 30 languages live and can translate as people talk.
+When the meeting ends, the note puts your own tasks first, then a summary, decisions and a glossary. All your meetings sit in one place on your Mac, and you can ask questions across them, with answers linked to the meetings they came from. It transcribes more than 30 languages live and can translate as people talk.
 
 It isn't a replacement for a company-wide platform: it has one personal plan, not admin controls for a whole organisation, and it runs only on Macs with Apple silicon and macOS 15 or later. It's free for 3 meetings or 7 days, with no card; then $5.99 a month or $49 a year. See [pricing](/pricing), or read our [AI note-taker pricing overview](/blog/ai-note-taker-pricing-2026) for how other apps compare.
 

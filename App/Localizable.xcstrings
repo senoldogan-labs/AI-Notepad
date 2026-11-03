@@ -18498,28 +18498,6 @@
         }
       }
     },
-    "Arkadaşına ilk ayı hediye et": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Give a friend their first month"
-          }
-        }
-      }
-    },
-    "Bir ay ver, bir ay al": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Give a month, get a month"
-          }
-        }
-      }
-    },
     "Bitiş: %@": {
       "extractionState": "manual",
       "localizations": {
@@ -19672,6 +19650,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "Your account was deleted, but the last step on this device didn't finish; quit and reopen the app. Deleting your account doesn't cancel an App Store subscription: cancel it on your iPhone in Settings › Apple Account › Subscriptions."
+          }
+        }
+      }
+    },
+    "Kayıt, içe aktarma ya da yapay zekâ işi sürüyor; bitince çıkış yapabilirsin.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A recording, import or AI task is in progress; you can sign out when it finishes."
+          }
+        }
+      }
+    },
+    "Kayıt, içe aktarma ya da yapay zekâ işi sürüyor; bitince hesabı silebilirsin.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A recording, import or AI task is in progress; you can delete your account when it finishes."
+          }
+        }
+      }
+    },
+    "Önceki hesaba bir dosya içe aktarılıyor. Bitince bu hesabın toplantıları kendiliğinden açılır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A file is being imported into your previous account. Once it's done, this account's meetings open automatically."
+          }
+        }
+      }
+    },
+    "Oturumun kapandı. Kaydı bitir; toplantı bu iPhone'da saklanır, sonra yeniden giriş yap.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You've been signed out. Finish the recording; the meeting is kept on this iPhone. Then sign in again."
+          }
+        }
+      }
+    },
+    "Gistsmith'i arkadaşlarınla paylaş": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share Gistsmith with your friends"
+          }
+        }
+      }
+    },
+    "Davet bağlantını ya da kodunu arkadaşına gönder; katılanlar burada sayılır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send your invite link or code to a friend; everyone who joins is counted here."
+          }
+        }
+      }
+    },
+    "Toplantılarım için Gistsmith kullanıyorum: konuşulanı canlı yazıya döküyor, toplantı bitince notu ve görevleri hazırlıyor. Sen de bak: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I use Gistsmith for my meetings: it transcribes the conversation live and has the notes and tasks ready when the meeting ends. Take a look: %@"
           }
         }
       }
