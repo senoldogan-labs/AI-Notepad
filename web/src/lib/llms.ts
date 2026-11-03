@@ -75,7 +75,7 @@ function header(input: LlmsInput): string {
   }
   const facts: readonly string[] = [
     `Platform: ${copy.download.requirementsNote}`,
-    `Price: ${copy.pricing.plans.map((plan): string => `${plan.name.toLowerCase()} ${plan.price} ${plan.per} (${plan.detail.replace(/\.$/, "")})`).join("; ")}.`,
+    `Price: ${copy.compare.us.price} (${copy.pricing.plans.map((plan): string => `${plan.name.toLowerCase()}: ${plan.detail.replace(/\.$/, "")}`).join("; ")}).`,
     `${copy.common.trial}.`,
     `Limits: ${copy.compare.us.limits} (fair use; the monthly hours reset on the first day of each month, UTC).`,
     `Meeting capture: ${copy.compare.us.capture}.`,
@@ -163,18 +163,16 @@ export function llmsFullTxt(input: LlmsInput): string {
     [
       "## Platforms and requirements",
       `Source: ${url("download")}`,
-      `- ${copy.compare.us.platforms}.`,
       `- ${copy.download.requirementsNote}`,
       `- ${copy.download.installSteps.map((step: TitledText): string => `${step.title}: ${step.text}`).join(" ")}`,
     ].join("\n"),
     [
       "## Languages",
       `Source: ${url("languages")}`,
-      `### ${copy.languages.spokenTitle} (${input.spokenLanguages.length})\n\n${copy.languages.spokenLead}\n\n${languageCodes(input.spokenLanguages)}.`,
+      `### ${copy.languages.spokenTitle} (${input.spokenLanguages.length})\n\n${copy.languages.spokenLead}\n\n${languageCodes(input.spokenLanguages)}.\n\nIn short: ${languageNameList(input.spokenLanguages)}.`,
       `### ${copy.languages.notesTitle} (${input.noteLanguages.length})\n\n${copy.languages.notesLead}\n\n${languageCodes(input.noteLanguages)}.`,
       `### ${copy.languages.highlightsTitle}\n\n${copy.languages.highlights.map((item: TitledText): string => `- ${item.title}: ${item.text}`).join("\n")}`,
       `### ${copy.languages.mixedTitle}\n\n${copy.languages.mixed.map((item: TitledText): string => `- ${item.title}: ${item.text}`).join("\n")}`,
-      `In short: spoken languages are ${languageNameList(input.spokenLanguages)}.`,
     ].join("\n\n"),
     [
       "## Integrations",

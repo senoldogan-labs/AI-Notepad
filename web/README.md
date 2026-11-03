@@ -20,7 +20,10 @@ yalnızca toplu sayfa görüntüleme, yönlendiren site, ülke ve cihaz türü s
 | `/fi` | Fince tanıtım sayfası (Finlandiya pazarı; üst çubuktaki dil bağlantıları `/` ile `/fi` arasında) |
 | `/pricing` | Fiyat (Stripe Checkout iptali buraya döner) |
 | `/download` | İndirme ve kurulum |
-| `/compare`, `/vs/granola`, `/vs/otter` | Karşılaştırma (rakip değerleri yalnızca kendi fiyat sayfalarından; `copy.ts` `compare`) |
+| `/compare`, `/vs/granola`, `/vs/otter`, `/vs/fireflies` | Karşılaştırma (rakip değerleri yalnızca kendi fiyat sayfalarından; `copy.ts` `compare`; JSON-LD gezinti izi) |
+| `/languages` | Diller: konuşulan ve not/çeviri dilleri (listeler `src/lib/languages.ts`, uygulamanın `MeetingLanguage`/`ShareLanguage` listeleriyle aynı), karışık dilli toplantılar, SSS (JSON-LD) |
+| `/integrations` | Entegrasyonlar, webhook JSON örneği, MCP, takvim, yerleşik olmayanlar, SSS (JSON-LD) |
+| `/llms.txt`, `/llms-full.txt` | Yapay zekâ asistanları için ürün belgesi (llmstxt.org): sayfaların metinlerinden, dil listelerinden ve veri tablosundan derlemede üretilir (`src/lib/llms.ts`); elle ürün gerçeği yazılmaz |
 | `/blog`, `/blog/<kısa ad>`, `/blog/rss.xml` | Blog: yazılar `src/content/blog/*.md` (içerik koleksiyonu, `src/content.config.ts`); taslaklar ve tarihi derleme gününden sonra olan yazılar yayımlanmaz (aşağıda "Haftalık blog") |
 | `/blog/<kısa ad>/og.png` | Yazının paylaşım görseli (1200×630; derlemeden sonra `npm run og:blog` üretir, repoda yok) |
 | `/blog/<kısa ad>/<ad>.webp` | Yazının görselleri (`public/blog/<kısa ad>/`; yönetim panelinden yüklenir) |
@@ -31,7 +34,7 @@ yalnızca toplu sayfa görüntüleme, yönlendiren site, ülke ve cihaz türü s
 | `/account` | Hesap (`?plan=…&checkout=1`: fiyat sayfasından seçilen plan ve ödemeye devam niyeti — giriş bitince Checkout açılır; `?payment=done`: Stripe Checkout dönüşü; Müşteri Portalı dönüşü `/account`) |
 | `/contact` | İletişim formu |
 | `/admin` | Yönetim paneli (menüde ve site haritasında yok, `noindex`) |
-| `/privacy`, `/terms` | Yasal metinler |
+| `/privacy`, `/terms` | Yasal metinler; gizliliğin başında "Data handling at a glance" tablosu (`src/data-handling.ts`; kalıcı çapalar `#at-a-glance`, `#data-<id>`; politika değişince birlikte güncellenir) |
 
 Yollar `src/routes.ts`'tedir; `/account` ve `/admin` `Cache-Control: no-store` alır. Tüm indirme düğmeleri
 `<apiBase>/v1/download/mac?src=<yer>` adresine gider (`macDownloadUrl`; yer: `home-hero`, `home-cta`, `download-page`,
@@ -46,6 +49,7 @@ npm ci
 npm run dev           # http://localhost:8788, yerel yapılandırma (API: http://127.0.0.1:8787)
 npm run typecheck
 npm run build         # yayın yapılandırmasıyla dist/
+npm test              # derlemenin çıktısı: JSON-LD biçimi, /llms.txt, site haritası, gizlilik çapaları (build'den sonra)
 npm run build:local && npm run serve   # yerel yapılandırmayla derle, _headers başlıklarıyla (CSP dahil) sun
 npm run og:blog -- "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"   # derlemeden sonra: yazıların paylaşım görselleri
 npm run screenshots -- http://localhost:8788 /tmp/gistsmith-web "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
@@ -146,13 +150,14 @@ cd web && npm ci && npm run build \
   && npm run indexnow
 ```
 
-**IndexNow.** Yükleme başarılı olunca `scripts/indexnow.ts` yeni ve değişen blog yazılarını
+**IndexNow.** Yükleme başarılı olunca `scripts/indexnow.ts` yeni ve değişen sayfaları ve blog yazılarını
 `https://api.indexnow.org/indexnow`'a bildirir (Bing, Yandex, Seznam, Naver… paylaşır; Google IndexNow kullanmaz, site
-haritasını ve `<lastmod>`'u okur). Adresler derlemenin site haritasından seçilir: `<lastmod>`'u (yazının `updated` ya
-da `published` günü) bugün ya da dün (UTC) olan yazılar, varsa blog dizini ve site haritası da. Durum tutulmaz:
+haritasını ve `<lastmod>`'u okur). Adresler derlemenin site haritasından seçilir: `<lastmod>`'u bugün ya da dün (UTC)
+olanlar — yazılarda `updated` ya da `published` günü, sabit sayfalarda `src/routes.ts` `pageModified`'daki gün (bir
+sayfanın içeriği anlamlı biçimde değişince o günün tarihi yazılır) — değişen yazı varsa blog dizini ve site haritası da. Durum tutulmaz:
 zamanlanmış yazı tarihindeki 06:00 derlemesinde, yeni ya da `updated`'ı ilerletilmiş yazı o gün ve ertesi günün
 yayınlarında bildirilir (aynı adresin yeniden bildirilmesi zararsızdır); `updated` değişmeden yapılan düzeltme ve silinen
-yazı bildirilmez. Değişen yazı yoksa istek gönderilmez. 429, 5xx, ağ hatası ve zaman aşımı uyarıyla (`indexnow_retry`)
+yazı bildirilmez. Değişen sayfa ya da yazı yoksa istek gönderilmez. 429, 5xx, ağ hatası ve zaman aşımı uyarıyla (`indexnow_retry`)
 3 kez denenir; denemeler biterse ya da kalıcı ret (400, 403 anahtar geçersiz, 422…) olursa durum, gövde ve adreslerle
 çıkış kodu 1 (yayın zaten bitmiştir, iş kırmızı görünür). Anahtar açıktır ve depodadır (`src/config.ts` `indexNowKey`);
 derleme `/<anahtar>.txt` dosyasını bu değerden yazar, betik dosyanın varlığını ve içeriğini denetler. Anahtarı

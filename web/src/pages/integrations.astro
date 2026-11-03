@@ -148,7 +148,8 @@ const structuredData: string = structuredDataJson(
   .integrations-code pre {
     margin: 0;
     padding: 18px 20px;
-    overflow-x: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
     border: 1px solid var(--line);
     border-radius: var(--radius-m);
     background: var(--soft);
@@ -175,10 +176,6 @@ const structuredData: string = structuredDataJson(
     margin: 0;
     padding-left: 1.2em;
     color: var(--muted);
-  }
-
-  .integrations-faq {
-    max-width: 52rem;
   }
 
   @media (max-width: 900px) {

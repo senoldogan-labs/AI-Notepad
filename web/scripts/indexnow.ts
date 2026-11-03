@@ -7,7 +7,7 @@
 // yazı varsa blog dizini, değişen bir şey varsa site haritası da eklenir. Durum
 // tutulmaz: zamanlanmış yazı tarihindeki 06:00 UTC derlemesinde, yeni ya da `updated`'ı ilerletilmiş yazı kaydedildiği
 // günün (ve ertesi günün) yayınlarında bildirilir; aynı adresin aynı gün yeniden bildirilmesi zararsızdır. `updated`
-// değişmeden yapılan düzeltme bildirilmez. Değişen yazı yoksa hiçbir şey gönderilmez.
+// değişmeden yapılan düzeltme bildirilmez. Değişen sayfa ya da yazı yoksa hiçbir şey gönderilmez.
 //
 // Anahtar config.ts `indexNowKey`'dir; derleme onu `/<anahtar>.txt` olarak yazar (dosya yoksa ya da içeriği farklıysa
 // hata). İstek 429, 5xx, ağ hatası ve zaman aşımında uyarıyla 3 kez denenir; 200 ve 202 başarıdır. Denemeler bitince

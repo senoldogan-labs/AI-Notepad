@@ -1368,7 +1368,7 @@ export const copy: Copy = {
         pricingUrl: "https://fireflies.ai/pricing",
         values: {
           price: "Free $0; Pro $18 per seat a month billed monthly ($10 billed annually); Business $29 per seat a month billed monthly ($19 billed annually); Enterprise $39 per seat a month, billed annually only",
-          free: "Free plan: unlimited transcription, limited AI summaries, 400 minutes of storage per team and 20 AI credits",
+          free: "Free plan: transcription listed as unlimited (with a footnote), limited AI summaries, 400 minutes of storage per team and 20 AI credits",
           capture: "A bot (the Fireflies Notetaker) joins Zoom, Google Meet, Teams and more; a Chrome extension can record without the bot",
           platforms: "Web, desktop app, iOS and Android apps, Chrome extension",
           limits: "Recording limit of 2 to 4 hours per meeting depending on plan; storage of 400 minutes per team on Free, 8,000 minutes per seat on Pro, unlimited on Business",
@@ -1385,7 +1385,7 @@ export const copy: Copy = {
         },
         strengthsTitle: "Where Fireflies is stronger",
         strengths: [
-          "A free plan with unlimited transcription (limited AI summaries and 400 minutes of storage per team).",
+          "A free plan, with transcription listed as unlimited, limited AI summaries and 400 minutes of storage per team.",
           "A web app, a desktop app, iOS and Android apps and a Chrome extension.",
           "Team workspaces, channels, conversation intelligence and analytics for admins.",
           "Transcription in 100+ languages with automatic language detection, and a Multi-language Mode on Business.",
