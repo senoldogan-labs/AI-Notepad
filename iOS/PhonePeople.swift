@@ -329,22 +329,24 @@ private struct PhonePersonForm: View {
             Form {
                 Section {
                     if let lockedName {
-                        PhoneHintRow(hint: Text("Ad toplantılarda verildi; değiştirmek için toplantının Transkript sekmesini kullan.")) {
-                            LabeledContent("Ad", value: lockedName)
-                        }
+                        LabeledContent("Ad", value: lockedName)
                     } else {
-                        PhoneHintRow(hint: Text("Ad konuşma tanımaya verilir; bir toplantıda konuşmacıya bu adı verince toplantıları ve görevleri burada toplanır.")) {
-                            TextField("Ad", text: $name, prompt: Text("Örn. Aino Virtanen"))
-                                .textInputAutocapitalization(.words)
-                                .autocorrectionDisabled()
-                                .focused($nameFocused)
-                        }
+                        TextField("Ad", text: $name, prompt: Text("Örn. Aino Virtanen"))
+                            .textInputAutocapitalization(.words)
+                            .autocorrectionDisabled()
+                            .focused($nameFocused)
                     }
                     TextField("Ünvan ya da kurum", text: $role, prompt: Text("Örn. Ürün müdürü, Acme"))
                     TextField("E-posta", text: $email, prompt: Text("ad@ornek.com"))
                         .keyboardType(.emailAddress)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                } footer: {
+                    if lockedName != nil {
+                        Text("Bu ad toplantılarda verildi; toplantının Transkript sekmesinden değiştir.")
+                    } else {
+                        Text("Ad konuşma tanımaya verilir; kişinin toplantıları ve görevleri burada toplanır.")
+                    }
                 }
             }
             .navigationTitle(title)

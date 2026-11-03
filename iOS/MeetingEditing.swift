@@ -113,10 +113,9 @@ struct SpeakerNamingSheet: View {
                         }
                     }
                 } header: {
-                    PhoneHintHeader(
-                        title: Text("Adlar"),
-                        hint: Text("Ad transkriptte \"Konuşmacı N\" yerine görünür. Notu yeni adlarla yazmak için ⋯ › Notu yenile.")
-                    )
+                    Text("Adlar")
+                } footer: {
+                    Text("Ad transkriptte, notta ve görevlerde \"Konuşmacı N\" yerine görünür.")
                 }
                 if !groups.minor.isEmpty {
                     Section("Kısa konuşmalar (\(groups.minor.count))") {

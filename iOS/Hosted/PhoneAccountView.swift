@@ -155,13 +155,10 @@ struct PhoneAccountScreen: View {
                 NoticeText(manageError as String, severity: .error)
             }
         } header: {
+            Text("Plan")
+        } footer: {
             if phoneSubscriptionManagement(entitlements: entitlements) == .appStore {
-                PhoneHintHeader(
-                    title: Text("Plan"),
-                    hint: Text("Aboneliğin App Store'dan alındı; planı değiştirmek ya da iptal etmek için \"Aboneliği yönet\"e dokun.")
-                )
-            } else {
-                Text("Plan")
+                Text("Planı değiştirmek ya da iptal etmek için \"Aboneliği yönet\"e dokun.")
             }
         }
     }
@@ -181,15 +178,13 @@ struct PhoneAccountScreen: View {
 
     private var signOutSection: some View {
         Section {
-            PhoneHintRow(hint: Text("Bu iPhone'daki oturumu kapatır; toplantıların ve notların bu iPhone'da kalır.")) {
-                Button("Çıkış yap") { Task { await account.signOut() } }
-                    .disabled(account.isWorking || isMeetingInFlight)
-                    .buttonStyle(.borderless)
-                Spacer()
-            }
+            Button("Çıkış yap") { Task { await account.signOut() } }
+                .disabled(account.isWorking || isMeetingInFlight)
         } footer: {
             if isMeetingInFlight {
                 Text("Kayıt ya da işleme sürüyor; bitince çıkış yapabilirsin.")
+            } else {
+                Text("Toplantıların ve notların bu iPhone'da kalır.")
             }
         }
     }
@@ -212,16 +207,14 @@ struct PhoneAccountScreen: View {
                 .disabled(account.isWorking || isMeetingInFlight)
                 Button("Vazgeç") { confirmingDelete = false }
             } else {
-                PhoneHintRow(hint: Text("Hesabın ve sunucudaki tüm kayıtların silinir. Bu iPhone'daki toplantılar ve notlar silinmez.")) {
-                    Button("Hesabı sil…", role: .destructive) { confirmingDelete = true }
-                        .disabled(account.isWorking || isMeetingInFlight)
-                        .buttonStyle(.borderless)
-                    Spacer()
-                }
+                Button("Hesabı sil…", role: .destructive) { confirmingDelete = true }
+                    .disabled(account.isWorking || isMeetingInFlight)
             }
         } footer: {
             if isMeetingInFlight {
                 Text("Kayıt ya da işleme sürüyor; bitince hesabı silebilirsin.")
+            } else if !confirmingDelete {
+                Text("Hesabın ve sunucudaki kayıtların silinir; bu iPhone'daki toplantılar kalır.")
             }
         }
     }

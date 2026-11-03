@@ -131,8 +131,6 @@ struct PhoneUsageCard: View {
                     .appFont(size: 19, weight: .medium)
                     .monospacedDigit()
                     .foregroundStyle(Theme.ink)
-                InfoHint(Text("Adil kullanım sınırı: bu ay kaydedilen toplantıların toplam süresi. Ay başında sıfırlanır."))
-                    .padding(.horizontal, -12)
                 Spacer(minLength: 8)
                 Text(verbatim: phonePercentText(fraction: fraction))
                     .appFont(size: 14, weight: .medium)
@@ -149,6 +147,11 @@ struct PhoneUsageCard: View {
                     .appFont(size: 12, weight: .medium)
                     .foregroundStyle(NoticeSeverity.error.tint)
                     .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text("Adil kullanım sınırı: bu ay kaydedilen toplantıların toplam süresi.")
+                    .appFont(size: 12, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         if let used = entitlements.accountTokensUsed, let cap = entitlements.accountTokensCap {
@@ -159,8 +162,6 @@ struct PhoneUsageCard: View {
                     Text("Toplantı dışı yapay zekâ")
                         .appFont(size: 14, weight: .medium)
                         .foregroundStyle(Theme.ink)
-                    InfoHint(Text("Sor, notu değiştirme ve notu yenileme bu paydan düşer; toplantı sırasındakiler düşmez."))
-                        .padding(.horizontal, -12)
                     Spacer(minLength: 8)
                     Text(verbatim: phonePercentText(fraction: aiFraction))
                         .appFont(size: 12, weight: .medium)
@@ -168,6 +169,10 @@ struct PhoneUsageCard: View {
                         .foregroundStyle(phoneUsageLevelColor(level: hostedUsageLevel(fraction: aiFraction)))
                 }
                 PhoneUsageMeter(fraction: aiFraction, height: 6)
+                Text("Sor, notu değiştirme ve notu yenileme bu paydan düşer; toplantı sırasındakiler düşmez.")
+                    .appFont(size: 12, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }

@@ -2046,16 +2046,6 @@
         }
       }
     },
-    "Ad transkriptte \"Konuşmacı N\" yerine görünür. Notu yeni adlarla yazmak için ⋯ › Notu yenile.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The name replaces \"Speaker N\" in the transcript. To rewrite the note with the new names, use ⋯ › Refresh note."
-          }
-        }
-      }
-    },
     "Ad ver": {
       "localizations": {
         "en": {
@@ -4146,16 +4136,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "The free trial on this iPhone was already used with another account."
-          }
-        }
-      }
-    },
-    "Bu iPhone'daki oturumu kapatır; toplantıların ve notların bu iPhone'da kalır.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Signs out on this iPhone; your meetings and notes stay on this iPhone."
           }
         }
       }
@@ -7004,16 +6984,6 @@
         }
       }
     },
-    "Günlük güvenilirlik ve özellik kullanımı sayıları, ilk açılış ve giriş adımları; toplantı içeriği, ses ya da metin içermez.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Daily reliability and feature-usage counts, plus first launch and sign-in steps; never meeting content, audio or text."
-          }
-        }
-      }
-    },
     "Güvenli bir giriş penceresi açılır; parolan Apple'da ya da Google'da kalır.": {
       "extractionState": "manual",
       "localizations": {
@@ -7334,16 +7304,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Each snapshot was kept when the screen changed, next to what was said while it was up. An MCP app you connect (such as Claude) reads the same pairing with list_screens and get_screen."
-          }
-        }
-      }
-    },
-    "Her cümle kayıt sırasında %@ diline çevrilir; toplantı zaten bu dildeyse çevrilmez. Kayıtta ✦ düğmesi son dakikaları özetler ve toplantıya soru sordurur.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Each sentence is translated into %@ while recording; a meeting already in that language is not translated. While recording, the ✦ button summarises the last minutes and lets you ask about the meeting."
           }
         }
       }
@@ -7690,26 +7650,6 @@
         }
       }
     },
-    "Kayıt ekranında sıradaki toplantılar görünür; süren bir toplantıda başlattığın kayıt onun adını ve katılımcılarını alır (adlar tanımaya da yardım eder). Hatırlatmadaki \"Dinlemeye başla\" kaydı hemen başlatır.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Upcoming meetings appear on the Record screen; a recording you start during a meeting takes its title and attendees (the names also help recognition). \"Start listening\" in the reminder starts recording right away."
-          }
-        }
-      }
-    },
-    "Kayıt sırasında çeviri yapılmaz, yalnızca orijinal metin görünür; toplantı bitince %@ not yine hazırlanır. Kayıtta ✦ düğmesi son dakikaları özetler ve toplantıya soru sordurur.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nothing is translated while recording; only the original text is shown. A note in %@ is still prepared after the meeting. While recording, the ✦ button summarises the last minutes and lets you ask about the meeting."
-          }
-        }
-      }
-    },
     "Kendi şablonun": {
       "localizations": {
         "en": {
@@ -7760,16 +7700,6 @@
         }
       }
     },
-    "Notta neyin öne çıkmasını istediğini yaz. Örnek: “Riskleri ayrı bir paragrafta say, her kararın gerekçesini yaz.”": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Describe what the note should emphasise. Example: “List risks in a separate paragraph and give the reason for each decision.”"
-          }
-        }
-      }
-    },
     "Odadaki herkes konuşmacılara ayrılır; bitince %@ notu yazar.": {
       "localizations": {
         "en": {
@@ -7816,16 +7746,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Couldn't reprocess: %@"
-          }
-        }
-      }
-    },
-    "Toplantı notları, canlı çeviri ve Sor cevapları not ve çeviri dilinde yazılır. Önceki notlar yazıldıkları dilde kalır.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Meeting notes, live translation and Ask answers are written in the note and translation language. Earlier notes stay in the language they were written in."
           }
         }
       }
@@ -15042,16 +14962,6 @@
         }
       }
     },
-    "iOS'un topladığı çökme ve donma raporları yalnızca bu iPhone'da saklanır; hiçbiri kendiliğinden gönderilmez. \"Gönder\" raporu (sürüm, sistem ve hatanın yeri; toplantı içeriği ve anahtarlar yok) geliştiricinin sunucusuna yollar.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Crash and hang reports collected by iOS are stored only on this iPhone; none are sent automatically. \"Send\" sends a report (version, system and where the error happened; no meeting content and no keys) to the developer's server."
-          }
-        }
-      }
-    },
     "iPhone'a gönder": {
       "localizations": {
         "en": {
@@ -15764,16 +15674,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Couldn't move your earlier meetings to your account (%@: %@). Nothing was deleted; anything not moved is still in its old location. Try again."
-          }
-        }
-      }
-    },
-    "Önemli gördüğünü kısaca yaz; toplantı bitince not bunları öncelik sayar, gerisini transkriptten tamamlar.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Jot down what matters; when the meeting ends the note prioritises these and fills in the rest from the transcript."
           }
         }
       }
@@ -18438,16 +18338,6 @@
         }
       }
     },
-    "Hesabın ve sunucudaki tüm kayıtların silinir. Bu iPhone'daki toplantılar ve notlar silinmez.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Your account and all your records on the server are deleted. Meetings and notes on this iPhone stay."
-          }
-        }
-      }
-    },
     "Web aboneliğin hemen iptal edilir.": {
       "localizations": {
         "en": {
@@ -18498,17 +18388,6 @@
         }
       }
     },
-    "Aboneliğin App Store'dan alındı; planı değiştirmek ya da iptal etmek için \"Aboneliği yönet\"e dokun.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Your subscription was bought through the App Store; tap \"Manage subscription\" to change plans or cancel."
-          }
-        }
-      }
-    },
     "Aboneliğin %@ tarihinde sona erdi. Toplantıların ve notların bu iPhone'da; yeni kayıt için yeniden abone ol.": {
       "extractionState": "manual",
       "localizations": {
@@ -18538,17 +18417,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Couldn't rename"
-          }
-        }
-      }
-    },
-    "Adil kullanım sınırı: bu ay kaydedilen toplantıların toplam süresi. Ay başında sıfırlanır.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fair-use limit: the total length of meetings recorded this month. Resets at the start of each month."
           }
         }
       }
@@ -18806,17 +18674,6 @@
         }
       }
     },
-    "Mesajın, yazdıysan e-postan ve işaretliyse sürüm bilgisi Gistsmith'in geliştiricisinin sunucusuna gider ve hesabınla ilişkilendirilir. Toplantı içeriği gönderilmez.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Your message, your email if you entered one, and the version info if checked go to the Gistsmith developer's server and are linked to your account. No meeting content is sent."
-          }
-        }
-      }
-    },
     "Notların kaydedilemedi: %@": {
       "extractionState": "manual",
       "localizations": {
@@ -19052,16 +18909,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Size"
-          }
-        }
-      }
-    },
-    "Arayüz yazısı başlıkları, düğmeleri ve listeleri; okuma metni ve satır aralığı notu, transkripti ve canlı metni değiştirir. iPhone'un yazı boyutu (Ayarlar › Ekran ve Parlaklık) bunların üstüne uygulanır.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Interface text changes titles, buttons and lists; reading text and line spacing change the note, transcript and live text. Your iPhone's text size (Settings › Display & Brightness) is applied on top."
           }
         }
       }
@@ -19346,16 +19193,6 @@
         }
       }
     },
-    "Kayıttan önce katılımcılara haber vermek çoğu yerde yasal zorunluluktur. Süre dolunca ses dosyaları silinir, metin ve not kalır; yarıda kalan ya da başarısız toplantının sesi iki kat süre saklanır. Telefondaki Teams/Zoom görüşmeleri kaydedilemez (iOS izin vermez); onlar için Mac'i kullan.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "In many places you are legally required to tell participants before recording. When the period ends, audio files are deleted and the transcript and note stay; audio of interrupted or failed meetings is kept twice as long. Teams/Zoom calls on the phone can't be recorded (iOS doesn't allow it); use your Mac for those."
-          }
-        }
-      }
-    },
     "Adlar": {
       "localizations": {
         "en": {
@@ -19526,6 +19363,226 @@
         }
       }
     },
+    "Kayıttan önce katılımcılara haber vermek çoğu yerde yasal zorunluluktur.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Telling participants before recording is a legal requirement in many places."
+          }
+        }
+      }
+    },
+    "Süre dolunca ses silinir, not kalır; Teams/Zoom görüşmeleri için Mac'i kullan.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio is deleted after this period, notes stay; use the Mac for Teams/Zoom calls."
+          }
+        }
+      }
+    },
+    "Notta sana düşen görevleri ayırmak için kullanılır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Used to pick out your tasks in notes."
+          }
+        }
+      }
+    },
+    "Notlar, canlı çeviri ve Sor cevapları not ve çeviri dilinde yazılır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes, live translation and Ask answers use the note and translation language."
+          }
+        }
+      }
+    },
+    "Cümleler kayıt sırasında %@ diline çevrilir; ✦ özetler ve soruları yanıtlar.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sentences are translated into %@ while recording; ✦ summarizes and answers questions."
+          }
+        }
+      }
+    },
+    "Kayıtta yalnız orijinal metin görünür; %@ not yine yazılır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only the original text shows while recording; the %@ note is still written."
+          }
+        }
+      }
+    },
+    "Notta neyin öne çıkacağını yaz; ör. “Riskleri ayrı say, kararların gerekçesini yaz.”": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Say what the note should highlight, e.g. “List risks separately, explain each decision.”"
+          }
+        }
+      }
+    },
+    "Doğru yazılması gereken adlar ve terimler; satır başına bir tane, en fazla 30.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Names and terms to spell correctly; one per line, up to 30."
+          }
+        }
+      }
+    },
+    "Yeni notlar bu şablonla yazılır; eski bir notu ⋯ menüsünden yeniden yazabilirsin.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New notes use this template; rewrite an older note from the ⋯ menu."
+          }
+        }
+      }
+    },
+    "Yalnızca kullanım sayıları paylaşılır; toplantı içeriği, ses ya da metin paylaşılmaz.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only usage counts are shared, never meeting content, audio or text."
+          }
+        }
+      }
+    },
+    "Sıradaki toplantılar Kayıt'ta görünür; kayıt toplantının adını ve kişilerini alır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upcoming meetings show on Record; a recording takes the meeting's name and attendees."
+          }
+        }
+      }
+    },
+    "Ad transkriptte, notta ve görevlerde \"Konuşmacı N\" yerine görünür.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The name replaces \"Speaker N\" in the transcript, note and tasks."
+          }
+        }
+      }
+    },
+    "Mesajın, varsa e-postan ve sürüm bilgisi hesabınla birlikte gider; toplantı içeriği gitmez.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your message, any email and version info are sent with your account; never meeting content."
+          }
+        }
+      }
+    },
+    "Bu ad toplantılarda verildi; toplantının Transkript sekmesinden değiştir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This name was given in meetings; change it in the meeting's Transcript tab."
+          }
+        }
+      }
+    },
+    "Ad konuşma tanımaya verilir; kişinin toplantıları ve görevleri burada toplanır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The name helps speech recognition; this person's meetings and tasks gather here."
+          }
+        }
+      }
+    },
+    "Önemli gördüğünü yaz; toplantı notu bunlara öncelik verir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jot down what matters; the meeting note will put it first."
+          }
+        }
+      }
+    },
+    "Arayüz yazısı düğmeleri ve listeleri, okuma metni notu ve transkripti değiştirir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interface text resizes buttons and lists; reading text resizes notes and transcripts."
+          }
+        }
+      }
+    },
+    "Raporlar bu iPhone'da kalır; \"Gönder\" toplantı içeriği olmadan geliştiriciye yollar.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reports stay on this iPhone; \"Send\" shares one with the developer, without meeting content."
+          }
+        }
+      }
+    },
+    "Planı değiştirmek ya da iptal etmek için \"Aboneliği yönet\"e dokun.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap \"Manage subscription\" to change or cancel your plan."
+          }
+        }
+      }
+    },
+    "Toplantıların ve notların bu iPhone'da kalır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your meetings and notes stay on this iPhone."
+          }
+        }
+      }
+    },
+    "Hesabın ve sunucudaki kayıtların silinir; bu iPhone'daki toplantılar kalır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deletes your account and server data; meetings on this iPhone stay."
+          }
+        }
+      }
+    },
+    "Adil kullanım sınırı: bu ay kaydedilen toplantıların toplam süresi.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fair-use limit: total length of meetings recorded this month."
+          }
+        }
+      }
+    },
     "Not yazılırken toplantının en çok konuşulan en fazla 6 ekran görüntüsü küçültülüp notla birlikte sunucumuza, oradan da Anthropic'e (Claude) gönderilir; not ekrana atıf yapabilir (ör. \"Fiyatlandırma slaytında, 12:40\"). Sor'da da okunan transkript parçaları konuşulurken ekranda olan en fazla 3 görüntü soruyla aynı yoldan gider; cevabın altında kaç görüntü okunduğu yazar. Sunucumuz görüntüleri saklamaz ve loglamaz; Anthropic onları transkriptle aynı koşullarla işler. Bir görüntüyü toplantının Ekranlar sekmesinden nottan çıkarabilirsin (Sor'a da gitmez). Kapalıyken görüntüler bu Mac'ten çıkmaz.": {
       "localizations": {
         "en": {
@@ -19562,6 +19619,48 @@
           "stringUnit": {
             "state": "translated",
             "value": "When the note is written, up to 6 of the snapshots ticked \"In note\" (the most-discussed ones) are sent to our server and Anthropic; Ask also sends up to 3 that were on screen while the passages it read were spoken. A snapshot you untick goes to neither. Your choice applies to the next note and question."
+          }
+        }
+      }
+    },
+    "Kayıt sırasında çeviri yapılmaz, yalnızca orijinal metin görünür; toplantı bitince %@ not yine hazırlanır. Kayıtta ✦ düğmesi son dakikaları özetler ve toplantıya soru sordurur.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing is translated while recording; only the original text is shown. A note in %@ is still prepared after the meeting. While recording, the ✦ button summarises the last minutes and lets you ask about the meeting."
+          }
+        }
+      }
+    },
+    "Adil kullanım sınırı: bu ay kaydedilen toplantıların toplam süresi. Ay başında sıfırlanır.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fair-use limit: the total length of meetings recorded this month. Resets at the start of each month."
+          }
+        }
+      }
+    },
+    "Mesajın, yazdıysan e-postan ve işaretliyse sürüm bilgisi Gistsmith'in geliştiricisinin sunucusuna gider ve hesabınla ilişkilendirilir. Toplantı içeriği gönderilmez.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your message, your email if you entered one, and the version info if checked go to the Gistsmith developer's server and are linked to your account. No meeting content is sent."
+          }
+        }
+      }
+    },
+    "Kayıttan önce katılımcılara haber vermek çoğu yerde yasal zorunluluktur. Süre dolunca ses dosyaları silinir, metin ve not kalır; yarıda kalan ya da başarısız toplantının sesi iki kat süre saklanır. Telefondaki Teams/Zoom görüşmeleri kaydedilemez (iOS izin vermez); onlar için Mac'i kullan.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In many places you are legally required to tell participants before recording. When the period ends, audio files are deleted and the transcript and note stay; audio of interrupted or failed meetings is kept twice as long. Teams/Zoom calls on the phone can't be recorded (iOS doesn't allow it); use your Mac for those."
           }
         }
       }
