@@ -142,6 +142,8 @@ export interface HomeCopy {
   readonly meta: PageMeta;
   readonly eyebrow: string;
   readonly title: string;
+  /** H1'in altındaki tek satırlık marka cümlesi; Fince sürüm kendi başlığını kullandığı için orada yok. */
+  readonly subline?: string;
   readonly lead: string;
   readonly secondaryCta: string;
   /** Kahraman düğmelerinin altındaki kısa güvenceler (engel kaldıranlar). */
@@ -782,12 +784,14 @@ export const copy: Copy = {
   },
   home: {
     meta: {
-      title: `${productName} — ${tagline}`,
+      // Arama sonucunda "meeting notes" + "Mac" geçsin; marka adı başta kalsın ("Gist Silversmiths" ad karışıklığı).
+      title: `${productName} — AI meeting notes for Mac, no bot in the call`,
       description:
-        "A meeting notepad for Mac: a live transcript, optional live translation, and a note that starts with your tasks when the meeting ends. 3 meetings or 7 days free.",
+        "A Mac meeting notepad: a live transcript, optional live translation, and a note that starts with your tasks when the meeting ends. 3 meetings or 7 days free.",
     },
     eyebrow: "A meeting notepad for Mac",
-    title: tagline,
+    title: "Meeting notes for Mac, written while you talk",
+    subline: tagline,
     lead: `${productName} transcribes the conversation live, translates it if you like, and has your note ready when the meeting ends: your tasks first, then decisions and a summary. No bot joins the call, and no one else in the meeting needs to install anything.`,
     secondaryCta: "See pricing",
     assurances: ["3 meetings or 7 days free", "No credit card"],

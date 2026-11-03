@@ -9,13 +9,27 @@ import type { CommonCopy, Faq, PageMeta } from "../copy";
 import type { Operator } from "../legal/operator";
 import { pageUrl } from "../routes";
 
-/** İşletme düğümü. */
+/** Site düğümü: Google site adını bu düğümden okur (`name`), bu yüzden ana sayfada bulunur. */
+interface WebSiteNode {
+  readonly "@type": "WebSite";
+  readonly "@id": string;
+  readonly name: string;
+  readonly alternateName: readonly string[];
+  readonly url: string;
+  readonly publisher: { readonly "@type": "Organization"; readonly "@id": string };
+}
+
+/** İşletme düğümü: ad marka adıdır, ticari unvan `legalName` olarak durur (hukuki metinlerde görünür). */
 interface OrganizationNode {
   readonly "@type": "Organization";
   readonly "@id": string;
   readonly name: string;
+  readonly legalName: string;
   readonly url: string;
   readonly email: string;
+  readonly logo: ImageObjectNode;
+  readonly sameAs: readonly string[];
+  readonly founder: { readonly "@type": "Person"; readonly name: string; readonly url: string };
 }
 
 /** Abonelik döneminin fiyat tanımı: aylık (`MON`, `P1M`) ya da yıllık (`ANN`, `P1Y`). */
@@ -78,7 +92,7 @@ interface FaqPageNode {
 /** Ana sayfaya yazılan JSON-LD belgesi. */
 export interface StructuredDataDocument {
   readonly "@context": "https://schema.org";
-  readonly "@graph": readonly [SoftwareApplicationNode, OrganizationNode, FaqPageNode];
+  readonly "@graph": readonly [WebSiteNode, SoftwareApplicationNode, OrganizationNode, FaqPageNode];
 }
 
 /** Yalnızca sık sorulan soruları taşıyan JSON-LD belgesi (fiyat sayfası). */
@@ -179,11 +193,20 @@ export function homeStructuredData(
 ): StructuredDataDocument {
   const origin: string = config.siteOrigin;
   const organizationId: string = `${origin}/#organization`;
+  const websiteId: string = `${origin}/#website`;
   const pricingUrl: string = pageUrl("pricing", origin);
   const needs: Requirements = requirements(common.requirementsShort);
   return {
     "@context": "https://schema.org",
     "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": websiteId,
+        name: productName,
+        alternateName: [`${productName} for Mac`],
+        url: `${origin}/`,
+        publisher: { "@type": "Organization", "@id": organizationId },
+      },
       {
         "@type": "SoftwareApplication",
         name: productName,
@@ -200,7 +223,17 @@ export function homeStructuredData(
         ],
         publisher: { "@id": organizationId },
       },
-      { "@type": "Organization", "@id": organizationId, name: operator.name, url: origin, email: operator.email },
+      {
+        "@type": "Organization",
+        "@id": organizationId,
+        name: productName,
+        legalName: operator.name,
+        url: origin,
+        email: operator.email,
+        logo: { "@type": "ImageObject", url: `${origin}/logo-512.png`, width: 512, height: 512 },
+        sameAs: ["https://x.com/senoldoganx"],
+        founder: { "@type": "Person", name: "Senol Dogan", url: "https://senoldogan.dev" },
+      },
       faqPageNode(faq, pageUrl(page, origin)),
     ],
   };
@@ -277,7 +310,7 @@ export interface BlogPostingInput {
 export const ogImageSize = { width: 1200, height: 630 } as const;
 
 /** Blog yazısının JSON-LD belgesi (`BlogPosting` ve `BreadcrumbList`). Saf fonksiyondur. */
-export function blogPostingStructuredData(config: SiteConfig, operator: Operator, post: BlogPostingInput): BlogPostingDocument {
+export function blogPostingStructuredData(config: SiteConfig, post: BlogPostingInput): BlogPostingDocument {
   const origin: string = config.siteOrigin;
   return {
     "@context": "https://schema.org",
@@ -294,7 +327,7 @@ export function blogPostingStructuredData(config: SiteConfig, operator: Operator
         dateModified: post.modified,
         inLanguage: "en",
         author: { "@type": "Person", name: post.author },
-        publisher: { "@type": "Organization", "@id": `${origin}/#organization`, name: operator.name, url: origin },
+        publisher: { "@type": "Organization", "@id": `${origin}/#organization`, name: productName, url: origin },
       },
       {
         "@type": "BreadcrumbList",

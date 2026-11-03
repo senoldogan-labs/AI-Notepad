@@ -85,6 +85,7 @@ const structuredData: string = structuredDataJson(homeStructuredData(siteConfig,
     <div class="hero__text">
       <p class="eyebrow">{text.eyebrow}</p>
       <h1 class="display">{text.title}</h1>
+      {text.subline !== undefined && <p class="hero__subline">{text.subline}</p>}
       <p class="lead">{text.lead}</p>
       <div class="hero__actions">
         <a class="button button--primary" href={heroDownloadUrl} data-mac-download>
@@ -450,6 +451,13 @@ const structuredData: string = structuredDataJson(homeStructuredData(siteConfig,
     display: grid;
     gap: 22px;
     max-width: 52rem;
+  }
+
+  /* H1'in altındaki marka cümlesi: başlıkla tek blok gibi okunsun diye üst boşluğu daraltır. */
+  .hero__subline {
+    margin-top: -12px;
+    color: var(--muted);
+    font-size: clamp(1rem, 1.5vw, 1.125rem);
   }
 
   .hero__actions {
