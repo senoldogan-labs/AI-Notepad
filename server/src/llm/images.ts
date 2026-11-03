@@ -3,23 +3,42 @@ import { ApiError } from "../errors";
 import type { LLMPurpose } from "./purpose";
 
 // Shared-screen snapshots in the AI meeting note and in Ask ("Use screen snapshots in notes", off by default in the
-// app). The client picks and downscales a few key snapshots (`ScreenNotes.swift`, `AskScreens.swift`: Ask sends at most
-// 3 and 1,350 visual tokens); the server never trusts that and enforces the same caps itself before anything reaches
-// Anthropic. Images are passed through to Claude only: they are never stored
-// and never logged (only their count and estimated tokens are).
+// app). The client picks and downscales a few key snapshots (`ScreenNotes.swift`, `AskScreens.swift`); the server never
+// trusts that and enforces the same caps per purpose itself before anything reaches Anthropic. Images are passed through
+// to Claude only: they are never stored and never logged (only their count and estimated tokens are).
 //
-// The caps below are mirrored by the client (`screenNoteBudget` in `ScreenNotes.swift`; `askScreenBudget` stays within
-// them); `ServerParityTests` reads this file and fails when the two drift apart.
+// The caps below are mirrored by the client (`screenNoteBudget` in `ScreenNotes.swift`, `askScreenBudget` in
+// `AskScreens.swift`); `ServerParityTests` reads this file and fails when the two drift apart.
 
-/** At most this many images per request. */
+/** At most this many images per note request (`note`, `note_overview`); no purpose allows more. */
 export const screenImageMaxCount: number = 6;
 /** At most this many decoded JPEG bytes per image. */
 export const screenImageMaxBytes: number = 250_000;
-/** At most this many visual tokens (Claude vision: one token per 28×28 px patch) across all images of a request. */
+/** At most this many visual tokens (Claude vision: one token per 28×28 px patch) across all images of a note request. */
 export const screenImageMaxTotalTokens: number = 2_700;
+/** At most this many images per Ask answer (`ask_answer`). */
+export const askScreenImageMaxCount: number = 3;
+/** At most this many visual tokens across all images of an Ask answer. */
+export const askScreenImageMaxTotalTokens: number = 1_350;
 
 /** Purposes that may carry images: the single-call note, the overview of a long (chunked) note and Ask's answer. */
 export const screenImagePurposes: readonly LLMPurpose[] = ["note", "note_overview", "ask_answer"];
+
+/** Count and visual-token caps of a request's images. */
+export interface ScreenImageCaps {
+  readonly maxCount: number;
+  readonly maxTotalTokens: number;
+}
+
+/** Caps of a note request. */
+const noteScreenImageCaps: ScreenImageCaps = { maxCount: screenImageMaxCount, maxTotalTokens: screenImageMaxTotalTokens };
+/** Caps of an Ask answer. */
+const askScreenImageCaps: ScreenImageCaps = { maxCount: askScreenImageMaxCount, maxTotalTokens: askScreenImageMaxTotalTokens };
+
+/** Caps of a purpose in `screenImagePurposes`: Ask's answer has its own, the note purposes share the note's. Pure function. */
+export function screenImageCaps(purpose: LLMPurpose): ScreenImageCaps {
+  return purpose === "ask_answer" ? askScreenImageCaps : noteScreenImageCaps;
+}
 
 /** Base64 length of `screenImageMaxBytes` (4 characters per 3 bytes, padded). */
 const maxBase64Length: number = Math.ceil(screenImageMaxBytes / 3) * 4;
@@ -31,7 +50,10 @@ const maxBase64Length: number = Math.ceil(screenImageMaxBytes / 3) * 4;
  */
 export const screenImageBodyAllowanceBytes: number = screenImageMaxCount * (maxBase64Length + 256);
 
-/** A base64 JPEG image block (the only image form the proxy accepts). */
+/**
+ * A base64 JPEG image block (the only image form the proxy accepts). Padded base64 only: a length that is not a multiple
+ * of 4 cannot be decoded (`atob` would throw) and is rejected here as `invalid_body`.
+ */
 export const imageBlockSchema = z.strictObject({
   type: z.literal("image"),
   source: z.strictObject({
@@ -41,7 +63,8 @@ export const imageBlockSchema = z.strictObject({
       .string()
       .min(4)
       .max(maxBase64Length)
-      .regex(/^[A-Za-z0-9+/]+={0,2}$/),
+      .regex(/^[A-Za-z0-9+/]+={0,2}$/)
+      .refine((data: string): boolean => data.length % 4 === 0, { error: "Base64 image data must be padded to a multiple of 4 characters." }),
   }),
 });
 
@@ -110,7 +133,7 @@ export function visualTokens(size: JpegSize): number {
   return Math.ceil(size.width / 28) * Math.ceil(size.height / 28);
 }
 
-/** Decodes base64 (already shape-checked by the schema). Pure function. */
+/** Decodes base64 (shape and padded length already checked by the schema). Pure function. */
 function decodeBase64(data: string): Uint8Array {
   const binary: string = atob(data);
   const bytes: Uint8Array = new Uint8Array(binary.length);
@@ -141,8 +164,9 @@ export function screenImageUsage(images: readonly ImageBlock[], purpose: LLMPurp
   if (!screenImagePurposes.includes(purpose)) {
     throw new ApiError("screen_images_over_limit", `Images are accepted only for these purposes: ${screenImagePurposes.join(", ")}.`);
   }
-  if (images.length > screenImageMaxCount) {
-    throw new ApiError("screen_images_over_limit", `At most ${screenImageMaxCount} images per request (received ${images.length}).`);
+  const caps: ScreenImageCaps = screenImageCaps(purpose);
+  if (images.length > caps.maxCount) {
+    throw new ApiError("screen_images_over_limit", `At most ${caps.maxCount} images per request (received ${images.length}).`);
   }
   return images.reduce((usage: ScreenImageUsage, image: ImageBlock, index: number): ScreenImageUsage => {
     const bytes: Uint8Array = decodeBase64(image.source.data);
@@ -154,8 +178,8 @@ export function screenImageUsage(images: readonly ImageBlock[], purpose: LLMPurp
       throw new ApiError("screen_images_over_limit", `Image ${index + 1} is not a readable JPEG.`);
     }
     const tokens: number = usage.tokens + visualTokens(size);
-    if (tokens > screenImageMaxTotalTokens) {
-      throw new ApiError("screen_images_over_limit", `The images need about ${tokens} tokens; the limit is ${screenImageMaxTotalTokens}.`);
+    if (tokens > caps.maxTotalTokens) {
+      throw new ApiError("screen_images_over_limit", `The images need about ${tokens} tokens; the limit is ${caps.maxTotalTokens}.`);
     }
     return { count: usage.count + 1, bytes: usage.bytes + bytes.length, tokens };
   }, noScreenImages);

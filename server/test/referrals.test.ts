@@ -6,7 +6,7 @@ import type { Env } from "../src/env";
 import { randomId, randomToken } from "../src/crypto";
 import { ReferralRewardFailedError, type ReferralRewardReport, grantDueReferralRewards } from "../src/referralRewards";
 import { newReferralCode, normalizeReferralCode, referralCodeAlphabet, referralCodeFromBytes } from "../src/referrals";
-import { type Harness, type Session, defaultHarness, envWith, expectError, grantSubscription, refreshed, req, signIn, signInWithGoogle } from "./helpers";
+import { type Harness, type Session, defaultHarness, envWith, expectError, grantAppStoreSubscription, grantSubscription, refreshed, req, signIn, signInWithGoogle } from "./helpers";
 import { eventOf, invoicePaidEvent, postEvent, sendSubscription } from "./stripeEvents";
 import { type FakePaymentMethod, type FakeStripe, type FakeSubscription, fakeCard, fakeSubscription, fakeYearlySubscription, stubStripeApi } from "./stripeFake";
 
@@ -295,6 +295,17 @@ describe("davet kodu", () => {
     const returning: Session = await signIn(harness);
     await grantSubscription(returning.userId, "canceled", harness.clock.nowMs - dayMs);
     await expectError(await validate(harness, returning, code), 409, "referral_not_eligible");
+    // iPhone'da ödemiş (bitmiş olsa da) App Store abonesi de yeni değildir; yalnızca deneme ya da sandbox satırı engel değil.
+    const formerAppStore: Session = await signIn(harness);
+    await grantAppStoreSubscription(formerAppStore.userId, { status: "expired", periodType: "normal", environment: "PRODUCTION", expiresAtMs: harness.clock.nowMs - dayMs });
+    await expectError(await validate(harness, formerAppStore, code), 409, "referral_not_eligible");
+    await expectError(await checkout(harness, formerAppStore, { plan: "monthly", referralCode: code }), 409, "referral_not_eligible");
+    const appStoreTrialOnly: Session = await signIn(harness);
+    await grantAppStoreSubscription(appStoreTrialOnly.userId, { status: "expired", periodType: "trial", environment: "PRODUCTION", expiresAtMs: harness.clock.nowMs - dayMs });
+    expect((await validate(harness, appStoreTrialOnly, code)).status).toBe(200);
+    const appStoreSandbox: Session = await signIn(harness);
+    await grantAppStoreSubscription(appStoreSandbox.userId, { status: "expired", periodType: "normal", environment: "SANDBOX", expiresAtMs: harness.clock.nowMs - dayMs });
+    expect((await validate(harness, appStoreSandbox, code)).status).toBe(200);
 
     // Sahibin aboneliği bitince kodu geçersizdir.
     const now: number = Math.floor(harness.clock.nowMs / 1000);

@@ -37,14 +37,33 @@ export const funnelEventSchema = z.discriminatedUnion("step", [
 
 export type FunnelEvent = z.output<typeof funnelEventSchema>;
 
-/** Adımı bugünün (UTC), ayrıntının ve uygulama sürümünün sayacına ekler. */
+/**
+ * Bir günde ayrı sayılan en çok uygulama sürümü. Uç jetonsuzdur ve biçime uyan her `x-app-version` yeni bir satır
+ * açabilir; sınır günün (ve 400 günlük saklamanın) satır sayısını sabit tutar. Aynı anda kullanılan sürümler bunun çok
+ * altındadır.
+ */
+export const funnelMaxVersionsPerDay: number = 20;
+
+/** Günün sürüm sınırı dolduktan sonra gelen yeni sürümlerin ortak etiketi (sürüm biçimine uymaz, karışmaz). */
+export const funnelOverflowVersion: string = "other";
+
+/**
+ * Adımı bugünün (UTC), ayrıntının ve uygulama sürümünün sayacına ekler. Sürüm bugün zaten sayılmışsa ya da günün ayrı
+ * sürümleri `funnelMaxVersionsPerDay`'in altındaysa kendi adıyla, değilse `funnelOverflowVersion` olarak sayılır. Seçim
+ * yazımla aynı ifadededir (birincil anahtarın `day` öneki kullanılır).
+ */
 export async function recordFunnelEvent(db: D1Database, event: FunnelEvent, appVersion: string, now: Date): Promise<void> {
   await db
     .prepare(
-      `INSERT INTO app_funnel_daily (day, step, detail, app_version, count) VALUES (?, ?, ?, ?, 1)
+      `INSERT INTO app_funnel_daily (day, step, detail, app_version, count)
+       SELECT ?1, ?2, ?3, CASE
+           WHEN EXISTS (SELECT 1 FROM app_funnel_daily WHERE day = ?1 AND app_version = ?4)
+             OR (SELECT COUNT(DISTINCT app_version) FROM app_funnel_daily WHERE day = ?1) < ?5 THEN ?4
+           ELSE ?6 END, 1
+       WHERE 1
        ON CONFLICT(day, step, detail, app_version) DO UPDATE SET count = count + 1`,
     )
-    .bind(dayKey(now), event.step, event.detail, appVersion)
+    .bind(dayKey(now), event.step, event.detail, appVersion, funnelMaxVersionsPerDay, funnelOverflowVersion)
     .run();
 }
 

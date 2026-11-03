@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import type { Env } from "../src/env";
+import { funnelMaxVersionsPerDay, funnelOverflowVersion } from "../src/funnel";
 import { type Harness, type Session, blockingLimiter, defaultHarness, envWith, expectError, req, signInWithGoogle } from "./helpers";
 
 const dayMs: number = 86_400_000;
@@ -79,6 +80,32 @@ describe("POST /v1/funnel", () => {
     harness.clock.nowMs += 901 * dayMs;
     await expectError(await postStep(harness, json, appHeaders, null, "198.51.100.2"), 400, "invalid_body");
     expect(await rows(dayOf(harness.clock.nowMs, 0))).toEqual([]);
+  });
+
+  it("günde en çok funnelMaxVersionsPerDay sürüm ayrı sayılır; sonraki yeni sürümler 'other' olur, bilinen sürüm yine kendi adıyla", async () => {
+    const harness: Harness = await defaultHarness();
+    harness.clock.nowMs += 902 * dayMs;
+    const today: string = dayOf(harness.clock.nowMs, 0);
+    const json: object = { step: "first_launch", detail: "" };
+    const versions: string[] = Array.from({ length: funnelMaxVersionsPerDay + 3 }, (_: unknown, index: number): string => `9.${index}.0 (${index})`);
+    // Her istek ayrı IP'den (gerçek hız sınırı IP başına dakikada 20).
+    for (const [index, version] of versions.entries()) {
+      expect((await postStep(harness, json, { "x-app-version": version }, null, `198.51.101.${index}`)).status).toBe(202);
+    }
+    // Günün ilk sürümü sınır dolduktan sonra da kendi satırına sayılır.
+    expect((await postStep(harness, { step: "signed_in", detail: "apple" }, { "x-app-version": "9.0.0 (0)" }, null, "198.51.100.4")).status).toBe(202);
+    const written = await rows(today);
+    const firstLaunches: Array<{ app_version: string; count: number }> = written
+      .filter((row: { step: string }): boolean => row.step === "first_launch")
+      .map((row: { app_version: string; count: number }): { app_version: string; count: number } => ({ app_version: row.app_version, count: row.count }));
+    expect(firstLaunches).toHaveLength(funnelMaxVersionsPerDay + 1);
+    expect(firstLaunches).toContainEqual({ app_version: funnelOverflowVersion, count: 3 });
+    expect(firstLaunches.map((row: { app_version: string }): string => row.app_version)).not.toContain(versions[funnelMaxVersionsPerDay]);
+    expect(written).toContainEqual({ step: "signed_in", detail: "apple", app_version: "9.0.0 (0)", count: 1 });
+    // Ertesi gün sınır yeniden başlar.
+    harness.clock.nowMs += dayMs;
+    expect((await postStep(harness, json, { "x-app-version": versions[funnelMaxVersionsPerDay + 2] ?? "" }, null, "198.51.100.4")).status).toBe(202);
+    expect(await rows(dayOf(harness.clock.nowMs, 0))).toEqual([{ step: "first_launch", detail: "", app_version: versions[funnelMaxVersionsPerDay + 2], count: 1 }]);
   });
 
   it("x-app-version eksik ya da geçersizse 400 bad_request; IP hız sınırı 429 rate_limited", async () => {

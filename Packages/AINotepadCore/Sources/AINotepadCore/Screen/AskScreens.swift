@@ -16,7 +16,7 @@ public enum ArchiveScreensPlan: Sendable, Equatable {
 
 /// Ask's budget: at most 3 images of at most 450 visual tokens each, 1,350 visual tokens per answer (a 16:9 slide is
 /// ~784×448 px). With the labels and the prompt rule an answer with screens costs at most ~1,500 more input tokens than
-/// one without. Within the server's per-request caps (`screenImageMaxCount`, `screenImageMaxTotalTokens`).
+/// one without. The server enforces the same caps on `ask_answer` (`askScreenImageMaxCount`, `askScreenImageMaxTotalTokens`).
 public let askScreenBudget: ScreenNoteBudget = ScreenNoteBudget(
     maxImages: 3, maxImageTokens: 450, maxTotalTokens: 1_350, minImageTokens: 64, maxLongEdge: 1_024, maxImageBytes: 250_000
 )
