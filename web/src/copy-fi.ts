@@ -210,7 +210,7 @@ export const homeFi: HomeCopy = {
       },
       { icon: "sparkle", title: "Ei tekoälyn koulutusmateriaalina", text: "Kokouksiasi ei käytetä palveluntarjoajiemme mallien kouluttamiseen. Olemme kieltäneet sen kaikkialla, missä se on asetuksissa mahdollista." },
       { icon: "globe", title: "EU-yritys, GDPR", text: `${productName} toimii Suomesta käsin EU:n tietosuojalainsäädännön alla, ja tilitietokantamme sijaitsee EU:ssa.` },
-      { icon: "check-circle", title: "Poista milloin haluat", text: "Voit poistaa tilisi verkkosivuilta milloin tahansa: tili poistetaan ja tilaus päättyy samalla." },
+      { icon: "check-circle", title: "Poista milloin haluat", text: "Voit poistaa tilisi sovelluksessa tai verkkosivuilla milloin tahansa: tili poistetaan, ja verkossa tai Macilla ostettu tilaus päättyy samalla." },
     ],
     link: "Lue tietosuojaseloste",
   },
@@ -238,7 +238,7 @@ export const homeFi: HomeCopy = {
     mcpLink: "Miten MCP toimii",
     files: {
       title: "Tiedostosi ja kalenterisi",
-      text: "Tallenna jokainen muistiinpano Markdownina kansioon, esimerkiksi Obsidian-holviin tai iCloud Driveen. Kalenterisi näyttää seuraavan kokouksen ja voi aloittaa tallennuksen, kun kokous alkaa.",
+      text: "Tallenna jokainen muistiinpano Markdownina kansioon, esimerkiksi Obsidian-holviin tai iCloud Driveen, tai vie se PDF- tai Word-tiedostoksi tai tekstitykseksi. Kalenterisi näyttää seuraavan kokouksen, voi aloittaa tallennuksen, kun kokous alkaa, ja kertoa ennen kokousta, mitä samojen ihmisten kanssa on aiemmin puhuttu.",
     },
     mcpDemo: {
       label: "Claudessa",
@@ -272,6 +272,10 @@ export const homeFi: HomeCopy = {
     {
       question: "Mitä kieliä tuetaan?",
       answer: "Yli 30 kieltä, muun muassa suomi, englanti ja ruotsi. Valitset itse muistiinpanojen ja käännösten kielen.",
+    },
+    {
+      question: "Toimiiko se myös kasvokkaisissa kokouksissa ja tallenteilla?",
+      answer: "Toimii. Kytke sovelluksessa päälle ”In person” ennen kuin aloitat, niin Macin mikrofoni tallentaa kaikki huoneessa olevat. Voit myös tuoda ääni- tai videotiedoston, kuten tallennetun puhelun tai ääniviestin, ja saat siitä saman litteroinnin ja muistiinpanon; tuotu tiedosto lasketaan kokoukseksi.",
     },
     {
       question: "Miten maksu ja verot toimivat Suomessa?",

@@ -920,7 +920,7 @@ export const copy: Copy = {
         },
         { icon: "sparkle", title: "Not used to train AI", text: "Your meetings aren't used to train our providers' models. We've opted out wherever that's a setting." },
         { icon: "globe", title: "EU company, GDPR", text: `${productName} is run from Finland under EU data protection law. Our account database is hosted in the EU.` },
-        { icon: "check-circle", title: "Delete any time", text: "Delete your account from the website whenever you like; your account is removed and any subscription ends." },
+        { icon: "check-circle", title: "Delete any time", text: "Delete your account in the app or on the website whenever you like; your account is removed and a web or Mac subscription ends." },
       ],
       link: "Read the privacy policy",
     },
@@ -948,7 +948,7 @@ export const copy: Copy = {
       mcpLink: "How MCP works",
       files: {
         title: "Your files and calendar",
-        text: "Save every note as Markdown to a folder, such as your Obsidian vault or iCloud Drive. Your calendar shows what's next and can start recording when a meeting begins.",
+        text: "Save every note as Markdown to a folder, such as your Obsidian vault or iCloud Drive, or export it as PDF, Word or subtitles. Your calendar shows what's next, can start recording when a meeting begins and can brief you on what was said in earlier meetings with the same people.",
       },
       mcpDemo: {
         label: "In Claude",
@@ -981,6 +981,10 @@ export const copy: Copy = {
       {
         question: "Which languages are supported?",
         answer: "More than 30, including English, Finnish and Turkish. You choose the language of your notes and translations.",
+      },
+      {
+        question: "Does it work for in-person meetings and recordings?",
+        answer: "Yes. Turn on “In person” before you start, and the Mac's microphone records everyone in the room. You can also import an audio or video file, such as a recorded call or a voice memo, and get the same transcript and note; an imported file counts as a meeting.",
       },
     ],
     finalTitle: "Let it write the note for your next meeting.",
@@ -1022,6 +1026,7 @@ export const copy: Copy = {
       { icon: "waveform", text: "Live transcript and live translation" },
       { icon: "note", text: "A note after every meeting: your tasks, decisions, summary and who said what" },
       { icon: "search", text: "“What did I miss?” and Ask across all your meetings" },
+      { icon: "users", text: "Online calls, in-person meetings and imported audio or video files" },
       { icon: "plug", text: "Send to Notion, Slack, Linear, Jira and more" },
       { icon: "sparkle", text: "Your AI apps can read your meetings through MCP, including snapshots of shared screens" },
       { icon: "mic", text: "Voice typing in any Mac app, transcribed on your Mac (free with any account)" },
@@ -1114,7 +1119,7 @@ export const copy: Copy = {
     us: {
       price: "$5.99 a month or $49 a year, taxes included",
       free: "Free trial: 3 meetings or 7 days, whichever comes first; no card needed",
-      capture: "No bot. Listens to your Mac's system audio and microphone",
+      capture: "No bot. Listens to your Mac's system audio and microphone; also records in-person meetings and imports audio or video files",
       platforms: "Mac with Apple silicon, macOS 15 or later",
       limits: "Up to 10 meeting hours a month and up to 4 hours per meeting",
       languages: "30+ languages, with live translation during the meeting",
