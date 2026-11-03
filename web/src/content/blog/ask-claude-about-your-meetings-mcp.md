@@ -80,7 +80,7 @@ It's also why the format of your notes matters. Notes with clear decisions and t
 
 ## Gistsmith's MCP server
 
-Gistsmith, the Mac app we make, includes a small MCP server. It runs on your Mac and only reads; it never changes anything. It gives your AI app four tools: list your meetings, search notes and transcripts, open a meeting's note (with the transcript if needed), and list your open tasks from all your meetings.
+Gistsmith, the Mac app we make, includes a small MCP server. It runs on your Mac and only reads; it never changes anything. It gives your AI app six tools: list your meetings, search notes and transcripts, open a meeting's note (with the transcript if needed), list your open tasks from all your meetings, and, if you turn on shared-screen snapshots, list a meeting's screens and open each one with what was said while it was up.
 
 You connect it in one click from **Settings › Connections** for Claude, Cursor and Visual Studio Code, or copy a configuration for any other MCP app. The [MCP page](/mcp) has the details, including exactly which configuration file each app uses.
 
