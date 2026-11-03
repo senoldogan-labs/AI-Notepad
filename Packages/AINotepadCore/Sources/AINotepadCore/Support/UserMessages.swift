@@ -29,6 +29,8 @@ public func userFacingMessage(error: any Error) -> String {
         return cloudMessage(error: error)
     case let error as StorageError:
         return storageMessage(error: error)
+    case ScreenImageError.decodingFailed, ScreenImageError.encodingFailed, ScreenImageError.fingerprintFailed:
+        return String(localized: "Bir ekran görüntüsü okunamadı ya da küçültülemedi. Ekranlar sekmesinden o görüntüyü nottan çıkarıp ya da silip yeniden dene.")
     case TranscriptionError.modelLoadFailed(let model, _):
         return String(localized: "Konuşma tanıma modeli (\(model)) yüklenemedi. İnternet bağlantını ve disk alanını kontrol edip uygulamayı yeniden aç.")
     case TranscriptionError.transcriptionFailed:

@@ -40,6 +40,7 @@ extension ModelTests {
             finalPass: .run(LocalFinalTranscriber(modelsDirectory: try testModelsDirectory(), modelName: liveWhisperModel, candidateLanguages: [.finnish, .english])),
             llm: nil, languageMode: .automatic, userName: "Doğan",
             noteLanguage: .turkish, voiceEmbedder: nil, registry: [],
+            screens: .off,
             onStep: { (_: ProcessingStep) async -> Void in }
         )
         let text: String = result.finalSegments.map(\.text).joined(separator: " ").lowercased()

@@ -153,7 +153,8 @@ public func speakerReviewRequest(
         "required":["zaman","aciklama"],"additionalProperties":false}}},\
         "required":["adlar","birlestirmeler","supheliler"],"additionalProperties":false}
         """,
-        timeoutSec: 300
+        timeoutSec: 300,
+        images: []
     )
 }
 

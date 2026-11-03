@@ -181,7 +181,8 @@ public func searchTermsRequest(question: String, history: [ArchiveTurn], languag
         jsonSchema: """
         {"type":"object","properties":{"terimler":{"type":"array","items":{"type":"string"}}},"required":["terimler"],"additionalProperties":false}
         """,
-        timeoutSec: 30
+        timeoutSec: 30,
+        images: []
     )
 }
 
@@ -234,7 +235,8 @@ public func archiveAnswerRequest(
         userText: "\(blocks)\n\n\(historyBlock(history: history))<soru>\(question)</soru>",
         maxTokens: 16000,
         jsonSchema: nil,
-        timeoutSec: 300
+        timeoutSec: 300,
+        images: []
     )
 }
 

@@ -128,6 +128,8 @@ export const featureUsageSchema = z
     dictation: z.boolean().default(false),
     // Paylaşılan ekranın görüntüleri 0.1.13'ten sonra geldi: önceki sürümler alanı göndermez (kullanmadı sayılır).
     screenSnapshots: z.boolean().default(false),
+    // Screen snapshots in AI notes came after screen snapshots: earlier apps omit the field (counted as not used).
+    screenNotes: z.boolean().default(false),
   })
   .refine((body: { liveTranslation: boolean; translationLanguage: string | null }): boolean => body.liveTranslation || body.translationLanguage === null, {
     path: ["translationLanguage"],
@@ -248,6 +250,7 @@ export function featureIncrements(usage: FeatureUsage): FeatureIncrement[] {
     ...flag(usage.onDeviceLive, "on_device_live"),
     ...flag(usage.dictation, "dictation"),
     ...flag(usage.screenSnapshots, "screen_snapshots"),
+    ...flag(usage.screenNotes, "screen_notes"),
   ];
 }
 

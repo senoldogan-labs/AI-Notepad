@@ -80,7 +80,8 @@ public func translationRequest(sentence: String, context: [String], language: Sh
         userText: "<baglam>\n\(contextText)\n</baglam>\n\n<cumle>\n\(sentence)\n</cumle>",
         maxTokens: 1024,
         jsonSchema: translationSchema,
-        timeoutSec: 20
+        timeoutSec: 20,
+        images: []
     )
 }
 
@@ -139,7 +140,8 @@ public func missedSummaryRequest(segments: [LiveSegment], nowSec: Double, window
         "sendenIstenenler":{"type":"array","items":{"type":"string"}}},"required":["konu","kararlar","sendenIstenenler"],\
         "additionalProperties":false}
         """,
-        timeoutSec: 120
+        timeoutSec: 120,
+        images: []
     )
 }
 
@@ -179,7 +181,8 @@ public func questionRequest(segments: [LiveSegment], question: String, language:
         userText: "<transkript>\n\(transcript)\n</transkript>\n\nSoru: \(question)",
         maxTokens: 16000,
         jsonSchema: nil,
-        timeoutSec: 120
+        timeoutSec: 120,
+        images: []
     )
 }
 

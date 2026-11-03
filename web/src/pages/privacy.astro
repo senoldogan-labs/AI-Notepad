@@ -3,7 +3,9 @@
 // transcribe.ts, deepgram.ts, llm/, auth/, billing.ts, referrals.ts, trialLedger.ts, deviceCheck.ts, telemetry.ts, funnel.ts, migrations/, wrangler.jsonc), abonelik uygulaması
 // (App/Hosted: canlı metin Deepgram'la, kapasite dolunca ya da bağlantı yoksa Mac'te; sesle yazma tamamen Mac'te, Erişilebilirlik
 // yalnızca ⌘V için (App/Dictation.swift); paylaşılan ekranın görüntüleri isteğe bağlı, Mac'te kalır, yalnızca yerel MCP
-// istemcisine verilir (App/ScreenSnapshots.swift, AINotepadCore/Screen, MCP/MCPScreens.swift); iCloud eşitlemesi yok, güncellemeler
+// istemcisine verilir (App/ScreenSnapshots.swift, AINotepadCore/Screen, MCP/MCPScreens.swift); ayrı bir ayarla en çok 6'sı
+// küçültülüp not isteğiyle sunucu üzerinden Anthropic'e gider, sunucu saklamaz ve loglamaz (AINotepadCore/Screen/ScreenNotes.swift,
+// server/src/llm/images.ts); iCloud eşitlemesi yok, güncellemeler
 // GitHub'dan; sürüm başlıkları, yapay zekâ isteğinin amacı ve Ayarlar › Genel'den kapatılabilen kullanım
 // istatistikleri), iPhone uygulaması (iOS/: aynı hesap ve sunucu; yüz yüze toplantı mikrofonla, yedek canlı metin Apple'ın
 // cihaz içi konuşma tanımasıyla, App Attest yok, toplantılar telefonda, kullanım istatistikleri Ayarlar › Gizlilik'te) ve bu sitenin tarayıcı depolaması (public/theme.js,
@@ -80,7 +82,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       <li>
         Meeting audio and text go only to our AI providers to be transcribed and summarised: Deepgram for the live
         transcript (directly from your device), ElevenLabs for the final transcript and Anthropic for notes (both through our
-        server, which keeps no audio or notes and holds the final transcript encrypted for up to 2 hours). Deepgram keeps no
+        server, which keeps no audio or notes and holds the final transcript encrypted for up to 2 hours). Shared-screen
+        snapshots go to Anthropic with the note only if you turn on “Use screen snapshots in notes”. Deepgram keeps no
         audio or text after transcribing; the others may keep request data for
         a time under their own retention rules (see section 8). We keep only usage numbers (how long, how many tokens) to
         apply the plan limits.
@@ -130,6 +133,15 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         log this text; it records only the number of tokens used.
       </li>
       <li>
+        <strong>Screen snapshots in notes (Mac app, off by default).</strong> If you also turn on “Use screen snapshots in
+        notes” in Settings › General, then when a note is written the app picks up to 6 of the meeting's shared-screen
+        snapshots (the ones talked about most, leaving out any you unticked on the meeting's Screens tab), downscales them
+        to about 800 pixels and sends them with the note request through our server to Anthropic's Claude model, so the note
+        can refer to what was on screen. Our server checks their number and size and passes them on; it does not store or
+        log the images, and records only the number of tokens used, as for the text. Anthropic handles them on the same
+        terms as the transcript (see section 8). With the setting off, snapshots are never sent.
+      </li>
+      <li>
         <strong>Storage.</strong> Notes, transcripts, recordings, screen snapshots and the people and terms you add are
         stored in the app's folder on your Mac or iPhone. The apps do not sync them to any cloud service, and meetings recorded on one device do
         not appear on the other. You can export or delete them in
@@ -162,9 +174,9 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         captures your main display. It never captures the app's own windows, doesn't capture while recording is paused,
         and doesn't capture in in-person mode. This uses the macOS Screen Recording permission, which you grant in System
         Settings. The snapshots are stored with the meeting in the app's folder on your Mac. They are not sent to us,
-        to our AI providers or to anyone else, and they are not used for notes. An AI app on your Mac can read them only
-        if you connect it through the app's MCP connection, and that app's provider then handles what it reads under its
-        own terms. You can delete one snapshot or all of a meeting's snapshots on the meeting's Screens tab; deleting the
+        to our AI providers or to anyone else, unless you also turn on “Use screen snapshots in notes” (see “Screen
+        snapshots in notes” above). An AI app on your Mac can read them only if you connect it through the app's MCP
+        connection, and that app's provider then handles what it reads under its own terms. You can delete one snapshot or all of a meeting's snapshots on the meeting's Screens tab; deleting the
         meeting deletes its snapshots. Shared screens can show other people's content, so check that the participants
         agree before you keep snapshots of what they share.
       </li>
@@ -174,7 +186,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       meeting content to perform our contract with you. Meetings also involve other people. You decide whether to record a
       meeting and what to do with the result, so for the other participants' personal data you are the controller and we
       act as your processor under GDPR Article 28: we process it only on your instructions — to transcribe the meeting and
-      write your note — using the sub-processors listed in section 8, and never for any other purpose. You are responsible
+      write your note, including from shared-screen snapshots if you turn that on — using the sub-processors listed in
+      section 8, and never for any other purpose. You are responsible
       for telling participants that you are recording and, where the law requires it, getting their consent.
       Participants who want to use their rights should contact the person who recorded the meeting; if they contact us,
       we will pass the request on or help that person answer it.
@@ -420,8 +433,9 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         <strong>Daily feature usage:</strong> once a day, which features were used that day — whether live translation was
         used and its target language, whether Ask was used, how many times each integration type (for example Slack,
         Notion or Apple Notes) and each export format (for example PDF or Markdown) was used, whether your meeting archive
-        was accessed over MCP, whether the live transcript ran on your device, whether voice typing was used, and whether
-        shared-screen snapshots were kept (never the snapshots themselves).
+        was accessed over MCP, whether the live transcript ran on your device, whether voice typing was used, whether
+        shared-screen snapshots were kept, and whether a note was written with screen snapshots (never the snapshots
+        themselves).
       </li>
       <li>
         <strong>First launch and sign-in steps:</strong> once, the first time the app is opened, and when you sign in:
@@ -566,7 +580,10 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
           <tr>
             <td>Anthropic (Anthropic Ireland, Limited, and Anthropic, PBC)</td>
             <td>Processor (sub-processor for meeting content): writing notes, translations and answers with the Claude model</td>
-            <td>The relevant parts of meeting transcripts and notes, your questions, and the participant names and terms you add</td>
+            <td>
+              The relevant parts of meeting transcripts and notes, your questions, the participant names and terms you add,
+              and, if you turn on “Use screen snapshots in notes”, up to 6 downscaled shared-screen snapshots per note
+            </td>
             <td>
               Stored in the USA; the model may run in other countries where Anthropic operates. Standard Contractual
               Clauses under Anthropic's data processing addendum. Anthropic does not train its models on this data and

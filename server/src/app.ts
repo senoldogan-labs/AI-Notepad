@@ -69,6 +69,7 @@ import { funnelEventSchema, recordFunnelEvent } from "./funnel";
 import { bearerToken, errorResponse, jsonResponse, optionalBearerToken, readBodyBytes, readJsonBody } from "./http";
 import { type AcceptedReferral, referralSummary, requireReferral } from "./referrals";
 import { clientIpKey } from "./ip";
+import { llmBodyLimitBytes } from "./llm/images";
 import { llmRequestSchema } from "./llm/request";
 import { proxyLLM } from "./llm/proxy";
 import { type LLMPurpose, llmPurposeOf } from "./llm/purpose";
@@ -433,7 +434,7 @@ async function route(request: Request, env: Env, config: Config, context: Reques
         await requireTrialSpendHeadroom(db, config, now);
       }
       await requireSpendHeadroom(db, config, now);
-      const body = await readJsonBody(request, llmRequestSchema, config.llm.maxRequestBytes);
+      const body = await readJsonBody(request, llmRequestSchema, llmBodyLimitBytes(config.llm.maxRequestBytes, purpose));
       return proxyLLM(db, context, config, { kind: "account", userId: user.userId, access, purpose }, body);
     }
     return withMeetingFailures(db, user.userId, meetingId, now, async (): Promise<Response> => {
@@ -444,7 +445,7 @@ async function route(request: Request, env: Env, config: Config, context: Reques
         await requireTrialSpendHeadroom(db, config, now);
       }
       await requireSpendHeadroom(db, config, now);
-      const body = await readJsonBody(request, llmRequestSchema, config.llm.maxRequestBytes);
+      const body = await readJsonBody(request, llmRequestSchema, llmBodyLimitBytes(config.llm.maxRequestBytes, purpose));
       return proxyLLM(db, context, config, { kind: "meeting", userId: user.userId, meeting, purpose }, body);
     });
   }

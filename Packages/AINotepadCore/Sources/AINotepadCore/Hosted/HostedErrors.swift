@@ -53,6 +53,8 @@ public enum HostedErrorCode: String, Sendable, CaseIterable, Equatable {
     case webhookInvalid = "webhook_invalid"
     /// `x-llm-purpose` başlığı bilinen bir amaç değil (istemci sunucudan yeni).
     case llmPurposeInvalid = "llm_purpose_invalid"
+    /// The screen snapshots sent with a note are over the server's count, size or token cap.
+    case screenImagesOverLimit = "screen_images_over_limit"
     // Blog yayını yalnızca yönetim panelinindir (`server/src/blog.ts`); uygulama bu uçları çağırmaz.
     case blogUnavailable = "blog_unavailable"
     case blogPostExists = "blog_post_exists"
@@ -315,6 +317,8 @@ public func hostedErrorMessage(error: HostedAPIError) -> String {
         return String(localized: "Yapay zekâ ya da konuşma tanıma servisi şu an yanıt vermiyor; biraz sonra yeniden dene.")
     case .payloadTooLarge:
         return String(localized: "Gönderilen veri sunucunun sınırını aşıyor.")
+    case .screenImagesOverLimit:
+        return String(localized: "Notla gönderilen ekran görüntüleri sunucunun sınırını aşıyor. Ayarlar › Genel'de \"Notlarda ekran görüntülerini kullan\"ı kapatıp ya da Ekranlar sekmesinden bazılarını nottan çıkarıp notu yenile.")
     case .forbidden:
         return String(localized: "Bu işleme izin yok.")
     case .internalError:

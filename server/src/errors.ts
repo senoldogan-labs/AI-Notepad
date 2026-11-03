@@ -53,6 +53,7 @@ export type ErrorCode =
   | "blog_post_invalid"
   | "blog_image_exists"
   | "llm_purpose_invalid"
+  | "screen_images_over_limit"
   | "analytics_unavailable"
   | "webhook_invalid"
   | "internal_error";
@@ -111,6 +112,7 @@ const statusByCode: Readonly<Record<ErrorCode, number>> = {
   blog_post_invalid: 500,
   blog_image_exists: 409,
   llm_purpose_invalid: 400,
+  screen_images_over_limit: 413,
   analytics_unavailable: 503,
   webhook_invalid: 400,
   internal_error: 500,

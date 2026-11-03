@@ -13,7 +13,8 @@ func stored(_ key: String, _ speaker: Speaker, _ person: Int?, _ start: Double, 
             speakerNames: [1: "Aino"],
             userName: "Doğan",
             template: .general,
-            myNotes: "", language: .turkish
+            myNotes: "", language: .turkish,
+            screens: []
         ))
         #expect(request.tier == .smart)
         #expect(request.jsonSchema?.contains("gorevler") == true)
@@ -23,12 +24,13 @@ func stored(_ key: String, _ speaker: Speaker, _ person: Int?, _ start: Double, 
         // Kendi notları istemde öncelik olarak yer alır.
         let withNotes: LLMRequest = try #require(meetingNoteRequest(
             segments: [stored("final-0", .others, 1, 5, "Voisitko tehdä diat?")], speakerNames: [:], userName: "Doğan",
-            template: .general, myNotes: "- diat perjantaihin\n## Riskit", language: .turkish
+            template: .general, myNotes: "- diat perjantaihin\n## Riskit", language: .turkish,
+            screens: []
         ))
         #expect(withNotes.userText.hasPrefix("<benim_notlarim>\n- diat perjantaihin"))
         #expect(withNotes.system.contains("önceliğidir"))
         #expect(request.system.contains("Doğan"))
-        #expect(meetingNoteRequest(segments: [], speakerNames: [:], userName: "Doğan", template: .general, myNotes: "", language: .turkish) == nil)
+        #expect(meetingNoteRequest(segments: [], speakerNames: [:], userName: "Doğan", template: .general, myNotes: "", language: .turkish, screens: []) == nil)
     }
 
     @Test func parseMeetingNoteJSON() throws {
@@ -85,7 +87,8 @@ extension CloudTests {
     // Not dili İngilizceyken not İngilizce yazılır: Türkçeye özgü harf yok, görev kullanıcınındır.
     @Test func englishNoteFromDialog() async throws {
         let request: LLMRequest = try #require(meetingNoteRequest(
-            segments: finnishDialog, speakerNames: [1: "Aino"], userName: "Doğan", template: .general, myNotes: "", language: .english
+            segments: finnishDialog, speakerNames: [1: "Aino"], userName: "Doğan", template: .general, myNotes: "", language: .english,
+            screens: []
         ))
         let note: MeetingNote = try await requestStructured(provider: .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic))), request: request) { (text: String) throws -> MeetingNote in
             try parseMeetingNote(text: text)
@@ -102,7 +105,8 @@ extension CloudTests {
             speakerNames: [1: "Aino"],
             userName: "Doğan",
             template: .general,
-            myNotes: "", language: .turkish
+            myNotes: "", language: .turkish,
+            screens: []
         ))
         // Uygulamayla aynı yol: arada bir gelen boş yanıt yeniden istenir.
         let note: MeetingNote = try await requestStructured(provider: .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic))), request: request) { (text: String) throws -> MeetingNote in

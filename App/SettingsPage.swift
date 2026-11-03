@@ -496,6 +496,9 @@ private struct GeneralSettings: View {
                 .settingsToggle()
             }
             ScreenSnapshotSettingsRow()
+            #if HOSTED_EDITION
+            ScreenNotesSettingsRow()
+            #endif
             SettingsRow(title: Text("Kayıt başlarken haber vermeyi hatırlat"), hint: Text(consentReminderHelp)) {
                 Toggle("Kayıt başlarken haber vermeyi hatırlat", isOn: $consentReminder).settingsToggle()
             }
@@ -1002,7 +1005,7 @@ private func testConnection() async -> ConnectionTest {
     }
     do {
         _ = try await sendLLM(provider: provider, request: LLMRequest(
-            purpose: .connectionTest, tier: .smart, system: "Yalnızca \"tamam\" yaz.", userText: "Bağlantı denemesi", maxTokens: 4000, jsonSchema: nil, timeoutSec: 120
+            purpose: .connectionTest, tier: .smart, system: "Yalnızca \"tamam\" yaz.", userText: "Bağlantı denemesi", maxTokens: 4000, jsonSchema: nil, timeoutSec: 120, images: []
         ))
     } catch {
         return .failed(String(localized: "Not modeli: \(userFacingMessage(error: error))"))
