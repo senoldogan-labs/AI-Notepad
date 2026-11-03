@@ -161,6 +161,7 @@ private struct PhoneAppRoot: View {
     let calendar: PhoneCalendar
     let crashReports: CrashReportCenter
     @AppStorage(PhoneSettingsKey.aiDisclosureAccepted) private var disclosureAccepted: Bool = false
+    @AppStorage(PhoneSettingsKey.theme) private var theme: String = AppTheme.system.rawValue
 
     var body: some View {
         let session: PhoneAccountSession = sessions.session
@@ -176,6 +177,8 @@ private struct PhoneAppRoot: View {
                 )
             }
         }
+        // Koyu tema giriş kapısında ve yapay zekâ açıklamasında da koyu sistem denetimleriyle (renkler tüm uygulamada).
+        .preferredColorScheme((AppTheme(rawValue: theme) ?? .system).isDark.map { $0 ? ColorScheme.dark : ColorScheme.light })
         // Hesap değişince görünümlerin durumu (açık sayfalar, seçimler, kaydırma) eski hesabınkiyle kalmasın.
         .id(sessions.generation)
         .task(id: account.dataState) {
@@ -510,9 +513,11 @@ struct RootView: View {
         )) { (request: PaywallRequest) in
             PhonePaywall(account: account, reason: request.reason) { account.dismissUpsell() }
         }
-        .onChange(of: phoneAutoPaywallKey(state: account.state), initial: true) { (_: String?, key: String?) in
+        // Kayıt sürerken anahtar nil: son deneme toplantısı başlarken deneme biterse ekran kayıt bitince açılır (anahtar
+        // kayıt sırasında değişip bir daha değişmediği için yoksa ancak bir sonraki açılışta açılırdı).
+        .onChange(of: recorder.phase == .idle ? phoneAutoPaywallKey(state: account.state) : nil, initial: true) { (_: String?, key: String?) in
             // Deneme bitince (ya da abonelik sona erince) abonelik ekranı bir kez kendiliğinden açılır; kayıt sürerken açılmaz.
-            guard let key, recorder.phase == .idle, !UserDefaults.standard.bool(forKey: key) else {
+            guard let key, !UserDefaults.standard.bool(forKey: key) else {
                 return
             }
             #if DEBUG
@@ -800,7 +805,9 @@ final class PhoneStore {
         do {
             let llm: LLMProvider = try phoneRecordedMeetingLLMProvider(recordID: meetingID)
             let directory: URL = try sessionDirectory(id: meetingID)
+            let noteStartedAt: ContinuousClock.Instant = .now
             let result: MeetingRecord = await AINotepadCore.regenerateNote(record: record, directory: directory, llm: llm, userName: phoneUserName(), language: phoneNoteLanguage())
+            recordNoteOutcome(result: result, writingStartedAt: noteStartedAt)
             // Not yazılırken Mac'te değişmiş olabilir: yeni not diskteki güncel kayda uygulanır, işaretler oradan taşınır.
             let fresh: MeetingRecord = try loadMeeting(directory: directory)
             let merged: MeetingRecord = applyingRegeneratedNote(result: result, original: record, fresh: fresh)

@@ -71,6 +71,12 @@ final class PhoneAsk {
         guard !trimmed.isEmpty, !isAnswering else {
             return
         }
+        // Hakkı yoksa (deneme bitti, abonelik sona erdi) soru gönderilmez, abonelik ekranı her seferinde açılır (Mac'teki
+        // gibi; sunucunun reddi ekranı en çok on dakikada bir açar ve soru başarısız cevap olarak kalırdı).
+        if HostedAccount.shared.requiresSubscription {
+            HostedAccount.shared.requestSubscription()
+            return
+        }
         // Deneme ilk toplantıyla başlar: henüz toplantısı olmayan denemedeki hesap önce kayıt yapmalı (sunucu
         // çağrılmaz; diğer retler sunucunun hatasıyla gösterilir).
         if let reason = hostedAskUnavailableReason(account: HostedAccount.shared) {
@@ -80,6 +86,7 @@ final class PhoneAsk {
             ))
             return
         }
+        recordFeatureUsage(feature: .ask)
         let history: [ArchiveTurn] = archiveHistory(exchanges: exchanges)
         let id: UUID = UUID()
         let scoped: [MeetingRecord]
@@ -761,6 +768,11 @@ private struct AskComposer: View {
     private func send() {
         // Öneri seçilirken gönderilmez; eşleşen öneri yoksa soru olduğu gibi gider.
         guard !isAnswering, !isMentioning, !isPickingRecipe, !question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return
+        }
+        // Hakkı yoksa soru alanı temizlenmez (abone olunca yeniden gönderilebilsin); abonelik ekranı açılır.
+        if HostedAccount.shared.requiresSubscription {
+            HostedAccount.shared.requestSubscription()
             return
         }
         onSubmit(AskSubmission(question: question, meetingIDs: mentioned.map(\.id), recipeTitle: nil))

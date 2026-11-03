@@ -147,14 +147,21 @@ final class PhoneRecorder {
         }
         let account: HostedAccount = HostedAccount.shared
         // Giriş kapısının ikinci savunması: kısayol, Denetim Merkezi ve Eylem düğmesi kapıyı açmadan çağırabilir.
-        guard !account.requiresSignIn, UserDefaults.standard.bool(forKey: PhoneSettingsKey.aiDisclosureAccepted) else {
-            Self.logger.info("Giriş ya da açıklama onayı olmadan kayıt istendi, başlatılmadı")
+        guard !account.requiresSignIn else {
+            Self.logger.info("Giriş yapılmadan kayıt istendi, başlatılmadı")
             errorMessages = appendUnique(messages: [], message: String(localized: "Kayıt için önce giriş yap."))
             return
         }
-        if let blocked = phoneStartBlockMessage(account: account, now: Date()) {
+        guard UserDefaults.standard.bool(forKey: PhoneSettingsKey.aiDisclosureAccepted) else {
+            Self.logger.info("Yapay zekâ açıklaması onaylanmadan kayıt istendi, başlatılmadı")
+            errorMessages = appendUnique(messages: [], message: String(localized: "Kayıt için önce uygulamayı aç ve yapay zekâ kullanımını onayla."))
+            return
+        }
+        if phoneStartBlockMessage(account: account, now: Date()) != nil {
+            // Neden kayıt kartının altındaki plan notunda görünür (`PhonePlanNotice`); hata listesine ikinci kez yazılmaz
+            // (abone olunca da orada kalırdı).
             Self.logger.info("Hak durumu kaydı engelliyor, başlatılmadı")
-            errorMessages = appendUnique(messages: [], message: blocked)
+            errorMessages = []
             // Deneme bitti ya da plan sona erdi: abonelik ekranı açılır.
             if account.requiresSubscription {
                 account.requestSubscription()
@@ -1280,6 +1287,7 @@ final class PhoneRecorder {
             Task {
                 do {
                     let translated: String = try await translateSentence(provider: provider, sentence: unit.text, context: context, language: phoneNoteLanguage())
+                    recordFeatureUsage(feature: .liveTranslation(phoneNoteLanguage()))
                     // Cümle zaten not dilindeyse (model aynen döndürdü) çeviri saklanmaz: aynı cümle iki kez görünmesin.
                     if requestGeneration == generation, isDistinctTranslation(original: unit.text, translated: translated) {
                         translations = applyingUnitTranslation(translations: translations, unit: unit, translation: translated)

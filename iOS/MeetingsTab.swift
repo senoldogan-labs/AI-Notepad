@@ -461,6 +461,7 @@ struct MeetingReadView: View {
                     }
                     Button("Markdown olarak kopyala", systemImage: "doc.on.doc") {
                         UIPasteboard.general.string = meetingMarkdown(record: record)
+                        recordFeatureUsage(feature: .export(.copyMarkdown))
                     }
                     // Mac'teki "Tarif": bu toplantıya tarif uygular, cevap Sor'da açılır.
                     Menu("Tarif uygula", systemImage: "wand.and.stars") {
@@ -638,6 +639,7 @@ struct MeetingReadView: View {
     private func export(format: MeetingExportFormat) {
         do {
             exported = ExportedFile(url: try writeMeetingExport(record: record, format: format))
+            recordFeatureUsage(feature: .export(format.telemetryFormat))
             errorMessage = nil
         } catch {
             errorMessage = String(localized: "Dışa aktarılamadı: \(userFacingMessage(error: error))")

@@ -56,7 +56,9 @@ private struct RecordHome: View {
                 .padding(.top, 8)
                 RecordHeroCard(recorder: recorder)
                 PhonePlanNotice(account: HostedAccount.shared)
-                PhoneErrorList(messages: recorder.errorMessages)
+                PhoneUsageNotice(account: HostedAccount.shared)
+                // Sunucunun "deneme bitti" gibi reddi abone olunca artık geçerli değil (Mac'teki `resolvedErrorMessages`).
+                PhoneErrorList(messages: phoneUnresolvedErrors(messages: recorder.errorMessages, account: HostedAccount.shared))
                 if let id = recorder.lastMeetingID, let step = recorder.processingSteps[id] {
                     PreparingCard(step: step)
                 }
@@ -147,6 +149,72 @@ private struct PhonePlanNotice: View {
             Label(String(localized: "Ücretsiz deneme: \(hostedTrialLeftText(left: left))."), systemImage: "sparkles")
                 .appFont(size: 13, weight: .medium)
                 .foregroundStyle(Theme.muted)
+        }
+    }
+}
+
+/// Mac'teki kullanım bildiriminin iPhone karşılığı: aylık sınırın %80'i ve son deneme toplantısı (dönem başına bir kez,
+/// kapatılır; bkz. `HostedAccount.visibleNotice`). Sınır dolduysa ya da deneme bittiyse neden zaten `PhonePlanNotice`'te
+/// yazar.
+private struct PhoneUsageNotice: View {
+    let account: HostedAccount
+
+    var body: some View {
+        if let notice = account.visibleNotice, let texts = texts(notice: notice) {
+            HStack(alignment: .top, spacing: 8) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(verbatim: texts.title).appFont(size: 14, weight: .semibold)
+                    Text(verbatim: texts.detail)
+                        .appFont(size: 13, weight: .regular)
+                        .foregroundStyle(Theme.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if notice == .trialOneLeft {
+                        Button("Abone ol") {
+                            account.dismissNotice()
+                            account.showPlans()
+                        }
+                        .appFont(size: 14, weight: .semibold)
+                        .padding(.top, 2)
+                        .disabled(account.isWorking)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Button {
+                    account.dismissNotice()
+                } label: {
+                    Image(systemName: "xmark")
+                        .appFont(size: 11, weight: .semibold)
+                        .foregroundStyle(Theme.muted)
+                        .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Kapat")
+            }
+            .padding(14)
+            .background(NoticeSeverity.attention.tint.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+    }
+
+    private func texts(notice: HostedUsageNotice) -> (title: String, detail: String)? {
+        guard case .signedIn(let entitlements) = account.state else {
+            return nil
+        }
+        switch notice {
+        case .monthlyWarning:
+            let fraction: Double = hostedUsageFraction(used: entitlements.monthlyHoursUsed, cap: entitlements.monthlyHoursCap)
+            let percent: String = fraction.formatted(.percent.precision(.fractionLength(0)).locale(interfaceLocale()))
+            return (
+                title: String(localized: "Bu ayki kullanım sınırına yaklaştın: \(percent)"),
+                detail: String(localized: "\(hostedMonthlyUsageText(used: entitlements.monthlyHoursUsed, cap: entitlements.monthlyHoursCap)); sınır \(hostedResetDayText(now: Date())) tarihinde sıfırlanır.")
+            )
+        case .trialOneLeft:
+            return (
+                title: String(localized: "Ücretsiz denemende 1 toplantı kaldı"),
+                detail: String(localized: "Deneme \(hostedTrialTermsText(entitlements: entitlements)) sürer. Kesintisiz devam etmek için şimdi abone olabilirsin.")
+            )
+        case .monthlyFull, .trialEnded:
+            return nil
         }
     }
 }
