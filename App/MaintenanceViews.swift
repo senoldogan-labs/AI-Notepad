@@ -11,7 +11,9 @@ struct UpdateSettingsRow: View {
 
     var body: some View {
         if updater.isEnabled {
-            SettingsRow(title: Text("Otomatik olarak güncelle"), hint: Text("Yeni sürüm uygulama açıkken birkaç dakikada bir denetlenir. Açıkken arka planda indirilir ve uygulamadan çıkınca kurulur; kapalıyken yalnızca haber verilir.")) {
+            SettingsRow(title: Text("Otomatik olarak güncelle")) {
+                Text("Yeni sürüm uygulama açıkken birkaç dakikada bir denetlenir. Açıkken arka planda indirilir ve uygulamadan çıkınca kurulur; kapalıyken yalnızca haber verilir.")
+            } control: {
                 HStack(spacing: 8) {
                     Button("Güncellemeleri denetle…") { updater.checkForUpdates() }
                         .disabled(!updater.canCheckForUpdates)
@@ -218,7 +220,8 @@ struct CrashReportsSettings: View {
     @State private var isExpanded: Bool = false
 
     var body: some View {
-        SettingsRow(title: Text("Çökme raporları"), hint: Text(crashSettingsPrivacyNote)) {
+        SettingsRow(title: Text("Çökme raporları")) {
+            Text(crashSettingsPrivacyNote)
             if let problem = center.problem {
                 NoticeText(problem, severity: .error)
             }
