@@ -1005,17 +1005,29 @@ final class HostedAccount {
         // Silinen hesabın açık oturum listesi (silmeden sonra oturum yoktur, hesap ondan önce okunur).
         let userID: String? = signedInUserIDCache
         await perform { (client: HostedClient) async throws -> Void in
-            let deletion: HostedAccountDeletion? = try await client.deleteAccount()
-            if let subscription = deletion?.appStoreSubscription {
-                // Kullanıcı silmeden önce uyarıyı gördü; Apple aboneliği kendisi iptal etmeli. Uyarı silmeden sonra da
-                // görünür (iPhone'da giriş kapısında, Apple'ın abonelik penceresini açan düğmeyle).
-                accountLogger.info("Silinen hesabın App Store aboneliği sürüyor, yenilenecek: \(subscription.willRenew, privacy: .public)")
-            }
-            await self.rememberDeletedAppStoreSubscription(subscription: deletion?.appStoreSubscription)
             // Yerel temizlik yalnızca silme başarılıysa: başarısızsa (ör. çevrimdışı) hesap durur, kapatılamamış oturumları
             // izlenmeye ve çevrimdışı kayıt izni geçerli kalmalı.
-            await self.clearAfterAccountDeletion(userID: userID)
+            do {
+                let deletion: HostedAccountDeletion? = try await client.deleteAccount()
+                await self.finishAccountDeletion(deletion: deletion, userID: userID)
+            } catch let failure as HostedAccountDeletedLocalFailure {
+                // Sunucu hesabı sildi, bu cihazdaki son adım başarısız oldu: hesap silinmiş sayılır, hata da gösterilir.
+                await self.finishAccountDeletion(deletion: failure.deletion, userID: userID)
+                throw failure
+            }
         }
+    }
+
+    /// Sunucuda silinen hesabın bu cihazdaki sonu: süren App Store aboneliği giriş kapısında gösterilmek üzere tutulur,
+    /// yerel izler temizlenir.
+    private func finishAccountDeletion(deletion: HostedAccountDeletion?, userID: String?) {
+        if let subscription = deletion?.appStoreSubscription {
+            // Kullanıcı silmeden önce uyarıyı gördü; Apple aboneliği kendisi iptal etmeli. Uyarı silmeden sonra da
+            // görünür (iPhone'da giriş kapısında, Apple'ın abonelik penceresini açan düğmeyle).
+            accountLogger.info("Silinen hesabın App Store aboneliği sürüyor, yenilenecek: \(subscription.willRenew, privacy: .public)")
+        }
+        rememberDeletedAppStoreSubscription(subscription: deletion?.appStoreSubscription)
+        clearAfterAccountDeletion(userID: userID)
     }
 
     /// Silinen hesabın süren App Store aboneliğini (yoksa nil) giriş kapısında göstermek için tutar.

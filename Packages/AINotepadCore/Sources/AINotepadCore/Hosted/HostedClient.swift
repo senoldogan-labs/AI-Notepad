@@ -142,14 +142,27 @@ public actor HostedClient: HostedLLMCredentialSource {
     }
 
     /// Hesabı siler (`DELETE /v1/me`, tekrarı zararsız) ve yerel oturumu kaldırır. Yanıt silinen hesabın süren App Store
-    /// aboneliğini söyler (Apple onu iptal etmez); eski sunucunun gövdesiz yanıtında nil.
+    /// aboneliğini söyler (Apple onu iptal etmez); eski sunucunun gövdesiz yanıtında nil. Sunucu sildikten (2xx) sonra
+    /// yanıt okunamaz ya da yerel oturum silinemezse `HostedAccountDeletedLocalFailure`: hesap yine silinmiş sayılır.
     public func deleteAccount() async throws -> HostedAccountDeletion? {
-        let data: Data = try await authorized(path: "/v1/me", method: "DELETE", body: nil, isRetryable: isRetryableRepeatableRequest)
+        let path: String = "/v1/me"
+        let data: Data = try await authorized(path: path, method: "DELETE", body: nil, isRetryable: isRetryableRepeatableRequest)
+        // Hesap sunucuda silindi: bundan sonraki adımlar başarısız olsa da silme geri alınmaz. Önce yanıt okunur, sonra
+        // yerel oturum her durumda silinmeye çalışılır.
         meetingID = nil
         sessionGeneration += 1
-        try setTokens(nil)
+        let decoded: Result<HostedAccountDeletion?, any Error> = Result { () throws -> HostedAccountDeletion? in
+            data.isEmpty ? nil : try decode(HostedAccountDeletion.self, data: data, path: path)
+        }
+        let cleared: Result<Void, any Error> = Result { () throws -> Void in try setTokens(nil) }
         hostedLogger.info("Hesap silindi")
-        return data.isEmpty ? nil : try decode(HostedAccountDeletion.self, data: data, path: "/v1/me")
+        let decodeFailure: String? = failureReason(result: decoded)
+        let tokenClearFailure: String? = failureReason(result: cleared)
+        guard decodeFailure == nil, tokenClearFailure == nil else {
+            hostedLogger.error("Hesap sunucuda silindi ama bu cihazdaki son adım başarısız, yanıt hatası: \(decodeFailure ?? "yok", privacy: .private), oturum silme hatası: \(tokenClearFailure ?? "yok", privacy: .private)")
+            throw HostedAccountDeletedLocalFailure(deletion: successValue(result: decoded), decodeFailure: decodeFailure, tokenClearFailure: tokenClearFailure)
+        }
+        return try decoded.get()
     }
 
     // MARK: Haklar, toplantı, ödeme
@@ -562,4 +575,20 @@ func hostedJSONRequest(baseURL: URL, path: String, method: String, body: Data?, 
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "authorization")
     }
     return request
+}
+
+/// Başarısız sonucun nedeni (hata ayıklama için); başarılıysa nil. Saf fonksiyondur.
+private func failureReason<Value>(result: Result<Value, any Error>) -> String? {
+    guard case .failure(let error) = result else {
+        return nil
+    }
+    return String(describing: error)
+}
+
+/// Başarılı sonucun değeri; başarısızsa nil (nedeni `failureReason` ile ayrıca okunur). Saf fonksiyondur.
+private func successValue<Value>(result: Result<Value?, any Error>) -> Value? {
+    guard case .success(let value) = result else {
+        return nil
+    }
+    return value
 }

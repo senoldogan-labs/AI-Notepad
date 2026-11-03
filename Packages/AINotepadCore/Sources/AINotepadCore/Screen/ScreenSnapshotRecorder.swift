@@ -82,7 +82,7 @@ public final class ScreenSnapshotRecorder {
         paused.set(isPaused)
     }
 
-    /// Görüntü almayı bitirir (yazılmakta olan görüntü tamamlanır). İkinci kez çağrılması zararsızdır.
+    /// Görüntü almayı bitirir; o an alınmakta olan görüntü yazılmaz. İkinci kez çağrılması zararsızdır.
     public func stop() {
         guard let task else {
             return
@@ -126,6 +126,15 @@ private func runSnapshotLoop(
         }
         do {
             let image: CGImage = try await captureScreenImage(maxPixelSize: policy.maxPixelSize)
+            // Bakış sürerken kayıt bitti ya da duraklatıldı: görüntü yazılmaz (bitince toplantı klasörü silinmiş olabilir;
+            // yazmak Screens klasörünü yeniden kurardı). Duraklatmada sürdürünce ekranın yeniden durulması beklenir.
+            if Task.isCancelled {
+                return
+            }
+            guard !paused.get() else {
+                state = pausedScreenSnapshotState(state: state)
+                continue
+            }
             let offsetSec: Double = (ContinuousClock.now - origin) / .seconds(1)
             let fingerprint: ScreenFingerprint = try screenFingerprint(image: image)
             let decision: ScreenSnapshotDecision = screenSnapshotDecision(policy: policy, state: state, candidate: fingerprint, offsetSec: offsetSec)

@@ -33,6 +33,12 @@ private let closeLanguageGroups: [Set<String>] = [
     ["cs", "sk"],
 ]
 
+/// NaturalLanguage'in tanıyamadığı toplantı dilleri: bu dillerdeki cümleler güvenle başka bir dil sanılır (macOS 26'da
+/// ölçüldü: Estonca → Fince %100, Litvanca → Lehçe/Endonezce %91–99, Letonca → Çekçe/Endonezce, Farsça → Arapça/Urduca
+/// %50–100). Toplantı dili bunlardan biriyse hiçbir bölüm başka dil sayılmaz; yoksa toplantının neredeyse tamamı atlanırdı.
+/// `SpokenLanguageTests` her toplantı dilinde gerçek bir cümleyle bunu denetler.
+let undetectableMeetingLanguages: Set<MeetingLanguage> = [.estonian, .latvian, .lithuanian, .persian]
+
 /// Metnin güvenle algılanan dili: NaturalLanguage kodu, toplantı dili kodlarına uyarlanmış ("nb"/"nn" → "no",
 /// "zh-Hans"/"zh-Hant" → "zh"). Metin kısaysa (`spokenLanguageMinWords`) ya da baskın dil belirsizse
 /// (`spokenLanguageMinProbability`) nil. Aynı metin için hep aynı sonucu verir.
@@ -70,9 +76,10 @@ func letterWordCount(text: String) -> Int {
 }
 
 /// Algılanan dil toplantı dilinden başka mı: algılanmadıysa (kısa, belirsiz, eski kayıt) hayır; toplantı diliyle ya da
-/// yakın akrabasıyla (`closeLanguageGroups`) aynıysa hayır. Saf fonksiyondur.
+/// yakın akrabasıyla (`closeLanguageGroups`) aynıysa hayır; toplantı dilini NaturalLanguage tanıyamıyorsa
+/// (`undetectableMeetingLanguages`) hayır. Saf fonksiyondur.
 public func isOtherLanguage(spokenLanguage: String?, meetingLanguage: MeetingLanguage) -> Bool {
-    guard let spokenLanguage, spokenLanguage != meetingLanguage.rawValue else {
+    guard let spokenLanguage, spokenLanguage != meetingLanguage.rawValue, !undetectableMeetingLanguages.contains(meetingLanguage) else {
         return false
     }
     return !closeLanguageGroups.contains { (group: Set<String>) -> Bool in
