@@ -86,6 +86,26 @@ func keepPhoneLegacyNoteLanguage(defaults: UserDefaults) {
     defaults.set(true, forKey: PhoneSettingsKey.noteLanguageMigrated)
 }
 
+/// Yeni kurulumda ana toplantı dili cihazın dili olur (Mac'teki Gistsmith'in `chooseHostedMeetingLanguageOnFirstRun`
+/// gibi; bkz. `firstRunMeetingLanguage`): karşılamayı atlayan kullanıcıya Fince metin yazılmasın. Kullanıcının seçtiği
+/// dile dokunulmaz.
+func choosePhoneMeetingLanguageOnFirstRun(defaults: UserDefaults) {
+    guard let bundleID = Bundle.main.bundleIdentifier else {
+        phoneSettingsLogger.error("Paket kimliği yok, ana toplantı dili seçilmedi")
+        return
+    }
+    let stored: [String: Any] = defaults.persistentDomain(forName: bundleID) ?? [:]
+    guard let language = firstRunMeetingLanguage(
+        storedLanguage: stored[PhoneSettingsKey.primaryMeetingLanguage] as? String,
+        onboardingCompleted: stored[PhoneSettingsKey.onboardingCompleted] as? Bool ?? false,
+        preferredLanguages: Locale.preferredLanguages
+    ) else {
+        return
+    }
+    defaults.set(language.rawValue, forKey: PhoneSettingsKey.primaryMeetingLanguage)
+    phoneSettingsLogger.info("Ana toplantı dili cihaz dilinden seçildi, dil: \(language.rawValue, privacy: .public)")
+}
+
 private let phoneSettingsLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "PhoneSettings")
 
 /// Ana toplantı dili (otomatik modda Deepgram bununla başlar); kayıtlı değer yoksa Fince, tanınmıyorsa Fince ve hata loglanır.
@@ -133,13 +153,13 @@ func phoneLiveTranslationEnabled() -> Bool {
     (DisplayMode(rawValue: UserDefaults.standard.string(forKey: PhoneSettingsKey.displayMode) ?? "") ?? .bilingual).needsLiveTranslation
 }
 
-/// Kayda verilen tanıma terimleri (Mac'teki gibi): adın ve tanıma sözlüğü öne, sonra son 20 toplantının konuşmacı adları
-/// ve sözlük terimleri; en fazla 30.
+/// Kayda verilen tanıma terimleri (Mac'teki gibi): adın ve tanıma sözlüğü öne, sonra Kişiler'e elle eklenenler, sonra son
+/// 20 toplantının konuşmacı adları ve sözlük terimleri; en fazla 30.
 @MainActor
-func phoneRecognitionKeyterms(records: [MeetingRecord]) -> [String] {
+func phoneRecognitionKeyterms(records: [MeetingRecord], people: PeopleBook) -> [String] {
     recognitionKeyterms(
         userName: phoneUserName(), vocabulary: UserDefaults.standard.string(forKey: PhoneSettingsKey.customVocabulary) ?? "",
-        savedPeople: [], records: Array(records.prefix(20)), limit: 30
+        savedPeople: people.saved.map(\.name), records: Array(records.prefix(20)), limit: 30
     )
 }
 

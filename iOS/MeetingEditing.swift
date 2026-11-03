@@ -186,11 +186,12 @@ struct SpeakerNamingSheet: View {
         return name.isEmpty ? speakerLabel(speaker: .others, person: person) : name
     }
 
-    /// Birleştirir; birleşen kişinin yazılmakta olan adı bırakılır. Olmazsa neden sayfada görünür.
+    /// Birleştirir. Hedefin adı yoksa birleşen kişinin adı ona geçer (`mergingPersons` diske de böyle yazar; taslak boş
+    /// kalsaydı "Kaydet" taşınan adı silerdi). Olmazsa neden sayfada görünür.
     private func merge(from: Int, into: Int) {
         do {
             try onMerge(from, into)
-            drafts[from] = nil
+            drafts = mergingSpeakerDrafts(drafts: drafts, from: from, into: into)
             errorMessage = nil
         } catch {
             errorMessage = String(localized: "Konuşmacılar birleştirilemedi: \(userFacingMessage(error: error))")

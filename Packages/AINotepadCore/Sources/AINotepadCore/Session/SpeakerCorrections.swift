@@ -74,6 +74,21 @@ public func knownPersons(transcript: [LiveSegment]) -> [Int] {
     Array(Set(transcript.compactMap(\.person))).sorted()
 }
 
+/// Ad taslakları (konuşmacılara ad verme sayfası) birleştirmeden sonra: hedefin taslağı boşsa birleşen kişinin taslağı
+/// ona geçer (`mergingPersons`'ın diske yazdığıyla aynı), birleşen kişinin taslağı kalkar. Saf fonksiyondur.
+public func mergingSpeakerDrafts(drafts: [Int: String], from: Int, into: Int) -> [Int: String] {
+    guard from != into else {
+        return drafts
+    }
+    var merged: [Int: String] = drafts
+    let target: String = (drafts[into] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    if target.isEmpty, let moved = drafts[from], !moved.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        merged[into] = moved
+    }
+    merged[from] = nil
+    return merged
+}
+
 /// Kaydedilmiş toplantıda bir konuşmacıyı diğeriyle birleştirir (son geçiş ve canlı bölümler); birleşen kişinin adı
 /// hedefte yoksa hedefe taşınır. Saf fonksiyondur.
 public func mergingPersons(record: MeetingRecord, from: Int, into: Int) -> MeetingRecord {

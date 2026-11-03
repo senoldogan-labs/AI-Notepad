@@ -373,11 +373,13 @@ public struct MeetingRecord: Sendable, Equatable, Codable, Identifiable {
         return copy
     }
 
-    /// Adı değişmiş kopya: listede not başlığı görünür, ikisi birlikte değişir.
+    /// Adı değişmiş kopya: listede not başlığı görünür, ikisi birlikte değişir. Paylaşım sürümleri (eski başlığın
+    /// çevirisini taşırlar) silinir; bir sonraki "Başka dilde paylaş" yeni adla çevirir.
     public func with(title newTitle: String) -> MeetingRecord {
         var copy: MeetingRecord = self
         copy.title = newTitle
         copy.note = note?.with(title: newTitle)
+        copy.sharedNotes = nil
         return copy
     }
 
