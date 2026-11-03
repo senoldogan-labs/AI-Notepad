@@ -1,11 +1,16 @@
 ---
 // Claude'da toplantılar üstüne örnek bir soru ve yanıt (MCP): ana sayfanın entegrasyon kartında ve MCP sayfasında. Cam
-// yüzey film kapak üstünde durur; yazı her temada koyu. Metinler copy.ts `home.integrations.mcpDemo`.
+// yüzey film kapak üstünde durur; yazı her temada koyu. Metinler prop'tan gelir (`home.integrations.mcpDemo`): `/fi`
+// Fince metni (copy-fi.ts) verir.
 import BrandTile from "./BrandTile.astro";
 import Icon from "./Icon.astro";
-import { copy, type HomeCopy } from "../copy";
+import type { HomeCopy } from "../copy";
 
-const demo: HomeCopy["integrations"]["mcpDemo"] = copy.home.integrations.mcpDemo;
+interface Props {
+  readonly demo: HomeCopy["integrations"]["mcpDemo"];
+}
+
+const { demo } = Astro.props;
 ---
 
 <div class="glass mcp-chat">

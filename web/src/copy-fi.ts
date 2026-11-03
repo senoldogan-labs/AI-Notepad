@@ -162,7 +162,7 @@ export const homeFi: HomeCopy = {
     },
     tasks: {
       title: "Tehtävät ensin",
-      text: "Kun kokous päättyy, muistiinpano on valmis. Tehtäväsi ovat päällimmäisenä: kuka tekee ja mihin mennessä. Sen jälkeen päätökset, yhteenveto ja sanasto. Rastita tehtävä valmiiksi tai lähetä se Remindersiin.",
+      text: "Kun kokous päättyy, muistiinpano on valmis. Tehtäväsi ovat päällimmäisenä: kuka tekee ja mihin mennessä. Sen jälkeen yhteenveto, päätökset ja sanasto. Rastita tehtävä valmiiksi tai lähetä se Remindersiin.",
       sample: ["Julkaisumuistiinpanot · perjantai", "Hinnasto asiakkaalle · tänään"],
     },
     missed: {
@@ -272,7 +272,7 @@ export const homeFi: HomeCopy = {
     {
       question: "Minne ääneni menee?",
       answer:
-        "Tallennuksen aikana ääni siirtyy Maciltasi Deepgramille reaaliaikaista litterointia varten; Deepgramia on pyydetty olemaan säilyttämättä ääntä ja käyttämättä sitä kouluttamiseen. Jos tämä ei ole käytettävissä, litterointi tehdään Macillasi. Kokouksen päätyttyä ääni kulkee palvelimemme kautta ElevenLabsille, joka erottelee puhujat ja tuottaa lopullisen litteroinnin; muistiinpanoja ja käännöstä varten teksti menee Anthropicin Claude-mallille. Palvelimemme eivät tallenna ääntä eivätkä muistiinpanoja: ne laskevat keston ja pitävät lopullisen litteroinnin salattuna enintään 2 tuntia, jotta se voidaan lähettää uudelleen, jos yhteys katkeaa. ElevenLabs ja Anthropic voivat säilyttää käsittelemänsä aineiston oman käytäntönsä mukaisen ajan (Anthropic poistaa sen 30 päivän kuluessa). Jos otat käyttöön asetuksen ”Use screen snapshots in notes”, enintään kuusi kokouksen näyttökuvaa lähetetään Anthropicille litteroinnin mukana muistiinpanoa kirjoitettaessa ja enintään kolme, kun kysyt Kysy-sivulla kokouksen siitä kohdasta; muuten kuvat eivät koskaan lähde Macistasi. Tietosuojaselosteessa on yksityiskohdat.",
+        "Tallennuksen aikana ääni siirtyy Maciltasi Deepgramille reaaliaikaista litterointia varten; Deepgramia on pyydetty olemaan säilyttämättä ääntä ja käyttämättä sitä kouluttamiseen. Jos tämä ei ole käytettävissä, litterointi tehdään Macillasi. Kokouksen päätyttyä ääni kulkee palvelimemme kautta ElevenLabsille, joka erottelee puhujat ja tuottaa lopullisen litteroinnin; muistiinpanoja ja käännöstä varten teksti menee Anthropicin Claude-mallille. Palvelimemme eivät tallenna ääntä eivätkä muistiinpanoja: ne laskevat keston ja pitävät lopullisen litteroinnin salattuna, jotta se voidaan lähettää uudelleen 2 tunnin ajan, jos yhteys katkeaa; se poistetaan seuraavassa päivittäisessä siivouksessa, noin vuorokauden kuluessa. ElevenLabs ja Anthropic voivat säilyttää käsittelemänsä aineiston oman käytäntönsä mukaisen ajan (Anthropic poistaa sen 30 päivän kuluessa). Jos otat käyttöön asetuksen ”Use screen snapshots in notes”, enintään kuusi kokouksen näyttökuvaa lähetetään Anthropicille litteroinnin mukana muistiinpanoa kirjoitettaessa ja enintään kolme, kun kysyt Kysy-sivulla kokouksen siitä kohdasta; muuten kuvat eivät koskaan lähde Macistasi. Tietosuojaselosteessa on yksityiskohdat.",
     },
     {
       question: "Mitä kieliä tuetaan?",
@@ -290,7 +290,7 @@ export const homeFi: HomeCopy = {
   featureList: [
     "Tallentaa verkkokokoukset (Zoom, Microsoft Teams, Google Meet ja muut sovellukset) ilman bottia sekä kasvokkaiset kokoukset ja tuodut ääni- tai videotiedostot",
     `Litterointi livenä ${spokenLanguages.length} kielellä ja käännös livenä ${noteLanguages.length} kielelle`,
-    "Muistiinpano jokaisen kokouksen jälkeen: ensin tehtäväsi tekijöineen ja määräaikoineen, sitten päätökset, yhteenveto, sanasto ja aiheet",
+    "Muistiinpano jokaisen kokouksen jälkeen: ensin tehtäväsi tekijöineen ja määräaikoineen, sitten yhteenveto, aiheet, päätökset ja sanasto",
     "Kokousmallit ja valmiit ohjeet, kuten jatkoviesti yhdellä napsautuksella",
     "”Mitä minulta meni ohi?” -yhteenvedot kesken kokouksen",
     "Kysy kaikista kokouksistasi, vastaukset lähdeviitteineen",
