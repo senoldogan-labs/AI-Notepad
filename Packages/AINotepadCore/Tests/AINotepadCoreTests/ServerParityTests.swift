@@ -79,6 +79,22 @@ func serverDirectory() -> URL {
     }
 }
 
+extension ServerParityTests {
+    // Sync object kinds, envelope kinds, the blob marker and the limits are enforced on both sides: an unknown kind is
+    // refused (`bad_request`), and a client cap above the server's would fail uploads the client thinks are fine.
+    @Test func syncListsAndLimitsMatchServer() throws {
+        let sync: String = try String(contentsOf: serverDirectory().appending(path: "src/sync.ts"), encoding: .utf8)
+        #expect(try serverArray(source: sync, name: "syncObjectKinds") == SyncObjectKind.allCases.map(\.rawValue))
+        #expect(try serverArray(source: sync, name: "syncEnvelopeKinds") == SyncEnvelopeKind.allCases.map(\.rawValue))
+        #expect(try serverNumber(source: sync, name: "syncObjectMaxBytes") == SyncLimits.objectMaxBytes)
+        #expect(try serverNumber(source: sync, name: "syncAccountMaxObjects") == SyncLimits.accountMaxObjects)
+        #expect(try serverNumber(source: sync, name: "syncAccountMaxBytes") == SyncLimits.accountMaxBytes)
+        #expect(try serverNumber(source: sync, name: "syncChangesMaxLimit") == SyncLimits.changesMaxLimit)
+        #expect(try serverNumber(source: sync, name: "syncEnvelopeMaxChars") == SyncLimits.envelopeMaxChars)
+        #expect(sync.contains("export const syncBlobMagic: string = \"\(syncBlobMagic)\";"))
+    }
+}
+
 /// Sunucu kaynağındaki `export const <ad>: number = <sayı>;` sabiti (`_` ayraçlarıyla yazılabilir).
 private func serverNumber(source: String, name: String) throws -> Int {
     let start: Substring = try #require(source.firstRange(of: "export const \(name): number = ").map { source[$0.upperBound...] })
@@ -90,5 +106,5 @@ private func serverNumber(source: String, name: String) throws -> Int {
 private func serverArray(source: String, name: String) throws -> [String] {
     let start: Substring = try #require(source.firstRange(of: "export const \(name) = [").map { source[$0.upperBound...] })
     let body: Substring = try #require(start.firstRange(of: "] as const;").map { start[..<$0.lowerBound] })
-    return body.matches(of: #/"([A-Za-z_-]+)"/#).map { String($0.output.1) }
+    return body.matches(of: #/"([A-Za-z_.-]+)"/#).map { String($0.output.1) }
 }

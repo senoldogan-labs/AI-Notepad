@@ -63,6 +63,13 @@ public enum HostedErrorCode: String, Sendable, CaseIterable, Equatable {
     case blogImageExists = "blog_image_exists"
     // Site istatistikleri yalnızca yönetim panelinindir (`server/src/siteAnalytics.ts`).
     case analyticsUnavailable = "analytics_unavailable"
+    // Mac ↔ iPhone eşitleme (`server/src/sync.ts`, `HostedSyncClient`).
+    case syncUnavailable = "sync_unavailable"
+    case syncNotEnabled = "sync_not_enabled"
+    case syncKeyMismatch = "sync_key_mismatch"
+    case syncConflict = "sync_conflict"
+    case syncQuotaExceeded = "sync_quota_exceeded"
+    case syncCursorExpired = "sync_cursor_expired"
     // Apple ile girişin yetkilendirme kodu yalnızca sitenindir (`server/src/auth/appleTokens.ts`); uygulama bu ucu çağırmaz.
     case appleTokensUnavailable = "apple_tokens_unavailable"
     case internalError = "internal_error"
@@ -319,6 +326,18 @@ public func hostedErrorMessage(error: HostedAPIError) -> String {
         return String(localized: "Gönderilen veri sunucunun sınırını aşıyor.")
     case .screenImagesOverLimit:
         return String(localized: "Notla ya da soruyla gönderilen ekran görüntüleri sunucunun sınırını aşıyor. Ayarlar › Genel'de \"Notlarda ekran görüntülerini kullan\"ı kapatıp ya da Ekranlar sekmesinden bazılarını nottan çıkarıp yeniden dene.")
+    case .syncUnavailable:
+        return String(localized: "Eşitleme şu an kullanılamıyor; biraz sonra yeniden dene.")
+    case .syncNotEnabled:
+        return String(localized: "Bu hesapta eşitleme kapalı; Ayarlar › Eşitleme'den açabilirsin.")
+    case .syncKeyMismatch:
+        return String(localized: "Bu cihazdaki eşitleme anahtarı hesabınkiyle uyuşmuyor. Diğer cihazında Ayarlar › Eşitleme › Cihaz ekle'yi kullan ya da kurtarma kodunu gir.")
+    case .syncConflict:
+        return String(localized: "Bu toplantı diğer cihazda da değişti; değişiklikler birleştirilip yeniden gönderilecek.")
+    case .syncQuotaExceeded:
+        return String(localized: "Eşitlenen kopyanın yeri doldu; eski toplantıları ya da Sor sohbetlerini silip yeniden dene.")
+    case .syncCursorExpired:
+        return String(localized: "Eşitleme baştan yapılıyor; toplantıların yerinde kalır.")
     case .forbidden:
         return String(localized: "Bu işleme izin yok.")
     case .internalError:
