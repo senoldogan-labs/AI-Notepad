@@ -7,7 +7,10 @@
 // küçültülüp not isteğiyle sunucu üzerinden Anthropic'e gider, sunucu saklamaz ve loglamaz (AINotepadCore/Screen/ScreenNotes.swift,
 // server/src/llm/images.ts); iCloud eşitlemesi yok, güncellemeler
 // GitHub'dan; sürüm başlıkları, yapay zekâ isteğinin amacı ve Ayarlar › Genel'den kapatılabilen kullanım
-// istatistikleri), iPhone uygulaması (iOS/: aynı hesap ve sunucu; yüz yüze toplantı mikrofonla, yedek canlı metin Apple'ın
+// istatistikleri; takvim EventKit'le cihazda okunur, toplantı bağlı etkinliğin başlığını ve katılımcı adlarını alır: adlar
+// Deepgram/ElevenLabs'e ipucu, Anthropic'e konuşmacı adlandırma için gider (Meeting/CalendarMeetings.swift `keytermsWithAttendees`,
+// SpeakerReview.swift), brifing etkinliğin başlığını ve en çok 8 katılımcıyı Sor'a sorar (`briefingQuestion`); içe aktarılan ses
+// ve video dosyası toplantı gibi işlenir), iPhone uygulaması (iOS/: aynı hesap ve sunucu; yüz yüze toplantı mikrofonla, yedek canlı metin Apple'ın
 // cihaz içi konuşma tanımasıyla, App Attest yok, toplantılar telefonda, kullanım istatistikleri Ayarlar › Gizlilik'te) ve bu sitenin tarayıcı depolaması (public/theme.js,
 // src/client/session.ts). Sağlayıcıların saklama ve eğitim kuralları resmî belgelerinden alınmıştır (2026-10-29):
 // ElevenLabs (elevenlabs.io/dpa, docs "Zero Retention Mode" ve "Data residency", terms-of-use-eu §4), Anthropic
@@ -120,8 +123,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         calls in other apps.
       </li>
       <li>
-        <strong>Final transcript and speaker separation.</strong> When a meeting ends, the app sends the recording
-        through our server to ElevenLabs, which returns the transcript. Our server streams the audio through without
+        <strong>Final transcript and speaker separation.</strong> When a meeting ends, or when you import an audio or
+        video file, the app sends the recording through our server to ElevenLabs, which returns the transcript. Our server streams the audio through without
         writing it to storage and records its duration. It keeps the returned transcript encrypted for up to 2 hours, so
         the app can fetch it again if the reply is lost on the way; after that it is deleted automatically, or immediately
         when you delete your account.
@@ -140,6 +143,15 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         can refer to what was on screen. Our server checks their number and size and passes them on; it does not store or
         log the images, and records only the number of tokens used, as for the text. Anthropic handles them on the same
         terms as the transcript (see section 8). With the setting off, snapshots are never sent.
+      </li>
+      <li>
+        <strong>Calendar.</strong> If you allow calendar access, the app reads your calendar events on your device to show
+        what's next, start recording when a meeting begins (if you turn that on) and link a recording to its event. Your
+        calendar is not sent to us. When a recording is linked to an event, the meeting takes the event's title and its
+        attendees' names: the names are sent with the audio to Deepgram and ElevenLabs as spelling hints and with the
+        transcript to Anthropic, so speakers can be named correctly, and the title is sent with your meeting's notes when
+        you use Ask. If you ask for a briefing before a meeting, the event's title and up to 8 attendee names are sent
+        with that question to Anthropic.
       </li>
       <li>
         <strong>Storage.</strong> Notes, transcripts, recordings, screen snapshots and the people and terms you add are
@@ -203,8 +215,9 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         <tbody>
           <tr>
             <td>
-              <strong>Meeting content.</strong> Meeting audio, transcripts, notes, the questions you ask, and the
-              participant names and terms you add. Passed through our server only while it is processed; no audio or notes
+              <strong>Meeting content.</strong> Meeting audio (including audio or video files you import), transcripts,
+              notes, the questions you ask, the participant names and terms you add, and the title and attendee names of
+              a calendar event you link to a meeting (section 3). Passed through our server only while it is processed; no audio or notes
               are stored on our servers, and the final transcript is held encrypted for up to 2 hours so it can be
               re-sent.
             </td>
@@ -557,7 +570,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
           <tr>
             <td>ElevenLabs (Eleven Labs Inc.)</td>
             <td>Processor (sub-processor for meeting content): transcribing recordings and separating speakers</td>
-            <td>Meeting audio and the resulting transcript</td>
+            <td>Meeting audio, the resulting transcript, and the participant names and terms you add (including the attendee names of a linked calendar event)</td>
             <td>
               USA: we use ElevenLabs' standard API, which stores customer data in the USA. EU–US Data Privacy Framework and
               Standard Contractual Clauses under its data processing addendum. ElevenLabs offers zero-retention processing
@@ -569,7 +582,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
           <tr>
             <td>Deepgram, Inc.</td>
             <td>Processor (sub-processor for meeting content): producing the live transcript while you record</td>
-            <td>Meeting audio streamed from your Mac or iPhone, the resulting live transcript, and the participant names and terms you add</td>
+            <td>Meeting audio streamed from your Mac or iPhone, the resulting live transcript, and the participant names and terms you add (including the attendee names of a linked calendar event)</td>
             <td>
               USA. Standard Contractual Clauses under Deepgram's data processing agreement. The app opts every connection out
               of Deepgram's Model Improvement Program, so Deepgram keeps the audio and transcript only for as long as it takes
@@ -582,7 +595,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
             <td>Processor (sub-processor for meeting content): writing notes, translations and answers with the Claude model</td>
             <td>
               The relevant parts of meeting transcripts and notes, your questions, the participant names and terms you add,
-              and, if you turn on “Use screen snapshots in notes”, up to 6 downscaled shared-screen snapshots per note
+              meeting titles and the attendee names of linked calendar events, and, if you turn on “Use screen snapshots in notes”, up to 6 downscaled shared-screen snapshots per note
             </td>
             <td>
               Stored in the USA; the model may run in other countries where Anthropic operates. Standard Contractual
@@ -672,7 +685,10 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         while processing them; Anthropic deletes it within 30 days (up to 2 years if flagged under its usage policy);
         ElevenLabs keeps it under its own retention rules (see section 8).
       </li>
-      <li>Account, sign-in identities and device registrations: while your account exists; deleted immediately when you delete it.</li>
+      <li>
+        Account and sign-in identities: while your account exists; deleted immediately when you delete it. Device
+        registrations: the same, and also deleted after 13 months without use.
+      </li>
       <li>Meeting session records and monthly usage: up to 13 months, then deleted automatically; deleted immediately when you delete your account.</li>
       <li>
         The pseudonymous free-trial record (a keyed hash of your sign-in identity, the number of free-trial meetings used,
@@ -686,7 +702,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         revoked with Apple and deleted when you delete your account. If a sign-in is abandoned before an account is
         created, it is deleted within a day.
       </li>
-      <li>Daily usage totals: 2 days. The hashed IP records for new trials and for counting downloads: until the end of that day.</li>
+      <li>Your account's daily usage counters (used for the daily limits): 2 days. The hashed IP records for new trials and for counting downloads: until the end of that day.</li>
       <li>Contact messages, feedback and crash reports: 180 days. Emails: for as long as needed to handle your request.</li>
       <li>Cancellation reasons and comments: 180 days; deleted immediately when you delete your account.</li>
       <li>
@@ -697,6 +713,10 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       </li>
       <li>Processed payment events and total daily AI spend (not linked to you): 90 days.</li>
       <li>Daily download, campaign, error, AI token and transcription language totals and daily usage statistics (not linked to you): 400 days.</li>
+      <li>
+        Daily overall totals for running the business, such as the number of accounts, active accounts, meetings, trials
+        and subscriptions and the monthly revenue (not linked to anyone): 5 years.
+      </li>
       <li>The latest app and OS version on your account, the time the app last checked in and the date of the last daily usage report: while your account exists; deleted immediately when you delete it.</li>
       <li>Technical logs: kept for a short period by Cloudflare, normally no more than a few days.</li>
       <li>Database backups (Cloudflare D1 point-in-time recovery): up to 30 days, after which deleted data is gone from backups too.</li>
@@ -710,7 +730,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
 
   <LegalSection sections={sections} id="deletion">
     <p>
-      You can delete your account at any time with “Delete account” on your <a href={routes.account}>account page</a>.
+      You can delete your account at any time with “Delete account” on your <a href={routes.account}>account page</a>,
+      or in the Mac or iPhone app under Settings › Account.
       Any unfinished subscription is first cancelled immediately at Stripe; then your account, sign-in identities,
       sessions, device registrations, meeting session records, usage, subscription records (including the App Store
       subscription record), cancellation reasons, invite code and invite records linked to your account, and Stripe
