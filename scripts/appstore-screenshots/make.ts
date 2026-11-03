@@ -285,7 +285,7 @@ async function compose(list: readonly Scene[], captures: ReadonlyMap<string, str
       for (const size of outputSizes) {
         const htmlPath: string = join(work, `${scene.id}-${size.id}.html`);
         await writeFile(htmlPath, sceneHtml(composeInput(scene, screenshotPath, size)), "utf8");
-        const png: Buffer = await flattenToSrgbPng(await renderer.render(htmlPath, size.width, size.height), size.width, size.height);
+        const png: Buffer = await flattenToSrgbPng(await renderer.render(htmlPath, size.width, size.height, 1), size.width, size.height);
         const file: string = join(outputRoot, size.id, `${order}-${scene.id}.png`);
         await writeFile(file, png);
         console.log(file);

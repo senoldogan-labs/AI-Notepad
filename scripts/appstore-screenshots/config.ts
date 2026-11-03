@@ -101,7 +101,7 @@ export const scenes: readonly Scene[] = [
   {
     id: "note",
     headline: "Notes that write themselves",
-    subhead: "Summary, decisions and tasks the moment you stop.",
+    subhead: "Summary, decisions and tasks, ready when it ends.",
     launchArgs: ["--sekme", "toplantilar", "--toplanti", productWeeklyPlaceholder],
     settleMs: 5000,
     palette: "ocean",
@@ -110,7 +110,7 @@ export const scenes: readonly Scene[] = [
   {
     id: "tasks",
     headline: "Never drop a follow-up",
-    subhead: "Every task from every meeting, in one list.",
+    subhead: "Your tasks from every meeting, in one list.",
     launchArgs: ["--sekme", "gorevler"],
     settleMs: 4000,
     palette: "mint",
