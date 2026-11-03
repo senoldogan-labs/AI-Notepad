@@ -36,6 +36,20 @@ import Testing
         #expect(merged.merges == [SpeakerMergeSuggestion(from: 4, into: 1, reason: "c")])
         #expect(speakerReviewRequest(segments: [stored("me-0", .me, nil, 0, "Moi.")], speakerNames: [:], userName: "Doğan", attendees: [], language: .turkish) == nil)
     }
+
+    // Not yeniden yazılınca: uygulanan öneriler nota girdiği için sayaç sıfırlanır; bekleyen öneri ya da şüpheli an
+    // kalmadıysa kart kapanır; yüklenen ve hatalı kart değişmez.
+    @Test func noteRewriteResetsOrClosesTheReview() {
+        let pending: SpeakerReview = SpeakerReview(names: [SpeakerNameSuggestion(person: 2, name: "Aino", reason: "a")], merges: [], suspicious: [])
+        #expect(speakerReviewAfterNoteRewrite(state: .ready(review: pending, applied: 2)) == .ready(review: pending, applied: 0))
+        let suspicious: SpeakerReview = SpeakerReview(names: [], merges: [], suspicious: [SuspiciousPassage(time: "00:41", note: "n")])
+        #expect(speakerReviewAfterNoteRewrite(state: .ready(review: suspicious, applied: 1)) == .ready(review: suspicious, applied: 0))
+        let empty: SpeakerReview = SpeakerReview(names: [], merges: [], suspicious: [])
+        #expect(speakerReviewAfterNoteRewrite(state: .ready(review: empty, applied: 1)) == nil)
+        #expect(speakerReviewAfterNoteRewrite(state: .loading) == .loading)
+        #expect(speakerReviewAfterNoteRewrite(state: .failed("x")) == .failed("x"))
+        #expect(speakerReviewAfterNoteRewrite(state: nil) == nil)
+    }
 }
 
 @Suite struct KeytermTests {

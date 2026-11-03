@@ -836,6 +836,7 @@ final class PhoneStore {
             throw StorageError.deleteFailed(path: id, reason: "kayıtta, işleniyor ya da notu yazılıyor")
         }
         try deleteMeetingDirectory(directory: try sessionDirectory(id: id))
+        closeSpeakerReview(meetingID: id)
         meetings.removeAll { $0.id == id }
         reloader.invalidate()
     }
@@ -889,6 +890,8 @@ final class PhoneStore {
         let meetingID: String = record.id
         regeneratingIDs.insert(meetingID)
         defer { regeneratingIDs.remove(meetingID) }
+        // Kabul edilen konuşmacı önerileri artık notta; bekleyen öneri yoksa inceleme kartı kapanır.
+        speakerReviews[meetingID] = speakerReviewAfterNoteRewrite(state: speakerReviews[meetingID])
         do {
             let llm: LLMProvider = try phoneRecordedMeetingLLMProvider(recordID: meetingID)
             let directory: URL = try sessionDirectory(id: meetingID)
@@ -911,15 +914,16 @@ final class PhoneStore {
         }
     }
 
-    /// Notun verilen dildeki paylaşım kopyası (Mac'teki "Başka dilde paylaş"): daha önce çevrildiyse saklanan kopya, yoksa
-    /// not o dile çevrilir ve toplantıda saklanır (not değişince kopyalar silinir). Çevrilemezse hata fırlar; çeviri
-    /// saklanamazsa kopya yine döner, neden sorunlarda görünür.
-    func sharedNote(meetingID: String, language: ShareLanguage) async throws -> MeetingNote {
+    /// Notu verilen dile çevirir ve toplantıda saklar (Mac'teki notun dil menüsü; sunucuda `shared_note_translation`).
+    /// Tam bir çevirisi zaten saklıysa (`sharedNoteVersion`) bir şey yapmaz; not değişince saklı çeviriler silinir.
+    /// Çeviri sürerken not yeniden yazıldıysa eski notun çevirisi saklanmaz (sayfa yeni not için yeniden ister).
+    /// Çevrilemezse ya da saklanamazsa hata fırlar (sayfa nedeni ve "Yeniden dene"yi gösterir).
+    func translateNote(meetingID: String, language: ShareLanguage) async throws {
         guard let record = meetings.first(where: { $0.id == meetingID }), let note = record.note else {
             throw StorageError.writeFailed(path: meetingID, reason: "toplantı ya da not yok")
         }
-        if let cached = record.sharedNotes?[language.rawValue] {
-            return cached
+        if sharedNoteVersion(record: record, language: language) != nil {
+            return
         }
         let provider: LLMProvider = try phoneAccountLLMProvider()
         let shared: MeetingNote = try await requestStructured(
@@ -927,18 +931,124 @@ final class PhoneStore {
         ) { (text: String) throws -> MeetingNote in
             try parseSharedNote(text: text, original: note).with(language: language)
         }
-        // Çeviri sürerken not yeniden yazıldıysa eski notun çevirisi saklanmaz (yine de paylaşılır).
         guard let current = meetings.first(where: { $0.id == meetingID }), current.note == note else {
-            return shared
+            Self.logger.info("Çeviri saklanmadı: not bu arada değişti, toplantı: \(meetingID, privacy: .public)")
+            return
+        }
+        try updateMeeting(meetingID: meetingID) { (fresh: MeetingRecord) -> MeetingRecord in
+            fresh.note == note ? fresh.with(sharedNotes: (fresh.sharedNotes ?? [:]).merging([language.rawValue: shared]) { $1 }) : fresh
+        }
+    }
+
+    // MARK: Konuşmacı incelemesi
+
+    /// Toplantı sayfasındaki "Gözden geçir" kartları (toplantı kimliğiyle; Mac'teki `speakerReviews`).
+    private(set) var speakerReviews: [String: SpeakerReviewState] = [:]
+    @ObservationIgnored private var speakerReviewTasks: [String: Task<Void, Never>] = [:]
+
+    /// Akıllı model transkriptin tamamını okuyup ad, birleştirme ve şüpheli an önerir (sunucuda `speaker_review`);
+    /// öneriler kartta tek tek kabul ya da reddedilir (yanlış bir öneri sessizce notu bozmasın diye otomatik uygulanmaz).
+    /// Kayıttaki, işlenen ya da notu yazılan toplantıda ya da numaralı konuşmacı yoksa yapılmaz.
+    func reviewSpeakers(meetingID: String) {
+        guard let record = meetings.first(where: { $0.id == meetingID }), record.status != .recording, record.status != .processing,
+              !regeneratingIDs.contains(meetingID) else {
+            return
+        }
+        let segments: [StoredSegment] = meetingSegments(record: record)
+        guard let request = speakerReviewRequest(
+            segments: segments, speakerNames: record.speakerNames, userName: phoneUserName(), attendees: record.attendees ?? [], language: phoneNoteLanguage()
+        ) else {
+            return
+        }
+        let persons: Set<Int> = Set(segments.compactMap(\.person))
+        let names: [Int: String] = record.speakerNames
+        speakerReviewTasks[meetingID]?.cancel()
+        speakerReviews[meetingID] = .loading
+        speakerReviewTasks[meetingID] = Task { [weak self] in
+            let state: SpeakerReviewState
+            do {
+                let provider: LLMProvider = try phoneAccountLLMProvider()
+                let review: SpeakerReview = try await requestStructured(provider: provider, request: request) { (text: String) throws -> SpeakerReview in
+                    try parseSpeakerReview(text: text, persons: persons, speakerNames: names)
+                }
+                state = .ready(review: review, applied: 0)
+            } catch {
+                // Hata gövdesi toplantı metni içerebilir: yalnızca özel (private) loglanır.
+                Self.logger.error("Konuşmacı incelemesi başarısız, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+                state = .failed(userFacingMessage(error: error))
+            }
+            // Kart kapatıldıysa ya da yeni inceleme başladıysa sonuç yazılmaz.
+            guard let self, !Task.isCancelled else {
+                return
+            }
+            self.speakerReviews[meetingID] = state
+            self.speakerReviewTasks[meetingID] = nil
+        }
+    }
+
+    /// Kartı kapatır ve süren incelemeyi iptal eder.
+    func closeSpeakerReview(meetingID: String) {
+        speakerReviewTasks[meetingID]?.cancel()
+        speakerReviewTasks[meetingID] = nil
+        speakerReviews[meetingID] = nil
+    }
+
+    /// Ad önerisini uygular (ad her yerde hemen görünür: transkript, not, görevler). Bu arada elle birleştirilen kişiye
+    /// ad verilmez, öneri yalnızca düşer. Ad saklanamazsa öneri kartta kalır, neden sorunlarda görünür.
+    func acceptNameSuggestion(meetingID: String, suggestion: SpeakerNameSuggestion) {
+        guard case .ready(let review, let applied) = speakerReviews[meetingID] else {
+            return
+        }
+        guard currentPersons(meetingID: meetingID).contains(suggestion.person) else {
+            speakerReviews[meetingID] = .ready(review: review.removingName(person: suggestion.person), applied: applied)
+            return
         }
         do {
-            try updateMeeting(meetingID: meetingID) { (fresh: MeetingRecord) -> MeetingRecord in
-                fresh.note == note ? fresh.with(sharedNotes: (fresh.sharedNotes ?? [:]).merging([language.rawValue: shared]) { $1 }) : fresh
-            }
+            try renameSpeakers(meetingID: meetingID, names: [suggestion.person: suggestion.name])
+            speakerReviews[meetingID] = .ready(review: review.removingName(person: suggestion.person), applied: applied + 1)
         } catch {
-            actionProblems = appendUnique(messages: actionProblems, message: String(localized: "Çeviri saklanamadı: \(userFacingMessage(error: error))"))
+            actionProblems = appendUnique(messages: actionProblems, message: String(localized: "Ad kaydedilemedi: \(userFacingMessage(error: error))"))
         }
-        return shared
+    }
+
+    func dismissNameSuggestion(meetingID: String, suggestion: SpeakerNameSuggestion) {
+        guard case .ready(let review, let applied) = speakerReviews[meetingID] else {
+            return
+        }
+        speakerReviews[meetingID] = .ready(review: review.removingName(person: suggestion.person), applied: applied)
+    }
+
+    /// Birleştirme önerisini uygular; kalan öneriler yeni numaralara taşınır. Birleştirilemezse öneri kartta kalır, neden
+    /// sorunlarda görünür.
+    func acceptMergeSuggestion(meetingID: String, suggestion: SpeakerMergeSuggestion) {
+        guard case .ready(let review, let applied) = speakerReviews[meetingID] else {
+            return
+        }
+        guard currentPersons(meetingID: meetingID).isSuperset(of: [suggestion.from, suggestion.into]) else {
+            speakerReviews[meetingID] = .ready(review: review.removingMerge(from: suggestion.from, into: suggestion.into), applied: applied)
+            return
+        }
+        do {
+            try mergeSpeakers(meetingID: meetingID, from: suggestion.from, into: suggestion.into)
+            speakerReviews[meetingID] = .ready(review: review.afterMerge(from: suggestion.from, into: suggestion.into), applied: applied + 1)
+        } catch {
+            actionProblems = appendUnique(messages: actionProblems, message: String(localized: "Konuşmacılar birleştirilemedi: \(userFacingMessage(error: error))"))
+        }
+    }
+
+    func dismissMergeSuggestion(meetingID: String, suggestion: SpeakerMergeSuggestion) {
+        guard case .ready(let review, let applied) = speakerReviews[meetingID] else {
+            return
+        }
+        speakerReviews[meetingID] = .ready(review: review.removingMerge(from: suggestion.from, into: suggestion.into), applied: applied)
+    }
+
+    /// Toplantının şu anki kişi numaraları (gösterilen bölümlerden).
+    private func currentPersons(meetingID: String) -> Set<Int> {
+        guard let record = meetings.first(where: { $0.id == meetingID }) else {
+            return []
+        }
+        return Set(meetingSegments(record: record).compactMap(\.person))
     }
 
     /// İki konuşmacıyı birleştirir (Mac'teki "… ile birleştir"; son geçiş aynı kişiyi ikiye böldüyse): `from`un tüm

@@ -1780,6 +1780,16 @@
         }
       }
     },
+    "Ad kaydedilemedi: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't save the name: %@"
+          }
+        }
+      }
+    },
     "Ad ver ya da birleştir": {
       "localizations": {
         "en": {
@@ -7580,6 +7590,16 @@
         }
       }
     },
+    "Konuşmacıları gözden geçir": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review speakers"
+          }
+        }
+      }
+    },
     "Küçült": {
       "localizations": {
         "en": {
@@ -7590,12 +7610,52 @@
         }
       }
     },
+    "Notun dili": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note language"
+          }
+        }
+      }
+    },
     "Paylaşılan ekranın görüntülerini al": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Take snapshots of the shared screen"
+          }
+        }
+      }
+    },
+    "Paylaşınca ve dışa aktarınca da not bu dilde çıkar.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sharing and exporting also use this language."
+          }
+        }
+      }
+    },
+    "Ses klibi hazırlanıyor…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparing the audio clip…"
+          }
+        }
+      }
+    },
+    "Ses klibini paylaş": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share audio clip"
           }
         }
       }

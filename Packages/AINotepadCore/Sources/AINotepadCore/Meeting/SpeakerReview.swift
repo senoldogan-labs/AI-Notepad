@@ -95,6 +95,23 @@ public struct SpeakerReview: Sendable, Equatable {
     }
 }
 
+/// Toplantı sayfasındaki "Konuşmacıları gözden geçir" kartı (Mac ve iPhone).
+public enum SpeakerReviewState: Sendable, Equatable {
+    case loading
+    /// `applied`: kabul edilen öneri sayısı; sıfırdan büyükse not eski adlarla yazılmıştır ("Notu yenile").
+    case ready(review: SpeakerReview, applied: Int)
+    case failed(String)
+}
+
+/// Not yeniden yazılmaya başlayınca kart: kabul edilen öneriler artık notta (sayaç sıfırlanır); bekleyen öneri ya da
+/// şüpheli an kalmadıysa kart kapanır (nil). Yüklenen ya da hatalı kart değişmez. Saf fonksiyondur.
+public func speakerReviewAfterNoteRewrite(state: SpeakerReviewState?) -> SpeakerReviewState? {
+    guard case .ready(let review, _) = state else {
+        return state
+    }
+    return review.hasPendingSuggestions || !review.suspicious.isEmpty ? .ready(review: review, applied: 0) : nil
+}
+
 /// Aynı çiftin (yön fark etmez) yalnızca ilk önerisi kalır. Saf fonksiyondur.
 private func uniqueMerges(merges: [SpeakerMergeSuggestion]) -> [SpeakerMergeSuggestion] {
     merges.reduce(into: [SpeakerMergeSuggestion]()) { (result: inout [SpeakerMergeSuggestion], suggestion: SpeakerMergeSuggestion) -> Void in

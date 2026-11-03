@@ -52,6 +52,14 @@ enum MeetingExportFormat: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Dosya notu taşır (notun dili seçiliyken o dildeki sürümle yazılır); transkript ve altyazı notsuzdur.
+    var carriesNote: Bool {
+        switch self {
+        case .pdf, .html, .markdown: true
+        case .transcriptText, .subtitles: false
+        }
+    }
+
     var systemImage: String {
         switch self {
         case .pdf: "doc.richtext"
@@ -82,9 +90,10 @@ enum MeetingExportError: Error, Equatable {
 }
 
 /// Toplantıyı seçilen biçimde geçici klasöre yazar ve dosyanın yolunu döndürür (paylaşım sayfası bu dosyayı gönderir).
-/// Ana iş parçacığında çalışır: PDF UIKit yazdırma çizicisiyle üretilir.
+/// `record` sayfada seçili dildeki haldir (`recordInLanguage`); `language` o dil (PDF ve web sayfasının başlıkları o
+/// dilde), asıl notta nil. Ana iş parçacığında çalışır: PDF UIKit yazdırma çizicisiyle üretilir.
 @MainActor
-func writeMeetingExport(record: MeetingRecord, format: MeetingExportFormat) throws -> URL {
+func writeMeetingExport(record: MeetingRecord, language: ShareLanguage?, format: MeetingExportFormat) throws -> URL {
     guard isMeetingExportAvailable(record: record, format: format) else {
         throw MeetingExportError.contentMissing(format: format.rawValue, meetingID: record.id)
     }
@@ -97,12 +106,12 @@ func writeMeetingExport(record: MeetingRecord, format: MeetingExportFormat) thro
         guard let note = record.note else {
             throw MeetingExportError.contentMissing(format: format.rawValue, meetingID: record.id)
         }
-        data = try htmlPDF(html: meetingHTML(record: record, note: note, language: nil, appName: appName), meetingID: record.id)
+        data = try htmlPDF(html: meetingHTML(record: record, note: note, language: language, appName: appName), meetingID: record.id)
     case .html:
         guard let note = record.note else {
             throw MeetingExportError.contentMissing(format: format.rawValue, meetingID: record.id)
         }
-        data = Data(meetingHTML(record: record, note: note, language: nil, appName: appName).utf8)
+        data = Data(meetingHTML(record: record, note: note, language: language, appName: appName).utf8)
     case .markdown:
         data = Data(meetingMarkdown(record: record).utf8)
     case .transcriptText:
@@ -155,19 +164,20 @@ struct ActivityShareSheet: UIViewControllerRepresentable {
     func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }
 
-/// Paylaşılacak metin (başka dile çevrilmiş not): paylaşım sayfasını açar.
-struct SharedText: Identifiable {
-    let id: UUID = UUID()
-    let text: String
-}
-
-/// Sistem paylaşım sayfası (metin için).
-struct TextShareSheet: UIViewControllerRepresentable {
-    let text: String
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: [text], applicationActivities: nil)
+/// Paragrafın sesini (iki kayıt karışık; Mac'teki "Klip olarak kaydet") M4A klip olarak geçici klasöre yazar ve
+/// dosyanın yolunu döndürür (paylaşım sayfası bu dosyayı gönderir). Kaynaklar toplantının kayıtlarıdır
+/// (`PhoneStore.audioURLs`: işlenmişse `.m4a`, işlenmemişse `.caf`); aralık paragrafın biraz öncesinden biraz
+/// sonrasınadır (`clipRange`).
+func writeMeetingClip(record: MeetingRecord, paragraph: TranscriptParagraph, sources: [URL]) async throws -> URL {
+    let directory: URL = FileManager.default.temporaryDirectory.appending(path: "Exports/\(UUID().uuidString)", directoryHint: .isDirectory)
+    do {
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    } catch {
+        throw StorageError.writeFailed(path: directory.path, reason: error.localizedDescription)
     }
-
-    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
+    let title: String = audioClipTitle(meetingTitle: record.note?.title ?? record.title, startSec: paragraph.startSec)
+    let url: URL = try exportFileURL(directory: directory, title: title, startedAt: record.startedAt, fileExtension: "m4a")
+    let range: (start: Double, end: Double) = clipRange(startSec: paragraph.startSec, endSec: paragraph.endSec)
+    try await exportAudioClip(sources: sources, startSec: range.start, endSec: range.end, destination: url)
+    return url
 }

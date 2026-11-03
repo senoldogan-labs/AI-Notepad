@@ -29,14 +29,6 @@ func localModelNoticeText(progress: Double?) -> String {
         ?? String(localized: "Konuşma modeli hazırlanıyor…")
 }
 
-/// Toplantı sayfasındaki "Konuşmacıları gözden geçir" kartı.
-enum SpeakerReviewState: Equatable {
-    case loading
-    /// `applied`: kabul edilen öneri sayısı; sıfırdan büyükse not eski adlarla yazılmıştır ("Notu yenile").
-    case ready(review: SpeakerReview, applied: Int)
-    case failed(String)
-}
-
 /// Görünüm durumunu üreten girdiler; değişmedikçe görünüm durumu yeniden hesaplanmaz.
 private struct ViewStateInputs: Equatable {
     let transcript: [LiveSegment]
@@ -1903,11 +1895,7 @@ final class AppModel {
         withSessionDirectory(id: meetingID) { (directory: URL) -> Void in
             processingMeetingIDs.insert(meetingID)
             // Kabul edilen öneriler artık notta; bekleyen öneri yoksa inceleme kartı kapanır.
-            if case .ready(let review, _) = speakerReviews[meetingID] {
-                speakerReviews[meetingID] = review.hasPendingSuggestions || !review.suspicious.isEmpty
-                    ? .ready(review: review, applied: 0)
-                    : nil
-            }
+            speakerReviews[meetingID] = speakerReviewAfterNoteRewrite(state: speakerReviews[meetingID])
             Task {
                 let llm: LLMProvider? = await optionalLLMProvider()
                 let noteStartedAt: ContinuousClock.Instant = .now

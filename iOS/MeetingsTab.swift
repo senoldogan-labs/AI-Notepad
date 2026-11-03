@@ -378,13 +378,13 @@ struct MeetingReadView: View {
     @State private var isCreatingFolder: Bool = false
     /// Paylaşım sayfasıyla gönderilecek dışa aktarma dosyası.
     @State private var exported: ExportedFile?
-    /// Başka dile çevrilip paylaşılacak not: çevrilirken dil, çevrilince paylaşım metni.
-    @State private var translatingLanguage: ShareLanguage?
-    @State private var sharedText: SharedText?
+    /// Notun gösterildiği dil (Mac'teki özetin dil menüsü): nil asıl not (yazıldığı dilde), değilse o dildeki sürümü.
+    /// Paylaşım, Markdown kopyası ve notlu dışa aktarmalar da bu dilde çıkar.
+    @State private var noteLanguage: ShareLanguage?
+    /// Paragrafın ses klibi hazırlanıyor (bitince paylaşım sayfası açılır).
+    @State private var isExportingClip: Bool = false
     /// "Sesi sil" satır içi onayı bekliyor (Mac'teki gibi; ayrı uyarı penceresi yok).
     @State private var isConfirmingAudioDelete: Bool = false
-    /// Çevrilen notta da konuşmacı adları gösterilir.
-    @AppStorage(PhoneSettingsKey.userName) private var userName: String = ""
 
     /// Not ve adlar değiştirilebilir: kayıtta, işlenen ya da notu yazılan toplantıda değil.
     private var isEditable: Bool {
@@ -405,10 +405,10 @@ struct MeetingReadView: View {
                     // Not yenileme, şablonla yazma, not düzenleme ve çeviri hataları (yalnız listede kalsaydı sayfada
                     // dönen çark sessizce dururdu).
                     PhoneDismissibleErrorList(messages: store.actionProblems) { store.dismissActionProblems() }
-                    if let language = translatingLanguage {
+                    if isExportingClip {
                         HStack(spacing: 10) {
                             ProgressView().controlSize(.small)
-                            Text("Not \(language.interfaceName) diline çevriliyor…")
+                            Text("Ses klibi hazırlanıyor…")
                                 .appFont(size: 13, weight: .medium)
                                 .foregroundStyle(Theme.muted)
                         }
@@ -426,25 +426,46 @@ struct MeetingReadView: View {
                             .appFont(size: 13, weight: .regular)
                             .foregroundStyle(Theme.muted)
                     }
-                    PillTabs(selection: $pane, options: [(MeetingPane.summary, "Özet"), (MeetingPane.transcript, "Transkript")])
+                    // Sekmeler ve notun dili tek satırda (Mac'teki gibi): dil, notun başka dildeki sürümünü gösterir.
+                    HStack(spacing: 8) {
+                        PillTabs(selection: $pane, options: [(MeetingPane.summary, "Özet"), (MeetingPane.transcript, "Transkript")])
+                        if pane == .summary, let note = record.note {
+                            NoteLanguageMenu(original: note.writtenLanguage, selection: $noteLanguage)
+                        }
+                    }
                     switch pane {
                     case .summary:
-                        MeetingSummary(
-                            record: record, paragraphs: paragraphs, store: store, canPlay: canPlay, isEditable: isEditable,
-                            onNameSpeakers: { isNamingSpeakers = true }, onEditMyNotes: { isEditingMyNotes = true }
-                        ) { (startSec: Double) -> Void in
-                            play(from: startSec)
+                        if let note = record.note, let language = noteLanguage {
+                            if let shown = sharedNoteVersion(record: record, language: language) {
+                                Text("Paylaşınca ve dışa aktarınca da not bu dilde çıkar.")
+                                    .appFont(size: 12, weight: .regular)
+                                    .foregroundStyle(Theme.muted)
+                                summary(note: shown, paragraphs: paragraphs)
+                            } else {
+                                // Dil ya da not değişince durum (hata, deneme) sıfırlansın.
+                                SharedNotePending(store: store, record: record, note: note, language: language, isEditable: isEditable)
+                                    .id(language)
+                                    .transition(.opacity)
+                            }
+                        } else {
+                            summary(note: record.note, paragraphs: paragraphs)
                         }
-                        .transition(.opacity)
                     case .transcript:
+                        if paragraphs.contains(where: { $0.person != nil }) {
+                            PhoneSpeakerReviewSection(store: store, record: record, isEditable: isEditable, canPlay: canPlay) { (startSec: Double) -> Void in
+                                play(from: startSec)
+                            }
+                        }
                         let skipped: [StoredSegment] = skippedLanguageSegments(record: record)
                         if !skipped.isEmpty {
-                            SkippedLanguageNote(record: record, segments: skipped)
+                            SkippedLanguageNote(record: record, segments: skipped, canPlay: canPlay) { (startSec: Double) -> Void in
+                                play(from: startSec)
+                            }
                         }
                         TranscriptList(
                             record: record, paragraphs: paragraphs, player: player, canPlay: canPlay, proxy: proxy,
                             highlighted: highlightedParagraphIDs(paragraphs: paragraphs, highlights: record.highlights ?? []),
-                            isEditable: isEditable, onToggleHighlight: toggleHighlight(paragraph:)
+                            isEditable: isEditable, onToggleHighlight: toggleHighlight(paragraph:), onClip: exportClip(paragraph:)
                         ) { (startSec: Double) -> Void in
                             play(from: startSec)
                         }
@@ -461,32 +482,32 @@ struct MeetingReadView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    if let note = record.note {
-                        ShareLink(item: shareText(record: record, note: note, language: nil)) {
-                            Label("Notu paylaş", systemImage: "square.and.arrow.up")
-                        }
-                        // Mac'teki dil menüsü gibi: sık kullanılan Fince ve İngilizce önde, diğerleri alt menüde.
-                        Menu("Başka dilde paylaş", systemImage: "character.bubble") {
-                            ForEach([ShareLanguage.finnish, .english].filter { $0 != note.writtenLanguage }, id: \.rawValue) { (language: ShareLanguage) in
-                                Button(language.interfaceName) { shareTranslated(language: language) }
+                    // Not, Markdown kopyası ve notlu dosyalar sayfada seçili dilde çıkar (Mac'teki gibi); o dildeki sürüm
+                    // hazırlanırken kapalıdır.
+                    if record.note != nil {
+                        if let text = shownShareText {
+                            ShareLink(item: text) {
+                                Label("Notu paylaş", systemImage: "square.and.arrow.up")
                             }
-                            Menu("Diğer diller") {
-                                ForEach(ShareLanguage.allCases.filter { ![.finnish, .english, note.writtenLanguage].contains($0) }, id: \.rawValue) { (language: ShareLanguage) in
-                                    Button(language.interfaceName) { shareTranslated(language: language) }
-                                }
-                            }
+                        } else {
+                            Button("Notu paylaş", systemImage: "square.and.arrow.up") {}
+                                .disabled(true)
                         }
-                        .disabled(translatingLanguage != nil)
                     }
                     Menu("Dışa aktar", systemImage: "square.and.arrow.down") {
                         ForEach(MeetingExportFormat.allCases.filter { isMeetingExportAvailable(record: record, format: $0) }) { (format: MeetingExportFormat) in
                             Button(format.title, systemImage: format.systemImage) { export(format: format) }
+                                .disabled(format.carriesNote && shownRecord == nil)
                         }
                     }
                     Button("Markdown olarak kopyala", systemImage: "doc.on.doc") {
-                        UIPasteboard.general.string = meetingMarkdown(record: record)
+                        guard let shown = shownRecord else {
+                            return
+                        }
+                        UIPasteboard.general.string = meetingMarkdown(record: shown)
                         recordFeatureUsage(feature: .export(.copyMarkdown))
                     }
+                    .disabled(shownRecord == nil)
                     // Mac'teki "Tarif": bu toplantıya tarif uygular, cevap Sor'da açılır.
                     Menu("Tarif uygula", systemImage: "wand.and.stars") {
                         ForEach(recipes) { (recipe: Recipe) in
@@ -515,6 +536,12 @@ struct MeetingReadView: View {
                     if paragraphs.contains(where: { $0.person != nil }) {
                         Button("Ad ver ya da birleştir", systemImage: "person.text.rectangle") { isNamingSpeakers = true }
                             .disabled(!isEditable)
+                        // Mac'teki "Gözden geçir": öneriler transkriptin başındaki kartta.
+                        Button("Konuşmacıları gözden geçir", systemImage: "sparkles") {
+                            withAnimation(.smooth(duration: 0.25)) { pane = .transcript }
+                            store.reviewSpeakers(meetingID: record.id)
+                        }
+                        .disabled(!isEditable || store.speakerReviews[record.id] == .loading)
                     }
                     Button(store.regeneratingIDs.contains(record.id) ? "Not yazılıyor…" : "Notu yenile", systemImage: "arrow.clockwise") {
                         Task { await store.regenerateNote(meetingID: record.id) }
@@ -567,10 +594,6 @@ struct MeetingReadView: View {
             ActivityShareSheet(items: [file.url])
                 .presentationDetents([.medium, .large])
         }
-        .sheet(item: $sharedText) { (shared: SharedText) in
-            TextShareSheet(text: shared.text)
-                .presentationDetents([.medium, .large])
-        }
         .sheet(isPresented: $isEditingMyNotes) {
             PhoneMyNotesEditor(initialText: record.myNotes ?? "") { (text: String) -> Void in
                 Task { await store.saveMyNotes(meetingID: record.id, text: text) }
@@ -618,19 +641,58 @@ struct MeetingReadView: View {
         }
     }
 
-    /// Notu verilen dile çevirir (daha önce çevrildiyse saklanan kopya) ve paylaşım sayfasını açar; olmazsa neden sayfada
-    /// görünür.
-    private func shareTranslated(language: ShareLanguage) {
-        translatingLanguage = language
+    /// Sayfada seçili dildeki toplantı (asıl not ya da o dildeki sürümü); sürüm henüz hazır değilse nil.
+    private var shownRecord: MeetingRecord? {
+        recordInLanguage(record: record, language: noteLanguage)
+    }
+
+    /// Paylaşılacak not metni (seçili dilde); not yoksa ya da o dildeki sürüm hazır değilse nil.
+    private var shownShareText: String? {
+        guard let shown = shownRecord, let note = shown.note else {
+            return nil
+        }
+        return shareText(record: shown, note: note, language: noteLanguage)
+    }
+
+    /// Özet sekmesi: verilen not (asıl not ya da seçili dildeki sürümü; görevler asıl görevlerin işaretlerini taşır).
+    private func summary(note: MeetingNote?, paragraphs: [TranscriptParagraph]) -> some View {
+        MeetingSummary(
+            record: record, note: note, paragraphs: paragraphs, store: store, canPlay: canPlay, isEditable: isEditable,
+            onNameSpeakers: { isNamingSpeakers = true }, onEditMyNotes: { isEditingMyNotes = true }, onClip: exportClip(paragraph:)
+        ) { (startSec: Double) -> Void in
+            play(from: startSec)
+        }
+        .transition(.opacity)
+    }
+
+    /// Paragrafın sesini (iki kayıt karışık) M4A klip olarak hazırlar ve paylaşım sayfasını açar (Mac'teki "Klip olarak
+    /// kaydet"; iPhone'da Dosyalar'a kaydet, Mesajlar, AirDrop…); olmazsa neden sayfada görünür.
+    private func exportClip(paragraph: TranscriptParagraph) {
+        guard canPlay, !isExportingClip else {
+            return
+        }
+        let sources: [URL]
+        do {
+            sources = try store.audioURLs(record: record)
+        } catch {
+            errorMessage = String(localized: "Klip kaydedilemedi: \(userFacingMessage(error: error))")
+            return
+        }
+        guard !sources.isEmpty else {
+            errorMessage = String(localized: "Bu toplantının ses kaydı yok.")
+            return
+        }
+        isExportingClip = true
+        let shown: MeetingRecord = record
         Task {
-            defer { translatingLanguage = nil }
+            defer { isExportingClip = false }
             do {
-                let stored: MeetingNote = try await store.sharedNote(meetingID: record.id, language: language)
-                let note: MeetingNote = namedNote(note: stored, speakerNames: record.speakerNames, userName: userName)
-                sharedText = SharedText(text: shareText(record: record, note: note, language: language))
+                exported = ExportedFile(url: try await writeMeetingClip(record: shown, paragraph: paragraph, sources: sources))
+                recordFeatureUsage(feature: .export(.audioClip))
                 errorMessage = nil
             } catch {
-                errorMessage = String(localized: "Not çevrilemedi: \(userFacingMessage(error: error))")
+                meetingReadLogger.error("Klip kaydedilemedi, toplantı: \(shown.id, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+                errorMessage = String(localized: "Klip kaydedilemedi: \(userFacingMessage(error: error))")
             }
         }
     }
@@ -660,10 +722,20 @@ struct MeetingReadView: View {
         }
     }
 
-    /// Toplantıyı dosya olarak yazar ve paylaşım sayfasını açar; olmazsa neden sayfada görünür.
+    /// Toplantıyı dosya olarak yazar (notlu dosyalar seçili dilde) ve paylaşım sayfasını açar; olmazsa neden sayfada
+    /// görünür.
     private func export(format: MeetingExportFormat) {
         do {
-            exported = ExportedFile(url: try writeMeetingExport(record: record, format: format))
+            let source: MeetingRecord
+            if format.carriesNote {
+                guard let shown = shownRecord else {
+                    return
+                }
+                source = shown
+            } else {
+                source = record
+            }
+            exported = ExportedFile(url: try writeMeetingExport(record: source, language: format.carriesNote ? noteLanguage : nil, format: format))
             recordFeatureUsage(feature: .export(format.telemetryFormat))
             errorMessage = nil
         } catch {
@@ -756,8 +828,8 @@ struct MeetingReadView: View {
                     .buttonStyle(PressableCardStyle())
                 }
                 Spacer()
-                if let note = record.note {
-                    ShareLink(item: shareText(record: record, note: note, language: nil)) {
+                if let text = shownShareText {
+                    ShareLink(item: text) {
                         Image(systemName: "square.and.arrow.up")
                             .appFont(size: 15, weight: .semibold)
                             .foregroundStyle(.white)
@@ -809,6 +881,9 @@ struct MeetingReadView: View {
 /// oradan çalar), diğer görevler, sözlük.
 private struct MeetingSummary: View {
     let record: MeetingRecord
+    /// Gösterilen not: asıl not ya da seçili dildeki sürümü (`sharedNoteVersion`; görevleri asıl görevlerin
+    /// işaretlerine bağlı). Notu olmayan toplantıda nil.
+    let note: MeetingNote?
     let paragraphs: [TranscriptParagraph]
     let store: PhoneStore
     let canPlay: Bool
@@ -816,11 +891,13 @@ private struct MeetingSummary: View {
     let isEditable: Bool
     let onNameSpeakers: @MainActor () -> Void
     let onEditMyNotes: @MainActor () -> Void
+    /// İşaretli anın sesini klip olarak paylaşır (uzun basınca).
+    let onClip: @MainActor (TranscriptParagraph) -> Void
     let onPlay: @MainActor (Double) -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
-        if let note = record.note {
+        if let note {
             let mine: [NoteTask] = note.tasks.filter(\.isMine)
             let others: [NoteTask] = note.tasks.filter { !$0.isMine }
             let shares: [SpeakerShare] = speakerShares(paragraphs: paragraphs)
@@ -927,6 +1004,11 @@ private struct MeetingSummary: View {
                             ForEach(marked, id: \.id) { (paragraph: TranscriptParagraph) in
                                 HighlightRow(paragraph: paragraph, speakerNames: record.speakerNames, canPlay: canPlay) {
                                     onPlay(paragraph.startSec)
+                                }
+                                // Uzun basınca (Mac'teki sağ tık): anın sesini klip olarak paylaş.
+                                .contextMenu {
+                                    Button("Ses klibini paylaş", systemImage: "waveform") { onClip(paragraph) }
+                                        .disabled(!canPlay)
                                 }
                             }
                         }
@@ -1082,11 +1164,14 @@ private struct ShareRow: View {
 }
 
 /// Sabit toplantı dilinden başka dilde olduğu için transkriptten, nottan ve Sor'dan atlanan bölümler: tek satır ve
-/// dokununca soluk liste. Bölümler kayıtta durur.
+/// dokununca soluk liste (bölüme dokununca oradan çalar, Mac'teki gibi). Bölümler kayıtta durur.
 private struct SkippedLanguageNote: View {
     let record: MeetingRecord
     let segments: [StoredSegment]
+    let canPlay: Bool
+    let onPlay: @MainActor (Double) -> Void
     @State private var isExpanded: Bool = false
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -1106,11 +1191,23 @@ private struct SkippedLanguageNote: View {
             .buttonStyle(.plain)
             if isExpanded {
                 ForEach(segments, id: \.key) { (segment: StoredSegment) in
-                    Text(verbatim: "\(timestamp(seconds: segment.startSec))  \(segment.person.flatMap { record.speakerNames[$0] } ?? speakerLabel(speaker: segment.speaker, person: segment.person)): \(segment.text)")
+                    Button {
+                        onPlay(segment.startSec)
+                    } label: {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text(timestamp(seconds: segment.startSec))
+                                .monospacedDigit()
+                                .foregroundStyle(canPlay ? appearance.accent.color : Theme.muted)
+                            Text(verbatim: "\(segment.person.flatMap { record.speakerNames[$0] } ?? speakerLabel(speaker: segment.speaker, person: segment.person)): \(segment.text)")
+                                .italic()
+                                .foregroundStyle(Theme.muted)
+                                .multilineTextAlignment(.leading)
+                        }
                         .appFont(size: 13, weight: .regular)
-                        .italic()
-                        .foregroundStyle(Theme.muted)
-                        .textSelection(.enabled)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!canPlay)
                 }
             }
         }
@@ -1303,6 +1400,8 @@ private struct TranscriptList: View {
     /// İşaret konabilir (kayıtta, işlenen ya da notu yazılan toplantıda değil).
     let isEditable: Bool
     let onToggleHighlight: @MainActor (TranscriptParagraph) -> Void
+    /// Paragrafın sesini klip olarak paylaşır (uzun basınca).
+    let onClip: @MainActor (TranscriptParagraph) -> Void
     let onPlay: @MainActor (Double) -> Void
     /// Çalan paragraf: yalnızca paragraf değişince yazılır (tüm liste saniyede onlarca kez yeniden çizilmesin).
     @State private var activeID: String?
@@ -1373,13 +1472,16 @@ private struct TranscriptList: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(!canPlay)
-                // Uzun basınca: işaretle (Mac'teki transkript işareti; not yenilenince öne çıkar) ve kopyala.
+                // Uzun basınca: işaretle (Mac'teki transkript işareti; not yenilenince öne çıkar), sesini klip olarak paylaş
+                // ve kopyala.
                 .contextMenu {
                     let isHighlighted: Bool = highlighted.contains(paragraph.id)
                     Button(isHighlighted ? "İşareti kaldır" : "İşaretle", systemImage: isHighlighted ? "star.slash" : "star") {
                         onToggleHighlight(paragraph)
                     }
                     .disabled(!isEditable)
+                    Button("Ses klibini paylaş", systemImage: "waveform") { onClip(paragraph) }
+                        .disabled(!canPlay)
                     Button("Metni kopyala", systemImage: "doc.on.doc") {
                         UIPasteboard.general.string = paragraph.text
                     }
@@ -1446,3 +1548,5 @@ private func removePickedMovie(movie: PickedMovie) {
 }
 
 private let pickedMovieLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "MediaImport")
+
+private let meetingReadLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "Meetings")
