@@ -1,12 +1,13 @@
-// Yayından sonra yeni ve değişen blog yazılarını IndexNow'a bildirir (https://api.indexnow.org/indexnow; Bing, Yandex,
+// Yayından sonra yeni ve değişen sayfaları ve blog yazılarını IndexNow'a bildirir (https://api.indexnow.org/indexnow; Bing, Yandex,
 // Seznam, Naver… bildirimi paylaşır). .github/workflows/deploy-web.yml Cloudflare Pages yüklemesi başarılı olunca
 // çalıştırır; yerelde `npm run indexnow` (yalnızca üretim derlemesiyle; gerçek bildirim gönderir).
 //
-// Hangi adresler: derlemenin site haritasındaki (dist/sitemap.xml) blog yazılarından `<lastmod>`'u (yazının `updated`
-// ya da `published` günü) bugün ya da dün (UTC) olanlar; varsa bunlara blog dizini ve site haritası eklenir. Durum
+// Hangi adresler: derlemenin site haritasındaki (dist/sitemap.xml) adreslerden `<lastmod>`'u bugün ya da dün (UTC)
+// olanlar: blog yazıları (`updated` ya da `published` günü) ve sabit sayfalar (src/routes.ts `pageModified`); değişen
+// yazı varsa blog dizini, değişen bir şey varsa site haritası da eklenir. Durum
 // tutulmaz: zamanlanmış yazı tarihindeki 06:00 UTC derlemesinde, yeni ya da `updated`'ı ilerletilmiş yazı kaydedildiği
 // günün (ve ertesi günün) yayınlarında bildirilir; aynı adresin aynı gün yeniden bildirilmesi zararsızdır. `updated`
-// değişmeden yapılan düzeltme bildirilmez. Değişen yazı yoksa hiçbir şey gönderilmez.
+// değişmeden yapılan düzeltme bildirilmez. Değişen sayfa ya da yazı yoksa hiçbir şey gönderilmez.
 //
 // Anahtar config.ts `indexNowKey`'dir; derleme onu `/<anahtar>.txt` olarak yazar (dosya yoksa ya da içeriği farklıysa
 // hata). İstek 429, 5xx, ağ hatası ve zaman aşımında uyarıyla 3 kez denenir; 200 ve 202 başarıdır. Denemeler bitince
@@ -57,14 +58,18 @@ function sitemapUrls(xml: string): SitemapUrl[] {
 }
 
 /**
- * Bildirilecek adresler: `<lastmod>`'u `since` gününe (YYYY-AA-GG) eşit ya da sonra olan blog yazıları; varsa blog
- * dizini ve site haritası da. Değişen yazı yoksa boş. Saf fonksiyondur.
+ * Bildirilecek adresler: `<lastmod>`'u `since` gününe (YYYY-AA-GG) eşit ya da sonra olan sayfalar ve blog yazıları;
+ * değişen yazı varsa blog dizini, değişen bir şey varsa site haritası da (yinelenmeden). Hiçbiri değişmediyse boş.
+ * Saf fonksiyondur.
  */
 function changedUrls(urls: readonly SitemapUrl[], origin: string, since: string): string[] {
-  const posts: string[] = urls
-    .filter((url: SitemapUrl): boolean => /^\/blog\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(new URL(url.loc).pathname) && url.lastmod !== null && url.lastmod >= since)
-    .map((url: SitemapUrl): string => url.loc);
-  return posts.length === 0 ? [] : [...posts, `${origin}/blog`, `${origin}/sitemap.xml`];
+  const changed: string[] = urls.filter((url: SitemapUrl): boolean => url.lastmod !== null && url.lastmod >= since).map((url: SitemapUrl): string => url.loc);
+  if (changed.length === 0) {
+    return [];
+  }
+  const postChanged: boolean = changed.some((loc: string): boolean => /^\/blog\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(new URL(loc).pathname));
+  const extra: readonly string[] = [...(postChanged ? [`${origin}/blog`] : []), `${origin}/sitemap.xml`];
+  return [...new Set([...changed, ...extra])];
 }
 
 /** Yeniden denenebilir durum: 429 ve 5xx. Saf fonksiyondur. */
@@ -122,7 +127,7 @@ async function submit(body: IndexNowBody): Promise<number> {
   throw new IndexNowError("IndexNow deneme döngüsü sonuçsuz bitti.");
 }
 
-/** Değişen yazıları bildirir. */
+/** Değişen sayfaları ve yazıları bildirir. */
 async function main(): Promise<void> {
   const urls: SitemapUrl[] = sitemapUrls(await readFile(join(distDir, "sitemap.xml"), "utf8"));
   const first: SitemapUrl | undefined = urls[0];

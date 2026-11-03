@@ -1,6 +1,7 @@
 ---
 // İndirme sayfası: indirme düğmesi (sunucu indirmeyi sayıp en son GitHub sürümündeki DMG'ye yönlendirir), altında
-// sürüm (sunucudan okunur; yeri baştan ayrılır, numara gelince sayfa kaymaz) ve gereksinimler etiket/değer satırlarında,
+// sürüm (sunucudan okunur; yeri baştan ayrılır, numara gelince sayfa kaymaz) ve gereksinimler etiket/değer satırlarında
+// (altında sürüm notu: her şey macOS 15'te çalışır, sesle yazmanın motoru sürüme göre),
 // üç kurulum adımı, güncellemeler ve yardım tek satırda.
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
@@ -32,6 +33,7 @@ const text: DownloadCopy = copy.download;
           <dt>{text.requirementsLabel}</dt>
           <dd>{copy.common.requirementsShort}</dd>
         </dl>
+        <p class="small muted download-hero__note">{text.requirementsNote}</p>
       </div>
     </div>
     <Film palette="mint" layout="clouds-left" class="download-hero__cover">
@@ -101,6 +103,10 @@ const text: DownloadCopy = copy.download;
 
   .download-hero__facts dd {
     color: var(--muted);
+  }
+
+  .download-hero__note {
+    max-width: 30rem;
   }
 
   /* Sürüm satırı numara gelene dek yer kaplar ama görünmez (okunamazsa öyle kalır; hata konsolda). */

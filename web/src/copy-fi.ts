@@ -4,6 +4,7 @@
 import { cardStatementDescriptor, productName } from "./config";
 import type { CommonCopy, HomeCopy } from "./copy";
 import { operator } from "./legal/operator";
+import { noteLanguages, spokenLanguages } from "./lib/languages";
 
 /** Sayfanın başlığındaki tek satır (paylaşım kartı ve alt bilgi de kullanır). */
 const tagline: string = "Kuuntelee kokouksesi, kirjoittaa muistiinpanosi.";
@@ -25,6 +26,9 @@ export const commonFi: CommonCopy = {
     compare: "Vertailu",
     blog: "Blogi",
     mcp: "MCP tekoälysovelluksille",
+    languages: "Kielet",
+    integrations: "Integraatiot",
+    dataHandling: "Tietojen käsittely",
   },
   downloadCta: "Lataa Macille",
   headerDownload: "Lataa",
@@ -34,6 +38,7 @@ export const commonFi: CommonCopy = {
   perMonth: "/ kk",
   yearlyPrice: "$49",
   offer: "3 kokousta tai 7 päivää ilmaiseksi, sitten 5,99 $ kuussa tai 49 $ vuodessa, verot sisältyvät",
+  trial: "Ilmainen kokeilu: 3 kokousta tai 7 päivää ensimmäisestä kokouksesta, kumpi tahansa täyttyy ensin, kukin enintään 90 minuuttia; korttia ei tarvita",
   requirementsShort: "macOS 15 tai uudempi · Apple silicon",
   macOnly: {
     notMacTitle: `${productName} on Mac-sovellus`,
@@ -252,7 +257,7 @@ export const homeFi: HomeCopy = {
   pricingTitle: "Yksi hinta, kuukausittain tai vuosittain.",
   pricingLead: "Yksi paketti, jossa on kaikki, laskutetaan kuukausittain tai vuosittain. Kokeile omilla kokouksillasi ennen kuin maksat.",
   pricingCta: "Hintatiedot",
-  pricingCompare: "Vertaa Granolaan ja Otteriin",
+  pricingCompare: "Vertaa Granolaan, Otteriin ja Firefliesiin",
   faqTitle: "Kysymyksiä",
   faq: [
     {
@@ -271,7 +276,7 @@ export const homeFi: HomeCopy = {
     },
     {
       question: "Mitä kieliä tuetaan?",
-      answer: "Yli 30 kieltä, muun muassa suomi, englanti ja ruotsi. Valitset itse muistiinpanojen ja käännösten kielen.",
+      answer: `Kokouksessa voi puhua ${spokenLanguages.length} kieltä, muun muassa suomea, ruotsia, englantia ja turkkia, ja muistiinpanot ja käännökset saat ${noteLanguages.length} kielellä. Valitset itse muistiinpanojen ja käännösten kielen kokouksen kielestä riippumatta.`,
     },
     {
       question: "Toimiiko se myös kasvokkaisissa kokouksissa ja tallenteilla?",
@@ -281,6 +286,19 @@ export const homeFi: HomeCopy = {
       question: "Miten maksu ja verot toimivat Suomessa?",
       answer: `Maksun hoitaa Stripe ja myynnin Link, Stripen maksupalvelu. Hinta 5,99 $ kuussa tai 49 $ vuodessa sisältää arvonlisäveron: Link laskee sijaintisi mukaisen veron ja tilittää sen puolestamme, ja kassa näyttää sisältyvän veron ennen maksua. Kassalla hinta voi näkyä myös euroina. Veloitus näkyy tiliotteellasi nimellä ${cardStatementDescriptor}, ja kuitti tulee Linkiltä sähköpostiisi. Korttitietosi jäävät Stripelle ja Linkille eivätkä koskaan tule meille.`,
     },
+  ],
+  featureList: [
+    "Tallentaa verkkokokoukset (Zoom, Microsoft Teams, Google Meet ja muut sovellukset) ilman bottia sekä kasvokkaiset kokoukset ja tuodut ääni- tai videotiedostot",
+    `Litterointi livenä ${spokenLanguages.length} kielellä ja käännös livenä ${noteLanguages.length} kielelle`,
+    "Muistiinpano jokaisen kokouksen jälkeen: ensin tehtäväsi tekijöineen ja määräaikoineen, sitten päätökset, yhteenveto, sanasto ja aiheet",
+    "Kokousmallit ja valmiit ohjeet, kuten jatkoviesti yhdellä napsautuksella",
+    "”Mitä minulta meni ohi?” -yhteenvedot kesken kokouksen",
+    "Kysy kaikista kokouksistasi, vastaukset lähdeviitteineen",
+    "Halutessasi kuvat jaetusta näytöstä, yhdistettynä siihen, mitä puhuttiin",
+    "Muistiinpanot Slackiin, Microsoft Teamsiin, Discordiin, Zoom Team Chatiin, Notioniin ja Apple Notesiin; tehtävät Lineariin, Jiraan ja Apple Remindersiin; kaikkeen muuhun webhookilla",
+    "Vain luku -MCP-palvelin Claudelle, Cursorille ja VS Codelle",
+    "Sanelu mihin tahansa Mac-sovellukseen, puheentunnistus Macilla",
+    "Muistiinpanot, litteroinnit ja tallenteet tallennetaan Macillesi",
   ],
   finalTitle: "Anna sen kirjoittaa muistiinpano seuraavasta kokouksestasi.",
   finalLead: "Käyttöönotto vie minuutin, sen jälkeen riittää että aloitat kuuntelemisen.",
