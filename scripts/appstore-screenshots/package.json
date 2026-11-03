@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "make": "node make.ts --chrome \"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\"",
+    "marketing": "node marketing.ts --chrome \"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\"",
     "typecheck": "tsc --noEmit -p ."
   },
   "devDependencies": {

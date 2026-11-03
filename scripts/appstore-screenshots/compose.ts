@@ -28,7 +28,7 @@ export interface SceneHtmlInput {
 }
 
 /** Sitenin gren dokusu (`web/src/styles/global.css` `.film::before` ile aynı döşeme). */
-const grainUrl: string = new URL("../../web/public/grain.png", import.meta.url).href;
+export const grainUrl: string = new URL("../../web/public/grain.png", import.meta.url).href;
 
 /** Düzenin genişliği: tüm ölçüler bu genişlikte yazılır, çıktıya `zoom` ile ölçeklenir. */
 const stageWidth: number = 1320;
@@ -270,24 +270,29 @@ export class ChromeRenderer {
     return new ChromeRenderer(await chromium.launch({ executablePath, headless: true }));
   }
 
-  /** HTML dosyasını açar, yazı tipi ve görseller yüklenince ekranın tamamını çeker. */
-  async render(htmlPath: string, width: number, height: number): Promise<Buffer> {
+  /**
+   * HTML dosyasını açar, yazı tipi ve görseller yüklenince ekranın tamamını çeker. Sayfadaki `<img>` sayısı
+   * `expectedImages` değilse ya da biri yüklenmediyse `ComposeError`.
+   */
+  async render(htmlPath: string, width: number, height: number, expectedImages: number): Promise<Buffer> {
     const page: Page = await this.browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
     try {
       await page.goto(pathToFileURL(htmlPath).href, { waitUntil: "load" });
+      // Inter, sayfada metin olmasa da yüklenir (ör. metinsiz abonelik görseli): denetim yüklenmemiş yazı tipinde false döner.
       await page.evaluate(async (): Promise<void> => {
+        await document.fonts.load('650 112px "Inter"');
         await document.fonts.ready;
       });
       const interLoaded: boolean = await page.evaluate((): boolean => document.fonts.check('650 112px "Inter"'));
       if (!interLoaded) {
         throw new ComposeError(`Inter yüklenmedi: ${htmlPath}`);
       }
-      const imageOk: boolean = await page.evaluate((): boolean => {
-        const image: HTMLImageElement | null = document.querySelector(".screen img");
-        return image !== null && image.complete && image.naturalWidth > 0;
-      });
-      if (!imageOk) {
-        throw new ComposeError(`Ekran görüntüsü yüklenmedi: ${htmlPath}`);
+      const loadedImages: number = await page.evaluate(
+        (): number => Array.from(document.images).filter((image: HTMLImageElement) => image.complete && image.naturalWidth > 0).length,
+      );
+      const totalImages: number = await page.evaluate((): number => document.images.length);
+      if (totalImages !== expectedImages || loadedImages !== totalImages) {
+        throw new ComposeError(`Görseller: beklenen ${expectedImages}, sayfada ${totalImages}, yüklenen ${loadedImages}: ${htmlPath}`);
       }
       return await page.screenshot({ type: "png", fullPage: false });
     } finally {
