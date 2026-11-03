@@ -5,8 +5,11 @@ import SwiftUI
 import UniformTypeIdentifiers
 import os
 
-/// Toplantılar: tarihe göre gruplanmış film gradyanlı kartlar ve arama; uzun basınca silme. Dokununca toplantı sayfası.
-/// Sağ üstteki "İçe aktar" ses ya da video dosyasını (Dosyalar ya da Fotoğraflar) toplantı olarak ekler.
+/// Toplantılar: tarihe göre gruplanmış film gradyanlı kartlar ve arama; uzun basınca Markdown kopyası, klasöre taşıma ve
+/// silme. Dokununca toplantı sayfası. "Seç" (Mac'teki gibi) birden çok toplantıyı birlikte siler ya da klasöre taşır;
+/// silinen toplantı Son silinenler'e gider (listenin sonunda). Klasör çiplerinde "+" boş klasör açar, uzun basınca
+/// klasör silinir (toplantılar kalır). Sağ üstteki "İçe aktar" ses ya da video dosyasını (Dosyalar ya da Fotoğraflar)
+/// toplantı olarak ekler.
 struct MeetingsTab: View {
     let store: PhoneStore
     /// İçe aktarma ve toplantıyı yeniden işleme (⋯ › Tekrar işle) için.
@@ -22,7 +25,16 @@ struct MeetingsTab: View {
     /// Liste süzgeci (Mac'teki Hepsi / Görevlerim / Hatalı) ya da klasör.
     @State private var scope: MeetingListScope = .filter(.all)
     @State private var pendingDelete: MeetingRecord?
-    @State private var deleteError: String?
+    /// Silme, geri yükleme ve klasöre taşıma hataları.
+    @State private var libraryErrors: [String] = []
+    /// "Seç" modu: kartlara dokunmak toplantıyı açmaz, işaretler; altta tümünü seç, klasöre taşı ve sil.
+    @State private var isSelecting: Bool = false
+    @State private var checked: Set<String> = []
+    @State private var isConfirmingBulkDelete: Bool = false
+    /// Yeni klasörün adı soruluyor: boş klasör (çiplerdeki "+") ya da seçilenleri taşımak için.
+    @State private var newFolderRequest: NewFolderRequest?
+    /// Silinmesi onay bekleyen klasör.
+    @State private var pendingFolderDelete: String?
     /// Dosyalar seçicisi açık (ses ya da video içe aktarma).
     @State private var isPickingFiles: Bool = false
     /// Fotoğraflar seçicisi açık; seçilen videolar.
@@ -49,16 +61,28 @@ struct MeetingsTab: View {
         let sections: [MeetingSection] = meetingSections(
             records: filterMeetings(records: scoped, query: query), now: Date(), calendar: .current, locale: interfaceLocale()
         )
+        let locked: Set<String> = phoneLockedMeetingIDs(store: store, recorder: recorder)
+        // Yalnız görünen işaretliler sayılır ve işlenir (Mac'teki gibi): arama, klasör ya da süzgeç değişince gizlenen
+        // işaretliler işlemden çıkar.
+        let visibleIDs: Set<String> = Set(sections.flatMap(\.meetings).map(\.id))
+        let effective: Set<String> = checked.intersection(visibleIDs)
         NavigationStack(path: $router.meetingsPath) {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 14) {
-                    PhoneErrorList(messages: store.loadProblems + recorder.importErrors + [deleteError, pickError].compactMap { $0 })
+                    PhoneErrorList(messages: store.loadProblems + recorder.importErrors + libraryErrors + [pickError].compactMap { $0 })
                     PhoneDismissibleErrorList(messages: store.actionProblems) { store.dismissActionProblems() }
                     if recorder.importingCount > 0 || isLoadingVideos {
                         ImportProgressRow()
                     }
                     if !store.meetings.isEmpty {
-                        MeetingScopeChips(records: meetings, userName: userName, selection: $scope)
+                        MeetingScopeChips(
+                            records: meetings, folders: store.folders, userName: userName, selection: $scope,
+                            onCreateFolder: { newFolderRequest = .create },
+                            onDeleteFolder: { (name: String) -> Void in pendingFolderDelete = name },
+                            canDeleteFolder: { (name: String) -> Bool in
+                                !meetingsInFolder(records: store.meetings, folder: name).contains { locked.contains($0.id) }
+                            }
+                        )
                     }
                     ForEach(sections) { (section: MeetingSection) in
                         Text(section.title)
@@ -68,16 +92,11 @@ struct MeetingsTab: View {
                             .foregroundStyle(Theme.muted)
                             .padding(.top, 10)
                         ForEach(section.meetings, id: \.id) { (record: MeetingRecord) in
-                            NavigationLink(value: record.id) {
-                                PhoneMeetingCard(record: record, height: 132)
-                                    .matchedTransitionSource(id: record.id, in: cardTransition)
-                            }
-                            .buttonStyle(PressableCardStyle())
-                            .contextMenu {
-                                Button("Sil", systemImage: "trash", role: .destructive) { pendingDelete = record }
-                                    .disabled(record.status == .recording || record.status == .processing || store.regeneratingIDs.contains(record.id))
-                            }
+                            card(record: record, locked: locked)
                         }
+                    }
+                    if !store.deletedMeetings.isEmpty, !isSelecting, !sections.isEmpty {
+                        RecentlyDeletedLink(store: store, recorder: recorder)
                     }
                 }
                 .padding(.horizontal, 20)
@@ -85,50 +104,68 @@ struct MeetingsTab: View {
             }
             .scrollIndicators(.hidden)
             .overlay {
-                // Boş arşiv ya da eşleşmeyen arama: ekranın ortasında kısa bir boş durum.
-                if store.meetings.isEmpty {
-                    PhoneEmptyScene(
-                        symbol: "waveform", palette: .sunset, title: "Henüz toplantı yok",
-                        message: "İlk toplantını kaydet; not, görevler ve transkript burada hazır olur."
-                    ) {
-                        Button("Kaydı başlat", systemImage: "mic.fill") { router.tab = .record }
-                            .buttonStyle(.accentPill)
-                            .controlSize(.large)
-                    }
-                } else if sections.isEmpty {
-                    PhoneEmptyState(symbol: "magnifyingglass", title: "Eşleşen toplantı yok", message: "Başka bir kelimeyle ara.") {
-                        EmptyView()
-                    }
-                }
+                emptyOverlay(hasResults: !sections.isEmpty)
             }
             .background(Theme.background)
             .navigationTitle("Toplantılar")
             .searchable(text: $query, prompt: "Toplantılarda ara")
+            // Seç modunda alt çubuk sekme çubuğunun yerini alır (Fotoğraflar'daki gibi).
+            .toolbar(isSelecting ? .hidden : .visible, for: .tabBar)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink {
-                        PhonePeopleList(store: store, router: router)
-                    } label: {
-                        Label("Kişiler", systemImage: "person.2")
+                if isSelecting {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Bitti") { setSelecting(false) }
+                            .fontWeight(.semibold)
+                    }
+                    ToolbarItemGroup(placement: .bottomBar) {
+                        selectionBar(effective: effective, selectable: visibleIDs.subtracting(locked), locked: locked)
+                    }
+                } else {
+                    if !store.meetings.isEmpty {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button("Seç") { setSelecting(true) }
+                        }
+                    }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        NavigationLink {
+                            PhonePeopleList(store: store, router: router)
+                        } label: {
+                            Label("Kişiler", systemImage: "person.2")
+                        }
+                    }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        importMenu
                     }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Section("Ses ya da video dosyası içe aktar") {
-                            Button("Dosyalar'dan seç", systemImage: "folder") { isPickingFiles = true }
-                            Button("Fotoğraflar'dan video seç", systemImage: "photo.on.rectangle") { isPickingVideos = true }
-                        }
-                        #if CALL_CAPTURE_EXPERIMENT
-                        Section {
-                            Button { isCapturingCall = true } label: {
-                                Label { Text(verbatim: "Bu iPhone'daki görüşmeyi kaydet (deneysel)") } icon: { Image(systemName: "phone.badge.waveform") }
-                            }
-                        }
-                        #endif
-                    } label: {
-                        Label("İçe aktar", systemImage: "square.and.arrow.down")
+            }
+            .confirmationDialog(
+                Text("\(effective.count) toplantı silinsin mi?"), isPresented: $isConfirmingBulkDelete, titleVisibility: .visible
+            ) {
+                Button("Sil", role: .destructive) { deleteChecked(ids: effective) }
+                Button("Vazgeç", role: .cancel) {}
+            } message: {
+                Text("Son silinenler'e taşınır; \(recentlyDeletedRetentionDays) gün içinde geri yükleyebilirsin.")
+            }
+            .confirmationDialog(
+                Text("\"\(pendingFolderDelete ?? "")\" klasörü silinsin mi?"),
+                isPresented: Binding<Bool>(get: { pendingFolderDelete != nil }, set: { (shown: Bool) -> Void in
+                    if !shown {
+                        pendingFolderDelete = nil
                     }
-                    .disabled(isLoadingVideos)
+                }),
+                titleVisibility: .visible,
+                presenting: pendingFolderDelete
+            ) { (name: String) in
+                Button("Klasörü sil", role: .destructive) { deleteFolder(name: name) }
+                Button("Vazgeç", role: .cancel) {}
+            } message: { (_: String) in
+                Text("Toplantılar silinmez, klasörsüz kalır.")
+            }
+            .sheet(item: $newFolderRequest) { (request: NewFolderRequest) in
+                PhoneTextEntrySheet(
+                    title: "Yeni klasör", placeholder: "Klasör adı", actionTitle: request.actionTitle, initialText: ""
+                ) { (name: String) -> Void in
+                    createFolder(name: name, request: request)
                 }
             }
             .fileImporter(isPresented: $isPickingFiles, allowedContentTypes: [.audio, .movie], allowsMultipleSelection: true) { (result: Result<[URL], any Error>) in
@@ -164,6 +201,13 @@ struct MeetingsTab: View {
                         onRunRecipe(recipe, record.id)
                     }
                     .navigationTransition(.zoom(sourceID: id, in: cardTransition))
+                } else if store.deletedMeetings.contains(where: { $0.id == id }) {
+                    // Son silinenlerdeki toplantı (Sor'daki kaynak, görev ya da kişi buraya götürdü): geri yüklenebilir.
+                    PhoneEmptyState(symbol: "trash", title: "Bu toplantı silindi", message: "Son silinenler'den geri yükleyebilirsin.") {
+                        Button("Geri yükle", systemImage: "arrow.uturn.backward") { restore(ids: [id]) }
+                            .buttonStyle(.accentPill)
+                    }
+                    .background(Theme.background)
                 } else {
                     // Toplantı silindi (ör. Mac'ten): boş sayfa yerine neden görünür.
                     PhoneEmptyState(symbol: "doc.questionmark", title: "Toplantı bulunamadı", message: "Bu toplantı silinmiş olabilir.") {
@@ -174,6 +218,8 @@ struct MeetingsTab: View {
             }
             .refreshable { await store.reloadAndWait() }
         }
+        // Toplantı sayfasındaki "Şimdi dene" (bekleyen kayıt) kaydediciye buradan ulaşır.
+        .environment(recorder)
         // Uzun basınca silme: ekranın ortasında uyarı (kartın üstünde açılan menü listeye bağlıydı, sayfadayken görünmüyordu).
         .modifier(MeetingDeleteConfirmation(pending: $pendingDelete) { (record: MeetingRecord) -> Void in delete(record: record) })
     }
@@ -205,16 +251,240 @@ struct MeetingsTab: View {
         }
     }
 
-    private func delete(record: MeetingRecord) {
-        if player.meetingID == record.id {
-            player.stop()
+    /// Sağ üstteki "İçe aktar": ses ya da video dosyası (Dosyalar ya da Fotoğraflar).
+    private var importMenu: some View {
+        Menu {
+            Section("Ses ya da video dosyası içe aktar") {
+                Button("Dosyalar'dan seç", systemImage: "folder") { isPickingFiles = true }
+                Button("Fotoğraflar'dan video seç", systemImage: "photo.on.rectangle") { isPickingVideos = true }
+            }
+            #if CALL_CAPTURE_EXPERIMENT
+            Section {
+                Button { isCapturingCall = true } label: {
+                    Label { Text(verbatim: "Bu iPhone'daki görüşmeyi kaydet (deneysel)") } icon: { Image(systemName: "phone.badge.waveform") }
+                }
+            }
+            #endif
+        } label: {
+            Label("İçe aktar", systemImage: "square.and.arrow.down")
         }
-        do {
-            try store.deleteMeeting(id: record.id)
-            deleteError = nil
-            router.meetingsPath.removeAll { $0 == record.id }
-        } catch {
-            deleteError = String(localized: "Toplantı silinemedi: \(userFacingMessage(error: error))")
+        .disabled(isLoadingVideos)
+    }
+
+    /// Liste kartı: seç modunda işaretlenir; değilse dokununca açılır, uzun basınca menü (Mac'teki satır menüsü gibi).
+    @ViewBuilder
+    private func card(record: MeetingRecord, locked: Set<String>) -> some View {
+        if isSelecting {
+            SelectableMeetingCard(record: record, isChecked: checked.contains(record.id), isLocked: locked.contains(record.id)) {
+                toggle(id: record.id)
+            }
+        } else {
+            NavigationLink(value: record.id) {
+                PhoneMeetingCard(record: record, height: 132)
+                    .matchedTransitionSource(id: record.id, in: cardTransition)
+            }
+            .buttonStyle(PressableCardStyle())
+            .contextMenu {
+                Button("Markdown olarak kopyala", systemImage: "doc.on.doc") {
+                    UIPasteboard.general.string = meetingMarkdown(record: record)
+                    recordFeatureUsage(feature: .export(.copyMarkdown))
+                }
+                if record.status == .queued {
+                    Button("Şimdi dene", systemImage: "arrow.clockwise") {
+                        Task { await recorder.retryQueuedNow(meetingID: record.id) }
+                    }
+                    .disabled(recorder.phase != .idle || recorder.isRunningQueue)
+                }
+                Menu("Klasöre taşı", systemImage: "folder") {
+                    moveMenuItems(ids: [record.id])
+                }
+                .disabled(locked.contains(record.id))
+                Button("Seç", systemImage: "checkmark.circle") {
+                    setSelecting(true)
+                    checked = locked.contains(record.id) ? [] : [record.id]
+                }
+                Divider()
+                Button("Sil", systemImage: "trash", role: .destructive) { pendingDelete = record }
+                    .disabled(locked.contains(record.id))
+            }
+        }
+    }
+
+    /// "Klasöre taşı" menüsünün öğeleri: klasörler (boş olanlar dahil), yeni klasör ve klasörden çıkarma.
+    @ViewBuilder
+    private func moveMenuItems(ids: Set<String>) -> some View {
+        ForEach(store.folders) { (folder: FolderSummary) in
+            Button(folder.name, systemImage: "folder") { move(ids: ids, folder: folder.name) }
+        }
+        Button("Yeni klasör…", systemImage: "folder.badge.plus") { newFolderRequest = .move(ids) }
+        Button("Klasörden çıkar", systemImage: "folder.badge.minus") { move(ids: ids, folder: nil) }
+    }
+
+    /// Seç modunun alt çubuğu: tümünü seç, sayı, klasöre taşı ve sil.
+    @ViewBuilder
+    private func selectionBar(effective: Set<String>, selectable: Set<String>, locked: Set<String>) -> some View {
+        let allChecked: Bool = !selectable.isEmpty && effective.isSuperset(of: selectable)
+        Button(allChecked ? "Seçimi kaldır" : "Tümünü seç") {
+            checked = allChecked ? [] : selectable
+        }
+        Spacer()
+        Text("\(effective.count) seçili")
+            .appFont(size: 13, weight: .medium)
+            .monospacedDigit()
+            .foregroundStyle(Theme.muted)
+            .contentTransition(.numericText())
+        Spacer()
+        Menu {
+            moveMenuItems(ids: effective)
+        } label: {
+            Label("Klasöre taşı", systemImage: "folder")
+        }
+        .disabled(effective.isEmpty)
+        Button("Sil", systemImage: "trash") { isConfirmingBulkDelete = true }
+            .disabled(effective.isEmpty)
+    }
+
+    /// Boş durumlar: hiç toplantı yok (son silinenler varsa oraya bağlantı), boş klasör ya da eşleşmeyen arama/süzgeç.
+    @ViewBuilder
+    private func emptyOverlay(hasResults: Bool) -> some View {
+        if store.meetings.isEmpty {
+            PhoneEmptyScene(
+                symbol: "waveform", palette: .sunset, title: "Henüz toplantı yok",
+                message: "İlk toplantını kaydet; not, görevler ve transkript burada hazır olur."
+            ) {
+                VStack(spacing: 12) {
+                    Button("Kaydı başlat", systemImage: "mic.fill") { router.tab = .record }
+                        .buttonStyle(.accentPill)
+                        .controlSize(.large)
+                    if !store.deletedMeetings.isEmpty {
+                        NavigationLink {
+                            RecentlyDeletedList(store: store, recorder: recorder)
+                        } label: {
+                            Label("Son silinenler", systemImage: "trash")
+                                .appFont(size: 15, weight: .medium)
+                        }
+                    }
+                }
+            }
+        } else if !hasResults {
+            if case .folder = scope, query.trimmingCharacters(in: .whitespaces).isEmpty {
+                PhoneEmptyState(symbol: "folder", title: "Bu klasör boş", message: "Toplantı sayfasındaki \"Klasöre taşı\" ile buraya ekle.") {
+                    Button("Tüm toplantılar") { scope = .filter(.all) }
+                        .buttonStyle(.accentPill)
+                }
+            } else {
+                PhoneEmptyState(symbol: "magnifyingglass", title: "Eşleşen toplantı yok", message: "Başka bir kelimeyle ara.") {
+                    EmptyView()
+                }
+            }
+        }
+    }
+
+    private func setSelecting(_ selecting: Bool) {
+        withAnimation(.smooth(duration: 0.25)) {
+            isSelecting = selecting
+            checked = []
+            libraryErrors = []
+        }
+    }
+
+    private func toggle(id: String) {
+        withAnimation(.snappy(duration: 0.2)) {
+            if checked.contains(id) {
+                checked.remove(id)
+            } else {
+                checked.insert(id)
+            }
+        }
+    }
+
+    /// Toplantıları son silinenlere taşır (çalan toplantı önce durur, açık sayfası kapanır); hatalar döner.
+    private func trash(ids: Set<String>) -> [String] {
+        if let playing = player.meetingID, ids.contains(playing) {
+            player.stop()
+            store.playingMeetingID = nil
+        }
+        let errors: [String] = store.trashMeetings(ids: ids, locked: phoneLockedMeetingIDs(store: store, recorder: recorder), now: Date())
+        let remaining: Set<String> = Set(store.meetings.map(\.id))
+        router.meetingsPath.removeAll { ids.contains($0) && !remaining.contains($0) }
+        return errors
+    }
+
+    /// Tek toplantıyı siler (uzun basma menüsü ya da toplantı sayfası, onaydan sonra).
+    private func delete(record: MeetingRecord) {
+        withAnimation(.snappy(duration: 0.3)) {
+            libraryErrors = trash(ids: [record.id])
+        }
+    }
+
+    /// İşaretlileri siler; silinemeyenler işaretli kalır, hataları listenin üstünde görünür (Mac'teki gibi).
+    private func deleteChecked(ids: Set<String>) {
+        withAnimation(.snappy(duration: 0.3)) {
+            let errors: [String] = trash(ids: ids)
+            checked = ids.intersection(Set(store.meetings.map(\.id)))
+            libraryErrors = errors
+            if errors.isEmpty {
+                isSelecting = false
+                checked = []
+            }
+        }
+    }
+
+    /// Toplantıları klasöre taşır (nil: klasörden çıkarır); seç modundaysa başarıyla biter.
+    private func move(ids: Set<String>, folder: String?) {
+        let errors: [String] = store.moveMeetings(ids: ids, to: folder, locked: phoneLockedMeetingIDs(store: store, recorder: recorder))
+        withAnimation(.smooth(duration: 0.25)) {
+            libraryErrors = errors
+            if isSelecting, errors.isEmpty {
+                isSelecting = false
+                checked = []
+            }
+        }
+    }
+
+    /// Yeni klasör: boş olarak oluşturulur; seçilenler için açıldıysa onlar da oraya taşınır.
+    private func createFolder(name: String, request: NewFolderRequest) {
+        store.createFolder(name: name)
+        if case .move(let ids) = request {
+            move(ids: ids, folder: name)
+        }
+    }
+
+    /// Klasörü siler (toplantılar kalır, klasörsüz olur); o klasör açıksa liste Tümü'ne döner.
+    private func deleteFolder(name: String) {
+        store.deleteFolder(name: name, locked: phoneLockedMeetingIDs(store: store, recorder: recorder))
+        if case .folder(let selected) = scope, selected.caseInsensitiveCompare(name) == .orderedSame {
+            scope = .filter(.all)
+        }
+    }
+
+    /// Silinen toplantıyı geri yükler; bekleyen kayıt geri geldiyse kuyruk çalışır.
+    private func restore(ids: Set<String>) {
+        let result: (restored: [MeetingRecord], errors: [String]) = store.restoreDeleted(ids: ids)
+        libraryErrors = result.errors
+        if result.restored.contains(where: { $0.status == .queued }) {
+            Task { await recorder.runQueue() }
+        }
+    }
+}
+
+/// Yeni klasör adı sorulma nedeni: boş klasör oluşturmak ya da verilen toplantıları yeni klasöre taşımak.
+private enum NewFolderRequest: Identifiable {
+    case create
+    case move(Set<String>)
+
+    var id: String {
+        switch self {
+        case .create: "create"
+        case .move(let ids): "move." + ids.sorted().joined(separator: ",")
+        }
+    }
+
+    /// Ad sayfasının eylem düğmesi.
+    var actionTitle: LocalizedStringKey {
+        switch self {
+        case .create: "Oluştur"
+        case .move: "Taşı"
         }
     }
 }
@@ -264,7 +534,7 @@ struct MeetingDeleteConfirmation: ViewModifier {
             Button("Sil", role: .destructive) { onConfirm(record) }
             Button("Vazgeç", role: .cancel) {}
         } message: { (_: MeetingRecord) in
-            Text("Not, transkript ve ses kalıcı olarak silinir; geri alınamaz.")
+            Text("Son silinenler'e taşınır; \(recentlyDeletedRetentionDays) gün içinde geri yükleyebilirsin.")
         }
     }
 }
@@ -283,17 +553,22 @@ func meetingsInScope(records: [MeetingRecord], scope: MeetingListScope, userName
     }
 }
 
-/// Listenin üstündeki çipler: Tümü, Görevlerim, Hatalı (varsa) ve klasörler (sayılarıyla); yatay kayar. Seçilen kapsam
-/// artık boşsa (ör. klasör silindi) Tümü'ne döner.
+/// Listenin üstündeki çipler: Tümü, Görevlerim, Hatalı (varsa), klasörler (boş olanlar dahil, sayılarıyla) ve yeni klasör
+/// ("+"); yatay kayar. Klasöre uzun basınca silinir (toplantılar kalır). Seçilen süzgeç boşalırsa ya da klasör artık
+/// yoksa Tümü'ne döner (boş klasör seçili kalır: "Bu klasör boş").
 private struct MeetingScopeChips: View {
     let records: [MeetingRecord]
+    let folders: [FolderSummary]
     let userName: String
     @Binding var selection: MeetingListScope
+    let onCreateFolder: @MainActor () -> Void
+    let onDeleteFolder: @MainActor (String) -> Void
+    /// İçinde üzerinde iş süren toplantı olan klasör silinemez (o toplantı klasörden çıkarılamaz).
+    let canDeleteFolder: @MainActor (String) -> Bool
 
     var body: some View {
         let mine: Int = filterMeetings(records: records, listFilter: .myTasks, userName: userName).count
         let problems: Int = filterMeetings(records: records, listFilter: .problems, userName: userName).count
-        let folders: [FolderSummary] = meetingFolders(records: records, saved: [])
         ScrollView(.horizontal) {
             HStack(spacing: 8) {
                 chip(scope: .filter(.all), title: Text("Tümü"), systemImage: nil)
@@ -305,16 +580,43 @@ private struct MeetingScopeChips: View {
                 }
                 ForEach(folders) { (folder: FolderSummary) in
                     chip(scope: .folder(folder.name), title: Text(verbatim: "\(folder.name) \(folder.count)"), systemImage: "folder")
+                        .contextMenu {
+                            Button("Klasörü sil", systemImage: "trash", role: .destructive) { onDeleteFolder(folder.name) }
+                                .disabled(!canDeleteFolder(folder.name))
+                        }
                 }
+                Button(action: onCreateFolder) {
+                    Image(systemName: "folder.badge.plus")
+                        .appFont(size: 14, weight: .medium)
+                        .foregroundStyle(Theme.ink)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Theme.card, in: Capsule())
+                        .overlay(Capsule().strokeBorder(Theme.line))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Yeni klasör")
             }
             .padding(.horizontal, 20)
         }
         .scrollIndicators(.hidden)
         .padding(.horizontal, -20)
-        .onChange(of: meetingsInScope(records: records, scope: selection, userName: userName).isEmpty) { (_: Bool, isEmpty: Bool) in
-            if isEmpty {
+        .onChange(of: isGone(scope: selection)) { (_: Bool, gone: Bool) in
+            if gone {
                 selection = .filter(.all)
             }
+        }
+    }
+
+    /// Seçilen kapsam artık gösterilemez: süzgeç boşaldı ya da klasör silindi.
+    private func isGone(scope: MeetingListScope) -> Bool {
+        switch scope {
+        case .filter(.all):
+            false
+        case .filter(let filter):
+            filterMeetings(records: records, listFilter: filter, userName: userName).isEmpty
+        case .folder(let name):
+            !folders.contains { $0.name.caseInsensitiveCompare(name) == .orderedSame }
         }
     }
 
@@ -423,7 +725,9 @@ struct MeetingReadView: View {
                             isConfirmingAudioDelete = false
                         }
                     }
-                    if let failure = record.failureMessage ?? record.notice {
+                    if record.status == .queued {
+                        QueuedMeetingNotice(record: record)
+                    } else if let failure = record.failureMessage ?? record.notice {
                         Label(failure, systemImage: "info.circle")
                             .appFont(size: 13, weight: .regular)
                             .foregroundStyle(Theme.muted)
@@ -526,7 +830,7 @@ struct MeetingReadView: View {
                     }
                     .disabled(!isEditable)
                     Menu("Klasöre taşı", systemImage: "folder") {
-                        ForEach(meetingFolders(records: store.meetings, saved: []), id: \.name) { (folder: FolderSummary) in
+                        ForEach(store.folders, id: \.name) { (folder: FolderSummary) in
                             Button(folder.name, systemImage: record.folder?.caseInsensitiveCompare(folder.name) == .orderedSame ? "checkmark" : "folder") {
                                 move(folder: folder.name)
                             }

@@ -4,15 +4,16 @@ import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 
-// Toplantının dosya olarak dışa aktarılması (Mac'teki "Dışa aktar" menüsünün iPhone karşılığı): PDF, web sayfası
-// (HTML), Markdown, transkript (TXT) ve altyazı (SRT). Dosya geçici klasöre yazılır ve iOS paylaşım sayfasıyla
+// Toplantının dosya olarak dışa aktarılması (Mac'teki "Dışa aktar" menüsünün iPhone karşılığı): PDF, Word (DOCX), web
+// sayfası (HTML), Markdown, transkript (TXT) ve altyazı (SRT). Dosya geçici klasöre yazılır ve iOS paylaşım sayfasıyla
 // gönderilir (Dosyalar'a kaydet, Mail, AirDrop…). İçerik çekirdeğin saf fonksiyonlarından gelir; PDF iPhone'da web
-// sayfasının UIKit yazdırma çizimiyle üretilir (Mac'teki AppKit belgesi iOS'ta yok). Word (DOCX) iOS'ta üretilemez
-// (`NSAttributedString` Office biçimini yalnız macOS'ta yazar).
+// sayfasının UIKit yazdırma çizimiyle üretilir (Mac'teki AppKit belgesi iOS'ta yok); Word belgesi Mac'tekiyle aynı
+// çekirdek yazıcısıyla (`meetingDOCX`).
 
 /// Dışa aktarma biçimi.
 enum MeetingExportFormat: String, CaseIterable, Identifiable {
     case pdf
+    case docx
     case html
     case markdown
     case transcriptText
@@ -23,6 +24,7 @@ enum MeetingExportFormat: String, CaseIterable, Identifiable {
     var fileExtension: String {
         switch self {
         case .pdf: "pdf"
+        case .docx: "docx"
         case .html: "html"
         case .markdown: "md"
         case .transcriptText: "txt"
@@ -34,6 +36,7 @@ enum MeetingExportFormat: String, CaseIterable, Identifiable {
     var title: LocalizedStringKey {
         switch self {
         case .pdf: "PDF"
+        case .docx: "Word (DOCX)"
         case .html: "Web sayfası (HTML)"
         case .markdown: "Markdown"
         case .transcriptText: "Transkript (TXT)"
@@ -45,6 +48,7 @@ enum MeetingExportFormat: String, CaseIterable, Identifiable {
     var telemetryFormat: TelemetryExportFormat {
         switch self {
         case .pdf: .pdf
+        case .docx: .docx
         case .html: .html
         case .markdown: .markdown
         case .transcriptText: .transcriptText
@@ -63,6 +67,7 @@ enum MeetingExportFormat: String, CaseIterable, Identifiable {
     var systemImage: String {
         switch self {
         case .pdf: "doc.richtext"
+        case .docx: "doc.text.fill"
         case .html: "safari"
         case .markdown: "doc.text"
         case .transcriptText: "text.alignleft"
@@ -72,11 +77,11 @@ enum MeetingExportFormat: String, CaseIterable, Identifiable {
 }
 
 /// Toplantıda bu biçim için içerik var mı: PDF ve web sayfası not ister, transkript ve altyazı konuşma metni ister,
-/// Markdown her toplantıda vardır. Saf fonksiyondur.
+/// Markdown ve Word belgesi (başlık, tarih, varsa not ve transkript) her toplantıda vardır. Saf fonksiyondur.
 func isMeetingExportAvailable(record: MeetingRecord, format: MeetingExportFormat) -> Bool {
     switch format {
     case .pdf, .html: record.note != nil
-    case .markdown: true
+    case .markdown, .docx: true
     case .transcriptText, .subtitles: !(record.finalSegments.isEmpty && record.liveSegments.isEmpty)
     }
 }
@@ -112,6 +117,8 @@ func writeMeetingExport(record: MeetingRecord, language: ShareLanguage?, format:
             throw MeetingExportError.contentMissing(format: format.rawValue, meetingID: record.id)
         }
         data = Data(meetingHTML(record: record, note: note, language: language, appName: appName).utf8)
+    case .docx:
+        data = meetingDOCX(record: record)
     case .markdown:
         data = Data(meetingMarkdown(record: record).utf8)
     case .transcriptText:

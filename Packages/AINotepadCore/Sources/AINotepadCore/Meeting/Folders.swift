@@ -32,3 +32,23 @@ public func meetingsInFolder(records: [MeetingRecord], folder: String?) -> [Meet
     }
     return records.filter { $0.folder?.caseInsensitiveCompare(folder) == .orderedSame }
 }
+
+/// Oluşturulan klasörlerin (toplantısız olanlar dahil) ayar anahtarı; abonelikte hesabın ayar alanında.
+public let savedFoldersKey: String = "folders"
+
+/// Yeni klasörle kayıtlı klasörler: ad kırpılır; boşsa ya da aynı adda (büyük/küçük harf duyarsız) kayıtlı ya da
+/// toplantılarda kullanılan klasör varsa nil (bir şey değişmez). Saf fonksiyondur.
+public func addingFolder(saved: [String], records: [MeetingRecord], name: String) -> [String]? {
+    let trimmed: String = name.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty,
+          !meetingFolders(records: records, saved: saved).contains(where: { $0.name.caseInsensitiveCompare(trimmed) == .orderedSame }) else {
+        return nil
+    }
+    return saved + [trimmed]
+}
+
+/// Klasör çıkarılmış kayıtlı klasörler (büyük/küçük harf duyarsız). İçindeki toplantılar ayrıca klasörden çıkarılır.
+/// Saf fonksiyondur.
+public func removingFolder(saved: [String], name: String) -> [String] {
+    saved.filter { $0.caseInsensitiveCompare(name) != .orderedSame }
+}

@@ -218,6 +218,7 @@ private struct PhoneAppRoot: View {
             }
             store.loadPeople()
             store.voices.load()
+            store.loadFolders()
             ask.loadRecipes()
             ask.loadHistory()
             store.applyRetention(now: Date())
@@ -227,6 +228,12 @@ private struct PhoneAppRoot: View {
                 await integrations.load()
                 await integrations.processPendingAutoSends()
             }
+            // Son silinenlerde süresi dolan toplantılar kalıcı silinir (okuma sürerken hesap değiştiyse silinmez).
+            await store.reloadDeletedAndWait()
+            guard !Task.isCancelled else {
+                return
+            }
+            store.purgeExpiredDeleted(now: Date())
             #if DEBUG
             // `--paywall`: abonelik ekranı doğrudan açılır (App Store abonelik inceleme görseli).
             if CommandLine.arguments.contains("--paywall") {
@@ -858,19 +865,184 @@ final class PhoneStore {
         }
     }
 
-    /// Toplantıyı kalıcı olarak siler (onay arayüzde sorulur). Kayıttaki, işlenen ya da notu yazılan toplantı silinmez
-    /// (not isteği boşa harcanır, silinmiş toplantı için hata görünürdü).
-    func deleteMeeting(id: String) throws {
-        guard let record = meetings.first(where: { $0.id == id }), record.status != .recording, record.status != .processing,
-              !regeneratingIDs.contains(id) else {
-            throw StorageError.deleteFailed(path: id, reason: "kayıtta, işleniyor ya da notu yazılıyor")
+    // MARK: Klasörler
+
+    /// Oluşturulan klasörler (toplantısız olanlar dahil): hesabın ayar alanında (Mac'teki Gistsmith'le aynı anahtar),
+    /// hesap verisi yüklenince okunur (bkz. `loadFolders`).
+    private(set) var savedFolders: [String] = []
+
+    /// Klasörler ve toplantı sayıları (boş klasörler dahil).
+    var folders: [FolderSummary] {
+        meetingFolders(records: meetings, saved: savedFolders)
+    }
+
+    /// Kayıtlı klasörleri okur (hesap verisi yüklenince). Okunamazsa neden sorunlarda görünür.
+    func loadFolders() {
+        do {
+            savedFolders = try hostedActiveAccountDefaults().stringArray(forKey: savedFoldersKey) ?? []
+        } catch {
+            Self.logger.error("Klasörler okunamadı, hata: \(String(describing: error), privacy: .private)")
+            actionProblems = appendUnique(messages: actionProblems, message: userFacingMessage(error: error))
         }
-        try deleteMeetingDirectory(directory: try sessionDirectory(id: id))
+    }
+
+    /// Boş klasör oluşturur (Mac'teki "+"); aynı ad varsa bir şey yapmaz.
+    func createFolder(name: String) {
+        guard let updated = addingFolder(saved: savedFolders, records: meetings, name: name) else {
+            return
+        }
+        storeFolders(folders: updated)
+    }
+
+    /// Klasörü siler (Mac'teki "Klasörü sil"): toplantılar silinmez, klasörsüz kalır. İçinde üzerinde iş süren (`locked`)
+    /// toplantı varsa silinmez (o toplantı klasörden çıkarılamaz, klasör yeniden belirirdi); arayüz bu durumda düğmeyi
+    /// kapatır. Klasörden çıkarılamayan toplantının nedeni sorunlarda görünür.
+    func deleteFolder(name: String, locked: Set<String>) {
+        let inside: [MeetingRecord] = meetingsInFolder(records: meetings, folder: name)
+        guard !inside.contains(where: { locked.contains($0.id) }) else {
+            actionProblems = appendUnique(messages: actionProblems, message: String(localized: "İçinde kayıttaki ya da işlenen toplantı olan klasör silinemez."))
+            return
+        }
+        storeFolders(folders: removingFolder(saved: savedFolders, name: name))
+        for error in moveMeetings(ids: Set(inside.map(\.id)), to: nil, locked: locked) {
+            actionProblems = appendUnique(messages: actionProblems, message: error)
+        }
+    }
+
+    /// Toplantıları klasöre taşır (nil: klasörden çıkarır; ad kırpılır, boş ad klasörden çıkarır); üzerinde iş süren
+    /// (`locked`) toplantılar atlanır. Taşınamayanların hataları (tekilleştirilmiş) döner.
+    func moveMeetings(ids: Set<String>, to folder: String?, locked: Set<String>) -> [String] {
+        let trimmed: String? = folder?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let target: String? = trimmed?.isEmpty == false ? trimmed : nil
+        return ids.subtracting(locked).sorted().reduce(into: [String]()) { (errors: inout [String], id: String) -> Void in
+            do {
+                try updateMeeting(meetingID: id) { (current: MeetingRecord) -> MeetingRecord in current.with(folder: target) }
+            } catch {
+                errors = appendUnique(messages: errors, message: "\(String(localized: "Klasöre taşınamadı")): \(userFacingMessage(error: error))")
+            }
+        }
+    }
+
+    /// Klasör listesini hesabın ayar alanına saklar; saklanamazsa neden sorunlarda görünür.
+    private func storeFolders(folders: [String]) {
+        do {
+            try hostedActiveAccountDefaults().set(folders, forKey: savedFoldersKey)
+            savedFolders = folders
+        } catch {
+            Self.logger.error("Klasörler saklanamadı, hata: \(String(describing: error), privacy: .private)")
+            actionProblems = appendUnique(messages: actionProblems, message: userFacingMessage(error: error))
+        }
+    }
+
+    // MARK: Son silinenler
+
+    /// Son silinenler (en son silinen önce): `recentlyDeletedRetentionDays` gün geri yüklenebilir, sonra kalıcı silinir.
+    private(set) var deletedMeetings: [DeletedMeeting] = []
+    /// Son silinenlerde okunamayan klasörler ya da klasöre erişim hatası (her okumada yenilenir).
+    private(set) var deletedLoadProblems: [String] = []
+    /// Her okumada ve her değişiklikte artar: süren okuma sonradan yapılan silmeyi ya da geri yüklemeyi geri almasın.
+    @ObservationIgnored private var deletedGeneration: Int = 0
+
+    /// Son silinenleri arka planda yeniden okur; liste güncellenince döner.
+    func reloadDeletedAndWait() async {
+        deletedGeneration += 1
+        let generation: Int = deletedGeneration
+        do {
+            let result: DeletedMeetingsLoadResult = try await loadRecentlyDeletedInBackground()
+            guard generation == deletedGeneration else {
+                return
+            }
+            deletedMeetings = result.meetings
+            deletedLoadProblems = result.failures.map { (failure: MeetingLoadFailure) -> String in "\(failure.folder): \(failure.reason)" }
+        } catch {
+            guard generation == deletedGeneration else {
+                return
+            }
+            deletedLoadProblems = [userFacingMessage(error: error)]
+        }
+    }
+
+    /// Toplantıları son silinenlere taşır (Mac'te Çöp Sepeti); `recentlyDeletedRetentionDays` gün geri yüklenebilir.
+    /// Üzerinde iş süren (`locked`: kayıtta, işleniyor, notu yazılıyor, sunucu oturumu hazırlanıyor) toplantı
+    /// silinmez. Silinemeyenlerin hataları (tekilleştirilmiş) döner; silinenler listeden, görevlerden, Sor'dan ve
+    /// Kişiler'den çıkar.
+    func trashMeetings(ids: Set<String>, locked: Set<String>, now: Date) -> [String] {
+        ids.sorted().reduce(into: [String]()) { (errors: inout [String], id: String) -> Void in
+            if let error = trashMeeting(id: id, locked: locked, now: now) {
+                errors = appendUnique(messages: errors, message: error)
+            }
+        }
+    }
+
+    /// Tek toplantıyı son silinenlere taşır; olmazsa kullanıcıya gösterilecek neden döner.
+    private func trashMeeting(id: String, locked: Set<String>, now: Date) -> String? {
+        guard let record = meetings.first(where: { $0.id == id }), !locked.contains(id) else {
+            return String(localized: "Kayıttaki ya da işlenen toplantı silinemez.")
+        }
+        do {
+            try moveMeetingToRecentlyDeleted(meetingDirectory: try sessionDirectory(id: id), recentlyDeleted: try AppPaths.recentlyDeletedDirectory(), deletedAt: now)
+        } catch {
+            Self.logger.error("Toplantı silinemedi, toplantı: \(id, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+            return String(localized: "Toplantı silinemedi: \(userFacingMessage(error: error))")
+        }
         closeSpeakerReview(meetingID: id)
         meetings.removeAll { $0.id == id }
         reloader.invalidate()
-        // Bu toplantıdan öğrenilen ses izleri de geri alınır.
+        // Bu toplantıdan öğrenilen ses izleri de geri alınır (Mac'te Çöp Sepeti'ne taşırken olduğu gibi).
         voices.meetingDeleted(meetingID: id)
+        deletedGeneration += 1
+        deletedMeetings = newestDeletedFirst(meetings: deletedMeetings.filter { $0.id != id } + [DeletedMeeting(record: record, deletedAt: now)])
+        return nil
+    }
+
+    /// Silinen toplantıları geri yükler: listeye, görevlere, Sor'a ve Kişiler'e (klasörüyle) dönerler. Geri
+    /// yüklenemeyenlerin hataları döner; bir hata olduysa iki liste diskten yeniden okunur (yarım kalan geri yükleme
+    /// doğru listede görünsün). Geri yüklenen kayıtlar da döner (bekleyen kayıt kuyruğa döner, bkz. çağıran).
+    func restoreDeleted(ids: Set<String>) -> (restored: [MeetingRecord], errors: [String]) {
+        deletedGeneration += 1
+        var restored: [MeetingRecord] = []
+        var errors: [String] = []
+        for id in ids.sorted() {
+            do {
+                let record: MeetingRecord = try restoreMeetingFromRecentlyDeleted(
+                    id: id, recentlyDeleted: try AppPaths.recentlyDeletedDirectory(), sessions: try AppPaths.sessionsDirectory()
+                )
+                upsert(record: record)
+                deletedMeetings.removeAll { $0.id == id }
+                restored.append(record)
+            } catch {
+                Self.logger.error("Toplantı geri yüklenemedi, toplantı: \(id, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+                errors = appendUnique(messages: errors, message: String(localized: "Toplantı geri yüklenemedi: \(userFacingMessage(error: error))"))
+            }
+        }
+        if !errors.isEmpty {
+            reload()
+            Task { await reloadDeletedAndWait() }
+        }
+        return (restored: restored, errors: errors)
+    }
+
+    /// Silinen toplantıları kalıcı olarak siler (metin, not ve ses); silinemeyenlerin hataları döner.
+    func purgeDeleted(ids: Set<String>) -> [String] {
+        deletedGeneration += 1
+        return ids.sorted().reduce(into: [String]()) { (errors: inout [String], id: String) -> Void in
+            do {
+                try deleteRecentlyDeletedMeeting(id: id, recentlyDeleted: try AppPaths.recentlyDeletedDirectory())
+                deletedMeetings.removeAll { $0.id == id }
+            } catch {
+                Self.logger.error("Toplantı kalıcı silinemedi, toplantı: \(id, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+                errors = appendUnique(messages: errors, message: String(localized: "Toplantı kalıcı olarak silinemedi: \(userFacingMessage(error: error))"))
+            }
+        }
+    }
+
+    /// Süresi dolan silinen toplantıları kalıcı siler (açılışta ve Son silinenler açılınca). Silinemeyenin nedeni
+    /// sorunlarda görünür; bir sonraki denemede yeniden silinir.
+    func purgeExpiredDeleted(now: Date) {
+        let expired: [String] = deletedMeetingsToPurge(meetings: deletedMeetings, now: now, retentionDays: recentlyDeletedRetentionDays)
+        for error in purgeDeleted(ids: Set(expired)) {
+            actionProblems = appendUnique(messages: actionProblems, message: error)
+        }
     }
 
     /// Saklama süresi (Ayarlar) dolan toplantıların sesini ve ses izlerini siler; metin ve not kalır. Silinemeyenin
