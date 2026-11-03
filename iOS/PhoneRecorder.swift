@@ -88,6 +88,9 @@ final class PhoneRecorder {
     /// "Katılımcılara haber ver" bildirimi görünür (ayar açıksa kayıt başında açılır; kayıt ekranı 3 saniye sonra ya da
     /// dokununca kapatır).
     var consentReminderVisible: Bool = false
+    /// Kayıt başlarken bağlı takvim toplantısıyla ilgili önceki toplantılardan açık görevler (`relatedOpenTasks`; yalnız
+    /// yerel kayıtlar): kayıt ekranında hatırlatma. Kapatılınca ya da kayıt bitince boş.
+    var relatedTasks: [RelatedOpenTask] = []
     let levels: AudioLevels = AudioLevels(count: 36, interval: 0.08)
 
     @ObservationIgnored private let store: PhoneStore
@@ -318,6 +321,9 @@ final class PhoneRecorder {
         startActivity(startedAt: started, title: linkedMeeting?.title ?? String(localized: "Toplantı"))
         watchRecordingLimit(deadline: deadline)
         consentReminderVisible = UserDefaults.standard.bool(forKey: PhoneSettingsKey.consentReminder)
+        relatedTasks = linkedMeeting.map { (meeting: CalendarMeeting) -> [RelatedOpenTask] in
+            relatedOpenTasks(meeting: meeting, records: store.meetings, userName: phoneUserName(), before: started)
+        } ?? []
         Self.logger.info("Kayıt başladı, klasör: \(directory.lastPathComponent, privacy: .public), çevrimdışı: \(offline, privacy: .public)")
         let sessionGeneration: Int = generation
         Task { [weak self] in
@@ -849,6 +855,7 @@ final class PhoneRecorder {
         recordingLimitTask?.cancel()
         recordingLimitTask = nil
         consentReminderVisible = false
+        relatedTasks = []
         guard let finished = active else {
             phase = .idle
             startedAt = nil

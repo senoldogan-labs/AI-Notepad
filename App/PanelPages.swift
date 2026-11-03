@@ -69,6 +69,20 @@ struct PanelHost: View {
                     HostedMeetingLimitStrip(deadline: deadline)
                 }
                 #endif
+                // Görüşme bitti gibi: kayıt geri sayımla bitecek.
+                if model.isRecording, let deadline = model.callEndDeadline {
+                    CallEndNotice(deadline: deadline) { model.keepRecordingAfterCallEnd() } onStop: { model.stopRecording() }
+                }
+                // Önceki ilgili toplantılardan açık görevler (yalnız hatırlatma).
+                if model.isRecording, !model.relatedTasks.isEmpty {
+                    RelatedTasksStrip(tasks: model.relatedTasks) {
+                        if let meeting = model.recordingCalendarMeeting, model.startBriefing(meeting: meeting) {
+                            onOpenMainWindow(.ask)
+                        }
+                    } onDismiss: {
+                        withAnimation(.smooth(duration: 0.25)) { model.relatedTasks = [] }
+                    }
+                }
             TranscriptPanel(
                 state: model.viewState,
                 actions: PanelActions(
@@ -94,6 +108,7 @@ struct PanelHost: View {
             )
             }
             .animation(.smooth(duration: 0.25), value: model.consentReminderVisible)
+            .animation(.smooth(duration: 0.25), value: model.callEndDeadline)
         case .meeting(let id):
             PanelPageView(model: model, router: router, title: "Toplantı", back: .live, onHide: onHide) {
                 if let record = model.meetings.first(where: { $0.id == id }) {

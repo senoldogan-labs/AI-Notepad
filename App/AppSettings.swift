@@ -76,6 +76,8 @@ enum SettingsKey {
     static let noteLanguageMigrated: String = "migration.noteLanguage"
     /// Takvimdeki çevrim içi görüşme sürerken mikrofon başka uygulamada açılınca kayıt kendiliğinden başlar.
     static let autoRecord: String = "calendar.autoRecord"
+    /// Kayıtta görüşme uygulaması mikrofonu bırakınca (görüşme bitti) geri sayımdan sonra kayıt kendiliğinden biter.
+    static let stopWhenCallEnds: String = "recording.stopWhenCallEnds"
     /// Yüz yüze toplantı: sistem sesi yerine mikrofon "Diğerleri" olarak konuşmacılara ayrılır.
     static let inPersonMode: String = "inPersonMode"
     /// Her not hazır olunca Apple Notlar'a gönder (varsayılan kapalı; `userContentDefaults` alanında).
@@ -291,6 +293,7 @@ func registerDefaultSettings() {
         // Arayüz dili: Türkçe arayüzde mevcut kullanıcıların notu eskisi gibi Türkçe sürer.
         SettingsKey.noteLanguage: defaultNoteLanguage(interfaceLanguages: Bundle.main.preferredLocalizations).rawValue,
         SettingsKey.autoRecord: false,
+        SettingsKey.stopWhenCallEnds: true,
         SettingsKey.noteTemplate: NoteTemplateKind.general.rawValue,
         SettingsKey.customTemplate: "",
         SettingsKey.theme: AppTheme.light.rawValue,
