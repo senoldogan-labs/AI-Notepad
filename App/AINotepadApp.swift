@@ -103,7 +103,8 @@ enum AppEntry {
         let version: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
         runMCPServer(
             input: .standardInput, output: .standardOutput, sessionsDirectories: [archive.sessionsDirectory],
-            accessDenial: { hostedMCPAccessDenial(archive: archive, bundle: .main) }, version: version, noteLanguage: selectedNoteLanguage(), appName: appName
+            accessDenial: { hostedMCPAccessDenial(archive: archive, bundle: .main) }, version: version, noteLanguage: selectedNoteLanguage(), appName: appName,
+            userName: UserDefaults.standard.string(forKey: SettingsKey.userName) ?? ""
         )
         #else
         do {
@@ -111,7 +112,8 @@ enum AppEntry {
             runMCPServer(
                 input: .standardInput, output: .standardOutput, sessionsDirectories: try AppPaths.meetingDirectories(location: storedStorageLocation()),
                 // Geliştirici sürümünde oturum yoktur, ret de yoktur.
-                accessDenial: { nil }, version: version, noteLanguage: selectedNoteLanguage(), appName: appName
+                accessDenial: { nil }, version: version, noteLanguage: selectedNoteLanguage(), appName: appName,
+                userName: UserDefaults.standard.string(forKey: SettingsKey.userName) ?? ""
             )
         } catch {
             FileHandle.standardError.write(Data("\(appName) MCP: toplantı klasörü açılamadı: \(error)\n".utf8))

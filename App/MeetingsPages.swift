@@ -28,12 +28,15 @@ struct MeetingsListPage: View {
     @State private var isConfirmingDelete: Bool = false
     @State private var deleteErrors: [String] = []
     @State private var listFilter: MeetingListFilter = .all
+    /// Notlardaki konuşmacı etiketleri adlarla; adı kullanıcının adı olan konuşmacının görevleri onundur.
+    @AppStorage(SettingsKey.userName) private var userName: String = ""
 
     var body: some View {
-        let visible: [MeetingRecord] = filterMeetings(
+        // Satırlar notu konuşmacı adlarıyla gösterir (başlık, görev sayısı).
+        let visible: [MeetingRecord] = namedRecords(records: filterMeetings(
             records: filterMeetings(records: meetingsInFolder(records: model.meetings, folder: folder), query: query),
-            listFilter: listFilter
-        )
+            listFilter: listFilter, userName: userName
+        ), userName: userName)
         let sections: [MeetingSection] = meetingSections(records: visible, now: Date(), calendar: .current, locale: interfaceLocale())
         VStack(spacing: 0) {
             HStack(spacing: DesignTokens.Spacing.s) {
