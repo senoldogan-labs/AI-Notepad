@@ -59,7 +59,7 @@ enum MeetingExportFormat: String, CaseIterable, Identifiable {
     /// Dosya notu taşır (notun dili seçiliyken o dildeki sürümle yazılır); transkript ve altyazı notsuzdur.
     var carriesNote: Bool {
         switch self {
-        case .pdf, .html, .markdown: true
+        case .pdf, .docx, .html, .markdown: true
         case .transcriptText, .subtitles: false
         }
     }
