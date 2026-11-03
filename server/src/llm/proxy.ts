@@ -27,7 +27,8 @@ import {
 import { recordMeetingFailure, recordOpsEvents } from "../opsEvents";
 import { llmCostMicroUsd } from "../usage";
 import { type LLMPurpose, purposeUsageStatement } from "./purpose";
-import { type LLMRequest, clampMaxTokens, estimateInputTokens, upstreamParams } from "./request";
+import { type ScreenImageUsage, screenImageUsage } from "./images";
+import { type LLMRequest, clampMaxTokens, estimateInputTokens, requestImages, requestTextBytes, upstreamParams } from "./request";
 import { type LLMUsageTag, llmUsageStatement, llmUsageTagOf } from "./usageBuckets";
 
 /** Akışsız çağrının zaman aşımı: yanıt başlığı ancak üretim bitince gelir, bu yüzden toplam süredir. */
@@ -220,7 +221,13 @@ async function openStream(
  * ayrılan miktar harcanmış sayılır. Worker kesinleştiremeden durursa ayırmanın süresi dolar (bkz. `reservations.ts`).
  */
 export async function proxyLLM(db: D1Database, context: RequestContext, config: Config, scope: LLMScope, request: LLMRequest): Promise<Response> {
-  const estimatedInput: number = estimateInputTokens(request);
+  // The body of an image-carrying purpose is read with a larger limit (`llmBodyLimitBytes`); its text is not.
+  const textBytes: number = requestTextBytes(request);
+  if (textBytes > config.llm.maxRequestBytes) {
+    throw new ApiError("payload_too_large", `The request text can be at most ${config.llm.maxRequestBytes} bytes (received ${textBytes}).`);
+  }
+  const images: ScreenImageUsage = screenImageUsage(requestImages(request), scope.purpose);
+  const estimatedInput: number = estimateInputTokens(request, images.tokens);
   if (estimatedInput > config.llm.maxInputTokens) {
     throw new ApiError("payload_too_large", `Input is too long (an estimated ${estimatedInput} tokens; the limit is ${config.llm.maxInputTokens}).`);
   }
@@ -257,6 +264,11 @@ export async function proxyLLM(db: D1Database, context: RequestContext, config: 
     recordRetry: context.platform.recordRetry,
   };
   const logFields: LogFields = { userId: scope.userId, meetingId: scopeMeetingId(scope), reservationId: reservation.id };
+  if (images.count > 0) {
+    // Only the count, size and estimated tokens: the images themselves are never logged or stored. Their real tokens
+    // are part of the call's `input_tokens` and count against the meeting, daily and monthly budgets like any input.
+    log("info", "llm_screen_images", { ...logFields, purpose: scope.purpose, images: images.count, imageBytes: images.bytes, estimatedImageTokens: images.tokens });
+  }
 
   const noteMeetingId: string | null = noteMeetingIdOf(scope, request);
   const usageTag: LLMUsageTag = llmUsageTagOf(scope.kind, request);
