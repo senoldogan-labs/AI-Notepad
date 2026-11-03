@@ -41,6 +41,9 @@ export function errorText(error: unknown, text: ClientCopy): string {
     if (error.code === "complimentary_subscription") {
       return text.errors.complimentary;
     }
+    if (error.code === "app_store_subscription") {
+      return text.errors.appStoreSubscription;
+    }
     return fill(text.errors.generic, { code: error.code });
   }
   return fill(text.errors.generic, { code: error instanceof Error ? error.name : "unknown" });

@@ -134,7 +134,7 @@ export const adminProductCopy: AdminProductCopy = {
     failed: "Meetings with errors",
     notes: "Notes finished",
     noteTime: "Median time to note",
-    onDevice: "Live text on the Mac",
+    onDevice: "Live text on the device",
   },
   kpiHints: {
     wau: "Accounts that started a meeting in the last 7 days. WAU/MAU compares them with the last 30 days.",
@@ -144,7 +144,7 @@ export const adminProductCopy: AdminProductCopy = {
     failed: "Meetings started in the last 30 days with at least one failed request.",
     notes: "Ended meetings in the last 30 days that got a finished note.",
     noteTime: "Median time from a meeting's end to its first finished note.",
-    onDevice: "Meetings that got no Deepgram token, so live text ran on the Mac.",
+    onDevice: "Meetings that got no Deepgram token: live text ran on the Mac or iPhone, or the meeting was an imported file.",
   },
   kpiSubs: {
     wau: "{mau} in 30 days · WAU/MAU {ratio}",
@@ -228,7 +228,7 @@ export const adminProductCopy: AdminProductCopy = {
     deepgram: "Used Deepgram live text",
     reconnecting: "Deepgram reconnected",
     reconnects: "Extra Deepgram connections",
-    onDevice: "Live text on the Mac",
+    onDevice: "Live text on the device",
   },
   charts: { refusals: "Refused requests", providerErrors: "Service failures", serverErrors: "Server errors (5xx)", spend: "Daily spend estimate" },
   legendTrial: "Trial",
