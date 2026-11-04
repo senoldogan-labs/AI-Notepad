@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it, vi } from "vitest";
 import { parseConfig } from "../src/config";
-import { billingCycleStart, crossedThreshold, dailyElevenLabsCapacityCheck, elevenLabsUsage } from "../src/elevenLabsCapacity";
+import { billingCycleStart, crossedThreshold, dailyElevenLabsCapacityCheck, elevenLabsUsage, requireElevenLabsHeadroom } from "../src/elevenLabsCapacity";
 import type { Env } from "../src/env";
 import { elevenLabsSpeechToTextUrl } from "../src/transcribe";
 import { type Harness, type Session, type StartedMeetingBody, defaultHarness, envWith, grantSubscription, req, signIn, wavFile } from "./helpers";
@@ -111,6 +111,33 @@ describe("ElevenLabs kapasite sayacı", () => {
     expect(row?.reprocess_count).toBe(0);
     // Plan büyükken (durağın altında) aynı istek geçer.
     expect((await reprocess(env)).status).toBe(200);
+  });
+
+  it("sert durak süren ses ayırmalarını da sayar: eşzamanlı yüklemeler aynı kalanı birlikte harcayamaz", async () => {
+    // Dosyanın diğer günlerinden ayrı bir dönem: 2029-02-20, dönem 2029-02-11'de başlar. Plan 0,05 saat = 180 saniye;
+    // sert durak %97 = 174,6 saniye.
+    const config = parseConfig(envWith({ ELEVENLABS_MONTHLY_AUDIO_HOURS: "0.05" }));
+    const nowMs: number = Date.UTC(2029, 1, 20, 12);
+    const now: Date = new Date(nowMs);
+    const reservation = (id: string, seconds: number, expiresAt: number): D1PreparedStatement =>
+      env.DB.prepare(
+        `INSERT INTO usage_reservations (id, user_id, meeting_id, kind, month, day, tokens, trial_account_tokens, account_tokens,
+           audio_seconds, estimated_micro_usd, trial_spend, created_at, expires_at)
+         VALUES (?, 'u_inflight', 'm_inflight', 'audio', '2029-02', '2029-02-20', 0, 0, 0, ?, 0, 0, ?, ?)`,
+      ).bind(id, seconds, nowMs - 60_000, expiresAt);
+    await env.DB.batch([
+      env.DB.prepare("INSERT INTO daily_spend (day, audio_seconds) VALUES ('2029-02-15', 100)"),
+      // Süresi dolmuş ayırma (Worker kesinleştiremeden durdu) sayılmaz.
+      reservation("r_expired", 1000, nowMs),
+    ]);
+    try {
+      await requireElevenLabsHeadroom(env.DB, config, 60, now);
+      await reservation("r_inflight", 30, nowMs + 600_000).run();
+      await expect(requireElevenLabsHeadroom(env.DB, config, 60, now)).rejects.toMatchObject({ code: "spend_ceiling_reached" });
+      await requireElevenLabsHeadroom(env.DB, config, 40, now);
+    } finally {
+      await env.DB.prepare("DELETE FROM usage_reservations WHERE user_id = 'u_inflight'").run();
+    }
   });
 
   it("eşiğin altındayken günlük denetim alarm yazmaz", async () => {

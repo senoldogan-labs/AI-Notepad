@@ -554,6 +554,16 @@ export function referralVoidUnpaidStatement(db: D1Database, subscriptionId: stri
     .bind(nowMs, subscriptionId);
 }
 
+/** Davet edilen hesabın ücretsiz ayındaki (`joined`) davetini düşüren ifade (`canceled_before_payment`; hesap silme). */
+function referralVoidUnpaidByReferredStatement(db: D1Database, referredUserId: string, nowMs: number): D1PreparedStatement {
+  return db
+    .prepare(
+      `UPDATE referral_redemptions SET status = 'void', void_reason = 'canceled_before_payment', updated_at = ?
+       WHERE referred_user_id = ? AND status = 'joined'`,
+    )
+    .bind(nowMs, referredUserId);
+}
+
 /** Davet edilen hesabın bekleyen ödülünü düşüren ifade (itiraz). */
 export function referralVoidByReferredStatement(db: D1Database, referredUserId: string, reason: ReferralVoidReason, nowMs: number): D1PreparedStatement {
   return db
@@ -573,6 +583,10 @@ export function referralDeletionStatements(db: D1Database, userId: string, nowMs
   return [
     db.prepare("DELETE FROM referral_codes WHERE user_id = ?").bind(userId),
     db.prepare("DELETE FROM referral_redemptions WHERE referred_user_id = ? AND joined_at IS NULL").bind(userId),
+    // Ücretsiz ayındaki (`joined`) davet düşer: silme aboneliği Stripe'ta iptal eder (`closeStripeForDeletion`), ilk
+    // ücretli fatura hiç gelmeyecek. Stripe'ın ardından gönderdiği `customer.subscription.deleted` müşteriyi artık
+    // tanımadığından bunu yapamaz; yapılmasa satır davet edenin açık davet sınırını 730 gün doldururdu.
+    referralVoidUnpaidByReferredStatement(db, userId, nowMs),
     db.prepare("UPDATE referral_redemptions SET referred_user_id = NULL, updated_at = ? WHERE referred_user_id = ?").bind(nowMs, userId),
     db
       .prepare(
