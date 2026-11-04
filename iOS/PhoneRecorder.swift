@@ -1648,7 +1648,7 @@ final class PhoneRecorder {
         }
         while translationsInFlight < Self.maxParallelTranslations, !translationQueue.isEmpty {
             let unit: TranslationUnit = translationQueue.removeFirst()
-            let context: [String] = translationContext(units: translationUnits, before: unit, count: 3)
+            let context: [String] = translationContext(units: translationUnits, before: unit, count: translationContextUnits)
             let requestGeneration: Int = generation
             translationsInFlight += 1
             Task {

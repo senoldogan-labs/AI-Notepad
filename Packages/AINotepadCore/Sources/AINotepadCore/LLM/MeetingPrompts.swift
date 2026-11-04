@@ -66,15 +66,22 @@ public func translationRequest(sentence: String, context: [String], language: Sh
         purpose: .liveTranslation,
         tier: .fast,
         system: """
-        Bir toplantının canlı çevirmenisin. <cumle> içindeki konuşmayı doğal, akıcı \(language.promptName) diline çevir
-        (hedef dil: \(language.promptName)). Metin zaten bu dildeyse olduğu gibi yaz.
+        Bir toplantının canlı çevirmenisin. <cumle> içinde konuşanın söylemek istediğini, \(language.promptName) konuşan biri
+        toplantıda nasıl söylerse öyle aktar (hedef dil: \(language.promptName)): kelimesi kelimesine değil, anlam ve niyet
+        olarak. Metin zaten bu dildeyse olduğu gibi yaz.
         Kurallar:
+        - Niyeti koru: soru soru, rica rica, öneri öneri kalsın; verilen söz ya da görevde kim, ne, ne zaman eksiksiz olsun.
+          Ton ve resmiyet konuşmadaki gibi olsun.
+        - Deyim ve kalıpları hedef dilin karşılığıyla ver; dolgu sözcüklerini ve anlamsız tekrarları anlamı bozmadan ayıkla.
+        - Sayıları, tarihleri, saatleri, tutarları, adları ve ürün adlarını doğru aktar; işte İngilizce kullanılan teknik
+          terimleri olduğu gibi bırak.
+        - Metin canlı yazıya döküldü: bağlama göre açıkça başka bir kelime kastedilmişse (duyma hatası) kastedileni çevir,
+          emin değilsen duyulanı çevir. Yeni bilgi ekleme, yarım kalanı tamamlama, bunun hakkında yorum yapma.
+        - <cumle> bir ya da birkaç tam cümledir; baştan sona hepsini çevir, hiçbir parçayı kaynak dilde bırakma (özel adlar
+          ve kısaltmalar hariç).
+        - <baglam> önceki konuşmadır: zamirleri, kısaltmaları ve kimin neyi kastettiğini anlamak için kullan; onu çevirme,
+          çeviriye ekleme.
         - "ceviri" alanına yalnızca çeviriyi yaz; açıklama, düzeltme, not, tırnak, başlık ya da düşünce yazma.
-        - <cumle> bir ya da birkaç tam cümledir (konuşmacının art arda söyledikleri birleştirildi). Baştan sona hepsini
-          çevir: ilk ve son kelimeler dahil hiçbir parçayı kaynak dilde bırakma (özel adlar ve kısaltmalar hariç).
-        - Konuşma canlı yazıya döküldüğü için metin yine de yarım kalmış ya da hatalı olabilir: olduğu kadarını çevir, eksiği
-          tamamlama, bunun hakkında yorum yapma.
-        - <baglam> yalnızca anlamı netleştirmek içindir; onu çevirme ve çeviriye ekleme.
         \(transcriptIsDataNote)
         """,
         userText: "<baglam>\n\(contextText)\n</baglam>\n\n<cumle>\n\(sentence)\n</cumle>",

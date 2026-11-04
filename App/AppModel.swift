@@ -599,7 +599,7 @@ final class AppModel {
             errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Çeviri: \(userFacingMessage(error: error))"))
             return
         }
-        let context: [String] = translationContext(units: translationUnits, before: unit, count: 3)
+        let context: [String] = translationContext(units: translationUnits, before: unit, count: translationContextUnits)
         translationQueue.append(TranslationJob(unit: unit, context: context, provider: provider, generation: recordingGeneration))
         startQueuedTranslations()
     }
