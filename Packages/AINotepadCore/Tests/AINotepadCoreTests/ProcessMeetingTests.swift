@@ -235,12 +235,48 @@ private struct WholeWindowEmbedder: VoiceEmbedder {
         #expect(!FileManager.default.fileExists(atPath: directory.appending(path: "others.caf").path))
     }
 
-    // Yeniden işlemede `.caf` yok: sunucudaki son geçiş de `.m4a`'yı okur.
+    // "Tekrar işle"de (ilerleme atılır) `.caf` yok: sunucudaki son geçiş de `.m4a`'yı okur.
     @Test func reprocessingReadsCompressedRecording() async throws {
         let (directory, record): (URL, MeetingRecord) = try recordedMeeting(meNeedsFinalPass: nil)
         let received: ReceivedAudio = ReceivedAudio()
         let transcriber: RecordingFinalTranscriber = RecordingFinalTranscriber(source: .originalRecording, received: received)
         _ = await process(record: record, directory: directory, transcriber: transcriber, voiceEmbedder: nil, log: await StepLog())
+        try discardProcessingProgress(directory: directory)
+        _ = await process(record: record, directory: directory, transcriber: transcriber, voiceEmbedder: nil, log: await StepLog())
+        #expect(received.names.withLock { $0 } == ["others.caf", "others.m4a"])
+    }
+
+    // İşleme not adımında kesildi (uygulama kapandı, iPhone'da sistem işlemeyi durdurdu): yeniden işleme son geçişin
+    // kontrol noktasından sürer; ses yeniden yazıya dökülmez (yeniden faturalanmaz), not son geçiş metninden yazılır.
+    // İşlenmiş toplantı saklanınca kontrol noktası silinir.
+    @Test func interruptedProcessingResumesFromCheckpointWithoutSecondFinalPass() async throws {
+        let (directory, record): (URL, MeetingRecord) = try recordedMeeting(meNeedsFinalPass: nil)
+        let received: ReceivedAudio = ReceivedAudio()
+        let transcriber: RecordingFinalTranscriber = RecordingFinalTranscriber(source: .originalRecording, received: received)
+        let first: MeetingRecord = await process(record: record, directory: directory, transcriber: transcriber, voiceEmbedder: nil, log: await StepLog())
+        // Not sağlayıcısı yoktu: not adımı başarısız, son geçiş kontrol noktasında.
+        #expect(first.status == .failed)
+        #expect(FileManager.default.fileExists(atPath: directory.appending(path: "processing-checkpoint.json").path))
+        // Diskteki toplantı hâlâ işlemede (son geçiş metni saklanmadan kesildi): yeniden işleme kontrol noktasından sürer.
+        let log: StepLog = await StepLog()
+        let resumed: MeetingRecord = await process(
+            record: record.with(notice: nil), directory: directory, transcriber: transcriber, voiceEmbedder: WholeWindowEmbedder(), log: log
+        )
+        #expect(received.names.withLock { $0 } == ["others.caf"])
+        #expect(await log.steps == [.convertingAudio, .finalPass, .writingNote])
+        #expect(resumed.finalSegments.map(\.key) == ["final-0"])
+        #expect(resumed.language == .finnish)
+        // Ses izleri sürdürmede de çıkarılır.
+        #expect(resumed.voiceprints?.isEmpty == false)
+        try removeProcessingCheckpoint(directory: directory)
+        #expect(!FileManager.default.fileExists(atPath: directory.appending(path: "processing-checkpoint.json").path))
+        // Başka toplantının kontrol noktası kullanılmaz: son geçiş yeniden yapılır.
+        let foreign: MeetingRecord = MeetingRecord(
+            id: "baska-toplanti", title: "Başka", startedAt: Date(), endedAt: Date(), language: nil, status: .processing, failureMessage: nil,
+            liveSegments: [], finalSegments: [], translations: [:], speakerNames: [:], note: nil, audioDeleted: false, engine: .cloud, notice: nil,
+            meNeedsFinalPass: nil
+        )
+        try saveProcessingCheckpoint(record: foreign, directory: directory)
         _ = await process(record: record, directory: directory, transcriber: transcriber, voiceEmbedder: nil, log: await StepLog())
         #expect(received.names.withLock { $0 } == ["others.caf", "others.m4a"])
     }

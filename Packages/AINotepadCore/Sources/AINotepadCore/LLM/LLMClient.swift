@@ -243,8 +243,10 @@ public func sendLLM(provider: LLMProvider, request: LLMRequest) async throws -> 
         }
         return try await sendOnDevice(config: config, request: request)
     case .hosted(let config):
-        return try await withHostedTokenRefresh(config: config) { () async throws -> String in
-            try await sendPreparedLLM(call: try await prepareHostedCall(config: config, request: request))
+        return try await withRecordedMeetingReopen(config: config) { () async throws -> String in
+            try await withHostedTokenRefresh(config: config) { () async throws -> String in
+                try await sendPreparedLLM(call: try await prepareHostedCall(config: config, request: request))
+            }
         }
     }
 }

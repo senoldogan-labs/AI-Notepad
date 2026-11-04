@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Env } from "./env";
+import { isLoopbackStubUrl } from "./upstreamStub";
 
 /** App Attest zorunluluğu: `required` ise toplantı başlatmak doğrulanmış cihaz ister. */
 export type AttestPolicy = "required" | "optional";
@@ -205,6 +206,8 @@ export interface Config {
   readonly subscriberMaxMeetingMinutes: number;
   readonly monthlyCapSeconds: number;
   readonly meetingGraceMs: number;
+  /** Düzgün biten toplantının son geçiş ve not için açık kaldığı süre (bkz. `meetingProcessingUntil`). */
+  readonly meetingProcessingGraceMs: number;
   /** `past_due` aboneliğin `past_due`'ya geçişten sonra erişimi koruduğu süre. */
   readonly pastDueGraceMs: number;
   readonly trialMeetingTokenBudget: number;
@@ -382,6 +385,7 @@ const envSchema = z.object({
   APPLE_SIGNIN_CLIENT_ID: z.string().min(1),
   /** Üçü birlikte girilir ya da hiçbiri (bkz. `appleSignInCredentials`). */
   APPLE_SIGNIN_KEY_ID: z.string().optional(),
+  UPSTREAM_STUB_URL: z.string().optional(),
   APPLE_SIGNIN_PRIVATE_KEY: z.string().optional(),
   APPLE_TOKEN_ENC_KEY: z.string().optional(),
   GOOGLE_CLIENT_IDS: csv,
@@ -414,6 +418,7 @@ const envSchema = z.object({
   SUBSCRIBER_MAX_MEETING_MINUTES: positiveInt,
   MONTHLY_CAP_HOURS: positiveNumber,
   MEETING_GRACE_MINUTES: positiveInt,
+  MEETING_PROCESSING_HOURS: positiveInt,
   PAST_DUE_GRACE_DAYS: positiveInt,
   TRIAL_MEETING_TOKEN_BUDGET: positiveInt,
   SUBSCRIBER_MEETING_TOKEN_BUDGET: positiveInt,
@@ -576,6 +581,11 @@ export function parseConfig(env: Env): Config {
   if (value.ENVIRONMENT === "production" && value.APP_ATTEST_ENVIRONMENT !== "production") {
     throw new ConfigError(["APP_ATTEST_ENVIRONMENT"]);
   }
+  // Sahte üst servis yalnızca yerel denemelerde: üretimde ayar hiç olmamalı, geliştirmede geri döngü adresi olmalı.
+  const stub: string | undefined = value.UPSTREAM_STUB_URL;
+  if (stub !== undefined && stub !== "" && (value.ENVIRONMENT === "production" || !isLoopbackStubUrl(stub))) {
+    throw new ConfigError(["UPSTREAM_STUB_URL"]);
+  }
   const deviceCheck: DeviceCheckConfig = deviceCheckConfig(value);
   if (!value.APPLE_CLIENT_IDS.includes(value.APPLE_SIGNIN_CLIENT_ID)) {
     throw new ConfigError(["APPLE_SIGNIN_CLIENT_ID"]);
@@ -622,6 +632,7 @@ export function parseConfig(env: Env): Config {
     subscriberMaxMeetingMinutes: value.SUBSCRIBER_MAX_MEETING_MINUTES,
     monthlyCapSeconds: Math.round(value.MONTHLY_CAP_HOURS * 3600),
     meetingGraceMs: value.MEETING_GRACE_MINUTES * 60_000,
+    meetingProcessingGraceMs: value.MEETING_PROCESSING_HOURS * 3_600_000,
     pastDueGraceMs: value.PAST_DUE_GRACE_DAYS * 86_400_000,
     trialMeetingTokenBudget: value.TRIAL_MEETING_TOKEN_BUDGET,
     subscriberMeetingTokenBudget: value.SUBSCRIBER_MEETING_TOKEN_BUDGET,

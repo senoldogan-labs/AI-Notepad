@@ -29627,73 +29627,73 @@
         }
       }
     },
-    "Bu toplantının sunucu oturumu kapandı (kayıt bitiminden 30 dakika sonra ya da en çok süre dolunca). Kayıtlı toplantıyı \"Tekrar işle\" ile yeniden işleyebilir ya da yeni bir toplantı başlatabilirsin.": {
+    "Bu toplantının sunucu oturumu kapandı. Kayıtlı toplantıyı \"Tekrar işle\" ile yeniden işleyebilir ya da yeni bir toplantı başlatabilirsin.": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Die Serversitzung dieses Meetings wurde geschlossen (30 Minuten nach Ende der Aufnahme oder bei Erreichen der maximalen Länge). Du kannst das gesicherte Meeting mit „Neu verarbeiten“ erneut verarbeiten oder ein neues Meeting starten."
+            "value": "Die Serversitzung dieses Meetings wurde geschlossen. Du kannst das gesicherte Meeting mit „Neu verarbeiten“ erneut verarbeiten oder ein neues Meeting starten."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This meeting's server session has closed (30 minutes after the recording ended, or when the maximum length was reached). You can reprocess the saved meeting with \"Reprocess\" or start a new meeting."
+            "value": "This meeting's server session has closed. You can reprocess the saved meeting with \"Reprocess\" or start a new meeting."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "La sesión del servidor de esta reunión se ha cerrado (30 minutos después de terminar la grabación o al alcanzar la duración máxima). Puedes reprocesar la reunión guardada con “Reprocesar” o iniciar una reunión nueva."
+            "value": "La sesión del servidor de esta reunión se ha cerrado. Puedes reprocesar la reunión guardada con “Reprocesar” o iniciar una reunión nueva."
           }
         },
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tämän kokouksen palvelinistunto on sulkeutunut (30 minuuttia nauhoituksen päättymisen jälkeen tai kun enimmäispituus täyttyi). Voit käsitellä tallennetun kokouksen uudelleen valinnalla ”Käsittele uudelleen” tai aloittaa uuden kokouksen."
+            "value": "Tämän kokouksen palvelinistunto on sulkeutunut. Voit käsitellä tallennetun kokouksen uudelleen valinnalla ”Käsittele uudelleen” tai aloittaa uuden kokouksen."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "La session serveur de cette réunion est fermée (30 minutes après la fin de l’enregistrement, ou lorsque la durée maximale a été atteinte). Vous pouvez retraiter la réunion enregistrée avec « Retraiter » ou démarrer une nouvelle réunion."
+            "value": "La session serveur de cette réunion est fermée. Vous pouvez retraiter la réunion enregistrée avec « Retraiter » ou démarrer une nouvelle réunion."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "La sessione sul server di questa riunione è chiusa (30 minuti dopo la fine della registrazione o al raggiungimento della durata massima). Puoi rielaborare la riunione salvata con “Rielabora” o iniziare una nuova riunione."
+            "value": "La sessione sul server di questa riunione è chiusa. Puoi rielaborare la riunione salvata con “Rielabora” o iniziare una nuova riunione."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "この会議のサーバセッションは終了しました（録音終了から30分後、または最大時間に達したため）。保存済みの会議は「再処理」で再処理するか、新しい会議を開始できます。"
+            "value": "この会議のサーバセッションは終了しました。保存済みの会議は「再処理」で再処理するか、新しい会議を開始できます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "이 회의의 서버 세션이 종료되었습니다(녹음 종료 30분 후 또는 최대 길이에 도달). \"다시 처리\"로 저장된 회의를 다시 처리하거나 새 회의를 시작할 수 있습니다."
+            "value": "이 회의의 서버 세션이 종료되었습니다. \"다시 처리\"로 저장된 회의를 다시 처리하거나 새 회의를 시작할 수 있습니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "De serversessie van deze vergadering is gesloten (30 minuten na het einde van de opname, of toen de maximale duur werd bereikt). Je kunt de bewaarde vergadering opnieuw verwerken met \"Opnieuw verwerken\" of een nieuwe vergadering starten."
+            "value": "De serversessie van deze vergadering is gesloten. Je kunt de bewaarde vergadering opnieuw verwerken met \"Opnieuw verwerken\" of een nieuwe vergadering starten."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "A sessão desta reunião no servidor foi encerrada (30 minutos após o fim da gravação ou quando a duração máxima foi atingida). Você pode reprocessar a reunião salva com \"Reprocessar\" ou iniciar uma nova reunião."
+            "value": "A sessão desta reunião no servidor foi encerrada. Você pode reprocessar a reunião salva com \"Reprocessar\" ou iniciar uma nova reunião."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "此会议的服务器会话已关闭（录制结束 30 分钟后，或达到最长时长时）。你可以用“重新处理”重新处理已存储的会议，或开始新的会议。"
+            "value": "此会议的服务器会话已关闭。你可以用“重新处理”重新处理已存储的会议，或开始新的会议。"
           }
         }
       }

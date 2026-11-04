@@ -116,24 +116,33 @@
     "SUBSCRIBER_MAX_MEETING_MINUTES": "240",
     "MONTHLY_CAP_HOURS": "10",
     "MEETING_GRACE_MINUTES": "30",
+    // Düzgün biten (kullanıcı bitirdi ya da en çok süreye ulaştı) toplantının son geçişi ve notu için açık kaldığı süre
+    // (saat; `meetingProcessingUntil`). iPhone arka planda askıya alınınca işleme ancak uygulama yeniden açılınca sürer
+    // (2026-11-04: 31 dakikalık toplantının notu 32 dk sonra istendi, 30 dk'lık ek süre kapanmıştı ve not yazılamadı).
+    // Harcamayı artırmaz: toplantının token bütçesi, ses hakkı ve kullanıcı sınırları aynıdır. Daha geç işlemede istemci
+    // toplantıyı yeniden işlemeyle açar (`reprocessMeeting`).
+    "MEETING_PROCESSING_HOURS": "24",
     "PAST_DUE_GRACE_DAYS": "7",
-    // Toplantı başına token bütçesi (girdi + çıktı, Haiku 5.5 tokenizer'ı; Türkçe ~1,7 token/kelime):
-    // - Canlı çeviri: her bitmiş cümle için bir çağrı (`translationRequest`: sistem ~300 + 3 cümle bağlam ~75 +
-    //   cümle ~25 + sarmalayıcı ~20 ≈ 420 girdi; çeviri ~30 + low effort düşünme ~70 ≈ 100 çıktı) ≈ 600 token/çağrı.
-    //   Konuşma ~150 kelime/dk, ~12 kelime/cümle → ~12 cümle/dk = 720 çağrı/saat.
-    //   4 saat: 2880 × 600 ≈ 1,73 M.  90 dakika: 1080 × 600 ≈ 0,65 M.
+    // Toplantı başına token bütçesi (girdi + çıktı, Haiku 5.5 tokenizer'ı):
+    // - Canlı çeviri: her bitmiş cümle için bir çağrı. Ölçülen (2026-11-04, iPhone, 31 dakikalık Fince toplantı):
+    //   339 K token / 30,7 dk ≈ 11 K/dk ≈ 0,66 M/saat (ilk tahmin 0,43 M/saat'ti).
+    //   4 saat ≈ 2,65 M.  90 dakika ≈ 0,99 M.
     // - "Ne kaçırdım?" ve Sor: ~10 kullanım × ~4 K ≈ 40 K (deneme ~15 K).
-    // - Toplantı sonu not (parçalı not + birleştirme + konuşmacı gözden geçirme): 4 saatlik metin ~60–70 K token,
-    //   ~3 geçiş + 8 K'lık çıktılar ≈ 300 K (90 dakika ≈ 100 K).
-    // Toplam 4 saat ≈ 2,07 M, %25 pay → 2,6 M. Deneme (90 dk) ≈ 0,77 M, %25 pay → 1,0 M.
+    // - Toplantı sonu not (parçalı not + birleştirme): 4 saatlik metin ~21 parça × ~13 K + birleştirme ≈ 300 K
+    //   (90 dakika ≈ 100 K).
+    // Toplam 4 saat ≈ 3,0 M, deneme (90 dk) ≈ 1,1 M. Bütçeler bilerek artırılmadı (sahip kararı, 2026-11-04: kullanıcı
+    // başına maliyet abonelik gelirinin altında kalsın): abone 2,6 M, deneme 1,0 M. Çok konuşulan 4 saatlik toplantıda
+    // canlı çeviri sona doğru durabilir; not aşağıdaki payla her zaman yazılır.
+    // Bütçenin %15'i nota ayrılır (`meetingNoteReserveShare`): canlı çağrılar (çeviri, "Ne kaçırdım?", soru) onu
+    // kullanamaz; çok konuşulan uzun toplantıda canlı çeviri durur ama not her zaman yazılır.
     // Maliyet üst sınırı (girdi ağırlıklı, 0,10 $/M girdi, 0,50 $/M çıktı): 4 saatlik toplantı < ~0,40 $.
     // Not: çağrı başına `tahmin + max_tokens` önceden ayrılır, sonra gerçek kullanıma indirilir; bütçe gerçek kullanımı ölçer.
     "TRIAL_MEETING_TOKEN_BUDGET": "1000000",
     "SUBSCRIBER_MEETING_TOKEN_BUDGET": "2600000",
     // Kullanıcı başına token sınırları (yeni toplantı açmak bütçeyi sıfırlamasın diye):
-    // - Saatlik oran yukarıdaki türetmeden: 4 saat ≈ 2,07 M → ~0,52 M token/saat.
-    // - Aylık: 10 saat × 0,52 M = 5,2 M, %25 pay → 6,5 M (en çok ~0,9 $/ay).
-    // - Günlük: en uzun tek toplantının bütçesi (2,6 M) sığsın, kısa ek kullanım kalsın → 3,0 M.
+    // - Aylık 6,5 M (en çok ~0,9 $/ay), günlük 3,0 M (en uzun tek toplantının bütçesi 2,6 M sığsın, kısa ek kullanım
+    //   kalsın). Ölçülen oran (canlı çeviri + not ≈ 0,75 M/saat) ile aylık 10 saatin tamamı canlı çeviriyle geçerse
+    //   sınır ay sonuna doğru dolabilir; bilinçli maliyet kararı (bkz. üstteki bütçe açıklaması).
     "MONTHLY_TOKEN_CAP": "6500000",
     // Abonenin toplantıya bağlı olmayan çağrıları (Sor, notu yeniden yazma, düzenleme, görev aracı) için aylık ayrı sınır
     // (MONTHLY_TOKEN_CAP'in parçası; toplantı bütçeleri değişmez). Türetme: notu yeniden yazmak ~100 K, Sor ~10–30 K →
@@ -285,6 +294,8 @@
         "SUBSCRIBER_MAX_MEETING_MINUTES": "240",
         "MONTHLY_CAP_HOURS": "10",
         "MEETING_GRACE_MINUTES": "30",
+        // Bkz. üstteki geliştirme `vars` açıklaması.
+        "MEETING_PROCESSING_HOURS": "24",
         "PAST_DUE_GRACE_DAYS": "7",
         // Türetme: üstteki geliştirme `vars` açıklaması.
         "TRIAL_MEETING_TOKEN_BUDGET": "1000000",

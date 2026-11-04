@@ -281,7 +281,9 @@ public func hostedErrorMessage(error: HostedAPIError) -> String {
     case .spendCeilingReached:
         return String(localized: "Servis bugün çok yoğun; yeni toplantılar ve yapay zekâ istekleri geçici olarak durduruldu. Biraz sonra yeniden dene.")
     case .meetingNotActive:
-        return String(localized: "Bu toplantının sunucu oturumu kapandı (kayıt bitiminden 30 dakika sonra ya da en çok süre dolunca). Kayıtlı toplantıyı \"Tekrar işle\" ile yeniden işleyebilir ya da yeni bir toplantı başlatabilirsin.")
+        // Kaydı bitmiş toplantının notu ve son geçişi bu hatada toplantıyı kendiliğinden yeniden açar
+        // (`withRecordedMeetingReopen`); bu metin yalnızca açılamadığında ya da canlı çağrılarda görünür.
+        return String(localized: "Bu toplantının sunucu oturumu kapandı. Kayıtlı toplantıyı \"Tekrar işle\" ile yeniden işleyebilir ya da yeni bir toplantı başlatabilirsin.")
     case .reprocessLimitReached:
         return String(localized: "Bu toplantı en çok iki kez yeniden işlenebilir; mevcut metin ve not korunur.")
     case .transcriptionClosed:

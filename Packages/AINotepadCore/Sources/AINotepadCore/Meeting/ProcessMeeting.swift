@@ -128,6 +128,10 @@ public func processMeeting(
 /// not sağlayıcısı (`resolveFinalPass`, `resolveLLM`; ör. sunucu oturumunu yeniden açma isteği) ses dönüştürülürken
 /// hazırlanır; sunucudaki son geçiş dönüştürmeyle aynı anda başlar (bkz. `FinalPassSource.originalRecording`). Bir adım
 /// başarısız olursa o ana kadarki ilerleme korunur, durum `failed` olur; ses dosyaları kaldığı için yeniden işlenebilir.
+/// İşleme kesilirse kaldığı yerden sürer: son geçiş parçaları (`HostedFinalPassProgress`), son geçişin sonucu
+/// (`processingCheckpointFileName`; çağıran işlenmiş toplantıyı sakladıktan sonra `removeProcessingCheckpoint` ile siler)
+/// ve uzun notun parçaları (`noteProgressFileName`) toplantı klasörüne yazılır. Baştan yeniden işlemeden önce çağıran
+/// `discardProcessingProgress` çağırır.
 public func processMeeting(
     record: MeetingRecord,
     directory: URL,
@@ -176,6 +180,18 @@ private func transcribedRecord(
 ) async -> MeetingRecord {
     // İki kayıt aynı anda dönüştürülür (uzun toplantıda bekleme yarıya iner).
     let originals: [URL] = recordingsToConvert(directory: directory)
+    let othersAudio: URL = directory.appending(path: "others.m4a")
+    // Önceki işleme son geçişi bitirip not adımında kesildiyse (kontrol noktası var, dönüştürülecek kayıt kalmadı) ses
+    // yeniden dönüştürülmez ve yazıya dökülmez (yeniden faturalanmaz): son geçişin sonucuyla nota geçilir.
+    if originals.isEmpty, let checkpoint = loadProcessingCheckpoint(directory: directory, recordID: record.id) {
+        processLogger.info("İşleme kontrol noktasından sürüyor, son geçiş atlandı, toplantı: \(record.id, privacy: .public)")
+        await onStep(.finalPass)
+        let resumed: MeetingRecord = resumingFromCheckpoint(record: record, checkpoint: checkpoint)
+        guard let voiceEmbedder, voiceRecognitionApplies(record: resumed, othersAudio: othersAudio) else {
+            return resumed
+        }
+        return recognizedVoices(record: resumed, clustering: await voiceClustering(audio: othersAudio, embedder: voiceEmbedder), registry: registry)
+    }
     async let conversion: Void = convertRecordings(sources: originals)
     let plan: FinalPassPlan = await resolveFinalPass()
     let early: (any FinalTranscriber)? = originalRecordingTranscriber(plan: plan)
@@ -189,7 +205,6 @@ private func transcribedRecord(
         return failed(record: record, step: String(localized: "Ses dönüştürülemedi"), error: error)
     }
     await onStep(.finalPass)
-    let othersAudio: URL = directory.appending(path: "others.m4a")
     // Sunucunun yanıtı beklenirken ses izleri çıkarılır; cihazdaki son geçişle yarışmasın diye yalnızca sunucudakiyle.
     async let clustering: VoiceClustering? = optionalVoiceClustering(audio: othersAudio, embedder: early == nil ? nil : voiceEmbedder)
 
@@ -217,6 +232,8 @@ private func transcribedRecord(
             current = await transcribeMe(record: current, audio: meAudio, transcriber: transcriber, languageMode: languageMode)
         }
     }
+    // Son geçişin sonucu kayıtlar silinmeden önce saklanır: işleme bundan sonra kesilirse ses yeniden yazıya dökülmez.
+    checkpoint(record: current, directory: directory)
     do {
         try removeRecordings(urls: originals)
     } catch {
@@ -234,6 +251,17 @@ private func transcribedRecord(
         windows = await voiceClustering(audio: othersAudio, embedder: voiceEmbedder)
     }
     return recognizedVoices(record: current, clustering: windows, registry: registry)
+}
+
+/// Son geçişin sonucunu kontrol noktasına yazar ve parça ilerlemesini siler (sonuç artık kontrol noktasında). Yazılamazsa
+/// işleme sürer (yalnızca kesilirse son geçiş yeniden yapılır); hata loglanır.
+private func checkpoint(record: MeetingRecord, directory: URL) {
+    do {
+        try saveProcessingCheckpoint(record: record, directory: directory)
+        try removeFinalPassProgress(directory: directory)
+    } catch {
+        processLogger.error("İşleme kontrol noktası yazılamadı, hata: \(String(describing: error), privacy: .private)")
+    }
 }
 
 /// Kaydın kendisini okuyan (dönüştürmeyle aynı anda başlayan) son geçiş; planda yoksa nil. Saf fonksiyondur.

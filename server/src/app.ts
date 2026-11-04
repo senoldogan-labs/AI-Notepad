@@ -72,9 +72,9 @@ import { clientIpKey } from "./ip";
 import { llmBodyLimitBytes } from "./llm/images";
 import { llmRequestSchema } from "./llm/request";
 import { proxyLLM } from "./llm/proxy";
-import { type LLMPurpose, llmPurposeOf } from "./llm/purpose";
+import { type LLMPurpose, liveLLMPurposes, llmPurposeOf } from "./llm/purpose";
 import { errorName, log } from "./log";
-import { type MeetingRow, type MeetingStartRequest, endMeeting, reprocessMeeting, requireUsableMeeting, startMeeting } from "./meetings";
+import { type MeetingRow, type MeetingStartRequest, type MeetingUse, endMeeting, reprocessMeeting, requireUsableMeeting, startMeeting } from "./meetings";
 import {
   type ReportInput,
   createReport,
@@ -439,7 +439,10 @@ async function route(request: Request, env: Env, config: Config, context: Reques
       return proxyLLM(db, context, config, { kind: "account", userId: user.userId, access, purpose }, body);
     }
     return withMeetingFailures(db, user.userId, meetingId, now, async (): Promise<Response> => {
-      const meeting: MeetingRow = await requireUsableMeeting(db, config, user.userId, meetingId, now);
+      // Kaydın işlenmesi (not, not parçası ve birleştirmesi, konuşmacı incelemesi) düzgün biten toplantıda işleme süresi
+      // boyunca açıktır; canlı çağrılar yalnızca ek süre boyunca.
+      const use: MeetingUse = liveLLMPurposes.includes(purpose) ? "live" : "processing";
+      const meeting: MeetingRow = await requireUsableMeeting(db, config, user.userId, meetingId, use, now);
       // Deneme toplantısının harcaması deneme tavanına da sayılır: açık ya da yeniden açılmış deneme toplantısı tavan
       // dolduktan sonra yeni harcama açamaz.
       if (meeting.kind === "trial") {
@@ -460,7 +463,8 @@ async function route(request: Request, env: Env, config: Config, context: Reques
       if (repeated !== null) {
         return repeated;
       }
-      const meeting: MeetingRow = await requireUsableMeeting(db, config, user.userId, meetingId, now);
+      // Son geçiş sesi kaydın işlenmesidir: düzgün biten toplantıda işleme süresi boyunca açıktır.
+      const meeting: MeetingRow = await requireUsableMeeting(db, config, user.userId, meetingId, "processing", now);
       if (meeting.kind === "trial") {
         await requireTrialSpendHeadroom(db, config, now);
       }
@@ -477,7 +481,7 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     await enforceLimit(env.DEEPGRAM_USER_LIMITER, `user:${user.userId}`);
     const meetingId: string = meetingIdHeader(request);
     return withMeetingFailures(db, user.userId, meetingId, now, async (): Promise<Response> => {
-      const meeting: MeetingRow = await requireUsableMeeting(db, config, user.userId, meetingId, now);
+      const meeting: MeetingRow = await requireUsableMeeting(db, config, user.userId, meetingId, "live", now);
       return jsonResponse(200, await issueDeepgramGrant(db, context.platform, config, meeting, now));
     });
   }

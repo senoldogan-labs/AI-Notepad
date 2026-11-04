@@ -141,12 +141,32 @@ func hostedAccountLLMProvider() throws -> LLMProvider {
     return .hosted(HostedLLMConfig(baseURL: client.baseURL, credentials: client, scope: .account))
 }
 
-/// Son geçiş: kayıt sunucunun `/v1/transcribe` ucuyla (ElevenLabs Scribe) yazıya dökülür; ses yalnızca kaydın kendi
-/// sunucu oturumuna yazılır (bkz. `HostedMeetingLink`), başka bir toplantının bütçesinden düşmez. Oturumun ek süresi
-/// (30 dk) geçtiyse önce yeniden işleme için açılır (`reprocessMeeting`; sınırlı sayıda, yeni deneme ya da toplantı süresi
-/// açmaz). Kaydın oturumu yoksa, yeniden açılamıyorsa ya da ses hakkı kapandıysa son geçiş yapılmaz ve nedeni toplantıda
-/// görünür (önceki son geçiş metni varsa korunur).
+/// Kaydın ardından (ve yarıda kalan işlemenin sürdürülmesinde) son geçiş: kayıt sunucunun `/v1/transcribe` ucuyla
+/// (ElevenLabs Scribe) yazıya dökülür; ses yalnızca kaydın kendi sunucu oturumuna yazılır (bkz. `HostedMeetingLink`).
+/// Oturum önceden yeniden açılmaz: düzgün biten toplantı sunucuda işleme süresi (`MEETING_PROCESSING_HOURS`) boyunca
+/// açıktır; kapanmışsa parça yüklemesi `meeting_not_active` alınca bir kez açılır (bkz. `HostedFinalTranscriber`).
+/// Böylece yarıda kalan son geçişin sürdürülmesi yeniden işleme hakkı harcamaz. Kaydın oturumu yoksa son geçiş yapılmaz
+/// ve nedeni toplantıda görünür.
 func hostedFinalPassPlan(keyterms: [String], recordID: String) async -> FinalPassPlan {
+    let client: HostedClient
+    let links: [HostedMeetingLink]
+    do {
+        client = try HostedServices.requireClient()
+        links = try loadHostedMeetingLinks()
+    } catch {
+        return .skip(reason: userFacingMessage(error: error))
+    }
+    guard let meetingID = hostedServerMeetingID(recordID: recordID, links: links) else {
+        return .skip(reason: String(localized: "Bu toplantı sunucuda bir kayıt oturumuna bağlı değil; konuşmacılar canlı metinden kalır."))
+    }
+    return .run(TelemetryFinalTranscriber(inner: HostedFinalTranscriber(client: client, meetingID: meetingID, keyterms: keyterms)))
+}
+
+/// "Tekrar işle"nin son geçişi: kayıt baştan yeniden yazıya dökülür. Oturumun ek süresi geçtiyse ya da sesi zaten
+/// yazıldıysa önce yeniden işleme için açılır (`reprocessMeeting`; sınırlı sayıda, yeni deneme ya da toplantı süresi
+/// açmaz, ses hakkı kaydın süresi kadar yeniden açılır). Kaydın oturumu yoksa, yeniden açılamıyorsa ya da ses hakkı
+/// kapandıysa son geçiş yapılmaz ve nedeni toplantıda görünür (önceki son geçiş metni varsa korunur).
+func hostedReprocessFinalPassPlan(keyterms: [String], recordID: String) async -> FinalPassPlan {
     let client: HostedClient
     let links: [HostedMeetingLink]
     do {

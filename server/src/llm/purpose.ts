@@ -30,6 +30,15 @@ export const llmPurposes = [
   "connection_test",
 ] as const;
 
+/**
+ * Kayıt sırasındaki canlı amaçlar: toplantı bütçesinin nota ayrılan payını kullanamaz (`meetingLiveTokenLimit`) ve
+ * toplantı bitince yalnızca ek süre boyunca açıktır. Toplantıya bağlı diğer çağrılar (not, not parçası ve birleştirmesi,
+ * konuşmacı incelemesi; amacını bildirmeyen eski istemcinin notu) kaydın işlenmesidir: düzgün biten toplantıda işleme
+ * süresi boyunca açıktır (`meetingProcessingUntil`). Amaç istemcinin beyanıdır; harcama yine toplantının bütçesi ve
+ * kullanıcının sınırlarıyla sınırlıdır.
+ */
+export const liveLLMPurposes: readonly LLMPurpose[] = ["live_translation", "missed_summary", "live_question"];
+
 /** Bilinen amaç ya da başlığı göndermeyen eski istemcinin çağrısı (`unattributed`). */
 export type LLMPurpose = (typeof llmPurposes)[number] | "unattributed";
 

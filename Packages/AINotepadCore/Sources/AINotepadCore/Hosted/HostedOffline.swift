@@ -120,6 +120,13 @@ public func hostedQueuedRecords(records: [MeetingRecord], owners: [String: Strin
     return HostedQueuedRecords(own: queued.filter(isOwn), foreign: queued.filter { !isOwn($0) })
 }
 
+/// Açılışta işlenirken yarıda kalmış bulunan (durumu hâlâ `processing`) ve sunucu oturumuna bağlı kayıtlar: kaldığı
+/// yerden kendiliğinden işlenir (bkz. `processMeeting`). Kayıt sürerken kesilenler (`recording`) ve bağsız (çevrimdışı)
+/// kayıtlar girmez. Saf fonksiyondur.
+public func processingToResume(records: [MeetingRecord], linkedRecordIDs: Set<String>) -> [MeetingRecord] {
+    records.filter { (record: MeetingRecord) -> Bool in record.status == .processing && linkedRecordIDs.contains(record.id) }
+}
+
 /// Açılışta yarıda kalmış bulunan ve sunucu oturumuna bağlı olmayan (çevrimdışı) kayıtlar kuyruğa döner: bağlantı
 /// gelince kendi oturumuyla işlenir. Bağlı kayıt "yarıda kaldı" kalır ("Tekrar işle" kendi oturumunu yeniden açar). Saf
 /// fonksiyondur.

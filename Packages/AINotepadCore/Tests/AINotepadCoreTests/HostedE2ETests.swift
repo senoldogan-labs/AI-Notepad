@@ -629,7 +629,7 @@ private func silentFlac(directory: URL) throws -> URL {
         _ = try await user.client.endMeeting(meetingID: other.meetingId)
     }
 
-    // Ek süresi (30 dk) geçmiş toplantı: toplantı kapsamlı çağrı `meeting_not_active` alır; "Tekrar işle" oturumu
+    // İşleme süresi (24 saat) geçmiş toplantı: toplantı kapsamlı çağrı `meeting_not_active` alır; "Tekrar işle" oturumu
     // yeniden işleme için açar (`reprocessMeeting`, en çok iki kez; yeni deneme düşmez), sonra çağrı yine geçer. Sınır
     // dolunca `reprocess_limit_reached` ve kullanıcı genel hata değil gerçek nedeni görür.
     @Test func reprocessAfterGraceAgainstLocalServer() async throws {
@@ -642,8 +642,8 @@ private func silentFlac(directory: URL) throws -> URL {
         #expect(stillOpen.reprocessesLeft == 2)
         let before: HostedEntitlements = try await user.client.entitlements()
         let ageMeeting: String = """
-            UPDATE meeting_sessions SET started_at = started_at - 7200000, max_ends_at = max_ends_at - 7200000,
-              ended_at = ended_at - 7200000, reprocess_until = CASE WHEN reprocess_until IS NULL THEN NULL ELSE reprocess_until - 7200000 END
+            UPDATE meeting_sessions SET started_at = started_at - 90000000, max_ends_at = max_ends_at - 90000000,
+              ended_at = ended_at - 90000000, reprocess_until = CASE WHEN reprocess_until IS NULL THEN NULL ELSE reprocess_until - 90000000 END
             WHERE id = '\(started.meetingId)';
             """
         try executeLocalD1(sql: ageMeeting)
@@ -830,6 +830,123 @@ private func silentFlac(directory: URL) throws -> URL {
         )
         let refused: HostedAPIError? = await hostedError { _ = try await sendLLM(provider: provider, request: wrongPurpose) }
         #expect(refused?.code == .screenImagesOverLimit)
+    }
+}
+
+/// Sahte üst servislerle (Anthropic, ElevenLabs) uçtan uca deneme yalnızca açıkça istenirse: `AINOTEPAD_HOSTED_E2E=1`,
+/// `AINOTEPAD_HOSTED_UPSTREAM_STUB=1` ve sunucu `wrangler dev --var UPSTREAM_STUB_URL:http://127.0.0.1:<port>` ile, sahte
+/// servis `node scripts/fake-upstreams.ts <port>` ile çalışıyor olmalı (bkz. AGENTS.md). Ücretli çağrı yapılmaz.
+let hostedUpstreamStubEnabled: Bool = hostedE2EEnabled && ProcessInfo.processInfo.environment["AINOTEPAD_HOSTED_UPSTREAM_STUB"] == "1"
+
+/// Toplantı oturumunun işleme alanları.
+private struct ProcessingRow: Decodable {
+    let reprocess_count: Int
+    let tokens_used: Int
+    let audio_seconds: Double
+}
+
+/// Yerel D1'deki toplantının işleme alanları.
+private func processingRow(meetingID: String) throws -> ProcessingRow {
+    try #require(try localD1Rows(sql: "SELECT reprocess_count, tokens_used, audio_seconds FROM meeting_sessions WHERE id = '\(meetingID)';", as: ProcessingRow.self).first)
+}
+
+/// Toplantıyı `ms` kadar geçmişe taşır (kayıt o kadar önce bitmiş gibi; yeniden işleme açıklığı da).
+private func ageMeeting(meetingID: String, ms: Int) throws {
+    try executeLocalD1(sql: """
+        UPDATE meeting_sessions SET started_at = started_at - \(ms), max_ends_at = max_ends_at - \(ms), ended_at = ended_at - \(ms),
+          reprocess_until = CASE WHEN reprocess_until IS NULL THEN NULL ELSE reprocess_until - \(ms) END
+        WHERE id = '\(meetingID)';
+        """)
+}
+
+/// Son geçişi bitmiş, notu henüz yazılmamış toplantı (iPhone'da "Hazırlanıyor"da askıya alınmış kayıt).
+private func transcribedRecord(id: String) -> MeetingRecord {
+    MeetingRecord(
+        id: id, title: "Toplantı", startedAt: Date(), endedAt: Date(), language: .finnish, status: .processing, failureMessage: nil,
+        liveSegments: [], finalSegments: [
+            StoredSegment(key: "final-0", speaker: .others, person: 1, startSec: 0, endSec: 4, text: "Hyvää huomenta, aloitetaan viikkopalaveri.", words: nil),
+            StoredSegment(key: "final-1", speaker: .others, person: 2, startSec: 5, endSec: 9, text: "Budjetti on valmis ja menee hallitukselle perjantaina.", words: nil),
+        ],
+        translations: [:], speakerNames: [:], note: nil, audioDeleted: false, engine: .cloud, notice: nil, meNeedsFinalPass: nil
+    )
+}
+
+// Uzun ya da askıya alınmış toplantının notu kullanıcı bir şey yapmadan tamamlanır (2026-11-04 TestFlight hatası: 31
+// dakikalık toplantının notu 32 dk sonra istendi, sunucunun 30 dk'lık ek süresi kapanmıştı).
+@Suite(.enabled(if: hostedUpstreamStubEnabled), .serialized) struct HostedLongMeetingE2ETests {
+    // Kayıt bitti, not ek süreden (30 dk) sonra istendi: düzgün biten toplantı işleme süresinde (24 saat) açık; not
+    // yeniden işleme hakkı harcanmadan yazılır ve kullanım toplantıya sayılır.
+    @Test func noteRequestedAfterGraceCompletesWithoutReprocess() async throws {
+        let baseURL: URL = try localServerBase()
+        let user: SignedInUser = try await signedInUser(baseURL: baseURL)
+        try markTrialStarted(userID: user.userID, usedMeetings: 1, startedAtMs: nowMs())
+        let started: HostedStartedMeeting = try await user.client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: UUID().uuidString.lowercased(), deferred: false)
+        _ = try await user.client.endMeeting(meetingID: started.meetingId)
+        try ageMeeting(meetingID: started.meetingId, ms: 32 * 60_000)
+        let directory: URL = try temporaryDirectory()
+        let provider: LLMProvider = .hosted(HostedLLMConfig(baseURL: baseURL, credentials: user.client, scope: .recordedMeeting(serverMeetingID: started.meetingId)))
+        let result: MeetingRecord = await regenerateNote(
+            record: transcribedRecord(id: directory.lastPathComponent), directory: directory, llm: provider, userName: "Doğan", language: .turkish, screens: .off
+        )
+        #expect(result.status == .done, "hata: \(result.failureMessage ?? "")")
+        #expect(result.note != nil)
+        let row: ProcessingRow = try processingRow(meetingID: started.meetingId)
+        #expect(row.reprocess_count == 0)
+        #expect(row.tokens_used > 0)
+    }
+
+    // Kayıt bitti, not işleme süresinden (24 saat) de sonra istendi (uygulama günlerce açılmadı): istemci toplantıyı
+    // kendiliğinden yeniden işlemeye açar (bir hak), not yazılır.
+    @Test func noteRequestedAfterProcessingWindowReopensAutomatically() async throws {
+        let baseURL: URL = try localServerBase()
+        let user: SignedInUser = try await signedInUser(baseURL: baseURL)
+        try markTrialStarted(userID: user.userID, usedMeetings: 1, startedAtMs: nowMs())
+        let started: HostedStartedMeeting = try await user.client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: UUID().uuidString.lowercased(), deferred: false)
+        _ = try await user.client.endMeeting(meetingID: started.meetingId)
+        try ageMeeting(meetingID: started.meetingId, ms: 25 * 3_600_000)
+        let directory: URL = try temporaryDirectory()
+        let provider: LLMProvider = .hosted(HostedLLMConfig(baseURL: baseURL, credentials: user.client, scope: .recordedMeeting(serverMeetingID: started.meetingId)))
+        let result: MeetingRecord = await regenerateNote(
+            record: transcribedRecord(id: directory.lastPathComponent), directory: directory, llm: provider, userName: "Doğan", language: .turkish, screens: .off
+        )
+        #expect(result.status == .done, "hata: \(result.failureMessage ?? "")")
+        #expect(result.note != nil)
+        #expect(try processingRow(meetingID: started.meetingId).reprocess_count == 1)
+    }
+
+    // Son geçiş de ek süreden sonra yapılabilir; parça ilerlemesi kaydedilir ve aynı kayıt yeniden işlenince (uygulama
+    // işleme sırasında kapandı) tamamlanan parça yeniden yüklenmez (ses bir kez sayılır). İşleme süresi de geçmişse
+    // toplantı kendiliğinden yeniden açılır.
+    @Test func finalPassAfterGraceResumesWithoutDoubleBilling() async throws {
+        let baseURL: URL = try localServerBase()
+        let user: SignedInUser = try await signedInUser(baseURL: baseURL)
+        try markTrialStarted(userID: user.userID, usedMeetings: 1, startedAtMs: nowMs())
+        let started: HostedStartedMeeting = try await user.client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: UUID().uuidString.lowercased(), deferred: false)
+        _ = try await user.client.endMeeting(meetingID: started.meetingId)
+        // Kayıt 10 dakika sürmüş olsun (ses toplantının gerçek süresini aşamaz).
+        try executeLocalD1(sql: "UPDATE meeting_sessions SET started_at = started_at - 600000, max_ends_at = max_ends_at - 600000 WHERE id = '\(started.meetingId)';")
+        try ageMeeting(meetingID: started.meetingId, ms: 2 * 3_600_000)
+        let directory: URL = try temporaryDirectory()
+        let others: CafRecorder = try CafRecorder(fileURL: directory.appending(path: "others.caf"))
+        try others.append(samples: silence(seconds: 3))
+        others.close()
+        let transcriber: HostedFinalTranscriber = HostedFinalTranscriber(client: user.client, meetingID: started.meetingId, keyterms: [])
+        let first: FinalPassResult = try await transcriber.transcribeFinal(audioURL: directory.appending(path: "others.caf"), languageMode: .fixed(.finnish))
+        #expect(!first.segments.isEmpty)
+        #expect(FileManager.default.fileExists(atPath: directory.appending(path: "final-pass-others.json").path))
+        let afterFirst: ProcessingRow = try processingRow(meetingID: started.meetingId)
+        #expect(afterFirst.audio_seconds > 0)
+        #expect(afterFirst.reprocess_count == 0)
+        // Uygulama son geçişin sonucu saklanmadan kapandı: aynı kayıt yeniden işlenir, parça önceki yanıttan alınır.
+        let resumed: FinalPassResult = try await transcriber.transcribeFinal(audioURL: directory.appending(path: "others.caf"), languageMode: .fixed(.finnish))
+        #expect(resumed.segments.map(\.text) == first.segments.map(\.text))
+        #expect(try processingRow(meetingID: started.meetingId).audio_seconds == afterFirst.audio_seconds)
+        // İşleme süresi de geçti: yükleme `meeting_not_active` alır, toplantı kendiliğinden açılır ve son geçiş tamamlanır.
+        try removeFinalPassProgress(directory: directory)
+        try ageMeeting(meetingID: started.meetingId, ms: 25 * 3_600_000)
+        let reopened: FinalPassResult = try await transcriber.transcribeFinal(audioURL: directory.appending(path: "others.caf"), languageMode: .fixed(.finnish))
+        #expect(!reopened.segments.isEmpty)
+        #expect(try processingRow(meetingID: started.meetingId).reprocess_count == 1)
     }
 }
 

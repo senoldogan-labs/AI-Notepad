@@ -1364,9 +1364,9 @@ final class HostedAccount {
     /// Bekleyen kaydın (çevrimdışı kaydedilmiş ya da içe aktarılmış) sunucu oturumunu hazırlar. Kayıt daha önce bir oturuma bağlandıysa o kullanılır;
     /// yoksa oturum "ertelenmiş" açılır (sunucu hakları denetler, süren canlı kaydın oturumunu kapatmaz; `clientRef`
     /// yinelenen denemenin ikinci oturum açmasını önler), kayda bağlanır ve hemen kapatılır: toplantı süresi sayılmaz,
-    /// aylık kullanıma sesin gerçek süresi yazılır (son geçiş); not ve son geçiş sunucunun ek süresinde (30 dk) bu
-    /// oturumla üretilir. Bağlı oturumun ek süresi geçtiyse (önceki deneme yarıda kaldı) son geçiş planı oturumu yeniden
-    /// işleme için açar (bkz. `hostedFinalPassPlan`).
+    /// aylık kullanıma sesin gerçek süresi yazılır (son geçiş); not ve son geçiş sunucunun işleme süresinde (24 saat) bu
+    /// oturumla üretilir. Bağlı oturum kapandıysa (önceki deneme yarıda kaldı) son geçiş ve not oturumu `meeting_not_active`
+    /// alınca yeniden işleme için açar (bkz. `HostedFinalTranscriber`, `withRecordedMeetingReopen`).
     func prepareQueuedMeeting(recordID: String) async -> HostedQueuedMeetingPreparation {
         if case .signedIn(let entitlements) = state, hostedStartBlock(entitlements: entitlements) != nil, hostedServerMeetingIDOrNil(recordID: recordID) == nil {
             return .blocked(reason: queuedBlockReason(entitlements: entitlements))

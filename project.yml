@@ -345,7 +345,8 @@ targets:
         # RevenueCat'in herkese açık iOS SDK anahtarı (gizli değildir; Debug ve Release aynı, bkz. iOS/Purchases/).
         RevenueCatAPIKey: "$(REVENUECAT_API_KEY)"
         # Kayıt ekran kilitliyken ve uygulama arka plandayken sürer.
-        UIBackgroundModes: [audio]
+        # processing: kayıttan sonra yarıda kalan notu sistemin uygun anında yazan görev (`ProcessingResumeScheduler`).
+        UIBackgroundModes: [audio, processing]
         UIAppFonts: [InterVariable.ttf]
         # Takvim yalnızca Ayarlar'da açılınca okunur (sıradaki toplantılar, kaydı süren etkinliğe bağlama).
         NSCalendarsFullAccessUsageDescription: "Gistsmith sıradaki toplantılarını gösterir ve kaydı süren toplantının adı ve katılımcılarıyla kaydeder."
@@ -355,7 +356,7 @@ targets:
         NSSupportsLiveActivities: true
         # Kayıttan sonra işleme uygulamadan çıkılsa da sürer (BGContinuedProcessingTask); kimlik
         # `com.senoldogan.AINotepad.hosted.process.<UUID>` biçimindedir (bkz. iOS/PhoneRecorder.swift).
-        BGTaskSchedulerPermittedIdentifiers: [com.senoldogan.AINotepad.hosted.process.*]
+        BGTaskSchedulerPermittedIdentifiers: [com.senoldogan.AINotepad.hosted.process.*, com.senoldogan.AINotepad.hosted.resume]
   AINotepadWidgets:
     type: app-extension
     platform: iOS

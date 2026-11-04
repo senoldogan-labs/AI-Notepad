@@ -1,4 +1,7 @@
 import Foundation
+import os
+
+private let hostedLLMLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "HostedLLM")
 
 /// Sunucunun kullandığı tek model (sunucuda sabittir; istemci model göndermez).
 public let hostedModelName: String = "claude-haiku-5-5"
@@ -31,6 +34,9 @@ public protocol HostedLLMCredentialSource: AnyObject, Sendable {
     func validAccessToken() async throws -> String
     /// Erişim jetonunu süresine bakmadan yeniler (sunucu jetonu 401 ile reddettiyse); oturum kapandıysa `sessionEnded`.
     func refreshAccessToken() async throws
+    /// Kaydı bitmiş toplantıyı işleme için yeniden açar (`POST /v1/meetings/{id}/reprocess`; bkz.
+    /// `withRecordedMeetingReopen`). Sınır dolduysa `reprocess_limit_reached`.
+    func reopenRecordedMeeting(meetingID: String) async throws
 }
 
 /// Çağrının sunucudaki bütçesi.
@@ -206,6 +212,33 @@ public func classifyHostedLLMResponse(status: Int, data: Data, requestID: String
         return isRetryableHostedError(error: error) ? .retryable(.hosted(error)) : .final(.hosted(error))
     }
     return classifyClaudeResponse(status: status, data: data, model: hostedModelName, requestID: requestID)
+}
+
+/// Kaydı bitmiş toplantının çağrısı `meeting_not_active` aldıysa yeniden açılacak toplantı; başka kapsamda ya da başka
+/// hatada nil. Saf fonksiyondur.
+public func recordedMeetingToReopen(scope: HostedLLMScope, error: any Error) -> String? {
+    guard case .recordedMeeting(let meetingID) = scope, case LLMError.hosted(let hosted) = error, hosted.code == .meetingNotActive else {
+        return nil
+    }
+    return meetingID
+}
+
+/// Kaydı bitmiş toplantının notu, toplantının sunucu oturumu kapandıktan sonra da yazılır: çağrı `meeting_not_active`
+/// alırsa (işleme süresi geçti — uygulama arka planda askıya alındı, kapatıldı ya da çevrimdışı kaldı — ya da toplantı
+/// yeni kayıtla kapandı) toplantı bir kez yeniden işlemeye açılır (`reopenRecordedMeeting`; ses yeniden faturalanmaz,
+/// toplantının yapay zekâ bütçesi kullanılır) ve çağrı yinelenir. Açılamazsa (sınır doldu, abonelik yok) açma hatası
+/// fırlar: kullanıcı gerçek nedeni görür. Her açılış uyarı loglanır.
+func withRecordedMeetingReopen(config: HostedLLMConfig, operation: () async throws -> String) async throws -> String {
+    do {
+        return try await operation()
+    } catch {
+        guard let meetingID = recordedMeetingToReopen(scope: config.scope, error: error) else {
+            throw error
+        }
+        hostedLLMLogger.warning("Kaydın sunucu oturumu kapanmış, not için yeniden açılıyor, toplantı: \(meetingID, privacy: .public)")
+        try await config.credentials.reopenRecordedMeeting(meetingID: meetingID)
+        return try await operation()
+    }
 }
 
 /// Abonelik sunucusu çağrısını hazırlar: jeton (ve toplantıya bağlıysa toplantı) çağrı anında alınır (jeton gerekirse
