@@ -20772,6 +20772,113 @@
           }
         }
       }
+    },
+    "Şimdi bitir": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finish now"
+          }
+        }
+      }
+    },
+    "Görüşme bitti gibi görünüyor": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The call seems to have ended"
+          }
+        }
+      }
+    },
+    "Kayıt %lld sn sonra bitecek. Sürmesini istiyorsan \"Kayda devam et\".": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording finishes in %lld s. To keep it going, choose \"Keep recording\"."
+          }
+        }
+      }
+    },
+    "Görüşme bitti gibi görünüyor; kayıt %lld sn sonra bitecek": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The call seems to have ended; recording finishes in %lld s"
+          }
+        }
+      }
+    },
+    "Görüşme bitince kaydı bitir": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finish recording when the call ends"
+          }
+        }
+      }
+    },
+    "Kayıt sırasında Teams, Zoom, Meet ya da başka bir uygulama mikrofonu kullanırken görüşme bitip mikrofon 15 sn boş kalırsa, panelde ve bildirimde \"Görüşme bitti gibi görünüyor\" yazar; 30 sn içinde \"Kayda devam et\"e basmazsan kayıt \"Bitir\"e basılmış gibi biter ve not hazırlanır. Unutulan kayıt boşuna dakika harcamaz. Yüz yüze kayıtlar (başka uygulama mikrofonu kullanmadığında) kendiliğinden bitmez.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "While recording, if Teams, Zoom, Meet or another app was using the microphone and the call ends so the microphone stays unused for 15 s, the panel and a notification say \"The call seems to have ended\"; unless you press \"Keep recording\" within 30 s, the recording ends as if you pressed \"Finish\" and the note is prepared. A forgotten recording doesn't waste minutes. In-person recordings (when no other app uses the microphone) never end on their own."
+          }
+        }
+      }
+    },
+    "Açık görevler (önceki toplantılardan)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open tasks (from earlier meetings)"
+          }
+        }
+      }
+    },
+    "+%lld görev daha": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+%lld more tasks"
+          }
+        }
+      }
+    },
+    "Tümünü gör (%lld)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "See all (%lld)"
+          }
+        }
+      }
+    },
+    "callEnd.keepRecording": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep recording"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kayda devam et"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

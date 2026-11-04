@@ -239,6 +239,7 @@ private struct GeneralSettings: View {
     @AppStorage(SettingsKey.micSuggestions) private var micSuggestions: Bool = true
     @AppStorage(SettingsKey.primaryMeetingLanguage) private var primaryLanguage: String = MeetingLanguage.finnish.rawValue
     @AppStorage(SettingsKey.autoRecord) private var autoRecord: Bool = false
+    @AppStorage(SettingsKey.stopWhenCallEnds) private var stopWhenCallEnds: Bool = true
     @AppStorage(SettingsKey.noteTemplate) private var noteTemplate: String = NoteTemplateKind.general.rawValue
     @AppStorage(SettingsKey.customTemplate) private var customTemplate: String = ""
     @AppStorage(SettingsKey.templateFromTitle) private var templateFromTitle: Bool = true
@@ -412,6 +413,13 @@ private struct GeneralSettings: View {
                         .settingsToggle()
                         .onChange(of: autoRecord) { (_: Bool, _: Bool) in model.startCalendarServices() }
                 }
+            }
+            // Takvimden bağımsız: kayıt sırasında görüşme uygulamasının mikrofonu izlenir.
+            SettingsRow(title: Text("Görüşme bitince kaydı bitir")) {
+                Text("Kayıt sırasında Teams, Zoom, Meet ya da başka bir uygulama mikrofonu kullanırken görüşme bitip mikrofon 15 sn boş kalırsa, panelde ve bildirimde \"Görüşme bitti gibi görünüyor\" yazar; 30 sn içinde \"Kayda devam et\"e basmazsan kayıt \"Bitir\"e basılmış gibi biter ve not hazırlanır. Unutulan kayıt boşuna dakika harcamaz. Yüz yüze kayıtlar (başka uygulama mikrofonu kullanmadığında) kendiliğinden bitmez.")
+            } control: {
+                Toggle("Görüşme bitince kaydı bitir", isOn: $stopWhenCallEnds)
+                    .settingsToggle()
             }
             SettingsRow(title: Text("Not şablonu")) {
                 Text("Yeni toplantıların notu bu türe göre yazılır; bir toplantının notunu sonradan başka şablonla yeniden yazabilirsin (⋯ menüsü).")

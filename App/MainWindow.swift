@@ -107,6 +107,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     @MainActor static var onStartFromNotification: (@MainActor () -> Void)?
     /// "Kayıt başlatılamadı" bildirimine tıklama Ana sayfayı açar (neden başlat düğmesinin yanında); açılışta bağlanır.
     @MainActor static var onOpenHomeFromNotification: (@MainActor () -> Void)?
+    /// "Görüşme bitti gibi" bildiriminin yanıtı (eylem kimliği: devam, bitir ya da bildirime tıklama); açılışta bağlanır.
+    @MainActor static var onCallEndedResponse: (@MainActor (String) -> Void)?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         UNUserNotificationCenter.current().delegate = self
@@ -121,6 +123,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             await MainActor.run { AppDelegate.onStartFromNotification?() }
         case MeetingNotificationID.autoFailedCategory:
             await MainActor.run { AppDelegate.onOpenHomeFromNotification?() }
+        case MeetingNotificationID.callEndedCategory:
+            let action: String = response.actionIdentifier
+            await MainActor.run { AppDelegate.onCallEndedResponse?(action) }
         default:
             return
         }
@@ -201,6 +206,10 @@ struct MainWindowView: View {
                         )
                         if !visibleErrors.isEmpty {
                             ErrorBanner(messages: visibleErrors) { model.dismissErrors() }
+                        }
+                        // Görüşme bitti gibi: kayıt geri sayımla bitecek (kayıt ekranı kapatılmışken burada görünür).
+                        if let deadline = model.callEndDeadline {
+                            CallEndNotice(deadline: deadline) { model.keepRecordingAfterCallEnd() } onStop: { model.stopRecording() }
                         }
                         // Önceki açılışta çöktüyse bir kez sorulur (rapor yalnızca bu Mac'te; gönderen kullanıcı).
                         if let report = crashReports.reportToAnnounce {
@@ -679,17 +688,9 @@ private struct HomePage: View {
                 .padding(.top, 24)
                 Shortcuts(model: model, router: router, onShowPanel: onShowPanel)
                 UpcomingMeetings(model: model, startBlock: startBlock, onStartRecording: onStartRecording) { (meeting: CalendarMeeting) -> Void in
-                    #if HOSTED_EDITION
-                    // Hakkı yoksa mevcut sohbet silinmez; teklif açılır.
-                    if HostedAccount.shared.requiresSubscription {
-                        HostedAccount.shared.requestSubscription()
-                        return
+                    if model.startBriefing(meeting: meeting) {
+                        router.section = .ask
                     }
-                    #endif
-                    // Brifing yeni bir konu: önceki sohbet bağlam olmasın.
-                    model.clearArchiveConversation()
-                    model.askArchive(question: briefingQuestion(meeting: meeting), meetingIDs: [], recipeTitle: nil)
-                    router.section = .ask
                 } onOpenMeeting: { (id: String) -> Void in
                     router.selectedMeetingID = id
                     router.section = .meetings
@@ -1823,6 +1824,11 @@ private struct RecordingFocus: View {
                 .contentShape(Rectangle())
                 .ignoresSafeArea()
             VStack(spacing: 22) {
+                if let deadline = model.callEndDeadline {
+                    CallEndNotice(deadline: deadline) { model.keepRecordingAfterCallEnd() } onStop: { model.stopRecording() }
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .frame(maxWidth: 520)
+                }
                 LargeLevelMeter(levels: model.audioLevels)
                     .opacity(model.isPaused ? 0.35 : 1)
                 VStack(spacing: 6) {

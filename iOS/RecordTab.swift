@@ -20,7 +20,7 @@ struct RecordTab: View {
                 case .idle, .starting:
                     RecordHome(recorder: recorder, store: store, router: router, calendar: calendar, onBriefing: onBriefing)
                 case .recording, .finishing:
-                    LiveRecordingView(recorder: recorder)
+                    LiveRecordingView(recorder: recorder, router: router)
                 }
             }
             .background(Theme.background)
@@ -381,6 +381,8 @@ struct PressableCardStyle: ButtonStyle {
 /// soru sorulur (Mac panelindeki gibi). Rıza hatırlatması kayıt başında üstte 3 saniye görünen bir bildirimdir.
 private struct LiveRecordingView: View {
     let recorder: PhoneRecorder
+    /// "Açık görevler"in "Tümünü gör"ü kaynak toplantıyı Toplantılar sekmesinde açar (kayıt sürer).
+    let router: PhoneRouter
     @State private var markedAt: Date?
     @State private var isNotesOpen: Bool = false
     /// Asistana sorulacak soru (kart açıkken).
@@ -408,9 +410,18 @@ private struct LiveRecordingView: View {
                 }
                 MicrophoneNotice(status: recorder.microphoneStatus, recoveredVisible: recorder.microphoneRecoveredNoticeVisible)
                 PhoneErrorList(messages: recorder.errorMessages)
+                if recorder.phase == .recording, let newest = recorder.relatedTasks.first {
+                    PhoneRelatedTasksCard(tasks: recorder.relatedTasks) {
+                        router.open(meetingID: newest.meetingID)
+                    } onDismiss: {
+                        recorder.relatedTasks = []
+                    }
+                    .transition(.opacity)
+                }
             }
             .padding(.horizontal, 20)
             .animation(.smooth(duration: 0.25), value: recorder.isPaused)
+            .animation(.smooth(duration: 0.25), value: recorder.relatedTasks.isEmpty)
             if blocks.isEmpty {
                 listening
             } else {
@@ -808,6 +819,66 @@ private struct PausedNotice: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Theme.soft, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .transition(.opacity)
+    }
+}
+
+/// Kayıt başında: bu toplantıyla ilgili önceki toplantılardan açık görevler (en çok 5), her biri kaynak toplantının
+/// başlığıyla. Yalnız hatırlatmadır (dokunmak görevi işaretlemez); "Tümünü gör" en yeni kaynak toplantıyı açar, kapatılınca
+/// bu kayıt boyunca görünmez (Mac'teki şeridin eşi).
+private struct PhoneRelatedTasksCard: View {
+    let tasks: [RelatedOpenTask]
+    let onShowAll: @MainActor () -> Void
+    let onDismiss: @MainActor () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Label("Açık görevler (önceki toplantılardan)", systemImage: "checklist")
+                    .appFont(size: 13, weight: .semibold)
+                    .foregroundStyle(Theme.ink)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+                Spacer(minLength: 4)
+                Button {
+                    onDismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .appFont(size: 12, weight: .semibold)
+                        .foregroundStyle(Theme.muted)
+                        .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("Kapat"))
+            }
+            ForEach(tasks.prefix(5)) { (item: RelatedOpenTask) in
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(verbatim: item.task.description)
+                        .appFont(size: 14, weight: .regular)
+                        .foregroundStyle(Theme.ink)
+                        .lineLimit(1)
+                    Text(verbatim: "\(item.task.owner) · \(item.meetingTitle)")
+                        .appFont(size: 12, weight: .regular)
+                        .foregroundStyle(Theme.muted)
+                        .lineLimit(1)
+                }
+                .accessibilityElement(children: .combine)
+            }
+            Button {
+                onShowAll()
+            } label: {
+                HStack(spacing: 3) {
+                    Text(tasks.count > 5 ? String(localized: "Tümünü gör (\(tasks.count))") : String(localized: "Tümünü gör"))
+                    Image(systemName: "chevron.right").appFont(size: 10, weight: .semibold)
+                }
+                .appFont(size: 13, weight: .medium)
+                .foregroundStyle(.tint)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.soft, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }
 

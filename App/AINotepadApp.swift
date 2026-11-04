@@ -250,6 +250,20 @@ struct AINotepadApp: App {
         AppDelegate.onOpenHomeFromNotification = {
             openMainWindow(router: router, section: .home)
         }
+        AppDelegate.onCallEndedResponse = { (action: String) -> Void in
+            switch action {
+            case MeetingNotificationID.keepRecordingAction:
+                model.keepRecordingAfterCallEnd()
+            case MeetingNotificationID.stopRecordingAction:
+                // Kullanıcının "Bitir"iyle aynı yol (not hazırlanması dahil).
+                model.stopRecording()
+            default:
+                // Bildirime tıklama: geri sayım uyarısı canlı panelde görünür.
+                if model.isRecording {
+                    panel.show(page: .live)
+                }
+            }
+        }
         model.onAutoRecord = {
             guard !model.isRecording else {
                 return

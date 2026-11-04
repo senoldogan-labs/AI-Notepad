@@ -13,6 +13,12 @@ enum MeetingNotificationID {
     static let startAction: String = "meeting.start.listen"
     static let reminderPrefix: String = "meeting.reminder."
     static let micSuggestion: String = "meeting.mic"
+    /// "Görüşme bitti gibi" bildirimi (yalnız Mac): kayıt geri sayımın sonunda biter; eylemler geri sayımı iptal eder ya
+    /// da kaydı hemen bitirir, bildirime tıklama canlı paneli açar.
+    static let callEndedCategory: String = "meeting.callEnded"
+    static let callEnded: String = "meeting.callEnded"
+    static let keepRecordingAction: String = "meeting.callEnded.keep"
+    static let stopRecordingAction: String = "meeting.callEnded.stop"
 }
 
 /// Bildirim izni ya da kurulumu hatası.
@@ -33,10 +39,19 @@ final class MeetingNotifier {
 
     init() {
         let start: UNNotificationAction = UNNotificationAction(identifier: MeetingNotificationID.startAction, title: String(localized: "Dinlemeye başla"), options: [.foreground])
-        center.setNotificationCategories([
+        let common: Set<UNNotificationCategory> = [
             UNNotificationCategory(identifier: MeetingNotificationID.category, actions: [start], intentIdentifiers: []),
             UNNotificationCategory(identifier: MeetingNotificationID.autoFailedCategory, actions: [], intentIdentifiers: []),
-        ])
+        ]
+        #if os(macOS)
+        let keep: UNNotificationAction = UNNotificationAction(identifier: MeetingNotificationID.keepRecordingAction, title: keepRecordingTitle(), options: [])
+        let stop: UNNotificationAction = UNNotificationAction(identifier: MeetingNotificationID.stopRecordingAction, title: String(localized: "Şimdi bitir"), options: [])
+        center.setNotificationCategories(common.union([
+            UNNotificationCategory(identifier: MeetingNotificationID.callEndedCategory, actions: [keep, stop], intentIdentifiers: []),
+        ]))
+        #else
+        center.setNotificationCategories(common)
+        #endif
     }
 
     /// Bildirim izni ister.
@@ -125,6 +140,33 @@ final class MeetingNotifier {
 }
 
 #if os(macOS)
+/// Görüşme sonu geri sayımındaki "Kayda devam et" düğmesi. Aynı Türkçe metin iPhone'da duraklatılan kaydı sürdürme
+/// eylemidir ("Resume recording"); burada kayıt duraklatılmış değildir: İngilizcesi ayrı olsun diye kendi anahtarıyla.
+func keepRecordingTitle() -> String {
+    String(localized: "callEnd.keepRecording", defaultValue: "Kayda devam et")
+}
+
+extension MeetingNotifier {
+    /// Görüşme bitti gibi görünüyor: kayıt `seconds` sn sonra bitecek (pencere gizliyken de görülsün).
+    func announceCallEnded(seconds: Int) async throws {
+        let content: UNMutableNotificationContent = UNMutableNotificationContent()
+        content.title = String(localized: "Görüşme bitti gibi görünüyor")
+        content.body = String(localized: "Kayıt \(seconds) sn sonra bitecek. Sürmesini istiyorsan \"Kayda devam et\".")
+        content.categoryIdentifier = MeetingNotificationID.callEndedCategory
+        content.sound = .default
+        do {
+            try await center.add(UNNotificationRequest(identifier: MeetingNotificationID.callEnded, content: content, trigger: nil))
+        } catch {
+            throw NotificationError.scheduleFailed(reason: error.localizedDescription)
+        }
+    }
+
+    /// Geri sayım iptal oldu ya da kayıt bitti: "Görüşme bitti gibi" bildirimi kaldırılır.
+    func removeCallEnded() {
+        center.removeDeliveredNotifications(withIdentifiers: [MeetingNotificationID.callEnded])
+    }
+}
+
 /// Varsayılan mikrofonun herhangi bir uygulamada kullanılıp kullanılmadığını (Core Audio) 5 sn'de bir denetler;
 /// kullanılmıyorken kullanılmaya başlayınca `onStart` çağrılır.
 @MainActor

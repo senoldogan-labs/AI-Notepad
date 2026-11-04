@@ -144,6 +144,19 @@ final class AppModel {
     var notificationProblem: String?
     /// Bu kaydın bağlandığı takvim toplantısı.
     @ObservationIgnored private var linkedMeeting: CalendarMeeting?
+    /// Süren kaydın bağlandığı takvim toplantısı (kayıttaki "Açık görevler"in "Tümünü gör"ü brifingini açar); kayıt
+    /// yokken nil.
+    private(set) var recordingCalendarMeeting: CalendarMeeting?
+    /// Kayıt başlarken önceki ilgili toplantılardan açık görevler (`relatedOpenTasks`; yalnız yerel kayıtlar): kayıt
+    /// panelinde hatırlatma. Kapatılınca ya da kayıt bitince boş.
+    var relatedTasks: [RelatedOpenTask] = []
+    /// Görüşme bitince kaydı bitirme (bkz. `CallEndDetection`): geri sayım sürüyorsa kaydın biteceği an (panelde ve ana
+    /// pencerede uyarı).
+    private(set) var callEndDeadline: Date?
+    @ObservationIgnored private var callEndState: CallEndState = .initial
+    @ObservationIgnored private let callEndWatcher: CallEndWatcher = CallEndWatcher()
+    /// Son ölçümde mikrofonu kullanan görüşme süreçlerinin paket kimlikleri (yalnız değişince günlüğe yazılır).
+    @ObservationIgnored private var lastCallInputBundles: [String] = []
     var transcript: [LiveSegment] = []
     /// Kullanıcının kayıt sırasında yaptığı konuşmacı düzeltmeleri (otomatik ayırmanın üstüne uygulanır).
     var speakerCorrections: SpeakerCorrections = .none
@@ -1160,6 +1173,11 @@ final class AppModel {
         keepAwake(meetingID: directory.lastPathComponent)
         startCheckpoints(directory: directory, startedAt: startedAt, engine: engineAtStart)
         startScreenSnapshots(meetingID: directory.lastPathComponent, directory: directory, origin: origin, isInPerson: recordingInPerson)
+        recordingCalendarMeeting = linkedMeeting
+        relatedTasks = linkedMeeting.map { (meeting: CalendarMeeting) -> [RelatedOpenTask] in
+            relatedOpenTasks(meeting: meeting, records: meetings, userName: UserDefaults.standard.string(forKey: SettingsKey.userName) ?? "", before: startedAt)
+        } ?? []
+        startCallEndWatch()
         // Uygulama kayıt sırasında kapanırsa toplantı açılışta "yarıda kaldı" olarak bulunur.
         saveRecord(record: liveRecord(directory: directory, startedAt: startedAt, engine: engineAtStart, status: .recording, endedAt: nil), directory: directory)
         Self.logger.info("Kayıt başladı, klasör: \(directory.lastPathComponent, privacy: .public), motor: \(engineAtStart.rawValue, privacy: .public)")
@@ -1236,10 +1254,92 @@ final class AppModel {
         }
         isFinishing = true
         consentReminderVisible = false
+        stopCallEndWatch()
         audioLevels.stop()
         microphone.stop()
         systemAudio.stop()
         screenSnapshots.stopRecording()
+    }
+
+    // MARK: Görüşme bitince kaydı bitir
+
+    /// Kayıt sürerken görüşme sonunu izlemeye başlar. Yüz yüze modda izlenmez (karşı taraf başka uygulamada değildir).
+    /// Ayar her ölçümde okunur: kayıt sırasında kapatılırsa süren geri sayım da iptal olur.
+    private func startCallEndWatch() {
+        callEndState = .initial
+        callEndDeadline = nil
+        lastCallInputBundles = []
+        guard !recordingInPerson else {
+            return
+        }
+        callEndWatcher.start { [weak self] (processes: [AudioInputProcess]) -> Void in
+            self?.callInputSampled(processes: processes)
+        } onFailure: { (error: any Error) -> Void in
+            Self.logger.error("Mikrofonu kullanan uygulamalar okunamadı, hata: \(String(describing: error), privacy: .public)")
+        }
+    }
+
+    /// İzlemeyi durdurur, geri sayımı ve bildirimini kaldırır (kayıt bitti ya da bitiyor).
+    private func stopCallEndWatch() {
+        callEndWatcher.stop()
+        callEndState = .initial
+        callEndDeadline = nil
+        notifier.removeCallEnded()
+    }
+
+    /// Bir ölçüm: görüşme süreçleri durum makinesine verilir, çıkan iş uygulanır.
+    private func callInputSampled(processes: [AudioInputProcess]) {
+        guard isRecording, !isFinishing else {
+            return
+        }
+        let bundles: [String] = processes.map(\.bundleID).sorted()
+        if bundles != lastCallInputBundles {
+            lastCallInputBundles = bundles
+            Self.logger.info("Mikrofonu kullanan uygulamalar değişti, uygulamalar: \(bundles.joined(separator: ","), privacy: .public)")
+        }
+        guard UserDefaults.standard.bool(forKey: SettingsKey.stopWhenCallEnds) else {
+            if callEndDeadline != nil {
+                notifier.removeCallEnded()
+            }
+            callEndState = .initial
+            callEndDeadline = nil
+            return
+        }
+        // Kendi diktemiz zaten kendi sürecimizdedir (sayılmaz); kapanışın hemen ardındaki ölçüm de atlanır.
+        guard !isDictationMicOpen, !dictationMicClosedRecently(closedAt: dictationMicClosedAt, now: Date()) else {
+            return
+        }
+        let step: CallEndStep = callEndStep(state: callEndState, callInputActive: !processes.isEmpty, now: Date(), rules: .standard)
+        callEndState = step.state
+        callEndDeadline = step.state.stopDeadline
+        switch step.action {
+        case .none:
+            break
+        case .countdownStarted(let deadline):
+            Self.logger.info("Görüşme bitti gibi, kayıt geri sayımla bitecek")
+            let seconds: Int = Int(deadline.timeIntervalSinceNow.rounded())
+            Task {
+                do {
+                    try await notifier.announceCallEnded(seconds: seconds)
+                } catch {
+                    Self.logger.error("Görüşme bitti bildirimi gösterilemedi, hata: \(String(describing: error), privacy: .private)")
+                }
+            }
+        case .countdownCancelled:
+            Self.logger.info("Görüşme sürüyor, geri sayım iptal")
+            notifier.removeCallEnded()
+        case .stop:
+            Self.logger.info("Görüşme bitti, kayıt kendiliğinden bitiriliyor")
+            stopRecording()
+        }
+    }
+
+    /// "Kayda devam et": geri sayım iptal olur; görülen görüşme unutulur (kayıt ancak yeni bir görüşme de biterse yeniden
+    /// geri sayar).
+    func keepRecordingAfterCallEnd() {
+        callEndState = .initial
+        callEndDeadline = nil
+        notifier.removeCallEnded()
     }
 
     /// Kaydı duraklatır ya da sürdürür. Duraklatılınca ses sessizlikle değiştirilir: kayıt sürer, metin üretilmez,
@@ -1367,6 +1467,9 @@ final class AppModel {
         screenSnapshots.stopRecording()
         audioLevels.stop()
         consentReminderVisible = false
+        stopCallEndWatch()
+        relatedTasks = []
+        recordingCalendarMeeting = nil
         #if HOSTED_EDITION
         recordingLimitTask?.cancel()
         recordingLimitTask = nil
@@ -2519,6 +2622,22 @@ final class AppModel {
         archiveTask?.cancel()
         archiveExchanges = []
         currentConversationID = nil
+    }
+
+    /// Toplantı öncesi brifing (Ana sayfadaki "Brifing", kayıttaki açık görevlerin "Tümünü gör"ü): yeni bir Sor sohbetinde
+    /// aynı kişilerle ya da konuda önceki toplantılar, kararlar ve açık görevler sorulur. Abonelikte hak yoksa sohbet
+    /// silinmez, abone olma teklifi açılır ve false döner (Sor açılmasın).
+    func startBriefing(meeting: CalendarMeeting) -> Bool {
+        #if HOSTED_EDITION
+        if HostedAccount.shared.requiresSubscription {
+            HostedAccount.shared.requestSubscription()
+            return false
+        }
+        #endif
+        // Brifing yeni bir konu: önceki sohbet bağlam olmasın.
+        clearArchiveConversation()
+        askArchive(question: briefingQuestion(meeting: meeting), meetingIDs: [], recipeTitle: nil)
+        return true
     }
 
     /// Saklanan sohbeti açar; devam soruları onun cevaplarını bağlam alır. Süren cevap durdurulur.
