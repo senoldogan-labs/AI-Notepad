@@ -1446,7 +1446,7 @@ export const copy: Copy = {
           "A one-time price of $25 plus tax, with all future updates included, instead of a subscription.",
           "More than meetings: a rail at the edge of the screen with clipboard history, a file tray, Now Playing controls, an audio spectrum, your calendar agenda and a meeting countdown.",
           "Suggestions as you type in any app, accepted with Tab, drawing on your meeting notes and the text on your screen, written by a model on your Mac.",
-          "Mark moments while you record, and the next related meeting starts with the action items that are still open.",
+          "The next related meeting starts with the action items that are still open.",
           "An interface in 16 languages.",
         ],
         pickCompetitor: {
