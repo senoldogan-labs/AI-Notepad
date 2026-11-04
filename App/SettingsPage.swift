@@ -486,6 +486,8 @@ private struct GeneralSettings: View {
                     }
                 ))
                 .settingsToggle()
+                // Mikrofonsuz başlayan kayıtta mikrofon açılamaz (bkz. `toggleMicrophone`); anahtar geri sıçramasın.
+                .disabled(model.isRecording && !model.micOpenedForRecording)
             }
             ScreenSnapshotSettingsRow()
             #if HOSTED_EDITION

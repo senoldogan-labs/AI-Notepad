@@ -1071,8 +1071,8 @@ final class HostedAccount {
     }
     #endif
 
-    /// Silinen hesabın yerel izleri: şimdiki toplantı, çevrimdışı kayıt izni, girişteki kimlik (e-posta) ve açık oturum
-    /// listesi.
+    /// Silinen hesabın yerel izleri: şimdiki toplantı, çevrimdışı kayıt izni, girişteki kimlik (e-posta), profil resminin
+    /// adresi ve açık oturum listesi.
     private func clearAfterAccountDeletion(userID: String?) {
         currentMeeting = nil
         clearHostedOfflinePermit()
@@ -1080,6 +1080,7 @@ final class HostedAccount {
             return
         }
         UserDefaults.standard.removeObject(forKey: hostedIdentityKey(userId: userID))
+        UserDefaults.standard.removeObject(forKey: hostedAvatarKey(userId: userID))
         do {
             clearHostedOpenMeetingIDs(defaults: try hostedOpenMeetingsDefaults(userID: userID))
         } catch {

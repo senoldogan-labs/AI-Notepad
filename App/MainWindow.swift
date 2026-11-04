@@ -245,7 +245,7 @@ struct MainWindowView: View {
                                 .id(toast.id)
                         }
                         if updater.showsBanner, let update = updater.availableUpdate {
-                            UpdateToast(updater: updater, update: update, isBusy: model.isBusy)
+                            UpdateToast(updater: updater, update: update, isBusy: model.blocksUpdateRelaunch)
                         }
                     }
                     .padding(20)

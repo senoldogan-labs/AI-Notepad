@@ -681,6 +681,15 @@ final class AppModel {
         }
     }
 
+    /// Kayıt başında canlı çevirinin sağlayıcısını bir kez çözer; çözülemezse canlı metin yine akar, çeviri bu kayıtta
+    /// kapanır ve tek hata gösterilir.
+    private func resolveTranslationProviderAtStart() async {
+        if !(await refreshLLMProvider()) {
+            llmProvider = nil
+            translationDisabled = true
+        }
+    }
+
     /// Kayıt sırasında sağlayıcıyı yeniden çözer ve çeviriyi açar; başarısızsa hata panelde görünür.
     private func refreshLLMProvider() async -> Bool {
         do {
@@ -920,13 +929,11 @@ final class AppModel {
         errorMessages = []
         startedSpeakers = []
         isPaused = false
-        // Çeviri sağlayıcısı kayıt başında bir kez çözülür; yoksa canlı metin yine akar, tek hata gösterilir.
-        if !(await refreshLLMProvider()) {
-            llmProvider = nil
-            translationDisabled = true
-        }
-
         #if !HOSTED_EDITION
+        // Çeviri sağlayıcısı kayıt başında bir kez çözülür; yoksa canlı metin yine akar, tek hata gösterilir.
+        // (Abonelikte toplantı oturumu açıldıktan sonra çözülür: bkz. `resolveTranslationProviderAtStart`.)
+        await resolveTranslationProviderAtStart()
+
         // Bulut anahtarları yakalama başlamadan önce okunur: eksikse hiçbir şey başlatılmaz; eksiklerin hepsi bildirilir.
         // (Abonelik sürümünde anahtar yoktur; canlı motor toplantı oturumu açıldıktan sonra seçilir.)
         let cloudKeys: (deepgram: String, elevenLabs: String)?
@@ -1059,6 +1066,10 @@ final class AppModel {
             discardRefusedRecording(directory: directory)
             return
         }
+        // Çeviri sağlayıcısı toplantı oturumu açıldıktan sonra çözülür: çevrimdışı kayıtta canlı çeviri kapalıdır ve
+        // panelde gerçek neden ("çevrimdışı sürüyor") görünür. Önce çözülürse çevrimdışılık henüz bilinmez, her cümle
+        // "önce bir toplantı başlat" hatasıyla düşerdi.
+        await resolveTranslationProviderAtStart()
         #endif
 
         let handle: LiveSessionHandle
@@ -2216,6 +2227,13 @@ final class AppModel {
 
     /// İçe aktarılmakta olan dosya sayısı (dönüştürme sürerken).
     var importingCount: Int = 0
+    /// Güncellemenin yeniden başlatması beklesin mi: kayıt, işleme ya da içe aktarma (`isBusy`) ya da kendiliğinden not
+    /// gönderimi sürüyor. İşleme biter bitmez başlayan gönderim ertelenmiş güncellemeyle yarıda kesilseydi istek hedefe
+    /// ulaşıp "gönderildi" yazılmadan kalabilir (açılışta not ikinci kez gider) ya da Apple Notlar'a hiç gitmezdi.
+    var blocksUpdateRelaunch: Bool {
+        isBusy || autoSendRunning || autoDeliveriesInFlight > 0
+    }
+
     /// Kayıt, işleme ya da içe aktarma sürüyor mu (çıkış ve dil değişikliği bunu bekler).
     var isBusy: Bool {
         isRecorderBusy(
@@ -2799,7 +2817,11 @@ final class AppModel {
     /// Görev araçlarının deposu (ilk kullanımda kurulur, bkz. `trackerVault()`).
     @ObservationIgnored private var trackerVaultCache: TrackerVault?
     /// Kendiliğinden gönderim sürüyor: açılış, saatlik denetim ve işleme sonu aynı anda ikinci tur başlatmasın.
-    @ObservationIgnored private var autoSendRunning: Bool = false
+    /// Gözlenir: güncellemenin yeniden başlatması turun bitmesini bekler (bkz. `blocksUpdateRelaunch`).
+    private var autoSendRunning: Bool = false
+    /// İşleme sonunda başlatılan kendiliğinden gönderimler (not hedefleri turu, Apple Notlar): görev başlamadan önce
+    /// sayılır, `isBusy` düştüğü anda da güncelleme yeniden başlatmasın.
+    private var autoDeliveriesInFlight: Int = 0
     /// Tur sürerken yeni istek geldi (ör. bir toplantı bitti): tur bitince bir kez daha çalışır, toplantı bir saat
     /// beklemez.
     @ObservationIgnored private var autoSendRequested: Bool = false
@@ -3286,6 +3308,15 @@ final class AppModel {
     /// Toplantının kapsamdaki görevlerini (`scope`: yalnız sana düşenler ya da hepsi) araçta iş olarak açar; daha önce
     /// gönderilenler yinelenmez. Sonuç özeti ya da hata toplantı sayfasında görünür.
     func sendTasks(meetingID: String, trackerID: String, scope: TaskSendScope) async {
+        // Aynı toplantının aynı araca gönderimi sürerken ikinci basış yok sayılır: "Gönderiliyor" (menüyü kapatan durum)
+        // kimlik okunduktan sonra yazılır; o arada ikinci basış aynı görevleri araçta ikinci kez açardı.
+        let sendKey: String = meetingDestinationKey(meetingID: meetingID, destinationID: trackerID)
+        guard !tasksInFlight.contains(sendKey) else {
+            Self.logger.info("Görevler zaten gönderiliyor, atlandı, toplantı: \(meetingID, privacy: .public), araç: \(trackerID, privacy: .public)")
+            return
+        }
+        tasksInFlight.insert(sendKey)
+        defer { tasksInFlight.remove(sendKey) }
         // Hesap kimliği bilinmiyorsa (eski sürümde bağlanan araç) önce okunur: başka Mac'ten gönderilenler tanınsın.
         if let known = taskTrackers.first(where: { $0.id == trackerID }), known.identity == nil {
             await resolveTrackerIdentity(id: trackerID)
@@ -3337,6 +3368,9 @@ final class AppModel {
             showSendState(state: .failed(String(localized: "\(tracker.service.displayName): \(userFacingMessage(error: error))")), meetingID: meetingID, states: \.trackerStates)
         }
     }
+
+    /// Süren görev gönderimleri (`toplantı|araç`; bkz. `sendTasks`).
+    @ObservationIgnored private var tasksInFlight: Set<String> = []
 
     /// Araçta açılan görevleri aracın bu cihazdaki kimliği ve cihazdan bağımsız anahtarıyla işaretler (bkz.
     /// `markingTasksSent`); toplantı kilitliyse (işleniyor) işleme bitince uygulanır.
@@ -3461,7 +3495,11 @@ final class AppModel {
             return
         }
         #endif
-        Task { await processPendingAutoSends() }
+        autoDeliveriesInFlight += 1
+        Task {
+            await processPendingAutoSends()
+            autoDeliveriesInFlight -= 1
+        }
         guard record.note != nil else {
             return
         }
@@ -3471,16 +3509,18 @@ final class AppModel {
         guard appleNotesAutoSend, record.notesSentAt == nil else {
             return
         }
+        autoDeliveriesInFlight += 1
         Task {
+            defer { autoDeliveriesInFlight -= 1 }
             if let error = await sendToAppleNotes(meetingID: record.id) {
                 errorMessages = appendUnique(messages: errorMessages, message: error)
                 return
             }
-            guard let current = meetings.first(where: { $0.id == record.id }), !isLocked(meetingID: record.id) else {
-                return
-            }
-            withSessionDirectory(id: record.id) { (directory: URL) -> Void in
-                saveRecord(record: current.with(notesSentAt: Date()), directory: directory)
+            // İşaret diskteki güncel kayda yazılır (iCloud'la gelen düzenleme bellekteki eski kopyayla ezilmesin). Toplantı
+            // bu arada yeniden işlenmeye başladıysa da yazılır: not işleri bitince diskteki işaretleri alır
+            // (`withLatestMarks`); yazılmasaydı "Tekrar işle"den sonra not Apple Notlar'a ikinci kez giderdi.
+            updateRecordFromDisk(meetingID: record.id) { (current: MeetingRecord) -> MeetingRecord in
+                current.with(notesSentAt: Date())
             }
         }
     }
