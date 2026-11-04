@@ -282,6 +282,10 @@ private func subtracting(sent: TelemetryPendingEvents, from current: TelemetryPe
 struct TelemetryFinalTranscriber: FinalTranscriber {
     let inner: any FinalTranscriber
 
+    var source: FinalPassSource {
+        inner.source
+    }
+
     func transcribeFinal(audioURL: URL, languageMode: LanguageMode) async throws -> FinalPassResult {
         let started: ContinuousClock.Instant = .now
         do {

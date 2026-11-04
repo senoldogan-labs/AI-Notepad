@@ -231,6 +231,8 @@ private func choiceText(samples: [Float], choice: AppleSpeechChoice) async throw
 /// gerekmez). Konuşmacılar ayrılmaz: her sonuç zamanlı bir "Diğerleri" bölümüdür ve toplantıda bu açıkça belirtilir.
 /// İçe aktarılan dosyalar da bununla yazıya dökülür. Sistem eskiyse `AppleSpeechError.requiresNewerSystem`.
 public struct AppleSpeechFinalTranscriber: FinalTranscriber {
+    /// Bu cihazda çalışır: dönüştürmeden sonra, tek başına.
+    public let source: FinalPassSource = .compressedRecording
     /// Otomatik modda kullanılan dil (ana toplantı dili).
     private let primaryLanguage: MeetingLanguage
 

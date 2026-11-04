@@ -122,11 +122,48 @@ public protocol VoiceEmbedder: Sendable {
     func clusters(samples: [Float]) async throws -> [VoiceCluster]
 }
 
+/// Kaydın bir parçasındaki SpeakerKit konuşmacıları ve parçanın kayıttaki aralığı (saniye).
+public struct WindowVoiceClusters: Sendable, Equatable {
+    public let startSec: Double
+    public let endSec: Double
+    public let clusters: [VoiceCluster]
+
+    public init(startSec: Double, endSec: Double, clusters: [VoiceCluster]) {
+        self.startSec = startSec
+        self.endSec = endSec
+        self.clusters = clusters
+    }
+}
+
 /// Kaydedilmiş toplantıdaki kişilerin ses izleri: kayıt `windowSec`'lik parçalara bölünür, her parçada SpeakerKit
 /// konuşmacıları son geçiş kelimeleriyle (kelime yoksa bölüm zamanlarıyla) kişilere eşlenir, parçaların izleri kişi
-/// başına birleştirilir. Kısa konuşmalı parçalar katılmaz.
+/// başına birleştirilir. Kısa konuşmalı parçalar katılmaz. İki adımdır (`meetingVoiceClusters`,
+/// `voiceprintsFromClusters`): SpeakerKit adımı bölümlere bakmaz, toplantı işlenirken son geçişle aynı anda çalışır.
 public func meetingVoiceprints(samples: [Float], segments: [StoredSegment], embedder: any VoiceEmbedder, windowSec: Double) async throws -> [Int: Voiceprint] {
+    voiceprintsFromClusters(windows: try await meetingVoiceClusters(samples: samples, embedder: embedder, windowSec: windowSec), segments: segments)
+}
+
+/// Kaydın `windowSec`'lik parçalarındaki SpeakerKit konuşmacıları (sırayla); 20 sn'den kısa son parça atlanır (gömme
+/// güvenilmez). Son geçiş bölümlerinden bağımsızdır. Görev iptal edilirse sıradaki parçaya geçilmez
+/// (`CancellationError`).
+public func meetingVoiceClusters(samples: [Float], embedder: any VoiceEmbedder, windowSec: Double) async throws -> [WindowVoiceClusters] {
     let sampleRate: Double = 16000
+    var windows: [WindowVoiceClusters] = []
+    var start: Int = 0
+    let windowSamples: Int = Int(windowSec * sampleRate)
+    while start + Int(20 * sampleRate) <= samples.count {
+        try Task.checkCancellation()
+        let end: Int = min(samples.count, start + windowSamples)
+        let clusters: [VoiceCluster] = try await embedder.clusters(samples: Array(samples[start..<end]))
+        windows.append(WindowVoiceClusters(startSec: Double(start) / sampleRate, endSec: Double(end) / sampleRate, clusters: clusters))
+        start += windowSamples
+    }
+    return windows
+}
+
+/// Parça konuşmacılarını son geçiş kelimeleriyle (kelime yoksa bölüm zamanlarıyla) "Diğerleri"nin kişilerine eşler ve
+/// parçaların izlerini kişi başına birleştirir (bkz. `labelVoiceprints`). Saf fonksiyondur.
+public func voiceprintsFromClusters(windows: [WindowVoiceClusters], segments: [StoredSegment]) -> [Int: Voiceprint] {
     let spans: [LabeledSpan<Int>] = segments.filter { $0.speaker == .others }.flatMap { (segment: StoredSegment) -> [LabeledSpan<Int>] in
         guard let person = segment.person else {
             return []
@@ -137,20 +174,13 @@ public func meetingVoiceprints(samples: [Float], segments: [StoredSegment], embe
         return [LabeledSpan(label: person, startSec: segment.startSec, endSec: segment.endSec)]
     }
     var voices: [Int: Voiceprint] = [:]
-    var start: Int = 0
-    let windowSamples: Int = Int(windowSec * sampleRate)
-    // Çok kısa son parça atlanır (gömme güvenilmez).
-    while start + Int(20 * sampleRate) <= samples.count {
-        let end: Int = min(samples.count, start + windowSamples)
-        let offset: Double = Double(start) / sampleRate
-        let clusters: [VoiceCluster] = try await embedder.clusters(samples: Array(samples[start..<end]))
+    for window in windows {
         let local: [LabeledSpan<Int>] = spans
-            .filter { $0.endSec > offset && $0.startSec < Double(end) / sampleRate }
-            .map { LabeledSpan(label: $0.label, startSec: $0.startSec - offset, endSec: $0.endSec - offset) }
-        for (person, voice) in labelVoiceprints(spans: local, clusters: clusters) where voice.seconds >= VoiceMatching.minUpdateSeconds {
+            .filter { $0.endSec > window.startSec && $0.startSec < window.endSec }
+            .map { LabeledSpan(label: $0.label, startSec: $0.startSec - window.startSec, endSec: $0.endSec - window.startSec) }
+        for (person, voice) in labelVoiceprints(spans: local, clusters: window.clusters) where voice.seconds >= VoiceMatching.minUpdateSeconds {
             voices[person] = voices[person].map { mergedVoiceprint($0, voice) } ?? voice
         }
-        start += windowSamples
     }
     return voices
 }

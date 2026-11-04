@@ -67,6 +67,8 @@ private let localPassLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepa
 /// SpeakerKit (Pyannote) ile konuşmacılara ayrılır. Canlı motoru meşgul etmemek için kendi model örneğini
 /// yükler ve iş bitince bırakır. SpeakerKit modeli ilk seferde indirilir (~40 MB).
 public struct LocalFinalTranscriber: FinalTranscriber {
+    /// Bu Mac'te çalışır: dönüştürmeden sonra, tek başına (ses izi çıkarımıyla yarışmaz).
+    public let source: FinalPassSource = .compressedRecording
     private let modelsDirectory: URL
     private let modelName: String
     /// Otomatik modda aday diller (ilki ana toplantı dili).
