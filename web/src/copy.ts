@@ -1,6 +1,7 @@
 // Sitenin sayfa metinleri (yasal metinler hariç: onlar src/pages/privacy.astro ve terms.astro içinde). Ürün adı ve
 // işletme bilgisi tek yerden gelir (config.ts `productName`, legal/operator.ts).
 import { cardStatementDescriptor, productName } from "./config";
+import type { Brand } from "./lib/brands";
 import type { IconName } from "./lib/icons";
 import { interfaceLanguages, languageNameList, noteLanguages, spokenLanguages } from "./lib/languages";
 import type { BillingPlan } from "./lib/plans";
@@ -769,9 +770,15 @@ export interface LanguagesCopy {
 }
 
 /** Entegrasyonun bir öğesi: adı ve ne yaptığı. */
+/** Entegrasyon kartının simgesi: ana sayfadaki kayan şeritteki marka karoları ya da markası olmayanlarda genel simge. */
+export type IntegrationMark =
+  | { readonly kind: "brands"; readonly brands: readonly Brand[] }
+  | { readonly kind: "icon"; readonly icon: IconName };
+
 export interface IntegrationItemCopy {
   readonly name: string;
   readonly text: string;
+  readonly mark: IntegrationMark;
 }
 
 /** Entegrasyon grubu (sayfada çapalı bölüm: `#<id>`). */
@@ -2015,12 +2022,12 @@ export const copy: Copy = {
         title: "Notes to your team",
         lead: "Send the finished note to a page or a channel.",
         items: [
-          { name: "Slack", text: "Post the note to a channel, through an incoming webhook or by signing in with Slack." },
-          { name: "Microsoft Teams", text: "Post the note to a channel: as a message by signing in with Microsoft, or as a card through a Power Automate or Office webhook." },
-          { name: "Discord", text: "Post the note to a channel, through a webhook or by signing in with Discord." },
-          { name: "Zoom Team Chat", text: "Post the note to a channel through an incoming webhook." },
-          { name: "Notion", text: "Sign in with Notion and each note becomes a page." },
-          { name: "Apple Notes", text: `Save the note in Apple Notes, in a folder named ${productName}.` },
+          { name: "Slack", text: "Post the note to a channel, through an incoming webhook or by signing in with Slack.", mark: { kind: "brands", brands: ["slack"] } },
+          { name: "Microsoft Teams", text: "Post the note to a channel: as a message by signing in with Microsoft, or as a card through a Power Automate or Office webhook.", mark: { kind: "brands", brands: ["teams"] } },
+          { name: "Discord", text: "Post the note to a channel, through a webhook or by signing in with Discord.", mark: { kind: "brands", brands: ["discord"] } },
+          { name: "Zoom Team Chat", text: "Post the note to a channel through an incoming webhook.", mark: { kind: "brands", brands: ["zoom"] } },
+          { name: "Notion", text: "Sign in with Notion and each note becomes a page.", mark: { kind: "brands", brands: ["notion"] } },
+          { name: "Apple Notes", text: `Save the note in Apple Notes, in a folder named ${productName}.`, mark: { kind: "brands", brands: ["apple-notes"] } },
         ],
       },
       {
@@ -2028,9 +2035,9 @@ export const copy: Copy = {
         title: "Tasks to your tracker",
         lead: "Turn the tasks in a note, with their owners and due dates, into work items. For Linear and Jira, our AI model, reached through our server, works out the issue fields; the issues are created from your Mac.",
         items: [
-          { name: "Linear", text: "Create Linear issues from your tasks after signing in with Linear." },
-          { name: "Jira", text: "Create Jira issues from your tasks after signing in with Atlassian." },
-          { name: "Apple Reminders", text: "Send your tasks to Reminders, with their due dates." },
+          { name: "Linear", text: "Create Linear issues from your tasks after signing in with Linear.", mark: { kind: "brands", brands: ["linear"] } },
+          { name: "Jira", text: "Create Jira issues from your tasks after signing in with Atlassian.", mark: { kind: "brands", brands: ["jira"] } },
+          { name: "Apple Reminders", text: "Send your tasks to Reminders, with their due dates.", mark: { kind: "brands", brands: ["reminders"] } },
         ],
       },
       {
@@ -2038,9 +2045,9 @@ export const copy: Copy = {
         title: "Webhooks for Zapier, Make and n8n",
         lead: "Anything else gets the note through a webhook: a JSON POST to an HTTPS address you set, sent by hand or automatically when each note is ready.",
         items: [
-          { name: "Zapier", text: "Use a “Catch Hook” trigger in Webhooks by Zapier, paste its address into the app, and route the note anywhere Zapier reaches, such as a CRM." },
-          { name: "Make", text: "Use a custom webhook module and paste its address into the app." },
-          { name: "n8n", text: "Use a Webhook trigger node and paste its production address into the app." },
+          { name: "Zapier", text: "Use a “Catch Hook” trigger in Webhooks by Zapier, paste its address into the app, and route the note anywhere Zapier reaches, such as a CRM.", mark: { kind: "brands", brands: ["webhook"] } },
+          { name: "Make", text: "Use a custom webhook module and paste its address into the app.", mark: { kind: "brands", brands: ["webhook"] } },
+          { name: "n8n", text: "Use a Webhook trigger node and paste its production address into the app.", mark: { kind: "brands", brands: ["webhook"] } },
         ],
       },
       {
@@ -2048,10 +2055,10 @@ export const copy: Copy = {
         title: "Files and exports",
         lead: "Keep your notes as files you own.",
         items: [
-          { name: "Markdown folder", text: "Save every note as a Markdown file to a folder you choose, such as an Obsidian vault or iCloud Drive, by hand or automatically." },
-          { name: "PDF and Word", text: "Export the note as a PDF or a Word (.docx) document." },
-          { name: "Web page, Markdown and email", text: "Export the note as a web page (HTML), copy it as Markdown or send it by email." },
-          { name: "Transcript and subtitles", text: "Export the transcript as plain text or as SRT subtitles." },
+          { name: "Markdown folder", text: "Save every note as a Markdown file to a folder you choose, such as an Obsidian vault or iCloud Drive, by hand or automatically.", mark: { kind: "brands", brands: ["markdown", "obsidian"] } },
+          { name: "PDF and Word", text: "Export the note as a PDF or a Word (.docx) document.", mark: { kind: "icon", icon: "note" } },
+          { name: "Web page, Markdown and email", text: "Export the note as a web page (HTML), copy it as Markdown or send it by email.", mark: { kind: "icon", icon: "mail" } },
+          { name: "Transcript and subtitles", text: "Export the transcript as plain text or as SRT subtitles.", mark: { kind: "icon", icon: "copy" } },
         ],
       },
       {
@@ -2059,8 +2066,8 @@ export const copy: Copy = {
         title: "Your AI apps, through MCP",
         lead: `${productName} includes a local, read-only MCP server with six tools: list and search meetings, read a meeting's note and transcript, list your tasks, and list and view shared-screen snapshots.`,
         items: [
-          { name: "Claude, Cursor and VS Code", text: "Connect with one click in Settings. They can search and read your meetings and can't change anything." },
-          { name: "Other MCP apps", text: "Any app that supports local MCP servers can connect with the configuration shown on the MCP page." },
+          { name: "Claude, Cursor and VS Code", text: "Connect with one click in Settings. They can search and read your meetings and can't change anything.", mark: { kind: "brands", brands: ["claude", "cursor", "vscode"] } },
+          { name: "Other MCP apps", text: "Any app that supports local MCP servers can connect with the configuration shown on the MCP page.", mark: { kind: "icon", icon: "plug" } },
         ],
       },
       {
@@ -2068,10 +2075,10 @@ export const copy: Copy = {
         title: "Calendar",
         lead: "The app reads the calendars on your Mac (Apple Calendar, including Google or Exchange accounts you've added to it). Your calendar isn't sent to us.",
         items: [
-          { name: "What's next", text: "See upcoming meetings and get a reminder a minute before they start." },
-          { name: "Start recording on time", text: "If you turn it on, recording starts when a calendar meeting with a call link is running and your call app starts using the microphone." },
-          { name: "Open tasks from earlier meetings", text: "When you record a meeting from your calendar, the app shows the unfinished tasks from earlier meetings in the same series or with the same people." },
-          { name: "Briefing", text: "Before a meeting, ask for a briefing on what was said in earlier meetings with the same people." },
+          { name: "What's next", text: "See upcoming meetings and get a reminder a minute before they start.", mark: { kind: "brands", brands: ["calendar"] } },
+          { name: "Start recording on time", text: "If you turn it on, recording starts when a calendar meeting with a call link is running and your call app starts using the microphone.", mark: { kind: "icon", icon: "mic" } },
+          { name: "Open tasks from earlier meetings", text: "When you record a meeting from your calendar, the app shows the unfinished tasks from earlier meetings in the same series or with the same people.", mark: { kind: "icon", icon: "check-circle" } },
+          { name: "Briefing", text: "Before a meeting, ask for a briefing on what was said in earlier meetings with the same people.", mark: { kind: "icon", icon: "sparkle" } },
         ],
       },
     ],

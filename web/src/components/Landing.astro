@@ -11,6 +11,7 @@ import AppShot, { type ShotCallout } from "./AppShot.astro";
 import BrandTile from "./BrandTile.astro";
 import Faq from "./Faq.astro";
 import Film from "./Film.astro";
+import type { FilmPalette } from "../lib/film";
 import HeroDemo from "./HeroDemo.astro";
 import Icon from "./Icon.astro";
 import McpChat from "./McpChat.astro";
@@ -59,10 +60,10 @@ const noteCallouts: readonly ShotCallout[] = [
   { text: text.noteCallouts.dueDate, class: "note-callout--due", side: "right" },
 ];
 /** Entegrasyon gruplarının simgeleri (yapay zekâ grubu ayrı, geniş kartta; logolar kayan şeritte). */
-const integrationGroups: readonly { readonly key: "notes" | "tasks" | "files"; readonly icon: IconName }[] = [
-  { key: "notes", icon: "message" },
-  { key: "tasks", icon: "check-circle" },
-  { key: "files", icon: "disk" },
+const integrationGroups: readonly { readonly key: "notes" | "tasks" | "files"; readonly icon: IconName; readonly palette: FilmPalette }[] = [
+  { key: "notes", icon: "message", palette: "rose" },
+  { key: "tasks", icon: "check-circle", palette: "violet" },
+  { key: "files", icon: "disk", palette: "mint" },
 ];
 /** Tanıtım videosu ve kapak görseli (public/video; 1280×720, 66 sn; sessiz oynatılır). */
 const launchVideo: { readonly src: string; readonly poster: string } = {
@@ -229,7 +230,7 @@ const structuredData: string = structuredDataJson(
 
     <div class="features">
       <article class="feature feature--wide reveal">
-        <div class="mock feature__cover">
+        <div class="film film--ocean film--clouds-right feature__cover">
           <div class="mock-card bubble-stack">
             <p class="bubble-stack__original">{text.features.live.original}</p>
             <p class="bubble-stack__translation">{text.features.live.translation}</p>
@@ -240,7 +241,7 @@ const structuredData: string = structuredDataJson(
       </article>
 
       <article class="feature feature--wide reveal">
-        <div class="mock feature__cover">
+        <div class="film film--coral film--clouds-left feature__cover">
           <ul class="mock-card sample-tasks">
             {
               text.features.tasks.sample.map((task: string) => (
@@ -257,7 +258,7 @@ const structuredData: string = structuredDataJson(
       </article>
 
       <article class="feature feature--third reveal">
-        <div class="mock feature__cover">
+        <div class="film film--rose film--streaks feature__cover">
           <div class="missed">
             <span class="mock-card missed__button">{text.features.missed.button}</span>
             <p class="mock-card missed__answer">{text.features.missed.answer}</p>
@@ -268,7 +269,7 @@ const structuredData: string = structuredDataJson(
       </article>
 
       <article class="feature feature--third reveal">
-        <div class="mock feature__cover">
+        <div class="film film--violet film--clouds-left feature__cover">
           <div class="ask">
             <p class="mock-card ask__question">{text.features.ask.question}</p>
             <p class="ask__source">{text.features.ask.source}</p>
@@ -279,7 +280,7 @@ const structuredData: string = structuredDataJson(
       </article>
 
       <article class="feature feature--third reveal">
-        <div class="mock feature__cover">
+        <div class="film film--mint film--clouds-right feature__cover">
           <div class="follow-up">
             <span class="mock-card follow-up__recipe"><Icon name="sparkle" size={14} class="" />{text.features.followUp.recipe}</span>
             <div class="mock-card follow-up__mail">
@@ -293,7 +294,7 @@ const structuredData: string = structuredDataJson(
       </article>
 
       <article class="feature feature--third reveal">
-        <div class="mock feature__cover">
+        <div class="film film--sunset film--streaks feature__cover">
           <ul class="templates">
             {
               text.features.templates.sample.map((template: string) => (
@@ -307,7 +308,7 @@ const structuredData: string = structuredDataJson(
       </article>
 
       <article class="feature feature--third reveal">
-        <div class="mock feature__cover">
+        <div class="film film--ocean film--clouds-left feature__cover">
           <div class="voice">
             <span class="mock-card voice__keys"><Icon name="mic" size={14} class="" />{text.features.voiceTyping.shortcut}</span>
             <p class="mock-card voice__field">{text.features.voiceTyping.sample}<span class="voice__caret" aria-hidden="true" /></p>
@@ -318,7 +319,7 @@ const structuredData: string = structuredDataJson(
       </article>
 
       <article class="feature feature--third reveal">
-        <div class="mock feature__cover">
+        <div class="film film--violet film--streaks feature__cover">
           <div class="screens">
             <div class="mock-card screens__frame" aria-hidden="true">
               <span class="screens__bar" />
@@ -365,7 +366,7 @@ const structuredData: string = structuredDataJson(
     <div class="integrations">
       <article class="card integration integration--ai reveal">
         <div class="integration__text">
-          <h3 class="integration__title"><span class="icon-chip"><Icon name="sparkle" size={20} class="" /></span>{text.integrations.ai.title}</h3>
+          <h3 class="integration__title"><Film palette="sunset" layout="clouds-left" class="integration__badge"><Icon name="sparkle" size={20} class="" /></Film>{text.integrations.ai.title}</h3>
           <p class="muted">{text.integrations.ai.text}</p>
           <a class="text-link" href={routes.mcp}>{text.integrations.mcpLink} <Icon name="arrow-right" size={16} class="" /></a>
         </div>
@@ -376,11 +377,11 @@ const structuredData: string = structuredDataJson(
 
       {
         integrationGroups.map((group) => (
-          <article class="card integration reveal">
+          <article class:list={["card integration reveal", `integration--${group.palette}`]}>
             <h3 class="integration__title">
-              <span class="icon-chip">
+              <Film palette={group.palette} layout="clouds-right" class="integration__badge">
                 <Icon name={group.icon} size={20} class="" />
-              </span>
+              </Film>
               {text.integrations[group.key].title}
             </h3>
             <p class="muted">{text.integrations[group.key].text}</p>
@@ -639,6 +640,30 @@ const structuredData: string = structuredDataJson(
     align-content: center;
   }
 
+  /* Grup kartları: köşeden süzülen durgun, hafif ton; simge uygulamadaki gibi pastel film karoda. */
+  .integration--rose {
+    background: linear-gradient(150deg, light-dark(#fbeef1, #2a1d21) 0%, var(--card) 60%);
+  }
+
+  .integration--violet {
+    background: linear-gradient(150deg, light-dark(#f3eefb, #221d2c) 0%, var(--card) 60%);
+  }
+
+  .integration--mint {
+    background: linear-gradient(150deg, light-dark(#ecf5ef, #1b2620) 0%, var(--card) 60%);
+  }
+
+  .integration :global(.integration__badge) {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    filter: none;
+    color: rgb(10 10 10 / 0.8);
+  }
+
 
   .integration__title {
     display: flex;
@@ -817,24 +842,18 @@ const structuredData: string = structuredDataJson(
     grid-column: span 4;
   }
 
-  /* Özellik örnekleri sade bir yüzeyde: sayfanın yumuşak zemini, ince kenar ve üstünde uygulamadaki gibi kartlar. Renkler
-     temadan gelir (koyu temada koyu). */
-  /* min-width: 0: oranlı kutunun içerik genişliği ızgara sütununu dar ekranda taşırmasın. */
-  .mock {
+  /* Özellik örnekleri durgun pastel film kapak üstünde (ElevenLabs tarzı); kartlar uygulamadaki gibi. */
+  .feature :global(.feature__cover) {
     display: grid;
     place-items: center;
     min-width: 0;
     aspect-ratio: 4 / 3;
     padding: 20px;
     margin-bottom: 8px;
-    border: 1px solid var(--line);
     border-radius: var(--radius-m);
-    background:
-      radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--ink) 9%, transparent) 1px, transparent 1.5px) 0 0 / 18px 18px,
-      var(--soft);
   }
 
-  .feature--wide .mock {
+  .feature--wide :global(.feature__cover) {
     aspect-ratio: 16 / 9;
     padding: 28px;
   }
@@ -1296,7 +1315,7 @@ const structuredData: string = structuredDataJson(
       grid-column: 1 / -1;
     }
 
-    .feature--wide .mock {
+    .feature--wide :global(.feature__cover) {
       aspect-ratio: 4 / 3;
       padding: 20px;
     }
