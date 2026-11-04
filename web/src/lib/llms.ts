@@ -38,6 +38,7 @@ const competitorPages: readonly { readonly competitor: keyof Copy["compare"]["co
   { competitor: "granola", page: "vsGranola" },
   { competitor: "otter", page: "vsOtter" },
   { competitor: "fireflies", page: "vsFireflies" },
+  { competitor: "poffle", page: "vsPoffle" },
 ];
 
 /** Markdown bağlantı satırı: `- [ad](adres): açıklama`. Saf fonksiyondur. */
@@ -201,8 +202,8 @@ export function llmsFullTxt(input: LlmsInput): string {
       copy.home.trust.items.map((item: IconText): string => `- ${item.title}: ${item.text}`).join("\n"),
     ].join("\n\n"),
     [
-      "## Comparison with Granola, Otter.ai and Fireflies.ai",
-      `Source: ${url("compare")}. ${copy.compare.checked} Competitor values come only from each vendor's own pricing page: ${competitorPages.map((entry): string => copy.compare.competitors[entry.competitor].pricingUrl).join(", ")}. "not checked" means the point wasn't on that page, not that the feature is missing.`,
+      "## Comparison with Granola, Otter.ai, Fireflies.ai and Poffle",
+      `Source: ${url("compare")}. ${copy.compare.checked} Competitor values come only from each vendor's own website (its pricing page; Poffle has none, so its home page and blog): ${competitorPages.map((entry): string => copy.compare.competitors[entry.competitor].pricingUrl).join(", ")}. "not checked" means the point wasn't part of what we checked there, not that the feature is missing.`,
       comparisonTable(copy),
       ...competitorPages.map((entry): string => {
         const them: CompetitorCopy = copy.compare.competitors[entry.competitor];

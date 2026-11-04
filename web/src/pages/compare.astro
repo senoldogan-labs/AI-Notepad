@@ -1,5 +1,5 @@
 ---
-// Karşılaştırma dizini: dört ürünün kısa özet tablosu ve her karşılaştırma sayfasına bir kart. Değerler copy.ts `compare`'den.
+// Karşılaştırma dizini: beş ürünün kısa özet tablosu ve her karşılaştırma sayfasına bir kart. Değerler copy.ts `compare`'den.
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
 import ComparisonTable, { type ComparisonColumn } from "../components/ComparisonTable.astro";
@@ -17,6 +17,7 @@ const competitorPages: readonly { readonly competitor: Competitor; readonly page
   { competitor: "granola", page: "vsGranola" },
   { competitor: "otter", page: "vsOtter" },
   { competitor: "fireflies", page: "vsFireflies" },
+  { competitor: "poffle", page: "vsPoffle" },
 ];
 const columns: readonly ComparisonColumn[] = [
   { name: productName, values: text.us },
@@ -73,7 +74,7 @@ const structuredData: string = structuredDataJson(infoPageStructuredData(siteCon
 
   .compare-cards {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
   }
 

@@ -135,7 +135,7 @@ test("FAQ answers in JSON-LD are the answers shown on the page", async () => {
 });
 
 test("comparison and info pages carry a breadcrumb trail ending at the page", async () => {
-  const pages: readonly string[] = ["compare", "vs/granola", "vs/otter", "vs/fireflies", "languages", "integrations"];
+  const pages: readonly string[] = ["compare", "vs/granola", "vs/otter", "vs/fireflies", "vs/poffle", "languages", "integrations"];
   for (const page of pages) {
     const [breadcrumbs] = nodesOfType(jsonLdBlocks(await distFile(`${page}.html`)), "BreadcrumbList");
     const items: JsonValue | undefined = breadcrumbs?.["itemListElement"];
@@ -156,11 +156,11 @@ test("llms.txt states the key facts and links every public page", async () => {
   for (const fact of ["macOS 15 or later", "Apple silicon", "$5.99", "$49", "3 meetings or 7 days", "10 hours", "4 hours", "No bot", "MCP"]) {
     assert.ok(llms.includes(fact), `llms.txt: "${fact}" yok`);
   }
-  for (const path of ["/pricing", "/download", "/languages", "/integrations", "/compare", "/vs/fireflies", "/privacy#at-a-glance", "/mcp", "/llms-full.txt"]) {
+  for (const path of ["/pricing", "/download", "/languages", "/integrations", "/compare", "/vs/fireflies", "/vs/poffle", "/privacy#at-a-glance", "/mcp", "/llms-full.txt"]) {
     assert.ok(llms.includes(`](${origin}${path})`), `llms.txt: ${path} bağlantısı yok`);
   }
   const full: string = await distFile("llms-full.txt");
-  for (const fact of ["Turkish", "Finnish", "Deepgram", "ElevenLabs", "Anthropic", "macOS 26", "Fireflies", "Zapier"]) {
+  for (const fact of ["Turkish", "Finnish", "Deepgram", "ElevenLabs", "Anthropic", "macOS 26", "Fireflies", "Poffle", "Zapier"]) {
     assert.ok(full.includes(fact), `llms-full.txt: "${fact}" yok`);
   }
   assert.ok(full.length > llms.length * 2, "llms-full.txt llms.txt'ten çok daha ayrıntılı olmalı");
@@ -168,7 +168,7 @@ test("llms.txt states the key facts and links every public page", async () => {
 
 test("the sitemap lists the new pages", async () => {
   const sitemap: string = await distFile("sitemap.xml");
-  for (const path of ["/languages", "/integrations", "/vs/fireflies"]) {
+  for (const path of ["/languages", "/integrations", "/vs/fireflies", "/vs/poffle"]) {
     assert.ok(sitemap.includes(`<loc>${origin}${path}</loc>`), `sitemap.xml: ${path} yok`);
   }
 });

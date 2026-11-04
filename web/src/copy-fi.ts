@@ -257,7 +257,7 @@ export const homeFi: HomeCopy = {
   pricingTitle: "Yksi hinta, kuukausittain tai vuosittain.",
   pricingLead: "Yksi paketti, jossa on kaikki, laskutetaan kuukausittain tai vuosittain. Kokeile omilla kokouksillasi ennen kuin maksat.",
   pricingCta: "Hintatiedot",
-  pricingCompare: "Vertaa Granolaan, Otteriin ja Firefliesiin",
+  pricingCompare: "Vertaa Granolaan, Otteriin, Firefliesiin ja Poffleen",
   faqTitle: "Kysymyksiä",
   faq: [
     {
