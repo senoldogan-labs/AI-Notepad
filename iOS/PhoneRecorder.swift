@@ -1080,13 +1080,14 @@ final class PhoneRecorder {
             let networkLossesAtStart: Int = network.lossCount
             let backgroundEntriesAtStart: Int = backgroundEntries
             Self.logger.info("Toplantı işleniyor, toplantı: \(record.id, privacy: .public), bağlı: \(self.network.isSatisfied, privacy: .public), arka planda: \(self.isInBackground, privacy: .public)")
-            let finalPass: FinalPassPlan = await hostedFinalPassPlan(
-                keyterms: keytermsWithAttendees(attendees: record.attendees ?? [], keyterms: phoneRecognitionKeyterms(store: store), limit: 30),
-                recordID: record.id
-            )
-            let llm: LLMProvider? = recordedMeetingLLMReportingFailure(recordID: record.id)
+            let keyterms: [String] = keytermsWithAttendees(attendees: record.attendees ?? [], keyterms: phoneRecognitionKeyterms(store: store), limit: 30)
+            let recordID: String = record.id
+            // Son geçiş planı (sunucu oturumunu yeniden açma isteği) ve not sağlayıcısı ses dönüştürülürken hazırlanır:
+            // ağ gidiş-dönüşü işlemeyi sırayla bekletmez (bkz. `processMeeting(record:directory:resolveFinalPass:resolveLLM:…)`).
             let processed: MeetingRecord = await processMeeting(
-                record: record, directory: directory, finalPass: finalPass, llm: llm,
+                record: record, directory: directory,
+                resolveFinalPass: { () async -> FinalPassPlan in await hostedFinalPassPlan(keyterms: keyterms, recordID: recordID) },
+                resolveLLM: { () async -> LLMProvider? in await self.recordedMeetingLLMReportingFailure(recordID: recordID) },
                 languageMode: record.language.map { LanguageMode.fixed($0) } ?? .automatic, userName: store.userName,
                 // The iPhone does not capture screens: notes are text only. Voiceprints are computed on this iPhone
                 // (SpeakerKit) when voice recognition is on; they never leave the device.
@@ -1164,7 +1165,7 @@ final class PhoneRecorder {
             noteWritingStartedAt[current.id] = .now
             current = await regenerateNote(
                 record: current.with(status: .processing, failureMessage: nil), directory: directory, llm: recordedMeetingLLMReportingFailure(recordID: current.id),
-                userName: phoneUserName(), language: phoneNoteLanguage(), screens: .off
+                userName: store.userName, language: phoneNoteLanguage(), screens: .off
             )
             Self.logger.info("Not yeniden denendi, toplantı: \(current.id, privacy: .public), deneme: \(attempt, privacy: .public), durum: \(current.status.rawValue, privacy: .public)")
         }
