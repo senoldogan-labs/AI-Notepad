@@ -233,8 +233,11 @@ final class AppModel {
     /// yeniden kurulur), yeni kayıt ve kayıt sonu iptal eder; duraklatma etmez (duraklatılan konuşmanın son cümlesi de
     /// çevrilsin).
     @ObservationIgnored private var idleFlushTasks: [Speaker: Task<Void, Never>] = [:]
-    /// Sırası gelmemiş çeviriler (gelme sırasıyla).
-    @ObservationIgnored private var translationQueue: [TranslationJob] = []
+    /// Sırası gelmemiş çeviriler: yeni konuşma önce, çeviri sonradan açılınca biriken cümleler en yeniden eskiye (bkz.
+    /// `LiveTranslationQueue`).
+    @ObservationIgnored private var translationQueue: LiveTranslationQueue<TranslationJob> = .empty
+    /// Süren çevirilerden birikmiş cümlelerinkiler (en çok `backlogTranslationSlots`; bir yer yeni konuşmaya kalır).
+    @ObservationIgnored private var backlogTranslationIDs: Set<UUID> = []
     /// Süren çeviriler: en fazla `maxParallelTranslations` aynı anda. Tek tek sırayla yapılınca hızlı konuşmada her
     /// cümle bir öncekini beklediği için Türkçe giderek geride kalıyordu; sonuçlar bölüm kimliğiyle yazıldığı için
     /// sıra bozulmaz.
@@ -249,6 +252,12 @@ final class AppModel {
     @ObservationIgnored private var llmProvider: LLMProvider?
     /// Kayıt sırasında transkripti periyodik saklayan görev (çökmede metin kaybolmasın).
     @ObservationIgnored private var checkpointTask: Task<Void, Never>?
+    /// Kontrol noktalarını ana iş parçacığı dışında yazar (uzun toplantıda kodlama arayüzü takmasın).
+    @ObservationIgnored private let checkpointWriter: MeetingCheckpointWriter = MeetingCheckpointWriter()
+    /// Kayıt sürerken boş yeri denetleyen görev (bkz. `startDiskSpaceWatch`).
+    @ObservationIgnored private var diskSpaceTask: Task<Void, Never>?
+    /// Kayıttan önce boş yerin durumu: azsa ana sayfadaki kayıt kartında uyarı (bkz. `refreshRecordingDiskSpace`).
+    private(set) var recordingDiskSpace: RecordingDiskSpace = .enough
     @ObservationIgnored private var session: RecordingSession?
     /// Başarıyla başlayan ses akışları: başlamayan akış için "beklenmedik şekilde durdu" gösterilmez.
     @ObservationIgnored private var startedSpeakers: Set<Speaker> = []
@@ -432,11 +441,12 @@ final class AppModel {
         displayMode = mode
         UserDefaults.standard.set(mode.rawValue, forKey: SettingsKey.displayMode)
         // "Sadece orijinal"den dönünce o sırada çevrilmeyen cümleler de birimlere girip çevrilir (toplantıda çevirisi eksik
-        // kalmasın); birime girmiş bölüm yeniden girmez.
+        // kalmasın); birime girmiş bölüm yeniden girmez. Bu birikmiş cümleler yeni konuşmanın önüne girmez: canlı görünüm
+        // güncel kalır, eskiler boş yerde en yeniden eskiye çevrilir.
         if resumesTranslation, isRecording {
             for segment in transcript where segment.id.speaker == .others && segment.isFinal && !segment.text.isEmpty
                 && translations[segment.id] == nil && !failedTranslations.contains(segment.id) {
-                addForTranslation(segment: segment)
+                addForTranslation(segment: segment, lane: .backlog)
             }
         }
     }
@@ -513,8 +523,8 @@ final class AppModel {
     }
 
     /// Kesinleşmiş "Diğerleri" bölümünü çeviri birimlerine ekler: tamamlanan birimler (cümle sonu, süre ya da uzunluk
-    /// sınırı) çeviriye gider; yarım birim konuşmacı susunca (`liveTranslationUnitLimits.idleSec`) çevrilir.
-    private func addForTranslation(segment: LiveSegment) {
+    /// sınırı) `lane` yolundan çeviriye gider; yarım birim konuşmacı susunca (`liveTranslationUnitLimits.idleSec`) çevrilir.
+    private func addForTranslation(segment: LiveSegment, lane: TranslationLane) {
         // "Sadece orijinal" görünümünde canlı çeviri yapılmaz (maliyet); toplantı sonu not yine üretilir.
         guard displayMode.needsLiveTranslation else {
             return
@@ -527,7 +537,7 @@ final class AppModel {
             builder: unitBuilder, segment: segment, nowSec: translationUnitClockSeconds(), limits: liveTranslationUnitLimits
         )
         unitBuilder = step.builder
-        step.ready.forEach { (unit: TranslationUnit) -> Void in startTranslation(unit: unit) }
+        step.ready.forEach { (unit: TranslationUnit) -> Void in startTranslation(unit: unit, lane: lane) }
         scheduleIdleFlush(speaker: segment.id.speaker)
     }
 
@@ -558,7 +568,7 @@ final class AppModel {
         idleFlushTasks[speaker] = nil
         let step: TranslationUnitStep = flushingIdle(builder: unitBuilder, nowSec: translationUnitClockSeconds(), limits: liveTranslationUnitLimits)
         unitBuilder = step.builder
-        step.ready.forEach { (unit: TranslationUnit) -> Void in startTranslation(unit: unit) }
+        step.ready.forEach { (unit: TranslationUnit) -> Void in startTranslation(unit: unit, lane: .live) }
         // Süre saat payı yüzünden henüz dolmadıysa bekleme yeniden kurulur: yarım birim takılı kalmaz.
         scheduleIdleFlush(speaker: speaker)
     }
@@ -569,23 +579,24 @@ final class AppModel {
         idleFlushTasks = [:]
         let step: TranslationUnitStep = flushingAll(builder: unitBuilder)
         unitBuilder = step.builder
-        step.ready.forEach { (unit: TranslationUnit) -> Void in startTranslation(unit: unit) }
+        step.ready.forEach { (unit: TranslationUnit) -> Void in startTranslation(unit: unit, lane: .live) }
     }
 
     /// Yeni kurulan birimi kaydın birimlerine ekleyip çeviriye gönderir. Metni sabit toplantı dilinden başka dildeyse
     /// çevrilmez (toplantıdan zaten atlanır; maliyet), bölümleri panelde soluk kalır.
-    private func startTranslation(unit: TranslationUnit) {
+    private func startTranslation(unit: TranslationUnit, lane: TranslationLane) {
         if isOtherLanguageUnit(unit: unit, fixedLanguage: recordingFixedLanguage) {
             languageSkippedSegments.formUnion(unit.segmentIDs)
             Self.logger.info("Başka dildeki birim çevrilmedi, birim sonu: \(segmentKey(id: unit.carrierID), privacy: .public), bölüm sayısı: \(unit.segmentIDs.count, privacy: .public)")
             return
         }
         translationUnits.append(unit)
-        enqueueTranslation(unit: unit)
+        enqueueTranslation(unit: unit, lane: lane)
     }
 
-    /// Birimi sıraya alıp not diline çevirir (hızlı model); çevrilemiyorsa birimin bütün bölümleri "Tekrar dene"de kalır.
-    private func enqueueTranslation(unit: TranslationUnit) {
+    /// Birimi `lane` yolunda sıraya alıp not diline çevirir (hızlı model); çevrilemiyorsa birimin bütün bölümleri "Tekrar
+    /// dene"de kalır.
+    private func enqueueTranslation(unit: TranslationUnit, lane: TranslationLane) {
         guard !translationDisabled, let provider = llmProvider else {
             // Çeviri şu an yapılamıyor (anahtar reddedildi ya da sağlayıcı yok): cümle kaybolmasın, "Tekrar dene"de kalsın.
             failedTranslations.formUnion(unit.segmentIDs)
@@ -600,7 +611,7 @@ final class AppModel {
             return
         }
         let context: [String] = translationContext(units: translationUnits, before: unit, count: translationContextUnits)
-        translationQueue.append(TranslationJob(unit: unit, context: context, provider: provider, generation: recordingGeneration))
+        translationQueue = translationQueue.adding(job: TranslationJob(unit: unit, context: context, provider: provider, generation: recordingGeneration), lane: lane)
         startQueuedTranslations()
     }
 
@@ -609,14 +620,23 @@ final class AppModel {
         translationsInFlight.values.first
     }
 
-    /// Boş yer oldukça sıradaki çevirileri başlatır; biten her çeviri sıradakini başlatır.
+    /// Boş yer oldukça sıradaki çevirileri başlatır (yeni konuşma önce; bkz. `LiveTranslationQueue`); biten her çeviri
+    /// sıradakini başlatır.
     private func startQueuedTranslations() {
-        while translationsInFlight.count < maxParallelTranslations, !translationQueue.isEmpty {
-            let job: TranslationJob = translationQueue.removeFirst()
+        while translationsInFlight.count < maxParallelTranslations,
+              let next = translationQueue.next(
+                  backlogInFlight: backlogTranslationIDs.count, backlogSlots: backlogTranslationSlots(maxParallel: maxParallelTranslations)
+              ) {
+            translationQueue = next.queue
+            let job: TranslationJob = next.job
             let id: UUID = UUID()
+            if next.lane == .backlog {
+                backlogTranslationIDs.insert(id)
+            }
             translationsInFlight[id] = Task { [weak self] in
                 await self?.translate(unit: job.unit, context: job.context, provider: job.provider, generation: job.generation)
                 self?.translationsInFlight[id] = nil
+                self?.backlogTranslationIDs.remove(id)
                 self?.startQueuedTranslations()
             }
         }
@@ -676,7 +696,7 @@ final class AppModel {
             for unit in unitsContaining(ids: ids, units: translationUnits)
             where unit.segmentIDs.contains(where: { (id: SegmentID) -> Bool in failedTranslations.contains(id) }) {
                 failedTranslations.subtract(unit.segmentIDs)
-                enqueueTranslation(unit: unit)
+                enqueueTranslation(unit: unit, lane: .live)
             }
         }
     }
@@ -917,9 +937,10 @@ final class AppModel {
         translationUnits = []
         idleFlushTasks.values.forEach { $0.cancel() }
         idleFlushTasks = [:]
-        translationQueue = []
+        translationQueue = .empty
         translationsInFlight.values.forEach { $0.cancel() }
         translationsInFlight = [:]
+        backlogTranslationIDs = []
         closeAssistantCard()
         translationDisabled = false
         lockedLanguage = nil
@@ -929,6 +950,13 @@ final class AppModel {
         errorMessages = []
         startedSpeakers = []
         isPaused = false
+        // Diskte kısa bir kayda bile yer yoksa kayıt başlamaz (başlar başlamaz bitirilirdi); az yer ana sayfada uyarılır.
+        refreshRecordingDiskSpace()
+        guard recordingDiskSpace != .full else {
+            Self.logger.warning("Diskte yer yok, kayıt başlatılmadı")
+            errorMessages = appendUnique(messages: errorMessages, message: macDiskFullText())
+            return
+        }
         #if !HOSTED_EDITION
         // Çeviri sağlayıcısı kayıt başında bir kez çözülür; yoksa canlı metin yine akar, tek hata gösterilir.
         // (Abonelikte toplantı oturumu açıldıktan sonra çözülür: bkz. `resolveTranslationProviderAtStart`.)
@@ -1183,6 +1211,7 @@ final class AppModel {
         activeMeetingID = directory.lastPathComponent
         keepAwake(meetingID: directory.lastPathComponent)
         startCheckpoints(directory: directory, startedAt: startedAt, engine: engineAtStart)
+        startDiskSpaceWatch(directory: directory, startedAt: startedAt)
         startScreenSnapshots(meetingID: directory.lastPathComponent, directory: directory, origin: origin, isInPerson: recordingInPerson)
         recordingCalendarMeeting = linkedMeeting
         relatedTasks = linkedMeeting.map { (meeting: CalendarMeeting) -> [RelatedOpenTask] in
@@ -1399,7 +1428,7 @@ final class AppModel {
                 spokenLanguages[segment.id] = confidentSpokenLanguage(text: segment.text)
             }
             if segment.id.speaker == .others, segment.isFinal, !segment.text.isEmpty {
-                addForTranslation(segment: segment)
+                addForTranslation(segment: segment, lane: .live)
             }
             logLiveLagIfHigh(segment: segment)
         case .languageLocked(let language):
@@ -1468,6 +1497,8 @@ final class AppModel {
         sessionTask = nil
         checkpointTask?.cancel()
         checkpointTask = nil
+        diskSpaceTask?.cancel()
+        diskSpaceTask = nil
         Self.logger.info("Kayıt bitti")
         isPaused = false
         // Oturum kendiliğinden de bitebilir (ör. ses akışı koptu): yakalama, ses çubukları ve rıza hatırlatması burada da
@@ -1532,7 +1563,7 @@ final class AppModel {
         if !completed {
             // Sıradaki işler başlamaz; süren istekler iptal edilir.
             translationDisabled = true
-            translationQueue = []
+            translationQueue = .empty
             translationsInFlight.values.forEach { $0.cancel() }
             Self.logger.warning("Kayıt sonunda bekleyen çeviriler süre içinde bitmedi, süre: \(timeoutSec, privacy: .public)")
         }
@@ -1573,9 +1604,75 @@ final class AppModel {
                 guard let self, self.isRecording else {
                     return
                 }
-                self.saveRecord(record: self.liveRecord(directory: directory, startedAt: startedAt, engine: engine, status: .recording, endedAt: nil), directory: directory)
+                self.saveCheckpoint(record: self.liveRecord(directory: directory, startedAt: startedAt, engine: engine, status: .recording, endedAt: nil), directory: directory)
             }
         }
+    }
+
+    /// Kontrol noktası: anlık görüntü burada (ana aktörde) alınır ve listeye yansır; kodlama ve atomik yazım arka planda,
+    /// sırayla (4 saatlik toplantıda ana iş parçacığında yüzlerce ms sürebiliyordu). Kaydın bitişindeki yazım daha yeni
+    /// sıradadır: arka plandaki eski görüntü onun üstüne yazılmaz.
+    private func saveCheckpoint(record: MeetingRecord, directory: URL) {
+        checkpointWriter.write(record: record, directory: directory) { [weak self] (error: any Error) -> Void in
+            Self.logger.error("Kontrol noktası yazılamadı, klasör: \(directory.lastPathComponent, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+            guard let self else {
+                return
+            }
+            self.errorMessages = appendUnique(messages: self.errorMessages, message: String(localized: "Toplantı kaydedilemedi: \(userFacingMessage(error: error))"))
+        }
+        meetings = upsertMeeting(records: meetings, record: record)
+        meetingReloader.invalidate()
+    }
+
+    /// Kayıt öncesi boş yer yeniden okunur (ana sayfa açılınca, uygulama öne gelince, kayıt başlarken). Okunamazsa
+    /// loglanır ve önceki durum kalır (kayıt sırasındaki denetim yine çalışır).
+    func refreshRecordingDiskSpace() {
+        let streams: Int = isInPerson || isMicMuted ? 1 : 2
+        do {
+            let available: Int64 = try availableCapacityForImportantUsage(directory: try AppPaths.sessionsDirectory())
+            recordingDiskSpace = AINotepadCore.recordingDiskSpace(availableBytes: available, expectedDurationSec: expectedRecordingSec, streams: streams)
+        } catch {
+            Self.logger.error("Boş yer okunamadı, hata: \(String(describing: error), privacy: .private)")
+        }
+    }
+
+    /// Kayıt sürerken boş yer `diskSpaceCheckIntervalSec`'te bir denetlenir: disk dolmadan kayıt temiz biçimde bitirilir;
+    /// o ana kadar kaydedilen her şey saklanır ve işlenir (`.m4a` dönüştürmesi ve işleme için yer ayrılır).
+    private func startDiskSpaceWatch(directory: URL, startedAt: Date) {
+        diskSpaceTask?.cancel()
+        diskSpaceTask = Task { [weak self] in
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(for: .seconds(diskSpaceCheckIntervalSec))
+                } catch {
+                    // İptal: kayıt bitti.
+                    return
+                }
+                guard let self, self.isRecording, !self.isFinishing else {
+                    return
+                }
+                self.stopRecordingIfDiskFull(directory: directory, startedAt: startedAt)
+            }
+        }
+    }
+
+    private func stopRecordingIfDiskFull(directory: URL, startedAt: Date) {
+        let available: Int64
+        do {
+            available = try availableCapacityForImportantUsage(directory: directory)
+        } catch {
+            Self.logger.error("Kayıt sürerken boş yer okunamadı, klasör: \(directory.lastPathComponent, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+            return
+        }
+        let streams: Int = max(startedSpeakers.count, 1)
+        let recordedSec: Double = Date().timeIntervalSince(startedAt)
+        guard shouldStopRecordingForDiskSpace(availableBytes: available, recordedSec: recordedSec, streams: streams, checkIntervalSec: diskSpaceCheckIntervalSec) else {
+            return
+        }
+        Self.logger.warning("Diskte yer kalmadı, kayıt bitiriliyor, boş bayt: \(available, privacy: .public), akış: \(streams, privacy: .public), süre: \(recordedSec, privacy: .public)")
+        stopRecording()
+        errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Diskte yer kalmadığı için kayıt bitirildi; o ana kadar kaydedilenler saklandı ve not hazırlanıyor."))
+        recordingDiskSpace = .full
     }
 
     // MARK: Toplantı kayıtları
@@ -3959,6 +4056,10 @@ final class AppModel {
                 }
             }
             resumeInterruptedProcessing(records: stale)
+            #if HOSTED_EDITION
+            await retryFailedProcessing()
+            startAutomaticRetryTimer()
+            #endif
             applyRetention()
             await loadDestinations()
             await processPendingAutoSends()
@@ -4011,6 +4112,69 @@ final class AppModel {
         }
         #endif
     }
+
+    #if HOSTED_EDITION
+    /// Kendiliğinden yeniden denemeleri yoklayan görev (bkz. `startAutomaticRetryTimer`).
+    @ObservationIgnored private var automaticRetryTask: Task<Void, Never>?
+
+    /// Abonelikte işlemesi geçici bir nedenle (ağ, askıya alma, sunucu 5xx, kapanmış oturum) başarısız biten toplantılar
+    /// kullanıcı "Tekrar işle"ye basmadan yeniden işlenir: açılışta, uygulama öne gelince, ağ gelince (`queueTrigger`)
+    /// ve uygulama açıkken `automaticRetryPollSec`'te bir; artan beklemeyle ve en çok `automaticRetryLimit` kez (bkz.
+    /// `meetingsToRetryAutomatically`). Kalıcı başarısızlıklar (ses yok, dönüştürülemedi…) denenmez. İşleme kaldığı
+    /// yerden sürer (son geçişin sonucu ve notun parçaları kaydedilmiştir): son geçiş yeniden faturalanmaz. Kayıt ya da
+    /// başka bir işleme sürerken beklenir.
+    func retryFailedProcessing() async {
+        guard !isBusy, !isStarting else {
+            return
+        }
+        let userID: String
+        do {
+            guard let signedIn = try await HostedAccount.shared.signedInUserID() else {
+                return
+            }
+            userID = signedIn
+        } catch {
+            Self.logger.error("Yeniden deneme: oturum okunamadı, hata: \(String(describing: error), privacy: .private)")
+            return
+        }
+        // Yüklü toplantılar giriş yapan hesabın değilse hiçbiri işlenmez: başka hesaba faturalanmaz.
+        guard !isBusy, AppPaths.activeAccountKey() == accountDataKey(userId: userID) else {
+            return
+        }
+        let linked: Set<String>
+        do {
+            linked = try hostedLinkedRecordIDs()
+        } catch {
+            errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
+            return
+        }
+        for record in meetingsToRetryAutomatically(records: meetings, linkedRecordIDs: linked, now: Date()) where !isLocked(meetingID: record.id) {
+            let recordID: String = record.id
+            let retry: MeetingRecord = startingAutomaticRetry(record: record, now: Date())
+            Self.logger.info("Başarısız işleme kendiliğinden yeniden deneniyor, toplantı: \(recordID, privacy: .public), deneme: \(retry.automaticRetries?.count ?? 0, privacy: .public)")
+            withSessionDirectory(id: recordID) { (directory: URL) -> Void in
+                process(record: retry, directory: directory) { [weak self] () async -> LLMProvider? in
+                    await self?.optionalProvider { try await resolveRecordedMeetingLLMProvider(recordID: recordID) }
+                }
+            }
+        }
+    }
+
+    /// Uygulama günlerce açık kalabilir: vakti gelen kendiliğinden yeniden deneme `automaticRetryPollSec`'te bir yoklanır.
+    private func startAutomaticRetryTimer() {
+        automaticRetryTask?.cancel()
+        automaticRetryTask = Task { [weak self] in
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(for: .seconds(automaticRetryPollSec))
+                } catch {
+                    return
+                }
+                await self?.retryFailedProcessing()
+            }
+        }
+    }
+    #endif
 
     /// Yerel toplantı kimlikleri; okunamazsa boş (o turda hiçbir toplantıya dokunulmaz) ve neden gösterilir.
     private func localMeetingIDsReportingFailure() -> Set<String> {
@@ -4243,7 +4407,7 @@ private func fixedLanguage(mode: LanguageMode) -> MeetingLanguage? {
 }
 
 /// Sırası bekleyen canlı çeviri (bir cümle birimi).
-private struct TranslationJob {
+private struct TranslationJob: Sendable {
     let unit: TranslationUnit
     let context: [String]
     let provider: LLMProvider

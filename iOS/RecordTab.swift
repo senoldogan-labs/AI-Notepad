@@ -58,6 +58,10 @@ private struct RecordHome: View {
                 .padding(.top, 8)
                 RecordHeroCard(recorder: recorder)
                 PhonePlanNotice(account: HostedAccount.shared, router: router)
+                if let diskSpace = phoneDiskSpaceText(space: recorder.recordingDiskSpace) {
+                    NoticeText(diskSpace, severity: .attention)
+                        .appFont(size: 13, weight: .regular)
+                }
                 PhoneUsageNotice(account: HostedAccount.shared)
                 PhoneDeletedMeetingsCard(deleted: .shared, store: store)
                 // Sunucunun "deneme bitti" gibi reddi abone olunca artık geçerli değil (Mac'teki `resolvedErrorMessages`).
@@ -110,6 +114,8 @@ private struct RecordHome: View {
             .padding(.bottom, 28)
         }
         .scrollIndicators(.hidden)
+        // Kayıttan önce boş yer (kayıt bitince ve sekmeye dönünce yeniden okunur).
+        .task { recorder.refreshRecordingDiskSpace() }
         // Kayıt başlarken (ekran canlı kayda geçiyor) yatay kaydırma sekme değiştirmez; canlı kayıt ekranında hiç yok.
         .phoneTabSwipe(router: router, isEnabled: recorder.phase == .idle)
         .toolbar(.hidden, for: .navigationBar)
@@ -448,9 +454,10 @@ private struct LiveRecordingView: View {
     /// Canlı çeviri (Ayarlar › Toplantı'daki gösterimle aynı ayar; ⋯ menüsünden de açılıp kapanır).
     @AppStorage(PhoneSettingsKey.displayMode) private var displayMode: String = DisplayMode.bilingual.rawValue
 
-    /// Konuşmacı düzeltmeleri uygulanmış transkriptin blokları.
+    /// Konuşmacı düzeltmeleri uygulanmış transkriptin blokları (kaydedicide her canlı güncellemede bir kez kurulur; bkz.
+    /// `PhoneRecorder.liveView`).
     private var blocks: [SpeakerBlock] {
-        groupBySpeaker(transcript: recorder.correctedTranscript.filter { !$0.text.isEmpty })
+        recorder.liveView.blocks
     }
 
     private var liveTranslationOn: Bool {
@@ -655,10 +662,13 @@ private struct LiveRecordingView: View {
         ScrollViewReader { (proxy: ScrollViewProxy) in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 22) {
-                    let persons: [Int] = knownPersons(transcript: recorder.correctedTranscript)
-                    ForEach(blocks) { (block: SpeakerBlock) in
+                    // Her güncellemede bir kez: bloklar başına yeniden hesaplanmaz.
+                    let view: LiveTranscriptView = recorder.liveView
+                    let otherLanguage: Set<SegmentID> = recorder.otherLanguageSegments
+                    let persons: [Int] = view.persons
+                    ForEach(view.blocks) { (block: SpeakerBlock) in
                         LiveBlockView(
-                            block: block, translations: recorder.translations, otherLanguage: recorder.otherLanguageSegments,
+                            block: block, translations: recorder.translations, otherLanguage: otherLanguage,
                             failedTranslations: failedTranslationIDs(block: block, failed: recorder.failedTranslations),
                             canRetry: recorder.phase == .recording, persons: persons, newPersonNumber: recorder.newPersonNumber,
                             onRetry: { (ids: [SegmentID]) -> Void in recorder.retryTranslations(ids: ids) },

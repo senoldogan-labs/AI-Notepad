@@ -244,7 +244,8 @@ public func meetingSyncParts(record: MeetingRecord, contentObjectID: String, ori
 }
 
 /// Rebuilds a meeting from its synced parts; `voiceprints` are this device's own (nil on a device that did not record
-/// it). `joinedMeetingRecord(meetingSyncParts(record))` equals `record` except for voiceprints. Pure function.
+/// it). `joinedMeetingRecord(meetingSyncParts(record))` equals `record` except for voiceprints and the device-local
+/// processing retry state (`failureKind`, `automaticRetries`). Pure function.
 public func joinedMeetingRecord(state: MeetingSyncState, content: MeetingSyncContent, voiceprints: [Int: Voiceprint]?) -> MeetingRecord {
     MeetingRecord(
         id: state.meetingID, title: state.title, startedAt: state.startedAt, endedAt: state.endedAt, language: content.language, status: state.status,

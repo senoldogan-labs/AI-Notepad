@@ -6,7 +6,7 @@ requires-python = ">=3.11,<3.12"
 dependencies = [
     "chatterbox-tts>=0.1.7",
     "faster-whisper>=1.2.1",
-    "setuptools<81",
+    "setuptools<85",
 ]
 
 [tool.uv]

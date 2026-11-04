@@ -36,9 +36,48 @@ func meetingDecoder() -> JSONDecoder {
     return decoder
 }
 
+/// Bir `meeting.json` yazımının sırası: yazım istendiği anda (çağıranın iş parçacığında) alınır. Kayıt sürerken kontrol
+/// noktası arka planda yazılır; daha yeni bir anlık görüntü (sonraki kontrol noktası ya da kaydın bitişindeki yazım) önce
+/// yazıldıysa eski görüntü onun üstüne yazılmaz (bkz. `saveMeeting(record:directory:ticket:)`).
+public struct MeetingWriteTicket: Sendable, Equatable {
+    /// Toplantı dosyasının yolu.
+    public let path: String
+    /// Süreç boyunca artan sıra numarası.
+    public let order: UInt64
+}
+
+/// Süreçteki toplantı yazımlarının sırası ve yazılmış en yeni sıra (dosya yolu → sıra). Yazım bu kilit altında yapılır:
+/// aynı dosyaya iki yazım aynı anda olmaz.
+private struct MeetingWriteOrder {
+    var nextOrder: UInt64
+    var written: [String: UInt64]
+}
+
+private let meetingWriteOrder: Mutex<MeetingWriteOrder> = Mutex(MeetingWriteOrder(nextOrder: 1, written: [:]))
+
+/// Toplantının bir sonraki yazımının sırasını alır. Anlık görüntü alındığı anda çağrılmalı: sıra, görüntülerin alınma
+/// sırasıdır.
+public func claimMeetingWrite(directory: URL) -> MeetingWriteTicket {
+    let path: String = directory.appending(path: meetingFileName).standardizedFileURL.path
+    let order: UInt64 = meetingWriteOrder.withLock { (state: inout MeetingWriteOrder) -> UInt64 in
+        let order: UInt64 = state.nextOrder
+        state.nextOrder += 1
+        return order
+    }
+    return MeetingWriteTicket(path: path, order: order)
+}
+
 /// Toplantıyı klasöründeki `meeting.json`'a atomik yazar. Yazma dosya koordinatörüyle yapılır: klasör iCloud'daysa
 /// eşitleme süreciyle çakışmaz (yerelde de zararsızdır).
 public func saveMeeting(record: MeetingRecord, directory: URL) throws {
+    _ = try saveMeeting(record: record, directory: directory, ticket: claimMeetingWrite(directory: directory))
+}
+
+/// Toplantıyı `ticket` sırasıyla yazar: aynı dosyaya daha yeni sıralı bir yazım önce yapıldıysa bu (eski) anlık görüntü
+/// yazılmaz ve false döner. Kodlama kilit dışında yapılır (uzun toplantıda en pahalı kısım); yazım kilit altında,
+/// süreçteki yazımlar sırayla. Herhangi bir iş parçacığından çağrılabilir.
+@discardableResult
+public func saveMeeting(record: MeetingRecord, directory: URL, ticket: MeetingWriteTicket) throws -> Bool {
     let file: URL = directory.appending(path: meetingFileName)
     let data: Data
     do {
@@ -46,6 +85,18 @@ public func saveMeeting(record: MeetingRecord, directory: URL) throws {
     } catch {
         throw StorageError.writeFailed(path: file.path, reason: error.localizedDescription)
     }
+    return try meetingWriteOrder.withLock { (state: inout MeetingWriteOrder) throws -> Bool in
+        guard state.written[ticket.path].map({ (written: UInt64) -> Bool in written < ticket.order }) ?? true else {
+            return false
+        }
+        try writeMeetingData(data: data, file: file)
+        state.written[ticket.path] = ticket.order
+        return true
+    }
+}
+
+/// Kodlanmış toplantıyı dosya koordinatörüyle atomik yazar.
+private func writeMeetingData(data: Data, file: URL) throws {
     var coordinationError: NSError?
     var writeError: (any Error)?
     NSFileCoordinator(filePresenter: nil).coordinate(writingItemAt: file, options: .forReplacing, error: &coordinationError) { (url: URL) -> Void in

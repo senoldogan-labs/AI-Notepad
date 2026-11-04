@@ -74,6 +74,23 @@ public func knownPersons(transcript: [LiveSegment]) -> [Int] {
     Array(Set(transcript.compactMap(\.person))).sorted()
 }
 
+/// Kayıt ekranının canlı metinden türettikleri: konuşmacı düzeltmeleri uygulanmış transkript, metni olan bölümlerin
+/// konuşmacı blokları ve bilinen kişiler. Her canlı güncellemede bir kez kurulur (kayıt ekranı bunları birçok yerde
+/// okur; uzun toplantıda her okumada yeniden kurmak pahalıdır).
+public struct LiveTranscriptView: Sendable, Equatable {
+    public let corrected: [LiveSegment]
+    public let blocks: [SpeakerBlock]
+    public let persons: [Int]
+}
+
+/// Canlı transkriptin kayıt ekranı görünümü. Saf fonksiyondur.
+public func liveTranscriptView(transcript: [LiveSegment], corrections: SpeakerCorrections) -> LiveTranscriptView {
+    let corrected: [LiveSegment] = applyCorrections(transcript: transcript, corrections: corrections)
+    return LiveTranscriptView(
+        corrected: corrected, blocks: groupBySpeaker(transcript: corrected.filter { !$0.text.isEmpty }), persons: knownPersons(transcript: corrected)
+    )
+}
+
 /// Ad taslakları (konuşmacılara ad verme sayfası) birleştirmeden sonra: hedefin taslağı boşsa birleşen kişinin taslağı
 /// ona geçer (`mergingPersons`'ın diske yazdığıyla aynı), birleşen kişinin taslağı kalkar. Saf fonksiyondur.
 public func mergingSpeakerDrafts(drafts: [Int: String], from: Int, into: Int) -> [Int: String] {

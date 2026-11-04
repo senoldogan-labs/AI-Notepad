@@ -145300,6 +145300,361 @@
           }
         }
       }
+    },
+    "Diskte yaklaşık %lld dakikalık kayıt için yer var. Uzun bir toplantıdan önce yer aç: yer biterse kayıt o ana kadar kaydedilenle bitirilir ve not hazırlanır.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Speicherplatz reicht für etwa %lld Minuten Aufnahme. Gib vor einem langen Meeting Speicherplatz frei: Wird der Platz knapp, endet die Aufnahme mit dem bis dahin Aufgenommenen und die Notiz wird erstellt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There is disk space for about %lld minutes of recording. Free up space before a long meeting: if space runs out, the recording ends with what was recorded so far and the note is prepared."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hay espacio en disco para unos %lld minutos de grabación. Libera espacio antes de una reunión larga: si se acaba, la grabación termina con lo grabado hasta ese momento y se prepara la nota."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Levytilaa on noin %lld minuutin tallennukseen. Vapauta tilaa ennen pitkää kokousta: jos tila loppuu, tallennus päättyy siihen mennessä tallennettuun ja muistiinpano valmistellaan."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’espace disque suffit pour environ %lld minutes d’enregistrement. Libère de l’espace avant une longue réunion : si l’espace vient à manquer, l’enregistrement s’arrête avec ce qui a été enregistré et la note est préparée."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "C’è spazio su disco per circa %lld minuti di registrazione. Libera spazio prima di una riunione lunga: se lo spazio finisce, la registrazione si chiude con quanto registrato fino a quel momento e la nota viene preparata."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクの空き容量は約%lld分の録音分です。長い会議の前に空き容量を確保してください。容量がなくなると、それまでの録音で録音を終了し、ノートを作成します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "디스크 공간이 약 %lld분 녹음 분량 남아 있습니다. 긴 회의 전에 공간을 확보하세요. 공간이 부족해지면 그때까지 녹음된 내용으로 녹음이 끝나고 노트가 준비됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Er is schijfruimte voor ongeveer %lld minuten opname. Maak ruimte vrij vóór een lange vergadering: raakt de ruimte op, dan stopt de opname met wat tot dan is opgenomen en wordt de notitie gemaakt."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Há espaço em disco para cerca de %lld minutos de gravação. Libere espaço antes de uma reunião longa: se o espaço acabar, a gravação termina com o que foi gravado até então e a nota é preparada."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "磁盘空间约够录制 %lld 分钟。长会议前请释放空间：空间用尽时，录制会以已录内容结束，并生成笔记。"
+          }
+        }
+      }
+    },
+    "Diskte kayıt için yer yok. Kayda başlamadan önce yer aç: kayıt ve notu için birkaç yüz MB boş yer gerekir.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kein Speicherplatz für eine Aufnahme. Gib vor dem Start Speicherplatz frei: Aufnahme und Notiz brauchen einige hundert MB."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There is no disk space for a recording. Free up space before you start: a recording and its note need a few hundred MB."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay espacio en disco para grabar. Libera espacio antes de empezar: una grabación y su nota necesitan unos cientos de MB."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Levytilaa ei ole tallennukselle. Vapauta tilaa ennen aloittamista: tallennus ja sen muistiinpano tarvitsevat muutaman sata Mt."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pas d’espace disque pour un enregistrement. Libère de l’espace avant de commencer : un enregistrement et sa note nécessitent quelques centaines de Mo."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non c’è spazio su disco per una registrazione. Libera spazio prima di iniziare: una registrazione e la sua nota richiedono alcune centinaia di MB."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音に必要なディスク容量がありません。開始する前に空き容量を確保してください。録音とノートには数百MBが必要です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹음할 디스크 공간이 없습니다. 시작하기 전에 공간을 확보하세요. 녹음과 노트에는 수백 MB가 필요합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Er is geen schijfruimte voor een opname. Maak ruimte vrij voordat je begint: een opname en de notitie hebben een paar honderd MB nodig."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não há espaço em disco para gravar. Libere espaço antes de começar: uma gravação e sua nota precisam de algumas centenas de MB."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有可用于录制的磁盘空间。开始前请释放空间：录制及其笔记需要几百 MB。"
+          }
+        }
+      }
+    },
+    "Diskte yer kalmadığı için kayıt bitirildi; o ana kadar kaydedilenler saklandı ve not hazırlanıyor.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Aufnahme wurde beendet, weil der Speicher voll ist. Alles bis dahin Aufgenommene wurde gesichert und die Notiz wird erstellt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The recording ended because storage is full; everything recorded so far was kept and the note is being prepared."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La grabación terminó porque el almacenamiento está lleno; se guardó todo lo grabado hasta ese momento y se está preparando la nota."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tallennus päättyi, koska tallennustila on täynnä; kaikki siihen mennessä tallennettu säilytettiin ja muistiinpanoa valmistellaan."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’enregistrement s’est arrêté car le stockage est plein ; tout ce qui a été enregistré a été conservé et la note est en préparation."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La registrazione è terminata perché lo spazio è esaurito; quanto registrato finora è stato salvato e la nota è in preparazione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ストレージがいっぱいになったため録音を終了しました。それまでの録音はすべて保存され、ノートを作成しています。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "저장 공간이 가득 차서 녹음이 끝났습니다. 그때까지 녹음된 내용은 모두 보관되었고 노트를 준비하고 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De opname is gestopt omdat de opslag vol is; alles wat tot dan is opgenomen is bewaard en de notitie wordt gemaakt."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A gravação terminou porque o armazenamento está cheio; tudo o que foi gravado até então foi mantido e a nota está sendo preparada."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "存储空间已满，录制已结束；此前录制的内容均已保存，正在生成笔记。"
+          }
+        }
+      }
+    },
+    "Yer az: yaklaşık %lld dk kayıt sığar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wenig Speicher: Platz für etwa %lld Min. Aufnahme."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Low storage: room for about %lld min of recording."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poco almacenamiento: caben unos %lld min de grabación."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tila vähissä: tilaa noin %lld min tallennukselle."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stockage faible : environ %lld min d’enregistrement possibles."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spazio ridotto: circa %lld min di registrazione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "空き容量わずか：約%lld分録音できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "저장 공간 부족: 약 %lld분 녹음할 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weinig opslag: ruimte voor ongeveer %lld min opname."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pouco armazenamento: cabem cerca de %lld min de gravação."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "存储空间不足：约可录制 %lld 分钟。"
+          }
+        }
+      }
+    },
+    "Kayıt için yer yok; iPhone'da yer aç.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kein Speicher für eine Aufnahme; gib auf dem iPhone Speicher frei."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No storage for a recording; free up space on your iPhone."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay almacenamiento para grabar; libera espacio en tu iPhone."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tallennukselle ei ole tilaa; vapauta tilaa iPhonesta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pas de stockage pour un enregistrement ; libère de l’espace sur ton iPhone."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spazio insufficiente per registrare; libera spazio sull’iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音する空き容量がありません。iPhoneの空き容量を確保してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹음할 저장 공간이 없습니다. iPhone의 공간을 확보하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geen opslag voor een opname; maak ruimte vrij op je iPhone."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem armazenamento para gravar; libere espaço no iPhone."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有可用于录制的存储空间；请在 iPhone 上释放空间。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
