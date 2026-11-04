@@ -38,10 +38,10 @@ private func archive() -> [MeetingRecord] {
         #expect(relevantPassages(passages: passages, terms: ["xyzzy"], maxChars: 80).count == 1)
         // Kaynak işaretleri ilk geçiş sırasıyla numaralanır; geçersizler atılır; akışta yarım işaret görünmez.
         let both: [ArchivePassage] = Array(passages.prefix(2))
-        let answer: ArchiveAnswer = citedAnswer(text: "Mikko yenisini sipariş edecek [2][9]. Bütçe artacak [1, 2] [", passages: both)
+        let answer: ArchiveAnswer = citedAnswer(text: "Mikko yenisini sipariş edecek [2][9]. Bütçe artacak [1, 2] [", passages: both, webSources: [])
         #expect(answer.text == "Mikko yenisini sipariş edecek [1]. Bütçe artacak [2][1]")
         #expect(answer.sources.map(\.id) == [both[1].id, both[0].id])
-        #expect(citedAnswer(text: "Kaikki [1-2].", passages: both).text == "Kaikki [1][2].")
+        #expect(citedAnswer(text: "Kaikki [1-2].", passages: both, webSources: []).text == "Kaikki [1][2].")
     }
 }
 
@@ -65,7 +65,7 @@ private func archive() -> [MeetingRecord] {
         let scoped: [MeetingRecord] = try archiveScope(records: all, meetingIDs: ["a"])
         let read: [ArchivePassage] = questionPassages(question: "Peki bunu kim üstlendi?", terms: ["budjetti", "kahvikone"], history: history, records: scoped, maxChars: 60_000)
         #expect(!read.isEmpty && read.allSatisfy { $0.meetingID == "a" }, "\(read.map(\.id))")
-        let sources: [ArchivePassage] = citedAnswer(text: "Mikko [1][2][3][4].", passages: read).sources
+        let sources: [ArchivePassage] = citedAnswer(text: "Mikko [1][2][3][4].", passages: read, webSources: []).sources
         #expect(sources.allSatisfy { $0.meetingID == "a" })
         let unscoped: [ArchivePassage] = questionPassages(question: "Peki bunu kim üstlendi?", terms: ["kahvikone"], history: history, records: all, maxChars: 60_000)
         #expect(unscoped.contains(budget))
@@ -76,18 +76,21 @@ private func archive() -> [MeetingRecord] {
         let passages: [ArchivePassage] = archivePassages(records: archive())
         let note: ArchivePassage = try #require(passages.first { $0.meetingID == "b" && $0.kind == .note })
         let transcript: ArchivePassage = try #require(passages.first { $0.meetingID == "a" && $0.kind == .transcript })
-        let answer: ArchiveAnswer = ArchiveAnswer(text: "**Bütçe** %10 artacak [1].\n- Mikko kahve makinesini alacak [2].", sources: [note, transcript])
+        let answer: ArchiveAnswer = ArchiveAnswer(text: "**Bütçe** %10 artacak [1].\n- Mikko kahve makinesini alacak [2].", sources: [note, transcript], webSources: [WebSource(url: "https://www.example.com/x", title: "Example")])
         let locale: Locale = Locale(identifier: "tr_TR")
         let date: (Date) -> String = { (value: Date) -> String in value.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(locale)) }
-        #expect(archiveAnswerPlainText(answer: answer, sourcesHeading: "Kaynaklar", noteLabel: "not", locale: locale) == """
+        #expect(archiveAnswerPlainText(answer: answer, sourcesHeading: "Kaynaklar", webHeading: "Web", noteLabel: "not", locale: locale) == """
         Bütçe %10 artacak [1].
         - Mikko kahve makinesini alacak [2].
 
         Kaynaklar
         [1] Bütçe planlaması · \(date(note.meetingDate)) · not
         [2] Haftalık ekip toplantısı · \(date(transcript.meetingDate)) · \(timestamp(seconds: transcript.startSec))
+
+        Web
+        [w1] Example — https://www.example.com/x
         """)
-        #expect(archiveAnswerPlainText(answer: ArchiveAnswer(text: "Bilgi yok.", sources: []), sourcesHeading: "Kaynaklar", noteLabel: "not", locale: locale) == "Bilgi yok.")
+        #expect(archiveAnswerPlainText(answer: ArchiveAnswer(text: "Bilgi yok.", sources: [], webSources: []), sourcesHeading: "Kaynaklar", webHeading: "Web", noteLabel: "not", locale: locale) == "Bilgi yok.")
     }
 
     // Etiketli soru geçmişe kapsamıyla yazılır ve aynen geri okunur (sohbet yeniden açılınca etiketler görünür).
@@ -97,7 +100,7 @@ private func archive() -> [MeetingRecord] {
         let turn: AskConversationTurn = AskConversationTurn(
             id: UUID(), question: "Kim ne üstlendi?", scopeMeetingIDs: ["a", "b"], scopeTitles: ["Haftalık ekip toplantısı", "Bütçe planlaması"],
             recipeTitle: nil, startedAt: Date(timeIntervalSince1970: 1_792_000_000), finishedAt: Date(timeIntervalSince1970: 1_792_000_006),
-            terms: [], readPassages: [], readScreens: 2, answer: "Mikko [1].", sources: [source]
+            terms: [], readPassages: [], readScreens: 2, answer: "Mikko [1].", sources: [source], webSources: [WebSource(url: "https://example.com/a", title: "A")], webQueries: ["kahvi"]
         )
         let conversation: AskConversation = askConversation(existing: nil, id: UUID(), turns: [turn], now: Date(timeIntervalSince1970: 1_792_000_006))
         try saveAskConversation(conversation: conversation, directory: directory)
@@ -123,7 +126,7 @@ extension CloudTests {
         let provider: LLMProvider = .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic)))
         let answer: ArchiveAnswer = try await askArchive(
             question: "Kahve makinesi bozulduğunda ne yapılmasına karar verildi, kim ilgilenecek?",
-            history: [], records: archive(), userName: "Senol", language: .turkish, llm: provider, maxChars: 60_000, screens: .off, now: Date(timeIntervalSince1970: 1_792_000_000)
+            history: [], records: archive(), userName: "Senol", language: .turkish, llm: provider, maxChars: 60_000, screens: .off, webSearch: false, now: Date(timeIntervalSince1970: 1_792_000_000)
         ) { (_: ArchiveProgress) -> Void in }
         #expect(answer.text.contains("Mikko"), "\(answer.text)")
         #expect(answer.sources.contains { $0.meetingID == "a" }, "\(answer.sources.map(\.id))")
@@ -135,7 +138,7 @@ extension CloudTests {
         let events: ProgressBox = ProgressBox()
         let answer: ArchiveAnswer = try await askAboutMeetings(
             question: "Bu toplantıda neler konuşuldu?", history: [], records: archive().filter { $0.id == "a" }, userName: "Senol", language: .turkish, llm: provider,
-            maxChars: 60_000, screens: .off, now: Date(timeIntervalSince1970: 1_792_000_000)
+            maxChars: 60_000, screens: .off, webSearch: false, now: Date(timeIntervalSince1970: 1_792_000_000)
         ) { (progress: ArchiveProgress) -> Void in
             events.append(progress)
         }
@@ -151,7 +154,7 @@ extension CloudTests {
         let recipe: Recipe = try #require(builtInRecipes().first { $0.id == "takip-epostasi" })
         let answer: ArchiveAnswer = try await askAboutMeetings(
             question: recipe.prompt, history: [], records: archive().filter { $0.id == "a" }, userName: "Senol", language: .turkish, llm: provider,
-            maxChars: 60_000, screens: .off, now: Date(timeIntervalSince1970: 1_792_000_000)
+            maxChars: 60_000, screens: .off, webSearch: false, now: Date(timeIntervalSince1970: 1_792_000_000)
         ) { (_: ArchiveProgress) -> Void in }
         let text: String = answer.text.lowercased()
         #expect(text.contains("mikko"), "\(answer.text)")
@@ -166,7 +169,7 @@ extension CloudTests {
         let answer: ArchiveAnswer = try await askArchive(
             question: "Peki bunu kim halledecek ve ne zaman?",
             history: [ArchiveTurn(question: "Kahve makinesiyle ilgili ne konuşuldu?", answer: "Haftalık ekip toplantısında kahve makinesinin yine bozulduğu söylendi [1].", sources: earlier)],
-            records: archive(), userName: "Senol", language: .turkish, llm: provider, maxChars: 60_000, screens: .off, now: Date(timeIntervalSince1970: 1_792_000_000)
+            records: archive(), userName: "Senol", language: .turkish, llm: provider, maxChars: 60_000, screens: .off, webSearch: false, now: Date(timeIntervalSince1970: 1_792_000_000)
         ) { (progress: ArchiveProgress) -> Void in
             events.append(progress)
         }
@@ -188,7 +191,7 @@ extension CloudTests {
         let meeting: CalendarMeeting = CalendarMeeting(id: "c", title: "Viikkopalaveri", start: Date(timeIntervalSince1970: 1_792_000_000), end: Date(timeIntervalSince1970: 1_792_001_800), attendees: ["Mikko"], joinURL: nil)
         let answer: ArchiveAnswer = try await askArchive(
             question: briefingQuestion(meeting: meeting), history: [], records: archive(), userName: "Senol", language: .turkish, llm: provider, maxChars: 60_000,
-            screens: .off, now: Date(timeIntervalSince1970: 1_791_999_000)
+            screens: .off, webSearch: false, now: Date(timeIntervalSince1970: 1_791_999_000)
         ) { (_: ArchiveProgress) -> Void in }
         let text: String = answer.text.lowercased()
         #expect(text.contains("kahve") || text.contains("kahvi"), "\(answer.text)")

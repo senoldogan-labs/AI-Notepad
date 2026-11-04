@@ -144390,6 +144390,1284 @@
           }
         }
       }
+    },
+    "Bu ayın web araması hakkı doldu; cevap yalnız toplantılardan.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Websuchen für diesen Monat sind aufgebraucht; diese Antwort stammt nur aus deinen Meetings."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This month's web searches are used up; this answer comes from your meetings only."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Has agotado las búsquedas web de este mes; esta respuesta solo usa tus reuniones."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämän kuun verkkohaut on käytetty; vastaus perustuu vain kokouksiisi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les recherches web de ce mois-ci sont épuisées ; cette réponse provient uniquement de vos réunions."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le ricerche web di questo mese sono esaurite; questa risposta si basa solo sulle tue riunioni."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今月のウェブ検索の上限に達しました。この回答は会議の内容のみに基づいています。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 달 웹 검색 횟수를 모두 사용했습니다. 이 답변은 회의 내용만 바탕으로 합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De webzoekopdrachten van deze maand zijn op; dit antwoord komt alleen uit je vergaderingen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As pesquisas na web deste mês acabaram; esta resposta vem só das suas reuniões."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本月的网页搜索次数已用完；此回答仅基于你的会议。"
+          }
+        }
+      }
+    },
+    "Tekrar dene": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erneut versuchen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try again"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reintentar"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yritä uudelleen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réessayer"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riprova"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再試行"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다시 시도"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opnieuw proberen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tentar de novo"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重试"
+          }
+        }
+      }
+    },
+    "Yeniden oluştur": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neu generieren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Regenerate"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Regenerar"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Luo uudelleen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Régénérer"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rigenera"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再生成"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다시 생성"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opnieuw genereren"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gerar novamente"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新生成"
+          }
+        }
+      }
+    },
+    ".md olarak kaydet…": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als .md sichern…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save as .md…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardar como .md…"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tallenna .md-tiedostona…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrer en .md…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salva come .md…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": ".mdとして保存…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": ".md로 저장…"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bewaar als .md…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salvar como .md…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "存储为 .md…"
+          }
+        }
+      }
+    },
+    "Diğer seçenekler": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weitere Optionen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More options"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Más opciones"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lisää vaihtoehtoja"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus d’options"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Altre opzioni"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "その他のオプション"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "기타 옵션"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meer opties"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mais opções"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更多选项"
+          }
+        }
+      }
+    },
+    "Sor cevabı": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Antwort"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Answer"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Respuesta"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vastaus"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réponse"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Risposta"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回答"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "답변"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Antwoord"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resposta"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回答"
+          }
+        }
+      }
+    },
+    ".md olarak paylaş": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als .md teilen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share as .md"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compartir como .md"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jaa .md-tiedostona"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Partager en .md"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Condividi come .md"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": ".mdとして共有"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": ".md로 공유"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delen als .md"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compartilhar como .md"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以 .md 共享"
+          }
+        }
+      }
+    },
+    "Web kaynakları": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Webquellen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web sources"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fuentes web"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verkkolähteet"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sources web"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fonti web"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウェブの出典"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "웹 출처"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Webbronnen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fontes da web"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网页来源"
+          }
+        }
+      }
+    },
+    "Web'de aranıyor: “%@”…": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Websuche: „%@“…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Searching the web: “%@”…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscando en la web: “%@”…"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Haetaan verkosta: ”%@”…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recherche sur le web : « %@ »…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ricerca sul web: “%@”…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウェブを検索中：「%@」…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "웹 검색 중: “%@”…"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zoeken op het web: ‘%@’…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pesquisando na web: “%@”…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在搜索网页：“%@”…"
+          }
+        }
+      }
+    },
+    "Web'de aranıyor…": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suche im Web…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Searching the web…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscando en la web…"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Haetaan verkosta…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recherche sur le web…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ricerca sul web…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウェブを検索中…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "웹 검색 중…"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zoeken op het web…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pesquisando na web…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在搜索网页…"
+          }
+        }
+      }
+    },
+    "Web'de": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verkko"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウェブ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "웹"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网页"
+          }
+        }
+      }
+    },
+    "Tarayıcıda aç": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Im Browser öffnen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open in browser"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir en el navegador"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avaa selaimessa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrir dans le navigateur"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apri nel browser"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブラウザで開く"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "브라우저에서 열기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Openen in browser"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir no navegador"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在浏览器中打开"
+          }
+        }
+      }
+    },
+    "Kodu kopyala": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Code kopieren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy code"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar código"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopioi koodi"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copier le code"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copia codice"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コードをコピー"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "코드 복사"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Code kopiëren"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar código"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制代码"
+          }
+        }
+      }
+    },
+    "Sona git": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zum Ende springen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jump to latest"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ir al final"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Siirry loppuun"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aller à la fin"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vai alla fine"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最新へ移動"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "맨 아래로 이동"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Naar het einde"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ir para o fim"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跳到最新"
+          }
+        }
+      }
+    },
+    "Sor'da web aramasına izin ver": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Websuche in „Fragen“ erlauben"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow web search in Ask"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permitir búsqueda web en Preguntar"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salli verkkohaku Kysy-toiminnossa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autoriser la recherche web dans Demander"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consenti la ricerca web in Chiedi"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "質問でウェブ検索を許可"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "질문하기에서 웹 검색 허용"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Webzoeken toestaan in Vraag"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permitir pesquisa na web em Perguntar"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "允许在“提问”中搜索网页"
+          }
+        }
+      }
+    },
+    "Toplantılarda olmayan bilgi için cevap başına en çok 3 arama; sorgu Anthropic üzerinden arama sağlayıcısına gider.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bis zu 3 Suchen pro Antwort für Informationen, die nicht in deinen Meetings stehen; die Suchanfrage geht über Anthropic an dessen Suchanbieter."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Up to 3 searches per answer for information not in your meetings; the search query goes through Anthropic to its search provider."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hasta 3 búsquedas por respuesta para información que no está en tus reuniones; la consulta pasa por Anthropic a su proveedor de búsqueda."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enintään 3 hakua vastausta kohden tiedoille, joita kokouksissasi ei ole; hakukysely kulkee Anthropicin kautta sen hakupalvelulle."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jusqu’à 3 recherches par réponse pour les informations absentes de vos réunions ; la requête passe par Anthropic vers son fournisseur de recherche."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fino a 3 ricerche per risposta per informazioni che non sono nelle tue riunioni; la query passa da Anthropic al suo fornitore di ricerca."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議にない情報について、回答ごとに最大3回検索します。検索クエリはAnthropicを経由して検索プロバイダーに送られます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의에 없는 정보에 대해 답변당 최대 3회 검색합니다. 검색어는 Anthropic을 거쳐 검색 제공업체로 전달됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maximaal 3 zoekopdrachten per antwoord voor informatie die niet in je vergaderingen staat; de zoekopdracht gaat via Anthropic naar diens zoekprovider."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Até 3 pesquisas por resposta para informações que não estão nas suas reuniões; a consulta passa pela Anthropic até o provedor de pesquisa dela."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "针对会议中没有的信息，每个回答最多搜索 3 次；搜索词会经由 Anthropic 发送给其搜索服务提供商。"
+          }
+        }
+      }
+    },
+    "Açıkken Sor, soru toplantılarında olmayan bir bilgi gerektirdiğinde (güncel bilgi, tanım, ürün, fiyat ya da dış kaynak) cevap başına en çok 3 kez webde arar; web kaynakları cevapta alan adıyla ve cevabın altındaki \"Web\" listesinde ayrıca görünür, tıklayınca tarayıcıda açılır. Aramayı Anthropic (Claude) yapar: modelin sorundan (ve okunan toplantı parçalarından) yazdığı kısa arama sorgusu sunucumuz üzerinden Anthropic'e, oradan arama sağlayıcısına gider; arama sağlayıcısına yalnız bu sorgu gider. Ayda 100 arama hakkın var; dolunca Sor ay sonuna kadar yalnız toplantılardan cevaplar. Kapalıyken webde hiç aranmaz.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wenn aktiviert, sucht „Fragen“ bis zu 3-mal pro Antwort im Web, falls deine Frage Informationen braucht, die nicht in deinen Meetings stehen (aktuelle Fakten, Definitionen, Produkte, Preise oder externe Quellen); Webquellen erscheinen in der Antwort mit ihrer Domain und in der Liste „Web“ darunter und öffnen sich im Browser. Die Suche führt Anthropic (Claude) aus: Eine kurze Suchanfrage, die das Modell aus deiner Frage (und den gelesenen Meeting-Abschnitten) formuliert, geht über unseren Server an Anthropic und von dort an dessen Suchanbieter; nur diese Anfrage erreicht den Suchanbieter. Du hast 100 Suchen pro Monat; sind sie aufgebraucht, antwortet „Fragen“ bis Monatsende nur aus deinen Meetings. Wenn deaktiviert, wird nie im Web gesucht."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When on, Ask searches the web up to 3 times per answer if your question needs information that isn't in your meetings (current facts, definitions, products, prices or outside sources); web sources appear in the answer by domain and in the \"Web\" list below it, and open in your browser. Anthropic (Claude) runs the search: a short search query the model writes from your question (and the meeting passages it read) goes through our server to Anthropic and from there to its search provider; only this query reaches the search provider. You have 100 searches a month; once they're used up, Ask answers from your meetings only until the month ends. When off, Ask never searches the web."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si está activado, Preguntar busca en la web hasta 3 veces por respuesta cuando tu pregunta necesita información que no está en tus reuniones (datos actuales, definiciones, productos, precios o fuentes externas); las fuentes web aparecen en la respuesta con su dominio y en la lista “Web” debajo, y se abren en tu navegador. La búsqueda la hace Anthropic (Claude): una breve consulta que el modelo redacta a partir de tu pregunta (y de los fragmentos de reunión que leyó) pasa por nuestro servidor a Anthropic y de ahí a su proveedor de búsqueda; solo esta consulta llega al proveedor de búsqueda. Tienes 100 búsquedas al mes; cuando se agotan, Preguntar responde solo con tus reuniones hasta fin de mes. Si está desactivado, nunca se busca en la web."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kun asetus on päällä, Kysy hakee verkosta enintään 3 kertaa vastausta kohden, jos kysymyksesi vaatii tietoa, jota kokouksissasi ei ole (ajankohtaiset tiedot, määritelmät, tuotteet, hinnat tai ulkoiset lähteet); verkkolähteet näkyvät vastauksessa verkkotunnuksella ja vastauksen alla Verkko-luettelossa, ja ne avautuvat selaimeen. Haun tekee Anthropic (Claude): lyhyt hakukysely, jonka malli kirjoittaa kysymyksestäsi (ja luetuista kokousotteista), kulkee palvelimemme kautta Anthropicille ja sieltä sen hakupalvelulle; hakupalvelulle päätyy vain tämä kysely. Sinulla on 100 hakua kuukaudessa; kun ne on käytetty, Kysy vastaa kuun loppuun asti vain kokouksistasi. Kun asetus on pois päältä, verkosta ei haeta lainkaan."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activé, Demander cherche sur le web jusqu’à 3 fois par réponse si votre question nécessite des informations absentes de vos réunions (faits récents, définitions, produits, prix ou sources externes) ; les sources web apparaissent dans la réponse avec leur domaine et dans la liste « Web » en dessous, et s’ouvrent dans votre navigateur. La recherche est faite par Anthropic (Claude) : une courte requête que le modèle rédige à partir de votre question (et des passages de réunion lus) passe par notre serveur vers Anthropic, puis vers son fournisseur de recherche ; seule cette requête parvient au fournisseur de recherche. Vous disposez de 100 recherches par mois ; une fois épuisées, Demander répond uniquement à partir de vos réunions jusqu’à la fin du mois. Désactivé, aucune recherche web n’est faite."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se attivo, Chiedi cerca sul web fino a 3 volte per risposta quando la tua domanda richiede informazioni che non sono nelle tue riunioni (fatti attuali, definizioni, prodotti, prezzi o fonti esterne); le fonti web compaiono nella risposta con il loro dominio e nell’elenco “Web” sotto, e si aprono nel browser. La ricerca è fatta da Anthropic (Claude): una breve query che il modello scrive a partire dalla tua domanda (e dai passaggi delle riunioni letti) passa dal nostro server ad Anthropic e da lì al suo fornitore di ricerca; al fornitore di ricerca arriva solo questa query. Hai 100 ricerche al mese; esaurite quelle, Chiedi risponde solo dalle tue riunioni fino a fine mese. Se disattivo, non cerca mai sul web."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オンにすると、会議にない情報（最新の事実、定義、製品、価格、外部の資料など）が必要な質問では、「質問」が回答ごとに最大3回ウェブを検索します。ウェブの出典は回答内にドメイン名で、回答の下の「Web」リストにも表示され、ブラウザで開けます。検索はAnthropic（Claude）が行います。モデルが質問（と読み込んだ会議の箇所）から作成した短い検索クエリが、当社のサーバー経由でAnthropicに送られ、そこから検索プロバイダーに送られます。検索プロバイダーに届くのはこのクエリだけです。検索は月100回までで、使い切ると月末まで「質問」は会議の内容だけで回答します。オフにすると、ウェブ検索は一切行いません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "켜면 질문하기가 회의에 없는 정보(최신 사실, 정의, 제품, 가격, 외부 자료)가 필요한 질문에서 답변당 최대 3회 웹을 검색합니다. 웹 출처는 답변 안에 도메인으로, 답변 아래 \"웹\" 목록에도 표시되며 브라우저에서 열립니다. 검색은 Anthropic(Claude)이 합니다. 모델이 질문(과 읽은 회의 구간)을 바탕으로 작성한 짧은 검색어가 저희 서버를 거쳐 Anthropic으로, 다시 검색 제공업체로 전달되며, 검색 제공업체에는 이 검색어만 전달됩니다. 검색은 한 달에 100회이며, 모두 사용하면 월말까지 질문하기는 회의 내용만으로 답합니다. 끄면 웹을 전혀 검색하지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als dit aan staat, zoekt Vraag tot 3 keer per antwoord op het web als je vraag informatie nodig heeft die niet in je vergaderingen staat (actuele feiten, definities, producten, prijzen of externe bronnen); webbronnen verschijnen in het antwoord met hun domein en in de lijst \"Web\" eronder, en openen in je browser. Anthropic (Claude) voert de zoekopdracht uit: een korte zoekopdracht die het model schrijft op basis van je vraag (en de gelezen vergaderfragmenten) gaat via onze server naar Anthropic en vandaar naar diens zoekprovider; alleen deze zoekopdracht bereikt de zoekprovider. Je hebt 100 zoekopdrachten per maand; zijn die op, dan antwoordt Vraag tot het einde van de maand alleen uit je vergaderingen. Als dit uit staat, wordt nooit op het web gezocht."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando ativado, Perguntar pesquisa na web até 3 vezes por resposta se a sua pergunta precisar de informações que não estão nas suas reuniões (fatos atuais, definições, produtos, preços ou fontes externas); as fontes da web aparecem na resposta com o domínio e na lista “Web” abaixo dela, e abrem no navegador. Quem faz a pesquisa é a Anthropic (Claude): uma consulta curta que o modelo escreve a partir da sua pergunta (e dos trechos de reunião lidos) passa pelo nosso servidor até a Anthropic e de lá até o provedor de pesquisa dela; só essa consulta chega ao provedor de pesquisa. Você tem 100 pesquisas por mês; quando acabam, Perguntar responde só com base nas suas reuniões até o fim do mês. Quando desativado, nunca pesquisa na web."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开启后，如果你的问题需要会议中没有的信息（最新事实、定义、产品、价格或外部来源），“提问”每个回答最多搜索网页 3 次；网页来源会以域名显示在回答中，也会列在回答下方的“网页”列表里，点按可在浏览器中打开。搜索由 Anthropic（Claude）执行：模型根据你的问题（以及读取的会议片段）写出的简短搜索词，经由我们的服务器发送给 Anthropic，再由其发送给搜索服务提供商；搜索服务提供商只会收到这条搜索词。你每月有 100 次搜索；用完后，到月底前“提问”只根据你的会议回答。关闭后，不会进行任何网页搜索。"
+          }
+        }
+      }
+    },
+    "Açıkken Sor, soru toplantılarında olmayan bir bilgi gerektirdiğinde (güncel bilgi, tanım, ürün, fiyat ya da dış kaynak) cevap başına en çok 3 kez webde arar; web kaynakları cevapta alan adıyla ve cevabın altındaki \"Web\" listesinde ayrıca görünür, tıklayınca tarayıcıda açılır. Aramayı Anthropic yapar: modelin sorundan (ve okunan toplantı parçalarından) yazdığı kısa arama sorgusu Anthropic üzerinden arama sağlayıcısına gider. Her arama Anthropic hesabına ayrıca ücretlendirilir (1000 aramada 10 $). Kapalıyken webde hiç aranmaz.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wenn aktiviert, sucht „Fragen“ bis zu 3-mal pro Antwort im Web, falls deine Frage Informationen braucht, die nicht in deinen Meetings stehen (aktuelle Fakten, Definitionen, Produkte, Preise oder externe Quellen); Webquellen erscheinen in der Antwort mit ihrer Domain und in der Liste „Web“ darunter und öffnen sich im Browser. Die Suche führt Anthropic aus: Eine kurze Suchanfrage, die das Modell aus deiner Frage (und den gelesenen Meeting-Abschnitten) formuliert, geht über Anthropic an dessen Suchanbieter. Jede Suche wird deinem Anthropic-Konto gesondert berechnet (10 $ pro 1.000 Suchen). Wenn deaktiviert, wird nie im Web gesucht."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When on, Ask searches the web up to 3 times per answer if your question needs information that isn't in your meetings (current facts, definitions, products, prices or outside sources); web sources appear in the answer by domain and in the \"Web\" list below it, and open in your browser. Anthropic runs the search: a short search query the model writes from your question (and the meeting passages it read) goes through Anthropic to its search provider. Each search is billed to your Anthropic account separately ($10 per 1,000 searches). When off, Ask never searches the web."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si está activado, Preguntar busca en la web hasta 3 veces por respuesta cuando tu pregunta necesita información que no está en tus reuniones (datos actuales, definiciones, productos, precios o fuentes externas); las fuentes web aparecen en la respuesta con su dominio y en la lista “Web” debajo, y se abren en tu navegador. La búsqueda la hace Anthropic: una breve consulta que el modelo redacta a partir de tu pregunta (y de los fragmentos de reunión que leyó) pasa por Anthropic a su proveedor de búsqueda. Cada búsqueda se cobra aparte en tu cuenta de Anthropic (10 $ por cada 1000 búsquedas). Si está desactivado, nunca se busca en la web."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kun asetus on päällä, Kysy hakee verkosta enintään 3 kertaa vastausta kohden, jos kysymyksesi vaatii tietoa, jota kokouksissasi ei ole (ajankohtaiset tiedot, määritelmät, tuotteet, hinnat tai ulkoiset lähteet); verkkolähteet näkyvät vastauksessa verkkotunnuksella ja vastauksen alla Verkko-luettelossa, ja ne avautuvat selaimeen. Haun tekee Anthropic: lyhyt hakukysely, jonka malli kirjoittaa kysymyksestäsi (ja luetuista kokousotteista), kulkee Anthropicin kautta sen hakupalvelulle. Jokainen haku laskutetaan Anthropic-tililtäsi erikseen (10 $ / 1 000 hakua). Kun asetus on pois päältä, verkosta ei haeta lainkaan."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activé, Demander cherche sur le web jusqu’à 3 fois par réponse si votre question nécessite des informations absentes de vos réunions (faits récents, définitions, produits, prix ou sources externes) ; les sources web apparaissent dans la réponse avec leur domaine et dans la liste « Web » en dessous, et s’ouvrent dans votre navigateur. La recherche est faite par Anthropic : une courte requête que le modèle rédige à partir de votre question (et des passages de réunion lus) passe par Anthropic vers son fournisseur de recherche. Chaque recherche est facturée séparément sur votre compte Anthropic (10 $ pour 1 000 recherches). Désactivé, aucune recherche web n’est faite."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se attivo, Chiedi cerca sul web fino a 3 volte per risposta quando la tua domanda richiede informazioni che non sono nelle tue riunioni (fatti attuali, definizioni, prodotti, prezzi o fonti esterne); le fonti web compaiono nella risposta con il loro dominio e nell’elenco “Web” sotto, e si aprono nel browser. La ricerca è fatta da Anthropic: una breve query che il modello scrive a partire dalla tua domanda (e dai passaggi delle riunioni letti) passa da Anthropic al suo fornitore di ricerca. Ogni ricerca viene addebitata a parte sul tuo account Anthropic (10 $ ogni 1000 ricerche). Se disattivo, non cerca mai sul web."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オンにすると、会議にない情報（最新の事実、定義、製品、価格、外部の資料など）が必要な質問では、「質問」が回答ごとに最大3回ウェブを検索します。ウェブの出典は回答内にドメイン名で、回答の下の「Web」リストにも表示され、ブラウザで開けます。検索はAnthropicが行います。モデルが質問（と読み込んだ会議の箇所）から作成した短い検索クエリが、Anthropicを経由して検索プロバイダーに送られます。検索ごとにAnthropicのアカウントに別途料金がかかります（1,000回あたり10ドル）。オフにすると、ウェブ検索は一切行いません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "켜면 질문하기가 회의에 없는 정보(최신 사실, 정의, 제품, 가격, 외부 자료)가 필요한 질문에서 답변당 최대 3회 웹을 검색합니다. 웹 출처는 답변 안에 도메인으로, 답변 아래 \"웹\" 목록에도 표시되며 브라우저에서 열립니다. 검색은 Anthropic이 합니다. 모델이 질문(과 읽은 회의 구간)을 바탕으로 작성한 짧은 검색어가 Anthropic을 거쳐 검색 제공업체로 전달됩니다. 검색마다 Anthropic 계정에 별도로 요금이 부과됩니다(검색 1,000회당 10달러). 끄면 웹을 전혀 검색하지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als dit aan staat, zoekt Vraag tot 3 keer per antwoord op het web als je vraag informatie nodig heeft die niet in je vergaderingen staat (actuele feiten, definities, producten, prijzen of externe bronnen); webbronnen verschijnen in het antwoord met hun domein en in de lijst \"Web\" eronder, en openen in je browser. Anthropic voert de zoekopdracht uit: een korte zoekopdracht die het model schrijft op basis van je vraag (en de gelezen vergaderfragmenten) gaat via Anthropic naar diens zoekprovider. Elke zoekopdracht wordt apart in rekening gebracht op je Anthropic-account ($ 10 per 1000 zoekopdrachten). Als dit uit staat, wordt nooit op het web gezocht."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando ativado, Perguntar pesquisa na web até 3 vezes por resposta se a sua pergunta precisar de informações que não estão nas suas reuniões (fatos atuais, definições, produtos, preços ou fontes externas); as fontes da web aparecem na resposta com o domínio e na lista “Web” abaixo dela, e abrem no navegador. Quem faz a pesquisa é a Anthropic: uma consulta curta que o modelo escreve a partir da sua pergunta (e dos trechos de reunião lidos) passa pela Anthropic até o provedor de pesquisa dela. Cada pesquisa é cobrada à parte na sua conta da Anthropic (US$ 10 a cada 1.000 pesquisas). Quando desativado, nunca pesquisa na web."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开启后，如果你的问题需要会议中没有的信息（最新事实、定义、产品、价格或外部来源），“提问”每个回答最多搜索网页 3 次；网页来源会以域名显示在回答中，也会列在回答下方的“网页”列表里，点按可在浏览器中打开。搜索由 Anthropic 执行：模型根据你的问题（以及读取的会议片段）写出的简短搜索词，经由 Anthropic 发送给其搜索服务提供商。每次搜索会单独计入你的 Anthropic 账户费用（每 1,000 次搜索 10 美元）。关闭后，不会进行任何网页搜索。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

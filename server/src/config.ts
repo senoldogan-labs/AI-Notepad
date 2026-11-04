@@ -224,6 +224,13 @@ export interface Config {
     readonly maxTokens: number;
     /** Toplantıya bağlı olmayan (hesap) çağrının en çok `max_tokens`'ı. */
     readonly accountMaxTokens: number;
+    /**
+     * Sor cevabının (`ask_answer`) en çok `max_tokens`'ı: hesap çağrısı sınırından büyük olabilir (plan, karşılaştırma
+     * ya da hazır istem gibi uzun yapılandırılmış cevaplar), toplantı çağrısı sınırını aşamaz.
+     */
+    readonly askMaxTokens: number;
+    /** Kullanıcı başına aylık en çok web araması (yalnız Sor cevabı; bkz. `llm/webSearch.ts`). */
+    readonly monthlyWebSearchCap: number;
     readonly maxRequestBytes: number;
     readonly maxInputTokens: number;
   };
@@ -428,6 +435,8 @@ const envSchema = z.object({
   MAX_MEETING_STARTS_PER_DAY: positiveInt,
   LLM_MAX_TOKENS: positiveInt,
   LLM_ACCOUNT_MAX_TOKENS: positiveInt,
+  LLM_ASK_MAX_TOKENS: positiveInt,
+  MONTHLY_WEB_SEARCH_CAP: positiveInt,
   LLM_MAX_REQUEST_BYTES: positiveInt,
   LLM_MAX_INPUT_TOKENS: positiveInt,
   TRANSCRIBE_MAX_BYTES: positiveInt.max(95_000_000),
@@ -575,6 +584,9 @@ export function parseConfig(env: Env): Config {
   if (value.LLM_ACCOUNT_MAX_TOKENS > value.LLM_MAX_TOKENS) {
     throw new ConfigError(["LLM_ACCOUNT_MAX_TOKENS"]);
   }
+  if (value.LLM_ASK_MAX_TOKENS < value.LLM_ACCOUNT_MAX_TOKENS || value.LLM_ASK_MAX_TOKENS > value.LLM_MAX_TOKENS) {
+    throw new ConfigError(["LLM_ASK_MAX_TOKENS"]);
+  }
   if (value.MONTHLY_ACCOUNT_TOKEN_CAP > value.MONTHLY_TOKEN_CAP) {
     throw new ConfigError(["MONTHLY_ACCOUNT_TOKEN_CAP"]);
   }
@@ -643,6 +655,8 @@ export function parseConfig(env: Env): Config {
     llm: {
       maxTokens: value.LLM_MAX_TOKENS,
       accountMaxTokens: value.LLM_ACCOUNT_MAX_TOKENS,
+      askMaxTokens: value.LLM_ASK_MAX_TOKENS,
+      monthlyWebSearchCap: value.MONTHLY_WEB_SEARCH_CAP,
       maxRequestBytes: value.LLM_MAX_REQUEST_BYTES,
       maxInputTokens: value.LLM_MAX_INPUT_TOKENS,
     },

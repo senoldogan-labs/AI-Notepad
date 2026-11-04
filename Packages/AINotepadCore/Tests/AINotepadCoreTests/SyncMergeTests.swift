@@ -165,7 +165,7 @@ private func merge(base: MeetingSyncState?, local: MeetingSyncState, remote: Mee
         let turn: (String, Double) -> AskConversationTurn = { (question: String, offset: Double) -> AskConversationTurn in
             AskConversationTurn(
                 id: UUID(), question: question, scopeMeetingIDs: [], scopeTitles: [], recipeTitle: nil, startedAt: t0.addingTimeInterval(offset),
-                finishedAt: t0.addingTimeInterval(offset + 5), terms: [], readPassages: [], readScreens: nil, answer: "a", sources: []
+                finishedAt: t0.addingTimeInterval(offset + 5), terms: [], readPassages: [], readScreens: nil, answer: "a", sources: [], webSources: nil, webQueries: nil
             )
         }
         let first: AskConversationTurn = turn("First?", 0)

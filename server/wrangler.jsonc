@@ -153,6 +153,13 @@
     "LLM_MAX_TOKENS": "8192",
     // Toplantıya bağlı olmayan çağrı (Sor, notu yeniden yazma, düzenleme, görev aracı): daha küçük çağrı başı sınır.
     "LLM_ACCOUNT_MAX_TOKENS": "6144",
+    // Sor cevabı (`ask_answer`): plan, karşılaştırma, tablo ya da hazır istem isteyen soruda uzun yapılandırılmış cevap
+    // (düşünme dahil). Hesap çağrısı sınırından büyük, toplantı çağrısı sınırına eşit; en çok ~0,004 $ çıktı.
+    "LLM_ASK_MAX_TOKENS": "8192",
+    // Sor'da web araması (Anthropic sunucu aracı, 10 $ / 1000 arama): cevap başına en çok 3 arama, kullanıcı başına ayda
+    // en çok 100 arama → en çok 1,00 $/ay arama ücreti + arama sonuçlarının girdi tokenları (Haiku'da arama başına
+    // ~0,002 $). Sınır dolunca Sor yalnız toplantılardan cevaplar (`x-web-search: cap_reached`).
+    "MONTHLY_WEB_SEARCH_CAP": "100",
     "LLM_MAX_REQUEST_BYTES": "400000",
     "LLM_MAX_INPUT_TOKENS": "100000",
     "TRANSCRIBE_MAX_BYTES": "95000000",
@@ -308,6 +315,9 @@
         "LLM_MAX_TOKENS": "8192",
         // Toplantıya bağlı olmayan çağrı (Sor, notu yeniden yazma, düzenleme, görev aracı): daha küçük çağrı başı sınır.
         "LLM_ACCOUNT_MAX_TOKENS": "6144",
+        // Bkz. üstteki geliştirme `vars` açıklaması.
+        "LLM_ASK_MAX_TOKENS": "8192",
+        "MONTHLY_WEB_SEARCH_CAP": "100",
         "LLM_MAX_REQUEST_BYTES": "400000",
         "LLM_MAX_INPUT_TOKENS": "100000",
         "TRANSCRIBE_MAX_BYTES": "95000000",

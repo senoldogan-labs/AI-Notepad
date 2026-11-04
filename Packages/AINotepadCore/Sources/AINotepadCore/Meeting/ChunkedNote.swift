@@ -148,7 +148,7 @@ public func noteChunkRequest(
         "required":["ozet","kararlar","yeniGorevler","degisenGorevler","sozluk"],"additionalProperties":false}
         """,
         timeoutSec: 300,
-        images: []
+        images: [], webSearch: nil
     )
 }
 
@@ -249,7 +249,7 @@ public func noteOverviewRequest(
         "required":["baslik","ozet","akis"],"additionalProperties":false}
         """,
         timeoutSec: 300,
-        images: screens
+        images: screens, webSearch: nil
     )
 }
 

@@ -54,7 +54,7 @@ public func claudeMaxTokens(requested: Int, thinking: [String: String]?) -> Int 
 }
 
 /// İstek gövdesi: seçili model ve effort, hızlı sınıfta mümkünse düşünme kapalı, destekleyen modelde sunucu tarafı
-/// yedek model, akış (SSE) açık — model uzun düşünürken de bağlantıdan veri gelir, boşta zaman aşımı dolmaz.
+/// yedek model, istekte varsa web araması aracı (doğrudan çağrı), akış (SSE) açık — model uzun düşünürken de bağlantıdan veri gelir, boşta zaman aşımı dolmaz.
 /// Örnekleme parametreleri gönderilmez. Saf fonksiyondur.
 public func claudeRequestBody(request: LLMRequest, model: ClaudeModel, effort: LLMEffort) throws -> Data {
     let format: ClaudeRequestBody.OutputFormat? = try request.jsonSchema.map { (schemaText: String) throws -> ClaudeRequestBody.OutputFormat in
@@ -69,7 +69,10 @@ public func claudeRequestBody(request: LLMRequest, model: ClaudeModel, effort: L
         messages: [LLMChatMessage(role: "user", content: request.userText)],
         outputConfig: ClaudeRequestBody.OutputConfig(effort: effort.rawValue, format: format),
         thinking: thinking,
-        fallbacks: claudeSupportsServerFallback(model: model) ? "default" : nil
+        fallbacks: claudeSupportsServerFallback(model: model) ? "default" : nil,
+        tools: request.webSearch.map { (search: LLMWebSearch) -> [WebSearchToolBody] in
+            [WebSearchToolBody(type: webSearchToolType, name: "web_search", maxUses: search.maxUses, allowedCallers: ["direct"])]
+        }
     )
     return try llmRequestEncoder().encode(body)
 }
@@ -97,6 +100,8 @@ struct ClaudeRequestBody: Encodable {
     let thinking: [String: String]?
     /// Sunucu tarafı yedek model (bkz. `claudeSupportsServerFallback`).
     let fallbacks: String?
+    /// Web araması (yalnız Sor cevabı; bkz. `WebSearch.swift`).
+    let tools: [WebSearchToolBody]?
 
     enum CodingKeys: String, CodingKey {
         case model
@@ -107,6 +112,7 @@ struct ClaudeRequestBody: Encodable {
         case outputConfig = "output_config"
         case thinking
         case fallbacks
+        case tools
     }
 }
 

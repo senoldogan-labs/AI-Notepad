@@ -19,10 +19,15 @@ public struct AskConversationTurn: Sendable, Equatable, Codable, Identifiable {
     public let readScreens: Int?
     public let answer: String
     public let sources: [ArchivePassage]
+    /// Cevabın alıntıladığı web sayfaları (`[w1]` ilk sayfa); bu alan eklenmeden önce saklanan turlarda nil.
+    public let webSources: [WebSource]?
+    /// Modelin yaptığı web aramalarının sorguları; bu alan eklenmeden önce saklanan turlarda nil.
+    public let webQueries: [String]?
 
     public init(
         id: UUID, question: String, scopeMeetingIDs: [String], scopeTitles: [String], recipeTitle: String?, startedAt: Date, finishedAt: Date,
-        terms: [String], readPassages: [ArchivePassage], readScreens: Int?, answer: String, sources: [ArchivePassage]
+        terms: [String], readPassages: [ArchivePassage], readScreens: Int?, answer: String, sources: [ArchivePassage], webSources: [WebSource]?,
+        webQueries: [String]?
     ) {
         self.id = id
         self.question = question
@@ -36,6 +41,8 @@ public struct AskConversationTurn: Sendable, Equatable, Codable, Identifiable {
         self.readScreens = readScreens
         self.answer = answer
         self.sources = sources
+        self.webSources = webSources
+        self.webQueries = webQueries
     }
 }
 

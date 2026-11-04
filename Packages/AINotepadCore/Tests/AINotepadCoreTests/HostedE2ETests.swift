@@ -826,7 +826,7 @@ private func silentFlac(directory: URL) throws -> URL {
             #expect(!isRetryableHostedError(error: overCount))
         }
         let wrongPurpose: LLMRequest = LLMRequest(
-            purpose: .noteEdit, tier: .smart, system: "s", userText: "u", maxTokens: 1000, jsonSchema: nil, timeoutSec: 30, images: [first]
+            purpose: .noteEdit, tier: .smart, system: "s", userText: "u", maxTokens: 1000, jsonSchema: nil, timeoutSec: 30, images: [first], webSearch: nil
         )
         let refused: HostedAPIError? = await hostedError { _ = try await sendLLM(provider: provider, request: wrongPurpose) }
         #expect(refused?.code == .screenImagesOverLimit)
@@ -947,6 +947,70 @@ private func transcribedRecord(id: String) -> MeetingRecord {
         let reopened: FinalPassResult = try await transcriber.transcribeFinal(audioURL: directory.appending(path: "others.caf"), languageMode: .fixed(.finnish))
         #expect(!reopened.segments.isEmpty)
         #expect(try processingRow(meetingID: started.meetingId).reprocess_count == 1)
+    }
+}
+
+/// Kullanıcının bu ayki web araması sayısı (yerel D1).
+private struct WebSearchRow: Decodable {
+    let web_searches: Int
+}
+
+/// Sor'da web araması abonelik sunucusundan uçtan uca (sahte Anthropic bir arama yapar ve sayfayı alıntılar): cevapta web
+/// kaynağı `[w1]` olarak görünür, arama kullanıcının aylık sayacına yazılır; hak bitince araç sunulmaz ve istemci bunu bilir.
+@Suite(.enabled(if: hostedUpstreamStubEnabled), .serialized) struct HostedAskWebSearchE2ETests {
+    @Test func askAnswerSearchesTheWebAndCountsIt() async throws {
+        let baseURL: URL = try localServerBase()
+        let user: SignedInUser = try await signedInUser(baseURL: baseURL)
+        try markTrialStarted(userID: user.userID, usedMeetings: 1, startedAtMs: nowMs())
+        let provider: LLMProvider = .hosted(HostedLLMConfig(baseURL: baseURL, credentials: user.client, scope: .account))
+        let record: MeetingRecord = transcribedRecord(id: UUID().uuidString)
+        let queries: LockedQueries = LockedQueries()
+        let answer: ArchiveAnswer = try await askAboutMeetings(
+            question: "Haiku 5.5 ne kadar?", history: [], records: [record], userName: "Doğan", language: .turkish, llm: provider, maxChars: 60_000,
+            screens: .off, webSearch: true, now: Date()
+        ) { (progress: ArchiveProgress) -> Void in
+            if case .web(let found, let capReached) = progress {
+                queries.set(found, capReached: capReached)
+            }
+        }
+        #expect(answer.webSources == [WebSource(url: "https://example.com/haiku-pricing", title: "Example pricing page")])
+        #expect(answer.text.contains("[w1]"), "\(answer.text)")
+        #expect(!answer.text.contains("Searching the web"), "ön söz cevaba girmemeli: \(answer.text)")
+        #expect(queries.value.queries == ["uçtan uca deneme"] && !queries.value.capReached)
+        let used: [WebSearchRow] = try localD1Rows(sql: "SELECT web_searches FROM monthly_usage WHERE user_id = '\(user.userID)';", as: WebSearchRow.self)
+        #expect(used.map(\.web_searches) == [1])
+
+        // Aylık hak bitti: araç sunulmaz, cevap yalnız toplantılardan, istemci bunu bilir.
+        try executeLocalD1(sql: "UPDATE monthly_usage SET web_searches = 100 WHERE user_id = '\(user.userID)';")
+        let capped: LockedQueries = LockedQueries()
+        let plain: ArchiveAnswer = try await askAboutMeetings(
+            question: "Haiku 5.5 ne kadar?", history: [], records: [record], userName: "Doğan", language: .turkish, llm: provider, maxChars: 60_000,
+            screens: .off, webSearch: true, now: Date()
+        ) { (progress: ArchiveProgress) -> Void in
+            if case .web(let found, let capReached) = progress {
+                capped.set(found, capReached: capReached)
+            }
+        }
+        #expect(plain.webSources.isEmpty && !plain.text.contains("[w"))
+        #expect(capped.value.capReached)
+    }
+}
+
+/// İlerlemedeki son web durumu (testte eşzamanlı erişim için kilitli).
+private final class LockedQueries: @unchecked Sendable {
+    private let lock: NSLock = NSLock()
+    private var stored: (queries: [String], capReached: Bool) = ([], false)
+
+    func set(_ queries: [String], capReached: Bool) {
+        lock.lock()
+        stored = (queries, capReached)
+        lock.unlock()
+    }
+
+    var value: (queries: [String], capReached: Bool) {
+        lock.lock()
+        defer { lock.unlock() }
+        return stored
     }
 }
 

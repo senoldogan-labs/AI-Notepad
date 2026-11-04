@@ -275,7 +275,7 @@ func screenNotesMeeting(seconds: Int) -> MeetingRecord {
         let jpeg: Data = Data([0xff, 0xd8, 0xff, 0xd9])
         let request: LLMRequest = LLMRequest(
             purpose: .note, tier: .smart, system: "s", userText: "<transkript>x</transkript>", maxTokens: 1000, jsonSchema: nil, timeoutSec: 30,
-            images: [LLMImage(label: "Ekran 1 [00:00–00:10]", jpeg: jpeg), LLMImage(label: "Ekran 2 [00:10–00:20]", jpeg: jpeg)]
+            images: [LLMImage(label: "Ekran 1 [00:00–00:10]", jpeg: jpeg), LLMImage(label: "Ekran 2 [00:10–00:20]", jpeg: jpeg)], webSearch: nil
         )
         let body: [String: Any] = try #require(try JSONSerialization.jsonObject(with: hostedLLMRequestBody(request: request, effort: .medium, maxTokensCap: 8192)) as? [String: Any])
         let messages: [[String: Any]] = try #require(body["messages"] as? [[String: Any]])
@@ -285,7 +285,7 @@ func screenNotesMeeting(seconds: Int) -> MeetingRecord {
         let source: [String: Any] = try #require(content[1]["source"] as? [String: Any])
         #expect(source["type"] as? String == "base64" && source["media_type"] as? String == "image/jpeg" && source["data"] as? String == jpeg.base64EncodedString())
         #expect(content[4]["text"] as? String == "<transkript>x</transkript>")
-        let plain: LLMRequest = LLMRequest(purpose: .note, tier: .smart, system: "s", userText: "u", maxTokens: 1000, jsonSchema: nil, timeoutSec: 30, images: [])
+        let plain: LLMRequest = LLMRequest(purpose: .note, tier: .smart, system: "s", userText: "u", maxTokens: 1000, jsonSchema: nil, timeoutSec: 30, images: [], webSearch: nil)
         let plainBody: [String: Any] = try #require(try JSONSerialization.jsonObject(with: hostedLLMRequestBody(request: plain, effort: .medium, maxTokensCap: 8192)) as? [String: Any])
         #expect((plainBody["messages"] as? [[String: Any]])?.first?["content"] as? String == "u")
     }
@@ -294,7 +294,7 @@ func screenNotesMeeting(seconds: Int) -> MeetingRecord {
     @Test func otherProvidersRejectImages() async throws {
         let request: LLMRequest = LLMRequest(
             purpose: .note, tier: .smart, system: "s", userText: "u", maxTokens: 1000, jsonSchema: nil, timeoutSec: 1,
-            images: [LLMImage(label: "Ekran 1", jpeg: Data([0xff]))]
+            images: [LLMImage(label: "Ekran 1", jpeg: Data([0xff]))], webSearch: nil
         )
         await #expect(throws: LLMError.self) {
             _ = try await sendLLM(provider: .anthropic(defaultAnthropicConfig(apiKey: "test")), request: request)

@@ -51,7 +51,7 @@ export interface AdminTelemetryCopy {
   readonly versionColumns: { readonly version: string; readonly users: string; readonly share: string };
   readonly noVersions: string;
   readonly purposesTitle: string;
-  readonly purposeColumns: { readonly purpose: string; readonly calls: string; readonly input: string; readonly output: string; readonly share: string };
+  readonly purposeColumns: { readonly purpose: string; readonly calls: string; readonly input: string; readonly output: string; readonly webSearches: string; readonly share: string };
   readonly noPurposes: string;
   readonly purposesDailyTitle: string;
   readonly dailyTokenColumns: { readonly day: string; readonly calls: string; readonly tokens: string; readonly trend: string };
@@ -102,7 +102,7 @@ export const adminTelemetryCopy: AdminTelemetryCopy = {
   versionColumns: { version: "Version", users: "Accounts", share: "Share" },
   noVersions: "No app has reported its version yet.",
   purposesTitle: "AI tokens by purpose",
-  purposeColumns: { purpose: "Purpose", calls: "Calls", input: "Input tokens", output: "Output tokens", share: "Share of tokens" },
+  purposeColumns: { purpose: "Purpose", calls: "Calls", input: "Input tokens", output: "Output tokens", webSearches: "Web searches", share: "Share of tokens" },
   noPurposes: "No AI calls in this window.",
   purposesDailyTitle: "AI tokens per day",
   dailyTokenColumns: { day: "Day", calls: "Calls", tokens: "Tokens", trend: "Trend" },

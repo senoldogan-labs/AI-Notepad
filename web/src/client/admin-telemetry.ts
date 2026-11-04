@@ -50,6 +50,8 @@ export interface PurposeTotal {
   readonly inputTokens: number;
   readonly outputTokens: number;
   readonly calls: number;
+  /** Web aramaları (yalnız Sor cevabı). */
+  readonly webSearches: number;
 }
 
 /** Amacın bir günlük token toplamı. */
@@ -179,6 +181,7 @@ function purposeTotal(item: JsonObject, response: RawResponse, path: string): Pu
     inputTokens: countField(item, "inputTokens", response, path),
     outputTokens: countField(item, "outputTokens", response, path),
     calls: countField(item, "calls", response, path),
+    webSearches: countField(item, "webSearches", response, path),
   };
 }
 
@@ -317,6 +320,7 @@ function renderPurposes(purposes: AdminTelemetry["purposes"]): void {
         formatCount(total.calls),
         formatCompact(total.inputTokens),
         formatCompact(total.outputTokens),
+        formatCount(total.webSearches),
         shareCell(tokensOf(total), allTokens),
       ]),
     ),

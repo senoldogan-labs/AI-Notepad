@@ -1002,7 +1002,7 @@ export const copy: Copy = {
       },
       ask: {
         title: "Find any decision in seconds",
-        text: "Ask across all your notes and transcripts. Every answer cites the meetings it came from, so you can check the source.",
+        text: "Ask across all your notes and transcripts and get a short answer, a table, a step-by-step plan or a ready-to-paste prompt. When your meetings don't have it, Ask looks it up on the web. Every answer cites its sources, so you can check them.",
         question: "What did we decide about the budget?",
         source: "Sources: Investor update, Product weekly",
       },
@@ -1289,7 +1289,7 @@ export const copy: Copy = {
       languages: `${spokenLanguages.length} spoken languages, including Turkish and Finnish; notes in ${noteLanguages.length}; app in ${interfaceLanguages.length} languages`,
       translation: `Included: what others say is translated into your language (any of ${noteLanguages.length}) within seconds`,
       notes: "The note starts with your own tasks (with owners and due dates), then a summary, decisions and a glossary; templates picked from the meeting title; a follow-up email drafted from the note",
-      ask: "Ask across all your meetings; answers cite the meetings they came from",
+      ask: "Ask across all your meetings; answers cite the meetings they came from, can look things up on the web, and copy or save as Markdown",
       voiceTyping: "Voice typing in any Mac app, transcribed on your Mac; free with any account",
       screens: "Optional snapshots of the shared screen, matched to what was said; notes and Ask can use them if you allow it",
       integrations:

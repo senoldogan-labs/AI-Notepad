@@ -2,6 +2,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { ApiError } from "../errors";
 import { type ImageBlock, imageBlockSchema } from "./images";
+import { upstreamWebSearchTool, webSearchToolSchema } from "./webSearch";
 
 /** Sunucunun kullandığı tek model; istemcinin `model` alanı yok sayılır. */
 export const hostedModel: string = "claude-haiku-5-5";
@@ -24,9 +25,10 @@ export const hostedEffortSchema = z.enum(["low", "medium"]);
  * İzin verilen Anthropic Messages alt kümesi: zorunlu `effort` (`low` | `medium`, varsayılan yok), `system`, yalnızca
  * metin içerikli `messages`, `max_tokens`, `output_config.format` (json_schema) ve `stream`. `model` kabul edilir ama
  * sunucu kendi modelini kullanır. Messages may also carry base64 JPEG image blocks (shared-screen snapshots for the
- * note and Ask; capped by `screenImageUsage`). Araçlar, MCP, dosyalar, URL görselleri, örnekleme parametreleri, `thinking`
- * (gönderilmez; düşünme `effort` ile yönetilir), `output_config.effort`, önbellek işaretleri ve bilinmeyen her alan
- * reddedilir.
+ * note and Ask; capped by `screenImageUsage`). Tek araç Sor cevabının web aramasıdır (`tools`: en çok bir
+ * `web_search_20260209`, 1–3 arama; amaç ve aylık hak `webSearch.ts`'te denetlenir). Başka araçlar, MCP, dosyalar, URL
+ * görselleri, örnekleme parametreleri, `thinking` (gönderilmez; düşünme `effort` ile yönetilir), `output_config.effort`,
+ * önbellek işaretleri ve bilinmeyen her alan reddedilir.
  */
 export const llmRequestSchema = z
   .strictObject({
@@ -41,6 +43,7 @@ export const llmRequestSchema = z
       })
       .optional(),
     stream: z.boolean().optional(),
+    tools: z.array(webSearchToolSchema).max(1).optional(),
   })
   .refine((body): boolean => body.messages[0]?.role === "user" && body.messages.at(-1)?.role === "user", {
     message: "İlk ve son mesaj kullanıcıdan olmalı (Haiku 5.5 ön doldurmayı reddeder).",
@@ -96,9 +99,10 @@ function upstreamBlock(block: ContentBlock): Anthropic.TextBlockParam | Anthropi
 /**
  * Anthropic'e gidecek gövde: model sabit, `max_tokens` sınırlanır (`clampedMaxTokens`), effort isteğin doğrulanmış
  * `low`/`medium` değeri. Örnekleme parametreleri, `thinking` ve `fallbacks` gönderilmez (Haiku 5.5'te 400 ya da
- * gereksiz; düşünme varsayılan uyarlamalıdır ve `effort` ile ölçeklenir). Saf fonksiyondur.
+ * gereksiz; düşünme varsayılan uyarlamalıdır ve `effort` ile ölçeklenir). `webSearches` > 0 ise (Sor cevabına verilen
+ * arama hakkı) web araması aracı o kadar aramayla eklenir; 0 ise araç gönderilmez. Saf fonksiyondur.
  */
-export function upstreamParams(request: LLMRequest, clampedMaxTokens: number): Anthropic.MessageCreateParamsNonStreaming {
+export function upstreamParams(request: LLMRequest, clampedMaxTokens: number, webSearches: number): Anthropic.MessageCreateParamsNonStreaming {
   const format = request.output_config?.format;
   return {
     model: hostedModel,
@@ -117,6 +121,7 @@ export function upstreamParams(request: LLMRequest, clampedMaxTokens: number): A
       effort: request.effort,
       ...(format === undefined ? {} : { format: { type: "json_schema", schema: format.schema } }),
     },
+    ...(webSearches > 0 ? { tools: [upstreamWebSearchTool(webSearches)] } : {}),
   };
 }
 
