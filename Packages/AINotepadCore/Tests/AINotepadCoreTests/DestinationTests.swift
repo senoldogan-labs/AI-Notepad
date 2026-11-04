@@ -16,6 +16,30 @@ private func webhookDestination(id: String, autoSend: Bool, createdAt: Date, nee
     NoteDestination(id: id, target: .webhook(URL(string: "https://hooks.zapier.com/x")!), autoSend: autoSend, createdAt: createdAt, autoSendSince: nil, needsReconnect: needsReconnect)
 }
 
+@Suite struct MarkdownFolderRefreshTests {
+    // Klasör kopyası yalnız notu hazır olan ya da Markdown'ı değişen toplantılarda yenilenir: listeye yeni gelen, notsuz
+    // ve yalnız gönderim işareti değişen toplantılarda yenilenmez; dönen kopya konuşmacı adlarıyla.
+    @Test func refreshesOnlyChangedNotes() {
+        let endedAt: Date = Date(timeIntervalSince1970: 2_000_000_000)
+        let ready: MeetingRecord = destinationRecord(id: "hazir", endedAt: endedAt, sent: [])
+        let processing: MeetingRecord = MeetingRecord(
+            id: "hazir", title: "T", startedAt: endedAt.addingTimeInterval(-600), endedAt: endedAt, language: nil, status: .processing,
+            failureMessage: nil, liveSegments: [], finalSegments: [], translations: [:], speakerNames: [:], note: nil, audioDeleted: false,
+            engine: .cloud, notice: nil, meNeedsFinalPass: nil
+        )
+        let unchanged: MeetingRecord = destinationRecord(id: "ayni", endedAt: endedAt, sent: [])
+        let sentOnly: MeetingRecord = destinationRecord(id: "gonderildi", endedAt: endedAt, sent: [])
+        let renamed: MeetingRecord = destinationRecord(id: "ad", endedAt: endedAt, sent: [])
+        let fresh: MeetingRecord = destinationRecord(id: "yeni", endedAt: endedAt, sent: [])
+        let previous: [MeetingRecord] = [processing, unchanged, sentOnly, renamed]
+        let current: [MeetingRecord] = [ready, unchanged, sentOnly.markingSent(destinationID: "a"), renamed.with(title: "Bütçe"), fresh]
+        let refreshed: [MeetingRecord] = markdownFolderRefreshes(previous: previous, current: current, userName: "Doğan")
+        #expect(refreshed.map(\.id) == ["hazir", "ad"])
+        #expect(markdownFolderRefreshes(previous: [], current: current, userName: "Doğan").isEmpty)
+        #expect(markdownFolderRefreshes(previous: [processing], current: [processing.with(status: .failed, failureMessage: "x")], userName: "").isEmpty)
+    }
+}
+
 @Suite struct NoteDestinationTests {
     // Kendiliğinden gönderim: hedef bağlandıktan sonra ve son 7 günde biten, o hedefe gönderilmemiş toplantılar; kapalı
     // ya da yeniden bağlanması gereken hedefe gönderilmez.

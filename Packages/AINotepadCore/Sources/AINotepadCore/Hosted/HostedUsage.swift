@@ -152,6 +152,22 @@ public func hostedStartBlock(entitlements: HostedEntitlements) -> HostedStartBlo
     }
 }
 
+/// Kaydı engelleyen hak durumunun çözümü: nedenin yanındaki tek düğme.
+public enum HostedStartBlockRemedy: Sendable, Equatable {
+    /// Abone ol (deneme bitti, abonelik sona erdi).
+    case subscribe
+    /// Hesap ekranı: kullanım ve sıfırlanma günü (aylık sınır) ya da ödeme yöntemini güncelleme (ödeme alınamadı).
+    case openAccount
+}
+
+/// Engelin çözümü (Mac'teki `hostedStartBlockNotice` ile aynı eşleme). Saf fonksiyondur.
+public func hostedStartBlockRemedy(block: HostedStartBlock) -> HostedStartBlockRemedy {
+    switch block {
+    case .trialEnded, .subscriptionEnded: .subscribe
+    case .monthlyCapReached, .paymentOverdue: .openAccount
+    }
+}
+
 /// Hak durumunun eskimiş sayıldığı süre (saniye): uygulama her öne geldiğinde, son okuma bundan eskiyse yeniden okunur
 /// (ödeme sayfasından dönüşte beklemeden; bkz. `HostedAccount.refreshOnActivation`).
 public let hostedStaleRefreshIntervalSec: Double = 60

@@ -28,18 +28,19 @@ struct PhoneSettingsTab: View {
     @AppStorage(PhoneSettingsKey.customTemplate) private var customTemplate: String = ""
     @AppStorage(PhoneSettingsKey.templateFromTitle) private var templateFromTitle: Bool = true
     @AppStorage(PhoneSettingsKey.missedWindowMinutes) private var missedMinutes: Int = 3
+    /// "Kurulumu yeniden aç" bunu kapatır: kök görünüm karşılamayı yeniden sunar.
+    @AppStorage(PhoneSettingsKey.onboardingCompleted) private var onboardingCompleted: Bool = true
     @Environment(\.openURL) private var openURL: OpenURLAction
 
     var body: some View {
         // Seçili not dilinin adı (arayüz dilinde): çeviri ayarlarında geçer.
         let noteLanguageName: String = phoneStoredNoteLanguage(value: noteLanguage).interfaceName
-        NavigationStack {
+        // Yol yönlendiricidedir: Kayıt'taki engel bildiriminin "Kullanımı gör"ü hesabı buradan açar.
+        NavigationStack(path: Binding<[PhoneSettingsRoute]>(get: { router.settingsPath }, set: { (path: [PhoneSettingsRoute]) -> Void in router.settingsPath = path })) {
             List {
                 CrashReportNotice(center: crashReports)
                 Section {
-                    NavigationLink {
-                        PhoneAccountScreen(account: account, isMeetingInFlight: isMeetingInFlight, store: store)
-                    } label: {
+                    NavigationLink(value: PhoneSettingsRoute.account) {
                         PhoneAccountRow(account: account)
                     }
                 } header: {
@@ -185,28 +186,49 @@ struct PhoneSettingsTab: View {
                     Text("Yalnızca kullanım sayıları paylaşılır; toplantı içeriği, ses ya da metin paylaşılmaz.")
                 }
                 Section {
-                    // Arayüz dili iOS'ta uygulama başına iPhone Ayarları'ndan seçilir (Mac'te uygulamanın içinden).
+                    // Arayüz dili iOS'ta uygulama başına iPhone Ayarları'ndan seçilir (Mac'te uygulamanın içinden): satır
+                    // uygulamanın Ayarlar sayfasını açar, sağdaki simge uygulamadan çıkıldığını gösterir.
                     if let settings = URL(string: UIApplication.openSettingsURLString) {
                         Button {
                             openURL(settings)
                         } label: {
-                            LabeledContent("Arayüz dili", value: interfaceLanguageName())
+                            LabeledContent {
+                                HStack(spacing: 6) {
+                                    Text(verbatim: interfaceLanguageName())
+                                    Image(systemName: "arrow.up.forward.app")
+                                        .imageScale(.small)
+                                        .accessibilityHidden(true)
+                                }
+                            } label: {
+                                Text("Arayüz dili")
+                            }
                         }
                         .tint(Theme.ink)
+                        .accessibilityHint(Text("iPhone Ayarları'nı açar"))
                     }
+                    // Mac'teki "Kurulumu yeniden aç": karşılama (ad, ana toplantı dili) baştan gösterilir. Kayıt ya da
+                    // işleme sürerken kapalı (karşılama tam ekran açılır).
+                    Button("Kurulumu yeniden aç") { onboardingCompleted = false }
+                        .disabled(isMeetingInFlight)
                     LabeledContent("Sürüm", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?")
                     LabeledContent("Toplantılar", value: "\(store.meetings.count)")
                     NavigationLink("Tanılama") { PhoneDiagnosticsScreen(account: account, store: store) }
-                    NavigationLink("Geri bildirim gönder") { PhoneFeedbackForm() }
+                    NavigationLink("Geri bildirim gönder") { PhoneFeedbackForm(account: account, store: store) }
                     CrashReportsLink(center: crashReports)
                 } header: {
                     Text("Uygulama")
                 } footer: {
-                    Text("Arayüz dili iPhone Ayarları › \(appName) › Dil bölümünden değişir.")
+                    Text("Arayüz dili iPhone Ayarları › \(appName) › Dil'den değişir. Dil satırı yoksa önce iPhone Ayarları › Genel › Dil ve Bölge'ye ikinci bir dil ekle.")
                 }
             }
             .phoneTabSwipe(router: router, isEnabled: true)
             .navigationTitle("Ayarlar")
+            .navigationDestination(for: PhoneSettingsRoute.self) { (route: PhoneSettingsRoute) in
+                switch route {
+                case .account:
+                    PhoneAccountScreen(account: account, isMeetingInFlight: isMeetingInFlight, store: store)
+                }
+            }
         }
     }
 }

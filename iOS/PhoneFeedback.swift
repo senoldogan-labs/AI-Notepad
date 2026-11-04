@@ -15,12 +15,18 @@ private enum PhoneFeedbackState: Equatable {
 }
 
 /// Ayarlar › Geri bildirim gönder (Mac'teki formun iPhone karşılığı): mesaj (zorunlu), yanıt e-postası (isteğe bağlı) ve
-/// gönderilecek haliyle sürüm ve sistem bilgisi. Gönderim kullanıcının "Gönder"iyle olur; mesaj hesabın sunucusuna
-/// gider ve hesapla ilişkilendirilir (`hostedReportDestination`). Toplantı içeriği gönderilmez.
+/// gönderilecek haliyle sürüm ve sistem bilgisi, isteğe bağlı olarak Tanılama'daki bilgi (Mac'teki "Tanılama bilgisini
+/// ekle"). Gönderim kullanıcının "Gönder"iyle olur; mesaj hesabın sunucusuna gider ve hesapla ilişkilendirilir
+/// (`hostedReportDestination`). Toplantı içeriği gönderilmez.
 struct PhoneFeedbackForm: View {
+    /// Tanılama bilgisi bunlardan okunur (bkz. `makePhoneDiagnosticsText`).
+    let account: HostedAccount
+    let store: PhoneStore
     @State private var message: String = ""
     @State private var email: String = ""
     @State private var includeDiagnostics: Bool = true
+    /// Ayarlar › Tanılama'daki bilgi mesajın sonuna eklenir (Mac'teki gibi varsayılan kapalı).
+    @State private var includeFullDiagnostics: Bool = false
     @State private var state: PhoneFeedbackState = .editing
     @FocusState private var messageFocused: Bool
     private let diagnostics: ReportDiagnostics = currentReportDiagnostics(bundle: .main, platformName: "iOS")
@@ -66,10 +72,14 @@ struct PhoneFeedbackForm: View {
                         LabeledContent("Sürüm", value: diagnostics.appVersion)
                         LabeledContent("Sistem", value: diagnostics.os)
                     }
+                    Toggle(isOn: $includeFullDiagnostics) {
+                        Text("Tanılama bilgisini ekle")
+                        Text("Hesap durumu, izinler, bağlantı ve son hatalar; ses, metin, not ve anahtar eklenmez.")
+                    }
                 } header: {
                     Text("Gönderilenler")
                 } footer: {
-                    Text("Mesajın, varsa e-postan ve sürüm bilgisi hesabınla birlikte gider; toplantı içeriği gitmez.")
+                    Text("Mesajın, varsa e-postan ve işaretli bilgiler hesabınla birlikte gider; toplantı içeriği gitmez.")
                 }
                 if case .failed(let reason) = state {
                     Section {
@@ -107,7 +117,10 @@ struct PhoneFeedbackForm: View {
         state = .sending
         Task {
             do {
-                try await submitReport(report: report, destination: try await hostedReportDestination())
+                let final: ReportRequest = includeFullDiagnostics
+                    ? try appendingDiagnostics(report: report, diagnosticsText: await makePhoneDiagnosticsText(account: account, store: store), limit: reportMessageLimit)
+                    : report
+                try await submitReport(report: final, destination: try await hostedReportDestination())
                 state = .sent
             } catch {
                 phoneFeedbackLogger.error("Geri bildirim gönderilemedi, hata: \(String(describing: error), privacy: .private)")

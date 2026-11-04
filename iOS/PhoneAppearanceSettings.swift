@@ -3,8 +3,8 @@ import AINotepadUI
 import SwiftUI
 import UIKit
 
-/// Ayarlar › Görünüm: canlı önizleme, tema kartları, vurgu rengi, yazı tipi, arayüz yazı boyutu, okuma metni boyutu ve
-/// satır aralığı (Mac'teki Görünüm ayarlarıyla aynı seçenekler ve anahtarlar). Değişiklikler anında tüm sekmelere uygulanır;
+/// Ayarlar › Görünüm: canlı önizleme, tema kartları, vurgu rengi, yazı tipi, arayüz yazı boyutu, okuma metni boyutu,
+/// satır aralığı ve alt boşluk (Mac'teki Görünüm ayarlarıyla aynı seçenekler ve anahtarlar). Değişiklikler anında tüm sekmelere uygulanır;
 /// iPhone'un yazı boyutu (Dinamik Yazı) bu ayarların üstüne çarpılır.
 struct PhoneAppearanceScreen: View {
     @AppStorage(PhoneSettingsKey.theme) private var theme: String = AppTheme.system.rawValue
@@ -13,6 +13,7 @@ struct PhoneAppearanceScreen: View {
     @AppStorage(PhoneSettingsKey.uiScale) private var uiScale: Double = PanelAppearance.standard.uiScale
     @AppStorage(PhoneSettingsKey.textSize) private var textSize: Double = PanelAppearance.standard.textSize
     @AppStorage(PhoneSettingsKey.lineSpacing) private var lineSpacing: Double = PanelAppearance.standard.lineSpacing
+    @AppStorage(PhoneSettingsKey.bottomSpacing) private var bottomSpacing: Double = PanelAppearance.standard.bottomSpacing
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
@@ -53,10 +54,15 @@ struct PhoneAppearanceScreen: View {
                     title: Text("Satır aralığı: \(Int(lineSpacing))"), value: $lineSpacing, range: AppearanceRange.lineSpacing, step: 1,
                     minSymbol: "arrow.down.right.and.arrow.up.left", maxSymbol: "arrow.up.left.and.arrow.down.right"
                 )
+                // Mac'teki "Alt boşluk": kayıt sırasında canlı metnin son satırı ile alttaki düğmeler arasındaki boşluk.
+                PhoneSettingSlider(
+                    title: Text("Alt boşluk: \(Int(bottomSpacing)) pt"), value: $bottomSpacing, range: AppearanceRange.bottomSpacing, step: 4,
+                    minSymbol: "arrow.down.right.and.arrow.up.left", maxSymbol: "arrow.up.left.and.arrow.down.right"
+                )
             } header: {
                 Text("Boyut")
             } footer: {
-                Text("Arayüz yazısı düğmeleri ve listeleri, okuma metni notu ve transkripti değiştirir.")
+                Text("Arayüz yazısı düğmeleri ve listeleri, okuma metni notu ve transkripti değiştirir; alt boşluk kayıttaki canlı metnin altında kalır.")
             }
             Section {
                 Button("Görünümü varsayılana döndür") {

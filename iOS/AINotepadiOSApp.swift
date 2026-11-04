@@ -104,20 +104,22 @@ struct AINotepadiOSApp: App {
     }
 }
 
-/// Kullanıcının görünüm ayarları (vurgu rengi, yazı tipi, yazı ölçeği, okuma metni boyutu ve satır aralığı) tüm arayüze:
-/// ortam, yazı ve renk tonu; ayar değişince hemen uygulanır. Sistemin yazı boyutu (Dinamik Yazı) ayarların üstüne çarpılır.
+/// Kullanıcının görünüm ayarları (vurgu rengi, yazı tipi, yazı ölçeği, okuma metni boyutu, satır aralığı ve canlı metnin
+/// alt boşluğu) tüm arayüze: ortam, yazı ve renk tonu; ayar değişince hemen uygulanır. Sistemin yazı boyutu (Dinamik Yazı)
+/// ayarların üstüne çarpılır.
 private struct PhoneAppearanceModifier: ViewModifier {
     @AppStorage(PhoneSettingsKey.accent) private var accent: String = PanelAppearance.standard.accent.rawValue
     @AppStorage(PhoneSettingsKey.fontDesign) private var fontDesign: String = PanelAppearance.standard.fontChoice.storageValue
     @AppStorage(PhoneSettingsKey.uiScale) private var uiScale: Double = PanelAppearance.standard.uiScale
     @AppStorage(PhoneSettingsKey.textSize) private var textSize: Double = PanelAppearance.standard.textSize
     @AppStorage(PhoneSettingsKey.lineSpacing) private var lineSpacing: Double = PanelAppearance.standard.lineSpacing
+    @AppStorage(PhoneSettingsKey.bottomSpacing) private var bottomSpacing: Double = PanelAppearance.standard.bottomSpacing
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize: DynamicTypeSize
 
     func body(content: Content) -> some View {
         let standard: PanelAppearance = .standard
         let appearance: PanelAppearance = resolvedPanelAppearance(stored: StoredAppearance(
-            fontDesign: fontDesign, uiScale: uiScale, textSize: textSize, lineSpacing: lineSpacing, bottomSpacing: standard.bottomSpacing,
+            fontDesign: fontDesign, uiScale: uiScale, textSize: textSize, lineSpacing: lineSpacing, bottomSpacing: bottomSpacing,
             accent: accent, surface: standard.surface.rawValue, surfaceOpacity: standard.surfaceOpacity
         ), isFontFamilyInstalled: { (family: String) -> Bool in !UIFont.fontNames(forFamilyName: family).isEmpty })
         .dynamicTypeScaled(factor: dynamicTypeFactor(size: dynamicTypeSize))
@@ -262,6 +264,10 @@ private struct PhoneAppRoot: View {
                 if CommandLine.arguments.contains("--ornek-duraklat") {
                     recorder.showSamplePaused()
                 }
+                // `--ornek-sinir`: örnek kayıt çevrimdışı ve aylık sınırla kısaltılmış (kalan dakika şeridi).
+                if CommandLine.arguments.contains("--ornek-sinir") {
+                    recorder.showSampleLimits()
+                }
                 // `--ornek-bitir`: örnek kayıt "Bitir"e basılmış gibi bitiriliyor (hazırlık katmanı, durmuş süre).
                 if CommandLine.arguments.contains("--ornek-bitir") {
                     recorder.showSampleFinishing()
@@ -393,6 +399,11 @@ func makePhoneAccountSession(calendar: PhoneCalendar) -> PhoneAccountSession {
     recorder.onMeetingProcessed = { (_: MeetingRecord) -> Void in
         Task { await integrations.processPendingAutoSends() }
     }
+    // Not hazır olunca ve değişince Markdown klasöründeki kopya yenilenir (Mac'teki gibi; kendiliğinden yazma açıksa).
+    // Bağlantılar arşive bağlı: zayıf başvuru döngü kurmaz.
+    store.onMeetingsChanged = { [weak integrations] (previous: [MeetingRecord], current: [MeetingRecord]) -> Void in
+        integrations?.refreshMarkdownFolderCopies(previous: previous, current: current)
+    }
     return PhoneAccountSession(store: store, recorder: recorder, ask: PhoneAsk(store: store), player: MeetingAudioPlayer(), integrations: integrations)
 }
 
@@ -463,6 +474,8 @@ final class PhoneRouter {
     }
     var meetingsPath: [String]
     var askPath: [AskRoute]
+    /// Ayarlar'da açık sayfa (yalnız başka sekmeden açılanlar; ör. kayıt engelinin "Kullanımı gör"ü hesabı açar).
+    var settingsPath: [PhoneSettingsRoute] = []
     /// Sor tam ekrandır (sekme çubuğu gizli): sol üstteki geri Sor'a gelinen sekmeye döner.
     private(set) var askReturnTab: PhoneTab = .record
     /// Sekmeler arası kaydırma (bkz. `PhoneTabSwipeGesture`): parmakla sürüklenen kök ekranın kayması (nokta).
@@ -486,6 +499,7 @@ final class PhoneRouter {
         tab = .record
         meetingsPath = []
         askPath = []
+        settingsPath = []
         askReturnTab = .record
     }
 
@@ -494,6 +508,17 @@ final class PhoneRouter {
         tab = .meetings
         meetingsPath = [meetingID]
     }
+
+    /// Ayarlar › Hesap'ı açar (kullanım, plan, aboneliği yönet; Mac'teki `openAccountSettings`).
+    func openAccount() {
+        tab = .settings
+        settingsPath = [.account]
+    }
+}
+
+/// Ayarlar'ın başka sekmeden açılabilen sayfaları.
+enum PhoneSettingsRoute: Hashable {
+    case account
 }
 
 /// Sekme değişiminde Sor'un geri okunun döneceği sekme: başka bir sekmeden Sor'a geçildiyse o sekme, yoksa nil (değişmez).
@@ -730,10 +755,20 @@ final class PhoneStore {
 
     /// Listeyi arka planda okur; art arda gelen istekleri birleştirir.
     @ObservationIgnored private let reloader: MeetingReloader = MeetingReloader()
+    /// Liste değişti (önceki ve yeni liste): not hazır olunca ya da değişince Markdown klasöründeki kopya yenilenir (bkz.
+    /// `PhoneIntegrations.refreshMarkdownFolderCopies`; oturum kurulurken bağlanır).
+    @ObservationIgnored var onMeetingsChanged: (@MainActor ([MeetingRecord], [MeetingRecord]) -> Void)?
 
     /// Toplantıları arka planda yeniden okur; beklemeden döner.
     func reload() {
         Task { await reloadAndWait() }
+    }
+
+    /// Listeyi değiştirir ve değişikliği bildirir.
+    private func replaceMeetings(records: [MeetingRecord]) {
+        let previous: [MeetingRecord] = meetings
+        meetings = records
+        onMeetingsChanged?(previous, records)
     }
 
     /// Toplantıları diskten yeniden okur (en yeni önce). Okuma ana iş parçacığının dışında yapılır; liste güncellenince
@@ -742,7 +777,7 @@ final class PhoneStore {
         await reloader.reload(load: { () async throws -> MeetingLoadResult in
             try await loadMeetingsInBackground(location: .local)
         }, apply: { (result: MeetingLoadResult) -> Void in
-            self.meetings = result.meetings
+            self.replaceMeetings(records: result.meetings)
             self.loadProblems = result.failures.map { (failure: MeetingLoadFailure) -> String in "\(failure.folder): \(failure.reason)" }
         }, fail: { (error: any Error) -> Void in
             self.loadProblems = [userFacingMessage(error: error)]
@@ -804,7 +839,7 @@ final class PhoneStore {
 
     /// Kaydedilen toplantıyı listeye yazar (her kayıtta klasör yeniden okunmaz).
     func upsert(record: MeetingRecord) {
-        meetings = upsertMeeting(records: meetings, record: record)
+        replaceMeetings(records: upsertMeeting(records: meetings, record: record))
         // Süren arka plan okuması bu yazmayı görmemiş olabilir: sonucu bu kaydı geri almasın.
         reloader.invalidate()
     }

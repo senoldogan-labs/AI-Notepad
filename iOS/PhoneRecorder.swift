@@ -92,6 +92,15 @@ final class PhoneRecorder {
     /// Kayıt başlarken bağlı takvim toplantısıyla ilgili önceki toplantılardan açık görevler (`relatedOpenTasks`; yalnız
     /// yerel kayıtlar): kayıt ekranında hatırlatma. Kapatılınca ya da kayıt bitince boş.
     var relatedTasks: [RelatedOpenTask] = []
+    /// Kaydın bağlı olduğu takvim toplantısı (takvim açıksa ve kayıt başlarken bir toplantı sürüyorsa): "Açık görevler"in
+    /// "Tümünü gör"ü onun brifingini açar (Mac'teki `recordingCalendarMeeting`). Kayıt bitince nil.
+    private(set) var recordingCalendarMeeting: CalendarMeeting?
+    /// Kayıt sunucuya ulaşılamadan sürüyor (canlı metin bu iPhone'da; konuşmacılar ve not bağlantı gelince): kayıt
+    /// ekranında bildirim (Mac'teki `isOfflineRecording`).
+    private(set) var isOfflineRecording: Bool = false
+    /// Aylık sınıra az kaldığı için sunucunun kısalttığı toplantının bitiş anı: kayıt ekranında kalan dakika (Mac'teki
+    /// `shortMeetingDeadline`); olağan süredeki toplantıda nil.
+    private(set) var shortMeetingDeadline: Date?
     let levels: AudioLevels = AudioLevels(count: 36, interval: 0.08)
 
     @ObservationIgnored private let store: PhoneStore
@@ -294,17 +303,21 @@ final class PhoneRecorder {
         // (deneme bitti, aylık sınır, harcama tavanı…) kayıt başlamaz, yazılan ses silinir ve neden görünür.
         let deadline: Date
         let offline: Bool
+        let shortDeadline: Date?
         do {
             let requestedAt: Date = Date()
             switch try await account.startMeeting(recordID: directory.lastPathComponent) {
             case .online(let meeting):
                 deadline = hostedRecordingDeadline(requestedAt: requestedAt, maxDurationMinutes: meeting.maxDurationMinutes, serverEndsAt: meeting.expiresAt)
                 offline = false
+                // Aylık sınıra az kaldıysa toplantı olağandan kısadır: kalan dakika kayıt ekranında görünür.
+                shortDeadline = isShortenedHostedMeeting(started: meeting) ? deadline : nil
             case .offline(let maxMinutes):
                 // Sunucuya ulaşılamadı: kayıt sürer (canlı metin bu iPhone'da), süre son bilinen hak durumuyla sınırlı;
                 // toplantı bağlantı gelince işlenir (bkz. `runQueue`).
                 deadline = requestedAt.addingTimeInterval(Double(maxMinutes) * 60)
                 offline = true
+                shortDeadline = nil
             }
         } catch {
             Self.logger.error("Toplantı oturumu açılamadı, kayıt başlatılmadı, hata: \(String(describing: error), privacy: .private)")
@@ -359,6 +372,9 @@ final class PhoneRecorder {
             pauseGate: pauseGate
         )
         self.active = active
+        recordingCalendarMeeting = linkedMeeting
+        isOfflineRecording = offline
+        shortMeetingDeadline = shortDeadline
         startedAt = started
         phase = .recording
         // Uygulama kayıt sırasında kapanırsa toplantı açılışta bulunup işlenir.
@@ -956,6 +972,13 @@ final class PhoneRecorder {
         updateActivityNow(state: activityState())
     }
 
+    /// `--ornek-sinir` (yalnız Debug, görsel kontrol): örnek kayıt çevrimdışı sürüyor ve aylık sınır yüzünden 12 dakika
+    /// sonra bitecek (iki bildirim birlikte).
+    func showSampleLimits() {
+        isOfflineRecording = true
+        shortMeetingDeadline = Date().addingTimeInterval(12 * 60)
+    }
+
     /// `--ornek-bitir` (yalnız Debug, görsel kontrol): örnek kayıt bitiriliyor durumunda kalır (oturum yok).
     func showSampleFinishing() {
         phase = .finishing
@@ -1054,6 +1077,9 @@ final class PhoneRecorder {
         cancelRecordingLimitNotifications()
         consentReminderVisible = false
         relatedTasks = []
+        recordingCalendarMeeting = nil
+        isOfflineRecording = false
+        shortMeetingDeadline = nil
         guard let finished = active else {
             phase = .idle
             startedAt = nil

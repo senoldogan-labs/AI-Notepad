@@ -27,6 +27,8 @@ enum PhoneSettingsKey {
     static let uiScale: String = AppearanceKey.uiScale
     static let textSize: String = AppearanceKey.textSize
     static let lineSpacing: String = AppearanceKey.lineSpacing
+    /// Canlı metnin son satırının altındaki boşluk (Mac'teki "Alt boşluk" ile aynı ad).
+    static let bottomSpacing: String = AppearanceKey.bottomSpacing
     /// Konuşma tanımanın doğru yazması gereken adlar ve terimler (satır ya da virgülle; Mac'teki "Tanıma sözlüğü");
     /// hesabın ayar alanında (bkz. `PhoneStore.vocabulary`).
     static let customVocabulary: String = customVocabularyDefaultsKey
@@ -187,10 +189,10 @@ func phoneRecognitionKeyterms(store: PhoneStore) -> [String] {
     )
 }
 
-/// iPhone'un görünüm ayarları (yüzey ve alt boşluk Mac'e özgü; iPhone'da kullanılmaz).
+/// iPhone'un görünüm ayarları (yüzey ve cam opaklığı Mac penceresine özgü; iPhone'da kullanılmaz).
 let phoneAppearanceKeys: [String] = [
     PhoneSettingsKey.theme, PhoneSettingsKey.accent, PhoneSettingsKey.fontDesign, PhoneSettingsKey.uiScale, PhoneSettingsKey.textSize,
-    PhoneSettingsKey.lineSpacing,
+    PhoneSettingsKey.lineSpacing, PhoneSettingsKey.bottomSpacing,
 ]
 
 /// Görünüm ayarlarını varsayılana döndürür.
