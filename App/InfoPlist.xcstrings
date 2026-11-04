@@ -29,10 +29,64 @@
     },
     "NSAppleEventsUsageDescription": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad schreibt deine Meeting-Notiz in Apple Notizen, wenn du es darum bittest."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "AI-Notepad writes your meeting note to Apple Notes when you ask it to."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad escribe la nota de tu reunión en Notas de Apple cuando se lo pides."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad kirjoittaa kokousmuistiinpanosi Applen Muistiinpanoihin, kun pyydät."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad écrit votre note de réunion dans Notes lorsque vous le lui demandez."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad scrive la nota della riunione in Note quando glielo chiedi."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepadは、指示に応じて会議ノートを「メモ」に書き込みます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad는 사용자가 요청하면 회의 노트를 메모 앱에 작성합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad schrijft je vergadernotitie naar Apple Notities als je daarom vraagt."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O AI-Notepad grava a nota da sua reunião no app Notas quando você pede."
           }
         },
         "tr": {
@@ -40,16 +94,76 @@
             "state": "translated",
             "value": "AI-Notepad toplantı notunu istediğinde Apple Notlar'a yazar."
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad 会在你要求时将会议笔记写入 Apple 备忘录。"
+          }
         }
       }
     },
     "NSAudioCaptureUsageDescription": {
       "extractionState": "stale",
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad hört das Systemaudio ab, um die anderen Teilnehmenden deiner Meetings zu transkribieren."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "AI-Notepad listens to system audio to transcribe the other participants in your meetings."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad escucha el audio del sistema para transcribir a los demás participantes de tus reuniones."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad kuuntelee järjestelmän ääntä litteroidakseen kokoustesi muut osallistujat."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad écoute l’audio du système pour transcrire les autres participants de vos réunions."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad ascolta l’audio di sistema per trascrivere gli altri partecipanti alle tue riunioni."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepadは、会議の他の参加者の発言を文字起こしするためにシステムオーディオを聞き取ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad는 회의의 다른 참석자 음성을 텍스트로 변환하기 위해 시스템 오디오를 듣습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad luistert naar systeemaudio om de andere deelnemers in je vergaderingen uit te schrijven."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O AI-Notepad ouve o áudio do sistema para transcrever os outros participantes das suas reuniões."
           }
         },
         "tr": {
@@ -57,15 +171,75 @@
             "state": "translated",
             "value": "AI-Notepad toplantıdaki diğer katılımcıların sesini yazıya dökmek için sistem sesini dinler."
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad 会收听系统音频，以转写会议中其他参与者的发言。"
+          }
         }
       }
     },
     "NSCalendarsFullAccessUsageDescription": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad zeigt deine anstehenden Meetings, erinnert dich vor deren Beginn und sichert die Notiz unter dem Namen des Meetings."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "AI-Notepad shows your upcoming meetings, reminds you before they start and saves the note under the meeting's name."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad muestra tus próximas reuniones, te avisa antes de que empiecen y guarda la nota con el nombre de la reunión."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad näyttää tulevat kokouksesi, muistuttaa ennen niiden alkua ja tallentaa muistiinpanon kokouksen nimellä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad affiche vos réunions à venir, vous les rappelle avant qu’elles commencent et enregistre la note sous le nom de la réunion."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad mostra le tue prossime riunioni, ti avvisa prima che inizino e salva la nota con il nome della riunione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepadは、今後の会議を表示し、開始前に通知して、会議名でノートを保存します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad는 예정된 회의를 표시하고, 회의가 시작되기 전에 알려 주며, 회의 이름으로 노트를 저장합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad toont je komende vergaderingen, herinnert je eraan voordat ze beginnen en bewaart de notitie onder de naam van de vergadering."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O AI-Notepad mostra suas próximas reuniões, lembra você antes de começarem e salva a nota com o nome da reunião."
           }
         },
         "tr": {
@@ -73,16 +247,76 @@
             "state": "translated",
             "value": "AI-Notepad yaklaşan toplantılarını gösterir, başlamadan önce hatırlatır ve notu toplantının adıyla kaydeder."
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad 会显示你即将开始的会议，在会议开始前提醒你，并以会议名称存储笔记。"
+          }
         }
       }
     },
     "NSMicrophoneUsageDescription": {
       "comment": "Privacy - Microphone Usage Description",
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad verwendet das Mikrofon, um zu transkribieren, was du in Meetings und bei der Spracheingabe sagst."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "AI-Notepad uses the microphone to transcribe what you say in meetings and when you use voice typing."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad usa el micrófono para transcribir lo que dices en las reuniones y cuando usas la escritura por voz."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad käyttää mikrofonia litteroidakseen, mitä sanot kokouksissa ja käyttäessäsi puhekirjoitusta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad utilise le micro pour transcrire ce que vous dites en réunion et lorsque vous utilisez la saisie vocale."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad usa il microfono per trascrivere ciò che dici nelle riunioni e quando usi la scrittura vocale."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepadは、会議での発言や音声入力を文字起こしするためにマイクを使用します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad는 회의 중이나 음성 입력을 사용할 때 사용자가 말하는 내용을 텍스트로 변환하기 위해 마이크를 사용합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad gebruikt de microfoon om uit te schrijven wat je in vergaderingen zegt en wanneer je spraaktypen gebruikt."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O AI-Notepad usa o microfone para transcrever o que você diz nas reuniões e quando você usa a digitação por voz."
           }
         },
         "tr": {
@@ -90,21 +324,87 @@
             "state": "translated",
             "value": "AI-Notepad toplantıda ve sesle yazarken söylediklerini yazıya dökmek için mikrofonu kullanır."
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad 使用麦克风来转写你在会议中所说的话以及你使用语音输入时所说的话。"
+          }
         }
       }
     },
     "NSRemindersFullAccessUsageDescription": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad fügt Aufgaben aus deinen Meeting-Notizen zu Erinnerungen hinzu, wenn du es darum bittest."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "AI-Notepad adds tasks from your meeting notes to Reminders when you ask it to."
           }
         },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad añade a Recordatorios las tareas de tus notas de reunión cuando se lo pides."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad lisää tehtäviä kokousmuistiinpanoistasi Muistutuksiin, kun pyydät."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad ajoute les tâches de vos notes de réunion à Rappels lorsque vous le lui demandez."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad aggiunge a Promemoria le attività delle note delle riunioni quando glielo chiedi."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepadは、指示に応じて会議ノートのタスクをリマインダーに追加します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad는 사용자가 요청하면 회의 노트의 할 일을 미리 알림에 추가합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad voegt taken uit je vergadernotities toe aan Herinneringen als je daarom vraagt."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O AI-Notepad adiciona tarefas das suas notas de reunião aos Lembretes quando você pede."
+          }
+        },
         "tr": {
           "stringUnit": {
             "state": "translated",
             "value": "AI-Notepad toplantı notundaki görevleri istediğinde Anımsatıcılar'a ekler."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Notepad 会在你要求时将会议笔记中的任务添加到提醒事项。"
           }
         }
       }

@@ -27,10 +27,10 @@ private func writeAcceptanceResult(line: String) {
 enum AppEntry {
     static func main() {
         #if HOSTED_EDITION
-        // Gistsmith'in arayüzü varsayılan olarak İngilizce açılır (macOS'un dili Türkçe olsa da); Ayarlar'dan
-        // değiştirilebilir. Hiçbir metin okunmadan yazılmalı.
+        // Gistsmith'in arayüzü Türkçe macOS'ta varsayılan olarak İngilizce açılır; diğer sistem dilleri kendi
+        // çevirisiyle açılır. Ayarlar'dan değiştirilebilir. Hiçbir metin okunmadan yazılmalı.
         if let identifier = Bundle.main.bundleIdentifier {
-            applyDefaultInterfaceLanguageOnce(bundleIdentifier: identifier, language: .english)
+            applyDefaultInterfaceLanguageOnce(bundleIdentifier: identifier, systemLanguage: .turkish, language: .english)
         }
         #endif
         // Görünen ad (bkz. `appName`) metinlerden önce okunur: yoksa uygulama hemen, açık hatayla kapanır.

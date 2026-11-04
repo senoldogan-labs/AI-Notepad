@@ -62,7 +62,8 @@
   afterwards, so roughly three times in total), and the transcript goes to your LLM provider; the on-device engine
   keeps audio on your Mac. Audio files are deleted after the retention period you choose (failed or interrupted
   meetings after twice that period, so they can still be reprocessed).
-- English and Turkish user interface.
+- User interface in English, Turkish, German, French, Spanish, Italian, Portuguese (Brazil), Dutch, Japanese, Korean,
+  Simplified Chinese and Finnish.
 
 ## Install
 

@@ -121,10 +121,52 @@ enum SettingsKey {
 }
 
 /// Arayüz dili; macOS'ta uygulama dili yeniden başlatınca uygulanır.
+/// Arayüz dili: "Sistem" ya da string kataloglarının çevrildiği diller (`scripts/l10n.py` `TARGET_LANGUAGES` + Türkçe ve
+/// İngilizce). Ham değer `AppleLanguages`'e yazılan dil kodudur.
 enum InterfaceLanguage: String, CaseIterable {
     case system
     case turkish = "tr"
     case english = "en"
+    case german = "de"
+    case french = "fr"
+    case spanish = "es"
+    case italian = "it"
+    case portugueseBrazil = "pt-BR"
+    case dutch = "nl"
+    case japanese = "ja"
+    case korean = "ko"
+    case chineseSimplified = "zh-Hans"
+    case finnish = "fi"
+
+    /// Dilin kendi dilindeki adı (seçicide her arayüz dilinde aynı görünür); "Sistem" için nil.
+    var nativeName: String? {
+        switch self {
+        case .system: nil
+        case .turkish: "Türkçe"
+        case .english: "English"
+        case .german: "Deutsch"
+        case .french: "Français"
+        case .spanish: "Español"
+        case .italian: "Italiano"
+        case .portugueseBrazil: "Português (Brasil)"
+        case .dutch: "Nederlands"
+        case .japanese: "日本語"
+        case .korean: "한국어"
+        case .chineseSimplified: "简体中文"
+        case .finnish: "Suomi"
+        }
+    }
+}
+
+/// `AppleLanguages`'in ilk dilinin arayüz dili: önce tam kod ("pt-BR", "zh-Hans"), sonra bölgesiz dil kodu ("de-DE" →
+/// "de"); bilinmeyen dil nil. Saf fonksiyondur.
+func interfaceLanguage(languageCode: String) -> InterfaceLanguage? {
+    if let exact = InterfaceLanguage(rawValue: languageCode), exact != .system {
+        return exact
+    }
+    let base: String = String(languageCode.prefix { $0 != "-" && $0 != "_" })
+    return InterfaceLanguage.allCases.first { $0 != .system && $0.rawValue == base }
+        ?? InterfaceLanguage.allCases.first { $0 != .system && $0.rawValue.hasPrefix(base + "-") }
 }
 
 /// Uygulamanın kendi tercihinde (`AppleLanguages`) kayıtlı arayüz dili; yoksa sistem.
@@ -135,7 +177,7 @@ func storedInterfaceLanguage() -> InterfaceLanguage {
     else {
         return .system
     }
-    return InterfaceLanguage(rawValue: String(first.prefix(2))) ?? .system
+    return interfaceLanguage(languageCode: first) ?? .system
 }
 
 /// Arayüz dilini kaydeder: yalnızca bu uygulamanın `AppleLanguages` tercihi değişir.
@@ -143,7 +185,7 @@ func storeInterfaceLanguage(language: InterfaceLanguage) {
     switch language {
     case .system:
         UserDefaults.standard.removeObject(forKey: "AppleLanguages")
-    case .turkish, .english:
+    case .turkish, .english, .german, .french, .spanish, .italian, .portugueseBrazil, .dutch, .japanese, .korean, .chineseSimplified, .finnish:
         UserDefaults.standard.set([language.rawValue], forKey: "AppleLanguages")
     }
 }
@@ -151,15 +193,19 @@ func storeInterfaceLanguage(language: InterfaceLanguage) {
 /// Varsayılan arayüz dilinin yazıldığını gösteren işaret (bir kez yazılır; kullanıcının sonraki seçimi ezilmez).
 private let defaultInterfaceLanguageAppliedKey: String = "interface.defaultLanguageApplied"
 
-/// Uygulamanın varsayılan arayüz dilini bir kez yazar: bu uygulamada hiç dil seçilmemişse (`AppleLanguages` yoksa)
-/// `language` kaydedilir; kullanıcı sonra "Sistem"i ya da başka bir dili seçerse bir daha dokunulmaz. Metinler
-/// yüklenmeden (`AppEntry.main` başında) çağrılmalı: dil, paket metinleri ilk kez okunurken belirlenir.
-func applyDefaultInterfaceLanguageOnce(bundleIdentifier: String, language: InterfaceLanguage) {
+/// Uygulamanın varsayılan arayüz dilini bir kez yazar: bu uygulamada hiç dil seçilmemişse (`AppleLanguages` yoksa) ve
+/// sistemin ilk dili `systemLanguage` ise `language` kaydedilir (Gistsmith: Türkçe macOS'ta İngilizce açılır; diğer
+/// sistem dilleri kendi çevirisiyle açılır). Kullanıcı sonra "Sistem"i ya da başka bir dili seçerse bir daha
+/// dokunulmaz. Metinler yüklenmeden (`AppEntry.main` başında) çağrılmalı: dil, paket metinleri ilk kez okunurken
+/// belirlenir.
+func applyDefaultInterfaceLanguageOnce(bundleIdentifier: String, systemLanguage: InterfaceLanguage, language: InterfaceLanguage) {
     guard !UserDefaults.standard.bool(forKey: defaultInterfaceLanguageAppliedKey) else {
         return
     }
     UserDefaults.standard.set(true, forKey: defaultInterfaceLanguageAppliedKey)
-    guard UserDefaults.standard.persistentDomain(forName: bundleIdentifier)?["AppleLanguages"] == nil else {
+    guard UserDefaults.standard.persistentDomain(forName: bundleIdentifier)?["AppleLanguages"] == nil,
+          Locale.preferredLanguages.first.flatMap({ interfaceLanguage(languageCode: $0) }) == systemLanguage
+    else {
         return
     }
     storeInterfaceLanguage(language: language)
