@@ -621,8 +621,8 @@ type EventStatements = D1PreparedStatement[];
  *   iptal edilir ve alarm yazılır. İade ya da iptal başarısız olursa Stripe olayı yeniden gönderir, kopya yine bulunur;
  *   zaten iade edilmiş ödeme atlanır, kalan iş yeniden denenir. İptalden sonra geç ödenen faturası `invoice.paid` ile
  *   aynı kurala göre iade edilir (`invoicePaidDuplicateRefund`).
- * - İptal nedeni (`cancellation_details`): olaydaki geçerli aboneliğin nedeni `subscription_cancellations`'a yazılır,
- *   iptali geri alınırsa silinir (`cancellationStatements`).
+ * - İptal nedeni (`cancellation_details`): olaydaki geçerli aboneliğin Stripe'taki güncel nedeni
+ *   `subscription_cancellations`'a yazılır, iptali geri alınırsa silinir (`cancellationStatements`).
  * - `past_due_since`: durum `past_due` olduğunda yazılır, `past_due` sürdükçe korunur, başka duruma geçince silinir;
  *   ek süre bundan hesaplanır (`entitlements.subscriptionAccess`).
  * - `plan`: geçerli aboneliğin fiyatından (`planOfSubscription`); Portal'da plan değişirse sonraki olay günceller.
@@ -715,8 +715,8 @@ async function subscriptionEventStatements(
       )
       .bind(owner.user_id, customer, current.id, state.status, state.currentPeriodEnd, state.cancelAt, event.created, nowMs, planOfSubscription(current, prices)),
     // İptal nedeni yalnızca geçerli abonelik için yazılır: bizim iptal ettiğimiz kopya aboneliklerin nedeni
-    // (`cancellation_requested`) kullanıcının iptali değildir.
-    ...(subscription.id === current.id ? cancellationStatements(db, event, subscription, owner.user_id, nowMs) : []),
+    // (`cancellation_requested`) kullanıcının iptali değildir. Olayın anlık görüntüsü değil güncel hâli yazılır.
+    ...(subscription.id === current.id ? cancellationStatements(db, event, current, owner.user_id, nowMs) : []),
     ...ours
       .filter((candidate: Stripe.Subscription): boolean => !isLiveInStripe(candidate))
       .map((ended: Stripe.Subscription): D1PreparedStatement => referralVoidUnpaidStatement(db, ended.id, nowMs)),
@@ -829,10 +829,11 @@ async function disputeStatements(db: D1Database, stripe: Stripe, platform: Platf
   return userId === null ? [] : [referralVoidByReferredStatement(db, userId, "disputed", platform.now().getTime())];
 }
 
-/** Ödemenin faturası ve faturanın aboneliği. */
+/** Ödemenin faturası (Stripe'tan okunan güncel hâli) ve faturanın aboneliği. */
 interface ChargeInvoice {
   readonly invoiceId: string;
   readonly subscriptionId: string;
+  readonly invoice: Stripe.Invoice;
 }
 
 /**
@@ -857,7 +858,24 @@ async function chargeInvoice(stripe: Stripe, platform: Platform, charge: Stripe.
   }
   const invoice: Stripe.Invoice = await callStripe(platform, "invoices.retrieve", userId, () => stripe.invoices.retrieve(invoiceId));
   const subscriptionId: string | null = invoiceSubscriptionId(invoice);
-  return subscriptionId === null ? null : { invoiceId, subscriptionId };
+  return subscriptionId === null ? null : { invoiceId, subscriptionId, invoice };
+}
+
+/**
+ * İadenin gelir ifadeleri: ödemenin faturası ödenmişse ve müşterisi tanınan hesapsa önce fatura satırı
+ * (`revenueInvoiceStatements`; `invoice.paid` ile aynı satır, zaten yazıldıysa değişmez), sonra birikimli iade. Fatura
+ * satırı iadeyle birlikte yazılır: `charge.refunded`, `invoice.paid`'den önce işlenirse iade kaybolmaz (iade satırı
+ * kayıtlı faturaya bağlıdır) ve geç gelen `invoice.paid` aynı satırı ikinci kez yazmaz. Saf fonksiyondur.
+ */
+function chargeRefundRevenueStatements(db: D1Database, event: Stripe.Event, charge: Stripe.Charge, paid: ChargeInvoice | null, userId: string | null): EventStatements {
+  if (paid === null) {
+    return [];
+  }
+  const invoiceRow: EventStatements =
+    userId !== null && paid.invoice.status === "paid"
+      ? revenueInvoiceStatements(db, userId, invoiceRevenueOf(paid.invoice, paid.invoiceId, paid.subscriptionId, event.created))
+      : [];
+  return [...invoiceRow, revenueRefundStatement(db, charge, paid.invoiceId, event.created * 1000)];
 }
 
 /** Aboneliğin son faturasının kimliği; yoksa null. Saf fonksiyondur. */
@@ -877,7 +895,8 @@ function latestInvoiceId(subscription: Stripe.Subscription): string | null {
  * aboneliğin ya da aynı aboneliğin eski bir ayının iadesi (ödenmiş güncel ay kesilmez), aynı Stripe hesabındaki başka
  * ürünün aboneliği (`isOurSubscription`), kopya aboneliğin iadesi, aboneliği bulunamayan ödeme ve kısmi iade.
  * Davet ödülü: aboneliğin herhangi bir (kısmi de olsa) iadesi bekleyen davet ödülünü düşürür (`refunded`). Gelir:
- * ödemenin faturası kayıtlı abonelik faturasıysa (`revenue_invoices`) birikimli iade tutarı yazılır (`revenueRefundStatement`).
+ * ödemenin faturası abonelik faturasıysa fatura satırı (henüz yoksa) ve birikimli iade tutarı yazılır
+ * (`chargeRefundRevenueStatements`).
  */
 async function chargeRefundedStatements(db: D1Database, stripe: Stripe, platform: Platform, event: Stripe.Event, charge: Stripe.Charge, prices: StripePrices): Promise<EventStatements> {
   const customer: string | null = charge.customer === null ? null : customerIdOf(charge.customer);
@@ -913,8 +932,8 @@ async function chargeRefundedStatements(db: D1Database, stripe: Stripe, platform
     latestInvoice: latest,
     canceled,
   });
-  // Gelir: ödemenin faturası bizim kayıtlı faturamızsa birikimli iade tutarı (kopya aboneliğin iadesi dahil).
-  const revenue: EventStatements = paid === null ? [] : [revenueRefundStatement(db, charge, paid.invoiceId, event.created * 1000)];
+  // Gelir: ödemenin faturası abonelik faturamızsa birikimli iade tutarı (kopya aboneliğin iadesi dahil).
+  const revenue: EventStatements = chargeRefundRevenueStatements(db, event, charge, paid, userId);
   if (!ends || userId === null || subscriptionId === null) {
     return [...referralVoid, ...revenue];
   }

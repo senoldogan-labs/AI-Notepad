@@ -85,9 +85,9 @@ export const scheduledCleanupLimits: CleanupLimits = { batchSize: 1000, maxBatch
 
 /**
  * Sınırlı turlarla silinecek satırlar. Saf fonksiyondur. Denetimlerin baktığı satırlar korunur:
- * - yenileme jetonları yalnızca süresi dolunca ya da ailesi düşürülünce silinir: kullanılmış jeton, bir önceki kuşak ve
- *   yeniden denemede geçersiz yazılmış halef (`supersededMarker`, bkz. `auth/tokens.ts`) yeniden kullanım ve çalınma
- *   algılaması için kalır (dönüş ailede yalnızca bunları bırakır, satır sayısı sınırlıdır); jetonu kalmayan aile silinir
+ * - yenileme jetonları yalnızca süresi dolunca ya da ailesi düşürülünce silinir: kullanılmış jetonlar ve yeniden
+ *   denemede geçersiz yazılmış halef (`supersededMarker`, bkz. `auth/tokens.ts`) yeniden kullanım ve çalınma algılaması
+ *   için kalır (ailenin satır sayısı jeton ömrü içindeki dönüş sayısıyla sınırlıdır); jetonu kalmayan aile silinir
  *   (erişim jetonu aile bulunamayınca zaten geçersizdir);
  * - deneme başlangıçları yalnızca bugün sayılır (IP başına günlük sınır), daha eskileri silinir; indirme ziyaretçi
  *   özetleri de yalnızca bugünün tekilleştirmesi içindir;

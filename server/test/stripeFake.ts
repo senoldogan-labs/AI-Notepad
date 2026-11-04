@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { randomToken } from "../src/crypto";
 import type { Harness } from "./helpers";
+import { paidInvoiceAmounts } from "./stripeEvents";
 
 /** Sahte Stripe'ın abonelik kalemi. */
 export interface FakeSubscriptionItem {
@@ -39,10 +40,11 @@ export interface FakeSubscription {
   readonly items: { readonly object: "list"; readonly data: readonly FakeSubscriptionItem[] };
 }
 
-/** Sahte Stripe'ın faturası: aboneliği, ödenip ödenmediği ve kesildiği an (saniye). */
+/** Sahte Stripe'ın faturası: aboneliği, ödenip ödenmediği, ödenen tutar (sent, usd) ve kesildiği an (saniye). */
 export interface FakeInvoice {
   readonly subscription: string;
   readonly paid: boolean;
+  readonly amountPaid: number;
   readonly created: number;
 }
 
@@ -187,6 +189,7 @@ export function stubStripeApi(harness: Harness): FakeStripe {
       return list("/v1/invoice_payments", paid);
     }
     const invoiceObject = (id: string, entry: FakeInvoice): object => ({
+      ...paidInvoiceAmounts(entry.amountPaid, 0, entry.created, "usd"),
       id,
       object: "invoice",
       status: entry.paid ? "paid" : "open",

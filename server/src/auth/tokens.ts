@@ -19,8 +19,7 @@ export const refreshRetryWindowMs: number = 10 * 60_000;
 /**
  * Yeniden denemede yerine yenisi verilen (kullanılmamış) eski halefin `replaced_by` işareti. Satır silinmez: o jeton
  * sonradan gelirse eski jeton iki ayrı eldeymiş demektir (biri yeniden denedi, öbürü halefi tutuyordu) ve tüm aile
- * düşürülür. Ne dönüşteki temizlik ne günlük temizlik (`cleanup.ts`) bu satırları silmez; süresi dolunca ya da aile
- * düşürülünce silinir.
+ * düşürülür. Günlük temizlik (`cleanup.ts`) satırı ancak süresi dolunca ya da aile düşürülünce siler.
  */
 const supersededMarker: string = "superseded";
 
@@ -163,8 +162,11 @@ async function sessionFor(config: Config, row: RefreshRow, refreshToken: string,
  * Yenileme jetonunu tek seferlik kullanır ve aynı ailede yenisini verir; kullanılan jetonun yerine geçen jeton
  * (`replaced_by`) yazılır. Jetonu "kullanılmış" yapma, yenisini ekleme ve eski jetonları silme tek D1 toplu işlemidir
  * (`claimAndRotate`): istek yarıda kalırsa ya hepsi olur ya hiçbiri; jeton kullanılmış sayılıp yerine geçen jeton
- * eklenmemiş kalamaz. Ailede yalnızca son iki kullanılmış jeton (şimdi kullanılan ve ondan önceki) kalır, daha eskileri
- * silinir: tablo oturum başına büyümez, yeniden kullanım algılaması bir kuşak geriye bakar.
+ * eklenmemiş kalamaz. Kullanılmış jetonların özetleri kendi süreleri dolana dek (`expires_at`, verildikten
+ * `refreshTokenMs` sonra) ailede kalır ve günlük temizlik (`cleanup.ts`) onları süresi dolunca siler: ailenin satır
+ * sayısı en çok bu süre içindeki dönüş sayısı kadardır. Böylece ailenin daha önce kullanılmış herhangi bir jetonu
+ * (yalnızca bir önceki kuşak değil) süresi dolana dek yeniden gelirse aile düşer: çalınan, henüz kullanılmamış bir jetonu
+ * saldırgan art arda döndürse de gerçek istemci o jetonu sunduğunda kayıt durur.
  *
  * Kullanılmış bir jeton yeniden gelirse kural:
  * - yerine geçen jeton hiç kullanılmadıysa ve jeton `refreshRetryWindowMs` içinde kullanıldıysa yanıt kaybolmuştur
@@ -215,10 +217,10 @@ export async function rotateRefreshToken(db: D1Database, config: Config, refresh
 
 /**
  * Tek toplu işlemde (D1 işlemi): jeton kullanılmamış, süresi dolmamış ve ailesi düşürülmemişse "kullanılmış" yapılır ve
- * `replaced_by` yeni jetonu gösterir; yeni jeton eklenir; ailenin kullanılmış jetonlarından bu jeton ve ondan önceki
- * (yerine bu jetonun geçtiği) dışındakiler silinir. Sonraki ifadeler yalnızca ilki uygulandıysa etkilidir (yeni jetonun
- * özeti rastgeledir: `replaced_by = yeni` yalnızca bu istekte doğrudur); eşzamanlı iki yenilemeden yalnızca biri jetonu
- * alabilir. Alındıysa true.
+ * `replaced_by` yeni jetonu gösterir; yeni jeton eklenir. Kullanılmış jetonlar silinmez (yeniden kullanım algılaması
+ * için süreleri dolana dek kalır, bkz. `rotateRefreshToken`). İkinci ifade yalnızca ilki uygulandıysa etkilidir (yeni
+ * jetonun özeti rastgeledir: `replaced_by = yeni` yalnızca bu istekte doğrudur); eşzamanlı iki yenilemeden yalnızca biri
+ * jetonu alabilir. Alındıysa true.
  */
 async function claimAndRotate(db: D1Database, config: Config, tokenHash: string, nextHash: string, now: Date): Promise<boolean> {
   const nowMs: number = now.getTime();
@@ -235,14 +237,7 @@ async function claimAndRotate(db: D1Database, config: Config, tokenHash: string,
         `INSERT INTO refresh_tokens (token_hash, family_id, created_at, expires_at)
          SELECT ?1, family_id, ?2, ?3 FROM refresh_tokens WHERE token_hash = ?4 AND replaced_by = ?1`,
       )
-      .bind(nextHash, nowMs, nowMs + config.refreshTokenMs, tokenHash),
-    db
-      .prepare(
-        `DELETE FROM refresh_tokens
-         WHERE family_id = (SELECT family_id FROM refresh_tokens WHERE token_hash = ?1 AND replaced_by = ?2)
-           AND used_at IS NOT NULL AND token_hash <> ?1 AND COALESCE(replaced_by, '') NOT IN (?1, ?3)`,
-      )
-      .bind(tokenHash, nextHash, supersededMarker),
+      .bind(nextHash, nowMs, nowMs + config.refreshTokenMs, tokenHash)
   ]);
   return results[0]?.meta.changes === 1;
 }

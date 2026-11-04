@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
+import { type AppStoreSubscription, appStoreSyncStatements } from "../src/appStore";
 import { randomId } from "../src/crypto";
 import type { Env } from "../src/env";
 import { type Harness, type Session, defaultHarness, envWith, expectError, grantAppStoreSubscription, grantSubscription, req, signIn, signInWithGoogle, startMeeting } from "./helpers";
@@ -321,6 +322,39 @@ describe("POST /v1/webhooks/revenuecat", () => {
     expect((await appStoreRow(to.userId))?.status).toBe("active");
     expect((await me(harness, from)).plan).toBe("trial");
     expect((await me(harness, to)).subscriptionSources).toEqual(["app_store"]);
+  });
+
+  it("aktarımdan önce başlamış eski okuma, aktarımla silinen satırı yeniden yaratmaz; daha yeni okuma yazar", async () => {
+    const harness: Harness = await defaultHarness();
+    const fake: FakeRevenueCat = stubRevenueCat(harness);
+    const from: Session = await signIn(harness);
+    const item: FakeSubscription = subscription({ expiresMs: harness.clock.nowMs + 20 * dayMs });
+    await subscribeViaAppStore(harness, fake, from, item, monthly);
+    const staleReadMs: number = harness.clock.nowMs + 1_000;
+    const active: AppStoreSubscription = {
+      store: "app_store",
+      productId: monthly,
+      plan: "monthly",
+      status: "active",
+      periodType: "normal",
+      purchasedAt: item.purchasedMs,
+      expiresAt: item.expiresMs,
+      graceExpiresAt: null,
+      environment: "PRODUCTION",
+    };
+    // Aktarım: daha yeni okuma aboneliği bulamaz, satır silinir.
+    harness.clock.nowMs += 5_000;
+    fake.subscribers.set(from.userId, {});
+    const transfer: WebhookEvent = { id: randomId(), type: "TRANSFER", environment: "PRODUCTION", transferred_from: [from.userId], transferred_to: [] };
+    expect((await postWebhook(harness, transfer, webhookAuth, null)).status).toBe(200);
+    expect(await appStoreRow(from.userId)).toBeNull();
+    // Aktarımdan önce yanıtlanmış (eski) okuma şimdi yazılmaya çalışır: satır geri gelmez, hesap abone olmaz.
+    await env.DB.batch(appStoreSyncStatements(env.DB, from.userId, active, null, staleReadMs, harness.clock.nowMs));
+    expect(await appStoreRow(from.userId)).toBeNull();
+    expect((await me(harness, from)).plan).toBe("trial");
+    // Aktarımdan sonraki okuma (ör. satın alma geri aktarıldı) yine yazar.
+    await env.DB.batch(appStoreSyncStatements(env.DB, from.userId, active, null, harness.clock.nowMs + 1_000, harness.clock.nowMs));
+    expect((await appStoreRow(from.userId))?.status).toBe("active");
   });
 
   it("bilinmeyen kullanıcı: 200, RevenueCat çağrılmaz, Sorunlar'a sayılır", async () => {

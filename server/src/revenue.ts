@@ -87,7 +87,9 @@ export function firstPaidAtSql(userRef: string): string {
 
 /**
  * `charge.refunded` gelir ifadesi: ödemenin faturası `revenue_invoices`'ta ise (bizim abonelik faturamız) birikimli iade
- * tutarı yazılır; tutar büyüdüyse gün ve an güncellenir (yinelenen ya da sırasız olay tutarı küçültmez).
+ * tutarı yazılır; tutar büyüdüyse gün ve an güncellenir (yinelenen ya da sırasız olay tutarı küçültmez). Fatura satırı
+ * henüz yoksa (iade `invoice.paid`'den önce işlendi) çağıran onu aynı toplu işlemde bu ifadeden önce yazar
+ * (`billing.ts`, `chargeRefundRevenueStatements`).
  */
 export function revenueRefundStatement(db: D1Database, charge: Stripe.Charge, invoiceId: string, refundedAtMs: number): D1PreparedStatement {
   return db

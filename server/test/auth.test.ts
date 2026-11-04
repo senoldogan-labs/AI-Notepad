@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { type JWK, SignJWT, exportJWK, generateKeyPair } from "jose";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { appleIssuer, appleJwksUrl } from "../src/auth/apple";
 import { googleJwksUrl } from "../src/auth/google";
 import { jwksCacheTtlMs, jwksStaleMaxMs } from "../src/auth/identityToken";
@@ -406,17 +406,55 @@ describe("yenileme jetonu ve çıkış", () => {
     expect((await harness.call(req("GET", "/v1/me", { token: (await retried.json<Session>()).accessToken }))).status).toBe(200);
   });
 
-  it("dönüşte ailede yalnızca son iki kullanılmış jeton kalır", async () => {
+  it("çalınan, henüz kullanılmamış jeton art arda döndürülse de gerçek istemci onu sununca tüm aile düşer ve alarm yazılır", async () => {
+    const harness: Harness = await defaultHarness();
+    const stolen: Session = await signIn(harness);
+    // Saldırgan çalınan jetonu (gerçek istemci de tutuyor) üç kez döndürür: ilk jeton artık iki kuşaktan daha eskidir.
+    let attacker: Session = stolen;
+    for (let index: number = 0; index < 3; index += 1) {
+      harness.clock.nowMs += 60_000;
+      attacker = await (await harness.call(req("POST", "/v1/auth/refresh", { json: { refreshToken: attacker.refreshToken } }))).json<Session>();
+    }
+    // Mac uykudan uyanır; arada gece temizliği çalışır.
+    harness.clock.nowMs += 6 * 3_600_000;
+    await cleanupExpiredRows(env.DB, new Date(harness.clock.nowMs), scheduledCleanupLimits);
+    const alerts = vi.spyOn(console, "error");
+    try {
+      await expectError(await harness.call(req("POST", "/v1/auth/refresh", { json: { refreshToken: stolen.refreshToken } })), 401, "invalid_token");
+      const family = await env.DB.prepare("SELECT revoked_at, revoke_reason FROM refresh_families WHERE user_id = ?")
+        .bind(stolen.userId)
+        .first<{ revoked_at: number | null; revoke_reason: string | null }>();
+      expect(family).toEqual({ revoked_at: harness.clock.nowMs, revoke_reason: "refresh_reuse" });
+      expect(alerts.mock.calls.some((call: unknown[]): boolean => String(call[0]).includes('"event":"refresh_token_reuse"'))).toBe(true);
+    } finally {
+      alerts.mockRestore();
+    }
+    // Saldırganın oturumu da düşer.
+    await expectError(await harness.call(req("POST", "/v1/auth/refresh", { json: { refreshToken: attacker.refreshToken } })), 401, "invalid_token");
+    await expectError(await harness.call(req("GET", "/v1/me", { token: attacker.accessToken })), 401, "invalid_token");
+  });
+
+  it("kullanılmış jetonlar süreleri dolana dek kalır, günlük temizlik onları süresi dolunca siler", async () => {
     const harness: Harness = await defaultHarness();
     let session: Session = await signIn(harness);
     for (let index: number = 0; index < 5; index += 1) {
       session = await (await harness.call(req("POST", "/v1/auth/refresh", { json: { refreshToken: session.refreshToken } }))).json<Session>();
     }
     const family = await env.DB.prepare("SELECT id FROM refresh_families WHERE user_id = ?").bind(session.userId).first<{ id: string }>();
-    const rows = await env.DB.prepare("SELECT used_at IS NOT NULL AS used FROM refresh_tokens WHERE family_id = ? ORDER BY used")
-      .bind(family?.id ?? "")
-      .all<{ used: number }>();
-    expect(rows.results).toEqual([{ used: 0 }, { used: 1 }, { used: 1 }]);
+    const usedCount = async (): Promise<Array<{ used: number; count: number }>> =>
+      (
+        await env.DB.prepare("SELECT used_at IS NOT NULL AS used, COUNT(*) AS count FROM refresh_tokens WHERE family_id = ? GROUP BY used ORDER BY used")
+          .bind(family?.id ?? "")
+          .all<{ used: number; count: number }>()
+      ).results;
+    expect(await usedCount()).toEqual([
+      { used: 0, count: 1 },
+      { used: 1, count: 5 },
+    ]);
+    // Jeton ömrü (60 gün) geçince kullanılmışlar silinir; son jeton da dolduysa aile de silinir.
+    harness.clock.nowMs += 61 * 86_400_000;
+    await cleanupExpiredRows(env.DB, new Date(harness.clock.nowMs), scheduledCleanupLimits);
+    expect(await usedCount()).toEqual([]);
   });
 
   it("süresi dolmuş erişim jetonu reddedilir, yenileme yeni jeton verir", async () => {
