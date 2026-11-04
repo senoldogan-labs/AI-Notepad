@@ -198,10 +198,22 @@ public struct HostedSyncClient: Sendable {
     /// One page of changes after `since` (0 for everything). `epoch` is the account epoch the cursor belongs to (nil
     /// with `since` 0). A stale cursor is `cursorExpired`.
     public func changes(since: UInt64, epoch: Int64?, limit: Int) async throws -> HostedSyncChanges {
-        var query: String = "since=\(since)&limit=\(min(max(limit, 1), SyncLimits.changesMaxLimit))"
-        if let epoch {
-            query += "&epoch=\(epoch)"
-        }
+        try await changesPage(query: changesQuery(since: since, epoch: epoch, limit: limit))
+    }
+
+    /// A later page of a listing that started at 0 (after `cursorExpired`): it may pass tombstones the server purged
+    /// meanwhile (`listing=full`), since the caller compares the whole listing with what it knows
+    /// (`missingFromFullListing`). Another epoch is still `cursorExpired`.
+    public func fullListingChanges(since: UInt64, epoch: Int64, limit: Int) async throws -> HostedSyncChanges {
+        try await changesPage(query: changesQuery(since: since, epoch: epoch, limit: limit) + "&listing=full")
+    }
+
+    private func changesQuery(since: UInt64, epoch: Int64?, limit: Int) -> String {
+        let query: String = "since=\(since)&limit=\(min(max(limit, 1), SyncLimits.changesMaxLimit))"
+        return epoch.map { query + "&epoch=\($0)" } ?? query
+    }
+
+    private func changesPage(query: String) async throws -> HostedSyncChanges {
         let response = try await send(path: "/v1/sync/changes?\(query)", method: "GET", body: nil, headers: [:], objectID: nil, timeoutSec: syncJSONTimeoutSec)
         return try decode(HostedSyncChanges.self, data: response.data)
     }
