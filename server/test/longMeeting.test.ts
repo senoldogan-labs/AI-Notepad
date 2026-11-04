@@ -73,16 +73,18 @@ async function subscriberMeeting(harness: Harness): Promise<{ session: Session; 
 }
 
 describe("uzun toplantı: bütçe ve not payı", () => {
-  it("4 saatlik abonelik toplantısının bütçesi ölçülen canlı çeviri hızına ve nota yeter", () => {
+  // Bütçeler maliyet kararıyla sabit (2026-11-04): not payı en uzun toplantının notunu her zaman taşır; canlı çeviri
+  // ölçülen hızda abonede ~3 saat 20 dk, denemede ~75 dk sürer, sonra durur (not yine yazılır).
+  it("not payı en uzun toplantının notunu taşır; canlı çeviri bütçesi ölçülen hızda çoğu toplantıya yeter", () => {
     const config = parseConfig(env);
     const liveTokensPerHour: number = 662_000;
     const noteTokens4h: number = 300_000;
     const reserve: number = meetingNoteReserveTokens(config.subscriberMeetingTokenBudget);
     expect(reserve).toBeGreaterThanOrEqual(noteTokens4h);
-    expect(config.subscriberMeetingTokenBudget - reserve).toBeGreaterThanOrEqual((liveTokensPerHour * config.subscriberMaxMeetingMinutes) / 60);
+    expect(config.subscriberMeetingTokenBudget - reserve).toBeGreaterThanOrEqual(liveTokensPerHour * 3);
     const trialReserve: number = meetingNoteReserveTokens(config.trialMeetingTokenBudget);
     expect(trialReserve).toBeGreaterThanOrEqual(100_000);
-    expect(config.trialMeetingTokenBudget - trialReserve).toBeGreaterThanOrEqual((liveTokensPerHour * config.trialMaxMeetingMinutes) / 60);
+    expect(config.trialMeetingTokenBudget - trialReserve).toBeGreaterThanOrEqual(liveTokensPerHour);
     // Günlük sınır en uzun toplantının bütçesini taşır.
     expect(config.dailyTokenCap).toBeGreaterThanOrEqual(config.subscriberMeetingTokenBudget);
     // Yeniden açılan uzun toplantının payı 4 saatlik notu taşır; deneme toplantısı en az payı alır.

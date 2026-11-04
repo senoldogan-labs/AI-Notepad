@@ -130,23 +130,25 @@
     // - "Ne kaçırdım?" ve Sor: ~10 kullanım × ~4 K ≈ 40 K (deneme ~15 K).
     // - Toplantı sonu not (parçalı not + birleştirme): 4 saatlik metin ~21 parça × ~13 K + birleştirme ≈ 300 K
     //   (90 dakika ≈ 100 K).
-    // Toplam 4 saat ≈ 3,0 M, pay → 3,2 M. Deneme (90 dk) ≈ 1,1 M, pay → 1,25 M.
+    // Toplam 4 saat ≈ 3,0 M, deneme (90 dk) ≈ 1,1 M. Bütçeler bilerek artırılmadı (sahip kararı, 2026-11-04: kullanıcı
+    // başına maliyet abonelik gelirinin altında kalsın): abone 2,6 M, deneme 1,0 M. Çok konuşulan 4 saatlik toplantıda
+    // canlı çeviri sona doğru durabilir; not aşağıdaki payla her zaman yazılır.
     // Bütçenin %15'i nota ayrılır (`meetingNoteReserveShare`): canlı çağrılar (çeviri, "Ne kaçırdım?", soru) onu
     // kullanamaz; çok konuşulan uzun toplantıda canlı çeviri durur ama not her zaman yazılır.
-    // Maliyet üst sınırı (girdi ağırlıklı, 0,10 $/M girdi, 0,50 $/M çıktı): 4 saatlik toplantı < ~0,50 $.
+    // Maliyet üst sınırı (girdi ağırlıklı, 0,10 $/M girdi, 0,50 $/M çıktı): 4 saatlik toplantı < ~0,40 $.
     // Not: çağrı başına `tahmin + max_tokens` önceden ayrılır, sonra gerçek kullanıma indirilir; bütçe gerçek kullanımı ölçer.
-    "TRIAL_MEETING_TOKEN_BUDGET": "1250000",
-    "SUBSCRIBER_MEETING_TOKEN_BUDGET": "3200000",
+    "TRIAL_MEETING_TOKEN_BUDGET": "1000000",
+    "SUBSCRIBER_MEETING_TOKEN_BUDGET": "2600000",
     // Kullanıcı başına token sınırları (yeni toplantı açmak bütçeyi sıfırlamasın diye):
-    // - Saatlik oran yukarıdaki ölçümden: canlı çeviri + not ≈ 0,75 M token/saat.
-    // - Aylık: 10 saat × 0,75 M = 7,5 M + toplantı dışı kullanım payı → 8,5 M (en çok ~1,2 $/ay).
-    // - Günlük: en uzun tek toplantının bütçesi (3,2 M) sığsın, kısa ek kullanım kalsın → 3,6 M.
-    "MONTHLY_TOKEN_CAP": "8500000",
+    // - Aylık 6,5 M (en çok ~0,9 $/ay), günlük 3,0 M (en uzun tek toplantının bütçesi 2,6 M sığsın, kısa ek kullanım
+    //   kalsın). Ölçülen oran (canlı çeviri + not ≈ 0,75 M/saat) ile aylık 10 saatin tamamı canlı çeviriyle geçerse
+    //   sınır ay sonuna doğru dolabilir; bilinçli maliyet kararı (bkz. üstteki bütçe açıklaması).
+    "MONTHLY_TOKEN_CAP": "6500000",
     // Abonenin toplantıya bağlı olmayan çağrıları (Sor, notu yeniden yazma, düzenleme, görev aracı) için aylık ayrı sınır
     // (MONTHLY_TOKEN_CAP'in parçası; toplantı bütçeleri değişmez). Türetme: notu yeniden yazmak ~100 K, Sor ~10–30 K →
     // 1,5 M ≈ ayda ~15 not yenileme ya da ~50–100 soru; en çok ~0,2 $/ay. Aşılınca `403 monthly_cap_reached`.
     "MONTHLY_ACCOUNT_TOKEN_CAP": "1500000",
-    "DAILY_TOKEN_CAP": "3600000",
+    "DAILY_TOKEN_CAP": "3000000",
     "MAX_MEETING_STARTS_PER_DAY": "20",
     "LLM_MAX_TOKENS": "8192",
     // Toplantıya bağlı olmayan çağrı (Sor, notu yeniden yazma, düzenleme, görev aracı): daha küçük çağrı başı sınır.
@@ -296,12 +298,12 @@
         "MEETING_PROCESSING_HOURS": "24",
         "PAST_DUE_GRACE_DAYS": "7",
         // Türetme: üstteki geliştirme `vars` açıklaması.
-        "TRIAL_MEETING_TOKEN_BUDGET": "1250000",
-        "SUBSCRIBER_MEETING_TOKEN_BUDGET": "3200000",
-        "MONTHLY_TOKEN_CAP": "8500000",
+        "TRIAL_MEETING_TOKEN_BUDGET": "1000000",
+        "SUBSCRIBER_MEETING_TOKEN_BUDGET": "2600000",
+        "MONTHLY_TOKEN_CAP": "6500000",
         // Bkz. üstteki geliştirme `vars` açıklaması.
         "MONTHLY_ACCOUNT_TOKEN_CAP": "1500000",
-        "DAILY_TOKEN_CAP": "3600000",
+        "DAILY_TOKEN_CAP": "3000000",
         "MAX_MEETING_STARTS_PER_DAY": "20",
         "LLM_MAX_TOKENS": "8192",
         // Toplantıya bağlı olmayan çağrı (Sor, notu yeniden yazma, düzenleme, görev aracı): daha küçük çağrı başı sınır.

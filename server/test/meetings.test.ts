@@ -136,7 +136,7 @@ describe("haklar ve toplantı oturumları", () => {
       const response: Response = await startMeeting(harness, session);
       expect(response.status).toBe(201);
       const body: StartedMeetingBody = await response.json<StartedMeetingBody>();
-      expect(body).toMatchObject({ kind: "trial", maxDurationMinutes: 90, tokenBudget: 1250000, trialMeetingsLeft: left });
+      expect(body).toMatchObject({ kind: "trial", maxDurationMinutes: 90, tokenBudget: 1000000, trialMeetingsLeft: left });
       harness.clock.nowMs += 60_000;
     }
     await expectError(await startMeeting(harness, session), 402, "trial_exhausted");
@@ -447,7 +447,7 @@ it("abone aylık sınırın altında toplantı açar; sınır dolunca reddedilir
     expect((await me(harness, session)).plan).toBe("subscription");
 
     const first: StartedMeetingBody = await (await startMeeting(harness, session)).json<StartedMeetingBody>();
-    expect(first).toMatchObject({ kind: "subscription", maxDurationMinutes: 240, tokenBudget: 3200000, trialMeetingsLeft: null });
+    expect(first).toMatchObject({ kind: "subscription", maxDurationMinutes: 240, tokenBudget: 2600000, trialMeetingsLeft: null });
     expect((await me(harness, session)).trialMeetingsLeft).toBe(3);
 
     // 9,5 saatlik ses kullanılmış: kalan 30 dakika, toplantı süresi buna kısalır.
