@@ -77,9 +77,9 @@ public func diagnosticErrorArea(code: String) -> String {
 
 /// Bu uygulama oturumunun son hataları (`subsystem` günlüğünden, ana iş parçacığı dışında; bkz. `loadRecentAppErrors`).
 public func loadRecentAppErrorsInBackground(subsystem: String, userNames: [String]) async -> Result<[DiagnosticErrorEntry], any Error> {
-    await Task.detached(priority: .utility) { () -> Result<[DiagnosticErrorEntry], any Error> in
+    await runBlocking(qos: .utility) { () -> Result<[DiagnosticErrorEntry], any Error> in
         Result { try loadRecentAppErrors(subsystem: subsystem, capacity: diagnosticErrorCapacity, userNames: userNames) }
-    }.value
+    }
 }
 
 /// Sunucuya erişimi denetler (bkz. `checkAPIHealth`); adres yoksa nil (bölüm adres hatasını gösterir). URLError dışı

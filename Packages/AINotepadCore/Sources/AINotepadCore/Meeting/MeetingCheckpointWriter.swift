@@ -20,7 +20,10 @@ public final class MeetingCheckpointWriter {
         pending = Task.detached(priority: .utility) { () async -> Void in
             await previous?.value
             do {
-                try saveMeeting(record: record, directory: directory, ticket: ticket)
+                // Kodlama ve koordineli yazım havuz dışında: büyük kayıtta ve iCloud koordinasyonunda uzun sürebilir.
+                try await runBlocking(qos: .utility) { () throws -> Void in
+                    try saveMeeting(record: record, directory: directory, ticket: ticket)
+                }
             } catch {
                 await onFailure(error)
             }

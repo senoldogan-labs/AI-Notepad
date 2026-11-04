@@ -261,9 +261,9 @@ private func loadMeetingFolder(folder: URL) -> FolderLoadOutcome {
 /// olabilir) ve dosyalar arka planda okunur. Sonuç `loadMeetings(directories:)` ile aynıdır. Klasör çözülemezse
 /// (ör. iCloud kullanılamıyor) hata fırlatır.
 public func loadMeetingsInBackground(location: StorageLocation) async throws -> MeetingLoadResult {
-    try await Task.detached(priority: .userInitiated) { () throws -> MeetingLoadResult in
+    try await runBlocking(qos: .userInitiated) { () throws -> MeetingLoadResult in
         loadMeetings(directories: try AppPaths.meetingDirectories(location: location))
-    }.value
+    }
 }
 
 /// iCloud'dan inmemiş dosyanın iPhone'daki yer tutucusu (".ad.icloud"). Saf fonksiyondur.

@@ -180,7 +180,7 @@ private enum DeletedFolderOutcome {
 /// Son silinenleri arka planda okur (bkz. `loadRecentlyDeleted`).
 public func loadRecentlyDeletedInBackground() async throws -> DeletedMeetingsLoadResult {
     let directory: URL = try AppPaths.recentlyDeletedDirectory()
-    return await Task.detached(priority: .userInitiated) { () -> DeletedMeetingsLoadResult in
+    return await runBlocking(qos: .userInitiated) { () -> DeletedMeetingsLoadResult in
         loadRecentlyDeleted(directory: directory)
-    }.value
+    }
 }

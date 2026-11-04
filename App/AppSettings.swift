@@ -502,7 +502,7 @@ func chooseOnDeviceOnFirstRun(defaults: UserDefaults) async -> Bool {
     }
     for account in [SecretAccount.deepgram, .elevenlabs, .anthropic, .openai] {
         do {
-            if try await Task.detached(operation: { try secretExists(service: appKeychainService, account: account) }).value {
+            if try await runBlocking(qos: .userInitiated, operation: { () throws -> Bool in try secretExists(service: appKeychainService, account: account) }) {
                 return false
             }
         } catch {

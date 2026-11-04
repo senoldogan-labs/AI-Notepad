@@ -66,7 +66,7 @@ private enum SecretStatus: Equatable {
 /// Kayıt durumu; değer okunmadığı için izin penceresi açılmaz. Arka planda sorulur.
 private func currentStatus(account: SecretAccount) async -> SecretStatus {
     do {
-        let exists: Bool = try await Task.detached { try secretExists(service: appKeychainService, account: account) }.value
+        let exists: Bool = try await runBlocking(qos: .userInitiated) { () throws -> Bool in try secretExists(service: appKeychainService, account: account) }
         return exists ? .saved : .missing
     } catch {
         return .failed(userFacingMessage(error: error))

@@ -124,17 +124,23 @@ private func hybridConfig(directory: URL) -> HybridLiveSessionConfig {
     }
 
     // "Bitir"in süresi dolunca (iPhone) oturum bırakılır: ses akışları bitmemiş ve Deepgram bağlanırken takılmış olsa da
-    // olay akışı hemen biter, ses dosyaya yazılmaya devam eder.
+    // olay akışı hemen biter, ses dosyaya yazılmaya devam eder. Jeton kapıyla tutulur ve ses akışları test bitene dek
+    // açık kalır: olay akışının bitmesi yalnızca `cancel()`'a bağlıdır, jetona ya da sese bağımlılık testi her seferinde
+    // askıda bırakır. Önceden "2 sn içinde" diye duvar saatiyle ölçülüyordu; yüklü CI'da süreç 15 sn donunca birkaç
+    // aktör geçişi 3,85 sn sürdü. Süre sınırı artık yalnızca askıda kalmayı yakalar.
     @Test func cancelEndsSessionWhileAudioIsStillOpen() async throws {
         let directory: URL = try temporaryDirectory()
         let (me, meInput): (AsyncStream<[Float]>, AsyncStream<[Float]>.Continuation) = AsyncStream.makeStream(of: [Float].self)
         let (others, othersInput): (AsyncStream<[Float]>, AsyncStream<[Float]>.Continuation) = AsyncStream.makeStream(of: [Float].self)
+        let tokenRequested: TestGate = TestGate()
+        let releaseToken: TestGate = TestGate()
         let source: DeepgramLiveSource = DeepgramLiveSource(
             language: .finnish, keyterms: [], options: DeepgramListenOptions(model: "nova-3", optOutOfModelImprovement: true),
             onConnectionEvent: { (_: DeepgramConnectionEvent) -> Void in }
         ) { () async throws -> String in
-            // Jeton hiç gelmiyor (sunucu yanıt vermiyor).
-            try await Task.sleep(for: .seconds(30))
+            // Jeton gelmiyor (sunucu yanıt vermiyor); test sonunda bırakılır.
+            tokenRequested.open()
+            await releaseToken.wait()
             return "gec-jeton"
         }
         let handle: LiveSessionHandle = runHybridLiveSession(
@@ -143,12 +149,14 @@ private func hybridConfig(directory: URL) -> HybridLiveSessionConfig {
             recording: startHybridRecording(directory: directory, meAudio: me, othersAudio: others)
         )
         othersInput.yield(silence(seconds: 1))
-        try await Task.sleep(for: .milliseconds(200))
-        let clock: ContinuousClock = ContinuousClock()
-        let cancelledAt: ContinuousClock.Instant = clock.now
+        // Deepgram bağlanırken takıldı (jeton istendi, gelmiyor).
+        #expect(await completes(within: hangDetectionLimit) { await tokenRequested.wait() })
         await handle.cancel()
-        for await _ in handle.events {}
-        #expect(clock.now - cancelledAt < .seconds(2))
+        let ended: Bool = await completes(within: hangDetectionLimit) {
+            for await _ in handle.events {}
+        }
+        #expect(ended, "olay akışı cancel() sonrası bitmedi")
+        releaseToken.open()
         meInput.finish()
         othersInput.finish()
     }

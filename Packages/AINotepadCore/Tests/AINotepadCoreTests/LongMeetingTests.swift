@@ -152,23 +152,27 @@ private func syntheticMeeting(hours: Double) -> [StoredSegment] {
 
     // Uzun kesintiden sonra biriken ses (30 dakika ≈ 29 milyon örnek) yarım saniyelik parçalarla doğrusal sürede
     // gönderilir; yeniden bağlanmada geri alınan parçalar başa döner ve sıra korunur.
-    @Test func sampleQueueDrainsLongBacklogLinearly() {
-        var queue: SampleQueue = SampleQueue()
-        let backlog: [Float] = (0..<(30 * 60 * 16000)).map { Float($0 % 1000) }
-        queue.append(contentsOf: backlog)
-        let clock: ContinuousClock = ContinuousClock()
-        var sent: Int = 0
-        var lastFirst: Float = -1
-        let elapsed: Duration = clock.measure {
-            while !queue.isEmpty {
-                let chunk: [Float] = queue.popFront(maxCount: 8000)
-                sent += chunk.count
-                lastFirst = chunk.first ?? -1
+    @Test func sampleQueueDrainsLongBacklogLinearly() async {
+        let drained: SampleQueueDrain = await offCooperativePool { () -> SampleQueueDrain in
+            var queue: SampleQueue = SampleQueue()
+            let backlog: [Float] = (0..<(30 * 60 * 16000)).map { Float($0 % 1000) }
+            queue.append(contentsOf: backlog)
+            let clock: ContinuousClock = ContinuousClock()
+            var sent: Int = 0
+            var lastFirst: Float = -1
+            let elapsed: Duration = clock.measure {
+                while !queue.isEmpty {
+                    let chunk: [Float] = queue.popFront(maxCount: 8000)
+                    sent += chunk.count
+                    lastFirst = chunk.first ?? -1
+                }
             }
+            return SampleQueueDrain(sent: sent, total: backlog.count, lastFirst: lastFirst, expectedLastFirst: backlog[backlog.count - 8000], elapsed: elapsed)
         }
-        #expect(sent == backlog.count)
-        #expect(lastFirst == backlog[backlog.count - 8000])
-        #expect(elapsed < .seconds(5))
+        #expect(drained.sent == drained.total)
+        #expect(drained.lastFirst == drained.expectedLastFirst)
+        #expect(drained.elapsed < .seconds(5))
+        var queue: SampleQueue = SampleQueue()
         queue.append(contentsOf: [1, 2, 3, 4])
         let taken: [Float] = queue.popFront(maxCount: 3)
         queue.prepend(taken)
@@ -187,4 +191,13 @@ private func syntheticMeeting(hours: Double) -> [StoredSegment] {
         let records: [MeetingRecord] = [make("a", .processing), make("b", .processing), make("c", .recording), make("d", .done)]
         #expect(processingToResume(records: records, linkedRecordIDs: ["a", "c", "d"]).map(\.id) == ["a"])
     }
+}
+
+/// Uzun birikimin boşaltılma sonucu (`sampleQueueDrainsLongBacklogLinearly`).
+private struct SampleQueueDrain: Sendable {
+    let sent: Int
+    let total: Int
+    let lastFirst: Float
+    let expectedLastFirst: Float
+    let elapsed: Duration
 }
