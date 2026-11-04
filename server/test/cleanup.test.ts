@@ -253,6 +253,43 @@ describe("süresi dolmuş satırların temizliği", () => {
     expect(await ids("SELECT stripe_subscription_id AS id FROM subscription_cancellations")).toEqual(["sub_c_new"]);
   });
 
+  it("13 aydan eski toplantının Deepgram satırı silinmez, rastgele kimlikle toplantıdan koparılır; bütçe değişmez", async () => {
+    const userId: string = await insertUser();
+    const oldMeeting: string = randomId();
+    const recentMeeting: string = randomId();
+    const budgetBefore = await env.DB.prepare("SELECT charged_seconds, meetings FROM deepgram_budget WHERE id = 1").first<{
+      charged_seconds: number;
+      meetings: number;
+    }>();
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO meeting_sessions (id, user_id, device_id, kind, started_at, max_ends_at, token_budget) VALUES
+           (?1, ?3, NULL, 'subscription', ?4, ?4, 1), (?2, ?3, NULL, 'subscription', ?5, ?5, 1)`,
+      ).bind(oldMeeting, recentMeeting, userId, nowMs - 396 * dayMs, nowMs - 394 * dayMs),
+      env.DB.prepare(
+        `INSERT INTO deepgram_live_meetings (meeting_id, grants, first_grant_at, charged_seconds, settled_at) VALUES
+           (?1, 2, ?3, 600, ?3), (?2, 1, ?4, 300, ?4)`,
+      ).bind(oldMeeting, recentMeeting, nowMs - 396 * dayMs, nowMs - 394 * dayMs),
+    ]);
+
+    await cleanupExpiredRows(env.DB, now, { batchSize: 1000, maxBatchesPerTable: 3 });
+
+    const rows = await env.DB.prepare(
+      "SELECT meeting_id, grants, charged_seconds FROM deepgram_live_meetings WHERE first_grant_at IN (?, ?) ORDER BY first_grant_at",
+    )
+      .bind(nowMs - 396 * dayMs, nowMs - 394 * dayMs)
+      .all<{ meeting_id: string; grants: number; charged_seconds: number }>();
+    expect(rows.results).toHaveLength(2);
+    expect(rows.results[0]?.meeting_id).toMatch(/^unlinked_[0-9a-f]{32}$/);
+    expect(rows.results[0]).toMatchObject({ grants: 2, charged_seconds: 600 });
+    expect(rows.results[1]).toEqual({ meeting_id: recentMeeting, grants: 1, charged_seconds: 300 });
+    const budgetAfter = await env.DB.prepare("SELECT charged_seconds, meetings FROM deepgram_budget WHERE id = 1").first<{
+      charged_seconds: number;
+      meetings: number;
+    }>();
+    expect(budgetAfter).toEqual({ charged_seconds: (budgetBefore?.charged_seconds ?? 0) + 900, meetings: (budgetBefore?.meetings ?? 0) + 2 });
+  });
+
   it("tablo başına tur sayısı sınırlıdır; kalan satırlar sonraki çalışmada silinir", async () => {
     const values: string = Array.from({ length: 5 }, (_: unknown, index: number): string => `('limit_${index}', ${nowMs - 1})`).join(", ");
     await env.DB.prepare(`INSERT INTO used_nonces (nonce_hash, expires_at) VALUES ${values}`).run();

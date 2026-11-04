@@ -120,6 +120,39 @@ describe("DELETE /v1/me (hesap silme)", () => {
     expect(stripe.canceled).toHaveLength(1);
   });
 
+  it("hesabın toplantılarının Deepgram satırları silinmez, rastgele kimlikle toplantıdan koparılır; bütçe değişmez", async () => {
+    const harness: Harness = await defaultHarness();
+    const session: Session = await signIn(harness);
+    const other: Session = await signIn(harness);
+    const ownMeeting: string = randomId();
+    const otherMeeting: string = randomId();
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO meeting_sessions (id, user_id, device_id, kind, started_at, max_ends_at, token_budget) VALUES
+           (?1, ?2, NULL, 'subscription', 0, 1, 1), (?3, ?4, NULL, 'subscription', 0, 1, 1)`,
+      ).bind(ownMeeting, session.userId, otherMeeting, other.userId),
+      env.DB.prepare(
+        "INSERT INTO deepgram_live_meetings (meeting_id, grants, first_grant_at, charged_seconds, settled_at) VALUES (?1, 3, 11, 600, 12), (?2, 1, 13, 300, 14)",
+      ).bind(ownMeeting, otherMeeting),
+    ]);
+    const budgetBefore = await env.DB.prepare("SELECT charged_seconds, meetings FROM deepgram_budget WHERE id = 1").first();
+
+    expect((await deleteMe(harness, session)).status).toBe(200);
+
+    const own = await env.DB.prepare("SELECT meeting_id, grants, charged_seconds FROM deepgram_live_meetings WHERE first_grant_at = 11").first<{
+      meeting_id: string;
+      grants: number;
+      charged_seconds: number;
+    }>();
+    expect(own?.meeting_id).toMatch(/^unlinked_[0-9a-f]{32}$/);
+    expect(own).toMatchObject({ grants: 3, charged_seconds: 600 });
+    const linked = await env.DB.prepare("SELECT COUNT(*) AS count FROM deepgram_live_meetings WHERE meeting_id = ?").bind(ownMeeting).first<{ count: number }>();
+    expect(linked?.count).toBe(0);
+    const untouched = await env.DB.prepare("SELECT meeting_id FROM deepgram_live_meetings WHERE first_grant_at = 13").first<{ meeting_id: string }>();
+    expect(untouched?.meeting_id).toBe(otherMeeting);
+    expect(await env.DB.prepare("SELECT charged_seconds, meetings FROM deepgram_budget WHERE id = 1").first()).toEqual(budgetBefore);
+  });
+
   it("Stripe müşterisi olmayan hesap Stripe çağrılmadan silinir; web sitesinden çağrılabilir", async () => {
     const harness: Harness = await defaultHarness();
     const session: Session = await signIn(harness);

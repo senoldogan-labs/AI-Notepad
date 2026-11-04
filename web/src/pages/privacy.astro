@@ -315,7 +315,9 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
               <strong>Usage.</strong> Start and end time and length of each meeting session, audio duration and AI tokens
               used; daily and monthly totals. For each meeting session we also note when its first note was finished and,
               if a request for it failed, how many failed and the last error code (for example “transcription service
-              unavailable”) — no content. We also keep daily totals, not linked to anyone, of AI tokens by feature (for
+              unavailable”) — no content. For a meeting with a cloud live transcript we also note when the first access key
+              was issued, how many were issued and the streaming seconds counted against the capacity we set aside for it.
+              We also keep daily totals, not linked to anyone, of AI tokens by feature (for
               example meeting notes or live translation) and of transcriptions by language (requested and detected)
             </td>
             <td>Applying the trial and plan limits; controlling costs; finding and fixing problems</td>
@@ -330,7 +332,10 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
               identifier), stored together with the number of free-trial meetings used, when your trial started,
               whether a device was verified for your trial and the current calendar month's usage totals (recorded time and
               AI token counts, no content). We keep it after you delete your account, so deleting and re-creating an
-              account does not give a new free trial or reset that month's usage limits.
+              account does not give a new free trial or reset that month's usage limits. When we refuse to start a free
+              trial, we only add one to that day's count for the reason (the device was already used for a trial, the
+              trial meetings are used up, the trial has expired, or too many new trials came from the same network); no
+              account, device identifier or IP address is stored with the count.
             </td>
             <td>Preventing the same person or device from getting the free trial again (fraud prevention)</td>
             <td>(f) legitimate interest in preventing fraud and abuse</td>
@@ -753,6 +758,13 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       </li>
       <li>Meeting session records and monthly usage: up to 13 months, then deleted automatically; deleted immediately when you delete your account.</li>
       <li>
+        A meeting's live-transcript figures (when the first access key was issued, how many were issued and the streaming
+        seconds counted): when the meeting session record is deleted (after 13 months, or when you delete your account),
+        their link to the meeting is replaced with a random identifier, so they are no longer linked to you or your
+        meetings; they are then kept without a time limit, because the live-transcript capacity we set aside is a fixed
+        total that they count against.
+      </li>
+      <li>
         The pseudonymous free-trial record (a keyed hash of your sign-in identity, the number of free-trial meetings used,
         when the trial started and that month's usage totals): for up to 24 months after you delete your account, then
         deleted automatically; the usage totals only matter until the end of that month.
@@ -774,7 +786,12 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         card can't use an invite again.
       </li>
       <li>Processed payment events and total daily AI spend (not linked to you): 90 days.</li>
-      <li>Daily download, campaign, error, AI token and transcription language totals and daily usage statistics (not linked to you): 400 days.</li>
+      <li>Daily download source, campaign, error, AI token and transcription language totals and daily usage statistics (not linked to you): 400 days.</li>
+      <li>
+        The total number of app downloads per day and the number of refused free-trial starts per day and reason: these
+        aggregate totals hold only the date, a count and, for refusals, the reason; they contain no personal data and are
+        kept without a time limit for business statistics.
+      </li>
       <li>
         Daily overall totals for running the business, such as the number of accounts, active accounts, meetings, trials
         and subscriptions and the monthly revenue (not linked to anyone): 5 years.
@@ -814,7 +831,9 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       totals), kept for up to 24 months to prevent abuse — if you sign in again with the same Apple or Google account, your
       new account continues the trial where the old one left off and, within the same month, starts from the old
       account's usage; the DeviceCheck bit for your device, which Apple stores; today's trial and download counters for
-      your network (a hashed IP address, not linked to any account, deleted at the end of the day); if your account used an
+      your network (a hashed IP address, not linked to any account, deleted at the end of the day); the live-transcript
+      figures of your meetings (when access keys were issued and the streaming seconds counted), with their meeting link
+      replaced by a random identifier so they are no longer linked to you; if your account used an
       invite code, keyed hashes of your sign-in identity and of the paying card's fingerprint with the dates, for up to
       24 months; payment records kept by
       Stripe and Link, and our accounting records of your invoice and refund amounts, no longer linked to your account; messages you sent through the contact form until their 180 days run out (ask us if you want them

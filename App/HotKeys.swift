@@ -96,7 +96,8 @@ final class HotKeyCenter {
     private struct Registration {
         let id: UInt32
         let binding: KeyBinding
-        let reference: EventHotKeyRef
+        /// Carbon kaydı; kısayollar askıdayken (`suspend`) nil, `resume` yeniden kurar.
+        let reference: EventHotKeyRef?
         let handlers: HotKeyHandlers
     }
 
@@ -105,6 +106,9 @@ final class HotKeyCenter {
     private var escape: Registration?
     private var handler: EventHandlerRef?
     private var nextID: UInt32 = 1
+    /// Kısayol kaydedicisi açıkken tüm Carbon kayıtları bırakılır: basılan bileşim kısayolu tetiklemez, kaydediciye ulaşır.
+    /// Askıdayken yapılan kayıtlar yalnızca saklanır, `resume` kurar.
+    private(set) var isSuspended: Bool = false
 
     init() {}
 
@@ -127,7 +131,9 @@ final class HotKeyCenter {
             registrations[action] = Registration(id: previous.id, binding: binding, reference: previous.reference, handlers: handlers)
             return
         }
-        let registration: Registration = try register(binding: binding, handlers: handlers)
+        let registration: Registration = isSuspended
+            ? Registration(id: allocateID(), binding: binding, reference: nil, handlers: handlers)
+            : try register(binding: binding, handlers: handlers)
         if let previous {
             unregister(registration: previous)
             previous.handlers.onUnbind()
@@ -138,9 +144,19 @@ final class HotKeyCenter {
 
     /// Kısayolu Carbon'a kaydeder (özel kayıt: başka bir uygulama aynı kısayolu kullanıyorsa başarısız olur).
     private func register(binding: KeyBinding, handlers: HotKeyHandlers) throws -> Registration {
-        try installHandlerIfNeeded()
+        let id: UInt32 = allocateID()
+        return Registration(id: id, binding: binding, reference: try registerCarbon(binding: binding, id: id), handlers: handlers)
+    }
+
+    private func allocateID() -> UInt32 {
         let id: UInt32 = nextID
         nextID += 1
+        return id
+    }
+
+    /// Carbon kaydını yapar ve başvurusunu döndürür.
+    private func registerCarbon(binding: KeyBinding, id: UInt32) throws(HotKeyError) -> EventHotKeyRef {
+        try installHandlerIfNeeded()
         var reference: EventHotKeyRef?
         let status: OSStatus = RegisterEventHotKey(
             binding.keyCode,
@@ -154,7 +170,57 @@ final class HotKeyCenter {
         guard status == noErr, let reference else {
             throw HotKeyError.registrationFailed(keyCode: binding.keyCode, status: status)
         }
-        return Registration(id: id, binding: binding, reference: reference, handlers: handlers)
+        return reference
+    }
+
+    /// Tüm Carbon kayıtlarını (geçici Esc dahil) bırakır; eylemler ve işleyicileri saklanır. Zaten askıdaysa bir şey
+    /// yapmaz. Basılı bir kısayolun bırakma olayı gelmez; sesle yazma bunu kendi süre sınırıyla kapatır.
+    func suspend() {
+        guard !isSuspended else {
+            return
+        }
+        isSuspended = true
+        registrations = registrations.mapValues { (registration: Registration) -> Registration in
+            releaseCarbon(registration: registration)
+            return Registration(id: registration.id, binding: registration.binding, reference: nil, handlers: registration.handlers)
+        }
+        if let escape {
+            releaseCarbon(registration: escape)
+            self.escape = Registration(id: escape.id, binding: escape.binding, reference: nil, handlers: escape.handlers)
+        }
+        hotKeyLogger.info("Kısayollar askıya alındı, sayı: \(self.registrations.count, privacy: .public)")
+    }
+
+    /// Askıdaki kısayolları yeniden kurar. Bu arada başka bir uygulama aynı kısayolu aldıysa o eylem kısayolsuz kalır
+    /// (süren işi `onUnbind` kapatır) ve hatası döner; Esc kurulamazsa dikte Esc'siz sürer, hata günlüğe yazılır.
+    func resume() -> [ShortcutAction: HotKeyError] {
+        guard isSuspended else {
+            return [:]
+        }
+        isSuspended = false
+        var failures: [ShortcutAction: HotKeyError] = [:]
+        for (action, registration) in registrations {
+            do {
+                let reference: EventHotKeyRef = try registerCarbon(binding: registration.binding, id: registration.id)
+                registrations[action] = Registration(id: registration.id, binding: registration.binding, reference: reference, handlers: registration.handlers)
+            } catch {
+                hotKeyLogger.error("Kısayol yeniden kurulamadı, eylem: \(action.rawValue, privacy: .public), hata: \(String(describing: error), privacy: .public)")
+                registrations[action] = nil
+                registration.handlers.onUnbind()
+                failures[action] = error
+            }
+        }
+        if let escape {
+            do {
+                let reference: EventHotKeyRef = try registerCarbon(binding: escape.binding, id: escape.id)
+                self.escape = Registration(id: escape.id, binding: escape.binding, reference: reference, handlers: escape.handlers)
+            } catch {
+                hotKeyLogger.error("Esc yeniden kurulamadı, hata: \(String(describing: error), privacy: .public)")
+                self.escape = nil
+            }
+        }
+        hotKeyLogger.info("Kısayollar yeniden kuruldu, sayı: \(self.registrations.count, privacy: .public), başarısız: \(failures.count, privacy: .public)")
+        return failures
     }
 
     /// Eylemin çalışan kısayolu.
@@ -179,7 +245,11 @@ final class HotKeyCenter {
             self.escape = Registration(id: escape.id, binding: escape.binding, reference: escape.reference, handlers: handlers)
             return
         }
-        escape = try register(binding: KeyBinding(keyCode: UInt32(kVK_Escape), modifiers: 0), handlers: handlers)
+        let binding: KeyBinding = KeyBinding(keyCode: UInt32(kVK_Escape), modifiers: 0)
+        // Askıdayken yalnızca saklanır: kaydedici Esc'yi iptal için dinliyor; `resume` kurar.
+        escape = isSuspended
+            ? Registration(id: allocateID(), binding: binding, reference: nil, handlers: handlers)
+            : try register(binding: binding, handlers: handlers)
     }
 
     /// Geçici Esc kaydını bırakır (Esc yeniden uygulamalara gider).
@@ -187,10 +257,7 @@ final class HotKeyCenter {
         guard let escape else {
             return
         }
-        let status: OSStatus = UnregisterEventHotKey(escape.reference)
-        if status != noErr {
-            hotKeyLogger.error("Esc kaydı bırakılamadı, durum: \(status, privacy: .public)")
-        }
+        releaseCarbon(registration: escape)
         self.escape = nil
     }
 
@@ -202,6 +269,7 @@ final class HotKeyCenter {
             registration.handlers.onUnbind()
         }
         registrations = [:]
+        isSuspended = false
         if let handler {
             let status: OSStatus = RemoveEventHandler(handler)
             if status != noErr {
@@ -212,11 +280,19 @@ final class HotKeyCenter {
     }
 
     private func unregister(registration: Registration) {
-        let status: OSStatus = UnregisterEventHotKey(registration.reference)
+        releaseCarbon(registration: registration)
+        registrations = registrations.filter { $0.value.id != registration.id }
+    }
+
+    /// Kaydın Carbon kaydını bırakır (askıdaysa zaten yoktur).
+    private func releaseCarbon(registration: Registration) {
+        guard let reference = registration.reference else {
+            return
+        }
+        let status: OSStatus = UnregisterEventHotKey(reference)
         if status != noErr {
             hotKeyLogger.error("Kısayol bırakılamadı, kimlik: \(registration.id, privacy: .public), durum: \(status, privacy: .public)")
         }
-        registrations = registrations.filter { $0.value.id != registration.id }
     }
 
     /// Etkin/pasif tüm macOS sistem kısayolları.
@@ -251,7 +327,7 @@ final class HotKeyCenter {
         }
     }
 
-    private func installHandlerIfNeeded() throws {
+    private func installHandlerIfNeeded() throws(HotKeyError) {
         guard handler == nil else {
             return
         }
@@ -344,6 +420,12 @@ final class ShortcutController {
     /// Varsayılan kısayolu çakıştığı için atanmayan eylemler ve nedeni (`leavesConflictingDefaultUnset`); menü uyarmaz,
     /// yalnızca eylemin Ayarlar satırı gösterir.
     private(set) var unsetDefaults: [ShortcutAction: String] = [:]
+    /// Ayarlar'daki kısayol kaydedicisinin durumu (bkz. `shortcutRecordingTransition`): kaydedilirken global kısayollar
+    /// askıdadır.
+    private(set) var recorder: ShortcutRecordingState<ShortcutAction> = ShortcutRecordingState(recording: nil)
+    /// Kayıt sürerken tuşları yakalayan yerel izleyici ve odak kaybı gözlemcileri; kayıt bitince kaldırılır.
+    @ObservationIgnored private var keyMonitor: Any?
+    @ObservationIgnored private var focusObservers: [any NSObjectProtocol] = []
 
     init(hotKeys: HotKeyCenter, model: AppModel, actions: [ShortcutAction: HotKeyHandlers], isActive: @escaping @MainActor (ShortcutAction) -> Bool) {
         self.hotKeys = hotKeys
@@ -354,7 +436,77 @@ final class ShortcutController {
 
     /// Uygulama kapanırken tüm kısayolları ve Carbon işleyicisini bırakır.
     func unregisterAll() {
+        stopListening()
+        recorder = ShortcutRecordingState(recording: nil)
         hotKeys.unregisterAll()
+    }
+
+    /// Kaydedici olayını işler: durum makinesinin yan etkilerini (askıya alma, yeniden kurma, atama) sırayla uygular.
+    func handleRecorder(event: ShortcutRecordingEvent<ShortcutAction>) {
+        let transition: ShortcutRecordingTransition<ShortcutAction> = shortcutRecordingTransition(state: recorder, event: event)
+        recorder = transition.state
+        for effect in transition.effects {
+            switch effect {
+            case .suspendHotKeys:
+                hotKeys.suspend()
+                startListening()
+            case .resumeHotKeys:
+                stopListening()
+                resumeHotKeys()
+            case .assign(let action, let binding):
+                change(action: action, binding: binding)
+            }
+        }
+    }
+
+    /// Kayıt sürerken tuşları uygulama içinde yakalar (başka bir yere yazılmasın) ve odak kaybında kaydı bitirir:
+    /// pencere odağı bırakınca ya da kapanınca, uygulama arka plana geçince kısayollar askıda kalmaz.
+    private func startListening() {
+        stopListening()
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] (event: NSEvent) -> NSEvent? in
+            let binding: KeyBinding = KeyBinding(keyCode: UInt32(event.keyCode), modifiers: carbonModifiers(flags: event.modifierFlags))
+            MainActor.assumeIsolated {
+                self?.handleRecorder(event: .keyPressed(binding))
+            }
+            return nil
+        }
+        // Tıklanan düğmenin penceresi; yoksa herhangi bir pencerenin odağı bırakması.
+        let window: NSWindow? = NSApp.keyWindow
+        let center: NotificationCenter = NotificationCenter.default
+        let names: [(name: Notification.Name, object: AnyObject?)] = [
+            (NSWindow.didResignKeyNotification, window),
+            (NSWindow.willCloseNotification, window),
+            (NSApplication.didResignActiveNotification, NSApp),
+        ]
+        focusObservers = names.map { (entry: (name: Notification.Name, object: AnyObject?)) -> any NSObjectProtocol in
+            center.addObserver(forName: entry.name, object: entry.object, queue: .main) { [weak self] (_: Notification) -> Void in
+                MainActor.assumeIsolated {
+                    self?.handleRecorder(event: .focusLost)
+                }
+            }
+        }
+    }
+
+    private func stopListening() {
+        if let keyMonitor {
+            NSEvent.removeMonitor(keyMonitor)
+        }
+        keyMonitor = nil
+        for observer in focusObservers {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        focusObservers = []
+    }
+
+    /// Askıdaki kısayolları kurar; bu arada başka bir uygulamanın aldığı kısayol eylemin hatası olur (menü uyarır).
+    private func resumeHotKeys() {
+        let failures: [ShortcutAction: HotKeyError] = hotKeys.resume()
+        for (action, error) in failures {
+            errors[action] = shortcutErrorMessage(error: error, binding: currentBinding(action: action))
+        }
+        if !failures.isEmpty {
+            publish()
+        }
     }
 
     /// Etkin olması gereken eylemlerin kayıtlı (ya da varsayılan) kısayollarını kurar, diğerlerini bırakır. Açılışta,
@@ -386,21 +538,29 @@ final class ShortcutController {
 
     /// Yeni kısayolu dener; başarılıysa kaydeder. Başarısızsa eski kısayol çalışmaya devam eder. Eylem kapalıysa (sesle
     /// yazma kapalı) yalnızca diğer eylemlerle çakışma denetlenip saklanır; sistemle çakışma açılınca görünür.
-    func change(action: ShortcutAction, binding: KeyBinding) {
-        guard isActive(action) else {
-            storeInactive(action: action, binding: binding)
-            return
-        }
-        guard binding != hotKeys.binding(action: action) else {
-            errors[action] = nil
-            return
-        }
+    /// Başka bir eylemin kısayolu çalınmaz: çakışma hatası eylemin Ayarlar satırında görünür, eski kısayol çalışır.
+    private func change(action: ShortcutAction, binding: KeyBinding) {
         // Kapalı eylemin (ör. kapatılmış sesle yazma) saklı kısayolu da dolu sayılır: açılınca çakışmasın.
-        let inactive: [KeyBinding] = ShortcutAction.allCases.filter { $0 != action && !isActive($0) }.map { currentBinding(action: $0) }
-        guard !inactive.contains(binding) else {
-            errors[action] = shortcutErrorMessage(error: HotKeyError.duplicate(keyCode: binding.keyCode, modifiers: binding.modifiers), binding: binding)
-            return
+        let others: [AssignedShortcut<ShortcutAction>] = ShortcutAction.allCases.compactMap { (other: ShortcutAction) -> AssignedShortcut<ShortcutAction>? in
+            assignedBinding(action: other).map { AssignedShortcut(action: other, binding: $0) }
         }
+        let current: KeyBinding? = isActive(action) ? hotKeys.binding(action: action) : nil
+        switch shortcutChoice(action: action, pressed: binding, current: current, others: others) {
+        case .unchanged:
+            errors[action] = nil
+        case .taken(let owner):
+            hotKeyLogger.info("Kısayol başka bir eyleme atanmış, eylem: \(action.rawValue, privacy: .public), sahibi: \(owner.rawValue, privacy: .public)")
+            errors[action] = shortcutErrorMessage(error: HotKeyError.duplicate(keyCode: binding.keyCode, modifiers: binding.modifiers), binding: binding)
+        case .available:
+            if isActive(action) {
+                applyAndStore(action: action, binding: binding)
+            } else {
+                storeInactive(action: action, binding: binding)
+            }
+        }
+    }
+
+    private func applyAndStore(action: ShortcutAction, binding: KeyBinding) {
         apply(action: action, binding: binding)
         guard errors[action] == nil else {
             return
@@ -412,11 +572,6 @@ final class ShortcutController {
     private func storeInactive(action: ShortcutAction, binding: KeyBinding) {
         guard isUsableGlobalBinding(binding: binding) else {
             errors[action] = shortcutErrorMessage(error: HotKeyError.unusableBinding(keyCode: binding.keyCode, modifiers: binding.modifiers), binding: binding)
-            return
-        }
-        let others: [KeyBinding] = ShortcutAction.allCases.filter { $0 != action }.map { currentBinding(action: $0) }
-        guard !others.contains(binding) else {
-            errors[action] = shortcutErrorMessage(error: HotKeyError.duplicate(keyCode: binding.keyCode, modifiers: binding.modifiers), binding: binding)
             return
         }
         errors[action] = nil
