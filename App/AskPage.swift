@@ -5,8 +5,8 @@ import SwiftUI
 
 /// Toplantılarıma sor: tüm notlar ve transkriptler arasında sohbet, sade bir LLM akışı gibi: çalışırken tek satır
 /// parıltılı "Düşünüyor…", cevap akarak yumuşakça gelir, altında küçük ve kapalı "Kaynaklar" ve "nasıl cevaplandı"
-/// satırları; metindeki [1] işaretleri toplantıyı açar. Devam soruları önceki cevapları bağlam alır. Boşken film
-/// gradyanlı giriş ve örnek sorular. Sohbetler saklanır; "Geçmiş" soldaki ince sütunda açılır (yeniden aç, sil).
+/// satırları; metindeki [1] işaretleri toplantıyı açar. Devam soruları önceki cevapları bağlam alır. Boşken sakin
+/// başlık, örnek soru hapları ve son sohbetler. Sohbetler saklanır; "Geçmiş" soldaki ince sütunda açılır (yeniden aç, sil).
 ///
 /// Soru alanı: Enter gönderir, Shift+Enter yeni satır. `@` yazınca alanın üstünde toplantı önerileri açılır (yazdıkça
 /// süzülür; ↑/↓ gezinir, Tab ya da Enter seçer, Esc kapatır); seçilen toplantı alanda kaldırılabilir etiket olur ve soru
@@ -75,14 +75,19 @@ struct AskPage: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 34) {
                         if model.archiveExchanges.isEmpty {
-                            AskIntro(meetings: model.meetings) { (example: String) -> Void in
-                                guard unavailableReason == nil else {
-                                    return
-                                }
-                                model.askArchive(question: example, meetingIDs: [], recipeTitle: nil)
-                            } onOpenMeetings: {
-                                router.section = .meetings
-                            }
+                            AskIntro(
+                                hasMeetings: !model.meetings.isEmpty,
+                                recent: recentChats,
+                                onAsk: { (example: String) -> Void in
+                                    guard unavailableReason == nil else {
+                                        return
+                                    }
+                                    model.askArchive(question: example, meetingIDs: [], recipeTitle: nil)
+                                },
+                                onOpenMeetings: { router.section = .meetings },
+                                onOpenChat: { (id: String) -> Void in openRecentChat(id: id) },
+                                onSeeAll: { isShowingHistory = true }
+                            )
                         }
                         ForEach(model.archiveExchanges) { (exchange: ArchiveExchange) in
                             ExchangeView(
@@ -183,6 +188,27 @@ struct AskPage: View {
     }
 
     private let bottomID: String = "ask-bottom"
+
+    /// Boş sayfadaki son sohbetler (en fazla 3, yeniden eskiye); tümü soldaki "Geçmiş" sütununda.
+    private var recentChats: [AskRecentChat] {
+        let now: Date = Date()
+        return model.askConversations.prefix(3).map { (conversation: AskConversation) -> AskRecentChat in
+            AskRecentChat(
+                id: conversation.id.uuidString, title: conversation.title,
+                detail: askRecentChatTime(date: conversation.updatedAt, now: now), isAnswering: false
+            )
+        }
+    }
+
+    /// Son sohbetlerden biri açılır (geçmiş sütunundaki gibi); soru alanı odağı alır.
+    private func openRecentChat(id: String) {
+        guard let uuid = UUID(uuidString: id) else {
+            preconditionFailure("Son sohbet kimliği UUID değil: \(id)")
+        }
+        model.openConversation(id: uuid)
+        mentioned = []
+        focusRequest += 1
+    }
 
     /// Sohbetin son sorusunda "Yeniden oluştur" / "Tekrar dene": aynı soru aynı kapsamla yeniden sorulur; diğer sorularda
     /// ve Sor kullanılamıyorken yok.
@@ -580,56 +606,27 @@ private struct AskHistoryRow: View {
     }
 }
 
-/// Boş sayfa: film gradyanlı giriş (arşivin büyüklüğüyle) ve örnek soru kartları.
+/// Boş sayfa (sohbet açık değilken): sakin başlık, örnek soru hapları ve varsa son sohbetler. Hiç toplantı yokken örnek
+/// sorular yerine kısa bir boş durum (örnek sorular boş cevap verirdi). Web araması ayarı Ayarlar › Genel'de.
 private struct AskIntro: View {
-    let meetings: [MeetingRecord]
+    let hasMeetings: Bool
+    let recent: [AskRecentChat]
     let onAsk: @MainActor (String) -> Void
     /// Hiç toplantı yokken: Toplantılar bölümü (kayıt ve içe aktarma orada).
     let onOpenMeetings: @MainActor () -> Void
-    /// Not ve çeviri dili (Ayarlar › Genel): cevapların dili metinde adıyla geçer.
-    @AppStorage(SettingsKey.noteLanguage) private var noteLanguage: String = defaultNoteLanguage(interfaceLanguages: Bundle.main.preferredLocalizations).rawValue
-
-    /// Kartların sıcak film gradyanları (temanın turuncu ailesi).
-    private let examplePalettes: [FilmPalette] = [.sunset, .rose, .sunset, .rose]
-    private let exampleHint: LocalizedStringKey = "Tüm toplantılarında arar"
-
-    private let examples: [(symbol: String, text: String)] = [
-        ("checklist", "Bana hangi görevler verildi?"),
-        ("checkmark.seal", "Son toplantılarda alınan kararlar neler?"),
-        ("eurosign.circle", "Bütçe hakkında neler konuşuldu?"),
-        ("person.2", "Bu hafta kimlerle neler konuştum?"),
-    ]
+    let onOpenChat: @MainActor (String) -> Void
+    /// "Tümünü gör": soldaki geçmiş sütununu açar.
+    let onSeeAll: @MainActor () -> Void
 
     var body: some View {
-        let minutes: Int = meetings.compactMap { meetingDurationMinutes(record: $0) }.reduce(0, +)
-        VStack(alignment: .leading, spacing: 22) {
-            GradientBanner(palette: .violet, seed: "ask") {
-                VStack(alignment: .leading, spacing: 12) {
-                    Image(systemName: "sparkle.magnifyingglass")
-                        .appFont(size: 22, weight: .medium)
-                        .foregroundStyle(Color.black.opacity(0.7))
-                    Text("Toplantılarına sor")
-                        .appFont(size: 32, weight: .semibold)
-                        .tracking(-0.8)
-                        .foregroundStyle(Color.black)
-                    Text("Notların ve transkriptlerin (hangi dilde konuşulduysa) arasında arar, \(storedNoteLanguage(value: noteLanguage).interfaceName) cevaplar; her bilginin hangi toplantıdan geldiğini gösterir.")
-                        .appFont(size: 14, weight: .regular)
-                        .foregroundStyle(Color.black.opacity(0.66))
-                        .fixedSize(horizontal: false, vertical: true)
-                    if !meetings.isEmpty {
-                        HStack(spacing: 8) {
-                            IntroStat(text: Text("\(meetings.count) toplantı"))
-                            IntroStat(text: Text("\(max(0, minutes / 60)) sa \(minutes % 60) dk konuşma"))
-                        }
-                        .padding(.top, 4)
-                    }
+        VStack(alignment: .leading, spacing: 26) {
+            AskStartHeader()
+            if hasMeetings {
+                AskExampleChips(questions: askExampleQuestions) { (question: AskExampleQuestion) -> Void in
+                    onAsk(question.localized)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            // Toplantı yokken örnek sorular boş cevap verirdi: yerine ilk toplantıya giden tek kart.
-            if meetings.isEmpty {
-                HStack(spacing: 14) {
-                    AccentSymbolTile(symbol: "waveform", size: 38)
+            } else {
+                VStack(alignment: .leading, spacing: 10) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Henüz sorulacak toplantı yok")
                             .appFont(size: 14, weight: .medium)
@@ -639,49 +636,17 @@ private struct AskIntro: View {
                             .foregroundStyle(Theme.muted)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    Spacer(minLength: 8)
                     Button("Toplantılara git", action: onOpenMeetings)
                         .buttonStyle(.accentPill)
                         .controlSize(.small)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 14)
-                .cardSurface(cornerRadius: 14)
-            } else {
-                examplesSection
+            }
+            if !recent.isEmpty {
+                AskRecentChats(chats: recent, onOpen: onOpenChat, onSeeAll: onSeeAll)
+                    .padding(.top, 6)
             }
         }
-    }
-
-    @ViewBuilder
-    private var examplesSection: some View {
-        Text("ÖRNEK SORULAR")
-            .appFont(size: 11, weight: .semibold)
-            .tracking(DesignTokens.labelTracking)
-            .foregroundStyle(Theme.muted)
-        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-            ForEach(Array(examples.enumerated()), id: \.element.text) { (item: (offset: Int, element: (symbol: String, text: String))) in
-                ExampleQuestionCard(
-                    symbol: item.element.symbol, question: LocalizedStringKey(item.element.text), hint: exampleHint,
-                    palette: examplePalettes[item.offset % examplePalettes.count]
-                ) {
-                    onAsk(String(localized: String.LocalizationValue(item.element.text)))
-                }
-            }
-        }
-    }
-}
-
-/// Giriş bannerındaki küçük cam etiket.
-private struct IntroStat: View {
-    let text: Text
-
-    var body: some View {
-        text
-            .appFont(size: 12, weight: .medium)
-            .foregroundStyle(Color.black.opacity(0.75))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(.white.opacity(0.55), in: Capsule())
+        .frame(maxWidth: 620, alignment: .leading)
+        .padding(.top, 20)
     }
 }

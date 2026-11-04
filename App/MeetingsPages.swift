@@ -479,7 +479,7 @@ struct MeetingDetailPage: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.l) {
                     // İpuçları kapağın altındaki satırların üstünde çizilsin (birbirine girmesin).
-                    hero(paragraphs: paragraphs).zIndex(1)
+                    hero(paragraphs: paragraphs, proxy: proxy).zIndex(1)
                     exportLine
                         .transition(.move(edge: .top).combined(with: .opacity))
                         // Başarılar sağ alttaki kısa bildirimde (3 sn) görünür, satırda kalmaz; hatalar ve onaylar satırda.
@@ -695,7 +695,7 @@ struct MeetingDetailPage: View {
     }
 
     /// Kapak: toplantı kartıyla aynı simli gradyan; tarih, başlık, özet çipleri, eylemler ve konuşmacı zaman çizgisi.
-    private func hero(paragraphs: [TranscriptParagraph]) -> some View {
+    private func hero(paragraphs: [TranscriptParagraph], proxy: ScrollViewProxy) -> some View {
         let spans: [SpeakerSpan] = speakerSpans(paragraphs: paragraphs)
         let totalSec: Double = paragraphs.map(\.endSec).max() ?? 0
         return VStack(alignment: .leading, spacing: 0) {
@@ -749,12 +749,30 @@ struct MeetingDetailPage: View {
                     .hoverHint(verbatim: speakers.prefix(6).map { speakerName(key: $0.key, speakerNames: record.speakerNames) }.joined(separator: ", "), alignment: .leading, edge: .bottom)
                 }
                 ForEach(heroChips(), id: \.self) { (chip: String) in
-                    Text(chip)
-                        .appFont(size: 12, weight: .medium)
-                        .foregroundStyle(Theme.muted)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(Theme.soft, in: Capsule())
+                    HeroChip(text: chip, symbol: nil, isAction: false)
+                }
+                // Notta karar ya da sana düşen görev varsa sayısı; tıklayınca nottaki bölüme gider.
+                if let note = record.note {
+                    let decisions: Int = note.decisions.count
+                    let mine: Int = note.tasks.filter(\.isMine).count
+                    if decisions > 0 {
+                        Button {
+                            reveal(anchor: .decisions, proxy: proxy)
+                        } label: {
+                            HeroChip(text: String(localized: "\(decisions) karar"), symbol: "checkmark.seal", isAction: true)
+                        }
+                        .buttonStyle(.plain)
+                        .linkPointer(isEnabled: true)
+                    }
+                    if mine > 0 {
+                        Button {
+                            reveal(anchor: .myTasks, proxy: proxy)
+                        } label: {
+                            HeroChip(text: String(localized: "Sana \(mine) görev"), symbol: "checklist", isAction: true)
+                        }
+                        .buttonStyle(.plain)
+                        .linkPointer(isEnabled: true)
+                    }
                 }
             }
             .padding(.top, 12)
@@ -807,12 +825,31 @@ struct MeetingDetailPage: View {
         .hoverHint("Notu iş arkadaşların için 30'dan fazla dilden birine çevir", alignment: .trailing, edge: .bottom)
     }
 
-    /// Kapaktaki çipler: dil ve terim sayısı (olanlar). Süre, konuşmacı ve karar sayısı burada yinelenmez: konuşmacılar
-    /// yanındaki rozetlerde, süre konuşmacı şeridinin sonunda, hepsi yan sütundaki "bir bakışta" kartında.
+    /// Kapaktaki düz çipler: süre, dil ve terim sayısı (olanlar). Konuşmacılar yanındaki rozetlerde; karar ve görev
+    /// sayısı tıklanabilir çiplerde.
     private func heroChips() -> [String] {
         let terms: Int = record.note?.glossary.count ?? 0
-        return (record.language.map { [meetingLanguageName(language: $0)] } ?? [])
+        return (meetingDurationMinutes(record: record).map { [String(localized: "\($0) dk")] } ?? [])
+            + (record.language.map { [meetingLanguageName(language: $0)] } ?? [])
             + (terms == 1 ? [String(localized: "1 terim")] : terms > 1 ? [String(localized: "\(terms) terim")] : [])
+    }
+
+    /// Kapaktaki karar ya da görev çipinden nottaki bölüme gider: başka sekmedeyse önce Özet'e geçer, bölüm çizilince
+    /// kaydırır.
+    private func reveal(anchor: MeetingNoteAnchor, proxy: ScrollViewProxy) {
+        let needsSwitch: Bool = tab != .summary
+        tab = .summary
+        Task { @MainActor in
+            if needsSwitch {
+                do {
+                    try await Task.sleep(for: .milliseconds(120))
+                } catch {
+                    // Sayfa kapandı (görev iptal): kaydırılacak bölüm yok.
+                    return
+                }
+            }
+            withAnimation(.smooth(duration: 0.35)) { proxy.scrollTo(anchor, anchor: .top) }
+        }
     }
 
     /// Kapaktaki eylemler: "Dinle", "Notu yenile" ve "Tarif" görünür; dışa aktarma simge; yönetim "⋯" menüsünde. Yer
@@ -1425,8 +1462,34 @@ struct MeetingDetailPage: View {
     }
 }
 
+/// Kapaktaki çip: soluk kapsülde kısa bilgi. Tıklanabilir olan (karar, görev sayısı) vurgu renginde simgeli.
+private struct HeroChip: View {
+    let text: String
+    let symbol: String?
+    let isAction: Bool
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
+
+    var body: some View {
+        HStack(spacing: 5) {
+            if let symbol {
+                Image(systemName: symbol)
+                    .appFont(size: 10, weight: .semibold)
+                    .accessibilityHidden(true)
+            }
+            Text(verbatim: text)
+        }
+        .appFont(size: 12, weight: .medium)
+        .foregroundStyle(isAction ? appearance.accent.color : Theme.muted)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 4)
+        .background(Theme.soft, in: Capsule())
+        .contentShape(Capsule())
+    }
+}
+
 /// Özet sekmesi bir belge gibi okunur: sana düşen görevler, büyük yazılı özet, numaralı kararlar, diğer görevler ve
-/// sözlük; geniş pencerede sağda "Bir bakışta" ve konuşma payları, darda (panel) konuşma payları en altta.
+/// sözlük; geniş pencerede sağda konuşma payları, darda (panel) en altta. Süre, karar ve görev sayısı kapaktaki
+/// çiplerde.
 private struct SummaryTab: View {
     let model: AppModel
     /// Gösterilen not: asıl not ya da başka dildeki sürümü (`SharedNoteSection`).
@@ -1452,13 +1515,10 @@ private struct SummaryTab: View {
         ViewThatFits(in: .horizontal) {
             HStack(alignment: .top, spacing: 24) {
                 main.frame(minWidth: 380, idealWidth: 380, maxWidth: .infinity, alignment: .leading)
-                VStack(spacing: 12) {
-                    glance(groups: groups)
-                    if hasSpeakers {
-                        talkShare(groups: groups)
-                    }
+                if hasSpeakers {
+                    talkShare(groups: groups)
+                        .frame(width: 250)
                 }
-                .frame(width: 250)
             }
             VStack(alignment: .leading, spacing: 30) {
                 main
@@ -1493,6 +1553,7 @@ private struct SummaryTab: View {
                 .padding(14)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Theme.soft, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .id(MeetingNoteAnchor.myTasks)
             }
             // Kendi notların (varsa ya da yazılırken) ve notu sorarak düzenleme tek grupta; "Kendi notun" düzenleme
             // alanının içinde küçük bir düğme.
@@ -1585,6 +1646,7 @@ private struct SummaryTab: View {
                         }
                     }
                 }
+                .id(MeetingNoteAnchor.decisions)
             }
             if !others.isEmpty {
                 section(title: "DİĞER GÖREVLER", symbol: "checklist") {
@@ -1602,35 +1664,6 @@ private struct SummaryTab: View {
         // Özet sekmesi transkriptle aynı metin ayarlarını kullanır (Ayarlar › Görünüm); bölüm başlıkları kendi yazı tipinde.
         .font(appearance.bodyFont)
         .lineSpacing(appearance.lineSpacing)
-    }
-
-    /// "Bir bakışta": süre, konuşmacı (kısa konuşmalar ayrıca sayılır), karar ve senin görev sayın.
-    private func glance(groups: SpeakerGroups) -> some View {
-        let speakersLabel: LocalizedStringKey = groups.minor.isEmpty ? "konuşmacı" : "konuşmacı (+\(groups.minor.count) kısa)"
-        let stats: [(value: String, label: LocalizedStringKey)] = [
-            (meetingDurationMinutes(record: record).map { String(localized: "\($0) dk") } ?? "–", "süre"),
-            ("\(groups.major.count)", speakersLabel),
-            ("\(note.decisions.count)", "karar"),
-            ("\(note.tasks.filter(\.isMine).count)", "senin görevin"),
-        ]
-        let symbols: [String] = ["clock", "person.2", "checkmark.seal", "checklist"]
-        return asideCard {
-            LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)], alignment: .leading, spacing: 14) {
-                ForEach(Array(stats.enumerated()), id: \.offset) { (item: (offset: Int, element: (value: String, label: LocalizedStringKey))) in
-                    HStack(alignment: .center, spacing: 10) {
-                        Image(systemName: symbols[item.offset])
-                            .appFont(size: 12, weight: .semibold)
-                            .foregroundStyle(appearance.accent.color)
-                            .frame(width: 28, height: 28)
-                            .background(appearance.accent.color.opacity(0.10), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                        VStack(alignment: .leading, spacing: 0) {
-                            Text(item.element.value).appFont(size: 20, weight: .regular).tracking(-0.4).monospacedDigit()
-                            Text(item.element.label).appFont(size: 11, weight: .regular).foregroundStyle(Theme.muted)
-                        }
-                    }
-                }
-            }
-        }
     }
 
     /// Kim ne kadar konuştu: harf rozeti, ad, pay çubuğu ve yüzde. Kısa konuşmalar (bkz. `groupedSpeakers`) tek satırda

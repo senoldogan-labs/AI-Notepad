@@ -7903,76 +7903,6 @@
         }
       }
     },
-    "%lld sa %lld dk konuşma": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld Std. %lld Min. Gespräch"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld h %lld min of conversation"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld h %lld min de conversación"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld h %lld min keskustelua"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld h %lld min de conversation"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld h %lld min di conversazione"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld時間%lld分の会話"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "대화 %lld시간 %lld분"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld u %lld min gesprek"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld h %lld min de conversa"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld 小时 %lld 分钟的对话"
-          }
-        }
-      }
-    },
     "%lld seçili": {
       "localizations": {
         "de": {
@@ -19361,6 +19291,7 @@
       }
     },
     "Bana hangi görevler verildi?": {
+      "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -27236,6 +27167,7 @@
       }
     },
     "Bu hafta kimlerle neler konuştum?": {
+      "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -31952,6 +31884,7 @@
       }
     },
     "Bütçe hakkında neler konuşuldu?": {
+      "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -52236,6 +52169,208 @@
         }
       }
     },
+    "Sana %lld görev": {
+      "localizations": {
+        "de": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Aufgabe für dich"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Aufgaben für dich"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld task for you"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld tasks for you"
+                }
+              }
+            }
+          }
+        },
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld tarea para ti"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld tareas para ti"
+                }
+              }
+            }
+          }
+        },
+        "fi": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld tehtävä sinulle"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld tehtävää sinulle"
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld tâche pour toi"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld tâches pour toi"
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld attività per te"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld attività per te"
+                }
+              }
+            }
+          }
+        },
+        "ja": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "あなたのタスク %lld件"
+                }
+              }
+            }
+          }
+        },
+        "ko": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "내 할 일 %lld개"
+                }
+              }
+            }
+          }
+        },
+        "nl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld taak voor jou"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld taken voor jou"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld tarefa para você"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld tarefas para você"
+                }
+              }
+            }
+          }
+        },
+        "tr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Sana %lld görev"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Sana %lld görev"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "你的任务 %lld 项"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Silinen hesabından %lld toplantı bu Mac'te duruyor. Bu hesaba taşınsın mı?": {
       "localizations": {
         "de": {
@@ -57189,6 +57324,7 @@
       }
     },
     "Son sohbetler": {
+      "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -77249,76 +77385,6 @@
         }
       }
     },
-    "Notların ve transkriptlerin (hangi dilde konuşulduysa) arasında arar, %@ cevaplar; her bilginin hangi toplantıdan geldiğini gösterir.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Durchsucht deine Notizen und Transkripte (in jeder gesprochenen Sprache), antwortet auf %@ und zeigt, aus welchem Meeting jede Information stammt."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Searches your notes and transcripts (in whatever language was spoken), answers in %@ and shows which meeting each fact came from."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Busca en tus notas y transcripciones (en el idioma en que se hablara), responde en %@ y muestra de qué reunión procede cada dato."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hakee muistiinpanoistasi ja litteroinneistasi (millä kielellä tahansa puhuttiinkin), vastaa kielellä %@ ja näyttää, mistä kokouksesta kukin tieto tuli."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recherche dans vos notes et transcriptions (quelle que soit la langue parlée), répond en %@ et indique de quelle réunion provient chaque information."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cerca nelle tue note e trascrizioni (in qualsiasi lingua si sia parlato), risponde in %@ e mostra da quale riunione proviene ogni informazione."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ノートと文字起こしを（話された言語にかかわらず）検索し、%@で回答して、各情報がどの会議のものかを示します。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "노트와 녹취록을 검색하고(어떤 언어로 말했든) %@(으)로 답하며 각 사실이 어느 회의에서 나왔는지 보여 줍니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Doorzoekt je notities en transcripten (in welke taal er ook werd gesproken), antwoordt in het %@ en toont uit welke vergadering elk feit komt."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Busca nas suas notas e transcrições (em qualquer idioma falado), responde em %@ e mostra de qual reunião veio cada fato."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "搜索你的笔记和文字稿（无论使用哪种语言），以%@回答，并显示每条信息来自哪个会议。"
-          }
-        }
-      }
-    },
     "Notta sana düşen görevler bu adla ayrılır.": {
       "localizations": {
         "de": {
@@ -87911,6 +87977,7 @@
       }
     },
     "Son toplantılarda alınan kararlar neler?": {
+      "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -97880,6 +97947,7 @@
       }
     },
     "Tüm toplantılarında arar": {
+      "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -105895,76 +105963,6 @@
         }
       }
     },
-    "karar": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Entscheidungen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "decisions"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "decisiones"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "päätökset"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "décisions"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "decisioni"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "決定事項"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "결정 사항"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "besluiten"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "decisões"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "决策"
-          }
-        }
-      }
-    },
     "kaydedilemedi (%@)": {
       "localizations": {
         "de": {
@@ -106101,76 +106099,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "发言时长"
-          }
-        }
-      }
-    },
-    "konuşmacı": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sprecher"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "speakers"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "interlocutores"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "puhujat"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "intervenants"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "interlocutori"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "話者"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "화자"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "sprekers"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "falantes"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "说话人"
           }
         }
       }
@@ -106738,76 +106666,6 @@
         }
       }
     },
-    "senin görevin": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "deine Aufgaben"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "your tasks"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "tus tareas"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "omat tehtävät"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "vos tâches"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "le tue attività"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "あなたのタスク"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "내 할 일"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "jouw taken"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "suas tarefas"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "你的任务"
-          }
-        }
-      }
-    },
     "sohbet modeli yüklü değil": {
       "localizations": {
         "de": {
@@ -106874,76 +106732,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "未安装对话模型"
-          }
-        }
-      }
-    },
-    "süre": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dauer"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "duration"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "duración"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "kesto"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "durée"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "durata"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "所要時間"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "길이"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "duur"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "duração"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "时长"
           }
         }
       }
@@ -109406,76 +109194,6 @@
         }
       }
     },
-    "ÖRNEK SORULAR": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "BEISPIELFRAGEN"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "EXAMPLE QUESTIONS"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "PREGUNTAS DE EJEMPLO"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ESIMERKKIKYSYMYKSIÄ"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "EXEMPLES DE QUESTIONS"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "DOMANDE DI ESEMPIO"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "質問の例"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "예시 질문"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "VOORBEELDVRAGEN"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "PERGUNTAS DE EXEMPLO"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "示例问题"
-          }
-        }
-      }
-    },
     "ÖZET": {
       "localizations": {
         "de": {
@@ -111161,6 +110879,7 @@
       }
     },
     "Örnek sorular": {
+      "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -123460,77 +123179,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "某个已标记的会议已不存在（已删除或移动）；请移除标记后重新选择。"
-          }
-        }
-      }
-    },
-    "konuşmacı (+%lld kısa)": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sprecher (+%lld kurz)"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "speakers (+%lld brief)"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "interlocutores (+%lld breves)"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "puhujat (+%lld lyhyesti)"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "intervenants (+%lld brefs)"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "interlocutori (+%lld brevi)"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "話者（ほか短い発言%lld人）"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "화자(+%lld명 짧게 발언)"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "sprekers (+%lld kort)"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "falantes (+%lld breves)"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "位说话人（另有 %lld 位简短发言）"
           }
         }
       }

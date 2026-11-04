@@ -696,8 +696,8 @@ private enum MeetingPane: Hashable {
     case transcript
 }
 
-/// Toplantı sayfası: kapak (tarih, başlık, çipler, konuşmacı şeridi, Dinle, paylaş), Özet (görevler, özet, bir bakışta,
-/// konuşma payları, kararlar, konu akışı, diğer görevler, sözlük) ve Transkript (konuşmacılı paragraflar; çalarken o
+/// Toplantı sayfası: kapak (tarih, başlık, çipler: süre, dil, konuşmacı, karar ve görev sayısı; konuşmacı şeridi,
+/// Dinle, paylaş), Özet (görevler, özet, konuşma payları, kararlar, konu akışı, diğer görevler, sözlük) ve Transkript (konuşmacılı paragraflar; çalarken o
 /// anki kelime vurgulanır, dokununca oradan çalar). Sağ üstte paylaş ve sil.
 struct MeetingReadView: View {
     let record: MeetingRecord
@@ -748,7 +748,7 @@ struct MeetingReadView: View {
         ScrollViewReader { (proxy: ScrollViewProxy) in
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    hero(paragraphs: paragraphs)
+                    hero(paragraphs: paragraphs, proxy: proxy)
                     // Çalma hatası (dosya açılamadı, ses oturumu) da burada görünür.
                     let messages: [String] = [errorMessage, player.errorMeetingID == record.id ? player.errorMessage : nil].compactMap { $0 }
                     if !messages.isEmpty {
@@ -1184,7 +1184,24 @@ struct MeetingReadView: View {
         }
     }
 
-    private func hero(paragraphs: [TranscriptParagraph]) -> some View {
+    /// Kapaktaki karar ya da görev çipinden nottaki bölüme gider: transkriptteyse önce özete geçer, bölüm çizilince kaydırır.
+    private func reveal(anchor: MeetingNoteAnchor, proxy: ScrollViewProxy) {
+        let needsSwitch: Bool = pane != .summary
+        withAnimation(.smooth(duration: 0.25)) { pane = .summary }
+        Task { @MainActor in
+            if needsSwitch {
+                do {
+                    try await Task.sleep(for: .milliseconds(120))
+                } catch {
+                    // Görünüm kapandı (görev iptal): kaydırılacak sayfa yok.
+                    return
+                }
+            }
+            withAnimation(.smooth(duration: 0.35)) { proxy.scrollTo(anchor, anchor: .top) }
+        }
+    }
+
+    private func hero(paragraphs: [TranscriptParagraph], proxy: ScrollViewProxy) -> some View {
         let shares: [SpeakerShare] = speakerShares(paragraphs: paragraphs)
         // Kısa konuşmalar (bkz. `groupedSpeakers`) konuşmacı sayısına girmez.
         let majorCount: Int = groupedSpeakers(shares: shares, speakerNames: record.speakerNames).major.count
@@ -1200,7 +1217,9 @@ struct MeetingReadView: View {
                 .tracking(-0.5)
                 .fixedSize(horizontal: false, vertical: true)
                 .shadow(color: .black.opacity(0.15), radius: 8, y: 1)
-            HStack(spacing: 6) {
+            // Özet çipleri: süre, dil, konuşmacı; notta karar ya da sana düşen görev varsa onların sayısı (dokununca
+            // nottaki bölüme gider).
+            FlowLayout(spacing: 6, lineSpacing: 6) {
                 if let minutes = meetingDurationMinutes(record: record) {
                     GlassChip(text: String(localized: "\(minutes) dk"), systemImage: "clock")
                 }
@@ -1209,6 +1228,26 @@ struct MeetingReadView: View {
                 }
                 if !shares.isEmpty {
                     GlassChip(text: String(localized: "\(majorCount) konuşmacı"), systemImage: "person.2")
+                }
+                if let note = record.note {
+                    let decisions: Int = note.decisions.count
+                    let mine: Int = note.tasks.filter(\.isMine).count
+                    if decisions > 0 {
+                        Button {
+                            reveal(anchor: .decisions, proxy: proxy)
+                        } label: {
+                            GlassChip(text: String(localized: "\(decisions) karar"), systemImage: "checkmark.seal")
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    if mine > 0 {
+                        Button {
+                            reveal(anchor: .myTasks, proxy: proxy)
+                        } label: {
+                            GlassChip(text: String(localized: "Sana \(mine) görev"), systemImage: "checklist")
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
             }
             if totalSec > 0, !shares.isEmpty {
@@ -1284,7 +1323,7 @@ struct MeetingReadView: View {
     }
 }
 
-/// Özet: senin görevlerin (işaretlenebilir), özet, bir bakışta, kim ne kadar konuştu, kararlar, konu akışı (dokununca
+/// Özet: senin görevlerin (işaretlenebilir), özet, kim ne kadar konuştu, kararlar, konu akışı (dokununca
 /// oradan çalar), diğer görevler, sözlük.
 private struct MeetingSummary: View {
     let record: MeetingRecord
@@ -1318,6 +1357,7 @@ private struct MeetingSummary: View {
                             }
                         }
                     }
+                    .id(MeetingNoteAnchor.myTasks)
                 }
                 // Notun üstündeki sakin blok: görev yoksa tek soluk satır, kendi notların (varsa) ve not düzenleme satırı
                 // (kendi notun yoksa sonunda "Notlarım").
@@ -1340,12 +1380,6 @@ private struct MeetingSummary: View {
                 Text(note.summary)
                     .readingText(size: 18, weight: .regular, lineSpacing: 6)
                     .textSelection(.enabled)
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
-                    PhoneStatTile(value: meetingDurationMinutes(record: record).map { String(localized: "\($0) dk") } ?? "–", label: "süre")
-                    PhoneStatTile(value: "\(groups.major.count)", label: groups.minor.isEmpty ? "konuşmacı" : "konuşmacı (+\(groups.minor.count) kısa)")
-                    PhoneStatTile(value: "\(note.decisions.count)", label: "karar")
-                    PhoneStatTile(value: "\(mine.count)", label: "senin görevin")
-                }
                 if shares.count > 1 {
                     VStack(alignment: .leading, spacing: 12) {
                         // Adı verilebilecek konuşmacı varsa başlıkta "Ad ver" (transkript ve not adlarla görünür).
@@ -1377,6 +1411,7 @@ private struct MeetingSummary: View {
                             }
                         }
                     }
+                    .id(MeetingNoteAnchor.decisions)
                 }
                 let marked: [TranscriptParagraph] = markedParagraphs
                 if !marked.isEmpty {
