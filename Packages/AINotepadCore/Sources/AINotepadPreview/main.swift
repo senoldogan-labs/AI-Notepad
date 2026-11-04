@@ -163,18 +163,20 @@ MainActor.assumeIsolated {
         )
         print("\(name) \(number)")
     }
-    // Sor sayfasının örnek soru kartları (açık ve koyu).
+    // Sor sayfasının boş başlangıcı: başlık, örnek soru hapları ve son sohbetler (açık ve koyu).
     for (name, scheme, x) in [("cards-light", ColorScheme.light, 40.0), ("cards-dark", ColorScheme.dark, 820.0)] {
         let number: Int = showWindow(
-            view: VStack(spacing: 12) {
-                HStack(spacing: 12) {
-                    ExampleQuestionCard(symbol: "checklist", question: "Bana hangi görevler verildi?", hint: "Tüm toplantılarında arar", palette: .sunset) {}
-                    ExampleQuestionCard(symbol: "checkmark.seal", question: "Son toplantılarda alınan kararlar neler?", hint: "Tüm toplantılarında arar", palette: .sunset) {}
-                }
-                HStack(spacing: 12) {
-                    ExampleQuestionCard(symbol: "eurosign.circle", question: "Bütçe hakkında neler konuşuldu?", hint: "Tüm toplantılarında arar", palette: .rose) {}
-                    ExampleQuestionCard(symbol: "person.2", question: "Bu hafta kimlerle neler konuştum?", hint: "Tüm toplantılarında arar", palette: .sunset) {}
-                }
+            view: VStack(alignment: .leading, spacing: 24) {
+                AskStartHeader()
+                AskExampleChips(questions: askExampleQuestions) { (_: AskExampleQuestion) -> Void in }
+                AskRecentChats(
+                    chats: [
+                        AskRecentChat(id: "1", title: "Bütçe kararları ve açık görevler", detail: "2 sa önce", isAnswering: false),
+                        AskRecentChat(id: "2", title: "Mikko ile geçen hafta neler konuştuk?", detail: "dün", isAnswering: false),
+                    ],
+                    onOpen: { (_: String) -> Void in },
+                    onSeeAll: {}
+                )
                 EmptyStateHero(symbol: "checkmark.circle", title: "Tamamlanan görev yok", message: "Bir görevin dairesine tıklayınca buraya taşınır; bitirdiklerin burada birikir.", palette: .sunset, steps: []) {
                     EmptyView()
                 }

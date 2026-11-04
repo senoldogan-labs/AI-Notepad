@@ -4,7 +4,7 @@ import SwiftUI
 
 /// Ayarlar: hesap (giriş yapan kimlik, plan, kullanım, çıkış, hesap silme), görünüm, bağlantılar (kanallar, görev
 /// araçları), kayıt (rıza hatırlatması, ses saklama), takvim, toplantı dili ve ad, konuşmacılar (sesinden tanıma), not,
-/// beceriler (SKILL.md), gizlilik (anonim kullanım istatistikleri), sürüm ve tanılama.
+/// Sor (web araması), beceriler (SKILL.md), gizlilik (anonim kullanım istatistikleri), sürüm ve tanılama.
 struct PhoneSettingsTab: View {
     let store: PhoneStore
     /// Sor: SKILL.md'den içe aktarılan beceriler onun tariflerine eklenir.
@@ -28,6 +28,8 @@ struct PhoneSettingsTab: View {
     @AppStorage(PhoneSettingsKey.customTemplate) private var customTemplate: String = ""
     @AppStorage(PhoneSettingsKey.templateFromTitle) private var templateFromTitle: Bool = true
     @AppStorage(PhoneSettingsKey.missedWindowMinutes) private var missedMinutes: Int = 3
+    /// Sor'da web araması (varsayılan açık; `askWebSearchAllowed` okur).
+    @AppStorage(askWebSearchSettingKey) private var askWebSearch: Bool = true
     /// "Kurulumu yeniden aç" bunu kapatır: kök görünüm karşılamayı yeniden sunar.
     @AppStorage(PhoneSettingsKey.onboardingCompleted) private var onboardingCompleted: Bool = true
     @Environment(\.openURL) private var openURL: OpenURLAction
@@ -168,6 +170,13 @@ struct PhoneSettingsTab: View {
                     Text("Not")
                 } footer: {
                     Text("Yeni notlar bu şablonla yazılır; eski bir notu ⋯ menüsünden yeniden yazabilirsin.")
+                }
+                Section {
+                    Toggle("Sor'da web aramasına izin ver", isOn: $askWebSearch)
+                } header: {
+                    Text("Sor")
+                } footer: {
+                    Text("Toplantılarda olmayan bilgi için cevap başına en çok 3 arama; sorgu Anthropic üzerinden arama sağlayıcısına gider.")
                 }
                 PhoneSkillImportSection(ask: ask)
                 Section {

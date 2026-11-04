@@ -55,28 +55,6 @@ struct PhoneCaptionedRow<Content: View>: View {
     }
 }
 
-/// "Bir bakışta" kutusu: büyük sayı ve altında etiket.
-struct PhoneStatTile: View {
-    let value: String
-    let label: LocalizedStringKey
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(value)
-                .appFont(size: 24, weight: .regular)
-                .tracking(-0.4)
-                .monospacedDigit()
-            Text(label)
-                .appFont(size: 12, weight: .regular)
-                .foregroundStyle(Theme.muted)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.line))
-    }
-}
-
 /// Konuşmacı rozeti: kişinin soluk renginde daire içinde numarası ("Sen" için kişi simgesi).
 struct SpeakerBadge: View {
     let speaker: Speaker

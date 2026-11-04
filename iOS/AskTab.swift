@@ -282,22 +282,16 @@ struct AskSubmission {
     let recipeTitle: String?
 }
 
-/// Sor sekmesinin kökü: başlangıç durumu (tanıtım kartı, son sohbetler, örnek sorular) ve altta soru alanı. Sor baştan
-/// sona tam ekrandır: sekme çubuğu gizli, sol üstteki geri Sor'a gelinen sekmeye döner. Soru gönderilince ya da bir
-/// sohbet açılınca sohbet üstüne açılır; onun geri oku kökü getirir.
+/// Sor sekmesinin kökü: sakin başlangıç (başlık, örnek soru hapları, son sohbetler) ve altta soru alanı; web araması
+/// ayarı Ayarlar'da. Sor baştan sona tam ekrandır: sekme çubuğu gizli, sol üstteki geri Sor'a gelinen sekmeye döner.
+/// Soru gönderilince ya da bir sohbet açılınca sohbet üstüne açılır; onun geri oku kökü getirir.
 struct AskTab: View {
     let ask: PhoneAsk
     let store: PhoneStore
     @Bindable var router: PhoneRouter
-    /// Not ve çeviri dili (Ayarlar): cevapların dili metinde adıyla geçer.
-    @AppStorage(PhoneSettingsKey.noteLanguage) private var noteLanguage: String = defaultNoteLanguage(interfaceLanguages: Bundle.main.preferredLocalizations).rawValue
 
-    private let examples: [(symbol: String, text: String)] = [
-        ("checklist", "Bana hangi görevler verildi?"),
-        ("checkmark.seal", "Son toplantılarda alınan kararlar neler?"),
-        ("eurosign.circle", "Bütçe hakkında neler konuşuldu?"),
-        ("person.2", "Bu hafta kimlerle neler konuştum?"),
-    ]
+    /// Son sohbetlerde kaydedilmemiş (süren) sohbetin satır kimliği.
+    private let currentChatID: String = "current"
 
     /// Kökte gösterilen en yeni sohbet sayısı; tümü geçmişte.
     private let recentLimit: Int = 3
@@ -317,18 +311,32 @@ struct AskTab: View {
                     }
                 } else {
                     ScrollView {
-                        VStack(alignment: .leading, spacing: 28) {
+                        VStack(alignment: .leading, spacing: 24) {
                             PhoneErrorList(messages: [ask.historyError, ask.recipeError].compactMap { $0 })
-                            intro
-                            if hasRecent {
-                                recent
+                            AskStartHeader()
+                            // Toplantı yokken örnek sorular boş cevap verirdi: yerine kısa bir satır.
+                            if store.meetings.isEmpty {
+                                Text("Sorulacak toplantı yok")
+                                    .appFont(size: 14, weight: .regular)
+                                    .foregroundStyle(Theme.muted)
+                            } else {
+                                AskExampleChips(questions: askExampleQuestions) { (question: AskExampleQuestion) -> Void in
+                                    startConversation(submission: AskSubmission(question: question.localized, meetingIDs: [], recipeTitle: nil))
+                                }
                             }
-                            examplesSection
-                            AskWebSearchToggle()
+                            if hasRecent {
+                                AskRecentChats(
+                                    chats: recentChats,
+                                    onOpen: { (id: String) -> Void in openRecent(id: id) },
+                                    onSeeAll: ask.conversations.isEmpty ? nil : { router.askPath = [.history] }
+                                )
+                                .padding(.top, 4)
+                            }
                         }
-                        .padding(16)
-                        // Son örnek kart soru alanına yapışmasın: alanın üstündeki dokunuş karta değil boşluğa düşer.
-                        .padding(.bottom, 24)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 12)
+                        // İçerik soru alanına yapışmasın: alanın üstündeki dokunuş bir hapa ya da satıra değil boşluğa düşer.
+                        .padding(.bottom, 40)
                     }
                     .scrollDismissesKeyboard(.interactively)
                     .safeAreaInset(edge: .bottom) {
@@ -380,88 +388,35 @@ struct AskTab: View {
         store.meetings.isEmpty && !hasRecent
     }
 
-    private var intro: some View {
-        let minutes: Int = store.meetings.compactMap { meetingDurationMinutes(record: $0) }.reduce(0, +)
-        return VStack(alignment: .leading, spacing: 10) {
-            Image(systemName: "sparkle.magnifyingglass")
-                .appFont(size: 20, weight: .medium)
-                .foregroundStyle(Color.black.opacity(0.7))
-            // Açık pastel gradyan: yazılar koyu mürekkep (Mac'teki Sor sayfası gibi).
-            Text("Toplantılarına sor")
-                .appFont(size: 28, weight: .regular)
-                .tracking(-0.5)
-                .foregroundStyle(Color.black.opacity(0.8))
-            Text("Notların ve transkriptlerin (hangi dilde konuşulduysa) arasında arar, \(phoneStoredNoteLanguage(value: noteLanguage).interfaceName) cevaplar; her bilginin hangi toplantıdan geldiğini gösterir.")
-                .appFont(size: 14, weight: .regular)
-                .foregroundStyle(Color.black.opacity(0.6))
-                .fixedSize(horizontal: false, vertical: true)
-            HStack(spacing: 8) {
-                PastelChip(text: String(localized: "\(store.meetings.count) toplantı"), systemImage: nil)
-                PastelChip(text: String(localized: "\(max(0, minutes / 60)) sa \(minutes % 60) dk konuşma"), systemImage: nil)
-            }
-            .padding(.top, 2)
+    /// Son sohbetler: varsa süren (kaydedilmemiş) sohbet, sonra en yeni saklanan sohbetler; tek satır ve göreli zaman.
+    private var recentChats: [AskRecentChat] {
+        let now: Date = Date()
+        let current: [AskRecentChat] = unsavedQuestion.map { (question: String) -> [AskRecentChat] in
+            [AskRecentChat(
+                id: currentChatID, title: question,
+                detail: ask.isAnswering ? String(localized: "Cevaplanıyor…") : String(localized: "Şimdi"), isAnswering: ask.isAnswering
+            )]
+        } ?? []
+        let saved: [AskRecentChat] = ask.conversations.prefix(recentLimit - current.count).map { (conversation: AskConversation) -> AskRecentChat in
+            AskRecentChat(
+                id: conversation.id.uuidString, title: conversation.title,
+                detail: askRecentChatTime(date: conversation.updatedAt, now: now),
+                isAnswering: ask.isAnswering && ask.currentConversationID == conversation.id
+            )
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background { FilmGradient(seed: "ask", palette: .violet) }
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .environment(\.colorScheme, .light)
+        return current + saved
     }
 
-    /// Son sohbetler: varsa süren (kaydedilmemiş) sohbet, sonra en yeni saklanan sohbetler; "Tümünü gör" geçmişi açar.
-    private var recent: some View {
-        let conversations: [AskConversation] = Array(ask.conversations.prefix(recentLimit))
-        return VStack(alignment: .leading, spacing: 12) {
-            PhoneSectionHeader(title: "Son sohbetler", actionTitle: ask.conversations.isEmpty ? nil : "Tümünü gör") {
-                router.askPath = [.history]
-            }
-            VStack(spacing: 0) {
-                if let unsavedQuestion {
-                    AskConversationRow(
-                        title: unsavedQuestion,
-                        subtitle: ask.isAnswering ? String(localized: "Cevaplanıyor…") : String(localized: "Şimdi"),
-                        isAnswering: ask.isAnswering
-                    ) {
-                        router.askPath = [.conversation]
-                    }
-                    if !conversations.isEmpty {
-                        Divider().padding(.leading, 62)
-                    }
-                }
-                ForEach(Array(conversations.enumerated()), id: \.element.id) { (item: (offset: Int, element: AskConversation)) in
-                    let conversation: AskConversation = item.element
-                    AskConversationRow(
-                        title: conversation.title,
-                        subtitle: conversation.updatedAt.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(interfaceLocale())),
-                        isAnswering: ask.isAnswering && ask.currentConversationID == conversation.id
-                    ) {
-                        openConversation(id: conversation.id)
-                    }
-                    if item.offset < conversations.count - 1 {
-                        Divider().padding(.leading, 62)
-                    }
-                }
-            }
-            .background(Theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Theme.line))
+    /// Son sohbetler satırı: süren sohbete döner ya da saklanan sohbeti açar.
+    private func openRecent(id: String) {
+        guard id != currentChatID else {
+            router.askPath = [.conversation]
+            return
         }
-    }
-
-    private var examplesSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            PhoneSectionHeader(title: "Örnek sorular", actionTitle: nil, action: nil)
-            ForEach(Array(examples.enumerated()), id: \.element.text) { (item: (offset: Int, element: (symbol: String, text: String))) in
-                ExampleQuestionCard(
-                    symbol: item.element.symbol, question: LocalizedStringKey(item.element.text), hint: "Tüm toplantılarında arar",
-                    palette: [FilmPalette.sunset, .rose, .sunset, .rose][item.offset % 4]
-                ) {
-                    startConversation(submission: AskSubmission(
-                        question: String(localized: String.LocalizationValue(item.element.text)), meetingIDs: [], recipeTitle: nil
-                    ))
-                }
-                .disabled(store.meetings.isEmpty)
-            }
+        guard let uuid = UUID(uuidString: id) else {
+            preconditionFailure("Son sohbet kimliği UUID değil: \(id)")
         }
+        openConversation(id: uuid)
     }
 
     /// Kökten gönderilen soru yeni sohbet başlatır (süren cevap durur; önceki sohbet geçmişte kalır) ve sohbeti açar.
@@ -477,55 +432,6 @@ struct AskTab: View {
             ask.open(conversationID: id)
         }
         router.askPath = [.conversation]
-    }
-}
-
-/// Son sohbetler satırı: vurgu renginde sohbet simgesi (cevap sürerken bekleme göstergesi), başlık, tarih ve ok.
-private struct AskConversationRow: View {
-    let title: String
-    let subtitle: String
-    let isAnswering: Bool
-    let onOpen: @MainActor () -> Void
-
-    var body: some View {
-        Button {
-            onOpen()
-        } label: {
-            HStack(spacing: 12) {
-                Group {
-                    if isAnswering {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Image(systemName: "bubble.left.and.text.bubble.right")
-                            .appFont(size: 15, weight: .medium)
-                            .foregroundStyle(.tint)
-                    }
-                }
-                .frame(width: 36, height: 36)
-                .background(.tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(verbatim: title)
-                        .appFont(size: 15, weight: .medium)
-                        .foregroundStyle(Theme.ink)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                    Text(verbatim: subtitle)
-                        .appFont(size: 12, weight: .regular)
-                        .monospacedDigit()
-                        .foregroundStyle(Theme.muted)
-                }
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
-                    .appFont(size: 12, weight: .semibold)
-                    .foregroundStyle(Theme.muted)
-                    .accessibilityHidden(true)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
     }
 }
 
@@ -879,27 +785,5 @@ private struct AskHistoryList: View {
         .navigationTitle("Geçmiş")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
-    }
-}
-
-/// "Sor'da web aramasına izin ver" (kısa açıklamalı): toplantılarda olmayan bilgi için cevap başına en çok 3 web araması.
-private struct AskWebSearchToggle: View {
-    @AppStorage(askWebSearchSettingKey) private var isEnabled: Bool = true
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Toggle(isOn: $isEnabled) {
-                Label("Sor'da web aramasına izin ver", systemImage: "globe")
-                    .appFont(size: 15, weight: .medium)
-                    .foregroundStyle(Theme.ink)
-            }
-            Text("Toplantılarda olmayan bilgi için cevap başına en çok 3 arama; sorgu Anthropic üzerinden arama sağlayıcısına gider.")
-                .appFont(size: 12, weight: .regular)
-                .foregroundStyle(Theme.muted)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(14)
-        .background(Theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Theme.line))
     }
 }
