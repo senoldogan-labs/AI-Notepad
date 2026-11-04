@@ -140,9 +140,9 @@ describe("günlük deneme harcaması tavanı", () => {
       503,
       "trial_capacity_reached",
     );
-    // Bitmiş deneme toplantısını yeniden işlemek de deneme harcaması açar: hak harcanmadan 503.
+    // İşleme süresi (24 saat) geçmiş deneme toplantısını yeniden işlemek de deneme harcaması açar: hak harcanmadan 503.
     await env.DB.prepare("UPDATE meeting_sessions SET ended_at = ?, end_reason = 'ended' WHERE id = ?")
-      .bind(harness.clock.nowMs - 2 * 3_600_000, trialMeeting.meetingId)
+      .bind(harness.clock.nowMs - 25 * 3_600_000, trialMeeting.meetingId)
       .run();
     await expectError(
       await harness.call(req("POST", `/v1/meetings/${trialMeeting.meetingId}/reprocess`, { token: trial.accessToken })),

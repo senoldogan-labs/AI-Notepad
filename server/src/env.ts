@@ -54,6 +54,7 @@ export interface Env {
   readonly SUBSCRIBER_MAX_MEETING_MINUTES: string;
   readonly MONTHLY_CAP_HOURS: string;
   readonly MEETING_GRACE_MINUTES: string;
+  readonly MEETING_PROCESSING_HOURS: string;
   readonly PAST_DUE_GRACE_DAYS: string;
   readonly TRIAL_MEETING_TOKEN_BUDGET: string;
   readonly SUBSCRIBER_MEETING_TOKEN_BUDGET: string;
@@ -116,6 +117,8 @@ export interface Env {
   readonly DEVICECHECK_PRIVATE_KEY?: string;
   /** Yalnızca `DEEPGRAM_POLICY=on` iken gerekir (Deepgram API anahtarı; jeton vermek için, Member ya da üstü yetki). */
   readonly DEEPGRAM_API_KEY?: string;
+  /** Yalnızca yerel uçtan uca denemelerde: Anthropic ve ElevenLabs'in sahte yerel adresi (bkz. `upstreamStub.ts`). */
+  readonly UPSTREAM_STUB_URL?: string;
   /**
    * Yönetim panelinden blog yayını için GitHub jetonu (yalnızca bu depoda Contents okuma/yazma yetkili ince ayarlı
    * kişisel erişim jetonu). Yoksa blog uçları `503 blog_unavailable` döner.

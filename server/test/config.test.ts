@@ -112,7 +112,7 @@ describe("üretim yapılandırmasında yer tutucular", () => {
     expect(parseConfig(envWith({ STRIPE_SECRET_KEY: "rk_live_0000000000000000" })).stripeMode).toBe("live");
     expect(configErrorFields(envWith({ STRIPE_SECRET_KEY: "pk_live_0000000000000000" }))).toEqual(["STRIPE_SECRET_KEY"]);
     expect(configErrorFields(envWith({ TRIAL_HASH_SECRET: "kısa" }))).toEqual(["TRIAL_HASH_SECRET"]);
-    expect(configErrorFields(envWith({ MONTHLY_ACCOUNT_TOKEN_CAP: "7000000" }))).toEqual(["MONTHLY_ACCOUNT_TOKEN_CAP"]);
+    expect(configErrorFields(envWith({ MONTHLY_ACCOUNT_TOKEN_CAP: "9000000" }))).toEqual(["MONTHLY_ACCOUNT_TOKEN_CAP"]);
   });
 
   it("yer tutuculu üretim sunucusu her istekte (sağlık dahil) 500 verir ve yalnızca ayar adlarını loglar", async () => {

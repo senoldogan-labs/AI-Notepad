@@ -213,8 +213,8 @@ private actor DeepgramConnection {
     /// Son sesten sonra `Finalize` gönderildi (ses gelmeyen her ara için bir kez).
     private var finalizedSinceAudio: Bool = true
 
-    /// Henüz gönderilmemiş ses.
-    private var pending: [Float] = []
+    /// Henüz gönderilmemiş ses (önden tüketilir; uzun kesintiden sonra milyonlarca örnek olabilir).
+    private var pending: SampleQueue = SampleQueue()
     /// Şu an gönderilmekte olan parça; zaman sırası: unacknowledged → inFlight → pending.
     private var inFlight: [Float] = []
     /// Gönderilmiş ama kesin sonucu gelmemiş ses; kopmada yeniden gönderilir.
@@ -273,7 +273,7 @@ private actor DeepgramConnection {
             guard !hasFailed, !isAborted else {
                 continue
             }
-            pending += chunk
+            pending.append(contentsOf: chunk)
             if unansweredSince == nil {
                 unansweredSince = .now
             }
@@ -429,7 +429,7 @@ private actor DeepgramConnection {
         socket = nil
         old?.cancel(with: .goingAway, reason: nil)
         // Eski bağlantının kesinleştirmediği ses yeni bağlantıda yeniden yazıya dökülür.
-        pending = unacknowledged + inFlight + pending
+        pending.prepend(unacknowledged + inFlight)
         unacknowledged = []
         inFlight = []
     }
@@ -513,8 +513,7 @@ private actor DeepgramConnection {
         while isConnected, let sending = socket, !pending.isEmpty {
             // Biriken ses (bağlanırken ya da kopukken) tek dev mesaj yerine kısa parçalarla gider: Deepgram büyük parçaları
             // yavaş işliyor, son sonuçlar geç geliyordu.
-            inFlight = Array(pending.prefix(maxSendSamples))
-            pending.removeFirst(inFlight.count)
+            inFlight = pending.popFront(maxCount: maxSendSamples)
             do {
                 try await sending.send(.data(linear16Data(samples: inFlight)))
                 // Gönderim sürerken yeniden bağlanma parçayı zaten yeniden sıraya aldıysa inFlight boştur.
@@ -527,7 +526,7 @@ private actor DeepgramConnection {
                     unansweredSince = lastAudioSentAt
                 }
             } catch {
-                pending = inFlight + pending
+                pending.prepend(inFlight)
                 inFlight = []
                 // Eski bağlantının hatası: yeni bağlantı zaten kurulu, onunla devam edilir.
                 guard sending === socket else {
@@ -643,14 +642,13 @@ private actor DeepgramConnection {
         var closedCleanly: Bool = false
         if let socket, isConnected, !hasFailed, !closeDeadlinePassed {
             while !pending.isEmpty {
-                let chunk: [Float] = Array(pending.prefix(maxSendSamples))
-                pending.removeFirst(chunk.count)
+                let chunk: [Float] = pending.popFront(maxCount: maxSendSamples)
                 do {
                     try await socket.send(.data(linear16Data(samples: chunk)))
                     // Kesin sonucu gelene dek yazıya dökülmemiş sayılır (kapanış süresi dolarsa eksik bildirilir).
                     unacknowledged += chunk
                 } catch {
-                    pending = chunk + pending
+                    pending.prepend(chunk)
                     deepgramLogger.error("Kapanışta ses gönderilemedi: \(String(describing: error), privacy: .private)")
                     break
                 }

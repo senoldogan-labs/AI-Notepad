@@ -1,7 +1,10 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import type { Env } from "../src/env";
-import { mayReprocess, reprocessAudioCap, reprocessTokenBudget } from "../src/meetings";
+import { type MeetingRow, type MeetingWindows, mayReprocess, meetingOpenUntil, reprocessAudioCap, reprocessTokenBudget } from "../src/meetings";
+
+/** Üretimdeki işleme süresi (`MEETING_PROCESSING_HOURS` = 24). */
+const processingWindowMs: number = 24 * 3_600_000;
 import {
   type Harness,
   type Session,
@@ -69,6 +72,12 @@ async function meetingsStartedToday(harness: Harness, userId: string): Promise<n
   return row?.meetings_started ?? 0;
 }
 
+/** Kullanıcının tüm günlerdeki toplantı başlatma sayısı. */
+async function meetingsStartedTotal(userId: string): Promise<number> {
+  const row = await env.DB.prepare("SELECT COALESCE(SUM(meetings_started), 0) AS total FROM daily_usage WHERE user_id = ?").bind(userId).first<{ total: number }>();
+  return row?.total ?? 0;
+}
+
 describe("haklar ve toplantı oturumları", () => {
   it("yeni kullanıcı 3 deneme toplantısı ve 10 saat sınırı görür", async () => {
     const harness: Harness = await defaultHarness();
@@ -127,7 +136,7 @@ describe("haklar ve toplantı oturumları", () => {
       const response: Response = await startMeeting(harness, session);
       expect(response.status).toBe(201);
       const body: StartedMeetingBody = await response.json<StartedMeetingBody>();
-      expect(body).toMatchObject({ kind: "trial", maxDurationMinutes: 90, tokenBudget: 1000000, trialMeetingsLeft: left });
+      expect(body).toMatchObject({ kind: "trial", maxDurationMinutes: 90, tokenBudget: 1250000, trialMeetingsLeft: left });
       harness.clock.nowMs += 60_000;
     }
     await expectError(await startMeeting(harness, session), 402, "trial_exhausted");
@@ -195,7 +204,7 @@ describe("haklar ve toplantı oturumları", () => {
     );
   });
 
-  it("ek süresi geçmiş toplantı sınırlı sayıda yeniden işlenmek için açılır; deneme ve başlatma düşmez", async () => {
+  it("işleme süresi (24 saat) geçmiş toplantı sınırlı sayıda yeniden işlenmek için açılır; deneme ve başlatma düşmez", async () => {
     const harness: Harness = await defaultHarness();
     const session: Session = await signIn(harness);
     const meeting: StartedMeetingBody = await (await startMeeting(harness, session)).json<StartedMeetingBody>();
@@ -213,22 +222,22 @@ describe("haklar ve toplantı oturumları", () => {
       harness.call(req("POST", `/v1/meetings/${meeting.meetingId}/reprocess`, { token: current.accessToken }));
     // Ek süre içinde açılış hak harcamaz.
     expect(await (await reprocess()).json()).toMatchObject({ meetingId: meeting.meetingId, reprocessesLeft: 2 });
-    harness.clock.nowMs += 31 * 60_000;
+    harness.clock.nowMs += processingWindowMs + 60_000;
     current = await refreshed(harness, current);
     await expectError(await call(), 403, "meeting_not_active");
     expect(await (await reprocess()).json()).toMatchObject({ reprocessesLeft: 1 });
     // Açıldı: vekil çağrısı gövde doğrulamasına kadar ilerler.
     await expectError(await call(), 400, "invalid_body");
-    harness.clock.nowMs += 31 * 60_000;
+    harness.clock.nowMs += processingWindowMs + 60_000;
     current = await refreshed(harness, current);
     await expectError(await call(), 403, "meeting_not_active");
     expect(await (await reprocess()).json()).toMatchObject({ reprocessesLeft: 0 });
-    harness.clock.nowMs += 31 * 60_000;
+    harness.clock.nowMs += processingWindowMs + 60_000;
     current = await refreshed(harness, current);
     await expectError(await reprocess(), 409, "reprocess_limit_reached");
     // Yeniden işleme yeni deneme ya da başlatma saymaz.
     expect((await me(harness, current)).trialMeetingsLeft).toBe(2);
-    expect(await meetingsStartedToday(harness, session.userId)).toBe(1);
+    expect(await meetingsStartedTotal(session.userId)).toBe(1);
     // Başkasının toplantısı yeniden açılamaz.
     const other: Session = await signIn(harness);
     await expectError(await harness.call(req("POST", `/v1/meetings/${meeting.meetingId}/reprocess`, { token: other.accessToken })), 404, "not_found");
@@ -280,7 +289,7 @@ describe("haklar ve toplantı oturumları", () => {
     await harness.call(req("POST", `/v1/meetings/${meeting.meetingId}/end`, { token: session.accessToken }));
     const nearlySpent: number = meeting.tokenBudget - 10_000;
     await env.DB.prepare("UPDATE meeting_sessions SET tokens_used = ? WHERE id = ?").bind(nearlySpent, meeting.meetingId).run();
-    harness.clock.nowMs += 31 * 60_000;
+    harness.clock.nowMs += processingWindowMs + 60_000;
     const current: Session = await refreshed(harness, session);
     const reprocess = (testEnv: Env): Promise<Response> =>
       harness.call(req("POST", `/v1/meetings/${meeting.meetingId}/reprocess`, { token: current.accessToken, env: testEnv }));
@@ -327,37 +336,118 @@ describe("haklar ve toplantı oturumları", () => {
     expect((await startDeferred("bekleyen-4", later.accessToken)).status).toBe(201);
   });
 
-  it("toplantı bittikten sonra 30 dakika not için açık kalır, sonra kapanır", async () => {
+  it("bitmiş toplantı canlı çağrılara 30 dakika, kaydın işlenmesine (not, ses) 24 saat açık kalır, sonra kapanır", async () => {
     const harness: Harness = await defaultHarness();
     const session: Session = await signIn(harness);
     const meeting: StartedMeetingBody = await (await startMeeting(harness, session)).json<StartedMeetingBody>();
     await harness.call(req("POST", `/v1/meetings/${meeting.meetingId}/end`, { token: session.accessToken }));
+    const endedAt: number = harness.clock.nowMs;
     let current: Session = session;
-    const llm = (): Promise<Response> =>
+    const llm = (purpose: string | null): Promise<Response> =>
       harness.call(
         req("POST", "/v1/llm/messages", {
           token: current.accessToken,
-          headers: { "x-meeting-id": meeting.meetingId },
+          headers: purpose === null ? { "x-meeting-id": meeting.meetingId } : { "x-meeting-id": meeting.meetingId, "x-llm-purpose": purpose },
           json: { max_tokens: 100, messages: [{ role: "user", content: "x" }], tools: [] },
         }),
       );
-    // Ek süre içinde oturum geçerli: gövde doğrulamasına kadar ilerler.
-    await expectError(await llm(), 400, "invalid_body");
+    const reprocess = async (): Promise<unknown> =>
+      (await harness.call(req("POST", `/v1/meetings/${meeting.meetingId}/reprocess`, { token: current.accessToken }))).json();
+    // Ek süre içinde oturum her çağrıya açık: gövde doğrulamasına kadar ilerler.
+    await expectError(await llm("live_translation"), 400, "invalid_body");
     harness.clock.nowMs += 29 * 60_000;
-    current = await refreshed(harness, session);
-    await expectError(await llm(), 400, "invalid_body");
+    current = await refreshed(harness, current);
+    await expectError(await llm("live_translation"), 400, "invalid_body");
+    // 31. dakika: canlı çağrılar kapanır; not (ve amacı bildirilmemiş eski istemci çağrısı) işleme süresinde açık kalır.
     harness.clock.nowMs += 2 * 60_000;
-    await expectError(await llm(), 403, "meeting_not_active");
+    await expectError(await llm("live_translation"), 403, "meeting_not_active");
+    await expectError(await llm("missed_summary"), 403, "meeting_not_active");
+    await expectError(await llm("live_question"), 403, "meeting_not_active");
+    for (const purpose of ["note", "note_chunk", "note_overview", "speaker_review", null]) {
+      await expectError(await llm(purpose), 400, "invalid_body");
+    }
+    // İşleme süresi içinde açılan yeniden işleme (ses henüz yazılmamış) hak harcamaz.
+    expect(await reprocess()).toMatchObject({ reprocessesLeft: 2 });
+    // 24 saat dolunca not da kapanır; istemci yeniden işlemeyle açar (hak harcanır).
+    harness.clock.nowMs = endedAt + processingWindowMs + 1;
+    current = await refreshed(harness, current);
+    await expectError(await llm("note"), 403, "meeting_not_active");
+    expect(await reprocess()).toMatchObject({ reprocessesLeft: 1 });
+    await expectError(await llm("note"), 400, "invalid_body");
+    // Yeniden açılan toplantı da işlemede 24 saat açık kalır; canlı çağrılar yalnızca 30 dakika.
+    harness.clock.nowMs += 31 * 60_000;
+    current = await refreshed(harness, current);
+    await expectError(await llm("live_translation"), 403, "meeting_not_active");
+    await expectError(await llm("note"), 400, "invalid_body");
+    harness.clock.nowMs += processingWindowMs;
+    current = await refreshed(harness, current);
+    await expectError(await llm("note"), 403, "meeting_not_active");
   });
 
-  it("abone aylık sınırın altında toplantı açar; sınır dolunca reddedilir", async () => {
+  it("yeni toplantı başlayınca kapanan (superseded) toplantı işleme süresi almaz; yeniden işlemeyle açılır", async () => {
+    const harness: Harness = await defaultHarness();
+    const session: Session = await signIn(harness);
+    await grantSubscription(session.userId, "active", harness.clock.nowMs + 20 * 86_400_000);
+    const first: StartedMeetingBody = await (await startMeeting(harness, session)).json<StartedMeetingBody>();
+    harness.clock.nowMs += 60_000;
+    await startMeeting(harness, session);
+    expect((await openState(first.meetingId))?.end_reason).toBe("superseded");
+    const note = (): Promise<Response> =>
+      harness.call(
+        req("POST", "/v1/llm/messages", {
+          token: session.accessToken,
+          headers: { "x-meeting-id": first.meetingId, "x-llm-purpose": "note" },
+          json: { max_tokens: 100, messages: [{ role: "user", content: "x" }], tools: [] },
+        }),
+      );
+    await expectError(await note(), 403, "meeting_not_active");
+    expect(await (await harness.call(req("POST", `/v1/meetings/${first.meetingId}/reprocess`, { token: session.accessToken }))).json()).toMatchObject({
+      reprocessesLeft: 1,
+    });
+    await expectError(await note(), 400, "invalid_body");
+  });
+
+  it("işleme süresi pencereleri saf fonksiyonla hesaplanır", () => {
+    const windows: MeetingWindows = { graceMs: 30 * 60_000, processingGraceMs: processingWindowMs };
+    const base: MeetingRow = {
+      id: "m",
+      user_id: "u",
+      kind: "subscription",
+      started_at: 0,
+      max_ends_at: 4 * 3_600_000,
+      ended_at: 3_600_000,
+      minutes: 60,
+      token_budget: 3_200_000,
+      tokens_used: 0,
+      audio_seconds: 0,
+      transcription_closed: 0,
+      end_reason: "ended",
+      reprocess_count: 0,
+      reprocess_until: null,
+      reprocess_audio_cap: null,
+    };
+    expect(meetingOpenUntil(base, windows, "live")).toBe(3_600_000 + 30 * 60_000);
+    expect(meetingOpenUntil(base, windows, "processing")).toBe(3_600_000 + processingWindowMs);
+    // Bitirilmeden en çok süreye ulaşan toplantı en çok süreden sayılır.
+    const unended: MeetingRow = { ...base, ended_at: null, end_reason: null };
+    expect(meetingOpenUntil(unended, windows, "processing")).toBe(4 * 3_600_000 + processingWindowMs);
+    // Yeni toplantıyla kapanan toplantı uzatma almaz.
+    const superseded: MeetingRow = { ...base, end_reason: "superseded" };
+    expect(meetingOpenUntil(superseded, windows, "processing")).toBe(3_600_000);
+    // Yeniden işleme anından (reprocess_until − ek süre) itibaren işleme süresi.
+    const reopened: MeetingRow = { ...superseded, reprocess_until: 100 * 3_600_000 };
+    expect(meetingOpenUntil(reopened, windows, "live")).toBe(100 * 3_600_000);
+    expect(meetingOpenUntil(reopened, windows, "processing")).toBe(100 * 3_600_000 - 30 * 60_000 + processingWindowMs);
+  });
+
+it("abone aylık sınırın altında toplantı açar; sınır dolunca reddedilir", async () => {
     const harness: Harness = await defaultHarness();
     const session: Session = await signIn(harness);
     await grantSubscription(session.userId, "active", harness.clock.nowMs + 20 * 86_400_000);
     expect((await me(harness, session)).plan).toBe("subscription");
 
     const first: StartedMeetingBody = await (await startMeeting(harness, session)).json<StartedMeetingBody>();
-    expect(first).toMatchObject({ kind: "subscription", maxDurationMinutes: 240, tokenBudget: 2600000, trialMeetingsLeft: null });
+    expect(first).toMatchObject({ kind: "subscription", maxDurationMinutes: 240, tokenBudget: 3200000, trialMeetingsLeft: null });
     expect((await me(harness, session)).trialMeetingsLeft).toBe(3);
 
     // 9,5 saatlik ses kullanılmış: kalan 30 dakika, toplantı süresi buna kısalır.

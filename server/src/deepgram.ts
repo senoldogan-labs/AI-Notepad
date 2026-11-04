@@ -33,10 +33,10 @@ export const deepgramGrantUrl: string = "https://api.deepgram.com/v1/auth/grant"
 /** Jetonun ömrü (saniye): yalnızca bağlantı kurulurken gerekir, olabildiğince kısa. */
 export const deepgramGrantTtlSeconds: number = 30;
 
-/** Abonelik toplantısı başına en çok jeton: iki akışın ilk bağlantıları ve yeniden bağlanmaları (en çok 4 saat). */
+/** Abonelik toplantısının ilk saatindeki en çok jeton: iki akışın ilk bağlantıları ve yeniden bağlanmaları. */
 export const deepgramGrantsPerMeeting: number = 30;
 
-/** Deneme toplantısı başına en çok jeton (toplantı daha kısa; kötüye kullanıma daha açık). */
+/** Deneme toplantısının ilk saatindeki en çok jeton (toplantı daha kısa; kötüye kullanıma daha açık). */
 export const deepgramTrialGrantsPerMeeting: number = 12;
 
 /** Kısa süreli jeton penceresi: bu sürede bir toplantıya en çok `deepgramGrantsPerWindow` jeton. */
@@ -91,9 +91,24 @@ export interface DeepgramUsage {
 
 const grantResponseSchema = z.object({ access_token: z.string().min(1), expires_in: z.number().positive().optional() });
 
-/** Toplantı türünün toplam jeton sınırı. Saf fonksiyondur. */
-export function deepgramGrantLimit(kind: MeetingRow["kind"]): number {
-  return kind === "trial" ? deepgramTrialGrantsPerMeeting : deepgramGrantsPerMeeting;
+/**
+ * Toplantının her tamamlanan saati için ek jeton (abonelik; deneme `deepgramTrialGrantsPerHour`): uzun toplantıda ağ
+ * kopmaları, sessizlik sonrası yeniden bağlanmalar ve dil değişimleri birikir; sabit sınır 4 saatlik toplantının son
+ * saatlerinde canlı metni kalıcı olarak cihaz içine düşürüyordu. Jeton ücretsizdir (süre ilk jetonda peşin sayılır);
+ * sınır yalnızca kötüye kullanıma karşıdır ve pencere sınırı (`deepgramGrantsPerWindow`) aynı kalır.
+ */
+export const deepgramGrantsPerHour: number = 15;
+
+/** Deneme toplantısının her tamamlanan saati için ek jeton. */
+export const deepgramTrialGrantsPerHour: number = 6;
+
+/**
+ * Toplantının şimdiki toplam jeton sınırı: türün taban sınırı + başlangıçtan bu yana tamamlanan her saat için ek pay.
+ * Saf fonksiyondur.
+ */
+export function deepgramGrantLimit(kind: MeetingRow["kind"], elapsedMs: number): number {
+  const hours: number = Math.floor(Math.max(0, elapsedMs) / 3_600_000);
+  return kind === "trial" ? deepgramTrialGrantsPerMeeting + hours * deepgramTrialGrantsPerHour : deepgramGrantsPerMeeting + hours * deepgramGrantsPerHour;
 }
 
 /**
@@ -378,7 +393,7 @@ export async function issueDeepgramGrant(db: D1Database, platform: Platform, con
   if (meeting.ended_at !== null || now.getTime() >= meeting.max_ends_at) {
     throw new ApiError("meeting_not_active", "The meeting recording has ended; cloud live transcript is only available while recording.");
   }
-  const limit: number = deepgramGrantLimit(meeting.kind);
+  const limit: number = deepgramGrantLimit(meeting.kind, now.getTime() - meeting.started_at);
   await settleDeepgramMeetings(db, now);
   const counters: GrantCounters | null = await meetingGrantCounters(db, meeting.id);
   if (counters !== null && !mayGrantMore(counters, limit, now.getTime())) {

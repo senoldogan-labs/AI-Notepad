@@ -130,6 +130,27 @@ export function meetingTokenLimit(meetingId: string, now: Date): ReservationLimi
   };
 }
 
+/**
+ * Toplantı bütçesinin nota ayrılan payı: kayıt sırasındaki canlı çağrılar (çeviri, "Ne kaçırdım?", toplantı sorusu)
+ * bütçenin bu kadarını kullanamaz. Uzun ve çok konuşulan toplantıda canlı çeviri bütçeyi bitirse not yazılamazdı
+ * (ölçülen canlı çeviri ~0,66 M token/saat; 4 saatlik notun parçaları ve birleştirmesi ~0,3 M).
+ */
+export const meetingNoteReserveShare: number = 0.15;
+
+/** Bütçenin nota ayrılan payı (token; aşağı yuvarlanır). Saf fonksiyondur. */
+export function meetingNoteReserveTokens(tokenBudget: number): number {
+  return Math.floor(tokenBudget * meetingNoteReserveShare);
+}
+
+/** Toplantının token bütçesinden canlı çağrılara kalan: bütçe − nota ayrılan pay − kullanılan − süren ayırmalar. */
+export function meetingLiveTokenLimit(meetingId: string, now: Date): ReservationLimit {
+  return {
+    remainingSql: `(SELECT token_budget - CAST(token_budget * ${meetingNoteReserveShare} AS INTEGER) - tokens_used FROM meeting_sessions WHERE id = ?) - ${activeSum("tokens", "meeting_id = ? AND kind = 'llm'")}`,
+    binds: [meetingId, meetingId, now.getTime()],
+    error: new ApiError("meeting_budget_exhausted", "This meeting's live AI budget is used up; the rest is kept for the meeting note."),
+  };
+}
+
 /** Kullanıcının aylık token sınırından kalan (tüm çağrılar). */
 export function monthlyTokenLimit(config: Config, userId: string, now: Date): ReservationLimit {
   const month: string = monthKey(now);

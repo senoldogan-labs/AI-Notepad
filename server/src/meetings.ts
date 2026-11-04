@@ -17,6 +17,7 @@ import { log } from "./log";
 import type { Platform, RequestContext } from "./platform";
 import { type TrialRefusalReason, recordTrialRefusal } from "./trialRefusals";
 import { requireElevenLabsTrialHeadroom } from "./elevenLabsCapacity";
+import { meetingNoteReserveTokens } from "./reservations";
 import { type MonthlyUsage, chunkOverlapAllowance, dayKey, monthlyUsage, requireSpendHeadroom, requireTrialSpendHeadroom } from "./usage";
 
 /** Yeni toplantı oturumu. */
@@ -550,11 +551,61 @@ export function meetingUsableUntil(row: MeetingRow, graceMs: number): number {
   return Math.max(usual, row.reprocess_until ?? 0);
 }
 
+/** Toplantının açıklık pencereleri (ms): canlı kullanım ek süresi ve kayıt sonrası işleme süresi. */
+export interface MeetingWindows {
+  readonly graceMs: number;
+  readonly processingGraceMs: number;
+}
+
+/**
+ * Vekil çağrısının kullanımı: `live` kayıt sırasındaki ya da kaydın hemen ardındaki çağrılar (canlı çeviri, "Ne
+ * kaçırdım?", toplantı sorusu, amacı bildirilmemiş eski istemci çağrısı), `processing` kaydın işlenmesi (son geçiş sesi,
+ * not, not parçası ve birleştirmesi, konuşmacı incelemesi).
+ */
+export type MeetingUse = "live" | "processing";
+
+/**
+ * Kayıt sonrası işlemenin (son geçiş ve not) toplantıda açık olduğu son an. Düzgün biten (kullanıcı bitirdi ya da en
+ * çok süreye ulaştı) toplantı, bitişinden sonra `processingGraceMs` boyunca işlenebilir: iPhone arka planda askıya
+ * alındığında ya da bağlantı koptuğunda işleme saatler sonra sürebilir ve kayıtlı toplantının notu kaybolmamalı. Süre
+ * harcamayı artırmaz: toplantının token bütçesi, ses hakkı (`meetingAudioLimit`) ve kullanıcının günlük/aylık sınırları
+ * aynıdır; yalnızca aynı bütçenin ne zamana dek kullanılabileceği uzar. Yeni toplantı başlayınca kapanan (`superseded`)
+ * toplantı uzatma almaz (aynı anda tek açık bütçe kuralı; istemci yeniden işlemeyle açar). Yeniden işleme açıklığı da
+ * işlemede aynı süreyle uzar (`reprocess_until` − `graceMs` yeniden işlemenin anıdır). Saf fonksiyondur.
+ */
+export function meetingProcessingUntil(row: MeetingRow, windows: MeetingWindows): number {
+  const live: number = meetingUsableUntil(row, windows.graceMs);
+  const end: number = Math.min(row.ended_at ?? row.max_ends_at, row.max_ends_at);
+  const ended: number = row.end_reason === "superseded" ? live : end + windows.processingGraceMs;
+  const reopened: number = row.reprocess_until === null ? 0 : row.reprocess_until - windows.graceMs + windows.processingGraceMs;
+  return Math.max(live, ended, reopened);
+}
+
+/** Kullanıma göre toplantının açık olduğu son an. Saf fonksiyondur. */
+export function meetingOpenUntil(row: MeetingRow, windows: MeetingWindows, use: MeetingUse): number {
+  return use === "live" ? meetingUsableUntil(row, windows.graceMs) : meetingProcessingUntil(row, windows);
+}
+
+/** Yapılandırmanın toplantı pencereleri. Saf fonksiyondur. */
+export function meetingWindows(config: Config): MeetingWindows {
+  return { graceMs: config.meetingGraceMs, processingGraceMs: config.meetingProcessingGraceMs };
+}
+
 /** Aboneliği ya da denemesi olmayan hesap kendi toplantısını bitişinden sonra bu süre içinde yeniden işleyebilir. */
 export const reprocessWithoutAccessMs: number = 7 * 86_400_000;
 
-/** Yeniden açılan toplantının yapay zekâ bütçesi (token; notu bir kez yeniden yazmaya yeter). */
+/** Yeniden açılan toplantının en az yapay zekâ bütçesi (token; 4 saatlik notu bir kez yeniden yazmaya yeter). */
 export const reprocessTokenBudget: number = 300_000;
+
+/**
+ * Yeniden açılan toplantıya eklenen yapay zekâ payı: `reprocessTokenBudget` ile toplantı türünün nota ayrılan payının
+ * (`meetingNoteReserveTokens`) büyüğü. Uzun toplantının notu (21 parça + birleştirme) yalnızca yeniden açılan payla
+ * yazılabilmeli. Saf fonksiyondur.
+ */
+export function reprocessTopUpTokens(config: Config, kind: MeetingRow["kind"]): number {
+  const budget: number = kind === "trial" ? config.trialMeetingTokenBudget : config.subscriberMeetingTokenBudget;
+  return Math.max(reprocessTokenBudget, meetingNoteReserveTokens(budget));
+}
 
 /**
  * Yeniden işlemeye izin var mı: abonelik erişimi ya da kalan deneme varsa her zaman; yoksa toplantının bitişinden sonra
@@ -589,9 +640,10 @@ export interface ReprocessedMeeting {
 
 /**
  * Bitmiş toplantıyı yeniden işleme için açar: `meetingGraceMs` boyunca son geçiş en çok kaydın gerçek süresi kadar yeni
- * ses (`reprocessAudioCap`), toplantı kapsamlı yapay zekâ tam `reprocessTokenBudget` token kullanabilir (bütçe =
+ * ses (`reprocessAudioCap`), toplantı kapsamlı yapay zekâ tam `reprocessTopUpTokens` token kullanabilir (bütçe =
  * şimdiye dek kullanılan + pay; ilk geçiş bütçesini neredeyse bitirmiş toplantı da tam pay alır). Toplantının toplam
- * yapay zekâ bütçesi böylece en çok ilk bütçe + `maxMeetingReprocesses` × pay olur. Yeni deneme, başlatma ya da
+ * yapay zekâ bütçesi böylece en çok ilk bütçe + `maxMeetingReprocesses` × pay olur. Kayıt sonrası işleme (son geçiş ve
+ * not) işleme süresi boyunca açık kalır (`meetingProcessingUntil`). Yeni deneme, başlatma ya da
  * toplantı süresi düşmez. Ek süre içinde ses henüz yazılmamışsa toplantı zaten açıktır (hak harcanmaz); ses yazılmışsa
  * kayıt yeniden yükleneceği için hak harcanır ve ses sınırı açılır. Abonelik erişimi ya da kalan denemesi olmayan hesap yalnızca toplantının bitişinden sonraki
  * 7 gün içinde yeniden işleyebilir (`mayReprocess`; sonra `subscription_required`). Günlük harcama tavanı doluysa
@@ -607,10 +659,12 @@ export async function reprocessMeeting(db: D1Database, config: Config, userId: s
     throw new ApiError("not_found", "Meeting session not found.");
   }
   const nowMs: number = now.getTime();
-  if (nowMs < meetingUsableUntil(row, config.meetingGraceMs) && row.audio_seconds <= 0) {
+  // İşleme süresi içinde ses henüz yazılmamışsa toplantı son geçiş ve not için zaten açıktır: hak harcanmaz.
+  const processingUntil: number = meetingProcessingUntil(row, meetingWindows(config));
+  if (nowMs < processingUntil && row.audio_seconds <= 0) {
     return {
       meetingId,
-      usableUntil: new Date(meetingUsableUntil(row, config.meetingGraceMs)).toISOString(),
+      usableUntil: new Date(processingUntil).toISOString(),
       reprocessesLeft: Math.max(0, maxMeetingReprocesses - row.reprocess_count),
     };
   }
@@ -635,7 +689,7 @@ export async function reprocessMeeting(db: D1Database, config: Config, userId: s
          token_budget = tokens_used + ?
        WHERE id = ? AND user_id = ? AND reprocess_count < ?`,
     )
-    .bind(until, audioCap, reprocessTokenBudget, meetingId, userId, maxMeetingReprocesses)
+    .bind(until, audioCap, reprocessTopUpTokens(config, row.kind), meetingId, userId, maxMeetingReprocesses)
     .run();
   if (updated.meta.changes !== 1) {
     throw new ApiError("reprocess_limit_reached", `This meeting can be reprocessed at most ${maxMeetingReprocesses} times.`);
@@ -644,11 +698,14 @@ export async function reprocessMeeting(db: D1Database, config: Config, userId: s
   return { meetingId, usableUntil: new Date(until).toISOString(), reprocessesLeft: Math.max(0, maxMeetingReprocesses - row.reprocess_count - 1) };
 }
 
-/** Vekil çağrısı için toplantı: çağırana ait, açık ya da ek süre içinde olmalı; değilse `meeting_not_active`. */
-export async function requireUsableMeeting(db: D1Database, config: Config, userId: string, meetingId: string, now: Date): Promise<MeetingRow> {
+/**
+ * Vekil çağrısı için toplantı: çağırana ait ve kullanıma göre açık olmalı (`meetingOpenUntil`: canlı kullanımda ek
+ * süre, işlemede işleme süresi); değilse `meeting_not_active`.
+ */
+export async function requireUsableMeeting(db: D1Database, config: Config, userId: string, meetingId: string, use: MeetingUse, now: Date): Promise<MeetingRow> {
   const row: MeetingRow | null = await findMeeting(db, userId, meetingId);
-  if (row === null || now.getTime() >= meetingUsableUntil(row, config.meetingGraceMs)) {
-    throw new ApiError("meeting_not_active", "The meeting session is not open; start a new meeting.");
+  if (row === null || now.getTime() >= meetingOpenUntil(row, meetingWindows(config), use)) {
+    throw new ApiError("meeting_not_active", "The meeting session is not open; reprocess the saved meeting or start a new meeting.");
   }
   return row;
 }

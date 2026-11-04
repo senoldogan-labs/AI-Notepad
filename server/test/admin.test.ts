@@ -262,7 +262,7 @@ describe("yönetici API'si", () => {
       // `grace` kullanıcısı aylık token sınırının %80'ini aştı.
       env.DB.prepare(
         `INSERT INTO monthly_usage (user_id, month, input_tokens, output_tokens, audio_seconds, account_tokens)
-         VALUES (?1, ?2, 1000, 500, 7200, 300), (?3, '2026-09', 999, 0, 0, 0), (?4, ?2, 5200000, 0, 0, 0)`,
+         VALUES (?1, ?2, 1000, 500, 7200, 300), (?3, '2026-09', 999, 0, 0, 0), (?4, ?2, 6800000, 0, 0, 0)`,
       ).bind(admin.userId, month, trialUser.userId, grace),
       // Ödeme olayları: 30 gün içinde bir iade ve bir başarısız ödeme; 40 gün önceki iade ve abonelik güncellemesi sayılmaz.
       env.DB.prepare(
@@ -330,7 +330,7 @@ describe("yönetici API'si", () => {
     expect(stats.spend.trialTodayUsd).toBe(0.4);
     expect(stats.spend.trialCeilingUsd).toBe(10);
     expect(stats.spend.last30Days[24]).toEqual({ day: days[24], usd: 0.5 });
-    expect(stats.tokens).toEqual({ thisMonth: 5_201_500 });
+    expect(stats.tokens).toEqual({ thisMonth: 6_801_500 });
     expect(stats.reports).toEqual({ openFeedback: 2, openCrash: 1, openContact: 0 });
     expect(stats.stripe).toEqual({ mode: "test" });
     expect(stats.elevenLabs).toEqual({ cycleStart: "2026-10-11", usedHours: 11, capHours: 110, percent: 10 });
@@ -344,7 +344,7 @@ describe("yönetici API'si", () => {
       openMeetings: 2,
       audioHoursThisMonth: 2,
       accountTokensThisMonth: 300,
-      monthlyTokenCapPerUser: 6_500_000,
+      monthlyTokenCapPerUser: 8_500_000,
       monthlyAccountTokenCapPerUser: 1_500_000,
       usersNearTokenCap: 1,
     });
@@ -661,7 +661,7 @@ describe("yönetici API'si", () => {
     expect(detail.user.subscription).toMatchObject({ status: "active", access: "active", cancelAt: iso(nowMs + 19 * dayMs), updatedAt: iso(nowMs - dayMs) });
     expect(detail.trialDeviceVerifiedAt).toBeNull();
     expect(detail.stripeCustomerId).toBe(customer?.stripe_customer_id);
-    expect(detail.usage).toEqual({ usedHours: 2.25, capHours: 10, audioHours: 0.75, tokens: 5000, tokenCap: 6_500_000, accountTokens: 700, accountTokenCap: 1_500_000 });
+    expect(detail.usage).toEqual({ usedHours: 2.25, capHours: 10, audioHours: 0.75, tokens: 5000, tokenCap: 8_500_000, accountTokens: 700, accountTokenCap: 1_500_000 });
     expect(
       detail.meetings.map((meeting: MeetingItemBody): Array<string | number | boolean> => [
         meeting.state,

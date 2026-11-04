@@ -276,11 +276,11 @@ describe("abonenin token sınırları", () => {
     const session: Session = await signIn(harness);
     await grantSubscription(session.userId, "active", harness.clock.nowMs + 20 * 86_400_000);
     await env.DB.prepare("INSERT INTO monthly_usage (user_id, month, input_tokens) VALUES (?, ?, ?)")
-      .bind(session.userId, new Date(harness.clock.nowMs).toISOString().slice(0, 7), 6_500_000 - 500)
+      .bind(session.userId, new Date(harness.clock.nowMs).toISOString().slice(0, 7), 8_500_000 - 500)
       .run();
     for (let index: number = 0; index < 2; index += 1) {
       const meeting: StartedMeetingBody = await (await startMeeting(harness, session)).json<StartedMeetingBody>();
-      expect(meeting.tokenBudget).toBe(2_600_000);
+      expect(meeting.tokenBudget).toBe(3_200_000);
       await expectError(await llm(harness, session, meeting.meetingId), 403, "monthly_cap_reached");
     }
   });
@@ -303,7 +303,7 @@ describe("abonenin token sınırları", () => {
     });
     const session: Session = await signIn(harness);
     const month: string = new Date(harness.clock.nowMs).toISOString().slice(0, 7);
-    await env.DB.prepare("INSERT INTO monthly_usage (user_id, month, input_tokens) VALUES (?, ?, ?)").bind(session.userId, month, 6_500_000 - 1500).run();
+    await env.DB.prepare("INSERT INTO monthly_usage (user_id, month, input_tokens) VALUES (?, ?, ?)").bind(session.userId, month, 8_500_000 - 1500).run();
     const meeting: StartedMeetingBody = await (await startMeeting(harness, session)).json<StartedMeetingBody>();
     expect((await llm(harness, session, meeting.meetingId)).status).toBe(200);
     expect(maxTokens).toBeLessThan(1500);
@@ -311,7 +311,7 @@ describe("abonenin token sınırları", () => {
     const monthly = await env.DB.prepare("SELECT input_tokens, output_tokens FROM monthly_usage WHERE user_id = ? AND month = ?")
       .bind(session.userId, month)
       .first<{ input_tokens: number; output_tokens: number }>();
-    expect(monthly).toEqual({ input_tokens: 6_500_000 - 1500 + 100, output_tokens: 50 });
+    expect(monthly).toEqual({ input_tokens: 8_500_000 - 1500 + 100, output_tokens: 50 });
     const open = await env.DB.prepare("SELECT COUNT(*) AS count FROM usage_reservations WHERE user_id = ?").bind(session.userId).first<{ count: number }>();
     expect(open?.count).toBe(0);
     const daily = await env.DB.prepare("SELECT tokens_used FROM daily_usage WHERE user_id = ?")
@@ -326,7 +326,7 @@ describe("abonenin token sınırları", () => {
     const session: Session = await signIn(harness);
     await grantSubscription(session.userId, "active", harness.clock.nowMs + 20 * 86_400_000);
     await env.DB.prepare("INSERT INTO daily_usage (user_id, day, tokens_used) VALUES (?, ?, ?)")
-      .bind(session.userId, new Date(harness.clock.nowMs).toISOString().slice(0, 10), 3_000_000 - 100)
+      .bind(session.userId, new Date(harness.clock.nowMs).toISOString().slice(0, 10), 3_600_000 - 100)
       .run();
     const meeting: StartedMeetingBody = await (await startMeeting(harness, session)).json<StartedMeetingBody>();
     await expectError(await llm(harness, session, meeting.meetingId), 429, "daily_cap_reached");

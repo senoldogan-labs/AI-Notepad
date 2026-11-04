@@ -16,18 +16,21 @@ import { retryRecorder } from "./opsEvents";
 import type { CachedJwks, Platform } from "./platform";
 import { grantDueReferralRewards } from "./referralRewards";
 import { scheduledSyncCleanupLimits, syncCleanup } from "./sync";
+import { stubbedFetch, upstreamStubBase } from "./upstreamStub";
 
 /** Worker örneği ömrünce paylaşılan kimlik sağlayıcısı anahtarları önbelleği. */
 const jwksCache: Map<string, CachedJwks> = new Map();
 
 /**
- * Üretim platformu: gerçek fetch, saat, Apple App Attestation kökü, paylaşılan JWKS önbelleği ve ortamın D1'ine yazan
- * yeniden deneme sayacı (`retryRecorder`).
+ * Üretim platformu: gerçek fetch (yerel uçtan uca denemede üst servisler sahte yerel servise; bkz. `upstreamStubBase`),
+ * saat, Apple App Attestation kökü, paylaşılan JWKS önbelleği ve ortamın D1'ine yazan yeniden deneme sayacı
+ * (`retryRecorder`).
  */
-function productionPlatform(db: D1Database): Platform {
+function productionPlatform(db: D1Database, stubBase: string | null): Platform {
   const now = (): Date => new Date();
+  const outbound: typeof fetch = (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => fetch(input, init);
   return {
-    fetch: (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => fetch(input, init),
+    fetch: stubBase === null ? outbound : stubbedFetch(outbound, stubBase),
     now,
     appAttestRootPem: appleAppAttestationRootPem,
     retryBaseDelayMs: 300,
@@ -39,7 +42,7 @@ function productionPlatform(db: D1Database): Platform {
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     return handleRequest(request, env, {
-      platform: productionPlatform(env.DB),
+      platform: productionPlatform(env.DB, upstreamStubBase(env)),
       waitUntil: (promise: Promise<void>): void => ctx.waitUntil(promise),
       // Cloudflare her istekte bu başlığı koyar; yerel geliştirmede yoktur.
       clientIp: request.headers.get("cf-connecting-ip") ?? "local",
@@ -53,7 +56,7 @@ export default {
    */
   async scheduled(controller: ScheduledController, env: Env): Promise<void> {
     const now: Date = new Date(controller.scheduledTime);
-    const platform: Platform = productionPlatform(env.DB);
+    const platform: Platform = productionPlatform(env.DB, upstreamStubBase(env));
     const config: Config = parseConfig(env);
     warnIfStripeTestMode(config, "scheduled");
     warnIfAccessCheckDisabled(config.access);

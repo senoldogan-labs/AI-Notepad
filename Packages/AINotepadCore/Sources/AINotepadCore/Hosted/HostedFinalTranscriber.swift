@@ -11,7 +11,8 @@ private let finalLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", 
 /// parça öncekinin yüklemesi sürerken kodlanır), sonuçlar parça konumlarıyla kaydırılıp birleştirilir; ardışık parçalar
 /// bir dakika örtüşür ve konuşmacılar ortak bölgedeki kelimelerle eşlenir (bkz. `mergeChunkTranscriptions`). Sınır: ortak
 /// dakikada konuşmayan kişi sonraki parçada yeni kişi olarak görünür (adlandırırken aynı ad verilebilir). Parçalar geçici
-/// klasörde tutulur ve iş bitince silinir.
+/// klasörde tutulur ve iş bitince silinir. Parçaların ilerlemesi kaydın yanına yazılır (`HostedFinalPassProgress`):
+/// yarıda kalan son geçiş tamamlanan parçaları yeniden yüklemez.
 public struct HostedFinalTranscriber: FinalTranscriber {
     /// Ses sunucuda yazıya dökülür: dönüştürmeyle aynı anda, kayıpsız kayıttan başlar.
     public let source: FinalPassSource = .originalRecording
@@ -37,6 +38,9 @@ public struct HostedFinalTranscriber: FinalTranscriber {
         defer { removeChunkDirectory(directory: directory) }
         let pcm: HostedPcmFile = try writeHostedPcmFile(source: audioURL, directory: directory)
         let terms: [String] = hostedKeyterms(terms: keyterms, limit: 30)
+        // Önceki (yarıda kalmış) işlemenin parçaları: tamamlananlar yeniden yüklenmez, yarıda kalan aynı anahtarla gider.
+        let progressURL: URL = hostedFinalPassProgressURL(audioURL: audioURL)
+        var progress: HostedFinalPassProgress = usableFinalPassProgress(progress: loadFinalPassProgress(url: progressURL), totalSamples: pcm.totalSamples)
         var results: [ChunkTranscription] = []
         var stoppedNotice: String?
         var coveredUntilSec: Double?
@@ -50,10 +54,28 @@ public struct HostedFinalTranscriber: FinalTranscriber {
             let overlapSec: Double = previous.map { Double($0.span.startSample + $0.span.sampleCount - chunk.span.startSample) / Double(hostedTranscribeSampleRate) } ?? 0
             let durationSec: Double = Double(chunk.span.sampleCount) / Double(hostedTranscribeSampleRate)
             do {
-                let data: Data = try await transcribeChunk(
-                    url: chunk.url, languageCode: elevenLabsLanguageCode(languageMode: languageMode), keyterms: terms,
-                    uploadKey: try makeUploadKey(), timeoutSec: hostedTranscribeTimeoutSec(durationSec: durationSec)
-                )
+                let saved: HostedChunkProgress? = resumableChunk(progress: progress, index: index, span: chunk.span)
+                let data: Data
+                if let response = saved?.response {
+                    finalLogger.info("Son geçiş parçası önceki işlemeden alındı, parça: \(index + 1, privacy: .public)")
+                    data = response
+                } else {
+                    let uploadKey: String = try saved?.uploadKey ?? makeUploadKey()
+                    let started: HostedChunkProgress = HostedChunkProgress(
+                        startSample: chunk.span.startSample, sampleCount: chunk.span.sampleCount, uploadKey: uploadKey, response: nil
+                    )
+                    progress = recordingChunk(progress: progress, index: index, chunk: started)
+                    saveFinalPassProgress(progress: progress, url: progressURL)
+                    data = try await transcribeChunk(
+                        url: chunk.url, languageCode: elevenLabsLanguageCode(languageMode: languageMode), keyterms: terms,
+                        uploadKey: uploadKey, timeoutSec: hostedTranscribeTimeoutSec(durationSec: durationSec)
+                    )
+                    progress = recordingChunk(
+                        progress: progress, index: index,
+                        chunk: HostedChunkProgress(startSample: started.startSample, sampleCount: started.sampleCount, uploadKey: uploadKey, response: data)
+                    )
+                    saveFinalPassProgress(progress: progress, url: progressURL)
+                }
                 results.append(ChunkTranscription(
                     offsetSec: chunk.span.offsetSec(sampleRate: hostedTranscribeSampleRate), overlapSec: overlapSec, result: try parseElevenLabsResponse(data: data)
                 ))
@@ -127,9 +149,12 @@ private func followingHostedChunk(after chunk: AudioChunkFile, index: Int, pcm: 
 extension HostedFinalTranscriber {
     /// Parçayı gönderir. Sunucu aynı toplantının önceki yüklemesini hâlâ işliyorsa (`transcription_in_progress`, ör.
     /// bağlantı kopup istek yinelendiyse) beklenir ve en çok `hostedTranscribeBusyAttempts` kez yeniden denenir; her
-    /// bekleme uyarı loglanır, sonra son hata fırlar.
+    /// bekleme uyarı loglanır, sonra son hata fırlar. Toplantının sunucu oturumu kapandıysa (`meeting_not_active`:
+    /// işleme süresi geçti ya da toplantı yeni kayıtla kapandı) bir kez yeniden işlemeye açılıp yinelenir; açılamazsa
+    /// açma hatası fırlar.
     private func transcribeChunk(url: URL, languageCode: String?, keyterms: [String], uploadKey: String, timeoutSec: Double) async throws -> Data {
         var attempt: Int = 1
+        var reopened: Bool = false
         while true {
             do {
                 // Aynı parçanın her denemesi aynı anahtarla: önceki yanıt kaybolduysa sunucu saklı sonucu döndürür.
@@ -138,6 +163,10 @@ extension HostedFinalTranscriber {
                 finalLogger.warning("Toplantının önceki yüklemesi sürüyor, bekleniyor, deneme: \(attempt, privacy: .public)")
                 try await Task.sleep(for: .seconds(hostedTranscribeBusyDelaySec))
                 attempt += 1
+            } catch let error as HostedAPIError where error.code == .meetingNotActive && !reopened {
+                finalLogger.warning("Kaydın sunucu oturumu kapanmış, son geçiş için yeniden açılıyor")
+                try await client.reopenRecordedMeeting(meetingID: meetingID)
+                reopened = true
             }
         }
     }

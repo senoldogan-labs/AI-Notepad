@@ -23,6 +23,8 @@ struct AINotepadiOSApp: App {
     @State private var crashReports: CrashReportCenter = CrashReportCenter()
 
     init() {
+        // Yarıda kalan işlemeyi sürdüren sistem görevi açılış bitmeden kaydedilmeli.
+        ProcessingResumeScheduler.shared.register()
         registerPhoneDefaults()
         keepPhoneLegacyNoteLanguage(defaults: .standard)
         choosePhoneMeetingLanguageOnFirstRun(defaults: .standard)
@@ -210,6 +212,8 @@ private struct PhoneAppRoot: View {
             let store: PhoneStore = sessions.session.store
             let recorder: PhoneRecorder = sessions.session.recorder
             let ask: PhoneAsk = sessions.session.ask
+            // Sistemin sürdürme görevi yüklü hesabın toplantılarını işler.
+            ProcessingResumeScheduler.shared.recorder = recorder
             // Ad listeden önce okunur: notlardaki "Sen" ve görevler ilk çizimde doğru kişiye ayrılsın.
             store.loadIdentity()
             // Saklama süresi ve yarım kalan kayıtlar listeye bakar: okuma bitince sürer. Okuma sürerken hesap değiştiyse

@@ -122,6 +122,63 @@ private func uniqueMerges(merges: [SpeakerMergeSuggestion]) -> [SpeakerMergeSugg
     }
 }
 
+/// Konuşmacı incelemesine giden transkriptin en çok UTF-8 baytı. Sunucu girdiyi bayt/3 token sayar ve çağrı başına
+/// 100 K token (`LLM_MAX_INPUT_TOKENS`), 400 KB gövde (`LLM_MAX_REQUEST_BYTES`) kabul eder; 4 saatlik toplantının
+/// transkripti (~450 KB) ikisini de aşıp `payload_too_large` alıyordu. 240 KB ≈ 80 K token, istem ve yanıt için pay kalır.
+public let speakerReviewMaxTranscriptBytes: Int = 240_000
+
+/// Her kişinin incelemeye her zaman giden ilk bölüm sayısı (tanışma, adıyla hitap çoğunlukla başta olur).
+let speakerReviewIntroductionSegments: Int = 5
+
+/// Bölümün transkript satırındaki yaklaşık boyutu (metin + zaman ve etiket).
+private func reviewLineBytes(segment: StoredSegment) -> Int {
+    segment.text.utf8.count + 24
+}
+
+/// İncelemeye giden bölümler: transkript `maxBytes`'a sığıyorsa hepsi; uzun toplantıda (1–4 saat) her kişinin ilk
+/// `speakerReviewIntroductionSegments` bölümü ve kalan paya sığacak kadar toplantıya eşit aralıkla yayılmış bölümler
+/// (zaman sırası korunur; her kişi görünür, birleştirme önerileri toplantının tamamından kanıt görür). Saf fonksiyondur.
+public func speakerReviewSegments(segments: [StoredSegment], maxBytes: Int) -> [StoredSegment] {
+    let ordered: [StoredSegment] = segments
+        .filter { (segment: StoredSegment) -> Bool in !segment.text.isEmpty }
+        .sorted { (left: StoredSegment, right: StoredSegment) -> Bool in left.startSec < right.startSec }
+    let total: Int = ordered.map(reviewLineBytes).reduce(0, +)
+    guard total > maxBytes else {
+        return ordered
+    }
+    var seen: [String: Int] = [:]
+    var keep: Set<Int> = []
+    for (index, segment) in ordered.enumerated() {
+        let speaker: String = "\(segment.speaker.rawValue)-\(segment.person.map(String.init) ?? "")"
+        let count: Int = seen[speaker] ?? 0
+        if count < speakerReviewIntroductionSegments {
+            keep.insert(index)
+            seen[speaker] = count + 1
+        }
+    }
+    let used: Int = keep.map { reviewLineBytes(segment: ordered[$0]) }.reduce(0, +)
+    let rest: [Int] = ordered.indices.filter { !keep.contains($0) }
+    let restBytes: Int = rest.map { reviewLineBytes(segment: ordered[$0]) }.reduce(0, +)
+    let room: Int = maxBytes - used
+    guard room > 0, restBytes > 0 else {
+        return keep.sorted().map { ordered[$0] }
+    }
+    // Eşit aralık: kalan bölümlerin `room / restBytes` oranı; her adımda pay biriktikçe bir bölüm alınır.
+    let share: Double = Double(room) / Double(restBytes)
+    var credit: Double = 0
+    var spent: Int = 0
+    for index in rest {
+        let size: Int = reviewLineBytes(segment: ordered[index])
+        credit += Double(size) * share
+        if credit >= Double(size), spent + size <= room {
+            keep.insert(index)
+            credit -= Double(size)
+            spent += size
+        }
+    }
+    return keep.sorted().map { ordered[$0] }
+}
+
 /// Konuşmacı incelemesi isteği (akıllı model, yapılandırılmış çıktı). Transkript adlar yerine numaralarla gönderilir
 /// ki öneriler numaraya bağlanabilsin; verilmiş adlar ayrıca listelenir. Nedenler not dilinde yazılır. Numaralı konuşmacı
 /// yoksa nil. Saf fonksiyondur.
@@ -133,6 +190,8 @@ public func speakerReviewRequest(
         return nil
     }
     let user: String = userName.isEmpty ? "kullanıcı" : userName
+    // Uzun toplantının transkripti sunucunun girdi sınırına sığacak kadar seçilir (bkz. `speakerReviewSegments`).
+    let reviewed: [StoredSegment] = speakerReviewSegments(segments: segments, maxBytes: speakerReviewMaxTranscriptBytes)
     let named: [String] = persons.compactMap { (person: Int) -> String? in
         speakerNames[person].flatMap { $0.isEmpty ? nil : "Konuşmacı \(person) = \($0)" }
     }
@@ -155,8 +214,8 @@ public func speakerReviewRequest(
         Verilmiş adlar: \(named.isEmpty ? "(yok)" : named.joined(separator: ", "))
         Takvimdeki katılımcılar (yalnızca ipucu; transkriptte kanıt yoksa ad verme): \(attendees.isEmpty ? "(bilinmiyor)" : attendees.joined(separator: ", "))
 
-        <transkript>
-        \(storedLines(segments: segments, speakerNames: [:]))
+        \(reviewed.count < segments.filter { !$0.text.isEmpty }.count ? "Toplantı uzun: transkriptten her kişinin ilk sözleri ve toplantıya yayılmış bölümler verildi.\n" : "")<transkript>
+        \(storedLines(segments: reviewed, speakerNames: [:]))
         </transkript>
         """,
         maxTokens: 16000,

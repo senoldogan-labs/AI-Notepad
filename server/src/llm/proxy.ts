@@ -15,6 +15,7 @@ import {
   type UsageReservation,
   dailyTokenLimit,
   llmReservation,
+  meetingLiveTokenLimit,
   meetingTokenLimit,
   monthlyTokenLimit,
   remainingOf,
@@ -26,7 +27,7 @@ import {
 } from "../reservations";
 import { recordMeetingFailure, recordOpsEvents } from "../opsEvents";
 import { llmCostMicroUsd } from "../usage";
-import { type LLMPurpose, purposeUsageStatement } from "./purpose";
+import { type LLMPurpose, liveLLMPurposes, purposeUsageStatement } from "./purpose";
 import { type ScreenImageUsage, screenImageUsage } from "./images";
 import { type LLMRequest, clampMaxTokens, estimateInputTokens, requestImages, requestTextBytes, upstreamParams } from "./request";
 import { type LLMUsageTag, llmUsageStatement, llmUsageTagOf } from "./usageBuckets";
@@ -60,13 +61,15 @@ function isSubscriberAccountCall(scope: LLMScope): boolean {
 }
 
 /**
- * Çağrının sınırları: toplantı bütçesi (toplantıda) ya da denemenin günlük / abonenin aylık hesap çağrısı sınırı, sonra
- * kullanıcının aylık ve günlük token sınırı.
+ * Çağrının sınırları: toplantı bütçesi (toplantıda; canlı amaçlarda nota ayrılan pay düşülmüş) ya da denemenin günlük /
+ * abonenin aylık hesap çağrısı sınırı, sonra kullanıcının aylık ve günlük token sınırı.
  */
 function llmLimits(config: Config, scope: LLMScope, now: Date): ReservationLimit[] {
   const scoped: ReservationLimit =
     scope.kind === "meeting"
-      ? meetingTokenLimit(scope.meeting.id, now)
+      ? liveLLMPurposes.includes(scope.purpose)
+        ? meetingLiveTokenLimit(scope.meeting.id, now)
+        : meetingTokenLimit(scope.meeting.id, now)
       : scope.access === "trial"
         ? trialAccountTokenLimit(config, scope.userId, now)
         : subscriberAccountTokenLimit(config, scope.userId, now);

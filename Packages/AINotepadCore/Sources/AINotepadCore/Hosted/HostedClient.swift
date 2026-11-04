@@ -209,6 +209,12 @@ public actor HostedClient: HostedLLMCredentialSource {
         return try decode(HostedReprocessedMeeting.self, data: try await authorized(path: path, method: "POST", body: nil, isRetryable: isRetryableRepeatableRequest), path: path)
     }
 
+    /// Kaydı bitmiş toplantıyı not ve son geçiş için yeniden açar (bkz. `reprocessMeeting`, `withRecordedMeetingReopen`).
+    public func reopenRecordedMeeting(meetingID reopened: String) async throws {
+        let result: HostedReprocessedMeeting = try await reprocessMeeting(meetingID: reopened)
+        hostedLogger.info("Kaydın sunucu oturumu yeniden açıldı, kalan yeniden işleme: \(result.reprocessesLeft, privacy: .public)")
+    }
+
     /// Toplantıyı bitirir; not ve son geçiş sunucunun ek süresi boyunca aynı toplantıyla sürer.
     public func endMeeting(meetingID ended: String) async throws -> HostedEndedMeeting {
         let path: String = "/v1/meetings/\(ended)/end"

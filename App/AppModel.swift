@@ -1488,7 +1488,7 @@ final class AppModel {
         let recordedOffline: Bool = HostedAccount.shared.isOfflineRecording
         // Kapatılacak oturum beklemeden önce alınır: geç dönen kapatma yeni kaydın oturumuna dokunmaz.
         let serverMeetingID: String? = HostedAccount.shared.currentMeeting?.meetingId
-        // Abonelik: toplantı oturumu kapanır; not ve son geçiş sunucunun ek süresinde aynı oturumla sürer.
+        // Abonelik: toplantı oturumu kapanır; not ve son geçiş sunucunun işleme süresinde (24 saat) aynı oturumla sürer.
         do {
             try await HostedAccount.shared.endMeeting(meetingID: serverMeetingID)
         } catch {
@@ -1598,8 +1598,29 @@ final class AppModel {
     }
 
     /// Toplantıyı sonradan işler (son geçiş + not) ve kaydeder. Son geçiş kaydın motoruna göre yapılır
-    /// (yerel toplantı buluta gönderilmez); dil kaydın kilitlenmiş dilidir.
+    /// (yerel toplantı buluta gönderilmez); dil kaydın kilitlenmiş dilidir. Yarıda kalmış işleme kaldığı yerden sürer
+    /// (bkz. `processMeeting`).
     private func process(record: MeetingRecord, directory: URL, llmProvider resolveLLM: @escaping @MainActor @Sendable () async -> LLMProvider?) {
+        process(record: record, directory: directory, finalPass: { () async -> FinalPassPlan in await self.finalPassPlan(record: record) }, llmProvider: resolveLLM)
+    }
+
+    /// "Tekrar işle": önceki işlemenin kontrol noktası ve son geçiş parçaları atılır, kayıt baştan yeniden yazıya dökülür
+    /// (abonelikte kaydın sunucu oturumu önce yeniden işlemeye açılır; bkz. `hostedReprocessFinalPassPlan`).
+    private func reprocessFromScratch(record: MeetingRecord, directory: URL, llmProvider resolveLLM: @escaping @MainActor @Sendable () async -> LLMProvider?) {
+        do {
+            try discardProcessingProgress(directory: directory)
+        } catch {
+            errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
+            return
+        }
+        process(record: record, directory: directory, finalPass: { () async -> FinalPassPlan in await self.reprocessFinalPassPlan(record: record) }, llmProvider: resolveLLM)
+    }
+
+    /// İşlemenin ortak yolu: son geçiş planı `resolveFinalPass`'ten gelir.
+    private func process(
+        record: MeetingRecord, directory: URL, finalPass resolveFinalPass: @escaping @Sendable () async -> FinalPassPlan,
+        llmProvider resolveLLM: @escaping @MainActor @Sendable () async -> LLMProvider?
+    ) {
         saveRecord(record: record, directory: directory)
         processingMeetingIDs.insert(record.id)
         keepAwake(meetingID: record.id)
@@ -1612,7 +1633,7 @@ final class AppModel {
             // Son geçiş planı (sunucu oturumunu yeniden açma isteği) ve not sağlayıcısı ses dönüştürülürken hazırlanır.
             let result: MeetingRecord = await processMeeting(
                 record: record, directory: directory,
-                resolveFinalPass: { () async -> FinalPassPlan in await self.finalPassPlan(record: record) },
+                resolveFinalPass: resolveFinalPass,
                 resolveLLM: resolveLLM, languageMode: languageMode, userName: userName,
                 noteLanguage: selectedNoteLanguage(), voiceEmbedder: voiceEmbedderIfEnabled(), registry: registeredVoices, screens: screens
             ) { (step: ProcessingStep) async -> Void in
@@ -1627,6 +1648,14 @@ final class AppModel {
             let versioned: MeetingRecord = withNoteVersion(updated: result, previous: record, reason: String(localized: "Tekrar işlendi"), savedAt: Date())
             let saved: MeetingRecord = withLatestMarks(result: versioned, start: record, directory: directory)
             saveRecord(record: saved, directory: directory)
+            // Not yazıldıysa kontrol noktası gerekmez; yazılamadıysa kalır (yarıda kalan işleme nottan sürer).
+            if saved.status == .done {
+                do {
+                    try removeProcessingCheckpoint(directory: directory)
+                } catch {
+                    Self.logger.error("İşleme kontrol noktası silinemedi, toplantı: \(record.id, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+                }
+            }
             processingMeetingIDs.remove(record.id)
             processingSteps[record.id] = nil
             allowSleep(meetingID: record.id)
@@ -1765,6 +1794,16 @@ final class AppModel {
         #endif
     }
 
+    /// "Tekrar işle"nin son geçişi: abonelikte kaydın sunucu oturumu önce yeniden işlemeye açılır (ses yeniden
+    /// yazıya dökülür); kendi anahtarlı sürümde kaydın motoruna göre (bkz. `finalPassPlan`).
+    private func reprocessFinalPassPlan(record: MeetingRecord) async -> FinalPassPlan {
+        #if HOSTED_EDITION
+        return await hostedReprocessFinalPassPlan(keyterms: recognitionKeyterms, recordID: record.id)
+        #else
+        return await finalPassPlan(record: record)
+        #endif
+    }
+
     /// LLM sağlayıcısı; anahtar ya da ayar yoksa nil (not adımı bunu açıkça bildirir), diğer hatalar panelde.
     private func optionalLLMProvider() async -> LLMProvider? {
         await optionalProvider(resolve: resolveLLMProvider)
@@ -1799,7 +1838,7 @@ final class AppModel {
         // Not, toplantının sağlayıcısıyla yazılır: abonelikte son geçişin yeniden açtığı oturum bütçesi (hakkı bitmiş
         // kullanıcı da sunucunun izin verdiği sürede yeniden işleyebilir), kendi anahtarlı sürümde Ayarlar'daki sağlayıcı.
         withSessionDirectory(id: meetingID) { (directory: URL) -> Void in
-            process(record: record, directory: directory) { [weak self] () async -> LLMProvider? in
+            reprocessFromScratch(record: record, directory: directory) { [weak self] () async -> LLMProvider? in
                 await self?.optionalProvider { try await resolveRecordedMeetingLLMProvider(recordID: meetingID) }
             }
         }
@@ -3912,12 +3951,14 @@ final class AppModel {
             // Yalnızca bu cihazdaki toplantılar: iCloud'daki başka cihazın işlediği toplantı "yarıda kaldı" sayılmaz.
             // Okuma sürerken başlatılmış kayıt (kilitli) yarıda kalmış sayılmaz.
             let local: Set<String> = localMeetingIDsReportingFailure()
-            let interrupted: [MeetingRecord] = staleStatusesToInterrupt(records: meetings.filter { local.contains($0.id) && !isLocked(meetingID: $0.id) })
+            let stale: [MeetingRecord] = meetings.filter { local.contains($0.id) && !isLocked(meetingID: $0.id) }
+            let interrupted: [MeetingRecord] = staleStatusesToInterrupt(records: stale)
             for record in hostedRequeued(records: interrupted) {
                 withSessionDirectory(id: record.id) { (directory: URL) -> Void in
                     saveRecord(record: record, directory: directory)
                 }
             }
+            resumeInterruptedProcessing(records: stale)
             applyRetention()
             await loadDestinations()
             await processPendingAutoSends()
@@ -3943,6 +3984,31 @@ final class AppModel {
         }
         #else
         return records
+        #endif
+    }
+
+    /// Abonelikte işlenirken uygulama kapanan (Mac kapandı, uygulama çöktü) ve sunucu oturumuna bağlı toplantılar
+    /// açılışta kendiliğinden kaldığı yerden işlenir (son geçiş parçaları, sonucu ve notun parçaları kaydedilmiştir;
+    /// kaydın sunucu oturumu kapandıysa yeniden açılır): not kullanıcı "Tekrar işle"ye basmadan yazılır. Geliştirici
+    /// sürümünde toplantı "yarıda kaldı" görünür.
+    private func resumeInterruptedProcessing(records: [MeetingRecord]) {
+        #if HOSTED_EDITION
+        let linked: Set<String>
+        do {
+            linked = try hostedLinkedRecordIDs()
+        } catch {
+            errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
+            return
+        }
+        for record in processingToResume(records: records, linkedRecordIDs: linked) where !isLocked(meetingID: record.id) {
+            Self.logger.info("İşlenirken kalan toplantı kaldığı yerden işleniyor, toplantı: \(record.id, privacy: .public)")
+            let recordID: String = record.id
+            withSessionDirectory(id: recordID) { (directory: URL) -> Void in
+                process(record: record.with(status: .processing, failureMessage: nil), directory: directory) { [weak self] () async -> LLMProvider? in
+                    await self?.optionalProvider { try await resolveRecordedMeetingLLMProvider(recordID: recordID) }
+                }
+            }
+        }
         #endif
     }
 

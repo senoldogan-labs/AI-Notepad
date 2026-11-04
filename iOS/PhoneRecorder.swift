@@ -366,6 +366,7 @@ final class PhoneRecorder {
         startCheckpoints()
         startActivity(startedAt: started, title: linkedMeeting?.title ?? String(localized: "Toplantı"))
         watchRecordingLimit(deadline: deadline)
+        Task { await scheduleRecordingLimitNotifications(deadline: deadline, warningLeadSec: hostedLimitWarningLeadSec) }
         consentReminderVisible = UserDefaults.standard.bool(forKey: PhoneSettingsKey.consentReminder)
         relatedTasks = linkedMeeting.map { (meeting: CalendarMeeting) -> [RelatedOpenTask] in
             relatedOpenTasks(meeting: meeting, records: store.meetings, userName: store.userName, before: started)
@@ -562,6 +563,11 @@ final class PhoneRecorder {
         }
         isInBackground = true
         backgroundEntries += 1
+        // İşleme sürerken arka plana geçildi: sistem işlemeyi keserse not, uygulama açılmayı beklemeden sistemin sürdürme
+        // göreviyle yazılsın.
+        if !processingSteps.isEmpty {
+            ProcessingResumeScheduler.shared.schedule(reason: "işleme sürerken arka plana geçildi")
+        }
         Self.logger.info("Uygulama arka plana geçti, kayıt: \(String(describing: self.phase), privacy: .public), mikrofon: \(String(describing: self.microphoneStatus), privacy: .public), bölüm: \(self.transcript.count, privacy: .public), işlenen: \(self.processingSteps.count, privacy: .public)")
         guard phase == .recording, active != nil else {
             return
@@ -711,8 +717,9 @@ final class PhoneRecorder {
         }
     }
 
-    /// Açılışta (ve arka plandan dönünce) kayıtta ya da işlemede kalmış toplantılar yeniden işlenir (son geçiş ve not
-    /// kaydın sunucu oturumuyla; oturumun ek süresi geçtiyse yeniden işleme için açılır, bkz. `hostedFinalPassPlan`), sonra
+    /// Açılışta (ve arka plandan dönünce) kayıtta ya da işlemede kalmış toplantılar kaldığı yerden işlenir (son geçiş
+    /// parçaları ve sonucu, notun parçaları kaydedilir; kaydın sunucu oturumu kapandıysa yeniden açılır, bkz.
+    /// `hostedFinalPassPlan`, `withRecordedMeetingReopen`), sonra
     /// bekleyen (çevrimdışı) kayıtlar denenir. Uygulama kayıt sürerken kapandıysa kaydedilen kısım hemen hazırlanır ve
     /// kayıt ekranında gösterilir (kayıt yeniden başlatılmaz: mikrofon kullanıcı istemeden açılmaz).
     func resumeUnfinished() async {
@@ -757,7 +764,7 @@ final class PhoneRecorder {
                     continue
                 }
                 Self.logger.info("Yarıda kalan toplantı yeniden işleniyor, toplantı: \(record.id, privacy: .public), kayıt sürerken kesildi: \(self.recoveredRecordingIDs.contains(record.id), privacy: .public)")
-                guard process(record: record.with(status: .processing, failureMessage: nil), directory: directory) else {
+                guard process(record: record.with(status: .processing, failureMessage: nil), directory: directory, finalPass: hostedFinalPassPlan) else {
                     continue
                 }
                 if record.id == recovered.first, phase == .idle {
@@ -776,6 +783,29 @@ final class PhoneRecorder {
         await runQueue()
     }
 
+    /// Sistemin sürdürme görevi (`ProcessingResumeScheduler`): yarıda kalan toplantılar işlenir ve süren işlemelerin
+    /// (sıradaki bekleyen kayıtlar dahil) bitmesi beklenir. İşlenmeyi bekleyen toplantı kalmadıysa true; görev iptal
+    /// edildiyse false.
+    func resumeUnfinishedAndWait() async -> Bool {
+        await resumeUnfinished()
+        while let running = processingTasks.values.first {
+            await running.value
+            if Task.isCancelled {
+                return false
+            }
+        }
+        return processingSteps.isEmpty && !store.meetings.contains { (record: MeetingRecord) -> Bool in record.status == .processing }
+    }
+
+    /// Sistemin verdiği süre doldu: süren işlemeler iptal edilir (toplantılar diskte `processing` kalır ve kaldığı
+    /// yerden sürer).
+    func cancelProcessingForSystem() {
+        for (id, task) in processingTasks {
+            Self.logger.warning("İşleme sistem süresi dolduğu için iptal ediliyor, toplantı: \(id, privacy: .public)")
+            task.cancel()
+        }
+    }
+
     /// Toplantıyı yeniden işler (Mac'teki "Tekrar işle"): son geçiş kaydın sunucu oturumu yeniden açılarak yapılır,
     /// not yeniden yazılır. Bekleyen (çevrimdışı) kayıt önce sunucu oturumunu almalı: kuyruktan işlenir. Kayıt sürerken,
     /// toplantı işlenirken, notu yazılırken ya da sesi silinmişse yapılmaz (hata fırlar).
@@ -788,7 +818,10 @@ final class PhoneRecorder {
             Task { await runQueue() }
             return
         }
-        process(record: record.with(status: .processing, failureMessage: nil), directory: try store.sessionDirectory(id: meetingID))
+        // Baştan yeniden işlenir: önceki işlemenin kontrol noktası ve son geçiş parçaları atılır, ses yeniden yazıya dökülür.
+        let directory: URL = try store.sessionDirectory(id: meetingID)
+        try discardProcessingProgress(directory: directory)
+        process(record: record.with(status: .processing, failureMessage: nil), directory: directory, finalPass: hostedReprocessFinalPassPlan)
     }
 
     /// Bekleyen ilk toplantıyı (çevrimdışı kaydedilmiş ya da içe aktarılmış) işler (Mac'teki `runOfflineQueue`'nun karşılığı): kayıt yokken
@@ -843,7 +876,7 @@ final class PhoneRecorder {
                 do {
                     let directory: URL = try store.sessionDirectory(id: recordID)
                     Self.logger.info("Çevrimdışı kayıt işleniyor, toplantı: \(recordID, privacy: .public)")
-                    process(record: current.with(status: .processing, failureMessage: nil).with(notice: nil), directory: directory)
+                    process(record: current.with(status: .processing, failureMessage: nil).with(notice: nil), directory: directory, finalPass: hostedFinalPassPlan)
                 } catch {
                     errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
                 }
@@ -951,7 +984,7 @@ final class PhoneRecorder {
                 // toplantıdan atlanır.
                 spokenLanguages[segment.id] = confidentSpokenLanguage(text: segment.text)
                 addForTranslation(segment: segment)
-                updateActivityThrottled(state: activityState())
+                updateActivityThrottled()
             }
         case .languageLocked(let language):
             lockedLanguage = language
@@ -1018,6 +1051,7 @@ final class PhoneRecorder {
         endActivity()
         recordingLimitTask?.cancel()
         recordingLimitTask = nil
+        cancelRecordingLimitNotifications()
         consentReminderVisible = false
         relatedTasks = []
         guard let finished = active else {
@@ -1031,7 +1065,7 @@ final class PhoneRecorder {
         // kayıt başlayıp onun oturumunu ezmesin.
         let serverMeetingID: String? = HostedAccount.shared.currentMeeting?.meetingId
         do {
-            // Not ve son geçiş sunucunun ek süresinde aynı oturumla sürer.
+            // Not ve son geçiş sunucunun işleme süresinde (düzgün biten toplantıda 24 saat) aynı oturumla sürer.
             try await HostedAccount.shared.endMeeting(meetingID: serverMeetingID)
         } catch {
             Self.logger.error("Toplantı oturumu kapatılamadı, hata: \(String(describing: error), privacy: .private)")
@@ -1057,16 +1091,19 @@ final class PhoneRecorder {
             endBackgroundTask(id: record.id)
             return
         }
-        process(record: record, directory: finished.directory)
+        process(record: record, directory: finished.directory, finalPass: hostedFinalPassPlan)
     }
 
-    /// Toplantıyı işler (ses, son geçiş, not) ve saklar: son geçiş kaydın sunucu oturumuyla (`hostedFinalPassPlan`), not
+    /// Toplantıyı işler (ses, son geçiş, not) ve saklar: son geçiş kaydın sunucu oturumuyla (`finalPass`: kaydın ardından
+    /// ve sürdürmede `hostedFinalPassPlan`, "Tekrar işle"de `hostedReprocessFinalPassPlan`), not
     /// o oturumun bütçesinden (oturumu yoksa hesaptan; hakkı yoksa not yazılmaz ve nedeni toplantıda görünür). Uygulama
     /// arka plana geçerse iOS'tan ek süre istenir ve varsa sürdürülen işleme görevinin ilerlemesi güncellenir; süre
     /// yetmezse toplantı açılışta yeniden işlenir (`resumeUnfinished`). Aynı toplantı aynı anda iki kez işlenmez (çift
     /// ücret, aynı dosyaya iki yazar). İşleme başlatıldıysa true; toplantı zaten işleniyorsa false.
     @discardableResult
-    private func process(record: MeetingRecord, directory: URL) -> Bool {
+    private func process(
+        record: MeetingRecord, directory: URL, finalPass resolveFinalPass: @escaping @Sendable ([String], String) async -> FinalPassPlan
+    ) -> Bool {
         guard processingSteps[record.id] == nil else {
             Self.logger.warning("Toplantı zaten işleniyor, ikinci işleme başlatılmadı, toplantı: \(record.id, privacy: .public)")
             return false
@@ -1086,7 +1123,7 @@ final class PhoneRecorder {
             // ağ gidiş-dönüşü işlemeyi sırayla bekletmez (bkz. `processMeeting(record:directory:resolveFinalPass:resolveLLM:…)`).
             let processed: MeetingRecord = await processMeeting(
                 record: record, directory: directory,
-                resolveFinalPass: { () async -> FinalPassPlan in await hostedFinalPassPlan(keyterms: keyterms, recordID: recordID) },
+                resolveFinalPass: { () async -> FinalPassPlan in await resolveFinalPass(keyterms, recordID) },
                 resolveLLM: { () async -> LLMProvider? in await self.recordedMeetingLLMReportingFailure(recordID: recordID) },
                 languageMode: record.language.map { LanguageMode.fixed($0) } ?? .automatic, userName: store.userName,
                 // The iPhone does not capture screens: notes are text only. Voiceprints are computed on this iPhone
@@ -1118,6 +1155,7 @@ final class PhoneRecorder {
             // Tekrar işlemede eski not geçmişe girer (ilk işlemede not yoktur; Mac'teki gibi).
             let versioned: MeetingRecord = withNoteVersion(updated: result, previous: record, reason: String(localized: "Tekrar işlendi"), savedAt: Date())
             saveRecord(record: versioned, directory: directory)
+            removeCheckpointIfDone(record: versioned, directory: directory)
             processingSteps[record.id] = nil
             onMeetingProcessed?(versioned)
             finishContinuedTask(meetingID: record.id, success: versioned.status == .done)
@@ -1128,6 +1166,19 @@ final class PhoneRecorder {
             await runQueue()
         }
         return true
+    }
+
+    /// İşlenmiş toplantı "bitti" olarak saklandıysa işleme kontrol noktası silinir (not yazılamadıysa kalır: yarıda kalan
+    /// işleme son geçişi yeniden yapmadan nottan sürer). Silinemezse loglanır; "Tekrar işle" onu yine atar.
+    private func removeCheckpointIfDone(record: MeetingRecord, directory: URL) {
+        guard record.status == .done else {
+            return
+        }
+        do {
+            try removeProcessingCheckpoint(directory: directory)
+        } catch {
+            Self.logger.error("İşleme kontrol noktası silinemedi, toplantı: \(record.id, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+        }
     }
 
     /// İşleme not adımında başarısız bittiyse (ses dönüştürüldü, yazıya dökülmüş metin var, not yok) not beklemeyle
@@ -1343,7 +1394,8 @@ final class PhoneRecorder {
         }
         backgroundTasks[id] = UIApplication.shared.beginBackgroundTask(withName: "AINotepad.\(id)") { [weak self] in
             MainActor.assumeIsolated {
-                Self.logger.warning("Arka plan süresi doldu, toplantı açılışta işlenecek, toplantı: \(id, privacy: .public)")
+                Self.logger.warning("Arka plan süresi doldu, toplantı açılışta ya da sistemin sürdürme göreviyle işlenecek, toplantı: \(id, privacy: .public)")
+                ProcessingResumeScheduler.shared.schedule(reason: "arka plan süresi doldu")
                 self?.endBackgroundTask(id: id)
             }
         }
@@ -1433,6 +1485,7 @@ final class PhoneRecorder {
         }
         Self.logger.warning("Sürdürülen işleme sona erdi, işleme iptal ediliyor, toplantı: \(meetingID, privacy: .public)")
         processingTasks[meetingID]?.cancel()
+        ProcessingResumeScheduler.shared.schedule(reason: "sürdürülen işlemenin süresi doldu")
         task.setTaskCompleted(success: false)
     }
 
@@ -1497,11 +1550,13 @@ final class PhoneRecorder {
     }
 
     /// Canlı etkinliği en fazla 2 sn'de bir günceller (her cümlede çağrılır; sistem sık güncellemeyi kısar).
-    private func updateActivityThrottled(state: RecordingActivityAttributes.ContentState) {
+    private func updateActivityThrottled() {
         guard Date().timeIntervalSince(lastActivityUpdate) >= 2 else {
             return
         }
-        updateActivityNow(state: state)
+        // Durum yalnızca güncellenecekse kurulur: uzun kayıtta (saatlerce, binlerce bölüm) her cümlede tüm transkripti
+        // dolaşmasın.
+        updateActivityNow(state: activityState())
     }
 
     /// Canlı etkinliği hemen günceller (kayıt başladı, bitiyor, sessizlikte tazeleme).
