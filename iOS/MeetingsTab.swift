@@ -66,10 +66,14 @@ struct MeetingsTab: View {
         // işaretliler işlemden çıkar.
         let visibleIDs: Set<String> = Set(sections.flatMap(\.meetings).map(\.id))
         let effective: Set<String> = checked.intersection(visibleIDs)
+        let statusMessages: [String] = store.loadProblems + recorder.importErrors + libraryErrors + [pickError].compactMap { $0 }
+        // Listenin üstündeki hata ve içe aktarma satırları: varken "Henüz toplantı yok" sahnesi gösterilmez (bkz.
+        // `emptyOverlay`).
+        let hasStatusRows: Bool = !statusMessages.isEmpty || !store.actionProblems.isEmpty || recorder.importingCount > 0 || isLoadingVideos
         NavigationStack(path: $router.meetingsPath) {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 14) {
-                    PhoneErrorList(messages: store.loadProblems + recorder.importErrors + libraryErrors + [pickError].compactMap { $0 })
+                    PhoneErrorList(messages: statusMessages)
                     PhoneDismissibleErrorList(messages: store.actionProblems) { store.dismissActionProblems() }
                     if recorder.importingCount > 0 || isLoadingVideos {
                         ImportProgressRow()
@@ -104,7 +108,7 @@ struct MeetingsTab: View {
             }
             .scrollIndicators(.hidden)
             .overlay {
-                emptyOverlay(hasResults: !sections.isEmpty)
+                emptyOverlay(hasResults: !sections.isEmpty, hasStatusRows: hasStatusRows)
             }
             // Seç modunda sekme çubuğu gizli: yatay kaydırma sekme değiştirmez.
             .phoneTabSwipe(router: router, isEnabled: !isSelecting)
@@ -352,26 +356,13 @@ struct MeetingsTab: View {
     }
 
     /// Boş durumlar: hiç toplantı yok (son silinenler varsa oraya bağlantı), boş klasör ya da eşleşmeyen arama/süzgeç.
+    /// Toplantı yokken üstte hata ya da içe aktarma satırı varsa sahne gösterilmez: tam boy kaydırma görünümü o satırların
+    /// üstüne biniyor, kapatma düğmesine dokunuşu ve aşağı çekip yenilemeyi yutuyordu.
     @ViewBuilder
-    private func emptyOverlay(hasResults: Bool) -> some View {
+    private func emptyOverlay(hasResults: Bool, hasStatusRows: Bool) -> some View {
         if store.meetings.isEmpty {
-            PhoneEmptyScene(
-                symbol: "waveform", palette: .sunset, title: "Henüz toplantı yok",
-                message: "İlk toplantını kaydet; not, görevler ve transkript burada hazır olur."
-            ) {
-                VStack(spacing: 12) {
-                    Button("Kaydı başlat", systemImage: "mic.fill") { router.tab = .record }
-                        .buttonStyle(.accentPill)
-                        .controlSize(.large)
-                    if !store.deletedMeetings.isEmpty {
-                        NavigationLink {
-                            RecentlyDeletedList(store: store, recorder: recorder)
-                        } label: {
-                            Label("Son silinenler", systemImage: "trash")
-                                .appFont(size: 15, weight: .medium)
-                        }
-                    }
-                }
+            if !hasStatusRows {
+                emptyArchiveScene
             }
         } else if !hasResults {
             if case .folder = scope, query.trimmingCharacters(in: .whitespaces).isEmpty {
@@ -382,6 +373,28 @@ struct MeetingsTab: View {
             } else {
                 PhoneEmptyState(symbol: "magnifyingglass", title: "Eşleşen toplantı yok", message: "Başka bir kelimeyle ara.") {
                     EmptyView()
+                }
+            }
+        }
+    }
+
+    /// Hiç toplantı yok: kayda geçiş ve varsa son silinenler.
+    private var emptyArchiveScene: some View {
+        PhoneEmptyScene(
+            symbol: "waveform", palette: .sunset, title: "Henüz toplantı yok",
+            message: "İlk toplantını kaydet; not, görevler ve transkript burada hazır olur."
+        ) {
+            VStack(spacing: 12) {
+                Button("Kaydı başlat", systemImage: "mic.fill") { router.tab = .record }
+                    .buttonStyle(.accentPill)
+                    .controlSize(.large)
+                if !store.deletedMeetings.isEmpty {
+                    NavigationLink {
+                        RecentlyDeletedList(store: store, recorder: recorder)
+                    } label: {
+                        Label("Son silinenler", systemImage: "trash")
+                            .appFont(size: 15, weight: .medium)
+                    }
                 }
             }
         }

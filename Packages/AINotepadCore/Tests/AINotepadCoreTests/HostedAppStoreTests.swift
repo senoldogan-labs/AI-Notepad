@@ -79,6 +79,9 @@ private let stripeSubscriptionJSON: String =
     // Geri yükleme: etkin abonelik yoksa söylenir; fiyatlar okunamasa da yapılabilir; hata seçime döner.
     @Test func paywallRestoreFlow() {
         #expect(paywallPhase(current: .productsUnavailable(message: "offline"), event: .restoreTapped) == .restoring)
+        // Hak gelmediyse geri yükleme düğmesi de çalışır (açık görünüp hiçbir şey yapmıyordu).
+        #expect(!isPaywallBusy(phase: .finishingFailed(message: "not yet")))
+        #expect(paywallPhase(current: .finishingFailed(message: "not yet"), event: .restoreTapped) == .restoring)
         #expect(paywallPhase(current: .restoring, event: .restoreFoundNothing) == .nothingToRestore)
         #expect(paywallPhase(current: .restoring, event: .storeConfirmed) == .finishing)
         #expect(paywallPhase(current: .restoring, event: .storeFailed(message: "x")) == .purchaseFailed(message: "x"))

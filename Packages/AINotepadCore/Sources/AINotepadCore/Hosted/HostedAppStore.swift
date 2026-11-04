@@ -122,6 +122,10 @@ public func paywallPhase(current: PaywallPhase, event: PaywallEvent) -> PaywallP
         return .purchasing(plan: plan)
     case (.choosing, .restoreTapped), (.nothingToRestore, .restoreTapped), (.purchaseFailed, .restoreTapped):
         return .restoring
+    // Hak gelmediyse "Satın Alımları Geri Yükle" de açık kalır: geri yükleme App Store işlemlerini yeniden eşler ve hakkı
+    // yeniden bekler (yoksa düğme dokunulunca hiçbir şey yapmıyordu).
+    case (.finishingFailed, .restoreTapped):
+        return .restoring
     // Geri yükleme fiyatlar okunamasa da yapılabilir (önceki satın alma App Store hesabında).
     case (.productsUnavailable, .restoreTapped):
         return .restoring
