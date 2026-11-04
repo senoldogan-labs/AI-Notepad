@@ -58,7 +58,8 @@ npm run screenshots -- http://localhost:8788 /tmp/gistsmith-web "/Applications/G
 node scripts/e2e.ts http://localhost:8788 http://127.0.0.1:8787 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 ```
 
-`screenshots` tüm sayfaları 1440/390 px, açık/koyu çeker; ana sayfa gösteriminin karelerini alır, tema düğmesinin
+`screenshots` tüm sayfaları 1440/390 px, açık/koyu çeker (Chrome tek görüntüye en çok 16384 cihaz pikseli yükseklik
+çizdiğinden daha uzun sayfalar `<ad>-part<n>.png` parçalarıyla kaydedilir); ana sayfa gösteriminin karelerini alır, tema düğmesinin
 seçimi hatırladığını ve gösterimin 5 saniyelik ana iş parçacığı maliyetini denetler. Yatay taşma, konsol hatası ya da CSP
 ihlali varsa çıkış kodu 1'dir. Hesap ve yönetim sayfaları için sekmeye örnek bir oturum yazılır ve API yanıtları
 betikteki örnek verilerle karşılanır (yalnızca görünüm denetimi; sunucu akışı sunucunun testlerindedir).

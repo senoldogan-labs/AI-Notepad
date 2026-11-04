@@ -163,8 +163,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         up, when Deepgram can't be reached, or when you're offline, the live transcript is produced on your device by an
         on-device speech model instead (on iPhone, Apple's on-device speech recognition), and that audio does not leave
         your device. The Mac app downloads this model (about 630 MB) from Hugging Face the first time it needs it; Hugging
-        Face sees your IP address and app information, as with any download (see section 8). On iPhone the app records in-person meetings through the microphone; it cannot capture audio from
-        calls in other apps.
+        Face sees your IP address and app information, as with any download (see section 8). Once it is available, the iPhone app records in-person meetings through the microphone; it cannot capture audio
+        from calls in other apps.
       </li>
       <li>
         <strong>Final transcript and speaker separation.</strong> When a meeting ends, or when you import an audio or
@@ -535,7 +535,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       account is deleted.
     </p>
     <p>
-      <strong>How to turn it off.</strong> In the {productName} Mac app, open Settings › General; in the iPhone app, open
+      <strong>How to turn it off.</strong> In the {productName} Mac app, open Settings › General; in the iPhone app (once it is available), open
       Settings › Privacy. Turn off “Share anonymous usage statistics”. When it is off, the app sends no usage statistics;
       the app and OS version and the feature of each AI request are still sent because the service needs them. The
       self-hosted developer edition (AI-Notepad) sends none of this.
@@ -810,7 +810,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
   <LegalSection sections={sections} id="deletion">
     <p>
       You can delete your account at any time with “Delete account” on your <a href={routes.account}>account page</a>,
-      or in the Mac or iPhone app under Settings › Account.
+      or in the Mac app (or the iPhone app, once it is available) under Settings › Account.
       Any unfinished subscription is first cancelled immediately at Stripe; then your account, sign-in identities,
       sessions, device registrations, meeting session records, usage, subscription records (including the App Store
       subscription record), cancellation reasons, invite code and invite records linked to your account, and Stripe
