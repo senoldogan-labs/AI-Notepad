@@ -14,6 +14,7 @@ export type PageKey =
   | "vsGranola"
   | "vsOtter"
   | "vsFireflies"
+  | "vsPoffle"
   | "languages"
   | "integrations"
   | "blog"
@@ -37,6 +38,7 @@ export const routes: Readonly<Record<PageKey, string>> = {
   vsGranola: "/vs/granola",
   vsOtter: "/vs/otter",
   vsFireflies: "/vs/fireflies",
+  vsPoffle: "/vs/poffle",
   languages: "/languages",
   integrations: "/integrations",
   blog: "/blog",
@@ -64,6 +66,7 @@ export const indexedPages: readonly PageKey[] = [
   "vsGranola",
   "vsOtter",
   "vsFireflies",
+  "vsPoffle",
   "languages",
   "integrations",
   "blog",
@@ -83,10 +86,11 @@ export const pageModified: Readonly<Partial<Record<PageKey, string>>> = {
   home: "2026-11-03",
   fi: "2026-11-03",
   download: "2026-11-03",
-  compare: "2026-11-03",
+  compare: "2026-11-04",
   vsGranola: "2026-11-03",
   vsOtter: "2026-11-03",
   vsFireflies: "2026-11-03",
+  vsPoffle: "2026-11-04",
   languages: "2026-11-03",
   integrations: "2026-11-03",
   privacy: "2026-11-03",

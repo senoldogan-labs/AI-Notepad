@@ -61,6 +61,7 @@ export const pageServices: Readonly<Record<PageKey, readonly ExternalService[]>>
   vsGranola: [],
   vsOtter: [],
   vsFireflies: [],
+  vsPoffle: [],
   languages: [],
   integrations: [],
   blog: [],

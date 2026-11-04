@@ -588,7 +588,7 @@ export type ComparisonTopic =
   | "plans";
 
 /** Karşılaştırılan ürünler. */
-export type Competitor = "granola" | "otter" | "fireflies";
+export type Competitor = "granola" | "otter" | "fireflies" | "poffle";
 
 /** "Kim hangisini seçmeli" kutusu: başlık ve maddeler. */
 export interface PickCopy {
@@ -1046,7 +1046,7 @@ export const copy: Copy = {
     pricingTitle: "Simple pricing, monthly or yearly.",
     pricingLead: "One plan with everything in it, billed monthly or yearly. Try it on your own meetings before you pay.",
     pricingCta: "Pricing details",
-    pricingCompare: "Compare with Granola, Otter and Fireflies",
+    pricingCompare: "Compare with Granola, Otter, Fireflies and Poffle",
     faqTitle: "Questions",
     faq: [
       {
@@ -1191,17 +1191,18 @@ export const copy: Copy = {
     helpCta: "Questions? Contact us",
   },
   // Rakip değerleri yalnızca rakiplerin kendi fiyat sayfalarından (3 Kasım 2026'da denetlendi; Fireflies sayfası fiyatları
-  // betikle çizer, değerler sayfanın HTML'inden okundu); bizimkiler bu dosyadaki fiyat ve SSS metinleriyle, sunucu
+  // betikle çizer, değerler sayfanın HTML'inden okundu). Poffle'ın ayrı fiyat sayfası yok: değerleri ana sayfasının
+  // fiyat ve SSS bölümlerinden ve kendi blog yazılarından (şablonlar, paylaşım), 4 Kasım 2026'da denetlendi. Bizimkiler bu dosyadaki fiyat ve SSS metinleriyle, sunucu
   // sınırlarıyla (server/wrangler.jsonc) ve facts.ts'teki dil listeleriyle aynıdır. Yeni bir değer eklerken kaynağını
   // denetle; doğrulanmamış rakip bilgisi yazma (değer `null` kalır).
   compare: {
     meta: {
-      title: `Compare ${productName} with Granola, Otter and Fireflies`,
-      description: `How ${productName} compares with Granola, Otter.ai and Fireflies.ai on price, free plans, meeting bots, platforms, languages and live translation. Prices checked November 2026.`,
+      title: `Compare ${productName} with Granola, Otter, Fireflies and Poffle`,
+      description: `How ${productName} compares with Granola, Otter.ai, Fireflies.ai and Poffle on price, free plans, meeting bots, platforms, languages and live translation. Prices checked November 2026.`,
     },
     eyebrow: "Compare",
-    title: `${productName} next to Granola, Otter and Fireflies`,
-    lead: "Four meeting note apps that work in different ways. Here are the plain differences in price, how each one hears the meeting, where it runs and what it does with other languages, so you can pick the one that fits. Where a competitor is stronger, we say so.",
+    title: `${productName} next to Granola, Otter, Fireflies and Poffle`,
+    lead: "Five meeting note apps that work in different ways. Here are the plain differences in price, how each one hears the meeting, where it runs and what it does with other languages, so you can pick the one that fits. Where a competitor is stronger, we say so.",
     overviewTopics: ["price", "free", "capture", "platforms", "languages", "translation"],
     overviewTitle: "At a glance",
     topics: {
@@ -1243,11 +1244,11 @@ export const copy: Copy = {
     tableTitle: "Side by side",
     checked: "Prices checked November 2026.",
     source: "Source",
-    missingNote: "A dash means the point wasn't part of what we checked on the vendor's pricing page. It doesn't mean the feature is missing.",
+    missingNote: "A dash means the point wasn't part of what we checked on the vendor's own site. It doesn't mean the feature is missing.",
     notChecked: "Not checked",
     pickTitle: "Who should pick which",
     readComparison: "Read the comparison",
-    trademarks: `Granola, Otter.ai and Fireflies.ai are trademarks of their owners. ${productName} isn't affiliated with any of these companies. Plans and prices change; check the vendor's site before you buy.`,
+    trademarks: `Granola, Otter.ai, Fireflies.ai and Poffle are trademarks of their owners. ${productName} isn't affiliated with any of these companies. Plans and prices change; check the vendor's site before you buy.`,
     ctaTitle: `Try ${productName} on your next meeting`,
     ctaText: "3 meetings or 7 days free, no card needed. Then $5.99 a month or $49 a year, taxes included.",
     competitors: {
@@ -1409,6 +1410,62 @@ export const copy: Copy = {
             "you want a live translation as people talk",
             "you want notes, transcripts and recordings saved on your own Mac, not in a vendor's cloud",
             "you want simple pricing for one person: $5.99 a month or $49 a year, taxes included",
+          ],
+        },
+      },
+      poffle: {
+        meta: {
+          title: `${productName} vs Poffle: cloud notes or fully on your Mac`,
+          description: `Poffle writes meeting notes entirely on your Mac with Apple Intelligence, for $25 once; ${productName} uses cloud models for ${spokenLanguages.length} spoken languages and live translation. Compare price, languages and integrations. Checked November 2026.`,
+        },
+        name: "Poffle",
+        title: `${productName} vs Poffle`,
+        lead: `Both record calls on your Mac with no bot. Poffle does everything on the Mac: Apple's on-device speech recognition writes the transcript and Apple Intelligence writes the notes, for $25 once, next to a rail of everyday Mac tools. ${productName} sends audio and text to cloud models for the transcript and notes, which brings ${spokenLanguages.length} spoken languages, live translation and integrations, for a monthly or yearly subscription.`,
+        summary: `Poffle works fully on your Mac with Apple Intelligence, costs $25 once and adds everyday Mac tools. ${productName} uses cloud models, with live translation and integrations.`,
+        pricingUrl: "https://poffle.app/",
+        values: {
+          price: "$25 once, plus tax; not a subscription; all future updates included",
+          free: "7-day trial with every feature; a card is needed to start, and $25 plus tax is charged after 7 days unless you cancel",
+          capture: "No bot. Offers to record when a call starts, records your Mac's microphone and system audio, and stops when the call ends",
+          platforms: "Mac with Apple silicon, macOS 26 or later; online at least every 30 days to check the license",
+          limits: null,
+          languages: "Transcripts in every language Apple's on-device speech recognition supports on your Mac; notes need Apple Intelligence to support the meeting's language; app in 16 languages",
+          translation: null,
+          notes: "Written by Apple Intelligence (it must be turned on): decisions and action items with owners first, a map of who spoke when and where each topic starts, a clean or word-for-word transcript; templates picked from the meeting title",
+          ask: "Ask across your saved notes and transcripts, answered on your Mac with sources you can open",
+          voiceTyping: null,
+          screens: null,
+          integrations: "Action items to Apple Reminders; notes through the macOS Share menu (Mail, Messages), copied as Markdown or exported as Markdown with the transcript, which Apple Notes can import",
+          mcp: null,
+          storage: "Recordings, transcripts and notes stay on your Mac; no cloud transcription or summary service",
+          plans: "One license for one person, on up to 2 Macs, for personal and commercial use",
+        },
+        strengthsTitle: "Where Poffle is stronger",
+        strengths: [
+          "Everything runs on your Mac: Apple's on-device speech recognition for transcripts and Apple Intelligence for notes, with no cloud transcription or summary service.",
+          "A one-time price of $25 plus tax, with all future updates included, instead of a subscription.",
+          "More than meetings: a rail at the edge of the screen with clipboard history, a file tray, Now Playing controls, an audio spectrum, your calendar agenda and a meeting countdown.",
+          "Suggestions as you type in any app, accepted with Tab, drawing on your meeting notes and the text on your screen, written by a model on your Mac.",
+          "Mark moments while you record, and the next related meeting starts with the action items that are still open.",
+          "An interface in 16 languages.",
+        ],
+        pickCompetitor: {
+          title: "Pick Poffle if",
+          points: [
+            "you want transcripts and notes made entirely on your Mac, with nothing sent to a cloud service",
+            "you'd rather pay once ($25 plus tax) than subscribe",
+            "you'd also use clipboard history, a file tray, a calendar rail and Tab suggestions in any app",
+            "your Mac runs macOS 26 with Apple Intelligence turned on, and it supports your meetings' language",
+          ],
+        },
+        pickUs: {
+          title: `Pick ${productName} if`,
+          points: [
+            "you want the transcript and notes from cloud models: Deepgram live, ElevenLabs for the final transcript by speaker, and Anthropic's Claude for the note",
+            `you meet in one of ${spokenLanguages.length} languages, including Turkish and Finnish, and want notes in any of ${noteLanguages.length} without needing Apple Intelligence`,
+            "you want a live translation as people talk",
+            "your notes and tasks need to reach Slack, Microsoft Teams, Notion, Linear or Jira, or your AI apps over MCP",
+            "your Mac runs macOS 15 or later, and you'd like to try 3 meetings or 7 days free with no card",
           ],
         },
       },

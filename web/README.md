@@ -20,7 +20,7 @@ yalnızca toplu sayfa görüntüleme, yönlendiren site, ülke ve cihaz türü s
 | `/fi` | Fince tanıtım sayfası (Finlandiya pazarı; üst çubuktaki dil bağlantıları `/` ile `/fi` arasında) |
 | `/pricing` | Fiyat (Stripe Checkout iptali buraya döner) |
 | `/download` | İndirme ve kurulum |
-| `/compare`, `/vs/granola`, `/vs/otter`, `/vs/fireflies` | Karşılaştırma (rakip değerleri yalnızca kendi fiyat sayfalarından; `copy.ts` `compare`; JSON-LD gezinti izi) |
+| `/compare`, `/vs/granola`, `/vs/otter`, `/vs/fireflies`, `/vs/poffle` | Karşılaştırma (rakip değerleri yalnızca kendi fiyat sayfalarından, ayrı fiyat sayfası olmayan Poffle için ana sayfasından ve blogundan; `copy.ts` `compare`; JSON-LD gezinti izi) |
 | `/languages` | Diller: konuşulan ve not/çeviri dilleri (listeler `src/lib/languages.ts`, uygulamanın `MeetingLanguage`/`ShareLanguage` listeleriyle aynı), karışık dilli toplantılar, SSS (JSON-LD) |
 | `/integrations` | Entegrasyonlar, webhook JSON örneği, MCP, takvim, yerleşik olmayanlar, SSS (JSON-LD) |
 | `/llms.txt`, `/llms-full.txt` | Yapay zekâ asistanları için ürün belgesi (llmstxt.org): sayfaların metinlerinden, dil listelerinden ve veri tablosundan derlemede üretilir (`src/lib/llms.ts`); elle ürün gerçeği yazılmaz |

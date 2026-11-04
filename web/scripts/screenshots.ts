@@ -87,6 +87,7 @@ const targets: readonly Target[] = [
   { name: "vs-granola", path: "/vs/granola", ready: "main", signedIn: false, account: null },
   { name: "vs-otter", path: "/vs/otter", ready: "main", signedIn: false, account: null },
   { name: "vs-fireflies", path: "/vs/fireflies", ready: "main", signedIn: false, account: null },
+  { name: "vs-poffle", path: "/vs/poffle", ready: "main", signedIn: false, account: null },
   { name: "languages", path: "/languages", ready: "main", signedIn: false, account: null },
   { name: "integrations", path: "/integrations", ready: "main", signedIn: false, account: null },
   { name: "mcp", path: "/mcp", ready: "main", signedIn: false, account: null },

@@ -1,5 +1,5 @@
 ---
-// Bir rakiple karşılaştırma sayfası (/vs/granola, /vs/otter, /vs/fireflies): gezinti izi (JSON-LD), giriş ve kaynak satırı, yan yana tablo, rakibin güçlü
+// Bir rakiple karşılaştırma sayfası (/vs/granola, /vs/otter, /vs/fireflies, /vs/poffle): gezinti izi (JSON-LD), giriş ve kaynak satırı, yan yana tablo, rakibin güçlü
 // olduğu yerler, "kim hangisini seçmeli" ve indirme çağrısı. Metinler ve değerler copy.ts `compare`'den.
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
@@ -21,9 +21,9 @@ const text: CompareCopy = copy.compare;
 const them: CompetitorCopy = text.competitors[competitor];
 const topics: readonly ComparisonTopic[] = Object.keys(text.topics) as ComparisonTopic[];
 const picks: readonly PickCopy[] = [them.pickCompetitor, them.pickUs];
-/** Kaynak bağlantısının metni: alan adı (www'suz) ve yol, ör. granola.ai/pricing. */
+/** Kaynak bağlantısının metni: alan adı (www'suz) ve yol, ör. granola.ai/pricing; kök adreste yalnızca alan adı (poffle.app). */
 const pricingAddress: URL = new URL(them.pricingUrl);
-const sourceLabel: string = `${pricingAddress.host.replace(/^www\./, "")}${pricingAddress.pathname}`;
+const sourceLabel: string = `${pricingAddress.host.replace(/^www\./, "")}${pricingAddress.pathname.replace(/^\/$/, "")}`;
 /** Gezinti izi: ana sayfa › karşılaştırma › bu sayfa (JSON-LD). */
 const structuredData: string = structuredDataJson(
   infoPageStructuredData(
