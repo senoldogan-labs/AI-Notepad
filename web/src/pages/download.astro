@@ -45,7 +45,7 @@ const text: DownloadCopy = copy.download;
     </Film>
   </section>
 
-  <section class="section page install" aria-labelledby="install-title">
+  <section class="section page install" id="install-steps" aria-labelledby="install-title" tabindex="-1">
     <h2 class="title-l reveal" id="install-title">{text.installTitle}</h2>
     <ol class="install__steps">
       {
@@ -142,6 +142,7 @@ const text: DownloadCopy = copy.download;
   .install {
     display: grid;
     gap: clamp(28px, 4vw, 44px);
+    scroll-margin-top: 96px;
   }
 
   .install__steps {
