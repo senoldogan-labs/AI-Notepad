@@ -558,8 +558,15 @@ function showNotFound(): void {
   document.title = dataValue(notFound, "title");
 }
 
-/** Erişim yoksa "sayfa bulunamadı"; başka hatada (ağ, sunucu) nötr bir bildirim. */
+/**
+ * Erişim yoksa "sayfa bulunamadı"; başka hatada (ağ, sunucu) nötr bir bildirim. Bir görünümün kaynakları ayrı ayrı
+ * yüklenir: ilk hata paneli kaldırıp "sayfa bulunamadı"yı gösterdiyse sonrakiler yalnızca konsola yazılır.
+ */
 function showFailure(error: unknown): void {
+  if (document.getElementById("admin") === null) {
+    console.error(error);
+    return;
+  }
   if (isAccessDenied(error)) {
     showNotFound();
     return;

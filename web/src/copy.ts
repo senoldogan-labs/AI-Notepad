@@ -1412,7 +1412,7 @@ export const copy: Copy = {
           points: [
             "you want a free tier and 300 minutes a month covers you",
             "you'd like a note-taker to join the call as a participant",
-            "you need Windows or Android apps, or team plans",
+            "you need Windows, iPhone or Android apps, or team plans",
             "your notes need to reach Salesforce or HubSpot",
           ],
         },
@@ -1466,7 +1466,7 @@ export const copy: Copy = {
           title: "Pick Fireflies if",
           points: [
             "your team wants shared workspaces, channels and admin analytics",
-            "you need Windows, Android or a web app",
+            "you need Windows, iPhone or Android apps, or a web app",
             "your notes need to reach a CRM, or you want an API",
             "you're fine with a bot joining the call, or recording through a Chrome extension",
           ],
