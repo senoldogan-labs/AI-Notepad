@@ -46,4 +46,8 @@ scripts/install-app.sh                                                        # 
 imzalı bir AINotepad.app bırakır; Spotlight onu bulur, açılınca izinler her seferinde yeniden sorulur. Çalıştırdıysan
 o kopyayı sil.
 
+Arayüz metinleri: kaynak Türkçe, her metnin İngilizcesi ve `scripts/l10n.py` `TARGET_LANGUAGES` dillerinin hepsi
+katalogda olmalı (`LocalizationCompletenessTests`; eksik çeviri cihazda Türkçe kaynağa düşer). Yeni metinler için
+`scripts/l10n.py export --lang <dil> --out …` → çevir → `validate` → `import`; `check` hepsini denetler.
+
 Kod değiştiren her işten önce iki test komutunu da çalıştır.

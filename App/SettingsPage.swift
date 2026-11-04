@@ -274,11 +274,9 @@ private struct GeneralSettings: View {
                         .disabled(isBusy)
                         .hoverHint(isBusy ? "Kayıt ve işleme bitince yeniden başlatılabilir" : "Uygulamayı yeni dille yeniden açar", alignment: .trailing, edge: .bottom)
                     }
-                    SettingsMenu(selection: $interfaceLanguage, options: [
-                        (InterfaceLanguage.system, Text("Sistem")),
-                        (InterfaceLanguage.turkish, Text(verbatim: "Türkçe")),
-                        (InterfaceLanguage.english, Text(verbatim: "English")),
-                    ])
+                    SettingsMenu(selection: $interfaceLanguage, options: InterfaceLanguage.allCases.map { (language: InterfaceLanguage) -> (InterfaceLanguage, Text) in
+                        (language, language.nativeName.map { Text(verbatim: $0) } ?? Text("Sistem"))
+                    })
                 }
             }
             .onChange(of: interfaceLanguage) { (_: InterfaceLanguage, language: InterfaceLanguage) in

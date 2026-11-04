@@ -121,8 +121,8 @@ targets:
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         ATSApplicationFontsPath: "."
-        # Kaynak metinler Türkçe olsa da geliştirme bölgesi İngilizce: sistem dili ne Türkçe ne İngilizce olan
-        # kullanıcı (ör. Almanca) arayüzü İngilizce görür. tr.lproj ve en.lproj ikisi de pakette.
+        # Kaynak metinler Türkçe olsa da geliştirme bölgesi İngilizce: sistem dili çevrilen dillerden (bkz.
+        # scripts/l10n.py) biri olmayan kullanıcı (ör. Lehçe) arayüzü İngilizce görür.
         CFBundleDevelopmentRegion: en
         LSApplicationCategoryType: public.app-category.productivity
         NSHumanReadableCopyright: "© 2026 T:mi Aslan Dogan Marketing"
@@ -169,8 +169,8 @@ targets:
         SWIFT_EMIT_LOC_STRINGS: YES
         LOCALIZATION_PREFERS_STRING_CATALOGS: YES
         GENERATE_INFOPLIST_FILE: YES
-        # Info.plist üretimi CFBundleDevelopmentRegion'ı bu ayardan yazar (yukarıdaki `info` değerini ezer): Türkçe ve
-        # İngilizce dışındaki sistem dillerinde arayüz İngilizce açılsın. Kataloglarda kaynak dil Türkçe kalır.
+        # Info.plist üretimi CFBundleDevelopmentRegion'ı bu ayardan yazar (yukarıdaki `info` değerini ezer): çevrilmemiş
+        # sistem dillerinde arayüz İngilizce açılsın. Kataloglarda kaynak dil Türkçe kalır.
         DEVELOPMENT_LANGUAGE: en
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_HARDENED_RUNTIME: YES
@@ -270,8 +270,8 @@ targets:
         SWIFT_EMIT_LOC_STRINGS: YES
         LOCALIZATION_PREFERS_STRING_CATALOGS: YES
         GENERATE_INFOPLIST_FILE: YES
-        # Mac'teki Gistsmith gibi: sistem dili ne Türkçe ne İngilizce olan telefon arayüzü İngilizce görür (kataloglarda
-        # kaynak dil Türkçe kalır).
+        # Mac'teki Gistsmith gibi: sistem dili çevrilen dillerden biri olmayan telefon arayüzü İngilizce görür
+        # (kataloglarda kaynak dil Türkçe kalır).
         DEVELOPMENT_LANGUAGE: en
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_CFBundleDisplayName: Gistsmith

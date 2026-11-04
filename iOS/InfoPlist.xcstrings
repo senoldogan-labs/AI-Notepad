@@ -30,10 +30,64 @@
     "NSCalendarsFullAccessUsageDescription": {
       "comment": "Privacy - Calendars Full Access Usage Description",
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith zeigt deine anstehenden Meetings und sichert eine Aufnahme unter dem Namen und den Teilnehmenden des laufenden Meetings."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Gistsmith shows your upcoming meetings and saves a recording under the name and attendees of the meeting in progress."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith muestra tus próximas reuniones y guarda cada grabación con el nombre y los asistentes de la reunión en curso."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith näyttää tulevat kokouksesi ja tallentaa nauhoituksen käynnissä olevan kokouksen nimellä ja osallistujilla."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith affiche vos réunions à venir et classe un enregistrement sous le nom et avec les participants de la réunion en cours."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith mostra le tue prossime riunioni e salva una registrazione con il nome e i partecipanti della riunione in corso."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmithは、今後の会議を表示し、進行中の会議の名前と参加者で録音を保存します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith는 예정된 회의를 표시하고, 진행 중인 회의의 이름과 참석자로 녹음을 저장합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith toont je komende vergaderingen en bewaart een opname onder de naam en deelnemers van de lopende vergadering."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Gistsmith mostra suas próximas reuniões e salva uma gravação com o nome e os participantes da reunião em andamento."
           }
         },
         "tr": {
@@ -41,16 +95,76 @@
             "state": "translated",
             "value": "Gistsmith sıradaki toplantılarını gösterir ve kaydı süren toplantının adı ve katılımcılarıyla kaydeder."
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith 会显示你即将开始的会议，并以正在进行的会议的名称和参与者存储录音。"
+          }
         }
       }
     },
     "NSMicrophoneUsageDescription": {
       "comment": "Privacy - Microphone Usage Description",
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith verwendet das Mikrofon, um Meetings vor Ort zu transkribieren."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Gistsmith uses the microphone to transcribe in-person meetings."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith usa el micrófono para transcribir reuniones presenciales."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith käyttää mikrofonia kasvokkaisten kokousten litterointiin."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith utilise le micro pour transcrire les réunions en présentiel."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith usa il microfono per trascrivere le riunioni di persona."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmithは、対面の会議を文字起こしするためにマイクを使用します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith는 대면 회의를 텍스트로 변환하기 위해 마이크를 사용합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith gebruikt de microfoon om fysieke vergaderingen uit te schrijven."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Gistsmith usa o microfone para transcrever reuniões presenciais."
           }
         },
         "tr": {
@@ -58,22 +172,88 @@
             "state": "translated",
             "value": "Gistsmith yüz yüze toplantıyı yazıya dökmek için mikrofonu kullanır."
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith 使用麦克风来转写面对面会议。"
+          }
         }
       }
     },
     "NSRemindersFullAccessUsageDescription": {
       "comment": "Privacy - Reminders Full Access Usage Description",
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith fügt Aufgaben aus deinen Meeting-Notizen zu Erinnerungen hinzu, wenn du es darum bittest."
+          }
+        },
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Gistsmith adds tasks from your meeting notes to Reminders when you ask it to."
           }
         },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith añade a Recordatorios las tareas de tus notas de reunión cuando se lo pides."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith lisää tehtäviä kokousmuistiinpanoistasi Muistutuksiin, kun pyydät."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith ajoute les tâches de vos notes de réunion à Rappels lorsque vous le lui demandez."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith aggiunge a Promemoria le attività delle note delle riunioni quando glielo chiedi."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmithは、指示に応じて会議ノートのタスクをリマインダーに追加します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith는 사용자가 요청하면 회의 노트의 할 일을 미리 알림에 추가합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith voegt taken uit je vergadernotities toe aan Herinneringen als je daarom vraagt."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Gistsmith adiciona tarefas das suas notas de reunião aos Lembretes quando você pede."
+          }
+        },
         "tr": {
           "stringUnit": {
             "state": "translated",
             "value": "Gistsmith toplantı notundaki görevleri istediğinde Anımsatıcılar'a ekler."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith 会在你要求时将会议笔记中的任务添加到提醒事项。"
           }
         }
       }
