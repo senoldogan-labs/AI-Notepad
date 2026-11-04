@@ -40,7 +40,22 @@ export async function latestMacVersion(platform: Platform, appcastUrl: string): 
 }
 
 /** Sitedeki indirme düğmelerinin sabit kaynak adları (`GET /v1/download/mac?src=<kaynak>`). */
-export const siteDownloadSources = ["home-hero", "home-cta", "download-page", "account"] as const;
+export const siteDownloadSources = [
+  "home-hero",
+  "home-cta",
+  "download-page",
+  "account",
+  "meeting-notes-mac",
+  "vs-granola",
+  "vs-otter",
+  "compare",
+  "obsidian",
+  "zoom",
+  "teams",
+  "mcp",
+  "fi",
+  "blog",
+] as const;
 
 /** İndirmenin kaynağı: sitedeki düğme, parametresiz (`direct`: dış bağlantı ya da elle yazılmış adres) ya da tanınmayan (`other`). */
 export type DownloadSource = (typeof siteDownloadSources)[number] | "direct" | "other";

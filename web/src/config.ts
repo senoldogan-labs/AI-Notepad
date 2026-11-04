@@ -94,7 +94,21 @@ const localConfig: SiteConfig = {
  * Sitedeki indirme düğmesinin yeri: sunucunun `?src=` izin listesiyle (`server/src/downloads.ts` →
  * `siteDownloadSources`) aynı olmalı; tanınmayan değer `other` sayılır.
  */
-export type DownloadSource = "home-hero" | "home-cta" | "download-page" | "account";
+export type DownloadSource =
+  | "home-hero"
+  | "home-cta"
+  | "download-page"
+  | "account"
+  | "meeting-notes-mac"
+  | "vs-granola"
+  | "vs-otter"
+  | "compare"
+  | "obsidian"
+  | "zoom"
+  | "teams"
+  | "mcp"
+  | "fi"
+  | "blog";
 
 /**
  * Mac indirme adresi: sunucu indirmeyi düğmenin yeriyle (`src`) sayar ve DMG'ye yönlendirir (302). Sitedeki tüm
