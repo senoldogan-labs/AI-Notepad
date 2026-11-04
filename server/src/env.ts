@@ -66,6 +66,7 @@ export interface Env {
   readonly LLM_ACCOUNT_MAX_TOKENS: string;
   readonly LLM_ASK_MAX_TOKENS: string;
   readonly MONTHLY_WEB_SEARCH_CAP: string;
+  readonly WEB_SEARCH_POLICY: string;
   readonly LLM_MAX_REQUEST_BYTES: string;
   readonly LLM_MAX_INPUT_TOKENS: string;
   readonly TRANSCRIBE_MAX_BYTES: string;

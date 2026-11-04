@@ -231,6 +231,12 @@ export interface Config {
     readonly askMaxTokens: number;
     /** Kullanıcı başına aylık en çok web araması (yalnız Sor cevabı; bkz. `llm/webSearch.ts`). */
     readonly monthlyWebSearchCap: number;
+    /**
+     * Sor'da web araması açık mı (`WEB_SEARCH_POLICY`): `off` ise araç hiç sunulmaz, hak düşülmez, Sor yalnız
+     * toplantılardan cevaplar ve istemciye `x-web-search: unavailable` döner. Anthropic kuruluşunda web araması
+     * etkinleştirilip doğrulanana kadar üretimde `off`.
+     */
+    readonly webSearchPolicy: "on" | "off";
     readonly maxRequestBytes: number;
     readonly maxInputTokens: number;
   };
@@ -437,6 +443,7 @@ const envSchema = z.object({
   LLM_ACCOUNT_MAX_TOKENS: positiveInt,
   LLM_ASK_MAX_TOKENS: positiveInt,
   MONTHLY_WEB_SEARCH_CAP: positiveInt,
+  WEB_SEARCH_POLICY: z.enum(["on", "off"]),
   LLM_MAX_REQUEST_BYTES: positiveInt,
   LLM_MAX_INPUT_TOKENS: positiveInt,
   TRANSCRIBE_MAX_BYTES: positiveInt.max(95_000_000),
@@ -657,6 +664,7 @@ export function parseConfig(env: Env): Config {
       accountMaxTokens: value.LLM_ACCOUNT_MAX_TOKENS,
       askMaxTokens: value.LLM_ASK_MAX_TOKENS,
       monthlyWebSearchCap: value.MONTHLY_WEB_SEARCH_CAP,
+      webSearchPolicy: value.WEB_SEARCH_POLICY,
       maxRequestBytes: value.LLM_MAX_REQUEST_BYTES,
       maxInputTokens: value.LLM_MAX_INPUT_TOKENS,
     },

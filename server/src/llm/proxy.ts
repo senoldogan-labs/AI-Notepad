@@ -282,7 +282,9 @@ export async function proxyLLM(db: D1Database, context: RequestContext, config: 
     throw new ApiError("payload_too_large", `Input is too long (an estimated ${estimatedInput} tokens; the limit is ${config.llm.maxInputTokens}).`);
   }
   // Web araması yalnız Sor cevabında (başka amaçta 400, dışarı istek gitmez); arama sonuçları girdi tokenı olur.
-  const requestedSearches: number = requestedWebSearches(request.tools, scope.purpose);
+  // Amaç denetimi politika kapalıyken de yapılır (Sor dışında araç istemek yine `invalid_body`).
+  const askedSearches: number = requestedWebSearches(request.tools, scope.purpose);
+  const requestedSearches: number = config.llm.webSearchPolicy === "on" ? askedSearches : 0;
   const searchInput: number = requestedSearches * webSearchReservedInputTokens;
   const now: Date = context.platform.now();
   const limits: ReservationLimit[] = llmLimits(config, scope, now);
@@ -310,7 +312,8 @@ export async function proxyLLM(db: D1Database, context: RequestContext, config: 
   // Aylık arama hakkı ayırmadan sonra düşülür (ayırma reddedilirse hak harcanmaz); hak bittiyse araç sunulmaz ve
   // istemci `x-web-search: cap_reached` ile bunu söyler.
   const grantedSearches: number = await reserveWebSearches(db, scope.userId, requestedSearches, config.llm.monthlyWebSearchCap, now);
-  const searchHeaders: Record<string, string> = webSearchStatusHeader(requestedSearches, grantedSearches);
+  const searchHeaders: Record<string, string> =
+    config.llm.webSearchPolicy === "on" || askedSearches === 0 ? webSearchStatusHeader(requestedSearches, grantedSearches) : { "x-web-search": "unavailable" };
   const client: Anthropic = anthropicClient(context, config);
   const params: Anthropic.MessageCreateParamsNonStreaming = upstreamParams(request, maxTokens, grantedSearches);
   const retry: RetryOptions = {

@@ -149,6 +149,23 @@ describe("web araması: Sor cevabı", () => {
     expect(await monthlySearches(session.userId)).toBe(2);
   });
 
+  it("WEB_SEARCH_POLICY off iken araç sunulmaz, hak düşülmez ve istemciye unavailable denir", async () => {
+    const { harness, session } = await trialAccount();
+    const disabled: Env = envWith({ WEB_SEARCH_POLICY: "off" });
+    let tools: unknown = "yok";
+    harness.stub(anthropicUrl, async (request: Request): Promise<Response> => {
+      tools = (await request.json<{ tools?: unknown }>()).tools;
+      return Response.json(searchMessage(100, 20, 0));
+    });
+    const spendBefore: number = await todaySpend();
+    const response: Response = await accountLLM(harness, session, "ask_answer", askBody, disabled);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-web-search")).toBe("unavailable");
+    expect(tools).toBeUndefined();
+    expect(await monthlySearches(session.userId)).toBe(0);
+    expect((await todaySpend()) - spendBefore).toBe(llmCostMicroUsd(100, 20));
+  });
+
   it("üst çağrı başarısızsa verilen hak geri verilir", async () => {
     const { harness, session } = await trialAccount();
     harness.stub(anthropicUrl, async (): Promise<Response> => Response.json({ type: "error", error: { type: "invalid_request_error", message: "x" } }, { status: 400 }));
