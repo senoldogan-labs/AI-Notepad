@@ -59,6 +59,10 @@ private func fastestRun(runs: Int, work: () -> Void) -> Double {
 // Büyük arşiv: yükleme ve arama arayüzü bekletmeyecek kadar hızlı kalmalı. Sınırlar geliştirme Mac'inde (Debug,
 // takım tek başına) ölçülen sürenin yaklaşık üç katıdır: yükleme ~0,7 sn (paralel okumadan önce ~2,1 sn), eşleşmeyen
 // arama ~0,27 sn (katlamadan önce ~1,4 sn). Tüm testler birlikte koşarken süre yükseldiği için en iyi deneme alınır.
+/// Süre sınırlarının çarpanı: paylaşılan CI makineleri (GitHub `CI=true` verir) geliştirme Mac'inden belirgin yavaştır
+/// (yükleme 2,6 sn ölçüldü); orada sınır iki katıdır, yerelde aynı sıkı sınır geriye gidişi yakalar.
+private let performanceLimitScale: Double = ProcessInfo.processInfo.environment["CI"] == "true" ? 2 : 1
+
 @Suite(.serialized) struct MeetingArchivePerformanceTests {
     @Test func loadingFiveHundredMeetingsIsFast() throws {
         let archive: (directory: URL, records: [MeetingRecord]) = try writeSyntheticArchive(count: 500)
@@ -76,7 +80,7 @@ private func fastestRun(runs: Int, work: () -> Void) -> Double {
         print("500 toplantı yükleme: \(elapsed) sn")
         #expect(result.meetings == newestFirst(records: archive.records))
         #expect(result.failures.isEmpty)
-        #expect(elapsed < 2.5)
+        #expect(elapsed < 2.5 * performanceLimitScale)
     }
 
     @Test func filteringFiveHundredMeetingsIsFast() throws {
@@ -89,7 +93,7 @@ private func fastestRun(runs: Int, work: () -> Void) -> Double {
         print("500 toplantıda arama: \(elapsed) sn")
         #expect(matches.isEmpty)
         #expect(filterMeetings(records: records, query: "raporu GÖNDER 499").map(\.id) == [records[499].id])
-        #expect(elapsed < 1.0)
+        #expect(elapsed < 1.0 * performanceLimitScale)
     }
 }
 
