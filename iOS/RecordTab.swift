@@ -20,7 +20,7 @@ struct RecordTab: View {
                 case .idle, .starting:
                     RecordHome(recorder: recorder, store: store, router: router, calendar: calendar, onBriefing: onBriefing)
                 case .recording, .finishing:
-                    LiveRecordingView(recorder: recorder, router: router)
+                    LiveRecordingView(recorder: recorder, onBriefing: onBriefing)
                 }
             }
             .background(Theme.background)
@@ -57,7 +57,7 @@ private struct RecordHome: View {
                 }
                 .padding(.top, 8)
                 RecordHeroCard(recorder: recorder)
-                PhonePlanNotice(account: HostedAccount.shared)
+                PhonePlanNotice(account: HostedAccount.shared, router: router)
                 if let diskSpace = phoneDiskSpaceText(space: recorder.recordingDiskSpace) {
                     NoticeText(diskSpace, severity: .attention)
                         .appFont(size: 13, weight: .regular)
@@ -131,22 +131,49 @@ func longDayTitle(date: Date, locale: Locale) -> String {
     return formatter.string(from: date)
 }
 
+/// Kayıt engelinin çözüm düğmesi (Mac'teki `StartBlockAction`).
+private enum PhonePlanAction {
+    /// Abonelik ekranı (deneme bitti, plan sona erdi).
+    case subscribe
+    /// Ayarlar › Hesap (aylık sınır doldu, ödeme alınamadı).
+    case openAccount
+    /// Hak durumu yeniden okunur (sunucuya ulaşılamadı, çevrimdışı kayda izin yok).
+    case retry
+}
+
+/// Engelin çözümü: hak durumu okunamadıysa yeniden dene, okunduysa engelin çözümü (`hostedStartBlockRemedy`); engel yoksa
+/// nil.
+@MainActor
+private func phonePlanAction(account: HostedAccount) -> PhonePlanAction? {
+    if case .signedInStatusUnknown = account.state {
+        return .retry
+    }
+    guard case .signedIn(let entitlements) = account.state, let block = hostedStartBlock(entitlements: entitlements) else {
+        return nil
+    }
+    switch hostedStartBlockRemedy(block: block) {
+    case .subscribe: return .subscribe
+    case .openAccount: return .openAccount
+    }
+}
+
 /// Kayıt kartının altında hesabın durumu: kaydı engelleyen hak durumu varsa nedeni (deneme bitti, aylık sınır…) ve
-/// abonelik çözecekse (deneme bitti, plan sona erdi) "Abone ol" (abonelik ekranı); yoksa denemede kalan toplantılar.
-/// Abonelikte ve hak durumu okunmamışken görünmez.
+/// çözümü (Mac'teki gibi tek düğme: "Abone ol" abonelik ekranını, "Kullanımı gör" Ayarlar › Hesap'ı açar, "Yeniden
+/// dene" hak durumunu yeniden okur); yoksa denemede kalan toplantılar. Abonelikte ve hak durumu okunmamışken görünmez.
 private struct PhonePlanNotice: View {
     let account: HostedAccount
+    let router: PhoneRouter
 
     var body: some View {
         if let blocked = phoneStartBlockMessage(account: account, now: Date()) {
             VStack(alignment: .leading, spacing: 10) {
                 NoticeText(blocked as String, severity: .attention)
                     .appFont(size: 13, weight: .regular)
-                if account.requiresSubscription {
+                if let action = phonePlanAction(account: account) {
                     Button {
-                        account.showPlans()
+                        resolve(action: action)
                     } label: {
-                        Text("Abone ol")
+                        Text(title(action: action))
                             .appFont(size: 15, weight: .semibold)
                             .foregroundStyle(Color.white)
                             .padding(.horizontal, 20)
@@ -154,12 +181,32 @@ private struct PhonePlanNotice: View {
                             .background(.tint, in: Capsule())
                     }
                     .buttonStyle(PressableCardStyle())
+                    .disabled(account.isWorking)
                 }
             }
         } else if case .signedIn(let entitlements) = account.state, case .trial(let left, _) = hostedPlanStatus(entitlements: entitlements) {
             Label(String(localized: "Ücretsiz deneme: \(hostedTrialLeftText(left: left))."), systemImage: "sparkles")
                 .appFont(size: 13, weight: .medium)
                 .foregroundStyle(Theme.muted)
+        }
+    }
+
+    private func title(action: PhonePlanAction) -> LocalizedStringKey {
+        switch action {
+        case .subscribe: "Abone ol"
+        case .openAccount: "Kullanımı gör"
+        case .retry: "Yeniden dene"
+        }
+    }
+
+    private func resolve(action: PhonePlanAction) {
+        switch action {
+        case .subscribe:
+            account.showPlans()
+        case .openAccount:
+            router.openAccount()
+        case .retry:
+            Task { await account.refresh() }
         }
     }
 }
@@ -387,15 +434,21 @@ struct PressableCardStyle: ButtonStyle {
 /// Kayıt sırasında odaklı tam ekran (sekme çubuğu gizli): üstte sabit başlık (kayıt durumu, dil, büyük süre ve ses
 /// dalgası), ortada konuşmacılı canlı metin (en alta kayar), altta yüzen çubukta "Ne kaçırdım?", "İşaretle", "Bitir",
 /// "Duraklat" ve "Notlarım". "Ne kaçırdım?" çubuğun üstünde asistan kartını açar; kartın altındaki alanla toplantıya
-/// soru sorulur (Mac panelindeki gibi). Rıza hatırlatması kayıt başında üstte 3 saniye görünen bir bildirimdir.
+/// soru sorulur (Mac panelindeki gibi); soru alanı ⋯ › "Toplantıya sor…" ile kartsız da açılır. Rıza hatırlatması kayıt
+/// başında üstte 3 saniye görünen bir bildirimdir. Çevrimdışı kayıtta ve aylık sınırla kısaltılan toplantıda üstte
+/// bildirim (Mac'teki şeritler).
 private struct LiveRecordingView: View {
     let recorder: PhoneRecorder
-    /// "Açık görevler"in "Tümünü gör"ü kaynak toplantıyı Toplantılar sekmesinde açar (kayıt sürer).
-    let router: PhoneRouter
+    /// "Açık görevler"in "Tümünü gör"ü kaydın takvim toplantısının brifingini Sor'da açar (Mac'teki gibi; kayıt sürer).
+    let onBriefing: @MainActor (CalendarMeeting) -> Void
     @State private var markedAt: Date?
     @State private var isNotesOpen: Bool = false
-    /// Asistana sorulacak soru (kart açıkken).
+    /// Asistana sorulacak soru (kart açıkken ya da soru alanı ⋯ menüsünden açıldıysa).
     @State private var question: String = ""
+    /// Soru alanı kartsız açık (⋯ › "Toplantıya sor…").
+    @State private var isAskOpen: Bool = false
+    @FocusState private var isQuestionFocused: Bool
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
     /// "Tümünü kopyala"ya basılan an: üstte kısa "Kopyalandı" bildirimi.
     @State private var copiedAt: Date?
     /// Canlı çeviri (Ayarlar › Toplantı'daki gösterimle aynı ayar; ⋯ menüsünden de açılıp kapanır).
@@ -419,10 +472,17 @@ private struct LiveRecordingView: View {
                     PausedNotice()
                 }
                 MicrophoneNotice(status: recorder.microphoneStatus, recoveredVisible: recorder.microphoneRecoveredNoticeVisible)
+                if recorder.phase == .recording, recorder.isOfflineRecording {
+                    OfflineRecordingNotice()
+                }
+                if recorder.phase == .recording, let deadline = recorder.shortMeetingDeadline {
+                    MeetingLimitNotice(deadline: deadline)
+                }
                 PhoneErrorList(messages: recorder.errorMessages)
-                if recorder.phase == .recording, let newest = recorder.relatedTasks.first {
+                // Açık görevler yalnız takvim toplantısına bağlı kayıtta bulunur (`relatedOpenTasks`).
+                if recorder.phase == .recording, !recorder.relatedTasks.isEmpty, let meeting = recorder.recordingCalendarMeeting {
                     PhoneRelatedTasksCard(tasks: recorder.relatedTasks) {
-                        router.open(meetingID: newest.meetingID)
+                        onBriefing(meeting)
                     } onDismiss: {
                         recorder.relatedTasks = []
                     }
@@ -443,10 +503,20 @@ private struct LiveRecordingView: View {
                 if let card = recorder.assistantCard {
                     assistant(card: card)
                         .transition(.opacity.combined(with: .move(edge: .bottom)))
+                } else if isAskOpen, recorder.phase == .recording {
+                    questionField(onClose: {
+                        question = ""
+                        isAskOpen = false
+                    })
+                    .padding(.horizontal, 16)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    // Menü kapanırken alan henüz yoktu: klavye alan görününce açılır.
+                    .onAppear { isQuestionFocused = true }
                 }
                 controls
             }
             .animation(.smooth(duration: 0.3), value: recorder.assistantCard != nil)
+            .animation(.smooth(duration: 0.3), value: isAskOpen)
         }
         .overlay(alignment: .top) {
             if recorder.consentReminderVisible {
@@ -540,9 +610,14 @@ private struct LiveRecordingView: View {
         .padding(.bottom, 12)
     }
 
-    /// ⋯ menüsü (Mac panelindeki gibi): canlı metnin tümünü ekrandaki gibi kopyala, canlı çeviriyi aç/kapat.
+    /// ⋯ menüsü (Mac panelindeki gibi): toplantıya soru sor (Mac'te panelin altındaki soru alanı), canlı metnin tümünü
+    /// ekrandaki gibi kopyala, canlı çeviriyi aç/kapat.
     private var moreMenu: some View {
         Menu {
+            Button("Toplantıya sor…", systemImage: "questionmark.bubble") {
+                isAskOpen = true
+            }
+            .disabled(recorder.phase != .recording || recorder.assistantCard != nil)
             Button("Tümünü kopyala", systemImage: "doc.on.doc") {
                 copyToPasteboard(text: recorder.displayedText)
                 copiedAt = Date()
@@ -602,11 +677,11 @@ private struct LiveRecordingView: View {
                         )
                         .transition(.opacity.combined(with: .offset(y: 8)))
                     }
-                    Color.clear.frame(height: 1).id(bottomID)
+                    // Son satırın altındaki boşluk: Ayarlar › Görünüm › Alt boşluk (Mac'teki gibi).
+                    Color.clear.frame(height: max(1, appearance.bottomSpacing)).id(bottomID)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 16)
-                .padding(.bottom, 8)
                 .animation(.smooth(duration: 0.3), value: blocks.map(\.id))
             }
             .scrollIndicators(.hidden)
@@ -628,35 +703,61 @@ private struct LiveRecordingView: View {
         VStack(spacing: 8) {
             AssistantCardView(card: card) {
                 question = ""
+                isAskOpen = false
                 recorder.closeAssistantCard()
             }
-            HStack(spacing: 8) {
-                TextField("Toplantıya sor…", text: $question)
-                    .appFont(size: 15, weight: .regular)
-                    .submitLabel(.send)
-                    .onSubmit(sendQuestion)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(Theme.card, in: Capsule())
-                    .overlay(Capsule().strokeBorder(Theme.line))
-                Button(action: sendQuestion) {
-                    Image(systemName: "arrow.up")
-                        .appFont(size: 15, weight: .semibold)
-                        .foregroundStyle(Theme.onPrimary)
-                        .frame(width: 40, height: 40)
-                        .background(Theme.primary, in: Circle())
-                }
-                .buttonStyle(PressableCardStyle())
-                .disabled(question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .accessibilityLabel("Sor")
-            }
+            questionField(onClose: nil)
         }
         .padding(.horizontal, 16)
     }
 
+    /// Toplantıya soru alanı ve gönder düğmesi; kartsız açıldıysa (`onClose`) solda kapatma düğmesi.
+    private func questionField(onClose: (@MainActor () -> Void)?) -> some View {
+        HStack(spacing: 8) {
+            if let onClose {
+                Button {
+                    onClose()
+                } label: {
+                    Image(systemName: "xmark")
+                        .appFont(size: 13, weight: .semibold)
+                        .foregroundStyle(Theme.muted)
+                        .frame(width: 40, height: 40)
+                        .background(Theme.card, in: Circle())
+                        .overlay(Circle().strokeBorder(Theme.line))
+                }
+                .buttonStyle(PressableCardStyle())
+                .accessibilityLabel("Kapat")
+            }
+            TextField("Toplantıya sor…", text: $question)
+                .appFont(size: 15, weight: .regular)
+                .focused($isQuestionFocused)
+                .submitLabel(.send)
+                .onSubmit(sendQuestion)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(Theme.card, in: Capsule())
+                .overlay(Capsule().strokeBorder(Theme.line))
+            Button(action: sendQuestion) {
+                Image(systemName: "arrow.up")
+                    .appFont(size: 15, weight: .semibold)
+                    .foregroundStyle(Theme.onPrimary)
+                    .frame(width: 40, height: 40)
+                    .background(Theme.primary, in: Circle())
+            }
+            .buttonStyle(PressableCardStyle())
+            .disabled(question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .accessibilityLabel("Sor")
+        }
+    }
+
+    /// Soruyu gönderir: cevap asistan kartında açılır (kart soru alanını da taşır).
     private func sendQuestion() {
+        guard !question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return
+        }
         recorder.askDuringMeeting(question: question)
         question = ""
+        isAskOpen = false
     }
 
     /// Yüzen eylem çubuğu: solda "Ne kaçırdım?" ve "İşaretle", ortada geniş "Bitir", sağda "Duraklat"/"Devam ettir" ve
@@ -835,9 +936,62 @@ private struct PausedNotice: View {
     }
 }
 
+/// Sunucuya ulaşılamadan süren kayıt (Mac'teki "Çevrimdışı kaydediliyor" şeridi): canlı metin bu iPhone'da yazılır,
+/// konuşmacılar ve not bağlantı gelince hazırlanır.
+private struct OfflineRecordingNotice: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Label("Çevrimdışı kaydediliyor", systemImage: "wifi.slash")
+                .appFont(size: 14, weight: .semibold)
+                .foregroundStyle(Theme.ink)
+            Text("Canlı metin bu iPhone'da yazılıyor; konuşmacılar ve not bağlantı gelince hazırlanır.")
+                .appFont(size: 13, weight: .regular)
+                .foregroundStyle(Theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.soft, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .transition(.opacity)
+    }
+}
+
+/// Aylık sınıra az kaldığı için kısaltılan toplantının kalan dakikası ve bitiş saati (Mac'teki `HostedMeetingLimitStrip`);
+/// 15 saniyede bir güncellenir.
+private struct MeetingLimitNotice: View {
+    let deadline: Date
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 15)) { (context: TimelineViewDefaultContext) in
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Image(systemName: "hourglass")
+                    .appFont(size: 13, weight: .semibold)
+                    .foregroundStyle(NoticeSeverity.attention.tint)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Bu toplantıya \(hostedMinutesLeft(deadline: deadline, now: context.date)) dakika kaldı")
+                        .appFont(size: 14, weight: .semibold)
+                        .foregroundStyle(Theme.ink)
+                    Text("Aylık sınırına göre kayıt \(deadline.formatted(Date.FormatStyle(date: .omitted, time: .shortened).locale(interfaceLocale()))) itibarıyla biter.")
+                        .appFont(size: 13, weight: .regular)
+                        .foregroundStyle(Theme.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .monospacedDigit()
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(NoticeSeverity.attention.tint.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .accessibilityElement(children: .combine)
+        }
+        .transition(.opacity)
+    }
+}
+
 /// Kayıt başında: bu toplantıyla ilgili önceki toplantılardan açık görevler (en çok 5), her biri kaynak toplantının
-/// başlığıyla. Yalnız hatırlatmadır (dokunmak görevi işaretlemez); "Tümünü gör" en yeni kaynak toplantıyı açar, kapatılınca
-/// bu kayıt boyunca görünmez (Mac'teki şeridin eşi).
+/// başlığıyla. Yalnız hatırlatmadır (dokunmak görevi işaretlemez); "Tümünü gör" toplantının brifingini Sor'da açar,
+/// kapatılınca bu kayıt boyunca görünmez (Mac'teki şeridin eşi).
 private struct PhoneRelatedTasksCard: View {
     let tasks: [RelatedOpenTask]
     let onShowAll: @MainActor () -> Void

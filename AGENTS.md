@@ -10,7 +10,7 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
 - `iOS/` — iPhone uygulaması: Gistsmith (abonelik, `HOSTED_EDITION`, yalnız hesapla; SwiftUI); aynı paketi ve `App/Hosted`'taki
   ortak hesap dosyalarını kullanır. Debug yerel sunucuya (`localhost:8787`) bağlanır; `--tanitim` (yalnız Debug) giriş
   olmadan sahte deneme hesabıyla (`--abone` ile App Store abonesi ve davet koduyla) açar (Simülatör'de görsel kontrol); `--paywall` abonelik ekranını, `--sohbet <uuid>`
-  saklı Sor sohbetini açar; `--ornek-kayit` örnek canlı kaydı (`--ornek-bitir` ile bitiriliyor katmanını, `--ornek-duraklat` ile duraklatılmış hâlini) gösterir; `--ornek-takvim` örnek sıradaki toplantıları gösterir. Abonelik RevenueCat'le (`iOS/Purchases/`); şemadaki `Products.storekit` yalnızca Xcode'da
+  saklı Sor sohbetini açar; `--ornek-kayit` örnek canlı kaydı (`--ornek-bitir` ile bitiriliyor katmanını, `--ornek-duraklat` ile duraklatılmış hâlini, `--ornek-sinir` ile çevrimdışı ve aylık sınırla kısaltılmış hâlini) gösterir; `--ornek-takvim` örnek sıradaki toplantıları gösterir. Abonelik RevenueCat'le (`iOS/Purchases/`); şemadaki `Products.storekit` yalnızca Xcode'da
   Run'da geçerlidir — `xcodebuild`/`simctl` başlatması StoreKit sandbox'ını kullanır (Apple FB22237318), UI testi bu
   yüzden yok.
 - Deneysel "bu iPhone'daki görüşmeyi kaydet" (`iOS/CallCapture/`, iOS 27 ScreenCaptureKit): yalnız

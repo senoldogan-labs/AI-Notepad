@@ -14,6 +14,11 @@ import UIKit
 private let phoneUncertainSendsKey: String = "integrations.uncertainSends"
 /// Hedefin kalıcı olarak reddettiği gönderimlerin ayar anahtarı (Mac'teki `SettingsKey.rejectedSends` ile aynı ad).
 private let phoneRejectedSendsKey: String = "integrations.rejectedSends"
+/// Markdown klasörünün yer imi (hesabın ayar alanında). Mac klasörün yolunu saklar (`destinations.markdownFolder`);
+/// iOS'ta Dosyalar'dan seçilen klasöre yeniden açılışta yolla erişilemez, yer imi gerekir.
+private let phoneMarkdownFolderBookmarkKey: String = "destinations.markdownFolderBookmark"
+/// Klasöre kendiliğinden yazma (Mac'teki `SettingsKey.markdownAutoExport` ile aynı ad; hesabın ayar alanında).
+private let phoneMarkdownAutoExportKey: String = "destinations.markdownAuto"
 
 /// Hesabın not hedefleri ve görev araçları: bağlama, kaldırma, elle ve kendiliğinden gönderim. Hesap değişince oturumla
 /// birlikte yenisi kurulur (bkz. `PhoneAccountSession`).
@@ -30,6 +35,14 @@ final class PhoneIntegrations {
     private(set) var noteStates: [String: WebhookSendState] = [:]
     /// Toplantı başına görev gönderiminin durumu.
     private(set) var trackerStates: [String: WebhookSendState] = [:]
+    /// Toplantı başına "Klasöre Markdown kaydet"in sonucu.
+    private(set) var folderStates: [String: WebhookSendState] = [:]
+    /// Notların Markdown olarak yazıldığı klasörün adı (Dosyalar'dan seçilir: iCloud Drive, Obsidian…); seçilmediyse nil.
+    private(set) var markdownFolderName: String?
+    /// Not hazır olunca (ve her değişince) klasördeki kopya kendiliğinden yazılır (Mac'teki "Klasöre yaz").
+    private(set) var markdownAutoExport: Bool = false
+    /// Seçili klasörün yer imi (hesabın ayar alanında): Dosyalar'dan seçilen klasöre sonraki açılışlarda da yazılabilsin.
+    @ObservationIgnored private var markdownFolderBookmark: Data?
     /// Kendiliğinden gönderim, kaldırma ve okuma hataları: toplantı sayfasında ve Ayarlar › Bağlantılar'da görünür,
     /// kullanıcı kapatır.
     private(set) var problems: [String] = []
@@ -79,8 +92,9 @@ final class PhoneIntegrations {
         try currentVaults().trackers
     }
 
-    /// Hedefleri ve görev araçlarını okur; okunamazsa neden sorunlarda görünür.
+    /// Hedefleri, görev araçlarını ve Markdown klasörünü okur; okunamazsa neden sorunlarda görünür.
     func load() async {
+        loadMarkdownFolder()
         do {
             destinations = try await destinationVault().all()
             taskTrackers = try await trackerVault().all()
@@ -462,6 +476,131 @@ final class PhoneIntegrations {
         } while autoSendRequested
     }
 
+    // MARK: Markdown klasörü
+
+    /// Klasörü ve kendiliğinden yazma ayarını hesabın ayar alanından okur (Mac'teki `loadExportSettings`); klasörün adı
+    /// yer iminden çözülür. Okunamazsa neden sorunlarda görünür.
+    private func loadMarkdownFolder() {
+        do {
+            let defaults: UserDefaults = try hostedActiveAccountDefaults()
+            markdownFolderBookmark = defaults.data(forKey: phoneMarkdownFolderBookmarkKey)
+            markdownAutoExport = defaults.bool(forKey: phoneMarkdownAutoExportKey)
+            markdownFolderName = try markdownFolderBookmark.map { (_: Data) -> String in try resolvedMarkdownFolder().lastPathComponent }
+        } catch {
+            Self.logger.error("Markdown klasörü okunamadı, hata: \(String(describing: error), privacy: .private)")
+            report(message: String(localized: "Markdown klasörü okunamadı: \(userFacingMessage(error: error)). Ayarlar › Bağlantılar'dan klasörü yeniden seç."))
+        }
+    }
+
+    /// Dosyalar'dan seçilen klasörü saklar (yer imiyle); saklanamazsa kullanıcı metni döner.
+    func chooseMarkdownFolder(url: URL) -> String? {
+        let accessing: Bool = url.startAccessingSecurityScopedResource()
+        defer {
+            if accessing {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+        do {
+            let bookmark: Data = try url.bookmarkData(options: .minimalBookmark, includingResourceValuesForKeys: nil, relativeTo: nil)
+            try hostedActiveAccountDefaults().set(bookmark, forKey: phoneMarkdownFolderBookmarkKey)
+            markdownFolderBookmark = bookmark
+            markdownFolderName = url.lastPathComponent
+            Self.logger.info("Markdown klasörü seçildi")
+            return nil
+        } catch {
+            Self.logger.error("Markdown klasörü saklanamadı, hata: \(String(describing: error), privacy: .private)")
+            return String(localized: "Klasör saklanamadı: \(userFacingMessage(error: error))")
+        }
+    }
+
+    /// Klasöre kendiliğinden yazmayı açar ya da kapatır; saklanamazsa kullanıcı metni döner.
+    func setMarkdownAutoExport(enabled: Bool) -> String? {
+        do {
+            try hostedActiveAccountDefaults().set(enabled, forKey: phoneMarkdownAutoExportKey)
+            markdownAutoExport = enabled
+            return nil
+        } catch {
+            Self.logger.error("Klasöre yazma ayarı saklanamadı, hata: \(String(describing: error), privacy: .private)")
+            return userFacingMessage(error: error)
+        }
+    }
+
+    /// "Klasöre Markdown kaydet": toplantının notunu (konuşmacı adlarıyla) seçili klasöre yazar; sonuç toplantı
+    /// sayfasında görünür.
+    func saveToMarkdownFolder(meetingID: String) {
+        guard let record = store.meetings.first(where: { $0.id == meetingID }) else {
+            return
+        }
+        let failure: String? = writeToMarkdownFolder(record: namedRecord(record: record, userName: store.userName))
+        showSendState(state: failure.map { WebhookSendState.failed($0) } ?? .sent, meetingID: meetingID, states: \.folderStates)
+    }
+
+    /// Toplantı listesi değişince (not hazır oldu, düzenlendi, ad değişti) kendiliğinden yazma açıksa klasördeki kopyalar
+    /// yenilenir (Mac'teki işleme sonu ve `refreshFolderCopy`); yazılamazsa neden sorunlarda görünür.
+    func refreshMarkdownFolderCopies(previous: [MeetingRecord], current: [MeetingRecord]) {
+        #if DEBUG
+        // "--otomatik-gonderim-yok": görsel kontrol ve testlerde klasöre de yazılmaz (yalnız Debug).
+        if CommandLine.arguments.contains("--otomatik-gonderim-yok") {
+            return
+        }
+        #endif
+        guard markdownAutoExport, markdownFolderBookmark != nil else {
+            return
+        }
+        for record in markdownFolderRefreshes(previous: previous, current: current, userName: store.userName) {
+            if let failure = writeToMarkdownFolder(record: record) {
+                report(message: failure)
+            }
+        }
+    }
+
+    /// Notu klasöre yazar (aynı toplantı aynı dosyaya); klasör seçilmediyse ya da yazılamazsa kullanıcı metni döner.
+    private func writeToMarkdownFolder(record: MeetingRecord) -> String? {
+        guard markdownFolderBookmark != nil else {
+            return String(localized: "Önce Ayarlar › Bağlantılar'dan bir klasör seç.")
+        }
+        do {
+            let folder: URL = try resolvedMarkdownFolder()
+            // Uygulamanın kendi klasöründeki (iPhone'umda › Gistsmith) yer izin gerektirmez; erişim istenemezse de yazılmayı
+            // dener, izin yoksa yazma hatası nedenle döner.
+            let accessing: Bool = folder.startAccessingSecurityScopedResource()
+            defer {
+                if accessing {
+                    folder.stopAccessingSecurityScopedResource()
+                }
+            }
+            let file: URL = try exportMarkdown(record: record, folder: folder)
+            Self.logger.info("Not klasöre yazıldı, dosya: \(file.lastPathComponent, privacy: .private)")
+            recordFeatureUsage(feature: .integration(.markdownFolder))
+            return nil
+        } catch {
+            Self.logger.error("Not klasöre yazılamadı, toplantı: \(record.id, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+            return String(localized: "Klasöre yazılamadı: \(userFacingMessage(error: error))")
+        }
+    }
+
+    /// Saklı yer iminin gösterdiği klasör; yer imi eskidiyse (klasör taşındı) yenisi saklanır. Çözülemezse hata fırlar.
+    private func resolvedMarkdownFolder() throws -> URL {
+        guard let bookmark = markdownFolderBookmark else {
+            throw StorageError.readFailed(path: phoneMarkdownFolderBookmarkKey, reason: "klasör seçilmedi")
+        }
+        var isStale: Bool = false
+        let folder: URL = try URL(resolvingBookmarkData: bookmark, options: [], relativeTo: nil, bookmarkDataIsStale: &isStale)
+        if isStale {
+            let accessing: Bool = folder.startAccessingSecurityScopedResource()
+            defer {
+                if accessing {
+                    folder.stopAccessingSecurityScopedResource()
+                }
+            }
+            let renewed: Data = try folder.bookmarkData(options: .minimalBookmark, includingResourceValuesForKeys: nil, relativeTo: nil)
+            try hostedActiveAccountDefaults().set(renewed, forKey: phoneMarkdownFolderBookmarkKey)
+            markdownFolderBookmark = renewed
+            markdownFolderName = folder.lastPathComponent
+        }
+        return folder
+    }
+
     // MARK: Görev araçları (Linear, Jira)
 
     /// Linear ya da Jira'ya bağlanır (uygulama içi tarayıcıda izin). Sunucuda iş açan araç yoksa bağlantı kaldırılır ve
@@ -772,6 +911,11 @@ struct PhoneSendMenuItems: View {
             }
         }
         .disabled(!isSendable || (record.note?.tasks ?? []).isEmpty || integrations.trackerStates[record.id] == .sending)
+        // Mac'teki "Klasöre Markdown kaydet": klasör Ayarlar › Bağlantılar'da seçilir (seçilmediyse nedeni sayfada yazar).
+        Button("Klasöre Markdown kaydet", systemImage: "folder") {
+            integrations.saveToMarkdownFolder(meetingID: record.id)
+        }
+        .disabled(!isSendable)
     }
 }
 
@@ -786,9 +930,12 @@ struct PhoneSendStatus: View {
             PhoneDismissibleErrorList(messages: integrations.problems) { integrations.dismissProblems() }
             line(state: integrations.noteStates[meetingID], sending: "Kanala gönderiliyor…", sent: "Not kanala gönderildi")
             line(state: integrations.trackerStates[meetingID], sending: "Görevler açılıyor…", sent: "Görevler gönderildi")
+            // Klasöre yazma anında biter (gönderiliyor durumu yok).
+            line(state: integrations.folderStates[meetingID], sending: "Klasöre Markdown kaydet", sent: "Seçili klasöre Markdown olarak yazıldı.")
         }
         .animation(.easeOut(duration: 0.4), value: integrations.noteStates[meetingID])
         .animation(.easeOut(duration: 0.4), value: integrations.trackerStates[meetingID])
+        .animation(.easeOut(duration: 0.4), value: integrations.folderStates[meetingID])
     }
 
     @ViewBuilder

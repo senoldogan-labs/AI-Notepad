@@ -353,6 +353,76 @@
         }
       }
     },
+    "\"Klasöre yaz\" açıkken not hazır olunca ve her değişince bu klasöre yazılır; eski notları toplantının ⋯ menüsünden kaydet.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ist „In Ordner schreiben“ an, wird die Notiz in diesen Ordner geschrieben, sobald sie fertig ist und bei jeder Änderung; ältere Notizen speicherst du über das ⋯-Menü des Meetings."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "With \"Write to folder\" on, the note is written to this folder when it's ready and whenever it changes; save older notes from the meeting's ⋯ menu."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Con «Escribir en una carpeta» activado, la nota se escribe en esta carpeta cuando está lista y cada vez que cambia; guarda las notas anteriores desde el menú ⋯ de la reunión."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kun ”Kirjoita kansioon” on päällä, muistiinpano kirjoitetaan tähän kansioon, kun se on valmis, ja aina kun se muuttuu; tallenna vanhemmat muistiinpanot kokouksen ⋯-valikosta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avec « Écrire dans un dossier » activé, la note est écrite dans ce dossier dès qu’elle est prête et à chaque modification ; enregistrez les notes plus anciennes depuis le menu ⋯ de la réunion."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Con “Scrivi nella cartella” attivo, la nota viene scritta in questa cartella quando è pronta e a ogni modifica; salva le note precedenti dal menu ⋯ della riunione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「フォルダに書き込む」がオンのとき、ノートは準備ができた時点と変更のたびにこのフォルダに書き込まれます。以前のノートは会議の⋯メニューから保存してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"폴더에 쓰기\"가 켜져 있으면 노트가 준비될 때와 변경될 때마다 이 폴더에 기록됩니다. 이전 노트는 회의의 ⋯ 메뉴에서 저장하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Met \"Schrijf naar map\" aan wordt de notitie naar deze map geschreven zodra ze klaar is en bij elke wijziging; bewaar oudere notities via het ⋯-menu van de vergadering."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Com \"Gravar na pasta\" ativado, a nota é gravada nesta pasta quando fica pronta e sempre que muda; salve notas anteriores pelo menu ⋯ da reunião."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开启“写入文件夹”后，笔记在准备好时以及每次更改时都会写入此文件夹；较早的笔记请从会议的 ⋯ 菜单中保存。"
+          }
+        }
+      }
+    },
     "\"Ne kaçırdım?\" son %lld dakikayı özetler": {
       "localizations": {
         "de": {
@@ -17678,6 +17748,76 @@
         }
       }
     },
+    "Arayüz dili iPhone Ayarları › %@ › Dil'den değişir. Dil satırı yoksa önce iPhone Ayarları › Genel › Dil ve Bölge'ye ikinci bir dil ekle.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ändere die Sprache der Oberfläche in den iPhone-Einstellungen unter „%@“ › „Sprache“. Fehlt die Zeile „Sprache“, füge zuerst unter „Allgemein“ › „Sprache & Region“ eine zweite Sprache hinzu."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Change the interface language in iPhone Settings › %@ › Language. If there's no Language row, first add a second language in iPhone Settings › General › Language & Region."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambia el idioma de la interfaz en Ajustes del iPhone › %@ › Idioma. Si no aparece la fila Idioma, añade primero un segundo idioma en Ajustes › General › Idioma y región."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vaihda käyttöliittymän kieli iPhonen kohdassa Asetukset › %@ › Kieli. Jos Kieli-riviä ei ole, lisää ensin toinen kieli kohdassa Asetukset › Yleiset › Kieli ja alue."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changez la langue de l’interface dans Réglages de l’iPhone › %@ › Langue. S’il n’y a pas de ligne Langue, ajoutez d’abord une deuxième langue dans Réglages › Général › Langue et région."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambia la lingua dell’interfaccia in Impostazioni di iPhone › %@ › Lingua. Se la riga Lingua non c’è, aggiungi prima una seconda lingua in Impostazioni › Generali › Lingua e zona."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インターフェイスの言語は、iPhoneの「設定」›「%@」›「言語」で変更できます。「言語」の項目がない場合は、先に「設定」›「一般」›「言語と地域」で2つ目の言語を追加してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone 설정 › %@ › 언어에서 인터페이스 언어를 변경하세요. 언어 항목이 없으면 먼저 설정 › 일반 › 언어 및 지역에서 두 번째 언어를 추가하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wijzig de interfacetaal in Instellingen › %@ › Taal op de iPhone. Staat er geen rij Taal, voeg dan eerst een tweede taal toe in Instellingen › Algemeen › Taal en regio."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Altere o idioma da interface em Ajustes do iPhone › %@ › Idioma. Se não houver a linha Idioma, adicione antes um segundo idioma em Ajustes › Geral › Idioma e Região."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 iPhone“设置 › %@ › 语言”中更改界面语言。如果没有“语言”一行，请先在“设置 › 通用 › 语言与地区”中添加第二种语言。"
+          }
+        }
+      }
+    },
     "Arayüz dilini, tanıma motorunu, görünümü, yapay zekâ modellerini, anahtarları, sesle yazmayı ve kısayolları yönet.": {
       "localizations": {
         "de": {
@@ -17744,6 +17884,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "管理界面语言、识别引擎、外观、AI 模型、密钥、语音输入和快捷键。"
+          }
+        }
+      }
+    },
+    "Arayüz yazısı düğmeleri ve listeleri, okuma metni notu ve transkripti değiştirir; alt boşluk kayıttaki canlı metnin altında kalır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Text der Oberfläche ändert die Größe von Tasten und Listen, der Lesetext die von Notizen und Transkripten; der Abstand unten bleibt bei der Aufnahme unter dem Live-Transkript."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interface text resizes buttons and lists; reading text resizes notes and transcripts; bottom spacing stays below the live transcript while recording."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El texto de la interfaz cambia el tamaño de botones y listas, el texto de lectura el de notas y transcripciones; el espacio inferior queda debajo de la transcripción en directo al grabar."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Käyttöliittymän teksti muuttaa painikkeiden ja listojen kokoa, lukuteksti muistiinpanojen ja litterointien kokoa; alareunan väli jää tallennuksen aikana reaaliaikaisen litteroinnin alle."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le texte de l’interface redimensionne les boutons et les listes, le texte de lecture les notes et les transcriptions ; la marge inférieure reste sous la transcription en direct pendant l’enregistrement."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il testo dell’interfaccia ridimensiona pulsanti ed elenchi, il testo di lettura note e trascrizioni; la spaziatura inferiore resta sotto la trascrizione dal vivo durante la registrazione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インターフェイスのテキストはボタンとリストのサイズを、読み物のテキストはノートと文字起こしのサイズを変更します。下部の余白は録音中のライブ文字起こしの下に入ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "인터페이스 텍스트는 버튼과 목록의 크기를, 읽기 텍스트는 노트와 녹취록의 크기를 조절합니다. 아래쪽 여백은 녹음 중 실시간 녹취록 아래에 들어갑니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interfacetekst wijzigt de grootte van knoppen en lijsten, leestekst die van notities en transcripten; de ruimte onderaan blijft tijdens het opnemen onder het live transcript."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O texto da interface redimensiona botões e listas, o texto de leitura redimensiona notas e transcrições; o espaçamento inferior fica abaixo da transcrição ao vivo durante a gravação."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "界面文字调整按钮和列表的大小，阅读文字调整笔记和文字稿的大小；底部间距在录制时位于实时文字稿下方。"
           }
         }
       }
@@ -32299,6 +32509,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "实时文字稿在这台 Mac 上撰写；恢复联网后会准备说话人和笔记。"
+          }
+        }
+      }
+    },
+    "Canlı metin bu iPhone'da yazılıyor; konuşmacılar ve not bağlantı gelince hazırlanır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Live-Transkript wird auf diesem iPhone geschrieben; Sprecher und Notiz werden erstellt, sobald du wieder online bist."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The live transcript is written on this iPhone; speakers and the note are prepared when you're back online."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La transcripción en directo se escribe en este iPhone; los interlocutores y la nota se prepararán cuando vuelvas a tener conexión."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reaaliaikainen litterointi kirjoitetaan tässä iPhonessa; puhujat ja muistiinpano valmistellaan, kun olet taas verkossa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La transcription en direct est rédigée sur cet iPhone ; les intervenants et la note seront préparés lorsque vous serez de nouveau en ligne."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La trascrizione dal vivo viene scritta su questo iPhone; interlocutori e nota vengono preparati quando torni online."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライブ文字起こしはこのiPhoneで作成されます。話者とノートは、オンラインに戻ったときに作成されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실시간 녹취록은 이 iPhone에서 작성됩니다. 화자와 노트는 다시 온라인에 연결되면 준비됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het live transcript wordt op deze iPhone geschreven; sprekers en de notitie worden gemaakt zodra je weer online bent."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A transcrição ao vivo é escrita neste iPhone; os falantes e a nota são preparados quando você voltar a ficar online."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "实时文字稿在这部 iPhone 上撰写；恢复联网后会准备说话人和笔记。"
           }
         }
       }
@@ -50693,6 +50973,76 @@
         }
       }
     },
+    "Hesap durumu, izinler, bağlantı ve son hatalar; ses, metin, not ve anahtar eklenmez.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Account-Status, Berechtigungen, Verbindung und letzte Fehler; kein Audio, keine Transkripte, Notizen oder Schlüssel."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Account status, permissions, connection and recent errors; no audio, transcripts, notes or keys."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estado de la cuenta, permisos, conexión y errores recientes; sin audio, transcripciones, notas ni claves."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tilin tila, luvat, yhteys ja viimeaikaiset virheet; ei ääntä, litterointeja, muistiinpanoja tai avaimia."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "État du compte, autorisations, connexion et erreurs récentes ; aucun audio, aucune transcription, note ni clé."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stato dell’account, autorizzazioni, connessione ed errori recenti; nessun audio, trascrizione, nota o chiave."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アカウントの状況、アクセス許可、接続、最近のエラー。音声、文字起こし、ノート、キーは含まれません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "계정 상태, 권한, 연결 및 최근 오류. 오디오, 녹취록, 노트, 키는 포함되지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accountstatus, toestemmingen, verbinding en recente fouten; geen audio, transcripten, notities of sleutels."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estado da conta, permissões, conexão e erros recentes; sem áudio, transcrições, notas ou chaves."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "账户状态、权限、连接和最近的错误；不含音频、文字稿、笔记或密钥。"
+          }
+        }
+      }
+    },
     "Hesap klasörü tanınmadı. Uygulamayı yeniden başlat; sürerse geri bildirim gönder.": {
       "extractionState": "manual",
       "localizations": {
@@ -51322,6 +51672,496 @@
           "stringUnit": {
             "state": "translated",
             "value": "Inter（默认）"
+          }
+        }
+      }
+    },
+    "Klasör saklanamadı: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordner konnte nicht gespeichert werden: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't save the folder: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se ha podido guardar la carpeta: %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kansiota ei voitu tallentaa: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d’enregistrer le dossier : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile salvare la cartella: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォルダを保存できませんでした：%@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "폴더를 저장할 수 없습니다: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kan map niet bewaren: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível salvar a pasta: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法存储文件夹：%@"
+          }
+        }
+      }
+    },
+    "Klasör seçilemedi: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordner konnte nicht ausgewählt werden: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't choose the folder: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se ha podido elegir la carpeta: %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kansiota ei voitu valita: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de choisir le dossier : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile scegliere la cartella: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォルダを選択できませんでした：%@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "폴더를 선택할 수 없습니다: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kan map niet kiezen: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível escolher a pasta: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法选择文件夹：%@"
+          }
+        }
+      }
+    },
+    "Klasöre yazılamadı: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konnte nicht in den Ordner schreiben: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't write to the folder: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se ha podido escribir en la carpeta: %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kansioon ei voitu kirjoittaa: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d’écrire dans le dossier : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile scrivere nella cartella: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォルダに書き込めませんでした：%@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "폴더에 쓸 수 없습니다: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kan niet naar de map schrijven: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível gravar na pasta: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法写入文件夹：%@"
+          }
+        }
+      }
+    },
+    "Mail açılamadı: bu iPhone'da e-posta uygulaması yok. \"Notu paylaş\" ile gönderebilirsin.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mail konnte nicht geöffnet werden: Auf diesem iPhone gibt es keine E-Mail-App. Sende sie stattdessen mit „Notiz teilen“."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't open Mail: there's no email app on this iPhone. Send it with \"Share note\" instead."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se ha podido abrir Mail: no hay ninguna app de correo en este iPhone. Envíala con “Compartir nota”."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mailia ei voitu avata: tässä iPhonessa ei ole sähköpostisovellusta. Lähetä se sen sijaan valinnalla ”Jaa muistiinpano”."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d’ouvrir Mail : aucune app de messagerie sur cet iPhone. Envoyez-la plutôt avec « Partager la note »."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile aprire Mail: non c’è nessuna app email su questo iPhone. Inviala con “Condividi nota”."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「メール」を開けませんでした：このiPhoneにメールアプリがありません。代わりに「ノートを共有」で送信してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mail을 열 수 없습니다: 이 iPhone에 이메일 앱이 없습니다. 대신 \"노트 공유\"로 보내세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kan Mail niet openen: er is geen e-mailapp op deze iPhone. Verstuur hem in plaats daarvan met \"Deel notitie\"."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível abrir o Mail: não há nenhum app de e-mail neste iPhone. Envie com \"Compartilhar nota\"."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法打开“邮件”：这部 iPhone 上没有电子邮件 App。请改用“共享笔记”发送。"
+          }
+        }
+      }
+    },
+    "Mail açılamadı: not e-posta bağlantısına çevrilemedi. \"Notu paylaş\" ile gönderebilirsin.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mail konnte nicht geöffnet werden: Die Notiz ließ sich nicht in einen E-Mail-Link umwandeln. Sende sie stattdessen mit „Notiz teilen“."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't open Mail: the note couldn't be turned into an email link. Send it with \"Share note\" instead."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se ha podido abrir Mail: la nota no se ha podido convertir en un enlace de correo. Envíala con “Compartir nota”."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mailia ei voitu avata: muistiinpanoa ei voitu muuttaa sähköpostilinkiksi. Lähetä se sen sijaan valinnalla ”Jaa muistiinpano”."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d’ouvrir Mail : la note n’a pas pu être convertie en lien e-mail. Envoyez-la plutôt avec « Partager la note »."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile aprire Mail: non è stato possibile trasformare la nota in un link email. Inviala con “Condividi nota”."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「メール」を開けませんでした：ノートをメールリンクに変換できませんでした。代わりに「ノートを共有」で送信してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mail을 열 수 없습니다: 노트를 이메일 링크로 변환할 수 없습니다. 대신 \"노트 공유\"로 보내세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kan Mail niet openen: de notitie kon niet worden omgezet in een e-maillink. Verstuur hem in plaats daarvan met \"Deel notitie\"."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível abrir o Mail: a nota não pôde ser convertida em um link de e-mail. Envie com \"Compartilhar nota\"."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法打开“邮件”：无法将笔记转换为电子邮件链接。请改用“共享笔记”发送。"
+          }
+        }
+      }
+    },
+    "Markdown klasörü okunamadı: %@. Ayarlar › Bağlantılar'dan klasörü yeniden seç.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Markdown-Ordner konnte nicht gelesen werden: %@. Wähle den Ordner unter „Einstellungen“ › „Verbindungen“ erneut aus."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't read the Markdown folder: %@. Choose the folder again in Settings › Connections."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se ha podido leer la carpeta Markdown: %@. Vuelve a elegir la carpeta en Ajustes › Conexiones."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Markdown-kansiota ei voitu lukea: %@. Valitse kansio uudelleen kohdassa Asetukset › Yhteydet."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de lire le dossier Markdown : %@. Choisissez de nouveau le dossier dans Réglages › Connexions."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile leggere la cartella Markdown: %@. Scegli di nuovo la cartella in Impostazioni › Connessioni."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Markdownフォルダを読み込めませんでした：%@。「設定」›「連携」でフォルダをもう一度選択してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Markdown 폴더를 읽을 수 없습니다: %@. 설정 › 연결에서 폴더를 다시 선택하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kan Markdown-map niet lezen: %@. Kies de map opnieuw in Instellingen › Koppelingen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível ler a pasta Markdown: %@. Escolha a pasta de novo em Ajustes › Conexões."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取 Markdown 文件夹：%@。请在“设置 › 连接”中重新选择文件夹。"
+          }
+        }
+      }
+    },
+    "Mesajın, varsa e-postan ve işaretli bilgiler hesabınla birlikte gider; toplantı içeriği gitmez.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Nachricht, eine eventuelle E-Mail-Adresse und die angehakten Infos werden mit deinem Account gesendet; nie Meeting-Inhalte."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your message, any email and the info you tick are sent with your account; never meeting content."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu mensaje, tu correo si lo hay y la información que marques se envían con tu cuenta; nunca el contenido de las reuniones."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viestisi, mahdollinen sähköpostiosoite ja valitsemasi tiedot lähetetään tiliisi yhdistettynä; ei koskaan kokousten sisältöä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre message, l’éventuel e-mail et les informations cochées sont envoyés avec votre compte ; jamais le contenu des réunions."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il tuo messaggio, l’eventuale email e le informazioni selezionate vengono inviati con il tuo account; mai contenuti delle riunioni."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メッセージ、メールアドレス（入力した場合）、オンにした情報がアカウントとともに送信されます。会議の内容は送信されません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "메시지, 이메일(입력한 경우) 및 선택한 정보가 계정과 함께 전송됩니다. 회의 내용은 절대 전송되지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je bericht, een eventueel e-mailadres en de aangevinkte informatie worden met je account verstuurd; nooit vergaderinhoud."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua mensagem, um eventual e-mail e as informações marcadas são enviados com sua conta; nunca o conteúdo das reuniões."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的消息、电子邮件地址（如有）和勾选的信息会随你的账户发送；绝不包含会议内容。"
           }
         }
       }
@@ -52410,6 +53250,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "会议不会被删除；移动后会显示在此账户的会议中。你也可以稍后在“设置 › 账户”中移动它们。"
+          }
+        }
+      }
+    },
+    "iPhone Ayarları'nı açar": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffnet die iPhone-Einstellungen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens iPhone Settings"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre los Ajustes del iPhone"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avaa iPhonen asetukset"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvre les Réglages de l’iPhone"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apre le Impostazioni di iPhone"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhoneの「設定」を開きます"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone 설정을 엽니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opent Instellingen op de iPhone"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre os Ajustes do iPhone"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开 iPhone“设置”"
           }
         }
       }

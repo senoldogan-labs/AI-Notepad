@@ -736,6 +736,7 @@ struct MeetingReadView: View {
     @State private var isConfirmingAudioDelete: Bool = false
     /// Takip e-postası sayfası açık: taslağın ilk dili (sayfada seçili not dili); kapalıyken nil.
     @State private var followUpLanguage: ShareLanguage?
+    @Environment(\.openURL) private var openURL: OpenURLAction
 
     /// Not ve adlar değiştirilebilir: kayıtta, işlenen ya da notu yazılan toplantıda değil.
     private var isEditable: Bool {
@@ -855,6 +856,9 @@ struct MeetingReadView: View {
                             Button("Notu paylaş", systemImage: "square.and.arrow.up") {}
                                 .disabled(true)
                         }
+                        // Mac'teki "E-postayla gönder": not (seçili dilde) e-posta uygulamasında yeni ileti olarak açılır.
+                        Button("E-postayla gönder", systemImage: "envelope") { emailNote() }
+                            .disabled(shownShareText == nil)
                     }
                     Menu("Dışa aktar", systemImage: "square.and.arrow.down") {
                         ForEach(MeetingExportFormat.allCases.filter { isMeetingExportAvailable(record: record, format: $0) }) { (format: MeetingExportFormat) in
@@ -1034,6 +1038,27 @@ struct MeetingReadView: View {
             return nil
         }
         return shareText(record: shown, note: note, language: noteLanguage)
+    }
+
+    /// Notu (seçili dilde, konu notun başlığı) e-posta uygulamasında yeni ileti olarak açar (Mac'teki "E-postayla
+    /// gönder"); açılamazsa neden sayfada görünür.
+    private func emailNote() {
+        guard let text = shownShareText else {
+            return
+        }
+        let draft: FollowUpEmailDraft = FollowUpEmailDraft(subject: shownRecord?.note?.title ?? record.title, body: text)
+        guard let url = followUpMailtoURL(draft: draft, recipients: []) else {
+            errorMessage = String(localized: "Mail açılamadı: not e-posta bağlantısına çevrilemedi. \"Notu paylaş\" ile gönderebilirsin.")
+            return
+        }
+        openURL(url) { (accepted: Bool) -> Void in
+            if accepted {
+                recordFeatureUsage(feature: .export(.email))
+                errorMessage = nil
+            } else {
+                errorMessage = String(localized: "Mail açılamadı: bu iPhone'da e-posta uygulaması yok. \"Notu paylaş\" ile gönderebilirsin.")
+            }
+        }
     }
 
     /// Özet sekmesi: verilen not (asıl not ya da seçili dildeki sürümü; görevler asıl görevlerin işaretlerini taşır).
