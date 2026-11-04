@@ -87,18 +87,37 @@ export async function alertOnElevenLabsCrossing(db: D1Database, config: Config, 
   }
 }
 
+/** Süren (kesinleşmemiş, süresi dolmamış) ses ayırmalarının saniyesi: ElevenLabs'e şu an giden ses. */
+async function inFlightAudioSeconds(db: D1Database, now: Date): Promise<number> {
+  const row: { seconds: number } | null = await db
+    .prepare("SELECT COALESCE(SUM(audio_seconds), 0) AS seconds FROM usage_reservations WHERE kind = 'audio' AND expires_at > ?")
+    .bind(now.getTime())
+    .first<{ seconds: number }>();
+  if (row === null) {
+    throw new Error("SUM over usage_reservations returned no row.");
+  }
+  return row.seconds;
+}
+
 /**
- * Ses işleme isteğinden önce: bu dönemin kullanımı + `addedSeconds` kapasitenin `elevenLabsHardStopRatio`'sunu aşacaksa
- * istek ElevenLabs'e gitmeden `spend_ceiling_reached` (anlaşılır 503; aksi halde kredi bitince istek sağlayıcıda 502 ile
- * düşerdi) ve `alert` yazılır.
+ * Ses işleme isteğinden önce: bu dönemin kullanımı + süren ses ayırmaları + `addedSeconds` kapasitenin
+ * `elevenLabsHardStopRatio`'sunu aşacaksa istek ElevenLabs'e gitmeden `spend_ceiling_reached` (anlaşılır 503; aksi halde
+ * kredi bitince istek sağlayıcıda 502 ile düşerdi) ve `alert` yazılır. Süren ayırmalar sayılır: kullanım ancak
+ * kesinleşince `daily_spend`'e yazılır; sayılmasalar eşzamanlı uzun yüklemelerin hepsi aynı kalanı görüp sınırı birlikte
+ * aşardı.
  */
 export async function requireElevenLabsHeadroom(db: D1Database, config: Config, addedSeconds: number, now: Date): Promise<void> {
   const { cycleStart, seconds } = await cycleAudioSeconds(db, config, now);
+  const inFlight: number = await inFlightAudioSeconds(db, now);
   const capSeconds: number = config.elevenLabs.monthlyAudioHours * 3600;
-  if (seconds + addedSeconds <= elevenLabsHardStopRatio * capSeconds) {
+  if (seconds + inFlight + addedSeconds <= elevenLabsHardStopRatio * capSeconds) {
     return;
   }
-  log("alert", "elevenlabs_capacity_exhausted", { addedSeconds, ...elevenLabsUsageOf(seconds, config.elevenLabs.monthlyAudioHours, cycleStart) });
+  log("alert", "elevenlabs_capacity_exhausted", {
+    addedSeconds,
+    inFlightSeconds: inFlight,
+    ...elevenLabsUsageOf(seconds, config.elevenLabs.monthlyAudioHours, cycleStart),
+  });
   throw new ApiError("spend_ceiling_reached", "Speech recognition capacity is full for this period; try again shortly.");
 }
 

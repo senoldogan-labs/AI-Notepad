@@ -1076,7 +1076,7 @@ final class HostedAccount {
     #endif
 
     /// Silinen hesabın yerel izleri: şimdiki toplantı, abonelik isteği, davet kodu, çevrimdışı kayıt izni, girişteki kimlik
-    /// (e-posta) ve açık oturum listesi.
+    /// (e-posta), profil resminin adresi ve açık oturum listesi.
     private func clearAfterAccountDeletion(userID: String?) {
         currentMeeting = nil
         upsell = nil
@@ -1086,6 +1086,7 @@ final class HostedAccount {
             return
         }
         UserDefaults.standard.removeObject(forKey: hostedIdentityKey(userId: userID))
+        UserDefaults.standard.removeObject(forKey: hostedAvatarKey(userId: userID))
         do {
             clearHostedOpenMeetingIDs(defaults: try hostedOpenMeetingsDefaults(userID: userID))
         } catch {

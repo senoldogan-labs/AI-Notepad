@@ -537,11 +537,15 @@ describe("davet ödülü", () => {
     const friendSession: Session = await signInWithGoogle(harness, subject);
     const friend = await referredFriend(harness, stripe, id, "friend", friendSession, code, false, null);
     await payInvoice(harness, stripe, friend, id("in_free"), 0, code);
+    expect(await referral(harness, await refreshed(harness, owner.session))).toMatchObject({ pending: 1 });
     expect((await harness.call(req("DELETE", "/v1/me", { token: friendSession.accessToken }))).status).toBe(200);
-    const anonymous = await env.DB.prepare("SELECT referred_user_id, status FROM referral_redemptions WHERE referrer_user_id = ?")
+    // Silme ücretsiz aydaki aboneliği iptal etti: ilk ücretli fatura gelmeyecek, davet açık davet sınırını tutmaz
+    // (Stripe'ın sonraki silme olayı müşteriyi artık tanımaz, düşürmeyi silme yapar).
+    const anonymous = await env.DB.prepare("SELECT referred_user_id, status, void_reason FROM referral_redemptions WHERE referrer_user_id = ?")
       .bind(owner.session.userId)
-      .first<{ referred_user_id: string | null; status: string }>();
-    expect(anonymous).toEqual({ referred_user_id: null, status: "joined" });
+      .first<{ referred_user_id: string | null; status: string; void_reason: string | null }>();
+    expect(anonymous).toEqual({ referred_user_id: null, status: "void", void_reason: "canceled_before_payment" });
+    expect(await referral(harness, await refreshed(harness, owner.session))).toMatchObject({ pending: 0 });
     const again: Session = await signInWithGoogle(harness, subject);
     await expectError(await validate(harness, again, code), 409, "referral_not_eligible");
 

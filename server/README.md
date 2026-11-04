@@ -351,8 +351,8 @@ yönetim panelinin sürüm listesi işletim sisteminin adıyla Mac ile iPhone'u 
   (`metadata.purpose=referral_reward`); Stripe sonraki faturalarından düşer. Müşteri bakiyesi seçildi çünkü plandan
   bağımsızdır, birden çok ödül birikir ve aboneliği değiştirmez. Çift ödül yok: satır durumu, idempotency anahtarı ve
   çağrıdan önce bakiye hareketlerinde aynı ödül araması.
-- Ücretsiz ayında aboneliği biten (Stripe'ta `canceled`/`incomplete_expired`) arkadaşın daveti düşer
-  (`void`/`canceled_before_payment`): davet edenin "bekleyen" sayısında ve tahmini ödül tarihinde kalmaz.
+- Ücretsiz ayında aboneliği biten (Stripe'ta `canceled`/`incomplete_expired`) ya da hesabını silen arkadaşın daveti
+  düşer (`void`/`canceled_before_payment`): davet edenin "bekleyen" sayısında ve tahmini ödül tarihinde kalmaz.
 - Kötüye kullanım:
   - Kendi kodu `403 referral_self`. App Attest cihazını paylaşan hesaplar da `referral_self` alır (`sharesDevice`), ama
     App Attest macOS'ta desteklenmediği için bu denetim Mac'te hiç eşleşmez: Mac'te aynı bilgisayarda açılan yeni

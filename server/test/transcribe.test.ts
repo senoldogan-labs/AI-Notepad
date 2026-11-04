@@ -154,6 +154,35 @@ describe("konuşma tanıma vekili", () => {
     expect(calls).toBe(2);
   });
 
+  it("yazıya dökme sürerken silinen hesabın sonucu silmeden sonra saklanmaz", async () => {
+    // Deneme hesabı: Stripe müşterisi yok, silme Stripe'ı çağırmaz.
+    const context: Context = await setup(false);
+    let entered: () => void = (): void => undefined;
+    const inProvider: Promise<void> = new Promise<void>((resolve: () => void): void => {
+      entered = resolve;
+    });
+    let release: () => void = (): void => undefined;
+    const released: Promise<void> = new Promise<void>((resolve: () => void): void => {
+      release = resolve;
+    });
+    context.harness.stub(elevenLabsSpeechToTextUrl, async (request: Request): Promise<Response> => {
+      await request.formData();
+      entered();
+      await released;
+      return Response.json({ ...transcription, audio_duration_secs: 2 });
+    });
+    const key: string = base64UrlEncode(crypto.getRandomValues(new Uint8Array(32)));
+    const upload: Promise<Response> = uploadWith(context, "", wavFile(16_000, 1, 16, 64_000), "audio/wav", { "x-upload-key": key });
+    await inProvider;
+    expect((await context.harness.call(req("DELETE", "/v1/me", { token: context.session.accessToken }))).status).toBe(200);
+    release();
+    await upload;
+    const stored = await env.DB.prepare("SELECT COUNT(*) AS count FROM transcription_results WHERE user_id = ?")
+      .bind(context.session.userId)
+      .first<{ count: number }>();
+    expect(stored?.count).toBe(0);
+  });
+
   it("ödenmiş sonuç pencere ve harcama tavanından önce döner; saklama hatası yanıtı düşürmez; büyük sonuç saklanmaz", async () => {
     const context: Context = await setup(true);
     let calls: number = 0;

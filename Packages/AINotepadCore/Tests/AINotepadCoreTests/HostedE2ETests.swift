@@ -623,6 +623,9 @@ private func silentFlac(directory: URL) throws -> URL {
         #expect(ended.meetingId == first.meetingId)
         let other: HostedStartedMeeting = try await user.client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: "kayit-\(UUID().uuidString.lowercased())", deferred: false)
         #expect(other.meetingId != first.meetingId)
+        // Canlı kayıt sürerken dönen ertelenmiş açılış (kuyruk hazırlığı) canlı kaydın yapay zekâ toplantısını ezmez.
+        _ = try await user.client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: recordID, deferred: true)
+        #expect(await user.client.currentMeetingID() == other.meetingId)
         _ = try await user.client.endMeeting(meetingID: other.meetingId)
     }
 

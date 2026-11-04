@@ -191,9 +191,9 @@ struct AINotepadApp: App {
         _player = State(initialValue: player)
         let model: AppModel = AppModel(liveEngine: engine, displayMode: displayMode, player: player)
         _model = State(initialValue: model)
-        // Güncelleme ve çökme raporları pencerelerden önce: menü ve ayarlar ilk karede doğru görünsün. Kayıt ya da
-        // işleme sürerken güncelleme uygulamayı yeniden başlatmaz (çıkış korumasıyla aynı koşul).
-        let updater: AppUpdater = AppUpdater(publicKey: sparklePublicKey(bundle: .main), isBusy: { model.isBusy })
+        // Güncelleme ve çökme raporları pencerelerden önce: menü ve ayarlar ilk karede doğru görünsün. Kayıt, işleme ya
+        // da kendiliğinden not gönderimi sürerken güncelleme uygulamayı yeniden başlatmaz (bkz. `blocksUpdateRelaunch`).
+        let updater: AppUpdater = AppUpdater(publicKey: sparklePublicKey(bundle: .main), isBusy: { model.blocksUpdateRelaunch })
         _updater = State(initialValue: updater)
         let crashReports: CrashReportCenter = CrashReportCenter()
         _crashReports = State(initialValue: crashReports)
@@ -489,10 +489,10 @@ struct AINotepadApp: App {
             MenuContent(model: model, panel: panel, island: island, shortcuts: shortcuts, router: router, updater: updater)
         } label: {
             MenuBarLabel(symbol: menuSymbol)
-                // Menü çubuğu simgesi hep açık: kayıt ve işleme bitince ertelenen güncelleme (varsa) burada sürdürülür,
-                // ana pencere kapalı olsa da.
-                .onChange(of: model.isBusy) { (_: Bool, isBusy: Bool) in
-                    if !isBusy {
+                // Menü çubuğu simgesi hep açık: kayıt, işleme ve kendiliğinden gönderim bitince ertelenen güncelleme
+                // (varsa) burada sürdürülür, ana pencere kapalı olsa da.
+                .onChange(of: model.blocksUpdateRelaunch) { (_: Bool, blocks: Bool) in
+                    if !blocks {
                         updater.resumePostponedRelaunch()
                     }
                 }
@@ -773,10 +773,10 @@ private struct MenuContent: View {
         if updater.isEnabled {
             // Bulunan ya da indirilen güncelleme: kayıt ya da işleme sürerken yeniden başlatılmaz.
             if let update = updater.availableUpdate {
-                Button(updateMenuTitle(update: update, isBusy: model.isBusy), systemImage: "arrow.down.circle.fill") {
+                Button(updateMenuTitle(update: update, isBusy: model.blocksUpdateRelaunch), systemImage: "arrow.down.circle.fill") {
                     updater.installUpdate()
                 }
-                .disabled(model.isBusy)
+                .disabled(model.blocksUpdateRelaunch)
             }
             Button("Güncellemeleri denetle…", systemImage: "arrow.down.circle") {
                 updater.checkForUpdates()

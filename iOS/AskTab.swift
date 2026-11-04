@@ -321,6 +321,8 @@ struct AskTab: View {
                             examplesSection
                         }
                         .padding(16)
+                        // Son örnek kart soru alanına yapışmasın: alanın üstündeki dokunuş karta değil boşluğa düşer.
+                        .padding(.bottom, 24)
                     }
                     .scrollDismissesKeyboard(.interactively)
                     .safeAreaInset(edge: .bottom) {
@@ -659,6 +661,12 @@ private struct AskComposer: View {
                 .ignoresSafeArea(edges: .bottom)
                 .allowsHitTesting(false)
         }
+        // Alanın çevresi (kenar boşlukları) de bu görünümündür: arkasındaki örnek kartlara ya da sohbet içeriğine geçmez,
+        // dokununca soru alanı odaklanır (gerçek iPhone'da alana basmaya çalışırken örnek soru açılıyordu).
+        .contentShape(Rectangle())
+        .onTapGesture {
+            isFocused = true
+        }
     }
 
     private var field: some View {
@@ -709,6 +717,11 @@ private struct AskComposer: View {
         .padding(.leading, 16)
         .padding(.trailing, 6)
         .padding(.vertical, 6)
+        // Kutunun tamamı (yalnız yazı satırı değil) alanı odaklar; gönder düğmesi ve etiket çipleri kendi dokunuşunu alır.
+        .contentShape(shape)
+        .onTapGesture {
+            isFocused = true
+        }
         .background { shape.fill(Theme.card) }
         .overlay {
             if isAnswering {
