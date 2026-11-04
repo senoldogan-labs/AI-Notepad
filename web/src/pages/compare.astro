@@ -1,9 +1,11 @@
 ---
-// Karşılaştırma dizini: beş ürünün kısa özet tablosu ve her karşılaştırma sayfasına bir kart. Değerler copy.ts `compare`'den.
+// Karşılaştırma dizini: başta ürünü seçmek için nedenler (vurgulu), her karşılaştırma sayfasına bir kart ve beş ürünün
+// kısa özet tablosu (ilk sütun bizim). Değerler copy.ts `compare`'den.
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
 import ComparisonTable, { type ComparisonColumn } from "../components/ComparisonTable.astro";
 import CtaBand from "../components/CtaBand.astro";
+import WhyUs from "../components/WhyUs.astro";
 import Icon from "../components/Icon.astro";
 import { productName } from "../config";
 import { copy, type CompareCopy, type Competitor, type CompetitorCopy } from "../copy";
@@ -35,6 +37,8 @@ const structuredData: string = structuredDataJson(infoPageStructuredData(siteCon
     <h1 class="title-xl">{text.title}</h1>
     <p class="lead">{text.lead}</p>
   </section>
+
+  <WhyUs id="compare-why-title" />
 
   <section class="page compare-cards" aria-label={text.pickTitle}>
     {
@@ -73,6 +77,7 @@ const structuredData: string = structuredDataJson(infoPageStructuredData(siteCon
   }
 
   .compare-cards {
+    margin-top: clamp(32px, 5vw, 56px);
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;

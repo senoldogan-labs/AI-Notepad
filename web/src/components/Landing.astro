@@ -1,7 +1,9 @@
 ---
-// Ana sayfanın gösterimi: kahraman alanı (film kapak üstünde dönen ürün gösterimi ve son toplantılar), tanıtım videosu
-// (sessiz, döngülü, görününce oynayan ürün çekimi), kayan entegrasyon şeridi, uygulamanın gerçek ekranları, özellikler,
-// entegrasyonlar (MCP dahil), gizlilik, fiyat, SSS ve kapanış. Her mesaj sayfada bir kez geçer: aynı şeyi söyleyen
+// Ana sayfanın gösterimi: kahraman alanı (film kapak üstünde dönen ürün gösterimi ve gerçek bilgili son toplantı
+// kartları), tanıtım videosu (sessiz, döngülü, görününce oynayan ürün çekimi; sade çerçeve), kayan entegrasyon şeridi,
+// uygulamanın gerçek ekranları, özellikler (sade örnek yüzeyler) ve planda olan diğer yetenekler, entegrasyonlar (MCP
+// dahil), gizlilik, fiyat, SSS ve kapanış. Pastel film gradyanı yalnızca anlam taşıdığı yerde: ürün gösterimi, gerçek
+// ekranlar, MCP örneği, fiyat ve kapanış. Her mesaj sayfada bir kez geçer: aynı şeyi söyleyen
 // bölüm ya da kart eklemeden önce var olanı güçlendir.
 // Metinler prop'tan gelir: İngilizce ana sayfa (`/`, copy.home) ve Fince tanıtım sayfası (`/fi`, copy-fi.ts) aynı
 // gösterimi kullanır; sayfa kabuğu (Base, üst çubuk, alt bilgi) sayfaların kendisindedir.
@@ -15,11 +17,9 @@ import McpChat from "./McpChat.astro";
 import MeetingCard from "./MeetingCard.astro";
 import Waveform from "./Waveform.astro";
 import { macDownloadUrl } from "../config";
-import type { CommonCopy, HomeCopy, IconText } from "../copy";
+import type { CommonCopy, HomeCopy, IconText, LibraryMeeting } from "../copy";
 import { type Brand, brands, marqueeBrands } from "../lib/brands";
-import type { FilmLayout, FilmPalette } from "../lib/film";
 import type { IconName } from "../lib/icons";
-import { cyclic } from "../lib/list";
 import { homeStructuredData, structuredDataJson } from "../lib/structured-data";
 import { operator } from "../legal/operator";
 import { routes } from "../routes";
@@ -42,12 +42,6 @@ interface Props {
 const { text, common, page, pricingHref = routes.pricing } = Astro.props;
 const heroDownloadUrl: string = macDownloadUrl(siteConfig, "home-hero");
 const ctaDownloadUrl: string = macDownloadUrl(siteConfig, "home-cta");
-const covers: readonly { readonly palette: FilmPalette; readonly layout: FilmLayout }[] = [
-  { palette: "coral", layout: "clouds-right" },
-  { palette: "ocean", layout: "clouds-left" },
-  { palette: "mint", layout: "streaks" },
-  { palette: "violet", layout: "clouds-right" },
-];
 /** Özellik kartlarının başlık simgeleri. */
 const featureIcons: Readonly<Record<keyof HomeCopy["features"], IconName>> = {
   live: "translate",
@@ -65,10 +59,10 @@ const noteCallouts: readonly ShotCallout[] = [
   { text: text.noteCallouts.dueDate, class: "note-callout--due", side: "right" },
 ];
 /** Entegrasyon gruplarının simgeleri (yapay zekâ grubu ayrı, geniş kartta; logolar kayan şeritte). */
-const integrationGroups: readonly { readonly key: "notes" | "tasks" | "files"; readonly icon: IconName; readonly palette: FilmPalette }[] = [
-  { key: "notes", icon: "message", palette: "rose" },
-  { key: "tasks", icon: "check-circle", palette: "violet" },
-  { key: "files", icon: "disk", palette: "mint" },
+const integrationGroups: readonly { readonly key: "notes" | "tasks" | "files"; readonly icon: IconName }[] = [
+  { key: "notes", icon: "message" },
+  { key: "tasks", icon: "check-circle" },
+  { key: "files", icon: "disk" },
 ];
 /** Tanıtım videosu ve kapak görseli (public/video; 1280×720, 66 sn; sessiz oynatılır). */
 const launchVideo: { readonly src: string; readonly poster: string } = {
@@ -116,8 +110,8 @@ const structuredData: string = structuredDataJson(
       <h2 class="library__label">{text.library.label}</h2>
       <div class="library__grid">
         {
-          text.library.meetings.map((meeting, index: number) => (
-            <MeetingCard title={meeting.title} meta={meeting.meta} palette={cyclic(covers, index).palette} layout={cyclic(covers, index).layout} />
+          text.library.meetings.map((meeting: LibraryMeeting) => (
+            <MeetingCard meeting={meeting} />
           ))
         }
       </div>
@@ -126,13 +120,14 @@ const structuredData: string = structuredDataJson(
 
   {/* Tanıtım videosu bir ürün çekimi gibi durur: oynatıcı düğmesi yok, sessiz, döngülü; görünür alana girince oynar,
       çıkınca durur, hareket azaltılmışsa kapak karesi kalır (src/client/launch-video.ts). Yalnızca oynayınca yüklenir
-      (preload="none"); kapak görseli ve boyutları önceden verilir, yerleşim kaymaz. */}
+      (preload="none"); kapak görseli ve boyutları önceden verilir, yerleşim kaymaz. Renkli kapak yok: yalnızca videonun
+      kendi çerçevesi (ince kenar, yumuşak gölge). */}
   <section class="page launch" aria-labelledby="launch-title">
     <div class="launch__head reveal">
       <p class="eyebrow">{text.launchVideo.eyebrow}</p>
       <h2 class="title-l" id="launch-title">{text.launchVideo.title}</h2>
     </div>
-    <Film palette="ocean" layout="clouds-left" class="launch__cover">
+    <div class="launch__frame">
       <video
         id="launch-video"
         class="launch__video"
@@ -151,7 +146,7 @@ const structuredData: string = structuredDataJson(
           {text.launchVideo.fallback} <a href={launchVideo.src}>{text.launchVideo.fallbackLink}</a>
         </p>
       </video>
-    </Film>
+    </div>
   </section>
 
   <section class="marquee" aria-labelledby="marquee-label">
@@ -234,19 +229,19 @@ const structuredData: string = structuredDataJson(
 
     <div class="features">
       <article class="feature feature--wide reveal">
-        <Film palette="ocean" layout="clouds-right" class="feature__cover">
-          <div class="glass bubble-stack">
+        <div class="mock feature__cover">
+          <div class="mock-card bubble-stack">
             <p class="bubble-stack__original">{text.features.live.original}</p>
             <p class="bubble-stack__translation">{text.features.live.translation}</p>
           </div>
-        </Film>
+        </div>
         <h3 class="feature__title title-m"><span class="icon-chip icon-chip--small"><Icon name={featureIcons.live} size={18} class="" /></span>{text.features.live.title}</h3>
         <p class="muted">{text.features.live.text}</p>
       </article>
 
       <article class="feature feature--wide reveal">
-        <Film palette="coral" layout="clouds-left" class="feature__cover">
-          <ul class="glass sample-tasks">
+        <div class="mock feature__cover">
+          <ul class="mock-card sample-tasks">
             {
               text.features.tasks.sample.map((task: string) => (
                 <li class="sample-tasks__item">
@@ -256,90 +251,107 @@ const structuredData: string = structuredDataJson(
               ))
             }
           </ul>
-        </Film>
+        </div>
         <h3 class="feature__title title-m"><span class="icon-chip icon-chip--small"><Icon name={featureIcons.tasks} size={18} class="" /></span>{text.features.tasks.title}</h3>
         <p class="muted">{text.features.tasks.text}</p>
       </article>
 
       <article class="feature feature--third reveal">
-        <Film palette="rose" layout="streaks" class="feature__cover">
+        <div class="mock feature__cover">
           <div class="missed">
-            <span class="glass missed__button">{text.features.missed.button}</span>
-            <p class="glass missed__answer">{text.features.missed.answer}</p>
+            <span class="mock-card missed__button">{text.features.missed.button}</span>
+            <p class="mock-card missed__answer">{text.features.missed.answer}</p>
           </div>
-        </Film>
+        </div>
         <h3 class="feature__title title-m"><span class="icon-chip icon-chip--small"><Icon name={featureIcons.missed} size={18} class="" /></span>{text.features.missed.title}</h3>
         <p class="muted">{text.features.missed.text}</p>
       </article>
 
       <article class="feature feature--third reveal">
-        <Film palette="violet" layout="clouds-left" class="feature__cover">
+        <div class="mock feature__cover">
           <div class="ask">
-            <p class="glass ask__question">{text.features.ask.question}</p>
+            <p class="mock-card ask__question">{text.features.ask.question}</p>
             <p class="ask__source">{text.features.ask.source}</p>
           </div>
-        </Film>
+        </div>
         <h3 class="feature__title title-m"><span class="icon-chip icon-chip--small"><Icon name={featureIcons.ask} size={18} class="" /></span>{text.features.ask.title}</h3>
         <p class="muted">{text.features.ask.text}</p>
       </article>
 
       <article class="feature feature--third reveal">
-        <Film palette="mint" layout="clouds-right" class="feature__cover">
+        <div class="mock feature__cover">
           <div class="follow-up">
-            <span class="glass follow-up__recipe"><Icon name="sparkle" size={14} class="" />{text.features.followUp.recipe}</span>
-            <div class="glass follow-up__mail">
+            <span class="mock-card follow-up__recipe"><Icon name="sparkle" size={14} class="" />{text.features.followUp.recipe}</span>
+            <div class="mock-card follow-up__mail">
               <p class="follow-up__subject">{text.features.followUp.subject}</p>
               {text.features.followUp.lines.map((line: string) => <p class="follow-up__line">{line}</p>)}
             </div>
           </div>
-        </Film>
+        </div>
         <h3 class="feature__title title-m"><span class="icon-chip icon-chip--small"><Icon name={featureIcons.followUp} size={18} class="" /></span>{text.features.followUp.title}</h3>
         <p class="muted">{text.features.followUp.text}</p>
       </article>
 
       <article class="feature feature--third reveal">
-        <Film palette="sunset" layout="streaks" class="feature__cover">
+        <div class="mock feature__cover">
           <ul class="templates">
             {
               text.features.templates.sample.map((template: string) => (
-                <li class="glass templates__item">{template}</li>
+                <li class="mock-card templates__item">{template}</li>
               ))
             }
           </ul>
-        </Film>
+        </div>
         <h3 class="feature__title title-m"><span class="icon-chip icon-chip--small"><Icon name={featureIcons.templates} size={18} class="" /></span>{text.features.templates.title}</h3>
         <p class="muted">{text.features.templates.text}</p>
       </article>
 
       <article class="feature feature--third reveal">
-        <Film palette="ocean" layout="clouds-left" class="feature__cover">
+        <div class="mock feature__cover">
           <div class="voice">
-            <span class="glass voice__keys"><Icon name="mic" size={14} class="" />{text.features.voiceTyping.shortcut}</span>
-            <p class="glass voice__field">{text.features.voiceTyping.sample}<span class="voice__caret" aria-hidden="true" /></p>
+            <span class="mock-card voice__keys"><Icon name="mic" size={14} class="" />{text.features.voiceTyping.shortcut}</span>
+            <p class="mock-card voice__field">{text.features.voiceTyping.sample}<span class="voice__caret" aria-hidden="true" /></p>
           </div>
-        </Film>
+        </div>
         <h3 class="feature__title title-m"><span class="icon-chip icon-chip--small"><Icon name={featureIcons.voiceTyping} size={18} class="" /></span>{text.features.voiceTyping.title}</h3>
         <p class="muted">{text.features.voiceTyping.text}</p>
       </article>
 
       <article class="feature feature--third reveal">
-        <Film palette="violet" layout="streaks" class="feature__cover">
+        <div class="mock feature__cover">
           <div class="screens">
-            <div class="glass screens__frame" aria-hidden="true">
+            <div class="mock-card screens__frame" aria-hidden="true">
               <span class="screens__bar" />
               <span class="screens__block" />
               <span class="screens__line" />
               <span class="screens__line screens__line--short" />
             </div>
-            <p class="glass screens__pin">
+            <p class="mock-card screens__pin">
               <span class="screens__meta"><Icon name="image" size={12} class="" />{text.features.screens.frame} · {text.features.screens.time}</span>
               {text.features.screens.quote}
             </p>
           </div>
-        </Film>
+        </div>
         <h3 class="feature__title title-m"><span class="icon-chip icon-chip--small"><Icon name={featureIcons.screens} size={18} class="" /></span>{text.features.screens.title}</h3>
         <p class="muted">{text.features.screens.text}</p>
       </article>
+    </div>
+
+    <div class="capabilities reveal">
+      <h3 class="capabilities__title">{text.capabilities.title}</h3>
+      <ul class="capabilities__grid">
+        {
+          text.capabilities.items.map((item: IconText) => (
+            <li class="capability">
+              <span class="icon-chip icon-chip--small"><Icon name={item.icon} size={18} class="" /></span>
+              <div>
+                <h4 class="capability__title">{item.title}</h4>
+                <p class="muted">{item.text}</p>
+              </div>
+            </li>
+          ))
+        }
+      </ul>
     </div>
   </section>
 
@@ -353,7 +365,7 @@ const structuredData: string = structuredDataJson(
     <div class="integrations">
       <article class="card integration integration--ai reveal">
         <div class="integration__text">
-          <h3 class="integration__title"><Film palette="sunset" layout="clouds-left" class="integration__badge"><Icon name="sparkle" size={20} class="" /></Film>{text.integrations.ai.title}</h3>
+          <h3 class="integration__title"><span class="icon-chip"><Icon name="sparkle" size={20} class="" /></span>{text.integrations.ai.title}</h3>
           <p class="muted">{text.integrations.ai.text}</p>
           <a class="text-link" href={routes.mcp}>{text.integrations.mcpLink} <Icon name="arrow-right" size={16} class="" /></a>
         </div>
@@ -364,11 +376,11 @@ const structuredData: string = structuredDataJson(
 
       {
         integrationGroups.map((group) => (
-          <article class:list={["card integration reveal", `integration--${group.palette}`]}>
+          <article class="card integration reveal">
             <h3 class="integration__title">
-              <Film palette={group.palette} layout="clouds-right" class="integration__badge">
+              <span class="icon-chip">
                 <Icon name={group.icon} size={20} class="" />
-              </Film>
+              </span>
               {text.integrations[group.key].title}
             </h3>
             <p class="muted">{text.integrations[group.key].text}</p>
@@ -482,9 +494,9 @@ const structuredData: string = structuredDataJson(
     color: var(--accent);
   }
 
-  /* Tanıtım videosu: durgun film kapak üstünde, uygulama ekranları gibi yuvarlak köşeli ve gölgeli bir pencere; 16:9 yer
-     önceden ayrılır. Oynatıcı görünümü yok: tıklama ve dokunma videoya gitmez (tarayıcıların resim içinde resim ya da
-     oynat düğmesi katmanları da çıkmaz). */
+  /* Tanıtım videosu: renkli kapak yok, yalnızca videonun çerçevesi (sitenin köşe yarıçapı, ince kenar, yumuşak gölge;
+     iki temada da). 16:9 yer önceden ayrılır. Oynatıcı görünümü yok: tıklama ve dokunma videoya gitmez (tarayıcıların
+     resim içinde resim ya da oynat düğmesi katmanları da çıkmaz). */
   .launch {
     display: grid;
     gap: clamp(20px, 3vw, 28px);
@@ -496,8 +508,12 @@ const structuredData: string = structuredDataJson(
     gap: 12px;
   }
 
-  .launch :global(.launch__cover) {
-    padding: clamp(14px, 3.4vw, 48px);
+  .launch__frame {
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-m);
+    background: var(--soft);
+    box-shadow: var(--elevation);
   }
 
   .launch__video {
@@ -505,11 +521,6 @@ const structuredData: string = structuredDataJson(
     width: 100%;
     height: auto;
     aspect-ratio: 16 / 9;
-    border-radius: clamp(10px, 1.6vw, 18px);
-    background: #f4f1ff;
-    box-shadow:
-      0 1px 2px rgb(20 30 60 / 0.12),
-      0 18px 48px rgb(20 30 60 / 0.22);
     pointer-events: none;
   }
 
@@ -628,29 +639,6 @@ const structuredData: string = structuredDataJson(
     align-content: center;
   }
 
-  /* Grup kartları: köşeden süzülen durgun, hafif ton; simge uygulamadaki gibi pastel film karoda. */
-  .integration--rose {
-    background: linear-gradient(150deg, light-dark(#fbeef1, #2a1d21) 0%, var(--card) 60%);
-  }
-
-  .integration--violet {
-    background: linear-gradient(150deg, light-dark(#f3eefb, #221d2c) 0%, var(--card) 60%);
-  }
-
-  .integration--mint {
-    background: linear-gradient(150deg, light-dark(#ecf5ef, #1b2620) 0%, var(--card) 60%);
-  }
-
-  .integration :global(.integration__badge) {
-    display: grid;
-    place-items: center;
-    flex: none;
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    filter: none;
-    color: rgb(10 10 10 / 0.8);
-  }
 
   .integration__title {
     display: flex;
@@ -829,18 +817,34 @@ const structuredData: string = structuredDataJson(
     grid-column: span 4;
   }
 
-  .feature :global(.feature__cover) {
+  /* Özellik örnekleri sade bir yüzeyde: sayfanın yumuşak zemini, ince kenar ve üstünde uygulamadaki gibi kartlar. Renkler
+     temadan gelir (koyu temada koyu). */
+  /* min-width: 0: oranlı kutunun içerik genişliği ızgara sütununu dar ekranda taşırmasın. */
+  .mock {
     display: grid;
     place-items: center;
+    min-width: 0;
     aspect-ratio: 4 / 3;
     padding: 20px;
     margin-bottom: 8px;
+    border: 1px solid var(--line);
     border-radius: var(--radius-m);
+    background:
+      radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--ink) 9%, transparent) 1px, transparent 1.5px) 0 0 / 18px 18px,
+      var(--soft);
   }
 
-  .feature--wide :global(.feature__cover) {
+  .feature--wide .mock {
     aspect-ratio: 16 / 9;
     padding: 28px;
+  }
+
+  .mock-card {
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--card);
+    box-shadow: var(--elevation);
+    color: var(--ink);
   }
 
   .feature__title {
@@ -860,13 +864,13 @@ const structuredData: string = structuredDataJson(
 
   .bubble-stack__translation {
     padding-top: 10px;
-    border-top: 1px solid rgb(10 10 10 / 0.1);
-    color: #3a3a3a;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
   }
 
   .bubble-stack__translation::before {
     content: "↳ ";
-    color: #8ea3e6;
+    color: var(--accent);
     font-weight: 600;
   }
 
@@ -892,7 +896,7 @@ const structuredData: string = structuredDataJson(
     width: 16px;
     height: 16px;
     border-radius: 5px;
-    border: 1.5px solid rgb(10 10 10 / 0.35);
+    border: 1.5px solid color-mix(in srgb, var(--ink) 35%, transparent);
   }
 
   .missed,
@@ -921,10 +925,10 @@ const structuredData: string = structuredDataJson(
   .ask__source {
     font-size: 0.75rem;
     font-weight: 500;
-    color: #2a2238;
+    color: var(--muted);
   }
 
-  /* Şablonlar: cam etiketler. */
+  /* Şablonlar: kart etiketler. */
   .templates {
     display: flex;
     flex-wrap: wrap;
@@ -1077,6 +1081,48 @@ const structuredData: string = structuredDataJson(
     font-weight: 600;
   }
 
+  /* Planda olan diğer yetenekler: özellik kartlarının altında, ince çizgiyle ayrılmış üç sütunlu sakin ızgara. */
+  .capabilities {
+    display: grid;
+    gap: 24px;
+    margin-top: clamp(48px, 6vw, 72px);
+    padding-top: clamp(32px, 4vw, 44px);
+    border-top: 1px solid var(--line);
+  }
+
+  .capabilities__title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+
+  .capabilities__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 28px 36px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .capability {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+
+  .capability__title {
+    margin: 4px 0 4px;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .capability p {
+    margin: 0;
+    font-size: 0.9375rem;
+  }
+
 
 
 
@@ -1195,6 +1241,11 @@ const structuredData: string = structuredDataJson(
       grid-column: span 6;
     }
 
+    .capabilities__grid,
+    .library__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .pricing-band,
     .faq-layout {
       grid-template-columns: minmax(0, 1fr);
@@ -1226,14 +1277,28 @@ const structuredData: string = structuredDataJson(
       aspect-ratio: 4 / 5;
     }
 
+    /* Telefonda iki kart yeter; liste uzamasın. */
     .library__grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .library__grid > :global(:nth-child(n + 3)) {
+      display: none;
+    }
+
+    .capabilities__grid {
+      grid-template-columns: minmax(0, 1fr);
     }
 
     .feature,
     .feature--wide,
     .feature--third {
       grid-column: 1 / -1;
+    }
+
+    .feature--wide .mock {
+      aspect-ratio: 4 / 3;
+      padding: 20px;
     }
 
     .trust {

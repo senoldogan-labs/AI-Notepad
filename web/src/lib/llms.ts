@@ -206,6 +206,7 @@ export function llmsFullTxt(input: LlmsInput): string {
     [
       "## Comparison with Granola, Otter.ai, Fireflies.ai and Poffle",
       `Source: ${url("compare")}. ${copy.compare.checked} Competitor values come only from each vendor's own website (its pricing page; Poffle has none, so its home page and blog): ${competitorPages.map((entry): string => copy.compare.competitors[entry.competitor].pricingUrl).join(", ")}. "not checked" means the point wasn't part of what we checked there, not that the feature is missing.`,
+      `### ${copy.compare.why.title}\n\n${copy.compare.why.items.map((item: IconText): string => `- ${item.title}: ${item.text}`).join("\n")}`,
       comparisonTable(copy),
       ...competitorPages.map((entry): string => {
         const them: CompetitorCopy = copy.compare.competitors[entry.competitor];

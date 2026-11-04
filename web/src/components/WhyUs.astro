@@ -1,0 +1,105 @@
+---
+// Karşılaştırma sayfalarının başındaki vurgulu özet (/compare ve /vs/*): ürünü seçmek için başlıca nedenler ve indirme
+// sayfasına düğme (CtaBand gibi: doğrudan DMG bağlantısı yok, indirme kaynağı sunucunun izin listesindedir). Metinler
+// copy.ts `compare.why`'dan; rakip değerlerinden bağımsız ürün gerçekleridir.
+import Icon from "./Icon.astro";
+import { copy, type CompareCopy, type IconText } from "../copy";
+import { routes } from "../routes";
+
+interface Props {
+  /** Bölümün başlığının kimliği (`aria-labelledby`). */
+  readonly id: string;
+}
+const { id } = Astro.props;
+const text: CompareCopy = copy.compare;
+---
+
+<section class="page why" aria-labelledby={id}>
+  <div class="why__head">
+    <h2 class="title-m" id={id}>{text.why.title}</h2>
+    <div class="why__actions">
+      <a class="button button--primary button--small" href={routes.download}>
+        <Icon name="apple" size={14} class="button__apple" />
+        {copy.common.downloadCta}
+      </a>
+      <a class="button button--secondary button--small" href={routes.pricing}>{copy.home.secondaryCta}</a>
+    </div>
+  </div>
+  <ul class="why__grid">
+    {
+      text.why.items.map((item: IconText) => (
+        <li class="why__item">
+          <span class="icon-chip icon-chip--small">
+            <Icon name={item.icon} size={18} class="" />
+          </span>
+          <h3 class="why__title">{item.title}</h3>
+          <p class="muted">{item.text}</p>
+        </li>
+      ))
+    }
+  </ul>
+</section>
+
+<style>
+  .why {
+    display: grid;
+    gap: 24px;
+    padding: clamp(22px, 3vw, 32px);
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+    border-radius: var(--radius-m);
+    background: color-mix(in srgb, var(--accent) 7%, var(--card));
+  }
+
+  .why__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px 24px;
+  }
+
+  .why__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .why__grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 24px 28px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .why__item {
+    display: grid;
+    align-content: start;
+    gap: 8px;
+  }
+
+  .why__title {
+    margin: 4px 0 0;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .why__item p {
+    margin: 0;
+    font-size: 0.9375rem;
+  }
+
+  @media (max-width: 960px) {
+    .why__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 560px) {
+    .why__grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>
