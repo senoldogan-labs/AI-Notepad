@@ -83,16 +83,16 @@ export const indexedPages: readonly PageKey[] = [
  * ilerletme. Tarihi olmayan sayfanın `<lastmod>`'u yazılmaz. Blog dizini ve yazıları tarihlerini yazılardan alır.
  */
 export const pageModified: Readonly<Partial<Record<PageKey, string>>> = {
-  home: "2026-11-03",
-  fi: "2026-11-03",
+  home: "2026-11-04",
+  fi: "2026-11-04",
   download: "2026-11-03",
   compare: "2026-11-04",
-  vsGranola: "2026-11-03",
-  vsOtter: "2026-11-03",
-  vsFireflies: "2026-11-03",
+  vsGranola: "2026-11-04",
+  vsOtter: "2026-11-04",
+  vsFireflies: "2026-11-04",
   vsPoffle: "2026-11-04",
-  languages: "2026-11-03",
-  integrations: "2026-11-03",
+  languages: "2026-11-04",
+  integrations: "2026-11-04",
   privacy: "2026-11-03",
 };
 

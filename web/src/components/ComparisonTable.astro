@@ -1,5 +1,5 @@
 ---
-// Karşılaştırma tablosu: satırlar konular, sütunlar ürünler (ilk sütun bizim). Doğrulanmamış değer (`null`) tire olarak
+// Karşılaştırma tablosu: satırlar konular, sütunlar ürünler (ilk sütun bizim: vurgulu, başlığında etiket). Doğrulanmamış değer (`null`) tire olarak
 // görünür; ekran okuyucu "Not checked" okur. Dar masaüstünde tablo sıkışmaz, kutunun içinde yatay kayar (klavyeyle de
 // odaklanıp kaydırılabilir); telefonda her satır başlıklı bir karta dönüşür (sütun adı hücrenin üstünde).
 import { copy, type CompareCopy, type ComparisonTopic } from "../copy";
@@ -25,7 +25,17 @@ const text: CompareCopy = copy.compare;
     <thead>
       <tr>
         <th scope="col">{text.topicColumn}</th>
-        {columns.map((column: ComparisonColumn) => <th scope="col">{column.name}</th>)}
+        {
+          columns.map((column: ComparisonColumn, index: number) =>
+            index === 0 ? (
+              <th scope="col" class="comparison__us">
+                {column.name} <span class="comparison__badge">{text.usBadge}</span>
+              </th>
+            ) : (
+              <th scope="col">{column.name}</th>
+            ),
+          )
+        }
       </tr>
     </thead>
     <tbody>
@@ -108,9 +118,9 @@ const text: CompareCopy = copy.compare;
     font-weight: 600;
   }
 
-  /* Bizim sütunumuz hafifçe vurgulu. */
+  /* Bizim sütunumuz öne çıkar: vurgu renginde zemin ve üst çizgi, koyu yazı; başlığında küçük etiket. */
   .comparison__table td:nth-of-type(1) {
-    background: color-mix(in srgb, var(--accent) 6%, transparent);
+    background: color-mix(in srgb, var(--accent) 9%, transparent);
   }
 
   .comparison__table td {
@@ -119,6 +129,26 @@ const text: CompareCopy = copy.compare;
 
   .comparison__table td:nth-of-type(1) {
     color: var(--ink);
+    font-weight: 500;
+  }
+
+  .comparison__table thead .comparison__us {
+    background: color-mix(in srgb, var(--accent) 18%, var(--soft));
+    box-shadow: inset 0 3px 0 var(--accent);
+    white-space: nowrap;
+  }
+
+  .comparison__badge {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: var(--ink);
+    color: var(--bg);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    vertical-align: 1px;
   }
 
   .comparison__dash {

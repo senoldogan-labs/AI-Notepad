@@ -119,10 +119,10 @@ export const homeFi: HomeCopy = {
   library: {
     label: "Viimeisimmät kokoukset",
     meetings: [
-      { title: "Asiakaspuhelu · Nordia", meta: "Eilen · 3 tehtävää" },
-      { title: "Designkatselmus", meta: "Maanantaina · 5 tehtävää" },
-      { title: "Kahden kesken: Elif", meta: "Viime viikolla · 2 tehtävää" },
-      { title: "Sijoittajapäivitys", meta: "Lokakuu · 4 tehtävää" },
+      { title: "Päiväpalaveri · Web-tiimi", template: "Päiväpalaveri", when: "Tänään · 15 min", tasks: "4 tehtävää", decisions: "1 päätös", nextTask: "Vie hinnastosivun katselmointi eteenpäin" },
+      { title: "Asiakaspuhelu · Nordia", template: "Asiakaspuhelu", when: "Eilen · 38 min", tasks: "3 tehtävää", decisions: "2 päätöstä", nextTask: "Lähetä päivitetty tarjous perjantaihin mennessä" },
+      { title: "Sprintin 42 suunnittelu", template: "Sprintin suunnittelu", when: "Maanantaina · 55 min", tasks: "5 tehtävää", decisions: "3 päätöstä", nextTask: "Korjaa vientivirhe ennen julkaisua" },
+      { title: "Kahden kesken: Elif", template: "Kahden kesken", when: "Viime viikolla · 30 min", tasks: "2 tehtävää", decisions: "1 päätös", nextTask: "Anna palautetta käyttöönoton kulusta" },
     ],
   },
   showcase: {
@@ -151,41 +151,41 @@ export const homeFi: HomeCopy = {
     },
   },
   featuresEyebrow: "Ominaisuudet",
-  featuresTitle: "Pysy keskustelussa. Muistiinpanot hoituvat siinä sivussa.",
-  featuresLead: "Kokouksen aikana vierelläsi, kokouksen jälkeen käsissäsi: mitä pitää tehdä, mitä päätettiin ja koko keskustelu haettavana.",
+  featuresTitle: "Keskustelusta seuraaviin askeliin, jo kokouksen aikana.",
+  featuresLead: "Päätökset, vastuuhenkilöt ja määräajat kirjataan sitä mukaa kuin niistä puhutaan, joten tiedät jokaisen kokouksen jälkeen, mitä seuraavaksi tapahtuu, ja koko keskustelu on haettavissa.",
   features: {
     live: {
-      title: "Litterointi ja käännös livenä",
+      title: "Seuraa jokaista sanaa omalla kielelläsi",
       text: "Jokainen lause on ruudulla sekunneissa. Jos kokous käydään englanniksi tai ruotsiksi, suomenkielinen käännös kulkee rinnalla – samoin kuin työkaverin puheenvuoro, jonka haluat ymmärtää tarkalleen.",
       original: "Let's open the beta on 14 November.",
       translation: "Avataan beta 14. marraskuuta.",
     },
     tasks: {
-      title: "Tehtävät ensin",
-      text: "Kun kokous päättyy, muistiinpano on valmis. Tehtäväsi ovat päällimmäisenä: kuka tekee ja mihin mennessä. Sen jälkeen yhteenveto, päätökset ja sanasto. Rastita tehtävä valmiiksi tai lähetä se Remindersiin. Kesken jääneet tehtävät näkyvät taas, kun tallennat kalenterista kokouksen samasta sarjasta tai samojen ihmisten kanssa.",
+      title: "Tehtävät ensin, tekijät ja määräajat mukana",
+      text: "Kun kokous päättyy, muistiinpano on valmis. Tehtäväsi ovat päällimmäisenä: kuka tekee ja mihin mennessä. Sen jälkeen yhteenveto, päätökset ja sanasto. Rastita tehtävä valmiiksi tai lähetä se Remindersiin, Lineariin tai Jiraan.",
       sample: ["Julkaisumuistiinpanot · perjantai", "Hinnasto asiakkaalle · tänään"],
     },
     missed: {
-      title: "”Mitä jäi välistä?”",
-      text: "Ajatus katkesi hetkeksi? Yksi napsautus kertoo viimeisten minuuttien olennaiset asiat, eikä kenenkään tarvitse toistaa itseään.",
+      title: "Pysy kärryillä keskeyttämättä",
+      text: "Ajatus katkesi hetkeksi? ”Mitä jäi välistä?” kertoo yhdellä napsautuksella viimeisten minuuttien olennaiset asiat, eikä kenenkään tarvitse toistaa itseään.",
       button: "Mitä jäi välistä?",
       answer: "Viimeisen 5 minuutin aikana: beta siirtyi 14. marraskuuta ja julkaisumuistiinpanot ovat sinulla.",
     },
     ask: {
-      title: "Kysy kokouksiltasi",
+      title: "Löydä mikä tahansa päätös sekunneissa",
       text: "Kysy mitä tahansa kaikista muistiinpanoistasi ja litteroinneista. Vastaus tulee lähteiden kanssa, joten näet aina mistä kokouksesta se on peräisin.",
       question: "Mitä sovimme budjetista?",
       source: "Lähteet: Sijoittajapäivitys, Tuotepalaveri",
     },
     followUp: {
-      title: "Jatko yhdellä napsautuksella",
-      text: "Valmiit ohjeet muuttavat kokouksen seuraavaksi askeleeksi: jatkosähköposti, projektisuunnitelma, riskit ja avoimet kysymykset. Tallenna omat ohjeesi niille kysymyksille, jotka toistuvat joka viikko.",
+      title: "Jatkosähköposti valmiina",
+      text: "Yksi napsautus luonnostelee jatkosähköpostin muistiinpanosta: tärkeimmät asiat, päätökset ja tehtävät tekijöineen ja määräaikoineen. Muokkaa, kopioi tai avaa se Mailissa osallistujat valmiiksi täytettyinä. Valmiit ohjeet tekevät kokouksesta myös projektisuunnitelman, riskilistan tai avoimet kysymykset.",
       recipe: "Jatkosähköposti",
       subject: "Aihe: Tuotepalaveri, seuraavat askeleet",
       lines: ["Beta avataan 14. marraskuuta.", "Alex: julkaisumuistiinpanot perjantaihin mennessä."],
     },
     templates: {
-      title: "Kokousmallit",
+      title: "Oikea muistiinpano jokaiseen kokoukseen",
       text: "Asiakaspuhelu, kahden kesken, päiväpalaveri, sprintin suunnittelu, työhaastattelu ja luento saavat kukin muistiinpanon, jossa oikeat asiat ovat ensimmäisenä. Pohja valitaan kokouksen nimestä. Tai kirjoita oma pohjasi.",
       sample: ["Asiakaspuhelu", "Kahden kesken", "Päiväpalaveri", "Sprintin suunnittelu", "Työhaastattelu", "Luento", "Oma pohja"],
     },
@@ -196,12 +196,27 @@ export const homeFi: HomeCopy = {
       sample: "Kiitos, lähetän hinnaston perjantaihin mennessä.",
     },
     screens: {
-      title: "Palaute oikeaan näkymään",
+      title: "Palaute oikeaan diaan",
       text: "Kun otat sen käyttöön, Mac-sovellus tallentaa verkkopalaverissa kuvan aina, kun jaettu näyttö vaihtuu, ja yhdistää sen siihen, mitä samaan aikaan puhuttiin. Tekoälysovelluksesi lukevat molemmat MCP:n kautta, joten jokainen kommentti osuu oikeaan diaan tai suunnitteluruutuun. Kuvat pysyvät Macillasi, ellet anna myös muistiinpanojen käyttää niitä, jolloin muistiinpano kertoo, mistä diasta asia puhuttiin.",
       frame: "Hinnastosivu",
       time: "12:40",
       quote: "Vuosihinnan valitsinta on vaikea huomata.",
     },
+  },
+  capabilities: {
+    title: "Kaikissa tilauksissa myös",
+    items: [
+      { icon: "plug", title: "Toimii kaikissa puhelusovelluksissa", text: "Teams, Zoom, Google Meet, FaceTime tai mikä tahansa muu sovellus, jonka ääni kuuluu Macisi kaiuttimista tai kuulokkeista." },
+      { icon: "timer", title: "Pysähtyy, kun puhelu päättyy", text: "Kun puhelu on ohi, 30 sekunnin lähtölaskenta päättää tallennuksen. ”Jatka nauhoitusta” jatkaa, ja toiminnon voi kytkeä pois asetuksista." },
+      { icon: "users", title: "Puhujien nimet kaikkialla", text: "Nimeä kokouksen osallistujat kerran, niin yhteenveto, päätökset, tehtävät ja viedyt tiedostot käyttävät näitä nimiä." },
+      { icon: "check-circle", title: "Avoimet tehtävät mukana", text: "Kun tallennat kokouksen kalenterista, saman sarjan tai samojen ihmisten aiempien kokousten keskeneräiset tehtävät ovat heti näkyvissä." },
+      {
+        icon: "globe",
+        title: `${spokenLanguages.length} puhuttua kieltä`,
+        text: `Muistiinpanot ja käännös livenä ${noteLanguages.length} kielellä, puhuttiinpa kokouksessa mitä kieltä tahansa. Itse sovellus toimii ${interfaceLanguages.length} kielellä, myös suomeksi.`,
+      },
+      { icon: "waveform", title: "Neuvotteluhuoneessa tai tiedostosta", text: "Tallenna kasvokkainen kokous Macin mikrofonilla tai tuo ääni- tai videotiedosto, niin saat saman litteroinnin ja muistiinpanon." },
+    ],
   },
   trust: {
     eyebrow: "Tietosuoja",
@@ -243,7 +258,7 @@ export const homeFi: HomeCopy = {
     mcpLink: "Miten MCP toimii",
     files: {
       title: "Tiedostosi ja kalenterisi",
-      text: "Tallenna jokainen muistiinpano Markdownina kansioon, esimerkiksi Obsidian-holviin tai iCloud Driveen, tai vie se PDF- tai Word-tiedostoksi tai tekstitykseksi. Kalenterisi näyttää seuraavan kokouksen, voi aloittaa tallennuksen, kun kokous alkaa, näyttää avoimet tehtävät saman sarjan tai samojen ihmisten aiemmista kokouksista ja kertoa ennen kokousta, mitä niissä on puhuttu.",
+      text: "Tallenna jokainen muistiinpano Markdownina kansioon, esimerkiksi Obsidian-holviin tai iCloud Driveen, tai vie se PDF- tai Word-tiedostoksi tai tekstitykseksi. Kalenterisi näyttää seuraavan kokouksen, voi aloittaa tallennuksen, kun kokous alkaa, ja kertoa ennen kokousta, mitä saman sarjan tai samojen ihmisten aiemmissa kokouksissa on puhuttu.",
     },
     mcpDemo: {
       label: "Claudessa",

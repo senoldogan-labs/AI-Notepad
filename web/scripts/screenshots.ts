@@ -1293,6 +1293,9 @@ async function capturePages(browser: Browser, base: string, outDir: string, find
   }
 }
 
+/** Ana sayfa gösteriminin bir turu (HeroDemo.astro `--loop`); turu sayan animasyonlar bu süreyle bulunur. */
+const demoLoopMs: number = 10_000;
+
 /** Ana sayfa gösteriminin kareleri (animasyon zamanı elle ayarlanır) ve 5 sn'lik ana iş parçacığı ölçüsü. */
 async function captureDemo(browser: Browser, base: string, outDir: string, findings: Finding[]): Promise<void> {
   for (const variant of [variants[0], variants[2]]) {
@@ -1306,15 +1309,15 @@ async function captureDemo(browser: Browser, base: string, outDir: string, findi
     await page.goto(`${base}/`, { waitUntil: "load" });
     const demo = page.locator("#hero-demo");
     await demo.scrollIntoViewIfNeeded();
-    for (const seconds of [3, 7.5, 11, 15]) {
-      await page.evaluate((ms: number): void => {
+    for (const seconds of [1.5, 3, 5, 8]) {
+      await page.evaluate(({ ms, loopMs }: { readonly ms: number; readonly loopMs: number }): void => {
         for (const animation of document.getAnimations()) {
           const timing = animation.effect?.getComputedTiming();
-          if (timing !== undefined && timing.duration === 18_000) {
+          if (timing !== undefined && timing.duration === loopMs) {
             animation.currentTime = ms;
           }
         }
-      }, seconds * 1000);
+      }, { ms: seconds * 1000, loopMs: demoLoopMs });
       await page.waitForTimeout(80);
       await demo.screenshot({ path: join(outDir, `${shot}-${String(seconds).replace(".", "_")}s.png`) });
     }
@@ -1354,14 +1357,14 @@ async function checkDemoEnd(browser: Browser, base: string, outDir: string, find
   await toggle.click();
   const pausedLabel: string | null = await toggle.getAttribute("aria-label");
   await toggle.click();
-  await page.evaluate((): void => {
+  await page.evaluate((loopMs: number): void => {
     for (const animation of document.getAnimations()) {
       const timing = animation.effect?.getComputedTiming();
-      if (timing !== undefined && timing.duration === 18_000 && typeof timing.endTime === "number") {
+      if (timing !== undefined && timing.duration === loopMs && typeof timing.endTime === "number") {
         animation.currentTime = timing.endTime - 50;
       }
     }
-  });
+  }, demoLoopMs);
   await page.waitForTimeout(500);
   const state: { readonly finished: boolean; readonly label: string | null } = await page.evaluate(() => ({
     finished: document.getElementById("hero-demo")?.hasAttribute("data-finished") ?? false,
