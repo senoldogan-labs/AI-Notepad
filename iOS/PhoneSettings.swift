@@ -10,7 +10,8 @@ enum PhoneSettingsKey {
     static let noteLanguage: String = "language.note"
     /// Not dili ayarından önceki sürümlerin kullanıcısına Türkçe bir kez yazıldı (`legacyNoteLanguage`).
     static let noteLanguageMigrated: String = "migration.noteLanguage"
-    static let userName: String = "userName"
+    /// Kullanıcı adı (notta "Sen" ve sana düşen görevler); hesabın ayar alanında (bkz. `PhoneStore.userName`).
+    static let userName: String = userNameDefaultsKey
     /// Kayıt başında "katılımcılara haber ver" kartı.
     static let consentReminder: String = "consentReminder"
     /// Ses dosyalarının saklama süresi (gün).
@@ -26,8 +27,9 @@ enum PhoneSettingsKey {
     static let uiScale: String = AppearanceKey.uiScale
     static let textSize: String = AppearanceKey.textSize
     static let lineSpacing: String = AppearanceKey.lineSpacing
-    /// Konuşma tanımanın doğru yazması gereken adlar ve terimler (satır ya da virgülle; Mac'teki "Tanıma sözlüğü").
-    static let customVocabulary: String = "customVocabulary"
+    /// Konuşma tanımanın doğru yazması gereken adlar ve terimler (satır ya da virgülle; Mac'teki "Tanıma sözlüğü");
+    /// hesabın ayar alanında (bkz. `PhoneStore.vocabulary`).
+    static let customVocabulary: String = customVocabularyDefaultsKey
     /// Yeni toplantıların not şablonu (`NoteTemplateKind`) ve "Kendi şablonum"un yönergesi (Mac'teki ayarlarla aynı ad).
     static let noteTemplate: String = "noteTemplate"
     static let customTemplate: String = "customTemplate"
@@ -58,7 +60,6 @@ func registerPhoneDefaults() {
         PhoneSettingsKey.consentReminder: true,
         PhoneSettingsKey.audioRetentionDays: 30,
         PhoneSettingsKey.primaryMeetingLanguage: MeetingLanguage.finnish.rawValue,
-        PhoneSettingsKey.customVocabulary: "",
         PhoneSettingsKey.noteTemplate: NoteTemplateKind.general.rawValue,
         PhoneSettingsKey.customTemplate: "",
         PhoneSettingsKey.templateFromTitle: true,
@@ -176,19 +177,14 @@ func phoneLiveTranslationEnabled() -> Bool {
     phoneDisplayMode().needsLiveTranslation
 }
 
-/// Kayda verilen tanıma terimleri (Mac'teki gibi): adın ve tanıma sözlüğü öne, sonra Kişiler'e elle eklenenler, sonra son
-/// 20 toplantının konuşmacı adları ve sözlük terimleri; en fazla 30.
+/// Kayda verilen tanıma terimleri (Mac'teki gibi): yüklü hesabın adı ve tanıma sözlüğü öne, sonra Kişiler'e elle
+/// eklenenler, sonra son 20 toplantının konuşmacı adları ve sözlük terimleri; en fazla 30.
 @MainActor
-func phoneRecognitionKeyterms(records: [MeetingRecord], people: PeopleBook) -> [String] {
+func phoneRecognitionKeyterms(store: PhoneStore) -> [String] {
     recognitionKeyterms(
-        userName: phoneUserName(), vocabulary: UserDefaults.standard.string(forKey: PhoneSettingsKey.customVocabulary) ?? "",
-        savedPeople: people.saved.map(\.name), records: Array(records.prefix(20)), limit: 30
+        userName: store.userName, vocabulary: store.vocabulary,
+        savedPeople: store.peopleBook.saved.map(\.name), records: Array(store.meetings.prefix(20)), limit: 30
     )
-}
-
-/// Kullanıcının adı (notta "senin görevlerin" ayrımı için); yoksa boş.
-func phoneUserName() -> String {
-    UserDefaults.standard.string(forKey: PhoneSettingsKey.userName) ?? ""
 }
 
 /// iPhone'un görünüm ayarları (yüzey ve alt boşluk Mac'e özgü; iPhone'da kullanılmaz).

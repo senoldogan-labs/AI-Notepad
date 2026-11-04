@@ -210,6 +210,8 @@ private struct PhoneAppRoot: View {
             let store: PhoneStore = sessions.session.store
             let recorder: PhoneRecorder = sessions.session.recorder
             let ask: PhoneAsk = sessions.session.ask
+            // Ad listeden önce okunur: notlardaki "Sen" ve görevler ilk çizimde doğru kişiye ayrılsın.
+            store.loadIdentity()
             // Saklama süresi ve yarım kalan kayıtlar listeye bakar: okuma bitince sürer. Okuma sürerken hesap değiştiyse
             // (görev iptal edildi) eski hesabın listesiyle hiçbir şey yazılmaz.
             await store.reloadAndWait()
@@ -219,6 +221,8 @@ private struct PhoneAppRoot: View {
             store.loadPeople()
             store.voices.load()
             store.loadFolders()
+            // Bu iPhone'da silinen hesaptan kalan toplantılar varsa taşıma önerilir (bkz. `HostedDeletedMeetings`).
+            HostedDeletedMeetings.shared.refresh()
             ask.loadRecipes()
             ask.loadHistory()
             store.applyRetention(now: Date())
@@ -629,7 +633,7 @@ struct RootView: View {
         )) { (cover: PhoneRootCover) in
             switch cover {
             case .onboarding:
-                PhoneOnboarding {
+                PhoneOnboarding(store: store) {
                     // Abonelik ekranı karşılamanın yerine aynı güncellemede geçer (karşılama kapanırken yeni sunum
                     // başlatılmaz; sunum kimliği değişince SwiftUI birini kapatıp ötekini açar).
                     if recorder.phase == .idle {
@@ -821,7 +825,7 @@ final class PhoneStore {
             throw StorageError.writeFailed(path: meetingID, reason: "toplantı ya da not yok")
         }
         // Anımsatıcıdaki toplantı adı ve sahip konuşmacı adlarıyla (görev zaten adlandırılmış kopyadır).
-        let shown: MeetingRecord = namedRecord(record: record, userName: phoneUserName())
+        let shown: MeetingRecord = namedRecord(record: record, userName: userName)
         try await eventKit.addReminder(draft: reminderDraft(record: shown, task: task, language: note.writtenLanguage, calendar: Calendar.current))
         try updateMeeting(meetingID: meetingID) { (current: MeetingRecord) -> MeetingRecord in markingReminded(record: current, task: task) }
     }
@@ -874,6 +878,64 @@ final class PhoneStore {
             upsert(record: updated)
         } catch {
             actionProblems = appendUnique(messages: actionProblems, message: String(localized: "Toplantı kaydedilemedi: \(userFacingMessage(error: error))"))
+        }
+    }
+
+    // MARK: Ad ve tanıma sözlüğü
+
+    /// Kullanıcının adı (notta "Sen" ve sana düşen görevler, Sor, konuşmacılar, takip e-postası): hesabın ayar alanında
+    /// (Mac'teki Gistsmith'le aynı anahtar); aynı iPhone'daki başka bir hesap bu adı görmez. Hesap verisi yüklenince
+    /// okunur (bkz. `loadIdentity`).
+    private(set) var userName: String = ""
+    /// Tanıma sözlüğü (satır ya da virgülle; Mac'teki "Tanıma sözlüğü"); ad gibi saklanır.
+    private(set) var vocabulary: String = ""
+
+    /// Adı ve tanıma sözlüğünü okur (hesap verisi yüklenince). Okunamazsa neden sorunlarda görünür.
+    func loadIdentity() {
+        do {
+            let defaults: UserDefaults = try hostedActiveAccountDefaults()
+            userName = defaults.string(forKey: PhoneSettingsKey.userName) ?? ""
+            vocabulary = defaults.string(forKey: PhoneSettingsKey.customVocabulary) ?? ""
+        } catch {
+            Self.logger.error("Ad ve sözlük okunamadı, hata: \(String(describing: error), privacy: .private)")
+            actionProblems = appendUnique(messages: actionProblems, message: userFacingMessage(error: error))
+        }
+    }
+
+    /// Adı hesabın ayar alanına saklar; saklanamazsa neden sorunlarda görünür.
+    func setUserName(name: String) {
+        do {
+            try hostedActiveAccountDefaults().set(name, forKey: PhoneSettingsKey.userName)
+            userName = name
+        } catch {
+            Self.logger.error("Ad saklanamadı, hata: \(String(describing: error), privacy: .private)")
+            actionProblems = appendUnique(messages: actionProblems, message: userFacingMessage(error: error))
+        }
+    }
+
+    /// Tanıma sözlüğünü hesabın ayar alanına saklar; saklanamazsa neden sorunlarda görünür.
+    func setVocabulary(text: String) {
+        do {
+            try hostedActiveAccountDefaults().set(text, forKey: PhoneSettingsKey.customVocabulary)
+            vocabulary = text
+        } catch {
+            Self.logger.error("Tanıma sözlüğü saklanamadı, hata: \(String(describing: error), privacy: .private)")
+            actionProblems = appendUnique(messages: actionProblems, message: userFacingMessage(error: error))
+        }
+    }
+
+    // MARK: Silinen hesabın toplantıları
+
+    /// Bu iPhone'da silinen hesabın toplantılarını giriş yapan hesaba (`userID`) taşır (kayıt ekranındaki kart ya da
+    /// Ayarlar › Hesap; bkz. `HostedDeletedMeetings`) ve listeyi yeniden okur. Hiçbir toplantı silinmez; taşınamayanın
+    /// nedeni kartta ve Ayarlar › Hesap'ta görünür. Oturum yoksa neden sorunlarda görünür.
+    func moveDeletedAccountMeetings(userID: String?) {
+        guard let userID else {
+            actionProblems = appendUnique(messages: actionProblems, message: userFacingMessage(error: HostedClientError.notSignedIn))
+            return
+        }
+        if HostedDeletedMeetings.shared.moveIntoActiveAccount(userID: userID) > 0 {
+            reload()
         }
     }
 
@@ -1113,7 +1175,7 @@ final class PhoneStore {
             let directory: URL = try sessionDirectory(id: meetingID)
             let noteStartedAt: ContinuousClock.Instant = .now
             let result: MeetingRecord = await AINotepadCore.regenerateNote(
-                record: record, directory: directory, llm: llm, userName: phoneUserName(), language: phoneNoteLanguage(), screens: .off
+                record: record, directory: directory, llm: llm, userName: userName, language: phoneNoteLanguage(), screens: .off
             )
             recordNoteOutcome(result: result, writingStartedAt: noteStartedAt)
             // Not yazılırken Mac'te değişmiş olabilir: yeni not diskteki güncel kayda uygulanır, işaretler oradan taşınır.
@@ -1143,7 +1205,7 @@ final class PhoneStore {
         }
         let provider: LLMProvider = try phoneAccountLLMProvider()
         let shared: MeetingNote = try await requestStructured(
-            provider: provider, request: sharedNoteRequest(note: note, language: language, userName: phoneUserName())
+            provider: provider, request: sharedNoteRequest(note: note, language: language, userName: userName)
         ) { (text: String) throws -> MeetingNote in
             try parseSharedNote(text: text, original: note).with(language: language)
         }
@@ -1172,7 +1234,7 @@ final class PhoneStore {
         }
         let segments: [StoredSegment] = meetingSegments(record: record)
         guard let request = speakerReviewRequest(
-            segments: segments, speakerNames: record.speakerNames, userName: phoneUserName(), attendees: record.attendees ?? [], language: phoneNoteLanguage()
+            segments: segments, speakerNames: record.speakerNames, userName: userName, attendees: record.attendees ?? [], language: phoneNoteLanguage()
         ) else {
             return
         }
@@ -1301,7 +1363,7 @@ final class PhoneStore {
         do {
             let llm: LLMProvider = try phoneAccountLLMProvider()
             let directory: URL = try sessionDirectory(id: meetingID)
-            let edited: MeetingRecord = try await editMeetingNote(record: record, instruction: trimmed, llm: llm, userName: phoneUserName())
+            let edited: MeetingRecord = try await editMeetingNote(record: record, instruction: trimmed, llm: llm, userName: userName)
             guard let note = edited.note else {
                 throw LLMError.empty
             }
@@ -1328,7 +1390,7 @@ final class PhoneStore {
             throw StorageError.writeFailed(path: meetingID, reason: "toplantı yok")
         }
         let llm: LLMProvider = try phoneAccountLLMProvider()
-        return try await AINotepadCore.draftFollowUpEmail(record: record, userName: phoneUserName(), language: language, timeZone: TimeZone.current, llm: llm)
+        return try await AINotepadCore.draftFollowUpEmail(record: record, userName: userName, language: language, timeZone: TimeZone.current, llm: llm)
     }
 
     /// Takip e-postasının alıcıları: toplantı bir takvim etkinliğine bağlıysa katılımcıların e-posta adresleri (takvim

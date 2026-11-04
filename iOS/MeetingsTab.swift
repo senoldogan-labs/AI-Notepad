@@ -51,7 +51,7 @@ struct MeetingsTab: View {
     /// Kart, açılan toplantıya büyüyerek geçer (kapanınca kartına döner).
     @Namespace private var cardTransition: Namespace.ID
     /// Notlardaki konuşmacı etiketleri adlarla gösterilir; adı kullanıcının adı olan konuşmacının görevleri onundur.
-    @AppStorage(PhoneSettingsKey.userName) private var userName: String = ""
+    private var userName: String { store.userName }
 
     var body: some View {
         // Kartlar ve sayfa notu konuşmacı adlarıyla gösterir (saklı not genel etiketleri korur, değişiklikler kimlikle

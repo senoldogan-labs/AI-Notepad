@@ -130,7 +130,7 @@ struct SettingsPage: View {
                     #if HOSTED_EDITION
                     // Giriş ya da çıkışta kurulum eksikleri uygulama düzeyinde yenilenir (bkz. AINotepadApp).
                     case .account:
-                        HostedAccountSettings(account: .shared, isMeetingInFlight: model.isBusy || model.isStarting)
+                        HostedAccountSettings(account: .shared, isMeetingInFlight: model.isBusy || model.isStarting) { model.moveDeletedAccountMeetings() }
                     #endif
                     case .general: GeneralSettings(model: model, updater: updater, crashReports: crashReports, onShowSetup: onShowSetup)
                     case .appearance: AppearanceSettings()
@@ -228,13 +228,11 @@ private struct GeneralSettings: View {
     let updater: AppUpdater
     let crashReports: CrashReportCenter
     let onShowSetup: @MainActor () -> Void
-    @AppStorage(SettingsKey.userName) private var userName: String = ""
     @AppStorage(SettingsKey.missedWindowMinutes) private var missedMinutes: Int = 3
     @AppStorage(SettingsKey.audioRetentionDays) private var retentionDays: Int = 30
     @AppStorage(SettingsKey.voiceRecognition) private var voiceRecognition: Bool = false
     @AppStorage(SettingsKey.consentReminder) private var consentReminder: Bool = true
     @AppStorage(SettingsKey.calendarEnabled) private var calendarEnabled: Bool = false
-    @AppStorage(SettingsKey.customVocabulary) private var vocabulary: String = ""
     @AppStorage(SettingsKey.meetingReminders) private var meetingReminders: Bool = true
     @AppStorage(SettingsKey.micSuggestions) private var micSuggestions: Bool = true
     @AppStorage(SettingsKey.primaryMeetingLanguage) private var primaryLanguage: String = MeetingLanguage.finnish.rawValue
@@ -339,7 +337,7 @@ private struct GeneralSettings: View {
             SettingsRow(title: Text("Adın")) {
                 Text("Toplantı notunda sana düşen görevleri ayırmak için kullanılır.")
             } control: {
-                TextField("Adın", text: $userName)
+                TextField("Adın", text: Binding<String>(get: { model.userName }, set: { (name: String) -> Void in model.setUserName(name: name) }))
                     .settingsField(width: 200)
             }
             VStack(alignment: .leading, spacing: 6) {
@@ -348,14 +346,14 @@ private struct GeneralSettings: View {
                     .appFont(size: 13, weight: .regular)
                     .foregroundStyle(Theme.muted)
                     .fixedSize(horizontal: false, vertical: true)
-                TextEditor(text: $vocabulary)
+                TextEditor(text: Binding<String>(get: { model.vocabulary }, set: { (text: String) -> Void in model.setVocabulary(text: text) }))
                     .appFont(size: 13, weight: .regular)
                     .scrollContentBackground(.hidden)
                     .padding(8)
                     .frame(height: 80)
                     .background(Theme.card, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Theme.line))
-                Text("\(customVocabulary(text: vocabulary).count) terim")
+                Text("\(customVocabulary(text: model.vocabulary).count) terim")
                     .appFont(size: 12, weight: .regular)
                     .foregroundStyle(Theme.muted)
             }
@@ -1491,7 +1489,7 @@ private struct WebhookSettings: View {
         VStack(alignment: .leading, spacing: 0) {
             ConnectionSectionHeader(
                 title: "Notların gittiği yerler", subtitle: "Not hazır olunca kanallara, Notion'a, Apple Notlar'a ya da klasöre gider.",
-                info: "Her toplantının notu (önce görevler, sonra kararlar ve özet) bağladığın yerlere gider; her hedefte otomatik gönderimi ayrı açabilirsin. Toplantı sayfasındaki ⋯ menüsünden elle de gönderilir. Ağ yokken kaçan gönderimler sonra kendiliğinden gider."
+                info: "Her toplantının notu (önce görevler, sonra kararlar ve özet) bağladığın yerlere gider; her hedefte otomatik gönderimi ayrı açabilirsin. Otomatik gönderim yalnızca açtığın andan sonra biten toplantıları gönderir; daha önceki notları toplantı sayfasındaki ⋯ menüsünden elle gönder. Ağ yokken kaçan gönderimler sonra kendiliğinden gider."
             )
             if !model.destinations.isEmpty {
                 connectedList.padding(.bottom, 16)

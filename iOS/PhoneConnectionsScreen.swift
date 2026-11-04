@@ -94,7 +94,7 @@ struct PhoneConnectionsScreen: View {
             } header: {
                 Text("Notların gittiği yerler")
             } footer: {
-                Text("Otomatik gönderim açık yerlere not hazır olunca gider; toplantının ⋯ menüsünden elle de gönderilir.")
+                Text("Otomatik gönderim açık yerlere, açtıktan sonra biten toplantıların notu hazır olunca gider; eski notlar toplantının ⋯ menüsünden elle gönderilir.")
             }
             Section {
                 ForEach([MCPService.linear, MCPService.atlassian], id: \.self) { (service: MCPService) in

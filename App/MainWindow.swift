@@ -220,6 +220,10 @@ struct MainWindowView: View {
                         if let notice = HostedAccount.shared.visibleNotice {
                             HostedUsageBanner(account: .shared, notice: notice) { openAccountSettings(router: router) }
                         }
+                        // Bu Mac'te silinen hesaptan kalan toplantılar: bir kez önerilir ("Şimdi değil"den sonra Ayarlar › Hesap'ta).
+                        if HostedDeletedMeetings.shared.isOfferVisible {
+                            HostedDeletedMeetingsBanner(deleted: .shared) { model.moveDeletedAccountMeetings() }
+                        }
                         #endif
                         detail
                             .id(router.section)
@@ -346,7 +350,7 @@ private struct Sidebar: View {
     let model: AppModel
     let router: MainWindowRouter
     /// Notlardaki konuşmacı etiketleri adlarla; adı kullanıcının adı olan konuşmacının görevleri onundur.
-    @AppStorage(SettingsKey.userName) private var userName: String = ""
+    private var userName: String { model.userName }
 
     var body: some View {
         // Yalnızca açık (tamamlanmamış) görevler sayılır.
@@ -399,7 +403,7 @@ private struct Sidebar: View {
             // Ayarlar ve hesabın avatarı yan yana (avatar hesaba götürür).
             HStack(spacing: 6) {
                 item(title: "Ayarlar", symbol: "gearshape", section: .settings, badge: nil)
-                SidebarAvatar(router: router)
+                SidebarAvatar(model: model, router: router)
             }
         }
         .padding(.horizontal, 10)
@@ -448,8 +452,9 @@ private struct Sidebar: View {
 /// Kenar çubuğunun altındaki avatar: abonelikte oturumdaki hesabın Google resmi ya da hesaba özel küre, tıklanınca
 /// Ayarlar › Hesap; geliştirici sürümünde kullanıcı adına özel küre, tıklanınca Ayarlar.
 private struct SidebarAvatar: View {
+    let model: AppModel
     let router: MainWindowRouter
-    @AppStorage(SettingsKey.userName) private var userName: String = ""
+    private var userName: String { model.userName }
 
     var body: some View {
         Button {
@@ -734,7 +739,7 @@ private struct HomePage: View {
                 Text(Date.now.formatted(Date.FormatStyle(date: .complete, time: .omitted).locale(interfaceLocale())))
                     .appFont(size: 13, weight: .regular)
                     .foregroundStyle(Theme.muted)
-                Text(verbatim: homeGreeting(name: UserDefaults.standard.string(forKey: SettingsKey.userName) ?? "", hour: Calendar.current.component(.hour, from: .now)))
+                Text(verbatim: homeGreeting(name: model.userName, hour: Calendar.current.component(.hour, from: .now)))
                     .appFont(size: 30, weight: .semibold)
                     .tracking(-0.8)
             }
@@ -978,7 +983,7 @@ private struct Shortcuts: View {
     let router: MainWindowRouter
     let onShowPanel: @MainActor () -> Void
     /// Notlardaki konuşmacı etiketleri adlarla; adı kullanıcının adı olan konuşmacının görevleri onundur.
-    @AppStorage(SettingsKey.userName) private var userName: String = ""
+    private var userName: String { model.userName }
 
     var body: some View {
         let openTasks: Int = myTasks(namedRecords: model.namedMeetings(userName: userName)).filter { !isTaskDone(record: $0.record, task: $0.task) }.count
@@ -1049,7 +1054,7 @@ private struct HomeTasks: View {
     let router: MainWindowRouter
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
     /// Notlardaki konuşmacı etiketleri adlarla; adı kullanıcının adı olan konuşmacının görevleri onundur.
-    @AppStorage(SettingsKey.userName) private var userName: String = ""
+    private var userName: String { model.userName }
 
     var body: some View {
         let items: [(record: MeetingRecord, task: NoteTask)] = myTasks(namedRecords: Array(model.namedMeetings(userName: userName).prefix(10)))
@@ -1141,7 +1146,7 @@ private struct UpcomingMeetings: View {
         let time: String = meeting.start.formatted(Date.FormatStyle(date: .omitted, time: .shortened).locale(interfaceLocale()))
             + "–" + meeting.end.formatted(Date.FormatStyle(date: .omitted, time: .shortened).locale(interfaceLocale()))
         let record: MeetingRecord? = recordedMeeting(meeting: meeting, records: model.meetings)
-            .map { namedRecord(record: $0, userName: UserDefaults.standard.string(forKey: SettingsKey.userName) ?? "") }
+            .map { namedRecord(record: $0, userName: model.userName) }
         return HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(time).appFont(size: 12, weight: .medium).monospacedDigit().foregroundStyle(Theme.muted)
@@ -1248,7 +1253,7 @@ private struct RecentMeetingCards: View {
     let model: AppModel
     let router: MainWindowRouter
     /// Notlardaki konuşmacı etiketleri adlarla; adı kullanıcının adı olan konuşmacının görevleri onundur.
-    @AppStorage(SettingsKey.userName) private var userName: String = ""
+    private var userName: String { model.userName }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.m) {
@@ -1331,7 +1336,7 @@ private struct TasksPage: View {
     let router: MainWindowRouter
     @State private var showsDone: Bool = false
     /// Notlardaki konuşmacı etiketleri adlarla; adı kullanıcının adı olan konuşmacının görevleri onundur.
-    @AppStorage(SettingsKey.userName) private var userName: String = ""
+    private var userName: String { model.userName }
 
     var body: some View {
         let named: [MeetingRecord] = model.namedMeetings(userName: userName)
@@ -1369,7 +1374,7 @@ private struct TasksPage: View {
                             symbol: "checklist", palette: .coral, title: "Henüz sana düşen görev yok",
                             message: "Toplantı notunda senin adına yazılan işler burada toplanır."
                         ) {
-                            if (UserDefaults.standard.string(forKey: SettingsKey.userName) ?? "").isEmpty {
+                            if model.userName.isEmpty {
                                 Button("Adını yaz (görevlerin tanınsın)", systemImage: "person.text.rectangle") { router.section = .settings }
                                     .buttonStyle(.accentPill)
                                     .controlSize(.large)
@@ -1430,7 +1435,7 @@ private struct MeetingsSplit: View {
     let onStartRecording: @MainActor () -> Void
     @AppStorage(SettingsKey.meetingsListVisible) private var listVisible: Bool = true
     /// Notlardaki konuşmacı etiketleri adlarla; adı kullanıcının adı olan konuşmacının görevleri onundur.
-    @AppStorage(SettingsKey.userName) private var userName: String = ""
+    private var userName: String { model.userName }
 
     var body: some View {
         if model.meetings.isEmpty {

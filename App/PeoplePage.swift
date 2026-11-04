@@ -16,7 +16,7 @@ struct PeoplePage: View {
     var body: some View {
         let people: [PersonSummary] = peopleDirectory(
             records: model.meetings, voices: model.registeredVoices, book: model.peopleBook,
-            userName: UserDefaults.standard.string(forKey: SettingsKey.userName) ?? ""
+            userName: model.userName
         )
         let query: String = filter.trimmingCharacters(in: .whitespaces)
         let shown: [PersonSummary] = query.isEmpty ? people : people.filter {

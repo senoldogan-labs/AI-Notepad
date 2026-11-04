@@ -66,6 +66,8 @@ struct PhoneAccountScreen: View {
     /// ve hesap silme kapalı (süren işin toplantısı ya da sunucu oturumu başka hesaba ya da silinmiş hesaba yazılmasın;
     /// bitince açılır).
     let isMeetingInFlight: Bool
+    /// Yüklü hesabın arşivi: silinen hesaptan kalan toplantılar buraya taşınır (bkz. `PhoneDeletedMeetingsSection`).
+    let store: PhoneStore
     @State private var confirmingDelete: Bool = false
     /// Apple'ın abonelik penceresi açılamadıysa nedeni.
     @State private var manageError: String?
@@ -104,6 +106,7 @@ struct PhoneAccountScreen: View {
                     EmptyView()
                 }
                 signOutSection
+                PhoneDeletedMeetingsSection(deleted: .shared, store: store)
                 deleteSection(entitlements: entitlements)
             case .signedInStatusUnknown(let message):
                 Section {
@@ -215,7 +218,7 @@ struct PhoneAccountScreen: View {
             if isMeetingInFlight {
                 Text("Kayıt, içe aktarma ya da yapay zekâ işi sürüyor; bitince hesabı silebilirsin.")
             } else if !confirmingDelete {
-                Text("Hesabın ve sunucudaki kayıtların silinir; bu iPhone'daki toplantılar kalır.")
+                Text("Hesabın ve sunucudaki kayıtların silinir; bu iPhone'daki toplantılar kalır ve burada yeniden hesap açarsan yeni hesabına taşınabilir.")
             }
         }
     }
