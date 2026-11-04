@@ -220,10 +220,16 @@ final class PhoneRecorder {
         // Takvimde şu anki toplantı: başlık ve katılımcı adları kayda geçer, adlar tanımaya yardım eder.
         let linkedMeeting: CalendarMeeting? = currentCalendarMeeting?()
         let directory: URL
+        do {
+            directory = try AppPaths.newSessionDirectory(startedAt: started)
+        } catch {
+            errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
+            phase = .idle
+            return
+        }
         let audio: AsyncStream<[Float]>
         let pauseGate: RecordingPauseGate
         do {
-            directory = try AppPaths.newSessionDirectory(startedAt: started)
             let origin: ContinuousClock.Instant = .now
             microphone.onStatusChange = { [weak self] (status: MicrophoneStatus) -> Void in
                 self?.microphoneStatusChanged(status: status)
@@ -240,6 +246,8 @@ final class PhoneRecorder {
             if !stopRequestedDuringStart {
                 errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
             }
+            // Mikrofon açılamadı (izin yok, ses oturumu, başlarken bitirildi): boş toplantı klasörü kalmasın.
+            discardUnstartedRecording(directory: directory)
             phase = .idle
             return
         }
@@ -447,8 +455,11 @@ final class PhoneRecorder {
         if let recording = active {
             let id: String = recording.directory.lastPathComponent
             beginBackgroundTask(id: id)
-            // Sistem görevi kullanıcının "Bitir" anında istenir: istek yalnızca uygulama öndeyken kabul edilir.
-            submitContinuedProcessing(id: id, subtitle: continuedProcessingSubtitle(title: recording.linkedMeeting?.title ?? String(localized: "Toplantı"), startedAt: recording.startedAt))
+            // Sistem görevi kullanıcının "Bitir" anında istenir: istek yalnızca uygulama öndeyken kabul edilir. Çevrimdışı
+            // kayıtta not şimdi hazırlanmaz (kuyruğa girer): sistem ilerlemesi istenmez (boş ilerleme ekranda kalırdı).
+            if !recording.offline {
+                submitContinuedProcessing(id: id, subtitle: continuedProcessingSubtitle(title: recording.linkedMeeting?.title ?? String(localized: "Toplantı"), startedAt: recording.startedAt))
+            }
         }
         levels.stop()
         microphone.stop()
@@ -548,6 +559,8 @@ final class PhoneRecorder {
     /// duraklatılan aralığa düşen ses atılır.
     func pause() {
         guard phase == .recording, !pauseClock.isPaused, let active else {
+            // Kayıt yokken "Duraklat" (kilit ekranı): uygulama kayıt sırasında kapandıysa kalan canlı etkinlik kalkar.
+            endStaleActivities()
             return
         }
         active.pauseGate.pause(at: .now)
@@ -559,6 +572,8 @@ final class PhoneRecorder {
     /// Duraklatılan kaydı sürdürür: ses yeniden kaydedilir ve yazıya dökülür.
     func resume() {
         guard phase == .recording, pauseClock.isPaused, let active else {
+            // Kayıt yokken "Devam et" (kilit ekranı): uygulama kayıt sırasında kapandıysa kalan canlı etkinlik kalkar.
+            endStaleActivities()
             return
         }
         active.pauseGate.resume(at: .now)
@@ -649,16 +664,28 @@ final class PhoneRecorder {
         }
         // Bu oturumda işlenmekte olanlar (sahne yeniden kurulduysa) ikinci kez işlenmez: çift ücret, aynı dosyaya iki yazar.
         let local: Set<String>
+        let linked: Set<String>
         do {
             local = try AppPaths.localMeetingIDs()
+            linked = try hostedLinkedRecordIDs()
         } catch {
             errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
             return
         }
-        let stale: [MeetingRecord] = staleStatusesToInterrupt(records: store.meetings.filter { local.contains($0.id) }).filter { processingSteps[$0.id] == nil }
+        // Sunucu oturumuna bağlı olmayan (çevrimdışı) yarım kayıt kuyruğa döner, bağlantı gelince kendi oturumuyla işlenir
+        // (Mac'teki gibi); yeniden işlenseydi son geçiş "oturuma bağlı değil" diye atlanırdı.
+        let stale: [MeetingRecord] = queuingUnlinkedInterrupted(
+            records: staleStatusesToInterrupt(records: store.meetings.filter { local.contains($0.id) }).filter { processingSteps[$0.id] == nil },
+            linkedRecordIDs: linked
+        )
         for record in stale {
             do {
                 let directory: URL = try store.sessionDirectory(id: record.id)
+                guard record.status != .queued else {
+                    Self.logger.info("Yarıda kalan çevrimdışı kayıt kuyruğa döndü, toplantı: \(record.id, privacy: .public)")
+                    saveRecord(record: record, directory: directory)
+                    continue
+                }
                 Self.logger.info("Yarıda kalan toplantı yeniden işleniyor, toplantı: \(record.id, privacy: .public)")
                 guard process(record: record.with(status: .processing, failureMessage: nil), directory: directory) else {
                     continue

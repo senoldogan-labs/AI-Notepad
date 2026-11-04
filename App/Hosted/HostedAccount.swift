@@ -320,6 +320,9 @@ final class HostedAccount {
             MainActor.assumeIsolated {
                 self?.currentMeeting = nil
                 self?.hasSession = false
+                // Biten oturumun abonelik isteği ve davet kodu sonraki girişe (başka hesap olabilir) kalmasın.
+                self?.upsell = nil
+                self?.referral = nil
                 clearHostedOfflinePermit()
                 self?.state = .signedOut
                 self?.errorMessage = userFacingMessage(error: HostedClientError.sessionEnded)
@@ -982,6 +985,7 @@ final class HostedAccount {
         // Süren hak durumu okuması çıkıştan sonra dönerse oturumu "giriş yapıldı" göstermesin.
         stateGeneration += 1
         referral = nil
+        upsell = nil
         do {
             try await HostedServices.requireClient().signOut()
         } catch HostedClientError.network(let path, _) {
@@ -1071,10 +1075,12 @@ final class HostedAccount {
     }
     #endif
 
-    /// Silinen hesabın yerel izleri: şimdiki toplantı, çevrimdışı kayıt izni, girişteki kimlik (e-posta), profil resminin
-    /// adresi ve açık oturum listesi.
+    /// Silinen hesabın yerel izleri: şimdiki toplantı, abonelik isteği, davet kodu, çevrimdışı kayıt izni, girişteki kimlik
+    /// (e-posta), profil resminin adresi ve açık oturum listesi.
     private func clearAfterAccountDeletion(userID: String?) {
         currentMeeting = nil
+        upsell = nil
+        referral = nil
         clearHostedOfflinePermit()
         guard let userID else {
             return

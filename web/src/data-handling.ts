@@ -3,7 +3,8 @@
 // bölümüyle (3 meeting content, 6 statistics, 8 providers, 9 retention, 10 deletion) ve sunucunun davranışıyla
 // (server/src/transcriptionCache.ts nihai metni 2 saat şifreli tutar, satırı cleanup.ts'in günlük cron'u siler;
 // Linear/Jira ajanı ve paylaşım çevirisi sunucu üzerinden Anthropic'e gider) birebir aynı olmalı; politika
-// değişince bu dosya da değişir.
+// değişince bu dosya da değişir. iPhone uygulaması henüz App Store'da değildir: satırlar onu privacy.astro ve terms.astro
+// gibi "App Store'a çıktığında" diye anar.
 
 /** Bir veri türünün işlenişi. `id` gizlilik sayfasında satırın kalıcı çapasıdır (`#data-<id>`); değiştirme. */
 export interface DataHandlingRow {
@@ -38,7 +39,7 @@ export const dataHandling: DataHandlingCopy = {
       id: "live-audio",
       data: "Meeting audio while you record (live transcript)",
       where:
-        "Streamed directly from your Mac or iPhone to Deepgram. When Deepgram can't be used (our reserved capacity is used up, it can't be reached or you're offline), the live transcript is made on your device instead.",
+        "Streamed directly from your Mac, or from your iPhone once the iPhone app is available on the App Store, to Deepgram. When Deepgram can't be used (our reserved capacity is used up, it can't be reached or you're offline), the live transcript is made on your device instead.",
       stored: "Not by us: our server never receives this audio. Deepgram keeps it only while processing; every connection opts out of its model training.",
       retention: "Only while the request is processed",
       policySection: "meetings",
@@ -70,7 +71,7 @@ export const dataHandling: DataHandlingCopy = {
     {
       id: "on-device",
       data: "Notes, transcripts, recordings, screen snapshots, and the people and terms you add",
-      where: "In the app's folder on your Mac or iPhone.",
+      where: "In the app's folder on your Mac, or on your iPhone once the iPhone app is available on the App Store.",
       stored: "On your device only. No cloud sync; meetings recorded on one device don't appear on the other.",
       retention: "Until you delete them in the app",
       policySection: "meetings",

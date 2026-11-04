@@ -53,7 +53,11 @@ export function isRenewing(subscription: Stripe.Subscription): boolean {
 /**
  * Abonelik olayının iptal nedeni ifadesi (`customer.subscription.updated` ve `.deleted`; diğer olaylarda boş): nedeni
  * olan iptal yazılır (alan alan; boş gelen alan eskisini silmez), iptali geri alınan aboneliğin satırı silinir.
- * Ters sırada gelen eski olay yeniyi ezmez (`event_created`). Saf fonksiyondur (ifadeyi hazırlar, çalıştırmaz).
+ * `subscription` olayın anlık görüntüsü değil Stripe'tan okunan güncel hâlidir (çağıran, `billing.ts`): geç gelen eski
+ * "iptal" olayı, iptali geri alınmış aboneliğe neden yazmaz. Sıra da korunur: ters sırada gelen eski olay yeniyi ezmez
+ * (`event_created`) ve hesabın abonelik satırına daha yeni bir olay yazılmışsa (`subscriptions.last_event_created`;
+ * aynı toplu işlemde, bu ifadeden önce yazılır) eski olay silinmiş satırı yeniden oluşturmaz (Stripe okuması iptal geri
+ * alınmadan önce yapılmış olsa da). Saf fonksiyondur (ifadeyi hazırlar, çalıştırmaz).
  */
 export function cancellationStatements(
   db: D1Database,
@@ -80,7 +84,8 @@ export function cancellationStatements(
     db
       .prepare(
         `INSERT INTO subscription_cancellations (stripe_subscription_id, user_id, created_at, event_created, reason, feedback, comment)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+         SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7
+         WHERE NOT EXISTS (SELECT 1 FROM subscriptions WHERE user_id = ?2 AND last_event_created > ?4)
          ON CONFLICT(stripe_subscription_id) DO UPDATE SET event_created = excluded.event_created,
            reason = COALESCE(excluded.reason, subscription_cancellations.reason),
            feedback = COALESCE(excluded.feedback, subscription_cancellations.feedback),

@@ -102,7 +102,7 @@ async function payInvoice(
   code: string,
 ): Promise<void> {
   const created: number = Math.floor(harness.clock.nowMs / 1000);
-  stripe.invoices.set(invoiceId, { subscription: friend.subscriptionId, paid: true, created });
+  stripe.invoices.set(invoiceId, { subscription: friend.subscriptionId, paid: true, amountPaid: 599, created });
   stripe.invoicePayments.set(invoiceId, [`pi_${invoiceId}`]);
   const payload: string = invoicePaidEvent({
     eventId: `evt_${invoiceId}`,
@@ -180,7 +180,7 @@ describe("iki fiyat da bizim", () => {
     const refundedCustomer: string = await customerOf(refunded.userId);
     const yearly: FakeSubscription = { ...fakeYearlySubscription(id("sub_r"), refundedCustomer, "active", now, now + 365 * daySeconds), latest_invoice: id("in_r") };
     await sendSubscription(harness, stripe, id("evt_r"), "customer.subscription.created", now, yearly);
-    stripe.invoices.set(id("in_r"), { subscription: id("sub_r"), paid: true, created: now });
+    stripe.invoices.set(id("in_r"), { subscription: id("sub_r"), paid: true, amountPaid: 599, created: now });
     stripe.invoicePayments.set(id("in_r"), [id("pi_r")]);
     const refund: string = eventOf(id("evt_refund"), "charge.refunded", now + 1, {
       id: id("ch_r"),

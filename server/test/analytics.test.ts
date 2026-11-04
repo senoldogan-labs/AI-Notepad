@@ -100,7 +100,7 @@ describe("gerçek gelir: Stripe webhook'u", () => {
     expect(firstPaid?.first_paid_at).toBe(now * 1000);
 
     // Kısmi iade, sonra tam iade: birikimli tutar büyür; eski (küçük tutarlı) olay geri almaz.
-    stripe.invoices.set("in_rev_1", { subscription: "sub_rev_1", paid: true, created: now });
+    stripe.invoices.set("in_rev_1", { subscription: "sub_rev_1", paid: true, amountPaid: 599, created: now });
     stripe.invoicePayments.set("in_rev_1", ["pi_rev_1"]);
     const refund = (eventId: string, amount: number, full: boolean): string =>
       eventOf(eventId, "charge.refunded", now + 10, {
@@ -120,7 +120,7 @@ describe("gerçek gelir: Stripe webhook'u", () => {
     expect(refunds.results).toEqual([{ invoice_id: "in_rev_1", currency: "usd", amount_refunded: 599 }]);
 
     // Kayıtlı olmayan faturanın iadesi gelire yazılmaz.
-    stripe.invoices.set("in_foreign", { subscription: "sub_foreign", paid: true, created: now });
+    stripe.invoices.set("in_foreign", { subscription: "sub_foreign", paid: true, amountPaid: 599, created: now });
     stripe.invoicePayments.set("in_foreign", ["pi_foreign"]);
     const foreign: string = eventOf("evt_rev_foreign", "charge.refunded", now, {
       id: "ch_foreign",
@@ -166,6 +166,58 @@ describe("gerçek gelir: Stripe webhook'u", () => {
     expect(unlinked).toEqual({ user_id: null });
     const deletions: AdminTrends = await trends(harness, admin);
     expect(deletions.accountDeletions).toContainEqual({ detail: "subscriber", count: before + 1 });
+  });
+
+  it("iade, faturanın invoice.paid olayından önce işlenirse de gelire yazılır; geç gelen invoice.paid satırı ikinci kez yazmaz", async () => {
+    const harness: Harness = await defaultHarness();
+    const stripe: FakeStripe = stubStripeApi(harness);
+    const session: Session = await signIn(harness);
+    const customer: string = "cus_refund_first";
+    await env.DB.prepare("INSERT INTO stripe_customers (user_id, stripe_customer_id, created_at) VALUES (?, ?, 0)").bind(session.userId, customer).run();
+    const now: number = Math.floor(harness.clock.nowMs / 1000);
+    stripe.invoices.set("in_refund_first", { subscription: "sub_refund_first", paid: true, amountPaid: 599, created: now });
+    stripe.invoicePayments.set("in_refund_first", ["pi_refund_first"]);
+    const refund: string = eventOf("evt_refund_first", "charge.refunded", now + 10, {
+      id: "ch_refund_first",
+      object: "charge",
+      customer,
+      payment_intent: "pi_refund_first",
+      amount: 599,
+      amount_refunded: 200,
+      currency: "usd",
+      refunded: false,
+    });
+    expect((await postEvent(harness, refund)).status).toBe(200);
+    const refunds = await env.DB.prepare("SELECT invoice_id, currency, amount_refunded FROM revenue_refunds WHERE charge_id = 'ch_refund_first'").all();
+    expect(refunds.results).toEqual([{ invoice_id: "in_refund_first", currency: "usd", amount_refunded: 200 }]);
+    const expected = {
+      user_id: session.userId,
+      subscription_id: "sub_refund_first",
+      day: today(harness),
+      currency: "usd",
+      amount_paid: 599,
+      total_excluding_tax: 483,
+      discount: 0,
+      tax: 116,
+      billing_reason: "subscription_cycle",
+    };
+    const invoiceRows = async (): Promise<RevenueRow[]> =>
+      (await env.DB.prepare("SELECT * FROM revenue_invoices WHERE invoice_id = 'in_refund_first'").all<RevenueRow>()).results;
+    expect(await invoiceRows()).toEqual([expect.objectContaining(expected)]);
+
+    // Geç gelen invoice.paid aynı satırı bırakır; iade kalır.
+    const paid: string = invoicePaidEvent({
+      eventId: "evt_refund_first_paid",
+      invoiceId: "in_refund_first",
+      customer,
+      subscriptionId: "sub_refund_first",
+      amountPaid: 599,
+      referralCode: null,
+      created: now,
+    });
+    expect((await postEvent(harness, paid)).status).toBe(200);
+    expect(await invoiceRows()).toEqual([expect.objectContaining(expected)]);
+    expect((await env.DB.prepare("SELECT COUNT(*) AS n FROM revenue_refunds WHERE invoice_id = 'in_refund_first'").first<{ n: number }>())?.n).toBe(1);
   });
 
   it("denemesiz hesabın silinmesi `signup`, denemedekininki `trial` sayılır", async () => {

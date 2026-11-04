@@ -376,6 +376,30 @@ describe("özellik kullanımı (POST /v1/telemetry/features)", () => {
     expect(await (await postFeatures(harness, first, featureReport(dayOf(harness.clock.nowMs, -2)))).json()).toEqual({ counted: true });
   });
 
+  it("toplamlar yazılamazsa gün işaretlenmez: yeniden gönderilen rapor sayılır", async () => {
+    const harness: Harness = await defaultHarness();
+    const session: Session = await signIn(harness);
+    const day: string = dayOf(harness.clock.nowMs, -6);
+    // Toplamların yazımı bir kez başarısız olur (ör. D1 geçici hatası): tetikleyici yalnızca bu günün `ask` satırını reddeder.
+    await env.DB.prepare(
+      `CREATE TRIGGER feature_usage_fail BEFORE INSERT ON feature_usage_daily WHEN NEW.day = '${day}' AND NEW.feature = 'ask'
+       BEGIN SELECT RAISE(ABORT, 'test failure'); END`,
+    ).run();
+    try {
+      expect((await postFeatures(harness, session, { ...featureReport(day), ask: true })).status).toBe(500);
+    } finally {
+      await env.DB.prepare("DROP TRIGGER feature_usage_fail").run();
+    }
+    const marked = await env.DB.prepare("SELECT telemetry_features_day FROM users WHERE id = ?").bind(session.userId).first<{ telemetry_features_day: string | null }>();
+    expect(marked?.telemetry_features_day).toBeNull();
+    expect(await featureRows(day)).toEqual([]);
+    expect(await (await postFeatures(harness, session, { ...featureReport(day), ask: true })).json()).toEqual({ counted: true });
+    expect(await featureRows(day)).toEqual([
+      { feature: "ask", value: "", users: 1, total: 1 },
+      { feature: "report", value: "", users: 1, total: 1 },
+    ]);
+  });
+
   it("sesle yazma ve ekran görüntüsü alanları olmayan (önceki sürümün) raporu kabul edilir, ikisi de sayılmaz", async () => {
     const harness: Harness = await defaultHarness();
     const session: Session = await signIn(harness);

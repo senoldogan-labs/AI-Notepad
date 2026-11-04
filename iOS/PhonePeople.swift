@@ -35,13 +35,16 @@ struct PhonePeopleList: View {
         .scrollIndicators(.hidden)
         .overlay {
             if people.isEmpty {
-                PhoneEmptyScene(
-                    symbol: "person.2.fill", palette: .ocean, title: "Henüz kimse yok",
-                    message: "Transkriptte bir konuşmacıya ad verince kişi burada görünür; toplantıları, konuşma payı ve görevleriyle."
-                ) {
-                    Button("Kişi ekle", systemImage: "person.badge.plus") { isAdding = true }
-                        .buttonStyle(.accentPill)
-                        .controlSize(.large)
+                // Defter okunamadıysa sahne üstteki hatanın üstüne binmez (eklemek de aynı nedenle yapılamaz).
+                if store.peopleBookError == nil {
+                    PhoneEmptyScene(
+                        symbol: "person.2.fill", palette: .ocean, title: "Henüz kimse yok",
+                        message: "Transkriptte bir konuşmacıya ad verince kişi burada görünür; toplantıları, konuşma payı ve görevleriyle."
+                    ) {
+                        Button("Kişi ekle", systemImage: "person.badge.plus") { isAdding = true }
+                            .buttonStyle(.accentPill)
+                            .controlSize(.large)
+                    }
                 }
             } else if shown.isEmpty {
                 PhoneEmptyState(symbol: "magnifyingglass", title: "Eşleşen kişi yok", message: "Başka bir kelimeyle ara.") {
