@@ -127,6 +127,19 @@ final class PhoneRecorder {
     /// Sunucunun reddettiği bekleyen kayıtlar ve reddin anı (bkz. `hostedQueueCandidates`).
     @ObservationIgnored private var queueRejections: [String: Date] = [:]
     @ObservationIgnored private var active: ActiveRecording?
+    /// Uygulama arka planda: kayıt ekranı görünmez; geçici bölümler bekletilir ve ses çubukları durur (arka planda
+    /// her ses parçasında ve her geçici sonuçta SwiftUI işi yapılmaz; bkz. `enterBackground`).
+    @ObservationIgnored private var isInBackground: Bool = false
+    /// Arka planda bekletilen geçici bölümler (bkz. `routingLiveEvent`); öne dönünce transkripte uygulanır.
+    @ObservationIgnored private var deferredPartials: [SegmentID: LiveSegment] = [:]
+    /// Arka plana geçiş sayısı: toplantı işlenirken artarsa sistem uygulamayı askıya alıp istekleri kesmiş olabilir
+    /// (başarısız not yeniden denenir, bkz. `process`).
+    @ObservationIgnored private var backgroundEntries: Int = 0
+    /// Ağ yolu: işleme sırasında bağlantı koptu mu; not yeniden denenmeden önce bağlantı beklenir.
+    @ObservationIgnored private let network: NetworkPathWatch = NetworkPathWatch()
+    /// Uygulama kayıt sürerken kapandığı için açılışta bulunan kayıtlar: işlenince toplantıda neden kısa olduğu yazılır
+    /// (bkz. `resumeUnfinished`).
+    @ObservationIgnored private var recoveredRecordingIDs: Set<String> = []
     /// Canlı çevirinin cümle birimlerini kuran durum (bkz. `TranslationUnit`): kesin bölümler cümle sonuna dek birikir.
     @ObservationIgnored private var unitBuilder: TranslationUnitBuilder = .empty
     /// Bu kayıtta kurulan çeviri birimleri (kuruluş sırasıyla): bağlam bunlardan.
@@ -197,6 +210,7 @@ final class PhoneRecorder {
         microphoneStatus = .running
         microphoneRecoveredNoticeVisible = false
         transcript = []
+        deferredPartials = [:]
         speakerCorrections = .none
         translations = [:]
         failedTranslations = []
@@ -259,7 +273,10 @@ final class PhoneRecorder {
             phase = .idle
             return
         }
-        levels.start()
+        // Arka planda başlatıldıysa (Kısayollar) çubuklar öne dönünce başlar (bkz. `enterForeground`).
+        if !isInBackground {
+            levels.start()
+        }
         let levels: AudioLevels = levels
         // En yüksek seviye kilitli kutuda birikir; ana aktöre çubuk aralığının yarısında bir geçilir (her parça için
         // görev açılmaz; bkz. `levelThrottleInterval`).
@@ -534,6 +551,46 @@ final class PhoneRecorder {
         }
     }
 
+    // MARK: Arka plan ve öne dönüş
+
+    /// Uygulama arka plana geçti: kayıt (mikrofon, diske yazma, canlı metin, çeviri, kontrol noktaları) sürer; yalnızca
+    /// görünmeyen ekranın işi durur: ses çubuklarının saati durur, geçici bölümler bekletilir (kesin bölümler hemen
+    /// uygulanır). Canlı etkinlik o anki durumla tazelenir: kilit ekranı kaydı gösterir.
+    func enterBackground() {
+        guard !isInBackground else {
+            return
+        }
+        isInBackground = true
+        backgroundEntries += 1
+        Self.logger.info("Uygulama arka plana geçti, kayıt: \(String(describing: self.phase), privacy: .public), mikrofon: \(String(describing: self.microphoneStatus), privacy: .public), bölüm: \(self.transcript.count, privacy: .public), işlenen: \(self.processingSteps.count, privacy: .public)")
+        guard phase == .recording, active != nil else {
+            return
+        }
+        levels.stop()
+        updateActivityNow(state: activityState())
+    }
+
+    /// Uygulama öne döndü: arka planda bekletilen geçici bölümler hemen transkripte uygulanır (kayıt ekranı uzaktayken
+    /// gelen her şeyi gösterir), ses çubukları yeniden akar. Kayıt ekranı `phase`'e bağlıdır: kayıt sürüyorsa olduğu gibi
+    /// görünür.
+    func enterForeground() {
+        guard isInBackground else {
+            return
+        }
+        isInBackground = false
+        let deferred: Int = deferredPartials.count
+        if !deferredPartials.isEmpty {
+            transcript = applyingDeferredPartials(transcript: transcript, deferredPartials: deferredPartials)
+            deferredPartials = [:]
+        }
+        Self.logger.info("Uygulama öne döndü, kayıt: \(String(describing: self.phase), privacy: .public), mikrofon: \(String(describing: self.microphoneStatus), privacy: .public), bölüm: \(self.transcript.count, privacy: .public), bekletilen geçici bölüm: \(deferred, privacy: .public), işlenen: \(self.processingSteps.count, privacy: .public)")
+        guard phase == .recording, active != nil else {
+            return
+        }
+        levels.start()
+        updateActivityNow(state: activityState())
+    }
+
     /// Kullanımdaki toplantılar (kayıtta ya da işleniyor).
     var busyMeetingIDs: Set<String> {
         Set(processingSteps.keys).union([active?.directory.lastPathComponent].compactMap { $0 })
@@ -656,7 +713,8 @@ final class PhoneRecorder {
 
     /// Açılışta (ve arka plandan dönünce) kayıtta ya da işlemede kalmış toplantılar yeniden işlenir (son geçiş ve not
     /// kaydın sunucu oturumuyla; oturumun ek süresi geçtiyse yeniden işleme için açılır, bkz. `hostedFinalPassPlan`), sonra
-    /// bekleyen (çevrimdışı) kayıtlar denenir.
+    /// bekleyen (çevrimdışı) kayıtlar denenir. Uygulama kayıt sürerken kapandıysa kaydedilen kısım hemen hazırlanır ve
+    /// kayıt ekranında gösterilir (kayıt yeniden başlatılmaz: mikrofon kullanıcı istemeden açılmaz).
     func resumeUnfinished() async {
         endStaleActivities()
         guard phase == .idle else {
@@ -672,10 +730,22 @@ final class PhoneRecorder {
             errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
             return
         }
+        // Uygulama kayıt sürerken kapandı (iOS sonlandırdı, çöktü, kullanıcı kapattı): diske yazılan ses ve son kontrol
+        // noktasındaki canlı metin durur. Kayıt sessizce kaybolmaz: kayıt ekranında nedeni ve hazırlanması görünür,
+        // toplantıda neden kısa olduğu yazılır; açık kalan sunucu oturumu işlenmeden önce kapatılır (süre akmaz, not ve
+        // son geçiş oturumun ek süresinde yapılır).
+        let recovered: [String] = interruptedRecordingIDs(records: store.meetings.filter { local.contains($0.id) && processingSteps[$0.id] == nil })
+        if !recovered.isEmpty {
+            Self.logger.warning("Uygulama kayıt sürerken kapanmıştı, kaydedilen kısım işlenecek, kayıt sayısı: \(recovered.count, privacy: .public), en yeni: \(recovered.first ?? "", privacy: .public)")
+            recoveredRecordingIDs.formUnion(recovered)
+            await HostedAccount.shared.closeOrphanedMeeting()
+        }
         // Sunucu oturumuna bağlı olmayan (çevrimdışı) yarım kayıt kuyruğa döner, bağlantı gelince kendi oturumuyla işlenir
-        // (Mac'teki gibi); yeniden işlenseydi son geçiş "oturuma bağlı değil" diye atlanırdı.
+        // (Mac'teki gibi); yeniden işlenseydi son geçiş "oturuma bağlı değil" diye atlanırdı. Sunucu oturumu kapatılırken
+        // yeni kayıt başlamış olabilir: süren kayıt (ve klasörü bu okumadan sonra açılan) yarıda kalmış sayılmaz.
+        let busy: Set<String> = busyMeetingIDs
         let stale: [MeetingRecord] = queuingUnlinkedInterrupted(
-            records: staleStatusesToInterrupt(records: store.meetings.filter { local.contains($0.id) }).filter { processingSteps[$0.id] == nil },
+            records: staleStatusesToInterrupt(records: store.meetings.filter { local.contains($0.id) && !busy.contains($0.id) }).filter { processingSteps[$0.id] == nil },
             linkedRecordIDs: linked
         )
         for record in stale {
@@ -686,9 +756,17 @@ final class PhoneRecorder {
                     saveRecord(record: record, directory: directory)
                     continue
                 }
-                Self.logger.info("Yarıda kalan toplantı yeniden işleniyor, toplantı: \(record.id, privacy: .public)")
+                Self.logger.info("Yarıda kalan toplantı yeniden işleniyor, toplantı: \(record.id, privacy: .public), kayıt sürerken kesildi: \(self.recoveredRecordingIDs.contains(record.id), privacy: .public)")
                 guard process(record: record.with(status: .processing, failureMessage: nil), directory: directory) else {
                     continue
+                }
+                if record.id == recovered.first, phase == .idle {
+                    // En son kesilen kayıt kayıt ekranında hazırlanırken görünür (hazırlık katmanı ve kartı); bitince
+                    // toplantının sayfası açılır.
+                    lastMeetingID = record.id
+                    errorMessages = appendUnique(
+                        messages: errorMessages, message: String(localized: "Kayıt, uygulama kapandığı için yarıda kesildi; o ana kadar kaydedilen kısım hazırlanıyor.")
+                    )
                 }
                 submitContinuedProcessing(id: record.id, subtitle: continuedProcessingSubtitle(title: record.title, startedAt: record.startedAt))
             } catch {
@@ -860,7 +938,12 @@ final class PhoneRecorder {
         guard eventGeneration == generation else {
             return
         }
-        transcript = applyEvent(transcript: transcript, event: event)
+        // Arka planda geçici bölümler bekletilir (ekran görünmez; her biri kayıt ekranını yeniden kurdururdu).
+        let routing: BackgroundLiveRouting = routingLiveEvent(event: event, deferredPartials: deferredPartials, isInBackground: isInBackground)
+        deferredPartials = routing.deferredPartials
+        if routing.appliesNow {
+            transcript = applyEvent(transcript: transcript, event: event)
+        }
         switch event {
         case .segment(let segment):
             if segment.isFinal, !segment.text.isEmpty {
@@ -906,6 +989,11 @@ final class PhoneRecorder {
             return
         }
         endedGeneration = sessionGeneration
+        // Arka planda biten kayıtta bekletilen geçici bölümler de toplantıya girer (kesinleşmeden kalanlar).
+        if !deferredPartials.isEmpty {
+            transcript = applyingDeferredPartials(transcript: transcript, deferredPartials: deferredPartials)
+            deferredPartials = [:]
+        }
         flushAllUnits()
         let completed: Bool = await finishesWithin(seconds: 10) { [weak self] in
             while await self?.hasPendingTranslations() == true {
@@ -987,12 +1075,17 @@ final class PhoneRecorder {
         processingSteps[record.id] = .convertingAudio
         beginBackgroundTask(id: record.id)
         processingTasks[record.id] = Task {
+            // İşleme sırasında bağlantı koparsa ya da uygulama arka plana geçerse (sistem askıya alıp istekleri keser)
+            // başarısız not yeniden denenir (bkz. `retryingFailedNote`).
+            let networkLossesAtStart: Int = network.lossCount
+            let backgroundEntriesAtStart: Int = backgroundEntries
+            Self.logger.info("Toplantı işleniyor, toplantı: \(record.id, privacy: .public), bağlı: \(self.network.isSatisfied, privacy: .public), arka planda: \(self.isInBackground, privacy: .public)")
             let finalPass: FinalPassPlan = await hostedFinalPassPlan(
                 keyterms: keytermsWithAttendees(attendees: record.attendees ?? [], keyterms: phoneRecognitionKeyterms(records: store.meetings, people: store.peopleBook), limit: 30),
                 recordID: record.id
             )
             let llm: LLMProvider? = recordedMeetingLLMReportingFailure(recordID: record.id)
-            let result: MeetingRecord = await processMeeting(
+            let processed: MeetingRecord = await processMeeting(
                 record: record, directory: directory, finalPass: finalPass, llm: llm,
                 languageMode: record.language.map { LanguageMode.fixed($0) } ?? .automatic, userName: phoneUserName(),
                 // The iPhone does not capture screens: notes are text only. Voiceprints are computed on this iPhone
@@ -1005,6 +1098,9 @@ final class PhoneRecorder {
                     self.noteWritingStartedAt[record.id] = .now
                 }
             }
+            let retried: MeetingRecord = await retryingFailedNote(
+                result: processed, directory: directory, networkLossesSince: networkLossesAtStart, backgroundEntriesSince: backgroundEntriesAtStart
+            )
             processingTasks[record.id] = nil
             guard !Task.isCancelled else {
                 // Sistem görevi sona erdi: yarım sonuç saklanmaz; toplantı diskte `processing` kalır ve açılışta
@@ -1014,6 +1110,9 @@ final class PhoneRecorder {
                 endBackgroundTask(id: record.id)
                 return
             }
+            // Uygulama kayıt sürerken kapandıysa toplantıda neden kısa olduğu yazılır.
+            let result: MeetingRecord = recoveredRecordingIDs.remove(record.id) == nil ? retried : withInterruptedRecordingNotice(record: retried)
+            Self.logger.info("Toplantı işlendi, toplantı: \(record.id, privacy: .public), durum: \(result.status.rawValue, privacy: .public), not: \(result.note != nil, privacy: .public), son geçiş bölümü: \(result.finalSegments.count, privacy: .public)")
             recordNoteOutcome(result: result, writingStartedAt: noteWritingStartedAt.removeValue(forKey: record.id))
             // Tekrar işlemede eski not geçmişe girer (ilk işlemede not yoktur; Mac'teki gibi).
             let versioned: MeetingRecord = withNoteVersion(updated: result, previous: record, reason: String(localized: "Tekrar işlendi"), savedAt: Date())
@@ -1028,6 +1127,48 @@ final class PhoneRecorder {
             await runQueue()
         }
         return true
+    }
+
+    /// İşleme not adımında başarısız bittiyse (ses dönüştürüldü, yazıya dökülmüş metin var, not yok) not beklemeyle
+    /// yeniden denenir (bkz. `shouldRetryMeetingNote`): istemcinin hızlı denemeleri birkaç saniyelik kopukluğa (toplantı
+    /// odasından çıkarken Wi-Fi'dan hücresele geçiş) ya da uygulamanın arka planda askıya alınıp isteklerin kesilmesine
+    /// yetmiyordu ve toplantı "başarısız" kalıyordu. Denemeden önce bağlantı beklenir (en çok 2 dk). Son geçiş yeniden
+    /// yapılmaz (ses yeniden faturalanmasın): not son geçiş metninden, o yoksa canlı metinden yazılır. Her deneme
+    /// loglanır; görev iptal edilirse eldeki sonuç döner (çağıran iptali işler).
+    private func retryingFailedNote(result: MeetingRecord, directory: URL, networkLossesSince: Int, backgroundEntriesSince: Int) async -> MeetingRecord {
+        var current: MeetingRecord = result
+        var attempt: Int = 1
+        var lossMark: Int = networkLossesSince
+        var backgroundMark: Int = backgroundEntriesSince
+        while !Task.isCancelled {
+            let interrupted: Bool = network.lossCount != lossMark || backgroundEntries != backgroundMark || isInBackground || !network.isSatisfied
+            let converted: Bool = !FileManager.default.fileExists(atPath: directory.appending(path: "others.caf").path)
+            guard shouldRetryMeetingNote(result: current, audioConverted: converted, environmentInterrupted: interrupted, attempt: attempt) else {
+                return current
+            }
+            let delay: Double = meetingNoteRetryDelaySec(attempt: attempt)
+            Self.logger.warning("Not yazılamadı, yeniden denenecek, toplantı: \(current.id, privacy: .public), deneme: \(attempt, privacy: .public), bekleme: \(delay, privacy: .public) sn, bağlantı kesildi ya da arka plan: \(interrupted, privacy: .public)")
+            do {
+                try await Task.sleep(for: .seconds(delay))
+                if try await !network.waitUntilSatisfied(limitSec: 120) {
+                    Self.logger.warning("Not denemesinden önce bağlantı gelmedi, yine deneniyor, toplantı: \(current.id, privacy: .public)")
+                }
+            } catch {
+                // İptal: işlemenin sistem görevi sona erdi; çağıran iptali işler (toplantı açılışta yeniden işlenir).
+                return current
+            }
+            attempt += 1
+            lossMark = network.lossCount
+            backgroundMark = backgroundEntries
+            processingSteps[current.id] = .writingNote
+            noteWritingStartedAt[current.id] = .now
+            current = await regenerateNote(
+                record: current.with(status: .processing, failureMessage: nil), directory: directory, llm: recordedMeetingLLMReportingFailure(recordID: current.id),
+                userName: phoneUserName(), language: phoneNoteLanguage(), screens: .off
+            )
+            Self.logger.info("Not yeniden denendi, toplantı: \(current.id, privacy: .public), deneme: \(attempt, privacy: .public), durum: \(current.status.rawValue, privacy: .public)")
+        }
+        return current
     }
 
     /// Kaydı biten toplantının notu için sağlayıcı (bkz. `phoneRecordedMeetingLLMProvider`); kullanılamıyorsa nil ve neden

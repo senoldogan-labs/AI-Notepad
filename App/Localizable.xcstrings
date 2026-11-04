@@ -142961,6 +142961,146 @@
           }
         }
       }
+    },
+    "Kayıt, uygulama kapandığı için yarıda kesildi; o ana kadar kaydedilen kısım hazırlanıyor.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Aufnahme wurde unterbrochen, weil die App geschlossen wurde; der bis dahin aufgenommene Teil wird vorbereitet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The recording was cut short because the app closed; the part recorded until then is being prepared."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La grabación se cortó porque la app se cerró; se está preparando la parte grabada hasta ese momento."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nauhoitus katkesi, koska sovellus sulkeutui; siihen asti nauhoitettua osaa valmistellaan."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’enregistrement a été interrompu car l’app s’est fermée ; la partie enregistrée jusque-là est en cours de préparation."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La registrazione è stata interrotta perché l’app si è chiusa; la parte registrata fino a quel momento è in preparazione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリが終了したため録音が途中で止まりました。それまでに録音された部分を準備しています。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "앱이 종료되어 녹음이 중간에 끊겼습니다. 그때까지 녹음된 부분을 준비하고 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De opname is afgebroken omdat de app werd gesloten; het deel dat tot dan is opgenomen, wordt voorbereid."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A gravação foi interrompida porque o app foi fechado; a parte gravada até então está sendo preparada."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "由于 App 关闭，录制中途中断；正在准备此前已录制的部分。"
+          }
+        }
+      }
+    },
+    "Kayıt, uygulama kapandığı için yarıda kesildi; o ana kadar kaydedilen kısım işlendi.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Aufnahme wurde unterbrochen, weil die App geschlossen wurde; der bis dahin aufgenommene Teil wurde verarbeitet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The recording was cut short because the app closed; the part recorded until then was processed."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La grabación se cortó porque la app se cerró; se procesó la parte grabada hasta ese momento."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nauhoitus katkesi, koska sovellus sulkeutui; siihen asti nauhoitettu osa käsiteltiin."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’enregistrement a été interrompu car l’app s’est fermée ; la partie enregistrée jusque-là a été traitée."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La registrazione è stata interrotta perché l’app si è chiusa; la parte registrata fino a quel momento è stata elaborata."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリが終了したため録音が途中で止まりました。それまでに録音された部分は処理済みです。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "앱이 종료되어 녹음이 중간에 끊겼습니다. 그때까지 녹음된 부분은 처리되었습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De opname is afgebroken omdat de app werd gesloten; het deel dat tot dan is opgenomen, is verwerkt."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A gravação foi interrompida porque o app foi fechado; a parte gravada até então foi processada."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "由于 App 关闭，录制中途中断；此前已录制的部分已处理。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
