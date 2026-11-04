@@ -307,7 +307,7 @@ final class PhoneRecorder {
         // Canlı motoru sunucu seçer (Deepgram jetonu); jeton alınamazsa ya da akış durursa canlı metin bu iPhone'da.
         let choice: HostedLiveChoice = await hostedLiveChoice(
             language: speechLanguage,
-            keyterms: keytermsWithAttendees(attendees: linkedMeeting?.attendees ?? [], keyterms: phoneRecognitionKeyterms(records: store.meetings, people: store.peopleBook), limit: 30)
+            keyterms: keytermsWithAttendees(attendees: linkedMeeting?.attendees ?? [], keyterms: phoneRecognitionKeyterms(store: store), limit: 30)
         )
         Self.logger.info("Canlı motor seçildi, motor: \(choice.engine.rawValue, privacy: .public)")
         let handle: LiveSessionHandle = runHybridLiveSession(
@@ -351,7 +351,7 @@ final class PhoneRecorder {
         watchRecordingLimit(deadline: deadline)
         consentReminderVisible = UserDefaults.standard.bool(forKey: PhoneSettingsKey.consentReminder)
         relatedTasks = linkedMeeting.map { (meeting: CalendarMeeting) -> [RelatedOpenTask] in
-            relatedOpenTasks(meeting: meeting, records: store.meetings, userName: phoneUserName(), before: started)
+            relatedOpenTasks(meeting: meeting, records: store.meetings, userName: store.userName, before: started)
         } ?? []
         Self.logger.info("Kayıt başladı, klasör: \(directory.lastPathComponent, privacy: .public), çevrimdışı: \(offline, privacy: .public)")
         let sessionGeneration: Int = generation
@@ -988,13 +988,13 @@ final class PhoneRecorder {
         beginBackgroundTask(id: record.id)
         processingTasks[record.id] = Task {
             let finalPass: FinalPassPlan = await hostedFinalPassPlan(
-                keyterms: keytermsWithAttendees(attendees: record.attendees ?? [], keyterms: phoneRecognitionKeyterms(records: store.meetings, people: store.peopleBook), limit: 30),
+                keyterms: keytermsWithAttendees(attendees: record.attendees ?? [], keyterms: phoneRecognitionKeyterms(store: store), limit: 30),
                 recordID: record.id
             )
             let llm: LLMProvider? = recordedMeetingLLMReportingFailure(recordID: record.id)
             let result: MeetingRecord = await processMeeting(
                 record: record, directory: directory, finalPass: finalPass, llm: llm,
-                languageMode: record.language.map { LanguageMode.fixed($0) } ?? .automatic, userName: phoneUserName(),
+                languageMode: record.language.map { LanguageMode.fixed($0) } ?? .automatic, userName: store.userName,
                 // The iPhone does not capture screens: notes are text only. Voiceprints are computed on this iPhone
                 // (SpeakerKit) when voice recognition is on; they never leave the device.
                 noteLanguage: phoneNoteLanguage(), voiceEmbedder: store.voices.embedderIfEnabled(), registry: store.voices.registered, screens: .off

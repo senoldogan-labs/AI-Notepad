@@ -25,28 +25,50 @@ public struct NoteDestination: Sendable, Equatable, Codable, Identifiable {
     /// Bağlandığı an: kendiliğinden gönderim yalnızca bundan sonra biten toplantılar için yapılır (yeni bağlanan hedefe
     /// eski toplantılar yığılmasın).
     public let createdAt: Date
+    /// Kendiliğinden gönderimin açıldığı an: yalnızca bundan sonra biten toplantılar kendiliğinden gönderilir (açınca
+    /// son günlerin notları topluca gitmesin); kapatılınca silinir. Eski sürümlerin kayıtlarında yoktur (nil): o
+    /// hedeflerde bağlanma anı geçerlidir (bkz. `autoSendStart`).
+    public let autoSendSince: Date?
     /// Oturum bitti (yenileme reddedildi): kullanıcı yeniden bağlanana dek kendiliğinden gönderilmez.
     public let needsReconnect: Bool
 
-    public init(id: String, target: DestinationTarget, autoSend: Bool, createdAt: Date, needsReconnect: Bool) {
+    public init(id: String, target: DestinationTarget, autoSend: Bool, createdAt: Date, autoSendSince: Date?, needsReconnect: Bool) {
         self.id = id
         self.target = target
         self.autoSend = autoSend
         self.createdAt = createdAt
+        self.autoSendSince = autoSendSince
         self.needsReconnect = needsReconnect
     }
 
     public func with(target newTarget: DestinationTarget) -> NoteDestination {
-        NoteDestination(id: id, target: newTarget, autoSend: autoSend, createdAt: createdAt, needsReconnect: needsReconnect)
+        NoteDestination(id: id, target: newTarget, autoSend: autoSend, createdAt: createdAt, autoSendSince: autoSendSince, needsReconnect: needsReconnect)
     }
 
-    public func with(autoSend newAutoSend: Bool) -> NoteDestination {
-        NoteDestination(id: id, target: target, autoSend: newAutoSend, createdAt: createdAt, needsReconnect: needsReconnect)
+    /// Kendiliğinden gönderim ayarı değişmiş kopya: kapalıyken açılınca açılış anı `now` olur (yalnızca bundan sonra
+    /// biten toplantılar gider), zaten açıksa korunur, kapatılınca silinir.
+    public func with(autoSend newAutoSend: Bool, now: Date) -> NoteDestination {
+        let since: Date? = newAutoSend ? (autoSend ? autoSendSince : now) : nil
+        return NoteDestination(id: id, target: target, autoSend: newAutoSend, createdAt: createdAt, autoSendSince: since, needsReconnect: needsReconnect)
     }
 
     public func with(needsReconnect newValue: Bool) -> NoteDestination {
-        NoteDestination(id: id, target: target, autoSend: autoSend, createdAt: createdAt, needsReconnect: newValue)
+        NoteDestination(id: id, target: target, autoSend: autoSend, createdAt: createdAt, autoSendSince: autoSendSince, needsReconnect: newValue)
     }
+}
+
+/// Hedefe kendiliğinden gönderilecek toplantıların en erken bitiş anı: kendiliğinden gönderimin açıldığı an. Eski
+/// sürümde açılmış (açılış anı saklanmamış) hedefte bağlanma anıdır: eski sürüm de o andan sonra bitenleri gönderiyordu,
+/// güncellemeden sonra yeni bir toplu gönderim olmaz. Saf fonksiyondur.
+public func autoSendStart(destination: NoteDestination) -> Date {
+    destination.autoSendSince ?? destination.createdAt
+}
+
+/// `finishedAt`'ta biten toplantı, `since`'ta açılan kendiliğinden gönderimin kapsamında mı: yalnızca açıldıktan sonra
+/// bitenler kendiliğinden gider; daha eskileri elle gönderilir. `since` nil: açılış anı saklanmamış (eski sürümde
+/// açılmış) ayar, her biten not kapsamdadır. Saf fonksiyondur.
+public func isCoveredByAutoSend(finishedAt: Date, since: Date?) -> Bool {
+    since.map { finishedAt >= $0 } ?? true
 }
 
 /// Hedefin arayüzdeki adı. Saf fonksiyondur.
@@ -81,8 +103,9 @@ public func destinationDetail(destination: NoteDestination) -> String {
 public let autoSendLookbackSec: TimeInterval = 7 * 24 * 3600
 
 /// Gönderilmesi gereken (toplantı, hedef) çiftleri: hedefin kendiliğinden gönderimi açık ve oturumu geçerli, toplantı
-/// bitmiş ve notu var, hedef bağlandıktan sonra ve son 7 günde bitmiş, o hedefe daha önce gönderilmemiş. Kaçan
-/// gönderimler (ağ yoktu, uygulama kapandı) böylece açılışta ve saatte bir telafi edilir. Saf fonksiyondur.
+/// bitmiş ve notu var, hedefte kendiliğinden gönderim açıldıktan sonra (bkz. `autoSendStart`) ve son 7 günde bitmiş, o
+/// hedefe daha önce gönderilmemiş. Açmadan önce biten notlar elle gönderilir. Kaçan gönderimler (ağ yoktu, uygulama
+/// kapandı) böylece açılışta ve saatte bir telafi edilir. Saf fonksiyondur.
 public func pendingAutoSends(records: [MeetingRecord], destinations: [NoteDestination], now: Date) -> [(meetingID: String, destinationID: String)] {
     let active: [NoteDestination] = destinations.filter { $0.autoSend && !$0.needsReconnect }
     return records
@@ -94,7 +117,7 @@ public func pendingAutoSends(records: [MeetingRecord], destinations: [NoteDestin
             }
             return active
                 .filter { (destination: NoteDestination) -> Bool in
-                    finished >= destination.createdAt && !wasSent(record: record, destination: destination)
+                    isCoveredByAutoSend(finishedAt: finished, since: autoSendStart(destination: destination)) && !wasSent(record: record, destination: destination)
                 }
                 .map { (meetingID: record.id, destinationID: $0.id) }
         }
@@ -125,11 +148,13 @@ public func destinationSendKey(destination: NoteDestination) -> String? {
     }
 }
 
-/// Eski sürümün tek bağlantısından (hesap ya da webhook adresi) hedef listesi. Taşınan hedef `createdAt` olarak şimdiyi
-/// alır: eski toplantılar yeniden gönderilmez. Saf fonksiyondur.
+/// Eski sürümün tek bağlantısından (hesap ya da webhook adresi) hedef listesi. Taşınan hedef `createdAt` (ve açıksa
+/// kendiliğinden gönderimin açılış anı) olarak şimdiyi alır: eski toplantılar yeniden gönderilmez. Saf fonksiyondur.
 public func migratedDestinations(connection: ChannelConnection?, webhook: URL?, autoSend: Bool, now: Date, newID: () -> String) -> [NoteDestination] {
     let targets: [DestinationTarget] = [connection.map { DestinationTarget.account($0) }, webhook.map { DestinationTarget.webhook($0) }].compactMap { $0 }
-    return targets.map { NoteDestination(id: newID(), target: $0, autoSend: autoSend, createdAt: now, needsReconnect: false) }
+    return targets.map {
+        NoteDestination(id: newID(), target: $0, autoSend: autoSend, createdAt: now, autoSendSince: autoSend ? now : nil, needsReconnect: false)
+    }
 }
 
 /// Hedef listesi hataları.
@@ -221,14 +246,14 @@ public actor DestinationVault {
         return stored
     }
 
-    /// Hedefin kendiliğinden gönderim ayarını değiştirir: kayıtlı (güncel) hedef okunur, yalnızca ayar değişir.
-    /// Bellekteki eski kopya yazılmaz; yoksa bu arada yenilenen jetonların (Slack yenileme jetonu tek kullanımlık)
-    /// üzerine eskileri yazılırdı.
-    public func setAutoSend(id: String, enabled: Bool) throws {
+    /// Hedefin kendiliğinden gönderim ayarını değiştirir: kayıtlı (güncel) hedef okunur, yalnızca ayar (ve açılınca
+    /// açılış anı `now`, bkz. `NoteDestination.with(autoSend:now:)`) değişir. Bellekteki eski kopya yazılmaz; yoksa bu
+    /// arada yenilenen jetonların (Slack yenileme jetonu tek kullanımlık) üzerine eskileri yazılırdı.
+    public func setAutoSend(id: String, enabled: Bool, now: Date) throws {
         guard let stored = try all().first(where: { $0.id == id }) else {
             throw DestinationError.notFound(id: id)
         }
-        try upsert(stored.with(autoSend: enabled))
+        try upsert(stored.with(autoSend: enabled, now: now))
     }
 
     /// Hedefi kaldırır; kaldırılan hedef (servis tarafında kapatmak için) döner.

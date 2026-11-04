@@ -18,7 +18,6 @@ struct PhoneSettingsTab: View {
     let router: PhoneRouter
     @AppStorage(PhoneSettingsKey.primaryMeetingLanguage) private var primaryLanguage: String = MeetingLanguage.finnish.rawValue
     @AppStorage(PhoneSettingsKey.noteLanguage) private var noteLanguage: String = defaultNoteLanguage(interfaceLanguages: Bundle.main.preferredLocalizations).rawValue
-    @AppStorage(PhoneSettingsKey.userName) private var userName: String = ""
     @AppStorage(PhoneSettingsKey.consentReminder) private var consentReminder: Bool = true
     @AppStorage(PhoneSettingsKey.audioRetentionDays) private var retentionDays: Int = 30
     @AppStorage(PhoneSettingsKey.theme) private var theme: String = AppTheme.system.rawValue
@@ -28,7 +27,6 @@ struct PhoneSettingsTab: View {
     @AppStorage(PhoneSettingsKey.noteTemplate) private var noteTemplate: String = NoteTemplateKind.general.rawValue
     @AppStorage(PhoneSettingsKey.customTemplate) private var customTemplate: String = ""
     @AppStorage(PhoneSettingsKey.templateFromTitle) private var templateFromTitle: Bool = true
-    @AppStorage(PhoneSettingsKey.customVocabulary) private var vocabulary: String = ""
     @AppStorage(PhoneSettingsKey.missedWindowMinutes) private var missedMinutes: Int = 3
     @Environment(\.openURL) private var openURL: OpenURLAction
 
@@ -40,7 +38,7 @@ struct PhoneSettingsTab: View {
                 CrashReportNotice(center: crashReports)
                 Section {
                     NavigationLink {
-                        PhoneAccountScreen(account: account, isMeetingInFlight: isMeetingInFlight)
+                        PhoneAccountScreen(account: account, isMeetingInFlight: isMeetingInFlight, store: store)
                     } label: {
                         PhoneAccountRow(account: account)
                     }
@@ -96,7 +94,7 @@ struct PhoneSettingsTab: View {
                     // Etiketli satır: ad yazılınca alan yalnızca adı gösteriyor, neyin adı olduğu anlaşılmıyordu.
                     PhoneCaptionedRow(caption: Text("Notta sana düşen görevleri ayırmak için kullanılır.")) {
                         LabeledContent {
-                            TextField("Adın", text: $userName, prompt: Text("İsteğe bağlı"))
+                            TextField("Adın", text: Binding<String>(get: { store.userName }, set: { (name: String) -> Void in store.setUserName(name: name) }), prompt: Text("İsteğe bağlı"))
                                 .multilineTextAlignment(.trailing)
                                 .textContentType(.givenName)
                                 .textInputAutocapitalization(.words)
@@ -141,8 +139,10 @@ struct PhoneSettingsTab: View {
                     if noteTemplate == NoteTemplateKind.custom.rawValue {
                         NavigationLink {
                             PhoneTextSettingScreen(
-                                title: "Kendi şablonun", key: PhoneSettingsKey.customTemplate,
-                                help: "Notta neyin öne çıkacağını yaz; ör. “Riskleri ayrı say, kararların gerekçesini yaz.”"
+                                title: "Kendi şablonun",
+                                help: "Notta neyin öne çıkacağını yaz; ör. “Riskleri ayrı say, kararların gerekçesini yaz.”",
+                                load: { () -> String in UserDefaults.standard.string(forKey: PhoneSettingsKey.customTemplate) ?? "" },
+                                save: { (value: String) -> Void in UserDefaults.standard.set(value, forKey: PhoneSettingsKey.customTemplate) }
                             )
                         } label: {
                             LabeledContent("Kendi şablonun", value: customTemplate.isEmpty ? String(localized: "Boş") : String(localized: "Yazıldı"))
@@ -153,12 +153,15 @@ struct PhoneSettingsTab: View {
                         Text("Ad türü gösteriyorsa (ör. \"1:1\", \"Daily\", \"Mülakat\") o şablon kullanılır; kendi şablonun hep geçerli.")
                     }
                     NavigationLink {
+                        // Sözlük hesabındır (bkz. `PhoneStore.vocabulary`): aynı iPhone'daki başka hesap görmez.
                         PhoneTextSettingScreen(
-                            title: "Tanıma sözlüğü", key: PhoneSettingsKey.customVocabulary,
-                            help: "Doğru yazılması gereken adlar ve terimler; satır başına bir tane, en fazla 30."
+                            title: "Tanıma sözlüğü",
+                            help: "Doğru yazılması gereken adlar ve terimler; satır başına bir tane, en fazla 30.",
+                            load: { () -> String in store.vocabulary },
+                            save: { (value: String) -> Void in store.setVocabulary(text: value) }
                         )
                     } label: {
-                        LabeledContent("Tanıma sözlüğü", value: String(localized: "\(customVocabulary(text: vocabulary).count) terim"))
+                        LabeledContent("Tanıma sözlüğü", value: String(localized: "\(customVocabulary(text: store.vocabulary).count) terim"))
                     }
                 } header: {
                     Text("Not")
@@ -274,11 +277,12 @@ private struct CalendarSettingsSection: View {
 }
 
 /// Çok satırlı metin ayarı (tanıma sözlüğü, kendi şablonun): üstte kısa açıklama, altında kart içinde düzenleyici; her
-/// değişiklik hemen saklanır.
+/// değişiklik hemen saklanır (`save`; açılınca `load` okunur).
 private struct PhoneTextSettingScreen: View {
     let title: LocalizedStringKey
-    let key: String
     let help: LocalizedStringKey
+    let load: @MainActor () -> String
+    let save: @MainActor (String) -> Void
     @State private var text: String = ""
     @FocusState private var isFocused: Bool
 
@@ -302,11 +306,11 @@ private struct PhoneTextSettingScreen: View {
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            text = UserDefaults.standard.string(forKey: key) ?? ""
+            text = load()
             isFocused = true
         }
         .onChange(of: text) { (_: String, value: String) in
-            UserDefaults.standard.set(value, forKey: key)
+            save(value)
         }
     }
 }

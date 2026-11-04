@@ -305,7 +305,7 @@ public func readLegacyUserData(dataRoot: URL) throws -> LegacyUserData {
 }
 
 /// Klasördeki gizli olmayan girdilerin adları (sıralı); klasör yoksa boş.
-private func visibleEntries(directory: URL) throws -> [String] {
+func visibleEntries(directory: URL) throws -> [String] {
     guard FileManager.default.fileExists(atPath: directory.path) else {
         return []
     }
@@ -397,7 +397,7 @@ public func migrateLegacyUserData(dataRoot: URL, accountKey: String, recordOwner
 }
 
 /// Öğeyi aynı disk içinde atomik olarak yeniden adlandırır; hedef varsa ya da başka diske düşüyorsa hata (kopyalanmaz).
-private func renameExclusively(move: DataMove, movedSoFar: Int) throws {
+func renameExclusively(move: DataMove, movedSoFar: Int) throws {
     let parent: URL = move.destination.deletingLastPathComponent()
     do {
         try FileManager.default.createDirectory(at: parent, withIntermediateDirectories: true)

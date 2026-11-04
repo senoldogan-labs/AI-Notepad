@@ -29,7 +29,7 @@ struct MeetingsListPage: View {
     @State private var deleteErrors: [String] = []
     @State private var listFilter: MeetingListFilter = .all
     /// Notlardaki konuşmacı etiketleri adlarla; adı kullanıcının adı olan konuşmacının görevleri onundur.
-    @AppStorage(SettingsKey.userName) private var userName: String = ""
+    private var userName: String { model.userName }
 
     var body: some View {
         // Satırlar notu konuşmacı adlarıyla gösterir (başlık, görev sayısı); süzgeç saklı kayıtlara uygulanır, sıra korunur.

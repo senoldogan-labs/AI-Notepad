@@ -40,9 +40,10 @@ private enum PhoneOnboardingPage: Int, CaseIterable {
 /// İlk açılış (girişten ve yapay zekâ açıklamasından sonra): film gradyanlı panel ve sayfanın içeriği; her sayfa
 /// atlanabilir, hepsi sonra Ayarlar'dan değişir. Bitince ya da atlanınca bir daha gösterilmez.
 struct PhoneOnboarding: View {
+    /// Yüklü hesabın arşivi: ad hesabın ayar alanına yazılır (bkz. `PhoneStore.userName`).
+    let store: PhoneStore
     let onFinish: @MainActor () -> Void
     @State private var page: PhoneOnboardingPage = launchOnboardingPage(arguments: CommandLine.arguments)
-    @AppStorage(PhoneSettingsKey.userName) private var userName: String = ""
     @AppStorage(PhoneSettingsKey.primaryMeetingLanguage) private var primaryLanguage: String = MeetingLanguage.finnish.rawValue
 
     var body: some View {
@@ -61,7 +62,7 @@ struct PhoneOnboarding: View {
                     }
                 case .profile:
                     VStack(alignment: .leading, spacing: 12) {
-                        TextField("Adın", text: $userName, prompt: Text("Adın (ör. Doğan)"))
+                        TextField("Adın", text: Binding<String>(get: { store.userName }, set: { (name: String) -> Void in store.setUserName(name: name) }), prompt: Text("Adın (ör. Doğan)"))
                             .textInputAutocapitalization(.words)
                             .autocorrectionDisabled()
                             .appFont(size: 17, weight: .regular)

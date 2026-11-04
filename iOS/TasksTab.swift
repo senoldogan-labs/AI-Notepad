@@ -16,7 +16,7 @@ struct TasksTab: View {
     let router: PhoneRouter
     @State private var filter: TaskFilter = .open
     /// Kullanıcının adı (Ayarlar): girilince "Adını yaz" düğmesi hemen kalksın.
-    @AppStorage(PhoneSettingsKey.userName) private var userName: String = ""
+    private var userName: String { store.userName }
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {

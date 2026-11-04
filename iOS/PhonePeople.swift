@@ -12,7 +12,7 @@ struct PhonePeopleList: View {
     @State private var isAdding: Bool = false
 
     var body: some View {
-        let people: [PersonSummary] = peopleDirectory(records: store.meetings, voices: store.voices.registered, book: store.peopleBook, userName: phoneUserName())
+        let people: [PersonSummary] = peopleDirectory(records: store.meetings, voices: store.voices.registered, book: store.peopleBook, userName: store.userName)
         let trimmed: String = query.trimmingCharacters(in: .whitespaces)
         let shown: [PersonSummary] = trimmed.isEmpty ? people : people.filter {
             $0.name.localizedCaseInsensitiveContains(trimmed) || $0.role.localizedCaseInsensitiveContains(trimmed)
@@ -124,7 +124,7 @@ private struct PhonePersonPage: View {
     @Environment(\.dismiss) private var dismiss: DismissAction
 
     var body: some View {
-        let people: [PersonSummary] = peopleDirectory(records: store.meetings, voices: store.voices.registered, book: store.peopleBook, userName: phoneUserName())
+        let people: [PersonSummary] = peopleDirectory(records: store.meetings, voices: store.voices.registered, book: store.peopleBook, userName: store.userName)
         if let person = people.first(where: { $0.id == (renamedID ?? personID) }) {
             content(person: person)
         } else {

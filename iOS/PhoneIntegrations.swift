@@ -119,7 +119,7 @@ final class PhoneIntegrations {
     /// Yeni hedef ekler (kendiliğinden gönderim kapalı başlar; kullanıcı açar).
     @discardableResult
     func addDestination(target: DestinationTarget) async throws -> NoteDestination {
-        let destination: NoteDestination = NoteDestination(id: UUID().uuidString, target: target, autoSend: false, createdAt: Date(), needsReconnect: false)
+        let destination: NoteDestination = NoteDestination(id: UUID().uuidString, target: target, autoSend: false, createdAt: Date(), autoSendSince: nil, needsReconnect: false)
         try await destinationVault().upsert(destination)
         destinations = try await destinationVault().all()
         return destination
@@ -134,10 +134,11 @@ final class PhoneIntegrations {
         return previous
     }
 
-    /// Kendiliğinden gönderimi açar ya da kapatır; kayıtlı hedefin yalnızca bu ayarı değişir.
+    /// Kendiliğinden gönderimi açar ya da kapatır; kayıtlı hedefin yalnızca bu ayarı değişir. Açılınca yalnızca bundan
+    /// sonra biten notlar kendiliğinden gider (bkz. `pendingAutoSends`).
     func setAutoSend(destinationID: String, enabled: Bool) async {
         do {
-            try await destinationVault().setAutoSend(id: destinationID, enabled: enabled)
+            try await destinationVault().setAutoSend(id: destinationID, enabled: enabled, now: Date())
             destinations = try await destinationVault().all()
         } catch {
             report(message: userFacingMessage(error: error))
@@ -261,7 +262,7 @@ final class PhoneIntegrations {
 
     /// Paylaşılan toplantı: konuşmacı adları notta uygulanmış (Mac'teki `shownMeeting`).
     private func shownMeeting(id: String) -> MeetingRecord? {
-        store.meetings.first { $0.id == id }.map { namedRecord(record: $0, userName: phoneUserName()) }
+        store.meetings.first { $0.id == id }.map { namedRecord(record: $0, userName: store.userName) }
     }
 
     /// Notu bir hedefe gönderir; başarılıysa toplantıya işlenir. Hata metni döner (toplantı, not ya da hedef yoksa ve

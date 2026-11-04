@@ -27,8 +27,8 @@ enum LiveEngine: String, CaseIterable {
 enum SettingsKey {
     static let liveEngine: String = "liveEngine"
     static let displayMode: String = "displayMode"
-    /// Kullanıcı adı (not görevlerinde "benim" tespiti için).
-    static let userName: String = "userName"
+    /// Kullanıcı adı (not görevlerinde "benim" tespiti için; `userContentDefaults` alanında: abonelikte hesabın).
+    static let userName: String = userNameDefaultsKey
     static let hideFromScreenCapture: String = "hideFromScreenCapture"
     /// "Ne kaçırdım?" penceresi (dakika).
     static let missedWindowMinutes: String = "missedWindowMinutes"
@@ -87,13 +87,16 @@ enum SettingsKey {
     static let inPersonMode: String = "inPersonMode"
     /// Her not hazır olunca Apple Notlar'a gönder (varsayılan kapalı; `userContentDefaults` alanında).
     static let appleNotesAutoSend: String = "destinations.appleNotes"
+    /// Apple Notlar'a kendiliğinden gönderimin açıldığı an (`Date`; kapalıyken yok): yalnızca bundan sonra biten notlar
+    /// gider (`userContentDefaults` alanında).
+    static let appleNotesAutoSendSince: String = "destinations.appleNotesSince"
     /// Notların Markdown olarak yazılacağı klasör (Obsidian, iCloud Drive…); seçilmediyse yok (`userContentDefaults`
     /// alanında).
     static let markdownFolder: String = "destinations.markdownFolder"
     /// Her not hazır olunca klasöre yaz (varsayılan kapalı; `userContentDefaults` alanında).
     static let markdownAutoExport: String = "destinations.markdownAuto"
-    /// Kullanıcının tanıma sözlüğü (satır başına bir ad ya da terim).
-    static let customVocabulary: String = "customVocabulary"
+    /// Kullanıcının tanıma sözlüğü (satır başına bir ad ya da terim; `userContentDefaults` alanında: abonelikte hesabın).
+    static let customVocabulary: String = customVocabularyDefaultsKey
     /// Kullanıcının oluşturduğu klasörler (boş olanlar da listede kalsın).
     static let folders: String = savedFoldersKey
     /// Toplantı özetinde sözlük açık mı.
