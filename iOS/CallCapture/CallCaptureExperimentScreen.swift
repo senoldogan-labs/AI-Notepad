@@ -3,7 +3,8 @@ import AINotepadCore
 import AINotepadUI
 import SwiftUI
 
-// Metinler `Text(verbatim:)`: deneysel ekran metin kataloğuna girmez (yalnız bayraklı derlemede var).
+// Metinler kataloğda (`App/Localizable.xcstrings`) tüm arayüz dillerindedir: deneysel derleme (TestFlight denemesi) de
+// cihazın dilinde görünür.
 
 /// "Bu iPhone'daki görüşmeyi kaydet (deneysel)": Toplantılar › İçe aktar menüsünden açılan sayfa. iOS 27 öncesinde
 /// yalnız nedenini söyler.
@@ -20,18 +21,18 @@ struct CallCaptureExperimentScreen: View {
                 if #available(iOS 27.0, *) {
                     CallCaptureExperimentContent(recorder: recorder, isRecording: isRecording) { dismiss() }
                 } else {
-                    Text(verbatim: "Bu deneme iOS 27'nin ScreenCaptureKit'ini kullanır; iOS 27 gerekir.")
+                    Text("Bu deneme iOS 27'nin ScreenCaptureKit'ini kullanır; iOS 27 gerekir.")
                         .foregroundStyle(Theme.muted)
                         .padding(24)
                 }
                 #else
-                Text(verbatim: "ScreenCaptureKit iOS Simulator'da yok; gerçek iPhone'da (iOS 27) dene.")
+                Text("ScreenCaptureKit iOS Simulator'da yok; gerçek iPhone'da (iOS 27) dene.")
                     .foregroundStyle(Theme.muted)
                     .padding(24)
                 #endif
             }
             .background(Theme.background)
-            .navigationTitle(Text(verbatim: "Görüşme kaydı (deneysel)"))
+            .navigationTitle(Text("Görüşme kaydı (deneysel)"))
             .navigationBarTitleDisplayMode(.inline)
         }
     }
@@ -49,7 +50,7 @@ private struct CallCaptureExperimentContent: View {
         let phase: CallCapturePhase = controller.phase
         List {
             Section {
-                Text(verbatim: "Görüşmeyi kaydetmeden önce katılımcılara haber ver. Başlat'a basınca açılan sistem penceresinde mikrofonu aç ve ekranı paylaş; yalnız ses kaydedilir. Sonra Teams'e ya da Zoom'a geç; dönünce sayaçlar sistem sesinin gelip gelmediğini gösterir.")
+                Text("Görüşmeyi kaydetmeden önce katılımcılara haber ver. Başlat'a basınca açılan sistem penceresinde mikrofonu aç ve ekranı paylaş; yalnız ses kaydedilir. Sonra Teams'e ya da Zoom'a geç; dönünce sayaçlar sistem sesinin gelip gelmediğini gösterir.")
                     .appFont(size: 14, weight: .regular)
                     .foregroundStyle(Theme.muted)
             }
@@ -62,17 +63,17 @@ private struct CallCaptureExperimentContent: View {
                             .textSelection(.enabled)
                     }
                 } header: {
-                    Text(verbatim: "Hatalar")
+                    Text("Hatalar")
                 }
             }
             Section {
-                CallSourceRow(title: "Sistem sesi (karşı taraf)", levels: controller.systemLevels, stats: controller.systemStats, isEnabled: true)
+                CallSourceRow(title: String(localized: "Sistem sesi (karşı taraf)"), levels: controller.systemLevels, stats: controller.systemStats, isEnabled: true)
                 CallSourceRow(
-                    title: "Mikrofon (sen)", levels: controller.microphoneLevels, stats: controller.microphoneStats,
+                    title: String(localized: "Mikrofon (sen)"), levels: controller.microphoneLevels, stats: controller.microphoneStats,
                     isEnabled: controller.microphoneEnabled || phase == .idle || phase == .picking
                 )
             } header: {
-                Text(verbatim: "Kaynaklar")
+                Text("Kaynaklar")
             }
             Section {
                 controls(phase: phase)
@@ -80,7 +81,7 @@ private struct CallCaptureExperimentContent: View {
             if !controller.rawFiles.isEmpty {
                 Section {
                     ShareLink(items: controller.rawFiles) {
-                        Label { Text(verbatim: "Ham dosyaları paylaş") } icon: { Image(systemName: "square.and.arrow.up") }
+                        Label { Text("Ham dosyaları paylaş") } icon: { Image(systemName: "square.and.arrow.up") }
                     }
                 } footer: {
                     Text(verbatim: controller.rawFiles.map(\.lastPathComponent).joined(separator: ", "))
@@ -89,7 +90,7 @@ private struct CallCaptureExperimentContent: View {
         }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button { onClose() } label: { Text(verbatim: "Kapat") }
+                Button { onClose() } label: { Text("Kapat") }
                     .disabled(isBusy(phase: phase))
             }
         }
@@ -101,32 +102,32 @@ private struct CallCaptureExperimentContent: View {
     private func controls(phase: CallCapturePhase) -> some View {
         switch phase {
         case .idle:
-            Button { controller.start() } label: { Label { Text(verbatim: "Başlat") } icon: { Image(systemName: "record.circle") } }
+            Button { controller.start() } label: { Label { Text("Başlat") } icon: { Image(systemName: "record.circle") } }
                 .disabled(isRecording || !controller.isAvailable)
             if isRecording {
-                Text(verbatim: "Önce süren kaydı bitir.").foregroundStyle(Theme.muted)
+                Text("Önce süren kaydı bitir.").foregroundStyle(Theme.muted)
             } else if !controller.isAvailable {
-                Text(verbatim: "Bu cihazda ekran kaydı kullanılamıyor (Ekran Süresi kısıtlaması olabilir).").foregroundStyle(Theme.muted)
+                Text("Bu cihazda ekran kaydı kullanılamıyor (Ekran Süresi kısıtlaması olabilir).").foregroundStyle(Theme.muted)
             }
         case .picking:
             HStack(spacing: 8) {
                 ProgressView()
-                Text(verbatim: "Sistem penceresi bekleniyor…")
+                Text("Sistem penceresi bekleniyor…")
             }
         case .capturing(let startedAt):
             TimelineView(.periodic(from: startedAt, by: 1)) { (context: TimelineViewDefaultContext) in
-                Text(verbatim: "Kayıt sürüyor: \(Duration.seconds(context.date.timeIntervalSince(startedAt)).formatted(.time(pattern: .minuteSecond)))")
+                Text("Kayıt sürüyor: \(Duration.seconds(context.date.timeIntervalSince(startedAt)).formatted(.time(pattern: .minuteSecond)))")
                     .monospacedDigit()
             }
             Button(role: .destructive) {
                 Task { await controller.stop() }
             } label: {
-                Label { Text(verbatim: "Durdur") } icon: { Image(systemName: "stop.circle") }
+                Label { Text("Durdur") } icon: { Image(systemName: "stop.circle") }
             }
         case .finishing:
             HStack(spacing: 8) {
                 ProgressView()
-                Text(verbatim: "Dosyalar karıştırılıyor…")
+                Text("Dosyalar karıştırılıyor…")
             }
         case .finished:
             Button {
@@ -135,9 +136,9 @@ private struct CallCaptureExperimentContent: View {
                     onClose()
                 }
             } label: {
-                Label { Text(verbatim: "Toplantı olarak içe aktar") } icon: { Image(systemName: "square.and.arrow.down") }
+                Label { Text("Toplantı olarak içe aktar") } icon: { Image(systemName: "square.and.arrow.down") }
             }
-            Button { controller.start() } label: { Label { Text(verbatim: "Yeniden kaydet (bu kayıt silinir)") } icon: { Image(systemName: "arrow.clockwise") } }
+            Button { controller.start() } label: { Label { Text("Yeniden kaydet (bu kayıt silinir)") } icon: { Image(systemName: "arrow.clockwise") } }
         }
     }
 
@@ -164,7 +165,7 @@ private struct CallSourceRow: View {
                 Text(verbatim: title).appFont(size: 15, weight: .semibold)
                 Spacer()
                 if !isEnabled {
-                    Text(verbatim: "seçicide kapalı").appFont(size: 12, weight: .regular).foregroundStyle(Theme.muted)
+                    Text("seçicide kapalı").appFont(size: 12, weight: .regular).foregroundStyle(Theme.muted)
                 }
             }
             LevelMeter(levels: levels)
@@ -177,9 +178,9 @@ private struct CallSourceRow: View {
     }
 }
 
-/// Sayaçların tek satırlık özeti. Saf fonksiyondur.
+/// Sayaçların tek satırlık özeti (arayüz dilinde). Saf fonksiyondur.
 func callStatsSummary(stats: CallSourceStats) -> String {
-    let peak: Int = Int((stats.peakLevel * 100).rounded())
-    return "\(Int(stats.seconds)) sn ses · \(Int(stats.loudSeconds)) sn sesli · tepe %\(peak) · \(stats.buffers) parça · boşluk \(Int(stats.gapSeconds)) sn"
+    let peak: String = Double(stats.peakLevel).formatted(.percent.precision(.fractionLength(0)))
+    return String(localized: "\(Int(stats.seconds)) sn ses · \(Int(stats.loudSeconds)) sn sesli · tepe \(peak) · \(stats.buffers) parça · boşluk \(Int(stats.gapSeconds)) sn")
 }
 #endif

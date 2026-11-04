@@ -272,7 +272,7 @@ struct MeetingsTab: View {
             #if CALL_CAPTURE_EXPERIMENT
             Section {
                 Button { isCapturingCall = true } label: {
-                    Label { Text(verbatim: "Bu iPhone'daki görüşmeyi kaydet (deneysel)") } icon: { Image(systemName: "phone.badge.waveform") }
+                    Label { Text("Bu iPhone'daki görüşmeyi kaydet (deneysel)") } icon: { Image(systemName: "phone.badge.waveform") }
                 }
             }
             #endif

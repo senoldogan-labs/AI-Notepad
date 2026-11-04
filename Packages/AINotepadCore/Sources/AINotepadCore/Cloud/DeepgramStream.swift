@@ -63,6 +63,12 @@ public struct DeepgramStream: Sendable {
         await connection.switchLanguage(to: language)
     }
 
+    /// Akışı kapanış beklemeden bırakır: WebSocket hemen kesilir, yeniden bağlanılmaz, sonraki ses gönderilmez ve olay
+    /// akışı biter. Ses akışı bitmese de (ör. yukarıdaki boru hattı takıldı) bağlantı açık kalmaz.
+    public func cancel() async {
+        await connection.abort()
+    }
+
     /// Yalnızca testler için: ağ kopmuş gibi geçerli bağlantıyı aniden kapatır.
     func dropConnectionForTesting() async {
         await connection.dropConnectionForTesting()
@@ -230,6 +236,8 @@ private actor DeepgramConnection {
     /// Kapanışta alma bağlantı hatasıyla bitti: Deepgram son sonuçları vermemiş olabilir.
     private var receiveFailedWhileClosing: Bool = false
     private var hasFailed: Bool = false
+    /// Çağıran akışı kapanış beklemeden bıraktı (bkz. `abort`).
+    private var isAborted: Bool = false
     /// `session` geçersiz kılındı (kapanış ya da kalıcı hata): üzerinde yeni görev açılamaz (açılırsa
     /// `NSGenericException` ile çöker). Jeton beklenirken kapanış biterse bağlanma burada durur.
     private var isSessionInvalidated: Bool = false
@@ -261,8 +269,8 @@ private actor DeepgramConnection {
         Task { await self.connectAndResume() }
         watchdog = Task { await self.watchSilence() }
         for await chunk in audio {
-            // Kalıcı hatadan sonra da akış tüketilir ki üretici tarafta ses birikmesin.
-            guard !hasFailed else {
+            // Kalıcı hatadan ve bırakıldıktan sonra da akış tüketilir ki üretici tarafta ses birikmesin.
+            guard !hasFailed, !isAborted else {
                 continue
             }
             pending += chunk
@@ -287,6 +295,24 @@ private actor DeepgramConnection {
 
     func dropConnectionForTesting() {
         socket?.cancel(with: .abnormalClosure, reason: nil)
+    }
+
+    /// Kapanış beklenmeden bırakıldı: bağlantı kesilir, oturum geçersiz kılınır (yeni bağlantı açılmaz, bkz.
+    /// `canOpenConnection`), süren kapanış ve yeniden bağlanma beklemeden biter, olay akışı kapanır.
+    func abort() {
+        guard !isAborted else {
+            return
+        }
+        isAborted = true
+        isClosing = true
+        closeDeadlinePassed = true
+        isConnected = false
+        watchdog?.cancel()
+        socket?.cancel(with: .goingAway, reason: nil)
+        socket = nil
+        invalidateSession()
+        deepgramLogger.warning("Deepgram akışı kapanış beklenmeden bırakıldı, gönderilmeyen örnek: \(self.pending.count + self.inFlight.count, privacy: .public)")
+        events.finish()
     }
 
     // MARK: Bağlantı

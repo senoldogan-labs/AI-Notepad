@@ -136,21 +136,39 @@ public func runHybridLiveSession(
         await router.drain()
         sink.finish()
     }
-    return LiveSessionHandle(events: events) { (language: MeetingLanguage) async -> Void in
-        let backend: HybridBackend = await router.lock(language: language)
-        sink.yield(.languageLocked(language))
-        switch backend {
-        case .deepgram(_, let streams):
-            for stream in streams {
-                await stream.switchLanguage(to: language)
+    return LiveSessionHandle(
+        events: events,
+        languageSetter: { (language: MeetingLanguage) async -> Void in
+            let backend: HybridBackend = await router.lock(language: language)
+            sink.yield(.languageLocked(language))
+            switch backend {
+            case .deepgram(_, let streams):
+                for stream in streams {
+                    await stream.switchLanguage(to: language)
+                }
+            case .local(_, let handle):
+                await handle.setLanguage(language)
+            case .preparingLocal, .unavailable:
+                // Mac motoru başlarken kilitli dili alır.
+                break
             }
-        case .local(_, let handle):
-            await handle.setLanguage(language)
-        case .preparingLocal, .unavailable:
-            // Mac motoru başlarken kilitli dili alır.
-            break
+        },
+        canceller: { () async -> Void in
+            // Sonraki ses arka uca gitmez (kayıt dosyalara sürer); Deepgram bağlantıları hemen kesilir, Mac oturumu da
+            // bırakılır; olay akışı biter.
+            switch await router.cancel() {
+            case .deepgram(_, let streams):
+                for stream in streams {
+                    await stream.cancel()
+                }
+            case .local(_, let handle):
+                await handle.cancel()
+            case .preparingLocal, .unavailable:
+                break
+            }
+            sink.finish()
         }
-    }
+    )
 }
 
 /// Hibrit oturumun o anki yazıya dökme arka ucu.
@@ -281,6 +299,23 @@ private actor HybridRouter {
         backend = .local(inputs: inputs, handle: handle)
         activeConsumers += 1
         return timeline
+    }
+
+    /// Oturum bırakıldı: girişler kapanır, bekletilen ses atılır; sonraki ses ve Mac'e geçiş arka uca gitmez. Bırakılan
+    /// arka uç döner (çağıran bağlantılarını keser).
+    func cancel() -> HybridBackend {
+        let previous: HybridBackend = backend
+        switch backend {
+        case .deepgram(let inputs, _), .local(let inputs, _):
+            for input in inputs.values {
+                input.finish()
+            }
+        case .preparingLocal, .unavailable:
+            break
+        }
+        pending = [.me: [], .others: []]
+        backend = .unavailable
+        return previous
     }
 
     /// Mac motoru hazırlanamadı: bekletilen ses bırakılır, canlı metin durur.

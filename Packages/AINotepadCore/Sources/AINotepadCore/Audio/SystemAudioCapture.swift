@@ -4,17 +4,23 @@ import AVFoundation
 import CoreAudio
 import Foundation
 import os
+import Synchronization
 
 /// Sistemde çalan tüm sesi (Zoom, Teams vb.) Core Audio process tap ile yakalar ("Diğerleri" akışı).
 ///
 /// Akış: global tap → tap'i ve varsayılan çıkış cihazını içeren özel toplu (aggregate) cihaz → IO bloğu.
 /// Ekran kaydı izni gerekmez; ilk kullanımda macOS "sistem sesi kaydı" izni sorar.
 /// Varsayılan çıkış cihazı, toplu cihazın örnekleme hızı ya da tap formatı değişirse (ör. AirPods
-/// bağlanınca ya da HFP moduna geçince) toplu cihaz geri çekilmeli denemelerle yeniden kurulur;
-/// kurulamazsa akış bitirilir.
+/// bağlanınca ya da HFP moduna geçince) toplu cihaz geri çekilmeli denemelerle yeniden kurulur. Geçiş sırasında IO
+/// bloğuna kurulu formata uymayan tampon gelirse (tap tamponu yok, tampon ya da dönüştürme kurulamadı) o tampon atlanır,
+/// uyarı loglanır ve toplu cihaz yeni formatla yeniden kurulur; akış sürer, aradaki boşluk saatle hizalamada sessizlikle
+/// dolar. Yeniden kurulamazsa ya da art arda `maxMismatchRebuilds` kurulumdan hiç ses gelmezse akış bitirilir (uygulama
+/// "ses akışı durdu" uyarısı gösterir; "Diğerleri" sessizce boş kalmaz).
 @MainActor
 public final class SystemAudioCapture {
     private nonisolated static let logger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "SystemAudioCapture")
+    /// Uyuşmayan tampon yüzünden art arda (arada ses gelmeden) en fazla bu kadar yeniden kurma; sonra akış bitirilir.
+    private static let maxMismatchRebuilds: Int = 3
 
     private let ioQueue: DispatchQueue = DispatchQueue(label: "com.senoldogan.AINotepad.system-audio", qos: .userInteractive)
     private var tapID: AudioObjectID = AudioObjectID(kAudioObjectUnknown)
@@ -32,6 +38,10 @@ public final class SystemAudioCapture {
     private var restartGeneration: Int = 0
     /// Çalışan toplu cihazın kurulduğu çıkış ve format; değişmediyse bildirimde yeniden kurulmaz.
     private var activeSignature: DeviceSignature?
+    /// Çalışan IO bloğunun durumu (ses geldi mi, uyuşmazlık bildirildi mi).
+    private var ioState: TapIOState?
+    /// Uyuşmayan tampon yüzünden art arda yapılan yeniden kurma sayısı (bkz. `tapRecoveryDecision`).
+    private var mismatchRebuilds: Int = 0
 
     public init() {}
 
@@ -93,6 +103,7 @@ public final class SystemAudioCapture {
         }
         continuation?.finish()
         continuation = nil
+        mismatchRebuilds = 0
     }
 
     /// Toplu cihazı varsayılan çıkışla kurar ve IO bloğunu başlatır.
@@ -125,13 +136,23 @@ public final class SystemAudioCapture {
             maximumBuffers: format.isInterleaved ? 1 : Int(format.channelCount)
         )
         tapBufferList = tapBuffers
+        let state: TapIOState = TapIOState()
+        ioState = state
+        let onMismatch: @Sendable () -> Void = { [weak self] () -> Void in
+            Task { @MainActor in
+                await self?.recoverFromMismatch(state: state)
+            }
+        }
         var newProcID: AudioDeviceIOProcID?
         try check(
             status: AudioDeviceCreateIOProcIDWithBlock(
                 &newProcID,
                 aggregateID,
                 ioQueue,
-                Self.makeIOBlock(format: format, tapBuffers: tapBuffers, resampler: resampler, continuation: continuation, throttle: LogThrottle(intervalSec: 60))
+                Self.makeIOBlock(
+                    format: format, tapBuffers: tapBuffers, resampler: resampler, continuation: continuation, state: state, onMismatch: onMismatch,
+                    throttle: LogThrottle(intervalSec: 60)
+                )
             ),
             operation: "AudioDeviceCreateIOProcIDWithBlock"
         )
@@ -145,6 +166,7 @@ public final class SystemAudioCapture {
     /// IO bloğunu ve toplu cihazı siler (tap kalır).
     private func stopDevice() {
         activeSignature = nil
+        ioState = nil
         removeListeners(listeners: deviceListeners)
         deviceListeners = []
         if aggregateID != AudioObjectID(kAudioObjectUnknown) {
@@ -188,15 +210,43 @@ public final class SystemAudioCapture {
         }
     }
 
-    /// Toplu cihazı yeniden kurar; yeni cihaz henüz hazır olmayabileceği için birkaç kez dener.
-    /// Daha yeni bir istek gelirse ya da yakalama durdurulursa bu deneme sessizce çekilir.
+    /// Özellik bildirimi (çıkış, örnekleme hızı, tap formatı): koşullar kurulu toplu cihazınkiyle aynıysa (ör. kendi
+    /// kurulumumuzun tetiklediği bildirim) yeniden kurulmaz, döngü önlenir. Koşullar okunamıyorsa cihaz değişiyor demektir:
+    /// yeniden kurulur, hata orada raporlanır.
     private func restartDevice() async {
         guard continuation != nil else {
             return
         }
-        // Kendi kurulumumuzun tetiklediği bildirimler gibi, değişiklik yoksa yeniden kurma (döngüyü önler).
-        // Koşullar okunamıyorsa cihaz değişiyor demektir: yeniden kurmaya devam edilir, hata orada raporlanır.
         if let active = activeSignature, let current = try? currentSignature(tapID: tapID), current == active {
+            return
+        }
+        await rebuildDevice()
+    }
+
+    /// IO bloğu kurulu formata uymayan tampon aldı (çıkış değişirken geçici uyuşmazlık): toplu cihaz, koşullar aynı
+    /// görünse de yeni formatla yeniden kurulur. Arada ses gelmeden art arda `maxMismatchRebuilds` kez olursa akış
+    /// bitirilir.
+    private func recoverFromMismatch(state: TapIOState) async {
+        // Bildirim eski bir IO bloğundansa (cihaz bu arada yeniden kuruldu) yok sayılır.
+        guard continuation != nil, state === ioState else {
+            return
+        }
+        switch tapRecoveryDecision(previousRebuilds: mismatchRebuilds, deliveredSinceLastRebuild: state.hasDelivered, maxRebuilds: Self.maxMismatchRebuilds) {
+        case .rebuild(let attempt):
+            mismatchRebuilds = attempt
+            Self.logger.warning("Sistem sesi tamponu kurulu formata uymuyor, toplu cihaz yeniden kuruluyor, deneme: \(attempt, privacy: .public)")
+            await rebuildDevice()
+        case .giveUp:
+            Self.logger.error("Sistem sesi art arda yeniden kurmalarda da formata uymadı, akış bitiriliyor, kurma: \(Self.maxMismatchRebuilds, privacy: .public)")
+            stop()
+        }
+    }
+
+    /// Toplu cihazı yeniden kurar; yeni cihaz (ör. bağlanan AirPods) henüz hazır olmayabileceği için geri çekilmeli
+    /// olarak birkaç kez dener (toplam ~8 sn). Daha yeni bir istek gelirse ya da yakalama durdurulursa bu deneme sessizce
+    /// çekilir; kurulamazsa akış bitirilir.
+    private func rebuildDevice() async {
+        guard continuation != nil else {
             return
         }
         restartGeneration += 1
@@ -204,7 +254,7 @@ public final class SystemAudioCapture {
         stopDevice()
         do {
             try await retryWithBackoff(
-                attempts: 4,
+                attempts: 6,
                 delaySec: 0.25,
                 isolation: #isolation,
                 operation: {
@@ -227,47 +277,92 @@ public final class SystemAudioCapture {
         }
     }
 
-    /// IO thread'inde çalışan blok. Ana aktöre bağlı olmaması için `nonisolated` üretilir.
+    /// IO thread'inde çalışan blok. Ana aktöre bağlı olmaması için `nonisolated` üretilir. Kurulu formata uymayan tampon
+    /// (çıkış değişirken) atlanır ve bu toplu cihaz için bir kez `onMismatch` çağrılır; akış bitirilmez.
     private nonisolated static func makeIOBlock(
         format: AVAudioFormat,
         tapBuffers: UnsafeMutableAudioBufferListPointer,
         resampler: AudioResampler,
         continuation: AsyncStream<[Float]>.Continuation,
+        state: TapIOState,
+        onMismatch: @escaping @Sendable () -> Void,
         throttle: LogThrottle
     ) -> AudioDeviceIOBlock {
         { (_: UnsafePointer<AudioTimeStamp>, inputData: UnsafePointer<AudioBufferList>, _: UnsafePointer<AudioTimeStamp>, _: UnsafeMutablePointer<AudioBufferList>, _: UnsafePointer<AudioTimeStamp>) -> Void in
             let source: UnsafeMutableAudioBufferListPointer = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: inputData))
-            guard copyTrailingBuffers(source: source, destination: tapBuffers) else {
-                // Beklenen tap akışı yok: sessizce boş "Diğerleri" göstermek yerine akışı bitir.
-                // Akış bittikten sonra da IO bloğu çağrılır: log dakikada bir.
-                guard throttle.allow() else {
-                    continuation.finish()
-                    return
+            // Uyuşmazlık her tamponda tekrarlanır: log dakikada bir, yeniden kurma isteği bu toplu cihaz için bir kez.
+            let reportMismatch: (String) -> Void = { (reason: String) -> Void in
+                if throttle.allow() {
+                    logger.warning("Sistem sesi tamponu atlandı, neden: \(reason, privacy: .public)")
                 }
-                logger.error("Toplu cihaz girişinde tap tamponu yok: \(source.count, privacy: .public) tampon, beklenen \(tapBuffers.count, privacy: .public)")
-                continuation.finish()
+                if state.markMismatch() {
+                    onMismatch()
+                }
+            }
+            guard copyTrailingBuffers(source: source, destination: tapBuffers) else {
+                reportMismatch("toplu cihaz girişinde tap tamponu yok: \(source.count) tampon, beklenen \(tapBuffers.count)")
                 return
             }
             guard let buffer = AVAudioPCMBuffer(pcmFormat: format, bufferListNoCopy: tapBuffers.unsafePointer, deallocator: nil) else {
-                if throttle.allow() {
-                    logger.error("Sistem sesi tamponu oluşturulamadı")
-                }
-                continuation.finish()
+                reportMismatch("tampon kurulu formatla oluşturulamadı")
                 return
             }
             do {
                 let samples: [Float] = try resampler.convert(buffer: buffer)
+                state.markDelivered()
                 if !samples.isEmpty {
                     continuation.yield(samples)
                 }
             } catch {
-                if throttle.allow() {
-                    logger.error("Sistem sesi dönüştürülemedi, hata: \(String(describing: error), privacy: .private)")
-                }
-                continuation.finish()
+                reportMismatch("dönüştürülemedi: \(String(describing: error))")
             }
         }
     }
+}
+
+/// Bir toplu cihazın IO bloğunun durumu: IO thread'i yazar, ana aktör okur. Thread-safe.
+final class TapIOState: Sendable {
+    private let flags: Mutex<TapIOFlags> = Mutex(TapIOFlags(delivered: false, mismatchReported: false))
+
+    /// Bu toplu cihazdan en az bir tampon dönüştürüldü.
+    var hasDelivered: Bool {
+        flags.withLock { (value: inout TapIOFlags) -> Bool in value.delivered }
+    }
+
+    func markDelivered() {
+        flags.withLock { (value: inout TapIOFlags) -> Void in
+            value.delivered = true
+        }
+    }
+
+    /// Uyuşmazlığı işaretler; bu toplu cihazda ilk kezse true (yeniden kurma bir kez istenir).
+    func markMismatch() -> Bool {
+        flags.withLock { (value: inout TapIOFlags) -> Bool in
+            let first: Bool = !value.mismatchReported
+            value.mismatchReported = true
+            return first
+        }
+    }
+}
+
+private struct TapIOFlags {
+    var delivered: Bool
+    var mismatchReported: Bool
+}
+
+/// Uyuşmayan sistem sesi tamponundan sonra verilen karar.
+enum TapRecoveryDecision: Equatable {
+    /// Toplu cihaz yeniden kurulur; `attempt`: arada ses gelmeden art arda kaçıncı kurma.
+    case rebuild(attempt: Int)
+    /// Art arda kurmalar da ses vermedi: akış bitirilir (uygulama uyarı gösterir).
+    case giveUp
+}
+
+/// Uyuşmazlıktan sonra yeniden kurulsun mu: son kurmadan beri ses geldiyse sayaç baştan başlar (geçici uyuşmazlık, ör.
+/// çıkış değişti); gelmediyse artar ve `maxRebuilds`'i aşınca vazgeçilir (sonsuz kurma döngüsü olmasın). Saf fonksiyondur.
+func tapRecoveryDecision(previousRebuilds: Int, deliveredSinceLastRebuild: Bool, maxRebuilds: Int) -> TapRecoveryDecision {
+    let attempt: Int = deliveredSinceLastRebuild ? 1 : previousRebuilds + 1
+    return attempt > maxRebuilds ? .giveUp : .rebuild(attempt: attempt)
 }
 
 /// Toplu cihazın kurulduğu koşullar.

@@ -27,10 +27,21 @@ public enum LiveSessionEvent: Sendable, Equatable {
 public struct LiveSessionHandle: Sendable {
     public let events: AsyncStream<LiveSessionEvent>
     private let languageSetter: @Sendable (MeetingLanguage) async -> Void
+    private let canceller: @Sendable () async -> Void
 
-    public init(events: AsyncStream<LiveSessionEvent>, languageSetter: @escaping @Sendable (MeetingLanguage) async -> Void) {
+    public init(
+        events: AsyncStream<LiveSessionEvent>, languageSetter: @escaping @Sendable (MeetingLanguage) async -> Void, canceller: @escaping @Sendable () async -> Void
+    ) {
         self.events = events
         self.languageSetter = languageSetter
+        self.canceller = canceller
+    }
+
+    /// Oturumu kapanışı beklemeden bırakır (çağıranın bitirme süresi doldu): bulut bağlantıları (Deepgram WebSocket)
+    /// hemen kesilir, kalan ses yazıya dökülmez ve olay akışı biter. Ses kaydı (dosyalar) etkilenmez; son geçiş kaydın
+    /// tamamını yazıya döker.
+    public func cancel() async {
+        await canceller()
     }
 
     /// Toplantı dilini bu andan itibaren değiştirir; otomatik algılama artık dili değiştirmez.

@@ -2961,8 +2961,9 @@ final class AppModel {
         }
         notesInFlight.insert(sendKey)
         defer { notesInFlight.remove(sendKey) }
-        // Elle gönderim belirsiz işaretini kaldırır: kullanıcı kontrol edip yeniden göndermeyi seçti.
+        // Elle gönderim belirsiz ve reddedildi işaretlerini kaldırır: kullanıcı kontrol edip yeniden göndermeyi seçti.
         clearUncertain(meetingID: meetingID, destinationID: destinationID)
+        storeSendKeys(keys: sendKeys(defaultsKey: SettingsKey.rejectedSends).subtracting([sendKey]), defaultsKey: SettingsKey.rejectedSends)
         do {
             try await deliverNote(vault: destinationVault(), destination: destination, record: record, note: note)
             recordFeatureUsage(feature: .integration(telemetryIntegration(target: destination.target)))
@@ -2974,6 +2975,12 @@ final class AppModel {
             markUncertain(meetingID: meetingID, destinationID: destinationID)
             Self.logger.warning("Not gönderiminin sonucu belirsiz, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
             return String(localized: "\(destinationName(destination: destination)): \(userFacingMessage(error: error))")
+        } catch where isPermanentDeliveryFailure(error: error) {
+            // Hedef isteği bilerek reddetti (4xx): saatte bir yeniden denemek aynı hatayı verir, hata bandı her saat
+            // yeniden açılırdı. Bu toplantı için kendiliğinden gönderim bırakılır; hata bir kez, ne yapılacağıyla görünür.
+            storeSendKeys(keys: sendKeys(defaultsKey: SettingsKey.rejectedSends).union([sendKey]), defaultsKey: SettingsKey.rejectedSends)
+            Self.logger.error("Hedef notu kalıcı olarak reddetti, kendiliğinden yeniden denenmeyecek, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+            return permanentAutoSendFailureMessage(destinationName: destinationName(destination: destination), error: error)
         } catch {
             Self.logger.error("Not hedefe gönderilemedi, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
             return String(localized: "\(destinationName(destination: destination)): \(userFacingMessage(error: error))")
@@ -3081,7 +3088,20 @@ final class AppModel {
 
     /// Sonucu belirsiz gönderimler: kendiliğinden gönderim bunları atlar.
     private func uncertainSends() -> Set<String> {
-        Set(UserDefaults.standard.stringArray(forKey: SettingsKey.uncertainSends) ?? [])
+        sendKeys(defaultsKey: SettingsKey.uncertainSends)
+    }
+
+    /// Ayarlarda saklanan `toplantı|hedef` anahtarları (belirsiz ya da reddedilen gönderimler).
+    private func sendKeys(defaultsKey: String) -> Set<String> {
+        Set(UserDefaults.standard.stringArray(forKey: defaultsKey) ?? [])
+    }
+
+    /// Anahtarları yazar (değişmediyse yazılmaz).
+    private func storeSendKeys(keys: Set<String>, defaultsKey: String) {
+        guard keys != sendKeys(defaultsKey: defaultsKey) else {
+            return
+        }
+        UserDefaults.standard.set(keys.sorted(), forKey: defaultsKey)
     }
 
     /// Gönderimin sonucu belirsiz: kendiliğinden yeniden gönderilmez.
@@ -3096,10 +3116,7 @@ final class AppModel {
 
     /// Belirsiz gönderimleri yazar (değişmediyse yazılmaz).
     private func storeUncertainSends(sends: Set<String>) {
-        guard sends != uncertainSends() else {
-            return
-        }
-        UserDefaults.standard.set(sends.sorted(), forKey: SettingsKey.uncertainSends)
+        storeSendKeys(keys: sends, defaultsKey: SettingsKey.uncertainSends)
     }
 
     /// İşleme sürerken gönderilen hedefler; işleme bitince kayda işlenir.
@@ -3127,7 +3144,8 @@ final class AppModel {
             let uncertain: Set<String> = uncertainSends()
             let locked: Set<String> = Set(meetings.map(\.id).filter { isLocked(meetingID: $0) })
             let pending: [(meetingID: String, destinationID: String)] = autoSendQueue(
-                records: meetings, destinations: destinations, now: Date(), pendingMarks: pendingSentMarks, locked: locked, uncertain: uncertain
+                records: meetings, destinations: destinations, now: Date(), pendingMarks: pendingSentMarks, locked: locked, uncertain: uncertain,
+                rejected: sendKeys(defaultsKey: SettingsKey.rejectedSends)
             )
             for item in pending {
                 // Liste kurulduktan sonra elle gönderilmeye başlandıysa ya da gönderildiyse (başka Mac'ten de) atlanır
@@ -4116,7 +4134,7 @@ func chooseMediaToImport(model: AppModel) {
 @MainActor
 private func runAppleScript(source: String) -> String? {
     guard let script = NSAppleScript(source: source) else {
-        return "AppleScript derlenemedi"
+        return String(localized: "AppleScript derlenemedi")
     }
     var error: NSDictionary?
     script.executeAndReturnError(&error)

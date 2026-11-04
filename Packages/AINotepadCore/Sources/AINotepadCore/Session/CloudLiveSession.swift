@@ -110,12 +110,22 @@ public func runCloudLiveSession(
         }
         sink.finish()
     }
-    return LiveSessionHandle(events: events) { (language: MeetingLanguage) async -> Void in
-        // Önce kilit: süren ayırma penceresi otomatik algılamayla dili geri değiştirmesin. Etiket hemen güncellenir;
-        // akışlar yeniden bağlanırken (ağ yoksa uzun sürebilir) beklenmez.
-        await state.lock(language: language, events: sink)
-        await switchStreams(streams: streams, state: state)
-    }
+    return LiveSessionHandle(
+        events: events,
+        languageSetter: { (language: MeetingLanguage) async -> Void in
+            // Önce kilit: süren ayırma penceresi otomatik algılamayla dili geri değiştirmesin. Etiket hemen güncellenir;
+            // akışlar yeniden bağlanırken (ağ yoksa uzun sürebilir) beklenmez.
+            await state.lock(language: language, events: sink)
+            await switchStreams(streams: streams, state: state)
+        },
+        canceller: { () async -> Void in
+            // Deepgram bağlantıları hemen kesilir; ses dosyalara yazılmaya devam eder (yakalama çağıranda durur).
+            for stream in streams {
+                await stream.cancel()
+            }
+            sink.finish()
+        }
+    )
 }
 
 /// İki akışı kilitli dile geçirir. Dil her akıştan hemen önce yeniden okunur ("son seçim kazanır"): otomatik

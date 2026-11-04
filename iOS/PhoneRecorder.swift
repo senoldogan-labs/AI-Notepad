@@ -104,6 +104,11 @@ final class PhoneRecorder {
     /// "Bitir"e basılan an (ya da mikrofonun beklenmedik sonu): süre burada durur, bitirme sürerken saymaz.
     private(set) var stoppedAt: Date?
     @ObservationIgnored private var recoveryNoticeTask: Task<Void, Never>?
+    /// Kayıt başlarken (`.starting`) "Bitir" istendi (Kısayollar, canlı etkinlik): başlatma mikrofon açılmadan önce
+    /// iptal edilir; sunucu oturumu açıldıysa kayıt başlar başlamaz bitirilir (bkz. `stop`).
+    @ObservationIgnored private var stopRequestedDuringStart: Bool = false
+    /// `start` mikrofonun açılmasını (ilk kullanımda izin penceresi, ses oturumu) bekliyor.
+    @ObservationIgnored private var isAwaitingMicrophone: Bool = false
     /// "Bitir"den sonra canlı oturum takılırsa kaydı yine de kapatan bekçi (bkz. `watchFinishing`).
     @ObservationIgnored private var finishingWatchdogTask: Task<Void, Never>?
     /// Kapanışı başlamış kaydın kuşağı: oturum sonu (olay akışı bitti ya da bekçi) aynı kayıt için bir kez işlenir.
@@ -184,6 +189,7 @@ final class PhoneRecorder {
             return
         }
         phase = .starting
+        stopRequestedDuringStart = false
         generation += 1
         finishingWatchdogTask?.cancel()
         finishingWatchdogTask = nil
@@ -231,12 +237,25 @@ final class PhoneRecorder {
             // Duraklatma hizalanmış akışta süzülür: kesinti sonrası sessizlik dolgusu da duraklatılan aralığa düşüyorsa
             // atılır; mikrofon duraklatmada kapanmaz (yakalama yeniden kurulmaz, ikinci dinleyici takılmaz).
             pauseGate = RecordingPauseGate(sampleRate: 16000, origin: origin)
+            isAwaitingMicrophone = true
+            defer { isAwaitingMicrophone = false }
             let aligned: AsyncStream<[Float]> = clockAlignedStream(audio: try await microphone.start(), origin: origin, sampleRate: 16000, thresholdSec: 0.5)
             audio = pausableStream(audio: aligned, gate: pauseGate)
         } catch {
-            errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
-            // Mikrofon açılamadı (izin yok, ses oturumu): boş toplantı klasörü kalmasın.
-            discardRefusedRecording(directory: directory)
+            // "Bitir" izin penceresi açıkken geldi: mikrofon açılmadı (`MicrophoneCapture.start` iptal etti); hata değil.
+            if !stopRequestedDuringStart {
+                errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
+            }
+            // Mikrofon açılamadı (izin yok, ses oturumu, başlarken bitirildi): boş toplantı klasörü kalmasın.
+            discardUnstartedRecording(directory: directory)
+            phase = .idle
+            return
+        }
+        // "Bitir" mikrofon açılırken geldi: sunucu oturumu açılmadan (deneme hakkı yanmadan) mikrofon kapatılır.
+        guard !stopRequestedDuringStart else {
+            Self.logger.info("Kayıt başlarken bitirildi, mikrofon kapatıldı, sunucu oturumu açılmadı")
+            microphone.stop()
+            discardUnstartedRecording(directory: directory)
             phase = .idle
             return
         }
@@ -281,7 +300,7 @@ final class PhoneRecorder {
             Task { await account.refresh() }
             microphone.stop()
             levels.stop()
-            discardRefusedRecording(directory: directory)
+            discardUnstartedRecording(directory: directory)
             phase = .idle
             return
         }
@@ -342,6 +361,11 @@ final class PhoneRecorder {
             }
             await self?.sessionEnded(sessionGeneration: sessionGeneration)
         }
+        // "Bitir" sunucu oturumu açılırken geldi: kayıt uygulamadaki "Bitir" gibi bitirilir ve işlenir (oturum kapanır).
+        if stopRequestedDuringStart {
+            Self.logger.info("Kayıt başlarken bitirildi, kayıt hemen bitiriliyor")
+            stop()
+        }
     }
 
     /// Deepgram kullanılamayınca canlı metnin motoru: dilin cihaz içi konuşma modeli gerekirse indirilir (ilerleme kayıt
@@ -394,8 +418,9 @@ final class PhoneRecorder {
         }
     }
 
-    /// Sunucu toplantıyı reddetti: kayıt başlamadı, o ana dek diske yazılan ses ve klasör silinir.
-    private func discardRefusedRecording(directory: URL) {
+    /// Kayıt başlamadı (sunucu toplantıyı reddetti ya da başlarken bitirildi): o ana dek diske yazılan ses ve klasör
+    /// silinir.
+    private func discardUnstartedRecording(directory: URL) {
         do {
             try FileManager.default.removeItem(at: directory)
         } catch {
@@ -404,8 +429,14 @@ final class PhoneRecorder {
         }
     }
 
-    /// Mikrofonu kapatır; oturum kalan bölümleri bitirip kendiliğinden biter.
+    /// Mikrofonu kapatır; oturum kalan bölümleri bitirip kendiliğinden biter. Kayıt başlarken (`.starting`; Kısayollar,
+    /// canlı etkinlik) çağrılırsa istek saklanır: mikrofon açılmadan önceyse başlatma iptal edilir (izin penceresi
+    /// açıksa mikrofon hiç açılmaz), sunucu oturumu açıldıktan sonraysa kayıt başlar başlamaz bitirilir.
     func stop() {
+        if phase == .starting {
+            requestStopDuringStart()
+            return
+        }
         guard phase == .recording else {
             // Kayıt yokken "Bitir" (kilit ekranı, Denetim Merkezi): uygulama kayıt sırasında kapandıysa kalan canlı
             // etkinlik kalkar.
@@ -436,6 +467,19 @@ final class PhoneRecorder {
         watchFinishing()
     }
 
+    /// Başlatma sürerken "Bitir": `start` bir sonraki adımda isteği uygular. Mikrofon açılıyorsa (izin penceresi, ses
+    /// oturumu) yakalama durdurulur: `MicrophoneCapture.start` motoru kurmadan iptal eder.
+    private func requestStopDuringStart() {
+        guard !stopRequestedDuringStart else {
+            return
+        }
+        stopRequestedDuringStart = true
+        Self.logger.info("Kayıt başlarken bitirme istendi, mikrofon bekleniyor: \(self.isAwaitingMicrophone, privacy: .public)")
+        if isAwaitingMicrophone {
+            microphone.stop()
+        }
+    }
+
     /// "Bitir"den sonra canlı oturum (Deepgram kapanışı, cihaz içi tanımanın kalan sesi) `finishingLimitSec` içinde
     /// kapanmazsa kayıt canlı metnin sonu beklenmeden kapatılır: ses dosyası "Bitir" anında kapanmıştır ve son geçiş
     /// kaydın tamamını yazıya döker. Loglanır ve kayıt ekranında görünür; kullanıcı "Bitiriliyor"da takılı kalmaz.
@@ -454,6 +498,9 @@ final class PhoneRecorder {
             }
             Self.logger.error("Canlı oturum süre içinde kapanmadı, kayıt canlı metnin sonu beklenmeden kapatılıyor, süre: \(Self.finishingLimitSec, privacy: .public) sn")
             self.errorMessages = appendUnique(messages: self.errorMessages, message: String(localized: "Canlı metnin sonu beklenmeden kayıt kapatıldı; kaydın tamamı yine yazıya dökülür."))
+            // Oturum bırakılır: Deepgram bağlantısı (WebSocket) kapanışı beklemeden kesilir; yoksa kayıt bittikten sonra
+            // da açık kalıp canlı tutma mesajları yollayabilirdi.
+            await self.active?.handle.cancel()
             await self.sessionEnded(sessionGeneration: finishingGeneration)
         }
     }

@@ -34,6 +34,26 @@ func makeBufferList(byteSizes: [UInt32]) -> UnsafeMutableAudioBufferListPointer 
         free(destination.unsafeMutablePointer)
     }
 
+    // Çıkış değişirken (AirPods, HDMI) gelen uyuşmaz tampon akışı bitirmez: toplu cihaz yeniden kurulur. Ses gelen her
+    // kurmadan sonra sayaç baştan başlar; art arda sessiz kurmalar sınırı aşınca vazgeçilir (sonsuz döngü yok).
+    @Test func mismatchRebuildsUntilAudioFlowsAgain() {
+        #expect(tapRecoveryDecision(previousRebuilds: 0, deliveredSinceLastRebuild: true, maxRebuilds: 3) == .rebuild(attempt: 1))
+        #expect(tapRecoveryDecision(previousRebuilds: 2, deliveredSinceLastRebuild: true, maxRebuilds: 3) == .rebuild(attempt: 1))
+        #expect(tapRecoveryDecision(previousRebuilds: 0, deliveredSinceLastRebuild: false, maxRebuilds: 3) == .rebuild(attempt: 1))
+        #expect(tapRecoveryDecision(previousRebuilds: 2, deliveredSinceLastRebuild: false, maxRebuilds: 3) == .rebuild(attempt: 3))
+        #expect(tapRecoveryDecision(previousRebuilds: 3, deliveredSinceLastRebuild: false, maxRebuilds: 3) == .giveUp)
+    }
+
+    // IO bloğunun durumu: yeniden kurma isteği her toplu cihaz için bir kez; ses gelişi işaretlenir.
+    @Test func mismatchIsReportedOncePerDevice() {
+        let state: TapIOState = TapIOState()
+        #expect(!state.hasDelivered)
+        #expect(state.markMismatch())
+        #expect(!state.markMismatch())
+        state.markDelivered()
+        #expect(state.hasDelivered)
+    }
+
     @Test func failsWhenSourceHasTooFewBuffers() {
         let source: UnsafeMutableAudioBufferListPointer = makeBufferList(byteSizes: [10])
         let destination: UnsafeMutableAudioBufferListPointer = makeBufferList(byteSizes: [0, 0])
