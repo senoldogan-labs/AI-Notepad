@@ -4,13 +4,17 @@ import Security
 
 private let finalLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "HostedFinal")
 
-/// Abonelik sürümünün son geçişi: kayıt 16 kHz mono 16 bit kayıpsız FLAC parçalarına (≤95 MB, ≤60 dk; bkz.
-/// `writeHostedFlacChunks`, `hostedFlacChunkMaxSec`) çevrilir, her parça sunucunun
-/// `/v1/transcribe` ucuna (ElevenLabs Scribe vekili, konuşmacı ayırma açık) sırayla gönderilir, sonuçlar parça
-/// konumlarıyla kaydırılıp birleştirilir; ardışık parçalar bir dakika örtüşür ve konuşmacılar ortak bölgedeki
-/// kelimelerle eşlenir (bkz. `mergeChunkTranscriptions`). Sınır: ortak dakikada konuşmayan kişi sonraki parçada yeni
-/// kişi olarak görünür (adlandırırken aynı ad verilebilir). Parçalar geçici klasörde tutulur ve iş bitince silinir.
+/// Abonelik sürümünün son geçişi: kayıt (dönüştürülmemişse kayıpsız `.caf`'ın kendisi; bkz.
+/// `FinalPassSource.originalRecording`) 16 kHz mono 16 bit kayıpsız FLAC parçalarına (≤95 MB, ≤60 dk; bkz.
+/// `encodeHostedFlacChunk`, `hostedFlacChunkMaxSec`) çevrilir, her parça sunucunun `/v1/transcribe` ucuna (ElevenLabs
+/// Scribe vekili, konuşmacı ayırma açık) sırayla gönderilir (sunucu toplantıda aynı anda tek yükleme kabul eder; sonraki
+/// parça öncekinin yüklemesi sürerken kodlanır), sonuçlar parça konumlarıyla kaydırılıp birleştirilir; ardışık parçalar
+/// bir dakika örtüşür ve konuşmacılar ortak bölgedeki kelimelerle eşlenir (bkz. `mergeChunkTranscriptions`). Sınır: ortak
+/// dakikada konuşmayan kişi sonraki parçada yeni kişi olarak görünür (adlandırırken aynı ad verilebilir). Parçalar geçici
+/// klasörde tutulur ve iş bitince silinir.
 public struct HostedFinalTranscriber: FinalTranscriber {
+    /// Ses sunucuda yazıya dökülür: dönüştürmeyle aynı anda, kayıpsız kayıttan başlar.
+    public let source: FinalPassSource = .originalRecording
     private let client: HostedClient
     /// Sesin sayıldığı toplantı oturumu (kayıt bitince ek süre boyunca açıktır).
     private let meetingID: String
@@ -31,17 +35,19 @@ public struct HostedFinalTranscriber: FinalTranscriber {
             throw StorageError.writeFailed(path: directory.path, reason: error.localizedDescription)
         }
         defer { removeChunkDirectory(directory: directory) }
-        let chunks: [AudioChunkFile] = try writeHostedFlacChunks(
-            source: audioURL, directory: directory, maxBytes: hostedTranscribeMaxBytes,
-            maxSamples: Int(hostedFlacChunkMaxSec * Double(hostedTranscribeSampleRate)),
-            overlapSamples: Int(hostedChunkOverlapSec * Double(hostedTranscribeSampleRate))
-        )
+        let pcm: HostedPcmFile = try writeHostedPcmFile(source: audioURL, directory: directory)
         let terms: [String] = hostedKeyterms(terms: keyterms, limit: 30)
         var results: [ChunkTranscription] = []
         var stoppedNotice: String?
         var coveredUntilSec: Double?
-        for (index, chunk) in chunks.enumerated() {
-            let overlapSec: Double = index == 0 ? 0 : Double(chunks[index - 1].span.startSample + chunks[index - 1].span.sampleCount - chunk.span.startSample) / Double(hostedTranscribeSampleRate)
+        var previous: AudioChunkFile?
+        var pending: AudioChunkFile? = pcm.totalSamples > 0 ? try hostedChunk(pcm: pcm, startSample: 0, index: 0, directory: directory) : nil
+        while let chunk = pending {
+            let index: Int = results.count
+            // Sonraki parça (bir saatten uzun kayıt) bu parça gönderilirken kodlanır. Bu parça başarısız olursa kodlama
+            // kapsamdan çıkarken iptal edilip beklenir; sonucu kullanılmaz.
+            async let following: AudioChunkFile? = followingHostedChunk(after: chunk, index: index + 1, pcm: pcm, directory: directory)
+            let overlapSec: Double = previous.map { Double($0.span.startSample + $0.span.sampleCount - chunk.span.startSample) / Double(hostedTranscribeSampleRate) } ?? 0
             let durationSec: Double = Double(chunk.span.sampleCount) / Double(hostedTranscribeSampleRate)
             do {
                 let data: Data = try await transcribeChunk(
@@ -51,18 +57,24 @@ public struct HostedFinalTranscriber: FinalTranscriber {
                 results.append(ChunkTranscription(
                     offsetSec: chunk.span.offsetSec(sampleRate: hostedTranscribeSampleRate), overlapSec: overlapSec, result: try parseElevenLabsResponse(data: data)
                 ))
-                finalLogger.info("Son geçiş parçası yazıya döküldü, parça: \(results.count, privacy: .public)/\(chunks.count, privacy: .public), saniye: \(durationSec, privacy: .public), bayt: \(chunk.bytes, privacy: .public)")
+                finalLogger.info("Son geçiş parçası yazıya döküldü, parça: \(results.count, privacy: .public), saniye: \(durationSec, privacy: .public), bayt: \(chunk.bytes, privacy: .public)")
             } catch let error where !results.isEmpty && !(error is CancellationError) {
                 // Sonraki parça reddedildi (ör. toplantının ses hakkı ya da aylık süre doldu) ya da bağlantı koptu:
                 // yazıya dökülmüş (ve faturalanmış) parçalar atılmaz; kalan kısmın canlı metni korunur
                 // (`coveredUntilSec`), neden bildirilir.
-                let previous: AudioChunkFile = chunks[index - 1]
-                let covered: Double = previous.span.offsetSec(sampleRate: hostedTranscribeSampleRate) + Double(previous.span.sampleCount) / Double(hostedTranscribeSampleRate)
-                let doneMinutes: Int = Int((covered / 60).rounded())
-                let reason: String = (error as? HostedAPIError).map { hostedErrorMessage(error: $0) } ?? userFacingMessage(error: error)
-                finalLogger.warning("Son geçiş yarıda kaldı, yazıya dökülen dakika: \(doneMinutes, privacy: .public), hata: \(String(describing: error), privacy: .private)")
-                stoppedNotice = String(localized: "Kaydın ilk \(doneMinutes) dakikası yeniden yazıya döküldü; kalanında canlı metin kullanıldı: \(reason)")
-                coveredUntilSec = covered
+                let stop: PartialFinalPass = partialFinalPass(lastDone: previous ?? chunk, error: error)
+                stoppedNotice = stop.notice
+                coveredUntilSec = stop.coveredUntilSec
+                break
+            }
+            previous = chunk
+            do {
+                pending = try await following
+            } catch let error where !(error is CancellationError) {
+                // Sonraki parça kodlanamadı: yazıya dökülenler korunur (yukarıdaki gibi).
+                let stop: PartialFinalPass = partialFinalPass(lastDone: chunk, error: error)
+                stoppedNotice = stop.notice
+                coveredUntilSec = stop.coveredUntilSec
                 break
             }
         }
@@ -74,6 +86,42 @@ public struct HostedFinalTranscriber: FinalTranscriber {
             coveredUntilSec: coveredUntilSec
         )
     }
+}
+
+/// Yarıda kalan son geçişin uyarısı ve yazıya dökülen kaydın sonu (sn).
+private struct PartialFinalPass {
+    let notice: String
+    let coveredUntilSec: Double
+}
+
+/// Yazıya dökülen son parça `lastDone` iken geçiş `error` yüzünden durdu: kalan kısımda canlı metin kullanılır.
+private func partialFinalPass(lastDone: AudioChunkFile, error: any Error) -> PartialFinalPass {
+    let covered: Double = lastDone.span.offsetSec(sampleRate: hostedTranscribeSampleRate) + Double(lastDone.span.sampleCount) / Double(hostedTranscribeSampleRate)
+    let doneMinutes: Int = Int((covered / 60).rounded())
+    let reason: String = (error as? HostedAPIError).map { hostedErrorMessage(error: $0) } ?? userFacingMessage(error: error)
+    finalLogger.warning("Son geçiş yarıda kaldı, yazıya dökülen dakika: \(doneMinutes, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+    return PartialFinalPass(
+        notice: String(localized: "Kaydın ilk \(doneMinutes) dakikası yeniden yazıya döküldü; kalanında canlı metin kullanıldı: \(reason)"),
+        coveredUntilSec: covered
+    )
+}
+
+/// Sunucunun parça sınırlarıyla (`hostedTranscribeMaxBytes`, `hostedFlacChunkMaxSec`, `hostedChunkOverlapSec`) FLAC parçası.
+private func hostedChunk(pcm: HostedPcmFile, startSample: Int, index: Int, directory: URL) throws -> AudioChunkFile {
+    try encodeHostedFlacChunk(
+        pcm: pcm, startSample: startSample, index: index, directory: directory, maxBytes: hostedTranscribeMaxBytes,
+        maxSamples: Int(hostedFlacChunkMaxSec * Double(hostedTranscribeSampleRate)),
+        overlapSamples: Int(hostedChunkOverlapSec * Double(hostedTranscribeSampleRate))
+    )
+}
+
+/// `chunk`'tan sonraki parça; kayıt bittiyse nil.
+private func followingHostedChunk(after chunk: AudioChunkFile, index: Int, pcm: HostedPcmFile, directory: URL) async throws -> AudioChunkFile? {
+    let overlapSamples: Int = Int(hostedChunkOverlapSec * Double(hostedTranscribeSampleRate))
+    guard let start = nextHostedChunkStart(span: chunk.span, totalSamples: pcm.totalSamples, overlapSamples: overlapSamples) else {
+        return nil
+    }
+    return try hostedChunk(pcm: pcm, startSample: start, index: index, directory: directory)
 }
 
 extension HostedFinalTranscriber {

@@ -214,48 +214,78 @@ public func shortenedFlacSampleCount(sampleCount: Int, encodedBytes: Int, maxByt
     return shorter
 }
 
-/// Kayıt dosyasını (ör. `others.m4a`) 16 kHz mono 16 bit örneklere çevirip kayıpsız FLAC parçaları olarak
-/// `directory`'ye yazar: her parça en çok `maxSamples` örnek ve en çok `maxBytes` bayt, öncekinin son `overlapSamples`
-/// örneğiyle başlar; son parça yalnızca ortak kısımdan ibaret olacaksa açılmaz (`wavChunkSpans` ile aynı bölme).
+/// Kayıt dosyasını (ör. `others.caf` ya da `others.m4a`) 16 kHz mono 16 bit örneklere çevirip kayıpsız FLAC parçaları
+/// olarak `directory`'ye yazar: her parça en çok `maxSamples` örnek ve en çok `maxBytes` bayt, öncekinin son
+/// `overlapSamples` örneğiyle başlar; son parça yalnızca ortak kısımdan ibaret olacaksa açılmaz (`wavChunkSpans` ile aynı
+/// bölme). Son geçiş parçaları birer birer kodlar (`writeHostedPcmFile`, `encodeHostedFlacChunk`): sonraki parça öncekinin
+/// yüklemesi sürerken kodlanır; bölme ikisinde de aynıdır.
 ///
-/// FLAC'ın boyutu içeriğe bağlıdır (konuşmada PCM'in yaklaşık yarısı, beyaz gürültüde PCM'den ~%0,1 büyük); güvenli bir
-/// sabit üst sınır WAV'dan uzun parça vermezdi. Bu yüzden parça önce `maxSamples` ile kodlanıp boyutu ölçülür;
-/// `maxBytes`'ı aşarsa aynı başlangıçtan kısaltılarak yeniden kodlanır (`shortenedFlacSampleCount`). Örnekler önce
-/// `directory`'deki ham PCM dosyasına akış halinde yazılır (dosya bellekte bütün olarak tutulmaz; 4 saatlik toplantı
-/// ~460 MB eder), parçalar oradan kodlanır; ham dosya iş bitince silinir. Hata durumunda yazılanlar `directory`'de
-/// kalır; çağıran klasörü siler.
+/// Örnekler önce `directory`'deki ham PCM dosyasına akış halinde yazılır (dosya bellekte bütün olarak tutulmaz; 4
+/// saatlik toplantı ~460 MB eder), parçalar oradan kodlanır; ham dosya iş bitince silinir. Hata durumunda yazılanlar
+/// `directory`'de kalır; çağıran klasörü siler.
 public func writeHostedFlacChunks(source: URL, directory: URL, maxBytes: Int, maxSamples: Int, overlapSamples: Int) throws -> [AudioChunkFile] {
-    let pcmURL: URL = directory.appending(path: "samples.pcm")
-    let totalSamples: Int = try writeHostedPcm(source: source, destination: pcmURL)
-    let pcm: FileHandle
-    do {
-        pcm = try FileHandle(forReadingFrom: pcmURL)
-    } catch {
-        throw StorageError.readFailed(path: pcmURL.path, reason: error.localizedDescription)
-    }
+    let pcm: HostedPcmFile = try writeHostedPcmFile(source: source, directory: directory)
     var chunks: [AudioChunkFile] = []
-    var start: Int = 0
-    while start < totalSamples {
-        let url: URL = directory.appending(path: "chunk-\(chunks.count).flac")
-        var count: Int = min(maxSamples, totalSamples - start)
-        var bytes: Int = try encodeFlacChunk(pcm: pcm, pcmPath: pcmURL.path, startSample: start, sampleCount: count, destination: url)
-        while bytes > maxBytes {
-            count = try shortenedFlacSampleCount(sampleCount: count, encodedBytes: bytes, maxBytes: maxBytes, overlapSamples: overlapSamples)
-            bytes = try encodeFlacChunk(pcm: pcm, pcmPath: pcmURL.path, startSample: start, sampleCount: count, destination: url)
-        }
-        chunks.append(AudioChunkFile(url: url, span: AudioChunkSpan(startSample: start, sampleCount: count), bytes: bytes))
-        guard start + count < totalSamples else {
-            break
-        }
-        start += count - overlapSamples
+    var start: Int? = pcm.totalSamples > 0 ? 0 : nil
+    while let chunkStart = start {
+        let chunk: AudioChunkFile = try encodeHostedFlacChunk(
+            pcm: pcm, startSample: chunkStart, index: chunks.count, directory: directory, maxBytes: maxBytes, maxSamples: maxSamples, overlapSamples: overlapSamples
+        )
+        chunks.append(chunk)
+        start = nextHostedChunkStart(span: chunk.span, totalSamples: pcm.totalSamples, overlapSamples: overlapSamples)
     }
     do {
-        try pcm.close()
-        try FileManager.default.removeItem(at: pcmURL)
+        try FileManager.default.removeItem(at: pcm.url)
     } catch {
-        throw StorageError.deleteFailed(path: pcmURL.path, reason: error.localizedDescription)
+        throw StorageError.deleteFailed(path: pcm.url.path, reason: error.localizedDescription)
     }
     return chunks
+}
+
+/// Kayıttan çıkarılmış ham PCM dosyası (16 kHz mono 16 bit, küçük uçlu, başlıksız) ve örnek sayısı.
+public struct HostedPcmFile: Sendable, Equatable {
+    public let url: URL
+    public let totalSamples: Int
+}
+
+/// Kayıt dosyasını ham PCM olarak `directory/samples.pcm`'e akış halinde yazar (bkz. `writeHostedPcm`).
+public func writeHostedPcmFile(source: URL, directory: URL) throws -> HostedPcmFile {
+    let url: URL = directory.appending(path: "samples.pcm")
+    return HostedPcmFile(url: url, totalSamples: try writeHostedPcm(source: source, destination: url))
+}
+
+/// PCM'in `startSample`'dan başlayan parçasını `directory/chunk-<index>.flac` olarak kodlar: en çok `maxSamples` örnek.
+/// FLAC'ın boyutu içeriğe bağlıdır (konuşmada PCM'in yaklaşık yarısı, beyaz gürültüde PCM'den ~%0,1 büyük); güvenli bir
+/// sabit üst sınır WAV'dan uzun parça vermezdi. Bu yüzden parça önce `maxSamples` ile kodlanıp boyutu ölçülür;
+/// `maxBytes`'ı aşarsa aynı başlangıçtan kısaltılarak yeniden kodlanır (`shortenedFlacSampleCount`).
+public func encodeHostedFlacChunk(
+    pcm: HostedPcmFile, startSample: Int, index: Int, directory: URL, maxBytes: Int, maxSamples: Int, overlapSamples: Int
+) throws -> AudioChunkFile {
+    let handle: FileHandle
+    do {
+        handle = try FileHandle(forReadingFrom: pcm.url)
+    } catch {
+        throw StorageError.readFailed(path: pcm.url.path, reason: error.localizedDescription)
+    }
+    let url: URL = directory.appending(path: "chunk-\(index).flac")
+    var count: Int = min(maxSamples, pcm.totalSamples - startSample)
+    var bytes: Int = try encodeFlacChunk(pcm: handle, pcmPath: pcm.url.path, startSample: startSample, sampleCount: count, destination: url)
+    while bytes > maxBytes {
+        count = try shortenedFlacSampleCount(sampleCount: count, encodedBytes: bytes, maxBytes: maxBytes, overlapSamples: overlapSamples)
+        bytes = try encodeFlacChunk(pcm: handle, pcmPath: pcm.url.path, startSample: startSample, sampleCount: count, destination: url)
+    }
+    do {
+        try handle.close()
+    } catch {
+        throw StorageError.readFailed(path: pcm.url.path, reason: error.localizedDescription)
+    }
+    return AudioChunkFile(url: url, span: AudioChunkSpan(startSample: startSample, sampleCount: count), bytes: bytes)
+}
+
+/// Parçadan sonraki parçanın başlangıcı (parçanın son `overlapSamples` örneği); parça kaydın sonuna ulaştıysa nil. Saf
+/// fonksiyondur.
+public func nextHostedChunkStart(span: AudioChunkSpan, totalSamples: Int, overlapSamples: Int) -> Int? {
+    span.startSample + span.sampleCount < totalSamples ? span.startSample + span.sampleCount - overlapSamples : nil
 }
 
 /// Kayıt dosyasını 16 kHz mono 16 bit ham PCM (küçük uçlu, başlıksız) olarak `destination`'a akış halinde yazar ve

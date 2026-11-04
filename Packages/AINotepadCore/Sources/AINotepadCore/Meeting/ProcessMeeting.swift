@@ -22,9 +22,22 @@ public struct FinalPassResult: Sendable, Equatable {
     }
 }
 
-/// Kaydın tamamından (`others.m4a`) konuşmacılı son geçiş bölümleri üreten servis.
+/// Kaydın tamamından (`others.m4a` ya da kaydın kendisi; bkz. `FinalPassSource`) konuşmacılı son geçiş bölümleri üreten
+/// servis.
 public protocol FinalTranscriber: Sendable {
+    /// Son geçişin okuduğu kayıt ve işlemedeki yeri.
+    var source: FinalPassSource { get }
     func transcribeFinal(audioURL: URL, languageMode: LanguageMode) async throws -> FinalPassResult
+}
+
+/// Son geçişin okuduğu kayıt.
+public enum FinalPassSource: Sendable, Equatable {
+    /// Sıkıştırılmış kayıt (`.m4a`): dönüştürme bitince başlar (doğrudan ElevenLabs yüklemesi, bu cihazdaki model).
+    case compressedRecording
+    /// Kaydın kendisi (16 kHz mono 16 bit `.caf`; kayıt zaten dönüştürülmüşse `.m4a`) sunucuda yazıya dökülür:
+    /// dönüştürmeyi beklemeden onunla aynı anda başlar ve kayıpsız sesi okur (AAC'nin kayıplı kopyasını değil). Cihaz
+    /// yanıtı beklerken ses izleri çıkarılır.
+    case originalRecording
 }
 
 /// Toplantı sonrası işlemenin adımı (arayüzde ilerleme olarak gösterilir).
@@ -48,6 +61,8 @@ public enum FinalPassPlan: Sendable {
 
 /// Bulut son geçişi: ElevenLabs Scribe v2, konuşmacı ayırma açık.
 public struct ElevenLabsFinalTranscriber: FinalTranscriber {
+    /// `.m4a` yüklenir (`audio/mp4`; saatte ~15 MB).
+    public let source: FinalPassSource = .compressedRecording
     private let apiKey: String
     /// Adlar ve terimler (bkz. `meetingKeyterms`).
     private let keyterms: [String]
@@ -86,9 +101,7 @@ public func audioDurationSec(url: URL) throws -> Double {
     }
 }
 
-/// Toplantı sonrası işleme: (1) `.caf` → `.m4a`, (2) kaydın tamamından son geçiş (bulut ya da yerel; atlanır ya da
-/// başarısız olursa toplantıda uyarı, canlı metin kullanılır), (3) not dilinde (`noteLanguage`) not. Bir adım başarısız olursa o ana kadarki ilerleme korunur, durum `failed` olur;
-/// ses dosyaları kaldığı için yeniden işlenebilir.
+/// Toplantı sonrası işleme, plan ve sağlayıcı önceden hazırlanmışken (bkz. `processMeeting(record:directory:resolveFinalPass:resolveLLM:…)`).
 public func processMeeting(
     record: MeetingRecord,
     directory: URL,
@@ -102,31 +115,41 @@ public func processMeeting(
     screens: ScreenNotesPlan,
     onStep: @escaping @MainActor @Sendable (ProcessingStep) async -> Void
 ) async -> MeetingRecord {
-    var current: MeetingRecord = record.with(status: .processing, failureMessage: nil).with(notice: nil)
+    await processMeeting(
+        record: record, directory: directory,
+        resolveFinalPass: { () async -> FinalPassPlan in finalPass }, resolveLLM: { () async -> LLMProvider? in llm },
+        languageMode: languageMode, userName: userName, noteLanguage: noteLanguage, voiceEmbedder: voiceEmbedder, registry: registry,
+        screens: screens, onStep: onStep
+    )
+}
+
+/// Toplantı sonrası işleme: (1) `.caf` → `.m4a`, (2) kaydın tamamından son geçiş (bulut ya da yerel; atlanır ya da
+/// başarısız olursa toplantıda uyarı, canlı metin kullanılır), (3) not dilinde (`noteLanguage`) not. Son geçiş planı ve
+/// not sağlayıcısı (`resolveFinalPass`, `resolveLLM`; ör. sunucu oturumunu yeniden açma isteği) ses dönüştürülürken
+/// hazırlanır; sunucudaki son geçiş dönüştürmeyle aynı anda başlar (bkz. `FinalPassSource.originalRecording`). Bir adım
+/// başarısız olursa o ana kadarki ilerleme korunur, durum `failed` olur; ses dosyaları kaldığı için yeniden işlenebilir.
+public func processMeeting(
+    record: MeetingRecord,
+    directory: URL,
+    resolveFinalPass: @escaping @Sendable () async -> FinalPassPlan,
+    resolveLLM: @escaping @Sendable () async -> LLMProvider?,
+    languageMode: LanguageMode,
+    userName: String,
+    noteLanguage: ShareLanguage,
+    voiceEmbedder: (any VoiceEmbedder)?,
+    registry: [RegisteredVoice],
+    screens: ScreenNotesPlan,
+    onStep: @escaping @MainActor @Sendable (ProcessingStep) async -> Void
+) async -> MeetingRecord {
+    let start: MeetingRecord = record.with(status: .processing, failureMessage: nil).with(notice: nil)
     await onStep(.convertingAudio)
-
-    // İki kayıt aynı anda dönüştürülür (uzun toplantıda bekleme yarıya iner).
-    do {
-        try await convertRecordings(directory: directory)
-    } catch {
-        return failed(record: current, step: String(localized: "Ses dönüştürülemedi"), error: error)
-    }
-
-    await onStep(.finalPass)
-    switch finalPass {
-    case .skip(let reason):
-        current = current.with(notice: skippedFinalPassNotice(reason: reason, hasFinalTranscript: hasOthersFinalTranscript(record: current)))
-    case .stop(let error):
-        return failed(record: current, step: String(localized: "Son geçiş başlatılamadı"), error: error)
-    case .run(let transcriber):
-        current = await transcribeOthers(record: current, directory: directory, transcriber: transcriber, languageMode: languageMode)
-        if current.meNeedsFinalPass == true {
-            current = await transcribeMe(record: current, directory: directory, transcriber: transcriber, languageMode: languageMode)
-        }
-    }
-
-    if let voiceEmbedder {
-        current = await recognizeVoices(record: current, directory: directory, embedder: voiceEmbedder, registry: registry)
+    async let llm: LLMProvider? = resolveLLM()
+    let current: MeetingRecord = await transcribedRecord(
+        record: start, directory: directory, resolveFinalPass: resolveFinalPass, languageMode: languageMode, voiceEmbedder: voiceEmbedder,
+        registry: registry, onStep: onStep
+    )
+    guard current.status != .failed else {
+        return current
     }
 
     // Canlı metni olmayan toplantı (içe aktarılan dosya) son geçiş metin üretmediyse "bitti" görünmesin.
@@ -135,22 +158,137 @@ public func processMeeting(
     }
 
     await onStep(.writingNote)
-    return await regenerateNote(record: current, directory: directory, llm: llm, userName: userName, language: noteLanguage, screens: screens)
+    return await regenerateNote(record: current, directory: directory, llm: await llm, userName: userName, language: noteLanguage, screens: screens)
 }
 
-/// Sesinden tanıma: kişilerin ses izleri "Diğerleri" kaydından çıkarılır, adı olmayan kişilere kayıtlı seslerden emin
-/// olunan adlar verilir ve hangi adların sesinden verildiği uyarıda yazılır. İz çıkarılamazsa (ör. model indirilemedi)
-/// toplantı adsız kalır, uyarı eklenir; not engellenmez.
-private func recognizeVoices(record: MeetingRecord, directory: URL, embedder: any VoiceEmbedder, registry: [RegisteredVoice]) async -> MeetingRecord {
+/// Ses dönüştürme, son geçiş ve sesinden tanıma. Kayıtlar (`.caf`) `.m4a`'ya dönüştürülürken son geçiş planı hazırlanır;
+/// kaydın kendisini okuyan son geçiş (`FinalPassSource.originalRecording`) dönüştürmeyle aynı anda başlar, ses izleri
+/// (SpeakerKit) dönüştürme biter bitmez son geçişle aynı anda çıkarılır (bölümlerle eşleme son geçişten sonra). `.caf`'lar
+/// son geçiş onları okuduktan sonra silinir. Dönüştürme başarısızsa son geçiş iptal edilir ve toplantı "başarısız" döner.
+private func transcribedRecord(
+    record: MeetingRecord,
+    directory: URL,
+    resolveFinalPass: @escaping @Sendable () async -> FinalPassPlan,
+    languageMode: LanguageMode,
+    voiceEmbedder: (any VoiceEmbedder)?,
+    registry: [RegisteredVoice],
+    onStep: @escaping @MainActor @Sendable (ProcessingStep) async -> Void
+) async -> MeetingRecord {
+    // İki kayıt aynı anda dönüştürülür (uzun toplantıda bekleme yarıya iner).
+    let originals: [URL] = recordingsToConvert(directory: directory)
+    async let conversion: Void = convertRecordings(sources: originals)
+    let plan: FinalPassPlan = await resolveFinalPass()
+    let early: (any FinalTranscriber)? = originalRecordingTranscriber(plan: plan)
+    async let earlyOthers: MeetingRecord? = optionalOthersPass(
+        record: record, audio: recordingURL(directory: directory, name: "others", originals: originals), transcriber: early,
+        languageMode: languageMode
+    )
+    do {
+        try await conversion
+    } catch {
+        return failed(record: record, step: String(localized: "Ses dönüştürülemedi"), error: error)
+    }
+    await onStep(.finalPass)
     let othersAudio: URL = directory.appending(path: "others.m4a")
-    let segments: [StoredSegment] = meetingSegments(record: record)
-    guard FileManager.default.fileExists(atPath: othersAudio.path), segments.contains(where: { $0.person != nil }) else {
-        return record
+    // Sunucunun yanıtı beklenirken ses izleri çıkarılır; cihazdaki son geçişle yarışmasın diye yalnızca sunucudakiyle.
+    async let clustering: VoiceClustering? = optionalVoiceClustering(audio: othersAudio, embedder: early == nil ? nil : voiceEmbedder)
+
+    var current: MeetingRecord
+    switch plan {
+    case .skip(let reason):
+        current = record.with(notice: skippedFinalPassNotice(reason: reason, hasFinalTranscript: hasOthersFinalTranscript(record: record)))
+    case .stop(let error):
+        do {
+            try removeRecordings(urls: originals)
+        } catch {
+            return failed(record: record, step: String(localized: "Ses dönüştürülemedi"), error: error)
+        }
+        return failed(record: record, step: String(localized: "Son geçiş başlatılamadı"), error: error)
+    case .run(let transcriber):
+        if let others = await earlyOthers {
+            current = others
+        } else {
+            current = await transcribeOthers(record: record, audio: othersAudio, transcriber: transcriber, languageMode: languageMode)
+        }
+        if current.meNeedsFinalPass == true {
+            let meAudio: URL = transcriber.source == .originalRecording
+                ? recordingURL(directory: directory, name: "me", originals: originals)
+                : directory.appending(path: "me.m4a")
+            current = await transcribeMe(record: current, audio: meAudio, transcriber: transcriber, languageMode: languageMode)
+        }
     }
     do {
-        let voiceprints: [Int: Voiceprint] = try await meetingVoiceprints(
-            samples: try loadMonoSamples(url: othersAudio), segments: segments, embedder: embedder, windowSec: voiceWindowSec
-        )
+        try removeRecordings(urls: originals)
+    } catch {
+        return failed(record: current, step: String(localized: "Ses dönüştürülemedi"), error: error)
+    }
+
+    guard let voiceEmbedder, voiceRecognitionApplies(record: current, othersAudio: othersAudio) else {
+        // Gerekmeyen ses izi çıkarımı kapsamdan çıkarken iptal edilir.
+        return current
+    }
+    let windows: VoiceClustering
+    if let precomputed = await clustering {
+        windows = precomputed
+    } else {
+        windows = await voiceClustering(audio: othersAudio, embedder: voiceEmbedder)
+    }
+    return recognizedVoices(record: current, clustering: windows, registry: registry)
+}
+
+/// Kaydın kendisini okuyan (dönüştürmeyle aynı anda başlayan) son geçiş; planda yoksa nil. Saf fonksiyondur.
+private func originalRecordingTranscriber(plan: FinalPassPlan) -> (any FinalTranscriber)? {
+    guard case .run(let transcriber) = plan, transcriber.source == .originalRecording else {
+        return nil
+    }
+    return transcriber
+}
+
+/// Kaydın son geçişte okunacak dosyası: dönüştürülecek `.caf` varsa o (kayıpsız), yoksa `.m4a`. Saf fonksiyondur.
+func recordingURL(directory: URL, name: String, originals: [URL]) -> URL {
+    let caf: URL = directory.appending(path: "\(name).caf")
+    return originals.contains(caf) ? caf : directory.appending(path: "\(name).m4a")
+}
+
+/// `transcriber` varsa "Diğerleri" son geçişi; yoksa nil.
+private func optionalOthersPass(record: MeetingRecord, audio: URL, transcriber: (any FinalTranscriber)?, languageMode: LanguageMode) async -> MeetingRecord? {
+    guard let transcriber else {
+        return nil
+    }
+    return await transcribeOthers(record: record, audio: audio, transcriber: transcriber, languageMode: languageMode)
+}
+
+/// "Diğerleri" kaydının parça parça SpeakerKit konuşmacıları ya da çıkarılamama nedeni (sonradan uyarıda gösterilir).
+typealias VoiceClustering = Result<[WindowVoiceClusters], any Error>
+
+/// "Diğerleri" kaydının SpeakerKit konuşmacıları (bkz. `meetingVoiceClusters`); hata sonuçta taşınır.
+private func voiceClustering(audio: URL, embedder: any VoiceEmbedder) async -> VoiceClustering {
+    do {
+        return .success(try await meetingVoiceClusters(samples: try loadMonoSamples(url: audio), embedder: embedder, windowSec: voiceWindowSec))
+    } catch {
+        return .failure(error)
+    }
+}
+
+/// `embedder` varsa ve kayıt duruyorsa SpeakerKit konuşmacıları; yoksa nil.
+private func optionalVoiceClustering(audio: URL, embedder: (any VoiceEmbedder)?) async -> VoiceClustering? {
+    guard let embedder, FileManager.default.fileExists(atPath: audio.path) else {
+        return nil
+    }
+    return await voiceClustering(audio: audio, embedder: embedder)
+}
+
+/// Sesinden tanıma gerekir mi: "Diğerleri" kaydı duruyor ve bölümlerde kişi var.
+private func voiceRecognitionApplies(record: MeetingRecord, othersAudio: URL) -> Bool {
+    FileManager.default.fileExists(atPath: othersAudio.path) && meetingSegments(record: record).contains { $0.person != nil }
+}
+
+/// Sesinden tanıma: kişilerin ses izleri "Diğerleri" kaydının SpeakerKit konuşmacılarından çıkarılır, adı olmayan
+/// kişilere kayıtlı seslerden emin olunan adlar verilir ve hangi adların sesinden verildiği uyarıda yazılır. İz
+/// çıkarılamadıysa (ör. model indirilemedi) toplantı adsız kalır, uyarı eklenir; not engellenmez. Saf fonksiyondur.
+private func recognizedVoices(record: MeetingRecord, clustering: VoiceClustering, registry: [RegisteredVoice]) -> MeetingRecord {
+    do {
+        let voiceprints: [Int: Voiceprint] = voiceprintsFromClusters(windows: try clustering.get(), segments: meetingSegments(record: record))
         let recognized: [Int: String] = recognizedNames(voiceprints: voiceprints, registry: registry)
             .filter { (entry: (key: Int, value: String)) -> Bool in
                 // Kullanıcının verdiği ad ezilmez; aynı ad iki kişide olmaz.
@@ -173,27 +311,41 @@ private func recognizeVoices(record: MeetingRecord, directory: URL, embedder: an
 /// Ses izi için kaydın bölündüğü parça (SpeakerKit'in en iyi çalıştığı uzunluk; 37 dk'lık kayıt ~20 sn).
 private let voiceWindowSec: Double = 120
 
-/// Kayıttaki `.caf` dosyalarını (`me`, `others`) aynı anda `.m4a`'ya dönüştürür ve `.caf`'ları siler; ilk hata fırlatılır.
-private func convertRecordings(directory: URL) async throws {
-    let sources: [URL] = ["me", "others"]
+/// Toplantı klasöründe dönüştürülecek kayıtlar (`me.caf`, `others.caf`; olanlar).
+private func recordingsToConvert(directory: URL) -> [URL] {
+    ["me", "others"]
         .map { (name: String) -> URL in directory.appending(path: "\(name).caf") }
         .filter { FileManager.default.fileExists(atPath: $0.path) }
+}
+
+/// `.caf` kayıtlarını aynı anda `.m4a`'ya dönüştürür (kaynaklar silinmez: son geçiş onları okuyabilir; bkz.
+/// `removeRecordings`); ilk hata fırlatılır.
+private func convertRecordings(sources: [URL]) async throws {
     try await withThrowingTaskGroup(of: Void.self) { (group: inout ThrowingTaskGroup<Void, any Error>) -> Void in
         for caf in sources {
             group.addTask {
                 try convertToM4A(source: caf, destination: caf.deletingPathExtension().appendingPathExtension("m4a"))
-                try FileManager.default.removeItem(at: caf)
             }
         }
         try await group.waitForAll()
     }
 }
 
+/// Dönüştürülmüş `.caf` kayıtlarını siler; silinemeyen ilk dosyada hata.
+private func removeRecordings(urls: [URL]) throws {
+    for url in urls {
+        do {
+            try FileManager.default.removeItem(at: url)
+        } catch {
+            throw StorageError.deleteFailed(path: url.path, reason: error.localizedDescription)
+        }
+    }
+}
+
 /// "Diğerleri" kaydının tamamından konuşmacılı son geçiş. Ses yoksa ya da geçiş başarısızsa canlı metin kalır, uyarı
 /// eklenir: son geçiş yalnızca metni ve konuşmacıları iyileştirir; başarısızlığı (kota, ağ, uzun yükleme) notu
 /// engellemez, "Tekrar işle" yeniden dener.
-private func transcribeOthers(record: MeetingRecord, directory: URL, transcriber: any FinalTranscriber, languageMode: LanguageMode) async -> MeetingRecord {
-    let othersAudio: URL = directory.appending(path: "others.m4a")
+private func transcribeOthers(record: MeetingRecord, audio othersAudio: URL, transcriber: any FinalTranscriber, languageMode: LanguageMode) async -> MeetingRecord {
     guard FileManager.default.fileExists(atPath: othersAudio.path) else {
         return record.with(notice: String(localized: "Son geçiş yapılmadı: \"Diğerleri\" sesi kaydedilmemiş. Canlı metin kullanıldı."))
     }
@@ -257,8 +409,7 @@ func failedFinalPassNotice(error: any Error, hasFinalTranscript: Bool) -> String
 
 /// "Sen"in canlı akışı koptuysa "Sen" kaydını da yazıya döker; bölümler "Sen" olarak son geçişe eklenir ve canlı
 /// "Sen" metninin yerini alır. Başarısızsa canlı metin kalır, uyarı eklenir.
-private func transcribeMe(record: MeetingRecord, directory: URL, transcriber: any FinalTranscriber, languageMode: LanguageMode) async -> MeetingRecord {
-    let meAudio: URL = directory.appending(path: "me.m4a")
+private func transcribeMe(record: MeetingRecord, audio meAudio: URL, transcriber: any FinalTranscriber, languageMode: LanguageMode) async -> MeetingRecord {
     guard FileManager.default.fileExists(atPath: meAudio.path) else {
         return record.with(notice: joinedNotice(record.notice, String(localized: "\"Sen\" metni eksik: kayıt sırasında akış koptu ve \"Sen\" sesi kaydedilmemiş.")))
     }

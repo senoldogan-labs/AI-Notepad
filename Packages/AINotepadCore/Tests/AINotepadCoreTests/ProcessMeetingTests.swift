@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 import Testing
 @testable import AINotepadCore
 
@@ -147,4 +148,126 @@ extension CloudTests {
         #expect(result.failureMessage?.contains("LLM") == true)
     }
 }
+}
+
+/// Son geçişe verilen dosyaları toplar.
+private final class ReceivedAudio: Sendable {
+    let names: Mutex<[String]> = Mutex([])
+}
+
+/// Ağsız son geçiş: aldığı dosyanın adını yazar, "Konuşmacı 1"in 0–60 sn'lik tek bölümünü döndürür.
+private struct RecordingFinalTranscriber: FinalTranscriber {
+    let source: FinalPassSource
+    let received: ReceivedAudio
+
+    func transcribeFinal(audioURL: URL, languageMode: LanguageMode) async throws -> FinalPassResult {
+        #expect(FileManager.default.fileExists(atPath: audioURL.path))
+        received.names.withLock { $0.append(audioURL.lastPathComponent) }
+        return FinalPassResult(
+            segments: [StoredSegment(key: "final-0", speaker: .others, person: 1, startSec: 0, endSec: 60, text: "Hei kaikki", words: nil)],
+            language: .finnish, notice: nil, coveredUntilSec: nil
+        )
+    }
+}
+
+/// Parçanın tamamını tek konuşmacı sayan, sesten bağımsız gömme (sıralamayı ve eşlemeyi denetlemek için).
+private struct WholeWindowEmbedder: VoiceEmbedder {
+    func clusters(samples: [Float]) async throws -> [VoiceCluster] {
+        [VoiceCluster(turns: [0...Double(samples.count) / 16000], centroid: [1, 0, 0])]
+    }
+}
+
+/// Kayıt sonrası işlemenin sırası (ağsız): sunucudaki son geçiş dönüştürmeyi beklemeden kayıpsız `.caf`'ı okur, cihazdaki
+/// son geçiş `.m4a`'yı; sonunda `.caf`'lar silinir ve `.m4a`'lar kalır. Ses izleri son geçişle aynı anda çıkarılsa da
+/// sıralı hesapla aynıdır.
+@Suite struct ProcessMeetingOrderTests {
+    private func recordedMeeting(meNeedsFinalPass: Bool?) throws -> (directory: URL, record: MeetingRecord) {
+        let directory: URL = try temporaryDirectory()
+        for name in ["others", "me"] {
+            let recorder: CafRecorder = try CafRecorder(fileURL: directory.appending(path: "\(name).caf"))
+            try recorder.append(samples: silence(seconds: 30))
+            recorder.close()
+        }
+        let record: MeetingRecord = MeetingRecord(
+            id: directory.lastPathComponent, title: "Toplantı", startedAt: Date(), endedAt: Date(), language: .finnish, status: .processing,
+            failureMessage: nil, liveSegments: [stored("live-0", .others, nil, 1, "Hei")], finalSegments: [], translations: [:], speakerNames: [:],
+            note: nil, audioDeleted: false, engine: .cloud, notice: nil, meNeedsFinalPass: meNeedsFinalPass
+        )
+        return (directory, record)
+    }
+
+    private func process(
+        record: MeetingRecord, directory: URL, transcriber: any FinalTranscriber, voiceEmbedder: (any VoiceEmbedder)?, log: StepLog
+    ) async -> MeetingRecord {
+        await processMeeting(
+            record: record, directory: directory,
+            resolveFinalPass: { () async -> FinalPassPlan in .run(transcriber) }, resolveLLM: { () async -> LLMProvider? in nil },
+            languageMode: .fixed(.finnish), userName: "Doğan", noteLanguage: .turkish, voiceEmbedder: voiceEmbedder, registry: [], screens: .off,
+            onStep: { (step: ProcessingStep) async -> Void in log.steps.append(step) }
+        )
+    }
+
+    @Test func serverFinalPassReadsLosslessRecordings() async throws {
+        let (directory, record): (URL, MeetingRecord) = try recordedMeeting(meNeedsFinalPass: true)
+        let received: ReceivedAudio = ReceivedAudio()
+        let log: StepLog = await StepLog()
+        let result: MeetingRecord = await process(
+            record: record, directory: directory, transcriber: RecordingFinalTranscriber(source: .originalRecording, received: received),
+            voiceEmbedder: nil, log: log
+        )
+        #expect(received.names.withLock { $0 } == ["others.caf", "me.caf"])
+        #expect(await log.steps == [.convertingAudio, .finalPass, .writingNote])
+        #expect(result.finalSegments.map(\.key) == ["final-0", "me-final-0"])
+        for name in ["others", "me"] {
+            #expect(FileManager.default.fileExists(atPath: directory.appending(path: "\(name).m4a").path))
+            #expect(!FileManager.default.fileExists(atPath: directory.appending(path: "\(name).caf").path))
+        }
+    }
+
+    @Test func deviceFinalPassReadsCompressedRecordings() async throws {
+        let (directory, record): (URL, MeetingRecord) = try recordedMeeting(meNeedsFinalPass: true)
+        let received: ReceivedAudio = ReceivedAudio()
+        _ = await process(
+            record: record, directory: directory, transcriber: RecordingFinalTranscriber(source: .compressedRecording, received: received),
+            voiceEmbedder: nil, log: await StepLog()
+        )
+        #expect(received.names.withLock { $0 } == ["others.m4a", "me.m4a"])
+        #expect(!FileManager.default.fileExists(atPath: directory.appending(path: "others.caf").path))
+    }
+
+    // Yeniden işlemede `.caf` yok: sunucudaki son geçiş de `.m4a`'yı okur.
+    @Test func reprocessingReadsCompressedRecording() async throws {
+        let (directory, record): (URL, MeetingRecord) = try recordedMeeting(meNeedsFinalPass: nil)
+        let received: ReceivedAudio = ReceivedAudio()
+        let transcriber: RecordingFinalTranscriber = RecordingFinalTranscriber(source: .originalRecording, received: received)
+        _ = await process(record: record, directory: directory, transcriber: transcriber, voiceEmbedder: nil, log: await StepLog())
+        _ = await process(record: record, directory: directory, transcriber: transcriber, voiceEmbedder: nil, log: await StepLog())
+        #expect(received.names.withLock { $0 } == ["others.caf", "others.m4a"])
+    }
+
+    @Test func overlappedVoiceprintsEqualSequentialOnes() async throws {
+        let (directory, record): (URL, MeetingRecord) = try recordedMeeting(meNeedsFinalPass: nil)
+        let result: MeetingRecord = await process(
+            record: record, directory: directory, transcriber: RecordingFinalTranscriber(source: .originalRecording, received: ReceivedAudio()),
+            voiceEmbedder: WholeWindowEmbedder(), log: await StepLog()
+        )
+        let expected: [Int: Voiceprint] = try await meetingVoiceprints(
+            samples: try loadMonoSamples(url: directory.appending(path: "others.m4a")), segments: meetingSegments(record: result),
+            embedder: WholeWindowEmbedder(), windowSec: 120
+        )
+        #expect(!expected.isEmpty)
+        #expect(result.voiceprints == expected)
+    }
+
+    @Test func conversionFailureFailsMeeting() async throws {
+        let (directory, record): (URL, MeetingRecord) = try recordedMeeting(meNeedsFinalPass: nil)
+        try Data("bozuk".utf8).write(to: directory.appending(path: "others.caf"))
+        let result: MeetingRecord = await process(
+            record: record, directory: directory, transcriber: RecordingFinalTranscriber(source: .originalRecording, received: ReceivedAudio()),
+            voiceEmbedder: nil, log: await StepLog()
+        )
+        #expect(result.status == .failed)
+        #expect(result.failureMessage?.hasPrefix(String(localized: "Ses dönüştürülemedi")) == true)
+        #expect(result.finalSegments.isEmpty)
+    }
 }

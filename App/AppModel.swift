@@ -1599,7 +1599,7 @@ final class AppModel {
 
     /// Toplantıyı sonradan işler (son geçiş + not) ve kaydeder. Son geçiş kaydın motoruna göre yapılır
     /// (yerel toplantı buluta gönderilmez); dil kaydın kilitlenmiş dilidir.
-    private func process(record: MeetingRecord, directory: URL, llmProvider resolveLLM: @escaping @MainActor () async -> LLMProvider?) {
+    private func process(record: MeetingRecord, directory: URL, llmProvider resolveLLM: @escaping @MainActor @Sendable () async -> LLMProvider?) {
         saveRecord(record: record, directory: directory)
         processingMeetingIDs.insert(record.id)
         keepAwake(meetingID: record.id)
@@ -1608,11 +1608,12 @@ final class AppModel {
         let userName: String = self.userName
         let languageMode: LanguageMode = record.language.map { LanguageMode.fixed($0) } ?? .automatic
         Task {
-            let plan: FinalPassPlan = await finalPassPlan(record: record)
-            let llm: LLMProvider? = await resolveLLM()
             let screens: ScreenNotesPlan = screenNotesPlan()
+            // Son geçiş planı (sunucu oturumunu yeniden açma isteği) ve not sağlayıcısı ses dönüştürülürken hazırlanır.
             let result: MeetingRecord = await processMeeting(
-                record: record, directory: directory, finalPass: plan, llm: llm, languageMode: languageMode, userName: userName,
+                record: record, directory: directory,
+                resolveFinalPass: { () async -> FinalPassPlan in await self.finalPassPlan(record: record) },
+                resolveLLM: resolveLLM, languageMode: languageMode, userName: userName,
                 noteLanguage: selectedNoteLanguage(), voiceEmbedder: voiceEmbedderIfEnabled(), registry: registeredVoices, screens: screens
             ) { (step: ProcessingStep) async -> Void in
                 self.processingSteps[record.id] = step

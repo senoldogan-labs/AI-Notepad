@@ -382,12 +382,15 @@ async function pumpStream(
     const usage: TokenUsage = finished
       ? { inputTokens: inputTokens ?? estimatedInput, outputTokens: outputTokens ?? maxTokens }
       : { inputTokens: inputTokens ?? estimatedInput, outputTokens: maxTokens };
+    // Akış kesinleştirmeden önce kapanır: istemci (ör. parça parça yazılan notun sonraki isteği) D1 yazımını beklemez.
+    // Kesinleştirme `waitUntil` içinde sürer ve kapatma başarısız olsa da yapılır; o ana dek ayırma açık kalır, yani
+    // sonraki çağrının bütçe denetimi bu çağrıyı ayrılan üst sınırla sayar (fazla harcamaya izin vermez).
     try {
-      await chargeUsage(db, scope, reservation, usage, usageTag, finished ? noteMeetingId : null, now);
-    } finally {
       if (!clientGone) {
         await writer.close();
       }
+    } finally {
+      await chargeUsage(db, scope, reservation, usage, usageTag, finished ? noteMeetingId : null, now);
     }
   }
 }
