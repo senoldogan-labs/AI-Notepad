@@ -6,9 +6,9 @@ import UniformTypeIdentifiers
 import os
 
 /// Toplantılar: tarihe göre gruplanmış film gradyanlı kartlar ve arama; uzun basınca Markdown kopyası, klasöre taşıma ve
-/// silme. Dokununca toplantı sayfası. "Seç" (Mac'teki gibi) birden çok toplantıyı birlikte siler ya da klasöre taşır;
-/// silinen toplantı Son silinenler'e gider (listenin sonunda). Klasör çiplerinde "+" boş klasör açar, uzun basınca
-/// klasör silinir (toplantılar kalır). Sağ üstteki "İçe aktar" ses ya da video dosyasını (Dosyalar ya da Fotoğraflar)
+/// silme. Dokununca toplantı sayfası. Sağ üstteki "Seç" (Mac'teki gibi) birden çok toplantıyı birlikte siler ya da
+/// klasöre taşır; silinen toplantı Son silinenler'e gider (çiplerin sonundaki çöp çipi). Klasör çiplerinde "+" boş klasör
+/// açar, uzun basınca klasör silinir (toplantılar kalır). Sağ üstteki "İçe aktar" ses ya da video dosyasını (Dosyalar ya da Fotoğraflar)
 /// toplantı olarak ekler.
 struct MeetingsTab: View {
     let store: PhoneStore
@@ -75,8 +75,11 @@ struct MeetingsTab: View {
                         ImportProgressRow()
                     }
                     if !store.meetings.isEmpty {
+                        // Son silinenler çipi Seç modunda gizli (işaretlerken başka sayfaya geçilmesin).
                         MeetingScopeChips(
                             records: meetings, folders: store.folders, userName: userName, selection: $scope,
+                            deletedCount: isSelecting ? 0 : store.deletedMeetings.count,
+                            deletedDestination: RecentlyDeletedList(store: store, recorder: recorder),
                             onCreateFolder: { newFolderRequest = .create },
                             onDeleteFolder: { (name: String) -> Void in pendingFolderDelete = name },
                             canDeleteFolder: { (name: String) -> Bool in
@@ -95,9 +98,6 @@ struct MeetingsTab: View {
                             card(record: record, locked: locked)
                         }
                     }
-                    if !store.deletedMeetings.isEmpty, !isSelecting, !sections.isEmpty {
-                        RecentlyDeletedLink(store: store, recorder: recorder)
-                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 24)
@@ -106,6 +106,8 @@ struct MeetingsTab: View {
             .overlay {
                 emptyOverlay(hasResults: !sections.isEmpty)
             }
+            // Seç modunda sekme çubuğu gizli: yatay kaydırma sekme değiştirmez.
+            .phoneTabSwipe(router: router, isEnabled: !isSelecting)
             .background(Theme.background)
             .navigationTitle("Toplantılar")
             .searchable(text: $query, prompt: "Toplantılarda ara")
@@ -113,17 +115,22 @@ struct MeetingsTab: View {
             .toolbar(isSelecting ? .hidden : .visible, for: .tabBar)
             .toolbar {
                 if isSelecting {
+                    // Seç modundan çıkış: iOS 26'nın onay düğmesi (vurgulu onay işareti; erişilebilirlik adı "Bitti").
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button("Bitti") { setSelecting(false) }
-                            .fontWeight(.semibold)
+                        Button(role: .confirm) {
+                            setSelecting(false)
+                        } label: {
+                            Label("Bitti", systemImage: "checkmark")
+                        }
                     }
                     ToolbarItemGroup(placement: .bottomBar) {
                         selectionBar(effective: effective, selectable: visibleIDs.subtracting(locked), locked: locked)
                     }
                 } else {
                     if !store.meetings.isEmpty {
+                        // Yanındaki Kişiler ve İçe aktar gibi simge (erişilebilirlik adı "Seç").
                         ToolbarItem(placement: .topBarTrailing) {
-                            Button("Seç") { setSelecting(true) }
+                            Button("Seç", systemImage: "checkmark.circle") { setSelecting(true) }
                         }
                     }
                     ToolbarItem(placement: .topBarTrailing) {
@@ -553,14 +560,19 @@ func meetingsInScope(records: [MeetingRecord], scope: MeetingListScope, userName
     }
 }
 
-/// Listenin üstündeki çipler: Tümü, Görevlerim, Hatalı (varsa), klasörler (boş olanlar dahil, sayılarıyla) ve yeni klasör
-/// ("+"); yatay kayar. Klasöre uzun basınca silinir (toplantılar kalır). Seçilen süzgeç boşalırsa ya da klasör artık
-/// yoksa Tümü'ne döner (boş klasör seçili kalır: "Bu klasör boş").
+/// Listenin üstündeki çipler: Tümü, Görevlerim, Hatalı (varsa), klasörler (boş olanlar dahil, sayılarıyla), yeni klasör
+/// ("+") ve silinen toplantı varken sonda Son silinenler (çöp simgesi ve sayı; dokununca o sayfa); yatay kayar. Klasöre
+/// uzun basınca silinir (toplantılar kalır). Seçilen süzgeç boşalırsa ya da klasör artık yoksa Tümü'ne döner (boş klasör
+/// seçili kalır: "Bu klasör boş").
 private struct MeetingScopeChips: View {
     let records: [MeetingRecord]
     let folders: [FolderSummary]
     let userName: String
     @Binding var selection: MeetingListScope
+    /// Son silinenlerdeki toplantı sayısı; 0 ise çip görünmez.
+    let deletedCount: Int
+    /// Çipin açtığı Son silinenler sayfası.
+    let deletedDestination: RecentlyDeletedList
     let onCreateFolder: @MainActor () -> Void
     let onDeleteFolder: @MainActor (String) -> Void
     /// İçinde üzerinde iş süren toplantı olan klasör silinemez (o toplantı klasörden çıkarılamaz).
@@ -596,6 +608,28 @@ private struct MeetingScopeChips: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Yeni klasör")
+                // Süzgeç değil, ayrı sayfa: seçili görünmez, soluk renkte.
+                if deletedCount > 0 {
+                    NavigationLink {
+                        deletedDestination
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "trash").appFont(size: 12, weight: .semibold)
+                            Text(verbatim: "\(deletedCount)").appFont(size: 14, weight: .medium)
+                        }
+                        .monospacedDigit()
+                        .foregroundStyle(Theme.muted)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Theme.card, in: Capsule())
+                        .overlay(Capsule().strokeBorder(Theme.line))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Son silinenler")
+                    .accessibilityValue(Text(verbatim: "\(deletedCount)"))
+                    .accessibilityAddTraits(.isButton)
+                }
             }
             .padding(.horizontal, 20)
         }
@@ -1231,14 +1265,7 @@ private struct MeetingSummary: View {
             let shares: [SpeakerShare] = speakerShares(paragraphs: paragraphs)
             let groups: SpeakerGroups = groupedSpeakers(shares: shares, speakerNames: record.speakerNames)
             VStack(alignment: .leading, spacing: 26) {
-                if mine.isEmpty {
-                    Label("Bu toplantıda sana düşen görev yok", systemImage: "checkmark.circle")
-                        .appFont(size: 14, weight: .regular)
-                        .foregroundStyle(Theme.muted)
-                        .padding(14)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Theme.soft, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                } else {
+                if !mine.isEmpty {
                     section(title: "Senin görevlerin") {
                         ForEach(mine, id: \.trackingKey) { (task: NoteTask) in
                             PhoneTaskRow(record: record, task: task, showsMeeting: false) {
@@ -1247,42 +1274,23 @@ private struct MeetingSummary: View {
                         }
                     }
                 }
-                if let myNotes = record.myNotes {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Label("SENİN NOTLARIN", systemImage: "square.and.pencil")
-                                .appFont(size: 11, weight: .semibold)
-                                .tracking(DesignTokens.labelTracking)
-                                .foregroundStyle(appearance.accent.color)
-                            Spacer()
-                            if isEditable {
-                                Button("Düzenle", action: onEditMyNotes)
-                                    .appFont(size: 13, weight: .medium)
-                            }
-                        }
-                        Text(myNotes)
-                            .readingText(size: 15, weight: .regular, lineSpacing: 3)
-                            .textSelection(.enabled)
+                // Notun üstündeki sakin blok: görev yoksa tek soluk satır, kendi notların (varsa) ve not düzenleme satırı
+                // (kendi notun yoksa sonunda "Notlarım").
+                VStack(alignment: .leading, spacing: 12) {
+                    if mine.isEmpty {
+                        Label("Bu toplantıda sana düşen görev yok", systemImage: "checkmark.circle")
+                            .appFont(size: 13, weight: .regular)
+                            .foregroundStyle(Theme.muted)
                     }
-                    .padding(14)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(appearance.accent.color.opacity(0.05), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .overlay(alignment: .leading) {
-                        UnevenRoundedRectangle(topLeadingRadius: 16, bottomLeadingRadius: 16)
-                            .fill(appearance.accent.color.opacity(0.7))
-                            .frame(width: 3)
+                    if let myNotes = record.myNotes {
+                        myNotesCard(text: myNotes)
                     }
-                }
-                if record.myNotes == nil && isEditable {
-                    Button(action: onEditMyNotes) {
-                        Label("Kendi notunu ekle", systemImage: "square.and.pencil")
-                            .appFont(size: 14, weight: .medium)
+                    PhoneNoteEditBar(
+                        isWorking: store.regeneratingIDs.contains(record.id), isEnabled: isEditable,
+                        onAddMyNotes: record.myNotes == nil && isEditable ? onEditMyNotes : nil
+                    ) { (instruction: String) -> Void in
+                        Task { await store.editNote(meetingID: record.id, instruction: instruction) }
                     }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(appearance.accent.color)
-                }
-                PhoneNoteEditBar(isWorking: store.regeneratingIDs.contains(record.id), isEnabled: isEditable) { (instruction: String) -> Void in
-                    Task { await store.editNote(meetingID: record.id, instruction: instruction) }
                 }
                 Text(note.summary)
                     .readingText(size: 18, weight: .regular, lineSpacing: 6)
@@ -1381,6 +1389,34 @@ private struct MeetingSummary: View {
         VStack(alignment: .leading, spacing: 12) {
             PhoneSectionHeader(title: title, actionTitle: nil, action: nil)
             content()
+        }
+    }
+
+    /// Kendi notların: vurgu renginde ince kenarlı kart; düzenlenebiliyorsa başlıkta "Düzenle".
+    private func myNotesCard(text: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Label("SENİN NOTLARIN", systemImage: "square.and.pencil")
+                    .appFont(size: 11, weight: .semibold)
+                    .tracking(DesignTokens.labelTracking)
+                    .foregroundStyle(appearance.accent.color)
+                Spacer()
+                if isEditable {
+                    Button("Düzenle", action: onEditMyNotes)
+                        .appFont(size: 13, weight: .medium)
+                }
+            }
+            Text(text)
+                .readingText(size: 15, weight: .regular, lineSpacing: 3)
+                .textSelection(.enabled)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(appearance.accent.color.opacity(0.05), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(alignment: .leading) {
+            UnevenRoundedRectangle(topLeadingRadius: 16, bottomLeadingRadius: 16)
+                .fill(appearance.accent.color.opacity(0.7))
+                .frame(width: 3)
         }
     }
 }

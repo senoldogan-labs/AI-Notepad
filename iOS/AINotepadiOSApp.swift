@@ -432,8 +432,8 @@ func phoneRootCover(onboardingCompleted: Bool, upsell: HostedUpsellMoment?) -> P
     return upsell.map { PhoneRootCover.paywall($0) }
 }
 
-/// Sekmeler.
-enum PhoneTab: String, Hashable {
+/// Sekmeler; sıra sekme çubuğundaki sıradır (sekmeler arası kaydırma bu sırayla gider, bkz. `phoneTab(after:)`).
+enum PhoneTab: String, Hashable, CaseIterable {
     case record = "kayit"
     case meetings = "toplantilar"
     case ask = "sor"
@@ -457,6 +457,10 @@ final class PhoneRouter {
     var askPath: [AskRoute]
     /// Sor tam ekrandır (sekme çubuğu gizli): sol üstteki geri Sor'a gelinen sekmeye döner.
     private(set) var askReturnTab: PhoneTab = .record
+    /// Sekmeler arası kaydırma (bkz. `PhoneTabSwipeGesture`): parmakla sürüklenen kök ekranın kayması (nokta).
+    var tabSwipeDrag: CGFloat = 0
+    /// Son kaydırmayla açılan sekme ve girdiği yan; açılan sekme bununla yandan kayarak girer.
+    var tabSwipeEntry: PhoneTabSwipeEntry?
 
     init(tab: PhoneTab, meetingsPath: [String], askPath: [AskRoute]) {
         self.tab = tab
@@ -575,27 +579,35 @@ struct RootView: View {
     }
 
     var body: some View {
+        // Her sekmenin kök ekranında yatay kaydırma komşu sekmeye geçer (bkz. `PhoneTabSwipeGesture`); sekme içeriği parmakla
+        // kayar, açılan sekme yandan girer.
         TabView(selection: $router.tab) {
             Tab("Kayıt", systemImage: "record.circle", value: PhoneTab.record) {
                 RecordTab(recorder: recorder, store: store, router: router, calendar: calendar, onBriefing: startBriefing(meeting:))
+                    .modifier(PhoneTabSwipeTransition(tab: .record, router: router))
             }
             Tab("Toplantılar", systemImage: "list.bullet.rectangle", value: PhoneTab.meetings) {
                 MeetingsTab(
                     store: store, recorder: recorder, router: router, player: player, isRecording: recorder.phase != .idle, recipes: ask.recipes,
                     onRunRecipe: runRecipe(recipe:meetingID:)
                 )
+                .modifier(PhoneTabSwipeTransition(tab: .meetings, router: router))
             }
             Tab("Sor", systemImage: "sparkle.magnifyingglass", value: PhoneTab.ask) {
                 AskTab(ask: ask, store: store, router: router)
+                    .modifier(PhoneTabSwipeTransition(tab: .ask, router: router))
             }
             Tab("Görevler", systemImage: "checkmark.circle", value: PhoneTab.tasks) {
                 TasksTab(store: store, router: router)
+                    .modifier(PhoneTabSwipeTransition(tab: .tasks, router: router))
             }
             Tab("Ayarlar", systemImage: "gearshape", value: PhoneTab.settings) {
                 PhoneSettingsTab(
                     store: store, ask: ask, calendar: calendar, account: account,
-                    isMeetingInFlight: !phoneOpenWriters(store: store, recorder: recorder, ask: ask).isEmpty, crashReports: crashReports
+                    isMeetingInFlight: !phoneOpenWriters(store: store, recorder: recorder, ask: ask).isEmpty, crashReports: crashReports,
+                    router: router
                 )
+                .modifier(PhoneTabSwipeTransition(tab: .settings, router: router))
             }
         }
         // Görev satırları (Kayıt, Toplantılar, Görevler) Anımsatıcılar'a eklemek için arşive buradan ulaşır.

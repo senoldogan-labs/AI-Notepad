@@ -2,12 +2,16 @@ import AINotepadCore
 import AINotepadUI
 import SwiftUI
 
-/// Notu sorarak düzenle (Mac'teki gibi): tek satır istek ("özeti kısalt", "görevlere tarih ekle") ve odaklanınca hazır
-/// öneri hapları; düzenlenirken "Not düzenleniyor…". Eski not geçmişe girer (⋯ › Önceki sürümler).
+/// Notu sorarak düzenle (Mac'teki gibi): ince, yuvarlak tek satır istek ("özeti kısalt", "görevlere tarih ekle") ve
+/// odaklanınca hazır öneri hapları; düzenlenirken "Not düzenleniyor…". Eski not geçmişe girer (⋯ › Önceki sürümler).
+/// Kendi notun yoksa satırın sonunda küçük "Notlarım" (kendi notunu ekleme sayfası). Vurgu rengi yalnız dokunulan
+/// simgelerde.
 struct PhoneNoteEditBar: View {
     let isWorking: Bool
     /// Kayıttaki ya da işlenen toplantıda kapalı.
     let isEnabled: Bool
+    /// Kendi notunu ekleme sayfasını açar; nil ise "Notlarım" görünmez (not zaten var ya da düzenlenemez).
+    let onAddMyNotes: (@MainActor () -> Void)?
     let onEdit: @MainActor (String) -> Void
     @State private var instruction: String = ""
     @FocusState private var isFocused: Bool
@@ -17,15 +21,16 @@ struct PhoneNoteEditBar: View {
     private let suggestions: [String] = ["Özeti kısalt", "Görevlere tarih ekle", "Kararları gerekçeleriyle yaz", "Daha resmi yaz"]
 
     var body: some View {
-        let shape: RoundedRectangle = RoundedRectangle(cornerRadius: 14, style: .continuous)
+        let shape: Capsule = Capsule()
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
-                Image(systemName: isWorking ? "sparkles" : "wand.and.stars")
-                    .appFont(size: 14, weight: .semibold)
-                    .foregroundStyle(appearance.accent.color)
+            HStack(spacing: 8) {
+                Image(systemName: "sparkles")
+                    .appFont(size: 13, weight: .semibold)
+                    .foregroundStyle(Theme.muted)
                     .symbolEffect(.pulse, options: .repeating, isActive: isWorking)
+                    .accessibilityHidden(true)
                 TextField(isWorking ? "Not düzenleniyor…" : "Notu düzenle: \"özeti kısalt\"…", text: $instruction)
-                    .appFont(size: 15, weight: .regular)
+                    .appFont(size: 14, weight: .regular)
                     .submitLabel(.send)
                     .focused($isFocused)
                     .disabled(isWorking || !isEnabled)
@@ -33,19 +38,36 @@ struct PhoneNoteEditBar: View {
                 if !instruction.isEmpty, !isWorking {
                     Button(action: send) {
                         Image(systemName: "arrow.up")
-                            .appFont(size: 13, weight: .bold)
+                            .appFont(size: 12, weight: .bold)
                             .foregroundStyle(Theme.onPrimary)
-                            .frame(width: 30, height: 30)
-                            .background(Theme.primary, in: Circle())
+                            .frame(width: 26, height: 26)
+                            .background(appearance.accent.color, in: Circle())
                     }
                     .buttonStyle(PressableCardStyle())
                     .accessibilityLabel("Notu düzenle")
+                } else if let onAddMyNotes, !isFocused {
+                    Rectangle()
+                        .fill(Theme.line)
+                        .frame(width: 1, height: 16)
+                    Button(action: onAddMyNotes) {
+                        Label("Notlarım", systemImage: "square.and.pencil")
+                            .appFont(size: 13, weight: .medium)
+                            .labelStyle(.titleAndIcon)
+                            .lineLimit(1)
+                            .foregroundStyle(appearance.accent.color)
+                            .padding(.horizontal, 6)
+                            .frame(minHeight: 32)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .fixedSize()
                 }
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(Theme.card, in: shape)
-            .overlay(shape.strokeBorder(isFocused ? appearance.accent.color.opacity(0.45) : Theme.line))
+            .padding(.leading, 14)
+            .padding(.trailing, 6)
+            .frame(minHeight: 38)
+            .background(Theme.soft, in: shape)
+            .overlay(shape.strokeBorder(isFocused ? appearance.accent.color.opacity(0.45) : Color.clear))
             if isFocused, instruction.isEmpty, !isWorking {
                 FlowLayout(spacing: 8, lineSpacing: 8) {
                     ForEach(suggestions, id: \.self) { (suggestion: String) in

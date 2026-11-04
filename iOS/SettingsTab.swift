@@ -14,6 +14,8 @@ struct PhoneSettingsTab: View {
     /// Hesabın verisine yazan bir iş sürüyor (bkz. `phoneOpenWriters`): çıkış ve hesap silme kapalı.
     let isMeetingInFlight: Bool
     let crashReports: CrashReportCenter
+    /// Kök ekranda yatay kaydırma komşu sekmeye geçer.
+    let router: PhoneRouter
     @AppStorage(PhoneSettingsKey.primaryMeetingLanguage) private var primaryLanguage: String = MeetingLanguage.finnish.rawValue
     @AppStorage(PhoneSettingsKey.noteLanguage) private var noteLanguage: String = defaultNoteLanguage(interfaceLanguages: Bundle.main.preferredLocalizations).rawValue
     @AppStorage(PhoneSettingsKey.userName) private var userName: String = ""
@@ -200,6 +202,7 @@ struct PhoneSettingsTab: View {
                     Text("Arayüz dili iPhone Ayarları › \(appName) › Dil bölümünden değişir.")
                 }
             }
+            .phoneTabSwipe(router: router, isEnabled: true)
             .navigationTitle("Ayarlar")
         }
     }
