@@ -332,36 +332,84 @@ public func prepareCloudStorage() async throws {
     }.value
 }
 
+/// Okunan iCloud çakışma sürümlerinin birleşimi.
+struct ConflictVersionMerge {
+    /// Geçerli kayıtla okunabilen sürümlerin birleşimi.
+    let merged: MeetingRecord
+    /// Okunabilen (birleştirilen) sürümlerin sırası.
+    let readable: [Int]
+    /// Okunamayan sürümlerin sırası ve nedeni: birleştirilmez ve silinmez.
+    let unreadable: [ConflictVersionReadFailure]
+}
+
+/// Okunamayan çakışma sürümü.
+struct ConflictVersionReadFailure: Equatable {
+    let index: Int
+    let reason: String
+}
+
+/// Geçerli kaydı okunabilen çakışma sürümleriyle birleştirir (`mergingConflictVersions`). Okunamayan sürüm (ör. daha
+/// yeni uygulama sürümünün yazdığı bilinmeyen bir değer) ayrı döner: tek bozuk sürüm sağlam toplantıyı listeden
+/// düşürmesin. Saf fonksiyondur.
+func mergingReadableConflictVersions(current: MeetingRecord, versions: [Result<Data, any Error>]) -> ConflictVersionMerge {
+    var records: [MeetingRecord] = []
+    var readable: [Int] = []
+    var unreadable: [ConflictVersionReadFailure] = []
+    for (index, version) in versions.enumerated() {
+        do {
+            records.append(try meetingDecoder().decode(MeetingRecord.self, from: try version.get()))
+            readable.append(index)
+        } catch {
+            unreadable.append(ConflictVersionReadFailure(index: index, reason: String(describing: error)))
+        }
+    }
+    return ConflictVersionMerge(merged: mergingConflictVersions(current: current, others: records), readable: readable, unreadable: unreadable)
+}
+
 /// Toplantı dosyasındaki iCloud çakışmalarını çözer: son yazılan sürüm kalır, diğer sürümlerdeki kullanıcı işaretleri
 /// (görevler, gönderimler) ona eklenir (bkz. `mergingConflictVersions`; ör. iPhone'da işaretlenen görev, Mac notu yeniden
-/// yazarken), diğer sürümler kaldırılır ve loglanır. Çakışma yoksa bir şey yapmaz.
+/// yazarken), diğer sürümler kaldırılır ve loglanır. Okunamayan sürüm loglanır ve yerinde kalır (sonraki okumada yeniden
+/// denenir, içindeki işaretler silinmez); toplantı yine geçerli kaydıyla okunur. Çakışma yoksa bir şey yapmaz.
 public func resolveCloudConflicts(file: URL) throws {
     guard let conflicts = NSFileVersion.unresolvedConflictVersionsOfItem(at: file), !conflicts.isEmpty else {
         return
     }
+    let result: ConflictVersionMerge
     do {
         let current: MeetingRecord = try meetingDecoder().decode(MeetingRecord.self, from: Data(contentsOf: file))
-        let others: [MeetingRecord] = try conflicts.map { (version: NSFileVersion) throws -> MeetingRecord in
-            try meetingDecoder().decode(MeetingRecord.self, from: Data(contentsOf: version.url))
+        let versions: [Result<Data, any Error>] = conflicts.map { (version: NSFileVersion) -> Result<Data, any Error> in
+            Result { () throws -> Data in try Data(contentsOf: version.url) }
         }
-        let merged: MeetingRecord = mergingConflictVersions(current: current, others: others)
-        if merged != current {
-            try saveMeeting(record: merged, directory: file.deletingLastPathComponent())
+        result = mergingReadableConflictVersions(current: current, versions: versions)
+        if result.merged != current {
+            try saveMeeting(record: result.merged, directory: file.deletingLastPathComponent())
         }
     } catch let error as StorageError {
         throw error
     } catch {
         throw StorageError.readFailed(path: file.path, reason: error.localizedDescription)
     }
-    for version in conflicts {
+    let folder: String = file.deletingLastPathComponent().lastPathComponent
+    for failure in result.unreadable {
+        cloudLogger.error("iCloud çakışma sürümü okunamadı, yerinde bırakıldı, dosya: \(folder, privacy: .public), hata: \(failure.reason, privacy: .private)")
+    }
+    let resolved: [NSFileVersion] = result.readable.map { conflicts[$0] }
+    for version in resolved {
         version.isResolved = true
     }
     do {
-        try NSFileVersion.removeOtherVersionsOfItem(at: file)
+        if result.unreadable.isEmpty {
+            try NSFileVersion.removeOtherVersionsOfItem(at: file)
+        } else {
+            // Okunamayan sürüm silinmez: yalnızca birleştirilenler kaldırılır.
+            for version in resolved {
+                try version.remove()
+            }
+        }
     } catch {
         throw StorageError.writeFailed(path: file.path, reason: error.localizedDescription)
     }
-    cloudLogger.warning("iCloud çakışması çözüldü (son yazılan kaldı), dosya: \(file.deletingLastPathComponent().lastPathComponent, privacy: .public), sürüm: \(conflicts.count, privacy: .public)")
+    cloudLogger.warning("iCloud çakışması çözüldü (son yazılan kaldı), dosya: \(folder, privacy: .public), sürüm: \(resolved.count, privacy: .public)")
 }
 
 /// Uzun süren bir eşitleme işinin (iCloud'a taşıma, anahtar kopyalama) durumu; ayarlarda görünür.

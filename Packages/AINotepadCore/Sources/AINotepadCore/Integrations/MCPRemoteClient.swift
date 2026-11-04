@@ -521,23 +521,27 @@ public struct MCPRemoteSession: Sendable {
     public let serverURL: URL
     private let accessToken: String
     private let sessionID: String?
+    /// Oturumdaki isteklerin kimlikleri: MCP aynı oturumda bir kimliğin yeniden kullanılmasını yasaklar.
+    private let requestIDs: MCPRequestIDs
 
     private var serverName: String { serverURL.host() ?? serverURL.absoluteString }
 
     /// Oturumu açar (`initialize` + `notifications/initialized`); `clientName` sunucuya bildirilen uygulama adıdır.
     /// 401 `expired`.
     public static func open(serverURL: URL, accessToken: String, clientName: String) async throws -> MCPRemoteSession {
-        let bare: MCPRemoteSession = MCPRemoteSession(serverURL: serverURL, accessToken: accessToken, sessionID: nil)
-        let (_, sessionID): (JSONValue, String?) = try await bare.call(id: 1, method: "initialize", params: initializeParams(clientName: clientName))
-        let session: MCPRemoteSession = MCPRemoteSession(serverURL: serverURL, accessToken: accessToken, sessionID: sessionID)
+        let requestIDs: MCPRequestIDs = MCPRequestIDs()
+        let bare: MCPRemoteSession = MCPRemoteSession(serverURL: serverURL, accessToken: accessToken, sessionID: nil, requestIDs: requestIDs)
+        let (_, sessionID): (JSONValue, String?) = try await bare.call(id: requestIDs.next(), method: "initialize", params: initializeParams(clientName: clientName))
+        let session: MCPRemoteSession = MCPRemoteSession(serverURL: serverURL, accessToken: accessToken, sessionID: sessionID, requestIDs: requestIDs)
         try await session.notify(method: "notifications/initialized")
         return session
     }
 
-    private init(serverURL: URL, accessToken: String, sessionID: String?) {
+    private init(serverURL: URL, accessToken: String, sessionID: String?, requestIDs: MCPRequestIDs) {
         self.serverURL = serverURL
         self.accessToken = accessToken
         self.sessionID = sessionID
+        self.requestIDs = requestIDs
     }
 
     private func request(body: Data) -> URLRequest {
@@ -595,10 +599,10 @@ public struct MCPRemoteSession: Sendable {
     public func listTools() async throws -> [MCPRemoteTool] {
         var tools: [MCPRemoteTool] = []
         var cursor: String?
-        var id: Int = 2
+        var pages: Int = 0
         repeat {
             let params: JSONValue = cursor.map { JSONValue.object(["cursor": .string($0)]) } ?? .object([:])
-            let (result, _): (JSONValue, String?) = try await call(id: id, method: "tools/list", params: params)
+            let (result, _): (JSONValue, String?) = try await call(id: requestIDs.next(), method: "tools/list", params: params)
             guard case .object(let object) = result, case .array(let items) = object["tools"] ?? .array([]) else {
                 throw MCPRemoteError.invalidResponse(server: serverName, reason: "tools/list biçimi")
             }
@@ -608,8 +612,8 @@ public struct MCPRemoteSession: Sendable {
             } else {
                 cursor = nil
             }
-            id += 1
-        } while cursor != nil && id < 12
+            pages += 1
+        } while cursor != nil && pages < 10
         guard cursor == nil else {
             throw MCPRemoteError.invalidResponse(server: serverName, reason: "araç listesi 10 sayfadan uzun")
         }
@@ -618,12 +622,26 @@ public struct MCPRemoteSession: Sendable {
 
     /// Aracı çağırır; sonucun metin içeriği döner. Araç hata bildirirse `toolFailed`.
     public func callTool(name: String, arguments: JSONValue) async throws -> String {
-        let (result, _): (JSONValue, String?) = try await call(id: 100, method: "tools/call", params: .object(["name": .string(name), "arguments": arguments]))
+        let (result, _): (JSONValue, String?) = try await call(id: requestIDs.next(), method: "tools/call", params: .object(["name": .string(name), "arguments": arguments]))
         let text: String = toolResultText(result: result)
         if case .object(let object) = result, object["isError"] == .bool(true) {
             throw MCPRemoteError.toolFailed(server: serverName, tool: name, message: String(text.prefix(400)))
         }
         return text
+    }
+}
+
+/// Bir MCP oturumunun JSON-RPC istek kimlikleri: 1'den başlayıp her istekte artar (oturumun kopyaları aynı sayacı
+/// paylaşır; aynı oturumda kimlik yeniden kullanılmaz).
+final class MCPRequestIDs: Sendable {
+    private let last: OSAllocatedUnfairLock<Int> = OSAllocatedUnfairLock(initialState: 0)
+
+    /// Sıradaki kullanılmamış kimlik.
+    func next() -> Int {
+        last.withLock { (value: inout Int) -> Int in
+            value += 1
+            return value
+        }
     }
 }
 

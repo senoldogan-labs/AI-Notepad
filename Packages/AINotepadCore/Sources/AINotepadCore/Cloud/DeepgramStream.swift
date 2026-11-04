@@ -126,12 +126,24 @@ func startDeepgramStream(
     authorization: DeepgramAuthorization, options: DeepgramListenOptions, language: MeetingLanguage, keyterms: [String],
     onConnectionEvent: @escaping @Sendable (DeepgramConnectionEvent) -> Void, audio: AsyncStream<[Float]>
 ) -> DeepgramStream {
+    startDeepgramStream(
+        authorization: authorization, options: options, url: deepgramListenURL(language: language, keyterms: keyterms, options: options), keyterms: keyterms,
+        onConnectionEvent: onConnectionEvent, audio: audio
+    )
+}
+
+/// Akışı verilen adrese bağlar (testler yerel bir WebSocket sunucusuna bağlanır); dil değişince adres yine Deepgram'ınki
+/// olur.
+func startDeepgramStream(
+    authorization: DeepgramAuthorization, options: DeepgramListenOptions, url: URL, keyterms: [String],
+    onConnectionEvent: @escaping @Sendable (DeepgramConnectionEvent) -> Void, audio: AsyncStream<[Float]>
+) -> DeepgramStream {
     let (events, sink): (AsyncStream<StreamingEvent>, AsyncStream<StreamingEvent>.Continuation) =
         AsyncStream.makeStream(of: StreamingEvent.self)
     let connection: DeepgramConnection = DeepgramConnection(
         authorization: authorization,
         options: options,
-        url: deepgramListenURL(language: language, keyterms: keyterms, options: options),
+        url: url,
         keyterms: keyterms,
         events: sink,
         onConnectionEvent: onConnectionEvent
@@ -352,15 +364,18 @@ private actor DeepgramConnection {
         throw lastError
     }
 
-    /// Bağlantı koptu: kesinleşmemiş sesi yeniden gönderilecekler başına koy, yeniden bağlan.
-    private func handleDisconnect(error: any Error) async {
+    /// Bağlantı koptu: kesinleşmemiş sesi yeniden gönderilecekler başına koy, arka planda yeniden bağlan. Beklenmez:
+    /// kopma gönderimde fark edilirse çağıran `run` döngüsüdür; bağlanma (ağ yokken 2 dk) bitene dek ses akışının sonunu
+    /// göremez, `close()` çağrılmaz ve durdurma kapanış süresi (`closeDeadlineSec`) yerine bağlanma bütçesi kadar uzardı.
+    private func handleDisconnect(error: any Error) {
         guard isConnected, !isReconnecting, !isClosing, !hasFailed else {
             return
         }
         deepgramLogger.warning("Deepgram bağlantısı koptu: \(String(describing: error), privacy: .private)")
         onConnectionEvent(.dropped)
         isRecoveringFromDrop = true
-        await reconnect()
+        dropConnectionForReconnect()
+        Task { await self.connectAndResume() }
     }
 
     /// Bağlantı istenen dilde değilse yeni adresle yeniden bağlanır.
@@ -375,6 +390,13 @@ private actor DeepgramConnection {
 
     /// Eski bağlantıyı kapatır, onaylanmamış sesi tekrar sıraya alır ve bağlanır.
     private func reconnect() async {
+        dropConnectionForReconnect()
+        await connectAndResume()
+    }
+
+    /// Eski bağlantıyı kapatır ve onaylanmamış sesi tekrar sıraya alır; ardından `connectAndResume` çağrılmalıdır
+    /// (`isReconnecting` o bitince kapanır).
+    private func dropConnectionForReconnect() {
         isConnected = false
         isReconnecting = true
         let old: URLSessionWebSocketTask? = socket
@@ -384,7 +406,6 @@ private actor DeepgramConnection {
         pending = unacknowledged + inFlight + pending
         unacknowledged = []
         inFlight = []
-        await connectAndResume()
     }
 
     /// Bağlanır, istenen dile geçer ve bekleyen sesi gönderir; bağlanılamazsa (kapanış sürmüyorsa) akış başarısız olur.
@@ -437,7 +458,7 @@ private actor DeepgramConnection {
             }
             let now: ContinuousClock.Instant = .now
             if isDeepgramUnresponsive(unansweredForSec: unansweredSince.map { durationSeconds(now - $0) }, timeoutSec: silenceTimeoutSec) {
-                await handleDisconnect(error: CloudSTTError.connectionFailed(service: "deepgram", reason: "\(Int(silenceTimeoutSec)) sn yanıt yok"))
+                handleDisconnect(error: CloudSTTError.connectionFailed(service: "deepgram", reason: "\(Int(silenceTimeoutSec)) sn yanıt yok"))
                 continue
             }
             // Gönderim sürüyorsa ses akıyordur (yavaş ağ): kesin sonuç erken istenmez.
@@ -487,7 +508,7 @@ private actor DeepgramConnection {
                     continue
                 }
                 isFlushing = false
-                await handleDisconnect(error: error)
+                handleDisconnect(error: error)
                 return
             }
         }
@@ -508,7 +529,7 @@ private actor DeepgramConnection {
                     }
                     return
                 }
-                await handleDisconnect(error: error)
+                handleDisconnect(error: error)
                 return
             }
             // Eski bağlantıdan gecikmeli gelen sonuç yeni zaman çizelgesini bozmasın.
@@ -541,7 +562,7 @@ private actor DeepgramConnection {
             guard sending === socket else {
                 return
             }
-            await handleDisconnect(error: error)
+            handleDisconnect(error: error)
         }
     }
 

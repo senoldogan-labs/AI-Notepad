@@ -119,6 +119,7 @@ func request(model: ClaudeModel, schema: String?) -> LLMRequest {
         #expect(classifyClaudeResponse(status: 200, data: completeStream(texts: ["Merhaba"], stopReason: "end_turn"), model: "m", requestID: nil) == .success("Merhaba"))
         #expect(classifyClaudeResponse(status: 200, data: refusal, model: "m", requestID: nil) == .final(.refusal(category: "cyber")))
         #expect(classifyClaudeResponse(status: 200, data: completeStream(texts: ["yarım"], stopReason: "max_tokens"), model: "m", requestID: nil) == .final(.truncated(model: "m")))
+        #expect(classifyClaudeResponse(status: 200, data: completeStream(texts: ["yarım"], stopReason: "model_context_window_exceeded"), model: "m", requestID: nil) == .final(.truncated(model: "m")))
         #expect(classifyClaudeResponse(status: 200, data: overloaded, model: "m", requestID: nil) == .retryable(.streamFailed(errorType: "overloaded_error", message: "Overloaded", model: "m")))
         if case .final(.malformed) = classifyClaudeResponse(status: 200, data: cutOff, model: "m", requestID: nil) {} else {
             Issue.record("bitmeyen akış kesin hata olmalı")

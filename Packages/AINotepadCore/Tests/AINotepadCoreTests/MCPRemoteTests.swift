@@ -126,6 +126,20 @@ import Testing
         }
     }
 
+    // Oturumdaki her istek yeni kimlik alır (MCP aynı oturumda kimliğin yeniden kullanılmasını yasaklar); önceden her
+    // araç çağrısı 100 kimliğini kullanıyordu (Atlassian'da ve görev ajanında aynı oturumda art arda çağrılar).
+    @Test func requestIDsAreNeverReusedInASession() async {
+        let ids: MCPRequestIDs = MCPRequestIDs()
+        let issued: [Int] = await withTaskGroup(of: Int.self) { (group: inout TaskGroup<Int>) -> [Int] in
+            for _ in 0..<50 {
+                group.addTask { ids.next() }
+            }
+            return await group.reduce(into: []) { $0.append($1) }
+        }
+        #expect(Set(issued).count == 50)
+        #expect(issued.min() == 1)
+    }
+
     // SSE'de bir olayın birden çok data satırı birleşir.
     @Test func multiLineEventData() throws {
         let body: String = "event: message\ndata: {\"jsonrpc\":\"2.0\",\ndata: \"id\":4,\"result\":{}}\n\n"
