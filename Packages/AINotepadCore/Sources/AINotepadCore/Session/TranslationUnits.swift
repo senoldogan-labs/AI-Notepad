@@ -254,6 +254,10 @@ public func unitsContaining(ids: [SegmentID], units: [TranslationUnit]) -> [Tran
     return units.filter { (unit: TranslationUnit) -> Bool in !wanted.isDisjoint(with: unit.segmentIDs) }
 }
 
+/// Çeviride bağlam olarak verilen önceki birim sayısı (Mac ve iPhone aynı): zamirlerin ve kimin neyi kastettiğinin
+/// anlaşılmasına yeter; her birim istek başına ~25 token ekler.
+public let translationContextUnits: Int = 4
+
 /// Birimi çevirirken bağlam: ondan önce başlayan son `count` birimin orijinal metni (zaman sırasıyla). Saf fonksiyondur.
 public func translationContext(units: [TranslationUnit], before unit: TranslationUnit, count: Int) -> [String] {
     units

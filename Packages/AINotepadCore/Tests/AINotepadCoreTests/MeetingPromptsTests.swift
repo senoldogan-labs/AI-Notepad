@@ -68,6 +68,19 @@ func block(_ speaker: Speaker, _ index: Int, _ start: Double, _ text: String, pe
         #expect(request.jsonSchema != nil)
     }
 
+    // Çeviri anlamı ve niyeti aktarır (kelimesi kelimesine değil): soru/rica/söz korunur, duyma hatası bağlamla
+    // düzeltilir ama bilgi eklenmez, bağlam çeviriye girmez.
+    @Test func translationPromptAsksForIntentNotWordForWord() {
+        let system: String = translationRequest(sentence: "Kuka tekee diat?", context: [], language: .english).system
+        #expect(system.contains("kelimesi kelimesine değil, anlam ve niyet"))
+        #expect(system.contains("soru soru, rica rica"))
+        #expect(system.contains("kim, ne, ne zaman"))
+        #expect(system.contains("Yeni bilgi ekleme"))
+        #expect(system.contains("onu çevirme"))
+        #expect(system.contains("İngilizce"))
+        #expect(translationContextUnits == 4)
+    }
+
     // Çeviri yalnızca şemadaki alandan okunur: açıklama ya da düşünce metni çeviriye karışamaz; boş ya da bozuk yanıt
     // yeniden istenir.
     @Test func parsesStructuredTranslation() throws {
