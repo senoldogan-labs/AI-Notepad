@@ -18,12 +18,13 @@ export interface VersionCount {
   readonly users: number;
 }
 
-/** Amaç başına token ve çağrı. */
+/** Amaç başına token, çağrı ve web araması (yalnız Sor cevabında). */
 export interface PurposeTotal {
   readonly purpose: string;
   readonly inputTokens: number;
   readonly outputTokens: number;
   readonly calls: number;
+  readonly webSearches: number;
 }
 
 /** Günlük amaç satırı. */
@@ -100,14 +101,14 @@ export async function adminTelemetry(db: D1Database, now: Date): Promise<AdminTe
     versionCounts(db, "last_os_version", sinceMs),
     db
       .prepare(
-        `SELECT purpose, SUM(input_tokens) AS inputTokens, SUM(output_tokens) AS outputTokens, SUM(calls) AS calls
+        `SELECT purpose, SUM(input_tokens) AS inputTokens, SUM(output_tokens) AS outputTokens, SUM(calls) AS calls, SUM(web_searches) AS webSearches
          FROM llm_purpose_usage WHERE day >= ? GROUP BY purpose ORDER BY inputTokens + outputTokens DESC, purpose`,
       )
       .bind(firstDay)
       .all<PurposeTotal>(),
     db
       .prepare(
-        `SELECT day, purpose, input_tokens AS inputTokens, output_tokens AS outputTokens, calls
+        `SELECT day, purpose, input_tokens AS inputTokens, output_tokens AS outputTokens, calls, web_searches AS webSearches
          FROM llm_purpose_usage WHERE day >= ? ORDER BY day, purpose`,
       )
       .bind(firstDay)

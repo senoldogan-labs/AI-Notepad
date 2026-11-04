@@ -94,6 +94,17 @@ extension ServerParityTests {
         #expect(try serverNumber(source: sync, name: "syncEnvelopeMaxChars") == SyncLimits.envelopeMaxChars)
         #expect(sync.contains("export const syncBlobMagic: string = \"\(syncBlobMagic)\";"))
     }
+
+    // Sor'un web araması ve çağrı sınırı iki tarafta aynı: istemci sunucunun kabul ettiğinden çok arama isterse her web
+    // aramalı soru `invalid_body` alır; sunucunun Sor sınırı istemcininkinden küçükse istemci kesilme mesajını yanlış söyler.
+    @Test func askWebSearchAndTokenCapMatchServer() throws {
+        let webSearch: String = try String(contentsOf: serverDirectory().appending(path: "src/llm/webSearch.ts"), encoding: .utf8)
+        #expect(try serverNumber(source: webSearch, name: "webSearchMaxUsesPerAnswer") == askWebSearchMaxUses)
+        #expect(webSearch.contains("export const webSearchToolType = \"\(webSearchToolType)\" as const;"))
+        let wrangler: String = try String(contentsOf: serverDirectory().appending(path: "wrangler.jsonc"), encoding: .utf8)
+        let caps: [Int] = wrangler.matches(of: #/"LLM_ASK_MAX_TOKENS": "(\d+)"/#).compactMap { Int($0.output.1) }
+        #expect(caps.count == 2 && caps.allSatisfy { $0 == hostedAskAnswerMaxTokens }, "\(caps)")
+    }
 }
 
 /// Sunucu kaynağındaki `export const <ad>: number = <sayı>;` sabiti (`_` ayraçlarıyla yazılabilir).

@@ -11,6 +11,9 @@ public let hostedModelName: String = "claude-haiku-5-5"
 /// tutar, kesilme mesajı yanıltmasın).
 public let hostedMeetingMaxTokens: Int = 8192
 public let hostedAccountMaxTokens: Int = 6144
+/// Sor cevabının (`ask_answer`) hesap çağrısı sınırı (`LLM_ASK_MAX_TOKENS`): uzun yapılandırılmış cevaplar (plan, tablo,
+/// hazır istem) kesilmesin.
+public let hostedAskAnswerMaxTokens: Int = 8192
 
 /// Yapay zekâ çağrısının kimliği: erişim jetonu ve (toplantıya bağlı çağrıda) toplantı oturumu; hesap çağrısında nil.
 public struct HostedLLMCredentials: Sendable, Equatable {
@@ -146,7 +149,7 @@ func hostedUserContent(request: LLMRequest) -> HostedMessageContent {
 }
 
 /// Sunucunun izin verdiği istek gövdesi: zorunlu `effort`, `system`, tek kullanıcı mesajı, `max_tokens`, isteğe bağlı
-/// `output_config.format` ve `stream`. Model, düşünme ve örnekleme alanları gönderilmez.
+/// `output_config.format`, `stream` ve (Sor cevabında) web araması aracı. Model, düşünme ve örnekleme alanları gönderilmez.
 struct HostedLLMRequestBody: Encodable {
     struct OutputConfig: Encodable {
         let format: ClaudeRequestBody.OutputFormat
@@ -158,6 +161,8 @@ struct HostedLLMRequestBody: Encodable {
     let maxTokens: Int
     let outputConfig: OutputConfig?
     let stream: Bool
+    /// Sor cevabının web araması (sunucu yalnız tür, ad ve arama sayısını kabul eder; çağrı biçimini kendisi ekler).
+    let tools: [WebSearchToolBody]?
 
     enum CodingKeys: String, CodingKey {
         case effort
@@ -166,6 +171,7 @@ struct HostedLLMRequestBody: Encodable {
         case maxTokens = "max_tokens"
         case outputConfig = "output_config"
         case stream
+        case tools
     }
 }
 
@@ -181,9 +187,22 @@ public func hostedLLMRequestBody(request: LLMRequest, effort: LLMEffort, maxToke
         messages: [HostedChatMessage(role: "user", content: hostedUserContent(request: request))],
         maxTokens: min(request.maxTokens, maxTokensCap),
         outputConfig: format.map { HostedLLMRequestBody.OutputConfig(format: $0) },
-        stream: true
+        stream: true,
+        tools: request.webSearch.map { (search: LLMWebSearch) -> [WebSearchToolBody] in
+            [WebSearchToolBody(type: webSearchToolType, name: "web_search", maxUses: search.maxUses, allowedCallers: nil)]
+        }
     )
     return try llmRequestEncoder().encode(body)
+}
+
+/// Çağrı başı `max_tokens` sınırı: toplantıya bağlı çağrıda `hostedMeetingMaxTokens`, hesap çağrısında
+/// `hostedAccountMaxTokens`, Sor cevabında `hostedAskAnswerMaxTokens` (sunucunun `callMaxTokens`'ı ile aynı). Saf
+/// fonksiyondur.
+public func hostedMaxTokensCap(purpose: LLMPurpose, isMeetingCall: Bool) -> Int {
+    if isMeetingCall {
+        return hostedMeetingMaxTokens
+    }
+    return purpose == .askAnswer ? hostedAskAnswerMaxTokens : hostedAccountMaxTokens
 }
 
 /// `POST /v1/llm/messages` isteği: bearer jeton, toplantıya bağlıysa toplantı başlığı (`x-meeting-id`), isteğin özelliği
@@ -192,8 +211,7 @@ public func hostedLLMURLRequest(baseURL: URL, credentials: HostedLLMCredentials,
     var urlRequest: URLRequest = URLRequest(url: baseURL.appending(path: "v1/llm/messages"))
     urlRequest.httpMethod = "POST"
     urlRequest.timeoutInterval = request.timeoutSec
-    // Toplantıya bağlı çağrı ve hesap çağrısının sunucu sınırları farklı.
-    let cap: Int = credentials.meetingID == nil ? hostedAccountMaxTokens : hostedMeetingMaxTokens
+    let cap: Int = hostedMaxTokensCap(purpose: request.purpose, isMeetingCall: credentials.meetingID != nil)
     urlRequest.httpBody = try hostedLLMRequestBody(request: request, effort: hostedEffort(tier: request.tier), maxTokensCap: cap)
     urlRequest.setValue("Bearer \(credentials.accessToken)", forHTTPHeaderField: "authorization")
     if let meetingID = credentials.meetingID {

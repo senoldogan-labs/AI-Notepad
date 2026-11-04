@@ -881,10 +881,10 @@ function fixtures(now: Date): Readonly<Record<string, object>> {
       },
       purposes: {
         totals: [
-          { purpose: "note", inputTokens: 2_400_000, outputTokens: 310_000, calls: 120 },
-          { purpose: "live_translation", inputTokens: 1_100_000, outputTokens: 240_000, calls: 3_400 },
+          { purpose: "note", inputTokens: 2_400_000, outputTokens: 310_000, calls: 120, webSearches: 0 },
+          { purpose: "live_translation", inputTokens: 1_100_000, outputTokens: 240_000, calls: 3_400, webSearches: 0 },
         ],
-        daily: [{ day: at(-1).slice(0, 10), purpose: "note", inputTokens: 80_000, outputTokens: 10_000, calls: 4 }],
+        daily: [{ day: at(-1).slice(0, 10), purpose: "note", inputTokens: 80_000, outputTokens: 10_000, calls: 4, webSearches: 0 }],
       },
       events: {
         counts: [{ kind: "deepgram_reconnect", appVersion: "0.1.10 (19)", count: 3 }],

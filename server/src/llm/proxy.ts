@@ -31,11 +31,31 @@ import { type LLMPurpose, liveLLMPurposes, purposeUsageStatement } from "./purpo
 import { type ScreenImageUsage, screenImageUsage } from "./images";
 import { type LLMRequest, clampMaxTokens, estimateInputTokens, requestImages, requestTextBytes, upstreamParams } from "./request";
 import { type LLMUsageTag, llmUsageStatement, llmUsageTagOf } from "./usageBuckets";
+import {
+  requestedWebSearches,
+  reserveWebSearches,
+  webSearchMicroUsd,
+  webSearchRefundStatement,
+  webSearchReservedInputTokens,
+  webSearchStatusHeader,
+  webSearchesOf,
+} from "./webSearch";
 
 /** Akışsız çağrının zaman aşımı: yanıt başlığı ancak üretim bitince gelir, bu yüzden toplam süredir. */
 const messageTimeoutMs: number = 120_000;
 /** Akışlı çağrının ilk bayt (yanıt başlığı) zaman aşımı; akışın toplam süresi sınırlanmaz. */
 const streamFirstByteTimeoutMs: number = 30_000;
+
+/** Çağrıya verilen web araması hakkı (`granted`) ve çağrının yaptığı arama sayısı (`used`). */
+interface WebSearchCount {
+  readonly granted: number;
+  readonly used: number;
+}
+
+/** Çağrının gerçek maliyeti: tokenlar ve yapılan aramalar (mikro dolar). Saf fonksiyondur. */
+export function callCostMicroUsd(usage: TokenUsage, webSearches: number): number {
+  return llmCostMicroUsd(usage.inputTokens, usage.outputTokens) + webSearches * webSearchMicroUsd;
+}
 
 /** Üst servis çağrısının sonucu: değer ya da istemciye dönecek hata (kesinleştirme her iki durumda yapılmıştır). */
 type CallOutcome<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: ApiError };
@@ -49,6 +69,17 @@ type CallOutcome<T> = { readonly ok: true; readonly value: T } | { readonly ok: 
 export type LLMScope =
   | { readonly kind: "meeting"; readonly userId: string; readonly meeting: MeetingRow; readonly purpose: LLMPurpose }
   | { readonly kind: "account"; readonly userId: string; readonly access: AccountLLMAccess; readonly purpose: LLMPurpose };
+
+/**
+ * Çağrı başı `max_tokens` sınırı: toplantıda `LLM_MAX_TOKENS`, hesap çağrısında `LLM_ACCOUNT_MAX_TOKENS`; Sor cevabı
+ * (`ask_answer`) uzun yapılandırılmış cevap yazabilsin diye `LLM_ASK_MAX_TOKENS`. Saf fonksiyondur.
+ */
+export function callMaxTokens(config: Config, scope: LLMScope): number {
+  if (scope.kind === "meeting") {
+    return config.llm.maxTokens;
+  }
+  return scope.purpose === "ask_answer" ? config.llm.askMaxTokens : config.llm.accountMaxTokens;
+}
 
 /** Deneme kullanıcısının toplantısız çağrısı mı (ayrıca küçük günlük sınır). Saf fonksiyondur. */
 function isTrialAccountCall(scope: LLMScope): boolean {
@@ -136,12 +167,14 @@ export function noteMeetingIdOf(scope: LLMScope, request: LLMRequest): string | 
  * Ayırmayı gerçek kullanımla kesinleştirir ve gerçek maliyeti günlük harcamaya ekler (denemedeyse deneme payına da);
  * kullanım aynı işlemde çağrının günlük token kovasına (`usageTag`) ve amaç başına günlük token toplamına da yazılır.
  * `noteMeetingId` verildiyse (başarılı not çağrısı) aynı işlemde toplantının ilk not anı yazılır (yalnızca boşsa).
+ * Web aramaları maliyete ve amaç satırına eklenir; verilip kullanılmayan arama hakkı aylık sayaca geri verilir.
  */
 async function chargeUsage(
   db: D1Database,
   scope: LLMScope,
   reservation: UsageReservation,
   usage: TokenUsage,
+  webSearches: WebSearchCount,
   usageTag: LLMUsageTag,
   noteMeetingId: string | null,
   now: Date,
@@ -152,19 +185,30 @@ async function chargeUsage(
       : [db.prepare("UPDATE meeting_sessions SET first_note_at = ? WHERE id = ? AND first_note_at IS NULL").bind(now.getTime(), noteMeetingId)];
   await db.batch([
     llmUsageStatement(db, reservation.day, usageTag, usage),
-    ...settleLLMStatements(db, reservation, usage, llmCostMicroUsd(usage.inputTokens, usage.outputTokens), now),
+    ...settleLLMStatements(db, reservation, usage, callCostMicroUsd(usage, webSearches.used), now),
     ...noteStatements,
-    purposeUsageStatement(db, scope.purpose, usage, now),
+    ...webSearchRefundStatement(db, scope.userId, reservation.month, webSearches.granted, webSearches.used),
+    purposeUsageStatement(db, scope.purpose, usage, webSearches.used, now),
   ]);
-  log("info", "llm_usage", { userId: scope.userId, meetingId: scopeMeetingId(scope), inputTokens: usage.inputTokens, outputTokens: usage.outputTokens });
+  log("info", "llm_usage", {
+    userId: scope.userId,
+    meetingId: scopeMeetingId(scope),
+    inputTokens: usage.inputTokens,
+    outputTokens: usage.outputTokens,
+    webSearches: webSearches.used,
+  });
 }
 
 /**
  * İstek gönderildikten sonra başarısız olan çağrı: kullanıcının sayaçlarına bir şey yazılmaz, ayırma kapanır; Anthropic
- * girdiyi işlemiş olabileceği için tahmini girdi maliyeti günlük harcamaya sayılır.
+ * girdiyi işlemiş olabileceği için tahmini girdi maliyeti günlük harcamaya sayılır. Verilen web araması hakkı geri verilir
+ * (Anthropic hatalı çağrının aramalarını ücretlendirmez).
  */
-async function chargeFailure(db: D1Database, reservation: UsageReservation, estimatedInput: number, now: Date): Promise<void> {
-  await db.batch(settleLLMStatements(db, reservation, { inputTokens: 0, outputTokens: 0 }, llmCostMicroUsd(estimatedInput, 0), now));
+async function chargeFailure(db: D1Database, reservation: UsageReservation, estimatedInput: number, grantedWebSearches: number, now: Date): Promise<void> {
+  await db.batch([
+    ...webSearchRefundStatement(db, reservation.userId, reservation.month, grantedWebSearches, 0),
+    ...settleLLMStatements(db, reservation, { inputTokens: 0, outputTokens: 0 }, llmCostMicroUsd(estimatedInput, 0), now),
+  ]);
 }
 
 /** Akışsız çağrı ve kesinleştirmesi (başarıda gerçek kullanım, hatada `chargeFailure`). */
@@ -176,6 +220,7 @@ async function callMessage(
   scope: LLMScope,
   reservation: UsageReservation,
   estimatedInput: number,
+  grantedWebSearches: number,
   usageTag: LLMUsageTag,
   noteMeetingId: string | null,
   now: Date,
@@ -184,11 +229,12 @@ async function callMessage(
   try {
     message = await withRetries(retry, (): Promise<Anthropic.Message> => client.messages.create(params, { timeout: messageTimeoutMs }));
   } catch (error: unknown) {
-    await chargeFailure(db, reservation, estimatedInput, now);
+    await chargeFailure(db, reservation, estimatedInput, grantedWebSearches, now);
     return { ok: false, error: mapAnthropicError(error, scope.userId, scopeMeetingId(scope)) };
   }
   const usage: TokenUsage = { inputTokens: totalInputTokens(message.usage), outputTokens: message.usage.output_tokens };
-  await chargeUsage(db, scope, reservation, usage, usageTag, noteMeetingId, now);
+  const webSearches: WebSearchCount = { granted: grantedWebSearches, used: webSearchesOf(message.usage) };
+  await chargeUsage(db, scope, reservation, usage, webSearches, usageTag, noteMeetingId, now);
   return { ok: true, value: message };
 }
 
@@ -204,13 +250,14 @@ async function openStream(
   scope: LLMScope,
   reservation: UsageReservation,
   estimatedInput: number,
+  grantedWebSearches: number,
   now: Date,
 ): Promise<CallOutcome<MessageStream>> {
   try {
     const stream: MessageStream = await withRetries(retry, () => client.messages.create({ ...params, stream: true }, { timeout: streamFirstByteTimeoutMs }));
     return { ok: true, value: stream };
   } catch (error: unknown) {
-    await chargeFailure(db, reservation, estimatedInput, now);
+    await chargeFailure(db, reservation, estimatedInput, grantedWebSearches, now);
     return { ok: false, error: mapAnthropicError(error, scope.userId, scopeMeetingId(scope)) };
   }
 }
@@ -234,12 +281,17 @@ export async function proxyLLM(db: D1Database, context: RequestContext, config: 
   if (estimatedInput > config.llm.maxInputTokens) {
     throw new ApiError("payload_too_large", `Input is too long (an estimated ${estimatedInput} tokens; the limit is ${config.llm.maxInputTokens}).`);
   }
+  // Web araması yalnız Sor cevabında (başka amaçta 400, dışarı istek gitmez); arama sonuçları girdi tokenı olur.
+  // Amaç denetimi politika kapalıyken de yapılır (Sor dışında araç istemek yine `invalid_body`).
+  const askedSearches: number = requestedWebSearches(request.tools, scope.purpose);
+  const requestedSearches: number = config.llm.webSearchPolicy === "on" ? askedSearches : 0;
+  const searchInput: number = requestedSearches * webSearchReservedInputTokens;
   const now: Date = context.platform.now();
   const limits: ReservationLimit[] = llmLimits(config, scope, now);
   const tightest: { readonly remaining: number; readonly error: ApiError } = tightestLimit(limits, await remainingOf(db, limits));
-  const callMax: number = scope.kind === "meeting" ? config.llm.maxTokens : config.llm.accountMaxTokens;
-  const maxTokens: number = clampMaxTokens(request.max_tokens, callMax, tightest.remaining, estimatedInput, tightest.error);
-  const reservedTokens: number = estimatedInput + maxTokens;
+  const callMax: number = callMaxTokens(config, scope);
+  const maxTokens: number = clampMaxTokens(request.max_tokens, callMax, tightest.remaining, estimatedInput + searchInput, tightest.error);
+  const reservedTokens: number = estimatedInput + searchInput + maxTokens;
   const reservation: UsageReservation = llmReservation(
     {
       userId: scope.userId,
@@ -247,7 +299,7 @@ export async function proxyLLM(db: D1Database, context: RequestContext, config: 
       tokens: reservedTokens,
       trialAccountCall: isTrialAccountCall(scope),
       subscriberAccountCall: isSubscriberAccountCall(scope),
-      estimatedMicroUsd: llmCostMicroUsd(estimatedInput, maxTokens),
+      estimatedMicroUsd: llmCostMicroUsd(estimatedInput + searchInput, maxTokens) + requestedSearches * webSearchMicroUsd,
       trialSpend: isTrialSpend(scope),
     },
     now,
@@ -257,8 +309,13 @@ export async function proxyLLM(db: D1Database, context: RequestContext, config: 
     reservation,
     limits.map((limit: ReservationLimit): ReservationCheck => ({ limit, amount: reservedTokens })),
   );
+  // Aylık arama hakkı ayırmadan sonra düşülür (ayırma reddedilirse hak harcanmaz); hak bittiyse araç sunulmaz ve
+  // istemci `x-web-search: cap_reached` ile bunu söyler.
+  const grantedSearches: number = await reserveWebSearches(db, scope.userId, requestedSearches, config.llm.monthlyWebSearchCap, now);
+  const searchHeaders: Record<string, string> =
+    config.llm.webSearchPolicy === "on" || askedSearches === 0 ? webSearchStatusHeader(requestedSearches, grantedSearches) : { "x-web-search": "unavailable" };
   const client: Anthropic = anthropicClient(context, config);
-  const params: Anthropic.MessageCreateParamsNonStreaming = upstreamParams(request, maxTokens);
+  const params: Anthropic.MessageCreateParamsNonStreaming = upstreamParams(request, maxTokens, grantedSearches);
   const retry: RetryOptions = {
     service: "anthropic",
     attempts: 3,
@@ -279,19 +336,23 @@ export async function proxyLLM(db: D1Database, context: RequestContext, config: 
   if (request.stream !== true) {
     const outcome: CallOutcome<Anthropic.Message> = await continueAfterDisconnect(
       context,
-      callMessage(db, client, retry, params, scope, reservation, estimatedInput, usageTag, noteMeetingId, now),
+      callMessage(db, client, retry, params, scope, reservation, estimatedInput, grantedSearches, usageTag, noteMeetingId, now),
       "llm_settle_failed",
       logFields,
     );
     if (!outcome.ok) {
       throw outcome.error;
     }
-    return jsonResponse(200, outcome.value);
+    const response: Response = jsonResponse(200, outcome.value);
+    for (const [name, value] of Object.entries(searchHeaders)) {
+      response.headers.set(name, value);
+    }
+    return response;
   }
 
   const opened: CallOutcome<MessageStream> = await continueAfterDisconnect(
     context,
-    openStream(db, client, retry, params, scope, reservation, estimatedInput, now),
+    openStream(db, client, retry, params, scope, reservation, estimatedInput, grantedSearches, now),
     "llm_settle_failed",
     logFields,
   );
@@ -301,13 +362,13 @@ export async function proxyLLM(db: D1Database, context: RequestContext, config: 
   const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
   runAfterResponse(
     context,
-    pumpStream(db, opened.value, writable, scope, reservation, estimatedInput, maxTokens, usageTag, noteMeetingId, now),
+    pumpStream(db, opened.value, writable, scope, reservation, estimatedInput, maxTokens, grantedSearches, usageTag, noteMeetingId, now),
     "llm_settle_failed",
     logFields,
   );
   return new Response(readable, {
     status: 200,
-    headers: { "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-store" },
+    headers: { "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-store", ...searchHeaders },
   });
 }
 
@@ -330,6 +391,7 @@ async function pumpStream(
   reservation: UsageReservation,
   estimatedInput: number,
   maxTokens: number,
+  grantedWebSearches: number,
   usageTag: LLMUsageTag,
   noteMeetingId: string | null,
   now: Date,
@@ -338,6 +400,7 @@ async function pumpStream(
   const encoder: TextEncoder = new TextEncoder();
   let inputTokens: number | null = null;
   let outputTokens: number | null = null;
+  let webSearches: number = 0;
   let completed: boolean = false;
   let clientGone: boolean = false;
   /** İstemciye yazar; istemci koptuysa üst akışı iptal eder ve false döndürür. */
@@ -358,6 +421,7 @@ async function pumpStream(
         inputTokens = totalInputTokens(event.message.usage);
       } else if (event.type === "message_delta") {
         outputTokens = event.usage.output_tokens;
+        webSearches = Math.max(webSearches, webSearchesOf(event.usage));
         if (typeof event.usage.input_tokens === "number") {
           inputTokens = Math.max(inputTokens ?? 0, totalInputTokens(event.usage));
         }
@@ -385,6 +449,8 @@ async function pumpStream(
     const usage: TokenUsage = finished
       ? { inputTokens: inputTokens ?? estimatedInput, outputTokens: outputTokens ?? maxTokens }
       : { inputTokens: inputTokens ?? estimatedInput, outputTokens: maxTokens };
+    // Tamamlanmayan akışta verilen arama hakkının tamamı yapılmış sayılır (tokenlar gibi üstten).
+    const searches: WebSearchCount = { granted: grantedWebSearches, used: finished ? webSearches : grantedWebSearches };
     // Akış kesinleştirmeden önce kapanır: istemci (ör. parça parça yazılan notun sonraki isteği) D1 yazımını beklemez.
     // Kesinleştirme `waitUntil` içinde sürer ve kapatma başarısız olsa da yapılır; o ana dek ayırma açık kalır, yani
     // sonraki çağrının bütçe denetimi bu çağrıyı ayrılan üst sınırla sayar (fazla harcamaya izin vermez).
@@ -393,7 +459,7 @@ async function pumpStream(
         await writer.close();
       }
     } finally {
-      await chargeUsage(db, scope, reservation, usage, usageTag, finished ? noteMeetingId : null, now);
+      await chargeUsage(db, scope, reservation, usage, searches, usageTag, finished ? noteMeetingId : null, now);
     }
   }
 }

@@ -1,4 +1,5 @@
 import AINotepadCore
+import os
 import SwiftUI
 
 /// Arşiv sohbeti (Mac'te Sor sayfası, iPhone'da Sor sekmesi): soru, ajanın adımı, akan cevap (kaynak işaretleriyle),
@@ -34,11 +35,15 @@ public struct ArchiveExchange: Identifiable, Equatable, Sendable {
     public var screens: Int
     /// Akan (ya da bitmiş) cevap.
     public var answer: ArchiveAnswer
+    /// Modelin yaptığı web aramalarının sorguları (web araması kapalıysa ya da aranmadıysa boş).
+    public var webQueries: [String]
+    /// Bu ayın web araması hakkı bittiği için arama sunulmadı (cevap yalnız toplantılardan).
+    public var webSearchCapReached: Bool
     public var finishedAt: Date?
 
     public init(
         id: UUID, question: String, scopeMeetingIDs: [String], scopeTitles: [String], recipeTitle: String?, startedAt: Date, phase: Phase, terms: [String], passages: [ArchivePassage],
-        screens: Int, answer: ArchiveAnswer, finishedAt: Date?
+        screens: Int, answer: ArchiveAnswer, webQueries: [String], webSearchCapReached: Bool, finishedAt: Date?
     ) {
         self.id = id
         self.question = question
@@ -51,6 +56,8 @@ public struct ArchiveExchange: Identifiable, Equatable, Sendable {
         self.passages = passages
         self.screens = screens
         self.answer = answer
+        self.webQueries = webQueries
+        self.webSearchCapReached = webSearchCapReached
         self.finishedAt = finishedAt
     }
 }
@@ -70,7 +77,8 @@ public func askTurn(exchange: ArchiveExchange) -> AskConversationTurn? {
     return AskConversationTurn(
         id: exchange.id, question: exchange.question, scopeMeetingIDs: exchange.scopeMeetingIDs, scopeTitles: exchange.scopeTitles,
         recipeTitle: exchange.recipeTitle, startedAt: exchange.startedAt, finishedAt: finishedAt, terms: exchange.terms, readPassages: read,
-        readScreens: exchange.screens, answer: exchange.answer.text, sources: exchange.answer.sources
+        readScreens: exchange.screens, answer: exchange.answer.text, sources: exchange.answer.sources, webSources: exchange.answer.webSources,
+        webQueries: exchange.webQueries
     )
 }
 
@@ -79,8 +87,40 @@ public func archiveExchange(turn: AskConversationTurn) -> ArchiveExchange {
     ArchiveExchange(
         id: turn.id, question: turn.question, scopeMeetingIDs: turn.scopeMeetingIDs, scopeTitles: turn.scopeTitles, recipeTitle: turn.recipeTitle,
         startedAt: turn.startedAt, phase: .done, terms: turn.terms, passages: turn.readPassages,
-        screens: turn.readScreens ?? 0, answer: ArchiveAnswer(text: turn.answer, sources: turn.sources), finishedAt: turn.finishedAt
+        screens: turn.readScreens ?? 0, answer: ArchiveAnswer(text: turn.answer, sources: turn.sources, webSources: turn.webSources ?? []),
+        webQueries: turn.webQueries ?? [], webSearchCapReached: false, finishedAt: turn.finishedAt
     )
+}
+
+/// Bitmiş, durdurulmuş ya da hatalı son sorunun yeniden sorulacak hali: soru, `@` kapsamı ve tarif adı; çalışan ya da
+/// sohbette olmayan soru nil. Saf fonksiyondur.
+public func regeneratableExchange(exchanges: [ArchiveExchange]) -> ArchiveExchange? {
+    guard let last = exchanges.last, ![.understanding, .searching, .writing].contains(last.phase) else {
+        return nil
+    }
+    return last
+}
+
+/// Sorunun ilerleyişini soruya işler (Mac ve iPhone aynı kuralla): terimler aramaya, ekran sayısı yazmaya geçirir; web
+/// aramaları ve arama hakkının bitişi yazılır. Saf fonksiyondur.
+public func applying(progress: ArchiveProgress, to exchange: ArchiveExchange) -> ArchiveExchange {
+    var updated: ArchiveExchange = exchange
+    switch progress {
+    case .searchTerms(let terms):
+        updated.terms = terms
+        updated.phase = .searching
+    case .passages(let passages):
+        updated.passages = passages
+    case .screens(let count):
+        updated.screens = count
+        updated.phase = .writing
+    case .answer(let answer):
+        updated.answer = answer
+    case .web(let queries, let capReached):
+        updated.webQueries = queries
+        updated.webSearchCapReached = capReached
+    }
+    return updated
 }
 
 /// Devam soruları için bağlam: bitmiş soruların soru, cevap ve kaynakları. Saf fonksiyondur.
@@ -121,17 +161,24 @@ public struct ThinkingRing: View {
     }
 }
 
-/// Bir soru ve cevabı: soru sağda, altında ajanın adımları, akan cevap (kaynak işaretleriyle) ve kaynak kartları.
+/// Bir soru ve cevabı: soru sağda, altında ajanın adımları, akan Markdown cevap (kaynak rozetleriyle) ve altında
+/// kopyala, Markdown, yeniden oluştur, kaynaklar ve nasıl cevaplandığı.
 public struct ExchangeView: View {
     let exchange: ArchiveExchange
     let onOpen: @MainActor (ArchivePassage) -> Void
     /// Soruyu tarif olarak kaydeder (tariften gelen soruda gösterilmez).
     let onSaveRecipe: @MainActor (String) -> Void
+    /// Soruyu yeniden sorar (yalnız sohbetin son sorusunda; diğerlerinde nil).
+    let onRegenerate: (@MainActor () -> Void)?
 
-    public init(exchange: ArchiveExchange, onOpen: @escaping @MainActor (ArchivePassage) -> Void, onSaveRecipe: @escaping @MainActor (String) -> Void) {
+    public init(
+        exchange: ArchiveExchange, onOpen: @escaping @MainActor (ArchivePassage) -> Void, onSaveRecipe: @escaping @MainActor (String) -> Void,
+        onRegenerate: (@MainActor () -> Void)?
+    ) {
         self.exchange = exchange
         self.onOpen = onOpen
         self.onSaveRecipe = onSaveRecipe
+        self.onRegenerate = onRegenerate
     }
 
     public var body: some View {
@@ -173,12 +220,30 @@ public struct ExchangeView: View {
                         onOpen(exchange.answer.sources[number - 1])
                     }
                 }
+                #if os(iOS)
+                // Uzun basış: cevabı kopyala, Markdown olarak kopyala ya da .md olarak paylaş.
+                .contextMenu {
+                    AnswerExportMenuItems(exchange: exchange)
+                }
+                #endif
+            }
+            if exchange.webSearchCapReached {
+                Label("Bu ayın web araması hakkı doldu; cevap yalnız toplantılardan.", systemImage: "globe")
+                    .appFont(size: 12, weight: .regular)
+                    .foregroundStyle(Theme.muted)
             }
             switch exchange.phase {
             case .failed(let message):
-                NoticeText(message, severity: .error)
-                    .appFont(size: 13, weight: .regular)
-                    .textSelection(.enabled)
+                VStack(alignment: .leading, spacing: 8) {
+                    NoticeText(message, severity: .error)
+                        .appFont(size: 13, weight: .regular)
+                        .textSelection(.enabled)
+                    if let onRegenerate {
+                        Button("Tekrar dene", systemImage: "arrow.clockwise", action: onRegenerate)
+                            .appFont(size: 12, weight: .medium)
+                            .buttonStyle(.hoverPlain)
+                    }
+                }
             case .stopped:
                 Label("Durduruldu", systemImage: "stop.circle")
                     .appFont(size: 12, weight: .medium)
@@ -188,7 +253,7 @@ public struct ExchangeView: View {
             }
             if ![.understanding, .searching, .writing].contains(exchange.phase) {
                 // Bitince tek sessiz satır: kopyala, kaynaklar ve nasıl cevaplandığı; ayrıntı altta açılır.
-                AnswerFooter(exchange: exchange, onOpen: onOpen, onSaveRecipe: onSaveRecipe)
+                AnswerFooter(exchange: exchange, onOpen: onOpen, onSaveRecipe: onSaveRecipe, onRegenerate: onRegenerate)
                     .transition(.opacity)
             }
         }
@@ -217,7 +282,13 @@ private struct ThinkingLine: View {
         case .searching:
             Text("Arşiv taranıyor…")
         case .writing:
-            Text("\(Set(exchange.passages.map(\.meetingID)).count) toplantı okunuyor…")
+            if let query = exchange.webQueries.last(where: { !$0.isEmpty }) {
+                Text("Web'de aranıyor: “\(query)”…")
+            } else if !exchange.webQueries.isEmpty {
+                Text("Web'de aranıyor…")
+            } else {
+                Text("\(Set(exchange.passages.map(\.meetingID)).count) toplantı okunuyor…")
+            }
         case .understanding, .done, .stopped, .failed:
             Text("Düşünüyor…")
         }
@@ -257,39 +328,46 @@ private struct ShimmerText: View {
 /// Cevabın altındaki satırda açılabilen ayrıntı.
 private enum AnswerDetail: Equatable {
     case sources
+    case web
     case reasoning
 }
 
-/// Bitmiş cevabın altı: kopyala simgesi, "Kaynaklar" ve "8 toplantıdan 42 parça okundu · 6,0 sn" hapları. Bir hapa
+/// Bitmiş cevabın altı: kopyala ve diğer çıkış seçenekleri (Markdown olarak kopyala, .md kaydet/paylaş), yeniden
+/// oluştur, tarif olarak kaydet, "Kaynaklar", "Web" ve "8 toplantıdan 42 parça okundu · 6,0 sn" hapları. Bir hapa
 /// tıklanınca ayrıntısı altta ince bir kartta açılır (aynı anda biri).
 private struct AnswerFooter: View {
     let exchange: ArchiveExchange
     let onOpen: @MainActor (ArchivePassage) -> Void
     let onSaveRecipe: @MainActor (String) -> Void
+    let onRegenerate: (@MainActor () -> Void)?
     @State private var detail: AnswerDetail?
     @State private var isSaved: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                if exchange.phase == .done {
+            FlowLayout(spacing: 6, lineSpacing: 6) {
+                if exchange.phase == .done || !exchange.answer.text.isEmpty {
                     CopyAnswerButton(answer: exchange.answer)
-                    if exchange.recipeTitle == nil {
-                        Button {
-                            onSaveRecipe(exchange.question)
-                            isSaved = true
-                        } label: {
-                            Image(systemName: isSaved ? "wand.and.stars" : "wand.and.stars.inverse")
-                                .appFont(size: 12, weight: .medium)
-                                .foregroundStyle(isSaved ? Theme.ink : Theme.muted)
-                                .frame(width: 28, height: 26)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.hoverPlain)
-                        .disabled(isSaved)
-                        .hoverHint(isSaved ? "Tarif olarak kaydedildi: \"/\" ile çalıştır" : "Tarif olarak kaydet (\"/\" ile yeniden sor)", alignment: .leading, edge: .bottom)
-                        .accessibilityLabel(isSaved ? "Tarif olarak kaydedildi" : "Tarif olarak kaydet")
+                    AnswerExportMenu(exchange: exchange)
+                }
+                if let onRegenerate, !isFailed {
+                    FooterIconButton(symbol: "arrow.clockwise", hint: "Yeniden oluştur", action: onRegenerate)
+                }
+                if exchange.phase == .done, exchange.recipeTitle == nil {
+                    Button {
+                        onSaveRecipe(exchange.question)
+                        isSaved = true
+                    } label: {
+                        Image(systemName: isSaved ? "wand.and.stars" : "wand.and.stars.inverse")
+                            .appFont(size: 12, weight: .medium)
+                            .foregroundStyle(isSaved ? Theme.ink : Theme.muted)
+                            .frame(width: 28, height: 26)
+                            .contentShape(Rectangle())
                     }
+                    .buttonStyle(.hoverPlain)
+                    .disabled(isSaved)
+                    .hoverHint(isSaved ? "Tarif olarak kaydedildi: \"/\" ile çalıştır" : "Tarif olarak kaydet (\"/\" ile yeniden sor)", alignment: .leading, edge: .bottom)
+                    .accessibilityLabel(isSaved ? "Tarif olarak kaydedildi" : "Tarif olarak kaydet")
                 }
                 if !exchange.answer.sources.isEmpty {
                     FooterPill(symbol: "text.quote", isOpen: detail == .sources) {
@@ -299,6 +377,16 @@ private struct AnswerFooter: View {
                         }
                     } onToggle: {
                         toggle(detail: .sources)
+                    }
+                }
+                if !exchange.answer.webSources.isEmpty {
+                    FooterPill(symbol: "globe", isOpen: detail == .web) {
+                        HStack(spacing: 5) {
+                            Text("Web")
+                            Text(verbatim: "\(exchange.answer.webSources.count)").fontWeight(.semibold)
+                        }
+                    } onToggle: {
+                        toggle(detail: .web)
                     }
                 }
                 FooterPill(symbol: "magnifyingglass", isOpen: detail == .reasoning) {
@@ -311,6 +399,9 @@ private struct AnswerFooter: View {
             case .sources:
                 SourcesList(sources: exchange.answer.sources, onOpen: onOpen)
                     .transition(.opacity.combined(with: .move(edge: .top)))
+            case .web:
+                WebSourcesList(sources: exchange.answer.webSources)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             case .reasoning:
                 ReasoningDetails(exchange: exchange)
                     .transition(.opacity.combined(with: .move(edge: .top)))
@@ -320,10 +411,136 @@ private struct AnswerFooter: View {
         }
     }
 
+    /// Hatalı soruda yeniden deneme hata satırındadır ("Tekrar dene").
+    private var isFailed: Bool {
+        if case .failed = exchange.phase {
+            return true
+        }
+        return false
+    }
+
     private func toggle(detail selected: AnswerDetail) {
         withAnimation(.smooth(duration: 0.22)) {
             detail = detail == selected ? nil : selected
         }
+    }
+}
+
+/// Cevap altındaki yalnız simgeli küçük düğme.
+private struct FooterIconButton: View {
+    let symbol: String
+    let hint: LocalizedStringKey
+    let action: @MainActor () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .appFont(size: 12, weight: .medium)
+                .foregroundStyle(Theme.muted)
+                .frame(width: 28, height: 26)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.hoverPlain)
+        .hoverHint(hint, alignment: .leading, edge: .bottom)
+        .accessibilityLabel(Text(hint))
+    }
+}
+
+/// Cevabın çıkış menüsü (⋯): Markdown olarak kopyala ve Mac'te ".md olarak kaydet…" (kaydetme paneli), iPhone'da
+/// ".md olarak paylaş".
+private struct AnswerExportMenu: View {
+    let exchange: ArchiveExchange
+    #if os(macOS)
+    @State private var isExporting: Bool = false
+    /// Dosya yazılamadıysa nedeni (menünün yanında gösterilir).
+    @State private var exportError: String?
+    #endif
+
+    var body: some View {
+        HStack(spacing: 6) {
+            menu
+            #if os(macOS)
+            if let exportError {
+                NoticeText(exportError, severity: .error)
+                    .appFont(size: 12, weight: .regular)
+            }
+            #endif
+        }
+    }
+
+    private var menu: some View {
+        Menu {
+            AnswerExportMenuItems(exchange: exchange)
+            #if os(macOS)
+            Button(".md olarak kaydet…", systemImage: "square.and.arrow.down") { isExporting = true }
+            #endif
+        } label: {
+            Image(systemName: "ellipsis")
+                .appFont(size: 12, weight: .medium)
+                .foregroundStyle(Theme.muted)
+                .frame(width: 28, height: 26)
+                .contentShape(Rectangle())
+        }
+        .menuStyle(.button)
+        .menuIndicator(.hidden)
+        .buttonStyle(.hoverPlain)
+        .fixedSize()
+        .accessibilityLabel("Diğer seçenekler")
+        #if os(macOS)
+        .fileExporter(
+            isPresented: $isExporting, document: MarkdownFileDocument(text: answerMarkdown(exchange: exchange)), contentType: markdownContentType,
+            defaultFilename: answerFileName(exchange: exchange)
+        ) { (result: Result<URL, any Error>) -> Void in
+            switch result {
+            case .success:
+                exportError = nil
+            case .failure(let error as CocoaError) where error.code == .userCancelled:
+                exportError = nil
+            case .failure(let error):
+                exportLogger.error("Sor cevabı .md olarak kaydedilemedi, hata: \(String(describing: error), privacy: .private)")
+                exportError = userFacingMessage(error: error)
+            }
+        }
+        #endif
+    }
+}
+
+private let exportLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "AskExport")
+
+/// Cevabın Markdown dosyası (başlık sorunun ya da tarifin adı).
+@MainActor
+func answerMarkdown(exchange: ArchiveExchange) -> String {
+    archiveAnswerMarkdown(title: exchange.recipeTitle ?? exchange.question, answer: exchange.answer, noteLabel: String(localized: "not"), locale: interfaceLocale())
+}
+
+/// Cevabın Markdown dosyasının adı.
+@MainActor
+func answerFileName(exchange: ArchiveExchange) -> String {
+    askMarkdownFileName(title: exchange.recipeTitle ?? exchange.question, fallback: String(localized: "Sor cevabı"))
+}
+
+/// Cevabın kopyalama ve paylaşma seçenekleri (⋯ menüsü ve iPhone'da uzun basış menüsü).
+struct AnswerExportMenuItems: View {
+    let exchange: ArchiveExchange
+
+    var body: some View {
+        Button("Cevabı kopyala", systemImage: "doc.on.doc") {
+            copyToPasteboard(text: archiveAnswerPlainText(
+                answer: exchange.answer, sourcesHeading: String(localized: "Kaynaklar"), webHeading: String(localized: "Web kaynakları"),
+                noteLabel: String(localized: "not"), locale: interfaceLocale()
+            ))
+        }
+        Button("Markdown olarak kopyala", systemImage: "number") {
+            copyToPasteboard(text: answerMarkdown(exchange: exchange))
+        }
+        #if os(iOS)
+        ShareLink(
+            item: MarkdownShareFile(fileName: answerFileName(exchange: exchange), text: answerMarkdown(exchange: exchange)),
+            preview: SharePreview(answerFileName(exchange: exchange))
+        ) {
+            Label(".md olarak paylaş", systemImage: "square.and.arrow.up")
+        }
+        #endif
     }
 }
 
@@ -389,6 +606,9 @@ private struct ReasoningDetails: View {
             if !titles.isEmpty {
                 row(label: "Okunan", value: titles.joined(separator: " · "))
             }
+            if !exchange.webQueries.filter({ !$0.isEmpty }).isEmpty {
+                row(label: "Web'de", value: exchange.webQueries.filter { !$0.isEmpty }.map { "“\($0)”" }.joined(separator: ", "))
+            }
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -410,37 +630,23 @@ private struct ReasoningDetails: View {
     }
 }
 
-/// Akan cevap: gelen metin harf harf yumuşakça açılır (parça büyükse daha hızlı yetişir; son harfler mürekkep gibi
-/// soluktan koyulaşır), yazarken sonda imleç. Markdown (kalın, maddeler) ve tıklanabilir kaynak işaretleri ([1]).
+/// Akan cevap: gelen metin harf harf yumuşakça açılır (parça büyükse daha hızlı yetişir), yazarken sonda imleç. Metin
+/// Markdown olarak çizilir (`AnswerMarkdownView`): başlıklar, listeler, tablolar, kod blokları; toplantı kaynakları
+/// dokunulabilir rozetlerdir (kaynak açılır), web kaynakları tarayıcıda açılır.
 private struct StreamingAnswer: View {
     let exchange: ArchiveExchange
     let onCitation: @MainActor (Int) -> Void
     @State private var shown: Int = 0
-    @Environment(\.panelAppearance) private var appearance: PanelAppearance
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion: Bool
 
     private var isWriting: Bool {
         exchange.phase == .writing
-    }
-
-    /// Kaynak numarası: yazıyla birlikte ölçeklenir.
-    private var citationFont: Font {
-        appearance.font(size: 10, weight: .bold)
     }
 
     var body: some View {
         let full: String = exchange.answer.text
         let visible: String = String(full.prefix(shown))
         let isRevealing: Bool = isWriting || shown < full.count
-        Text(isRevealing
-            ? answerAttributedText(text: visible, accent: appearance.accent.color, citationFont: citationFont) + streamingCaret(accent: appearance.accent.color)
-            : answerAttributedText(text: visible, accent: appearance.accent.color, citationFont: citationFont))
-            .textRenderer(InkRevealRenderer(fadingGlyphs: isRevealing && !reduceMotion ? 18 : 0, exemptTrailingGlyphs: streamingCaretGlyphs))
-            // Soruyla aynı boyut ve arayüz ölçeği (Ayarlar › Görünüm › Boyut); canlı panelin metin boyutu değil.
-            .font(appearance.font(size: 15, weight: .regular))
-            .lineSpacing(5 * appearance.uiScale)
-            .textSelection(.enabled)
-            .fixedSize(horizontal: false, vertical: true)
+        AnswerMarkdownView(blocks: parseMarkdown(text: isRevealing ? visible + streamingCaret : visible), webSources: exchange.answer.webSources)
             .environment(\.openURL, OpenURLAction { (url: URL) -> OpenURLAction.Result in
                 guard url.scheme == citationScheme, let number = Int(url.host() ?? "") else {
                     return .systemAction
@@ -466,89 +672,55 @@ private struct StreamingAnswer: View {
     }
 }
 
-/// Kaynak işaretlerinin bağlantı şeması (`ainotepad-source://3`).
-private let citationScheme: String = "ainotepad-source"
+/// Cevap akarken sondaki imleç.
+private let streamingCaret: String = " ▍"
 
-/// Cevap metnini biçimler: satır başı "- " madde işareti olur, **kalın** yazı kalınlaşır, [n] işaretleri küçük,
-/// yükseltilmiş, vurgu renkli bağlantılara dönüşür (tıklayınca kaynak açılır). Akarken yarım kalan "**" düz görünür,
-/// yarım kaynak işareti gizlenir.
-/// Saf fonksiyondur.
-private func answerAttributedText(text: String, accent: Color, citationFont: Font) -> AttributedString {
-    // Harf harf açılırken yarım kalan kaynak işareti ("[1") görünmesin.
-    let bulleted: String = text.replacing(/\[\d*$/, with: "")
-        .split(separator: "\n", omittingEmptySubsequences: false)
-        .map { (line: Substring) -> String in
-            let trimmed: Substring = line.drop { $0 == " " }
-            return trimmed.hasPrefix("- ") || trimmed.hasPrefix("* ") ? "•  " + trimmed.dropFirst(2) : String(line)
-        }
-        .joined(separator: "\n")
-    let token: Regex<(Substring, Substring?, Substring?)> = /\*\*(.+?)\*\*|\[(\d+)\]/
-    var result: AttributedString = AttributedString()
-    var rest: Substring = Substring(bulleted)
-    while let match = rest.firstMatch(of: token) {
-        result += AttributedString(String(rest[rest.startIndex..<match.range.lowerBound]))
-        if let bold = match.output.1 {
-            var run: AttributedString = AttributedString(String(bold))
-            run.inlinePresentationIntent = .stronglyEmphasized
-            result += run
-        } else if let number = match.output.2 {
-            var run: AttributedString = AttributedString("\u{2009}\(number)\u{2009}")
-            run.link = URL(string: "\(citationScheme)://\(number)")
-            run.foregroundColor = accent
-            run.baselineOffset = 5
-            run.font = citationFont
-            result += run
-        }
-        rest = rest[match.range.upperBound...]
-    }
-    result += AttributedString(String(rest))
-    return result
-}
+/// Web kaynakları: alan adı ve sayfa başlığı; tıklayınca tarayıcıda açılır.
+private struct WebSourcesList: View {
+    let sources: [WebSource]
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
+    @Environment(\.openURL) private var openURL: OpenURLAction
 
-/// Açılan metnin son harfleri soluktan koyulaşır ve 2 pt aşağıdan yerine oturur (yalnız opaklık ve küçük kayma;
-/// harf başına dalga yok). Sondaki imleç etkilenmez. `fadingGlyphs` 0 iken metin olduğu gibi çizilir.
-struct InkRevealRenderer: TextRenderer {
-    let fadingGlyphs: Int
-    let exemptTrailingGlyphs: Int
-
-    func draw(layout: Text.Layout, in context: inout GraphicsContext) {
-        guard fadingGlyphs > 0 else {
-            for line in layout {
-                context.draw(line)
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            ForEach(Array(sources.enumerated()), id: \.element.url) { (item: (offset: Int, element: WebSource)) in
+                Button {
+                    if let url = URL(string: item.element.url) {
+                        openURL(url)
+                    }
+                } label: {
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        Image(systemName: "globe")
+                            .appFont(size: 10, weight: .semibold)
+                            .foregroundStyle(Theme.muted)
+                            .frame(width: 14, alignment: .trailing)
+                        Text(verbatim: webSourceDomain(url: item.element.url))
+                            .appFont(size: 12, weight: .medium)
+                            .foregroundStyle(Theme.ink.opacity(0.85))
+                            .lineLimit(1)
+                            .fixedSize()
+                        Text(verbatim: item.element.title)
+                            .appFont(size: 12, weight: .regular)
+                            .foregroundStyle(Theme.muted)
+                            .lineLimit(1)
+                        Spacer(minLength: 8)
+                        Image(systemName: "arrow.up.right")
+                            .appFont(size: 9, weight: .semibold)
+                            .foregroundStyle(Theme.muted.opacity(0.8))
+                    }
+                    .padding(.vertical, 5)
+                    .padding(.horizontal, 6)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.hoverPlain)
+                .hoverHint("Tarayıcıda aç", alignment: .leading, edge: .bottom)
+                .accessibilityLabel(Text(verbatim: "\(webSourceDomain(url: item.element.url)), \(item.element.title)"))
             }
-            return
         }
-        let slices: [Text.Layout.RunSlice] = layout.flatMap { (line: Text.Layout.Line) -> [Text.Layout.RunSlice] in
-            line.flatMap { (run: Text.Layout.Run) -> [Text.Layout.RunSlice] in Array(run) }
-        }
-        let frontier: Int = slices.count - exemptTrailingGlyphs
-        for (index, slice) in slices.enumerated() {
-            let opacity: Double = inkOpacity(distanceFromFrontier: frontier - index, fadingGlyphs: fadingGlyphs)
-            var glyph: GraphicsContext = context
-            glyph.opacity = opacity
-            glyph.translateBy(x: 0, y: (1 - opacity) * 2)
-            glyph.draw(slice)
-        }
+        .padding(6)
+        .frame(maxWidth: 560, alignment: .leading)
+        .background(Theme.soft.opacity(0.6), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
-}
-
-/// İmlecin karakter sayısı (" ▍"): soluklaşmaz.
-private let streamingCaretGlyphs: Int = 2
-
-/// Açılma sınırına uzaklığa göre opaklık: sınırdaki harf 0,15, `fadingGlyphs` geride tam koyu; imleç (sınırın
-/// ötesi) tam koyu. Saf fonksiyondur.
-func inkOpacity(distanceFromFrontier: Int, fadingGlyphs: Int) -> Double {
-    guard distanceFromFrontier > 0, distanceFromFrontier < fadingGlyphs else {
-        return 1
-    }
-    return 0.15 + 0.85 * Double(distanceFromFrontier) / Double(fadingGlyphs)
-}
-
-/// Cevap akarken sondaki imleç. Saf fonksiyondur.
-private func streamingCaret(accent: Color) -> AttributedString {
-    var cursor: AttributedString = AttributedString(" ▍")
-    cursor.foregroundColor = accent.opacity(0.7)
-    return cursor
 }
 
 /// Kaynaklar: numaralı ince satırlar (numara metindeki [n]; toplantı, tarih, not ya da zaman), ince kartta. Tıklayınca
@@ -615,7 +787,8 @@ private struct CopyAnswerButton: View {
     var body: some View {
         Button {
             copyToPasteboard(text: archiveAnswerPlainText(
-                answer: answer, sourcesHeading: String(localized: "Kaynaklar"), noteLabel: String(localized: "not"), locale: interfaceLocale()
+                answer: answer, sourcesHeading: String(localized: "Kaynaklar"), webHeading: String(localized: "Web kaynakları"), noteLabel: String(localized: "not"),
+                locale: interfaceLocale()
             ))
             copied = true
         } label: {
@@ -928,5 +1101,36 @@ public struct RecipeSuggestions: View {
         .background(Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.line))
         .shadow(color: .black.opacity(0.12), radius: 18, y: 6)
+    }
+}
+
+
+/// Kaydırma alt kenara yakın mı (en çok 120 pt yukarıda): sohbet sonu görünüyor, akan cevap izlenebilir. Saf
+/// fonksiyondur.
+public func isNearScrollBottom(geometry: ScrollGeometry) -> Bool {
+    geometry.contentOffset.y + geometry.containerSize.height >= geometry.contentSize.height - 120
+}
+
+/// Yukarı kaydırılmış sohbette sona dönüş düğmesi: küçük, gölgeli, aşağı oklu daire.
+public struct JumpToLatestButton: View {
+    let action: @MainActor () -> Void
+
+    public init(action: @escaping @MainActor () -> Void) {
+        self.action = action
+    }
+
+    public var body: some View {
+        Button(action: action) {
+            Image(systemName: "arrow.down")
+                .appFont(size: 13, weight: .semibold)
+                .foregroundStyle(Theme.ink)
+                .frame(width: 34, height: 34)
+                .background(Theme.card, in: Circle())
+                .overlay(Circle().strokeBorder(Theme.line))
+                .shadow(color: .black.opacity(0.12), radius: 10, y: 3)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Sona git")
     }
 }

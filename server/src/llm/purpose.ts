@@ -65,15 +65,15 @@ export function llmPurposeOf(header: string | null): LLMPurpose {
 }
 
 /**
- * Kesinleşen çağrının tokenlarını günün (UTC) amaç satırına ekleyen ifade (`llm_purpose_usage`); kullanıcı ya da
- * toplantı yazılmaz. Kesinleştirmenin toplu işlemine eklenir (bkz. `chargeUsage`). Saf fonksiyondur.
+ * Kesinleşen çağrının tokenlarını ve web aramalarını günün (UTC) amaç satırına ekleyen ifade (`llm_purpose_usage`);
+ * kullanıcı ya da toplantı yazılmaz. Kesinleştirmenin toplu işlemine eklenir (bkz. `chargeUsage`). Saf fonksiyondur.
  */
-export function purposeUsageStatement(db: D1Database, purpose: LLMPurpose, usage: TokenUsage, now: Date): D1PreparedStatement {
+export function purposeUsageStatement(db: D1Database, purpose: LLMPurpose, usage: TokenUsage, webSearches: number, now: Date): D1PreparedStatement {
   return db
     .prepare(
-      `INSERT INTO llm_purpose_usage (day, purpose, input_tokens, output_tokens, calls) VALUES (?, ?, ?, ?, 1)
+      `INSERT INTO llm_purpose_usage (day, purpose, input_tokens, output_tokens, calls, web_searches) VALUES (?, ?, ?, ?, 1, ?)
        ON CONFLICT(day, purpose) DO UPDATE SET input_tokens = input_tokens + excluded.input_tokens,
-         output_tokens = output_tokens + excluded.output_tokens, calls = calls + 1`,
+         output_tokens = output_tokens + excluded.output_tokens, calls = calls + 1, web_searches = web_searches + excluded.web_searches`,
     )
-    .bind(dayKey(now), purpose, usage.inputTokens, usage.outputTokens);
+    .bind(dayKey(now), purpose, usage.inputTokens, usage.outputTokens, webSearches);
 }

@@ -470,7 +470,7 @@ describe("yönetici telemetri görünümü (GET /v1/admin/telemetry)", () => {
     expect(body.versions.apps).toContainEqual({ version: "7.0 (1)", users: 1 });
     expect(body.versions.os).toContainEqual({ version: "macOS 26.1", users: 1 });
     expect(body.versions.activeUsers).toBeGreaterThanOrEqual(1);
-    expect(body.purposes.totals).toContainEqual({ purpose: "note", inputTokens: 1000, outputTokens: 200, calls: 2 });
+    expect(body.purposes.totals).toContainEqual({ purpose: "note", inputTokens: 1000, outputTokens: 200, calls: 2, webSearches: 0 });
     expect(body.purposes.daily.some((row: { day: string }): boolean => row.day === dayOf(nowMs, -40))).toBe(false);
     expect(body.events.counts).toContainEqual({ kind: "final_pass_give_up", appVersion: "7.0 (1)", count: 4 });
     expect(body.events.daily).toContainEqual({ day: dayOf(nowMs, -2), kind: "final_pass_give_up", count: 4 });

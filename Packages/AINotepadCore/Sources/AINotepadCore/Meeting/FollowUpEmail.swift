@@ -70,7 +70,7 @@ public func followUpEmailRequest(
         maxTokens: followUpEmailMaxTokens,
         jsonSchema: followUpEmailSchema,
         timeoutSec: 120,
-        images: []
+        images: [], webSearch: nil
     )
 }
 

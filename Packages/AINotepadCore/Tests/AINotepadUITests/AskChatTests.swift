@@ -8,7 +8,7 @@ private func finished(question: String, scope: [String], recipeTitle: String?) -
     ArchiveExchange(
         id: UUID(), question: question, scopeMeetingIDs: scope, scopeTitles: scope.map { "Toplantı \($0)" }, recipeTitle: recipeTitle,
         startedAt: Date(timeIntervalSince1970: 1_792_000_000), phase: .done, terms: [], passages: [],
-        screens: 0, answer: ArchiveAnswer(text: "Cevap", sources: []), finishedAt: Date(timeIntervalSince1970: 1_792_000_005)
+        screens: 0, answer: ArchiveAnswer(text: "Cevap", sources: [], webSources: []), webQueries: [], webSearchCapReached: false, finishedAt: Date(timeIntervalSince1970: 1_792_000_005)
     )
 }
 
