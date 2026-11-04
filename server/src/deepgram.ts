@@ -221,6 +221,24 @@ export async function settleDeepgramMeetings(db: D1Database, now: Date): Promise
   return result.meta.changes;
 }
 
+/**
+ * Deepgram satırının toplantı kimliğini rastgele yeni bir kimlikle değiştiren SQL (toplantı oturumu silinmeden önce,
+ * aynı toplu işlemde). Satır kullanıcı tutmaz; kişiye tek bağı toplantı kimliğidir (sunucuda `meeting_sessions`,
+ * cihazda uygulamanın toplantı bağları). Satırın kendisi silinmez: bütçe ömür boyudur ve silme, tetikleyiciyle
+ * (göç 0032) harcanmış saniyeleri bütçeden düşerdi. Kimlik değişikliği bütçe tetikleyicilerini çalıştırmaz.
+ */
+const deepgramUnlinkSql: string = "UPDATE deepgram_live_meetings SET meeting_id = 'unlinked_' || lower(hex(randomblob(16)))";
+
+/** Hesabın toplantılarının Deepgram satırlarını toplantıdan koparır (hesap silme; bkz. `deepgramUnlinkSql`). */
+export function deepgramUnlinkUserStatement(db: D1Database, userId: string): D1PreparedStatement {
+  return db.prepare(`${deepgramUnlinkSql} WHERE meeting_id IN (SELECT id FROM meeting_sessions WHERE user_id = ?)`).bind(userId);
+}
+
+/** `cutoff`'tan önce başlamış toplantıların Deepgram satırlarını koparır (saklama süresi; bkz. `deepgramUnlinkSql`). */
+export function deepgramUnlinkStartedBeforeStatement(db: D1Database, cutoff: number): D1PreparedStatement {
+  return db.prepare(`${deepgramUnlinkSql} WHERE meeting_id IN (SELECT id FROM meeting_sessions WHERE started_at < ?)`).bind(cutoff);
+}
+
 /** Toplantının jeton sayaçları; jeton almamışsa null. */
 async function meetingGrantCounters(db: D1Database, meetingId: string): Promise<GrantCounters | null> {
   return db
