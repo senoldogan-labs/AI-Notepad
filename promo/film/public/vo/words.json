@@ -1,0 +1,423 @@
+{
+  "hook": [
+    {
+      "text": "Every",
+      "startMs": 0,
+      "endMs": 300
+    },
+    {
+      "text": "meeting",
+      "startMs": 300,
+      "endMs": 560
+    },
+    {
+      "text": "ends",
+      "startMs": 560,
+      "endMs": 820
+    },
+    {
+      "text": "the",
+      "startMs": 820,
+      "endMs": 1000
+    },
+    {
+      "text": "same",
+      "startMs": 1000,
+      "endMs": 1180
+    },
+    {
+      "text": "way.",
+      "startMs": 1180,
+      "endMs": 1480
+    }
+  ],
+  "question": [
+    {
+      "text": "Who",
+      "startMs": 0,
+      "endMs": 320
+    },
+    {
+      "text": "said",
+      "startMs": 320,
+      "endMs": 500
+    },
+    {
+      "text": "what?",
+      "startMs": 500,
+      "endMs": 820
+    },
+    {
+      "text": "And",
+      "startMs": 1060,
+      "endMs": 1440
+    },
+    {
+      "text": "what",
+      "startMs": 1440,
+      "endMs": 1660
+    },
+    {
+      "text": "was",
+      "startMs": 1660,
+      "endMs": 1780
+    },
+    {
+      "text": "I",
+      "startMs": 1780,
+      "endMs": 1900
+    },
+    {
+      "text": "supposed",
+      "startMs": 1900,
+      "endMs": 2120
+    },
+    {
+      "text": "to",
+      "startMs": 2120,
+      "endMs": 2340
+    },
+    {
+      "text": "do?",
+      "startMs": 2340,
+      "endMs": 2540
+    }
+  ],
+  "meet": [
+    {
+      "text": "Meet",
+      "startMs": 0,
+      "endMs": 320
+    },
+    {
+      "text": "Gistsmith.",
+      "startMs": 320,
+      "endMs": 1120
+    },
+    {
+      "text": "The",
+      "startMs": 1560,
+      "endMs": 1640
+    },
+    {
+      "text": "meeting",
+      "startMs": 1640,
+      "endMs": 1800
+    },
+    {
+      "text": "notepad",
+      "startMs": 1800,
+      "endMs": 2220
+    },
+    {
+      "text": "for",
+      "startMs": 2220,
+      "endMs": 2420
+    },
+    {
+      "text": "your",
+      "startMs": 2420,
+      "endMs": 2520
+    },
+    {
+      "text": "Mac.",
+      "startMs": 2520,
+      "endMs": 2740
+    }
+  ],
+  "listens": [
+    {
+      "text": "It",
+      "startMs": 0,
+      "endMs": 180
+    },
+    {
+      "text": "listens",
+      "startMs": 180,
+      "endMs": 500
+    },
+    {
+      "text": "to",
+      "startMs": 500,
+      "endMs": 920
+    },
+    {
+      "text": "Zoom,",
+      "startMs": 920,
+      "endMs": 1380
+    },
+    {
+      "text": "Teams,",
+      "startMs": 1640,
+      "endMs": 1960
+    },
+    {
+      "text": "Meet,",
+      "startMs": 2220,
+      "endMs": 2300
+    },
+    {
+      "text": "or",
+      "startMs": 2500,
+      "endMs": 2540
+    },
+    {
+      "text": "the",
+      "startMs": 2540,
+      "endMs": 2640
+    },
+    {
+      "text": "room",
+      "startMs": 2640,
+      "endMs": 2800
+    },
+    {
+      "text": "you're",
+      "startMs": 2800,
+      "endMs": 3000
+    },
+    {
+      "text": "in.",
+      "startMs": 3000,
+      "endMs": 3240
+    },
+    {
+      "text": "No",
+      "startMs": 3640,
+      "endMs": 3800
+    },
+    {
+      "text": "bot",
+      "startMs": 3800,
+      "endMs": 4000
+    },
+    {
+      "text": "joins",
+      "startMs": 4000,
+      "endMs": 4260
+    },
+    {
+      "text": "the",
+      "startMs": 4260,
+      "endMs": 4440
+    },
+    {
+      "text": "call.",
+      "startMs": 4440,
+      "endMs": 4660
+    }
+  ],
+  "live": [
+    {
+      "text": "Every",
+      "startMs": 0,
+      "endMs": 300
+    },
+    {
+      "text": "sentence",
+      "startMs": 300,
+      "endMs": 560
+    },
+    {
+      "text": "appears",
+      "startMs": 560,
+      "endMs": 860
+    },
+    {
+      "text": "live.",
+      "startMs": 860,
+      "endMs": 1260
+    },
+    {
+      "text": "Translated,",
+      "startMs": 1620,
+      "endMs": 1920
+    },
+    {
+      "text": "if",
+      "startMs": 1920,
+      "endMs": 2140
+    },
+    {
+      "text": "you",
+      "startMs": 2140,
+      "endMs": 2240
+    },
+    {
+      "text": "like.",
+      "startMs": 2240,
+      "endMs": 2460
+    }
+  ],
+  "note": [
+    {
+      "text": "When",
+      "startMs": 0,
+      "endMs": 200
+    },
+    {
+      "text": "you",
+      "startMs": 200,
+      "endMs": 300
+    },
+    {
+      "text": "hang",
+      "startMs": 300,
+      "endMs": 460
+    },
+    {
+      "text": "up,",
+      "startMs": 460,
+      "endMs": 740
+    },
+    {
+      "text": "your",
+      "startMs": 960,
+      "endMs": 1060
+    },
+    {
+      "text": "note",
+      "startMs": 1060,
+      "endMs": 1220
+    },
+    {
+      "text": "is",
+      "startMs": 1220,
+      "endMs": 1380
+    },
+    {
+      "text": "ready.",
+      "startMs": 1380,
+      "endMs": 1620
+    },
+    {
+      "text": "Your",
+      "startMs": 1980,
+      "endMs": 2120
+    },
+    {
+      "text": "tasks",
+      "startMs": 2120,
+      "endMs": 2460
+    },
+    {
+      "text": "come",
+      "startMs": 2460,
+      "endMs": 2740
+    },
+    {
+      "text": "first.",
+      "startMs": 2740,
+      "endMs": 3100
+    }
+  ],
+  "ask": [
+    {
+      "text": "Later,",
+      "startMs": 0,
+      "endMs": 360
+    },
+    {
+      "text": "just",
+      "startMs": 720,
+      "endMs": 740
+    },
+    {
+      "text": "ask.",
+      "startMs": 740,
+      "endMs": 1100
+    },
+    {
+      "text": "Answers",
+      "startMs": 1380,
+      "endMs": 1580
+    },
+    {
+      "text": "come",
+      "startMs": 1580,
+      "endMs": 1880
+    },
+    {
+      "text": "from",
+      "startMs": 1880,
+      "endMs": 2060
+    },
+    {
+      "text": "every",
+      "startMs": 2060,
+      "endMs": 2280
+    },
+    {
+      "text": "meeting",
+      "startMs": 2280,
+      "endMs": 2520
+    },
+    {
+      "text": "you've",
+      "startMs": 2520,
+      "endMs": 2780
+    },
+    {
+      "text": "had.",
+      "startMs": 2780,
+      "endMs": 3020
+    }
+  ],
+  "cta": [
+    {
+      "text": "Gistsmith.",
+      "startMs": 0,
+      "endMs": 640
+    },
+    {
+      "text": "Your",
+      "startMs": 920,
+      "endMs": 1040
+    },
+    {
+      "text": "meetings,",
+      "startMs": 1040,
+      "endMs": 1300
+    },
+    {
+      "text": "written",
+      "startMs": 1300,
+      "endMs": 1620
+    },
+    {
+      "text": "for",
+      "startMs": 1620,
+      "endMs": 1840
+    },
+    {
+      "text": "you.",
+      "startMs": 1840,
+      "endMs": 2080
+    },
+    {
+      "text": "Try",
+      "startMs": 2420,
+      "endMs": 2480
+    },
+    {
+      "text": "it",
+      "startMs": 2480,
+      "endMs": 2580
+    },
+    {
+      "text": "free",
+      "startMs": 2580,
+      "endMs": 2800
+    },
+    {
+      "text": "at",
+      "startMs": 2800,
+      "endMs": 3060
+    },
+    {
+      "text": "gistsmith.com",
+      "startMs": 3060,
+      "endMs": 4280
+    }
+  ]
+}

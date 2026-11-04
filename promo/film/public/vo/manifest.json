@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "text": "Every meeting ends the same way.",
+    "file": "00-hook.wav",
+    "seconds": 1.68
+  },
+  {
+    "id": "question",
+    "text": "Who said what? And what was I supposed to do?",
+    "file": "01-question.wav",
+    "seconds": 2.92
+  },
+  {
+    "id": "meet",
+    "text": "Meet Gistsmith. The meeting notepad for your Mac.",
+    "file": "02-meet.wav",
+    "seconds": 2.96
+  },
+  {
+    "id": "listens",
+    "text": "It listens to Zoom, Teams, Meet, or the room you're in. No bot joins the call.",
+    "file": "03-listens.wav",
+    "seconds": 4.88
+  },
+  {
+    "id": "live",
+    "text": "Every sentence appears live. Translated, if you like.",
+    "file": "04-live.wav",
+    "seconds": 2.68
+  },
+  {
+    "id": "note",
+    "text": "When you hang up, your note is ready. Your tasks come first.",
+    "file": "05-note.wav",
+    "seconds": 3.44
+  },
+  {
+    "id": "ask",
+    "text": "Later, just ask. Answers come from every meeting you've had.",
+    "file": "06-ask.wav",
+    "seconds": 3.2
+  },
+  {
+    "id": "cta",
+    "text": "Gistsmith. Your meetings, written for you. Try it free at gistsmith dot com.",
+    "file": "07-cta.wav",
+    "seconds": 4.48
+  }
+]
