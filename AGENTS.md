@@ -16,11 +16,12 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
 - Deneysel "bu iPhone'daki görüşmeyi kaydet" (`iOS/CallCapture/`, iOS 27 ScreenCaptureKit): yalnız
   `CALL_CAPTURE_EXPERIMENT=YES` derlemesinde (Debug'da açık, Release'de kapalı; TestFlight denemesi için arşive
   komut satırından verilir). ScreenCaptureKit Simulator SDK'sında yok: yalnız cihazda çalışır.
-- `promo/` — Gistsmith tanıtım filmi (İngilizce, 1920×1080): `voice/` Chatterbox ile seslendirme + faster-whisper ile
-  kelime zamanları (uv), `music/make-bed.sh` FFmpeg'le sentezlenen müzik, `film/` Remotion projesi (sahne süreleri
-  seslendirmeden hesaplanır). Yeniden üretim: `cd promo/voice && uv run python speak.py ../film/public/vo && uv run
-  python words.py ../film/public/vo`, sonra `promo/music/make-bed.sh promo/film/public/music/bed.wav` ve `cd promo/film && scripts/fetch-sfx.sh && npm run render`. Yeni indirilen
-  headless Chrome'un ilk açılışı macOS taraması yüzünden "root component" zaman aşımı verebilir; tekrar çalıştır.
+- `promo/` — Gistsmith tanıtım filmi (İngilizce; 16:9 `GistsmithPromo` ve 9:16 `GistsmithPromoVertical`): `voice/`
+  Chatterbox seslendirme + faster-whisper kelime zamanları (uv), `blender/` Blender'la laptop sahnesi, `music/` CC0 müzik
+  (yt-dlp ile), `film/` Remotion projesi (sahne süreleri seslendirmeden hesaplanır). Yeniden üretim: `cd promo/voice &&
+  uv run python speak.py ../film/public/vo && uv run python words.py ../film/public/vo`; `promo/blender/render.sh 130`;
+  `promo/music/fetch-music.sh`; `cd promo/film && scripts/fetch-sfx.sh && npm run render`. Yeni indirilen headless
+  Chrome'un ilk açılışı macOS taraması yüzünden "root component" zaman aşımı verebilir; tekrar çalıştır.
 - `project.yml` — XcodeGen tanımı; `AINotepad.xcodeproj` üretilir, repoya girmez.
 - İmzalama: `Config/Local.xcconfig.example` dosyasını `Config/Local.xcconfig` olarak kopyalayıp `DEVELOPMENT_TEAM` yaz.
 

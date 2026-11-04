@@ -1,7 +1,6 @@
 import { Audio } from "@remotion/media";
 import { linearTiming, TransitionSeries } from "@remotion/transitions";
 import { fade } from "@remotion/transitions/fade";
-import { slide } from "@remotion/transitions/slide";
 import { Fragment } from "react";
 import { AbsoluteFill, interpolate, staticFile } from "remotion";
 import { AskScene } from "./scenes/AskScene";
@@ -11,7 +10,15 @@ import { ListensScene } from "./scenes/ListensScene";
 import { LiveScene } from "./scenes/LiveScene";
 import { MeetScene } from "./scenes/MeetScene";
 import { NoteScene } from "./scenes/NoteScene";
-import { SCENE_ORDER, type SceneId, sceneDuration, TRANSITION_FRAMES, totalDuration } from "./timeline";
+import {
+  SCENE_ORDER,
+  type SceneId,
+  sceneDuration,
+  sceneStarts,
+  TRANSITION_FRAMES,
+  totalDuration,
+  voiceSpans,
+} from "./timeline";
 
 export const SCENE_COMPONENTS: Record<SceneId, React.FC> = {
   hook: HookScene,
@@ -23,16 +30,25 @@ export const SCENE_COMPONENTS: Record<SceneId, React.FC> = {
   cta: CtaScene,
 };
 
-/** Start frame of each scene in the finished film (transitions overlap neighbours). */
-const sceneStarts = (): readonly number[] =>
-  SCENE_ORDER.reduce<readonly number[]>(
-    (starts, scene, index) => (index === 0 ? [0] : [...starts, (starts[index - 1] ?? 0) + sceneDuration(SCENE_ORDER[index - 1] ?? scene) - TRANSITION_FRAMES]),
-    [],
-  );
+/** Music level with the voice speaking, and in the gaps between lines. */
+const MUSIC_UNDER_VOICE = 0.16;
+const MUSIC_IN_GAPS = 0.34;
+const DUCK_FRAMES = 8;
+/** Scenes whose entrance gets a whoosh; the other cuts stay quiet. */
+const WHOOSH_SCENES: readonly SceneId[] = ["meet", "ask"];
 
-/** The finished ad: seven scenes, crossfades and slides between them, a soft music bed and transition whooshes. */
+/** 0 far from any voiceover line, 1 inside one, with a short ramp on both sides. */
+const voicePresence = (frame: number, spans: readonly (readonly [number, number])[]): number =>
+  spans.reduce((presence, [start, end]) => {
+    const distance = frame < start ? start - frame : frame > end ? frame - end : 0;
+    return Math.max(presence, 1 - Math.min(distance / DUCK_FRAMES, 1));
+  }, 0);
+
+/** The finished ad: seven scenes with crossfades, a CC0 music track ducked under the voice, two whooshes. */
 export const Promo: React.FC = () => {
   const total = totalDuration();
+  const spans = voiceSpans();
+  const starts = sceneStarts();
   return (
     <AbsoluteFill>
       <TransitionSeries>
@@ -41,10 +57,7 @@ export const Promo: React.FC = () => {
           return (
             <Fragment key={scene}>
               {index > 0 ? (
-                <TransitionSeries.Transition
-                  presentation={index % 2 === 0 ? fade() : slide({ direction: "from-right" })}
-                  timing={linearTiming({ durationInFrames: TRANSITION_FRAMES })}
-                />
+                <TransitionSeries.Transition presentation={fade()} timing={linearTiming({ durationInFrames: TRANSITION_FRAMES })} />
               ) : null}
               <TransitionSeries.Sequence name={scene} durationInFrames={sceneDuration(scene)}>
                 <Scene />
@@ -54,14 +67,15 @@ export const Promo: React.FC = () => {
         })}
       </TransitionSeries>
       <Audio
-        src={staticFile("music/bed.wav")}
-        volume={(f) => interpolate(f, [0, 20, total - 45, total], [0, 0.32, 0.32, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })}
+        src={staticFile("music/advertime.mp3")}
+        volume={(f) =>
+          interpolate(voicePresence(f, spans), [0, 1], [MUSIC_IN_GAPS, MUSIC_UNDER_VOICE]) *
+          interpolate(f, [0, 12, total - 40, total], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+        }
       />
-      {sceneStarts()
-        .slice(1)
-        .map((start) => (
-          <Audio key={start} src={staticFile("sfx/whoosh.wav")} from={start - 6} volume={0.18} />
-        ))}
+      {SCENE_ORDER.filter((scene) => WHOOSH_SCENES.includes(scene)).map((scene) => (
+        <Audio key={scene} src={staticFile("sfx/whoosh.wav")} from={(starts[SCENE_ORDER.indexOf(scene)] ?? 0) - 6} volume={0.12} />
+      ))}
     </AbsoluteFill>
   );
 };

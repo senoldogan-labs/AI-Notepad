@@ -36,7 +36,7 @@
     "build": "remotion bundle",
     "upgrade": "remotion upgrade",
     "lint": "eslint src && tsc",
-    "render": "remotion render GistsmithPromo out/gistsmith-promo-raw.mp4 --codec=h264 --crf=16"
+    "render": "remotion render GistsmithPromo out/gistsmith-promo-raw.mp4 --codec=h264 --crf=16 && remotion render GistsmithPromoVertical out/gistsmith-promo-vertical-raw.mp4 --codec=h264 --crf=16"
   },
   "allowScripts": {
     "esbuild": false

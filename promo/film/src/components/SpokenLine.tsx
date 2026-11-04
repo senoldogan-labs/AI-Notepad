@@ -1,5 +1,5 @@
 import { Easing, interpolate, useCurrentFrame } from "remotion";
-import { color, fontFamily, gradientText } from "../brand";
+import { color, fontFamily } from "../brand";
 import { type PlacedLine, wordFrame, wordsFor } from "../timeline";
 
 const REVEAL_FRAMES = 9;
@@ -10,8 +10,8 @@ export type SpokenLineProps = {
   readonly fromWord: number;
   /** Last word index (exclusive) of the line to show. */
   readonly toWord: number;
-  /** Words at or after this index get the brand gradient; pass `toWord` for none. */
-  readonly gradientFrom: number;
+  /** Words at or after this index get the emphasis colour; pass `toWord` for none. */
+  readonly emphasisFrom: number;
   readonly fontSize: number;
   readonly fontWeight: number;
   readonly textAlign: "left" | "center";
@@ -24,7 +24,7 @@ export const SpokenLine: React.FC<SpokenLineProps> = ({
   line,
   fromWord,
   toWord,
-  gradientFrom,
+  emphasisFrom,
   fontSize,
   fontWeight,
   textAlign,
@@ -64,7 +64,7 @@ export const SpokenLine: React.FC<SpokenLineProps> = ({
                 translate: `0px ${(1 - progress) * 0.35 * fontSize}px`,
                 filter: `blur(${(1 - progress) * 10}px)`,
                 paddingBottom: "0.08em",
-                ...(index >= gradientFrom ? gradientText : {}),
+                ...(index >= emphasisFrom ? { color: color.emphasis } : {}),
               }}
             >
               {word.text}
@@ -75,5 +75,3 @@ export const SpokenLine: React.FC<SpokenLineProps> = ({
     </div>
   );
 };
-
-export const headlineColor = color.ink;

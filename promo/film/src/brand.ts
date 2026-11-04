@@ -12,6 +12,8 @@ export const color = {
   peach: "#f1b9a1",
   lavender: "#b9a6ec",
   orb: "#c4471f",
+  /** Emphasised words in headlines: the accent deepened to 5:1 contrast on the cream backdrop. */
+  emphasis: "#b84a26",
 } as const;
 
 export const fontFamily = "Inter";
@@ -22,11 +24,3 @@ export const fontReady: Promise<void> = loadFont({
   url: staticFile("InterVariable-latin.woff2"),
   weight: "100 900",
 });
-
-/** Peach-to-lavender text fill used for the emphasised half of a headline, as on gistsmith.com. */
-export const gradientText: React.CSSProperties = {
-  backgroundImage: `linear-gradient(95deg, ${color.accent} 0%, #d98aa8 45%, ${color.lavender} 100%)`,
-  backgroundClip: "text",
-  WebkitBackgroundClip: "text",
-  color: "transparent",
-};

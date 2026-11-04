@@ -49,12 +49,12 @@ type SceneSpec = {
 export const SCENE_ORDER: readonly SceneId[] = ["hook", "meet", "listens", "live", "note", "ask", "cta"];
 
 const SCENES: Record<SceneId, SceneSpec> = {
-  hook: { lines: ["hook", "question"], lead: 24, hold: 14 },
-  meet: { lines: ["meet"], lead: 8, hold: 14 },
+  hook: { lines: ["hook", "question"], lead: 4, hold: 14 },
+  meet: { lines: ["meet"], lead: 14, hold: 8 },
   listens: { lines: ["listens"], lead: 8, hold: 16 },
-  live: { lines: ["live"], lead: 8, hold: 26 },
+  live: { lines: ["live"], lead: 8, hold: 72 },
   note: { lines: ["note"], lead: 8, hold: 30 },
-  ask: { lines: ["ask"], lead: 8, hold: 30 },
+  ask: { lines: ["ask"], lead: 8, hold: 26 },
   cta: { lines: ["cta"], lead: 10, hold: 75 },
 };
 
@@ -104,6 +104,24 @@ export const totalDuration = (): number =>
 
 /** Frame inside the scene at which a given word of a line is spoken. */
 export const wordFrame = (line: PlacedLine, word: TimedWord): number => line.from + (word.startMs / 1000) * FPS;
+
+/** Start frame of each scene in the finished film (transitions overlap neighbours). */
+export const sceneStarts = (): readonly number[] =>
+  SCENE_ORDER.map(
+    (_scene, index) =>
+      SCENE_ORDER.slice(0, index).reduce((sum, previous) => sum + sceneDuration(previous), 0) - TRANSITION_FRAMES * index,
+  );
+
+/** Voiceover spans in the finished film, as [start, end) frames, for ducking the music under the voice. */
+export const voiceSpans = (): readonly (readonly [number, number])[] => {
+  const starts = sceneStarts();
+  return SCENE_ORDER.flatMap((scene, index) =>
+    placedLines(scene).map((line) => {
+      const start = (starts[index] ?? 0) + line.from;
+      return [start, start + line.durationInFrames] as const;
+    }),
+  );
+};
 
 export const lineIn = (scene: SceneId, id: LineId): PlacedLine => {
   const line = placedLines(scene).find((item) => item.take.id === id);

@@ -19,5 +19,6 @@ export const RemotionRoot: React.FC = () => (
       ))}
     </Folder>
     <Composition id="GistsmithPromo" component={Promo} width={WIDTH} height={HEIGHT} fps={FPS} durationInFrames={totalDuration()} />
+    <Composition id="GistsmithPromoVertical" component={Promo} width={HEIGHT} height={WIDTH} fps={FPS} durationInFrames={totalDuration()} />
   </>
 );
