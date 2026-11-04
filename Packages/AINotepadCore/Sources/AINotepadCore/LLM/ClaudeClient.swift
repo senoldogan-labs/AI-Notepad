@@ -177,7 +177,8 @@ public func parseClaudeStream(data: Data, model: String) throws -> String {
     if stopReason == "refusal" {
         throw LLMError.refusal(category: stop?.stop_details?.category)
     }
-    if stopReason == "max_tokens" {
+    // `model_context_window_exceeded`: yanıt bağlam penceresi dolduğu için kesildi; `max_tokens` gibi yarım yanıttır.
+    if stopReason == "max_tokens" || stopReason == "model_context_window_exceeded" {
         throw LLMError.truncated(model: model)
     }
     let text: String = events

@@ -124,6 +124,22 @@ import Testing
         #expect(merged.sentDestinationIDs == ["slack"])
     }
 
+    // iCloud çakışması: sürümlerden biri okunamıyor (ör. yeni uygulama sürümünün bilinmeyen değeri). Okunabilen sürümün
+    // işaretleri yine birleşir, okunamayan ayrı döner; önceden tek bozuk sürüm toplantıyı listeden düşürüyordu.
+    @Test func unreadableConflictVersionDoesNotHideMeeting() throws {
+        let task: NoteTask = NoteTask(owner: "Sen", description: "Sunum slaytlarını hazırlamak", dueDate: nil, isMine: true)
+        let encoder: JSONEncoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let phone: Data = try encoder.encode(togglingTask(record: record(tasks: [task]), task: task))
+        let futureVersion: Data = Data(#"{"id":"1","status":"yeni-durum"}"#.utf8)
+        let result: ConflictVersionMerge = mergingReadableConflictVersions(
+            current: record(tasks: [task]), versions: [.success(futureVersion), .success(phone), .failure(CocoaError(.fileReadNoSuchFile))]
+        )
+        #expect(result.merged.completedTasks == [taskKey(task: task)])
+        #expect(result.readable == [1])
+        #expect(result.unreadable.map(\.index) == [0, 2])
+    }
+
     // Serbest metin tarihleri: ISO, gün.ay.yıl, yılsız (toplantıdan önceyse gelecek yıl); göreli ve geçersizler nil.
     @Test func dueDatesParseOnlyWhenExplicit() {
         let meeting: Date = calendar.date(from: DateComponents(year: 2026, month: 12, day: 15))!
