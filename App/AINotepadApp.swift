@@ -509,7 +509,11 @@ struct AINotepadApp: App {
                 // Bekleyen (çevrimdışı) kayıtlar: ağ gelince, hak durumu okununca, uygulama öne gelince ve kayıt/işleme
                 // bitince işlenir (birer birer).
                 .onChange(of: HostedAccount.shared.queueTrigger) { (_: Int, _: Int) in
-                    Task { await model.runOfflineQueue() }
+                    Task {
+                        await model.runOfflineQueue()
+                        // Geçici nedenle başarısız biten işlemeler de (ağ geldi, uygulama öne geldi) yeniden denenir.
+                        await model.retryFailedProcessing()
+                    }
                 }
                 .onChange(of: model.isBusy) { (_: Bool, isBusy: Bool) in
                     if !isBusy {
@@ -537,6 +541,8 @@ struct AINotepadApp: App {
                 // değişiklikler eskimesin).
                 .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { (_: Notification) in
                     Task { await model.refreshSetupProblems() }
+                    // Kayıttan önce boş yer (Finder'da yer açılmış ya da dolmuş olabilir).
+                    model.refreshRecordingDiskSpace()
                 }
         }
     }

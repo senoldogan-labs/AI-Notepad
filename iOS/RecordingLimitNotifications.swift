@@ -43,6 +43,38 @@ func cancelRecordingLimitNotifications() {
     UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [recordingLimitWarningID, recordingLimitReachedID])
 }
 
+/// iPhone'da yer kalmadığı için kayıt bitirildi ve uygulama arka planda (telefon çoğunlukla kilitli): hemen yerel
+/// bildirim. Bildirim izni yoksa sistem göstermez (neden kayıt ekranında da yazar).
+@MainActor
+func notifyRecordingStoppedForDiskSpace(body: String) async {
+    let content: UNMutableNotificationContent = UNMutableNotificationContent()
+    content.body = body
+    content.sound = .default
+    let request: UNNotificationRequest = UNNotificationRequest(identifier: "recording-disk-full", content: content, trigger: nil)
+    do {
+        try await UNUserNotificationCenter.current().add(request)
+    } catch {
+        limitNotificationLogger.warning("Yer kalmadı bildirimi kurulamadı, hata: \(String(describing: error), privacy: .private)")
+    }
+}
+
+/// iPhone kayıt kartının altındaki boş yer uyarısı (kısa); yer yetiyorsa nil.
+func phoneDiskSpaceText(space: RecordingDiskSpace) -> String? {
+    switch space {
+    case .enough:
+        nil
+    case .low(let minutes):
+        String(localized: "Yer az: yaklaşık \(minutes) dk kayıt sığar.")
+    case .full:
+        phoneDiskFullText()
+    }
+}
+
+/// iPhone'da kısa bir kayda bile yer yok: kayıt başlatılmaz.
+func phoneDiskFullText() -> String {
+    String(localized: "Kayıt için yer yok; iPhone'da yer aç.")
+}
+
 /// `afterSec` saniye sonra gösterilecek bildirim.
 private func limitNotification(id: String, body: String, afterSec: TimeInterval) -> UNNotificationRequest {
     let content: UNMutableNotificationContent = UNMutableNotificationContent()
