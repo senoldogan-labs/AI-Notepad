@@ -94,42 +94,6 @@ struct QueuedMeetingNotice: View {
     }
 }
 
-/// Toplantılar listesinin sonundaki "Son silinenler" satırı (yalnız silinen toplantı varken).
-struct RecentlyDeletedLink: View {
-    let store: PhoneStore
-    let recorder: PhoneRecorder
-
-    var body: some View {
-        NavigationLink {
-            RecentlyDeletedList(store: store, recorder: recorder)
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "trash")
-                    .appFont(size: 15, weight: .medium)
-                    .foregroundStyle(Theme.muted)
-                    .frame(width: 22)
-                Text("Son silinenler")
-                    .appFont(size: 16, weight: .medium)
-                    .foregroundStyle(Theme.ink)
-                Spacer(minLength: 0)
-                Text(verbatim: "\(store.deletedMeetings.count)")
-                    .appFont(size: 14, weight: .medium)
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.muted)
-                Image(systemName: "chevron.right")
-                    .appFont(size: 12, weight: .semibold)
-                    .foregroundStyle(Theme.muted)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 14)
-            .cardSurface(cornerRadius: 14)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(PressableCardStyle())
-        .padding(.top, 10)
-    }
-}
-
 /// Son silinenler (Mac'te Çöp Sepeti): silinen toplantılar `recentlyDeletedRetentionDays` gün burada kalır. Sağa
 /// kaydırınca geri yükle, sola kaydırınca kalıcı sil; "Seç" ile birden çoğu birlikte. Kalıcı silme onay ister.
 struct RecentlyDeletedList: View {

@@ -109,6 +109,8 @@ private struct RecordHome: View {
             .padding(.bottom, 28)
         }
         .scrollIndicators(.hidden)
+        // Kayıt başlarken (ekran canlı kayda geçiyor) yatay kaydırma sekme değiştirmez; canlı kayıt ekranında hiç yok.
+        .phoneTabSwipe(router: router, isEnabled: recorder.phase == .idle)
         .toolbar(.hidden, for: .navigationBar)
     }
 }

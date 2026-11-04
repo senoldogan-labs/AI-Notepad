@@ -332,6 +332,7 @@ struct AskTab: View {
                     }
                 }
             }
+            .phoneTabSwipe(router: router, isEnabled: true)
             .background(Theme.background)
             .navigationTitle("Sor")
             .navigationBarTitleDisplayMode(.inline)

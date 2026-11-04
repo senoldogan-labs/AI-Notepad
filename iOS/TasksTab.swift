@@ -31,14 +31,18 @@ struct TasksTab: View {
             }
         }
         NavigationStack {
-            if all.isEmpty {
-                // Hiç görev yok: ilerleme ve süzgeç yerine yalnız ortada boş durum.
-                emptyState(hasTasks: false, doneCount: 0)
-                    .background(Theme.background)
-                    .navigationTitle("Görevlerim")
-            } else {
-                taskList(all: all, doneCount: doneCount, shown: shown, groups: groups)
+            Group {
+                if all.isEmpty {
+                    // Hiç görev yok: ilerleme ve süzgeç yerine yalnız ortada boş durum.
+                    emptyState(hasTasks: false, doneCount: 0)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Theme.background)
+                        .navigationTitle("Görevlerim")
+                } else {
+                    taskList(all: all, doneCount: doneCount, shown: shown, groups: groups)
+                }
             }
+            .phoneTabSwipe(router: router, isEnabled: true)
         }
     }
 
