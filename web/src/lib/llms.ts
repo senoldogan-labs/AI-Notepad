@@ -30,6 +30,7 @@ export interface LlmsInput {
   readonly dataHandling: DataHandlingCopy;
   readonly spokenLanguages: readonly AppLanguage[];
   readonly noteLanguages: readonly AppLanguage[];
+  readonly interfaceLanguages: readonly AppLanguage[];
   readonly blogPosts: readonly LlmsBlogPost[];
 }
 
@@ -80,7 +81,7 @@ function header(input: LlmsInput): string {
     `${copy.common.trial}.`,
     `Limits: ${copy.compare.us.limits} (fair use; the monthly hours reset on the first day of each month, UTC).`,
     `Meeting capture: ${copy.compare.us.capture}.`,
-    `Languages: ${input.spokenLanguages.length} spoken languages (live and final transcript) and ${input.noteLanguages.length} languages for notes and live translation, including Turkish, Finnish and English.`,
+    `Languages: ${input.spokenLanguages.length} spoken languages (live and final transcript) and ${input.noteLanguages.length} languages for notes and live translation, including Turkish, Finnish and English. The app itself is available in ${input.interfaceLanguages.length} languages (${languageNameList(input.interfaceLanguages)}).`,
     `Data: ${copy.compare.us.storage}; our servers keep no audio or notes. ${training.text}`,
     `Company: ${input.operator.name}, Finland (EU); contact ${input.operator.email}.`,
   ];
@@ -172,6 +173,7 @@ export function llmsFullTxt(input: LlmsInput): string {
       `Source: ${url("languages")}`,
       `### ${copy.languages.spokenTitle} (${input.spokenLanguages.length})\n\n${copy.languages.spokenLead}\n\n${languageCodes(input.spokenLanguages)}.\n\nIn short: ${languageNameList(input.spokenLanguages)}.`,
       `### ${copy.languages.notesTitle} (${input.noteLanguages.length})\n\n${copy.languages.notesLead}\n\n${languageCodes(input.noteLanguages)}.`,
+      `### ${copy.languages.interfaceTitle} (${input.interfaceLanguages.length})\n\n${copy.languages.interfaceLead}\n\n${languageCodes(input.interfaceLanguages)}.`,
       `### ${copy.languages.highlightsTitle}\n\n${copy.languages.highlights.map((item: TitledText): string => `- ${item.title}: ${item.text}`).join("\n")}`,
       `### ${copy.languages.mixedTitle}\n\n${copy.languages.mixed.map((item: TitledText): string => `- ${item.title}: ${item.text}`).join("\n")}`,
     ].join("\n\n"),

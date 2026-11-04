@@ -4,7 +4,7 @@
 import { cardStatementDescriptor, productName } from "./config";
 import type { CommonCopy, HomeCopy } from "./copy";
 import { operator } from "./legal/operator";
-import { noteLanguages, spokenLanguages } from "./lib/languages";
+import { interfaceLanguages, noteLanguages, spokenLanguages } from "./lib/languages";
 
 /** Sayfanın başlığındaki tek satır (paylaşım kartı ve alt bilgi de kullanır). */
 const tagline: string = "Kuuntelee kokouksesi, kirjoittaa muistiinpanosi.";
@@ -162,13 +162,13 @@ export const homeFi: HomeCopy = {
     },
     tasks: {
       title: "Tehtävät ensin",
-      text: "Kun kokous päättyy, muistiinpano on valmis. Tehtäväsi ovat päällimmäisenä: kuka tekee ja mihin mennessä. Sen jälkeen yhteenveto, päätökset ja sanasto. Rastita tehtävä valmiiksi tai lähetä se Remindersiin.",
+      text: "Kun kokous päättyy, muistiinpano on valmis. Tehtäväsi ovat päällimmäisenä: kuka tekee ja mihin mennessä. Sen jälkeen yhteenveto, päätökset ja sanasto. Rastita tehtävä valmiiksi tai lähetä se Remindersiin. Kesken jääneet tehtävät näkyvät taas, kun tallennat kalenterista kokouksen samasta sarjasta tai samojen ihmisten kanssa.",
       sample: ["Julkaisumuistiinpanot · perjantai", "Hinnasto asiakkaalle · tänään"],
     },
     missed: {
-      title: "”Mitä minulta meni ohi?”",
+      title: "”Mitä jäi välistä?”",
       text: "Ajatus katkesi hetkeksi? Yksi napsautus kertoo viimeisten minuuttien olennaiset asiat, eikä kenenkään tarvitse toistaa itseään.",
-      button: "Mitä minulta meni ohi?",
+      button: "Mitä jäi välistä?",
       answer: "Viimeisen 5 minuutin aikana: beta siirtyi 14. marraskuuta ja julkaisumuistiinpanot ovat sinulla.",
     },
     ask: {
@@ -179,8 +179,8 @@ export const homeFi: HomeCopy = {
     },
     followUp: {
       title: "Jatko yhdellä napsautuksella",
-      text: "Valmiit ohjeet muuttavat kokouksen seuraavaksi askeleeksi: jatkoviesti, projektisuunnitelma, riskit ja avoimet kysymykset. Tallenna omat ohjeesi niille kysymyksille, jotka toistuvat joka viikko.",
-      recipe: "Jatkoviesti",
+      text: "Valmiit ohjeet muuttavat kokouksen seuraavaksi askeleeksi: jatkosähköposti, projektisuunnitelma, riskit ja avoimet kysymykset. Tallenna omat ohjeesi niille kysymyksille, jotka toistuvat joka viikko.",
+      recipe: "Jatkosähköposti",
       subject: "Aihe: Tuotepalaveri, seuraavat askeleet",
       lines: ["Beta avataan 14. marraskuuta.", "Alex: julkaisumuistiinpanot perjantaihin mennessä."],
     },
@@ -243,7 +243,7 @@ export const homeFi: HomeCopy = {
     mcpLink: "Miten MCP toimii",
     files: {
       title: "Tiedostosi ja kalenterisi",
-      text: "Tallenna jokainen muistiinpano Markdownina kansioon, esimerkiksi Obsidian-holviin tai iCloud Driveen, tai vie se PDF- tai Word-tiedostoksi tai tekstitykseksi. Kalenterisi näyttää seuraavan kokouksen, voi aloittaa tallennuksen, kun kokous alkaa, ja kertoa ennen kokousta, mitä samojen ihmisten kanssa on aiemmin puhuttu.",
+      text: "Tallenna jokainen muistiinpano Markdownina kansioon, esimerkiksi Obsidian-holviin tai iCloud Driveen, tai vie se PDF- tai Word-tiedostoksi tai tekstitykseksi. Kalenterisi näyttää seuraavan kokouksen, voi aloittaa tallennuksen, kun kokous alkaa, näyttää avoimet tehtävät saman sarjan tai samojen ihmisten aiemmista kokouksista ja kertoa ennen kokousta, mitä niissä on puhuttu.",
     },
     mcpDemo: {
       label: "Claudessa",
@@ -272,15 +272,15 @@ export const homeFi: HomeCopy = {
     {
       question: "Minne ääneni menee?",
       answer:
-        "Tallennuksen aikana ääni siirtyy Maciltasi Deepgramille reaaliaikaista litterointia varten; Deepgramia on pyydetty olemaan säilyttämättä ääntä ja käyttämättä sitä kouluttamiseen. Jos tämä ei ole käytettävissä, litterointi tehdään Macillasi. Kokouksen päätyttyä ääni kulkee palvelimemme kautta ElevenLabsille, joka erottelee puhujat ja tuottaa lopullisen litteroinnin; muistiinpanoja ja käännöstä varten teksti menee Anthropicin Claude-mallille. Palvelimemme eivät tallenna ääntä eivätkä muistiinpanoja: ne laskevat keston ja pitävät lopullisen litteroinnin salattuna, jotta se voidaan lähettää uudelleen 2 tunnin ajan, jos yhteys katkeaa; se poistetaan seuraavassa päivittäisessä siivouksessa, noin vuorokauden kuluessa. ElevenLabs ja Anthropic voivat säilyttää käsittelemänsä aineiston oman käytäntönsä mukaisen ajan (Anthropic poistaa sen 30 päivän kuluessa). Jos otat käyttöön asetuksen ”Use screen snapshots in notes”, enintään kuusi kokouksen näyttökuvaa lähetetään Anthropicille litteroinnin mukana muistiinpanoa kirjoitettaessa ja enintään kolme, kun kysyt Kysy-sivulla kokouksen siitä kohdasta; muuten kuvat eivät koskaan lähde Macistasi. Tietosuojaselosteessa on yksityiskohdat.",
+        "Tallennuksen aikana ääni siirtyy Maciltasi Deepgramille reaaliaikaista litterointia varten; Deepgramia on pyydetty olemaan säilyttämättä ääntä ja käyttämättä sitä kouluttamiseen. Jos tämä ei ole käytettävissä, litterointi tehdään Macillasi. Kokouksen päätyttyä ääni kulkee palvelimemme kautta ElevenLabsille, joka erottelee puhujat ja tuottaa lopullisen litteroinnin; muistiinpanoja ja käännöstä varten teksti menee Anthropicin Claude-mallille. Palvelimemme eivät tallenna ääntä eivätkä muistiinpanoja: ne laskevat keston ja pitävät lopullisen litteroinnin salattuna, jotta se voidaan lähettää uudelleen 2 tunnin ajan, jos yhteys katkeaa; se poistetaan seuraavassa päivittäisessä siivouksessa, noin vuorokauden kuluessa. ElevenLabs ja Anthropic voivat säilyttää käsittelemänsä aineiston oman käytäntönsä mukaisen ajan (Anthropic poistaa sen 30 päivän kuluessa). Jos otat käyttöön asetuksen ”Käytä näyttökuvia muistiinpanoissa”, enintään kuusi kokouksen näyttökuvaa lähetetään Anthropicille litteroinnin mukana muistiinpanoa kirjoitettaessa ja enintään kolme, kun kysyt Kysy-sivulla kokouksen siitä kohdasta; muuten kuvat eivät koskaan lähde Macistasi. Tietosuojaselosteessa on yksityiskohdat.",
     },
     {
       question: "Mitä kieliä tuetaan?",
-      answer: `Kokouksessa voi puhua ${spokenLanguages.length} kieltä, muun muassa suomea, ruotsia, englantia ja turkkia, ja muistiinpanot ja käännökset saat ${noteLanguages.length} kielellä. Valitset itse muistiinpanojen ja käännösten kielen kokouksen kielestä riippumatta.`,
+      answer: `Kokouksessa voi puhua ${spokenLanguages.length} kieltä, muun muassa suomea, ruotsia, englantia ja turkkia, ja muistiinpanot ja käännökset saat ${noteLanguages.length} kielellä. Valitset itse muistiinpanojen ja käännösten kielen kokouksen kielestä riippumatta. Itse sovellus on käytettävissä ${interfaceLanguages.length} kielellä, myös suomeksi: se seuraa Macin kieltä, ja kielen voi vaihtaa kohdassa Asetukset › Yleiset.`,
     },
     {
       question: "Toimiiko se myös kasvokkaisissa kokouksissa ja tallenteilla?",
-      answer: "Toimii. Kytke sovelluksessa päälle ”In person” ennen kuin aloitat, niin Macin mikrofoni tallentaa kaikki huoneessa olevat. Voit myös tuoda ääni- tai videotiedoston, kuten tallennetun puhelun tai ääniviestin, ja saat siitä saman litteroinnin ja muistiinpanon; tuotu tiedosto lasketaan kokoukseksi.",
+      answer: "Toimii. Kytke sovelluksessa päälle ”Kasvokkain” ennen kuin aloitat, niin Macin mikrofoni tallentaa kaikki huoneessa olevat. Voit myös tuoda ääni- tai videotiedoston, kuten tallennetun puhelun tai ääniviestin, ja saat siitä saman litteroinnin ja muistiinpanon; tuotu tiedosto lasketaan kokoukseksi.",
     },
     {
       question: "Miten maksu ja verot toimivat Suomessa?",
@@ -289,10 +289,14 @@ export const homeFi: HomeCopy = {
   ],
   featureList: [
     "Tallentaa verkkokokoukset (Zoom, Microsoft Teams, Google Meet ja muut sovellukset) ilman bottia sekä kasvokkaiset kokoukset ja tuodut ääni- tai videotiedostot",
+    "Lopettaa tallennuksen, kun puhelu päättyy, 30 sekunnin lähtölaskennan jälkeen; ”Jatka nauhoitusta” jatkaa tallennusta, ja toiminnon voi kytkeä pois asetuksista",
     `Litterointi livenä ${spokenLanguages.length} kielellä ja käännös livenä ${noteLanguages.length} kielelle`,
+    `Sovellus ${interfaceLanguages.length} kielellä, myös suomeksi; kieli seuraa Macin kieltä`,
     "Muistiinpano jokaisen kokouksen jälkeen: ensin tehtäväsi tekijöineen ja määräaikoineen, sitten yhteenveto, aiheet, päätökset ja sanasto",
-    "Kokousmallit ja valmiit ohjeet, kuten jatkoviesti yhdellä napsautuksella",
-    "”Mitä minulta meni ohi?” -yhteenvedot kesken kokouksen",
+    "Avoimet tehtävät saman sarjan tai samojen ihmisten aiemmista kokouksista, kun tallennat kokouksen kalenterista",
+    "Kokousmallit, jotka valitaan kokouksen nimestä (esimerkiksi kahden kesken, päiväpalaveri ja sprintin suunnittelu), ja valmiit ohjeet yhdellä napsautuksella",
+    "Jatkosähköposti muistiinpanosta: tärkeimmät asiat, päätökset ja tehtävät tekijöineen ja määräaikoineen, valmiina muokattavaksi, kopioitavaksi tai avattavaksi Mailissa",
+    "”Mitä jäi välistä?” -yhteenvedot kesken kokouksen",
     "Kysy kaikista kokouksistasi, vastaukset lähdeviitteineen",
     "Halutessasi kuvat jaetusta näytöstä, yhdistettynä siihen, mitä puhuttiin",
     "Muistiinpanot Slackiin, Microsoft Teamsiin, Discordiin, Zoom Team Chatiin, Notioniin ja Apple Notesiin; tehtävät Lineariin, Jiraan ja Apple Remindersiin; kaikkeen muuhun webhookilla",
