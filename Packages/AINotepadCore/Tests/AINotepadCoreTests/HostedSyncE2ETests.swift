@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import Synchronization
 import Testing
 @testable import AINotepadCore
 
@@ -71,7 +72,250 @@ private func download<Value: Decodable>(device: SyncDevice, type: Value.Type, ke
     return (try decodeSyncPayload(type: type, data: payload), object.revision)
 }
 
+/// A test device's long note jobs, and a one-shot hook run at the next "busy" query: it lands another device's write
+/// between this device's pull and its upload (the `409 sync_conflict` path).
+private final class DeviceJobs: Sendable {
+    private let busy: Mutex<Set<String>> = Mutex([])
+    private let hook: Mutex<(@Sendable () async -> Void)?> = Mutex(nil)
+
+    func set(busy ids: Set<String>) {
+        busy.withLock { $0 = ids }
+    }
+
+    func arm(hook newHook: @escaping @Sendable () async -> Void) {
+        hook.withLock { $0 = newHook }
+    }
+
+    func query() async -> Set<String> {
+        let armed: (@Sendable () async -> Void)? = hook.withLock { (current: inout (@Sendable () async -> Void)?) -> (@Sendable () async -> Void)? in
+            let taken: (@Sendable () async -> Void)? = current
+            current = nil
+            return taken
+        }
+        if let armed {
+            await armed()
+        }
+        return busy.withLock { $0 }
+    }
+}
+
+/// Forwards pass outcomes to a stream once armed (passes before that are not the ones a step waits for).
+private final class PassWatcher: Sendable {
+    private let sink: Mutex<AsyncStream<Result<SyncPassReport, any Error>>.Continuation?> = Mutex(nil)
+
+    func arm() -> AsyncStream<Result<SyncPassReport, any Error>> {
+        let (stream, continuation): (AsyncStream<Result<SyncPassReport, any Error>>, AsyncStream<Result<SyncPassReport, any Error>>.Continuation) =
+            AsyncStream.makeStream(of: Result<SyncPassReport, any Error>.self)
+        sink.withLock { $0 = continuation }
+        return stream
+    }
+
+    func deliver(result: Result<SyncPassReport, any Error>) {
+        sink.withLock { $0 }?.yield(result)
+    }
+}
+
+/// One device running the sync engine over its own temporary account folder.
+private struct EngineDevice {
+    let engine: SyncEngine
+    let store: SyncAccountFolderStore
+    let jobs: DeviceJobs
+}
+
+private let e2eSyncSettings: SyncEngineSettings = SyncEngineSettings(
+    debounceSeconds: 0.2, maxConflictRounds: 5, pageSize: 2, conflictReason: "Changed on another device", myNotesSeparator: "---"
+)
+
+private func engineDevice(
+    device: SyncDevice, key: SyncAccountKey, userID: String, root: URL, observer: @escaping @Sendable (Result<SyncPassReport, any Error>) -> Void
+) throws -> EngineDevice {
+    let account: URL = root.appending(path: "Accounts/\(UUID().uuidString)", directoryHint: .isDirectory)
+    let jobs: DeviceJobs = DeviceJobs()
+    let store: SyncAccountFolderStore = SyncAccountFolderStore(
+        accountDirectory: account, defaultsSuite: "ainotepad.e2e.\(UUID().uuidString)", busy: { () async -> Set<String> in await jobs.query() },
+        now: { () -> Date in Date() }
+    )
+    let engine: SyncEngine = try SyncEngine(
+        client: device.client, store: store, accountKey: key, userID: userID, files: SyncMetadataFiles(directory: account.appending(path: syncFolderName)),
+        clock: SystemSyncClock(), settings: e2eSyncSettings, observer: observer
+    )
+    return EngineDevice(engine: engine, store: store, jobs: jobs)
+}
+
+/// Writes a meeting as the app would and queues it for the next pass (without the debounced pass, so the explicit
+/// passes of the test report what they did).
+private func edit(device: EngineDevice, id: String, change: (MeetingRecord) -> MeetingRecord) async throws {
+    let current: MeetingRecord = try #require(try await device.store.meeting(id: id))
+    #expect(try await device.store.writeMeeting(record: change(current), replacing: current) == .written)
+    try await device.engine.queueEverything()
+}
+
 @Suite(.enabled(if: hostedE2EEnabled), .serialized) struct HostedSyncE2ETests {
+    // Two sync engines on temporary account folders (the Mac and the iPhone of one account) converge through the local
+    // server: a meeting, a person, a folder and an Ask chat made on the Mac appear on the iPhone, whose own meeting of the
+    // same second lands as "-2"; an idle pass changes nothing; edits made at once on both merge after a 409 (the Mac's
+    // write lands between the iPhone's pull and upload) and the debounced pass reports it; a meeting under a long note
+    // job waits; a delete propagates; purged tombstones are found by the full listing after `sync_cursor_expired`; and
+    // after sync is reset on the server neither device loses or duplicates anything.
+    @Test func twoEnginesConvergeAgainstLocalServer() async throws {
+        let baseURL: URL = try localServerBase()
+        let macRefresh: String = randomToken()
+        let userID: String = try insertSession(refreshToken: macRefresh)
+        let phoneRefresh: String = randomToken()
+        try insertDeviceSession(userID: userID, refreshToken: phoneRefresh)
+        try executeLocalD1(sql: "UPDATE users SET trial_started_at = \(nowMs()) WHERE id = '\(userID)';")
+        let macDevice: SyncDevice = try await device(baseURL: baseURL, userID: userID, refreshToken: macRefresh)
+        let phoneDevice: SyncDevice = try await device(baseURL: baseURL, userID: userID, refreshToken: phoneRefresh)
+        let key: SyncAccountKey = newSyncAccountKey()
+        _ = try await macDevice.client.enable(keyID: key.keyID)
+
+        let root: URL = FileManager.default.temporaryDirectory.appending(path: "sync-engine-e2e-\(UUID().uuidString)", directoryHint: .isDirectory)
+        let phoneWatcher: PassWatcher = PassWatcher()
+        let mac: EngineDevice = try engineDevice(device: macDevice, key: key, userID: userID, root: root) { (_: Result<SyncPassReport, any Error>) -> Void in }
+        let phone: EngineDevice = try engineDevice(device: phoneDevice, key: key, userID: userID, root: root) { (result: Result<SyncPassReport, any Error>) -> Void in
+            phoneWatcher.deliver(result: result)
+        }
+        defer {
+            for suite in [mac.store.defaultsSuite, phone.store.defaultsSuite] {
+                UserDefaults().removePersistentDomain(forName: suite)
+            }
+            try? FileManager.default.removeItem(at: root)
+        }
+
+        // The Mac: a meeting, a person, a saved folder with a recipe, an Ask chat.
+        let marker: String = "Secret-\(UUID().uuidString)"
+        let record: MeetingRecord = syncSampleRecord().with(title: "Budget \(marker)").with(myNotes: "Ask about Q3\nKeep the scope\nCheck travel")
+        let meetingID: String = record.id
+        let tasks: [NoteTask] = try #require(record.note?.tasks)
+        #expect(try await mac.store.writeMeeting(record: record, replacing: nil) == .written)
+        let book: PeopleBook = PeopleBook(saved: [SavedPerson(name: "Aino", role: "CFO", email: "aino@example.com", addedAt: Date(timeIntervalSince1970: 1_800_000_000))], removed: [])
+        #expect(try await mac.store.writePeopleBook(book: book, replacing: .empty) == .written)
+        let prefs: SyncPrefs = SyncPrefs(schema: syncPayloadSchema, folders: ["Board"], recipes: [Recipe(id: "r1", title: "Risks", prompt: "List the risks", symbol: "bookmark", isBuiltIn: false)])
+        #expect(try await mac.store.writePrefs(prefs: prefs, replacing: try await mac.store.prefs()) == .written)
+        let start: Date = Date(timeIntervalSince1970: 1_800_000_100)
+        let turn: AskConversationTurn = AskConversationTurn(
+            id: UUID(), question: "What did we decide? \(marker)", scopeMeetingIDs: [], scopeTitles: [], recipeTitle: nil, startedAt: start,
+            finishedAt: start.addingTimeInterval(5), terms: [], readPassages: [], readScreens: nil, answer: "The budget.", sources: []
+        )
+        let chat: AskConversation = askConversation(existing: nil, id: UUID(), turns: [turn], now: start)
+        #expect(try await mac.store.writeAskChat(conversation: chat, replacing: nil) == .written)
+        // The iPhone recorded another meeting in the same second (different transcript).
+        let phoneRecord: MeetingRecord = syncSampleRecord().with(title: "Phone standup").with(translations: [:])
+        #expect(try await phone.store.writeMeeting(record: phoneRecord, replacing: nil) == .written)
+
+        let macFirst: SyncPassReport = try await mac.engine.syncNow()
+        #expect(macFirst.uploaded == 5 && macFirst.failures.isEmpty)
+        let phoneFirst: SyncPassReport = try await phone.engine.syncNow()
+        #expect(phoneFirst.failures.isEmpty && phoneFirst.uploaded == 2)
+        let collided: String = "\(meetingID)-2"
+        #expect(try await phone.store.meetingIDs() == [meetingID, collided])
+        #expect(try await phone.store.meeting(id: collided) == localMeetingRecord(
+            state: try newMeetingState(record: record, contentObjectID: "", originDeviceID: "", now: Date()), content: meetingSyncContent(record: record),
+            localID: collided, voiceprints: nil
+        ))
+        #expect(try await phone.store.meeting(id: meetingID)?.title == "Phone standup")
+        #expect(try await phone.store.peopleBook() == book)
+        #expect(try await phone.store.prefs() == prefs)
+        #expect(try await phone.store.askChat(id: chat.id) == chat)
+        let macSecond: SyncPassReport = try await mac.engine.syncNow()
+        #expect(macSecond.changedMeetingIDs == [collided] && macSecond.uploaded == 0)
+        #expect(try await mac.store.meeting(id: collided)?.title == "Phone standup")
+
+        // Nothing changed: an idle pass uploads and downloads nothing (no value bounces between the devices).
+        for engine in [mac.engine, phone.engine] {
+            let idle: SyncPassReport = try await engine.syncNow()
+            #expect(idle.uploaded == 0 && idle.downloaded == 0 && idle.changedMeetingIDs.isEmpty)
+        }
+
+        // Edits at once: the Mac completes a task and rewrites the first line of its own notes; the iPhone moves the
+        // meeting to a folder, renames it and rewrites the last line. The Mac's upload lands between the iPhone's pull and
+        // its upload, so the iPhone's write conflicts, merges three-way and is retried (the debounced pass).
+        try await edit(device: mac, id: meetingID) { (current: MeetingRecord) -> MeetingRecord in
+            togglingTask(record: current, task: tasks[0]).with(myNotes: "Ask about Q4\nKeep the scope\nCheck travel")
+        }
+        try await edit(device: phone, id: collided) { (current: MeetingRecord) -> MeetingRecord in
+            current.with(folder: "Board").with(title: "Budget final").with(myNotes: "Ask about Q3\nKeep the scope\nCheck hotels")
+        }
+        let macEngine: SyncEngine = mac.engine
+        phone.jobs.arm { () async -> Void in
+            do {
+                #expect(try await macEngine.syncNow().uploaded == 1)
+            } catch {
+                Issue.record(error)
+            }
+        }
+        var passes: AsyncStream<Result<SyncPassReport, any Error>>.Iterator = phoneWatcher.arm().makeAsyncIterator()
+        try await phone.engine.noteLocalChange(item: .meeting(id: collided))
+        let debounced: SyncPassReport = try #require(await passes.next()).get()
+        #expect(debounced.uploaded == 1 && debounced.downloaded == 1 && debounced.failures.isEmpty)
+        _ = try await mac.engine.syncNow()
+        for (device, id) in [(mac, meetingID), (phone, collided)] {
+            let merged: MeetingRecord = try #require(try await device.store.meeting(id: id))
+            #expect(merged.title == "Budget final" && merged.folder == "Board" && merged.myNotes == "Ask about Q4\nKeep the scope\nCheck hotels")
+            #expect(Set(merged.completedTasks ?? []) == Set(tasks.map { taskKey(task: $0) }))
+        }
+        #expect(try localServerStateContainsNone(of: [marker, "approve the budget", "Ask about Q4"]))
+
+        // A long note job runs on the iPhone's copy: the Mac's rename waits until it ends, then applies.
+        phone.jobs.set(busy: [collided])
+        try await edit(device: mac, id: meetingID) { (current: MeetingRecord) -> MeetingRecord in current.with(title: "Budget v3") }
+        #expect(try await mac.engine.syncNow().uploaded == 1)
+        let waiting: SyncPassReport = try await phone.engine.syncNow()
+        #expect(waiting.deferred == 1 && waiting.uploaded == 0)
+        #expect(try await phone.store.meeting(id: collided)?.title == "Budget final")
+        phone.jobs.set(busy: [])
+        #expect(try await phone.engine.syncNow().changedMeetingIDs == [collided])
+        #expect(try await phone.store.meeting(id: collided)?.title == "Budget v3")
+
+        // The iPhone deletes its own meeting: the Mac's copy goes to Recently Deleted.
+        try await phone.store.deleteMeeting(id: meetingID)
+        #expect(try await phone.engine.syncNow().deletedOnServer == 2)
+        let macAfterDelete: SyncPassReport = try await mac.engine.syncNow()
+        #expect(macAfterDelete.deletedLocally == 1 && macAfterDelete.changedMeetingIDs == [collided])
+        #expect(try await mac.store.meetingIDs() == [meetingID])
+
+        // The Mac deletes the meeting and the server purges the tombstones before the iPhone syncs: the iPhone's cursor
+        // expires, and the full listing lacks the meeting, so its copy is deleted.
+        try await mac.store.deleteMeeting(id: meetingID)
+        #expect(try await mac.engine.syncNow().deletedOnServer == 2)
+        try executeLocalD1(sql: [
+            "DELETE FROM sync_objects WHERE user_id = '\(userID)' AND deleted = 1;",
+            "UPDATE sync_accounts SET purged_through_rev = last_rev WHERE user_id = '\(userID)';",
+        ].joined(separator: " "))
+        let resynced: SyncPassReport = try await phone.engine.syncNow()
+        #expect(resynced.fullResync && resynced.deletedLocally == 1 && resynced.failures.isEmpty)
+        #expect(try await phone.store.meetingIDs().isEmpty)
+
+        // A new meeting reaches both; then sync is turned off and on again (same key, new epoch). Both start their
+        // bookkeeping over: the iPhone uploads everything again, the Mac recognizes it all (same transcript, same chat,
+        // same people) and neither deletes or duplicates anything.
+        let later: MeetingRecord = localMeetingRecord(
+            state: try newMeetingState(record: record, contentObjectID: "", originDeviceID: "", now: Date()), content: meetingSyncContent(record: record),
+            localID: "20261104-090000", voiceprints: nil
+        ).with(title: "Retro")
+        #expect(try await mac.store.writeMeeting(record: later, replacing: nil) == .written)
+        _ = try await mac.engine.syncNow()
+        _ = try await phone.engine.syncNow()
+        #expect(try await phone.store.meeting(id: later.id) == later)
+        _ = try await macDevice.client.disableAndWipe()
+        _ = try await macDevice.client.enable(keyID: key.keyID)
+        let phoneReset: SyncPassReport = try await phone.engine.syncNow()
+        #expect(phoneReset.fullResync && phoneReset.deletedLocally == 0 && phoneReset.uploaded == 5 && phoneReset.failures.isEmpty)
+        let macReset: SyncPassReport = try await mac.engine.syncNow()
+        #expect(macReset.fullResync && macReset.deletedLocally == 0 && macReset.uploaded == 0 && macReset.failures.isEmpty)
+        #expect(try await mac.store.meetingIDs() == [later.id])
+        #expect(try await phone.store.meetingIDs() == [later.id])
+        #expect(try await mac.store.askChatIDs() == [chat.id])
+        #expect(try await mac.store.peopleBook() == book)
+        #expect(try await mac.store.prefs() == prefs)
+        for engine in [mac.engine, phone.engine] {
+            let idle: SyncPassReport = try await engine.syncNow()
+            #expect(idle.uploaded == 0 && idle.downloaded == 0)
+            await engine.stop()
+        }
+        _ = try await macDevice.client.disableAndWipe()
+    }
+
     // The Mac records a meeting and syncs it; the iPhone (same account, its own session) gets the key through the
     // recovery envelope, reads the meeting, and both edit it at once: the Mac's stale write conflicts, it merges
     // three-way and wins the retry, and the iPhone sees both edits. Then a delete reaches the iPhone as a tombstone and

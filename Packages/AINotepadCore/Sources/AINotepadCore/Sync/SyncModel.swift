@@ -138,6 +138,19 @@ public struct MeetingSyncState: Sendable, Equatable, Codable {
             audioDeleted: audioDeleted, fieldClocks: newClocks
         )
     }
+
+    /// Copy with the meeting's identity (folder name, content object, recording device) of another version: a local
+    /// folder may be named differently (`-2` suffix) from the recording device's.
+    func with(meetingID newMeetingID: String, contentObjectID newContentID: String, originDeviceID newOrigin: String) -> MeetingSyncState {
+        MeetingSyncState(
+            schema: schema, meetingID: newMeetingID, contentObjectID: newContentID, originDeviceID: newOrigin, startedAt: startedAt,
+            endedAt: endedAt, status: status, failureMessage: failureMessage, notice: notice, title: title, note: note, noteHistory: noteHistory,
+            sharedNotes: sharedNotes, myNotes: myNotes, speakerNames: speakerNames, completedTasks: completedTasks, remindedTasks: remindedTasks,
+            folder: folder, highlights: highlights, attendees: attendees, calendarEventID: calendarEventID, template: template,
+            sentDestinationIDs: sentDestinationIDs, sentTaskKeys: sentTaskKeys, notesSentAt: notesSentAt, webhookSentAt: webhookSentAt,
+            audioDeleted: audioDeleted, fieldClocks: fieldClocks
+        )
+    }
 }
 
 /// `meeting.content`: what processing produced. Voiceprints are not synced in phase 1 (they stay on the recording

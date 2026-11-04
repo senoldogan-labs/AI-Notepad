@@ -172,6 +172,21 @@ public func loadAskConversations(directory: URL) throws -> AskHistoryLoadResult 
     return AskHistoryLoadResult(conversations: newestAskConversationsFirst(conversations: conversations), failures: failures)
 }
 
+/// Tek bir sohbeti okur; dosyası yoksa nil, okunamazsa `StorageError.readFailed`.
+public func loadAskConversation(id: UUID, directory: URL) throws -> AskConversation? {
+    let file: URL = askConversationFile(id: id, directory: directory)
+    guard FileManager.default.fileExists(atPath: file.path) else {
+        return nil
+    }
+    let decoder: JSONDecoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .iso8601
+    do {
+        return try decoder.decode(AskConversation.self, from: Data(contentsOf: file))
+    } catch {
+        throw StorageError.readFailed(path: file.path, reason: error.localizedDescription)
+    }
+}
+
 /// Sohbetin dosyasını siler; dosya zaten yoksa bir şey yapmaz.
 public func deleteAskConversation(id: UUID, directory: URL) throws {
     let file: URL = askConversationFile(id: id, directory: directory)

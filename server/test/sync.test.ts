@@ -372,6 +372,11 @@ describe("/v1/sync/changes", () => {
     await expectError(await call(harness, user, "GET", "/v1/sync/changes?since=0&limit=5000", {}), 400, "bad_request");
     await env.DB.prepare("UPDATE sync_accounts SET purged_through_rev = 3 WHERE user_id = ?").bind(user.session.userId).run();
     await expectError(await call(harness, user, "GET", `/v1/sync/changes?since=2&epoch=${first.epoch}`, {}), 410, "sync_cursor_expired");
+    // A full listing (started at 0 after the expiry) pages past the purged tombstones; the epoch still has to match.
+    const listed: ChangesBody = await changes(harness, user, `since=2&limit=2&epoch=${first.epoch}&listing=full`);
+    expect(listed.changes.map((change) => change.rev)).toEqual([3, 4]);
+    await expectError(await call(harness, user, "GET", `/v1/sync/changes?since=2&epoch=${first.epoch + 1}&listing=full`, {}), 410, "sync_cursor_expired");
+    await expectError(await call(harness, user, "GET", "/v1/sync/changes?since=0&listing=partial", {}), 400, "bad_request");
   });
 });
 

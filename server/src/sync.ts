@@ -337,21 +337,32 @@ async function enableSync(db: D1Database, config: Config, userId: string, keyId:
   return syncAccountBody(row);
 }
 
-/** Change feed after `since`; a stale cursor (older epoch, or tombstones past it were purged) is `sync_cursor_expired`. */
+/**
+ * Change feed after `since`; a stale cursor (older epoch, or tombstones past it were purged) is `sync_cursor_expired`.
+ * `listing=full` marks the later pages of a listing that started at 0: they may pass purged tombstones, because the
+ * client compares the whole listing with what it knows (an object missing from it was deleted).
+ */
 async function listChanges(db: D1Database, userId: string, url: URL): Promise<object> {
   const params = z
     .object({
       since: z.coerce.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
       limit: z.coerce.number().int().min(1).max(syncChangesMaxLimit),
       epoch: z.coerce.number().int().min(0).optional(),
+      listing: z.enum(["full"]).optional(),
     })
-    .safeParse({ since: url.searchParams.get("since") ?? "0", limit: url.searchParams.get("limit") ?? "500", epoch: url.searchParams.get("epoch") ?? undefined });
+    .safeParse({
+      since: url.searchParams.get("since") ?? "0",
+      limit: url.searchParams.get("limit") ?? "500",
+      epoch: url.searchParams.get("epoch") ?? undefined,
+      listing: url.searchParams.get("listing") ?? undefined,
+    });
   if (!params.success) {
-    throw new ApiError("bad_request", "since and limit must be integers (limit 1-1000).");
+    throw new ApiError("bad_request", "since and limit must be integers (limit 1-1000); listing can only be full.");
   }
-  const { since, limit, epoch } = params.data;
+  const { since, limit, epoch, listing } = params.data;
   const account: SyncAccountRow = await requireAccount(db, userId);
-  if (since > 0 && (epoch !== account.enabled_at || since < account.purged_through_rev || since > account.last_rev)) {
+  const purgedPast: boolean = listing !== "full" && since < account.purged_through_rev;
+  if (since > 0 && (epoch !== account.enabled_at || purgedPast || since > account.last_rev)) {
     throw new ApiError("sync_cursor_expired", "The sync cursor is no longer valid; sync again from the start.");
   }
   const rows: D1Result<SyncObjectRow> = await db
