@@ -59,7 +59,9 @@ export async function cachedTranscription(db: D1Database, userId: string, meetin
 }
 
 /**
- * Tamamlanan sonucu sıkıştırıp şifreli saklar (aynı anahtar ikinci kez yazılmaz). `transcriptionCacheMaxBytes`'ı aşarsa
+ * Tamamlanan sonucu sıkıştırıp şifreli saklar (aynı anahtar ikinci kez yazılmaz). Hesap artık yoksa yazılmaz: yazıya
+ * dökme sürerken silinen hesabın sonucu silmeden sonra saklanmamalı (gizlilik: hesap silinince hemen silinir).
+ * `transcriptionCacheMaxBytes`'ı aşarsa
  * saklanmaz ve uyarı loglanır. Hata fırlatabilir: çağıran yanıtı düşürmemelidir (bkz. `transcribeAndSettle`).
  */
 export async function storeTranscription(db: D1Database, userId: string, meetingId: string, uploadKey: string, result: unknown, now: Date): Promise<void> {
@@ -73,7 +75,7 @@ export async function storeTranscription(db: D1Database, userId: string, meeting
   await db
     .prepare(
       `INSERT OR IGNORE INTO transcription_results (key_hash, user_id, meeting_id, ciphertext, iv, created_at, expires_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+       SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7 WHERE EXISTS (SELECT 1 FROM users WHERE id = ?2)`,
     )
     .bind(await sha256Hex(uploadKey), userId, meetingId, new Uint8Array(ciphertext), iv, now.getTime(), now.getTime() + transcriptionCacheTtlMs)
     .run();
