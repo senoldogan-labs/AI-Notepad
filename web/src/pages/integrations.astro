@@ -5,7 +5,10 @@
 import Base from "../layouts/Base.astro";
 import CtaBand from "../components/CtaBand.astro";
 import Faq from "../components/Faq.astro";
+import BrandTile from "../components/BrandTile.astro";
+import Film from "../components/Film.astro";
 import Icon from "../components/Icon.astro";
+import type { Brand } from "../lib/brands";
 import { copy, type IntegrationGroupCopy, type IntegrationItemCopy, type IntegrationsCopy } from "../copy";
 import { websiteCard } from "../lib/social";
 import { infoPageStructuredData, structuredDataJson } from "../lib/structured-data";
@@ -46,6 +49,15 @@ const structuredData: string = structuredDataJson(
         <ul class="integrations-items">
           {group.items.map((item: IntegrationItemCopy) => (
             <li class="card integrations-item">
+              <div class="integrations-item__marks" aria-hidden="true">
+                {item.mark.kind === "brands" ? (
+                  item.mark.brands.map((brand: Brand) => <BrandTile brand={brand} size="medium" />)
+                ) : (
+                  <Film palette="ocean" layout="clouds-right" class="brand-tile brand-tile--medium">
+                    <Icon name={item.mark.icon} size={22} class="" />
+                  </Film>
+                )}
+              </div>
               <h3 class="title-m">{item.name}</h3>
               <p class="muted">{item.text}</p>
             </li>
@@ -189,5 +201,12 @@ const structuredData: string = structuredDataJson(
     .integrations-split {
       grid-template-columns: minmax(0, 1fr);
     }
+  }
+
+  /* Karttaki logo karoları: ana sayfadaki kayan şeritle aynı marka karoları (BrandTile), yan yana. */
+  .integrations-item__marks {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
   }
 </style>
