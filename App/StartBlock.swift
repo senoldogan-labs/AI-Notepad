@@ -126,3 +126,34 @@ struct StartBlockView: View {
         }
     }
 }
+
+/// Kayıt kartındaki boş yer uyarısı (Mac: ne olacağıyla birlikte tam açıklama); yer yetiyorsa nil.
+func macDiskSpaceText(space: RecordingDiskSpace) -> String? {
+    switch space {
+    case .enough:
+        nil
+    case .low(let minutes):
+        String(localized: "Diskte yaklaşık \(minutes) dakikalık kayıt için yer var. Uzun bir toplantıdan önce yer aç: yer biterse kayıt o ana kadar kaydedilenle bitirilir ve not hazırlanır.")
+    case .full:
+        macDiskFullText()
+    }
+}
+
+/// Diskte kısa bir kayda bile yer yok: kayıt başlatılmaz.
+func macDiskFullText() -> String {
+    String(localized: "Diskte kayıt için yer yok. Kayda başlamadan önce yer aç: kayıt ve notu için birkaç yüz MB boş yer gerekir.")
+}
+
+/// Kayıt kartında boş yer uyarısı; yer yetiyorsa görünmez (boş yeri kartı gösteren görünüm okur:
+/// `AppModel.refreshRecordingDiskSpace`).
+struct DiskSpaceNotice: View {
+    let model: AppModel
+
+    var body: some View {
+        if let text = macDiskSpaceText(space: model.recordingDiskSpace) {
+            NoticeText(text, severity: .attention)
+                .appFont(size: 13, weight: .regular)
+                .frame(maxWidth: 560)
+        }
+    }
+}

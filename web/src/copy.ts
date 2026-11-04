@@ -1340,7 +1340,7 @@ export const copy: Copy = {
           translation: null,
           notes: "Note templates",
           ask: "AI chat across meetings",
-          voiceTyping: null,
+          voiceTyping: "Voice typing in any app on your Mac, on every plan including Basic",
           screens: null,
           integrations: "Slack on all plans; Notion, HubSpot, Zapier, Attio, Affinity and an API on Business; Salesforce on Enterprise",
           mcp: "On all plans: your own notes from the last 30 days on Basic; workspace notes on Business and Enterprise",

@@ -109,6 +109,9 @@ struct MeetingsFirstRun: View {
             } else if let notice = model.localModelNotice {
                 LocalModelNoticeView(notice: notice) { Task { await model.retryLocalModel() } }
             }
+            if model.phase == .idle {
+                DiskSpaceNotice(model: model)
+            }
             if model.importingCount > 0 {
                 HStack(spacing: 8) {
                     ProgressView().controlSize(.small)
@@ -133,6 +136,7 @@ struct MeetingsFirstRun: View {
             }
         }
         .multilineTextAlignment(.center)
+        .task { model.refreshRecordingDiskSpace() }
     }
 }
 

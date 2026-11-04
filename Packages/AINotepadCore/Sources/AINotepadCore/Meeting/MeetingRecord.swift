@@ -243,6 +243,13 @@ public struct MeetingRecord: Sendable, Equatable, Codable, Identifiable {
     /// seçilen); Otomatik dilde, içe aktarmada ve eski toplantılarda nil. Doluysa başka dildeki bölümler okunurken atlanır
     /// (bkz. `isSkippedForLanguage`).
     public private(set) var fixedLanguage: MeetingLanguage?
+    /// İşleme başarısız bittiyse nedeninin türü (geçici: ağ, askıya alma, sunucu 5xx, kapanmış oturum; kalıcı: ses yok,
+    /// dönüştürülemedi…); geçici olan kendiliğinden yeniden denenir (bkz. `meetingsToRetryAutomatically`). Durum her
+    /// değiştiğinde silinir; türü bilinmeyen başarısızlık (eski toplantılar) yeniden denenmez. Bu cihaza özgüdür (eşitlenmez).
+    public private(set) var failureKind: ProcessingFailureKind?
+    /// Başarısız işlemenin kendiliğinden yeniden denemeleri (sayı ve son deneme anı); hiç denenmediyse nil. Bu cihaza
+    /// özgüdür (eşitlenmez).
+    public private(set) var automaticRetries: AutomaticRetries?
 
     public init(
         id: String, title: String, startedAt: Date, endedAt: Date?, language: MeetingLanguage?, status: MeetingStatus,
@@ -392,11 +399,27 @@ public struct MeetingRecord: Sendable, Equatable, Codable, Identifiable {
         return copy
     }
 
-    /// Yalnızca durumu (ve hata mesajını) değişmiş kopya.
+    /// Yalnızca durumu (ve hata mesajını) değişmiş kopya. Başarısızlığın türü silinir: yeni başarısızlık kendi türünü
+    /// `with(failureKind:)` ile yazar.
     public func with(status newStatus: MeetingStatus, failureMessage newFailure: String?) -> MeetingRecord {
         var copy: MeetingRecord = self
         copy.status = newStatus
         copy.failureMessage = newFailure
+        copy.failureKind = nil
+        return copy
+    }
+
+    /// Başarısızlığın türü değişmiş kopya.
+    public func with(failureKind newKind: ProcessingFailureKind?) -> MeetingRecord {
+        var copy: MeetingRecord = self
+        copy.failureKind = newKind
+        return copy
+    }
+
+    /// Kendiliğinden yeniden denemeleri değişmiş kopya.
+    public func with(automaticRetries newRetries: AutomaticRetries?) -> MeetingRecord {
+        var copy: MeetingRecord = self
+        copy.automaticRetries = newRetries
         return copy
     }
 

@@ -1172,8 +1172,26 @@ async function capture(page: Page, outDir: string, shot: string, findings: Findi
     await Promise.all(images.map((image: HTMLImageElement): Promise<void> => image.decode()));
   });
   await checkOverflow(page, shot, findings);
-  await page.screenshot({ path: join(outDir, `${shot}.png`), fullPage: true });
+  // Chrome bir görüntüye en çok 16384 cihaz pikseli yükseklik çizer; daha uzun sayfanın devamı görüntüde başa sarar
+  // (2x telefon görüntüsünde 8192 px'ten uzun sayfalar). Uzun sayfa bu sınıra sığan parçalar hâlinde kaydedilir.
+  const size: { readonly width: number; readonly height: number; readonly ratio: number } = await page.evaluate(() => ({
+    width: document.documentElement.clientWidth,
+    height: document.documentElement.scrollHeight,
+    ratio: window.devicePixelRatio,
+  }));
+  const segment: number = Math.floor(maxScreenshotDevicePixels / size.ratio);
+  if (size.height <= segment) {
+    await page.screenshot({ path: join(outDir, `${shot}.png`), fullPage: true });
+    return;
+  }
+  for (let top: number = 0, part: number = 1; top < size.height; top += segment, part += 1) {
+    const clip = { x: 0, y: top, width: size.width, height: Math.min(segment, size.height - top) };
+    await page.screenshot({ path: join(outDir, `${shot}-part${part}.png`), fullPage: true, clip });
+  }
 }
+
+/** Chrome'un tek bir görüntüde çizebildiği en büyük yükseklik (cihaz pikseli). */
+const maxScreenshotDevicePixels: number = 16_384;
 
 /** Yeni bağlam: hareket azaltılmış (gösterim son hâlinde, kaydırmaya bağlı belirme içeriği gizlemez). */
 async function newContext(browser: Browser, variant: Variant, reducedMotion: "reduce" | "no-preference"): Promise<BrowserContext> {
