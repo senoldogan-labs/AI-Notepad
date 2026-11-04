@@ -294,47 +294,60 @@ export async function fetchRevenueCatSubscriber(platform: Platform, apiKey: stri
 }
 
 /**
- * Satırı RevenueCat okumasıyla değiştiren ifade: abonelik varsa yazılır (hesap hâlâ varsa; daha eski bir okuma daha
- * yenisinin üstüne yazamaz), yoksa (ör. satın alma başka hesaba aktarıldı) satır silinir.
+ * Satırı RevenueCat okumasıyla değiştiren ifadeler (tek toplu işlemde çalıştırılır). Daha eski bir okuma daha yenisinin
+ * üstüne yazamaz (`synced_at`, okumanın anı `request_date_ms`):
+ * - abonelik yoksa (ör. satın alma başka hesaba aktarıldı) satır silinir ve okumanın anı hesaba yazılır
+ *   (`users.app_store_absent_synced_at`, göç 0051): satır gidince `synced_at` da gider, bu iz olmadan aktarımdan önce
+ *   başlamış eski bir okuma silinen satırı yeniden etkinleştirirdi;
+ * - abonelik varsa satır yazılır: hesap hâlâ varsa ve okuma son "yok" okumasından eski değilse (yeni satır), ya da var
+ *   olan satırdan eski değilse (güncelleme). Silinmiş hesabın satırı yeniden yaratılmaz.
  */
-export function appStoreSyncStatement(
+export function appStoreSyncStatements(
   db: D1Database,
   userId: string,
   subscription: AppStoreSubscription | null,
   eventId: string | null,
   syncedAtMs: number,
   nowMs: number,
-): D1PreparedStatement {
+): D1PreparedStatement[] {
   if (subscription === null) {
-    return db.prepare("DELETE FROM app_store_subscriptions WHERE user_id = ? AND synced_at <= ?").bind(userId, syncedAtMs);
+    return [
+      db.prepare("DELETE FROM app_store_subscriptions WHERE user_id = ? AND synced_at <= ?").bind(userId, syncedAtMs),
+      db
+        .prepare("UPDATE users SET app_store_absent_synced_at = MAX(COALESCE(app_store_absent_synced_at, 0), ?2) WHERE id = ?1")
+        .bind(userId, syncedAtMs),
+    ];
   }
-  return db
-    .prepare(
-      `INSERT INTO app_store_subscriptions (user_id, store, product_id, plan, status, period_type, purchased_at, expires_at,
-         grace_expires_at, environment, last_event_id, synced_at, updated_at)
-       SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13 WHERE EXISTS (SELECT 1 FROM users WHERE id = ?1)
-       ON CONFLICT(user_id) DO UPDATE SET store = excluded.store, product_id = excluded.product_id, plan = excluded.plan,
-         status = excluded.status, period_type = excluded.period_type, purchased_at = excluded.purchased_at,
-         expires_at = excluded.expires_at, grace_expires_at = excluded.grace_expires_at, environment = excluded.environment,
-         last_event_id = COALESCE(excluded.last_event_id, app_store_subscriptions.last_event_id),
-         synced_at = excluded.synced_at, updated_at = excluded.updated_at
-       WHERE excluded.synced_at >= app_store_subscriptions.synced_at`,
-    )
-    .bind(
-      userId,
-      subscription.store,
-      subscription.productId,
-      subscription.plan,
-      subscription.status,
-      subscription.periodType,
-      subscription.purchasedAt,
-      subscription.expiresAt,
-      subscription.graceExpiresAt,
-      subscription.environment,
-      eventId,
-      syncedAtMs,
-      nowMs,
-    );
+  return [
+    db
+      .prepare(
+        `INSERT INTO app_store_subscriptions (user_id, store, product_id, plan, status, period_type, purchased_at, expires_at,
+           grace_expires_at, environment, last_event_id, synced_at, updated_at)
+         SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13
+         WHERE EXISTS (SELECT 1 FROM users WHERE id = ?1 AND COALESCE(app_store_absent_synced_at, 0) <= ?12)
+         ON CONFLICT(user_id) DO UPDATE SET store = excluded.store, product_id = excluded.product_id, plan = excluded.plan,
+           status = excluded.status, period_type = excluded.period_type, purchased_at = excluded.purchased_at,
+           expires_at = excluded.expires_at, grace_expires_at = excluded.grace_expires_at, environment = excluded.environment,
+           last_event_id = COALESCE(excluded.last_event_id, app_store_subscriptions.last_event_id),
+           synced_at = excluded.synced_at, updated_at = excluded.updated_at
+         WHERE excluded.synced_at >= app_store_subscriptions.synced_at`,
+      )
+      .bind(
+        userId,
+        subscription.store,
+        subscription.productId,
+        subscription.plan,
+        subscription.status,
+        subscription.periodType,
+        subscription.purchasedAt,
+        subscription.expiresAt,
+        subscription.graceExpiresAt,
+        subscription.environment,
+        eventId,
+        syncedAtMs,
+        nowMs,
+      ),
+  ];
 }
 
 /**
@@ -353,7 +366,7 @@ export async function syncAppStoreSubscription(
   if (subscription !== null && subscription.plan === null) {
     log("warn", "app_store_product_unknown", { userId, productId: subscription.productId });
   }
-  await appStoreSyncStatement(db, userId, subscription, eventId, subscriber.request_date_ms, platform.now().getTime()).run();
+  await db.batch(appStoreSyncStatements(db, userId, subscription, eventId, subscriber.request_date_ms, platform.now().getTime()));
   log("info", "app_store_synced", {
     userId,
     eventId,

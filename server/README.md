@@ -115,7 +115,9 @@ toplantının ilk not anını ve hata alanlarını (`meeting_sessions.first_note
 izi özetini (`referral_redemptions.card_fingerprint_hash`; aşağıda "Davet programı"), `0048` App Store aboneliklerini
 (`app_store_subscriptions`), işlenmiş RevenueCat olaylarını (`revenuecat_events`) ve günlük anlık görüntünün App Store
 sütunlarını (aşağıda "App Store abonelikleri (RevenueCat)"), `0049` Apple ile girişin şifreli yenileme jetonlarını
-(`apple_sign_in_tokens`, Apple kimliğine bağlı; aşağıda "Apple ile giriş jetonunun iptali") ekler.
+(`apple_sign_in_tokens`, Apple kimliğine bağlı; aşağıda "Apple ile giriş jetonunun iptali"), `0051` App Store
+aboneliğinin son "yok" okumasının anını (`users.app_store_absent_synced_at`; aşağıda "App Store abonelikleri
+(RevenueCat)") ekler.
 
 ## App Store abonelikleri (RevenueCat)
 
@@ -131,8 +133,9 @@ aboneliği erişim veriyorsa hesap abonedir, Mac ve iPhone aynı hakkı görür 
   olan her hesap için `GET https://api.revenuecat.com/v1/subscribers/{id}` (`Authorization: Bearer
   <REVENUECAT_SECRET_API_KEY>`; 10 sn zaman aşımı, 5xx/429/ağ hatası `upstream_retry` uyarısıyla 3 kez) okunur. App Store
   kayıtlarından (`store` `app_store`/`mac_app_store`) erişimi en geç biten seçilir ve satır onunla değiştirilir; kayıt
-  kalmadıysa (satın alma başka hesaba aktarıldı) satır silinir. Yanıtın anı (`request_date_ms`) daha yeni bir okumanın
-  üstüne eski bir okumanın yazılmasını engeller. RevenueCat bu uçta abone yoksa yaratır: yalnızca bizim hesaplarımız
+  kalmadıysa (satın alma başka hesaba aktarıldı) satır silinir ve okumanın anı hesaba yazılır
+  (`users.app_store_absent_synced_at`, göç `0051`). Yanıtın anı (`request_date_ms`) daha yeni bir okumanın üstüne eski bir
+  okumanın yazılmasını engeller; aktarımdan önce başlamış eski okuma silinen satırı da yeniden yaratamaz. RevenueCat bu uçta abone yoksa yaratır: yalnızca bizim hesaplarımız
   sorulur.
 - **Durum ve erişim:** `active` (yenilenecek; dönem sonu + 24 saat erişim, yenileme olayı gecikirse), `canceled`
   (yenilenmeyecek, dönem sonuna dek), `billing_issue` (dönem sürüyorsa erişim; bittiyse Apple'ın fatura ek süresi
@@ -402,8 +405,8 @@ günler ve faturalar boştur (geriye dönük doldurma yok).
 
 `wrangler.jsonc` → `triggers.crons` her gün 03:17 UTC'de `scheduled` işleyicisini çalıştırır (`src/cleanup.ts`). Silinenler:
 süresi dolmuş ayırmalar (tahmini maliyeti harcamaya yazılarak), süresi dolmuş nonce'lar (Apple ve Google), süresi dolmuş
-ya da kullanılmış cihaz meydan okumaları, süresi dolmuş ya da ailesi düşürülmüş yenileme jetonları (kullanılmış jeton,
-önceki kuşak ve geçersiz yazılmış halef çalınma algılaması için süresi dolana dek kalır) ve jetonu kalmamış aileler, 90 günden eski Stripe olayları ve günlük harcama, bugünden eski deneme
+ya da kullanılmış cihaz meydan okumaları, süresi dolmuş ya da ailesi düşürülmüş yenileme jetonları (kullanılmış jetonlar
+ve geçersiz yazılmış halef çalınma algılaması için süresi dolana dek kalır) ve jetonu kalmamış aileler, 90 günden eski Stripe olayları ve günlük harcama, bugünden eski deneme
 başlangıçları, 2 günden eski kullanıcı günlük kullanımı, 13 aydan eski toplantılar (deneme toplantıları önce
 `users.carried_trial_meetings`'e eklenir: deneme hakkı geri gelmez) ve aylık kullanım, 13 aydır kullanılmayan cihazlar,
 180 günden eski raporlar (durumundan bağımsız), 730 gündür güncellenmemiş kimlik deneme defteri satırları ve hesabı
@@ -455,7 +458,7 @@ yazılır, diğerleri çalışır ve sonunda `CleanupFailedError` fırlatılır.
 | `POST /v1/auth/apple` | — | `{identityToken, nonce}`; Apple'a `sha256hex(nonce)` verilir; e-posta saklanmaz |
 | `POST /v1/auth/apple/authorization-code` | — | `{code}` (Apple'ın yetkilendirme kodu; site gönderir); kodu Apple'da takas eder, yenileme jetonunu şifreli saklar, `200 {stored: true}`; Apple reddederse `502 upstream_rejected`, yanıt vermezse `502 upstream_unavailable`, gizli değerler yoksa `503 apple_tokens_unavailable`. Yukarıda "Apple ile giriş jetonunun iptali" |
 | `POST /v1/auth/google` | — | `{identityToken, nonce}`; Google'a `sha256hex(nonce)` verilir. `iss` `https://accounts.google.com` ya da `accounts.google.com`, `aud` ∈ `GOOGLE_CLIENT_IDS`, RS256, nonce tek kullanımlık. Kimlik `google:<sub>`; e-posta saklanmaz. Apple hesabıyla otomatik bağlama yoktur (ayrı kullanıcı). Oturum yanıtı ve deneme kuralları Apple ile aynı |
-| `POST /v1/auth/refresh`, `/v1/auth/logout` | — | `{refreshToken}`; dönen jeton, yeniden kullanım aileyi düşürür; yalnızca hemen önceki jeton 10 dk içinde yeniden sunulursa ve halefi hiç kullanılmadıysa (yanıtı kaybolan yenileme) yeni çift verilir; kaybolan halef geçersiz işaretlenir, sonradan sunulursa tüm aile düşer. Dönüşte ailede en son kullanılmış jeton, ondan önceki ve geçersiz işaretli halefler dışındaki kullanılmış jetonlar silinir; kalanlar süresi dolana dek tutulur |
+| `POST /v1/auth/refresh`, `/v1/auth/logout` | — | `{refreshToken}`; dönen jeton, yeniden kullanım aileyi düşürür; yalnızca hemen önceki jeton 10 dk içinde yeniden sunulursa ve halefi hiç kullanılmadıysa (yanıtı kaybolan yenileme) yeni çift verilir; kaybolan halef geçersiz işaretlenir, sonradan sunulursa tüm aile düşer. Kullanılmış jetonların özetleri süresi dolana dek (60 gün) tutulur: ailenin daha önce kullanılmış herhangi bir jetonu (saldırgan çalınan jetonu art arda döndürmüş olsa da) yeniden gelirse aile düşer ve `refresh_token_reuse` alarmı yazılır |
 | `GET /v1/me` | Bearer | plan, etkin kalan deneme (isteğe bağlı `x-device-key-id` ile hesap ve cihazın küçüğü; süre dolduysa 0), `trialDays`, `trialEndsAt` (ilk deneme toplantısı + `TRIAL_DAYS`, ISO 8601; deneme başlamadıysa ya da abonelikte `null`), aylık saat ve sınır, `monthlyResetsAt` (aylık sınırların sıfırlandığı an: sonraki UTC ayının başı), toplantı dışı yapay zekâ hakkı (`accountTokensUsed`, `accountTokensCap`, `accountTokensPeriod`: abonede `month` ve `MONTHLY_ACCOUNT_TOKEN_CAP`, denemede `day` ve `TRIAL_ACCOUNT_DAILY_TOKENS`; `accountTokensResetsAt`), `liveEngine` (`deepgram` / `whisperkit`, bkz. "Deepgram canlı metni"), abonelik erişimi (`active` / `grace` / `none`) ve planı (`subscription.plan`: `monthly` / `yearly`; fiyatı tanınmayan eski abonelikte `null`); `subscription.source` (`stripe` / `app_store`: asıl abonelik, bkz. "App Store abonelikleri"), `subscriptionSources` (erişim veren kaynaklar) ve `appStoreSubscription` (`{status, plan, productId, access, expiresAt, willRenew, graceEndsAt, environment, manageUrl}` ya da `null`) |
 | `DELETE /v1/me` | Bearer | hesabı siler (GDPR), `200 {deleted: true, appStoreSubscription, notice}` (`appStoreSubscription`: erişimi süren App Store aboneliği varsa `{willRenew, expiresAt, manageUrl}` ve İngilizce `notice` — Apple aboneliği silmeyle iptal olmaz, kullanıcı iPhone'da iptal etmeli; yoksa ikisi `null`; 0.1.12 ve öncesi 204 bekler ama her 2xx'i kabul eder): önce Stripe'taki bitmemiş abonelikler hemen iptal edilir (başarısızsa hiçbir şey silinmez, `502`); sonra Apple ile girişin saklanan yenileme jetonu Apple'da iptal edilir (başarısız olsa da silme sürer; yukarıda "Apple ile giriş jetonunun iptali"); sonra kimlikler, Apple jetonu, oturumlar, cihazlar, toplantılar, kullanım, abonelik ve Stripe müşteri eşlemesi, deneme kayıtları ve hesabın raporları tek işlemde silinir; aynı işlemde önce her kimliğin deneme defteri satırı yazılır (harcanan deneme ve Mac doğrulaması, kimliğin HMAC özetiyle; deneme harcanmadıysa yazılmaz) (raporlar serbest metin ve e-posta taşıyabildiği için bağı kaldırılmaz, silinir; jetonsuz gönderilmiş raporlar hesaba bağlanamaz, 180 günde silinir). Bugünkü deneme başlangıcı IP özeti başına günlük sayaçta hesap bağı olmadan kalır. Stripe'taki müşteri ve faturalar vergi kayıtları için Stripe'ta kalır. Tekrarı (aynı jetonla) `200`, uyarısız |
 | `POST /v1/device/challenge` | Bearer | `{purpose: "attest" \| "assert"}` |

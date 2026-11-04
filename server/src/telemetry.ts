@@ -267,28 +267,28 @@ function requireFeatureReportDay(day: string, now: Date): void {
 }
 
 /**
- * Günlük özellik raporunu sayar: hesabın son raporlanan günü bu günden eskiyse (ya da hiç yoksa) gün hesaba yazılır ve
- * satırlar günün toplamlarına eklenir (`true`); aynı gün ya da daha eskisi yeniden sayılmaz (`false`).
+ * Günlük özellik raporunu sayar: hesabın son raporlanan günü bu günden eskiyse (ya da hiç yoksa) satırlar günün
+ * toplamlarına eklenir ve gün hesaba yazılır (`true`); aynı gün ya da daha eskisi yeniden sayılmaz (`false`). Tek D1
+ * toplu işlemidir (işlem): ya gün işaretlenir ve satırlar eklenir ya hiçbiri; artışlardan biri başarısız olursa gün
+ * işaretlenmez, istemcinin yeniden denemesi raporu sayar. Artışlar aynı koşula bağlıdır ve günü işaretleyen ifade en
+ * sondadır: koşul toplu işlem boyunca değişmez, eşzamanlı iki rapordan yalnızca biri sayılır.
  */
 export async function recordFeatureUsage(db: D1Database, userId: string, usage: FeatureUsage, now: Date): Promise<boolean> {
   requireFeatureReportDay(usage.day, now);
-  const claimed: D1Result = await db
-    .prepare("UPDATE users SET telemetry_features_day = ?1 WHERE id = ?2 AND (telemetry_features_day IS NULL OR telemetry_features_day < ?1)")
-    .bind(usage.day, userId)
-    .run();
-  if (claimed.meta.changes === 0) {
-    return false;
-  }
-  await db.batch(
-    featureIncrements(usage).map(
+  const unclaimed: string = "EXISTS (SELECT 1 FROM users WHERE id = ?1 AND (telemetry_features_day IS NULL OR telemetry_features_day < ?2))";
+  const results: D1Result[] = await db.batch([
+    ...featureIncrements(usage).map(
       (increment: FeatureIncrement): D1PreparedStatement =>
         db
           .prepare(
-            `INSERT INTO feature_usage_daily (day, feature, value, users, total) VALUES (?, ?, ?, 1, ?)
+            `INSERT INTO feature_usage_daily (day, feature, value, users, total) SELECT ?2, ?3, ?4, 1, ?5 WHERE ${unclaimed}
              ON CONFLICT(day, feature, value) DO UPDATE SET users = users + 1, total = total + excluded.total`,
           )
-          .bind(usage.day, increment.feature, increment.value, increment.total),
+          .bind(userId, usage.day, increment.feature, increment.value, increment.total),
     ),
-  );
-  return true;
+    db
+      .prepare("UPDATE users SET telemetry_features_day = ?2 WHERE id = ?1 AND (telemetry_features_day IS NULL OR telemetry_features_day < ?2)")
+      .bind(userId, usage.day),
+  ]);
+  return results.at(-1)?.meta.changes === 1;
 }
