@@ -29,33 +29,33 @@ public let askExampleQuestions: [AskExampleQuestion] = [
     AskExampleQuestion(symbol: "person.2", text: "Bu hafta kimlerle neler konuştum?"),
 ]
 
-/// Başlık: küçük pastel film gradyanlı simge kutusu (durgun), "Toplantılarına sor" ve tek kısa satır.
+/// Başlık: durgun pastel film gradyanlı kart (Sor'un tanıdık yüzü), simge, "Toplantılarına sor" ve tek kısa satır.
+/// Sayaç ve uzun açıklama yok: kart boş ekranı süsler, veri yüklemez.
 public struct AskStartHeader: View {
     public init() {}
 
     public var body: some View {
-        HStack(alignment: .center, spacing: 14) {
-            // Pastel zeminde koyu mürekkep (her temada okunur).
+        // Pastel zeminde koyu mürekkep (her temada okunur).
+        VStack(alignment: .leading, spacing: 10) {
             Image(systemName: "sparkle.magnifyingglass")
-                .appFont(size: 18, weight: .semibold)
-                .foregroundStyle(Color.black.opacity(0.75))
-                .frame(width: 44, height: 44)
-                .background { FilmGradient(seed: "ask", palette: .violet) }
-                .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+                .appFont(size: 22, weight: .semibold)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text("Toplantılarına sor")
-                    .appFont(size: 22, weight: .semibold)
-                    .tracking(-0.4)
-                    .foregroundStyle(Theme.ink)
+                    .appFont(size: 28, weight: .semibold)
+                    .tracking(-0.6)
                     .accessibilityAddTraits(.isHeader)
                 Text("Tüm toplantılarında arar")
-                    .appFont(size: 14, weight: .regular)
-                    .foregroundStyle(Theme.muted)
+                    .appFont(size: 15, weight: .regular)
+                    .opacity(0.7)
             }
             .fixedSize(horizontal: false, vertical: true)
         }
+        .foregroundStyle(Color.black.opacity(0.8))
+        .padding(22)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .background { FilmGradient(seed: "ask", palette: .violet) }
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 }
