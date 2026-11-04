@@ -1,0 +1,17 @@
+node_modules
+dist
+.DS_Store
+.env
+
+# Ignore the output video from Git but not videos you import into src/.
+out
+
+# Downloaded by scripts/fetch-sfx.sh
+public/sfx
+# Copied from web/src/assets/screenshots by scripts/copy-shots.sh
+public/shots
+# Downloaded by promo/music/fetch-music.sh
+public/music
+# Rendered by promo/blender/render.sh (staged in .laptop-staging.* while Blender runs)
+public/laptop
+.laptop-staging.*
