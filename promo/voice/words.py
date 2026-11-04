@@ -3,37 +3,27 @@
 Usage: uv run python words.py <vo-dir>
 
 Reads `<vo-dir>/manifest.json` (written by speak.py), transcribes each take with word timestamps and aligns the heard
-words to the display words of the script, so the film shows the script's spelling ("Gistsmith", "gistsmith.com")
-at the moment each word is spoken. Writes `<vo-dir>/words.json`: per line, a list of {text, startMs, endMs}.
+words to the display form of the take's spoken text (`voice_script.display_text`), so the film shows the script's
+spelling ("Gistsmith", "gistsmith.com") at the moment each word is spoken. Writes `<vo-dir>/words.json`: per line, a
+list of {text, startMs, endMs}.
 """
 
 import json
-import re
 import sys
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from difflib import SequenceMatcher
 from pathlib import Path
 
 from faster_whisper import WhisperModel
 
-# What each line shows on screen; the spoken script lives in speak.py.
-DISPLAY: dict[str, str] = {
-    "hook": "Every meeting ends the same way.",
-    "question": "Who said what? And what was I supposed to do?",
-    "meet": "Meet Gistsmith. The meeting notepad for your Mac.",
-    "listens": "It listens to Zoom, Teams, Meet, or the room you're in. No bot joins the call.",
-    "live": "Every sentence appears live. Translated, if you like.",
-    "note": "When you hang up, your note is ready. Your tasks come first.",
-    "ask": "Later, just ask. Answers come from every meeting you've had.",
-    "cta": "Gistsmith. Your meetings, written for you. Try it free at gistsmith.com",
-}
+from voice_script import display_text, spoken_tokens
 
 
 @dataclass(frozen=True)
 class TimedWord:
     text: str
-    startMs: int
-    endMs: int
+    start_ms: int
+    end_ms: int
 
 
 @dataclass(frozen=True)
@@ -55,13 +45,28 @@ class AlignmentError(RuntimeError):
     """Raised when too few script words were heard to place the rest between them."""
 
 
-def spoken_tokens(word: str) -> list[str]:
-    spoken = word.lower().replace(".com", " dot com").replace("gistsmith", "gist smith")
-    return re.sub(r"[^a-z0-9' ]", " ", spoken).split()
+class ManifestError(ValueError):
+    """Raised when manifest.json does not have the shape speak.py writes."""
+
+
+def parse_take(item: dict[str, object]) -> ManifestTake:
+    take_id, text, file, seconds = (item.get(key) for key in ("id", "text", "file", "seconds"))
+    if not (isinstance(take_id, str) and isinstance(text, str) and isinstance(file, str)):
+        raise ManifestError(f"Manifest entry needs string id, text and file: {item!r}")
+    if not isinstance(seconds, int | float):
+        raise ManifestError(f"Manifest entry needs numeric seconds: {item!r}")
+    return ManifestTake(id=take_id, text=text, file=file, seconds=float(seconds))
+
+
+def parse_manifest(raw: str) -> list[ManifestTake]:
+    # speak.py writes a JSON array of objects; each field is checked in parse_take.
+    items: list[dict[str, object]] = json.loads(raw)
+    return [parse_take(item) for item in items]
 
 
 def heard_tokens(whisper: WhisperModel, path: Path) -> list[HeardToken]:
-    segments, _info = whisper.transcribe(str(path), language="en", beam_size=5, word_timestamps=True)
+    # faster-whisper leaves its numpy-array and VAD-dict parameters unparameterised.
+    segments, _info = whisper.transcribe(str(path), language="en", beam_size=5, word_timestamps=True)  # pyright: ignore[reportUnknownMemberType]
     return [
         HeardToken(token=token, start=word.start, end=word.end)
         for segment in segments
@@ -93,18 +98,27 @@ def align(display: str, heard: list[HeardToken], seconds: float) -> list[TimedWo
             before = max((spans[i][1] for i in spans if i < index), default=0.0)
             after = min((spans[i][0] for i in spans if i > index), default=seconds)
             start, end = before, after
-        timed.append(TimedWord(text=word, startMs=round(start * 1000), endMs=round(end * 1000)))
+        timed.append(TimedWord(text=word, start_ms=round(start * 1000), end_ms=round(end * 1000)))
     return timed
 
 
+def words_json(timings: dict[str, list[TimedWord]]) -> str:
+    """The film's words.json, with the camelCase keys `TimedWord` in promo/film/src/timeline.ts reads."""
+    payload = {
+        line_id: [{"text": word.text, "startMs": word.start_ms, "endMs": word.end_ms} for word in words]
+        for line_id, words in timings.items()
+    }
+    return json.dumps(payload, indent=2) + "\n"
+
+
 def main(vo_dir: Path) -> None:
-    manifest = [ManifestTake(**item) for item in json.loads((vo_dir / "manifest.json").read_text())]
+    manifest = parse_manifest((vo_dir / "manifest.json").read_text())
     whisper = WhisperModel("small.en", device="cpu", compute_type="int8")
-    result: dict[str, list[dict[str, str | int]]] = {
-        take.id: [asdict(word) for word in align(DISPLAY[take.id], heard_tokens(whisper, vo_dir / take.file), take.seconds)]
+    timings = {
+        take.id: align(display_text(take.text), heard_tokens(whisper, vo_dir / take.file), take.seconds)
         for take in manifest
     }
-    (vo_dir / "words.json").write_text(json.dumps(result, indent=2) + "\n")
+    _ = (vo_dir / "words.json").write_text(words_json(timings))
 
 
 if __name__ == "__main__":

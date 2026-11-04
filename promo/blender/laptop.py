@@ -1,7 +1,8 @@
 """Render the promo's hero shot: a generic aluminium laptop opening, with the Gistsmith home screen on its display.
 
-Run headless (Blender 5.x):
-  blender --background --factory-startup --python promo/blender/laptop.py -- <screen-image> <out-dir> <frames> [<f1,f2,…>]
+Run headless (Blender 5.x), normally through render.sh:
+  blender --background --factory-startup --python-exit-code 1 --python promo/blender/laptop.py -- \
+    <screen-image> <out-dir> <frames> [<f1,f2,…>]
 
 Writes `<out-dir>/####.webp` (RGBA, transparent background, 1920x1080) for frames 1..<frames>. The model is built from
 primitives here, so no third-party model or Apple asset is involved. Every value is keyed to the frame number, so the
@@ -12,9 +13,12 @@ import math
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TypeVar
 
 import bpy
 from mathutils import Vector
+
+T = TypeVar("T")
 
 WIDTH = 1920
 HEIGHT = 1080
@@ -22,6 +26,8 @@ HEIGHT = 1080
 BASE = Vector((0.304, 0.212, 0.011))
 LID_THICKNESS = 0.006
 SCREEN_ASPECT = 2400 / 1560
+# <screen-image> <out-dir> <frames>; an optional fourth argument lists preview frames.
+REQUIRED_ARGS = 3
 
 
 @dataclass(frozen=True)
@@ -37,18 +43,61 @@ def parse_args(argv: list[str]) -> RenderArgs:
     if "--" not in argv:
         raise SystemExit("Usage: blender --background --python laptop.py -- <screen-image> <out-dir> <frames>")
     rest = argv[argv.index("--") + 1 :]
-    screen, out, frames = rest[:3]
-    only = tuple(int(value) for value in rest[3].split(",")) if len(rest) > 3 else ()
+    screen, out, frames = rest[:REQUIRED_ARGS]
+    only = tuple(int(value) for value in rest[REQUIRED_ARGS].split(",")) if len(rest) > REQUIRED_ARGS else ()
     return RenderArgs(screen_image=Path(screen).resolve(), out_dir=Path(out).resolve(), frames=int(frames), only=only)
+
+
+class BlenderTypeError(TypeError):
+    """Raised when the Blender API hands back a different kind of datablock, node or socket than this script builds."""
+
+
+def expect(value: object, kind: type[T], what: str) -> T:
+    """Narrows a loosely typed Blender API result (sockets, modifiers, object data) to the class this script expects."""
+    if not isinstance(value, kind):
+        raise BlenderTypeError(f"Expected {what} to be {kind.__name__}, got {type(value).__name__}")
+    return value
+
+
+def node_tree(tree: bpy.types.ShaderNodeTree | None, owner: str) -> bpy.types.ShaderNodeTree:
+    if tree is None:
+        raise BlenderTypeError(f"{owner} has no node tree although use_nodes is set")
+    return tree
+
+
+def set_color(node: bpy.types.Node, socket: str, rgba: tuple[float, float, float, float]) -> None:
+    expect(node.inputs[socket], bpy.types.NodeSocketColor, f"{node.name}.{socket}").default_value.foreach_set(rgba)
+
+
+def set_float(node: bpy.types.Node, socket: str, value: float) -> None:
+    target = node.inputs[socket]
+    if isinstance(target, bpy.types.NodeSocketFloat | bpy.types.NodeSocketFloatFactor):
+        target.default_value = value
+    else:
+        raise BlenderTypeError(f"Expected {node.name}.{socket} to be a float socket, got {type(target).__name__}")
+
+
+def link(
+    tree: bpy.types.ShaderNodeTree, source: bpy.types.Node, output: str, target: bpy.types.Node, socket: str
+) -> None:
+    # Typed as plain Node: the stubs declare some node subclasses' sockets as optional, which Blender never returns.
+    _ = tree.links.new(source.outputs[output], target.inputs[socket])
+
+
+def active_object(operation: str) -> bpy.types.Object:
+    obj = bpy.context.active_object
+    if obj is None:
+        raise BlenderTypeError(f"{operation} left no active object")
+    return obj
 
 
 def material(name: str, color: tuple[float, float, float], metallic: float, roughness: float) -> bpy.types.Material:
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
-    bsdf = mat.node_tree.nodes["Principled BSDF"]
-    bsdf.inputs["Base Color"].default_value = (*color, 1.0)
-    bsdf.inputs["Metallic"].default_value = metallic
-    bsdf.inputs["Roughness"].default_value = roughness
+    bsdf = node_tree(mat.node_tree, name).nodes["Principled BSDF"]
+    set_color(bsdf, "Base Color", (*color, 1.0))
+    set_float(bsdf, "Metallic", metallic)
+    set_float(bsdf, "Roughness", roughness)
     return mat
 
 
@@ -56,43 +105,42 @@ def screen_material(image_path: Path) -> bpy.types.Material:
     """An emissive screenshot under a faint gloss, so the display shows true colours and still catches a highlight."""
     mat = bpy.data.materials.new("Screen")
     mat.use_nodes = True
-    nodes = mat.node_tree.nodes
-    links = mat.node_tree.links
-    bsdf = nodes["Principled BSDF"]
-    texture = nodes.new("ShaderNodeTexImage")
+    tree = node_tree(mat.node_tree, "Screen")
+    bsdf = tree.nodes["Principled BSDF"]
+    texture = expect(tree.nodes.new("ShaderNodeTexImage"), bpy.types.ShaderNodeTexImage, "screen texture node")
     texture.image = bpy.data.images.load(str(image_path))
     texture.interpolation = "Cubic"
     # Black base + emission 1.0 under the Standard view transform shows the screenshot's own sRGB colours.
-    bsdf.inputs["Base Color"].default_value = (0, 0, 0, 1)
-    links.new(texture.outputs["Color"], bsdf.inputs["Emission Color"])
-    bsdf.inputs["Emission Strength"].default_value = 1.0
-    bsdf.inputs["Roughness"].default_value = 0.12
-    bsdf.inputs["Specular IOR Level"].default_value = 0.12
+    set_color(bsdf, "Base Color", (0, 0, 0, 1))
+    link(tree, texture, "Color", bsdf, "Emission Color")
+    set_float(bsdf, "Emission Strength", 1.0)
+    set_float(bsdf, "Roughness", 0.12)
+    set_float(bsdf, "Specular IOR Level", 0.12)
     return mat
 
 
 def rounded_box(name: str, size: Vector, bevel: float, mat: bpy.types.Material) -> bpy.types.Object:
-    bpy.ops.mesh.primitive_cube_add(size=1)
-    obj = bpy.context.active_object
+    _ = bpy.ops.mesh.primitive_cube_add(size=1)
+    obj = active_object("primitive_cube_add")
     obj.name = name
     obj.scale = size
-    bpy.ops.object.transform_apply(scale=True)
-    modifier = obj.modifiers.new("Bevel", "BEVEL")
+    _ = bpy.ops.object.transform_apply(scale=True)
+    modifier = expect(obj.modifiers.new("Bevel", "BEVEL"), bpy.types.BevelModifier, f"{name} bevel")
     modifier.width = bevel
     modifier.segments = 8
     modifier.limit_method = "NONE"
-    bpy.ops.object.shade_smooth()
-    obj.data.materials.append(mat)
+    _ = bpy.ops.object.shade_smooth()
+    expect(obj.data, bpy.types.Mesh, f"{name} data").materials.append(mat)
     return obj
 
 
 def plane(name: str, width: float, height: float, mat: bpy.types.Material) -> bpy.types.Object:
-    bpy.ops.mesh.primitive_plane_add(size=1)
-    obj = bpy.context.active_object
+    _ = bpy.ops.mesh.primitive_plane_add(size=1)
+    obj = active_object("primitive_plane_add")
     obj.name = name
     obj.scale = (width, height, 1)
-    bpy.ops.object.transform_apply(scale=True)
-    obj.data.materials.append(mat)
+    _ = bpy.ops.object.transform_apply(scale=True)
+    expect(obj.data, bpy.types.Mesh, f"{name} data").materials.append(mat)
     return obj
 
 
@@ -121,7 +169,7 @@ def build_laptop(screen_image: Path) -> tuple[bpy.types.Object, bpy.types.Object
     key = rounded_box("Key", Vector((pitch_x * 0.84, pitch_y * 0.84, 0.001)), 0.0004, dark)
     key.location = (-BASE.x * 0.425 + pitch_x / 2, BASE.y * 0.12 - BASE.y * 0.205 + pitch_y / 2, BASE.z + 0.0005)
     for axis, count, offset in ((0, columns, pitch_x), (1, rows, pitch_y)):
-        array = key.modifiers.new(f"Array{axis}", "ARRAY")
+        array = expect(key.modifiers.new(f"Array{axis}", "ARRAY"), bpy.types.ArrayModifier, f"key array {axis}")
         array.use_relative_offset = False
         array.use_constant_offset = True
         array.constant_offset_displace = (offset, 0, 0) if axis == 0 else (0, offset, 0)
@@ -158,13 +206,15 @@ def build_laptop(screen_image: Path) -> tuple[bpy.types.Object, bpy.types.Object
 def add_lights() -> None:
     world = bpy.data.worlds.new("Studio")
     world.use_nodes = True
-    background = world.node_tree.nodes["Background"]
-    background.inputs["Color"].default_value = (0.98, 0.95, 0.93, 1.0)
-    background.inputs["Strength"].default_value = 0.4
+    background = node_tree(world.node_tree, "Studio").nodes["Background"]
+    set_color(background, "Color", (0.98, 0.95, 0.93, 1.0))
+    set_float(background, "Strength", 0.4)
     bpy.context.scene.world = world
 
-    def area(name: str, location: tuple[float, float, float], color: tuple[float, float, float], energy: float, size: float) -> None:
-        data = bpy.data.lights.new(name, type="AREA")
+    def area(
+        name: str, location: tuple[float, float, float], color: tuple[float, float, float], energy: float, size: float
+    ) -> None:
+        data = expect(bpy.data.lights.new(name, type="AREA"), bpy.types.AreaLight, f"{name} light")
         data.energy = energy
         data.color = color
         data.size = size

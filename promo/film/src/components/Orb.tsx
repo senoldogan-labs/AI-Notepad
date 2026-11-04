@@ -1,14 +1,26 @@
 import { useThree } from "@react-three/fiber";
 import { ThreeCanvas } from "@remotion/three";
-import { useMemo } from "react";
-import { PMREMGenerator, type Texture } from "three";
+import { useEffect, useMemo } from "react";
+import { PMREMGenerator, type Texture, type WebGLRenderer, type WebGLRenderTarget } from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { color } from "../brand";
+
+/** Prefilters the room scene into an environment map; the generator and the room are freed once it exists. */
+const prefilteredRoom = (gl: WebGLRenderer): WebGLRenderTarget<Texture> => {
+  const pmrem = new PMREMGenerator(gl);
+  const room = new RoomEnvironment();
+  const target = pmrem.fromScene(room, 0.04);
+  room.dispose();
+  pmrem.dispose();
+  return target;
+};
 
 const useRoomEnvironment = (): Texture => {
   const { gl } = useThree();
   // Built synchronously during render so the very first rendered frame already has reflections.
-  return useMemo(() => new PMREMGenerator(gl).fromScene(new RoomEnvironment(), 0.04).texture, [gl]);
+  const target = useMemo(() => prefilteredRoom(gl), [gl]);
+  useEffect(() => () => target.dispose(), [target]);
+  return target.texture;
 };
 
 const OrbMesh: React.FC<{ readonly scale: number; readonly spin: number }> = ({ scale, spin }) => {

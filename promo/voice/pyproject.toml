@@ -11,3 +11,29 @@ dependencies = [
 
 [tool.uv]
 package = false
+
+[dependency-groups]
+dev = [
+    "basedpyright>=1.40.2",
+    "fake-bpy-module-latest>=20261031",
+    "ruff>=0.17.3",
+]
+
+# Checks: uv run ruff check . ../blender && uv run ruff format --check . ../blender && uv run basedpyright
+# ../blender/laptop.py runs inside Blender's own Python; it is checked here against fake-bpy-module.
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "RUF", "ANN", "N", "PTH", "C4", "PL"]
+
+[tool.basedpyright]
+typeCheckingMode = "strict"
+pythonVersion = "3.11"
+include = [".", "../blender"]
+exclude = [".venv"]
+# chatterbox-tts, faster-whisper and torchaudio ship no stubs or py.typed; their call sites carry reasoned ignores.
+reportMissingTypeStubs = "none"
+# bpy and mathutils exist only inside Blender; fake-bpy-module provides their stubs.
+reportMissingModuleSource = "none"

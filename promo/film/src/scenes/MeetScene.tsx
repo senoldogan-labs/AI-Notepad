@@ -4,10 +4,7 @@ import { color } from "../brand";
 import { Backdrop } from "../components/Backdrop";
 import { type Format, useFormat } from "../components/format";
 import { SpokenLine } from "../components/SpokenLine";
-import { lineIn } from "../timeline";
-
-/** Frames rendered by promo/blender/render.sh (Blender, transparent background). */
-export const LAPTOP_FRAMES = 130;
+import { laptopFrames, lineIn } from "../timeline";
 
 type MeetLayout = {
   /** Where the 1920×1080 laptop render is drawn. */
@@ -22,8 +19,9 @@ const LAYOUT: Record<Format, MeetLayout> = {
   portrait: { laptop: { left: -500, top: 150, width: 2200 }, titleBottom: 560, title: 104, subtitle: 44 },
 };
 
+/** One Blender frame (promo/blender/render.sh, transparent background) per scene frame; clamped for premounting. */
 const laptopFrame = (frame: number): string =>
-  staticFile(`laptop/${String(Math.min(Math.max(frame + 1, 1), LAPTOP_FRAMES)).padStart(4, "0")}.webp`);
+  staticFile(`laptop/${String(Math.min(Math.max(frame + 1, 1), laptopFrames())).padStart(4, "0")}.webp`);
 
 /** The product appears: a laptop opens on the Gistsmith home screen while the name is said. */
 export const MeetScene: React.FC = () => {

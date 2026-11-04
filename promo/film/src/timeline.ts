@@ -1,5 +1,6 @@
-import manifestJson from "../public/vo/manifest.json";
-import wordsJson from "../public/vo/words.json";
+// Import attributes let Node load this module too (scripts/laptop-frames.ts), not only the Remotion bundler.
+import manifestJson from "../public/vo/manifest.json" with { type: "json" };
+import wordsJson from "../public/vo/words.json" with { type: "json" };
 
 /**
  * Scene timing is derived from the voiceover: each scene lasts as long as its lines plus a short lead-in and a
@@ -98,6 +99,12 @@ export const sceneDuration = (scene: SceneId): number => {
   }
   return last.from + last.durationInFrames + SCENES[scene].hold + (isLast(scene) ? 0 : TRANSITION_FRAMES);
 };
+
+/**
+ * Frames of the Blender laptop render the "meet" scene plays, one per scene frame. promo/blender/render.sh reads this
+ * through scripts/laptop-frames.ts, so a new voiceover take changes the render length too.
+ */
+export const laptopFrames = (): number => sceneDuration("meet");
 
 export const totalDuration = (): number =>
   SCENE_ORDER.reduce((sum, scene) => sum + sceneDuration(scene), 0) - TRANSITION_FRAMES * (SCENE_ORDER.length - 1);
