@@ -230,7 +230,7 @@ public func speakerReviewRequest(
         "required":["adlar","birlestirmeler","supheliler"],"additionalProperties":false}
         """,
         timeoutSec: 300,
-        images: []
+        images: [], webSearch: nil
     )
 }
 

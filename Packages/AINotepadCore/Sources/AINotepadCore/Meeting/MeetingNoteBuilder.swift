@@ -108,7 +108,7 @@ public func meetingNoteRequest(
         maxTokens: 16000,
         jsonSchema: meetingNoteSchema,
         timeoutSec: 300,
-        images: screens
+        images: screens, webSearch: nil
     )
 }
 

@@ -69,6 +69,15 @@ export const dataHandling: DataHandlingCopy = {
       policySection: "providers",
     },
     {
+      id: "web-search",
+      data: "Web search in Ask (on by default; you can turn it off): the short search query Claude writes from your question",
+      where:
+        "Only when a question needs information that isn't in your meetings: sent through our server to Anthropic, which runs the search with its web search provider (up to 3 searches per answer, 100 a month). Only the query reaches the search provider. The pages Claude cites are listed with the answer.",
+      stored: "Not by us: our server doesn't store or log the query or the results and records only the number of searches.",
+      retention: "Anthropic deletes it within 30 days; the search provider handles it under Anthropic's terms",
+      policySection: "meetings",
+    },
+    {
       id: "on-device",
       data: "Notes, transcripts, recordings, screen snapshots, and the people and terms you add",
       where: "In the app's folder on your Mac, or on your iPhone once the iPhone app is available on the App Store.",

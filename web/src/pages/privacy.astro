@@ -183,6 +183,17 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         does not store or log this text; it records only the number of tokens used.
       </li>
       <li>
+        <strong>Web search in Ask (on by default).</strong> When a question on the Ask page needs information that isn't in
+        your meetings (for example current facts, definitions, products or prices), Claude may search the web up to 3 times
+        for that answer. The search query, which Claude writes from your question and which may contain words from it or
+        from the meeting passages Ask read, is sent through our server to Anthropic, which runs the search with its web
+        search provider and gives the results back to Claude. Only the query goes to the search provider, not your meetings.
+        Our server does not store or log the query or the results; it counts the searches (at most 100 per account a
+        month). The answer lists the web pages it used, and you open them in your browser yourself. You can turn this off
+        with “Allow web search in Ask” (Mac: Settings › General; iPhone: on the Ask tab); with it off, Ask never searches
+        the web. The Mac app with your own Anthropic key offers the same setting and sends the query straight to Anthropic.
+      </li>
+      <li>
         <strong>Screen snapshots in notes (Mac app, off by default).</strong> If you also turn on “Use screen snapshots in
         notes” in Settings › General, then when a note is written the app picks up to 6 of the meeting's shared-screen
         snapshots (the ones talked about most, leaving out any you unticked on the meeting's Screens tab), downscales them
@@ -488,7 +499,9 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       </li>
       <li>
         <strong>Feature of each AI request.</strong> Every AI request says which feature it is for (for example live
-        translation, meeting notes or Ask). We keep daily token totals per feature, which are not linked to any account.
+        translation, meeting notes or Ask). We keep daily token totals per feature, and the number of web searches made for
+        Ask answers, which are not linked to any account. To apply the monthly web search limit we also count each
+        account's web searches in its monthly usage (no queries).
       </li>
     </ul>
     <p>
@@ -655,7 +668,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
             <td>
               The relevant parts of meeting transcripts and notes, your questions, the participant names and terms you add,
               meeting titles and the attendee names of linked calendar events, tasks and Linear's or Jira's replies when you
-              create issues there, notes you translate to share or turn into a follow-up email, and, if you turn on “Use screen snapshots in notes”, up to 6 downscaled shared-screen snapshots per note and up to 3 per Ask answer
+              create issues there, notes you translate to share or turn into a follow-up email, and, if you turn on “Use screen snapshots in notes”, up to 6 downscaled shared-screen snapshots per note and up to 3 per Ask answer; with web search in Ask on, the search queries Claude writes from your questions, which Anthropic sends to its web search provider
             </td>
             <td>
               Stored in the USA; the model may run in other countries where Anthropic operates. Standard Contractual

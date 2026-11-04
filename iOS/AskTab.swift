@@ -94,7 +94,7 @@ final class PhoneAsk {
         if let reason = hostedAskUnavailableReason(account: HostedAccount.shared) {
             exchanges.append(ArchiveExchange(
                 id: UUID(), question: trimmed, scopeMeetingIDs: meetingIDs, scopeTitles: [], recipeTitle: recipeTitle, startedAt: Date(),
-                phase: .failed(reason), terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: []), finishedAt: Date()
+                phase: .failed(reason), terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: [], webSources: []), webQueries: [], webSearchCapReached: false, finishedAt: Date()
             ))
             return
         }
@@ -108,17 +108,18 @@ final class PhoneAsk {
             // Etiketli toplantı silinmişse soru tüm arşive genişletilmez; soru ve neden sohbette görünür.
             exchanges.append(ArchiveExchange(
                 id: id, question: trimmed, scopeMeetingIDs: meetingIDs, scopeTitles: [], recipeTitle: recipeTitle, startedAt: Date(),
-                phase: .failed(userFacingMessage(error: error)), terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: []), finishedAt: Date()
+                phase: .failed(userFacingMessage(error: error)), terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: [], webSources: []), webQueries: [], webSearchCapReached: false, finishedAt: Date()
             ))
             return
         }
         exchanges.append(ArchiveExchange(
             id: id, question: trimmed, scopeMeetingIDs: scoped.map(\.id), scopeTitles: scoped.map { $0.note?.title ?? $0.title }, recipeTitle: recipeTitle, startedAt: Date(), phase: .understanding,
-            terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: []), finishedAt: nil
+            terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: [], webSources: []), webQueries: [], webSearchCapReached: false, finishedAt: nil
         ))
         isAnswering = true
         let records: [MeetingRecord] = store.meetings
         let userName: String = store.userName
+        let webSearch: Bool = askWebSearchAllowed(defaults: UserDefaults.standard)
         task = Task { [weak self] in
             do {
                 let provider: LLMProvider = try phoneAccountLLMProvider()
@@ -129,13 +130,13 @@ final class PhoneAsk {
                 if scoped.isEmpty {
                     _ = try await askArchive(
                         question: trimmed, history: history, records: records, userName: userName, language: phoneNoteLanguage(), llm: provider,
-                        maxChars: noteLimits(provider: provider).archiveChars, screens: .off, now: Date(), onProgress: onProgress
+                        maxChars: noteLimits(provider: provider).archiveChars, screens: .off, webSearch: webSearch, now: Date(), onProgress: onProgress
                     )
                 } else {
                     _ = try await askAboutMeetings(
                         question: trimmed, history: history, records: scoped, userName: userName, language: phoneNoteLanguage(), llm: provider,
                         maxChars: noteLimits(provider: provider).archiveChars,
-                        screens: .off, now: Date(), onProgress: onProgress
+                        screens: .off, webSearch: webSearch, now: Date(), onProgress: onProgress
                     )
                 }
                 self?.finish(id: id, phase: .done)
@@ -154,6 +155,20 @@ final class PhoneAsk {
     /// Akan cevabı durdurur; o ana kadar yazılan kalır.
     func stop() {
         task?.cancel()
+    }
+
+    /// Son soruyu (bitmiş, durdurulmuş ya da hatalı) aynı kapsam ve tarifle yeniden sorar; eski cevabın yerini yenisi
+    /// alır. Soru gönderilemezse (abonelik ekranı açıldı) eski cevap yerinde kalır.
+    func regenerate() {
+        guard let last = regeneratableExchange(exchanges: exchanges) else {
+            return
+        }
+        exchanges.removeLast()
+        let remaining: Int = exchanges.count
+        ask(question: last.question, meetingIDs: last.scopeMeetingIDs, recipeTitle: last.recipeTitle)
+        if exchanges.count == remaining {
+            exchanges.append(last)
+        }
     }
 
     /// Sohbeti temizler (yeni konu: önceki cevaplar bağlam olmaz); önceki sohbet geçmişte kalır.
@@ -242,18 +257,7 @@ final class PhoneAsk {
 
     private func apply(progress: ArchiveProgress, id: UUID) {
         update(id: id) { (exchange: inout ArchiveExchange) -> Void in
-            switch progress {
-            case .searchTerms(let terms):
-                exchange.terms = terms
-                exchange.phase = .searching
-            case .passages(let passages):
-                exchange.passages = passages
-            case .screens(let count):
-                exchange.screens = count
-                exchange.phase = .writing
-            case .answer(let answer):
-                exchange.answer = answer
-            }
+            exchange = applying(progress: progress, to: exchange)
         }
     }
 
@@ -320,6 +324,7 @@ struct AskTab: View {
                                 recent
                             }
                             examplesSection
+                            AskWebSearchToggle()
                         }
                         .padding(16)
                         // Son örnek kart soru alanına yapışmasın: alanın üstündeki dokunuş karta değil boşluğa düşer.
@@ -532,6 +537,8 @@ private struct AskConversationView: View {
     let router: PhoneRouter
 
     private let bottomID: String = "ask-bottom"
+    /// Sohbetin sonu görünüyor: akan cevap izlenir; yukarı kaydırınca izleme durur, "sona git" düğmesi çıkar.
+    @State private var isFollowingAnswer: Bool = true
 
     var body: some View {
         ScrollViewReader { (proxy: ScrollViewProxy) in
@@ -539,11 +546,16 @@ private struct AskConversationView: View {
                 VStack(alignment: .leading, spacing: 28) {
                     PhoneErrorList(messages: [ask.historyError, ask.recipeError].compactMap { $0 })
                     ForEach(ask.exchanges) { (exchange: ArchiveExchange) in
-                        ExchangeView(exchange: exchange) { (passage: ArchivePassage) -> Void in
-                            router.open(meetingID: passage.meetingID)
-                        } onSaveRecipe: { (question: String) -> Void in
-                            ask.saveRecipe(question: question)
-                        }
+                        ExchangeView(
+                            exchange: exchange,
+                            onOpen: { (passage: ArchivePassage) -> Void in
+                                router.open(meetingID: passage.meetingID)
+                            },
+                            onSaveRecipe: { (question: String) -> Void in
+                                ask.saveRecipe(question: question)
+                            },
+                            onRegenerate: exchange.id == ask.exchanges.last?.id ? { @MainActor () -> Void in ask.regenerate() } : nil
+                        )
                         .id(exchange.id)
                     }
                     Color.clear.frame(height: 1).id(bottomID)
@@ -551,6 +563,21 @@ private struct AskConversationView: View {
                 .padding(16)
             }
             .scrollDismissesKeyboard(.interactively)
+            .onScrollGeometryChange(for: Bool.self) { (geometry: ScrollGeometry) -> Bool in
+                isNearScrollBottom(geometry: geometry)
+            } action: { (_: Bool, near: Bool) in
+                isFollowingAnswer = near
+            }
+            .overlay(alignment: .bottom) {
+                if !isFollowingAnswer, !ask.exchanges.isEmpty {
+                    JumpToLatestButton {
+                        withAnimation(.smooth(duration: 0.3)) { proxy.scrollTo(bottomID, anchor: .bottom) }
+                    }
+                    .padding(.bottom, 8)
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                }
+            }
+            .animation(.smooth(duration: 0.2), value: isFollowingAnswer)
             .onChange(of: ask.exchanges.last?.id) { (_: UUID?, id: UUID?) in
                 // Yeni devam sorusu: sorusu ekranın üstüne gelir, cevap altına akar.
                 if ask.isAnswering, let id {
@@ -558,7 +585,8 @@ private struct AskConversationView: View {
                 }
             }
             .onChange(of: ask.exchanges.last?.answer.text) { (_: String?, _: String?) in
-                if ask.isAnswering {
+                // Kullanıcı yukarı kaydırıp okuyorsa akan cevap onu aşağı çekmez.
+                if ask.isAnswering, isFollowingAnswer {
                     proxy.scrollTo(bottomID, anchor: .bottom)
                 }
             }
@@ -851,5 +879,27 @@ private struct AskHistoryList: View {
         .navigationTitle("Geçmiş")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
+    }
+}
+
+/// "Sor'da web aramasına izin ver" (kısa açıklamalı): toplantılarda olmayan bilgi için cevap başına en çok 3 web araması.
+private struct AskWebSearchToggle: View {
+    @AppStorage(askWebSearchSettingKey) private var isEnabled: Bool = true
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Toggle(isOn: $isEnabled) {
+                Label("Sor'da web aramasına izin ver", systemImage: "globe")
+                    .appFont(size: 15, weight: .medium)
+                    .foregroundStyle(Theme.ink)
+            }
+            Text("Toplantılarda olmayan bilgi için cevap başına en çok 3 arama; sorgu Anthropic üzerinden arama sağlayıcısına gider.")
+                .appFont(size: 12, weight: .regular)
+                .foregroundStyle(Theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(14)
+        .background(Theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Theme.line))
     }
 }

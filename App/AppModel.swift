@@ -2665,16 +2665,17 @@ final class AppModel {
             Self.logger.error("Etiketli toplantı bulunamadı, hata: \(String(describing: error), privacy: .private)")
             archiveExchanges.append(ArchiveExchange(
                 id: id, question: trimmed, scopeMeetingIDs: meetingIDs, scopeTitles: [], recipeTitle: recipeTitle, startedAt: Date(),
-                phase: .failed(userFacingMessage(error: error)), terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: []), finishedAt: Date()
+                phase: .failed(userFacingMessage(error: error)), terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: [], webSources: []), webQueries: [], webSearchCapReached: false, finishedAt: Date()
             ))
             return
         }
         archiveExchanges.append(ArchiveExchange(
             id: id, question: trimmed, scopeMeetingIDs: scoped.map(\.id), scopeTitles: scoped.map { $0.note?.title ?? $0.title }, recipeTitle: recipeTitle, startedAt: Date(), phase: .understanding,
-            terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: []), finishedAt: nil
+            terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: [], webSources: []), webQueries: [], webSearchCapReached: false, finishedAt: nil
         ))
         let records: [MeetingRecord] = meetings
         let userName: String = self.userName
+        let webSearch: Bool = askWebSearchAllowed(defaults: UserDefaults.standard)
         archiveTask = Task { [weak self] in
             do {
                 // Model kapandıysa soru da biter.
@@ -2690,13 +2691,13 @@ final class AppModel {
                     let readable: OnDeviceReadableRecords = try onDeviceAskableArchive(records: records, provider: provider, outputLanguage: selectedNoteLanguage())
                     _ = try await AINotepadCore.askArchive(
                         question: trimmed, history: history, records: readable.records, userName: userName, language: selectedNoteLanguage(), llm: provider,
-                        maxChars: noteLimits(provider: provider).archiveChars, screens: screens, now: Date(), onProgress: onProgress
+                        maxChars: noteLimits(provider: provider).archiveChars, screens: screens, webSearch: webSearch, now: Date(), onProgress: onProgress
                     )
                 } else {
                     try requireOnDeviceLanguages(provider: provider, meetingLanguages: scoped.compactMap(\.language), outputLanguage: selectedNoteLanguage())
                     _ = try await askAboutMeetings(
                         question: trimmed, history: history, records: scoped, userName: userName, language: selectedNoteLanguage(), llm: provider,
-                        maxChars: noteLimits(provider: provider).archiveChars, screens: screens, now: Date(),
+                        maxChars: noteLimits(provider: provider).archiveChars, screens: screens, webSearch: webSearch, now: Date(),
                         onProgress: onProgress
                     )
                 }
@@ -2770,6 +2771,20 @@ final class AppModel {
     /// Akan cevabı durdurur; o ana kadar yazılan kalır.
     func stopArchiveAnswer() {
         archiveTask?.cancel()
+    }
+
+    /// Son soruyu (bitmiş, durdurulmuş ya da hatalı) aynı kapsam ve tarifle yeniden sorar; eski cevabın yerini yenisi alır.
+    func regenerateLastAnswer() {
+        guard let last = regeneratableExchange(exchanges: archiveExchanges) else {
+            return
+        }
+        archiveExchanges.removeLast()
+        let remaining: Int = archiveExchanges.count
+        askArchive(question: last.question, meetingIDs: last.scopeMeetingIDs, recipeTitle: last.recipeTitle)
+        // Soru gönderilemediyse (abonelik teklifi açıldı) eski cevap yerinde kalır.
+        if archiveExchanges.count == remaining {
+            archiveExchanges.append(last)
+        }
     }
 
     /// Sohbeti temizler (yeni konu: önceki cevaplar bağlam olmaz); önceki sohbet geçmişte kalır.
@@ -2867,18 +2882,7 @@ final class AppModel {
     /// Ajanın adımını soruya yazar.
     private func apply(progress: ArchiveProgress, id: UUID) {
         updateExchange(id: id) { (exchange: inout ArchiveExchange) -> Void in
-            switch progress {
-            case .searchTerms(let terms):
-                exchange.terms = terms
-                exchange.phase = .searching
-            case .passages(let passages):
-                exchange.passages = passages
-            case .screens(let count):
-                exchange.screens = count
-                exchange.phase = .writing
-            case .answer(let answer):
-                exchange.answer = answer
-            }
+            exchange = applying(progress: progress, to: exchange)
         }
     }
 

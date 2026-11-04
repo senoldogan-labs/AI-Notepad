@@ -28,6 +28,8 @@ struct AskPage: View {
     @State private var isFocused: Bool = false
     /// Arttıkça soru alanı odağı alır.
     @State private var focusRequest: Int = 0
+    /// Sohbetin sonu görünüyor: akan cevap izlenir; kullanıcı yukarı kaydırınca izleme durur, "sona git" düğmesi çıkar.
+    @State private var isFollowingAnswer: Bool = true
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
     /// Soldaki sohbet geçmişi sütunu açık (düğmesi pencerenin üst çubuğunda).
     @AppStorage(SettingsKey.askHistoryVisible) private var isShowingHistory: Bool = false
@@ -83,12 +85,17 @@ struct AskPage: View {
                             }
                         }
                         ForEach(model.archiveExchanges) { (exchange: ArchiveExchange) in
-                            ExchangeView(exchange: exchange) { (passage: ArchivePassage) -> Void in
-                                router.selectedMeetingID = passage.meetingID
-                                router.section = .meetings
-                            } onSaveRecipe: { (question: String) -> Void in
-                                model.saveRecipe(question: question)
-                            }
+                            ExchangeView(
+                                exchange: exchange,
+                                onOpen: { (passage: ArchivePassage) -> Void in
+                                    router.selectedMeetingID = passage.meetingID
+                                    router.section = .meetings
+                                },
+                                onSaveRecipe: { (question: String) -> Void in
+                                    model.saveRecipe(question: question)
+                                },
+                                onRegenerate: regenerateAction(exchange: exchange)
+                            )
                             .id(exchange.id)
                             .transition(.opacity.combined(with: .offset(y: 12)))
                         }
@@ -102,12 +109,28 @@ struct AskPage: View {
                     .frame(maxWidth: .infinity)
                 }
                 .scrollIndicators(.hidden)
-                // Cevap akarken alt kenar izlenir (yeni satırlar görünür kalsın).
+                .onScrollGeometryChange(for: Bool.self) { (geometry: ScrollGeometry) -> Bool in
+                    isNearScrollBottom(geometry: geometry)
+                } action: { (_: Bool, near: Bool) in
+                    isFollowingAnswer = near
+                }
+                // Cevap akarken alt kenar izlenir (yeni satırlar görünür kalsın); kullanıcı yukarı kaydırıp okuyorsa izlenmez.
                 .onChange(of: model.archiveExchanges.last?.answer.text) { (_: String?, _: String?) in
-                    if model.isAnsweringArchive {
+                    if model.isAnsweringArchive, isFollowingAnswer {
                         proxy.scrollTo(bottomID, anchor: .bottom)
                     }
                 }
+                .overlay(alignment: .bottom) {
+                    // Yukarı kaydırılmışken sohbetin sonuna dönüş (cevap akarken de).
+                    if !isFollowingAnswer, !model.archiveExchanges.isEmpty {
+                        JumpToLatestButton {
+                            withAnimation(.smooth(duration: 0.3)) { proxy.scrollTo(bottomID, anchor: .bottom) }
+                        }
+                        .padding(.bottom, 10)
+                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                    }
+                }
+                .animation(.smooth(duration: 0.2), value: isFollowingAnswer)
                 .onChange(of: model.archiveExchanges.last?.id) { (_: UUID?, last: UUID?) in
                     if let last {
                         withAnimation(.smooth(duration: 0.35)) { proxy.scrollTo(last, anchor: .top) }
@@ -160,6 +183,15 @@ struct AskPage: View {
     }
 
     private let bottomID: String = "ask-bottom"
+
+    /// Sohbetin son sorusunda "Yeniden oluştur" / "Tekrar dene": aynı soru aynı kapsamla yeniden sorulur; diğer sorularda
+    /// ve Sor kullanılamıyorken yok.
+    private func regenerateAction(exchange: ArchiveExchange) -> (@MainActor () -> Void)? {
+        guard exchange.id == model.archiveExchanges.last?.id, unavailableReason == nil else {
+            return nil
+        }
+        return { model.regenerateLastAnswer() }
+    }
 
     /// Sor şu an kullanılamıyorsa nedeni (sunucu çağrılmadan): abonelikte denemesi henüz başlamamış hesap toplantı dışı
     /// yapay zekâyı kullanamaz (sunucu `trial_not_started` derdi).

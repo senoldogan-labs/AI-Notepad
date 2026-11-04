@@ -58,6 +58,16 @@ public struct LLMImage: Sendable, Equatable {
     }
 }
 
+/// Sor cevabında modelin kullanabileceği web araması (Anthropic'in sunucu tarafı `web_search` aracı): en çok `maxUses`
+/// arama. Yalnız Claude (kendi anahtarla) ve abonelik sunucusu destekler (bkz. `supportsWebSearch`).
+public struct LLMWebSearch: Sendable, Equatable {
+    public let maxUses: Int
+
+    public init(maxUses: Int) {
+        self.maxUses = maxUses
+    }
+}
+
 /// Tek turlu LLM isteği; sağlayıcıdan bağımsız.
 public struct LLMRequest: Sendable, Equatable {
     /// İsteğin özelliği (abonelik sunucusunda token kullanımının kovası).
@@ -73,9 +83,12 @@ public struct LLMRequest: Sendable, Equatable {
     /// Images sent before `userText` (only the Gistsmith server takes them; other providers reject a request with
     /// images, see `requireNoImages`).
     public let images: [LLMImage]
+    /// Web araması (yalnız Sor cevabı); nil ise araç sunulmaz.
+    public let webSearch: LLMWebSearch?
 
     public init(
-        purpose: LLMPurpose, tier: LLMTier, system: String, userText: String, maxTokens: Int, jsonSchema: String?, timeoutSec: Double, images: [LLMImage]
+        purpose: LLMPurpose, tier: LLMTier, system: String, userText: String, maxTokens: Int, jsonSchema: String?, timeoutSec: Double, images: [LLMImage],
+        webSearch: LLMWebSearch?
     ) {
         self.purpose = purpose
         self.tier = tier
@@ -85,6 +98,7 @@ public struct LLMRequest: Sendable, Equatable {
         self.jsonSchema = jsonSchema
         self.timeoutSec = timeoutSec
         self.images = images
+        self.webSearch = webSearch
     }
 }
 
@@ -235,9 +249,11 @@ public func sendLLM(provider: LLMProvider, request: LLMRequest) async throws -> 
         return try await sendPreparedLLM(call: try prepareClaudeCall(config: config, request: request))
     case .openAICompatible(let config):
         try requireNoImages(request: request, provider: "OpenAI-compatible")
+        try requireNoWebSearch(request: request, provider: "OpenAI-compatible")
         return try await sendPreparedLLM(call: try prepareOpenAICall(config: config, request: request))
     case .onDevice(let config):
         try requireNoImages(request: request, provider: "Apple Intelligence")
+        try requireNoWebSearch(request: request, provider: "Apple Intelligence")
         guard #available(macOS 26.0, *) else {
             throw OnDeviceLLMError.unavailable(reason: .requiresNewerSystem)
         }
@@ -254,7 +270,7 @@ public func sendLLM(provider: LLMProvider, request: LLMRequest) async throws -> 
 /// Abonelik sunucusuna yapay zekâ çağrısı (tek istek ya da akış): erişim jetonu süresinden önce reddedilirse (401; ör.
 /// sunucu anahtarı döndü) bir kez yenilenip `operation` yeniden çalıştırılır. Abonelik gerektiren ret (deneme bitti vb.)
 /// ilk denemede de yeniden denemede de uygulamaya teklifi gösterttirir, sonra fırlatılır.
-func withHostedTokenRefresh(config: HostedLLMConfig, operation: () async throws -> String) async throws -> String {
+func withHostedTokenRefresh<Value: Sendable>(config: HostedLLMConfig, operation: () async throws -> Value) async throws -> Value {
     do {
         do {
             return try await operation()

@@ -88,7 +88,7 @@ public func translationRequest(sentence: String, context: [String], language: Sh
         maxTokens: 1024,
         jsonSchema: translationSchema,
         timeoutSec: 20,
-        images: []
+        images: [], webSearch: nil
     )
 }
 
@@ -148,7 +148,7 @@ public func missedSummaryRequest(segments: [LiveSegment], nowSec: Double, window
         "additionalProperties":false}
         """,
         timeoutSec: 120,
-        images: []
+        images: [], webSearch: nil
     )
 }
 
@@ -189,7 +189,7 @@ public func questionRequest(segments: [LiveSegment], question: String, language:
         maxTokens: 16000,
         jsonSchema: nil,
         timeoutSec: 120,
-        images: []
+        images: [], webSearch: nil
     )
 }
 
