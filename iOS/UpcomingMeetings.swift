@@ -35,7 +35,7 @@ struct UpcomingCalendarSection: View {
                         }
                         if !ended.isEmpty {
                             group(title: "Bugün biten toplantılar", meetings: Array(ended.prefix(4))) { (meeting: CalendarMeeting) in
-                                EndedMeetingRow(meeting: meeting, record: recordedMeeting(meeting: meeting, records: store.meetings)) { (meetingID: String) -> Void in
+                                EndedMeetingRow(meeting: meeting, record: recordedMeeting(meeting: meeting, records: store.meetings), userName: store.userName) { (meetingID: String) -> Void in
                                     router.open(meetingID: meetingID)
                                 }
                             }
@@ -85,6 +85,8 @@ private struct EndedMeetingRow: View {
     let meeting: CalendarMeeting
     /// Etkinliğin kaydı (bkz. `recordedMeeting`); yoksa nil.
     let record: MeetingRecord?
+    /// Yüklü hesabın adı (özetteki "Sen" etiketi için; bkz. `PhoneStore.userName`).
+    let userName: String
     let onOpen: @MainActor (String) -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
@@ -92,7 +94,7 @@ private struct EndedMeetingRow: View {
         let format: Date.FormatStyle = Date.FormatStyle(date: .omitted, time: .shortened).locale(interfaceLocale())
         let time: String = meeting.start.formatted(format) + "–" + meeting.end.formatted(format)
         // Özetteki konuşmacı etiketleri adlarla (notun kendisindeki gibi).
-        let summary: String? = record.map { namedRecord(record: $0, userName: phoneUserName()) }?.note?.summary
+        let summary: String? = record.map { namedRecord(record: $0, userName: userName) }?.note?.summary
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(verbatim: time)

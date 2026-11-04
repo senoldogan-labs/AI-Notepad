@@ -74,7 +74,7 @@ public final class MicrophoneCapture {
         // Oturum beklenirken `stop()` çağrılırsa (sayaç artar) başlatma yarıda kalır: `stop()` akışı bitirdi ve oturumu
         // bıraktı; motor, gözlemciler ve bekçi kurulmaz, kurulsaydı mikrofon kayıt bittikten sonra da açık kalırdı.
         do {
-            try await activateRecordingSession()
+            try await activateRecordingSessionForStart()
         } catch {
             if generation == restartGeneration {
                 continuation.finish()
@@ -175,7 +175,12 @@ public final class MicrophoneCapture {
         ) { [weak self] (notification: Notification) -> Void in
             let rawType: UInt? = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt
             let type: AVAudioSession.InterruptionType? = rawType.flatMap(AVAudioSession.InterruptionType.init(rawValue:))
+            let rawReason: UInt = notification.userInfo?[AVAudioSessionInterruptionReasonKey] as? UInt ?? 0
+            let rawOptions: UInt = notification.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0
             Task { @MainActor in
+                // Teşhis: kesintinin türü, nedeni ve uygulamanın o anki durumu (arka planda kesilen kayıt ancak karışabilir
+                // oturumla arka planda yeniden açılabilir).
+                Self.logger.info("Ses oturumu kesinti bildirimi, tür: \(rawType.map(String.init) ?? "yok", privacy: .public), neden: \(rawReason, privacy: .public), sürdür: \(rawOptions & AVAudioSession.InterruptionOptions.shouldResume.rawValue != 0, privacy: .public), uygulama: \(applicationStateName(), privacy: .public)")
                 switch type {
                 case .began:
                     self?.setStatus(.interrupted)
@@ -190,10 +195,7 @@ public final class MicrophoneCapture {
             forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main
         ) { [weak self] (_: Notification) -> Void in
             Task { @MainActor in
-                guard self?.status == .interrupted else {
-                    return
-                }
-                await self?.resumeAfterInterruption()
+                await self?.recoverOnActivation()
             }
         }
         mediaResetObserver = NotificationCenter.default.addObserver(
@@ -214,10 +216,28 @@ public final class MicrophoneCapture {
         do {
             try await activateRecordingSession()
         } catch {
-            Self.logger.error("Kesinti sonrası ses oturumu açılamadı, kesinti sürüyor sayılıyor, hata: \(String(describing: error), privacy: .private)")
+            Self.logger.error("Kesinti sonrası ses oturumu açılamadı, kesinti sürüyor sayılıyor, kod: \(audioSessionErrorCode(error: error), privacy: .public), uygulama: \(applicationStateName(), privacy: .public), hata: \(String(describing: error), privacy: .private)")
             return
         }
         await restartEngine(reason: .interruptionEnded)
+    }
+
+    /// Uygulama öne geldi: kesinti sürüyorsa (VoIP uygulamaları kesinti bitişini her zaman bildirmez) ya da motor arka
+    /// planda yeniden kurulamadıysa beklemeden yeniden denenir; kullanıcı dönünce kayıt hemen ses almaya başlar.
+    private func recoverOnActivation() async {
+        switch status {
+        case .running:
+            return
+        case .interrupted:
+            Self.logger.info("Uygulama öne geldi, kesinti sürüyordu, mikrofon yeniden açılıyor")
+            await resumeAfterInterruption()
+        case .reconnecting(let reason):
+            guard !isRestarting else {
+                return
+            }
+            Self.logger.info("Uygulama öne geldi, mikrofon yeniden bağlanıyordu, hemen yeniden deneniyor, neden: \(reason.rawValue, privacy: .public)")
+            await restartEngine(reason: reason)
+        }
     }
 
     /// Ses servisleri sıfırlandı: eski motor kullanılamaz; yenisi kurulur ve izlenir.
@@ -271,15 +291,42 @@ public final class MicrophoneCapture {
         await restartEngine(reason: reason)
     }
 
-    /// Kayıt için ses oturumu: odadaki konuşmayı yerleşik mikrofonla alır; kayıt arka planda ve ekran kilitliyken sürer
-    /// (Info.plist'te `audio` arka plan modu). Bluetooth kulaklık yalnızca çalma için (A2DP) kullanılır; kulaklık
+    /// Kayıt başlarken ses oturumu: odadaki konuşmayı yerleşik mikrofonla alır; kayıt arka planda ve ekran kilitliyken
+    /// sürer (Info.plist'te `audio` arka plan modu). Bluetooth kulaklık yalnızca çalma için (A2DP) kullanılır; kulaklık
     /// mikrofonu (HFP) sesi 16 kHz dar banda düşürdüğü için seçilmez.
+    ///
+    /// Önce karışmayan oturum açılır: çalan müzik ya da podcast durur, toplantı kaydına karışmaz. Açıldıktan sonra
+    /// oturum karışabilir yapılır (`recordingSessionOptions`): başka bir uygulamanın sesi (video, sesli mesaj) kaydı
+    /// kesmez ve kesinti sonrası oturum arka planda yeniden açılabilir (iOS karışmayan oturumun arka planda açılmasını
+    /// `cannotInterruptOthers` ile reddeder: kesilen kayıt arka planda bir daha ses almaz, uygulama askıya alınır). Gelen
+    /// aramanın zil ve bildirimi kaydı kesmez; yalnızca arama kabul edilince kesinti olur.
     /// Oturum değişikliği ana iş parçacığında değil `AudioSessionQueue`'da yapılır (sistem servisini beklerken arayüz
     /// donmasın).
-    private func activateRecordingSession() async throws {
+    private func activateRecordingSessionForStart() async throws {
         do {
             try await AudioSessionQueue.perform { (session: AVAudioSession) throws -> Void in
                 try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetoothA2DP])
+                try session.setActive(true)
+                try session.setCategory(.playAndRecord, mode: .default, options: recordingSessionOptions)
+                do {
+                    try session.setPrefersNoInterruptionsFromSystemAlerts(true)
+                } catch {
+                    // Yalnız tercih: açılmazsa gelen arama zili kaydı keser, kesinti bitince kayıt kendiliğinden sürer.
+                    Self.logger.warning("Ses oturumunda sistem uyarısı tercihi ayarlanamadı, kod: \(audioSessionErrorCode(error: error), privacy: .public)")
+                }
+            }
+        } catch {
+            Self.logger.error("Kayıt ses oturumu açılamadı, kod: \(audioSessionErrorCode(error: error), privacy: .public), uygulama: \(applicationStateName(), privacy: .public)")
+            throw AudioCaptureError.microphoneStartFailed(code: Int32((error as NSError).code))
+        }
+    }
+
+    /// Kesinti, takılma ya da ses servisleri sıfırlanınca oturum yeniden açılır: karışabilir oturum (bkz.
+    /// `activateRecordingSessionForStart`) uygulama arka plandayken de açılabilir; açıkken yeniden açmak zararsız.
+    private func activateRecordingSession() async throws {
+        do {
+            try await AudioSessionQueue.perform { (session: AVAudioSession) throws -> Void in
+                try session.setCategory(.playAndRecord, mode: .default, options: recordingSessionOptions)
                 try session.setActive(true)
             }
         } catch {
@@ -386,7 +433,11 @@ public final class MicrophoneCapture {
                     try self.startEngine(continuation: continuation)
                 },
                 onFailure: { (attempt: Int, error: any Error) -> Void in
+                    #if os(iOS)
+                    Self.logger.warning("Mikrofon yeniden başlatılamadı, neden: \(reason.rawValue, privacy: .public), deneme \(attempt, privacy: .public), kod: \(audioSessionErrorCode(error: error), privacy: .public), uygulama: \(applicationStateName(), privacy: .public): \(String(describing: error), privacy: .private)")
+                    #else
                     Self.logger.warning("Mikrofon yeniden başlatılamadı, neden: \(reason.rawValue, privacy: .public), deneme \(attempt, privacy: .public): \(String(describing: error), privacy: .private)")
+                    #endif
                 }
             )
             guard generation == restartGeneration, continuation != nil else {
@@ -446,6 +497,31 @@ final class AudioHeartbeat: Sendable {
         return seconds(of: now - lastBeat)
     }
 }
+
+#if os(iOS)
+/// Kayıt sürerken ses oturumunun seçenekleri: hoparlör, yalnız çalma için Bluetooth ve karışabilirlik (bkz.
+/// `MicrophoneCapture.activateRecordingSessionForStart`).
+private let recordingSessionOptions: AVAudioSession.CategoryOptions = [.defaultToSpeaker, .allowBluetoothA2DP, .mixWithOthers]
+
+/// Ses oturumu hatasının kodu (ör. 560557684 `!int`: karışmayan oturum arka planda açılamaz); içerik taşımaz.
+private func audioSessionErrorCode(error: any Error) -> Int {
+    if case AudioCaptureError.microphoneStartFailed(let code) = error {
+        return Int(code)
+    }
+    return (error as NSError).code
+}
+
+/// Uygulamanın durumu (loglar için): "active", "inactive" ya da "background".
+@MainActor
+private func applicationStateName() -> String {
+    switch UIApplication.shared.applicationState {
+    case .active: "active"
+    case .inactive: "inactive"
+    case .background: "background"
+    @unknown default: "unknown"
+    }
+}
+#endif
 
 /// Süreyi saniyeye çevirir. Saf fonksiyondur.
 private func seconds(of duration: Duration) -> Double {

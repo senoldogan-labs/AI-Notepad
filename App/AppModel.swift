@@ -1186,7 +1186,7 @@ final class AppModel {
         startScreenSnapshots(meetingID: directory.lastPathComponent, directory: directory, origin: origin, isInPerson: recordingInPerson)
         recordingCalendarMeeting = linkedMeeting
         relatedTasks = linkedMeeting.map { (meeting: CalendarMeeting) -> [RelatedOpenTask] in
-            relatedOpenTasks(meeting: meeting, records: meetings, userName: UserDefaults.standard.string(forKey: SettingsKey.userName) ?? "", before: startedAt)
+            relatedOpenTasks(meeting: meeting, records: meetings, userName: self.userName, before: startedAt)
         } ?? []
         startCallEndWatch()
         // Uygulama kayıt sırasında kapanırsa toplantı açılışta "yarıda kaldı" olarak bulunur.
@@ -1605,7 +1605,7 @@ final class AppModel {
         keepAwake(meetingID: record.id)
         // İlerleme kartı yalnızca kayıt sonrası işleme (adımlı) için; "Notu yenile" adım bildirmez, kart açmaz.
         processingSteps[record.id] = .convertingAudio
-        let userName: String = UserDefaults.standard.string(forKey: SettingsKey.userName) ?? ""
+        let userName: String = self.userName
         let languageMode: LanguageMode = record.language.map { LanguageMode.fixed($0) } ?? .automatic
         Task {
             let screens: ScreenNotesPlan = screenNotesPlan()
@@ -1716,8 +1716,8 @@ final class AppModel {
     private var recognitionKeyterms: [String] {
         // Kullanıcının adı ve sözlüğü öne; sınırda (30) önce toplantılardan gelenler düşer.
         AINotepadCore.recognitionKeyterms(
-            userName: UserDefaults.standard.string(forKey: SettingsKey.userName) ?? "",
-            vocabulary: UserDefaults.standard.string(forKey: SettingsKey.customVocabulary) ?? "",
+            userName: self.userName,
+            vocabulary: self.vocabulary,
             savedPeople: peopleBook.saved.map(\.name), records: Array(meetings.prefix(20)), limit: 30
         )
     }
@@ -1916,7 +1916,7 @@ final class AppModel {
         guard !isAIBlockedBySubscription() else {
             return
         }
-        let userName: String = UserDefaults.standard.string(forKey: SettingsKey.userName) ?? ""
+        let userName: String = self.userName
         withSessionDirectory(id: meetingID) { (directory: URL) -> Void in
             processingMeetingIDs.insert(meetingID)
             Task {
@@ -1972,7 +1972,7 @@ final class AppModel {
         guard let record = meetings.first(where: { $0.id == meetingID }), let note = record.note else {
             return nil
         }
-        let userName: String = UserDefaults.standard.string(forKey: SettingsKey.userName) ?? ""
+        let userName: String = self.userName
         do {
             let provider: LLMProvider = try await resolveLLMProvider()
             // Not kendi dilinde okunur, paylaşım dilinde yazılır: ikisi de cihaz içi modelde olmalı.
@@ -2011,7 +2011,7 @@ final class AppModel {
         guard !isAIBlockedBySubscription() else {
             return .subscriptionRequired
         }
-        let userName: String = UserDefaults.standard.string(forKey: SettingsKey.userName) ?? ""
+        let userName: String = self.userName
         do {
             let provider: LLMProvider = try await resolveLLMProvider()
             let draft: FollowUpEmailDraft = try await AINotepadCore.draftFollowUpEmail(
@@ -2043,7 +2043,7 @@ final class AppModel {
             return
         }
         let meetingID: String = record.id
-        let userName: String = UserDefaults.standard.string(forKey: SettingsKey.userName) ?? ""
+        let userName: String = self.userName
         withSessionDirectory(id: meetingID) { (directory: URL) -> Void in
             processingMeetingIDs.insert(meetingID)
             // Kabul edilen öneriler artık notta; bekleyen öneri yoksa inceleme kartı kapanır.
@@ -2538,7 +2538,7 @@ final class AppModel {
             terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: []), finishedAt: nil
         ))
         let records: [MeetingRecord] = meetings
-        let userName: String = UserDefaults.standard.string(forKey: SettingsKey.userName) ?? ""
+        let userName: String = self.userName
         archiveTask = Task { [weak self] in
             do {
                 // Model kapandıysa soru da biter.
@@ -2768,7 +2768,7 @@ final class AppModel {
     /// Toplantının gösterilen ve paylaşılan hali: notunda konuşmacı adları (`namedRecord`). Yalnız okumak ve göndermek
     /// için; kaydedilen her zaman `meetings`'teki saklı kayıttır (not genel etiketleri korur).
     private func shownMeeting(id: String) -> MeetingRecord? {
-        meetings.first { $0.id == id }.map { namedRecord(record: $0, userName: UserDefaults.standard.string(forKey: SettingsKey.userName) ?? "") }
+        meetings.first { $0.id == id }.map { namedRecord(record: $0, userName: self.userName) }
     }
 
     /// Görevi Apple Anımsatıcılar'a ekler; hata varsa kullanıcı metni döner.
@@ -2890,7 +2890,7 @@ final class AppModel {
     /// Yeni hedef ekler (kendiliğinden gönderim kapalı başlar; kullanıcı açar).
     @discardableResult
     func addDestination(target: DestinationTarget) async throws -> NoteDestination {
-        let destination: NoteDestination = NoteDestination(id: UUID().uuidString, target: target, autoSend: false, createdAt: Date(), needsReconnect: false)
+        let destination: NoteDestination = NoteDestination(id: UUID().uuidString, target: target, autoSend: false, createdAt: Date(), autoSendSince: nil, needsReconnect: false)
         try await destinationVault().upsert(destination)
         destinations = try await destinationVault().all()
         return destination
@@ -2906,10 +2906,10 @@ final class AppModel {
     }
 
     /// Kendiliğinden gönderimi açar ya da kapatır; kayıtlı hedefin yalnızca bu ayarı değişir (bellekteki kopya eski
-    /// jetonlar taşıyabilir).
+    /// jetonlar taşıyabilir). Açılınca yalnızca bundan sonra biten notlar kendiliğinden gider (bkz. `pendingAutoSends`).
     func setAutoSend(destinationID: String, enabled: Bool) async {
         do {
-            try await destinationVault().setAutoSend(id: destinationID, enabled: enabled)
+            try await destinationVault().setAutoSend(id: destinationID, enabled: enabled, now: Date())
             destinations = try await destinationVault().all()
         } catch {
             errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
@@ -3409,6 +3409,46 @@ final class AppModel {
     /// İşleme sürerken araca gönderilen görevler; işleme bitince kayda işlenir.
     @ObservationIgnored private var pendingTaskMarks: [String: [(tracker: TaskTracker, tasks: [NoteTask])]] = [:]
 
+    // MARK: Ad ve tanıma sözlüğü
+
+    /// Kullanıcının adı (notta "Sen" ve sana düşen görevler, Sor, konuşmacılar, takip e-postası). Abonelikte hesabındır
+    /// (bkz. `userContentDefaults`): aynı Mac'teki başka bir hesap bu adı görmez. Hesap verisi yüklenince okunur (bkz.
+    /// `loadIdentitySettings`).
+    private(set) var userName: String = ""
+    /// Kullanıcının tanıma sözlüğü (satır başına bir ad ya da terim); ad gibi saklanır.
+    private(set) var vocabulary: String = ""
+
+    /// Adı ve tanıma sözlüğünü okur (açılışta; abonelikte hesap verisi yüklenince). Okunamazsa neden gösterilir.
+    func loadIdentitySettings() {
+        do {
+            let defaults: UserDefaults = try userContentDefaults()
+            userName = defaults.string(forKey: SettingsKey.userName) ?? ""
+            vocabulary = defaults.string(forKey: SettingsKey.customVocabulary) ?? ""
+        } catch {
+            errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
+        }
+    }
+
+    /// Adı saklar; saklanamazsa neden gösterilir.
+    func setUserName(name: String) {
+        do {
+            try userContentDefaults().set(name, forKey: SettingsKey.userName)
+            userName = name
+        } catch {
+            errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
+        }
+    }
+
+    /// Tanıma sözlüğünü saklar; saklanamazsa neden gösterilir.
+    func setVocabulary(text: String) {
+        do {
+            try userContentDefaults().set(text, forKey: SettingsKey.customVocabulary)
+            vocabulary = text
+        } catch {
+            errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
+        }
+    }
+
     // MARK: Apple Notlar ve klasör
 
     /// Notun Markdown olarak yazıldığı klasör (Obsidian, iCloud Drive…); seçilmediyse boş. Abonelikte hesabındır (bkz.
@@ -3418,6 +3458,9 @@ final class AppModel {
     private(set) var markdownAutoExport: Bool = false
     /// Not hazır olunca Apple Notlar'a kendiliğinden gönderilir (bir kez).
     private(set) var appleNotesAutoSend: Bool = false
+    /// Apple Notlar'a kendiliğinden gönderimin açıldığı an: yalnızca bundan sonra biten toplantılar gider (ör. eski
+    /// bir toplantı yeniden işlenince gitmez). Eski sürümde açılmışsa nil (her biten not gider, önceki gibi).
+    private(set) var appleNotesAutoSendSince: Date?
 
     /// Dışa aktarma ayarlarını okur (açılışta; abonelikte hesap verisi yüklenince). Okunamazsa neden gösterilir.
     func loadExportSettings() {
@@ -3426,6 +3469,7 @@ final class AppModel {
             markdownFolder = defaults.string(forKey: SettingsKey.markdownFolder) ?? ""
             markdownAutoExport = defaults.bool(forKey: SettingsKey.markdownAutoExport)
             appleNotesAutoSend = defaults.bool(forKey: SettingsKey.appleNotesAutoSend)
+            appleNotesAutoSendSince = defaults.object(forKey: SettingsKey.appleNotesAutoSendSince) as? Date
         } catch {
             errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
         }
@@ -3451,11 +3495,16 @@ final class AppModel {
         }
     }
 
-    /// Apple Notlar'a kendiliğinden göndermeyi açar ya da kapatır; saklanamazsa neden gösterilir.
+    /// Apple Notlar'a kendiliğinden göndermeyi açar ya da kapatır: açılış anı saklanır (yalnızca bundan sonra biten
+    /// notlar gider), kapatılınca silinir. Saklanamazsa neden gösterilir.
     func setAppleNotesAutoSend(enabled: Bool) {
         do {
-            try userContentDefaults().set(enabled, forKey: SettingsKey.appleNotesAutoSend)
+            let defaults: UserDefaults = try userContentDefaults()
+            let since: Date? = enabled ? (appleNotesAutoSend ? appleNotesAutoSendSince : Date()) : nil
+            defaults.set(enabled, forKey: SettingsKey.appleNotesAutoSend)
+            defaults.set(since, forKey: SettingsKey.appleNotesAutoSendSince)
             appleNotesAutoSend = enabled
+            appleNotesAutoSendSince = since
         } catch {
             errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
         }
@@ -3525,7 +3574,8 @@ final class AppModel {
         if markdownAutoExport, let error = exportToFolder(meetingID: record.id) {
             errorMessages = appendUnique(messages: errorMessages, message: error)
         }
-        guard appleNotesAutoSend, record.notesSentAt == nil else {
+        guard appleNotesAutoSend, record.notesSentAt == nil,
+              isCoveredByAutoSend(finishedAt: record.endedAt ?? record.startedAt, since: appleNotesAutoSendSince) else {
             return
         }
         autoDeliveriesInFlight += 1
@@ -3696,7 +3746,7 @@ final class AppModel {
             return
         }
         let segments: [StoredSegment] = meetingSegments(record: record)
-        let userName: String = UserDefaults.standard.string(forKey: SettingsKey.userName) ?? ""
+        let userName: String = self.userName
         guard let request = speakerReviewRequest(segments: segments, speakerNames: record.speakerNames, userName: userName, attendees: record.attendees ?? [], language: selectedNoteLanguage()) else {
             return
         }
@@ -3847,8 +3897,11 @@ final class AppModel {
         loadPeople()
         #if HOSTED_EDITION
         loadFolders()
+        // Bu Mac'te silinen hesaptan kalan toplantılar varsa taşıma önerilir (bkz. `HostedDeletedMeetings`).
+        HostedDeletedMeetings.shared.refresh()
         #endif
         loadRecipes()
+        loadIdentitySettings()
         loadExportSettings()
         loadAskHistory()
         // Toplantılar arka planda okunur (büyük arşivde açılış donmasın); listeye bağlı işler okuma bitince başlar.
@@ -3928,6 +3981,24 @@ final class AppModel {
             }
         }
     }
+
+    #if HOSTED_EDITION
+    /// Bu Mac'te silinen hesabın toplantılarını giriş yapan hesaba taşır (ana penceredeki şerit ya da Ayarlar › Hesap;
+    /// bkz. `HostedDeletedMeetings`) ve listeyi yeniden okur; taşınanlar bildirilir. Hiçbir toplantı silinmez; taşınamayanın
+    /// nedeni şeritte ve Ayarlar › Hesap'ta görünür.
+    func moveDeletedAccountMeetings() {
+        guard let userID = HostedAccount.shared.signedInUserIDCache else {
+            errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: HostedClientError.notSignedIn))
+            return
+        }
+        let moved: Int = HostedDeletedMeetings.shared.moveIntoActiveAccount(userID: userID)
+        guard moved > 0 else {
+            return
+        }
+        reloadMeetings()
+        ToastCenter.shared.show(kind: .success, title: String(localized: "\(moved) toplantı bu hesaba taşındı."), detail: nil, action: nil)
+    }
+    #endif
 
     /// Toplantıları arka planda yeniden okur (iCloud değişikliği, taşıma); art arda gelen istekler birleşir.
     func reloadMeetings() {

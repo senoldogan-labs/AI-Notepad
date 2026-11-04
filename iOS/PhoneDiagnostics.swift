@@ -5,6 +5,7 @@ import EventKit
 import SwiftUI
 import UIKit
 import UserNotifications
+import os
 
 // iPhone tanılaması (Ayarlar › Uygulama › Tanılama; Mac'teki Ayarlar › Tanılama): sürüm, sistem, hesap, bağlantı,
 // izinler, canlı metin, sesinden tanıma, depolama ve son hatalar. Toplantı içeriği (ses, metin, not, başlık, ad), anahtar,
@@ -14,12 +15,24 @@ import UserNotifications
 /// Uygulamanın log alt sistemi (son hatalar buradan okunur).
 private let phoneLogSubsystem: String = "com.senoldogan.AINotepad"
 
+private let phoneDiagnosticsLogger: Logger = Logger(subsystem: phoneLogSubsystem, category: "PhoneDiagnostics")
+
 /// Sunucu erişim denetiminin zaman aşımı.
 private let phoneHealthTimeoutSec: Double = 10
 
-/// Hata mesajlarından silinecek kullanıcı adları: Ayarlar'daki ad (iPhone'da sistem kullanıcı adı anlamsız).
+/// Hata mesajlarından silinecek kullanıcı adları: yüklü hesabın Ayarlar'daki adı (hesabın ayar alanında, bkz.
+/// `PhoneStore.userName`; iPhone'da sistem kullanıcı adı anlamsız). Hesap yüklenmediyse ad da yoktur. Hesabın ayar alanı
+/// açılamazsa neden loglanır; tanılama yine gösterilir (kullanıcı kopyalamadıkça hiçbir yere gitmez).
 func diagnosticsUserNames() -> [String] {
-    [phoneUserName()]
+    guard let key = AppPaths.activeAccountKey() else {
+        return []
+    }
+    do {
+        return [try hostedAccountDefaults(accountKey: key).string(forKey: PhoneSettingsKey.userName) ?? ""]
+    } catch {
+        phoneDiagnosticsLogger.error("Tanılamada gizlenecek ad okunamadı, hata: \(String(describing: error), privacy: .private)")
+        return []
+    }
 }
 
 /// Tanılamanın ağ ve disk okumaları (ekranda ve kopyalanan metinde aynı); okunurken nil.

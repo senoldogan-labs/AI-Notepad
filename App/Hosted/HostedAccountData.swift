@@ -3,9 +3,9 @@ import Foundation
 import os
 
 // Abonelik sürümünde yerel veri hesap başınadır: her hesap yalnızca kendi toplantılarını, Sor geçmişini, kişilerini, ses
-// izlerini, klasörlerini, Sor tariflerini, notların gittiği yerleri (kanallar, Notion, webhook, Apple Notlar, Markdown
-// klasörü) ve görev araçlarını görür (bkz. AINotepadCore `AccountData.swift`). Bir süreç tek bir hesabın verisini yükler;
-// başka hesapla giriş yapılınca uygulama (kayıt ve işleme yokken) yeniden başlar.
+// izlerini, klasörlerini, Sor tariflerini, adını ve tanıma sözlüğünü, notların gittiği yerleri (kanallar, Notion, webhook,
+// Apple Notlar, Markdown klasörü) ve görev araçlarını görür (bkz. AINotepadCore `AccountData.swift`). Bir süreç tek bir
+// hesabın verisini yükler; başka hesapla giriş yapılınca uygulama (kayıt ve işleme yokken) yeniden başlar.
 
 private let accountDataLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "HostedAccountData")
 
@@ -37,7 +37,8 @@ func hostedActiveAccountKeychainService() throws -> String {
 /// Giriş yapan hesabın verisini bu süreç için hazırlar ve yükler: önceki (hesapsız) veri kimse sahiplenmediyse ya da bu
 /// hesabınsa hesaba taşınır (bekleyen kayıtlar sahiplerine; bkz. `migrateLegacyUserData`), standart ayarlardaki
 /// klasörler, Sor tarifleri ve dışa aktarma ayarları hesabın ayar alanına, Anahtar Zinciri'ndeki not hedefleri ve görev
-/// araçları hesabın servisine geçer, sonra hesap yüklenir. Taşıma başarısız olursa hata fırlar, hesap yüklenmez ve veri
+/// araçları hesabın servisine geçer; ad ve tanıma sözlüğü güncellemeden sonra ilk yüklenen hesaba bir kez geçer (bkz.
+/// `moveIdentityToAccountOnce`), sonra hesap yüklenir. Taşıma başarısız olursa hata fırlar, hesap yüklenmez ve veri
 /// yerinde kalır (hiçbir şey kaybolmaz; sonraki denemede kaldığı yerden sürer).
 func prepareHostedAccountData(userId: String) throws -> String {
     let key: String = accountDataKey(userId: userId)
@@ -49,6 +50,12 @@ func prepareHostedAccountData(userId: String) throws -> String {
         try moveLegacyUserContentSecrets(destinationService: try hostedAccountKeychainService(accountKey: key))
     case .ownedByAnotherAccount:
         break
+    }
+    // Ad ve tanıma sözlüğü güncellemeden önce bu Mac'in ortak ayarındaydı: güncellemeden sonra ilk yüklenen hesaba bir kez
+    // taşınır, sonraki hesaplar boş başlar (başka hesabın adı notlarda "Sen" olarak görünmesin).
+    let identity: IdentityMigrationResult = moveIdentityToAccountOnce(source: .standard, destination: try hostedAccountDefaults(accountKey: key))
+    if identity.ran {
+        accountDataLogger.info("Ad ve sözlük hesaba taşındı, taşınan: \(identity.moved.count, privacy: .public), yerinde kalan: \(identity.kept.count, privacy: .public)")
     }
     try AppPaths.activateAccount(key: key)
     accountDataLogger.info("Hesap verisi yüklendi, eski veri: \(String(describing: result.claim), privacy: .public), taşınan: \(result.moves.count, privacy: .public)")
@@ -102,6 +109,8 @@ private func moveLegacyUserContentSecrets(destinationService: String) throws {
 struct HostedMCPArchive {
     let accountKey: String
     let sessionsDirectory: URL
+    /// Hesabın kullanıcı adı (notlarda "Sen"; hesabın ayar alanından, bkz. `userContentDefaults`); yoksa boş.
+    let userName: String
 }
 
 /// Kayıtlı oturumun hesabının arşivi; oturum yoksa nil.
@@ -110,7 +119,10 @@ func hostedMCPArchive(bundle: Bundle) throws -> HostedMCPArchive? {
         return nil
     }
     let key: String = accountDataKey(userId: userId)
-    return HostedMCPArchive(accountKey: key, sessionsDirectory: AppPaths.accountSessionsDirectory(dataRoot: try AppPaths.applicationSupport(), accountKey: key))
+    return HostedMCPArchive(
+        accountKey: key, sessionsDirectory: AppPaths.accountSessionsDirectory(dataRoot: try AppPaths.applicationSupport(), accountKey: key),
+        userName: try hostedAccountDefaults(accountKey: key).string(forKey: SettingsKey.userName) ?? ""
+    )
 }
 
 /// MCP araç çağrısının reddi (her çağrıda oturum yeniden okunur): çıkış yapıldıysa, başka bir hesapla giriş yapıldıysa ya

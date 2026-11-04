@@ -1076,7 +1076,8 @@ final class HostedAccount {
     #endif
 
     /// Silinen hesabın yerel izleri: şimdiki toplantı, abonelik isteği, davet kodu, çevrimdışı kayıt izni, girişteki kimlik
-    /// (e-posta), profil resminin adresi ve açık oturum listesi.
+    /// (e-posta), profil resminin adresi ve açık oturum listesi. Toplantılar silinmez; hesap bu cihazda silinmiş olarak
+    /// kaydedilir (yeni hesaba taşınabilsin).
     private func clearAfterAccountDeletion(userID: String?) {
         currentMeeting = nil
         upsell = nil
@@ -1091,6 +1092,14 @@ final class HostedAccount {
             clearHostedOpenMeetingIDs(defaults: try hostedOpenMeetingsDefaults(userID: userID))
         } catch {
             accountLogger.error("Silinen hesabın açık oturum listesi temizlenemedi, hata: \(String(describing: error), privacy: .private)")
+        }
+        // Toplantılar bu cihazda kalır: hesap bu cihazda silindi diye kaydedilir, yeniden açılan hesaba taşınması önerilir
+        // (bkz. `HostedDeletedMeetings`). Kaydedilemezse neden görünür (toplantılar yine yerinde kalır).
+        do {
+            try recordDeletedAccount(dataRoot: try AppPaths.applicationSupport(), accountKey: accountDataKey(userId: userID))
+        } catch {
+            accountLogger.error("Silinen hesap bu cihazda kaydedilemedi, hata: \(String(describing: error), privacy: .private)")
+            errorMessage = userFacingMessage(error: error)
         }
     }
 

@@ -8983,6 +8983,208 @@
         }
       }
     },
+    "%lld toplantı bu hesaba taşındı.": {
+      "localizations": {
+        "de": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Meeting in diesen Account verschoben."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Meetings in diesen Account verschoben."
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld meeting moved to this account."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld meetings moved to this account."
+                }
+              }
+            }
+          }
+        },
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld reunión movida a esta cuenta."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld reuniones movidas a esta cuenta."
+                }
+              }
+            }
+          }
+        },
+        "fi": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld kokous siirrettiin tälle tilille."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld kokousta siirrettiin tälle tilille."
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld réunion déplacée vers ce compte."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld réunions déplacées vers ce compte."
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld riunione spostata in questo account."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld riunioni spostate in questo account."
+                }
+              }
+            }
+          }
+        },
+        "ja": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld件の会議をこのアカウントに移動しました。"
+                }
+              }
+            }
+          }
+        },
+        "ko": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "회의 %lld개를 이 계정으로 옮겼습니다."
+                }
+              }
+            }
+          }
+        },
+        "nl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld vergadering naar dit account verplaatst."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld vergaderingen naar dit account verplaatst."
+                }
+              }
+            }
+          }
+        },
+        "pt-BR": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld reunião movida para esta conta."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld reuniões movidas para esta conta."
+                }
+              }
+            }
+          }
+        },
+        "tr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld toplantı bu hesaba taşındı."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld toplantı bu hesaba taşındı."
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "已将 %lld 个会议移到此账户。"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld toplantı iCloud'dan iniyor…": {
       "localizations": {
         "de": {
@@ -23574,6 +23776,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "简报：%@"
+          }
+        }
+      }
+    },
+    "Bu hesaba taşı": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In diesen Account verschieben"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move to this account"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mover a esta cuenta"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Siirrä tälle tilille"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Déplacer vers ce compte"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sposta in questo account"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このアカウントに移動"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 계정으로 옮기기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verplaats naar dit account"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mover para esta conta"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移到此账户"
           }
         }
       }
@@ -49293,72 +49565,72 @@
         }
       }
     },
-    "Her toplantının notu (önce görevler, sonra kararlar ve özet) bağladığın yerlere gider; her hedefte otomatik gönderimi ayrı açabilirsin. Toplantı sayfasındaki ⋯ menüsünden elle de gönderilir. Ağ yokken kaçan gönderimler sonra kendiliğinden gider.": {
+    "Her toplantının notu (önce görevler, sonra kararlar ve özet) bağladığın yerlere gider; her hedefte otomatik gönderimi ayrı açabilirsin. Otomatik gönderim yalnızca açtığın andan sonra biten toplantıları gönderir; daha önceki notları toplantı sayfasındaki ⋯ menüsünden elle gönder. Ağ yokken kaçan gönderimler sonra kendiliğinden gider.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Die Notiz jedes Meetings (zuerst Aufgaben, dann Entscheidungen und Zusammenfassung) geht an die Orte, die du verbindest; aktiviere das automatische Senden pro Ziel. Du kannst auch über das Menü ⋯ auf der Meeting-Seite senden. Offline verpasste Sendungen werden später automatisch nachgeholt."
+            "value": "Die Notiz jedes Meetings (zuerst Aufgaben, dann Entscheidungen und Zusammenfassung) geht an die Orte, die du verbindest; aktiviere das automatische Senden pro Ziel. Automatisch gesendet werden nur Meetings, die nach dem Aktivieren enden; frühere Notizen sendest du selbst über das Menü ⋯ auf der Meeting-Seite. Offline verpasste Sendungen werden später automatisch nachgeholt."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Each meeting's note (tasks first, then decisions and summary) goes to the places you connect; turn on automatic sending per destination. You can also send from the ⋯ menu on the meeting page. Sends missed while offline go out later on their own."
+            "value": "Each meeting's note (tasks first, then decisions and summary) goes to the places you connect; turn on automatic sending per destination. Automatic sending only sends meetings that end after you turn it on; send earlier notes yourself from the ⋯ menu on the meeting page. Sends missed while offline go out later on their own."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "La nota de cada reunión (primero las tareas, luego las decisiones y el resumen) va a los sitios que conectes; activa el envío automático para cada destino. También puedes enviarla desde el menú ⋯ de la página de la reunión. Los envíos que no se hicieron sin conexión se envían después solos."
+            "value": "La nota de cada reunión (primero las tareas, luego las decisiones y el resumen) va a los sitios que conectes; activa el envío automático para cada destino. El envío automático solo envía las reuniones que terminan después de activarlo; envía tú las notas anteriores desde el menú ⋯ de la página de la reunión. Los envíos que no se hicieron sin conexión se envían después solos."
           }
         },
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Jokaisen kokouksen muistiinpano (ensin tehtävät, sitten päätökset ja yhteenveto) menee yhdistämiisi kohteisiin; laita automaattinen lähetys päälle kohdekohtaisesti. Voit lähettää myös kokoussivun ⋯-valikosta. Offline-tilassa väliin jääneet lähetykset lähtevät myöhemmin itsestään."
+            "value": "Jokaisen kokouksen muistiinpano (ensin tehtävät, sitten päätökset ja yhteenveto) menee yhdistämiisi kohteisiin; laita automaattinen lähetys päälle kohdekohtaisesti. Automaattinen lähetys lähettää vain kokoukset, jotka päättyvät sen päälle laittamisen jälkeen; lähetä aiemmat muistiinpanot itse kokoussivun ⋯-valikosta. Offline-tilassa väliin jääneet lähetykset lähtevät myöhemmin itsestään."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "La note de chaque réunion (tâches d’abord, puis décisions et résumé) est envoyée aux destinations que vous connectez ; activez l’envoi automatique pour chaque destination. Vous pouvez aussi envoyer depuis le menu ⋯ de la page de la réunion. Les envois manqués hors ligne partent plus tard d’eux-mêmes."
+            "value": "La note de chaque réunion (tâches d’abord, puis décisions et résumé) est envoyée aux destinations que vous connectez ; activez l’envoi automatique pour chaque destination. L’envoi automatique ne concerne que les réunions terminées après son activation ; envoyez vous-même les notes plus anciennes depuis le menu ⋯ de la page de la réunion. Les envois manqués hors ligne partent plus tard d’eux-mêmes."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "La nota di ogni riunione (prima le attività, poi decisioni e riepilogo) va nei posti che connetti; attiva l’invio automatico per ogni destinazione. Puoi anche inviarla dal menu ⋯ nella pagina della riunione. Gli invii mancati mentre eri offline partono più tardi da soli."
+            "value": "La nota di ogni riunione (prima le attività, poi decisioni e riepilogo) va nei posti che connetti; attiva l’invio automatico per ogni destinazione. L’invio automatico invia solo le riunioni che finiscono dopo averlo attivato; le note precedenti inviale tu dal menu ⋯ nella pagina della riunione. Gli invii mancati mentre eri offline partono più tardi da soli."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "各会議のノート（最初にタスク、次に決定事項と要約）は、接続した送信先に送られます。自動送信は送信先ごとにオンにしてください。会議ページの⋯メニューから送信することもできます。オフライン中に送れなかったものは、あとで自動的に送信されます。"
+            "value": "各会議のノート（最初にタスク、次に決定事項と要約）は、接続した送信先に送られます。自動送信は送信先ごとにオンにしてください。自動送信されるのは、オンにした後に終わった会議だけです。それより前のノートは会議ページの⋯メニューから手動で送信してください。オフライン中に送れなかったものは、あとで自動的に送信されます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "각 회의의 노트(할 일이 먼저, 이어서 결정 사항과 요약)가 연결한 곳으로 전송됩니다. 대상별로 자동 전송을 켜세요. 회의 페이지의 ⋯ 메뉴에서도 보낼 수 있습니다. 오프라인 상태에서 보내지 못한 항목은 나중에 자동으로 전송됩니다."
+            "value": "각 회의의 노트(할 일이 먼저, 이어서 결정 사항과 요약)가 연결한 곳으로 전송됩니다. 대상별로 자동 전송을 켜세요. 자동 전송은 켠 이후에 끝난 회의만 보냅니다. 그 이전의 노트는 회의 페이지의 ⋯ 메뉴에서 직접 보내세요. 오프라인 상태에서 보내지 못한 항목은 나중에 자동으로 전송됩니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "De notitie van elke vergadering (eerst taken, dan besluiten en samenvatting) gaat naar de plekken die je koppelt; zet automatisch versturen per bestemming aan. Je kunt ook versturen via het ⋯-menu op de vergaderpagina. Wat offline niet kon worden verstuurd, gaat later vanzelf weg."
+            "value": "De notitie van elke vergadering (eerst taken, dan besluiten en samenvatting) gaat naar de plekken die je koppelt; zet automatisch versturen per bestemming aan. Automatisch versturen verstuurt alleen vergaderingen die eindigen nadat je het hebt aangezet; eerdere notities verstuur je zelf via het ⋯-menu op de vergaderpagina. Wat offline niet kon worden verstuurd, gaat later vanzelf weg."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "A nota de cada reunião (tarefas primeiro, depois decisões e resumo) vai para os lugares que você conectar; ative o envio automático por destino. Você também pode enviar pelo menu ⋯ na página da reunião. Envios perdidos enquanto você estava offline saem depois, sozinhos."
+            "value": "A nota de cada reunião (tarefas primeiro, depois decisões e resumo) vai para os lugares que você conectar; ative o envio automático por destino. O envio automático só envia reuniões que terminam depois que você o ativa; envie você mesmo as notas anteriores pelo menu ⋯ na página da reunião. Envios perdidos enquanto você estava offline saem depois, sozinhos."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "每个会议的笔记（先是任务，然后是决策和摘要）会发送到你连接的位置；可按目标打开自动发送。你也可以从会议页面的 ⋯ 菜单发送。离线时错过的发送会在之后自动发出。"
+            "value": "每个会议的笔记（先是任务，然后是决策和摘要）会发送到你连接的位置；可按目标打开自动发送。自动发送只会发送打开之后结束的会议；更早的笔记请从会议页面的 ⋯ 菜单手动发送。离线时错过的发送会在之后自动发出。"
           }
         }
       }
@@ -49717,6 +49989,76 @@
         }
       }
     },
+    "Hesabın ve sunucudaki kayıtların silinir; bu iPhone'daki toplantılar kalır ve burada yeniden hesap açarsan yeni hesabına taşınabilir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Löscht deinen Account und die Serverdaten; Meetings auf diesem iPhone bleiben erhalten und lassen sich in deinen neuen Account verschieben, wenn du hier erneut einen anlegst."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deletes your account and server data; meetings on this iPhone stay and can be moved into your new account if you sign up again here."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elimina tu cuenta y los datos del servidor; las reuniones de este iPhone se conservan y puedes moverlas a tu cuenta nueva si vuelves a crear una aquí."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poistaa tilisi ja palvelimen tiedot; tämän iPhonen kokoukset säilyvät, ja voit siirtää ne uudelle tilillesi, jos luot täällä tilin uudelleen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprime votre compte et les données du serveur ; les réunions de cet iPhone sont conservées et peuvent être déplacées vers votre nouveau compte si vous en recréez un ici."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elimina il tuo account e i dati sul server; le riunioni su questo iPhone restano e puoi spostarle nel nuovo account se ne crei uno qui."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アカウントとサーバのデータを削除します。このiPhone上の会議は残り、ここでアカウントを作り直せば新しいアカウントに移動できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "계정과 서버 데이터를 삭제합니다. 이 iPhone에 있는 회의는 유지되며, 여기서 계정을 다시 만들면 새 계정으로 옮길 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verwijdert je account en servergegevens; vergaderingen op deze iPhone blijven en kunnen naar je nieuwe account worden verplaatst als je hier opnieuw een account maakt."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apaga sua conta e os dados no servidor; as reuniões neste iPhone continuam e podem ser movidas para a conta nova se você criar outra aqui."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除你的账户和服务器数据；这部 iPhone 上的会议会保留，如果你在这里重新注册，可以将它们移到新账户。"
+          }
+        }
+      }
+    },
     "Hesabın ve sunucudaki tüm kayıtların silinir; etkin bir abonelik varsa hemen iptal edilir. Bu iPhone'daki toplantılar ve notlar silinmez.": {
       "localizations": {
         "de": {
@@ -49858,73 +50200,72 @@
         }
       }
     },
-    "Hesabın, aboneliğin (hemen iptal edilir) ve sunucudaki tüm kayıtların silinir. Bu Mac'teki toplantılar ve notlar silinmez.": {
-      "extractionState": "manual",
+    "Hesabın, aboneliğin (hemen iptal edilir) ve sunucudaki tüm kayıtların silinir. Bu Mac'teki toplantılar ve notlar silinmez; bu Mac'te yeniden hesap açarsan yeni hesabına taşıyabilirsin.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Löscht deinen Account, dein Abo (sofort gekündigt) und alle deine Daten auf dem Server. Meetings und Notizen auf diesem Mac werden nicht gelöscht."
+            "value": "Löscht deinen Account, dein Abo (sofort gekündigt) und alle deine Daten auf dem Server. Meetings und Notizen auf diesem Mac werden nicht gelöscht; legst du auf diesem Mac erneut einen Account an, kannst du sie in deinen neuen Account verschieben."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Deletes your account, your subscription (cancelled immediately) and all your records on the server. Meetings and notes on this Mac are not deleted."
+            "value": "Deletes your account, your subscription (cancelled immediately) and all your records on the server. Meetings and notes on this Mac are not deleted; if you sign up again on this Mac, you can move them into your new account."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Elimina tu cuenta, tu suscripción (se cancela de inmediato) y todos tus registros en el servidor. Las reuniones y notas de este Mac no se eliminan."
+            "value": "Elimina tu cuenta, tu suscripción (se cancela de inmediato) y todos tus registros en el servidor. Las reuniones y notas de este Mac no se eliminan; si vuelves a crear una cuenta en este Mac, podrás moverlas a tu cuenta nueva."
           }
         },
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Poistaa tilisi, tilauksesi (perutaan heti) ja kaikki tietosi palvelimelta. Tämän Macin kokouksia ja muistiinpanoja ei poisteta."
+            "value": "Poistaa tilisi, tilauksesi (perutaan heti) ja kaikki tietosi palvelimelta. Tämän Macin kokouksia ja muistiinpanoja ei poisteta; jos luot tällä Macilla tilin uudelleen, voit siirtää ne uudelle tilillesi."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Supprime votre compte, votre abonnement (annulé immédiatement) et toutes vos données sur le serveur. Les réunions et notes de ce Mac ne sont pas supprimées."
+            "value": "Supprime votre compte, votre abonnement (annulé immédiatement) et toutes vos données sur le serveur. Les réunions et notes de ce Mac ne sont pas supprimées ; si vous recréez un compte sur ce Mac, vous pourrez les déplacer vers votre nouveau compte."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Elimina il tuo account, il tuo abbonamento (annullato immediatamente) e tutti i tuoi dati sul server. Le riunioni e le note su questo Mac non vengono eliminate."
+            "value": "Elimina il tuo account, il tuo abbonamento (annullato immediatamente) e tutti i tuoi dati sul server. Le riunioni e le note su questo Mac non vengono eliminate; se crei di nuovo un account su questo Mac, puoi spostarle nel nuovo account."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "アカウント、サブスクリプション（ただちにキャンセル）、サーバ上のすべての記録を削除します。このMac上の会議とノートは削除されません。"
+            "value": "アカウント、サブスクリプション（ただちにキャンセル）、サーバ上のすべての記録を削除します。このMac上の会議とノートは削除されません。このMacでアカウントを作り直せば、新しいアカウントに移動できます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "계정, 구독(즉시 취소됨) 및 서버에 있는 모든 기록을 삭제합니다. 이 Mac의 회의와 노트는 삭제되지 않습니다."
+            "value": "계정, 구독(즉시 취소됨) 및 서버에 있는 모든 기록을 삭제합니다. 이 Mac의 회의와 노트는 삭제되지 않으며, 이 Mac에서 계정을 다시 만들면 새 계정으로 옮길 수 있습니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Verwijdert je account, je abonnement (wordt onmiddellijk opgezegd) en al je gegevens op de server. Vergaderingen en notities op deze Mac worden niet verwijderd."
+            "value": "Verwijdert je account, je abonnement (wordt onmiddellijk opgezegd) en al je gegevens op de server. Vergaderingen en notities op deze Mac worden niet verwijderd; maak je op deze Mac opnieuw een account, dan kun je ze naar je nieuwe account verplaatsen."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Apaga sua conta, sua assinatura (cancelada imediatamente) e todos os seus registros no servidor. As reuniões e notas neste Mac não são apagadas."
+            "value": "Apaga sua conta, sua assinatura (cancelada imediatamente) e todos os seus registros no servidor. As reuniões e notas neste Mac não são apagadas; se você criar uma conta de novo neste Mac, poderá movê-las para a conta nova."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "删除你的账户、你的订阅（立即取消）以及你在服务器上的所有记录。这台 Mac 上的会议和笔记不会被删除。"
+            "value": "删除你的账户、你的订阅（立即取消）以及你在服务器上的所有记录。这台 Mac 上的会议和笔记不会被删除；如果你在这台 Mac 上重新注册，可以将它们移到新账户。"
           }
         }
       }
@@ -50985,6 +51326,1094 @@
         }
       }
     },
+    "Otomatik gönderim açık yerlere, açtıktan sonra biten toplantıların notu hazır olunca gider; eski notlar toplantının ⋯ menüsünden elle gönderilir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Orte mit aktiviertem automatischem Senden bekommen die Notizen von Meetings, die nach dem Aktivieren enden, sobald sie fertig sind; ältere Notizen sendest du über das Menü ⋯ eines Meetings."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Places with automatic sending on get the notes of meetings that end after you turned it on, as soon as they are ready; send older notes from a meeting’s ⋯ menu."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los destinos con envío automático activado reciben las notas de las reuniones que terminan después de activarlo, en cuanto están listas; envía las notas anteriores desde el menú ⋯ de una reunión."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kohteet, joissa automaattinen lähetys on päällä, saavat sen päälle laittamisen jälkeen päättyneiden kokousten muistiinpanot heti kun ne ovat valmiita; lähetä vanhemmat muistiinpanot kokouksen ⋯-valikosta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les destinations où l’envoi automatique est activé reçoivent les notes des réunions terminées après son activation, dès qu’elles sont prêtes ; envoyez les notes plus anciennes depuis le menu ⋯ d’une réunion."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I posti con invio automatico attivo ricevono le note delle riunioni che finiscono dopo averlo attivato, appena sono pronte; invia le note precedenti dal menu ⋯ di una riunione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動送信がオンの送信先には、オンにした後に終わった会議のノートが準備でき次第送られます。それより前のノートは会議の⋯メニューから送信してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "자동 전송이 켜진 곳에는 켠 이후에 끝난 회의의 노트가 준비되는 즉시 전송됩니다. 이전 노트는 회의의 ⋯ 메뉴에서 보내세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plekken waarvoor automatisch versturen aanstaat, krijgen de notities van vergaderingen die eindigen nadat je het hebt aangezet, zodra ze klaar zijn; oudere notities verstuur je via het ⋯-menu van een vergadering."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os lugares com envio automático ativado recebem as notas das reuniões que terminam depois que você o ativa, assim que ficam prontas; envie as notas anteriores pelo menu ⋯ de uma reunião."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已打开自动发送的位置会在笔记准备好后立即收到打开之后结束的会议的笔记；更早的笔记请从会议的 ⋯ 菜单发送。"
+          }
+        }
+      }
+    },
+    "Silinen hesabından %lld toplantı bu Mac'te duruyor. Bu hesaba taşınsın mı?": {
+      "localizations": {
+        "de": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Meeting aus deinem gelöschten Account ist auf diesem Mac. In diesen Account verschieben?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Meetings aus deinem gelöschten Account sind auf diesem Mac. In diesen Account verschieben?"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld meeting from your deleted account is on this Mac. Move it into this account?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld meetings from your deleted account are on this Mac. Move them into this account?"
+                }
+              }
+            }
+          }
+        },
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Hay %lld reunión de tu cuenta eliminada en este Mac. ¿Moverla a esta cuenta?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Hay %lld reuniones de tu cuenta eliminada en este Mac. ¿Moverlas a esta cuenta?"
+                }
+              }
+            }
+          }
+        },
+        "fi": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Poistetun tilisi %lld kokous on tällä Macilla. Siirretäänkö se tälle tilille?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Poistetun tilisi %lld kokousta on tällä Macilla. Siirretäänkö ne tälle tilille?"
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld réunion de votre compte supprimé se trouve sur ce Mac. La déplacer vers ce compte ?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld réunions de votre compte supprimé se trouvent sur ce Mac. Les déplacer vers ce compte ?"
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Su questo Mac c’è %lld riunione del tuo account eliminato. Spostarla in questo account?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Su questo Mac ci sono %lld riunioni del tuo account eliminato. Spostarle in questo account?"
+                }
+              }
+            }
+          }
+        },
+        "ja": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "削除したアカウントの会議が、このMacに%lld件あります。このアカウントに移動しますか？"
+                }
+              }
+            }
+          }
+        },
+        "ko": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "삭제한 계정의 회의 %lld개가 이 Mac에 있습니다. 이 계정으로 옮길까요?"
+                }
+              }
+            }
+          }
+        },
+        "nl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Er staat %lld vergadering van je verwijderde account op deze Mac. Naar dit account verplaatsen?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Er staan %lld vergaderingen van je verwijderde account op deze Mac. Naar dit account verplaatsen?"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Há %lld reunião da sua conta apagada neste Mac. Mover para esta conta?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Há %lld reuniões da sua conta apagada neste Mac. Mover para esta conta?"
+                }
+              }
+            }
+          }
+        },
+        "tr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Silinen hesabından %lld toplantı bu Mac'te duruyor. Bu hesaba taşınsın mı?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Silinen hesabından %lld toplantı bu Mac'te duruyor. Bu hesaba taşınsın mı?"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "这台 Mac 上有你已删除账户的 %lld 个会议。要移到此账户吗？"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Silinen hesabından %lld toplantı bu Mac'te duruyor. Bu hesaba taşıyınca toplantıların arasında görünür; hiçbir şey silinmez.": {
+      "localizations": {
+        "de": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Meeting aus deinem gelöschten Account ist auf diesem Mac. Verschiebst du es in diesen Account, erscheint es bei deinen Meetings; nichts wird gelöscht."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Meetings aus deinem gelöschten Account sind auf diesem Mac. Verschiebst du sie in diesen Account, erscheinen sie bei deinen Meetings; nichts wird gelöscht."
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld meeting from your deleted account is on this Mac. Move it into this account to see it with your meetings; nothing is deleted."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld meetings from your deleted account are on this Mac. Move them into this account to see them with your meetings; nothing is deleted."
+                }
+              }
+            }
+          }
+        },
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Hay %lld reunión de tu cuenta eliminada en este Mac. Muévela a esta cuenta para verla con tus reuniones; no se elimina nada."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Hay %lld reuniones de tu cuenta eliminada en este Mac. Muévelas a esta cuenta para verlas con tus reuniones; no se elimina nada."
+                }
+              }
+            }
+          }
+        },
+        "fi": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Poistetun tilisi %lld kokous on tällä Macilla. Kun siirrät sen tälle tilille, se näkyy kokoustesi joukossa; mitään ei poisteta."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Poistetun tilisi %lld kokousta on tällä Macilla. Kun siirrät ne tälle tilille, ne näkyvät kokoustesi joukossa; mitään ei poisteta."
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld réunion de votre compte supprimé se trouve sur ce Mac. Déplacez-la vers ce compte pour la retrouver avec vos réunions ; rien n’est supprimé."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld réunions de votre compte supprimé se trouvent sur ce Mac. Déplacez-les vers ce compte pour les retrouver avec vos réunions ; rien n’est supprimé."
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Su questo Mac c’è %lld riunione del tuo account eliminato. Spostala in questo account per vederla tra le tue riunioni; non viene eliminato nulla."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Su questo Mac ci sono %lld riunioni del tuo account eliminato. Spostale in questo account per vederle tra le tue riunioni; non viene eliminato nulla."
+                }
+              }
+            }
+          }
+        },
+        "ja": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "削除したアカウントの会議が、このMacに%lld件あります。このアカウントに移動すると会議一覧に表示されます。何も削除されません。"
+                }
+              }
+            }
+          }
+        },
+        "ko": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "삭제한 계정의 회의 %lld개가 이 Mac에 있습니다. 이 계정으로 옮기면 회의 목록에 표시됩니다. 아무것도 삭제되지 않습니다."
+                }
+              }
+            }
+          }
+        },
+        "nl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Er staat %lld vergadering van je verwijderde account op deze Mac. Verplaats hem naar dit account om hem bij je vergaderingen te zien; er wordt niets verwijderd."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Er staan %lld vergaderingen van je verwijderde account op deze Mac. Verplaats ze naar dit account om ze bij je vergaderingen te zien; er wordt niets verwijderd."
+                }
+              }
+            }
+          }
+        },
+        "pt-BR": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Há %lld reunião da sua conta apagada neste Mac. Mova-a para esta conta para vê-la com suas reuniões; nada é apagado."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Há %lld reuniões da sua conta apagada neste Mac. Mova-as para esta conta para vê-las com suas reuniões; nada é apagado."
+                }
+              }
+            }
+          }
+        },
+        "tr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Silinen hesabından %lld toplantı bu Mac'te duruyor. Bu hesaba taşıyınca toplantıların arasında görünür; hiçbir şey silinmez."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Silinen hesabından %lld toplantı bu Mac'te duruyor. Bu hesaba taşıyınca toplantıların arasında görünür; hiçbir şey silinmez."
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "这台 Mac 上有你已删除账户的 %lld 个会议。移到此账户后，它们会显示在你的会议中；不会删除任何内容。"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Silinen hesabından %lld toplantı bu iPhone'da duruyor. Bu hesaba taşınsın mı?": {
+      "localizations": {
+        "de": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Meeting aus deinem gelöschten Account ist auf diesem iPhone. In diesen Account verschieben?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Meetings aus deinem gelöschten Account sind auf diesem iPhone. In diesen Account verschieben?"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld meeting from your deleted account is on this iPhone. Move it into this account?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld meetings from your deleted account are on this iPhone. Move them into this account?"
+                }
+              }
+            }
+          }
+        },
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Hay %lld reunión de tu cuenta eliminada en este iPhone. ¿Moverla a esta cuenta?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Hay %lld reuniones de tu cuenta eliminada en este iPhone. ¿Moverlas a esta cuenta?"
+                }
+              }
+            }
+          }
+        },
+        "fi": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Poistetun tilisi %lld kokous on tällä iPhonella. Siirretäänkö se tälle tilille?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Poistetun tilisi %lld kokousta on tällä iPhonella. Siirretäänkö ne tälle tilille?"
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld réunion de votre compte supprimé se trouve sur cet iPhone. La déplacer vers ce compte ?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld réunions de votre compte supprimé se trouvent sur cet iPhone. Les déplacer vers ce compte ?"
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Su questo iPhone c’è %lld riunione del tuo account eliminato. Spostarla in questo account?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Su questo iPhone ci sono %lld riunioni del tuo account eliminato. Spostarle in questo account?"
+                }
+              }
+            }
+          }
+        },
+        "ja": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "削除したアカウントの会議が、このiPhoneに%lld件あります。このアカウントに移動しますか？"
+                }
+              }
+            }
+          }
+        },
+        "ko": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "삭제한 계정의 회의 %lld개가 이 iPhone에 있습니다. 이 계정으로 옮길까요?"
+                }
+              }
+            }
+          }
+        },
+        "nl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Er staat %lld vergadering van je verwijderde account op deze iPhone. Naar dit account verplaatsen?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Er staan %lld vergaderingen van je verwijderde account op deze iPhone. Naar dit account verplaatsen?"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Há %lld reunião da sua conta apagada neste iPhone. Mover para esta conta?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Há %lld reuniões da sua conta apagada neste iPhone. Mover para esta conta?"
+                }
+              }
+            }
+          }
+        },
+        "tr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Silinen hesabından %lld toplantı bu iPhone'da duruyor. Bu hesaba taşınsın mı?"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Silinen hesabından %lld toplantı bu iPhone'da duruyor. Bu hesaba taşınsın mı?"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "这部 iPhone 上有你已删除账户的 %lld 个会议。要移到此账户吗？"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Silinen hesabından %lld toplantı bu iPhone'da duruyor; taşıyınca bu hesapta görünür, hiçbir şey silinmez.": {
+      "localizations": {
+        "de": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Meeting aus deinem gelöschten Account ist auf diesem iPhone; nach dem Verschieben erscheint es in diesem Account. Nichts wird gelöscht."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Meetings aus deinem gelöschten Account sind auf diesem iPhone; nach dem Verschieben erscheinen sie in diesem Account. Nichts wird gelöscht."
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld meeting from your deleted account is on this iPhone; once moved, it appears in this account. Nothing is deleted."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld meetings from your deleted account are on this iPhone; once moved, they appear in this account. Nothing is deleted."
+                }
+              }
+            }
+          }
+        },
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Hay %lld reunión de tu cuenta eliminada en este iPhone; al moverla, aparece en esta cuenta. No se elimina nada."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Hay %lld reuniones de tu cuenta eliminada en este iPhone; al moverlas, aparecen en esta cuenta. No se elimina nada."
+                }
+              }
+            }
+          }
+        },
+        "fi": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Poistetun tilisi %lld kokous on tällä iPhonella; siirron jälkeen se näkyy tällä tilillä. Mitään ei poisteta."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Poistetun tilisi %lld kokousta on tällä iPhonella; siirron jälkeen ne näkyvät tällä tilillä. Mitään ei poisteta."
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld réunion de votre compte supprimé se trouve sur cet iPhone ; une fois déplacée, elle apparaît dans ce compte. Rien n’est supprimé."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld réunions de votre compte supprimé se trouvent sur cet iPhone ; une fois déplacées, elles apparaissent dans ce compte. Rien n’est supprimé."
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Su questo iPhone c’è %lld riunione del tuo account eliminato; una volta spostata, compare in questo account. Non viene eliminato nulla."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Su questo iPhone ci sono %lld riunioni del tuo account eliminato; una volta spostate, compaiono in questo account. Non viene eliminato nulla."
+                }
+              }
+            }
+          }
+        },
+        "ja": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "削除したアカウントの会議が、このiPhoneに%lld件あります。移動するとこのアカウントに表示されます。何も削除されません。"
+                }
+              }
+            }
+          }
+        },
+        "ko": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "삭제한 계정의 회의 %lld개가 이 iPhone에 있습니다. 옮기면 이 계정에 표시됩니다. 아무것도 삭제되지 않습니다."
+                }
+              }
+            }
+          }
+        },
+        "nl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Er staat %lld vergadering van je verwijderde account op deze iPhone; na het verplaatsen staat hij in dit account. Er wordt niets verwijderd."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Er staan %lld vergaderingen van je verwijderde account op deze iPhone; na het verplaatsen staan ze in dit account. Er wordt niets verwijderd."
+                }
+              }
+            }
+          }
+        },
+        "pt-BR": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Há %lld reunião da sua conta apagada neste iPhone; depois de movida, aparece nesta conta. Nada é apagado."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Há %lld reuniões da sua conta apagada neste iPhone; depois de movidas, aparecem nesta conta. Nada é apagado."
+                }
+              }
+            }
+          }
+        },
+        "tr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Silinen hesabından %lld toplantı bu iPhone'da duruyor; taşıyınca bu hesapta görünür, hiçbir şey silinmez."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Silinen hesabından %lld toplantı bu iPhone'da duruyor; taşıyınca bu hesapta görünür, hiçbir şey silinmez."
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "这部 iPhone 上有你已删除账户的 %lld 个会议；移动后会显示在此账户中。不会删除任何内容。"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Silinen hesabının toplantıları": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings aus deinem gelöschten Account"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings from your deleted account"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reuniones de tu cuenta eliminada"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poistetun tilisi kokoukset"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réunions de votre compte supprimé"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riunioni del tuo account eliminato"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除したアカウントの会議"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "삭제한 계정의 회의"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vergaderingen van je verwijderde account"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reuniões da sua conta apagada"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已删除账户的会议"
+          }
+        }
+      }
+    },
+    "Toplantılar silinmez. Sonra Ayarlar › Hesap'tan da taşıyabilirsin.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings werden nicht gelöscht. Du kannst sie auch später unter „Einstellungen“ › „Account“ verschieben."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings are not deleted. You can also move them later in Settings › Account."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las reuniones no se eliminan. También puedes moverlas más tarde en Ajustes › Cuenta."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kokouksia ei poisteta. Voit siirtää ne myöhemmin myös kohdassa Asetukset › Tili."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les réunions ne sont pas supprimées. Vous pouvez aussi les déplacer plus tard dans Réglages › Compte."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le riunioni non vengono eliminate. Puoi spostarle anche più tardi in Impostazioni › Account."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議は削除されません。あとで「設定」›「アカウント」から移動することもできます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의는 삭제되지 않습니다. 나중에 설정 › 계정에서 옮길 수도 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vergaderingen worden niet verwijderd. Je kunt ze ook later verplaatsen in Instellingen › Account."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As reuniões não são apagadas. Você também pode movê-las depois em Ajustes › Conta."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会议不会被删除。你也可以稍后在“设置 › 账户”中移动它们。"
+          }
+        }
+      }
+    },
+    "Toplantılar silinmez; taşıyınca bu hesabın toplantıları arasında görünür. Sonra Ayarlar › Hesap'tan da taşıyabilirsin.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings werden nicht gelöscht; nach dem Verschieben erscheinen sie bei den Meetings dieses Accounts. Du kannst sie auch später unter „Einstellungen“ › „Account“ verschieben."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings are not deleted; once moved, they appear with this account's meetings. You can also move them later in Settings › Account."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las reuniones no se eliminan; al moverlas, aparecen con las reuniones de esta cuenta. También puedes moverlas más tarde en Ajustes › Cuenta."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kokouksia ei poisteta; siirron jälkeen ne näkyvät tämän tilin kokousten joukossa. Voit siirtää ne myöhemmin myös kohdassa Asetukset › Tili."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les réunions ne sont pas supprimées ; une fois déplacées, elles apparaissent avec les réunions de ce compte. Vous pouvez aussi les déplacer plus tard dans Réglages › Compte."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le riunioni non vengono eliminate; una volta spostate, compaiono tra le riunioni di questo account. Puoi spostarle anche più tardi in Impostazioni › Account."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議は削除されません。移動するとこのアカウントの会議一覧に表示されます。あとで「設定」›「アカウント」から移動することもできます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의는 삭제되지 않습니다. 옮기면 이 계정의 회의 목록에 표시됩니다. 나중에 설정 › 계정에서 옮길 수도 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vergaderingen worden niet verwijderd; na het verplaatsen staan ze bij de vergaderingen van dit account. Je kunt ze ook later verplaatsen in Instellingen › Account."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As reuniões não são apagadas; depois de movidas, aparecem com as reuniões desta conta. Você também pode movê-las depois em Ajustes › Conta."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会议不会被删除；移动后会显示在此账户的会议中。你也可以稍后在“设置 › 账户”中移动它们。"
+          }
+        }
+      }
+    },
     "İçinde kayıttaki ya da işlenen toplantı olan klasör silinemez.": {
       "extractionState": "manual",
       "localizations": {
@@ -51756,76 +53185,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "笔记发送到 Slack、Teams、Discord、Notion 或 Zoom；任务发送到 Linear 或 Jira。"
-          }
-        }
-      }
-    },
-    "Otomatik gönderim açık yerlere not hazır olunca gider; toplantının ⋯ menüsünden elle de gönderilir.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notizen gehen an Orte mit aktiviertem automatischem Senden, sobald sie fertig sind; du kannst sie auch über das Menü ⋯ eines Meetings senden."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notes go to places with automatic sending on as soon as they are ready; you can also send them from a meeting’s ⋯ menu."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Las notas van a los destinos con envío automático activado en cuanto están listas; también puedes enviarlas desde el menú ⋯ de una reunión."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Muistiinpanot menevät kohteisiin, joissa automaattinen lähetys on päällä, heti kun ne ovat valmiita; voit lähettää ne myös kokouksen ⋯-valikosta."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Les notes sont envoyées dès qu’elles sont prêtes aux destinations où l’envoi automatique est activé ; vous pouvez aussi les envoyer depuis le menu ⋯ d’une réunion."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le note vanno nei posti con invio automatico attivo appena sono pronte; puoi anche inviarle dal menu ⋯ di una riunione."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ノートは準備ができると、自動送信がオンの送信先へすぐに送られます。会議の⋯メニューから送信することもできます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "노트가 준비되는 즉시 자동 전송이 켜진 곳으로 전송됩니다. 회의의 ⋯ 메뉴에서도 보낼 수 있습니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notities gaan zodra ze klaar zijn naar plekken waarvoor automatisch versturen aanstaat; je kunt ze ook versturen via het ⋯-menu van een vergadering."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "As notas vão para os lugares com envio automático ativado assim que ficam prontas; você também pode enviá-las pelo menu ⋯ de uma reunião."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "笔记准备好后会立即发送到已打开自动发送的位置；你也可以从会议的 ⋯ 菜单发送。"
           }
         }
       }
@@ -134126,76 +135485,6 @@
         }
       }
     },
-    "Hesabın ve sunucudaki kayıtların silinir; bu iPhone'daki toplantılar kalır.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Löscht deinen Account und die Serverdaten; Meetings auf diesem iPhone bleiben erhalten."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Deletes your account and server data; meetings on this iPhone stay."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Elimina tu cuenta y los datos del servidor; las reuniones de este iPhone se conservan."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Poistaa tilisi ja palvelimen tiedot; tämän iPhonen kokoukset säilyvät."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Supprime votre compte et les données du serveur ; les réunions de cet iPhone sont conservées."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Elimina il tuo account e i dati sul server; le riunioni su questo iPhone restano."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アカウントとサーバのデータを削除します。このiPhone上の会議は残ります。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "계정과 서버 데이터를 삭제합니다. 이 iPhone에 있는 회의는 유지됩니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Verwijdert je account en servergegevens; vergaderingen op deze iPhone blijven."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Apaga sua conta e os dados no servidor; as reuniões neste iPhone continuam."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "删除你的账户和服务器数据；这部 iPhone 上的会议会保留。"
-          }
-        }
-      }
-    },
     "Adil kullanım sınırı: bu ay kaydedilen toplantıların toplam süresi.": {
       "localizations": {
         "de": {
@@ -142958,6 +144247,146 @@
           "stringUnit": {
             "state": "translated",
             "value": "录制此 iPhone 上的通话（实验性）"
+          }
+        }
+      }
+    },
+    "Kayıt, uygulama kapandığı için yarıda kesildi; o ana kadar kaydedilen kısım hazırlanıyor.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Aufnahme wurde unterbrochen, weil die App geschlossen wurde; der bis dahin aufgenommene Teil wird vorbereitet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The recording was cut short because the app closed; the part recorded until then is being prepared."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La grabación se cortó porque la app se cerró; se está preparando la parte grabada hasta ese momento."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nauhoitus katkesi, koska sovellus sulkeutui; siihen asti nauhoitettua osaa valmistellaan."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’enregistrement a été interrompu car l’app s’est fermée ; la partie enregistrée jusque-là est en cours de préparation."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La registrazione è stata interrotta perché l’app si è chiusa; la parte registrata fino a quel momento è in preparazione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリが終了したため録音が途中で止まりました。それまでに録音された部分を準備しています。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "앱이 종료되어 녹음이 중간에 끊겼습니다. 그때까지 녹음된 부분을 준비하고 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De opname is afgebroken omdat de app werd gesloten; het deel dat tot dan is opgenomen, wordt voorbereid."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A gravação foi interrompida porque o app foi fechado; a parte gravada até então está sendo preparada."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "由于 App 关闭，录制中途中断；正在准备此前已录制的部分。"
+          }
+        }
+      }
+    },
+    "Kayıt, uygulama kapandığı için yarıda kesildi; o ana kadar kaydedilen kısım işlendi.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Aufnahme wurde unterbrochen, weil die App geschlossen wurde; der bis dahin aufgenommene Teil wurde verarbeitet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The recording was cut short because the app closed; the part recorded until then was processed."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La grabación se cortó porque la app se cerró; se procesó la parte grabada hasta ese momento."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nauhoitus katkesi, koska sovellus sulkeutui; siihen asti nauhoitettu osa käsiteltiin."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’enregistrement a été interrompu car l’app s’est fermée ; la partie enregistrée jusque-là a été traitée."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La registrazione è stata interrotta perché l’app si è chiusa; la parte registrata fino a quel momento è stata elaborata."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリが終了したため録音が途中で止まりました。それまでに録音された部分は処理済みです。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "앱이 종료되어 녹음이 중간에 끊겼습니다. 그때까지 녹음된 부분은 처리되었습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De opname is afgebroken omdat de app werd gesloten; het deel dat tot dan is opgenomen, is verwerkt."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A gravação foi interrompida porque o app foi fechado; a parte gravada até então foi processada."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "由于 App 关闭，录制中途中断；此前已录制的部分已处理。"
           }
         }
       }

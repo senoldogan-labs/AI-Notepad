@@ -452,7 +452,6 @@ func openPrivacySettings(anchor: String) {
 /// Ad, başlama yolu (cihaz içi ya da kendi anahtarlarınla) ve canlı metin motoru.
 private struct ProfileStep: View {
     let model: AppModel
-    @AppStorage(SettingsKey.userName) private var userName: String = ""
     @AppStorage(SettingsKey.llmProvider) private var provider: String = LLMProviderKind.anthropic.rawValue
     @AppStorage(SettingsKey.primaryMeetingLanguage) private var primaryLanguage: String = MeetingLanguage.finnish.rawValue
     @AppStorage(SettingsKey.noteLanguage) private var noteLanguage: String = defaultNoteLanguage(interfaceLanguages: Bundle.main.preferredLocalizations).rawValue
@@ -461,7 +460,7 @@ private struct ProfileStep: View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Adın").appFont(size: 13, weight: .semibold)
-                TextField("Adın", text: $userName, prompt: Text("ör. Doğan"))
+                TextField("Adın", text: Binding<String>(get: { model.userName }, set: { (name: String) -> Void in model.setUserName(name: name) }), prompt: Text("ör. Doğan"))
                     .textFieldStyle(.plain)
                     .appFont(size: 16, weight: .regular)
                     .padding(.horizontal, 14)

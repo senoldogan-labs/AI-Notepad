@@ -10,12 +10,14 @@ import os
 private let phoneHostedLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "PhoneHosted")
 
 /// Giriş yapan hesabın verisini bu süreç için hazırlar ve yükler: bu uygulamanın kabındaki önceki (hesapsız) veri kimse
-/// sahiplenmediyse ya da bu hesabınsa hesaba taşınır (bkz. `migrateLegacyUserData`), sonra hesap yüklenir. Mac'e özgü
+/// sahiplenmediyse ya da bu hesabınsa hesaba taşınır (bkz. `migrateLegacyUserData`), ad ve tanıma sözlüğü güncellemeden
+/// sonra ilk yüklenen hesaba bir kez geçer (bkz. `moveIdentityIntoAccount`), sonra hesap yüklenir. Mac'e özgü başka
 /// ayar ve bağlantı taşıması yoktur (iPhone'un kanal ve görev aracı bağlantıları baştan hesabın Anahtar Zinciri
 /// servisindedir, bkz. `PhoneIntegrations`). Taşıma başarısız olursa hata fırlar, hesap yüklenmez ve veri yerinde kalır.
 func prepareHostedAccountData(userId: String) throws -> String {
     let key: String = accountDataKey(userId: userId)
     let result: LegacyMigrationResult = try migratePhoneLegacyData(accountKey: key)
+    try moveIdentityIntoAccount(accountKey: key)
     try AppPaths.activateAccount(key: key)
     phoneHostedLogger.info("Hesap verisi yüklendi, eski veri: \(String(describing: result.claim), privacy: .public), taşınan: \(result.moves.count, privacy: .public)")
     return key
@@ -27,6 +29,7 @@ func prepareHostedAccountData(userId: String) throws -> String {
 func switchHostedAccountData(userId: String, from loadedKey: String, writers: ClosedAccountWriters) throws -> String {
     let key: String = accountDataKey(userId: userId)
     let result: LegacyMigrationResult = try migratePhoneLegacyData(accountKey: key)
+    try moveIdentityIntoAccount(accountKey: key)
     try AppPaths.switchAccount(from: loadedKey, to: key, writers: writers)
     phoneHostedLogger.info("Hesap verisi değiştirildi, eski veri: \(String(describing: result.claim), privacy: .public), taşınan: \(result.moves.count, privacy: .public)")
     return key
@@ -37,6 +40,16 @@ func switchHostedAccountData(userId: String, from loadedKey: String, writers: Cl
 private func migratePhoneLegacyData(accountKey: String) throws -> LegacyMigrationResult {
     let ownerKeys: [String: String] = loadHostedRecordOwners().mapValues { (owner: String) -> String in accountDataKey(userId: owner) }
     return try migrateLegacyUserData(dataRoot: try AppPaths.applicationSupport(), accountKey: accountKey, recordOwnerKeys: ownerKeys)
+}
+
+/// Ad ve tanıma sözlüğü güncellemeden önce bu iPhone'un ortak ayarındaydı: güncellemeden sonra ilk yüklenen hesaba bir
+/// kez taşınır, sonraki hesaplar boş başlar (başka hesabın adı notlarda "Sen" olarak görünmesin; bkz.
+/// `moveIdentityToAccountOnce(source:destination:)`).
+private func moveIdentityIntoAccount(accountKey: String) throws {
+    let result: IdentityMigrationResult = moveIdentityToAccountOnce(source: .standard, destination: try hostedAccountDefaults(accountKey: accountKey))
+    if result.ran {
+        phoneHostedLogger.info("Ad ve sözlük hesaba taşındı, taşınan: \(result.moved.count, privacy: .public), yerinde kalan: \(result.kept.count, privacy: .public)")
+    }
 }
 
 /// Bekleyen hesap değişimi tamamlanamadı.

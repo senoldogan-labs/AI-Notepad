@@ -12,7 +12,7 @@ private func sendingRecord(id: String, endedAt: Date, tasks: [NoteTask]) -> Meet
 }
 
 private func destination(id: String, target: DestinationTarget, createdAt: Date) -> NoteDestination {
-    NoteDestination(id: id, target: target, autoSend: true, createdAt: createdAt, needsReconnect: false)
+    NoteDestination(id: id, target: target, autoSend: true, createdAt: createdAt, autoSendSince: nil, needsReconnect: false)
 }
 
 @Suite struct IntegrationSendingTests {

@@ -118,6 +118,7 @@ final class PhoneAsk {
         ))
         isAnswering = true
         let records: [MeetingRecord] = store.meetings
+        let userName: String = store.userName
         task = Task { [weak self] in
             do {
                 let provider: LLMProvider = try phoneAccountLLMProvider()
@@ -127,12 +128,12 @@ final class PhoneAsk {
                 // iPhone'da ekran görüntüsü alınmaz (başka uygulamaların ekranı yakalanamaz): Sor yalnız metni okur.
                 if scoped.isEmpty {
                     _ = try await askArchive(
-                        question: trimmed, history: history, records: records, userName: phoneUserName(), language: phoneNoteLanguage(), llm: provider,
+                        question: trimmed, history: history, records: records, userName: userName, language: phoneNoteLanguage(), llm: provider,
                         maxChars: noteLimits(provider: provider).archiveChars, screens: .off, now: Date(), onProgress: onProgress
                     )
                 } else {
                     _ = try await askAboutMeetings(
-                        question: trimmed, history: history, records: scoped, userName: phoneUserName(), language: phoneNoteLanguage(), llm: provider,
+                        question: trimmed, history: history, records: scoped, userName: userName, language: phoneNoteLanguage(), llm: provider,
                         maxChars: noteLimits(provider: provider).archiveChars,
                         screens: .off, now: Date(), onProgress: onProgress
                     )

@@ -7,6 +7,7 @@ import SwiftUI
 /// renkler kullanıcının vurgu rengidir.
 struct RecordHomeGuide: View {
     let calendar: PhoneCalendar
+    let store: PhoneStore
 
     var body: some View {
         VStack(alignment: .leading, spacing: 26) {
@@ -19,7 +20,7 @@ struct RecordHomeGuide: View {
             }
             VStack(alignment: .leading, spacing: 10) {
                 PhoneSectionHeader(title: "İpuçları", actionTitle: nil, action: nil)
-                TipsCard()
+                TipsCard(store: store)
             }
         }
     }
@@ -137,12 +138,13 @@ private struct CalendarConnectCard: View {
 
 /// Kısa ipuçları: adın (yazılmadıysa satır içinde alan), işaretleme, kendi notların ve Denetim Merkezi'nden başlatma.
 private struct TipsCard: View {
-    @AppStorage(PhoneSettingsKey.userName) private var userName: String = ""
+    /// Ad hesabın ayar alanına yazılır (bkz. `PhoneStore.userName`).
+    let store: PhoneStore
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if userName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                NameTipRow { (name: String) -> Void in userName = name }
+            if store.userName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                NameTipRow { (name: String) -> Void in store.setUserName(name: name) }
                 divider
             }
             TipRow(symbol: "bookmark", title: "Önemli anı işaretle", detail: "Kayıtta “İşaretle”ye dokun; o an notta öne çıkar.")

@@ -104,6 +104,8 @@ struct HostedAccountSettings: View {
     /// Kayıt, işleme ya da içe aktarma sürüyor: çıkış ve hesap silme kapalıdır (süren toplantının sunucu oturumu ve
     /// faturası başka hesaba ya da silinmiş hesaba yazılmasın; bitince açılır).
     let isMeetingInFlight: Bool
+    /// Bu Mac'te silinen hesabın toplantılarını giriş yapan hesaba taşır (bkz. `AppModel.moveDeletedAccountMeetings`).
+    let onMoveDeletedMeetings: @MainActor () -> Void
     /// Hesap silme satır içinde onaylanır (açılır pencere yok).
     @State private var confirmingDelete: Bool = false
 
@@ -203,8 +205,9 @@ struct HostedAccountSettings: View {
             EmptyView()
         }
         HostedSignOutRow(account: account, isMeetingInFlight: isMeetingInFlight)
+        HostedDeletedMeetingsRow(deleted: .shared, onMove: onMoveDeletedMeetings)
         SettingsRow(title: Text("Hesabı sil")) {
-            Text("Hesabın, aboneliğin (hemen iptal edilir) ve sunucudaki tüm kayıtların silinir. Bu Mac'teki toplantılar ve notlar silinmez.")
+            Text("Hesabın, aboneliğin (hemen iptal edilir) ve sunucudaki tüm kayıtların silinir. Bu Mac'teki toplantılar ve notlar silinmez; bu Mac'te yeniden hesap açarsan yeni hesabına taşıyabilirsin.")
             // Apple aboneliği hesapla birlikte iptal edilemez; Apple iptal edilene dek ücret almaya devam eder.
             if entitlements.appStoreSubscription?.willRenew == true {
                 NoticeText("App Store aboneliğin hesabı silince iptal olmaz; Apple ücret almaya devam eder. Önce iPhone'da Ayarlar › Apple Hesabı › Abonelikler'den iptal et.", severity: .attention)

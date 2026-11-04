@@ -229,6 +229,8 @@ targets:
       - path: App/AppTelemetry.swift
       - path: App/Hosted/HostedAccount.swift
       - path: App/Hosted/HostedAccountScope.swift
+      # Silinen hesabın bu cihazda kalan toplantılarını yeni hesaba taşıma teklifi (Mac'le ortak durum).
+      - path: App/Hosted/HostedDeletedMeetings.swift
       - path: App/Hosted/HostedDeviceAttestation.swift
       # Tanılamanın hesap ve bağlantı bölümleri (Ayarlar › Tanılama) Mac'tekiyle aynı.
       - path: App/Hosted/HostedDiagnostics.swift

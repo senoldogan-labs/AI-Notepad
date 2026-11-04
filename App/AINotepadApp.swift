@@ -104,7 +104,7 @@ enum AppEntry {
         runMCPServer(
             input: .standardInput, output: .standardOutput, sessionsDirectories: [archive.sessionsDirectory],
             accessDenial: { hostedMCPAccessDenial(archive: archive, bundle: .main) }, version: version, noteLanguage: selectedNoteLanguage(), appName: appName,
-            userName: UserDefaults.standard.string(forKey: SettingsKey.userName) ?? ""
+            userName: archive.userName
         )
         #else
         do {

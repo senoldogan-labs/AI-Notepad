@@ -13,7 +13,7 @@ private func destinationRecord(id: String, endedAt: Date, sent: [String]) -> Mee
 }
 
 private func webhookDestination(id: String, autoSend: Bool, createdAt: Date, needsReconnect: Bool) -> NoteDestination {
-    NoteDestination(id: id, target: .webhook(URL(string: "https://hooks.zapier.com/x")!), autoSend: autoSend, createdAt: createdAt, needsReconnect: needsReconnect)
+    NoteDestination(id: id, target: .webhook(URL(string: "https://hooks.zapier.com/x")!), autoSend: autoSend, createdAt: createdAt, autoSendSince: nil, needsReconnect: needsReconnect)
 }
 
 @Suite struct NoteDestinationTests {
@@ -35,6 +35,46 @@ private func webhookDestination(id: String, autoSend: Bool, createdAt: Date, nee
         ]
         let pending: [(meetingID: String, destinationID: String)] = pendingAutoSends(records: records, destinations: destinations, now: now)
         #expect(pending.map { "\($0.meetingID)>\($0.destinationID)" } == ["yeni>a"])
+    }
+
+    // Kendiliğinden gönderim sonradan açılınca yalnızca açıldıktan sonra biten notlar gider: son 7 günün gönderilmemiş
+    // notları topluca gitmez (elle gönderilir). Kapatıp yeniden açmak açılış anını yeniler; açıkken yeniden açmak
+    // değiştirmez.
+    @Test func enablingAutoSendLaterSendsOnlyNewNotes() {
+        let now: Date = Date(timeIntervalSince1970: 2_000_000_000)
+        let connected: Date = now.addingTimeInterval(-5 * 24 * 3600)
+        let enabledAt: Date = now.addingTimeInterval(-2 * 3600)
+        let off: NoteDestination = webhookDestination(id: "a", autoSend: false, createdAt: connected, needsReconnect: false)
+        let enabled: NoteDestination = off.with(autoSend: true, now: enabledAt)
+        #expect(enabled.autoSend && enabled.autoSendSince == enabledAt && autoSendStart(destination: enabled) == enabledAt)
+        #expect(enabled.with(autoSend: true, now: now).autoSendSince == enabledAt)
+        let disabled: NoteDestination = enabled.with(autoSend: false, now: now)
+        #expect(!disabled.autoSend && disabled.autoSendSince == nil)
+        #expect(disabled.with(autoSend: true, now: now).autoSendSince == now)
+        let records: [MeetingRecord] = [
+            destinationRecord(id: "acmadan-once", endedAt: enabledAt.addingTimeInterval(-60), sent: []),
+            destinationRecord(id: "actiktan-sonra", endedAt: enabledAt.addingTimeInterval(60), sent: []),
+        ]
+        let pending: [(meetingID: String, destinationID: String)] = pendingAutoSends(records: records, destinations: [enabled], now: now)
+        #expect(pending.map(\.meetingID) == ["actiktan-sonra"])
+    }
+
+    // Eski sürümde açılmış hedefin kaydında açılış anı yoktur: bağlanma anı geçerli kalır (güncellemeden sonra toplu
+    // gönderim olmaz, yeni notlar gitmeye devam eder). Eski kayıt aynen okunur, yazılınca alan eklenir.
+    @Test func legacyEnabledDestinationKeepsConnectionTime() throws {
+        let decoder: JSONDecoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let json: String = #"{"id":"a","target":{"webhook":{"_0":"https:\/\/hooks.zapier.com\/x"}},"autoSend":true,"createdAt":"2033-05-18T03:33:20Z","needsReconnect":false}"#
+        let legacy: NoteDestination = try decoder.decode(NoteDestination.self, from: Data(json.utf8))
+        #expect(legacy.autoSendSince == nil && autoSendStart(destination: legacy) == legacy.createdAt)
+        let now: Date = legacy.createdAt.addingTimeInterval(3 * 24 * 3600)
+        let records: [MeetingRecord] = [
+            destinationRecord(id: "baglanmadan-once", endedAt: legacy.createdAt.addingTimeInterval(-60), sent: []),
+            destinationRecord(id: "yeni", endedAt: now.addingTimeInterval(-60), sent: []),
+        ]
+        #expect(pendingAutoSends(records: records, destinations: [legacy], now: now).map(\.meetingID) == ["yeni"])
+        #expect(isCoveredByAutoSend(finishedAt: legacy.createdAt, since: nil))
+        #expect(!isCoveredByAutoSend(finishedAt: legacy.createdAt, since: now))
     }
 
     // Aynı webhook başka bir Mac'te farklı kimlikle bağlı: oradan gönderilmiş işaret (cihazdan bağımsız anahtar) burada
@@ -78,8 +118,8 @@ private func webhookDestination(id: String, autoSend: Bool, createdAt: Date, nee
         let signedIn: DestinationTarget = .discordSignIn(url)
         #expect(try decoder.decode(DestinationTarget.self, from: JSONEncoder().encode(signedIn)) == signedIn)
         let now: Date = Date(timeIntervalSince1970: 2_000_000_000)
-        let pasted: NoteDestination = NoteDestination(id: "p", target: legacy, autoSend: false, createdAt: now, needsReconnect: false)
-        let created: NoteDestination = NoteDestination(id: "s", target: signedIn, autoSend: false, createdAt: now, needsReconnect: false)
+        let pasted: NoteDestination = NoteDestination(id: "p", target: legacy, autoSend: false, createdAt: now, autoSendSince: nil, needsReconnect: false)
+        let created: NoteDestination = NoteDestination(id: "s", target: signedIn, autoSend: false, createdAt: now, autoSendSince: nil, needsReconnect: false)
         #expect(destinationSendKey(destination: pasted) == destinationSendKey(destination: created))
         #expect(destinationName(destination: created) == "Discord" && destinationDetail(destination: created) == "discord.com")
         try await revokeDestination(destination: pasted, clientName: "AI-Notepad")
@@ -100,7 +140,7 @@ private func webhookDestination(id: String, autoSend: Bool, createdAt: Date, nee
             serverURL: URL(string: "https://mcp.notion.com/mcp")!, clientID: clientID, tokenEndpoint: URL(string: "https://mcp.notion.com/token")!,
             tokens: OAuthTokens(accessToken: "gizli-erisim-\(clientID)", refreshToken: "gizli-yenileme-\(clientID)", expiresAt: createdAt)
         )
-        return NoteDestination(id: id, target: .notion(NotionTarget(connection: connection, pageTitle: "Özel sayfalar", identity: identity)), autoSend: true, createdAt: createdAt, needsReconnect: false)
+        return NoteDestination(id: id, target: .notion(NotionTarget(connection: connection, pageTitle: "Özel sayfalar", identity: identity)), autoSend: true, createdAt: createdAt, autoSendSince: nil, needsReconnect: false)
     }
 
     // Notion'un gönderim anahtarı hesabın çalışma alanı ve kullanıcısıdır: iki Mac'in ayrı kayıtlı (istemci kimliği,
@@ -172,7 +212,7 @@ private func webhookDestination(id: String, autoSend: Bool, createdAt: Date, nee
                 service: .slack, tokens: OAuthTokens(accessToken: "eski", refreshToken: refresh, expiresAt: expiresAt), workspace: "W",
                 channel: ChannelOption(id: "C1", teamID: nil, name: "#genel")
             )),
-            autoSend: true, createdAt: Date(), needsReconnect: false
+            autoSend: true, createdAt: Date(), autoSendSince: nil, needsReconnect: false
         )
     }
 
@@ -244,7 +284,7 @@ private func webhookDestination(id: String, autoSend: Bool, createdAt: Date, nee
         try deleteSecret(service: service, account: .destinations)
         let vault: DestinationVault = DestinationVault(service: service, account: .destinations, clientName: "AI-Notepad") { (connection: ChannelConnection) async throws -> ChannelConnection in connection }
         let original: MCPConnection = mcpConnection(refresh: "n1")
-        try await vault.upsert(NoteDestination(id: "n", target: .notion(NotionTarget(connection: original, pageTitle: "P", identity: nil)), autoSend: true, createdAt: Date(), needsReconnect: false))
+        try await vault.upsert(NoteDestination(id: "n", target: .notion(NotionTarget(connection: original, pageTitle: "P", identity: nil)), autoSend: true, createdAt: Date(), autoSendSince: nil, needsReconnect: false))
         await #expect(throws: MCPRemoteError.http(server: "mcp.notion.com", status: 502, body: "")) {
             try await vault.withNotion(id: "n") { (target: NotionTarget, persist: @escaping @Sendable (MCPConnection, MCPConnection) async throws -> Void) async throws -> Void in
                 try await persist(target.connection, self.mcpConnection(refresh: "n2"))
@@ -270,7 +310,7 @@ private func webhookDestination(id: String, autoSend: Bool, createdAt: Date, nee
         try deleteSecret(service: service, account: .destinations)
         let vault: DestinationVault = DestinationVault(service: service, account: .destinations, clientName: "AI-Notepad") { (connection: ChannelConnection) async throws -> ChannelConnection in connection }
         let destination: NoteDestination = NoteDestination(
-            id: "n", target: .notion(NotionTarget(connection: mcpConnection(refresh: "n1"), pageTitle: "P", identity: nil)), autoSend: true, createdAt: Date(), needsReconnect: false
+            id: "n", target: .notion(NotionTarget(connection: mcpConnection(refresh: "n1"), pageTitle: "P", identity: nil)), autoSend: true, createdAt: Date(), autoSendSince: nil, needsReconnect: false
         )
         try await vault.upsert(destination)
         let reconnected: NoteDestination = destination.with(target: .notion(NotionTarget(connection: mcpConnection(refresh: "yeni"), pageTitle: "P", identity: nil)))

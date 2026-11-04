@@ -39,7 +39,7 @@ private struct RecordHome: View {
     let calendar: PhoneCalendar
     let onBriefing: @MainActor (CalendarMeeting) -> Void
     /// Adı kullanıcının adı olan konuşmacının görevleri de onundur (`myTasks`).
-    @AppStorage(PhoneSettingsKey.userName) private var userName: String = ""
+    private var userName: String { store.userName }
 
     var body: some View {
         let openTasks: [(record: MeetingRecord, task: NoteTask)] = myTasks(meetings: store.meetings, userName: userName).filter { !isTaskDone(record: $0.record, task: $0.task) }
@@ -59,6 +59,7 @@ private struct RecordHome: View {
                 RecordHeroCard(recorder: recorder)
                 PhonePlanNotice(account: HostedAccount.shared)
                 PhoneUsageNotice(account: HostedAccount.shared)
+                PhoneDeletedMeetingsCard(deleted: .shared, store: store)
                 // Sunucunun "deneme bitti" gibi reddi abone olunca artık geçerli değil (Mac'teki `resolvedErrorMessages`).
                 PhoneErrorList(messages: phoneUnresolvedErrors(messages: recorder.errorMessages, account: HostedAccount.shared))
                 if let id = recorder.lastMeetingID, let step = recorder.processingSteps[id] {
@@ -102,7 +103,7 @@ private struct RecordHome: View {
                     }
                 } else {
                     // Henüz toplantı yok: boş alan yerine nasıl çalıştığı, takvim ve ipuçları.
-                    RecordHomeGuide(calendar: calendar)
+                    RecordHomeGuide(calendar: calendar, store: store)
                 }
             }
             .padding(.horizontal, 20)
