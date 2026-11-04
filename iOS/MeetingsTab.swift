@@ -780,6 +780,13 @@ struct MeetingReadView: View {
                         Label(failure, systemImage: "info.circle")
                             .appFont(size: 13, weight: .regular)
                             .foregroundStyle(Theme.muted)
+                        // Hazırlanamayan ya da yarıda kalan toplantı: ses durdukça yeniden denemek tek dokunuş (⋯ menüsünde
+                        // aranmasın). Son geçiş ve not yeniden yapılır.
+                        if record.status == .failed || record.status == .interrupted, !record.audioDeleted, isEditable, !isRecording {
+                            Button("Tekrar işle", systemImage: "arrow.triangle.2.circlepath") { reprocess() }
+                                .buttonStyle(.accentPill)
+                                .controlSize(.small)
+                        }
                     }
                     // Sekmeler ve notun dili tek satırda (Mac'teki gibi): dil, notun başka dildeki sürümünü gösterir.
                     HStack(spacing: 8) {

@@ -680,6 +680,13 @@ struct RootView: View {
             if phase == .active {
                 calendar.start()
             }
+            // Kayıt arka planda sürer; görünmeyen kayıt ekranının işi durur, öne dönünce uzaktayken gelen metin hemen
+            // görünür (bkz. `PhoneRecorder.enterBackground`).
+            if phase == .background {
+                recorder.enterBackground()
+            } else if phase == .active {
+                recorder.enterForeground()
+            }
             // Arka planda süresi dolup iptal edilen işleme öne dönünce sürer (yoksa toplantı bir sonraki açılışa dek
             // "Hazırlanıyor"da kalırdı). Açılıştaki ilk çağrı `.task`'tadır; işlenmekte olanlar atlanır.
             if phase == .background {
