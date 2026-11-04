@@ -182,7 +182,10 @@ public actor HostedClient: HostedLLMCredentialSource {
 
     /// Toplantı oturumu açar; reddedilirse (`trial_exhausted`, `trial_device_used`, `monthly_cap_reached`…)
     /// `HostedAPIError`. `deviceCheckToken` (Apple DeviceCheck, base64) denemesi henüz bir Mac'e bağlanmamış hesabın
-    /// deneme toplantısında gerekir. Açılan toplantı yapay zekâ çağrılarının toplantısı olur.
+    /// deneme toplantısında gerekir. Canlı açılan toplantı yapay zekâ çağrılarının toplantısı olur; ertelenmiş (`deferred`:
+    /// bekleyen kaydın, kayıt kendi oturumunu `recordedMeeting` kapsamıyla kullanır) olmaz: kuyruk hazırlığının geç dönen
+    /// yanıtı bu arada başlamış canlı kaydın toplantısını ezip onun çevirisini ve Deepgram jetonunu kapanan oturuma
+    /// yazmasın.
     public func startMeeting(device: HostedDeviceAssertion?, deviceCheckToken: String?, clientRef: String, deferred: Bool) async throws -> HostedStartedMeeting {
         let path: String = "/v1/meetings/start"
         let body: Data = try meetingStartBody(device: device, deviceCheckToken: deviceCheckToken, clientRef: clientRef, deferred: deferred)
@@ -191,7 +194,9 @@ public actor HostedClient: HostedLLMCredentialSource {
             data: try await authorized(path: path, method: "POST", body: body, isRetryable: isRetryableOneShotRequest),
             path: path
         )
-        meetingID = started.meetingId
+        if !deferred {
+            meetingID = started.meetingId
+        }
         hostedLogger.info("Toplantı oturumu açıldı, tür: \(started.kind, privacy: .public), en çok dakika: \(started.maxDurationMinutes, privacy: .public)")
         return started
     }

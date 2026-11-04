@@ -145,7 +145,8 @@ final class AppUpdater {
     private(set) var dismissedVersion: String?
     /// Yeniden başlatma, kayıt ya da işleme bitince yapılacak.
     private(set) var isRelaunchPostponed: Bool = false
-    /// Kayıt ya da işleme sürüyor mu (uygulama bağlar; çıkış korumasıyla aynı koşul).
+    /// Yeniden başlatma beklesin mi: kayıt, işleme ya da kendiliğinden not gönderimi sürüyor (uygulama bağlar; bkz.
+    /// `AppModel.blocksUpdateRelaunch`).
     @ObservationIgnored let isBusy: @MainActor () -> Bool
     @ObservationIgnored private let controller: SPUStandardUpdaterController?
     @ObservationIgnored private let delegate: SparkleDelegate = SparkleDelegate()
