@@ -207,6 +207,15 @@ private func phoneDiagnosticsCopyDate(date: Date) -> String {
     date.formatted(.iso8601)
 }
 
+/// Geri bildirime eklenen tanılama metni (Mac'teki `makeDiagnostics`): okumalar beklenir, metin kopyalanan tanılamayla
+/// aynıdır (tarihler ISO 8601; ses, metin, not, anahtar ve jeton yok).
+@MainActor
+func makePhoneDiagnosticsText(account: HostedAccount, store: PhoneStore) async -> String {
+    let readings: PhoneDiagnosticsReadings = await readPhoneDiagnostics()
+    let sections: [DiagnosticsSection] = collectPhoneDiagnostics(account: account, store: store, readings: readings, dateText: phoneDiagnosticsCopyDate)
+    return diagnosticsText(sections: sections, generatedAt: Date())
+}
+
 /// Tanılama ekranı: bölümler (solda soluk etiket, sağda değer; kötü değer uyarı renginde simgeyle), "Yenile" ve
 /// "Tanılama bilgisini kopyala". Kopyalama, okumalar bitmeden kapalıdır (sunucu denetimi ve son hatalar eksik kalmasın).
 struct PhoneDiagnosticsScreen: View {

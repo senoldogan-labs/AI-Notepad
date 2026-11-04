@@ -3,6 +3,7 @@ import AINotepadUI
 import AuthenticationServices
 import os
 import SwiftUI
+import UniformTypeIdentifiers
 
 private let phoneConnectionsLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "PhoneConnections")
 
@@ -15,6 +16,51 @@ struct PhoneConnectionsRow: View {
             PhoneConnectionsScreen()
         } label: {
             LabeledContent("Kanallar ve görev araçları", value: "\(integrations.destinations.count + integrations.taskTrackers.count)")
+        }
+    }
+}
+
+/// Bağlantılar › Klasör (Mac'teki "Klasör (Obsidian, iCloud)" kartı): Dosyalar'dan seçilen klasöre (iCloud Drive,
+/// Obsidian kasası, iPhone'umda…) not Markdown dosyası olarak yazılır; "Klasöre yaz" açıkken not hazır olunca ve her
+/// değişince kendiliğinden.
+private struct PhoneMarkdownFolderSection: View {
+    @Environment(PhoneIntegrations.self) private var integrations: PhoneIntegrations
+    @State private var isPicking: Bool = false
+    /// Klasör seçilemedi ya da ayar saklanamadı: nedeni bölümün altında.
+    @State private var status: String?
+
+    var body: some View {
+        Section {
+            LabeledContent {
+                Text(verbatim: integrations.markdownFolderName ?? String(localized: "Markdown dosyası olarak"))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            } label: {
+                Label("Klasör (Obsidian, iCloud)", systemImage: "folder.fill")
+            }
+            Button(integrations.markdownFolderName == nil ? "Seç…" : "Değiştir") { isPicking = true }
+            if integrations.markdownFolderName != nil {
+                Toggle("Klasöre yaz", isOn: Binding<Bool>(
+                    get: { integrations.markdownAutoExport },
+                    set: { (enabled: Bool) -> Void in status = integrations.setMarkdownAutoExport(enabled: enabled) }
+                ))
+            }
+            if let status {
+                NoticeText(status, severity: .error)
+                    .appFont(size: 13, weight: .regular)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        } footer: {
+            Text("\"Klasöre yaz\" açıkken not hazır olunca ve her değişince bu klasöre yazılır; eski notları toplantının ⋯ menüsünden kaydet.")
+        }
+        .fileImporter(isPresented: $isPicking, allowedContentTypes: [.folder]) { (result: Result<URL, any Error>) in
+            switch result {
+            case .success(let url):
+                status = integrations.chooseMarkdownFolder(url: url)
+            case .failure(let error):
+                phoneConnectionsLogger.error("Klasör seçilemedi, hata: \(String(describing: error), privacy: .private)")
+                status = String(localized: "Klasör seçilemedi: \(userFacingMessage(error: error))")
+            }
         }
     }
 }
@@ -96,6 +142,7 @@ struct PhoneConnectionsScreen: View {
             } footer: {
                 Text("Otomatik gönderim açık yerlere, açtıktan sonra biten toplantıların notu hazır olunca gider; eski notlar toplantının ⋯ menüsünden elle gönderilir.")
             }
+            PhoneMarkdownFolderSection()
             Section {
                 ForEach([MCPService.linear, MCPService.atlassian], id: \.self) { (service: MCPService) in
                     trackerRow(service: service)

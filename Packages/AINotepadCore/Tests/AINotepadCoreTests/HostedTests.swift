@@ -490,6 +490,14 @@ private func llmRequest(tier: LLMTier, schema: String?) -> LLMRequest {
         #expect(hostedEntitlementsOnThisMac(entitlements: subscriber, trialRefusedOnThisMac: true) == subscriber)
     }
 
+    // Kayıt engelinin çözümü: abonelikle çözülenler "Abone ol", kullanım ve ödeme sorunları hesap ekranı.
+    @Test func startBlockRemedy() {
+        #expect(hostedStartBlockRemedy(block: .trialEnded) == .subscribe)
+        #expect(hostedStartBlockRemedy(block: .subscriptionEnded) == .subscribe)
+        #expect(hostedStartBlockRemedy(block: .monthlyCapReached) == .openAccount)
+        #expect(hostedStartBlockRemedy(block: .paymentOverdue) == .openAccount)
+    }
+
     // Abone olma teklifi: denemede günde en çok bir, deneme bitince hesap başına bir kez; abonede hiç.
     @Test func upsellMoments() throws {
         let trialJSON: String = #"""
