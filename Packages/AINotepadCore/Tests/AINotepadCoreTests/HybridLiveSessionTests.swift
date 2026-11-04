@@ -123,6 +123,36 @@ private func hybridConfig(directory: URL) -> HybridLiveSessionConfig {
         #expect(try AVAudioFile(forReading: file).length == AVAudioFramePosition(samples.count))
     }
 
+    // "Bitir"in süresi dolunca (iPhone) oturum bırakılır: ses akışları bitmemiş ve Deepgram bağlanırken takılmış olsa da
+    // olay akışı hemen biter, ses dosyaya yazılmaya devam eder.
+    @Test func cancelEndsSessionWhileAudioIsStillOpen() async throws {
+        let directory: URL = try temporaryDirectory()
+        let (me, meInput): (AsyncStream<[Float]>, AsyncStream<[Float]>.Continuation) = AsyncStream.makeStream(of: [Float].self)
+        let (others, othersInput): (AsyncStream<[Float]>, AsyncStream<[Float]>.Continuation) = AsyncStream.makeStream(of: [Float].self)
+        let source: DeepgramLiveSource = DeepgramLiveSource(
+            language: .finnish, keyterms: [], options: DeepgramListenOptions(model: "nova-3", optOutOfModelImprovement: true),
+            onConnectionEvent: { (_: DeepgramConnectionEvent) -> Void in }
+        ) { () async throws -> String in
+            // Jeton hiç gelmiyor (sunucu yanıt vermiyor).
+            try await Task.sleep(for: .seconds(30))
+            return "gec-jeton"
+        }
+        let handle: LiveSessionHandle = runHybridLiveSession(
+            config: hybridConfig(directory: directory), start: .deepgram(source),
+            localEngine: { () async throws -> any TranscriptionEngine in FixedTextEngine(text: "hei") },
+            recording: startHybridRecording(directory: directory, meAudio: me, othersAudio: others)
+        )
+        othersInput.yield(silence(seconds: 1))
+        try await Task.sleep(for: .milliseconds(200))
+        let clock: ContinuousClock = ContinuousClock()
+        let cancelledAt: ContinuousClock.Instant = clock.now
+        await handle.cancel()
+        for await _ in handle.events {}
+        #expect(clock.now - cancelledAt < .seconds(2))
+        meInput.finish()
+        othersInput.finish()
+    }
+
     @Test func localEventsMoveToMeetingTimeline() {
         let segment: LiveSegment = LiveSegment(id: SegmentID(speaker: .me, index: 3), startSec: 1, endSec: 2, text: "x", isFinal: true, failureMessage: nil, person: nil)
         let shifted: LiveSessionEvent? = shiftedLocalEvent(event: .segment(segment), timeline: LocalTimeline(meStartSec: 60, othersStartSec: 0))

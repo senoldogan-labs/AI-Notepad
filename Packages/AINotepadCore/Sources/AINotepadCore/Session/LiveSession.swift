@@ -121,10 +121,18 @@ func runTranscriptionPipeline(
         await worker.value
         eventSink.finish()
     }
-    return LiveSessionHandle(events: events) { (language: MeetingLanguage) async -> Void in
-        await languageRequest.request(language: language)
-        eventSink.yield(.languageLocked(language))
-    }
+    return LiveSessionHandle(
+        events: events,
+        languageSetter: { (language: MeetingLanguage) async -> Void in
+            await languageRequest.request(language: language)
+            eventSink.yield(.languageLocked(language))
+        },
+        canceller: { () async -> Void in
+            // Yeni iş kuyruğa girmez (işçi süren işi bitirip çıkar); olay akışı hemen biter.
+            jobSink.finish()
+            eventSink.finish()
+        }
+    )
 }
 
 /// Kullanıcının kayıt sırasında seçtiği dil; işçi bir sonraki işte alır.

@@ -13,6 +13,14 @@ enum CallAudioSource: String, Sendable, CaseIterable {
     /// Mikrofon (seçicide kullanıcı açtıysa).
     case microphone
 
+    /// Arayüzdeki adı (hata mesajlarında).
+    var displayName: String {
+        switch self {
+        case .system: String(localized: "Sistem sesi")
+        case .microphone: String(localized: "Mikrofon")
+        }
+    }
+
     /// Ham dosyanın adı (oturum klasöründe).
     var fileName: String {
         switch self {

@@ -36,20 +36,38 @@ private func destination(id: String, target: DestinationTarget, createdAt: Date)
         #expect(DestinationKind.slack.channelService == .slack && DestinationKind.zoom.channelService == nil)
     }
 
-    // Kendiliğinden gönderim kuyruğu: işareti henüz yazılamamış, kilitli (kayıtta ya da işleniyor) ve sonucu belirsiz
-    // gönderimler atlanır.
-    @Test func autoSendQueueSkipsPendingLockedAndUncertain() {
+    // Kendiliğinden gönderim kuyruğu: işareti henüz yazılamamış, kilitli (kayıtta ya da işleniyor), sonucu belirsiz ve
+    // hedefin kalıcı olarak reddettiği gönderimler atlanır.
+    @Test func autoSendQueueSkipsPendingLockedUncertainAndRejected() {
         let now: Date = Date(timeIntervalSince1970: 2_000_000_000)
         let target: DestinationTarget = .webhook(URL(string: "https://hooks.zapier.com/x")!)
         let destinations: [NoteDestination] = [destination(id: "d", target: target, createdAt: now.addingTimeInterval(-86_400))]
-        let records: [MeetingRecord] = ["serbest", "isaretli", "kilitli", "belirsiz"].map {
+        let records: [MeetingRecord] = ["serbest", "isaretli", "kilitli", "belirsiz", "reddedildi"].map {
             sendingRecord(id: $0, endedAt: now.addingTimeInterval(-60), tasks: [])
         }
         let queue: [(meetingID: String, destinationID: String)] = autoSendQueue(
             records: records, destinations: destinations, now: now, pendingMarks: ["isaretli": ["d"]], locked: ["kilitli"],
-            uncertain: [meetingDestinationKey(meetingID: "belirsiz", destinationID: "d")]
+            uncertain: [meetingDestinationKey(meetingID: "belirsiz", destinationID: "d")],
+            rejected: [meetingDestinationKey(meetingID: "reddedildi", destinationID: "d")]
         )
         #expect(queue.map { "\($0.meetingID)>\($0.destinationID)" } == ["serbest>d"])
+    }
+
+    // Hedefin bilerek reddi (silinmiş webhook, geçersiz istek) kalıcıdır: saatte bir 7 gün yeniden denenmez. Zaman aşımı,
+    // hız sınırı, sunucu ve ağ hataları geçicidir.
+    @Test func permanentDeliveryFailuresAreClientRejections() {
+        for status in [400, 401, 403, 404, 410, 422] {
+            #expect(isPermanentDeliveryFailure(error: WebhookError.http(host: "hooks.zapier.com", status: status, body: "")), "durum \(status)")
+        }
+        #expect(isPermanentDeliveryFailure(error: WebhookError.invalidURL))
+        #expect(isPermanentDeliveryFailure(error: ChannelAuthError.http(service: .slack, status: 404, body: "")))
+        #expect(isPermanentDeliveryFailure(error: MCPRemoteError.http(server: "mcp.notion.com", status: 400, body: "")))
+        for status in [408, 429] {
+            #expect(!isPermanentDeliveryFailure(error: WebhookError.http(host: "hooks.zapier.com", status: status, body: "")), "durum \(status)")
+        }
+        #expect(!isPermanentDeliveryFailure(error: WebhookError.network(host: "hooks.zapier.com", reason: "çevrimdışı")))
+        #expect(!isPermanentDeliveryFailure(error: DeliveryUncertainError(host: "hooks.zapier.com", reason: "HTTP 502")))
+        #expect(!isPermanentDeliveryFailure(error: URLError(.notConnectedToInternet)))
     }
 
     // Görev aracına yalnızca kapsamdaki, gönderilmemiş ve tamamlanmamış görevler gider.

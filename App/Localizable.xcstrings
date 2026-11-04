@@ -141071,6 +141071,1896 @@
           }
         }
       }
+    },
+    "AppleScript derlenemedi": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AppleScript konnte nicht kompiliert werden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AppleScript could not be compiled"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo compilar el AppleScript"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AppleScriptiä ei voitu kääntää"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de compiler l’AppleScript"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile compilare l’AppleScript"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AppleScript をコンパイルできませんでした"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AppleScript를 컴파일할 수 없습니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AppleScript kon niet worden gecompileerd"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível compilar o AppleScript"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法编译 AppleScript"
+          }
+        }
+      }
+    },
+    "%@: %@ Bu toplantı artık kendiliğinden gönderilmeyecek; hedefi Ayarlar'da kontrol edip notu toplantı sayfasından yeniden gönder.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: %@ Dieses Meeting wird nicht mehr automatisch gesendet; prüfe das Ziel in den Einstellungen und sende die Notiz dann erneut von der Meeting-Seite."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: %@ This meeting won’t be sent automatically again; check the destination in Settings, then resend the note from the meeting page."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: %@ Esta reunión ya no se enviará automáticamente; revisa el destino en Ajustes y vuelve a enviar la nota desde la página de la reunión."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: %@ Tätä kokousta ei enää lähetetä automaattisesti; tarkista kohde Asetuksista ja lähetä muistiinpano uudelleen kokouksen sivulta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ : %@ Cette réunion ne sera plus envoyée automatiquement ; vérifiez la destination dans les Réglages, puis renvoyez la note depuis la page de la réunion."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: %@ Questa riunione non verrà più inviata automaticamente; controlla la destinazione nelle Impostazioni, poi invia di nuovo la nota dalla pagina della riunione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: %@ この会議は今後自動送信されません。設定で送信先を確認してから、会議ページからノートを再送信してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: %@ 이 회의는 더 이상 자동으로 전송되지 않습니다. 설정에서 대상을 확인한 후 회의 페이지에서 노트를 다시 보내세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: %@ Deze vergadering wordt niet meer automatisch verstuurd; controleer de bestemming in Instellingen en verstuur de notitie opnieuw vanaf de vergaderpagina."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: %@ Esta reunião não será mais enviada automaticamente; verifique o destino nos Ajustes e reenvie a nota pela página da reunião."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@：%@ 此会议将不再自动发送；请在设置中检查目标，然后在会议页面重新发送笔记。"
+          }
+        }
+      }
+    },
+    "Bu deneme iOS 27'nin ScreenCaptureKit'ini kullanır; iOS 27 gerekir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Experiment nutzt ScreenCaptureKit aus iOS 27; dafür ist iOS 27 erforderlich."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This experiment uses ScreenCaptureKit from iOS 27; it requires iOS 27."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este experimento usa ScreenCaptureKit de iOS 27; requiere iOS 27."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämä kokeilu käyttää iOS 27:n ScreenCaptureKitiä; se vaatii iOS 27:n."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette expérience utilise ScreenCaptureKit d’iOS 27 ; iOS 27 est requis."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questo esperimento usa ScreenCaptureKit di iOS 27; richiede iOS 27."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この試験機能は iOS 27 の ScreenCaptureKit を使用するため、iOS 27 が必要です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 실험 기능은 iOS 27의 ScreenCaptureKit을 사용하므로 iOS 27이 필요합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dit experiment gebruikt ScreenCaptureKit van iOS 27; iOS 27 is vereist."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este experimento usa o ScreenCaptureKit do iOS 27; requer iOS 27."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此实验功能使用 iOS 27 的 ScreenCaptureKit，需要 iOS 27。"
+          }
+        }
+      }
+    },
+    "ScreenCaptureKit iOS Simulator'da yok; gerçek iPhone'da (iOS 27) dene.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ScreenCaptureKit ist im iOS-Simulator nicht verfügbar; teste es auf einem echten iPhone (iOS 27)."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ScreenCaptureKit isn’t available in the iOS Simulator; try it on a real iPhone (iOS 27)."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ScreenCaptureKit no está disponible en el simulador de iOS; pruébalo en un iPhone real (iOS 27)."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ScreenCaptureKit ei ole käytettävissä iOS-simulaattorissa; kokeile oikealla iPhonella (iOS 27)."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ScreenCaptureKit n’est pas disponible dans le simulateur iOS ; essayez sur un vrai iPhone (iOS 27)."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ScreenCaptureKit non è disponibile nel simulatore iOS; provalo su un iPhone reale (iOS 27)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ScreenCaptureKit は iOS シミュレータでは使用できません。実機の iPhone（iOS 27）で試してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ScreenCaptureKit은 iOS 시뮬레이터에서 사용할 수 없습니다. 실제 iPhone(iOS 27)에서 시도하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ScreenCaptureKit is niet beschikbaar in de iOS-simulator; probeer het op een echte iPhone (iOS 27)."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O ScreenCaptureKit não está disponível no Simulador iOS; teste em um iPhone real (iOS 27)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iOS 模拟器中没有 ScreenCaptureKit；请在真实 iPhone（iOS 27）上试用。"
+          }
+        }
+      }
+    },
+    "Görüşme kaydı (deneysel)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anrufaufnahme (experimentell)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Call recording (experimental)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabación de llamadas (experimental)"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puhelun tallennus (kokeellinen)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrement d’appel (expérimental)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrazione chiamate (sperimentale)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通話の録音（試験運用）"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "통화 녹음(실험적)"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gesprek opnemen (experimenteel)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gravação de chamadas (experimental)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通话录制（实验性）"
+          }
+        }
+      }
+    },
+    "Görüşmeyi kaydetmeden önce katılımcılara haber ver. Başlat'a basınca açılan sistem penceresinde mikrofonu aç ve ekranı paylaş; yalnız ses kaydedilir. Sonra Teams'e ya da Zoom'a geç; dönünce sayaçlar sistem sesinin gelip gelmediğini gösterir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informiere die Teilnehmenden, bevor du den Anruf aufnimmst. Tippe auf „Starten“, schalte im Systemfenster das Mikrofon ein und teile den Bildschirm; aufgenommen wird nur der Ton. Wechsle dann zu Teams oder Zoom; wenn du zurückkommst, zeigen die Zähler, ob Systemton angekommen ist."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Let participants know before you record the call. Tap Start, then in the system window turn on the microphone and share the screen; only audio is recorded. Then switch to Teams or Zoom; when you come back, the counters show whether system audio came through."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avisa a los participantes antes de grabar la llamada. Toca Iniciar y, en la ventana del sistema, activa el micrófono y comparte la pantalla; solo se graba el audio. Luego cambia a Teams o Zoom; al volver, los contadores muestran si llegó el audio del sistema."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kerro osallistujille ennen kuin tallennat puhelun. Napauta Aloita ja kytke järjestelmäikkunassa mikrofoni päälle ja jaa näyttö; vain ääni tallennetaan. Siirry sitten Teamsiin tai Zoomiin; kun palaat, laskurit näyttävät, tuliko järjestelmän ääntä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prévenez les participants avant d’enregistrer l’appel. Touchez Démarrer, puis dans la fenêtre système activez le micro et partagez l’écran ; seul l’audio est enregistré. Passez ensuite à Teams ou Zoom ; à votre retour, les compteurs indiquent si l’audio système a bien été reçu."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avvisa i partecipanti prima di registrare la chiamata. Tocca Avvia, poi nella finestra di sistema attiva il microfono e condividi lo schermo; viene registrato solo l’audio. Poi passa a Teams o Zoom; al ritorno, i contatori mostrano se l’audio di sistema è arrivato."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通話を録音する前に参加者に知らせてください。「開始」をタップし、表示されるシステムウインドウでマイクをオンにして画面を共有します。録音されるのは音声のみです。その後 Teams や Zoom に切り替え、戻るとカウンタでシステム音声が届いたかを確認できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "통화를 녹음하기 전에 참가자에게 알리세요. 시작을 누른 뒤 시스템 창에서 마이크를 켜고 화면을 공유하세요. 오디오만 녹음됩니다. 그런 다음 Teams나 Zoom으로 전환하세요. 돌아오면 카운터에서 시스템 오디오가 들어왔는지 확인할 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laat deelnemers het weten voordat je het gesprek opneemt. Tik op Start, zet in het systeemvenster de microfoon aan en deel het scherm; alleen geluid wordt opgenomen. Ga daarna naar Teams of Zoom; als je terugkomt, laten de tellers zien of er systeemgeluid binnenkwam."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avise os participantes antes de gravar a chamada. Toque em Iniciar e, na janela do sistema, ative o microfone e compartilhe a tela; só o áudio é gravado. Depois mude para o Teams ou o Zoom; ao voltar, os contadores mostram se o áudio do sistema chegou."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "录制通话前请告知参与者。轻点“开始”，然后在系统窗口中打开麦克风并共享屏幕；只会录制音频。接着切换到 Teams 或 Zoom；返回后，计数器会显示是否收到了系统音频。"
+          }
+        }
+      }
+    },
+    "Hatalar": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fehler"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Errors"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Errores"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Virheet"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erreurs"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Errori"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エラー"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "오류"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fouten"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erros"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "错误"
+          }
+        }
+      }
+    },
+    "Sistem sesi (karşı taraf)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Systemton (Gegenseite)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System audio (other side)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio del sistema (otra parte)"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Järjestelmän ääni (toinen osapuoli)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio système (interlocuteur)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio di sistema (interlocutore)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "システム音声（相手側）"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "시스템 오디오(상대방)"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Systeemgeluid (andere kant)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Áudio do sistema (outra parte)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统音频（对方）"
+          }
+        }
+      }
+    },
+    "Mikrofon (sen)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mikrofon (du)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microphone (you)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Micrófono (tú)"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mikrofoni (sinä)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Micro (vous)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microfono (tu)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "マイク（自分）"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "마이크(나)"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microfoon (jij)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microfone (você)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "麦克风（你）"
+          }
+        }
+      }
+    },
+    "Ham dosyaları paylaş": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rohdateien teilen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share raw files"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compartir archivos sin procesar"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jaa raakatiedostot"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Partager les fichiers bruts"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Condividi file grezzi"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "生ファイルを共有"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원본 파일 공유"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ruwe bestanden delen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compartilhar arquivos brutos"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共享原始文件"
+          }
+        }
+      }
+    },
+    "Önce süren kaydı bitir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beende zuerst die laufende Aufnahme."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finish the current recording first."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Termina primero la grabación en curso."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lopeta ensin käynnissä oleva tallennus."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminez d’abord l’enregistrement en cours."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Termina prima la registrazione in corso."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まず進行中の録音を終了してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "먼저 진행 중인 녹음을 끝내세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rond eerst de lopende opname af."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Termine primeiro a gravação em andamento."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请先结束正在进行的录制。"
+          }
+        }
+      }
+    },
+    "Bu cihazda ekran kaydı kullanılamıyor (Ekran Süresi kısıtlaması olabilir).": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bildschirmaufnahme ist auf diesem Gerät nicht verfügbar (möglicherweise eine Bildschirmzeit-Beschränkung)."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screen recording isn’t available on this device (a Screen Time restriction may be on)."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La grabación de pantalla no está disponible en este dispositivo (puede haber una restricción de Tiempo de uso)."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näytön tallennus ei ole käytettävissä tällä laitteella (Ruutuajan rajoitus voi olla päällä)."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’enregistrement de l’écran n’est pas disponible sur cet appareil (une restriction Temps d’écran est peut-être active)."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La registrazione dello schermo non è disponibile su questo dispositivo (potrebbe esserci una limitazione di Tempo di utilizzo)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このデバイスでは画面収録を使用できません（スクリーンタイムの制限が有効になっている可能性があります）。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 기기에서는 화면 기록을 사용할 수 없습니다(스크린 타임 제한이 켜져 있을 수 있음)."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schermopname is niet beschikbaar op dit apparaat (mogelijk een Schermtijd-beperking)."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A gravação de tela não está disponível neste dispositivo (pode haver uma restrição do Tempo de Uso)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此设备无法使用屏幕录制（可能开启了屏幕使用时间限制）。"
+          }
+        }
+      }
+    },
+    "Sistem penceresi bekleniyor…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warte auf das Systemfenster …"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for the system window…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esperando la ventana del sistema…"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odotetaan järjestelmäikkunaa…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En attente de la fenêtre système…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In attesa della finestra di sistema…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "システムウインドウを待っています…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "시스템 창을 기다리는 중…"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wachten op het systeemvenster…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aguardando a janela do sistema…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在等待系统窗口…"
+          }
+        }
+      }
+    },
+    "Kayıt sürüyor: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aufnahme läuft: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabando: %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tallennus käynnissä: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrement : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrazione: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音中：%@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹음 중: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opname loopt: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gravando: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在录制：%@"
+          }
+        }
+      }
+    },
+    "Dosyalar karıştırılıyor…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dateien werden gemischt …"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mixing the files…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mezclando los archivos…"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tiedostoja yhdistetään…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mixage des fichiers…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mixaggio dei file…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルをミックスしています…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "파일을 믹싱하는 중…"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bestanden worden gemixt…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mixando os arquivos…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在混合文件…"
+          }
+        }
+      }
+    },
+    "Toplantı olarak içe aktar": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als Meeting importieren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import as meeting"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importar como reunión"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tuo kokouksena"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importer comme réunion"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importa come riunione"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議として読み込む"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의로 가져오기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importeren als vergadering"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importar como reunião"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "作为会议导入"
+          }
+        }
+      }
+    },
+    "Yeniden kaydet (bu kayıt silinir)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erneut aufnehmen (diese Aufnahme wird gelöscht)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record again (deletes this recording)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volver a grabar (se elimina esta grabación)"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tallenna uudelleen (tämä tallenne poistetaan)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réenregistrer (supprime cet enregistrement)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registra di nuovo (questa registrazione viene eliminata)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音し直す（この録音は削除されます）"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다시 녹음(이 녹음은 삭제됨)"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opnieuw opnemen (deze opname wordt verwijderd)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gravar novamente (apaga esta gravação)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新录制（将删除此录音）"
+          }
+        }
+      }
+    },
+    "seçicide kapalı": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "in der Auswahl aus"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "off in the picker"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "desactivado en el selector"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "pois päältä valitsimessa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "désactivé dans le sélecteur"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "disattivato nel selettore"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ピッカーでオフ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "선택기에서 꺼짐"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "uit in de kiezer"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "desativado no seletor"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在选择器中已关闭"
+          }
+        }
+      }
+    },
+    "%lld sn ses · %lld sn sesli · tepe %@ · %lld parça · boşluk %lld sn": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld s Ton · %lld s laut · Spitze %@ · %lld Puffer · Lücken %lld s"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld s audio · %lld s loud · peak %@ · %lld buffers · gaps %lld s"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld s de audio · %lld s con sonido · pico %@ · %lld búferes · huecos %lld s"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld s ääntä · %lld s äänekästä · huippu %@ · %lld puskuria · aukot %lld s"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld s d’audio · %lld s audibles · crête %@ · %lld tampons · trous %lld s"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld s di audio · %lld s udibili · picco %@ · %lld buffer · vuoti %lld s"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音声 %lld 秒 · 有音 %lld 秒 · ピーク %@ · バッファ %lld 個 · 欠落 %lld 秒"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "오디오 %lld초 · 유음 %lld초 · 최대 %@ · 버퍼 %lld개 · 공백 %lld초"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld s geluid · %lld s luid · piek %@ · %lld buffers · gaten %lld s"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld s de áudio · %lld s com som · pico %@ · %lld buffers · lacunas %lld s"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音频 %lld 秒 · 有声 %lld 秒 · 峰值 %@ · 缓冲 %lld 个 · 空隙 %lld 秒"
+          }
+        }
+      }
+    },
+    "Akış durdurulamadı: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stream konnte nicht gestoppt werden: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t stop the stream: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo detener la transmisión: %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Virtaa ei voitu pysäyttää: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d’arrêter le flux : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile interrompere il flusso: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ストリームを停止できませんでした：%@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "스트림을 중지할 수 없습니다: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stream kon niet worden gestopt: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível parar o fluxo: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法停止流：%@"
+          }
+        }
+      }
+    },
+    "Seçici açılamadı: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auswahl konnte nicht geöffnet werden: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t open the picker: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo abrir el selector: %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valitsinta ei voitu avata: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d’ouvrir le sélecteur : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile aprire il selettore: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ピッカーを開けませんでした：%@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "선택기를 열 수 없습니다: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kiezer kon niet worden geopend: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível abrir o seletor: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法打开选择器：%@"
+          }
+        }
+      }
+    },
+    "Klasör açılamadı: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordner konnte nicht angelegt werden: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t create the folder: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo crear la carpeta: %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kansiota ei voitu luoda: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de créer le dossier : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile creare la cartella: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォルダを作成できませんでした：%@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "폴더를 만들 수 없습니다: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Map kon niet worden aangemaakt: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível criar a pasta: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法创建文件夹：%@"
+          }
+        }
+      }
+    },
+    "Yakalama başlamadı: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aufnahme ist nicht gestartet: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Capture didn’t start: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La captura no se inició: %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kaappaus ei käynnistynyt: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La capture n’a pas démarré : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’acquisizione non è partita: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キャプチャを開始できませんでした：%@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "캡처가 시작되지 않았습니다: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opname is niet gestart: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A captura não começou: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "捕获未能开始：%@"
+          }
+        }
+      }
+    },
+    "Akış durdu (kod %lld): %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Stream wurde beendet (Code %lld): %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The stream stopped (code %lld): %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La transmisión se detuvo (código %lld): %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Virta pysähtyi (koodi %lld): %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le flux s’est arrêté (code %lld) : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il flusso si è interrotto (codice %lld): %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ストリームが停止しました（コード %lld）：%@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "스트림이 중지되었습니다(코드 %lld): %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De stream is gestopt (code %lld): %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O fluxo parou (código %lld): %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "流已停止（代码 %lld）：%@"
+          }
+        }
+      }
+    },
+    "Karıştırılamadı: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dateien konnten nicht gemischt werden: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t mix the files: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudieron mezclar los archivos: %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tiedostoja ei voitu yhdistää: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de mixer les fichiers : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile mixare i file: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルをミックスできませんでした：%@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "파일을 믹싱할 수 없습니다: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bestanden konden niet worden gemixt: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível mixar os arquivos: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法混合文件：%@"
+          }
+        }
+      }
+    },
+    "Telefon görüşmesi %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Telefonat %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phone call %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Llamada telefónica %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puhelu %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appel téléphonique %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Telefonata %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "電話 %@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "전화 통화 %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Telefoongesprek %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chamada telefônica %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "电话 %@"
+          }
+        }
+      }
+    },
+    "Bu iPhone'daki görüşmeyi kaydet (deneysel)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anruf auf diesem iPhone aufnehmen (experimentell)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record a call on this iPhone (experimental)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabar una llamada en este iPhone (experimental)"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tallenna puhelu tällä iPhonella (kokeellinen)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrer un appel sur cet iPhone (expérimental)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registra una chiamata su questo iPhone (sperimentale)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この iPhone の通話を録音（試験運用）"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 iPhone의 통화 녹음(실험적)"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gesprek op deze iPhone opnemen (experimenteel)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gravar uma chamada neste iPhone (experimental)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "录制此 iPhone 上的通话（实验性）"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

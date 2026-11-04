@@ -26,13 +26,13 @@ func callCaptureRootDirectory() throws -> URL {
         .appending(path: "CallCaptureExperiment", directoryHint: .isDirectory)
 }
 
-/// Karışık dosyanın adı; içe aktarılan toplantının başlığı olur. Saf fonksiyondur.
+/// Karışık dosyanın adı (arayüz dilinde); içe aktarılan toplantının başlığı olur. Saf fonksiyondur.
 func callMixedFileName(startedAt: Date, timeZone: TimeZone) -> String {
     let formatter: DateFormatter = DateFormatter()
     formatter.locale = Locale(identifier: "en_US_POSIX")
     formatter.timeZone = timeZone
     formatter.dateFormat = "yyyy-MM-dd HH.mm"
-    return "Telefon görüşmesi \(formatter.string(from: startedAt)).m4a"
+    return String(localized: "Telefon görüşmesi \(formatter.string(from: startedAt))") + ".m4a"
 }
 
 /// iPhone'da çalışan görüşmenin sesini (sistem sesi + mikrofon) ScreenCaptureKit'le yakalar; iki kaynağın canlı
@@ -74,7 +74,7 @@ final class CallCaptureController {
             return
         }
         guard isAvailable else {
-            errorMessages = [String(describing: CallCaptureError.notAvailable)]
+            errorMessages = [String(localized: "Bu cihazda ekran kaydı kullanılamıyor (Ekran Süresi kısıtlaması olabilir).")]
             return
         }
         errorMessages = []
@@ -110,7 +110,7 @@ final class CallCaptureController {
             try await stream.stopCapture()
         } catch {
             Self.logger.error("Akış durdurulamadı, hata: \(String(describing: error), privacy: .public)")
-            errorMessages.append("Akış durdurulamadı: \(String(describing: error))")
+            errorMessages.append(String(localized: "Akış durdurulamadı: \(String(describing: error))"))
         }
         await finish()
     }
@@ -134,7 +134,7 @@ final class CallCaptureController {
     private func pickerEnded(message: String?) {
         detachPicker()
         if let message {
-            errorMessages.append("Seçici açılamadı: \(message)")
+            errorMessages.append(String(localized: "Seçici açılamadı: \(message)"))
         }
         if phase == .picking {
             phase = .idle
@@ -166,7 +166,7 @@ final class CallCaptureController {
             folder = root.appending(path: ISO8601DateFormatter().string(from: now), directoryHint: .isDirectory)
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         } catch {
-            fail(message: "Klasör açılamadı: \(error.localizedDescription)")
+            fail(message: String(localized: "Klasör açılamadı: \(error.localizedDescription)"))
             return
         }
         directory = folder
@@ -193,7 +193,7 @@ final class CallCaptureController {
                 }
             },
             onError: { [weak self] (source: CallAudioSource, message: String) -> Void in
-                Task { @MainActor in self?.errorMessages.append("\(source.rawValue): \(message)") }
+                Task { @MainActor in self?.errorMessages.append(String(localized: "\(source.displayName): \(message)")) }
             }
         )
         let delegate: CallStreamDelegate = CallStreamDelegate { [weak self] (code: Int, message: String) -> Void in
@@ -213,7 +213,7 @@ final class CallCaptureController {
             }
             try await created.startCapture()
         } catch {
-            fail(message: "Yakalama başlamadı: \(String(describing: error))")
+            fail(message: String(localized: "Yakalama başlamadı: \(String(describing: error))"))
             return
         }
         stream = created
@@ -229,7 +229,7 @@ final class CallCaptureController {
     /// yine karıştırılır.
     private func streamStopped(code: Int, message: String) async {
         Self.logger.error("Akış durdu, kod: \(code, privacy: .public), hata: \(message, privacy: .public)")
-        errorMessages.append("Akış durdu (kod \(code)): \(message)")
+        errorMessages.append(String(localized: "Akış durdu (kod \(code)): \(message)"))
         guard case .capturing = phase else {
             return
         }
@@ -260,7 +260,7 @@ final class CallCaptureController {
         do {
             try await mixCallAudio(tracks: tracks, destination: mixed)
         } catch {
-            fail(message: "Karıştırılamadı: \(String(describing: error))")
+            fail(message: String(localized: "Karıştırılamadı: \(String(describing: error))"))
             return
         }
         rawFiles.append(mixed)

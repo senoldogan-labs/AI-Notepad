@@ -105,6 +105,39 @@ import Testing
         // Kapanış süresi 5 sn; yeniden bağlanma bütçesi (120 sn) beklenmemeli.
         #expect(shutdown < .seconds(12), "kapanış: \(shutdown)")
     }
+
+    // Ses akışı hiç bitmese de (iPhone'da "Bitir"in süresi doldu, boru hattı takıldı) `cancel()` bağlantıyı hemen keser
+    // ve olay akışını bitirir; önceden WebSocket KeepAlive'larla açık kalıyordu.
+    @Test func cancelClosesSocketWhileAudioIsStillOpen() async throws {
+        let server: SilentWebSocketServer = try SilentWebSocketServer()
+        let port: UInt16 = try await server.start()
+        defer { server.stop() }
+        let (audio, input): (AsyncStream<[Float]>, AsyncStream<[Float]>.Continuation) = AsyncStream.makeStream(of: [Float].self)
+        defer { input.finish() }
+        let connectionEvents: ShutdownEventLog = ShutdownEventLog()
+        let stream: DeepgramStream = startDeepgramStream(
+            authorization: .apiKey("yerel"), options: developerDeepgramListenOptions, url: try #require(URL(string: "ws://127.0.0.1:\(port)/v1/listen")),
+            keyterms: [], onConnectionEvent: { (event: DeepgramConnectionEvent) -> Void in Task { await connectionEvents.add(event: event) } }, audio: audio
+        )
+        input.yield([Float](repeating: 0.01, count: 3200))
+        // Bağlantı kurulsun (yerel sunucu, ping yanıtı).
+        try await Task.sleep(for: .milliseconds(500))
+        let clock: ContinuousClock = ContinuousClock()
+        let cancelledAt: ContinuousClock.Instant = clock.now
+        await stream.cancel()
+        var failures: [String] = []
+        for await event in stream.events {
+            if case .failed(let message) = event {
+                failures.append(message)
+            }
+        }
+        #expect(clock.now - cancelledAt < .seconds(2))
+        #expect(failures.isEmpty, "hatalar: \(failures)")
+        // Bırakılan akış yeniden bağlanmaz.
+        input.yield([Float](repeating: 0.01, count: 3200))
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(await connectionEvents.events.isEmpty)
+    }
 }
 
 /// Yerel WebSocket sunucusu: bağlantıyı kabul eder ve ping'e yanıt verir, başka bir şey yollamaz; `stop()` sonrası

@@ -12,6 +12,8 @@ import UIKit
 
 /// Sonucu belirsiz gönderimlerin ayar anahtarı (Mac'teki `SettingsKey.uncertainSends` ile aynı ad).
 private let phoneUncertainSendsKey: String = "integrations.uncertainSends"
+/// Hedefin kalıcı olarak reddettiği gönderimlerin ayar anahtarı (Mac'teki `SettingsKey.rejectedSends` ile aynı ad).
+private let phoneRejectedSendsKey: String = "integrations.rejectedSends"
 
 /// Hesabın not hedefleri ve görev araçları: bağlama, kaldırma, elle ve kendiliğinden gönderim. Hesap değişince oturumla
 /// birlikte yenisi kurulur (bkz. `PhoneAccountSession`).
@@ -280,8 +282,9 @@ final class PhoneIntegrations {
         }
         notesInFlight.insert(sendKey)
         defer { notesInFlight.remove(sendKey) }
-        // Elle gönderim belirsiz işaretini kaldırır: kullanıcı kontrol edip yeniden göndermeyi seçti.
+        // Elle gönderim belirsiz ve reddedildi işaretlerini kaldırır: kullanıcı kontrol edip yeniden göndermeyi seçti.
         storeUncertainSends(sends: uncertainSends().subtracting([sendKey]))
+        storeRejectedSends(sends: rejectedSends().subtracting([sendKey]))
         do {
             try await deliverNote(vault: destinationVault(), destination: destination, record: record, note: note)
             recordFeatureUsage(feature: .integration(telemetryIntegration(target: destination.target)))
@@ -293,6 +296,12 @@ final class PhoneIntegrations {
             storeUncertainSends(sends: uncertainSends().union([sendKey]))
             Self.logger.warning("Not gönderiminin sonucu belirsiz, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
             return String(localized: "\(destinationName(destination: destination)): \(userFacingMessage(error: error))")
+        } catch where isPermanentDeliveryFailure(error: error) {
+            // Hedef isteği bilerek reddetti (4xx): yeniden denemek aynı hatayı verir. Bu toplantı için kendiliğinden
+            // gönderim bırakılır; hata bir kez, ne yapılacağıyla görünür.
+            storeRejectedSends(sends: rejectedSends().union([sendKey]))
+            Self.logger.error("Hedef notu kalıcı olarak reddetti, kendiliğinden yeniden denenmeyecek, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+            return permanentAutoSendFailureMessage(destinationName: destinationName(destination: destination), error: error)
         } catch {
             Self.logger.error("Not hedefe gönderilemedi, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
             return String(localized: "\(destinationName(destination: destination)): \(userFacingMessage(error: error))")
@@ -388,6 +397,18 @@ final class PhoneIntegrations {
         UserDefaults.standard.set(sends.sorted(), forKey: phoneUncertainSendsKey)
     }
 
+    /// Hedefin kalıcı olarak reddettiği gönderimler (`toplantı|hedef`): kendiliğinden gönderim bunları atlar.
+    private func rejectedSends() -> Set<String> {
+        Set(UserDefaults.standard.stringArray(forKey: phoneRejectedSendsKey) ?? [])
+    }
+
+    private func storeRejectedSends(sends: Set<String>) {
+        guard sends != rejectedSends() else {
+            return
+        }
+        UserDefaults.standard.set(sends.sorted(), forKey: phoneRejectedSendsKey)
+    }
+
     /// Bekleyen kendiliğinden gönderimleri yapar (Mac'teki kurallarla): toplantı işlenip notu hazır olunca, hesap
     /// yüklenince ve uygulama öne gelince. Ağ yokken kaçanlar böylece sonra gider; her (toplantı, hedef) bir kez
     /// gönderilir. iPhone kilitliyken Anahtar Zinciri okunamadığı için tur kilit açılınca (öne gelince) yapılır.
@@ -418,7 +439,8 @@ final class PhoneIntegrations {
             await resolveMissingNotionIdentities()
             let locked: Set<String> = Set(store.meetings.map(\.id).filter { isLocked(meetingID: $0) })
             let pending: [(meetingID: String, destinationID: String)] = autoSendQueue(
-                records: store.meetings, destinations: destinations, now: Date(), pendingMarks: pendingSentMarks, locked: locked, uncertain: uncertainSends()
+                records: store.meetings, destinations: destinations, now: Date(), pendingMarks: pendingSentMarks, locked: locked, uncertain: uncertainSends(),
+                rejected: rejectedSends()
             )
             for item in pending {
                 // Liste kurulduktan sonra elle gönderilmeye başlandıysa ya da gönderildiyse atlanır (not iki kez düşmesin).

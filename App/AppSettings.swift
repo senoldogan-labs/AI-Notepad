@@ -70,6 +70,9 @@ enum SettingsKey {
     /// Sonucu belirsiz gönderimler ("toplantı|hedef"): sunucu yanıt vermedi, not gitmiş olabilir; kendiliğinden yeniden
     /// gönderilmez. Bu cihaza özeldir.
     static let uncertainSends: String = "integrations.uncertainSends"
+    /// Hedefin kalıcı olarak reddettiği gönderimler ("toplantı|hedef"; 4xx, bkz. `isPermanentDeliveryFailure`):
+    /// kendiliğinden yeniden denenmez, hata bir kez gösterilir. Elle gönderim işareti kaldırır. Bu cihaza özeldir.
+    static let rejectedSends: String = "integrations.rejectedSends"
     /// Ana toplantı dili: otomatik algılama bu dille başlar (ve Mac'te bununla İngilizce arasında seçer).
     static let primaryMeetingLanguage: String = "language.primary"
     /// Not ve çeviri dili (`ShareLanguage`): not, canlı çeviri, "Ne kaçırdım?" ve Sor cevapları bu dilde yazılır.

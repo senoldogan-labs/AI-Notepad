@@ -48,20 +48,31 @@ public final class MicrophoneCapture {
 
     public init() {}
 
-    /// İzni ister, yakalamayı başlatır ve ses parçalarının akışını döndürür.
+    /// İzni ister, yakalamayı başlatır ve ses parçalarının akışını döndürür. İzin penceresi (ilk kullanım) ya da ses
+    /// oturumu beklenirken `stop()` çağrılırsa motor kurulmaz ve `CancellationError` fırlatılır: mikrofon kayıt
+    /// durdurulduktan sonra açık kalmaz.
     public func start() async throws -> AsyncStream<[Float]> {
         guard continuation == nil else {
             throw AudioCaptureError.alreadyRunning(source: "MicrophoneCapture")
         }
+        // `stop()` sayacı artırır: izin penceresi açıkken durdurulduysa izin gelince başlatma yarıda kalır.
+        let generation: Int = restartGeneration
         guard await AVAudioApplication.requestRecordPermission() else {
             throw AudioCaptureError.microphonePermissionDenied
+        }
+        guard generation == restartGeneration else {
+            Self.logger.info("Mikrofon izni beklenirken yakalama durduruldu; motor kurulmadı")
+            throw CancellationError()
+        }
+        // İzin beklenirken başka bir başlatma bitmiş olabilir.
+        guard continuation == nil else {
+            throw AudioCaptureError.alreadyRunning(source: "MicrophoneCapture")
         }
         let (stream, continuation): (AsyncStream<[Float]>, AsyncStream<[Float]>.Continuation) = AsyncStream.makeStream(of: [Float].self)
         self.continuation = continuation
         #if os(iOS)
         // Oturum beklenirken `stop()` çağrılırsa (sayaç artar) başlatma yarıda kalır: `stop()` akışı bitirdi ve oturumu
         // bıraktı; motor, gözlemciler ve bekçi kurulmaz, kurulsaydı mikrofon kayıt bittikten sonra da açık kalırdı.
-        let generation: Int = restartGeneration
         do {
             try await activateRecordingSession()
         } catch {
