@@ -1,3 +1,4 @@
+import { deepgramUnlinkStartedBeforeStatement } from "./deepgram";
 import { errorName, log } from "./log";
 import { expiredReservationStatements } from "./reservations";
 import { syncTombstoneRetentionDays } from "./sync";
@@ -77,7 +78,7 @@ const revenueRetentionMs: number = 3653 * dayMs;
 
 /**
  * Zamanlanmış temizliğin sınırları: tablo başına günde en çok 3 × 1000 satır. En kötü durumda 34 tablo koşulu × 3 tur
- * = 102 silme sorgusu + 4 toplu işlemin 8 ifadesi = 110 D1 sorgusu (Cron çağrısının diğer adımları, eşitleme temizliği
+ * = 102 silme sorgusu + 4 toplu işlemin 9 ifadesi = 111 D1 sorgusu (Cron çağrısının diğer adımları, eşitleme temizliği
  * dahil (`syncCleanup`: en çok ~50 hesap denetimi + 20 önek), birkaç yüz sorgu daha ekler). Workers Paid planının çağrı başına 1000 sorgu sınırının çok altındadır; ücretsiz plana (50) dönülürse
  * `maxBatchesPerTable` 2'ye indirilmelidir. Kalan satırlar ertesi gün silinir. Koşul eklerken bu sayıyı güncelle.
  */
@@ -92,6 +93,9 @@ export const scheduledCleanupLimits: CleanupLimits = { batchSize: 1000, maxBatch
  * - deneme başlangıçları yalnızca bugün sayılır (IP başına günlük sınır), daha eskileri silinir; indirme ziyaretçi
  *   özetleri de yalnızca bugünün tekilleştirmesi içindir;
  * - aylık kullanım 13 ay tutulur (sınırlar yalnızca bu aya bakar).
+ * Bilinçli olarak hiç silinmeyenler (gizlilik politikası, bölüm 10): günlük indirme toplamı (`downloads`: gün ve sayı)
+ * ve reddedilen deneme başlatmaları (`trial_refusals`: gün, neden ve sayı) kişisel veri içermeyen iş istatistikleridir;
+ * Deepgram canlı metin satırları (`deepgram_live_meetings`) ömür boyu bütçeye sayılır ve toplantı silinirken kopar.
  */
 function cleanupTargets(now: Date): CleanupTarget[] {
   const nowMs: number = now.getTime();
@@ -179,7 +183,8 @@ function cleanupTargets(now: Date): CleanupTarget[] {
  * Tek toplu işlemli adımlar (birlikte değişmesi gereken satırlar):
  * - süresi dolmuş ayırmalar: tahmini maliyet harcamaya yazılır, satırlar silinir (`expiredReservationStatements`);
  * - 13 aydan eski toplantılar: silinmeden önce kullanıcının deneme toplantıları `users.carried_trial_meetings`'e
- *   eklenir ve deneme başlangıcı korunur (deneme hakkı geri gelmez);
+ *   eklenir ve deneme başlangıcı korunur (deneme hakkı geri gelmez); Deepgram canlı metin satırları silinmez, rastgele
+ *   kimlikle toplantıdan koparılır (`deepgramUnlinkStartedBeforeStatement`);
  * - 13 aydır kullanılmayan cihazlar: önce toplantıların cihaz bağı kaldırılır;
  * - eşitlemede 90 günden eski silme işaretleri (tombstone): önce hesabın `purged_through_rev`'i silinecek en yüksek
  *   revizyona çekilir (daha eski imleçle gelen cihaz baştan eşitler, silmeyi kaçırmaz), sonra en çok 1000 işaret silinir.
@@ -203,9 +208,10 @@ function cleanupBatches(db: D1Database, now: Date): CleanupBatch[] {
              WHERE id IN (SELECT user_id FROM meeting_sessions WHERE kind = 'trial' AND started_at < ?1)`,
           )
           .bind(cutoff),
+        deepgramUnlinkStartedBeforeStatement(db, cutoff),
         db.prepare("DELETE FROM meeting_sessions WHERE started_at < ?").bind(cutoff),
       ],
-      countIndex: 1,
+      countIndex: 2,
     },
     {
       name: "devices",

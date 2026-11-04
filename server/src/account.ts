@@ -1,6 +1,7 @@
 import { type AppStoreSubscription, appStoreAccess, appStoreManageUrl, appStorePaidSql, appStoreSubscriptionOf } from "./appStore";
 import { closeStripeForDeletion } from "./billing";
 import type { Config } from "./config";
+import { deepgramUnlinkUserStatement } from "./deepgram";
 import { log } from "./log";
 import type { Platform } from "./platform";
 import { paidSubscriptionSql } from "./admin";
@@ -66,6 +67,8 @@ function accountDeletedCounterStatement(db: D1Database, userId: string, now: Dat
  * Eşitlemenin şifreli kopyası (`sync_objects`, `sync_key_envelopes`, `sync_accounts`) aynı işlemde silinir ve R2 öneki
  * silme kuyruğuna (`sync_purges`) yazılır (`syncDeletionStatements`); bloklar `deleteAccount`'ta hemen, kalırsa günlük
  * temizlikte silinir.
+ * Toplantıların Deepgram canlı metin satırları (`deepgram_live_meetings`; ömür boyu bütçeye sayıldığı için silinmez)
+ * toplantılar silinmeden önce rastgele kimlikle toplantıdan koparılır (`deepgramUnlinkUserStatement`).
  * `daily_spend` (toplam, kişisel değil), `downloads`, `download_sources`, `download_visitors`, `ops_events`,
  * `used_nonces`, `stripe_events` ve telemetri toplamları (`llm_purpose_usage`, `client_event_counts`,
  * `client_event_durations`, `feature_usage_daily`, `app_funnel_daily`) hesaba bağlı değildir; hesabın son uygulama ve
@@ -95,6 +98,7 @@ function accountDeletionStatements(db: D1Database, userId: string, identityHashe
     db.prepare("DELETE FROM transcription_results WHERE user_id = ?").bind(userId),
     ...syncDeletionStatements(db, userId, syncPrefix(userId), now),
     ...userReservationRemovalStatements(db, userId),
+    deepgramUnlinkUserStatement(db, userId),
     db.prepare("DELETE FROM meeting_sessions WHERE user_id = ?").bind(userId),
     db
       .prepare("UPDATE meeting_sessions SET device_id = NULL WHERE device_id IN (SELECT id FROM devices WHERE attested_by_user_id = ?)")
