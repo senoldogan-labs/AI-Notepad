@@ -6,7 +6,7 @@ import { operator } from "../legal/operator";
 import { blogPostPath } from "../routes";
 import { siteConfig } from "../site";
 import { blogEntries, blogPost, type BlogPost } from "./blog";
-import { noteLanguages, spokenLanguages } from "./languages";
+import { interfaceLanguages, noteLanguages, spokenLanguages } from "./languages";
 import type { LlmsInput } from "./llms";
 
 /** Derlemedeki girdiler. */
@@ -20,6 +20,7 @@ export async function llmsInput(): Promise<LlmsInput> {
     dataHandling,
     spokenLanguages,
     noteLanguages,
+    interfaceLanguages,
     blogPosts: posts.map((post: BlogPost) => ({ title: post.title, description: post.description, url: `${origin}${blogPostPath(post.slug)}` })),
   };
 }

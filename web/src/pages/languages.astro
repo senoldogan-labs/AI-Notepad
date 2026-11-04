@@ -1,12 +1,12 @@
 ---
-// Diller sayfası: sayılar, konuşulan diller ve not/çeviri dilleri tabloları (lib/languages.ts, uygulamanın listeleri),
+// Diller sayfası: sayılar, konuşulan diller, not/çeviri dilleri ve arayüz dilleri tabloları (lib/languages.ts, uygulamanın listeleri),
 // Türkçe ve Fince, karışık dilli toplantılar ve sık sorulan sorular (JSON-LD `FAQPage` ve gezinti izi). Metinler
 // copy.ts `languages`'tan.
 import Base from "../layouts/Base.astro";
 import CtaBand from "../components/CtaBand.astro";
 import Faq from "../components/Faq.astro";
 import { copy, type LanguagesCopy, type StatCopy, type TitledText } from "../copy";
-import { type AppLanguage, noteLanguages, spokenLanguages } from "../lib/languages";
+import { type AppLanguage, interfaceLanguages, noteLanguages, spokenLanguages } from "../lib/languages";
 import { websiteCard } from "../lib/social";
 import { infoPageStructuredData, structuredDataJson } from "../lib/structured-data";
 import { pageUrl } from "../routes";
@@ -16,10 +16,11 @@ const text: LanguagesCopy = copy.languages;
 const structuredData: string = structuredDataJson(
   infoPageStructuredData(siteConfig, [{ name: copy.common.nav.languages, url: pageUrl("languages", siteConfig.siteOrigin) }], text.faq),
 );
-/** Sayfadaki iki dil tablosu: çapası, başlığı, açıklaması ve dilleri. */
+/** Sayfadaki üç dil tablosu: çapası, başlığı, açıklaması ve dilleri. */
 const tables: readonly { readonly id: string; readonly title: string; readonly lead: string; readonly languages: readonly AppLanguage[] }[] = [
   { id: "spoken", title: text.spokenTitle, lead: text.spokenLead, languages: spokenLanguages },
   { id: "notes", title: text.notesTitle, lead: text.notesLead, languages: noteLanguages },
+  { id: "interface", title: text.interfaceTitle, lead: text.interfaceLead, languages: interfaceLanguages },
 ];
 ---
 
@@ -122,7 +123,7 @@ const tables: readonly { readonly id: string; readonly title: string; readonly l
 
   .info-stats {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 16px;
     margin: 12px 0 0;
   }
@@ -216,6 +217,12 @@ const tables: readonly { readonly id: string; readonly title: string; readonly l
   .language-table code {
     font-family: var(--mono);
     font-size: 0.875rem;
+  }
+
+  @media (max-width: 1000px) {
+    .info-stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
   }
 
   @media (max-width: 760px) {

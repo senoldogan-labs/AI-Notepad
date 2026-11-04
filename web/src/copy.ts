@@ -2,7 +2,7 @@
 // işletme bilgisi tek yerden gelir (config.ts `productName`, legal/operator.ts).
 import { cardStatementDescriptor, productName } from "./config";
 import type { IconName } from "./lib/icons";
-import { noteLanguages, spokenLanguages } from "./lib/languages";
+import { interfaceLanguages, languageNameList, noteLanguages, spokenLanguages } from "./lib/languages";
 import type { BillingPlan } from "./lib/plans";
 import { operator } from "./legal/operator";
 
@@ -723,6 +723,9 @@ export interface LanguagesCopy {
   readonly spokenLead: string;
   readonly notesTitle: string;
   readonly notesLead: string;
+  /** Uygulamanın kendi arayüzünün dilleri (konuşulan ve not dillerinden ayrı). */
+  readonly interfaceTitle: string;
+  readonly interfaceLead: string;
   /** Tablo sütunları: dil, kendi adı, kod. */
   readonly columns: { readonly name: string; readonly native: string; readonly code: string };
   /** Öne çıkan diller (Türkçe, Fince). */
@@ -951,7 +954,7 @@ export const copy: Copy = {
       },
       tasks: {
         title: "Tasks first",
-        text: "When the meeting ends, the note is ready. Your tasks on top, with who does what by when; then a summary, decisions and a glossary. Tick tasks off or send them to Reminders.",
+        text: "When the meeting ends, the note is ready. Your tasks on top, with who does what by when; then a summary, decisions and a glossary. Tick tasks off or send them to Reminders; the ones still open show up again when you record a calendar meeting in the same series or with the same people.",
         sample: ["Write release notes · Friday", "Send pricing table · Today"],
       },
       missed: {
@@ -1032,7 +1035,7 @@ export const copy: Copy = {
       mcpLink: "How MCP works",
       files: {
         title: "Your files and calendar",
-        text: "Save every note as Markdown to a folder, such as your Obsidian vault or iCloud Drive, or export it as PDF, Word or subtitles. Your calendar shows what's next, can start recording when a meeting begins and can brief you on what was said in earlier meetings with the same people.",
+        text: "Save every note as Markdown to a folder, such as your Obsidian vault or iCloud Drive, or export it as PDF, Word or subtitles. Your calendar shows what's next, can start recording when a meeting begins, shows the open tasks from earlier meetings in the same series or with the same people, and can brief you on what was said in those meetings.",
       },
       mcpDemo: {
         label: "In Claude",
@@ -1064,7 +1067,7 @@ export const copy: Copy = {
       },
       {
         question: "Which languages are supported?",
-        answer: `You can speak in ${spokenLanguages.length} languages, including English, Finnish and Turkish, and get notes and live translations in ${noteLanguages.length}. You choose the language of your notes and translations, whatever language was spoken.`,
+        answer: `You can speak in ${spokenLanguages.length} languages, including English, Finnish and Turkish, and get notes and live translations in ${noteLanguages.length}. You choose the language of your notes and translations, whatever language was spoken. The app itself is available in ${interfaceLanguages.length} languages: ${languageNameList(interfaceLanguages)}. It follows your Mac's language, and you can pick another one in Settings › General.`,
       },
       {
         question: "Does it work for in-person meetings and recordings?",
@@ -1073,9 +1076,12 @@ export const copy: Copy = {
     ],
     featureList: [
       "Records online calls (Zoom, Microsoft Teams, Google Meet and any other app) with no bot joining, plus in-person meetings and imported audio or video files",
+      "Finishes the recording when the call ends, after a 30-second countdown; choose “Keep recording” to carry on, or turn it off in Settings",
       `Live transcript in ${spokenLanguages.length} languages, with live translation into any of ${noteLanguages.length}`,
+      `The app itself in ${interfaceLanguages.length} languages, following your Mac's language`,
       "A note after every meeting: your tasks with owners and due dates first, then a summary, a topic outline, decisions and a glossary",
-      "Meeting templates and one-click recipes such as a follow-up email",
+      "Open tasks from earlier meetings in the same series or with the same people, shown when you record a meeting from your calendar",
+      "Meeting templates picked from the meeting title (such as one-on-one, daily stand-up or sprint planning) and one-click recipes",
       "A follow-up email drafted from the note, with its key points, decisions and action items with owners and due dates, ready to edit, copy or open in Mail",
       "“What did I miss?” summaries during the meeting",
       "Ask questions across all your meetings, with answers that cite their sources",
@@ -1225,12 +1231,12 @@ export const copy: Copy = {
     us: {
       price: "$5.99 a month or $49 a year, taxes included",
       free: "Free trial: 3 meetings or 7 days, whichever comes first; no card needed",
-      capture: "No bot. Listens to your Mac's system audio and microphone, so it works with any call app; also records in-person meetings and imports audio or video files",
+      capture: "No bot. Listens to your Mac's system audio and microphone, so it works with any call app, and finishes the recording when the call ends (after a 30-second countdown you can stop); also records in-person meetings and imports audio or video files",
       platforms: "Mac with Apple silicon, macOS 15 or later",
       limits: "Up to 10 meeting hours a month and up to 4 hours per meeting",
-      languages: `${spokenLanguages.length} spoken languages, including Turkish and Finnish; notes in ${noteLanguages.length}`,
+      languages: `${spokenLanguages.length} spoken languages, including Turkish and Finnish; notes in ${noteLanguages.length}; app in ${interfaceLanguages.length} languages`,
       translation: `Included: what others say is translated into your language (any of ${noteLanguages.length}) within seconds`,
-      notes: "The note starts with your own tasks (with owners and due dates), then a summary, decisions and a glossary; templates for different kinds of meetings",
+      notes: "The note starts with your own tasks (with owners and due dates), then a summary, decisions and a glossary; templates picked from the meeting title; a follow-up email drafted from the note",
       ask: "Ask across all your meetings; answers cite the meetings they came from",
       voiceTyping: "Voice typing in any Mac app, transcribed on your Mac; free with any account",
       screens: "Optional snapshots of the shared screen, matched to what was said; notes and Ask can use them if you allow it",
@@ -1446,8 +1452,7 @@ export const copy: Copy = {
           "A one-time price of $25 plus tax, with all future updates included, instead of a subscription.",
           "More than meetings: a rail at the edge of the screen with clipboard history, a file tray, Now Playing controls, an audio spectrum, your calendar agenda and a meeting countdown.",
           "Suggestions as you type in any app, accepted with Tab, drawing on your meeting notes and the text on your screen, written by a model on your Mac.",
-          "The next related meeting starts with the action items that are still open.",
-          "An interface in 16 languages.",
+          `The app itself in 16 languages; ${productName}'s is in ${interfaceLanguages.length}.`,
         ],
         pickCompetitor: {
           title: "Pick Poffle if",
@@ -1855,14 +1860,15 @@ export const copy: Copy = {
   languages: {
     meta: {
       title: `${productName} languages: ${spokenLanguages.length} spoken, ${noteLanguages.length} for notes and live translation`,
-      description: `${productName} transcribes meetings in ${spokenLanguages.length} languages, including Turkish, Finnish and English, and writes notes and live translations in ${noteLanguages.length}. The full list, and how mixed-language meetings work.`,
+      description: `${productName} transcribes meetings in ${spokenLanguages.length} languages, including Turkish, Finnish and English, and writes notes and live translations in ${noteLanguages.length}. The app itself is available in ${interfaceLanguages.length} languages. The full lists, and how mixed-language meetings work.`,
     },
     eyebrow: "Languages",
     title: `Meetings in ${spokenLanguages.length} languages. Notes in ${noteLanguages.length}.`,
-    lead: `Speak in any of ${spokenLanguages.length} languages and get your note, live translation and answers in any of ${noteLanguages.length}, whatever language the meeting was in. Every language is included in every plan.`,
+    lead: `Speak in any of ${spokenLanguages.length} languages and get your note, live translation and answers in any of ${noteLanguages.length}, whatever language the meeting was in. The app itself is available in ${interfaceLanguages.length} languages. Every language is included in every plan.`,
     stats: [
       { value: String(spokenLanguages.length), label: "languages you can speak in a meeting (live and final transcript)" },
       { value: String(noteLanguages.length), label: "languages for notes, live translation, “What did I miss?” and Ask" },
+      { value: String(interfaceLanguages.length), label: "languages for the app itself: menus, settings and messages" },
       { value: "1", label: "plan with every language included" },
     ],
     spokenTitle: "Languages you can speak",
@@ -1871,16 +1877,19 @@ export const copy: Copy = {
     notesTitle: "Languages for notes and live translation",
     notesLead:
       "Notes, live translation, “What did I miss?” summaries and Ask answers are written in the language you choose in Settings, whichever language was spoken.",
+    interfaceTitle: "Languages for the app itself",
+    interfaceLead:
+      "The app's menus, settings and messages are available in these languages. It follows your Mac's language, and you can pick another one under Interface language in Settings › General. This is separate from the languages of your meetings and notes.",
     columns: { name: "Language", native: "Own name", code: "Code" },
     highlightsTitle: "Turkish and Finnish",
     highlights: [
       {
         title: "Turkish",
-        text: "Turkish (Türkçe) is supported both as a spoken language and as a note language. Record a meeting in Turkish and get an English note, or follow an English or Finnish meeting with a live Turkish translation. Azerbaijani is available as a note language too.",
+        text: "Turkish (Türkçe) is supported both as a spoken language and as a note language. Record a meeting in Turkish and get an English note, or follow an English or Finnish meeting with a live Turkish translation. Azerbaijani is available as a note language too, and the app itself is available in Turkish.",
       },
       {
         title: "Finnish",
-        text: `Finnish (Suomi) is supported both as a spoken language and as a note language, and ${productName} is made by a small company in Finland. Swedish, Estonian, Norwegian and Danish are supported too.`,
+        text: `Finnish (Suomi) is supported both as a spoken language and as a note language, the app itself is available in Finnish, and ${productName} is made by a small company in Finland. Swedish, Estonian, Norwegian and Danish are supported too.`,
       },
     ],
     mixedTitle: "Meetings with more than one language",
@@ -1906,11 +1915,15 @@ export const copy: Copy = {
     faq: [
       {
         question: `Does ${productName} support Turkish?`,
-        answer: `Yes. Turkish is one of the ${spokenLanguages.length} languages you can speak in a meeting and one of the ${noteLanguages.length} languages notes and live translation can be written in. A Turkish meeting can get an English note, and an English meeting can get a Turkish note or a live Turkish translation.`,
+        answer: `Yes. Turkish is one of the ${spokenLanguages.length} languages you can speak in a meeting and one of the ${noteLanguages.length} languages notes and live translation can be written in. A Turkish meeting can get an English note, and an English meeting can get a Turkish note or a live Turkish translation. The app itself is available in Turkish too.`,
       },
       {
         question: `Does ${productName} support Finnish?`,
-        answer: `Yes. Finnish is supported as a spoken language and as a note language, for the live transcript, live translation, notes and Ask. ${productName} is made in Finland.`,
+        answer: `Yes. Finnish is supported as a spoken language and as a note language, for the live transcript, live translation, notes and Ask, and the app itself is available in Finnish. ${productName} is made in Finland.`,
+      },
+      {
+        question: "Which languages is the app itself available in?",
+        answer: `${languageNameList(interfaceLanguages)}. The app follows your Mac's language; to use another one, pick it under Interface language in Settings › General, and it applies when the app restarts. The app's language doesn't limit your meetings: you can still speak in any of ${spokenLanguages.length} languages and get notes in any of ${noteLanguages.length}.`,
       },
       {
         question: "Can one meeting mix two languages?",
@@ -2002,6 +2015,7 @@ export const copy: Copy = {
         items: [
           { name: "What's next", text: "See upcoming meetings and get a reminder a minute before they start." },
           { name: "Start recording on time", text: "If you turn it on, recording starts when a calendar meeting with a call link is running and your call app starts using the microphone." },
+          { name: "Open tasks from earlier meetings", text: "When you record a meeting from your calendar, the app shows the unfinished tasks from earlier meetings in the same series or with the same people." },
           { name: "Briefing", text: "Before a meeting, ask for a briefing on what was said in earlier meetings with the same people." },
         ],
       },
