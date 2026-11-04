@@ -4,11 +4,6 @@ import os
 import Testing
 @testable import AINotepadCore
 
-/// Testlerde askıda kalmayı yakalama sınırı: beklenen olay kapı ya da sinyalle sıralanır, bu süre yalnızca beklenen şey hiç
-/// olmazsa testin sonsuza dek beklemesini önler. Yüklü CI makinesinde (785 test paralel, 3 çekirdek) tek test 15 sn
-/// donabildiği için geniş tutulur; doğru davranışta hiçbir zaman dolmaz.
-let hangDetectionLimit: Duration = .seconds(60)
-
 /// Süre sınırlarının çarpanı: paylaşılan CI makineleri (GitHub `CI=true` verir) geliştirme Mac'inden belirgin yavaştır;
 /// orada sınır iki katıdır, yerelde aynı sıkı sınır geriye gidişi yakalar.
 private let performanceLimitScale: Double = ProcessInfo.processInfo.environment["CI"] == "true" ? 2 : 1
@@ -171,87 +166,6 @@ private let performanceLimitScale: Double = ProcessInfo.processInfo.environment[
         input.yield([Float](repeating: 0.01, count: 3200))
         try await Task.sleep(for: .milliseconds(300))
         #expect(connectionEvents.events.isEmpty)
-    }
-}
-
-/// Bir kez açılan kapı: testte adımları süre yerine olaylarla sıralamak için. Bekleme iptal edilirse hemen biter.
-final class TestGate: Sendable {
-    private let state: OSAllocatedUnfairLock<TestGateState> = OSAllocatedUnfairLock(initialState: TestGateState(isOpen: false, waiters: [:], cancelled: []))
-
-    var isOpen: Bool {
-        state.withLock { (state: inout TestGateState) -> Bool in state.isOpen }
-    }
-
-    /// Kapıyı açar; bekleyenler ve sonraki beklemeler hemen sürer.
-    func open() {
-        let waiters: [CheckedContinuation<Void, Never>] = state.withLock { (state: inout TestGateState) -> [CheckedContinuation<Void, Never>] in
-            state.isOpen = true
-            let waiting: [CheckedContinuation<Void, Never>] = Array(state.waiters.values)
-            state.waiters = [:]
-            return waiting
-        }
-        for waiter in waiters {
-            waiter.resume()
-        }
-    }
-
-    /// Kapı açılana (ya da görev iptal edilene) dek bekler.
-    func wait() async {
-        let id: UUID = UUID()
-        await withTaskCancellationHandler {
-            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) -> Void in
-                let resumeNow: Bool = state.withLock { (state: inout TestGateState) -> Bool in
-                    if state.isOpen || state.cancelled.contains(id) {
-                        return true
-                    }
-                    state.waiters[id] = continuation
-                    return false
-                }
-                if resumeNow {
-                    continuation.resume()
-                }
-            }
-        } onCancel: {
-            let waiter: CheckedContinuation<Void, Never>? = state.withLock { (state: inout TestGateState) -> CheckedContinuation<Void, Never>? in
-                guard let waiting = state.waiters.removeValue(forKey: id) else {
-                    // İptal beklemeye girmeden geldi: bekleme hiç askıya alınmadan biter.
-                    state.cancelled.insert(id)
-                    return nil
-                }
-                return waiting
-            }
-            waiter?.resume()
-        }
-    }
-}
-
-/// `TestGate`'in durumu.
-struct TestGateState: Sendable {
-    var isOpen: Bool
-    var waiters: [UUID: CheckedContinuation<Void, Never>]
-    var cancelled: Set<UUID>
-}
-
-/// `operation` `limit` dolmadan biterse true; dolarsa `operation` iptal edilir ve false döner (askıda kalmayı yakalamak
-/// için; `operation` iptale yanıt vermelidir, ör. `AsyncStream` tüketimi ya da `TestGate.wait`).
-func completes(within limit: Duration, operation: @escaping @Sendable () async -> Void) async -> Bool {
-    await withTaskGroup(of: Bool.self) { (group: inout TaskGroup<Bool>) -> Bool in
-        group.addTask {
-            await operation()
-            return true
-        }
-        group.addTask {
-            do {
-                try await Task.sleep(for: limit)
-            } catch {
-                // Uyku yalnızca iptalde fırlatır: `operation` önce bitti, sonuç zaten alındı.
-                return true
-            }
-            return false
-        }
-        let first: Bool = await group.next() ?? false
-        group.cancelAll()
-        return first
     }
 }
 

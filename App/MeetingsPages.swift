@@ -1302,7 +1302,7 @@ struct MeetingDetailPage: View {
         let startedAt: Date = record.startedAt
         Task {
             do {
-                let url: URL = try await Task.detached(priority: .userInitiated) { () throws -> URL in
+                let url: URL = try await runBlocking(qos: .userInitiated) { () throws -> URL in
                     let destination: URL = try exportFileURL(directory: try AppPaths.cloudSharedDirectory(), title: title, startedAt: startedAt, fileExtension: "pdf")
                     let temporary: URL = FileManager.default.temporaryDirectory.appending(path: "\(UUID().uuidString).pdf", directoryHint: .notDirectory)
                     do {
@@ -1312,7 +1312,7 @@ struct MeetingDetailPage: View {
                         throw StorageError.writeFailed(path: destination.path, reason: error.localizedDescription)
                     }
                     return destination
-                }.value
+                }
                 guard let view = NSApp.keyWindow?.contentView else {
                     export = .failed(String(localized: "Paylaşım penceresi açılamadı; PDF iCloud Drive'da: \(url.lastPathComponent)"))
                     return

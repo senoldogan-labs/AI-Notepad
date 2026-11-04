@@ -758,7 +758,7 @@ final class AppModel {
         var problems: [String] = []
         for account in required {
             do {
-                let exists: Bool = try await Task.detached { try secretExists(service: appKeychainService, account: account) }.value
+                let exists: Bool = try await runBlocking(qos: .userInitiated) { () throws -> Bool in try secretExists(service: appKeychainService, account: account) }
                 if !exists {
                     problems.append(userFacingMessage(error: KeychainError.notFound(service: appKeychainService, account: account.rawValue)))
                 }
@@ -2823,9 +2823,9 @@ final class AppModel {
     func loadAskHistory() {
         Task {
             do {
-                let result: AskHistoryLoadResult = try await Task.detached(priority: .utility) { () throws -> AskHistoryLoadResult in
+                let result: AskHistoryLoadResult = try await runBlocking(qos: .utility) { () throws -> AskHistoryLoadResult in
                     try loadAskConversations(directory: try AppPaths.askHistoryDirectory())
-                }.value
+                }
                 askConversations = result.conversations
                 for failure in result.failures {
                     Self.logger.error("Sohbet okunamadı, dosya: \(failure.file, privacy: .public), neden: \(failure.reason, privacy: .private)")
@@ -4309,10 +4309,10 @@ final class AppModel {
             for account in [SecretAccount.deepgram, .elevenlabs, .anthropic, .openai] {
                 guard let value = try await optionalSecretInBackground(service: appKeychainService, account: account) else {
                     // Bu Mac'te artık olmayan anahtarın iPhone kopyası da kalkar.
-                    try await Task.detached { try deleteSyncedSecret(service: appKeychainService, account: account) }.value
+                    try await runBlocking(qos: .userInitiated) { () throws -> Void in try deleteSyncedSecret(service: appKeychainService, account: account) }
                     continue
                 }
-                try await Task.detached { try saveSyncedSecret(service: appKeychainService, account: account, value: value) }.value
+                try await runBlocking(qos: .userInitiated) { () throws -> Void in try saveSyncedSecret(service: appKeychainService, account: account, value: value) }
             }
             keySync = .idle
         } catch {
@@ -4327,7 +4327,7 @@ final class AppModel {
         keySync = .working
         do {
             for account in SecretAccount.allCases {
-                try await Task.detached { try deleteSyncedSecret(service: appKeychainService, account: account) }.value
+                try await runBlocking(qos: .userInitiated) { () throws -> Void in try deleteSyncedSecret(service: appKeychainService, account: account) }
             }
             keySync = .idle
         } catch {
@@ -4340,7 +4340,7 @@ final class AppModel {
     func refreshSharedKeys() async {
         do {
             var shared: [SecretAccount] = []
-            for account in SecretAccount.allCases where try await Task.detached(operation: { try syncedSecretExists(service: appKeychainService, account: account) }).value {
+            for account in SecretAccount.allCases where try await runBlocking(qos: .userInitiated, operation: { () throws -> Bool in try syncedSecretExists(service: appKeychainService, account: account) }) {
                 shared.append(account)
             }
             sharedKeyAccounts = shared

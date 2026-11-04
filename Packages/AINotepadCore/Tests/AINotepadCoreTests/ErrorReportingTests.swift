@@ -1,4 +1,5 @@
 import Foundation
+import os
 import Testing
 @testable import AINotepadCore
 
@@ -107,17 +108,22 @@ import Testing
 }
 
 @Suite struct TimeoutTests {
-    // İptale yanıt vermeyen bekleme de süre dolunca bırakılır. Yavaş iş çok uzun (60 sn), sınır onun üçte biri: yüklü
-    // CI makinesinde 0,2 sn'lik zamanlayıcı saniyelerce gecikebilir, ama bekleme yavaş işe kalsaydı sınır yine aşılırdı.
+    // İptale yanıt vermeyen bekleme (`Task.value`) de süre dolunca bırakılır. Yavaş iş kapıyla tutulur ve beklemenin
+    // sonucu alınana dek bitmez: bekleme yavaş işe kalsaydı hiç dönmezdi (askıda kalma sınırı yakalar). Önceden yavaş iş
+    // 60 sn uyuyor ve dönüş "20 sn içinde" diye ölçülüyordu; yüklü CI'da 0,2 sn'lik zamanlayıcı 21,5 sn gecikti.
     @Test func stopsWaitingAfterTimeout() async {
+        let release: TestGate = TestGate()
         let slow: Task<Void, Never> = Task {
-            do { try await Task.sleep(for: .seconds(60)) } catch {}
+            await release.wait()
         }
-        let started: ContinuousClock.Instant = .now
-        let finished: Bool = await finishesWithin(seconds: 0.2) { await slow.value }
-        #expect(!finished)
-        #expect(ContinuousClock.now - started < .seconds(20))
+        let result: OSAllocatedUnfairLock<Bool?> = OSAllocatedUnfairLock(initialState: nil)
+        let returned: Bool = await completes(within: hangDetectionLimit) {
+            let finished: Bool = await finishesWithin(seconds: 0.2) { await slow.value }
+            result.withLock { (value: inout Bool?) -> Void in value = finished }
+        }
+        #expect(returned, "finishesWithin süre dolunca dönmedi")
+        #expect(result.withLock { (value: inout Bool?) -> Bool? in value } == false)
+        release.open()
         #expect(await finishesWithin(seconds: 2) {})
-        slow.cancel()
     }
 }

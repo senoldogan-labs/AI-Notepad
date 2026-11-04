@@ -312,24 +312,24 @@ public final class ICloudMeetingWatcher {
 /// Yerel klasördeki bitmiş toplantıları arka planda iCloud'a taşır (bkz. `moveFinishedMeetingsToCloud`). iCloud
 /// kullanılamıyorsa `iCloudUnavailable`.
 public func moveFinishedMeetingsToCloudInBackground(excluding: Set<String>) async throws -> CloudMoveResult {
-    try await Task.detached(priority: .utility) {
+    try await runBlocking(qos: .utility) { () throws -> CloudMoveResult in
         moveFinishedMeetingsToCloud(localSessions: try AppPaths.sessionsDirectory(), cloudSessions: try AppPaths.cloudSessionsDirectory(), excluding: excluding)
-    }.value
+    }
 }
 
 /// iCloud'daki toplantıları arka planda bu cihaza kopyalar (bkz. `copyAllMeetingsToLocal`).
 public func copyAllMeetingsToLocalInBackground() async throws -> CloudMoveResult {
-    try await Task.detached(priority: .userInitiated) {
+    try await runBlocking(qos: .userInitiated) { () throws -> CloudMoveResult in
         try copyAllMeetingsToLocal(cloudSessions: try AppPaths.cloudSessionsDirectory(), localSessions: try AppPaths.sessionsDirectory())
-    }.value
+    }
 }
 
 /// iCloud kapsayıcısını arka planda çözer (ilk çağrı yavaştır; sonra ana iş parçacığındaki çağrılar hızlıdır).
 /// iCloud kullanılamıyorsa `iCloudUnavailable`.
 public func prepareCloudStorage() async throws {
-    _ = try await Task.detached(priority: .utility) {
+    _ = try await runBlocking(qos: .utility) { () throws -> URL in
         try AppPaths.cloudSessionsDirectory()
-    }.value
+    }
 }
 
 /// Okunan iCloud çakışma sürümlerinin birleşimi.

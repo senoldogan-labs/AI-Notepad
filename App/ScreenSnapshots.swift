@@ -69,9 +69,9 @@ final class ScreenSnapshotCenter {
 
     /// Toplantının görüntülerini klasöründen yeniden okur (arka planda).
     func refresh(meetingID: String, directory: URL) async {
-        let result: Result<([ScreenSnapshot], Set<String>), any Error> = await Task.detached(priority: .userInitiated) { () -> Result<([ScreenSnapshot], Set<String>), any Error> in
+        let result: Result<([ScreenSnapshot], Set<String>), any Error> = await runBlocking(qos: .userInitiated) { () -> Result<([ScreenSnapshot], Set<String>), any Error> in
             Result { (try listScreenSnapshots(meetingDirectory: directory), try readScreenNoteExclusions(meetingDirectory: directory)) }
-        }.value
+        }
         switch result {
         case .success(let (list, excluded)):
             snapshots[meetingID] = list
@@ -136,9 +136,9 @@ final class ScreenSnapshotCenter {
             return cached
         }
         let file: URL = screenSnapshotFile(meetingDirectory: directory, snapshot: snapshot)
-        let image: CGImage = try await Task.detached(priority: .userInitiated) { () throws -> CGImage in
+        let image: CGImage = try await runBlocking(qos: .userInitiated) { () throws -> CGImage in
             try downscaledImage(file: file, maxPixelSize: maxPixelSize)
-        }.value
+        }
         let result: NSImage = NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height))
         if maxPixelSize <= screenThumbnailPixels {
             thumbnails.setObject(result, forKey: key)

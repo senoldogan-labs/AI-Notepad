@@ -184,13 +184,13 @@ private func readPhoneDiagnostics() async -> PhoneDiagnosticsReadings {
     async let notifications: UNAuthorizationStatus = UNUserNotificationCenter.current().notificationSettings().authorizationStatus
     let sessions: Result<URL, any Error> = Result { try AppPaths.sessionsDirectory() }
     let models: Result<URL, any Error> = Result { try AppPaths.modelsDirectory() }
-    let sizes: (sessions: Result<Int64, any Error>, models: Result<Int64, any Error>, free: Result<Int64, any Error>) = await Task.detached(priority: .utility) {
+    let sizes: (sessions: Result<Int64, any Error>, models: Result<Int64, any Error>, free: Result<Int64, any Error>) = await runBlocking(qos: .utility) { () -> (sessions: Result<Int64, any Error>, models: Result<Int64, any Error>, free: Result<Int64, any Error>) in
         (
             sessions: sessions.flatMap { (url: URL) -> Result<Int64, any Error> in Result { try directorySize(url: url) } },
             models: models.flatMap { (url: URL) -> Result<Int64, any Error> in Result { try directorySize(url: url) } },
             free: models.flatMap { (url: URL) -> Result<Int64, any Error> in Result { try availableCapacity(url: url) } }
         )
-    }.value
+    }
     return PhoneDiagnosticsReadings(
         health: await health, errors: await errors, notifications: await notifications,
         sessionsSize: sizes.sessions, modelsSize: sizes.models, freeSpace: sizes.free

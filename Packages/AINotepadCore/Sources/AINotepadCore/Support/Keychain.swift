@@ -59,9 +59,9 @@ private func readSecret(query base: [String: Any], service: String, account: Sec
 /// Okumayı arka planda yapar: Keychain izin penceresi açıkken (ör. `security` aracıyla eklenmiş anahtar)
 /// arayüz donmasın.
 public func readSecretInBackground(service: String, account: SecretAccount) async throws -> String {
-    try await Task.detached(priority: .userInitiated) {
+    try await runBlocking(qos: .userInitiated) { () throws -> String in
         try readSecret(service: service, account: account)
-    }.value
+    }
 }
 
 /// Kayıtlı değilse nil; diğer Keychain hataları fırlatılır (yok sayılmaz).

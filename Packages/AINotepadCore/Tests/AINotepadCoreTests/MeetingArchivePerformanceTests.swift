@@ -64,8 +64,10 @@ private func fastestRun(runs: Int, work: () -> Void) -> Double {
 private let performanceLimitScale: Double = ProcessInfo.processInfo.environment["CI"] == "true" ? 2 : 1
 
 @Suite(.serialized) struct MeetingArchivePerformanceTests {
-    @Test func loadingFiveHundredMeetingsIsFast() throws {
-        let archive: (directory: URL, records: [MeetingRecord]) = try writeSyntheticArchive(count: 500)
+    @Test func loadingFiveHundredMeetingsIsFast() async throws {
+        let archive: (directory: URL, records: [MeetingRecord]) = try await offCooperativePool { () throws -> (directory: URL, records: [MeetingRecord]) in
+            try writeSyntheticArchive(count: 500)
+        }
         defer {
             do {
                 try FileManager.default.removeItem(at: archive.directory)
@@ -73,9 +75,13 @@ private let performanceLimitScale: Double = ProcessInfo.processInfo.environment[
                 Issue.record("geçici klasör silinemedi: \(error)")
             }
         }
-        var result: MeetingLoadResult = MeetingLoadResult(meetings: [], failures: [], downloading: [])
-        let elapsed: Double = fastestRun(runs: 3) {
-            result = loadMeetings(directories: [archive.directory])
+        let directory: URL = archive.directory
+        let (result, elapsed): (MeetingLoadResult, Double) = await offCooperativePool { () -> (MeetingLoadResult, Double) in
+            var result: MeetingLoadResult = MeetingLoadResult(meetings: [], failures: [], downloading: [])
+            let elapsed: Double = fastestRun(runs: 3) {
+                result = loadMeetings(directories: [directory])
+            }
+            return (result, elapsed)
         }
         print("500 toplantı yükleme: \(elapsed) sn")
         #expect(result.meetings == newestFirst(records: archive.records))
@@ -83,12 +89,17 @@ private let performanceLimitScale: Double = ProcessInfo.processInfo.environment[
         #expect(elapsed < 2.5 * performanceLimitScale)
     }
 
-    @Test func filteringFiveHundredMeetingsIsFast() throws {
-        let records: [MeetingRecord] = (0..<500).map { (index: Int) -> MeetingRecord in syntheticMeeting(index: index) }
-        var matches: [MeetingRecord] = []
+    @Test func filteringFiveHundredMeetingsIsFast() async throws {
+        let records: [MeetingRecord] = await offCooperativePool { () -> [MeetingRecord] in
+            (0..<500).map { (index: Int) -> MeetingRecord in syntheticMeeting(index: index) }
+        }
         // Arama her tuşta yeniden çalışır: eşleşmeyen sorgu tüm metni tarar (en kötü durum).
-        let elapsed: Double = fastestRun(runs: 3) {
-            matches = filterMeetings(records: records, query: "olmayan-sözcük")
+        let (matches, elapsed): ([MeetingRecord], Double) = await offCooperativePool { () -> ([MeetingRecord], Double) in
+            var matches: [MeetingRecord] = []
+            let elapsed: Double = fastestRun(runs: 3) {
+                matches = filterMeetings(records: records, query: "olmayan-sözcük")
+            }
+            return (matches, elapsed)
         }
         print("500 toplantıda arama: \(elapsed) sn")
         #expect(matches.isEmpty)
