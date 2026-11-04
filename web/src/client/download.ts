@@ -7,6 +7,23 @@ import { element } from "./dom";
 
 const versionPath: string = "/v1/download/mac/version";
 
+/**
+ * İndirme düğmesine basıldıktan sonra kurulum adımlarını görünür alana kaydırır: DMG indiğinde "şimdi ne yapacağım?"
+ * sorusunun yanıtı sayfada kalır (üç adım zaten var; tıklamadan önce çoğu kişi aşağı kaydırmıyor).
+ */
+function revealInstallSteps(): void {
+  const steps: HTMLElement | null = document.getElementById("install-steps");
+  if (steps === null) {
+    return;
+  }
+  const reduce: boolean = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  steps.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+  steps.focus({ preventScroll: true });
+}
+
+const downloadButton: HTMLAnchorElement | null = document.querySelector<HTMLAnchorElement>("[data-mac-download]");
+downloadButton?.addEventListener("click", revealInstallSteps);
+
 /** Sürüm numarasını okuyup satırın değerine yazar ve satırı gösterir. */
 async function main(): Promise<void> {
   const label: HTMLElement = element("download-version", HTMLElement);

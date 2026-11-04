@@ -102,6 +102,11 @@ function planBadge(user: UserSummary): HTMLSpanElement {
   if (user.plan === "subscription" && hasActiveComplimentary(user)) {
     return pill(adminText.freeAccess.pill, "ok");
   }
+  // Deneme, veritabanında "subscription" planıyla durur ama gerçek bir abonelik kaydı yoktur. "Subscribed" demek
+  // yanlış: deneme hakkı biten kullanıcı abone sanılır. Deneme kaldıysa "Trial · {used} used · {left} left" yaz.
+  if (user.plan === "subscription" && user.subscription === null && user.trial.left > 0) {
+    return pill(`${adminText.plans.trial} · ${fillCounts(adminText.trialCell, { used: user.trial.used, left: user.trial.left })}`, "warn");
+  }
   const billing: BillingPlan | null = user.plan === "subscription" && user.subscription !== null ? user.subscription.plan : null;
   const label: string = billing === null ? adminText.plans[user.plan] : `${adminText.plans[user.plan]} · ${adminText.billingPlans[billing]}`;
   return pill(label, user.plan === "subscription" ? "ok" : "");
