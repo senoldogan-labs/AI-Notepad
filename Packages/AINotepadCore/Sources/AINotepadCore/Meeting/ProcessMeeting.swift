@@ -519,5 +519,6 @@ public func regenerateNote(
 private func failed(record: MeetingRecord, step: String, error: any Error) -> MeetingRecord {
     // Hata gövdesi toplantı metni içerebilir: yalnızca özel (private) loglanır.
     processLogger.error("Toplantı işleme adımı başarısız, adım: \(step, privacy: .public), hata: \(String(describing: error), privacy: .private)")
-    return record.with(status: .failed, failureMessage: "\(step): \(userFacingMessage(error: error))")
+    // Geçici hata (ağ, askıya alma, sunucu 5xx, kapanmış oturum) kendiliğinden yeniden denenir (`meetingsToRetryAutomatically`).
+    return record.with(status: .failed, failureMessage: "\(step): \(userFacingMessage(error: error))").with(failureKind: processingFailureKind(error: error))
 }

@@ -307,7 +307,11 @@ private struct PhoneAppRoot: View {
                 return
             }
             let recorder: PhoneRecorder = sessions.session.recorder
-            Task { await recorder.runQueue() }
+            Task {
+                await recorder.runQueue()
+                // Geçici nedenle başarısız biten işlemeler de (ağ geldi, uygulama öne geldi) yeniden denenir.
+                await recorder.retryFailedProcessing()
+            }
         }
     }
 
@@ -690,6 +694,8 @@ struct RootView: View {
                 recorder.enterBackground()
             } else if phase == .active {
                 recorder.enterForeground()
+                // Kayıttan önce boş yer (Ayarlar'da yer açılmış ya da dolmuş olabilir).
+                recorder.refreshRecordingDiskSpace()
             }
             // Arka planda süresi dolup iptal edilen işleme öne dönünce sürer (yoksa toplantı bir sonraki açılışa dek
             // "Hazırlanıyor"da kalırdı). Açılıştaki ilk çağrı `.task`'tadır; işlenmekte olanlar atlanır.

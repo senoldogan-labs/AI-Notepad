@@ -825,8 +825,11 @@ private struct RecordBar: View {
             } else if let notice = model.localModelNotice {
                 LocalModelNoticeView(notice: notice) { Task { await model.retryLocalModel() } }
             }
+            DiskSpaceNotice(model: model)
             options
         }
+        // Kart her göründüğünde (açılış, kayıt bitince) boş yer yeniden okunur.
+        .task { model.refreshRecordingDiskSpace() }
         .padding(.vertical, 28)
         .padding(.horizontal, 20)
         .frame(maxWidth: .infinity, minHeight: 240)
