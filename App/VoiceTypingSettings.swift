@@ -54,9 +54,7 @@ struct VoiceTypingSettings: View {
                     NoticeText(String(localized: "Varsayılan kısayol atanmadı: \(reason) Sesle yazmak için bir kısayol seç."), severity: .attention)
                 }
             } control: {
-                ShortcutRecorder(binding: shortcuts.assignedBinding(action: .dictate)) { (binding: KeyBinding) -> Void in
-                    shortcuts.change(action: .dictate, binding: binding)
-                }
+                ShortcutRecorder(shortcuts: shortcuts, action: .dictate, binding: shortcuts.assignedBinding(action: .dictate))
                 .disabled(!isEnabled)
             }
             SettingsRow(title: Text("Erişilebilirlik izni")) {

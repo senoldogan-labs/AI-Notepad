@@ -2,7 +2,6 @@ import AINotepadCore
 import AINotepadUI
 import AppKit
 import AuthenticationServices
-import Carbon.HIToolbox
 import SwiftUI
 import UniformTypeIdentifiers
 import os
@@ -2186,9 +2185,7 @@ private struct ShortcutSettings: View {
                         NoticeText(error, severity: .error)
                     }
                 } control: {
-                    ShortcutRecorder(binding: shortcuts.currentBinding(action: action)) { (binding: KeyBinding) -> Void in
-                        shortcuts.change(action: action, binding: binding)
-                    }
+                    ShortcutRecorder(shortcuts: shortcuts, action: action, binding: shortcuts.currentBinding(action: action))
                 }
             }
             Text("Kısayola tıklayıp yeni tuşlara bas; vazgeçmek için Esc. ⌃, ⌥ ya da ⌘ ile birlikte bir harf ya da rakam seç.")
@@ -2201,15 +2198,20 @@ private struct ShortcutSettings: View {
 }
 
 /// Tıklanınca bir sonraki tuş bileşimini kaydeden düğme. Kısayol atanmamışsa (`binding` nil) "Kısayol seç" yazar.
+/// Kayıt `ShortcutController`'dadır: kaydedilirken uygulamanın global kısayolları askıdadır (atanmış bir bileşime basmak
+/// onu tetiklemez); Esc, düğmeye yeniden tıklamak, odak kaybı ya da sayfadan çıkmak kaydı bitirir.
 struct ShortcutRecorder: View {
+    let shortcuts: ShortcutController
+    let action: ShortcutAction
     let binding: KeyBinding?
-    let onRecord: @MainActor (KeyBinding) -> Void
-    @State private var isRecording: Bool = false
-    @State private var monitor: Any?
+
+    private var isRecording: Bool {
+        shortcuts.recorder.recording == action
+    }
 
     var body: some View {
         Button {
-            isRecording ? stop() : start()
+            shortcuts.handleRecorder(event: .tapped(action))
         } label: {
             Group {
                 if isRecording {
@@ -2224,7 +2226,7 @@ struct ShortcutRecorder: View {
             .frame(minWidth: 110)
         }
         .accessibilityLabel(accessibilityText)
-        .onDisappear { stop() }
+        .onDisappear { shortcuts.handleRecorder(event: .disappeared(action)) }
     }
 
     private var accessibilityText: String {
@@ -2235,30 +2237,6 @@ struct ShortcutRecorder: View {
             return String(localized: "Kısayol atanmadı. Seç")
         }
         return String(localized: "Kısayol: \(keyBindingDisplay(binding: binding)). Değiştir")
-    }
-
-    private func start() {
-        isRecording = true
-        monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { (event: NSEvent) -> NSEvent? in
-            MainActor.assumeIsolated {
-                if event.keyCode == UInt16(kVK_Escape) {
-                    stop()
-                } else {
-                    onRecord(KeyBinding(keyCode: UInt32(event.keyCode), modifiers: carbonModifiers(flags: event.modifierFlags)))
-                    stop()
-                }
-            }
-            // Tuş başka bir yere yazılmasın.
-            return nil
-        }
-    }
-
-    private func stop() {
-        if let monitor {
-            NSEvent.removeMonitor(monitor)
-        }
-        monitor = nil
-        isRecording = false
     }
 }
 
