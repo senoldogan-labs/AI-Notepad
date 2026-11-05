@@ -989,7 +989,7 @@ export const copy: Copy = {
     features: {
       live: {
         title: "Follow every word, in your language",
-        text: "Every sentence is on screen within seconds. If the meeting is in another language, a translation into yours runs alongside.",
+        text: "Every sentence is on screen within seconds. If the meeting is in another language, a translation into yours runs alongside. It carries what the speaker means, not word for word: questions stay questions, and promises keep who, what and when.",
         original: "Betayı on dördünde açmalıyız.",
         translation: "We should open the beta on the fourteenth.",
       },
@@ -1006,7 +1006,7 @@ export const copy: Copy = {
       },
       ask: {
         title: "Find any decision in seconds",
-        text: "Ask across all your notes and transcripts and get a short answer, a table, a step-by-step plan or a ready-to-paste prompt. When your meetings don't have it, Ask looks it up on the web. Every answer cites its sources, so you can check them.",
+        text: "Ask across all your notes and transcripts, or only the meetings you tag with @. Get a quick fact or, when it's needed, a table, a step-by-step plan or a ready-to-paste prompt. Follow-ups remember the conversation, and Ask can search the web for what your meetings don't cover. Every source links back to its meeting or web page, and chats are saved so you can rename, search and filter them.",
         question: "What did we decide about the budget?",
         source: "Sources: Investor update, Product weekly",
       },
@@ -1133,14 +1133,16 @@ export const copy: Copy = {
     featureList: [
       "Records online calls (Zoom, Microsoft Teams, Google Meet and any other app) with no bot joining, plus in-person meetings and imported audio or video files",
       "Finishes the recording when the call ends, after a 30-second countdown; choose “Keep recording” to carry on, or turn it off in Settings",
-      `Live transcript in ${spokenLanguages.length} languages, with live translation into any of ${noteLanguages.length}`,
+      `Live transcript in ${spokenLanguages.length} languages, with live translation into any of ${noteLanguages.length} that carries what the speaker means rather than word for word`,
       `The app itself in ${interfaceLanguages.length} languages, following your Mac's language`,
       "A note after every meeting: your tasks with owners and due dates first, then a summary, a topic outline, decisions and a glossary",
       "Open tasks from earlier meetings in the same series or with the same people, shown when you record a meeting from your calendar",
       "Meeting templates picked from the meeting title (such as one-on-one, daily stand-up or sprint planning) and one-click recipes",
       "A follow-up email drafted from the note, with its key points, decisions and action items with owners and due dates, ready to edit, copy or open in Mail",
       "“What did I miss?” summaries during the meeting",
-      "Ask questions across all your meetings, with answers that cite their sources",
+      "Ask questions across all your meetings or only the ones you tag with @, with answers that link to their sources; copy an answer or save it as a Markdown file",
+      "Optional web search in Ask for what your meetings don't cover, with the web pages listed as sources",
+      "Follow-up questions that keep the conversation and the meetings you asked about; saved chats you can rename, search and filter",
       "Optional snapshots of the shared screen, matched to what was said",
       "Send notes to Slack, Microsoft Teams, Discord, Zoom Team Chat, Notion and Apple Notes; tasks to Linear, Jira and Apple Reminders; anything else through webhooks",
       "Read-only MCP server for Claude, Cursor and VS Code",
@@ -1185,7 +1187,7 @@ export const copy: Copy = {
     included: [
       { icon: "waveform", text: "Live transcript and live translation" },
       { icon: "note", text: "A note after every meeting: your tasks, decisions, summary and who said what" },
-      { icon: "search", text: "“What did I miss?” and Ask across all your meetings" },
+      { icon: "search", text: "“What did I miss?” and Ask across all your meetings, with saved chats and optional web search" },
       { icon: "users", text: "Online calls, in-person meetings and imported audio or video files" },
       { icon: "plug", text: "Send to Notion, Slack, Linear, Jira and more" },
       { icon: "sparkle", text: "Your AI apps can read your meetings through MCP, including snapshots of shared screens" },
@@ -1198,7 +1200,7 @@ export const copy: Copy = {
       {
         icon: "calendar",
         title: "10 hours a month",
-        text: "A fair-use limit that resets on the first day of each month (UTC). At the limit you can't start new meetings until the month resets; the app tells you clearly.",
+        text: "A fair-use limit on meeting time that resets on the first day of each month (UTC). At the limit you can't start new meetings until the month resets; the app tells you clearly. AI outside meetings, such as Ask, has its own monthly allowance.",
       },
       { icon: "timer", title: "4 hours per meeting", text: "Enough for long workshops and lectures; longer meetings close at 4 hours." },
       { icon: "card", title: "Cancelling", text: "Cancel in a click from your account page or at link.com. You keep access until the end of the paid period." },
@@ -1208,6 +1210,11 @@ export const copy: Copy = {
       `Checkout is hosted by Stripe, and your purchase is sold through Link, Stripe's payment service, as the merchant of record. The price of $5.99 a month or $49 a year includes sales tax, VAT or GST: Link calculates and remits the tax for your location, and checkout shows the included tax before you pay. You may see the price in your local currency. Receipts come from Link, and your card statement shows ${cardStatementDescriptor}. Your card details stay with Stripe and Link and never reach us. Purchases aren't available in some countries where Stripe can't sell, such as China, Cuba, Iran, North Korea, Russia and Syria.`,
     faqTitle: "Questions",
     faq: [
+      {
+        question: "What counts toward the monthly limits?",
+        answer:
+          "There are two monthly allowances, and the app and your account page show how much of each you've used. Meeting hours: up to 10 hours of meetings a month. The AI that works during and right after a meeting, such as live translation, “What did I miss?” and the note, comes with the meeting and doesn't use the second allowance. AI outside meetings: Ask, rewriting a note, translating a note to share and the task tools share a separate monthly allowance; when it's used up, they pause until the month resets. Web search in Ask has its own limit of 100 searches a month; after that, Ask answers from your meetings only. All of them reset on the first day of each month (UTC). During the free trial, AI outside meetings has a daily allowance instead.",
+      },
       {
         question: "What happens when the trial ends?",
         answer: "The app lets you know. You can't start new meetings until you subscribe; your existing notes and recordings stay on your Mac and remain readable.",
