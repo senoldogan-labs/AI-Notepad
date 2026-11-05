@@ -439,6 +439,22 @@ final class AppModel {
         }
     }
 
+    /// Açılışta okunan ayarların bellekteki kopyalarını kayıtlı değerlerle eşler (değer başka cihazdan eşitlenerek
+    /// değiştiyse). Kayıt sürerken dokunulmaz: süren kaydın ayarları değişmez (eşitleme de o sırada ayar yazmaz).
+    func refreshStoredSettings() {
+        guard !isRecording else {
+            return
+        }
+        let storedMode: LanguageMode = storedLanguageMode(value: UserDefaults.standard.string(forKey: SettingsKey.languageMode))
+        if languageMode != storedMode {
+            languageMode = storedMode
+        }
+        let storedDisplay: DisplayMode = storedDisplayMode()
+        if displayMode != storedDisplay {
+            displayMode = storedDisplay
+        }
+    }
+
     /// Görünümü değiştirir ve kaydeder.
     func selectDisplayMode(mode: DisplayMode) {
         let resumesTranslation: Bool = mode.needsLiveTranslation && !displayMode.needsLiveTranslation

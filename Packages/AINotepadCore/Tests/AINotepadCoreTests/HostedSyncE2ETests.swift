@@ -115,11 +115,45 @@ private final class PassWatcher: Sendable {
     }
 }
 
-/// One device running the sync engine over its own temporary account folder.
+/// `SyncPrefs` as the first sync release wrote it (an older app: no settings field).
+private struct OlderClientPrefs: Codable {
+    let schema: Int
+    let folders: [String]
+    let recipes: [Recipe]
+}
+
+/// Whether a test device records right now (read on the main actor, as the apps' recorders are).
+@MainActor
+private final class RecordingSwitch {
+    var isOn: Bool = false
+}
+
+/// One device running the sync engine over its own temporary account folder and preferences domains.
 private struct EngineDevice {
     let engine: SyncEngine
     let store: SyncAccountFolderStore
     let jobs: DeviceJobs
+    let recording: RecordingSwitch
+
+    var settingsDomains: SyncedSettingsDomains {
+        SyncedSettingsDomains(valuesDomain: store.valuesDomain, accountSuite: store.defaultsSuite)
+    }
+
+    func values() throws -> UserDefaults {
+        try #require(UserDefaults(suiteName: store.valuesDomain))
+    }
+
+    /// What the app does on every preferences change: stamps the user's setting changes; returns the changed keys.
+    func recordSettingChanges(now: Date) async throws -> [String] {
+        let domains: SyncedSettingsDomains = settingsDomains
+        return try await MainActor.run { () throws -> [String] in try recordSyncedSettingChanges(domains: domains, now: now) }
+    }
+
+    func removeDomains() {
+        for domain in [store.defaultsSuite, store.valuesDomain] {
+            UserDefaults().removePersistentDomain(forName: domain)
+        }
+    }
 }
 
 private let e2eSyncSettings: SyncEngineSettings = SyncEngineSettings(
@@ -128,18 +162,19 @@ private let e2eSyncSettings: SyncEngineSettings = SyncEngineSettings(
 
 private func engineDevice(
     device: SyncDevice, key: SyncAccountKey, userID: String, root: URL, observer: @escaping @Sendable (Result<SyncPassReport, any Error>) -> Void
-) throws -> EngineDevice {
+) async throws -> EngineDevice {
     let account: URL = root.appending(path: "Accounts/\(UUID().uuidString)", directoryHint: .isDirectory)
     let jobs: DeviceJobs = DeviceJobs()
+    let recording: RecordingSwitch = RecordingSwitch()
     let store: SyncAccountFolderStore = SyncAccountFolderStore(
-        accountDirectory: account, defaultsSuite: "ainotepad.e2e.\(UUID().uuidString)", busy: { () async -> Set<String> in await jobs.query() },
-        now: { () -> Date in Date() }
+        accountDirectory: account, defaultsSuite: "ainotepad.e2e.\(UUID().uuidString)", valuesDomain: "ainotepad.e2e.values.\(UUID().uuidString)",
+        busy: { () async -> Set<String> in await jobs.query() }, recordingInProgress: { () -> Bool in recording.isOn }, now: { () -> Date in Date() }
     )
     let engine: SyncEngine = try SyncEngine(
         client: device.client, store: store, accountKey: key, userID: userID, files: SyncMetadataFiles(directory: account.appending(path: syncFolderName)),
         clock: SystemSyncClock(), settings: e2eSyncSettings, observer: observer
     )
-    return EngineDevice(engine: engine, store: store, jobs: jobs)
+    return EngineDevice(engine: engine, store: store, jobs: jobs, recording: recording)
 }
 
 /// Writes a meeting as the app would and queues it for the next pass (without the debounced pass, so the explicit
@@ -171,13 +206,13 @@ private func edit(device: EngineDevice, id: String, change: (MeetingRecord) -> M
 
         let root: URL = FileManager.default.temporaryDirectory.appending(path: "sync-engine-e2e-\(UUID().uuidString)", directoryHint: .isDirectory)
         let phoneWatcher: PassWatcher = PassWatcher()
-        let mac: EngineDevice = try engineDevice(device: macDevice, key: key, userID: userID, root: root) { (_: Result<SyncPassReport, any Error>) -> Void in }
-        let phone: EngineDevice = try engineDevice(device: phoneDevice, key: key, userID: userID, root: root) { (result: Result<SyncPassReport, any Error>) -> Void in
+        let mac: EngineDevice = try await engineDevice(device: macDevice, key: key, userID: userID, root: root) { (_: Result<SyncPassReport, any Error>) -> Void in }
+        let phone: EngineDevice = try await engineDevice(device: phoneDevice, key: key, userID: userID, root: root) { (result: Result<SyncPassReport, any Error>) -> Void in
             phoneWatcher.deliver(result: result)
         }
         defer {
-            for suite in [mac.store.defaultsSuite, phone.store.defaultsSuite] {
-                UserDefaults().removePersistentDomain(forName: suite)
+            for device in [mac, phone] {
+                device.removeDomains()
             }
             try? FileManager.default.removeItem(at: root)
         }
@@ -190,7 +225,10 @@ private func edit(device: EngineDevice, id: String, change: (MeetingRecord) -> M
         #expect(try await mac.store.writeMeeting(record: record, replacing: nil) == .written)
         let book: PeopleBook = PeopleBook(saved: [SavedPerson(name: "Aino", role: "CFO", email: "aino@example.com", addedAt: Date(timeIntervalSince1970: 1_800_000_000))], removed: [])
         #expect(try await mac.store.writePeopleBook(book: book, replacing: .empty) == .written)
-        let prefs: SyncPrefs = SyncPrefs(schema: syncPayloadSchema, folders: ["Board"], recipes: [Recipe(id: "r1", title: "Risks", prompt: "List the risks", symbol: "bookmark", isBuiltIn: false)])
+        let prefs: SyncPrefs = SyncPrefs(
+            schema: syncPayloadSchema, folders: ["Board"], recipes: [Recipe(id: "r1", title: "Risks", prompt: "List the risks", symbol: "bookmark", isBuiltIn: false)],
+            settings: nil
+        )
         #expect(try await mac.store.writePrefs(prefs: prefs, replacing: try await mac.store.prefs()) == .written)
         let start: Date = Date(timeIntervalSince1970: 1_800_000_100)
         let turn: AskConversationTurn = AskConversationTurn(
@@ -407,6 +445,111 @@ private func edit(device: EngineDevice, id: String, change: (MeetingRecord) -> M
         #expect(try await mac.client.account().enabled == false)
         await #expect(throws: HostedSyncError.notEnabled) { _ = try await mac.client.changes(since: 0, epoch: nil, limit: 10) }
         #expect(try localD1Rows(sql: "SELECT object_id, kind, rev, size, deleted FROM sync_objects WHERE user_id = '\(userID)';", as: ObjectRow.self).isEmpty)
+    }
+
+    // Settings follow the account: the Mac (settings stored before sync recorded changes, plus one changed since) uploads
+    // them; a fresh iPhone install restores them (its first-launch values were never changed by the user, so the
+    // account's win) without bouncing anything back; edits on both devices merge per setting by change time; an older
+    // app's upload without the settings field does not erase them (the next newer device restores them); and a setting
+    // from another device waits while a recording runs.
+    @Test func settingsFollowTheAccountAgainstLocalServer() async throws {
+        let baseURL: URL = try localServerBase()
+        let macRefresh: String = randomToken()
+        let userID: String = try insertSession(refreshToken: macRefresh)
+        let phoneRefresh: String = randomToken()
+        try insertDeviceSession(userID: userID, refreshToken: phoneRefresh)
+        try executeLocalD1(sql: "UPDATE users SET trial_started_at = \(nowMs()) WHERE id = '\(userID)';")
+        let macDevice: SyncDevice = try await device(baseURL: baseURL, userID: userID, refreshToken: macRefresh)
+        let phoneDevice: SyncDevice = try await device(baseURL: baseURL, userID: userID, refreshToken: phoneRefresh)
+        let key: SyncAccountKey = newSyncAccountKey()
+        _ = try await macDevice.client.enable(keyID: key.keyID)
+        let root: URL = FileManager.default.temporaryDirectory.appending(path: "sync-settings-e2e-\(UUID().uuidString)", directoryHint: .isDirectory)
+        let mac: EngineDevice = try await engineDevice(device: macDevice, key: key, userID: userID, root: root) { (_: Result<SyncPassReport, any Error>) -> Void in }
+        let phone: EngineDevice = try await engineDevice(device: phoneDevice, key: key, userID: userID, root: root) { (_: Result<SyncPassReport, any Error>) -> Void in }
+        defer {
+            for device in [mac, phone] {
+                device.removeDomains()
+            }
+            try? FileManager.default.removeItem(at: root)
+        }
+        let t0: Date = Date(timeIntervalSince1970: 1_800_000_000)
+        let macValues: UserDefaults = try mac.values()
+        let phoneValues: UserDefaults = try phone.values()
+
+        // The Mac's settings predate the bookkeeping; then the user changes one.
+        macValues.set("fi", forKey: "language.note")
+        macValues.set("bilingual", forKey: "displayMode")
+        macValues.set("sales", forKey: "noteTemplate")
+        #expect(try await mac.recordSettingChanges(now: t0).isEmpty)
+        macValues.set(5, forKey: "missedWindowMinutes")
+        #expect(try await mac.recordSettingChanges(now: t0.addingTimeInterval(10)) == ["missedWindowMinutes"])
+        // The fresh iPhone stored its first-launch default; the user changed nothing.
+        phoneValues.set("en", forKey: "language.note")
+        #expect(try await phone.recordSettingChanges(now: t0.addingTimeInterval(20)).isEmpty)
+
+        let macFirst: SyncPassReport = try await mac.engine.syncNow()
+        #expect(macFirst.uploaded == 1 && macFirst.failures.isEmpty)
+        let phoneFirst: SyncPassReport = try await phone.engine.syncNow()
+        #expect(phoneFirst.prefsChanged && phoneFirst.uploaded == 0 && phoneFirst.failures.isEmpty)
+        #expect(phoneValues.string(forKey: "language.note") == "fi" && phoneValues.string(forKey: "displayMode") == "bilingual")
+        #expect(phoneValues.string(forKey: "noteTemplate") == "sales" && phoneValues.integer(forKey: "missedWindowMinutes") == 5)
+        #expect(try await phone.recordSettingChanges(now: t0.addingTimeInterval(30)).isEmpty)
+        for engine in [mac.engine, phone.engine] {
+            let idle: SyncPassReport = try await engine.syncNow()
+            #expect(idle.uploaded == 0 && idle.downloaded == 0)
+        }
+
+        // Edits on both: the iPhone's display mode is newer than the Mac's; the Mac's template is the only change of it.
+        macValues.set("turkishOnly", forKey: "displayMode")
+        macValues.set("general", forKey: "noteTemplate")
+        #expect(try await mac.recordSettingChanges(now: t0.addingTimeInterval(60)) == ["displayMode", "noteTemplate"])
+        phoneValues.set("originalOnly", forKey: "displayMode")
+        #expect(try await phone.recordSettingChanges(now: t0.addingTimeInterval(90)) == ["displayMode"])
+        #expect(try await phone.engine.syncNow().uploaded == 1)
+        let macMerge: SyncPassReport = try await mac.engine.syncNow()
+        #expect(macMerge.uploaded == 1 && macMerge.prefsChanged)
+        _ = try await phone.engine.syncNow()
+        for values in [macValues, phoneValues] {
+            #expect(values.string(forKey: "displayMode") == "originalOnly" && values.string(forKey: "noteTemplate") == "general")
+        }
+        let merged: SyncPrefs = try await mac.store.prefs()
+        #expect(try await phone.store.prefs() == merged)
+
+        // An older app (no settings field) re-uploads the prefs with a new folder: the settings are not lost.
+        let objectID: String = singletonSyncObjectID(accountKey: key, kind: .prefs)
+        let current: UInt64 = try await phoneDevice.client.object(objectID: objectID).revision
+        _ = try await upload(
+            device: phoneDevice, value: OlderClientPrefs(schema: 1, folders: ["Board"], recipes: []), key: key, userID: userID, objectID: objectID, kind: .prefs,
+            baseRevision: current
+        )
+        let restored: SyncPassReport = try await mac.engine.syncNow()
+        #expect(restored.uploaded == 1 && restored.failures.isEmpty)
+        let onServer: SyncPrefs = try await download(device: macDevice, type: SyncPrefs.self, key: key, userID: userID, objectID: objectID).value
+        let macPrefs: SyncPrefs = try await mac.store.prefs()
+        #expect(onServer.folders == ["Board"] && onServer.settings == macPrefs.settings && onServer.settings != nil)
+        _ = try await phone.engine.syncNow()
+        #expect(try await phone.store.prefs() == macPrefs)
+        #expect(phoneValues.string(forKey: "displayMode") == "originalOnly")
+
+        // A recording runs on the iPhone: the Mac's new note language waits until it ends.
+        await MainActor.run { phone.recording.isOn = true }
+        macValues.set("de", forKey: "language.note")
+        #expect(try await mac.recordSettingChanges(now: t0.addingTimeInterval(120)) == ["language.note"])
+        #expect(try await mac.engine.syncNow().uploaded == 1)
+        let waiting: SyncPassReport = try await phone.engine.syncNow()
+        #expect(waiting.deferred == 1 && !waiting.prefsChanged)
+        #expect(phoneValues.string(forKey: "language.note") == "fi")
+        await MainActor.run { phone.recording.isOn = false }
+        let applied: SyncPassReport = try await phone.engine.syncNow()
+        #expect(applied.prefsChanged && applied.uploaded == 0)
+        #expect(phoneValues.string(forKey: "language.note") == "de")
+        #expect(try await phone.recordSettingChanges(now: t0.addingTimeInterval(130)).isEmpty)
+        for engine in [mac.engine, phone.engine] {
+            let idle: SyncPassReport = try await engine.syncNow()
+            #expect(idle.uploaded == 0 && idle.downloaded == 0)
+            await engine.stop()
+        }
+        _ = try await macDevice.client.disableAndWipe()
     }
 }
 

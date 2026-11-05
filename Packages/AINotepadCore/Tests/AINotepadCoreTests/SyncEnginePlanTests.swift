@@ -137,7 +137,11 @@ import Testing
     }
 
     @Test func emptyPrefsAreNotUploaded() {
-        #expect(isEmptySyncPrefs(prefs: SyncPrefs(schema: syncPayloadSchema, folders: [], recipes: [])))
-        #expect(!isEmptySyncPrefs(prefs: SyncPrefs(schema: syncPayloadSchema, folders: ["Board"], recipes: [])))
+        #expect(isEmptySyncPrefs(prefs: SyncPrefs(schema: syncPayloadSchema, folders: [], recipes: [], settings: nil)))
+        #expect(isEmptySyncPrefs(prefs: SyncPrefs(schema: syncPayloadSchema, folders: [], recipes: [], settings: [:])))
+        #expect(!isEmptySyncPrefs(prefs: SyncPrefs(schema: syncPayloadSchema, folders: ["Board"], recipes: [], settings: nil)))
+        #expect(!isEmptySyncPrefs(prefs: SyncPrefs(
+            schema: syncPayloadSchema, folders: [], recipes: [], settings: ["displayMode": SyncedSetting(value: .string("bilingual"), changedAt: nil)]
+        )))
     }
 }

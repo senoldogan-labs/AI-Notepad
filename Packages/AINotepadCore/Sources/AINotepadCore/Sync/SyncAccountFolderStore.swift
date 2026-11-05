@@ -1,22 +1,37 @@
 import Foundation
 
 /// `SyncLocalStore` over one account's data folder (`Accounts/<key>`: `Sessions`, `AskHistory`, `People.json`,
-/// `RecentlyDeleted`) and the account's preferences domain (`defaultsSuite`: saved folders, the user's Ask recipes). It
+/// `RecentlyDeleted`), the account's preferences domain (`defaultsSuite`: saved folders, the user's Ask recipes, the
+/// synced settings' bookkeeping) and the app's preferences domain (`valuesDomain`: the synced settings' values). It
 /// reads and writes the files directly, so an app using it reloads what the engine reports as changed
 /// (`SyncPassReport`). The conditional writes compare with the copy on disk right before writing; that is enough for one
-/// writer per process (the app's own writes go through its model, which this adapter does not see).
+/// writer per process (the app's own writes go through its model, which this adapter does not see). The preferences are
+/// read and written on the main actor, where the settings views write them.
 public struct SyncAccountFolderStore: SyncLocalStore {
     public let accountDirectory: URL
     public let defaultsSuite: String
+    public let valuesDomain: String
     private let busy: @Sendable () async -> Set<String>
+    private let recordingInProgress: @MainActor @Sendable () -> Bool
     private let now: @Sendable () -> Date
 
-    /// `busy`: meetings a long note job works on; `now`: deletion time of meetings moved to Recently Deleted.
-    public init(accountDirectory: URL, defaultsSuite: String, busy: @escaping @Sendable () async -> Set<String>, now: @escaping @Sendable () -> Date) {
+    /// `valuesDomain`: preferences domain of the synced settings (`SyncedSettingsDomains.valuesDomain`); `busy`: meetings
+    /// a long note job works on; `recordingInProgress`: a recording runs (settings from another device wait until it
+    /// ends, so they never change a recording midway); `now`: deletion time of meetings moved to Recently Deleted.
+    public init(
+        accountDirectory: URL, defaultsSuite: String, valuesDomain: String, busy: @escaping @Sendable () async -> Set<String>,
+        recordingInProgress: @escaping @MainActor @Sendable () -> Bool, now: @escaping @Sendable () -> Date
+    ) {
         self.accountDirectory = accountDirectory
         self.defaultsSuite = defaultsSuite
+        self.valuesDomain = valuesDomain
         self.busy = busy
+        self.recordingInProgress = recordingInProgress
         self.now = now
+    }
+
+    private var settingsDomains: SyncedSettingsDomains {
+        SyncedSettingsDomains(valuesDomain: valuesDomain, accountSuite: defaultsSuite)
     }
 
     /// The account's preferences domain (`UserDefaults` is not `Sendable`, so it is opened per use).
@@ -138,20 +153,31 @@ public struct SyncAccountFolderStore: SyncLocalStore {
     }
 
     public func prefs() async throws -> SyncPrefs {
+        try await MainActor.run { () throws -> SyncPrefs in try currentPrefs() }
+    }
+
+    @MainActor
+    private func currentPrefs() throws -> SyncPrefs {
         let defaults: UserDefaults = try defaults()
         return SyncPrefs(
             schema: syncPayloadSchema, folders: defaults.stringArray(forKey: savedFoldersKey) ?? [],
-            recipes: try loadUserRecipes(defaults: defaults).filter { !$0.isBuiltIn }
+            recipes: try loadUserRecipes(defaults: defaults).filter { !$0.isBuiltIn }, settings: try currentSyncedSettings(domains: settingsDomains)
         )
     }
 
     public func writePrefs(prefs newPrefs: SyncPrefs, replacing previous: SyncPrefs) async throws -> SyncStoreWrite {
-        guard try await prefs() == previous else {
-            return .changedMeanwhile
+        try await MainActor.run { () throws -> SyncStoreWrite in
+            guard try currentPrefs() == previous else {
+                return .changedMeanwhile
+            }
+            if try syncedSettingsWouldChange(merged: newPrefs.settings, domains: settingsDomains), recordingInProgress() {
+                return .changedMeanwhile
+            }
+            let defaults: UserDefaults = try defaults()
+            defaults.set(newPrefs.folders, forKey: savedFoldersKey)
+            try saveUserRecipes(recipes: newPrefs.recipes, defaults: defaults)
+            try applySyncedSettings(merged: newPrefs.settings, domains: settingsDomains)
+            return .written
         }
-        let defaults: UserDefaults = try defaults()
-        defaults.set(newPrefs.folders, forKey: savedFoldersKey)
-        try saveUserRecipes(recipes: newPrefs.recipes, defaults: defaults)
-        return .written
     }
 }

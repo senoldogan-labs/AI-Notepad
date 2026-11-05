@@ -137,9 +137,9 @@ private func merge(base: MeetingSyncState?, local: MeetingSyncState, remote: Mee
         #expect(mergedOrderedSet(base: nil, local: [first], remote: [second]) == [first, second])
         #expect(mergedOrderedSet(base: nil as [Highlight]?, local: nil, remote: nil) == nil)
         let prefs: SyncPrefs = mergeSyncPrefs(
-            base: SyncPrefs(schema: 1, folders: ["A", "B"], recipes: []),
-            local: SyncPrefs(schema: 1, folders: ["A", "B", "C"], recipes: [Recipe(id: "r1", title: "Mine", prompt: "p", symbol: "s", isBuiltIn: false)]),
-            remote: SyncPrefs(schema: 1, folders: ["B"], recipes: [])
+            base: SyncPrefs(schema: 1, folders: ["A", "B"], recipes: [], settings: nil),
+            local: SyncPrefs(schema: 1, folders: ["A", "B", "C"], recipes: [Recipe(id: "r1", title: "Mine", prompt: "p", symbol: "s", isBuiltIn: false)], settings: nil),
+            remote: SyncPrefs(schema: 1, folders: ["B"], recipes: [], settings: nil)
         )
         #expect(prefs.folders == ["B", "C"] && prefs.recipes.map(\.id) == ["r1"])
     }
