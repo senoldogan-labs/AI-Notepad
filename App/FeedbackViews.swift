@@ -31,6 +31,7 @@ struct FeedbackSettingsRow: View {
         .sheet(isPresented: $isOpen) {
             FeedbackSheet(makeDiagnostics: makeDiagnostics) { isOpen = false }
                 .frame(width: 520)
+                .modifier(AppSheetChrome())
         }
     }
 }
