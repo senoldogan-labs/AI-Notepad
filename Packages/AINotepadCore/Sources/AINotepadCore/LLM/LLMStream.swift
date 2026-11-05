@@ -60,17 +60,33 @@ public typealias LLMAnswerHandler = @Sendable (LLMAnswer) async -> Void
 public func streamLLMAnswer(provider: LLMProvider, request: LLMRequest, onUpdate: LLMAnswerHandler) async throws -> LLMAnswer {
     switch provider {
     case .anthropic(let config):
-        return try await streamPreparedAnswer(call: try prepareClaudeCall(config: config, request: request), onUpdate: onUpdate)
+        do {
+            return try await streamPreparedAnswer(call: try prepareClaudeCall(config: config, request: request), onUpdate: onUpdate)
+        } catch where request.webSearch != nil && isWebSearchDisabledError(error: error) {
+            // Kuruluşta web araması kapalı (Console): sunucudaki güvenceyle aynı, istek bir kez araçsız yinelenir ve cevabın
+            // altında "web araması şu an yok" notu çıkar (soru cevapsız kalmaz). 400 metin görünmeden gelir.
+            streamLogger.warning("Anthropic web aramasını reddetti (kuruluşta kapalı), soru araçsız yineleniyor")
+            let answer: LLMAnswer = try await streamPreparedAnswer(call: try prepareClaudeCall(config: config, request: withoutWebSearch(request: request)), onUpdate: onUpdate)
+            return LLMAnswer(text: answer.text, webSources: answer.webSources, webQueries: answer.webQueries, webSearchNotice: .unavailable)
+        }
     case .hosted(let config):
         return try await withHostedTokenRefresh(config: config) { () async throws -> LLMAnswer in
             try await streamPreparedAnswer(call: try await prepareHostedCall(config: config, request: request), onUpdate: onUpdate)
         }
     case .openAICompatible, .onDevice:
         let text: String = try await streamLLM(provider: provider, request: request) { (partial: String) -> Void in
-            await onUpdate(LLMAnswer(text: partial, webSources: [], webQueries: [], webSearchCapReached: false))
+            await onUpdate(LLMAnswer(text: partial, webSources: [], webQueries: [], webSearchNotice: .ok))
         }
-        return LLMAnswer(text: text, webSources: [], webQueries: [], webSearchCapReached: false)
+        return LLMAnswer(text: text, webSources: [], webQueries: [], webSearchNotice: .ok)
     }
+}
+
+/// Aynı istek, web araması aracı olmadan. Saf fonksiyondur.
+func withoutWebSearch(request: LLMRequest) -> LLMRequest {
+    LLMRequest(
+        purpose: request.purpose, tier: request.tier, system: request.system, userText: request.userText, maxTokens: request.maxTokens,
+        jsonSchema: request.jsonSchema, timeoutSec: request.timeoutSec, images: request.images, webSearch: nil
+    )
 }
 
 /// Metin akışı: her metin parçası birikir, görünen metin (`visibleStreamText`) boş değilse gösterilir.
@@ -92,19 +108,20 @@ private func streamPreparedText(call: PreparedLLMCall, textDelta: @escaping @Sen
 }
 
 /// Cevap akışı (Claude olayları): bloklar `consumeClaudeAnswerLine` ile işlenir; metin ya da arama değişince
-/// `onUpdate`. Sonuç doğrulanmış akışın durumudur; abonelik sunucusu arama hakkı bittiyse bunu başlıkla söyler.
+/// `onUpdate`. Sonuç doğrulanmış akışın durumudur; abonelik sunucusu aramayı sunamadıysa (hak bitti, kapalı) bunu
+/// başlıkla söyler (`webSearchNotice(header:)`).
 private func streamPreparedAnswer(call: PreparedLLMCall, onUpdate: LLMAnswerHandler) async throws -> LLMAnswer {
     let streamed: StreamedCall<ClaudeAnswerState> = try await streamPreparedCall(call: call, initial: ClaudeAnswerState(blocks: [:])) { (state: ClaudeAnswerState, line: Substring) -> (state: ClaudeAnswerState, changed: Bool) in
         consumeClaudeAnswerLine(state: state, line: line)
     } onChange: { (state: ClaudeAnswerState) -> Bool in
-        let answer: LLMAnswer = claudeAnswer(state: state, webSearchCapReached: false)
+        let answer: LLMAnswer = claudeAnswer(state: state, headerNotice: .ok)
         guard !answer.text.isEmpty || !answer.webQueries.isEmpty else {
             return false
         }
         await onUpdate(answer)
         return !answer.text.isEmpty
     }
-    let answer: LLMAnswer = claudeAnswer(state: streamed.state, webSearchCapReached: webSearchCapReached(header: streamed.webSearchHeader))
+    let answer: LLMAnswer = claudeAnswer(state: streamed.state, headerNotice: webSearchNotice(header: streamed.webSearchHeader))
     guard !answer.text.isEmpty else {
         throw LLMError.empty
     }

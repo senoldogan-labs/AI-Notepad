@@ -92,10 +92,7 @@ final class PhoneAsk {
         // Deneme ilk toplantıyla başlar: henüz toplantısı olmayan denemedeki hesap önce kayıt yapmalı (sunucu
         // çağrılmaz; diğer retler sunucunun hatasıyla gösterilir).
         if let reason = hostedAskUnavailableReason(account: HostedAccount.shared) {
-            exchanges.append(ArchiveExchange(
-                id: UUID(), question: trimmed, scopeMeetingIDs: meetingIDs, scopeTitles: [], recipeTitle: recipeTitle, startedAt: Date(),
-                phase: .failed(reason), terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: [], webSources: []), webQueries: [], webSearchCapReached: false, finishedAt: Date()
-            ))
+            exchanges.append(failedExchange(id: UUID(), question: trimmed, scopeMeetingIDs: meetingIDs, recipeTitle: recipeTitle, reason: reason, at: Date()))
             return
         }
         recordFeatureUsage(feature: .ask)
@@ -106,16 +103,12 @@ final class PhoneAsk {
             scoped = try archiveScope(records: store.meetings, meetingIDs: meetingIDs)
         } catch {
             // Etiketli toplantı silinmişse soru tüm arşive genişletilmez; soru ve neden sohbette görünür.
-            exchanges.append(ArchiveExchange(
-                id: id, question: trimmed, scopeMeetingIDs: meetingIDs, scopeTitles: [], recipeTitle: recipeTitle, startedAt: Date(),
-                phase: .failed(userFacingMessage(error: error)), terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: [], webSources: []), webQueries: [], webSearchCapReached: false, finishedAt: Date()
+            exchanges.append(failedExchange(
+                id: id, question: trimmed, scopeMeetingIDs: meetingIDs, recipeTitle: recipeTitle, reason: userFacingMessage(error: error), at: Date()
             ))
             return
         }
-        exchanges.append(ArchiveExchange(
-            id: id, question: trimmed, scopeMeetingIDs: scoped.map(\.id), scopeTitles: scoped.map { $0.note?.title ?? $0.title }, recipeTitle: recipeTitle, startedAt: Date(), phase: .understanding,
-            terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: [], webSources: []), webQueries: [], webSearchCapReached: false, finishedAt: nil
-        ))
+        exchanges.append(startedExchange(id: id, question: trimmed, scope: scoped, recipeTitle: recipeTitle, startedAt: Date()))
         isAnswering = true
         let records: [MeetingRecord] = store.meetings
         let userName: String = store.userName
@@ -341,7 +334,7 @@ struct AskTab: View {
                     .scrollDismissesKeyboard(.interactively)
                     .safeAreaInset(edge: .bottom) {
                         AskComposer(
-                            ask: ask, store: store, placeholder: "Sor… (@ toplantı, / tarif)", isAnswering: false,
+                            ask: ask, store: store, placeholder: "Sor… (@ toplantı, / tarif)", isAnswering: false, followUp: nil,
                             onSubmit: { (submission: AskSubmission) -> Void in startConversation(submission: submission) },
                             onStop: { ask.stop() }
                         )
@@ -500,6 +493,7 @@ private struct AskConversationView: View {
         .safeAreaInset(edge: .bottom) {
             AskComposer(
                 ask: ask, store: store, placeholder: "Devam sorusu sor…", isAnswering: ask.isAnswering,
+                followUp: AskFollowUp(exchangeID: ask.exchanges.last?.id, scope: followUpScope(exchanges: ask.exchanges, records: store.meetings)),
                 onSubmit: { (submission: AskSubmission) -> Void in
                     ask.ask(question: submission.question, meetingIDs: submission.meetingIDs, recipeTitle: submission.recipeTitle)
                 },
@@ -526,6 +520,13 @@ private struct AskConversationView: View {
     }
 }
 
+/// Sohbetteki soru alanının devam kapsamı: sohbetin son sorusu (değişince kapsam yeniden yüklenir) ve onun `@`
+/// toplantıları (`followUpScope`).
+struct AskFollowUp {
+    let exchangeID: UUID?
+    let scope: [MeetingRecord]
+}
+
 /// Soru alanı ve üstünde `@` toplantı ya da "/" tarif önerileri: kökte yeni sohbet, sohbette devam sorusu gönderir.
 private struct AskComposer: View {
     let ask: PhoneAsk
@@ -534,6 +535,9 @@ private struct AskComposer: View {
     let placeholder: LocalizedStringKey
     /// Bu alanın sohbetinde cevap sürüyor: düğme durdurur.
     let isAnswering: Bool
+    /// Sohbetteki alanda devam kapsamı: son soru `@` toplantılara sorulduysa etiketler alanda kalır (kaldırılabilir) ve
+    /// devam sorusu da onlara gider. Kökte nil: gönderilince etiketler kalkar.
+    let followUp: AskFollowUp?
     let onSubmit: @MainActor (AskSubmission) -> Void
     let onStop: @MainActor () -> Void
     @State private var question: String = ""
@@ -567,7 +571,7 @@ private struct AskComposer: View {
                     }
                     onSubmit(AskSubmission(question: recipe.prompt, meetingIDs: mentioned.map(\.id), recipeTitle: recipe.title))
                     clearQuestion()
-                    withAnimation(.smooth(duration: 0.2)) { mentioned = [] }
+                    clearMentionsAfterSending()
                     isFocused = false
                 } onDelete: { (recipe: Recipe) -> Void in
                     ask.deleteRecipe(id: recipe.id)
@@ -585,6 +589,12 @@ private struct AskComposer: View {
         .onChange(of: selection) { (_: TextSelection?, _: TextSelection?) in
             if let selected = selectionCursor {
                 cursor = selected
+            }
+        }
+        .onChange(of: followUp?.exchangeID, initial: true) { (_: UUID?, _: UUID?) in
+            // Yeni soru, açılan sohbet ya da yeniden oluşturma: etiketler sohbetin son sorusunun kapsamına döner.
+            if let followUp {
+                mentioned = followUp.scope
             }
         }
         .padding(.horizontal, 12)
@@ -741,9 +751,16 @@ private struct AskComposer: View {
         }
         onSubmit(AskSubmission(question: question, meetingIDs: mentioned.map(\.id), recipeTitle: nil))
         clearQuestion()
-        // Etiket bu soruya aitti: sohbette sorunun üstünde kalır, soru alanından kalkar.
-        withAnimation(.smooth(duration: 0.2)) { mentioned = [] }
+        clearMentionsAfterSending()
         isFocused = false
+    }
+
+    /// Kökte etiketler gönderilen soruya aitti: sohbette sorunun üstünde kalır, alandan kalkar. Sohbette kapsam devam
+    /// sorularına taşınır: etiketler alanda kalır (kullanıcı kaldırana dek).
+    private func clearMentionsAfterSending() {
+        if followUp == nil {
+            withAnimation(.smooth(duration: 0.2)) { mentioned = [] }
+        }
     }
 }
 

@@ -32,19 +32,39 @@ import { type ScreenImageUsage, screenImageUsage } from "./images";
 import { type LLMRequest, clampMaxTokens, estimateInputTokens, requestImages, requestTextBytes, upstreamParams } from "./request";
 import { type LLMUsageTag, llmUsageStatement, llmUsageTagOf } from "./usageBuckets";
 import {
+  isAlertDue,
+  isWebSearchDisabledError,
   requestedWebSearches,
   reserveWebSearches,
+  webSearchDisabledAlertIntervalMs,
+  webSearchErrorCodes,
   webSearchMicroUsd,
   webSearchRefundStatement,
   webSearchReservedInputTokens,
   webSearchStatusHeader,
+  webSearchUnavailableHeader,
   webSearchesOf,
+  withoutWebSearchTool,
 } from "./webSearch";
 
 /** Akışsız çağrının zaman aşımı: yanıt başlığı ancak üretim bitince gelir, bu yüzden toplam süredir. */
 const messageTimeoutMs: number = 120_000;
 /** Akışlı çağrının ilk bayt (yanıt başlığı) zaman aşımı; akışın toplam süresi sınırlanmaz. */
 const streamFirstByteTimeoutMs: number = 30_000;
+
+/**
+ * Bu Worker örneğinin son "web araması kapalı" alarmının anı. Alarm örnek başına saatte en çok bir kez yazılır (yeni
+ * tablo gerektirmeyen en hafif sınır); sorunun gün içindeki toplam sayısı yönetim panelinin "Sorunlar" sayacındadır
+ * (`provider_error` / `anthropic_web_search_disabled`).
+ */
+let lastWebSearchDisabledAlertAt: number | null = null;
+
+/** Çağrının sonucu ve web aramasının bu çağrıda geri çekilip çekilmediği (`withdrawWebSearch`). */
+interface CallResult<T> {
+  readonly value: T;
+  /** Anthropic aramayı reddetti; istek araçsız yinelendi ve istemciye `x-web-search: unavailable` denir. */
+  readonly webSearchWithdrawn: boolean;
+}
 
 /** Çağrıya verilen web araması hakkı (`granted`) ve çağrının yaptığı arama sayısı (`used`). */
 interface WebSearchCount {
@@ -211,7 +231,32 @@ async function chargeFailure(db: D1Database, reservation: UsageReservation, esti
   ]);
 }
 
-/** Akışsız çağrı ve kesinleştirmesi (başarıda gerçek kullanım, hatada `chargeFailure`). */
+/** Anthropic'in hatası "web araması bu kuruluşta kapalı" reddi mi (`isWebSearchDisabledError`). */
+function isAnthropicWebSearchDisabled(error: unknown): boolean {
+  return error instanceof Anthropic.APIError && isWebSearchDisabledError(error.status, error.error);
+}
+
+/**
+ * Bilinçli erişilebilirlik güvencesi: Anthropic kuruluşta web aramasını reddettiyse (Console'da kapalı; 400
+ * `invalid_request_error`) kullanıcı cevapsız kalmasın diye aynı istek bir kez araçsız yinelenir. Önce bu çağrıya
+ * verilen arama hakkı aylık sayaca geri verilir (hiç arama yapılmadı), sorun "Sorunlar" sayacına yazılır ve alarm logu bu
+ * Worker örneğinde saatte en çok bir kez yazılır (`lastWebSearchDisabledAlertAt`); istemciye `x-web-search: unavailable`
+ * denir ve Sor cevabın altında bunu yazar. Ayırma (bütçe) aynı kalır; kesinleştirme yinelenen çağrının gerçek
+ * kullanımıyla yapılır. Reddedilen 400 isteği ücretlendirilmez.
+ */
+async function withdrawWebSearch(db: D1Database, scope: LLMScope, reservation: UsageReservation, grantedWebSearches: number, now: Date): Promise<void> {
+  await db.batch(webSearchRefundStatement(db, scope.userId, reservation.month, grantedWebSearches, 0));
+  await recordOpsEvents(db, [{ kind: "provider_error", detail: "anthropic_web_search_disabled" }], now);
+  if (isAlertDue(lastWebSearchDisabledAlertAt, now.getTime(), webSearchDisabledAlertIntervalMs)) {
+    lastWebSearchDisabledAlertAt = now.getTime();
+    log("alert", "anthropic_web_search_disabled", { userId: scope.userId, refundedWebSearches: grantedWebSearches });
+  }
+}
+
+/**
+ * Akışsız çağrı ve kesinleştirmesi (başarıda gerçek kullanım, hatada `chargeFailure`). Anthropic web aramasını
+ * kuruluşta reddederse istek bir kez araçsız yinelenir (`withdrawWebSearch`).
+ */
 async function callMessage(
   db: D1Database,
   client: Anthropic,
@@ -224,24 +269,45 @@ async function callMessage(
   usageTag: LLMUsageTag,
   noteMeetingId: string | null,
   now: Date,
-): Promise<CallOutcome<Anthropic.Message>> {
+): Promise<CallOutcome<CallResult<Anthropic.Message>>> {
   let message: Anthropic.Message;
   try {
     message = await withRetries(retry, (): Promise<Anthropic.Message> => client.messages.create(params, { timeout: messageTimeoutMs }));
   } catch (error: unknown) {
+    if (grantedWebSearches > 0 && isAnthropicWebSearchDisabled(error)) {
+      await withdrawWebSearch(db, scope, reservation, grantedWebSearches, now);
+      const retried: CallOutcome<CallResult<Anthropic.Message>> = await callMessage(
+        db, client, retry, withoutWebSearchTool(params), scope, reservation, estimatedInput, 0, usageTag, noteMeetingId, now,
+      );
+      return retried.ok ? { ok: true, value: { value: retried.value.value, webSearchWithdrawn: true } } : retried;
+    }
     await chargeFailure(db, reservation, estimatedInput, grantedWebSearches, now);
     return { ok: false, error: mapAnthropicError(error, scope.userId, scopeMeetingId(scope)) };
   }
+  logWebSearchErrors(scope, webSearchErrorCodes(message.content));
   const usage: TokenUsage = { inputTokens: totalInputTokens(message.usage), outputTokens: message.usage.output_tokens };
   const webSearches: WebSearchCount = { granted: grantedWebSearches, used: webSearchesOf(message.usage) };
   await chargeUsage(db, scope, reservation, usage, webSearches, usageTag, noteMeetingId, now);
-  return { ok: true, value: message };
+  return { ok: true, value: { value: message, webSearchWithdrawn: false } };
+}
+
+/**
+ * Hatalı web aramaları (`web_search_tool_result_error`) yalnız kodlarıyla loglanır: yanıt 200'dür, model cevabı yine yazar
+ * ve hatalı arama ücretlendirilmez (kullanım `web_search_requests`'ten sayılır). Sorgu ve içerik yazılmaz.
+ */
+function logWebSearchErrors(scope: LLMScope, codes: readonly string[]): void {
+  if (codes.length > 0) {
+    log("warn", "web_search_tool_errors", { userId: scope.userId, meetingId: scopeMeetingId(scope), codes: codes.join(",") });
+  }
 }
 
 /** Anthropic akışı. */
 type MessageStream = AsyncIterable<Anthropic.RawMessageStreamEvent> & { controller: AbortController };
 
-/** Akışı açar (ilk bayt zaman aşımıyla); açılamazsa `chargeFailure` ile kesinleştirir. */
+/**
+ * Akışı açar (ilk bayt zaman aşımıyla); açılamazsa `chargeFailure` ile kesinleştirir. Anthropic web aramasını kuruluşta
+ * reddederse (yanıt başlığından önce gelir) akış bir kez araçsız açılır (`withdrawWebSearch`).
+ */
 async function openStream(
   db: D1Database,
   client: Anthropic,
@@ -252,11 +318,16 @@ async function openStream(
   estimatedInput: number,
   grantedWebSearches: number,
   now: Date,
-): Promise<CallOutcome<MessageStream>> {
+): Promise<CallOutcome<CallResult<MessageStream>>> {
   try {
     const stream: MessageStream = await withRetries(retry, () => client.messages.create({ ...params, stream: true }, { timeout: streamFirstByteTimeoutMs }));
-    return { ok: true, value: stream };
+    return { ok: true, value: { value: stream, webSearchWithdrawn: false } };
   } catch (error: unknown) {
+    if (grantedWebSearches > 0 && isAnthropicWebSearchDisabled(error)) {
+      await withdrawWebSearch(db, scope, reservation, grantedWebSearches, now);
+      const retried: CallOutcome<CallResult<MessageStream>> = await openStream(db, client, retry, withoutWebSearchTool(params), scope, reservation, estimatedInput, 0, now);
+      return retried.ok ? { ok: true, value: { value: retried.value.value, webSearchWithdrawn: true } } : retried;
+    }
     await chargeFailure(db, reservation, estimatedInput, grantedWebSearches, now);
     return { ok: false, error: mapAnthropicError(error, scope.userId, scopeMeetingId(scope)) };
   }
@@ -312,8 +383,8 @@ export async function proxyLLM(db: D1Database, context: RequestContext, config: 
   // Aylık arama hakkı ayırmadan sonra düşülür (ayırma reddedilirse hak harcanmaz); hak bittiyse araç sunulmaz ve
   // istemci `x-web-search: cap_reached` ile bunu söyler.
   const grantedSearches: number = await reserveWebSearches(db, scope.userId, requestedSearches, config.llm.monthlyWebSearchCap, now);
-  const searchHeaders: Record<string, string> =
-    config.llm.webSearchPolicy === "on" || askedSearches === 0 ? webSearchStatusHeader(requestedSearches, grantedSearches) : { "x-web-search": "unavailable" };
+  const searchHeaders: Readonly<Record<string, string>> =
+    config.llm.webSearchPolicy === "on" || askedSearches === 0 ? webSearchStatusHeader(requestedSearches, grantedSearches) : webSearchUnavailableHeader;
   const client: Anthropic = anthropicClient(context, config);
   const params: Anthropic.MessageCreateParamsNonStreaming = upstreamParams(request, maxTokens, grantedSearches);
   const retry: RetryOptions = {
@@ -334,7 +405,7 @@ export async function proxyLLM(db: D1Database, context: RequestContext, config: 
   const usageTag: LLMUsageTag = llmUsageTagOf(scope.kind, request);
 
   if (request.stream !== true) {
-    const outcome: CallOutcome<Anthropic.Message> = await continueAfterDisconnect(
+    const outcome: CallOutcome<CallResult<Anthropic.Message>> = await continueAfterDisconnect(
       context,
       callMessage(db, client, retry, params, scope, reservation, estimatedInput, grantedSearches, usageTag, noteMeetingId, now),
       "llm_settle_failed",
@@ -343,14 +414,14 @@ export async function proxyLLM(db: D1Database, context: RequestContext, config: 
     if (!outcome.ok) {
       throw outcome.error;
     }
-    const response: Response = jsonResponse(200, outcome.value);
-    for (const [name, value] of Object.entries(searchHeaders)) {
+    const response: Response = jsonResponse(200, outcome.value.value);
+    for (const [name, value] of Object.entries(outcome.value.webSearchWithdrawn ? webSearchUnavailableHeader : searchHeaders)) {
       response.headers.set(name, value);
     }
     return response;
   }
 
-  const opened: CallOutcome<MessageStream> = await continueAfterDisconnect(
+  const opened: CallOutcome<CallResult<MessageStream>> = await continueAfterDisconnect(
     context,
     openStream(db, client, retry, params, scope, reservation, estimatedInput, grantedSearches, now),
     "llm_settle_failed",
@@ -362,13 +433,29 @@ export async function proxyLLM(db: D1Database, context: RequestContext, config: 
   const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
   runAfterResponse(
     context,
-    pumpStream(db, opened.value, writable, scope, reservation, estimatedInput, maxTokens, grantedSearches, usageTag, noteMeetingId, now),
+    pumpStream(
+      db,
+      opened.value.value,
+      writable,
+      scope,
+      reservation,
+      estimatedInput,
+      maxTokens,
+      opened.value.webSearchWithdrawn ? 0 : grantedSearches,
+      usageTag,
+      noteMeetingId,
+      now,
+    ),
     "llm_settle_failed",
     logFields,
   );
   return new Response(readable, {
     status: 200,
-    headers: { "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-store", ...searchHeaders },
+    headers: {
+      "content-type": "text/event-stream; charset=utf-8",
+      "cache-control": "no-store",
+      ...(opened.value.webSearchWithdrawn ? webSearchUnavailableHeader : searchHeaders),
+    },
   });
 }
 
@@ -401,6 +488,8 @@ async function pumpStream(
   let inputTokens: number | null = null;
   let outputTokens: number | null = null;
   let webSearches: number = 0;
+  /** Akıştaki hatalı web aramalarının kodları (`logWebSearchErrors`). */
+  const searchErrors: string[] = [];
   let completed: boolean = false;
   let clientGone: boolean = false;
   /** İstemciye yazar; istemci koptuysa üst akışı iptal eder ve false döndürür. */
@@ -427,6 +516,9 @@ async function pumpStream(
         }
       } else if (event.type === "message_stop") {
         completed = true;
+        logWebSearchErrors(scope, searchErrors);
+      } else if (event.type === "content_block_start") {
+        searchErrors.push(...webSearchErrorCodes([event.content_block]));
       }
       if (!(await forward(sseEvent(event.type, event)))) {
         break;

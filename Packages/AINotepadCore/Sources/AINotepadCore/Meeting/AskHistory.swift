@@ -23,11 +23,13 @@ public struct AskConversationTurn: Sendable, Equatable, Codable, Identifiable {
     public let webSources: [WebSource]?
     /// Modelin yaptığı web aramalarının sorguları; bu alan eklenmeden önce saklanan turlarda nil.
     public let webQueries: [String]?
+    /// Web araması yapılamadıysa cevabın altındaki not (hak bitti, şu an yok); bu alan eklenmeden önce saklanan turlarda nil.
+    public let webSearchNotice: WebSearchNotice?
 
     public init(
         id: UUID, question: String, scopeMeetingIDs: [String], scopeTitles: [String], recipeTitle: String?, startedAt: Date, finishedAt: Date,
         terms: [String], readPassages: [ArchivePassage], readScreens: Int?, answer: String, sources: [ArchivePassage], webSources: [WebSource]?,
-        webQueries: [String]?
+        webQueries: [String]?, webSearchNotice: WebSearchNotice?
     ) {
         self.id = id
         self.question = question
@@ -43,6 +45,7 @@ public struct AskConversationTurn: Sendable, Equatable, Codable, Identifiable {
         self.sources = sources
         self.webSources = webSources
         self.webQueries = webQueries
+        self.webSearchNotice = webSearchNotice
     }
 }
 

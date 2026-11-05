@@ -43,6 +43,36 @@ private func archive() -> [MeetingRecord] {
         #expect(answer.sources.map(\.id) == [both[1].id, both[0].id])
         #expect(citedAnswer(text: "Kaikki [1-2].", passages: both, webSources: []).text == "Kaikki [1][2].")
     }
+
+    // Önceki konuşma: son 6 tur eskiden yeniye; cevaplardaki [n]/[wn] işaretleri atılır, dayandığı toplantılar adıyla
+    // kalır; uzun cevabın başı ve sonu kalır; toplam bütçeyi aşan en eski turlar atılır, en yeni tur hep kalır.
+    @Test func historyKeepsRecentTurnsWithinBudget() throws {
+        let budget: ArchivePassage = try #require(archivePassages(records: archive()).first { $0.meetingID == "b" && $0.kind == .note })
+        let turns: [ArchiveTurn] = (1...8).map { (number: Int) -> ArchiveTurn in
+            ArchiveTurn(question: "Soru \(number)", answer: "Cevap \(number) [1][w1].", sources: number == 8 ? [budget, budget] : [])
+        }
+        let block: String = historyBlock(history: turns)
+        #expect(!block.contains("<soru>Soru 2</soru>") && block.contains("<soru>Soru 3</soru>") && block.contains("<soru>Soru 8</soru>"))
+        let third: Range<String.Index> = try #require(block.range(of: "Soru 3"))
+        let eighth: Range<String.Index> = try #require(block.range(of: "Soru 8"))
+        #expect(third.lowerBound < eighth.lowerBound)
+        #expect(block.contains("<cevap>Cevap 8.</cevap>") && !block.contains("[1]") && !block.contains("[w1]"))
+        let day: String = budget.meetingDate.formatted(Date.ISO8601FormatStyle().year().month().day())
+        #expect(block.contains("<kaynak_toplantilar>Bütçe planlaması (\(day))</kaynak_toplantilar>"))
+        #expect(historyBlock(history: []).isEmpty)
+
+        // Uzun cevap: baş ve son kalır, ortası işaretle kısalır.
+        let long: String = "BAŞ" + String(repeating: "x", count: 10_000) + "SON"
+        let shortened: String = truncatedMiddle(text: long, maxChars: archiveHistoryAnswerChars)
+        #expect(shortened.count == archiveHistoryAnswerChars && shortened.hasPrefix("BAŞ") && shortened.hasSuffix("SON") && shortened.contains(historyCutMarker))
+        #expect(truncatedMiddle(text: "kısa", maxChars: 10) == "kısa")
+
+        // Bütçe: uzun cevaplı 6 tur sığmaz; en yeniler kalır, toplam sınırı aşmaz.
+        let longTurns: [ArchiveTurn] = (1...6).map { (number: Int) -> ArchiveTurn in ArchiveTurn(question: "Uzun \(number)", answer: long, sources: []) }
+        let limited: String = historyBlock(history: longTurns)
+        #expect(limited.count <= archiveHistoryChars + 64)
+        #expect(limited.contains("Uzun 6") && limited.contains("Uzun 5") && !limited.contains("Uzun 1"))
+    }
 }
 
 @Suite struct ArchiveScopeTests {
@@ -100,7 +130,8 @@ private func archive() -> [MeetingRecord] {
         let turn: AskConversationTurn = AskConversationTurn(
             id: UUID(), question: "Kim ne üstlendi?", scopeMeetingIDs: ["a", "b"], scopeTitles: ["Haftalık ekip toplantısı", "Bütçe planlaması"],
             recipeTitle: nil, startedAt: Date(timeIntervalSince1970: 1_792_000_000), finishedAt: Date(timeIntervalSince1970: 1_792_000_006),
-            terms: [], readPassages: [], readScreens: 2, answer: "Mikko [1].", sources: [source], webSources: [WebSource(url: "https://example.com/a", title: "A")], webQueries: ["kahvi"]
+            terms: [], readPassages: [], readScreens: 2, answer: "Mikko [1].", sources: [source], webSources: [WebSource(url: "https://example.com/a", title: "A")], webQueries: ["kahvi"],
+            webSearchNotice: .capReached
         )
         let conversation: AskConversation = askConversation(existing: nil, id: UUID(), turns: [turn], now: Date(timeIntervalSince1970: 1_792_000_006))
         try saveAskConversation(conversation: conversation, directory: directory)

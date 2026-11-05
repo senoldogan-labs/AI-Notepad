@@ -969,14 +969,14 @@ private struct WebSearchRow: Decodable {
             question: "Haiku 5.5 ne kadar?", history: [], records: [record], userName: "Doğan", language: .turkish, llm: provider, maxChars: 60_000,
             screens: .off, webSearch: true, now: Date()
         ) { (progress: ArchiveProgress) -> Void in
-            if case .web(let found, let capReached) = progress {
-                queries.set(found, capReached: capReached)
+            if case .web(let found, let notice) = progress {
+                queries.set(found, notice: notice)
             }
         }
         #expect(answer.webSources == [WebSource(url: "https://example.com/haiku-pricing", title: "Example pricing page")])
         #expect(answer.text.contains("[w1]"), "\(answer.text)")
         #expect(!answer.text.contains("Searching the web"), "ön söz cevaba girmemeli: \(answer.text)")
-        #expect(queries.value.queries == ["uçtan uca deneme"] && !queries.value.capReached)
+        #expect(queries.value.queries == ["uçtan uca deneme"] && queries.value.notice == .ok)
         let used: [WebSearchRow] = try localD1Rows(sql: "SELECT web_searches FROM monthly_usage WHERE user_id = '\(user.userID)';", as: WebSearchRow.self)
         #expect(used.map(\.web_searches) == [1])
 
@@ -987,27 +987,53 @@ private struct WebSearchRow: Decodable {
             question: "Haiku 5.5 ne kadar?", history: [], records: [record], userName: "Doğan", language: .turkish, llm: provider, maxChars: 60_000,
             screens: .off, webSearch: true, now: Date()
         ) { (progress: ArchiveProgress) -> Void in
-            if case .web(let found, let capReached) = progress {
-                capped.set(found, capReached: capReached)
+            if case .web(let found, let notice) = progress {
+                capped.set(found, notice: notice)
             }
         }
         #expect(plain.webSources.isEmpty && !plain.text.contains("[w"))
-        #expect(capped.value.capReached)
+        #expect(capped.value.notice == .capReached)
+    }
+
+    // Anthropic kuruluşta web aramasını reddederse (sahte servis soruda `fakeWebSearchDisabledMarker` görünce 400 döner):
+    // sunucu isteği araçsız yineler, cevap gelir, hak geri verilir ve istemci "web araması şu an yok" notunu alır.
+    @Test func rejectedWebSearchStillAnswersWithNotice() async throws {
+        let baseURL: URL = try localServerBase()
+        let user: SignedInUser = try await signedInUser(baseURL: baseURL)
+        try markTrialStarted(userID: user.userID, usedMeetings: 1, startedAtMs: nowMs())
+        let provider: LLMProvider = .hosted(HostedLLMConfig(baseURL: baseURL, credentials: user.client, scope: .account))
+        let record: MeetingRecord = transcribedRecord(id: UUID().uuidString)
+        let states: LockedQueries = LockedQueries()
+        let answer: ArchiveAnswer = try await askAboutMeetings(
+            question: "Haiku 5.5 ne kadar? \(fakeWebSearchDisabledMarker)", history: [], records: [record], userName: "Doğan", language: .turkish, llm: provider,
+            maxChars: 60_000, screens: .off, webSearch: true, now: Date()
+        ) { (progress: ArchiveProgress) -> Void in
+            if case .web(let found, let notice) = progress {
+                states.set(found, notice: notice)
+            }
+        }
+        #expect(!answer.text.isEmpty && answer.webSources.isEmpty)
+        #expect(states.value.notice == .unavailable)
+        let used: [WebSearchRow] = try localD1Rows(sql: "SELECT web_searches FROM monthly_usage WHERE user_id = '\(user.userID)';", as: WebSearchRow.self)
+        #expect(used.map(\.web_searches).reduce(0, +) == 0)
     }
 }
+
+/// Sahte Anthropic'in (`server/scripts/fake-upstreams.ts`) "kuruluşta web araması kapalı" 400'ünü döndürdüğü soru işareti.
+private let fakeWebSearchDisabledMarker: String = "[fake:web-search-disabled]"
 
 /// İlerlemedeki son web durumu (testte eşzamanlı erişim için kilitli).
 private final class LockedQueries: @unchecked Sendable {
     private let lock: NSLock = NSLock()
-    private var stored: (queries: [String], capReached: Bool) = ([], false)
+    private var stored: (queries: [String], notice: WebSearchNotice) = ([], .ok)
 
-    func set(_ queries: [String], capReached: Bool) {
+    func set(_ queries: [String], notice: WebSearchNotice) {
         lock.lock()
-        stored = (queries, capReached)
+        stored = (queries, notice)
         lock.unlock()
     }
 
-    var value: (queries: [String], capReached: Bool) {
+    var value: (queries: [String], notice: WebSearchNotice) {
         lock.lock()
         defer { lock.unlock() }
         return stored

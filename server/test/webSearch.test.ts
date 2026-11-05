@@ -1,7 +1,15 @@
 import { env } from "cloudflare:workers";
-import { describe, expect, it } from "vitest";
+import type Anthropic from "@anthropic-ai/sdk";
+import { describe, expect, it, vi } from "vitest";
 import type { Env } from "../src/env";
-import { webSearchGrant, webSearchMicroUsd } from "../src/llm/webSearch";
+import {
+  isAlertDue,
+  isWebSearchDisabledError,
+  webSearchErrorCodes,
+  webSearchGrant,
+  webSearchMicroUsd,
+  withoutWebSearchTool,
+} from "../src/llm/webSearch";
 import { llmCostMicroUsd } from "../src/usage";
 import { type Harness, type Session, defaultHarness, envWith, expectError, req, signIn, startMeeting } from "./helpers";
 
@@ -193,5 +201,150 @@ describe("web araması: Sor cevabı", () => {
     expect(await response.text()).toContain("event: message_stop");
     await harness.drain();
     expect(await monthlySearches(session.userId)).toBe(2);
+  });
+});
+
+/** Anthropic'in "kuruluşta web araması kapalı" reddi (belge: 400 `invalid_request_error`, mesajı aramanın etkin olmadığını söyler). */
+function webSearchDisabledResponse(): Response {
+  return Response.json({ type: "error", error: { type: "invalid_request_error", message: "Web search is not enabled for this organization." } }, { status: 400 });
+}
+
+/** Tek metinli, aramasız Anthropic akışı. */
+function plainStream(inputTokens: number, outputTokens: number): string {
+  return sse([
+    ["message_start", { type: "message_start", message: { ...searchMessage(inputTokens, 1, 0), content: [], stop_reason: null } }],
+    ["content_block_start", { type: "content_block_start", index: 0, content_block: { type: "text", text: "", citations: [] } }],
+    ["content_block_delta", { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "Toplantılardan" } }],
+    ["content_block_stop", { type: "content_block_stop", index: 0 }],
+    ["message_delta", { type: "message_delta", delta: { stop_reason: "end_turn", stop_sequence: null }, usage: { output_tokens: outputTokens } }],
+    ["message_stop", { type: "message_stop" }],
+  ]);
+}
+
+async function opsCount(detail: string): Promise<number> {
+  const row = await env.DB.prepare("SELECT COALESCE(SUM(count), 0) AS count FROM ops_events WHERE kind = 'provider_error' AND detail = ?").bind(detail).first<{ count: number }>();
+  return row?.count ?? 0;
+}
+
+describe("web araması: Anthropic kuruluşta reddederse", () => {
+  it("reddin biçimi tanınır; başka 400'ler ve hatalar tanınmaz", () => {
+    const body = (type: string, message: string): object => ({ type: "error", error: { type, message } });
+    expect(isWebSearchDisabledError(400, body("invalid_request_error", "Web search is not enabled for this organization."))).toBe(true);
+    expect(isWebSearchDisabledError(400, body("invalid_request_error", "The web_search tool is disabled in your organization settings"))).toBe(true);
+    expect(isWebSearchDisabledError(400, body("invalid_request_error", "max_tokens: must be at most 8192"))).toBe(false);
+    expect(isWebSearchDisabledError(400, body("invalid_request_error", "Web search: allowed_callers must be set"))).toBe(false);
+    expect(isWebSearchDisabledError(403, body("permission_error", "Web search is not enabled"))).toBe(false);
+    expect(isWebSearchDisabledError(400, body("authentication_error", "Web search is not enabled"))).toBe(false);
+    expect(isWebSearchDisabledError(400, "web search is not enabled")).toBe(false);
+    expect(isWebSearchDisabledError(undefined, undefined)).toBe(false);
+  });
+
+  it("araçsız istekten yalnız web araması aracı çıkar; alarm saatte en çok bir kez", () => {
+    const params: Anthropic.MessageCreateParamsNonStreaming = {
+      model: "claude-haiku-5-5",
+      max_tokens: 10,
+      messages: [{ role: "user", content: "x" }],
+      tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 3, allowed_callers: ["direct"] }],
+    };
+    expect("tools" in withoutWebSearchTool(params)).toBe(false);
+    expect(withoutWebSearchTool(params).messages).toEqual(params.messages);
+    expect(isAlertDue(null, 0, 3_600_000)).toBe(true);
+    expect(isAlertDue(1_000, 1_000 + 3_599_999, 3_600_000)).toBe(false);
+    expect(isAlertDue(1_000, 1_000 + 3_600_000, 3_600_000)).toBe(true);
+  });
+
+  it("hatalı arama sonuç bloklarının kodları okunur; başarılı sonuç ve metin hata değildir", () => {
+    const blocks: Anthropic.ContentBlock[] = [
+      { type: "web_search_tool_result", tool_use_id: "a", caller: { type: "direct" }, content: { type: "web_search_tool_result_error", error_code: "max_uses_exceeded" } },
+      { type: "web_search_tool_result", tool_use_id: "b", caller: { type: "direct" }, content: [] },
+      { type: "text", text: "x", citations: null },
+    ];
+    expect(webSearchErrorCodes(blocks)).toEqual(["max_uses_exceeded"]);
+  });
+
+  it("akışsız: istek bir kez araçsız yinelenir, cevap gelir, hak geri verilir, unavailable denir, alarm bir kez yazılır", async () => {
+    const { harness, session } = await trialAccount();
+    const seen: unknown[] = [];
+    harness.stub(anthropicUrl, async (request: Request): Promise<Response> => {
+      const body: { tools?: unknown } = await request.json<{ tools?: unknown }>();
+      seen.push(body.tools);
+      return body.tools === undefined ? Response.json(searchMessage(100, 20, 0)) : webSearchDisabledResponse();
+    });
+    const alerts = vi.spyOn(console, "error");
+    const spendBefore: number = await todaySpend();
+    const opsBefore: number = await opsCount("anthropic_web_search_disabled");
+    const response: Response = await accountLLM(harness, session, "ask_answer", askBody, null);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-web-search")).toBe("unavailable");
+    expect((await response.json<{ content: Array<{ text?: string }> }>()).content.at(-1)?.text).toBe("0,10 $");
+    expect(seen).toEqual([[{ type: "web_search_20260209", name: "web_search", max_uses: 3, allowed_callers: ["direct"] }], undefined]);
+    expect(await monthlySearches(session.userId)).toBe(0);
+    // Yalnız yinelenen çağrı harcamaya yazılır (reddedilen 400 ücretlendirilmez, arama yapılmadı).
+    expect((await todaySpend()) - spendBefore).toBe(llmCostMicroUsd(100, 20));
+    expect((await opsCount("anthropic_web_search_disabled")) - opsBefore).toBe(1);
+    // İkinci ret aynı saatte yeniden alarm yazmaz; sayaç yine artar.
+    const second: Response = await accountLLM(harness, session, "ask_answer", askBody, null);
+    expect(second.headers.get("x-web-search")).toBe("unavailable");
+    expect((await opsCount("anthropic_web_search_disabled")) - opsBefore).toBe(2);
+    const alertLines: string[] = alerts.mock.calls
+      .map((call: unknown[]): string => String(call[0]))
+      .filter((line: string): boolean => line.includes('"level":"alert"') && line.includes("anthropic_web_search_disabled"));
+    expect(alertLines.length).toBe(1);
+    alerts.mockRestore();
+  });
+
+  it("akışlı: akış araçsız açılır, unavailable denir, hak geri verilir", async () => {
+    const { harness, session } = await trialAccount();
+    const seen: unknown[] = [];
+    harness.stub(anthropicUrl, async (request: Request): Promise<Response> => {
+      const body: { tools?: unknown } = await request.json<{ tools?: unknown }>();
+      seen.push(body.tools);
+      return body.tools === undefined ? new Response(plainStream(300, 40), { headers: { "content-type": "text/event-stream" } }) : webSearchDisabledResponse();
+    });
+    const spendBefore: number = await todaySpend();
+    const response: Response = await accountLLM(harness, session, "ask_answer", { ...askBody, stream: true }, null);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-web-search")).toBe("unavailable");
+    expect(await response.text()).toContain("Toplantılardan");
+    await harness.drain();
+    expect(seen.length).toBe(2);
+    expect(seen[1]).toBeUndefined();
+    expect(await monthlySearches(session.userId)).toBe(0);
+    expect((await todaySpend()) - spendBefore).toBe(llmCostMicroUsd(300, 40));
+  });
+
+  it("araçsız yineleme de başarısızsa hata döner ve hak geri verilmiş kalır; başka 400 yinelenmez", async () => {
+    const { harness, session } = await trialAccount();
+    let calls: number = 0;
+    harness.stub(anthropicUrl, async (request: Request): Promise<Response> => {
+      calls += 1;
+      const body: { tools?: unknown } = await request.json<{ tools?: unknown }>();
+      return body.tools === undefined
+        ? Response.json({ type: "error", error: { type: "invalid_request_error", message: "bad" } }, { status: 400 })
+        : webSearchDisabledResponse();
+    });
+    await expectError(await accountLLM(harness, session, "ask_answer", askBody, null), 502, "upstream_rejected");
+    expect(calls).toBe(2);
+    expect(await monthlySearches(session.userId)).toBe(0);
+  });
+
+  it("hatalı arama (web_search_tool_result_error) cevabı bozmaz; yapılmayan arama sayılmaz", async () => {
+    const { harness, session } = await trialAccount();
+    const failed = {
+      ...searchMessage(400, 30, 0),
+      content: [
+        { type: "server_tool_use", id: "srvtoolu_1", name: "web_search", input: { query: "q" }, caller: { type: "direct" } },
+        { type: "web_search_tool_result", tool_use_id: "srvtoolu_1", caller: { type: "direct" }, content: { type: "web_search_tool_result_error", error_code: "unavailable" } },
+        { type: "text", text: "Toplantılara göre", citations: null },
+      ],
+    };
+    harness.stub(anthropicUrl, async (): Promise<Response> => Response.json(failed));
+    const warnings = vi.spyOn(console, "warn");
+    const response: Response = await accountLLM(harness, session, "ask_answer", askBody, null);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-web-search")).toBe("on");
+    expect(await monthlySearches(session.userId)).toBe(0);
+    expect(warnings.mock.calls.some((call: unknown[]): boolean => String(call[0]).includes("web_search_tool_errors") && String(call[0]).includes("unavailable"))).toBe(true);
+    warnings.mockRestore();
   });
 });

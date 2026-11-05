@@ -10452,76 +10452,6 @@
         }
       }
     },
-    "%lld toplantıdan %lld parça okundu · %@ sn": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld Meetings, %lld Passagen gelesen · %@ s"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld meetings, %lld passages read · %@ s"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld reuniones, %lld fragmentos leídos · %@ s"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld kokousta, %lld kohtaa luettu · %@ s"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld réunions, %lld passages lus · %@ s"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld riunioni, %lld passaggi letti · %@ s"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld件の会議、%lld件の箇所を読み込み · %@秒"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "회의 %lld개, 구절 %lld개 읽음 · %@초"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld vergaderingen, %lld fragmenten gelezen · %@ s"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld reuniões, %lld trechos lidos · %@ s"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已读取 %lld 个会议、%lld 个段落 · %@ 秒"
-          }
-        }
-      }
-    },
     "+%lld paragraf daha": {
       "localizations": {
         "de": {
@@ -136253,76 +136183,6 @@
         }
       }
     },
-    "%lld toplantıdan %lld parça ve %lld ekran görüntüsü okundu · %@ sn": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld Meetings, %lld Passagen und %lld Bildschirmfotos gelesen · %@ s"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld meetings, %lld passages and %lld screen snapshots read · %@ s"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld reuniones, %lld fragmentos y %lld capturas de pantalla leídos · %@ s"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld kokousta, %lld kohtaa ja %lld näyttökuvaa luettu · %@ s"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld réunions, %lld passages et %lld captures d’écran lus · %@ s"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld riunioni, %lld passaggi e %lld istantanee dello schermo letti · %@ s"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld件の会議、%lld件の箇所、%lld枚の画面スナップショットを読み取り · %@秒"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "회의 %1$lld개, 구간 %2$lld개, 화면 스냅샷 %3$lld개 읽음 · %4$@초"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld vergaderingen, %lld fragmenten en %lld schermafbeeldingen gelezen · %@ s"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld reuniões, %lld trechos e %lld capturas de tela lidos · %@ s"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已读取 %lld 个会议、%lld 个段落和 %lld 张屏幕快照 · %@ 秒"
-          }
-        }
-      }
-    },
     "Not yazılırken \"Notta\" işaretli görüntülerden en çok konuşulan en fazla 6'sı sunucumuza ve Anthropic'e gönderilir; Sor da okuduğu parçalar konuşulurken ekranda olan en fazla 3'ünü gönderir. İşaretini kaldırdığın görüntü ikisine de gönderilmez. Seçim bir sonraki notta ve soruda geçerli olur.": {
       "localizations": {
         "de": {
@@ -146578,6 +146438,278 @@
           "stringUnit": {
             "state": "translated",
             "value": "开启后，如果你的问题需要会议中没有的信息（最新事实、定义、产品、价格或外部来源），“提问”每个回答最多搜索网页 3 次；网页来源会以域名显示在回答中，也会列在回答下方的“网页”列表里，点按可在浏览器中打开。搜索由 Anthropic 执行：模型根据你的问题（以及读取的会议片段）写出的简短搜索词，经由 Anthropic 发送给其搜索服务提供商。每次搜索会单独计入你的 Anthropic 账户费用（每 1,000 次搜索 10 美元）。关闭后，不会进行任何网页搜索。"
+          }
+        }
+      }
+    },
+    "Web araması şu an kullanılamıyor; cevap toplantılarından.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Websuche ist gerade nicht verfügbar; die Antwort stammt aus deinen Meetings."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web search isn't available right now; answered from your meetings."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La búsqueda web no está disponible ahora; la respuesta viene de tus reuniones."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verkkohaku ei ole nyt käytettävissä; vastaus perustuu kokouksiisi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La recherche web n’est pas disponible pour le moment ; réponse tirée de vos réunions."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La ricerca web non è disponibile al momento; risposta basata sulle tue riunioni."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在ウェブ検索は利用できません。会議の内容から回答しました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지금은 웹 검색을 사용할 수 없습니다. 회의 내용으로 답변했습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zoeken op het web is nu niet beschikbaar; antwoord uit je vergaderingen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A pesquisa na web não está disponível agora; resposta com base nas suas reuniões."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网页搜索暂时不可用；已根据你的会议回答。"
+          }
+        }
+      }
+    },
+    "%lld parça": {
+      "localizations": {
+        "de": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Passage"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Passagen"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld passage"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld passages"
+                }
+              }
+            }
+          }
+        },
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld fragmento"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld fragmentos"
+                }
+              }
+            }
+          }
+        },
+        "fi": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld kohta"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld kohtaa"
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld passage"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld passages"
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld passaggio"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld passaggi"
+                }
+              }
+            }
+          }
+        },
+        "ja": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld件の箇所"
+                }
+              }
+            }
+          }
+        },
+        "ko": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "구절 %lld개"
+                }
+              }
+            }
+          }
+        },
+        "nl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld fragment"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld fragmenten"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld trecho"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld trechos"
+                }
+              }
+            }
+          }
+        },
+        "tr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld parça"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld parça"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld 个段落"
+                }
+              }
+            }
           }
         }
       }

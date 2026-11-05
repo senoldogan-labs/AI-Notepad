@@ -84,6 +84,39 @@ private func missingTranslations(catalog: StringCatalog, path: String) -> [Strin
         #expect(missing.isEmpty, "Çevirisi eksik \(missing.count) metin (scripts/l10n.py export ile çıkar): \(missing.prefix(20))")
     }
 
+    // Metnin sonundaki üç nokta taban çizgisindeki "…" (U+2026) olmalı: "⋯" (U+22EF, ortada) yalnız ⋯ menü düğmesinin
+    // adıdır ("⋯ menüsü", "会議の⋯メニュー"). Bir harfin ya da rakamın hemen ardından gelip metni ya da cümleyi bitiren "⋯"
+    // üç nokta yerine yazılmıştır.
+    @Test func trailingEllipsesUseTheBaselineGlyph() throws {
+        let trailing: Regex<Substring> = #/[\p{L}\p{N}]⋯(?=$|[\s.,;:!?)"”])/#
+        #expect("Ask a follow-up⋯".contains(trailing) && "Reading 1 meeting⋯ (2)".contains(trailing))
+        #expect(!"the ⋯ menu".contains(trailing) && !"会議の⋯メニュー".contains(trailing) && !"(⋯-valikko)".contains(trailing))
+        var found: [String] = []
+        for path in catalogPaths {
+            let data: Data = try Data(contentsOf: repositoryRoot().appending(path: path))
+            let catalog: StringCatalog = try JSONDecoder().decode(StringCatalog.self, from: data)
+            for (key, entry) in catalog.strings {
+                let values: [String] = (entry.localizations ?? [:]).values.flatMap { (localization: CatalogLocalization) -> [String] in
+                    [localization.stringUnit?.value].compactMap { $0 } + (localization.variations?.plural?.values.map(\.stringUnit.value) ?? [])
+                }
+                found += ([key] + values).filter { $0.contains(trailing) }.map { "\(path): \($0)" }
+            }
+        }
+        let sources: [URL] = ["App", "iOS", "Packages/AINotepadCore/Sources"].flatMap { (folder: String) -> [URL] in
+            let enumerator: FileManager.DirectoryEnumerator? = FileManager.default.enumerator(at: repositoryRoot().appending(path: folder), includingPropertiesForKeys: nil)
+            return (enumerator?.allObjects as? [URL] ?? []).filter { $0.pathExtension == "swift" }
+        }
+        #expect(sources.count > 100)
+        for file in sources {
+            let text: String = try String(contentsOf: file, encoding: .utf8)
+            // Yalnız metin değişmezleri: yorumlardaki "⋯ menüsü" adlandırmadır.
+            for line in text.split(separator: "\n") where !line.trimmingCharacters(in: .whitespaces).hasPrefix("//") {
+                found += line.matches(of: #/"[^"]*"/#).map { String($0.output) }.filter { $0.contains(trailing) }.map { "\(file.lastPathComponent): \($0)" }
+            }
+        }
+        #expect(found.isEmpty, "Sonda \"⋯\" yerine \"…\" yazılmalı: \(found.prefix(20))")
+    }
+
     @Test func languageListMatchesTheTranslationScript() throws {
         let script: String = try String(contentsOf: repositoryRoot().appending(path: "scripts/l10n.py"), encoding: .utf8)
         let line: Substring = try #require(script.firstRange(of: "TARGET_LANGUAGES: tuple[str, ...] = (").map { script[$0.upperBound...] })

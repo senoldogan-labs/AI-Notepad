@@ -5,7 +5,8 @@
 // - POST /v1/messages: isteğin JSON şemasına (output_config.format.schema) uyan en küçük yanıt; şema yoksa kısa metin.
 //   `stream: true` ise Anthropic SSE olayları. Kullanım: 120 girdi, 30 çıktı token. İstek web araması aracını taşıyorsa
 //   (Sor cevabı) akış bir arama yapar: `server_tool_use`, `web_search_tool_result`, alıntılı (`citations_delta`) metin
-//   ve `usage.server_tool_use.web_search_requests: 1`.
+//   ve `usage.server_tool_use.web_search_requests: 1`. Araçlı istek `webSearchDisabledMarker`'ı taşıyorsa Anthropic'in
+//   "kuruluşta web araması kapalı" reddi döner (400 `invalid_request_error`; sunucunun araçsız yinelemesini dener).
 // - POST /v1/speech-to-text: kısa bir Fince yazıya dökme (1 sn).
 import { type IncomingMessage, type ServerResponse, createServer } from "node:http";
 
@@ -80,6 +81,9 @@ function message(text: string): object {
   };
 }
 
+/** Soruda bu işaret varsa araçlı istek "kuruluşta web araması kapalı" reddi alır (bkz. `HostedAskWebSearchE2ETests`). */
+const webSearchDisabledMarker: string = "[fake:web-search-disabled]";
+
 /** Sahte arama sonucu (gerçek bir sayfa değildir). */
 const searchResult = { type: "web_search_result", url: "https://example.com/haiku-pricing", title: "Example pricing page", encrypted_content: "ZmFrZQ==", page_age: null } as const;
 
@@ -152,7 +156,10 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
     const text: string = schema === undefined ? "Uçtan uca deneme" : JSON.stringify(sample(schema));
     const searches: boolean = (json.tools ?? []).some((tool): boolean => tool.type.startsWith("web_search"));
     console.log(`messages stream=${json.stream === true} schema=${schema !== undefined} webSearch=${searches}`);
-    if (json.stream === true && searches) {
+    if (searches && body.toString("utf8").includes(webSearchDisabledMarker)) {
+      response.writeHead(400, { "content-type": "application/json" });
+      response.end(JSON.stringify({ type: "error", error: { type: "invalid_request_error", message: "Web search is not enabled for this organization." } }));
+    } else if (json.stream === true && searches) {
       response.writeHead(200, { "content-type": "text/event-stream" });
       response.end(searchSse(text));
     } else if (json.stream === true) {
