@@ -961,8 +961,9 @@ struct MeetingReadView: View {
                         }
                         .disabled(record.status == .recording || record.status == .processing || store.regeneratingIDs.contains(record.id))
                     }
+                    // Örnek toplantı (karşılamadaki deneme) işlenmez: sesi sunucuya gitmez, kullanıma yazılmaz.
                     Button("Tekrar işle", systemImage: "arrow.triangle.2.circlepath") { reprocess() }
-                        .disabled(!isEditable || record.audioDeleted)
+                        .disabled(!isEditable || record.audioDeleted || record.isSampleMeeting)
                     Divider()
                     Button("Sesi sil", systemImage: "speaker.slash", role: .destructive) { isConfirmingAudioDelete = true }
                         .disabled(!isEditable || record.audioDeleted || record.status == .queued)

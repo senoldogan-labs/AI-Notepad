@@ -622,11 +622,18 @@ private struct SetupScreen: View {
     let shortcuts: ShortcutController
 
     var body: some View {
-        // Tüm pencere: solda adımın film gradyanlı paneli, sağda içeriği (bkz. `SetupPage`).
-        SetupPage(model: model, shortcuts: shortcuts) {
-            // Kurulum ancak bitince tamamlanmış sayılır: yarıda kapatılırsa bir sonraki açılışta yeniden gelir.
+        // Tüm pencere: üstte ilerleme, ortada adım, altta eylemler (bkz. `SetupPage`).
+        SetupPage(model: model, shortcuts: shortcuts) { (sampleMeetingID: String?) -> Void in
+            // Kurulum ancak bitince tamamlanmış sayılır: yarıda kapatılırsa bir sonraki açılışta kaldığı adımdan sürer.
             UserDefaults.standard.set(true, forKey: SettingsKey.onboardingCompleted)
-            router.section = .home
+            UserDefaults.standard.removeObject(forKey: onboardingStepKey)
+            // Örnek toplantı denendiyse kullanıcı onun notuna iner; yoksa ana sayfaya.
+            if let sampleMeetingID {
+                router.selectedMeetingID = sampleMeetingID
+                router.section = .meetings
+            } else {
+                router.section = .home
+            }
         }
             .padding(.top, 28)
             .background { FlowingLines(seed: "kurulum", lineCount: 14, isAnimated: false).ignoresSafeArea() }

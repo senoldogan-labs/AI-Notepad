@@ -55,13 +55,55 @@ enum DemoScene: String {
     case askEmpty = "sor-bos"
     /// "Product weekly"nin Ekranlar sekmesi: paylaşılan ekranların görüntüleri (görsel kontrol için).
     case screens = "ekranlar"
+    /// Giriş kapısı: oturum yok (yalnız abonelik sürümünde; görsel kontrol için).
+    case signIn = "giris"
+    /// Karşılama: hoş geldin (görsel kontrol için; diğer kurulum sahneleri de).
+    case setupWelcome = "kurulum"
+    /// Karşılama: takvim bağlı değil.
+    case setupCalendar = "kurulum-takvim"
+    /// Karşılama: takvim bağlı, sıradaki toplantılar.
+    case setupCalendarConnected = "kurulum-takvim-bagli"
+    /// Karşılama: izinler.
+    case setupPermissions = "kurulum-izinler"
+    /// Karşılama: örnek toplantı başlamadan.
+    case setupSampleIntro = "kurulum-ornek-giris"
+    /// Karşılama: örnek toplantı sürüyor (ses kısık, ortasından).
+    case setupSample = "kurulum-ornek"
+    /// Karşılama: örnek toplantının notu.
+    case setupSampleNote = "kurulum-not"
+    /// Karşılama: hazırsın.
+    case setupReady = "kurulum-hazir"
 
     /// Sahne örnek verilerle mi açılır; boş sahneler (ilk açılış) hiçbir şey yazmadan açılır.
     var hasSampleData: Bool {
         switch self {
         case .home, .note, .ask, .live, .upsell, .trialEnding, .trialEnded, .update, .settings, .people, .tasks, .meetings, .screens: true
-        case .meetingsEmpty, .tasksEmpty, .peopleEmpty, .askEmpty: false
+        case .meetingsEmpty, .tasksEmpty, .peopleEmpty, .askEmpty, .signIn, .setupWelcome, .setupCalendar, .setupCalendarConnected, .setupPermissions,
+             .setupSampleIntro, .setupSample, .setupSampleNote, .setupReady: false
         }
+    }
+
+    /// Karşılama sahnesinin adımı; karşılama sahnesi değilse nil.
+    var setupStep: OnboardingStep? {
+        switch self {
+        case .setupWelcome: .welcome
+        case .setupCalendar, .setupCalendarConnected: .calendar
+        case .setupPermissions: .permissions
+        case .setupSampleIntro, .setupSample, .setupSampleNote: .sampleMeeting
+        case .setupReady: .ready
+        case .home, .note, .ask, .live, .upsell, .trialEnding, .trialEnded, .update, .settings, .people, .tasks, .meetings, .meetingsEmpty, .tasksEmpty,
+             .peopleEmpty, .askEmpty, .screens, .signIn: nil
+        }
+    }
+}
+
+/// Örnek toplantı adımının tanıtım sahnesindeki aşaması (`kurulum-ornek`: sürüyor, `kurulum-not`: not); başka sahnede
+/// ya da tanıtım dışında nil.
+func demoSampleStage(arguments: [String]) -> SampleStage? {
+    switch try? demoScene(arguments: arguments) {
+    case .setupSample: .live
+    case .setupSampleNote: .note
+    default: nil
     }
 }
 
@@ -116,7 +158,7 @@ enum DemoModeError: Error, CustomStringConvertible {
         case .dataFolderOutsideHome(let dataFolder, let home):
             "Tanıtım modu: veri klasörü (\(dataFolder)) geçici evin (\(home)) dışında; kullanıcının verisine yazılmaz."
         case .unknownScene(let value):
-            "Tanıtım modu: sahne tanınmadı (gelen: \(value ?? "yok")); ana, not, sor, canli, abone, deneme-bitiyor, deneme-bitti, guncelleme, ayarlar, kisiler, gorevler, toplantilar, toplantilar-bos, gorevler-bos, kisiler-bos, sor-bos ya da ekranlar olmalı."
+            "Tanıtım modu: sahne tanınmadı (gelen: \(value ?? "yok")); ana, not, sor, canli, abone, deneme-bitiyor, deneme-bitti, guncelleme, ayarlar, kisiler, gorevler, toplantilar, toplantilar-bos, gorevler-bos, kisiler-bos, sor-bos, ekranlar, giris ya da kurulum… olmalı."
         }
     }
 }
@@ -241,6 +283,41 @@ func showDemoScene(scene: DemoScene, model: AppModel, router: MainWindowRouter, 
         router.section = .people
     case .askEmpty:
         router.section = .ask
+    case .signIn:
+        #if HOSTED_EDITION
+        HostedAccount.shared.showSignedOutForDemo()
+        #endif
+    case .setupWelcome, .setupCalendar, .setupPermissions, .setupSampleIntro, .setupSample, .setupSampleNote, .setupReady:
+        if let step = scene.setupStep {
+            UserDefaults.standard.set(step.rawValue, forKey: onboardingStepKey)
+        }
+        router.section = .setup
+    case .setupCalendarConnected:
+        UserDefaults.standard.set(OnboardingStep.calendar.rawValue, forKey: onboardingStepKey)
+        router.section = .setup
+        // Takvim bağlı görünür (izin sorulmaz): sıradaki üç sahte toplantı.
+        UserDefaults.standard.set(true, forKey: SettingsKey.calendarEnabled)
+        Task {
+            do {
+                try await Task.sleep(for: .milliseconds(1500))
+            } catch {
+                return
+            }
+            model.upcomingMeetings = [
+                CalendarMeeting(
+                    id: "tanitim-1", title: "Design review", start: now.addingTimeInterval(40 * 60), end: now.addingTimeInterval(70 * 60),
+                    attendees: ["Ayşe Demir", "Jonas Berg"], joinURL: URL(string: "https://meet.google.com/abc-defg-hij")
+                ),
+                CalendarMeeting(
+                    id: "tanitim-2", title: "Weekly product sync", start: now.addingTimeInterval(4 * 3600), end: now.addingTimeInterval(5 * 3600),
+                    attendees: ["Elif Kaya", "Mikko Virtanen", "Ayşe Demir", "Lena Fischer"], joinURL: URL(string: "https://teams.microsoft.com/l/meetup-join/x")
+                ),
+                CalendarMeeting(
+                    id: "tanitim-3", title: "Client call · Nordia", start: now.addingTimeInterval(22 * 3600), end: now.addingTimeInterval(23 * 3600),
+                    attendees: ["Jonas Berg"], joinURL: nil
+                ),
+            ]
+        }
     case .update:
         router.section = .home
         updater.showUpdateForDemo(update: AvailableAppUpdate(

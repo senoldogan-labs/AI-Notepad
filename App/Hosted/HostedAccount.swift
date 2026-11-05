@@ -364,11 +364,22 @@ final class HostedAccount {
     var requiresSignIn: Bool {
         #if DEBUG
         if isDemoMode {
-            return false
+            return isSignInShownForDemo
         }
         #endif
         return hasSession != true || !isAccountDataLoaded
     }
+
+    #if DEBUG
+    /// Tanıtım modunda giriş kapısı gösteriliyor (`DemoScene.signIn`).
+    private(set) var isSignInShownForDemo: Bool = false
+
+    /// Tanıtım modu (bkz. `DemoScene.signIn`): oturum yokmuş gibi giriş kapısı açılır; sunucuya bağlanılmaz.
+    func showSignedOutForDemo() {
+        state = .signedOut
+        isSignInShownForDemo = true
+    }
+    #endif
 
     // MARK: Hesap verisi
 

@@ -3002,7 +3002,8 @@ final class AppModel {
         guard meetingsLoaded else {
             return .notReady
         }
-        return .ready(EngagementSnapshot(records: meetings, userName: userName, calendarEnabled: UserDefaults.standard.bool(forKey: SettingsKey.calendarEnabled)))
+        // Örnek toplantı (karşılamadaki deneme) bildirimlere girmez.
+        return .ready(EngagementSnapshot(records: realMeetings(records: meetings), userName: userName, calendarEnabled: UserDefaults.standard.bool(forKey: SettingsKey.calendarEnabled)))
     }
 
     /// Toplantının gösterilen ve paylaşılan hali: notunda konuşmacı adları (`namedRecord`). Yalnız okumak ve göndermek
@@ -4384,6 +4385,23 @@ final class AppModel {
     /// Toplantının klasörü (klasör adı toplantı kimliğidir).
     func sessionDirectory(id: String) throws -> URL {
         try AppPaths.meetingDirectory(id: id, location: activeStorageLocation)
+    }
+
+    /// Karşılamadaki örnek toplantıyı saklar (yerel klasörde; eşitlenmez, işlenmez) ve kimliğini döndürür. Saklı bir
+    /// örnek toplantı varsa yenisi yazılmaz: kullanıcının bu denemede yazdığı not ona yazılır.
+    func addSampleMeeting(script: SampleMeetingScript, note: MeetingNote, myNotes: String, audio: URL) throws -> String {
+        if let existingID = existingSampleMeetingID(records: meetings), let existing = meetings.first(where: { $0.id == existingID }) {
+            saveRecord(record: existing.with(myNotes: myNotes), directory: try sessionDirectory(id: existingID))
+            return existingID
+        }
+        let record: MeetingRecord = try writeSampleMeeting(
+            script: script, note: note, speakerNames: sampleMeetingSpeakerNames, myNotes: myNotes, audio: audio, now: Date()
+        )
+        meetings = upsertMeeting(records: meetings, record: record)
+        // Süren bir arka plan okuması bu yazmayı görmemiş olabilir: sonucu bu kaydı geri almasın.
+        meetingReloader.invalidate()
+        Self.logger.info("Örnek toplantı saklandı, toplantı: \(record.id, privacy: .public)")
+        return record.id
     }
 
     // MARK: iCloud eşitlemesi

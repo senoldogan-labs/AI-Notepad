@@ -4,453 +4,342 @@ import AppKit
 import AVFoundation
 import SwiftUI
 
-/// Karşılama adımları.
-private enum OnboardingStep: Int, CaseIterable {
-    case welcome
-    case permissions
-    case profile
-    case keys
-    case ready
+/// Bu sürümün karşılama adımları: abonelikte giriş karşılamadan önce yapılır; kendi anahtarlarıyla çalışan sürümde
+/// motor ve anahtar adımları da vardır.
+#if HOSTED_EDITION
+private let setupSteps: [OnboardingStep] = hostedOnboardingSteps
+#else
+private let setupSteps: [OnboardingStep] = ownKeysOnboardingSteps
+#endif
 
-    /// Sağdaki başlık.
-    var title: LocalizedStringKey {
-        switch self {
-        case .welcome: "Hoş geldin"
-        case .permissions: "İzinler"
-        #if HOSTED_EDITION
-        case .profile: "Sen"
-        #else
-        case .profile: "Sen ve motor"
-        #endif
-        #if HOSTED_EDITION
-        case .keys: "Hesap"
-        #else
-        case .keys: "Anahtarlar"
-        #endif
-        case .ready: "Hazırsın"
-        }
-    }
-
-    /// Yol haritasında adımın tek satırlık açıklaması.
-    var roadmapDetail: LocalizedStringKey {
-        switch self {
-        case .welcome: "Uygulamanın yapabildikleri"
-        case .permissions: "Mikrofon ve sistem sesi"
-        #if HOSTED_EDITION
-        case .profile: "Adın"
-        #else
-        case .profile: "Adın ve canlı metin motoru"
-        #endif
-        #if HOSTED_EDITION
-        case .keys: "Apple ya da Google ile giriş"
-        #else
-        case .keys: "Bulut ve Claude anahtarları"
-        #endif
-        case .ready: "Kısayollar ve ilk kayıt"
-        }
-    }
-
-    /// Soldaki film gradyanlı panelin başlığı.
-    var panelTitle: LocalizedStringKey {
-        switch self {
-        case .welcome: "Toplantılarını dinler, notunu yazar"
-        case .permissions: "İki ses, tek kayıt"
-        case .profile: "Sana göre ayarlanır"
-        #if HOSTED_EDITION
-        case .keys: "3 toplantı ya da 7 gün ücretsiz"
-        #else
-        case .keys: "Anahtarlar yalnız sende"
-        #endif
-        case .ready: "Bir kısayol uzağında"
-        }
-    }
-
-    /// Panelin kısa tanıtımı.
-    var panelSubtitle: LocalizedStringKey {
-        switch self {
-        case .welcome: "Teams, Zoom ve yüz yüze toplantılar canlı yazıya dökülür; bitince \(selectedNoteLanguage().interfaceName) not hazır, en üstte senin görevlerin."
-        case .permissions: "Mikrofon senin sesin, sistem sesi karşı taraf. İkisi ayrı kaydedilir, konuşmacılar ayrılır."
-        #if HOSTED_EDITION
-        case .profile: "Adın notta sana düşen görevleri ayırır; canlı metin bulutta yazılır, bulut kullanılamazsa bu Mac'te."
-        #else
-        case .profile: "Adın notta sana düşen görevleri ayırır; canlı metni bulutta ya da bu Mac'te yazdırırsın."
-        #endif
-        #if HOSTED_EDITION
-        case .keys: "Anahtar gerekmez: not, çeviri ve konuşmacı ayırma \(appName) sunucusundan. 3 toplantı ya da ilk toplantından itibaren 7 gün ücretsiz."
-        #else
-        case .keys: "macOS Anahtar Zinciri'nde saklanır, hiçbir yere gönderilmez; istersen iCloud ile iPhone'a gider."
-        #endif
-        case .ready: "Kaydı kısayolla başlat; toplantı bitince notun ve görevlerin hazır."
-        }
-    }
-
-    /// Paneldeki simgeler.
-    var symbols: [String] {
-        switch self {
-        case .welcome: ["captions.bubble.fill", "waveform", "checklist"]
-        case .permissions: ["mic.fill", "speaker.wave.2.fill"]
-        case .profile: ["person.fill", "cloud.fill", "laptopcomputer"]
-        case .keys: ["key.fill", "lock.fill"]
-        case .ready: ["command", "record.circle.fill", "sparkles"]
-        }
-    }
-
-    /// Panelin film gradyanı (temanın sıcak ailesi).
-    var palette: FilmPalette {
-        rawValue.isMultiple(of: 2) ? .sunset : .rose
+/// Adımın başlığı.
+private func setupTitle(step: OnboardingStep) -> LocalizedStringKey {
+    switch step {
+    case .welcome: "Hoş geldin"
+    case .engine: "Nasıl başlamak istersin?"
+    case .keys: "Anahtarlar"
+    case .calendar: "Takvimini bağla"
+    case .permissions: "Toplantılarını yazıya dökmesine izin ver"
+    case .sampleMeeting: "Bir toplantıyı birlikte dinleyelim"
+    case .ready: "Hazırsın"
     }
 }
 
-/// Kurulum (ana pencerede; ilk açılışta pencere burada açılır): izinler, ad, motor, anahtarlar; her adım atlanabilir,
-/// ayarlar sonra Ayarlar'dan değişir.
+/// Adımın tek cümlelik açıklaması.
+private func setupSubtitle(step: OnboardingStep) -> LocalizedStringKey {
+    switch step {
+    case .welcome: "Toplantılarını canlı yazıya döker; bitince notun hazır, en üstte senin görevlerin. Kurulum iki dakika sürer, her adım atlanabilir."
+    case .engine: "Canlı metni ve notu nerede yazdıracağını seç; sonra Ayarlar'dan değişir."
+    case .keys: "macOS Anahtar Zinciri'nde saklanır, hiçbir yere gönderilmez; istersen iCloud ile iPhone'a gider."
+    case .calendar: "Sıradaki toplantıların burada görünür; o sırada başlattığın kayıt toplantının adını ve katılımcılarını alır."
+    case .permissions: "Senin sesin, toplantıdaki diğer kişilerin sesi ve not hazır olunca haber. İzinleri sonra Sistem Ayarları'ndan değiştirebilirsin."
+    case .sampleMeeting: "Bir dakikalık örnek toplantı: canlı metin akarken bir not yaz, bitince notun hazır. İnternet gerekmez, kullanımına sayılmaz."
+    case .ready: "Kaydı kısayolla başlat; toplantı bitince notun ve görevlerin hazır."
+    }
+}
+
+/// Kurulum (ana pencerede; ilk açılışta pencere burada açılır): üstte işaret, adım ilerlemesi ve "Kurulumu atla";
+/// ortada adımın başlığı ve içeriği; altta geri, atla ve ana eylem. Şimdiki adım saklanır (yarıda kapanırsa oradan
+/// sürer). Bitince `onFinish` örnek toplantının kimliğiyle (denendiyse) çağrılır.
 struct SetupPage: View {
     let model: AppModel
     let shortcuts: ShortcutController
-    let onFinish: @MainActor () -> Void
-    @State private var step: OnboardingStep = .welcome
+    let onFinish: @MainActor (String?) -> Void
+    @State private var step: OnboardingStep = resumedOnboardingStep(steps: setupSteps, stored: UserDefaults.standard.string(forKey: onboardingStepKey))
+    @State private var sampleMeetingID: String?
+    /// Örnek toplantının aşaması (adımın alt düğmeleri buna göre).
+    @State private var sampleStage: SampleStage = initialSampleStage()
+    @State private var isConnectingCalendar: Bool = false
+    @AppStorage(SettingsKey.calendarEnabled) private var calendarEnabled: Bool = false
 
     var body: some View {
-        GeometryReader { (geometry: GeometryProxy) in
-            HStack(spacing: 32) {
-                OnboardingPanel(
-                    appName: appName, palette: step.palette, seed: "kurulum-\(step.rawValue)", symbols: step.symbols, title: step.panelTitle,
-                    subtitle: step.panelSubtitle, stepIndex: step.rawValue, stepCount: OnboardingStep.allCases.count
-                )
-                .frame(width: min(440, geometry.size.width * 0.42))
-                VStack(alignment: .leading, spacing: 18) {
-                    Text(step.title)
-                        .appFont(size: 30, weight: .regular)
-                        .tracking(-0.6)
-                        .id("baslik-\(step.rawValue)")
-                        .transition(.opacity)
-                    ScrollView {
-                        Group {
-                            switch step {
-                            case .welcome: WelcomeStep()
-                            case .permissions: PermissionsStep(model: model)
-                            case .profile: ProfileStep(model: model)
-                            #if HOSTED_EDITION
-                            case .keys: HostedSignInStep(account: .shared)
-                            #else
-                            case .keys: KeysStep(model: model)
-                            #endif
-                            case .ready: ReadyStep(shortcuts: shortcuts)
-                            }
+        VStack(spacing: 0) {
+            topBar
+            ScrollView {
+                VStack(alignment: .leading, spacing: 26) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(shownTitle)
+                            .appFont(size: 34, weight: .regular)
+                            .tracking(-0.8)
+                            .foregroundStyle(Theme.ink)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityAddTraits(.isHeader)
+                        // Örnek toplantı sürerken ve notu açıkken açıklama gizlenir: sahne ve not pencereye sığsın.
+                        if !(step == .sampleMeeting && sampleStage.hidesSubtitle) {
+                            Text(setupSubtitle(step: step))
+                                .appFont(size: 15, weight: .regular)
+                                .foregroundStyle(Theme.muted)
+                                .lineSpacing(3)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .frame(maxWidth: 560, alignment: .leading)
                         }
-                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                    }
+                    .id("baslik-\(step.rawValue)-\(sampleStage.titleID)")
+                    .transition(.opacity)
+                    stepContent
                         .id(step)
-                        .transition(.opacity.combined(with: .offset(x: 18)))
-                    }
-                    .scrollIndicators(.hidden)
-                    // Yol haritası her adımda aynı yerde, düğmelerin hemen üstünde: içerik yukarıda kalır, aradaki boşluk
-                    // dolar. Yer darsa önce açıklamalar, o da sığmazsa harita tümden gizlenir (kesilmez).
-                    ViewThatFits(in: .vertical) {
-                        SetupRoadmap(current: step, showsDetails: true) { (target: OnboardingStep) -> Void in step = target }
-                        SetupRoadmap(current: step, showsDetails: false) { (target: OnboardingStep) -> Void in step = target }
-                        Color.clear.frame(height: 0)
-                    }
-                    HStack(spacing: 12) {
-                        if step != .welcome {
-                            Button("Geri", systemImage: "chevron.left") { move(by: -1) }
-                                .buttonStyle(.hoverPlain)
-                                .foregroundStyle(Theme.muted)
-                        }
-                        Spacer()
-                        if step == .ready {
-                            Button("Başla") { onFinish() }
-                                .buttonStyle(.pillPrimary)
-                                .keyboardShortcut(.defaultAction)
-                        } else {
-                            Button("Atla") { onFinish() }
-                                .buttonStyle(.hoverPlain)
-                                .foregroundStyle(Theme.muted)
-                            Button("İleri") { move(by: 1) }
-                                .buttonStyle(.pillPrimary)
-                                .keyboardShortcut(.defaultAction)
-                        }
-                    }
-                    .controlSize(.large)
+                        .transition(.opacity.combined(with: .offset(y: 10)))
                 }
-                .padding(.vertical, 8)
-                .frame(maxWidth: 560, maxHeight: .infinity, alignment: .topLeading)
+                .frame(maxWidth: step == .sampleMeeting ? 1000 : 600, alignment: .leading)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 40)
+                .padding(.top, 28)
+                .padding(.bottom, 24)
             }
-            .padding(28)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .scrollIndicators(.hidden)
+            bottomBar
         }
         .animation(.smooth(duration: 0.4), value: step)
+        .onChange(of: step) { (_: OnboardingStep, current: OnboardingStep) in
+            UserDefaults.standard.set(current.rawValue, forKey: onboardingStepKey)
+        }
     }
 
-    private func move(by offset: Int) {
-        step = OnboardingStep(rawValue: step.rawValue + offset) ?? step
+    /// Gösterilen başlık: örnek toplantıda aşamaya göre (konuşuyorlar, not yazılıyor, notun hazır).
+    private var shownTitle: LocalizedStringKey {
+        guard step == .sampleMeeting else {
+            return setupTitle(step: step)
+        }
+        switch sampleStage {
+        case .intro, .failed: return setupTitle(step: step)
+        case .live: return "Maya ve Leo konuşuyor"
+        case .finishing: return "Not yazılıyor…"
+        case .note: return "Notun hazır"
+        }
     }
-}
 
-/// Kurulumun yol haritası: tüm adımlar sırayla, aralarında ince dikey çizgi. Biten adım soluk ve onaylı (tıklayınca
-/// ona dönülür), şimdiki adım vurgu renginde dolu nokta ve koyu yazıyla, sıradakiler boş halka ve soluk. Durgundur;
-/// yalnızca adım değişince kısa bir geçiş yapar.
-private struct SetupRoadmap: View {
-    let current: OnboardingStep
-    let showsDetails: Bool
-    let onSelect: @MainActor (OnboardingStep) -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            ForEach(OnboardingStep.allCases, id: \.self) { (item: OnboardingStep) in
-                row(step: item, isLast: item == OnboardingStep.allCases.last)
+    /// Üst çubuk: işaret ve ad, adım ilerlemesi, kurulumu bitiren "Kurulumu atla".
+    private var topBar: some View {
+        let progress: (index: Int, count: Int) = onboardingProgress(steps: setupSteps, current: step)
+        return ZStack {
+            OnboardingProgress(index: progress.index, count: progress.count)
+            HStack(spacing: 10) {
+                AppMark(size: 24, barsRaised: true, lineDrawn: true)
+                Text(verbatim: appName)
+                    .appFont(size: 14, weight: .semibold)
+                    .foregroundStyle(Theme.ink)
+                Spacer()
+                if step != .ready {
+                    Button("Kurulumu atla") { onFinish(sampleMeetingID) }
+                        .buttonStyle(.hoverPlain)
+                        .foregroundStyle(Theme.muted)
+                        .appFont(size: 13, weight: .regular)
+                }
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .animation(.smooth(duration: 0.25), value: current)
+        .padding(.horizontal, 28)
+        .frame(height: 56)
     }
 
     @ViewBuilder
-    private func row(step: OnboardingStep, isLast: Bool) -> some View {
-        if step.rawValue < current.rawValue {
-            Button { onSelect(step) } label: {
-                rowContent(step: step, isLast: isLast)
-            }
-            .buttonStyle(.plain)
-            .linkPointer(isEnabled: true)
-            .accessibilityHint(Text("Bu adıma dön"))
-        } else {
-            rowContent(step: step, isLast: isLast)
-                .accessibilityAddTraits(step == current ? [.isSelected] : [])
+    private var stepContent: some View {
+        switch step {
+        case .welcome: WelcomeStep(model: model)
+        case .engine: EngineStep(model: model)
+        case .keys: KeysStep(model: model)
+        case .calendar: CalendarStep(model: model)
+        case .permissions: PermissionsStep(model: model)
+        case .sampleMeeting:
+            SampleMeetingStep(model: model, stage: $sampleStage) { (id: String) -> Void in sampleMeetingID = id }
+        case .ready: ReadyStep(shortcuts: shortcuts, hasSampleMeeting: sampleMeetingID != nil)
         }
     }
 
-    private func rowContent(step: OnboardingStep, isLast: Bool) -> some View {
-        let isCurrent: Bool = step == current
-        return HStack(alignment: .top, spacing: 12) {
-            RoadmapMarker(state: roadmapMarkerState(step: step, current: current))
-            VStack(alignment: .leading, spacing: 1) {
-                Text(step.title)
-                    .appFont(size: 13, weight: isCurrent ? .medium : .regular)
-                    .foregroundStyle(isCurrent ? Theme.ink : Theme.muted)
-                    .lineLimit(1)
-                if showsDetails {
-                    Text(step.roadmapDetail)
-                        .appFont(size: 12, weight: .regular)
-                        .foregroundStyle(Theme.muted)
-                        .lineLimit(1)
-                }
+    /// Alt çubuk: geri; adıma göre "Atla"; ana eylem.
+    private var bottomBar: some View {
+        HStack(spacing: 12) {
+            if let previous = previousOnboardingStep(steps: setupSteps, current: step) {
+                Button("Geri", systemImage: "chevron.left") { step = previous }
+                    .buttonStyle(.hoverPlain)
+                    .foregroundStyle(Theme.muted)
+                    .disabled(step == .sampleMeeting && sampleStage.isRunning)
             }
-            .padding(.bottom, isLast ? 0 : 12)
+            Spacer()
+            switch step {
+            case .ready:
+                Button(sampleMeetingID == nil ? "Başla" : "Örnek notu aç") { onFinish(sampleMeetingID) }
+                    .buttonStyle(.pillPrimary)
+                    .keyboardShortcut(.defaultAction)
+            case .sampleMeeting:
+                sampleActions
+            case .permissions:
+                Button("Devam et") { moveNext() }
+                    .buttonStyle(.pillPrimary)
+                    .keyboardShortcut(.defaultAction)
+            case .welcome:
+                Button("Devam et") { moveNext() }
+                    .buttonStyle(.pillPrimary)
+                    .keyboardShortcut(.defaultAction)
+            case .calendar where !calendarEnabled:
+                // Takvim bağlı değilken tek ana eylem bağlamaktır (Ayarlar'daki "Takvimi kullan" ile aynı yol).
+                Button("Atla") { moveNext() }
+                    .buttonStyle(.hoverPlain)
+                    .foregroundStyle(Theme.muted)
+                Button {
+                    isConnectingCalendar = true
+                    Task {
+                        await model.enableCalendar()
+                        isConnectingCalendar = false
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        if isConnectingCalendar {
+                            ProgressView().controlSize(.small)
+                        }
+                        Text("Takvimi bağla")
+                    }
+                }
+                .buttonStyle(.pillPrimary)
+                .keyboardShortcut(.defaultAction)
+                .disabled(isConnectingCalendar)
+            case .engine, .keys, .calendar:
+                Button("Atla") { moveNext() }
+                    .buttonStyle(.hoverPlain)
+                    .foregroundStyle(Theme.muted)
+                Button("Devam et") { moveNext() }
+                    .buttonStyle(.pillPrimary)
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .controlSize(.large)
+        .frame(maxWidth: step == .sampleMeeting ? 1000 : 600)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 40)
+        .padding(.vertical, 18)
+        .overlay(alignment: .top) { Rectangle().fill(Theme.line).frame(height: 1) }
+    }
+
+    /// Örnek toplantı adımının düğmeleri: başlamadan "Atla" ve "Örnek toplantıyı başlat"; sürerken "Toplantıyı bitir";
+    /// not hazırken "Devam et".
+    @ViewBuilder
+    private var sampleActions: some View {
+        switch sampleStage {
+        case .intro, .failed:
+            Button("Atla") { moveNext() }
+                .buttonStyle(.hoverPlain)
+                .foregroundStyle(Theme.muted)
+            Button("Örnek toplantıyı başlat", systemImage: "play.fill") { sampleStage = .live }
+                .buttonStyle(.pillPrimary)
+                .keyboardShortcut(.defaultAction)
+                .disabled(sampleStage.isFailed)
+        case .live:
+            Button("Toplantıyı bitir", systemImage: "stop.fill") { sampleStage = .finishing }
+                .buttonStyle(.pillPrimary)
+                .keyboardShortcut(.defaultAction)
+        case .finishing:
+            Button("Not yazılıyor…") {}
+                .buttonStyle(.pillPrimary)
+                .disabled(true)
+        case .note:
+            Button("Devam et") { moveNext() }
+                .buttonStyle(.pillPrimary)
+                .keyboardShortcut(.defaultAction)
+        }
+    }
+
+    private func moveNext() {
+        guard let next = nextOnboardingStep(steps: setupSteps, current: step) else {
+            onFinish(sampleMeetingID)
+            return
+        }
+        step = next
+    }
+}
+
+// MARK: Hoş geldin
+
+/// Hoş geldin: pastel kapakta tek cümlelik söz, iki kısa özellik, gizlilik sözü ve kullanıcının adı (pencerede kaydırmadan
+/// görünür).
+private struct WelcomeStep: View {
+    let model: AppModel
+
+    var body: some View {
+        let noteLanguageName: String = selectedNoteLanguage().interfaceName
+        VStack(alignment: .leading, spacing: 22) {
+            ZStack(alignment: .bottomLeading) {
+                FilmGradient(seed: "gistsmith-giris", palette: .violet)
+                Text("Toplantılarını dinler, notunu yazar")
+                    .appFont(size: 26, weight: .regular)
+                    .tracking(-0.5)
+                    .foregroundStyle(Color.black.opacity(0.8))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(26)
+            }
+            .frame(height: 132)
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .accessibilityElement(children: .combine)
+            OnboardingCard {
+                featureRow(symbol: "captions.bubble.fill", title: "Canlı metin", text: "Fince, İngilizce ve 33 dil daha; istersen \(noteLanguageName) çevirisi altında akar.")
+                OnboardingRowDivider()
+                featureRow(symbol: "checklist", title: "Önce senin görevlerin", text: "Bitince not: görevler, kararlar, özet ve sözlük.")
+            }
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "lock.shield")
+                    .appFont(size: 14, weight: .medium)
+                    .foregroundStyle(Theme.muted)
+                    .accessibilityHidden(true)
+                #if HOSTED_EDITION
+                Text("Finlandiya'dan, AB veri koruma yasasıyla. Toplantıların ve notların bu Mac'te kalır; sunucumuz ses ve not saklamaz.")
+                #else
+                Text("Toplantıların, notların ve anahtarların bu Mac'te kalır.")
+                #endif
+            }
+            .appFont(size: 13, weight: .regular)
+            .foregroundStyle(Theme.muted)
+            .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Adın").appFont(size: 13, weight: .semibold).foregroundStyle(Theme.ink)
+                SetupNameField(model: model)
+                Text("Notta sana düşen görevler bu adla ayrılır.")
+                    .appFont(size: 12, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+            }
+        }
+    }
+
+    private func featureRow(symbol: String, title: LocalizedStringKey, text: LocalizedStringKey) -> some View {
+        HStack(alignment: .center, spacing: 14) {
+            AccentSymbolTile(symbol: symbol, size: 38)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).appFont(size: 14, weight: .semibold).foregroundStyle(Theme.ink)
+                Text(text).appFont(size: 12.5, weight: .regular).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
+            }
             Spacer(minLength: 0)
         }
-        // Noktaları birleştiren çizgi: bu noktanın altından bir sonrakinin tepesine.
-        .background(alignment: .topLeading) {
-            if !isLast {
-                Rectangle()
-                    .fill(Theme.line)
-                    .frame(width: 1)
-                    .padding(.top, roadmapMarkerSize + 2)
-                    .padding(.bottom, 2)
-                    .padding(.leading, roadmapMarkerSize / 2 - 0.5)
-            }
-        }
-        .contentShape(Rectangle())
+        .padding(14)
         .accessibilityElement(children: .combine)
     }
 }
 
-/// Yol haritası noktasının çapı.
-private let roadmapMarkerSize: CGFloat = 18
-
-/// Yol haritasındaki adımın durumu.
-private enum RoadmapMarkerState {
-    case done
-    case current
-    case upcoming
-}
-
-/// Adımın şimdiki adıma göre durumu. Saf fonksiyondur.
-private func roadmapMarkerState(step: OnboardingStep, current: OnboardingStep) -> RoadmapMarkerState {
-    if step == current {
-        return .current
-    }
-    return step.rawValue < current.rawValue ? .done : .upcoming
-}
-
-/// Yol haritasının noktası: biten adımda onay, şimdikinde vurgu renginde dolu nokta, sıradakinde boş halka.
-private struct RoadmapMarker: View {
-    let state: RoadmapMarkerState
-    @Environment(\.panelAppearance) private var appearance: PanelAppearance
-
-    var body: some View {
-        ZStack {
-            switch state {
-            case .done:
-                Circle().fill(Theme.soft)
-                Circle().strokeBorder(Theme.line)
-                Image(systemName: "checkmark")
-                    .appFont(size: 8, weight: .bold)
-                    .foregroundStyle(Theme.muted)
-            case .current:
-                Circle().strokeBorder(appearance.accent.color, lineWidth: 1.5)
-                Circle().fill(appearance.accent.color).padding(4.5)
-            case .upcoming:
-                Circle().strokeBorder(Theme.line, lineWidth: 1.5)
-            }
-        }
-        .frame(width: roadmapMarkerSize, height: roadmapMarkerSize)
-        .accessibilityHidden(true)
-    }
-}
-
-private struct WelcomeStep: View {
-    var body: some View {
-        // Not ve çeviri dilinin adı (kurulumda varsayılanı: arayüz dili).
-        let noteLanguageName: String = selectedNoteLanguage().interfaceName
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Birkaç adımda hazırsın; her adım atlanabilir, hepsi sonra Ayarlar'dan değişir.")
-                .appFont(size: 14, weight: .regular)
-                .foregroundStyle(Theme.muted)
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-                // Canlı çeviri varsayılan kapalıdır (Ayarlar ya da kayıt kartından açılır): isteğe bağlı diye yazılır.
-                FeatureTile(symbol: "captions.bubble.fill", title: "Canlı metin", text: "Fince, İngilizce ve 33 dil daha; istersen \(noteLanguageName) çevirisi altında akar.", palette: .sunset)
-                FeatureTile(symbol: "sparkles", title: "Ne kaçırdım?", text: "Son dakikaların \(noteLanguageName) özeti, toplantıya soru.", palette: .rose)
-                FeatureTile(symbol: "checklist", title: "Önce senin görevlerin", text: "Bitince not: görevler, kararlar, özet ve sözlük.", palette: .rose)
-                FeatureTile(symbol: "eye.slash.fill", title: "Ekran paylaşımında gizli", text: "Panel ve ada paylaşılan ekranda görünmez.", palette: .sunset)
-            }
-        }
-    }
-}
-
-/// Mikrofon ve sistem sesi izinleri.
-private struct PermissionsStep: View {
+/// Ad alanı: boşken soluk yer tutucu (macOS odaksız `prompt:`u yazı rengiyle çizer).
+private struct SetupNameField: View {
     let model: AppModel
-    @State private var microphone: AVAudioApplication.recordPermission = .undetermined
-    @State private var systemAudio: ProbeState = .idle
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            PermissionRow(
-                symbol: "mic",
-                title: "Mikrofon",
-                detail: "Senin konuşmaların (\"Sen\").",
-                status: microphoneText,
-                isGranted: microphone == .granted
-            ) {
-                Button("İzin ver") {
-                    Task {
-                        _ = await model.requestMicrophonePermission()
-                        microphone = model.microphonePermission
-                    }
+        let name: Binding<String> = Binding<String>(get: { model.userName }, set: { (value: String) -> Void in model.setUserName(name: value) })
+        TextField(text: name) { Text("Adın") }
+            .textFieldStyle(.plain)
+            .appFont(size: 16, weight: .regular)
+            .overlay(alignment: .leading) {
+                if model.userName.isEmpty {
+                    Text("ör. Doğan")
+                        .appFont(size: 16, weight: .regular)
+                        .foregroundStyle(Theme.muted)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
                 }
-                .disabled(microphone != .undetermined)
             }
-            PermissionRow(
-                symbol: "speaker.wave.2",
-                title: "Sistem sesi",
-                detail: "Toplantıdaki diğer kişiler (Teams, Zoom). macOS izni ilk denemede sorar.",
-                status: systemAudioText,
-                isGranted: systemAudio == .started
-            ) {
-                Button("İzin penceresini aç") {
-                    systemAudio = .running
-                    Task {
-                        do {
-                            try await model.probeSystemAudio()
-                            systemAudio = .started
-                        } catch {
-                            systemAudio = .failed(userFacingMessage(error: error))
-                        }
-                    }
-                }
-                .disabled(systemAudio == .running)
-            }
-            HStack {
-                Text("İzni reddettiysen:")
-                    .foregroundStyle(.secondary)
-                Button("Sistem Ayarları › Gizlilik ve Güvenlik") {
-                    // Sistem sesi kaydı izni macOS'ta "Ekran ve Sistem Sesi Kaydı" bölümündedir.
-                    openPrivacySettings(anchor: microphone == .denied ? "Privacy_Microphone" : "Privacy_ScreenCapture")
-                }
-                .buttonStyle(.link)
-                        .pointerStyle(.link)
-            }
-            .appFont(size: 12, weight: .regular)
-        }
-        .onAppear { microphone = model.microphonePermission }
-        // Kullanıcı izni Sistem Ayarları'nda değiştirip geri dönünce durum yenilenir. Pencere yeniden anahtar olunca da
-        // (uygulama etkin kalırken odak pencereye dönünce) yenilenir; okumak ucuzdur.
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { (_: Notification) in
-            microphone = model.microphonePermission
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { (_: Notification) in
-            microphone = model.microphonePermission
-        }
-    }
-
-    private var microphoneText: String {
-        switch microphone {
-        case .granted: String(localized: "İzin verildi")
-        case .denied: String(localized: "Reddedildi: Sistem Ayarları'ndan aç")
-        case .undetermined: String(localized: "Henüz sorulmadı")
-        @unknown default: String(localized: "Bilinmiyor")
-        }
-    }
-
-    private var systemAudioText: String {
-        switch systemAudio {
-        case .idle: String(localized: "macOS bu iznin durumunu göstermez; deneyerek açılır")
-        case .running: String(localized: "Deneniyor…")
-        case .started: String(localized: "Yakalama başladı. İzin penceresi çıktıysa \"İzin Ver\"i seçtiysen hazır.")
-        case .failed(let message): message
-        }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+            .cardSurface(cornerRadius: 12)
+            .frame(maxWidth: 360)
     }
 }
 
-private enum ProbeState: Equatable {
-    case idle
-    case running
-    case started
-    case failed(String)
-}
+// MARK: Motor ve anahtarlar (kendi anahtarlarıyla çalışan sürüm)
 
-private struct PermissionRow<Action: View>: View {
-    let symbol: String
-    let title: LocalizedStringKey
-    let detail: LocalizedStringKey
-    let status: String
-    let isGranted: Bool
-    @ViewBuilder let action: () -> Action
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 14) {
-            Image(systemName: symbol)
-                .appFont(size: 17, weight: .medium)
-                .foregroundStyle(.tint)
-                .frame(width: 40, height: 40)
-                .background(Theme.soft, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title).appFont(size: 14, weight: .semibold)
-                Text(detail).appFont(size: 13, weight: .regular).foregroundStyle(Theme.muted)
-                Label(status, systemImage: isGranted ? "checkmark.circle.fill" : "circle.dotted")
-                    .appFont(size: 11, weight: .medium)
-                    .foregroundStyle(isGranted ? AnyShapeStyle(.tint) : AnyShapeStyle(Theme.muted))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 8)
-            action()
-        }
-        .padding(14)
-        .background(Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.line))
-    }
-}
-
-/// Gizlilik bölümünü Sistem Ayarları'nda açar.
-@MainActor
-func openPrivacySettings(anchor: String) {
-    guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?\(anchor)") else {
-        return
-    }
-    NSWorkspace.shared.open(url)
-}
-
-/// Ad, başlama yolu (cihaz içi ya da kendi anahtarlarınla) ve canlı metin motoru.
-private struct ProfileStep: View {
+/// Başlama yolu (cihaz içi ya da kendi anahtarlarınla) ve canlı metin motoru.
+private struct EngineStep: View {
     let model: AppModel
     @AppStorage(SettingsKey.llmProvider) private var provider: String = LLMProviderKind.anthropic.rawValue
     @AppStorage(SettingsKey.primaryMeetingLanguage) private var primaryLanguage: String = MeetingLanguage.finnish.rawValue
@@ -458,67 +347,48 @@ private struct ProfileStep: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Adın").appFont(size: 13, weight: .semibold)
-                TextField("Adın", text: Binding<String>(get: { model.userName }, set: { (name: String) -> Void in model.setUserName(name: name) }), prompt: Text("ör. Doğan"))
-                    .textFieldStyle(.plain)
-                    .appFont(size: 16, weight: .regular)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 11)
-                    .background(Theme.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Theme.line))
-                Text("Notta sana düşen görevler bu adla ayrılır.")
-                    .appFont(size: 12, weight: .regular)
-                    .foregroundStyle(Theme.muted)
+            HStack(alignment: .top, spacing: 12) {
+                ChoiceCard(
+                    symbol: "cpu", title: "Hemen başla (cihaz içi)",
+                    text: onDeviceModeSupported
+                        ? "Ücretsiz, anahtarsız: yazıya dökme ve not Apple Intelligence ile bu Mac'te. Konuşmacılar ayrılmaz, not daha kısadır."
+                        : "macOS 26 gerektirir: Apple Intelligence ve cihaz içi konuşma tanıma bu macOS sürümünde yok.",
+                    isSelected: isOnDevice
+                ) {
+                    provider = LLMProviderKind.onDevice.rawValue
+                    Task { await model.selectEngine(engine: .appleSpeech) }
+                }
+                .disabled(!onDeviceModeSupported)
+                .opacity(onDeviceModeSupported ? 1 : 0.55)
+                ChoiceCard(
+                    symbol: "key.fill", title: "Kendi anahtarlarımla",
+                    text: "Daha yüksek kalite: Claude ile not, konuşmacılar ayrılır. Sonraki adımda anahtarları girersin.",
+                    isSelected: !isOnDevice
+                ) {
+                    provider = LLMProviderKind.anthropic.rawValue
+                    Task { await model.selectEngine(engine: .deepgram) }
+                }
             }
-            #if !HOSTED_EDITION
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Nasıl başlamak istersin?").appFont(size: 13, weight: .semibold)
-                HStack(alignment: .top, spacing: 12) {
-                    ChoiceCard(
-                        symbol: "cpu", title: "Hemen başla (cihaz içi)",
-                        text: onDeviceModeSupported
-                            ? "Ücretsiz, anahtarsız: yazıya dökme ve not Apple Intelligence ile bu Mac'te. Konuşmacılar ayrılmaz, not daha kısadır."
-                            : "macOS 26 gerektirir: Apple Intelligence ve cihaz içi konuşma tanıma bu macOS sürümünde yok.",
-                        isSelected: isOnDevice
-                    ) {
-                        provider = LLMProviderKind.onDevice.rawValue
-                        Task { await model.selectEngine(engine: .appleSpeech) }
-                    }
-                    .disabled(!onDeviceModeSupported)
-                    .opacity(onDeviceModeSupported ? 1 : 0.55)
-                    ChoiceCard(
-                        symbol: "key.fill", title: "Kendi anahtarlarımla",
-                        text: "Daha yüksek kalite: Claude ile not, konuşmacılar ayrılır. Sonraki adımda anahtarları girersin.",
-                        isSelected: !isOnDevice
-                    ) {
-                        provider = LLMProviderKind.anthropic.rawValue
-                        Task { await model.selectEngine(engine: .deepgram) }
-                    }
+            .fixedSize(horizontal: false, vertical: true)
+            if isOnDevice {
+                // Cihaz içi tanıma dil algılamaz ve model her dili yazamaz: toplantıların dili burada seçilir.
+                HStack(spacing: 10) {
+                    Text("Ana toplantı dili").appFont(size: 13, weight: .regular)
+                    Spacer(minLength: 8)
+                    SettingsMenu(selection: $primaryLanguage, options: MeetingLanguage.allCases.map { (language: MeetingLanguage) -> (String, Text) in
+                        (language.rawValue, Text(verbatim: languageName(language: language)))
+                    })
                 }
-                .fixedSize(horizontal: false, vertical: true)
-                if isOnDevice {
-                    // Cihaz içi tanıma dil algılamaz ve model her dili yazamaz: toplantıların dili burada seçilir.
-                    HStack(spacing: 10) {
-                        Text("Ana toplantı dili").appFont(size: 13, weight: .regular)
-                        Spacer(minLength: 8)
-                        SettingsMenu(selection: $primaryLanguage, options: MeetingLanguage.allCases.map { (language: MeetingLanguage) -> (String, Text) in
-                            (language.rawValue, Text(verbatim: languageName(language: language)))
-                        })
-                    }
-                    .padding(.top, 4)
-                    .onChange(of: primaryLanguage) { (_: String, _: String) in
-                        model.primaryLanguageChanged()
-                    }
+                .onChange(of: primaryLanguage) { (_: String, _: String) in
+                    model.primaryLanguageChanged()
                 }
-                if isOnDevice, let problem = onDeviceProblem {
+                if let problem = onDeviceProblem {
                     Text(verbatim: problem)
                         .appFont(size: 12, weight: .regular)
                         .foregroundStyle(Theme.muted)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-            }
-            if !isOnDevice {
+            } else {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Canlı metin").appFont(size: 13, weight: .semibold)
                     HStack(alignment: .top, spacing: 12) {
@@ -540,7 +410,6 @@ private struct ProfileStep: View {
                     .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            #endif
         }
     }
 
@@ -594,6 +463,548 @@ private struct KeysStep: View {
     }
 }
 
+// MARK: Takvim
+
+/// Takvim: Ayarlar'daki "Takvimi kullan" ile aynı yol (`AppModel.enableCalendar`: takvim ve hatırlatma izni, servisler).
+/// Bağlıyken sıradaki 3 toplantı kanıt olarak görünür; Google, Outlook ve iCloud takvimleri Sistem Ayarları ›
+/// İnternet Hesapları'ndan eklenir.
+private struct CalendarStep: View {
+    let model: AppModel
+    @AppStorage(SettingsKey.calendarEnabled) private var calendarEnabled: Bool = false
+    @AppStorage(SettingsKey.meetingReminders) private var meetingReminders: Bool = true
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if calendarEnabled {
+                connected
+            } else {
+                OnboardingCard {
+                    HStack(alignment: .center, spacing: 14) {
+                        AccentSymbolTile(symbol: "calendar", size: 38)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Takvim").appFont(size: 14, weight: .semibold).foregroundStyle(Theme.ink)
+                            Text("Takvim yalnızca bu Mac'te okunur.")
+                                .appFont(size: 12.5, weight: .regular)
+                                .foregroundStyle(Theme.muted)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .padding(14)
+                }
+                if let error = model.calendarError {
+                    VStack(alignment: .leading, spacing: 8) {
+                        NoticeText(error, severity: .error)
+                            .appFont(size: 13, weight: .regular)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Button("Sistem Ayarları'nı aç") { openPrivacySettings(anchor: "Privacy_Calendars") }
+                            .buttonStyle(.link)
+                            .appFont(size: 13, weight: .medium)
+                    }
+                }
+            }
+            accountsHint
+        }
+    }
+
+    /// Bağlı takvim: sıradaki toplantılar (en çok 3) ve 1 dk önce hatırlatma.
+    private var connected: some View {
+        let upcoming: [CalendarMeeting] = upcomingProofMeetings(meetings: model.upcomingMeetings, now: Date(), limit: 3)
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark.circle.fill").foregroundStyle(.tint)
+                Text("Takvim bağlandı").foregroundStyle(Theme.ink)
+            }
+            .appFont(size: 13, weight: .semibold)
+            .accessibilityElement(children: .combine)
+            OnboardingCard {
+                if upcoming.isEmpty {
+                    Text("Önümüzdeki gün takviminde toplantı yok; eklenince burada ve Ana sayfada görünür.")
+                        .appFont(size: 13, weight: .regular)
+                        .foregroundStyle(Theme.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(14)
+                } else {
+                    ForEach(Array(upcoming.enumerated()), id: \.element.id) { (item: (offset: Int, element: CalendarMeeting)) in
+                        if item.offset > 0 {
+                            Rectangle().fill(Theme.line).frame(height: 1).padding(.leading, 94)
+                        }
+                        OnboardingMeetingRow(meeting: item.element, now: Date())
+                    }
+                }
+            }
+            OnboardingCard {
+                HStack(alignment: .center, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Toplantıdan 1 dk önce hatırlat").appFont(size: 14, weight: .semibold).foregroundStyle(Theme.ink)
+                        Text("Bildirimdeki \"Dinlemeye başla\" ile kayıt hemen başlar.")
+                            .appFont(size: 12.5, weight: .regular)
+                            .foregroundStyle(Theme.muted)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    // Açılınca bildirim izni istenir (Ayarlar'daki gibi); izin yoksa geri kapanır ve neden görünür.
+                    Toggle("Toplantıdan 1 dk önce hatırlat", isOn: Binding<Bool>(
+                        get: { meetingReminders },
+                        set: { (enabled: Bool) -> Void in
+                            meetingReminders = enabled
+                            if enabled {
+                                Task { await model.enableMeetingReminders() }
+                            } else {
+                                model.startCalendarServices()
+                            }
+                        }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+                }
+                .padding(14)
+            }
+            if let problem = model.notificationProblem {
+                NoticeText(problem, severity: .attention)
+                    .appFont(size: 12, weight: .regular)
+            }
+        }
+    }
+
+    /// Google, Outlook ve iCloud takvimlerinin nereden eklendiği.
+    private var accountsHint: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Image(systemName: "person.crop.circle.badge.plus")
+                .appFont(size: 13, weight: .medium)
+                .foregroundStyle(Theme.muted)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Google, Outlook ya da iCloud takvimin mi var? Sistem Ayarları › İnternet Hesapları'na eklediğin takvimler burada görünür.")
+                    .appFont(size: 13, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button("İnternet Hesapları'nı aç") {
+                    if let url = URL(string: "x-apple.systempreferences:com.apple.Internet-Accounts-Settings.extension") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+                .buttonStyle(.plain)
+                .underline()
+                .foregroundStyle(Theme.ink)
+                .linkPointer(isEnabled: true)
+                .appFont(size: 13, weight: .medium)
+            }
+        }
+    }
+}
+
+// MARK: İzinler
+
+/// İzinler: mikrofon, sistem sesi ve bildirimler; her satırda canlı durum. Kullanıcı Sistem Ayarları'ndan dönünce
+/// (uygulama ya da pencere yeniden etkin olunca) durumlar yeniden okunur.
+private struct PermissionsStep: View {
+    let model: AppModel
+    @State private var microphone: PermissionStatus = .checking
+    @State private var systemAudio: PermissionStatus = .notDetermined
+    @State private var systemAudioProblem: String?
+    @State private var notifier: EngagementNotifier = .shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            OnboardingCard {
+                OnboardingPermissionRow(
+                    symbol: "mic.fill", title: "Mikrofon", detail: "Senin sesin (\"Sen\").", status: microphone,
+                    onRequest: {
+                        Task {
+                            _ = await model.requestMicrophonePermission()
+                            readMicrophone()
+                        }
+                    },
+                    onOpenSettings: { openPrivacySettings(anchor: "Privacy_Microphone") }
+                )
+                OnboardingRowDivider()
+                OnboardingPermissionRow(
+                    symbol: "speaker.wave.2.fill", title: "Toplantı sesi",
+                    detail: "Teams, Zoom ve tarayıcıdaki görüşmede diğer kişiler.",
+                    status: systemAudio,
+                    onRequest: { probeSystemAudio() },
+                    onOpenSettings: { openPrivacySettings(anchor: "Privacy_AudioCapture") }
+                )
+                OnboardingRowDivider()
+                OnboardingPermissionRow(
+                    symbol: "bell.badge.fill", title: "Bildirimler", detail: "Not hazır olunca ve görev günü gelince haber verir.",
+                    status: notificationStatus,
+                    onRequest: { Task { await notifier.requestAuthorizationIfUndetermined() } },
+                    onOpenSettings: { openNotificationSettings() }
+                )
+            }
+            if let systemAudioProblem {
+                NoticeText(systemAudioProblem, severity: .error)
+                    .appFont(size: 12, weight: .regular)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Text("macOS toplantı sesi izninin durumunu göstermez: izin penceresinde \"İzin Ver\"i seçtiysen hazırsın. İzin vermesen de devam edebilirsin; kayıt başlarken eksik izin yeniden sorulur.")
+                .appFont(size: 12, weight: .regular)
+                .foregroundStyle(Theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .onAppear { readMicrophone() }
+        .task { await notifier.refreshAuthorization() }
+        // Kullanıcı izni Sistem Ayarları'nda değiştirip geri dönünce durum yenilenir; okumak ucuzdur.
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { (_: Notification) in
+            readMicrophone()
+            Task { await notifier.refreshAuthorization() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { (_: Notification) in
+            readMicrophone()
+        }
+    }
+
+    private var notificationStatus: PermissionStatus {
+        switch notifier.authorization {
+        case .unknown: .checking
+        case .notDetermined: .notDetermined
+        case .allowed: .granted
+        case .denied: .denied
+        }
+    }
+
+    private func readMicrophone() {
+        microphone = switch model.microphonePermission {
+        case .granted: .granted
+        case .denied: .denied
+        case .undetermined: .notDetermined
+        @unknown default: .checking
+        }
+    }
+
+    /// Sistem sesini 2 sn dener: macOS izin penceresini ilk denemede açar; durumu okunamadığı için "İstendi" olur.
+    private func probeSystemAudio() {
+        systemAudio = .checking
+        systemAudioProblem = nil
+        Task {
+            do {
+                try await model.probeSystemAudio()
+                systemAudio = .requested
+            } catch {
+                systemAudio = .notDetermined
+                systemAudioProblem = userFacingMessage(error: error)
+            }
+        }
+    }
+
+    /// Sistem Ayarları › Bildirimler'de bu uygulamanın sayfası.
+    private func openNotificationSettings() {
+        guard let bundleID = Bundle.main.bundleIdentifier,
+              let url = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=\(bundleID)") else {
+            return
+        }
+        NSWorkspace.shared.open(url)
+    }
+}
+
+/// Gizlilik bölümünü Sistem Ayarları'nda açar.
+@MainActor
+func openPrivacySettings(anchor: String) {
+    guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?\(anchor)") else {
+        return
+    }
+    NSWorkspace.shared.open(url)
+}
+
+// MARK: Örnek toplantı
+
+/// Örnek toplantı adımının aşaması.
+enum SampleStage: Equatable {
+    /// Başlamadı (tanıtım).
+    case intro
+    /// Örnek toplantı açılamadı (dosya eksik ya da ses açılamadı); neden gösterilir, adım atlanabilir.
+    case failed(String)
+    /// Ses çalıyor, canlı metin akıyor (duraklatılmış da olabilir).
+    case live
+    /// "Bitir"e basıldı: not yazılıyor.
+    case finishing
+    /// Not hazır.
+    case note
+
+    var isRunning: Bool {
+        self == .live || self == .finishing
+    }
+
+    var isFailed: Bool {
+        if case .failed = self {
+            return true
+        }
+        return false
+    }
+
+    /// Adımın açıklaması gizlenir mi (sürerken ve not açıkken yer sahneye ve nota kalır).
+    var hidesSubtitle: Bool {
+        switch self {
+        case .intro, .failed: false
+        case .live, .finishing, .note: true
+        }
+    }
+
+    /// Başlığın geçiş kimliği (aşama değişince başlık yumuşakça değişir).
+    var titleID: String {
+        switch self {
+        case .intro, .failed: "giris"
+        case .live: "canli"
+        case .finishing: "bitiyor"
+        case .note: "not"
+        }
+    }
+}
+
+/// Açılıştaki aşama: tanıtım; Debug'da tanıtım sahnesi (`kurulum-ornek`, `kurulum-not`; görsel kontrol) canlı ya da not.
+private func initialSampleStage() -> SampleStage {
+    #if DEBUG
+    if let stage = demoSampleStage(arguments: CommandLine.arguments) {
+        return stage
+    }
+    #endif
+    return .intro
+}
+
+/// Rehberli örnek toplantı: solda görüşme sahnesi ve kendi notun (koç işaretiyle), sağda canlı panelin gerçek
+/// görünümü (`TranscriptPanel`) satır satır akan metinle. Canlı hattan (mikrofon, sunucu) bağımsızdır: zamanlı
+/// metin sesle eş zamanlı gösterilir (bkz. `SampleMeetingPlayer`). Bitince not önceden yazılmıştır ve örnek toplantı
+/// Toplantılar'a saklanır (eşitlenmez, işlenmez).
+private struct SampleMeetingStep: View {
+    let model: AppModel
+    @Binding var stage: SampleStage
+    let onSaved: @MainActor (String) -> Void
+    @State private var player: SampleMeetingPlayer?
+    @State private var audioURL: URL?
+    @State private var myNotes: String = ""
+    @State private var card: AssistantCard?
+    @State private var saveProblem: String?
+    @State private var levels: AudioLevels = AudioLevels(count: 14, interval: 0.1)
+
+    var body: some View {
+        Group {
+            switch stage {
+            case .intro:
+                intro
+            case .failed(let message):
+                NoticeText(message, severity: .error)
+                    .appFont(size: 13, weight: .regular)
+                    .fixedSize(horizontal: false, vertical: true)
+            case .live, .finishing:
+                live
+            case .note:
+                note
+            }
+        }
+        .task { load() }
+        .onChange(of: stage) { (_: SampleStage, current: SampleStage) in
+            switch current {
+            case .live:
+                start()
+            case .finishing:
+                finish()
+            case .intro, .failed, .note:
+                break
+            }
+        }
+        .onDisappear { player?.stop() }
+    }
+
+    /// Başlamadan: görüşme sahnesinin durgun hâli ve ne olacağı.
+    private var intro: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            SampleCallStage(names: sampleMeetingSpeakerNames, speaking: nil, elapsed: 0, isLive: false)
+                .frame(height: 280)
+                .frame(maxWidth: 640)
+            HStack(spacing: 18) {
+                introPoint(symbol: "waveform", text: "Canlı metin konuşmayla akar")
+                introPoint(symbol: "square.and.pencil", text: "Sen bir not yazarsın")
+                introPoint(symbol: "sparkles", text: "Bitince notun hazır")
+            }
+        }
+    }
+
+    private func introPoint(symbol: String, text: LocalizedStringKey) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: symbol)
+                .appFont(size: 13, weight: .semibold)
+                .foregroundStyle(.tint)
+                .accessibilityHidden(true)
+            Text(text)
+                .appFont(size: 13, weight: .medium)
+                .foregroundStyle(Theme.ink)
+        }
+    }
+
+    /// Sürerken: sahne ve not alanı solda, canlı panel sağda.
+    private var live: some View {
+        let elapsed: Double = player?.elapsed ?? 0
+        let script: SampleMeetingScript? = player?.script
+        return HStack(alignment: .top, spacing: 22) {
+            VStack(alignment: .leading, spacing: 14) {
+                SampleCallStage(
+                    names: sampleMeetingSpeakerNames, speaking: script.flatMap { sampleMeetingSpeaker(script: $0, elapsed: elapsed) },
+                    elapsed: elapsed, isLive: stage == .live
+                )
+                .frame(height: 300)
+                VStack(alignment: .leading, spacing: 8) {
+                    if showsNoteCoach(script: script, elapsed: elapsed) {
+                        CoachMark(text: "Aklında kalmasını istediğini yaz; not bunu öncelik sayar.", symbol: "hand.point.down.fill", edge: .bottom)
+                            .transition(.opacity.combined(with: .offset(y: 6)))
+                    } else if player?.phase == .ended, stage == .live {
+                        CoachMark(text: "Toplantı bitti. \"Toplantıyı bitir\"e bas, notun hazırlansın.", symbol: "stop.circle.fill", edge: .bottom)
+                            .transition(.opacity.combined(with: .offset(y: 6)))
+                    }
+                    SampleNotesField(text: $myNotes, placeholder: "Notlarım: ör. Özeti cuma gönder")
+                }
+                .animation(.smooth(duration: 0.3), value: showsNoteCoach(script: script, elapsed: elapsed))
+            }
+            .frame(maxWidth: .infinity)
+            TranscriptPanel(state: viewState(elapsed: elapsed), actions: actions, levels: levels, myNotes: $myNotes)
+                .frame(width: 380, height: 470)
+                .panelSurface()
+                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.panelRadius, style: .continuous))
+                .shadow(color: .black.opacity(0.08), radius: 18, y: 8)
+        }
+    }
+
+    /// Not hazırken: notun önizlemesi ve Toplantılar'da saklandığı.
+    private var note: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if let script = player?.script {
+                SampleNotePreview(note: currentNote(script: script), myNotes: myNotes)
+                    .padding(24)
+                    .frame(maxWidth: 680, alignment: .leading)
+                    .cardSurface(cornerRadius: 20)
+            }
+            if let saveProblem {
+                NoticeText(saveProblem, severity: .error)
+                    .appFont(size: 12, weight: .regular)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Label("Örnek toplantı Toplantılar'da; istediğin zaman silebilirsin.", systemImage: "tray.full")
+                    .appFont(size: 12.5, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+            }
+        }
+    }
+
+    /// Kullanıcı henüz not yazmadıysa, ikinci konuşma başladıktan sonra not alanını gösteren koç işareti.
+    private func showsNoteCoach(script: SampleMeetingScript?, elapsed: Double) -> Bool {
+        guard stage == .live, myNotes.isEmpty, let script, script.lines.count > 1, player?.phase != .ended else {
+            return false
+        }
+        return elapsed >= script.lines[1].startSec
+    }
+
+    private func viewState(elapsed: Double) -> LiveViewState {
+        let transcript: [LiveSegment] = player.map { sampleMeetingTranscript(script: $0.script, elapsed: elapsed) } ?? []
+        return makeLiveViewState(
+            transcript: transcript, translations: [:], displayMode: .originalOnly, failedTranslations: [], otherLanguageSegments: [],
+            assistantCard: card, phase: stage == .finishing ? .finishing : .recording, newPersonNumber: 3,
+            isPaused: player?.phase == .paused, isMicMuted: true, canToggleMic: false, isInPerson: false, canStart: false,
+            startedAt: Date().addingTimeInterval(-elapsed), statusText: "", languageText: languageName(language: .english),
+            noteLanguageText: selectedNoteLanguage().interfaceName, errors: []
+        )
+    }
+
+    /// Paneldeki eylemler: duraklat/sürdür, bitir, "Ne kaçırdım?" (önceden yazılmış özet) ve soru (örnekte cevaplanmaz;
+    /// nedeni kartta). Gezinme ve konuşmacı düzeltmesi örnekte bir şey yapmaz.
+    private var actions: PanelActions {
+        PanelActions(
+            onHide: {}, onStart: {},
+            onTogglePause: { togglePause() },
+            onToggleMic: {},
+            onStop: { stage = .finishing },
+            onOpenMeetings: {}, onOpenSettings: {},
+            onMissed: {
+                if let script = player?.script {
+                    card = .summary(sampleMissedSummary(note: currentNote(script: script)))
+                }
+            },
+            onAsk: { (question: String) -> Void in
+                card = .answer(question: question, text: String(localized: "Bu bir örnek toplantı; burada sorular cevaplanmaz. Gerçek toplantılarında o ana kadar konuşulanlardan cevap gelir."))
+            },
+            onCloseCard: { card = nil },
+            onRetryTranslations: { (_: [SegmentID]) -> Void in },
+            onSetLanguage: { (_: MeetingLanguage) -> Void in },
+            onChooseLanguageMode: { (_: LanguageMode) -> Void in },
+            onReassignBlock: { (_: [SegmentID], _: Int) -> Void in },
+            onMergePerson: { (_: Int, _: Int) -> Void in },
+            onBookmark: {}
+        )
+    }
+
+    private func currentNote(script: SampleMeetingScript) -> MeetingNote {
+        sampleMeetingNote(script: script, userName: model.userName, language: defaultNoteLanguage(interfaceLanguages: Bundle.main.preferredLocalizations))
+    }
+
+    /// Paketteki örnek toplantıyı açar; açılamazsa neden gösterilir.
+    private func load() {
+        guard player == nil else {
+            return
+        }
+        do {
+            let bundled: (script: SampleMeetingScript, audioURL: URL) = try loadBundledSampleMeeting(bundle: .main)
+            player = try SampleMeetingPlayer(script: bundled.script, audioURL: bundled.audioURL)
+            audioURL = bundled.audioURL
+            if stage == .live {
+                start()
+            }
+        } catch {
+            stage = .failed(String(localized: "Örnek toplantı açılamadı: \(userFacingMessage(error: error))"))
+        }
+    }
+
+    private func start() {
+        guard let player else {
+            return
+        }
+        do {
+            #if DEBUG
+            // Tanıtım sahnesi (görsel kontrol): ses kısık, toplantının ortasından.
+            if isDemoMode, player.phase == .ready {
+                player.volume = 0
+                player.seek(to: 31)
+            }
+            #endif
+            try player.play()
+        } catch {
+            stage = .failed(String(localized: "Örnek toplantı açılamadı: \(userFacingMessage(error: error))"))
+        }
+    }
+
+    private func togglePause() {
+        guard let player else {
+            return
+        }
+        if player.phase == .playing {
+            player.pause()
+        } else {
+            start()
+        }
+    }
+
+    /// Bitir: ses durur, panel "bitiriliyor"u kısa gösterir, örnek toplantı saklanır ve not açılır.
+    private func finish() {
+        player?.stop()
+        Task {
+            do {
+                try await Task.sleep(for: .milliseconds(1400))
+            } catch {
+                return
+            }
+            guard let player, let audioURL else {
+                return
+            }
+            do {
+                onSaved(try model.addSampleMeeting(script: player.script, note: currentNote(script: player.script), myNotes: myNotes, audio: audioURL))
+            } catch {
+                saveProblem = String(localized: "Örnek toplantı Toplantılar'a saklanamadı: \(userFacingMessage(error: error))")
+            }
+            stage = .note
+        }
+    }
+}
+
+// MARK: Hazırsın
+
 /// Kısayolun tuş başlıkları (`keyBindingDisplay` metninden): her değiştirici (⌃ ⌥ ⇧ ⌘) ayrı başlık, tuşun adı tek başlık
 /// ("Boşluk", "F5" harf harf bölünmez). Değiştiriciler metnin başındadır. Saf fonksiyondur.
 func keycapLabels(display: String) -> [String] {
@@ -603,42 +1014,67 @@ func keycapLabels(display: String) -> [String] {
     return modifiers.map(String.init) + (key.isEmpty ? [] : [String(key)])
 }
 
-/// Kısayollar ve ilk kullanım.
+/// Hazırsın: kısayollar, kaydın nereden başladığı ve Sor ile tarifler.
 private struct ReadyStep: View {
     let shortcuts: ShortcutController
+    let hasSampleMeeting: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            ForEach(ShortcutAction.allCases, id: \.self) { (action: ShortcutAction) in
-                let display: String = keyBindingDisplay(binding: shortcuts.currentBinding(action: action))
-                HStack(spacing: 14) {
-                    HStack(spacing: 4) {
-                        ForEach(Array(keycapLabels(display: display).enumerated()), id: \.offset) { (key: (offset: Int, element: String)) in
-                            Text(verbatim: key.element)
-                                .appFont(size: 15, weight: .medium)
-                                .frame(minWidth: 30, minHeight: 30)
-                                .padding(.horizontal, 4)
-                                .background(Theme.card, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                                .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Theme.line))
-                                .shadow(color: .black.opacity(0.08), radius: 0, y: 2)
-                        }
+        VStack(alignment: .leading, spacing: 18) {
+            OnboardingCard {
+                ForEach(Array(ShortcutAction.allCases.enumerated()), id: \.element) { (item: (offset: Int, element: ShortcutAction)) in
+                    if item.offset > 0 {
+                        Rectangle().fill(Theme.line).frame(height: 1)
                     }
-                    // VoiceOver kısayolu harf harf değil tek bir ad olarak okur.
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(Text(verbatim: display))
-                    Text(action.title).appFont(size: 14, weight: .regular)
-                    Spacer(minLength: 0)
+                    shortcutRow(action: item.element)
                 }
             }
-            FeatureTile(
-                symbol: "rectangle.on.rectangle", title: "Kayıt sırasında cam panel",
-                text: "Canlı metin (istersen \(selectedNoteLanguage().interfaceName) çevirisiyle), \"Ne kaçırdım?\" ve soru; çentikte ada süreyi ve son cümleyi gösterir.", palette: .sunset
-            )
-            .padding(.top, 6)
-            FeatureTile(
-                symbol: "checklist", title: "Bitince toplantının sayfası",
-                text: "En üstte senin görevlerin; özet, kararlar, konuşmacılı transkript ve çalma.", palette: .rose
-            )
+            OnboardingCard {
+                pointer(symbol: "record.circle", title: "Kayıt", text: "Ana sayfadaki \"Kaydı başlat\", menü çubuğu ya da kısayol; kayıt sırasında canlı panel açılır.")
+                OnboardingRowDivider()
+                pointer(symbol: "bubble.left.and.text.bubble.right", title: "Sor ve tarifler", text: "Toplantılarına soru sor; sık sorduğunu tarif olarak kaydet, \"/\" ile çalıştır.")
+                if hasSampleMeeting {
+                    OnboardingRowDivider()
+                    pointer(symbol: "doc.text", title: "Örnek toplantı", text: "Toplantılar'da seni bekliyor; istediğin zaman silebilirsin.")
+                }
+            }
         }
+    }
+
+    private func shortcutRow(action: ShortcutAction) -> some View {
+        let display: String = keyBindingDisplay(binding: shortcuts.currentBinding(action: action))
+        return HStack(spacing: 14) {
+            Text(action.title).appFont(size: 14, weight: .regular).foregroundStyle(Theme.ink)
+            Spacer(minLength: 8)
+            HStack(spacing: 4) {
+                ForEach(Array(keycapLabels(display: display).enumerated()), id: \.offset) { (key: (offset: Int, element: String)) in
+                    Text(verbatim: key.element)
+                        .appFont(size: 13, weight: .medium)
+                        .frame(minWidth: 26, minHeight: 26)
+                        .padding(.horizontal, 4)
+                        .background(Theme.background, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous).strokeBorder(Theme.line))
+                        .shadow(color: .black.opacity(0.06), radius: 1, y: 1)
+                }
+            }
+            // VoiceOver kısayolu harf harf değil tek bir ad olarak okur.
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(verbatim: display))
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
+    }
+
+    private func pointer(symbol: String, title: LocalizedStringKey, text: LocalizedStringKey) -> some View {
+        HStack(alignment: .center, spacing: 14) {
+            AccentSymbolTile(symbol: symbol, size: 38)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).appFont(size: 14, weight: .semibold).foregroundStyle(Theme.ink)
+                Text(text).appFont(size: 12.5, weight: .regular).foregroundStyle(Theme.muted).fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .accessibilityElement(children: .combine)
     }
 }

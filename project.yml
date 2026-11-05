@@ -219,6 +219,9 @@ targets:
         excludes: ["Sparkle-LICENSE.txt"]
       - path: NOTICE
         buildPhase: resources
+      # Karşılamadaki rehberli örnek toplantı (sentetik ses, zamanlı metin, lisans notu) Mac'le aynı.
+      - path: App/SampleMeeting
+        buildPhase: resources
       # Takvim bağlantısı (EventKit) ve toplantı hatırlatma bildirimleri Mac'le aynı.
       - path: App/EventKitConnector.swift
       - path: App/MeetingNotifier.swift

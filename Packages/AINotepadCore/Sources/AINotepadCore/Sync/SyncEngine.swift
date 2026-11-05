@@ -849,7 +849,9 @@ public actor SyncEngine {
     private func pushMeeting(id: String) async throws -> SyncPushOutcome {
         let stateEntry: SyncLedgerEntry? = ledgerEntry(ledger: ledger, kind: .meetingState, localID: id)
         let contentEntry: SyncLedgerEntry? = ledgerEntry(ledger: ledger, kind: .meetingContent, localID: id)
-        guard let record = try await store.meeting(id: id) else {
+        // The onboarding sample meeting (`isSampleMeeting`) never syncs: like a deleted meeting, nothing of it stays on the
+        // server.
+        guard let record = try await store.meeting(id: id), !record.isSampleMeeting else {
             for entry in [stateEntry, contentEntry].compactMap({ $0 }) {
                 try await deleteOnServer(entry: entry)
             }

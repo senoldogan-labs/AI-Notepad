@@ -16,88 +16,107 @@ private func hostedLegalURL(path: String) -> URL? {
     }
 }
 
-/// Giriş kapısı (abonelik sürümü): oturum yokken ana pencere yalnızca bunu gösterir — solda dalgalanan ses çizgili film
-/// kartı, sağda logo, tek cümlelik tanıtım, "Apple ile devam et" ve "Google ile devam et" (uygulama içi giriş
-/// penceresinde doğrudan o sağlayıcı), deneme satırı ve gizlilik/koşullar bağlantıları. Kenar çubuğu, toplantılar,
-/// ayarlar ve kayıt yoktur. Giriş tamamlanınca kurulum (izinler…) ya da ana sayfa açılır.
+/// Giriş kapısı (abonelik sürümü): oturum yokken ana pencere yalnızca bunu gösterir — pencereyi dolduran durağan pastel
+/// film zemin (üstünde yavaşça dalgalanan ince ses çizgileri), ortada tek kart: işaret ve ad, tek cümlelik tanıtım,
+/// "Apple ile devam et" ve "Google ile devam et" (uygulama içi giriş penceresinde doğrudan o sağlayıcı), güvenli giriş
+/// açıklaması, deneme satırı ve gizlilik/koşullar bağlantıları. Kenar çubuğu, toplantılar, ayarlar ve kayıt yoktur.
+/// Giriş tamamlanınca karşılama ya da ana sayfa açılır.
 struct HostedSignInGate: View {
     let account: HostedAccount
 
     var body: some View {
-        HStack(spacing: 0) {
+        ZStack {
             // Gradyan durağandır (bulanık katman hiç yeniden çizilmez); yalnızca üstündeki ince çizgiler kayar.
             FilmGradient(seed: "gistsmith-giris", palette: .violet)
                 .overlay { ListeningWaves() }
-                .overlay(alignment: .bottomLeading) {
-                    Text("Toplantılarını dinler, notunu yazar")
-                        .appFont(size: 30, weight: .regular)
-                        .tracking(-0.5)
-                        .foregroundStyle(Color.black.opacity(0.78))
-                        .padding(36)
-                }
-                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                .padding(16)
-                .frame(minWidth: 300, maxWidth: 520)
-            content
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .ignoresSafeArea()
+            ScrollView {
+                card
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 48)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .scrollIndicators(.hidden)
+        }
+        .overlay(alignment: .bottomTrailing) {
+            Button("Çık") { NSApplication.shared.terminate(nil) }
+                .buttonStyle(.hoverPlain)
+                .appFont(size: 12, weight: .medium)
+                .foregroundStyle(Color.black.opacity(0.62))
+                .padding(18)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background { FlowingLines(seed: "gistsmith-giris", lineCount: 12, isAnimated: false) }
-        .pageBackground()
         .task { await account.refresh() }
     }
 
-    private var content: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Image(nsImage: NSApplication.shared.applicationIconImage)
-                .resizable()
-                .frame(width: 64, height: 64)
+    /// Ortadaki kart: işaret, ad, tanıtım, giriş düğmeleri, açıklamalar ve yasal bağlantılar.
+    private var card: some View {
+        VStack(spacing: 0) {
+            AppMark(size: 46, barsRaised: true, lineDrawn: true)
                 .accessibilityHidden(true)
             Text(verbatim: appName)
-                .appFont(size: 34, weight: .regular)
+                .appFont(size: 30, weight: .regular)
                 .tracking(-0.6)
                 .foregroundStyle(Theme.ink)
+                .padding(.top, 14)
+                .accessibilityAddTraits(.isHeader)
             Text("Teams, Zoom ve yüz yüze toplantılarını canlı yazıya döker; bitince notun hazır, görevlerin en üstte.")
-                .appFont(size: 15, weight: .regular)
+                .appFont(size: 14, weight: .regular)
                 .foregroundStyle(Theme.muted)
+                .multilineTextAlignment(.center)
+                .lineSpacing(2)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 8)
             switch account.state {
             case .unavailable(let message):
                 NoticeText(message as String, severity: .error)
                     .appFont(size: 13, weight: .regular)
                     .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 24)
             case .loading, .signedOut, .signedIn, .signedInStatusUnknown:
-                VStack(alignment: .leading, spacing: 12) {
-                    HostedProviderButtons(account: account, width: 252)
+                VStack(spacing: 12) {
+                    HostedProviderButtons(account: account, width: 288)
                     HostedSignInHint(account: account)
-                    Label("3 toplantı ya da 7 gün ücretsiz", systemImage: "sparkles")
-                        .appFont(size: 13, weight: .medium)
-                        .foregroundStyle(Theme.ink)
-                        .padding(.top, 4)
+                        .multilineTextAlignment(.center)
                 }
-                .padding(.top, 6)
-                HostedAccountError(account: account)
+                .padding(.top, 26)
+                VStack(spacing: 8) {
+                    HostedAccountError(account: account)
+                    HostedAccountDataNotice(account: account)
+                }
+                .padding(.top, 10)
             }
-            HostedAccountDataNotice(account: account)
-            HStack(spacing: 14) {
+            Rectangle()
+                .fill(Theme.line)
+                .frame(height: 1)
+                .padding(.top, 22)
+            HStack(spacing: 8) {
+                Label("3 toplantı ya da 7 gün ücretsiz", systemImage: "sparkles")
+                    .foregroundStyle(Theme.ink)
+                Spacer(minLength: 8)
                 if let privacy = hostedLegalURL(path: "privacy") {
                     Link("Gizlilik", destination: privacy)
                 }
                 if let terms = hostedLegalURL(path: "terms") {
                     Link("Koşullar", destination: terms)
                 }
-                Spacer(minLength: 0)
-                Button("Çık") { NSApplication.shared.terminate(nil) }
-                    .buttonStyle(.hoverPlain)
             }
-            .appFont(size: 12, weight: .regular)
+            .appFont(size: 12, weight: .medium)
             .foregroundStyle(Theme.muted)
-            .padding(.top, 12)
+            .padding(.top, 14)
         }
+        .padding(.horizontal, 32)
+        .padding(.top, 32)
+        .padding(.bottom, 18)
         // En küçük genişlik: macOS 15 pencerenin en küçük boyutunu sıfır genişlik önererek hesaplar; dikeyde sabit
         // metinler o genişlikte harf harf kırılıp pencereyi binlerce punto uzatıyordu (içerik ekranın altında kalırdı).
-        .frame(minWidth: 340, maxWidth: 420, alignment: .leading)
-        .padding(40)
+        .frame(minWidth: 340, idealWidth: 392, maxWidth: 392)
+        .background {
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .fill(Theme.card)
+                .shadow(color: .black.opacity(0.12), radius: 30, y: 14)
+        }
+        .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous).strokeBorder(Theme.line.opacity(0.6)))
     }
 }
 

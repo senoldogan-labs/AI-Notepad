@@ -105,10 +105,10 @@ public let autoSendLookbackSec: TimeInterval = 7 * 24 * 3600
 /// Gönderilmesi gereken (toplantı, hedef) çiftleri: hedefin kendiliğinden gönderimi açık ve oturumu geçerli, toplantı
 /// bitmiş ve notu var, hedefte kendiliğinden gönderim açıldıktan sonra (bkz. `autoSendStart`) ve son 7 günde bitmiş, o
 /// hedefe daha önce gönderilmemiş. Açmadan önce biten notlar elle gönderilir. Kaçan gönderimler (ağ yoktu, uygulama
-/// kapandı) böylece açılışta ve saatte bir telafi edilir. Saf fonksiyondur.
+/// kapandı) böylece açılışta ve saatte bir telafi edilir. Örnek toplantı (karşılamadaki deneme) gönderilmez. Saf fonksiyondur.
 public func pendingAutoSends(records: [MeetingRecord], destinations: [NoteDestination], now: Date) -> [(meetingID: String, destinationID: String)] {
     let active: [NoteDestination] = destinations.filter { $0.autoSend && !$0.needsReconnect }
-    return records
+    return realMeetings(records: records)
         .filter { $0.status == .done && $0.note != nil }
         .flatMap { (record: MeetingRecord) -> [(meetingID: String, destinationID: String)] in
             let finished: Date = record.endedAt ?? record.startedAt

@@ -1150,8 +1150,9 @@ struct MeetingDetailPage: View {
         noteVersionItems
         Button("Yeniden adlandır", systemImage: "pencil") { startRename() }
             .disabled(isLocked)
+        // Örnek toplantı (karşılamadaki deneme) işlenmez: sesi sunucuya gitmez, kullanıma yazılmaz.
         Button("Tekrar işle", systemImage: "arrow.clockwise") { model.reprocess(meetingID: record.id) }
-            .disabled(isLocked || record.audioDeleted)
+            .disabled(isLocked || record.audioDeleted || record.isSampleMeeting)
         Divider()
         Button("Sesi sil", systemImage: "speaker.slash", role: .destructive) {
             export = .confirmDeleteAudio
