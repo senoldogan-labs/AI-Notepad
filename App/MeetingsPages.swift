@@ -691,7 +691,7 @@ struct MeetingDetailPage: View {
             return
         }
         tab = .transcript
-        player.play(meetingID: record.id, urls: urls, startSec: startSec)
+        player.play(record: record, urls: urls, startSec: startSec)
     }
 
     /// Kapak: toplantı kartıyla aynı simli gradyan; tarih, başlık, özet çipleri, eylemler ve konuşmacı zaman çizgisi.
