@@ -454,6 +454,8 @@ struct MeetingDetailPage: View {
     let onRunRecipe: @MainActor (Recipe) -> Void
     @State private var export: ExportStatus = .none
     @State private var tab: MeetingTab = .summary
+    /// Özetteki seçili not bölümü (görevler, konu akışı, kararlar, işaretli anlar); kapaktaki çipler de seçer.
+    @State private var noteSection: NoteSectionTab = .tasks
     /// Özetin gösterildiği dil: nil asıl not (yazıldığı dilde), değilse paylaşım sürümü.
     @State private var noteLanguage: ShareLanguage?
     /// Başlık düzenleniyor (çift tıklama ya da "Yeniden adlandır").
@@ -526,14 +528,16 @@ struct MeetingDetailPage: View {
                                 SharedNoteSection(
                                     model: model, record: record, note: note, language: language, paragraphs: paragraphs, canPlay: !playableAudio.isEmpty,
                                     onPlay: { (startSec: Double) -> Void in play(from: startSec) },
-                                    onClip: { (paragraph: TranscriptParagraph) -> Void in exportClip(paragraph: paragraph) }
+                                    onClip: { (paragraph: TranscriptParagraph) -> Void in exportClip(paragraph: paragraph) },
+                                    section: $noteSection
                                 )
                                 .id(language)
                             } else {
                                 SummaryTab(
                                     model: model, note: note, sourceNote: note, record: record, paragraphs: paragraphs, canPlay: !playableAudio.isEmpty,
                                     onPlay: { (startSec: Double) -> Void in play(from: startSec) },
-                                    onClip: { (paragraph: TranscriptParagraph) -> Void in exportClip(paragraph: paragraph) }
+                                    onClip: { (paragraph: TranscriptParagraph) -> Void in exportClip(paragraph: paragraph) },
+                                    section: $noteSection
                                 )
                             }
                         } else {
@@ -839,6 +843,11 @@ struct MeetingDetailPage: View {
     private func reveal(anchor: MeetingNoteAnchor, proxy: ScrollViewProxy) {
         let needsSwitch: Bool = tab != .summary
         tab = .summary
+        switch anchor {
+        case .myTasks: noteSection = .tasks
+        case .decisions: noteSection = .decisions
+        case .sections: break
+        }
         Task { @MainActor in
             if needsSwitch {
                 do {
@@ -848,7 +857,7 @@ struct MeetingDetailPage: View {
                     return
                 }
             }
-            withAnimation(.smooth(duration: 0.35)) { proxy.scrollTo(anchor, anchor: .top) }
+            withAnimation(.smooth(duration: 0.35)) { proxy.scrollTo(MeetingNoteAnchor.sections, anchor: .top) }
         }
     }
 
@@ -1508,6 +1517,10 @@ private struct SummaryTab: View {
     @State private var isEditingMyNotes: Bool = false
     /// Konuşma payında kısa konuşmaların tek tek satırları açık.
     @State private var showsMinorSpeakers: Bool = false
+    /// Seçili not bölümü (kapaktaki görev ve karar çipleri de seçer).
+    @Binding var section: NoteSectionTab
+    @State private var showsMyTasks: Bool = true
+    @State private var showsOtherTasks: Bool = true
 
     var body: some View {
         let groups: SpeakerGroups = groupedSpeakers(shares: speakerShares(paragraphs: paragraphs), speakerNames: record.speakerNames)
@@ -1535,32 +1548,22 @@ private struct SummaryTab: View {
             TaskPair(shown: pair.0, source: pair.1)
         }
         let mine: [TaskPair] = pairs.filter(\.source.isMine)
-        let others: [TaskPair] = pairs.filter { !$0.source.isMine }
         let myNotes: String = record.myNotes ?? ""
         let isLocked: Bool = model.isLocked(meetingID: record.id)
-        return VStack(alignment: .leading, spacing: 30) {
+        return VStack(alignment: .leading, spacing: 28) {
             if mine.isEmpty {
                 // Yüz yüze toplantıda kullanıcı da "Konuşmacı N": hangisi olduğunu seçince görevleri ona düşer.
                 UserSpeakerPrompt(record: record, userName: model.userName, isLocked: isLocked) { (person: Int, name: String) -> Void in
                     model.nameUserSpeaker(meetingID: record.id, person: person, name: name)
                 }
             }
-            if !mine.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("SENİN GÖREVLERİN")
-                        .appFont(size: 11, weight: .semibold)
-                        .tracking(DesignTokens.labelTracking)
-                        .foregroundStyle(Theme.muted)
-                    // Görev kimliğiyle: liste değişince (ör. tamamlanınca) satır durumu (Anımsatıcılar hatası) başka göreve geçmesin.
-                    ForEach(mine, id: \.source.trackingKey) { (pair: TaskPair) in
-                        TaskCard(model: model, record: record, task: pair.source, shown: pair.shown)
-                    }
-                }
-                .padding(14)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Theme.soft, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .id(MeetingNoteAnchor.myTasks)
-            }
+            // Önce sonuç: görevler (ve diğer bölümler) özetin üstünde.
+            sectionsPanel(pairs: pairs)
+            Text(note.summary)
+                .font(appearance.readingFont(size: appearance.textSize + 3, weight: .regular))
+                .lineSpacing(appearance.lineSpacing + 3)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
             // Kendi notların (varsa ya da yazılırken) ve notu sorarak düzenleme tek grupta; "Kendi notun" düzenleme
             // alanının içinde küçük bir düğme.
             VStack(alignment: .leading, spacing: 10) {
@@ -1577,92 +1580,6 @@ private struct SummaryTab: View {
                     model.editNote(meetingID: record.id, instruction: instruction)
                 }
             }
-            Text(note.summary)
-                .font(appearance.readingFont(size: appearance.textSize + 3, weight: .regular))
-                .lineSpacing(appearance.lineSpacing + 3)
-                .textSelection(.enabled)
-                .fixedSize(horizontal: false, vertical: true)
-            let markedIDs: Set<String> = highlightedParagraphIDs(paragraphs: paragraphs, highlights: record.highlights ?? [])
-            let marked: [TranscriptParagraph] = paragraphs.filter { markedIDs.contains($0.id) }
-            if !marked.isEmpty {
-                section(title: "İŞARETLEDİĞİN ANLAR", symbol: "bookmark") {
-                    VStack(alignment: .leading, spacing: 8) {
-                        ForEach(marked) { (paragraph: TranscriptParagraph) in
-                            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                                Button {
-                                    onPlay(paragraph.startSec)
-                                } label: {
-                                    Label(timestamp(seconds: paragraph.startSec), systemImage: "bookmark.fill")
-                                        .appFont(size: 12, weight: .medium)
-                                        .monospacedDigit()
-                                        .foregroundStyle(appearance.accent.color)
-                                }
-                                .buttonStyle(.hoverPlain)
-                                .disabled(!canPlay)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(paragraphLabel(paragraph: paragraph, speakerNames: record.speakerNames))
-                                        .appFont(size: 12, weight: .semibold)
-                                    Text(paragraph.turkish ?? paragraph.text)
-                                        .font(appearance.secondaryFont)
-                                        .lineLimit(3)
-                                        .foregroundStyle(Theme.ink.opacity(0.85))
-                                }
-                            }
-                            .padding(12)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Theme.soft, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            .contextMenu {
-                                Button("Klip olarak kaydet (ses)", systemImage: "waveform") { onClip(paragraph) }
-                                    .disabled(!canPlay)
-                            }
-                        }
-                    }
-                }
-            }
-            if let outline = note.outline, !outline.isEmpty {
-                section(title: "KONU AKIŞI", symbol: "list.bullet.indent") {
-                    VStack(alignment: .leading, spacing: 0) {
-                        ForEach(Array(outline.enumerated()), id: \.offset) { (item: (offset: Int, element: OutlineItem)) in
-                            OutlineRow(item: item.element, isLast: item.offset == outline.count - 1, canPlay: canPlay) {
-                                onPlay(item.element.startSec)
-                            }
-                        }
-                    }
-                }
-            }
-            if !note.decisions.isEmpty {
-                section(title: "KARARLAR", symbol: "checkmark.seal") {
-                    VStack(alignment: .leading, spacing: 0) {
-                        ForEach(Array(note.decisions.enumerated()), id: \.offset) { (item: (offset: Int, element: String)) in
-                            VStack(alignment: .leading, spacing: 0) {
-                                Rectangle().fill(Theme.line).frame(height: 1)
-                                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                                    Text(decisionNumber(index: item.offset))
-                                        .appFont(size: 22, weight: .light)
-                                        .monospacedDigit()
-                                        .foregroundStyle(Theme.muted)
-                                        .frame(width: 40, alignment: .leading)
-                                    Text(item.element)
-                                        .textSelection(.enabled)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                }
-                                .padding(.vertical, 12)
-                            }
-                        }
-                    }
-                }
-                .id(MeetingNoteAnchor.decisions)
-            }
-            if !others.isEmpty {
-                section(title: "DİĞER GÖREVLER", symbol: "checklist") {
-                    VStack(alignment: .leading, spacing: 8) {
-                        ForEach(others, id: \.source.trackingKey) { (pair: TaskPair) in
-                            TaskCard(model: model, record: record, task: pair.source, shown: pair.shown)
-                        }
-                    }
-                }
-            }
             if !note.glossary.isEmpty {
                 GlossarySection(glossary: note.glossary)
             }
@@ -1670,6 +1587,125 @@ private struct SummaryTab: View {
         // Özet sekmesi transkriptle aynı metin ayarlarını kullanır (Ayarlar › Görünüm); bölüm başlıkları kendi yazı tipinde.
         .font(appearance.bodyFont)
         .lineSpacing(appearance.lineSpacing)
+    }
+
+    /// Notun sekmeli bölümleri: görevler, konu akışı, kararlar, işaretli anlar (boş olanın sekmesi yok). Kapaktaki görev
+    /// ve karar çipleri sekmeyi seçip buraya kaydırır (`MeetingNoteAnchor.sections`).
+    @ViewBuilder
+    private func sectionsPanel(pairs: [TaskPair]) -> some View {
+        let markedIDs: Set<String> = highlightedParagraphIDs(paragraphs: paragraphs, highlights: record.highlights ?? [])
+        let marked: [TranscriptParagraph] = paragraphs.filter { markedIDs.contains($0.id) }
+        let outline: [OutlineItem] = note.outline ?? []
+        let counts: [NoteSectionTab: Int] = [.tasks: pairs.count, .outline: outline.count, .decisions: note.decisions.count, .moments: marked.count]
+        let available: [NoteSectionTab] = NoteSectionTab.allCases.filter { (counts[$0] ?? 0) > 0 }
+        if let current = visibleNoteSection(requested: section, available: available) {
+            VStack(alignment: .leading, spacing: 18) {
+                if available.count > 1 {
+                    UnderlineTabs(
+                        selection: Binding<NoteSectionTab>(get: { current }, set: { (tab: NoteSectionTab) -> Void in section = tab }),
+                        options: available.map { (tab: NoteSectionTab) -> (value: NoteSectionTab, title: LocalizedStringKey) in
+                            (value: tab, title: noteSectionTitle(tab: tab, count: counts[tab] ?? 0))
+                        }
+                    )
+                }
+                Group {
+                    switch current {
+                    case .tasks: tasksSection(pairs: pairs)
+                    case .outline: OutlineTimeline(items: outline, canPlay: canPlay, onPlay: onPlay)
+                    case .decisions: decisionsSection
+                    case .moments: momentsSection(marked: marked)
+                    }
+                }
+                .transition(.opacity)
+            }
+            .animation(.smooth(duration: 0.2), value: current)
+            .id(MeetingNoteAnchor.sections)
+        }
+    }
+
+    /// Görevler: önce senin görevlerin, sonra diğerleri; iki grup da açılıp kapanır.
+    private func tasksSection(pairs: [TaskPair]) -> some View {
+        // Tamamlananlar grubun sonunda (sıraları korunur).
+        let open: [TaskPair] = pairs.filter { !isTaskDone(record: record, task: $0.source) }
+        let ordered: [TaskPair] = open + pairs.filter { isTaskDone(record: record, task: $0.source) }
+        let mine: [TaskPair] = ordered.filter(\.source.isMine)
+        let others: [TaskPair] = ordered.filter { !$0.source.isMine }
+        let doneMine: Int = mine.filter { isTaskDone(record: record, task: $0.source) }.count
+        return VStack(alignment: .leading, spacing: 20) {
+            if !mine.isEmpty {
+                CollapsibleGroup(
+                    title: "Senin görevlerin", count: mine.count,
+                    detail: String(localized: "\(doneMine)/\(mine.count) tamamlandı"), tint: appearance.accent.color, isExpanded: $showsMyTasks
+                ) {
+                    // Görev kimliğiyle: liste değişince (ör. tamamlanınca) satır durumu (Anımsatıcılar hatası) başka göreve geçmesin.
+                    HairlineList(items: mine, tint: appearance.accent.color) { (pair: TaskPair) in
+                        TaskRow(model: model, record: record, task: pair.source, shown: pair.shown)
+                            .id(pair.source.trackingKey)
+                    }
+                }
+            }
+            if !others.isEmpty {
+                CollapsibleGroup(title: "Diğer görevler", count: others.count, detail: nil, tint: nil, isExpanded: $showsOtherTasks) {
+                    HairlineList(items: others, tint: nil) { (pair: TaskPair) in
+                        TaskRow(model: model, record: record, task: pair.source, shown: pair.shown)
+                            .id(pair.source.trackingKey)
+                    }
+                }
+            }
+        }
+    }
+
+    /// Kararlar: numaralı, ince çizgilerle ayrılmış.
+    private var decisionsSection: some View {
+        HairlineList(items: Array(note.decisions.enumerated()), tint: nil) { (item: (offset: Int, element: String)) in
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Text(decisionNumber(index: item.offset))
+                    .appFont(size: 13, weight: .semibold)
+                    .monospacedDigit()
+                    .foregroundStyle(appearance.accent.color)
+                    .frame(width: 24, alignment: .leading)
+                Text(item.element)
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+        }
+    }
+
+    /// İşaretlediğin anlar: zamanı (tıklayınca oradan çalar), konuşmacısı ve sözü; sağ tıkla ses klibi.
+    private func momentsSection(marked: [TranscriptParagraph]) -> some View {
+        HairlineList(items: marked, tint: nil) { (paragraph: TranscriptParagraph) in
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Button {
+                    onPlay(paragraph.startSec)
+                } label: {
+                    Label(timestamp(seconds: paragraph.startSec), systemImage: "bookmark.fill")
+                        .appFont(size: 12, weight: .medium)
+                        .monospacedDigit()
+                        .foregroundStyle(appearance.accent.color)
+                }
+                .buttonStyle(.hoverPlain)
+                .disabled(!canPlay)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(paragraphLabel(paragraph: paragraph, speakerNames: record.speakerNames))
+                        .appFont(size: 12, weight: .semibold)
+                    Text(paragraph.turkish ?? paragraph.text)
+                        .font(appearance.secondaryFont)
+                        .lineLimit(3)
+                        .foregroundStyle(Theme.ink.opacity(0.85))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+            .contextMenu {
+                Button("Klip olarak kaydet (ses)", systemImage: "waveform") { onClip(paragraph) }
+                    .disabled(!canPlay)
+            }
+        }
     }
 
     /// Kim ne kadar konuştu: harf rozeti, ad, pay çubuğu ve yüzde. Kısa konuşmalar (bkz. `groupedSpeakers`) tek satırda
@@ -1758,21 +1794,6 @@ private struct SummaryTab: View {
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .cardSurface(cornerRadius: 16)
-    }
-
-    /// Bölüm: kart olmadan küçük büyük harfli başlık ve içerik (belge düzeni).
-    private func section(title: LocalizedStringKey, symbol: String, @ViewBuilder content: () -> some View) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Label {
-                Text(title).tracking(DesignTokens.labelTracking)
-            } icon: {
-                Image(systemName: symbol)
-            }
-            .appFont(size: 11, weight: .semibold)
-            .foregroundStyle(Theme.muted)
-            content()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -2047,6 +2068,8 @@ private struct SharedNoteSection: View {
     let canPlay: Bool
     let onPlay: @MainActor (Double) -> Void
     let onClip: @MainActor (TranscriptParagraph) -> Void
+    /// Seçili not bölümü (bkz. `SummaryTab.section`).
+    @Binding var section: NoteSectionTab
     @State private var error: String?
     @State private var attempt: Int = 0
 
@@ -2060,7 +2083,7 @@ private struct SharedNoteSection: View {
             if let shared {
                 SummaryTab(
                     model: model, note: shared, sourceNote: note, record: record, paragraphs: paragraphs, canPlay: canPlay,
-                    onPlay: onPlay, onClip: onClip
+                    onPlay: onPlay, onClip: onClip, section: $section
                 )
             } else if let error {
                 VStack(alignment: .leading, spacing: 8) {
@@ -2263,50 +2286,6 @@ private enum FollowUpEmailPhase: Equatable {
 }
 
 /// Konu akışında bir bölüm: solda zaman (ses varsa tıklayınca oradan çalar) ve dikey çizgi, sağda başlık ve özet.
-private struct OutlineRow: View {
-    let item: OutlineItem
-    let isLast: Bool
-    let canPlay: Bool
-    let onPlay: @MainActor () -> Void
-    @Environment(\.panelAppearance) private var appearance: PanelAppearance
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(spacing: 4) {
-                Button(action: onPlay) {
-                    HStack(spacing: 4) {
-                        if canPlay {
-                            Image(systemName: "play.fill").appFont(size: 8, weight: .bold)
-                        }
-                        Text(timestamp(seconds: item.startSec)).appFont(size: 12, weight: .medium).monospacedDigit()
-                    }
-                    .foregroundStyle(canPlay ? appearance.accent.color : Theme.muted)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(Theme.soft, in: Capsule())
-                }
-                .buttonStyle(.hoverCapsule)
-                .disabled(!canPlay)
-                .hoverHint("Buradan dinle", alignment: .leading, edge: .bottom)
-                if !isLast {
-                    Rectangle().fill(Theme.line).frame(width: 1).frame(maxHeight: .infinity)
-                }
-            }
-            .frame(width: 64)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.title).font(appearance.readingFont(size: appearance.textSize, weight: .semibold))
-                Text(item.summary)
-                    .font(appearance.secondaryFont)
-                    .foregroundStyle(Theme.muted)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .textSelection(.enabled)
-            .padding(.bottom, isLast ? 0 : 14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-}
-
 /// "01", "02": karar numarası. Saf fonksiyondur.
 private func decisionNumber(index: Int) -> String {
     index + 1 < 10 ? "0\(index + 1)" : "\(index + 1)"
@@ -2320,48 +2299,61 @@ private struct TaskPair {
     let source: NoteTask
 }
 
-private struct TaskCard: View {
+/// Görev satırı (ince çizgili listede): tamamlandı kutusu, iş, altında sahibinin küçük rozeti ve adı, varsa tarih;
+/// sağda Anımsatıcılar zili. Tamamlanan görevin üstü çizilir.
+private struct TaskRow: View {
     let model: AppModel
     let record: MeetingRecord
     /// Asıl nottaki görev: tamamlanma ve anımsatıcı buna bağlıdır.
     let task: NoteTask
     /// Ekranda yazılan görev: asıl görev ya da başka dildeki karşılığı.
     let shown: NoteTask
+    @State private var isHovering: Bool = false
 
     var body: some View {
         let isDone: Bool = isTaskDone(record: record, task: task)
+        // Kendi görevinde sahip (kendi adın) yazılmaz: grubun başlığı söylüyor.
+        let showsOwner: Bool = !task.isMine
         HStack(alignment: .top, spacing: 12) {
             TaskCheckbox(isDone: isDone) { model.toggleTask(meetingID: record.id, task: task) }
                 .disabled(model.isLocked(meetingID: record.id))
-            SpeakerAvatar(text: ownerInitial(owner: shown.owner), color: ownerColor(task: task, speakerNames: record.speakerNames), size: 26)
-                .accessibilityLabel(Text(verbatim: shown.owner))
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 5) {
                 Text(shown.description)
                     .strikethrough(isDone, color: Theme.muted)
                     .foregroundStyle(isDone ? Theme.muted : Theme.ink)
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
-                HStack(spacing: 8) {
-                    Text(verbatim: shown.owner)
-                        .appFont(size: 12, weight: .medium)
-                        .foregroundStyle(Theme.muted)
-                    if let due = shown.dueDate {
-                        Label(due, systemImage: "calendar")
-                            .appFont(size: 12, weight: .regular)
-                            .foregroundStyle(Theme.muted)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 2)
-                            .background(Theme.soft, in: Capsule())
+                if showsOwner || shown.dueDate != nil {
+                    HStack(spacing: 6) {
+                        if showsOwner {
+                            SpeakerAvatar(text: ownerInitial(owner: shown.owner), color: ownerColor(task: task, speakerNames: record.speakerNames), size: 18)
+                                .accessibilityHidden(true)
+                            Text(verbatim: shown.owner)
+                                .appFont(size: 12, weight: .medium)
+                                .foregroundStyle(Theme.muted)
+                        }
+                        if let due = shown.dueDate {
+                            if showsOwner {
+                                Text(verbatim: "·").foregroundStyle(Theme.muted)
+                            }
+                            Label(due, systemImage: "calendar")
+                                .appFont(size: 12, weight: .regular)
+                                .foregroundStyle(Theme.muted)
+                        }
                     }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            // Zil yalnız anımsatıcı eklendiyse ya da fare satırdayken (her satırda sürekli durunca gürültüydü).
             ReminderButton(model: model, record: record, task: task)
+                .opacity(isHovering || isTaskReminded(record: record, task: task) ? 1 : 0)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-        .cardSurface(cornerRadius: 14)
+        .contentShape(Rectangle())
+        .onHover { (hovering: Bool) -> Void in isHovering = hovering }
         .animation(.smooth(duration: 0.2), value: isDone)
+        .animation(.easeOut(duration: 0.12), value: isHovering)
     }
 }
 

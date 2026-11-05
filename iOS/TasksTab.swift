@@ -169,6 +169,20 @@ struct PhoneTaskRow: View {
     let task: NoteTask
     let showsMeeting: Bool
     let onToggle: @MainActor () -> Void
+
+    var body: some View {
+        PhoneTaskRowContent(record: record, task: task, showsMeeting: showsMeeting, onToggle: onToggle)
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.line))
+    }
+}
+
+/// Görev satırının zeminsiz içeriği: tek başına kartta (`PhoneTaskRow`) ya da toplantı notundaki ince çizgili listede.
+struct PhoneTaskRowContent: View {
+    let record: MeetingRecord
+    let task: NoteTask
+    let showsMeeting: Bool
+    let onToggle: @MainActor () -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
     @Environment(PhoneStore.self) private var store: PhoneStore
     /// Anımsatıcılar'a eklenemediyse nedeni (satırın altında).
@@ -198,10 +212,12 @@ struct PhoneTaskRow: View {
                             .foregroundStyle(appearance.accent.color)
                             .accessibilityLabel(Text("Anımsatıcılarda"))
                     }
-                    Text(detail)
-                        .appFont(size: 12, weight: .regular)
-                        .foregroundStyle(Theme.muted)
-                        .lineLimit(1)
+                    if !detail.isEmpty {
+                        Text(detail)
+                            .appFont(size: 12, weight: .regular)
+                            .foregroundStyle(Theme.muted)
+                            .lineLimit(1)
+                    }
                 }
                 if let reminderError {
                     Text(reminderError)
@@ -214,8 +230,6 @@ struct PhoneTaskRow: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.line))
         .contentShape(Rectangle())
         .sensoryFeedback(.selection, trigger: isDone)
         .contextMenu {
@@ -242,7 +256,9 @@ struct PhoneTaskRow: View {
 
     private var detail: String {
         let meeting: [String] = showsMeeting ? [record.note?.title ?? record.title] : []
-        return ([task.owner] + [task.dueDate].compactMap { $0 } + meeting).joined(separator: " · ")
+        // Kendi görevinde sahip (kendi adın) yazılmaz.
+        let owner: [String] = task.isMine ? [] : [task.owner]
+        return (owner + [task.dueDate].compactMap { $0 } + meeting).joined(separator: " · ")
     }
 }
 

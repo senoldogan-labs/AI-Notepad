@@ -2,16 +2,20 @@ import AINotepadCore
 import AINotepadUI
 import SwiftUI
 
-/// Kişiler: toplantılarda adı verilen konuşmacılar ve elle eklenenler. Solda açılıp kapanan liste (arama ve "Kişi
-/// ekle"; son görüldüğü toplantıya göre; varsayılan açık), sağda kişinin sayfası (düzenle, kaldır) ya da ekleme formu.
-/// Liste kapalıyken üst çubuktaki menüden kişi seçilir.
+/// Kişiler: toplantılarda adı verilen konuşmacılar ve elle eklenenler, sütunları sıralanabilen bir tabloda (kişi,
+/// ünvan, toplantı sayısı, konuşma süresi, son görüldüğü gün, sesinden tanınıyor mu). Satırdaki göz düğmesi, çift tık
+/// ya da Return kişinin sayfasını küçük bir pencerede açar (düzenle, kaldır, toplantıları ve görevleri); sağ tık menüsü
+/// aynı eylemleri sunar. Üstte arama ve "Kişi ekle".
 struct PeoplePage: View {
     let model: AppModel
     let router: MainWindowRouter
-    @State private var selected: String?
+    @State private var selection: String?
+    /// Penceresi açık kişi (kimliği; kişi kaldırılınca ya da adı değişince pencere kapanır).
+    @State private var openedID: String?
     @State private var isAdding: Bool = false
     @State private var filter: String = ""
-    @AppStorage(SettingsKey.peopleListVisible) private var listVisible: Bool = true
+    @State private var sortOrder: [KeyPathComparator<PersonSummary>] = [KeyPathComparator(\PersonSummary.lastSeen, order: .reverse)]
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
         let people: [PersonSummary] = peopleDirectory(
@@ -19,110 +23,46 @@ struct PeoplePage: View {
             userName: model.userName
         )
         let query: String = filter.trimmingCharacters(in: .whitespaces)
-        let shown: [PersonSummary] = query.isEmpty ? people : people.filter {
+        let shown: [PersonSummary] = (query.isEmpty ? people : people.filter {
             $0.name.localizedCaseInsensitiveContains(query) || $0.role.localizedCaseInsensitiveContains(query)
-        }
-        let current: PersonSummary? = people.first { $0.id == selected } ?? people.first
-        HStack(spacing: 0) {
-            // Hiç kişi yokken liste sütunu gösterilmez (sahne tüm alanı kaplar); kişi defteri okunamadıysa hata için kalır.
-            if listVisible, !people.isEmpty || model.peopleBookError != nil {
-                VStack(spacing: 0) {
-                    HStack(spacing: 8) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "magnifyingglass").foregroundStyle(Theme.muted)
-                            TextField("Kişi ara", text: $filter).textFieldStyle(.plain)
-                        }
-                        .appFont(size: 13, weight: .regular)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 7)
-                        .background(Theme.soft, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-                        Button {
-                            withAnimation(.smooth(duration: 0.25)) { isAdding = true }
-                        } label: {
-                            Image(systemName: "person.badge.plus")
-                                .appFont(size: 14, weight: .medium)
-                                .frame(width: 32, height: 30)
-                        }
-                        .buttonStyle(.hoverPlain)
-                        .accessibilityLabel("Kişi ekle")
-                        .hoverHint("Kişi ekle", alignment: .trailing, edge: .bottom)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.top, 12)
-                    .padding(.bottom, 6)
-                    if let error = model.peopleBookError {
-                        NoticeText(error, severity: .error)
-                            .appFont(size: 12, weight: .regular)
-                            .padding(.horizontal, 14)
-                    }
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 2) {
-                            ForEach(shown) { (person: PersonSummary) in
-                                row(person: person, isSelected: current?.id == person.id)
-                            }
-                            if shown.isEmpty, !people.isEmpty {
-                                Text("Eşleşen kişi yok")
-                                    .appFont(size: 13, weight: .regular)
-                                    .foregroundStyle(Theme.muted)
-                                    .padding(12)
-                            }
-                        }
-                        .padding(8)
+                || $0.email.localizedCaseInsensitiveContains(query)
+        }).sorted(using: sortOrder)
+        VStack(alignment: .leading, spacing: 0) {
+            if people.isEmpty, model.peopleBookError == nil {
+                CenteredScroll {
+                    EmptyScene(
+                        symbol: "person.2.fill", palette: .ocean, title: "Henüz kimse yok",
+                        message: "Transkriptte bir konuşmacıya ad verince kişi burada görünür; toplantıları, konuşma payı ve görevleriyle."
+                    ) {
+                        Button("Kişi ekle", systemImage: "person.badge.plus") { isAdding = true }
+                            .buttonStyle(.accentPill)
+                            .controlSize(.large)
                     }
                 }
-                .frame(width: 280)
-                .overlay(alignment: .trailing) { Rectangle().fill(Theme.line).frame(width: 1) }
-                .transition(.move(edge: .leading).combined(with: .opacity))
-            }
-            VStack(spacing: 0) {
-                if !listVisible, !people.isEmpty {
-                    toolbar(people: people, current: current)
+            } else {
+                header(count: people.count)
+                if let error = model.peopleBookError {
+                    NoticeText(error, severity: .error)
+                        .appFont(size: 12, weight: .regular)
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 8)
                 }
-                Group {
-                    if let current {
-                        PersonDetail(person: current, router: router) { (name: String, role: String, email: String) -> Void in
-                            // Elle eklenen kişinin adı değişebilir (sesi de taşınır); toplantıdan gelen kişinin adı
-                            // toplantılarda verildiği için formda kilitlidir, yalnızca ünvan ve e-posta kaydedilir.
-                            // Toplantılarda adı geçen kişinin adı toplantılarda verildiği için değişmez (değişirse kişi ikiye
-                            // bölünürdü); yalnızca toplantısız, elle eklenen kişinin adı değişir.
-                            if current.isSaved, current.meetings.isEmpty {
-                                model.renamePerson(oldName: current.name, name: name, role: role, email: email)
-                                selected = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-                            } else {
-                                model.savePerson(name: current.name, role: role, email: email)
-                                selected = current.id
-                            }
-                        } onRemove: {
-                            model.removePerson(name: current.name)
-                            selected = nil
-                        }
-                        .id(current.id)
-                        .transition(.opacity)
-                    } else {
-                        CenteredScroll {
-                            EmptyScene(
-                                symbol: "person.2.fill", palette: .ocean, title: "Henüz kimse yok",
-                                message: "Transkriptte bir konuşmacıya ad verince kişi burada görünür; toplantıları, konuşma payı ve görevleriyle."
-                            ) {
-                                Button("Kişi ekle", systemImage: "person.badge.plus") {
-                                    withAnimation(.smooth(duration: 0.25)) { isAdding = true }
-                                }
-                                .buttonStyle(.accentPill)
-                                .controlSize(.large)
-                            }
+                table(shown: shown)
+                    .overlay {
+                        if shown.isEmpty, !people.isEmpty {
+                            Text("Eşleşen kişi yok")
+                                .appFont(size: 13, weight: .regular)
+                                .foregroundStyle(Theme.muted)
                         }
                     }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
         }
-        .animation(.smooth(duration: 0.25), value: selected)
-        .animation(.smooth(duration: 0.25), value: isAdding)
-        // "Kişi ekle" ayrı sayfa değil, küçük bir pencere: kullanıcı bulunduğu kişiden ayrılmaz.
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        // "Kişi ekle" ayrı sayfa değil, küçük bir pencere: kullanıcı tablodan ayrılmaz.
         .sheet(isPresented: $isAdding) {
             PersonForm(title: "Kişi ekle", initialName: "", lockedName: nil, initialRole: "", initialEmail: "") { (name: String, role: String, email: String) -> Void in
                 model.savePerson(name: name, role: role, email: email)
-                selected = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                selection = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
                 isAdding = false
             } onCancel: {
                 isAdding = false
@@ -130,80 +70,187 @@ struct PeoplePage: View {
             .frame(width: 480)
             .modifier(AppSheetChrome())
         }
-        .animation(.smooth(duration: 0.25), value: listVisible)
-    }
-
-    /// Liste kapalıyken kişi seçici menü ve "Kişi ekle" (listeyi gösterme düğmesi pencerenin üst çubuğunda).
-    private func toolbar(people: [PersonSummary], current: PersonSummary?) -> some View {
-        HStack(spacing: 8) {
-            Menu {
-                ForEach(people) { (person: PersonSummary) in
-                    Button(person.name) {
-                        isAdding = false
-                        selected = person.id
-                    }
-                }
-            } label: {
-                // Ok, düğmenin bir kişi seçici olduğunu belli eder.
-                HStack(spacing: 6) {
-                    Text(verbatim: current?.name ?? "")
-                    Image(systemName: "chevron.down")
-                        .appFont(size: 10, weight: .semibold)
-                        .foregroundStyle(Theme.muted)
+        .sheet(isPresented: Binding<Bool>(
+            get: { openedID.map { (id: String) -> Bool in people.contains { $0.id == id } } ?? false },
+            set: { (shown: Bool) -> Void in
+                if !shown {
+                    openedID = nil
                 }
             }
-            .menuStyle(.button)
-            .buttonStyle(.pill)
-            .menuIndicator(.hidden)
-            .fixedSize()
-            .accessibilityLabel("Kişi seç")
-            .hoverHint("Başka bir kişiyi aç", alignment: .leading, edge: .bottom)
-            Spacer(minLength: 8)
-            Button("Kişi ekle", systemImage: "person.badge.plus") {
-                withAnimation(.smooth(duration: 0.25)) { isAdding = true }
+        )) {
+            if let person = people.first(where: { $0.id == openedID }) {
+                personSheet(person: person)
             }
-            .buttonStyle(.pill)
         }
-        .padding(.horizontal, 12)
-        .padding(.top, 10)
     }
 
-    private func row(person: PersonSummary, isSelected: Bool) -> some View {
-        Button {
-            isAdding = false
-            selected = person.id
-        } label: {
-            HStack(spacing: 10) {
-                PersonAvatar(name: person.name, size: 32)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(person.name).appFont(size: 14, weight: .medium).lineLimit(1)
-                    Group {
-                        if !person.role.isEmpty {
-                            Text(person.role)
-                        } else if person.meetings.isEmpty {
-                            Text("Henüz toplantı yok")
-                        } else {
-                            Text("\(person.meetings.count) toplantı")
+    /// Başlık satırı: ad ve kişi sayısı, arama, "Kişi ekle".
+    private func header(count: Int) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("Kişiler").appFont(size: 28, weight: .regular).tracking(-0.4)
+                Text(verbatim: "\(count)")
+                    .appFont(size: 15, weight: .regular)
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.muted)
+            }
+            Spacer(minLength: 12)
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass").foregroundStyle(Theme.muted)
+                TextField("Kişi ara", text: $filter).textFieldStyle(.plain)
+            }
+            .appFont(size: 13, weight: .regular)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .frame(width: 240)
+            .background(Theme.soft, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+            Button("Kişi ekle", systemImage: "person.badge.plus") { isAdding = true }
+                .buttonStyle(.accentPill)
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 20)
+        .padding(.bottom, 14)
+    }
+
+    /// Kişi tablosu: başlıklara tıklayınca sıralanır; satır seçilir, çift tık ya da Return kişiyi açar.
+    private func table(shown: [PersonSummary]) -> some View {
+        Table(shown, selection: $selection, sortOrder: $sortOrder) {
+            TableColumn("Kişi", value: \.name) { (person: PersonSummary) in
+                HStack(spacing: 10) {
+                    PersonAvatar(name: person.name, size: 30)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(person.name).appFont(size: 14, weight: .medium).lineLimit(1)
+                        if !person.email.isEmpty {
+                            Text(person.email).appFont(size: 12, weight: .regular).foregroundStyle(Theme.muted).lineLimit(1)
                         }
                     }
-                    .appFont(size: 12, weight: .regular)
-                    .foregroundStyle(Theme.muted)
-                    .lineLimit(1)
                 }
-                Spacer(minLength: 0)
-                if person.hasVoiceprint {
-                    Image(systemName: "waveform.badge.checkmark")
-                        .foregroundStyle(Theme.muted)
-                        .hoverHint("Sesinden tanınıyor", alignment: .trailing, edge: .bottom)
-                }
+                .padding(.vertical, 6)
+                // E-postası olmayan satır da aynı yükseklikte.
+                .frame(minHeight: 44, alignment: .leading)
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .background(isSelected ? Theme.selected : Color.clear, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .contentShape(Rectangle())
+            .width(min: 180, ideal: 240)
+            TableColumn("Ünvan ya da kurum", value: \.role) { (person: PersonSummary) in
+                Text(person.role.isEmpty ? "—" : person.role)
+                    .appFont(size: 13, weight: .regular)
+                    .foregroundStyle(person.role.isEmpty ? Theme.muted : Theme.ink)
+                    .lineLimit(1)
+            }
+            .width(min: 120, ideal: 200)
+            TableColumn("Toplantılar", value: \.meetingCount) { (person: PersonSummary) in
+                Text(verbatim: "\(person.meetingCount)")
+                    .appFont(size: 13, weight: .regular)
+                    .monospacedDigit()
+            }
+            .width(min: 72, ideal: 96)
+            .alignment(.numeric)
+            TableColumn("Konuşma", value: \.totalSeconds) { (person: PersonSummary) in
+                Text(talkMinutes(person: person))
+                    .appFont(size: 13, weight: .regular)
+                    .monospacedDigit()
+            }
+            .width(min: 72, ideal: 96)
+            .alignment(.numeric)
+            TableColumn("Son görüldü", value: \.lastSeen) { (person: PersonSummary) in
+                Group {
+                    if let date = person.meetings.first?.date {
+                        Text(lastSeenText(date: date, now: Date()))
+                    } else {
+                        Text(verbatim: "—").foregroundStyle(Theme.muted)
+                    }
+                }
+                .appFont(size: 13, weight: .regular)
+                .monospacedDigit()
+            }
+            .width(min: 90, ideal: 110)
+            TableColumn("") { (person: PersonSummary) in
+                rowActions(person: person)
+            }
+            .width(96)
         }
-        .buttonStyle(.hoverPlain)
+        .tableStyle(.inset)
+        .alternatingRowBackgrounds(.disabled)
+        .scrollContentBackground(.hidden)
+        .contextMenu(forSelectionType: String.self) { (ids: Set<String>) in
+            if let id = ids.first {
+                Button("Bilgilerini göster", systemImage: "eye") { openedID = id }
+            }
+        } primaryAction: { (ids: Set<String>) -> Void in
+            openedID = ids.first
+        }
+        .padding(.horizontal, 12)
     }
+
+    /// Satırın sağı: sesinden tanınıyorsa dalga simgesi, göz (bilgileri pencerede açar).
+    private func rowActions(person: PersonSummary) -> some View {
+        HStack(spacing: 6) {
+            Spacer(minLength: 0)
+            if person.hasVoiceprint {
+                Image(systemName: "waveform.badge.checkmark")
+                    .appFont(size: 13, weight: .regular)
+                    .foregroundStyle(appearance.accent.color)
+                    .hoverHint("Sesinden tanınıyor", alignment: .trailing, edge: .bottom)
+                    .accessibilityLabel(Text("Sesinden tanınıyor"))
+            }
+            Button {
+                selection = person.id
+                openedID = person.id
+            } label: {
+                Image(systemName: "eye")
+                    .appFont(size: 13, weight: .medium)
+                    .foregroundStyle(Theme.muted)
+                    .frame(width: 28, height: 24)
+            }
+            .buttonStyle(.hoverPlain)
+            .accessibilityLabel(Text("Bilgilerini göster"))
+            .hoverHint("Bilgilerini göster", alignment: .trailing, edge: .bottom)
+        }
+    }
+
+    /// Kişinin penceresi: kişinin sayfası, sağ üstte kapat.
+    private func personSheet(person: PersonSummary) -> some View {
+        PersonDetail(person: person, router: router) { (name: String, role: String, email: String) -> Void in
+            // Toplantılarda adı geçen kişinin adı toplantılarda verildiği için değişmez (değişirse kişi ikiye
+            // bölünürdü); yalnızca toplantısız, elle eklenen kişinin adı değişir.
+            if person.isSaved, person.meetings.isEmpty {
+                model.renamePerson(oldName: person.name, name: name, role: role, email: email)
+                let renamed: String = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                selection = renamed
+                openedID = renamed
+            } else {
+                model.savePerson(name: person.name, role: role, email: email)
+            }
+        } onRemove: {
+            model.removePerson(name: person.name)
+            openedID = nil
+            selection = nil
+        } onClose: {
+            openedID = nil
+        }
+        .frame(width: 640, height: 600)
+        .modifier(AppSheetChrome())
+    }
+}
+
+/// Konuşma süresi: konuşması olan kişide en az 1 dk; hiç konuşmayan (elle eklenen) kişide 0. Saf fonksiyondur.
+private func talkMinutes(person: PersonSummary) -> String {
+    String(localized: "\(person.totalSeconds > 0 ? max(1, Int((person.totalSeconds / 60).rounded())) : 0) dk")
+}
+
+/// Son görüldüğü gün: bu yıl içindeyse yılsız ("5 Kas"), değilse yıllı ("5 Kas 2025"). Saf fonksiyondur.
+private func lastSeenText(date: Date, now: Date) -> String {
+    let calendar: Calendar = Calendar.current
+    let style: Date.FormatStyle = calendar.isDate(date, equalTo: now, toGranularity: .year)
+        ? Date.FormatStyle().month(.abbreviated).day()
+        : Date.FormatStyle().month(.abbreviated).day().year()
+    return date.formatted(style.locale(interfaceLocale()))
+}
+
+/// Tablonun sıralama anahtarları.
+extension PersonSummary {
+    var meetingCount: Int { meetings.count }
+    /// Son görüldüğü toplantının tarihi (toplantılar yeniden eskiye); toplantısız kişide en eski tarih.
+    var lastSeen: Date { meetings.first?.date ?? .distantPast }
 }
 
 /// Formun alanları (odak hangi alanda: çerçevesi vurgu renginde).
@@ -343,6 +390,8 @@ private struct PersonDetail: View {
     let router: MainWindowRouter
     let onSave: @MainActor (String, String, String) -> Void
     let onRemove: @MainActor () -> Void
+    /// Pencereyi kapatır.
+    let onClose: @MainActor () -> Void
     @State private var isEditing: Bool = false
     @State private var confirmRemove: Bool = false
 
@@ -400,6 +449,16 @@ private struct PersonDetail: View {
                             Button("Düzenle", systemImage: "pencil") { isEditing = true }
                             Button("Kaldır", systemImage: "trash") { confirmRemove = true }
                                 .hoverHint("Kişiler'den kaldırır ve sesini unutur; toplantılardaki adı kalır", alignment: .trailing, edge: .bottom)
+                            Button {
+                                onClose()
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .appFont(size: 12, weight: .semibold)
+                                    .frame(width: 28, height: 28)
+                            }
+                            .buttonStyle(.hoverCapsule)
+                            .keyboardShortcut(.cancelAction)
+                            .accessibilityLabel(Text("Kapat"))
                         }
                         .controlSize(.small)
                     }

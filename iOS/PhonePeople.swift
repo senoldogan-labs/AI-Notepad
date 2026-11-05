@@ -3,13 +3,15 @@ import AINotepadUI
 import SwiftUI
 
 /// Kişiler (Mac'teki Kişiler sayfası): toplantılarda konuşmacıya adı verilenler ve elle eklenenler; arama ve "Kişi ekle".
-/// Dokununca kişinin sayfası. Defter Mac'tekiyle aynı biçimde (`People.json`) hesabın klasöründe saklanır; elle eklenen
+/// Dokununca kişinin sayfası açılır pencerede. Defter Mac'tekiyle aynı biçimde (`People.json`) hesabın klasöründe saklanır; elle eklenen
 /// adlar konuşma tanımaya da verilir (bkz. `phoneRecognitionKeyterms`).
 struct PhonePeopleList: View {
     let store: PhoneStore
     let router: PhoneRouter
     @State private var query: String = ""
     @State private var isAdding: Bool = false
+    /// Penceresi açık kişi (kimliği).
+    @State private var openedID: String?
 
     var body: some View {
         let people: [PersonSummary] = peopleDirectory(records: store.meetings, voices: store.voices.registered, book: store.peopleBook, userName: store.userName)
@@ -18,15 +20,18 @@ struct PhonePeopleList: View {
             $0.name.localizedCaseInsensitiveContains(trimmed) || $0.role.localizedCaseInsensitiveContains(trimmed)
         }
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 8) {
                 PhoneErrorList(messages: [store.peopleBookError].compactMap { $0 })
-                ForEach(shown) { (person: PersonSummary) in
-                    NavigationLink {
-                        PhonePersonPage(store: store, router: router, personID: person.id)
-                    } label: {
-                        PhonePersonRow(person: person)
+                // Mac'teki tablo gibi tek yüzeyde ince çizgili satırlar; dokununca (göz) kişinin sayfası pencerede açılır.
+                if !shown.isEmpty {
+                    HairlineList(items: shown, tint: nil) { (person: PersonSummary) in
+                        Button {
+                            openedID = person.id
+                        } label: {
+                            PhonePersonRow(person: person)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(PressableCardStyle())
                 }
             }
             .padding(.horizontal, 20)
@@ -58,6 +63,26 @@ struct PhonePeopleList: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Kişi ekle", systemImage: "person.badge.plus") { isAdding = true }
+            }
+        }
+        .sheet(isPresented: Binding<Bool>(
+            get: { openedID != nil },
+            set: { (shown: Bool) -> Void in
+                if !shown {
+                    openedID = nil
+                }
+            }
+        )) {
+            if let openedID {
+                NavigationStack {
+                    PhonePersonPage(store: store, router: router, personID: openedID)
+                        .toolbar {
+                            ToolbarItem(placement: .topBarLeading) {
+                                Button("Kapat") { self.openedID = nil }
+                            }
+                        }
+                }
+                .presentationDragIndicator(.visible)
             }
         }
         .sheet(isPresented: $isAdding) {
@@ -99,13 +124,13 @@ private struct PhonePersonRow: View {
                     .foregroundStyle(Theme.muted)
                     .accessibilityLabel(Text("Sesinden tanınıyor"))
             }
-            Image(systemName: "chevron.right")
-                .appFont(size: 12, weight: .semibold)
+            Image(systemName: "eye")
+                .appFont(size: 14, weight: .medium)
                 .foregroundStyle(Theme.muted)
+                .accessibilityLabel(Text("Bilgilerini göster"))
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-        .cardSurface(cornerRadius: 14)
         .contentShape(Rectangle())
     }
 }
@@ -248,6 +273,8 @@ private struct PhonePersonPage: View {
                         Rectangle().fill(Theme.line).frame(height: 1)
                     }
                     Button {
+                        // Kişi penceresi önce kapanır: toplantı onun altında açılmasın.
+                        dismiss()
                         router.open(meetingID: item.element.meetingID)
                     } label: {
                         HStack(spacing: 12) {
