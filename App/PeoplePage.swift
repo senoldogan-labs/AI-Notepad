@@ -1,5 +1,6 @@
 import AINotepadCore
 import AINotepadUI
+import AppKit
 import SwiftUI
 
 /// Kişiler: toplantılarda adı verilen konuşmacılar ve elle eklenenler, sütunları sıralanabilen bir tabloda (kişi,
@@ -119,7 +120,11 @@ struct PeoplePage: View {
                 HStack(spacing: 10) {
                     PersonAvatar(name: person.name, size: 30)
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(person.name).appFont(size: 14, weight: .medium).lineLimit(1)
+                        // Seçili satır sistemin mavisiyle boyanmaz; seçili kişinin adı vurgu renginde.
+                        Text(person.name)
+                            .appFont(size: 14, weight: .medium)
+                            .foregroundStyle(selection == person.id ? appearance.accent.color : Theme.ink)
+                            .lineLimit(1)
                         if !person.email.isEmpty {
                             Text(person.email).appFont(size: 12, weight: .regular).foregroundStyle(Theme.muted).lineLimit(1)
                         }
@@ -171,6 +176,7 @@ struct PeoplePage: View {
         .tableStyle(.inset)
         .alternatingRowBackgrounds(.disabled)
         .scrollContentBackground(.hidden)
+        .background(PlainTableSelection())
         .contextMenu(forSelectionType: String.self) { (ids: Set<String>) in
             if let id = ids.first {
                 Button("Bilgilerini göster", systemImage: "eye") { openedID = id }
@@ -229,6 +235,53 @@ struct PeoplePage: View {
         }
         .frame(width: 640, height: 600)
         .modifier(AppSheetChrome())
+    }
+}
+
+/// Tablonun seçim boyasını kapatır: macOS seçili satırı sistem vurgu rengiyle (çoğunlukla mavi) doldurur, bu da
+/// uygulamanın renkleriyle çakışır. SwiftUI `Table` bunu ayarlatmadığı için arkadaki NSTableView bulunup seçim
+/// vurgusu kapatılır; seçim, çift tık ve Return çalışmaya devam eder.
+private struct PlainTableSelection: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        TableSelectionProbe()
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        (nsView as? TableSelectionProbe)?.applyToTable()
+    }
+}
+
+/// Pencereye eklenince en yakın ata görünümün altındaki ilk NSTableView'un seçim vurgusunu kapatır.
+private final class TableSelectionProbe: NSView {
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        // Tablo bu görünümle aynı karede eklendiği için bir sonraki turda aranır.
+        DispatchQueue.main.async { [weak self] in self?.applyToTable() }
+    }
+
+    func applyToTable() {
+        var ancestor: NSView? = superview
+        for _ in 0..<6 {
+            guard let view = ancestor else { return }
+            if let table = firstTable(in: view) {
+                table.selectionHighlightStyle = .none
+                return
+            }
+            ancestor = view.superview
+        }
+    }
+
+    private func firstTable(in view: NSView) -> NSTableView? {
+        // SwiftUI Table bir NSOutlineView alt sınıfıdır; tek sütunlu listeler (kenar çubuğu gibi) atlanır.
+        if let table = view as? NSTableView, table.numberOfColumns > 1 {
+            return table
+        }
+        for child in view.subviews {
+            if let table = firstTable(in: child) {
+                return table
+            }
+        }
+        return nil
     }
 }
 
