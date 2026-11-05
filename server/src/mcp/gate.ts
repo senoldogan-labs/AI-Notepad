@@ -7,8 +7,9 @@ import { hasSyncAccess } from "../sync";
 /**
  * The checks every connection step makes against strongly consistent D1 (KV, where OAuth tokens live, is eventually
  * consistent): the account exists, AI assistant access is on, and the account has a subscription or a running trial.
- * The consent page, the code exchange, refreshes and every MCP call use them, so turning the feature off, losing
- * access or deleting the account stops an assistant at once.
+ * The consent page, the consent decision, the code exchange and every MCP call run them, so turning the feature off,
+ * losing access or deleting the account stops an assistant at once. A refresh does not run them: it only checks that
+ * the connection row is live at the current epoch (`grants.ts`), and the next MCP call runs the full gate.
  */
 export type UserGate =
   | { readonly kind: "ready"; readonly epoch: number }

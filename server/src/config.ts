@@ -180,8 +180,9 @@ export interface Config {
   /** Eşitleme uçları açık mı (`SYNC_POLICY`). */
   readonly syncPolicy: SyncPolicy;
   /**
-   * Yapay zekâ asistanı erişimi uçları açık mı (`ASSISTANT_POLICY`; bkz. `assistant/api.ts`): `off` ise
-   * `/v1/assistant/…` `503 assistant_unavailable` döner; hesap silme ve günlük temizlik kopyayı yine siler.
+   * Yapay zekâ asistanı erişimi açık mı (`ASSISTANT_POLICY`; bkz. `assistantStorageOf`): `off` ise API Worker'ın hiçbir
+   * asistan adımı çalışmaz — `/v1/assistant/…` `503 assistant_unavailable` döner, hesap silme ve günlük temizlik asistan
+   * adımını atlar (`info` loglanır). `on` iken `ASSISTANT_DB` ve `ASSISTANT_BUCKET` bağlamaları zorunludur.
    */
   readonly assistantPolicy: SyncPolicy;
   /**
@@ -308,6 +309,40 @@ export interface StripeWebhookConfig {
 export interface CloudflareAccessConfig {
   readonly teamDomain: string;
   readonly audience: string | null;
+}
+
+/** Yapay zekâ asistanı kopyasının bağlamaları (AB D1 ve R2; bkz. `assistant/store.ts`). */
+export interface AssistantStorage {
+  readonly adb: D1Database;
+  readonly bucket: R2Bucket;
+}
+
+/** `ASSISTANT_POLICY` `on` iken eksik olan asistan bağlamalarının adları. Saf fonksiyondur. */
+function missingAssistantBindings(env: Env): string[] {
+  const missing: string[] = [];
+  if (env.ASSISTANT_DB === undefined) {
+    missing.push("ASSISTANT_DB");
+  }
+  if (env.ASSISTANT_BUCKET === undefined) {
+    missing.push("ASSISTANT_BUCKET");
+  }
+  return missing;
+}
+
+/**
+ * API Worker'ın asistan adımlarının (`/v1/assistant/…`, hesap silme, günlük temizlik) kullanacağı bağlamalar: politika
+ * `off` ise null — üretimde bağlamalar sahip AB D1'i oluşturup ekleyene kadar yoktur ve asistan kodu tamamen etkisizdir.
+ * Politika `on` iken bağlama eksikse `ConfigError` (`parseConfig` bunu ilk istekte zaten fırlatır; burada istek anında
+ * `undefined` bir bağlamaya düşülmez). Saf fonksiyondur.
+ */
+export function assistantStorageOf(env: Env, config: Config): AssistantStorage | null {
+  if (config.assistantPolicy === "off") {
+    return null;
+  }
+  if (env.ASSISTANT_DB === undefined || env.ASSISTANT_BUCKET === undefined) {
+    throw new ConfigError(missingAssistantBindings(env));
+  }
+  return { adb: env.ASSISTANT_DB, bucket: env.ASSISTANT_BUCKET };
 }
 
 /** Yapılandırma eksik ya da geçersiz: dağıtım hatasıdır, istemciye ayrıntı verilmez. */
@@ -620,6 +655,11 @@ export function parseConfig(env: Env): Config {
   const deepgram: DeepgramConfig = deepgramConfig(value);
   if (value.ENVIRONMENT === "production" && deviceCheck.policy === "required" && deviceCheck.environment !== "production") {
     throw new ConfigError(["DEVICECHECK_ENVIRONMENT"]);
+  }
+  // Asistan açıkken bağlamaları zorunlu: eksik bağlama istek anında değil, ilk istekte (`/v1/health` dahil) görünür.
+  const missingAssistant: string[] = value.ASSISTANT_POLICY === "on" ? missingAssistantBindings(env) : [];
+  if (missingAssistant.length > 0) {
+    throw new ConfigError(missingAssistant);
   }
   if (value.ENVIRONMENT === "production") {
     const placeholders: string[] = placeholderSettings(value);

@@ -6,7 +6,7 @@ import { googleTokenIssuer } from "./auth/google";
 import { refreshPersistedIssuerKeys } from "./auth/identityToken";
 import { warnIfStripeTestMode } from "./billing";
 import { cleanupExpiredRows, scheduledCleanupLimits } from "./cleanup";
-import { type Config, parseConfig } from "./config";
+import { type AssistantStorage, type Config, assistantStorageOf, parseConfig } from "./config";
 import { recordDailyMetrics } from "./dailyMetrics";
 import { settleDeepgramMeetings } from "./deepgram";
 import { dailyElevenLabsCapacityCheck } from "./elevenLabsCapacity";
@@ -17,10 +17,23 @@ import type { CachedJwks, Platform } from "./platform";
 import { grantDueReferralRewards } from "./referralRewards";
 import { scheduledSyncCleanupLimits, syncCleanup } from "./sync";
 import { stubbedFetch, upstreamStubBase } from "./upstreamStub";
-import { assistantCleanup, scheduledAssistantCleanupLimits } from "./assistant/cleanup";
+import { type AssistantCleanupReport, assistantCleanup, scheduledAssistantCleanupLimits } from "./assistant/cleanup";
 
 /** Worker örneği ömrünce paylaşılan kimlik sağlayıcısı anahtarları önbelleği. */
 const jwksCache: Map<string, CachedJwks> = new Map();
+
+/**
+ * Asistan kopyasının günlük temizliği; `ASSISTANT_POLICY` kapalıyken (bağlamalar yok) açıkça atlanır ve `info` loglanır
+ * (null döner). Politika açılınca ilk çalışma, kapalıyken silinmiş hesapların kopyasını da siler (yetim denetimi).
+ */
+async function scheduledAssistantCleanup(env: Env, config: Config, now: Date): Promise<AssistantCleanupReport | null> {
+  const storage: AssistantStorage | null = assistantStorageOf(env, config);
+  if (storage === null) {
+    log("info", "assistant_cleanup_skipped", { reason: "assistant_policy_off" });
+    return null;
+  }
+  return assistantCleanup(storage.adb, env.DB, storage.bucket, config, now, scheduledAssistantCleanupLimits);
+}
 
 /**
  * Üretim platformu: gerçek fetch (yerel uçtan uca denemede üst servisler sahte yerel servise; bkz. `upstreamStubBase`),
@@ -73,7 +86,8 @@ export default {
       { name: "sync_cleanup", run: () => syncCleanup(env.DB, env.SYNC_BUCKET, config, now, scheduledSyncCleanupLimits) },
       // Yapay zekâ asistanı kopyası: erişimi biten hesabın kopyası 7 gün içinde, silinmiş hesabınki hemen; R2 kuyruğu
       // (bkz. `assistant/cleanup.ts`).
-      { name: "assistant_cleanup", run: () => assistantCleanup(env.ASSISTANT_DB, env.DB, env.ASSISTANT_BUCKET, config, now, scheduledAssistantCleanupLimits) },
+      // `ASSISTANT_POLICY` kapalıyken (üretimde AB D1'i oluşturulana kadar bağlama yoktur) adım açıkça atlanır.
+      { name: "assistant_cleanup", run: () => scheduledAssistantCleanup(env, config, now) },
       // Bekleme süresi dolmuş davet ödülleri (davet edenin Stripe müşteri bakiyesi; bkz. `referralRewards.ts`).
       { name: "referral_rewards", run: () => grantDueReferralRewards(env.DB, platform, config, now) },
       // Apple ve Google anahtarları önceden alınır: girişler sağlayıcıyı beklemesin (bkz. `persistedIssuerKeys`).

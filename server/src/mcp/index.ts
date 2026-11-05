@@ -8,6 +8,9 @@ import {
 } from "@cloudflare/workers-oauth-provider";
 import { createMcpHandler } from "agents/mcp/server";
 import { z } from "zod";
+import { decodeUtf8Strict } from "../crypto";
+import { ApiError } from "../errors";
+import { readBodyBytes } from "../http";
 import { clientIpKey } from "../ip";
 import { errorName, log } from "../log";
 import type { CachedJwks, OutboundPlatform } from "../platform";
@@ -96,15 +99,22 @@ function registrationError(status: number, code: string, description: string): R
  * of them remote http, and at most `registrationsPerIpPerHour` registrations per IP (HMAC) and hour. Null: allowed.
  */
 export async function registrationRefusal(request: Request, env: McpEnv, config: McpConfig, now: Date): Promise<Response | null> {
-  const text: string = await request.clone().text();
-  if (text.length > registrationBodyMaxBytes) {
-    return registrationError(413, "invalid_client_metadata", "The registration is too large.");
+  // `content-length` is checked before anything is read, and the copy is read with a counting reader that stops after
+  // `registrationBodyMaxBytes` (the library reads the original body only when this returns null).
+  let bytes: Uint8Array;
+  try {
+    bytes = await readBodyBytes(request.clone(), registrationBodyMaxBytes);
+  } catch (error: unknown) {
+    if (error instanceof ApiError && error.code === "payload_too_large") {
+      return registrationError(413, "invalid_client_metadata", "The registration is too large.");
+    }
+    throw error;
   }
   let body: unknown;
   try {
-    body = JSON.parse(text);
+    body = JSON.parse(decodeUtf8Strict(bytes));
   } catch (error: unknown) {
-    if (error instanceof SyntaxError) {
+    if (error instanceof SyntaxError || error instanceof TypeError) {
       return registrationError(400, "invalid_client_metadata", "The registration must be JSON.");
     }
     throw error;

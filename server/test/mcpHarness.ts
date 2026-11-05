@@ -241,8 +241,14 @@ export async function tokenRequest(test: McpTest, form: Record<string, string>):
   );
 }
 
-/** The whole connection: sign in, allow, exchange the code. */
-export async function connect(test: McpTest, client: TestClient, subject: string): Promise<Tokens> {
+/** An allowed authorization: the code and its PKCE verifier, not yet exchanged. */
+export interface ApprovedCode {
+  readonly code: string;
+  readonly verifier: string;
+}
+
+/** Sign in and allow; returns the code the client receives. */
+export async function approvedCode(test: McpTest, client: TestClient, subject: string): Promise<ApprovedCode> {
   const { verifier, challenge } = await pkce();
   const { html, jar } = await consentPageFor(test, client, subject, challenge);
   const consent = formOf(html);
@@ -251,14 +257,24 @@ export async function connect(test: McpTest, client: TestClient, subject: string
   const location: URL = new URL(decided.headers.get("location") ?? "");
   expect(`${location.origin}${location.pathname}`).toBe(client.redirectUri);
   expect(location.searchParams.get("state")).toBe("client-state-1");
-  const token: Response = await tokenRequest(test, {
+  return { code: location.searchParams.get("code") ?? "", verifier };
+}
+
+/** Exchanges an allowed code at the token endpoint. */
+export async function exchangeCode(test: McpTest, client: TestClient, approved: ApprovedCode): Promise<Response> {
+  return tokenRequest(test, {
     grant_type: "authorization_code",
-    code: location.searchParams.get("code") ?? "",
+    code: approved.code,
     redirect_uri: client.redirectUri,
     client_id: client.clientId,
-    code_verifier: verifier,
+    code_verifier: approved.verifier,
     resource: mcpResource,
   });
+}
+
+/** The whole connection: sign in, allow, exchange the code. */
+export async function connect(test: McpTest, client: TestClient, subject: string): Promise<Tokens> {
+  const token: Response = await exchangeCode(test, client, await approvedCode(test, client, subject));
   expect(token.status).toBe(200);
   return token.json<Tokens>();
 }

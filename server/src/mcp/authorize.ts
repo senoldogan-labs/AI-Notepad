@@ -16,11 +16,11 @@ import { ApiError, ProviderApiError, UpstreamError } from "../errors";
 import { clientIpKey } from "../ip";
 import { errorName, log } from "../log";
 import type { OutboundPlatform } from "../platform";
-import { type ClientPresentation, connectionLabel, presentClient } from "./clients";
+import { type ClientPresentation, connectionLabel, isVerifiedRedirect, presentClient } from "./clients";
 import { type McpConfig, type ReviewerLogin, notesReadScope } from "./config";
 import type { McpEnv } from "./env";
 import { type UserGate, gateMessage, hmacHex, purposeKey, userGate } from "./gate";
-import type { ConsentProps } from "./grants";
+import { type ConsentProps, markClientUsed } from "./grants";
 import {
   type AccountSummary,
   type ConsentState,
@@ -164,15 +164,32 @@ async function presentationOf(oauth: OAuthHelpers, auth: AuthRequest): Promise<C
   return presentClient(auth.redirectUri, client?.clientName ?? null);
 }
 
+/** User-facing text of an invalid authorization request (the code is the library's, never client-supplied). Pure function. */
+export function authorizationRefusalMessage(code: string): string {
+  if (code === "invalid_target") {
+    return "The app asked for access to a different server than Gistsmith's. Check the connector URL (https://mcp.gistsmith.com/mcp) or contact the app's developer.";
+  }
+  if (code === "invalid_scope") {
+    return "The app asked for access Gistsmith doesn't offer. Contact the app's developer.";
+  }
+  return "The app's sign-in request is incomplete or not supported (it must use PKCE with S256). Update the app or contact its developer.";
+}
+
 /** `GET /authorize`. */
 async function startAuthorization(request: Request, context: AuthorizeContext): Promise<Response> {
   let auth: AuthRequest;
   try {
     auth = await context.oauth.parseAuthRequest(request);
   } catch (error: unknown) {
-    // Only an error the library attached a validated redirect to may go back to the client.
-    if (error instanceof AuthorizationError && error.redirectTo !== undefined) {
+    // Only a verified product's callback gets the standard OAuth error redirect (and only one the library validated).
+    // Any client can register through DCR, so redirecting its invalid requests would make this origin an open redirector
+    // (RFC 9700 §4.11.2): those get an error page instead.
+    if (error instanceof AuthorizationError && error.redirectTo !== undefined && isVerifiedRedirect(error.redirectTo)) {
       return new Response(null, { status: 302, headers: { location: error.redirectTo, "cache-control": "no-store", "referrer-policy": "no-referrer" } });
+    }
+    if (error instanceof AuthorizationError && error.redirectTo !== undefined) {
+      log("info", "assistant_authorize_refused", { path: "/authorize", code: error.code });
+      throw new PageError(400, "This app's request can't be used", authorizationRefusalMessage(error.code));
     }
     throw error;
   }
@@ -321,6 +338,7 @@ async function decideConsent(request: Request, context: AuthorizeContext): Promi
     throw new PageError(403, "Can't connect", gateMessage(gate));
   }
   const approved = await context.oauth.approveConsent(request, body.handle, { scope: [notesReadScope] });
+  await markClientUsed(context.env.ASSISTANT_DB, approved.request.clientId, context.platform.now());
   const presentation: ClientPresentation = await presentationOf(context.oauth, approved.request);
   const props: ConsentProps = {
     userId: body.user,

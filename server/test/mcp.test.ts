@@ -164,15 +164,16 @@ describe("MCP OAuth", () => {
     const jar: CookieJar = new CookieJar();
     const { verifier, challenge } = await pkce();
     const wrong: Response = await browse(test, jar, "GET", authorizeUrl(client, challenge, "s", "https://other.example/mcp"), null);
-    // The client and redirect URI are valid, so the library answers the client with invalid_target (no code).
-    expect(wrong.status).toBe(302);
-    expect(new URL(wrong.headers.get("location") ?? "").searchParams.get("error")).toBe("invalid_target");
-    // A public client without PKCE, or with the plain method: the library answers the client with invalid_request.
+    // An unverified (dynamically registered) client never gets a redirect for an invalid request: an error page.
+    expect(wrong.status).toBe(400);
+    expect(wrong.headers.get("location")).toBeNull();
+    expect(await wrong.text()).toContain("a different server");
+    // A public client without PKCE, or with the plain method: an error page too.
     for (const variant of ["", "&code_challenge=abc&code_challenge_method=plain"]) {
       const url: string = authorizeUrl(client, challenge, "s", mcpResource).replace(/&code_challenge=[^&]*&code_challenge_method=S256/, variant);
       const refused: Response = await browse(test, jar, "GET", url, null);
-      expect(refused.status).toBe(302);
-      expect(new URL(refused.headers.get("location") ?? "").searchParams.get("error")).toBe("invalid_request");
+      expect(refused.status).toBe(400);
+      expect(refused.headers.get("location")).toBeNull();
     }
     // A confidential client may skip PKCE in OAuth, but not here: an error page, no code.
     const registered: Response = await test.fetch(

@@ -1,3 +1,4 @@
+import { randomId } from "../crypto";
 import { ApiError } from "../errors";
 import { errorName, log } from "../log";
 import { type AssistantKeyring, openField, openUserFields, sealField } from "./crypto";
@@ -5,7 +6,10 @@ import {
   type MeetingIndex,
   type MeetingProjection,
   type ProjectionUpload,
+  assistantAccountMaxBytes,
   assistantAccountMaxMeetings,
+  encodedNote,
+  indexMaxBytes,
   meetingIndex,
   meetingIndexSchema,
   meetingProjection,
@@ -15,7 +19,8 @@ import {
 /**
  * Storage of the AI assistant copy, shared by the API Worker (apps upload and delete) and the `gistsmith-mcp` Worker
  * (assistants read): settings, meeting rows and connections in the EU D1 database (`ASSISTANT_DB`), sealed notes in the
- * EU R2 bucket (`ASSISTANT_BUCKET`, the sync bucket) under `a/<user>/<epoch>/<meeting>`.
+ * EU R2 bucket (`ASSISTANT_BUCKET`, the sync bucket) under `a/<user>/<epoch>/<meeting>/<object id>` (every upload
+ * is a new object; the row names the current one).
  *
  * Every query is scoped by the user id from the caller's token, never from a request body: two accounts with the same
  * meeting id never meet (primary key `(user_id, meeting_id)`, user id in the R2 key and in the encryption's
@@ -91,9 +96,9 @@ export function assistantEpochPrefix(userId: string, epoch: number): string {
   return `${assistantPrefix(userId)}${epoch}/`;
 }
 
-/** R2 key of a meeting's sealed note. Pure function. */
-export function assistantObjectKey(userId: string, epoch: number, meetingId: string): string {
-  return `${assistantEpochPrefix(userId, epoch)}${meetingId}`;
+/** R2 key of one upload of a meeting's sealed note. Pure function. */
+export function assistantObjectKey(userId: string, epoch: number, meetingId: string, objectId: string): string {
+  return `${assistantEpochPrefix(userId, epoch)}${meetingId}/${objectId}`;
 }
 
 /** Settings body; a missing row is "off" at the first epoch. Pure function. */
@@ -253,10 +258,25 @@ function isoMs(value: string): number {
   return ms;
 }
 
+/** Why an upload's conditional insert changed nothing (read after the fact, only to pick the error). */
+async function uploadRefusal(adb: D1Database, userId: string, epoch: number): Promise<ApiError> {
+  const settings: AssistantSettingsRow | null = await assistantSettings(adb, userId);
+  if (settings === null || settings.enabled === 0 || settings.epoch !== epoch) {
+    return new ApiError("assistant_epoch_mismatch", "AI assistant access was turned off while uploading; read the settings and upload again.");
+  }
+  return new ApiError(
+    "assistant_quota_exceeded",
+    `The assistant copy holds at most ${assistantAccountMaxMeetings} meetings and ${assistantAccountMaxBytes / (1024 * 1024)} MB; remove old meetings first.`,
+  );
+}
+
 /**
- * Stores one meeting: the sealed note goes to R2, then one statement inserts or updates the row only while the feature
- * is on at the upload's epoch. If that statement changes nothing (turned off, or the epoch moved), the object is
- * deleted again and the upload is refused with 409.
+ * Stores one meeting. The sealed note goes to R2 as a new object, then one statement inserts or updates the row only
+ * while the feature is on at the upload's epoch and the account stays within `assistantAccountMaxMeetings` and
+ * `assistantAccountMaxBytes` (counted without this meeting's current row): no check-then-write gap, so parallel uploads
+ * cannot pass the limits together. If that statement changes nothing, only the new object is deleted (the row still
+ * names the previous one, which stays readable) and the upload is refused. After an update the previous object is
+ * deleted.
  */
 export async function putAssistantMeeting(
   adb: D1Database,
@@ -274,35 +294,48 @@ export async function putAssistantMeeting(
   if (settings.epoch !== upload.epoch) {
     throw new ApiError("assistant_epoch_mismatch", "AI assistant access was turned off and on again; read the settings and upload again.");
   }
-  const existing: { present: number; count: number } | null = await adb
-    .prepare("SELECT EXISTS (SELECT 1 FROM assistant_meetings WHERE user_id = ?1 AND meeting_id = ?2) AS present, (SELECT COUNT(*) FROM assistant_meetings WHERE user_id = ?1) AS count")
-    .bind(userId, meetingId)
-    .first<{ present: number; count: number }>();
-  if (existing === null) {
-    throw new Error("assistant_meetings count returned no row.");
-  }
-  if (existing.present === 0 && existing.count >= assistantAccountMaxMeetings) {
-    throw new ApiError("assistant_quota_exceeded", `The assistant copy holds at most ${assistantAccountMaxMeetings} meetings; remove old ones first.`);
-  }
   const projection: MeetingProjection = meetingProjection(upload);
-  const encoder: TextEncoder = new TextEncoder();
-  const sealedNote: Uint8Array = await sealField(keyring, userId, meetingId, "note", encoder.encode(JSON.stringify(projection)));
-  const sealedIndex: Uint8Array = await sealField(keyring, userId, meetingId, "index", encoder.encode(JSON.stringify(meetingIndex(projection))));
-  const key: string = assistantObjectKey(userId, settings.epoch, meetingId);
+  const sealedNote: Uint8Array = await sealField(keyring, userId, meetingId, "note", encodedNote(projection));
+  const sealedIndex: Uint8Array = await sealField(keyring, userId, meetingId, "index", new TextEncoder().encode(JSON.stringify(meetingIndex(projection))));
+  const previous: { object_id: string } | null = await adb
+    .prepare("SELECT object_id FROM assistant_meetings WHERE user_id = ? AND meeting_id = ?")
+    .bind(userId, meetingId)
+    .first<{ object_id: string }>();
+  const objectId: string = randomId();
+  const key: string = assistantObjectKey(userId, settings.epoch, meetingId, objectId);
   await bucket.put(key, sealedNote);
-  const nowMs: number = now.getTime();
   const result: D1Result = await adb
     .prepare(
-      `INSERT INTO assistant_meetings (user_id, meeting_id, device_id, started_at, updated_at, size, index_ct)
-       SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7 FROM assistant_settings WHERE user_id = ?1 AND enabled = 1 AND epoch = ?8
+      `INSERT INTO assistant_meetings (user_id, meeting_id, device_id, started_at, updated_at, size, index_ct, object_id)
+       SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?9 FROM assistant_settings
+       WHERE user_id = ?1 AND enabled = 1 AND epoch = ?8
+         AND (EXISTS (SELECT 1 FROM assistant_meetings WHERE user_id = ?1 AND meeting_id = ?2)
+              OR (SELECT COUNT(*) FROM assistant_meetings WHERE user_id = ?1) < ?10)
+         AND (SELECT COALESCE(SUM(size + LENGTH(index_ct)), 0) FROM assistant_meetings WHERE user_id = ?1 AND meeting_id <> ?2)
+             + ?6 + LENGTH(?7) <= ?11
        ON CONFLICT(user_id, meeting_id) DO UPDATE SET device_id = excluded.device_id, started_at = excluded.started_at,
-         updated_at = excluded.updated_at, size = excluded.size, index_ct = excluded.index_ct`,
+         updated_at = excluded.updated_at, size = excluded.size, index_ct = excluded.index_ct, object_id = excluded.object_id`,
     )
-    .bind(userId, meetingId, upload.deviceId.toLowerCase(), isoMs(upload.startedAt), nowMs, sealedNote.byteLength, sealedIndex, settings.epoch)
+    .bind(
+      userId,
+      meetingId,
+      upload.deviceId.toLowerCase(),
+      isoMs(upload.startedAt),
+      now.getTime(),
+      sealedNote.byteLength,
+      sealedIndex,
+      settings.epoch,
+      objectId,
+      assistantAccountMaxMeetings,
+      assistantAccountMaxBytes,
+    )
     .run();
   if (result.meta.changes === 0) {
     await bucket.delete(key);
-    throw new ApiError("assistant_epoch_mismatch", "AI assistant access was turned off while uploading; read the settings and upload again.");
+    throw await uploadRefusal(adb, userId, settings.epoch);
+  }
+  if (previous !== null) {
+    await bucket.delete(assistantObjectKey(userId, settings.epoch, meetingId, previous.object_id));
   }
   return { meetingId, size: sealedNote.byteLength };
 }
@@ -310,22 +343,25 @@ export async function putAssistantMeeting(
 /** Deletes one meeting from the copy (repeating is harmless). */
 export async function deleteAssistantMeeting(adb: D1Database, bucket: R2Bucket, userId: string, meetingId: string): Promise<boolean> {
   const settings: AssistantSettingsRow | null = await assistantSettings(adb, userId);
-  const result: D1Result = await adb.prepare("DELETE FROM assistant_meetings WHERE user_id = ? AND meeting_id = ?").bind(userId, meetingId).run();
-  if (settings !== null) {
-    await bucket.delete(assistantObjectKey(userId, settings.epoch, meetingId));
+  const deleted: { object_id: string } | null = await adb
+    .prepare("DELETE FROM assistant_meetings WHERE user_id = ? AND meeting_id = ? RETURNING object_id")
+    .bind(userId, meetingId)
+    .first<{ object_id: string }>();
+  if (settings !== null && deleted !== null) {
+    await bucket.delete(assistantObjectKey(userId, settings.epoch, meetingId, deleted.object_id));
   }
-  return result.meta.changes > 0;
+  return deleted !== null;
 }
 
 /** Deletes every meeting a (lost) device uploaded. */
 export async function deleteAssistantDevice(adb: D1Database, bucket: R2Bucket, userId: string, deviceId: string): Promise<number> {
   const settings: AssistantSettingsRow | null = await assistantSettings(adb, userId);
-  const rows: D1Result<{ meeting_id: string }> = await adb
-    .prepare("DELETE FROM assistant_meetings WHERE user_id = ? AND device_id = ? RETURNING meeting_id")
+  const rows: D1Result<{ meeting_id: string; object_id: string }> = await adb
+    .prepare("DELETE FROM assistant_meetings WHERE user_id = ? AND device_id = ? RETURNING meeting_id, object_id")
     .bind(userId, deviceId)
-    .all<{ meeting_id: string }>();
+    .all<{ meeting_id: string; object_id: string }>();
   if (settings !== null && rows.results.length > 0) {
-    const keys: string[] = rows.results.map((row: { meeting_id: string }): string => assistantObjectKey(userId, settings.epoch, row.meeting_id));
+    const keys: string[] = rows.results.map((row): string => assistantObjectKey(userId, settings.epoch, row.meeting_id, row.object_id));
     for (let start: number = 0; start < keys.length; start += 1000) {
       await bucket.delete(keys.slice(start, start + 1000));
     }
@@ -357,31 +393,62 @@ export interface IndexBounds {
   readonly before: { readonly startedAtMs: number; readonly meetingId: string } | null;
 }
 
-/** Index rows of a user, newest first (ties by meeting id), decrypted. */
-export async function indexedMeetings(adb: D1Database, keyring: AssistantKeyring, userId: string, bounds: IndexBounds, limit: number): Promise<IndexedMeeting[]> {
-  const rows: D1Result<{ meeting_id: string; started_at: number; index_ct: ArrayBuffer }> = await adb
+/** How much of a user's index one call decrypts: at most `rows` rows and `bytes` sealed bytes. */
+export interface ScanLimits {
+  readonly rows: number;
+  readonly bytes: number;
+}
+
+/** Decrypted index rows; `truncated` when more rows matched than the scan limits allowed. */
+export interface IndexScan {
+  readonly meetings: IndexedMeeting[];
+  readonly truncated: boolean;
+}
+
+/**
+ * Index rows of a user, newest first (ties by meeting id), decrypted, within `limits`: D1 returns the sealed index only
+ * for rows whose running total of sealed bytes fits `limits.bytes` (later rows come back without it and only mark the
+ * scan as truncated), so memory stays bounded however large the account's copy is.
+ */
+export async function indexedMeetings(adb: D1Database, keyring: AssistantKeyring, userId: string, bounds: IndexBounds, limits: ScanLimits): Promise<IndexScan> {
+  const rows: D1Result<{ meeting_id: string; started_at: number; index_ct: ArrayBuffer | null }> = await adb
     .prepare(
-      `SELECT meeting_id, started_at, index_ct FROM assistant_meetings
-       WHERE user_id = ?1 AND (?2 IS NULL OR started_at >= ?2) AND (?3 IS NULL OR started_at < ?3)
-         AND (?5 IS NULL OR started_at < ?5 OR (started_at = ?5 AND meeting_id < ?6))
-       ORDER BY started_at DESC, meeting_id DESC LIMIT ?4`,
+      `SELECT meeting_id, started_at, CASE WHEN running <= ?7 THEN index_ct END AS index_ct FROM (
+         SELECT meeting_id, started_at, index_ct,
+           SUM(LENGTH(index_ct)) OVER (ORDER BY started_at DESC, meeting_id DESC ROWS UNBOUNDED PRECEDING) AS running
+         FROM assistant_meetings
+         WHERE user_id = ?1 AND (?2 IS NULL OR started_at >= ?2) AND (?3 IS NULL OR started_at < ?3)
+           AND (?5 IS NULL OR started_at < ?5 OR (started_at = ?5 AND meeting_id < ?6))
+         ORDER BY started_at DESC, meeting_id DESC LIMIT ?4
+       ) ORDER BY started_at DESC, meeting_id DESC`,
     )
-    .bind(userId, bounds.sinceMs, bounds.untilMs, limit, bounds.before?.startedAtMs ?? null, bounds.before?.meetingId ?? null)
-    .all<{ meeting_id: string; started_at: number; index_ct: ArrayBuffer }>();
+    .bind(userId, bounds.sinceMs, bounds.untilMs, limits.rows + 1, bounds.before?.startedAtMs ?? null, bounds.before?.meetingId ?? null, limits.bytes)
+    .all<{ meeting_id: string; started_at: number; index_ct: ArrayBuffer | null }>();
+  const kept: Array<{ meeting_id: string; started_at: number; index_ct: ArrayBuffer }> = [];
+  for (const row of rows.results.slice(0, limits.rows)) {
+    if (row.index_ct === null) {
+      break;
+    }
+    if (row.index_ct.byteLength > indexMaxBytes * 2) {
+      throw new Error("A sealed meeting index is larger than any index the server writes.");
+    }
+    kept.push({ meeting_id: row.meeting_id, started_at: row.started_at, index_ct: row.index_ct });
+  }
   const decoder: TextDecoder = new TextDecoder();
   const plaintexts: Uint8Array[] = await openUserFields(
     keyring,
     userId,
     "index",
-    rows.results.map((row) => ({ meetingId: row.meeting_id, sealed: new Uint8Array(row.index_ct) })),
+    kept.map((row) => ({ meetingId: row.meeting_id, sealed: new Uint8Array(row.index_ct) })),
   );
-  return rows.results.map((row, index: number): IndexedMeeting => {
+  const meetings: IndexedMeeting[] = kept.map((row, index: number): IndexedMeeting => {
     const plaintext: Uint8Array | undefined = plaintexts[index];
     if (plaintext === undefined) {
       throw new Error("openUserFields returned fewer fields than it was given.");
     }
     return { meetingId: row.meeting_id, startedAtMs: row.started_at, index: meetingIndexSchema.parse(JSON.parse(decoder.decode(plaintext))) };
   });
+  return { meetings, truncated: rows.results.length > kept.length };
 }
 
 /** One meeting's full copy, or null when the user has no such meeting. */
@@ -392,17 +459,17 @@ export async function assistantMeeting(
   userId: string,
   meetingId: string,
 ): Promise<MeetingProjection | null> {
-  const row: { epoch: number } | null = await adb
+  const row: { epoch: number; object_id: string } | null = await adb
     .prepare(
-      `SELECT s.epoch AS epoch FROM assistant_meetings m JOIN assistant_settings s ON s.user_id = m.user_id
+      `SELECT s.epoch AS epoch, m.object_id AS object_id FROM assistant_meetings m JOIN assistant_settings s ON s.user_id = m.user_id
        WHERE m.user_id = ? AND m.meeting_id = ?`,
     )
     .bind(userId, meetingId)
-    .first<{ epoch: number }>();
+    .first<{ epoch: number; object_id: string }>();
   if (row === null) {
     return null;
   }
-  const object: R2ObjectBody | null = await bucket.get(assistantObjectKey(userId, row.epoch, meetingId));
+  const object: R2ObjectBody | null = await bucket.get(assistantObjectKey(userId, row.epoch, meetingId, row.object_id));
   if (object === null) {
     log("alert", "assistant_object_missing", { userId, meetingId });
     throw new Error("The meeting's row exists but its sealed note is missing.");

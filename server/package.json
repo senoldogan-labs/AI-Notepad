@@ -9,7 +9,7 @@
     "test": "vitest run",
     "migrate:local": "wrangler d1 migrations apply ainotepad --local && wrangler d1 migrations apply gistsmith-assistant-dev --local",
     "migrate:production": "wrangler d1 migrations apply ainotepad-production --remote --env production",
-    "migrate:assistant:production": "wrangler d1 migrations apply gistsmith-assistant --remote --env production",
+    "migrate:assistant:production": "wrangler d1 migrations apply gistsmith-assistant --remote --config wrangler.mcp.jsonc --env production",
     "dev:mcp": "wrangler dev --config wrangler.mcp.jsonc",
     "deploy:mcp": "wrangler deploy --config wrangler.mcp.jsonc --env production"
   },

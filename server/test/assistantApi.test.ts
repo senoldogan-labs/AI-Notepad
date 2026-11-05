@@ -1,7 +1,9 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { accessLossDeleteDays, assistantCleanup, scheduledAssistantCleanupLimits } from "../src/assistant/cleanup";
-import { assistantEpochPrefix, assistantPrefix, disableAssistant } from "../src/assistant/store";
+import { type AssistantKeyring, parseAssistantKeyring } from "../src/assistant/crypto";
+import { assistantAccountMaxBytes } from "../src/assistant/projection";
+import { type IndexScan, assistantEpochPrefix, assistantMeeting, assistantPrefix, disableAssistant, indexedMeetings } from "../src/assistant/store";
 import { parseConfig } from "../src/config";
 import { randomId } from "../src/crypto";
 import { type Harness, type Session, defaultHarness, envWith, expectError, grantSubscription, req, signIn } from "./helpers";
@@ -180,6 +182,97 @@ async function signInAgain(harness: Harness, session: Session): Promise<Session>
   Object.assign(session, { refreshToken: next.refreshToken, accessToken: next.accessToken });
   return next;
 }
+
+/** A row that takes `bytes` of the account's quota without an object (the quota counts rows, not R2). */
+async function insertFiller(userId: string, bytes: number): Promise<void> {
+  await env.ASSISTANT_DB.prepare(
+    "INSERT INTO assistant_meetings (user_id, meeting_id, device_id, started_at, updated_at, size, index_ct, object_id) VALUES (?, ?, ?, 0, 0, ?, X'00', 'filler')",
+  )
+    .bind(userId, randomId(), randomId(), bytes)
+    .run();
+}
+
+describe("assistant storage limits", () => {
+  it("refuses an upload past the account's byte quota and leaves no object behind", async () => {
+    const harness: Harness = await defaultHarness();
+    const { session, epoch } = await ready(harness);
+    await insertFiller(session.userId, assistantAccountMaxBytes - 1000);
+    const response: Response = await harness.call(
+      req("PUT", `/v1/assistant/meetings/${randomId()}`, { token: session.accessToken, json: upload(fieldsFor(epoch, "Over")), env: assistantEnv }),
+    );
+    await expectError(response, 413, "assistant_quota_exceeded");
+    expect(await objectKeys(assistantPrefix(session.userId))).toEqual([]);
+  });
+
+  it("lets only one of two parallel uploads take the last free space", async () => {
+    const harness: Harness = await defaultHarness();
+    const { session, epoch } = await ready(harness);
+    // Same title length as the parallel uploads, so all three seal to the same size.
+    await putMeeting(harness, session, randomId(), fieldsFor(epoch, "Parallel abc"));
+    const used = await env.ASSISTANT_DB.prepare("SELECT size + LENGTH(index_ct) AS bytes FROM assistant_meetings WHERE user_id = ?").bind(session.userId).first<{ bytes: number }>();
+    // Room for one more meeting of the same size, not two.
+    await insertFiller(session.userId, assistantAccountMaxBytes - 2 * (used?.bytes ?? 0) - 1 - 50);
+    const responses: Response[] = await Promise.all(
+      ["Parallel one", "Parallel two"].map((title: string): Promise<Response> =>
+        harness.call(req("PUT", `/v1/assistant/meetings/${randomId()}`, { token: session.accessToken, json: upload(fieldsFor(epoch, title)), env: assistantEnv })),
+      ),
+    );
+    expect(responses.map((response: Response): number => response.status).sort()).toEqual([200, 413]);
+    expect(await objectKeys(assistantPrefix(session.userId))).toHaveLength(2);
+  });
+
+  it("keeps the stored note readable when an update is refused", async () => {
+    const harness: Harness = await defaultHarness();
+    const { session, epoch } = await ready(harness);
+    const meetingId: string = randomId();
+    await putMeeting(harness, session, meetingId, fieldsFor(epoch, "Original"));
+    await insertFiller(session.userId, assistantAccountMaxBytes - 1000);
+    const bigger = { ...fieldsFor(epoch, "Rewritten"), summary: "r".repeat(30_000) };
+    await expectError(await harness.call(req("PUT", `/v1/assistant/meetings/${meetingId}`, { token: session.accessToken, json: upload(bigger), env: assistantEnv })), 413, "assistant_quota_exceeded");
+    const keyring: AssistantKeyring = parseAssistantKeyring(env.ASSISTANT_DATA_KEY);
+    expect((await assistantMeeting(env.ASSISTANT_DB, env.ASSISTANT_BUCKET, keyring, session.userId, meetingId))?.title).toBe("Original");
+    expect(await objectKeys(assistantPrefix(session.userId))).toHaveLength(1);
+    // A successful update replaces the object (the old one is deleted).
+    await env.ASSISTANT_DB.prepare("DELETE FROM assistant_meetings WHERE user_id = ? AND object_id = 'filler'").bind(session.userId).run();
+    await putMeeting(harness, session, meetingId, bigger);
+    expect((await assistantMeeting(env.ASSISTANT_DB, env.ASSISTANT_BUCKET, keyring, session.userId, meetingId))?.title).toBe("Rewritten");
+    expect(await objectKeys(assistantPrefix(session.userId))).toHaveLength(1);
+  });
+
+  it("decrypts at most the scan's byte budget of index rows, newest first", async () => {
+    const harness: Harness = await defaultHarness();
+    const { session, epoch } = await ready(harness);
+    for (const day of [1, 2, 3]) {
+      await putMeeting(harness, session, randomId(), { ...fieldsFor(epoch, `Day ${day}`), startedAt: `2026-10-0${day}T09:00:00+00:00` });
+    }
+    const sizes = await env.ASSISTANT_DB.prepare("SELECT LENGTH(index_ct) AS bytes FROM assistant_meetings WHERE user_id = ? ORDER BY started_at DESC").bind(session.userId).all<{ bytes: number }>();
+    const twoNewest: number = (sizes.results[0]?.bytes ?? 0) + (sizes.results[1]?.bytes ?? 0);
+    const keyring: AssistantKeyring = parseAssistantKeyring(env.ASSISTANT_DATA_KEY);
+    const bounds = { sinceMs: null, untilMs: null, before: null };
+    const scan: IndexScan = await indexedMeetings(env.ASSISTANT_DB, keyring, session.userId, bounds, { rows: 2000, bytes: twoNewest });
+    expect(scan.meetings.map((meeting) => meeting.index.title)).toEqual(["Day 3", "Day 2"]);
+    expect(scan.truncated).toBe(true);
+    const byRows: IndexScan = await indexedMeetings(env.ASSISTANT_DB, keyring, session.userId, bounds, { rows: 1, bytes: 1_000_000 });
+    expect(byRows.meetings).toHaveLength(1);
+    expect(byRows.truncated).toBe(true);
+    const all: IndexScan = await indexedMeetings(env.ASSISTANT_DB, keyring, session.userId, bounds, { rows: 3, bytes: 1_000_000 });
+    expect(all.meetings).toHaveLength(3);
+    expect(all.truncated).toBe(false);
+  });
+
+  it("scopes device ids by account: deleting a device never touches another account's meetings", async () => {
+    const harness: Harness = await defaultHarness();
+    const first = await ready(harness);
+    const second = await ready(harness);
+    const deviceId: string = randomId();
+    await putMeeting(harness, first.session, randomId(), { ...fieldsFor(first.epoch, "Mine"), deviceId });
+    await putMeeting(harness, second.session, randomId(), { ...fieldsFor(second.epoch, "Theirs"), deviceId });
+    const response: Response = await harness.call(req("DELETE", `/v1/assistant/devices/${deviceId}`, { token: first.session.accessToken, env: assistantEnv }));
+    expect(await response.json()).toEqual({ deviceId, deletedMeetings: 1 });
+    expect(await assistantRows("assistant_meetings", second.session.userId)).toBe(1);
+    expect(await objectKeys(assistantPrefix(second.session.userId))).toHaveLength(1);
+  });
+});
 
 describe("assistant grants", () => {
   it("lists and disconnects connections, queueing the KV revocation", async () => {

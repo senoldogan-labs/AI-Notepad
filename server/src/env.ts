@@ -21,10 +21,12 @@ export interface Env {
   /**
    * Yapay zekâ asistanı erişimi (uzak MCP bağlayıcısı; bkz. `assistant/`): AB D1 veritabanı `gistsmith-assistant`
    * (ayarlar, toplantı dizini, bağlantılar) ve şifreli notların R2 kovası (eşitleme kovası, `a/` öneki). Aynı
-   * bağlamalar `gistsmith-mcp` Worker'ında da vardır (`wrangler.mcp.jsonc`).
+   * bağlamalar `gistsmith-mcp` Worker'ında da vardır (`wrangler.mcp.jsonc`). Üretimde sahip AB D1'i oluşturana kadar
+   * yoktur (bkz. wrangler.jsonc'deki açılış sırası): `ASSISTANT_POLICY` `off` iken hiçbir asistan adımı onlara dokunmaz,
+   * `on` iken eksiklerse `parseConfig` `ConfigError` fırlatır (`assistantStorageOf`).
    */
-  readonly ASSISTANT_DB: D1Database;
-  readonly ASSISTANT_BUCKET: R2Bucket;
+  readonly ASSISTANT_DB?: D1Database;
+  readonly ASSISTANT_BUCKET?: R2Bucket;
   /** `/v1/assistant/…`: kullanıcı başına dakikada 300 (ilk açılışta arşivin yüklenmesi). */
   readonly ASSISTANT_USER_LIMITER: RateLimit;
 

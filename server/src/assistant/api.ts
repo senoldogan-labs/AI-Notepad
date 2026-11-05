@@ -82,7 +82,10 @@ async function settingsResponse(adb: D1Database, userId: string, row: AssistantS
   return jsonResponse(200, assistantSettingsBody(row, await assistantMeetingCount(adb, userId)));
 }
 
-/** Routes `/v1/assistant/…` for an authenticated, rate-limited user. */
+/**
+ * Routes `/v1/assistant/…` for an authenticated, rate-limited user. The caller passes bindings only while
+ * `ASSISTANT_POLICY` is on (`assistantStorageOf`); with the policy off it answers `assistant_unavailable` itself.
+ */
 export async function routeAssistant(
   request: Request,
   db: D1Database,
@@ -92,9 +95,6 @@ export async function routeAssistant(
   userId: string,
   now: Date,
 ): Promise<Response> {
-  if (config.assistantPolicy === "off") {
-    throw new ApiError("assistant_unavailable", "AI assistant access is not available yet.");
-  }
   const { adb, bucket } = bindings;
   const method: string = request.method;
   if (path === "/v1/assistant/settings") {

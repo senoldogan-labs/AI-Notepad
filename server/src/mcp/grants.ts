@@ -15,10 +15,14 @@ import { type UserGate, gateMessage, userGate } from "./gate";
 /**
  * Connection lifecycle on the OAuth side:
  * - consent stores `ConsentProps` in the grant (`completeAuthorization`);
- * - the code exchange checks the account again, records the connection in `assistant_grants` and replaces the props
- *   with `GrantProps` (user id and grant id only: "grant props in KV hold only the opaque user id");
- * - every refresh checks that the D1 row still exists and that the grant is younger than `grantMaxAgeMs`; the sliding
- *   idle lifetime is `refreshIdleSeconds`, cut so it never passes the maximum age.
+ * - the code exchange checks the account again (`userGate`), then records the connection in `assistant_grants` with
+ *   one conditional statement that inserts only while the feature is on at the consent's epoch (a turn-off between the
+ *   check and the insert can never revive a connection), and replaces the props with `GrantProps` (user id and grant
+ *   id only: "grant props in KV hold only the opaque user id");
+ * - every refresh checks that the D1 row still exists at the current epoch with the feature on, and that the grant is
+ *   younger than `grantMaxAgeMs`; the sliding idle lifetime is `refreshIdleSeconds`, cut so it never passes the maximum
+ *   age. A refresh does not run the full `userGate` (account and access): every MCP call does, so a refreshed token of
+ *   an account without access still reads nothing.
  */
 
 /** Access token lifetime. */
@@ -50,6 +54,54 @@ export function refreshLifetimeSeconds(createdAtMs: number, nowMs: number): numb
   return remainingSeconds < 60 ? null : Math.min(refreshIdleSeconds, remainingSeconds);
 }
 
+/** A connection to record at the code exchange. */
+export interface NewGrant {
+  readonly userId: string;
+  readonly grantId: string;
+  readonly clientId: string;
+  readonly clientName: string;
+  readonly redirectHost: string;
+  readonly verified: boolean;
+  /** The settings epoch the user consented under. */
+  readonly epoch: number;
+  readonly nowMs: number;
+}
+
+/**
+ * Records a connection in one D1 transaction whose every statement runs only while the feature is on at the consent's
+ * epoch: re-authorizing the same app replaces its earlier connection (queued KV revocation, row deleted), then the new
+ * row is inserted with `INSERT … SELECT … FROM assistant_settings WHERE enabled = 1 AND epoch = ?`. False when nothing
+ * was inserted (turned off, or off and on again, since the consent); then nothing else changed either.
+ */
+export async function recordGrant(adb: D1Database, grant: NewGrant): Promise<boolean> {
+  const live: string = "EXISTS (SELECT 1 FROM assistant_settings WHERE user_id = ?1 AND enabled = 1 AND epoch = ?5)";
+  const results: D1Result[] = await adb.batch([
+    adb
+      .prepare(
+        `INSERT INTO assistant_revocations (user_id, grant_id, requested_at)
+         SELECT user_id, grant_id, ?4 FROM assistant_grants WHERE user_id = ?1 AND client_id = ?2 AND redirect_host = ?3 AND ${live}
+         ON CONFLICT(user_id, grant_id) DO NOTHING`,
+      )
+      .bind(grant.userId, grant.clientId, grant.redirectHost, grant.nowMs, grant.epoch),
+    adb
+      .prepare(`DELETE FROM assistant_grants WHERE user_id = ?1 AND client_id = ?2 AND redirect_host = ?3 AND ${live}`)
+      .bind(grant.userId, grant.clientId, grant.redirectHost, grant.nowMs, grant.epoch),
+    adb
+      .prepare(
+        `INSERT INTO assistant_grants (user_id, grant_id, client_id, client_name, redirect_host, verified, created_at, epoch)
+         SELECT ?1, ?6, ?2, ?7, ?3, ?8, ?4, ?5 FROM assistant_settings WHERE user_id = ?1 AND enabled = 1 AND epoch = ?5`,
+      )
+      .bind(grant.userId, grant.clientId, grant.redirectHost, grant.nowMs, grant.epoch, grant.grantId, grant.clientName, grant.verified ? 1 : 0),
+    adb
+      .prepare(
+        `INSERT INTO assistant_client_uses (client_id, last_used_at) SELECT ?2, ?4 WHERE ${live}
+         ON CONFLICT(client_id) DO UPDATE SET last_used_at = excluded.last_used_at`,
+      )
+      .bind(grant.userId, grant.clientId, grant.redirectHost, grant.nowMs, grant.epoch),
+  ]);
+  return (results[2]?.meta.changes ?? 0) > 0;
+}
+
 function invalidGrant(description: string): OAuthError {
   return new OAuthError("invalid_grant", { description });
 }
@@ -70,31 +122,30 @@ export async function onTokenExchange(
     if (gate.epoch !== props.epoch) {
       throw invalidGrant("AI assistant access was turned off after you allowed this connection. Connect again.");
     }
-    const nowMs: number = now.getTime();
-    // Re-authorizing the same app replaces its earlier connection (the library revokes the old grant in KV).
-    await env.ASSISTANT_DB.batch([
-      env.ASSISTANT_DB.prepare(
-        `INSERT INTO assistant_revocations (user_id, grant_id, requested_at)
-         SELECT user_id, grant_id, ?4 FROM assistant_grants WHERE user_id = ?1 AND client_id = ?2 AND redirect_host = ?3
-         ON CONFLICT(user_id, grant_id) DO NOTHING`,
-      ).bind(props.userId, options.clientId, props.redirectHost, nowMs),
-      env.ASSISTANT_DB.prepare("DELETE FROM assistant_grants WHERE user_id = ? AND client_id = ? AND redirect_host = ?").bind(
-        props.userId,
-        options.clientId,
-        props.redirectHost,
-      ),
-      env.ASSISTANT_DB.prepare(
-        `INSERT INTO assistant_grants (user_id, grant_id, client_id, client_name, redirect_host, verified, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      ).bind(props.userId, options.grantId, options.clientId, props.clientName, props.redirectHost, props.verified ? 1 : 0, nowMs),
-    ]);
+    const recorded: boolean = await recordGrant(env.ASSISTANT_DB, {
+      userId: props.userId,
+      grantId: options.grantId,
+      clientId: options.clientId,
+      clientName: props.clientName,
+      redirectHost: props.redirectHost,
+      verified: props.verified,
+      epoch: props.epoch,
+      nowMs: now.getTime(),
+    });
+    if (!recorded) {
+      throw invalidGrant("AI assistant access was turned off after you allowed this connection. Connect again.");
+    }
     log("info", "assistant_grant_created", { userId: props.userId, grantId: options.grantId, verified: props.verified });
     const grantProps: GrantProps = { userId: props.userId, grantId: options.grantId };
     return { newProps: grantProps };
   }
   if (options.grantType === GrantType.REFRESH_TOKEN) {
     const props: GrantProps = grantPropsSchema.parse(options.props);
-    const row: { created_at: number } | null = await env.ASSISTANT_DB.prepare("SELECT created_at FROM assistant_grants WHERE user_id = ? AND grant_id = ?")
+    const row: { created_at: number } | null = await env.ASSISTANT_DB.prepare(
+      `SELECT g.created_at AS created_at FROM assistant_grants g
+       JOIN assistant_settings s ON s.user_id = g.user_id AND s.enabled = 1 AND s.epoch = g.epoch
+       WHERE g.user_id = ? AND g.grant_id = ?`,
+    )
       .bind(props.userId, props.grantId)
       .first<{ created_at: number }>();
     if (row === null) {
@@ -123,8 +174,26 @@ export async function processRevocations(env: McpEnv, oauth: OAuthHelpers, limit
   return rows.results.length;
 }
 
-/** Deletes dynamically registered clients older than a day that have no connection (at most `maxPages` pages a run). */
+/**
+ * Notes that a client completed a consent (`assistant_client_uses`), before the library stores the grant: from then on
+ * `deleteUnusedClients` keeps it even while it has no connection row (code not yet exchanged, or disconnected and
+ * about to reconnect with the same client id).
+ */
+export async function markClientUsed(adb: D1Database, clientId: string, now: Date): Promise<void> {
+  await adb
+    .prepare("INSERT INTO assistant_client_uses (client_id, last_used_at) VALUES (?, ?) ON CONFLICT(client_id) DO UPDATE SET last_used_at = excluded.last_used_at")
+    .bind(clientId, now.getTime())
+    .run();
+}
+
+/**
+ * Deletes dynamically registered clients older than a day that never completed a consent and have no connection (spam
+ * registrations; at most `maxPages` pages a run). A client that ever connected is left to the library's registration
+ * lifetime, which every token exchange renews, so a client with live grants never loses its registration here.
+ * Use records older than the longest connection life are pruned first.
+ */
 export async function deleteUnusedClients(env: McpEnv, oauth: OAuthHelpers, now: Date, pageLimit: number, maxPages: number): Promise<number> {
+  await env.ASSISTANT_DB.prepare("DELETE FROM assistant_client_uses WHERE last_used_at < ?").bind(now.getTime() - grantMaxAgeMs).run();
   let deleted: number = 0;
   let cursor: string | undefined;
   for (let page: number = 0; page < maxPages; page += 1) {
@@ -133,10 +202,15 @@ export async function deleteUnusedClients(env: McpEnv, oauth: OAuthHelpers, now:
       if (client.registrationDate === undefined || client.registrationDate * 1000 > now.getTime() - unusedClientMaxAgeMs) {
         continue;
       }
-      const used: { found: number } | null = await env.ASSISTANT_DB.prepare("SELECT EXISTS (SELECT 1 FROM assistant_grants WHERE client_id = ?) AS found")
+      const used: { found: number } | null = await env.ASSISTANT_DB.prepare(
+        "SELECT EXISTS (SELECT 1 FROM assistant_grants WHERE client_id = ?1) OR EXISTS (SELECT 1 FROM assistant_client_uses WHERE client_id = ?1) AS found",
+      )
         .bind(client.clientId)
         .first<{ found: number }>();
-      if (used !== null && used.found === 0) {
+      if (used === null) {
+        throw new Error("EXISTS over assistant_grants returned no row.");
+      }
+      if (used.found === 0) {
         await oauth.deleteClient(client.clientId);
         deleted += 1;
       }

@@ -9,7 +9,19 @@ import {
   sealField,
   sealedKeyId,
 } from "../src/assistant/crypto";
-import { type MeetingProjection, meetingIndex, noteMarkdown, searchText } from "../src/assistant/projection";
+import {
+  type MeetingProjection,
+  encodedNote,
+  indexBytes,
+  indexMaxBytes,
+  indexTaskMaxChars,
+  meetingIndex,
+  noteMarkdown,
+  noteMaxBytes,
+  searchText,
+  searchTextMaxBytes,
+} from "../src/assistant/projection";
+import { ApiError } from "../src/errors";
 import { rankDocuments, sanitizeQuery, tokenize } from "../src/assistant/search";
 import { isAllowedRegistrationRedirect, presentClient, sanitizeClientName } from "../src/mcp/clients";
 import { escapeHtml } from "../src/mcp/html";
@@ -106,8 +118,38 @@ describe("assistant projection", () => {
     expect(index.myTasks).toEqual([{ owner: "Sen", description: "Send the revised forecast", dueDate: "Friday", done: false }]);
     expect(index.searchText).toContain("travel budget");
     expect(index.searchText).toContain("Travel");
-    expect(searchText({ ...projection, note: { ...projection.note!, summary: "x".repeat(10_000) } }).length).toBe(4000);
+    expect(searchText({ ...projection, note: { ...projection.note!, summary: "x".repeat(10_000) } }).length).toBe(searchTextMaxBytes);
     expect(meetingIndex({ ...projection, title: " ", note: null }).title).toBe("Untitled meeting");
+  });
+
+  it("keeps every index within its byte limit, however large the note", () => {
+    const task = { owner: "Sen", description: "d".repeat(4000), dueDate: "Friday", isMine: true, done: false };
+    const heavy: MeetingProjection = {
+      ...projection,
+      note: { ...projection.note!, summary: "😀".repeat(40_000), tasks: Array.from({ length: 300 }, () => task) },
+    };
+    const index = meetingIndex(heavy);
+    expect(indexBytes(index)).toBeLessThanOrEqual(indexMaxBytes);
+    expect(new TextEncoder().encode(index.searchText).byteLength).toBeLessThanOrEqual(searchTextMaxBytes);
+    expect(index.searchText).not.toMatch(/\uFFFD/);
+    expect(index.myTasks.length).toBeGreaterThan(0);
+    for (const kept of index.myTasks) {
+      expect(kept.description.length).toBeLessThanOrEqual(indexTaskMaxChars);
+    }
+  });
+
+  it("refuses to seal a note larger than the note limit", () => {
+    let refused: unknown = null;
+    try {
+      encodedNote({ ...projection, myNotes: "m".repeat(noteMaxBytes) });
+    } catch (error: unknown) {
+      refused = error;
+    }
+    if (!(refused instanceof ApiError)) {
+      throw new Error("encodedNote accepted an oversized note.");
+    }
+    expect(refused.code).toBe("payload_too_large");
+    expect(encodedNote(projection).byteLength).toBeLessThan(noteMaxBytes);
   });
 
   it("renders the note as Markdown with every section", () => {

@@ -53,6 +53,26 @@ export function sanitizeClientName(raw: string): string {
   return cleaned.length > 0 ? cleaned : "Unnamed app";
 }
 
+/**
+ * Whether a redirect target (an allowlisted callback plus OAuth response parameters) goes to a verified product: its
+ * URI without query and fragment is exactly one of `verifiedRedirects`. Pure function.
+ */
+export function isVerifiedRedirect(target: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(target);
+  } catch (error: unknown) {
+    if (error instanceof TypeError) {
+      return false;
+    }
+    throw error;
+  }
+  url.search = "";
+  url.hash = "";
+  const bare: string = url.toString();
+  return verifiedRedirects.some((entry: VerifiedRedirect): boolean => entry.redirectUri === bare);
+}
+
 /** Presentation of a request's client from its redirect URI and registered (or metadata) name. Pure function. */
 export function presentClient(redirectUri: string, clientName: string | null): ClientPresentation {
   const url: URL = new URL(redirectUri);

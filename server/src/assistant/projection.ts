@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ApiError } from "../errors";
 
 /**
  * The meeting copy an app uploads for AI assistant access (`PUT /v1/assistant/meetings/:id`): notes only, never
@@ -6,14 +7,25 @@ import { z } from "zod";
  * glossary) plus the meeting's own fields. All limits are far above what a 4-hour meeting's note holds.
  */
 
-/** Largest accepted request body (JSON) and therefore the largest sealed note object, roughly. */
+/** Largest accepted request body (JSON). */
 export const projectionMaxBytes: number = 512 * 1024;
+/** Largest note JSON sealed into R2 (checked on the encoded note itself, not only on the request body). */
+export const noteMaxBytes: number = projectionMaxBytes;
 /** Most meetings one account keeps in the copy. */
 export const assistantAccountMaxMeetings: number = 5000;
-/** Characters of the search text kept per meeting (the index the tools scan). */
-export const searchTextMaxChars: number = 4000;
-/** Own tasks kept per meeting in the index (`list_my_tasks`). */
+/**
+ * Most bytes one account's copy holds: sealed notes plus sealed indexes. Enforced in the same conditional statement as
+ * the upload's insert (`putAssistantMeeting`), so parallel uploads cannot pass it together.
+ */
+export const assistantAccountMaxBytes: number = 256 * 1024 * 1024;
+/** UTF-8 bytes of the search text kept per meeting (the index the tools scan). */
+export const searchTextMaxBytes: number = 4096;
+/** Own tasks kept per meeting in the index (`list_my_tasks`), at most. */
 export const indexMaxTasks: number = 50;
+/** Characters of a task's description kept in the index (the full task stays in the note). */
+export const indexTaskMaxChars: number = 300;
+/** Largest index JSON per meeting: the tools decrypt up to `scanLimit` of them per call. */
+export const indexMaxBytes: number = 8 * 1024;
 /** Public page for a meeting id (opens the meeting in the app when installed). */
 export const meetingUrlBase: string = "https://gistsmith.com/m/";
 
@@ -103,7 +115,29 @@ export function displayTitle(projection: MeetingProjection): string {
   return noteTitle.length > 0 ? noteTitle : "Untitled meeting";
 }
 
-/** Search text: title, folder, summary, decisions, task text and outline titles, cut to `searchTextMaxChars`. Pure function. */
+const utf8Encoder: TextEncoder = new TextEncoder();
+
+/** UTF-8 byte length of a text. Pure function. */
+function utf8Length(text: string): number {
+  return utf8Encoder.encode(text).byteLength;
+}
+
+/** The longest prefix of a text (whole code points) that fits in `maxBytes` UTF-8 bytes. Pure function. */
+export function cutToUtf8Bytes(text: string, maxBytes: number): string {
+  let bytes: number = 0;
+  let end: number = 0;
+  for (const char of text) {
+    const size: number = utf8Length(char);
+    if (bytes + size > maxBytes) {
+      break;
+    }
+    bytes += size;
+    end += char.length;
+  }
+  return text.slice(0, end);
+}
+
+/** Search text: title, folder, summary, decisions, task text and outline titles, cut to `searchTextMaxBytes`. Pure function. */
 export function searchText(projection: MeetingProjection): string {
   const note = projection.note;
   const parts: string[] = [
@@ -114,26 +148,76 @@ export function searchText(projection: MeetingProjection): string {
     ...(note?.tasks ?? []).map((task: ProjectionTask): string => `${task.owner} ${task.description}`),
     ...(note?.outline ?? []).map((item): string => item.title),
   ];
-  return parts
-    .filter((part: string): boolean => part.trim().length > 0)
-    .join("\n")
-    .slice(0, searchTextMaxChars);
+  const joined: string = parts.filter((part: string): boolean => part.trim().length > 0).join("\n");
+  // Bound the work before the byte cut: no code point is longer than 4 UTF-8 bytes.
+  return cutToUtf8Bytes(joined.slice(0, searchTextMaxBytes), searchTextMaxBytes);
 }
 
-/** The index sealed into D1 for a meeting. Pure function. */
+/** UTF-8 size of an index as sealed. Pure function. */
+export function indexBytes(index: MeetingIndex): number {
+  return utf8Length(JSON.stringify(index));
+}
+
+/**
+ * The index cut to `maxBytes` of JSON: own tasks are dropped from the end first (the note keeps them all), then the
+ * search text is shortened. Pure function.
+ */
+export function fitIndex(index: MeetingIndex, maxBytes: number): MeetingIndex {
+  let fitted: MeetingIndex = index;
+  while (indexBytes(fitted) > maxBytes && fitted.myTasks.length > 0) {
+    fitted = { ...fitted, myTasks: fitted.myTasks.slice(0, -1) };
+  }
+  // A string's JSON form is at least as long as its UTF-8 form, so cutting the overflow from the text always fits.
+  while (indexBytes(fitted) > maxBytes && fitted.searchText.length > 0) {
+    const overflow: number = indexBytes(fitted) - maxBytes;
+    fitted = { ...fitted, searchText: cutToUtf8Bytes(fitted.searchText, Math.max(0, utf8Length(fitted.searchText) - overflow)) };
+  }
+  if (indexBytes(fitted) > maxBytes) {
+    throw new Error("A meeting index without tasks or search text is larger than the index limit.");
+  }
+  return fitted;
+}
+
+/** The index sealed into D1 for a meeting, at most `indexMaxBytes` of JSON. Pure function. */
 export function meetingIndex(projection: MeetingProjection): MeetingIndex {
-  return {
-    title: displayTitle(projection),
-    startedAt: projection.startedAt,
-    durationSec: projection.durationSec,
-    folder: projection.folder,
-    language: projection.language,
-    searchText: searchText(projection),
-    myTasks: (projection.note?.tasks ?? [])
-      .filter((task: ProjectionTask): boolean => task.isMine)
-      .slice(0, indexMaxTasks)
-      .map((task: ProjectionTask): IndexTask => ({ owner: task.owner, description: task.description, dueDate: task.dueDate, done: task.done })),
-  };
+  return fitIndex(
+    {
+      title: displayTitle(projection),
+      startedAt: projection.startedAt,
+      durationSec: projection.durationSec,
+      folder: projection.folder,
+      language: projection.language,
+      searchText: searchText(projection),
+      myTasks: (projection.note?.tasks ?? [])
+        .filter((task: ProjectionTask): boolean => task.isMine)
+        .slice(0, indexMaxTasks)
+        .map((task: ProjectionTask): IndexTask => ({
+          owner: task.owner,
+          description: task.description.slice(0, indexTaskMaxChars),
+          dueDate: task.dueDate,
+          done: task.done,
+        })),
+    },
+    indexMaxBytes,
+  );
+}
+
+/** The note as sealed into R2; `payload_too_large` past `noteMaxBytes`. Pure function. */
+export function encodedNote(projection: MeetingProjection): Uint8Array {
+  const bytes: Uint8Array = utf8Encoder.encode(JSON.stringify(projection));
+  if (bytes.byteLength > noteMaxBytes) {
+    throw new ApiError("payload_too_large", `A meeting's note can be at most ${noteMaxBytes} bytes.`);
+  }
+  return bytes;
+}
+
+/**
+ * Meeting text between explicit markers (the `fetch` tool's `text`): everything inside was written in a meeting or in
+ * the user's notes, so it is untrusted data. The boundary is random per response; content cannot guess it and close
+ * the block early. Pure function.
+ */
+export function untrustedMeetingContent(text: string, boundary: string): string {
+  return [`--- BEGIN UNTRUSTED MEETING CONTENT ${boundary} ---`, text, `--- END UNTRUSTED MEETING CONTENT ${boundary} ---`].join("\n");
 }
 
 /** Stable public URL of a meeting. Pure function. */

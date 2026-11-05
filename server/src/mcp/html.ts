@@ -59,7 +59,8 @@ function document(title: string, body: string, nonce: string): string {
 /** Heading and description of a client. Pure function. */
 function clientBlock(client: ClientPresentation): string {
   if (client.kind === "verified") {
-    return `<h1>${escapeHtml(client.name)} (verified)</h1><p>wants to read your Gistsmith meeting notes.</p>`;
+    return `<h1>${escapeHtml(client.name)} (verified)</h1><p>wants to read your Gistsmith meeting notes.</p>
+<p class="warn">Continue only if you just started connecting Gistsmith from ${escapeHtml(client.name)} yourself. If someone sent you this link, close this page.</p>`;
   }
   if (client.kind === "local") {
     return `<h1>An app on this computer</h1><p>Unverified app: ${escapeHtml(client.name)}</p>

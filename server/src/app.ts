@@ -50,9 +50,11 @@ import { createChallenge, deviceAssertionSchema, registerDevice, verifyDeviceAss
 import { type CheckoutRequest, createCheckout, createPortal, handleStripeWebhook } from "./billing";
 import { complimentaryRequestSchema, complimentaryUntilMs, grantComplimentaryAccess, revokeComplimentaryAccess } from "./complimentary";
 import {
+  type AssistantStorage,
   type Config,
   ConfigError,
   type RevenueCatWebhookConfig,
+  assistantStorageOf,
   type StripeWebhookConfig,
   parseConfig,
   parseRevenueCatWebhookConfig,
@@ -372,7 +374,7 @@ async function route(request: Request, env: Env, config: Config, context: Reques
       return jsonResponse(200, { deleted: true, appStoreSubscription: null, notice: null });
     }
     await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
-    const deletion: AccountDeletion = await deleteAccount(db, env.SYNC_BUCKET, { adb: env.ASSISTANT_DB, bucket: env.ASSISTANT_BUCKET }, context.platform, config, user.userId, now);
+    const deletion: AccountDeletion = await deleteAccount(db, env.SYNC_BUCKET, assistantStorageOf(env, config), context.platform, config, user.userId, now);
     return jsonResponse(200, deletion);
   }
 
@@ -598,7 +600,12 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     // Yapay zekâ asistanı erişimi (yalnızca uygulama; bkz. `assistant/api.ts`): kullanıcı başına dakikada 300 istek.
     const user: AuthedUser = await authed();
     await enforceLimit(env.ASSISTANT_USER_LIMITER, `user:${user.userId}`);
-    return routeAssistant(request, db, { adb: env.ASSISTANT_DB, bucket: env.ASSISTANT_BUCKET, dataKey: env.ASSISTANT_DATA_KEY }, config, path, user.userId, now);
+    // `ASSISTANT_POLICY` kapalıyken (üretimde AB D1'i oluşturulana kadar) bağlama yoktur ve hiçbir asistan kodu çalışmaz.
+    const storage: AssistantStorage | null = assistantStorageOf(env, config);
+    if (storage === null) {
+      throw new ApiError("assistant_unavailable", "AI assistant access is not available yet.");
+    }
+    return routeAssistant(request, db, { ...storage, dataKey: env.ASSISTANT_DATA_KEY }, config, path, user.userId, now);
   }
 
   if (path.startsWith(adminPrefix)) {
