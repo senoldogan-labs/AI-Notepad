@@ -36,6 +36,12 @@ struct AINotepadiOSApp: App {
         // `--karsilama` (yalnız Debug, görsel kontrol): ilk açılış karşılaması yeniden gösterilir.
         if CommandLine.arguments.contains("--karsilama") {
             UserDefaults.standard.removeObject(forKey: PhoneSettingsKey.onboardingCompleted)
+            // `--karsilama-adim <adım>` (welcome, calendar, permissions, sample, ready): karşılama o adımdan açılır.
+            if let index = CommandLine.arguments.firstIndex(of: "--karsilama-adim"), CommandLine.arguments.indices.contains(index + 1) {
+                UserDefaults.standard.set(CommandLine.arguments[index + 1], forKey: onboardingStepKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: onboardingStepKey)
+            }
         }
         #endif
         #if DEBUG
@@ -55,7 +61,8 @@ struct AINotepadiOSApp: App {
             }
             // `--aciklama`: yapay zekâ açıklaması yeniden gösterilir (görsel kontrol).
             UserDefaults.standard.set(!CommandLine.arguments.contains("--aciklama"), forKey: PhoneSettingsKey.aiDisclosureAccepted)
-            UserDefaults.standard.set(true, forKey: PhoneSettingsKey.onboardingCompleted)
+            // `--karsilama`: ilk açılış karşılaması gösterilir (görsel kontrol).
+            UserDefaults.standard.set(!CommandLine.arguments.contains("--karsilama"), forKey: PhoneSettingsKey.onboardingCompleted)
         }
         #endif
         self.account = account
@@ -422,8 +429,9 @@ func phoneEngagementDataState(store: PhoneStore, account: HostedAccount) -> Enga
     guard !account.requiresSignIn, store.isLoaded else {
         return .notReady
     }
+    // Örnek toplantı (karşılamadaki deneme) bildirimlere girmez.
     return .ready(EngagementSnapshot(
-        records: store.meetings, userName: store.userName, calendarEnabled: UserDefaults.standard.bool(forKey: PhoneSettingsKey.calendarEnabled)
+        records: realMeetings(records: store.meetings), userName: store.userName, calendarEnabled: UserDefaults.standard.bool(forKey: PhoneSettingsKey.calendarEnabled)
     ))
 }
 
@@ -756,11 +764,16 @@ struct RootView: View {
         )) { (cover: PhoneRootCover) in
             switch cover {
             case .onboarding:
-                PhoneOnboarding(store: store) {
+                PhoneOnboarding(store: store, calendar: calendar) { (sampleMeetingID: String?) -> Void in
                     // Abonelik ekranı karşılamanın yerine aynı güncellemede geçer (karşılama kapanırken yeni sunum
                     // başlatılmaz; sunum kimliği değişince SwiftUI birini kapatıp ötekini açar).
                     if recorder.phase == .idle {
                         showAutoPaywallIfDue()
+                    }
+                    UserDefaults.standard.removeObject(forKey: onboardingStepKey)
+                    // Örnek toplantı denendiyse kullanıcı onun notuna iner.
+                    if let sampleMeetingID {
+                        router.open(meetingID: sampleMeetingID)
                     }
                     onboardingCompleted = true
                 }
@@ -956,6 +969,23 @@ final class PhoneStore {
         replaceMeetings(records: upsertMeeting(records: meetings, record: record))
         // Süren arka plan okuması bu yazmayı görmemiş olabilir: sonucu bu kaydı geri almasın.
         reloader.invalidate()
+    }
+
+    /// Karşılamadaki örnek toplantıyı saklar (eşitlenmez, işlenmez) ve kimliğini döndürür. Saklı bir örnek toplantı varsa
+    /// yenisi yazılmaz: kullanıcının bu denemede yazdığı not ona yazılır.
+    func addSampleMeeting(script: SampleMeetingScript, note: MeetingNote, myNotes: String, audio: URL) throws -> String {
+        if let existingID = existingSampleMeetingID(records: meetings), let existing = meetings.first(where: { $0.id == existingID }) {
+            let updated: MeetingRecord = existing.with(myNotes: myNotes)
+            try saveMeeting(record: updated, directory: try sessionDirectory(id: existingID))
+            upsert(record: updated)
+            return existingID
+        }
+        let record: MeetingRecord = try writeSampleMeeting(
+            script: script, note: note, speakerNames: sampleMeetingSpeakerNames, myNotes: myNotes, audio: audio, now: Date()
+        )
+        upsert(record: record)
+        Self.logger.info("Örnek toplantı saklandı, toplantı: \(record.id, privacy: .public)")
+        return record.id
     }
 
     /// Konuşmacılara ad verir ("Konuşmacı 2 = Aino"; boş ad etiketi geri getirir). Kayıttaki, işlenen ya da notu

@@ -250,6 +250,9 @@ public struct MeetingRecord: Sendable, Equatable, Codable, Identifiable {
     /// Başarısız işlemenin kendiliğinden yeniden denemeleri (sayı ve son deneme anı); hiç denenmediyse nil. Bu cihaza
     /// özgüdür (eşitlenmez).
     public private(set) var automaticRetries: AutomaticRetries?
+    /// Karşılamadaki rehberli denemenin örnek toplantısı (bkz. `SampleMeeting.swift`); gerçek toplantılarda nil. Bu
+    /// cihaza özgüdür: eşitlenmez, kullanım ve telemetri sayılarına, bildirimlere ve MCP'ye girmez (`realMeetings`).
+    public private(set) var isSample: Bool?
 
     public init(
         id: String, title: String, startedAt: Date, endedAt: Date?, language: MeetingLanguage?, status: MeetingStatus,
@@ -548,6 +551,18 @@ public struct MeetingRecord: Sendable, Equatable, Codable, Identifiable {
         var copy: MeetingRecord = self
         copy.meNeedsFinalPass = newValue
         return copy
+    }
+
+    /// Örnek toplantı olarak işaretli kopya.
+    public func markedAsSample() -> MeetingRecord {
+        var copy: MeetingRecord = self
+        copy.isSample = true
+        return copy
+    }
+
+    /// Örnek toplantı mı (karşılamadaki deneme).
+    public var isSampleMeeting: Bool {
+        isSample == true
     }
 }
 

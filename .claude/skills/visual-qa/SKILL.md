@@ -19,6 +19,11 @@ Scenes (from the script; they mirror `DemoScene` in `App/DemoData.swift`):
 - Site scenes: `ana not sor canli` (also the default when no scene is given).
 - Check-only scenes: `abone deneme-bitiyor deneme-bitti guncelleme ayarlar kisiler gorevler toplantilar ekranlar`.
 - Empty first-run scenes: `toplantilar-bos gorevler-bos kisiler-bos sor-bos`.
+- Sign-in gate and onboarding: `giris kurulum kurulum-takvim kurulum-takvim-bagli kurulum-izinler kurulum-ornek-giris
+  kurulum-ornek kurulum-not kurulum-hazir`.
+
+Dark theme: `GISTSMITH_THEME=dark scripts/make-screenshots.sh <scene> …` (same output paths; copy the light PNGs away
+first).
 
 Requires `cwebp` (`brew install webp`) and a Retina display. The script builds the Gistsmith Debug app and launches a
 re-signed copy with its own bundle id and a temporary home folder.
@@ -98,7 +103,8 @@ the same arguments instead of `simctl`.
 Arguments (listed in AGENTS.md, defined in `iOS/`): `--tanitim` fake trial account; `--abone` with it: App Store
 subscriber with invite code; `--paywall` subscription screen; `--sohbet <uuid>` a saved Ask chat; `--ornek-kayit`
 sample live recording, plus `--ornek-bitir` (finishing layer), `--ornek-duraklat` (paused), `--ornek-sinir` (offline,
-shortened by the monthly limit); `--ornek-takvim` sample upcoming meetings.
+shortened by the monthly limit); `--ornek-takvim` sample upcoming meetings; `--karsilama` first-run onboarding (with
+`--karsilama-adim <step>` and `--karsilama-ornek <canli|not>`).
 
 StoreKit purchases cannot be tested this way (`xcodebuild`/`simctl` launches use the sandbox, see AGENTS.md).
 Check light and dark (`xcrun simctl ui booted appearance dark|light`) and every state the change touches.

@@ -150638,6 +150638,5422 @@
           }
         }
       }
+    },
+    "Toplantılarını yazıya dökmesine izin ver": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meeting-Transkription erlauben"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow meeting transcription"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permitir la transcripción de reuniones"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salli kokousten litterointi"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autoriser la transcription des réunions"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consenti la trascrizione delle riunioni"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議の文字起こしを許可"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의 텍스트 변환 허용"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sta transcriptie van vergaderingen toe"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permitir a transcrição de reuniões"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "允许转写会议"
+          }
+        }
+      }
+    },
+    "Bir toplantıyı birlikte dinleyelim": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lass uns gemeinsam einem Meeting zuhören"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Let's listen to a meeting together"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escuchemos juntos una reunión"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kuunnellaan kokousta yhdessä"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Écoutons une réunion ensemble"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ascoltiamo insieme una riunione"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一緒に会議を聞いてみましょう"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "함께 회의를 들어 봅시다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laten we samen naar een vergadering luisteren"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vamos ouvir uma reunião juntos"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一起听一场会议吧"
+          }
+        }
+      }
+    },
+    "Toplantılarını canlı yazıya döker; bitince notun hazır, en üstte senin görevlerin. Kurulum iki dakika sürer, her adım atlanabilir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transkribiert deine Meetings live; danach ist deine Notiz fertig, mit deinen Aufgaben ganz oben. Die Einrichtung dauert zwei Minuten, und du kannst jeden Schritt überspringen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribes your meetings live; when they end, your note is ready with your tasks on top. Setup takes two minutes, and you can skip any step."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribe tus reuniones en directo; al terminar, tu nota está lista con tus tareas arriba. La configuración lleva dos minutos y puedes omitir cualquier paso."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Litteroi kokouksesi reaaliajassa; kun ne päättyvät, muistiinpanosi on valmis ja tehtäväsi ovat ylimpänä. Käyttöönotto vie kaksi minuuttia, ja voit ohittaa minkä tahansa vaiheen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcrit vos réunions en direct ; à la fin, votre note est prête, avec vos tâches en haut. La configuration prend deux minutes, et vous pouvez passer chaque étape."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascrive le tue riunioni dal vivo; alla fine la tua nota è pronta, con le tue attività in cima. La configurazione richiede due minuti e puoi saltare qualsiasi passaggio."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議をライブで文字起こしします。終了するとノートが完成し、あなたのタスクがいちばん上に表示されます。セットアップは2分で終わり、どのステップもスキップできます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의를 실시간으로 텍스트로 변환합니다. 회의가 끝나면 노트가 준비되고, 내 할 일이 맨 위에 표시됩니다. 설정은 2분이면 끝나며, 어떤 단계든 건너뛸 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schrijft je vergaderingen live uit; als ze afgelopen zijn, is je notitie klaar met je taken bovenaan. De configuratie duurt twee minuten en je kunt elke stap overslaan."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcreve suas reuniões ao vivo; quando terminam, sua nota está pronta, com suas tarefas no topo. A configuração leva dois minutos, e você pode pular qualquer etapa."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "实时转写你的会议；会议结束时笔记就已就绪，你的任务排在最上面。初始设置只需两分钟，每一步都可以跳过。"
+          }
+        }
+      }
+    },
+    "Canlı metni ve notu nerede yazdıracağını seç; sonra Ayarlar'dan değişir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wähle, wo das Live-Transkript und die Notizen geschrieben werden; du kannst das später in den Einstellungen ändern."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose where the live transcript and notes are written; you can change it later in Settings."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige dónde se escriben la transcripción en directo y las notas; puedes cambiarlo después en Ajustes."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valitse, missä reaaliaikainen litterointi ja muistiinpanot kirjoitetaan; voit muuttaa tätä myöhemmin kohdassa Asetukset."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisissez où la transcription en direct et les notes sont rédigées ; vous pourrez changer cela plus tard dans Réglages."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegli dove vengono scritte la trascrizione dal vivo e le note; puoi cambiarlo in seguito in Impostazioni."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライブ文字起こしとノートをどこで作成するかを選択します。あとで「設定」で変更できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실시간 녹취록과 노트를 어디서 작성할지 선택하세요. 나중에 설정에서 변경할 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kies waar het live transcript en de notities worden geschreven; je kunt dit later wijzigen in Instellingen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha onde a transcrição ao vivo e as notas são escritas; você pode mudar isso depois nos Ajustes."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择在哪里生成实时文字稿和笔记；之后可在“设置”中更改。"
+          }
+        }
+      }
+    },
+    "Senin sesin, toplantıdaki diğer kişilerin sesi ve not hazır olunca haber. İzinleri sonra Sistem Ayarları'ndan değiştirebilirsin.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Stimme, alle anderen im Meeting und ein Hinweis, wenn deine Notiz fertig ist. Du kannst das später in den Systemeinstellungen ändern."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your voice, everyone else in the meeting, and a heads-up when your note is ready. You can change these later in System Settings."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu voz, la del resto de la reunión y un aviso cuando tu nota esté lista. Puedes cambiar estos permisos después en Ajustes del Sistema."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oma äänesi, muiden kokoukseen osallistujien äänet ja ilmoitus, kun muistiinpanosi on valmis. Voit muuttaa näitä myöhemmin Järjestelmäasetuksissa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre voix, celle des autres participants et une alerte quand votre note est prête. Vous pourrez modifier ces autorisations plus tard dans Réglages Système."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La tua voce, quella degli altri partecipanti e un avviso quando la tua nota è pronta. Puoi modificare queste autorizzazioni in seguito in Impostazioni di Sistema."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あなたの声、会議のほかの参加者の声、ノートが完成したときの通知。これらはあとで「システム設定」で変更できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "내 목소리, 회의의 다른 참가자 목소리, 노트가 준비되면 알림. 나중에 시스템 설정에서 변경할 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je stem, iedereen anders in de vergadering en een seintje als je notitie klaar is. Je kunt dit later wijzigen in Systeeminstellingen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua voz, a dos demais participantes da reunião e um aviso quando sua nota estiver pronta. Você pode mudar essas permissões depois nos Ajustes do Sistema."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的声音、会议中其他人的声音，以及笔记就绪时的通知。之后可在“系统设置”中更改这些权限。"
+          }
+        }
+      }
+    },
+    "Bir dakikalık örnek toplantı: canlı metin akarken bir not yaz, bitince notun hazır. İnternet gerekmez, kullanımına sayılmaz.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein einminütiges Beispiel-Meeting: Schreib eine Notiz, während das Live-Transkript läuft, und am Ende ist deine Notiz fertig. Kein Internet nötig, und es zählt nicht zu deiner Nutzung."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A one-minute sample meeting: jot down a note while the live transcript flows, and your note is ready when it ends. No internet needed, and it doesn't count toward your usage."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una reunión de ejemplo de un minuto: escribe una nota mientras avanza la transcripción en directo y, al terminar, tu nota estará lista. No necesitas internet y no cuenta para tu uso."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Minuutin mittainen esimerkkikokous: kirjoita muistiinpano, kun reaaliaikainen litterointi etenee, ja muistiinpanosi on valmis lopussa. Internetiä ei tarvita, eikä se kuluta käyttöäsi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une réunion d’exemple d’une minute : prenez une note pendant que la transcription en direct défile, et votre note est prête à la fin. Pas besoin d’Internet, et elle n’est pas décomptée de votre utilisation."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una riunione di esempio di un minuto: scrivi una nota mentre scorre la trascrizione dal vivo e alla fine la tua nota è pronta. Non serve Internet e non conta nel tuo utilizzo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1分間のサンプル会議：ライブ文字起こしが流れる間にメモを書くと、終了時にノートが完成します。インターネットは不要で、使用量にもカウントされません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1분짜리 샘플 회의: 실시간 녹취록이 흐르는 동안 메모를 작성하면, 끝날 때 노트가 준비됩니다. 인터넷이 필요 없으며 사용량에 포함되지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Een voorbeeldvergadering van één minuut: schrijf een notitie terwijl het live transcript meeloopt, en aan het eind is je notitie klaar. Geen internet nodig, en het telt niet mee voor je gebruik."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uma reunião de exemplo de um minuto: escreva uma anotação enquanto a transcrição ao vivo avança, e sua nota fica pronta no final. Não precisa de internet e não conta no seu uso."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一分钟的示例会议：在实时文字稿滚动时写下笔记，结束时你的笔记就已就绪。无需联网，也不计入你的用量。"
+          }
+        }
+      }
+    },
+    "Kurulumu atla": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einrichtung überspringen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skip setup"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Omitir configuración"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ohita käyttöönotto"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passer la configuration"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salta la configurazione"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "セットアップをスキップ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "설정 건너뛰기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sla configuratie over"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pular configuração"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跳过初始设置"
+          }
+        }
+      }
+    },
+    "Örnek notu aç": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beispielnotiz öffnen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open the sample note"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir la nota de ejemplo"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avaa esimerkkimuistiinpano"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrir la note d’exemple"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apri la nota di esempio"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サンプルノートを開く"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "샘플 노트 열기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open de voorbeeldnotitie"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir a nota de exemplo"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开示例笔记"
+          }
+        }
+      }
+    },
+    "Örnek toplantıyı başlat": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beispiel-Meeting starten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start the sample meeting"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Iniciar la reunión de ejemplo"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aloita esimerkkikokous"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Démarrer la réunion d’exemple"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avvia la riunione di esempio"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サンプル会議を開始"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "샘플 회의 시작"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start de voorbeeldvergadering"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Iniciar a reunião de exemplo"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开始示例会议"
+          }
+        }
+      }
+    },
+    "Toplantıyı bitir": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meeting beenden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End meeting"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminar reunión"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lopeta kokous"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminer la réunion"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Termina riunione"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議を終了"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의 종료"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rond vergadering af"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Encerrar reunião"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "结束会议"
+          }
+        }
+      }
+    },
+    "Finlandiya'dan, AB veri koruma yasasıyla. Toplantıların ve notların bu Mac'te kalır; sunucumuz ses ve not saklamaz.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Betrieben von Finnland aus nach EU-Datenschutzrecht. Deine Meetings und Notizen bleiben auf diesem Mac; unser Server speichert weder Audio noch Notizen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Run from Finland under EU data protection law. Your meetings and notes stay on this Mac; our server doesn't store audio or notes."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Operado desde Finlandia conforme a la legislación de protección de datos de la UE. Tus reuniones y notas se quedan en este Mac; nuestro servidor no guarda audio ni notas."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ylläpidetään Suomesta EU:n tietosuojalainsäädännön mukaisesti. Kokouksesi ja muistiinpanosi pysyvät tässä Macissa; palvelimemme ei tallenna ääntä eikä muistiinpanoja."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exploité depuis la Finlande, sous le régime du droit européen de la protection des données. Vos réunions et vos notes restent sur ce Mac ; notre serveur ne stocke ni l’audio ni les notes."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gestito dalla Finlandia nel rispetto della normativa UE sulla protezione dei dati. Le tue riunioni e note restano su questo Mac; il nostro server non conserva audio né note."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EUのデータ保護法のもと、フィンランドから運営しています。会議とノートはこのMacに保存され、当社のサーバは音声もノートも保存しません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "핀란드에서 EU 데이터 보호법에 따라 운영됩니다. 회의와 노트는 이 Mac에 보관되며, 당사 서버는 오디오나 노트를 저장하지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beheerd vanuit Finland onder de Europese wetgeving voor gegevensbescherming. Je vergaderingen en notities blijven op deze Mac; onze server bewaart geen audio of notities."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Operado a partir da Finlândia, sob a lei de proteção de dados da UE. Suas reuniões e notas ficam neste Mac; nosso servidor não armazena áudio nem notas."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在芬兰运营，遵循欧盟数据保护法。你的会议和笔记保留在这台 Mac 上；我们的服务器不存储音频或笔记。"
+          }
+        }
+      }
+    },
+    "Toplantıların, notların ve anahtarların bu Mac'te kalır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Meetings, Notizen und Schlüssel bleiben auf diesem Mac."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your meetings, notes and keys stay on this Mac."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tus reuniones, notas y claves se quedan en este Mac."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kokouksesi, muistiinpanosi ja avaimesi pysyvät tässä Macissa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vos réunions, notes et clés restent sur ce Mac."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le tue riunioni, note e chiavi restano su questo Mac."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議、ノート、キーはこのMacに保存されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의, 노트, 키는 이 Mac에 보관됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je vergaderingen, notities en sleutels blijven op deze Mac."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suas reuniões, notas e chaves ficam neste Mac."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的会议、笔记和密钥保留在这台 Mac 上。"
+          }
+        }
+      }
+    },
+    "Takvim yalnızca bu Mac'te okunur.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dein Kalender wird nur auf diesem Mac gelesen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your calendar is read only on this Mac."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu calendario solo se lee en este Mac."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kalenteriasi luetaan vain tässä Macissa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre calendrier est lu uniquement sur ce Mac."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il tuo calendario viene letto solo su questo Mac."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カレンダーはこのMac上でのみ読み取られます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "캘린더는 이 Mac에서만 읽습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je agenda wordt alleen op deze Mac gelezen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seu calendário é lido apenas neste Mac."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的日历仅在这台 Mac 上读取。"
+          }
+        }
+      }
+    },
+    "Takvim bağlandı": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kalender verbunden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Calendar connected"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Calendario conectado"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kalenteri yhdistetty"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Calendrier connecté"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Calendario collegato"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カレンダーを接続しました"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "캘린더 연결됨"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agenda gekoppeld"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Calendário conectado"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日历已连接"
+          }
+        }
+      }
+    },
+    "Önümüzdeki gün takviminde toplantı yok; eklenince burada ve Ana sayfada görünür.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Meetings in deinem Kalender für den nächsten Tag; neue erscheinen hier und unter „Start“."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No meetings on your calendar for the next day; new ones appear here and on Home."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay reuniones en tu calendario para el próximo día; las nuevas aparecen aquí y en Inicio."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kalenterissasi ei ole kokouksia seuraavan vuorokauden aikana; uudet näkyvät täällä ja Koti-näkymässä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucune réunion dans votre calendrier pour le jour à venir ; les nouvelles apparaissent ici et dans Accueil."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessuna riunione nel tuo calendario per il prossimo giorno; quelle nuove compaiono qui e in Home."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今後1日、カレンダーに会議はありません。新しい会議はここと「ホーム」に表示されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "앞으로 하루 동안 캘린더에 회의가 없습니다. 새 회의는 여기와 홈에 표시됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geen vergaderingen in je agenda voor de komende dag; nieuwe verschijnen hier en in Start."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhuma reunião no seu calendário para o próximo dia; as novas aparecem aqui e no Início."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未来一天你的日历中没有会议；新会议会显示在这里和“主页”中。"
+          }
+        }
+      }
+    },
+    "Google, Outlook ya da iCloud takvimin mi var? Sistem Ayarları › İnternet Hesapları'na eklediğin takvimler burada görünür.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du nutzt Google, Outlook oder iCloud? Kalender, die du unter „Systemeinstellungen“ › „Internetaccounts“ hinzufügst, erscheinen hier."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Using Google, Outlook or iCloud? Calendars you add in System Settings › Internet Accounts appear here."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Usas Google, Outlook o iCloud? Los calendarios que añadas en Ajustes del Sistema › Cuentas de internet aparecen aquí."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Käytätkö Googlea, Outlookia tai iCloudia? Kalenterit, jotka lisäät kohdassa Järjestelmäasetukset › Internet-tilit, näkyvät täällä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous utilisez Google, Outlook ou iCloud ? Les calendriers que vous ajoutez dans Réglages Système › Comptes Internet apparaissent ici."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usi Google, Outlook o iCloud? I calendari che aggiungi in Impostazioni di Sistema › Account Internet compaiono qui."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google、Outlook、iCloudをお使いですか？「システム設定」›「インターネットアカウント」で追加したカレンダーがここに表示されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google, Outlook 또는 iCloud를 사용하시나요? 시스템 설정 › 인터넷 계정에서 추가한 캘린더가 여기에 표시됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gebruik je Google, Outlook of iCloud? Agenda's die je toevoegt in Systeeminstellingen › Internetaccounts verschijnen hier."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa Google, Outlook ou iCloud? Os calendários que você adicionar em Ajustes do Sistema › Contas de Internet aparecem aqui."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用 Google、Outlook 或 iCloud？在“系统设置 › 互联网账户”中添加的日历会显示在这里。"
+          }
+        }
+      }
+    },
+    "İnternet Hesapları'nı aç": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Internetaccounts öffnen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Internet Accounts"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir Cuentas de internet"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avaa Internet-tilit"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrir Comptes Internet"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apri Account Internet"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インターネットアカウントを開く"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "인터넷 계정 열기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Internetaccounts"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir Contas de Internet"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开互联网账户"
+          }
+        }
+      }
+    },
+    "Senin sesin (\"Sen\").": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Stimme („Du“)."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your voice (\"You\")."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu voz (“Tú”)."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oma äänesi (”Sinä”)."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre voix (« Vous »)."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La tua voce (“Tu”)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あなたの声（「自分」）。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "내 목소리(\"나\")."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je stem (\"Jij\")."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua voz (\"Você\")."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的声音（“你”）。"
+          }
+        }
+      }
+    },
+    "Toplantı sesi": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meeting-Audio"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meeting audio"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio de la reunión"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kokouksen ääni"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio de la réunion"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio della riunione"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議の音声"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의 오디오"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vergaderaudio"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Áudio da reunião"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会议音频"
+          }
+        }
+      }
+    },
+    "Teams, Zoom ve tarayıcıdaki görüşmede diğer kişiler.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle anderen in Teams-, Zoom- oder Browser-Calls."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Everyone else in Teams, Zoom or browser calls."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El resto de participantes en llamadas de Teams, Zoom o del navegador."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kaikki muut Teams-, Zoom- tai selainpuheluissa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tous les autres participants aux appels Teams, Zoom ou dans le navigateur."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tutti gli altri nelle chiamate Teams, Zoom o dal browser."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teams、Zoom、ブラウザでの通話のほかの参加者全員。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teams, Zoom 또는 브라우저 통화의 다른 참가자 모두."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Iedereen anders in gesprekken via Teams, Zoom of de browser."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todos os outros participantes em chamadas do Teams, do Zoom ou no navegador."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teams、Zoom 或浏览器通话中的其他所有人。"
+          }
+        }
+      }
+    },
+    "Not hazır olunca ve görev günü gelince haber verir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sagt dir Bescheid, wenn deine Notiz fertig ist und wenn eine Aufgabe fällig ist."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lets you know when your note is ready and when a task is due."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Te avisa cuando tu nota está lista y cuando vence una tarea."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ilmoittaa, kun muistiinpanosi on valmis ja kun tehtävän määräpäivä koittaa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous prévient quand votre note est prête et quand une tâche arrive à échéance."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ti avvisa quando la tua nota è pronta e quando scade un’attività."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートが完成したときや、タスクの期日が来たときにお知らせします。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "노트가 준비되었을 때와 할 일의 기한이 되었을 때 알려 줍니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laat je weten wanneer je notitie klaar is en wanneer een taak moet worden afgerond."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avisa quando sua nota estiver pronta e quando uma tarefa vencer."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在笔记就绪和任务到期时通知你。"
+          }
+        }
+      }
+    },
+    "macOS toplantı sesi izninin durumunu göstermez: izin penceresinde \"İzin Ver\"i seçtiysen hazırsın. İzin vermesen de devam edebilirsin; kayıt başlarken eksik izin yeniden sorulur.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS zeigt den Status der Berechtigung für Meeting-Audio nicht an: Wenn du in ihrem Fenster „Erlauben“ gewählt hast, bist du startklar. Du kannst auch ohne Berechtigungen fortfahren; eine fehlende wird beim Start der Aufnahme erneut abgefragt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS doesn't show the status of the meeting audio permission: if you chose \"Allow\" in its window, you're set. You can continue without permissions; a missing one is asked for again when you start recording."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS no muestra el estado del permiso de audio de la reunión: si elegiste “Permitir” en su ventana, ya está. Puedes continuar sin permisos; el que falte se volverá a pedir al empezar a grabar."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS ei näytä kokouksen äänen luvan tilaa: jos valitsit sen ikkunassa ”Salli”, kaikki on valmista. Voit jatkaa ilman lupia; puuttuva lupa kysytään uudelleen, kun aloitat nauhoituksen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS n’affiche pas l’état de l’autorisation pour l’audio de la réunion : si vous avez choisi « Autoriser » dans sa fenêtre, tout est prêt. Vous pouvez continuer sans autorisations ; celle qui manque sera redemandée au début de l’enregistrement."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS non mostra lo stato dell’autorizzazione per l’audio della riunione: se hai scelto “Consenti” nella sua finestra, sei a posto. Puoi continuare senza autorizzazioni; quella mancante viene richiesta di nuovo all’avvio della registrazione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOSでは会議の音声の許可状況が表示されません。許可のウインドウで「許可」を選択していれば準備完了です。許可しなくても続行できます。足りない許可は録音開始時にもう一度求められます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS는 회의 오디오 권한 상태를 표시하지 않습니다. 권한 창에서 \"허용\"을 선택했다면 준비가 끝났습니다. 권한 없이도 계속할 수 있으며, 빠진 권한은 녹음을 시작할 때 다시 요청됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS toont de status van de toestemming voor vergaderaudio niet: als je in het venster \"Sta toe\" hebt gekozen, ben je klaar. Je kunt doorgaan zonder toestemmingen; een ontbrekende wordt opnieuw gevraagd wanneer je begint met opnemen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O macOS não mostra o status da permissão de áudio da reunião: se você escolheu \"Permitir\" na janela dela, está tudo certo. Você pode continuar sem permissões; a que faltar será pedida de novo quando você iniciar a gravação."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 不显示会议音频权限的状态：如果你在权限窗口中选择了“允许”，就已准备就绪。不授予权限也可以继续；缺少的权限会在开始录制时再次请求。"
+          }
+        }
+      }
+    },
+    "Canlı metin konuşmayla akar": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Live-Transkript folgt dem Gespräch"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The live transcript follows the conversation"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La transcripción en directo sigue la conversación"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reaaliaikainen litterointi seuraa keskustelua"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La transcription en direct suit la conversation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La trascrizione dal vivo segue la conversazione"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライブ文字起こしが会話を追います"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실시간 녹취록이 대화를 따라갑니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het live transcript volgt het gesprek"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A transcrição ao vivo acompanha a conversa"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "实时文字稿跟随对话"
+          }
+        }
+      }
+    },
+    "Sen bir not yazarsın": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du schreibst eine Notiz"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You jot down a note"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribes una nota"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirjoitat muistiinpanon"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous prenez une note"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scrivi una nota"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あなたがメモを書きます"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "내가 메모를 작성합니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jij schrijft een notitie"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você faz uma anotação"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你写下一条笔记"
+          }
+        }
+      }
+    },
+    "Bitince notun hazır": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Am Ende ist deine Notiz fertig"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your note is ready at the end"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu nota está lista al final"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muistiinpanosi on valmis lopussa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre note est prête à la fin"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alla fine la tua nota è pronta"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "終了するとノートが完成します"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "끝나면 노트가 준비됩니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aan het eind is je notitie klaar"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua nota fica pronta no final"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "结束时笔记就已就绪"
+          }
+        }
+      }
+    },
+    "Aklında kalmasını istediğini yaz; not bunu öncelik sayar.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schreib auf, was du dir merken willst; die Notiz gibt dem Vorrang."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type what you want to remember; the note gives it priority."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribe lo que quieras recordar; la nota le da prioridad."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirjoita, mitä haluat muistaa; muistiinpano antaa sille etusijan."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tapez ce que vous voulez retenir ; la note lui donne la priorité."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scrivi ciò che vuoi ricordare; la nota gli dà priorità."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "覚えておきたいことを入力してください。ノートではそれが優先されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "기억하고 싶은 내용을 입력하세요. 노트에서 이를 우선합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Typ wat je wilt onthouden; de notitie geeft dat voorrang."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digite o que você quer lembrar; a nota dá prioridade a isso."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入你想记住的内容；笔记会优先考虑它。"
+          }
+        }
+      }
+    },
+    "Toplantı bitti. \"Toplantıyı bitir\"e bas, notun hazırlansın.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Meeting ist vorbei. Wähle „Meeting beenden“, um deine Notiz zu bekommen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The meeting is over. Press \"End meeting\" to get your note."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La reunión ha terminado. Pulsa “Terminar reunión” para obtener tu nota."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kokous on ohi. Valitse ”Lopeta kokous”, niin saat muistiinpanosi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La réunion est terminée. Appuyez sur « Terminer la réunion » pour obtenir votre note."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La riunione è finita. Premi “Termina riunione” per ottenere la tua nota."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議が終わりました。「会議を終了」を押すとノートが作成されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의가 끝났습니다. \"회의 종료\"를 눌러 노트를 받으세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De vergadering is voorbij. Kies \"Rond vergadering af\" om je notitie te krijgen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A reunião terminou. Pressione \"Encerrar reunião\" para receber sua nota."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会议已结束。按下“结束会议”即可获得你的笔记。"
+          }
+        }
+      }
+    },
+    "Notlarım: ör. Özeti cuma gönder": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meine Notizen: z. B. Zusammenfassung am Freitag senden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "My notes: e.g. Send the recap on Friday"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mis notas: p. ej., Enviar el resumen el viernes"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Omat muistiinpanot: esim. Lähetä yhteenveto perjantaina"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mes notes : p. ex. Envoyer le compte rendu vendredi"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le mie note: es. Inviare il riepilogo venerdì"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自分のメモ：例）金曜日に要約を送る"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "내 메모: 예) 금요일에 요약 보내기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mijn notities: bv. Stuur vrijdag de samenvatting"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Minhas anotações: ex. Enviar o resumo na sexta"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我的笔记：例如周五发送摘要"
+          }
+        }
+      }
+    },
+    "Örnek toplantı Toplantılar'da; istediğin zaman silebilirsin.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Beispiel-Meeting ist unter „Meetings“; lösch es, wann immer du willst."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The sample meeting is in Meetings; delete it whenever you like."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La reunión de ejemplo está en Reuniones; elimínala cuando quieras."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esimerkkikokous on Kokouksissa; voit poistaa sen milloin haluat."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La réunion d’exemple se trouve dans Réunions ; supprimez-la quand vous voulez."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La riunione di esempio è in Riunioni; eliminala quando vuoi."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サンプル会議は「会議」にあります。いつでも削除できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "샘플 회의는 회의에 있습니다. 언제든지 삭제할 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De voorbeeldvergadering staat in Vergaderingen; verwijder deze wanneer je wilt."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A reunião de exemplo está em Reuniões; apague quando quiser."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "示例会议在“会议”中；你可以随时删除它。"
+          }
+        }
+      }
+    },
+    "Bu bir örnek toplantı; burada sorular cevaplanmaz. Gerçek toplantılarında o ana kadar konuşulanlardan cevap gelir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das ist ein Beispiel-Meeting, daher werden hier keine Fragen beantwortet. In deinen echten Meetings kommen die Antworten aus dem bisher Gesagten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This is a sample meeting, so questions aren't answered here. In your real meetings, answers come from what's been said so far."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta es una reunión de ejemplo, así que aquí no se responden preguntas. En tus reuniones reales, las respuestas salen de lo que se ha dicho hasta ese momento."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämä on esimerkkikokous, joten kysymyksiin ei vastata täällä. Oikeissa kokouksissasi vastaukset perustuvat siihen, mitä siihen mennessä on sanottu."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ceci est une réunion d’exemple : les questions n’y reçoivent pas de réponse. Dans vos vraies réunions, les réponses s’appuient sur ce qui a été dit jusque-là."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questa è una riunione di esempio, quindi qui non si risponde alle domande. Nelle tue riunioni reali, le risposte si basano su quanto detto fino a quel momento."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "これはサンプル会議のため、ここでは質問に回答されません。実際の会議では、その時点までの発言をもとに回答されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "샘플 회의이므로 여기서는 질문에 답변하지 않습니다. 실제 회의에서는 그때까지 나온 이야기를 바탕으로 답변합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dit is een voorbeeldvergadering, dus vragen worden hier niet beantwoord. In je echte vergaderingen komen de antwoorden uit wat er tot dan toe is gezegd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta é uma reunião de exemplo, então aqui as perguntas não são respondidas. Nas suas reuniões reais, as respostas vêm do que foi dito até aquele momento."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这是示例会议，因此这里不会回答问题。在你的真实会议中，答案来自截至当时所说的内容。"
+          }
+        }
+      }
+    },
+    "Örnek toplantı açılamadı: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beispiel-Meeting konnte nicht geöffnet werden: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't open the sample meeting: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se ha podido abrir la reunión de ejemplo: %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esimerkkikokouksen avaaminen epäonnistui: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d’ouvrir la réunion d’exemple : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile aprire la riunione di esempio: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サンプル会議を開けませんでした：%@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "샘플 회의를 열 수 없습니다: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kan de voorbeeldvergadering niet openen: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível abrir a reunião de exemplo: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法打开示例会议：%@"
+          }
+        }
+      }
+    },
+    "Örnek toplantı Toplantılar'a saklanamadı: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beispiel-Meeting konnte nicht unter „Meetings“ gesichert werden: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't save the sample meeting to Meetings: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se ha podido guardar la reunión de ejemplo en Reuniones: %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esimerkkikokouksen tallentaminen Kokouksiin epäonnistui: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d’enregistrer la réunion d’exemple dans Réunions : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile salvare la riunione di esempio in Riunioni: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サンプル会議を「会議」に保存できませんでした：%@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "샘플 회의를 회의에 저장할 수 없습니다: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kan de voorbeeldvergadering niet bewaren in Vergaderingen: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível salvar a reunião de exemplo em Reuniões: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法将示例会议存储到“会议”：%@"
+          }
+        }
+      }
+    },
+    "Ana sayfadaki \"Kaydı başlat\", menü çubuğu ya da kısayol; kayıt sırasında canlı panel açılır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„Aufnahme starten“ unter „Start“, in der Menüleiste oder per Kurzbefehl; während der Aufnahme öffnet sich das Live-Panel."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"Start recording\" on Home, the menu bar or the shortcut; the live panel opens while you record."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“Iniciar grabación” en Inicio, la barra de menús o el atajo; el panel en directo se abre mientras grabas."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "”Aloita nauhoitus” Koti-näkymässä, valikkorivillä tai pikanäppäimellä; live-paneeli avautuu nauhoituksen ajaksi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "« Démarrer l’enregistrement » dans Accueil, la barre des menus ou le raccourci ; le panneau en direct s’ouvre pendant l’enregistrement."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“Avvia registrazione” in Home, la barra dei menu o l’abbreviazione; durante la registrazione si apre il pannello dal vivo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「ホーム」の「録音を開始」、メニューバー、またはショートカット。録音中はライブパネルが開きます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "홈의 \"녹음 시작\", 메뉴 막대 또는 단축키. 녹음하는 동안 실시간 패널이 열립니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"Start opname\" in Start, de menubalk of de toetscombinatie; tijdens het opnemen opent het livepaneel."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"Iniciar gravação\" no Início, na barra de menus ou pelo atalho; o painel ao vivo abre enquanto você grava."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“主页”中的“开始录制”、菜单栏或快捷键；录制时会打开实时面板。"
+          }
+        }
+      }
+    },
+    "Sor ve tarifler": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fragen und Rezepte"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask and recipes"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preguntar y recetas"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kysy ja reseptit"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Demander et recettes"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chiedi e ricette"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "質問とレシピ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "질문하기와 레시피"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vraag en recepten"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perguntar e receitas"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提问和预设"
+          }
+        }
+      }
+    },
+    "Toplantılarına soru sor; sık sorduğunu tarif olarak kaydet, \"/\" ile çalıştır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frag deine Meetings, was du willst; sichere eine häufige Frage als Rezept und führe sie mit „/“ aus."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask your meetings anything; save a question you ask often as a recipe and run it with \"/\"."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pregunta lo que quieras a tus reuniones; guarda como receta una pregunta que hagas a menudo y ejecútala con “/”."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kysy kokouksiltasi mitä tahansa; tallenna usein kysymäsi kysymys reseptiksi ja suorita se merkillä ”/”."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posez n’importe quelle question à vos réunions ; enregistrez une question fréquente comme recette et lancez-la avec « / »."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chiedi qualsiasi cosa alle tue riunioni; salva come ricetta una domanda che fai spesso ed eseguila con “/”."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議について何でも質問できます。よくする質問はレシピとして保存し、「/」で実行できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의에 무엇이든 물어보세요. 자주 하는 질문은 레시피로 저장하고 \"/\"로 실행하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stel je vergaderingen elke vraag die je wilt; bewaar een vraag die je vaak stelt als recept en voer hem uit met \"/\"."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pergunte qualquer coisa às suas reuniões; salve uma pergunta frequente como receita e execute-a com \"/\"."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "向你的会议提出任何问题；将常问的问题存储为预设，并用“/”运行。"
+          }
+        }
+      }
+    },
+    "Toplantılar'da seni bekliyor; istediğin zaman silebilirsin.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Es wartet unter „Meetings“; lösch es, wann immer du willst."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It's waiting in Meetings; delete it whenever you like."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Te espera en Reuniones; elimínala cuando quieras."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se odottaa Kokouksissa; voit poistaa sen milloin haluat."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elle vous attend dans Réunions ; supprimez-la quand vous voulez."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ti aspetta in Riunioni; eliminala quando vuoi."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「会議」にあります。いつでも削除できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의에서 기다리고 있습니다. 언제든지 삭제할 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hij wacht op je in Vergaderingen; verwijder hem wanneer je wilt."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ela espera por você em Reuniões; apague quando quiser."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "它在“会议”中等你；你可以随时删除它。"
+          }
+        }
+      }
+    },
+    "Senin sesin, kilit ekranında kayıt ve not hazır olunca haber. İzinleri sonra iPhone Ayarları'ndan değiştirebilirsin.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Stimme, Aufnahme auf dem Sperrbildschirm und ein Hinweis, wenn deine Notiz fertig ist. Du kannst das später in den iPhone-Einstellungen ändern."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your voice, recording on the Lock Screen, and a heads-up when your note is ready. You can change these later in iPhone Settings."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu voz, la grabación en la pantalla bloqueada y un aviso cuando tu nota esté lista. Puedes cambiar estos permisos después en Ajustes del iPhone."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oma äänesi, nauhoitus lukitusnäytöllä ja ilmoitus, kun muistiinpanosi on valmis. Voit muuttaa näitä myöhemmin iPhonen asetuksissa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre voix, l’enregistrement sur l’écran verrouillé et une alerte quand votre note est prête. Vous pourrez modifier ces autorisations plus tard dans Réglages de l’iPhone."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La tua voce, la registrazione sulla schermata di blocco e un avviso quando la tua nota è pronta. Puoi modificare queste autorizzazioni in seguito in Impostazioni di iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あなたの声、ロック画面での録音、ノートが完成したときの通知。これらはあとでiPhoneの「設定」で変更できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "내 목소리, 잠금 화면에서 녹음, 노트가 준비되면 알림. 나중에 iPhone 설정에서 변경할 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je stem, opnemen op het toegangsscherm en een seintje als je notitie klaar is. Je kunt dit later wijzigen in Instellingen op de iPhone."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua voz, a gravação na Tela Bloqueada e um aviso quando sua nota estiver pronta. Você pode mudar essas permissões depois nos Ajustes do iPhone."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的声音、在锁定屏幕上录制，以及笔记就绪时的通知。之后可在 iPhone“设置”中更改这些权限。"
+          }
+        }
+      }
+    },
+    "Finlandiya'dan, AB veri koruma yasasıyla. Toplantıların ve notların bu iPhone'da kalır; sunucumuz ses ve not saklamaz.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Betrieben von Finnland aus nach EU-Datenschutzrecht. Deine Meetings und Notizen bleiben auf diesem iPhone; unser Server speichert weder Audio noch Notizen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Run from Finland under EU data protection law. Your meetings and notes stay on this iPhone; our server doesn't store audio or notes."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Operado desde Finlandia conforme a la legislación de protección de datos de la UE. Tus reuniones y notas se quedan en este iPhone; nuestro servidor no guarda audio ni notas."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ylläpidetään Suomesta EU:n tietosuojalainsäädännön mukaisesti. Kokouksesi ja muistiinpanosi pysyvät tässä iPhonessa; palvelimemme ei tallenna ääntä eikä muistiinpanoja."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exploité depuis la Finlande, sous le régime du droit européen de la protection des données. Vos réunions et vos notes restent sur cet iPhone ; notre serveur ne stocke ni l’audio ni les notes."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gestito dalla Finlandia nel rispetto della normativa UE sulla protezione dei dati. Le tue riunioni e note restano su questo iPhone; il nostro server non conserva audio né note."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EUのデータ保護法のもと、フィンランドから運営しています。会議とノートはこのiPhoneに保存され、当社のサーバは音声もノートも保存しません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "핀란드에서 EU 데이터 보호법에 따라 운영됩니다. 회의와 노트는 이 iPhone에 보관되며, 당사 서버는 오디오나 노트를 저장하지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beheerd vanuit Finland onder de Europese wetgeving voor gegevensbescherming. Je vergaderingen en notities blijven op deze iPhone; onze server bewaart geen audio of notities."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Operado a partir da Finlândia, sob a lei de proteção de dados da UE. Suas reuniões e notas ficam neste iPhone; nosso servidor não armazena áudio nem notas."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在芬兰运营，遵循欧盟数据保护法。你的会议和笔记保留在这部 iPhone 上；我们的服务器不存储音频或笔记。"
+          }
+        }
+      }
+    },
+    "Takvim yalnızca bu iPhone'da okunur.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dein Kalender wird nur auf diesem iPhone gelesen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your calendar is read only on this iPhone."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu calendario solo se lee en este iPhone."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kalenteriasi luetaan vain tässä iPhonessa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre calendrier est lu uniquement sur cet iPhone."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il tuo calendario viene letto solo su questo iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カレンダーはこのiPhone上でのみ読み取られます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "캘린더는 이 iPhone에서만 읽습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je agenda wordt alleen op deze iPhone gelezen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seu calendário é lido apenas neste iPhone."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的日历仅在这部 iPhone 上读取。"
+          }
+        }
+      }
+    },
+    "Takvim izni yok: iPhone Ayarları'nda Gistsmith › Takvimler'i aç.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kein Kalenderzugriff: Aktiviere „Gistsmith“ › „Kalender“ in den iPhone-Einstellungen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No calendar access: turn on Gistsmith › Calendars in iPhone Settings."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin acceso al calendario: activa Gistsmith › Calendarios en Ajustes del iPhone."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ei pääsyä kalenteriin: laita Gistsmith › Kalenterit päälle iPhonen asetuksissa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pas d’accès au calendrier : activez Gistsmith › Calendriers dans Réglages de l’iPhone."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessun accesso al calendario: attiva Gistsmith › Calendari in Impostazioni di iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カレンダーへのアクセス権がありません：iPhoneの「設定」で「Gistsmith」›「カレンダー」をオンにしてください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "캘린더 접근 권한 없음: iPhone 설정에서 Gistsmith › 캘린더를 켜세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geen toegang tot agenda: zet Gistsmith › Agenda's aan in Instellingen op de iPhone."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem acesso ao calendário: ative Gistsmith › Calendários nos Ajustes do iPhone."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有日历访问权限：请在 iPhone“设置”中打开“Gistsmith › 日历”。"
+          }
+        }
+      }
+    },
+    "Google, Outlook ya da iCloud takvimin mi var? iPhone Ayarları › Takvim › Hesaplar'dan eklediğin takvimler burada görünür.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du nutzt Google, Outlook oder iCloud? Kalender, die du in den iPhone-Einstellungen unter „Kalender“ › „Accounts“ hinzufügst, erscheinen hier."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Using Google, Outlook or iCloud? Calendars you add in iPhone Settings › Calendar › Accounts appear here."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Usas Google, Outlook o iCloud? Los calendarios que añadas en Ajustes del iPhone › Calendario › Cuentas aparecen aquí."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Käytätkö Googlea, Outlookia tai iCloudia? Kalenterit, jotka lisäät iPhonen kohdassa Asetukset › Kalenteri › Tilit, näkyvät täällä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous utilisez Google, Outlook ou iCloud ? Les calendriers que vous ajoutez dans Réglages de l’iPhone › Calendrier › Comptes apparaissent ici."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usi Google, Outlook o iCloud? I calendari che aggiungi in Impostazioni di iPhone › Calendario › Account compaiono qui."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google、Outlook、iCloudをお使いですか？iPhoneの「設定」›「カレンダー」›「アカウント」で追加したカレンダーがここに表示されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google, Outlook 또는 iCloud를 사용하시나요? iPhone 설정 › 캘린더 › 계정에서 추가한 캘린더가 여기에 표시됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gebruik je Google, Outlook of iCloud? Agenda's die je toevoegt in Instellingen › Agenda › Accounts op de iPhone verschijnen hier."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa Google, Outlook ou iCloud? Os calendários que você adicionar em Ajustes do iPhone › Calendário › Contas aparecem aqui."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用 Google、Outlook 或 iCloud？在 iPhone“设置 › 日历 › 账户”中添加的日历会显示在这里。"
+          }
+        }
+      }
+    },
+    "Önümüzdeki gün takviminde toplantı yok; eklenince burada ve Kayıt'ta görünür.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Meetings in deinem Kalender für den nächsten Tag; neue erscheinen hier und unter „Aufnehmen“."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No meetings on your calendar for the next day; new ones appear here and in Record."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay reuniones en tu calendario para el próximo día; las nuevas aparecen aquí y en Grabar."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kalenterissasi ei ole kokouksia seuraavan vuorokauden aikana; uudet näkyvät täällä ja Nauhoita-välilehdellä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucune réunion dans votre calendrier pour le jour à venir ; les nouvelles apparaissent ici et dans Enregistrer."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessuna riunione nel tuo calendario per il prossimo giorno; quelle nuove compaiono qui e in Registra."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今後1日、カレンダーに会議はありません。新しい会議はここと「録音」に表示されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "앞으로 하루 동안 캘린더에 회의가 없습니다. 새 회의는 여기와 녹음에 표시됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geen vergaderingen in je agenda voor de komende dag; nieuwe verschijnen hier en in Opnemen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhuma reunião no seu calendário para o próximo dia; as novas aparecem aqui e em Gravar."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未来一天你的日历中没有会议；新会议会显示在这里和“录制”中。"
+          }
+        }
+      }
+    },
+    "Toplantıdaki konuşmalar.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Was im Meeting gesagt wird."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What's said in the meeting."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lo que se dice en la reunión."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mitä kokouksessa sanotaan."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce qui se dit dans la réunion."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ciò che si dice nella riunione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議での発言。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의에서 나오는 말."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wat er in de vergadering wordt gezegd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O que é dito na reunião."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会议中所说的内容。"
+          }
+        }
+      }
+    },
+    "Kilit ekranında kayıt": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aufnahme auf dem Sperrbildschirm"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording on the Lock Screen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabación en la pantalla bloqueada"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nauhoitus lukitusnäytöllä"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrement sur l’écran verrouillé"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrazione sulla schermata di blocco"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ロック画面での録音"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "잠금 화면에서 녹음"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opnemen op het toegangsscherm"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gravação na Tela Bloqueada"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在锁定屏幕上录制"
+          }
+        }
+      }
+    },
+    "Süre ve son cümle kilit ekranında ve Dynamic Island'da.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeit und letzter Satz auf dem Sperrbildschirm und in der Dynamic Island."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Time and the latest sentence on the Lock Screen and in the Dynamic Island."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El tiempo y la última frase en la pantalla bloqueada y en la Dynamic Island."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aika ja viimeisin lause lukitusnäytöllä ja Dynamic Islandissa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La durée et la dernière phrase sur l’écran verrouillé et dans la Dynamic Island."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Durata e ultima frase sulla schermata di blocco e nella Dynamic Island."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "経過時間と最新の文をロック画面とDynamic Islandに表示。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "잠금 화면과 Dynamic Island에 시간과 최신 문장 표시."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tijd en de laatste zin op het toegangsscherm en in het Dynamic Island."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tempo e a frase mais recente na Tela Bloqueada e na Dynamic Island."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "锁定屏幕和灵动岛上显示时间和最新的一句话。"
+          }
+        }
+      }
+    },
+    "İzin vermesen de devam edebilirsin; kayıt başlarken eksik izin yeniden sorulur.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du kannst auch ohne Berechtigungen fortfahren; eine fehlende wird beim Start der Aufnahme erneut abgefragt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can continue without permissions; a missing one is asked for again when you start recording."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puedes continuar sin permisos; el que falte se volverá a pedir al empezar a grabar."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voit jatkaa ilman lupia; puuttuva lupa kysytään uudelleen, kun aloitat nauhoituksen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous pouvez continuer sans autorisations ; celle qui manque sera redemandée au début de l’enregistrement."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puoi continuare senza autorizzazioni; quella mancante viene richiesta di nuovo all’avvio della registrazione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "許可しなくても続行できます。足りない許可は録音開始時にもう一度求められます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "권한 없이도 계속할 수 있으며, 빠진 권한은 녹음을 시작할 때 다시 요청됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je kunt doorgaan zonder toestemmingen; een ontbrekende wordt opnieuw gevraagd wanneer je begint met opnemen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você pode continuar sem permissões; a que faltar será pedida de novo quando você iniciar a gravação."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不授予权限也可以继续；缺少的权限会在开始录制时再次请求。"
+          }
+        }
+      }
+    },
+    "Sürdür": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fortsetzen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reanudar"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jatka"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reprendre"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riprendi"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再開"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "재개"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hervat"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retomar"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "继续"
+          }
+        }
+      }
+    },
+    "Kayıt sekmesindeki büyük düğme, Denetim Merkezi ya da Eylem düğmesi.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die große Taste im Tab „Aufnehmen“, das Kontrollzentrum oder die Aktionstaste."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The big button on the Record tab, Control Center or the Action button."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El botón grande de la pestaña Grabar, el centro de control o el botón de acción."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nauhoita-välilehden iso painike, Ohjauskeskus tai Toimintopainike."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le grand bouton de l’onglet Enregistrer, le centre de contrôle ou le bouton Action."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il pulsante grande nella scheda Registra, Centro di Controllo o il tasto Azione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「録音」タブの大きなボタン、コントロールセンター、またはアクションボタン。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹음 탭의 큰 버튼, 제어 센터 또는 동작 버튼."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De grote knop op het tabblad Opnemen, het bedieningspaneel of de actieknop."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O botão grande na aba Gravar, a Central de Controle ou o botão de Ação."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“录制”标签页中的大按钮、控制中心或操作按钮。"
+          }
+        }
+      }
+    },
+    "Örnek toplantı": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beispiel-Meeting"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sample meeting"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reunión de ejemplo"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esimerkkikokous"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réunion d’exemple"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riunione di esempio"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サンプル会議"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "샘플 회의"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voorbeeldvergadering"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reunião de exemplo"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "示例会议"
+          }
+        }
+      }
+    },
+    "İstendi": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Angefragt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Requested"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solicitado"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pyydetty"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Demandé"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Richiesta"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リクエスト済み"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "요청됨"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aangevraagd"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solicitado"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已请求"
+          }
+        }
+      }
+    },
+    "Denetle": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prüfen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comprobar"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tarkista"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vérifier"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verifica"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確認"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "확인"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Controleer"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verificar"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "检查"
+          }
+        }
+      }
+    },
+    "Denetleniyor": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wird geprüft"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comprobando"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tarkistetaan"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vérification"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verifica in corso"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確認中"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "확인 중"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Controleren"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verificando"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在检查"
+          }
+        }
+      }
+    },
+    "Çevrim içi görüşme": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Online-Call"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Online call"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Llamada en línea"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verkkopuhelu"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appel en ligne"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chiamata online"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オンライン通話"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "온라인 통화"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Onlinegesprek"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chamada on-line"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在线通话"
+          }
+        }
+      }
+    },
+    "Yarın": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Morgen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tomorrow"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mañana"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Huomenna"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Demain"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Domani"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "明日"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "내일"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Morgen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Amanhã"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "明天"
+          }
+        }
+      }
+    },
+    "Paylaşım akışı: yayın planı": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teilen-Flow: Release-Plan"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sharing flow: release plan"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flujo para compartir: plan de lanzamiento"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jakotoiminto: julkaisusuunnitelma"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flux de partage : plan de lancement"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flusso di condivisione: piano di rilascio"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共有フロー：リリース計画"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "공유 흐름: 출시 계획"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deelflow: releaseplan"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fluxo de compartilhamento: plano de lançamento"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共享流程：发布计划"
+          }
+        }
+      }
+    },
+    "Yeni paylaşım akışı salı günü planlandığı gibi yayına çıkıyor. Bağlantı önizlemeleri büyük toplantılarda hâlâ bozuluyor; bu yüzden özellik anahtarının arkasında kapalı kalıyor ve bir hafta sonra açılıyor. Sürüm notunda önizlemelerin yakında geleceği yazacak.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der neue Teilen-Flow erscheint wie geplant am Dienstag. Linkvorschauen funktionieren bei großen Meetings noch nicht richtig, daher bleiben sie hinter einem Feature-Flag ausgeschaltet und werden eine Woche später aktiviert. In den Versionshinweisen steht, dass Vorschauen bald kommen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The new sharing flow ships on Tuesday as planned. Link previews still break on large meetings, so they stay off behind a feature flag and are turned on a week later. The release notes will say previews are coming soon."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El nuevo flujo para compartir sale el martes, como estaba previsto. Las vistas previas de enlaces todavía fallan en reuniones grandes, así que se quedan desactivadas tras un feature flag y se activan una semana después. Las notas de la versión dirán que las vistas previas llegarán pronto."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uusi jakotoiminto julkaistaan suunnitellusti tiistaina. Linkkien esikatselut eivät vieläkään toimi suurissa kokouksissa, joten ne pysyvät pois päältä ominaisuuslipun takana ja otetaan käyttöön viikkoa myöhemmin. Julkaisutiedoissa kerrotaan, että esikatselut tulevat pian."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le nouveau flux de partage sort mardi comme prévu. Les aperçus de liens ne fonctionnent toujours pas sur les grandes réunions ; ils restent donc désactivés derrière un feature flag et seront activés une semaine plus tard. Les notes de version indiqueront que les aperçus arrivent bientôt."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il nuovo flusso di condivisione esce martedì come previsto. Le anteprime dei link non funzionano ancora nelle riunioni grandi, quindi restano disattivate dietro un feature flag e verranno attivate una settimana dopo. Le note di rilascio diranno che le anteprime arriveranno presto."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しい共有フローは予定どおり火曜日にリリースされます。大規模な会議ではリンクのプレビューがまだ正しく動作しないため、機能フラグでオフのままにし、1週間後にオンにします。リリースノートには、プレビューは近日対応予定と記載します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "새 공유 흐름은 계획대로 화요일에 출시됩니다. 대규모 회의에서는 링크 미리보기가 아직 제대로 작동하지 않아, 기능 플래그로 꺼 둔 채 일주일 뒤에 켭니다. 릴리스 노트에는 미리보기가 곧 제공된다고 적습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De nieuwe deelflow verschijnt zoals gepland op dinsdag. Linkvoorbeelden werken nog niet goed bij grote vergaderingen, dus blijven ze uit achter een feature flag en gaan ze een week later aan. In de release-opmerkingen staat dat voorbeelden binnenkort komen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O novo fluxo de compartilhamento sai na terça-feira, como planejado. As prévias de links ainda falham em reuniões grandes, então ficam desativadas atrás de uma feature flag e serão ativadas uma semana depois. As notas da versão vão dizer que as prévias chegam em breve."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新的共享流程按计划于周二发布。链接预览在大型会议中仍会出错，因此通过功能开关保持关闭，一周后再打开。发布说明中会写明预览即将推出。"
+          }
+        }
+      }
+    },
+    "Paylaşım salı günü, bağlantı önizlemeleri kapalı olarak yayına çıkar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teilen erscheint am Dienstag, mit ausgeschalteten Linkvorschauen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sharing ships on Tuesday with link previews turned off."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compartir sale el martes con las vistas previas de enlaces desactivadas."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jakaminen julkaistaan tiistaina, linkkien esikatselut pois päältä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le partage sort mardi avec les aperçus de liens désactivés."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La condivisione esce martedì con le anteprime dei link disattivate."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共有機能は火曜日に、リンクのプレビューをオフにした状態でリリースされます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "공유 기능은 화요일에 링크 미리보기를 끈 상태로 출시됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delen verschijnt dinsdag, met linkvoorbeelden uitgeschakeld."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O compartilhamento sai na terça com as prévias de links desativadas."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共享功能将于周二发布，链接预览处于关闭状态。"
+          }
+        }
+      }
+    },
+    "Önizlemeler yayından bir hafta sonra açılır.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorschauen werden eine Woche nach dem Release aktiviert."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Previews are turned on a week after the release."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las vistas previas se activan una semana después del lanzamiento."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esikatselut otetaan käyttöön viikko julkaisun jälkeen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les aperçus sont activés une semaine après la sortie."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le anteprime vengono attivate una settimana dopo il rilascio."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プレビューはリリースの1週間後にオンになります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "미리보기는 출시 일주일 뒤에 켜집니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voorbeelden gaan een week na de release aan."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As prévias são ativadas uma semana após o lançamento."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "预览在发布一周后打开。"
+          }
+        }
+      }
+    },
+    "Toplantının özetini ekibe gönder": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meeting-Zusammenfassung an das Team senden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send the meeting recap to the team"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar el resumen de la reunión al equipo"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lähetä kokouksen yhteenveto tiimille"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envoyer le compte rendu de la réunion à l’équipe"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inviare il riepilogo della riunione al team"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議の要約をチームに送る"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의 요약을 팀에 보내기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De samenvatting van de vergadering naar het team sturen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar o resumo da reunião para a equipe"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将会议摘要发送给团队"
+          }
+        }
+      }
+    },
+    "Cuma": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Freitag"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Friday"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viernes"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perjantai"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vendredi"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Venerdì"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "金曜日"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "금요일"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vrijdag"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sexta-feira"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "周五"
+          }
+        }
+      }
+    },
+    "Büyük toplantılardaki önizleme hatasını düzelt ve deneme sürümünü gönder": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorschaufehler bei großen Meetings beheben und einen Test-Build senden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fix the preview bug on large meetings and send a test build"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corregir el error de las vistas previas en reuniones grandes y enviar una versión de prueba"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Korjaa esikatseluvirhe suurissa kokouksissa ja lähetä testiversio"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corriger le bug des aperçus sur les grandes réunions et envoyer une version de test"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Correggere il bug delle anteprime nelle riunioni grandi e inviare una build di prova"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "大規模な会議でのプレビューの不具合を修正し、テストビルドを送る"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "대규모 회의의 미리보기 버그를 수정하고 테스트 빌드 보내기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De bug in linkvoorbeelden bij grote vergaderingen oplossen en een testversie sturen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corrigir o bug das prévias em reuniões grandes e enviar uma versão de teste"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "修复大型会议中的预览错误并发送测试版本"
+          }
+        }
+      }
+    },
+    "Perşembe": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Donnerstag"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thursday"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jueves"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Torstai"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jeudi"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Giovedì"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "木曜日"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "목요일"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Donderdag"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quinta-feira"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "周四"
+          }
+        }
+      }
+    },
+    "Özellik anahtarı": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feature-Flag"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feature flag"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feature flag"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ominaisuuslippu"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feature flag"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feature flag"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "機能フラグ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "기능 플래그"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feature flag"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feature flag"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "功能开关"
+          }
+        }
+      }
+    },
+    "Bitmiş bir özelliği yeni sürüm çıkarmadan açıp kapatan ayar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eine Einstellung, die eine fertige Funktion ohne neues Release ein- oder ausschaltet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A setting that turns a finished feature on or off without a new release."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un ajuste que activa o desactiva una función terminada sin publicar una nueva versión."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Asetus, jolla valmis ominaisuus kytketään päälle tai pois ilman uutta julkaisua."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un réglage qui active ou désactive une fonctionnalité terminée sans nouvelle version."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un’impostazione che attiva o disattiva una funzione finita senza un nuovo rilascio."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完成した機能を、新しいリリースなしでオン／オフする設定。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "완성된 기능을 새 릴리스 없이 켜거나 끄는 설정."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Een instelling die een afgeronde functie aan- of uitzet zonder nieuwe release."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Um ajuste que ativa ou desativa um recurso pronto sem uma nova versão."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无需发布新版本即可打开或关闭已完成功能的设置。"
+          }
+        }
+      }
+    },
+    "Yayının durumu": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Release-Status"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Release status"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estado del lanzamiento"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Julkaisun tila"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "État de la sortie"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stato del rilascio"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リリースの状況"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "출시 현황"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Status van de release"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Status do lançamento"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "发布状态"
+          }
+        }
+      }
+    },
+    "Akış hazır; önizlemeler büyük toplantılarda bozuluyor.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Flow ist fertig; Vorschauen funktionieren bei großen Meetings nicht."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The flow is done; previews break on large meetings."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El flujo está listo; las vistas previas fallan en reuniones grandes."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toiminto on valmis; esikatselut eivät toimi suurissa kokouksissa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le flux est prêt ; les aperçus ne fonctionnent pas sur les grandes réunions."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il flusso è pronto; le anteprime non funzionano nelle riunioni grandi."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フローは完成。大規模な会議ではプレビューが正しく動作しない。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "흐름은 완성됨. 대규모 회의에서는 미리보기가 작동하지 않음."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De flow is klaar; voorbeelden werken niet bij grote vergaderingen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O fluxo está pronto; as prévias falham em reuniões grandes."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "流程已完成；预览在大型会议中出错。"
+          }
+        }
+      }
+    },
+    "Karar": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entscheidung"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Decision"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Decisión"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Päätös"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Décision"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Decisione"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "決定"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "결정"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Besluit"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Decisão"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "决策"
+          }
+        }
+      }
+    },
+    "Salı önizlemeler kapalı yayın; bir hafta sonra açılır.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Am Dienstag mit ausgeschalteten Vorschauen veröffentlichen; eine Woche später einschalten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ship on Tuesday with previews off; turn them on a week later."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lanzar el martes con las vistas previas desactivadas; activarlas una semana después."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Julkaisu tiistaina esikatselut pois päältä; ne otetaan käyttöön viikkoa myöhemmin."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sortie mardi avec les aperçus désactivés ; activation une semaine plus tard."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rilascio martedì con le anteprime disattivate; attivarle una settimana dopo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "火曜日にプレビューをオフにしてリリースし、1週間後にオンにする。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "화요일에 미리보기를 끈 채 출시하고, 일주일 뒤에 켭니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dinsdag uitbrengen met voorbeelden uit; een week later aanzetten."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lançar na terça com as prévias desativadas; ativá-las uma semana depois."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "周二发布，预览保持关闭；一周后打开。"
+          }
+        }
+      }
+    },
+    "Sonraki adımlar": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nächste Schritte"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next steps"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Próximos pasos"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seuraavat vaiheet"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prochaines étapes"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prossimi passi"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "次のステップ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다음 단계"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volgende stappen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Próximos passos"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "后续步骤"
+          }
+        }
+      }
+    },
+    "Leo perşembeye düzeltir; sen cumaya özeti gönderirsin.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leo behebt es bis Donnerstag; du sendest die Zusammenfassung bis Freitag."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leo fixes it by Thursday; you send the recap by Friday."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leo lo corrige antes del jueves; tú envías el resumen antes del viernes."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leo korjaa sen torstaihin mennessä; sinä lähetät yhteenvedon perjantaihin mennessä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leo corrige le bug d’ici jeudi ; vous envoyez le compte rendu d’ici vendredi."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leo lo corregge entro giovedì; tu invii il riepilogo entro venerdì."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leoが木曜日までに修正し、あなたが金曜日までに要約を送ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leo가 목요일까지 수정하고, 내가 금요일까지 요약을 보냅니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leo lost het op vóór donderdag; jij stuurt de samenvatting vóór vrijdag."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leo corrige até quinta; você envia o resumo até sexta."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leo 在周四前修复；你在周五前发送摘要。"
+          }
+        }
+      }
+    },
+    "Paylaşım akışının yayını: önizlemeler büyük toplantılarda hâlâ bozuluyor.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Release des Teilen-Flows: Vorschauen funktionieren bei großen Meetings noch nicht."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sharing flow release: previews still break on large meetings."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lanzamiento del flujo para compartir: las vistas previas aún fallan en reuniones grandes."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jakotoiminnon julkaisu: esikatselut eivät vieläkään toimi suurissa kokouksissa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sortie du flux de partage : les aperçus ne fonctionnent toujours pas sur les grandes réunions."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rilascio del flusso di condivisione: le anteprime non funzionano ancora nelle riunioni grandi."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共有フローのリリース：大規模な会議ではプレビューがまだ正しく動作しない。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "공유 흐름 출시: 대규모 회의에서 미리보기가 아직 작동하지 않음."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Release van de deelflow: voorbeelden werken nog niet bij grote vergaderingen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lançamento do fluxo de compartilhamento: as prévias ainda falham em reuniões grandes."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共享流程发布：预览在大型会议中仍会出错。"
+          }
+        }
+      }
+    },
+    "Süre %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeit %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Time %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tiempo %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aika %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Durée %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Durata %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "経過時間 %@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "시간 %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tijd %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tempo %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "时间 %@"
+          }
+        }
+      }
+    },
+    "%@, konuşuyor": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ spricht"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, speaking"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ está hablando"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ puhuu"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ parle"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sta parlando"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@、発言中"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, 말하는 중"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ spreekt"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ está falando"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@，正在发言"
+          }
+        }
+      }
+    },
+    "Akış": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Themen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Outline"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Temas"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aiheet"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sujets"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Argomenti"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "トピック"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "주제 흐름"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Onderwerpen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tópicos"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "议题"
+          }
+        }
+      }
+    },
+    "Bağlanıyor…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verbinden …"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connecting…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectando…"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yhdistetään…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connexion…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connessione…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続中…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "연결 중…"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verbinden…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectando…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在连接…"
+          }
+        }
+      }
+    },
+    "Maya ve Leo konuşuyor": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maya und Leo sprechen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maya and Leo are talking"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maya y Leo están hablando"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maya ja Leo puhuvat"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maya et Leo discutent"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maya e Leo stanno parlando"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MayaとLeoが話しています"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maya와 Leo가 대화 중입니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maya en Leo zijn aan het praten"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maya e Leo estão conversando"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maya 和 Leo 正在交谈"
+          }
+        }
+      }
+    },
+    "Notundan": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus deinen Notizen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From your notes"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De tus notas"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muistiinpanoistasi"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De vos notes"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dalle tue note"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あなたのメモから"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "내 메모에서"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uit je notities"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das suas anotações"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "来自你的笔记"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

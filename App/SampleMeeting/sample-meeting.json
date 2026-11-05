@@ -1,0 +1,59 @@
+{
+  "durationSec": 56.93,
+  "lines": [
+    {
+      "person": 1,
+      "text": "Morning, Leo. Quick one today: are we still on track to ship the new sharing flow next Tuesday?",
+      "startSec": 0.25,
+      "endSec": 6.27
+    },
+    {
+      "person": 2,
+      "text": "Mostly. The flow itself is done, but link previews still break on large meetings. I need two more days for that.",
+      "startSec": 6.72,
+      "endSec": 14.67
+    },
+    {
+      "person": 1,
+      "text": "Okay. Then let's not block the release on it. Can we ship without previews and turn them on later?",
+      "startSec": 15.05,
+      "endSec": 20.96
+    },
+    {
+      "person": 2,
+      "text": "Yes, they're already behind a feature flag. I'd ship on Tuesday with previews off, and enable them the week after.",
+      "startSec": 21.51,
+      "endSec": 29.45
+    },
+    {
+      "person": 1,
+      "text": "Good, that's the decision then. Sharing ships on Tuesday, and previews follow a week later.",
+      "startSec": 29.87,
+      "endSec": 35.56
+    },
+    {
+      "person": 2,
+      "text": "I'll finish the preview fix by Thursday and send you a test build.",
+      "startSec": 36.16,
+      "endSec": 40.54
+    },
+    {
+      "person": 1,
+      "text": "Perfect. Then the release notes just say previews are coming soon.",
+      "startSec": 40.9,
+      "endSec": 44.7
+    },
+    {
+      "person": 2,
+      "text": "One more thing. Since you're taking notes today, could you send the recap to the team by Friday?",
+      "startSec": 45.2,
+      "endSec": 51.15
+    },
+    {
+      "person": 1,
+      "text": "Great. Thanks, both of you. Let's talk again on Tuesday, after the release.",
+      "startSec": 51.55,
+      "endSec": 56.33
+    }
+  ]
+}

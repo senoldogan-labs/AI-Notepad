@@ -210,7 +210,11 @@ struct PhoneSettingsTab: View {
                     }
                     // Mac'teki "Kurulumu yeniden aç": karşılama (ad, ana toplantı dili) baştan gösterilir. Kayıt ya da
                     // işleme sürerken kapalı (karşılama tam ekran açılır).
-                    Button("Kurulumu yeniden aç") { onboardingCompleted = false }
+                    Button("Kurulumu yeniden aç") {
+                        // Karşılama baştan açılır (kaldığı adım silinir).
+                        UserDefaults.standard.removeObject(forKey: onboardingStepKey)
+                        onboardingCompleted = false
+                    }
                         .disabled(isMeetingInFlight)
                     LabeledContent("Sürüm", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?")
                     LabeledContent("Toplantılar", value: "\(store.meetings.count)")

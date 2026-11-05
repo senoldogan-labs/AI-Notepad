@@ -296,7 +296,8 @@ public func runMCPServer(
                 continue
             }
             if let response = handleMCPMessage(
-                line: line, loadRecords: { loadMeetings(directories: sessionsDirectories).meetings },
+                // Örnek toplantı (karşılamadaki deneme) yapay zekâ asistanına gösterilmez.
+                line: line, loadRecords: { realMeetings(records: loadMeetings(directories: sessionsDirectories).meetings) },
                 meetingDirectory: { (meetingID: String) -> URL? in existingMeetingDirectory(sessionsDirectories: sessionsDirectories, meetingID: meetingID) },
                 accessDenial: accessDenial,
                 version: version, noteLanguage: noteLanguage, appName: appName, userName: userName

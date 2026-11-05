@@ -129,7 +129,8 @@ final class EngagementNotifier {
 
     /// Uygulama öne geldi: izin yeniden okunur; notu yazılmış bir toplantı varsa ve izin sorulmadıysa sorulur; plan yenilenir.
     func appBecameActive(records: [MeetingRecord]) async {
-        if records.contains(where: { $0.status == .done && $0.note != nil }) {
+        // Örnek toplantının (karşılamadaki deneme) notu izin sormaz: izin karşılamada istenir.
+        if realMeetings(records: records).contains(where: { $0.status == .done && $0.note != nil }) {
             await requestAuthorizationIfUndetermined()
         } else {
             await refreshAuthorization()

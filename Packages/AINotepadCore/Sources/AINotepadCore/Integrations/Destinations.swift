@@ -117,10 +117,10 @@ public func exportMarkdown(record: MeetingRecord, folder: URL) throws -> URL {
 /// Toplantı listesi değişince klasördeki Markdown kopyası yenilenecek toplantılar (konuşmacı adlarıyla, `userName`):
 /// önceki listede de olan, notu olan ve Markdown'ı değişen toplantılar (not hazır oldu, düzenlendi, yeniden yazıldı, ad ya
 /// da konuşmacı adı değişti). Listeye yeni gelenler (ilk okuma, içe aktarma, geri yükleme) sayılmaz; notları hazır olunca
-/// sayılır. Saf fonksiyondur.
+/// sayılır. Örnek toplantı (karşılamadaki deneme) klasöre yazılmaz. Saf fonksiyondur.
 public func markdownFolderRefreshes(previous: [MeetingRecord], current: [MeetingRecord], userName: String) -> [MeetingRecord] {
     let before: [String: MeetingRecord] = Dictionary(previous.map { ($0.id, $0) }, uniquingKeysWith: { (first: MeetingRecord, _: MeetingRecord) -> MeetingRecord in first })
-    return current.compactMap { (record: MeetingRecord) -> MeetingRecord? in
+    return realMeetings(records: current).compactMap { (record: MeetingRecord) -> MeetingRecord? in
         guard record.note != nil, let old = before[record.id], old != record else {
             return nil
         }

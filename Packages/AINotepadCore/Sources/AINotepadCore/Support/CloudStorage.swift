@@ -89,6 +89,7 @@ public struct CloudMoveResult: Sendable, Equatable {
 
 /// Yerel klasördeki bitmiş (`done`) toplantıları iCloud'a taşır. Kayıtta, işlemede, yarıda kalmış ya da başarısız
 /// toplantı yerelde kalır (sesi yeniden işlenebilsin); `excluding` (düzenlenen, çalan, kilitli) toplantılara dokunulmaz.
+/// Örnek toplantı (karşılamadaki deneme) eşitlenmez, yerelde kalır.
 /// iCloud'da aynı kimlik zaten varsa (eşitleme kapatılıp açıldı: kapatınca iCloud'dakiler bu cihaza kopyalanmıştı) iki
 /// kopya `mergeIntoCloudCopy` ile birleştirilir; yoksa yerel kopya listede iCloud'dakini gölgeler ve iki taraftaki
 /// düzenlemeler birbirine hiç ulaşmazdı. Her toplantı ayrı denenir. Ana iş parçacığında çağrılmaz.
@@ -96,7 +97,7 @@ public func moveFinishedMeetingsToCloud(localSessions: URL, cloudSessions: URL, 
     var moved: [String] = []
     var merged: [String] = []
     var failures: [MeetingLoadFailure] = []
-    for record in loadMeetings(sessionsDirectory: localSessions).meetings where record.status == .done && !excluding.contains(record.id) {
+    for record in realMeetings(records: loadMeetings(sessionsDirectory: localSessions).meetings) where record.status == .done && !excluding.contains(record.id) {
         let localDirectory: URL = localSessions.appending(path: record.id, directoryHint: .isDirectory)
         let cloudDirectory: URL = cloudSessions.appending(path: record.id, directoryHint: .isDirectory)
         do {

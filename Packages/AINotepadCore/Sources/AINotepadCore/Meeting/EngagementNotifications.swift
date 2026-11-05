@@ -124,10 +124,10 @@ private func fireComponents(date: Date, calendar: Calendar) -> DateComponents {
 }
 
 /// "Not hazır" bildirimi: toplantının başlığı ve kullanıcıya düşen görev ile karar sayısı ("Sana 3 görev · 2 karar");
-/// ikisi de yoksa kısa bir cümle. Not yazılamadıysa (işleme başarısız ya da not yok) nil. Görevler konuşmacı adlarıyla
+/// ikisi de yoksa kısa bir cümle. Not yazılamadıysa (işleme başarısız ya da not yok) ya da örnek toplantıysa nil. Görevler konuşmacı adlarıyla
 /// (`namedTasks`) sayılır: adı verilen kullanıcıya düşenler de kullanıcınındır. Saf fonksiyondur.
 public func noteReadyNotification(record: MeetingRecord, userName: String) -> EngagementNotification? {
-    guard record.status == .done, let note = record.note else {
+    guard record.status == .done, !record.isSampleMeeting, let note = record.note else {
         return nil
     }
     let mine: Int = namedTasks(record: record, userName: userName).filter(\.isMine).count
@@ -282,18 +282,20 @@ public struct EngagementPlanInput: Sendable {
 /// Kurulu olması gereken zamanlı bildirimlerin tamamı (görev günleri, haftalık özet, kayıtsız hafta); kapalı türler
 /// boştur. Uygulama bunların dışında bekleyen bu bildirimleri kaldırır, bunları kurar. Saf fonksiyondur.
 public func plannedEngagementNotifications(input: EngagementPlanInput) -> [EngagementNotification] {
+    // Örnek toplantı (karşılamadaki deneme) ne görev günü, ne haftalık özet, ne de etkinlik sayılır.
+    let records: [MeetingRecord] = realMeetings(records: input.records)
     let tasks: [EngagementNotification] = input.settings.taskDue
         ? taskDueNotifications(
-            records: input.records, userName: input.userName, now: input.now, calendar: input.calendar,
+            records: records, userName: input.userName, now: input.now, calendar: input.calendar,
             limit: taskDueBudget(otherPendingCount: input.otherPendingCount)
         )
         : []
     let weekly: [EngagementNotification] = input.settings.weeklySummary
-        ? weeklySummaryNotification(records: input.records, userName: input.userName, now: input.now, calendar: input.calendar).map { [$0] } ?? []
+        ? weeklySummaryNotification(records: records, userName: input.userName, now: input.now, calendar: input.calendar).map { [$0] } ?? []
         : []
     let inactive: [EngagementNotification] = input.settings.inactive
         ? inactiveReminderNotification(
-            records: input.records, calendarMeetings: input.calendarMeetings, now: input.now, calendar: input.calendar, locale: input.locale
+            records: records, calendarMeetings: input.calendarMeetings, now: input.now, calendar: input.calendar, locale: input.locale
         ).map { [$0] } ?? []
         : []
     return tasks + weekly + inactive

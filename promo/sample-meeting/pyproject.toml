@@ -1,0 +1,48 @@
+[project]
+name = "gistsmith-sample-meeting"
+version = "0.1.0"
+description = "Synthetic two-speaker sample meeting (Kokoro TTS) and its timed transcript for the onboarding tutorial."
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "en-core-web-sm",
+    "faster-whisper>=1.2.1",
+    "kokoro>=0.9.4",
+    "librosa>=0.11.0",
+    "pyloudnorm>=0.2.0",
+    "scipy>=1.17.1",
+    "soundfile>=0.14.0",
+    "torch>=2.15.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+# misaki (Kokoro's English G2P) would otherwise pip-install this spaCy model at runtime, which a uv venv cannot do.
+en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" }
+
+[dependency-groups]
+dev = [
+    "basedpyright>=1.40.2",
+    "ruff>=0.17.3",
+]
+
+# Checks: uv run ruff check . && uv run ruff format --check . && uv run basedpyright
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "RUF", "ANN", "N", "PTH", "C4", "PL"]
+
+[tool.ruff.lint.per-file-ignores]
+# Script lines stay whole on one line each, so they read exactly as spoken.
+"script.py" = ["E501"]
+
+[tool.basedpyright]
+typeCheckingMode = "strict"
+pythonVersion = "3.11"
+include = ["."]
+exclude = [".venv", "out"]
+# kokoro, faster-whisper and pyloudnorm ship no stubs or py.typed; their call sites carry reasoned ignores.
+reportMissingTypeStubs = "none"

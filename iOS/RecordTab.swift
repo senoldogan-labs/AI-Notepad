@@ -1172,7 +1172,7 @@ private struct ConsentToast: View {
 /// Bir konuşmacının ardışık cümleleri (sohbet gibi): rozet, ad ve saat; özgün metin (geçici kısım soluk) ve not dilindeki
 /// çevirisi. Mac panelindeki gibi: ada dokununca konuşmacı düzeltilir (bölümü başka kişiye ata, kişinin tümünü birleştir),
 /// çevirisi alınamayan cümlede "Tekrar dene", uzun basınca "Kopyala".
-private struct LiveBlockView: View {
+struct LiveBlockView: View {
     let block: SpeakerBlock
     let translations: [SegmentID: String]
     /// Sabit toplantı dilinden başka dildeki bölümler: soluk ve eğik (çevrilmez, toplantıdan atlanır).
