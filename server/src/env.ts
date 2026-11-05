@@ -18,6 +18,15 @@ export interface Env {
    * blokları saklar: içerik anahtarı kullanıcının cihazlarındadır.
    */
   readonly SYNC_BUCKET: R2Bucket;
+  /**
+   * Yapay zekâ asistanı erişimi (uzak MCP bağlayıcısı; bkz. `assistant/`): AB D1 veritabanı `gistsmith-assistant`
+   * (ayarlar, toplantı dizini, bağlantılar) ve şifreli notların R2 kovası (eşitleme kovası, `a/` öneki). Aynı
+   * bağlamalar `gistsmith-mcp` Worker'ında da vardır (`wrangler.mcp.jsonc`).
+   */
+  readonly ASSISTANT_DB: D1Database;
+  readonly ASSISTANT_BUCKET: R2Bucket;
+  /** `/v1/assistant/…`: kullanıcı başına dakikada 300 (ilk açılışta arşivin yüklenmesi). */
+  readonly ASSISTANT_USER_LIMITER: RateLimit;
 
   readonly ENVIRONMENT: string;
   readonly SITE_ORIGIN: string;
@@ -36,6 +45,7 @@ export interface Env {
   readonly PRICE_USD_YEARLY: string;
   readonly REFERRAL_POLICY: string;
   readonly SYNC_POLICY: string;
+  readonly ASSISTANT_POLICY: string;
   readonly REFERRAL_MAX_PENDING: string;
   readonly REPORT_BYTES_PER_DAY: string;
   readonly APP_ATTEST_POLICY: string;
@@ -141,4 +151,9 @@ export interface Env {
   readonly APPLE_SIGNIN_KEY_ID?: string;
   readonly APPLE_SIGNIN_PRIVATE_KEY?: string;
   readonly APPLE_TOKEN_ENC_KEY?: string;
+  /**
+   * Asistan kopyasının şifreleme anahtarları (`<kimlik>:<32 baytın base64'ü>`, virgülle, en yenisi başta; bkz.
+   * `assistant/crypto.ts`). `gistsmith-mcp` ile aynı değer. Yoksa `/v1/assistant/…` `503 assistant_unavailable`.
+   */
+  readonly ASSISTANT_DATA_KEY?: string;
 }

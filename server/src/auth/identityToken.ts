@@ -3,7 +3,7 @@ import { z } from "zod";
 import { constantTimeEqualText, sha256Hex } from "../crypto";
 import { ApiError, ProviderApiError, UpstreamError } from "../errors";
 import { errorName, log } from "../log";
-import type { CachedJwks, Platform } from "../platform";
+import type { CachedJwks, OutboundPlatform } from "../platform";
 import { fetchUpstream, isRetryableUpstreamError } from "../upstream";
 
 /** JWKS isteğinin deneme başına zaman aşımı. */
@@ -51,7 +51,7 @@ const claimsSchema = z.object({
 });
 
 /** Sağlayıcının açık anahtarlarını (JWKS) alır; geçici hatalar `attempts` kez yeniden denenir. */
-async function fetchJwks(platform: Platform, issuer: IdentityTokenIssuer, attempts: number, timeoutMs: number): Promise<JSONWebKeySet> {
+async function fetchJwks(platform: OutboundPlatform, issuer: IdentityTokenIssuer, attempts: number, timeoutMs: number): Promise<JSONWebKeySet> {
   const response: Response = await fetchUpstream(platform, issuer.jwksService, issuer.jwksUrl, (): RequestInit => ({ method: "GET" }), attempts, timeoutMs);
   const parsed = jwksSchema.safeParse(await response.json());
   if (!parsed.success) {
@@ -92,7 +92,7 @@ export function tokenKeyId(identityToken: string, issuer: IdentityTokenIssuer): 
  * Sağlayıcının anahtarları: önbellekte taze (`jwksCacheTtlMs`) ve jetonun `kid`'ini içeren kayıt varsa o; yoksa
  * (ilk istek, süresi dolmuş ya da bilinmeyen `kid`: anahtar dönüşü) yeniden alınır ve önbelleğe yazılır.
  */
-export async function issuerKeys(platform: Platform, issuer: IdentityTokenIssuer, keyId: string | null): Promise<JSONWebKeySet> {
+export async function issuerKeys(platform: OutboundPlatform, issuer: IdentityTokenIssuer, keyId: string | null): Promise<JSONWebKeySet> {
   const nowMs: number = platform.now().getTime();
   const cached: CachedJwks | undefined = platform.jwksCache.get(issuer.jwksUrl);
   if (cached !== undefined && nowMs - cached.fetchedAt < jwksCacheTtlMs && cached.keys.keys.some((key): boolean => key.kid === keyId)) {
@@ -129,7 +129,7 @@ async function storedJwks(db: D1Database, jwksUrl: string): Promise<CachedJwks |
 }
 
 /** Sağlayıcıdan alınan anahtarları D1'e ve belleğe yazar. */
-async function saveJwks(db: D1Database, platform: Platform, jwksUrl: string, keys: JSONWebKeySet, nowMs: number): Promise<void> {
+async function saveJwks(db: D1Database, platform: OutboundPlatform, jwksUrl: string, keys: JSONWebKeySet, nowMs: number): Promise<void> {
   await db
     .prepare(
       `INSERT INTO identity_jwks (jwks_url, keys_json, fetched_at) VALUES (?1, ?2, ?3)
@@ -147,7 +147,7 @@ async function saveJwks(db: D1Database, platform: Platform, jwksUrl: string, key
  * yanıt vermezse (zaman aşımı, ağ hatası, 5xx) kayıtlı anahtarlar uyarıyla kullanılır: sağlayıcının yavaşlığı girişi
  * düşürmez. `kid` hiçbir kayıtta yoksa (anahtar dönüşü) sağlayıcı tam yeniden denemeyle alınır; alınamazsa hata.
  */
-export async function persistedIssuerKeys(db: D1Database, platform: Platform, issuer: IdentityTokenIssuer, keyId: string | null): Promise<JSONWebKeySet> {
+export async function persistedIssuerKeys(db: D1Database, platform: OutboundPlatform, issuer: IdentityTokenIssuer, keyId: string | null): Promise<JSONWebKeySet> {
   const nowMs: number = platform.now().getTime();
   const inMemory: CachedJwks | null = usableJwks(platform.jwksCache.get(issuer.jwksUrl), keyId, nowMs, jwksCacheTtlMs);
   if (inMemory !== null) {
@@ -179,7 +179,7 @@ export async function persistedIssuerKeys(db: D1Database, platform: Platform, is
 }
 
 /** Günlük bakım: sağlayıcının anahtarlarını önceden alır ve kaydeder (girişler sağlayıcıyı beklemesin). */
-export async function refreshPersistedIssuerKeys(db: D1Database, platform: Platform, issuer: IdentityTokenIssuer): Promise<void> {
+export async function refreshPersistedIssuerKeys(db: D1Database, platform: OutboundPlatform, issuer: IdentityTokenIssuer): Promise<void> {
   const keys: JSONWebKeySet = await fetchJwks(platform, issuer, 3, jwksTimeoutMs);
   await saveJwks(db, platform, issuer.jwksUrl, keys, platform.now().getTime());
   log("info", "jwks_refreshed", { service: issuer.jwksService, keys: keys.keys.length });
@@ -193,7 +193,7 @@ export async function refreshPersistedIssuerKeys(db: D1Database, platform: Platf
  */
 export async function verifyIdentityToken(
   db: D1Database,
-  platform: Platform,
+  platform: OutboundPlatform,
   issuer: IdentityTokenIssuer,
   identityToken: string,
   rawNonce: string,

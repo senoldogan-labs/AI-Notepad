@@ -17,6 +17,7 @@ import type { CachedJwks, Platform } from "./platform";
 import { grantDueReferralRewards } from "./referralRewards";
 import { scheduledSyncCleanupLimits, syncCleanup } from "./sync";
 import { stubbedFetch, upstreamStubBase } from "./upstreamStub";
+import { assistantCleanup, scheduledAssistantCleanupLimits } from "./assistant/cleanup";
 
 /** Worker örneği ömrünce paylaşılan kimlik sağlayıcısı anahtarları önbelleği. */
 const jwksCache: Map<string, CachedJwks> = new Map();
@@ -70,6 +71,9 @@ export default {
       { name: "cleanup", run: () => cleanupExpiredRows(env.DB, now, scheduledCleanupLimits) },
       // Eşitleme: erişimi 90 gün önce biten hesapların şifreli kopyası ve silme kuyruğundaki R2 önekleri (bkz. `sync.ts`).
       { name: "sync_cleanup", run: () => syncCleanup(env.DB, env.SYNC_BUCKET, config, now, scheduledSyncCleanupLimits) },
+      // Yapay zekâ asistanı kopyası: erişimi biten hesabın kopyası 7 gün içinde, silinmiş hesabınki hemen; R2 kuyruğu
+      // (bkz. `assistant/cleanup.ts`).
+      { name: "assistant_cleanup", run: () => assistantCleanup(env.ASSISTANT_DB, env.DB, env.ASSISTANT_BUCKET, config, now, scheduledAssistantCleanupLimits) },
       // Bekleme süresi dolmuş davet ödülleri (davet edenin Stripe müşteri bakiyesi; bkz. `referralRewards.ts`).
       { name: "referral_rewards", run: () => grantDueReferralRewards(env.DB, platform, config, now) },
       // Apple ve Google anahtarları önceden alınır: girişler sağlayıcıyı beklemesin (bkz. `persistedIssuerKeys`).

@@ -92,6 +92,7 @@ import { dayKey, requireSpendHeadroom, requireTrialSpendHeadroom } from "./usage
 import type { RequestContext } from "./platform";
 import { cachedTranscriptionResponse, parseTranscribeParams, proxyTranscription } from "./transcribe";
 import { routeSync } from "./sync";
+import { routeAssistant } from "./assistant/api";
 
 /** Küçük JSON gövdeleri için üst sınır. */
 const smallBodyBytes: number = 16 * 1024;
@@ -371,7 +372,7 @@ async function route(request: Request, env: Env, config: Config, context: Reques
       return jsonResponse(200, { deleted: true, appStoreSubscription: null, notice: null });
     }
     await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
-    const deletion: AccountDeletion = await deleteAccount(db, env.SYNC_BUCKET, context.platform, config, user.userId, now);
+    const deletion: AccountDeletion = await deleteAccount(db, env.SYNC_BUCKET, { adb: env.ASSISTANT_DB, bucket: env.ASSISTANT_BUCKET }, context.platform, config, user.userId, now);
     return jsonResponse(200, deletion);
   }
 
@@ -591,6 +592,13 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     const user: AuthedUser = await authed();
     await enforceLimit(env.SYNC_USER_LIMITER, `user:${user.userId}`);
     return routeSync(request, db, env.SYNC_BUCKET, config, path, user.userId, now);
+  }
+
+  if (path.startsWith("/v1/assistant/")) {
+    // Yapay zekâ asistanı erişimi (yalnızca uygulama; bkz. `assistant/api.ts`): kullanıcı başına dakikada 300 istek.
+    const user: AuthedUser = await authed();
+    await enforceLimit(env.ASSISTANT_USER_LIMITER, `user:${user.userId}`);
+    return routeAssistant(request, db, { adb: env.ASSISTANT_DB, bucket: env.ASSISTANT_BUCKET, dataKey: env.ASSISTANT_DATA_KEY }, config, path, user.userId, now);
   }
 
   if (path.startsWith(adminPrefix)) {

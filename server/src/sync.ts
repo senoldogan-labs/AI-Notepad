@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Config } from "./config";
 import { hexEncode, randomToken } from "./crypto";
-import { hasPaidAccess, hasRunningTrial, userTrialState } from "./entitlements";
+import { type AccessConfig, hasPaidAccess, hasRunningTrial, userTrialState } from "./entitlements";
 import { ApiError } from "./errors";
 import { jsonResponse, readBodyBytes, readJsonBody } from "./http";
 import { errorName, log } from "./log";
@@ -245,7 +245,7 @@ export function requireValidBlob(blob: Uint8Array, accountKeyId: string, baseRev
 }
 
 /** Whether the account may write (subscription or running trial); the daily cleanup uses it for retention. */
-export async function hasSyncAccess(db: D1Database, config: Config, userId: string, now: Date): Promise<boolean> {
+export async function hasSyncAccess(db: D1Database, config: AccessConfig, userId: string, now: Date): Promise<boolean> {
   if (await hasPaidAccess(db, config, userId, now)) {
     return true;
   }

@@ -6,6 +6,9 @@ declare global {
     /** Test Worker'ının bağlamaları: uygulama ortamı + göçler + isteğe bağlı gerçek servis anahtarları. */
     interface Env extends AppEnv {
       readonly TEST_MIGRATIONS: D1Migration[];
+      readonly TEST_ASSISTANT_MIGRATIONS: D1Migration[];
+      /** The MCP Worker's OAuth store (test-only binding, see vitest.config.ts). */
+      readonly OAUTH_KV: KVNamespace;
       readonly LIVE_TESTS: string;
       readonly LIVE_ANTHROPIC_API_KEY?: string;
       readonly LIVE_STRIPE_SECRET_KEY?: string;

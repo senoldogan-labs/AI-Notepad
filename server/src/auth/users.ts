@@ -37,7 +37,8 @@ export async function findOrCreateUser(db: D1Database, provider: IdentityProvide
   }
 }
 
-async function findUserId(db: D1Database, provider: IdentityProvider, subject: string): Promise<string | null> {
+/** Kimliğin kullanıcısı; yoksa null (hesap açmaz: `gistsmith-mcp` girişi yalnızca var olan hesaba bağlanır). */
+export async function findUserId(db: D1Database, provider: IdentityProvider, subject: string): Promise<string | null> {
   const row: { user_id: string } | null = await db
     .prepare("SELECT user_id FROM auth_identities WHERE provider = ? AND subject = ?")
     .bind(provider, subject)

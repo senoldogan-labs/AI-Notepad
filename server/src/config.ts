@@ -180,6 +180,11 @@ export interface Config {
   /** Eşitleme uçları açık mı (`SYNC_POLICY`). */
   readonly syncPolicy: SyncPolicy;
   /**
+   * Yapay zekâ asistanı erişimi uçları açık mı (`ASSISTANT_POLICY`; bkz. `assistant/api.ts`): `off` ise
+   * `/v1/assistant/…` `503 assistant_unavailable` döner; hesap silme ve günlük temizlik kopyayı yine siler.
+   */
+  readonly assistantPolicy: SyncPolicy;
+  /**
    * Davet edenin aynı anda açık tutabileceği en çok davet (`REFERRAL_MAX_PENDING`; bkz. `referrals.openReferralCount`):
    * dolunca kodu yeni arkadaş kabul etmez (`409 referral_limit_reached`).
    */
@@ -413,6 +418,7 @@ const envSchema = z.object({
   PRICE_USD_YEARLY: positiveNumber,
   REFERRAL_POLICY: z.enum(["on", "off"]),
   SYNC_POLICY: z.enum(["on", "off"]),
+  ASSISTANT_POLICY: z.enum(["on", "off"]),
   REFERRAL_MAX_PENDING: positiveInt,
   REPORT_BYTES_PER_DAY: positiveInt,
   APP_ATTEST_POLICY: z.enum(["required", "optional"]),
@@ -634,6 +640,7 @@ export function parseConfig(env: Env): Config {
     priceUsdYearly: value.PRICE_USD_YEARLY,
     referralPolicy: value.REFERRAL_POLICY,
     syncPolicy: value.SYNC_POLICY,
+    assistantPolicy: value.ASSISTANT_POLICY,
     referralMaxPending: value.REFERRAL_MAX_PENDING,
     reportBytesPerDay: value.REPORT_BYTES_PER_DAY,
     attest: {

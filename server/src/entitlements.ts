@@ -1,9 +1,21 @@
 import { type AppStoreSubscription, appStoreAccess, appStoreManageUrl, appStoreSubscriptionOf } from "./appStore";
-import type { Config, SubscriptionPlan } from "./config";
+import type { AppStoreConfig, Config, DeviceCheckConfig, SubscriptionPlan } from "./config";
 import { type LiveEngine, liveEngine } from "./deepgram";
 import { ApiError } from "./errors";
 import { type ReservationLimit, remainingOf, subscriberAccountTokenLimit, trialAccountTokenLimit } from "./reservations";
 import { type MonthlyUsage, monthlyUsage, nextDayStartMs, nextMonthStartMs } from "./usage";
+
+/**
+ * Erişim denetiminin (abonelik ya da süren deneme; `hasSyncAccess`) okuduğu ayarlar. `Config` bunu kapsar; MCP Worker'ı
+ * (`mcp/config.ts`) yalnızca bu ayarlarla çalışır, API Worker'ının sırlarını taşımaz.
+ */
+export interface AccessConfig {
+  readonly pastDueGraceMs: number;
+  readonly trialDurationMs: number;
+  readonly trialMeetings: number;
+  readonly deviceCheck: Pick<DeviceCheckConfig, "policy">;
+  readonly appStore: Pick<AppStoreConfig, "acceptSandbox">;
+}
 
 /** Webhook'un yazdığı abonelik durumu. */
 export interface SubscriptionState {
@@ -231,7 +243,7 @@ export async function paidSubscriptions(db: D1Database, userId: string): Promise
  * Hesabın abonelik erişimi: Stripe (`subscriptionAccess`) ile App Store'un (`appStoreAccess`) güçlüsü; hangisi erişim
  * veriyorsa hesap abonedir (Mac ve iPhone aynı hak). Saf fonksiyondur.
  */
-export function paidAccess(subscriptions: PaidSubscriptions, config: Config, now: Date): SubscriptionAccess {
+export function paidAccess(subscriptions: PaidSubscriptions, config: AccessConfig, now: Date): SubscriptionAccess {
   return strongerAccess(
     subscriptionAccess(subscriptions.stripe, now, config.pastDueGraceMs),
     appStoreAccess(subscriptions.appStore, config.appStore.acceptSandbox, now),
@@ -239,7 +251,7 @@ export function paidAccess(subscriptions: PaidSubscriptions, config: Config, now
 }
 
 /** Hesabın iki kaynaktan birinde erişimi olan aboneliği var mı. */
-export async function hasPaidAccess(db: D1Database, config: Config, userId: string, now: Date): Promise<boolean> {
+export async function hasPaidAccess(db: D1Database, config: AccessConfig, userId: string, now: Date): Promise<boolean> {
   return paidAccess(await paidSubscriptions(db, userId), config, now) !== "none";
 }
 
@@ -352,7 +364,7 @@ export function isTrialExpired(state: TrialState, trialDurationMs: number, now: 
 }
 
 /** Kalan deneme toplantısı: süre dolduysa 0, yoksa toplam − harcanan. Saf fonksiyondur. */
-export function trialMeetingsLeft(state: TrialState, config: Config, now: Date): number {
+export function trialMeetingsLeft(state: TrialState, config: AccessConfig, now: Date): number {
   return isTrialExpired(state, config.trialDurationMs, now) ? 0 : Math.max(0, config.trialMeetings - state.used);
 }
 
@@ -377,7 +389,7 @@ export type AccountLLMAccess = "subscription" | "trial";
  * deneme süresini başlatır; toplantı dışı deneme çağrısı bunları atlayamasın diye yalnızca başlamış denemede açılır.
  * Saf fonksiyondur.
  */
-export function isTrialStarted(trial: TrialState, config: Config): boolean {
+export function isTrialStarted(trial: TrialState, config: AccessConfig): boolean {
   return trial.startedAt !== null && (config.deviceCheck.policy === "off" || trial.deviceVerifiedAt !== null);
 }
 
@@ -386,7 +398,7 @@ export function isTrialStarted(trial: TrialState, config: Config): boolean {
  * dışındaki deneme hakkı (eşitleme, yeniden işleme, toplantı dışı yapay zekâ) yalnızca buna bakar; hiç başlamamış
  * deneme hep 3 toplantı gösterir ve süresi dolmaz, hak sayılırsa süresiz açık kalırdı. Saf fonksiyondur.
  */
-export function hasRunningTrial(trial: TrialState, config: Config, now: Date): boolean {
+export function hasRunningTrial(trial: TrialState, config: AccessConfig, now: Date): boolean {
   return isTrialStarted(trial, config) && trialMeetingsLeft(trial, config, now) > 0;
 }
 

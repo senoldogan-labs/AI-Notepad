@@ -1,0 +1,98 @@
+// Gistsmith remote MCP connector ("AI assistant access"): the `gistsmith-mcp` Worker on https://mcp.gistsmith.com,
+// built from this folder (entry src/mcp/index.ts). Design: docs/superpowers/specs/2026-11-05-remote-mcp.md.
+// Separate from the API Worker (wrangler.jsonc) so the payment/auth Worker gets no new dependencies or compatibility
+// flags. Secrets are set with `wrangler secret put --config wrangler.mcp.jsonc --env production`: ASSISTANT_DATA_KEY
+// (same value as the API Worker's) and, optionally, REVIEWER_LOGINS. This Worker never gets ACCESS_TOKEN_SECRET.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "gistsmith-mcp-dev",
+  "main": "src/mcp/index.ts",
+  "compatibility_date": "2026-10-01",
+  // global_fetch_strictly_public: Client ID Metadata Document fetches never reach same-zone origins (SSRF protection;
+  // the OAuth library enables CIMD only with this flag). nodejs_compat: AsyncLocalStorage for the MCP handler.
+  "compatibility_flags": ["global_fetch_strictly_public", "nodejs_compat"],
+  "workers_dev": false,
+  // No Logpush and no request-body logging on this Worker: logs carry ids and counts only, never note text, titles,
+  // queries or tokens.
+  "observability": { "enabled": true },
+  // Daily: queued KV grant revocations, unused dynamically registered clients, expired KV records.
+  "triggers": { "crons": ["41 3 * * *"] },
+  "d1_databases": [
+    // Production database of the API Worker, read only here (users, sign-in identities, entitlements).
+    {
+      "binding": "DB",
+      "database_name": "ainotepad",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    },
+    {
+      "binding": "ASSISTANT_DB",
+      "database_name": "gistsmith-assistant-dev",
+      "database_id": "00000000-0000-0000-0000-000000000001",
+      "migrations_dir": "migrations-assistant"
+    }
+  ],
+  "kv_namespaces": [{ "binding": "OAUTH_KV", "id": "00000000000000000000000000000000" }],
+  "r2_buckets": [{ "binding": "ASSISTANT_BUCKET", "bucket_name": "gistsmith-sync-dev", "jurisdiction": "eu" }],
+  // MCP_GRANT_LIMITER: 60 MCP calls a minute per connection. MCP_IP_LIMITER: sign-in and consent pages, 30 a minute per
+  // IP. MCP_REVIEWER_LIMITER: reviewer password attempts, 5 a minute per IP.
+  "ratelimits": [
+    { "name": "MCP_GRANT_LIMITER", "namespace_id": "1011", "simple": { "limit": 60, "period": 60 } },
+    { "name": "MCP_IP_LIMITER", "namespace_id": "1012", "simple": { "limit": 30, "period": 60 } },
+    { "name": "MCP_REVIEWER_LIMITER", "namespace_id": "1013", "simple": { "limit": 5, "period": 60 } }
+  ],
+  "vars": {
+    "ENVIRONMENT": "development",
+    // The site's Apple Services ID and Google web client (also in the API Worker's APPLE_CLIENT_IDS / GOOGLE_CLIENT_IDS).
+    "APPLE_SIGNIN_CLIENT_ID": "com.senoldogan.AINotepad.web",
+    "GOOGLE_SIGNIN_CLIENT_ID": "461373321454-ku1ot0ildt8b9toe7aerq1imidfgu1ah.apps.googleusercontent.com",
+    // Entitlement settings: must equal the API Worker's values of the same names (wrangler.jsonc).
+    "TRIAL_MEETINGS": "3",
+    "TRIAL_DAYS": "7",
+    "PAST_DUE_GRACE_DAYS": "7",
+    "REVENUECAT_ACCEPT_SANDBOX": "true",
+    "DEVICECHECK_POLICY": "off"
+  },
+  "env": {
+    "production": {
+      "name": "gistsmith-mcp",
+      // Custom domain only (the owner adds the DNS route); no workers.dev or preview URLs.
+      "routes": [{ "pattern": "mcp.gistsmith.com", "custom_domain": true }],
+      "workers_dev": false,
+      "preview_urls": false,
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "ainotepad-production",
+          "database_id": "d732acfd-fdb3-4f52-ac79-7c2654d9388b",
+          "migrations_dir": "migrations"
+        },
+        // Owner creates it: `npx wrangler d1 create gistsmith-assistant --jurisdiction eu` (same id in wrangler.jsonc).
+        {
+          "binding": "ASSISTANT_DB",
+          "database_name": "gistsmith-assistant",
+          "database_id": "TODO-owner-creates",
+          "migrations_dir": "migrations-assistant"
+        }
+      ],
+      // Owner creates it: `npx wrangler kv namespace create gistsmith-mcp-oauth`.
+      "kv_namespaces": [{ "binding": "OAUTH_KV", "id": "TODO-owner-creates" }],
+      "r2_buckets": [{ "binding": "ASSISTANT_BUCKET", "bucket_name": "gistsmith-sync", "jurisdiction": "eu" }],
+      "ratelimits": [
+        { "name": "MCP_GRANT_LIMITER", "namespace_id": "2011", "simple": { "limit": 60, "period": 60 } },
+        { "name": "MCP_IP_LIMITER", "namespace_id": "2012", "simple": { "limit": 30, "period": 60 } },
+        { "name": "MCP_REVIEWER_LIMITER", "namespace_id": "2013", "simple": { "limit": 5, "period": 60 } }
+      ],
+      "vars": {
+        "ENVIRONMENT": "production",
+        "APPLE_SIGNIN_CLIENT_ID": "com.senoldogan.AINotepad.web",
+        "GOOGLE_SIGNIN_CLIENT_ID": "461373321454-ku1ot0ildt8b9toe7aerq1imidfgu1ah.apps.googleusercontent.com",
+        "TRIAL_MEETINGS": "3",
+        "TRIAL_DAYS": "7",
+        "PAST_DUE_GRACE_DAYS": "7",
+        "REVENUECAT_ACCEPT_SANDBOX": "true",
+        "DEVICECHECK_POLICY": "required"
+      }
+    }
+  }
+}

@@ -24,3 +24,7 @@ DEEPGRAM_API_KEY=
 # APPLE_SIGNIN_KEY_ID=
 # APPLE_SIGNIN_PRIVATE_KEY=
 # APPLE_TOKEN_ENC_KEY=
+# İsteğe bağlı: yapay zekâ asistanı erişimi (`/v1/assistant/…`, src/assistant/). `<kimlik>:<32 baytın base64'ü>`
+# biçiminde, virgülle, en yenisi başta (ör. `openssl rand -base64 32`). Satır yorumdayken yükleme
+# `503 assistant_unavailable` döner. `gistsmith-mcp` Worker'ı (wrangler.mcp.jsonc) aynı değeri kullanır.
+# ASSISTANT_DATA_KEY=

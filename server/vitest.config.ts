@@ -13,6 +13,8 @@ const fakeSecrets: Record<string, string> = {
   TURNSTILE_SECRET_KEY: "test-turnstile-secret-000",
   REVENUECAT_WEBHOOK_AUTH: "Bearer test-revenuecat-webhook-auth-000",
   REVENUECAT_SECRET_API_KEY: "sk_test_revenuecat_fake_000000",
+  // Assistant copy keyring (two fake 32-byte keys; key 2 is current, key 1 exercises rotation).
+  ASSISTANT_DATA_KEY: "2:AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI=,1:AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=",
 };
 
 /**
@@ -36,12 +38,17 @@ function liveBindings(): Record<string, string> {
 
 export default defineConfig(async () => {
   const migrations = await readD1Migrations(path.join(import.meta.dirname, "migrations"));
+  const assistantMigrations = await readD1Migrations(path.join(import.meta.dirname, "migrations-assistant"));
   return {
     plugins: [
       cloudflareTest({
         wrangler: { configPath: "./wrangler.jsonc" },
+        // The MCP Worker (wrangler.mcp.jsonc) is tested in the same runtime: its KV namespace and its two compatibility
+        // flags are added here (test-only; the API Worker's own configuration keeps neither).
         miniflare: {
-          bindings: { ...fakeSecrets, ...liveBindings(), TEST_MIGRATIONS: migrations },
+          bindings: { ...fakeSecrets, ...liveBindings(), TEST_MIGRATIONS: migrations, TEST_ASSISTANT_MIGRATIONS: assistantMigrations },
+          kvNamespaces: ["OAUTH_KV"],
+          compatibilityFlags: ["global_fetch_strictly_public", "nodejs_compat"],
         },
       }),
     ],
