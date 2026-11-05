@@ -110,10 +110,47 @@ private let samplePayload: String = """
         let encoded: [String: String] = try JSONDecoder().decode([String: String].self, from: try JSONEncoder().encode(request))
         #expect(Set(encoded.keys) == ["kind", "appVersion", "os", "payload"])
         #expect(encoded["kind"] == "crash")
-        let tooLarge: Data = Data(repeating: 0x20, count: reportPayloadLimitBytes + 1)
-        #expect(throws: ReportError.payloadTooLarge(bytes: reportPayloadLimitBytes + 1, limit: reportPayloadLimitBytes)) {
-            try crashReportRequest(payload: tooLarge, diagnostic: crash)
+    }
+
+    // Sınırı aşan paket (birkaç çökme ve donma, her birinde onlarca iş parçacığı) sığana kadar küçültülür: öne çıkan
+    // çökmenin sorunlu iş parçacığı ve üst bilgisi kalır, diğer teşhislerin üst bilgisi kalır, CPU teşhisi atılır.
+    @Test func oversizedCrashPayloadIsTrimmedToFit() throws {
+        func frames(binary: String, depth: Int) -> String {
+            (0..<depth).reversed().reduce("") { (inner: String, level: Int) -> String in
+                let sub: String = inner.isEmpty ? "" : #","subFrames":[\#(inner)]"#
+                return #"{"binaryName":"\#(binary)","offsetIntoBinaryTextSegment":\#(level + 1)\#(sub)}"#
+            }
         }
+        func diagnostic(attributedBinary: String, threads: Int, signal: Int) -> String {
+            let stacks: [String] = (0..<threads).map { (thread: Int) -> String in
+                #"{"threadAttributed":\#(thread == 3),"callStackRootFrames":[\#(frames(binary: thread == 3 ? attributedBinary : "libsystem_kernel", depth: 40))]}"#
+            }
+            return #"{"callStackTree":{"callStacks":[\#(stacks.joined(separator: ","))]},"diagnosticMetaData":{"appVersion":"0.1.18","appBuildVersion":"40","osVersion":"macOS 26.1","exceptionType":1,"signal":\#(signal)}}"#
+        }
+        let payload: Data = Data(("{" + #""timeStampBegin":"a","timeStampEnd":"b","cpuExceptionDiagnostics":[\#(diagnostic(attributedBinary: "cpu", threads: 30, signal: 0))],"#
+            + #""crashDiagnostics":[\#(diagnostic(attributedBinary: "Gistsmith", threads: 30, signal: 11)),\#(diagnostic(attributedBinary: "AppKit", threads: 30, signal: 6))],"#
+            + #""hangDiagnostics":[\#(diagnostic(attributedBinary: "SwiftUI", threads: 30, signal: 0))]}"#).utf8)
+        #expect(payload.count > reportPayloadLimitBytes)
+        let before: [CrashDiagnostic] = try crashDiagnostics(payload: payload)
+
+        let request: ReportRequest = try crashReportRequest(payload: payload, diagnostic: before[0])
+        let sent: Data = Data(try #require(request.payload).utf8)
+        #expect(sent.count <= reportPayloadLimitBytes)
+        let after: [CrashDiagnostic] = try crashDiagnostics(payload: sent)
+        #expect(after.map(\.kind) == [.crash, .crash, .hang])
+        #expect(after[0] == before[0])
+        #expect(after[0].topFrames.count == 40)
+        #expect(after[0].topFrames.allSatisfy { $0.hasPrefix("Gistsmith + 0x") })
+        #expect(after[1].signal == 6)
+        let object: [String: CrashJSONProbe] = try JSONDecoder().decode([String: CrashJSONProbe].self, from: sent)
+        #expect(object["cpuExceptionDiagnostics"] == nil)
+        #expect(object["trimmedForUpload"] != nil)
+    }
+
+    // Küçük paket olduğu gibi (yalnızca temizlenmiş) gider; küçültme işareti eklenmez.
+    @Test func smallCrashPayloadIsNotTrimmed() throws {
+        let payload: Data = Data(samplePayload.utf8)
+        #expect(try uploadableCrashPayload(payload: payload, limit: reportPayloadLimitBytes) == redactedCrashPayload(payload: payload))
     }
 
     // Gönderilen çökme paketinde dosya yolu, jeton ve istisna argümanı (kullanıcı metni olabilir) yoktur; çağrı yığını,
@@ -169,4 +206,9 @@ private let samplePayload: String = """
         #expect(result.reports[0].containsCrash)
         #expect(result.unreadableFiles == ["bozuk.json"])
     }
+}
+
+/// Üst düzey alanın varlığını sınamak için herhangi bir JSON değeri (içeriği okunmaz).
+private struct CrashJSONProbe: Decodable {
+    init(from decoder: any Decoder) throws {}
 }

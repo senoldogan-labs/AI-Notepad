@@ -1363,6 +1363,13 @@ private struct TasksPage: View {
                     .monospacedDigit()
                     .fixedSize()
                 }
+                // Yüz yüze toplantıda kullanıcı da "Konuşmacı N": hangisi olduğu seçilmeden görevleri buraya düşmez.
+                if !showsDone {
+                    PendingUserSpeakerMeetings(meetings: named, userName: userName) { (meetingID: String) -> Void in
+                        router.selectedMeetingID = meetingID
+                        router.section = .meetings
+                    }
+                }
                 if groups.isEmpty {
                     if showsDone {
                         QuietEmptyCard(symbol: "checkmark.circle", title: "Tamamlanan görev yok", message: "Bitirdiğin görevler burada birikir.")

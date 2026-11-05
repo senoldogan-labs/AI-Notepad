@@ -114,20 +114,14 @@ public func feedbackReport(message: String, email: String, diagnostics: ReportDi
     )
 }
 
-/// Çökme raporu: saklanan MetricKit JSON'u `redactedCrashPayload` ile temizlenmiş haliyle, çöken sürüm ve sistemle.
-/// Paket (temizlenmeden önce ya da sonra) sınırı aşıyorsa ya da metin değilse `ReportError`; JSON çözülemezse
-/// `DecodingError`. Saf fonksiyondur.
+/// Çökme raporu: saklanan MetricKit JSON'u temizlenmiş ve gerekirse sunucunun sınırına sığacak kadar küçültülmüş
+/// haliyle (bkz. `uploadableCrashPayload`), çöken sürüm ve sistemle. Paket metin değilse ya da en küçük hali de
+/// sığmıyorsa `ReportError`; JSON çözülemezse `DecodingError`. Saf fonksiyondur.
 public func crashReportRequest(payload: Data, diagnostic: CrashDiagnostic) throws -> ReportRequest {
-    guard payload.count <= reportPayloadLimitBytes else {
-        throw ReportError.payloadTooLarge(bytes: payload.count, limit: reportPayloadLimitBytes)
-    }
     guard String(data: payload, encoding: .utf8) != nil else {
         throw ReportError.payloadNotText
     }
-    let redacted: Data = try redactedCrashPayload(payload: payload)
-    guard redacted.count <= reportPayloadLimitBytes else {
-        throw ReportError.payloadTooLarge(bytes: redacted.count, limit: reportPayloadLimitBytes)
-    }
+    let redacted: Data = try uploadableCrashPayload(payload: payload, limit: reportPayloadLimitBytes)
     return ReportRequest(
         kind: .crash, message: nil, email: nil,
         appVersion: appVersionText(version: diagnostic.appVersion, build: diagnostic.appBuild), os: diagnostic.osVersion,

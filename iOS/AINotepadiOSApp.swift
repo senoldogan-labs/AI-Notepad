@@ -868,6 +868,20 @@ final class PhoneStore {
     /// Konuşmacılara ad verir ("Konuşmacı 2 = Aino"; boş ad etiketi geri getirir). Kayıttaki, işlenen ya da notu
     /// yazılan toplantıda yapılmaz (işleme bitince kayıt bütünüyle yazılır, ad kaybolurdu). Değişiklik diskteki en güncel
     /// kayda uygulanır (Mac'te iCloud'la gelmiş düzenlemeler bellekteki eski kopyayla ezilmesin).
+    /// Yüz yüze toplantıda kullanıcının konuşmacısı seçildi ("Hangisi sendin?"): ad henüz yoksa saklanır, konuşmacıya
+    /// kullanıcının adı verilir (görevleri Görevlerim'e düşer). Adlandırılamazsa neden sorunlarda görünür.
+    func nameUserSpeaker(meetingID: String, person: Int, name: String) {
+        if userName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            setUserName(name: name)
+        }
+        do {
+            try renameSpeakers(meetingID: meetingID, names: [person: name])
+        } catch {
+            Self.logger.error("Kullanıcının konuşmacısı adlandırılamadı, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+            actionProblems = appendUnique(messages: actionProblems, message: userFacingMessage(error: error))
+        }
+    }
+
     func renameSpeakers(meetingID: String, names: [Int: String]) throws {
         guard let record = meetings.first(where: { $0.id == meetingID }), record.status != .recording, record.status != .processing,
               !regeneratingIDs.contains(meetingID) else {

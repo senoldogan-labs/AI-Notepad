@@ -1539,6 +1539,12 @@ private struct SummaryTab: View {
         let myNotes: String = record.myNotes ?? ""
         let isLocked: Bool = model.isLocked(meetingID: record.id)
         return VStack(alignment: .leading, spacing: 30) {
+            if mine.isEmpty {
+                // Yüz yüze toplantıda kullanıcı da "Konuşmacı N": hangisi olduğunu seçince görevleri ona düşer.
+                UserSpeakerPrompt(record: record, userName: model.userName, isLocked: isLocked) { (person: Int, name: String) -> Void in
+                    model.nameUserSpeaker(meetingID: record.id, person: person, name: name)
+                }
+            }
             if !mine.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("SENİN GÖREVLERİN")

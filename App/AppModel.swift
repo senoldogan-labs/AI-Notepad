@@ -1713,6 +1713,20 @@ final class AppModel {
         process(record: record, directory: directory, finalPass: { () async -> FinalPassPlan in await self.reprocessFinalPassPlan(record: record) }, llmProvider: resolveLLM)
     }
 
+    /// Kaydın yüz yüze kayda çevrilmiş hali (bkz. `convertingRoomRecording`; ses düzeyi ana iş parçacığı dışında okunur);
+    /// çevrilemezse hata gösterilir ve kayıt aynen döner.
+    private func roomConverted(record: MeetingRecord, directory: URL) async -> MeetingRecord {
+        do {
+            return try await Task.detached(priority: .userInitiated) { () throws -> MeetingRecord in
+                try convertingRoomRecording(record: record, directory: directory)
+            }.value
+        } catch {
+            Self.logger.error("Odada kaydedilen toplantı yüz yüze kayda çevrilemedi, toplantı: \(record.id, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+            errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
+            return record
+        }
+    }
+
     /// İşlemenin ortak yolu: son geçiş planı `resolveFinalPass`'ten gelir.
     private func process(
         record: MeetingRecord, directory: URL, finalPass resolveFinalPass: @escaping @Sendable () async -> FinalPassPlan,
@@ -1726,6 +1740,11 @@ final class AppModel {
         let userName: String = self.userName
         let languageMode: LanguageMode = record.language.map { LanguageMode.fixed($0) } ?? .automatic
         Task {
+            // "Yüz yüze" kapalıyken odada kaydedilen toplantı (herkes "Sen" diye yazıldı, son geçiş çalışmazdı) yüz yüze
+            // kayda çevrilir; dosyalar taşındığı için kayıt hemen saklanır. Çevrilemezse hata gösterilir, kayıt olduğu
+            // gibi işlenir.
+            let record: MeetingRecord = await roomConverted(record: record, directory: directory)
+            saveRecord(record: record, directory: directory)
             let screens: ScreenNotesPlan = screenNotesPlan()
             // Son geçiş planı (sunucu oturumunu yeniden açma isteği) ve not sağlayıcısı ses dönüştürülürken hazırlanır.
             let result: MeetingRecord = await processMeeting(
@@ -2234,6 +2253,15 @@ final class AppModel {
     }
 
     /// "Konuşmacı 2 = Aino": adı kaydeder; boş ad etiketi geri getirir.
+    /// Yüz yüze toplantıda kullanıcının konuşmacısı seçildi ("Hangisi sendin?"): ad henüz yoksa saklanır, konuşmacıya
+    /// kullanıcının adı verilir (görevleri Görevlerim'e düşer).
+    func nameUserSpeaker(meetingID: String, person: Int, name: String) {
+        if userName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            setUserName(name: name)
+        }
+        renameSpeaker(meetingID: meetingID, person: person, name: name)
+    }
+
     func renameSpeaker(meetingID: String, person: Int, name: String) {
         // İşleme bitince kayıt bütünüyle yazıldığı için bu sırada verilen ad kaybolurdu.
         guard let record = meetings.first(where: { $0.id == meetingID }), !isLocked(meetingID: meetingID) else {

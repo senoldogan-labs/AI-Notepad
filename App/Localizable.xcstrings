@@ -29067,6 +29067,76 @@
         }
       }
     },
+    "Bu toplantıda hangisi sendin?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcher Sprecher warst du in diesem Meeting?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Which speaker were you in this meeting?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Qué interlocutor eras tú en esta reunión?"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kuka puhujista olit tässä kokouksessa?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quel intervenant étiez-vous dans cette réunion ?"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quale interlocutore eri in questa riunione?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この会議で、どの話者があなたでしたか？"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 회의에서 어느 화자가 당신이었나요?"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welke spreker was jij in deze vergadering?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qual falante era você nesta reunião?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在这次会议中，哪位说话人是你？"
+          }
+        }
+      }
+    },
     "Bu toplantıda sana düşen görev yok": {
       "localizations": {
         "de": {
@@ -30119,6 +30189,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "将此配置添加到客户端的 MCP 设置中（Claude Desktop：设置 › 开发者 › 编辑配置）。客户端会列出、搜索和读取你的会议、笔记、文字稿和共享屏幕快照；它只读取，从不更改任何内容。它读取的内容会发送给客户端的 AI 提供商（例如 Anthropic、OpenAI）。"
+          }
+        }
+      }
+    },
+    "Bu yüz yüze toplantılardaki görevlerin, konuşmacını seçince buraya gelir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Aufgaben aus diesen Meetings vor Ort erscheinen hier, sobald du deinen Sprecher auswählst."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your tasks from these in-person meetings appear here once you pick your speaker."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tus tareas de estas reuniones presenciales aparecerán aquí cuando elijas tu interlocutor."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näiden kasvokkaisten kokousten tehtäväsi tulevat tänne, kun valitset puhujasi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vos tâches issues de ces réunions en présentiel apparaissent ici dès que vous choisissez votre intervenant."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le tue attività di queste riunioni di persona compaiono qui quando scegli il tuo interlocutore."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "これらの対面の会議のタスクは、自分の話者を選ぶとここに表示されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 대면 회의들의 할 일은 자신의 화자를 선택하면 여기에 표시됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je taken uit deze fysieke vergaderingen verschijnen hier zodra je je spreker kiest."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suas tarefas dessas reuniões presenciais aparecem aqui quando você escolhe seu falante."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选出你的说话人后，这些面对面会议中的任务会显示在这里。"
           }
         }
       }
@@ -47535,6 +47675,76 @@
         }
       }
     },
+    "Hangi konuşmacı olduğunu seç": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wähle aus, welcher Sprecher du warst"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pick which speaker you were"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige qué interlocutor eras"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valitse, kuka puhujista olit"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisissez quel intervenant vous étiez"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegli quale interlocutore eri"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自分がどの話者かを選んでください"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "어느 화자가 당신인지 선택하세요"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kies welke spreker jij was"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha qual falante você era"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选出你是哪位说话人"
+          }
+        }
+      }
+    },
     "HATA": {
       "extractionState": "manual",
       "localizations": {
@@ -51184,6 +51394,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "印地语"
+          }
+        }
+      }
+    },
+    "Hiçbiri": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keiner davon"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "None of them"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ninguno"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ei kukaan"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessuno"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "どれでもない"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "해당 없음"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geen van deze"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "都不是"
           }
         }
       }
@@ -55429,6 +55709,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "从会议的 ⋯ 菜单中将任务在 Linear 或 Jira 中创建为问题。"
+          }
+        }
+      }
+    },
+    "Yüz yüze kayıtta sen de konuşmacılardan birisin. Seçince sana düşen görevler Görevlerim'e gelir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bei einer Aufnahme vor Ort bist du einer der Sprecher. Wähle deinen aus, dann landen deine Aufgaben in „Meine Aufgaben“."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In an in-person recording you're one of the speakers too. Pick yours and the tasks assigned to you move to My tasks."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En una grabación presencial tú también eres uno de los interlocutores. Elige el tuyo y tus tareas pasarán a Mis tareas."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kasvokkain tallennetussa kokouksessa olet itsekin yksi puhujista. Valitse itsesi, niin sinulle kuuluvat tehtävät siirtyvät Omiin tehtäviin."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dans un enregistrement en présentiel, vous êtes aussi l’un des intervenants. Choisissez le vôtre et vos tâches passent dans Mes tâches."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In una registrazione di persona anche tu sei uno degli interlocutori. Scegli il tuo e le tue attività passano in Le mie attività."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "対面の録音では、あなたも話者の一人です。自分を選ぶと、あなたのタスクが「自分のタスク」に移ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "대면 녹음에서는 당신도 화자 중 한 명입니다. 자신을 선택하면 당신에게 배정된 할 일이 '나의 할 일'로 옮겨집니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bij een fysieke opname ben jij ook een van de sprekers. Kies de jouwe, dan komen jouw taken in Mijn taken."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Numa gravação presencial você também é um dos falantes. Escolha o seu e as tarefas atribuídas a você vão para Minhas tarefas."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在面对面录音中，你也是说话人之一。选出你自己后，分配给你的任务会出现在“我的任务”中。"
           }
         }
       }
