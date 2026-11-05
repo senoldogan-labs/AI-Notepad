@@ -50,6 +50,21 @@ private let sampleNote: MeetingNote = MeetingNote(
         let slackInjected: [String: String] = try JSONDecoder().decode([String: String].self, from: webhookPayload(kind: .slack, record: sampleRecord(), note: injected, appName: "Gistsmith"))
         #expect(slackInjected["text"]?.contains("&lt;!channel&gt; A &amp; B") == true)
     }
+
+    // Discord ve Teams'te notun "[metin](adres)" bağlantısı gizli bağlantı olmaz: adres açıkça yazılır. Görev kutusu ve
+    // konu akışının "[00:05]" zamanı bozulmaz; Slack biçimi değişmez.
+    @Test func discordAndTeamsShowLinkTargets() throws {
+        #expect(unlinkedMarkdown(markdown: "Bkz. [rapor](https://evil.example/x) ve [b](<https://e.example>).") == "Bkz. rapor (https://evil.example/x) ve b (<https://e.example>).")
+        #expect(unlinkedMarkdown(markdown: "[[iç]](https://e.example) [a](javascript:alert(1))") == "[[iç]] (https://e.example) [a] (javascript:alert(1))")
+        #expect(unlinkedMarkdown(markdown: "- [ ] **Senol** — Sunum\n- [00:05] Açılış — Merhaba") == "- [ ] **Senol** — Sunum\n- [00:05] Açılış — Merhaba")
+        let linked: MeetingNote = MeetingNote(title: "T", summary: "Ayrıntı: [Bütçe tablosu](https://evil.example/login)", decisions: [], tasks: [], glossary: [])
+        let discord: [String: Any] = try #require(JSONSerialization.jsonObject(with: webhookPayload(kind: .discord, record: sampleRecord(), note: linked, appName: "Gistsmith")) as? [String: Any])
+        #expect((discord["content"] as? String)?.contains("Bütçe tablosu (https://evil.example/login)") == true)
+        #expect((discord["content"] as? String)?.contains("](") == false)
+        #expect(teamsCardText(markdown: "## Özet\n\n[Bütçe tablosu](https://evil.example/login)\n- [ ] Görev") == "**Özet**\n\nBütçe tablosu (https://evil.example/login)\n- Görev")
+        let slack: [String: String] = try JSONDecoder().decode([String: String].self, from: webhookPayload(kind: .slack, record: sampleRecord(), note: linked, appName: "Gistsmith"))
+        #expect(slack["text"]?.contains("[Bütçe tablosu](https://evil.example/login)") == true)
+    }
 }
 
 @Suite struct MeetingPageTests {

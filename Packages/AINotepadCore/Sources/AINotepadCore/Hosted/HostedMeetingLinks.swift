@@ -76,8 +76,9 @@ public func shouldClearCurrentMeeting(currentMeetingID: String?, endedMeetingID:
     currentMeetingID == endedMeetingID
 }
 
-/// Kaydedici meşgul mü: kayıt sürüyor ya da bitiyor, biten kayıt henüz işlemeye devredilmedi, toplantı işleniyor ya da
-/// dosya içe aktarılıyor. Meşgulken yeni kayıt, kuyruk, çıkış ve güncellemeyle yeniden başlatma beklenir. Saf fonksiyondur.
-public func isRecorderBusy(isRecording: Bool, isFinishing: Bool, isHandingOff: Bool, processingCount: Int, importingCount: Int) -> Bool {
-    isRecording || isFinishing || isHandingOff || processingCount > 0 || importingCount > 0
+/// Kaydedici meşgul mü: kayıt başlıyor (ses diske yazılmaya başladı, toplantı kaydı henüz yazılmadı), sürüyor ya da
+/// bitiyor, biten kayıt henüz işlemeye devredilmedi, toplantı işleniyor ya da dosya içe aktarılıyor. Meşgulken yeni
+/// kayıt, kuyruk, çıkış ve güncellemeyle yeniden başlatma beklenir. Saf fonksiyondur.
+public func isRecorderBusy(isStarting: Bool, isRecording: Bool, isFinishing: Bool, isHandingOff: Bool, processingCount: Int, importingCount: Int) -> Bool {
+    isStarting || isRecording || isFinishing || isHandingOff || processingCount > 0 || importingCount > 0
 }

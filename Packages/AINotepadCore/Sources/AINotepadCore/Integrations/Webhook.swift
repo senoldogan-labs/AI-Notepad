@@ -107,6 +107,17 @@ public func slackText(markdown: String) -> String {
         .joined(separator: "\n")
 }
 
+/// Markdown bağlantılarını düz metne çevirir: "[etiket](adres)" → "etiket (adres)"; iç içe ya da parantezli adresler
+/// gibi kalan her "](" arasına boşluk girer, bağlantı oluşamaz. Toplantı notu katılımcıların söylediğinden üretilir:
+/// kanalda gerçek adresini gizleyen bir bağlantı metni görünmesin (adres her zaman açıkça yazılır). Saf fonksiyondur.
+public func unlinkedMarkdown(markdown: String) -> String {
+    markdown
+        .replacing(/\[([^\[\]\n]*)\]\(([^()\n]*)\)/) { (match: Regex<(Substring, Substring, Substring)>.Match) -> String in
+            "\(match.output.1) (\(match.output.2))"
+        }
+        .replacing("](", with: "] (")
+}
+
 /// Discord mesaj sınırı (karakter).
 let discordContentLimit: Int = 2000
 
@@ -145,7 +156,9 @@ public func webhookPayload(kind: WebhookKind, record: MeetingRecord, note: Meeti
     case .slack:
         return try encoder.encode(["text": slackText(markdown: markdown)])
     case .discord:
-        let content: String = markdown.count > discordContentLimit ? String(markdown.prefix(discordContentLimit - 1)) + "…" : markdown
+        // Discord "[metin](adres)" biçimini gizli bağlantı olarak gösterir: adres açıkça yazılır.
+        let unlinked: String = unlinkedMarkdown(markdown: markdown)
+        let content: String = unlinked.count > discordContentLimit ? String(unlinked.prefix(discordContentLimit - 1)) + "…" : unlinked
         return try encoder.encode(DiscordMessage(content: content, username: appName, allowedMentions: DiscordAllowedMentions(parse: [])))
     case .teams:
         return try encoder.encode(TeamsMessage(markdown: markdown))
@@ -261,9 +274,10 @@ private struct TeamsTextBlock: Encodable {
 }
 
 /// Adaptive Card metni: kart başlık (`#`) ve yapılacak kutusu (`- [ ]`) biçimini tanımaz, ham görünüyordu; başlıklar
-/// kalın satır, kutular madde işareti olur. Saf fonksiyondur.
+/// kalın satır, kutular madde işareti olur. Kart "[metin](adres)" biçimini gizli bağlantı olarak gösterir: adres açıkça
+/// yazılır (`unlinkedMarkdown`). Saf fonksiyondur.
 func teamsCardText(markdown: String) -> String {
-    markdown
+    unlinkedMarkdown(markdown: markdown)
         .split(separator: "\n", omittingEmptySubsequences: false)
         .map { (line: Substring) -> String in
             if let heading = String(line).firstMatch(of: /^#{1,6}\s+(.+)$/) {

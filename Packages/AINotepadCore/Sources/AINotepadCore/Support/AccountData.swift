@@ -63,6 +63,25 @@ public enum AccountDataWriter: Equatable, Sendable {
     case noteEditing
     /// Sor cevabı yazılıyor (bitince sohbet hesabın klasörüne saklanır).
     case askAnswering
+    /// Notlar bağlı hedeflere kendiliğinden gönderiliyor (hesabın Anahtar Zinciri'ndeki bağlantılarla).
+    case noteSending
+}
+
+/// Bir hesap oturumunun (bellekteki toplantılar ve onlara yazan nesneler) bağlı olduğu hesap: kurulduğunda yüklü
+/// hesap; kurulurken hesap yüklü değildiyse (ilk giriş) ilk yüklenen hesap. Bir kez bağlanınca değişmez. Saf
+/// fonksiyondur.
+public func resolvedBoundAccountKey(bound: String?, active: String?) -> String? {
+    bound ?? active
+}
+
+/// Bir hesap oturumunun işleri şimdi çalışabilir mi: oturumun bağlı olduğu hesap hem yüklü hesap hem giriş yapan hesap
+/// olmalı. Hesap yerinde değiştikten sonra eski oturumun geç kalan işleri (kendiliğinden gönderim, kuyruk, yeniden
+/// deneme) yeni hesabın klasörüne, Anahtar Zinciri'ne ya da sunucu oturumuna dokunmaz. Saf fonksiyondur.
+public func isAccountSessionCurrent(boundKey: String?, activeKey: String?, signedInKey: String?) -> Bool {
+    guard let boundKey else {
+        return false
+    }
+    return boundKey == activeKey && boundKey == signedInKey
 }
 
 /// Yazan her işin kapandığının kanıtı: yalnızca `accountSwitchReadiness` (açık iş listesi boşken) üretir,

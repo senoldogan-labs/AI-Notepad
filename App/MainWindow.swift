@@ -638,7 +638,8 @@ private struct QuitWarning: View {
         let isBusy: Bool = model.isBusy
         NoticeCard(
             severity: .attention,
-            title: Text(model.phase == .idle
+            // Kayıt başlarken de (ses yazılıyor) kayıt uyarısı görünür.
+            title: Text(model.phase == .idle && !model.isStarting
                 ? "Toplantı işleniyor. Şimdi çıkarsan not hazırlanmaz; açılınca \"Tekrar işle\" gerekir."
                 : "Kayıt sürüyor. Şimdi çıkarsan toplantı yarıda kalır."),
             detail: nil,

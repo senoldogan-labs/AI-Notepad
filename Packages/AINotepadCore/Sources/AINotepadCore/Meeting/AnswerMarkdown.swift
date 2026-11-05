@@ -581,7 +581,19 @@ private func linkSpan(characters: [Character], start: Int) -> (label: [Character
     guard !url.isEmpty, !url.contains("\n") else {
         return nil
     }
-    return (label, url.hasPrefix("<") && url.hasSuffix(">") ? String(url.dropFirst().dropLast()) : url, close + 1)
+    let address: String = url.hasPrefix("<") && url.hasSuffix(">") ? String(url.dropFirst().dropLast()) : url
+    // Yalnız web adresi bağlantı olur; file:, smb:, özel uygulama şemaları düz yazı kalır (adres görünür).
+    guard isWebAddress(address) else {
+        return nil
+    }
+    return (label, address, close + 1)
+}
+
+/// Adres bir web adresi mi ("http://" ya da "https://"; şema büyük/küçük harf duyarsız). Cevaplardaki bağlantılar ve
+/// tıklanınca açılan adresler yalnız bunlar olabilir. Saf fonksiyondur.
+public func isWebAddress(_ address: String) -> Bool {
+    let lowered: String = address.lowercased()
+    return lowered.hasPrefix("http://") || lowered.hasPrefix("https://")
 }
 
 /// Açılı bağlantı: "<https://…>". Saf fonksiyondur.

@@ -14,9 +14,15 @@ import Testing
     // Biten kayıt işlemeye devredilirken (sunucu oturumu kapatılıyor) kaydedici meşgul sayılır: yeni kayıt, kuyruk,
     // çıkış ve güncellemeyle yeniden başlatma bu aralıkta araya giremez.
     @Test func handoffKeepsRecorderBusy() {
-        #expect(isRecorderBusy(isRecording: false, isFinishing: false, isHandingOff: true, processingCount: 0, importingCount: 0))
-        #expect(!isRecorderBusy(isRecording: false, isFinishing: false, isHandingOff: false, processingCount: 0, importingCount: 0))
-        #expect(isRecorderBusy(isRecording: false, isFinishing: false, isHandingOff: false, processingCount: 1, importingCount: 0))
+        #expect(isRecorderBusy(isStarting: false, isRecording: false, isFinishing: false, isHandingOff: true, processingCount: 0, importingCount: 0))
+        #expect(!isRecorderBusy(isStarting: false, isRecording: false, isFinishing: false, isHandingOff: false, processingCount: 0, importingCount: 0))
+        #expect(isRecorderBusy(isStarting: false, isRecording: false, isFinishing: false, isHandingOff: false, processingCount: 1, importingCount: 0))
+    }
+
+    // Kayıt başlarken (ses diske yazılıyor, toplantı kaydı henüz yok) kaydedici meşguldür: ⌘Q çıkışı uyarıyla bekletir,
+    // ses toplantısız kalmaz.
+    @Test func startingKeepsRecorderBusy() {
+        #expect(isRecorderBusy(isStarting: true, isRecording: false, isFinishing: false, isHandingOff: false, processingCount: 0, importingCount: 0))
     }
 
     // Geç dönen kapatma yalnızca kendi oturumunu temizler; bu arada başlayan kaydın oturumuna dokunmaz.

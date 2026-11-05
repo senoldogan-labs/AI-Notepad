@@ -62,6 +62,17 @@ import Testing
         }
         #expect(page["properties"] == .object(["title": .string("Bütçe")]))
         #expect(!content.hasPrefix("# Bütçe") && content.contains("Özet metni"))
+        // Notun metni Notion etiketi ya da bağlantısı olmaz: `<`, `>` ve `\` kaçışlanır, "[metin](adres)" düz metin olur.
+        #expect(notionSafeMarkdown(markdown: #"<mention-user url="user://1"/> ve <page url="https://notion.so/x">P</page> a\<b"#)
+            == #"\<mention-user url="user://1"/\> ve \<page url="https://notion.so/x"\>P\</page\> a\\\<b"#)
+        #expect(notionSafeMarkdown(markdown: "- [ ] **Senol** — [Belge](https://evil.example)") == "- [ ] **Senol** — Belge (https://evil.example)")
+        let injected: MeetingNote = MeetingNote(title: "Bütçe", summary: #"<image source="https://evil.example/p.png"></image>"#, decisions: [], tasks: [], glossary: [])
+        guard case .object(let injectedRoot) = notionPageArguments(record: record, note: injected), case .array(let injectedPages) = injectedRoot["pages"],
+              case .object(let injectedPage) = injectedPages.first, case .string(let injectedContent) = injectedPage["content"] else {
+            Issue.record("biçim")
+            return
+        }
+        #expect(injectedContent.contains(#"\<image source="https://evil.example/p.png"\>\</image\>"#) && !injectedContent.replacing(#"\<"#, with: "").contains("<"))
         // Yalnızca izin listesindeki araçlar: düzenleme, yorum, iş kaydı, bağlantı, proje/etiket oluşturma görünmez.
         let tools: [MCPRemoteTool] = [
             "create_issue", "save_issue", "list_teams", "update_issue", "create_project", "create_issue_label", "create_comment",
@@ -74,6 +85,16 @@ import Testing
         #expect(referencesExistingItem(arguments: .object(["id": .string("LIN-1"), "title": .string("x")])))
         #expect(referencesExistingItem(arguments: .object(["issueIdOrKey": .string("PROJ-1")])))
         #expect(!referencesExistingItem(arguments: .object(["title": .string("x"), "team": .string("Eng")])))
+        // Var olan işe bağlayan alan (üst iş, iş bağlantısı) hangi derinlikte olursa olsun yakalanır; öncelik ya da atanan
+        // kişi gibi iç içe "id" alanları bağlantı değildir.
+        #expect(linksToExistingItem(arguments: .object(["title": .string("x"), "parentId": .string("LIN-1")])))
+        #expect(linksToExistingItem(arguments: .object(["additional_fields": .object(["parent": .object(["key": .string("PROJ-1")])])])))
+        #expect(linksToExistingItem(arguments: .object(["fields": .object(["update": .object(["issuelinks": .array([.object(["add": .object([:])])])])])])))
+        #expect(linksToExistingItem(arguments: .object(["batch": .array([.object(["parent_id": .string("x")])])])))
+        #expect(linksToExistingItem(arguments: .object(["blockedBy": .array([.string("LIN-2")])])))
+        #expect(!linksToExistingItem(arguments: .object([
+            "title": .string("x"), "team": .string("Eng"), "additional_fields": .object(["priority": .object(["id": .string("2")]), "assignee": .object(["id": .string("u")])]),
+        ])))
     }
 
     // Ajan adımının denetimi: izinsiz araç, bozuk JSON, geçersiz ya da açılmış görev numarası ve var olan öğeyi gösteren
@@ -93,6 +114,10 @@ import Testing
          TrackerStepCheck.rejected(reason: "task_number açılmamış bir görevin numarası olmalı.")),
         (TrackerAgentStep(action: "call", tool: "save_issue", argumentsJSON: #"{"id":"LIN-1","title":"A"}"#, taskNumber: 2, summary: ""),
          TrackerStepCheck.rejected(reason: "var olan öğe değiştirilemez; kimlik vermeden yeni iş aç.")),
+        (TrackerAgentStep(action: "call", tool: "create_issue", argumentsJSON: #"{"title":"A","parentId":"LIN-1"}"#, taskNumber: 2, summary: ""),
+         TrackerStepCheck.rejected(reason: "yeni iş var olan bir öğeye bağlanamaz; üst iş ya da iş bağlantısı vermeden aç.")),
+        (TrackerAgentStep(action: "call", tool: "save_issue", argumentsJSON: #"{"title":"A","additional_fields":{"issuelinks":[{"key":"PROJ-1"}]}}"#, taskNumber: 2, summary: ""),
+         TrackerStepCheck.rejected(reason: "yeni iş var olan bir öğeye bağlanamaz; üst iş ya da iş bağlantısı vermeden aç.")),
         (TrackerAgentStep(action: "call", tool: "create_issue", argumentsJSON: #"{"title":"A"}"#, taskNumber: 2, summary: ""),
          TrackerStepCheck.create(arguments: .object(["title": .string("A")]), taskIndex: 1)),
     ])

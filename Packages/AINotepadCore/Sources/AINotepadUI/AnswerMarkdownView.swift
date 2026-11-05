@@ -158,7 +158,7 @@ func answerAttributedText(inlines: [MarkdownInline], webSources: [WebSource], st
             result += run
         case .link(let label, let url):
             var run: AttributedString = answerAttributedText(inlines: label, webSources: webSources, style: style)
-            run.link = URL(string: url)
+            run.link = isWebAddress(url) ? URL(string: url) : nil
             run.foregroundColor = style.accent
             run.underlineStyle = .single
             result += run
@@ -174,7 +174,7 @@ func answerAttributedText(inlines: [MarkdownInline], webSources: [WebSource], st
             result += citationGap(after: result, previousIsCitation: previousIsCitation)
             let source: WebSource? = webSources.indices.contains(number - 1) ? webSources[number - 1] : nil
             var run: AttributedString = AttributedString("\u{2009}\(source.map { webSourceDomain(url: $0.url) } ?? "web")\u{2009}")
-            run.link = source.flatMap { URL(string: $0.url) }
+            run.link = source.flatMap { isWebAddress($0.url) ? URL(string: $0.url) : nil }
             run.foregroundColor = style.webForeground
             run.backgroundColor = style.webBackground
             run.font = style.citationFont

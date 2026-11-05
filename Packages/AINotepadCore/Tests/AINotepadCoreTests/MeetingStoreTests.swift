@@ -94,6 +94,41 @@ func record(id: String, startedAt: Date, status: MeetingStatus, audioDeleted: Bo
         ]
         #expect(audioToDelete(records: records, now: now, retentionDays: 30) == ["old", "interrupted"])
     }
+
+    // Kayıt başlarken kapanan uygulamanın toplantı kaydı olmayan sesi süre dolunca silinir; toplantı kaydı (ya da iCloud
+    // yer tutucusu) olan, sesi olmayan ve süresi dolmamış (ör. süren kayıt) klasöre dokunulmaz.
+    @Test func orphanedAudioIsFoundAfterRetention() {
+        let now: Date = Date(timeIntervalSince1970: 1_800_000_000)
+        let old: Date = now.addingTimeInterval(-31 * 86_400)
+        let folders: [SessionFolderContents] = [
+            SessionFolderContents(name: "orphan", fileNames: ["me.caf", "others.caf"], lastModified: old),
+            SessionFolderContents(name: "recent", fileNames: ["others.caf"], lastModified: now.addingTimeInterval(-60)),
+            SessionFolderContents(name: "meeting", fileNames: ["meeting.json", "others.m4a"], lastModified: old),
+            SessionFolderContents(name: "cloud", fileNames: [".meeting.json.icloud", "others.m4a"], lastModified: old),
+            SessionFolderContents(name: "silent", fileNames: ["screens"], lastModified: old),
+        ]
+        #expect(orphanedAudioFolders(folders: folders, now: now, retentionDays: 30) == ["orphan"])
+    }
+
+    // Sahipsiz ses diskte silinir; klasördeki diğer dosyalar ve toplantı kaydı olan klasörün sesi kalır.
+    @Test func orphanedAudioIsDeletedOnDisk() throws {
+        let sessions: URL = FileManager.default.temporaryDirectory.appending(path: "orphan-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: sessions) }
+        let orphan: URL = sessions.appending(path: "20260101-100000", directoryHint: .isDirectory)
+        let meeting: URL = sessions.appending(path: "20260101-110000", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: orphan, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: meeting, withIntermediateDirectories: true)
+        try Data("ses".utf8).write(to: orphan.appending(path: "others.caf"))
+        try Data("not".utf8).write(to: orphan.appending(path: "notes.txt"))
+        try Data("ses".utf8).write(to: meeting.appending(path: "others.caf"))
+        try Data("{}".utf8).write(to: meeting.appending(path: "meeting.json"))
+        let later: Date = Date().addingTimeInterval(8 * 86_400)
+        #expect(try deleteOrphanedAudio(sessionsDirectory: sessions, now: later, retentionDays: 7) == ["20260101-100000"])
+        #expect(!FileManager.default.fileExists(atPath: orphan.appending(path: "others.caf").path))
+        #expect(FileManager.default.fileExists(atPath: orphan.appending(path: "notes.txt").path))
+        #expect(FileManager.default.fileExists(atPath: meeting.appending(path: "others.caf").path))
+        #expect(try deleteOrphanedAudio(sessionsDirectory: sessions, now: Date(), retentionDays: 7) == [])
+    }
 }
 
 @Suite struct StoredSegmentsTests {

@@ -56,19 +56,32 @@ final class PhoneIntegrations {
     /// Toplantı kayıtta ya da işlenirken gönderildi işaretleri; işleme bitince kayda yazılır.
     @ObservationIgnored private var pendingSentMarks: [String: Set<String>] = [:]
     @ObservationIgnored private var pendingTaskMarks: [String: [(tracker: TaskTracker, tasks: [NoteTask])]] = [:]
-    /// Kendiliğinden gönderim sürüyor; sürerken gelen istek tur bitince bir kez daha çalıştırır.
-    @ObservationIgnored private var autoSendRunning: Bool = false
+    /// Kendiliğinden gönderim sürüyor; sürerken gelen istek tur bitince bir kez daha çalıştırır. Gözlenir: hesap
+    /// değişimi turun bitmesini bekler (bkz. `phoneOpenWriters`).
+    private(set) var isAutoSending: Bool = false
     @ObservationIgnored private var autoSendRequested: Bool = false
+    /// Bu bağlantıların kurulduğu hesap (bkz. `resolvedBoundAccountKey`): hesap yerinde değiştikten sonra eski hesabın
+    /// gönderimi yeni hesabın Anahtar Zinciri'ne ve hedeflerine dokunmaz.
+    @ObservationIgnored private var accountKey: String?
 
     init(store: PhoneStore) {
         self.store = store
+        accountKey = AppPaths.activeAccountKey()
+    }
+
+    /// Bağlı olunan hesap hâlâ yüklü ve giriş yapan hesap mı (bkz. `isAccountSessionCurrent`); kurulurken hesap yüklü
+    /// değildiyse ilk yüklenen hesaba bağlanır.
+    private func isBoundAccountCurrent() -> Bool {
+        accountKey = resolvedBoundAccountKey(bound: accountKey, active: AppPaths.activeAccountKey())
+        return isAccountSessionCurrent(boundKey: accountKey, activeKey: AppPaths.activeAccountKey(), signedInKey: phoneSignedInAccountKey())
     }
 
     // MARK: Depolar
 
-    /// Yüklü hesabın depoları; hesap yüklenmediyse `StorageError.accountNotSelected`.
+    /// Bağlı olunan hesabın depoları; o hesap yüklü ve giriş yapan hesap değilse (hesap değişti, çıkış yapıldı)
+    /// `StorageError.accountNotSelected`.
     private func currentVaults() throws -> (destinations: DestinationVault, trackers: TrackerVault) {
-        guard let accountKey = AppPaths.activeAccountKey() else {
+        guard isBoundAccountCurrent(), let accountKey else {
             throw StorageError.accountNotSelected
         }
         let service: String = try accountKeychainService(appService: try hostedKeychainService(bundle: .main), accountKey: accountKey)
@@ -434,19 +447,20 @@ final class PhoneIntegrations {
             return
         }
         #endif
-        guard AppPaths.activeAccountKey() != nil else {
+        // Hesap yerinde değiştiyse eski hesabın turu çalışmaz: notları yeni hesabın hedeflerine gitmez.
+        guard isBoundAccountCurrent() else {
             return
         }
         guard UIApplication.shared.isProtectedDataAvailable else {
             Self.logger.info("iPhone kilitli, kendiliğinden gönderim kilit açılınca yapılacak")
             return
         }
-        guard !autoSendRunning else {
+        guard !isAutoSending else {
             autoSendRequested = true
             return
         }
-        autoSendRunning = true
-        defer { autoSendRunning = false }
+        isAutoSending = true
+        defer { isAutoSending = false }
         repeat {
             autoSendRequested = false
             await refreshDestinationList()
