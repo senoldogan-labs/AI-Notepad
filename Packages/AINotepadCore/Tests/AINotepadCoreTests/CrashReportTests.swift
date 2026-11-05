@@ -99,12 +99,14 @@ private let samplePayload: String = """
         #expect(try crashDiagnostics(payload: Data(payload.utf8)).isEmpty)
     }
 
-    // Çökme raporu saklanan MetricKit JSON'unu olduğu gibi, çöken sürüm ve sistemle taşır; mesaj ve e-posta yok.
+    // Çökme raporu saklanan MetricKit JSON'unu temizlenmiş haliyle, çöken sürüm ve sistemle taşır; mesaj ve e-posta yok.
     @Test func crashReportRequestCarriesPayload() throws {
         let payload: Data = Data(samplePayload.utf8)
         let crash: CrashDiagnostic = try crashDiagnostics(payload: payload)[0]
         let request: ReportRequest = try crashReportRequest(payload: payload, diagnostic: crash)
-        #expect(request == ReportRequest(kind: .crash, message: nil, email: nil, appVersion: "0.1.2 (3)", os: "macOS 26.0 (25A354)", payload: samplePayload))
+        let expected: String = String(decoding: try redactedCrashPayload(payload: payload), as: UTF8.self)
+        #expect(request == ReportRequest(kind: .crash, message: nil, email: nil, appVersion: "0.1.2 (3)", os: "macOS 26.0 (25A354)", payload: expected))
+        #expect(try crashDiagnostics(payload: Data(expected.utf8)) == crashDiagnostics(payload: payload))
         let encoded: [String: String] = try JSONDecoder().decode([String: String].self, from: try JSONEncoder().encode(request))
         #expect(Set(encoded.keys) == ["kind", "appVersion", "os", "payload"])
         #expect(encoded["kind"] == "crash")
@@ -112,6 +114,29 @@ private let samplePayload: String = """
         #expect(throws: ReportError.payloadTooLarge(bytes: reportPayloadLimitBytes + 1, limit: reportPayloadLimitBytes)) {
             try crashReportRequest(payload: tooLarge, diagnostic: crash)
         }
+    }
+
+    // Gönderilen çökme paketinde dosya yolu, jeton ve istisna argümanı (kullanıcı metni olabilir) yoktur; çağrı yığını,
+    // sayılar (64 bitlik adres dahil), istisna adı ve biçim metni değişmez.
+    @Test func crashPayloadIsRedactedBeforeUpload() throws {
+        let payload: String = """
+            {"crashDiagnostics":[{"callStackTree":{"callStacks":[{"threadAttributed":true,"callStackRootFrames":[
+            {"binaryName":"AINotepad","binaryUUID":"22222222-2222-2222-2222-222222222222","address":18446744073709551615,"offsetIntoBinaryTextSegment":74565}]}]},
+            "diagnosticMetaData":{"appVersion":"0.1.2","appBuildVersion":"3","osVersion":"macOS 26.0 (25A354)","exceptionType":1,"signal":11,
+            "lowPowerModeEnabled":false,"pid":4242,
+            "terminationReason":"Namespace CODESIGNING, /Users/ayse/Desktop/Board meeting.m4a",
+            "virtualMemoryRegionInfo":"0 is not in any region.\\n  mapped file 1022d8000-1022e0000 /Users/ayse/Library/Application Support/AINotepad/Sessions/x/audio.m4a\\n",
+            "exceptionReason":{"exceptionName":"NSInvalidArgumentException","className":"NSException","formatString":"bad title %@",
+            "composedMessage":"bad title Acquisition of ACME","arguments":["Acquisition of ACME"],"exceptionType":"Objective-C exception"}}}]}
+            """
+        let redacted: String = String(decoding: try redactedCrashPayload(payload: Data(payload.utf8)), as: UTF8.self)
+        #expect(!redacted.contains("/Users") && !redacted.contains("ayse") && !redacted.contains("Board meeting"))
+        #expect(!redacted.contains("Acquisition of ACME"))
+        #expect(redacted.contains(#""exceptionName":"NSInvalidArgumentException""#) && redacted.contains(#""formatString":"bad title %@""#))
+        #expect(redacted.contains("18446744073709551615") && redacted.contains(#""lowPowerModeEnabled":false"#) && redacted.contains(#""pid":4242"#))
+        #expect(redacted.contains("1022d8000-1022e0000"))
+        let original: [CrashDiagnostic] = try crashDiagnostics(payload: Data(payload.utf8))
+        #expect(try crashDiagnostics(payload: Data(redacted.utf8)).map(\.topFrames) == original.map(\.topFrames))
     }
 
     // Şerit yalnız görülmemiş, çökme içeren en yeni raporu gösterir.
