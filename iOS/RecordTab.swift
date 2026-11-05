@@ -451,6 +451,12 @@ private struct LiveRecordingView: View {
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
     /// "Tümünü kopyala"ya basılan an: üstte kısa "Kopyalandı" bildirimi.
     @State private var copiedAt: Date?
+    /// Canlı metin en alttaki yeni satırı izliyor mu; kullanıcı yukarı kaydırınca durur, en alta dönünce sürer.
+    @State private var isFollowing: Bool = true
+    /// Kullanıcı parmağıyla kaydırıyor mu (metin büyüyünce alttan uzaklaşmak izlemeyi durdurmasın diye).
+    @State private var isUserScrolling: Bool = false
+    /// Kullanıcı yukarıdayken yeni metin geldi mi ("Yeni metin" düğmesi).
+    @State private var hasUnseenText: Bool = false
     /// Canlı çeviri (Ayarlar › Toplantı'daki gösterimle aynı ayar; ⋯ menüsünden de açılıp kapanır).
     @AppStorage(PhoneSettingsKey.displayMode) private var displayMode: String = DisplayMode.bilingual.rawValue
 
@@ -692,9 +698,48 @@ private struct LiveRecordingView: View {
                 }
             }
             .onAppear { proxy.scrollTo(bottomID, anchor: .bottom) }
-            .onChange(of: recorder.transcript) {
-                withAnimation(.easeOut(duration: 0.25)) { proxy.scrollTo(bottomID, anchor: .bottom) }
+            .onScrollPhaseChange { (_: ScrollPhase, phase: ScrollPhase) in
+                isUserScrolling = phase == .tracking || phase == .interacting || phase == .decelerating
             }
+            .onScrollGeometryChange(for: Bool.self) { (geometry: ScrollGeometry) -> Bool in
+                // Alta 60 pt'den yakınsa kullanıcı canlı metni izliyor sayılır (Mac'teki gibi).
+                geometry.contentOffset.y + geometry.containerSize.height >= geometry.contentSize.height - 60
+            } action: { (_: Bool, atBottom: Bool) in
+                if atBottom {
+                    isFollowing = true
+                    hasUnseenText = false
+                } else if isUserScrolling {
+                    // Yalnızca kullanıcı yukarı kaydırınca izleme durur; yeni metin içeriği büyütünce durmaz.
+                    isFollowing = false
+                }
+            }
+            .onChange(of: recorder.transcript) {
+                if isFollowing {
+                    withAnimation(.easeOut(duration: 0.25)) { proxy.scrollTo(bottomID, anchor: .bottom) }
+                } else {
+                    hasUnseenText = true
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if hasUnseenText {
+                    Button {
+                        isFollowing = true
+                        hasUnseenText = false
+                        withAnimation(.easeOut(duration: 0.25)) { proxy.scrollTo(bottomID, anchor: .bottom) }
+                    } label: {
+                        Label("Yeni metin", systemImage: "arrow.down")
+                            .appFont(size: 13, weight: .medium)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(Theme.primary, in: Capsule())
+                            .foregroundStyle(Theme.onPrimary)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.bottom, 10)
+                    .transition(.opacity)
+                }
+            }
+            .animation(.smooth(duration: 0.2), value: hasUnseenText)
         }
     }
 
