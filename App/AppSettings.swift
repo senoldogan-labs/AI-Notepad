@@ -65,6 +65,12 @@ enum SettingsKey {
     static let calendarEnabled: String = "calendar.enabled"
     static let meetingReminders: String = "calendar.reminders"
     static let micSuggestions: String = "calendar.micSuggestions"
+    /// Bildirimler (Ayarlar › Genel › Bildirimler; iPhone'la aynı adlar, bkz. `EngagementSettingKey`): not hazır, görev
+    /// günü, haftalık özet, kayıtsız hafta. Varsayılan açık.
+    static let notifyNoteReady: String = EngagementSettingKey.noteReady
+    static let notifyTaskDue: String = EngagementSettingKey.taskDue
+    static let notifyWeeklySummary: String = EngagementSettingKey.weeklySummary
+    static let notifyInactive: String = EngagementSettingKey.inactive
     /// Not hazır olunca webhook'a kendiliğinden gönder.
     static let webhookAutoSend: String = "integrations.webhookAutoSend"
     /// Sonucu belirsiz gönderimler ("toplantı|hedef"): sunucu yanıt vermedi, not gitmiş olabilir; kendiliğinden yeniden
@@ -341,6 +347,10 @@ func registerDefaultSettings() {
         SettingsKey.inPersonMode: false,
         SettingsKey.meetingReminders: true,
         SettingsKey.micSuggestions: true,
+        SettingsKey.notifyNoteReady: true,
+        SettingsKey.notifyTaskDue: true,
+        SettingsKey.notifyWeeklySummary: true,
+        SettingsKey.notifyInactive: true,
         // Sesle yazma baştan açık: kısayol (⌃⌥D) yalnızca basılınca mikrofonu açar.
         SettingsKey.voiceTypingEnabled: true,
         SettingsKey.webhookAutoSend: false,

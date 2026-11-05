@@ -150,7 +150,6 @@ import Testing
         #expect(parseDueDate(text: "perjantai", meetingDate: meeting, calendar: calendar, language: .turkish) == nil)
         #expect(parseDueDate(text: "5 Kasım", meetingDate: meeting, calendar: calendar, language: .turkish) == DateComponents(year: 2027, month: 11, day: 5))
         #expect(parseDueDate(text: "18 Aralık 2026'ya kadar", meetingDate: meeting, calendar: calendar, language: .turkish) == DateComponents(year: 2026, month: 12, day: 18))
-        #expect(parseDueDate(text: "Cuma", meetingDate: meeting, calendar: calendar, language: .turkish) == nil)
         #expect(parseDueDate(text: "31.2.2027", meetingDate: meeting, calendar: calendar, language: .turkish) == nil)
         // Ay adları notun dilinde okunur: İngilizce ay-gün, Fince çekimli ay adı.
         #expect(parseDueDate(text: "by November 5, 2027", meetingDate: meeting, calendar: calendar, language: .english) == DateComponents(year: 2027, month: 11, day: 5))
@@ -162,6 +161,31 @@ import Testing
         #expect(draft.title == "Esitys")
         #expect(draft.due == DateComponents(year: 2027, month: 1, day: 3))
         #expect(draft.notes.contains("Bütçe") && draft.notes.contains("Aino"))
+    }
+
+    // Gün adı ve "bugün/yarın" notun dilinde, toplantı gününe göre (15.12.2026 salı): gün adı o gün ya da sonraki ilk o
+    // gün, çekimli adlar önekten; başka dilin sözcüğü ve belirsiz ifadeler nil.
+    @Test func dueDatesResolveWeekdaysAndTomorrowInTheNoteLanguage() {
+        let meeting: Date = calendar.date(from: DateComponents(year: 2026, month: 12, day: 15, hour: 14))!
+        let due: (String, ShareLanguage) -> DateComponents? = { (text: String, language: ShareLanguage) -> DateComponents? in
+            parseDueDate(text: text, meetingDate: meeting, calendar: calendar, language: language)
+        }
+        #expect(due("Cuma", .turkish) == DateComponents(year: 2026, month: 12, day: 18))
+        #expect(due("Cumartesiye kadar", .turkish) == DateComponents(year: 2026, month: 12, day: 19))
+        #expect(due("Salı", .turkish) == DateComponents(year: 2026, month: 12, day: 15))
+        #expect(due("Pazartesi", .turkish) == DateComponents(year: 2026, month: 12, day: 21))
+        #expect(due("yarın", .turkish) == DateComponents(year: 2026, month: 12, day: 16))
+        #expect(due("perjantaihin mennessä", .finnish) == DateComponents(year: 2026, month: 12, day: 18))
+        #expect(due("huomenna", .finnish) == DateComponents(year: 2026, month: 12, day: 16))
+        #expect(due("tänään", .finnish) == DateComponents(year: 2026, month: 12, day: 15))
+        #expect(due("by Friday", .english) == DateComponents(year: 2026, month: 12, day: 18))
+        #expect(due("tomorrow", .english) == DateComponents(year: 2026, month: 12, day: 16))
+        #expect(due("perjantai", .turkish) == nil)
+        #expect(due("ensi viikolla", .finnish) == nil)
+        #expect(due("sonraki dönem", .turkish) == nil)
+        #expect(due("next sprint", .english) == nil)
+        // Açık tarih gün adından önce gelir.
+        #expect(due("perjantaihin 8.1.2027 mennessä", .finnish) == DateComponents(year: 2027, month: 1, day: 8))
     }
 }
 

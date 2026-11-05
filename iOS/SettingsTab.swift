@@ -3,8 +3,8 @@ import AINotepadUI
 import SwiftUI
 
 /// Ayarlar: hesap (giriş yapan kimlik, plan, kullanım, çıkış, hesap silme), görünüm, bağlantılar (kanallar, görev
-/// araçları), kayıt (rıza hatırlatması, ses saklama), takvim, toplantı dili ve ad, konuşmacılar (sesinden tanıma), not,
-/// Sor (web araması), beceriler (SKILL.md), gizlilik (anonim kullanım istatistikleri), sürüm ve tanılama.
+/// araçları), kayıt (rıza hatırlatması, ses saklama), takvim, bildirimler, toplantı dili ve ad, konuşmacılar (sesinden
+/// tanıma), not, Sor (web araması), beceriler (SKILL.md), gizlilik (anonim kullanım istatistikleri), sürüm ve tanılama.
 struct PhoneSettingsTab: View {
     let store: PhoneStore
     /// Sor: SKILL.md'den içe aktarılan beceriler onun tariflerine eklenir.
@@ -81,6 +81,7 @@ struct PhoneSettingsTab: View {
                     }
                 }
                 CalendarSettingsSection(calendar: calendar)
+                NotificationSettingsSection()
                 Section {
                     MenuPickerRow(title: "Ana toplantı dili", selection: $primaryLanguage, options: MeetingLanguage.allCases.map { (language: MeetingLanguage) -> MenuPickerOption<String> in
                         MenuPickerOption(value: language.rawValue, label: Text(languageName(language: language)))
@@ -295,6 +296,51 @@ private struct CalendarSettingsSection: View {
             Text("Takvim")
         } footer: {
             Text("Sıradaki toplantılar Kayıt'ta görünür; kayıt toplantının adını ve kişilerini alır.")
+        }
+    }
+}
+
+/// Bildirimler: not hazır, görev günü, haftalık özet ve kayıtsız hafta (her biri varsayılan açık). Açılan anahtar
+/// bildirim iznini (sorulmadıysa) sorar, kapanan anahtar o türün bekleyen bildirimlerini hemen kaldırır. İzin yoksa
+/// nedeni ve iPhone Ayarları'ndaki bildirim sayfasını açan düğme görünür.
+private struct NotificationSettingsSection: View {
+    @AppStorage(PhoneSettingsKey.notifyNoteReady) private var noteReady: Bool = true
+    @AppStorage(PhoneSettingsKey.notifyTaskDue) private var taskDue: Bool = true
+    @AppStorage(PhoneSettingsKey.notifyWeeklySummary) private var weeklySummary: Bool = true
+    @AppStorage(PhoneSettingsKey.notifyInactive) private var inactive: Bool = true
+    @Environment(\.openURL) private var openURL: OpenURLAction
+    private let notifier: EngagementNotifier = .shared
+
+    var body: some View {
+        Section {
+            if notifier.authorization == .denied {
+                VStack(alignment: .leading, spacing: 8) {
+                    Label(notificationMessage(error: NotificationError.denied), systemImage: "bell.slash")
+                        .foregroundStyle(.orange)
+                    if let url = URL(string: UIApplication.openNotificationSettingsURLString) {
+                        Button("Ayarlar'ı aç") { openURL(url) }
+                    }
+                }
+            }
+            toggle(title: "Not hazır olunca bildir", help: "Uygulama kapalıyken not hazırlanınca; toplantıyı açar.", isOn: $noteReady, kind: .noteReady)
+            toggle(title: "Görevin günü gelince hatırlat", help: "O gün 09:00'da; \"Tamamlandı\" ile işaretlenir.", isOn: $taskDue, kind: .taskDue)
+            toggle(title: "Haftalık özet", help: "Pazartesi 09:00'da açık görevler ve toplantı sayısı.", isOn: $weeklySummary, kind: .weeklySummary)
+            toggle(title: "Bir hafta kayıt yoksa hatırlat", help: "Son kayıttan 7 gün sonra 10:00'da bir kez.", isOn: $inactive, kind: .inactive)
+        } header: {
+            Text("Bildirimler")
+        } footer: {
+            Text("Kilit ekranında görünebilir: yalnız toplantı adı, sayılar ve görev metni; konuşma metni yok.")
+        }
+        .task { await notifier.refreshAuthorization() }
+    }
+
+    private func toggle(title: LocalizedStringKey, help: LocalizedStringKey, isOn: Binding<Bool>, kind: EngagementKind) -> some View {
+        Toggle(isOn: isOn) {
+            Text(title)
+            Text(help)
+        }
+        .onChange(of: isOn.wrappedValue) { (_: Bool, enabled: Bool) in
+            Task { await notifier.settingChanged(kind: kind, enabled: enabled) }
         }
     }
 }

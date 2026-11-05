@@ -416,6 +416,7 @@ private struct GeneralSettings: View {
                 Toggle("Görüşme bitince kaydı bitir", isOn: $stopWhenCallEnds)
                     .settingsToggle()
             }
+            NotificationSettingsGroup()
             SettingsRow(title: Text("Not şablonu")) {
                 Text("Yeni toplantıların notu bu türe göre yazılır; bir toplantının notunu sonradan başka şablonla yeniden yazabilirsin (⋯ menüsü).")
             } control: {

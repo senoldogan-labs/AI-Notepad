@@ -39,10 +39,11 @@ final class MeetingNotifier {
 
     init() {
         let start: UNNotificationAction = UNNotificationAction(identifier: MeetingNotificationID.startAction, title: String(localized: "Dinlemeye başla"), options: [.foreground])
-        let common: Set<UNNotificationCategory> = [
+        // Kategoriler tek seferde bütünüyle kurulur: hatırlatma ve görev bildirimlerininkiler de (bkz. `EngagementNotifier`).
+        let common: Set<UNNotificationCategory> = engagementNotificationCategories().union([
             UNNotificationCategory(identifier: MeetingNotificationID.category, actions: [start], intentIdentifiers: []),
             UNNotificationCategory(identifier: MeetingNotificationID.autoFailedCategory, actions: [], intentIdentifiers: []),
-        ]
+        ])
         #if os(macOS)
         let keep: UNNotificationAction = UNNotificationAction(identifier: MeetingNotificationID.keepRecordingAction, title: keepRecordingTitle(), options: [])
         let stop: UNNotificationAction = UNNotificationAction(identifier: MeetingNotificationID.stopRecordingAction, title: String(localized: "Şimdi bitir"), options: [])

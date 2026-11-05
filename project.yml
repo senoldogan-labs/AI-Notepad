@@ -222,6 +222,8 @@ targets:
       # Takvim bağlantısı (EventKit) ve toplantı hatırlatma bildirimleri Mac'le aynı.
       - path: App/EventKitConnector.swift
       - path: App/MeetingNotifier.swift
+      # Not hazır, görev günü, haftalık özet ve kayıtsız hafta bildirimleri de Mac'le aynı.
+      - path: App/EngagementNotifier.swift
       # Görünen ad (metinlerdeki ürün adı) Mac'le aynı yoldan okunur; iPhone'da "Gistsmith".
       - path: App/AppName.swift
       # Abonelik hesabı (giriş, hak durumu, toplantı oturumu, cihaz doğrulaması), sunucu bağlantı noktaları ve telemetri

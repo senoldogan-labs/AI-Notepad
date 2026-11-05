@@ -3508,6 +3508,76 @@
         }
       }
     },
+    "%@ notu hazır": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notizen fertig: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes ready: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notas listas: %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muistiinpanot valmiina: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes prêtes : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note pronte: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@のノートができました"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 노트 준비 완료"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notities klaar: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notas prontas: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 的笔记已就绪"
+          }
+        }
+      }
+    },
     "%@ oturumunun süresi doldu. Ayarlar › Bağlantılar'dan yeniden bağlan.": {
       "localizations": {
         "de": {
@@ -21678,6 +21748,76 @@
         }
       }
     },
+    "Bildirimler kilit ekranında da görünebilir: yalnız toplantı adı, sayılar ve görev metni yazar; konuşma metni ve özet yazmaz.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mitteilungen können auch auf dem Sperrbildschirm erscheinen: Sie zeigen nur Meeting-Titel, Anzahlen und Aufgabentext, nie das Transkript oder die Zusammenfassung."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notifications can also appear on the lock screen: they show only meeting titles, counts and task text, never the transcript or summary."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las notificaciones también pueden aparecer en la pantalla bloqueada: solo muestran títulos de reuniones, recuentos y el texto de las tareas, nunca la transcripción ni el resumen."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ilmoitukset voivat näkyä myös lukitusnäytöllä: niissä näkyy vain kokouksen nimi, lukumäärät ja tehtävän teksti, ei koskaan litterointia tai yhteenvetoa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les notifications peuvent aussi apparaître sur l’écran verrouillé : elles n’affichent que les titres de réunion, des nombres et le texte des tâches, jamais la transcription ni le résumé."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le notifiche possono comparire anche sulla schermata di blocco: mostrano solo titoli delle riunioni, conteggi e testo delle attività, mai la trascrizione o il riepilogo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通知はロック画面にも表示されることがあります。表示されるのは会議名、件数、タスクの内容だけで、文字起こしや要約は表示されません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "알림은 잠금 화면에도 표시될 수 있습니다. 회의 제목, 개수, 할 일 내용만 표시되며 녹취록이나 요약은 표시되지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meldingen kunnen ook op het toegangsscherm verschijnen: ze tonen alleen vergadertitels, aantallen en taaktekst, nooit het transcript of de samenvatting."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As notificações também podem aparecer na tela bloqueada: mostram apenas títulos de reuniões, contagens e o texto das tarefas, nunca a transcrição nem o resumo."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通知也可能显示在锁定屏幕上：仅显示会议标题、数量和任务内容，绝不显示文字稿或摘要。"
+          }
+        }
+      }
+    },
     "Bilgilerini göster": {
       "localizations": {
         "de": {
@@ -22099,6 +22239,76 @@
         }
       }
     },
+    "Bir hafta kayıt yoksa hatırlat": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nach einer Woche ohne Aufnahme erinnern"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remind me after a week without recordings"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recordarme tras una semana sin grabaciones"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muistuta, jos viikkoon ei ole nauhoitettu"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Me rappeler après une semaine sans enregistrement"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avvisami dopo una settimana senza registrazioni"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1週間録音がなければ通知"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "일주일간 녹음이 없으면 알림"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Herinner me na een week zonder opnames"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lembrar-me após uma semana sem gravações"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一周没有录制时提醒我"
+          }
+        }
+      }
+    },
     "Bir kısayol uzağında": {
       "localizations": {
         "de": {
@@ -22165,6 +22375,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "一个快捷键即可"
+          }
+        }
+      }
+    },
+    "Bir sonraki toplantını kaydetmeyi unutma": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vergiss nicht, dein nächstes Meeting aufzunehmen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Don't forget to record your next meeting"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No olvides grabar tu próxima reunión"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muista nauhoittaa seuraava kokouksesi"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "N’oubliez pas d’enregistrer votre prochaine réunion"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non dimenticare di registrare la prossima riunione"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "次の会議の録音をお忘れなく"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다음 회의 녹음을 잊지 마세요"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vergeet je volgende vergadering niet op te nemen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não se esqueça de gravar sua próxima reunião"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "别忘了录制你的下一场会议"
           }
         }
       }
@@ -23987,6 +24267,208 @@
           "stringUnit": {
             "state": "translated",
             "value": "简报：%@"
+          }
+        }
+      }
+    },
+    "Bu hafta: %lld açık görev": {
+      "localizations": {
+        "de": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Diese Woche: %lld offene Aufgabe"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Diese Woche: %lld offene Aufgaben"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "This week: %lld open task"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "This week: %lld open tasks"
+                }
+              }
+            }
+          }
+        },
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Esta semana: %lld tarea pendiente"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Esta semana: %lld tareas pendientes"
+                }
+              }
+            }
+          }
+        },
+        "fi": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Tällä viikolla: %lld avoin tehtävä"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Tällä viikolla: %lld avointa tehtävää"
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Cette semaine : %lld tâche ouverte"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Cette semaine : %lld tâches ouvertes"
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Questa settimana: %lld attività aperta"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Questa settimana: %lld attività aperte"
+                }
+              }
+            }
+          }
+        },
+        "ja": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "今週：未完了のタスク%lld件"
+                }
+              }
+            }
+          }
+        },
+        "ko": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "이번 주: 남은 할 일 %lld개"
+                }
+              }
+            }
+          }
+        },
+        "nl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Deze week: %lld open taak"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Deze week: %lld open taken"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Esta semana: %lld tarefa em aberto"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Esta semana: %lld tarefas em aberto"
+                }
+              }
+            }
+          }
+        },
+        "tr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Bu hafta: %lld açık görev"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Bu hafta: %lld açık görev"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "本周：%lld 个未完成任务"
+                }
+              }
+            }
           }
         }
       }
@@ -30473,6 +30955,76 @@
         }
       }
     },
+    "Bugün %@: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Heute um %@: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Today at %@: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hoy a las %@: %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tänään klo %@: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aujourd’hui à %@ : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oggi alle %@: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日 %@：%@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "오늘 %@: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vandaag om %@: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hoje às %@: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今天 %@：%@"
+          }
+        }
+      }
+    },
     "Bugün başlatılabilecek toplantı sayısına ulaştın; yarın yeniden dene.": {
       "extractionState": "manual",
       "localizations": {
@@ -30821,6 +31373,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "今天发送的报告过多；请明天再试。"
+          }
+        }
+      }
+    },
+    "Bugün: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Heute: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Today: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hoy: %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tänään: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aujourd’hui : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oggi: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日：%@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "오늘: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vandaag: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hoje: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今天：%@"
           }
         }
       }
@@ -43882,6 +44504,76 @@
         }
       }
     },
+    "Geçen hafta: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Letzte Woche: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last week: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La semana pasada: %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viime viikolla: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La semaine dernière : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La settimana scorsa: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先週：%@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지난주: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorige week: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Semana passada: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上周：%@"
+          }
+        }
+      }
+    },
     "GEÇMİŞ": {
       "localizations": {
         "de": {
@@ -45708,6 +46400,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "石墨色"
+          }
+        }
+      }
+    },
+    "Görevin günü gelince hatırlat": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Am Fälligkeitstag einer Aufgabe erinnern"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remind me on a task's due day"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recordarme el día de vencimiento de una tarea"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muistuta tehtävän määräpäivänä"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Me rappeler le jour d’échéance d’une tâche"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avvisami il giorno di scadenza di un’attività"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タスクの期限日に通知"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "할 일 마감일에 알림"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Herinner me op de vervaldag van een taak"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lembrar-me no dia do prazo de uma tarefa"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在任务到期当天提醒我"
           }
         }
       }
@@ -48021,6 +48783,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "将打开一个安全的登录页面；你的密码由 Apple 或 Google 保管。"
+          }
+        }
+      }
+    },
+    "Haftalık özet": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wochenübersicht"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weekly summary"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resumen semanal"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viikkokooste"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Résumé de la semaine"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riepilogo settimanale"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "週間まとめ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "주간 요약"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weekoverzicht"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resumo semanal"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每周摘要"
           }
         }
       }
@@ -52309,6 +53141,76 @@
         }
       }
     },
+    "Kilit ekranında görünebilir: yalnız toplantı adı, sayılar ve görev metni; konuşma metni yok.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kann auf dem Sperrbildschirm erscheinen: nur Meeting-Titel, Anzahlen und Aufgabentext, nie das Transkript."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "May appear on the lock screen: only meeting titles, counts and task text, never the transcript."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puede aparecer en la pantalla bloqueada: solo títulos de reuniones, recuentos y texto de tareas, nunca la transcripción."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voi näkyä lukitusnäytöllä: vain kokouksen nimi, lukumäärät ja tehtävän teksti, ei koskaan litterointia."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peut apparaître sur l’écran verrouillé : seulement les titres de réunion, des nombres et le texte des tâches, jamais la transcription."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Può comparire sulla schermata di blocco: solo titoli delle riunioni, conteggi e testo delle attività, mai la trascrizione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ロック画面に表示されることがあります：会議名、件数、タスクの内容のみで、文字起こしは表示されません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "잠금 화면에 표시될 수 있습니다: 회의 제목, 개수, 할 일 내용만 표시되며 녹취록은 표시되지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kan op het toegangsscherm verschijnen: alleen vergadertitels, aantallen en taaktekst, nooit het transcript."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pode aparecer na tela bloqueada: apenas títulos de reuniões, contagens e texto das tarefas, nunca a transcrição."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可能显示在锁定屏幕上：仅显示会议标题、数量和任务内容，绝不显示文字稿。"
+          }
+        }
+      }
+    },
     "Kişi": {
       "localizations": {
         "de": {
@@ -53009,6 +53911,146 @@
         }
       }
     },
+    "Not hazır olunca bildir": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Benachrichtigen, wenn Notizen fertig sind"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notify when notes are ready"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avisarme cuando las notas estén listas"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ilmoita, kun muistiinpanot ovat valmiina"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Me prévenir quand les notes sont prêtes"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avvisami quando le note sono pronte"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートができたら通知"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "노트가 준비되면 알림"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Melden als notities klaar zijn"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avisar quando as notas estiverem prontas"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "笔记就绪时通知我"
+          }
+        }
+      }
+    },
+    "O gün 09:00'da; \"Tamamlandı\" ile işaretlenir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Um 09:00 an dem Tag; „Erledigt“ hakt sie ab."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "At 09:00 that day; \"Done\" checks it off."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A las 09:00 ese día; «Hecho» la marca."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sinä päivänä klo 09:00; ”Valmis” merkitsee sen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "À 09:00 ce jour-là ; « Terminé » la coche."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle 09:00 di quel giorno; «Fatto» la segna."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "その日の09:00に。「完了」でチェックできます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "그날 09:00에. '완료'로 체크합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Om 09:00 die dag; ‘Klaar’ vinkt hem af."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Às 09:00 nesse dia; “Concluído” a marca."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当天 09:00；“完成”即可勾选。"
+          }
+        }
+      }
+    },
     "Otomatik gönderim açık yerlere, açtıktan sonra biten toplantıların notu hazır olunca gider; eski notlar toplantının ⋯ menüsünden elle gönderilir.": {
       "localizations": {
         "de": {
@@ -53075,6 +54117,146 @@
           "stringUnit": {
             "state": "translated",
             "value": "已打开自动发送的位置会在笔记准备好后立即收到打开之后结束的会议的笔记；更早的笔记请从会议的 ⋯ 菜单发送。"
+          }
+        }
+      }
+    },
+    "Pazartesi 09:00'da açık görevler ve toplantı sayısı.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Montags um 09:00: offene Aufgaben und Zahl der Meetings."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mondays at 09:00: open tasks and meeting count."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los lunes a las 09:00: tareas pendientes y número de reuniones."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maanantaisin klo 09:00: avoimet tehtävät ja kokousten määrä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le lundi à 09:00 : tâches ouvertes et nombre de réunions."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il lunedì alle 09:00: attività aperte e numero di riunioni."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "毎週月曜09:00に未完了のタスクと会議数。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "매주 월요일 09:00: 남은 할 일과 회의 수."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maandag om 09:00: open taken en aantal vergaderingen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Às segundas às 09:00: tarefas em aberto e número de reuniões."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每周一 09:00：未完成任务和会议数。"
+          }
+        }
+      }
+    },
+    "Pazartesi saat 09:00'da açık görev sayın, ilk üç açık görev ve geçen haftanın toplantı sayısı. Açık görev ve toplantı yoksa gelmez. Tıklayınca Görevler açılır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jeden Montag um 09:00: wie viele offene Aufgaben du hast, die ersten drei und die Zahl der Meetings der letzten Woche. Ohne offene Aufgaben und Meetings kommt nichts. Ein Klick öffnet die Aufgaben."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Every Monday at 09:00: how many open tasks you have, the first three, and last week's meeting count. Not sent when there are no open tasks or meetings. Clicking opens Tasks."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada lunes a las 09:00: cuántas tareas pendientes tienes, las tres primeras y cuántas reuniones hubo la semana pasada. No llega si no hay tareas pendientes ni reuniones. Al hacer clic se abren las Tareas."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Joka maanantai klo 09:00: avointen tehtäviesi määrä, kolme ensimmäistä ja viime viikon kokousten määrä. Ei tule, jos avoimia tehtäviä tai kokouksia ei ole. Napsautus avaa Tehtävät."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chaque lundi à 09:00 : le nombre de vos tâches ouvertes, les trois premières et le nombre de réunions de la semaine dernière. Rien n’est envoyé s’il n’y a ni tâche ouverte ni réunion. Un clic ouvre les Tâches."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ogni lunedì alle 09:00: quante attività aperte hai, le prime tre e il numero di riunioni della settimana scorsa. Non arriva se non ci sono attività aperte né riunioni. Facendo clic si apre Attività."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "毎週月曜09:00に、未完了のタスク数と最初の3件、先週の会議数をお知らせします。未完了のタスクも会議もなければ通知しません。クリックするとタスクが開きます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "매주 월요일 09:00에 남은 할 일 개수와 처음 세 개, 지난주 회의 수를 알려 줍니다. 남은 할 일도 회의도 없으면 알리지 않습니다. 클릭하면 할 일이 열립니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elke maandag om 09:00: hoeveel open taken je hebt, de eerste drie en het aantal vergaderingen van vorige week. Zonder open taken en vergaderingen komt er niets. Klik om Taken te openen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toda segunda-feira às 09:00: quantas tarefas em aberto você tem, as três primeiras e quantas reuniões houve na semana passada. Não é enviado se não houver tarefas em aberto nem reuniões. Clicar abre Tarefas."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每周一 09:00：未完成任务的数量、前三个任务以及上周的会议数。若没有未完成任务也没有会议，则不发送。点击打开“任务”。"
           }
         }
       }
@@ -53277,6 +54459,76 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "Sana düşen açık bir görevin notta günü yazıyorsa (tarih, gün adı ya da \"yarın\") o gün saat 09:00'da bildirim gelir. \"Tamamlandı\" görevi uygulamayı açmadan işaretler; tıklayınca toplantı açılır. Belirsiz günler (\"gelecek hafta\") hatırlatılmaz.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Steht in den Notizen ein Tag für eine deiner offenen Aufgaben (ein Datum, ein Wochentag oder „morgen“), kommt an diesem Tag um 09:00 eine Mitteilung. „Erledigt“ hakt die Aufgabe ab, ohne die App zu öffnen; ein Klick öffnet das Meeting. Vage Angaben („nächste Woche“) werden nicht erinnert."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If the notes give a day for one of your open tasks (a date, a weekday or \"tomorrow\"), you get a notification at 09:00 that day. \"Done\" checks the task off without opening the app; clicking opens the meeting. Vague days (\"next week\") get no reminder."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si las notas indican un día para una de tus tareas pendientes (una fecha, un día de la semana o «mañana»), recibirás una notificación ese día a las 09:00. «Hecho» marca la tarea sin abrir la app; al hacer clic se abre la reunión. Los días imprecisos («la semana que viene») no se recuerdan."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jos muistiinpanoissa on päivä jollekin avoimelle tehtävällesi (päivämäärä, viikonpäivä tai ”huomenna”), saat ilmoituksen sinä päivänä klo 09:00. ”Valmis” merkitsee tehtävän avaamatta sovellusta; napsautus avaa kokouksen. Epämääräisistä päivistä (”ensi viikolla”) ei muistuteta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si les notes indiquent un jour pour l’une de vos tâches ouvertes (une date, un jour de la semaine ou « demain »), une notification arrive ce jour-là à 09:00. « Terminé » coche la tâche sans ouvrir l’app ; un clic ouvre la réunion. Les jours vagues (« la semaine prochaine ») ne donnent pas lieu à un rappel."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se le note indicano un giorno per una delle tue attività aperte (una data, un giorno della settimana o «domani»), quel giorno alle 09:00 arriva una notifica. «Fatto» segna l’attività senza aprire l’app; facendo clic si apre la riunione. I giorni vaghi («la prossima settimana») non vengono ricordati."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未完了のタスクにノートで日付（日付、曜日、「明日」など）が書かれていれば、その日の09:00に通知します。「完了」を押すとアプリを開かずにチェックされ、クリックすると会議が開きます。あいまいな日付（「来週」など）は通知しません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "노트에 내 미완료 할 일의 날짜(날짜, 요일 또는 '내일')가 적혀 있으면 그날 09:00에 알려 줍니다. '완료'를 누르면 앱을 열지 않고 체크되며, 클릭하면 회의가 열립니다. 막연한 날짜('다음 주')는 알리지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Staat er in de notities een dag bij een van je open taken (een datum, een weekdag of ‘morgen’), dan krijg je die dag om 09:00 een melding. ‘Klaar’ vinkt de taak af zonder de app te openen; klik om de vergadering te openen. Vage dagen (‘volgende week’) krijgen geen herinnering."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se as notas indicarem um dia para uma das suas tarefas em aberto (uma data, um dia da semana ou “amanhã”), você recebe uma notificação nesse dia às 09:00. “Concluído” marca a tarefa sem abrir o app; clicar abre a reunião. Dias vagos (“semana que vem”) não geram lembrete."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如果笔记为你的未完成任务写明了日期（具体日期、星期几或“明天”），会在当天 09:00 通知你。“完成”可在不打开应用的情况下勾选任务；点击则打开会议。模糊的日期（如“下周”）不会提醒。"
           }
         }
       }
@@ -54225,6 +55477,286 @@
           "stringUnit": {
             "state": "translated",
             "value": "最近出现"
+          }
+        }
+      }
+    },
+    "Son kaydının üzerinden bir hafta geçti; toplantı başlarken kayda başlaman yeterli.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine letzte Aufnahme ist eine Woche her; starte einfach die Aufnahme, wenn dein Meeting beginnt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It's been a week since your last recording; just start recording when your meeting begins."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ha pasado una semana desde tu última grabación; solo tienes que empezar a grabar cuando empiece la reunión."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viimeisestä nauhoituksestasi on viikko; aloita vain nauhoitus, kun kokous alkaa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre dernier enregistrement date d’une semaine ; lancez simplement l’enregistrement au début de votre réunion."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "È passata una settimana dalla tua ultima registrazione; avvia la registrazione quando inizia la riunione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前回の録音から1週間が経ちました。会議が始まったら録音を開始するだけです。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "마지막 녹음 후 일주일이 지났습니다. 회의가 시작되면 녹음만 시작하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je laatste opname is een week geleden; start gewoon de opname als je vergadering begint."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Já faz uma semana desde sua última gravação; basta começar a gravar quando a reunião começar."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "距你上次录制已过去一周；会议开始时开始录制即可。"
+          }
+        }
+      }
+    },
+    "Son kayıttan 7 gün sonra 10:00'da bir kez.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einmal, um 10:00 sieben Tage nach der letzten Aufnahme."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Once, at 10:00 seven days after your last recording."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una vez, a las 10:00 siete días después de la última grabación."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kerran, klo 10:00 seitsemän päivää viimeisestä nauhoituksesta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une fois, à 10:00 sept jours après le dernier enregistrement."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una volta, alle 10:00 sette giorni dopo l’ultima registrazione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最後の録音から7日後の10:00に一度だけ。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "마지막 녹음 7일 후 10:00에 한 번."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eén keer, om 10:00 zeven dagen na de laatste opname."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uma vez, às 10:00 sete dias após a última gravação."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上次录制 7 天后的 10:00 提醒一次。"
+          }
+        }
+      }
+    },
+    "Son kayıttan 7 gün sonra saat 10:00'da bir kez, bir sonraki toplantını kaydetmeyi hatırlatır; takvim açıksa o günün toplantısı yazar. Yeni bir kayıtla yeniden kurulur.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einmal, um 10:00 sieben Tage nach deiner letzten Aufnahme, eine Erinnerung, dein nächstes Meeting aufzunehmen; ist der Kalender an, nennt sie das Meeting des Tages. Eine neue Aufnahme setzt sie zurück."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Once, at 10:00 seven days after your last recording, a reminder to record your next meeting; with the calendar on, it names that day's meeting. A new recording resets it."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una sola vez, a las 10:00 siete días después de tu última grabación, un recordatorio para grabar tu próxima reunión; con el calendario activado, indica la reunión de ese día. Una nueva grabación lo reinicia."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kerran, klo 10:00 seitsemän päivää viimeisestä nauhoituksesta, muistutus nauhoittaa seuraava kokous; jos kalenteri on käytössä, siinä mainitaan päivän kokous. Uusi nauhoitus nollaa sen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une seule fois, à 10:00 sept jours après votre dernier enregistrement, un rappel pour enregistrer votre prochaine réunion ; si le calendrier est activé, il indique la réunion du jour. Un nouvel enregistrement le réinitialise."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una sola volta, alle 10:00 sette giorni dopo l’ultima registrazione, un promemoria per registrare la prossima riunione; con il calendario attivo indica la riunione di quel giorno. Una nuova registrazione lo reimposta."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最後の録音から7日後の10:00に一度だけ、次の会議を録音するよう通知します。カレンダーがオンならその日の会議名も表示します。新しく録音するとリセットされます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "마지막 녹음 7일 후 10:00에 한 번, 다음 회의를 녹음하라고 알려 줍니다. 캘린더가 켜져 있으면 그날 회의를 함께 표시합니다. 새로 녹음하면 다시 설정됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eén keer, om 10:00 zeven dagen na je laatste opname, een herinnering om je volgende vergadering op te nemen; staat de agenda aan, dan noemt hij de vergadering van die dag. Een nieuwe opname zet hem opnieuw."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uma única vez, às 10:00 sete dias após sua última gravação, um lembrete para gravar sua próxima reunião; com o calendário ativado, ele mostra a reunião daquele dia. Uma nova gravação o reinicia."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在你上次录制 7 天后的 10:00 提醒一次，提醒你录制下一场会议；如果开启了日历，会写出当天的会议。新的录制会重新计时。"
+          }
+        }
+      }
+    },
+    "Tamamlandı": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erledigt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hecho"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valmis"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminé"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fatto"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完了"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "완료"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klaar"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Concluído"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完成"
           }
         }
       }
@@ -56342,6 +57874,76 @@
         }
       }
     },
+    "Toplantının notu hazırlanınca, uygulama öndeyken değilse bildirim gelir: başlık, sana düşen görev ve karar sayısı. Tıklayınca toplantı açılır. Not hazırlanamadıysa bildirim gelmez.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sind die Notizen eines Meetings fertig, während die App nicht im Vordergrund ist, zeigt eine Mitteilung den Titel, die Zahl deiner Aufgaben und der Entscheidungen. Ein Klick öffnet das Meeting. Konnten die Notizen nicht erstellt werden, kommt keine Mitteilung."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When a meeting's notes are ready while the app isn't in front, a notification shows the title, your task count and the decision count. Clicking it opens the meeting. If the notes couldn't be prepared, no notification is sent."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuando las notas de una reunión están listas y la app no está en primer plano, una notificación muestra el título, cuántas tareas son tuyas y cuántas decisiones hay. Al hacer clic se abre la reunión. Si no se pudieron preparar las notas, no llega ninguna notificación."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kun kokouksen muistiinpanot valmistuvat eikä sovellus ole edessä, ilmoitus näyttää otsikon sekä sinun tehtäviesi ja päätösten määrän. Napsautus avaa kokouksen. Jos muistiinpanoja ei voitu tehdä, ilmoitusta ei tule."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quand les notes d’une réunion sont prêtes alors que l’app n’est pas au premier plan, une notification affiche le titre, le nombre de vos tâches et de décisions. Un clic ouvre la réunion. Si les notes n’ont pas pu être préparées, aucune notification n’est envoyée."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando le note di una riunione sono pronte e l’app non è in primo piano, una notifica mostra il titolo, il numero delle tue attività e delle decisioni. Facendo clic si apre la riunione. Se non è stato possibile preparare le note, non arriva alcuna notifica."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリが前面にないときに会議のノートができると、タイトルとあなたのタスク数・決定事項の数が通知されます。クリックすると会議が開きます。ノートを作成できなかった場合は通知されません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "앱이 앞에 있지 않을 때 회의 노트가 준비되면 제목과 내 할 일 개수, 결정 사항 개수를 알려 줍니다. 클릭하면 회의가 열립니다. 노트를 준비하지 못한 경우에는 알리지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als de notities van een vergadering klaar zijn terwijl de app niet op de voorgrond staat, toont een melding de titel, het aantal taken voor jou en het aantal besluiten. Klik om de vergadering te openen. Konden de notities niet worden gemaakt, dan komt er geen melding."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando as notas de uma reunião ficam prontas e o app não está em primeiro plano, uma notificação mostra o título, quantas tarefas são suas e quantas decisões há. Clicar abre a reunião. Se as notas não puderem ser preparadas, nenhuma notificação é enviada."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当应用不在前台而会议笔记已就绪时，通知会显示标题、你的任务数和决策数。点击即可打开会议。若笔记未能生成，则不会通知。"
+          }
+        }
+      }
+    },
     "Tümünü aç": {
       "localizations": {
         "de": {
@@ -56478,6 +58080,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "全部收起"
+          }
+        }
+      }
+    },
+    "Uygulama kapalıyken not hazırlanınca; toplantıyı açar.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wenn Notizen fertig sind, während die App geschlossen ist; öffnet das Meeting."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When notes are ready while the app is closed; opens the meeting."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuando las notas están listas con la app cerrada; abre la reunión."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kun muistiinpanot valmistuvat sovelluksen ollessa kiinni; avaa kokouksen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quand les notes sont prêtes et que l’app est fermée ; ouvre la réunion."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando le note sono pronte ad app chiusa; apre la riunione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリを閉じている間にノートができたとき。会議を開きます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "앱이 닫혀 있을 때 노트가 준비되면. 회의를 엽니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als notities klaar zijn terwijl de app dicht is; opent de vergadering."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando as notas ficam prontas com o app fechado; abre a reunião."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用关闭时笔记就绪即通知；点按打开会议。"
           }
         }
       }
@@ -112345,6 +114017,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "摘要"
+          }
+        }
+      }
+    },
+    "Özet ve görevler hazır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zusammenfassung und Aufgaben sind fertig."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Summary and tasks are ready."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El resumen y las tareas están listos."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yhteenveto ja tehtävät ovat valmiina."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le résumé et les tâches sont prêts."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riepilogo e attività sono pronti."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要約とタスクができました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "요약과 할 일이 준비되었습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Samenvatting en taken staan klaar."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O resumo e as tarefas estão prontos."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "摘要和任务已就绪。"
           }
         }
       }

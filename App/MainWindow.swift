@@ -109,6 +109,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     @MainActor static var onOpenHomeFromNotification: (@MainActor () -> Void)?
     /// "Görüşme bitti gibi" bildiriminin yanıtı (eylem kimliği: devam, bitir ya da bildirime tıklama); açılışta bağlanır.
     @MainActor static var onCallEndedResponse: (@MainActor (String) -> Void)?
+    /// Not hazır, görev günü, haftalık özet ve kayıtsız hafta bildirimlerinin yanıtı (bkz. `engagementRoute`); açılışta
+    /// bağlanır.
+    @MainActor static var onEngagementResponse: (@MainActor (EngagementRoute) -> Void)?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         UNUserNotificationCenter.current().delegate = self
@@ -127,7 +130,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             let action: String = response.actionIdentifier
             await MainActor.run { AppDelegate.onCallEndedResponse?(action) }
         default:
-            return
+            guard let route = engagementRoute(response: response) else {
+                return
+            }
+            await MainActor.run { AppDelegate.onEngagementResponse?(route) }
         }
     }
 
