@@ -1,6 +1,8 @@
-/* Ürün sitesi: yön C (ElevenLabs benzeri). Beyaz zemin, neredeyse siyah mürekkep, bol boşluk, Inter;
-   durgun pastel film gradyanları (bulutlar, ince gren, yumuşak ışık). Gradyanlar asla hareket etmez; yalnızca içerik
-   belirirken saydamlık ve kayma kullanılır, "hareketi azalt" açıksa hiç kullanılmaz. */
+/* Product site: "Nordic dusk" (docs/superpowers/specs/2026-11-05-site-design-language.md). White paper, deep lake ink,
+   Newsreader for headings at one regular weight (hierarchy by size), Inter for text and UI; photographs of Finnish
+   lakes and forests graded in CSS (`.photo`) with app windows over them; pastel film covers for blog covers and small
+   cards. Nothing blurred or filtered ever animates; content only fades and slides in, and not at all under
+   "reduce motion". */
 
 @font-face {
   font-family: "Inter";
@@ -10,36 +12,73 @@
   font-display: swap;
 }
 
-/* Renkler uygulamanın ThemeColorSet.light / .dark takımlarıdır (Theme.swift). Tema `<html data-theme>` ile seçilir
-   (public/theme.js: kullanıcının seçimi ya da sistem tercihi); betik yoksa `color-scheme` sistemi izler. Her renk
-   `light-dark()` ile tek yerde iki temalı tanımlanır. */
+/* Newsreader (Production Type, SIL OFL 1.1): one static display cut (weight 400, optical size 48), subset by
+   scripts/subset-serif.sh. Headings only. */
+@font-face {
+  font-family: "Newsreader";
+  src: url("/fonts/Newsreader-display-latin.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Metric-matched stand-in while Newsreader loads, so headings do not jump when it swaps in. */
+@font-face {
+  font-family: "Newsreader Fallback";
+  src: local("Georgia"), local("Times New Roman");
+  size-adjust: 92%;
+  ascent-override: 98%;
+  descent-override: 26%;
+  line-gap-override: 0%;
+}
+
+/* Every colour is defined once with `light-dark()`; the theme is chosen by `<html data-theme>` (public/theme.js: the
+   visitor's choice or the system preference); without the script `color-scheme` follows the system. */
 :root {
   color-scheme: light dark;
-  --bg: light-dark(#fdfcfc, #0a0a0a);
-  --card: light-dark(#ffffff, #141414);
-  --line: light-dark(#e5e5e5, #262626);
-  --soft: light-dark(#f5f5f5, #1c1c1c);
-  --selected: light-dark(#efeeed, #232323);
-  --ink: light-dark(#0a0a0a, #fafafa);
-  --muted: light-dark(#5f5f5f, #a3a3a3);
-  --primary: light-dark(#171717, #fafafa);
-  --on-primary: light-dark(#fafafa, #0a0a0a);
-  --focus: light-dark(#3b5bdb, #8ea3e6);
+  --bg: light-dark(#fbfbfa, #0b1015);
+  --card: light-dark(#ffffff, #11181f);
+  --line: light-dark(#dfe4e6, #24313b);
+  --soft: light-dark(#eff2f2, #16202a);
+  --selected: light-dark(#e6ebec, #1d2933);
+  --ink: light-dark(#0f1a22, #eef2f4);
+  --muted: light-dark(#4d5b64, #a2b2bd);
+  --primary: light-dark(#0f1a22, #eef2f4);
+  --on-primary: light-dark(#f6f8f8, #0b1015);
+  --focus: light-dark(#2f5f8a, #8fb5d8);
   --danger: light-dark(#b42318, #ff8a7a);
   --on-danger: light-dark(#ffffff, #0a0a0a);
   --ok: light-dark(#2f7a55, #7fcfa3);
   --warn: light-dark(#9a5b00, #f2b863);
   --accent: light-dark(#e9896a, #f0ae92);
-  --shadow: light-dark(rgb(10 10 10 / 0.06), rgb(0 0 0 / 0.35));
-  --shadow-near: light-dark(rgb(10 10 10 / 0.04), rgb(0 0 0 / 0.4));
+  /* The night band (privacy on the home page): the same in both themes, a step darker than the dark page. */
+  --night: light-dark(#0f1c25, #15212b);
+  --on-night: #eef2f4;
+  --on-night-muted: #a9b9c4;
+  --night-line: rgb(238 242 244 / 0.16);
+  /* Shadows are tinted with the lake ink, never neutral black. */
+  --shadow: light-dark(rgb(15 26 34 / 0.07), rgb(0 0 0 / 0.38));
+  --shadow-near: light-dark(rgb(15 26 34 / 0.05), rgb(0 0 0 / 0.42));
   --elevation: 0 1px 2px var(--shadow-near), 0 8px 24px var(--shadow);
-  --radius-l: 28px;
-  --radius-m: 20px;
+  --shadow-chip: 0 1px 2px rgb(15 26 34 / 0.08), 0 6px 16px -4px rgb(15 26 34 / 0.22);
+  --shadow-window: 0 1px 2px rgb(15 26 34 / 0.12), 0 14px 28px -8px rgb(15 26 34 / 0.28), 0 44px 80px -28px rgb(15 26 34 / 0.45);
+  --radius-panel: 24px;
+  --radius-l: 24px;
+  --radius-m: 16px;
   --radius-s: 12px;
-  --page: min(1200px, 100% - 2 * var(--gutter));
+  --page: min(1240px, 100% - 2 * var(--gutter));
   --gutter: clamp(20px, 4vw, 40px);
+  --section: clamp(88px, 11vw, 152px);
   --font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --serif: "Newsreader", "Newsreader Fallback", Georgia, serif;
   --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  /* Type scale (desktop → 360 px). The serif has a single weight: size carries the hierarchy. */
+  --step-display: clamp(2.75rem, 1.6rem + 4.4vw, 5.25rem);
+  --step-1: clamp(2.5rem, 1.75rem + 3vw, 4rem);
+  --step-2: clamp(2rem, 1.4rem + 2.3vw, 3.25rem);
+  --step-3: clamp(1.625rem, 1.3rem + 1vw, 2rem);
+  --step-4: clamp(1.375rem, 1.25rem + 0.4vw, 1.5rem);
+  --step-lead: clamp(1.125rem, 1.02rem + 0.4vw, 1.3125rem);
 }
 
 :root[data-theme="light"] {
@@ -75,7 +114,7 @@ html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   /* Yapışkan üst çubuk (68 px) çapalı başlıkları örtmesin. */
-  scroll-padding-top: 88px;
+  scroll-padding-top: 104px;
 }
 
 /* Sayfa içi bağlantılar (#features, içindekiler, SSS) bölüme kayarak gider; hareket azaltılmışsa atlar. */
@@ -152,8 +191,15 @@ p {
 }
 
 ::selection {
-  background: #c7b3ec;
-  color: #0a0a0a;
+  background: light-dark(#f6cdbb, #7a3f2c);
+  color: var(--ink);
+}
+
+/* Browser surfaces follow the palette: caret, form accents and scrollbars. */
+:root {
+  caret-color: var(--accent);
+  accent-color: var(--ink);
+  scrollbar-color: color-mix(in srgb, var(--ink) 28%, transparent) transparent;
 }
 
 .visually-hidden {
@@ -197,53 +243,61 @@ p {
 
 /* ---------- Yazı ---------- */
 
-.eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  color: var(--muted);
-}
-
-.eyebrow::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #e9896a;
+/* Serif headings. One weight (400); size and the muted first phrase (`.tone`) carry the hierarchy. */
+.display,
+.title-xl,
+.title-l,
+.serif {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-kerning: normal;
+  font-variant-numeric: lining-nums;
 }
 
 .display {
-  font-size: clamp(2.5rem, 6.4vw, 5rem);
-  letter-spacing: -0.045em;
-  line-height: 1;
-  font-weight: 600;
+  font-size: var(--step-display);
+  letter-spacing: -0.022em;
+  line-height: 1.01;
+  hyphens: auto;
 }
 
 .title-xl {
-  font-size: clamp(2.25rem, 4.8vw, 3.75rem);
-  letter-spacing: -0.04em;
+  font-size: var(--step-1);
+  letter-spacing: -0.02em;
   line-height: 1.04;
 }
 
 .title-l {
-  font-size: clamp(1.75rem, 3.4vw, 2.75rem);
-  letter-spacing: -0.035em;
+  font-size: var(--step-2);
+  letter-spacing: -0.018em;
+  line-height: 1.08;
 }
 
+/* Card titles stay in Inter: the display cut of the serif is too fine below ~26 px. */
 .title-m {
   font-size: 1.25rem;
+  font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.25;
 }
 
+/* Two-tone heading: the context ("Pricing.", "After the meeting.") is the first, muted phrase of the heading itself.
+   It replaces kickers above headings and is read as one sentence. */
+.tone {
+  color: var(--muted);
+}
+
 .lead {
-  font-size: clamp(1.0625rem, 1.5vw, 1.25rem);
-  line-height: 1.55;
+  font-size: var(--step-lead);
+  line-height: 1.5;
   color: var(--muted);
   max-width: 38rem;
+}
+
+/* The lead's bold lead-in (the category on the home page) is set in ink. */
+.lead strong {
+  color: var(--ink);
+  font-weight: 600;
 }
 
 .muted {
@@ -284,8 +338,8 @@ p {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 46px;
-  padding: 0 22px;
+  min-height: 48px;
+  padding: 0 24px;
   border: 1px solid transparent;
   border-radius: 999px;
   font: inherit;
@@ -322,13 +376,14 @@ p {
 }
 
 .button--secondary {
-  background: var(--card);
-  border-color: var(--line);
+  background: transparent;
+  border-color: color-mix(in srgb, var(--ink) 22%, transparent);
   color: var(--ink);
 }
 
 .button--secondary:hover {
-  background: var(--soft);
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+  border-color: color-mix(in srgb, var(--ink) 40%, transparent);
 }
 
 .button--danger {
@@ -347,7 +402,7 @@ p {
 }
 
 .button--small {
-  min-height: 38px;
+  min-height: 40px;
   padding: 0 16px;
   font-size: 0.875rem;
 }
@@ -676,14 +731,139 @@ p {
 /* ---------- Bölümler ---------- */
 
 .section {
-  padding-block: clamp(72px, 10vw, 136px);
+  padding-block: var(--section);
 }
 
 .section-head {
   display: grid;
-  gap: 16px;
+  gap: 20px;
   margin-bottom: clamp(36px, 5vw, 64px);
   max-width: 44rem;
+}
+
+/* ---------- Photographs ----------
+   Licensed Nordic photographs (src/assets/photos/CREDITS.md) graded the same way in CSS, so every panel belongs to one
+   set: the image is softened and slightly desaturated, a dusk gradient (coral sky → heather → lake blue) is laid over it
+   with soft-light, and the film grain tile adds a faint printed texture. All of it is static. Text never sits on the
+   photograph itself: copy goes on a paper card or a chip. Focus points are classes (`.photo--top`, …) because the CSP
+   allows no inline styles. */
+
+.photo {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: var(--radius-panel);
+  background-color: #6d7f8c;
+  color: #0f1a22;
+}
+
+.photo__media,
+.photo__media img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.photo__media img {
+  object-fit: cover;
+  object-position: var(--photo-focus, 50% 50%);
+  filter: saturate(0.62) contrast(0.94) brightness(1.04);
+}
+
+.photo::before,
+.photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.photo::before {
+  background: linear-gradient(180deg, #f2b59b 0%, #c9b6d9 46%, #33536b 100%);
+  mix-blend-mode: soft-light;
+  opacity: 0.8;
+}
+
+.photo::after {
+  background-image: url("/grain.png");
+  background-size: 180px 180px;
+  mix-blend-mode: overlay;
+  opacity: 0.28;
+}
+
+/* Content placed on the photograph (windows, cards, chips) sits above the grade. */
+:where(.photo > :not(.photo__media)) {
+  position: relative;
+  z-index: 2;
+}
+
+/* In the dark theme the panel steps down so it does not glare against the night page. */
+:root[data-theme="dark"] .photo__media img {
+  filter: saturate(0.58) contrast(0.96) brightness(0.8);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .photo__media img {
+    filter: saturate(0.58) contrast(0.96) brightness(0.8);
+  }
+}
+
+.photo--top {
+  --photo-focus: 50% 22%;
+}
+
+.photo--bottom {
+  --photo-focus: 50% 80%;
+}
+
+.photo--left {
+  --photo-focus: 25% 50%;
+}
+
+.photo--right {
+  --photo-focus: 75% 50%;
+}
+
+/* ---------- Chips ----------
+   Small white pills over photographs and windows (integrations). Light in both themes, like the photographs. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 5px 14px 5px 5px;
+  border: 1px solid rgb(15 26 34 / 0.06);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #0f1a22;
+  box-shadow: var(--shadow-chip);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+/* ---------- Horizon ----------
+   Signature mark: the logo's waveform as a horizon. A hairline with a short mirrored, seeded waveform burst in the
+   dusk coral (Horizon.astro); it opens rows and sits in the footer. Decorative only. */
+.horizon {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--accent);
+}
+
+.horizon::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.horizon__wave {
+  flex: none;
 }
 
 /* ---------- Belirme (yalnızca içerik; gradyanlar hareket etmez) ----------
@@ -728,14 +908,22 @@ p {
 }
 
 .prose h1 {
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  font-family: var(--serif);
+  font-size: var(--step-1);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
 }
 
 .prose h2 {
-  margin-top: 44px;
-  margin-bottom: 12px;
-  font-size: 1.375rem;
-  letter-spacing: -0.02em;
+  margin-top: 56px;
+  margin-bottom: 14px;
+  font-family: var(--serif);
+  font-size: 1.75rem;
+  font-weight: 400;
+  letter-spacing: -0.012em;
+  line-height: 1.15;
 }
 
 .prose h3 {

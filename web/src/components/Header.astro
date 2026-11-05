@@ -1,8 +1,9 @@
 ---
-// Üst çubuk: logo, menü, tema düğmesi ve indirme sayfası düğmesi. Dar ekranda menü <details> ile açılır.
-// Tema düğmesini public/theme.js bağlar; betik yoksa düğme gizlidir (tema sistemi izler). Sekmede oturum varsa
-// "Giriş yap" bağlantıları "Hesap"a döner (src/client/header.ts). Metinler sayfadan gelir (`/fi` Fince); dil seçimi
-// alt bilgidedir (Footer.astro).
+// Header: a floating pill with the logo, the main links, the theme switch, an outline "Sign in" pill and the dark
+// "Download" pill. Below 860 px the links, Sign in and the theme switch fold into a `<details>` sheet under the pill;
+// Download stays visible. public/theme.js binds every theme switch (without the script they are hidden and the theme
+// follows the system). With a session in the tab the "Sign in" links turn into "Account" (src/client/header.ts). Text
+// comes from the page (`/fi` in Finnish); the language choice is in the footer (Footer.astro).
 import Icon from "./Icon.astro";
 import Logo from "./Logo.astro";
 import { productName } from "../config";
@@ -11,25 +12,24 @@ import { type PageKey, routes } from "../routes";
 
 interface Props {
   readonly page: PageKey;
-  /** Arayüz metinleri; varsayılan İngilizce. */
+  /** Interface text; English by default. */
   readonly text?: CommonCopy;
-  /** "Ominaisuudet" bağlantısının hedefi; varsayılan ana sayfanın özellikler bölümü. */
+  /** Target of the "Features" link; the home page's features section by default. */
   readonly featuresHref?: string | undefined;
-  /** "Hinnat" bağlantısının hedefi; varsayılan fiyat sayfası. */
+  /** Target of the "Pricing" link; the pricing page by default. */
   readonly pricingHref?: string | undefined;
 }
 const { page, text = copy.common, featuresHref = `${routes.home}#features`, pricingHref = routes.pricing } = Astro.props;
-const menu: readonly { readonly href: string; readonly label: string; readonly sessionLink: boolean }[] = [
-  { href: featuresHref, label: text.nav.features, sessionLink: false },
-  { href: pricingHref, label: text.nav.pricing, sessionLink: false },
-  { href: routes.download, label: text.nav.download, sessionLink: false },
-  { href: routes.signIn, label: text.nav.signIn, sessionLink: true },
+const menu: readonly { readonly href: string; readonly label: string }[] = [
+  { href: featuresHref, label: text.nav.features },
+  { href: pricingHref, label: text.nav.pricing },
+  { href: routes.compare, label: text.nav.compare },
+  { href: routes.blog, label: text.nav.blog },
 ];
 const currentPath: string = routes[page];
 ---
-
 <header id="site-header" class="site-header" data-account-href={routes.account} data-account-label={text.nav.account}>
-  <div class="page site-header__inner">
+  <div class="page site-header__pill">
     <a class="brand" href={routes.home} aria-label={text.homeLabel}>
       <Logo size={28} />
       <span class="brand__name">{productName}</span>
@@ -40,12 +40,7 @@ const currentPath: string = routes[page];
         {
           menu.map((link) => (
             <li>
-              <a
-                class="nav__link"
-                href={link.href}
-                aria-current={link.href === currentPath ? "page" : undefined}
-                data-session-link={link.sessionLink ? "" : undefined}
-              >
+              <a class="nav__link" href={link.href} aria-current={link.href === currentPath ? "page" : undefined}>
                 {link.label}
               </a>
             </li>
@@ -55,11 +50,19 @@ const currentPath: string = routes[page];
     </nav>
 
     <div class="site-header__actions">
-      <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label={text.darkMode} title={text.darkMode}>
+      <button class="theme-toggle site-header__theme" type="button" data-theme-toggle aria-pressed="false" aria-label={text.darkMode} title={text.darkMode}>
         <Icon name="moon" size={18} class="theme-toggle__icon theme-toggle__moon" />
         <Icon name="sun" size={18} class="theme-toggle__icon theme-toggle__sun" />
       </button>
-      <a class="button button--primary button--small header-cta" href={routes.download}>
+      <a
+        class="button button--secondary button--small site-header__sign-in"
+        href={routes.signIn}
+        data-session-link
+        aria-current={routes.signIn === currentPath ? "page" : undefined}
+      >
+        {text.nav.signIn}
+      </a>
+      <a class="button button--primary button--small header-cta" href={routes.download} aria-current={routes.download === currentPath ? "page" : undefined}>
         <Icon name="apple" size={15} class="button__apple" />
         {text.headerDownload}
       </a>
@@ -70,17 +73,29 @@ const currentPath: string = routes[page];
             <path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
           </svg>
         </summary>
-        <ul class="menu__list">
-          {
-            menu.map((link) => (
-              <li>
-                <a href={link.href} data-session-link={link.sessionLink ? "" : undefined}>
-                  {link.label}
-                </a>
-              </li>
-            ))
-          }
-        </ul>
+        <div class="menu__sheet">
+          <ul class="menu__list">
+            {
+              menu.map((link) => (
+                <li>
+                  <a href={link.href} aria-current={link.href === currentPath ? "page" : undefined}>
+                    {link.label}
+                  </a>
+                </li>
+              ))
+            }
+            <li>
+              <a href={routes.signIn} data-session-link>{text.nav.signIn}</a>
+            </li>
+          </ul>
+          <button class="menu__theme" type="button" data-theme-toggle aria-pressed="false">
+            <span class="theme-toggle__icons" aria-hidden="true">
+              <Icon name="moon" size={16} class="theme-toggle__icon theme-toggle__moon" />
+              <Icon name="sun" size={16} class="theme-toggle__icon theme-toggle__sun" />
+            </span>
+            {text.darkMode}
+          </button>
+        </div>
       </details>
     </div>
   </div>
@@ -91,27 +106,34 @@ const currentPath: string = routes[page];
 </script>
 
 <style>
+  /* The header itself is transparent; only the pill is drawn. It stays 12 px from the top while the page scrolls. */
   .site-header {
     position: sticky;
-    top: 0;
+    top: 12px;
     z-index: 50;
-    background: color-mix(in srgb, var(--bg) 82%, transparent);
-    /* Önce önekli, sonra standart: CSS sıkıştırıcı ikisini birleştirirken sonuncuyu tutar (Chrome yalnızca standardı tanır). */
-    -webkit-backdrop-filter: saturate(1.4) blur(14px);
-    backdrop-filter: saturate(1.4) blur(14px);
-    border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+    margin-top: 12px;
+    pointer-events: none;
   }
 
-  .site-header__inner {
+  .site-header__pill {
     display: flex;
     align-items: center;
-    gap: 24px;
-    height: 68px;
+    gap: 20px;
+    height: 60px;
+    padding: 0 10px 0 18px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--card) 96%, transparent);
+    box-shadow:
+      0 1px 2px var(--shadow-near),
+      0 10px 30px -12px var(--shadow);
+    pointer-events: auto;
   }
 
   .brand {
     display: inline-flex;
     align-items: center;
+    min-height: 44px;
     gap: 10px;
     text-decoration: none;
     font-weight: 600;
@@ -121,12 +143,12 @@ const currentPath: string = routes[page];
   }
 
   .nav {
-    margin-left: 12px;
+    margin-left: 8px;
   }
 
   .nav__list {
     display: flex;
-    gap: 4px;
+    gap: 2px;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -135,14 +157,16 @@ const currentPath: string = routes[page];
   .nav__link {
     display: inline-flex;
     align-items: center;
-    min-height: 38px;
-    padding: 0 12px;
+    min-height: 40px;
+    padding: 0 14px;
     border-radius: 999px;
     color: var(--muted);
     text-decoration: none;
     font-size: 0.9375rem;
     font-weight: 500;
-    transition: color 160ms ease, background-color 160ms ease;
+    transition:
+      color 160ms ease,
+      background-color 160ms ease;
   }
 
   .nav__link:hover,
@@ -154,11 +178,11 @@ const currentPath: string = routes[page];
   .site-header__actions {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     margin-left: auto;
   }
 
-  /* Tema düğmesi: ay (açık tema) ve güneş (koyu tema) üst üste; geçişte yalnızca dönme, ölçek ve saydamlık. */
+  /* Theme switch: moon (light theme) and sun (dark theme) stacked; switching only rotates, scales and fades. */
   .theme-toggle {
     position: relative;
     display: grid;
@@ -166,42 +190,51 @@ const currentPath: string = routes[page];
     width: 40px;
     height: 40px;
     padding: 0;
-    border: 1px solid var(--line);
+    border: 0;
     border-radius: 999px;
-    background: var(--card);
-    color: var(--ink);
+    background: transparent;
+    color: var(--muted);
     cursor: pointer;
-    transition: background-color 160ms ease;
+    transition:
+      background-color 160ms ease,
+      color 160ms ease;
   }
 
   .theme-toggle:hover {
     background: var(--soft);
+    color: var(--ink);
   }
 
-  :global(:root:not([data-theme])) .theme-toggle {
+  :global(:root:not([data-theme])) [data-theme-toggle] {
     display: none;
   }
 
-  .theme-toggle :global(.theme-toggle__icon) {
+  .site-header :global(.theme-toggle__icon) {
     grid-area: 1 / 1;
     transition:
       transform 360ms cubic-bezier(0.2, 0.7, 0.2, 1),
       opacity 240ms ease;
   }
 
-  .theme-toggle :global(.theme-toggle__sun) {
+  .site-header :global(.theme-toggle__sun) {
     opacity: 0;
     transform: rotate(-90deg) scale(0.6);
   }
 
-  :global(:root[data-theme="dark"]) .theme-toggle :global(.theme-toggle__moon) {
+  :global(:root[data-theme="dark"]) .site-header :global(.theme-toggle__moon) {
     opacity: 0;
     transform: rotate(90deg) scale(0.6);
   }
 
-  :global(:root[data-theme="dark"]) .theme-toggle :global(.theme-toggle__sun) {
+  :global(:root[data-theme="dark"]) .site-header :global(.theme-toggle__sun) {
     opacity: 1;
     transform: none;
+  }
+
+  /* On the sign-in page the Sign in pill shows it is the current page. */
+  .site-header__sign-in[aria-current="page"] {
+    background: var(--soft);
+    border-color: color-mix(in srgb, var(--ink) 40%, transparent);
   }
 
   .header-cta :global(.button__apple) {
@@ -229,34 +262,66 @@ const currentPath: string = routes[page];
     display: none;
   }
 
-  .menu__list {
+  /* The sheet hangs under the pill's right end. */
+  .menu__sheet {
     position: absolute;
-    right: 0;
-    top: calc(100% + 8px);
-    min-width: 200px;
-    margin: 0;
+    right: -10px;
+    top: calc(100% + 18px);
+    display: grid;
+    gap: 6px;
+    width: min(300px, calc(100vw - 2 * var(--gutter)));
     padding: 8px;
-    list-style: none;
     background: var(--card);
     border: 1px solid var(--line);
-    border-radius: var(--radius-s);
+    border-radius: 20px;
     box-shadow: var(--elevation);
   }
 
-  .menu__list a {
-    display: block;
-    padding: 10px 12px;
-    border-radius: 8px;
-    text-decoration: none;
-    font-weight: 500;
+  .menu__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
   }
 
-  .menu__list a:hover {
+  .menu__list a,
+  .menu__theme {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-weight: 500;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .menu__list a:hover,
+  .menu__list a[aria-current="page"],
+  .menu__theme:hover {
     background: var(--soft);
   }
 
+  .menu__theme {
+    border-top: 1px solid var(--line);
+    border-radius: 0 0 12px 12px;
+    color: var(--muted);
+  }
+
+  .theme-toggle__icons {
+    display: grid;
+  }
+
   @media (max-width: 860px) {
-    .nav {
+    .nav,
+    .site-header__sign-in,
+    .site-header__theme {
       display: none;
     }
 
@@ -265,9 +330,14 @@ const currentPath: string = routes[page];
     }
   }
 
-  @media (max-width: 420px) {
-    .header-cta {
-      display: none;
+  @media (max-width: 400px) {
+    .site-header__pill {
+      gap: 12px;
+      padding-left: 14px;
+    }
+
+    .brand__name {
+      font-size: 1rem;
     }
   }
 </style>

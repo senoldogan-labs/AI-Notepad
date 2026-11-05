@@ -1,0 +1,35 @@
+---
+// The horizon: the site's signature rule. The logo's waveform stands on a hairline like a sound crossing still water,
+// with its reflection below the line at lower opacity. Bars come from the seed (`coverWaveHeights`), so the same label
+// always draws the same burst. Decorative; colour from `.horizon` (global.css).
+import { coverWaveHeights } from "../lib/film";
+
+interface Props {
+  readonly seed: string;
+  readonly class: string;
+}
+const { seed, class: extraClass } = Astro.props;
+const count: number = 13;
+const barWidth: number = 3;
+const step: number = 6;
+const half: number = 14;
+const width: number = (count - 1) * step + barWidth;
+const height: number = half * 2;
+const round = (value: number): number => Math.round(value * 100) / 100;
+const bars: readonly { readonly x: number; readonly up: number; readonly down: number }[] = coverWaveHeights(seed, count).map(
+  (value: number, index: number) => ({ x: index * step, up: Math.max(2.4, value * half), down: Math.max(1.6, value * half * 0.55) }),
+);
+---
+
+<div class:list={["horizon", extraClass]} aria-hidden="true">
+  <svg class="horizon__wave" width={width} height={height} viewBox={`0 0 ${round(width)} ${height}`} focusable="false">
+    {
+      bars.map((bar) => (
+        <>
+          <rect x={round(bar.x)} y={round(half - bar.up)} width={barWidth} height={round(bar.up)} rx={barWidth / 2} fill="currentColor" />
+          <rect x={round(bar.x)} y={half + 1} width={barWidth} height={round(bar.down)} rx={barWidth / 2} fill="currentColor" opacity="0.38" />
+        </>
+      ))
+    }
+  </svg>
+</div>

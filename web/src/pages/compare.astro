@@ -33,7 +33,6 @@ const structuredData: string = structuredDataJson(infoPageStructuredData(siteCon
   {/* Veri bloğu: Astro işlemez ve paketlemez (`is:inline`), tarayıcı çalıştırmaz; CSP'ye takılmaz. */}
   <script is:inline type="application/ld+json" set:html={structuredData} />
   <section class="page compare-intro">
-    <p class="eyebrow">{text.eyebrow}</p>
     <h1 class="title-xl">{text.title}</h1>
     <p class="lead">{text.lead}</p>
   </section>
@@ -64,7 +63,7 @@ const structuredData: string = structuredDataJson(infoPageStructuredData(siteCon
     <p class="small muted">{text.missingNote}</p>
   </section>
 
-  <CtaBand id="compare-cta-title" title={text.ctaTitle} text={text.ctaText} palette="mint" layout="clouds-left" />
+  <CtaBand id="compare-cta-title" title={text.ctaTitle} text={text.ctaText} photo="lake-islands" />
 
   <p class="page small muted compare-trademarks">{text.trademarks}</p>
 </Base>

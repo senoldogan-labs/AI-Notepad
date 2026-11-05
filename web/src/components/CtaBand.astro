@@ -1,67 +1,71 @@
 ---
-// Sayfa sonundaki indirme çağrısı (karşılaştırma, blog, MCP sayfaları): film kapak üstünde başlık, kısa metin ve indirme
-// sayfasına düğme. Doğrudan DMG bağlantısı kullanılmaz: indirme kaynağı (`?src=`) sunucunun izin listesindedir.
-import Film from "./Film.astro";
+// Closing download call on inner pages (compare, blog, MCP, languages, integrations): a centred paper card over a
+// graded photograph with the title, a short text and a button to the download page. No direct DMG link: the download
+// source (`?src=`) is on the server's allow-list.
 import Icon from "./Icon.astro";
+import PhotoPanel from "./PhotoPanel.astro";
 import { copy } from "../copy";
-import type { FilmLayout, FilmPalette } from "../lib/film";
+import type { PhotoName } from "../lib/photos";
 import { routes } from "../routes";
 
 interface Props {
   readonly id: string;
   readonly title: string;
   readonly text: string;
-  readonly palette: FilmPalette;
-  readonly layout: FilmLayout;
+  readonly photo: PhotoName;
 }
-const { id, title, text, palette, layout } = Astro.props;
+const { id, title, text, photo } = Astro.props;
 ---
 
-<section class="page cta-band reveal" aria-labelledby={id}>
-  <Film palette={palette} layout={layout} class="cta-band__cover">
-    <div class="cta-band__content">
+<section class="page cta-band" aria-labelledby={id}>
+  <PhotoPanel photo={photo} focus="center" widths={[640, 960, 1280, 1680, 2400]} sizes="min(1240px, 100vw)" priority="lazy" class="cta-band__photo">
+    <div class="cta-card reveal">
       <h2 class="title-l" id={id}>{title}</h2>
-      <p class="cta-band__text">{text}</p>
-      <a class="button cta-band__button" href={routes.download}>
+      <p class="cta-card__text">{text}</p>
+      <a class="button button--primary" href={routes.download}>
         <Icon name="apple" size={16} class="button__apple" />
         {copy.common.downloadCta}
       </a>
     </div>
-  </Film>
+  </PhotoPanel>
 </section>
 
 <style>
   .cta-band {
-    margin-top: clamp(56px, 8vw, 96px);
+    margin-top: clamp(64px, 9vw, 120px);
   }
 
-  .cta-band :global(.cta-band__cover) {
-    padding: clamp(36px, 6vw, 72px) clamp(24px, 6vw, 72px);
+  .cta-band :global(.cta-band__photo) {
+    display: grid;
+    place-items: center;
+    min-height: clamp(380px, 42vw, 520px);
+    padding: clamp(24px, 6vw, 72px) clamp(16px, 6vw, 72px);
   }
 
-  .cta-band__content {
+  /* The card is paper in both themes' palettes; text never sits on the photograph itself. */
+  .cta-card {
     display: grid;
     justify-items: center;
     gap: 16px;
+    width: min(560px, 100%);
+    padding: clamp(28px, 5vw, 48px) clamp(22px, 5vw, 48px);
+    border-radius: var(--radius-m);
+    background: var(--card);
+    color: var(--ink);
     text-align: center;
+    box-shadow: var(--shadow-window);
   }
 
-  .cta-band__content h2 {
-    max-width: 22ch;
+  .cta-card h2 {
+    max-width: 16ch;
   }
 
-  .cta-band__text {
-    max-width: 36rem;
-    color: #2b2b2b;
+  .cta-card__text {
+    max-width: 34rem;
+    color: var(--muted);
   }
 
-  /* Kapak her temada açık: düğme hep koyu. */
-  .cta-band__button {
-    background: #0a0a0a;
-    color: #fafafa;
-  }
-
-  .cta-band__button:hover {
-    background: #262626;
+  .cta-card .button {
+    margin-top: 6px;
   }
 </style>

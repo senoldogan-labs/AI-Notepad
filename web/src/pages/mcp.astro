@@ -5,8 +5,8 @@
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
 import CtaBand from "../components/CtaBand.astro";
-import Film from "../components/Film.astro";
 import McpChat from "../components/McpChat.astro";
+import PhotoPanel from "../components/PhotoPanel.astro";
 import { productName } from "../config";
 import { copy, type McpClientFileCopy, type McpCopy, type McpToolCopy, type PickCopy, type TitledText } from "../copy";
 import { mcpClientConfigText } from "../lib/mcp-config";
@@ -19,13 +19,12 @@ const setups: readonly PickCopy[] = [text.oneClick, text.manual];
 <Base page="mcp" meta={text.meta} indexed={true} social={websiteCard}>
   <section class="page mcp-hero">
     <div class="mcp-hero__text">
-      <p class="eyebrow">{text.eyebrow}</p>
       <h1 class="title-xl">{text.title}</h1>
       <p class="lead">{text.lead}</p>
     </div>
-    <Film palette="sunset" layout="clouds-right" class="mcp-hero__cover">
+    <PhotoPanel photo="desk-lamp" focus="bottom" widths={[480, 720, 960, 1280]} sizes="(max-width: 960px) 100vw, 560px" priority="high" class="mcp-hero__cover">
       <McpChat demo={copy.home.integrations.mcpDemo} />
-    </Film>
+    </PhotoPanel>
   </section>
 
   <section class="page mcp-section" aria-labelledby="tools-title">
@@ -125,7 +124,7 @@ const setups: readonly PickCopy[] = [text.oneClick, text.manual];
     </ul>
   </section>
 
-  <CtaBand id="mcp-cta-title" title={copy.compare.ctaTitle} text={copy.compare.ctaText} palette="ocean" layout="clouds-left" />
+  <CtaBand id="mcp-cta-title" title={copy.compare.ctaTitle} text={copy.compare.ctaText} photo="misty-spruce" />
 </Base>
 
 <style>
@@ -145,6 +144,7 @@ const setups: readonly PickCopy[] = [text.oneClick, text.manual];
   .mcp-hero :global(.mcp-hero__cover) {
     display: grid;
     place-items: center;
+    min-height: 420px;
     padding: clamp(24px, 4vw, 44px);
   }
 

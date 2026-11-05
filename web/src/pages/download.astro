@@ -5,10 +5,9 @@
 // üç kurulum adımı, güncellemeler ve yardım tek satırda.
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
-import Film from "../components/Film.astro";
+import PhotoPanel from "../components/PhotoPanel.astro";
 import Icon from "../components/Icon.astro";
 import Logo from "../components/Logo.astro";
-import Waveform from "../components/Waveform.astro";
 import { macDownloadUrl, productName } from "../config";
 import { copy, type DownloadCopy, type TitledText } from "../copy";
 import { routes } from "../routes";
@@ -36,13 +35,12 @@ const text: DownloadCopy = copy.download;
         <p class="small muted download-hero__note">{text.requirementsNote}</p>
       </div>
     </div>
-    <Film palette="mint" layout="clouds-left" class="download-hero__cover">
+    <PhotoPanel photo="dusk-lake" focus="center" widths={[480, 720, 960, 1280]} sizes="(max-width: 960px) 100vw, 600px" priority="high" class="download-hero__cover">
       <div class="app-tile">
         <Logo size={96} />
         <span class="app-tile__name">{productName}</span>
       </div>
-      <Waveform seed={productName} width={200} height={44} class="download-hero__wave" />
-    </Film>
+    </PhotoPanel>
   </section>
 
   <section class="section page install" id="install-steps" aria-labelledby="install-title" tabindex="-1">
@@ -122,10 +120,16 @@ const text: DownloadCopy = copy.download;
     aspect-ratio: 5 / 4;
   }
 
+  /* The app's tile on a paper card over the photograph. */
   .app-tile {
     display: grid;
     justify-items: center;
     gap: 14px;
+    padding: 32px 44px 26px;
+    border-radius: var(--radius-m);
+    background: var(--card);
+    color: var(--ink);
+    box-shadow: var(--shadow-window);
   }
 
   .app-tile :global(.logo-mark) {
