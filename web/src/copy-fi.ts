@@ -156,7 +156,7 @@ export const homeFi: HomeCopy = {
   features: {
     live: {
       title: "Seuraa jokaista sanaa omalla kielelläsi",
-      text: "Jokainen lause on ruudulla sekunneissa. Jos kokous käydään englanniksi tai ruotsiksi, suomenkielinen käännös kulkee rinnalla – samoin kuin työkaverin puheenvuoro, jonka haluat ymmärtää tarkalleen.",
+      text: "Jokainen lause on ruudulla sekunneissa. Jos kokous käydään englanniksi tai ruotsiksi, suomenkielinen käännös kulkee rinnalla – samoin kuin työkaverin puheenvuoro, jonka haluat ymmärtää tarkalleen. Käännös välittää sen, mitä puhuja tarkoittaa, eikä käännä sana sanalta: kysymys pysyy kysymyksenä, ja lupauksessa säilyy kuka, mitä ja milloin.",
       original: "Let's open the beta on 14 November.",
       translation: "Avataan beta 14. marraskuuta.",
     },
@@ -173,7 +173,7 @@ export const homeFi: HomeCopy = {
     },
     ask: {
       title: "Löydä mikä tahansa päätös sekunneissa",
-      text: "Kysy mitä tahansa kaikista muistiinpanoistasi ja litteroinneista. Vastaus tulee lähteiden kanssa, joten näet aina mistä kokouksesta se on peräisin.",
+      text: "Kysy mitä tahansa kaikista muistiinpanoistasi ja litteroinneista tai vain kokouksista, jotka merkitset @-merkillä. Saat lyhyen vastauksen tai tarvittaessa taulukon, vaiheittaisen suunnitelman tai valmiin kehotteen. Jatkokysymykset muistavat keskustelun, ja jos vastausta ei löydy kokouksistasi, Kysy voi hakea sen verkosta. Jokainen lähde vie omaan kokoukseensa tai verkkosivulle, ja keskustelut tallentuvat, joten voit nimetä, hakea ja suodattaa niitä.",
       question: "Mitä sovimme budjetista?",
       source: "Lähteet: Sijoittajapäivitys, Tuotepalaveri",
     },
@@ -305,14 +305,16 @@ export const homeFi: HomeCopy = {
   featureList: [
     "Tallentaa verkkokokoukset (Zoom, Microsoft Teams, Google Meet ja muut sovellukset) ilman bottia sekä kasvokkaiset kokoukset ja tuodut ääni- tai videotiedostot",
     "Lopettaa tallennuksen, kun puhelu päättyy, 30 sekunnin lähtölaskennan jälkeen; ”Jatka nauhoitusta” jatkaa tallennusta, ja toiminnon voi kytkeä pois asetuksista",
-    `Litterointi livenä ${spokenLanguages.length} kielellä ja käännös livenä ${noteLanguages.length} kielelle`,
+    `Litterointi livenä ${spokenLanguages.length} kielellä ja käännös livenä ${noteLanguages.length} kielelle, joka välittää puhujan tarkoituksen eikä käännä sana sanalta`,
     `Sovellus ${interfaceLanguages.length} kielellä, myös suomeksi; kieli seuraa Macin kieltä`,
     "Muistiinpano jokaisen kokouksen jälkeen: ensin tehtäväsi tekijöineen ja määräaikoineen, sitten yhteenveto, aiheet, päätökset ja sanasto",
     "Avoimet tehtävät saman sarjan tai samojen ihmisten aiemmista kokouksista, kun tallennat kokouksen kalenterista",
     "Kokousmallit, jotka valitaan kokouksen nimestä (esimerkiksi kahden kesken, päiväpalaveri ja sprintin suunnittelu), ja valmiit ohjeet yhdellä napsautuksella",
     "Jatkosähköposti muistiinpanosta: tärkeimmät asiat, päätökset ja tehtävät tekijöineen ja määräaikoineen, valmiina muokattavaksi, kopioitavaksi tai avattavaksi Mailissa",
     "”Mitä jäi välistä?” -yhteenvedot kesken kokouksen",
-    "Kysy kaikista kokouksistasi, vastaukset lähdeviitteineen",
+    "Kysy kaikista kokouksistasi tai vain @-merkillä valituista, vastaukset lähdeviitteineen; kopioi vastaus tai tallenna se Markdown-tiedostoksi",
+    "Halutessasi verkkohaku Kysy-toiminnossa asioille, joita kokouksistasi ei löydy, ja verkkosivut lähteinä",
+    "Jatkokysymykset, jotka muistavat keskustelun ja kysytyt kokoukset; tallennetut keskustelut, joita voit nimetä, hakea ja suodattaa",
     "Halutessasi kuvat jaetusta näytöstä, yhdistettynä siihen, mitä puhuttiin",
     "Muistiinpanot Slackiin, Microsoft Teamsiin, Discordiin, Zoom Team Chatiin, Notioniin ja Apple Notesiin; tehtävät Lineariin, Jiraan ja Apple Remindersiin; kaikkeen muuhun webhookilla",
     "Vain luku -MCP-palvelin Claudelle, Cursorille ja VS Codelle",
