@@ -83,4 +83,22 @@ private func meeting(id: String, title: String) -> MeetingRecord {
             #expect(!request.userText.contains("Yarım kalan"))
         }
     }
+
+    // Geçmiş satırının simgesi sohbetin türünü gösterir: web kaynaklı cevap, `@` ile toplantıya sorulan, tarif, tüm arşiv.
+    @Test func historySymbolShowsTheConversationKind() throws {
+        let archive: ArchiveExchange = finished(question: "Kararlar?", scope: [], recipeTitle: nil)
+        let scoped: ArchiveExchange = finished(question: "Kim?", scope: ["a"], recipeTitle: nil)
+        let recipe: ArchiveExchange = finished(question: "Uzun istem", scope: [], recipeTitle: "Takip e-postası")
+        var web: ArchiveExchange = finished(question: "Fiyat?", scope: ["a"], recipeTitle: nil)
+        web.answer = ArchiveAnswer(text: "29 € [w1]", sources: [], webSources: [WebSource(url: "https://example.com", title: "Example")])
+        let symbol: ([ArchiveExchange]) throws -> String = { (exchanges: [ArchiveExchange]) throws -> String in
+            let turns: [AskConversationTurn] = try exchanges.map { (exchange: ArchiveExchange) throws -> AskConversationTurn in try #require(askTurn(exchange: exchange)) }
+            return askConversationSymbol(conversation: askConversation(existing: nil, id: UUID(), turns: turns, now: Date()))
+        }
+        #expect(try symbol([archive]) == "bubble.left.and.text.bubble.right")
+        #expect(try symbol([scoped]) == "at")
+        #expect(try symbol([recipe]) == "wand.and.stars")
+        #expect(try symbol([archive, web]) == "globe")
+        #expect(askHistoryFilterSymbol(filter: .web) == "globe" && askHistoryFilterSymbol(filter: .meetings) == "at")
+    }
 }

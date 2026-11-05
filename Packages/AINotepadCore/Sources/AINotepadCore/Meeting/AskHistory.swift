@@ -49,19 +49,34 @@ public struct AskConversationTurn: Sendable, Equatable, Codable, Identifiable {
     }
 }
 
-/// Saklanan bir Sor sohbeti (`AskHistory/<id>.json`). Başlık ilk sorudur.
+/// Kullanıcının verdiği sohbet adı ve verildiği an: eşitlemede iki cihazdaki adlardan en son verilen kalır.
+public struct AskCustomTitle: Sendable, Equatable, Codable {
+    public let text: String
+    public let editedAt: Date
+
+    public init(text: String, editedAt: Date) {
+        self.text = text
+        self.editedAt = editedAt
+    }
+}
+
+/// Saklanan bir Sor sohbeti (`AskHistory/<id>.json`). `title` ilk sorudan türetilir; kullanıcı adını değiştirdiyse
+/// listede `customTitle` görünür (bkz. `askConversationDisplayTitle`).
 public struct AskConversation: Sendable, Equatable, Codable, Identifiable {
     public let id: UUID
     public let createdAt: Date
     public let updatedAt: Date
     public let title: String
+    /// Kullanıcının verdiği ad; bu alan eklenmeden önce saklanan ve hiç adı değiştirilmeyen sohbetlerde nil.
+    public let customTitle: AskCustomTitle?
     public let turns: [AskConversationTurn]
 
-    public init(id: UUID, createdAt: Date, updatedAt: Date, title: String, turns: [AskConversationTurn]) {
+    public init(id: UUID, createdAt: Date, updatedAt: Date, title: String, customTitle: AskCustomTitle?, turns: [AskConversationTurn]) {
         self.id = id
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.title = title
+        self.customTitle = customTitle
         self.turns = turns
     }
 }
@@ -96,13 +111,95 @@ public func askConversationTitle(turn: AskConversationTurn) -> String {
     return line.count > askConversationTitleChars ? String(line.prefix(askConversationTitleChars - 1)) + "…" : line
 }
 
-/// Sohbetin güncel hali: turlar değişir, başlık ilk turdan, oluşturulma zamanı varsa eski sohbetten gelir. Saf
-/// fonksiyondur.
+/// Sohbetin güncel hali: turlar değişir, başlık ilk turdan, oluşturulma zamanı ve kullanıcının verdiği ad varsa eski
+/// sohbetten gelir. Saf fonksiyondur.
 public func askConversation(existing: AskConversation?, id: UUID, turns: [AskConversationTurn], now: Date) -> AskConversation {
     AskConversation(
         id: id, createdAt: existing?.createdAt ?? now, updatedAt: now,
-        title: turns.first.map { askConversationTitle(turn: $0) } ?? "", turns: turns
+        title: turns.first.map { askConversationTitle(turn: $0) } ?? "", customTitle: existing?.customTitle, turns: turns
     )
+}
+
+/// Listede ve sohbet başlığında görünen ad: kullanıcının verdiği ad, yoksa ilk sorudan türetilen başlık. Saf fonksiyondur.
+public func askConversationDisplayTitle(conversation: AskConversation) -> String {
+    conversation.customTitle?.text ?? conversation.title
+}
+
+/// Sohbetin yeni adıyla hali: ad tek satıra indirilir; boşsa ya da görünen ad zaten buysa nil (değişiklik yok, toplantı
+/// adındaki gibi boş ad yok sayılır). Son güncellenme zamanı değişmez: ad vermek sohbeti listenin başına taşımaz. Saf
+/// fonksiyondur.
+public func renamedAskConversation(conversation: AskConversation, title: String, now: Date) -> AskConversation? {
+    let line: String = title.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+    guard !line.isEmpty, line != askConversationDisplayTitle(conversation: conversation) else {
+        return nil
+    }
+    return AskConversation(
+        id: conversation.id, createdAt: conversation.createdAt, updatedAt: conversation.updatedAt, title: conversation.title,
+        customTitle: AskCustomTitle(text: line, editedAt: now), turns: conversation.turns
+    )
+}
+
+/// İki cihazdaki adlardan en son verileni (aynı anda verildiyse metni sıralamada önce geleni: iki cihaz da aynı sonuca
+/// varır); yalnız biri varsa o. Saf fonksiyondur.
+public func newerAskCustomTitle(first: AskCustomTitle?, second: AskCustomTitle?) -> AskCustomTitle? {
+    guard let first, let second else {
+        return first ?? second
+    }
+    if first.editedAt != second.editedAt {
+        return first.editedAt > second.editedAt ? first : second
+    }
+    return first.text <= second.text ? first : second
+}
+
+/// Geçmiş listesinin süzgeci: tüm sohbetler, `@` ile belirli toplantılara sorulanlar ya da cevabında web kaynağı olanlar.
+public enum AskHistoryFilter: String, Sendable, CaseIterable {
+    case all
+    case meetings
+    case web
+}
+
+/// Sohbette `@` ile belirli toplantılara sorulan bir soru var. Saf fonksiyondur.
+public func askConversationAskedMeetings(conversation: AskConversation) -> Bool {
+    conversation.turns.contains { !$0.scopeMeetingIDs.isEmpty }
+}
+
+/// Sohbette web sayfalarını kaynak gösteren bir cevap var. Saf fonksiyondur.
+public func askConversationUsedWeb(conversation: AskConversation) -> Bool {
+    conversation.turns.contains { !($0.webSources ?? []).isEmpty }
+}
+
+/// Sohbet süzgece uyuyor. Saf fonksiyondur.
+public func askConversationMatches(conversation: AskConversation, filter: AskHistoryFilter) -> Bool {
+    switch filter {
+    case .all:
+        return true
+    case .meetings:
+        return askConversationAskedMeetings(conversation: conversation)
+    case .web:
+        return askConversationUsedWeb(conversation: conversation)
+    }
+}
+
+/// Sohbet aramaya uyuyor: görünen adda, sorularda, tarif adlarında, etiketli toplantı adlarında ya da cevaplarda geçen
+/// her kelime (büyük/küçük harf, aksan ve ı/i duyarsız, `searchFolded`); boş arama hepsine uyar. Saf fonksiyondur.
+public func askConversationMatches(conversation: AskConversation, query: String) -> Bool {
+    let words: [String] = searchFolded(query).split(whereSeparator: \.isWhitespace).map(String.init)
+    guard !words.isEmpty else {
+        return true
+    }
+    let fields: [String] = [askConversationDisplayTitle(conversation: conversation), conversation.title]
+        + conversation.turns.flatMap { (turn: AskConversationTurn) -> [String] in
+            [turn.question, turn.recipeTitle ?? "", turn.answer] + turn.scopeTitles
+        }
+    let haystack: String = searchFolded(fields.joined(separator: "\n"))
+    return words.allSatisfy { haystack.contains($0) }
+}
+
+/// Geçmiş listesinde görünen sohbetler: süzgece ve aramaya uyanlar, sırası korunarak. Saf fonksiyondur.
+public func filteredAskConversations(conversations: [AskConversation], query: String, filter: AskHistoryFilter) -> [AskConversation] {
+    conversations.filter { (conversation: AskConversation) -> Bool in
+        askConversationMatches(conversation: conversation, filter: filter) && askConversationMatches(conversation: conversation, query: query)
+    }
 }
 
 /// Sohbeti listeye yazar (aynı kimlikli eskisinin yerine) ve listeyi yeniden eskiye sıralar. Saf fonksiyondur.

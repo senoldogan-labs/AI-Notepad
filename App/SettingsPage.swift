@@ -1606,14 +1606,12 @@ private struct WebhookSettings: View {
         case .choosing(let signIn, let options, let replacing):
             statusPanel {
                 Text("Notlar hangi kanala gitsin?").appFont(size: 13, weight: .medium)
-                Picker("Kanal", selection: $selectedChannelID) {
-                    Text("Kanal seç").tag("")
-                    ForEach(options) { (option: ChannelOption) in
-                        Text(verbatim: option.name).tag(option.id)
-                    }
-                }
-                .labelsHidden()
-                .frame(maxWidth: 280)
+                // Değer de uygulamanın yazı tipinde (sistemin açılır düğmesi sistem yazısında çiziyordu).
+                SettingsMenu(selection: $selectedChannelID, options: [("", Text("Kanal seç"))] + options.map { (option: ChannelOption) -> (String, Text) in
+                    (option.id, Text(verbatim: option.name))
+                })
+                .frame(maxWidth: 280, alignment: .leading)
+                .accessibilityLabel("Kanal")
                 Spacer()
                 Button("Vazgeç") { setup = .idle }.buttonStyle(.hoverPlain).foregroundStyle(Theme.muted)
                 Button("Bağla") { choose(signIn: signIn, options: options, replacing: replacing) }

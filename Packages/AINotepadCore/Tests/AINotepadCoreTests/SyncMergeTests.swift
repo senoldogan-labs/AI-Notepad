@@ -170,10 +170,40 @@ private func merge(base: MeetingSyncState?, local: MeetingSyncState, remote: Mee
         }
         let first: AskConversationTurn = turn("First?", 0)
         let id: UUID = UUID()
-        let local: AskConversation = AskConversation(id: id, createdAt: t0, updatedAt: t1, title: "First?", turns: [first, turn("Mac follow-up", 60)])
-        let remote: AskConversation = AskConversation(id: id, createdAt: t0, updatedAt: t2, title: "First?", turns: [first, turn("Phone follow-up", 30)])
+        let local: AskConversation = AskConversation(id: id, createdAt: t0, updatedAt: t1, title: "First?", customTitle: nil, turns: [first, turn("Mac follow-up", 60)])
+        let remote: AskConversation = AskConversation(id: id, createdAt: t0, updatedAt: t2, title: "First?", customTitle: nil, turns: [first, turn("Phone follow-up", 30)])
         let merged: AskConversation = mergeAskConversation(local: local, remote: remote)
         #expect(merged.turns.map(\.question) == ["First?", "Phone follow-up", "Mac follow-up"])
         #expect(merged.updatedAt == t2 && merged.createdAt == t0)
+        #expect(merged.customTitle == nil)
+    }
+
+    // A chat renamed on both devices keeps the name given last, whichever side it came from; a rename on one side
+    // survives the other side's follow-up question (which does not touch the name).
+    @Test func askConversationKeepsTheNewestRename() throws {
+        let turn: AskConversationTurn = AskConversationTurn(
+            id: UUID(), question: "First?", scopeMeetingIDs: [], scopeTitles: [], recipeTitle: nil, startedAt: t0, finishedAt: t0.addingTimeInterval(5),
+            terms: [], readPassages: [], readScreens: nil, answer: "a", sources: [], webSources: nil, webQueries: nil, webSearchNotice: nil
+        )
+        let base: AskConversation = askConversation(existing: nil, id: UUID(), turns: [turn], now: t0)
+        let onMac: AskConversation = try #require(renamedAskConversation(conversation: base, title: "Budget on Mac", now: t1))
+        let onPhone: AskConversation = try #require(renamedAskConversation(conversation: base, title: "Budget on iPhone", now: t2))
+        #expect(mergeAskConversation(local: onMac, remote: onPhone).customTitle?.text == "Budget on iPhone")
+        #expect(mergeAskConversation(local: onPhone, remote: onMac).customTitle?.text == "Budget on iPhone")
+        // Same instant on both devices: both converge on the same name.
+        let sameTimeMac: AskConversation = try #require(renamedAskConversation(conversation: base, title: "B", now: t1))
+        let sameTimePhone: AskConversation = try #require(renamedAskConversation(conversation: base, title: "A", now: t1))
+        #expect(mergeAskConversation(local: sameTimeMac, remote: sameTimePhone).customTitle?.text == "A")
+        #expect(mergeAskConversation(local: sameTimePhone, remote: sameTimeMac).customTitle?.text == "A")
+        // Renamed on the Mac, a follow-up asked on the iPhone: the name and both turns stay.
+        let followUp: AskConversationTurn = AskConversationTurn(
+            id: UUID(), question: "And then?", scopeMeetingIDs: [], scopeTitles: [], recipeTitle: nil, startedAt: t2, finishedAt: t2.addingTimeInterval(5),
+            terms: [], readPassages: [], readScreens: nil, answer: "b", sources: [], webSources: nil, webQueries: nil, webSearchNotice: nil
+        )
+        let phoneFollowUp: AskConversation = askConversation(existing: base, id: base.id, turns: [turn, followUp], now: t2)
+        let merged: AskConversation = mergeAskConversation(local: phoneFollowUp, remote: onMac)
+        #expect(merged.customTitle?.text == "Budget on Mac")
+        #expect(merged.turns.map(\.question) == ["First?", "And then?"])
+        #expect(askConversationDisplayTitle(conversation: merged) == "Budget on Mac")
     }
 }

@@ -72,15 +72,14 @@ struct PhoneOnboarding: View {
                             .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Theme.line))
                         HStack {
                             Text("Ana toplantı dili").appFont(size: 15, weight: .regular)
+                                .accessibilityHidden(true)
                             Spacer()
-                            Picker("Ana toplantı dili", selection: $primaryLanguage) {
-                                ForEach(MeetingLanguage.allCases, id: \.rawValue) { (language: MeetingLanguage) in
-                                    Text(languageName(language: language)).tag(language.rawValue)
-                                }
-                            }
+                            MenuPicker(title: "Ana toplantı dili", selection: $primaryLanguage, options: MeetingLanguage.allCases.map { (language: MeetingLanguage) -> MenuPickerOption<String> in
+                                MenuPickerOption(value: language.rawValue, label: Text(languageName(language: language)))
+                            }, size: 15)
                         }
                         .padding(.horizontal, 14)
-                        .padding(.vertical, 6)
+                        .padding(.vertical, 12)
                         .background(Theme.card, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                         .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Theme.line))
                     }

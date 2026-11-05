@@ -201,7 +201,7 @@ struct AskPage: View {
         let now: Date = Date()
         return model.askConversations.prefix(3).map { (conversation: AskConversation) -> AskRecentChat in
             AskRecentChat(
-                id: conversation.id.uuidString, title: conversation.title,
+                id: conversation.id.uuidString, title: askConversationDisplayTitle(conversation: conversation),
                 detail: askRecentChatTime(date: conversation.updatedAt, now: now), isAnswering: false
             )
         }
@@ -517,104 +517,17 @@ struct AskPage: View {
     #endif
 }
 
-/// Sohbet geçmişi: soldaki ince sütunda yeniden eskiye sohbetler (başlık ve tarih); açık sohbet gri hap. Üzerine gelince
-/// çöp simgesi çıkar; ilk tık "Sil" onayına döner, ikinci tık siler (açılır pencere yok).
+/// Sohbet geçmişi: soldaki ince sütun (arama, süzgeç, ad değiştirme ve silme; bkz. `AskHistorySidebar`).
 private struct AskHistoryColumn: View {
     let model: AppModel
     let onOpen: @MainActor (UUID) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("GEÇMİŞ")
-                .appFont(size: 11, weight: .semibold)
-                .tracking(DesignTokens.labelTracking)
-                .foregroundStyle(Theme.muted)
-                .padding(.horizontal, 20)
-                .padding(.top, 28)
-                .padding(.bottom, 8)
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 2) {
-                    ForEach(model.askConversations) { (conversation: AskConversation) in
-                        AskHistoryRow(conversation: conversation, isSelected: model.currentConversationID == conversation.id) {
-                            onOpen(conversation.id)
-                        } onDelete: {
-                            model.deleteConversation(id: conversation.id)
-                        }
-                    }
-                }
-                .padding(.horizontal, 10)
-                .padding(.bottom, 16)
-            }
-            .scrollIndicators(.never)
-        }
-        .frame(width: 248)
-        .frame(maxHeight: .infinity, alignment: .top)
-        .overlay(alignment: .trailing) { Rectangle().fill(Theme.line).frame(width: 1) }
-    }
-}
-
-/// Geçmişte bir sohbet satırı: başlık (iki satıra kadar) ve son güncelleme tarihi; üzerine gelince silme.
-private struct AskHistoryRow: View {
-    let conversation: AskConversation
-    let isSelected: Bool
-    let onOpen: @MainActor () -> Void
-    let onDelete: @MainActor () -> Void
-    @State private var isHovering: Bool = false
-    @State private var isConfirmingDelete: Bool = false
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 6) {
-            Button(action: onOpen) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(conversation.title)
-                        .appFont(size: 13, weight: isSelected ? .medium : .regular)
-                        .foregroundStyle(Theme.ink.opacity(isSelected ? 1 : 0.85))
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(conversation.updatedAt.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(interfaceLocale())))
-                        .appFont(size: 11, weight: .regular)
-                        .monospacedDigit()
-                        .foregroundStyle(Theme.muted)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            if isHovering || isConfirmingDelete {
-                Button {
-                    if isConfirmingDelete {
-                        onDelete()
-                    } else {
-                        isConfirmingDelete = true
-                    }
-                } label: {
-                    Group {
-                        if isConfirmingDelete {
-                            Text("Sil").appFont(size: 11, weight: .semibold).foregroundStyle(.red)
-                        } else {
-                            Image(systemName: "trash").appFont(size: 11, weight: .medium).foregroundStyle(Theme.muted)
-                        }
-                    }
-                    .frame(minWidth: 22, minHeight: 22)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.hoverPlain)
-                .accessibilityLabel("Sohbeti sil")
-            }
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(isSelected ? Theme.selected : Color.clear, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-        .onHover { (hovering: Bool) -> Void in
-            isHovering = hovering
-            if !hovering {
-                isConfirmingDelete = false
-            }
-        }
-        .contextMenu {
-            Button("Sohbeti sil", systemImage: "trash", role: .destructive, action: onDelete)
-        }
+        AskHistorySidebar(
+            conversations: model.askConversations, selectedID: model.currentConversationID, onOpen: onOpen,
+            onRename: { (id: UUID, title: String) -> Void in model.renameConversation(id: id, title: title) },
+            onDelete: { (id: UUID) -> Void in model.deleteConversation(id: id) }
+        )
     }
 }
 

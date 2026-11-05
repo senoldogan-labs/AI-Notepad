@@ -198,6 +198,21 @@ final class PhoneAsk {
         isAnswering = false
     }
 
+    /// Sohbetin adını değiştirir (boş ya da aynı ad yok sayılır); sohbetin listedeki yeri değişmez.
+    func rename(conversationID: UUID, title: String) {
+        guard let conversation = conversations.first(where: { $0.id == conversationID }),
+              let renamed = renamedAskConversation(conversation: conversation, title: title, now: Date()) else {
+            return
+        }
+        do {
+            try saveAskConversation(conversation: renamed, directory: try AppPaths.askHistoryDirectory())
+            conversations = upsertAskConversation(conversations: conversations, conversation: renamed)
+        } catch {
+            Self.logger.error("Sohbetin adı değiştirilemedi, sohbet: \(conversationID.uuidString, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+            historyError = String(localized: "Sohbetin adı değiştirilemedi: \(userFacingMessage(error: error))")
+        }
+    }
+
     /// Sohbeti geçmişten siler; açık sohbetse sohbet boşalır.
     func delete(conversationID: UUID) {
         do {
@@ -392,7 +407,7 @@ struct AskTab: View {
         } ?? []
         let saved: [AskRecentChat] = ask.conversations.prefix(recentLimit - current.count).map { (conversation: AskConversation) -> AskRecentChat in
             AskRecentChat(
-                id: conversation.id.uuidString, title: conversation.title,
+                id: conversation.id.uuidString, title: askConversationDisplayTitle(conversation: conversation),
                 detail: askRecentChatTime(date: conversation.updatedAt, now: now),
                 isAnswering: ask.isAnswering && ask.currentConversationID == conversation.id
             )
@@ -516,7 +531,7 @@ private struct AskConversationView: View {
 
     /// Başlık: saklanan sohbetin adı, henüz saklanmadıysa ilk soru.
     private var title: String {
-        ask.conversations.first { $0.id == ask.currentConversationID }?.title ?? ask.exchanges.first?.question ?? ""
+        ask.conversations.first { $0.id == ask.currentConversationID }.map { askConversationDisplayTitle(conversation: $0) } ?? ask.exchanges.first?.question ?? ""
     }
 }
 
@@ -764,39 +779,68 @@ private struct AskComposer: View {
     }
 }
 
-/// Sohbet geçmişi: yeniden eskiye sohbetler (başlık ve tarih); dokununca açılır, sola kaydırınca silinir.
+/// Sohbet geçmişi: üstte arama alanı ve süzgeç menüsü (seçili süzgeç çip olur), altında yeniden eskiye sohbetler (tür
+/// simgesi, başlık, tarih). Dokununca açılır; sola kaydırınca ya da basılı tutunca adı değiştirilir ya da silinir.
 private struct AskHistoryList: View {
     let ask: PhoneAsk
     let onOpen: @MainActor (UUID) -> Void
+    @State private var query: String = ""
+    @State private var filter: AskHistoryFilter = .all
+    /// Adı değiştirilen sohbet (ad sayfası açık).
+    @State private var renaming: AskConversation?
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
+        let shown: [AskConversation] = filteredAskConversations(conversations: ask.conversations, query: query, filter: filter)
         List {
-            ForEach(ask.conversations) { (conversation: AskConversation) in
-                Button {
-                    onOpen(conversation.id)
-                } label: {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(conversation.title)
-                            .appFont(size: 15, weight: ask.currentConversationID == conversation.id ? .semibold : .regular)
-                            .foregroundStyle(Theme.ink)
-                            .lineLimit(2)
-                        Text(conversation.updatedAt.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(interfaceLocale())))
-                            .appFont(size: 12, weight: .regular)
-                            .monospacedDigit()
-                            .foregroundStyle(Theme.muted)
-                    }
-                    .padding(.vertical, 2)
+            Section {
+                if shown.isEmpty, !ask.conversations.isEmpty {
+                    AskHistoryNoMatches(size: 15)
+                        .padding(.vertical, 4)
                 }
-                .swipeActions {
-                    Button("Sil", role: .destructive) { ask.delete(conversationID: conversation.id) }
+                ForEach(shown) { (conversation: AskConversation) in
+                    Button {
+                        onOpen(conversation.id)
+                    } label: {
+                        AskHistoryRowLabel(conversation: conversation, isSelected: ask.currentConversationID == conversation.id, titleSize: 15)
+                            .padding(.vertical, 2)
+                    }
+                    .swipeActions {
+                        Button("Sil", role: .destructive) { ask.delete(conversationID: conversation.id) }
+                        Button("Adını değiştir") { renaming = conversation }
+                            .tint(appearance.accent.color)
+                    }
+                    .contextMenu {
+                        Button("Adını değiştir", systemImage: "pencil") { renaming = conversation }
+                        Button("Sohbeti sil", systemImage: "trash", role: .destructive) { ask.delete(conversationID: conversation.id) }
+                    }
+                }
+            } header: {
+                if !ask.conversations.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        AskHistorySearchBar(query: $query, filter: $filter, size: 15)
+                        if filter != .all {
+                            AskHistoryFilterChip(filter: filter, size: 13) { filter = .all }
+                        }
+                    }
+                    .textCase(nil)
+                    .padding(.bottom, 6)
                 }
             }
         }
+        .scrollDismissesKeyboard(.interactively)
         .overlay {
             if ask.conversations.isEmpty {
                 PhoneEmptyState(symbol: "bubble.left.and.text.bubble.right", title: "Saklanan sohbet yok", message: "Sorduğun sorular burada saklanır.") {
                     EmptyView()
                 }
+            }
+        }
+        .sheet(item: $renaming) { (conversation: AskConversation) in
+            PhoneTextEntrySheet(
+                title: "Sohbetin adı", placeholder: "Ad", actionTitle: "Kaydet", initialText: askConversationDisplayTitle(conversation: conversation)
+            ) { (title: String) -> Void in
+                ask.rename(conversationID: conversation.id, title: title)
             }
         }
         .navigationTitle("Geçmiş")
