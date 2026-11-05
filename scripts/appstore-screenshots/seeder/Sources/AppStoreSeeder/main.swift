@@ -331,7 +331,7 @@ func seedAskConversation(now: Date, calendar: Calendar) -> AskConversation {
         id: UUID(uuid: (0x0C, 0x9B, 0x6E, 0x3D, 0x7F, 0x21, 0x4E, 0x8A, 0xA1, 0xD4, 0x5B, 0x3C, 0x2E, 0x9F, 0x8A, 0x71)),
         question: "What did we decide about the budget?", scopeMeetingIDs: [], scopeTitles: [], recipeTitle: nil, startedAt: askedAt,
         finishedAt: askedAt.addingTimeInterval(6), terms: ["budget", "paid ads", "hiring", "pricing"], readPassages: sources, readScreens: 0, answer: answer,
-        sources: sources, webSources: nil, webQueries: nil
+        sources: sources, webSources: nil, webQueries: nil, webSearchNotice: nil
     )
     return askConversation(existing: nil, id: seedAskConversationID, turns: [turn], now: askedAt.addingTimeInterval(6))
 }

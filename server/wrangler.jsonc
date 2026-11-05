@@ -160,8 +160,8 @@
     // en çok 100 arama → en çok 1,00 $/ay arama ücreti + arama sonuçlarının girdi tokenları (Haiku'da arama başına
     // ~0,002 $). Sınır dolunca Sor yalnız toplantılardan cevaplar (`x-web-search: cap_reached`).
     "MONTHLY_WEB_SEARCH_CAP": "100",
-    // Sor'da web araması açık mı (bkz. `config.ts` `webSearchPolicy`). Üretimde Anthropic kuruluşunda web araması
-    // etkinleştirilip doğrulanana kadar `off`.
+    // Sor'da web araması açık mı (bkz. `config.ts` `webSearchPolicy`). Anthropic kuruluşta aramayı reddederse istek bir
+    // kez araçsız yinelenir, hak geri verilir ve `anthropic_web_search_disabled` alarmı yazılır (`llm/proxy.ts`).
     "WEB_SEARCH_POLICY": "on",
     "LLM_MAX_REQUEST_BYTES": "400000",
     "LLM_MAX_INPUT_TOKENS": "100000",
@@ -321,7 +321,8 @@
         // Bkz. üstteki geliştirme `vars` açıklaması.
         "LLM_ASK_MAX_TOKENS": "8192",
         "MONTHLY_WEB_SEARCH_CAP": "100",
-        "WEB_SEARCH_POLICY": "off",
+        // Bkz. üstteki geliştirme `vars` açıklaması.
+        "WEB_SEARCH_POLICY": "on",
         "LLM_MAX_REQUEST_BYTES": "400000",
         "LLM_MAX_INPUT_TOKENS": "100000",
         "TRANSCRIBE_MAX_BYTES": "95000000",

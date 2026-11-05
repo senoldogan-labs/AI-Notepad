@@ -10,7 +10,8 @@ import SwiftUI
 ///
 /// Soru alanı: Enter gönderir, Shift+Enter yeni satır. `@` yazınca alanın üstünde toplantı önerileri açılır (yazdıkça
 /// süzülür; ↑/↓ gezinir, Tab ya da Enter seçer, Esc kapatır); seçilen toplantı alanda kaldırılabilir etiket olur ve soru
-/// yalnız etiketli toplantılara sorulur. Boş alanda ↑ son soruyu düzenlemeye getirir; öneri kapalıyken Esc alanı temizler.
+/// yalnız etiketli toplantılara sorulur; etiketler devam sorularında da kalır (kaldırılana dek). Boş alanda ↑ son soruyu
+/// düzenlemeye getirir; öneri kapalıyken Esc alanı ve etiketleri temizler.
 struct AskPage: View {
     let model: AppModel
     let router: MainWindowRouter
@@ -38,8 +39,9 @@ struct AskPage: View {
         HStack(spacing: 0) {
             if isShowingHistory, !model.askConversations.isEmpty {
                 AskHistoryColumn(model: model) { (id: UUID) -> Void in
+                    // Etiketler açılan sohbetin son sorusunun kapsamına döner (`followUpScope`).
                     model.openConversation(id: id)
-                    mentioned = []
+                    mentioned = followUpScope(exchanges: model.archiveExchanges, records: model.meetings)
                     focusRequest += 1
                 }
                 .transition(.move(edge: .leading).combined(with: .opacity))
@@ -185,6 +187,11 @@ struct AskPage: View {
             highlighted = 0
             resetDismissedSuggestions()
         }
+        .onChange(of: model.archiveExchanges.last?.id, initial: true) { (_: UUID?, _: UUID?) in
+            // Devam kapsamı: sohbetin son sorusu `@` toplantılara sorulduysa etiketler alanda kalır (kaldırılabilir) ve
+            // devam sorusu da onlara gider; yeni sohbette ve açılan sohbette son sorunun kapsamına döner.
+            mentioned = followUpScope(exchanges: model.archiveExchanges, records: model.meetings)
+        }
     }
 
     private let bottomID: String = "ask-bottom"
@@ -206,7 +213,7 @@ struct AskPage: View {
             preconditionFailure("Son sohbet kimliği UUID değil: \(id)")
         }
         model.openConversation(id: uuid)
-        mentioned = []
+        mentioned = followUpScope(exchanges: model.archiveExchanges, records: model.meetings)
         focusRequest += 1
     }
 
@@ -379,14 +386,19 @@ struct AskPage: View {
         }
         #endif
         model.askArchive(question: question, meetingIDs: mentioned.map(\.id), recipeTitle: nil)
-        clearInput()
+        clearQuestion()
     }
 
-    /// Soru alanını ve etiketleri boşaltır (etiket bu soruya aitti: sohbette sorunun üstünde kalır).
-    private func clearInput() {
+    /// Gönderilen sorunun metnini boşaltır; etiketler kalır (devam soruları aynı toplantılara gider; bkz. `followUpScope`).
+    private func clearQuestion() {
         cursor = 0
         question = ""
         highlighted = 0
+    }
+
+    /// Soru alanını ve etiketleri boşaltır (Esc).
+    private func clearInput() {
+        clearQuestion()
         withAnimation(.smooth(duration: 0.2)) { mentioned = [] }
     }
 
@@ -451,7 +463,7 @@ struct AskPage: View {
             return
         }
         model.askArchive(question: recipe.prompt, meetingIDs: mentioned.map(\.id), recipeTitle: recipe.title)
-        clearInput()
+        clearQuestion()
     }
 
     /// `@` önerileri (en fazla 6): imlecin önündeki bahse eşleşen toplantılar; bahis yoksa ya da Esc ile kapatıldıysa boş.

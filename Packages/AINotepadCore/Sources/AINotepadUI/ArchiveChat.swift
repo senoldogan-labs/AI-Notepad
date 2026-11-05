@@ -37,13 +37,13 @@ public struct ArchiveExchange: Identifiable, Equatable, Sendable {
     public var answer: ArchiveAnswer
     /// Modelin yaptığı web aramalarının sorguları (web araması kapalıysa ya da aranmadıysa boş).
     public var webQueries: [String]
-    /// Bu ayın web araması hakkı bittiği için arama sunulmadı (cevap yalnız toplantılardan).
-    public var webSearchCapReached: Bool
+    /// Web araması yapılamadıysa nedeni (bu ayın hakkı bitti ya da şu an yok; cevap yalnız toplantılardan).
+    public var webSearchNotice: WebSearchNotice
     public var finishedAt: Date?
 
     public init(
         id: UUID, question: String, scopeMeetingIDs: [String], scopeTitles: [String], recipeTitle: String?, startedAt: Date, phase: Phase, terms: [String], passages: [ArchivePassage],
-        screens: Int, answer: ArchiveAnswer, webQueries: [String], webSearchCapReached: Bool, finishedAt: Date?
+        screens: Int, answer: ArchiveAnswer, webQueries: [String], webSearchNotice: WebSearchNotice, finishedAt: Date?
     ) {
         self.id = id
         self.question = question
@@ -57,9 +57,38 @@ public struct ArchiveExchange: Identifiable, Equatable, Sendable {
         self.screens = screens
         self.answer = answer
         self.webQueries = webQueries
-        self.webSearchCapReached = webSearchCapReached
+        self.webSearchNotice = webSearchNotice
         self.finishedAt = finishedAt
     }
+}
+
+/// Henüz başlamış (cevabı boş) soru. Saf fonksiyondur.
+public func startedExchange(id: UUID, question: String, scope: [MeetingRecord], recipeTitle: String?, startedAt: Date) -> ArchiveExchange {
+    ArchiveExchange(
+        id: id, question: question, scopeMeetingIDs: scope.map(\.id), scopeTitles: scope.map { $0.note?.title ?? $0.title }, recipeTitle: recipeTitle,
+        startedAt: startedAt, phase: .understanding, terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: [], webSources: []),
+        webQueries: [], webSearchNotice: .ok, finishedAt: nil
+    )
+}
+
+/// Sorulmadan başarısız olan soru (etiketli toplantı silinmiş, Sor kullanılamıyor): soru ve neden sohbette görünür.
+/// `scopeMeetingIDs` istenen kapsamdır. Saf fonksiyondur.
+public func failedExchange(id: UUID, question: String, scopeMeetingIDs: [String], recipeTitle: String?, reason: String, at date: Date) -> ArchiveExchange {
+    ArchiveExchange(
+        id: id, question: question, scopeMeetingIDs: scopeMeetingIDs, scopeTitles: [], recipeTitle: recipeTitle, startedAt: date, phase: .failed(reason),
+        terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: [], webSources: []), webQueries: [], webSearchNotice: .ok,
+        finishedAt: date
+    )
+}
+
+/// Devam sorusunun başlangıç kapsamı (soru alanında kaldırılabilir etiket olarak görünür): sohbetin son sorusu `@` ile
+/// toplantılara sorulduysa devam soruları da onlara sorulur; kullanıcı etiketi kaldırınca sonraki soru tüm arşive gider
+/// ve kapsam boşalır. Sohbet boşsa boş. Arşivde artık olmayan toplantılar düşer (sıra korunur). Saf fonksiyondur.
+public func followUpScope(exchanges: [ArchiveExchange], records: [MeetingRecord]) -> [MeetingRecord] {
+    guard let last = exchanges.last else {
+        return []
+    }
+    return last.scopeMeetingIDs.compactMap { (id: String) -> MeetingRecord? in records.first { $0.id == id } }
 }
 
 /// Bitmiş soruyu sohbet geçmişine yazılacak tura çevirir (okunan parçalar metinsiz); bitmemiş, durdurulan ya da hatalı
@@ -78,7 +107,7 @@ public func askTurn(exchange: ArchiveExchange) -> AskConversationTurn? {
         id: exchange.id, question: exchange.question, scopeMeetingIDs: exchange.scopeMeetingIDs, scopeTitles: exchange.scopeTitles,
         recipeTitle: exchange.recipeTitle, startedAt: exchange.startedAt, finishedAt: finishedAt, terms: exchange.terms, readPassages: read,
         readScreens: exchange.screens, answer: exchange.answer.text, sources: exchange.answer.sources, webSources: exchange.answer.webSources,
-        webQueries: exchange.webQueries
+        webQueries: exchange.webQueries, webSearchNotice: exchange.webSearchNotice
     )
 }
 
@@ -88,7 +117,7 @@ public func archiveExchange(turn: AskConversationTurn) -> ArchiveExchange {
         id: turn.id, question: turn.question, scopeMeetingIDs: turn.scopeMeetingIDs, scopeTitles: turn.scopeTitles, recipeTitle: turn.recipeTitle,
         startedAt: turn.startedAt, phase: .done, terms: turn.terms, passages: turn.readPassages,
         screens: turn.readScreens ?? 0, answer: ArchiveAnswer(text: turn.answer, sources: turn.sources, webSources: turn.webSources ?? []),
-        webQueries: turn.webQueries ?? [], webSearchCapReached: false, finishedAt: turn.finishedAt
+        webQueries: turn.webQueries ?? [], webSearchNotice: turn.webSearchNotice ?? .ok, finishedAt: turn.finishedAt
     )
 }
 
@@ -116,9 +145,9 @@ public func applying(progress: ArchiveProgress, to exchange: ArchiveExchange) ->
         updated.phase = .writing
     case .answer(let answer):
         updated.answer = answer
-    case .web(let queries, let capReached):
+    case .web(let queries, let notice):
         updated.webQueries = queries
-        updated.webSearchCapReached = capReached
+        updated.webSearchNotice = notice
     }
     return updated
 }
@@ -208,6 +237,8 @@ public struct ExchangeView: View {
                     .padding(.vertical, 10)
                     .background(Theme.soft, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                     .textSelection(.enabled)
+                    // Uzun soru satırlara sarılır; cevabın yerleşimi sıkıştırınca tek satırda "…" ile kesilmez.
+                    .fixedSize(horizontal: false, vertical: true)
             }
             // Çalışırken tek satır "Düşünüyor…" (parıltılı); cevap akmaya başlayınca kalkar.
             if exchange.answer.text.isEmpty, [.understanding, .searching, .writing].contains(exchange.phase) {
@@ -227,10 +258,13 @@ public struct ExchangeView: View {
                 }
                 #endif
             }
-            if exchange.webSearchCapReached {
-                Label("Bu ayın web araması hakkı doldu; cevap yalnız toplantılardan.", systemImage: "globe")
-                    .appFont(size: 12, weight: .regular)
-                    .foregroundStyle(Theme.muted)
+            switch exchange.webSearchNotice {
+            case .capReached:
+                WebSearchNoticeLine(text: "Bu ayın web araması hakkı doldu; cevap yalnız toplantılardan.")
+            case .unavailable:
+                WebSearchNoticeLine(text: "Web araması şu an kullanılamıyor; cevap toplantılarından.")
+            case .ok:
+                EmptyView()
             }
             switch exchange.phase {
             case .failed(let message):
@@ -257,6 +291,18 @@ public struct ExchangeView: View {
                     .transition(.opacity)
             }
         }
+    }
+}
+
+/// Web araması istendiği halde yapılamadığında cevabın altındaki kısa not (küre simgesi, soluk).
+private struct WebSearchNoticeLine: View {
+    let text: LocalizedStringKey
+
+    var body: some View {
+        Label(text, systemImage: "globe")
+            .appFont(size: 12, weight: .regular)
+            .foregroundStyle(Theme.muted)
+            .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -325,30 +371,27 @@ private struct ShimmerText: View {
     }
 }
 
-/// Cevabın altındaki satırda açılabilen ayrıntı.
-private enum AnswerDetail: Equatable {
-    case sources
-    case web
-    case reasoning
-}
-
-/// Bitmiş cevabın altı: kopyala ve diğer çıkış seçenekleri (Markdown olarak kopyala, .md kaydet/paylaş), yeniden
-/// oluştur, tarif olarak kaydet, "Kaynaklar", "Web" ve "8 toplantıdan 42 parça okundu · 6,0 sn" hapları. Bir hapa
-/// tıklanınca ayrıntısı altta ince bir kartta açılır (aynı anda biri).
+/// Bitmiş cevabın altında tek satır (iPhone genişliğinde de taşmaz): solda kopyala, yeniden oluştur ve tarif olarak
+/// kaydet simgeleri ile tek "Kaynaklar" hapı (toplantı ve web kaynaklarının sayısı), en sağda diğer seçenekler (⋯:
+/// Markdown olarak kopyala, .md kaydet/paylaş). Hap açılınca altında ince bir kartta okuma özeti ("1 toplantı · 19 parça
+/// · 16 sn"), kaynaklar, web kaynakları ve aranan terimler görünür.
 private struct AnswerFooter: View {
     let exchange: ArchiveExchange
     let onOpen: @MainActor (ArchivePassage) -> Void
     let onSaveRecipe: @MainActor (String) -> Void
     let onRegenerate: (@MainActor () -> Void)?
-    @State private var detail: AnswerDetail?
+    @State private var isOpen: Bool = false
     @State private var isSaved: Bool = false
+    #if os(macOS)
+    /// .md dosyası yazılamadıysa nedeni (satırın altında; satırı genişletmesin).
+    @State private var exportError: String?
+    #endif
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            FlowLayout(spacing: 6, lineSpacing: 6) {
-                if exchange.phase == .done || !exchange.answer.text.isEmpty {
+            HStack(spacing: 2) {
+                if hasAnswer {
                     CopyAnswerButton(answer: exchange.answer)
-                    AnswerExportMenu(exchange: exchange)
                 }
                 if let onRegenerate, !isFailed {
                     FooterIconButton(symbol: "arrow.clockwise", hint: "Yeniden oluştur", action: onRegenerate)
@@ -369,46 +412,54 @@ private struct AnswerFooter: View {
                     .hoverHint(isSaved ? "Tarif olarak kaydedildi: \"/\" ile çalıştır" : "Tarif olarak kaydet (\"/\" ile yeniden sor)", alignment: .leading, edge: .bottom)
                     .accessibilityLabel(isSaved ? "Tarif olarak kaydedildi" : "Tarif olarak kaydet")
                 }
-                if !exchange.answer.sources.isEmpty {
-                    FooterPill(symbol: "text.quote", isOpen: detail == .sources) {
+                if hasDetails {
+                    FooterPill(symbol: "text.quote", isOpen: isOpen) {
                         HStack(spacing: 5) {
                             Text("Kaynaklar")
-                            Text(verbatim: "\(exchange.answer.sources.count)").fontWeight(.semibold)
+                            if sourceCount > 0 {
+                                Text(verbatim: "\(sourceCount)").fontWeight(.semibold)
+                            }
                         }
                     } onToggle: {
-                        toggle(detail: .sources)
+                        withAnimation(.smooth(duration: 0.22)) { isOpen.toggle() }
                     }
+                    .padding(.leading, 4)
                 }
-                if !exchange.answer.webSources.isEmpty {
-                    FooterPill(symbol: "globe", isOpen: detail == .web) {
-                        HStack(spacing: 5) {
-                            Text("Web")
-                            Text(verbatim: "\(exchange.answer.webSources.count)").fontWeight(.semibold)
-                        }
-                    } onToggle: {
-                        toggle(detail: .web)
-                    }
-                }
-                FooterPill(symbol: "magnifyingglass", isOpen: detail == .reasoning) {
-                    Text(reasoningSummary(exchange: exchange))
-                } onToggle: {
-                    toggle(detail: .reasoning)
+                Spacer(minLength: 8)
+                if hasAnswer {
+                    #if os(macOS)
+                    AnswerExportMenu(exchange: exchange, exportError: $exportError)
+                    #else
+                    AnswerExportMenu(exchange: exchange)
+                    #endif
                 }
             }
-            switch detail {
-            case .sources:
-                SourcesList(sources: exchange.answer.sources, onOpen: onOpen)
+            #if os(macOS)
+            if let exportError {
+                NoticeText(exportError, severity: .error)
+                    .appFont(size: 12, weight: .regular)
+            }
+            #endif
+            if isOpen {
+                AnswerDetails(exchange: exchange, onOpen: onOpen)
                     .transition(.opacity.combined(with: .move(edge: .top)))
-            case .web:
-                WebSourcesList(sources: exchange.answer.webSources)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            case .reasoning:
-                ReasoningDetails(exchange: exchange)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            case nil:
-                EmptyView()
             }
         }
+    }
+
+    /// Kopyalanacak ya da dışa aktarılacak bir cevap var.
+    private var hasAnswer: Bool {
+        exchange.phase == .done || !exchange.answer.text.isEmpty
+    }
+
+    /// Hapta gösterilecek bir şey var: kaynak, okunan parça ya da arama.
+    private var hasDetails: Bool {
+        sourceCount > 0 || !exchange.passages.isEmpty || !exchange.terms.isEmpty || !exchange.webQueries.isEmpty
+    }
+
+    /// Toplantı ve web kaynaklarının toplamı.
+    private var sourceCount: Int {
+        exchange.answer.sources.count + exchange.answer.webSources.count
     }
 
     /// Hatalı soruda yeniden deneme hata satırındadır ("Tekrar dene").
@@ -418,10 +469,29 @@ private struct AnswerFooter: View {
         }
         return false
     }
+}
 
-    private func toggle(detail selected: AnswerDetail) {
-        withAnimation(.smooth(duration: 0.22)) {
-            detail = detail == selected ? nil : selected
+/// "Kaynaklar" hapının kartı: okuma özeti, toplantı kaynakları, web kaynakları ve nasıl cevaplandığı.
+private struct AnswerDetails: View {
+    let exchange: ArchiveExchange
+    let onOpen: @MainActor (ArchivePassage) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(answerReadingSummary(exchange: exchange))
+                .appFont(size: 12, weight: .regular)
+                .monospacedDigit()
+                .foregroundStyle(Theme.muted)
+                .padding(.horizontal, 6)
+            if !exchange.answer.sources.isEmpty {
+                SourcesList(sources: exchange.answer.sources, onOpen: onOpen)
+            }
+            if !exchange.answer.webSources.isEmpty {
+                WebSourcesList(sources: exchange.answer.webSources)
+            }
+            if !exchange.terms.isEmpty || !exchange.passages.isEmpty || exchange.webQueries.contains(where: { !$0.isEmpty }) {
+                ReasoningDetails(exchange: exchange)
+            }
         }
     }
 }
@@ -451,24 +521,12 @@ private struct FooterIconButton: View {
 private struct AnswerExportMenu: View {
     let exchange: ArchiveExchange
     #if os(macOS)
+    /// Dosya yazılamadıysa nedeni (cevap satırının altında gösterilir).
+    @Binding var exportError: String?
     @State private var isExporting: Bool = false
-    /// Dosya yazılamadıysa nedeni (menünün yanında gösterilir).
-    @State private var exportError: String?
     #endif
 
     var body: some View {
-        HStack(spacing: 6) {
-            menu
-            #if os(macOS)
-            if let exportError {
-                NoticeText(exportError, severity: .error)
-                    .appFont(size: 12, weight: .regular)
-            }
-            #endif
-        }
-    }
-
-    private var menu: some View {
         Menu {
             AnswerExportMenuItems(exchange: exchange)
             #if os(macOS)
@@ -544,17 +602,18 @@ struct AnswerExportMenuItems: View {
     }
 }
 
-/// "8 toplantıdan 42 parça okundu · 6,0 sn"; ekran görüntüsü de gittiyse "1 toplantıdan 6 parça ve 2 ekran görüntüsü
-/// okundu · 6,0 sn". Toplantılar kimliğe göre sayılır (aynı adlı yinelenen toplantılar ayrı; yazılırken gösterilen
-/// sayıyla aynı).
-func reasoningSummary(exchange: ArchiveExchange) -> String {
+/// Okuma özeti: "1 toplantı · 19 parça · 16 sn"; ekran görüntüsü de gittiyse "1 toplantı · 6 parça · 2 ekran görüntüsü ·
+/// 6 sn". Her sayı dilin çoğul kuralıyla yazılır (katalogda çoğul biçimler). Toplantılar kimliğe göre sayılır (aynı adlı
+/// yinelenen toplantılar ayrı; yazılırken gösterilen sayıyla aynı). Süre tam saniye (en az 1).
+@MainActor
+func answerReadingSummary(exchange: ArchiveExchange) -> String {
     let meetings: Int = Set(exchange.passages.map(\.meetingID)).count
     let seconds: Double = (exchange.finishedAt ?? Date()).timeIntervalSince(exchange.startedAt)
-    let duration: String = seconds.formatted(.number.precision(.fractionLength(1)).locale(interfaceLocale()))
-    guard exchange.screens > 0 else {
-        return String(localized: "\(meetings) toplantıdan \(exchange.passages.count) parça okundu · \(duration) sn")
-    }
-    return String(localized: "\(meetings) toplantıdan \(exchange.passages.count) parça ve \(exchange.screens) ekran görüntüsü okundu · \(duration) sn")
+    let duration: String = Duration.seconds(max(1, seconds.rounded())).formatted(
+        Duration.UnitsFormatStyle(allowedUnits: [.seconds], width: .abbreviated).locale(interfaceLocale())
+    )
+    let screens: [String] = exchange.screens > 0 ? [String(localized: "\(exchange.screens) ekran görüntüsü")] : []
+    return ([String(localized: "\(meetings) toplantı"), String(localized: "\(exchange.passages.count) parça")] + screens + [duration]).joined(separator: " · ")
 }
 
 /// Cevap altındaki küçük, soluk hap: simge, metin ve dönen ok; açıkken hafif dolgulu.

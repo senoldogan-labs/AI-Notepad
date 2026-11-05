@@ -195,7 +195,7 @@ private func edit(device: EngineDevice, id: String, change: (MeetingRecord) -> M
         let start: Date = Date(timeIntervalSince1970: 1_800_000_100)
         let turn: AskConversationTurn = AskConversationTurn(
             id: UUID(), question: "What did we decide? \(marker)", scopeMeetingIDs: [], scopeTitles: [], recipeTitle: nil, startedAt: start,
-            finishedAt: start.addingTimeInterval(5), terms: [], readPassages: [], readScreens: nil, answer: "The budget.", sources: [], webSources: nil, webQueries: nil
+            finishedAt: start.addingTimeInterval(5), terms: [], readPassages: [], readScreens: nil, answer: "The budget.", sources: [], webSources: nil, webQueries: nil, webSearchNotice: nil
         )
         let chat: AskConversation = askConversation(existing: nil, id: UUID(), turns: [turn], now: start)
         #expect(try await mac.store.writeAskChat(conversation: chat, replacing: nil) == .written)

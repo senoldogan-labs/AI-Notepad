@@ -233,8 +233,9 @@ export interface Config {
     readonly monthlyWebSearchCap: number;
     /**
      * Sor'da web araması açık mı (`WEB_SEARCH_POLICY`): `off` ise araç hiç sunulmaz, hak düşülmez, Sor yalnız
-     * toplantılardan cevaplar ve istemciye `x-web-search: unavailable` döner. Anthropic kuruluşunda web araması
-     * etkinleştirilip doğrulanana kadar üretimde `off`.
+     * toplantılardan cevaplar ve istemciye `x-web-search: unavailable` döner. `on` iken Anthropic kuruluşta aramayı
+     * reddederse istek bir kez araçsız yinelenir, hak geri verilir ve alarm yazılır (bkz. `llm/proxy.ts`
+     * `withdrawWebSearch`); bu yüzden açmak güvenlidir.
      */
     readonly webSearchPolicy: "on" | "off";
     readonly maxRequestBytes: number;

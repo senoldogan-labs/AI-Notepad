@@ -72,19 +72,30 @@ public func webSourceDomain(url: String) -> String {
     return host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
 }
 
+/// Web aramasının istenip de yapılamadığı durum (Sor cevabın altında kısa bir not yazar).
+public enum WebSearchNotice: String, Sendable, Equatable, Codable {
+    /// Not yok: arama ya yapıldı ya da gerekmedi (ya da istenmedi).
+    case ok
+    /// Bu ayın web araması hakkı doldu; araç sunulmadı (`x-web-search: cap_reached`).
+    case capReached
+    /// Web araması şu an yok: sunucuda kapalı ya da Anthropic reddetti (`x-web-search: unavailable`), ya da her arama
+    /// hatayla döndü (`web_search_tool_result_error`); cevap yalnız toplantılardan.
+    case unavailable
+}
+
 /// Akışlı cevabın sonucu: metin (web alıntıları `[wN]` işaretli), alıntılanan web sayfaları (N sırasıyla), modelin
-/// yaptığı aramaların sorguları ve sunucunun aylık arama hakkı bittiği için aracı sunmadığı.
+/// yaptığı aramaların sorguları ve aramanın yapılamadığı durum (`WebSearchNotice`).
 public struct LLMAnswer: Sendable, Equatable {
     public let text: String
     public let webSources: [WebSource]
     public let webQueries: [String]
-    public let webSearchCapReached: Bool
+    public let webSearchNotice: WebSearchNotice
 
-    public init(text: String, webSources: [WebSource], webQueries: [String], webSearchCapReached: Bool) {
+    public init(text: String, webSources: [WebSource], webQueries: [String], webSearchNotice: WebSearchNotice) {
         self.text = text
         self.webSources = webSources
         self.webQueries = webQueries
-        self.webSearchCapReached = webSearchCapReached
+        self.webSearchNotice = webSearchNotice
     }
 }
 
@@ -94,8 +105,8 @@ enum ClaudeAnswerBlock: Sendable, Equatable {
     case text(String, citations: [WebSource])
     /// Web araması: o ana kadar gelen sorgu JSON'u (`input_json_delta` parçaları).
     case search(inputJSON: String)
-    /// Arama sonucu (sayfalar ya da hata).
-    case searchResult
+    /// Arama sonucu: sayfalar geldiyse `errorCode` nil, hata geldiyse kodu (`max_uses_exceeded`, `unavailable`…).
+    case searchResult(errorCode: String?)
     case other
 }
 
@@ -126,7 +137,7 @@ func consumeClaudeAnswerLine(state: ClaudeAnswerState, line: Substring) -> (stat
         case "server_tool_use" where block.name == "web_search":
             blocks[index] = .search(inputJSON: "")
         case "web_search_tool_result":
-            blocks[index] = .searchResult
+            blocks[index] = .searchResult(errorCode: block.content?.errorCode)
         default:
             blocks[index] = .other
         }
@@ -161,8 +172,9 @@ let searchPreambleMaxChars: Int = 280
 
 /// Durumun cevabı: metin blokları sırasıyla birleşir; web alıntısı olan bloğun ardına (sondaki boşluktan önce) alıntılanan
 /// sayfaların `[wN]` işaretleri gelir (N, sayfanın cevaptaki ilk alıntı sırası). Aramadan hemen önceki kısa metin
-/// atılır. Sorgular arama sırasıyla. Saf fonksiyondur.
-func claudeAnswer(state: ClaudeAnswerState, webSearchCapReached: Bool) -> LLMAnswer {
+/// atılır. Sorgular arama sırasıyla. Arama notu sunucu başlığından (`headerNotice`) ve arama sonuçlarından
+/// (`webSearchNotice`). Saf fonksiyondur.
+func claudeAnswer(state: ClaudeAnswerState, headerNotice: WebSearchNotice) -> LLMAnswer {
     let ordered: [ClaudeAnswerBlock] = state.blocks.sorted { $0.key < $1.key }.map(\.value)
     let kept: [ClaudeAnswerBlock] = ordered.enumerated().filter { (item: (offset: Int, element: ClaudeAnswerBlock)) -> Bool in
         guard case .text(let text, _) = item.element, text.trimmingCharacters(in: .whitespacesAndNewlines).count <= searchPreambleMaxChars else {
@@ -208,8 +220,25 @@ func claudeAnswer(state: ClaudeAnswerState, webSearchCapReached: Bool) -> LLMAns
         return searchQuery(inputJSON: json)
     }
     return LLMAnswer(
-        text: text.trimmingCharacters(in: .whitespacesAndNewlines), webSources: sources, webQueries: queries, webSearchCapReached: webSearchCapReached
+        text: text.trimmingCharacters(in: .whitespacesAndNewlines), webSources: sources, webQueries: queries,
+        webSearchNotice: webSearchNotice(headerNotice: headerNotice, blocks: ordered, webSources: sources)
     )
+}
+
+/// Cevabın arama notu: sunucu başlığı bir not söylediyse o; yoksa model aradığı halde her arama hatayla döndüyse
+/// (`web_search_tool_result_error`; ör. `unavailable`, `too_many_requests`) ve hiçbir web kaynağı alıntılanmadıysa
+/// `unavailable`. Bazı aramalar başarılıysa (ör. fazladan arama `max_uses_exceeded` aldı) not yok. Saf fonksiyondur.
+func webSearchNotice(headerNotice: WebSearchNotice, blocks: [ClaudeAnswerBlock], webSources: [WebSource]) -> WebSearchNotice {
+    guard headerNotice == .ok else {
+        return headerNotice
+    }
+    let errors: [String?] = blocks.compactMap { (block: ClaudeAnswerBlock) -> String?? in
+        guard case .searchResult(let errorCode) = block else {
+            return nil
+        }
+        return .some(errorCode)
+    }
+    return !errors.isEmpty && errors.allSatisfy({ $0 != nil }) && webSources.isEmpty ? .unavailable : .ok
 }
 
 /// Arama girdisinin sorgusu (`{"query":"…"}`); JSON henüz tamamlanmadıysa boş. Saf fonksiyondur.
@@ -223,10 +252,40 @@ func searchQuery(inputJSON: String) -> String {
     return input.query
 }
 
-/// Abonelik sunucusunun arama durumu başlığı (`x-web-search`): `cap_reached` ise bu ayın arama hakkı bitmiştir ve araç
-/// sunulmamıştır. Saf fonksiyondur.
-func webSearchCapReached(header: String?) -> Bool {
-    header == "cap_reached"
+/// Abonelik sunucusunun arama durumu başlığının (`x-web-search`) notu: `cap_reached` bu ayın arama hakkı bitti,
+/// `unavailable` arama sunucuda kapalı ya da Anthropic reddetti (araç sunulmadı); `on`, başlık yok ya da bilinmeyen
+/// değer not değildir. Saf fonksiyondur.
+func webSearchNotice(header: String?) -> WebSearchNotice {
+    switch header {
+    case "cap_reached":
+        .capReached
+    case "unavailable":
+        .unavailable
+    default:
+        .ok
+    }
+}
+
+/// Anthropic'in "web araması bu kuruluşta kapalı" reddi mi (kendi anahtarla Claude): belgeye göre yönetici Console'da
+/// aramayı kapattıysa araçlı istek 400 `invalid_request_error` alır ve mesajı aramanın etkin olmadığını söyler (sunucudaki
+/// `isWebSearchDisabledError` ile aynı kural). Saf fonksiyondur.
+func isWebSearchDisabledError(error: any Error) -> Bool {
+    guard case LLMError.http(status: 400, let body, _, _) = error else {
+        return false
+    }
+    struct Body: Decodable {
+        struct Detail: Decodable {
+            let type: String
+            let message: String
+        }
+
+        let error: Detail
+    }
+    guard let parsed = try? JSONDecoder().decode(Body.self, from: Data(body.utf8)), parsed.error.type == "invalid_request_error" else {
+        return false
+    }
+    let message: String = parsed.error.message.lowercased()
+    return message.contains(/web[ _-]?search/) && (message.contains("not enabled") || message.contains("disabled"))
 }
 
 // Claude JSON alan adları snake_case olduğu için ara tipler aynı adları kullanır.
@@ -241,6 +300,25 @@ private struct RawAnswerBlock: Decodable {
     let type: String
     let text: String?
     let name: String?
+    let content: RawSearchContent?
+}
+
+/// Arama sonucu bloğunun içeriği: başarıda sonuç dizisi, hatada `{"type":"web_search_tool_result_error","error_code":…}`
+/// nesnesi (bkz. web search tool › Errors). Dizi ya da başka içerik hata değildir (`errorCode` nil).
+private struct RawSearchContent: Decodable {
+    let errorCode: String?
+
+    private struct RawError: Decodable {
+        let type: String
+        let error_code: String
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container: any SingleValueDecodingContainer = try decoder.singleValueContainer()
+        // Dizi (sonuçlar) ya da başka biçim: hata değildir; yalnız hata nesnesi kodunu taşır.
+        let error: RawError? = try? container.decode(RawError.self)
+        errorCode = error?.type == "web_search_tool_result_error" ? error?.error_code : nil
+    }
 }
 
 private struct RawAnswerDelta: Decodable {

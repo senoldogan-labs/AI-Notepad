@@ -116,3 +116,53 @@ export function webSearchStatusHeader(requested: number, granted: number): Recor
   }
   return { "x-web-search": granted > 0 ? "on" : "cap_reached" };
 }
+
+/** Web araması sunulamadı (politika kapalı ya da Anthropic kuruluşta aramayı reddetti): Sor bunu cevabın altında yazar. */
+export const webSearchUnavailableHeader: Readonly<Record<string, string>> = { "x-web-search": "unavailable" };
+
+/** Anthropic hata gövdesinin okunan kısmı (`{"type":"error","error":{"type":…,"message":…}}`). */
+const anthropicErrorBodySchema = z.object({ error: z.object({ type: z.string(), message: z.string() }) });
+
+/**
+ * Anthropic'in "web araması bu kuruluşta kapalı" reddi mi: belgeye göre (Web search tool › "How to use web search")
+ * yönetici Console'da aramayı kapattıysa araçlı istek, sonuç bloğundaki hata kodu yerine 400 `invalid_request_error`
+ * ile döner ve mesajı web aramasının etkin olmadığını söyler. Mesaj sabit bir sözleşme olmadığı için hem "web search"
+ * hem "not enabled"/"disabled" aranır; başka 400'ler (ör. bozuk istek) bu değildir. Saf fonksiyondur.
+ */
+export function isWebSearchDisabledError(status: number | undefined, body: unknown): boolean {
+  if (status !== 400) {
+    return false;
+  }
+  const parsed = anthropicErrorBodySchema.safeParse(body);
+  if (!parsed.success || parsed.data.error.type !== "invalid_request_error") {
+    return false;
+  }
+  const message: string = parsed.data.error.message.toLowerCase();
+  return /web[ _-]?search/.test(message) && /(not enabled|disabled)/.test(message);
+}
+
+/** Araçsız istek: web araması aracı çıkarılır (başka araç kalmazsa `tools` alanı da). Saf fonksiyondur. */
+export function withoutWebSearchTool(params: Anthropic.MessageCreateParamsNonStreaming): Anthropic.MessageCreateParamsNonStreaming {
+  const { tools, ...rest } = params;
+  const others: Anthropic.ToolUnion[] = (tools ?? []).filter((tool: Anthropic.ToolUnion): boolean => !("type" in tool && tool.type === webSearchToolType));
+  return others.length === 0 ? rest : { ...rest, tools: others };
+}
+
+/** "Web araması kapalı" alarmının en sık yazılma aralığı. */
+export const webSearchDisabledAlertIntervalMs: number = 60 * 60 * 1000;
+
+/** Alarm yazılmalı mı: hiç yazılmadıysa ya da son yazılıştan `intervalMs` geçtiyse. Saf fonksiyondur. */
+export function isAlertDue(lastAlertAt: number | null, now: number, intervalMs: number): boolean {
+  return lastAlertAt === null || now - lastAlertAt >= intervalMs;
+}
+
+/**
+ * Arama sonucu bloklarındaki hata kodları (`web_search_tool_result_error`: `max_uses_exceeded`, `unavailable`,
+ * `too_many_requests`…). Hatalı arama 200 yanıtın içinde gelir ve ücretlendirilmez; model cevabı yine yazar. Saf
+ * fonksiyondur.
+ */
+export function webSearchErrorCodes(blocks: readonly Anthropic.ContentBlock[]): string[] {
+  return blocks.flatMap((block: Anthropic.ContentBlock): string[] =>
+    block.type === "web_search_tool_result" && !Array.isArray(block.content) ? [block.content.error_code] : [],
+  );
+}

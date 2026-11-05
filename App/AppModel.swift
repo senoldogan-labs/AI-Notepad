@@ -2663,16 +2663,12 @@ final class AppModel {
         } catch {
             // Etiketli toplantı silinmişse soru tüm arşive genişletilmez; soru ve neden sohbette görünür.
             Self.logger.error("Etiketli toplantı bulunamadı, hata: \(String(describing: error), privacy: .private)")
-            archiveExchanges.append(ArchiveExchange(
-                id: id, question: trimmed, scopeMeetingIDs: meetingIDs, scopeTitles: [], recipeTitle: recipeTitle, startedAt: Date(),
-                phase: .failed(userFacingMessage(error: error)), terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: [], webSources: []), webQueries: [], webSearchCapReached: false, finishedAt: Date()
+            archiveExchanges.append(failedExchange(
+                id: id, question: trimmed, scopeMeetingIDs: meetingIDs, recipeTitle: recipeTitle, reason: userFacingMessage(error: error), at: Date()
             ))
             return
         }
-        archiveExchanges.append(ArchiveExchange(
-            id: id, question: trimmed, scopeMeetingIDs: scoped.map(\.id), scopeTitles: scoped.map { $0.note?.title ?? $0.title }, recipeTitle: recipeTitle, startedAt: Date(), phase: .understanding,
-            terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: [], webSources: []), webQueries: [], webSearchCapReached: false, finishedAt: nil
-        ))
+        archiveExchanges.append(startedExchange(id: id, question: trimmed, scope: scoped, recipeTitle: recipeTitle, startedAt: Date()))
         let records: [MeetingRecord] = meetings
         let userName: String = self.userName
         let webSearch: Bool = askWebSearchAllowed(defaults: UserDefaults.standard)
