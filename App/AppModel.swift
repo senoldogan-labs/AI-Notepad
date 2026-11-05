@@ -182,8 +182,15 @@ final class AppModel {
     var displayMode: DisplayMode
     /// Paneldeki "Ne kaçırdım?" / soru kartı.
     var assistantCard: AssistantCard?
-    /// Kaydedilmiş toplantılar (yeniden eskiye) ve okunamayanlar.
-    var meetings: [MeetingRecord] = []
+    /// Kaydedilmiş toplantılar (yeniden eskiye) ve okunamayanlar. Değişince görev ve özet bildirimleri yeniden kurulur.
+    var meetings: [MeetingRecord] = [] {
+        didSet {
+            EngagementNotifier.shared.scheduleRefresh()
+        }
+    }
+    /// Toplantılar bu süreçte en az bir kez diskten okundu: o zamana dek bildirim planına dokunulmaz (boş listeyle
+    /// bekleyen görev bildirimleri silinmesin).
+    @ObservationIgnored private(set) var meetingsLoaded: Bool = false
     /// `namedMeetings` için son adlandırılan notlar: görünüm her çizimde bütün notlarda etiket aramasın.
     @ObservationIgnored private var namedMeetingsCache: NamedRecordsCache = .empty
 
@@ -1805,6 +1812,8 @@ final class AppModel {
             }
             #endif
             autoSendToDestinations(record: saved)
+            // Uygulama arkadaysa "Not hazır" bildirimi; öndeyse ilk toplantıdan sonra bildirim izni sorulur.
+            await EngagementNotifier.shared.meetingProcessed(record: saved, userName: userName, isAppActive: NSApp.isActive)
             if saved.status == .done {
                 await cloud.moveFinishedMeetings(excluding: cloudMoveExclusions) { [weak self] in self?.reloadMeetings() }
             }
@@ -2964,6 +2973,38 @@ final class AppModel {
         }
     }
 
+    /// Görev bildirimindeki "Tamamlandı": görev tamamlandı diye işaretlenir (zaten tamamlandıysa değişmez). Toplantı
+    /// kayıtta ya da işlenirken veya not bu arada yeniden yazılıp görev artık yoksa işaretlenmez, neden loglanır.
+    func completeTaskFromNotification(meetingID: String, taskKey key: String) {
+        guard let record = meetings.first(where: { $0.id == meetingID }), !isLocked(meetingID: meetingID), hasTask(record: record, key: key) else {
+            Self.logger.warning("Bildirimdeki görev işaretlenemedi (toplantı yok, kilitli ya da görev değişti), toplantı: \(meetingID, privacy: .public)")
+            return
+        }
+        withSessionDirectory(id: meetingID) { (directory: URL) -> Void in
+            saveRecord(record: markingTaskDone(record: record, key: key), directory: directory)
+        }
+    }
+
+    /// Bildirim planı için giriş yapan hesabın verisi: abonelikte çıkış yapıldıysa `signedOut` (bildirimler kalkar);
+    /// tanıtım modunda, oturum ya da hesap verisi henüz okunmadan ve toplantılar okunmadan `notReady`.
+    func engagementDataState() -> EngagementDataState {
+        if isDemoMode {
+            return .notReady
+        }
+        #if HOSTED_EDITION
+        if case .signedOut = HostedAccount.shared.state {
+            return .signedOut
+        }
+        #endif
+        guard !isSignInRequired(), isAccountDataReady() else {
+            return .notReady
+        }
+        guard meetingsLoaded else {
+            return .notReady
+        }
+        return .ready(EngagementSnapshot(records: meetings, userName: userName, calendarEnabled: UserDefaults.standard.bool(forKey: SettingsKey.calendarEnabled)))
+    }
+
     /// Toplantının gösterilen ve paylaşılan hali: notunda konuşmacı adları (`namedRecord`). Yalnız okumak ve göndermek
     /// için; kaydedilen her zaman `meetings`'teki saklı kayıttır (not genel etiketleri korur).
     private func shownMeeting(id: String) -> MeetingRecord? {
@@ -3633,6 +3674,8 @@ final class AppModel {
         do {
             try userContentDefaults().set(name, forKey: SettingsKey.userName)
             userName = name
+            // Kullanıcıya düşen görevler adla da belirlenir: görev bildirimleri yenilenir.
+            EngagementNotifier.shared.scheduleRefresh()
         } catch {
             errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
         }
@@ -4313,6 +4356,7 @@ final class AppModel {
         await meetingReloader.reload(load: { () async throws -> MeetingLoadResult in
             try await loadMeetingsInBackground(location: self.activeStorageLocation)
         }, apply: { (result: MeetingLoadResult) -> Void in
+            self.meetingsLoaded = true
             self.meetings = result.meetings
             self.meetingLoadFailures = result.failures
             self.cloudDownloadingCount = result.downloading.count

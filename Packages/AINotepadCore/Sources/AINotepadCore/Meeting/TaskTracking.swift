@@ -113,9 +113,73 @@ func namedMonthDate(text: String, language: ShareLanguage) -> (year: Int?, month
     return nil
 }
 
-/// Notun serbest metin tarihinden takvim günü: "2026-11-03", "3.11.2026", "3.11." ve notun dilinde (`language`) ay
-/// adıyla yazılanlar (bkz. `namedMonthDate`). Yılsızda yıl toplantınınki, toplantıdan önceye düşerse ertesi yıl.
-/// "Perjantai", "sonraki dönem" gibi göreli ifadeler tarih vermez (nil). Saf fonksiyondur.
+/// Göreli gün sözcüğünün gösterdiği gün: toplantı gününden `offset` gün sonra ya da toplantı günü ya da sonrasındaki
+/// ilk `weekday` (1 pazar … 7 cumartesi).
+private enum RelativeDay: Sendable, Equatable {
+    case offset(Int)
+    case weekday(Int)
+}
+
+/// Notun dilinde (`language`) gün adı ("Cuma", "perjantaihin", "Friday") ya da "bugün"/"yarın" sözcüğüyle ("tänään",
+/// "huomenna", "tomorrow") yazılmış son günün takvim günü: gün adı toplantı günü ya da sonrasındaki ilk o gün, "bugün"
+/// toplantı günü, "yarın" ertesi gün. Sözcükler o dilin takviminden (gün adları) ve göreli tarih biçiminden ("bugün",
+/// "yarın") gelir; son sözcük çekim ekiyle önekten eşleşir, birden çok eşleşmede en uzunu alınır. Metinde ilk geçen
+/// sözcük belirler. Bulunamazsa nil ("sonraki dönem", "ensi viikolla"). Saf fonksiyondur.
+func relativeDueDay(text: String, meetingDate: Date, calendar: Calendar, language: ShareLanguage) -> DateComponents? {
+    let locale: Locale = Locale(identifier: language.rawValue)
+    let tokenize: (String) -> [String] = { (value: String) -> [String] in
+        value.lowercased(with: locale).split { (character: Character) -> Bool in !character.isLetter && !character.isNumber }.map(String.init)
+    }
+    let formatter: DateFormatter = DateFormatter()
+    formatter.locale = locale
+    let relative: RelativeDateTimeFormatter = RelativeDateTimeFormatter()
+    relative.locale = locale
+    relative.dateTimeStyle = .named
+    relative.unitsStyle = .full
+    let dayWords: [(words: [String], day: RelativeDay)] = [0, 1].map { (offset: Int) -> (words: [String], day: RelativeDay) in
+        (tokenize(relative.localizedString(from: DateComponents(day: offset))), .offset(offset))
+    }
+    let weekdays: [(words: [String], day: RelativeDay)] = [formatter.weekdaySymbols ?? [], formatter.standaloneWeekdaySymbols ?? []]
+        .flatMap { (symbols: [String]) -> [(words: [String], day: RelativeDay)] in
+            symbols.enumerated().map { (item: (offset: Int, element: String)) -> (words: [String], day: RelativeDay) in
+                (tokenize(item.element), .weekday(item.offset + 1))
+            }
+        }
+    let phrases: [(words: [String], day: RelativeDay)] = (dayWords + weekdays).filter { !$0.words.isEmpty }
+    let tokens: [String] = tokenize(text)
+    // Sözcük öbeği `index`ten başlıyor mu: son sözcük dışındakiler aynen, son sözcük önekten (çekim ekleri).
+    let matches: ([String], Int) -> Bool = { (words: [String], index: Int) -> Bool in
+        guard index + words.count <= tokens.count else {
+            return false
+        }
+        return zip(words, tokens[index..<(index + words.count)]).enumerated().allSatisfy { (item: (offset: Int, element: (String, String))) -> Bool in
+            item.offset == words.count - 1 ? item.element.1.hasPrefix(item.element.0) : item.element.1 == item.element.0
+        }
+    }
+    let found: RelativeDay? = tokens.indices.lazy.compactMap { (index: Int) -> RelativeDay? in
+        phrases.filter { matches($0.words, index) }.max { $0.words.joined().count < $1.words.joined().count }?.day
+    }.first
+    guard let found else {
+        return nil
+    }
+    let meetingDay: Date = calendar.startOfDay(for: meetingDate)
+    let offset: Int
+    switch found {
+    case .offset(let days):
+        offset = days
+    case .weekday(let weekday):
+        offset = (weekday - calendar.component(.weekday, from: meetingDay) + 7) % 7
+    }
+    guard let due = calendar.date(byAdding: .day, value: offset, to: meetingDay) else {
+        return nil
+    }
+    return calendar.dateComponents([.year, .month, .day], from: due)
+}
+
+/// Notun serbest metin tarihinden takvim günü: "2026-11-03", "3.11.2026", "3.11.", notun dilinde (`language`) ay
+/// adıyla yazılanlar (bkz. `namedMonthDate`) ve gün adı ya da "bugün"/"yarın" sözcüğüyle yazılanlar (bkz.
+/// `relativeDueDay`; toplantı gününe göre). Yılsızda yıl toplantınınki, toplantıdan önceye düşerse ertesi yıl.
+/// "Sonraki dönem", "ensi viikolla" gibi belirsiz ifadeler tarih vermez (nil). Saf fonksiyondur.
 public func parseDueDate(text: String, meetingDate: Date, calendar: Calendar, language: ShareLanguage) -> DateComponents? {
     let trimmed: String = text.trimmingCharacters(in: .whitespacesAndNewlines)
     let meeting: DateComponents = calendar.dateComponents([.year, .month, .day], from: meetingDate)
@@ -126,8 +190,10 @@ public func parseDueDate(text: String, meetingDate: Date, calendar: Calendar, la
         parts = (Int(match.3), Int(match.2) ?? 0, Int(match.1) ?? 0)
     } else if let match = trimmed.firstMatch(of: /(\d{1,2})\.(\d{1,2})\./) {
         parts = (nil, Int(match.2) ?? 0, Int(match.1) ?? 0)
+    } else if let named = namedMonthDate(text: trimmed, language: language) {
+        parts = named
     } else {
-        parts = namedMonthDate(text: trimmed, language: language)
+        return relativeDueDay(text: trimmed, meetingDate: meetingDate, calendar: calendar, language: language)
     }
     guard let parts, (1...12).contains(parts.month), (1...31).contains(parts.day), let meetingYear = meeting.year else {
         return nil

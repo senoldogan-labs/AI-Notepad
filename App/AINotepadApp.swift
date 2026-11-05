@@ -265,6 +265,22 @@ struct AINotepadApp: App {
                 }
             }
         }
+        AppDelegate.onEngagementResponse = { (route: EngagementRoute) -> Void in
+            switch route {
+            case .openMeeting(let meetingID):
+                // Toplantı listede görünsün: arama ve klasör süzgeci kalkar.
+                router.searchQuery = ""
+                router.folderFilter = nil
+                router.selectedMeetingID = meetingID
+                openMainWindow(router: router, section: .meetings)
+            case .openTasks:
+                openMainWindow(router: router, section: .tasks)
+            case .openRecording:
+                openMainWindow(router: router, section: .home)
+            case .completeTask(let meetingID, let taskKey):
+                model.completeTaskFromNotification(meetingID: meetingID, taskKey: taskKey)
+            }
+        }
         model.onAutoRecord = {
             guard !model.isRecording else {
                 return
@@ -291,6 +307,8 @@ struct AINotepadApp: App {
                 if isAccountDataReady() {
                     model.performStartupMaintenance()
                 }
+                // Not hazır, görev günü, haftalık özet ve kayıtsız hafta bildirimleri: toplantılar okununca kurulur.
+                EngagementNotifier.shared.start { model.engagementDataState() }
                 // Önceki açılışın çökme raporları (MetricKit) okunur ve yenileri dinlenir.
                 crashReports.start()
                 // Giriş kapısı kapalıyken (abonelik sürümü, oturum yok) kayıt ve pencere kısayolları kaydedilmez; giriş
@@ -501,6 +519,8 @@ struct AINotepadApp: App {
                 // kısayolu kalır; basılınca giriş ister).
                 .onChange(of: isSignInRequired()) { (_: Bool, required: Bool) in
                     shortcuts.sync()
+                    // Çıkışta bildirimler kalkar, girişte giriş yapan hesabınkiler kurulur (bkz. `engagementDataState`).
+                    EngagementNotifier.shared.scheduleRefresh()
                     if required, !model.isRecording {
                         panel.hide()
                         island.hide()
@@ -546,6 +566,8 @@ struct AINotepadApp: App {
                 // çubuğu simgesi hep açık olduğundan ana pencere kapalıyken de çalışır.
                 .onChange(of: HostedAccount.shared.state) { (_: HostedAccountState, _: HostedAccountState) in
                     Task { await model.refreshSetupProblems() }
+                    // Çıkış yapılınca bildirimler kalkar (bkz. `AppModel.engagementDataState`).
+                    EngagementNotifier.shared.scheduleRefresh()
                 }
                 #endif
                 // Uygulama öne gelince kurulum eksikleri yenilenir (Anahtar Zinciri ya da Sistem Ayarları'nda yapılan
@@ -554,6 +576,12 @@ struct AINotepadApp: App {
                     Task { await model.refreshSetupProblems() }
                     // Kayıttan önce boş yer (Finder'da yer açılmış ya da dolmuş olabilir).
                     model.refreshRecordingDiskSpace()
+                    // Bildirim izni sistem ayarlarında değişmiş olabilir; notu yazılmış toplantı varsa ve izin hiç
+                    // sorulmadıysa şimdi sorulur (tanıtım modunda, ekran görüntülerinde sorulmaz).
+                    if !isDemoMode {
+                        let records: [MeetingRecord] = model.meetings
+                        Task { await EngagementNotifier.shared.appBecameActive(records: records) }
+                    }
                 }
         }
     }

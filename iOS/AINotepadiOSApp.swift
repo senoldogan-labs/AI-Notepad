@@ -87,7 +87,33 @@ struct AINotepadiOSApp: App {
             router.tab = .record
             Task { await sessions.session.recorder.start() }
         }
+        // Not hazır, görev günü, haftalık özet ve kayıtsız hafta bildirimleri: dokunma yerini açar, "Tamamlandı" görevi
+        // uygulamayı öne getirmeden işaretler (arka planda açıldıysa önce hesabın adı ve toplantıları okunur).
+        PhoneNotificationDelegate.onEngagementResponse = { (route: EngagementRoute) async -> Void in
+            switch route {
+            case .openMeeting(let meetingID):
+                router.open(meetingID: meetingID)
+            case .openTasks:
+                router.tab = .tasks
+            case .openRecording:
+                router.tab = .record
+            case .completeTask(let meetingID, let taskKey):
+                guard account.isAccountDataLoaded else {
+                    phoneAppLogger.warning("Bildirimdeki görev işaretlenemedi: hesap verisi yüklü değil, toplantı: \(meetingID, privacy: .public)")
+                    return
+                }
+                let store: PhoneStore = sessions.session.store
+                if !store.isLoaded {
+                    store.loadIdentity()
+                    await store.reloadAndWait()
+                }
+                store.completeTaskFromNotification(meetingID: meetingID, taskKey: taskKey)
+            }
+        }
         UNUserNotificationCenter.current().delegate = PhoneNotificationDelegate.shared
+        EngagementNotifier.shared.start { () -> EngagementDataState in
+            phoneEngagementDataState(store: sessions.session.store, account: account)
+        }
     }
 
     var body: some Scene {
@@ -316,6 +342,10 @@ private struct PhoneAppRoot: View {
             #endif
             AppStorePurchases.shared.syncIdentity(userID: userID)
         }
+        .onChange(of: account.state) { (_: HostedAccountState, _: HostedAccountState) in
+            // Çıkış yapılınca bildirimler kalkar, girişte giriş yapan hesabınkiler kurulur (bkz. `phoneEngagementDataState`).
+            EngagementNotifier.shared.scheduleRefresh()
+        }
         .onChange(of: account.queueTrigger) { (_: Int, _: Int) in
             guard account.isAccountDataLoaded else {
                 return
@@ -352,6 +382,8 @@ private struct PhoneAppRoot: View {
         }
         sessions.replace(session: makePhoneAccountSession(calendar: calendar))
         router.reset()
+        // Eski hesabın bildirimleri (bekleyen ve gösterilmiş) kalkar; yeni hesabınkiler toplantıları okununca kurulur.
+        Task { await EngagementNotifier.shared.removeAll() }
     }
 }
 
@@ -375,6 +407,33 @@ struct PhoneAccountSession {
     func close() {
         player.stop()
     }
+}
+
+/// Bildirim planı için giriş yapan hesabın verisi: çıkış yapıldıysa `signedOut` (bildirimler kalkar); tanıtım modunda,
+/// hesap verisi yüklenmeden ve toplantılar okunmadan `notReady`.
+@MainActor
+func phoneEngagementDataState(store: PhoneStore, account: HostedAccount) -> EngagementDataState {
+    if phoneIsDemoLaunch() {
+        return .notReady
+    }
+    if case .signedOut = account.state {
+        return .signedOut
+    }
+    guard !account.requiresSignIn, store.isLoaded else {
+        return .notReady
+    }
+    return .ready(EngagementSnapshot(
+        records: store.meetings, userName: store.userName, calendarEnabled: UserDefaults.standard.bool(forKey: PhoneSettingsKey.calendarEnabled)
+    ))
+}
+
+/// Tanıtım modunda (`--tanitim`, yalnız Debug) mı açıldı.
+func phoneIsDemoLaunch() -> Bool {
+    #if DEBUG
+    isDemoMode
+    #else
+    false
+    #endif
 }
 
 /// Giriş kapısı gösterilsin mi: giriş gerekiyorsa, ama kayıt sürerken değil (oturum kayıt sırasında kapandıysa kayıt
@@ -421,9 +480,17 @@ func makePhoneAccountSession(calendar: PhoneCalendar) -> PhoneAccountSession {
     let recorder: PhoneRecorder = PhoneRecorder(store: store)
     recorder.currentCalendarMeeting = { () -> CalendarMeeting? in calendar.meetingForRecording(now: Date()) }
     let integrations: PhoneIntegrations = PhoneIntegrations(store: store)
-    // Not hazır olunca bağlı hedeflere kendiliğinden gönderilir (Mac'teki işleme sonu gibi).
-    recorder.onMeetingProcessed = { (_: MeetingRecord) -> Void in
+    // Toplantılar ya da görev işaretleri değişince görev ve özet bildirimleri yeniden kurulur.
+    store.onNotificationInputsChanged = { () -> Void in
+        EngagementNotifier.shared.scheduleRefresh()
+    }
+    // Not hazır olunca bağlı hedeflere kendiliğinden gönderilir (Mac'teki işleme sonu gibi); uygulama arkadaysa "Not
+    // hazır" bildirimi gösterilir, öndeyse ilk toplantıdan sonra bildirim izni sorulur.
+    recorder.onMeetingProcessed = { (record: MeetingRecord) -> Void in
         Task { await integrations.processPendingAutoSends() }
+        let userName: String = store.userName
+        let isActive: Bool = UIApplication.shared.applicationState == .active
+        Task { await EngagementNotifier.shared.meetingProcessed(record: record, userName: userName, isAppActive: isActive) }
     }
     // Not hazır olunca ve değişince Markdown klasöründeki kopya yenilenir (Mac'teki gibi; kendiliğinden yazma açıksa).
     // Bağlantılar arşive bağlı: zayıf başvuru döngü kurmaz.
@@ -735,6 +802,12 @@ struct RootView: View {
             // Takvim açılışta ve uygulama öne gelince yeniden okunur (izin bu arada geri alınmış olabilir).
             if phase == .active {
                 calendar.start()
+                // Bildirim izni iPhone Ayarları'nda değişmiş olabilir; notu yazılmış toplantı varsa ve izin hiç
+                // sorulmadıysa şimdi sorulur (tanıtım modunda sorulmaz); bildirimler yenilenir.
+                if !phoneIsDemoLaunch() {
+                    let records: [MeetingRecord] = store.meetings
+                    Task { await EngagementNotifier.shared.appBecameActive(records: records) }
+                }
             }
             // Kayıt arka planda sürer; görünmeyen kayıt ekranının işi durur, öne dönünce uzaktayken gelen metin hemen
             // görünür (bkz. `PhoneRecorder.enterBackground`).
@@ -763,7 +836,18 @@ struct RootView: View {
 @Observable
 final class PhoneStore {
     private static let logger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "PhoneStore")
-    private(set) var meetings: [MeetingRecord] = []
+    /// Hesabın toplantıları (en yeni önce); değişince bağlanan iş çalışır (bildirimler yeniden kurulur).
+    private(set) var meetings: [MeetingRecord] = [] {
+        didSet {
+            onNotificationInputsChanged?()
+        }
+    }
+    /// Toplantılar en az bir kez diskten okundu: o zamana dek bildirim planına dokunulmaz (boş listeyle bekleyen görev
+    /// bildirimleri silinmesin).
+    @ObservationIgnored private(set) var isLoaded: Bool = false
+    /// Toplantılar ya da ad değişti (uygulama bağlar: görev ve özet bildirimleri yeniden kurulur). Markdown kopyaları için
+    /// olan `onMeetingsChanged`'den ayrı: ikisi de bağlanır, biri diğerinin yerine geçmez.
+    @ObservationIgnored var onNotificationInputsChanged: (@MainActor () -> Void)?
     /// Okunamayan klasörler ya da klasöre erişim hatası (her okumada yenilenir).
     private(set) var loadProblems: [String] = []
     /// Toplantı işlemlerinin hataları (not yenileme, düzenleme, görev işareti…): okumayla silinmez; toplantı sayfasında
@@ -806,6 +890,7 @@ final class PhoneStore {
         await reloader.reload(load: { () async throws -> MeetingLoadResult in
             try await loadMeetingsInBackground(location: .local)
         }, apply: { (result: MeetingLoadResult) -> Void in
+            self.isLoaded = true
             self.replaceMeetings(records: result.meetings)
             self.loadProblems = result.failures.map { (failure: MeetingLoadFailure) -> String in "\(failure.folder): \(failure.reason)" }
         }, fail: { (error: any Error) -> Void in
@@ -970,6 +1055,22 @@ final class PhoneStore {
         }
     }
 
+    /// Görev bildirimindeki "Tamamlandı": görev tamamlandı diye işaretlenir (zaten tamamlandıysa değişmez); uygulama
+    /// öne gelmeden de çalışır. Toplantı kayıtta ya da işlenirken veya not bu arada yeniden yazılıp görev artık yoksa
+    /// işaretlenmez, neden loglanır ve Görevler'de görünür.
+    func completeTaskFromNotification(meetingID: String, taskKey key: String) {
+        guard let record = meetings.first(where: { $0.id == meetingID }), hasTask(record: record, key: key) else {
+            Self.logger.warning("Bildirimdeki görev işaretlenemedi (toplantı ya da görev yok), toplantı: \(meetingID, privacy: .public)")
+            return
+        }
+        do {
+            try updateMeeting(meetingID: meetingID) { (current: MeetingRecord) -> MeetingRecord in markingTaskDone(record: current, key: key) }
+        } catch {
+            Self.logger.error("Bildirimdeki görev işaretlenemedi, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+            actionProblems = appendUnique(messages: actionProblems, message: String(localized: "Toplantı kaydedilemedi: \(userFacingMessage(error: error))"))
+        }
+    }
+
     // MARK: Ad ve tanıma sözlüğü
 
     /// Kullanıcının adı (notta "Sen" ve sana düşen görevler, Sor, konuşmacılar, takip e-postası): hesabın ayar alanında
@@ -996,6 +1097,8 @@ final class PhoneStore {
         do {
             try hostedActiveAccountDefaults().set(name, forKey: PhoneSettingsKey.userName)
             userName = name
+            // Kullanıcıya düşen görevler adla da belirlenir.
+            onNotificationInputsChanged?()
         } catch {
             Self.logger.error("Ad saklanamadı, hata: \(String(describing: error), privacy: .private)")
             actionProblems = appendUnique(messages: actionProblems, message: userFacingMessage(error: error))

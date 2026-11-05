@@ -52,6 +52,12 @@ enum PhoneSettingsKey {
     /// Toplantıdan 1 dk önce "Dinlemeye başla" bildirimi (Mac'teki ayarla aynı ad); iPhone'da varsayılan kapalı, açılınca
     /// bildirim izni istenir.
     static let meetingReminders: String = "calendar.reminders"
+    /// Bildirimler (Ayarlar › Bildirimler; Mac'le aynı adlar, bkz. `EngagementSettingKey`): not hazır, görev günü,
+    /// haftalık özet, kayıtsız hafta. Varsayılan açık.
+    static let notifyNoteReady: String = EngagementSettingKey.noteReady
+    static let notifyTaskDue: String = EngagementSettingKey.taskDue
+    static let notifyWeeklySummary: String = EngagementSettingKey.weeklySummary
+    static let notifyInactive: String = EngagementSettingKey.inactive
     /// Ses ve metnin hizmetimize ve üçüncü taraf yapay zekâ sağlayıcılarına gönderileceği açıklaması kabul edildi (ilk
     /// yapay zekâ işleminden önce bir kez; bkz. `PhoneAIDisclosure`).
     static let aiDisclosureAccepted: String = "hosted.aiDisclosureAccepted"
@@ -74,6 +80,10 @@ func registerPhoneDefaults() {
         PhoneSettingsKey.displayMode: DisplayMode.bilingual.rawValue,
         PhoneSettingsKey.missedWindowMinutes: 3,
         PhoneSettingsKey.meetingReminders: false,
+        PhoneSettingsKey.notifyNoteReady: true,
+        PhoneSettingsKey.notifyTaskDue: true,
+        PhoneSettingsKey.notifyWeeklySummary: true,
+        PhoneSettingsKey.notifyInactive: true,
         PhoneSettingsKey.voiceRecognition: false,
         // Mac'teki Gistsmith gibi açık; Ayarlar › Gizlilik'ten kapatılır (bkz. `HostedTelemetryCenter`).
         shareUsageStatisticsDefaultsKey: true,
