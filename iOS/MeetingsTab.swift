@@ -729,11 +729,19 @@ struct MeetingReadView: View {
     @State private var isCreatingFolder: Bool = false
     /// Paylaşım sayfasıyla gönderilecek dışa aktarma dosyası.
     @State private var exported: ExportedFile?
-    /// Notun gösterildiği dil (Mac'teki özetin dil menüsü): nil asıl not (yazıldığı dilde), değilse o dildeki sürümü.
-    /// Paylaşım, Markdown kopyası ve notlu dışa aktarmalar da bu dilde çıkar.
-    @State private var noteLanguage: ShareLanguage?
+    /// Notun gösterildiği dil (Mac'teki özetin dil menüsü; saklanır: bütün toplantılarda ve yeniden açılışta sürer);
+    /// boşsa notun yazıldığı dil.
+    @AppStorage(PhoneSettingsKey.meetingNoteDisplayLanguage) private var shownNoteLanguage: String = ""
     /// Paragrafın ses klibi hazırlanıyor (bitince paylaşım sayfası açılır).
     @State private var isExportingClip: Bool = false
+
+    /// Notun gösterildiği dil: nil asıl not (yazıldığı dilde), değilse o dildeki sürümü. Paylaşım, Markdown kopyası ve
+    /// notlu dışa aktarmalar da bu dilde çıkar. Seçilen dil notun yazıldığı dilse asıl not.
+    private var noteLanguage: ShareLanguage? {
+        ShareLanguage(rawValue: shownNoteLanguage).flatMap { (language: ShareLanguage) -> ShareLanguage? in
+            language == record.note?.writtenLanguage ? nil : language
+        }
+    }
     /// "Sesi sil" satır içi onayı bekliyor (Mac'teki gibi; ayrı uyarı penceresi yok).
     @State private var isConfirmingAudioDelete: Bool = false
     /// Takip e-postası sayfası açık: taslağın ilk dili (sayfada seçili not dili); kapalıyken nil.
@@ -795,7 +803,10 @@ struct MeetingReadView: View {
                     HStack(spacing: 8) {
                         PillTabs(selection: $pane, options: [(MeetingPane.summary, "Özet"), (MeetingPane.transcript, "Transkript")])
                         if pane == .summary, let note = record.note {
-                            NoteLanguageMenu(original: note.writtenLanguage, selection: $noteLanguage)
+                            NoteLanguageMenu(original: note.writtenLanguage, selection: Binding<ShareLanguage?>(
+                                get: { noteLanguage },
+                                set: { (language: ShareLanguage?) -> Void in shownNoteLanguage = language?.rawValue ?? "" }
+                            ))
                         }
                     }
                     switch pane {

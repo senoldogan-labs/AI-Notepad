@@ -135,6 +135,22 @@ public enum LanguageMode: Sendable, Hashable {
     case fixed(MeetingLanguage)
 }
 
+/// Dil modunun ayarlarda saklanan metni: Otomatik için "auto", sabit dil için dil kodu ("fi"). Saf fonksiyondur.
+public func languageModeStorageValue(mode: LanguageMode) -> String {
+    switch mode {
+    case .automatic: "auto"
+    case .fixed(let language): language.rawValue
+    }
+}
+
+/// Saklanan metinden dil modu; kayıt yoksa ya da tanınmıyorsa Otomatik. Saf fonksiyondur.
+public func storedLanguageMode(value: String?) -> LanguageMode {
+    guard let value, let language = MeetingLanguage(rawValue: value) else {
+        return .automatic
+    }
+    return .fixed(language)
+}
+
 /// Bir konuşma bölümünün kimliği: konuşmacı + o konuşmacının akışındaki sıra numarası.
 public struct SegmentID: Sendable, Hashable {
     public let speaker: Speaker

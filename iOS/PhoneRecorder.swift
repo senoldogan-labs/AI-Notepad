@@ -81,7 +81,12 @@ final class PhoneRecorder {
     private(set) var processingSteps: [String: ProcessingStep] = [:]
     /// Son biten kaydın kimliği (hazırlanma kartı bunu izler).
     private(set) var lastMeetingID: String?
-    var languageMode: LanguageMode = .automatic
+    /// Bir sonraki kaydın dil modu; seçim saklanır, yeniden açılışta sürer.
+    var languageMode: LanguageMode = storedLanguageMode(value: UserDefaults.standard.string(forKey: PhoneSettingsKey.languageMode)) {
+        didSet {
+            UserDefaults.standard.set(languageModeStorageValue(mode: languageMode), forKey: PhoneSettingsKey.languageMode)
+        }
+    }
     /// Kayıtta işaretlenen anlar (not onları öne çıkarır).
     private(set) var highlights: [Highlight] = []
     /// Kullanıcının kayıt sırasında yazdığı notlar (not bunları öncelik sayar).

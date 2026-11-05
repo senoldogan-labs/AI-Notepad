@@ -97,8 +97,12 @@ final class AppModel {
     var lastFinishedMeetingID: String?
     /// Yerel konuşmacı ayırma modeli hazır değil (menüde uyarı; canlı kayıt engellenmez).
     var localDiarizationWarning: String?
-    /// Bir sonraki kaydın dil modu (kayıt sırasında dil `setLanguage` ile değişir).
-    var languageMode: LanguageMode = .automatic
+    /// Bir sonraki kaydın dil modu (kayıt sırasında dil `setLanguage` ile değişir); seçim saklanır, yeniden açılışta sürer.
+    var languageMode: LanguageMode = storedLanguageMode(value: UserDefaults.standard.string(forKey: SettingsKey.languageMode)) {
+        didSet {
+            UserDefaults.standard.set(languageModeStorageValue(mode: languageMode), forKey: SettingsKey.languageMode)
+        }
+    }
     var lockedLanguage: MeetingLanguage?
     /// Süren kaydın kullanıcının sabitlediği dili: kayıt başında seçili sabit dil; Otomatikte ve kayıtta "Dili değiştir"
     /// kullanıldıysa nil (değişiklikten önceki konuşma önceki dildedir, süzülmez). Kayda yazılır; doluysa başka dildeki

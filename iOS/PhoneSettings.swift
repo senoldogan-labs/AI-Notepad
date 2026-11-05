@@ -8,6 +8,11 @@ enum PhoneSettingsKey {
     static let primaryMeetingLanguage: String = "language.primary"
     /// Not ve çeviri dili (`ShareLanguage`): not, canlı çeviri ve Sor cevapları bu dilde yazılır.
     static let noteLanguage: String = "language.note"
+    /// Toplantı sayfasında notun gösterildiği dil (`ShareLanguage` kodu; boşsa notun yazıldığı dil): seçim bütün
+    /// toplantılarda ve yeniden açılışta sürer.
+    static let meetingNoteDisplayLanguage: String = "meeting.noteDisplayLanguage"
+    /// Bir sonraki kaydın dil modu (`languageModeStorageValue`: "auto" ya da dil kodu).
+    static let languageMode: String = "language.mode"
     /// Not dili ayarından önceki sürümlerin kullanıcısına Türkçe bir kez yazıldı (`legacyNoteLanguage`).
     static let noteLanguageMigrated: String = "migration.noteLanguage"
     /// Kullanıcı adı (notta "Sen" ve sana düşen görevler); hesabın ayar alanında (bkz. `PhoneStore.userName`).
@@ -95,6 +100,11 @@ func keepPhoneLegacyNoteLanguage(defaults: UserDefaults) {
         phoneSettingsLogger.info("Önceki sürümün kullanıcısı: not dili korundu, dil: \(language.rawValue, privacy: .public)")
     }
     defaults.set(true, forKey: PhoneSettingsKey.noteLanguageMigrated)
+    // Not dili hiç seçilmediyse ilk açılıştaki varsayılanı (arayüz dili) kaydedilir: arayüz dili sonradan değişince not
+    // dili sessizce değişmesin.
+    if stored[PhoneSettingsKey.noteLanguage] == nil, language == nil {
+        defaults.set(defaultNoteLanguage(interfaceLanguages: Bundle.main.preferredLocalizations).rawValue, forKey: PhoneSettingsKey.noteLanguage)
+    }
 }
 
 /// Yeni kurulumda ana toplantı dili cihazın dili olur (Mac'teki Gistsmith'in `chooseHostedMeetingLanguageOnFirstRun`
