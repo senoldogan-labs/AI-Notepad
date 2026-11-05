@@ -169,9 +169,152 @@ private func decodedIfType<Value: Decodable>(type: Value.Type, container: any Si
 /// istisna ve sınıf adı kalır. Anahtarlar sıralı yazılır. Çözülemeyen JSON `DecodingError` fırlatır. Saf fonksiyondur.
 public func redactedCrashPayload(payload: Data) throws -> Data {
     let decoded: CrashJSONValue = try JSONDecoder().decode(CrashJSONValue.self, from: payload)
+    return try encodedCrashJSON(value: redactedCrashJSON(value: decoded))
+}
+
+/// Gönderilecek çökme paketi: `redactedCrashPayload` ile temizlenir; `limit` baytı aşarsa sığana kadar adım adım
+/// küçültülür (her adım bir öncekinin üstüne, sığan ilk hal gönderilir; MetricKit paketi birkaç çökme ve donmayı tüm iş
+/// parçacıklarının yığınlarıyla taşıyıp 64 KB'ı aşabiliyordu):
+/// 1. çökme ve donma dışındaki teşhisler (CPU, disk, açılış) atılır;
+/// 2. her teşhiste yalnız sorunlu iş parçacığının (`threadAttributed`; yoksa ilk) yığını kalır;
+/// 3. öne çıkan teşhis (ilk çökme, yoksa ilk donma) dışındakilerin yığını atılır, üst bilgileri kalır;
+/// 4. kalan yığınlar en üstten 128, 64, 32 ve 16 çerçeveye kısaltılır.
+/// Küçültülen pakete `"trimmedForUpload": true` eklenir. Hiçbiri sığmazsa `ReportError.payloadTooLarge` (en küçük halin
+/// boyutuyla). Saf fonksiyondur.
+public func uploadableCrashPayload(payload: Data, limit: Int) throws -> Data {
+    let decoded: CrashJSONValue = try JSONDecoder().decode(CrashJSONValue.self, from: payload)
+    let redacted: CrashJSONValue = redactedCrashJSON(value: decoded)
+    let full: Data = try encodedCrashJSON(value: redacted)
+    if full.count <= limit {
+        return full
+    }
+    let onlyCrashesAndHangs: CrashJSONValue = crashAndHangDiagnosticsOnly(value: redacted)
+    let attributedThreads: CrashJSONValue = mappedDiagnostics(value: onlyCrashesAndHangs) { (diagnostic: CrashJSONValue, _: Bool) -> CrashJSONValue in
+        attributedThreadOnly(diagnostic: diagnostic)
+    }
+    let primaryStackOnly: CrashJSONValue = mappedDiagnostics(value: attributedThreads) { (diagnostic: CrashJSONValue, isPrimary: Bool) -> CrashJSONValue in
+        isPrimary ? diagnostic : removingField(value: diagnostic, key: "callStackTree")
+    }
+    let shallower: [CrashJSONValue] = [128, 64, 32, 16].map { (depth: Int) -> CrashJSONValue in
+        mappedDiagnostics(value: primaryStackOnly) { (diagnostic: CrashJSONValue, _: Bool) -> CrashJSONValue in
+            stackDepthLimited(diagnostic: diagnostic, depth: depth)
+        }
+    }
+    var smallest: Int = full.count
+    for candidate in [onlyCrashesAndHangs, attributedThreads, primaryStackOnly] + shallower {
+        let encoded: Data = try encodedCrashJSON(value: settingField(value: candidate, key: "trimmedForUpload", field: .bool(true)))
+        if encoded.count <= limit {
+            return encoded
+        }
+        smallest = encoded.count
+    }
+    throw ReportError.payloadTooLarge(bytes: smallest, limit: limit)
+}
+
+private func encodedCrashJSON(value: CrashJSONValue) throws -> Data {
     let encoder: JSONEncoder = JSONEncoder()
     encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
-    return try encoder.encode(redactedCrashJSON(value: decoded))
+    return try encoder.encode(value)
+}
+
+/// Paketin üst düzeyinden çökme ve donma dışındaki teşhis dizilerini (`…Diagnostics`) atar. Saf fonksiyondur.
+private func crashAndHangDiagnosticsOnly(value: CrashJSONValue) -> CrashJSONValue {
+    guard case .object(let fields) = value else {
+        return value
+    }
+    return .object(fields.filter { (key: String, _: CrashJSONValue) -> Bool in
+        !key.hasSuffix("Diagnostics") || key == "crashDiagnostics" || key == "hangDiagnostics"
+    })
+}
+
+/// Paketteki her çökme ve donma teşhisine `transform` uygular; ikinci argüman teşhisin öne çıkan teşhis (ilk çökme,
+/// çökme yoksa ilk donma; `CrashReport.primaryDiagnostic`) olup olmadığıdır. Saf fonksiyondur.
+private func mappedDiagnostics(value: CrashJSONValue, transform: (CrashJSONValue, Bool) -> CrashJSONValue) -> CrashJSONValue {
+    guard case .object(var fields) = value else {
+        return value
+    }
+    let hasCrash: Bool = {
+        if case .array(let crashes) = fields["crashDiagnostics"] {
+            return !crashes.isEmpty
+        }
+        return false
+    }()
+    for key in ["crashDiagnostics", "hangDiagnostics"] {
+        guard case .array(let items) = fields[key] else {
+            continue
+        }
+        let primaryKey: String = hasCrash ? "crashDiagnostics" : "hangDiagnostics"
+        fields[key] = .array(items.enumerated().map { (index: Int, item: CrashJSONValue) -> CrashJSONValue in
+            transform(item, key == primaryKey && index == 0)
+        })
+    }
+    return .object(fields)
+}
+
+/// Teşhisin yığın ağacında yalnız sorunlu iş parçacığının (`threadAttributed`; yoksa ilk) yığını kalır. Saf fonksiyondur.
+private func attributedThreadOnly(diagnostic: CrashJSONValue) -> CrashJSONValue {
+    guard case .object(var fields) = diagnostic,
+          case .object(var tree) = fields["callStackTree"],
+          case .array(let stacks) = tree["callStacks"] else {
+        return diagnostic
+    }
+    let attributed: CrashJSONValue? = stacks.first { (stack: CrashJSONValue) -> Bool in
+        if case .object(let stackFields) = stack, stackFields["threadAttributed"] == .bool(true) {
+            return true
+        }
+        return false
+    } ?? stacks.first
+    tree["callStacks"] = .array(attributed.map { [$0] } ?? [])
+    fields["callStackTree"] = .object(tree)
+    return .object(fields)
+}
+
+/// Teşhisin yığınlarını en üstten `depth` çerçeveye kısaltır (kök çerçeveler 1. düzey, `subFrames` bir alt düzey).
+/// Saf fonksiyondur.
+private func stackDepthLimited(diagnostic: CrashJSONValue, depth: Int) -> CrashJSONValue {
+    guard case .object(var fields) = diagnostic,
+          case .object(var tree) = fields["callStackTree"],
+          case .array(let stacks) = tree["callStacks"] else {
+        return diagnostic
+    }
+    tree["callStacks"] = .array(stacks.map { (stack: CrashJSONValue) -> CrashJSONValue in
+        guard case .object(var stackFields) = stack, case .array(let roots) = stackFields["callStackRootFrames"] else {
+            return stack
+        }
+        stackFields["callStackRootFrames"] = .array(roots.map { framesLimited(frame: $0, remaining: depth) })
+        return .object(stackFields)
+    })
+    fields["callStackTree"] = .object(tree)
+    return .object(fields)
+}
+
+/// Çerçeveyi ve altındakileri `remaining` düzeyle sınırlar; son düzeyde `subFrames` atılır. Saf fonksiyondur.
+private func framesLimited(frame: CrashJSONValue, remaining: Int) -> CrashJSONValue {
+    guard case .object(var fields) = frame, case .array(let children) = fields["subFrames"] else {
+        return frame
+    }
+    if remaining <= 1 {
+        fields.removeValue(forKey: "subFrames")
+    } else {
+        fields["subFrames"] = .array(children.map { framesLimited(frame: $0, remaining: remaining - 1) })
+    }
+    return .object(fields)
+}
+
+private func removingField(value: CrashJSONValue, key: String) -> CrashJSONValue {
+    guard case .object(var fields) = value else {
+        return value
+    }
+    fields.removeValue(forKey: key)
+    return .object(fields)
+}
+
+private func settingField(value: CrashJSONValue, key: String, field: CrashJSONValue) -> CrashJSONValue {
+    guard case .object(var fields) = value else {
+        return value
+    }
+    fields[key] = field
+    return .object(fields)
 }
 
 /// Ağacı `redactedCrashPayload` kurallarıyla temizler. Saf fonksiyondur.

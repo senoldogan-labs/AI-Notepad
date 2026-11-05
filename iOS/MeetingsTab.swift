@@ -1363,9 +1363,16 @@ private struct MeetingSummary: View {
                 // (kendi notun yoksa sonunda "Notlarım").
                 VStack(alignment: .leading, spacing: 12) {
                     if mine.isEmpty {
-                        Label("Bu toplantıda sana düşen görev yok", systemImage: "checkmark.circle")
-                            .appFont(size: 13, weight: .regular)
-                            .foregroundStyle(Theme.muted)
+                        // Yüz yüze toplantıda kullanıcı da "Konuşmacı N": hangisi olduğunu seçince görevleri ona düşer.
+                        let asksUser: Bool = !userSpeakerCandidates(record: record, userName: store.userName).isEmpty
+                        UserSpeakerPrompt(record: record, userName: store.userName, isLocked: !isEditable) { (person: Int, name: String) -> Void in
+                            store.nameUserSpeaker(meetingID: record.id, person: person, name: name)
+                        }
+                        if !asksUser {
+                            Label("Bu toplantıda sana düşen görev yok", systemImage: "checkmark.circle")
+                                .appFont(size: 13, weight: .regular)
+                                .foregroundStyle(Theme.muted)
+                        }
                     }
                     if let myNotes = record.myNotes {
                         myNotesCard(text: myNotes)

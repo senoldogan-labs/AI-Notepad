@@ -33,11 +33,17 @@ struct TasksTab: View {
         NavigationStack {
             Group {
                 if all.isEmpty {
-                    // Hiç görev yok: ilerleme ve süzgeç yerine yalnız ortada boş durum.
-                    emptyState(hasTasks: false, doneCount: 0)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(Theme.background)
-                        .navigationTitle("Görevlerim")
+                    // Hiç görev yok: ilerleme ve süzgeç yerine yalnız ortada boş durum; konuşmacısı seçilmemiş yüz yüze
+                    // toplantı varsa üstte (görevleri seçilince buraya gelir).
+                    VStack(spacing: 0) {
+                        pendingSpeakerMeetings
+                            .padding(.horizontal, 20)
+                            .padding(.top, 8)
+                        emptyState(hasTasks: false, doneCount: 0)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                    .background(Theme.background)
+                    .navigationTitle("Görevlerim")
                 } else {
                     taskList(all: all, doneCount: doneCount, shown: shown, groups: groups)
                 }
@@ -55,6 +61,9 @@ struct TasksTab: View {
             VStack(alignment: .leading, spacing: 18) {
                 // Görev işareti saklanamadıysa (ya da toplantı işlenirken) nedeni burada.
                 PhoneDismissibleErrorList(messages: store.actionProblems) { store.dismissActionProblems() }
+                if filter == .open {
+                    pendingSpeakerMeetings
+                }
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(alignment: .firstTextBaseline) {
                         Text(verbatim: "\(doneCount)/\(all.count)")
@@ -117,6 +126,13 @@ struct TasksTab: View {
         }
         .background(Theme.background)
         .navigationTitle("Görevlerim")
+    }
+
+    /// Yüz yüze toplantıda kullanıcı da "Konuşmacı N": hangisi olduğu seçilmemiş toplantılar (dokununca toplantı açılır).
+    private var pendingSpeakerMeetings: some View {
+        PendingUserSpeakerMeetings(meetings: store.meetings, userName: userName) { (meetingID: String) -> Void in
+            router.open(meetingID: meetingID)
+        }
     }
 
     /// Ekranın ortasındaki boş durum: hiç görev yok, açık görev kalmadı ya da henüz tamamlanan yok.

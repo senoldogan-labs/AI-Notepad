@@ -149,7 +149,7 @@ public final class CrashReportCenter {
         reload()
     }
 
-    /// Raporu kullanıcının açık isteğiyle gönderir: saklanan MetricKit JSON.u temizlenmiş haliyle (bkz. `redactedCrashPayload`) `kind: crash` olarak `destination`'ın
+    /// Raporu kullanıcının açık isteğiyle gönderir: saklanan MetricKit JSON.u temizlenmiş ve sınıra sığdırılmış haliyle (bkz. `uploadableCrashPayload`) `kind: crash` olarak `destination`'ın
     /// verdiği sunucuya gider. Başarıda rapor görüldü sayılır (şeritten kalkar); hata `sendStates`'te görünür.
     public func send(report: CrashReport, destination: @MainActor () async throws -> ReportDestination) async {
         guard sendStates[report.id] != .sending else {
