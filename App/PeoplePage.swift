@@ -127,7 +127,8 @@ struct PeoplePage: View {
             } onCancel: {
                 isAdding = false
             }
-            .frame(width: 460)
+            .frame(width: 480)
+            .modifier(AppSheetChrome())
         }
         .animation(.smooth(duration: 0.25), value: listVisible)
     }
@@ -205,8 +206,16 @@ struct PeoplePage: View {
     }
 }
 
+/// Formun alanları (odak hangi alanda: çerçevesi vurgu renginde).
+private enum PersonField: Hashable {
+    case name
+    case role
+    case email
+}
+
 /// Kişi ekleme/düzenleme formu: ad (zorunlu), ünvan ya da kurum, e-posta. `lockedName` verilirse ad değiştirilemez
-/// (toplantılarda verilmiş ad; değişirse kişi ikiye bölünürdü).
+/// (toplantılarda verilmiş ad; değişirse kişi ikiye bölünürdü). Rozet ad yazıldıkça kişinin baş harfi ve rengiyle
+/// güncellenir; ana eylem kullanıcının vurgu renginde, sağ altta.
 private struct PersonForm: View {
     let title: LocalizedStringKey
     let lockedName: String?
@@ -215,7 +224,8 @@ private struct PersonForm: View {
     @State private var name: String
     @State private var role: String
     @State private var email: String
-    @FocusState private var nameFocused: Bool
+    @FocusState private var focused: PersonField?
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     init(title: LocalizedStringKey, initialName: String, lockedName: String?, initialRole: String, initialEmail: String, onSave: @escaping @MainActor (String, String, String) -> Void, onCancel: @escaping @MainActor () -> Void) {
         self.title = title
@@ -228,57 +238,100 @@ private struct PersonForm: View {
     }
 
     var body: some View {
-        let canSave: Bool = !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        VStack(alignment: .leading, spacing: 18) {
-            HStack(spacing: 16) {
-                PersonAvatar(name: name.isEmpty ? "?" : name, size: 56)
-                Text(title).appFont(size: 28, weight: .regular).tracking(-0.4)
+        let trimmedName: String = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let canSave: Bool = !trimmedName.isEmpty
+        VStack(alignment: .leading, spacing: 22) {
+            HStack(spacing: 14) {
+                avatar(name: lockedName ?? trimmedName)
+                Text(title).appFont(size: 22, weight: .semibold).tracking(-0.3)
             }
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 14) {
                 if let lockedName {
-                    VStack(alignment: .leading, spacing: 5) {
+                    VStack(alignment: .leading, spacing: 6) {
                         Text("Ad").appFont(size: 12, weight: .medium).foregroundStyle(Theme.muted)
                         Text(lockedName).appFont(size: 14, weight: .medium)
                         Text("Ad toplantılarda verildi; değiştirmek için toplantının Transkript sekmesini kullan.")
                             .appFont(size: 11, weight: .regular)
                             .foregroundStyle(Theme.muted)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 } else {
-                    field(label: "Ad", prompt: "Örn. Aino Virtanen", text: $name)
-                        .focused($nameFocused)
+                    VStack(alignment: .leading, spacing: 6) {
+                        field(.name, label: "Ad", prompt: "Örn. Aino Virtanen", text: $name)
+                        Text("Ad konuşma tanımaya verilir; bir toplantıda konuşmacıya bu adı verince toplantıları ve görevleri burada toplanır.")
+                            .appFont(size: 11, weight: .regular)
+                            .foregroundStyle(Theme.muted)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
-                field(label: "Ünvan ya da kurum", prompt: "Örn. Ürün müdürü, Acme", text: $role)
-                field(label: "E-posta", prompt: "aino@ornek.fi", text: $email)
+                field(.role, label: "Ünvan ya da kurum", prompt: "Örn. Ürün müdürü, Acme", text: $role)
+                field(.email, label: "E-posta", prompt: "aino@ornek.fi", text: $email)
+                    .textContentType(.emailAddress)
             }
-            .padding(18)
-            .cardSurface(cornerRadius: 16)
-            Text("Ad konuşma tanımaya verilir; bir toplantıda konuşmacıya bu adı verince toplantıları ve görevleri burada toplanır.")
-                .appFont(size: 12, weight: .regular)
-                .foregroundStyle(Theme.muted)
-                .fixedSize(horizontal: false, vertical: true)
+            Rectangle().fill(Theme.line).frame(height: 1)
             HStack(spacing: 8) {
+                Spacer(minLength: 0)
+                Button("Vazgeç") { onCancel() }
+                    .buttonStyle(.pill)
+                    .keyboardShortcut(.cancelAction)
                 Button("Kaydet") { onSave(name, role, email) }
-                    .buttonStyle(.pillPrimary)
+                    .buttonStyle(.accentPill)
                     .disabled(!canSave)
                     .keyboardShortcut(.defaultAction)
-                Button("Vazgeç") { onCancel() }
-                    .keyboardShortcut(.cancelAction)
             }
         }
-        .padding(32)
+        .padding(28)
         .frame(maxWidth: 620, alignment: .leading)
-        .onAppear { nameFocused = true }
+        .onAppear { focused = lockedName == nil ? .name : .role }
     }
 
-    private func field(label: LocalizedStringKey, prompt: LocalizedStringKey, text: Binding<String>) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
+    /// Ad yazılmadan kişi simgesi (vurgu renginde), yazılınca kişinin rozeti.
+    @ViewBuilder
+    private func avatar(name: String) -> some View {
+        if name.isEmpty {
+            Image(systemName: "person.fill")
+                .appFont(size: 22, weight: .medium)
+                .foregroundStyle(appearance.accent.color)
+                .frame(width: 52, height: 52)
+                .background(Circle().fill(appearance.accent.color.opacity(0.15)))
+                .accessibilityHidden(true)
+        } else {
+            PersonAvatar(name: name, size: 52)
+        }
+    }
+
+    private func field(_ which: PersonField, label: LocalizedStringKey, prompt: LocalizedStringKey, text: Binding<String>) -> some View {
+        let isFocused: Bool = focused == which
+        return VStack(alignment: .leading, spacing: 6) {
             Text(label).appFont(size: 12, weight: .medium).foregroundStyle(Theme.muted)
-            TextField(label, text: text, prompt: Text(prompt))
+            // Örnek metin alanın üstünde soluk çizilir: AppKit odaksız alanın yer tutucusunu alanın yazı rengiyle
+            // çiziyordu (girilmiş değer gibi görünüyordu). Bu yüzden alanın başlığı boş (AppKit yer tutucu çizmez), adı
+            // erişilebilirlik etiketinde; tıklama alana geçer.
+            TextField(text: text) { EmptyView() }
                 .textFieldStyle(.plain)
+                .accessibilityLabel(Text(label))
+                .focused($focused, equals: which)
                 .appFont(size: 14, weight: .regular)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 8)
-                .background(Theme.soft, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .overlay(alignment: .leading) {
+                    if text.wrappedValue.isEmpty {
+                        Text(prompt)
+                            .appFont(size: 14, weight: .regular)
+                            .foregroundStyle(Theme.muted)
+                            // Örnek e-posta bağlantıya dönüşüp vurgu renginde çiziliyordu.
+                            .tint(Theme.muted)
+                            .lineLimit(1)
+                            .allowsHitTesting(false)
+                            .accessibilityHidden(true)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .background(Theme.soft, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(isFocused ? appearance.accent.color : Theme.line, lineWidth: isFocused ? 1.5 : 1)
+                )
+                .animation(.easeOut(duration: 0.12), value: isFocused)
         }
     }
 }

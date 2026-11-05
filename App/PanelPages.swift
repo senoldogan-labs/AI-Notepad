@@ -254,6 +254,18 @@ struct AppearanceEnvironment: ViewModifier {
     }
 }
 
+/// Ana pencereden açılan sayfaların (sheet) görünümü: macOS sayfası pencerenin görünüm ortamını (vurgu rengi, yazı,
+/// hap düğmeler) devralmıyor ve sistemin gri sayfa zeminini kullanıyordu (koyu temada uygulamanın zeminiyle uyuşmuyor,
+/// stilsiz düğmeler vurgu renginde sistem düğmesi oluyordu). İkisi de uygulamanınkine çekilir.
+struct AppSheetChrome: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .foregroundStyle(Theme.ink)
+            .modifier(AppearanceEnvironment())
+            .presentationBackground(Theme.background)
+    }
+}
+
 private let appearanceLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "Appearance")
 
 /// Saklanan yazı seçimi ve yüklü aileler (yüklü olmayan aile uyarısı ikisinden biri değişince yeniden bakılır).
