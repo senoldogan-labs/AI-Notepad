@@ -487,7 +487,6 @@ private struct TopBar: View {
     let onShowPanel: @MainActor () -> Void
 
     @AppStorage(SettingsKey.meetingsListVisible) private var meetingsListVisible: Bool = true
-    @AppStorage(SettingsKey.peopleListVisible) private var peopleListVisible: Bool = true
     @AppStorage(SettingsKey.askHistoryVisible) private var askHistoryVisible: Bool = false
 
     var body: some View {
@@ -497,8 +496,6 @@ private struct TopBar: View {
             // Hiç toplantı yokken liste sütunu yoktur (ilk açılış sahnesi tüm alanı kaplar): düğme de gizlenir.
             case .meetings where !model.meetings.isEmpty:
                 listToggle(isVisible: $meetingsListVisible, show: "Toplantı listesini göster", hide: "Toplantı listesini gizle")
-            case .people:
-                listToggle(isVisible: $peopleListVisible, show: "Kişi listesini göster", hide: "Kişi listesini gizle")
             case .ask where !model.askConversations.isEmpty:
                 listToggle(isVisible: $askHistoryVisible, show: "Sohbet geçmişini göster", hide: "Sohbet geçmişini gizle")
             default:

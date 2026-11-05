@@ -31,7 +31,9 @@ public struct PillPicker<Value: Hashable>: View {
                         // ElevenLabs bölüm seçicisi: soluk iz üzerinde seçili bölüm beyaz kart.
                         .background {
                             if isSelected {
+                                // İnce çerçeve: koyu temada kart izden zor ayrılıyordu.
                                 Capsule().fill(Theme.card).shadow(color: .black.opacity(0.10), radius: 2, y: 1)
+                                    .overlay(Capsule().strokeBorder(Theme.line))
                                     .matchedGeometryEffect(id: "secili", in: selectionSpace)
                             }
                         }

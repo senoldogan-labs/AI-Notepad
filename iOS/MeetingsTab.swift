@@ -713,6 +713,8 @@ struct MeetingReadView: View {
     /// ⋯ › Tarif uygula: seçilen tarif bu toplantıya Sor'da uygulanır.
     let onRunRecipe: @MainActor (Recipe) -> Void
     @State private var pane: MeetingPane = .summary
+    /// Özetteki seçili not bölümü (görevler, konu akışı, kararlar, işaretli anlar); kapaktaki çipler de seçer.
+    @State private var noteSection: NoteSectionTab = .tasks
     /// Silme onayı bekleyen toplantı (⋯ › Sil).
     @State private var pendingDelete: MeetingRecord?
     @State private var errorMessage: String?
@@ -1065,7 +1067,8 @@ struct MeetingReadView: View {
     private func summary(note: MeetingNote?, paragraphs: [TranscriptParagraph]) -> some View {
         MeetingSummary(
             record: record, note: note, paragraphs: paragraphs, store: store, canPlay: canPlay, isEditable: isEditable,
-            onNameSpeakers: { isNamingSpeakers = true }, onEditMyNotes: { isEditingMyNotes = true }, onClip: exportClip(paragraph:)
+            onNameSpeakers: { isNamingSpeakers = true }, onEditMyNotes: { isEditingMyNotes = true }, onClip: exportClip(paragraph:),
+            section: $noteSection
         ) { (startSec: Double) -> Void in
             play(from: startSec)
         }
@@ -1188,6 +1191,11 @@ struct MeetingReadView: View {
     private func reveal(anchor: MeetingNoteAnchor, proxy: ScrollViewProxy) {
         let needsSwitch: Bool = pane != .summary
         withAnimation(.smooth(duration: 0.25)) { pane = .summary }
+        switch anchor {
+        case .myTasks: noteSection = .tasks
+        case .decisions: noteSection = .decisions
+        case .sections: break
+        }
         Task { @MainActor in
             if needsSwitch {
                 do {
@@ -1197,7 +1205,7 @@ struct MeetingReadView: View {
                     return
                 }
             }
-            withAnimation(.smooth(duration: 0.35)) { proxy.scrollTo(anchor, anchor: .top) }
+            withAnimation(.smooth(duration: 0.35)) { proxy.scrollTo(MeetingNoteAnchor.sections, anchor: .top) }
         }
     }
 
@@ -1339,39 +1347,31 @@ private struct MeetingSummary: View {
     let onEditMyNotes: @MainActor () -> Void
     /// İşaretli anın sesini klip olarak paylaşır (uzun basınca).
     let onClip: @MainActor (TranscriptParagraph) -> Void
+    /// Seçili not bölümü (kapaktaki görev ve karar çipleri de seçer).
+    @Binding var section: NoteSectionTab
     let onPlay: @MainActor (Double) -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
+    @State private var showsMyTasks: Bool = true
+    @State private var showsOtherTasks: Bool = true
 
     var body: some View {
         if let note {
             let mine: [NoteTask] = note.tasks.filter(\.isMine)
-            let others: [NoteTask] = note.tasks.filter { !$0.isMine }
             let shares: [SpeakerShare] = speakerShares(paragraphs: paragraphs)
             let groups: SpeakerGroups = groupedSpeakers(shares: shares, speakerNames: record.speakerNames)
             VStack(alignment: .leading, spacing: 26) {
-                if !mine.isEmpty {
-                    section(title: "Senin görevlerin") {
-                        ForEach(mine, id: \.trackingKey) { (task: NoteTask) in
-                            PhoneTaskRow(record: record, task: task, showsMeeting: false) {
-                                withAnimation(.smooth(duration: 0.25)) { store.toggleTask(meetingID: record.id, task: task) }
-                            }
-                        }
-                    }
-                    .id(MeetingNoteAnchor.myTasks)
-                }
-                // Notun üstündeki sakin blok: görev yoksa tek soluk satır, kendi notların (varsa) ve not düzenleme satırı
-                // (kendi notun yoksa sonunda "Notlarım").
+                // Önce sonuç: görevler (ve diğer bölümler) özetin üstünde.
+                sectionsPanel(note: note)
+                Text(note.summary)
+                    .readingText(size: 18, weight: .regular, lineSpacing: 6)
+                    .textSelection(.enabled)
+                // Özetin altındaki sakin blok: yüz yüze toplantıda "Hangisi sendin?", kendi notların (varsa) ve not
+                // düzenleme satırı (kendi notun yoksa sonunda "Notlarım").
                 VStack(alignment: .leading, spacing: 12) {
                     if mine.isEmpty {
                         // Yüz yüze toplantıda kullanıcı da "Konuşmacı N": hangisi olduğunu seçince görevleri ona düşer.
-                        let asksUser: Bool = !userSpeakerCandidates(record: record, userName: store.userName).isEmpty
                         UserSpeakerPrompt(record: record, userName: store.userName, isLocked: !isEditable) { (person: Int, name: String) -> Void in
                             store.nameUserSpeaker(meetingID: record.id, person: person, name: name)
-                        }
-                        if !asksUser {
-                            Label("Bu toplantıda sana düşen görev yok", systemImage: "checkmark.circle")
-                                .appFont(size: 13, weight: .regular)
-                                .foregroundStyle(Theme.muted)
                         }
                     }
                     if let myNotes = record.myNotes {
@@ -1384,9 +1384,6 @@ private struct MeetingSummary: View {
                         Task { await store.editNote(meetingID: record.id, instruction: instruction) }
                     }
                 }
-                Text(note.summary)
-                    .readingText(size: 18, weight: .regular, lineSpacing: 6)
-                    .textSelection(.enabled)
                 if shares.count > 1 {
                     VStack(alignment: .leading, spacing: 12) {
                         // Adı verilebilecek konuşmacı varsa başlıkta "Ad ver" (transkript ve not adlarla görünür).
@@ -1401,59 +1398,6 @@ private struct MeetingSummary: View {
                         // Az konuşanlar tek satırda; dokununca tek tek görünür (ad vermek için "Ad ver").
                         if !groups.minor.isEmpty {
                             MinorSpeakersRow(groups: groups, speakerNames: record.speakerNames)
-                        }
-                    }
-                }
-                if !note.decisions.isEmpty {
-                    section(title: "Kararlar") {
-                        ForEach(Array(note.decisions.enumerated()), id: \.offset) { (item: (offset: Int, element: String)) in
-                            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                                Text(verbatim: "\(item.offset + 1)")
-                                    .appFont(size: 13, weight: .semibold)
-                                    .monospacedDigit()
-                                    .foregroundStyle(appearance.accent.color)
-                                    .frame(width: 18, alignment: .trailing)
-                                Text(item.element)
-                                    .readingText(size: 16, weight: .regular, lineSpacing: 3)
-                            }
-                        }
-                    }
-                    .id(MeetingNoteAnchor.decisions)
-                }
-                let marked: [TranscriptParagraph] = markedParagraphs
-                if !marked.isEmpty {
-                    section(title: "İşaretlediğin anlar") {
-                        VStack(alignment: .leading, spacing: 0) {
-                            ForEach(marked, id: \.id) { (paragraph: TranscriptParagraph) in
-                                HighlightRow(paragraph: paragraph, speakerNames: record.speakerNames, canPlay: canPlay) {
-                                    onPlay(paragraph.startSec)
-                                }
-                                // Uzun basınca (Mac'teki sağ tık): anın sesini klip olarak paylaş.
-                                .contextMenu {
-                                    Button("Ses klibini paylaş", systemImage: "waveform") { onClip(paragraph) }
-                                        .disabled(!canPlay)
-                                }
-                            }
-                        }
-                    }
-                }
-                if let outline = note.outline, !outline.isEmpty {
-                    section(title: "Konu akışı") {
-                        VStack(alignment: .leading, spacing: 0) {
-                            ForEach(Array(outline.enumerated()), id: \.offset) { (item: (offset: Int, element: OutlineItem)) in
-                                OutlineRow(item: item.element, isLast: item.offset == outline.count - 1, canPlay: canPlay) {
-                                    onPlay(item.element.startSec)
-                                }
-                            }
-                        }
-                    }
-                }
-                if !others.isEmpty {
-                    section(title: "Diğer görevler") {
-                        ForEach(others, id: \.trackingKey) { (task: NoteTask) in
-                            PhoneTaskRow(record: record, task: task, showsMeeting: false) {
-                                withAnimation(.smooth(duration: 0.25)) { store.toggleTask(meetingID: record.id, task: task) }
-                            }
                         }
                     }
                 }
@@ -1472,10 +1416,103 @@ private struct MeetingSummary: View {
         return paragraphs.filter { ids.contains($0.id) }
     }
 
-    private func section(title: LocalizedStringKey, @ViewBuilder content: () -> some View) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            PhoneSectionHeader(title: title, actionTitle: nil, action: nil)
-            content()
+    /// Notun sekmeli bölümleri (Mac'teki gibi): görevler, konu akışı, kararlar, işaretli anlar; boş olanın sekmesi yok.
+    /// Kapaktaki çipler sekmeyi seçip buraya kaydırır (`MeetingNoteAnchor.sections`).
+    @ViewBuilder
+    private func sectionsPanel(note: MeetingNote) -> some View {
+        let marked: [TranscriptParagraph] = markedParagraphs
+        let outline: [OutlineItem] = note.outline ?? []
+        let counts: [NoteSectionTab: Int] = [.tasks: note.tasks.count, .outline: outline.count, .decisions: note.decisions.count, .moments: marked.count]
+        let available: [NoteSectionTab] = NoteSectionTab.allCases.filter { (counts[$0] ?? 0) > 0 }
+        if let current = visibleNoteSection(requested: section, available: available) {
+            VStack(alignment: .leading, spacing: 16) {
+                if available.count > 1 {
+                    ScrollView(.horizontal) {
+                        UnderlineTabs(
+                            selection: Binding<NoteSectionTab>(get: { current }, set: { (tab: NoteSectionTab) -> Void in section = tab }),
+                            options: available.map { (tab: NoteSectionTab) -> (value: NoteSectionTab, title: LocalizedStringKey) in
+                                (value: tab, title: noteSectionTitle(tab: tab, count: counts[tab] ?? 0))
+                            }
+                        )
+                        .fixedSize()
+                    }
+                    .scrollIndicators(.hidden)
+                }
+                Group {
+                    switch current {
+                    case .tasks: tasksSection(note: note)
+                    case .outline: OutlineTimeline(items: outline, canPlay: canPlay, onPlay: onPlay)
+                    case .decisions: decisionsSection(note: note)
+                    case .moments: momentsSection(marked: marked)
+                    }
+                }
+                .transition(.opacity)
+            }
+            .animation(.smooth(duration: 0.2), value: current)
+            .id(MeetingNoteAnchor.sections)
+        }
+    }
+
+    /// Görevler: önce senin görevlerin, sonra diğerleri; iki grup da açılıp kapanır.
+    private func tasksSection(note: MeetingNote) -> some View {
+        // Tamamlananlar grubun sonunda (sıraları korunur).
+        let ordered: [NoteTask] = note.tasks.filter { !isTaskDone(record: record, task: $0) } + note.tasks.filter { isTaskDone(record: record, task: $0) }
+        let mine: [NoteTask] = ordered.filter(\.isMine)
+        let others: [NoteTask] = ordered.filter { !$0.isMine }
+        let doneMine: Int = mine.filter { isTaskDone(record: record, task: $0) }.count
+        return VStack(alignment: .leading, spacing: 18) {
+            if !mine.isEmpty {
+                CollapsibleGroup(
+                    title: "Senin görevlerin", count: mine.count,
+                    detail: String(localized: "\(doneMine)/\(mine.count) tamamlandı"), tint: appearance.accent.color, isExpanded: $showsMyTasks
+                ) {
+                    HairlineList(items: mine, tint: appearance.accent.color) { (task: NoteTask) in taskRow(task: task) }
+                }
+            }
+            if !others.isEmpty {
+                CollapsibleGroup(title: "Diğer görevler", count: others.count, detail: nil, tint: nil, isExpanded: $showsOtherTasks) {
+                    HairlineList(items: others, tint: nil) { (task: NoteTask) in taskRow(task: task) }
+                }
+            }
+        }
+    }
+
+    private func taskRow(task: NoteTask) -> some View {
+        PhoneTaskRowContent(record: record, task: task, showsMeeting: false) {
+            withAnimation(.smooth(duration: 0.25)) { store.toggleTask(meetingID: record.id, task: task) }
+        }
+        .id(task.trackingKey)
+    }
+
+    /// Kararlar: numaralı, ince çizgilerle ayrılmış.
+    private func decisionsSection(note: MeetingNote) -> some View {
+        HairlineList(items: Array(note.decisions.enumerated()), tint: nil) { (item: (offset: Int, element: String)) in
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Text(verbatim: "\(item.offset + 1)")
+                    .appFont(size: 13, weight: .semibold)
+                    .monospacedDigit()
+                    .foregroundStyle(appearance.accent.color)
+                    .frame(width: 18, alignment: .trailing)
+                Text(item.element)
+                    .readingText(size: 16, weight: .regular, lineSpacing: 3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(14)
+        }
+    }
+
+    /// İşaretlediğin anlar: dokununca oradan çalar; uzun basınca ses klibi.
+    private func momentsSection(marked: [TranscriptParagraph]) -> some View {
+        HairlineList(items: marked, tint: nil) { (paragraph: TranscriptParagraph) in
+            HighlightRow(paragraph: paragraph, speakerNames: record.speakerNames, canPlay: canPlay) {
+                onPlay(paragraph.startSec)
+            }
+            .padding(.horizontal, 14)
+            // Uzun basınca (Mac'teki sağ tık): anın sesini klip olarak paylaş.
+            .contextMenu {
+                Button("Ses klibini paylaş", systemImage: "waveform") { onClip(paragraph) }
+                    .disabled(!canPlay)
+            }
         }
     }
 
@@ -1704,51 +1741,6 @@ private struct MinorSpeakersRow: View {
                 }
             }
         }
-    }
-}
-
-/// Konu akışı satırı: solda saat ve ince dikey çizgi (zaman çizelgesi), sağda başlık ve tek cümle; dokununca çalar.
-private struct OutlineRow: View {
-    let item: OutlineItem
-    let isLast: Bool
-    let canPlay: Bool
-    let onPlay: @MainActor () -> Void
-    @Environment(\.panelAppearance) private var appearance: PanelAppearance
-
-    var body: some View {
-        Button(action: onPlay) {
-            HStack(alignment: .top, spacing: 12) {
-                VStack(spacing: 4) {
-                    HStack(spacing: 3) {
-                        Image(systemName: "play.fill").appFont(size: 8, weight: .bold)
-                        Text(timestamp(seconds: item.startSec))
-                            .appFont(size: 12, weight: .semibold)
-                            .monospacedDigit()
-                    }
-                    .foregroundStyle(canPlay ? appearance.accent.color : Theme.muted)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background((canPlay ? appearance.accent.color : Theme.muted).opacity(0.10), in: Capsule())
-                    if !isLast {
-                        Rectangle().fill(Theme.line).frame(width: 1).frame(maxHeight: .infinity)
-                    }
-                }
-                .frame(width: 66)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(item.title).appFont(size: 15, weight: .semibold)
-                    Text(item.summary)
-                        .appFont(size: 14, weight: .regular)
-                        .foregroundStyle(Theme.muted)
-                        .lineSpacing(2)
-                }
-                .multilineTextAlignment(.leading)
-                .padding(.bottom, isLast ? 0 : 16)
-                Spacer(minLength: 0)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .disabled(!canPlay)
     }
 }
 

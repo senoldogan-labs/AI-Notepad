@@ -101,9 +101,6 @@ enum SettingsKey {
     static let folders: String = savedFoldersKey
     /// Toplantı özetinde sözlük açık mı.
     static let glossaryExpanded: String = "meeting.glossaryExpanded"
-    /// Kişiler sayfasındaki liste açık (varsayılan açık: kapalıyken diğer kişiler yalnız seçici menüde kalıp gözden
-    /// kaçıyordu; üst çubuktaki düğmeyle gizlenir).
-    static let peopleListVisible: String = "people.listVisible"
     /// Toplantılar sayfasındaki toplantı listesi açık (üst çubuktaki düğmeyle gizlenir).
     static let meetingsListVisible: String = "meetings.listVisible"
     /// Sor sayfasındaki sohbet geçmişi sütunu açık (üst çubuktaki düğmeyle).
@@ -334,7 +331,6 @@ func registerDefaultSettings() {
         SettingsKey.voiceRecognition: false,
         SettingsKey.consentReminder: true,
         SettingsKey.calendarEnabled: false,
-        SettingsKey.peopleListVisible: true,
         SettingsKey.meetingsListVisible: true,
         SettingsKey.askHistoryVisible: false,
         SettingsKey.inPersonMode: false,
