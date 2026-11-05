@@ -29,6 +29,10 @@ jobs:
           swift --version
       - name: Hızlı testler (macOS)
         run: swift test --package-path Packages/AINotepadCore
+      # Uygulamanın paket sabitleri (Config/Package.resolved) project.yml ve çekirdek paketle tutarlı mı; yayın
+      # derlemeleri bu dosyadan sabitlenir (scripts/release-common.sh). Ağa çıkmaz.
+      - name: Paket sabitleri
+        run: scripts/check-package-pins.sh
       - name: Projeyi üret
         # XcodeGen sürümü sabit: Homebrew'un güncel sürümü yerine GitHub sürümü indirilir ve özeti doğrulanır;
         # üretilen proje sessizce değişmez. Sürümü yükseltirken özeti de güncelle.
