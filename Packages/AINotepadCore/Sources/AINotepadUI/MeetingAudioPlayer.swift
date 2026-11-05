@@ -1,6 +1,7 @@
 import AINotepadCore
 import AVFoundation
 import Foundation
+import MediaPlayer
 import Observation
 import os
 
@@ -22,6 +23,11 @@ let playbackPublishStep: Double = 0.1
 /// Toplantı oynatıcısı: "Sen" ve "Diğerleri" kayıtlarını aynı zaman çizgisinde birlikte çalar (kayıtlar başlangıca
 /// hizalı), duraklatır, sarar, hız değiştirir. Konum ~33 ms'de bir okunur, görünür fark olunca (`playbackPublishStep`,
 /// ~10/sn) yayınlanır: kelime vurgusu akıcı, çalma ekranı hafif.
+///
+/// Çalan toplantı sistemin "Şimdi Çalınan" alanında görünür; kilit ekranı, Denetim Merkezi, AirPods ve Mac'in medya
+/// tuşları çaları yönetir. Çalma uygulama arka plandayken (iPhone'da ekran kilitliyken, Mac'te pencere kapalıyken) sürer.
+/// Kayıt başlarken çalar durdurulur (bkz. `AppModel`, `PhoneRecorder` gözlemi): sistem denetimleri kayıt sırasında
+/// çalara bağlı kalmaz.
 @MainActor
 @Observable
 public final class MeetingAudioPlayer {
@@ -45,15 +51,27 @@ public final class MeetingAudioPlayer {
     @ObservationIgnored private var ownsAudioSession: Bool = false
     /// Ses oturumunun açılması (oturum kuyruğunda) bitince çalmayı başlatan iş; durdurulunca iptal edilir.
     @ObservationIgnored private var sessionActivation: Task<Void, Never>?
+    /// Oturum bir kesintiyle (arama, alarm, Siri) kapandı: sürdürmeden önce yeniden açılır.
+    @ObservationIgnored private var sessionInterrupted: Bool = false
+    /// Kesinti ve çıkış aygıtı bildirimlerinin gözlemcileri; yalnız oturum bu çalardayken kuruludur.
+    @ObservationIgnored private var sessionObservers: [any NSObjectProtocol] = []
     #endif
+    /// Kullanıcı çalmayı istiyor (oynattı, duraklatmadı, sona gelmedi): kesinti bitince sistem "sürdür" derse çalma sürer.
+    @ObservationIgnored private var wantsPlayback: Bool = false
     @ObservationIgnored private var loadedURLs: [URL] = []
     @ObservationIgnored private var ticker: Task<Void, Never>?
+    @ObservationIgnored private let nowPlaying: NowPlayingCenter = NowPlayingCenter()
+    /// "Şimdi Çalınan"da gösterilen başlık ve tarih (toplantı açılınca yazılır).
+    @ObservationIgnored private var itemTitle: String = ""
+    @ObservationIgnored private var itemDateText: String = ""
+    @ObservationIgnored private var appName: String?
 
     public init() {}
 
-    /// Kayıtları (gerekirse) açar ve `startSec`'ten biraz önce birlikte çalmaya başlar (cümlenin başı kaçmasın).
-    public func play(meetingID: String, urls: [URL], startSec: Double) {
-        if loadedURLs != urls || self.meetingID != meetingID {
+    /// Toplantının kayıtlarını (gerekirse) açar ve `startSec`'ten biraz önce birlikte çalmaya başlar (cümlenin başı
+    /// kaçmasın).
+    public func play(record: MeetingRecord, urls: [URL], startSec: Double) {
+        if loadedURLs != urls || meetingID != record.id {
             stop()
             do {
                 players = try urls.map { (url: URL) -> AVAudioPlayer in
@@ -63,65 +81,58 @@ public final class MeetingAudioPlayer {
                     return player
                 }
             } catch {
-                playerLogger.error("Ses açılamadı, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+                playerLogger.error("Ses açılamadı, toplantı: \(record.id, privacy: .public), hata: \(String(describing: error), privacy: .private)")
                 // `stop()` hatayı temizler; hata ondan sonra bu toplantıya yazılır.
-                errorMessage = userFacingMessage(error: StorageError.readFailed(path: urls.first?.path ?? meetingID, reason: error.localizedDescription))
-                errorMeetingID = meetingID
+                errorMessage = userFacingMessage(error: StorageError.readFailed(path: urls.first?.path ?? record.id, reason: error.localizedDescription))
+                errorMeetingID = record.id
                 players = []
                 return
             }
             loadedURLs = urls
-            self.meetingID = meetingID
+            meetingID = record.id
             duration = players.map(\.duration).max() ?? 0
+            itemTitle = meetingPlaybackTitle(record: record)
+            itemDateText = record.startedAt.formatted(Date.FormatStyle(date: .long, time: .shortened).locale(interfaceLocale()))
+            appName = nowPlaying.appName()
+            nowPlaying.attach(actions: remoteCommandActions())
         }
         errorMessage = nil
         errorMeetingID = nil
-        #if os(iOS)
-        // Oturum açık ve açılma bitmişse hemen çalar; açılma sürüyorsa yeni konumla yeniden kurulur.
-        if ownsAudioSession && sessionActivation == nil {
-            start(at: max(0, startSec - 0.3))
-            return
-        }
-        // Oturum ana iş parçacığında değil oturum kuyruğunda açılır (sistem servisini beklerken arayüz donmasın);
-        // açılınca çalma başlar. Oturum açıldığı için durdurmada kapatılır (iptal edilse de).
-        ownsAudioSession = true
-        sessionActivation?.cancel()
-        sessionActivation = Task { [weak self] in
-            do {
-                // Sessiz modda da çalar; konuşma için ayarlı oturum.
-                try await AudioSessionQueue.perform { (session: AVAudioSession) throws -> Void in
-                    try session.setCategory(.playback, mode: .spokenAudio)
-                    try session.setActive(true)
-                }
-            } catch {
-                playerLogger.error("Çalma oturumu açılamadı, hata: \(String(describing: error), privacy: .private)")
-                guard let self, !Task.isCancelled else {
-                    return
-                }
-                self.ownsAudioSession = false
-                self.errorMessage = userFacingMessage(error: AudioCaptureError.playbackSessionFailed(code: Int32((error as NSError).code)))
-                self.errorMeetingID = meetingID
-                return
-            }
-            guard let self, !Task.isCancelled else {
-                return
-            }
-            self.sessionActivation = nil
-            self.start(at: max(0, startSec - 0.3))
-        }
-        #else
-        start(at: max(0, startSec - 0.3))
-        #endif
+        resume(at: max(0, startSec - 0.3))
     }
 
     public func togglePause() {
         if isPlaying {
-            players.forEach { $0.pause() }
-            isPlaying = false
+            pause()
         } else {
-            // Sona gelmişse baştan çalar.
-            start(at: currentTime >= duration - 0.2 ? 0 : currentTime)
+            resumeFromCurrentPosition()
         }
+    }
+
+    /// Duraklatır; konum kayıtların gerçek konumundan alınır (kilit ekranı ve uygulama aynı yeri göstersin).
+    private func pause() {
+        wantsPlayback = false
+        if let position = players.filter(\.isPlaying).map(\.currentTime).max() {
+            setPosition(seconds: position)
+        }
+        players.forEach { $0.pause() }
+        ticker?.cancel()
+        ticker = nil
+        isPlaying = false
+        #if os(iOS)
+        // Oturum açılırken duraklatıldıysa açılınca çalmasın; oturum sürdürürken yeniden açılır.
+        if sessionActivation != nil {
+            sessionActivation?.cancel()
+            sessionActivation = nil
+            sessionInterrupted = true
+        }
+        #endif
+        publishNowPlaying()
+    }
+
+    /// Kaldığı yerden sürer; sona gelmişse baştan çalar.
+    private func resumeFromCurrentPosition() {
+        resume(at: currentTime >= duration - 0.2 ? 0 : currentTime)
     }
 
     /// Konumu yazar; saniye değiştiyse `currentSecond`'ı da.
@@ -141,6 +152,7 @@ public final class MeetingAudioPlayer {
         } else {
             players.forEach { $0.currentTime = target }
             setPosition(seconds: target)
+            publishNowPlaying()
         }
     }
 
@@ -154,11 +166,17 @@ public final class MeetingAudioPlayer {
         let index: Int = playbackRates.firstIndex(of: rate) ?? 0
         rate = playbackRates[(index + 1) % playbackRates.count]
         players.forEach { $0.rate = rate }
+        if let position = players.filter(\.isPlaying).map(\.currentTime).max() {
+            setPosition(seconds: position)
+        }
+        publishNowPlaying()
     }
 
-    /// Çalmayı bitirir, dosyaları ve hatayı bırakır (toplantı değişince ya da ses silinince). iPhone'da çalma için açılan
-    /// ses oturumu kapatılır; diğer uygulamaların sesi (müzik, podcast) kaldığı yerden sürer.
+    /// Çalmayı bitirir, dosyaları ve hatayı bırakır (toplantı değişince ya da ses silinince). "Şimdi Çalınan" temizlenir,
+    /// sistem denetimleri bırakılır. iPhone'da çalma için açılan ses oturumu kapatılır; diğer uygulamaların sesi (müzik,
+    /// podcast) kaldığı yerden sürer.
     public func stop() {
+        let wasLoaded: Bool = meetingID != nil
         ticker?.cancel()
         ticker = nil
         players.forEach { $0.stop() }
@@ -166,13 +184,20 @@ public final class MeetingAudioPlayer {
         loadedURLs = []
         meetingID = nil
         isPlaying = false
+        wantsPlayback = false
         setPosition(seconds: 0)
         duration = 0
         errorMessage = nil
         errorMeetingID = nil
+        if wasLoaded {
+            nowPlaying.detach()
+            nowPlaying.clear()
+        }
         #if os(iOS)
         sessionActivation?.cancel()
         sessionActivation = nil
+        sessionInterrupted = false
+        removeSessionObservers()
         if ownsAudioSession {
             ownsAudioSession = false
             // Kapatma kuyruğa bekletmeden eklenir; açılma sürüyorsa kuyrukta ondan sonra çalışır.
@@ -185,6 +210,55 @@ public final class MeetingAudioPlayer {
                 }
             )
         }
+        #endif
+    }
+
+    /// Verilen konumdan çalar. iPhone'da önce ses oturumu açılır (açık değilse ya da kesintiyle kapandıysa).
+    private func resume(at seconds: Double) {
+        #if os(iOS)
+        // Oturum açık ve açılma bitmişse hemen çalar; açılma sürüyorsa yeni konumla yeniden kurulur.
+        if ownsAudioSession && sessionActivation == nil && !sessionInterrupted {
+            start(at: seconds)
+            return
+        }
+        // Oturum ana iş parçacığında değil oturum kuyruğunda açılır (sistem servisini beklerken arayüz donmasın);
+        // açılınca çalma başlar. Oturum açıldığı için durdurmada kapatılır (iptal edilse de).
+        if !ownsAudioSession {
+            ownsAudioSession = true
+            observeSession()
+        }
+        sessionInterrupted = false
+        wantsPlayback = true
+        let meetingID: String? = meetingID
+        sessionActivation?.cancel()
+        sessionActivation = Task { [weak self] in
+            do {
+                // Sessiz modda ve arka planda da çalar; konuşma için ayarlı oturum.
+                try await AudioSessionQueue.perform { (session: AVAudioSession) throws -> Void in
+                    try session.setCategory(.playback, mode: .spokenAudio)
+                    try session.setActive(true)
+                }
+            } catch {
+                playerLogger.error("Çalma oturumu açılamadı, hata: \(String(describing: error), privacy: .private)")
+                guard let self, !Task.isCancelled else {
+                    return
+                }
+                self.sessionActivation = nil
+                self.sessionInterrupted = true
+                self.wantsPlayback = false
+                self.errorMessage = userFacingMessage(error: AudioCaptureError.playbackSessionFailed(code: Int32((error as NSError).code)))
+                self.errorMeetingID = meetingID
+                self.publishNowPlaying()
+                return
+            }
+            guard let self, !Task.isCancelled else {
+                return
+            }
+            self.sessionActivation = nil
+            self.start(at: seconds)
+        }
+        #else
+        start(at: seconds)
         #endif
     }
 
@@ -204,6 +278,8 @@ public final class MeetingAudioPlayer {
         }
         setPosition(seconds: seconds)
         isPlaying = true
+        wantsPlayback = true
+        publishNowPlaying()
         startTicker()
     }
 
@@ -231,10 +307,157 @@ public final class MeetingAudioPlayer {
                         self.setPosition(seconds: position)
                     }
                 } else {
+                    // Kayıtlar bitti ya da sistem durdurdu (kesinti): ikincisinde `wantsPlayback` kalır, kesinti
+                    // bitince sürer.
+                    if self.currentTime >= self.duration - 0.5 {
+                        self.wantsPlayback = false
+                        self.setPosition(seconds: self.duration)
+                    }
                     self.isPlaying = false
+                    self.ticker = nil
+                    self.publishNowPlaying()
                     return
                 }
             }
         }
     }
+
+    // MARK: Sistem denetimleri
+
+    /// Çalma durumunu sistemin "Şimdi Çalınan" alanına yazar (çalma, duraklatma, sarma, hız değişince; arada sistem
+    /// konumu hızla kendisi ilerletir).
+    private func publishNowPlaying() {
+        guard meetingID != nil else {
+            return
+        }
+        nowPlaying.publish(snapshot: nowPlayingSnapshot(
+            title: itemTitle, dateText: itemDateText, appName: appName, duration: duration, elapsed: currentTime, rate: rate,
+            isPlaying: isPlaying
+        ))
+    }
+
+    /// Kilit ekranı, Denetim Merkezi, AirPods ve medya tuşlarından gelen komutlar.
+    private func remoteCommandActions() -> RemoteCommandActions {
+        RemoteCommandActions(
+            play: { [weak self] () -> MPRemoteCommandHandlerStatus in
+                guard let self, self.meetingID != nil else {
+                    return .noActionableNowPlayingItem
+                }
+                if !self.isPlaying {
+                    self.resumeFromCurrentPosition()
+                }
+                return .success
+            },
+            pause: { [weak self] () -> MPRemoteCommandHandlerStatus in
+                guard let self, self.meetingID != nil else {
+                    return .noActionableNowPlayingItem
+                }
+                if self.isPlaying || self.wantsPlayback {
+                    self.pause()
+                }
+                return .success
+            },
+            togglePlayPause: { [weak self] () -> MPRemoteCommandHandlerStatus in
+                guard let self, self.meetingID != nil else {
+                    return .noActionableNowPlayingItem
+                }
+                self.togglePause()
+                return .success
+            },
+            skip: { [weak self] (seconds: Double) -> MPRemoteCommandHandlerStatus in
+                guard let self, self.meetingID != nil else {
+                    return .noActionableNowPlayingItem
+                }
+                self.skip(by: seconds)
+                return .success
+            },
+            seek: { [weak self] (seconds: Double) -> MPRemoteCommandHandlerStatus in
+                guard let self, self.meetingID != nil else {
+                    return .noActionableNowPlayingItem
+                }
+                self.seek(to: seconds)
+                return .success
+            }
+        )
+    }
+
+    #if os(iOS)
+    // MARK: Ses oturumu (iPhone)
+
+    /// Kesintileri (arama, alarm) ve çıkış aygıtı değişikliklerini (kulaklık çıktı) izler.
+    private func observeSession() {
+        removeSessionObservers()
+        let session: AVAudioSession = AVAudioSession.sharedInstance()
+        let interruption: any NSObjectProtocol = NotificationCenter.default.addObserver(
+            forName: AVAudioSession.interruptionNotification, object: session, queue: .main
+        ) { [weak self] (notification: Notification) -> Void in
+            let rawType: UInt? = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt
+            let rawOptions: UInt? = notification.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt
+            Task { @MainActor in
+                self?.handleInterruption(rawType: rawType, rawOptions: rawOptions)
+            }
+        }
+        let routeChange: any NSObjectProtocol = NotificationCenter.default.addObserver(
+            forName: AVAudioSession.routeChangeNotification, object: session, queue: .main
+        ) { [weak self] (notification: Notification) -> Void in
+            let rawReason: UInt? = notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt
+            Task { @MainActor in
+                self?.handleRouteChange(rawReason: rawReason)
+            }
+        }
+        sessionObservers = [interruption, routeChange]
+    }
+
+    private func removeSessionObservers() {
+        sessionObservers.forEach { NotificationCenter.default.removeObserver($0) }
+        sessionObservers = []
+    }
+
+    /// Kesinti başlayınca sistem çalmayı durdurmuştur: arayüz ve "Şimdi Çalınan" duraklatılmış gösterir. Bitince sistem
+    /// "sürdür" derse ve kullanıcı duraklatmamışsa kaldığı yerden sürer (oturum yeniden açılır).
+    private func handleInterruption(rawType: UInt?, rawOptions: UInt?) {
+        guard meetingID != nil, ownsAudioSession else {
+            return
+        }
+        guard let rawType, let type = AVAudioSession.InterruptionType(rawValue: rawType) else {
+            playerLogger.error("Ses oturumu kesinti bildirimi türsüz geldi, tür: \(rawType.map(String.init) ?? "yok", privacy: .public)")
+            return
+        }
+        switch type {
+        case .began:
+            playerLogger.info("Çalma kesildi, konum: \(self.currentTime, privacy: .public), sürecek: \(self.wantsPlayback, privacy: .public)")
+            sessionInterrupted = true
+            sessionActivation?.cancel()
+            sessionActivation = nil
+            players.forEach { $0.pause() }
+            ticker?.cancel()
+            ticker = nil
+            isPlaying = false
+            publishNowPlaying()
+        case .ended:
+            let shouldResume: Bool = (rawOptions ?? 0) & AVAudioSession.InterruptionOptions.shouldResume.rawValue != 0
+            playerLogger.info("Çalma kesintisi bitti, sistem sürdür diyor: \(shouldResume, privacy: .public), sürecek: \(self.wantsPlayback, privacy: .public)")
+            if shouldResume && wantsPlayback {
+                resumeFromCurrentPosition()
+            }
+        @unknown default:
+            playerLogger.error("Bilinmeyen ses oturumu kesinti türü, tür: \(rawType, privacy: .public)")
+        }
+    }
+
+    /// Kulaklık çıkınca (ya da Bluetooth aygıtı gidince) çalma duraklar: ses hoparlörden devam etmesin.
+    private func handleRouteChange(rawReason: UInt?) {
+        guard meetingID != nil, ownsAudioSession, isPlaying else {
+            return
+        }
+        guard let rawReason, let reason = AVAudioSession.RouteChangeReason(rawValue: rawReason) else {
+            playerLogger.error("Çıkış aygıtı bildirimi nedensiz geldi, neden: \(rawReason.map(String.init) ?? "yok", privacy: .public)")
+            return
+        }
+        if reason == .oldDeviceUnavailable {
+            playerLogger.info("Çıkış aygıtı gitti, çalma duraklatıldı")
+            pause()
+        }
+    }
+    #endif
 }

@@ -1335,7 +1335,7 @@ struct MeetingReadView: View {
             }
             errorMessage = nil
             withAnimation(.smooth(duration: 0.25)) { pane = .transcript }
-            player.play(meetingID: record.id, urls: urls, startSec: startSec)
+            player.play(record: record, urls: urls, startSec: startSec)
         } catch {
             errorMessage = userFacingMessage(error: error)
         }
