@@ -456,8 +456,21 @@ struct MeetingDetailPage: View {
     @State private var tab: MeetingTab = .summary
     /// Özetteki seçili not bölümü (görevler, konu akışı, kararlar, işaretli anlar); kapaktaki çipler de seçer.
     @State private var noteSection: NoteSectionTab = .tasks
-    /// Özetin gösterildiği dil: nil asıl not (yazıldığı dilde), değilse paylaşım sürümü.
-    @State private var noteLanguage: ShareLanguage?
+    /// Özetin gösterildiği dil (saklanır: bütün toplantılarda ve yeniden açılışta sürer); boşsa notun yazıldığı dil.
+    @AppStorage(SettingsKey.meetingNoteDisplayLanguage) private var shownNoteLanguage: String = ""
+
+    /// Özetin gösterildiği dil: nil asıl not (yazıldığı dilde), değilse paylaşım sürümü. Seçilen dil notun yazıldığı
+    /// dilse asıl not gösterilir.
+    private var noteLanguage: ShareLanguage? {
+        get {
+            ShareLanguage(rawValue: shownNoteLanguage).flatMap { (language: ShareLanguage) -> ShareLanguage? in
+                language == record.note?.writtenLanguage ? nil : language
+            }
+        }
+        nonmutating set {
+            shownNoteLanguage = newValue?.rawValue ?? ""
+        }
+    }
     /// Başlık düzenleniyor (çift tıklama ya da "Yeniden adlandır").
     @State private var isRenaming: Bool = false
     @State private var draftTitle: String = ""

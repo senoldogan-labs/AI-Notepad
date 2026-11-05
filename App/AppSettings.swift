@@ -101,6 +101,11 @@ enum SettingsKey {
     static let folders: String = savedFoldersKey
     /// Toplantı özetinde sözlük açık mı.
     static let glossaryExpanded: String = "meeting.glossaryExpanded"
+    /// Toplantı sayfasında notun gösterildiği dil (`ShareLanguage` kodu; boşsa notun yazıldığı dil): seçim bütün
+    /// toplantılarda ve yeniden açılışta sürer.
+    static let meetingNoteDisplayLanguage: String = "meeting.noteDisplayLanguage"
+    /// Bir sonraki kaydın dil modu (`languageModeStorageValue`: "auto" ya da dil kodu).
+    static let languageMode: String = "language.mode"
     /// Toplantılar sayfasındaki toplantı listesi açık (üst çubuktaki düğmeyle gizlenir).
     static let meetingsListVisible: String = "meetings.listVisible"
     /// Sor sayfasındaki sohbet geçmişi sütunu açık (üst çubuktaki düğmeyle).
@@ -380,6 +385,11 @@ func keepLegacyNoteLanguage(defaults: UserDefaults) {
         settingsLogger.info("Önceki sürümün kullanıcısı: not dili korundu, dil: \(language.rawValue, privacy: .public)")
     }
     defaults.set(true, forKey: SettingsKey.noteLanguageMigrated)
+    // Not dili hiç seçilmediyse ilk açılıştaki varsayılanı (arayüz dili) kaydedilir: arayüz dili sonradan değişince not
+    // dili sessizce değişmesin.
+    if stored[SettingsKey.noteLanguage] == nil, language == nil {
+        defaults.set(defaultNoteLanguage(interfaceLanguages: Bundle.main.preferredLocalizations).rawValue, forKey: SettingsKey.noteLanguage)
+    }
 }
 
 /// Kayıtlı ayarın değeri, aralığa sıkıştırılmış.
