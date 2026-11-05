@@ -17,7 +17,7 @@ packages:
     url: https://github.com/sparkle-project/Sparkle
     exactVersion: 2.10.1
   # iPhone uygulamasının App Store aboneliği (yalnız iOS hedefi; Mac'te ödeme Stripe'tan, çekirdek pakete girmez).
-  # Sürüm tam sabitlenir: Package.resolved üretilen (repoya girmeyen) projenin içindedir.
+  # Sürüm tam sabitlenir; işleme kimliğiyle Config/Package.resolved'da (bkz. AGENTS.md, "Paket sabitleri").
   RevenueCat:
     url: https://github.com/RevenueCat/purchases-ios
     exactVersion: 5.100.0

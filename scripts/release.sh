@@ -46,7 +46,7 @@ require_clean_worktree
 require_new_build "$archive_dir/appcast.xml" "$build"
 require_new_version "$archive_dir/appcast.xml" "$version"
 
-xcodegen generate
+generate_pinned_project
 rm -rf "$out"
 archive_and_export AINotepad "$out/AINotepad.xcarchive" "$out/export" "$team"
 sparkle_bin="$(sparkle_tools_dir)"

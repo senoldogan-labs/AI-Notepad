@@ -51,6 +51,26 @@ scripts/make-test-fixtures.sh                                                 # 
 scripts/install-app.sh                                                        # Release'i /Applications'a kurar (izinler kalıcı)
 ```
 
+Paket sabitleri: uygulamanın Swift paketleri (project.yml'deki Sparkle ve RevenueCat, çekirdek paketin WhisperKit'i ve
+bağımlılıkları) sürüm ve işleme kimliğiyle `Config/Package.resolved`'da. Yayın betikleri (`scripts/release*.sh`) CI'daki
+XcodeGen'i (2.45.3) ister, dosyayı üretilen projeye kopyalar ve `-onlyUsePackageVersionsFromResolvedFile` ile arşivler:
+etiket taşınsa da sabitlenen işleme derlenir, sabit project.yml'le uyuşmazsa arşivleme durur. iPhone arşivi de böyle:
+
+```bash
+scripts/check-package-pins.sh && xcodegen generate
+mkdir -p AINotepad.xcodeproj/project.xcworkspace/xcshareddata/swiftpm
+cp Config/Package.resolved AINotepad.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+xcodebuild -project AINotepad.xcodeproj -scheme AINotepadiOS -configuration Release -destination 'generic/platform=iOS' \
+  -archivePath <yol> -allowProvisioningUpdates -onlyUsePackageVersionsFromResolvedFile CALL_CAPTURE_EXPERIMENT=YES archive
+```
+
+Paket sürümü değişince (project.yml `exactVersion` ya da `Packages/AINotepadCore/Package.swift` + `swift package
+--package-path Packages/AINotepadCore resolve`): `xcodegen generate` ve yukarıdaki `mkdir`/`cp`, sonra bayraksız
+`xcodebuild -resolvePackageDependencies -project AINotepad.xcodeproj -scheme AINotepadiOS` projedeki dosyayı günceller; onu
+`Config/Package.resolved`'a geri kopyala, yeni işlemeleri `git ls-remote --tags <adres>` ile doğrula,
+`scripts/check-package-pins.sh` çalıştır. Projede bu dosya yokken xcodebuild uygulamanın sabitlerini
+`Packages/AINotepadCore/Package.resolved`'a yazar; öyle olduysa o dosyayı geri al.
+
 `xcodebuild -exportLocalizations` `-derivedDataPath` kabul etmez ve `~/Library/Developer/Xcode/DerivedData`'ya ad-hoc
 imzalı bir AINotepad.app bırakır; Spotlight onu bulur, açılınca izinler her seferinde yeniden sorulur. Çalıştırdıysan
 o kopyayı sil.

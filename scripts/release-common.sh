@@ -7,8 +7,10 @@
 # betikte görünmez):
 #   xcrun notarytool store-credentials AINotepad --apple-id <apple-id-e-postan> --team-id <takım-kimliği>
 # Sparkle araçları (generate_keys, sign_update, generate_appcast) arşivlemenin indirdiği Sparkle paketindedir:
-#   xcodegen generate && xcodebuild -resolvePackageDependencies -project AINotepad.xcodeproj -scheme AINotepad \
-#       -derivedDataPath .build/xcode-dist
+#   xcodegen generate && mkdir -p AINotepad.xcodeproj/project.xcworkspace/xcshareddata/swiftpm && \
+#       cp Config/Package.resolved AINotepad.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/ && \
+#       xcodebuild -resolvePackageDependencies -onlyUsePackageVersionsFromResolvedFile -project AINotepad.xcodeproj \
+#       -scheme AINotepad -derivedDataPath .build/xcode-dist
 #   .build/xcode-dist/SourcePackages/artifacts/sparkle/Sparkle/bin/generate_keys --account <hesap>
 # Her sürümün kendi Sparkle hesabı ve açık anahtarı var (Config/Signing.xcconfig). Anahtar kaybolursa yayınlanmış
 # sürümler artık güncelleme alamaz: Anahtar Zinciri yedeği için `generate_keys --account <hesap> -x <dosya>`.
@@ -19,6 +21,12 @@
 notary_profile="AINotepad"
 # Arşivleme ve Sparkle araçlarının indirildiği türetilmiş veri klasörü.
 dist_derived_data=".build/xcode-dist"
+# Yayın derlemesinin XcodeGen sürümü: CI'dakiyle (.github/workflows/ci.yml XCODEGEN_VERSION) aynı.
+release_xcodegen_version="2.45.3"
+# Uygulamanın Swift paket sabitleri (sürüm + işleme kimliği; bkz. scripts/check-package-pins.sh) ve Xcode'un onları
+# üretilen (repoya girmeyen) projede aradığı yol.
+package_pins="Config/Package.resolved"
+workspace_package_pins="AINotepad.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
 
 # Config/Signing.xcconfig'teki `<anahtar> = <değer>` satırının değeri; yoksa ya da boşsa durur.
 xcconfig_value() {
@@ -109,9 +117,41 @@ require_new_version() {
     fi
 }
 
+# Kurulu XcodeGen beklenen sürümde olmalı: başka sürüm aynı project.yml'den farklı proje üretebilir.
+require_xcodegen_version() {
+    local expected="$1"
+    local actual
+    actual="$(xcodegen --version | sed -E 's/^Version:[[:space:]]*//')"
+    [[ "$actual" == "$expected" ]] || {
+        echo "XcodeGen $actual kurulu; yayın $expected ister (CI ile aynı). İndir: https://github.com/yonaskolb/XcodeGen/releases/tag/$expected" >&2
+        exit 1
+    }
+}
+
+# Projeyi project.yml'den üretir ve repodaki paket sabitlerini (Config/Package.resolved) içine koyar: arşivleme
+# paketleri üst kaynaktaki etiketin şimdi gösterdiği işlemeden değil, sabitlenen işlemeden alır. Sabitler önce
+# project.yml ve çekirdek paketin Package.resolved'ıyla karşılaştırılır.
+generate_pinned_project() {
+    scripts/check-package-pins.sh
+    require_xcodegen_version "$release_xcodegen_version"
+    xcodegen generate
+    mkdir -p "$(dirname "$workspace_package_pins")"
+    cp "$package_pins" "$workspace_package_pins"
+}
+
+# Arşivlemeden sonra projedeki sabitler repodakiyle bayt bayt aynı olmalı (Xcode başka sürüm ya da işleme yazmamış).
+require_package_pins_unchanged() {
+    cmp -s "$package_pins" "$workspace_package_pins" || {
+        echo "Xcode paket sabitlerini değiştirdi ($workspace_package_pins, $package_pins ile aynı değil):" >&2
+        diff "$package_pins" "$workspace_package_pins" >&2 || true
+        exit 1
+    }
+}
+
 # Şemayı Release olarak arşivler ve Developer ID ile dışa aktarır: Xcode'un otomatik imzalaması profili geliştirici
 # hesabından alır (iCloud profil ister; özel yetkisi olmayan uygulamaya profil gömülmez), hardened runtime ve zaman damgasıyla imzalar. Uygulama
-# `<çıktı>/export/` altına çıkar.
+# `<çıktı>/export/` altına çıkar. Proje `generate_pinned_project` ile üretilmiş olmalı: paketler yalnız sabitlerden
+# çözülür; sabitler project.yml'le uyuşmazsa arşivleme durur.
 archive_and_export() {
     local scheme="$1"
     local archive="$2"
@@ -121,7 +161,8 @@ archive_and_export() {
     mkdir -p "$export_dir"
     xcodebuild -project AINotepad.xcodeproj -scheme "$scheme" -configuration Release \
         -derivedDataPath "$dist_derived_data" -destination 'generic/platform=macOS' ARCHS=arm64 \
-        -archivePath "$archive" -allowProvisioningUpdates archive -quiet
+        -onlyUsePackageVersionsFromResolvedFile -archivePath "$archive" -allowProvisioningUpdates archive -quiet
+    require_package_pins_unchanged
     cat > "$options" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
