@@ -211,7 +211,7 @@ public func singletonSyncObjectID(accountKey: SyncAccountKey, kind: SyncObjectKi
 
 /// Preferences with nothing to share (a fresh device does not upload an empty copy). Pure function.
 public func isEmptySyncPrefs(prefs: SyncPrefs) -> Bool {
-    prefs.folders.isEmpty && prefs.recipes.isEmpty
+    prefs.folders.isEmpty && prefs.recipes.isEmpty && (prefs.settings ?? [:]).isEmpty
 }
 
 /// Whether a server object id is the lowercase UUID the server stores (ids become file names under `.sync/bases`, so a
@@ -256,7 +256,7 @@ public func isItemSyncError(error: any Error) -> Bool {
             return false
         }
         return true
-    case is SyncPayloadError, is SyncEngineError, is StorageError:
+    case is SyncPayloadError, is SyncEngineError, is StorageError, is SyncedSettingsError:
         return true
     default:
         return false

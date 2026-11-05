@@ -590,6 +590,11 @@ func storedEffort(key: String) -> LLMEffort? {
     LLMEffort(rawValue: UserDefaults.standard.string(forKey: key) ?? "")
 }
 
+/// Kayıtlı canlı çeviri görünümü; tanınmayan değerde iki dil.
+func storedDisplayMode() -> DisplayMode {
+    DisplayMode(rawValue: UserDefaults.standard.string(forKey: SettingsKey.displayMode) ?? "") ?? .bilingual
+}
+
 /// Ayarlardaki varsayılan not şablonu (yeni toplantılar bununla yazılır).
 func defaultNoteTemplate() -> NoteTemplate {
     NoteTemplate(

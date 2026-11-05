@@ -15,7 +15,7 @@ public enum SyncObjectKind: String, Sendable, Codable, CaseIterable {
     case askChat = "ask.chat"
     /// The people book (`People.json`).
     case people
-    /// Account preferences: saved folders and the user's Ask recipes.
+    /// Account preferences: saved folders, the user's Ask recipes and the settings that follow the account.
     case prefs
 }
 
@@ -215,11 +215,18 @@ public struct SyncPrefs: Sendable, Equatable, Codable {
     public let folders: [String]
     /// The user's own Ask recipes (built-in ones are not synced).
     public let recipes: [Recipe]
+    /// The user's settings that follow the account (`syncedSettingKeys`), by key, each with its change time; nil when
+    /// there are none. Added without a schema bump: the field is optional (an older payload decodes as nil, and nil is
+    /// not encoded, so such a payload's bytes are unchanged) and an older app ignores it when decoding. An older app
+    /// re-uploads its prefs without it; the merge reads a missing map as "no information", never as "deleted", and the
+    /// next newer device restores it (`mergeSyncedSettings`).
+    public let settings: [String: SyncedSetting]?
 
-    public init(schema: Int, folders: [String], recipes: [Recipe]) {
+    public init(schema: Int, folders: [String], recipes: [Recipe], settings: [String: SyncedSetting]?) {
         self.schema = schema
         self.folders = folders
         self.recipes = recipes
+        self.settings = settings
     }
 }
 

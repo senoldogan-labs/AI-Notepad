@@ -336,11 +336,13 @@ public func mergeAskConversation(local: AskConversation, remote: AskConversation
     )
 }
 
-/// Three-way merge of the shared preferences: folders as an ordered set, the user's recipes by id. Pure function.
+/// Three-way merge of the shared preferences: folders as an ordered set, the user's recipes by id, the settings per key
+/// by change time (`mergeSyncedSettings`). Pure function.
 public func mergeSyncPrefs(base: SyncPrefs?, local: SyncPrefs, remote: SyncPrefs) -> SyncPrefs {
     SyncPrefs(
         schema: syncPayloadSchema,
         folders: mergedOrderedSet(base: base?.folders, local: local.folders, remote: remote.folders) ?? [],
-        recipes: mergedKeyed(base: base?.recipes, local: local.recipes, remote: remote.recipes) { $0.id }
+        recipes: mergedKeyed(base: base?.recipes, local: local.recipes, remote: remote.recipes) { $0.id },
+        settings: mergeSyncedSettings(local: local.settings, remote: remote.settings)
     )
 }

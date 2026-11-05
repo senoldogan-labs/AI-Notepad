@@ -1,5 +1,6 @@
 import AINotepadCore
 import AINotepadUI
+import Combine
 import os
 import SwiftUI
 
@@ -185,7 +186,7 @@ struct AINotepadApp: App {
         #else
         let engine: LiveEngine = LiveEngine(rawValue: UserDefaults.standard.string(forKey: SettingsKey.liveEngine) ?? "") ?? .deepgram
         #endif
-        let displayMode: DisplayMode = DisplayMode(rawValue: UserDefaults.standard.string(forKey: SettingsKey.displayMode) ?? "") ?? .bilingual
+        let displayMode: DisplayMode = storedDisplayMode()
         // Tek çalar: panel ve ana pencere aynı toplantıyı ya da birini çalar, ikisi üst üste değil.
         let player: MeetingAudioPlayer = MeetingAudioPlayer()
         _player = State(initialValue: player)
@@ -529,6 +530,16 @@ struct AINotepadApp: App {
                 }
                 .onChange(of: HostedAccount.shared.dataState) { (_: HostedDataState, _: HostedDataState) in
                     relaunchForAccountSwitchIfIdle(model: model)
+                }
+                // Hesapla eşitlenen ayarlar (not dili, dil modu, görünüm, şablon…): hesap yüklenince ve her ayar
+                // değişiminde bu Mac'te yapılan değişikliğin anı kaydedilir; başka cihazdan gelen değer açılışta okunan
+                // bellekteki kopyalara da yansır.
+                .onChange(of: HostedAccount.shared.dataState, initial: true) { (_: HostedDataState, _: HostedDataState) in
+                    recordHostedSyncedSettingChanges()
+                }
+                .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification).receive(on: DispatchQueue.main)) { (_: Notification) in
+                    recordHostedSyncedSettingChanges()
+                    model.refreshStoredSettings()
                 }
                 // Kurulum eksikleri hesabın her durum değişiminde (giriş, çıkış, hesap silme, hak durumu yenilemesi)
                 // yeniden hesaplanır: açılışta bir kez hesaplanıp eskiyen "giriş yapılmamış" uyarısı kalmaz. Menü

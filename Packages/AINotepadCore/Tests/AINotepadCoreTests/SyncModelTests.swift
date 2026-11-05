@@ -74,9 +74,9 @@ func syncSampleRecord() -> MeetingRecord {
     }
 
     @Test func newerSchemaAndBadDataAreRefused() throws {
-        let newer: Data = try encodeSyncPayload(value: SyncPrefs(schema: 2, folders: [], recipes: []))
+        let newer: Data = try encodeSyncPayload(value: SyncPrefs(schema: 2, folders: [], recipes: [], settings: nil))
         #expect(throws: SyncPayloadError.unsupportedSchema(found: 2, supported: 1)) { try decodeSyncPayload(type: SyncPrefs.self, data: newer) }
-        let wrongShape: Data = try encodeSyncPayload(value: SyncPrefs(schema: 1, folders: ["A"], recipes: []))
+        let wrongShape: Data = try encodeSyncPayload(value: SyncPrefs(schema: 1, folders: ["A"], recipes: [], settings: nil))
         #expect(throws: SyncPayloadError.self) { try decodeSyncPayload(type: MeetingSyncState.self, data: wrongShape) }
         #expect(throws: SyncPayloadError.self) { try decodeSyncPayload(type: SyncPrefs.self, data: Data("not zlib".utf8)) }
     }

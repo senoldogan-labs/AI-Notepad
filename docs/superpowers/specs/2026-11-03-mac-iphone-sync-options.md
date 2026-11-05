@@ -304,7 +304,7 @@ Her nesne: `objectId` (rastgele UUID, sunucuda opak), `kind`, `rev` (sunucu saya
 | `ask.chat` | bir `AskConversation` | sohbet bitince / yeni tur |
 | `people` | `PeopleBook` (kayıtlı + silinen tombstone'lar) | değişince |
 | `voices` | `Voices.json` | değişince |
-| `prefs` | klasör listesi, Sor tarifleri | değişince |
+| `prefs` | klasör listesi, Sor tarifleri, hesapla gelen ayarlar (`settings`: not dili, dil modu, ana dil, canlı çeviri görünümü, not şablonu, "Ne kaçırdım?" süresi, Sor web araması, bildirimler; ayar başına değişiklik anı, son yazan kazanır; liste `Sync/SyncedSettings.swift` `syncedSettingKeys`) | değişince |
 | `meeting.audio` / `meeting.screen` (Aşama 2) | ses dosyası / tek JPEG; içerik adresli (şifreli metnin özeti) | toplantı bitince / görüntü eklenince |
 
 `meeting.state` ile `meeting.content`'i ayırmak önemli: büyük ve neredeyse hiç değişmeyen metin, her görev

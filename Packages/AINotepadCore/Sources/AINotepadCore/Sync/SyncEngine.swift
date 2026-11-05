@@ -40,9 +40,10 @@ public protocol SyncLocalStore: Sendable {
     func peopleBook() async throws -> PeopleBook
     /// Conditional write of the people book.
     func writePeopleBook(book: PeopleBook, replacing previous: PeopleBook) async throws -> SyncStoreWrite
-    /// Saved folders and the user's own Ask recipes.
+    /// Saved folders, the user's own Ask recipes and the synced settings.
     func prefs() async throws -> SyncPrefs
-    /// Conditional write of the preferences.
+    /// Conditional write of the preferences; also `changedMeanwhile` while a recording runs and the write would change a
+    /// setting (a recording never changes its settings midway; the download is retried on a later pass).
     func writePrefs(prefs: SyncPrefs, replacing previous: SyncPrefs) async throws -> SyncStoreWrite
 }
 

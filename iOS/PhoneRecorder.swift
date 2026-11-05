@@ -87,6 +87,18 @@ final class PhoneRecorder {
             UserDefaults.standard.set(languageModeStorageValue(mode: languageMode), forKey: PhoneSettingsKey.languageMode)
         }
     }
+    /// Dil modunun bellekteki kopyasını kayıtlı değerle eşler (değer başka cihazdan eşitlenerek değiştiyse). Kayıt
+    /// sürerken dokunulmaz: süren kaydın ayarları değişmez (eşitleme de o sırada ayar yazmaz).
+    func refreshStoredSettings() {
+        guard phase == .idle else {
+            return
+        }
+        let stored: LanguageMode = storedLanguageMode(value: UserDefaults.standard.string(forKey: PhoneSettingsKey.languageMode))
+        if languageMode != stored {
+            languageMode = stored
+        }
+    }
+
     /// Kayıtta işaretlenen anlar (not onları öne çıkarır).
     private(set) var highlights: [Highlight] = []
     /// Kullanıcının kayıt sırasında yazdığı notlar (not bunları öncelik sayar).

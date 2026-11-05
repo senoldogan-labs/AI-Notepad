@@ -1,6 +1,7 @@
 import AINotepadCore
 import AINotepadUI
 import AppIntents
+import Combine
 import os
 import SwiftUI
 import UIKit
@@ -295,6 +296,13 @@ private struct PhoneAppRoot: View {
         }
         .onChange(of: account.dataState, initial: true) { (_: HostedDataState, _: HostedDataState) in
             switchAccountIfIdle()
+            recordHostedSyncedSettingChanges()
+        }
+        // Hesapla eşitlenen ayarlar (not dili, dil modu, görünüm, şablon…): her ayar değişiminde bu iPhone'da yapılan
+        // değişikliğin anı kaydedilir; başka cihazdan gelen dil modu kaydedicinin bellekteki kopyasına da yansır.
+        .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification).receive(on: DispatchQueue.main)) { (_: Notification) in
+            recordHostedSyncedSettingChanges()
+            sessions.session.recorder.refreshStoredSettings()
         }
         .onChange(of: session.openWriters) { (_: [AccountDataWriter], _: [AccountDataWriter]) in
             switchAccountIfIdle()
