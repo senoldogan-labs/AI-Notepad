@@ -144,7 +144,7 @@ public func trashMeetingDirectory(directory: URL) throws {
 /// iCloud'dan inmemiş dosya (yalnızca ".ad.icloud" yer tutucusu var) da koordineli silinir: yoksa kayıt "ses silindi"
 /// diye saklanırken ses iCloud'da kalırdı.
 public func deleteAudioFiles(directory: URL) throws {
-    for name in ["me.m4a", "others.m4a", "me.caf", "others.caf"] {
+    for name in meetingAudioFileNames {
         let file: URL = directory.appending(path: name)
         let exists: Bool = FileManager.default.fileExists(atPath: file.path)
             || FileManager.default.fileExists(atPath: cloudPlaceholder(file: file).path)
@@ -333,6 +333,68 @@ public func audioToDelete(records: [MeetingRecord], now: Date, retentionDays: In
             return !record.audioDeleted && now.timeIntervalSince(record.startedAt) > Double(days) * 86_400
         }
         .map(\.id)
+}
+
+/// Bir toplantının ses dosyalarının adları.
+let meetingAudioFileNames: [String] = ["me.m4a", "others.m4a", "me.caf", "others.caf"]
+
+/// Bir oturum klasörünün içeriği: dosya adları ve içindekilerin en son değişiklik anı.
+public struct SessionFolderContents: Sendable, Equatable {
+    public let name: String
+    public let fileNames: [String]
+    public let lastModified: Date
+
+    public init(name: String, fileNames: [String], lastModified: Date) {
+        self.name = name
+        self.fileNames = fileNames
+        self.lastModified = lastModified
+    }
+}
+
+/// Toplantı kaydı olmayan (sahipsiz) sesin klasörleri: `meeting.json`'u (ya da iCloud yer tutucusu) yok, ses dosyası
+/// var ve içindeki son değişiklik saklama süresinden eski. Kayıt başlarken (sunucu yanıtı beklenirken ses diske
+/// yazılır) uygulama kapanır ya da çökerse böyle kalır: toplantı listesi ve `audioToDelete` onu görmez. Süren kaydın
+/// dosyaları sürekli yazıldığı için süresi dolmaz. Saf fonksiyondur.
+public func orphanedAudioFolders(folders: [SessionFolderContents], now: Date, retentionDays: Int) -> [String] {
+    let meetingFiles: Set<String> = [meetingFileName, ".\(meetingFileName).icloud"]
+    return folders
+        .filter { (folder: SessionFolderContents) -> Bool in
+            !folder.fileNames.contains { meetingFiles.contains($0) }
+                && folder.fileNames.contains { meetingAudioFileNames.contains($0) }
+                && now.timeIntervalSince(folder.lastModified) > Double(retentionDays) * 86_400
+        }
+        .map(\.name)
+}
+
+/// `Sessions` altındaki klasörlerin içeriğini okur (gizli dosyalar dahil). Klasör yoksa boş; okunamazsa
+/// `directoryUnavailable`.
+public func sessionFolderContents(sessionsDirectory: URL) throws -> [SessionFolderContents] {
+    guard FileManager.default.fileExists(atPath: sessionsDirectory.path) else {
+        return []
+    }
+    do {
+        return try FileManager.default.contentsOfDirectory(at: sessionsDirectory, includingPropertiesForKeys: [.isDirectoryKey])
+            .filter { (folder: URL) -> Bool in try folder.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true }
+            .map { (folder: URL) -> SessionFolderContents in
+                let files: [URL] = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.contentModificationDateKey])
+                let modified: [Date] = try files.map { (file: URL) -> Date in
+                    try file.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate ?? .distantPast
+                }
+                return SessionFolderContents(name: folder.lastPathComponent, fileNames: files.map(\.lastPathComponent), lastModified: modified.max() ?? .distantPast)
+            }
+    } catch {
+        throw StorageError.directoryUnavailable(path: sessionsDirectory.path, reason: error.localizedDescription)
+    }
+}
+
+/// Saklama süresi dolmuş sahipsiz sesi (`orphanedAudioFolders`) siler; silinen klasörlerin adlarını döndürür. Klasördeki
+/// başka dosyalar kalır.
+public func deleteOrphanedAudio(sessionsDirectory: URL, now: Date, retentionDays: Int) throws -> [String] {
+    let orphans: [String] = orphanedAudioFolders(folders: try sessionFolderContents(sessionsDirectory: sessionsDirectory), now: now, retentionDays: retentionDays)
+    for name in orphans {
+        try deleteAudioFiles(directory: sessionsDirectory.appending(path: name, directoryHint: .isDirectory))
+    }
+    return orphans
 }
 
 /// Toplantı klasörünü kalıcı olarak siler (iPhone'da son silinenlerden; bkz. `deleteRecentlyDeletedMeeting`).

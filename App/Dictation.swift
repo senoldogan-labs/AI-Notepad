@@ -454,13 +454,17 @@ final class DictationController {
 
 // MARK: Yapıştırma (pano + ⌘V)
 
-/// Panonun tüm öğelerini ve türlerini okur.
+/// Panonun tüm öğelerini ve türlerini okur (gizli ya da geçici işaretli öğeyi planlayıcı tanısın diye bütün tür adları
+/// da; bkz. `pasteboardRestore`).
 @MainActor
 private func pasteboardSnapshot(pasteboard: NSPasteboard) -> PasteboardSnapshot {
     let items: [PasteboardItemSnapshot] = (pasteboard.pasteboardItems ?? []).map { (item: NSPasteboardItem) -> PasteboardItemSnapshot in
-        PasteboardItemSnapshot(representations: item.types.compactMap { (type: NSPasteboard.PasteboardType) -> PasteboardRepresentation? in
-            item.data(forType: type).map { PasteboardRepresentation(type: type.rawValue, data: $0) }
-        })
+        PasteboardItemSnapshot(
+            types: item.types.map(\.rawValue),
+            representations: item.types.compactMap { (type: NSPasteboard.PasteboardType) -> PasteboardRepresentation? in
+                item.data(forType: type).map { PasteboardRepresentation(type: type.rawValue, data: $0) }
+            }
+        )
     }
     return PasteboardSnapshot(items: items)
 }

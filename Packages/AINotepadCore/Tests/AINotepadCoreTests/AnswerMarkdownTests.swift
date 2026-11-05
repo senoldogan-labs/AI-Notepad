@@ -31,6 +31,16 @@ import Testing
         #expect(parseInlines(text: "[1](https://x.example)") == [.link(label: [.text("1")], url: "https://x.example")])
     }
 
+    // Satır içi bağlantı yalnız http/https olabilir; file:, smb:, javascript: ve uygulama şemaları düz yazı kalır.
+    @Test func inlineLinksAllowOnlyWebSchemes() {
+        #expect(parseInlines(text: "[Rapor](HTTPS://x.example/a)") == [.link(label: [.text("Rapor")], url: "HTTPS://x.example/a")])
+        #expect(parseInlines(text: "[Rapor](file:///System/Applications/Calculator.app)") == [.text("[Rapor](file:///System/Applications/Calculator.app)")])
+        #expect(parseInlines(text: "[Paylaşım](<smb://127.0.0.1/test>)") == [.text("[Paylaşım](<smb://127.0.0.1/test>)")])
+        #expect(parseInlines(text: "[a](javascript:alert(1)) [b](x-apple.systempreferences:)") == [.text("[a](javascript:alert(1)) [b](x-apple.systempreferences:)")])
+        #expect(parseInlines(text: "[1](shortcuts://run)") == [.text("[1](shortcuts://run)")])
+        #expect(isWebAddress("http://a.example") && isWebAddress("https://a.example") && !isWebAddress("ainotepad-source://1") && !isWebAddress("file:///etc"))
+    }
+
     // İç içe sırasız liste, numarası 3'ten başlayan sıralı liste ve görev kutuları.
     @Test func nestedAndOrderedLists() {
         let blocks: [MarkdownBlock] = parseMarkdown(text: "- Bir\n  - İç\n- [x] İki\n\n3. Üç\n4. Dört")

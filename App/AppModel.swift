@@ -2371,10 +2371,10 @@ final class AppModel {
         isBusy || autoSendRunning || autoDeliveriesInFlight > 0
     }
 
-    /// Kayıt, işleme ya da içe aktarma sürüyor mu (çıkış ve dil değişikliği bunu bekler).
+    /// Kayıt başlıyor ya da sürüyor, işleme ya da içe aktarma sürüyor mu (çıkış ve dil değişikliği bunu bekler).
     var isBusy: Bool {
         isRecorderBusy(
-            isRecording: isRecording, isFinishing: isFinishing, isHandingOff: handingOffMeetingID != nil,
+            isStarting: isStarting, isRecording: isRecording, isFinishing: isFinishing, isHandingOff: handingOffMeetingID != nil,
             processingCount: processingMeetingIDs.count, importingCount: importingCount
         )
     }
@@ -4208,6 +4208,16 @@ final class AppModel {
         // hiçbir cihaz sesi silmezdi. Çalan toplantının sesi kalır.
         for id in audioToDelete(records: meetings.filter { $0.id != player.meetingID }, now: Date(), retentionDays: days) where !isLocked(meetingID: id) {
             deleteAudio(meetingID: id)
+        }
+        // Kayıt başlarken (toplantı kaydı yazılmadan) kapanan uygulamanın sahipsiz sesi de süre dolunca silinir.
+        do {
+            let deleted: [String] = try deleteOrphanedAudio(sessionsDirectory: try AppPaths.sessionsDirectory(), now: Date(), retentionDays: days)
+            if !deleted.isEmpty {
+                Self.logger.info("Toplantı kaydı olmayan ses silindi, klasör sayısı: \(deleted.count, privacy: .public)")
+            }
+        } catch {
+            Self.logger.error("Sahipsiz ses silinemedi, hata: \(String(describing: error), privacy: .private)")
+            errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
         }
     }
 

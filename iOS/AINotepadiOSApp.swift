@@ -360,7 +360,7 @@ struct PhoneAccountSession {
 
     /// Hesabın verisine yazan açık işler (bkz. `phoneOpenWriters`).
     var openWriters: [AccountDataWriter] {
-        phoneOpenWriters(store: store, recorder: recorder, ask: ask)
+        phoneOpenWriters(store: store, recorder: recorder, ask: ask, integrations: integrations)
     }
 
     /// Hesap değişmeden önce eski hesabın açık dosyalarını bırakır: çalan toplantı durur.
@@ -376,10 +376,11 @@ func phoneShowsSignInGate(requiresSignIn: Bool, isRecording: Bool) -> Bool {
 }
 
 /// Hesabın verisine yazan açık işler (bkz. `accountSwitchReadiness`): kayıt, işleme, bekleyen kayıtların kuyruğu, dosya
-/// içe aktarma, not yazma ve Sor cevabı. Hesap değişimi bunları bekler; çıkış ve hesap silme bunlar sürerken kapalıdır
-/// (içe aktarılan ya da yazılan toplantı başka hesabın klasörüne ya da oturumuna gitmesin).
+/// içe aktarma, not yazma, Sor cevabı ve notların kendiliğinden gönderimi. Hesap değişimi bunları bekler; çıkış ve hesap
+/// silme bunlar sürerken kapalıdır (içe aktarılan ya da yazılan toplantı başka hesabın klasörüne ya da oturumuna, not
+/// başka hesabın hedeflerine gitmesin).
 @MainActor
-func phoneOpenWriters(store: PhoneStore, recorder: PhoneRecorder, ask: PhoneAsk) -> [AccountDataWriter] {
+func phoneOpenWriters(store: PhoneStore, recorder: PhoneRecorder, ask: PhoneAsk, integrations: PhoneIntegrations) -> [AccountDataWriter] {
     let open: [(AccountDataWriter, Bool)] = [
         (.recording, recorder.phase != .idle),
         (.processing, !recorder.processingSteps.isEmpty),
@@ -387,8 +388,21 @@ func phoneOpenWriters(store: PhoneStore, recorder: PhoneRecorder, ask: PhoneAsk)
         (.importing, recorder.importingCount > 0),
         (.noteEditing, !store.regeneratingIDs.isEmpty),
         (.askAnswering, ask.isAnswering),
+        (.noteSending, integrations.isAutoSending),
     ]
     return open.filter { $0.1 }.map { $0.0 }
+}
+
+/// Giriş yapan hesabın veri anahtarı (oturumdaki kullanıcıdan); oturum yoksa nil. Tanıtım modunda (yalnız Debug) oturum
+/// yoktur: yüklü sahte hesap giriş yapmış sayılır.
+@MainActor
+func phoneSignedInAccountKey() -> String? {
+    #if DEBUG
+    if isDemoMode {
+        return AppPaths.activeAccountKey()
+    }
+    #endif
+    return HostedAccount.shared.signedInUserIDCache.map { (userID: String) -> String in accountDataKey(userId: userID) }
 }
 
 /// Yüklü hesabın bellekteki verisini kurar (boş; toplantılar hesap yüklenince okunur). Kayıt başlarken takvimde süren
@@ -562,6 +576,7 @@ struct RootView: View {
     let store: PhoneStore
     let recorder: PhoneRecorder
     let ask: PhoneAsk
+    @Environment(PhoneIntegrations.self) private var integrations: PhoneIntegrations
     @Bindable var router: PhoneRouter
     let player: MeetingAudioPlayer
     let calendar: PhoneCalendar
@@ -641,7 +656,7 @@ struct RootView: View {
             Tab("Ayarlar", systemImage: "gearshape", value: PhoneTab.settings) {
                 PhoneSettingsTab(
                     store: store, ask: ask, calendar: calendar, account: account,
-                    isMeetingInFlight: !phoneOpenWriters(store: store, recorder: recorder, ask: ask).isEmpty, crashReports: crashReports,
+                    isMeetingInFlight: !phoneOpenWriters(store: store, recorder: recorder, ask: ask, integrations: integrations).isEmpty, crashReports: crashReports,
                     router: router
                 )
                 .modifier(PhoneTabSwipeTransition(tab: .settings, router: router))
@@ -1187,6 +1202,15 @@ final class PhoneStore {
             } catch {
                 actionProblems = appendUnique(messages: actionProblems, message: userFacingMessage(error: error))
             }
+        }
+        // Kayıt başlarken (toplantı kaydı yazılmadan) kapanan uygulamanın sahipsiz sesi de süre dolunca silinir.
+        do {
+            let deleted: [String] = try deleteOrphanedAudio(sessionsDirectory: try AppPaths.sessionsDirectory(), now: now, retentionDays: days)
+            if !deleted.isEmpty {
+                Self.logger.info("Toplantı kaydı olmayan ses silindi, klasör sayısı: \(deleted.count, privacy: .public)")
+            }
+        } catch {
+            actionProblems = appendUnique(messages: actionProblems, message: userFacingMessage(error: error))
         }
     }
 

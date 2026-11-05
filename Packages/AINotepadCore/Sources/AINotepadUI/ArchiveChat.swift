@@ -708,7 +708,8 @@ private struct StreamingAnswer: View {
         AnswerMarkdownView(blocks: parseMarkdown(text: isRevealing ? visible + streamingCaret : visible), webSources: exchange.answer.webSources)
             .environment(\.openURL, OpenURLAction { (url: URL) -> OpenURLAction.Result in
                 guard url.scheme == citationScheme, let number = Int(url.host() ?? "") else {
-                    return .systemAction
+                    // Yalnız web adresleri sisteme verilir; başka şemalar (file:, smb:, uygulama şemaları) açılmaz.
+                    return isWebAddress(url.absoluteString) ? .systemAction : .discarded
                 }
                 onCitation(number)
                 return .handled
@@ -744,7 +745,7 @@ private struct WebSourcesList: View {
         VStack(alignment: .leading, spacing: 2) {
             ForEach(Array(sources.enumerated()), id: \.element.url) { (item: (offset: Int, element: WebSource)) in
                 Button {
-                    if let url = URL(string: item.element.url) {
+                    if isWebAddress(item.element.url), let url = URL(string: item.element.url) {
                         openURL(url)
                     }
                 } label: {

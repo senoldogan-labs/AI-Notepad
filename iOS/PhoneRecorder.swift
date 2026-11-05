@@ -191,8 +191,20 @@ final class PhoneRecorder {
     /// Toplantının işlenmesi bitip kaydedildi (uygulama bağlar): notu hazırsa bağlı hedeflere kendiliğinden gider.
     @ObservationIgnored var onMeetingProcessed: (@MainActor (MeetingRecord) -> Void)?
 
+    /// Bu kaydedicinin kurulduğu hesap (bkz. `resolvedBoundAccountKey`): hesap yerinde değiştikten sonra eski hesabın
+    /// kuyruğu ve yeniden denemeleri yeni hesabın oturumunu ve klasörünü kullanmaz.
+    @ObservationIgnored private var accountKey: String?
+
     init(store: PhoneStore) {
         self.store = store
+        accountKey = AppPaths.activeAccountKey()
+    }
+
+    /// Bağlı olunan hesap hâlâ yüklü ve giriş yapan (`signedInKey`) hesap mı (bkz. `isAccountSessionCurrent`); kurulurken
+    /// hesap yüklü değildiyse ilk yüklenen hesaba bağlanır.
+    private func isBoundAccountCurrent(signedInKey: String?) -> Bool {
+        accountKey = resolvedBoundAccountKey(bound: accountKey, active: AppPaths.activeAccountKey())
+        return isAccountSessionCurrent(boundKey: accountKey, activeKey: AppPaths.activeAccountKey(), signedInKey: signedInKey)
     }
 
     /// Kaydı başlatır. Giriş yapılmamışsa, yapay zekâ açıklaması kabul edilmemişse ya da hak durumu kaydı engelliyorsa
@@ -781,7 +793,8 @@ final class PhoneRecorder {
     /// kayıt ekranında gösterilir (kayıt yeniden başlatılmaz: mikrofon kullanıcı istemeden açılmaz).
     func resumeUnfinished() async {
         endStaleActivities()
-        guard phase == .idle else {
+        // Hesap yerinde değiştiyse (ya da çıkış yapıldıysa) eski hesabın toplantıları yeni hesabın oturumuyla işlenmez.
+        guard phase == .idle, isBoundAccountCurrent(signedInKey: phoneSignedInAccountKey()) else {
             return
         }
         // Bu oturumda işlenmekte olanlar (sahne yeniden kurulduysa) ikinci kez işlenmez: çift ücret, aynı dosyaya iki yazar.
@@ -863,8 +876,9 @@ final class PhoneRecorder {
             Self.logger.error("Yeniden deneme: oturum okunamadı, hata: \(String(describing: error), privacy: .private)")
             return
         }
-        // Yüklü toplantılar giriş yapan hesabın değilse hiçbiri işlenmez: başka hesaba faturalanmaz.
-        guard phase == .idle, AppPaths.activeAccountKey() == accountDataKey(userId: userID) else {
+        // Yüklü toplantılar giriş yapan hesabın değilse ya da hesap yerinde değiştiyse (bu kaydedici eski hesabın) hiçbiri
+        // işlenmez: başka hesaba faturalanmaz.
+        guard phase == .idle, isBoundAccountCurrent(signedInKey: accountDataKey(userId: userID)) else {
             return
         }
         let linked: Set<String>
@@ -967,8 +981,9 @@ final class PhoneRecorder {
             Self.logger.error("Kuyruk: oturum okunamadı, hata: \(String(describing: error), privacy: .private)")
             return
         }
-        // Yüklü toplantılar giriş yapan hesabın değilse hiçbiri işlenmez: başka hesaba faturalanmaz.
-        guard AppPaths.activeAccountKey() == accountDataKey(userId: userID) else {
+        // Yüklü toplantılar giriş yapan hesabın değilse ya da hesap yerinde değiştiyse (bu kaydedici eski hesabın) hiçbiri
+        // işlenmez: başka hesaba faturalanmaz.
+        guard isBoundAccountCurrent(signedInKey: accountDataKey(userId: userID)) else {
             Self.logger.info("Kuyruk: yüklü toplantılar giriş yapan hesabın değil, işlenmedi")
             return
         }

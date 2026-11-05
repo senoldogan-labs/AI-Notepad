@@ -104,6 +104,24 @@ private func fileNumber(url: URL) throws -> Int {
         }
     }
 
+    // Eski hesabın oturumu, hesap yerinde değiştikten sonra (yüklü ya da giriş yapan hesap başka) hiçbir şey yapmaz;
+    // hesap yüklü değilken kurulan oturum ilk yüklenen hesaba bir kez bağlanır.
+    @Test func accountSessionRunsOnlyForItsAccount() {
+        #expect(isAccountSessionCurrent(boundKey: keyA, activeKey: keyA, signedInKey: keyA))
+        #expect(!isAccountSessionCurrent(boundKey: keyA, activeKey: keyB, signedInKey: keyB))
+        #expect(!isAccountSessionCurrent(boundKey: keyA, activeKey: keyA, signedInKey: keyB))
+        #expect(!isAccountSessionCurrent(boundKey: keyA, activeKey: keyA, signedInKey: nil))
+        #expect(!isAccountSessionCurrent(boundKey: nil, activeKey: nil, signedInKey: nil))
+        #expect(resolvedBoundAccountKey(bound: nil, active: keyA) == keyA)
+        #expect(resolvedBoundAccountKey(bound: keyA, active: keyB) == keyA)
+        #expect(resolvedBoundAccountKey(bound: nil, active: nil) == nil)
+        guard case .waiting(let sending) = accountSwitchReadiness(openWriters: [.noteSending]) else {
+            Issue.record("kendiliğinden gönderim sürerken hesap değiştirilebilir sayıldı")
+            return
+        }
+        #expect(sending == [.noteSending])
+    }
+
     // Süreç bir hesabın verisini yükler: aynı hesap yeniden yüklenebilir; başka hesap `activateAccount` ile yüklenmez,
     // yalnız yazan işler kapalıyken ve yüklü hesap beklenen hesapsa `switchAccount` ile değiştirilir. (Test sürecinin
     // Info.plist'inde hesap başına veri kapalıdır; yüklenen anahtar diğer testlerin yollarını değiştirmez. Süreç
