@@ -91,6 +91,10 @@ export interface ClientCopy {
   readonly hoursLeft: string;
   /** Aylık sınır doldu: `{date}` sınırın sıfırlandığı gün (UTC). */
   readonly hoursLimitReached: string;
+  /** Toplantı dışı yapay zekâ ölçerinin altındaki sıfırlanma satırı: `{date}` (UTC). */
+  readonly aiResets: string;
+  /** Toplantı dışı yapay zekâ hakkı doldu: `{date}` hakkın sıfırlandığı gün (UTC); kayıt etkilenmez. */
+  readonly aiLimitReached: string;
   /** Ek sürede (ödeme alınamadı, erişim sürüyor) Aboneliği yönet düğmesinin yanındaki uyarı. */
   readonly subscriptionGraceAlert: string;
   readonly subscriptionEnded: string;
@@ -299,6 +303,8 @@ export const clientCopy: ClientCopy = {
   hours: "{used} / {cap} hours",
   hoursLeft: "{left} hours left",
   hoursLimitReached: "Monthly limit reached. You can start new meetings again on {date} (UTC).",
+  aiResets: "Resets on {date} (UTC)",
+  aiLimitReached: "AI allowance used up. Ask, note rewriting and task tools work again on {date} (UTC). Recording and meeting notes are not affected.",
   subscriptionGraceAlert: "Payment failed. Update your card to keep access.",
   subscriptionEnded: "Your subscription has ended.",
   subscriptionPaymentOverdue: "Payment failed. Update your card in Manage subscription to keep recording.",

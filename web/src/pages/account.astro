@@ -1,13 +1,13 @@
 ---
 // Hesap sayfası, yukarıdan aşağı tek sütun: başlık ve çıkış; tek plan kartı (durgun film kapak, altında plan adı ve
 // durum etiketi, cümle gerektiren durumda tek ileti satırı, tarih gibi değerler için etiket/değer satırları, denemede
-// kalan toplantı ya da abonede aylık kullanım ölçeri (sınıra yaklaşınca sarı, dolunca sıfırlanma günüyle uyarı), ödeme
-// alınamadıysa eylemin yanında uyarı ve duruma uyan eylem: abone olmayanda plan seçimi (yıllık seçili), davet kodu alanı
-// ve Abone ol; abonede Aboneliği yönet; ücretsiz erişimde eylem yok); abonede davet kartı (kod, davet bağlantısını
-// kopyalama, sayı satırı, ödülün tahmini tarihi); uygulamayı indirme ve yardım kartları yan yana; en altta varsayılan
-// kapalı hesap silme alanı (<details>; onay penceresiyle). Hesap yüklenemezse hatanın altında yeniden deneme düğmesi
-// görünür. Değerler tarayıcıda `/v1/me` ve `/v1/referral`'dan doldurulur (src/client/account.ts); kimlikler
-// scripts/e2e.ts ve scripts/screenshots.ts ile aynı tutulur.
+// kalan toplantı ya da abonede aylık kullanım ve toplantı dışı yapay zekâ ölçerleri (sınıra yaklaşınca sarı, dolunca
+// sıfırlanma günüyle uyarı), ödeme alınamadıysa eylemin yanında uyarı ve duruma uyan eylem: abone olmayanda plan seçimi
+// (yıllık seçili), davet kodu alanı ve Abone ol; abonede Aboneliği yönet; ücretsiz erişimde eylem yok); abonede davet
+// kartı (kod, davet bağlantısını kopyalama, sayı satırı, ödülün tahmini tarihi); uygulamayı indirme ve yardım kartları
+// yan yana; en altta varsayılan kapalı hesap silme alanı (<details>; onay penceresiyle). Hesap yüklenemezse hatanın
+// altında yeniden deneme düğmesi görünür. Değerler tarayıcıda `/v1/me` ve `/v1/referral`'dan doldurulur
+// (src/client/account.ts); kimlikler scripts/e2e.ts ve scripts/screenshots.ts ile aynı tutulur.
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
 import Film from "../components/Film.astro";
@@ -84,6 +84,19 @@ const helpLinks: readonly { readonly href: string; readonly label: string }[] = 
               <span class="small muted">{text.hoursNote}</span>
             </div>
             <p id="hours-limit" class="usage__limit hidden" role="status"></p>
+          </div>
+
+          <div id="ai-card" class="usage hidden">
+            <div class="usage__head">
+              <span class="usage__label" id="ai-label"><Icon name="sparkle" size={16} class="" />{text.aiLabel}</span>
+              <span id="ai-value" class="usage__value tabular"></span>
+            </div>
+            <progress id="ai-meter" class="meter" aria-labelledby="ai-label" max="1" value="0"></progress>
+            <div id="ai-foot" class="usage__foot">
+              <span id="ai-resets" class="usage__left tabular"></span>
+              <span class="small muted">{text.aiNote}</span>
+            </div>
+            <p id="ai-limit" class="usage__limit hidden" role="status"></p>
           </div>
 
           <fieldset id="plan-choice" class="plan-choice hidden">

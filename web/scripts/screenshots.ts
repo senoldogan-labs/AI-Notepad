@@ -201,7 +201,18 @@ function meFixture(state: AccountState, now: Date): object {
   const at = (days: number): string => new Date(now.getTime() + days * 86_400_000).toISOString();
   // Aylık sınır sonraki UTC ayının başında sıfırlanır (sunucunun `monthlyResetsAt`'i).
   const monthlyResetsAt: string = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString();
-  const base = { userId: "usr_example", trialMeetingsTotal: 3, trialDays: 7, monthlyHoursCap: 10, monthlyResetsAt };
+  // Toplantı dışı yapay zekâ hakkı: abonede aylık (sıfırlanma `monthlyResetsAt` ile aynı); durumlar kullanımı değiştirir.
+  const base = {
+    userId: "usr_example",
+    trialMeetingsTotal: 3,
+    trialDays: 7,
+    monthlyHoursCap: 10,
+    monthlyResetsAt,
+    accountTokensUsed: 240_000,
+    accountTokensCap: 2_000_000,
+    accountTokensPeriod: "month",
+    accountTokensResetsAt: monthlyResetsAt,
+  };
   const subscription = (access: "active" | "grace", cancelAt: string | null): object => ({
     source: "stripe",
     status: access === "grace" ? "past_due" : "active",
@@ -219,10 +230,10 @@ function meFixture(state: AccountState, now: Date): object {
     "trial-last": { ...base, plan: "trial", trialMeetingsLeft: 1, trialEndsAt: at(3), monthlyHoursUsed: 1.6, subscription: null },
     "trial-ended": { ...base, plan: "trial", trialMeetingsLeft: 0, trialEndsAt: at(-1), monthlyHoursUsed: 2.1, subscription: null },
     active: { ...base, plan: "subscription", trialMeetingsLeft: 0, trialEndsAt: null, monthlyHoursUsed: 3.4, subscription: subscription("active", null) },
-    // Aylık sınır dolu: ölçer sarı, kalan saat yerine sıfırlanma günü.
-    limit: { ...base, plan: "subscription", trialMeetingsLeft: 0, trialEndsAt: null, monthlyHoursUsed: 10, subscription: subscription("active", null) },
-    // Sınırın %80'inin üstü: ölçer sarı.
-    canceling: { ...base, plan: "subscription", trialMeetingsLeft: 0, trialEndsAt: null, monthlyHoursUsed: 8.4, subscription: subscription("active", at(20)) },
+    // Aylık sınır ve yapay zekâ hakkı dolu: ölçerler kırmızı, kalan saat yerine sıfırlanma günü.
+    limit: { ...base, accountTokensUsed: 2_000_000, plan: "subscription", trialMeetingsLeft: 0, trialEndsAt: null, monthlyHoursUsed: 10, subscription: subscription("active", null) },
+    // Sınırın %80'inin üstü (saat ve yapay zekâ): ölçerler sarı.
+    canceling: { ...base, accountTokensUsed: 1_700_000, plan: "subscription", trialMeetingsLeft: 0, trialEndsAt: null, monthlyHoursUsed: 8.4, subscription: subscription("active", at(20)) },
     grace: { ...base, plan: "subscription", trialMeetingsLeft: 0, trialEndsAt: null, monthlyHoursUsed: 1.2, subscription: subscription("grace", null) },
     // Ek süre bitti, ödeme hâlâ alınamadı: erişim yok, abonelik Stripe'ta sürer (Yönet düğmesinin yanında uyarı).
     overdue: {

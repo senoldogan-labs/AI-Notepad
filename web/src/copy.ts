@@ -376,6 +376,10 @@ export interface AccountCopy {
   readonly trialLabel: string;
   readonly hoursLabel: string;
   readonly hoursNote: string;
+  /** Toplantı dışı yapay zekâ ölçerinin adı (uygulamalardaki ikinci ölçer). */
+  readonly aiLabel: string;
+  /** O ölçerden neyin düştüğü. */
+  readonly aiNote: string;
   readonly subscribe: string;
   /** Abone olmadan önce plan seçimi (seçenekler `copy.pricing.plans`'tan). */
   readonly planChoiceLegend: string;
@@ -1707,6 +1711,8 @@ export const copy: Copy = {
     trialLabel: "Free trial meetings left",
     hoursLabel: "Usage this month",
     hoursNote: "Resets on the first day of each month (UTC).",
+    aiLabel: "AI outside meetings",
+    aiNote: "Ask, note rewriting, shared-note translation and task tools use this allowance. AI during a meeting doesn't.",
     subscribe: "Subscribe",
     planChoiceLegend: "Choose a plan",
     invite: {

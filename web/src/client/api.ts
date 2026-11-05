@@ -77,6 +77,12 @@ export interface Entitlements {
   readonly monthlyHoursCap: number;
   /** Aylık saat sınırının sıfırlandığı an: sonraki UTC ayının başı (ISO 8601). */
   readonly monthlyResetsAt: string;
+  /** Toplantı dışı yapay zekâ hakkının (Sor, notu yeniden yazma, paylaşım çevirisi, görev araçları) dönemde sayılan tokeni. */
+  readonly accountTokensUsed: number;
+  /** Toplantı dışı yapay zekâ hakkı: abonede aylık, denemede günlük token sınırı. */
+  readonly accountTokensCap: number;
+  /** Toplantı dışı hakkın sıfırlandığı an (ISO 8601): abonede sonraki UTC ayının, denemede sonraki UTC gününün başı. */
+  readonly accountTokensResetsAt: string;
   /** Hiç abonelik satırı yoksa null; `plan` "subscription" ise her zaman vardır (ayrıştırıcı denetler). */
   readonly subscription: SubscriptionInfo | null;
 }
@@ -435,6 +441,9 @@ export function parseEntitlements(response: RawResponse, path: string): Entitlem
     monthlyHoursUsed: numberField(body, "monthlyHoursUsed", response, path),
     monthlyHoursCap: numberField(body, "monthlyHoursCap", response, path),
     monthlyResetsAt: stringField(body, "monthlyResetsAt", response, path),
+    accountTokensUsed: numberField(body, "accountTokensUsed", response, path),
+    accountTokensCap: numberField(body, "accountTokensCap", response, path),
+    accountTokensResetsAt: stringField(body, "accountTokensResetsAt", response, path),
     subscription,
   };
 }
