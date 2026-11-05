@@ -61,6 +61,10 @@ export type ErrorCode =
   | "sync_conflict"
   | "sync_quota_exceeded"
   | "sync_cursor_expired"
+  | "assistant_unavailable"
+  | "assistant_not_enabled"
+  | "assistant_epoch_mismatch"
+  | "assistant_quota_exceeded"
   | "webhook_invalid"
   | "internal_error";
 
@@ -126,6 +130,10 @@ const statusByCode: Readonly<Record<ErrorCode, number>> = {
   sync_conflict: 409,
   sync_quota_exceeded: 413,
   sync_cursor_expired: 410,
+  assistant_unavailable: 503,
+  assistant_not_enabled: 409,
+  assistant_epoch_mismatch: 409,
+  assistant_quota_exceeded: 413,
   webhook_invalid: 400,
   internal_error: 500,
 };

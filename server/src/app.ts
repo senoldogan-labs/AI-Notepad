@@ -50,9 +50,11 @@ import { createChallenge, deviceAssertionSchema, registerDevice, verifyDeviceAss
 import { type CheckoutRequest, createCheckout, createPortal, handleStripeWebhook } from "./billing";
 import { complimentaryRequestSchema, complimentaryUntilMs, grantComplimentaryAccess, revokeComplimentaryAccess } from "./complimentary";
 import {
+  type AssistantStorage,
   type Config,
   ConfigError,
   type RevenueCatWebhookConfig,
+  assistantStorageOf,
   type StripeWebhookConfig,
   parseConfig,
   parseRevenueCatWebhookConfig,
@@ -92,6 +94,7 @@ import { dayKey, requireSpendHeadroom, requireTrialSpendHeadroom } from "./usage
 import type { RequestContext } from "./platform";
 import { cachedTranscriptionResponse, parseTranscribeParams, proxyTranscription } from "./transcribe";
 import { routeSync } from "./sync";
+import { routeAssistant } from "./assistant/api";
 
 /** Küçük JSON gövdeleri için üst sınır. */
 const smallBodyBytes: number = 16 * 1024;
@@ -371,7 +374,7 @@ async function route(request: Request, env: Env, config: Config, context: Reques
       return jsonResponse(200, { deleted: true, appStoreSubscription: null, notice: null });
     }
     await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
-    const deletion: AccountDeletion = await deleteAccount(db, env.SYNC_BUCKET, context.platform, config, user.userId, now);
+    const deletion: AccountDeletion = await deleteAccount(db, env.SYNC_BUCKET, assistantStorageOf(env, config), context.platform, config, user.userId, now);
     return jsonResponse(200, deletion);
   }
 
@@ -591,6 +594,18 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     const user: AuthedUser = await authed();
     await enforceLimit(env.SYNC_USER_LIMITER, `user:${user.userId}`);
     return routeSync(request, db, env.SYNC_BUCKET, config, path, user.userId, now);
+  }
+
+  if (path.startsWith("/v1/assistant/")) {
+    // Yapay zekâ asistanı erişimi (yalnızca uygulama; bkz. `assistant/api.ts`): kullanıcı başına dakikada 300 istek.
+    const user: AuthedUser = await authed();
+    await enforceLimit(env.ASSISTANT_USER_LIMITER, `user:${user.userId}`);
+    // `ASSISTANT_POLICY` kapalıyken (üretimde AB D1'i oluşturulana kadar) bağlama yoktur ve hiçbir asistan kodu çalışmaz.
+    const storage: AssistantStorage | null = assistantStorageOf(env, config);
+    if (storage === null) {
+      throw new ApiError("assistant_unavailable", "AI assistant access is not available yet.");
+    }
+    return routeAssistant(request, db, { ...storage, dataKey: env.ASSISTANT_DATA_KEY }, config, path, user.userId, now);
   }
 
   if (path.startsWith(adminPrefix)) {

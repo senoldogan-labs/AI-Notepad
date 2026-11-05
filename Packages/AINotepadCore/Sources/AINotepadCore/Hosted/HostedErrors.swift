@@ -70,6 +70,12 @@ public enum HostedErrorCode: String, Sendable, CaseIterable, Equatable {
     case syncConflict = "sync_conflict"
     case syncQuotaExceeded = "sync_quota_exceeded"
     case syncCursorExpired = "sync_cursor_expired"
+    // Yapay zekâ asistanı erişimi (`server/src/assistant/`); uygulamalar bu uçları 2. aşamada çağırmaya başlar, o zaman
+    // kendi metinlerini alırlar.
+    case assistantUnavailable = "assistant_unavailable"
+    case assistantNotEnabled = "assistant_not_enabled"
+    case assistantEpochMismatch = "assistant_epoch_mismatch"
+    case assistantQuotaExceeded = "assistant_quota_exceeded"
     // Apple ile girişin yetkilendirme kodu yalnızca sitenindir (`server/src/auth/appleTokens.ts`); uygulama bu ucu çağırmaz.
     case appleTokensUnavailable = "apple_tokens_unavailable"
     case internalError = "internal_error"
@@ -357,7 +363,7 @@ public func hostedErrorMessage(error: HostedAPIError) -> String {
         return String(localized: "Sunucuda beklenmeyen bir hata oluştu; biraz sonra yeniden dene.")
     case .badRequest, .invalidBody, .notFound, .methodNotAllowed, .lengthRequired, .unsupportedMediaType, .webhookInvalid, .llmPurposeInvalid,
          .blogUnavailable, .blogPostExists, .blogConflict, .blogPostInvalid, .blogImageExists, .analyticsUnavailable,
-         .appleTokensUnavailable:
+         .appleTokensUnavailable, .assistantUnavailable, .assistantNotEnabled, .assistantEpochMismatch, .assistantQuotaExceeded:
         return String(localized: "Bu sürüm sunucuyla uyuşmuyor. Uygulamayı güncelleyip yeniden dene.")
     }
 }

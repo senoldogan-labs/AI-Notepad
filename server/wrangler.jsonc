@@ -17,6 +17,14 @@
       // `wrangler d1 create ainotepad` çıktısındaki kimlik buraya yazılır.
       "database_id": "00000000-0000-0000-0000-000000000000",
       "migrations_dir": "migrations"
+    },
+    // Yapay zekâ asistanı erişimi (src/assistant/): AB D1 veritabanı. `gistsmith-mcp` Worker'ı (wrangler.mcp.jsonc) aynı
+    // veritabanını kullanır. Yerelde Miniflare taklit eder.
+    {
+      "binding": "ASSISTANT_DB",
+      "database_name": "gistsmith-assistant-dev",
+      "database_id": "00000000-0000-0000-0000-000000000001",
+      "migrations_dir": "migrations-assistant"
     }
   ],
   // Hız sınırları: süre yalnızca 10 ya da 60 saniye olabilir. REPORT_IP_LIMITER: `POST /v1/reports` (geri bildirim,
@@ -38,11 +46,17 @@
     { "name": "DEEPGRAM_USER_LIMITER", "namespace_id": "1006", "simple": { "limit": 10, "period": 60 } },
     { "name": "TELEMETRY_USER_LIMITER", "namespace_id": "1007", "simple": { "limit": 6, "period": 60 } },
     { "name": "FUNNEL_IP_LIMITER", "namespace_id": "1008", "simple": { "limit": 20, "period": 60 } },
-    { "name": "SYNC_USER_LIMITER", "namespace_id": "1009", "simple": { "limit": 300, "period": 60 } }
+    { "name": "SYNC_USER_LIMITER", "namespace_id": "1009", "simple": { "limit": 300, "period": 60 } },
+    { "name": "ASSISTANT_USER_LIMITER", "namespace_id": "1010", "simple": { "limit": 300, "period": 60 } }
   ],
   // Mac ↔ iPhone eşitlemesinin uçtan uca şifreli nesneleri (src/sync.ts). AB yargı bölgesindeki kova; içerik anahtarı
   // yalnızca kullanıcının cihazlarındadır. Yerelde (`wrangler dev`, testler) Miniflare yerel bir kova taklit eder.
-  "r2_buckets": [{ "binding": "SYNC_BUCKET", "bucket_name": "gistsmith-sync-dev", "jurisdiction": "eu" }],
+  // ASSISTANT_BUCKET: aynı kova, yapay zekâ asistanı kopyasının sunucuda şifrelenmiş notları (`a/` öneki; bkz.
+  // src/assistant/store.ts).
+  "r2_buckets": [
+    { "binding": "SYNC_BUCKET", "bucket_name": "gistsmith-sync-dev", "jurisdiction": "eu" },
+    { "binding": "ASSISTANT_BUCKET", "bucket_name": "gistsmith-sync-dev", "jurisdiction": "eu" }
+  ],
   "vars": {
     "ENVIRONMENT": "development",
     "SITE_ORIGIN": "http://localhost:8788",
@@ -77,6 +91,10 @@
     // Mac ↔ iPhone eşitleme (src/sync.ts): "on" ise `/v1/sync/…` uçları açık, "off" ise `503 sync_unavailable` (hesap
     // silme ve günlük temizlik eşitleme verisini yine siler). Yerelde ve testlerde açık.
     "SYNC_POLICY": "on",
+    // Yapay zekâ asistanı erişimi (src/assistant/): "on" ise `/v1/assistant/…` uçları açık ve ASSISTANT_DB ile
+    // ASSISTANT_BUCKET zorunlu; "off" ise API Worker'ın asistan kodu hiç çalışmaz (`503 assistant_unavailable`; hesap
+    // silme ve günlük temizlik asistan adımını atlar). Yerelde ve testlerde açık.
+    "ASSISTANT_POLICY": "on",
     // Davet edenin aynı anda açık tutabileceği en çok davet: ödülü bekleyen (`joined`, `qualified`), son 24 saatte
     // Checkout'a götürülen (açık ödeme sayfası olabilir) ve son 365 günde kart yeniden kullanıldığı için düşen davetler.
     // Dolunca kod yeni arkadaşa `409 referral_limit_reached` döner; ödül verildikçe ya da davet düştükçe yer açılır.
@@ -237,6 +255,14 @@
           "database_id": "d732acfd-fdb3-4f52-ac79-7c2654d9388b",
           "migrations_dir": "migrations"
         }
+        // ASSISTANT_DB burada bilerek yok: yapay zekâ asistanı erişimi (src/assistant/) açılana kadar API Worker'ın
+        // asistan kodu etkisizdir (ASSISTANT_POLICY "off"; bkz. config.ts `assistantStorageOf`). Açılış sırası:
+        // 1. `npx wrangler d1 create gistsmith-assistant --jurisdiction eu`; kimliği wrangler.mcp.jsonc'ye yaz.
+        // 2. `npm run migrate:assistant:production` (göçler wrangler.mcp.jsonc üzerinden uygulanır).
+        // 3. Buraya ASSISTANT_DB'yi (aynı kimlik, "migrations_dir": "migrations-assistant") ve aşağıdaki r2_buckets'a
+        //    ASSISTANT_BUCKET'ı ("gistsmith-sync", "jurisdiction": "eu") ekle.
+        // 4. ASSISTANT_POLICY'yi "on" yap ve dağıt. Politika "on" iken bağlama eksikse sunucu ilk istekte durur
+        //    (`ConfigError`), istek anında değil.
       ],
       "ratelimits": [
         { "name": "AUTH_IP_LIMITER", "namespace_id": "2001", "simple": { "limit": 10, "period": 60 } },
@@ -247,10 +273,12 @@
         { "name": "DEEPGRAM_USER_LIMITER", "namespace_id": "2006", "simple": { "limit": 10, "period": 60 } },
         { "name": "TELEMETRY_USER_LIMITER", "namespace_id": "2007", "simple": { "limit": 6, "period": 60 } },
         { "name": "FUNNEL_IP_LIMITER", "namespace_id": "2008", "simple": { "limit": 20, "period": 60 } },
-        { "name": "SYNC_USER_LIMITER", "namespace_id": "2009", "simple": { "limit": 300, "period": 60 } }
+        { "name": "SYNC_USER_LIMITER", "namespace_id": "2009", "simple": { "limit": 300, "period": 60 } },
+        { "name": "ASSISTANT_USER_LIMITER", "namespace_id": "2010", "simple": { "limit": 300, "period": 60 } }
       ],
       // Bkz. üstteki geliştirme `r2_buckets` açıklaması. Kova dağıtımdan önce oluşturulmalı:
       // `npx wrangler r2 bucket create gistsmith-sync --jurisdiction eu` (yoksa `wrangler deploy` başarısız olur).
+      // ASSISTANT_BUCKET açılış sırasının 3. adımında eklenir (bkz. üstteki d1_databases açıklaması).
       "r2_buckets": [{ "binding": "SYNC_BUCKET", "bucket_name": "gistsmith-sync", "jurisdiction": "eu" }],
       "vars": {
         "ENVIRONMENT": "production",
@@ -278,6 +306,10 @@
         "REFERRAL_POLICY": "on",
         // Bkz. üstteki geliştirme `vars` açıklaması. Kapalı: istemciler (1B) ve gizlilik metni yayınlanınca açılır.
         "SYNC_POLICY": "off",
+        // Bkz. üstteki geliştirme `vars` açıklaması. Kapalı: uygulamalar (2. aşama), gizlilik metni ve onay sayfaları
+        // (3. aşama) yayınlanınca, d1_databases açıklamasındaki sırayla açılır. Açıldıktan sonra yeniden "off" yapma:
+        // kapalıyken hesap silme asistan kopyasını silmez (yeniden açılınca günlük temizlik yetimleri siler).
+        "ASSISTANT_POLICY": "off",
         // Bkz. üstteki geliştirme `vars` açıklaması.
         "REFERRAL_MAX_PENDING": "3",
         // Bkz. üstteki geliştirme `vars` açıklaması.

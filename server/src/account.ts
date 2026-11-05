@@ -1,6 +1,6 @@
 import { type AppStoreSubscription, appStoreAccess, appStoreManageUrl, appStorePaidSql, appStoreSubscriptionOf } from "./appStore";
 import { closeStripeForDeletion } from "./billing";
-import type { Config } from "./config";
+import type { AssistantStorage, Config } from "./config";
 import { deepgramUnlinkUserStatement } from "./deepgram";
 import { log } from "./log";
 import type { Platform } from "./platform";
@@ -13,6 +13,7 @@ import type { IdentityProvider } from "./auth/users";
 import { type AppleRevocationOutcome, appleTokenDeletionStatement, revokeAppleTokensForDeletion } from "./auth/appleTokens";
 import { dayKey } from "./usage";
 import { purgeSyncPrefixNow, syncDeletionStatements, syncPrefix } from "./sync";
+import { deleteAssistantAccount } from "./assistant/store";
 
 /** Hesabın giriş kimliği. */
 interface StoredIdentity {
@@ -161,8 +162,21 @@ export function accountDeletionResult(subscription: AppStoreSubscription | null,
  * iptal edilemez (Apple yalnızca kullanıcıya izin verir): silme yine yapılır, yanıt kullanıcıya iptal etmesini söyler
  * (`accountDeletionResult`). RevenueCat'teki satın alma kaydı (bu hesap kimliğiyle) Apple aboneliği sürdükçe orada
  * kalır; sonraki yenilemeler webhook'ta bilinmeyen hesap olarak sayılır.
+ * Yapay zekâ asistanı kopyası (AB D1 ayrı bir veritabanıdır, aynı işleme girmez) hesap satırlarından önce silinir:
+ * bağlantıların satırları gider (asistan hemen durur), KV iptali ve R2 öneki kuyruğa yazılır, bloklar hemen silinir
+ * (`deleteAssistantAccount`). Başarısız olursa hesap silinmez ve istemci yeniden dener. `assistant` null ise
+ * (`ASSISTANT_POLICY` kapalı; üretimde AB D1'i oluşturulana kadar bağlama yoktur) bu adım açıkça atlanır ve `info`
+ * loglanır; politika sonradan açılınca günlük temizlik artık var olmayan hesapların kopyasını siler.
  */
-export async function deleteAccount(db: D1Database, syncBucket: R2Bucket, platform: Platform, config: Config, userId: string, now: Date): Promise<AccountDeletion> {
+export async function deleteAccount(
+  db: D1Database,
+  syncBucket: R2Bucket,
+  assistant: AssistantStorage | null,
+  platform: Platform,
+  config: Config,
+  userId: string,
+  now: Date,
+): Promise<AccountDeletion> {
   const canceledSubscriptions: number = await closeStripeForDeletion(db, platform, config, userId);
   const appleRevocation: AppleRevocationOutcome = await revokeAppleTokensForDeletion(db, platform, config.appleSignIn, userId, now);
   const appStore: AppStoreSubscription | null = await appStoreSubscriptionOf(db, userId);
@@ -174,6 +188,11 @@ export async function deleteAccount(db: D1Database, syncBucket: R2Bucket, platfo
   const identityHashes: string[] = await Promise.all(
     identities.results.map((identity: StoredIdentity): Promise<string> => trialIdentityHash(config.secrets.trialHash, identity.provider, identity.subject)),
   );
+  if (assistant === null) {
+    log("info", "assistant_deletion_skipped", { userId, reason: "assistant_policy_off" });
+  } else {
+    await deleteAssistantAccount(assistant.adb, assistant.bucket, userId, now);
+  }
   await db.batch(accountDeletionStatements(db, userId, identityHashes, now));
   // Eşitlemenin şifreli blokları: satırlar zaten silindi (kopya erişilemez); R2 hatası günlük temizliğe kalır.
   await purgeSyncPrefixNow(db, syncBucket, userId, syncPrefix(userId), now);

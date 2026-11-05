@@ -25,6 +25,10 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
   && scripts/fetch-sfx.sh && scripts/copy-shots.sh && npm run render`. Python denetimi: `cd promo/voice && uv run ruff
   check . ../blender && uv run ruff format --check . ../blender && uv run basedpyright`; film: `npx tsc --noEmit`. Yeni
   indirilen headless Chrome'un ilk açılışı macOS taraması yüzünden "root component" zaman aşımı verebilir; tekrar çalıştır.
+- `server/` — Cloudflare Worker'ları: API (`wrangler.jsonc`, `src/index.ts`) ve uzak MCP bağlayıcısı `gistsmith-mcp`
+  (`wrangler.mcp.jsonc`, `src/mcp/`; yapay zekâ asistanı kopyası `src/assistant/`, AB D1 göçleri `migrations-assistant/`).
+  İkisi aynı test çalışma ortamında sınanır (`npm test`); MCP Worker'ın KV'si ve iki uyumluluk bayrağı yalnızca
+  `vitest.config.ts`'te eklenir. Paketleme denetimi: `npx wrangler deploy --dry-run --config wrangler.mcp.jsonc --env "" --outdir <geçici>`.
 - `project.yml` — XcodeGen tanımı; `AINotepad.xcodeproj` üretilir, repoya girmez.
 - İmzalama: `Config/Local.xcconfig.example` dosyasını `Config/Local.xcconfig` olarak kopyalayıp `DEVELOPMENT_TEAM` yaz.
 

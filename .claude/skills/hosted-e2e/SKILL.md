@@ -19,8 +19,8 @@ cd server
 test -e .dev.vars && { echo ".dev.vars exists; stop and ask the owner"; exit 1; }
 npm ci
 sed -n '/const fakeSecrets/,/^};/p' vitest.config.ts | sed -nE 's/^  ([A-Z_]+): "(.*)",$/\1="\2"/p' > .dev.vars
-wc -l < .dev.vars          # 9 (the fake test secrets of vitest.config.ts, so they stay in sync)
-npm run migrate:local      # local D1 under server/.wrangler/ (untracked); rerun after new migrations
+wc -l < .dev.vars          # 10 (the fake test secrets of vitest.config.ts, so they stay in sync)
+npm run migrate:local      # both local D1s (production schema + EU assistant) under server/.wrangler/ (untracked); rerun after new migrations
 ```
 
 ## 2. Start the fake upstreams and the local server

@@ -1,5 +1,5 @@
 import { UpstreamError, isRetryableStatus } from "./errors";
-import type { Platform } from "./platform";
+import type { OutboundPlatform } from "./platform";
 import { withRetries } from "./retry";
 
 /** `AbortSignal.timeout` süresi doldu mu (fetch bu durumda `TimeoutError` adlı DOMException fırlatır). Saf fonksiyondur. */
@@ -23,7 +23,7 @@ export function isRetryableUpstreamError(error: unknown): boolean {
  * akışları bir kez okunabilir).
  */
 export async function fetchUpstream(
-  platform: Platform,
+  platform: OutboundPlatform,
   service: string,
   url: string,
   init: () => RequestInit,

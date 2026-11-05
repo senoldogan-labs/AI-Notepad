@@ -24,6 +24,12 @@ export interface Platform {
   readonly recordRetry: (service: string) => Promise<void>;
 }
 
+/**
+ * Dışarı istek atan ve kimlik jetonu doğrulayan kodun gereksindiği kısım (App Attest kökü yok): `gistsmith-mcp`
+ * Worker'ı (bkz. `mcp/platform.ts`) yalnızca bunu verir.
+ */
+export type OutboundPlatform = Pick<Platform, "fetch" | "now" | "retryBaseDelayMs" | "jwksCache" | "recordRetry">;
+
 /** İstek bağlamı: istek boyunca değişmeyen her şey. */
 export interface RequestContext {
   readonly platform: Platform;

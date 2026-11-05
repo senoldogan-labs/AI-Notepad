@@ -13,6 +13,8 @@ const fakeSecrets: Record<string, string> = {
   TURNSTILE_SECRET_KEY: "test-turnstile-secret-000",
   REVENUECAT_WEBHOOK_AUTH: "Bearer test-revenuecat-webhook-auth-000",
   REVENUECAT_SECRET_API_KEY: "sk_test_revenuecat_fake_000000",
+  // Assistant copy keyring (two fake 32-byte keys; key 2 is current, key 1 exercises rotation).
+  ASSISTANT_DATA_KEY: "2:AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI=,1:AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=",
 };
 
 /**
@@ -34,20 +36,34 @@ function liveBindings(): Record<string, string> {
   return bindings;
 }
 
+/** Test files of the `gistsmith-mcp` Worker: they run with that Worker's KV namespace and compatibility flags. */
+const mcpTestFiles: string[] = ["test/mcp*.test.ts", "test/assistantUnits.test.ts"];
+
 export default defineConfig(async () => {
   const migrations = await readD1Migrations(path.join(import.meta.dirname, "migrations"));
+  const assistantMigrations = await readD1Migrations(path.join(import.meta.dirname, "migrations-assistant"));
+  const bindings = { ...fakeSecrets, ...liveBindings(), TEST_MIGRATIONS: migrations, TEST_ASSISTANT_MIGRATIONS: assistantMigrations };
+  const shared = { setupFiles: ["./test/setup.ts"], testTimeout: 60_000 };
   return {
-    plugins: [
-      cloudflareTest({
-        wrangler: { configPath: "./wrangler.jsonc" },
-        miniflare: {
-          bindings: { ...fakeSecrets, ...liveBindings(), TEST_MIGRATIONS: migrations },
-        },
-      }),
-    ],
     test: {
-      setupFiles: ["./test/setup.ts"],
-      testTimeout: 60_000,
+      projects: [
+        {
+          // The API Worker exactly as wrangler.jsonc configures it: no flags or bindings it does not have in production.
+          plugins: [cloudflareTest({ wrangler: { configPath: "./wrangler.jsonc" }, miniflare: { bindings } })],
+          test: { ...shared, name: "api", include: ["test/**/*.test.ts"], exclude: mcpTestFiles },
+        },
+        {
+          // The MCP Worker (wrangler.mcp.jsonc) is tested in a runtime with its KV namespace and its two compatibility
+          // flags; its tests also drive the API Worker (the apps' side), whose configuration provides the shared bindings.
+          plugins: [
+            cloudflareTest({
+              wrangler: { configPath: "./wrangler.jsonc" },
+              miniflare: { bindings, kvNamespaces: ["OAUTH_KV"], compatibilityFlags: ["global_fetch_strictly_public", "nodejs_compat"] },
+            }),
+          ],
+          test: { ...shared, name: "mcp", include: mcpTestFiles },
+        },
+      ],
     },
   };
 });
