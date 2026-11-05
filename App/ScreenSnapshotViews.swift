@@ -16,15 +16,24 @@ struct ScreenSnapshotSettingsRow: View {
     @State private var hasPermission: Bool = hasScreenCapturePermission()
 
     var body: some View {
-        SettingsRow(title: Text("Paylaşılan ekranın görüntülerini al")) {
+        SettingsRow(icon: "rectangle.dashed.badge.record", title: Text("Paylaşılan ekranın görüntülerini al")) {
             #if HOSTED_EDITION
             if usesScreensInNotes {
-                Text("Çevrimiçi görüşme kaydında ekrana birkaç saniyede bir bakılır; içerik anlamlı değişince (slayt, tasarım, sayfa) bir görüntü saklanır ve o sırada konuşulanlarla eşlenir. Görüşme penceresi (Zoom, Meet, Teams…) bulunursa yalnızca o, yoksa ana ekran alınır; bu uygulamanın pencereleri hiç alınmaz. Görüntüler bu Mac'te toplantının klasöründe saklanır. \"Notlarda ekran görüntülerini kullan\" açık olduğu için not yazılırken ve Sor'da birkaçı küçültülüp sunucumuza, oradan da Anthropic'e (Claude) gönderilir; bağladığın MCP istemcisi (ör. Claude, Cursor) de okuyabilir. Toplantı silinince görüntüleri de silinir.")
+                SettingsMoreText(
+                    summary: Text("Ekran anlamlı değişince bir görüntü saklanır; birkaçı nota ve Sor'a gider."),
+                    details: Text("Çevrimiçi görüşme kaydında ekrana birkaç saniyede bir bakılır; içerik anlamlı değişince (slayt, tasarım, sayfa) bir görüntü saklanır ve o sırada konuşulanlarla eşlenir. Görüşme penceresi (Zoom, Meet, Teams…) bulunursa yalnızca o, yoksa ana ekran alınır; bu uygulamanın pencereleri hiç alınmaz. Görüntüler bu Mac'te toplantının klasöründe saklanır. \"Notlarda ekran görüntülerini kullan\" açık olduğu için not yazılırken ve Sor'da birkaçı küçültülüp sunucumuza, oradan da Anthropic'e (Claude) gönderilir; bağladığın MCP istemcisi (ör. Claude, Cursor) de okuyabilir. Toplantı silinince görüntüleri de silinir.")
+                )
             } else {
-                Text("Çevrimiçi görüşme kaydında ekrana birkaç saniyede bir bakılır; içerik anlamlı değişince (slayt, tasarım, sayfa) bir görüntü saklanır ve o sırada konuşulanlarla eşlenir. Görüşme penceresi (Zoom, Meet, Teams…) bulunursa yalnızca o, yoksa ana ekran alınır; bu uygulamanın pencereleri hiç alınmaz. Görüntüler bu Mac'te toplantının klasöründe kalır ve yapay zekâya gönderilmez; yalnızca bağladığın MCP istemcisi (ör. Claude, Cursor) okuyabilir. Toplantı silinince görüntüleri de silinir.")
+                SettingsMoreText(
+                    summary: Text("Ekran anlamlı değişince bir görüntü saklanır; yapay zekâya gönderilmez."),
+                    details: Text("Çevrimiçi görüşme kaydında ekrana birkaç saniyede bir bakılır; içerik anlamlı değişince (slayt, tasarım, sayfa) bir görüntü saklanır ve o sırada konuşulanlarla eşlenir. Görüşme penceresi (Zoom, Meet, Teams…) bulunursa yalnızca o, yoksa ana ekran alınır; bu uygulamanın pencereleri hiç alınmaz. Görüntüler bu Mac'te toplantının klasöründe kalır ve yapay zekâya gönderilmez; yalnızca bağladığın MCP istemcisi (ör. Claude, Cursor) okuyabilir. Toplantı silinince görüntüleri de silinir.")
+                )
             }
             #else
-            Text("Çevrimiçi görüşme kaydında ekrana birkaç saniyede bir bakılır; içerik anlamlı değişince (slayt, tasarım, sayfa) bir görüntü saklanır ve o sırada konuşulanlarla eşlenir. Görüşme penceresi (Zoom, Meet, Teams…) bulunursa yalnızca o, yoksa ana ekran alınır; bu uygulamanın pencereleri hiç alınmaz. Görüntüler toplantının klasöründe kalır (iCloud eşitlemesi açıksa toplantıyla eşitlenir) ve yapay zekâya gönderilmez; yalnızca bağladığın MCP istemcisi (ör. Claude, Cursor) okuyabilir. Toplantı silinince görüntüleri de silinir.")
+            SettingsMoreText(
+                summary: Text("Ekran anlamlı değişince bir görüntü saklanır; yapay zekâya gönderilmez."),
+                details: Text("Çevrimiçi görüşme kaydında ekrana birkaç saniyede bir bakılır; içerik anlamlı değişince (slayt, tasarım, sayfa) bir görüntü saklanır ve o sırada konuşulanlarla eşlenir. Görüşme penceresi (Zoom, Meet, Teams…) bulunursa yalnızca o, yoksa ana ekran alınır; bu uygulamanın pencereleri hiç alınmaz. Görüntüler toplantının klasöründe kalır (iCloud eşitlemesi açıksa toplantıyla eşitlenir) ve yapay zekâya gönderilmez; yalnızca bağladığın MCP istemcisi (ör. Claude, Cursor) okuyabilir. Toplantı silinince görüntüleri de silinir.")
+            )
             #endif
             if enabled, !hasPermission {
                 VStack(alignment: .leading, spacing: 6) {
@@ -60,8 +69,11 @@ struct ScreenNotesSettingsRow: View {
     @AppStorage(SettingsKey.screenSnapshots) private var takesSnapshots: Bool = false
 
     var body: some View {
-        SettingsRow(title: Text("Notlarda ekran görüntülerini kullan")) {
-            Text("Not yazılırken toplantının en çok konuşulan en fazla 6 ekran görüntüsü küçültülüp notla birlikte sunucumuza, oradan da Anthropic'e (Claude) gönderilir; not ekrana atıf yapabilir (ör. \"Fiyatlandırma slaytında, 12:40\"). Sor'da da okunan transkript parçaları konuşulurken ekranda olan en fazla 3 görüntü soruyla aynı yoldan gider; cevabın altında kaç görüntü okunduğu yazar. Sunucumuz görüntüleri saklamaz ve loglamaz; Anthropic onları transkriptle aynı koşullarla işler. Bir görüntüyü toplantının Ekranlar sekmesinden nottan çıkarabilirsin (Sor'a da gitmez). Kapalıyken görüntüler bu Mac'ten çıkmaz.")
+        SettingsRow(icon: "photo.on.rectangle", title: Text("Notlarda ekran görüntülerini kullan")) {
+            SettingsMoreText(
+                summary: Text("Notta ve Sor'da birkaç ekran görüntüsü Anthropic'e (Claude) gönderilir."),
+                details: Text("Not yazılırken toplantının en çok konuşulan en fazla 6 ekran görüntüsü küçültülüp notla birlikte sunucumuza, oradan da Anthropic'e (Claude) gönderilir; not ekrana atıf yapabilir (ör. \"Fiyatlandırma slaytında, 12:40\"). Sor'da da okunan transkript parçaları konuşulurken ekranda olan en fazla 3 görüntü soruyla aynı yoldan gider; cevabın altında kaç görüntü okunduğu yazar. Sunucumuz görüntüleri saklamaz ve loglamaz; Anthropic onları transkriptle aynı koşullarla işler. Bir görüntüyü toplantının Ekranlar sekmesinden nottan çıkarabilirsin (Sor'a da gitmez). Kapalıyken görüntüler bu Mac'ten çıkmaz.")
+            )
             if enabled, !takesSnapshots {
                 NoticeText("Görüntü alınması için \"Paylaşılan ekranın görüntülerini al\" da açık olmalı.", severity: .attention)
                     .padding(.top, 4)

@@ -6,6 +6,8 @@ import SwiftUI
 /// Tek bir anahtar satırı: gizli giriş, kaydet/kaldır, kayıt durumu (açıklama satırında). Kayıtlı değer hiçbir zaman gösterilmez.
 /// Kaydetme ya da kaldırma sonrası `onChange` çağrılır (açık kayıtta çeviri yeni anahtarla sürsün).
 struct SecretField: View {
+    /// Satırın simgesi (SF Symbol).
+    let icon: String
     let title: LocalizedStringKey
     let account: SecretAccount
     let onChange: @MainActor () -> Void
@@ -14,7 +16,7 @@ struct SecretField: View {
     @State private var status: SecretStatus = .unknown
 
     var body: some View {
-        SettingsRow(title: Text(title)) {
+        SettingsRow(icon: icon, title: Text(title)) {
             switch status {
             case .unknown:
                 EmptyView()
