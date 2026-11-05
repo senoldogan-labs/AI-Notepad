@@ -382,6 +382,15 @@ export function isTrialStarted(trial: TrialState, config: Config): boolean {
 }
 
 /**
+ * Deneme çalışıyor mu: başlamış (`isTrialStarted`), toplantıları harcanmamış ve süresi dolmamış. Toplantı başlatma
+ * dışındaki deneme hakkı (eşitleme, yeniden işleme, toplantı dışı yapay zekâ) yalnızca buna bakar; hiç başlamamış
+ * deneme hep 3 toplantı gösterir ve süresi dolmaz, hak sayılırsa süresiz açık kalırdı. Saf fonksiyondur.
+ */
+export function hasRunningTrial(trial: TrialState, config: Config, now: Date): boolean {
+  return isTrialStarted(trial, config) && trialMeetingsLeft(trial, config, now) > 0;
+}
+
+/**
  * Toplantıya bağlı olmayan yapay zekâ çağrısı (Sor, notu yeniden yazma, düzenleme, görev aracı) hakkı: erişimi olan
  * abonelik (`active` ya da `grace`) ya da ilk toplantıyla başlamış (`isTrialStarted`), toplantıları harcanmamış ve
  * süresi dolmamış deneme. Deneme hiç başlamadıysa `trial_not_started` (önce bir toplantı başlatılmalı); bittiyse
@@ -397,7 +406,7 @@ export async function requireAccountLLMAccess(db: D1Database, config: Config, us
   if (!isTrialStarted(trial, config)) {
     throw new ApiError("trial_not_started", "The free trial starts with your first meeting; start a meeting first.");
   }
-  if (trialMeetingsLeft(trial, config, now) > 0) {
+  if (hasRunningTrial(trial, config, now)) {
     return "trial";
   }
   throw new ApiError("subscription_required", "Your trial has ended; subscribe to use AI features outside meetings.");

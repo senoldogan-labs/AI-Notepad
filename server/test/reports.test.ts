@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { Env } from "../src/env";
 import { turnstileVerifyUrl } from "../src/auth/turnstile";
 import { crashPayloadMaxBytes, reportBodyMaxBytes, reportsPerUserPerDay } from "../src/reports";
-import { type Harness, type Session, blockingLimiter, defaultHarness, envWith, expectError, req, signIn } from "./helpers";
+import { type Harness, type Session, blockingLimiter, defaultHarness, envWith, expectError, req, signIn, signInWithGoogle } from "./helpers";
 
 const siteOrigin: string = "http://localhost:8788";
 
@@ -71,9 +71,9 @@ describe("POST /v1/reports", () => {
     expect((await anonymous("a".repeat(400))).status).toBe(202);
     expect((await lastReport())?.user_id).toBeNull();
     await expectError(await anonymous("b".repeat(400)), 429, "daily_cap_reached");
-    // Hesaplı kullanıcı bütçenin kalanını kullanabilir.
+    // Hesaplı kullanıcı bütçenin kalanından kendi payını (yirmide biri: 200 bayt) kullanabilir.
     const session: Session = await signIn(harness);
-    expect((await harness.call(req("POST", "/v1/reports", { token: session.accessToken, json: { kind: "feedback", message: "c".repeat(400) }, env: small }))).status).toBe(202);
+    expect((await harness.call(req("POST", "/v1/reports", { token: session.accessToken, json: { kind: "feedback", message: "c".repeat(80) }, env: small }))).status).toBe(202);
   });
 
   it("jetonla gelen geri bildirim 202 {} döner ve hesaba bağlanır", async () => {
@@ -192,19 +192,23 @@ describe("POST /v1/reports", () => {
       429,
       "rate_limited",
     );
-    // Bütçe bugünkü (UTC) türün raporlarının baytını sayar (mesaj + özet: 10 karakterlik ileti = 20 bayt).
+    // Bütçe bugünkü (UTC) türün raporlarının baytını sayar (mesaj + özet: 10 karakterlik ileti = 20 bayt). Hesap payı
+    // bütçenin yirmide biri (20 bayt); bütçenin kalanını başka hesapların raporları doldurmuş.
     harness.clock.nowMs += 10 * 86_400_000;
-    const capped = envWith({ REPORT_BYTES_PER_DAY: "40" });
+    const capped = envWith({ REPORT_BYTES_PER_DAY: "400" });
     const send = async (json: object, token: string): Promise<Response> => harness.call(req("POST", "/v1/reports", { json, token, env: capped }));
-    const tokens: string[] = [(await signIn(harness)).accessToken, (await signIn(harness)).accessToken];
+    const tokens: string[] = [(await signIn(harness)).accessToken, (await signIn(harness)).accessToken, (await signIn(harness)).accessToken];
     const warnings = vi.spyOn(console, "warn");
     expect((await send({ kind: "feedback", message: "ileti-0000" }, tokens[0] ?? "")).status).toBe(202);
     expect((await send({ kind: "feedback", message: "ileti-1111" }, tokens[1] ?? "")).status).toBe(202);
-    await expectError(await send({ kind: "feedback", message: "gizli-ileti" }, tokens[0] ?? ""), 429, "daily_cap_reached");
+    await env.DB.prepare("INSERT INTO reports (id, kind, status, created_at, summary, size_bytes) VALUES ('others', 'feedback', 'open', ?, 'x', 360)")
+      .bind(harness.clock.nowMs)
+      .run();
+    await expectError(await send({ kind: "feedback", message: "gizli" }, tokens[2] ?? ""), 429, "daily_cap_reached");
     const lines: string[] = warnings.mock.calls.map((call: unknown[]): string => String(call[0]));
     warnings.mockRestore();
     expect(lines.some((line: string): boolean => line.includes('"event":"reports_daily_cap_reached"'))).toBe(true);
-    expect(lines.some((line: string): boolean => line.includes("gizli-ileti"))).toBe(false);
+    expect(lines.some((line: string): boolean => line.includes("gizli"))).toBe(false);
     // Geri bildirim bütçesi dolsa da çökme raporu kendi bütçesinden kabul edilir.
     expect((await send({ kind: "crash", payload: "{}" }, tokens[0] ?? "")).status).toBe(202);
     harness.clock.nowMs += 86_400_000;
@@ -222,6 +226,34 @@ describe("POST /v1/reports", () => {
     const refused = await expectError(await postReport(harness, { kind: "crash", payload: "{}" }, busy.accessToken), 429, "daily_cap_reached");
     expect(refused.error.message).toContain(String(reportsPerUserPerDay));
     expect((await postReport(harness, { kind: "feedback", message: "başka" }, (await signIn(harness)).accessToken)).status).toBe(202);
+  });
+
+  it("bir hesap tür bütçesinin yirmide birini aşamaz: iki hesap en büyük çökme raporlarıyla bütçeyi dolduramaz", async () => {
+    const harness: Harness = await defaultHarness();
+    // En büyük çökme raporu: 64 KB yük + 5000 dört baytlık karakterlik mesaj (~86 KB saklanır).
+    const maxPayload: string = JSON.stringify({ x: "a".repeat(crashPayloadMaxBytes - 8) });
+    const maxMessage: string = "\u{1F600}".repeat(5000);
+    const crash = (token: string, payload: string, message: string | null): Promise<Response> =>
+      postReport(harness, message === null ? { kind: "crash", payload } : { kind: "crash", payload, message }, token);
+    const attackers: string[] = [];
+    for (const subject of ["rapor-yagmuru-a", "rapor-yagmuru-b"]) {
+      const session: Session = await signInWithGoogle(harness, subject);
+      const token: string = session.accessToken;
+      attackers.push(session.userId);
+      // Payı (üretim bütçesinde 100.000 bayt) en büyük tek rapor sığar; ikincisi hesabın payını aşar.
+      expect((await crash(token, maxPayload, maxMessage)).status).toBe(202);
+      for (let index: number = 1; index < reportsPerUserPerDay; index += 1) {
+        await expectError(await crash(token, maxPayload, maxMessage), 429, "daily_cap_reached");
+      }
+      // Hesap payın kalanı kadar küçük rapor gönderebilir; geri bildirim kendi türünün payını kullanır.
+      expect((await postReport(harness, { kind: "feedback", message: "hâlâ geri bildirim" }, token)).status).toBe(202);
+    }
+    const crashBytes = await env.DB.prepare("SELECT COALESCE(SUM(size_bytes), 0) AS bytes FROM reports WHERE kind = 'crash' AND user_id IN (?, ?)")
+      .bind(attackers[0] ?? "", attackers[1] ?? "")
+      .first<{ bytes: number }>();
+    expect(crashBytes?.bytes).toBeLessThanOrEqual(2 * (Number(env.REPORT_BYTES_PER_DAY) / 20));
+    const victim: string = (await signInWithGoogle(harness, "rapor-magduru")).accessToken;
+    expect((await crash(victim, metricKitCrash, null)).status).toBe(202);
   });
 
   it("loglar mesaj, e-posta ya da yük içermez", async () => {

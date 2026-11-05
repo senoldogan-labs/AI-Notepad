@@ -1,5 +1,7 @@
 import { env } from "cloudflare:workers";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { streamTimeLeftMs } from "../src/llm/proxy";
+import { llmReservationTtlMs, llmStreamDeadlineMs } from "../src/reservations";
 import type { Env } from "../src/env";
 import {
   type Harness,
@@ -197,6 +199,42 @@ describe("LLM vekili: üst istek ve muhasebe", () => {
     expect(await meetingTokens(context.meeting.meetingId)).toBe(1200);
     // Yarıda kalan akış servis hatası olarak sayılır ve toplantıya yazılır; not tamamlanmış sayılmaz.
     expect(await meetingOutcome(context.meeting.meetingId)).toEqual({ first_note_at: null, failure_count: 1, last_failure_code: "upstream_unavailable:anthropic" });
+  });
+
+  it("okumayan istemcinin akışı ayırmanın süresi dolmadan kesilir ve ayrılan üst sınırla kesinleşir", async () => {
+    expect(llmStreamDeadlineMs).toBeLessThan(llmReservationTtlMs);
+    expect(streamTimeLeftMs(1_000, 1_000)).toBe(llmStreamDeadlineMs);
+    expect(streamTimeLeftMs(1_000, 1_000 + llmStreamDeadlineMs + 5)).toBe(0);
+    const context: Context = await setup();
+    // Üst akış ilk olaydan sonra açık kalır; istemci yanıtı hiç okumaz (akış istemcinin okumasını bekler). Gerçek
+    // fetch gibi istek iptal edilince gövde AbortError ile kesilir.
+    context.harness.stub(anthropicUrl, async (request: Request): Promise<Response> => {
+      const body: ReadableStream<Uint8Array> = new ReadableStream<Uint8Array>({
+        start(controller: ReadableStreamDefaultController<Uint8Array>): void {
+          controller.enqueue(new TextEncoder().encode(sse(streamEvents.slice(0, 3))));
+          request.signal.addEventListener("abort", (): void => {
+            controller.error(new DOMException("The operation was aborted.", "AbortError"));
+          });
+        },
+      });
+      return new Response(body, { headers: { "content-type": "text/event-stream" } });
+    });
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      const response: Response = await llm(context, { ...basic, stream: true }, null);
+      expect(response.status).toBe(200);
+      await vi.advanceTimersByTimeAsync(llmStreamDeadlineMs - 1_000);
+      const open = await env.DB.prepare("SELECT COUNT(*) AS count FROM usage_reservations WHERE meeting_id = ?").bind(context.meeting.meetingId).first<{ count: number }>();
+      expect(open?.count).toBe(1);
+      await vi.advanceTimersByTimeAsync(1_000);
+      await context.harness.drain();
+    } finally {
+      vi.useRealTimers();
+    }
+    const left = await env.DB.prepare("SELECT COUNT(*) AS count FROM usage_reservations WHERE meeting_id = ?").bind(context.meeting.meetingId).first<{ count: number }>();
+    expect(left?.count).toBe(0);
+    // Girdi message_start'tan (200), çıktı ayrılan üst sınırdan (1000).
+    expect(await meetingTokens(context.meeting.meetingId)).toBe(1200);
   });
 
   it("toplantıda tamamlanan not çağrısı (medium) ilk not anını bir kez yazar; canlı çeviri (low) ve hesap çağrısı yazmaz", async () => {

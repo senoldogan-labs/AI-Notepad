@@ -30,6 +30,14 @@ export const reportsPerUserPerDay: number = 20;
  */
 export const anonymousReportBudgetShare: number = 4;
 
+/**
+ * Bir hesabın tür bütçesinden günde (UTC) kullanabildiği pay (payda): bütçenin yirmide biri. Sayı sınırı
+ * (`reportsPerUserPerDay`) bayt sınırı değildir; pay olmadan birkaç ücretsiz hesap en büyük çökme raporlarıyla türün
+ * bütün bütçesini doldurup diğer herkesin raporunu ertesi güne dek 429'a düşürebilirdi. Üretim bütçesinde
+ * (`REPORT_BYTES_PER_DAY` = 2.000.000) pay 100.000 bayttır: en büyük tek çökme raporu (~87 KB) sığar.
+ */
+export const accountReportBudgetShare: number = 20;
+
 /** Yönetici listesinde sayfa boyu. */
 export const reportPageSize: number = 50;
 
@@ -217,6 +225,7 @@ export function utcDayStartMs(now: Date): number {
  * Raporu saklar ve kimliğini döndürür. Çökme yükü en çok `crashPayloadMaxBytes` (`413 payload_too_large`). Günlük
  * sınırlar (UTC günü) eklemeyle aynı ifadededir, eşzamanlı istekler aşamaz:
  * - hesap başına `reportsPerUserPerDay` rapor (iletişim formu Turnstile ve IP sınırıyla korunur);
+ * - hesap başına tür bütçesinin en çok 1/`accountReportBudgetShare`'ı (birkaç hesap türün bütçesini dolduramaz);
  * - hesapsız geri bildirim ve çökme raporları birlikte tür bütçesinin en çok 1/`anonymousReportBudgetShare`'ını;
  * - tür başına (geri bildirim, çökme, iletişim ayrı) `REPORT_BYTES_PER_DAY` bayt: bir tür (ör. çökme yağmuru) diğerlerini
  *   aç bırakmaz.
@@ -235,6 +244,8 @@ export async function createReport(db: D1Database, config: Config, input: Report
        SELECT ?1, ?2, 'open', ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11
        WHERE (SELECT COALESCE(SUM(size_bytes), 0) FROM reports WHERE kind = ?2 AND created_at >= ?12) + ?11 <= ?13
          AND (?4 IS NULL OR (SELECT COUNT(*) FROM reports WHERE user_id = ?4 AND created_at >= ?12) < ?14)
+         AND (?4 IS NULL
+           OR (SELECT COALESCE(SUM(size_bytes), 0) FROM reports WHERE kind = ?2 AND user_id = ?4 AND created_at >= ?12) + ?11 <= ?13 / ?16)
          AND (?4 IS NOT NULL OR ?2 = 'contact'
            OR (SELECT COALESCE(SUM(size_bytes), 0) FROM reports WHERE kind = ?2 AND user_id IS NULL AND created_at >= ?12) + ?11 <= ?13 / ?15)`,
     )
@@ -254,19 +265,28 @@ export async function createReport(db: D1Database, config: Config, input: Report
       config.reportBytesPerDay,
       reportsPerUserPerDay,
       anonymousReportBudgetShare,
+      accountReportBudgetShare,
     )
     .run();
   if (inserted.meta.changes !== 1) {
-    const userCount: { count: number } | null =
+    const usage: { count: number; kind_bytes: number } | null =
       report.userId === null
         ? null
         : await db
-            .prepare("SELECT COUNT(*) AS count FROM reports WHERE user_id = ? AND created_at >= ?")
-            .bind(report.userId, dayStart)
-            .first<{ count: number }>();
-    if (userCount !== null && userCount.count >= reportsPerUserPerDay) {
+            .prepare(
+              `SELECT COUNT(*) AS count, COALESCE(SUM(CASE WHEN kind = ?3 THEN size_bytes ELSE 0 END), 0) AS kind_bytes
+               FROM reports WHERE user_id = ?1 AND created_at >= ?2`,
+            )
+            .bind(report.userId, dayStart, report.kind)
+            .first<{ count: number; kind_bytes: number }>();
+    if (usage !== null && usage.count >= reportsPerUserPerDay) {
       log("warn", "reports_user_daily_cap_reached", { kind: report.kind, userId: report.userId, cap: reportsPerUserPerDay });
       throw new ApiError("daily_cap_reached", `An account can send at most ${reportsPerUserPerDay} reports per day; try again tomorrow.`);
+    }
+    const accountShareBytes: number = Math.floor(config.reportBytesPerDay / accountReportBudgetShare);
+    if (usage !== null && usage.kind_bytes + report.sizeBytes > accountShareBytes) {
+      log("warn", "reports_user_daily_bytes_reached", { kind: report.kind, userId: report.userId, bytes: report.sizeBytes, capBytes: accountShareBytes });
+      throw new ApiError("daily_cap_reached", "This account has sent too much report data of this kind today; try again tomorrow.");
     }
     log("warn", "reports_daily_cap_reached", { kind: report.kind, bytes: report.sizeBytes, capBytes: config.reportBytesPerDay });
     throw new ApiError("daily_cap_reached", "Too many reports were received today; try again tomorrow.");

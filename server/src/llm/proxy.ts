@@ -15,6 +15,7 @@ import {
   type UsageReservation,
   dailyTokenLimit,
   llmReservation,
+  llmStreamDeadlineMs,
   meetingLiveTokenLimit,
   meetingTokenLimit,
   monthlyTokenLimit,
@@ -49,8 +50,16 @@ import {
 
 /** Akışsız çağrının zaman aşımı: yanıt başlığı ancak üretim bitince gelir, bu yüzden toplam süredir. */
 const messageTimeoutMs: number = 120_000;
-/** Akışlı çağrının ilk bayt (yanıt başlığı) zaman aşımı; akışın toplam süresi sınırlanmaz. */
+/** Akışlı çağrının ilk bayt (yanıt başlığı) zaman aşımı; akışın toplam süresi `llmStreamDeadlineMs` ile sınırlıdır. */
 const streamFirstByteTimeoutMs: number = 30_000;
+
+/**
+ * Akışın kalan süresi (ms): ayırma anından `llmStreamDeadlineMs` sonrasına dek, en az 0. Akışın açılması (ilk bayt
+ * beklemesi ve yeniden denemeler) da bu süreden düşer. Saf fonksiyondur.
+ */
+export function streamTimeLeftMs(reservedAtMs: number, nowMs: number): number {
+  return Math.max(0, reservedAtMs + llmStreamDeadlineMs - nowMs);
+}
 
 /**
  * Bu Worker örneğinin son "web araması kapalı" alarmının anı. Alarm örnek başına saatte en çok bir kez yazılır (yeni
@@ -304,6 +313,32 @@ function logWebSearchErrors(scope: LLMScope, codes: readonly string[]): void {
 /** Anthropic akışı. */
 type MessageStream = AsyncIterable<Anthropic.RawMessageStreamEvent> & { controller: AbortController };
 
+/** İstemciye giden akış: yanıt gövdesi (`readable`), vekilin yazdığı uç (`writable`) ve akışı hatayla kesme (`cut`). */
+interface ClientStream {
+  readonly readable: ReadableStream<Uint8Array>;
+  readonly writable: WritableStream<Uint8Array>;
+  /**
+   * Akışı hatayla keser: istemci okumadığı için bekleyen yazım da reddedilir (`writer.abort` süren yazımı bekler,
+   * okumayan istemcide hiç bitmez).
+   */
+  readonly cut: (reason: Error) => void;
+}
+
+/** Yeni istemci akışı (kimlik dönüşümü; geri basınç istemcinin okumasıyla). */
+function clientStream(): ClientStream {
+  const holder: { controller: TransformStreamDefaultController<Uint8Array> | null } = { controller: null };
+  const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>({
+    start(controller: TransformStreamDefaultController<Uint8Array>): void {
+      holder.controller = controller;
+    },
+  });
+  const controller: TransformStreamDefaultController<Uint8Array> | null = holder.controller;
+  if (controller === null) {
+    throw new Error("TransformStream start did not run synchronously.");
+  }
+  return { readable, writable, cut: (reason: Error): void => controller.error(reason) };
+}
+
 /**
  * Akışı açar (ilk bayt zaman aşımıyla); açılamazsa `chargeFailure` ile kesinleştirir. Anthropic web aramasını kuruluşta
  * reddederse (yanıt başlığından önce gelir) akış bir kez araçsız açılır (`withdrawWebSearch`).
@@ -430,13 +465,14 @@ export async function proxyLLM(db: D1Database, context: RequestContext, config: 
   if (!opened.ok) {
     throw opened.error;
   }
-  const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
+  const toClient: ClientStream = clientStream();
   runAfterResponse(
     context,
     pumpStream(
       db,
       opened.value.value,
-      writable,
+      toClient,
+      streamTimeLeftMs(reservation.createdAt, context.platform.now().getTime()),
       scope,
       reservation,
       estimatedInput,
@@ -449,7 +485,7 @@ export async function proxyLLM(db: D1Database, context: RequestContext, config: 
     "llm_settle_failed",
     logFields,
   );
-  return new Response(readable, {
+  return new Response(toClient.readable, {
     status: 200,
     headers: {
       "content-type": "text/event-stream; charset=utf-8",
@@ -467,13 +503,16 @@ export function sseEvent(type: string, data: object): string {
 /**
  * Anthropic akışını olay olay istemciye aktarır ve kullanımı sayar (`message_start` girdi, `message_delta` çıktı).
  * Akış ortasında hata olursa istemciye `error` olayı gider (üst servis mesajı olmadan); hata servis sayacına ve
- * (toplantıdaysa) toplantıya yazılır. İstemci koparsa üst akış iptal edilir. Akış tamamlanmadıysa ayrılan bütçenin
- * tamamı harcanmış sayılır; yalnızca tamamlanan akış toplantının ilk not anını yazar (`noteMeetingId`).
+ * (toplantıdaysa) toplantıya yazılır. İstemci koparsa üst akış iptal edilir. Akış `timeLeftMs` içinde bitmezse
+ * (`llmStreamDeadlineMs`; ör. okumayan istemci akışı bekletiyor) üst akış iptal edilir, istemciye giden akış kesilir.
+ * Akış tamamlanmadıysa ayrılan bütçenin tamamı harcanmış sayılır; yalnızca tamamlanan akış toplantının ilk not anını
+ * yazar (`noteMeetingId`).
  */
 async function pumpStream(
   db: D1Database,
   stream: MessageStream,
-  writable: WritableStream<Uint8Array>,
+  client: ClientStream,
+  timeLeftMs: number,
   scope: LLMScope,
   reservation: UsageReservation,
   estimatedInput: number,
@@ -483,7 +522,7 @@ async function pumpStream(
   noteMeetingId: string | null,
   now: Date,
 ): Promise<void> {
-  const writer: WritableStreamDefaultWriter<Uint8Array> = writable.getWriter();
+  const writer: WritableStreamDefaultWriter<Uint8Array> = client.writable.getWriter();
   const encoder: TextEncoder = new TextEncoder();
   let inputTokens: number | null = null;
   let outputTokens: number | null = null;
@@ -492,18 +531,28 @@ async function pumpStream(
   const searchErrors: string[] = [];
   let completed: boolean = false;
   let clientGone: boolean = false;
-  /** İstemciye yazar; istemci koptuysa üst akışı iptal eder ve false döndürür. */
+  let deadlineHit: boolean = false;
+  /** İstemciye yazar; istemci koptuysa (ya da süre dolup akış kesildiyse) üst akışı iptal eder ve false döndürür. */
   const forward = async (text: string): Promise<boolean> => {
     try {
       await writer.write(encoder.encode(text));
       return true;
     } catch {
-      clientGone = true;
       stream.controller.abort();
-      log("info", "llm_client_disconnected", { userId: scope.userId, meetingId: scopeMeetingId(scope) });
+      if (!deadlineHit) {
+        clientGone = true;
+        log("info", "llm_client_disconnected", { userId: scope.userId, meetingId: scopeMeetingId(scope) });
+      }
       return false;
     }
   };
+  // Süre dolunca üst akış iptal edilir ve istemciye giden akış kesilir: okumayan istemcinin bekleyen yazımı da biter.
+  const deadline: ReturnType<typeof setTimeout> = setTimeout((): void => {
+    deadlineHit = true;
+    log("warn", "llm_stream_deadline_exceeded", { userId: scope.userId, meetingId: scopeMeetingId(scope), deadlineMs: llmStreamDeadlineMs });
+    stream.controller.abort();
+    client.cut(new Error("LLM stream deadline exceeded"));
+  }, timeLeftMs);
   try {
     for await (const event of stream) {
       if (event.type === "message_start") {
@@ -525,7 +574,7 @@ async function pumpStream(
       }
     }
   } catch (error: unknown) {
-    if (!clientGone) {
+    if (!clientGone && !deadlineHit) {
       stream.controller.abort();
       const retryable: boolean = isRetryableAnthropicError(error);
       log("warn", "anthropic_stream_failed", { userId: scope.userId, meetingId: scopeMeetingId(scope), error: errorName(error), retryable });
@@ -537,6 +586,7 @@ async function pumpStream(
       }
     }
   } finally {
+    clearTimeout(deadline);
     const finished: boolean = completed && outputTokens !== null;
     const usage: TokenUsage = finished
       ? { inputTokens: inputTokens ?? estimatedInput, outputTokens: outputTokens ?? maxTokens }
@@ -547,7 +597,7 @@ async function pumpStream(
     // Kesinleştirme `waitUntil` içinde sürer ve kapatma başarısız olsa da yapılır; o ana dek ayırma açık kalır, yani
     // sonraki çağrının bütçe denetimi bu çağrıyı ayrılan üst sınırla sayar (fazla harcamaya izin vermez).
     try {
-      if (!clientGone) {
+      if (!clientGone && !deadlineHit) {
         await writer.close();
       }
     } finally {

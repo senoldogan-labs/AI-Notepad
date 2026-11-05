@@ -757,6 +757,38 @@ describe("davet kötüye kullanımı", () => {
     expect(await cardHashOf(friendSession.userId)).toBeNull();
   });
 
+  it("kartsız katılıp ücretsiz ayında biten davetler 365 gün yer tutar: tek ödeyen her ay yeni hesaplarla ücretsiz ay alamaz", async () => {
+    const harness: Harness = await defaultHarness();
+    const stripe: FakeStripe = stubStripeApi(harness);
+    const id = uniqueIds();
+    const owner = await subscriber(harness, stripe, id, "owner");
+    const code: string = (await referral(harness, owner.session)).code ?? "";
+    const link: FakePaymentMethod = { id: id("pm_link"), object: "payment_method", type: "link", card: null };
+    // Sınır (3) kadar arkadaş aynı kartsız ödeme yöntemiyle katılır; ücretsiz ay biter, abonelikler ödemeden kapanır.
+    const friends: Array<{ session: Session; friend: { customer: string; subscriptionId: string } }> = [];
+    for (const name of ["a", "b", "c"]) {
+      const session: Session = await signIn(harness);
+      const friend = await referredFriend(harness, stripe, id, name, session, code, false, link);
+      await payInvoice(harness, stripe, friend, id(`in_${name}`), 0, code);
+      friends.push({ session, friend });
+    }
+    harness.clock.nowMs += 30 * dayMs;
+    for (const { session, friend } of friends) {
+      const now: number = Math.floor(harness.clock.nowMs / 1000);
+      const ended: FakeSubscription = {
+        ...fakeSubscription(friend.subscriptionId, friend.customer, "canceled", now - 30 * daySeconds, now),
+        default_payment_method: link,
+        metadata: { user_id: session.userId, referral_code: code },
+      };
+      expect((await sendSubscription(harness, stripe, id(`evt_end_${friend.subscriptionId}`), "customer.subscription.deleted", now, ended)).status).toBe(200);
+      expect(await redemptionStatus(session.userId)).toEqual({ status: "void", void_reason: "canceled_before_payment" });
+    }
+    // Sonraki turda dördüncü kartsız hesap: yerler dolu.
+    const next: Session = await signIn(harness);
+    await expectError(await validate(harness, next, code), 409, "referral_limit_reached");
+    await expectError(await checkout(harness, next, { plan: "monthly", referralCode: code }), 409, "referral_limit_reached");
+  });
+
   it("ücretsiz ayındaki hesap kod paylaşamaz (zincir yok); ilk ödemeden sonra paylaşır ve kendi davetindeki kart arkadaşında self_card olur", async () => {
     const harness: Harness = await defaultHarness();
     const stripe: FakeStripe = stubStripeApi(harness);

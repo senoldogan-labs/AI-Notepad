@@ -17,6 +17,7 @@ import {
   monthlyAudioLimit,
   reserveUsage,
   settleAudioStatements,
+  userAudioIdleLimit,
 } from "./reservations";
 import { transcriptionCostMicroUsd } from "./usage";
 
@@ -459,7 +460,8 @@ type ElevenLabsResult =
  * Süre sınırı: istekten önce ses başlığından (WAV başlığı ya da FLAC STREAMINFO; `readAudioHead`) kesin süre okunur
  * ve toplantının kalan ses süresine ve aylık süreye karşı
  * tek koşullu ifadeyle süreli bir ayırma satırı olarak ayrılır; toplantının yüklemeleri birikimli sayılır ve toplantıda
- * aynı anda tek ses isteği olabilir (süren varsa `409 transcription_in_progress`). Yanıttaki gerçek süreyle kesinleşir;
+ * ve kullanıcının (tüm toplantılarında) aynı anda tek ses isteği olabilir (süren varsa `409 transcription_in_progress`;
+ * eksik bildirilmiş süreyle aşım böylece en çok bir dosyadır). Yanıttaki gerçek süreyle kesinleşir;
  * gerçek süre ayrılanı aşarsa süre yine de yazılır, toplantının ses hakkı kapanır ve alarm logu yazılır. Gönderim ve
  * kesinleştirme istemci koparsa da tamamlanır (`continueAfterDisconnect`). Hata durumunda ayırma kapanır; ses
  * ElevenLabs'e tamamen gittiyse tahmini maliyet harcamaya sayılır.
@@ -499,6 +501,7 @@ export async function proxyTranscription(
     reservation = audioReservation(meeting.user_id, meeting.id, audio.seconds, transcriptionCostMicroUsd(audio.seconds, usdPerHour), meeting.kind === "trial", now);
     await reserveUsage(db, reservation, [
       { limit: meetingAudioIdleLimit(meeting.id, now), amount: 1 },
+      { limit: userAudioIdleLimit(meeting.user_id, now), amount: 1 },
       { limit: meetingAudioLimit(meeting.id), amount: audio.seconds },
       { limit: monthlyAudioLimit(config, meeting.user_id, meeting.id, now), amount: audio.seconds },
     ]);
