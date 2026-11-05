@@ -4,7 +4,8 @@ import { ApiError } from "../errors";
 /**
  * The meeting copy an app uploads for AI assistant access (`PUT /v1/assistant/meetings/:id`): notes only, never
  * transcripts, audio, screen snapshots or voiceprints. Field shapes follow the Swift `MeetingNote` (tasks, outline,
- * glossary) plus the meeting's own fields. All limits are far above what a 4-hour meeting's note holds.
+ * glossary, open questions) plus the meeting's own fields. All limits are far above what a 4-hour meeting's note holds.
+ * Decisions and open questions may start with the moment they came up ("[12:34] …").
  */
 
 /** Largest accepted request body (JSON). */
@@ -46,6 +47,8 @@ export const projectionNoteSchema = z.strictObject({
   tasks: z.array(projectionTaskSchema).max(300),
   outline: z.array(z.strictObject({ startSec: z.number().min(0).max(86_400), title: line(300), summary: line(4000) })).max(200),
   glossary: z.array(z.strictObject({ term: line(200), meaning: line(2000) })).max(300),
+  /** Unresolved issues and follow-ups; notes written before the section existed (and their sealed copies) have none. */
+  openQuestions: z.array(line(4000)).max(200).optional(),
 });
 
 /** Upload body: the copy plus the settings epoch it was prepared under and the uploading device. */
@@ -137,7 +140,7 @@ export function cutToUtf8Bytes(text: string, maxBytes: number): string {
   return text.slice(0, end);
 }
 
-/** Search text: title, folder, summary, decisions, task text and outline titles, cut to `searchTextMaxBytes`. Pure function. */
+/** Search text: title, folder, summary, decisions, open questions, task text and outline titles, cut to `searchTextMaxBytes`. Pure function. */
 export function searchText(projection: MeetingProjection): string {
   const note = projection.note;
   const parts: string[] = [
@@ -145,6 +148,7 @@ export function searchText(projection: MeetingProjection): string {
     projection.folder ?? "",
     note?.summary ?? "",
     ...(note?.decisions ?? []),
+    ...(note?.openQuestions ?? []),
     ...(note?.tasks ?? []).map((task: ProjectionTask): string => `${task.owner} ${task.description}`),
     ...(note?.outline ?? []).map((item): string => item.title),
   ];
@@ -267,6 +271,10 @@ export function noteMarkdown(projection: MeetingProjection): string {
     }
     if (note.decisions.length > 0) {
       lines.push("", "## Decisions", "", ...note.decisions.map((decision: string): string => `- ${decision}`));
+    }
+    const openQuestions: readonly string[] = note.openQuestions ?? [];
+    if (openQuestions.length > 0) {
+      lines.push("", "## Open questions", "", ...openQuestions.map((question: string): string => `- ${question}`));
     }
     if (note.tasks.length > 0) {
       lines.push(

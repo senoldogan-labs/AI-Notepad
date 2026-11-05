@@ -19,6 +19,9 @@ public func notesHTML(record: MeetingRecord, note: MeetingNote) -> String {
     if !note.decisions.isEmpty {
         parts += ["<h2>\(escape(String(localized: "Kararlar")))</h2>", "<ul>" + note.decisions.map { "<li>\(escape($0))</li>" }.joined() + "</ul>"]
     }
+    if let questions = note.openQuestions, !questions.isEmpty {
+        parts += ["<h2>\(escape(String(localized: "Açık konular")))</h2>", "<ul>" + questions.map { "<li>\(escape($0))</li>" }.joined() + "</ul>"]
+    }
     if !others.isEmpty {
         parts += ["<h2>\(escape(String(localized: "Diğer görevler")))</h2>", "<ul>" + others.map(taskItem).joined() + "</ul>"]
     }

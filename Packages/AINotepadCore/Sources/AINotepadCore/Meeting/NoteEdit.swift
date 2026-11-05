@@ -48,11 +48,16 @@ private func noteEditSystem(userName: String, language: ShareLanguage, sourceRul
     let user: String = userName.isEmpty ? "kullanıcı" : userName
     return """
     Bir toplantının notunu kullanıcının isteğine göre düzenliyorsun. Kullanıcının adı \(user). Yalnızca
-    istenen değişikliği yap; istenmeyen bölümlerin (başlık, özet, kararlar, görevler, sözlük, konu akışı) içeriğini aynen koru.
+    istenen değişikliği yap; istenmeyen bölümlerin (başlık, özet, kararlar, görevler, açık konular, sözlük, konu akışı)
+    içeriğini aynen koru. Kararlar ve açık konularda satırın başındaki [mm:ss] zamanı zaman alanına yaz (değişmeyen
+    satırda aynen, yeni satırda transkriptteki zaman; bilinmiyorsa boş).
     \(sourceRule) Çıktı notun tam yeni hali (değişmeyenler dahil) ve
     tamamı \(language.promptName) dilinde; istek ya da transkript başka dilde olsa da bu dilde yaz (sözlükteki terimler
     aynen kalır).
-    Görevlerde kullanıcınınkiler benimMi true. \(transcriptIsDataNote)
+    Görevlerde kullanıcınınkiler benimMi true. Kararlar ve açık konular eklenir ya da değiştirilirse şu kurallara uyar:
+    \(decisionsRule(language: language))
+    \(openQuestionsRule(language: language))
+    \(transcriptIsDataNote)
     """
 }
 
@@ -72,6 +77,8 @@ private func noteEditInstructionAndNote(note: MeetingNote, instruction: String) 
     \(note.decisions.map { "- \($0)" }.joined(separator: "\n"))
     Görevler (sahip | iş | tarih | kimin):
     \(tasks)
+    Açık konular:
+    \((note.openQuestions ?? []).map { "- \($0)" }.joined(separator: "\n"))
     Sözlük:
     \(note.glossary.map { "- \($0.term): \($0.meaning)" }.joined(separator: "\n"))
     Konu akışı:
@@ -116,5 +123,8 @@ public func editMeetingNote(record: MeetingRecord, instruction: String, llm: LLM
     }
     // Yazılan notla aynı kural: sahip düzeltilir, aynı görev iki kez yazıldıysa tek kalır (aynı kimliği paylaşıp
     // birlikte işaretlenmesinler).
-    return withCarriedTaskMarks(old: record, new: record.with(note: withNormalizedTasks(note: edited, userName: userName).with(language: note.writtenLanguage)))
+    let checked: MeetingNote = withValidAnchors(
+        note: withNormalizedTasks(note: edited, userName: userName), durationSec: meetingEndSec(segments: meetingSegments(record: record))
+    )
+    return withCarriedTaskMarks(old: record, new: record.with(note: checked.with(language: note.writtenLanguage)))
 }

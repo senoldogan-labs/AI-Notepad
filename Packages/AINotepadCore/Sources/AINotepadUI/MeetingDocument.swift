@@ -31,6 +31,10 @@ public func meetingDocument(record: MeetingRecord) -> NSAttributedString {
             document.append(styled(text: String(localized: "KARARLAR") + "\n", style: .heading))
             note.decisions.forEach { document.append(styled(text: "•  \($0)\n", style: .listItem)) }
         }
+        if let questions = note.openQuestions, !questions.isEmpty {
+            document.append(styled(text: String(localized: "AÇIK KONULAR") + "\n", style: .heading))
+            questions.forEach { document.append(styled(text: "•  \($0)\n", style: .listItem)) }
+        }
         if !others.isEmpty {
             document.append(styled(text: String(localized: "DİĞER GÖREVLER") + "\n", style: .heading))
             others.forEach { document.append(taskParagraph(task: $0)) }

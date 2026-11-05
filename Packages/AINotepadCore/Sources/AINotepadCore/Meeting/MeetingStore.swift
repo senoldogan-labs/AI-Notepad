@@ -427,6 +427,7 @@ public func filterMeetings(records: [MeetingRecord], query: String) -> [MeetingR
         // Listede görünen başlık notun başlığıdır; görevler, konuşmacı adları ve kendi notların da aranır.
         let haystack: [String] = [record.title, record.note?.title ?? "", record.note?.summary ?? "", record.myNotes ?? ""]
             + (record.note?.decisions ?? [])
+            + (record.note?.openQuestions ?? [])
             + (record.note?.tasks ?? []).flatMap { [$0.owner, $0.description] }
             + Array(record.speakerNames.values)
             + (record.liveSegments + record.finalSegments).map(\.text)

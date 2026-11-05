@@ -1,0 +1,18 @@
+{
+  "noteLanguage": "en",
+  "tasks": [
+    {"owner": "Doğan", "keywords": ["questionnaire"], "dueStated": true},
+    {"owner": "Tom", "keywords": ["quote"], "dueStated": true},
+    {"owner": "Sarah", "keywords": ["rotterdam", "pieter", "azure"], "dueStated": false},
+    {"owner": "Sarah", "keywords": ["finance", "discount"], "dueStated": false}
+  ],
+  "decisions": [
+    {"keywords": ["december 1", "1 december", "dec 1", "december 1st"], "fromSec": 85, "toSec": 125, "rationale": ["fiscal", "budget"]}
+  ],
+  "openQuestions": [
+    {"keywords": ["discount", "15"]},
+    {"keywords": ["rotterdam", "azure"]},
+    {"keywords": ["success", "30"]}
+  ],
+  "facts": [["40"], ["12"], ["15"], ["frankfurt"], ["30 days", "30-day"], ["january 12", "12 january", "jan 12"], ["six week", "6-week", "6 week"]]
+}
