@@ -633,6 +633,16 @@ func primaryMeetingLanguage() -> MeetingLanguage {
     return language
 }
 
+/// Tanıtım modunda (`--tanitim`, yalnız Debug) mı açıldı. Release'de her zaman false: `isDemoMode` yalnız Debug'da
+/// tanımlıdır (App/DemoData.swift), Release'de derlenen kod onu doğrudan kullanamaz.
+func appIsDemoLaunch() -> Bool {
+    #if DEBUG
+    isDemoMode
+    #else
+    false
+    #endif
+}
+
 /// Bu uygulamanın Anahtar Zinciri servis adı: geliştirici sürümünde `AINotepad` (iPhone ile paylaşılan), abonelik
 /// sürümünde Info.plist'teki kendi servisi (Release `AINotepadHosted`, Debug `AINotepadHosted.debug`; kanal ve görev
 /// aracı bağlantıları geliştirici sürümünün ya da yayındaki sürümün öğelerine yazılmasın). Abonelik sürümünde değer
