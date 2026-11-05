@@ -3,8 +3,8 @@ import OSLog
 
 // Uygulama içi tanılama (Ayarlar › Tanılama): sürüm, sistem, hesap, bağlantı, izinler, canlı metin, güncelleme ve
 // son hatalar. Arayüz ve kopyalanan metin aynı bölümlerden üretilir. Ses, metin, not, anahtar, jeton ve e-posta
-// girmez; son hatalar uygulamanın kendi loglarından (yalnızca bu süreç, bellekte) okunur, yollar, kullanıcı adları ve
-// jetonlar silinir.
+// girmez; son hatalar uygulamanın kendi loglarından (yalnızca bu süreç, bellekte) okunur, yollar, adresler,
+// kullanıcı adları, anahtarlar ve jetonlar silinir (bkz. `redactedSensitiveText`).
 
 /// Tanılama değerinin durumu: ekranda kötü değer uyarı renginde simgeyle gösterilir; kopyalanan metne yansımaz.
 public enum DiagnosticsStatus: Sendable, Equatable {
@@ -69,20 +69,72 @@ public enum APIHealth: Sendable, Equatable {
     case unreachable(reason: String)
 }
 
-/// Metinden kişisel ve gizli parçaları siler: dosya yolları, e-posta adresleri, bearer ve JWT biçimli jetonlar, `sk-`
-/// ya da `sk_` ile başlayan API anahtarları (Anthropic, OpenAI uyumlu, ElevenLabs) ve verilen kullanıcı adları (3 karakterden kısa adlar metni bozmasın diye atlanır); sonra `diagnosticMessageMaxLength`
-/// karaktere kısaltır. Saf fonksiyondur.
-public func redactedDiagnosticText(text: String, userNames: [String]) -> String {
+/// Metinden kişisel ve gizli parçaları siler (kısaltmaz):
+/// - web adresleri: yalnızca şema ve sunucu kalır; kullanıcı bilgisi, yol, sorgu ve parça `‹yol›` olur (Slack, Discord,
+///   Teams ve MCP adreslerinin gizlisi yolda, Deepgram'ınki sorguda `token=`);
+/// - dosya yolları (boşluklu adlar dahil; ev klasörü kullanıcı adını taşır) ve e-posta adresleri;
+/// - `Bearer`, `Token` (Deepgram) ve `Basic` yetki başlıkları, JWT (abonelik erişim jetonu, Deepgram izni, Atlassian);
+/// - önekli anahtar ve jetonlar: `sk-`/`sk_` (Anthropic, OpenAI, ElevenLabs, Stripe, RevenueCat), Stripe `rk_`/`pk_`/
+///   `whsec_`, RevenueCat `appl_`/`goog_`, Slack `xox?-`/`xapp-`, Notion `ntn_`/`secret_`, Linear `lin_api_`/
+///   `lin_oauth_`, Atlassian `ATATT`, GitHub `ghp_`, Google `ya29.`;
+/// - Stripe ve RevenueCat müşteri/abonelik kimlikleri;
+/// - `access_token=`, `"refreshToken":` gibi anahtar=değer biçimindeki gizli değerler;
+/// - önekisiz uzun jetonlar (abonelik yenileme jetonu, Deepgram anahtarı): 32+ karakterlik, harf ve rakam içeren
+///   base64url dizileri (UUID ve bellek adresi aralıkları hata ayıklamaya yaradığı için kalır);
+/// - verilen kullanıcı adları (3 karakterden kısa adlar metni bozmasın diye atlanır).
+/// Saf fonksiyondur.
+public func redactedSensitiveText(text: String, userNames: [String]) -> String {
     var result: String = text
-    result = result.replacing(/(?:file:\/\/)?(?:\/Users|\/private|\/var|\/Volumes|\/tmp|\/Library|~)\/\S*/, with: "‹yol›")
+    result = result.replacing(/((?i:https?|wss?)):\/\/(?:[^\s\/@"'<>]+@)?([^\s\/?#"'<>@]+)([\/?#][^\s"'<>]*)?/) { match in
+        let rest: Substring = match.output.3 ?? ""
+        return "\(match.output.1)://\(match.output.2)" + (rest.isEmpty || rest == "/" ? "" : "/‹yol›")
+    }
+    result = result.replacing(
+        /(?:file:\/\/)?(?:\/Users|\/private|\/var|\/Volumes|\/tmp|\/Library|~)\/(?:[^\n\r"'“”‘’,;:()\[\]{}<>]*[^\s"'“”‘’,;:()\[\]{}<>])?/,
+        with: "‹yol›"
+    )
     result = result.replacing(/[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/, with: "‹e-posta›")
     result = result.replacing(/(?i:bearer)\s+\S+/, with: "Bearer ‹jeton›")
+    result = result.replacing(/\b(?i:token)\s+[A-Za-z0-9._\-]{20,}/, with: "Token ‹jeton›")
+    result = result.replacing(/\b(?i:basic)\s+[A-Za-z0-9+\/]{12,}={0,2}/, with: "Basic ‹jeton›")
     result = result.replacing(/eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+/, with: "‹jeton›")
     result = result.replacing(/\bsk[\-_][A-Za-z0-9_\-]{16,}/, with: "‹anahtar›")
+    result = result.replacing(/\b(?:rk_|pk_|whsec_|appl_|goog_|amzn_|strp_|rcb_)[A-Za-z0-9_]{16,}/, with: "‹anahtar›")
+    result = result.replacing(/\b(?:xox[abposre]|xapp)-[A-Za-z0-9\-]{8,}/, with: "‹jeton›")
+    result = result.replacing(/\b(?:ntn_|secret_|lin_api_|lin_oauth_|lin_wh_|gh[pousr]_)[A-Za-z0-9_]{16,}/, with: "‹jeton›")
+    result = result.replacing(/\bAT(?:ATT|CTT)[A-Za-z0-9_\-=]{16,}/, with: "‹jeton›")
+    result = result.replacing(/\bya29\.[A-Za-z0-9_\-]{16,}/, with: "‹jeton›")
+    result = result.replacing(/\b(?:cus|sub|evt|pi|pm|seti|cs_live|cs_test)_[A-Za-z0-9]{14,}/, with: "‹kimlik›")
+    result = result.replacing(/\$RCAnonymousID:[0-9A-Fa-f]{16,}/, with: "‹kimlik›")
+    result = result.replacing(
+        /\b((?i:access_?token|refresh_?token|id_?token|client_?secret|api_?key|x-api-key|xi-api-key|token|secret|password|signature|sig)["']?\s*[=:]\s*["']?)[^\s"'&,;}]+/
+    ) { match in
+        "\(match.output.1)‹gizli›"
+    }
+    result = result.replacing(/[A-Za-z0-9_\-]{32,}/) { match in
+        isLongOpaqueToken(text: match.output) ? "‹jeton›" : String(match.output)
+    }
     for name in userNames where name.count >= 3 {
         result = result.replacingOccurrences(of: name, with: "‹kullanıcı›", options: .caseInsensitive)
     }
-    let trimmed: String = result.trimmingCharacters(in: .whitespacesAndNewlines)
+    return result
+}
+
+/// 32+ karakterlik base64url dizisinin jeton sayılıp sayılmadığı: harf ve rakam içerir; UUID ya da bellek adresi
+/// (aralığı) değildir. Saf fonksiyondur.
+private func isLongOpaqueToken(text: Substring) -> Bool {
+    guard text.contains(where: \.isLetter), text.contains(where: \.isNumber) else {
+        return false
+    }
+    let isUUID: Bool = text.wholeMatch(of: /[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}/) != nil
+    let isAddressRange: Bool = text.wholeMatch(of: /(?:0x)?[0-9A-Fa-f]{1,16}-(?:0x)?[0-9A-Fa-f]{1,16}/) != nil
+    return !isUUID && !isAddressRange
+}
+
+/// Tanılama satırına girecek metin: `redactedSensitiveText` ile temizlenir, kırpılır ve `diagnosticMessageMaxLength`
+/// karaktere kısaltılır. Saf fonksiyondur.
+public func redactedDiagnosticText(text: String, userNames: [String]) -> String {
+    let trimmed: String = redactedSensitiveText(text: text, userNames: userNames).trimmingCharacters(in: .whitespacesAndNewlines)
     return trimmed.count > diagnosticMessageMaxLength ? String(trimmed.prefix(diagnosticMessageMaxLength - 1)) + "…" : trimmed
 }
 

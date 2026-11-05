@@ -113,6 +113,92 @@ private struct LooseText: Decodable {
     }
 }
 
+/// Herhangi bir JSON değeri: çökme paketi anlamı bozulmadan temizlenip yeniden yazılsın diye (sayılar `Decimal`: 64
+/// bitlik adresler yuvarlanmaz).
+private indirect enum CrashJSONValue: Codable, Equatable {
+    case null
+    case bool(Bool)
+    case number(Decimal)
+    case string(String)
+    case array([CrashJSONValue])
+    case object([String: CrashJSONValue])
+
+    init(from decoder: any Decoder) throws {
+        let container: any SingleValueDecodingContainer = try decoder.singleValueContainer()
+        if container.decodeNil() {
+            self = .null
+        } else if let value = try decodedIfType(type: Bool.self, container: container) {
+            self = .bool(value)
+        } else if let value = try decodedIfType(type: Decimal.self, container: container) {
+            self = .number(value)
+        } else if let value = try decodedIfType(type: String.self, container: container) {
+            self = .string(value)
+        } else if let value = try decodedIfType(type: [CrashJSONValue].self, container: container) {
+            self = .array(value)
+        } else {
+            self = .object(try container.decode([String: CrashJSONValue].self))
+        }
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container: any SingleValueEncodingContainer = encoder.singleValueContainer()
+        switch self {
+        case .null: try container.encodeNil()
+        case .bool(let value): try container.encode(value)
+        case .number(let value): try container.encode(value)
+        case .string(let value): try container.encode(value)
+        case .array(let value): try container.encode(value)
+        case .object(let value): try container.encode(value)
+        }
+    }
+}
+
+/// Değeri `type` olarak çözer; JSON değeri başka türdeyse nil (sıradaki tür denenir). Diğer hatalar yukarı iletilir.
+private func decodedIfType<Value: Decodable>(type: Value.Type, container: any SingleValueDecodingContainer) throws -> Value? {
+    do {
+        return try container.decode(type)
+    } catch DecodingError.typeMismatch {
+        return nil
+    }
+}
+
+/// Çökme paketinden (MetricKit JSON) cihazdan çıkmaması gerekenleri ayıklar. Çağrı yığınları (`callStackTree`: ikili
+/// adı, UUID, adres) olduğu gibi kalır; diğer metinler `redactedSensitiveText` ile temizlenir (bellek bölgesi bilgisi ve
+/// sonlandırma nedenindeki dosya yolları, olası jetonlar). Objective-C istisnasının argümanları ve onlarla doldurulmuş
+/// mesajı (`exceptionReason.arguments`, `composedMessage`) kullanıcı metni taşıyabileceği için atılır; biçim metni,
+/// istisna ve sınıf adı kalır. Anahtarlar sıralı yazılır. Çözülemeyen JSON `DecodingError` fırlatır. Saf fonksiyondur.
+public func redactedCrashPayload(payload: Data) throws -> Data {
+    let decoded: CrashJSONValue = try JSONDecoder().decode(CrashJSONValue.self, from: payload)
+    let encoder: JSONEncoder = JSONEncoder()
+    encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+    return try encoder.encode(redactedCrashJSON(value: decoded))
+}
+
+/// Ağacı `redactedCrashPayload` kurallarıyla temizler. Saf fonksiyondur.
+private func redactedCrashJSON(value: CrashJSONValue) -> CrashJSONValue {
+    switch value {
+    case .null, .bool, .number:
+        return value
+    case .string(let text):
+        return .string(redactedSensitiveText(text: text, userNames: []))
+    case .array(let items):
+        return .array(items.map { redactedCrashJSON(value: $0) })
+    case .object(let fields):
+        var result: [String: CrashJSONValue] = [:]
+        for (key, field) in fields {
+            switch (key, field) {
+            case ("callStackTree", _):
+                result[key] = field
+            case ("exceptionReason", .object(let reason)):
+                result[key] = redactedCrashJSON(value: .object(reason.filter { $0.key != "arguments" && $0.key != "composedMessage" }))
+            default:
+                result[key] = redactedCrashJSON(value: field)
+            }
+        }
+        return .object(result)
+    }
+}
+
 /// Teşhis paketinin (MetricKit JSON) çökme ve donmalarını özetler: önce çökmeler, sonra donmalar. Pakette ikisi de
 /// yoksa boş (CPU ve disk teşhisleri saklanmaz). Çözülemeyen JSON `DecodingError` fırlatır. Saf fonksiyondur.
 public func crashDiagnostics(payload: Data) throws -> [CrashDiagnostic] {
