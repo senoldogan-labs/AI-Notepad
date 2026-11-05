@@ -62,6 +62,18 @@ jobs:
           xcodebuild -project AINotepad.xcodeproj -scheme AINotepadiOS -configuration Debug
           -derivedDataPath .build/xcode-ios -destination 'generic/platform=iOS Simulator'
           CODE_SIGNING_ALLOWED=NO build -quiet
+      # Yayın derlemeleri Release'dir: yalnız Debug'da tanımlı kod (ör. tanıtım modu, `#if DEBUG`) Release'de derlenmeyi
+      # bozarsa yayın anında değil burada yakalanır.
+      - name: Gistsmith Release derlemesi
+        run: >
+          xcodebuild -project AINotepad.xcodeproj -scheme AINotepadHosted -configuration Release
+          -derivedDataPath .build/xcode -destination 'platform=macOS,arch=arm64'
+          CODE_SIGNING_ALLOWED=NO build -quiet
+      - name: iPhone Release derlemesi (simülatör)
+        run: >
+          xcodebuild -project AINotepad.xcodeproj -scheme AINotepadiOS -configuration Release
+          -derivedDataPath .build/xcode-ios -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO build -quiet
 
   # Abonelik sunucusu (Cloudflare Worker): tipler ve Workers çalışma zamanında gerçek D1 ile testler. Dış servisler
   # testlerde sahte; gerçek anahtar gerekmez.

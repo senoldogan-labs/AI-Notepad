@@ -578,7 +578,7 @@ struct AINotepadApp: App {
                     model.refreshRecordingDiskSpace()
                     // Bildirim izni sistem ayarlarında değişmiş olabilir; notu yazılmış toplantı varsa ve izin hiç
                     // sorulmadıysa şimdi sorulur (tanıtım modunda, ekran görüntülerinde sorulmaz).
-                    if !isDemoMode {
+                    if !appIsDemoLaunch() {
                         let records: [MeetingRecord] = model.meetings
                         Task { await EngagementNotifier.shared.appBecameActive(records: records) }
                     }

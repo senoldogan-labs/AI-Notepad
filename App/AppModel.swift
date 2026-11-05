@@ -2988,7 +2988,7 @@ final class AppModel {
     /// Bildirim planı için giriş yapan hesabın verisi: abonelikte çıkış yapıldıysa `signedOut` (bildirimler kalkar);
     /// tanıtım modunda, oturum ya da hesap verisi henüz okunmadan ve toplantılar okunmadan `notReady`.
     func engagementDataState() -> EngagementDataState {
-        if isDemoMode {
+        if appIsDemoLaunch() {
             return .notReady
         }
         #if HOSTED_EDITION
