@@ -1,9 +1,11 @@
 ---
-// A graded photograph panel (`.photo` in global.css) with a slot for what floats on it: an app window, a card or chips.
-// The photograph is decorative (empty alt); Astro serves it as AVIF with a WebP fallback in the given widths. Only the
-// first panel on a page loads eagerly (at normal priority, so it never competes with the fonts and the text that is
-// the page's largest paint); the rest load lazily.
+// A photograph panel (`.photo` in global.css) with a slot for what floats on it: an app window, a card or chips.
+// The photograph is decorative (empty alt); Astro serves it as AVIF with a WebP fallback in the given widths (from
+// 480 px so phones get a small file). `priority`: "lcp" when the photograph is the page's largest paint (the first
+// screen of pricing, sign-in, download, MCP): it is preloaded and fetched at high priority; "lazy" for every other
+// panel, which loads as it nears the screen.
 import { Picture } from "astro:assets";
+import ImagePreload from "./ImagePreload.astro";
 import { type PhotoFocus, type PhotoName, photos } from "../lib/photos";
 
 interface Props {
@@ -13,12 +15,15 @@ interface Props {
   readonly widths: readonly number[];
   /** The `sizes` attribute: the panel's width on the page. */
   readonly sizes: string;
-  readonly priority: "high" | "lazy";
+  readonly priority: "lcp" | "lazy";
   readonly class: string;
 }
 const { photo, focus, widths, sizes, priority, class: extraClass } = Astro.props;
+/** AVIF quality: the panels are backdrops, mostly covered by windows and cards. */
+const quality: number = 46;
 ---
 
+{priority === "lcp" && <ImagePreload image={photos[photo]} widths={widths} sizes={sizes} quality={quality} media="all" />}
 <div class:list={["photo", focus === "center" ? null : `photo--${focus}`, extraClass]}>
   <Picture
     src={photos[photo]}
@@ -27,8 +32,9 @@ const { photo, focus, widths, sizes, priority, class: extraClass } = Astro.props
     fallbackFormat="webp"
     widths={[...widths]}
     sizes={sizes}
-    quality={46}
-    loading={priority === "high" ? "eager" : "lazy"}
+    quality={quality}
+    loading={priority === "lcp" ? "eager" : "lazy"}
+    fetchpriority={priority === "lcp" ? "high" : "auto"}
     decoding="async"
     pictureAttributes={{ class: "photo__media" }}
   />

@@ -45,7 +45,8 @@ a window. Calm, competent, northern. The photographs carry warmth; the interface
   produced by `web/scripts/subset-serif.sh`; licence text at `/fonts/Newsreader-OFL.txt` (linked in the footer).
   Newsreader is an editorial news serif with high contrast at display sizes; it reads "publication" and
   "institution", not "typewriter", so it cannot be mistaken for their face.
-- **Text and UI: Inter** (already self-hosted from `App/Fonts`, SIL OFL 1.1), unchanged.
+- **Text and UI: Inter** (self-hosted from `App/Fonts`, SIL OFL 1.1), cut by `web/scripts/subset-font.sh` to weights
+  400–700 at the text optical size (37 KB).
 - Scale (desktop → 360 px, one weight for the serif): display 84 → 44 px, page title (H1) 64 → 40, section title 52
   → 32, row title 40 → 28. The serif is used only from about 26 px up (its optical size is 48); card titles
   (`.title-m`) are Inter 600 at 20 px. Line height 1.02–1.12, tracking -0.022em to -0.01em. Lead 21 → 18 px
@@ -79,14 +80,14 @@ waveform marks and the photographs themselves.
 ### Photography
 
 - Licensed photographs only, recorded in `web/src/assets/photos/CREDITS.md` (all from Unsplash under the Unsplash
-  License, each verified on its photo page as a free photo, not Unsplash+). Subjects: a still lake at dusk, a birch
-  grove, misty spruce, a lake pier, the archipelago from above, the archipelago at dusk from a hill, lake islands
-  under cloud, and a plain wooden desk with a lamp.
-- **Grade ("dusk grade"), done in CSS so every photo matches:** the image is slightly desaturated and softened
-  (`saturate(.62) contrast(.94) brightness(1.04)`), then a vertical gradient from dusk coral (`#f2b59b`) through
-  heather (`#c9b6d9`) to lake blue (`#33536b`) is laid over it with `soft-light`, and the site's existing film grain
-  tile sits on top with `overlay` (the "printed" texture, shared with the pastel covers). In dark mode the panel is
-  dimmed a step. The grade is static: no filter or blend animates.
+  License, each verified on its photo page as a free photo, not Unsplash+). Originals are 3888–6240 px wide; the
+  repository keeps 2400 px JPEG sources and only AVIF/WebP variants ship. Subjects, all Finnish: a summer morning lake
+  with a pier (Hossa), the Kvarken archipelago from above and at sunset, a pier over a blue lake (Karstula), a birch
+  grove in autumn, low sun through pines, northern lights over a lake (Kuopio) and a midsummer sunset (Lake Summanen).
+- **Colour, owner decision 2026-11-06:** the photographs are chosen vivid and clean and shown in their own colours.
+  The earlier CSS "dusk grade" (desaturation, a coral-to-lake gradient in `soft-light` and film grain on photos) is
+  removed: it made them look washed out. In dark mode a panel is only dimmed (`brightness(.88)`), colours kept. Grain
+  stays on the pastel covers only.
 - Text never sits directly on a photograph. Copy on a panel goes on a paper card or a chip (solid surface), so
   contrast is the normal ink-on-paper ≥ 4.5:1 regardless of the image.
 - Pastel film covers stay for blog covers, brand tiles, meeting cards and other small cards (owner decision).
@@ -116,10 +117,13 @@ It is drawn from `Waveform`'s seeded heights (deterministic per label), static, 
 
 ### Components
 
-- `PhotoPanel`: a graded photograph (Astro `<Picture>`, AVIF + WebP, responsive widths) with a slot for floating
-  content.
+- `PhotoPanel`: a photograph (Astro `<Picture>`, AVIF + WebP from 480 px wide, `sizes` matched to the rendered width)
+  with a slot for floating content. The page's largest photo (`priority="lcp"`: pricing, sign-in, download, MCP) is
+  preloaded with `fetchpriority="high"`; every other panel is lazy.
 - `AppShot`: a real Mac screenshot (`scripts/make-screenshots.sh`) floating in a `PhotoPanel`, cut by the panel's
-  bottom edge on wide windows. Only Mac screenshots appear (the iPhone app is not on the App Store yet).
+  bottom edge on wide windows. Screenshots are lazy everywhere; the home hero's, the largest paint on wide screens, is
+  preloaded only above 640 px (`media`), because on phones the headline is the largest paint. Only Mac screenshots
+  appear (the iPhone app is not on the App Store yet).
 - Chips: white pills with a brand tile and a name (Notion, Slack, Linear, Obsidian, Calendar), only on the
   integrations photograph and only for integrations the product really has; the existing two callouts on the hero note
   window use the same chip. No status chips ("processing…") over windows. The former moving logo marquee is a still,
@@ -156,6 +160,22 @@ Single column, 16–20 px gutters, the pill header stays a pill, panels run the 
 cropped to its readable part (as before), chips hidden below 640 px where they would cover the screenshot, display
 44 px. No horizontal scroll (checked by `npm run screenshots` and our own capture script).
 
+### Performance
+
+Target: Lighthouse 100 for performance, accessibility, best practices and SEO on mobile and desktop (Lighthouse's
+simulated slow 4G for mobile). What the measurements showed and what the site does:
+
+- On a phone the largest paint is the headline or lead text, and Lighthouse counts every request that finishes before
+  it. So the first screen requests as little as possible: one site-wide stylesheet (`cssCodeSplit: false`; the admin
+  panel's styles are a separate file loaded only on `/admin`), one shared script module (`Base.astro`) plus one per page,
+  fonts preloaded and small (Inter 37 KB, Newsreader 28 KB), the grain tile as a 7 KB WebP.
+- Photographs ship as AVIF/WebP from 480 px wide with `sizes` matching the rendered width, so phones get 720–1280 px
+  files; the 2400 px sources and 4K originals never ship. All images are lazy except the page's LCP image, which is
+  preloaded with `fetchpriority="high"` (`priority="lcp"` on `PhotoPanel`, `"wide-lcp"` on the home hero window).
+- The launch video's cover frame is a lazy AVIF/WebP image under the video, not a `poster` attribute (which would load
+  with the first screen).
+- Every image has width and height; CLS stays at 0.
+
 ## 3. Licences
 
 | Asset | Licence | Record |
@@ -172,8 +192,8 @@ this document, the research notes and the screenshots on 2026-11-05. Outcome:
 | Finding | Decision |
 |---|---|
 | The *combination* (regular-weight serif + pill nav + photo panels with windows + chips + title-left/text-right rows + serif FAQ + CTA card) reads as a Granola clone even if each part is generic. | Accepted in part. Our rows are not title-left/text-right hairline rows: a horizon-waveform mark and a two-tone heading beside a photo panel, the panels alternating sides, and one full-width demo row. FAQ questions stay in Inter. No status chips over windows; chips only on the integrations photograph. The pill nav stays a pill on phones, solid, with an outline Sign in instead of "Talk to sales". Pill nav, photo panels, chips and the CTA card stay because the owner asked for them by name. |
-| Grade photos at build time instead of CSS (double-tinting, blend cost). | Dissent: the owner asked for the grade in CSS. Kept, but milder (soft-light at 0.8), static, never animated, and the scroll-reveal is never applied to a photo panel itself, only to text or cards above it. Photos were chosen so the grade suits them (birch, lake and spruce shots checked in a grade test). |
-| Grain on photos reads artsy. | Partly accepted: grain kept at 0.28 (was 0.5 on covers) so photos and pastel covers share one printed texture. Dissent recorded: the practicality angle would remove it. |
+| Grade photos at build time instead of CSS (double-tinting, blend cost). | Superseded 2026-11-06: the owner asked for more colourful photos, so there is no grade at all; vivid photographs are chosen instead. |
+| Grain on photos reads artsy. | Superseded 2026-11-06: no grain on photographs; it stays on the pastel covers (served as a 7 KB WebP tile). |
 | Display cut too thin below ~26 px. | Accepted: card titles are Inter. |
 | Two-tone headings become a tic. | Accepted: home sections only; inner H1s plain. |
 | Dark night band disappears. | Accepted: lifted to `#15212b`. |
@@ -181,5 +201,5 @@ this document, the research notes and the screenshots on 2026-11-05. Outcome:
 | Mobile pill too cramped at 360 px; menu dismissal. | Accepted: theme switch moves into the sheet; Escape/outside click already close it. |
 | Long Finnish/Turkish words at 44 px. | Accepted: `hyphens: auto` and balanced wrapping on the display style; `/fi` checked at 360 px. |
 | Marquee motion needs a pause control. | Accepted by removing the motion: still logo row. |
-| Font/LCP: preload, metric-matched fallback, image priorities. | Accepted: Inter stays preloaded, Newsreader is not (it competed with the LCP text on slow mobile), a size-adjusted Georgia fallback limits the swap; the first photo panel loads eagerly at normal priority, the rest lazily. |
+| Font/LCP: preload, metric-matched fallback, image priorities. | Accepted, then tuned on 2026-11-06 by measurement (see Performance): both fonts are preloaded (removing either preload measured worse), Inter is cut to 400–700 at text optical size (37 KB), a size-adjusted Georgia fallback limits the swap; only the real LCP image is preloaded at high priority. |
 | CREDITS.md missing. | Written (it was being created while the review ran). |

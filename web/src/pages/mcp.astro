@@ -22,7 +22,7 @@ const setups: readonly PickCopy[] = [text.oneClick, text.manual];
       <h1 class="title-xl">{text.title}</h1>
       <p class="lead">{text.lead}</p>
     </div>
-    <PhotoPanel photo="desk-lamp" focus="bottom" widths={[480, 720, 960, 1280]} sizes="(max-width: 960px) 100vw, 560px" priority="high" class="mcp-hero__cover">
+    <PhotoPanel photo="aurora-lake" focus="bottom" widths={[480, 720, 960, 1280]} sizes="(max-width: 960px) calc(100vw - 40px), 560px" priority="lcp" class="mcp-hero__cover">
       <McpChat demo={copy.home.integrations.mcpDemo} />
     </PhotoPanel>
   </section>
@@ -124,7 +124,7 @@ const setups: readonly PickCopy[] = [text.oneClick, text.manual];
     </ul>
   </section>
 
-  <CtaBand id="mcp-cta-title" title={copy.compare.ctaTitle} text={copy.compare.ctaText} photo="misty-spruce" />
+  <CtaBand id="mcp-cta-title" title={copy.compare.ctaTitle} text={copy.compare.ctaText} photo="sunlit-pines" />
 </Base>
 
 <style>

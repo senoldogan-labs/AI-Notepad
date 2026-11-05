@@ -1,13 +1,13 @@
 /* Product site: "Nordic dusk" (docs/superpowers/specs/2026-11-05-site-design-language.md). White paper, deep lake ink,
    Newsreader for headings at one regular weight (hierarchy by size), Inter for text and UI; photographs of Finnish
-   lakes and forests graded in CSS (`.photo`) with app windows over them; pastel film covers for blog covers and small
+   lakes and forests in their own colours (`.photo`) with app windows over them; pastel film covers for blog covers and small
    cards. Nothing blurred or filtered ever animates; content only fades and slides in, and not at all under
    "reduce motion". */
 
 @font-face {
   font-family: "Inter";
   src: url("/fonts/InterVariable-latin.woff2") format("woff2");
-  font-weight: 100 900;
+  font-weight: 400 700;
   font-style: normal;
   font-display: swap;
 }
@@ -476,7 +476,7 @@ p {
 /* Gren: SVG gürültüsünden (scripts/grain.svg, feTurbulence) bir kez üretilmiş döşeme (scripts/make-grain.ts); overlay
    ile hem aydınlatır hem karartır. Filtre sayfada canlı çizilmez: yavaş telefonda ana iş parçacığını saniyelerce tutar. */
 .film::before {
-  background-image: url("/grain.png");
+  background-image: url("/grain.webp");
   background-size: 180px 180px;
   mix-blend-mode: overlay;
   opacity: 0.5;
@@ -742,11 +742,9 @@ p {
 }
 
 /* ---------- Photographs ----------
-   Licensed Nordic photographs (src/assets/photos/CREDITS.md) graded the same way in CSS, so every panel belongs to one
-   set: the image is softened and slightly desaturated, a dusk gradient (coral sky → heather → lake blue) is laid over it
-   with soft-light, and the film grain tile adds a faint printed texture. All of it is static. Text never sits on the
-   photograph itself: copy goes on a paper card or a chip. Focus points are classes (`.photo--top`, …) because the CSP
-   allows no inline styles. */
+   Licensed, high-resolution Nordic photographs (src/assets/photos/CREDITS.md) shown in their own colours: no filter,
+   tint or grain, so they stay vivid and sharp. Text never sits on the photograph itself: copy goes on a paper card or a
+   chip. Focus points are classes (`.photo--top`, …) because the CSP allows no inline styles. */
 
 .photo {
   position: relative;
@@ -768,45 +766,22 @@ p {
 .photo__media img {
   object-fit: cover;
   object-position: var(--photo-focus, 50% 50%);
-  filter: saturate(0.62) contrast(0.94) brightness(1.04);
 }
 
-.photo::before,
-.photo::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-}
-
-.photo::before {
-  background: linear-gradient(180deg, #f2b59b 0%, #c9b6d9 46%, #33536b 100%);
-  mix-blend-mode: soft-light;
-  opacity: 0.8;
-}
-
-.photo::after {
-  background-image: url("/grain.png");
-  background-size: 180px 180px;
-  mix-blend-mode: overlay;
-  opacity: 0.28;
-}
-
-/* Content placed on the photograph (windows, cards, chips) sits above the grade. */
+/* Content placed on the photograph (windows, cards, chips) sits above it. */
 :where(.photo > :not(.photo__media)) {
   position: relative;
-  z-index: 2;
+  z-index: 1;
 }
 
-/* In the dark theme the panel steps down so it does not glare against the night page. */
+/* In the dark theme the panel steps down a little so it does not glare against the night page; colours are kept. */
 :root[data-theme="dark"] .photo__media img {
-  filter: saturate(0.58) contrast(0.96) brightness(0.8);
+  filter: brightness(0.88);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) .photo__media img {
-    filter: saturate(0.58) contrast(0.96) brightness(0.8);
+    filter: brightness(0.88);
   }
 }
 

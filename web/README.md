@@ -68,7 +68,7 @@ ihlali varsa çıkış kodu 1'dir. Hesap ve yönetim sayfaları için sekmeye ö
 betikteki örnek verilerle karşılanır (yalnızca görünüm denetimi; sunucu akışı sunucunun testlerindedir).
 
 Yalnızca kaynak değişince elle çalıştırılanlar (çıktıları repodadır): `scripts/subset-font.sh` (yazı tipi),
-`node scripts/make-grain.ts <chrome>` (film greni, `scripts/grain.svg`'den), `node scripts/make-og.ts <site> <chrome>`
+`node scripts/make-grain.ts <chrome>` (film greni `public/grain.webp` ve `.png`, `scripts/grain.svg`'den), `node scripts/make-og.ts <site> <chrome>`
 (paylaşım kartı `public/og.png`, site sunulurken; ürün adını `productName`'den alır).
 
 **Paylaşım görselleri.** Chrome'un 1200×630 ekran görüntüsü gren yüzünden ~1,1 MB'tır; bazı önizleyiciler (ör. WhatsApp)

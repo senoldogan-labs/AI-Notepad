@@ -1,6 +1,6 @@
 ---
 // Closing download call on inner pages (compare, blog, MCP, languages, integrations): a centred paper card over a
-// graded photograph with the title, a short text and a button to the download page. No direct DMG link: the download
+// photograph with the title, a short text and a button to the download page. No direct DMG link: the download
 // source (`?src=`) is on the server's allow-list.
 import Icon from "./Icon.astro";
 import PhotoPanel from "./PhotoPanel.astro";
@@ -18,7 +18,7 @@ const { id, title, text, photo } = Astro.props;
 ---
 
 <section class="page cta-band" aria-labelledby={id}>
-  <PhotoPanel photo={photo} focus="center" widths={[640, 960, 1280, 1680, 2400]} sizes="min(1240px, 100vw)" priority="lazy" class="cta-band__photo">
+  <PhotoPanel photo={photo} focus="center" widths={[480, 720, 960, 1280, 1680, 2400]} sizes="(max-width: 640px) calc(100vw - 40px), min(1240px, 100vw - 80px)" priority="lazy" class="cta-band__photo">
     <div class="cta-card reveal">
       <h2 class="title-l" id={id}>{title}</h2>
       <p class="cta-card__text">{text}</p>

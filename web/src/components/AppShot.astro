@@ -1,11 +1,13 @@
 ---
-// A real Mac screenshot floating in a graded photograph panel (PhotoPanel): wide windows are cut by the panel's bottom
+// A real Mac screenshot floating in a photograph panel (PhotoPanel): wide windows are cut by the panel's bottom
 // edge, the narrow live panel floats with space around it; the window's own soft shadow follows its transparent
 // rounded corners. Screenshots are Retina captures (scripts/make-screenshots.sh), served as AVIF (WebP fallback) in
-// the given widths. Only Mac screens appear on the site. Placement of the panel (`variant`) and narrow-screen zoom
-// are set by the page (Landing.astro).
+// the given widths; they always load lazily, and the home hero's is preloaded on wide screens (`priority`). Only Mac
+// screens appear on the site. Placement of the panel (`variant`) and narrow-screen zoom are set by the page
+// (Landing.astro).
 import { Picture } from "astro:assets";
 import type { ImageMetadata } from "astro";
+import ImagePreload from "./ImagePreload.astro";
 import PhotoPanel from "./PhotoPanel.astro";
 import type { PhotoFocus, PhotoName } from "../lib/photos";
 
@@ -33,16 +35,21 @@ interface Props {
   readonly sizes: string;
   /** The photograph's `sizes` attribute (the panel's width). */
   readonly photoSizes: string;
-  /** "high": the first screen of the page (eager, high priority); "lazy" otherwise. */
-  readonly priority: "high" | "lazy";
+  /** "wide-lcp": the home hero, the largest paint on wide screens only. Its screenshot is preloaded at high priority
+   * on screens wider than 640 px; on phones the headline is the largest paint and the screenshot sits at the bottom of
+   * the first screen, so there it loads lazily and does not compete with the text. "lazy": every other window. */
+  readonly priority: "wide-lcp" | "lazy";
   readonly class: string;
   readonly callouts: readonly ShotCallout[];
 }
 const { image, alt, photo, focus, variant, widths, sizes, photoSizes, priority, class: extraClass, callouts } = Astro.props;
+/** AVIF quality of the screenshot: interface text stays crisp at 62 (checked against 72), ~20 % smaller. */
+const quality: number = 62;
 ---
 
+{priority === "wide-lcp" && <ImagePreload image={image} widths={widths} sizes={sizes} quality={quality} media="(min-width: 641px)" />}
 <figure class:list={["shot", `shot--${variant}`, extraClass]}>
-  <PhotoPanel photo={photo} focus={focus} widths={[640, 960, 1280, 1680, 2400]} sizes={photoSizes} priority={priority} class="shot__cover">
+  <PhotoPanel photo={photo} focus={focus} widths={[480, 720, 960, 1280, 1680, 2400]} sizes={photoSizes} priority="lazy" class="shot__cover">
     <div class="shot__frame">
       <Picture
         src={image}
@@ -51,8 +58,8 @@ const { image, alt, photo, focus, variant, widths, sizes, photoSizes, priority, 
         fallbackFormat="webp"
         widths={[...widths]}
         sizes={sizes}
-        quality={72}
-        loading={priority === "high" ? "eager" : "lazy"}
+        quality={quality}
+        loading="lazy"
         decoding="async"
         class="shot__image"
       />

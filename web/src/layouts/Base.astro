@@ -111,7 +111,13 @@ const hreflangLinks: ReadonlyArray<{ readonly lang: string; readonly href: strin
   </body>
 </html>
 
+{/* One module for every page's shared behaviour (header, pull-to-reveal, Mac-only dialog, anchor focus, download
+    campaign) instead of one per component: on a slow phone each extra request before the first paint costs a round
+    trip. */}
 <script>
+  import "../client/header";
+  import "../client/pull-reveal";
+  import "../client/mac-only";
   import "../client/anchor-focus";
   import "../client/download-campaign";
 </script>
