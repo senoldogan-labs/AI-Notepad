@@ -71,12 +71,12 @@
         {
           "binding": "ASSISTANT_DB",
           "database_name": "gistsmith-assistant",
-          "database_id": "TODO-owner-creates",
+          "database_id": "edf506e0-5d35-4ea8-b026-b9e5395c0e4f",
           "migrations_dir": "migrations-assistant"
         }
       ],
       // Owner creates it: `npx wrangler kv namespace create gistsmith-mcp-oauth`.
-      "kv_namespaces": [{ "binding": "OAUTH_KV", "id": "TODO-owner-creates" }],
+      "kv_namespaces": [{ "binding": "OAUTH_KV", "id": "2bb423dabfd54c9b877c1b4b60dbb67f" }],
       "r2_buckets": [{ "binding": "ASSISTANT_BUCKET", "bucket_name": "gistsmith-sync", "jurisdiction": "eu" }],
       "ratelimits": [
         { "name": "MCP_GRANT_LIMITER", "namespace_id": "2011", "simple": { "limit": 60, "period": 60 } },
