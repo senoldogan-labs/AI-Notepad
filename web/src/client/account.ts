@@ -89,6 +89,20 @@ interface HoursMeter {
   readonly limitReached: string | null;
 }
 
+/**
+ * Abonenin toplantı dışı yapay zekâ göstergesi (uygulamalardaki ikinci ölçer): yüzde metni, kullanılan (sınırda
+ * kesilir), sınır, %80'de uyarı, dolunca dolu (hata rengi), sıfırlanma satırı ve hak dolduysa uyarı satırı (yoksa null).
+ */
+interface AiMeter {
+  readonly text: string;
+  readonly used: number;
+  readonly cap: number;
+  readonly warn: boolean;
+  readonly full: boolean;
+  readonly resets: string;
+  readonly limitReached: string | null;
+}
+
 /** Deneme durumu: başlamadı, sürüyor ya da bitti (toplantılar harcandı veya süre doldu). */
 type TrialPhase = "notStarted" | "running" | "ended";
 
@@ -102,6 +116,8 @@ interface AccountView {
   readonly trialMeter: TrialMeter | null;
   /** Aylık saat yalnızca abonelik erişiminde görünür (sınır aboneliğindir; denemede kafa karıştırır); yoksa null. */
   readonly hours: HoursMeter | null;
+  /** Toplantı dışı yapay zekâ ölçeri, saat ölçeriyle aynı koşulda (abonelik erişimi) görünür; yoksa null. */
+  readonly ai: AiMeter | null;
   /** Ödeme alınamadıysa (ek süre ya da süresi geçmiş ödeme) Aboneliği yönet düğmesinin yanındaki uyarı; yoksa null. */
   readonly alert: string | null;
   readonly canSubscribe: boolean;
@@ -123,6 +139,11 @@ function formatDate(iso: string, locale: string): string {
 /** Tarihi sitenin yerel ayarında, UTC'de yazar (aylık sınır UTC ayının başında sıfırlanır). Saf fonksiyondur. */
 function formatUtcDate(iso: string, locale: string): string {
   return new Intl.DateTimeFormat(locale, { dateStyle: "long", timeZone: "UTC" }).format(new Date(iso));
+}
+
+/** Oranı sitenin yerel ayarında ondalıksız yüzde olarak yazar (uygulamalarla aynı). Saf fonksiyondur. */
+function formatPercent(fraction: number, locale: string): string {
+  return new Intl.NumberFormat(locale, { style: "percent", maximumFractionDigits: 0 }).format(fraction);
 }
 
 /** Saati sitenin yerel ayarında hep bir ondalıkla yazar (değer değişince genişlik oynamaz). Saf fonksiyondur. */
@@ -303,6 +324,23 @@ function hoursMeter(me: Entitlements, text: ClientCopy, locale: string): HoursMe
   };
 }
 
+/** Abonenin toplantı dışı yapay zekâ ölçeri: saat ölçeriyle aynı eşikler, değer yüzde. Saf fonksiyondur. */
+function aiMeter(me: Entitlements, text: ClientCopy, locale: string): AiMeter {
+  const cap: number = me.accountTokensCap;
+  const used: number = me.accountTokensUsed;
+  const fraction: number = cap > 0 ? Math.min(used / cap, 1) : 1;
+  const resetDate: string = formatUtcDate(me.accountTokensResetsAt, locale);
+  return {
+    text: formatPercent(fraction, locale),
+    used: Math.min(used, cap),
+    cap,
+    warn: fraction >= hoursWarnRatio,
+    full: fraction >= 1,
+    resets: fill(text.aiResets, { date: resetDate }),
+    limitReached: fraction >= 1 ? fill(text.aiLimitReached, { date: resetDate }) : null,
+  };
+}
+
 /**
  * Sunucu yanıtından gösterilecek değerleri üretir. Aboneliği yönetme yalnızca Stripe'ta karşılığı olan (ücretsiz erişim
  * ve App Store aboneliği olmayan) abonelikte vardır: ücretsiz erişim bitmiş olsa da Portal'da yönetilecek bir şey yoktur;
@@ -317,6 +355,7 @@ export function accountView(me: Entitlements, text: ClientCopy, locale: string, 
     status: planStatus(me, text, locale, now),
     trialMeter: !subscribed && trialPhase(me, now) === "running" ? trialMeter(me, text) : null,
     hours: subscribed ? hoursMeter(me, text, locale) : null,
+    ai: subscribed ? aiMeter(me, text, locale) : null,
     alert: paymentAlert(me.subscription, text),
     canSubscribe: !subscribed,
     canManage: me.subscription !== null && !me.subscription.complimentary && me.subscription.source === "stripe",
@@ -353,6 +392,26 @@ function renderStatus(status: PlanStatus): void {
   );
 }
 
+/** Abonenin toplantı dışı yapay zekâ bloğunu yazar; yoksa gizler. Sınıra yaklaşan ölçer sarı, dolu ölçer kırmızıdır. */
+function renderAiMeter(ai: AiMeter | null): void {
+  element("ai-card", HTMLElement).classList.toggle("hidden", ai === null);
+  if (ai === null) {
+    return;
+  }
+  element("ai-value", HTMLElement).textContent = ai.text;
+  const meter: HTMLProgressElement = element("ai-meter", HTMLProgressElement);
+  meter.max = ai.cap;
+  meter.value = ai.used;
+  meter.textContent = ai.text;
+  meter.classList.toggle("meter--warn", ai.warn && !ai.full);
+  meter.classList.toggle("meter--full", ai.full);
+  element("ai-resets", HTMLElement).textContent = ai.resets;
+  element("ai-foot", HTMLElement).classList.toggle("hidden", ai.limitReached !== null);
+  const limit: HTMLElement = element("ai-limit", HTMLElement);
+  limit.classList.toggle("hidden", ai.limitReached === null);
+  limit.textContent = ai.limitReached ?? "";
+}
+
 /** Ölçerleri yazar: deneme ölçeri ve abonenin saat bloğu, olmayan gizlenir; sınıra yaklaşan ölçer sarıdır. */
 function renderMeters(trial: TrialMeter | null, hours: HoursMeter | null): void {
   element("trial-card", HTMLElement).classList.toggle("hidden", trial === null);
@@ -387,6 +446,7 @@ function render(view: AccountView): void {
   renderPill(element("plan-pill", HTMLElement), view.planPill);
   renderStatus(view.status);
   renderMeters(view.trialMeter, view.hours);
+  renderAiMeter(view.ai);
   const alert: HTMLElement = element("plan-alert", HTMLElement);
   alert.classList.toggle("hidden", view.alert === null);
   alert.textContent = view.alert ?? "";
