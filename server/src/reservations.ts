@@ -16,8 +16,19 @@ import { chunkOverlapAllowanceSql, chunkOverlapSeconds, chunkStepSeconds, dayKey
 /** SQL bağ değeri. */
 type SqlValue = string | number | null;
 
-/** LLM ayırmasının ömrü: en uzun çağrı (3 deneme × 120 sn ya da uzun akış) bundan kısadır. */
+/**
+ * LLM ayırmasının ömrü: en uzun çağrı bundan kısadır (akışsız: 3 deneme × 120 sn; akışlı: `llmStreamDeadlineMs`).
+ * Süresi dolan ayırma kullanıcının sınırlarına artık sayılmaz; kesinleşmemiş çağrı bu ömrü aşarsa sonraki çağrılar
+ * onun tokenları sayılmadan kabul edilirdi.
+ */
 export const llmReservationTtlMs: number = 15 * 60_000;
+/**
+ * Akışlı LLM çağrısının ayırmadan itibaren en uzun süresi: `llmReservationTtlMs`'den (15 dk) kısa olmalı ki akış,
+ * ayırmanın süresi dolmadan biter ya da kesilip kesinleşir. Akış istemcinin okuma hızıyla ilerler (okumayan istemci
+ * akışı bekletir); süre dolunca üst akış iptal edilir ve ayrılan üst sınırla kesinleşir. Aradaki 3 dakika
+ * kesinleştirmenin D1 yazımına yeter.
+ */
+export const llmStreamDeadlineMs: number = 12 * 60_000;
 /** Ses ayırmasının ömrü: ElevenLabs zaman aşımından (15 dk) ve 95 MB yüklemeden uzundur. */
 export const audioReservationTtlMs: number = 20 * 60_000;
 
@@ -215,6 +226,21 @@ export function meetingAudioIdleLimit(meetingId: string, now: Date): Reservation
     remainingSql: "CASE WHEN EXISTS (SELECT 1 FROM usage_reservations WHERE meeting_id = ? AND kind = 'audio' AND expires_at > ?) THEN 0 ELSE 1 END",
     binds: [meetingId, now.getTime()],
     error: new ApiError("transcription_in_progress", "An audio file for this meeting is still being processed; try again when it finishes."),
+  };
+}
+
+/**
+ * Kullanıcının süren (süresi dolmamış) ses isteği yoksa 1, varsa 0: kullanıcı başına (tüm toplantılarında) aynı anda
+ * tek ses isteği. Ses süresi istemcinin bildirdiği başlıktan ayrılır; FLAC STREAMINFO'su eksik bildirilmiş (iyi
+ * sıkışan, ör. sessiz) dosyanın gerçek süresi ancak ElevenLabs yanıtında görülür ve o toplantının ses hakkını kapatır.
+ * Ayrı toplantılara eşzamanlı yüklemeler her biri bir kez aşabilirdi; tek istekle aşım en çok bir dosyayla sınırlanır
+ * ve kesinleşen gerçek süre sonraki isteğin aylık sınırına sayılır.
+ */
+export function userAudioIdleLimit(userId: string, now: Date): ReservationLimit {
+  return {
+    remainingSql: "CASE WHEN EXISTS (SELECT 1 FROM usage_reservations WHERE user_id = ? AND kind = 'audio' AND expires_at > ?) THEN 0 ELSE 1 END",
+    binds: [userId, now.getTime()],
+    error: new ApiError("transcription_in_progress", "Another audio file on this account is still being processed; try again when it finishes."),
   };
 }
 

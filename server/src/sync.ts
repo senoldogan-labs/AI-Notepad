@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Config } from "./config";
 import { hexEncode, randomToken } from "./crypto";
-import { hasPaidAccess, isTrialStarted, trialMeetingsLeft, userTrialState } from "./entitlements";
+import { hasPaidAccess, hasRunningTrial, userTrialState } from "./entitlements";
 import { ApiError } from "./errors";
 import { jsonResponse, readBodyBytes, readJsonBody } from "./http";
 import { errorName, log } from "./log";
@@ -250,7 +250,7 @@ export async function hasSyncAccess(db: D1Database, config: Config, userId: stri
     return true;
   }
   const trial = await userTrialState(db, userId);
-  return isTrialStarted(trial, config) && trialMeetingsLeft(trial, config, now) > 0;
+  return hasRunningTrial(trial, config, now);
 }
 
 /** Writing (turning sync on, uploading) needs a subscription or a running trial; otherwise `subscription_required`. */

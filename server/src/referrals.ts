@@ -31,8 +31,8 @@ import { trialIdentityHash } from "./trialLedger";
  *     `card_reused`: davet düşer, ödül verilmez; arkadaşın Stripe'ta aldığı indirim geri alınmaz. Mac'te cihaz denetimi
  *     olmadığından yeni Google ya da Apple hesaplarıyla ücretsiz ay toplamanın asıl sınırı budur;
  *   - davet edenin açık davetleri `REFERRAL_MAX_PENDING` ile sınırlıdır (`openReferralCount`; kart yüzünden düşen
- *     davetler de yer tutar): dolunca `referral_limit_reached`. Tek kod ve tek kartla açılan hesaplar bu yüzden sınırsız
- *     ücretsiz ay alamaz;
+ *     ve kartsız katılıp ücretsiz ayında biten davetler de 365 gün yer tutar): dolunca `referral_limit_reached`. Tek
+ *     kod ve tek kartla (ya da kartsız ödeme yöntemiyle) açılan hesaplar bu yüzden sınırsız ücretsiz ay alamaz;
  *   - davet eden son 365 günde en çok `referralRewardsPerYear` ödül alır; kodlar rastgeledir ve doğrulama kullanıcı
  *     başına hız sınırlıdır.
  */
@@ -339,9 +339,11 @@ export async function sharesDevice(db: D1Database, left: string, right: string):
 
 /**
  * Davet edenin açık davet sayısı (`REFERRAL_MAX_PENDING` ile sınırlanır): ödülü bekleyen (`joined`, `qualified`), son
- * `referralCheckoutHoldMs` içinde Checkout'a götürülen (ödeme sayfası açık olabilir) ve son 365 günde kart yüzünden
- * düşen (`card_reused`, `self_card`: arkadaş indirimi yine aldı) davetler. `referredUserId` hesabının kendi satırı
- * sayılmaz (yeni Checkout onu siler).
+ * `referralCheckoutHoldMs` içinde Checkout'a götürülen (ödeme sayfası açık olabilir), son 365 günde kart yüzünden
+ * düşen (`card_reused`, `self_card`: arkadaş indirimi yine aldı) ve son 365 günde kartsız (ör. Link; kart denetimi
+ * yapılamadı) katılıp ücretsiz ayında biten (`canceled_before_payment`) davetler. Kartsız katılımda kart tekrarı
+ * görülemez; bu satırlar yer tutmasa tek kod ve tek ödeyenle her ay yeni hesaplarla ücretsiz ay alınabilirdi.
+ * `referredUserId` hesabının kendi satırı sayılmaz (yeni Checkout onu siler).
  */
 export async function openReferralCount(db: D1Database, referrerUserId: string, referredUserId: string, nowMs: number): Promise<number> {
   const row: { count: number } | null = await db
@@ -350,7 +352,8 @@ export async function openReferralCount(db: D1Database, referrerUserId: string, 
        WHERE referrer_user_id = ?1 AND (referred_user_id IS NULL OR referred_user_id <> ?2)
          AND (status IN ('joined', 'qualified')
            OR (status = 'checkout' AND created_at > ?3)
-           OR (status = 'void' AND void_reason IN ('card_reused', 'self_card') AND joined_at > ?4))`,
+           OR (status = 'void' AND void_reason IN ('card_reused', 'self_card') AND joined_at > ?4)
+           OR (status = 'void' AND void_reason = 'canceled_before_payment' AND card_fingerprint_hash IS NULL AND joined_at > ?4))`,
     )
     .bind(referrerUserId, referredUserId, nowMs - referralCheckoutHoldMs, nowMs - referralRewardWindowMs)
     .first<{ count: number }>();

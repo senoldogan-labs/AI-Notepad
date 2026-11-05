@@ -6,6 +6,7 @@ import {
   type TrialState,
   deviceTrialMeetingsUsed,
   hasPaidAccess,
+  hasRunningTrial,
   isTrialExpired,
   subscriberMeetingMaxMinutes,
   trialMeetingsLeft,
@@ -608,8 +609,9 @@ export function reprocessTopUpTokens(config: Config, kind: MeetingRow["kind"]): 
 }
 
 /**
- * Yeniden işlemeye izin var mı: abonelik erişimi ya da kalan deneme varsa her zaman; yoksa toplantının bitişinden sonra
- * `windowMs` içinde (kayıtlı toplantısını son kez işleyebilsin, ama süresiz değil). Saf fonksiyondur.
+ * Yeniden işlemeye izin var mı: abonelik erişimi ya da çalışan deneme (`hasRunningTrial`) varsa her zaman; yoksa
+ * toplantının bitişinden sonra `windowMs` içinde (kayıtlı toplantısını son kez işleyebilsin, ama süresiz değil). Saf
+ * fonksiyondur.
  */
 export function mayReprocess(hasAccess: boolean, meetingEndMs: number, nowMs: number, windowMs: number): boolean {
   return hasAccess || nowMs <= meetingEndMs + windowMs;
@@ -645,8 +647,8 @@ export interface ReprocessedMeeting {
  * yapay zekâ bütçesi böylece en çok ilk bütçe + `maxMeetingReprocesses` × pay olur. Kayıt sonrası işleme (son geçiş ve
  * not) işleme süresi boyunca açık kalır (`meetingProcessingUntil`). Yeni deneme, başlatma ya da
  * toplantı süresi düşmez. Ek süre içinde ses henüz yazılmamışsa toplantı zaten açıktır (hak harcanmaz); ses yazılmışsa
- * kayıt yeniden yükleneceği için hak harcanır ve ses sınırı açılır. Abonelik erişimi ya da kalan denemesi olmayan hesap yalnızca toplantının bitişinden sonraki
- * 7 gün içinde yeniden işleyebilir (`mayReprocess`; sonra `subscription_required`). Günlük harcama tavanı doluysa
+ * kayıt yeniden yükleneceği için hak harcanır ve ses sınırı açılır. Abonelik erişimi ya da çalışan denemesi
+ * (`hasRunningTrial`; hiç başlamamış deneme sayılmaz) olmayan hesap yalnızca toplantının bitişinden sonraki 7 gün içinde yeniden işleyebilir (`mayReprocess`; sonra `subscription_required`). Günlük harcama tavanı doluysa
  * (yapay zekâ çağrıları zaten reddedilir) hak harcanmadan `503 spend_ceiling_reached`; deneme toplantısında deneme
  * tavanı doluysa ya da ElevenLabs kullanımı deneme durağını (`elevenLabsTrialStopRatio`) geçtiyse hak harcanmadan
  * `503 trial_capacity_reached`.
@@ -669,7 +671,7 @@ export async function reprocessMeeting(db: D1Database, config: Config, userId: s
     };
   }
   const [subscribed, trial]: [boolean, TrialState] = await Promise.all([hasPaidAccess(db, config, userId, now), userTrialState(db, userId)]);
-  const hasAccess: boolean = subscribed || trialMeetingsLeft(trial, config, now) > 0;
+  const hasAccess: boolean = subscribed || hasRunningTrial(trial, config, now);
   const endMs: number = Math.min(row.ended_at ?? row.max_ends_at, row.max_ends_at);
   if (!mayReprocess(hasAccess, endMs, nowMs, reprocessWithoutAccessMs)) {
     throw new ApiError("subscription_required", "Meetings older than a week can't be reprocessed without a subscription or trial; subscribe to reprocess them.");

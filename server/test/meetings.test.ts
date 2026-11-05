@@ -282,6 +282,36 @@ describe("haklar ve toplantı oturumları", () => {
     expect(reprocessAudioCap(1200, 0, 1)).toBe(1200 + 600);
   });
 
+  it("hiç başlamamış deneme yeniden işleme hakkı sayılmaz: aboneliği bitmiş hesap da yalnızca 7 gün içinde", async () => {
+    const harness: Harness = await defaultHarness();
+    const dayMs: number = 86_400_000;
+    // Doğrudan abone olmuş, denemeyi hiç başlatmamış hesap (abonelik toplantısı denemeyi başlatmaz).
+    const lapsedSubscriberMeeting = async (): Promise<{ session: Session; meetingId: string }> => {
+      const session: Session = await signIn(harness);
+      await grantSubscription(session.userId, "active", harness.clock.nowMs + dayMs);
+      const started: StartedMeetingBody = await (await startMeeting(harness, session)).json<StartedMeetingBody>();
+      expect(started.kind).toBe("subscription");
+      expect((await harness.call(req("POST", `/v1/meetings/${started.meetingId}/end`, { token: session.accessToken }))).status).toBe(200);
+      await env.DB.prepare("UPDATE meeting_sessions SET audio_seconds = 600 WHERE id = ?").bind(started.meetingId).run();
+      return { session, meetingId: started.meetingId };
+    };
+    const reprocess = (session: Session, meetingId: string): Promise<Response> =>
+      harness.call(req("POST", `/v1/meetings/${meetingId}/reprocess`, { token: session.accessToken }));
+
+    // Bitişten 5 gün sonra: erişimsiz hesabın 7 günlük penceresi içinde.
+    const recent = await lapsedSubscriberMeeting();
+    harness.clock.nowMs += 5 * dayMs;
+    expect((await reprocess(await refreshed(harness, recent.session), recent.meetingId)).status).toBe(200);
+
+    // Bitişten 8 gün sonra: başlamamış deneme hak sayılmaz, 402.
+    const old = await lapsedSubscriberMeeting();
+    harness.clock.nowMs += 8 * dayMs;
+    const current: Session = await refreshed(harness, old.session);
+    await expectError(await reprocess(current, old.meetingId), 402, "subscription_required");
+    const user = await env.DB.prepare("SELECT trial_started_at FROM users WHERE id = ?").bind(current.userId).first<{ trial_started_at: number | null }>();
+    expect(user?.trial_started_at).toBeNull();
+  });
+
   it("bütçesini neredeyse bitirmiş toplantı yeniden işlemede tam pay alır; harcama tavanı doluysa hak harcanmaz", async () => {
     const harness: Harness = await defaultHarness();
     const session: Session = await signIn(harness);

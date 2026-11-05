@@ -199,6 +199,53 @@ describe("deneme ses süresi birikimli sınırı", () => {
     expect(await meetingAudio(meeting.meetingId)).toEqual({ audio_seconds: 20, open_reservations: 0, transcription_closed: 0 });
   });
 
+  it("kullanıcının tüm toplantılarında aynı anda tek ses isteği işlenir: başka toplantıya eşzamanlı yükleme 409 alır", async () => {
+    const harness: Harness = await defaultHarness();
+    const session: Session = await signIn(harness);
+    await grantSubscription(session.userId, "active", harness.clock.nowMs + 30 * 86_400_000);
+    // Biri bitmiş (işleme süresinde), biri süren iki toplantı.
+    const ended: StartedMeetingBody = await (await startMeeting(harness, session)).json<StartedMeetingBody>();
+    harness.clock.nowMs += 60_000;
+    expect((await harness.call(req("POST", `/v1/meetings/${ended.meetingId}/end`, { token: session.accessToken }))).status).toBe(200);
+    const live: StartedMeetingBody = await (await startMeeting(harness, session)).json<StartedMeetingBody>();
+    harness.clock.nowMs += 60_000;
+    let release: () => void = (): void => undefined;
+    const gate: Promise<void> = new Promise<void>((resolve: () => void): void => {
+      release = resolve;
+    });
+    let calls: number = 0;
+    harness.stub(elevenLabsSpeechToTextUrl, async (request: Request): Promise<Response> => {
+      await request.arrayBuffer();
+      calls += 1;
+      await gate;
+      return Response.json({ language_code: "tur", language_probability: 1, text: "", words: [], audio_duration_secs: 10 });
+    });
+    const ten: Uint8Array = wavFile(8000, 1, 8, 8000 * 10);
+    const first: Promise<Response> = transcribe(harness, session, ended.meetingId, ten, "audio/wav", null);
+    for (let attempt: number = 0; attempt < 50 && calls === 0; attempt += 1) {
+      await new Promise<void>((resolve: () => void): void => {
+        setTimeout(resolve, 10);
+      });
+    }
+    expect(calls).toBe(1);
+    await expectError(await transcribe(harness, session, live.meetingId, ten, "audio/wav", null), 409, "transcription_in_progress");
+    expect(calls).toBe(1);
+    // Başka kullanıcının yüklemesi etkilenmez.
+    const other: Session = await signIn(harness);
+    const otherMeeting: StartedMeetingBody = await (await startMeeting(harness, other)).json<StartedMeetingBody>();
+    const otherUpload: Promise<Response> = transcribe(harness, other, otherMeeting.meetingId, ten, "audio/wav", null);
+    for (let attempt: number = 0; attempt < 50 && calls === 1; attempt += 1) {
+      await new Promise<void>((resolve: () => void): void => {
+        setTimeout(resolve, 10);
+      });
+    }
+    expect(calls).toBe(2);
+    release();
+    expect((await first).status).toBe(200);
+    expect((await otherUpload).status).toBe(200);
+    expect((await transcribe(harness, session, live.meetingId, ten, "audio/wav", null)).status).toBe(200);
+  });
+
   it("kesinleşmemiş ses ayırmasının süresi dolunca toplantı yeniden ses kabul eder ve temizlik harcamayı yazar", async () => {
     const harness: Harness = await defaultHarness();
     const session: Session = await signIn(harness);
