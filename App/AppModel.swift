@@ -2816,6 +2816,21 @@ final class AppModel {
         currentConversationID = id
     }
 
+    /// Sohbetin adını değiştirir (boş ya da aynı ad yok sayılır); sohbetin listedeki yeri değişmez.
+    func renameConversation(id: UUID, title: String) {
+        guard let conversation = askConversations.first(where: { $0.id == id }),
+              let renamed = renamedAskConversation(conversation: conversation, title: title, now: Date()) else {
+            return
+        }
+        do {
+            try saveAskConversation(conversation: renamed, directory: try AppPaths.askHistoryDirectory())
+            askConversations = upsertAskConversation(conversations: askConversations, conversation: renamed)
+        } catch {
+            Self.logger.error("Sohbetin adı değiştirilemedi, sohbet: \(id.uuidString, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+            errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Sohbetin adı değiştirilemedi: \(userFacingMessage(error: error))"))
+        }
+    }
+
     /// Sohbeti geçmişten siler; açık sohbetse sayfa boşalır.
     func deleteConversation(id: UUID) {
         do {

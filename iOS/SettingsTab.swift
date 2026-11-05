@@ -66,11 +66,9 @@ struct PhoneSettingsTab: View {
                 }
                 Section {
                     Toggle("Kayıt başlarken haber vermeyi hatırlat", isOn: $consentReminder)
-                    Picker("Sesleri sakla", selection: $retentionDays) {
-                        ForEach([7, 14, 30, 60, 90, 180, 365], id: \.self) { (days: Int) in
-                            Text("\(days) gün").tag(days)
-                        }
-                    }
+                    MenuPickerRow(title: "Sesleri sakla", selection: $retentionDays, options: [7, 14, 30, 60, 90, 180, 365].map { (days: Int) -> MenuPickerOption<Int> in
+                        MenuPickerOption(value: days, label: Text("\(days) gün"))
+                    })
                     .onChange(of: retentionDays) { (_: Int, _: Int) in
                         store.applyRetention(now: Date())
                     }
@@ -84,16 +82,12 @@ struct PhoneSettingsTab: View {
                 }
                 CalendarSettingsSection(calendar: calendar)
                 Section {
-                    Picker("Ana toplantı dili", selection: $primaryLanguage) {
-                        ForEach(MeetingLanguage.allCases, id: \.rawValue) { (language: MeetingLanguage) in
-                            Text(languageName(language: language)).tag(language.rawValue)
-                        }
-                    }
-                    Picker("Not ve çeviri dili", selection: $noteLanguage) {
-                        ForEach(ShareLanguage.allCases, id: \.rawValue) { (language: ShareLanguage) in
-                            Text(verbatim: language.nativeName).tag(language.rawValue)
-                        }
-                    }
+                    MenuPickerRow(title: "Ana toplantı dili", selection: $primaryLanguage, options: MeetingLanguage.allCases.map { (language: MeetingLanguage) -> MenuPickerOption<String> in
+                        MenuPickerOption(value: language.rawValue, label: Text(languageName(language: language)))
+                    })
+                    MenuPickerRow(title: "Not ve çeviri dili", selection: $noteLanguage, options: ShareLanguage.allCases.map { (language: ShareLanguage) -> MenuPickerOption<String> in
+                        MenuPickerOption(value: language.rawValue, label: Text(verbatim: language.nativeName))
+                    })
                     // Etiketli satır: ad yazılınca alan yalnızca adı gösteriyor, neyin adı olduğu anlaşılmıyordu.
                     PhoneCaptionedRow(caption: Text("Notta sana düşen görevleri ayırmak için kullanılır.")) {
                         LabeledContent {
@@ -118,10 +112,10 @@ struct PhoneSettingsTab: View {
                         set: { (enabled: Bool) -> Void in displayMode = (enabled ? DisplayMode.bilingual : .originalOnly).rawValue }
                     ))
                     if (DisplayMode(rawValue: displayMode) ?? .bilingual).needsLiveTranslation {
-                        Picker("Gösterim", selection: $displayMode) {
-                            Text("İki dil (orijinal + \(noteLanguageName))").tag(DisplayMode.bilingual.rawValue)
-                            Text("Sadece \(noteLanguageName)").tag(DisplayMode.turkishOnly.rawValue)
-                        }
+                        MenuPickerRow(title: "Gösterim", selection: $displayMode, options: [
+                            MenuPickerOption(value: DisplayMode.bilingual.rawValue, label: Text("İki dil (orijinal + \(noteLanguageName))")),
+                            MenuPickerOption(value: DisplayMode.turkishOnly.rawValue, label: Text("Sadece \(noteLanguageName)")),
+                        ])
                     }
                     Stepper(value: $missedMinutes, in: missedWindowMinutesRange) {
                         Text("\"Ne kaçırdım?\" son \(missedMinutes) dakikayı özetler")
@@ -134,11 +128,9 @@ struct PhoneSettingsTab: View {
                         : "Kayıtta yalnız orijinal metin görünür; \(noteLanguageName) not yine yazılır.")
                 }
                 Section {
-                    Picker("Not şablonu", selection: $noteTemplate) {
-                        ForEach(NoteTemplateKind.allCases, id: \.self) { (kind: NoteTemplateKind) in
-                            Text(verbatim: kind.displayName).tag(kind.rawValue)
-                        }
-                    }
+                    MenuPickerRow(title: "Not şablonu", selection: $noteTemplate, options: NoteTemplateKind.allCases.map { (kind: NoteTemplateKind) -> MenuPickerOption<String> in
+                        MenuPickerOption(value: kind.rawValue, label: Text(verbatim: kind.displayName))
+                    })
                     if noteTemplate == NoteTemplateKind.custom.rawValue {
                         NavigationLink {
                             PhoneTextSettingScreen(

@@ -320,7 +320,7 @@ public func mergePeopleBook(base: PeopleBook?, local: PeopleBook, remote: People
 }
 
 /// Merges two versions of an Ask conversation: turns are append-only, so both sides' turns are kept once (by id) in
-/// the order they were asked. Pure function.
+/// the order they were asked; the user's title is the one given last (`newerAskCustomTitle`). Pure function.
 public func mergeAskConversation(local: AskConversation, remote: AskConversation) -> AskConversation {
     let turns: [AskConversationTurn] = (local.turns + remote.turns)
         .reduce(into: [AskConversationTurn]()) { (result: inout [AskConversationTurn], turn: AskConversationTurn) -> Void in
@@ -330,7 +330,10 @@ public func mergeAskConversation(local: AskConversation, remote: AskConversation
         }
         .sorted { $0.startedAt < $1.startedAt }
     let first: AskConversation = remote.createdAt < local.createdAt ? remote : local
-    return AskConversation(id: local.id, createdAt: first.createdAt, updatedAt: max(local.updatedAt, remote.updatedAt), title: first.title, turns: turns)
+    return AskConversation(
+        id: local.id, createdAt: first.createdAt, updatedAt: max(local.updatedAt, remote.updatedAt), title: first.title,
+        customTitle: newerAskCustomTitle(first: local.customTitle, second: remote.customTitle), turns: turns
+    )
 }
 
 /// Three-way merge of the shared preferences: folders as an ordered set, the user's recipes by id. Pure function.
