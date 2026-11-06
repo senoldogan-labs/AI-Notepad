@@ -1423,6 +1423,30 @@ final class PhoneStore {
         }
     }
 
+    /// Transkriptte "Çeviri alınamadı · Tekrar dene" (Mac'teki gibi): toplantı sonu çevirisi yapılamayan parçalar hesaptan
+    /// yeniden çevrilir. Çeviri sürerken toplantı kilitlidir; sonuç diskteki güncel kayda uygulanır (bu arada transkript
+    /// değiştiyse uygulanmaz). Yine çevrilemeyen parçalar "Tekrar dene"de kalır.
+    func retryTranscriptTranslations(meetingID: String) async {
+        guard let record = rewritableRecord(meetingID: meetingID), !(record.failedTranslationKeys ?? []).isEmpty else {
+            return
+        }
+        regeneratingIDs.insert(meetingID)
+        defer { regeneratingIDs.remove(meetingID) }
+        do {
+            let llm: LLMProvider = try phoneAccountLLMProvider()
+            let directory: URL = try sessionDirectory(id: meetingID)
+            let translated: MeetingRecord = await retryingFailedTranscriptTranslations(
+                record: record, llm: llm, language: phoneNoteLanguage(), userName: userName
+            )
+            let updated: MeetingRecord = withTranscriptTranslations(from: translated, onto: try loadMeeting(directory: directory))
+            try saveMeeting(record: updated, directory: directory)
+            upsert(record: updated)
+        } catch {
+            Self.logger.error("Transkript çevirisi yenilenemedi, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+            actionProblems = appendUnique(messages: actionProblems, message: String(localized: "Çeviri: \(userFacingMessage(error: error))"))
+        }
+    }
+
     /// Notu verilen dile çevirir ve toplantıda saklar (Mac'teki notun dil menüsü; sunucuda `shared_note_translation`).
     /// Tam bir çevirisi zaten saklıysa (`sharedNoteVersion`) bir şey yapmaz; not değişince saklı çeviriler silinir.
     /// Çeviri sürerken not yeniden yazıldıysa eski notun çevirisi saklanmaz (sayfa yeni not için yeniden ister).

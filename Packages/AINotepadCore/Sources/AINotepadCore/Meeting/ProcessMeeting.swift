@@ -162,7 +162,11 @@ public func processMeeting(
     }
 
     await onStep(.writingNote)
-    return await regenerateNote(record: current, directory: directory, llm: await llm, userName: userName, language: noteLanguage, screens: screens)
+    let provider: LLMProvider? = await llm
+    let noted: MeetingRecord = await regenerateNote(record: current, directory: directory, llm: provider, userName: userName, language: noteLanguage, screens: screens)
+    // Transkript nottan sonra çevrilir: toplantı bütçesinin nota ayrılan payını önce not kullanır (abonelik), çeviri
+    // yapılamazsa not yine yazılmış olur ve parçalar "Tekrar dene"de kalır.
+    return await translatingTranscript(record: noted, llm: provider, language: noteLanguage, userName: userName)
 }
 
 /// Ses dönüştürme, son geçiş ve sesinden tanıma. Kayıtlar (`.caf`) `.m4a`'ya dönüştürülürken son geçiş planı hazırlanır;
@@ -379,14 +383,11 @@ private func transcribeOthers(record: MeetingRecord, audio othersAudio: URL, tra
     }
     do {
         let result: FinalPassResult = try await transcriber.transcribeFinal(audioURL: othersAudio, languageMode: languageMode)
-        // Canlıdaki Türkçeler son geçiş bölümlerine taşınır; geçmişte de Türkçe görünsün.
-        // Önceki son geçişin Türkçeleri ("final-N") yeni bölümlere yazılmaz: yeniden işlemede numaralar başka cümlelere
-        // düşer. Canlı bölümlerin Türkçeleri kalır, yeni bölümlere canlıdan hizalananlar eklenir.
-        let liveTranslations: [String: String] = record.translations.filter { !$0.key.hasPrefix("final-") }
-        return record
-            .with(translations: liveTranslations.merging(
-                alignTranslations(final: result.segments, live: record.liveSegments, translations: liveTranslations)
-            ) { (_: String, aligned: String) -> String in aligned })
+        // Önceki son geçişin çevirileri ("final-N") silinir: yeniden işlemede numaralar başka cümlelere düşer. Son geçiş
+        // metni not yazıldıktan sonra parça parça yeniden çevrilir (`translatingTranscript`); canlı çeviriler son geçiş
+        // bölümlerine taşınmaz (canlı birimler son geçiş bölümleriyle örtüşmez, kaba canlı metinden çevrilmiştir).
+        // Canlı bölümlerin çevirileri kalır (canlı kuyruk ve son geçişi olmayan taraf onları gösterir).
+        return droppingFinalPassTranslations(record: record)
             // Önceki "Sen" son geçişi korunur: bu tekrar işlemede "Sen" geçişi başarısız olursa iyi metin kaybolmasın.
             .with(
                 // Bölümlerin dili bir kez algılanır: sabit dilli toplantıda başka dildekiler okunurken atlanır.

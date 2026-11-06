@@ -196,8 +196,8 @@ import Testing
         let segments: [StoredSegment] = [stored("final-0", .others, 1, 0, "Alku"), stored("final-1", .others, 1, 40, "Tärkeä päätös"), stored("final-2", .others, 1, 100, "Loppu")]
         let marked: [StoredSegment] = markingHighlights(segments: segments, highlights: [Highlight(startSec: 55, endSec: nil)])
         #expect(marked.map(\.text) == ["Alku", "★ Tärkeä päätös", "Loppu"])
-        let first: TranscriptParagraph = TranscriptParagraph(id: "a", speaker: .others, person: 1, startSec: 30, endSec: 38, text: "Ensin", turkish: nil, words: [])
-        let second: TranscriptParagraph = TranscriptParagraph(id: "b", speaker: .others, person: 2, startSec: 40, endSec: 42, text: "Tärkeä päätös", turkish: nil, words: [])
+        let first: TranscriptParagraph = TranscriptParagraph(id: "a", speaker: .others, person: 1, startSec: 30, endSec: 38, text: "Ensin", turkish: nil, translationFailed: false, words: [])
+        let second: TranscriptParagraph = TranscriptParagraph(id: "b", speaker: .others, person: 2, startSec: 40, endSec: 42, text: "Tärkeä päätös", turkish: nil, translationFailed: false, words: [])
         let paragraphs: [TranscriptParagraph] = [first, second]
         let on: [Highlight] = togglingHighlight(highlights: [], paragraphs: paragraphs, paragraph: second)
         #expect(highlightedParagraphIDs(paragraphs: paragraphs, highlights: on) == ["b"])
