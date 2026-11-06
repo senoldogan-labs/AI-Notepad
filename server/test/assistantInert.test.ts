@@ -9,8 +9,8 @@ import wranglerSource from "../wrangler.jsonc?raw";
 import { type Harness, type Session, defaultHarness, expectError, req, signIn } from "./helpers";
 
 /**
- * The API Worker's assistant code stays inert until the owner creates the EU database: production has no
- * ASSISTANT_DB / ASSISTANT_BUCKET bindings while ASSISTANT_POLICY is "off", and nothing may touch them then.
+ * The API Worker's assistant code is inert while ASSISTANT_POLICY is "off" (no ASSISTANT_DB / ASSISTANT_BUCKET bindings,
+ * nothing may touch them); when it is "on", production binds the EU assistant database and bucket with real ids.
  */
 
 afterEach(() => {
@@ -64,11 +64,22 @@ describe("API Worker test runtime", () => {
 });
 
 describe("assistant code in the API Worker before the EU database exists", () => {
-  it("production deploys without assistant bindings or placeholder ids while the policy is off", () => {
+  it("production binds the EU assistant database and bucket with real ids exactly when the policy is on", () => {
     const production = productionSchema.parse(JSON.parse(stripJsonc(wranglerSource))).env.production;
-    expect(production.vars.ASSISTANT_POLICY).toBe("off");
-    expect(production.d1_databases.map((entry): string => entry.binding)).toEqual(["DB"]);
-    expect(production.r2_buckets.map((entry): string => entry.binding)).toEqual(["SYNC_BUCKET"]);
+    const databases: readonly string[] = production.d1_databases.map((entry): string => entry.binding);
+    const buckets: readonly string[] = production.r2_buckets.map((entry): string => entry.binding);
+    if (production.vars.ASSISTANT_POLICY === "on") {
+      expect(databases).toEqual(["DB", "ASSISTANT_DB"]);
+      expect(buckets).toEqual(["SYNC_BUCKET", "ASSISTANT_BUCKET"]);
+      const assistantDb = production.d1_databases.find((entry): boolean => entry.binding === "ASSISTANT_DB");
+      expect(assistantDb?.["database_name"]).toBe("gistsmith-assistant");
+      expect(String(assistantDb?.["database_id"])).not.toMatch(/^0{8}-/);
+      const assistantBucket = production.r2_buckets.find((entry): boolean => entry.binding === "ASSISTANT_BUCKET");
+      expect(assistantBucket?.["jurisdiction"]).toBe("eu");
+    } else {
+      expect(databases).toEqual(["DB"]);
+      expect(buckets).toEqual(["SYNC_BUCKET"]);
+    }
     expect(JSON.stringify(production)).not.toContain("TODO");
   });
 
