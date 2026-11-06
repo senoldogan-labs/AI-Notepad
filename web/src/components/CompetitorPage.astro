@@ -43,7 +43,7 @@ const structuredData: string = structuredDataJson(
   {/* Veri bloğu: Astro işlemez ve paketlemez (`is:inline`), tarayıcı çalıştırmaz; CSP'ye takılmaz. */}
   <script is:inline type="application/ld+json" set:html={structuredData} />
   <section class="page narrow-intro">
-    <a class="eyebrow eyebrow--link" href={routes.compare}>{text.eyebrow}</a>
+    <a class="back-link" href={routes.compare}><Icon name="arrow-right" size={14} class="back-link__arrow" />{text.eyebrow}</a>
     <h1 class="title-xl">{them.title}</h1>
     <p class="lead">{them.lead}</p>
     <p class="small muted vs-source">
@@ -101,7 +101,7 @@ const structuredData: string = structuredDataJson(
     </ul>
   </section>
 
-  <CtaBand id="vs-cta-title" title={text.ctaTitle} text={text.ctaText} palette="violet" layout="clouds-right" />
+  <CtaBand id="vs-cta-title" title={text.ctaTitle} text={text.ctaText} photo="sunset-archipelago" />
 
   <p class="page small muted vs-trademarks">{text.trademarks}</p>
 </Base>
@@ -114,12 +114,24 @@ const structuredData: string = structuredDataJson(
     padding-block: clamp(48px, 8vw, 96px) clamp(24px, 4vw, 40px);
   }
 
-  .eyebrow--link {
+  /* Breadcrumb back to the comparison overview (the arrow points left). */
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--muted);
     text-decoration: none;
   }
 
-  .eyebrow--link:hover {
+  .back-link:hover {
+    color: var(--ink);
     text-decoration: underline;
+  }
+
+  .back-link :global(.back-link__arrow) {
+    transform: scaleX(-1);
   }
 
   .vs-source {
@@ -135,7 +147,7 @@ const structuredData: string = structuredDataJson(
   .vs-section {
     display: grid;
     gap: 20px;
-    margin-top: clamp(40px, 6vw, 72px);
+    margin-top: clamp(56px, 8vw, 104px);
   }
 
   .vs-section--compact {

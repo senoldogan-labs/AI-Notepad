@@ -70,8 +70,9 @@ private enum SettingsSection: CaseIterable {
     }
 }
 
-/// Ana penceredeki Ayarlar (ElevenLabs düzeni): büyük başlık, altı çizili sekmeler; her ayar ince çizgiyle ayrılmış bir
-/// satır (solda başlık ve açıklama, sağda denetim).
+/// Ana penceredeki Ayarlar: büyük başlık, altı çizili sekmeler; her sekmede ayarlar sakin bölüm adlarının altında tek
+/// kartlık gruplardadır (`SettingsGroup`). Her satırda simge kutusu, başlık, kısa açıklama (uzunu "Ayrıntılar"da) ve sağda
+/// denetim. İçerik sütunu her sekmede aynı genişliktedir.
 struct SettingsPage: View {
     let model: AppModel
     let router: MainWindowRouter
@@ -221,7 +222,7 @@ private var vocabularyHelp: LocalizedStringKey {
     #endif
 }
 
-/// Arayüz ve not dili, motor, ad, canlı çeviri, mikrofon, "Ne kaçırdım?" süresi ve ses saklama süresi.
+/// Genel: dil, sen ve konuşmacılar, takvim, kayıt, bildirimler, not, canlı çeviri ve Sor, veri ve gizlilik, uygulama.
 private struct GeneralSettings: View {
     let model: AppModel
     let updater: AppUpdater
@@ -250,308 +251,346 @@ private struct GeneralSettings: View {
         // Seçili not dilinin adı (arayüz dilinde): çeviri ayarlarında geçer.
         let noteLanguageName: String = storedNoteLanguage(value: noteLanguage).interfaceName
         VStack(alignment: .leading, spacing: 0) {
-            SettingsRow(title: Text("Arayüz dili")) {
-                Text("Menülerin ve ayarların dili.")
-                if interfaceLanguage != launchInterfaceLanguage {
-                    Text("Yeniden başlatınca uygulanır.").foregroundStyle(Theme.ink)
-                }
-                if let relaunchError {
-                    NoticeText(relaunchError, severity: .error)
-                }
-            } control: {
-                HStack(spacing: 8) {
+            SettingsGroup(title: Text("Dil")) {
+                SettingsRow(icon: "globe", title: Text("Arayüz dili")) {
+                    Text("Menülerin ve ayarların dili.")
                     if interfaceLanguage != launchInterfaceLanguage {
-                        Button("Şimdi yeniden başlat") {
-                            do {
-                                try relaunchApplication()
-                            } catch {
-                                relaunchError = String(localized: "Yeniden başlatılamadı: \(error.localizedDescription)")
-                            }
-                        }
-                        .disabled(isBusy)
-                        .hoverHint(isBusy ? "Kayıt ve işleme bitince yeniden başlatılabilir" : "Uygulamayı yeni dille yeniden açar", alignment: .trailing, edge: .bottom)
+                        Text("Yeniden başlatınca uygulanır.").foregroundStyle(Theme.ink)
                     }
-                    SettingsMenu(selection: $interfaceLanguage, options: InterfaceLanguage.allCases.map { (language: InterfaceLanguage) -> (InterfaceLanguage, Text) in
-                        (language, language.nativeName.map { Text(verbatim: $0) } ?? Text("Sistem"))
+                    if let relaunchError {
+                        NoticeText(relaunchError, severity: .error)
+                    }
+                } control: {
+                    HStack(spacing: 8) {
+                        if interfaceLanguage != launchInterfaceLanguage {
+                            Button("Şimdi yeniden başlat") {
+                                do {
+                                    try relaunchApplication()
+                                } catch {
+                                    relaunchError = String(localized: "Yeniden başlatılamadı: \(error.localizedDescription)")
+                                }
+                            }
+                            .disabled(isBusy)
+                            .hoverHint(isBusy ? "Kayıt ve işleme bitince yeniden başlatılabilir" : "Uygulamayı yeni dille yeniden açar", alignment: .trailing, edge: .bottom)
+                        }
+                        SettingsMenu(selection: $interfaceLanguage, options: InterfaceLanguage.allCases.map { (language: InterfaceLanguage) -> (InterfaceLanguage, Text) in
+                            (language, language.nativeName.map { Text(verbatim: $0) } ?? Text("Sistem"))
+                        })
+                    }
+                }
+                .onChange(of: interfaceLanguage) { (_: InterfaceLanguage, language: InterfaceLanguage) in
+                    storeInterfaceLanguage(language: language)
+                }
+                SettingsRow(icon: "text.bubble", title: Text("Not ve çeviri dili")) {
+                    SettingsMoreText(
+                        summary: Text("Notlar, çeviri ve Sor cevapları bu dilde yazılır."),
+                        details: Text("Toplantı notları, canlı çeviri, \"Ne kaçırdım?\" özeti ve Sor cevapları bu dilde yazılır. Önceki notlar yazıldıkları dilde kalır.")
+                    )
+                } control: {
+                    SettingsMenu(selection: $noteLanguage, options: ShareLanguage.allCases.map { (language: ShareLanguage) -> (String, Text) in
+                        (language.rawValue, Text(verbatim: language.nativeName))
                     })
                 }
-            }
-            .onChange(of: interfaceLanguage) { (_: InterfaceLanguage, language: InterfaceLanguage) in
-                storeInterfaceLanguage(language: language)
-            }
-            SettingsRow(title: Text("Not ve çeviri dili")) {
-                Text("Toplantı notları, canlı çeviri, \"Ne kaçırdım?\" özeti ve Sor cevapları bu dilde yazılır. Önceki notlar yazıldıkları dilde kalır.")
-            } control: {
-                SettingsMenu(selection: $noteLanguage, options: ShareLanguage.allCases.map { (language: ShareLanguage) -> (String, Text) in
-                    (language.rawValue, Text(verbatim: language.nativeName))
-                })
-            }
-            // Cihaz içi modelin bu dili yazıp yazamadığı uyarısı yenilensin.
-            .onChange(of: noteLanguage) { (_: String, _: String) in
-                model.settingsChanged()
-            }
-            #if !HOSTED_EDITION
-            SettingsRow(title: Text("Canlı metin")) {
-                switch model.liveEngine {
-                case .deepgram: Text("Konuşmacılar ElevenLabs ile dakikada bir ayrılır; kayıt bitince ElevenLabs son geçişi yapılır.")
-                case .whisperKit: Text("Ses Mac'ten çıkmaz; kayıt bitince konuşmacılar Mac'te (SpeakerKit) ayrılır. Not için LLM gerekir.")
-                case .appleSpeech: Text("Apple'ın konuşma tanıması; ses Mac'ten çıkmaz, anahtar ve büyük model indirmesi gerekmez. Dil algılanmaz (ana toplantı diliyle başlar), konuşmacılar ayrılmaz.")
+                // Cihaz içi modelin bu dili yazıp yazamadığı uyarısı yenilensin.
+                .onChange(of: noteLanguage) { (_: String, _: String) in
+                    model.settingsChanged()
                 }
-                if !appleSpeechSupportedBySystem() {
-                    Text("Cihaz içi konuşma tanıma macOS 26 gerektirir.")
+                SettingsRow(icon: "waveform", title: Text("Ana toplantı dili")) {
+                    #if HOSTED_EDITION
+                    SettingsMoreText(
+                        summary: Text("Canlı metin bu dilde başlar; konuşulan dil sonra bulunur."),
+                        details: Text("Otomatik dilde canlı metin bu dilde yazılır. Toplantı bitince konuşulan dil (35 dil) kendiliğinden bulunur ve not ona göre yazılır.")
+                    )
+                    #else
+                    SettingsMoreText(
+                        summary: Text("Canlı metin bu dilde başlar; konuşulan dil sonra bulunur."),
+                        details: Text("Otomatik dilde kayıt bu dille başlar; ilk dakikada konuşulan dil (35 dil) bulunup ona geçilir. Mac'te tanımada bu dil ile İngilizce arasında seçilir.")
+                    )
+                    #endif
+                } control: {
+                    SettingsMenu(selection: $primaryLanguage, options: MeetingLanguage.allCases.map { (language: MeetingLanguage) -> (String, Text) in
+                        (language.rawValue, Text(verbatim: languageName(language: language)))
+                    })
                 }
-            } control: {
-                SettingsMenu(selection: Binding<LiveEngine>(
-                    get: { model.liveEngine },
-                    set: { (engine: LiveEngine) -> Void in
-                        Task { await model.selectEngine(engine: engine) }
+                .onChange(of: primaryLanguage) { (_: String, _: String) in
+                    model.primaryLanguageChanged()
+                }
+                #if !HOSTED_EDITION
+                SettingsRow(icon: "captions.bubble", title: Text("Canlı metin")) {
+                    switch model.liveEngine {
+                    case .deepgram: Text("Konuşmacılar ElevenLabs ile dakikada bir ayrılır; kayıt bitince ElevenLabs son geçişi yapılır.")
+                    case .whisperKit: Text("Ses Mac'ten çıkmaz; kayıt bitince konuşmacılar Mac'te (SpeakerKit) ayrılır. Not için LLM gerekir.")
+                    case .appleSpeech: Text("Apple'ın konuşma tanıması; ses Mac'ten çıkmaz, anahtar ve büyük model indirmesi gerekmez. Dil algılanmaz (ana toplantı diliyle başlar), konuşmacılar ayrılmaz.")
                     }
-                ), options: liveEngineOptions())
-                .disabled(model.isRecording || model.isStarting)
-            }
-            #endif
-            SettingsRow(title: Text("Ana toplantı dili")) {
-                #if HOSTED_EDITION
-                Text("Otomatik dilde canlı metin bu dilde yazılır. Toplantı bitince konuşulan dil (35 dil) kendiliğinden bulunur ve not ona göre yazılır.")
-                #else
-                Text("Otomatik dilde kayıt bu dille başlar; ilk dakikada konuşulan dil (35 dil) bulunup ona geçilir. Mac'te tanımada bu dil ile İngilizce arasında seçilir.")
-                #endif
-            } control: {
-                SettingsMenu(selection: $primaryLanguage, options: MeetingLanguage.allCases.map { (language: MeetingLanguage) -> (String, Text) in
-                    (language.rawValue, Text(verbatim: languageName(language: language)))
-                })
-            }
-            .onChange(of: primaryLanguage) { (_: String, _: String) in
-                model.primaryLanguageChanged()
-            }
-            SettingsRow(title: Text("Kurulum")) {
-                #if HOSTED_EDITION
-                Text("İzinler, hesap ve kısayollar adım adım.")
-                #else
-                Text("İzinler, anahtarlar ve kısayollar adım adım.")
-                #endif
-            } control: {
-                Button("Kurulumu yeniden aç") { onShowSetup() }
-            }
-            SettingsRow(title: Text("Adın")) {
-                Text("Toplantı notunda sana düşen görevleri ayırmak için kullanılır.")
-            } control: {
-                TextField("Adın", text: Binding<String>(get: { model.userName }, set: { (name: String) -> Void in model.setUserName(name: name) }))
-                    .settingsField(width: 200)
-            }
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Tanıma sözlüğü").appFont(size: 15, weight: .medium)
-                Text(vocabularyHelp)
-                    .appFont(size: 13, weight: .regular)
-                    .foregroundStyle(Theme.muted)
-                    .fixedSize(horizontal: false, vertical: true)
-                TextEditor(text: Binding<String>(get: { model.vocabulary }, set: { (text: String) -> Void in model.setVocabulary(text: text) }))
-                    .appFont(size: 13, weight: .regular)
-                    .scrollContentBackground(.hidden)
-                    .padding(8)
-                    .frame(height: 80)
-                    .background(Theme.card, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Theme.line))
-                Text("\(customVocabulary(text: model.vocabulary).count) terim")
-                    .appFont(size: 12, weight: .regular)
-                    .foregroundStyle(Theme.muted)
-            }
-            .padding(.vertical, 16)
-            SettingsDivider()
-            SettingsRow(title: Text("Takvimi kullan")) {
-                Text("Yaklaşan toplantılar Ana sayfada görünür; kayıt o anki toplantıya bağlanır: başlığı ve katılımcı adları (tanıma ve konuşmacı adı ipucu) kayda geçer. Takvim yalnızca bu Mac'te okunur.")
-                if let error = model.calendarError {
-                    NoticeText(error, severity: .error)
-                }
-            } control: {
-                Toggle("Takvimi kullan", isOn: Binding<Bool>(
-                    get: { calendarEnabled },
-                    set: { (enabled: Bool) -> Void in
-                        if enabled {
-                            Task { await model.enableCalendar() }
-                        } else {
-                            model.disableCalendar()
+                    if !appleSpeechSupportedBySystem() {
+                        Text("Cihaz içi konuşma tanıma macOS 26 gerektirir.")
+                    }
+                } control: {
+                    SettingsMenu(selection: Binding<LiveEngine>(
+                        get: { model.liveEngine },
+                        set: { (engine: LiveEngine) -> Void in
+                            Task { await model.selectEngine(engine: engine) }
                         }
-                    }
-                ))
-                .settingsToggle()
-            }
-            if calendarEnabled {
-                SettingsRow(title: Text("Toplantıdan 1 dk önce hatırlat")) {
-                    Text("Bildirimdeki \"Dinlemeye başla\" ile kayıt hemen başlar.")
-                    if let problem = model.notificationProblem {
-                        NoticeText(problem, severity: .attention)
-                    }
-                } control: {
-                    // Açılınca bildirim izni yeniden istenir (sonradan kapatılmış olabilir); izin yoksa geri kapanır.
-                    Toggle("Toplantıdan 1 dk önce hatırlat", isOn: $meetingReminders)
-                        .settingsToggle()
-                        .onChange(of: meetingReminders) { (_: Bool, enabled: Bool) in
-                            if enabled {
-                                Task { await model.enableMeetingReminders() }
-                            } else {
-                                model.startCalendarServices()
-                            }
-                        }
+                    ), options: liveEngineOptions())
+                    .disabled(model.isRecording || model.isStarting)
                 }
-                SettingsRow(title: Text("Görüşme başlayınca öner")) {
-                    Text("Teams, Zoom ya da başka bir uygulama mikrofonu açınca (kayıt yoksa) dinlemeye başlamayı önerir; 10 dk'da en fazla bir kez.")
+                #endif
+            }
+            SettingsGroup(title: Text("Sen ve konuşmacılar")) {
+                SettingsRow(icon: "person.crop.circle", title: Text("Adın")) {
+                    Text("Toplantı notunda sana düşen görevleri ayırmak için kullanılır.")
                 } control: {
-                    Toggle("Görüşme başlayınca öner", isOn: $micSuggestions)
-                        .settingsToggle()
-                        .onChange(of: micSuggestions) { (_: Bool, _: Bool) in model.startCalendarServices() }
+                    TextField("Adın", text: Binding<String>(get: { model.userName }, set: { (name: String) -> Void in model.setUserName(name: name) }))
+                        .settingsField(width: 200)
                 }
-                SettingsRow(title: Text("Takvimdeki görüşmeleri kendiliğinden kaydet")) {
-                    Text("Takvimde görüşme bağlantısı (Teams, Zoom, Meet) olan bir toplantı sürerken başka bir uygulama mikrofonu açınca kayıt kendiliğinden başlar ve bildirilir; bir kez kur, unut. Katılımcılara kaydettiğini söylemek senin sorumluluğunda.")
-                } control: {
-                    Toggle("Takvimdeki görüşmeleri kendiliğinden kaydet", isOn: $autoRecord)
-                        .settingsToggle()
-                        .onChange(of: autoRecord) { (_: Bool, _: Bool) in model.startCalendarServices() }
-                }
-            }
-            // Takvimden bağımsız: kayıt sırasında görüşme uygulamasının mikrofonu izlenir.
-            SettingsRow(title: Text("Görüşme bitince kaydı bitir")) {
-                Text("Kayıt sırasında Teams, Zoom, Meet ya da başka bir uygulama mikrofonu kullanırken görüşme bitip mikrofon 15 sn boş kalırsa, panelde ve bildirimde \"Görüşme bitti gibi görünüyor\" yazar; 30 sn içinde \"Kayda devam et\"e basmazsan kayıt \"Bitir\"e basılmış gibi biter ve not hazırlanır. Unutulan kayıt boşuna dakika harcamaz. Yüz yüze kayıtlar (başka uygulama mikrofonu kullanmadığında) kendiliğinden bitmez.")
-            } control: {
-                Toggle("Görüşme bitince kaydı bitir", isOn: $stopWhenCallEnds)
-                    .settingsToggle()
-            }
-            NotificationSettingsGroup()
-            SettingsRow(title: Text("Not şablonu")) {
-                Text("Yeni toplantıların notu bu türe göre yazılır; bir toplantının notunu sonradan başka şablonla yeniden yazabilirsin (⋯ menüsü).")
-            } control: {
-                SettingsMenu(selection: $noteTemplate, options: NoteTemplateKind.allCases.map { (kind: NoteTemplateKind) -> (String, Text) in
-                    (kind.rawValue, Text(verbatim: kind.displayName))
-                })
-            }
-            if noteTemplate == NoteTemplateKind.custom.rawValue {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Kendi şablonun: notta neyin öne çıkmasını istediğini yaz")
-                        .appFont(size: 13, weight: .medium)
-                    TextEditor(text: $customTemplate)
-                        .appFont(size: 13, weight: .regular)
-                        .scrollContentBackground(.hidden)
-                        .padding(8)
-                        .frame(height: 90)
-                        .background(Theme.card, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Theme.line))
-                    Text("Örnek: \"Riskleri ayrı bir paragrafta say, her kararın gerekçesini yaz.\"")
+                SettingsStackedRow(icon: "character.book.closed", title: Text("Tanıma sözlüğü")) {
+                    SettingsMoreText(summary: Text("Doğru yazılması gereken adlar ve terimler; satır başına bir tane, en fazla 30."), details: Text(vocabularyHelp))
+                } content: {
+                    SettingsTextEditor(text: Binding<String>(get: { model.vocabulary }, set: { (text: String) -> Void in model.setVocabulary(text: text) }), height: 80)
+                    Text("\(customVocabulary(text: model.vocabulary).count) terim")
                         .appFont(size: 12, weight: .regular)
                         .foregroundStyle(Theme.muted)
                 }
-                .padding(.vertical, 12)
-                SettingsDivider()
-            }
-            SettingsRow(title: Text("Şablonu toplantı adına göre seç")) {
-                Text("Takvimdeki toplantının ya da içe aktarılan dosyanın adı türünü açıkça gösteriyorsa (ör. \"1:1\", \"Birebir\", \"Daily\", \"Sprint planning\", \"Mülakat\", \"Müşteri demosu\", \"Ders\") not o şablonla yazılır; ad bir şey söylemiyorsa yukarıdaki şablon kullanılır. Seçilen şablon toplantının ⋯ menüsünde \"(toplantı adından)\" diye görünür, oradan başka şablonla yeniden yazabilirsin. \"Kendi şablonum\" seçiliyken hep o kullanılır.")
-            } control: {
-                Toggle("Şablonu toplantı adına göre seç", isOn: $templateFromTitle)
-                    .settingsToggle()
-            }
-            SettingsRow(title: Text("Kayıt sırasında \(noteLanguageName) diline çevir")) {
-                Text(model.displayMode.needsLiveTranslation
-                    ? "Her cümle kayıt sırasında \(noteLanguageName) diline çevrilir (LLM çağrısı); toplantı zaten bu dildeyse çevrilmez. Toplantı bitince \(noteLanguageName) not (görevler, kararlar, özet) hazırlanır."
-                    : "Kayıt sırasında çeviri yapılmaz, yalnızca orijinal metin görünür. Toplantı bitince \(noteLanguageName) not (görevler, kararlar, özet) yine hazırlanır.")
-            } control: {
-                Toggle("Kayıt sırasında \(noteLanguageName) diline çevir", isOn: Binding<Bool>(
-                    get: { model.displayMode.needsLiveTranslation },
-                    set: { (enabled: Bool) -> Void in model.selectDisplayMode(mode: enabled ? .bilingual : .originalOnly) }
-                ))
-                .settingsToggle()
-            }
-            if model.displayMode.needsLiveTranslation {
-                SettingsRow(title: Text("Gösterim")) {
-                    EmptyView()
+                SettingsRow(icon: "person.wave.2", title: Text("Konuşmacıları sesinden tanı")) {
+                    SettingsMoreText(
+                        summary: Text("Ad verdiğin kişi sonraki toplantılarda sesinden tanınır."),
+                        details: Text("Açıkken 8 sn'den fazla konuşan herkesin ses izi (sesi tanıyan sayılar; biyometrik veridir) o toplantıyla saklanır; ad verdiğin kişininki bu Mac'te hatırlanır ve sonraki toplantılarda adı kendiliğinden gelir. Toplantı silinince ondan öğrenilen izler, sesi silinince toplantıdaki izler de silinir. Başkalarının ses izini saklamadan önce onaylarını al.")
+                    )
+                    if let error = model.voiceRegistryError {
+                        NoticeText(error, severity: .error)
+                    }
                 } control: {
-                    SettingsMenu(selection: Binding<DisplayMode>(
-                        get: { model.displayMode },
-                        set: { (mode: DisplayMode) -> Void in model.selectDisplayMode(mode: mode) }
-                    ), options: [
-                        (DisplayMode.bilingual, Text("İki dil (orijinal + \(noteLanguageName))")),
-                        (DisplayMode.turkishOnly, Text("Sadece \(noteLanguageName)")),
-                    ])
+                    Toggle("Konuşmacıları sesinden tanı", isOn: $voiceRecognition).settingsToggle()
                 }
-            }
-            SettingsRow(title: Text("Kendi sesimi de kaydet (mikrofon)")) {
-                Text("Kapalıyken yalnızca bilgisayardan gelen ses (karşı taraf) kaydedilir: mikrofon hiç açılmaz, hoparlör yankısı \"Sen\" diye yazılmaz. Paneldeki mikrofon düğmesiyle kayıttan önce de seçilebilir; mikrofonla başlayan kayıtta düğme yalnızca susturur. Yüz yüze modunda mikrofon her zaman açıktır (odadaki herkesi kaydeder).")
-            } control: {
-                Toggle("Kendi sesimi de kaydet (mikrofon)", isOn: Binding<Bool>(
-                    get: { !model.isMicMuted },
-                    set: { (enabled: Bool) -> Void in
-                        if enabled == model.isMicMuted {
-                            model.toggleMicrophone()
+                if voiceRecognition {
+                    ForEach(model.registeredVoices, id: \.name) { (voice: RegisteredVoice) in
+                        SettingsRow(icon: "person.crop.circle.badge.checkmark", title: Text(voice.name)) {
+                            Text("\(max(1, Int((voice.voiceprint.seconds / 60).rounded()))) dk konuşmadan · \(voice.updatedAt.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(interfaceLocale())))")
+                        } control: {
+                            Button("Unut", role: .destructive) { model.forgetVoice(name: voice.name) }
+                                .hoverHint("Bu kişi bundan sonra sesinden tanınmaz", alignment: .trailing, edge: .bottom)
                         }
                     }
-                ))
-                .settingsToggle()
-                // Mikrofonsuz başlayan kayıtta mikrofon açılamaz (bkz. `toggleMicrophone`); anahtar geri sıçramasın.
-                .disabled(model.isRecording && !model.micOpenedForRecording)
-            }
-            ScreenSnapshotSettingsRow()
-            #if HOSTED_EDITION
-            ScreenNotesSettingsRow()
-            #endif
-            AskWebSearchSettingsRow()
-            SettingsRow(title: Text("Kayıt başlarken haber vermeyi hatırlat")) {
-                #if HOSTED_EDITION
-                Text("Panelde kısa bir hatırlatma ve toplantı sohbetine yapıştırılacak İngilizce bildirim. Kayıt yapmadan önce katılımcılara haber vermek çoğu yerde yasal zorunluluktur.")
-                #else
-                Text("Panelde kısa bir hatırlatma ve toplantı sohbetine yapıştırılacak Fince/İngilizce bildirim. Kayıt yapmadan önce katılımcılara haber vermek çoğu yerde yasal zorunluluktur.")
-                #endif
-            } control: {
-                Toggle("Kayıt başlarken haber vermeyi hatırlat", isOn: $consentReminder).settingsToggle()
-            }
-            SettingsRow(title: Text("Konuşmacıları sesinden tanı")) {
-                Text("Açıkken 8 sn'den fazla konuşan herkesin ses izi (sesi tanıyan sayılar; biyometrik veridir) o toplantıyla saklanır; ad verdiğin kişininki bu Mac'te hatırlanır ve sonraki toplantılarda adı kendiliğinden gelir. Toplantı silinince ondan öğrenilen izler, sesi silinince toplantıdaki izler de silinir. Başkalarının ses izini saklamadan önce onaylarını al.")
-                if let error = model.voiceRegistryError {
-                    NoticeText(error, severity: .error)
                 }
-            } control: {
-                Toggle("Konuşmacıları sesinden tanı", isOn: $voiceRecognition).settingsToggle()
             }
-            if voiceRecognition, !model.registeredVoices.isEmpty {
-                SettingsGroupHeader(title: "Tanınan sesler")
-                ForEach(model.registeredVoices, id: \.name) { (voice: RegisteredVoice) in
-                    SettingsRow(title: Text(voice.name)) {
-                        Text("\(max(1, Int((voice.voiceprint.seconds / 60).rounded()))) dk konuşmadan · \(voice.updatedAt.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(interfaceLocale())))")
+            SettingsGroup(title: Text("Takvim")) {
+                SettingsRow(icon: "calendar", title: Text("Takvimi kullan")) {
+                    SettingsMoreText(
+                        summary: Text("Yaklaşan toplantılar Ana sayfada görünür; kayıt toplantıya bağlanır."),
+                        details: Text("Yaklaşan toplantılar Ana sayfada görünür; kayıt o anki toplantıya bağlanır: başlığı ve katılımcı adları (tanıma ve konuşmacı adı ipucu) kayda geçer. Takvim yalnızca bu Mac'te okunur.")
+                    )
+                    if let error = model.calendarError {
+                        NoticeText(error, severity: .error)
+                    }
+                } control: {
+                    Toggle("Takvimi kullan", isOn: Binding<Bool>(
+                        get: { calendarEnabled },
+                        set: { (enabled: Bool) -> Void in
+                            if enabled {
+                                Task { await model.enableCalendar() }
+                            } else {
+                                model.disableCalendar()
+                            }
+                        }
+                    ))
+                    .settingsToggle()
+                }
+                if calendarEnabled {
+                    SettingsRow(icon: "bell", title: Text("Toplantıdan 1 dk önce hatırlat")) {
+                        Text("Bildirimdeki \"Dinlemeye başla\" ile kayıt hemen başlar.")
+                        if let problem = model.notificationProblem {
+                            NoticeText(problem, severity: .attention)
+                        }
                     } control: {
-                        Button("Unut", role: .destructive) { model.forgetVoice(name: voice.name) }
-                            .hoverHint("Bu kişi bundan sonra sesinden tanınmaz", alignment: .trailing, edge: .bottom)
+                        // Açılınca bildirim izni yeniden istenir (sonradan kapatılmış olabilir); izin yoksa geri kapanır.
+                        Toggle("Toplantıdan 1 dk önce hatırlat", isOn: $meetingReminders)
+                            .settingsToggle()
+                            .onChange(of: meetingReminders) { (_: Bool, enabled: Bool) in
+                                if enabled {
+                                    Task { await model.enableMeetingReminders() }
+                                } else {
+                                    model.startCalendarServices()
+                                }
+                            }
+                    }
+                    SettingsRow(icon: "phone.arrow.up.right", title: Text("Görüşme başlayınca öner")) {
+                        SettingsMoreText(
+                            summary: Text("Bir uygulama mikrofonu açınca dinlemeye başlamayı önerir."),
+                            details: Text("Teams, Zoom ya da başka bir uygulama mikrofonu açınca (kayıt yoksa) dinlemeye başlamayı önerir; 10 dk'da en fazla bir kez.")
+                        )
+                    } control: {
+                        Toggle("Görüşme başlayınca öner", isOn: $micSuggestions)
+                            .settingsToggle()
+                            .onChange(of: micSuggestions) { (_: Bool, _: Bool) in model.startCalendarServices() }
+                    }
+                    SettingsRow(icon: "record.circle", title: Text("Takvimdeki görüşmeleri kendiliğinden kaydet")) {
+                        SettingsMoreText(
+                            summary: Text("Görüşme bağlantılı toplantılar kendiliğinden kaydedilir."),
+                            details: Text("Takvimde görüşme bağlantısı (Teams, Zoom, Meet) olan bir toplantı sürerken başka bir uygulama mikrofonu açınca kayıt kendiliğinden başlar ve bildirilir; bir kez kur, unut. Katılımcılara kaydettiğini söylemek senin sorumluluğunda.")
+                        )
+                    } control: {
+                        Toggle("Takvimdeki görüşmeleri kendiliğinden kaydet", isOn: $autoRecord)
+                            .settingsToggle()
+                            .onChange(of: autoRecord) { (_: Bool, _: Bool) in model.startCalendarServices() }
                     }
                 }
-                SettingsDivider().opacity(0)
-                    .padding(.bottom, 16)
             }
-            SettingsRow(title: Text("\"Ne kaçırdım?\" son \(missedMinutes) dakikayı özetler")) {
-                EmptyView()
-            } control: {
-                Stepper("\"Ne kaçırdım?\" son \(missedMinutes) dakikayı özetler", value: $missedMinutes, in: SettingsRange.missedWindowMinutes)
-                    .labelsHidden()
-            }
-            SettingsRow(title: Text("Sesleri sakla")) {
+            SettingsGroup(title: Text("Kayıt")) {
+                SettingsRow(icon: "mic", title: Text("Kendi sesimi de kaydet (mikrofon)")) {
+                    SettingsMoreText(
+                        summary: Text("Kapalıyken yalnızca bilgisayardan gelen ses kaydedilir."),
+                        details: Text("Kapalıyken yalnızca bilgisayardan gelen ses (karşı taraf) kaydedilir: mikrofon hiç açılmaz, hoparlör yankısı \"Sen\" diye yazılmaz. Paneldeki mikrofon düğmesiyle kayıttan önce de seçilebilir; mikrofonla başlayan kayıtta düğme yalnızca susturur. Yüz yüze modunda mikrofon her zaman açıktır (odadaki herkesi kaydeder).")
+                    )
+                } control: {
+                    Toggle("Kendi sesimi de kaydet (mikrofon)", isOn: Binding<Bool>(
+                        get: { !model.isMicMuted },
+                        set: { (enabled: Bool) -> Void in
+                            if enabled == model.isMicMuted {
+                                model.toggleMicrophone()
+                            }
+                        }
+                    ))
+                    .settingsToggle()
+                    // Mikrofonsuz başlayan kayıtta mikrofon açılamaz (bkz. `toggleMicrophone`); anahtar geri sıçramasın.
+                    .disabled(model.isRecording && !model.micOpenedForRecording)
+                }
+                SettingsRow(icon: "hand.raised", title: Text("Kayıt başlarken haber vermeyi hatırlat")) {
+                    #if HOSTED_EDITION
+                    SettingsMoreText(
+                        summary: Text("Kayıttan önce katılımcılara haber vermek çoğu yerde yasal zorunluluktur."),
+                        details: Text("Panelde kısa bir hatırlatma ve toplantı sohbetine yapıştırılacak İngilizce bildirim. Kayıt yapmadan önce katılımcılara haber vermek çoğu yerde yasal zorunluluktur.")
+                    )
+                    #else
+                    SettingsMoreText(
+                        summary: Text("Kayıttan önce katılımcılara haber vermek çoğu yerde yasal zorunluluktur."),
+                        details: Text("Panelde kısa bir hatırlatma ve toplantı sohbetine yapıştırılacak Fince/İngilizce bildirim. Kayıt yapmadan önce katılımcılara haber vermek çoğu yerde yasal zorunluluktur.")
+                    )
+                    #endif
+                } control: {
+                    Toggle("Kayıt başlarken haber vermeyi hatırlat", isOn: $consentReminder).settingsToggle()
+                }
+                // Takvimden bağımsız: kayıt sırasında görüşme uygulamasının mikrofonu izlenir.
+                SettingsRow(icon: "phone.down", title: Text("Görüşme bitince kaydı bitir")) {
+                    SettingsMoreText(
+                        summary: Text("Görüşme bitip mikrofon boş kalınca kayıt kendiliğinden biter."),
+                        details: Text("Kayıt sırasında Teams, Zoom, Meet ya da başka bir uygulama mikrofonu kullanırken görüşme bitip mikrofon 15 sn boş kalırsa, panelde ve bildirimde \"Görüşme bitti gibi görünüyor\" yazar; 30 sn içinde \"Kayda devam et\"e basmazsan kayıt \"Bitir\"e basılmış gibi biter ve not hazırlanır. Unutulan kayıt boşuna dakika harcamaz. Yüz yüze kayıtlar (başka uygulama mikrofonu kullanmadığında) kendiliğinden bitmez.")
+                    )
+                } control: {
+                    Toggle("Görüşme bitince kaydı bitir", isOn: $stopWhenCallEnds)
+                        .settingsToggle()
+                }
+                ScreenSnapshotSettingsRow()
                 #if HOSTED_EDITION
-                Text("Süre dolunca ses dosyaları silinir; metin ve not kalır.")
-                #else
-                Text("Süre dolunca ses dosyaları silinir; metin ve not kalır. iCloud eşitlemesi açıksa iPhone'da kaydedilen toplantıların sesi de bu süreye göre silinir.")
+                ScreenNotesSettingsRow()
                 #endif
-            } control: {
-                SettingsMenu(selection: $retentionDays, options: [7, 14, 30, 60, 90, 180, 365].map { (days: Int) -> (Int, Text) in
-                    (days, Text("\(days) gün"))
-                })
             }
-            .onChange(of: retentionDays) { (_: Int, _: Int) in
-                model.applyRetention()
+            NotificationSettingsGroup()
+            SettingsGroup(title: Text("Not")) {
+                SettingsRow(icon: "doc.text", title: Text("Not şablonu")) {
+                    Text("Yeni notlar bu şablonla yazılır; eski bir notu ⋯ menüsünden yeniden yazabilirsin.")
+                } control: {
+                    SettingsMenu(selection: $noteTemplate, options: NoteTemplateKind.allCases.map { (kind: NoteTemplateKind) -> (String, Text) in
+                        (kind.rawValue, Text(verbatim: kind.displayName))
+                    })
+                }
+                if noteTemplate == NoteTemplateKind.custom.rawValue {
+                    SettingsStackedRow(icon: "pencil.line", title: Text("Kendi şablonun")) {
+                        Text("Notta neyin öne çıkacağını yaz; ör. “Riskleri ayrı say, kararların gerekçesini yaz.”")
+                    } content: {
+                        SettingsTextEditor(text: $customTemplate, height: 90)
+                    }
+                }
+                SettingsRow(icon: "wand.and.stars", title: Text("Şablonu toplantı adına göre seç")) {
+                    SettingsMoreText(
+                        summary: Text("Ad türü gösteriyorsa (ör. \"1:1\", \"Daily\", \"Mülakat\") o şablon kullanılır; kendi şablonun hep geçerli."),
+                        details: Text("Takvimdeki toplantının ya da içe aktarılan dosyanın adı türünü açıkça gösteriyorsa (ör. \"1:1\", \"Birebir\", \"Daily\", \"Sprint planning\", \"Mülakat\", \"Müşteri demosu\", \"Ders\") not o şablonla yazılır; ad bir şey söylemiyorsa yukarıdaki şablon kullanılır. Seçilen şablon toplantının ⋯ menüsünde \"(toplantı adından)\" diye görünür, oradan başka şablonla yeniden yazabilirsin. \"Kendi şablonum\" seçiliyken hep o kullanılır.")
+                    )
+                } control: {
+                    Toggle("Şablonu toplantı adına göre seç", isOn: $templateFromTitle)
+                        .settingsToggle()
+                }
             }
-            #if !HOSTED_EDITION
-            // Abonelik sürümünde iCloud yetkisi yok (eşitleme geliştirici sürümünün kapsayıcısıyla karışmasın).
-            CloudSyncRow(model: model)
-            #endif
-            UpdateSettingsRow(updater: updater)
-            #if HOSTED_EDITION
-            UsageStatisticsRow()
-            #endif
-            CrashReportsSettings(center: crashReports)
-            FeedbackSettingsRow { await diagnosticsReportText(model: model, updater: updater) }
+            SettingsGroup(title: Text("Canlı çeviri ve Sor")) {
+                SettingsRow(icon: "character.bubble", title: Text("Kayıt sırasında \(noteLanguageName) diline çevir")) {
+                    if model.displayMode.needsLiveTranslation {
+                        SettingsMoreText(
+                            summary: Text("Her cümle kayıt sırasında \(noteLanguageName) diline çevrilir."),
+                            details: Text("Her cümle kayıt sırasında \(noteLanguageName) diline çevrilir (LLM çağrısı); toplantı zaten bu dildeyse çevrilmez. Toplantı bitince \(noteLanguageName) not (görevler, kararlar, özet) hazırlanır.")
+                        )
+                    } else {
+                        SettingsMoreText(
+                            summary: Text("Kayıtta yalnız orijinal metin görünür; \(noteLanguageName) not yine yazılır."),
+                            details: Text("Kayıt sırasında çeviri yapılmaz, yalnızca orijinal metin görünür. Toplantı bitince \(noteLanguageName) not (görevler, kararlar, özet) yine hazırlanır.")
+                        )
+                    }
+                } control: {
+                    Toggle("Kayıt sırasında \(noteLanguageName) diline çevir", isOn: Binding<Bool>(
+                        get: { model.displayMode.needsLiveTranslation },
+                        set: { (enabled: Bool) -> Void in model.selectDisplayMode(mode: enabled ? .bilingual : .originalOnly) }
+                    ))
+                    .settingsToggle()
+                }
+                if model.displayMode.needsLiveTranslation {
+                    SettingsRow(icon: "rectangle.split.2x1", title: Text("Gösterim")) {
+                        EmptyView()
+                    } control: {
+                        SettingsMenu(selection: Binding<DisplayMode>(
+                            get: { model.displayMode },
+                            set: { (mode: DisplayMode) -> Void in model.selectDisplayMode(mode: mode) }
+                        ), options: [
+                            (DisplayMode.bilingual, Text("İki dil (orijinal + \(noteLanguageName))")),
+                            (DisplayMode.turkishOnly, Text("Sadece \(noteLanguageName)")),
+                        ])
+                    }
+                }
+                SettingsRow(icon: "clock.arrow.circlepath", title: Text("\"Ne kaçırdım?\" son \(missedMinutes) dakikayı özetler")) {
+                    EmptyView()
+                } control: {
+                    Stepper("\"Ne kaçırdım?\" son \(missedMinutes) dakikayı özetler", value: $missedMinutes, in: SettingsRange.missedWindowMinutes)
+                        .labelsHidden()
+                }
+                AskWebSearchSettingsRow()
+            }
+            SettingsGroup(title: Text("Veri ve gizlilik")) {
+                SettingsRow(icon: "waveform.badge.minus", title: Text("Sesleri sakla")) {
+                    #if HOSTED_EDITION
+                    Text("Süre dolunca ses dosyaları silinir; metin ve not kalır.")
+                    #else
+                    SettingsMoreText(
+                        summary: Text("Süre dolunca ses dosyaları silinir; metin ve not kalır."),
+                        details: Text("Süre dolunca ses dosyaları silinir; metin ve not kalır. iCloud eşitlemesi açıksa iPhone'da kaydedilen toplantıların sesi de bu süreye göre silinir.")
+                    )
+                    #endif
+                } control: {
+                    SettingsMenu(selection: $retentionDays, options: [7, 14, 30, 60, 90, 180, 365].map { (days: Int) -> (Int, Text) in
+                        (days, Text("\(days) gün"))
+                    })
+                }
+                .onChange(of: retentionDays) { (_: Int, _: Int) in
+                    model.applyRetention()
+                }
+                #if !HOSTED_EDITION
+                // Abonelik sürümünde iCloud yetkisi yok (eşitleme geliştirici sürümünün kapsayıcısıyla karışmasın).
+                CloudSyncRow(model: model)
+                #endif
+                #if HOSTED_EDITION
+                UsageStatisticsRow()
+                #endif
+                CrashReportsSettings(center: crashReports)
+            }
+            SettingsGroup(title: Text("Uygulama")) {
+                SettingsRow(icon: "arrow.counterclockwise", title: Text("Kurulum")) {
+                    #if HOSTED_EDITION
+                    Text("İzinler, hesap ve kısayollar adım adım.")
+                    #else
+                    Text("İzinler, anahtarlar ve kısayollar adım adım.")
+                    #endif
+                } control: {
+                    Button("Kurulumu yeniden aç") { onShowSetup() }
+                }
+                UpdateSettingsRow(updater: updater)
+                FeedbackSettingsRow { await diagnosticsReportText(model: model, updater: updater) }
+            }
         }
     }
 }
@@ -563,8 +602,11 @@ private struct UsageStatisticsRow: View {
     @AppStorage(SettingsKey.shareUsageStatistics) private var shareUsageStatistics: Bool = true
 
     var body: some View {
-        SettingsRow(title: Text("Anonim kullanım istatistiklerini paylaş")) {
-            Text("Açıkken uygulama günde bir kez hangi özellikleri kullandığını (canlı çeviri, Sor, sesle yazma, ekran görüntüleri, bağlantı ve dışa aktarma türleri) ve bağlantı kopması, not hatası gibi güvenilirlik sayılarını gönderir; ilk açılışı ve giriş adımlarını (pencere açıldı, kapatıldı, hata verdi, tamamlandı) da sayar. Bunlar hesabına bağlanmaz. Ses, metin, not, başlık ya da ad asla gönderilmez. Uygulama ve macOS sürümü ile yapay zekâ isteklerinin hangi özellik için olduğu, hizmetin işleyişi için her durumda gönderilir.")
+        SettingsRow(icon: "chart.bar.xaxis", title: Text("Anonim kullanım istatistiklerini paylaş")) {
+            SettingsMoreText(
+                summary: Text("Yalnızca kullanım sayıları paylaşılır; toplantı içeriği, ses ya da metin paylaşılmaz."),
+                details: Text("Açıkken uygulama günde bir kez hangi özellikleri kullandığını (canlı çeviri, Sor, sesle yazma, ekran görüntüleri, bağlantı ve dışa aktarma türleri) ve bağlantı kopması, not hatası gibi güvenilirlik sayılarını gönderir; ilk açılışı ve giriş adımlarını (pencere açıldı, kapatıldı, hata verdi, tamamlandı) da sayar. Bunlar hesabına bağlanmaz. Ses, metin, not, başlık ya da ad asla gönderilmez. Uygulama ve macOS sürümü ile yapay zekâ isteklerinin hangi özellik için olduğu, hizmetin işleyişi için her durumda gönderilir.")
+            )
         } control: {
             Toggle("Anonim kullanım istatistiklerini paylaş", isOn: $shareUsageStatistics).settingsToggle()
         }
@@ -597,8 +639,11 @@ private struct CloudSyncRow: View {
     let model: AppModel
 
     var body: some View {
-        SettingsRow(title: Text("iCloud ile eşitle")) {
-            Text("Biten toplantılar iCloud Drive'a taşınır ve iPhone'daki AI-Notepad'de de görünür; iPhone'da kaydedilenler buraya gelir. Kayıt ve işleme her zaman bu Mac'te yapılır. Kapatınca iCloud'daki toplantıların bir kopyası bu Mac'te kalır; iPhone'dakiler etkilenmez.")
+        SettingsRow(icon: "icloud", title: Text("iCloud ile eşitle")) {
+            SettingsMoreText(
+                summary: Text("Biten toplantılar iCloud Drive'a taşınır ve iPhone'da da görünür."),
+                details: Text("Biten toplantılar iCloud Drive'a taşınır ve iPhone'daki AI-Notepad'de de görünür; iPhone'da kaydedilenler buraya gelir. Kayıt ve işleme her zaman bu Mac'te yapılır. Kapatınca iCloud'daki toplantıların bir kopyası bu Mac'te kalır; iPhone'dakiler etkilenmez.")
+            )
             switch model.cloud.state {
             case .working:
                 Text("Toplantılar taşınıyor…").foregroundStyle(Theme.ink)
@@ -659,115 +704,119 @@ private struct AppearanceSettings: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Tema")
-                .appFont(size: 14, weight: .medium)
-                .padding(.top, 14)
-                .padding(.bottom, 10)
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 4), spacing: 10) {
-                ForEach(AppTheme.allCases, id: \.self) { (item: AppTheme) in
-                    ThemeSwatch(theme: item, isSelected: theme == item.rawValue, accent: appearance.accent.color) { theme = item.rawValue }
+            VStack(alignment: .leading, spacing: 8) {
+                SettingsSectionTitle(title: Text("Tema"))
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 4), spacing: 10) {
+                    ForEach(AppTheme.allCases, id: \.self) { (item: AppTheme) in
+                        ThemeSwatch(theme: item, isSelected: theme == item.rawValue, accent: appearance.accent.color) { theme = item.rawValue }
+                    }
                 }
             }
-            .padding(.bottom, 14)
-            SettingsDivider()
-            SettingsRow(title: Text("Yüzey")) {
-                Text("Cam yüzeyde masaüstü pencerenin ardından hafifçe görünür.")
-            } control: {
-                PillPicker(selection: $surface, options: [
-                    (WindowSurface.solid.rawValue, "Dolu"), (WindowSurface.frosted.rawValue, "Buzlu cam"), (WindowSurface.clear.rawValue, "Şeffaf cam"),
-                ])
-                .fixedSize()
-            }
-            if surface != WindowSurface.solid.rawValue {
-                SettingsRow(title: Text("Cam opaklığı: %\(Int((surfaceOpacity * 100).rounded()))")) {
+            .padding(.top, 26)
+            SettingsGroup(title: Text("Renk ve pencere")) {
+                SettingsRow(icon: "paintpalette", title: Text("Vurgu rengi")) {
                     EmptyView()
                 } control: {
-                    HStack(spacing: 10) {
-                        Image(systemName: "circle.dotted").foregroundStyle(Theme.muted)
-                        Slider(value: $surfaceOpacity, in: AppearanceRange.surfaceOpacity, step: 0.05).frame(width: 200)
-                        Image(systemName: "circle.fill").foregroundStyle(Theme.muted)
-                    }
+                    SettingsMenu(selection: $accent, options: PanelAccent.allCases.map { (item: PanelAccent) -> (String, Text) in
+                        (item.rawValue, Text(Image(systemName: "circle.fill")).foregroundColor(item.color) + Text(verbatim: "  ") + Text(verbatim: item.displayName))
+                    })
                 }
-            }
-
-            SettingsRow(title: Text("Vurgu rengi")) {
-                EmptyView()
-            } control: {
-                SettingsMenu(selection: $accent, options: PanelAccent.allCases.map { (item: PanelAccent) -> (String, Text) in
-                    (item.rawValue, Text(Image(systemName: "circle.fill")).foregroundColor(item.color) + Text(verbatim: "  ") + Text(verbatim: item.displayName))
-                })
-            }
-            SettingsRow(title: Text("Yazı tipi")) {
-                Text("Uygulamanın tamamında; Mac'te yüklü her yazı tipi seçilebilir.")
-            } control: {
-                HStack(spacing: 8) {
-                    SettingsMenu(selection: $fontDesign, options: fontOptions(current: fontDesign))
-                    Menu {
-                        ForEach(NSFontManager.shared.availableFontFamilies.filter { !$0.hasPrefix(".") }, id: \.self) { (family: String) in
-                            Button(family) { fontDesign = AppFontChoice.installed(family: family).storageValue }
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis")
-                    }
-                    .menuStyle(.button)
-                    .buttonStyle(.pill)
-                    .menuIndicator(.hidden)
+                SettingsRow(icon: "macwindow", title: Text("Yüzey")) {
+                    Text("Cam yüzeyde masaüstü pencerenin ardından hafifçe görünür.")
+                } control: {
+                    PillPicker(selection: $surface, options: [
+                        (WindowSurface.solid.rawValue, "Dolu"), (WindowSurface.frosted.rawValue, "Buzlu cam"), (WindowSurface.clear.rawValue, "Şeffaf cam"),
+                    ])
                     .fixedSize()
-                    .hoverHint("Tüm yüklü yazı tipleri", alignment: .trailing, edge: .bottom)
+                }
+                if surface != WindowSurface.solid.rawValue {
+                    SettingsRow(icon: "circle.lefthalf.filled", title: Text("Cam opaklığı: %\(Int((surfaceOpacity * 100).rounded()))")) {
+                        EmptyView()
+                    } control: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "circle.dotted").foregroundStyle(Theme.muted)
+                            Slider(value: $surfaceOpacity, in: AppearanceRange.surfaceOpacity, step: 0.05).frame(width: 200)
+                            Image(systemName: "circle.fill").foregroundStyle(Theme.muted)
+                        }
+                    }
+                }
+                SettingsRow(icon: "capsule", title: Text("Kayıt sırasında çentikte adayı göster")) {
+                    EmptyView()
+                } control: {
+                    Toggle("Kayıt sırasında çentikte adayı göster", isOn: $islandEnabled).settingsToggle()
                 }
             }
-            SettingsRow(title: Text("Arayüz boyutu: \(Int((uiScale * 100).rounded()))%")) {
-                Text("Menüler, başlıklar ve düğmeler dahil tüm yazılar.")
-            } control: {
-                SettingsSlider(value: $uiScale, range: AppearanceRange.uiScale, step: 0.05, minSymbol: "textformat.size.smaller", maxSymbol: "textformat.size.larger")
+            SettingsGroup(title: Text("Yazı")) {
+                SettingsRow(icon: "textformat", title: Text("Yazı tipi")) {
+                    Text("Uygulamanın tamamında; Mac'te yüklü her yazı tipi seçilebilir.")
+                } control: {
+                    HStack(spacing: 8) {
+                        SettingsMenu(selection: $fontDesign, options: fontOptions(current: fontDesign))
+                        Menu {
+                            ForEach(NSFontManager.shared.availableFontFamilies.filter { !$0.hasPrefix(".") }, id: \.self) { (family: String) in
+                                Button(family) { fontDesign = AppFontChoice.installed(family: family).storageValue }
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis")
+                        }
+                        .menuStyle(.button)
+                        .buttonStyle(.pill)
+                        .menuIndicator(.hidden)
+                        .fixedSize()
+                        .hoverHint("Tüm yüklü yazı tipleri", alignment: .trailing, edge: .bottom)
+                    }
+                }
+                SettingsRow(icon: "textformat.size", title: Text("Arayüz boyutu: \(Int((uiScale * 100).rounded()))%")) {
+                    Text("Menüler, başlıklar ve düğmeler dahil tüm yazılar.")
+                } control: {
+                    SettingsSlider(value: $uiScale, range: AppearanceRange.uiScale, step: 0.05, minSymbol: "textformat.size.smaller", maxSymbol: "textformat.size.larger")
+                }
+                SettingsRow(icon: "character", title: Text("Metin boyutu: \(Int(textSize)) pt")) {
+                    Text("Canlı metin ve notlar.")
+                } control: {
+                    SettingsSlider(value: $textSize, range: AppearanceRange.textSize, step: 1, minSymbol: "textformat.size.smaller", maxSymbol: "textformat.size.larger")
+                }
+                SettingsRow(icon: "line.3.horizontal", title: Text("Satır aralığı: \(Int(lineSpacing))")) {
+                    EmptyView()
+                } control: {
+                    SettingsSlider(
+                        value: $lineSpacing, range: AppearanceRange.lineSpacing, step: 1,
+                        minSymbol: "arrow.down.right.and.arrow.up.left", maxSymbol: "arrow.up.left.and.arrow.down.right"
+                    )
+                }
+                SettingsRow(icon: "arrow.down.to.line", title: Text("Alt boşluk: \(Int(bottomSpacing)) pt")) {
+                    EmptyView()
+                } control: {
+                    SettingsSlider(
+                        value: $bottomSpacing, range: AppearanceRange.bottomSpacing, step: 4,
+                        minSymbol: "arrow.down.right.and.arrow.up.left", maxSymbol: "arrow.up.left.and.arrow.down.right"
+                    )
+                }
+                // Önizleme seçilen yazı tipi ve boyutla.
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Hyvää huomenta kaikille, aloitetaan palaveri.")
+                        .font(appearance.secondaryFont)
+                        .opacity(0.6)
+                    Text("Herkese günaydın, toplantıya başlayalım.")
+                        .font(appearance.bodyFont)
+                }
+                .lineSpacing(appearance.lineSpacing)
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Theme.background, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .padding(.horizontal, SettingsRowMetrics.horizontalPadding)
+                .padding(.vertical, SettingsRowMetrics.verticalPadding)
             }
-            SettingsRow(title: Text("Metin boyutu: \(Int(textSize)) pt")) {
-                Text("Canlı metin ve notlar.")
-            } control: {
-                SettingsSlider(value: $textSize, range: AppearanceRange.textSize, step: 1, minSymbol: "textformat.size.smaller", maxSymbol: "textformat.size.larger")
-            }
-            SettingsRow(title: Text("Satır aralığı: \(Int(lineSpacing))")) {
-                EmptyView()
-            } control: {
-                SettingsSlider(
-                    value: $lineSpacing, range: AppearanceRange.lineSpacing, step: 1,
-                    minSymbol: "arrow.down.right.and.arrow.up.left", maxSymbol: "arrow.up.left.and.arrow.down.right"
-                )
-            }
-            SettingsRow(title: Text("Alt boşluk: \(Int(bottomSpacing)) pt")) {
-                EmptyView()
-            } control: {
-                SettingsSlider(
-                    value: $bottomSpacing, range: AppearanceRange.bottomSpacing, step: 4,
-                    minSymbol: "arrow.down.right.and.arrow.up.left", maxSymbol: "arrow.up.left.and.arrow.down.right"
-                )
-            }
-            // Önizleme seçilen yazı tipi ve boyutla.
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Hyvää huomenta kaikille, aloitetaan palaveri.")
-                    .font(appearance.secondaryFont)
-                    .opacity(0.6)
-                Text("Herkese günaydın, toplantıya başlayalım.")
-                    .font(appearance.bodyFont)
-            }
-            .lineSpacing(appearance.lineSpacing)
-            .padding(16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .cardSurface(cornerRadius: 12)
-            .padding(.vertical, 16)
-            SettingsDivider()
-            SettingsRow(title: Text("Kayıt sırasında çentikte adayı göster")) {
-                EmptyView()
-            } control: {
-                Toggle("Kayıt sırasında çentikte adayı göster", isOn: $islandEnabled).settingsToggle()
-            }
-            SettingsRow(title: Text("Varsayılan görünüm")) {
-                EmptyView()
-            } control: {
-                Button("Görünümü varsayılana döndür") {
-                    resetAppearanceSettings(defaults: UserDefaults.standard)
+            SettingsCard {
+                SettingsRow(icon: "arrow.uturn.backward", title: Text("Varsayılan görünüm")) {
+                    EmptyView()
+                } control: {
+                    Button("Görünümü varsayılana döndür") {
+                        resetAppearanceSettings(defaults: UserDefaults.standard)
+                    }
                 }
             }
+            .padding(.top, 26)
         }
     }
 }
@@ -805,12 +854,12 @@ private struct OnDeviceLLMStatus: View {
     var body: some View {
         switch onDeviceStatus() {
         case .success(let config):
-            SettingsRow(title: Text("Apple Intelligence")) {
+            SettingsRow(icon: "sparkles", title: Text("Apple Intelligence")) {
                 Text("Not, çeviri ve soru bu cihazda yazılır: ücretsiz, anahtarsız, internetsiz. Model küçüktür (4 bin token bağlam): uzun toplantılar parça parça işlenir, not kendi anahtarınla seçilen modellerden daha kısa olur.")
             } control: {
                 Label("Hazır", systemImage: "checkmark.circle.fill").foregroundStyle(.tint)
             }
-            SettingsRow(title: Text("Desteklenen diller")) {
+            SettingsRow(icon: "globe", title: Text("Desteklenen diller")) {
                 Text(verbatim: onDeviceLanguageNames(config: config).joined(separator: ", "))
             } control: {
                 EmptyView()
@@ -819,14 +868,14 @@ private struct OnDeviceLLMStatus: View {
             if let warning = MeetingLanguage(rawValue: primaryLanguage).flatMap({ (language: MeetingLanguage) -> String? in
                 onDeviceModeWarning(config: config, primaryLanguage: language, outputLanguage: storedNoteLanguage(value: noteLanguage))
             }) {
-                SettingsRow(title: Text("Ana toplantı dili")) {
+                SettingsRow(icon: "exclamationmark.triangle", title: Text("Ana toplantı dili")) {
                     Text(verbatim: warning)
                 } control: {
                     Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Theme.muted)
                 }
             }
         case .failure(let error):
-            SettingsRow(title: Text("Apple Intelligence")) {
+            SettingsRow(icon: "sparkles", title: Text("Apple Intelligence")) {
                 Text(verbatim: userFacingMessage(error: error))
             } control: {
                 Label("Kullanılamıyor", systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.muted)
@@ -859,94 +908,108 @@ private struct LLMSettings: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            LocalLLMSetup(model: model)
-            SettingsRow(title: Text("Sağlayıcı")) {
-                if !onDeviceLLMSupportedBySystem() {
-                    Text("Cihaz içi model (Apple Intelligence) macOS 26 gerektirir.")
-                }
-            } control: {
-                SettingsMenu(selection: $provider, options: llmProviderOptions())
-            }
-            if provider == LLMProviderKind.onDevice.rawValue {
-                OnDeviceLLMStatus()
-            } else if provider == LLMProviderKind.anthropic.rawValue {
-                SecretField(title: "Anthropic anahtarı", account: .anthropic, onChange: model.settingsChanged)
-                SettingsGroupHeader(title: "Canlı çeviri")
-                SettingsRow(title: Text("Model")) {
-                    Text("Hızlı model ve düşük effort önerilir: çeviri 1–2 sn'de gelir. Haiku ve Sonnet'te high ve altında düşünme kapatılır; Opus, Fable ve xhigh/max'ta düşünme açık kalır, çeviriler gecikip birikebilir.")
+            SettingsGroup(title: Text("Sağlayıcı")) {
+                LocalLLMSetup(model: model)
+                SettingsRow(icon: "cpu", title: Text("Sağlayıcı")) {
+                    if !onDeviceLLMSupportedBySystem() {
+                        Text("Cihaz içi model (Apple Intelligence) macOS 26 gerektirir.")
+                    }
                 } control: {
-                    SettingsMenu(selection: $claudeFastModel, options: claudeModelOptions())
+                    SettingsMenu(selection: $provider, options: llmProviderOptions())
                 }
-                SettingsRow(title: Text("Effort")) {
-                    EmptyView()
-                } control: {
-                    SettingsMenu(selection: $claudeFastEffort, options: claudeEffortOptions(levels: LLMEffort.allCases))
-                }
-                SettingsGroupHeader(title: "\"Ne kaçırdım?\", soru ve toplantı notu")
-                SettingsRow(title: Text("Model")) {
-                    Text("Haiku ve yüksek effort önerilir: uzun toplantının notu parça parça yazılır, büyük model gerekmez.")
-                } control: {
-                    SettingsMenu(selection: $claudeSmartModel, options: claudeModelOptions())
-                }
-                SettingsRow(title: Text("Effort")) {
-                    EmptyView()
-                } control: {
-                    SettingsMenu(selection: $claudeSmartEffort, options: claudeEffortOptions(levels: smartEfforts))
-                }
-            } else {
-                SettingsRow(title: Text("Temel adres")) {
-                    EmptyView()
-                } control: {
-                    TextField("Temel adres", text: $baseURL, prompt: Text(verbatim: "http://localhost:11434/v1"))
-                        .settingsField(width: 260)
-                }
-                SecretField(title: "Anahtar (Ollama'da gerekmez)", account: .openai, onChange: model.settingsChanged)
-                SettingsGroupHeader(title: "Canlı çeviri")
-                SettingsRow(title: Text("Model")) {
-                    EmptyView()
-                } control: {
-                    TextField("Model", text: $fastModel, prompt: Text("ör. gpt-5-mini, qwen3:8b")).settingsField(width: 260)
-                }
-                SettingsRow(title: Text("Effort")) {
-                    EmptyView()
-                } control: {
-                    SettingsMenu(selection: $openAIFastEffort, options: openAIEffortOptions())
-                }
-                SettingsGroupHeader(title: "\"Ne kaçırdım?\", soru ve toplantı notu")
-                SettingsRow(title: Text("Model")) {
-                    EmptyView()
-                } control: {
-                    TextField("Model", text: $smartModel, prompt: Text("ör. gpt-5, gpt-oss:120b")).settingsField(width: 260)
-                }
-                SettingsRow(title: Text("Effort")) {
-                    Text("Effort `reasoning_effort` olarak gönderilir; desteklemeyen sunucularda \"Gönderme\"yi seç.")
-                } control: {
-                    SettingsMenu(selection: $openAISmartEffort, options: openAIEffortOptions())
+                if provider == LLMProviderKind.onDevice.rawValue {
+                    OnDeviceLLMStatus()
+                } else if provider == LLMProviderKind.anthropic.rawValue {
+                    SecretField(icon: "key", title: "Anthropic anahtarı", account: .anthropic, onChange: model.settingsChanged)
+                } else {
+                    SettingsRow(icon: "link", title: Text("Temel adres")) {
+                        EmptyView()
+                    } control: {
+                        TextField("Temel adres", text: $baseURL, prompt: Text(verbatim: "http://localhost:11434/v1"))
+                            .settingsField(width: 260)
+                    }
+                    SecretField(icon: "key", title: "Anahtar (Ollama'da gerekmez)", account: .openai, onChange: model.settingsChanged)
                 }
             }
-            SettingsRow(title: Text("Bağlantıyı dene")) {
-                switch testResult {
-                case .idle:
-                    EmptyView()
-                case .running:
-                    ProgressView().controlSize(.small)
-                case .succeeded(let reply):
-                    Label("Çalışıyor: \(reply)", systemImage: "checkmark.circle.fill").foregroundStyle(.tint).lineLimit(1)
-                case .failed(let message):
-                    NoticeText(message, severity: .error)
-                }
-            } control: {
-                Button("Bağlantıyı dene") {
-                    testResult = .running
-                    testTask?.cancel()
-                    testTask = Task {
-                        let result: ConnectionTest = await testConnection()
-                        if !Task.isCancelled {
-                            testResult = result
-                        }
+            if provider == LLMProviderKind.anthropic.rawValue {
+                SettingsGroup(title: Text("Canlı çeviri")) {
+                    SettingsRow(icon: "bolt", title: Text("Model")) {
+                        SettingsMoreText(
+                            summary: Text("Hızlı model ve düşük effort önerilir: çeviri 1–2 sn'de gelir."),
+                            details: Text("Hızlı model ve düşük effort önerilir: çeviri 1–2 sn'de gelir. Haiku ve Sonnet'te high ve altında düşünme kapatılır; Opus, Fable ve xhigh/max'ta düşünme açık kalır, çeviriler gecikip birikebilir.")
+                        )
+                    } control: {
+                        SettingsMenu(selection: $claudeFastModel, options: claudeModelOptions())
+                    }
+                    SettingsRow(icon: "gauge.with.dots.needle.33percent", title: Text("Effort")) {
+                        EmptyView()
+                    } control: {
+                        SettingsMenu(selection: $claudeFastEffort, options: claudeEffortOptions(levels: LLMEffort.allCases))
                     }
                 }
-                .disabled(testResult == .running)
+                SettingsGroup(title: Text("\"Ne kaçırdım?\", soru ve toplantı notu")) {
+                    SettingsRow(icon: "doc.text", title: Text("Model")) {
+                        Text("Haiku ve yüksek effort önerilir: uzun toplantının notu parça parça yazılır, büyük model gerekmez.")
+                    } control: {
+                        SettingsMenu(selection: $claudeSmartModel, options: claudeModelOptions())
+                    }
+                    SettingsRow(icon: "gauge.with.dots.needle.67percent", title: Text("Effort")) {
+                        EmptyView()
+                    } control: {
+                        SettingsMenu(selection: $claudeSmartEffort, options: claudeEffortOptions(levels: smartEfforts))
+                    }
+                }
+            } else if provider != LLMProviderKind.onDevice.rawValue {
+                SettingsGroup(title: Text("Canlı çeviri")) {
+                    SettingsRow(icon: "bolt", title: Text("Model")) {
+                        EmptyView()
+                    } control: {
+                        TextField("Model", text: $fastModel, prompt: Text("ör. gpt-5-mini, qwen3:8b")).settingsField(width: 260)
+                    }
+                    SettingsRow(icon: "gauge.with.dots.needle.33percent", title: Text("Effort")) {
+                        EmptyView()
+                    } control: {
+                        SettingsMenu(selection: $openAIFastEffort, options: openAIEffortOptions())
+                    }
+                }
+                SettingsGroup(title: Text("\"Ne kaçırdım?\", soru ve toplantı notu")) {
+                    SettingsRow(icon: "doc.text", title: Text("Model")) {
+                        EmptyView()
+                    } control: {
+                        TextField("Model", text: $smartModel, prompt: Text("ör. gpt-5, gpt-oss:120b")).settingsField(width: 260)
+                    }
+                    SettingsRow(icon: "gauge.with.dots.needle.67percent", title: Text("Effort")) {
+                        Text("Effort `reasoning_effort` olarak gönderilir; desteklemeyen sunucularda \"Gönderme\"yi seç.")
+                    } control: {
+                        SettingsMenu(selection: $openAISmartEffort, options: openAIEffortOptions())
+                    }
+                }
+            }
+            SettingsGroup(title: Text("Bağlantı")) {
+                SettingsRow(icon: "bolt.horizontal", title: Text("Bağlantıyı dene")) {
+                    switch testResult {
+                    case .idle:
+                        EmptyView()
+                    case .running:
+                        ProgressView().controlSize(.small)
+                    case .succeeded(let reply):
+                        Label("Çalışıyor: \(reply)", systemImage: "checkmark.circle.fill").foregroundStyle(.tint).lineLimit(1)
+                    case .failed(let message):
+                        NoticeText(message, severity: .error)
+                    }
+                } control: {
+                    Button("Bağlantıyı dene") {
+                        testResult = .running
+                        testTask?.cancel()
+                        testTask = Task {
+                            let result: ConnectionTest = await testConnection()
+                            if !Task.isCancelled {
+                                testResult = result
+                            }
+                        }
+                    }
+                    .disabled(testResult == .running)
+                }
             }
         }
         // Yazarken her tuşta Keychain denetlenmesin: son değişiklikten 0,6 sn sonra bir kez.
@@ -1047,35 +1110,37 @@ private struct KeySettings: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SecretField(title: "Deepgram", account: .deepgram, onChange: model.settingsChanged)
-            SecretField(title: "ElevenLabs", account: .elevenlabs, onChange: model.settingsChanged)
-            SettingsRow(title: Text("iPhone'da da kullan")) {
-                Text("Deepgram, ElevenLabs ve LLM anahtarlarının bir kopyası iCloud Anahtar Zinciri ile iPhone'daki AI-Notepad'e gider; telefonda yeniden girmen gerekmez. Bu Mac'teki anahtarlar değişmez.")
-                switch model.keySync {
-                case .working:
-                    Text("Kopyalanıyor…").foregroundStyle(Theme.ink)
-                case .failed(let message):
-                    NoticeText(message, severity: .error)
-                case .idle:
-                    if !model.sharedKeyAccounts.isEmpty {
-                        Text("iPhone'da kullanılıyor: \(model.sharedKeyAccounts.map(secretAccountTitle).joined(separator: ", "))").foregroundStyle(Theme.ink)
+            SettingsGroup(title: Text("Konuşma tanıma")) {
+                SecretField(icon: "waveform", title: "Deepgram", account: .deepgram, onChange: model.settingsChanged)
+                SecretField(icon: "person.2.wave.2", title: "ElevenLabs", account: .elevenlabs, onChange: model.settingsChanged)
+                SettingsRow(icon: "iphone", title: Text("iPhone'da da kullan")) {
+                    SettingsMoreText(
+                        summary: Text("Anahtarların bir kopyası iCloud Anahtar Zinciri ile iPhone'a gider."),
+                        details: Text("Deepgram, ElevenLabs ve LLM anahtarlarının bir kopyası iCloud Anahtar Zinciri ile iPhone'daki AI-Notepad'e gider; telefonda yeniden girmen gerekmez. Bu Mac'teki anahtarlar değişmez.")
+                    )
+                    switch model.keySync {
+                    case .working:
+                        Text("Kopyalanıyor…").foregroundStyle(Theme.ink)
+                    case .failed(let message):
+                        NoticeText(message, severity: .error)
+                    case .idle:
+                        if !model.sharedKeyAccounts.isEmpty {
+                            Text("iPhone'da kullanılıyor: \(model.sharedKeyAccounts.map(secretAccountTitle).joined(separator: ", "))").foregroundStyle(Theme.ink)
+                        }
                     }
-                }
-            } control: {
-                HStack(spacing: 8) {
-                    if !model.sharedKeyAccounts.isEmpty {
-                        Button("Kaldır", role: .destructive) { Task { await model.stopSharingKeys() } }
-                            .hoverHint("Kopyalar iCloud'dan silinir; iPhone'da anahtarlar yeniden girilmeli", alignment: .trailing, edge: .bottom)
+                } control: {
+                    HStack(spacing: 8) {
+                        if !model.sharedKeyAccounts.isEmpty {
+                            Button("Kaldır", role: .destructive) { Task { await model.stopSharingKeys() } }
+                                .hoverHint("Kopyalar iCloud'dan silinir; iPhone'da anahtarlar yeniden girilmeli", alignment: .trailing, edge: .bottom)
+                        }
+                        Button(model.sharedKeyAccounts.isEmpty ? "iPhone'a gönder" : "Güncelle") { Task { await model.shareKeysWithIPhone() } }
                     }
-                    Button(model.sharedKeyAccounts.isEmpty ? "iPhone'a gönder" : "Güncelle") { Task { await model.shareKeysWithIPhone() } }
+                    .disabled(model.keySync == .working)
                 }
-                .disabled(model.keySync == .working)
+            } footer: {
+                Text("Anahtarlar macOS Anahtar Zinciri'nde saklanır ve hiçbir zaman gösterilmez. Terminal'den eklediysen ilk kullanımda çıkan izin penceresinde \"Her Zaman İzin Ver\"i seç.")
             }
-            Text("Anahtarlar macOS Anahtar Zinciri'nde saklanır ve hiçbir zaman gösterilmez. Terminal'den eklediysen ilk kullanımda çıkan izin penceresinde \"Her Zaman İzin Ver\"i seç.")
-                .appFont(size: 13, weight: .regular)
-                .foregroundStyle(Theme.muted)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 16)
         }
     }
 }
@@ -1106,7 +1171,7 @@ private struct ConnectionSettings: View {
                     Image(systemName: "chevron.right")
                         .appFont(size: 11, weight: .semibold)
                         .rotationEffect(.degrees(showsAdvanced ? 90 : 0))
-                    Text("Gelişmiş: beceriler ve elle MCP yapılandırması").appFont(size: 13, weight: .medium)
+                    Text("Gelişmiş: beceriler ve elle MCP yapılandırması").appFont(size: 12, weight: .semibold)
                 }
                 .foregroundStyle(Theme.muted)
                 .contentShape(Rectangle())
@@ -1134,20 +1199,20 @@ private struct ConnectionSectionHeader: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 Text(title)
-                    .appFont(size: 18, weight: .semibold)
-                    .tracking(-0.3)
-                    .foregroundStyle(Theme.ink)
+                    .appFont(size: 12, weight: .semibold)
+                    .foregroundStyle(Theme.muted)
                 Image(systemName: "info.circle")
                     .appFont(size: 12, weight: .regular)
                     .foregroundStyle(Theme.muted)
                     .hoverHint(info, alignment: .leading, edge: .bottom)
             }
             Text(subtitle)
-                .appFont(size: 13, weight: .regular)
+                .appFont(size: 12, weight: .regular)
                 .foregroundStyle(Theme.muted)
         }
-        .padding(.top, 34)
-        .padding(.bottom, 14)
+        .padding(.horizontal, 4)
+        .padding(.top, 26)
+        .padding(.bottom, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
@@ -2136,19 +2201,15 @@ private struct SkillSettings: View {
     @State private var status: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            SettingsGroupHeader(title: "Beceriler (Agent Skills)")
-            SettingsRow(title: Text("SKILL.md içe aktar")) {
+        SettingsGroup(title: Text("Beceriler (Agent Skills)")) {
+            SettingsRow(icon: "square.and.arrow.down", title: Text("SKILL.md içe aktar")) {
                 Text("Claude ve diğer yapay zekâ araçları için yazılmış beceriler Sor'da \"/\" ile tarif olarak çalışır (ör. haftalık özet, takip e-postası).")
             } control: {
                 Button("İçe aktar…") { importSkills() }
             }
+        } footer: {
             if let status {
                 Text(status)
-                    .appFont(size: 12, weight: .regular)
-                    .foregroundStyle(Theme.muted)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 4)
             }
         }
     }
@@ -2170,28 +2231,41 @@ private struct SkillSettings: View {
 
 private let channelSettingsLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "Settings")
 
+/// Kısayol satırının simgesi. Saf fonksiyondur.
+private func shortcutSymbol(action: ShortcutAction) -> String {
+    switch action {
+    case .record: "record.circle"
+    case .toggleWindows: "rectangle.on.rectangle"
+    case .dictate: "mic"
+    }
+}
+
 /// Kısayolları değiştirme.
 private struct ShortcutSettings: View {
     let shortcuts: ShortcutController
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Sesle yazmanın kısayolu kendi sekmesinde (aç/kapa ve izinle birlikte).
-            ForEach(ShortcutAction.allCases.filter { $0 != .dictate }, id: \.self) { (action: ShortcutAction) in
-                SettingsRow(title: Text(action.title)) {
-                    if let error = shortcuts.errors[action] {
-                        NoticeText(error, severity: .error)
+        // Sekmenin adı zaten "Kısayollar": kartın üstünde ayrıca bölüm adı yok.
+        VStack(alignment: .leading, spacing: 8) {
+            SettingsCard {
+                // Sesle yazmanın kısayolu kendi sekmesinde (aç/kapa ve izinle birlikte).
+                ForEach(ShortcutAction.allCases.filter { $0 != .dictate }, id: \.self) { (action: ShortcutAction) in
+                    SettingsRow(icon: shortcutSymbol(action: action), title: Text(action.title)) {
+                        if let error = shortcuts.errors[action] {
+                            NoticeText(error, severity: .error)
+                        }
+                    } control: {
+                        ShortcutRecorder(shortcuts: shortcuts, action: action, binding: shortcuts.currentBinding(action: action))
                     }
-                } control: {
-                    ShortcutRecorder(shortcuts: shortcuts, action: action, binding: shortcuts.currentBinding(action: action))
                 }
             }
             Text("Kısayola tıklayıp yeni tuşlara bas; vazgeçmek için Esc. ⌃, ⌥ ya da ⌘ ile birlikte bir harf ya da rakam seç.")
-                .appFont(size: 13, weight: .regular)
+                .appFont(size: 12, weight: .regular)
                 .foregroundStyle(Theme.muted)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 16)
+                .padding(.horizontal, 4)
         }
+        .padding(.top, 26)
     }
 }
 
@@ -2250,39 +2324,220 @@ func carbonModifiers(flags: NSEvent.ModifierFlags) -> UInt32 {
 
 // MARK: Ayar satırı bileşenleri
 
-/// Ayar satırı (ElevenLabs): solda başlık ve soluk açıklama, sağda denetim; altında ince çizgi.
+/// Kart içindeki satırın iç boşluğu ve simge sütunu: satırlar arasındaki çizgi metnin başladığı yerden başlar.
+private enum SettingsRowMetrics {
+    static let horizontalPadding: CGFloat = 16
+    static let verticalPadding: CGFloat = 12
+    static let iconSpacing: CGFloat = 12
+    /// Simge kutusu (28) + aralık: çizginin ve tam genişlikli içeriğin girintisi.
+    static let textInset: CGFloat = horizontalPadding + 28 + iconSpacing
+}
+
+/// Ayar satırı: solda simge kutusu, başlık ve kısa soluk açıklama, sağda denetim. Satırlar arasındaki ince çizgiyi
+/// içinde durduğu `SettingsGroup` (ya da `SettingsCard`) çizer.
 struct SettingsRow<Detail: View, Control: View>: View {
+    let icon: String
     let title: Text
     let detail: Detail
     let control: Control
 
-    init(title: Text, @ViewBuilder detail: () -> Detail, @ViewBuilder control: () -> Control) {
+    init(icon: String, title: Text, @ViewBuilder detail: () -> Detail, @ViewBuilder control: () -> Control) {
+        self.icon = icon
         self.title = title
         self.detail = detail()
         self.control = control()
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(alignment: .center, spacing: 24) {
-                VStack(alignment: .leading, spacing: 3) {
-                    title
-                        .appFont(size: 15, weight: .medium)
-                        .foregroundStyle(Theme.ink)
-                    VStack(alignment: .leading, spacing: 3) {
-                        detail
-                    }
-                    .appFont(size: 13, weight: .regular)
-                    .foregroundStyle(Theme.muted)
-                    .fixedSize(horizontal: false, vertical: true)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+        HStack(alignment: .center, spacing: SettingsRowMetrics.iconSpacing) {
+            SettingsIconTile(systemImage: icon)
+            HStack(alignment: .center, spacing: 20) {
+                SettingsRowText(title: title, detail: detail)
                 // Denetim sığdığı genişlikte kalır; dar pencerede açıklama satırları kısalır (düğme yazıları ezilmesin).
                 control.fixedSize(horizontal: true, vertical: false)
             }
-            .padding(.vertical, 16)
-            SettingsDivider()
         }
+        .padding(.horizontal, SettingsRowMetrics.horizontalPadding)
+        .padding(.vertical, SettingsRowMetrics.verticalPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// Altında tam genişlikli içerik olan ayar satırı (ör. tanıma sözlüğü düzenleyicisi): başlık ve açıklamanın altında,
+/// metinle aynı hizada.
+struct SettingsStackedRow<Detail: View, Content: View>: View {
+    let icon: String
+    let title: Text
+    let detail: Detail
+    let content: Content
+
+    init(icon: String, title: Text, @ViewBuilder detail: () -> Detail, @ViewBuilder content: () -> Content) {
+        self.icon = icon
+        self.title = title
+        self.detail = detail()
+        self.content = content()
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: SettingsRowMetrics.iconSpacing) {
+            SettingsIconTile(systemImage: icon)
+            VStack(alignment: .leading, spacing: 10) {
+                SettingsRowText(title: title, detail: detail)
+                    .padding(.top, 4)
+                VStack(alignment: .leading, spacing: 6) {
+                    content
+                }
+            }
+        }
+        .padding(.horizontal, SettingsRowMetrics.horizontalPadding)
+        .padding(.vertical, SettingsRowMetrics.verticalPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// Satırın başlığı ve soluk açıklaması (açıklama yoksa yalnız başlık).
+private struct SettingsRowText<Detail: View>: View {
+    let title: Text
+    let detail: Detail
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            title
+                .appFont(size: 14, weight: .medium)
+                .foregroundStyle(Theme.ink)
+                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 3) {
+                detail
+            }
+            .appFont(size: 12, weight: .regular)
+            .foregroundStyle(Theme.muted)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// Kısa açıklama ve sonunda vurgu renginde "Ayrıntılar": dokununca yerinde tam açıklama açılır ("Daha az" kapatır).
+/// Mac'te tüm açıklama satır içinde kalır (açılır pencere ya da "?" yok); satır yine de tek bakışta okunur.
+struct SettingsMoreText: View {
+    let summary: Text
+    let details: Text
+    @State private var isExpanded: Bool = false
+
+    var body: some View {
+        Button {
+            withAnimation(.smooth(duration: 0.2)) { isExpanded.toggle() }
+        } label: {
+            (isExpanded ? details : summary) + Text(verbatim: " ") + Text(isExpanded ? LocalizedStringKey("Daha az") : LocalizedStringKey("Ayrıntılar")).foregroundStyle(.tint)
+        }
+        .buttonStyle(.plain)
+        .multilineTextAlignment(.leading)
+        .linkPointer(isEnabled: true)
+        .accessibilityHint(Text(isExpanded ? LocalizedStringKey("Kısa açıklamayı gösterir") : LocalizedStringKey("Tam açıklamayı gösterir")))
+    }
+}
+
+/// Ayar grubu: üstte sakin bölüm adı, altında tek kart; kartın satırları arasında ince çizgi, isteğe bağlı altında
+/// dipnot. Gruptaki satırların hepsi gizliyse (koşullu satırlar) bölüm adı da görünmez.
+struct SettingsGroup<Content: View, Footer: View>: View {
+    let title: Text
+    let content: Content
+    let footer: Footer
+
+    init(title: Text, @ViewBuilder content: () -> Content, @ViewBuilder footer: () -> Footer) {
+        self.title = title
+        self.content = content()
+        self.footer = footer()
+    }
+
+    init(title: Text, @ViewBuilder content: () -> Content) where Footer == EmptyView {
+        self.init(title: title, content: content) { EmptyView() }
+    }
+
+    var body: some View {
+        Group(subviews: content) { (rows: SubviewsCollection) in
+            if !rows.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    SettingsSectionTitle(title: title)
+                    SettingsCardRows(rows: rows)
+                    VStack(alignment: .leading, spacing: 4) {
+                        footer
+                    }
+                    .appFont(size: 12, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 4)
+                }
+                .padding(.top, 26)
+            }
+        }
+    }
+}
+
+/// Bölüm adı (ör. "Dil", "Takvim"): küçük, soluk, büyük harfe çevrilmez.
+struct SettingsSectionTitle: View {
+    let title: Text
+
+    var body: some View {
+        title
+            .appFont(size: 12, weight: .semibold)
+            .foregroundStyle(Theme.muted)
+            .padding(.leading, 4)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityAddTraits(.isHeader)
+    }
+}
+
+/// Başlıksız ayar kartı (ör. Bağlantılar'daki gelişmiş satırlar).
+struct SettingsCard<Content: View>: View {
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        Group(subviews: content) { (rows: SubviewsCollection) in
+            if !rows.isEmpty {
+                SettingsCardRows(rows: rows)
+            }
+        }
+    }
+}
+
+/// Kartın kendisi: beyaz yüzey, ince çerçeve, gölge yok; satırlar arasında metnin hizasından başlayan ince çizgi.
+private struct SettingsCardRows: View {
+    let rows: SubviewsCollection
+
+    var body: some View {
+        let shape: RoundedRectangle = RoundedRectangle(cornerRadius: 12, style: .continuous)
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(rows.enumerated()), id: \.element.id) { (item: (offset: Int, element: Subview)) in
+                if item.offset > 0 {
+                    SettingsDivider().padding(.leading, SettingsRowMetrics.textInset)
+                }
+                item.element
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.card, in: shape)
+        .overlay(shape.strokeBorder(Theme.line))
+    }
+}
+
+/// Çok satırlı ayar metni (tanıma sözlüğü, kendi şablonun): yumuşak zeminli, ince çerçeveli düzenleyici.
+struct SettingsTextEditor: View {
+    @Binding var text: String
+    let height: CGFloat
+
+    var body: some View {
+        TextEditor(text: $text)
+            .appFont(size: 13, weight: .regular)
+            .scrollContentBackground(.hidden)
+            .padding(8)
+            .frame(height: height)
+            .background(Theme.background, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Theme.line))
     }
 }
 
@@ -2314,22 +2569,6 @@ private struct SettingsSlider: View {
 struct SettingsDivider: View {
     var body: some View {
         Rectangle().fill(Theme.line).frame(height: 1)
-    }
-}
-
-/// Satır grubunun başlığı (ör. LLM'de "Canlı çeviri").
-struct SettingsGroupHeader: View {
-    let title: LocalizedStringKey
-
-    var body: some View {
-        Text(title)
-            .appFont(size: 12, weight: .semibold)
-            .tracking(0.4)
-            .textCase(.uppercase)
-            .foregroundStyle(Theme.muted)
-            .padding(.top, 32)
-            .padding(.bottom, 4)
-            .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -2414,25 +2653,26 @@ private struct MCPSettings: View {
         let config: String = mcpClientConfig(
             executablePath: Bundle.main.executableURL?.path ?? Bundle.main.bundlePath, serverName: mcpServerName(appName: appName)
         )
-        VStack(alignment: .leading, spacing: 0) {
-            SettingsGroupHeader(title: "Diğer MCP istemcileri")
-            SettingsRow(title: Text("Elle yapılandırma")) {
-                Text("Bu yapılandırmayı istemcinin MCP ayarlarına (Claude Desktop: Ayarlar › Geliştirici › Yapılandırmayı düzenle) ekle. İstemci toplantılarını listeler, arar, notları, transkriptleri ve paylaşılan ekranların görüntülerini okur; yalnızca okur, hiçbir şey değiştirmez. Okunanlar istemcinin yapay zekâ sağlayıcısına (ör. Anthropic, OpenAI) gönderilir.")
-            } control: {
+        SettingsGroup(title: Text("Diğer MCP istemcileri")) {
+            SettingsStackedRow(icon: "curlybraces", title: Text("Elle yapılandırma")) {
+                SettingsMoreText(
+                    summary: Text("Yapılandırmayı istemcinin MCP ayarlarına ekle; istemci yalnızca okur."),
+                    details: Text("Bu yapılandırmayı istemcinin MCP ayarlarına (Claude Desktop: Ayarlar › Geliştirici › Yapılandırmayı düzenle) ekle. İstemci toplantılarını listeler, arar, notları, transkriptleri ve paylaşılan ekranların görüntülerini okur; yalnızca okur, hiçbir şey değiştirmez. Okunanlar istemcinin yapay zekâ sağlayıcısına (ör. Anthropic, OpenAI) gönderilir.")
+                )
+            } content: {
+                Text(config)
+                    .appFont(size: 12, weight: .regular)
+                    .monospaced()
+                    .textSelection(.enabled)
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Theme.soft, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 Button(copied ? "Kopyalandı" : "Yapılandırmayı kopyala", systemImage: copied ? "checkmark" : "doc.on.doc") {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(config, forType: .string)
                     copied = true
                 }
             }
-            Text(config)
-                .appFont(size: 12, weight: .regular)
-                .monospaced()
-                .textSelection(.enabled)
-                .padding(12)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Theme.soft, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .padding(.vertical, 12)
         }
     }
 }
@@ -2454,7 +2694,7 @@ struct LocalLLMSetup: View {
     }
 
     var body: some View {
-        SettingsRow(title: Text("Mac'te, anahtarsız (Ollama)")) {
+        SettingsRow(icon: "desktopcomputer", title: Text("Mac'te, anahtarsız (Ollama)")) {
             switch state {
             case .idle, .detecting:
                 Text("Yerel model (ör. gpt-oss:20b, qwen3) ile not ve çeviri: anahtar gerekmez, toplantı metni Mac'ten çıkmaz. Konuşma tanıma için Genel › Canlı metin'de \"Mac'te (WhisperKit)\" seç.")

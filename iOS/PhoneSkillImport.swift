@@ -13,7 +13,11 @@ struct PhoneSkillImportSection: View {
 
     var body: some View {
         Section {
-            Button("SKILL.md içe aktar", systemImage: "square.and.arrow.down") { isPicking = true }
+            Button {
+                isPicking = true
+            } label: {
+                PhoneSettingLabel(icon: "square.and.arrow.down", title: Text("SKILL.md içe aktar"))
+            }
             if let status, !status.isEmpty {
                 Text(verbatim: status)
                     .appFont(size: 13, weight: .regular)

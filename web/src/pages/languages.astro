@@ -28,7 +28,6 @@ const tables: readonly { readonly id: string; readonly title: string; readonly l
   {/* Veri bloğu: Astro işlemez ve paketlemez (`is:inline`), tarayıcı çalıştırmaz; CSP'ye takılmaz. */}
   <script is:inline type="application/ld+json" set:html={structuredData} />
   <section class="page info-intro">
-    <p class="eyebrow">{text.eyebrow}</p>
     <h1 class="title-xl">{text.title}</h1>
     <p class="lead">{text.lead}</p>
     <dl class="info-stats">
@@ -111,7 +110,7 @@ const tables: readonly { readonly id: string; readonly title: string; readonly l
     <Faq items={text.faq} />
   </section>
 
-  <CtaBand id="languages-cta-title" title={copy.compare.ctaTitle} text={copy.compare.ctaText} palette="ocean" layout="clouds-left" />
+  <CtaBand id="languages-cta-title" title={copy.compare.ctaTitle} text={copy.compare.ctaText} photo="archipelago-aerial" />
 </Base>
 
 <style>

@@ -35,7 +35,7 @@ struct HostedDeletedMeetingsRow: View {
 
     var body: some View {
         if deleted.count > 0 || deleted.problem != nil {
-            SettingsRow(title: Text("Silinen hesabının toplantıları")) {
+            SettingsRow(icon: "tray.and.arrow.down", title: Text("Silinen hesabının toplantıları")) {
                 Text("Silinen hesabından \(deleted.count) toplantı bu Mac'te duruyor. Bu hesaba taşıyınca toplantıların arasında görünür; hiçbir şey silinmez.")
                 if let problem = deleted.problem {
                     NoticeText(problem as String, severity: .error)

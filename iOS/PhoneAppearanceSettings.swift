@@ -38,7 +38,11 @@ struct PhoneAppearanceScreen: View {
                 NavigationLink {
                     PhoneFontPicker(selection: $fontDesign)
                 } label: {
-                    LabeledContent("Yazı tipi", value: fontChoiceName(choice: AppFontChoice.parse(storage: fontDesign) ?? PanelAppearance.standard.fontChoice))
+                    LabeledContent {
+                        Text(verbatim: fontChoiceName(choice: AppFontChoice.parse(storage: fontDesign) ?? PanelAppearance.standard.fontChoice))
+                    } label: {
+                        PhoneSettingLabel(icon: "textformat", title: Text("Yazı tipi"))
+                    }
                 }
             }
             Section {
@@ -65,8 +69,10 @@ struct PhoneAppearanceScreen: View {
                 Text("Arayüz yazısı düğmeleri ve listeleri, okuma metni notu ve transkripti değiştirir; alt boşluk kayıttaki canlı metnin altında kalır.")
             }
             Section {
-                Button("Görünümü varsayılana döndür") {
+                Button {
                     resetPhoneAppearance(defaults: .standard)
+                } label: {
+                    PhoneSettingLabel(icon: "arrow.uturn.backward", title: Text("Görünümü varsayılana döndür"))
                 }
             }
         }

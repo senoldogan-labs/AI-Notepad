@@ -9,11 +9,17 @@ struct AskWebSearchSettingsRow: View {
 
     var body: some View {
         if isAvailable {
-            SettingsRow(title: Text("Sor'da web aramasına izin ver")) {
+            SettingsRow(icon: "magnifyingglass", title: Text("Sor'da web aramasına izin ver")) {
                 #if HOSTED_EDITION
-                Text("Açıkken Sor, soru toplantılarında olmayan bir bilgi gerektirdiğinde (güncel bilgi, tanım, ürün, fiyat ya da dış kaynak) cevap başına en çok 3 kez webde arar; web kaynakları cevapta alan adıyla ve cevabın altındaki \"Web\" listesinde ayrıca görünür, tıklayınca tarayıcıda açılır. Aramayı Anthropic (Claude) yapar: modelin sorundan (ve okunan toplantı parçalarından) yazdığı kısa arama sorgusu sunucumuz üzerinden Anthropic'e, oradan arama sağlayıcısına gider; arama sağlayıcısına yalnız bu sorgu gider. Ayda 100 arama hakkın var; dolunca Sor ay sonuna kadar yalnız toplantılardan cevaplar. Kapalıyken webde hiç aranmaz.")
+                SettingsMoreText(
+                    summary: Text("Toplantılarda olmayan bilgi için cevap başına en çok 3 arama; sorgu Anthropic üzerinden arama sağlayıcısına gider."),
+                    details: Text("Açıkken Sor, soru toplantılarında olmayan bir bilgi gerektirdiğinde (güncel bilgi, tanım, ürün, fiyat ya da dış kaynak) cevap başına en çok 3 kez webde arar; web kaynakları cevapta alan adıyla ve cevabın altındaki \"Web\" listesinde ayrıca görünür, tıklayınca tarayıcıda açılır. Aramayı Anthropic (Claude) yapar: modelin sorundan (ve okunan toplantı parçalarından) yazdığı kısa arama sorgusu sunucumuz üzerinden Anthropic'e, oradan arama sağlayıcısına gider; arama sağlayıcısına yalnız bu sorgu gider. Ayda 100 arama hakkın var; dolunca Sor ay sonuna kadar yalnız toplantılardan cevaplar. Kapalıyken webde hiç aranmaz.")
+                )
                 #else
-                Text("Açıkken Sor, soru toplantılarında olmayan bir bilgi gerektirdiğinde (güncel bilgi, tanım, ürün, fiyat ya da dış kaynak) cevap başına en çok 3 kez webde arar; web kaynakları cevapta alan adıyla ve cevabın altındaki \"Web\" listesinde ayrıca görünür, tıklayınca tarayıcıda açılır. Aramayı Anthropic yapar: modelin sorundan (ve okunan toplantı parçalarından) yazdığı kısa arama sorgusu Anthropic üzerinden arama sağlayıcısına gider. Her arama Anthropic hesabına ayrıca ücretlendirilir (1000 aramada 10 $). Kapalıyken webde hiç aranmaz.")
+                SettingsMoreText(
+                    summary: Text("Toplantılarda olmayan bilgi için cevap başına en çok 3 arama; sorgu Anthropic üzerinden arama sağlayıcısına gider."),
+                    details: Text("Açıkken Sor, soru toplantılarında olmayan bir bilgi gerektirdiğinde (güncel bilgi, tanım, ürün, fiyat ya da dış kaynak) cevap başına en çok 3 kez webde arar; web kaynakları cevapta alan adıyla ve cevabın altındaki \"Web\" listesinde ayrıca görünür, tıklayınca tarayıcıda açılır. Aramayı Anthropic yapar: modelin sorundan (ve okunan toplantı parçalarından) yazdığı kısa arama sorgusu Anthropic üzerinden arama sağlayıcısına gider. Her arama Anthropic hesabına ayrıca ücretlendirilir (1000 aramada 10 $). Kapalıyken webde hiç aranmaz.")
+                )
                 #endif
             } control: {
                 Toggle("Sor'da web aramasına izin ver", isOn: $isEnabled)

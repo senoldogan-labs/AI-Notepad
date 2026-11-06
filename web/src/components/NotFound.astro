@@ -1,6 +1,7 @@
 ---
-// "Sayfa bulunamadı" görünümü: 404 sayfası ve yetkisiz ya da oturumsuz açılan yönetim adresi aynı görünümü kullanır
-// (yönetim panelinin varlığı belli olmaz).
+// "Page not found" view: the 404 page and an admin address opened without access or a session share it (so the admin
+// panel's existence is not revealed). A large serif numeral over the horizon mark.
+import Horizon from "./Horizon.astro";
 import Icon from "./Icon.astro";
 import { copy, type NotFoundCopy } from "../copy";
 import { routes } from "../routes";
@@ -10,6 +11,7 @@ const text: NotFoundCopy = copy.notFound;
 
 <section class="narrow not-found">
   <p class="code tabular" aria-hidden="true">404</p>
+  <Horizon seed={text.title} class="not-found__horizon" />
   <h1 class="title-l">{text.title}</h1>
   <p class="muted">{text.text}</p>
   <a class="button button--primary" href={routes.home}>
@@ -28,14 +30,23 @@ const text: NotFoundCopy = copy.notFound;
   }
 
   .code {
-    font-size: clamp(4rem, 14vw, 8rem);
-    font-weight: 600;
-    letter-spacing: -0.06em;
-    line-height: 1;
-    background: linear-gradient(120deg, #e9896a, #c9a3e0 55%, #8ea3e6);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    font-family: var(--serif);
+    font-size: clamp(5rem, 16vw, 9rem);
+    letter-spacing: -0.03em;
+    line-height: 0.9;
+    color: var(--muted);
+  }
+
+  .not-found :global(.not-found__horizon) {
+    width: min(100%, 320px);
+    margin-bottom: 12px;
+  }
+
+  .not-found :global(.not-found__horizon)::before {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--line);
   }
 
   .not-found .button {

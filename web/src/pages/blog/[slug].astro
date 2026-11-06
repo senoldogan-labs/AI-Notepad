@@ -119,7 +119,7 @@ const structuredData: string = structuredDataJson(
     )
   }
 
-  <CtaBand id="post-cta-title" title={text.ctaTitle} text={text.ctaText} palette="coral" layout="clouds-left" />
+  <CtaBand id="post-cta-title" title={text.ctaTitle} text={text.ctaText} photo="summer-lake" />
 </Base>
 
 <style>
@@ -155,14 +155,17 @@ const structuredData: string = structuredDataJson(
     gap: 6px;
   }
 
+  /* Long-form reading: 18 px Inter at a 68ch measure. */
   .post__body {
-    font-size: 1.0625rem;
+    width: min(68ch, 100% - 2 * var(--gutter));
+    font-size: 1.125rem;
+    line-height: 1.75;
   }
 
-  /* Markdown başlıkları sayfanın yazı ölçeğine uyar. */
+  /* Markdown headings follow the page's type scale: serif H2s. */
   .post__body :global(h2) {
-    margin-top: 40px;
-    font-size: 1.5rem;
+    margin-top: 52px;
+    font-size: clamp(1.625rem, 1.4rem + 0.8vw, 2rem);
   }
 
   .post__body :global(h3) {
@@ -187,8 +190,7 @@ const structuredData: string = structuredDataJson(
   .post__body :global(blockquote) {
     margin: 0 0 14px;
     padding: 14px 20px;
-    border-left: 3px solid var(--accent);
-    border-radius: 0 var(--radius-s) var(--radius-s) 0;
+    border-radius: var(--radius-s);
     background: var(--soft);
   }
 

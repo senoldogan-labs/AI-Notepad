@@ -55,7 +55,7 @@ const bars: readonly { readonly height: number; readonly tempo: number }[] = cov
             <li class:list={["transcript__line", `appear-${index + 1}`]}>
               <span class="transcript__speaker">{line.speaker}</span>
               <span class="transcript__text">{line.text}</span>
-              {line.translation === null ? null : <span class="transcript__translation appear-4">{line.translation}</span>}
+              {line.translation === null ? null : <span class="transcript__translation appear-4"><Icon name="corner-down-right" size={13} class="translation-mark" />{line.translation}</span>}
             </li>
           ))
         }
@@ -103,9 +103,6 @@ const bars: readonly { readonly height: number; readonly tempo: number }[] = cov
 </button>
 </div>
 
-<script>
-  import "../client/hero-demo";
-</script>
 
 <style>
   /* Sayaç saniyesi: tamsayı özelliği CSS sayacına yazılır (betik yok). Durgun hâlde son değer. */
@@ -137,10 +134,10 @@ const bars: readonly { readonly height: number; readonly tempo: number }[] = cov
     min-width: 0;
   }
 
-  /* Gösterimdeki cam yüzeyler bulanıklık filtresi kullanmaz: arkadaki gradyan zaten yumuşak, filtre her karede
-     yeniden hesaplanmasın. */
+  /* The demo's cards sit on a photograph: they are opaque paper (no blur filter, nothing shows through), so the text
+     keeps its contrast over the birch trunks. */
   .demo :global(.glass) {
-    background: rgb(255 255 255 / 0.82);
+    background: #ffffff;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
@@ -301,10 +298,11 @@ const bars: readonly { readonly height: number; readonly tempo: number }[] = cov
     color: #3a3a3a;
   }
 
-  .transcript__translation::before {
-    content: "↳ ";
-    color: #8ea3e6;
-    font-weight: 600;
+  .transcript__translation :global(.translation-mark) {
+    display: inline-block;
+    margin-right: 5px;
+    vertical-align: -2px;
+    color: #5f78c9;
   }
 
   /* ---------- Not ---------- */
@@ -587,8 +585,8 @@ const bars: readonly { readonly height: number; readonly tempo: number }[] = cov
     bottom: 14px;
     display: grid;
     place-items: center;
-    width: 32px;
-    height: 32px;
+    width: 40px;
+    height: 40px;
     padding: 0;
     border: 1px solid rgb(10 10 10 / 0.1);
     border-radius: 999px;

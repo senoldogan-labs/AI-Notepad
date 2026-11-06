@@ -456,7 +456,7 @@ struct HostedReferralRow: View {
     var body: some View {
         Group {
             if let referral = account.referral, referral.enabled, let code = referral.code, let inviteURL = referral.inviteUrl {
-                SettingsRow(title: Text("Arkadaşını davet et")) {
+                SettingsRow(icon: "gift", title: Text("Arkadaşını davet et")) {
                     Text(verbatim: hostedReferralRewardText(referral: referral))
                     Text(verbatim: code)
                         .font(.system(size: 17, weight: .semibold, design: .monospaced))

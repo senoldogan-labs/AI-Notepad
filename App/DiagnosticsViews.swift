@@ -320,36 +320,42 @@ struct DiagnosticsSettings: View {
         } ?? pendingRecentErrorsDiagnostics()
         let sections: [DiagnosticsSection] = collectDiagnostics(model: model, updater: updater, health: health, errors: errorSection, dateText: diagnosticsScreenDate)
         VStack(alignment: .leading, spacing: 0) {
-            SettingsRow(title: Text("Tanılama")) {
-                Text("Sorun bildirirken işe yarar: sürüm, sistem, hesap durumu, bağlantı, izinler, canlı metin, güncelleme ve son hatalar. Ses, metin, not, anahtar ve jeton yok; kopyalamadıkça hiçbir yere gitmez.")
-            } control: {
-                HStack(spacing: 8) {
-                    if isRefreshing {
-                        ProgressView().controlSize(.small)
-                    }
-                    Button("Yenile") { Task { await refresh() } }
-                        .disabled(isRefreshing)
-                    // Yenilenirken kopyalanmaz: sunucu denetimi ve son hatalar henüz okunmadı.
-                    Button(copied ? "Kopyalandı" : "Tanılama bilgisini kopyala") {
-                        guard let errors else {
-                            return
+            SettingsCard {
+                SettingsRow(icon: "stethoscope", title: Text("Tanılama")) {
+                    SettingsMoreText(
+                        summary: Text("Sorun bildirirken işe yarar; kopyalamadıkça hiçbir yere gitmez."),
+                        details: Text("Sorun bildirirken işe yarar: sürüm, sistem, hesap durumu, bağlantı, izinler, canlı metin, güncelleme ve son hatalar. Ses, metin, not, anahtar ve jeton yok; kopyalamadıkça hiçbir yere gitmez.")
+                    )
+                } control: {
+                    HStack(spacing: 8) {
+                        if isRefreshing {
+                            ProgressView().controlSize(.small)
                         }
-                        let support: [DiagnosticsSection] = collectDiagnostics(
-                            model: model, updater: updater, health: health, errors: errorDiagnosticsForSupport(errors: errors), dateText: diagnosticsCopyDate
-                        )
-                        copyToPasteboard(text: diagnosticsText(sections: support, generatedAt: Date()))
-                        copied = true
+                        Button("Yenile") { Task { await refresh() } }
+                            .disabled(isRefreshing)
+                        // Yenilenirken kopyalanmaz: sunucu denetimi ve son hatalar henüz okunmadı.
+                        Button(copied ? "Kopyalandı" : "Tanılama bilgisini kopyala") {
+                            guard let errors else {
+                                return
+                            }
+                            let support: [DiagnosticsSection] = collectDiagnostics(
+                                model: model, updater: updater, health: health, errors: errorDiagnosticsForSupport(errors: errors), dateText: diagnosticsCopyDate
+                            )
+                            copyToPasteboard(text: diagnosticsText(sections: support, generatedAt: Date()))
+                            copied = true
+                        }
+                        .buttonStyle(.pillPrimary)
+                        .disabled(isRefreshing || errors == nil)
                     }
-                    .buttonStyle(.pillPrimary)
-                    .disabled(isRefreshing || errors == nil)
                 }
             }
+            .padding(.top, 26)
             ForEach(Array(sections.enumerated()), id: \.offset) { (entry: (offset: Int, element: DiagnosticsSection)) in
-                SettingsRow(title: Text(verbatim: entry.element.title)) {
+                SettingsGroup(title: Text(verbatim: entry.element.title)) {
                     DiagnosticsGrid(items: entry.element.items)
-                        .padding(.top, 4)
-                } control: {
-                    EmptyView()
+                        .appFont(size: 12, weight: .regular)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
                 }
             }
         }
