@@ -249,6 +249,9 @@ targets:
       # Notu bağlantıyla paylaşmanın durumu (şifreleme, yükleme, cihazdaki bağlantı defteri) Mac'le ortak; sayfası
       # iOS/MeetingShareLink.swift'te.
       - path: App/Hosted/HostedNoteShares.swift
+      # Yapay zekâ asistanı erişiminin uygulama tarafı (durum, yükleme kuyruğu, bağlantılar) Mac'le ortak; Ayarlar sayfası
+      # ve bağlar iOS/Hosted/PhoneAssistant.swift'te.
+      - path: App/Hosted/HostedAssistant.swift
     dependencies:
       - package: AINotepadCore
         product: AINotepadCore

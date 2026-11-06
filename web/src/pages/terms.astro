@@ -7,7 +7,8 @@
 // abonelikleri (server/src/appStore.ts) Apple'ın satışıdır: otomatik yenileme açıklaması App Store Review Guidelines
 // 3.1.2 ve developer.apple.com/app-store/subscriptions; iOS uygulaması Apple'ın standart lisans sözleşmesiyle (Standard
 // EULA) ve bu şartlarla sunulur (kendi EULA'mız yok); iptal ve iade Apple'dadır (support.apple.com/118428, /118223).
-// iPhone uygulaması henüz App Store'da değildir: metin onu "App Store'a çıktığında" diye anar.
+// iPhone uygulaması henüz App Store'da değildir: metin onu "App Store'a çıktığında" diye anar. Yapay zekâ asistanı
+// erişimi (docs/superpowers/specs/2026-11-05-remote-mcp.md) isteğe bağlıdır; ayrıntısı gizlilik politikası bölüm 3'te.
 import LegalSection from "../components/LegalSection.astro";
 import Legal from "../layouts/Legal.astro";
 import { cardStatementDescriptor, productName } from "../config";
@@ -79,7 +80,9 @@ const appleRefundUrl: string = "https://reportaproblem.apple.com";
       meetings, your people and Ask chats also appear on your other devices through an end-to-end encrypted copy on our
       server; audio and screen snapshots stay on the device that recorded them. Sync is not a backup: deleting a meeting
       on one device deletes it on the others, and the encrypted copy has a storage limit (100 MB of encrypted data and
-      20,000 items per account), past which new changes stop syncing until you make room.
+      20,000 items per account), past which new changes stop syncing until you make room. If you turn on AI assistant
+      access (off by default), we keep an encrypted copy of your meeting notes, never audio or transcripts, that our
+      servers can read, so the AI assistants you connect can read them (see section 14).
     </p>
     <p>
       Subject to these terms, you may download and use the apps on Macs and iPhones you own or control, for as long as
@@ -309,7 +312,9 @@ const appleRefundUrl: string = "https://reportaproblem.apple.com";
       we keep an end-to-end encrypted copy of your meetings' text that only your devices can open. If you share a note
       with a link, we keep an end-to-end encrypted copy of that note until the link expires or you remove it; anyone with
       the link can read it, so you decide who gets it and are responsible for sharing it lawfully, including other
-      participants' personal data in it. We may remove a shared link that is reported to us as unlawful. We don't use your meeting content to train AI models.
+      participants' personal data in it. We may remove a shared link that is reported to us as unlawful. If you turn on AI
+      assistant access, we also keep an encrypted copy of your meeting notes that our servers can read, so the assistants
+      you connect can read them; turning it off deletes that copy. We don't use your meeting content to train AI models.
       Because your notes are stored on your Mac or iPhone, keeping backups of your devices is up to you.
     </p>
   </LegalSection>
@@ -326,8 +331,9 @@ const appleRefundUrl: string = "https://reportaproblem.apple.com";
         names and terms you add, the title and attendee names of a calendar event you link to a meeting and, if you turn on “Use screen snapshots in notes”, a few downscaled snapshots of shared
         screens, only to transcribe your meetings, to produce notes, translations and answers for you, to create the
         Linear or Jira issues you ask for, if you turn on sync, to keep the end-to-end encrypted copy that brings your
-        meetings to your other devices and, if you share a note with a link, to keep its end-to-end encrypted copy for the
-        people you give the link to,
+        meetings to your other devices, if you share a note with a link, to keep its end-to-end encrypted copy for the
+        people you give the link to, and, if you turn on AI assistant access, to keep an encrypted copy of your meeting
+        notes and let the AI assistants you connect search and read it,
         for as long as you use the service. The categories of data depend on what is said in your meetings.
       </li>
       <li>
@@ -338,7 +344,8 @@ const appleRefundUrl: string = "https://reportaproblem.apple.com";
       <li>
         <strong>Confidentiality and security.</strong> Only the operator has access to the service's systems and is bound
         by confidentiality. Meeting content is encrypted in transit; our servers keep no audio, keep notes only as the
-        end-to-end encrypted sync copy we cannot read (if you turn on sync), and keep the final
+        end-to-end encrypted sync copy we cannot read (if you turn on sync) and as the AI assistant copy, encrypted at rest
+        but not end to end (if you turn on AI assistant access), and keep the final
         transcript encrypted so it can be re-sent for 2 hours, then delete it within about a day; our other security
         measures are described in the Privacy policy.
       </li>
@@ -357,7 +364,8 @@ const appleRefundUrl: string = "https://reportaproblem.apple.com";
       </li>
       <li>
         <strong>Deletion.</strong> We don't keep meeting content after processing it: transcripts and notes are returned
-        to your Mac or iPhone, and you delete them there; the encrypted copy of the final transcript can no longer be fetched after 2 hours and is
+        to your Mac or iPhone, and you delete them there; the AI assistant copy, if you turn it on, is deleted as soon as
+        you turn it off or delete your account, and within 7 days after your subscription or trial ends; the encrypted copy of the final transcript can no longer be fetched after 2 hours and is
         deleted from our server at the next daily cleanup (within about a day), or immediately when you delete your account. Our sub-processors delete it under the retention rules described in the
         Privacy policy.
       </li>
@@ -382,6 +390,16 @@ const appleRefundUrl: string = "https://reportaproblem.apple.com";
       folders and webhooks (for example Zapier, Make or n8n) with your own
       accounts. Those services are provided by third parties under their own terms, and we are not responsible for how they
       work. Product names and logos belong to their owners.
+    </p>
+    <p>
+      <strong>AI assistant access.</strong> AI assistant access is optional and off by default; you turn it on in the app.
+      You choose which AI assistants (for example Claude or ChatGPT) to connect, and you are responsible for that choice.
+      Those assistants are provided by third parties under their own terms and privacy policies, which apply to what they
+      read from your notes. We don't control and make no promise about what an assistant does with your notes, how it
+      answers or what it shares; an assistant that also has other tools, such as email or web access, can be steered by
+      text in your meetings. The connection only lets an assistant search, list and read your notes. Turning AI assistant
+      access off deletes our copy of your notes and disconnects every assistant; when your subscription or trial ends,
+      assistants lose access immediately and the copy is deleted within 7 days.
     </p>
   </LegalSection>
 

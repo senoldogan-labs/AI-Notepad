@@ -22,7 +22,7 @@
 				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
 			</array>
 		</dict>
-		<!-- Toplantı metni (not, canlı çeviri, Sor için sunucumuz üzerinden Anthropic Claude); son geçiş metni 2 saat şifreli tutulur. -->
+		<!-- Toplantı metni (not, canlı çeviri, Sor için sunucumuz üzerinden Anthropic Claude); son geçiş metni 2 saat şifreli tutulur. Yapay zekâ asistanı erişimi açıksa notların kopyası (AB'de, saklanırken şifreli) bağlanan asistanlar için tutulur. -->
 		<dict>
 			<key>NSPrivacyCollectedDataType</key>
 			<string>NSPrivacyCollectedDataTypeOtherUserContent</string>
