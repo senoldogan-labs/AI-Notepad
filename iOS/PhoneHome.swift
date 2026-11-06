@@ -169,24 +169,20 @@ struct PhoneHome: View {
     private func toolbarContent(openTasks: Int) -> some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
             Button("Kitaplık", systemImage: "folder") { router.isLibraryOpen = true }
+                .tint(Theme.ink)
         }
-        // Sağdaki üç düğme tek cam kapsülde (iOS 26): görevler (açık görev sayısıyla), arama ve profil (Ayarlar).
+        // Sağdaki üç düğme tek cam kapsülde (iOS 26): görevler (VoiceOver açık görev sayısını okur), arama ve profil
+        // (Ayarlar).
         ToolbarItemGroup(placement: .topBarTrailing) {
             Button {
                 router.push(route: .tasks)
             } label: {
                 Label("Görevlerim", systemImage: "checklist")
-                    .overlay(alignment: .topTrailing) {
-                        if openTasks > 0 {
-                            Circle()
-                                .fill(appearance.accent.color)
-                                .frame(width: 8, height: 8)
-                                .offset(x: 3, y: -2)
-                        }
-                    }
             }
+            .tint(Theme.ink)
             .accessibilityValue(openTasks > 0 ? Text("\(openTasks) açık görev") : Text(verbatim: ""))
             Button("Ara", systemImage: "magnifyingglass") { router.push(route: .search) }
+                .tint(Theme.ink)
             Button {
                 router.push(route: .settings)
             } label: {
@@ -453,6 +449,12 @@ private struct HomeBottomBar: View {
         .padding(.horizontal, 16)
         .padding(.top, 6)
         .padding(.bottom, 6)
+        // Altına kayan içerik çubuğun arkasında yumuşakça solar (durağan geçiş).
+        .background {
+            LinearGradient(colors: [Theme.background.opacity(0), Theme.background.opacity(0.92)], startPoint: .top, endPoint: .center)
+                .ignoresSafeArea(edges: .bottom)
+                .allowsHitTesting(false)
+        }
         .animation(.smooth(duration: 0.25), value: recorder.phase == .starting)
     }
 
