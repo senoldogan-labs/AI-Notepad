@@ -53,7 +53,11 @@ struct CrashReportsLink: View {
         NavigationLink {
             CrashReportsList(center: center)
         } label: {
-            LabeledContent("Çökme raporlarını göster", value: "\(center.reports.count)")
+            LabeledContent {
+                Text(verbatim: "\(center.reports.count)")
+            } label: {
+                PhoneSettingLabel(icon: "ladybug", title: Text("Çökme raporlarını göster"))
+            }
         }
     }
 }

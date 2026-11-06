@@ -185,8 +185,17 @@ import Testing
             Issue.record("not şeması nesne değil")
             return
         }
-        #expect(properties.map(\.name) == ["baslik", "ozet", "kararlar", "gorevler", "sozluk", "akis"])
+        #expect(properties.map(\.name) == ["baslik", "ozet", "kararlar", "gorevler", "acikKonular", "sozluk", "akis"])
         #expect(properties.allSatisfy { (property: JSONSchemaProperty) -> Bool in property.isRequired })
+        // Kararlar ve açık konular zamanlı satırlardır (cihaz içi model de aynı yapıyı üretir).
+        #expect(properties[2].node == .array(item: .object(properties: [
+            JSONSchemaProperty(name: "zaman", node: .string(choices: nil), isRequired: true),
+            JSONSchemaProperty(name: "karar", node: .string(choices: nil), isRequired: true),
+        ])))
+        #expect(properties[4].node == .array(item: .object(properties: [
+            JSONSchemaProperty(name: "zaman", node: .string(choices: nil), isRequired: true),
+            JSONSchemaProperty(name: "konu", node: .string(choices: nil), isRequired: true),
+        ])))
         #expect(properties[3].node == .array(item: .object(properties: [
             JSONSchemaProperty(name: "sahip", node: .string(choices: nil), isRequired: true),
             JSONSchemaProperty(name: "aciklama", node: .string(choices: nil), isRequired: true),
@@ -240,7 +249,7 @@ import Testing
         let task: NoteTask = NoteTask(owner: "Ada", description: "Raporu gönder", dueDate: nil, isMine: true)
         let state: ChunkedNoteState = ChunkedNoteState(
             partSummaries: (0..<4).map { "[0\($0):00–0\($0 + 1):00] Bütçe ve pazarlama planı konuşuldu, takvim üzerinde anlaşıldı ve herkes görevini aldı." },
-            decisions: ["Bütçe artar."], tasks: [task], glossary: []
+            decisions: ["Bütçe artar."], tasks: [task], glossary: [], openQuestions: []
         )
         let condensed: ChunkedNoteState = condensedNoteState(state: state, maxChars: 200)
         #expect(condensed.partSummaries.count == 4)
@@ -312,7 +321,7 @@ struct OnDeviceModelTests {
         let chunk: [StoredSegment] = (0..<(limits.chunkChars / sentence.count)).map { stored("final-\($0)", .others, $0 % 2 + 1, Double($0 * 5), sentence) }
         let summaries: [String] = Array(repeating: "[00:00–02:00] The team reviewed the budget, agreed on the schedule and assigned the slides to Aino.", count: 30)
         let state: ChunkedNoteState = condensedNoteState(
-            state: ChunkedNoteState(partSummaries: summaries, decisions: [], tasks: [], glossary: []), maxChars: limits.summaryChars ?? 0
+            state: ChunkedNoteState(partSummaries: summaries, decisions: [], tasks: [], glossary: [], openQuestions: []), maxChars: limits.summaryChars ?? 0
         )
         let request: LLMRequest = noteChunkRequest(
             chunk: chunk, part: 31, partCount: 40, state: state, speakerNames: [:], userName: "Ada", template: .general, myNotes: "", language: .turkish

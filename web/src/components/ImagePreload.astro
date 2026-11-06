@@ -1,0 +1,26 @@
+---
+// A responsive `<link rel="preload">` for the page's largest image (its LCP element), so the browser fetches it at high
+// priority as soon as the HTML arrives instead of after the stylesheet. The URLs are built with the same transform
+// options as the `<Picture>` that shows the image (AVIF, the same widths and quality), so the preloaded file is the one
+// the picture uses. AVIF only: browsers without AVIF skip the preload by its type and load the WebP fallback normally.
+// `media` limits the preload to the screens where this image is the largest paint ("all" for every screen). A preload
+// link is allowed in the body, so the component sits next to the image it serves.
+import { getImage } from "astro:assets";
+import type { ImageMetadata } from "astro";
+
+interface Props {
+  readonly image: ImageMetadata;
+  /** Generated widths (pixels), the same as the picture's. */
+  readonly widths: readonly number[];
+  /** The picture's `sizes` attribute. */
+  readonly sizes: string;
+  /** The picture's quality. */
+  readonly quality: number;
+  /** A media query: where the image is the largest paint. */
+  readonly media: string;
+}
+const { image, widths, sizes, quality, media } = Astro.props;
+const avif = await getImage({ src: image, widths: [...widths], format: "avif", quality });
+---
+
+<link rel="preload" as="image" type="image/avif" imagesrcset={avif.srcSet.attribute} imagesizes={sizes} media={media} fetchpriority="high" />

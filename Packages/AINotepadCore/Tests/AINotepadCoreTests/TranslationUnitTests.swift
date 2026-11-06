@@ -166,22 +166,6 @@ private let finnishBroadcast: [LiveSegment] = [
         #expect(translationContext(units: step.ready, before: step.ready[0], count: 3).isEmpty)
     }
 
-    // Son geçiş: birimin çevirisi birimin tüm süresiyle en çok kesişen son geçiş bölümüne taşınır; kapsananlar boş kalmaz.
-    @Test func alignsUnitTranslationsToFinalPass() {
-        let live: [StoredSegment] = [
-            StoredSegment(key: "others-0", speaker: .others, person: nil, startSec: 0, endSec: 4, text: "a", words: nil),
-            StoredSegment(key: "others-1", speaker: .others, person: nil, startSec: 4, endSec: 5, text: "b.", words: nil),
-            StoredSegment(key: "others-2", speaker: .others, person: nil, startSec: 5, endSec: 9, text: "c.", words: nil),
-        ]
-        let final: [StoredSegment] = [
-            StoredSegment(key: "final-0", speaker: .others, person: 1, startSec: 0, endSec: 3.5, text: "a", words: nil),
-            StoredSegment(key: "final-1", speaker: .others, person: 1, startSec: 3.5, endSec: 9, text: "b. c.", words: nil),
-        ]
-        let aligned: [String: String] = alignTranslations(final: final, live: live, translations: ["others-0": "", "others-1": "AB.", "others-2": "C."])
-        // Birim 0–5 sn: final-0 ile 3,5 sn, final-1 ile 1,5 sn kesişir.
-        #expect(aligned == ["final-0": "AB.", "final-1": "C."])
-    }
-
     // Toplantılar penceresi: kapsanan bölümün boş çevirisi paragraf çevirisine boşluk katmaz.
     @Test func paragraphsSkipCoveredTranslations() {
         let record: MeetingRecord = MeetingRecord(

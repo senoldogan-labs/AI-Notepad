@@ -102,6 +102,8 @@ export interface CommonCopy {
     readonly account: string;
     readonly company: string;
     readonly fontLicense: string;
+    /** Licence of the heading typeface (Newsreader, public/fonts/Newsreader-OFL.txt). */
+    readonly serifFontLicense: string;
     readonly cookies: string;
     /** Sayfa sonundaki çekmede görünen kısa teşekkür (PullReveal.astro). */
     readonly pullThanks: string;
@@ -178,6 +180,9 @@ export interface HomeCopy {
     /** Video oynatılamazsa görünen metin ve dosya bağlantısı. */
     readonly fallback: string;
     readonly fallbackLink: string;
+    /** Accessible names of the video's pause/play button (WCAG 2.2.2: it plays on its own for over five seconds). */
+    readonly pause: string;
+    readonly play: string;
   };
   /** Kahramanın altındaki "son toplantılar": uygulamadaki gibi gerçek bilgi taşıyan örnek toplantı kartları. */
   readonly library: {
@@ -901,6 +906,7 @@ export const copy: Copy = {
       account: "Account",
       company: "Company",
       fontLicense: "Inter font licence",
+      serifFontLicense: "Newsreader font licence",
       cookies: "Cookies",
       pullThanks: "Thanks for listening.",
       copyright: `© 2026 ${operator.name}`,
@@ -949,6 +955,8 @@ export const copy: Copy = {
       description: `A one-minute tour of ${productName}: the live transcript and translation during a meeting, the note with your tasks on top, asking across your meetings, and sending notes where your team works.`,
       fallback: "Your browser can't play this video here.",
       fallbackLink: "Open the video file",
+      pause: "Pause the video",
+      play: "Play the video",
     },
     library: {
       label: "Recent meetings",

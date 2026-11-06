@@ -49,7 +49,8 @@ public func followUpEmailRequest(
         - konu: toplantının adını ya da konusunu taşıyan kısa, tek satır.
         - govde: düz metin (Markdown, başlık işareti, kalın yazı yok); maddeler satır başında "- " ile. Sıra: kısa selamlama
           ve katılım için teşekkür; toplantının 2–4 ana noktası ya da kararı; görevler, her biri sahibi ve varsa tarihiyle;
-          notta açıkça geçiyorsa tek cümlelik sonraki adım; kısa kapanış. \(signature)
+          notta açık konu varsa cevap bekleyen en önemlileri; notta açıkça geçiyorsa tek cümlelik sonraki adım; kısa
+          kapanış. Nottaki [mm:ss] zamanlarını e-postaya yazma. \(signature)
         - Yalnızca notta olan bilgiyi kullan: kişi, tarih, rakam, karar ya da görev uydurma. Notta olmayan bölümü (ör. görev
           yoksa görevler) hiç yazma, "yok" diye de belirtme.
         - Kısa tut: gövde en fazla yaklaşık 200 sözcük.
@@ -62,9 +63,11 @@ public func followUpEmailRequest(
         katılımcılar: \(attendees.isEmpty ? "(bilinmiyor)" : attendees.joined(separator: ", "))
         özet: \(note.summary)
         kararlar:
-        \(note.decisions.map { "- \($0)" }.joined(separator: "\n"))
+        \(note.decisions.map { "- \(anchoredLine(text: $0).text)" }.joined(separator: "\n"))
         görevler (sahip | iş | tarih):
         \(tasks)
+        açık konular:
+        \((note.openQuestions ?? []).map { "- \(anchoredLine(text: $0).text)" }.joined(separator: "\n"))
         </not>
         """,
         maxTokens: followUpEmailMaxTokens,

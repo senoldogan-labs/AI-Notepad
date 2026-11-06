@@ -113,7 +113,7 @@ struct PhoneSyncSection: View {
 
     private var section: some View {
         Section {
-            Toggle("Mac ile iPhone arasında eşitle", isOn: Binding<Bool>(
+            Toggle(isOn: Binding<Bool>(
                 get: { center.isOn },
                 set: { (enabled: Bool) -> Void in
                     if enabled {
@@ -124,7 +124,9 @@ struct PhoneSyncSection: View {
                         confirmingOff = true
                     }
                 }
-            ))
+            )) {
+                PhoneSettingLabel(icon: "arrow.triangle.2.circlepath", title: Text("Mac ile iPhone arasında eşitle"))
+            }
             .disabled(center.isChangingSetup || confirmingOff)
             status
             if confirmingOff {

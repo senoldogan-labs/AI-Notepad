@@ -15,7 +15,11 @@ struct PhoneConnectionsRow: View {
         NavigationLink {
             PhoneConnectionsScreen()
         } label: {
-            LabeledContent("Kanallar ve görev araçları", value: "\(integrations.destinations.count + integrations.taskTrackers.count)")
+            LabeledContent {
+                Text(verbatim: "\(integrations.destinations.count + integrations.taskTrackers.count)")
+            } label: {
+                PhoneSettingLabel(icon: "point.3.connected.trianglepath.dotted", title: Text("Kanallar ve görev araçları"))
+            }
         }
     }
 }

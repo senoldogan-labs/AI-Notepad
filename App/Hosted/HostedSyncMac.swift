@@ -117,7 +117,7 @@ struct HostedSyncSettingsRow: View {
 
     @ViewBuilder
     private var rows: some View {
-            SettingsRow(title: Text("Mac ile iPhone arasında eşitle")) {
+            SettingsRow(icon: "arrow.triangle.2.circlepath", title: Text("Mac ile iPhone arasında eşitle")) {
                 Text("Toplantı metinleri, notlar, görevler, kişiler ve Sor sohbetleri aynı hesapla giriş yaptığın Mac ve iPhone'da görünür. Her şey bu Mac'te şifrelenir; sunucumuz (AB'de) yalnızca okuyamadığı şifreli kopyayı saklar. Ses ve ekran görüntüleri kaydedildiği cihazda kalır.")
                 status
                 if let notice = center.notice {
@@ -198,7 +198,7 @@ struct HostedSyncSettingsRow: View {
     }
 
     private var linkCodeEntry: some View {
-        SettingsRow(title: Text("Bağlantı kodu")) {
+        SettingsRow(icon: "link", title: Text("Bağlantı kodu")) {
             Text("Diğer cihazda Ayarlar › Mac ile iPhone arasında eşitle altında gösterilen 32 karakterlik kod.")
         } control: {
             HStack(spacing: 8) {
@@ -218,7 +218,7 @@ struct HostedSyncSettingsRow: View {
     }
 
     private func linkCodeRow(code: String) -> some View {
-        SettingsRow(title: Text("Diğer cihazın için bağlantı kodu")) {
+        SettingsRow(icon: "key", title: Text("Diğer cihazın için bağlantı kodu")) {
             Text("iPhone'da eşitlemeyi açınca bu kodu yaz. Kodu güvenli bir yerde sakla: bütün cihazlarını kaybedersen eşitlenen kopyayı yalnızca bu kod açar; biz göremeyiz ve sıfırlayamayız.")
             if showsCode {
                 Text(verbatim: code)

@@ -2252,6 +2252,32 @@ final class AppModel {
         }
     }
 
+    /// Transkriptte "Çeviri alınamadı · Tekrar dene": toplantı sonu çevirisi yapılamayan parçalar yeniden çevrilir
+    /// (abonelikte hesaptan, not düzenleme gibi). Çeviri sürerken toplantı kilitlidir; sonuç diskteki güncel kayda
+    /// uygulanır (bu arada transkript değiştiyse uygulanmaz).
+    func retryTranscriptTranslations(meetingID: String) {
+        guard let record = meetings.first(where: { $0.id == meetingID }), !(record.failedTranslationKeys ?? []).isEmpty,
+              !isLocked(meetingID: meetingID), !isAIBlockedBySubscription() else {
+            return
+        }
+        let userName: String = self.userName
+        withSessionDirectory(id: meetingID) { (directory: URL) -> Void in
+            processingMeetingIDs.insert(meetingID)
+            Task {
+                defer { processingMeetingIDs.remove(meetingID) }
+                let llm: LLMProvider? = await optionalLLMProvider()
+                let translated: MeetingRecord = await retryingFailedTranscriptTranslations(
+                    record: record, llm: llm, language: selectedNoteLanguage(), userName: userName
+                )
+                guard let current = meetings.first(where: { $0.id == meetingID }) else {
+                    return
+                }
+                saveRecord(record: withTranscriptTranslations(from: translated, onto: current), directory: directory)
+                refreshFolderCopy(meetingID: meetingID)
+            }
+        }
+    }
+
     /// Notun önceki sürümünü geri yükler (`index`: geçmişte yeniden eskiye sıra); şimdiki not geçmişe girer, geri yükleme
     /// de geri alınabilir.
     func restoreNoteVersion(meetingID: String, index: Int) {

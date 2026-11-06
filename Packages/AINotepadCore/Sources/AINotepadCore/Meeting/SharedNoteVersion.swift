@@ -32,9 +32,7 @@ public func sharedNoteVersion(record: MeetingRecord, language: ShareLanguage) ->
     let tasks: [NoteTask] = zip(shared.tasks, original.tasks).map { (pair: (NoteTask, NoteTask)) -> NoteTask in
         pair.0.with(storedKey: taskKey(task: pair.1))
     }
-    let keyed: MeetingNote = MeetingNote(title: shared.title, summary: shared.summary, decisions: shared.decisions, tasks: tasks, glossary: shared.glossary)
-    let withOutline: MeetingNote = shared.outline.map { keyed.with(outline: $0) } ?? keyed
-    return shared.language.map { withOutline.with(language: $0) } ?? withOutline
+    return shared.with(title: shared.title, summary: shared.summary, decisions: shared.decisions, tasks: tasks, glossary: shared.glossary)
 }
 
 /// Toplantının seçili dilde gösterilen, paylaşılan ve dışa aktarılan hali: dil nil ise kayıt olduğu gibi (asıl not);

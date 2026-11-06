@@ -4,10 +4,10 @@
 // uygulamaya iletilir. Betik: src/client/sign-in.ts.
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
-import Film from "../components/Film.astro";
+import Horizon from "../components/Horizon.astro";
 import Icon from "../components/Icon.astro";
 import Logo from "../components/Logo.astro";
-import Waveform from "../components/Waveform.astro";
+import PhotoPanel from "../components/PhotoPanel.astro";
 import { copy, type CommonCopy, type SignInCopy } from "../copy";
 import { pageUrl, routes } from "../routes";
 import { siteConfig } from "../site";
@@ -18,13 +18,13 @@ const common: CommonCopy = copy.common;
 
 <Base page="signIn" meta={text.meta} indexed={false} social={websiteCard}>
   <section class="page auth" id="signin" data-account-path={routes.account} data-redirect-uri={pageUrl("signIn", siteConfig.siteOrigin)}>
-    <Film palette="violet" layout="clouds-right" class="auth__cover">
-      <div class="glass auth__badge">
+    <PhotoPanel photo="summer-lake" focus="center" widths={[480, 720, 960, 1280]} sizes="(max-width: 760px) 100vw, 600px" priority="lcp" class="auth__cover">
+      <div class="auth__badge">
         <Logo size={44} />
         <p class="auth__tagline">{common.footer.tagline}</p>
-        <Waveform seed={common.footer.tagline} width={150} height={32} class="auth__wave" />
+        <Horizon seed={common.footer.tagline} class="auth__horizon" />
       </div>
-    </Film>
+    </PhotoPanel>
 
     <div class="auth__panel">
       <div id="signin-intro" class="auth__intro">
@@ -93,25 +93,37 @@ const common: CommonCopy = copy.common;
     padding: 32px;
   }
 
+  /* A paper card on the photograph (text never sits on the photo itself). */
   .auth__badge {
     display: grid;
     justify-items: center;
-    gap: 14px;
-    padding: 28px 32px;
+    gap: 16px;
+    width: min(100%, 320px);
+    padding: 32px;
+    border-radius: var(--radius-m);
+    background: var(--card);
+    color: var(--ink);
     text-align: center;
+    box-shadow: var(--shadow-window);
   }
 
   .auth__tagline {
-    font-size: 1.125rem;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    max-width: 16ch;
+    max-width: 14ch;
+    font-family: var(--serif);
+    font-size: 1.75rem;
+    line-height: 1.12;
+    letter-spacing: -0.015em;
   }
 
-  .auth__badge :global(.auth__wave) {
-    color: #4b3a6b;
-    mix-blend-mode: normal;
-    opacity: 0.6;
+  .auth__badge :global(.auth__horizon) {
+    width: 100%;
+  }
+
+  .auth__badge :global(.auth__horizon)::before {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--line);
   }
 
   /* Google düğmesi en çok 400 px: Apple düğmesi ve panel aynı genişlikte. */

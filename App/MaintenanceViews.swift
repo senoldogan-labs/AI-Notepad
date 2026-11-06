@@ -11,8 +11,11 @@ struct UpdateSettingsRow: View {
 
     var body: some View {
         if updater.isEnabled {
-            SettingsRow(title: Text("Otomatik olarak güncelle")) {
-                Text("Yeni sürüm uygulama açıkken birkaç dakikada bir denetlenir. Açıkken arka planda indirilir ve uygulamadan çıkınca kurulur; kapalıyken yalnızca haber verilir.")
+            SettingsRow(icon: "arrow.triangle.2.circlepath", title: Text("Otomatik olarak güncelle")) {
+                SettingsMoreText(
+                    summary: Text("Yeni sürüm arka planda iner, uygulamadan çıkınca kurulur."),
+                    details: Text("Yeni sürüm uygulama açıkken birkaç dakikada bir denetlenir. Açıkken arka planda indirilir ve uygulamadan çıkınca kurulur; kapalıyken yalnızca haber verilir.")
+                )
             } control: {
                 HStack(spacing: 8) {
                     Button("Güncellemeleri denetle…") { updater.checkForUpdates() }
@@ -220,8 +223,8 @@ struct CrashReportsSettings: View {
     @State private var isExpanded: Bool = false
 
     var body: some View {
-        SettingsRow(title: Text("Çökme raporları")) {
-            Text(crashSettingsPrivacyNote)
+        SettingsRow(icon: "ladybug", title: Text("Çökme raporları")) {
+            SettingsMoreText(summary: Text("Raporlar bu Mac'te kalır; yalnızca \"Gönder\"e basınca gider."), details: Text(crashSettingsPrivacyNote))
             if let problem = center.problem {
                 NoticeText(problem, severity: .error)
             }
@@ -235,7 +238,7 @@ struct CrashReportsSettings: View {
         }
         if isExpanded {
             if center.reports.isEmpty {
-                SettingsRow(title: Text("Kayıtlı çökme raporu yok.")) {
+                SettingsRow(icon: "checkmark.circle", title: Text("Kayıtlı çökme raporu yok.")) {
                     EmptyView()
                 } control: {
                     EmptyView()
@@ -244,7 +247,7 @@ struct CrashReportsSettings: View {
             ForEach(center.reports) { (report: CrashReport) in
                 let diagnostic: CrashDiagnostic = report.primaryDiagnostic
                 let state: CrashReportSendState? = center.sendStates[report.id]
-                SettingsRow(title: Text(crashReportHeadline(diagnostic: diagnostic))) {
+                SettingsRow(icon: "doc.text.magnifyingglass", title: Text(crashReportHeadline(diagnostic: diagnostic))) {
                     Text(verbatim: "\(report.receivedAt.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(interfaceLocale()))) · \(diagnostic.appVersion) · \(diagnostic.osVersion)")
                     if case .failed(let message) = state {
                         NoticeText(message as String, severity: .error)

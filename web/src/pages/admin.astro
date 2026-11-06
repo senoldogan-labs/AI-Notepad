@@ -9,8 +9,10 @@
 // (`/v1/admin/stats` başarılı) sayfaya eklenir; o zamana dek nötr bir yükleme satırı, erişim yoksa standart "sayfa
 // bulunamadı" görünümü.
 import Base from "../layouts/Base.astro";
-// Sitenin genel stillerinden sonra yüklenir: eşit özgüllükte panelin kuralı geçerlidir.
-import "../styles/admin.css";
+// Panelin stilleri ayrı bir dosya olarak yalnızca bu sayfada, sitenin tek stil dosyasından sonra yüklenir (eşit
+// özgüllükte panelin kuralı geçerlidir). Sitenin paketine girmez: `.panel`, `.stack` gibi sınıfları fiyat ve gizlilik
+// sayfalarına sızmaz ve panelin varlığı genel sayfaların stilinden belli olmaz.
+import adminStylesheet from "../styles/admin.css?url";
 import { websiteCard } from "../lib/social";
 import Icon from "../components/Icon.astro";
 import Logo from "../components/Logo.astro";
@@ -193,6 +195,7 @@ const legendPlans: { readonly main: string; readonly accent: string } = { main: 
 ---
 
 <Base page="admin" meta={text.meta} indexed={false} social={websiteCard}>
+  <link rel="stylesheet" href={adminStylesheet} />
   <div id="admin-not-found" hidden data-title={copy.notFound.meta.title}>
     <NotFound />
   </div>

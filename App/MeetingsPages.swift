@@ -579,7 +579,8 @@ struct MeetingDetailPage: View {
                             onPlay: { (startSec: Double) -> Void in play(from: startSec) },
                             canEdit: !isLocked,
                             onToggleHighlight: { (paragraph: TranscriptParagraph) -> Void in model.toggleHighlight(meetingID: record.id, paragraph: paragraph) },
-                            onClip: { (paragraph: TranscriptParagraph) -> Void in exportClip(paragraph: paragraph) }
+                            onClip: { (paragraph: TranscriptParagraph) -> Void in exportClip(paragraph: paragraph) },
+                            onRetryTranslation: { () -> Void in model.retryTranscriptTranslations(meetingID: record.id) }
                         )
                         .frame(maxWidth: 820, alignment: .leading)
                     case .screens:
@@ -771,12 +772,22 @@ struct MeetingDetailPage: View {
                 // Notta karar ya da sana düşen görev varsa sayısı; tıklayınca nottaki bölüme gider.
                 if let note = record.note {
                     let decisions: Int = note.decisions.count
+                    let questions: Int = (note.openQuestions ?? []).count
                     let mine: Int = note.tasks.filter(\.isMine).count
                     if decisions > 0 {
                         Button {
                             reveal(anchor: .decisions, proxy: proxy)
                         } label: {
                             HeroChip(text: String(localized: "\(decisions) karar"), symbol: "checkmark.seal", isAction: true)
+                        }
+                        .buttonStyle(.plain)
+                        .linkPointer(isEnabled: true)
+                    }
+                    if questions > 0 {
+                        Button {
+                            reveal(anchor: .openQuestions, proxy: proxy)
+                        } label: {
+                            HeroChip(text: String(localized: "\(questions) açık konu"), symbol: "questionmark.circle", isAction: true)
                         }
                         .buttonStyle(.plain)
                         .linkPointer(isEnabled: true)
@@ -859,6 +870,7 @@ struct MeetingDetailPage: View {
         switch anchor {
         case .myTasks: noteSection = .tasks
         case .decisions: noteSection = .decisions
+        case .openQuestions: noteSection = .openQuestions
         case .sections: break
         }
         Task { @MainActor in
@@ -1620,7 +1632,10 @@ private struct SummaryTab: View {
         let markedIDs: Set<String> = highlightedParagraphIDs(paragraphs: paragraphs, highlights: record.highlights ?? [])
         let marked: [TranscriptParagraph] = paragraphs.filter { markedIDs.contains($0.id) }
         let outline: [OutlineItem] = note.outline ?? []
-        let counts: [NoteSectionTab: Int] = [.tasks: pairs.count, .outline: outline.count, .decisions: note.decisions.count, .moments: marked.count]
+        let counts: [NoteSectionTab: Int] = [
+            .tasks: pairs.count, .outline: outline.count, .decisions: note.decisions.count, .openQuestions: (note.openQuestions ?? []).count,
+            .moments: marked.count,
+        ]
         let available: [NoteSectionTab] = NoteSectionTab.allCases.filter { (counts[$0] ?? 0) > 0 }
         if let current = visibleNoteSection(requested: section, available: available) {
             VStack(alignment: .leading, spacing: 18) {
@@ -1637,6 +1652,7 @@ private struct SummaryTab: View {
                     case .tasks: tasksSection(pairs: pairs)
                     case .outline: OutlineTimeline(items: outline, canPlay: canPlay, onPlay: onPlay)
                     case .decisions: decisionsSection
+                    case .openQuestions: openQuestionsSection
                     case .moments: momentsSection(marked: marked)
                     }
                 }
@@ -1679,23 +1695,45 @@ private struct SummaryTab: View {
         }
     }
 
-    /// Kararlar: numaralı, ince çizgilerle ayrılmış.
+    /// Kararlar: numaralı, ince çizgilerle ayrılmış; alındığı an (yeni notlarda) sağda, tıklayınca oradan çalar.
     private var decisionsSection: some View {
         HairlineList(items: Array(note.decisions.enumerated()), tint: nil) { (item: (offset: Int, element: String)) in
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
+            anchoredRow(line: anchoredLine(text: item.element)) {
                 Text(decisionNumber(index: item.offset))
                     .appFont(size: 13, weight: .semibold)
                     .monospacedDigit()
                     .foregroundStyle(appearance.accent.color)
                     .frame(width: 24, alignment: .leading)
-                Text(item.element)
-                    .textSelection(.enabled)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
         }
+    }
+
+    /// Açık konular: çözülmeyen ve takip gereken şeyler; konuşulduğu an sağda, tıklayınca oradan çalar.
+    private var openQuestionsSection: some View {
+        HairlineList(items: note.openQuestions ?? [], tint: nil) { (question: String) in
+            anchoredRow(line: anchoredLine(text: question)) {
+                Image(systemName: "questionmark.circle")
+                    .appFont(size: 13, weight: .semibold)
+                    .foregroundStyle(appearance.accent.color)
+                    .frame(width: 24, alignment: .leading)
+            }
+        }
+    }
+
+    /// Karar ya da açık konu satırı: solda işaret, ortada metin, sağda (varsa) zaman çipi.
+    private func anchoredRow<Marker: View>(line: AnchoredLine, @ViewBuilder marker: () -> Marker) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            marker()
+            Text(line.text)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            if let start = line.startSec {
+                NoteTimeChip(startSec: start, canPlay: canPlay, onPlay: onPlay)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
     }
 
     /// İşaretlediğin anlar: zamanı (tıklayınca oradan çalar), konuşmacısı ve sözü; sağ tıkla ses klibi.
@@ -2984,6 +3022,8 @@ private struct TranscriptSection: View {
     let onToggleHighlight: @MainActor (TranscriptParagraph) -> Void
     /// Paragrafın sesini klip olarak kaydeder (sağ tık).
     let onClip: @MainActor (TranscriptParagraph) -> Void
+    /// Toplantı sonu çevirisi yapılamayan parçaları yeniden çevirir ("Çeviri alınamadı · Tekrar dene").
+    let onRetryTranslation: @MainActor () -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     /// Çalan paragraf: konum her güncellendiğinde değil, yalnızca paragraf değişince yazılır (tüm transkript saniyede
@@ -3050,6 +3090,16 @@ private struct TranscriptSection: View {
                                 .padding(.leading, 10)
                                 .overlay(alignment: .leading) { Rectangle().fill(Theme.line).frame(width: 2) }
                                 .padding(.top, 2)
+                        }
+                        if paragraph.translationFailed {
+                            Button(action: onRetryTranslation) {
+                                Label("Çeviri alınamadı · Tekrar dene", systemImage: "arrow.clockwise")
+                                    .appFont(size: 12, weight: .medium)
+                            }
+                            .buttonStyle(.hoverPlain)
+                            .foregroundStyle(NoticeSeverity.attention.tint)
+                            .disabled(!canEdit)
+                            .padding(.top, 2)
                         }
                     }
                     // Çal düğmesi metnin üstüne binmesin.

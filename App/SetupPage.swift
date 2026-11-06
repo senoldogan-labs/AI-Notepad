@@ -447,12 +447,14 @@ private struct KeysStep: View {
                     .foregroundStyle(Theme.muted)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
-                if model.liveEngine == .deepgram {
-                    SecretField(title: "Deepgram", account: .deepgram, onChange: model.settingsChanged)
-                    SecretField(title: "ElevenLabs", account: .elevenlabs, onChange: model.settingsChanged)
+                SettingsCard {
+                    if model.liveEngine == .deepgram {
+                        SecretField(icon: "waveform", title: "Deepgram", account: .deepgram, onChange: model.settingsChanged)
+                        SecretField(icon: "person.2.wave.2", title: "ElevenLabs", account: .elevenlabs, onChange: model.settingsChanged)
+                    }
+                    SecretField(icon: "sparkles", title: "Anthropic (Claude)", account: .anthropic, onChange: model.settingsChanged)
+                    LocalLLMSetup(model: model)
                 }
-                SecretField(title: "Anthropic (Claude)", account: .anthropic, onChange: model.settingsChanged)
-                LocalLLMSetup(model: model)
                 Text("Çeviri, özet ve not için Claude kullanılır; anahtarsız istersen Mac'teki Ollama'yı seç. OpenAI ve OpenCode Go Ayarlar › LLM'de.")
                     .appFont(size: 12, weight: .regular)
                     .foregroundStyle(Theme.muted)

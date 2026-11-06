@@ -3,6 +3,7 @@
 //   npx wrangler dev --port 8797 --var UPSTREAM_STUB_URL:http://127.0.0.1:8798
 // Sunucu yalnızca geliştirme ortamında ve geri döngü adresinde bu adrese yönlendirir (bkz. src/upstreamStub.ts).
 // - POST /v1/messages: isteğin JSON şemasına (output_config.format.schema) uyan en küçük yanıt; şema yoksa kısa metin.
+//   Transkript çevirisi (`ceviriler` şeması) istekteki her `<parca id="N">` için bir çeviri döndürür.
 //   `stream: true` ise Anthropic SSE olayları. Kullanım: 120 girdi, 30 çıktı token. İstek web araması aracını taşıyorsa
 //   (Sor cevabı) akış bir arama yapar: `server_tool_use`, `web_search_tool_result`, alıntılı (`citations_delta`) metin
 //   ve `usage.server_tool_use.web_search_requests: 1`. Araçlı istek `webSearchDisabledMarker`'ı taşıyorsa Anthropic'in
@@ -53,6 +54,18 @@ function sample(schema: JsonSchema | undefined): JsonValue {
     default:
       return "Uçtan uca deneme";
   }
+}
+
+/**
+ * Şemaya uyan yanıt: transkript çevirisi şemasında (`ceviriler`) istekteki her parçaya bir çeviri (uygulama eksik
+ * parçalı yanıtı bozuk sayar), diğerlerinde en küçük değer. Saf fonksiyondur.
+ */
+function structuredSample(schema: JsonSchema, requestBody: string): JsonValue {
+  if (schema.properties?.ceviriler === undefined) {
+    return sample(schema);
+  }
+  const ids: string[] = [...requestBody.matchAll(/<parca id=\\"(\d+)\\"/g)].map((match: RegExpMatchArray): string => match[1] ?? "");
+  return { ceviriler: ids.map((id: string): JsonValue => ({ id, ceviri: `Uçtan uca çeviri ${id}` })) };
 }
 
 function readBody(request: IncomingMessage): Promise<Buffer> {
@@ -153,7 +166,7 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
   if (request.method === "POST" && path === "/v1/messages") {
     const json: MessagesRequest = JSON.parse(body.toString("utf8")) as MessagesRequest;
     const schema: JsonSchema | undefined = json.output_config?.format?.schema;
-    const text: string = schema === undefined ? "Uçtan uca deneme" : JSON.stringify(sample(schema));
+    const text: string = schema === undefined ? "Uçtan uca deneme" : JSON.stringify(structuredSample(schema, body.toString("utf8")));
     const searches: boolean = (json.tools ?? []).some((tool): boolean => tool.type.startsWith("web_search"));
     console.log(`messages stream=${json.stream === true} schema=${schema !== undefined} webSearch=${searches}`);
     if (searches && body.toString("utf8").includes(webSearchDisabledMarker)) {

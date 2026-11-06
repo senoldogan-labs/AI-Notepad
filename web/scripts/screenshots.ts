@@ -1115,7 +1115,7 @@ async function checkOverflow(page: Page, shot: string, findings: Finding[]): Pro
     for (const element of Array.from(document.querySelectorAll("body *"))) {
       const rect: DOMRect = element.getBoundingClientRect();
       if (rect.width > 0 && (rect.right > viewport + 1 || rect.left < -1) && getComputedStyle(element).position !== "fixed") {
-        const insideClip: boolean = element.closest(".film, .faq, dialog, .visually-hidden, .skip-link, .table-wrap, .table-scroll, .detail__payload") !== null;
+        const insideClip: boolean = element.closest(".film, .photo, .faq, dialog, .visually-hidden, .skip-link, .table-wrap, .table-scroll, .detail__payload") !== null;
         if (!insideClip) {
           offenders.push(`${element.tagName.toLowerCase()}.${String(element.className).split(" ").join(".")} (${Math.round(rect.left)}–${Math.round(rect.right)})`);
         }
@@ -1440,11 +1440,16 @@ async function capturePullReveal(browser: Browser, base: string, outDir: string,
       window.setInterval(send, 40);
     });
     await page.waitForTimeout(900);
-    const probe: { readonly headerTop: number; readonly armed: boolean } = await page.evaluate(() => ({
-      headerTop: document.getElementById("site-header")?.getBoundingClientRect().top ?? -1,
-      armed: document.documentElement.classList.contains("pull-armed"),
-    }));
-    if (Math.abs(probe.headerTop) > 1 || !probe.armed) {
+    // The header floats at its sticky offset (`top`, 12 px): during the pull it must stay exactly there.
+    const probe: { readonly headerTop: number; readonly stickyTop: number; readonly armed: boolean } = await page.evaluate(() => {
+      const header: HTMLElement | null = document.getElementById("site-header");
+      return {
+        headerTop: header?.getBoundingClientRect().top ?? -1,
+        stickyTop: header === null ? 0 : Number.parseFloat(getComputedStyle(header).top),
+        armed: document.documentElement.classList.contains("pull-armed"),
+      };
+    });
+    if (Math.abs(probe.headerTop - probe.stickyTop) > 1 || !probe.armed) {
       findings.push({ shot, problem: `çekmede üst çubuk kaydı ya da esneme kapanmadı: ${JSON.stringify(probe)}` });
     }
     await page.screenshot({ path: join(outDir, `${shot}.png`) });

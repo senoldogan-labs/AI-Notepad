@@ -23,8 +23,8 @@ private func slideImage() -> NSImage {
 @MainActor
 private func row() -> ScreenSnapshotRow {
     let paragraphs: [TranscriptParagraph] = [
-        TranscriptParagraph(id: "a", speaker: .others, person: 1, startSec: 29, endSec: 35, text: "Tässä on uusi hinnoittelusivu ja sen kolme tasoa.", turkish: nil, words: []),
-        TranscriptParagraph(id: "b", speaker: .me, person: nil, startSec: 36, endSec: 42, text: "Selvä, katsotaan seuraavaksi painikkeita.", turkish: nil, words: []),
+        TranscriptParagraph(id: "a", speaker: .others, person: 1, startSec: 29, endSec: 35, text: "Tässä on uusi hinnoittelusivu ja sen kolme tasoa.", turkish: nil, translationFailed: false, words: []),
+        TranscriptParagraph(id: "b", speaker: .me, person: nil, startSec: 36, endSec: 42, text: "Selvä, katsotaan seuraavaksi painikkeita.", turkish: nil, translationFailed: false, words: []),
     ]
     let image: NSImage = slideImage()
     return ScreenSnapshotRow(

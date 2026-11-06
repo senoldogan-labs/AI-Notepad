@@ -11,6 +11,9 @@ public struct TranscriptParagraph: Sendable, Equatable, Identifiable {
     public let text: String
     /// Bölümlerin not dilindeki çevirileri sırayla; hiç yoksa nil.
     public let turkish: String?
+    /// Bölümlerinden birinin toplantı sonu çevirisi yapılamadı (`MeetingRecord.failedTranslationKeys`): paragrafta
+    /// "Çeviri yapılamadı · Tekrar dene" görünür.
+    public let translationFailed: Bool
     /// Çalarken vurgulanacak kelimeler: son geçişin gerçek zamanları, yoksa bölüm süresine göre tahmin.
     public let words: [StoredWord]
 }
@@ -89,7 +92,8 @@ let readingPieceMinSec: Double = 8
 /// Bölümleri paragraflara toplar: konuşmacı (ya da kişi) değişince ya da paragraf `readingParagraphMaxSec`'i geçecekse
 /// yeni paragraf. Uzun bölümler önce cümle sonlarından parçalanır (bkz. `readingPieces`). Saf fonksiyondur.
 public func transcriptParagraphs(record: MeetingRecord) -> [TranscriptParagraph] {
-    readingGroups(record: record).compactMap { (group: [StoredSegment]) -> TranscriptParagraph? in
+    let failed: Set<String> = Set(record.failedTranslationKeys ?? [])
+    return readingGroups(record: record).compactMap { (group: [StoredSegment]) -> TranscriptParagraph? in
         guard let first = group.first, let last = group.last else {
             return nil
         }
@@ -99,6 +103,7 @@ public func transcriptParagraphs(record: MeetingRecord) -> [TranscriptParagraph]
             id: first.key, speaker: first.speaker, person: first.person, startSec: first.startSec, endSec: last.endSec,
             text: group.map(\.text).joined(separator: " "),
             turkish: turkish.isEmpty ? nil : turkish.joined(separator: " "),
+            translationFailed: group.contains { failed.contains($0.key) },
             words: group.flatMap { (segment: StoredSegment) -> [StoredWord] in
                 segment.words ?? estimatedWords(text: segment.text, startSec: segment.startSec, endSec: segment.endSec)
             }

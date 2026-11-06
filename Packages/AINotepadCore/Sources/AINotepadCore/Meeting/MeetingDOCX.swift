@@ -61,6 +61,10 @@ func meetingDocxParagraphs(record: MeetingRecord) -> [DocxParagraph] {
         let decisions: [DocxParagraph] = note.decisions.isEmpty
             ? []
             : [single(text: String(localized: "KARARLAR"), style: .heading)] + note.decisions.map { single(text: "•  \($0)", style: .listItem) }
+        let questions: [String] = note.openQuestions ?? []
+        let openQuestions: [DocxParagraph] = questions.isEmpty
+            ? []
+            : [single(text: String(localized: "AÇIK KONULAR"), style: .heading)] + questions.map { single(text: "•  \($0)", style: .listItem) }
         let otherTasks: [DocxParagraph] = others.isEmpty
             ? []
             : [single(text: String(localized: "DİĞER GÖREVLER"), style: .heading)] + others.map(taskParagraph(task:))
@@ -71,7 +75,7 @@ func meetingDocxParagraphs(record: MeetingRecord) -> [DocxParagraph] {
             }
         return [single(text: String(localized: "SENİN GÖREVLERİN"), style: .heading)] + myTasks
             + [single(text: String(localized: "ÖZET"), style: .heading), single(text: note.summary, style: .body)]
-            + decisions + otherTasks + glossary
+            + decisions + openQuestions + otherTasks + glossary
     } ?? []
     let paragraphs: [TranscriptParagraph] = transcriptParagraphs(record: record)
     let transcript: [DocxParagraph] = paragraphs.isEmpty

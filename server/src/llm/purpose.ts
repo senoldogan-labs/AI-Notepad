@@ -8,7 +8,8 @@ import { dayKey } from "../usage";
  * - `live_translation`: kayıt sırasında canlı cümle çevirisi;
  * - `missed_summary`: "Ne kaçırdım?"; `live_question`: kayıt sırasında toplantı sorusu;
  * - `note`: tek parça toplantı notu; `note_chunk` ve `note_overview`: uzun toplantının parçalı notu ve birleştirmesi;
- * - `speaker_review`: konuşmacı gözden geçirmesi; `note_edit`: not düzenleme ve yeniden yazma;
+ * - `speaker_review`: konuşmacı gözden geçirmesi; `transcript_translation`: toplantı sonunda son geçiş transkriptinin
+ *   not diline çevirisi (kaydın işlenmesidir, canlı değil); `note_edit`: not düzenleme ve yeniden yazma;
  * - `shared_note_translation`: notun paylaşım diline çevirisi; `follow_up_email`: nottan takip e-postası taslağı;
  * - `ask_search_terms` ve `ask_answer`: Sor'un arama terimleri ve yanıtı;
  * - `task_agent`: görev aracına (Linear, Jira, Notion) iş açan ajan; `connection_test`: Ayarlar'daki bağlantı denemesi.
@@ -21,6 +22,7 @@ export const llmPurposes = [
   "note_chunk",
   "note_overview",
   "speaker_review",
+  "transcript_translation",
   "note_edit",
   "shared_note_translation",
   "follow_up_email",
@@ -33,7 +35,7 @@ export const llmPurposes = [
 /**
  * Kayıt sırasındaki canlı amaçlar: toplantı bütçesinin nota ayrılan payını kullanamaz (`meetingLiveTokenLimit`) ve
  * toplantı bitince yalnızca ek süre boyunca açıktır. Toplantıya bağlı diğer çağrılar (not, not parçası ve birleştirmesi,
- * konuşmacı incelemesi; amacını bildirmeyen eski istemcinin notu) kaydın işlenmesidir: düzgün biten toplantıda işleme
+ * konuşmacı incelemesi, transkript çevirisi; amacını bildirmeyen eski istemcinin notu) kaydın işlenmesidir: düzgün biten toplantıda işleme
  * süresi boyunca açıktır (`meetingProcessingUntil`). Amaç istemcinin beyanıdır; harcama yine toplantının bütçesi ve
  * kullanıcının sınırlarıyla sınırlıdır.
  */

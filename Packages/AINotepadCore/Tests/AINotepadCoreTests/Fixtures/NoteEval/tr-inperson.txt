@@ -1,0 +1,28 @@
+# names:
+# user: Doğan
+# language: tr
+00:02 p1: Tamam, başlayalım mı? Ofis taşınması için toplandık. Sözleşme 31 Aralık'ta bitiyor, yeni ofise ondan önce geçmemiz lazım.
+00:12 p2: Ben iki ofise baktım. Birincisi Maslak'ta, 420 metrekare, aylık 185.000 lira. İkincisi Levent'te, 380 metrekare, aylık 160.000 lira.
+00:27 p3: Levent'teki binanın otoparkı yok ama. Ekibin yarısı arabayla geliyor.
+00:33 me: Maslak'taki metroya ne kadar uzak?
+00:36 p2: Yürüyerek yaklaşık sekiz dakika. Levent ise metronun tam üstünde.
+00:43 p1: Fiyat farkı ayda 25.000 lira, yılda 300.000 lira ediyor. Otopark için kişi başı ayrı ödeme yaparsak fark kapanır mı?
+00:55 p3: Levent'te yakındaki otopark aylık 4.000 lira. On beş kişi arabayla geliyor, yani ayda 60.000 lira olur.
+01:06 me: O zaman Levent otoparkla birlikte Maslak'tan daha pahalıya geliyor. Maslak'ı seçelim derim.
+01:12 p2: Ben de Maslak'tan yanayım, hem metrekaresi daha büyük.
+01:16 p1: Tamam, karar: Maslak'taki ofisi tutuyoruz. Otopark masrafı hesaba katılınca daha ucuz ve daha geniş.
+01:24 p1: Taşınma tarihi ne olsun?
+01:27 p3: Ev sahibi anahtarları 1 Aralık'ta verebilirmiş. İnternet hattının kurulumu iki hafta sürüyor.
+01:36 me: Hattı hemen sipariş edersek 15 Aralık civarı hazır olur. Taşınmayı 20 Aralık hafta sonuna koyalım, böylece yılbaşından önce bir hafta pay kalır.
+01:46 p1: Uygun. Taşınma 20 Aralık'ta. İnternet hattını kim sipariş edecek?
+01:50 me: Ben ederim, bu hafta içinde.
+01:53 p1: Sözleşmeyi ben imzalarım, ama önce hukukun bakması lazım. Kira artış maddesini anlamadım, yüzde kaç artacağı yazmıyor.
+02:04 p2: Ev sahibine sorabilirim ama cevabı ne zaman verir bilmiyorum.
+02:09 p1: Sen sor, ben de hukuka gönderiyim. Pazartesiye kadar gönderirim.
+02:14 p3: Taşınma firması için üç teklif toplamam gerekiyor muydu?
+02:18 p1: Evet, üç teklif lazım. Gelecek çarşambaya kadar toplayabilir misin?
+02:22 p3: Toplarım.
+02:25 me: Eski ofisteki mobilyalar ne olacak? Bir kısmını götürecek miyiz, yoksa satacak mıyız?
+02:31 p2: Bilmiyorum, bunu kimse düşünmedi galiba.
+02:34 p1: Doğru, onu da konuşmamız lazım ama bugün değil. Bir sonraki toplantıda bakarız.
+02:40 p1: Tamam, teşekkürler herkese.

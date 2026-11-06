@@ -1,12 +1,13 @@
 import AINotepadCore
 import SwiftUI
 
-/// Toplantı notunun sekmeli bölümleri (Mac ve iPhone özetinde aynı): görevler, konu akışı, kararlar, işaretli anlar.
-/// Boş bölümün sekmesi gösterilmez.
+/// Toplantı notunun sekmeli bölümleri (Mac ve iPhone özetinde aynı): görevler, konu akışı, kararlar, açık konular,
+/// işaretli anlar. Boş bölümün sekmesi gösterilmez (açık konuları olmayan eski notlarda o sekme yok).
 public enum NoteSectionTab: String, Sendable, CaseIterable, Hashable {
     case tasks
     case outline
     case decisions
+    case openQuestions
     case moments
 }
 
@@ -21,6 +22,7 @@ public func noteSectionTitle(tab: NoteSectionTab, count: Int) -> LocalizedString
     case .tasks: "Görevler · \(count)"
     case .outline: "Konu akışı · \(count)"
     case .decisions: "Kararlar · \(count)"
+    case .openQuestions: "Açık konular · \(count)"
     case .moments: "İşaretli anlar · \(count)"
     }
 }
@@ -287,6 +289,47 @@ public struct OutlineTimeline: View {
             .accessibilityValue(isOpen ? Text("Genişletilmiş") : Text("Daraltılmış"))
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+}
+
+/// Karar ve açık konu satırındaki an: zaman çipi; ses varsa oynatma işaretiyle, tıklayınca oradan çalar (konu
+/// akışındaki zamanla aynı görünüm).
+public struct NoteTimeChip: View {
+    let startSec: Double
+    let canPlay: Bool
+    let onPlay: @MainActor (Double) -> Void
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
+
+    public init(startSec: Double, canPlay: Bool, onPlay: @escaping @MainActor (Double) -> Void) {
+        self.startSec = startSec
+        self.canPlay = canPlay
+        self.onPlay = onPlay
+    }
+
+    public var body: some View {
+        Button {
+            onPlay(startSec)
+        } label: {
+            HStack(spacing: 4) {
+                if canPlay {
+                    Image(systemName: "play.fill")
+                        .appFont(size: 8, weight: .bold)
+                        .foregroundStyle(appearance.accent.color)
+                }
+                Text(timestamp(seconds: startSec))
+                    .appFont(size: 12, weight: .medium)
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.muted)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(Theme.soft, in: Capsule())
+        }
+        .buttonStyle(.hoverCapsule)
+        .disabled(!canPlay)
+        .fixedSize()
+        .accessibilityLabel(Text("Buradan dinle"))
+        .accessibilityValue(Text(verbatim: timestamp(seconds: startSec)))
     }
 }
 

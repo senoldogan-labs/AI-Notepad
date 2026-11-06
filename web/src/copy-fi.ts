@@ -65,6 +65,7 @@ export const commonFi: CommonCopy = {
     account: "Tili",
     company: "Yritys",
     fontLicense: "Inter-fontin lisenssi",
+    serifFontLicense: "Newsreader-fontin lisenssi",
     cookies: "Evästeet",
     pullThanks: "Kiitos, kun kuuntelit.",
     copyright: `© 2026 ${operator.name}`,
@@ -115,6 +116,8 @@ export const homeFi: HomeCopy = {
     description: `Minuutin kierros ${productName}-sovelluksessa: litterointi ja käännös kokouksen aikana, muistiinpano jossa tehtävät ovat päällimmäisenä, kysyminen kaikista kokouksista ja muistiinpanojen lähettäminen sinne, missä tiimi työskentelee.`,
     fallback: "Selaimesi ei voi toistaa tätä videota tässä.",
     fallbackLink: "Avaa videotiedosto",
+    pause: "Keskeytä video",
+    play: "Toista video",
   },
   library: {
     label: "Viimeisimmät kokoukset",

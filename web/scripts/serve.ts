@@ -1,10 +1,12 @@
 // Derlenmiş siteyi (dist/) Cloudflare Pages gibi sunar: uzantısız adresler (`/tr/fiyat` → `tr/fiyat.html`), `_headers`
-// başlıkları (CSP dahil) ve 404.html. Ekran görüntüleri ve Lighthouse gerçek başlıklarla bu sunucuya karşı çalışır.
+// başlıkları (CSP dahil), 404.html ve Pages gibi metin dosyalarında brotli sıkıştırma (istemci `br` kabul ediyorsa). Ekran
+// görüntüleri ve Lighthouse gerçek başlıklarla ve gerçek aktarım boyutlarıyla bu sunucuya karşı çalışır.
 // Kullanım: node scripts/serve.ts <kapı>
 import { readFile } from "node:fs/promises";
 import { type IncomingMessage, type ServerResponse, createServer } from "node:http";
 import { extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { brotliCompressSync } from "node:zlib";
 import { type Resolved, contentTypes, resolveDistFile } from "./dist.ts";
 
 /** `_headers` dosyasındaki bir kural: yol kalıbı ve başlıkları. */
@@ -14,6 +16,11 @@ interface HeaderRule {
 }
 
 const distDir: string = fileURLToPath(new URL("../dist/", import.meta.url));
+
+/** Pages'in sıkıştırdığı türler: metin; görseller, yazı tipleri ve video zaten sıkıştırılmıştır. Saf fonksiyondur. */
+function isCompressible(contentType: string): boolean {
+  return contentType.startsWith("text/") || contentType.startsWith("application/xml") || contentType === "image/svg+xml";
+}
 
 /** `_headers` metnini kurallara ayırır. Saf fonksiyondur. */
 export function parseHeaders(text: string): HeaderRule[] {
@@ -67,9 +74,16 @@ async function main(): Promise<void> {
     const pathname: string = new URL(request.url ?? "/", "http://localhost").pathname;
     resolveDistFile(distDir, pathname)
       .then(async (resolved: Resolved): Promise<void> => {
-        const body: Buffer = await readFile(resolved.file);
+        const raw: Buffer = await readFile(resolved.file);
+        const contentType: string = contentTypes[extname(resolved.file)] ?? "application/octet-stream";
+        const compress: boolean = isCompressible(contentType) && /\bbr\b/.test(request.headers["accept-encoding"] ?? "");
+        const body: Buffer = compress ? brotliCompressSync(raw) : raw;
         response.statusCode = resolved.status;
-        response.setHeader("content-type", contentTypes[extname(resolved.file)] ?? "application/octet-stream");
+        response.setHeader("content-type", contentType);
+        response.setHeader("vary", "Accept-Encoding");
+        if (compress) {
+          response.setHeader("content-encoding", "br");
+        }
         for (const [name, value] of matchedHeaders(rules, pathname)) {
           // Yerelde https yok: tarayıcı http'yi https'e yükseltmeye çalışmasın.
           if (name !== "Strict-Transport-Security") {

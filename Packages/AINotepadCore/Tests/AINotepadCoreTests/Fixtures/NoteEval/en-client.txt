@@ -1,0 +1,33 @@
+# names: 1=Sarah, 2=Tom
+# user: Doğan
+# language: en
+00:03 p1: Hi both, thanks for making time. I have about thirty minutes, so let's be efficient. I want to leave with a clear picture of the pilot.
+00:12 p2: Sure. Quick recap from our side: Northwind wants a pilot for the operations team, and we proposed 40 seats at 12 dollars per seat per month.
+00:24 p1: Right. Forty seats is correct for the start. Finance asked me whether there's any flexibility on price. They mentioned 15 percent.
+00:34 p2: We usually don't discount pilots, but for an annual commitment after the pilot we could talk about it. I can't promise 15 percent today.
+00:45 p1: Understood. I'll take that back to finance. When could the pilot start at the earliest?
+00:51 me: Technically we can be ready within a week. The bottleneck is usually single sign-on. You're on Okta, correct?
+00:58 p1: Most of us are on Okta, yes. But the warehouse team in Rotterdam still uses Azure AD. I'm honestly not sure whether they'd be part of the pilot.
+01:10 me: Okta we support out of the box. Azure AD works too, but it needs about three extra days of setup on our side. So it would help to know early whether Rotterdam is in.
+01:22 p1: Let me find out. I'll check with Pieter, he runs the Rotterdam site.
+01:28 p2: What about the start date? You mentioned your fiscal year last time.
+01:33 p1: Yes. Our fiscal year starts December 1st, and anything we start before that comes out of this year's budget, which is basically spent. So December 1st is the earliest that makes sense.
+01:47 p2: Then let's plan the pilot to start on December 1st and run for six weeks, until January 12th.
+01:55 p1: Six weeks works. Let's go with December 1st.
+02:00 me: Agreed. Before that we need your security review. We have a standard security questionnaire, about 80 questions. I can send it over by Friday.
+02:11 p1: Please do. Our security team takes about ten business days, so the earlier the better.
+02:18 p1: One more thing they will ask: where is the data stored? We're a Dutch company, so EU data residency matters a lot.
+02:27 me: All customer data is stored in Frankfurt. Backups are in Frankfurt too. Nothing leaves the EU.
+02:35 p1: Good. And the transcripts, are they used to train any models?
+02:40 me: No. That's in the data processing agreement, section 4. I'll attach the DPA to the questionnaire.
+02:48 p1: Perfect. Tom, can you send me a revised quote that reflects 40 seats and the six week pilot?
+02:55 p2: Yes, I'll send the revised quote by Wednesday.
+03:00 p1: And what happens to the data if we don't continue after the pilot?
+03:05 me: We delete everything within 30 days after the pilot ends, and we can send a deletion confirmation.
+03:13 p1: Great. What does success look like for you? My boss will ask me what we measure.
+03:19 p2: Usually we look at weekly active users and how many meeting notes get shared. For a pilot of 40, we'd want at least 30 people active each week.
+03:30 p1: Thirty out of forty sounds ambitious. Let me think about whether that's the right bar. I'd rather define it with my boss, Martin.
+03:39 p2: Fair enough. Let's define the success criteria together before the kickoff.
+03:44 p1: Okay. I think that's it. I'll come back on the discount and on Rotterdam.
+03:50 me: Thanks Sarah. Talk soon.
+03:52 p2: Thanks, bye.

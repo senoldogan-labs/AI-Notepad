@@ -61,6 +61,8 @@ public struct WebhookMeeting: Sendable, Equatable, Encodable {
     public let decisions: [String]
     public let tasks: [WebhookTask]
     public let outline: [WebhookOutlineItem]
+    /// Açık konular ("[mm:ss] konu"); bu bölümden önce yazılan notlarda boş.
+    public let openQuestions: [String]
 }
 
 public struct WebhookTask: Sendable, Equatable, Encodable {
@@ -82,7 +84,8 @@ public func webhookMeeting(record: MeetingRecord, note: MeetingNote) -> WebhookM
         id: record.id, title: note.title, startedAt: record.startedAt, durationMinutes: meetingDurationMinutes(record: record),
         language: record.language?.rawValue, summary: note.summary, decisions: note.decisions,
         tasks: note.tasks.map { WebhookTask(owner: $0.owner, description: $0.description, dueDate: $0.dueDate, isMine: $0.isMine) },
-        outline: (note.outline ?? []).map { WebhookOutlineItem(startSec: $0.startSec, title: $0.title, summary: $0.summary) }
+        outline: (note.outline ?? []).map { WebhookOutlineItem(startSec: $0.startSec, title: $0.title, summary: $0.summary) },
+        openQuestions: note.openQuestions ?? []
     )
 }
 
@@ -136,6 +139,9 @@ public func webhookText(record: MeetingRecord, note: MeetingNote) -> String {
     }
     if !note.decisions.isEmpty {
         lines += ["## " + String(localized: "Kararlar"), ""] + note.decisions.map { "- \($0)" } + [""]
+    }
+    if let questions = note.openQuestions, !questions.isEmpty {
+        lines += ["## " + String(localized: "Açık konular"), ""] + questions.map { "- \($0)" } + [""]
     }
     lines += ["## " + String(localized: "Özet"), "", note.summary, ""]
     if let outline = note.outline, !outline.isEmpty {
