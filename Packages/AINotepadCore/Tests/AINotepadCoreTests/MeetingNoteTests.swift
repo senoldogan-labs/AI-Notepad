@@ -19,7 +19,11 @@ func stored(_ key: String, _ speaker: Speaker, _ person: Int?, _ start: Double, 
         #expect(request.tier == .smart)
         #expect(request.jsonSchema?.contains("gorevler") == true)
         #expect(request.userText.contains("[00:05] Aino: Voisitko tehdä diat?"))
-        #expect(request.userText.contains("[00:09] Sen: Teen ne."))
+        // Kullanıcının satırı "Sen" değil `promptUserLabel`: Türkçe "sen" hitabıyla karışmasın; sistem istemi bunu açıklar.
+        #expect(request.userText.contains("[00:09] [Kullanıcı]: Teen ne."))
+        #expect(!request.userText.contains("Sen:"))
+        #expect(request.system.contains("\"[Kullanıcı]\" etiketli satırlar kullanıcının (adı Doğan)"))
+        #expect(request.system.contains("hitapla verilen işin sahibi hitap edilen konuşmacıdır"))
         #expect(!request.userText.contains("benim_notlarim"))
         // Kendi notları istemde öncelik olarak yer alır.
         let withNotes: LLMRequest = try #require(meetingNoteRequest(

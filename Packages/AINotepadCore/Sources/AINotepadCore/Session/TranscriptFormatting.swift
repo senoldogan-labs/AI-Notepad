@@ -20,13 +20,30 @@ public func speakerLabel(speaker: Speaker, person: Int?) -> String {
     }
 }
 
-/// LLM istemlerindeki etiket: arayüz dilinden bağımsız Türkçe (sistem istemi "Sen"i kullanıcı olarak tanımlar).
+/// LLM istemlerinde kullanıcının satır etiketi (tek tanım; arayüzde "Sen" kalır). "Sen" değildir: Türkçede konuşmacılar
+/// birbirine "sen" diye hitap eder ("Sen sor", "sen hallet") ve model bu işleri kullanıcıya yazıyordu (not
+/// değerlendirmesi). Köşeli ayraç sıradan "kullanıcı" sözcüğünden (ör. ürünün kullanıcısı) ayırır.
+public let promptUserLabel: String = "[Kullanıcı]"
+
+/// LLM istemlerindeki etiket: arayüz dilinden bağımsız Türkçe; kullanıcı `promptUserLabel` (bkz. `promptUserRule`).
 public func promptSpeakerLabel(speaker: Speaker, person: Int?) -> String {
     switch (speaker, person) {
     case (_, .some(let number)): "Konuşmacı \(number)"
-    case (.me, nil): "Sen"
+    case (.me, nil): promptUserLabel
     case (.others, nil): "Diğerleri"
     }
+}
+
+/// Kullanıcının satırlarını ve ikinci tekil hitabı tanımlayan istem cümlesi (transkript gören her istemde aynı);
+/// `userName` kullanıcının adı (bilinmiyorsa boş). Saf fonksiyondur.
+func promptUserRule(userName: String) -> String {
+    let named: String = userName.isEmpty ? "" : " (adı \(userName))"
+    return """
+    Transkriptte "\(promptUserLabel)" etiketli satırlar kullanıcının\(named) kendi sözleridir; kullanıcı yalnızca odur. \
+    Konuşmadaki "sen", "siz", "you", "sinä" gibi hitaplar tek başına kullanıcıyı göstermez: hitap edilen, konuşanın o an \
+    seslendiği kişidir (çoğu zaman bir önceki ya da sonraki satırda konuşan, cevap veren); bu kişi "\(promptUserLabel)" \
+    satırıysa kullanıcıdır, başka bir konuşmacıysa o konuşmacıdır. "\(promptUserLabel)" etiketini cevaba yazma.
+    """
 }
 
 /// Sıralı transkripti bloklara gruplar: konuşmacı ya da kişi değişince ya da blok `paragraphMaxSec`'i geçince yeni

@@ -28,9 +28,24 @@ private func archive() -> [MeetingRecord] {
 }
 
 @Suite struct ArchiveQuestionTests {
+    // Sor isteminde kullanıcının satırı `promptUserLabel` ("sen" hitabıyla karışmasın); MCP arayüzdeki etiketi verir.
+    @Test func passagesLabelTheUserByCaller() {
+        let record: MeetingRecord = MeetingRecord(
+            id: "u", title: "Toplantı", startedAt: Date(timeIntervalSince1970: 1_790_000_000), endedAt: nil, language: .turkish,
+            status: .done, failureMessage: nil, liveSegments: [stored("me-0", .me, nil, 0, "Ben bakarım.")],
+            finalSegments: [stored("final-0", .others, 1, 10, "Sen sor o zaman.")],
+            translations: [:], speakerNames: [1: "Aino"], note: nil, audioDeleted: false, engine: .cloud, notice: nil, meNeedsFinalPass: nil
+        )
+        let ask: String = archivePassages(records: [record], userLabel: promptUserLabel).map(\.text).joined()
+        #expect(ask.contains("[00:00] [Kullanıcı]: Ben bakarım."))
+        #expect(ask.contains("[00:10] Aino: Sen sor o zaman."))
+        let mcp: String = archivePassages(records: [record], userLabel: "Sen").map(\.text).joined()
+        #expect(mcp.contains("[00:00] Sen: Ben bakarım."))
+    }
+
     // Fince köklerle eşleşen transkript parçası seçilir; eşleşme yoksa en yeni notlar; sınır aşılmaz; kaynaklar parçalara bağlanır.
     @Test func retrievalAndSources() throws {
-        let passages: [ArchivePassage] = archivePassages(records: archive())
+        let passages: [ArchivePassage] = archivePassages(records: archive(), userLabel: promptUserLabel)
         #expect(passages.filter { $0.kind == .note }.count == 2)
         let coffee: [ArchivePassage] = relevantPassages(passages: passages, terms: ["kahvikone", "kahvinkeitin", "kahve makinesi"], maxChars: 10_000)
         #expect(coffee.first?.meetingID == "a" && coffee.first?.kind == .transcript && coffee.first?.text.contains("Kahvikone") == true)
@@ -47,7 +62,7 @@ private func archive() -> [MeetingRecord] {
     // Önceki konuşma: son 6 tur eskiden yeniye; cevaplardaki [n]/[wn] işaretleri atılır, dayandığı toplantılar adıyla
     // kalır; uzun cevabın başı ve sonu kalır; toplam bütçeyi aşan en eski turlar atılır, en yeni tur hep kalır.
     @Test func historyKeepsRecentTurnsWithinBudget() throws {
-        let budget: ArchivePassage = try #require(archivePassages(records: archive()).first { $0.meetingID == "b" && $0.kind == .note })
+        let budget: ArchivePassage = try #require(archivePassages(records: archive(), userLabel: promptUserLabel).first { $0.meetingID == "b" && $0.kind == .note })
         let turns: [ArchiveTurn] = (1...8).map { (number: Int) -> ArchiveTurn in
             ArchiveTurn(question: "Soru \(number)", answer: "Cevap \(number) [1][w1].", sources: number == 8 ? [budget, budget] : [])
         }
@@ -90,7 +105,7 @@ private func archive() -> [MeetingRecord] {
     // gelen kaynağı devam sorusunda okunmaz; tüm arşive sorulunca okunur.
     @Test func scopedQuestionReadsOnlySelectedMeetings() throws {
         let all: [MeetingRecord] = archive()
-        let budget: ArchivePassage = try #require(archivePassages(records: all).first { $0.meetingID == "b" && $0.kind == .note })
+        let budget: ArchivePassage = try #require(archivePassages(records: all, userLabel: promptUserLabel).first { $0.meetingID == "b" && $0.kind == .note })
         let history: [ArchiveTurn] = [ArchiveTurn(question: "Bütçe ne olacak?", answer: "Yüzde 10 artacak [1].", sources: [budget])]
         let scoped: [MeetingRecord] = try archiveScope(records: all, meetingIDs: ["a"])
         let read: [ArchivePassage] = questionPassages(question: "Peki bunu kim üstlendi?", terms: ["budjetti", "kahvikone"], history: history, records: scoped, maxChars: 60_000)
@@ -103,7 +118,7 @@ private func archive() -> [MeetingRecord] {
 
     // Kopyalanan cevap: kalın işaretleri atılır, [n] kalır, altında numaralı kaynak başlıkları (not ya da zaman).
     @Test func copiedAnswerHasPlainTextAndSourceTitles() throws {
-        let passages: [ArchivePassage] = archivePassages(records: archive())
+        let passages: [ArchivePassage] = archivePassages(records: archive(), userLabel: promptUserLabel)
         let note: ArchivePassage = try #require(passages.first { $0.meetingID == "b" && $0.kind == .note })
         let transcript: ArchivePassage = try #require(passages.first { $0.meetingID == "a" && $0.kind == .transcript })
         let answer: ArchiveAnswer = ArchiveAnswer(text: "**Bütçe** %10 artacak [1].\n- Mikko kahve makinesini alacak [2].", sources: [note, transcript], webSources: [WebSource(url: "https://www.example.com/x", title: "Example")])
@@ -126,7 +141,7 @@ private func archive() -> [MeetingRecord] {
     // Etiketli soru geçmişe kapsamıyla yazılır ve aynen geri okunur (sohbet yeniden açılınca etiketler görünür).
     @Test func askHistoryKeepsMentionScope() throws {
         let directory: URL = try temporaryDirectory()
-        let source: ArchivePassage = try #require(archivePassages(records: archive()).first { $0.meetingID == "a" })
+        let source: ArchivePassage = try #require(archivePassages(records: archive(), userLabel: promptUserLabel).first { $0.meetingID == "a" })
         let turn: AskConversationTurn = AskConversationTurn(
             id: UUID(), question: "Kim ne üstlendi?", scopeMeetingIDs: ["a", "b"], scopeTitles: ["Haftalık ekip toplantısı", "Bütçe planlaması"],
             recipeTitle: nil, startedAt: Date(timeIntervalSince1970: 1_792_000_000), finishedAt: Date(timeIntervalSince1970: 1_792_000_006),
@@ -196,7 +211,7 @@ extension CloudTests {
     @Test func followUpStreamsWithSteps() async throws {
         let provider: LLMProvider = .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic)))
         let events: ProgressBox = ProgressBox()
-        let earlier: [ArchivePassage] = archivePassages(records: archive()).filter { $0.text.contains("Kahvikone") }
+        let earlier: [ArchivePassage] = archivePassages(records: archive(), userLabel: promptUserLabel).filter { $0.text.contains("Kahvikone") }
         let answer: ArchiveAnswer = try await askArchive(
             question: "Peki bunu kim halledecek ve ne zaman?",
             history: [ArchiveTurn(question: "Kahve makinesiyle ilgili ne konuşuldu?", answer: "Haftalık ekip toplantısında kahve makinesinin yine bozulduğu söylendi [1].", sources: earlier)],

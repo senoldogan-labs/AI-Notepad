@@ -47,7 +47,7 @@ import Testing
         for index in 0..<31 {
             try writeTestSlide(meetingDirectory: meeting, offsetSec: Double(index) * 60 + 5, index: index, width: 1600, height: 1000)
         }
-        let transcript: [ArchivePassage] = archivePassages(records: [record]).filter { $0.kind == .transcript }
+        let transcript: [ArchivePassage] = archivePassages(records: [record], userLabel: promptUserLabel).filter { $0.kind == .transcript }
         let read: ArchivePassage = transcript[2]
         let span: (start: Double, end: Double) = try #require(transcriptPassageSpans(record: record, passageIDs: [read.id]).first)
         let overlapping: [AskScreenSpan] = askScreenSpans(record: record, passageIDs: [read.id], snapshots: try listScreenSnapshots(meetingDirectory: meeting), leadSec: 3)
