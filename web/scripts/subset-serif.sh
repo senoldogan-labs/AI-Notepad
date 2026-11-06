@@ -15,11 +15,11 @@ trap 'rm -rf "$work_dir"' EXIT
 
 fonttools varLib.instancer "$source_ttf" wght=400 opsz=48 -o "$work_dir/Newsreader-display.ttf"
 pyftsubset "$work_dir/Newsreader-display.ttf" \
-  --output-file="$web_dir/public/fonts/Newsreader-display-latin.woff2" \
+  --output-file="$web_dir/src/assets/fonts/Newsreader-display-latin.woff2" \
   --flavor=woff2 \
   --unicodes="U+0020-007E,U+00A0-00FF,U+0100-017F,U+0131,U+2010-2027,U+2030-203A,U+20AC,U+2122,U+2190-2193,U+2212" \
   --layout-features="kern,liga,lnum,tnum,case" \
   --no-hinting \
   --desubroutinize
 
-echo "Wrote: $web_dir/public/fonts/Newsreader-display-latin.woff2"
+echo "Wrote: $web_dir/src/assets/fonts/Newsreader-display-latin.woff2"
