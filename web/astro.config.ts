@@ -46,6 +46,9 @@ export default defineConfig({
     build: {
       // Küçük betikler de dosya olarak çıkar: CSP satır içi betiğe izin vermez.
       assetsInlineLimit: 0,
+      // Tüm sitenin CSS'i tek dosya (~20 KB brotli): yavaş telefonda ilk boyamayı engelleyen her ek stil isteği bir gidiş
+      // dönüş süresi ekliyordu (ana sayfada beş dosya); tek dosya bir kez iner, sonraki sayfalarda önbellekten gelir.
+      cssCodeSplit: false,
     },
   },
   // Blog yazılarındaki kod blokları renklendirilmez: Shiki satır içi `style` yazar, CSP buna izin vermez. Görsellere

@@ -14,7 +14,6 @@ const posts: readonly BlogPost[] = (await blogEntries()).map(blogPost);
 
 <Base page="blog" meta={text.meta} indexed={true} social={websiteCard}>
   <section class="page blog-intro">
-    <p class="eyebrow">{text.eyebrow}</p>
     <h1 class="title-xl">{text.title}</h1>
     <p class="lead">{text.lead}</p>
     <a class="text-link small" href={blogFeedPath}>{text.feedLink} <Icon name="arrow-right" size={14} class="" /></a>

@@ -1,5 +1,7 @@
-// Film greninin döşemesini (public/grain.png) üretir: scripts/grain.svg'deki SVG gürültü filtresi (feTurbulence)
-// tarayıcıda bir kez çizilir ve 8 bit gri PNG olarak yazılır. Filtreyi sayfada canlı çizmek yavaş telefonda ana iş
+// Film greninin döşemesini (public/grain.png ve public/grain.webp) üretir: scripts/grain.svg'deki SVG gürültü filtresi
+// (feTurbulence) tarayıcıda bir kez çizilir ve 8 bit gri PNG olarak yazılır; site, aynı döşemenin kayıplı WebP kopyasını
+// (~7 KB, PNG ~25 KB) kullanır: gren yarı saydam overlay olduğundan fark görünmez, telefonda ilk ekranın önündeki bir
+// istek küçülür. PNG App Store görsellerinde (scripts/appstore-screenshots) kullanılır. Filtreyi sayfada canlı çizmek yavaş telefonda ana iş
 // parçacığını ~2 sn tutuyordu (Lighthouse performansı 73); hazır döşeme aynı görünümü bedelsiz verir. Çıktı repoya
 // girer, derleme bunu çalıştırmaz.
 // Kullanım: node scripts/make-grain.ts <Chrome yolu>
@@ -7,6 +9,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { crc32, deflateSync } from "node:zlib";
 import { type Browser, type Page, chromium } from "playwright-core";
+import sharp from "sharp";
 
 /** Döşemenin kenarı (piksel). */
 const size: number = 180;
@@ -77,11 +80,14 @@ async function main(): Promise<void> {
   }
   const svg: string = await readFile(fileURLToPath(new URL("grain.svg", import.meta.url)), "utf8");
   const output: string = fileURLToPath(new URL("../public/grain.png", import.meta.url));
+  const webpOutput: string = fileURLToPath(new URL("../public/grain.webp", import.meta.url));
   const browser: Browser = await chromium.launch({ executablePath: chromePath, headless: true });
   try {
     const page: Page = await browser.newPage();
-    await writeFile(output, grayPng(await renderGray(page, svg), size, size));
-    console.log("grain_written", { output });
+    const png: Buffer = grayPng(await renderGray(page, svg), size, size);
+    await writeFile(output, png);
+    await writeFile(webpOutput, await sharp(png).webp({ quality: 60 }).toBuffer());
+    console.log("grain_written", { output, webpOutput });
   } finally {
     await browser.close();
   }

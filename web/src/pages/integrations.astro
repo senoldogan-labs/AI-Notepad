@@ -25,7 +25,6 @@ const structuredData: string = structuredDataJson(
   {/* Veri bloğu: Astro işlemez ve paketlemez (`is:inline`), tarayıcı çalıştırmaz; CSP'ye takılmaz. */}
   <script is:inline type="application/ld+json" set:html={structuredData} />
   <section class="page integrations-intro">
-    <p class="eyebrow">{text.eyebrow}</p>
     <h1 class="title-xl">{text.title}</h1>
     <p class="lead">{text.lead}</p>
     <nav class="integrations-toc" aria-label={text.eyebrow}>
@@ -98,7 +97,7 @@ const structuredData: string = structuredDataJson(
     <Faq items={text.faq} />
   </section>
 
-  <CtaBand id="integrations-cta-title" title={copy.compare.ctaTitle} text={copy.compare.ctaText} palette="mint" layout="clouds-right" />
+  <CtaBand id="integrations-cta-title" title={copy.compare.ctaTitle} text={copy.compare.ctaText} photo="aurora-lake" />
 </Base>
 
 <style>

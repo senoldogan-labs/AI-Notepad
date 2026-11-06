@@ -15,6 +15,7 @@ export type IconName =
   | "chip"
   | "clock"
   | "copy"
+  | "corner-down-right"
   | "disk"
   | "download"
   | "external"
@@ -80,6 +81,7 @@ export const icons: Readonly<Record<IconName, IconShape>> = {
   },
   clock: { style: "stroke", body: '<circle cx="12" cy="12" r="8.75"/><path d="M12 7.5V12l3 2"/>' },
   copy: { style: "stroke", body: '<rect x="8.75" y="8.75" width="11.5" height="11.5" rx="2.5"/><path d="M15.25 5.75v-.5a1.5 1.5 0 0 0-1.5-1.5h-8.5a1.5 1.5 0 0 0-1.5 1.5v8.5a1.5 1.5 0 0 0 1.5 1.5h.5"/>' },
+  "corner-down-right": { style: "stroke", body: '<path d="M6 4.5v7a3 3 0 0 0 3 3h10M15 10.5l4 4-4 4"/>' },
   disk: {
     style: "stroke",
     body: '<path d="M3.75 13.5 6.2 6.1A2.5 2.5 0 0 1 8.57 4.5h6.86a2.5 2.5 0 0 1 2.37 1.6l2.45 7.4"/><rect x="3.75" y="13.5" width="16.5" height="6" rx="2.5"/><path d="M16.5 16.5h.01"/>',

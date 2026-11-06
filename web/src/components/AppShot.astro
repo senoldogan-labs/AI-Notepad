@@ -1,20 +1,22 @@
 ---
-// Uygulamanın gerçek ekran görüntüsü, durgun film gradyanı kartın üstünde süzülür (ElevenLabs tarzı): pencere kartın alt
-// kenarında kesilir, yumuşak gölgesi pencerenin saydam köşelerini izler. Görüntüler Retina çekimdir
-// (scripts/make-screenshots.sh); derlemede AVIF (WebP yedeğiyle) ve ekran genişliklerine göre küçültülür. Gradyan her
-// temada açık kalır; açık uygulama ekranı hem açık hem koyu sitede aynı görünür. Kartın yerleşimi (`variant`) Home'da.
+// A real Mac screenshot floating in a photograph panel (PhotoPanel): wide windows are cut by the panel's bottom
+// edge, the narrow live panel floats with space around it; the window's own soft shadow follows its transparent
+// rounded corners. Screenshots are Retina captures (scripts/make-screenshots.sh), served as AVIF (WebP fallback) in
+// the given widths; they always load lazily, and the home hero's is preloaded on wide screens (`priority`). Only Mac
+// screens appear on the site. Placement of the panel (`variant`) and narrow-screen zoom are set by the page
+// (Landing.astro).
 import { Picture } from "astro:assets";
 import type { ImageMetadata } from "astro";
-import Film from "./Film.astro";
-import type { ShowcaseShot } from "../copy";
-import type { FilmLayout, FilmPalette } from "../lib/film";
+import ImagePreload from "./ImagePreload.astro";
+import PhotoPanel from "./PhotoPanel.astro";
+import type { PhotoFocus, PhotoName } from "../lib/photos";
 
-/** Kartın biçimi: geniş pencere (ana pencere) ya da dar panel (canlı panel). */
+/** The panel's shape: a wide window (main window) or a narrow panel (live panel). */
 export type AppShotVariant = "window" | "panel";
 
-/** Görselin üstündeki açıklama balonu: nokta görseldeki bir öğeyi gösterir, balon noktanın sağına ya da soluna açılır.
- * Konum (`left`, `top`: görselin yüzdesi) sayfanın CSS'inde `class` ile verilir; site CSP'si satır içi stile izin
- * vermez. Dar ekranda gizlenir; görselin metin karşılığı `alt`'tadır. */
+/** A label pinned to the screenshot: the dot marks an element in the image, the pill opens to its right or left.
+ * Its position (`left`, `top`: percent of the image) is set in the page's CSS through `class`; the site CSP allows no
+ * inline styles. Hidden on narrow screens; the image's text equivalent is its `alt`. */
 export interface ShotCallout {
   readonly text: string;
   readonly class: string;
@@ -23,65 +25,67 @@ export interface ShotCallout {
 
 interface Props {
   readonly image: ImageMetadata;
-  readonly shot: ShowcaseShot;
-  readonly palette: FilmPalette;
-  readonly layout: FilmLayout;
+  readonly alt: string;
+  readonly photo: PhotoName;
+  readonly focus: PhotoFocus;
   readonly variant: AppShotVariant;
-  /** Üretilecek görsel genişlikleri (piksel). */
+  /** Generated screenshot widths (pixels). */
   readonly widths: readonly number[];
-  /** `sizes` özniteliği: görselin sayfadaki genişliği. */
+  /** The screenshot's `sizes` attribute. */
   readonly sizes: string;
+  /** The photograph's `sizes` attribute (the panel's width). */
+  readonly photoSizes: string;
+  /** "wide-lcp": the home hero, the largest paint on wide screens only. Its screenshot is preloaded at high priority
+   * on screens wider than 640 px; on phones the headline is the largest paint and the screenshot sits at the bottom of
+   * the first screen, so there it loads lazily and does not compete with the text. "lazy": every other window. */
+  readonly priority: "wide-lcp" | "lazy";
   readonly class: string;
   readonly callouts: readonly ShotCallout[];
 }
-const { image, shot, palette, layout, variant, widths, sizes, class: extraClass, callouts } = Astro.props;
+const { image, alt, photo, focus, variant, widths, sizes, photoSizes, priority, class: extraClass, callouts } = Astro.props;
+/** AVIF quality of the screenshot: interface text stays crisp at 62 (checked against 72), ~20 % smaller. */
+const quality: number = 62;
 ---
 
+{priority === "wide-lcp" && <ImagePreload image={image} widths={widths} sizes={sizes} quality={quality} media="(min-width: 641px)" />}
 <figure class:list={["shot", `shot--${variant}`, extraClass]}>
-  <Film palette={palette} layout={layout} class="shot__cover">
+  <PhotoPanel photo={photo} focus={focus} widths={[480, 720, 960, 1280, 1680, 2400]} sizes={photoSizes} priority="lazy" class="shot__cover">
     <div class="shot__frame">
-    <Picture
-      src={image}
-      alt={shot.alt}
-      formats={["avif"]}
-      fallbackFormat="webp"
-      widths={[...widths]}
-      sizes={sizes}
-      quality={72}
-      loading="lazy"
-      decoding="async"
-      class="shot__image"
-    />
-    {
-      callouts.map((callout: ShotCallout) => (
-        <span class:list={["shot__callout", `shot__callout--${callout.side}`, callout.class]} aria-hidden="true">
-          <span class="shot__dot" />
-          <span class="glass shot__pill">{callout.text}</span>
-        </span>
-      ))
-    }
+      <Picture
+        src={image}
+        alt={alt}
+        formats={["avif"]}
+        fallbackFormat="webp"
+        widths={[...widths]}
+        sizes={sizes}
+        quality={quality}
+        loading="lazy"
+        decoding="async"
+        class="shot__image"
+      />
+      {
+        callouts.map((callout: ShotCallout) => (
+          <span class:list={["shot__callout", `shot__callout--${callout.side}`, callout.class]} aria-hidden="true">
+            <span class="shot__dot" />
+            <span class="chip shot__pill">{callout.text}</span>
+          </span>
+        ))
+      }
     </div>
-  </Film>
-  <figcaption class="shot__caption">
-    <span class="shot__label">{shot.label}</span>
-    <span class="shot__title">{shot.title}</span>
-  </figcaption>
+  </PhotoPanel>
 </figure>
-
 <style>
   .shot {
     display: grid;
-    gap: 14px;
     min-width: 0;
     margin: 0;
   }
 
-  /* Kart: pencere üstten ve yanlardan boşlukla süzülür, alt kenarda kesilir. */
+  /* The window floats with space above and at the sides and is cut by the bottom edge. */
   .shot :global(.shot__cover) {
     display: block;
     padding: var(--shot-top) var(--shot-side) 0;
     aspect-ratio: var(--shot-ratio);
-    border-radius: var(--radius-l);
   }
 
   .shot--window {
@@ -127,16 +131,13 @@ const { image, shot, palette, layout, variant, widths, sizes, class: extraClass,
     background: var(--accent);
     box-shadow:
       0 0 0 4px rgb(255 255 255 / 0.9),
-      0 4px 12px rgb(60 36 24 / 0.25);
+      0 4px 12px rgb(15 26 34 / 0.25);
   }
 
   .shot__pill {
-    padding: 7px 12px;
-    border-radius: 999px;
+    min-height: 0;
+    padding: 7px 14px;
     font-size: clamp(0.75rem, 1.1vw, 0.875rem);
-    font-weight: 600;
-    letter-spacing: -0.005em;
-    white-space: nowrap;
   }
 
   @media (max-width: 640px) {
@@ -153,24 +154,7 @@ const { image, shot, palette, layout, variant, widths, sizes, class: extraClass,
     max-width: none;
     margin-inline-start: var(--shot-shift, 0);
     height: auto;
-    filter: drop-shadow(0 2px 3px rgb(60 36 24 / 0.1)) drop-shadow(0 22px 44px rgb(60 36 24 / 0.2));
+    filter: drop-shadow(0 2px 3px rgb(15 26 34 / 0.14)) drop-shadow(0 26px 48px rgb(15 26 34 / 0.32));
   }
 
-  /* Etiket üstte, başlık altta: yan yana kartlarda başlıklar aynı hizada kalır. */
-  .shot__caption {
-    display: grid;
-    gap: 2px;
-  }
-
-  .shot__label {
-    font-size: 0.8125rem;
-    font-weight: 500;
-    color: var(--muted);
-  }
-
-  .shot__title {
-    font-size: 1.0625rem;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-  }
 </style>

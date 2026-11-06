@@ -118,9 +118,10 @@ const text: CompareCopy = copy.compare;
     font-weight: 600;
   }
 
-  /* Bizim sütunumuz öne çıkar: vurgu renginde zemin ve üst çizgi, koyu yazı; başlığında küçük etiket. */
+  /* Our column stands out: a mist ground, a coral top rule in the header (the accent is a mark, not a fill), ink
+     text; a small label in its header. */
   .comparison__table td:nth-of-type(1) {
-    background: color-mix(in srgb, var(--accent) 9%, transparent);
+    background: color-mix(in srgb, var(--soft) 70%, transparent);
   }
 
   .comparison__table td {
@@ -133,7 +134,7 @@ const text: CompareCopy = copy.compare;
   }
 
   .comparison__table thead .comparison__us {
-    background: color-mix(in srgb, var(--accent) 18%, var(--soft));
+    background: var(--soft);
     box-shadow: inset 0 3px 0 var(--accent);
     white-space: nowrap;
   }
