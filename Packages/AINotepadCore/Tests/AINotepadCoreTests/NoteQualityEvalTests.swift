@@ -480,7 +480,7 @@ struct NoteQualityEval {
             let expectation: NoteEvalExpectation = try #require(fixture.expectation)
             for run in 1...noteEvalRepeats {
                 let note: MeetingNote = try #require(try await writeMeetingNote(
-                    segments: fixture.segments, speakerNames: fixture.speakerNames, userName: fixture.userName, template: .general, myNotes: "",
+                    segments: fixture.segments, speakerNames: fixture.speakerNames, userName: fixture.userName, profile: .empty, template: .general, myNotes: "",
                     language: fixture.language, llm: evalWriterProvider(apiKey: key),
                     progressFile: try temporaryDirectory().appending(path: "eval-progress.json"), screens: []
                 ))
@@ -511,7 +511,7 @@ struct NoteQualityEval {
         let rounds: Int = 30
         let segments: [StoredSegment] = realisticMeetingSegments(rounds: rounds)
         let note: MeetingNote = try #require(try await writeMeetingNote(
-            segments: segments, speakerNames: [:], userName: "Doğan", template: .general, myNotes: "", language: .turkish,
+            segments: segments, speakerNames: [:], userName: "Doğan", profile: .empty, template: .general, myNotes: "", language: .turkish,
             llm: evalWriterProvider(apiKey: try apiKey()), progressFile: try temporaryDirectory().appending(path: "eval-long-progress.json"), screens: []
         ))
         let coverage: LongCoverage = longCoverage(note: namedNote(note: note, speakerNames: [1: "Aino", 2: "Mikko"], userName: "Doğan"), rounds: rounds)

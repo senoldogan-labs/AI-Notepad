@@ -46,7 +46,7 @@ extension CloudTests {
         let result: MeetingRecord = await processMeeting(
             record: record, directory: directory,
             finalPass: .run(ElevenLabsFinalTranscriber(apiKey: try cloudKey(account: .elevenlabs), keyterms: [])),
-            llm: .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic))), languageMode: .automatic, userName: "Doğan",
+            llm: .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic))), languageMode: .automatic, userName: "Doğan", profile: .empty,
             noteLanguage: .turkish, voiceEmbedder: nil, registry: [], screens: .off,
             onStep: { (_: ProcessingStep) async -> Void in }
         )
@@ -65,7 +65,7 @@ extension CloudTests {
         let result: MeetingRecord = await processMeeting(
             record: record, directory: directory,
             finalPass: .run(ElevenLabsFinalTranscriber(apiKey: try cloudKey(account: .elevenlabs), keyterms: [])),
-            llm: .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic))), languageMode: .automatic, userName: "Doğan",
+            llm: .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic))), languageMode: .automatic, userName: "Doğan", profile: .empty,
             noteLanguage: .turkish, voiceEmbedder: nil, registry: [], screens: .off,
             onStep: { (_: ProcessingStep) async -> Void in }
         )

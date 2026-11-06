@@ -38,7 +38,7 @@ extension ModelTests {
         let result: MeetingRecord = await processMeeting(
             record: recording, directory: directory,
             finalPass: .run(LocalFinalTranscriber(modelsDirectory: try testModelsDirectory(), modelName: liveWhisperModel, candidateLanguages: [.finnish, .english])),
-            llm: nil, languageMode: .automatic, userName: "Doğan",
+            llm: nil, languageMode: .automatic, userName: "Doğan", profile: .empty,
             noteLanguage: .turkish, voiceEmbedder: nil, registry: [],
             screens: .off,
             onStep: { (_: ProcessingStep) async -> Void in }

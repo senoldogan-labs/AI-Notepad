@@ -128,7 +128,7 @@ import Testing
     @Test func promptsAskForFixedLabel() throws {
         let segment: StoredSegment = StoredSegment(key: "final-0", speaker: .others, person: 2, startSec: 0, endSec: 3, text: "Hei", words: nil)
         let request: LLMRequest = try #require(meetingNoteRequest(
-            segments: [segment], speakerNames: [:], userName: "Şenol", template: .general, myNotes: "", language: .german, screens: []
+            segments: [segment], speakerNames: [:], userName: "Şenol", profile: .empty, template: .general, myNotes: "", language: .german, screens: []
         ))
         #expect(request.system.contains("\"Sprecher N\""))
         let shared: LLMRequest = sharedNoteRequest(note: note, language: .finnish, userName: "Şenol")

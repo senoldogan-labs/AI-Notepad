@@ -41,7 +41,7 @@ struct PhoneSettingsTab: View {
         List {
             CrashReportNotice(center: crashReports)
             Section {
-                // Profil (ad; ileride unvan ve şirket) ve hesap (plan, kullanım, çıkış); ana ekrandaki engel
+                // Profil (ad, unvan, şirket) ve hesap (plan, kullanım, çıkış); ana ekrandaki engel
                 // bildiriminin "Kullanımı gör"ü hesabı açar (`PhoneRouter.openAccount`).
                 NavigationLink(value: PhoneRoute.profile) {
                     PhoneProfileRow(store: store, account: account)

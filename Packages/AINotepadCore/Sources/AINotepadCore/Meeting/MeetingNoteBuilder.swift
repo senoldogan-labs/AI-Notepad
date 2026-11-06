@@ -147,12 +147,13 @@ func openQuestionsRule(language: ShareLanguage) -> String {
     """
 }
 
-/// Toplantı notu isteği (akıllı model, yapılandırılmış çıktı, not dilinde); metin yoksa nil. With `screens` the
+/// Toplantı notu isteği (akıllı model, yapılandırılmış çıktı, not dilinde); metin yoksa nil. `profile` sisteme arka plan
+/// bilgisi olarak eklenir (`withUserProfile`). With `screens` the
 /// shared-screen images go before the transcript and the system prompt asks the note to refer to them
 /// (`screenNotesRule`). Saf fonksiyondur.
 public func meetingNoteRequest(
-    segments: [StoredSegment], speakerNames: [Int: String], userName: String, template: NoteTemplate, myNotes: String, language: ShareLanguage,
-    screens: [LLMImage]
+    segments: [StoredSegment], speakerNames: [Int: String], userName: String, profile: UserProfile, template: NoteTemplate, myNotes: String,
+    language: ShareLanguage, screens: [LLMImage]
 ) -> LLMRequest? {
     let transcript: String = storedLines(segments: segments, speakerNames: speakerNames)
     guard !transcript.isEmpty else {
@@ -163,7 +164,7 @@ public func meetingNoteRequest(
     return LLMRequest(
         purpose: .note,
         tier: .smart,
-        system: """
+        system: withUserProfile(system: """
         Bir toplantının (Fince, İngilizce ya da başka bir dilde) transkriptinden \(language.promptName) dilinde toplantı notu
         çıkarıyorsun. Not, toplantıyı kaçıran birinin ne konuşulduğunu, neyin neden kararlaştırıldığını, kimin neyi ne zamana
         kadar yapacağını ve neyin açık kaldığını aklında soru kalmadan anlamasını sağlar; her bilgisi transkripte uyar.
@@ -181,7 +182,7 @@ public func meetingNoteRequest(
         \(mine.rule)
         \(screens.isEmpty ? "" : screenNotesRule(language: language))
         \(transcriptIsDataNote)
-        """,
+        """, profile: profile),
         userText: "\(mine.block)<transkript>\n\(transcript)\n</transkript>\n\n\(outputLanguageReminder(language: language))",
         maxTokens: 16000,
         jsonSchema: meetingNoteSchema,

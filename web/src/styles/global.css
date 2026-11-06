@@ -32,7 +32,7 @@
   line-gap-override: 0%;
 }
 
-/* Every colour is defined once with `light-dark()`; the theme is chosen by `<html data-theme>` (public/theme.js: the
+/* Every colour is defined once with `light-dark()`; the theme is chosen by `<html data-theme>` (src/client/theme.js: the
    visitor's choice or the system preference); without the script `color-scheme` follows the system. */
 :root {
   color-scheme: light dark;

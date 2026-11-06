@@ -2,8 +2,8 @@ import AINotepadCore
 import AINotepadUI
 import SwiftUI
 
-/// Profil (Ayarlar › Hesap'ın ilk satırı): büyük baş harf, giriş yapılan e-posta ve kartta ad. Ad notta sana düşen
-/// görevleri ayırır.
+/// Profil (Ayarlar › Hesap'ın ilk satırı): büyük baş harf, giriş yapılan e-posta, kartta ad, unvan, şirket ve şirket
+/// açıklaması (`PhoneProfileFields`). Ad notta sana düşen görevleri ayırır; diğerleri notlara bağlam olur.
 struct PhoneProfileScreen: View {
     let store: PhoneStore
     let account: HostedAccount
@@ -30,19 +30,9 @@ struct PhoneProfileScreen: View {
                     .padding(.bottom, 8)
             }
             Section {
-                LabeledContent {
-                    TextField("Adın", text: Binding<String>(get: { store.userName }, set: { (name: String) -> Void in store.setUserName(name: name) }), prompt: Text("İsteğe bağlı"))
-                        .multilineTextAlignment(.trailing)
-                        .textContentType(.name)
-                        .textInputAutocapitalization(.words)
-                        .autocorrectionDisabled()
-                } label: {
-                    Text("Ad")
-                }
-                // YER AYRILDI: unvan, şirket adı ve şirket açıklaması buraya gelecek (ayrı iş: alanlar ve not istemlerine
-                // bağlanması). Ad satırıyla aynı kartta, şirket açıklaması altta kendi kartında.
+                PhoneProfileFields(store: store)
             } footer: {
-                Text("Notta sana düşen görevleri ayırmak için kullanılır.")
+                Text("Notlar bağlamını anlamak için bunu kullanır; yalnızca not ya da cevap yazılırken toplantı metniyle gönderilir.")
             }
         }
         .navigationTitle("Profil")
