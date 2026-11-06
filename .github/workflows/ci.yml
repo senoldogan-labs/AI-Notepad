@@ -26,7 +26,59 @@ concurrency:
 # birlikte güncelle); checkout GITHUB_TOKEN'ı .git/config'e yazmaz (persist-credentials: false).
 
 jobs:
+  # Bir PR'ın değiştirdiği dosyaların hepsi web/, server/, docs/, promo/ altında ya da kökteki Markdown dosyalarıysa Mac ve
+  # iPhone derlemeleri o dosyaların hiçbirini okumaz: macOS işleri atlanır (GitHub atlanan zorunlu checki geçmiş sayar).
+  # Başka her durumda çalışırlar: main'e her gönderimde (bekleyen koşu yenisiyle değişince arada kalan commitlerin
+  # farkı tek gönderimin farkında görünmez), dosya listesi alınamazsa (bu iş kırmızı olur, macOS işleri yine çalışır).
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      apple: ${{ steps.files.outputs.apple }}
+    steps:
+      - id: files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "apple=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          files=""
+          for attempt in 1 2 3; do
+            if files=$(gh api --paginate "repos/$REPO/pulls/$NUMBER/files" --jq '.[].filename'); then
+              break
+            fi
+            if [ "$attempt" = 3 ]; then
+              echo "::error::PR #$NUMBER dosya listesi alınamadı ($REPO)"
+              exit 1
+            fi
+            echo "::warning::PR #$NUMBER dosya listesi alınamadı, deneme $attempt; yeniden deneniyor"
+            sleep $((attempt * 5))
+          done
+          apple=false
+          [ -z "$files" ] && apple=true
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            case "$file" in
+              web/* | server/* | docs/* | promo/*) ;;
+              */*) apple=true ;;
+              *.md) ;;
+              *) apple=true ;;
+            esac
+          done <<< "$files"
+          echo "apple=$apple" | tee -a "$GITHUB_OUTPUT"
+
   test-and-build:
+    needs: changes
+    # changes başarısız olursa da çalışır: yalnız açıkça "false" dediğinde atlanır.
+    if: ${{ !cancelled() && needs.changes.outputs.apple != 'false' }}
     runs-on: macos-26
     timeout-minutes: 45
     steps:
@@ -77,6 +129,8 @@ jobs:
 
   # iPhone uygulaması (simülatör), Debug ve Release; Mac derlemeleriyle aynı anda, kendi runner'ında.
   ios:
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.apple != 'false' }}
     runs-on: macos-26
     timeout-minutes: 45
     steps:
