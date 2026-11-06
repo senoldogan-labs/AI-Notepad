@@ -211,7 +211,7 @@ struct PhoneAccountScreen: View {
                 .disabled(account.isWorking || isMeetingInFlight)
                 Button("Vazgeç") { confirmingDelete = false }
             } else {
-                Button("Hesabı sil…", role: .destructive) { confirmingDelete = true }
+                Button("Hesabı sil", role: .destructive) { confirmingDelete = true }
                     .disabled(account.isWorking || isMeetingInFlight)
             }
         } footer: {

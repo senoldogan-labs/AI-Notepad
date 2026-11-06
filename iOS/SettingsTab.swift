@@ -38,223 +38,237 @@ struct PhoneSettingsTab: View {
     var body: some View {
         // Seçili not dilinin adı (arayüz dilinde): çeviri ayarlarında geçer.
         let noteLanguageName: String = phoneStoredNoteLanguage(value: noteLanguage).interfaceName
-        List {
-            CrashReportNotice(center: crashReports)
-            Section {
-                // Profil (ad, unvan, şirket) ve hesap (plan, kullanım, çıkış); ana ekrandaki engel
-                // bildiriminin "Kullanımı gör"ü hesabı açar (`PhoneRouter.openAccount`).
-                NavigationLink(value: PhoneRoute.profile) {
-                    PhoneProfileRow(store: store, account: account)
+        ScrollViewReader { (proxy: ScrollViewProxy) in
+            List {
+                CrashReportNotice(center: crashReports)
+                Section {
+                    // Profil (ad, unvan, şirket) ve hesap (plan, kullanım, çıkış); ana ekrandaki engel
+                    // bildiriminin "Kullanımı gör"ü hesabı açar (`PhoneRouter.openAccount`).
+                    NavigationLink(value: PhoneRoute.profile) {
+                        PhoneProfileRow(store: store, account: account)
+                    }
+                    NavigationLink(value: PhoneRoute.account) {
+                        PhoneAccountRow(account: account)
+                    }
+                } header: {
+                    Text("Hesap")
                 }
-                NavigationLink(value: PhoneRoute.account) {
-                    PhoneAccountRow(account: account)
-                }
-            } header: {
-                Text("Hesap")
-            }
-            PhoneSyncSection()
-            Section {
-                NavigationLink {
-                    PhoneAppearanceScreen()
-                } label: {
-                    PhoneAppearanceRow(theme: theme, accent: accent)
-                }
-            } header: {
-                Text("Görünüm")
-            }
-            Section {
-                PhoneConnectionsRow()
-            } header: {
-                Text("Bağlantılar")
-            } footer: {
-                Text("Notlar Slack, Teams, Discord, Notion ya da Zoom'a, görevler Linear ya da Jira'ya gider.")
-            }
-            Section {
-                // Arayüz dili iOS'ta uygulama başına iPhone Ayarları'ndan seçilir (Mac'te uygulamanın içinden): satır
-                // uygulamanın Ayarlar sayfasını açar, sağdaki simge uygulamadan çıkıldığını gösterir.
-                if let settings = URL(string: UIApplication.openSettingsURLString) {
-                    Button {
-                        openURL(settings)
+                PhoneSyncSection()
+                Section {
+                    NavigationLink {
+                        PhoneAppearanceScreen()
                     } label: {
-                        LabeledContent {
-                            HStack(spacing: 6) {
-                                Text(verbatim: interfaceLanguageName())
-                                Image(systemName: "arrow.up.forward.app")
-                                    .imageScale(.small)
-                                    .accessibilityHidden(true)
+                        PhoneAppearanceRow(theme: theme, accent: accent)
+                    }
+                } header: {
+                    Text("Görünüm")
+                }
+                Section {
+                    PhoneConnectionsRow()
+                } header: {
+                    Text("Bağlantılar")
+                } footer: {
+                    Text("Notlar Slack, Teams, Discord, Notion ya da Zoom'a, görevler Linear ya da Jira'ya gider.")
+                }
+                Section {
+                    // Arayüz dili iOS'ta uygulama başına iPhone Ayarları'ndan seçilir (Mac'te uygulamanın içinden): satır
+                    // uygulamanın Ayarlar sayfasını açar, sağdaki simge uygulamadan çıkıldığını gösterir.
+                    if let settings = URL(string: UIApplication.openSettingsURLString) {
+                        Button {
+                            openURL(settings)
+                        } label: {
+                            LabeledContent {
+                                HStack(spacing: 6) {
+                                    Text(verbatim: interfaceLanguageName())
+                                    Image(systemName: "arrow.up.forward.app")
+                                        .imageScale(.small)
+                                        .accessibilityHidden(true)
+                                }
+                            } label: {
+                                PhoneSettingLabel(icon: "globe", title: Text("Arayüz dili"))
                             }
-                        } label: {
-                            PhoneSettingLabel(icon: "globe", title: Text("Arayüz dili"))
                         }
+                        .tint(Theme.ink)
+                        .accessibilityHint(Text("iPhone Ayarları'nı açar"))
                     }
-                    .tint(Theme.ink)
-                    .accessibilityHint(Text("iPhone Ayarları'nı açar"))
+                    PhoneSettingMenuRow(icon: "text.bubble", title: "Not ve çeviri dili", selection: $noteLanguage, options: ShareLanguage.allCases.map { (language: ShareLanguage) -> MenuPickerOption<String> in
+                        MenuPickerOption(value: language.rawValue, label: Text(verbatim: language.nativeName))
+                    })
+                    PhoneSettingMenuRow(icon: "waveform", title: "Ana toplantı dili", selection: $primaryLanguage, options: MeetingLanguage.allCases.map { (language: MeetingLanguage) -> MenuPickerOption<String> in
+                        MenuPickerOption(value: language.rawValue, label: Text(languageName(language: language)))
+                    })
+                } header: {
+                    Text("Dil")
+                } footer: {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Notlar, canlı çeviri ve Sor cevapları not ve çeviri dilinde yazılır.")
+                        Text("Arayüz dili iPhone Ayarları › \(appName) › Dil'den değişir. Dil satırı yoksa önce iPhone Ayarları › Genel › Dil ve Bölge'ye ikinci bir dil ekle.")
+                    }
                 }
-                PhoneSettingMenuRow(icon: "text.bubble", title: "Not ve çeviri dili", selection: $noteLanguage, options: ShareLanguage.allCases.map { (language: ShareLanguage) -> MenuPickerOption<String> in
-                    MenuPickerOption(value: language.rawValue, label: Text(verbatim: language.nativeName))
-                })
-                PhoneSettingMenuRow(icon: "waveform", title: "Ana toplantı dili", selection: $primaryLanguage, options: MeetingLanguage.allCases.map { (language: MeetingLanguage) -> MenuPickerOption<String> in
-                    MenuPickerOption(value: language.rawValue, label: Text(languageName(language: language)))
-                })
-            } header: {
-                Text("Dil")
-            } footer: {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Notlar, canlı çeviri ve Sor cevapları not ve çeviri dilinde yazılır.")
-                    Text("Arayüz dili iPhone Ayarları › \(appName) › Dil'den değişir. Dil satırı yoksa önce iPhone Ayarları › Genel › Dil ve Bölge'ye ikinci bir dil ekle.")
-                }
-            }
-            // Adın Profil'de (Hesap bölümünün ilk satırı).
-            PhoneVoiceSettingsSection(voices: store.voices) {
-                NavigationLink {
-                    // Sözlük hesabındır (bkz. `PhoneStore.vocabulary`): aynı iPhone'daki başka hesap görmez.
-                    PhoneTextSettingScreen(
-                        title: "Tanıma sözlüğü",
-                        help: "Doğru yazılması gereken adlar ve terimler; satır başına bir tane, en fazla 30.",
-                        load: { () -> String in store.vocabulary },
-                        save: { (value: String) -> Void in store.setVocabulary(text: value) }
-                    )
-                } label: {
-                    LabeledContent {
-                        Text("\(customVocabulary(text: store.vocabulary).count) terim")
+                // Adın Profil'de (Hesap bölümünün ilk satırı).
+                PhoneVoiceSettingsSection(voices: store.voices) {
+                    NavigationLink {
+                        // Sözlük hesabındır (bkz. `PhoneStore.vocabulary`): aynı iPhone'daki başka hesap görmez.
+                        PhoneTextSettingScreen(
+                            title: "Tanıma sözlüğü",
+                            help: "Doğru yazılması gereken adlar ve terimler; satır başına bir tane, en fazla 30.",
+                            load: { () -> String in store.vocabulary },
+                            save: { (value: String) -> Void in store.setVocabulary(text: value) }
+                        )
                     } label: {
-                        PhoneSettingLabel(icon: "character.book.closed", title: Text("Tanıma sözlüğü"))
-                    }
-                }
-            }
-            CalendarSettingsSection(calendar: calendar)
-            Section {
-                Toggle(isOn: $consentReminder) {
-                    PhoneSettingLabel(icon: "hand.raised", title: Text("Kayıt başlarken haber vermeyi hatırlat")) {
-                        Text("Kayıttan önce katılımcılara haber vermek çoğu yerde yasal zorunluluktur.")
-                    }
-                }
-                PhoneSettingMenuRow(icon: "waveform.badge.minus", title: "Sesleri sakla", selection: $retentionDays, options: [7, 14, 30, 60, 90, 180, 365].map { (days: Int) -> MenuPickerOption<Int> in
-                    MenuPickerOption(value: days, label: Text("\(days) gün"))
-                })
-                .onChange(of: retentionDays) { (_: Int, _: Int) in
-                    store.applyRetention(now: Date())
-                }
-            } header: {
-                Text("Kayıt")
-            } footer: {
-                Text("Süre dolunca ses silinir, not kalır; Teams/Zoom görüşmeleri için Mac'i kullan.")
-            }
-            NotificationSettingsSection()
-            Section {
-                PhoneSettingMenuRow(icon: "doc.text", title: "Not şablonu", selection: $noteTemplate, options: NoteTemplateKind.allCases.map { (kind: NoteTemplateKind) -> MenuPickerOption<String> in
-                    MenuPickerOption(value: kind.rawValue, label: Text(verbatim: kind == .custom ? customTemplateDisplayName(name: customTemplateName) : kind.displayName))
-                })
-                if noteTemplate == NoteTemplateKind.custom.rawValue {
-                    NavigationLink(value: PhoneRoute.customTemplate) {
                         LabeledContent {
-                            Text(customTemplate.isEmpty ? LocalizedStringKey("Boş") : LocalizedStringKey("Yazıldı"))
+                            Text("\(customVocabulary(text: store.vocabulary).count) terim")
                         } label: {
-                            PhoneSettingLabel(icon: "pencil.line", title: Text("Kendi şablonun"))
+                            PhoneSettingLabel(icon: "character.book.closed", title: Text("Tanıma sözlüğü"))
                         }
                     }
                 }
-                NavigationLink(value: PhoneRoute.templateGallery) {
-                    PhoneSettingLabel(icon: "square.grid.2x2", title: Text("Şablon galerisi")) {
-                        Text("Hazır şablonlara göz at, kullan ya da kopyasını düzenle.")
+                .id(PhoneSettingsSectionID.speakers)
+                CalendarSettingsSection(calendar: calendar)
+                Section {
+                    Toggle(isOn: $consentReminder) {
+                        PhoneSettingLabel(icon: "hand.raised", title: Text("Kayıt başlarken haber vermeyi hatırlat")) {
+                            Text("Kayıttan önce katılımcılara haber vermek çoğu yerde yasal zorunluluktur.")
+                        }
                     }
-                }
-                Toggle(isOn: $templateFromTitle) {
-                    PhoneSettingLabel(icon: "wand.and.stars", title: Text("Şablonu toplantı adına göre seç")) {
-                        Text("Ad türü gösteriyorsa (ör. \"1:1\", \"Daily\", \"Mülakat\") o şablon kullanılır; kendi şablonun hep geçerli.")
+                    PhoneSettingMenuRow(icon: "waveform.badge.minus", title: "Sesleri sakla", selection: $retentionDays, options: [7, 14, 30, 60, 90, 180, 365].map { (days: Int) -> MenuPickerOption<Int> in
+                        MenuPickerOption(value: days, label: Text("\(days) gün"))
+                    })
+                    .onChange(of: retentionDays) { (_: Int, _: Int) in
+                        store.applyRetention(now: Date())
                     }
+                } header: {
+                    Text("Kayıt")
+                } footer: {
+                    Text("Süre dolunca ses silinir, not kalır; Teams/Zoom görüşmeleri için Mac'i kullan.")
                 }
-            } header: {
-                Text("Not")
-            } footer: {
-                Text("Yeni notlar bu şablonla yazılır; eski bir notu ⋯ menüsünden yeniden yazabilirsin.")
+                NotificationSettingsSection()
+                Section {
+                    PhoneSettingMenuRow(icon: "doc.text", title: "Not şablonu", selection: $noteTemplate, options: NoteTemplateKind.allCases.map { (kind: NoteTemplateKind) -> MenuPickerOption<String> in
+                        MenuPickerOption(value: kind.rawValue, label: Text(verbatim: kind == .custom ? customTemplateDisplayName(name: customTemplateName) : kind.displayName))
+                    })
+                    if noteTemplate == NoteTemplateKind.custom.rawValue {
+                        NavigationLink(value: PhoneRoute.customTemplate) {
+                            LabeledContent {
+                                Text(customTemplate.isEmpty ? LocalizedStringKey("Boş") : LocalizedStringKey("Yazıldı"))
+                            } label: {
+                                PhoneSettingLabel(icon: "pencil.line", title: Text("Kendi şablonun"))
+                            }
+                        }
+                    }
+                    NavigationLink(value: PhoneRoute.templateGallery) {
+                        PhoneSettingLabel(icon: "square.grid.2x2", title: Text("Şablon galerisi")) {
+                            Text("Hazır şablonlara göz at, kullan ya da kopyasını düzenle.")
+                        }
+                    }
+                    Toggle(isOn: $templateFromTitle) {
+                        PhoneSettingLabel(icon: "wand.and.stars", title: Text("Şablonu toplantı adına göre seç")) {
+                            Text("Ad türü gösteriyorsa (ör. \"1:1\", \"Daily\", \"Mülakat\") o şablon kullanılır; kendi şablonun hep geçerli.")
+                        }
+                    }
+                } header: {
+                    Text("Not")
+                } footer: {
+                    Text("Yeni notlar bu şablonla yazılır; eski bir notu ⋯ menüsünden yeniden yazabilirsin.")
+                }
+                Section {
+                    Toggle(isOn: Binding<Bool>(
+                        get: { (DisplayMode(rawValue: displayMode) ?? .bilingual).needsLiveTranslation },
+                        set: { (enabled: Bool) -> Void in displayMode = (enabled ? DisplayMode.bilingual : .originalOnly).rawValue }
+                    )) {
+                        PhoneSettingLabel(icon: "character.bubble", title: Text("Kayıt sırasında \(noteLanguageName) diline çevir"))
+                    }
+                    if (DisplayMode(rawValue: displayMode) ?? .bilingual).needsLiveTranslation {
+                        PhoneSettingMenuRow(icon: "rectangle.split.2x1", title: "Gösterim", selection: $displayMode, options: [
+                            MenuPickerOption(value: DisplayMode.bilingual.rawValue, label: Text("İki dil (orijinal + \(noteLanguageName))")),
+                            MenuPickerOption(value: DisplayMode.turkishOnly.rawValue, label: Text("Sadece \(noteLanguageName)")),
+                        ])
+                    }
+                    Stepper(value: $missedMinutes, in: missedWindowMinutesRange) {
+                        PhoneSettingLabel(icon: "clock.arrow.circlepath", title: Text("\"Ne kaçırdım?\" son \(missedMinutes) dakikayı özetler"))
+                    }
+                    Toggle(isOn: $askWebSearch) {
+                        PhoneSettingLabel(icon: "magnifyingglass", title: Text("Sor'da web aramasına izin ver")) {
+                            Text("Toplantılarda olmayan bilgi için cevap başına en çok 3 arama; sorgu Anthropic üzerinden arama sağlayıcısına gider.")
+                        }
+                    }
+                } header: {
+                    Text("Canlı çeviri ve Sor")
+                } footer: {
+                    Text((DisplayMode(rawValue: displayMode) ?? .bilingual).needsLiveTranslation
+                        ? "Cümleler kayıt sırasında \(noteLanguageName) diline çevrilir; ✦ özetler ve soruları yanıtlar."
+                        : "Kayıtta yalnız orijinal metin görünür; \(noteLanguageName) not yine yazılır.")
+                }
+                PhoneSkillImportSection(ask: ask)
+                Section {
+                    Toggle(isOn: $shareUsageStatistics) {
+                        PhoneSettingLabel(icon: "chart.bar.xaxis", title: Text("Anonim kullanım istatistiklerini paylaş")) {
+                            Text("Yalnızca kullanım sayıları paylaşılır; toplantı içeriği, ses ya da metin paylaşılmaz.")
+                        }
+                    }
+                    .onChange(of: shareUsageStatistics) { (_: Bool, enabled: Bool) in
+                        if !enabled {
+                            HostedTelemetryCenter.shared.sharingDisabled()
+                        }
+                    }
+                    if let privacy = phoneLegalURL(path: "privacy") {
+                        Link(destination: privacy) {
+                            PhoneSettingLabel(icon: "hand.raised.square", title: Text("Gizlilik politikası"))
+                        }
+                    }
+                    CrashReportsLink(center: crashReports)
+                } header: {
+                    Text("Gizlilik")
+                }
+                Section {
+                    // Mac'teki "Kurulumu yeniden aç": karşılama (ad, ana toplantı dili) baştan gösterilir. Kayıt ya da
+                    // işleme sürerken kapalı (karşılama tam ekran açılır).
+                    Button {
+                        // Karşılama baştan açılır (kaldığı adım silinir).
+                        UserDefaults.standard.removeObject(forKey: onboardingStepKey)
+                        onboardingCompleted = false
+                    } label: {
+                        PhoneSettingLabel(icon: "arrow.counterclockwise", title: Text("Kurulumu yeniden aç"))
+                    }
+                    .disabled(isMeetingInFlight)
+                    LabeledContent {
+                        Text(verbatim: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?")
+                    } label: {
+                        PhoneSettingLabel(icon: "info.circle", title: Text("Sürüm"))
+                    }
+                    LabeledContent {
+                        Text(verbatim: "\(store.meetings.count)")
+                    } label: {
+                        PhoneSettingLabel(icon: "list.bullet.rectangle", title: Text("Toplantılar"))
+                    }
+                    NavigationLink {
+                        PhoneDiagnosticsScreen(account: account, store: store)
+                    } label: {
+                        PhoneSettingLabel(icon: "stethoscope", title: Text("Tanılama"))
+                    }
+                    NavigationLink {
+                        PhoneFeedbackForm(account: account, store: store)
+                    } label: {
+                        PhoneSettingLabel(icon: "bubble.left.and.text.bubble.right", title: Text("Geri bildirim gönder"))
+                    }
+                } header: {
+                    Text("Uygulama")
+                }
             }
-            Section {
-                Toggle(isOn: Binding<Bool>(
-                    get: { (DisplayMode(rawValue: displayMode) ?? .bilingual).needsLiveTranslation },
-                    set: { (enabled: Bool) -> Void in displayMode = (enabled ? DisplayMode.bilingual : .originalOnly).rawValue }
-                )) {
-                    PhoneSettingLabel(icon: "character.bubble", title: Text("Kayıt sırasında \(noteLanguageName) diline çevir"))
+            .onAppear {
+                // Görsel kontrol: `--ayar <bölüm>` ile açılınca o bölüme kaydırılır.
+                if let section = launchSettingsSection(arguments: CommandLine.arguments) {
+                    proxy.scrollTo(section, anchor: .top)
                 }
-                if (DisplayMode(rawValue: displayMode) ?? .bilingual).needsLiveTranslation {
-                    PhoneSettingMenuRow(icon: "rectangle.split.2x1", title: "Gösterim", selection: $displayMode, options: [
-                        MenuPickerOption(value: DisplayMode.bilingual.rawValue, label: Text("İki dil (orijinal + \(noteLanguageName))")),
-                        MenuPickerOption(value: DisplayMode.turkishOnly.rawValue, label: Text("Sadece \(noteLanguageName)")),
-                    ])
-                }
-                Stepper(value: $missedMinutes, in: missedWindowMinutesRange) {
-                    PhoneSettingLabel(icon: "clock.arrow.circlepath", title: Text("\"Ne kaçırdım?\" son \(missedMinutes) dakikayı özetler"))
-                }
-                Toggle(isOn: $askWebSearch) {
-                    PhoneSettingLabel(icon: "magnifyingglass", title: Text("Sor'da web aramasına izin ver")) {
-                        Text("Toplantılarda olmayan bilgi için cevap başına en çok 3 arama; sorgu Anthropic üzerinden arama sağlayıcısına gider.")
-                    }
-                }
-            } header: {
-                Text("Canlı çeviri ve Sor")
-            } footer: {
-                Text((DisplayMode(rawValue: displayMode) ?? .bilingual).needsLiveTranslation
-                    ? "Cümleler kayıt sırasında \(noteLanguageName) diline çevrilir; ✦ özetler ve soruları yanıtlar."
-                    : "Kayıtta yalnız orijinal metin görünür; \(noteLanguageName) not yine yazılır.")
-            }
-            PhoneSkillImportSection(ask: ask)
-            Section {
-                Toggle(isOn: $shareUsageStatistics) {
-                    PhoneSettingLabel(icon: "chart.bar.xaxis", title: Text("Anonim kullanım istatistiklerini paylaş")) {
-                        Text("Yalnızca kullanım sayıları paylaşılır; toplantı içeriği, ses ya da metin paylaşılmaz.")
-                    }
-                }
-                .onChange(of: shareUsageStatistics) { (_: Bool, enabled: Bool) in
-                    if !enabled {
-                        HostedTelemetryCenter.shared.sharingDisabled()
-                    }
-                }
-                if let privacy = phoneLegalURL(path: "privacy") {
-                    Link(destination: privacy) {
-                        PhoneSettingLabel(icon: "hand.raised.square", title: Text("Gizlilik politikası"))
-                    }
-                }
-                CrashReportsLink(center: crashReports)
-            } header: {
-                Text("Gizlilik")
-            }
-            Section {
-                // Mac'teki "Kurulumu yeniden aç": karşılama (ad, ana toplantı dili) baştan gösterilir. Kayıt ya da
-                // işleme sürerken kapalı (karşılama tam ekran açılır).
-                Button {
-                    // Karşılama baştan açılır (kaldığı adım silinir).
-                    UserDefaults.standard.removeObject(forKey: onboardingStepKey)
-                    onboardingCompleted = false
-                } label: {
-                    PhoneSettingLabel(icon: "arrow.counterclockwise", title: Text("Kurulumu yeniden aç"))
-                }
-                .disabled(isMeetingInFlight)
-                LabeledContent {
-                    Text(verbatim: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?")
-                } label: {
-                    PhoneSettingLabel(icon: "info.circle", title: Text("Sürüm"))
-                }
-                LabeledContent {
-                    Text(verbatim: "\(store.meetings.count)")
-                } label: {
-                    PhoneSettingLabel(icon: "list.bullet.rectangle", title: Text("Toplantılar"))
-                }
-                NavigationLink {
-                    PhoneDiagnosticsScreen(account: account, store: store)
-                } label: {
-                    PhoneSettingLabel(icon: "stethoscope", title: Text("Tanılama"))
-                }
-                NavigationLink {
-                    PhoneFeedbackForm(account: account, store: store)
-                } label: {
-                    PhoneSettingLabel(icon: "bubble.left.and.text.bubble.right", title: Text("Geri bildirim gönder"))
-                }
-            } header: {
-                Text("Uygulama")
             }
         }
         .navigationTitle("Ayarlar")
     }
+}
+
+/// Ayarlar'da `--ayar` ile kaydırılabilen bölümlerin kimlikleri.
+private enum PhoneSettingsSectionID {
+    static let speakers: String = "konusmacilar"
 }
 
 /// Takvim: varsayılan kapalı; açılınca iOS izni sorar. İzin yoksa nedeni ve iPhone Ayarları'na giden düğme görünür.

@@ -503,32 +503,27 @@ struct PhoneTextEntrySheet: View {
     }
 }
 
-/// Toplantının küçük pastel kutusu: durağan film gradyanı (toplantıya göre) üstünde başlığın ilk harfi. Ana ekrandaki,
-/// aramadaki satırlarda ve toplantı sayfasının başlığında.
+/// Toplantının küçük pastel kutusu: durağan film gradyanı (toplantıya göre) üstünde toplantı simgesi. Ana ekrandaki,
+/// aramadaki satırlarda ve toplantı sayfasının başlığında. Kayıt türü (oda, görüşme, içe aktarma) toplantıda saklanmadığı
+/// için simge hepsinde aynıdır.
 struct MeetingTile: View {
     let record: MeetingRecord
     let size: CGFloat
 
     var body: some View {
-        let title: String = record.note?.title ?? record.title
         RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
             .fill(.clear)
             .frame(width: size, height: size)
             .background { CoverBackground(seed: record.id) }
             .overlay {
-                Text(verbatim: meetingInitial(title: title))
-                    .appFont(size: size * 0.42, weight: .semibold)
+                Image(systemName: "waveform")
+                    .font(.system(size: size * 0.4, weight: .semibold))
                     .foregroundStyle(.white)
                     .shadow(color: .black.opacity(0.18), radius: 3, y: 1)
             }
             .clipShape(RoundedRectangle(cornerRadius: size * 0.28, style: .continuous))
             .accessibilityHidden(true)
     }
-}
-
-/// Başlığın ilk harfi (büyük); harf yoksa boş. Saf fonksiyondur.
-func meetingInitial(title: String) -> String {
-    title.trimmingCharacters(in: .whitespacesAndNewlines).first.map { String($0).uppercased() } ?? ""
 }
 
 /// Toplantı başlığının altındaki bilgiler: süre, dil ve konuşmacı sayısı (olanlar, bu sırayla). Saf fonksiyondur.

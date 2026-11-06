@@ -265,21 +265,35 @@ struct PhoneVoiceSettingsSection<LeadingRows: View>: View {
     @ViewBuilder private var modelRow: some View {
         switch voices.modelState {
         case .checking:
-            LabeledContent("Ses modeli") {
+            LabeledContent {
                 ProgressView()
+            } label: {
+                PhoneSettingLabel(icon: voiceModelIcon, title: Text("Ses modeli"))
             }
         case .missing:
-            Button("Ses modelini indir (~\(voiceModelDownloadMegabytes) MB)") { voices.downloadModel() }
+            Button {
+                voices.downloadModel()
+            } label: {
+                PhoneSettingLabel(icon: "arrow.down.circle", title: Text("Ses modelini indir (~\(voiceModelDownloadMegabytes) MB)"))
+            }
         case .downloading(let fraction):
             VStack(alignment: .leading, spacing: 6) {
-                LabeledContent("Ses modeli indiriliyor", value: fraction.formatted(.percent.precision(.fractionLength(0)).locale(interfaceLocale())))
+                LabeledContent {
+                    Text(verbatim: fraction.formatted(.percent.precision(.fractionLength(0)).locale(interfaceLocale())))
+                } label: {
+                    PhoneSettingLabel(icon: voiceModelIcon, title: Text("Ses modeli indiriliyor"))
+                }
                 ProgressView(value: fraction)
                 Text("~\(voiceModelDownloadMegabytes) MB; bir kez indirilir, kayıtlar bu iPhone'da işlenir.")
                     .appFont(size: 13, weight: .regular)
                     .foregroundStyle(Theme.muted)
             }
         case .ready:
-            LabeledContent("Ses modeli", value: String(localized: "Hazır · ~\(voiceModelDownloadMegabytes) MB"))
+            LabeledContent {
+                Text("Hazır · ~\(voiceModelDownloadMegabytes) MB")
+            } label: {
+                PhoneSettingLabel(icon: voiceModelIcon, title: Text("Ses modeli"))
+            }
         case .failed(let message):
             VStack(alignment: .leading, spacing: 8) {
                 Label(message, systemImage: "exclamationmark.triangle")
@@ -289,6 +303,9 @@ struct PhoneVoiceSettingsSection<LeadingRows: View>: View {
         }
     }
 }
+
+/// Ses izi modelinin satır simgesi (cihazda çalışan model).
+private let voiceModelIcon: String = "cpu"
 
 /// Tanınan sesler: her ses kaç dakikalık konuşmadan öğrenildiği ve son güncellenme günüyle; tek tek ya da hepsi
 /// unutulur (hepsini unutmak sayfanın içinde iki adımla onaylanır, ayrı uyarı penceresi yok).

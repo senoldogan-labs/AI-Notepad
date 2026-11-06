@@ -159,6 +159,17 @@ export const rawScenes: readonly RawScene[] = [
     launchArgs: ["--paywall"],
     settleMs: 7000,
   },
+  // Görsel kontrol (App Store setine girmez): ana ekran, Ayarlar › Tanıma ve konuşmacılar (sesinden tanıma açık),
+  // Ayarlar › Hesap ve toplantı sayfasının başlığı; açık ve koyu temada.
+  ...(["light", "dark"] as const).flatMap((theme: "light" | "dark"): readonly RawScene[] => {
+    const themeArgs: readonly string[] = ["-appearance.theme", theme];
+    return [
+      { id: `qa-home-${theme}`, launchArgs: ["--abone", "--ornek-takvim", ...themeArgs], settleMs: 5000 },
+      { id: `qa-speakers-${theme}`, launchArgs: ["--sekme", "ayarlar", "--ayar", "konusmacilar", "-voiceRecognition", "YES", ...themeArgs], settleMs: 5000 },
+      { id: `qa-account-${theme}`, launchArgs: ["--abone", "--ekran", "hesap", ...themeArgs], settleMs: 5000 },
+      { id: `qa-meeting-${theme}`, launchArgs: ["--toplanti", productWeeklyPlaceholder, ...themeArgs], settleMs: 5000 },
+    ];
+  }),
 ];
 
 /** 6.9" zorunlu; 6.5" aynı çekimden ucuza üretilir. */
