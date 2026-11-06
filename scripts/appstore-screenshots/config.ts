@@ -90,30 +90,32 @@ export const askConversationPlaceholder: string = "{askConversation}";
 /** Görsellerin sırası App Store'daki sıradır: ilk ikisi arama sonuçlarında görünür. */
 export const scenes: readonly Scene[] = [
   {
+    id: "home",
+    headline: "Your day at a glance",
+    subhead: "Today's meetings and the tasks waiting for you.",
+    // `--abone`: deneme satırı ("Free trial: …") görünmez.
+    launchArgs: ["--abone", "--ornek-takvim"],
+    settleMs: 5000,
+    palette: "coral",
+    clouds: "left",
+  },
+  {
     id: "live",
     headline: "Every word, as it’s spoken",
     subhead: "Live transcript and translation for in-person meetings.",
     launchArgs: ["--ornek-kayit"],
-    settleMs: 5000,
+    // Katılımcılara söyle uyarısı 3 sn sonra kaybolur; yüklü makinede geçişi de bitsin.
+    settleMs: 9000,
     palette: "sunset",
-    clouds: "left",
+    clouds: "right",
   },
   {
     id: "note",
     headline: "Notes that write themselves",
     subhead: "Summary, decisions and tasks, ready when it ends.",
-    launchArgs: ["--sekme", "toplantilar", "--toplanti", productWeeklyPlaceholder],
+    launchArgs: ["--toplanti", productWeeklyPlaceholder],
     settleMs: 5000,
     palette: "ocean",
-    clouds: "right",
-  },
-  {
-    id: "tasks",
-    headline: "Never drop a follow-up",
-    subhead: "Your tasks from every meeting, in one list.",
-    launchArgs: ["--sekme", "gorevler"],
-    settleMs: 4000,
-    palette: "mint",
     clouds: "left",
   },
   {
@@ -126,21 +128,21 @@ export const scenes: readonly Scene[] = [
     clouds: "right",
   },
   {
-    id: "meetings",
-    headline: "Every meeting, searchable",
-    subhead: "Find any decision by title, person or word.",
-    launchArgs: ["--ekran", "kitaplik"],
+    id: "tasks",
+    headline: "Never drop a follow-up",
+    subhead: "Your tasks from every meeting, in one list.",
+    launchArgs: ["--sekme", "gorevler"],
     settleMs: 4000,
-    palette: "rose",
+    palette: "mint",
     clouds: "left",
   },
   {
-    id: "record",
-    headline: "One tap to start",
-    subhead: "Put your iPhone on the table and press record.",
-    launchArgs: ["--sekme", "kayit"],
+    id: "templates",
+    headline: "Notes shaped your way",
+    subhead: "Templates for every kind of meeting.",
+    launchArgs: ["--sablon-galerisi"],
     settleMs: 4000,
-    palette: "coral",
+    palette: "rose",
     clouds: "right",
   },
 ];
@@ -200,10 +202,8 @@ export const app: AppConfig = {
   ],
 };
 
-/** Simülatörün durum çubuğu: 9:41, tam pil, tam çekim. */
+/** Simülatörün durum çubuğu: tam pil, tam çekim. Saati make.ts uygulamanın saat dilimine göre ekler. */
 export const statusBarOverride: readonly string[] = [
-  "--time",
-  "9:41",
   "--batteryState",
   "discharging",
   "--batteryLevel",

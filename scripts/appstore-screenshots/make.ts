@@ -116,6 +116,16 @@ function morningTimeZone(utcHour: number): string {
   return offset >= 0 ? `Etc/GMT-${offset}` : `Etc/GMT+${-offset}`;
 }
 
+/**
+ * Durum çubuğunun saati: uygulamanın saat dilimindeki şimdiki saat ("10:04"). Sabit bir saat ("9:41") ana ekrandaki
+ * takvime göre göreli saatlerle ("Now 10:12") çelişirdi. Saf fonksiyondur.
+ */
+function statusBarClock(now: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone })
+    .format(now)
+    .replace(/\s?[AP]M$/u, "");
+}
+
 /** Yer tutucunun değeri: tohumlayıcının kimlikleri; yer tutucu değilse kendisi. Saf fonksiyondur. */
 function resolvedArgument(arg: string, manifest: SeedManifest): string {
   switch (arg) {
@@ -243,7 +253,7 @@ async function capture(list: readonly RawScene[], directory: string): Promise<Re
     console.log(`Simülatör hazırlanıyor: ${simulator.name} (${device.udid})`);
     await device.resetAndBoot(simulator.languages, simulator.locale);
     try {
-      await device.prepareAppearance(statusBarOverride);
+      await device.prepareAppearance(["--time", statusBarClock(new Date(), timeZone), ...statusBarOverride]);
       await device.install(appPath);
       await device.copySeed(app.bundleId, app.dataFolder, seedDirectory, ["Sessions", "AskHistory"]);
       // Isınma: yeni açılmış aygıtta ilk açılış yavaştır (SpringBoard hazırlanıyor); ilk sahne ana ekranı çekmesin.
