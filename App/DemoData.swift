@@ -41,6 +41,8 @@ enum DemoScene: String {
     case settings = "ayarlar"
     /// Kişiler (görsel kontrol için).
     case people = "kisiler"
+    /// Kişiler › Şirketler (görsel kontrol için).
+    case companies = "sirketler"
     /// Görevlerim (görsel kontrol için).
     case tasks = "gorevler"
     /// Toplantılar, seçili toplantı yok (görsel kontrol için).
@@ -77,7 +79,7 @@ enum DemoScene: String {
     /// Sahne örnek verilerle mi açılır; boş sahneler (ilk açılış) hiçbir şey yazmadan açılır.
     var hasSampleData: Bool {
         switch self {
-        case .home, .note, .ask, .live, .upsell, .trialEnding, .trialEnded, .update, .settings, .people, .tasks, .meetings, .screens: true
+        case .home, .note, .ask, .live, .upsell, .trialEnding, .trialEnded, .update, .settings, .people, .companies, .tasks, .meetings, .screens: true
         case .meetingsEmpty, .tasksEmpty, .peopleEmpty, .askEmpty, .signIn, .setupWelcome, .setupCalendar, .setupCalendarConnected, .setupPermissions,
              .setupSampleIntro, .setupSample, .setupSampleNote, .setupReady: false
         }
@@ -91,7 +93,7 @@ enum DemoScene: String {
         case .setupPermissions: .permissions
         case .setupSampleIntro, .setupSample, .setupSampleNote: .sampleMeeting
         case .setupReady: .ready
-        case .home, .note, .ask, .live, .upsell, .trialEnding, .trialEnded, .update, .settings, .people, .tasks, .meetings, .meetingsEmpty, .tasksEmpty,
+        case .home, .note, .ask, .live, .upsell, .trialEnding, .trialEnded, .update, .settings, .people, .companies, .tasks, .meetings, .meetingsEmpty, .tasksEmpty,
              .peopleEmpty, .askEmpty, .screens, .signIn: nil
         }
     }
@@ -158,7 +160,7 @@ enum DemoModeError: Error, CustomStringConvertible {
         case .dataFolderOutsideHome(let dataFolder, let home):
             "Tanıtım modu: veri klasörü (\(dataFolder)) geçici evin (\(home)) dışında; kullanıcının verisine yazılmaz."
         case .unknownScene(let value):
-            "Tanıtım modu: sahne tanınmadı (gelen: \(value ?? "yok")); ana, not, sor, canli, abone, deneme-bitiyor, deneme-bitti, guncelleme, ayarlar, kisiler, gorevler, toplantilar, toplantilar-bos, gorevler-bos, kisiler-bos, sor-bos, ekranlar, giris ya da kurulum… olmalı."
+            "Tanıtım modu: sahne tanınmadı (gelen: \(value ?? "yok")); ana, not, sor, canli, abone, deneme-bitiyor, deneme-bitti, guncelleme, ayarlar, kisiler, sirketler, gorevler, toplantilar, toplantilar-bos, gorevler-bos, kisiler-bos, sor-bos, ekranlar, giris ya da kurulum… olmalı."
         }
     }
 }
@@ -260,6 +262,9 @@ func showDemoScene(scene: DemoScene, model: AppModel, router: MainWindowRouter, 
         #endif
     case .people:
         router.section = .people
+    case .companies:
+        router.section = .people
+        router.peopleTab = .companies
     case .tasks, .tasksEmpty:
         router.section = .tasks
     case .meetings:
@@ -731,11 +736,13 @@ func demoMeetings(now: Date) -> [MeetingRecord] {
 /// Tanıtımın kişi defteri (rol ve e-postalar). Saf fonksiyondur.
 func demoPeopleBook(now: Date) -> PeopleBook {
     let people: [(name: String, role: String, email: String)] = [
-        ("Elif", "Head of Product", "elif@example.com"),
-        ("Mikko", "Engineering lead", "mikko@example.com"),
-        ("Ayşe", "Sales", "ayse@example.com"),
-        ("Jonas", "COO, Nordia", "jonas@example.com"),
-        ("Lena", "Product designer", "lena@example.com"),
+        ("Elif", "Head of Product", "elif@lumora.io"),
+        ("Mikko", "Engineering lead", "mikko@lumora.io"),
+        ("Ayşe", "Sales", "ayse@lumora.io"),
+        ("Jonas", "COO, Nordia", "jonas@nordia.fi"),
+        ("Maria", "Board member, Nordia", "maria@nordia.fi"),
+        ("Lena", "Product designer", "lena.fischer@studio-kern.de"),
+        ("Daniel", "Advisor", "daniel.okafor@gmail.com"),
     ]
     return people.reduce(PeopleBook.empty) { (book: PeopleBook, person: (name: String, role: String, email: String)) -> PeopleBook in
         addingPerson(book: book, person: SavedPerson(name: person.name, role: person.role, email: person.email, addedAt: now.addingTimeInterval(-30 * 86_400)))

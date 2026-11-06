@@ -48,6 +48,8 @@ final class MainWindowRouter {
     var opensAccountSettings: Bool = false
     /// Ayarlar açılınca Sesle yazma sekmesi seçilsin (sesle yazma hapındaki "izin ver"). Ayarlar sekmeyi seçince sıfırlar.
     var opensVoiceTypingSettings: Bool = false
+    /// Kişiler sayfasında seçili sekme (kişiler ya da şirketler).
+    var peopleTab: PeopleTab = .people
 }
 
 /// Ayarlar › Sesle yazma'yı açar.
