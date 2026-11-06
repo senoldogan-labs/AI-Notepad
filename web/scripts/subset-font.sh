@@ -15,11 +15,11 @@ trap 'rm -rf "$work_dir"' EXIT
 
 fonttools varLib.instancer "$web_dir/../App/Fonts/InterVariable.ttf" wght=400:700 opsz=16 -o "$work_dir/Inter-text.ttf" -q
 pyftsubset "$work_dir/Inter-text.ttf" \
-  --output-file="$web_dir/public/fonts/InterVariable-latin.woff2" \
+  --output-file="$web_dir/src/assets/fonts/InterVariable-latin.woff2" \
   --flavor=woff2 \
   --unicodes="U+0000-00FF,U+0100-017F,U+0131,U+0152-0153,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+20BA,U+2122,U+2190-2193,U+21B3,U+2212,U+2215,U+2713" \
   --layout-features+="tnum,case,cv11,ss03" \
   --no-hinting \
   --desubroutinize
 
-echo "Yazıldı: $web_dir/public/fonts/InterVariable-latin.woff2"
+echo "Yazıldı: $web_dir/src/assets/fonts/InterVariable-latin.woff2"

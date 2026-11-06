@@ -6,7 +6,7 @@
 
 @font-face {
   font-family: "Inter";
-  src: url("/fonts/InterVariable-latin.woff2") format("woff2");
+  src: url("../assets/fonts/InterVariable-latin.woff2") format("woff2");
   font-weight: 400 700;
   font-style: normal;
   font-display: swap;
@@ -16,7 +16,7 @@
    scripts/subset-serif.sh. Headings only. */
 @font-face {
   font-family: "Newsreader";
-  src: url("/fonts/Newsreader-display-latin.woff2") format("woff2");
+  src: url("../assets/fonts/Newsreader-display-latin.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
