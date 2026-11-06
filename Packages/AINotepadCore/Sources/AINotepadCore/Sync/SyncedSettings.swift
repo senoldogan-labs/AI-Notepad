@@ -35,6 +35,7 @@ public let syncedSettingKeys: [SyncedSettingKey] = [
     SyncedSettingKey(name: "displayMode", kind: .string),
     SyncedSettingKey(name: "noteTemplate", kind: .string),
     SyncedSettingKey(name: "customTemplate", kind: .string),
+    SyncedSettingKey(name: "customTemplate.name", kind: .string),
     SyncedSettingKey(name: "noteTemplate.fromTitle", kind: .bool),
     SyncedSettingKey(name: "meeting.noteDisplayLanguage", kind: .string),
     SyncedSettingKey(name: askWebSearchSettingKey, kind: .bool),
