@@ -85,7 +85,7 @@ function header(input: LlmsInput): string {
     `Data: ${copy.compare.us.storage}; our servers keep no audio, and no notes they can read (optional Mac–iPhone sync stores only an end-to-end encrypted copy). ${training.text}`,
     `Company: ${input.operator.name}, Finland (EU); contact ${input.operator.email}.`,
   ];
-  return [`# ${productName}`, `> ${copy.home.lead}`, "Key facts:", facts.map((fact: string): string => `- ${fact}`).join("\n")].join("\n\n");
+  return [`# ${productName}`, `> ${copy.home.meta.description}`, "Key facts:", facts.map((fact: string): string => `- ${fact}`).join("\n")].join("\n\n");
 }
 
 /** `/llms.txt`: özet ve sayfa bağlantıları (llmstxt.org biçimi). Saf fonksiyondur. */
@@ -145,8 +145,8 @@ function comparisonTable(copy: Copy): string {
 export function llmsFullTxt(input: LlmsInput): string {
   const { copy, origin, dataHandling } = input;
   const url = (page: PageKey): string => pageUrl(page, origin);
-  const features = copy.home.features;
-  const featureSections: readonly TitledText[] = [features.live, features.tasks, features.missed, features.ask, features.followUp, features.templates, features.voiceTyping, features.screens];
+  const { showcase, features } = copy.home;
+  const featureSections: readonly TitledText[] = [showcase.live, showcase.note, showcase.ask, features.missed, features.followUp, features.templates, features.voiceTyping, features.screens];
   const sections: readonly string[] = [
     header(input),
     `Website: ${url("home")}. Short version: ${origin}/llms.txt.`,
@@ -154,6 +154,7 @@ export function llmsFullTxt(input: LlmsInput): string {
       "## Features",
       ...featureSections.map((feature: TitledText): string => `### ${feature.title}\n\n${feature.text}`),
       `### Everything in the plan\n\n${copy.pricing.included.map((item: IconItem): string => `- ${item.text}`).join("\n")}`,
+      `### Feature list\n\n${copy.home.featureList.map((item: string): string => `- ${item}`).join("\n")}`,
     ].join("\n\n"),
     [
       "## Pricing and limits",

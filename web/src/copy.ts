@@ -95,7 +95,10 @@ export interface CommonCopy {
   /** Paylaşım kartı görselinin (public/og.png) metin karşılığı. */
   readonly ogImageAlt: string;
   readonly footer: {
+    /** The brand line, set in the serif (also on the sign-in page). */
     readonly tagline: string;
+    /** One line under the tagline: where the product is made. */
+    readonly madeIn: string;
     readonly product: string;
     /** Karşılaştırma, blog ve MCP bağlantılarının sütunu. */
     readonly learn: string;
@@ -144,6 +147,8 @@ export interface ShowcaseShot {
   /** Toplantının hangi anı (ör. "During the meeting"). */
   readonly label: string;
   readonly title: string;
+  /** One sentence under the title. */
+  readonly text: string;
   readonly alt: string;
 }
 
@@ -167,14 +172,15 @@ export interface HomeCopy {
   readonly eyebrow: string;
   readonly title: string;
   readonly lead: string;
+  /** Secondary action ("See pricing"); used outside the home view (WhyUs.astro). */
   readonly secondaryCta: string;
-  /** Kahraman düğmelerinin altındaki kısa güvenceler (engel kaldıranlar). */
+  /** Short assurances under the hero button, shown as one line with the requirements. */
   readonly assurances: readonly string[];
+  /** The factual trust strip under the hero panel (one line; only true claims, no testimonials or ratings). */
+  readonly proof: readonly string[];
   readonly demo: DemoCopy;
   /** Kahramanın altındaki tanıtım videosu (public/video; sessiz, döngülü, görününce oynar). */
   readonly launchVideo: {
-    readonly eyebrow: string;
-    readonly title: string;
     /** Videonun erişilebilir adı: ekranda yazı yok, ekran okuyucular için ne gösterdiği. */
     readonly description: string;
     /** Video oynatılamazsa görünen metin ve dosya bağlantısı. */
@@ -189,24 +195,19 @@ export interface HomeCopy {
     readonly label: string;
     readonly meetings: readonly LibraryMeeting[];
   };
-  /** Uygulamanın gerçek ekranları (örnek toplantılarla; bkz. scripts/make-screenshots.sh). */
+  /** The features section: its two-tone heading is the brand line ("Quiet while you talk. Yours when you're done.");
+   * the meeting in three rows with real screens (scripts/make-screenshots.sh), then the feature cards. */
   readonly showcase: {
+    /** Muted first phrase of the heading. */
     readonly eyebrow: string;
     readonly title: string;
-    readonly lead: string;
-    readonly note: ShowcaseShot;
     readonly live: ShowcaseShot;
+    readonly note: ShowcaseShot;
     readonly ask: ShowcaseShot;
-    readonly home: ShowcaseShot;
   };
-  readonly featuresEyebrow: string;
-  readonly featuresTitle: string;
-  readonly featuresLead: string;
+  /** Feature cards: one sentence each, under a pastel cover. */
   readonly features: {
-    readonly live: TitledText & { readonly original: string; readonly translation: string };
-    readonly tasks: TitledText & { readonly sample: readonly string[] };
     readonly missed: TitledText & { readonly button: string; readonly answer: string };
-    readonly ask: TitledText & { readonly question: string; readonly source: string };
     readonly followUp: TitledText & { readonly recipe: string; readonly subject: string; readonly lines: readonly string[] };
     readonly templates: TitledText & { readonly sample: readonly string[] };
     /** Sesle yazma: kısayol etiketi ve imlecin olduğu alana yazılan örnek cümle. */
@@ -214,13 +215,12 @@ export interface HomeCopy {
     /** Paylaşılan ekranın görüntüleri: ekran adı, konuşulduğu an ve o ekrandayken söylenen cümle. */
     readonly screens: TitledText & { readonly frame: string; readonly time: string; readonly quote: string };
   };
-  /** Özellik kartlarının altında, planda olan diğer yetenekler (simgeli kısa ızgara). */
+  /** One line under the feature cards: the other things every plan has, and a link to the full list. */
   readonly capabilities: {
     readonly title: string;
-    readonly items: readonly IconText[];
+    readonly items: readonly string[];
+    readonly link: string;
   };
-  /** Kayan entegrasyon şeridinin etiketi. */
-  readonly marqueeLabel: string;
   /** Not ekranındaki açıklama balonları (ekran görüntüsüne göre konumlar Home'da). */
   readonly noteCallouts: {
     readonly dueDate: string;
@@ -849,6 +849,10 @@ export interface Copy {
 }
 
 const tagline: string = "Listens to your meetings, writes your notes.";
+/** The brand line, in two halves: the home features heading sets the first half muted (two-tone). */
+const brandQuiet: string = "Quiet while you talk";
+const brandYours: string = "Yours when you're done.";
+const brandLine: string = `${brandQuiet}. ${brandYours}`;
 
 /** Sitenin metinleri. */
 export const copy: Copy = {
@@ -900,7 +904,8 @@ export const copy: Copy = {
     renewalNote: "Renews automatically every month or year, depending on your plan, until you cancel. Cancel anytime.",
     ogImageAlt: `The ${productName} logo and the tagline “${tagline}” on a soft pastel gradient, above a small sound wave.`,
     footer: {
-      tagline,
+      tagline: brandLine,
+      madeIn: "Made in Oulu, Finland.",
       product: "Product",
       learn: "Learn",
       account: "Account",
@@ -918,14 +923,14 @@ export const copy: Copy = {
   home: {
     meta: {
       title: `${productName} — ${tagline}`,
-      description:
-        "A meeting notepad for Mac: a live transcript, optional live translation, and a note that starts with your tasks when the meeting ends. 3 meetings or 7 days free.",
+      description: `${brandLine} AI meeting notes for Mac: a live transcript, translation and your tasks first. No bot joins the call.`,
     },
     eyebrow: "AI meeting notes for Mac",
     title: tagline,
-    lead: `${productName} transcribes every call live, translates it if you like, and has the note ready when the meeting ends: tasks with owners and due dates first, then the summary, decisions and a glossary. No bot joins the call, and no one else needs to install anything.`,
+    lead: "No bot joins the call.",
     secondaryCta: "See pricing",
     assurances: ["3 meetings or 7 days free", "No credit card"],
+    proof: ["Made in Oulu, Finland", "EU company", "Notarized by Apple", "No bot in your calls"],
     demo: {
       label: `${productName} recording a meeting and writing the note`,
       listening: "Listening",
@@ -950,8 +955,6 @@ export const copy: Copy = {
       replay: "Replay the demo",
     },
     launchVideo: {
-      eyebrow: "In one minute",
-      title: "See it at work.",
       description: `A one-minute tour of ${productName}: the live transcript and translation during a meeting, the note with your tasks on top, asking across your meetings, and sending notes where your team works.`,
       fallback: "Your browser can't play this video here.",
       fallbackLink: "Open the video file",
@@ -968,78 +971,55 @@ export const copy: Copy = {
       ],
     },
     showcase: {
-      eyebrow: "Inside the app",
-      title: "Quiet while you talk. Organised when you're done.",
-      lead: "Real screens from the app: one window for all your meetings, and a small panel while you record.",
-      note: {
-        label: "After the meeting",
-        title: "Ready when you hang up",
-        alt: `The Product weekly note in the ${productName} app: a list of recent meetings on the left and, under the meeting cover and a who-spoke-when timeline, your three tasks with due dates: write the beta release notes by Friday, send Ayşe the pricing table today, set up a weekly call with support on Wednesday.`,
-      },
+      eyebrow: brandQuiet,
+      title: brandYours,
       live: {
         label: "During the meeting",
         title: "Every sentence, as it's said",
+        text: "Each sentence is on screen within seconds, with a translation into your language when the meeting is in another one.",
         alt: `The ${productName} live panel while recording a Finnish meeting: each speaker's Finnish sentences with the English translation underneath, your own lines in English, and a “What did I miss?” button at the bottom.`,
+      },
+      note: {
+        label: "After the meeting",
+        title: "Ready when you hang up",
+        text: "Your tasks with owners and due dates come first, then the summary, decisions and a glossary.",
+        alt: `The Product weekly note in the ${productName} app: a list of recent meetings on the left and, under the meeting cover and a who-spoke-when timeline, your three tasks with due dates: write the beta release notes by Friday, send Ayşe the pricing table today, set up a weekly call with support on Wednesday.`,
       },
       ask: {
         label: "Any time later",
         title: "Search every meeting",
+        text: "Ask across all your meetings and get an answer that links back to the meeting it came from.",
         alt: `The Ask page in ${productName}: the question “What did we decide about the budget?” answered in two bullet points with numbered citations, and a row showing 3 sources from 2 meetings.`,
       },
-      home: {
-        label: "Before the meeting",
-        title: "One click to start",
-        alt: `The ${productName} home screen: “Good morning, Alex”, a large Start listening button with options for language, your voice and live translation, shortcuts, and your open tasks from recent meetings.`,
-      },
     },
-    featuresEyebrow: "Features",
-    featuresTitle: "From conversation to next steps, while you talk.",
-    featuresLead: "Decisions, owners and due dates are captured as people speak, so you leave every meeting knowing what happens next, with a searchable record of everything.",
     features: {
-      live: {
-        title: "Follow every word, in your language",
-        text: "Every sentence is on screen within seconds. If the meeting is in another language, a translation into yours runs alongside. It carries what the speaker means, not word for word: questions stay questions, and promises keep who, what and when.",
-        original: "Betayı on dördünde açmalıyız.",
-        translation: "We should open the beta on the fourteenth.",
-      },
-      tasks: {
-        title: "Tasks first, with owners and due dates",
-        text: "When the meeting ends, the note is ready. Your tasks on top, with who does what by when; then a summary, decisions and a glossary. Tick tasks off, or send them to Reminders, Linear or Jira.",
-        sample: ["Write release notes · Friday", "Send pricing table · Today"],
-      },
       missed: {
         title: "Catch up without interrupting",
-        text: "Drifted off for a moment? “What did I miss?” sums up the last few minutes in one click, so nobody has to repeat themselves.",
+        text: "“What did I miss?” sums up the last few minutes in one click, so nobody has to repeat themselves.",
         button: "What did I miss?",
         answer: "In the last 5 minutes: the beta moved to 14 November, and the release notes are yours.",
       },
-      ask: {
-        title: "Find any decision in seconds",
-        text: "Ask across all your notes and transcripts, or only the meetings you tag with @. Get a quick fact or, when it's needed, a table, a step-by-step plan or a ready-to-paste prompt. Follow-ups remember the conversation, and Ask can search the web for what your meetings don't cover. Every source links back to its meeting or web page, and chats are saved so you can rename, search and filter them.",
-        question: "What did we decide about the budget?",
-        source: "Sources: Investor update, Product weekly",
-      },
       followUp: {
         title: "The follow-up email, already drafted",
-        text: "One click drafts the follow-up from the note: key points, decisions and action items with owners and due dates. Edit it, copy it or open it in Mail with the attendees filled in. Recipes also turn a meeting into a project plan, risks or open questions.",
+        text: "One click drafts the follow-up from the note, with decisions and owners, ready to edit or open in Mail.",
         recipe: "Follow-up email",
         subject: "Subject: Product weekly, next steps",
         lines: ["Beta opens on 14 November.", "Alex: release notes by Friday."],
       },
       templates: {
         title: "The right note for every meeting",
-        text: "Client calls, one-on-ones, stand-ups, sprint planning, interviews and lectures each get a note that puts the right things first, picked from the meeting title. Or write your own.",
+        text: "Client calls, one-on-ones, stand-ups and interviews each get a note that puts the right things first, or write your own.",
         sample: ["Client call", "One-on-one", "Stand-up", "Sprint planning", "Interview", "Lecture", "Your own"],
       },
       voiceTyping: {
         title: "Type with your voice, in any app",
-        text: "Hold the shortcut, speak and let go: your words are typed wherever your cursor is, in Mail, Slack, Notes or the browser. It's transcribed on your Mac and nothing is sent anywhere. Free with any account, even after the trial.",
+        text: "Hold the shortcut and speak to type wherever your cursor is, transcribed on your Mac and free with any account.",
         shortcut: "Hold ⌃⌥D",
         sample: "Thanks, I'll send the pricing table by Friday.",
       },
       screens: {
         title: "Feedback pinned to the right slide",
-        text: "Turn it on and, in online calls, the Mac app keeps a snapshot each time the shared screen changes, matched to what was said while it was up. Your AI apps read both over MCP, so each comment lands on the right slide or design frame. Snapshots stay on your Mac unless you also let notes use them, so the note can say which slide a point was about.",
+        text: "In online calls, snapshots of the shared screen are matched to what was said, so each comment lands on the right slide.",
         frame: "Pricing page",
         time: "12:40",
         quote: "The yearly toggle is hard to spot.",
@@ -1048,17 +1028,14 @@ export const copy: Copy = {
     capabilities: {
       title: "Also in every plan",
       items: [
-        { icon: "plug", title: "Works with any call app", text: "Zoom, Microsoft Teams, Google Meet, FaceTime or any other app that plays through your Mac's speakers or headphones." },
-        { icon: "timer", title: "Stops when the call ends", text: "When the call is over, a 30-second countdown finishes the recording. Choose “Keep recording” to carry on, or turn it off in Settings." },
-        { icon: "users", title: "Speaker names everywhere", text: "Name the people in a meeting once, and the summary, decisions, tasks and exports use those names." },
-        { icon: "check-circle", title: "Open tasks carried forward", text: "Record a meeting from your calendar and the unfinished tasks from earlier meetings in the same series or with the same people are right there." },
-        {
-          icon: "globe",
-          title: `${spokenLanguages.length} spoken languages`,
-          text: `Notes and live translation in any of ${noteLanguages.length} languages, whatever was spoken. The app itself is in ${interfaceLanguages.length} languages.`,
-        },
-        { icon: "waveform", title: "In the room or from a file", text: "Record an in-person meeting with your Mac's microphone, or import an audio or video file and get the same transcript and note." },
+        "any call app",
+        "stops when the call ends",
+        "speaker names",
+        "open tasks carried forward",
+        `${spokenLanguages.length} spoken languages`,
+        "in-person meetings and imported files",
       ],
+      link: "Everything in the plan",
     },
     trust: {
       eyebrow: "Privacy",
@@ -1068,15 +1045,14 @@ export const copy: Copy = {
         {
           icon: "laptop",
           title: "Stored on your Mac",
-          text: "Notes, transcripts and recordings live in the app on your Mac. Audio is sent only to be transcribed; our servers don't store your audio, or notes we can read.",
+          text: "Notes, transcripts and recordings live on your Mac; our servers don't store your audio, or notes we can read.",
         },
         { icon: "sparkle", title: "Not used to train AI", text: "Your meetings aren't used to train our providers' models. We've opted out wherever that's a setting." },
-        { icon: "globe", title: "EU company, GDPR", text: `${productName} is run from Finland under EU data protection law. Our account database is hosted in the EU.` },
-        { icon: "check-circle", title: "Delete any time", text: "Delete your account in the app or on the website whenever you like; your account is removed and a web or Mac subscription ends." },
+        { icon: "globe", title: "EU company, GDPR", text: "Run from Finland under EU data protection law, with our account database in the EU." },
+        { icon: "check-circle", title: "Delete any time", text: "Delete your account in the app or on the website at any time; a web or Mac subscription ends with it." },
       ],
       link: "Read the privacy policy",
     },
-    marqueeLabel: "Works with the tools you already use",
     noteCallouts: {
       dueDate: "Owner and due date",
       transcript: "Full transcript, by speaker",
@@ -1087,7 +1063,7 @@ export const copy: Copy = {
       lead: "Send the note where your team works, put tasks in your tracker, and let your AI apps read your meetings.",
       notes: {
         title: "Notes to your team",
-        text: "Send the finished note to Notion, Apple Notes or a channel in Slack, Microsoft Teams, Discord or Zoom Team Chat; anything else through a webhook (Zapier, Make, n8n).",
+        text: "Send the note to Notion, Apple Notes, Slack, Microsoft Teams, Discord or Zoom Team Chat, or anywhere else through a webhook.",
       },
       tasks: {
         title: "Tasks to your tracker",
@@ -1095,12 +1071,12 @@ export const copy: Copy = {
       },
       ai: {
         title: "Your AI apps, through MCP",
-        text: "Claude, Cursor and VS Code can search and read your meetings. Connect them with one click in Settings; they can only read, never change anything.",
+        text: "Claude, Cursor and VS Code can search and read your meetings, never change them.",
       },
       mcpLink: "How MCP works",
       files: {
         title: "Your files and calendar",
-        text: "Save every note as Markdown to a folder, such as your Obsidian vault or iCloud Drive, or export it as PDF, Word or subtitles. Your calendar shows what's next, can start recording when a meeting begins, and can brief you on what was said in earlier meetings in the same series or with the same people.",
+        text: "Save notes as Markdown to a folder such as your Obsidian vault, export PDF, Word or subtitles, and let your calendar start the recording.",
       },
       mcpDemo: {
         label: "In Claude",
@@ -1112,7 +1088,7 @@ export const copy: Copy = {
       },
     },
     pricingTitle: "Simple pricing, monthly or yearly.",
-    pricingLead: "One plan with everything in it, billed monthly or yearly. Try it on your own meetings before you pay.",
+    pricingLead: "One plan with everything in it. Try it on your own meetings before you pay.",
     pricingCta: "Pricing details",
     pricingCompare: "Compare with Granola, Otter, Fireflies and Poffle",
     faqTitle: "Questions",
