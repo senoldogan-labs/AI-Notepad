@@ -448,11 +448,21 @@ private struct HomeBottomBar: View {
         .padding(.horizontal, 16)
         .padding(.top, 6)
         .padding(.bottom, 6)
-        // Altına kayan içerik çubuğun arkasında yumuşakça solar (durağan geçiş).
+        // Altına kayan içerik çubuğun üstünde solmaya başlar ve kayıt seçenekleri hapının arkasında artık görünmez (hap
+        // liste satırının yazısıyla üst üste binmesin); durağan geçiş.
         .background {
-            LinearGradient(colors: [Theme.background.opacity(0), Theme.background.opacity(0.92)], startPoint: .top, endPoint: .center)
-                .ignoresSafeArea(edges: .bottom)
-                .allowsHitTesting(false)
+            LinearGradient(
+                stops: [
+                    .init(color: Theme.background.opacity(0), location: 0),
+                    .init(color: Theme.background.opacity(0.97), location: 0.3),
+                    .init(color: Theme.background, location: 1),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .padding(.top, -28)
+            .ignoresSafeArea(edges: .bottom)
+            .allowsHitTesting(false)
         }
         .animation(.smooth(duration: 0.25), value: recorder.phase == .starting)
     }
