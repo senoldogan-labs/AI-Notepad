@@ -1,5 +1,7 @@
 # Her PR'da ve main'e her gönderimde: hızlı testler (macOS), Mac uygulamasının iki sürümü (geliştirici sürümü AI-Notepad
-# ve abonelik sürümü Gistsmith) ve iPhone uygulaması (simülatör) derlemesi.
+# ve abonelik sürümü Gistsmith) ve iPhone uygulaması (simülatör) derlemesi. Mac ve iPhone derlemeleri iki ayrı macOS
+# runner'ında aynı anda çalışır: ikisi ayrı türetilmiş veri klasörü kullandığından ayırmak derlemeyi tekrarlatmaz, PR'ın
+# beklediği süre en yavaş yarı olur.
 # İmza yok (CODE_SIGNING_ALLOWED=NO); gerçek bulut ve model testleri yerelde ortam değişkenleriyle çalışır.
 name: CI
 
@@ -12,11 +14,81 @@ on:
 permissions:
   contents: read
 
+# PR'a yeni gönderim gelince o PR'ın süren koşusu durur: artık birleştirilmeyecek bir başı denetliyor. main'in koşusu
+# yarıda kesilmez (iki PR tek başına geçip main'de birlikte bozulursa onu o gösterir); o sürerken gelen birleştirmeler
+# tek koşu olarak bekler, en yenisi eskisinin yerini alır. Hesabın aynı anda en fazla beş macOS runner'ı vardır ve
+# senoldogann'ın öbür depolarıyla paylaşılır: boşa koşan her iş başka bir PR'ı bekletir.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 # Eylemler commit özetine sabittir (etiket sonradan başka koda taşınamaz; yükseltirken özeti ve yorumdaki sürümü
 # birlikte güncelle); checkout GITHUB_TOKEN'ı .git/config'e yazmaz (persist-credentials: false).
 
 jobs:
+  # Mac ve iPhone işleri, PR'ın değiştirdiği dosyaların hiçbirini okumadıklarında atlanır (GitHub atlanan zorunlu checki
+  # geçmiş sayar): web/, docs/, promo/ ve kökteki Markdown dosyalarını ikisi de okumaz; server/'ı iPhone derlemesi okumaz
+  # ama çekirdek paketin testleri okur (ServerParityTests sunucunun kaynaklarını karşılaştırır), test-and-build koşar.
+  # Taşınan bir dosyanın eski yolu da sayılır. Başka her durumda ikisi de koşar: main'e her gönderimde (bekleyen koşu
+  # yenisiyle değişince arada kalan commitlerin farkı tek gönderimin farkında görünmez), API'nin verdiği 3000 dosyadan
+  # büyük PR'da, dosya listesi alınamazsa (bu iş kırmızı olur, macOS işleri yine koşar).
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      mac: ${{ steps.files.outputs.mac }}
+      ios: ${{ steps.files.outputs.ios }}
+    steps:
+      - id: files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          CHANGED: ${{ github.event.pull_request.changed_files }}
+        run: |
+          if [ "$EVENT" != "pull_request" ] || [ "$CHANGED" -gt 3000 ]; then
+            printf 'mac=true\nios=true\n' | tee -a "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          files=""
+          for attempt in 1 2 3; do
+            if files=$(gh api --paginate "repos/$REPO/pulls/$NUMBER/files" \
+              --jq '.[] | .filename, (.previous_filename // empty)'); then
+              break
+            fi
+            if [ "$attempt" = 3 ]; then
+              echo "::error::PR #$NUMBER dosya listesi alınamadı ($REPO)"
+              exit 1
+            fi
+            echo "::warning::PR #$NUMBER dosya listesi alınamadı, deneme $attempt; yeniden deneniyor"
+            sleep $((attempt * 5))
+          done
+          mac=false
+          ios=false
+          if [ -z "$files" ]; then
+            mac=true
+            ios=true
+          fi
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            case "$file" in
+              web/* | docs/* | promo/*) ;;
+              server/*) mac=true ;;
+              */*) mac=true; ios=true ;;
+              *.md) ;;
+              *) mac=true; ios=true ;;
+            esac
+          done <<< "$files"
+          printf 'mac=%s\nios=%s\n' "$mac" "$ios" | tee -a "$GITHUB_OUTPUT"
+
   test-and-build:
+    needs: changes
+    # changes başarısız olursa da koşar: yalnız açıkça "false" dediğinde atlanır.
+    if: ${{ !cancelled() && needs.changes.outputs.mac != 'false' }}
     runs-on: macos-26
     timeout-minutes: 45
     steps:
@@ -57,23 +129,51 @@ jobs:
           xcodebuild -project AINotepad.xcodeproj -scheme AINotepadHosted -configuration Debug
           -derivedDataPath .build/xcode -destination 'platform=macOS,arch=arm64'
           CODE_SIGNING_ALLOWED=NO build -quiet
-      - name: iPhone uygulaması (simülatör)
-        run: >
-          xcodebuild -project AINotepad.xcodeproj -scheme AINotepadiOS -configuration Debug
-          -derivedDataPath .build/xcode-ios -destination 'generic/platform=iOS Simulator'
-          CODE_SIGNING_ALLOWED=NO build -quiet
       # Yayın derlemeleri Release'dir: yalnız Debug'da tanımlı kod (ör. tanıtım modu, `#if DEBUG`) Release'de derlenmeyi
-      # bozarsa yayın anında değil burada yakalanır.
+      # bozarsa yayın anında değil burada yakalanır. Yayın gibi yalnız arm64 (scripts/release-common.sh): Release
+      # varsayılan olarak x86_64'ü de derler, yayının hiç almadığı ikinci bir derleme.
       - name: Gistsmith Release derlemesi
         run: >
           xcodebuild -project AINotepad.xcodeproj -scheme AINotepadHosted -configuration Release
           -derivedDataPath .build/xcode -destination 'platform=macOS,arch=arm64'
-          CODE_SIGNING_ALLOWED=NO build -quiet
+          ARCHS=arm64 CODE_SIGNING_ALLOWED=NO build -quiet
+
+  # iPhone uygulaması (simülatör), Debug ve Release; Mac derlemeleriyle aynı anda, kendi runner'ında.
+  ios:
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.ios != 'false' }}
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - name: Araç sürümleri
+        run: |
+          xcodebuild -version
+          swift --version
+      - name: Projeyi üret
+        # test-and-build'deki adımın aynısı; sürümü ve özeti ikisinde birlikte güncelle.
+        env:
+          XCODEGEN_VERSION: "2.45.3"
+          XCODEGEN_SHA256: "0c90f4d28ca57335f9fa78cf5bf6dabfe20a232036dabe36de2eef79cb7c0878"
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/xcodegen.zip" \
+            "https://github.com/yonaskolb/XcodeGen/releases/download/$XCODEGEN_VERSION/xcodegen.zip"
+          echo "$XCODEGEN_SHA256  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 -c -
+          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP"
+          "$RUNNER_TEMP/xcodegen/bin/xcodegen" generate
+      - name: iPhone uygulaması (simülatör)
+        run: >
+          xcodebuild -project AINotepad.xcodeproj -scheme AINotepadiOS -configuration Debug
+          -derivedDataPath .build/xcode-ios -destination 'generic/platform=iOS Simulator'
+          ARCHS=arm64 CODE_SIGNING_ALLOWED=NO build -quiet
+      # Yalnız Debug'da tanımlı kod (ör. tanıtım modu, `#if DEBUG`) Release'de derlenmeyi bozarsa burada yakalanır.
       - name: iPhone Release derlemesi (simülatör)
         run: >
           xcodebuild -project AINotepad.xcodeproj -scheme AINotepadiOS -configuration Release
           -derivedDataPath .build/xcode-ios -destination 'generic/platform=iOS Simulator'
-          CODE_SIGNING_ALLOWED=NO build -quiet
+          ARCHS=arm64 CODE_SIGNING_ALLOWED=NO build -quiet
 
   # Abonelik sunucusu (Cloudflare Worker): tipler ve Workers çalışma zamanında gerçek D1 ile testler. Dış servisler
   # testlerde sahte; gerçek anahtar gerekmez.
