@@ -64,6 +64,8 @@ struct PhoneSettingsTab: View {
             }
             Section {
                 PhoneConnectionsRow()
+                // Sunucu sunmuyorsa görünmez (bkz. `PhoneAssistantRow`).
+                PhoneAssistantRow()
             } header: {
                 Text("Bağlantılar")
             } footer: {

@@ -2,7 +2,8 @@
 // tablo (privacy.astro), /llms.txt ve /llms-full.txt bu tek kaynaktan üretilir. Her satır gizlilik politikasının ilgili
 // bölümüyle (3 meeting content, 6 statistics, 8 providers, 9 retention, 10 deletion) ve sunucunun davranışıyla
 // (server/src/transcriptionCache.ts nihai metni 2 saat şifreli tutar, satırı cleanup.ts'in günlük cron'u siler;
-// Linear/Jira ajanı ve paylaşım çevirisi sunucu üzerinden Anthropic'e gider) birebir aynı olmalı; politika
+// Linear/Jira ajanı ve paylaşım çevirisi sunucu üzerinden Anthropic'e gider; yapay zekâ asistanı erişimi
+// server/src/assistant/ ve src/mcp/: AB D1 + R2'de bekleyen şifreli not kopyası, KV'de bağlantı kayıtları) birebir aynı olmalı; politika
 // değişince bu dosya da değişir. iPhone uygulaması henüz App Store'da değildir: satırlar onu privacy.astro ve terms.astro
 // gibi "App Store'a çıktığında" diye anar.
 
@@ -82,7 +83,7 @@ export const dataHandling: DataHandlingCopy = {
       data: "Notes, transcripts, recordings, screen snapshots, and the people and terms you add",
       where: "In the app's folder on your Mac, or on your iPhone once the iPhone app is available on the App Store.",
       stored:
-        "On your device. Unless you turn on sync between Mac and iPhone (off by default), meetings recorded on one device don't appear on the other. Audio and screen snapshots never leave the device that recorded them.",
+        "On your device. Unless you turn on sync between Mac and iPhone (off by default), meetings recorded on one device don't appear on the other. Audio and screen snapshots are never synced or kept on our server. A copy of your notes reaches our server only if you turn on AI assistant access (see that row).",
       retention: "Until you delete them in the app",
       policySection: "meetings",
     },
@@ -106,6 +107,17 @@ export const dataHandling: DataHandlingCopy = {
         "An encrypted copy we cannot read, in our database in the EU, with its size, a random link identifier, its creation and expiry time and your account identifier. Not which meeting it came from.",
       retention:
         "Until the link expires (7, 30 or 90 days, as you choose), you remove it or delete the meeting; all links go when you delete your account",
+      policySection: "meetings",
+    },
+    {
+      id: "assistant",
+      data: "AI assistant access (off by default): each meeting's title, date, length, folder, attendee names, AI note (summary, decisions, open questions, tasks, outline, glossary) and your own notes; never transcripts, audio, screen snapshots or voice profiles",
+      where:
+        "Uploaded from each of your devices to our server, so the AI assistants you connect (with your Apple or Google sign-in and your approval) can search and read your notes through our connector at mcp.gistsmith.com. What an assistant reads is then handled under its provider's policies.",
+      stored:
+        "Yes, encrypted at rest with a key for your account, in Cloudflare D1 and R2 in the EU jurisdiction. Not end-to-end encrypted: our servers can read it, which is how they answer your assistant. Connection records (which assistant, its sign-in return address, times and an account identifier; no notes) are kept in Cloudflare Workers KV, which may store them outside the EU.",
+      retention:
+        "While AI assistant access is on; deleted immediately when you turn it off or delete your account (backups within 30 days), within 7 days after your subscription or trial ends",
       policySection: "meetings",
     },
     {

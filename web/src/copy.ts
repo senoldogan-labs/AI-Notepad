@@ -721,6 +721,21 @@ export interface McpClientFileCopy {
   readonly file: string;
 }
 
+/**
+ * Uzak MCP bağlayıcısı (yapay zekâ asistanı erişimi: server/src/mcp/, uygulamada Ayarlar › Bağlantılar; varsayılan
+ * kapalı). Onay cümlesi ve uyarılar docs/superpowers/specs/2026-11-05-remote-mcp.md "Copy and legal"le aynıdır.
+ */
+export interface McpRemoteCopy {
+  readonly title: string;
+  readonly lead: string;
+  /** Spesifikasyonun zorunlu onay cümlesi. */
+  readonly consent: string;
+  readonly urlLabel: string;
+  readonly url: string;
+  readonly setups: readonly PickCopy[];
+  readonly notes: readonly TitledText[];
+}
+
 /** MCP sayfası. */
 export interface McpCopy {
   readonly meta: PageMeta;
@@ -746,6 +761,7 @@ export interface McpCopy {
   readonly questions: readonly string[];
   readonly privacyTitle: string;
   readonly privacy: readonly TitledText[];
+  readonly remote: McpRemoteCopy;
 }
 
 /** Sayıyla öne çıkan kısa bilgi (ör. "35" + "spoken languages"). */
@@ -1075,7 +1091,7 @@ export const copy: Copy = {
         {
           icon: "laptop",
           title: "Stored on your Mac",
-          text: "Notes, transcripts and recordings live on your Mac; our servers don't store your audio, or notes we can read.",
+          text: "Notes, transcripts and recordings live on your Mac. Our servers don't store your audio, or notes we can read unless you turn on AI assistant access.",
         },
         { icon: "sparkle", title: "Not used to train AI", text: "Your meetings aren't used to train our providers' models. We've opted out wherever that's a setting." },
         { icon: "globe", title: "EU company, GDPR", text: "Run from Finland under EU data protection law, with our account database in the EU." },
@@ -1134,7 +1150,7 @@ export const copy: Copy = {
       {
         question: "Where does my audio go?",
         answer:
-          "While you record, the audio streams from your Mac to Deepgram for the live transcript; Deepgram is asked not to keep it or use it for training. If that isn't available, the live transcript is produced on your Mac instead. When the meeting ends, the audio is passed through our server to ElevenLabs to separate speakers and produce the final transcript; for notes and translation the text goes to Anthropic's Claude model. Our servers don't store audio or notes; they count the duration and hold the final transcript encrypted, only so it can be re-sent for 2 hours if the connection drops; it is deleted at the next daily cleanup, within about a day. ElevenLabs and Anthropic may keep what they process for a time under their own retention rules (Anthropic deletes it within 30 days). If you turn on “Use screen snapshots in notes”, up to six of the meeting's screen snapshots go to Anthropic along with the transcript when the note is written, and up to three with an Ask question about that part of the meeting; otherwise snapshots never leave your Mac. The privacy policy has the details.",
+          "While you record, the audio streams from your Mac to Deepgram for the live transcript; Deepgram is asked not to keep it or use it for training. If that isn't available, the live transcript is produced on your Mac instead. When the meeting ends, the audio is passed through our server to ElevenLabs to separate speakers and produce the final transcript; for notes and translation the text goes to Anthropic's Claude model. Our servers don't store audio, or notes unless you turn on AI assistant access; they count the duration and hold the final transcript encrypted, only so it can be re-sent for 2 hours if the connection drops; it is deleted at the next daily cleanup, within about a day. ElevenLabs and Anthropic may keep what they process for a time under their own retention rules (Anthropic deletes it within 30 days). If you turn on “Use screen snapshots in notes”, up to six of the meeting's screen snapshots go to Anthropic along with the transcript when the note is written, and up to three with an Ask question about that part of the meeting; otherwise snapshots never leave your Mac. The privacy policy has the details.",
       },
       {
         question: "Which languages are supported?",
@@ -1682,6 +1698,49 @@ export const copy: Copy = {
         text: "The server tells your AI app that notes and transcripts are what people said, and that it shouldn't follow requests found inside them.",
       },
     ],
+    remote: {
+      title: "Claude and ChatGPT on the web: AI assistant access",
+      lead: `Assistants in the browser or on your phone can't start ${productName} on your Mac. For them there is AI assistant access, an online connector with four read-only tools: search, fetch, list_meetings and list_my_tasks. It reads your notes, not transcripts. You turn it on in the Mac or iPhone app under Settings › Connections › AI assistant access, then add the connector to your assistant. The setting is being rolled out; if your app doesn't offer it yet, it will in an update.`,
+      consent: "Off by default. Turn it on and an encrypted copy of your notes, never audio, is kept in the EU so the assistants you connect can read them. Turn it off and it is deleted at once (backups within 30 days).",
+      urlLabel: "Connector URL",
+      url: "https://mcp.gistsmith.com/mcp",
+      setups: [
+        {
+          title: "Claude",
+          points: [
+            "In Claude, open Settings › Connectors and choose Add custom connector.",
+            `Name it ${productName} and paste the connector URL.`,
+            `Click Connect, sign in with the Apple or Google account you use in ${productName} and approve read access.`,
+          ],
+        },
+        {
+          title: "ChatGPT",
+          points: [
+            "In ChatGPT, open Settings › Apps & Connectors › Advanced settings and turn on developer mode if your plan needs it for custom connectors.",
+            `Choose Create, name it ${productName}, paste the connector URL and pick OAuth.`,
+            `Sign in with the Apple or Google account you use in ${productName} and approve read access.`,
+          ],
+        },
+      ],
+      notes: [
+        {
+          title: "Our servers can read this copy",
+          text: "It is encrypted at rest with a key for your account, but not end to end: our servers can technically read it, which is how they answer your assistant. Transcripts, audio, screen snapshots and voice profiles are never uploaded.",
+        },
+        {
+          title: "Your assistant's provider sees what it reads",
+          text: "What an assistant reads from your notes falls under that provider's policies, not ours.",
+        },
+        {
+          title: "Meeting text can steer an assistant",
+          text: "An assistant that also has other tools, such as email or web access, can be steered by text in your meetings. Check what it does before you let it act.",
+        },
+        {
+          title: "Disconnect any time",
+          text: "The app lists every connected assistant so you can disconnect it. Turning AI assistant access off disconnects them all and deletes the copy; when your subscription or trial ends, access stops at once and the copy is deleted within 7 days.",
+        },
+      ],
+    },
   },
   signIn: {
     meta: { title: `Sign in — ${productName}`, description: `Sign in to your ${productName} account with Apple or Google.` },
@@ -2138,7 +2197,7 @@ export const copy: Copy = {
     ],
     privacyTitle: "What leaves your Mac",
     privacyText:
-      "Only what you send, and only to the destination you choose, using the account or address you connected. It does not pass through our server, and the receiving service handles it under its own terms. Two steps are the exception: to create Linear or Jira issues, the tasks, the meeting title and Linear's or Jira's replies go through our server to Anthropic's Claude model, and so does a note you translate to send in another language. Our server doesn't store this text. MCP apps read your meetings on your Mac; what they read is then handled by that app's provider.",
+      "Only what you send, and only to the destination you choose, using the account or address you connected. It does not pass through our server, and the receiving service handles it under its own terms. Two steps are the exception: to create Linear or Jira issues, the tasks, the meeting title and Linear's or Jira's replies go through our server to Anthropic's Claude model, and so does a note you translate to send in another language. Our server doesn't store this text. MCP apps read your meetings on your Mac; what they read is then handled by that app's provider. AI assistant access, off by default, is the one exception that keeps a copy on our server: an encrypted copy of your notes in the EU, readable by our servers, so the online assistants you connect can read them.",
     faqTitle: "Questions",
     faq: [
       {
@@ -2155,7 +2214,7 @@ export const copy: Copy = {
       },
       {
         question: "Can Claude or ChatGPT read my meetings?",
-        answer: `Claude, Cursor and VS Code can, through ${productName}'s read-only MCP server, connected with one click in Settings. Other apps that support local MCP servers can connect with the same configuration.`,
+        answer: `Claude, Cursor and VS Code on your Mac can, through ${productName}'s read-only MCP server, connected with one click in Settings. Other apps that support local MCP servers can connect with the same configuration. For Claude and ChatGPT on the web or on your phone there is AI assistant access, an online connector you turn on in the app under Settings › Connections. Off by default. Turn it on and an encrypted copy of your notes, never audio, is kept in the EU so the assistants you connect can read them. Turn it off and it is deleted at once (backups within 30 days). Our servers can technically read that copy (it is encrypted at rest, not end to end), and what an assistant reads falls under its provider's policies. The MCP page has the steps.`,
       },
     ],
   },

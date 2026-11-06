@@ -571,6 +571,8 @@ struct AINotepadApp: App {
                 }
                 // Mac ↔ iPhone eşitlemesi (isteğe bağlı; bkz. `HostedSyncCenter`).
                 .modifier(HostedSyncMacBindings(model: model))
+                // Yapay zekâ asistanı erişimi (isteğe bağlı; bkz. `HostedAssistantCenter`).
+                .modifier(HostedAssistantMacBindings(model: model))
                 #endif
                 // Uygulama öne gelince kurulum eksikleri yenilenir (Anahtar Zinciri ya da Sistem Ayarları'nda yapılan
                 // değişiklikler eskimesin).

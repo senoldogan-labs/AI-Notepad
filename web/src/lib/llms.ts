@@ -4,7 +4,7 @@
 // belgenin başlıkları ve bağlayıcı cümleleri vardır, ürün gerçeği elle yazılmaz. Böylece sayfalar değişince belge de
 // değişir.
 import { productName } from "../config";
-import type { ComparisonTopic, Copy, CompetitorCopy, Faq, IconItem, IconText, IntegrationGroupCopy, IntegrationItemCopy, McpToolCopy, TitledText } from "../copy";
+import type { ComparisonTopic, Copy, CompetitorCopy, Faq, IconItem, IconText, IntegrationGroupCopy, IntegrationItemCopy, McpToolCopy, PickCopy, TitledText } from "../copy";
 import type { DataHandlingCopy, DataHandlingRow } from "../data-handling";
 import type { Operator } from "../legal/operator";
 import { type PageKey, pageUrl } from "../routes";
@@ -82,7 +82,7 @@ function header(input: LlmsInput): string {
     `Limits: ${copy.compare.us.limits} (fair use; the monthly hours reset on the first day of each month, UTC).`,
     `Meeting capture: ${copy.compare.us.capture}.`,
     `Languages: ${input.spokenLanguages.length} spoken languages (live and final transcript) and ${input.noteLanguages.length} languages for notes and live translation, including Turkish, Finnish and English. The app itself is available in ${input.interfaceLanguages.length} languages (${languageNameList(input.interfaceLanguages)}).`,
-    `Data: ${copy.compare.us.storage}; our servers keep no audio, and no notes they can read (optional Mac–iPhone sync stores only an end-to-end encrypted copy). ${training.text}`,
+    `Data: ${copy.compare.us.storage}; our servers keep no audio, and no notes they can read unless you turn on the optional AI assistant access (optional Mac–iPhone sync stores only an end-to-end encrypted copy). AI assistant access: ${copy.mcp.remote.consent} ${training.text}`,
     `Company: ${input.operator.name}, Finland (EU); contact ${input.operator.email}.`,
   ];
   return [`# ${productName}`, `> ${copy.home.meta.description}`, "Key facts:", facts.map((fact: string): string => `- ${fact}`).join("\n")].join("\n\n");
@@ -194,6 +194,10 @@ export function llmsFullTxt(input: LlmsInput): string {
       `Source: ${url("mcp")}`,
       copy.mcp.lead,
       copy.mcp.tools.map((tool: McpToolCopy): string => `- \`${tool.name}\`: ${tool.text} Input: ${tool.input}.`).join("\n"),
+      `### ${copy.mcp.remote.title}`,
+      `${copy.mcp.remote.lead} ${copy.mcp.remote.consent} ${copy.mcp.remote.urlLabel}: ${copy.mcp.remote.url}`,
+      copy.mcp.remote.setups.map((setup: PickCopy): string => `${setup.title}:\n${setup.points.map((point: string, index: number): string => `${index + 1}. ${point}`).join("\n")}`).join("\n\n"),
+      copy.mcp.remote.notes.map((note: TitledText): string => `- ${note.title}: ${note.text}`).join("\n"),
     ].join("\n\n"),
     [
       `## ${dataHandling.title}`,

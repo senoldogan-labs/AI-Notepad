@@ -16,6 +16,29 @@ whichever comes first". Prices are not written in the
 localized descriptions because the App Store shows each storefront's own price and currency. The U.S. description
 keeps its USD prices.
 
+## App Privacy label and App Review notes: AI assistant access
+
+AI assistant access (Settings › Connections › AI assistant access, off by default) uploads an encrypted copy of each
+meeting's notes (title, date, length, folder, attendee names, the AI note and the user's own notes; never audio,
+transcripts, screen snapshots or voice profiles) so that AI assistants the user connects through
+https://mcp.gistsmith.com/mcp can read them. The server can read this copy (encrypted at rest, not end to end).
+
+- **App Privacy label** (App Store Connect › App Privacy), once a build with the setting ships: add **User Content ›
+  Other User Content** (meeting notes), **Linked to You**, purpose **App Functionality**, not used for tracking. It is
+  collected only when the user turns AI assistant access on; the label has no "optional" flag, so declare it, and the
+  privacy policy (section 3) explains that it is off by default.
+- **App Review notes** (App Review Information › Notes), one line:
+  `AI assistant access (Settings › Connections) is off by default; when turned on, an encrypted copy of meeting notes (no audio or transcripts) is stored in the EU so AI assistants the user connects via OAuth at https://mcp.gistsmith.com/mcp can read them; turning it off deletes the copy at once.`
+- **Descriptions**: the PRIVACY paragraphs below stay true while the server switch is off. When the owner launches
+  the feature, replace their server sentence in the same update as the label:
+  - en-GB: "…and our servers don't keep your audio, or notes we can read unless you turn on AI assistant access (off by
+    default: an encrypted copy of your notes, never audio, kept in the EU so the assistants you connect can read
+    them; turn it off and it is deleted at once). Optional Mac sync keeps only an end-to-end encrypted copy."
+  - tr: "…sunucularımız sesini saklamaz; notlarını yalnızca yapay zekâ asistanı erişimini açarsan (varsayılan kapalı)
+    AB'de şifreli bir kopya olarak saklar, bağladığın asistanlar okuyabilsin diye; kapatınca hemen silinir."
+  - fi: "…eivätkä palvelimemme säilytä ääntäsi. Muistiinpanoistasi ne säilyttävät salatun kopion EU:ssa vain, jos
+    otat käyttöön tekoälyavustajien pääsyn (oletuksena pois päältä); kun kytket sen pois, kopio poistetaan heti."
+
 ## Keyword strategy
 
 - **Name + subtitle + keywords make one index per localization.** A word that is already in the name or subtitle

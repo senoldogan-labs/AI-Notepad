@@ -39,6 +39,9 @@ enum DemoScene: String {
     case update = "guncelleme"
     /// Ayarlar (sekme `--ayar` ile seçilir; görsel kontrol için).
     case settings = "ayarlar"
+    /// Ayarlar › Bağlantılar: yapay zekâ asistanı erişimi açık, iki bağlı asistan, yükleme sürüyor (yalnız abonelik
+    /// sürümünde; betik `--ayar baglantilar` ekler).
+    case settingsAssistant = "ayarlar-asistan"
     /// Kişiler (görsel kontrol için).
     case people = "kisiler"
     /// Kişiler › Şirketler (görsel kontrol için).
@@ -79,7 +82,7 @@ enum DemoScene: String {
     /// Sahne örnek verilerle mi açılır; boş sahneler (ilk açılış) hiçbir şey yazmadan açılır.
     var hasSampleData: Bool {
         switch self {
-        case .home, .note, .ask, .live, .upsell, .trialEnding, .trialEnded, .update, .settings, .people, .companies, .tasks, .meetings, .screens: true
+        case .home, .note, .ask, .live, .upsell, .trialEnding, .trialEnded, .update, .settings, .settingsAssistant, .people, .companies, .tasks, .meetings, .screens: true
         case .meetingsEmpty, .tasksEmpty, .peopleEmpty, .askEmpty, .signIn, .setupWelcome, .setupCalendar, .setupCalendarConnected, .setupPermissions,
              .setupSampleIntro, .setupSample, .setupSampleNote, .setupReady: false
         }
@@ -93,7 +96,7 @@ enum DemoScene: String {
         case .setupPermissions: .permissions
         case .setupSampleIntro, .setupSample, .setupSampleNote: .sampleMeeting
         case .setupReady: .ready
-        case .home, .note, .ask, .live, .upsell, .trialEnding, .trialEnded, .update, .settings, .people, .companies, .tasks, .meetings, .meetingsEmpty, .tasksEmpty,
+        case .home, .note, .ask, .live, .upsell, .trialEnding, .trialEnded, .update, .settings, .settingsAssistant, .people, .companies, .tasks, .meetings, .meetingsEmpty, .tasksEmpty,
              .peopleEmpty, .askEmpty, .screens, .signIn: nil
         }
     }
@@ -160,7 +163,7 @@ enum DemoModeError: Error, CustomStringConvertible {
         case .dataFolderOutsideHome(let dataFolder, let home):
             "Tanıtım modu: veri klasörü (\(dataFolder)) geçici evin (\(home)) dışında; kullanıcının verisine yazılmaz."
         case .unknownScene(let value):
-            "Tanıtım modu: sahne tanınmadı (gelen: \(value ?? "yok")); ana, not, sor, canli, abone, deneme-bitiyor, deneme-bitti, guncelleme, ayarlar, kisiler, sirketler, gorevler, toplantilar, toplantilar-bos, gorevler-bos, kisiler-bos, sor-bos, ekranlar, giris ya da kurulum… olmalı."
+            "Tanıtım modu: sahne tanınmadı (gelen: \(value ?? "yok")); ana, not, sor, canli, abone, deneme-bitiyor, deneme-bitti, guncelleme, ayarlar, ayarlar-asistan, kisiler, sirketler, gorevler, toplantilar, toplantilar-bos, gorevler-bos, kisiler-bos, sor-bos, ekranlar, giris ya da kurulum… olmalı."
         }
     }
 }
@@ -259,6 +262,12 @@ func showDemoScene(scene: DemoScene, model: AppModel, router: MainWindowRouter, 
         #if HOSTED_EDITION
         // Ayarlar › Hesap: yıllık abone, davet kodu ve sayıları.
         HostedAccount.shared.showAccountForDemo(entitlements: demoEntitlements(trialLeft: nil, now: now), referral: demoReferral(now: now))
+        #endif
+    case .settingsAssistant:
+        router.section = .settings
+        #if HOSTED_EDITION
+        HostedAccount.shared.showAccountForDemo(entitlements: demoEntitlements(trialLeft: nil, now: now), referral: demoReferral(now: now))
+        HostedAssistantCenter.shared.showForDemo(now: now)
         #endif
     case .people:
         router.section = .people

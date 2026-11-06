@@ -341,7 +341,7 @@ struct PhoneAIDisclosure: View {
                         disclosureRow(
                             symbol: "iphone",
                             title: "Toplantıların bu iPhone'da",
-                            text: "Sunucumuz ses ve not saklamaz; kullanım sınırları için yalnızca süre ve kullanım sayıları tutulur."
+                            text: "Sunucumuz ses saklamaz, notlarını da yalnızca yapay zekâ asistanı erişimini açarsan saklar; kullanım sınırları için süre ve kullanım sayıları tutulur."
                         )
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)

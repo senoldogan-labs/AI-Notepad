@@ -95,8 +95,10 @@ export const pageModified: Readonly<Partial<Record<PageKey, string>>> = {
   vsFireflies: "2026-11-04",
   vsPoffle: "2026-11-04",
   languages: "2026-11-04",
-  integrations: "2026-11-04",
+  integrations: "2026-11-06",
+  mcp: "2026-11-06",
   privacy: "2026-11-06",
+  terms: "2026-11-06",
 };
 
 /** Sitenin dilleri (`<html lang>`, `hreflang`). */

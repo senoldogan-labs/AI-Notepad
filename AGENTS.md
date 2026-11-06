@@ -11,7 +11,7 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
   ortak hesap dosyalarını kullanır. Debug yerel sunucuya (`localhost:8787`) bağlanır; `--tanitim` (yalnız Debug) giriş
   olmadan sahte deneme hesabıyla (`--abone` ile App Store abonesi ve davet koduyla) açar (Simülatör'de görsel kontrol); `--paywall` abonelik ekranını, `--sohbet <uuid>`
   saklı Sor sohbetini açar; sekme çubuğu yok (tek ana ekran, üstüne açılan sayfalar): `--sekme sor|gorevler|ayarlar` o sayfayı
-  (`kayit`/`toplantilar` ana ekranı), `--ekran kitaplik|arama|kisiler|profil` o sayfayı, `--ekran klasorler` kitaplık
+  (`kayit`/`toplantilar` ana ekranı), `--ekran kitaplik|arama|kisiler|profil|asistan` o sayfayı, `--ekran klasorler` kitaplık
   sayfasını, `--toplanti <kimlik>` toplantıyı açar; `--ornek-kayit` örnek canlı kaydı (`--ornek-bitir` ile bitiriliyor katmanını, `--ornek-duraklat` ile duraklatılmış hâlini, `--ornek-sinir` ile çevrimdışı ve aylık sınırla kısaltılmış hâlini) gösterir; `--ornek-takvim` örnek sıradaki toplantıları gösterir; `--karsilama` ilk açılış karşılamasını (`--karsilama-adim <welcome|calendar|permissions|sample|ready>` o adımdan, `--karsilama-ornek <canli|not>` örnek toplantıyı sürerken ya da notuyla) açar. Abonelik RevenueCat'le (`iOS/Purchases/`); şemadaki `Products.storekit` yalnızca Xcode'da
   Run'da geçerlidir — `xcodebuild`/`simctl` başlatması StoreKit sandbox'ını kullanır (Apple FB22237318), UI testi bu
   yüzden yok.
