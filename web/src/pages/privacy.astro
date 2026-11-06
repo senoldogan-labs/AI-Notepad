@@ -25,7 +25,10 @@
 // Linear/Jira iş açma ajanı (`task_agent`), notu paylaşım diline çevirme (`shared_note_translation`) ve nottan takip
 // e-postası taslağı (`follow_up_email`; alıcı adresleri gönderilmez, yalnızca cihazdaki e-posta uygulamasına gider) sunucu
 // üzerinden Anthropic'e gider. Mac'teki cihaz içi konuşma modelleri (WhisperKit, SpeakerKit) Hugging Face'ten (huggingface.co,
-// argmaxinc/whisperkit-coreml) indirilir. iPhone uygulaması henüz App Store'da değildir.
+// argmaxinc/whisperkit-coreml) indirilir. iPhone uygulaması henüz App Store'da değildir. Yapay zekâ asistanı erişimi
+// (docs/superpowers/specs/2026-11-05-remote-mcp.md; server/src/assistant/, src/mcp/): uygulamada açılır, varsayılan
+// kapalı; notların sunucunun okuyabildiği şifreli kopyası AB D1 + R2'de, bağlantı kayıtları KV'de (AB dışında olabilir);
+// kapatınca hemen silinir, erişim bitince 7 gün içinde; jetonlar 1 saat / 30 gün boşta / en çok 180 gün.
 import LegalSection from "../components/LegalSection.astro";
 import Legal from "../layouts/Legal.astro";
 import { cardStatementDescriptor, productName } from "../config";
@@ -120,17 +123,19 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
     <ul>
       <li>
         Your notes, transcripts and recordings are stored on your Mac or iPhone, in the app that recorded them. Our servers keep no audio, and no notes or
-        translations we can read. There are three exceptions: the final transcript, held encrypted so it can be re-sent for 2 hours if the
+        translations we can read. There are four exceptions: the final transcript, held encrypted so it can be re-sent for 2 hours if the
         connection drops, then deleted at the next daily cleanup (within about a day); only if you turn on sync
-        between Mac and iPhone, an end-to-end encrypted copy of your meetings' text that only your devices can open; and,
+        between Mac and iPhone, an end-to-end encrypted copy of your meetings' text that only your devices can open;
         only if you share a note with a link, an end-to-end encrypted copy of that note that only people with the link can
-        open (see section 3).
+        open; and, only if you turn on AI assistant access (off by default), an encrypted copy of your meeting notes, never
+        audio or transcripts, kept in the EU so the AI assistants you connect can read them. That copy is not end-to-end
+        encrypted: our servers can read it (see section 3).
       </li>
       <li>
         Meeting audio and text go only to our AI providers to be transcribed and summarised: Deepgram for the live
         transcript (directly from your device), ElevenLabs for the final transcript and Anthropic for notes (both through our
-        server, which keeps no audio or notes and holds the final transcript encrypted for 2 hours for re-sending and
-        deletes it within about a day). Shared-screen
+        server, which keeps no audio, keeps no notes unless you turn on AI assistant access, and holds the final transcript
+        encrypted for 2 hours for re-sending and deletes it within about a day). Shared-screen
         snapshots go to Anthropic with the note (and a few with your Ask questions) only if you turn on “Use screen
         snapshots in notes”. Deepgram keeps no
         audio or text after transcribing; the others may keep request data for
@@ -221,7 +226,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       </li>
       <li>
         <strong>Storage.</strong> Notes, transcripts, recordings, screen snapshots and the people and terms you add are
-        stored in the app's folder on your Mac or iPhone. Unless you turn on sync (below), the apps do not copy them to any cloud service, and meetings
+        stored in the app's folder on your Mac or iPhone. Unless you turn on sync or AI assistant access (below), the apps do not copy them to any cloud service, and meetings
         recorded on one device do not appear on the other. You can export or delete them in
         the app at any time.
       </li>
@@ -255,6 +260,35 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         encrypted note is stored in our database in the EU. The app on the device that created a link remembers it, so
         you can copy it again there. You choose how long a link works (7, 30 or 90 days); you can remove it at any time,
         and deleting the meeting in the app removes its links too. A removed or expired link stops working at once.
+      </li>
+      <li>
+        <strong>AI assistant access (optional, off by default).</strong> Off by default. Turn it on and an encrypted copy of
+        your notes, never audio, is kept in the EU so the assistants you connect can read them. Turn it off and it is
+        deleted at once (backups within 30 days). You turn it on in the Mac or iPhone app under Settings › Connections ›
+        AI assistant access; it can't be turned on from the web. While it is on, each of your devices uploads, for each of
+        its meetings, the title, date, length, folder and attendee names, the AI note (summary, decisions, open questions,
+        tasks with their owners, due dates and whether they are done, outline and glossary) and your own typed notes. It
+        never uploads transcripts, audio, screen snapshots or voice profiles, and never the sample meeting from the app's
+        introduction. The copy is the meetings of all your devices together; in the app you can remove one device's
+        meetings from it. Each account can keep up to 5,000 meetings and 256 MB in the copy. The copy is encrypted at rest
+        (AES-256-GCM, with a key for your account) and stored in Cloudflare D1 and R2 in the EU jurisdiction.{" "}
+        <strong>It is not end-to-end encrypted: our servers can read it</strong>, which is how our connector at
+        mcp.gistsmith.com answers your assistant's searches and requests. You connect an assistant (for example Claude or
+        ChatGPT) from the assistant itself: you sign in with Apple or Google on mcp.gistsmith.com and approve read access;
+        your devices then show a notice that a new assistant was connected, and the app lists every connection so you can
+        disconnect it. A connected assistant can only search, list and read your notes; it can't change or delete
+        anything. For each connection we keep a connection record: the assistant's client identifier, its sign-in return
+        address, whether it is a verified product, when it was connected and last used, the number of requests, and an
+        account identifier, but never any notes. These records are kept in our EU database and in Cloudflare Workers KV,
+        which may store them outside the EU. An assistant's access lasts 1 hour at a time and is renewed automatically; a
+        connection that isn't used for 30 days, or is 180 days old, has to be approved again. The number of requests is
+        limited, and our logs for this feature hold identifiers and counts only, never note text, meeting titles or search
+        queries. Turning AI assistant access off deletes the copy straight away (or, if storage can't be reached, at the
+        next daily cleanup), disconnects every assistant and revokes its access. If your subscription or trial ends,
+        assistants lose access immediately and the copy is deleted within 7 days. Deleting your account deletes it too.
+        Please keep in mind: what an assistant reads is handled under that assistant's provider's own terms and privacy
+        policy, not ours; and an assistant that also has other tools, such as email or web access, can be steered by text
+        in your meetings, so check what it does before you let it act.
       </li>
       <li>
         <strong>Integrations.</strong> When you send a note or tasks to Notion, Slack, Microsoft Teams, Discord, Zoom,
@@ -299,7 +333,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       meeting content to perform our contract with you. Meetings also involve other people. You decide whether to record a
       meeting and what to do with the result, so for the other participants' personal data you are the controller and we
       act as your processor under GDPR Article 28: we process it only on your instructions — to transcribe the meeting and
-      write your note and answer your questions, including from shared-screen snapshots if you turn that on — using the sub-processors listed in
+      write your note and answer your questions, including from shared-screen snapshots if you turn that on, and to keep
+      the copy your AI assistants read if you turn on AI assistant access — using the sub-processors listed in
       section 8, and never for any other purpose. You are responsible
       for telling participants that you are recording and, where the law requires it, getting their consent.
       Participants who want to use their rights should contact the person who recorded the meeting; if they contact us,
@@ -318,8 +353,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
             <td>
               <strong>Meeting content.</strong> Meeting audio (including audio or video files you import), transcripts,
               notes, the questions you ask, the participant names and terms you add, and the title and attendee names of
-              a calendar event you link to a meeting (section 3). Passed through our server only while it is processed; no audio or notes
-              are stored on our servers in a form we can read, and the final transcript is held encrypted so it can be re-sent for 2 hours, then
+              a calendar event you link to a meeting (section 3). Passed through our server only while it is processed; no audio is
+              stored on our servers, no notes are stored in a form we can read unless you turn on AI assistant access (below), and the final transcript is held encrypted so it can be re-sent for 2 hours, then
               deleted at the next daily cleanup (within about a day).
             </td>
             <td>Transcribing meetings; writing notes, translations and answers</td>
@@ -346,6 +381,19 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
             </td>
             <td>Showing your meetings on your other Mac or iPhone</td>
             <td>(b) contract</td>
+          </tr>
+          <tr>
+            <td>
+              <strong>AI assistant copy (only if you turn on AI assistant access).</strong> Your meetings' titles, dates,
+              lengths, folders, attendee names, AI notes and your own notes, encrypted at rest but readable by our servers;
+              the connection records of the assistants you connect (client identifier, sign-in return address, times,
+              request counts, account identifier) (section 3)
+            </td>
+            <td>Letting the AI assistants you connect search and read your notes</td>
+            <td>
+              (b) contract, for your own data, at your request. For other participants' data, you are the controller and we
+              process it as your processor (section 3).
+            </td>
           </tr>
           <tr>
             <td>
@@ -481,7 +529,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
           <tr>
             <td>
               <strong>Technical logs.</strong> Endpoint, result or error code, account ID and time. Logs never contain
-              meeting audio or text. We also keep daily error totals (for example how many requests were refused because a
+              meeting audio or text, and for AI assistant access only identifiers and counts, never note text, meeting titles
+              or search queries. We also keep daily error totals (for example how many requests were refused because a
               limit was reached), not linked to anyone.
             </td>
             <td>Operating the service, finding errors, security</td>
@@ -664,6 +713,11 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       processes IP addresses to deliver and protect it.
     </p>
     <p>
+      <strong>Connecting an AI assistant.</strong> The sign-in and approval pages at mcp.gistsmith.com, which you see only
+      when you connect an AI assistant (section 3), set one strictly necessary cookie that ties the connection request to
+      your browser for 10 minutes. These pages load no statistics script and send no referrer.
+    </p>
+    <p>
       <strong>Visitor statistics.</strong> To see how the site is used, we use Cloudflare Web Analytics, with Cloudflare as
       our processor. Its script sets no cookies, uses no local or session storage and doesn't fingerprint your browser or
       follow you across sites. We see only aggregated numbers: page views, referring sites, countries and device types.
@@ -688,10 +742,11 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         <tbody>
           <tr>
             <td>Cloudflare, Inc.</td>
-            <td>Processor: hosting this website and our server (Workers), database (D1), storage of the encrypted sync copy (R2), rate limiting, Turnstile, Web Analytics, logs</td>
-            <td>Account, usage, message and technical data; IP addresses; meeting content in transit; the end-to-end encrypted sync copy and shared notes, which Cloudflare cannot read</td>
+            <td>Processor: hosting this website and our server (Workers), databases (D1), storage of the encrypted sync copy and the AI assistant copy (R2), AI assistant connection records (Workers KV), rate limiting, Turnstile, Web Analytics, logs</td>
+            <td>Account, usage, message and technical data; IP addresses; meeting content in transit; the end-to-end encrypted sync copy and shared notes, which Cloudflare cannot read; if you turn on AI assistant access, the copy of your notes, encrypted at rest, and the connection records of your assistants (no notes)</td>
             <td>
-              Database stored in the EU; the encrypted sync copy is stored in the EU jurisdiction. Cloudflare's network is global and the company is based in the USA: EU–US Data
+              Databases stored in the EU; the encrypted sync copy and the AI assistant copy are stored in the EU jurisdiction.
+              AI assistant connection records are kept in Workers KV, which may store them outside the EU. Cloudflare's network is global and the company is based in the USA: EU–US Data
               Privacy Framework and Standard Contractual Clauses.
             </td>
           </tr>
@@ -791,6 +846,11 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       </table>
     </div>
     <p>
+      <strong>AI assistants you connect.</strong> If you turn on AI assistant access and connect an assistant such as
+      Claude (Anthropic) or ChatGPT (OpenAI), its provider is not our sub-processor: you choose and connect it, and the
+      provider handles what the assistant reads from your notes under its own terms and privacy policy.
+    </p>
+    <p>
       <strong>International transfers.</strong> When personal data is transferred outside the EU and EEA, we rely on the
       European Commission's adequacy decision for the EU–US Data Privacy Framework where the recipient is certified under
       it, and otherwise on the Commission's Standard Contractual Clauses included in the provider's data processing terms.
@@ -814,7 +874,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
   <LegalSection sections={sections} id="retention">
     <ul>
       <li>
-        Meeting content: no audio, notes or translations are stored on our servers; the final transcript is kept
+        Meeting content: no audio, notes or translations are stored on our servers, except the AI assistant copy if you
+        turn that on (below); the final transcript is kept
         encrypted so it can be re-sent for 2 hours (see section 3), then deleted at the next daily cleanup (within about a
         day). At our AI providers: Deepgram keeps the live audio and
         transcript only
@@ -831,6 +892,14 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         Shared notes (only if you share a note with a link): until the link expires (7, 30 or 90 days, as you choose),
         you remove it or you delete the meeting in the app, whichever comes first. A removed link is deleted at once; an
         expired one stops working at once and is deleted at the next daily cleanup (within about a day).
+      </li>
+      <li>
+        The AI assistant copy (only if you turn on AI assistant access): while the setting is on. Turning it off deletes it
+        immediately and disconnects every assistant; a meeting you delete, or a device's meetings you remove, is removed
+        from it right away. If your subscription or trial ends, assistants lose access immediately and the copy is deleted
+        within 7 days. Deleting your account deletes it with the account. Backups: gone within 30 days. Connection records:
+        until you disconnect the assistant, turn the setting off or delete your account; in Workers KV also no longer than
+        the connection lasts (30 days without use, at most 180 days).
       </li>
       <li>
         Account and sign-in identities: while your account exists; deleted immediately when you delete it. Device
@@ -896,7 +965,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       subscription record), cancellation reasons, invite code and invite records linked to your account, Stripe
       customer link, the records of the encrypted sync copy and every note you shared with a link are deleted together
       in a single step (shared links stop working at once); the encrypted copy
-      itself is removed from storage at once (or, if storage can't be reached, at the next daily cleanup). If you signed in with Apple, we first ask Apple to revoke
+      itself is removed from storage at once (or, if storage can't be reached, at the next daily cleanup). If you turned on
+      AI assistant access, its copy of your notes is deleted in the same way and every connected assistant loses access. If you signed in with Apple, we first ask Apple to revoke
       Gistsmith's access to your Apple ID, using the token we stored for that; the account is deleted even if Apple can't
       be reached, and we then follow up manually. You can also stop using Sign in with Apple for Gistsmith yourself, in
       your Apple ID settings (on iPhone: Settings › your name › Sign-In &amp; Security › Sign in with Apple).

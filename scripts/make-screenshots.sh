@@ -9,7 +9,7 @@
 # Gerekenler: xcodegen, Xcode, cwebp (brew install webp); çekim Retina ekranda yapılır (App/DemoData.swift taşır).
 # Kullanım: scripts/make-screenshots.sh [sahne ...]   (varsayılan: site sahneleri)
 #   Site sahneleri (PNG + WebP): ana not sor canli
-#   Görsel kontrol sahneleri (yalnızca PNG): abone deneme-bitiyor deneme-bitti guncelleme ayarlar kisiler sirketler
+#   Görsel kontrol sahneleri (yalnızca PNG): abone deneme-bitiyor deneme-bitti guncelleme ayarlar ayarlar-asistan kisiler sirketler
 #   gorevler toplantilar ekranlar; hiç veri olmadan (ilk açılış): toplantilar-bos gorevler-bos kisiler-bos sor-bos; giriş kapısı
 #   ve karşılama: giris kurulum kurulum-takvim kurulum-takvim-bagli kurulum-izinler kurulum-ornek-giris kurulum-ornek
 #   kurulum-not kurulum-hazir
@@ -19,7 +19,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 site_scenes=(ana not sor canli)
-check_scenes=(abone deneme-bitiyor deneme-bitti guncelleme ayarlar kisiler sirketler gorevler toplantilar ekranlar toplantilar-bos gorevler-bos kisiler-bos sor-bos
+check_scenes=(abone deneme-bitiyor deneme-bitti guncelleme ayarlar ayarlar-asistan kisiler sirketler gorevler toplantilar ekranlar toplantilar-bos gorevler-bos kisiler-bos sor-bos
     giris kurulum kurulum-takvim kurulum-takvim-bagli kurulum-izinler kurulum-ornek-giris kurulum-ornek kurulum-not kurulum-hazir)
 theme="${GISTSMITH_THEME:-light}"
 if [[ "$theme" != "light" && "$theme" != "dark" ]]; then
@@ -92,7 +92,12 @@ if [ "$offset" -ge 0 ]; then tz="Etc/GMT-$offset"; else tz="Etc/GMT+$((-offset))
 for scene in "${scenes[@]}"; do
     home="$work/home-$scene"
     mkdir -p "$home"
-    env CFFIXED_USER_HOME="$home" TZ="$tz" "$app/Contents/MacOS/Gistsmith" --tanitim "$scene" \
+    # Sahneye özgü ek argümanlar (ör. Ayarlar'ın açılacak sekmesi).
+    extra=()
+    if [ "$scene" = "ayarlar-asistan" ]; then
+        extra=(--ayar baglantilar)
+    fi
+    env CFFIXED_USER_HOME="$home" TZ="$tz" "$app/Contents/MacOS/Gistsmith" --tanitim "$scene" ${extra[@]+"${extra[@]}"} \
         -AppleLanguages "(en)" -AppleLocale en_US \
         -onboardingCompleted YES -hideFromScreenCapture NO -userName "Alex Morgan" \
         -appearance.theme "$theme" -language.note en -displayMode bilingual \

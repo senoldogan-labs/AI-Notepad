@@ -56,6 +56,8 @@ struct PhoneDestination: View {
             }
         case .customTemplate:
             CustomTemplateScreen()
+        case .assistantAccess:
+            PhoneAssistantScreen()
         }
     }
 }

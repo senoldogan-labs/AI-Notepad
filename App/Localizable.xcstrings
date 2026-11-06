@@ -91056,76 +91056,6 @@
         }
       }
     },
-    "Sunucumuz ses ve not saklamaz; kullanım sınırları için yalnızca süre ve kullanım sayıları tutulur.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Unser Server speichert weder Audio noch Notizen; nur Dauer und Nutzungszahlen werden aufbewahrt, um die Tariflimits anzuwenden."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Our server doesn't store audio or notes; only durations and usage counts are kept to apply the plan limits."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nuestro servidor no guarda audio ni notas; solo se conservan duraciones y recuentos de uso para aplicar los límites del plan."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Palvelimemme ei tallenna ääntä tai muistiinpanoja; vain kestot ja käyttömäärät säilytetään tilausrajojen soveltamiseksi."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notre serveur ne stocke ni audio ni notes ; seules les durées et les compteurs d’utilisation sont conservés pour appliquer les limites du forfait."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Il nostro server non conserva audio né note; vengono mantenuti solo durate e conteggi di utilizzo per applicare i limiti del piano."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "当社のサーバは音声やノートを保存しません。プランの上限を適用するため、時間と使用回数のみを記録します。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "서버는 오디오나 노트를 저장하지 않습니다. 플랜 한도를 적용하기 위해 시간과 사용 횟수만 보관됩니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Onze server bewaart geen audio of notities; alleen duur en gebruiksaantallen worden bijgehouden om de abonnementslimieten toe te passen."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nosso servidor não guarda áudio nem notas; só durações e contagens de uso são mantidas para aplicar os limites do plano."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "我们的服务器不存储音频或笔记；只保留时长和使用次数，以执行方案限额。"
-          }
-        }
-      }
-    },
     "Sunucuya ulaşılamadı; internet bağlantını kontrol et.": {
       "extractionState": "manual",
       "localizations": {
@@ -159998,146 +159928,6 @@
         }
       }
     },
-    "Finlandiya'dan, AB veri koruma yasasıyla. Toplantıların ve notların bu Mac'te kalır; sunucumuz ses ve not saklamaz. İsteğe bağlı iPhone eşitlemesi yalnızca okuyamadığımız şifreli bir kopya tutar.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aus Finnland, nach EU-Datenschutzrecht. Deine Meetings und Notizen bleiben auf diesem Mac; unser Server speichert weder Ton noch Notizen. Die optionale iPhone-Synchronisierung speichert nur eine verschlüsselte Kopie, die wir nicht lesen können."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "From Finland, under EU data protection law. Your meetings and notes stay on this Mac; our server keeps no audio or notes. Optional iPhone sync keeps only an encrypted copy we can't read."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Desde Finlandia, bajo la ley de protección de datos de la UE. Tus reuniones y notas se quedan en este Mac; nuestro servidor no guarda audio ni notas. La sincronización opcional con el iPhone solo guarda una copia cifrada que no podemos leer."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Suomesta, EU:n tietosuojalain mukaisesti. Kokouksesi ja muistiinpanosi pysyvät tällä Macilla; palvelimemme ei säilytä ääntä eikä muistiinpanoja. Valinnainen iPhone-synkronointi säilyttää vain salatun kopion, jota emme voi lukea."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Depuis la Finlande, sous le droit européen de la protection des données. Vos réunions et notes restent sur ce Mac ; notre serveur ne conserve ni audio ni notes. La synchronisation facultative avec l’iPhone ne conserve qu’une copie chiffrée que nous ne pouvons pas lire."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dalla Finlandia, secondo la legge UE sulla protezione dei dati. Le tue riunioni e note restano su questo Mac; il nostro server non conserva audio né note. La sincronizzazione facoltativa con iPhone conserva solo una copia cifrata che non possiamo leggere."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フィンランドから、EUのデータ保護法のもとで。会議とメモはこのMacに残り、私たちのサーバーは音声もメモも保存しません。オプションのiPhone同期で保存されるのは、私たちには読めない暗号化コピーだけです。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "핀란드에서, EU 데이터 보호법에 따라. 회의와 노트는 이 Mac에 남고, 저희 서버는 오디오나 노트를 저장하지 않습니다. 선택 사항인 iPhone 동기화는 저희가 읽을 수 없는 암호화된 사본만 보관합니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Uit Finland, onder de EU-privacywetgeving. Je vergaderingen en notities blijven op deze Mac; onze server bewaart geen audio of notities. Optionele synchronisatie met je iPhone bewaart alleen een versleutelde kopie die wij niet kunnen lezen."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Da Finlândia, sob a lei de proteção de dados da UE. Suas reuniões e notas ficam neste Mac; nosso servidor não guarda áudio nem notas. A sincronização opcional com o iPhone guarda só uma cópia criptografada que não conseguimos ler."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "来自芬兰，受欧盟数据保护法约束。你的会议和笔记保留在这台 Mac 上；我们的服务器不保存音频或笔记。可选的 iPhone 同步只保存我们无法读取的加密副本。"
-          }
-        }
-      }
-    },
-    "Finlandiya'dan, AB veri koruma yasasıyla. Toplantıların ve notların bu iPhone'da kalır; sunucumuz ses ve not saklamaz. İsteğe bağlı Mac eşitlemesi yalnızca okuyamadığımız şifreli bir kopya tutar.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aus Finnland, nach EU-Datenschutzrecht. Deine Meetings und Notizen bleiben auf diesem iPhone; unser Server speichert weder Ton noch Notizen. Die optionale Mac-Synchronisierung speichert nur eine verschlüsselte Kopie, die wir nicht lesen können."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "From Finland, under EU data protection law. Your meetings and notes stay on this iPhone; our server keeps no audio or notes. Optional Mac sync keeps only an encrypted copy we can't read."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Desde Finlandia, bajo la ley de protección de datos de la UE. Tus reuniones y notas se quedan en este iPhone; nuestro servidor no guarda audio ni notas. La sincronización opcional con el Mac solo guarda una copia cifrada que no podemos leer."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Suomesta, EU:n tietosuojalain mukaisesti. Kokouksesi ja muistiinpanosi pysyvät tällä iPhonella; palvelimemme ei säilytä ääntä eikä muistiinpanoja. Valinnainen Mac-synkronointi säilyttää vain salatun kopion, jota emme voi lukea."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Depuis la Finlande, sous le droit européen de la protection des données. Vos réunions et notes restent sur cet iPhone ; notre serveur ne conserve ni audio ni notes. La synchronisation facultative avec le Mac ne conserve qu’une copie chiffrée que nous ne pouvons pas lire."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dalla Finlandia, secondo la legge UE sulla protezione dei dati. Le tue riunioni e note restano su questo iPhone; il nostro server non conserva audio né note. La sincronizzazione facoltativa con il Mac conserva solo una copia cifrata che non possiamo leggere."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フィンランドから、EUのデータ保護法のもとで。会議とメモはこのiPhoneに残り、私たちのサーバーは音声もメモも保存しません。オプションのMac同期で保存されるのは、私たちには読めない暗号化コピーだけです。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "핀란드에서, EU 데이터 보호법에 따라. 회의와 노트는 이 iPhone에 남고, 저희 서버는 오디오나 노트를 저장하지 않습니다. 선택 사항인 Mac 동기화는 저희가 읽을 수 없는 암호화된 사본만 보관합니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Uit Finland, onder de EU-privacywetgeving. Je vergaderingen en notities blijven op deze iPhone; onze server bewaart geen audio of notities. Optionele synchronisatie met je Mac bewaart alleen een versleutelde kopie die wij niet kunnen lezen."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Da Finlândia, sob a lei de proteção de dados da UE. Suas reuniões e notas ficam neste iPhone; nosso servidor não guarda áudio nem notas. A sincronização opcional com o Mac guarda só uma cópia criptografada que não conseguimos ler."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "来自芬兰，受欧盟数据保护法约束。你的会议和笔记保留在这台 iPhone 上；我们的服务器不保存音频或笔记。可选的 Mac 同步只保存我们无法读取的加密副本。"
-          }
-        }
-      }
-    },
     "Kapatınca sunucudaki şifreli kopya silinir ve diğer cihazlarında da eşitleme durur. Toplantıların her cihazda yerinde kalır.": {
       "localizations": {
         "de": {
@@ -170143,6 +169933,3778 @@
           "stringUnit": {
             "state": "translated",
             "value": "通过链接共享"
+          }
+        }
+      }
+    },
+    "Yapay zekâ asistanı erişimi başka bir cihazda kapatıldı; kopya silindi.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "KI-Assistentenzugriff wurde auf einem anderen Gerät ausgeschaltet; die Kopie wurde gelöscht."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI assistant access was turned off on another device; the copy was deleted."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El acceso de asistentes de IA se desactivó en otro dispositivo; se eliminó la copia."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tekoälyavustajien pääsy poistettiin käytöstä toisella laitteella; kopio poistettiin."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’accès des assistants IA a été désactivé sur un autre appareil ; la copie a été supprimée."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’accesso degli assistenti AI è stato disattivato su un altro dispositivo; la copia è stata eliminata."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIアシスタントのアクセスが別のデバイスでオフにされました。コピーは削除されました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다른 기기에서 AI 어시스턴트 접근이 꺼졌습니다. 사본이 삭제되었습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toegang voor AI-assistenten is op een ander apparaat uitgezet; de kopie is verwijderd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O acesso de assistentes de IA foi desativado em outro dispositivo; a cópia foi apagada."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 助手访问已在另一台设备上关闭；副本已删除。"
+          }
+        }
+      }
+    },
+    "%@ artık toplantılarını okuyabilir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ kann jetzt deine Meetings lesen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ can now read your meetings."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ya puede leer tus reuniones."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ voi nyt lukea kokouksiasi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ peut maintenant lire vos réunions."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ora può leggere le tue riunioni."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@が会議を読めるようになりました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이제 %@에서 회의를 읽을 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ kan nu je vergaderingen lezen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ agora pode ler suas reuniões."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 现在可以读取你的会议了。"
+          }
+        }
+      }
+    },
+    "Yapay zekâ asistanı erişimi şu an kullanılamıyor; biraz sonra yeniden dene.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "KI-Assistentenzugriff ist gerade nicht verfügbar; versuche es gleich noch einmal."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI assistant access isn't available right now; try again in a moment."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El acceso de asistentes de IA no está disponible ahora; inténtalo de nuevo en un momento."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tekoälyavustajien pääsy ei ole juuri nyt käytettävissä; yritä hetken päästä uudelleen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’accès des assistants IA n’est pas disponible pour le moment ; réessayez dans un instant."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’accesso degli assistenti AI non è disponibile in questo momento; riprova tra poco."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIアシスタントのアクセスは現在利用できません。しばらくしてからもう一度お試しください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지금은 AI 어시스턴트 접근을 사용할 수 없습니다. 잠시 후 다시 시도하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toegang voor AI-assistenten is nu niet beschikbaar; probeer het zo opnieuw."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O acesso de assistentes de IA não está disponível agora; tente de novo em instantes."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 助手访问目前不可用；请稍后再试。"
+          }
+        }
+      }
+    },
+    "Yapay zekâ asistanı erişimi başka bir cihazda değişti; yeniden denenecek.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "KI-Assistentenzugriff wurde auf einem anderen Gerät geändert; es wird erneut versucht."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI assistant access changed on another device; it will retry."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El acceso de asistentes de IA cambió en otro dispositivo; se volverá a intentar."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tekoälyavustajien pääsy muuttui toisella laitteella; yritetään uudelleen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’accès des assistants IA a changé sur un autre appareil ; une nouvelle tentative sera faite."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’accesso degli assistenti AI è cambiato su un altro dispositivo; verrà ritentato."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIアシスタントのアクセスが別のデバイスで変更されました。再試行します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다른 기기에서 AI 어시스턴트 접근이 변경되었습니다. 다시 시도합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toegang voor AI-assistenten is op een ander apparaat gewijzigd; het wordt opnieuw geprobeerd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O acesso de assistentes de IA mudou em outro dispositivo; uma nova tentativa será feita."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 助手访问已在另一台设备上更改；将重试。"
+          }
+        }
+      }
+    },
+    "Asistan kopyasının yeri doldu; eski toplantıları silerek yer açabilirsin.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Assistentenkopie ist voll; lösche alte Meetings, um Platz zu schaffen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The assistant copy is full; delete old meetings to make room."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La copia para asistentes está llena; elimina reuniones antiguas para liberar espacio."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avustajakopio on täynnä; poista vanhoja kokouksia vapauttaaksesi tilaa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La copie pour les assistants est pleine ; supprimez d’anciennes réunions pour libérer de la place."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La copia per gli assistenti è piena; elimina le riunioni vecchie per liberare spazio."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アシスタント用コピーの容量がいっぱいです。古い会議を削除して空きを作ってください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "어시스턴트용 사본이 가득 찼습니다. 오래된 회의를 삭제해 공간을 확보하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De assistentkopie is vol; verwijder oude vergaderingen om ruimte te maken."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A cópia para assistentes está cheia; apague reuniões antigas para liberar espaço."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "助手副本已满；删除旧会议以腾出空间。"
+          }
+        }
+      }
+    },
+    "Bir toplantının notu asistan kopyası için çok büyük; o toplantı atlandı.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Notiz eines Meetings ist zu groß für die Assistentenkopie; dieses Meeting wurde übersprungen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A meeting's note is too large for the assistant copy; that meeting was skipped."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La nota de una reunión es demasiado grande para la copia para asistentes; se omitió esa reunión."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yhden kokouksen muistiinpano on liian suuri avustajakopiolle; se kokous ohitettiin."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La note d’une réunion est trop volumineuse pour la copie pour les assistants ; cette réunion a été ignorée."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La nota di una riunione è troppo grande per la copia per gli assistenti; quella riunione è stata saltata."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ある会議のノートがアシスタント用コピーには大きすぎるため、その会議はスキップされました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "한 회의의 노트가 어시스턴트용 사본에 비해 너무 커서 해당 회의를 건너뛰었습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De notitie van een vergadering is te groot voor de assistentkopie; die vergadering is overgeslagen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A nota de uma reunião é grande demais para a cópia para assistentes; essa reunião foi ignorada."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "某个会议的笔记对助手副本来说太大；已跳过该会议。"
+          }
+        }
+      }
+    },
+    "Yapay zekâ asistanı erişimi için etkin abonelik ya da deneme gerekir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "KI-Assistentenzugriff erfordert ein aktives Abonnement oder eine Testphase."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI assistant access needs an active subscription or trial."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El acceso de asistentes de IA requiere una suscripción o una prueba activa."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tekoälyavustajien pääsy edellyttää voimassa olevaa tilausta tai kokeilujaksoa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’accès des assistants IA nécessite un abonnement ou un essai actif."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’accesso degli assistenti AI richiede un abbonamento o una prova attivi."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIアシスタントのアクセスには、有効なサブスクリプションまたはトライアルが必要です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 어시스턴트 접근을 사용하려면 활성 구독 또는 무료 체험이 필요합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toegang voor AI-assistenten vereist een actief abonnement of een actieve proefperiode."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O acesso de assistentes de IA exige uma assinatura ou um teste ativo."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 助手访问需要有效的订阅或试用。"
+          }
+        }
+      }
+    },
+    "Yapay zekâ asistanı erişimi": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "KI-Assistentenzugriff"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI assistant access"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acceso de asistentes de IA"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tekoälyavustajien pääsy"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accès des assistants IA"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accesso degli assistenti AI"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIアシスタントのアクセス"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 어시스턴트 접근"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toegang voor AI-assistenten"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acesso de assistentes de IA"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 助手访问"
+          }
+        }
+      }
+    },
+    "Claude'a ekle": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zu Claude hinzufügen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add to Claude"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadir a Claude"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lisää Claudeen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouter à Claude"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiungi a Claude"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claudeに追加"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude에 추가"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voeg toe aan Claude"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicionar ao Claude"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加到 Claude"
+          }
+        }
+      }
+    },
+    "Claude'da Ayarlar › Bağlayıcılar'ı aç ve \"Özel bağlayıcı ekle\"yi seç.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffne in Claude „Settings › Connectors“ und wähle „Add custom connector“."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In Claude, open Settings › Connectors and choose \"Add custom connector\"."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En Claude, abre \"Settings › Connectors\" y elige \"Add custom connector\"."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avaa Claudessa \"Settings › Connectors\" ja valitse \"Add custom connector\"."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dans Claude, ouvrez « Settings › Connectors » et choisissez « Add custom connector »."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In Claude, apri “Settings › Connectors” e scegli “Add custom connector”."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claudeで「Settings › Connectors」を開き、「Add custom connector」を選択します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude에서 \"Settings › Connectors\"를 열고 \"Add custom connector\"를 선택하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open in Claude \"Settings › Connectors\" en kies \"Add custom connector\"."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Claude, abra \"Settings › Connectors\" e escolha \"Add custom connector\"."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 Claude 中打开“Settings › Connectors”，然后选择“Add custom connector”。"
+          }
+        }
+      }
+    },
+    "Ad olarak %@ yaz, yukarıdaki adresi yapıştır ve ekle.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenne ihn %@, füge die Adresse von oben ein und füge ihn hinzu."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name it %@, paste the address above and add it."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ponle el nombre %@, pega la dirección de arriba y añádelo."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anna nimeksi %@, liitä yllä oleva osoite ja lisää."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nommez-le %@, collez l’adresse ci-dessus et ajoutez-le."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chiamalo %@, incolla l’indirizzo qui sopra e aggiungilo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名前を%@にし、上のアドレスを貼り付けて追加します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이름을 %@(으)로 입력하고 위의 주소를 붙여넣은 다음 추가하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noem hem %@, plak het adres hierboven en voeg hem toe."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dê o nome %@, cole o endereço acima e adicione."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将名称设为 %@，粘贴上方的地址并添加。"
+          }
+        }
+      }
+    },
+    "\"Bağlan\"a bas, %@ hesabınla giriş yap ve izin ver.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klicke auf „Connect“, melde dich mit deinem %@-Account an und erlaube den Zugriff."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Click \"Connect\", sign in with your %@ account and allow access."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Haz clic en \"Connect\", inicia sesión con tu cuenta de %@ y permite el acceso."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valitse \"Connect\", kirjaudu %@-tililläsi ja salli pääsy."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cliquez sur « Connect », connectez-vous avec votre compte %@ et autorisez l’accès."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fai clic su “Connect”, accedi con il tuo account %@ e consenti l’accesso."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「Connect」をクリックし、%@アカウントでサインインしてアクセスを許可します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"Connect\"를 클릭하고 %@ 계정으로 로그인한 다음 접근을 허용하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klik op \"Connect\", log in met je %@-account en sta toegang toe."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clique em \"Connect\", entre com sua conta %@ e permita o acesso."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点按“Connect”，用你的 %@ 账户登录并允许访问。"
+          }
+        }
+      }
+    },
+    "ChatGPT'ye ekle": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zu ChatGPT hinzufügen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add to ChatGPT"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadir a ChatGPT"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lisää ChatGPT:hen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouter à ChatGPT"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiungi a ChatGPT"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ChatGPTに追加"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ChatGPT에 추가"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voeg toe aan ChatGPT"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicionar ao ChatGPT"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加到 ChatGPT"
+          }
+        }
+      }
+    },
+    "ChatGPT'de Ayarlar › Uygulamalar ve Bağlayıcılar › Gelişmiş ayarlar'da geliştirici modunu aç.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffne in ChatGPT „Settings › Apps & Connectors › Advanced settings“ und schalte den Entwicklermodus („developer mode“) ein."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In ChatGPT, open Settings › Apps & Connectors › Advanced settings and turn on developer mode."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En ChatGPT, abre \"Settings › Apps & Connectors › Advanced settings\" y activa el modo de desarrollador (\"developer mode\")."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avaa ChatGPT:ssä \"Settings › Apps & Connectors › Advanced settings\" ja ota kehittäjätila (\"developer mode\") käyttöön."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dans ChatGPT, ouvrez « Settings › Apps & Connectors › Advanced settings » et activez le mode développeur (« developer mode »)."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In ChatGPT, apri “Settings › Apps & Connectors › Advanced settings” e attiva la modalità sviluppatore (“developer mode”)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ChatGPTで「Settings › Apps & Connectors › Advanced settings」を開き、開発者モード（「developer mode」）をオンにします。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ChatGPT에서 \"Settings › Apps & Connectors › Advanced settings\"를 열고 개발자 모드(\"developer mode\")를 켜세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open in ChatGPT \"Settings › Apps & Connectors › Advanced settings\" en zet de ontwikkelaarsmodus (\"developer mode\") aan."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No ChatGPT, abra \"Settings › Apps & Connectors › Advanced settings\" e ative o modo de desenvolvedor (\"developer mode\")."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 ChatGPT 中打开“Settings › Apps & Connectors › Advanced settings”，然后开启开发者模式（“developer mode”）。"
+          }
+        }
+      }
+    },
+    "\"Oluştur\"a bas, ad olarak %@ yaz, adresi yapıştır ve kimlik doğrulamada OAuth'u seç.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wähle „Create“, nenne ihn %@, füge die Adresse ein und wähle OAuth als Authentifizierung."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose \"Create\", name it %@, paste the address and pick OAuth for authentication."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige \"Create\", ponle el nombre %@, pega la dirección y elige OAuth para la autenticación."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valitse \"Create\", anna nimeksi %@, liitä osoite ja valitse todennukseksi OAuth."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisissez « Create », nommez-le %@, collez l’adresse et choisissez OAuth pour l’authentification."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegli “Create”, chiamalo %@, incolla l’indirizzo e scegli OAuth per l’autenticazione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「Create」を選び、名前を%@にし、アドレスを貼り付けて、認証にOAuthを選択します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"Create\"를 선택하고 이름을 %@(으)로 입력한 다음 주소를 붙여넣고 인증 방식으로 OAuth를 선택하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kies \"Create\", noem hem %@, plak het adres en kies OAuth voor authenticatie."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha \"Create\", dê o nome %@, cole o endereço e escolha OAuth para a autenticação."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择“Create”，将名称设为 %@，粘贴地址，并选择 OAuth 作为身份验证方式。"
+          }
+        }
+      }
+    },
+    "Kaydet, %@ hesabınla giriş yap ve izin ver.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speichere, melde dich mit deinem %@-Account an und erlaube den Zugriff."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save it, sign in with your %@ account and allow access."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guárdalo, inicia sesión con tu cuenta de %@ y permite el acceso."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tallenna, kirjaudu %@-tililläsi ja salli pääsy."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrez, connectez-vous avec votre compte %@ et autorisez l’accès."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salva, accedi con il tuo account %@ e consenti l’accesso."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存し、%@アカウントでサインインしてアクセスを許可します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "저장하고 %@ 계정으로 로그인한 다음 접근을 허용하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sla op, log in met je %@-account en sta toegang toe."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salve, entre com sua conta %@ e permita o acesso."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存，用你的 %@ 账户登录并允许访问。"
+          }
+        }
+      }
+    },
+    "Yapay zekâ asistanları toplantı notlarımı okuyabilsin": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "KI-Assistenten dürfen meine Meeting-Notizen lesen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Let AI assistants read my meeting notes"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permitir que los asistentes de IA lean mis notas de reuniones"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salli tekoälyavustajien lukea kokousmuistiinpanojani"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autoriser les assistants IA à lire mes notes de réunion"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consenti agli assistenti AI di leggere le mie note delle riunioni"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AIアシスタントに会議ノートの読み取りを許可"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 어시스턴트가 내 회의 노트를 읽도록 허용"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-assistenten mogen mijn vergadernotities lezen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permitir que assistentes de IA leiam minhas notas de reunião"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "允许 AI 助手读取我的会议笔记"
+          }
+        }
+      }
+    },
+    "Varsayılan olarak kapalı. Açarsan notlarının şifreli bir kopyası (asla ses değil) AB'de saklanır; böylece bağladığın asistanlar onları okuyabilir. Kapatırsan hemen silinir (yedeklerden 30 gün içinde).": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Standardmäßig aus. Wenn du es einschaltest, wird eine verschlüsselte Kopie deiner Notizen, niemals Audio, in der EU gespeichert, damit die Assistenten, die du verbindest, sie lesen können. Wenn du es ausschaltest, wird sie sofort gelöscht (aus Backups innerhalb von 30 Tagen)."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off by default. Turn it on and an encrypted copy of your notes, never audio, is kept in the EU so the assistants you connect can read them. Turn it off and it is deleted at once (backups within 30 days)."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desactivado por defecto. Si lo activas, se guarda en la UE una copia cifrada de tus notas, nunca el audio, para que los asistentes que conectes puedan leerlas. Si lo desactivas, se elimina al instante (de las copias de seguridad en un plazo de 30 días)."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oletuksena pois päältä. Jos otat sen käyttöön, muistiinpanoistasi säilytetään salattu kopio (ei koskaan ääntä) EU:ssa, jotta yhdistämäsi avustajat voivat lukea ne. Jos poistat sen käytöstä, kopio poistetaan heti (varmuuskopioista 30 päivän kuluessa)."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Désactivé par défaut. Si vous l’activez, une copie chiffrée de vos notes, jamais l’audio, est conservée dans l’UE afin que les assistants que vous connectez puissent les lire. Si vous le désactivez, elle est supprimée immédiatement (des sauvegardes sous 30 jours)."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disattivato per impostazione predefinita. Se lo attivi, una copia cifrata delle tue note, mai l’audio, viene conservata nell’UE perché gli assistenti che colleghi possano leggerle. Se lo disattivi, viene eliminata subito (dai backup entro 30 giorni)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "デフォルトではオフです。オンにすると、ノートの暗号化コピー（音声は含みません）がEU内に保存され、接続したアシスタントが読めるようになります。オフにするとすぐに削除されます（バックアップからは30日以内）。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "기본적으로 꺼져 있습니다. 켜면 노트의 암호화된 사본(오디오는 절대 포함되지 않음)이 EU에 보관되어, 연결한 어시스턴트가 노트를 읽을 수 있습니다. 끄면 즉시 삭제됩니다(백업에서는 30일 이내)."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Standaard uit. Zet je het aan, dan wordt een versleutelde kopie van je notities, nooit audio, in de EU bewaard zodat de assistenten die je koppelt ze kunnen lezen. Zet je het uit, dan wordt die meteen verwijderd (uit back-ups binnen 30 dagen)."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desativado por padrão. Se você ativar, uma cópia criptografada das suas notas, nunca o áudio, fica armazenada na UE para que os assistentes que você conectar possam lê-las. Se você desativar, ela é apagada na hora (dos backups em até 30 dias)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "默认关闭。开启后，你的笔记的加密副本（绝不包括音频）会保存在欧盟境内，以便你连接的助手读取。关闭后会立即删除（备份中的副本在 30 天内删除）。"
+          }
+        }
+      }
+    },
+    "Sunucularımız bu kopyayı teknik olarak okuyabilir (saklanırken şifreli, uçtan uca değil). Bir asistanın okudukları o sağlayıcının politikalarına tabidir. Başka araçları (e-posta, web) olan asistanlar toplantıda söylenenlerle yönlendirilebilir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unsere Server können diese Kopie technisch lesen (bei der Speicherung verschlüsselt, nicht Ende-zu-Ende). Was ein Assistent liest, unterliegt den Richtlinien dieses Anbieters. Assistenten mit weiteren Werkzeugen, etwa E-Mail oder Web, können durch das, was in einem Meeting gesagt wird, gesteuert werden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Our servers can technically read this copy (encrypted at rest, not end to end). What an assistant reads falls under that provider's policies. Assistants with other tools, like email or the web, can be steered by what is said in a meeting."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nuestros servidores pueden leer técnicamente esta copia (cifrada en reposo, no de extremo a extremo). Lo que lee un asistente se rige por las políticas de ese proveedor. Los asistentes con otras herramientas, como el correo electrónico o la web, pueden ser manipulados por lo que se dice en una reunión."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Palvelimemme voivat teknisesti lukea tämän kopion (salattu tallennettuna, ei päästä päähän). Se, mitä avustaja lukee, kuuluu kyseisen palveluntarjoajan käytäntöjen piiriin. Avustajia, joilla on muita työkaluja, kuten sähköposti tai verkko, voidaan ohjailla sillä, mitä kokouksessa sanotaan."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nos serveurs peuvent techniquement lire cette copie (chiffrée au repos, pas de bout en bout). Ce qu’un assistant lit relève des règles de ce fournisseur. Les assistants dotés d’autres outils, comme l’e-mail ou le Web, peuvent être manipulés par ce qui est dit en réunion."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I nostri server possono tecnicamente leggere questa copia (cifrata a riposo, non end-to-end). Ciò che un assistente legge è soggetto alle policy di quel fornitore. Gli assistenti con altri strumenti, come l’email o il web, possono essere manipolati da ciò che viene detto in una riunione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当社のサーバーは技術的にこのコピーを読むことができます（保存時は暗号化されますが、エンドツーエンドではありません）。アシスタントが読んだ内容は、そのプロバイダのポリシーに従います。メールやWebなど他のツールを持つアシスタントは、会議で話された内容によって操作されるおそれがあります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "당사 서버는 기술적으로 이 사본을 읽을 수 있습니다(저장 시 암호화되지만 종단 간 암호화는 아님). 어시스턴트가 읽은 내용은 해당 제공업체의 정책을 따릅니다. 이메일이나 웹 같은 다른 도구가 있는 어시스턴트는 회의에서 나온 말에 의해 조종될 수 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Onze servers kunnen deze kopie technisch lezen (versleuteld in opslag, niet end-to-end). Wat een assistent leest, valt onder het beleid van die aanbieder. Assistenten met andere tools, zoals e-mail of het web, kunnen worden gestuurd door wat er in een vergadering wordt gezegd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nossos servidores podem tecnicamente ler esta cópia (criptografada em repouso, não de ponta a ponta). O que um assistente lê fica sujeito às políticas desse provedor. Assistentes com outras ferramentas, como e-mail ou a web, podem ser manipulados pelo que é dito em uma reunião."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我们的服务器在技术上可以读取此副本（存储时加密，而非端到端加密）。助手读取的内容受该提供商的政策约束。拥有其他工具（如电子邮件或网页）的助手可能会被会议中所说的内容操纵。"
+          }
+        }
+      }
+    },
+    "Kapatınca kopya hemen silinir ve bağlı asistanların hepsinin bağlantısı kesilir (yedeklerden 30 gün içinde). Toplantıların cihazlarında kalır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beim Ausschalten wird die Kopie sofort gelöscht und jeder Assistent getrennt (aus Backups innerhalb von 30 Tagen). Deine Meetings bleiben auf deinen Geräten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turning it off deletes the copy at once and disconnects every assistant (backups within 30 days). Your meetings stay on your devices."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Al desactivarlo se elimina la copia al instante y se desconectan todos los asistentes (de las copias de seguridad en un plazo de 30 días). Tus reuniones se quedan en tus dispositivos."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Käytöstä poistaminen poistaa kopion heti ja katkaisee yhteyden jokaiseen avustajaan (varmuuskopioista 30 päivän kuluessa). Kokouksesi pysyvät laitteillasi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le désactiver supprime la copie immédiatement et déconnecte tous les assistants (des sauvegardes sous 30 jours). Vos réunions restent sur vos appareils."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disattivandolo, la copia viene eliminata subito e tutti gli assistenti vengono scollegati (dai backup entro 30 giorni). Le tue riunioni restano sui tuoi dispositivi."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフにすると、コピーはすぐに削除され、すべてのアシスタントの接続が解除されます（バックアップからは30日以内）。会議はお使いのデバイスに残ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "끄면 사본이 즉시 삭제되고 모든 어시스턴트의 연결이 해제됩니다(백업에서는 30일 이내). 회의는 기기에 남아 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uitzetten verwijdert de kopie meteen en ontkoppelt elke assistent (uit back-ups binnen 30 dagen). Je vergaderingen blijven op je apparaten."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ao desativar, a cópia é apagada na hora e todos os assistentes são desconectados (dos backups em até 30 dias). Suas reuniões ficam nos seus dispositivos."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭后会立即删除副本，并断开所有助手的连接（备份中的副本在 30 天内删除）。你的会议保留在你的设备上。"
+          }
+        }
+      }
+    },
+    "Kapat ve kopyayı sil": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ausschalten und Kopie löschen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn off and delete copy"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desactivar y eliminar la copia"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poista käytöstä ja poista kopio"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Désactiver et supprimer la copie"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disattiva ed elimina la copia"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフにしてコピーを削除"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "끄고 사본 삭제"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zet uit en verwijder kopie"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desativar e apagar a cópia"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭并删除副本"
+          }
+        }
+      }
+    },
+    "Bağlayıcı adresi": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connector-Adresse"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connector address"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dirección del conector"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Liittimen osoite"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adresse du connecteur"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Indirizzo del connettore"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コネクタのアドレス"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "커넥터 주소"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connectoradres"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Endereço do conector"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连接器地址"
+          }
+        }
+      }
+    },
+    "Asistanında özel bağlayıcı olarak ekle; girişte %@ hesabını seçersin.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Füge sie deinem Assistenten als benutzerdefinierten Connector hinzu und melde dich dann mit deinem %@-Account an."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add it to your assistant as a custom connector, then sign in with your %@ account."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añádela a tu asistente como conector personalizado y luego inicia sesión con tu cuenta de %@."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lisää se avustajaasi mukautettuna liittimenä ja kirjaudu sitten %@-tililläsi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajoutez-la à votre assistant comme connecteur personnalisé, puis connectez-vous avec votre compte %@."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiungilo al tuo assistente come connettore personalizzato, poi accedi con il tuo account %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アシスタントにカスタムコネクタとして追加し、%@アカウントでサインインします。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "어시스턴트에 맞춤 커넥터로 추가한 다음 %@ 계정으로 로그인하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voeg het als aangepaste connector toe aan je assistent en log daarna in met je %@-account."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicione-o ao seu assistente como conector personalizado e depois entre com sua conta %@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将其作为自定义连接器添加到你的助手，然后用你的 %@ 账户登录。"
+          }
+        }
+      }
+    },
+    "Bağlı asistan yok": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Assistenten verbunden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No assistants connected"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay asistentes conectados"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ei yhdistettyjä avustajia"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun assistant connecté"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessun assistente collegato"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続されているアシスタントはありません"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "연결된 어시스턴트 없음"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geen assistenten gekoppeld"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum assistente conectado"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有已连接的助手"
+          }
+        }
+      }
+    },
+    "Yukarıdaki adımlarla bir asistan bağladığında burada görünür.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Assistenten, die du mit den Schritten oben verbindest, erscheinen hier."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Assistants you connect with the steps above appear here."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los asistentes que conectes con los pasos de arriba aparecerán aquí."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yllä olevilla ohjeilla yhdistämäsi avustajat näkyvät tässä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les assistants que vous connectez en suivant les étapes ci-dessus apparaissent ici."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gli assistenti che colleghi con i passaggi qui sopra compaiono qui."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上の手順で接続したアシスタントがここに表示されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "위의 단계로 연결한 어시스턴트가 여기에 표시됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Assistenten die je met de stappen hierboven koppelt, verschijnen hier."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os assistentes que você conectar com os passos acima aparecem aqui."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按上述步骤连接的助手会显示在这里。"
+          }
+        }
+      }
+    },
+    "Doğrulanmamış uygulama. Bu bağlantıyı sen kurmadıysan kes.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nicht verifizierte App. Wenn du diese Verbindung nicht eingerichtet hast, trenne sie."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unverified app. If you didn't set up this connection, disconnect it."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App no verificada. Si no configuraste esta conexión, desconéctala."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vahvistamaton sovellus. Jos et itse määrittänyt tätä yhteyttä, katkaise se."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App non vérifiée. Si vous n’avez pas configuré cette connexion, déconnectez-la."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App non verificata. Se non hai configurato tu questa connessione, scollegala."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未確認のアプリです。この接続を自分で設定していない場合は、接続を解除してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "확인되지 않은 앱입니다. 이 연결을 직접 설정하지 않았다면 연결을 해제하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niet-geverifieerde app. Heb je deze koppeling niet zelf ingesteld, ontkoppel hem dan."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App não verificado. Se não foi você que configurou esta conexão, desconecte-a."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未经验证的 App。如果这个连接不是你设置的，请断开连接。"
+          }
+        }
+      }
+    },
+    "Bağlandı: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verbunden: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connected: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectado: %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yhdistetty: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connecté : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collegato: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続日時：%@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "연결됨: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gekoppeld: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectado: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已连接：%@"
+          }
+        }
+      }
+    },
+    "Son kullanım: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zuletzt verwendet: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last used: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Último uso: %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viimeksi käytetty: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dernière utilisation : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ultimo utilizzo: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最終使用：%@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "마지막 사용: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laatst gebruikt: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Último uso: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上次使用：%@"
+          }
+        }
+      }
+    },
+    "%@ civarında bir saatte 100'den fazla toplantı okudu.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hat gegen %@ mehr als 100 Meetings innerhalb einer Stunde gelesen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read more than 100 meetings within an hour, around %@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leyó más de 100 reuniones en una hora, hacia %@."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Luki yli 100 kokousta tunnin sisällä, noin %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A lu plus de 100 réunions en une heure, vers %@."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ha letto più di 100 riunioni in un’ora, verso le %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ごろ、1時間以内に100件を超える会議を読み取りました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@경 한 시간 안에 100개가 넘는 회의를 읽었습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las meer dan 100 vergaderingen binnen een uur, rond %@."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leu mais de 100 reuniões em uma hora, por volta de %@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 %@ 左右的一小时内读取了超过 100 个会议。"
+          }
+        }
+      }
+    },
+    "Bağlantıyı kes": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trennen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disconnect"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desconectar"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Katkaise yhteys"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Déconnecter"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scollega"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続を解除"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "연결 해제"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ontkoppel"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desconectar"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "断开连接"
+          }
+        }
+      }
+    },
+    "Bu Mac'in toplantıları": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings dieses Mac"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This Mac's meetings"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reuniones de este Mac"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämän Macin kokoukset"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réunions de ce Mac"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riunioni di questo Mac"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このMacの会議"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 Mac의 회의"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vergaderingen van deze Mac"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reuniões deste Mac"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这台 Mac 的会议"
+          }
+        }
+      }
+    },
+    "Bu Mac'in toplantıları asistanlara açık değil; diğer cihazlarının toplantıları kopyada kalır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Meetings dieses Mac werden nicht mit Assistenten geteilt; die Meetings deiner anderen Geräte bleiben in der Kopie."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This Mac's meetings aren't shared with assistants; your other devices' meetings stay in the copy."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las reuniones de este Mac no se comparten con los asistentes; las reuniones de tus otros dispositivos se quedan en la copia."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämän Macin kokouksia ei jaeta avustajille; muiden laitteidesi kokoukset pysyvät kopiossa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les réunions de ce Mac ne sont pas partagées avec les assistants ; les réunions de vos autres appareils restent dans la copie."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le riunioni di questo Mac non sono condivise con gli assistenti; le riunioni degli altri tuoi dispositivi restano nella copia."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このMacの会議はアシスタントと共有されていません。ほかのデバイスの会議はコピーに残ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 Mac의 회의는 어시스턴트와 공유되지 않습니다. 다른 기기의 회의는 사본에 남아 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De vergaderingen van deze Mac worden niet gedeeld met assistenten; de vergaderingen van je andere apparaten blijven in de kopie."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As reuniões deste Mac não são compartilhadas com assistentes; as reuniões dos seus outros dispositivos ficam na cópia."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这台 Mac 的会议未与助手共享；你其他设备的会议仍保留在副本中。"
+          }
+        }
+      }
+    },
+    "Bu Mac'in yüklediği toplantılar kopyadan hemen silinir ve bu Mac yüklemeyi bırakır. Toplantıların bu Mac'te kalır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die von diesem Mac hochgeladenen Meetings werden sofort aus der Kopie entfernt und dieser Mac lädt nichts mehr hoch. Deine Meetings bleiben auf diesem Mac."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The meetings this Mac uploaded are removed from the copy at once and this Mac stops uploading. Your meetings stay on this Mac."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las reuniones que subió este Mac se quitan de la copia al instante y este Mac deja de subirlas. Tus reuniones se quedan en este Mac."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämän Macin lataamat kokoukset poistetaan kopiosta heti, ja tämä Mac lopettaa lataamisen. Kokouksesi pysyvät tällä Macilla."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les réunions envoyées par ce Mac sont retirées immédiatement de la copie et ce Mac cesse l’envoi. Vos réunions restent sur ce Mac."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le riunioni caricate da questo Mac vengono rimosse subito dalla copia e questo Mac smette di caricarle. Le tue riunioni restano su questo Mac."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このMacがアップロードした会議はすぐにコピーから削除され、このMacはアップロードを停止します。会議はこのMacに残ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 Mac이 업로드한 회의는 즉시 사본에서 제거되고 이 Mac은 업로드를 중단합니다. 회의는 이 Mac에 남아 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De vergaderingen die deze Mac heeft geüpload, worden meteen uit de kopie verwijderd en deze Mac stopt met uploaden. Je vergaderingen blijven op deze Mac."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As reuniões que este Mac enviou são removidas da cópia na hora e este Mac para de enviar. Suas reuniões ficam neste Mac."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这台 Mac 上传的会议会立即从副本中移除，这台 Mac 也会停止上传。你的会议保留在这台 Mac 上。"
+          }
+        }
+      }
+    },
+    "Yeniden ekle": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erneut hinzufügen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add again"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volver a añadir"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lisää uudelleen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouter à nouveau"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiungi di nuovo"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "もう一度追加"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다시 추가"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voeg opnieuw toe"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicionar de novo"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新添加"
+          }
+        }
+      }
+    },
+    "Bu cihazın toplantılarını kaldır…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings dieses Geräts entfernen …"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove this device's meetings…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitar las reuniones de este dispositivo…"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poista tämän laitteen kokoukset…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirer les réunions de cet appareil…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rimuovi le riunioni di questo dispositivo…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このデバイスの会議を削除…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 기기의 회의 제거…"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verwijder vergaderingen van dit apparaat…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remover as reuniões deste dispositivo…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除这台设备的会议…"
+          }
+        }
+      }
+    },
+    "Yükleniyor, en yeniden eskiye: %lld / %lld toplantı": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wird hochgeladen, neueste zuerst: %lld / %lld Meetings"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uploading, newest first: %lld / %lld meetings"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subiendo, de la más reciente a la más antigua: %lld / %lld reuniones"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ladataan, uusimmat ensin: %lld / %lld kokousta"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envoi, des plus récentes aux plus anciennes : %lld / %lld réunions"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Caricamento, dalle più recenti: %lld / %lld riunioni"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アップロード中（新しい順）：%lld / %lld件の会議"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업로드 중(최신순): %lld / %lld개 회의"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uploaden, nieuwste eerst: %lld / %lld vergaderingen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviando, da mais recente para a mais antiga: %lld / %lld reuniões"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在上传，从新到旧：%lld / %lld 个会议"
+          }
+        }
+      }
+    },
+    "Toplantıların işlenince ya da düzenlenince yüklenir; silinen toplantı kopyadan da silinir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings werden hochgeladen, sobald sie verarbeitet oder bearbeitet sind; ein gelöschtes Meeting wird auch aus der Kopie entfernt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings upload once processed or edited; a deleted meeting is removed from the copy too."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las reuniones se suben una vez procesadas o editadas; una reunión eliminada también se quita de la copia."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kokoukset ladataan, kun ne on käsitelty tai muokattu; poistettu kokous poistetaan myös kopiosta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les réunions sont envoyées une fois traitées ou modifiées ; une réunion supprimée est aussi retirée de la copie."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le riunioni vengono caricate una volta elaborate o modificate; una riunione eliminata viene rimossa anche dalla copia."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議は処理または編集されるとアップロードされます。削除した会議はコピーからも削除されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의는 처리되거나 편집되면 업로드됩니다. 삭제한 회의는 사본에서도 제거됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vergaderingen worden geüpload zodra ze verwerkt of bewerkt zijn; een verwijderde vergadering wordt ook uit de kopie verwijderd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As reuniões são enviadas depois de processadas ou editadas; uma reunião apagada também é removida da cópia."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会议在处理或编辑后上传；删除的会议也会从副本中移除。"
+          }
+        }
+      }
+    },
+    "Kopya hemen silinir ve bütün asistanların bağlantısı kesilir (yedeklerden 30 gün içinde). Toplantıların cihazlarında kalır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Kopie wird sofort gelöscht und jeder Assistent getrennt (aus Backups innerhalb von 30 Tagen). Deine Meetings bleiben auf deinen Geräten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The copy is deleted at once and every assistant is disconnected (backups within 30 days). Your meetings stay on your devices."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La copia se elimina al instante y se desconectan todos los asistentes (de las copias de seguridad en un plazo de 30 días). Tus reuniones se quedan en tus dispositivos."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopio poistetaan heti ja yhteys jokaiseen avustajaan katkaistaan (varmuuskopioista 30 päivän kuluessa). Kokouksesi pysyvät laitteillasi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La copie est supprimée immédiatement et tous les assistants sont déconnectés (des sauvegardes sous 30 jours). Vos réunions restent sur vos appareils."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La copia viene eliminata subito e tutti gli assistenti vengono scollegati (dai backup entro 30 giorni). Le tue riunioni restano sui tuoi dispositivi."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コピーはすぐに削除され、すべてのアシスタントの接続が解除されます（バックアップからは30日以内）。会議はお使いのデバイスに残ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "사본이 즉시 삭제되고 모든 어시스턴트의 연결이 해제됩니다(백업에서는 30일 이내). 회의는 기기에 남아 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De kopie wordt meteen verwijderd en elke assistent wordt ontkoppeld (uit back-ups binnen 30 dagen). Je vergaderingen blijven op je apparaten."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A cópia é apagada na hora e todos os assistentes são desconectados (dos backups em até 30 dias). Suas reuniões ficam nos seus dispositivos."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "副本会立即删除，所有助手的连接都会断开（备份中的副本在 30 天内删除）。你的会议保留在你的设备上。"
+          }
+        }
+      }
+    },
+    "Adresi kopyala": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adresse kopieren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy address"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar dirección"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopioi osoite"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copier l’adresse"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copia indirizzo"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アドレスをコピー"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "주소 복사"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopieer adres"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar endereço"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拷贝地址"
+          }
+        }
+      }
+    },
+    "Bağlı asistanlar": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verbundene Assistenten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connected assistants"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Asistentes conectados"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yhdistetyt avustajat"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Assistants connectés"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Assistenti collegati"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続されているアシスタント"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "연결된 어시스턴트"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gekoppelde assistenten"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Assistentes conectados"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已连接的助手"
+          }
+        }
+      }
+    },
+    "Bu iPhone'un toplantıları asistanlara açık değil; diğer cihazlarının toplantıları kopyada kalır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Meetings dieses iPhone werden nicht mit Assistenten geteilt; die Meetings deiner anderen Geräte bleiben in der Kopie."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This iPhone's meetings aren't shared with assistants; your other devices' meetings stay in the copy."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las reuniones de este iPhone no se comparten con los asistentes; las reuniones de tus otros dispositivos se quedan en la copia."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämän iPhonen kokouksia ei jaeta avustajille; muiden laitteidesi kokoukset pysyvät kopiossa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les réunions de cet iPhone ne sont pas partagées avec les assistants ; les réunions de vos autres appareils restent dans la copie."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le riunioni di questo iPhone non sono condivise con gli assistenti; le riunioni degli altri tuoi dispositivi restano nella copia."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このiPhoneの会議はアシスタントと共有されていません。ほかのデバイスの会議はコピーに残ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 iPhone의 회의는 어시스턴트와 공유되지 않습니다. 다른 기기의 회의는 사본에 남아 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De vergaderingen van deze iPhone worden niet gedeeld met assistenten; de vergaderingen van je andere apparaten blijven in de kopie."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As reuniões deste iPhone não são compartilhadas com assistentes; as reuniões dos seus outros dispositivos ficam na cópia."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这台 iPhone 的会议未与助手共享；你其他设备的会议仍保留在副本中。"
+          }
+        }
+      }
+    },
+    "Bu iPhone'un yüklediği toplantılar kopyadan hemen silinir ve bu iPhone yüklemeyi bırakır. Toplantıların bu iPhone'da kalır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die von diesem iPhone hochgeladenen Meetings werden sofort aus der Kopie entfernt und dieses iPhone lädt nichts mehr hoch. Deine Meetings bleiben auf diesem iPhone."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The meetings this iPhone uploaded are removed from the copy at once and this iPhone stops uploading. Your meetings stay on this iPhone."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las reuniones que subió este iPhone se quitan de la copia al instante y este iPhone deja de subirlas. Tus reuniones se quedan en este iPhone."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämän iPhonen lataamat kokoukset poistetaan kopiosta heti, ja tämä iPhone lopettaa lataamisen. Kokouksesi pysyvät tällä iPhonella."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les réunions envoyées par cet iPhone sont retirées immédiatement de la copie et cet iPhone cesse l’envoi. Vos réunions restent sur cet iPhone."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le riunioni caricate da questo iPhone vengono rimosse subito dalla copia e questo iPhone smette di caricarle. Le tue riunioni restano su questo iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このiPhoneがアップロードした会議はすぐにコピーから削除され、このiPhoneはアップロードを停止します。会議はこのiPhoneに残ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 iPhone이 업로드한 회의는 즉시 사본에서 제거되고 이 iPhone은 업로드를 중단합니다. 회의는 이 iPhone에 남아 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De vergaderingen die deze iPhone heeft geüpload, worden meteen uit de kopie verwijderd en deze iPhone stopt met uploaden. Je vergaderingen blijven op deze iPhone."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As reuniões que este iPhone enviou são removidas da cópia na hora e este iPhone para de enviar. Suas reuniões ficam neste iPhone."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这台 iPhone 上传的会议会立即从副本中移除，这台 iPhone 也会停止上传。你的会议保留在这台 iPhone 上。"
+          }
+        }
+      }
+    },
+    "Bu iPhone'un toplantıları": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings dieses iPhone"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This iPhone's meetings"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reuniones de este iPhone"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämän iPhonen kokoukset"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réunions de cet iPhone"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riunioni di questo iPhone"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このiPhoneの会議"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 iPhone의 회의"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vergaderingen van deze iPhone"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reuniões deste iPhone"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这台 iPhone 的会议"
+          }
+        }
+      }
+    },
+    "Finlandiya'dan, AB veri koruma yasasıyla. Toplantıların ve notların bu Mac'te kalır; sunucumuz ses saklamaz, notlarını da yalnızca yapay zekâ asistanı erişimini açarsan saklar. İsteğe bağlı iPhone eşitlemesi yalnızca okuyamadığımız şifreli bir kopya tutar.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus Finnland, nach EU-Datenschutzrecht. Deine Meetings und Notizen bleiben auf diesem Mac; unser Server speichert kein Audio und speichert deine Notizen nur, wenn du den KI-Assistentenzugriff einschaltest. Die optionale iPhone-Synchronisierung speichert nur eine verschlüsselte Kopie, die wir nicht lesen können."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From Finland, under EU data protection law. Your meetings and notes stay on this Mac; our server keeps no audio, and keeps your notes only if you turn on AI assistant access. Optional iPhone sync keeps only an encrypted copy we can't read."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desde Finlandia, bajo la legislación de protección de datos de la UE. Tus reuniones y notas se quedan en este Mac; nuestro servidor no guarda audio, y solo guarda tus notas si activas el acceso de asistentes de IA. La sincronización opcional con el iPhone solo guarda una copia cifrada que no podemos leer."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suomesta, EU:n tietosuojalainsäädännön mukaisesti. Kokouksesi ja muistiinpanosi pysyvät tällä Macilla; palvelimemme ei säilytä ääntä, ja muistiinpanojasi se säilyttää vain, jos otat tekoälyavustajien pääsyn käyttöön. Valinnainen iPhone-synkronointi säilyttää vain salatun kopion, jota emme voi lukea."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Depuis la Finlande, selon le droit européen de la protection des données. Vos réunions et notes restent sur ce Mac ; notre serveur ne conserve aucun audio, et ne conserve vos notes que si vous activez l’accès des assistants IA. La synchronisation facultative avec l’iPhone ne conserve qu’une copie chiffrée que nous ne pouvons pas lire."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dalla Finlandia, secondo la normativa UE sulla protezione dei dati. Le tue riunioni e note restano su questo Mac; il nostro server non conserva l’audio, e conserva le tue note solo se attivi l’accesso degli assistenti AI. La sincronizzazione facoltativa con l’iPhone conserva solo una copia cifrata che non possiamo leggere."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フィンランドから、EUのデータ保護法のもとで。会議とノートはこのMacに残ります。当社のサーバーは音声を保存せず、ノートもAIアシスタントのアクセスをオンにした場合にのみ保存します。オプションのiPhone同期では、当社が読めない暗号化コピーのみを保持します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "핀란드에서, EU 데이터 보호법에 따라. 회의와 노트는 이 Mac에 남아 있습니다. 당사 서버는 오디오를 보관하지 않으며, 노트는 AI 어시스턴트 접근을 켠 경우에만 보관합니다. 선택 사항인 iPhone 동기화는 당사가 읽을 수 없는 암호화된 사본만 보관합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uit Finland, onder EU-wetgeving voor gegevensbescherming. Je vergaderingen en notities blijven op deze Mac; onze server bewaart geen audio, en bewaart je notities alleen als je toegang voor AI-assistenten aanzet. De optionele iPhone-synchronisatie bewaart alleen een versleutelde kopie die wij niet kunnen lezen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Da Finlândia, sob a lei de proteção de dados da UE. Suas reuniões e notas ficam neste Mac; nosso servidor não guarda áudio, e só guarda suas notas se você ativar o acesso de assistentes de IA. A sincronização opcional com o iPhone guarda apenas uma cópia criptografada que não conseguimos ler."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "来自芬兰，受欧盟数据保护法约束。你的会议和笔记保留在这台 Mac 上；我们的服务器不保存音频，只有在你开启 AI 助手访问时才保存你的笔记。可选的 iPhone 同步只保存我们无法读取的加密副本。"
+          }
+        }
+      }
+    },
+    "Finlandiya'dan, AB veri koruma yasasıyla. Toplantıların ve notların bu iPhone'da kalır; sunucumuz ses saklamaz, notlarını da yalnızca yapay zekâ asistanı erişimini açarsan saklar. İsteğe bağlı Mac eşitlemesi yalnızca okuyamadığımız şifreli bir kopya tutar.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus Finnland, nach EU-Datenschutzrecht. Deine Meetings und Notizen bleiben auf diesem iPhone; unser Server speichert kein Audio und speichert deine Notizen nur, wenn du den KI-Assistentenzugriff einschaltest. Die optionale Mac-Synchronisierung speichert nur eine verschlüsselte Kopie, die wir nicht lesen können."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From Finland, under EU data protection law. Your meetings and notes stay on this iPhone; our server keeps no audio, and keeps your notes only if you turn on AI assistant access. Optional Mac sync keeps only an encrypted copy we can't read."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desde Finlandia, bajo la legislación de protección de datos de la UE. Tus reuniones y notas se quedan en este iPhone; nuestro servidor no guarda audio, y solo guarda tus notas si activas el acceso de asistentes de IA. La sincronización opcional con el Mac solo guarda una copia cifrada que no podemos leer."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suomesta, EU:n tietosuojalainsäädännön mukaisesti. Kokouksesi ja muistiinpanosi pysyvät tällä iPhonella; palvelimemme ei säilytä ääntä, ja muistiinpanojasi se säilyttää vain, jos otat tekoälyavustajien pääsyn käyttöön. Valinnainen Mac-synkronointi säilyttää vain salatun kopion, jota emme voi lukea."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Depuis la Finlande, selon le droit européen de la protection des données. Vos réunions et notes restent sur cet iPhone ; notre serveur ne conserve aucun audio, et ne conserve vos notes que si vous activez l’accès des assistants IA. La synchronisation facultative avec le Mac ne conserve qu’une copie chiffrée que nous ne pouvons pas lire."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dalla Finlandia, secondo la normativa UE sulla protezione dei dati. Le tue riunioni e note restano su questo iPhone; il nostro server non conserva l’audio, e conserva le tue note solo se attivi l’accesso degli assistenti AI. La sincronizzazione facoltativa con il Mac conserva solo una copia cifrata che non possiamo leggere."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フィンランドから、EUのデータ保護法のもとで。会議とノートはこのiPhoneに残ります。当社のサーバーは音声を保存せず、ノートもAIアシスタントのアクセスをオンにした場合にのみ保存します。オプションのMac同期では、当社が読めない暗号化コピーのみを保持します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "핀란드에서, EU 데이터 보호법에 따라. 회의와 노트는 이 iPhone에 남아 있습니다. 당사 서버는 오디오를 보관하지 않으며, 노트는 AI 어시스턴트 접근을 켠 경우에만 보관합니다. 선택 사항인 Mac 동기화는 당사가 읽을 수 없는 암호화된 사본만 보관합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uit Finland, onder EU-wetgeving voor gegevensbescherming. Je vergaderingen en notities blijven op deze iPhone; onze server bewaart geen audio, en bewaart je notities alleen als je toegang voor AI-assistenten aanzet. De optionele Mac-synchronisatie bewaart alleen een versleutelde kopie die wij niet kunnen lezen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Da Finlândia, sob a lei de proteção de dados da UE. Suas reuniões e notas ficam neste iPhone; nosso servidor não guarda áudio, e só guarda suas notas se você ativar o acesso de assistentes de IA. A sincronização opcional com o Mac guarda apenas uma cópia criptografada que não conseguimos ler."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "来自芬兰，受欧盟数据保护法约束。你的会议和笔记保留在这台 iPhone 上；我们的服务器不保存音频，只有在你开启 AI 助手访问时才保存你的笔记。可选的 Mac 同步只保存我们无法读取的加密副本。"
+          }
+        }
+      }
+    },
+    "Sunucumuz ses saklamaz, notlarını da yalnızca yapay zekâ asistanı erişimini açarsan saklar; kullanım sınırları için süre ve kullanım sayıları tutulur.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unser Server speichert kein Audio und speichert deine Notizen nur, wenn du den KI-Assistentenzugriff einschaltest; Dauer und Nutzungszahlen werden gespeichert, um die Tariflimits anzuwenden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Our server doesn't store audio, and stores your notes only if you turn on AI assistant access; durations and usage counts are kept to apply the plan limits."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nuestro servidor no almacena audio, y solo almacena tus notas si activas el acceso de asistentes de IA; se guardan duraciones y recuentos de uso para aplicar los límites del plan."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Palvelimemme ei tallenna ääntä, ja muistiinpanojasi se tallentaa vain, jos otat tekoälyavustajien pääsyn käyttöön; kestot ja käyttömäärät tallennetaan tilauksen rajojen soveltamiseksi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notre serveur ne stocke pas l’audio, et ne stocke vos notes que si vous activez l’accès des assistants IA ; les durées et nombres d’utilisations sont conservés pour appliquer les limites de l’offre."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il nostro server non archivia l’audio, e archivia le tue note solo se attivi l’accesso degli assistenti AI; durate e conteggi di utilizzo vengono conservati per applicare i limiti del piano."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当社のサーバーは音声を保存せず、ノートもAIアシスタントのアクセスをオンにした場合にのみ保存します。プランの上限を適用するため、時間と使用回数は記録されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "당사 서버는 오디오를 저장하지 않으며, 노트는 AI 어시스턴트 접근을 켠 경우에만 저장합니다. 요금제 한도를 적용하기 위해 사용 시간과 사용 횟수가 기록됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Onze server slaat geen audio op, en slaat je notities alleen op als je toegang voor AI-assistenten aanzet; duur en gebruiksaantallen worden bewaard om de limieten van het abonnement toe te passen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nosso servidor não armazena áudio, e só armazena suas notas se você ativar o acesso de assistentes de IA; durações e contagens de uso são guardadas para aplicar os limites do plano."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我们的服务器不存储音频，只有在你开启 AI 助手访问时才存储你的笔记；为执行套餐限制，会记录时长和使用次数。"
+          }
+        }
+      }
+    },
+    "Kopyada toplam %lld toplantı (bütün cihazlarından).": {
+      "localizations": {
+        "de": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Meeting in der Kopie (von all deinen Geräten)."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Meetings in der Kopie (von all deinen Geräten)."
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld meeting in the copy (from all your devices)."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld meetings in the copy (from all your devices)."
+                }
+              }
+            }
+          }
+        },
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld reunión en la copia (de todos tus dispositivos)."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld reuniones en la copia (de todos tus dispositivos)."
+                }
+              }
+            }
+          }
+        },
+        "fi": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Kopiossa %lld kokous (kaikilta laitteiltasi)."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Kopiossa %lld kokousta (kaikilta laitteiltasi)."
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld réunion dans la copie (de tous vos appareils)."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld réunions dans la copie (de tous vos appareils)."
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld riunione nella copia (da tutti i tuoi dispositivi)."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld riunioni nella copia (da tutti i tuoi dispositivi)."
+                }
+              }
+            }
+          }
+        },
+        "ja": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "コピー内の会議：%lld件（すべてのデバイスから）。"
+                }
+              }
+            }
+          }
+        },
+        "ko": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "사본에 있는 회의 %lld개(모든 기기에서)."
+                }
+              }
+            }
+          }
+        },
+        "nl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld vergadering in de kopie (van al je apparaten)."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld vergaderingen in de kopie (van al je apparaten)."
+                }
+              }
+            }
+          }
+        },
+        "pt-BR": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld reunião na cópia (de todos os seus dispositivos)."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld reuniões na cópia (de todos os seus dispositivos)."
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "副本中共有 %lld 个会议（来自你的所有设备）。"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Bu Mac'teki %lld toplantının kopyası güncel.": {
+      "localizations": {
+        "de": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Aktuell: %lld Meeting von diesem Mac."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Aktuell: %lld Meetings von diesem Mac."
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Up to date: %lld meeting from this Mac."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Up to date: %lld meetings from this Mac."
+                }
+              }
+            }
+          }
+        },
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Al día: %lld reunión de este Mac."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Al día: %lld reuniones de este Mac."
+                }
+              }
+            }
+          }
+        },
+        "fi": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Ajan tasalla: %lld kokous tältä Macilta."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Ajan tasalla: %lld kokousta tältä Macilta."
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "À jour : %lld réunion de ce Mac."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "À jour : %lld réunions de ce Mac."
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Aggiornata: %lld riunione da questo Mac."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Aggiornate: %lld riunioni da questo Mac."
+                }
+              }
+            }
+          }
+        },
+        "ja": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "最新：このMacの会議%lld件。"
+                }
+              }
+            }
+          }
+        },
+        "ko": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "최신 상태: 이 Mac의 회의 %lld개."
+                }
+              }
+            }
+          }
+        },
+        "nl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Bijgewerkt: %lld vergadering van deze Mac."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Bijgewerkt: %lld vergaderingen van deze Mac."
+                }
+              }
+            }
+          }
+        },
+        "pt-BR": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Em dia: %lld reunião deste Mac."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Em dia: %lld reuniões deste Mac."
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "已是最新：来自这台 Mac 的 %lld 个会议。"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Bu iPhone'daki %lld toplantının kopyası güncel.": {
+      "localizations": {
+        "de": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Aktuell: %lld Meeting von diesem iPhone."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Aktuell: %lld Meetings von diesem iPhone."
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Up to date: %lld meeting from this iPhone."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Up to date: %lld meetings from this iPhone."
+                }
+              }
+            }
+          }
+        },
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Al día: %lld reunión de este iPhone."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Al día: %lld reuniones de este iPhone."
+                }
+              }
+            }
+          }
+        },
+        "fi": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Ajan tasalla: %lld kokous tältä iPhonelta."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Ajan tasalla: %lld kokousta tältä iPhonelta."
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "À jour : %lld réunion de cet iPhone."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "À jour : %lld réunions de cet iPhone."
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Aggiornata: %lld riunione da questo iPhone."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Aggiornate: %lld riunioni da questo iPhone."
+                }
+              }
+            }
+          }
+        },
+        "ja": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "最新：このiPhoneの会議%lld件。"
+                }
+              }
+            }
+          }
+        },
+        "ko": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "최신 상태: 이 iPhone의 회의 %lld개."
+                }
+              }
+            }
+          }
+        },
+        "nl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Bijgewerkt: %lld vergadering van deze iPhone."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Bijgewerkt: %lld vergaderingen van deze iPhone."
+                }
+              }
+            }
+          }
+        },
+        "pt-BR": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Em dia: %lld reunião deste iPhone."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Em dia: %lld reuniões deste iPhone."
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "已是最新：来自这台 iPhone 的 %lld 个会议。"
+                }
+              }
+            }
           }
         }
       }

@@ -1,7 +1,8 @@
 ---
 // MCP sayfası: uygulamanın yerel MCP sunucusunun araçları (MCPServer.swift `mcpTools`), bağlama adımları (Ayarlar ›
 // Bağlantılar), kopyalanan yapılandırma (lib/mcp-config.ts), istemcilerin yapılandırma dosyaları, örnek sorular ve
-// sınırlar. Metinler copy.ts `mcp`'den.
+// sınırlar; ayrıca uzak bağlayıcı (yapay zekâ asistanı erişimi, mcp.gistsmith.com): onay cümlesi, Claude ve ChatGPT
+// adımları, uyarılar. Metinler copy.ts `mcp`'den.
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
 import CtaBand from "../components/CtaBand.astro";
@@ -98,6 +99,42 @@ const setups: readonly PickCopy[] = [text.oneClick, text.manual];
       </table>
     </div>
     <p class="small muted">{text.filesNote}</p>
+  </section>
+
+  <section class="page mcp-section" id="remote" aria-labelledby="remote-title">
+    <div class="mcp-section__head">
+      <h2 class="title-l" id="remote-title">{text.remote.title}</h2>
+      <p class="muted">{text.remote.lead}</p>
+      <p class="mcp-consent">{text.remote.consent}</p>
+    </div>
+    <figure class="mcp-config">
+      <figcaption class="small">{text.remote.urlLabel}</figcaption>
+      <pre><code>{text.remote.url}</code></pre>
+    </figure>
+    <div class="mcp-setups">
+      {
+        text.remote.setups.map((setup: PickCopy) => (
+          <article class="card mcp-setup">
+            <h3 class="title-m">{setup.title}</h3>
+            <ol>
+              {setup.points.map((point: string) => (
+                <li>{point}</li>
+              ))}
+            </ol>
+          </article>
+        ))
+      }
+    </div>
+    <ul class="mcp-limits">
+      {
+        text.remote.notes.map((item: TitledText) => (
+          <li>
+            <h3 class="mcp-limits__title">{item.title}</h3>
+            <p class="muted">{item.text}</p>
+          </li>
+        ))
+      }
+    </ul>
   </section>
 
   <section class="page mcp-section" aria-labelledby="questions-title">
@@ -208,6 +245,10 @@ const setups: readonly PickCopy[] = [text.oneClick, text.manual];
     margin: 0;
     padding-left: 1.3em;
     color: var(--muted);
+  }
+
+  .mcp-consent {
+    font-weight: 500;
   }
 
   .mcp-config {

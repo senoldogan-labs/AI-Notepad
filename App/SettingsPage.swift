@@ -1235,6 +1235,10 @@ private struct ConnectionSettings: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            #if HOSTED_EDITION
+            // Çevrimiçi asistanlar (Claude, ChatGPT): sunucu sunmuyorsa görünmez (bkz. `HostedAssistantSettingsSection`).
+            HostedAssistantSettingsSection()
+            #endif
             WebhookSettings(model: model)
             TaskTrackerSettings(model: model)
             ConnectionSectionHeader(

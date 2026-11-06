@@ -59,6 +59,10 @@ struct AINotepadiOSApp: App {
             } else {
                 account.showAccountForDemo(entitlements: phoneDemoEntitlements(now: Date()), referral: nil)
             }
+            // `--ekran asistan`: yapay zekâ asistanı erişimi açık, iki bağlı asistan (görsel kontrol; sunucuya gidilmez).
+            if launchPath(arguments: CommandLine.arguments).last == .assistantAccess {
+                HostedAssistantCenter.shared.showForDemo(now: Date())
+            }
             // `--aciklama`: yapay zekâ açıklaması yeniden gösterilir (görsel kontrol).
             UserDefaults.standard.set(!CommandLine.arguments.contains("--aciklama"), forKey: PhoneSettingsKey.aiDisclosureAccepted)
             // `--karsilama`: ilk açılış karşılaması gösterilir (görsel kontrol).
@@ -345,6 +349,8 @@ private struct PhoneAppRoot: View {
         }
         // Mac ↔ iPhone eşitlemesi (isteğe bağlı; bkz. `HostedSyncCenter`). Hesap değişirken önce durur (`.syncing`).
         .modifier(PhoneSyncBindings(account: account, session: session))
+        // Yapay zekâ asistanı erişimi (isteğe bağlı; bkz. `HostedAssistantCenter`).
+        .modifier(PhoneAssistantBindings(account: account, session: session))
         .onChange(of: account.signedInUserIDCache, initial: true) { (_: String?, userID: String?) in
             // RevenueCat kimliği hesapla eşlenir: giriş, çıkış, hesap değişimi ve silme (satın alma bu hesaba yazılsın).
             #if DEBUG
@@ -591,6 +597,8 @@ enum PhoneRoute: Hashable {
     case templatePreview(String)
     /// Ayarlar › Kendi şablonun (adı ve yönergesi).
     case customTemplate
+    /// Ayarlar › Yapay zekâ asistanı erişimi.
+    case assistantAccess
 }
 
 /// Gezinme durumu: ana ekranın üstündeki sayfa yığını ve kitaplık sayfası. Uygulama içindeki bağlantılar yığına ekler
@@ -686,7 +694,7 @@ func askBase(path: [PhoneRoute]) -> [PhoneRoute] {
 /// Başlatma argümanlarından ilk sayfa yığını (görsel kontrol ve App Store görselleri için; yoksa ana ekran). Saf
 /// fonksiyondur.
 /// - `--sekme kayit|toplantilar|sor|gorevler|ayarlar`: eski sekmeler; kayıt ve toplantılar ana ekrandır.
-/// - `--ekran kitaplik|arama|kisiler|profil|hesap`: kitaplık, arama, kişiler, profil ya da hesap.
+/// - `--ekran kitaplik|arama|kisiler|profil|hesap|asistan`: kitaplık, arama, kişiler, profil, hesap ya da yapay zekâ asistanı erişimi.
 /// - `--toplanti <kimlik>`: toplantı bunların üstünde açılır.
 func launchPath(arguments: [String]) -> [PhoneRoute] {
     let base: [PhoneRoute] = launchValue(arguments: arguments, flag: "--sekme").map(launchTabRoutes(tab:))
@@ -722,6 +730,7 @@ private func launchScreenRoutes(screen: String) -> [PhoneRoute] {
     case "kisiler": [.people]
     case "profil": [.settings, .profile]
     case "hesap": [.settings, .account]
+    case "asistan": [.settings, .assistantAccess]
     default: []
     }
 }
