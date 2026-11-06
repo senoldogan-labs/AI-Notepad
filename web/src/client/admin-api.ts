@@ -447,6 +447,13 @@ export interface Operations {
     readonly classBBudget: number;
     readonly storedBytesBudget: number;
   };
+  /** Bağlantıyla paylaşılan notlar: yalnız sayılar (içerik sunucuda şifreli, okunamaz). */
+  readonly shares: {
+    readonly active: number;
+    readonly owners: number;
+    readonly storedBytes: number;
+    readonly storedBytesBudget: number;
+  };
 }
 
 /** Kullanıcı listesi süzgeci; null süzmez. */
@@ -1082,6 +1089,7 @@ export function parseOperations(response: RawResponse, path: string): Operations
   const reports: JsonObject = objectField(body, "reports", response, path);
   const reportsLast7Days: JsonObject = objectField(reports, "last7Days", response, path);
   const sync: JsonObject = objectField(body, "sync", response, path);
+  const shares: JsonObject = objectField(body, "shares", response, path);
   return {
     generatedAt: timestampField(body, "generatedAt", response, path),
     meetings: {
@@ -1140,6 +1148,12 @@ export function parseOperations(response: RawResponse, path: string): Operations
       classBThisMonth: numberField(sync, "classBThisMonth", response, path),
       classBBudget: numberField(sync, "classBBudget", response, path),
       storedBytesBudget: numberField(sync, "storedBytesBudget", response, path),
+    },
+    shares: {
+      active: numberField(shares, "active", response, path),
+      owners: numberField(shares, "owners", response, path),
+      storedBytes: numberField(shares, "storedBytes", response, path),
+      storedBytesBudget: numberField(shares, "storedBytesBudget", response, path),
     },
   };
 }

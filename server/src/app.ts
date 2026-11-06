@@ -94,6 +94,7 @@ import { dayKey, requireSpendHeadroom, requireTrialSpendHeadroom } from "./usage
 import type { RequestContext } from "./platform";
 import { cachedTranscriptionResponse, parseTranscribeParams, proxyTranscription } from "./transcribe";
 import { routeSync } from "./sync";
+import { publicSharePath, readPublicShare, routeShares } from "./shares";
 import { routeAssistant } from "./assistant/api";
 
 /** Küçük JSON gövdeleri için üst sınır. */
@@ -153,9 +154,12 @@ function finalizeResponse(response: Response, corsOrigin: string | null): Respon
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
-/** İstek web kaynağındansa ve uç web'e açıksa izinli kaynak; değilse null. Saf fonksiyondur. */
+/**
+ * İstek web kaynağındansa ve uç web'e açıksa izinli kaynak; değilse null. Paylaşılan notun şifreli bloğu
+ * (`/v1/public/shares/:id`) sitenin paylaşım sayfasından okunur. Saf fonksiyondur.
+ */
 export function allowedCorsOrigin(origin: string | null, path: string, siteOrigin: string): string | null {
-  return origin !== null && origin === siteOrigin && (webRoutes.has(path) || path.startsWith(adminPrefix)) ? origin : null;
+  return origin !== null && origin === siteOrigin && (webRoutes.has(path) || path.startsWith(adminPrefix) || publicSharePath.test(path)) ? origin : null;
 }
 
 /** CORS ön kontrol yanıtı; izinli değilse 403. Saf fonksiyondur. */
@@ -589,6 +593,18 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     return new Response(null, { status: 302, headers: { location: config.dmgUrl } });
   }
 
+  const publicShare: RegExpExecArray | null = publicSharePath.exec(path);
+  if (publicShare !== null && method === "GET") {
+    // Paylaşılan notun şifreli bloğu (oturumsuz; bkz. `shares.ts`): IP başına dakikada 60.
+    await enforceLimit(env.SHARE_IP_LIMITER, `ip:${ipKey}`);
+    return readPublicShare(db, publicShare, now);
+  }
+  if (path === "/v1/shares" || path.startsWith("/v1/shares/")) {
+    // Notu bağlantıyla paylaşma (yalnızca uygulama): kullanıcı başına dakikada 10 istek.
+    const user: AuthedUser = await authed();
+    await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
+    return routeShares(request, db, config, path, user.userId, now);
+  }
   if (path.startsWith("/v1/sync/")) {
     // Mac ↔ iPhone eşitleme (yalnızca uygulama; bkz. `sync.ts`): kullanıcı başına dakikada 300 istek.
     const user: AuthedUser = await authed();

@@ -31,6 +31,10 @@ public func userFacingMessage(error: any Error) -> String {
         return cloudMessage(error: error)
     case let error as StorageError:
         return storageMessage(error: error)
+    case NoteShareError.tooLarge:
+        return String(localized: "Not bağlantı için fazla uzun; transkripti eklemeden yeniden dene.")
+    case is NoteShareError:
+        return String(localized: "Bağlantı oluşturulamadı; yeniden dene.")
     case ScreenImageError.decodingFailed, ScreenImageError.encodingFailed, ScreenImageError.fingerprintFailed:
         return String(localized: "Bir ekran görüntüsü okunamadı ya da küçültülemedi. Ekranlar sekmesinden o görüntüyü nottan çıkarıp ya da silip yeniden dene.")
     case TranscriptionError.modelLoadFailed(let model, _):

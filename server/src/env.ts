@@ -27,6 +27,8 @@ export interface Env {
    */
   readonly ASSISTANT_DB?: D1Database;
   readonly ASSISTANT_BUCKET?: R2Bucket;
+  /** `GET /v1/public/shares/:id` (paylaşılan notun şifreli bloğu, oturumsuz): IP başına dakikada 60 (bkz. `shares.ts`). */
+  readonly SHARE_IP_LIMITER: RateLimit;
   /** `/v1/assistant/…`: kullanıcı başına dakikada 300 (ilk açılışta arşivin yüklenmesi). */
   readonly ASSISTANT_USER_LIMITER: RateLimit;
 

@@ -1,5 +1,6 @@
 import { isoOrNull, longestMeetingMs } from "./admin";
 import type { Config } from "./config";
+import { shareStoredBytesBudget } from "./shares";
 import { syncR2ClassABudget, syncR2ClassBBudget, syncR2StoredBytesBudget, syncUsageMonth } from "./sync";
 
 /**
@@ -82,6 +83,14 @@ export interface AdminOperations {
     readonly classBBudget: number;
     readonly storedBytesBudget: number;
   };
+  /** Bağlantıyla paylaşılan notlar: süresi dolmamış bağlantı, sahibi olan hesap ve şifreli bayt sayıları (içerik yok). */
+  readonly shares: {
+    readonly active: number;
+    readonly owners: number;
+    readonly storedBytes: number;
+    /** Tüm hesapların şifreli kopya sınırı (aşılınca yeni bağlantı `503 share_unavailable`). */
+    readonly storedBytesBudget: number;
+  };
 }
 
 interface OpenMeetingRow {
@@ -110,6 +119,9 @@ interface CountsRow {
   readonly sync_purges: number;
   readonly sync_class_a: number | null;
   readonly sync_class_b: number | null;
+  readonly share_active: number;
+  readonly share_owners: number;
+  readonly share_bytes: number;
 }
 
 interface TypeCountRow {
@@ -152,7 +164,10 @@ export async function adminOperations(db: D1Database, config: Config, now: Date)
            (SELECT COALESCE(SUM(stored_bytes), 0) FROM sync_accounts) AS sync_bytes,
            (SELECT COUNT(*) FROM sync_purges) AS sync_purges,
            (SELECT class_a FROM sync_r2_usage WHERE month = ?5) AS sync_class_a,
-           (SELECT class_b FROM sync_r2_usage WHERE month = ?5) AS sync_class_b`,
+           (SELECT class_b FROM sync_r2_usage WHERE month = ?5) AS sync_class_b,
+           (SELECT COUNT(*) FROM note_shares WHERE expires_at > ?1) AS share_active,
+           (SELECT COUNT(DISTINCT user_id) FROM note_shares WHERE expires_at > ?1) AS share_owners,
+           (SELECT COALESCE(SUM(size), 0) FROM note_shares) AS share_bytes`,
       )
       .bind(nowMs, openSince, weekAgo, nowMs - 24 * hourMs, syncUsageMonth(now))
       .first<CountsRow>(),
@@ -214,6 +229,12 @@ export async function adminOperations(db: D1Database, config: Config, now: Date)
       classBThisMonth: counts?.sync_class_b ?? 0,
       classBBudget: syncR2ClassBBudget,
       storedBytesBudget: syncR2StoredBytesBudget,
+    },
+    shares: {
+      active: counts?.share_active ?? 0,
+      owners: counts?.share_owners ?? 0,
+      storedBytes: counts?.share_bytes ?? 0,
+      storedBytesBudget: shareStoredBytesBudget,
     },
     reports: {
       last7Days: { feedback: reportCounts.get("feedback") ?? 0, crash: reportCounts.get("crash") ?? 0, contact: reportCounts.get("contact") ?? 0 },

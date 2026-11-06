@@ -26,7 +26,8 @@ export type PageKey =
   | "admin"
   | "privacy"
   | "terms"
-  | "notFound";
+  | "notFound"
+  | "share";
 
 /** Sayfaların yolları. */
 export const routes: Readonly<Record<PageKey, string>> = {
@@ -51,6 +52,8 @@ export const routes: Readonly<Record<PageKey, string>> = {
   privacy: "/privacy",
   terms: "/terms",
   notFound: "/404",
+  // Bağlantıyla paylaşılan not (uygulamalar `https://gistsmith.com/s#<kimlik>.<anahtar>` üretir: Swift `noteShareLink`).
+  share: "/s",
 };
 
 /**
@@ -93,7 +96,7 @@ export const pageModified: Readonly<Partial<Record<PageKey, string>>> = {
   vsPoffle: "2026-11-04",
   languages: "2026-11-04",
   integrations: "2026-11-04",
-  privacy: "2026-11-03",
+  privacy: "2026-11-06",
 };
 
 /** Sitenin dilleri (`<html lang>`, `hreflang`). */
@@ -131,8 +134,8 @@ export const siteLanguages: readonly SiteLanguage[] = [
   { lang: "fi", page: "fi", label: "Suomi" },
 ];
 
-/** Önbelleğe alınmayan kişiye özel sayfalar. */
-export const privatePages: readonly PageKey[] = ["account", "admin"];
+/** Önbelleğe alınmayan kişiye özel sayfalar (paylaşılan not sayfası da: içeriği bağlantıya özgüdür). */
+export const privatePages: readonly PageKey[] = ["account", "admin", "share"];
 
 /** Sayfanın mutlak adresi (ana sayfa sonda eğik çizgiyle: `https://alan/`). Saf fonksiyondur. */
 export function pageUrl(page: PageKey, origin: string): string {

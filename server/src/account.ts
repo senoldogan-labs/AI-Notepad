@@ -12,6 +12,7 @@ import { ledgerOnDeletionStatement, trialIdentityHash } from "./trialLedger";
 import type { IdentityProvider } from "./auth/users";
 import { type AppleRevocationOutcome, appleTokenDeletionStatement, revokeAppleTokensForDeletion } from "./auth/appleTokens";
 import { dayKey } from "./usage";
+import { shareDeletionStatement } from "./shares";
 import { purgeSyncPrefixNow, syncDeletionStatements, syncPrefix } from "./sync";
 import { deleteAssistantAccount } from "./assistant/store";
 
@@ -68,6 +69,7 @@ function accountDeletedCounterStatement(db: D1Database, userId: string, now: Dat
  * Eşitlemenin şifreli kopyası (`sync_objects`, `sync_key_envelopes`, `sync_accounts`) aynı işlemde silinir ve R2 öneki
  * silme kuyruğuna (`sync_purges`) yazılır (`syncDeletionStatements`); bloklar `deleteAccount`'ta hemen, kalırsa günlük
  * temizlikte silinir.
+ * Bağlantıyla paylaşılan notların şifreli kopyaları (`note_shares`) aynı işlemde silinir: bağlantılar hemen 404 döner.
  * Toplantıların Deepgram canlı metin satırları (`deepgram_live_meetings`; ömür boyu bütçeye sayıldığı için silinmez)
  * toplantılar silinmeden önce rastgele kimlikle toplantıdan koparılır (`deepgramUnlinkUserStatement`).
  * `daily_spend` (toplam, kişisel değil), `downloads`, `download_sources`, `download_visitors`, `ops_events`,
@@ -98,6 +100,7 @@ function accountDeletionStatements(db: D1Database, userId: string, identityHashe
     db.prepare("DELETE FROM device_challenges WHERE user_id = ?").bind(userId),
     db.prepare("DELETE FROM transcription_results WHERE user_id = ?").bind(userId),
     ...syncDeletionStatements(db, userId, syncPrefix(userId), now),
+    shareDeletionStatement(db, userId),
     ...userReservationRemovalStatements(db, userId),
     deepgramUnlinkUserStatement(db, userId),
     db.prepare("DELETE FROM meeting_sessions WHERE user_id = ?").bind(userId),

@@ -37,6 +37,8 @@
   // bir ilk açılış ve giriş denemesi başına birkaç adım gönderir; bkz. src/funnel.ts).
   // SYNC_USER_LIMITER: `/v1/sync/…` (Mac ↔ iPhone eşitleme) kullanıcı başına dakikada 300: ilk açılışta arşivin
   // yüklenmesi (toplantı başına iki nesne) dakikalara yayılır, istemci 429'da `retry-after`'a uyup sürdürür.
+  // SHARE_IP_LIMITER: `GET /v1/public/shares/:id` (paylaşılan notun şifreli bloğu, oturumsuz) IP başına dakikada 60: bir
+  // okuyucu sayfayı birkaç kez açar; bağlantıyı dosya barındırma gibi kullanmayı zorlaştırır (bkz. src/shares.ts).
   "ratelimits": [
     { "name": "AUTH_IP_LIMITER", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } },
     { "name": "API_IP_LIMITER", "namespace_id": "1002", "simple": { "limit": 1200, "period": 60 } },
@@ -47,7 +49,8 @@
     { "name": "TELEMETRY_USER_LIMITER", "namespace_id": "1007", "simple": { "limit": 6, "period": 60 } },
     { "name": "FUNNEL_IP_LIMITER", "namespace_id": "1008", "simple": { "limit": 20, "period": 60 } },
     { "name": "SYNC_USER_LIMITER", "namespace_id": "1009", "simple": { "limit": 300, "period": 60 } },
-    { "name": "ASSISTANT_USER_LIMITER", "namespace_id": "1010", "simple": { "limit": 300, "period": 60 } }
+    { "name": "ASSISTANT_USER_LIMITER", "namespace_id": "1010", "simple": { "limit": 300, "period": 60 } },
+    { "name": "SHARE_IP_LIMITER", "namespace_id": "1011", "simple": { "limit": 60, "period": 60 } }
   ],
   // Mac ↔ iPhone eşitlemesinin uçtan uca şifreli nesneleri (src/sync.ts). AB yargı bölgesindeki kova; içerik anahtarı
   // yalnızca kullanıcının cihazlarındadır. Yerelde (`wrangler dev`, testler) Miniflare yerel bir kova taklit eder.
@@ -274,7 +277,8 @@
         { "name": "TELEMETRY_USER_LIMITER", "namespace_id": "2007", "simple": { "limit": 6, "period": 60 } },
         { "name": "FUNNEL_IP_LIMITER", "namespace_id": "2008", "simple": { "limit": 20, "period": 60 } },
         { "name": "SYNC_USER_LIMITER", "namespace_id": "2009", "simple": { "limit": 300, "period": 60 } },
-        { "name": "ASSISTANT_USER_LIMITER", "namespace_id": "2010", "simple": { "limit": 300, "period": 60 } }
+        { "name": "ASSISTANT_USER_LIMITER", "namespace_id": "2010", "simple": { "limit": 300, "period": 60 } },
+        { "name": "SHARE_IP_LIMITER", "namespace_id": "2011", "simple": { "limit": 60, "period": 60 } }
       ],
       // Bkz. üstteki geliştirme `r2_buckets` açıklaması. Kova dağıtımdan önce oluşturulmalı:
       // `npx wrangler r2 bucket create gistsmith-sync --jurisdiction eu` (yoksa `wrangler deploy` başarısız olur).

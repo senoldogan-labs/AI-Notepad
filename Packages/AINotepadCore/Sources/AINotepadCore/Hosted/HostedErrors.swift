@@ -70,6 +70,10 @@ public enum HostedErrorCode: String, Sendable, CaseIterable, Equatable {
     case syncConflict = "sync_conflict"
     case syncQuotaExceeded = "sync_quota_exceeded"
     case syncCursorExpired = "sync_cursor_expired"
+    // Notu bağlantıyla paylaşma (`server/src/shares.ts`, `HostedShareClient`).
+    case shareUnavailable = "share_unavailable"
+    case shareLimitReached = "share_limit_reached"
+    case shareExists = "share_exists"
     // Yapay zekâ asistanı erişimi (`server/src/assistant/`); uygulamalar bu uçları 2. aşamada çağırmaya başlar, o zaman
     // kendi metinlerini alırlar.
     case assistantUnavailable = "assistant_unavailable"
@@ -357,6 +361,12 @@ public func hostedErrorMessage(error: HostedAPIError) -> String {
         return String(localized: "Eşitlenen kopyanın yeri doldu; eski toplantıları ya da Sor sohbetlerini silip yeniden dene.")
     case .syncCursorExpired:
         return String(localized: "Eşitleme baştan yapılıyor; toplantıların yerinde kalır.")
+    case .shareUnavailable:
+        return String(localized: "Bağlantıyla paylaşma şu an kullanılamıyor; biraz sonra yeniden dene.")
+    case .shareLimitReached:
+        return String(localized: "Bir hesapta en çok \(noteShareMaxActiveLinks) etkin bağlantı olabilir; eski bağlantıları kaldırıp yeniden dene.")
+    case .shareExists:
+        return String(localized: "Bağlantı oluşturulamadı; yeniden dene.")
     case .forbidden:
         return String(localized: "Bu işleme izin yok.")
     case .internalError:

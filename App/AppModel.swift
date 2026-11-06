@@ -4163,6 +4163,10 @@ final class AppModel {
             return String(localized: "Toplantı silinemedi: \(userFacingMessage(error: error))")
         }
         closeSpeakerReview(meetingID: meetingID)
+        #if HOSTED_EDITION
+        // Toplantının paylaşım bağlantıları da kaldırılır (silinen not bağlantıyla okunmaya devam etmesin).
+        revokeNoteShareLinks(meetingIDs: [meetingID])
+        #endif
         // Kuyruktaki (işlenmemiş) toplantının uyku engeli de toplantıyla biter.
         allowSleep(meetingID: meetingID)
         meetings.removeAll { $0.id == meetingID }

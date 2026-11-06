@@ -1,0 +1,209 @@
+---
+// Bağlantıyla paylaşılan not (`/s#<kimlik>.<anahtar>`): betik (src/client/share.ts) anahtarı adresin `#` parçasından
+// okur, şifreli notu sunucudan alır (`GET /v1/public/shares/:id`), tarayıcıda çözer ve metin olarak çizer. Anahtar hiçbir
+// sunucuya gitmez; sayfada üçüncü taraf betiği çalışmaz (CSP analitiği de engeller, bkz. src/lib/headers.ts). Arama
+// motorlarına kapalıdır ve önbelleğe alınmaz.
+import Base from "../layouts/Base.astro";
+import { websiteCard } from "../lib/social";
+import Horizon from "../components/Horizon.astro";
+import Icon from "../components/Icon.astro";
+import { copy, type ShareCopy } from "../copy";
+import { routes } from "../routes";
+
+const text: ShareCopy = copy.share;
+const [ownerBefore, ownerAfter] = text.ownerLine.split("{report}");
+---
+
+<Base page="share" meta={text.meta} indexed={false} social={websiteCard}>
+  <meta slot="head" name="referrer" content="no-referrer" />
+  <article class="narrow shared" id="share-page">
+    <p class="shared__status muted" id="share-loading" role="status">{text.loading}</p>
+
+    <section class="shared__error hidden" id="share-error" role="alert" aria-labelledby="share-error-title">
+      <Horizon seed="share" class="shared__horizon" />
+      <h1 class="title-l" id="share-error-title"></h1>
+      <p class="muted" id="share-error-text"></p>
+      <button type="button" class="button button--secondary hidden" id="share-retry">{text.errors.retry}</button>
+    </section>
+
+    <div class="hidden" id="share-note">
+      <header class="shared__header">
+        <h1 class="title-xl shared__title" id="share-title"></h1>
+        <p class="muted tabular" id="share-subtitle"></p>
+        <p class="shared__privacy small">
+          <Icon name="lock" size={14} class="shared__lock" />
+          <span>{text.privacyLine}</span>
+        </p>
+      </header>
+      <div class="shared__body" id="share-body"></div>
+      <footer class="shared__footer small muted">
+        <p>{ownerBefore}<a class="text-link" href={routes.contact}>{text.report}</a>{ownerAfter}</p>
+      </footer>
+    </div>
+
+    <a class="card shared__made" href={routes.home}>
+      <span class="shared__made-title">{text.madeWith}</span>
+      <span class="muted small">{text.madeWithLead}</span>
+      <Icon name="arrow-right" size={16} class="shared__made-arrow" />
+    </a>
+  </article>
+
+  <template id="share-copy" data-incomplete-title={text.errors.incompleteTitle} data-incomplete={text.errors.incomplete}
+    data-gone-title={text.errors.goneTitle} data-gone={text.errors.gone} data-wrong-key-title={text.errors.wrongKeyTitle}
+    data-wrong-key={text.errors.wrongKey} data-unreadable-title={text.errors.unreadableTitle} data-unreadable={text.errors.unreadable}
+    data-network-title={text.errors.networkTitle} data-network={text.errors.network} data-rate-limited={text.errors.rateLimited}
+    data-show-transcript={text.showTranscript}></template>
+</Base>
+
+<script>
+  import "../client/share";
+</script>
+
+<style>
+  .shared {
+    display: grid;
+    gap: 28px;
+    padding-block: clamp(40px, 8vw, 88px) clamp(48px, 8vw, 96px);
+  }
+
+  .shared__header {
+    display: grid;
+    gap: 8px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .shared__title {
+    overflow-wrap: anywhere;
+  }
+
+  .shared__privacy {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    color: var(--muted);
+  }
+
+  .shared__privacy :global(.shared__lock) {
+    flex: none;
+  }
+
+  .shared__body {
+    display: grid;
+    gap: 32px;
+    padding-top: 28px;
+    overflow-wrap: anywhere;
+  }
+
+  .shared__body :global(h2) {
+    margin: 0 0 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .shared__body :global(p) {
+    margin: 0;
+    white-space: pre-line;
+  }
+
+  .shared__body :global(ul),
+  .shared__body :global(ol) {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding-inline-start: 20px;
+  }
+
+  .shared__body :global(.shared__plain) {
+    list-style: none;
+    padding: 0;
+  }
+
+  .shared__body :global(.shared__time) {
+    margin-inline-end: 8px;
+    color: var(--muted);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .shared__body :global(.shared__task) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+    padding: 12px 14px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+  }
+
+  .shared__body :global(.shared__due) {
+    margin-inline-start: auto;
+    color: var(--muted);
+    font-size: 0.8125rem;
+    white-space: nowrap;
+  }
+
+  .shared__body :global(dt) {
+    margin-top: 10px;
+    font-weight: 600;
+  }
+
+  .shared__body :global(dd) {
+    margin: 2px 0 0;
+    color: var(--muted);
+  }
+
+  .shared__body :global(details summary) {
+    cursor: pointer;
+    font-weight: 500;
+  }
+
+  .shared__body :global(.shared__transcript) {
+    display: grid;
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  .shared__footer {
+    margin-top: 36px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+  }
+
+  .shared__error {
+    display: grid;
+    justify-items: center;
+    gap: 12px;
+    padding-block: clamp(32px, 8vw, 72px);
+    text-align: center;
+  }
+
+  .shared__error :global(.shared__horizon) {
+    width: min(100%, 280px);
+    margin-bottom: 8px;
+  }
+
+  .shared__made {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 2px 12px;
+    padding: 16px 18px;
+    color: var(--ink);
+    text-decoration: none;
+  }
+
+  .shared__made-title {
+    font-weight: 600;
+  }
+
+  .shared__made :global(.shared__made-arrow) {
+    grid-row: 1 / span 2;
+    grid-column: 2;
+  }
+</style>

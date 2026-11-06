@@ -478,6 +478,8 @@ struct MeetingDetailPage: View {
     @FocusState private var titleFocused: Bool
     /// Takip e-postası kartı açık: taslağın ilk dili (sayfada seçili not dili); kapalıyken nil.
     @State private var followUpLanguage: ShareLanguage?
+    /// "Bağlantıyla paylaş" kartı açık (abonelik sürümü; takip e-postası kartıyla aynı anda açılmaz).
+    @State private var sharingWithLink: Bool = false
 
     private var isProcessing: Bool {
         model.processingMeetingIDs.contains(record.id)
@@ -520,6 +522,14 @@ struct MeetingDetailPage: View {
                         }
                         .transition(.opacity.combined(with: .move(edge: .top)))
                     }
+                    #if HOSTED_EDITION
+                    if sharingWithLink, record.note != nil {
+                        NoteShareCard(record: record, language: noteLanguage) {
+                            withAnimation(.smooth(duration: 0.25)) { sharingWithLink = false }
+                        }
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+                    #endif
                     // Sekmeler ve notun dili tek satırda: dil, iş arkadaşlarına göndermek için notun başka dildeki sürümü.
                     HStack(spacing: 10) {
                         let hasScreens: Bool = !(model.screenSnapshots.snapshots[record.id] ?? []).isEmpty || tab == .screens
@@ -609,6 +619,7 @@ struct MeetingDetailPage: View {
                 .animation(.smooth(duration: 0.25), value: tab)
                 .animation(.smooth(duration: 0.25), value: export)
                 .animation(.smooth(duration: 0.25), value: followUpLanguage)
+                .animation(.smooth(duration: 0.25), value: sharingWithLink)
                 .animation(.smooth(duration: 0.3), value: model.speakerReviews[record.id])
                 .padding(DesignTokens.Spacing.l)
                 // Geniş ana pencerede içerik okunur genişlikte kalır ve ortalanır: liste gizlenince sağda büyük boşluk
@@ -927,7 +938,10 @@ struct MeetingDetailPage: View {
             Button("Markdown olarak kopyala", systemImage: "doc.on.doc") { copyMarkdown() }
             // Nottan takip e-postası: kart sayfanın üstünde açılır (taslak düzenlenir, kopyalanır ya da Mail'de açılır).
             Button("Takip e-postası yaz", systemImage: "envelope.badge") {
-                withAnimation(.smooth(duration: 0.25)) { followUpLanguage = noteLanguage ?? record.note?.writtenLanguage }
+                withAnimation(.smooth(duration: 0.25)) {
+                    sharingWithLink = false
+                    followUpLanguage = noteLanguage ?? record.note?.writtenLanguage
+                }
             }
             .disabled(record.note == nil || isLocked)
             // Notu yeniden yazar (konuşmacı adlarıyla).
@@ -996,6 +1010,14 @@ struct MeetingDetailPage: View {
         #if HOSTED_EDITION
         // Abonelik sürümünde iCloud yok: PDF geçici klasörden paylaşım seçicisiyle (Mail, AirDrop, Mesajlar…).
         Button("PDF olarak paylaş…", systemImage: "square.and.arrow.up") { sharePDF() }
+        // Uçtan uca şifreli bağlantı: kart sayfanın üstünde açılır (süre, transkript, bağlantılar).
+        Button("Bağlantıyla paylaş…", systemImage: "link") {
+            withAnimation(.smooth(duration: 0.25)) {
+                followUpLanguage = nil
+                sharingWithLink = true
+            }
+        }
+        .disabled(record.note == nil || record.isSampleMeeting)
         #else
         Button("Bağlantıyla paylaş…", systemImage: "link") { shareViaLink() }
         #endif

@@ -177,6 +177,7 @@ describe("süresi dolmuş satırların temizliği", () => {
       sync_tombstones: 0,
       used_nonces: 1,
       apple_sign_in_tokens: 0,
+      note_shares: 0,
       transcription_results: 1,
       sync_key_envelopes: 0,
       device_challenges: 2,

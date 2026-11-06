@@ -1396,6 +1396,8 @@ final class PhoneStore {
             return String(localized: "Toplantı silinemedi: \(userFacingMessage(error: error))")
         }
         closeSpeakerReview(meetingID: id)
+        // Toplantının paylaşım bağlantıları da kaldırılır (silinen not bağlantıyla okunmaya devam etmesin).
+        revokeNoteShareLinks(meetingIDs: [id])
         meetings.removeAll { $0.id == id }
         reloader.invalidate()
         // Bu toplantıdan öğrenilen ses izleri de geri alınır (Mac'te Çöp Sepeti'ne taşırken olduğu gibi).

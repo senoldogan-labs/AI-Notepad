@@ -77,8 +77,8 @@ const syncTombstoneRetentionMs: number = syncTombstoneRetentionDays * dayMs;
 const revenueRetentionMs: number = 3653 * dayMs;
 
 /**
- * Zamanlanmış temizliğin sınırları: tablo başına günde en çok 3 × 1000 satır. En kötü durumda 34 tablo koşulu × 3 tur
- * = 102 silme sorgusu + 4 toplu işlemin 9 ifadesi = 111 D1 sorgusu (Cron çağrısının diğer adımları, eşitleme temizliği
+ * Zamanlanmış temizliğin sınırları: tablo başına günde en çok 3 × 1000 satır. En kötü durumda 35 tablo koşulu × 3 tur
+ * = 105 silme sorgusu + 4 toplu işlemin 9 ifadesi = 114 D1 sorgusu (Cron çağrısının diğer adımları, eşitleme temizliği
  * dahil (`syncCleanup`: en çok ~50 hesap denetimi + 20 önek), birkaç yüz sorgu daha ekler). Workers Paid planının çağrı başına 1000 sorgu sınırının çok altındadır; ücretsiz plana (50) dönülürse
  * `maxBatchesPerTable` 2'ye indirilmelidir. Kalan satırlar ertesi gün silinir. Koşul eklerken bu sayıyı güncelle.
  */
@@ -110,6 +110,8 @@ function cleanupTargets(now: Date): CleanupTarget[] {
       binds: [nowMs - dayMs],
     },
     { name: "transcription_results", table: "transcription_results", where: "expires_at <= ?", binds: [nowMs] },
+    // Bağlantıyla paylaşılan notların süresi dolmuş şifreli kopyaları (okuma uçları zaten 404 döner; bkz. `shares.ts`).
+    { name: "note_shares", table: "note_shares", where: "expires_at <= ?", binds: [nowMs] },
     // Eşitlemede "cihaz ekle" mesajları 10 dakikada dolar (kurtarma zarfının süresi yoktur).
     { name: "sync_key_envelopes", table: "sync_key_envelopes", where: "expires_at IS NOT NULL AND expires_at <= ?", binds: [nowMs] },
     { name: "device_challenges", table: "device_challenges", where: "expires_at <= ? OR used_at IS NOT NULL", binds: [nowMs] },

@@ -612,6 +612,8 @@ struct MeetingReadView: View {
     @State private var isConfirmingAudioDelete: Bool = false
     /// Takip e-postası sayfası açık: taslağın ilk dili (sayfada seçili not dili); kapalıyken nil.
     @State private var followUpLanguage: ShareLanguage?
+    /// "Bağlantıyla paylaş" sayfası açık.
+    @State private var isSharingWithLink: Bool = false
     @Environment(\.openURL) private var openURL: OpenURLAction
 
     /// Not ve adlar değiştirilebilir: kayıtta, işlenen ya da notu yazılan toplantıda değil.
@@ -778,6 +780,9 @@ struct MeetingReadView: View {
                     // Mac'teki "Takip e-postası yaz": nottan e-posta taslağı (düzenle, kopyala, paylaş ya da Mail).
                     Button("Takip e-postası yaz", systemImage: "envelope.badge") { openFollowUp() }
                         .disabled(record.note == nil || !isEditable)
+                    // Mac'teki "Bağlantıyla paylaş…": uçtan uca şifreli bağlantı (sunucu notu okuyamaz).
+                    Button("Bağlantıyla paylaş…", systemImage: "link") { isSharingWithLink = true }
+                        .disabled(record.note == nil || record.isSampleMeeting)
                     // Mac'teki "Kanala gönder" ve "Görevleri gönder".
                     PhoneSendMenuItems(record: record)
                     // Mac'teki "Tarif": bu toplantıya tarif uygular, cevap Sor'da açılır.
@@ -873,6 +878,10 @@ struct MeetingReadView: View {
             if let language = followUpLanguage, let note = record.note {
                 PhoneFollowUpEmailSheet(store: store, meetingID: record.id, noteLanguage: note.writtenLanguage, initialLanguage: language)
             }
+        }
+        .sheet(isPresented: $isSharingWithLink) {
+            PhoneNoteShareSheet(record: record, language: noteLanguage)
+                .presentationDetents([.medium, .large])
         }
         .sheet(isPresented: $isEditingMyNotes) {
             PhoneMyNotesEditor(initialText: record.myNotes ?? "") { (text: String) -> Void in

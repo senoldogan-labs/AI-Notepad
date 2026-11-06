@@ -246,6 +246,9 @@ targets:
       # Mac ↔ iPhone eşitlemesinin uygulama tarafı (durum, anahtar, motor) Mac'le ortak; Ayarlar satırı ve bağlar
       # iOS/Hosted/PhoneSync.swift'te.
       - path: App/Hosted/HostedSync.swift
+      # Notu bağlantıyla paylaşmanın durumu (şifreleme, yükleme, cihazdaki bağlantı defteri) Mac'le ortak; sayfası
+      # iOS/MeetingShareLink.swift'te.
+      - path: App/Hosted/HostedNoteShares.swift
     dependencies:
       - package: AINotepadCore
         product: AINotepadCore

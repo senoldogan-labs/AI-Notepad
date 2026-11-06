@@ -98,6 +98,17 @@ export const dataHandling: DataHandlingCopy = {
       policySection: "meetings",
     },
     {
+      id: "shared-links",
+      data: "A note you share with a link (only if you choose “Share with Link”): the note, and the transcript only if you include it",
+      where:
+        "Encrypted end to end on your device with a new key for each link. The key is only in the link after the # sign, which browsers never send to a server; the reader's browser decrypts the note on our website.",
+      stored:
+        "An encrypted copy we cannot read, in our database in the EU, with its size, a random link identifier, its creation and expiry time and your account identifier. Not which meeting it came from.",
+      retention:
+        "Until the link expires (7, 30 or 90 days, as you choose), you remove it or delete the meeting; all links go when you delete your account",
+      policySection: "meetings",
+    },
+    {
       id: "screen-snapshots",
       data: "Shared-screen snapshots (Mac app, off by default)",
       where:

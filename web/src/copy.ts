@@ -533,6 +533,7 @@ export interface AdminOperationsCopy {
     readonly webhook: string;
     readonly reports: string;
     readonly sync: string;
+    readonly shares: string;
   };
   readonly openTitle: string;
   readonly openColumns: { readonly user: string; readonly kind: string; readonly started: string; readonly endsBy: string; readonly notes: string };
@@ -827,6 +828,34 @@ export interface NotFoundCopy {
   readonly home: string;
 }
 
+/** Bağlantıyla paylaşılan not sayfası (`/s`). Notun kendi metinleri (başlıklar dahil) gönderenin dilindedir. */
+export interface ShareCopy {
+  readonly meta: PageMeta;
+  readonly loading: string;
+  /** Notun üstündeki gizlilik satırı. */
+  readonly privacyLine: string;
+  readonly showTranscript: string;
+  readonly errors: {
+    readonly incompleteTitle: string;
+    readonly incomplete: string;
+    readonly goneTitle: string;
+    readonly gone: string;
+    readonly wrongKeyTitle: string;
+    readonly wrongKey: string;
+    readonly unreadableTitle: string;
+    readonly unreadable: string;
+    readonly networkTitle: string;
+    readonly network: string;
+    readonly rateLimited: string;
+    readonly retry: string;
+  };
+  /** Notun altındaki satır: kimin paylaştığı ve kötüye kullanım bildirimi ("{report}" bağlantının yeri). */
+  readonly ownerLine: string;
+  readonly report: string;
+  readonly madeWith: string;
+  readonly madeWithLead: string;
+}
+
 /** Sitenin tüm metinleri. */
 export interface Copy {
   readonly common: CommonCopy;
@@ -844,6 +873,7 @@ export interface Copy {
   readonly languages: LanguagesCopy;
   readonly integrations: IntegrationsCopy;
   readonly notFound: NotFoundCopy;
+  readonly share: ShareCopy;
   readonly privacyMeta: PageMeta;
   readonly termsMeta: PageMeta;
 }
@@ -1895,6 +1925,7 @@ export const copy: Copy = {
         webhook: "Stripe webhook",
         reports: "Reports, 7 days",
         sync: "Mac ↔ iPhone sync accounts",
+        shares: "Shared note links",
       },
       openTitle: "Live meetings",
       openColumns: { user: "Account", kind: "Plan", started: "Started", endsBy: "Ends by", notes: "Notes" },
@@ -2157,6 +2188,33 @@ export const copy: Copy = {
     title: "This page doesn't exist.",
     text: "The address may be mistyped, or the page has moved.",
     home: "Back to the home page",
+  },
+  share: {
+    meta: {
+      title: `Shared note — ${productName}`,
+      description: "A meeting note shared with an end-to-end encrypted link. Only people with the link can read it.",
+    },
+    loading: "Opening the note…",
+    privacyLine: `End-to-end encrypted. Anyone with this link can read the note; ${productName} can't.`,
+    showTranscript: "Show transcript",
+    errors: {
+      incompleteTitle: "This link is incomplete.",
+      incomplete: "The part after the # sign is missing or cut short. Ask the sender to copy the whole link again.",
+      goneTitle: "This note is no longer shared.",
+      gone: "The link has expired, or the person who shared it removed it.",
+      wrongKeyTitle: "This link can't open the note.",
+      wrongKey: "The key in the link doesn't match. It may have been changed or cut short; ask the sender for the link again.",
+      unreadableTitle: "This note can't be shown.",
+      unreadable: "It was shared in a format this page doesn't know. Ask the sender to share it again.",
+      networkTitle: "The note couldn't be loaded.",
+      network: "Check your connection and try again.",
+      rateLimited: "Too many requests from this network. Wait a minute and try again.",
+      retry: "Try again",
+    },
+    ownerLine: `Shared by a ${productName} user, who decides who gets the link. {report}`,
+    report: "Report this note",
+    madeWith: `Made with ${productName}`,
+    madeWithLead: tagline,
   },
   privacyMeta: {
     title: `Privacy policy — ${productName}`,
