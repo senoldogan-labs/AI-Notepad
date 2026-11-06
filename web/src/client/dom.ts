@@ -85,12 +85,12 @@ export function loadScript(src: string): Promise<void> {
 /** Sayfa teması. */
 export type Theme = "light" | "dark";
 
-/** Sayfanın şu anki teması (`<html data-theme>`, public/theme.js yazar). */
+/** Sayfanın şu anki teması (`<html data-theme>`, src/client/theme.js yazar). */
 export function currentTheme(): Theme {
   return document.documentElement.dataset["theme"] === "dark" ? "dark" : "light";
 }
 
-/** Tema her değiştiğinde çağrılır (public/theme.js `gistsmith:themechange` olayı). */
+/** Tema her değiştiğinde çağrılır (src/client/theme.js `gistsmith:themechange` olayı). */
 export function onThemeChange(listener: (theme: Theme) => void): void {
   document.addEventListener("gistsmith:themechange", (): void => {
     listener(currentTheme());
