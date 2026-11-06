@@ -120,10 +120,11 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
     <ul>
       <li>
         Your notes, transcripts and recordings are stored on your Mac or iPhone, in the app that recorded them. Our servers keep no audio, and no notes or
-        translations we can read. There are two exceptions: the final transcript, held encrypted so it can be re-sent for 2 hours if the
-        connection drops, then deleted at the next daily cleanup (within about a day); and, only if you turn on sync
-        between Mac and iPhone, an end-to-end encrypted copy of your meetings' text that only your devices can open (see
-        section 3).
+        translations we can read. There are three exceptions: the final transcript, held encrypted so it can be re-sent for 2 hours if the
+        connection drops, then deleted at the next daily cleanup (within about a day); only if you turn on sync
+        between Mac and iPhone, an end-to-end encrypted copy of your meetings' text that only your devices can open; and,
+        only if you share a note with a link, an end-to-end encrypted copy of that note that only people with the link can
+        open (see section 3).
       </li>
       <li>
         Meeting audio and text go only to our AI providers to be transcribed and summarised: Deepgram for the live
@@ -241,6 +242,20 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         server straight away, for all your devices; your meetings stay on each device. Sync is not a backup: a meeting
         deleted on one device is deleted on the others too (it goes to Recently Deleted there).
       </li>
+      <li id="shared-links">
+        <strong>Sharing a note with a link (optional).</strong> If you choose “Share with Link” on a meeting, the app
+        puts that note (title, date, summary, topics, decisions, open questions, tasks and glossary, and the transcript
+        only if you tick “Include transcript”; never audio or screen snapshots) into one file and encrypts it end to end on
+        your device (AES-256-GCM) with a new random key made for that link alone. We receive only the encrypted file, its
+        size, a random link identifier, the time it was created and when it expires, and which account it belongs to; we
+        don't learn which meeting it came from. The key is only in the part of the link after the # sign, which browsers
+        never send to any server, so we cannot read a shared note. Anyone you give the link to can read the note in their
+        browser on our website (gistsmith.com/s), which decrypts it there; whoever has the link can also pass it on or save
+        a copy, so share it only with people you trust. The page loads no analytics or other third-party script. The
+        encrypted note is stored in our database in the EU. The app on the device that created a link remembers it, so
+        you can copy it again there. You choose how long a link works (7, 30 or 90 days); you can remove it at any time,
+        and deleting the meeting in the app removes its links too. A removed or expired link stops working at once.
+      </li>
       <li>
         <strong>Integrations.</strong> When you send a note or tasks to Notion, Slack, Microsoft Teams, Discord, Zoom,
         Linear, Jira, Reminders or Apple Notes, save it as Markdown to a folder you choose (for example an Obsidian
@@ -312,6 +327,15 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
               (b) contract, for your own data. For other participants' data, you are the controller and we process it as
               your processor (section 3).
             </td>
+          </tr>
+          <tr>
+            <td>
+              <strong>Shared notes (only if you share a note with a link).</strong> An end-to-end encrypted copy of the
+              note you shared, which we cannot read, with its size, a random link identifier, when it was created and
+              when it expires, and your account identifier (section 3).
+            </td>
+            <td>Letting the people you give the link to read the note</td>
+            <td>(b) contract</td>
           </tr>
           <tr>
             <td>
@@ -643,6 +667,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       <strong>Visitor statistics.</strong> To see how the site is used, we use Cloudflare Web Analytics, with Cloudflare as
       our processor. Its script sets no cookies, uses no local or session storage and doesn't fingerprint your browser or
       follow you across sites. We see only aggregated numbers: page views, referring sites, countries and device types.
+      The script doesn't run on the shared-note page (gistsmith.com/s), whose address holds the note's key.
       Cloudflare doesn't use your IP address or browser details to identify you. Our legal basis is our legitimate interest in understanding and improving the website (GDPR Art. 6(1)(f)).
     </p>
   </LegalSection>
@@ -664,7 +689,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
           <tr>
             <td>Cloudflare, Inc.</td>
             <td>Processor: hosting this website and our server (Workers), database (D1), storage of the encrypted sync copy (R2), rate limiting, Turnstile, Web Analytics, logs</td>
-            <td>Account, usage, message and technical data; IP addresses; meeting content in transit; the end-to-end encrypted sync copy, which Cloudflare cannot read</td>
+            <td>Account, usage, message and technical data; IP addresses; meeting content in transit; the end-to-end encrypted sync copy and shared notes, which Cloudflare cannot read</td>
             <td>
               Database stored in the EU; the encrypted sync copy is stored in the EU jurisdiction. Cloudflare's network is global and the company is based in the USA: EU–US Data
               Privacy Framework and Standard Contractual Clauses.
@@ -803,6 +828,11 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         ends, your devices can still download or delete the copy for 90 days; after that it is deleted automatically.
       </li>
       <li>
+        Shared notes (only if you share a note with a link): until the link expires (7, 30 or 90 days, as you choose),
+        you remove it or you delete the meeting in the app, whichever comes first. A removed link is deleted at once; an
+        expired one stops working at once and is deleted at the next daily cleanup (within about a day).
+      </li>
+      <li>
         Account and sign-in identities: while your account exists; deleted immediately when you delete it. Device
         registrations: the same, and also deleted after 13 months without use.
       </li>
@@ -864,7 +894,8 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       Any unfinished subscription is first cancelled immediately at Stripe; then your account, sign-in identities,
       sessions, device registrations, meeting session records, usage, subscription records (including the App Store
       subscription record), cancellation reasons, invite code and invite records linked to your account, Stripe
-      customer link and the records of the encrypted sync copy are deleted together in a single step; the encrypted copy
+      customer link, the records of the encrypted sync copy and every note you shared with a link are deleted together
+      in a single step (shared links stop working at once); the encrypted copy
       itself is removed from storage at once (or, if storage can't be reached, at the next daily cleanup). If you signed in with Apple, we first ask Apple to revoke
       Gistsmith's access to your Apple ID, using the token we stored for that; the account is deleted even if Apple can't
       be reached, and we then follow up manually. You can also stop using Sign in with Apple for Gistsmith yourself, in

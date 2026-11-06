@@ -95,6 +95,17 @@ extension ServerParityTests {
         #expect(sync.contains("export const syncBlobMagic: string = \"\(syncBlobMagic)\";"))
     }
 
+    // Note share limits and the blob marker: a client cap above the server's would fail uploads the client thinks fit,
+    // and an expiry the server does not know is `bad_request`.
+    @Test func shareLimitsMatchServer() throws {
+        let shares: String = try String(contentsOf: serverDirectory().appending(path: "src/shares.ts"), encoding: .utf8)
+        #expect(try serverNumber(source: shares, name: "shareMaxBytes") == noteShareMaxBytes)
+        #expect(try serverNumber(source: shares, name: "shareMaxActivePerUser") == noteShareMaxActiveLinks)
+        #expect(shares.contains("export const shareBlobMagic: string = \"\(noteShareMagic)\";"))
+        let days: String = NoteShareExpiry.allCases.map { String($0.rawValue) }.joined(separator: ", ")
+        #expect(shares.contains("export const shareExpiryDays: readonly number[] = [\(days)];"))
+    }
+
     // Sor'un web araması ve çağrı sınırı iki tarafta aynı: istemci sunucunun kabul ettiğinden çok arama isterse her web
     // aramalı soru `invalid_body` alır; sunucunun Sor sınırı istemcininkinden küçükse istemci kesilme mesajını yanlış söyler.
     @Test func askWebSearchAndTokenCapMatchServer() throws {

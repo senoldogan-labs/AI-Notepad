@@ -6,16 +6,18 @@
 // geniş politikayı taşır (sayfası olmayan adresler, ör. bilinmeyen adresin 404'ü, için); her sayfanın kendi kuralı
 // yalnızca o sayfanın kullandığı hizmetlere izin veren dar politikayı ekler. Böylece Apple betiği yalnızca giriş
 // sayfasında, Turnstile yalnızca iletişim sayfasında çalışabilir. Google ile giriş Google'a yönlendirir; betik yüklenmez.
-// Cloudflare Web Analytics işaretçisi her sayfada olduğundan iki katmanın da tüm politikalarında açıktır.
+// Cloudflare Web Analytics işaretçisi paylaşım sayfası (`/s`) dışındaki her sayfada açıktır: orada notun anahtarı adresin
+// `#` parçasındadır ve sayfadaki her betik onu okuyabilir; dar politika işaretçiyi engeller (iki politika birlikte uygulanır).
 import { createHash } from "node:crypto";
 import { appleAuthScriptUrl, appleIdOrigin, type SiteConfig, turnstileOrigin } from "../config";
 import { blogPostPattern, type PageKey, privatePages, routes } from "../routes";
 
 /**
  * Sayfaların yüklediği dış hizmetler ve ek kaynaklar. `localImagePreview`: yönetim panelinin blog düzenleyicisi
- * yüklenecek görseli ve bu oturumda yüklenenleri tarayıcıdaki kopyasından (`blob:`) gösterir.
+ * yüklenecek görseli ve bu oturumda yüklenenleri tarayıcıdaki kopyasından (`blob:`) gösterir. `webAnalytics`:
+ * Cloudflare Web Analytics işaretçisi (çerezsiz); paylaşım sayfası dışındaki her sayfada.
  */
-export type ExternalService = "appleSignIn" | "turnstile" | "localImagePreview";
+export type ExternalService = "appleSignIn" | "turnstile" | "localImagePreview" | "webAnalytics";
 
 /** Bir dış hizmetin CSP yönergelerine eklediği kaynaklar. */
 interface ServiceSources {
@@ -33,48 +35,53 @@ function originOf(url: string): string {
 }
 
 /**
+ * Cloudflare Web Analytics (çerezsiz): Pages projesinde panelden açılır ve işaretçi betiğini her sayfaya kendisi ekler.
+ * Betik ilk kaynaktan yüklenir, ölçümleri ikinci kaynağa gönderir. Paylaşım sayfasının dar politikası onu içermez:
+ * eklenen betik orada engellenir (notun anahtarını okuyabilecek hiçbir üçüncü taraf betiği çalışmaz).
+ */
+const webAnalyticsScriptOrigin: string = "https://static.cloudflareinsights.com";
+const webAnalyticsConnectOrigin: string = "https://cloudflareinsights.com";
+
+/**
  * Hizmetlerin kaynakları. Apple ile giriş açılır pencere kullanır; betik Apple'ın CDN'inden gelir.
  */
 const serviceSources: Readonly<Record<ExternalService, ServiceSources>> = {
   appleSignIn: { script: [originOf(appleAuthScriptUrl)], style: [], img: [], connect: [], frame: [appleIdOrigin], formAction: [appleIdOrigin] },
   turnstile: { script: [turnstileOrigin], style: [], img: [], connect: [], frame: [turnstileOrigin], formAction: [] },
   localImagePreview: { script: [], style: [], img: ["blob:"], connect: [], frame: [], formAction: [] },
+  webAnalytics: { script: [webAnalyticsScriptOrigin], style: [], img: [], connect: [webAnalyticsConnectOrigin], frame: [], formAction: [] },
 };
 
-/**
- * Cloudflare Web Analytics (çerezsiz): Pages projesinde panelden açılır ve işaretçi betiğini her sayfaya kendisi ekler.
- * Betik bu kaynaktan yüklenir, ölçümleri ikinci kaynağa gönderir. Her sayfada çalıştığı için hizmet listesine değil
- * geniş ve dar politikaların hepsine eklenir (birleşen politikalardan biri izin vermezse betik engellenir).
- */
-const webAnalyticsScriptOrigin: string = "https://static.cloudflareinsights.com";
-const webAnalyticsConnectOrigin: string = "https://cloudflareinsights.com";
-
 /** Tüm dış hizmetler (geniş politika). */
-const allServices: readonly ExternalService[] = ["appleSignIn", "turnstile", "localImagePreview"];
+const allServices: readonly ExternalService[] = ["appleSignIn", "turnstile", "localImagePreview", "webAnalytics"];
 
-/** Sayfaların kullandığı dış hizmetler: giriş sayfası Apple, iletişim sayfası Turnstile, yönetim paneli yerel görsel önizlemesi; diğerleri hiçbiri. */
+/**
+ * Sayfaların kullandığı dış hizmetler: her sayfada analitik işaretçisi; ayrıca giriş sayfası Apple, iletişim sayfası
+ * Turnstile, yönetim paneli yerel görsel önizlemesi. Paylaşım sayfası hiçbirini kullanmaz (analitik de yok).
+ */
 export const pageServices: Readonly<Record<PageKey, readonly ExternalService[]>> = {
-  home: [],
-  fi: [],
-  pricing: [],
-  download: [],
-  compare: [],
-  vsGranola: [],
-  vsOtter: [],
-  vsFireflies: [],
-  vsPoffle: [],
-  languages: [],
-  integrations: [],
-  blog: [],
-  mcp: [],
-  signIn: ["appleSignIn"],
-  account: [],
-  invite: [],
-  contact: ["turnstile"],
-  admin: ["localImagePreview"],
-  privacy: [],
-  terms: [],
-  notFound: [],
+  home: ["webAnalytics"],
+  fi: ["webAnalytics"],
+  pricing: ["webAnalytics"],
+  download: ["webAnalytics"],
+  compare: ["webAnalytics"],
+  vsGranola: ["webAnalytics"],
+  vsOtter: ["webAnalytics"],
+  vsFireflies: ["webAnalytics"],
+  vsPoffle: ["webAnalytics"],
+  languages: ["webAnalytics"],
+  integrations: ["webAnalytics"],
+  blog: ["webAnalytics"],
+  mcp: ["webAnalytics"],
+  signIn: ["webAnalytics", "appleSignIn"],
+  account: ["webAnalytics"],
+  invite: ["webAnalytics"],
+  contact: ["webAnalytics", "turnstile"],
+  admin: ["webAnalytics", "localImagePreview"],
+  privacy: ["webAnalytics"],
+  terms: ["webAnalytics"],
+  notFound: ["webAnalytics"],
+  share: [],
 };
 
 /** Derlenen sayfalardaki satır içi betik ve stillerin CSP kaynak ifadeleri (`'sha256-…'`). */
@@ -124,13 +131,13 @@ function directive(name: string, base: readonly string[], services: readonly Ext
 export function contentSecurityPolicy(config: SiteConfig, services: readonly ExternalService[], hashes: InlineHashes): string {
   const directives: readonly string[] = [
     "default-src 'none'",
-    directive("script-src", ["'self'", webAnalyticsScriptOrigin, ...hashes.script], services, (sources: ServiceSources): readonly string[] => sources.script),
+    directive("script-src", ["'self'", ...hashes.script], services, (sources: ServiceSources): readonly string[] => sources.script),
     directive("style-src", ["'self'", ...hashes.style], services, (sources: ServiceSources): readonly string[] => sources.style),
     directive("img-src", ["'self'"], services, (sources: ServiceSources): readonly string[] => sources.img),
     // Ana sayfadaki sessiz tanıtım videosu (public/video) yalnızca siteden yüklenir.
     "media-src 'self'",
     "font-src 'self'",
-    directive("connect-src", ["'self'", originOf(config.apiBase), webAnalyticsConnectOrigin], services, (sources: ServiceSources): readonly string[] => sources.connect),
+    directive("connect-src", ["'self'", originOf(config.apiBase)], services, (sources: ServiceSources): readonly string[] => sources.connect),
     directive("frame-src", [], services, (sources: ServiceSources): readonly string[] => sources.frame),
     "manifest-src 'self'",
     directive("form-action", ["'self'"], services, (sources: ServiceSources): readonly string[] => sources.formAction),
@@ -187,7 +194,7 @@ export function pagesHeaders(config: SiteConfig, hashes: InlineHashes): string {
     ]),
     // Blog yazıları (`/blog/<kısa ad>`) sayfa kimliği taşımaz; hepsi dış hizmetsiz dar politikayı alır.
     blogPostPattern,
-    `  Content-Security-Policy: ${contentSecurityPolicy(config, [], hashes)}`,
+    `  Content-Security-Policy: ${contentSecurityPolicy(config, ["webAnalytics"], hashes)}`,
     "",
     // Adı içerik özeti taşıyan derleme çıktıları değişmez.
     "/_astro/*",

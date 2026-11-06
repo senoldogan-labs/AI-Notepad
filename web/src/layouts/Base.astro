@@ -101,6 +101,8 @@ const hreflangLinks: ReadonlyArray<{ readonly lang: string; readonly href: strin
     <meta name="twitter:description" content={meta.description} />
     <meta name="twitter:image" content={ogImage} />
     <meta name="twitter:image:alt" content={ogImageAlt} />
+    {/* Sayfaya özgü ek başlık öğeleri (ör. paylaşım sayfasının `referrer` politikası). */}
+    <slot name="head" />
   </head>
   <body>
     <a class="skip-link" href="#main">{common.skipLink}</a>

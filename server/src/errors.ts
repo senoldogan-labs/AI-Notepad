@@ -61,6 +61,9 @@ export type ErrorCode =
   | "sync_conflict"
   | "sync_quota_exceeded"
   | "sync_cursor_expired"
+  | "share_unavailable"
+  | "share_limit_reached"
+  | "share_exists"
   | "assistant_unavailable"
   | "assistant_not_enabled"
   | "assistant_epoch_mismatch"
@@ -130,6 +133,9 @@ const statusByCode: Readonly<Record<ErrorCode, number>> = {
   sync_conflict: 409,
   sync_quota_exceeded: 413,
   sync_cursor_expired: 410,
+  share_unavailable: 503,
+  share_limit_reached: 409,
+  share_exists: 409,
   assistant_unavailable: 503,
   assistant_not_enabled: 409,
   assistant_epoch_mismatch: 409,

@@ -37,6 +37,7 @@ yalnızca toplu sayfa görüntüleme, yönlendiren site, ülke ve cihaz türü s
 | `/account` | Hesap (`?plan=…&checkout=1`: fiyat sayfasından seçilen plan ve ödemeye devam niyeti — giriş bitince Checkout açılır; `?payment=done`: Stripe Checkout dönüşü; Müşteri Portalı dönüşü `/account`) |
 | `/contact` | İletişim formu |
 | `/admin` | Yönetim paneli (menüde ve site haritasında yok, `noindex`) |
+| `/s` | Bağlantıyla paylaşılan not (`/s#<kimlik>.<anahtar>`; `noindex`, `no-store`, `Referrer-Policy` meta `no-referrer`): `src/client/share.ts` şifreli notu `GET <apiBase>/v1/public/shares/<kimlik>`'ten alır, `src/lib/share-note.ts` ile tarayıcıda çözer ve metin olarak çizer (innerHTML yok). Analitik işaretçisi bu sayfada CSP ile engellenir: adresin `#` parçası notun anahtarıdır. Swift biçimiyle uyum `scripts/share-note.test.ts`'tedir (ortak test vektörü) |
 | `/privacy`, `/terms` | Yasal metinler; gizliliğin başında "Data handling at a glance" tablosu (`src/data-handling.ts`; kalıcı çapalar `#at-a-glance`, `#data-<id>`; politika değişince birlikte güncellenir) |
 
 Yollar `src/routes.ts`'tedir; `/account` ve `/admin` `Cache-Control: no-store` alır. Tüm indirme düğmeleri
@@ -122,8 +123,9 @@ birebir eşleşmeli).
 betiği `/sign-in`'de, Turnstile `/contact`'ta (Google ile giriş Google'a yönlendirir, betik yüklenmez). Pages aynı başlığı
 birden çok kurala uyan adreste virgülle birleştirir ve tarayıcı iki politikayı birlikte uygular: `/*` tüm hizmetlere izin
 veren geniş politikayı (sayfası olmayan adresler için), her sayfanın kuralı dar politikayı taşır. Her sayfada çalışan
-Cloudflare Web Analytics işaretçisi bu yüzden iki katmanın da tüm politikalarında açıktır:
-`script-src https://static.cloudflareinsights.com`, `connect-src https://cloudflareinsights.com`. Yönetim panelinde
+Cloudflare Web Analytics işaretçisi bu yüzden paylaşım sayfası (`/s`) dışında iki katmanın da politikalarında açıktır
+(`webAnalytics` hizmeti): `script-src https://static.cloudflareinsights.com`, `connect-src https://cloudflareinsights.com`;
+`/s`'in dar politikası onu içermez, Cloudflare'in eklediği betik orada engellenir (konsolda bir CSP uyarısı beklenir). Yönetim panelinde
 `img-src` ayrıca `blob:`'a izin verir: blog düzenleyicisi yüklenecek görseli ve bu oturumda yüklenenleri (site yeniden
 derlenene dek) tarayıcıdaki kopyasından gösterir. `npm run serve` başlıkları aynı biçimde birleştirir.
 

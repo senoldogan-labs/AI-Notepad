@@ -1,0 +1,61 @@
+{
+  "blobBase64" : "R1NTMWRlZmdoaWprbG1uby1I4yliqEZjFcHKyljhqttIR2MWkubnWrWYRBhxEpjQ8daOGpEx+8Dyu2sW8BNu5zweEm9w0CpgGdvbKOJ/oqJt8ploOQcLoRfWlCzONgaRQn7Lo/njW00JT+7uXbL2dc5mWKL+9H5AGa9v53iwNqp/zZYZlR/rg2UDjkC88QSy0KIi+2+tS2ih7EuPH/gNzjCe3WHRTVSIMxIk07KB6T/98gSHTbGQLmffJcvekEQBgERFtENbZvXJ+Zkwn9yQu/t+2qfucSunprx3s2gUOVTBAvpYRMo41ZsxcKXjtYQSegzRBUDWSFSkTj6did/CfnIf9EkpFVxtT/8Uxs0Fw5GLEqWW1wNagTnOvEkYWMmhhzEKFq+h+i5w6glY4wZSzilTksbCNk3idYJAwPposAIZtYoZaUgaBnJtdFV94oRxb1JHbWhJmjqDskxEOaeK7bEEqxD2AQZVQdvDtG61sOteoz2uOOBOJ3TgwD168YMuKSj15I4FQNWBYULFPxNtGwX2KyMNLvZdUg+3+mxDxWloxhS0tiX/4M+HX/KPSc4WDf2Psj3YZE+MK+eK4amzM3wPJXFc7BagS36kZq1I3574qXRlS9wyfAGRxtAw31+MlVCX8HB+yfkTY3pZ1bnfi0kCktlsJlwOu7HEaEfHh2uAqW5XXHxYpV9l9r2fv1GCkf0AWK/1QK2KAtUzSL/V8WsDbsIEqh8bziwtQaoqZo49XO4R9K4t8/n9FSsmFBWq8WAt",
+  "key" : "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+  "link" : "https://gistsmith.com/s#AAECAwQFBgcICQoLDA0ODw.AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+  "payload" : {
+    "decisions" : [
+      "Bütçe artırılacak.",
+      "<b>kalın değil</b>"
+    ],
+    "glossary" : [
+      {
+        "meaning" : "Müşteri edinme maliyeti",
+        "term" : "CAC"
+      }
+    ],
+    "headings" : {
+      "decisions" : "Kararlar",
+      "glossary" : "Sözlük",
+      "openQuestions" : "Açık konular",
+      "outline" : "Konu akışı",
+      "summary" : "Özet",
+      "tasks" : "Görevler",
+      "transcript" : "Transkript"
+    },
+    "lang" : "tr",
+    "openQuestions" : [
+      "Ajans seçilecek mi?"
+    ],
+    "outline" : [
+      {
+        "summary" : "Rakamlar konuşuldu.",
+        "time" : "00:05",
+        "title" : "Bütçe"
+      }
+    ],
+    "rtl" : false,
+    "subtitle" : "6 Kasım 2026 10:00 · 32 dk",
+    "summary" : "Pazarlama bütçesi %10 artacak. <script>alert('x')</script> 日本語 · עברית 🎉",
+    "tasks" : [
+      {
+        "description" : "Sunumu hazırlamak",
+        "due" : "Perşembe",
+        "owner" : "Senol"
+      },
+      {
+        "description" : "Teklif",
+        "owner" : "Aino"
+      }
+    ],
+    "title" : "Bütçe toplantısı <img src=x onerror=alert(1)>",
+    "transcript" : [
+      {
+        "speaker" : "Senol",
+        "text" : "Başlayalım. javascript:alert(1)",
+        "time" : "00:01"
+      }
+    ],
+    "v" : 1
+  },
+  "shareId" : "AAECAwQFBgcICQoLDA0ODw"
+}

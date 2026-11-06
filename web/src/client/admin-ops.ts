@@ -90,6 +90,19 @@ function renderOperations(ops: Operations, onOpenUser: (id: string) => void, onO
     sync.classAThisMonth * 2 > sync.classABudget || sync.classBThisMonth * 2 > sync.classBBudget || sync.storedBytes * 2 > sync.storedBytesBudget,
   );
 
+  const shares: Operations["shares"] = ops.shares;
+  setOpsKpi(
+    "shares",
+    formatCount(shares.active),
+    fill(adminText.opsSharesSub, {
+      owners: formatCount(shares.owners),
+      size: formatStoredBytes(shares.storedBytes),
+      share: formatRate(shares.storedBytes, shares.storedBytesBudget),
+    }),
+    // Bütçenin yarısında uyarı: dolunca yeni bağlantı oluşturulamaz.
+    shares.storedBytes * 2 > shares.storedBytesBudget,
+  );
+
   fillTable(
     element("ops-open-rows", HTMLTableSectionElement),
     ops.meetings.openItems.map((meeting: OpenMeeting): HTMLTableRowElement => openMeetingRow(meeting, nowMs, onOpenUser)),

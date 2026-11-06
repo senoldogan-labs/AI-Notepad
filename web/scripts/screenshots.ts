@@ -956,6 +956,7 @@ function fixtures(now: Date): Readonly<Record<string, object>> {
         classBBudget: 8_000_000,
         storedBytesBudget: 8_000_000_000,
       },
+      shares: { active: 23, owners: 9, storedBytes: 310_000, storedBytesBudget: 1_000_000_000 },
     },
     "/v1/admin/reports?kind=feedback": {
       items: [

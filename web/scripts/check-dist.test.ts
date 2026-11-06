@@ -180,6 +180,21 @@ test("the privacy page has stable data-handling anchors", async () => {
   }
 });
 
+test("the shared-note page runs no third-party script and is private", async () => {
+  const headers: string = await distFile("_headers");
+  const rule: string = headers.split("\n\n").find((block: string): boolean => block.startsWith("/s\n")) ?? "";
+  assert.ok(rule.includes("Content-Security-Policy: default-src 'none'"), "_headers: /s kuralı yok");
+  assert.ok(rule.includes("Cache-Control: no-store"), "_headers: /s önbelleğe alınabilir");
+  // Notun anahtarı adresin # parçasında: analitik işaretçisi (ya da başka bir dış betik) bu sayfada çalışamamalı.
+  assert.ok(!rule.includes("cloudflareinsights"), "_headers: /s analitiğe izin veriyor");
+  assert.match(rule, /script-src 'self'( 'sha256-[^']+')*;/);
+  const html: string = await distFile("s.html");
+  assert.ok(html.includes('<meta name="robots" content="noindex">'), "s.html: noindex yok");
+  assert.ok(html.includes('<meta name="referrer" content="no-referrer">'), "s.html: referrer politikası yok");
+  assert.ok(!/<script[^>]+src="https?:/.test(html), "s.html: dış betik yüklüyor");
+  assert.ok(!(await distFile("sitemap.xml")).includes(`${origin}/s<`), "sitemap.xml: /s olmamalı");
+});
+
 /** Astro'nun metin kaçışı (soru metinlerini HTML'de aramak için). Saf fonksiyondur. */
 function escapeHtml(value: string): string {
   return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
