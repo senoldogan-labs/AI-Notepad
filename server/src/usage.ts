@@ -1,6 +1,7 @@
 import type { Config } from "./config";
 import { ApiError } from "./errors";
 import { log } from "./log";
+import type { TokenUsage } from "./reservations";
 
 /**
  * Claude Haiku 5.5 fiyatları (USD / milyon token). İstem 100K token'a kadar 0,10 / 0,50; üstünde 0,50 / 2,50.
@@ -37,12 +38,27 @@ export function nextDayStartMs(now: Date): number {
   return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
 }
 
-/** Claude çağrısının tahmini maliyeti (mikro dolar, yukarı yuvarlanır). Saf fonksiyondur. */
-export function llmCostMicroUsd(inputTokens: number, outputTokens: number): number {
-  const long: boolean = inputTokens > haikuLongPromptThreshold;
+/** Prompt-cache prices as multiples of the input price: a 5-minute cache write 1.25×, a cache read 0.1×. */
+const cacheWriteInputMultiplier: number = 1.25;
+const cacheReadInputMultiplier: number = 0.1;
+
+/**
+ * Claude çağrısının maliyeti (mikro dolar, yukarı yuvarlanır): uncached prompt tokens at the input price, cache writes
+ * and reads at their multiples of it. The long-prompt price applies when the whole prompt (cached parts included)
+ * passes the threshold. Saf fonksiyondur.
+ */
+export function llmUsageCostMicroUsd(usage: TokenUsage): number {
+  const long: boolean = usage.inputTokens > haikuLongPromptThreshold;
   const inputRate: number = long ? haikuLongInputUsdPerMTok : haikuShortInputUsdPerMTok;
   const outputRate: number = long ? haikuLongOutputUsdPerMTok : haikuShortOutputUsdPerMTok;
-  return Math.ceil(inputTokens * inputRate + outputTokens * outputRate);
+  const uncached: number = usage.inputTokens - usage.cacheWriteTokens - usage.cacheReadTokens;
+  const inputUnits: number = uncached + usage.cacheWriteTokens * cacheWriteInputMultiplier + usage.cacheReadTokens * cacheReadInputMultiplier;
+  return Math.ceil(inputUnits * inputRate + usage.outputTokens * outputRate);
+}
+
+/** Claude çağrısının tahmini maliyeti, the whole prompt at the uncached price (mikro dolar, yukarı yuvarlanır). Saf fonksiyondur. */
+export function llmCostMicroUsd(inputTokens: number, outputTokens: number): number {
+  return llmUsageCostMicroUsd({ inputTokens, outputTokens, cacheWriteTokens: 0, cacheReadTokens: 0 });
 }
 
 /** Konuşma tanımanın tahmini maliyeti (mikro dolar). `usdPerHour` ek ücretler dahil saatlik fiyattır. Saf fonksiyondur. */
