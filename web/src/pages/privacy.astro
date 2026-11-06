@@ -119,9 +119,11 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
   <LegalSection sections={sections} id="summary">
     <ul>
       <li>
-        Your notes, transcripts and recordings are stored on your Mac or iPhone, in the app that recorded them. Our servers keep no audio, notes or translations;
-        the only exception is the final transcript, held encrypted so it can be re-sent for 2 hours if the
-        connection drops, then deleted at the next daily cleanup (within about a day).
+        Your notes, transcripts and recordings are stored on your Mac or iPhone, in the app that recorded them. Our servers keep no audio, and no notes or
+        translations we can read. There are two exceptions: the final transcript, held encrypted so it can be re-sent for 2 hours if the
+        connection drops, then deleted at the next daily cleanup (within about a day); and, only if you turn on sync
+        between Mac and iPhone, an end-to-end encrypted copy of your meetings' text that only your devices can open (see
+        section 3).
       </li>
       <li>
         Meeting audio and text go only to our AI providers to be transcribed and summarised: Deepgram for the live
@@ -216,9 +218,26 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       </li>
       <li>
         <strong>Storage.</strong> Notes, transcripts, recordings, screen snapshots and the people and terms you add are
-        stored in the app's folder on your Mac or iPhone. The apps do not sync them to any cloud service, and meetings recorded on one device do
-        not appear on the other. You can export or delete them in
+        stored in the app's folder on your Mac or iPhone. Unless you turn on sync (below), the apps do not copy them to any cloud service, and meetings
+        recorded on one device do not appear on the other. You can export or delete them in
         the app at any time.
+      </li>
+      <li>
+        <strong>Sync between Mac and iPhone (optional, off by default).</strong> If you turn on “Sync between Mac and
+        iPhone” in the app's Settings, your meetings' text (transcripts, translations, notes and their earlier versions,
+        tasks and decisions, titles, folders, your own notes and speaker names), the people you save, your Ask chats, your
+        saved folders and Ask recipes, and the settings that follow your account appear in the Gistsmith app on your other
+        Mac or iPhone signed in to the same account. Before anything leaves your device, the app encrypts it end to end
+        (AES-256-GCM) with a key made on your device that we never receive; we store only that encrypted copy and cannot
+        read it. Your other device gets the key from a 32-character link code shown in the app's Settings; our server keeps
+        the key only sealed with that code, which we don't have, so keep the code safe: if you lose every device and the
+        code, the synced copy can't be opened by anyone (your meetings on your devices are not affected). Audio, screen
+        snapshots and voice profiles are not synced; they stay on the device that recorded the meeting. The encrypted copy
+        is stored in Cloudflare R2 storage in the EU jurisdiction. Our database keeps only what is needed to run sync: a
+        random identifier, the type (meeting, Ask chat, people, settings) and size of each encrypted item, when it changed
+        and a random identifier of the device that changed it. Turning sync off in either app deletes the copy on our
+        server straight away, for all your devices; your meetings stay on each device. Sync is not a backup: a meeting
+        deleted on one device is deleted on the others too (it goes to Recently Deleted there).
       </li>
       <li>
         <strong>Integrations.</strong> When you send a note or tasks to Notion, Slack, Microsoft Teams, Discord, Zoom,
@@ -283,7 +302,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
               <strong>Meeting content.</strong> Meeting audio (including audio or video files you import), transcripts,
               notes, the questions you ask, the participant names and terms you add, and the title and attendee names of
               a calendar event you link to a meeting (section 3). Passed through our server only while it is processed; no audio or notes
-              are stored on our servers, and the final transcript is held encrypted so it can be re-sent for 2 hours, then
+              are stored on our servers in a form we can read, and the final transcript is held encrypted so it can be re-sent for 2 hours, then
               deleted at the next daily cleanup (within about a day).
             </td>
             <td>Transcribing meetings; writing notes, translations and answers</td>
@@ -291,6 +310,16 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
               (b) contract, for your own data. For other participants' data, you are the controller and we process it as
               your processor (section 3).
             </td>
+          </tr>
+          <tr>
+            <td>
+              <strong>Synced content (only if you turn on sync).</strong> An end-to-end encrypted copy of your meetings'
+              text, people, Ask chats, saved folders, Ask recipes and synced settings, which we cannot read, and your key
+              sealed with your link code. We see only each item's random identifier, type, size and change time and a
+              random device identifier (section 3).
+            </td>
+            <td>Showing your meetings on your other Mac or iPhone</td>
+            <td>(b) contract</td>
           </tr>
           <tr>
             <td>
@@ -632,10 +661,10 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         <tbody>
           <tr>
             <td>Cloudflare, Inc.</td>
-            <td>Processor: hosting this website and our server (Workers), database (D1), rate limiting, Turnstile, Web Analytics, logs</td>
-            <td>Account, usage, message and technical data; IP addresses; meeting content in transit</td>
+            <td>Processor: hosting this website and our server (Workers), database (D1), storage of the encrypted sync copy (R2), rate limiting, Turnstile, Web Analytics, logs</td>
+            <td>Account, usage, message and technical data; IP addresses; meeting content in transit; the end-to-end encrypted sync copy, which Cloudflare cannot read</td>
             <td>
-              Database stored in the EU. Cloudflare's network is global and the company is based in the USA: EU–US Data
+              Database stored in the EU; the encrypted sync copy is stored in the EU jurisdiction. Cloudflare's network is global and the company is based in the USA: EU–US Data
               Privacy Framework and Standard Contractual Clauses.
             </td>
           </tr>
@@ -766,6 +795,12 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         ElevenLabs keeps it under its own retention rules (see section 8).
       </li>
       <li>
+        The encrypted sync copy (only if you turn on sync): while sync is on. Turning sync off deletes it immediately. A
+        meeting or chat you delete is removed from storage right away; a small marker that it was deleted (identifier,
+        type and time, no content) is kept for 90 days so your other devices delete their copy too. If your subscription
+        ends, your devices can still download or delete the copy for 90 days; after that it is deleted automatically.
+      </li>
+      <li>
         Account and sign-in identities: while your account exists; deleted immediately when you delete it. Device
         registrations: the same, and also deleted after 13 months without use.
       </li>
@@ -826,8 +861,9 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
       or in the Mac app (or the iPhone app, once it is available) under Settings › Account.
       Any unfinished subscription is first cancelled immediately at Stripe; then your account, sign-in identities,
       sessions, device registrations, meeting session records, usage, subscription records (including the App Store
-      subscription record), cancellation reasons, invite code and invite records linked to your account, and Stripe
-      customer link are deleted together in a single step. If you signed in with Apple, we first ask Apple to revoke
+      subscription record), cancellation reasons, invite code and invite records linked to your account, Stripe
+      customer link and the records of the encrypted sync copy are deleted together in a single step; the encrypted copy
+      itself is removed from storage at once (or, if storage can't be reached, at the next daily cleanup). If you signed in with Apple, we first ask Apple to revoke
       Gistsmith's access to your Apple ID, using the token we stored for that; the account is deleted even if Apple can't
       be reached, and we then follow up manually. You can also stop using Sign in with Apple for Gistsmith yourself, in
       your Apple ID settings (on iPhone: Settings › your name › Sign-In &amp; Security › Sign in with Apple).

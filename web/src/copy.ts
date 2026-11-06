@@ -1060,7 +1060,7 @@ export const copy: Copy = {
         {
           icon: "laptop",
           title: "Stored on your Mac",
-          text: "Notes, transcripts and recordings live in the app on your Mac. Audio is sent only to be transcribed; our servers don't store your audio or notes.",
+          text: "Notes, transcripts and recordings live in the app on your Mac. Audio is sent only to be transcribed; our servers don't store your audio, or notes we can read.",
         },
         { icon: "sparkle", title: "Not used to train AI", text: "Your meetings aren't used to train our providers' models. We've opted out wherever that's a setting." },
         { icon: "globe", title: "EU company, GDPR", text: `${productName} is run from Finland under EU data protection law. Our account database is hosted in the EU.` },
