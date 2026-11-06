@@ -1,5 +1,7 @@
 # Her PR'da ve main'e her gönderimde: hızlı testler (macOS), Mac uygulamasının iki sürümü (geliştirici sürümü AI-Notepad
-# ve abonelik sürümü Gistsmith) ve iPhone uygulaması (simülatör) derlemesi.
+# ve abonelik sürümü Gistsmith) ve iPhone uygulaması (simülatör) derlemesi. Mac ve iPhone derlemeleri iki ayrı macOS
+# runner'ında aynı anda çalışır: ikisi ayrı türetilmiş veri klasörü kullandığından ayırmak derlemeyi tekrarlatmaz, PR'ın
+# beklediği süre en yavaş yarı olur.
 # İmza yok (CODE_SIGNING_ALLOWED=NO); gerçek bulut ve model testleri yerelde ortam değişkenleriyle çalışır.
 name: CI
 
@@ -11,6 +13,14 @@ on:
 # İş yalnızca kodu okur; GITHUB_TOKEN'ın başka yetkisi yok.
 permissions:
   contents: read
+
+# PR'a yeni gönderim gelince o PR'ın süren koşusu durur: artık birleştirilmeyecek bir başı denetliyor. main'in koşusu
+# yarıda kesilmez (iki PR tek başına geçip main'de birlikte bozulursa onu o gösterir); o sürerken gelen birleştirmeler
+# tek koşu olarak bekler, en yenisi eskisinin yerini alır. Hesabın aynı anda en fazla beş macOS runner'ı vardır ve
+# senoldogann'ın öbür depolarıyla paylaşılır: boşa koşan her iş başka bir PR'ı bekletir.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Eylemler commit özetine sabittir (etiket sonradan başka koda taşınamaz; yükseltirken özeti ve yorumdaki sürümü
 # birlikte güncelle); checkout GITHUB_TOKEN'ı .git/config'e yazmaz (persist-credentials: false).
@@ -57,11 +67,6 @@ jobs:
           xcodebuild -project AINotepad.xcodeproj -scheme AINotepadHosted -configuration Debug
           -derivedDataPath .build/xcode -destination 'platform=macOS,arch=arm64'
           CODE_SIGNING_ALLOWED=NO build -quiet
-      - name: iPhone uygulaması (simülatör)
-        run: >
-          xcodebuild -project AINotepad.xcodeproj -scheme AINotepadiOS -configuration Debug
-          -derivedDataPath .build/xcode-ios -destination 'generic/platform=iOS Simulator'
-          CODE_SIGNING_ALLOWED=NO build -quiet
       # Yayın derlemeleri Release'dir: yalnız Debug'da tanımlı kod (ör. tanıtım modu, `#if DEBUG`) Release'de derlenmeyi
       # bozarsa yayın anında değil burada yakalanır.
       - name: Gistsmith Release derlemesi
@@ -69,6 +74,36 @@ jobs:
           xcodebuild -project AINotepad.xcodeproj -scheme AINotepadHosted -configuration Release
           -derivedDataPath .build/xcode -destination 'platform=macOS,arch=arm64'
           CODE_SIGNING_ALLOWED=NO build -quiet
+
+  # iPhone uygulaması (simülatör), Debug ve Release; Mac derlemeleriyle aynı anda, kendi runner'ında.
+  ios:
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - name: Araç sürümleri
+        run: |
+          xcodebuild -version
+          swift --version
+      - name: Projeyi üret
+        # test-and-build'deki adımın aynısı; sürümü ve özeti ikisinde birlikte güncelle.
+        env:
+          XCODEGEN_VERSION: "2.45.3"
+          XCODEGEN_SHA256: "0c90f4d28ca57335f9fa78cf5bf6dabfe20a232036dabe36de2eef79cb7c0878"
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/xcodegen.zip" \
+            "https://github.com/yonaskolb/XcodeGen/releases/download/$XCODEGEN_VERSION/xcodegen.zip"
+          echo "$XCODEGEN_SHA256  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 -c -
+          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP"
+          "$RUNNER_TEMP/xcodegen/bin/xcodegen" generate
+      - name: iPhone uygulaması (simülatör)
+        run: >
+          xcodebuild -project AINotepad.xcodeproj -scheme AINotepadiOS -configuration Debug
+          -derivedDataPath .build/xcode-ios -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO build -quiet
+      # Yalnız Debug'da tanımlı kod (ör. tanıtım modu, `#if DEBUG`) Release'de derlenmeyi bozarsa burada yakalanır.
       - name: iPhone Release derlemesi (simülatör)
         run: >
           xcodebuild -project AINotepad.xcodeproj -scheme AINotepadiOS -configuration Release

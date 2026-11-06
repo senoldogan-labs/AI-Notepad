@@ -91,3 +91,8 @@ katalogda olmalı (`LocalizationCompletenessTests`; eksik çeviri cihazda Türk�
 `scripts/l10n.py export --lang <dil> --out …` → çevir → `validate` → `import`; `check` hepsini denetler.
 
 Kod değiştiren her işten önce iki test komutunu da çalıştır.
+
+## PR
+
+PR açılınca `gh pr merge <numara> --auto --squash --delete-branch`: zorunlu checkler (`test-and-build`, `ios`, `server`,
+`web`) geçince GitHub birleştirir, checkleri beklemek gerekmez. Biri kırmızı olursa birleştirmez; düzelt ve yeniden gönder.
