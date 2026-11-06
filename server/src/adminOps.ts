@@ -1,5 +1,6 @@
 import { isoOrNull, longestMeetingMs } from "./admin";
 import type { Config } from "./config";
+import { syncR2ClassABudget, syncR2ClassBBudget, syncR2StoredBytesBudget, syncUsageMonth } from "./sync";
 
 /**
  * Yönetim panelinin işletim görünümü: şu an açık toplantılar, bitirilmeden süresi dolan toplantılar, takılı kalmış
@@ -68,6 +69,19 @@ export interface AdminOperations {
     readonly last7Days: { readonly feedback: number; readonly crash: number; readonly contact: number };
     readonly recentCrashes: readonly RecentCrash[];
   };
+  /** Mac ↔ iPhone eşitlemesi: açık hesap, şifreli nesne ve bayt sayıları, silinmeyi bekleyen R2 önekleri (içerik yok). */
+  readonly sync: {
+    readonly accounts: number;
+    readonly objects: number;
+    readonly storedBytes: number;
+    readonly pendingPurges: number;
+    /** Bu ayın R2 işlemleri ve ücretsiz katmanın %80'i olan sınırları (aşılınca eşitleme `503 sync_unavailable`). */
+    readonly classAThisMonth: number;
+    readonly classABudget: number;
+    readonly classBThisMonth: number;
+    readonly classBBudget: number;
+    readonly storedBytesBudget: number;
+  };
 }
 
 interface OpenMeetingRow {
@@ -90,6 +104,12 @@ interface CountsRow {
   readonly stale: number;
   readonly last_event: number | null;
   readonly events_day: number;
+  readonly sync_accounts: number;
+  readonly sync_objects: number;
+  readonly sync_bytes: number;
+  readonly sync_purges: number;
+  readonly sync_class_a: number | null;
+  readonly sync_class_b: number | null;
 }
 
 interface TypeCountRow {
@@ -126,9 +146,15 @@ export async function adminOperations(db: D1Database, config: Config, now: Date)
            (SELECT COUNT(*) FROM deepgram_live_meetings WHERE settled_at IS NULL) AS unsettled,
            (SELECT COUNT(*) FROM deepgram_live_meetings WHERE settled_at IS NULL AND first_grant_at < ?2) AS stale,
            (SELECT MAX(processed_at) FROM stripe_events) AS last_event,
-           (SELECT COUNT(*) FROM stripe_events WHERE processed_at >= ?4) AS events_day`,
+           (SELECT COUNT(*) FROM stripe_events WHERE processed_at >= ?4) AS events_day,
+           (SELECT COUNT(*) FROM sync_accounts) AS sync_accounts,
+           (SELECT COALESCE(SUM(object_count), 0) FROM sync_accounts) AS sync_objects,
+           (SELECT COALESCE(SUM(stored_bytes), 0) FROM sync_accounts) AS sync_bytes,
+           (SELECT COUNT(*) FROM sync_purges) AS sync_purges,
+           (SELECT class_a FROM sync_r2_usage WHERE month = ?5) AS sync_class_a,
+           (SELECT class_b FROM sync_r2_usage WHERE month = ?5) AS sync_class_b`,
       )
-      .bind(nowMs, openSince, weekAgo, nowMs - 24 * hourMs)
+      .bind(nowMs, openSince, weekAgo, nowMs - 24 * hourMs, syncUsageMonth(now))
       .first<CountsRow>(),
     db
       .prepare(
@@ -177,6 +203,17 @@ export async function adminOperations(db: D1Database, config: Config, now: Date)
       lastEventAt: isoOrNull(counts?.last_event ?? null),
       eventsLast24Hours: counts?.events_day ?? 0,
       last7DaysByType: typeRows.results.map((row: TypeCountRow): EventTypeCount => ({ type: row.type, count: row.count })),
+    },
+    sync: {
+      accounts: counts?.sync_accounts ?? 0,
+      objects: counts?.sync_objects ?? 0,
+      storedBytes: counts?.sync_bytes ?? 0,
+      pendingPurges: counts?.sync_purges ?? 0,
+      classAThisMonth: counts?.sync_class_a ?? 0,
+      classABudget: syncR2ClassABudget,
+      classBThisMonth: counts?.sync_class_b ?? 0,
+      classBBudget: syncR2ClassBBudget,
+      storedBytesBudget: syncR2StoredBytesBudget,
     },
     reports: {
       last7Days: { feedback: reportCounts.get("feedback") ?? 0, crash: reportCounts.get("crash") ?? 0, contact: reportCounts.get("contact") ?? 0 },

@@ -945,6 +945,17 @@ function fixtures(now: Date): Readonly<Record<string, object>> {
         last7Days: { feedback: 3, crash: 1, contact: 2 },
         recentCrashes: [{ id: "rep_3", status: "open", createdAt: now.getTime() - 7_200_000, appVersion: "0.1.4", os: "macOS 26.1", summary: "EXC_BAD_ACCESS · SIGSEGV" }],
       },
+      sync: {
+        accounts: 12,
+        objects: 1840,
+        storedBytes: 41_200_000,
+        pendingPurges: 0,
+        classAThisMonth: 9_400,
+        classABudget: 800_000,
+        classBThisMonth: 21_000,
+        classBBudget: 8_000_000,
+        storedBytesBudget: 8_000_000_000,
+      },
     },
     "/v1/admin/reports?kind=feedback": {
       items: [

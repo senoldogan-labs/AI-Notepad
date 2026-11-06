@@ -1,8 +1,8 @@
 // Yönetim panelinin işletim görünümü (uyarıları genel bakışın "dikkat" listesinde de): şu an açık toplantılar, bitirilmeden süresi dolanlar, takılı kullanım ayırmaları,
-// gerçek süreye indirilmemiş Deepgram tahminleri, Stripe webhook'unun son olayları ve son çökme raporları. Uyarı eşiği
+// gerçek süreye indirilmemiş Deepgram tahminleri, Stripe webhook'unun son olayları, son çökme raporları ve eşitlemenin sayıları. Uyarı eşiği
 // aşılan kutu (ör. bir günden eski bekleyen ayırma) uyarı görünümüne geçer.
 import { type OpenMeeting, type Operations, type RecentCrash, fetchOperations } from "./admin-api";
-import { fillCounts, fillTable, formatCount, formatRelative, formatTime, node, pill, shortId, tableRow } from "./admin-format";
+import { fillCounts, fillTable, formatCount, formatRate, formatRelative, formatStoredBytes, formatTime, node, pill, shortId, tableRow } from "./admin-format";
 import type { OpenReport } from "./admin-users";
 import { type AdminClientCopy, clientCopy, fill } from "./copy";
 import { element } from "./dom";
@@ -76,6 +76,19 @@ function renderOperations(ops: Operations, onOpenUser: (id: string) => void, onO
   );
   const reports: Operations["reports"]["last7Days"] = ops.reports.last7Days;
   setOpsKpi("reports", formatCount(reports.feedback + reports.crash + reports.contact), fillCounts(adminText.opsReportsSub, reports), false);
+  const sync: Operations["sync"] = ops.sync;
+  setOpsKpi(
+    "sync",
+    formatCount(sync.accounts),
+    fill(adminText.opsSyncSub, {
+      objects: formatCount(sync.objects),
+      size: formatStoredBytes(sync.storedBytes),
+      classA: formatRate(sync.classAThisMonth, sync.classABudget),
+      classB: formatRate(sync.classBThisMonth, sync.classBBudget),
+    }),
+    // Ücretsiz katman sınırına yaklaşınca (yarısı) uyarı: sınırda eşitleme durur.
+    sync.classAThisMonth * 2 > sync.classABudget || sync.classBThisMonth * 2 > sync.classBBudget || sync.storedBytes * 2 > sync.storedBytesBudget,
+  );
 
   fillTable(
     element("ops-open-rows", HTMLTableSectionElement),

@@ -25,6 +25,14 @@ export function formatRate(part: number, whole: number): string {
   return whole === 0 ? adminText.none : new Intl.NumberFormat(siteLocale, { style: "percent", maximumFractionDigits: 1 }).format(part / whole);
 }
 
+/** Bayt sayısı ondalık birimle ("1.5 KB", "8 GB"). Saf fonksiyondur. */
+export function formatStoredBytes(bytes: number): string {
+  const units: readonly string[] = ["B", "KB", "MB", "GB", "TB"];
+  const exponent: number = bytes <= 0 ? 0 : Math.min(units.length - 1, Math.floor(Math.log10(bytes) / 3));
+  const value: number = bytes / 1000 ** exponent;
+  return `${new Intl.NumberFormat(siteLocale, { maximumFractionDigits: exponent === 0 ? 0 : 1 }).format(value)} ${units[exponent] ?? "B"}`;
+}
+
 /** `YYYY-MM-DD` günü kısa yazar ("29 Oct"). Saf fonksiyondur. */
 export function formatDay(day: string): string {
   return new Intl.DateTimeFormat(siteLocale, { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${day}T00:00:00Z`));

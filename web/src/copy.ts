@@ -527,6 +527,7 @@ export interface AdminOperationsCopy {
     readonly deepgram: string;
     readonly webhook: string;
     readonly reports: string;
+    readonly sync: string;
   };
   readonly openTitle: string;
   readonly openColumns: { readonly user: string; readonly kind: string; readonly started: string; readonly endsBy: string; readonly notes: string };
@@ -1885,6 +1886,7 @@ export const copy: Copy = {
         deepgram: "Unsettled live transcripts",
         webhook: "Stripe webhook",
         reports: "Reports, 7 days",
+        sync: "Mac ↔ iPhone sync accounts",
       },
       openTitle: "Live meetings",
       openColumns: { user: "Account", kind: "Plan", started: "Started", endsBy: "Ends by", notes: "Notes" },
