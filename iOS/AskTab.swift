@@ -112,6 +112,7 @@ final class PhoneAsk {
         isAnswering = true
         let records: [MeetingRecord] = store.meetings
         let userName: String = store.userName
+        let profile: UserProfile = store.userProfile
         let webSearch: Bool = askWebSearchAllowed(defaults: UserDefaults.standard)
         task = Task { [weak self] in
             do {
@@ -122,12 +123,12 @@ final class PhoneAsk {
                 // iPhone'da ekran görüntüsü alınmaz (başka uygulamaların ekranı yakalanamaz): Sor yalnız metni okur.
                 if scoped.isEmpty {
                     _ = try await askArchive(
-                        question: trimmed, history: history, records: records, userName: userName, language: phoneNoteLanguage(), llm: provider,
+                        question: trimmed, history: history, records: records, userName: userName, profile: profile, language: phoneNoteLanguage(), llm: provider,
                         maxChars: noteLimits(provider: provider).archiveChars, screens: .off, webSearch: webSearch, now: Date(), onProgress: onProgress
                     )
                 } else {
                     _ = try await askAboutMeetings(
-                        question: trimmed, history: history, records: scoped, userName: userName, language: phoneNoteLanguage(), llm: provider,
+                        question: trimmed, history: history, records: scoped, userName: userName, profile: profile, language: phoneNoteLanguage(), llm: provider,
                         maxChars: noteLimits(provider: provider).archiveChars,
                         screens: .off, webSearch: webSearch, now: Date(), onProgress: onProgress
                     )

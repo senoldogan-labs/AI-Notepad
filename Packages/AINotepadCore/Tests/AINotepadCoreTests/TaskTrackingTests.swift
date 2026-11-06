@@ -230,7 +230,7 @@ extension CloudTests {
         )
         try JSONEncoder().encode(ChunkedNoteProgress(fingerprint: fingerprint, completedParts: parts, state: saved)).write(to: file)
         let note: MeetingNote = try #require(try await writeMeetingNote(
-            segments: segments, speakerNames: [:], userName: "Senol", template: .general, myNotes: "",
+            segments: segments, speakerNames: [:], userName: "Senol", profile: .empty, template: .general, myNotes: "",
             language: .turkish, llm: .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic))), progressFile: file,
             screens: []
         ))
@@ -251,7 +251,7 @@ extension CloudTests {
             stored("final-3", .others, 2, 22, "Selvä. Seuraava palaveri on perjantaina."),
         ]
         let note: MeetingNote = try #require(try await writeMeetingNote(
-            segments: segments, speakerNames: [:], userName: "Senol", template: .general,
+            segments: segments, speakerNames: [:], userName: "Senol", profile: .empty, template: .general,
             myNotes: "## Bana önemli\n- park yeri azalıyor → kiralık yer sor", language: .turkish, llm: .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic))),
             progressFile: try temporaryDirectory().appending(path: "note-progress.json"),
             screens: []
@@ -278,7 +278,7 @@ extension CloudTests {
         ).with(completedTasks: [taskKey(task: task)])
         let edited: MeetingRecord = try await editMeetingNote(
             record: record, instruction: "Özeti tek cümleye indir.", llm: .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic))),
-            userName: "Senol"
+            userName: "Senol", profile: .empty
         )
         let newNote: MeetingNote = try #require(edited.note)
         #expect(newNote.summary.count < note.summary.count, "\(newNote.summary)")
@@ -297,7 +297,7 @@ extension CloudTests {
             stored("final-3", .others, 2, 22, "Selvä. Sitten seuraava palaveri on perjantaina."),
         ]
         let note: MeetingNote = try #require(try await writeMeetingNote(
-            segments: markingHighlights(segments: segments, highlights: [Highlight(startSec: 20, endSec: nil)]), speakerNames: [:], userName: "Senol",
+            segments: markingHighlights(segments: segments, highlights: [Highlight(startSec: 20, endSec: nil)]), speakerNames: [:], userName: "Senol", profile: .empty,
             template: .general, myNotes: "", language: .turkish, llm: .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic))), progressFile: try temporaryDirectory().appending(path: "note-progress.json"),
             screens: []
         ))

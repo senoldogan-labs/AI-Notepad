@@ -22,7 +22,7 @@ import Testing
             .with(attendees: ["Aino Virtanen", "Mikko"])
             .with(note: note)
         let request: LLMRequest = meetingFollowUpEmailRequest(
-            record: meeting, note: note, userName: "Şenol", language: .english, timeZone: try #require(TimeZone(identifier: "America/New_York"))
+            record: meeting, note: note, userName: "Şenol", profile: .empty, language: .english, timeZone: try #require(TimeZone(identifier: "America/New_York"))
         )
         #expect(request.purpose == .followUpEmail)
         #expect(request.tier == .smart)
@@ -45,7 +45,7 @@ import Testing
     // Adı bilinmeyen kullanıcıda kapanışa ad yazılmaz; katılımcısız toplantıda katılımcılar bilinmiyor.
     @Test func requestWithoutUserNameOrAttendees() throws {
         let request: LLMRequest = followUpEmailRequest(
-            note: note, startedAt: Date(timeIntervalSince1970: 0), attendees: [], userName: " ", language: .finnish,
+            note: note, startedAt: Date(timeIntervalSince1970: 0), attendees: [], userName: " ", profile: .empty, language: .finnish,
             timeZone: try #require(TimeZone(identifier: "UTC"))
         )
         #expect(request.system.contains("Kapanışa ad yazma"))

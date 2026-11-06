@@ -254,19 +254,19 @@ func screenNotesMeeting(seconds: Int) -> MeetingRecord {
         let image: LLMImage = LLMImage(label: "Ekran 1 [00:00–00:10]", jpeg: Data([0xff, 0xd8, 0xff, 0xd9]))
         let segments: [StoredSegment] = screenNotesMeeting(seconds: 60).liveSegments
         let plain: LLMRequest = try #require(meetingNoteRequest(
-            segments: segments, speakerNames: [:], userName: "Doğan", template: .general, myNotes: "", language: .turkish, screens: []
+            segments: segments, speakerNames: [:], userName: "Doğan", profile: .empty, template: .general, myNotes: "", language: .turkish, screens: []
         ))
         let withScreens: LLMRequest = try #require(meetingNoteRequest(
-            segments: segments, speakerNames: [:], userName: "Doğan", template: .general, myNotes: "", language: .turkish, screens: [image]
+            segments: segments, speakerNames: [:], userName: "Doğan", profile: .empty, template: .general, myNotes: "", language: .turkish, screens: [image]
         ))
         #expect(plain.images.isEmpty && !plain.system.contains("Ekran 2 [12:40"))
         #expect(withScreens.images == [image] && withScreens.system.contains("Ekran 2 [12:40–14:05]"))
         #expect(withScreens.userText == plain.userText)
         let chunk: LLMRequest = noteChunkRequest(
-            chunk: segments, part: 1, partCount: 2, state: .empty, speakerNames: [:], userName: "Doğan", template: .general, myNotes: "", language: .turkish
+            chunk: segments, part: 1, partCount: 2, state: .empty, speakerNames: [:], userName: "Doğan", profile: .empty, template: .general, myNotes: "", language: .turkish
         )
         #expect(chunk.images.isEmpty)
-        let overview: LLMRequest = noteOverviewRequest(state: .empty, userName: "Doğan", template: .general, myNotes: "", language: .english, screens: [image])
+        let overview: LLMRequest = noteOverviewRequest(state: .empty, userName: "Doğan", profile: .empty, template: .general, myNotes: "", language: .english, screens: [image])
         #expect(overview.images == [image] && overview.system.contains("English"))
     }
 

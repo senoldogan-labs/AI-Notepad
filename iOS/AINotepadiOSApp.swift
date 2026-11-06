@@ -1118,6 +1118,16 @@ final class PhoneStore {
     private(set) var userName: String = ""
     /// Tanıma sözlüğü (satır ya da virgülle; Mac'teki "Tanıma sözlüğü"); ad gibi saklanır.
     private(set) var vocabulary: String = ""
+    /// Profilin unvanı, şirketi ve şirket açıklaması (Mac'teki Ayarlar > Profil); ad gibi saklanır, notlara bağlam
+    /// olarak gider (bkz. `userProfilePromptBlock`).
+    private(set) var jobTitle: String = ""
+    private(set) var companyName: String = ""
+    private(set) var companyDescription: String = ""
+
+    /// Kullanıcının profili (not, düzenleme, Sor ve takip e-postası istemlerine).
+    var userProfile: UserProfile {
+        UserProfile(name: userName, jobTitle: jobTitle, companyName: companyName, companyDescription: companyDescription)
+    }
 
     /// Adı ve tanıma sözlüğünü okur (hesap verisi yüklenince). Okunamazsa neden sorunlarda görünür.
     func loadIdentity() {
@@ -1125,6 +1135,9 @@ final class PhoneStore {
             let defaults: UserDefaults = try hostedActiveAccountDefaults()
             userName = defaults.string(forKey: PhoneSettingsKey.userName) ?? ""
             vocabulary = defaults.string(forKey: PhoneSettingsKey.customVocabulary) ?? ""
+            jobTitle = defaults.string(forKey: PhoneSettingsKey.jobTitle) ?? ""
+            companyName = defaults.string(forKey: PhoneSettingsKey.companyName) ?? ""
+            companyDescription = defaults.string(forKey: PhoneSettingsKey.companyDescription) ?? ""
         } catch {
             Self.logger.error("Ad ve sözlük okunamadı, hata: \(String(describing: error), privacy: .private)")
             actionProblems = appendUnique(messages: actionProblems, message: userFacingMessage(error: error))
@@ -1142,6 +1155,35 @@ final class PhoneStore {
             Self.logger.error("Ad saklanamadı, hata: \(String(describing: error), privacy: .private)")
             actionProblems = appendUnique(messages: actionProblems, message: userFacingMessage(error: error))
         }
+    }
+
+    /// Profil alanını (`key`) en fazla `limit` karakterle hesabın ayar alanına saklar; saklanan metni, saklanamazsa
+    /// (neden sorunlarda görünür) nil döner.
+    private func storeProfileText(text: String, limit: Int, key: String) -> String? {
+        let capped: String = cappedProfileText(text: text, limit: limit)
+        do {
+            try hostedActiveAccountDefaults().set(capped, forKey: key)
+            return capped
+        } catch {
+            Self.logger.error("Profil saklanamadı, anahtar: \(key, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+            actionProblems = appendUnique(messages: actionProblems, message: userFacingMessage(error: error))
+            return nil
+        }
+    }
+
+    /// Unvanı saklar.
+    func setJobTitle(text: String) {
+        jobTitle = storeProfileText(text: text, limit: profileFieldLimit, key: PhoneSettingsKey.jobTitle) ?? jobTitle
+    }
+
+    /// Şirket adını saklar.
+    func setCompanyName(text: String) {
+        companyName = storeProfileText(text: text, limit: profileFieldLimit, key: PhoneSettingsKey.companyName) ?? companyName
+    }
+
+    /// Şirket açıklamasını saklar.
+    func setCompanyDescription(text: String) {
+        companyDescription = storeProfileText(text: text, limit: profileDescriptionLimit, key: PhoneSettingsKey.companyDescription) ?? companyDescription
     }
 
     /// Tanıma sözlüğünü hesabın ayar alanına saklar; saklanamazsa neden sorunlarda görünür.
@@ -1419,7 +1461,7 @@ final class PhoneStore {
             let directory: URL = try sessionDirectory(id: meetingID)
             let noteStartedAt: ContinuousClock.Instant = .now
             let result: MeetingRecord = await AINotepadCore.regenerateNote(
-                record: record, directory: directory, llm: llm, userName: userName, language: phoneNoteLanguage(), screens: .off
+                record: record, directory: directory, llm: llm, userName: userName, profile: userProfile, language: phoneNoteLanguage(), screens: .off
             )
             recordNoteOutcome(result: result, writingStartedAt: noteStartedAt)
             // Not yazılırken Mac'te değişmiş olabilir: yeni not diskteki güncel kayda uygulanır, işaretler oradan taşınır.
@@ -1631,7 +1673,7 @@ final class PhoneStore {
         do {
             let llm: LLMProvider = try phoneAccountLLMProvider()
             let directory: URL = try sessionDirectory(id: meetingID)
-            let edited: MeetingRecord = try await editMeetingNote(record: record, instruction: trimmed, llm: llm, userName: userName)
+            let edited: MeetingRecord = try await editMeetingNote(record: record, instruction: trimmed, llm: llm, userName: userName, profile: userProfile)
             guard let note = edited.note else {
                 throw LLMError.empty
             }
@@ -1658,7 +1700,7 @@ final class PhoneStore {
             throw StorageError.writeFailed(path: meetingID, reason: "toplantı yok")
         }
         let llm: LLMProvider = try phoneAccountLLMProvider()
-        return try await AINotepadCore.draftFollowUpEmail(record: record, userName: userName, language: language, timeZone: TimeZone.current, llm: llm)
+        return try await AINotepadCore.draftFollowUpEmail(record: record, userName: userName, profile: userProfile, language: language, timeZone: TimeZone.current, llm: llm)
     }
 
     /// Takip e-postasının alıcıları: toplantı bir takvim etkinliğine bağlıysa katılımcıların e-posta adresleri (takvim

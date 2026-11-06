@@ -62,7 +62,7 @@ export const dataHandling: DataHandlingCopy = {
     },
     {
       id: "ai-text",
-      data: "Transcript text for notes, live translation, “What did I miss?” and Ask, with the participant names and terms you add; tasks, the meeting title and Linear's or Jira's replies when you create issues there; a note you translate to send in another language; a note you turn into a follow-up email, with the meeting title, date and attendee names",
+      data: "Transcript text for notes, live translation, “What did I miss?” and Ask, with the participant names and terms you add; tasks, the meeting title and Linear's or Jira's replies when you create issues there; a note you translate to send in another language; a note you turn into a follow-up email, with the meeting title, date and attendee names; the optional profile you fill in (job title, company and company description), stored on your device and sent with the meeting text when a note, an Ask answer or a follow-up email is written",
       where: "Sent through our server to Anthropic's Claude model; the answer returns to your device.",
       stored: "Not by us: our server doesn't store or log the text and records only token counts. Anthropic doesn't train its models on it.",
       retention: "Anthropic deletes it within 30 days (up to 2 years if a request is flagged under its usage policy)",

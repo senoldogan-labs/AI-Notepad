@@ -29,6 +29,10 @@ enum SettingsKey {
     static let displayMode: String = "displayMode"
     /// Kullanıcı adı (not görevlerinde "benim" tespiti için; `userContentDefaults` alanında: abonelikte hesabın).
     static let userName: String = userNameDefaultsKey
+    /// Profilin unvanı, şirketi ve şirket açıklaması (ad gibi `userContentDefaults` alanında).
+    static let jobTitle: String = userJobTitleDefaultsKey
+    static let companyName: String = userCompanyNameDefaultsKey
+    static let companyDescription: String = userCompanyDescriptionDefaultsKey
     static let hideFromScreenCapture: String = "hideFromScreenCapture"
     /// "Ne kaçırdım?" penceresi (dakika).
     static let missedWindowMinutes: String = "missedWindowMinutes"

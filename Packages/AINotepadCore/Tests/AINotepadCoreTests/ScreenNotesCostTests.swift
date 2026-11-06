@@ -119,10 +119,10 @@ extension CloudTests {
             let images: [LLMImage] = try screenNoteImages(record: record, meetingDirectory: meeting, budget: screenNoteBudget, policy: screenSnapshotPolicy)
             #expect(images.count == 6)
             let plain: LLMRequest = try #require(meetingNoteRequest(
-                segments: segments, speakerNames: record.speakerNames, userName: "Doğan", template: .general, myNotes: "", language: .turkish, screens: []
+                segments: segments, speakerNames: record.speakerNames, userName: "Doğan", profile: .empty, template: .general, myNotes: "", language: .turkish, screens: []
             ))
             let withScreens: LLMRequest = try #require(meetingNoteRequest(
-                segments: segments, speakerNames: record.speakerNames, userName: "Doğan", template: .general, myNotes: "", language: .turkish, screens: images
+                segments: segments, speakerNames: record.speakerNames, userName: "Doğan", profile: .empty, template: .general, myNotes: "", language: .turkish, screens: images
             ))
             let apiKey: String = try cloudKey(account: .anthropic)
             let without: MeasuredNoteCall = try await measuredHostedNoteCall(request: plain, apiKey: apiKey)

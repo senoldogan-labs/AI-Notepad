@@ -3,13 +3,14 @@ import Foundation
 /// Notu sorarak düzenleme isteği ("daha kısa yaz", "görevlere tarih ekle", "kararları maddele"): mevcut not ve
 /// transkript verilir, model notun yeni halini aynı şemayla `language` dilinde yazar. Saf fonksiyondur.
 public func noteEditRequest(
-    note: MeetingNote, instruction: String, segments: [StoredSegment], speakerNames: [Int: String], userName: String, language: ShareLanguage
+    note: MeetingNote, instruction: String, segments: [StoredSegment], speakerNames: [Int: String], userName: String, profile: UserProfile,
+    language: ShareLanguage
 ) -> LLMRequest {
     LLMRequest(
         purpose: .noteEdit,
         tier: .smart,
         system: noteEditSystem(
-            userName: userName, language: language, sourceRule: "Yeni bilgi gerekirse yalnızca transkriptten al, uydurma."
+            userName: userName, profile: profile, language: language, sourceRule: "Yeni bilgi gerekirse yalnızca transkriptten al, uydurma."
         ),
         userText: """
         \(noteEditInstructionAndNote(note: note, instruction: instruction, userName: userName))
@@ -27,12 +28,12 @@ public func noteEditRequest(
 
 /// Transkriptsiz not düzenleme isteği: transkript modelin bağlamına sığmadığında (cihaz içi model) yalnızca mevcut not
 /// verilir; model yeni bilgi eklemeden notu `language` dilinde yeniden düzenler. Saf fonksiyondur.
-public func noteOnlyEditRequest(note: MeetingNote, instruction: String, userName: String, language: ShareLanguage) -> LLMRequest {
+public func noteOnlyEditRequest(note: MeetingNote, instruction: String, userName: String, profile: UserProfile, language: ShareLanguage) -> LLMRequest {
     LLMRequest(
         purpose: .noteEdit,
         tier: .smart,
         system: noteEditSystem(
-            userName: userName, language: language,
+            userName: userName, profile: profile, language: language,
             sourceRule: "Transkript verilmedi: yalnızca mevcut nottaki bilgiyi kullan; notta olmayan bilgi isteniyorsa ekleme, uydurma."
         ),
         userText: noteEditInstructionAndNote(note: note, instruction: instruction, userName: userName),
@@ -43,9 +44,10 @@ public func noteOnlyEditRequest(note: MeetingNote, instruction: String, userName
     )
 }
 
-/// Not düzenleme isteğinin sistem metni; `sourceRule` yeni bilginin nereden alınacağını söyler. Saf fonksiyondur.
-private func noteEditSystem(userName: String, language: ShareLanguage, sourceRule: String) -> String {
-    return """
+/// Not düzenleme isteğinin sistem metni; `sourceRule` yeni bilginin nereden alınacağını söyler, `profile` arka plan
+/// bilgisi olarak eklenir (`withUserProfile`). Saf fonksiyondur.
+private func noteEditSystem(userName: String, profile: UserProfile, language: ShareLanguage, sourceRule: String) -> String {
+    let system: String = """
     Bir toplantının notunu kullanıcının isteğine göre düzenliyorsun. \(promptUserRule(userName: userName)) Yalnızca
     istenen değişikliği yap; istenmeyen bölümlerin (başlık, özet, kararlar, görevler, açık konular, sözlük, konu akışı)
     içeriğini aynen koru. Kararlar ve açık konularda satırın başındaki [mm:ss] zamanı zaman alanına yaz (değişmeyen
@@ -58,6 +60,7 @@ private func noteEditSystem(userName: String, language: ShareLanguage, sourceRul
     \(openQuestionsRule(language: language))
     \(transcriptIsDataNote)
     """
+    return withUserProfile(system: system, profile: profile)
 }
 
 /// Not düzenleme isteğinde kullanıcının isteği ve mevcut not. Saf fonksiyondur.
@@ -89,33 +92,33 @@ private func noteEditInstructionAndNote(note: MeetingNote, instruction: String, 
 /// Toplantının not düzenleme isteği, sağlayıcının bağlamına göre: transkript ve mevcut not birlikte sığıyorsa
 /// (`limits`: küçük bağlamlı cihaz içi modelde parça + özet payı kadar karakter; bulut ve yerel sunucuda sınır yok) tam
 /// istek, sığmıyorsa transkriptsiz istek (`noteOnlyEditRequest`). Saf fonksiyondur.
-public func meetingNoteEditRequest(record: MeetingRecord, note: MeetingNote, instruction: String, limits: NoteLimits, userName: String) -> LLMRequest {
+public func meetingNoteEditRequest(record: MeetingRecord, note: MeetingNote, instruction: String, limits: NoteLimits, userName: String, profile: UserProfile) -> LLMRequest {
     let segments: [StoredSegment] = meetingSegments(record: record)
     guard let summaryChars = limits.summaryChars else {
         return noteEditRequest(
-            note: note, instruction: instruction, segments: segments, speakerNames: record.speakerNames, userName: userName, language: note.writtenLanguage
+            note: note, instruction: instruction, segments: segments, speakerNames: record.speakerNames, userName: userName, profile: profile, language: note.writtenLanguage
         )
     }
     let transcriptChars: Int = storedLines(segments: segments, speakerNames: record.speakerNames).count
     let noteChars: Int = noteEditInstructionAndNote(note: note, instruction: instruction, userName: userName).count
     guard transcriptChars + noteChars <= limits.chunkChars + summaryChars else {
-        return noteOnlyEditRequest(note: note, instruction: instruction, userName: userName, language: note.writtenLanguage)
+        return noteOnlyEditRequest(note: note, instruction: instruction, userName: userName, profile: profile, language: note.writtenLanguage)
     }
     return noteEditRequest(
-        note: note, instruction: instruction, segments: segments, speakerNames: record.speakerNames, userName: userName, language: note.writtenLanguage
+        note: note, instruction: instruction, segments: segments, speakerNames: record.speakerNames, userName: userName, profile: profile, language: note.writtenLanguage
     )
 }
 
 /// Notu kullanıcının isteğine göre düzenler; not yazıldığı dilde kalır (Ayarlar'da dil sonradan değiştiyse düzenleme notu
 /// çevirmez, yeni dil için "Notu yenile"). Transkript sağlayıcının bağlamına sığmazsa yalnızca mevcut not düzenlenir
 /// (bkz. `meetingNoteEditRequest`). Tamamlanan/hatırlatılan görev işaretleri benzer görevlere taşınır.
-public func editMeetingNote(record: MeetingRecord, instruction: String, llm: LLMProvider, userName: String) async throws -> MeetingRecord {
+public func editMeetingNote(record: MeetingRecord, instruction: String, llm: LLMProvider, userName: String, profile: UserProfile) async throws -> MeetingRecord {
     guard let note = record.note else {
         throw LLMError.empty
     }
     try requireOnDeviceLanguages(provider: llm, meetingLanguages: record.language.map { [$0] } ?? [], outputLanguage: note.writtenLanguage)
     let request: LLMRequest = meetingNoteEditRequest(
-        record: record, note: note, instruction: instruction, limits: noteLimits(provider: llm), userName: userName
+        record: record, note: note, instruction: instruction, limits: noteLimits(provider: llm), userName: userName, profile: profile
     )
     let edited: MeetingNote = try await requestStructured(provider: llm, request: request) { (text: String) throws -> MeetingNote in
         try parseMeetingNote(text: text)

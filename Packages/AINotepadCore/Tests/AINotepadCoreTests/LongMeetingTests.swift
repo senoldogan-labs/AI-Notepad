@@ -45,14 +45,14 @@ private func syntheticMeeting(hours: Double) -> [StoredSegment] {
         )
         for (index, chunk) in chunks.enumerated() {
             let request: LLMRequest = noteChunkRequest(
-                chunk: chunk, part: index + 1, partCount: chunks.count, state: state, speakerNames: [1: "Aino"], userName: "Doğan",
+                chunk: chunk, part: index + 1, partCount: chunks.count, state: state, speakerNames: [1: "Aino"], userName: "Doğan", profile: .empty,
                 template: .general, myNotes: "", language: .turkish
             )
             #expect(request.userText.utf8.count + request.system.utf8.count < serverMaxRequestBytes)
             #expect(serverInputEstimate(request: request) < serverMaxInputTokens)
             #expect(request.maxTokens <= 16000)
         }
-        let overview: LLMRequest = noteOverviewRequest(state: state, userName: "Doğan", template: .general, myNotes: "", language: .turkish, screens: [])
+        let overview: LLMRequest = noteOverviewRequest(state: state, userName: "Doğan", profile: .empty, template: .general, myNotes: "", language: .turkish, screens: [])
         #expect(serverInputEstimate(request: overview) < serverMaxInputTokens)
         // Abonelik sunucusunda (büyük bağlam) özetler kısaltılmaz.
         #expect(overview.userText.contains(state.partSummaries[chunks.count - 1]))

@@ -1291,7 +1291,7 @@ final class PhoneRecorder {
                 record: record, directory: directory,
                 resolveFinalPass: { () async -> FinalPassPlan in await resolveFinalPass(keyterms, recordID) },
                 resolveLLM: { () async -> LLMProvider? in await self.recordedMeetingLLMReportingFailure(recordID: recordID) },
-                languageMode: record.language.map { LanguageMode.fixed($0) } ?? .automatic, userName: store.userName,
+                languageMode: record.language.map { LanguageMode.fixed($0) } ?? .automatic, userName: store.userName, profile: store.userProfile,
                 // The iPhone does not capture screens: notes are text only. Voiceprints are computed on this iPhone
                 // (SpeakerKit) when voice recognition is on; they never leave the device.
                 noteLanguage: phoneNoteLanguage(), voiceEmbedder: store.voices.embedderIfEnabled(), registry: store.voices.registered, screens: .off
@@ -1382,7 +1382,7 @@ final class PhoneRecorder {
             noteWritingStartedAt[current.id] = .now
             current = await regenerateNote(
                 record: current.with(status: .processing, failureMessage: nil), directory: directory, llm: recordedMeetingLLMReportingFailure(recordID: current.id),
-                userName: store.userName, language: phoneNoteLanguage(), screens: .off
+                userName: store.userName, profile: store.userProfile, language: phoneNoteLanguage(), screens: .off
             )
             Self.logger.info("Not yeniden denendi, toplantı: \(current.id, privacy: .public), deneme: \(attempt, privacy: .public), durum: \(current.status.rawValue, privacy: .public)")
         }

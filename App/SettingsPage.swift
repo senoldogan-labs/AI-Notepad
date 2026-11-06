@@ -336,13 +336,40 @@ private struct GeneralSettings: View {
                 }
                 #endif
             }
-            SettingsGroup(title: Text("Sen ve konuşmacılar")) {
+            SettingsGroup(title: Text("Profil")) {
                 SettingsRow(icon: "person.crop.circle", title: Text("Adın")) {
                     Text("Toplantı notunda sana düşen görevleri ayırmak için kullanılır.")
                 } control: {
                     TextField("Adın", text: Binding<String>(get: { model.userName }, set: { (name: String) -> Void in model.setUserName(name: name) }))
                         .settingsField(width: 200)
                 }
+                SettingsRow(icon: "briefcase", title: Text("Unvan")) {
+                    Text("Toplantıdaki rolünü anlamaya yardım eder.")
+                } control: {
+                    TextField("Unvan", text: Binding<String>(get: { model.jobTitle }, set: { (text: String) -> Void in model.setJobTitle(text: text) }))
+                        .settingsField(width: 200)
+                }
+                SettingsRow(icon: "building.2", title: Text("Şirket")) {
+                    Text("Kendi şirketini müşteriden ve iş ortağından ayırır.")
+                } control: {
+                    TextField("Şirket", text: Binding<String>(get: { model.companyName }, set: { (text: String) -> Void in model.setCompanyName(text: text) }))
+                        .settingsField(width: 200)
+                }
+                SettingsStackedRow(icon: "text.alignleft", title: Text("Şirket açıklaması")) {
+                    Text("Ne yaptığınızı, ürünlerinizi ve sık geçen terimleri birkaç cümleyle yaz.")
+                } content: {
+                    SettingsTextEditor(
+                        text: Binding<String>(get: { model.companyDescription }, set: { (text: String) -> Void in model.setCompanyDescription(text: text) }),
+                        height: 80
+                    )
+                    Text("\(model.companyDescription.count)/\(profileDescriptionLimit)")
+                        .appFont(size: 12, weight: .regular)
+                        .foregroundStyle(Theme.muted)
+                }
+            } footer: {
+                Text("Notlar bağlamını anlamak için bunu kullanır; yalnızca not ya da cevap yazılırken toplantı metniyle gönderilir.")
+            }
+            SettingsGroup(title: Text("Tanıma ve konuşmacılar")) {
                 SettingsStackedRow(icon: "character.book.closed", title: Text("Tanıma sözlüğü")) {
                     SettingsMoreText(summary: Text("Doğru yazılması gereken adlar ve terimler; satır başına bir tane, en fazla 30."), details: Text(vocabularyHelp))
                 } content: {
