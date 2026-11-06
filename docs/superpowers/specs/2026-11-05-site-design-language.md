@@ -46,7 +46,7 @@ a window. Calm, competent, northern. The photographs carry warmth; the interface
   Newsreader is an editorial news serif with high contrast at display sizes; it reads "publication" and
   "institution", not "typewriter", so it cannot be mistaken for their face.
 - **Text and UI: Inter** (self-hosted from `App/Fonts`, SIL OFL 1.1), cut by `web/scripts/subset-font.sh` to weights
-  400–700 at the text optical size (37 KB).
+  400–700 at optical size 16, the body size (38 KB).
 - Scale (desktop → 360 px, one weight for the serif): display 84 → 44 px, page title (H1) 64 → 40, section title 52
   → 32, row title 40 → 28. The serif is used only from about 26 px up (its optical size is 48); card titles
   (`.title-m`) are Inter 600 at 20 px. Line height 1.02–1.12, tracking -0.022em to -0.01em. Lead 21 → 18 px
@@ -168,7 +168,7 @@ simulated slow 4G for mobile). What the measurements showed and what the site do
 - On a phone the largest paint is the headline or lead text, and Lighthouse counts every request that finishes before
   it. So the first screen requests as little as possible: one site-wide stylesheet (`cssCodeSplit: false`; the admin
   panel's styles are a separate file loaded only on `/admin`), one shared script module (`Base.astro`) plus one per page,
-  fonts preloaded and small (Inter 37 KB, Newsreader 28 KB), the grain tile as a 7 KB WebP.
+  fonts preloaded and small (Inter 38 KB, Newsreader 28 KB), the grain tile as a 7 KB WebP.
 - Photographs ship as AVIF/WebP from 480 px wide with `sizes` matching the rendered width, so phones get 720–1280 px
   files; the 2400 px sources and 4K originals never ship. All images are lazy except the page's LCP image, which is
   preloaded with `fetchpriority="high"` (`priority="lcp"` on `PhotoPanel`, `"wide-lcp"` on the home hero window).
@@ -201,5 +201,5 @@ this document, the research notes and the screenshots on 2026-11-05. Outcome:
 | Mobile pill too cramped at 360 px; menu dismissal. | Accepted: theme switch moves into the sheet; Escape/outside click already close it. |
 | Long Finnish/Turkish words at 44 px. | Accepted: `hyphens: auto` and balanced wrapping on the display style; `/fi` checked at 360 px. |
 | Marquee motion needs a pause control. | Accepted by removing the motion: still logo row. |
-| Font/LCP: preload, metric-matched fallback, image priorities. | Accepted, then tuned on 2026-11-06 by measurement (see Performance): both fonts are preloaded (removing either preload measured worse), Inter is cut to 400–700 at text optical size (37 KB), a size-adjusted Georgia fallback limits the swap; only the real LCP image is preloaded at high priority. |
+| Font/LCP: preload, metric-matched fallback, image priorities. | Accepted, then tuned on 2026-11-06 by measurement (see Performance): both fonts are preloaded (removing either preload measured worse), Inter is cut to 400–700 at optical size 16 (38 KB), a size-adjusted Georgia fallback limits the swap; only the real LCP image is preloaded at high priority. |
 | CREDITS.md missing. | Written (it was being created while the review ran). |
