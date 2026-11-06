@@ -146,8 +146,10 @@ final class MeteredAnthropicProtocol: URLProtocol, @unchecked Sendable {
     }
 
     override func startLoading() {
-        var forwarded: URLRequest = request
-        forwarded.httpBody = request.httpBody ?? request.httpBodyStream.map(streamData)
+        var body: URLRequest = request
+        body.httpBody = request.httpBody ?? request.httpBodyStream.map(streamData)
+        // Değişmez kopya: görev değişken bir isteği yakalarsa yeni derleyici veri yarışı hatası verir.
+        let forwarded: URLRequest = body
         let model: String = forwarded.httpBody.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }?["model"] as? String ?? "?"
         let sink: ProtocolSink = ProtocolSink(owner: self, client: client)
         forwarding = Task {
