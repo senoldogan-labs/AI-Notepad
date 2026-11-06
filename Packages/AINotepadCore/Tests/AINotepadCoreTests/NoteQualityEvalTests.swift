@@ -152,22 +152,27 @@ final class MeteredAnthropicProtocol: URLProtocol, @unchecked Sendable {
         let forwarded: URLRequest = body
         let model: String = forwarded.httpBody.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }?["model"] as? String ?? "?"
         let sink: ProtocolSink = ProtocolSink(owner: self, client: client)
-        forwarding = Task {
-            do {
-                let (data, response): (Data, URLResponse) = try await Self.forwarder.data(for: forwarded)
-                let usage: (input: Int, output: Int) = streamUsage(body: data)
-                let price: (input: Double, output: Double) = evalPrice(model: model, inputTokens: usage.input)
-                Self.spend.withLock { (spend: inout [String: EvalSpend]) -> Void in
-                    var current: EvalSpend = spend[model] ?? EvalSpend(inputTokens: 0, outputTokens: 0, dollars: 0)
-                    current.inputTokens += usage.input
-                    current.outputTokens += usage.output
-                    current.dollars += Double(usage.input) * price.input / 1_000_000 + Double(usage.output) * price.output / 1_000_000
-                    spend[model] = current
-                }
-                sink.finish(response: response, data: data)
-            } catch {
-                sink.fail(error: error)
+        forwarding = Task { await Self.forward(request: forwarded, model: model, sink: sink) }
+    }
+
+    /// İsteği gerçek API'ye iletir, harcamayı kaydeder ve sonucu URL yükleme sistemine verir. Ayrı statik fonksiyon:
+    /// CI'daki derleyicinin bölge denetimi, gövdesi görevin içinde olunca kalıbı çözümleyemiyordu.
+    private static func forward(request: URLRequest, model: String, sink: ProtocolSink) async {
+        do {
+            let result: (Data, URLResponse) = try await forwarder.data(for: request)
+            let data: Data = result.0
+            let usage: (input: Int, output: Int) = streamUsage(body: data)
+            let price: (input: Double, output: Double) = evalPrice(model: model, inputTokens: usage.input)
+            spend.withLock { (spend: inout [String: EvalSpend]) -> Void in
+                var current: EvalSpend = spend[model] ?? EvalSpend(inputTokens: 0, outputTokens: 0, dollars: 0)
+                current.inputTokens += usage.input
+                current.outputTokens += usage.output
+                current.dollars += Double(usage.input) * price.input / 1_000_000 + Double(usage.output) * price.output / 1_000_000
+                spend[model] = current
             }
+            sink.finish(response: result.1, data: data)
+        } catch {
+            sink.fail(error: error)
         }
     }
 
