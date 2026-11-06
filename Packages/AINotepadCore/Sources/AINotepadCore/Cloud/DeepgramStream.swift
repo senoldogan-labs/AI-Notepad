@@ -41,6 +41,14 @@ public func streamingEvent(result: DeepgramResult, connectionStartSample: Int, s
     return result.transcript.isEmpty ? nil : .partial(text: result.transcript, startSec: start, endSec: end)
 }
 
+/// Kesin sonuç zaten kesinleşmiş sesin içinde mi bitiyor: yeniden bağlanmada yeniden gönderilen ses aynı konuşmayı
+/// ikinci kez kesinleştirdi. Deepgram'ın kesin sonuçları akışta art arda gelir ve örtüşmez; böyle bir sonuç metni
+/// silinerek iletilir (ekrandaki geçici metin silinsin, aynı cümle iki kez yazılıp çevrilmesin). `toleranceSec`
+/// yuvarlama payıdır. Saf fonksiyondur.
+public func isReplayedFinal(endSec: Double, finalizedUntilSec: Double, toleranceSec: Double) -> Bool {
+    endSec <= finalizedUntilSec + toleranceSec
+}
+
 /// Yeniden bağlanma bekleme süreleri: `initialSec`'ten başlayıp ikiye katlanır, `capSec`'te sabitlenir;
 /// toplamı `budgetSec`'e ulaşana kadar. Saf fonksiyondur.
 public func reconnectDelays(budgetSec: Double, initialSec: Double, capSec: Double) -> [Double] {
@@ -188,6 +196,8 @@ private let finalizeAfterIdleSec: Double = 1.5
 private let keepAliveIntervalSec: Double = 4
 /// Kapanışta son sonuçlar için en fazla bekleme.
 private let closeDeadlineSec: Double = 5
+/// Yinelenen kesin sonuç denetiminin yuvarlama payı (Deepgram zamanları 10 ms çözünürlüklü).
+private let replayToleranceSec: Double = 0.05
 /// Tek mesajda gönderilen en fazla ses (0,5 sn): Deepgram kısa parçaları hızlı işler.
 private let maxSendSamples: Int = 8000
 
@@ -223,6 +233,9 @@ private actor DeepgramConnection {
     private var acknowledgedSample: Int = 0
     /// Geçerli bağlantının başladığı örnek (Deepgram zamanı buradan sıfırlanır).
     private var connectionStartSample: Int = 0
+    /// Metinli kesin sonuçların en geç bitişi (akış zamanı, sn): bundan önce biten yeni kesin sonuç yinelenmedir
+    /// (`isReplayedFinal`).
+    private var finalizedUntilSec: Double = 0
 
     private var isConnected: Bool = false
     private var isReconnecting: Bool = false
@@ -604,8 +617,14 @@ private actor DeepgramConnection {
             else {
                 return
             }
-            if case .final(_, _, let endSec) = event {
+            if case .final(let text, let startSec, let endSec) = event {
                 acknowledge(upToSample: Int((endSec * Double(deepgramSampleRate)).rounded()))
+                if !text.isEmpty, isReplayedFinal(endSec: endSec, finalizedUntilSec: finalizedUntilSec, toleranceSec: replayToleranceSec) {
+                    deepgramLogger.warning("Yinelenen kesin sonuç atlandı, bitiş: \(endSec, privacy: .public) sn, kesinleşen: \(self.finalizedUntilSec, privacy: .public) sn")
+                    events.yield(.final(text: "", startSec: startSec, endSec: endSec))
+                    return
+                }
+                finalizedUntilSec = max(finalizedUntilSec, endSec)
             }
             events.yield(event)
         } catch {
