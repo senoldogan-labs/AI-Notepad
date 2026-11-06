@@ -452,6 +452,7 @@ struct MeetingDetailPage: View {
     let onDeleted: @MainActor () -> Void
     /// Tarifi bu toplantıya uygular (Sor sayfasında açılır).
     let onRunRecipe: @MainActor (Recipe) -> Void
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
     @State private var export: ExportStatus = .none
     @State private var tab: MeetingTab = .summary
     /// Özetteki seçili not bölümü (görevler, konu akışı, kararlar, işaretli anlar); kapaktaki çipler de seçer.
@@ -542,6 +543,7 @@ struct MeetingDetailPage: View {
                                     model: model, record: record, note: note, language: language, paragraphs: paragraphs, canPlay: !playableAudio.isEmpty,
                                     onPlay: { (startSec: Double) -> Void in play(from: startSec) },
                                     onClip: { (paragraph: TranscriptParagraph) -> Void in exportClip(paragraph: paragraph) },
+                                    onNameSpeakers: { () -> Void in tab = .transcript },
                                     section: $noteSection
                                 )
                                 .id(language)
@@ -550,6 +552,7 @@ struct MeetingDetailPage: View {
                                     model: model, note: note, sourceNote: note, record: record, paragraphs: paragraphs, canPlay: !playableAudio.isEmpty,
                                     onPlay: { (startSec: Double) -> Void in play(from: startSec) },
                                     onClip: { (paragraph: TranscriptParagraph) -> Void in exportClip(paragraph: paragraph) },
+                                    onNameSpeakers: { () -> Void in tab = .transcript },
                                     section: $noteSection
                                 )
                             }
@@ -561,6 +564,15 @@ struct MeetingDetailPage: View {
                             }
                         }
                     case .transcript:
+                        let spans: [SpeakerSpan] = speakerSpans(paragraphs: paragraphs)
+                        let totalSec: Double = paragraphs.map(\.endSec).max() ?? 0
+                        if !spans.isEmpty, totalSec > 0 {
+                            SpeakerTimeline(
+                                spans: spans, totalSec: totalSec, player: player, meetingID: record.id, canPlay: !playableAudio.isEmpty,
+                                onSeek: { (startSec: Double) -> Void in play(from: startSec) }
+                            )
+                            .frame(maxWidth: 820, alignment: .leading)
+                        }
                         SpeakerChips(model: model, record: record, isLocked: isLocked, onPlay: { (startSec: Double) -> Void in play(from: startSec) })
                         let skipped: [StoredSegment] = skippedLanguageSegments(record: record)
                         if !skipped.isEmpty, let language = record.fixedLanguage {
@@ -712,23 +724,29 @@ struct MeetingDetailPage: View {
         player.play(record: record, urls: urls, startSec: startSec)
     }
 
-    /// Kapak: toplantı kartıyla aynı simli gradyan; tarih, başlık, özet çipleri, eylemler ve konuşmacı zaman çizgisi.
+    /// Sakin başlık: küçük pastel kutu ve tarih, başlık, tek satır bilgi (süre, dil, konuşmacı sayısı; sana düşen görev
+    /// varsa vurgu renginde sayısı, tıklayınca nottaki görevlere gider) ve en çok üç eylem. Karar ve açık konu sayıları not
+    /// bölümlerinin sekmelerinde; konuşmacı şeridi, konuşma payları ve sözlük Özet'in sonundaki "Ayrıntılar"da.
     private func hero(paragraphs: [TranscriptParagraph], proxy: ScrollViewProxy) -> some View {
-        let spans: [SpeakerSpan] = speakerSpans(paragraphs: paragraphs)
-        let totalSec: Double = paragraphs.map(\.endSec).max() ?? 0
+        // Kısa konuşmalar (bkz. `groupedSpeakers`) konuşmacı sayısına girmez.
+        let speakers: [SpeakerShare] = groupedSpeakers(shares: speakerShares(paragraphs: paragraphs), speakerNames: record.speakerNames).major
+        let facts: [String] = meetingHeaderFacts(
+            minutes: meetingDurationMinutes(record: record), language: record.language.map { meetingLanguageName(language: $0) },
+            speakers: speakers.isEmpty ? nil : speakers.count
+        )
+        let mine: Int = (record.note?.tasks ?? []).filter(\.isMine).count
+        let speakerNamesLine: String = speakers.prefix(6).map { speakerName(key: $0.key, speakerNames: record.speakerNames) }.joined(separator: ", ")
         return VStack(alignment: .leading, spacing: 0) {
-            // Kapak şeridi: toplantının gradyanı (yazı altta, beyaz zeminde).
-            CoverImage(seed: record.id)
-                // Ana sayfa kartlarındaki gibi ortada toplantıya özgü ses dalgası.
-                .overlay { CoverWaveform(seed: record.id) }
-                .frame(height: 132)
-                .clipShape(UnevenRoundedRectangle(topLeadingRadius: 22, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: 22, style: .continuous))
-                .padding(EdgeInsets(top: -24, leading: -26, bottom: 18, trailing: -26))
-            Text(record.startedAt.formatted(Date.FormatStyle(date: .long, time: .shortened).locale(interfaceLocale())))
-                .appFont(size: 12, weight: .medium)
-                .tracking(0.6)
-                .textCase(.uppercase)
-                .foregroundStyle(Theme.muted)
+            HStack(spacing: 10) {
+                // Toplantıya özgü durgun pastel kutu (kartlardaki kapakla aynı gradyan; canlandırılmaz).
+                CoverImage(seed: record.id)
+                    .frame(width: 28, height: 28)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .accessibilityHidden(true)
+                Text(record.startedAt.formatted(Date.FormatStyle(date: .long, time: .shortened).locale(interfaceLocale())))
+                    .appFont(size: 12, weight: .medium)
+                    .foregroundStyle(Theme.muted)
+            }
             Group {
                 if isRenaming {
                     TextField("Toplantı adı", text: $draftTitle)
@@ -744,84 +762,50 @@ struct MeetingDetailPage: View {
                 } else {
                     Text(record.note?.title ?? record.title)
                         .lineLimit(3)
+                        .accessibilityAddTraits(.isHeader)
                         .onTapGesture(count: 2) { startRename() }
                         .hoverHint("Yeniden adlandırmak için çift tıkla", alignment: .leading, edge: .bottom)
                 }
             }
             .appFont(size: 28, weight: .semibold)
             .tracking(-0.7)
-            .padding(.top, 6)
-            FlowLayout(spacing: 6, lineSpacing: 6) {
-                // Konuşanlar: üst üste binen rozetler (en çok konuşan önde), fazlası sayıyla; kısa konuşmalar (bkz.
-                // `groupedSpeakers`) rozet ve listede yer almaz.
-                let speakers: [SpeakerShare] = groupedSpeakers(shares: speakerShares(paragraphs: paragraphs), speakerNames: record.speakerNames).major
-                if !speakers.isEmpty {
-                    HStack(spacing: -7) {
-                        ForEach(Array(speakers.prefix(4).enumerated()), id: \.offset) { (item: (offset: Int, element: SpeakerShare)) in
-                            SpeakerAvatar(text: avatarText(key: item.element.key, speakerNames: record.speakerNames), color: speakerColor(key: item.element.key), size: 24)
-                                .overlay(Circle().strokeBorder(Theme.card, lineWidth: 1.5))
-                                .zIndex(Double(4 - item.offset))
+            .padding(.top, 10)
+            if !facts.isEmpty || mine > 0 {
+                HStack(spacing: 6) {
+                    if !facts.isEmpty {
+                        if speakerNamesLine.isEmpty {
+                            Text(verbatim: facts.joined(separator: " · "))
+                                .foregroundStyle(Theme.muted)
+                        } else {
+                            // Konuşanların adları üstüne gelince ve VoiceOver'da (rozetler artık başlıkta değil).
+                            Text(verbatim: facts.joined(separator: " · "))
+                                .foregroundStyle(Theme.muted)
+                                .hoverHint(verbatim: speakerNamesLine, alignment: .leading, edge: .bottom)
+                                .accessibilityLabel(Text(verbatim: facts.joined(separator: ", ") + ": " + speakerNamesLine))
                         }
-                    }
-                    .padding(.trailing, 4)
-                    .hoverHint(verbatim: speakers.prefix(6).map { speakerName(key: $0.key, speakerNames: record.speakerNames) }.joined(separator: ", "), alignment: .leading, edge: .bottom)
-                }
-                ForEach(heroChips(), id: \.self) { (chip: String) in
-                    HeroChip(text: chip, symbol: nil, isAction: false)
-                }
-                // Notta karar ya da sana düşen görev varsa sayısı; tıklayınca nottaki bölüme gider.
-                if let note = record.note {
-                    let decisions: Int = note.decisions.count
-                    let questions: Int = (note.openQuestions ?? []).count
-                    let mine: Int = note.tasks.filter(\.isMine).count
-                    if decisions > 0 {
-                        Button {
-                            reveal(anchor: .decisions, proxy: proxy)
-                        } label: {
-                            HeroChip(text: String(localized: "\(decisions) karar"), symbol: "checkmark.seal", isAction: true)
-                        }
-                        .buttonStyle(.plain)
-                        .linkPointer(isEnabled: true)
-                    }
-                    if questions > 0 {
-                        Button {
-                            reveal(anchor: .openQuestions, proxy: proxy)
-                        } label: {
-                            HeroChip(text: String(localized: "\(questions) açık konu"), symbol: "questionmark.circle", isAction: true)
-                        }
-                        .buttonStyle(.plain)
-                        .linkPointer(isEnabled: true)
                     }
                     if mine > 0 {
-                        Button {
+                        if !facts.isEmpty {
+                            Text(verbatim: "·").foregroundStyle(Theme.muted).accessibilityHidden(true)
+                        }
+                        // Sana düşen görevler: tek vurgu; tıklayınca nottaki görevlere gider.
+                        Button(String(localized: "Sana \(mine) görev")) {
                             reveal(anchor: .myTasks, proxy: proxy)
-                        } label: {
-                            HeroChip(text: String(localized: "Sana \(mine) görev"), symbol: "checklist", isAction: true)
                         }
                         .buttonStyle(.plain)
+                        .foregroundStyle(appearance.accent.color)
+                        .fontWeight(.semibold)
                         .linkPointer(isEnabled: true)
+                        .hoverHint("Sana düşen görevlere git", alignment: .leading, edge: .bottom)
                     }
                 }
+                .appFont(size: 13, weight: .regular)
+                .padding(.top, 8)
             }
-            .padding(.top, 12)
-            heroActions.padding(.top, 20)
-            if !spans.isEmpty, totalSec > 0 {
-                SpeakerTimeline(
-                    spans: spans, totalSec: totalSec, player: player, meetingID: record.id, canPlay: !playableAudio.isEmpty,
-                    onSeek: { (startSec: Double) -> Void in play(from: startSec) }
-                )
-                .padding(.top, 18)
-            }
+            heroActions.padding(.top, 18)
         }
         .foregroundStyle(Theme.ink)
-        .padding(EdgeInsets(top: 24, leading: 26, bottom: 18, trailing: 26))
         .frame(maxWidth: .infinity, alignment: .leading)
-        // Yalnızca zemin kırpılır: düğme ipuçları kartın dışına taşabilsin.
-        .background {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Theme.card)
-                .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(Theme.line))
-        }
     }
 
     /// Notun dili: asıl not (yazıldığı dil, `original`), sık kullanılan Fince ve İngilizce, sonra diğer diller. Asıl
@@ -853,15 +837,6 @@ struct MeetingDetailPage: View {
         .hoverHint("Notu iş arkadaşların için 30'dan fazla dilden birine çevir", alignment: .trailing, edge: .bottom)
     }
 
-    /// Kapaktaki düz çipler: süre, dil ve terim sayısı (olanlar). Konuşmacılar yanındaki rozetlerde; karar ve görev
-    /// sayısı tıklanabilir çiplerde.
-    private func heroChips() -> [String] {
-        let terms: Int = record.note?.glossary.count ?? 0
-        return (meetingDurationMinutes(record: record).map { [String(localized: "\($0) dk")] } ?? [])
-            + (record.language.map { [meetingLanguageName(language: $0)] } ?? [])
-            + (terms == 1 ? [String(localized: "1 terim")] : terms > 1 ? [String(localized: "\(terms) terim")] : [])
-    }
-
     /// Kapaktaki karar ya da görev çipinden nottaki bölüme gider: başka sekmedeyse önce Özet'e geçer, bölüm çizilince
     /// kaydırır.
     private func reveal(anchor: MeetingNoteAnchor, proxy: ScrollViewProxy) {
@@ -886,80 +861,23 @@ struct MeetingDetailPage: View {
         }
     }
 
-    /// Kapaktaki eylemler: "Dinle", "Notu yenile" ve "Tarif" görünür; dışa aktarma simge; yönetim "⋯" menüsünde. Yer
-    /// daralınca önce dışa aktarma simgeleri menüye geçer, sonra "Notu yenile" ve "Tarif" yalnız simgeye iner: "⋯"
-    /// boşlukta tek başına kalmaz.
+    /// Başlıktaki eylemler: yalnızca "Dinle" ve "Tarif" görünür; geri kalan her şey (paylaşma, notu yenileme, dışa
+    /// aktarma, gönderme, yönetim) tek "⋯" menüsünde. Yer daralınca "Tarif" yalnız simgeye iner, "Dinle" etiketli kalır.
     private var heroActions: some View {
         ViewThatFits(in: .horizontal) {
             HStack(spacing: DesignTokens.Spacing.s) {
                 listenButton
-                regenerateButton
                 recipeMenu
                 Spacer(minLength: DesignTokens.Spacing.s)
-                if let text = displayedShareText {
-                    ShareLink(item: text, subject: Text(record.note?.title ?? record.title)) {
-                        Label("Paylaş", systemImage: "square.and.arrow.up")
-                    }
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.pill)
-                    .accessibilityLabel("Notu paylaş")
-                    .hoverHint("Notu paylaş (Mail, Mesajlar, Notlar…); seçili dilde", alignment: .trailing, edge: .bottom)
-                }
-                Button("PDF olarak kaydet", systemImage: "doc.richtext") { exportPDF() }
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.pill)
-                    .hoverHint("PDF olarak İndirilenler'e kaydet", alignment: .trailing, edge: .bottom)
-                Button("Markdown olarak kaydet", systemImage: "square.and.arrow.down") { exportMarkdown() }
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.pill)
-                    .hoverHint("Markdown olarak kaydet", alignment: .trailing, edge: .bottom)
-                Button("Markdown olarak kopyala", systemImage: "doc.on.doc") { copyMarkdown() }
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.pill)
-                    .hoverHint("Markdown olarak kopyala", alignment: .trailing, edge: .bottom)
-                moreMenu {
-                    fileExportItems
-                    Divider()
-                    webhookItem
-                    Divider()
-                    manageItems
-                }
+                moreMenu
             }
             HStack(spacing: DesignTokens.Spacing.s) {
                 listenButton
-                regenerateButton
-                recipeMenu
-                Spacer(minLength: DesignTokens.Spacing.s)
-                moreMenu {
-                    exportItems
-                    Divider()
-                    fileExportItems
-                    Divider()
-                    manageItems
-                }
-            }
-            HStack(spacing: DesignTokens.Spacing.s) {
-                listenButton
-                regenerateButton.labelStyle(.iconOnly)
                 recipeMenu.labelStyle(.iconOnly)
                 Spacer(minLength: DesignTokens.Spacing.s)
-                moreMenu {
-                    exportItems
-                    Divider()
-                    fileExportItems
-                    Divider()
-                    manageItems
-                }
+                moreMenu
             }
         }
-    }
-
-    /// Notu yeniden yazar (konuşmacı adlarıyla).
-    private var regenerateButton: some View {
-        Button("Notu yenile", systemImage: "sparkles") { model.regenerateNote(meetingID: record.id) }
-            .buttonStyle(.pill)
-            .disabled(isLocked)
-            .hoverHint("Notu adlarla yeniden yaz", alignment: .leading, edge: .bottom)
     }
 
     /// Toplantıya tarif uygular (takip e-postası, aksiyonlar…).
@@ -997,10 +915,33 @@ struct MeetingDetailPage: View {
         }
     }
 
-    /// "⋯" menüsü: başlık kartında hap.
-    private func moreMenu(@ViewBuilder items: () -> some View) -> some View {
+    /// "⋯" menüsü: sık kullanılanlar üstte (paylaş, kopyala, takip e-postası, notu yenile), dışa aktarma ve gönderme
+    /// alt menülerde, yönetim ve silme en altta.
+    private var moreMenu: some View {
         Menu {
-            items()
+            if let text = displayedShareText {
+                ShareLink(item: text, subject: Text(record.note?.title ?? record.title)) {
+                    Label("Notu paylaş", systemImage: "square.and.arrow.up")
+                }
+            }
+            Button("Markdown olarak kopyala", systemImage: "doc.on.doc") { copyMarkdown() }
+            // Nottan takip e-postası: kart sayfanın üstünde açılır (taslak düzenlenir, kopyalanır ya da Mail'de açılır).
+            Button("Takip e-postası yaz", systemImage: "envelope.badge") {
+                withAnimation(.smooth(duration: 0.25)) { followUpLanguage = noteLanguage ?? record.note?.writtenLanguage }
+            }
+            .disabled(record.note == nil || isLocked)
+            // Notu yeniden yazar (konuşmacı adlarıyla).
+            Button("Notu yenile", systemImage: "sparkles") { model.regenerateNote(meetingID: record.id) }
+                .disabled(isLocked)
+            Divider()
+            Menu("Dışa aktar", systemImage: "square.and.arrow.down") {
+                exportItems
+            }
+            Menu("Gönder", systemImage: "paperplane") {
+                sendItems
+            }
+            Divider()
+            manageItems
         } label: {
             // Simge düğmeleriyle aynı genişlikte daire.
             Image(systemName: "ellipsis").frame(width: 16, height: 16)
@@ -1010,41 +951,47 @@ struct MeetingDetailPage: View {
         .menuIndicator(.hidden)
         .fixedSize()
         .accessibilityLabel("Diğer işlemler")
-        .hoverHint("Diğer işlemler", alignment: .trailing, edge: .bottom)
+        .hoverHint("Paylaş, dışa aktar, gönder ve diğer işlemler", alignment: .trailing, edge: .bottom)
     }
 
-    /// Dar alanda menüye taşınan dışa aktarma eylemleri ("Notu yenile" ve "Tarif" düğme olarak kalır).
+    /// Dosya olarak dışa aktarma (seçili not dilinde): PDF, Markdown, Word, web sayfası, transkriptin düz metni, SRT
+    /// altyazısı ve seçili klasöre Markdown.
     @ViewBuilder
     private var exportItems: some View {
+        let hasTranscript: Bool = !(record.finalSegments.isEmpty && record.liveSegments.isEmpty)
         Button("PDF olarak kaydet", systemImage: "doc.richtext") { exportPDF() }
         Button("Markdown olarak kaydet", systemImage: "square.and.arrow.down") { exportMarkdown() }
-        Button("Markdown olarak kopyala", systemImage: "doc.on.doc") { copyMarkdown() }
-        Button("E-postayla gönder", systemImage: "envelope") { emailNote() }
-            .disabled(record.note == nil)
-        webhookItem
-    }
-
-    /// Dosya olarak dışa aktarma: Word belgesi (seçili not dilinde), transkriptin düz metni ve SRT altyazısı.
-    @ViewBuilder
-    private var fileExportItems: some View {
-        let hasTranscript: Bool = !(record.finalSegments.isEmpty && record.liveSegments.isEmpty)
         Button("Word (DOCX) olarak kaydet", systemImage: "doc.text") { exportDOCX() }
+        Button("Web sayfası olarak kaydet", systemImage: "globe") { exportHTML() }
+            .disabled(record.note == nil)
+        Divider()
         Button("Transkripti metin olarak kaydet (TXT)", systemImage: "text.alignleft") { exportTranscriptText() }
             .disabled(!hasTranscript)
         Button("Altyazı olarak kaydet (SRT)", systemImage: "captions.bubble") { exportSRT() }
             .disabled(!hasTranscript)
+        Divider()
+        Button("Klasöre Markdown kaydet", systemImage: "folder") {
+            // Klasör henüz seçilmediyse hata yerine seçim penceresi açılır; seçilince hemen yazılır.
+            if model.markdownFolder.isEmpty {
+                guard let folder = pickMarkdownFolder() else {
+                    return
+                }
+                model.setMarkdownFolder(path: folder.path)
+            }
+            if let error = model.exportToFolder(meetingID: record.id) {
+                export = .failed(error)
+            } else {
+                export = .done(String(localized: "Seçili klasöre Markdown olarak yazıldı."))
+            }
+        }
+        .disabled(record.note == nil)
     }
 
-    /// Notu ayarlardaki webhook'a gönderir (Slack, Teams, Discord, Zapier…), paylaşılabilir web sayfası olarak kaydeder
-    /// ya da PDF'ini iCloud bağlantısıyla paylaşır. Geniş ve dar düzenin ikisinde de menüdedir.
+    /// Notu başka yere gönderir: e-posta, PDF paylaşımı (iCloud bağlantısı ya da paylaşım seçicisi), ayarlardaki
+    /// kanallar (Slack, Teams, Discord, Zapier…), görev araçları (Linear, Jira) ve Apple Notlar.
     @ViewBuilder
-    private var webhookItem: some View {
-        // Nottan takip e-postası: kart sayfanın üstünde açılır (taslak düzenlenir, kopyalanır ya da Mail'de açılır).
-        Button("Takip e-postası yaz", systemImage: "envelope.badge") {
-            withAnimation(.smooth(duration: 0.25)) { followUpLanguage = noteLanguage ?? record.note?.writtenLanguage }
-        }
-        .disabled(record.note == nil || isLocked)
-        Button("Web sayfası olarak kaydet", systemImage: "globe") { exportHTML() }
+    private var sendItems: some View {
+        Button("E-postayla gönder", systemImage: "envelope") { emailNote() }
             .disabled(record.note == nil)
         #if HOSTED_EDITION
         // Abonelik sürümünde iCloud yok: PDF geçici klasörden paylaşım seçicisiyle (Mail, AirDrop, Mesajlar…).
@@ -1100,21 +1047,6 @@ struct MeetingDetailPage: View {
                 } else {
                     export = .done(String(localized: "Notlar'daki \"\(appName)\" klasörüne yazıldı."))
                 }
-            }
-        }
-        .disabled(record.note == nil)
-        Button("Klasöre Markdown kaydet", systemImage: "folder") {
-            // Klasör henüz seçilmediyse hata yerine seçim penceresi açılır; seçilince hemen yazılır.
-            if model.markdownFolder.isEmpty {
-                guard let folder = pickMarkdownFolder() else {
-                    return
-                }
-                model.setMarkdownFolder(path: folder.path)
-            }
-            if let error = model.exportToFolder(meetingID: record.id) {
-                export = .failed(error)
-            } else {
-                export = .done(String(localized: "Seçili klasöre Markdown olarak yazıldı."))
             }
         }
         .disabled(record.note == nil)
@@ -1507,34 +1439,16 @@ struct MeetingDetailPage: View {
     }
 }
 
-/// Kapaktaki çip: soluk kapsülde kısa bilgi. Tıklanabilir olan (karar, görev sayısı) vurgu renginde simgeli.
-private struct HeroChip: View {
-    let text: String
-    let symbol: String?
-    let isAction: Bool
-    @Environment(\.panelAppearance) private var appearance: PanelAppearance
-
-    var body: some View {
-        HStack(spacing: 5) {
-            if let symbol {
-                Image(systemName: symbol)
-                    .appFont(size: 10, weight: .semibold)
-                    .accessibilityHidden(true)
-            }
-            Text(verbatim: text)
-        }
-        .appFont(size: 12, weight: .medium)
-        .foregroundStyle(isAction ? appearance.accent.color : Theme.muted)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 4)
-        .background(Theme.soft, in: Capsule())
-        .contentShape(Capsule())
-    }
+/// Toplantı başlığının altındaki bilgiler: süre, dil ve konuşmacı sayısı (olanlar, bu sırayla). Saf fonksiyondur.
+private func meetingHeaderFacts(minutes: Int?, language: String?, speakers: Int?) -> [String] {
+    let duration: [String] = minutes.map { [String(localized: "\($0) dk")] } ?? []
+    let languages: [String] = language.map { [$0] } ?? []
+    let people: [String] = speakers.map { [String(localized: "\($0) konuşmacı")] } ?? []
+    return duration + languages + people
 }
 
-/// Özet sekmesi bir belge gibi okunur: sana düşen görevler, büyük yazılı özet, numaralı kararlar, diğer görevler ve
-/// sözlük; geniş pencerede sağda konuşma payları, darda (panel) en altta. Süre, karar ve görev sayısı kapaktaki
-/// çiplerde.
+/// Özet sekmesi bir belge gibi okunur: not bölümleri (görevler, konu akışı, kararlar…), büyük yazılı özet, kendi
+/// notların ve not düzenleme; sonda kapalı "Ayrıntılar"da konuşma payları ve sözlük. Okunur genişlikte tek sütun.
 private struct SummaryTab: View {
     let model: AppModel
     /// Gösterilen not: asıl not ya da başka dildeki sürümü (`SharedNoteSection`).
@@ -1548,6 +1462,8 @@ private struct SummaryTab: View {
     let onPlay: @MainActor (Double) -> Void
     /// İşaretlenen anı ses klibi olarak kaydeder.
     let onClip: @MainActor (TranscriptParagraph) -> Void
+    /// Konuşmacılara ad vermek için Transkript'e geçer (konuşmacı çipleri orada).
+    let onNameSpeakers: @MainActor () -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
     /// Kendi notları yazılıyor (henüz notu yokken "Kendi notun" düğmesiyle açılır).
     @State private var isEditingMyNotes: Bool = false
@@ -1559,23 +1475,7 @@ private struct SummaryTab: View {
     @State private var showsOtherTasks: Bool = true
 
     var body: some View {
-        let groups: SpeakerGroups = groupedSpeakers(shares: speakerShares(paragraphs: paragraphs), speakerNames: record.speakerNames)
-        let hasSpeakers: Bool = !groups.major.isEmpty || !groups.minor.isEmpty
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .top, spacing: 24) {
-                main.frame(minWidth: 380, idealWidth: 380, maxWidth: .infinity, alignment: .leading)
-                if hasSpeakers {
-                    talkShare(groups: groups)
-                        .frame(width: 250)
-                }
-            }
-            VStack(alignment: .leading, spacing: 30) {
-                main
-                if hasSpeakers {
-                    talkShare(groups: groups)
-                }
-            }
-        }
+        main.frame(maxWidth: 820, alignment: .leading)
     }
 
     private var main: some View {
@@ -1616,9 +1516,7 @@ private struct SummaryTab: View {
                     model.editNote(meetingID: record.id, instruction: instruction)
                 }
             }
-            if !note.glossary.isEmpty {
-                GlossarySection(glossary: note.glossary)
-            }
+            details(isLocked: isLocked)
         }
         // Özet sekmesi transkriptle aynı metin ayarlarını kullanır (Ayarlar › Görünüm); bölüm başlıkları kendi yazı tipinde.
         .font(appearance.bodyFont)
@@ -1766,6 +1664,40 @@ private struct SummaryTab: View {
             .contextMenu {
                 Button("Klip olarak kaydet (ses)", systemImage: "waveform") { onClip(paragraph) }
                     .disabled(!canPlay)
+            }
+        }
+    }
+
+    /// Notun sonundaki az kullanılan bilgiler: konuşma payları ve sözlük, kapalı "Ayrıntılar"da. Adı verilmemiş
+    /// konuşmacı varsa ad verme bağlantısı bölümün dışında da görünür (görevlerin kime düştüğü adlara bağlı).
+    @ViewBuilder
+    private func details(isLocked: Bool) -> some View {
+        let groups: SpeakerGroups = groupedSpeakers(shares: speakerShares(paragraphs: paragraphs), speakerNames: record.speakerNames)
+        let hasSpeakers: Bool = !groups.major.isEmpty || !groups.minor.isEmpty
+        let unnamed: Bool = hasUnnamedSpeakers(shares: groups.major + groups.minor, speakerNames: record.speakerNames)
+        if hasSpeakers || !note.glossary.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                if unnamed, !isLocked {
+                    Button("Konuşmacılara ad ver", systemImage: "person.text.rectangle") { onNameSpeakers() }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(appearance.accent.color)
+                        .appFont(size: 13, weight: .medium)
+                        .linkPointer(isEnabled: true)
+                        .hoverHint("Transkriptte konuşmacılara ad ver; not adlarla yeniden yazılabilir", alignment: .leading, edge: .bottom)
+                }
+                MeetingDetailsDisclosure(
+                    summary: ([hasSpeakers ? String(localized: "Konuşma payları") : nil, note.glossary.isEmpty ? nil : String(localized: "Sözlük")])
+                        .compactMap { $0 }
+                        .joined(separator: " · ")
+                ) {
+                    if hasSpeakers {
+                        talkShare(groups: groups)
+                            .frame(maxWidth: 420, alignment: .leading)
+                    }
+                    if !note.glossary.isEmpty {
+                        GlossaryList(glossary: note.glossary)
+                    }
+                }
             }
         }
     }
@@ -2016,92 +1948,38 @@ private struct MyNotesCard: View {
     }
 }
 
-/// Sözlük: açılıp kapanan bölüm. Kapalıyken terim sayısı ve ilk terimler çip olarak; açıkken solda terim sağda anlamı
-/// olan, ince çizgilerle ayrılmış liste (dar panelde terim anlamının üstünde). Açık/kapalı tercihi hatırlanır.
-private struct GlossarySection: View {
+/// "Ayrıntılar"daki sözlük: solda terim sağda anlamı olan, ince çizgilerle ayrılmış liste (dar panelde terim anlamının
+/// üstünde).
+private struct GlossaryList: View {
     let glossary: [GlossaryEntry]
-    @AppStorage(SettingsKey.glossaryExpanded) private var isExpanded: Bool = false
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Button {
-                withAnimation(.smooth(duration: 0.3)) { isExpanded.toggle() }
-            } label: {
-                HStack(spacing: 8) {
-                    Text("SÖZLÜK")
-                        .appFont(size: 11, weight: .semibold)
-                        .tracking(DesignTokens.labelTracking)
-                        .foregroundStyle(Theme.muted)
-                    Text("\(glossary.count) terim")
-                        .appFont(size: 11, weight: .medium)
-                        .foregroundStyle(Theme.muted)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 1)
-                        .background(Theme.soft, in: Capsule())
-                    Spacer(minLength: 0)
-                    Image(systemName: "chevron.down")
-                        .appFont(size: 11, weight: .semibold)
-                        .foregroundStyle(Theme.muted)
-                        .rotationEffect(.degrees(isExpanded ? 0 : -90))
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(glossary.enumerated()), id: \.offset) { (item: (offset: Int, element: GlossaryEntry)) in
+                if item.offset > 0 {
+                    Rectangle().fill(Theme.line).frame(height: 1)
                 }
-                .padding(.vertical, 4)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.hoverPlain)
-            .hoverHint(isExpanded ? "Sözlüğü kapat" : "Sözlüğü aç", alignment: .trailing, edge: .bottom)
-            .accessibilityValue(isExpanded ? Text("Sözlük açık") : Text("Sözlük kapalı"))
-            if isExpanded {
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(glossary.enumerated()), id: \.offset) { (item: (offset: Int, element: GlossaryEntry)) in
-                        if item.offset > 0 {
-                            Rectangle().fill(Theme.line).frame(height: 1)
-                        }
-                        // Genişte yan yana, dar panelde alt alta.
-                        ViewThatFits(in: .horizontal) {
-                            HStack(alignment: .firstTextBaseline, spacing: 16) {
-                                term(entry: item.element).frame(width: 200, alignment: .leading)
-                                meaning(entry: item.element).frame(minWidth: 240, idealWidth: 240, maxWidth: .infinity, alignment: .leading)
-                            }
-                            VStack(alignment: .leading, spacing: 2) {
-                                term(entry: item.element)
-                                meaning(entry: item.element)
-                            }
-                        }
-                        .padding(.vertical, 10)
+                // Genişte yan yana, dar panelde alt alta.
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline, spacing: 16) {
+                        term(entry: item.element).frame(width: 200, alignment: .leading)
+                        meaning(entry: item.element).frame(minWidth: 240, idealWidth: 240, maxWidth: .infinity, alignment: .leading)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        term(entry: item.element)
+                        meaning(entry: item.element)
                     }
                 }
-                .textSelection(.enabled)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 4)
-                .cardSurface(cornerRadius: 14)
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            } else {
-                // Kapalıyken ilk terimler; tıklayınca açılır.
-                FlowLayout(spacing: 6, lineSpacing: 6) {
-                    ForEach(glossary.prefix(6), id: \.term) { (entry: GlossaryEntry) in
-                        Text(entry.term)
-                            .appFont(size: 12, weight: .medium)
-                            .foregroundStyle(Theme.ink.opacity(0.8))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(Theme.soft, in: Capsule())
-                    }
-                    if glossary.count > 6 {
-                        Text(verbatim: "+\(glossary.count - 6)")
-                            .appFont(size: 12, weight: .medium)
-                            .foregroundStyle(Theme.muted)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .overlay(Capsule().strokeBorder(Theme.line))
-                    }
-                }
-                .onTapGesture { withAnimation(.smooth(duration: 0.3)) { isExpanded = true } }
-                .pointerStyle(.link)
-                .transition(.opacity)
+                .padding(.vertical, 10)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .textSelection(.enabled)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 4)
+        .cardSurface(cornerRadius: 14)
+        .accessibilityLabel(Text("Sözlük"))
+        .accessibilityElement(children: .contain)
     }
 
     private func term(entry: GlossaryEntry) -> some View {
@@ -2118,6 +1996,65 @@ private struct GlossarySection: View {
     }
 }
 
+/// Konuşmacılardan biri hâlâ "Konuşmacı N" (adı verilmemiş) mi. Saf fonksiyondur.
+private func hasUnnamedSpeakers(shares: [SpeakerShare], speakerNames: [Int: String]) -> Bool {
+    shares.contains { (share: SpeakerShare) -> Bool in
+        guard let person = share.key.person else {
+            return false
+        }
+        return (speakerNames[person] ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+}
+
+/// Toplantı notunun sonunda kapalı başlayan "Ayrıntılar" (konuşma payları, sözlük); kapalıyken içindekiler soluk tek
+/// satırda. Sistemin açılır bölümü: VoiceOver "genişletildi/daraltıldı" diye okur. Açık/kapalı tercihi bütün toplantılar
+/// için hatırlanır.
+private struct MeetingDetailsDisclosure<Content: View>: View {
+    /// Kapalıyken başlığın yanında: içindekiler ("Konuşma payları · Sözlük").
+    let summary: String
+    @ViewBuilder let content: () -> Content
+    @AppStorage(SettingsKey.meetingDetailsExpanded) private var isExpanded: Bool = false
+
+    var body: some View {
+        DisclosureGroup(isExpanded: Binding<Bool>(
+            get: { isExpanded },
+            set: { (value: Bool) -> Void in withAnimation(.smooth(duration: 0.3)) { isExpanded = value } }
+        )) {
+            VStack(alignment: .leading, spacing: 18) {
+                content()
+            }
+            .padding(.top, 14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } label: {
+            // Başlığın tamamı tıklanır (yalnız üçgen değil).
+            Button {
+                withAnimation(.smooth(duration: 0.3)) { isExpanded.toggle() }
+            } label: {
+                HStack(spacing: 8) {
+                    Text("Ayrıntılar")
+                        .appFont(size: 14, weight: .semibold)
+                        .foregroundStyle(Theme.ink)
+                    if !isExpanded, !summary.isEmpty {
+                        Text(verbatim: summary)
+                            .appFont(size: 12, weight: .regular)
+                            .foregroundStyle(Theme.muted)
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("Ayrıntılar"))
+            .accessibilityHint(Text(verbatim: summary))
+        }
+        .padding(.top, 14)
+        .overlay(alignment: .top) {
+            Rectangle().fill(Theme.line).frame(height: 1)
+        }
+    }
+}
+
 /// Notun başka dildeki sürümü: yoksa (ya da eski, eksik bölümlü sürümse) hazırlanır (ilerleme, hata ve yeniden dene);
 /// varsa asıl notla aynı düzende (`SummaryTab`) gösterilir. Kopyalama, paylaşma ve dışa aktarma kapaktaki eylemlerdedir
 /// (seçili dilde çıkar).
@@ -2131,6 +2068,8 @@ private struct SharedNoteSection: View {
     let onPlay: @MainActor (Double) -> Void
     let onClip: @MainActor (TranscriptParagraph) -> Void
     /// Seçili not bölümü (bkz. `SummaryTab.section`).
+    /// Konuşmacılara ad vermek için Transkript'e geçer.
+    let onNameSpeakers: @MainActor () -> Void
     @Binding var section: NoteSectionTab
     @State private var error: String?
     @State private var attempt: Int = 0
@@ -2145,7 +2084,7 @@ private struct SharedNoteSection: View {
             if let shared {
                 SummaryTab(
                     model: model, note: shared, sourceNote: note, record: record, paragraphs: paragraphs, canPlay: canPlay,
-                    onPlay: onPlay, onClip: onClip, section: $section
+                    onPlay: onPlay, onClip: onClip, onNameSpeakers: onNameSpeakers, section: $section
                 )
             } else if let error {
                 VStack(alignment: .leading, spacing: 8) {

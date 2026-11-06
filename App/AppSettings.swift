@@ -105,8 +105,8 @@ enum SettingsKey {
     static let customVocabulary: String = customVocabularyDefaultsKey
     /// Kullanıcının oluşturduğu klasörler (boş olanlar da listede kalsın).
     static let folders: String = savedFoldersKey
-    /// Toplantı özetinde sözlük açık mı.
-    static let glossaryExpanded: String = "meeting.glossaryExpanded"
+    /// Toplantı sayfasında "Ayrıntılar" (konuşma payları, sözlük) açık mı; varsayılan kapalı, tercih bütün toplantılar için.
+    static let meetingDetailsExpanded: String = "meeting.detailsExpanded"
     /// Toplantı sayfasında notun gösterildiği dil (`ShareLanguage` kodu; boşsa notun yazıldığı dil): seçim bütün
     /// toplantılarda ve yeniden açılışta sürer.
     static let meetingNoteDisplayLanguage: String = "meeting.noteDisplayLanguage"
