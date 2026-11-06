@@ -304,8 +304,9 @@
         "PRICE_USD_MONTHLY": "5.99",
         "PRICE_USD_YEARLY": "49",
         "REFERRAL_POLICY": "on",
-        // Bkz. üstteki geliştirme `vars` açıklaması. Kapalı: istemciler (1B) ve gizlilik metni yayınlanınca açılır.
-        "SYNC_POLICY": "off",
+        // Bkz. üstteki geliştirme `vars` açıklaması. Açık: uygulamalar ve gizlilik metni yayında; eski sürümler eşitleme
+        // satırını göstermez, yeni sürümler sunucu açık dediği için gösterir.
+        "SYNC_POLICY": "on",
         // Bkz. üstteki geliştirme `vars` açıklaması. Kapalı: uygulamalar (2. aşama), gizlilik metni ve onay sayfaları
         // (3. aşama) yayınlanınca, d1_databases açıklamasındaki sırayla açılır. Açıldıktan sonra yeniden "off" yapma:
         // kapalıyken hesap silme asistan kopyasını silmez (yeniden açılınca günlük temizlik yetimleri siler).

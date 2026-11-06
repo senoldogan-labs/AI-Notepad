@@ -287,6 +287,11 @@ private struct PhoneAppRoot: View {
                 ask.open(conversationID: conversationID)
                 router.path = [.ask, .askConversation]
             }
+            // `--sablon-galerisi [<kimlik>]`: Ayarlar'da şablon galerisi (ve o şablonun önizlemesi) açılır.
+            let templateGalleryPath: [PhoneRoute] = launchTemplateGalleryPath(arguments: CommandLine.arguments)
+            if !templateGalleryPath.isEmpty {
+                router.path = templateGalleryPath
+            }
             if CommandLine.arguments.contains("--ornek-takvim") {
                 calendar.showSampleMeetings(now: Date())
             }
@@ -580,6 +585,12 @@ enum PhoneRoute: Hashable {
     case account
     /// Profil: ad (ve ileride unvan, şirket).
     case profile
+    /// Ayarlar › Not şablonu galerisi.
+    case templateGallery
+    /// Galerideki bir şablonun önizlemesi (`GalleryTemplate.id`).
+    case templatePreview(String)
+    /// Ayarlar › Kendi şablonun (adı ve yönergesi).
+    case customTemplate
 }
 
 /// Gezinme durumu: ana ekranın üstündeki sayfa yığını ve kitaplık sayfası. Uygulama içindeki bağlantılar yığına ekler

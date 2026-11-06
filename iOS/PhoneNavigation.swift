@@ -48,6 +48,14 @@ struct PhoneDestination: View {
             PhoneAccountScreen(account: account, isMeetingInFlight: isMeetingInFlight, store: store)
         case .profile:
             PhoneProfileScreen(store: store, account: account)
+        case .templateGallery:
+            TemplateGalleryScreen()
+        case .templatePreview(let id):
+            if let template = templateGallery().first(where: { $0.id == id }) {
+                TemplatePreviewScreen(template: template, router: router)
+            }
+        case .customTemplate:
+            CustomTemplateScreen()
         }
     }
 }
