@@ -2,13 +2,12 @@ import AINotepadCore
 import AINotepadUI
 import SwiftUI
 
-/// Sekme çubuğunun üstündeki mini çalar (Apple Müzik gibi): toplantı adı, süre, çalma hızı ve 15 sn geri (sekme çubuğu
-/// küçülünce gizlenir), oynat/duraklat, kapat. Ada dokununca toplantı açılır.
+/// Sayfanın altındaki mini çalar (Apple Müzik gibi, cam kapsülde): toplantı adı, süre, çalma hızı, 15 sn geri,
+/// oynat/duraklat, kapat. Ada dokununca toplantı açılır.
 struct MiniPlayer: View {
     let player: MeetingAudioPlayer
     let store: PhoneStore
     let router: PhoneRouter
-    @Environment(\.tabViewBottomAccessoryPlacement) private var placement: TabViewBottomAccessoryPlacement?
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
@@ -27,38 +26,34 @@ struct MiniPlayer: View {
                         Text(record.map { $0.note?.title ?? $0.title } ?? "")
                             .appFont(size: 13, weight: .semibold)
                             .lineLimit(1)
-                        if placement != .inline {
-                            PlayerTime(player: player)
-                        }
+                        PlayerTime(player: player)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            if placement != .inline {
-                // Çalma hızı (Mac'teki çalar gibi): 1× → 1,25× → 1,5× → 2× → 0,75×…
-                Button {
-                    player.cycleRate()
-                } label: {
-                    Text(verbatim: phonePlaybackRateText(rate: player.rate))
-                        .appFont(size: 12, weight: .semibold)
-                        .monospacedDigit()
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 3)
-                        .background(Theme.soft, in: Capsule())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(Text("Çalma hızı"))
-                .accessibilityValue(Text(verbatim: phonePlaybackRateText(rate: player.rate)))
-                Button {
-                    player.skip(by: -15)
-                } label: {
-                    Image(systemName: "gobackward.15").appFont(size: 17, weight: .medium)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("15 saniye geri")
+            // Çalma hızı (Mac'teki çalar gibi): 1× → 1,25× → 1,5× → 2× → 0,75×…
+            Button {
+                player.cycleRate()
+            } label: {
+                Text(verbatim: phonePlaybackRateText(rate: player.rate))
+                    .appFont(size: 12, weight: .semibold)
+                    .monospacedDigit()
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(Theme.soft, in: Capsule())
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("Çalma hızı"))
+            .accessibilityValue(Text(verbatim: phonePlaybackRateText(rate: player.rate)))
+            Button {
+                player.skip(by: -15)
+            } label: {
+                Image(systemName: "gobackward.15").appFont(size: 17, weight: .medium)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("15 saniye geri")
             Button {
                 player.togglePause()
             } label: {
@@ -78,6 +73,8 @@ struct MiniPlayer: View {
         }
         .foregroundStyle(Theme.ink)
         .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .glassEffect(.regular.interactive(), in: Capsule())
     }
 }
 

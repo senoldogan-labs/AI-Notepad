@@ -5,25 +5,22 @@ import SwiftUI
 import UniformTypeIdentifiers
 import os
 
-/// Toplantılar: tarihe göre gruplanmış film gradyanlı kartlar ve arama; uzun basınca Markdown kopyası, klasöre taşıma ve
-/// silme. Dokununca toplantı sayfası. Sağ üstteki "Seç" (Mac'teki gibi) birden çok toplantıyı birlikte siler ya da
-/// klasöre taşır; silinen toplantı Son silinenler'e gider (çiplerin sonundaki çöp çipi). Klasör çiplerinde "+" boş klasör
-/// açar, uzun basınca klasör silinir (toplantılar kalır). Sağ üstteki "İçe aktar" ses ya da video dosyasını (Dosyalar ya da Fotoğraflar)
-/// toplantı olarak ekler.
-struct MeetingsTab: View {
+/// Toplantı kitaplığı (ana ekranın kitaplık sayfasından): tarihe göre gruplanmış film gradyanlı kartlar ve arama; uzun
+/// basınca Markdown kopyası, klasöre taşıma ve silme. Dokununca toplantı sayfası. Sağ üstteki "Seç" (Mac'teki gibi) birden
+/// çok toplantıyı birlikte siler ya da klasöre taşır; silinen toplantı Son silinenler'e gider (çiplerin sonundaki çöp
+/// çipi). Klasör çiplerinde "+" boş klasör açar, uzun basınca klasör silinir (toplantılar kalır).
+struct MeetingsLibraryScreen: View {
     let store: PhoneStore
-    /// İçe aktarma ve toplantıyı yeniden işleme (⋯ › Tekrar işle) için.
+    /// İçe aktarma durumu ve bekleyen kaydı yeniden deneme için.
     let recorder: PhoneRecorder
-    @Bindable var router: PhoneRouter
+    let router: PhoneRouter
     let player: MeetingAudioPlayer
-    /// Kayıt sürüyorsa çalma kapalıdır (mikrofon ve hoparlör aynı ses oturumunu paylaşamaz).
-    let isRecording: Bool
-    /// Toplantı sayfasındaki ⋯ › Tarif uygula: tarifler ve seçilen tarifi toplantıya (kimliği) Sor'da uygulayan.
-    let recipes: [Recipe]
-    let onRunRecipe: @MainActor (Recipe, String) -> Void
+    /// Kitaplığın açıldığı kapsam (tüm toplantılar ya da kitaplık sayfasında seçilen klasör).
+    let initialScope: MeetingListScope
+    @Environment(PhoneImportState.self) private var imports: PhoneImportState
     @State private var query: String = ""
-    /// Liste süzgeci (Mac'teki Hepsi / Görevlerim / Hatalı) ya da klasör.
-    @State private var scope: MeetingListScope = .filter(.all)
+    /// Çiplerle seçilen süzgeç (Mac'teki Hepsi / Görevlerim / Hatalı) ya da klasör; seçilmediyse açılış kapsamı.
+    @State private var selectedScope: MeetingListScope?
     @State private var pendingDelete: MeetingRecord?
     /// Silme, geri yükleme ve klasöre taşıma hataları.
     @State private var libraryErrors: [String] = []
@@ -35,23 +32,10 @@ struct MeetingsTab: View {
     @State private var newFolderRequest: NewFolderRequest?
     /// Silinmesi onay bekleyen klasör.
     @State private var pendingFolderDelete: String?
-    /// Dosyalar seçicisi açık (ses ya da video içe aktarma).
-    @State private var isPickingFiles: Bool = false
-    /// Fotoğraflar seçicisi açık; seçilen videolar.
-    @State private var isPickingVideos: Bool = false
-    @State private var pickedVideos: [PhotosPickerItem] = []
-    /// Fotoğraflar'dan seçilen videolar uygulamaya kopyalanıyor (dönüştürme ondan sonra başlar).
-    @State private var isLoadingVideos: Bool = false
-    /// Seçici ya da Fotoğraflar kopyası hatası.
-    @State private var pickError: String?
-    #if CALL_CAPTURE_EXPERIMENT
-    /// Deneysel görüşme kaydı sayfası açık (yalnız `CALL_CAPTURE_EXPERIMENT` derlemesinde).
-    @State private var isCapturingCall: Bool = false
-    #endif
-    /// Kart, açılan toplantıya büyüyerek geçer (kapanınca kartına döner).
-    @Namespace private var cardTransition: Namespace.ID
     /// Notlardaki konuşmacı etiketleri adlarla gösterilir; adı kullanıcının adı olan konuşmacının görevleri onundur.
     private var userName: String { store.userName }
+    /// Gösterilen kapsam.
+    private var scope: MeetingListScope { selectedScope ?? initialScope }
 
     var body: some View {
         // Kartlar ve sayfa notu konuşmacı adlarıyla gösterir (saklı not genel etiketleri korur, değişiklikler kimlikle
@@ -66,220 +50,110 @@ struct MeetingsTab: View {
         // işaretliler işlemden çıkar.
         let visibleIDs: Set<String> = Set(sections.flatMap(\.meetings).map(\.id))
         let effective: Set<String> = checked.intersection(visibleIDs)
-        let statusMessages: [String] = store.loadProblems + recorder.importErrors + libraryErrors + [pickError].compactMap { $0 }
+        let statusMessages: [String] = store.loadProblems + recorder.importErrors + libraryErrors + [imports.pickError].compactMap { $0 }
         // Listenin üstündeki hata ve içe aktarma satırları: varken "Henüz toplantı yok" sahnesi gösterilmez (bkz.
         // `emptyOverlay`).
-        let hasStatusRows: Bool = !statusMessages.isEmpty || !store.actionProblems.isEmpty || recorder.importingCount > 0 || isLoadingVideos
-        NavigationStack(path: $router.meetingsPath) {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 14) {
-                    PhoneErrorList(messages: statusMessages)
-                    PhoneDismissibleErrorList(messages: store.actionProblems) { store.dismissActionProblems() }
-                    if recorder.importingCount > 0 || isLoadingVideos {
-                        ImportProgressRow()
-                    }
-                    if !store.meetings.isEmpty {
-                        // Son silinenler çipi Seç modunda gizli (işaretlerken başka sayfaya geçilmesin).
-                        MeetingScopeChips(
-                            records: meetings, folders: store.folders, userName: userName, selection: $scope,
-                            deletedCount: isSelecting ? 0 : store.deletedMeetings.count,
-                            deletedDestination: RecentlyDeletedList(store: store, recorder: recorder),
-                            onCreateFolder: { newFolderRequest = .create },
-                            onDeleteFolder: { (name: String) -> Void in pendingFolderDelete = name },
-                            canDeleteFolder: { (name: String) -> Bool in
-                                !meetingsInFolder(records: store.meetings, folder: name).contains { locked.contains($0.id) }
-                            }
-                        )
-                    }
-                    ForEach(sections) { (section: MeetingSection) in
-                        Text(section.title)
-                            .appFont(size: 13, weight: .semibold)
-                            .tracking(DesignTokens.labelTracking)
-                            .textCase(.uppercase)
-                            .foregroundStyle(Theme.muted)
-                            .padding(.top, 10)
-                        ForEach(section.meetings, id: \.id) { (record: MeetingRecord) in
-                            card(record: record, locked: locked)
+        let hasStatusRows: Bool = !statusMessages.isEmpty || !store.actionProblems.isEmpty || recorder.importingCount > 0 || imports.isLoadingVideos
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 14) {
+                PhoneErrorList(messages: statusMessages)
+                PhoneDismissibleErrorList(messages: store.actionProblems) { store.dismissActionProblems() }
+                if recorder.importingCount > 0 || imports.isLoadingVideos {
+                    ImportProgressRow()
+                }
+                if !store.meetings.isEmpty {
+                    // Son silinenler çipi Seç modunda gizli (işaretlerken başka sayfaya geçilmesin).
+                    MeetingScopeChips(
+                        records: meetings, folders: store.folders, userName: userName,
+                        selection: Binding<MeetingListScope>(get: { scope }, set: { (value: MeetingListScope) -> Void in selectedScope = value }),
+                        deletedCount: isSelecting ? 0 : store.deletedMeetings.count,
+                        deletedDestination: RecentlyDeletedList(store: store, recorder: recorder),
+                        onCreateFolder: { newFolderRequest = .create },
+                        onDeleteFolder: { (name: String) -> Void in pendingFolderDelete = name },
+                        canDeleteFolder: { (name: String) -> Bool in
+                            !meetingsInFolder(records: store.meetings, folder: name).contains { locked.contains($0.id) }
                         }
-                    }
+                    )
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 24)
-            }
-            .scrollIndicators(.hidden)
-            .overlay {
-                emptyOverlay(hasResults: !sections.isEmpty, hasStatusRows: hasStatusRows)
-            }
-            // Seç modunda sekme çubuğu gizli: yatay kaydırma sekme değiştirmez.
-            .phoneTabSwipe(router: router, isEnabled: !isSelecting)
-            .background(Theme.background)
-            .navigationTitle("Toplantılar")
-            .searchable(text: $query, prompt: "Toplantılarda ara")
-            // Seç modunda alt çubuk sekme çubuğunun yerini alır (Fotoğraflar'daki gibi).
-            .toolbar(isSelecting ? .hidden : .visible, for: .tabBar)
-            .toolbar {
-                if isSelecting {
-                    // Seç modundan çıkış: iOS 26'nın onay düğmesi (vurgulu onay işareti; erişilebilirlik adı "Bitti").
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button(role: .confirm) {
-                            setSelecting(false)
-                        } label: {
-                            Label("Bitti", systemImage: "checkmark")
-                        }
-                    }
-                    ToolbarItemGroup(placement: .bottomBar) {
-                        selectionBar(effective: effective, selectable: visibleIDs.subtracting(locked), locked: locked)
-                    }
-                } else {
-                    if !store.meetings.isEmpty {
-                        // Yanındaki Kişiler ve İçe aktar gibi simge (erişilebilirlik adı "Seç").
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button("Seç", systemImage: "checkmark.circle") { setSelecting(true) }
-                        }
-                    }
-                    ToolbarItem(placement: .topBarTrailing) {
-                        NavigationLink {
-                            PhonePeopleList(store: store, router: router)
-                        } label: {
-                            Label("Kişiler", systemImage: "person.2")
-                        }
-                    }
-                    ToolbarItem(placement: .topBarTrailing) {
-                        importMenu
+                ForEach(sections) { (section: MeetingSection) in
+                    Text(section.title)
+                        .appFont(size: 13, weight: .semibold)
+                        .tracking(DesignTokens.labelTracking)
+                        .textCase(.uppercase)
+                        .foregroundStyle(Theme.muted)
+                        .padding(.top, 10)
+                    ForEach(section.meetings, id: \.id) { (record: MeetingRecord) in
+                        card(record: record, locked: locked)
                     }
                 }
             }
-            .confirmationDialog(
-                Text("\(effective.count) toplantı silinsin mi?"), isPresented: $isConfirmingBulkDelete, titleVisibility: .visible
-            ) {
-                Button("Sil", role: .destructive) { deleteChecked(ids: effective) }
-                Button("Vazgeç", role: .cancel) {}
-            } message: {
-                Text("Son silinenler'e taşınır; \(recentlyDeletedRetentionDays) gün içinde geri yükleyebilirsin.")
-            }
-            .confirmationDialog(
-                Text("\"\(pendingFolderDelete ?? "")\" klasörü silinsin mi?"),
-                isPresented: Binding<Bool>(get: { pendingFolderDelete != nil }, set: { (shown: Bool) -> Void in
-                    if !shown {
-                        pendingFolderDelete = nil
-                    }
-                }),
-                titleVisibility: .visible,
-                presenting: pendingFolderDelete
-            ) { (name: String) in
-                Button("Klasörü sil", role: .destructive) { deleteFolder(name: name) }
-                Button("Vazgeç", role: .cancel) {}
-            } message: { (_: String) in
-                Text("Toplantılar silinmez, klasörsüz kalır.")
-            }
-            .sheet(item: $newFolderRequest) { (request: NewFolderRequest) in
-                PhoneTextEntrySheet(
-                    title: "Yeni klasör", placeholder: "Klasör adı", actionTitle: request.actionTitle, initialText: ""
-                ) { (name: String) -> Void in
-                    createFolder(name: name, request: request)
-                }
-            }
-            .fileImporter(isPresented: $isPickingFiles, allowedContentTypes: [.audio, .movie], allowsMultipleSelection: true) { (result: Result<[URL], any Error>) in
-                switch result {
-                case .success(let urls):
-                    pickError = nil
-                    Task { await recorder.importFiles(urls: urls) }
-                case .failure(let error):
-                    pickError = String(localized: "Dosya seçilemedi: \(userFacingMessage(error: error))")
-                }
-            }
-            .photosPicker(isPresented: $isPickingVideos, selection: $pickedVideos, matching: .videos, photoLibrary: .shared())
-            #if CALL_CAPTURE_EXPERIMENT
-            .sheet(isPresented: $isCapturingCall) {
-                CallCaptureExperimentScreen(recorder: recorder, isRecording: isRecording)
-            }
-            #endif
-            .onChange(of: pickedVideos) { (_: [PhotosPickerItem], items: [PhotosPickerItem]) in
-                guard !items.isEmpty else {
-                    return
-                }
-                pickedVideos = []
-                importVideos(items: items)
-            }
-            .navigationDestination(for: String.self) { (id: String) in
-                if let record = meetings.first(where: { $0.id == id }) {
-                    // Onay toplantı sayfasının kendisinde sorulur (listeye bağlı onay sayfa kapanana dek görünmüyordu).
-                    MeetingReadView(record: record, store: store, player: player, isRecording: isRecording, recipes: recipes) {
-                        delete(record: record)
-                    } onReprocess: {
-                        try recorder.reprocess(meetingID: record.id)
-                    } onRunRecipe: { (recipe: Recipe) -> Void in
-                        onRunRecipe(recipe, record.id)
-                    }
-                    .navigationTransition(.zoom(sourceID: id, in: cardTransition))
-                } else if store.deletedMeetings.contains(where: { $0.id == id }) {
-                    // Son silinenlerdeki toplantı (Sor'daki kaynak, görev ya da kişi buraya götürdü): geri yüklenebilir.
-                    PhoneEmptyState(symbol: "trash", title: "Bu toplantı silindi", message: "Son silinenler'den geri yükleyebilirsin.") {
-                        Button("Geri yükle", systemImage: "arrow.uturn.backward") { restore(ids: [id]) }
-                            .buttonStyle(.accentPill)
-                    }
-                    .background(Theme.background)
-                } else {
-                    // Toplantı silindi (ör. Mac'ten): boş sayfa yerine neden görünür.
-                    PhoneEmptyState(symbol: "doc.questionmark", title: "Toplantı bulunamadı", message: "Bu toplantı silinmiş olabilir.") {
-                        EmptyView()
-                    }
-                    .background(Theme.background)
-                }
-            }
-            .refreshable { await store.reloadAndWait() }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
         }
-        // Toplantı sayfasındaki "Şimdi dene" (bekleyen kayıt) kaydediciye buradan ulaşır.
-        .environment(recorder)
+        .scrollIndicators(.hidden)
+        .overlay {
+            emptyOverlay(hasResults: !sections.isEmpty, hasStatusRows: hasStatusRows)
+        }
+        .background(Theme.background)
+        .navigationTitle(libraryTitle)
+        .searchable(text: $query, prompt: "Toplantılarda ara")
+        // Çalan toplantı altta (seç modunda alt çubuk onun yerini alır, Fotoğraflar'daki gibi).
+        .modifier(PhoneMiniPlayerInset(player: player, store: store, router: router, isHidden: isSelecting))
+        .toolbar {
+            if isSelecting {
+                // Seç modundan çıkış: iOS 26'nın onay düğmesi (vurgulu onay işareti; erişilebilirlik adı "Bitti").
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(role: .confirm) {
+                        setSelecting(false)
+                    } label: {
+                        Label("Bitti", systemImage: "checkmark")
+                    }
+                }
+                ToolbarItemGroup(placement: .bottomBar) {
+                    selectionBar(effective: effective, selectable: visibleIDs.subtracting(locked), locked: locked)
+                }
+            } else {
+                if !store.meetings.isEmpty {
+                    // Simge (erişilebilirlik adı "Seç").
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Seç", systemImage: "checkmark.circle") { setSelecting(true) }
+                    }
+                }
+            }
+        }
+        .confirmationDialog(
+            Text("\(effective.count) toplantı silinsin mi?"), isPresented: $isConfirmingBulkDelete, titleVisibility: .visible
+        ) {
+            Button("Sil", role: .destructive) { deleteChecked(ids: effective) }
+            Button("Vazgeç", role: .cancel) {}
+        } message: {
+            Text("Son silinenler'e taşınır; \(recentlyDeletedRetentionDays) gün içinde geri yükleyebilirsin.")
+        }
+        .confirmationDialog(
+            Text("\"\(pendingFolderDelete ?? "")\" klasörü silinsin mi?"),
+            isPresented: Binding<Bool>(get: { pendingFolderDelete != nil }, set: { (shown: Bool) -> Void in
+                if !shown {
+                    pendingFolderDelete = nil
+                }
+            }),
+            titleVisibility: .visible,
+            presenting: pendingFolderDelete
+        ) { (name: String) in
+            Button("Klasörü sil", role: .destructive) { deleteFolder(name: name) }
+            Button("Vazgeç", role: .cancel) {}
+        } message: { (_: String) in
+            Text("Toplantılar silinmez, klasörsüz kalır.")
+        }
+        .sheet(item: $newFolderRequest) { (request: NewFolderRequest) in
+            PhoneTextEntrySheet(
+                title: "Yeni klasör", placeholder: "Klasör adı", actionTitle: request.actionTitle, initialText: ""
+            ) { (name: String) -> Void in
+                createFolder(name: name, request: request)
+            }
+        }
+        .refreshable { await store.reloadAndWait() }
         // Uzun basınca silme: ekranın ortasında uyarı (kartın üstünde açılan menü listeye bağlıydı, sayfadayken görünmüyordu).
         .modifier(MeetingDeleteConfirmation(pending: $pendingDelete) { (record: MeetingRecord) -> Void in delete(record: record) })
-    }
-
-    /// Fotoğraflar'dan seçilen videoları geçici klasöre kopyalar, toplantı olarak içe aktarır ve kopyaları siler.
-    /// Kopyalanamayan video atlanır, nedeni listede görünür.
-    private func importVideos(items: [PhotosPickerItem]) {
-        pickError = nil
-        isLoadingVideos = true
-        Task {
-            var copies: [PickedMovie] = []
-            var failures: [String] = []
-            for item in items {
-                do {
-                    guard let movie = try await item.loadTransferable(type: PickedMovie.self) else {
-                        throw MediaImportError.readFailed(path: item.itemIdentifier ?? "?", reason: "Fotoğraflar videoyu vermedi")
-                    }
-                    copies.append(movie)
-                } catch {
-                    failures.append(userFacingMessage(error: error))
-                }
-            }
-            isLoadingVideos = false
-            pickError = failures.isEmpty ? nil : String(localized: "Video alınamadı: \(failures.joined(separator: "; "))")
-            await recorder.importFiles(urls: copies.map(\.url))
-            for copy in copies {
-                removePickedMovie(movie: copy)
-            }
-        }
-    }
-
-    /// Sağ üstteki "İçe aktar": ses ya da video dosyası (Dosyalar ya da Fotoğraflar).
-    private var importMenu: some View {
-        Menu {
-            Section("Ses ya da video dosyası içe aktar") {
-                Button("Dosyalar'dan seç", systemImage: "folder") { isPickingFiles = true }
-                Button("Fotoğraflar'dan video seç", systemImage: "photo.on.rectangle") { isPickingVideos = true }
-            }
-            #if CALL_CAPTURE_EXPERIMENT
-            Section {
-                Button { isCapturingCall = true } label: {
-                    Label { Text("Bu iPhone'daki görüşmeyi kaydet (deneysel)") } icon: { Image(systemName: "phone.badge.waveform") }
-                }
-            }
-            #endif
-        } label: {
-            Label("İçe aktar", systemImage: "square.and.arrow.down")
-        }
-        .disabled(isLoadingVideos)
     }
 
     /// Liste kartı: seç modunda işaretlenir; değilse dokununca açılır, uzun basınca menü (Mac'teki satır menüsü gibi).
@@ -290,9 +164,8 @@ struct MeetingsTab: View {
                 toggle(id: record.id)
             }
         } else {
-            NavigationLink(value: record.id) {
+            NavigationLink(value: PhoneRoute.meeting(record.id)) {
                 PhoneMeetingCard(record: record, height: 132)
-                    .matchedTransitionSource(id: record.id, in: cardTransition)
             }
             .buttonStyle(PressableCardStyle())
             .contextMenu {
@@ -367,7 +240,7 @@ struct MeetingsTab: View {
         } else if !hasResults {
             if case .folder = scope, query.trimmingCharacters(in: .whitespaces).isEmpty {
                 PhoneEmptyState(symbol: "folder", title: "Bu klasör boş", message: "Toplantı sayfasındaki \"Klasöre taşı\" ile buraya ekle.") {
-                    Button("Tüm toplantılar") { scope = .filter(.all) }
+                    Button("Tüm toplantılar") { selectedScope = .filter(.all) }
                         .buttonStyle(.accentPill)
                 }
             } else {
@@ -385,7 +258,7 @@ struct MeetingsTab: View {
             message: "İlk toplantını kaydet; not, görevler ve transkript burada hazır olur."
         ) {
             VStack(spacing: 12) {
-                Button("Kaydı başlat", systemImage: "mic.fill") { router.tab = .record }
+                Button("Kaydı başlat", systemImage: "mic.fill") { router.showHome() }
                     .buttonStyle(.accentPill)
                     .controlSize(.large)
                 if !store.deletedMeetings.isEmpty {
@@ -418,16 +291,9 @@ struct MeetingsTab: View {
         }
     }
 
-    /// Toplantıları son silinenlere taşır (çalan toplantı önce durur, açık sayfası kapanır); hatalar döner.
+    /// Toplantıları son silinenlere taşır (bkz. `phoneTrashMeetings`); hatalar döner.
     private func trash(ids: Set<String>) -> [String] {
-        if let playing = player.meetingID, ids.contains(playing) {
-            player.stop()
-            store.playingMeetingID = nil
-        }
-        let errors: [String] = store.trashMeetings(ids: ids, locked: phoneLockedMeetingIDs(store: store, recorder: recorder), now: Date())
-        let remaining: Set<String> = Set(store.meetings.map(\.id))
-        router.meetingsPath.removeAll { ids.contains($0) && !remaining.contains($0) }
-        return errors
+        phoneTrashMeetings(ids: ids, store: store, recorder: recorder, player: player, router: router)
     }
 
     /// Tek toplantıyı siler (uzun basma menüsü ya da toplantı sayfası, onaydan sonra).
@@ -474,17 +340,16 @@ struct MeetingsTab: View {
     private func deleteFolder(name: String) {
         store.deleteFolder(name: name, locked: phoneLockedMeetingIDs(store: store, recorder: recorder))
         if case .folder(let selected) = scope, selected.caseInsensitiveCompare(name) == .orderedSame {
-            scope = .filter(.all)
+            selectedScope = .filter(.all)
         }
     }
 
-    /// Silinen toplantıyı geri yükler; bekleyen kayıt geri geldiyse kuyruk çalışır.
-    private func restore(ids: Set<String>) {
-        let result: (restored: [MeetingRecord], errors: [String]) = store.restoreDeleted(ids: ids)
-        libraryErrors = result.errors
-        if result.restored.contains(where: { $0.status == .queued }) {
-            Task { await recorder.runQueue() }
+    /// Başlık: klasörden açıldıysa klasörün adı, yoksa "Tüm toplantılar".
+    private var libraryTitle: Text {
+        if case .folder(let name) = initialScope {
+            return Text(verbatim: name)
         }
+        return Text("Tüm toplantılar")
     }
 }
 
@@ -696,9 +561,10 @@ private enum MeetingPane: Hashable {
     case transcript
 }
 
-/// Toplantı sayfası: kapak (tarih, başlık, çipler: süre, dil, konuşmacı, karar ve görev sayısı; konuşmacı şeridi,
-/// Dinle, paylaş), Özet (görevler, özet, konuşma payları, kararlar, konu akışı, diğer görevler, sözlük) ve Transkript (konuşmacılı paragraflar; çalarken o
-/// anki kelime vurgulanır, dokununca oradan çalar). Sağ üstte paylaş ve sil.
+/// Toplantı sayfası: sakin başlık (tarih, başlık, tek satır bilgi), Özet (not bölümleri: görevler, konu akışı, kararlar,
+/// açık konular, işaretli anlar; özet, kendi notların, not düzenleme; kapalı "Ayrıntılar"da konuşma payları ve sözlük) ve
+/// Transkript (konuşmacılı paragraflar; çalarken o anki kelime vurgulanır, dokununca oradan çalar). Sağ üstte Dinle ve ⋯
+/// (paylaş, dışa aktar, gönder, düzenle, yeniden yaz, sil…).
 struct MeetingReadView: View {
     let record: MeetingRecord
     let store: PhoneStore
@@ -758,7 +624,7 @@ struct MeetingReadView: View {
         ScrollViewReader { (proxy: ScrollViewProxy) in
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    hero(paragraphs: paragraphs, proxy: proxy)
+                    header(paragraphs: paragraphs, proxy: proxy)
                     // Çalma hatası (dosya açılamadı, ses oturumu) da burada görünür.
                     let messages: [String] = [errorMessage, player.errorMeetingID == record.id ? player.errorMessage : nil].compactMap { $0 }
                     if !messages.isEmpty {
@@ -857,6 +723,22 @@ struct MeetingReadView: View {
         .background(Theme.background)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            if canPlay {
+                // Dinle / Duraklat (eski kapaktaki düğme): baştan çalar, çalıyorsa duraklatır.
+                ToolbarItem(placement: .topBarTrailing) {
+                    let isPlayingThis: Bool = player.meetingID == record.id && player.isPlaying
+                    Button {
+                        if player.meetingID == record.id {
+                            player.togglePause()
+                        } else {
+                            play(from: 0)
+                        }
+                    } label: {
+                        Label(isPlayingThis ? "Duraklat" : "Dinle", systemImage: isPlayingThis ? "pause.fill" : "play.fill")
+                            .contentTransition(.symbolEffect(.replace))
+                    }
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     // Not, Markdown kopyası ve notlu dosyalar sayfada seçili dilde çıkar (Mac'teki gibi); o dildeki sürüm
@@ -1223,111 +1105,51 @@ struct MeetingReadView: View {
         }
     }
 
-    private func hero(paragraphs: [TranscriptParagraph], proxy: ScrollViewProxy) -> some View {
+    /// Sakin başlık: küçük pastel kutu ve tarih, başlık, tek satır özet bilgi (süre, dil, konuşmacı sayısı; sana düşen
+    /// görev varsa sayısı, dokununca nottaki görevlere gider). Karar ve açık konu sayıları not bölümlerinin sekmelerinde.
+    private func header(paragraphs: [TranscriptParagraph], proxy: ScrollViewProxy) -> some View {
         let shares: [SpeakerShare] = speakerShares(paragraphs: paragraphs)
         // Kısa konuşmalar (bkz. `groupedSpeakers`) konuşmacı sayısına girmez.
         let majorCount: Int = groupedSpeakers(shares: shares, speakerNames: record.speakerNames).major.count
-        let totalSec: Double = paragraphs.map(\.endSec).max() ?? 0
-        let isPlayingThis: Bool = player.meetingID == record.id && player.isPlaying
-        return VStack(alignment: .leading, spacing: 12) {
-            Text(interfaceUppercased(text: record.startedAt.formatted(Date.FormatStyle(date: .long, time: .shortened).locale(interfaceLocale()))))
-                .appFont(size: 11, weight: .semibold)
-                .tracking(0.6)
-                .opacity(0.88)
+        let mine: Int = (record.note?.tasks ?? []).filter(\.isMine).count
+        let facts: [String] = meetingHeaderFacts(
+            minutes: meetingDurationMinutes(record: record), language: record.language.map { languageName(language: $0) },
+            speakers: shares.isEmpty ? nil : majorCount
+        )
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                MeetingTile(record: record, size: 28)
+                Text(record.startedAt.formatted(Date.FormatStyle(date: .long, time: .shortened).locale(interfaceLocale())))
+                    .appFont(size: 13, weight: .medium)
+                    .foregroundStyle(Theme.muted)
+            }
             Text(record.note?.title ?? record.title)
                 .appFont(size: 27, weight: .regular)
                 .tracking(-0.5)
                 .fixedSize(horizontal: false, vertical: true)
-                .shadow(color: .black.opacity(0.15), radius: 8, y: 1)
-            // Özet çipleri: süre, dil, konuşmacı; notta karar ya da sana düşen görev varsa onların sayısı (dokununca
-            // nottaki bölüme gider).
-            FlowLayout(spacing: 6, lineSpacing: 6) {
-                if let minutes = meetingDurationMinutes(record: record) {
-                    GlassChip(text: String(localized: "\(minutes) dk"), systemImage: "clock")
+                .accessibilityAddTraits(.isHeader)
+            HStack(spacing: 6) {
+                if !facts.isEmpty {
+                    Text(verbatim: facts.joined(separator: " · "))
+                        .foregroundStyle(Theme.muted)
                 }
-                if let language = record.language {
-                    GlassChip(text: languageName(language: language), systemImage: nil)
-                }
-                if !shares.isEmpty {
-                    GlassChip(text: String(localized: "\(majorCount) konuşmacı"), systemImage: "person.2")
-                }
-                if let note = record.note {
-                    let decisions: Int = note.decisions.count
-                    let questions: Int = (note.openQuestions ?? []).count
-                    let mine: Int = note.tasks.filter(\.isMine).count
-                    if decisions > 0 {
-                        Button {
-                            reveal(anchor: .decisions, proxy: proxy)
-                        } label: {
-                            GlassChip(text: String(localized: "\(decisions) karar"), systemImage: "checkmark.seal")
-                        }
-                        .buttonStyle(.plain)
+                if mine > 0 {
+                    if !facts.isEmpty {
+                        Text(verbatim: "·").foregroundStyle(Theme.muted).accessibilityHidden(true)
                     }
-                    if questions > 0 {
-                        Button {
-                            reveal(anchor: .openQuestions, proxy: proxy)
-                        } label: {
-                            GlassChip(text: String(localized: "\(questions) açık konu"), systemImage: "questionmark.circle")
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    if mine > 0 {
-                        Button {
-                            reveal(anchor: .myTasks, proxy: proxy)
-                        } label: {
-                            GlassChip(text: String(localized: "Sana \(mine) görev"), systemImage: "checklist")
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-            if totalSec > 0, !shares.isEmpty {
-                SpeakerStrip(spans: speakerSpans(paragraphs: paragraphs), totalSec: totalSec)
-                    .padding(.top, 4)
-            }
-            HStack(spacing: 10) {
-                if canPlay {
                     Button {
-                        if player.meetingID == record.id {
-                            player.togglePause()
-                        } else {
-                            play(from: 0)
-                        }
+                        reveal(anchor: .myTasks, proxy: proxy)
                     } label: {
-                        Label(isPlayingThis ? "Duraklat" : "Dinle", systemImage: isPlayingThis ? "pause.fill" : "play.fill")
-                            .appFont(size: 15, weight: .semibold)
-                            .foregroundStyle(.black)
-                            .padding(.horizontal, 18)
-                            .padding(.vertical, 10)
-                            .background(.white, in: Capsule())
-                            .contentTransition(.symbolEffect(.replace))
+                        Text("Sana \(mine) görev")
                     }
-                    .buttonStyle(PressableCardStyle())
-                }
-                Spacer()
-                if let text = shownShareText {
-                    ShareLink(item: text) {
-                        Image(systemName: "square.and.arrow.up")
-                            .appFont(size: 15, weight: .semibold)
-                            .foregroundStyle(.white)
-                            .frame(width: 40, height: 40)
-                            .background(.white.opacity(0.18), in: Circle())
-                            .overlay(Circle().strokeBorder(.white.opacity(0.28)))
-                    }
-                    .accessibilityLabel("Notu paylaş")
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.tint)
                 }
             }
-            .padding(.top, 4)
+            .appFont(size: 14, weight: .regular)
         }
-        .foregroundStyle(.white)
-        .padding(20)
-        .frame(maxWidth: .infinity, minHeight: 230, alignment: .bottomLeading)
-        .background {
-            CoverBackground(seed: record.id)
-                .overlay { CoverScrim() }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-        .environment(\.colorScheme, .dark)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 4)
     }
 
     /// Ses varsa ve kayıt sürmüyorsa çalınabilir.
@@ -1407,29 +1229,54 @@ private struct MeetingSummary: View {
                         Task { await store.editNote(meetingID: record.id, instruction: instruction) }
                     }
                 }
-                if shares.count > 1 {
-                    VStack(alignment: .leading, spacing: 12) {
-                        // Adı verilebilecek konuşmacı varsa başlıkta "Ad ver" (transkript ve not adlarla görünür).
-                        PhoneSectionHeader(
-                            title: "Kim ne kadar konuştu",
-                            actionTitle: isEditable && shares.contains(where: { $0.key.person != nil }) ? "Ad ver" : nil,
-                            action: onNameSpeakers
-                        )
-                        ForEach(Array(groups.major.enumerated()), id: \.offset) { (item: (offset: Int, element: SpeakerShare)) in
-                            ShareRow(share: item.element, speakerNames: record.speakerNames)
+                // Adı verilmemiş konuşmacı varsa ad verme Ayrıntılar'ın dışında da görünür: görevlerin kime düştüğü adlara
+                // bağlı ("Hangisi sendin?" görünüyorsa o yeter).
+                if isEditable, !mine.isEmpty, hasUnnamedSpeakers(shares: shares) {
+                    Button("Konuşmacılara ad ver", systemImage: "person.text.rectangle", action: onNameSpeakers)
+                        .appFont(size: 14, weight: .medium)
+                }
+                // Az kullanılan bilgiler kapalı bir bölümde: konuşma payları, konuşmacı şeridi ve sözlük.
+                if shares.count > 1 || !note.glossary.isEmpty {
+                    MeetingDetailsDisclosure {
+                        if shares.count > 1 {
+                            VStack(alignment: .leading, spacing: 12) {
+                                // Adı verilebilecek konuşmacı varsa başlıkta "Ad ver" (transkript ve not adlarla görünür).
+                                PhoneSectionHeader(
+                                    title: "Kim ne kadar konuştu",
+                                    actionTitle: isEditable && shares.contains(where: { $0.key.person != nil }) ? "Ad ver" : nil,
+                                    action: onNameSpeakers
+                                )
+                                let totalSec: Double = paragraphs.map(\.endSec).max() ?? 0
+                                if totalSec > 0 {
+                                    SpeakerStrip(spans: speakerSpans(paragraphs: paragraphs), totalSec: totalSec)
+                                }
+                                ForEach(Array(groups.major.enumerated()), id: \.offset) { (item: (offset: Int, element: SpeakerShare)) in
+                                    ShareRow(share: item.element, speakerNames: record.speakerNames)
+                                }
+                                // Az konuşanlar tek satırda; dokununca tek tek görünür (ad vermek için "Ad ver").
+                                if !groups.minor.isEmpty {
+                                    MinorSpeakersRow(groups: groups, speakerNames: record.speakerNames)
+                                }
+                            }
                         }
-                        // Az konuşanlar tek satırda; dokununca tek tek görünür (ad vermek için "Ad ver").
-                        if !groups.minor.isEmpty {
-                            MinorSpeakersRow(groups: groups, speakerNames: record.speakerNames)
+                        if !note.glossary.isEmpty {
+                            PhoneGlossarySection(glossary: note.glossary)
                         }
                     }
-                }
-                if !note.glossary.isEmpty {
-                    PhoneGlossarySection(glossary: note.glossary)
                 }
             }
         } else {
             EmptyStateCard(symbol: "doc.text", title: "Bu toplantının notu yok", message: nil)
+        }
+    }
+
+    /// Adı verilmemiş (hâlâ "Konuşmacı N") konuşmacı var mı.
+    private func hasUnnamedSpeakers(shares: [SpeakerShare]) -> Bool {
+        shares.contains { (share: SpeakerShare) -> Bool in
+            guard let person = share.key.person else {
+                return false
+            }
+            return (record.speakerNames[person] ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
     }
 
@@ -2166,53 +2013,5 @@ private struct TranscriptList: View {
         }
     }
 }
-
-/// İçe aktarma sürüyor: ince satır, dönen gösterge ve kısa açıklama.
-private struct ImportProgressRow: View {
-    var body: some View {
-        HStack(spacing: 10) {
-            ProgressView().controlSize(.small)
-            Text("İçe aktarılıyor… Bitince sunucuda işlenir; not hazır olunca burada görünür.")
-                .appFont(size: 13, weight: .medium)
-                .foregroundStyle(Theme.muted)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(Theme.card, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Theme.line))
-    }
-}
-
-/// Fotoğraflar'dan kopyalanan video: kendi geçici klasöründe, özgün adıyla (toplantının başlığı dosya adından gelir).
-struct PickedMovie: Transferable {
-    let url: URL
-
-    static var transferRepresentation: some TransferRepresentation {
-        FileRepresentation(importedContentType: .movie) { (received: ReceivedTransferredFile) throws -> PickedMovie in
-            let folder: URL = FileManager.default.temporaryDirectory.appending(path: "PickedMovies/\(UUID().uuidString)", directoryHint: .isDirectory)
-            let destination: URL = folder.appending(path: received.file.lastPathComponent, directoryHint: .notDirectory)
-            do {
-                try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-                try FileManager.default.copyItem(at: received.file, to: destination)
-            } catch {
-                throw StorageError.writeFailed(path: destination.path, reason: error.localizedDescription)
-            }
-            return PickedMovie(url: destination)
-        }
-    }
-}
-
-/// İçe aktarılan videonun geçici kopyasını (klasörüyle) siler; silinemezse loglanır (geçici klasörü iOS zamanla temizler).
-@MainActor
-private func removePickedMovie(movie: PickedMovie) {
-    do {
-        try FileManager.default.removeItem(at: movie.url.deletingLastPathComponent())
-    } catch {
-        pickedMovieLogger.error("Geçici video kopyası silinemedi, hata: \(String(describing: error), privacy: .private)")
-    }
-}
-
-private let pickedMovieLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "MediaImport")
 
 private let meetingReadLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "Meetings")

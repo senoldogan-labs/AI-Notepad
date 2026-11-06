@@ -2,7 +2,7 @@ import AINotepadCore
 import AINotepadUI
 import SwiftUI
 
-/// Kayıt ekranında sıradaki toplantılar (takvim açıksa, önümüzdeki 12 saat): saat, başlık, katılımcılar; görüşme
+/// Ana ekranda sıradaki toplantılar (takvim açıksa, önümüzdeki 12 saat): saat, başlık, katılımcılar; görüşme
 /// bağlantısı varsa "Katıl", arşivde toplantı varsa "Brifing". Süren toplantı "Şimdi" ile işaretlenir: o sırada başlatılan
 /// kayıt onun adını alır. Altında bugün biten toplantılar (Mac'teki gibi): kaydı olanın notu buradan açılır. İkisi de
 /// boşsa bölüm görünmez. Takvim izni yoksa kısa bir uyarı ve Ayarlar'a geçiş.
@@ -45,7 +45,7 @@ struct UpcomingCalendarSection: View {
             }
         case .denied:
             Button {
-                router.tab = .settings
+                router.push(route: .settings)
             } label: {
                 Label("Takvime erişim izni yok; sıradaki toplantılar görünmüyor. Ayarlar'a git.", systemImage: "calendar.badge.exclamationmark")
                     .appFont(size: 13, weight: .regular)

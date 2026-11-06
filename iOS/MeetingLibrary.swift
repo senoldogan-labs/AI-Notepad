@@ -163,7 +163,6 @@ struct RecentlyDeletedList: View {
         .navigationTitle("Son silinenler")
         .navigationBarTitleDisplayMode(.inline)
         .environment(\.editMode, $editMode)
-        .toolbar(editMode.isEditing ? .hidden : .visible, for: .tabBar)
         .toolbar {
             if !items.isEmpty {
                 ToolbarItem(placement: .topBarTrailing) {

@@ -502,3 +502,68 @@ struct PhoneTextEntrySheet: View {
         dismiss()
     }
 }
+
+/// Toplantının küçük pastel kutusu: durağan film gradyanı (toplantıya göre) üstünde başlığın ilk harfi. Ana ekrandaki,
+/// aramadaki satırlarda ve toplantı sayfasının başlığında.
+struct MeetingTile: View {
+    let record: MeetingRecord
+    let size: CGFloat
+
+    var body: some View {
+        let title: String = record.note?.title ?? record.title
+        RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
+            .fill(.clear)
+            .frame(width: size, height: size)
+            .background { CoverBackground(seed: record.id) }
+            .overlay {
+                Text(verbatim: meetingInitial(title: title))
+                    .appFont(size: size * 0.42, weight: .semibold)
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.18), radius: 3, y: 1)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: size * 0.28, style: .continuous))
+            .accessibilityHidden(true)
+    }
+}
+
+/// Başlığın ilk harfi (büyük); harf yoksa boş. Saf fonksiyondur.
+func meetingInitial(title: String) -> String {
+    title.trimmingCharacters(in: .whitespacesAndNewlines).first.map { String($0).uppercased() } ?? ""
+}
+
+/// Toplantı başlığının altındaki bilgiler: süre, dil ve konuşmacı sayısı (olanlar, bu sırayla). Saf fonksiyondur.
+func meetingHeaderFacts(minutes: Int?, language: String?, speakers: Int?) -> [String] {
+    let duration: [String] = minutes.map { [String(localized: "\($0) dk")] } ?? []
+    let languages: [String] = language.map { [$0] } ?? []
+    let people: [String] = speakers.map { [String(localized: "\($0) konuşmacı")] } ?? []
+    return duration + languages + people
+}
+
+/// Toplantı sayfasının sonunda kapalı başlayan "Ayrıntılar" bölümü (konuşma payları, sözlük); açık/kapalı tercihi tüm
+/// toplantılar için hatırlanır.
+struct MeetingDetailsDisclosure<Content: View>: View {
+    @ViewBuilder let content: () -> Content
+    @AppStorage(PhoneSettingsKey.meetingDetailsExpanded) private var isExpanded: Bool = false
+
+    var body: some View {
+        // Sistemin açılır bölümü: VoiceOver "genişletildi/daraltıldı" diye okur.
+        DisclosureGroup(isExpanded: Binding<Bool>(
+            get: { isExpanded },
+            set: { (value: Bool) -> Void in withAnimation(.smooth(duration: 0.3)) { isExpanded = value } }
+        )) {
+            VStack(alignment: .leading, spacing: 18) {
+                content()
+            }
+            .padding(.top, 12)
+        } label: {
+            Text("Ayrıntılar")
+                .appFont(size: 15, weight: .semibold)
+                .foregroundStyle(Theme.ink)
+        }
+        .tint(Theme.muted)
+        .padding(.top, 12)
+        .overlay(alignment: .top) {
+            Rectangle().fill(Theme.line).frame(height: 1)
+        }
+    }
+}
