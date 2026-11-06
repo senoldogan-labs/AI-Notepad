@@ -98,7 +98,7 @@ pricing with timestamps"). Header idea: one phone with a transcript, headline "I
 **Reference name:** `cpp-team-meetings`
 **Audience:** managers and team leads who run one-to-ones, stand-ups and client visits face to face.
 **Deep link use:** the gistsmith.com iPhone section and Gistsmith for Mac users (one account and subscription for
-Mac and iPhone; meetings are not synced between devices, so the copy doesn't promise that).
+Mac and iPhone; meeting sync between devices is optional and off until it launches, so the copy doesn't promise it).
 
 ### Promotional Text
 

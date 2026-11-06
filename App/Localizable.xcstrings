@@ -152809,6 +152809,892 @@
         }
       }
     },
+    "Şirketler": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unternehmen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Companies"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empresas"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yritykset"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entreprises"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aziende"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会社"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회사"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bedrijven"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empresas"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "公司"
+          }
+        }
+      }
+    },
+    "Şirket ara": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unternehmen suchen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search companies"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar empresas"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hae yrityksiä"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rechercher des entreprises"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cerca aziende"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会社を検索"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회사 검색"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zoek bedrijven"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar empresas"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索公司"
+          }
+        }
+      }
+    },
+    "Şirket": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unternehmen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Company"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empresa"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yritys"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entreprise"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Azienda"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会社"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회사"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bedrijf"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empresa"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "公司"
+          }
+        }
+      }
+    },
+    "Henüz şirket yok": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noch keine Unternehmen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No companies yet"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aún no hay empresas"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ei vielä yrityksiä"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucune entreprise pour l’instant"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ancora nessuna azienda"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだ会社はありません"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "아직 회사가 없음"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nog geen bedrijven"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhuma empresa ainda"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有公司"
+          }
+        }
+      }
+    },
+    "Şirketler kişilerin e-posta adreslerinden gelir; bir kişiye iş e-postası ekleyince şirketi burada görünür.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unternehmen ergeben sich aus den E-Mail-Adressen deiner Personen; füge einer Person eine geschäftliche E-Mail hinzu, dann erscheint ihr Unternehmen hier."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Companies come from people's email addresses; add a work email to someone and their company shows up here."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las empresas salen de las direcciones de correo de las personas; añade un correo de trabajo a alguien y su empresa aparecerá aquí."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yritykset muodostuvat henkilöiden sähköpostiosoitteista; lisää jollekulle työsähköposti, niin hänen yrityksensä näkyy täällä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les entreprises proviennent des adresses e-mail des personnes ; ajoute un e-mail professionnel à quelqu’un et son entreprise apparaîtra ici."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le aziende derivano dagli indirizzi email delle persone; aggiungi un’email di lavoro a qualcuno e la sua azienda comparirà qui."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会社は人物のメールアドレスから作られます。人物に仕事用のメールを追加すると、その会社がここに表示されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회사는 사람의 이메일 주소에서 만들어집니다. 사람에게 업무용 이메일을 추가하면 그 회사가 여기에 표시됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bedrijven komen uit de e-mailadressen van personen; geef iemand een zakelijk e-mailadres en het bedrijf verschijnt hier."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As empresas vêm dos endereços de e-mail das pessoas; adicione um e-mail de trabalho a alguém e a empresa dessa pessoa aparece aqui."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "公司来自人员的电子邮件地址；为某人添加工作邮箱后，其公司就会显示在这里。"
+          }
+        }
+      }
+    },
+    "Eşleşen şirket yok": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine passenden Unternehmen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No matching companies"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay empresas que coincidan"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ei vastaavia yrityksiä"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucune entreprise correspondante"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessuna azienda corrispondente"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一致する会社はありません"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "일치하는 회사 없음"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geen overeenkomende bedrijven"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhuma empresa correspondente"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有匹配的公司"
+          }
+        }
+      }
+    },
+    "KİŞİLERİ": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PERSONEN"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PEOPLE"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PERSONAS"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HENKILÖT"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PERSONNES"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PERSONE"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人物"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "사람"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PERSONEN"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PESSOAS"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人员"
+          }
+        }
+      }
+    },
+    "kişi": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "people"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "personas"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "henkilöt"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "personnes"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "persone"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "명"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "personen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "pessoas"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人"
+          }
+        }
+      }
+    },
+    "Bir toplantının transkriptinde konuşmacıya bu şirketten birinin adını verince toplantıları burada görünür.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wenn du einem Sprecher im Transkript eines Meetings den Namen einer Person aus diesem Unternehmen gibst, erscheint das Meeting hier."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When you give a speaker the name of someone from this company in a meeting's transcript, the meeting shows up here."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuando das a un hablante el nombre de alguien de esta empresa en la transcripción de una reunión, la reunión aparece aquí."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kun annat kokouksen litteroinnissa puhujalle tämän yrityksen henkilön nimen, kokous näkyy täällä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quand tu donnes à un intervenant le nom d’une personne de cette entreprise dans la transcription d’une réunion, la réunion apparaît ici."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando dai a un interlocutore il nome di qualcuno di questa azienda nella trascrizione di una riunione, la riunione compare qui."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議の文字起こしで話者にこの会社の人の名前を付けると、その会議がここに表示されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의 전사본에서 화자에게 이 회사 사람의 이름을 지정하면 그 회의가 여기에 표시됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als je een spreker in het transcript van een vergadering de naam geeft van iemand van dit bedrijf, verschijnt de vergadering hier."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando você dá a um participante o nome de alguém desta empresa na transcrição de uma reunião, a reunião aparece aqui."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在会议转写中给发言人指定这家公司某人的名字后，该会议就会显示在这里。"
+          }
+        }
+      }
+    },
+    "Senin şirketin": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dein Unternehmen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your company"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu empresa"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oma yrityksesi"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ton entreprise"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La tua azienda"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あなたの会社"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "내 회사"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jouw bedrijf"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua empresa"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的公司"
+          }
+        }
+      }
+    },
+    "%lld kişi": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Person"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Personen"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld person"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld people"
+                }
+              }
+            }
+          }
+        },
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld persona"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld personas"
+                }
+              }
+            }
+          }
+        },
+        "fi": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld henkilö"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld henkilöä"
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld personne"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld personnes"
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld persona"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld persone"
+                }
+              }
+            }
+          }
+        },
+        "ja": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld人"
+                }
+              }
+            }
+          }
+        },
+        "ko": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld명"
+                }
+              }
+            }
+          }
+        },
+        "nl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld persoon"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld personen"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld pessoa"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld pessoas"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld 人"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Toplantılarını yazıya dökmesine izin ver": {
       "localizations": {
         "de": {
@@ -153505,76 +154391,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "结束会议"
-          }
-        }
-      }
-    },
-    "Finlandiya'dan, AB veri koruma yasasıyla. Toplantıların ve notların bu Mac'te kalır; sunucumuz ses ve not saklamaz.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Betrieben von Finnland aus nach EU-Datenschutzrecht. Deine Meetings und Notizen bleiben auf diesem Mac; unser Server speichert weder Audio noch Notizen."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Run from Finland under EU data protection law. Your meetings and notes stay on this Mac; our server doesn't store audio or notes."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Operado desde Finlandia conforme a la legislación de protección de datos de la UE. Tus reuniones y notas se quedan en este Mac; nuestro servidor no guarda audio ni notas."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ylläpidetään Suomesta EU:n tietosuojalainsäädännön mukaisesti. Kokouksesi ja muistiinpanosi pysyvät tässä Macissa; palvelimemme ei tallenna ääntä eikä muistiinpanoja."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Exploité depuis la Finlande, sous le régime du droit européen de la protection des données. Vos réunions et vos notes restent sur ce Mac ; notre serveur ne stocke ni l’audio ni les notes."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gestito dalla Finlandia nel rispetto della normativa UE sulla protezione dei dati. Le tue riunioni e note restano su questo Mac; il nostro server non conserva audio né note."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "EUのデータ保護法のもと、フィンランドから運営しています。会議とノートはこのMacに保存され、当社のサーバは音声もノートも保存しません。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "핀란드에서 EU 데이터 보호법에 따라 운영됩니다. 회의와 노트는 이 Mac에 보관되며, 당사 서버는 오디오나 노트를 저장하지 않습니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Beheerd vanuit Finland onder de Europese wetgeving voor gegevensbescherming. Je vergaderingen en notities blijven op deze Mac; onze server bewaart geen audio of notities."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Operado a partir da Finlândia, sob a lei de proteção de dados da UE. Suas reuniões e notas ficam neste Mac; nosso servidor não armazena áudio nem notas."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在芬兰运营，遵循欧盟数据保护法。你的会议和笔记保留在这台 Mac 上；我们的服务器不存储音频或笔记。"
           }
         }
       }
@@ -155395,76 +156211,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "你的声音、在锁定屏幕上录制，以及笔记就绪时的通知。之后可在 iPhone“设置”中更改这些权限。"
-          }
-        }
-      }
-    },
-    "Finlandiya'dan, AB veri koruma yasasıyla. Toplantıların ve notların bu iPhone'da kalır; sunucumuz ses ve not saklamaz.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Betrieben von Finnland aus nach EU-Datenschutzrecht. Deine Meetings und Notizen bleiben auf diesem iPhone; unser Server speichert weder Audio noch Notizen."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Run from Finland under EU data protection law. Your meetings and notes stay on this iPhone; our server doesn't store audio or notes."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Operado desde Finlandia conforme a la legislación de protección de datos de la UE. Tus reuniones y notas se quedan en este iPhone; nuestro servidor no guarda audio ni notas."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ylläpidetään Suomesta EU:n tietosuojalainsäädännön mukaisesti. Kokouksesi ja muistiinpanosi pysyvät tässä iPhonessa; palvelimemme ei tallenna ääntä eikä muistiinpanoja."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Exploité depuis la Finlande, sous le régime du droit européen de la protection des données. Vos réunions et vos notes restent sur cet iPhone ; notre serveur ne stocke ni l’audio ni les notes."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gestito dalla Finlandia nel rispetto della normativa UE sulla protezione dei dati. Le tue riunioni e note restano su questo iPhone; il nostro server non conserva audio né note."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "EUのデータ保護法のもと、フィンランドから運営しています。会議とノートはこのiPhoneに保存され、当社のサーバは音声もノートも保存しません。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "핀란드에서 EU 데이터 보호법에 따라 운영됩니다. 회의와 노트는 이 iPhone에 보관되며, 당사 서버는 오디오나 노트를 저장하지 않습니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Beheerd vanuit Finland onder de Europese wetgeving voor gegevensbescherming. Je vergaderingen en notities blijven op deze iPhone; onze server bewaart geen audio of notities."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Operado a partir da Finlândia, sob a lei de proteção de dados da UE. Suas reuniões e notas ficam neste iPhone; nosso servidor não armazena áudio nem notas."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在芬兰运营，遵循欧盟数据保护法。你的会议和笔记保留在这部 iPhone 上；我们的服务器不存储音频或笔记。"
           }
         }
       }
@@ -158615,6 +159361,2640 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld 个待解决问题"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Bağlantı kodu": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verbindungscode"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Link code"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código de vinculación"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Linkityskoodi"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Code de liaison"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Codice di collegamento"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンクコード"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "연결 코드"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Koppelcode"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código de vínculo"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关联码"
+          }
+        }
+      }
+    },
+    "Bağlantı kodunu göster": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verbindungscode anzeigen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show link code"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar código de vinculación"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näytä linkityskoodi"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher le code de liaison"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra codice di collegamento"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンクコードを表示"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "연결 코드 보기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Koppelcode tonen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar código de vínculo"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示关联码"
+          }
+        }
+      }
+    },
+    "Başka bir cihazda değiştirildi": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf einem anderen Gerät geändert"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changed on another device"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modificado en otro dispositivo"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muutettu toisella laitteella"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modifié sur un autre appareil"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modificato su un altro dispositivo"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "別のデバイスで変更されました"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다른 기기에서 변경됨"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gewijzigd op een ander apparaat"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alterado em outro dispositivo"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已在另一台设备上更改"
+          }
+        }
+      }
+    },
+    "Başka bir cihazında kaydedildi; sesi o cihazda kalır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf einem anderen deiner Geräte aufgenommen; der Ton bleibt dort."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recorded on another of your devices; its audio stays there."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabada en otro de tus dispositivos; su audio se queda allí."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tallennettu toisella laitteellasi; sen ääni jää sinne."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistré sur un autre de vos appareils ; l’audio y reste."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrata su un altro tuo dispositivo; l’audio resta lì."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あなたの別のデバイスで録音されました。音声はそのデバイスに残ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다른 기기에서 녹음되었습니다. 오디오는 그 기기에 남아 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opgenomen op een ander apparaat van je; de audio blijft daar."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gravada em outro dispositivo seu; o áudio fica nele."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在你的另一台设备上录制；音频保留在那台设备上。"
+          }
+        }
+      }
+    },
+    "Bu hesapta eşitlemeyi başka bir cihaz açtı. Katılmak için o cihazda Ayarlar'da gösterilen bağlantı kodunu aşağıya yaz.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein anderes Gerät hat die Synchronisierung für dieses Konto eingeschaltet. Gib zum Beitreten unten den Verbindungscode ein, der dort in den Einstellungen angezeigt wird."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Another device turned on sync for this account. To join, type the link code shown in Settings on that device below."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otro dispositivo activó la sincronización para esta cuenta. Para unirte, escribe abajo el código de vinculación que aparece en Ajustes en ese dispositivo."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toinen laite otti synkronoinnin käyttöön tälle tilille. Liity kirjoittamalla alle linkityskoodi, joka näkyy sen laitteen asetuksissa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un autre appareil a activé la synchronisation pour ce compte. Pour la rejoindre, saisissez ci-dessous le code de liaison affiché dans les Réglages de cet appareil."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un altro dispositivo ha attivato la sincronizzazione per questo account. Per unirti, scrivi qui sotto il codice di collegamento mostrato nelle Impostazioni di quel dispositivo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このアカウントの同期は別のデバイスでオンにされました。参加するには、そのデバイスの設定に表示されているリンクコードを下に入力してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다른 기기에서 이 계정의 동기화를 켰습니다. 참여하려면 그 기기의 설정에 표시된 연결 코드를 아래에 입력하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Een ander apparaat heeft synchronisatie voor dit account aangezet. Typ om mee te doen hieronder de koppelcode die op dat apparaat in Instellingen staat."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Outro dispositivo ativou a sincronização nesta conta. Para entrar, digite abaixo o código de vínculo mostrado nos Ajustes desse dispositivo."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "另一台设备已为此账户打开同步。要加入，请在下方输入那台设备“设置”中显示的关联码。"
+          }
+        }
+      }
+    },
+    "Bu kod eski: eşitleme o günden beri yeniden açılmış. Diğer cihazdaki güncel kodu yaz.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieser Code ist veraltet: Die Synchronisierung wurde inzwischen neu eingeschaltet. Gib den aktuellen Code von deinem anderen Gerät ein."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This code is out of date: sync was turned on again since. Type the current code from your other device."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este código está desactualizado: la sincronización se volvió a activar desde entonces. Escribe el código actual de tu otro dispositivo."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämä koodi on vanhentunut: synkronointi on sen jälkeen otettu uudelleen käyttöön. Kirjoita toisen laitteesi nykyinen koodi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce code est périmé : la synchronisation a été réactivée depuis. Saisissez le code actuel de votre autre appareil."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questo codice è vecchio: da allora la sincronizzazione è stata riattivata. Scrivi il codice attuale dell’altro dispositivo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このコードは古くなっています。その後、同期がもう一度オンにされました。別のデバイスに表示されている最新のコードを入力してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 코드는 오래되었습니다. 그 후 동기화가 다시 켜졌습니다. 다른 기기에 표시된 최신 코드를 입력하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deze code is verouderd: synchronisatie is sindsdien opnieuw aangezet. Typ de huidige code van je andere apparaat."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este código está desatualizado: a sincronização foi ativada de novo desde então. Digite o código atual do seu outro dispositivo."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此代码已过期：同步之后已重新打开。请输入另一台设备上的当前代码。"
+          }
+        }
+      }
+    },
+    "Diğer cihaz eşitlemeyi açmayı bitirmedi. O cihazda uygulamayı açıp yeniden dene.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dein anderes Gerät hat das Einschalten der Synchronisierung noch nicht abgeschlossen. Öffne dort die App und versuche es erneut."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your other device hasn't finished turning on sync. Open the app there and try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu otro dispositivo no ha terminado de activar la sincronización. Abre la app allí e inténtalo de nuevo."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toinen laitteesi ei ole vielä saanut synkronoinnin käyttöönottoa valmiiksi. Avaa sovellus siellä ja yritä uudelleen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre autre appareil n’a pas fini d’activer la synchronisation. Ouvrez l’app sur cet appareil et réessayez."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’altro dispositivo non ha finito di attivare la sincronizzazione. Apri l’app lì e riprova."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "別のデバイスで同期のオンがまだ完了していません。そのデバイスでアプリを開いて、もう一度お試しください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다른 기기에서 동기화 켜기가 아직 끝나지 않았습니다. 그 기기에서 앱을 열고 다시 시도하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je andere apparaat is nog niet klaar met het aanzetten van synchronisatie. Open de app daar en probeer het opnieuw."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seu outro dispositivo não terminou de ativar a sincronização. Abra o app nele e tente de novo."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的另一台设备尚未完成打开同步。请在那台设备上打开 App 后重试。"
+          }
+        }
+      }
+    },
+    "Diğer cihazda Ayarlar › Mac ile iPhone arasında eşitle altında gösterilen 32 karakterlik kod.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der 32-stellige Code, der auf deinem anderen Gerät unter Einstellungen › Zwischen Mac und iPhone synchronisieren angezeigt wird."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The 32-character code shown on your other device under Settings › Sync between Mac and iPhone."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El código de 32 caracteres que aparece en tu otro dispositivo en Ajustes › Sincronizar entre Mac y iPhone."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "32 merkin koodi, joka näkyy toisella laitteellasi kohdassa Asetukset › Synkronoi Macin ja iPhonen välillä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le code de 32 caractères affiché sur votre autre appareil dans Réglages › Synchroniser entre Mac et iPhone."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il codice di 32 caratteri mostrato sull’altro dispositivo in Impostazioni › Sincronizza tra Mac e iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "別のデバイスの「設定」›「MacとiPhone間で同期」に表示される32文字のコード。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다른 기기의 설정 › Mac과 iPhone 간 동기화에 표시되는 32자 코드입니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De code van 32 tekens die op je andere apparaat staat onder Instellingen › Synchroniseren tussen Mac en iPhone."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O código de 32 caracteres mostrado no seu outro dispositivo em Ajustes › Sincronizar entre Mac e iPhone."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在另一台设备的“设置”›“在 Mac 和 iPhone 之间同步”下显示的 32 位代码。"
+          }
+        }
+      }
+    },
+    "Diğer cihazın için bağlantı kodu": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verbindungscode für dein anderes Gerät"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Link code for your other device"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código de vinculación para tu otro dispositivo"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Linkityskoodi toiselle laitteellesi"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Code de liaison pour votre autre appareil"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Codice di collegamento per l’altro dispositivo"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "別のデバイス用のリンクコード"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다른 기기를 위한 연결 코드"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Koppelcode voor je andere apparaat"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código de vínculo para seu outro dispositivo"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用于另一台设备的关联码"
+          }
+        }
+      }
+    },
+    "Eşitleme alanı doldu; yeni değişiklikler yüklenemiyor. Eski toplantıları silerek yer açabilirsin.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Synchronisierungsspeicher ist voll; neue Änderungen können nicht hochgeladen werden. Lösche alte Meetings, um Platz zu schaffen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sync storage is full; new changes can't be uploaded. Delete old meetings to make room."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El espacio de sincronización está lleno; no se pueden subir los cambios nuevos. Elimina reuniones antiguas para liberar espacio."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synkronointitila on täynnä; uusia muutoksia ei voi lähettää. Poista vanhoja kokouksia tehdäksesi tilaa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’espace de synchronisation est plein ; les nouvelles modifications ne peuvent pas être envoyées. Supprimez d’anciennes réunions pour libérer de la place."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lo spazio di sincronizzazione è pieno; le nuove modifiche non possono essere caricate. Elimina vecchie riunioni per fare spazio."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同期の保存容量がいっぱいです。新しい変更をアップロードできません。古い会議を削除して空きを作ってください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "동기화 저장 공간이 가득 찼습니다. 새 변경 사항을 업로드할 수 없습니다. 오래된 회의를 삭제해 공간을 확보하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De synchronisatieruimte is vol; nieuwe wijzigingen kunnen niet worden geüpload. Verwijder oude vergaderingen om ruimte te maken."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O espaço de sincronização está cheio; as novas alterações não podem ser enviadas. Apague reuniões antigas para liberar espaço."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同步空间已满；无法上传新的更改。删除旧会议以腾出空间。"
+          }
+        }
+      }
+    },
+    "Eşitleme başka bir cihazda kapatıldı. Bu cihazdaki toplantılar yerinde kalır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Synchronisierung wurde auf einem anderen Gerät ausgeschaltet. Die Meetings auf diesem Gerät bleiben erhalten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sync was turned off on another device. The meetings on this device stay where they are."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La sincronización se desactivó en otro dispositivo. Las reuniones de este dispositivo se quedan donde están."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synkronointi poistettiin käytöstä toisella laitteella. Tämän laitteen kokoukset pysyvät paikallaan."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La synchronisation a été désactivée sur un autre appareil. Les réunions de cet appareil restent en place."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La sincronizzazione è stata disattivata su un altro dispositivo. Le riunioni su questo dispositivo restano al loro posto."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "別のデバイスで同期がオフにされました。このデバイスの会議はそのまま残ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다른 기기에서 동기화가 꺼졌습니다. 이 기기의 회의는 그대로 남아 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronisatie is op een ander apparaat uitgezet. De vergaderingen op dit apparaat blijven staan."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A sincronização foi desativada em outro dispositivo. As reuniões deste dispositivo continuam onde estão."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同步已在另一台设备上关闭。此设备上的会议保持不变。"
+          }
+        }
+      }
+    },
+    "Eşitleme bu hesapta kapalı. Bu cihazda açarak başlatabilirsin.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Synchronisierung ist für dieses Konto aus. Schalte sie hier ein, um zu beginnen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sync is off for this account. Turn it on here to start."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La sincronización está desactivada para esta cuenta. Actívala aquí para empezar."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synkronointi on pois päältä tällä tilillä. Ota se käyttöön täällä aloittaaksesi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La synchronisation est désactivée pour ce compte. Activez-la ici pour commencer."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La sincronizzazione è disattivata per questo account. Attivala qui per iniziare."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このアカウントの同期はオフです。ここでオンにすると始まります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 계정의 동기화가 꺼져 있습니다. 여기서 켜면 시작됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronisatie staat uit voor dit account. Zet het hier aan om te beginnen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A sincronização está desativada nesta conta. Ative-a aqui para começar."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此账户的同步已关闭。在这里打开即可开始。"
+          }
+        }
+      }
+    },
+    "Eşitleme şu an kullanılamıyor; yeniden açılınca kaldığı yerden sürer.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Synchronisierung ist gerade nicht verfügbar; sie macht weiter, sobald sie wieder da ist."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sync isn't available right now; it picks up where it left off when it's back."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La sincronización no está disponible ahora; continuará donde se quedó cuando vuelva."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synkronointi ei ole juuri nyt käytettävissä; se jatkaa siitä, mihin jäi, kun se palaa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La synchronisation n’est pas disponible pour le moment ; elle reprendra là où elle s’était arrêtée."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La sincronizzazione non è disponibile al momento; riprenderà da dove si era fermata."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在、同期を利用できません。再開すると中断したところから続きます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지금은 동기화를 사용할 수 없습니다. 다시 사용할 수 있게 되면 멈춘 곳부터 이어집니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronisatie is nu niet beschikbaar; ze gaat verder waar ze was zodra ze terug is."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A sincronização não está disponível agora; ela continua de onde parou quando voltar."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同步暂时不可用；恢复后会从中断处继续。"
+          }
+        }
+      }
+    },
+    "Eşitlemeyi başka bir cihaz açtı. O cihazın Ayarlar'ındaki bağlantı kodunu yaz.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein anderes Gerät hat die Synchronisierung eingeschaltet. Gib den Verbindungscode aus dessen Einstellungen ein."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Another device turned on sync. Type the link code from its Settings."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otro dispositivo activó la sincronización. Escribe el código de vinculación de sus Ajustes."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toinen laite otti synkronoinnin käyttöön. Kirjoita sen asetuksissa näkyvä linkityskoodi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un autre appareil a activé la synchronisation. Saisissez le code de liaison affiché dans ses Réglages."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un altro dispositivo ha attivato la sincronizzazione. Scrivi il codice di collegamento delle sue Impostazioni."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "別のデバイスで同期がオンにされました。そのデバイスの設定にあるリンクコードを入力してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다른 기기에서 동기화를 켰습니다. 그 기기의 설정에 있는 연결 코드를 입력하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Een ander apparaat heeft synchronisatie aangezet. Typ de koppelcode uit de Instellingen van dat apparaat."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Outro dispositivo ativou a sincronização. Digite o código de vínculo dos Ajustes dele."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "另一台设备已打开同步。请输入那台设备“设置”中的关联码。"
+          }
+        }
+      }
+    },
+    "Eşitlemeyi kapat": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronisierung ausschalten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn off sync"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desactivar sincronización"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poista synkronointi käytöstä"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Désactiver la synchronisation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disattiva sincronizzazione"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同期をオフにする"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "동기화 끄기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronisatie uitzetten"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desativar sincronização"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭同步"
+          }
+        }
+      }
+    },
+    "Eşitleniyor…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wird synchronisiert …"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Syncing…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronizando…"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synkronoidaan…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronisation…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronizzazione…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同期中…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "동기화 중…"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchroniseren…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronizando…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在同步…"
+          }
+        }
+      }
+    },
+    "Finlandiya'dan, AB veri koruma yasasıyla. Toplantıların ve notların bu Mac'te kalır; sunucumuz ses ve not saklamaz. İsteğe bağlı iPhone eşitlemesi yalnızca okuyamadığımız şifreli bir kopya tutar.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus Finnland, nach EU-Datenschutzrecht. Deine Meetings und Notizen bleiben auf diesem Mac; unser Server speichert weder Ton noch Notizen. Die optionale iPhone-Synchronisierung speichert nur eine verschlüsselte Kopie, die wir nicht lesen können."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From Finland, under EU data protection law. Your meetings and notes stay on this Mac; our server keeps no audio or notes. Optional iPhone sync keeps only an encrypted copy we can't read."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desde Finlandia, bajo la ley de protección de datos de la UE. Tus reuniones y notas se quedan en este Mac; nuestro servidor no guarda audio ni notas. La sincronización opcional con el iPhone solo guarda una copia cifrada que no podemos leer."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suomesta, EU:n tietosuojalain mukaisesti. Kokouksesi ja muistiinpanosi pysyvät tällä Macilla; palvelimemme ei säilytä ääntä eikä muistiinpanoja. Valinnainen iPhone-synkronointi säilyttää vain salatun kopion, jota emme voi lukea."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Depuis la Finlande, sous le droit européen de la protection des données. Vos réunions et notes restent sur ce Mac ; notre serveur ne conserve ni audio ni notes. La synchronisation facultative avec l’iPhone ne conserve qu’une copie chiffrée que nous ne pouvons pas lire."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dalla Finlandia, secondo la legge UE sulla protezione dei dati. Le tue riunioni e note restano su questo Mac; il nostro server non conserva audio né note. La sincronizzazione facoltativa con iPhone conserva solo una copia cifrata che non possiamo leggere."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フィンランドから、EUのデータ保護法のもとで。会議とメモはこのMacに残り、私たちのサーバーは音声もメモも保存しません。オプションのiPhone同期で保存されるのは、私たちには読めない暗号化コピーだけです。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "핀란드에서, EU 데이터 보호법에 따라. 회의와 노트는 이 Mac에 남고, 저희 서버는 오디오나 노트를 저장하지 않습니다. 선택 사항인 iPhone 동기화는 저희가 읽을 수 없는 암호화된 사본만 보관합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uit Finland, onder de EU-privacywetgeving. Je vergaderingen en notities blijven op deze Mac; onze server bewaart geen audio of notities. Optionele synchronisatie met je iPhone bewaart alleen een versleutelde kopie die wij niet kunnen lezen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Da Finlândia, sob a lei de proteção de dados da UE. Suas reuniões e notas ficam neste Mac; nosso servidor não guarda áudio nem notas. A sincronização opcional com o iPhone guarda só uma cópia criptografada que não conseguimos ler."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "来自芬兰，受欧盟数据保护法约束。你的会议和笔记保留在这台 Mac 上；我们的服务器不保存音频或笔记。可选的 iPhone 同步只保存我们无法读取的加密副本。"
+          }
+        }
+      }
+    },
+    "Finlandiya'dan, AB veri koruma yasasıyla. Toplantıların ve notların bu iPhone'da kalır; sunucumuz ses ve not saklamaz. İsteğe bağlı Mac eşitlemesi yalnızca okuyamadığımız şifreli bir kopya tutar.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus Finnland, nach EU-Datenschutzrecht. Deine Meetings und Notizen bleiben auf diesem iPhone; unser Server speichert weder Ton noch Notizen. Die optionale Mac-Synchronisierung speichert nur eine verschlüsselte Kopie, die wir nicht lesen können."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From Finland, under EU data protection law. Your meetings and notes stay on this iPhone; our server keeps no audio or notes. Optional Mac sync keeps only an encrypted copy we can't read."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desde Finlandia, bajo la ley de protección de datos de la UE. Tus reuniones y notas se quedan en este iPhone; nuestro servidor no guarda audio ni notas. La sincronización opcional con el Mac solo guarda una copia cifrada que no podemos leer."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suomesta, EU:n tietosuojalain mukaisesti. Kokouksesi ja muistiinpanosi pysyvät tällä iPhonella; palvelimemme ei säilytä ääntä eikä muistiinpanoja. Valinnainen Mac-synkronointi säilyttää vain salatun kopion, jota emme voi lukea."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Depuis la Finlande, sous le droit européen de la protection des données. Vos réunions et notes restent sur cet iPhone ; notre serveur ne conserve ni audio ni notes. La synchronisation facultative avec le Mac ne conserve qu’une copie chiffrée que nous ne pouvons pas lire."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dalla Finlandia, secondo la legge UE sulla protezione dei dati. Le tue riunioni e note restano su questo iPhone; il nostro server non conserva audio né note. La sincronizzazione facoltativa con il Mac conserva solo una copia cifrata che non possiamo leggere."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フィンランドから、EUのデータ保護法のもとで。会議とメモはこのiPhoneに残り、私たちのサーバーは音声もメモも保存しません。オプションのMac同期で保存されるのは、私たちには読めない暗号化コピーだけです。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "핀란드에서, EU 데이터 보호법에 따라. 회의와 노트는 이 iPhone에 남고, 저희 서버는 오디오나 노트를 저장하지 않습니다. 선택 사항인 Mac 동기화는 저희가 읽을 수 없는 암호화된 사본만 보관합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uit Finland, onder de EU-privacywetgeving. Je vergaderingen en notities blijven op deze iPhone; onze server bewaart geen audio of notities. Optionele synchronisatie met je Mac bewaart alleen een versleutelde kopie die wij niet kunnen lezen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Da Finlândia, sob a lei de proteção de dados da UE. Suas reuniões e notas ficam neste iPhone; nosso servidor não guarda áudio nem notas. A sincronização opcional com o Mac guarda só uma cópia criptografada que não conseguimos ler."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "来自芬兰，受欧盟数据保护法约束。你的会议和笔记保留在这台 iPhone 上；我们的服务器不保存音频或笔记。可选的 Mac 同步只保存我们无法读取的加密副本。"
+          }
+        }
+      }
+    },
+    "Kapatınca sunucudaki şifreli kopya silinir ve diğer cihazlarında da eşitleme durur. Toplantıların her cihazda yerinde kalır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beim Ausschalten wird die verschlüsselte Kopie auf unserem Server gelöscht und die Synchronisierung stoppt auch auf deinen anderen Geräten. Deine Meetings bleiben auf jedem Gerät."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turning it off deletes the encrypted copy on our server and stops sync on your other devices too. Your meetings stay on each device."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Al desactivarla se elimina la copia cifrada de nuestro servidor y la sincronización también se detiene en tus otros dispositivos. Tus reuniones se quedan en cada dispositivo."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kun poistat sen käytöstä, palvelimemme salattu kopio poistetaan ja synkronointi pysähtyy myös muilla laitteillasi. Kokouksesi pysyvät jokaisella laitteella."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La désactiver supprime la copie chiffrée sur notre serveur et arrête aussi la synchronisation sur vos autres appareils. Vos réunions restent sur chaque appareil."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disattivandola, la copia cifrata sul nostro server viene eliminata e la sincronizzazione si ferma anche sugli altri dispositivi. Le tue riunioni restano su ogni dispositivo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフにすると、サーバー上の暗号化コピーが削除され、ほかのデバイスでも同期が止まります。会議はそれぞれのデバイスに残ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "끄면 서버의 암호화된 사본이 삭제되고 다른 기기에서도 동기화가 멈춥니다. 회의는 각 기기에 남아 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als je het uitzet, wordt de versleutelde kopie op onze server verwijderd en stopt synchronisatie ook op je andere apparaten. Je vergaderingen blijven op elk apparaat."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ao desativar, a cópia criptografada no nosso servidor é apagada e a sincronização também para nos seus outros dispositivos. Suas reuniões ficam em cada dispositivo."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭后，我们服务器上的加密副本会被删除，你的其他设备也会停止同步。你的会议保留在每台设备上。"
+          }
+        }
+      }
+    },
+    "Kendi notların iki cihazda düzenlendi; iki sürüm de notta duruyor.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine eigenen Notizen wurden auf zwei Geräten bearbeitet; beide Versionen stehen in der Notiz."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your own notes were edited on two devices; both versions are kept in the note."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tus propias notas se editaron en dos dispositivos; ambas versiones están en la nota."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Omia muistiinpanojasi muokattiin kahdella laitteella; molemmat versiot ovat muistiinpanossa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vos propres notes ont été modifiées sur deux appareils ; les deux versions sont conservées dans la note."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le tue note sono state modificate su due dispositivi; entrambe le versioni restano nella nota."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自分のメモが2台のデバイスで編集されました。両方のバージョンがメモに残っています。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "내 노트가 두 기기에서 편집되었습니다. 두 버전 모두 노트에 남아 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je eigen notities zijn op twee apparaten bewerkt; beide versies staan in de notitie."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suas próprias notas foram editadas em dois dispositivos; as duas versões ficam na nota."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你自己的笔记在两台设备上被编辑；两个版本都保留在笔记中。"
+          }
+        }
+      }
+    },
+    "Kendiliğinden yeniden denenecek: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wird automatisch erneut versucht: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Will retry automatically: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se volverá a intentar automáticamente: %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yritetään automaattisesti uudelleen: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nouvel essai automatique : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nuovo tentativo automatico: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動的に再試行します: %@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "자동으로 다시 시도합니다: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wordt automatisch opnieuw geprobeerd: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nova tentativa automática: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将自动重试：%@"
+          }
+        }
+      }
+    },
+    "Kod 32 karakter olmalı; diğer cihazda gösterildiği gibi yaz.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Code hat 32 Zeichen; gib ihn so ein, wie er auf deinem anderen Gerät angezeigt wird."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The code has 32 characters; type it as shown on your other device."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El código tiene 32 caracteres; escríbelo tal como aparece en tu otro dispositivo."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Koodissa on 32 merkkiä; kirjoita se niin kuin se näkyy toisella laitteellasi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le code comporte 32 caractères ; saisissez-le tel qu’il apparaît sur votre autre appareil."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il codice ha 32 caratteri; scrivilo come appare sull’altro dispositivo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コードは32文字です。別のデバイスに表示されているとおりに入力してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "코드는 32자입니다. 다른 기기에 표시된 대로 입력하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De code heeft 32 tekens; typ hem zoals hij op je andere apparaat staat."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O código tem 32 caracteres; digite-o como aparece no seu outro dispositivo."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "代码为 32 个字符；请按另一台设备上显示的样子输入。"
+          }
+        }
+      }
+    },
+    "Kod bu hesabın kodu değil. Diğer cihazda Ayarlar'daki kodu yeniden kontrol et.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieser Code gehört nicht zu diesem Konto. Prüfe den Code in den Einstellungen deines anderen Geräts noch einmal."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That code isn't this account's. Check the code in Settings on your other device again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ese código no es de esta cuenta. Vuelve a comprobar el código en Ajustes en tu otro dispositivo."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Koodi ei kuulu tälle tilille. Tarkista koodi uudelleen toisen laitteesi asetuksista."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce code n’est pas celui de ce compte. Vérifiez à nouveau le code dans les Réglages de votre autre appareil."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questo codice non è di questo account. Ricontrolla il codice nelle Impostazioni dell’altro dispositivo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このコードはこのアカウントのものではありません。別のデバイスの設定にあるコードをもう一度確認してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 코드는 이 계정의 코드가 아닙니다. 다른 기기의 설정에 있는 코드를 다시 확인하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die code hoort niet bij dit account. Controleer de code in Instellingen op je andere apparaat nog eens."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esse código não é desta conta. Confira de novo o código nos Ajustes do seu outro dispositivo."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这不是此账户的代码。请再次检查另一台设备“设置”中的代码。"
+          }
+        }
+      }
+    },
+    "Kodu gizle": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Code ausblenden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide code"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ocultar código"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Piilota koodi"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Masquer le code"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nascondi codice"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コードを隠す"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "코드 숨기기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Code verbergen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ocultar código"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐藏代码"
+          }
+        }
+      }
+    },
+    "Kodu göster": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Code anzeigen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show code"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar código"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näytä koodi"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher le code"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra codice"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コードを表示"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "코드 보기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Code tonen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar código"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示代码"
+          }
+        }
+      }
+    },
+    "Mac ile iPhone arasında eşitle": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zwischen Mac und iPhone synchronisieren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sync between Mac and iPhone"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronizar entre Mac y iPhone"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synkronoi Macin ja iPhonen välillä"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchroniser entre Mac et iPhone"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronizza tra Mac e iPhone"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MacとiPhone間で同期"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac과 iPhone 간 동기화"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchroniseren tussen Mac en iPhone"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronizar entre Mac e iPhone"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 Mac 和 iPhone 之间同步"
+          }
+        }
+      }
+    },
+    "Notlar, metinler, görevler, kişiler ve Sor sohbetleri şifreli olarak Mac'inle eşitlenir; ses bu iPhone'da kalır. Diğer cihaz bu kodla katılır; kodu sakla.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notizen, Transkripte, Aufgaben, Personen und Chats in „Fragen“ werden verschlüsselt mit deinem Mac synchronisiert; der Ton bleibt auf diesem iPhone. Dein anderes Gerät tritt mit diesem Code bei; bewahre ihn sicher auf."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes, transcripts, tasks, people and Ask chats sync encrypted with your Mac; audio stays on this iPhone. Your other device joins with this code; keep it safe."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las notas, transcripciones, tareas, personas y chats de Preguntar se sincronizan cifrados con tu Mac; el audio se queda en este iPhone. Tu otro dispositivo se une con este código; guárdalo bien."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muistiinpanot, litteroinnit, tehtävät, henkilöt ja Kysy-keskustelut synkronoidaan salattuina Macisi kanssa; ääni pysyy tällä iPhonella. Toinen laitteesi liittyy tällä koodilla; säilytä se."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les notes, transcriptions, tâches, personnes et conversations Demander se synchronisent chiffrées avec votre Mac ; l’audio reste sur cet iPhone. Votre autre appareil se joint avec ce code ; conservez-le."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note, trascrizioni, attività, persone e chat di Chiedi si sincronizzano cifrate con il tuo Mac; l’audio resta su questo iPhone. L’altro dispositivo si unisce con questo codice; conservalo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メモ、文字起こし、タスク、人物、「質問」のチャットが暗号化されてMacと同期されます。音声はこのiPhoneに残ります。別のデバイスはこのコードで参加します。コードは大切に保管してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "노트, 전사, 할 일, 사람, 질문하기 대화가 암호화되어 Mac과 동기화됩니다. 오디오는 이 iPhone에 남습니다. 다른 기기는 이 코드로 참여합니다. 코드를 잘 보관하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notities, transcripties, taken, personen en chats in Vraag worden versleuteld met je Mac gesynchroniseerd; audio blijft op deze iPhone. Je andere apparaat doet mee met deze code; bewaar hem goed."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notas, transcrições, tarefas, pessoas e conversas de Perguntar são sincronizadas com criptografia com seu Mac; o áudio fica neste iPhone. Seu outro dispositivo entra com este código; guarde-o."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "笔记、转写、任务、人员和“提问”对话会加密后与你的 Mac 同步；音频保留在这台 iPhone 上。另一台设备用此代码加入；请妥善保管。"
+          }
+        }
+      }
+    },
+    "Son eşitleme: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zuletzt synchronisiert: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last synced: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Última sincronización: %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viimeksi synkronoitu: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dernière synchronisation : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ultima sincronizzazione: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最終同期: %@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "마지막 동기화: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laatst gesynchroniseerd: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Última sincronização: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上次同步：%@"
+          }
+        }
+      }
+    },
+    "Sunucudaki şifreli kopya silinir, diğer cihazlarda da eşitleme durur. Toplantıların cihazlarda kalır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die verschlüsselte Kopie auf unserem Server wird gelöscht und die Synchronisierung stoppt auch auf deinen anderen Geräten. Deine Meetings bleiben auf deinen Geräten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The encrypted copy on our server is deleted and sync stops on your other devices too. Your meetings stay on your devices."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se elimina la copia cifrada de nuestro servidor y la sincronización también se detiene en tus otros dispositivos. Tus reuniones se quedan en tus dispositivos."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Palvelimemme salattu kopio poistetaan ja synkronointi pysähtyy myös muilla laitteillasi. Kokouksesi pysyvät laitteillasi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La copie chiffrée sur notre serveur est supprimée et la synchronisation s’arrête aussi sur vos autres appareils. Vos réunions restent sur vos appareils."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La copia cifrata sul nostro server viene eliminata e la sincronizzazione si ferma anche sugli altri dispositivi. Le tue riunioni restano sui tuoi dispositivi."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サーバー上の暗号化コピーが削除され、ほかのデバイスでも同期が止まります。会議はそれぞれのデバイスに残ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서버의 암호화된 사본이 삭제되고 다른 기기에서도 동기화가 멈춥니다. 회의는 기기에 남아 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De versleutelde kopie op onze server wordt verwijderd en synchronisatie stopt ook op je andere apparaten. Je vergaderingen blijven op je apparaten."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A cópia criptografada no nosso servidor é apagada e a sincronização também para nos seus outros dispositivos. Suas reuniões ficam nos seus dispositivos."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我们服务器上的加密副本会被删除，你的其他设备也会停止同步。你的会议保留在你的设备上。"
+          }
+        }
+      }
+    },
+    "Toplantı metinleri, notlar, görevler, kişiler ve Sor sohbetleri aynı hesapla giriş yaptığın Mac ve iPhone'da görünür. Her şey bu Mac'te şifrelenir; sunucumuz (AB'de) yalnızca okuyamadığı şifreli kopyayı saklar. Ses ve ekran görüntüleri kaydedildiği cihazda kalır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transkripte, Notizen, Aufgaben, Personen und Chats in „Fragen“ erscheinen auf dem Mac und iPhone, auf denen du mit demselben Konto angemeldet bist. Alles wird auf diesem Mac verschlüsselt; unser Server (in der EU) speichert nur eine verschlüsselte Kopie, die er nicht lesen kann. Ton und Bildschirmfotos bleiben auf dem Gerät, das sie aufgenommen hat."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meeting transcripts, notes, tasks, people and Ask chats appear on the Mac and iPhone where you're signed in to the same account. Everything is encrypted on this Mac; our server (in the EU) keeps only an encrypted copy it can't read. Audio and screen snapshots stay on the device that recorded them."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las transcripciones, notas, tareas, personas y chats de Preguntar aparecen en el Mac y el iPhone donde inicias sesión con la misma cuenta. Todo se cifra en este Mac; nuestro servidor (en la UE) solo guarda una copia cifrada que no puede leer. El audio y las capturas de pantalla se quedan en el dispositivo que los grabó."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Litteroinnit, muistiinpanot, tehtävät, henkilöt ja Kysy-keskustelut näkyvät Macilla ja iPhonella, joilla olet kirjautunut samalle tilille. Kaikki salataan tällä Macilla; palvelimemme (EU:ssa) säilyttää vain salatun kopion, jota se ei voi lukea. Ääni ja näyttökuvat pysyvät laitteella, joka ne tallensi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les transcriptions, notes, tâches, personnes et conversations Demander apparaissent sur le Mac et l’iPhone connectés au même compte. Tout est chiffré sur ce Mac ; notre serveur (dans l’UE) ne conserve qu’une copie chiffrée qu’il ne peut pas lire. L’audio et les captures d’écran restent sur l’appareil qui les a enregistrés."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascrizioni, note, attività, persone e chat di Chiedi appaiono sul Mac e sull’iPhone in cui hai effettuato l’accesso con lo stesso account. Tutto viene cifrato su questo Mac; il nostro server (nell’UE) conserva solo una copia cifrata che non può leggere. L’audio e le istantanee dello schermo restano sul dispositivo che li ha registrati."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字起こし、メモ、タスク、人物、「質問」のチャットが、同じアカウントでサインインしているMacとiPhoneに表示されます。すべてこのMacで暗号化され、私たちのサーバー（EU内）は読むことのできない暗号化コピーだけを保存します。音声と画面スナップショットは録音したデバイスに残ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "전사, 노트, 할 일, 사람, 질문하기 대화가 같은 계정으로 로그인한 Mac과 iPhone에 표시됩니다. 모든 내용은 이 Mac에서 암호화되며, 저희 서버(EU 내)는 읽을 수 없는 암호화된 사본만 보관합니다. 오디오와 화면 스냅샷은 녹음한 기기에 남습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcripties, notities, taken, personen en chats in Vraag verschijnen op de Mac en iPhone waarop je met hetzelfde account bent ingelogd. Alles wordt op deze Mac versleuteld; onze server (in de EU) bewaart alleen een versleutelde kopie die hij niet kan lezen. Audio en schermafbeeldingen blijven op het apparaat dat ze heeft opgenomen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcrições, notas, tarefas, pessoas e conversas de Perguntar aparecem no Mac e no iPhone em que você entrou com a mesma conta. Tudo é criptografado neste Mac; nosso servidor (na UE) guarda só uma cópia criptografada que não consegue ler. O áudio e as capturas de tela ficam no dispositivo que os gravou."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "转写、笔记、任务、人员和“提问”对话会显示在登录同一账户的 Mac 和 iPhone 上。所有内容都在这台 Mac 上加密；我们的服务器（位于欧盟）只保存它无法读取的加密副本。音频和屏幕快照保留在录制它们的设备上。"
+          }
+        }
+      }
+    },
+    "XXXX-XXXX-…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XXXX-XXXX-…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XXXX-XXXX-…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XXXX-XXXX-…"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XXXX-XXXX-…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XXXX-XXXX-…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XXXX-XXXX-…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XXXX-XXXX-…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XXXX-XXXX-…"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XXXX-XXXX-…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XXXX-XXXX-…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XXXX-XXXX-…"
+          }
+        }
+      }
+    },
+    "Yeni değişiklikleri eşitlemek için etkin abonelik gerekir. Toplantıların bu cihazda kalır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zum Synchronisieren neuer Änderungen brauchst du ein aktives Abo. Deine Meetings bleiben auf diesem Gerät."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Syncing new changes needs an active subscription. Your meetings stay on this device."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para sincronizar cambios nuevos se necesita una suscripción activa. Tus reuniones se quedan en este dispositivo."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uusien muutosten synkronointi vaatii voimassa olevan tilauksen. Kokouksesi pysyvät tällä laitteella."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La synchronisation des nouvelles modifications nécessite un abonnement actif. Vos réunions restent sur cet appareil."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Per sincronizzare nuove modifiche serve un abbonamento attivo. Le tue riunioni restano su questo dispositivo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しい変更を同期するには、有効なサブスクリプションが必要です。会議はこのデバイスに残ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "새 변경 사항을 동기화하려면 활성 구독이 필요합니다. 회의는 이 기기에 남아 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voor het synchroniseren van nieuwe wijzigingen is een actief abonnement nodig. Je vergaderingen blijven op dit apparaat."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronizar novas alterações exige uma assinatura ativa. Suas reuniões ficam neste dispositivo."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同步新的更改需要有效的订阅。你的会议保留在这台设备上。"
+          }
+        }
+      }
+    },
+    "iPhone'da eşitlemeyi açınca bu kodu yaz. Kodu güvenli bir yerde sakla: bütün cihazlarını kaybedersen eşitlenen kopyayı yalnızca bu kod açar; biz göremeyiz ve sıfırlayamayız.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gib diesen Code ein, wenn du die Synchronisierung auf deinem iPhone einschaltest. Bewahre ihn sicher auf: Wenn du alle Geräte verlierst, öffnet nur dieser Code die synchronisierte Kopie; wir können ihn weder sehen noch zurücksetzen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type this code when you turn on sync on your iPhone. Keep it somewhere safe: if you lose all your devices, only this code opens the synced copy; we can't see it or reset it."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribe este código cuando actives la sincronización en tu iPhone. Guárdalo en un lugar seguro: si pierdes todos tus dispositivos, solo este código abre la copia sincronizada; nosotros no podemos verlo ni restablecerlo."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirjoita tämä koodi, kun otat synkronoinnin käyttöön iPhonessa. Säilytä se turvallisessa paikassa: jos menetät kaikki laitteesi, vain tämä koodi avaa synkronoidun kopion; me emme näe sitä emmekä voi nollata sitä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saisissez ce code lorsque vous activez la synchronisation sur votre iPhone. Conservez-le en lieu sûr : si vous perdez tous vos appareils, seul ce code ouvre la copie synchronisée ; nous ne pouvons ni le voir ni le réinitialiser."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scrivi questo codice quando attivi la sincronizzazione sul tuo iPhone. Conservalo in un posto sicuro: se perdi tutti i dispositivi, solo questo codice apre la copia sincronizzata; noi non possiamo vederlo né reimpostarlo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhoneで同期をオンにするときに、このコードを入力してください。コードは安全な場所に保管してください。すべてのデバイスをなくした場合、同期されたコピーを開けるのはこのコードだけです。私たちはコードを見ることもリセットすることもできません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone에서 동기화를 켤 때 이 코드를 입력하세요. 코드를 안전한 곳에 보관하세요. 모든 기기를 잃어버리면 동기화된 사본은 이 코드로만 열 수 있으며, 저희는 코드를 보거나 재설정할 수 없습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Typ deze code als je synchronisatie op je iPhone aanzet. Bewaar hem op een veilige plek: als je al je apparaten kwijtraakt, opent alleen deze code de gesynchroniseerde kopie; wij kunnen hem niet zien of resetten."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digite este código ao ativar a sincronização no seu iPhone. Guarde-o em um lugar seguro: se você perder todos os dispositivos, só este código abre a cópia sincronizada; nós não podemos vê-lo nem redefini-lo."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 iPhone 上打开同步时输入此代码。请将它保存在安全的地方：如果你丢失了所有设备，只有此代码能打开同步的副本；我们无法查看或重置它。"
+          }
+        }
+      }
+    },
+    "Şimdi eşitle": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jetzt synchronisieren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sync now"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronizar ahora"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synkronoi nyt"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchroniser maintenant"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronizza ora"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今すぐ同期"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지금 동기화"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nu synchroniseren"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronizar agora"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "立即同步"
+          }
+        }
+      }
+    },
+    "— Diğer cihazdaki sürüm —": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— Version vom anderen Gerät —"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— Version from the other device —"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— Versión del otro dispositivo —"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— Toisen laitteen versio —"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— Version de l’autre appareil —"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— Versione dell’altro dispositivo —"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— 別のデバイスのバージョン —"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— 다른 기기의 버전 —"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— Versie van het andere apparaat —"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— Versão do outro dispositivo —"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— 另一台设备上的版本 —"
+          }
+        }
+      }
+    },
+    "%lld öğe eşitlenemedi; yeniden denenecek.": {
+      "localizations": {
+        "de": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Element konnte nicht synchronisiert werden; wird erneut versucht."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Elemente konnten nicht synchronisiert werden; wird erneut versucht."
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld item couldn't sync; will retry."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld items couldn't sync; will retry."
+                }
+              }
+            }
+          }
+        },
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "No se pudo sincronizar %lld elemento; se volverá a intentar."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "No se pudieron sincronizar %lld elementos; se volverá a intentar."
+                }
+              }
+            }
+          }
+        },
+        "fi": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld kohde jäi synkronoimatta; yritetään uudelleen."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld kohdetta jäi synkronoimatta; yritetään uudelleen."
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld élément n’a pas pu être synchronisé ; nouvel essai prévu."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld éléments n’ont pas pu être synchronisés ; nouvel essai prévu."
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld elemento non sincronizzato; nuovo tentativo in arrivo."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld elementi non sincronizzati; nuovo tentativo in arrivo."
+                }
+              }
+            }
+          }
+        },
+        "ja": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld件を同期できませんでした。再試行します。"
+                }
+              }
+            }
+          }
+        },
+        "ko": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld개 항목을 동기화하지 못했습니다. 다시 시도합니다."
+                }
+              }
+            }
+          }
+        },
+        "nl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld item kon niet worden gesynchroniseerd; wordt opnieuw geprobeerd."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld items konden niet worden gesynchroniseerd; wordt opnieuw geprobeerd."
+                }
+              }
+            }
+          }
+        },
+        "pt-BR": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld item não foi sincronizado; nova tentativa em breve."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld itens não foram sincronizados; nova tentativa em breve."
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld 项未能同步；将重试。"
                 }
               }
             }

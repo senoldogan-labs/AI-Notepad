@@ -338,6 +338,8 @@ private struct PhoneAppRoot: View {
         .onChange(of: session.openWriters) { (_: [AccountDataWriter], _: [AccountDataWriter]) in
             switchAccountIfIdle()
         }
+        // Mac ↔ iPhone eşitlemesi (isteğe bağlı; bkz. `HostedSyncCenter`). Hesap değişirken önce durur (`.syncing`).
+        .modifier(PhoneSyncBindings(account: account, session: session))
         .onChange(of: account.signedInUserIDCache, initial: true) { (_: String?, userID: String?) in
             // RevenueCat kimliği hesapla eşlenir: giriş, çıkış, hesap değişimi ve silme (satın alma bu hesaba yazılsın).
             #if DEBUG
@@ -449,9 +451,10 @@ func phoneShowsSignInGate(requiresSignIn: Bool, isRecording: Bool) -> Bool {
 }
 
 /// Hesabın verisine yazan açık işler (bkz. `accountSwitchReadiness`): kayıt, işleme, bekleyen kayıtların kuyruğu, dosya
-/// içe aktarma, not yazma, Sor cevabı ve notların kendiliğinden gönderimi. Hesap değişimi bunları bekler; çıkış ve hesap
-/// silme bunlar sürerken kapalıdır (içe aktarılan ya da yazılan toplantı başka hesabın klasörüne ya da oturumuna, not
-/// başka hesabın hedeflerine gitmesin).
+/// içe aktarma, not yazma, Sor cevabı, notların kendiliğinden gönderimi ve eşitleme. Hesap değişimi bunları bekler
+/// (eşitleme hesap değişirken kendiliğinden durur); çıkış ve hesap silme eşitleme dışındakiler sürerken kapalıdır
+/// (içe aktarılan ya da yazılan toplantı başka hesabın klasörüne ya da oturumuna, not başka hesabın hedeflerine gitmesin;
+/// eşitleme çıkışta durur).
 @MainActor
 func phoneOpenWriters(store: PhoneStore, recorder: PhoneRecorder, ask: PhoneAsk, integrations: PhoneIntegrations) -> [AccountDataWriter] {
     let open: [(AccountDataWriter, Bool)] = [
@@ -462,6 +465,7 @@ func phoneOpenWriters(store: PhoneStore, recorder: PhoneRecorder, ask: PhoneAsk,
         (.noteEditing, !store.regeneratingIDs.isEmpty),
         (.askAnswering, ask.isAnswering),
         (.noteSending, integrations.isAutoSending),
+        (.syncing, HostedSyncCenter.shared.isEngineRunning),
     ]
     return open.filter { $0.1 }.map { $0.0 }
 }
@@ -789,7 +793,7 @@ struct RootView: View {
                     PhoneDestination(
                         route: route, store: store, recorder: recorder, ask: ask, router: router, player: player, calendar: calendar,
                         account: account, crashReports: crashReports,
-                        isMeetingInFlight: !phoneOpenWriters(store: store, recorder: recorder, ask: ask, integrations: integrations).isEmpty,
+                        isMeetingInFlight: !phoneOpenWriters(store: store, recorder: recorder, ask: ask, integrations: integrations).filter { $0 != .syncing }.isEmpty,
                         onRunRecipe: runRecipe(recipe:meetingID:)
                     )
                 }
@@ -896,7 +900,7 @@ struct RootView: View {
 }
 
 /// Toplantı arşivi: giriş yapan hesabın bu iPhone'daki `Sessions` klasörü. (iCloud eşitlemesi bu sürümde kapalı; Mac'le
-/// eşitleme ayrı bir Gistsmith kapsayıcısıyla gelecek, `CloudSyncController` çekirdekte duruyor.)
+/// isteğe bağlı eşitleme kendi sunucumuz üzerinden, bkz. `HostedSyncCenter`.)
 @MainActor
 @Observable
 final class PhoneStore {
@@ -961,6 +965,11 @@ final class PhoneStore {
         }, fail: { (error: any Error) -> Void in
             self.loadProblems = [userFacingMessage(error: error)]
         })
+    }
+
+    /// Eşitlemenin söylediğini (ör. kendi notların iki cihazda düzenlendi) işlem sorunlarıyla gösterir; kullanıcı kapatır.
+    func reportSyncNotice(message: String) {
+        actionProblems = appendUnique(messages: actionProblems, message: message)
     }
 
     /// İşlem hatalarını kapatır.
@@ -1423,6 +1432,10 @@ final class PhoneStore {
 
     /// Notu yeniden yazılan toplantılar (menüde "Not yazılıyor…").
     private(set) var regeneratingIDs: Set<String> = []
+
+    /// Mac ile eşitlemeyle başka cihazdan gelen toplantılar (bkz. `HostedSyncCenter`): sesleri kaydedildiği cihazda
+    /// kalır, burada oynatılmaz, silinmez ve yeniden işlenmez.
+    var meetingsRecordedElsewhere: Set<String> = []
 
     /// Notu yeniden yazar (Mac'teki "Notu yenile"): başarısız ya da yarım kalan toplantı da iPhone'dan düzelir.
     func regenerateNote(meetingID: String) async {

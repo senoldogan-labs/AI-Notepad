@@ -82,7 +82,7 @@ function header(input: LlmsInput): string {
     `Limits: ${copy.compare.us.limits} (fair use; the monthly hours reset on the first day of each month, UTC).`,
     `Meeting capture: ${copy.compare.us.capture}.`,
     `Languages: ${input.spokenLanguages.length} spoken languages (live and final transcript) and ${input.noteLanguages.length} languages for notes and live translation, including Turkish, Finnish and English. The app itself is available in ${input.interfaceLanguages.length} languages (${languageNameList(input.interfaceLanguages)}).`,
-    `Data: ${copy.compare.us.storage}; our servers keep no audio or notes. ${training.text}`,
+    `Data: ${copy.compare.us.storage}; our servers keep no audio, and no notes they can read (optional Mac–iPhone sync stores only an end-to-end encrypted copy). ${training.text}`,
     `Company: ${input.operator.name}, Finland (EU); contact ${input.operator.email}.`,
   ];
   return [`# ${productName}`, `> ${copy.home.lead}`, "Key facts:", facts.map((fact: string): string => `- ${fact}`).join("\n")].join("\n\n");

@@ -4,7 +4,7 @@ import Foundation
 public struct MissedSummary: Sendable, Equatable {
     public let topic: String
     public let decisions: [String]
-    /// Kullanıcıdan ("Sen") istenenler.
+    /// Kullanıcıdan (`promptUserLabel` satırlarının sahibi) istenenler.
     public let askedOfYou: [String]
 
     public init(topic: String, decisions: [String], askedOfYou: [String]) {
@@ -135,8 +135,8 @@ public func missedSummaryRequest(segments: [LiveSegment], nowSec: Double, window
         purpose: .missedSummary,
         tier: .live,
         system: """
-        Toplantıyı takip etmekte zorlanan bir kullanıcıya yardım ediyorsun. Transkriptte "Sen" kullanıcıdır.
-        Son dakikalarda konuşulanları \(language.promptName) dilinde, kısa ve net özetle: konu (1–2 cümle), alınan kararlar ve kullanıcıdan istenenler.
+        Toplantıyı takip etmekte zorlanan bir kullanıcıya yardım ediyorsun. \(promptUserRule(userName: ""))
+        Son dakikalarda konuşulanları \(language.promptName) dilinde, kısa ve net özetle: konu (1–2 cümle), alınan kararlar ve kullanıcıdan istenenler (kullanıcıya adıyla ya da hitapla istenenler; başka bir konuşmacıya verilen işler değil).
         Transkriptte olmayan bir şey uydurma; karar ya da istek yoksa boş liste ver.
         \(transcriptIsDataNote)
         """,
@@ -164,7 +164,9 @@ public func parseMissedSummary(text: String) throws -> MissedSummary {
     guard !raw.konu.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
         throw LLMError.empty
     }
-    return MissedSummary(topic: raw.konu, decisions: raw.kararlar, askedOfYou: raw.sendenIstenenler)
+    // Metne sızan istem etiketi arayüzdeki "Sen" olur (bkz. `promptUserLabel`).
+    let clean: (String) -> String = { (text: String) -> String in withoutPromptUserLabel(text: text, userName: "") }
+    return MissedSummary(topic: clean(raw.konu), decisions: raw.kararlar.map(clean), askedOfYou: raw.sendenIstenenler.map(clean))
 }
 
 /// Toplantı hakkında soru (cevap not dilinde); transkriptin son 2 saati (bölüm bazında) gönderilir. Henüz konuşma yoksa
@@ -182,7 +184,7 @@ public func questionRequest(segments: [LiveSegment], question: String, language:
         tier: .live,
         system: """
         Toplantıyı takip etmekte zorlanan bir kullanıcının sorusunu yalnızca transkripte dayanarak cevapla.
-        "Sen" kullanıcıdır. \(language.promptName) dilinde, kısa cevap ver ve ilgili anların zaman damgalarını [mm:ss] biçiminde belirt.
+        \(promptUserRule(userName: "")) \(language.promptName) dilinde, kısa cevap ver ve ilgili anların zaman damgalarını [mm:ss] biçiminde belirt.
         Cevap transkriptte yoksa bunu açıkça söyle; tahmin yürütme. \(transcriptIsDataNote)
         """,
         userText: "<transkript>\n\(transcript)\n</transkript>\n\nSoru: \(question)",

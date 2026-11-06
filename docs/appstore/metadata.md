@@ -109,7 +109,7 @@ LANGUAGES
 Meetings in 35 languages. Notes, translations and answers in 37. The app itself is in English and Turkish.
 
 PRIVACY
-Your meetings are not used to train AI models. Audio is sent only to make the transcript and the note, and our servers don't keep your audio or notes. You choose how long recordings stay on your iPhone, from 7 to 365 days. Tell the people in the room before you record.
+Your meetings are not used to train AI models. Audio is sent only to make the transcript and the note, and our servers don't keep your audio, or notes we can read (optional Mac sync keeps only an end-to-end encrypted copy). You choose how long recordings stay on your iPhone, from 7 to 365 days. Tell the people in the room before you record.
 
 PRICING
 Your first 3 meetings or 7 days are free, whichever comes first (sign-in required; trial meetings up to 90 minutes each). After that, Gistsmith Pro is a monthly or yearly auto-renewing subscription with 10 hours of recording a month (fair use) and up to 4 hours per meeting. The price for your country is shown in the app before you buy. Payment is charged to your Apple Account when you confirm. The subscription renews automatically unless you turn it off at least 24 hours before the end of the current period. Manage or cancel it in your Apple Account settings.

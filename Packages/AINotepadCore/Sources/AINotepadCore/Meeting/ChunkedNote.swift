@@ -105,8 +105,8 @@ private func numberedLines(lines: [String]) -> String {
 }
 
 /// Görevin bağlamdaki satırı: "3. Aino — Raporu gönder (Cuma)". Saf fonksiyondur.
-private func numberedTaskLine(number: Int, task: NoteTask) -> String {
-    "\(number). \(task.owner) — \(task.description)\(task.dueDate.map { " (\($0))" } ?? "")"
+private func numberedTaskLine(number: Int, task: NoteTask, userName: String) -> String {
+    "\(number). \(promptTaskOwner(task: task, userName: userName)) — \(task.description)\(task.dueDate.map { " (\($0))" } ?? "")"
 }
 
 /// Uzun toplantının bir parçası için istek: önceki parçaların özetleri ve şimdiye kadarki numaralı görevler bağlam
@@ -115,12 +115,12 @@ public func noteChunkRequest(
     chunk: [StoredSegment], part: Int, partCount: Int, state: ChunkedNoteState, speakerNames: [Int: String], userName: String,
     template: NoteTemplate, myNotes: String, language: ShareLanguage
 ) -> LLMRequest {
-    let user: String = userName.isEmpty ? "kullanıcı" : userName
+    let user: String = userName.isEmpty ? promptUnnamedUser : userName
     let mine: (rule: String, block: String) = myNotesPrompt(myNotes: myNotes)
     let summaries: String = state.partSummaries.isEmpty ? "(yok, bu ilk parça)" : state.partSummaries.joined(separator: "\n")
     let tasks: String = state.tasks.isEmpty
         ? "(yok)"
-        : state.tasks.enumerated().map { numberedTaskLine(number: $0.offset + 1, task: $0.element) }.joined(separator: "\n")
+        : state.tasks.enumerated().map { numberedTaskLine(number: $0.offset + 1, task: $0.element, userName: userName) }.joined(separator: "\n")
     return LLMRequest(
         purpose: .noteChunk,
         tier: .smart,
@@ -129,7 +129,7 @@ public func noteChunkRequest(
         dilinde toplantı notu çıkarıyorsun. Şu an
         \(partCount) parçanın \(part). parçasındasın. Önceki parçaların özetleri ve şimdiye kadar çıkan numaralı görevler bağlam
         olarak verilir; bu parçayı onlarla bağdaştırarak oku (önceden geçen kişi, konu ve işlere yapılan atıflar).
-        Kullanıcının adı \(user); transkriptte "Sen" odur. Yalnızca bu parçadan yaz:
+        \(promptUserRule(userName: userName)) Yalnızca bu parçadan yaz:
         - ozet: bu parçada konuşulanların 2–5 cümlelik özeti, öne çıkan sayı, tarih, ad ve gerekçeleriyle.
         - \(decisionsRule(language: language))
         - yeniGorevler: bu parçada verilen yeni işler. Listede aynı iş (aynı kişi, aynı konu) zaten varsa yeniden yazma;
@@ -256,9 +256,9 @@ func outlineRange(parts: Int) -> String {
 public func noteOverviewRequest(
     state: ChunkedNoteState, userName: String, template: NoteTemplate, myNotes: String, language: ShareLanguage, screens: [LLMImage]
 ) -> LLMRequest {
-    let user: String = userName.isEmpty ? "kullanıcı" : userName
+    let user: String = userName.isEmpty ? promptUnnamedUser : userName
     let mine: (rule: String, block: String) = myNotesPrompt(myNotes: myNotes)
-    let tasks: String = state.tasks.enumerated().map { numberedTaskLine(number: $0.offset + 1, task: $0.element) }.joined(separator: "\n")
+    let tasks: String = state.tasks.enumerated().map { numberedTaskLine(number: $0.offset + 1, task: $0.element, userName: userName) }.joined(separator: "\n")
     return LLMRequest(
         purpose: .noteOverview,
         tier: .smart,
@@ -450,19 +450,30 @@ func meetingEndSec(segments: [StoredSegment]) -> Double {
     segments.map(\.endSec).max() ?? 0
 }
 
-/// Notun görevlerinde sahibi düzeltilmiş kopya (bkz. `normalizedTask`); konu akışı, açık konular ve dil korunur. Saf fonksiyondur.
+/// Notun görevlerinde sahibi düzeltilmiş kopya (bkz. `normalizedTask`); metinlere sızan istem etiketi
+/// (`promptUserLabel`) kullanıcının adıyla değişir; konu akışı, açık konular ve dil korunur. Saf fonksiyondur.
 func withNormalizedTasks(note: MeetingNote, userName: String) -> MeetingNote {
-    note.with(
-        title: note.title, summary: note.summary, decisions: note.decisions,
-        tasks: note.tasks.map { normalizedTask(task: $0, userName: userName) }
+    let clean: (String) -> String = { (text: String) -> String in withoutPromptUserLabel(text: text, userName: userName) }
+    let cleaned: MeetingNote = withCleanOpenQuestionsAndOutline(note: note, clean: clean)
+    return cleaned.with(
+        title: clean(note.title), summary: clean(note.summary), decisions: note.decisions.map(clean),
+        tasks: cleaned.tasks.map { normalizedTask(task: $0, userName: userName) }
             // Aynı sahip ve işle iki kez yazılan görev tek görev olur (aynı kimliği paylaşıp birlikte işaretlenmesinler).
             .reduce(into: [NoteTask]()) { (result: inout [NoteTask], task: NoteTask) -> Void in
                 if !result.contains(where: { taskKey(task: $0) == taskKey(task: task) }) {
                     result.append(task)
                 }
             },
-        glossary: note.glossary
+        glossary: note.glossary.map { GlossaryEntry(term: $0.term, meaning: clean($0.meaning)) }
     )
+}
+
+/// Açık konuları ve konu akışı `clean`den geçmiş kopya (olmayanlar olmayan kalır). Saf fonksiyondur.
+private func withCleanOpenQuestionsAndOutline(note: MeetingNote, clean: (String) -> String) -> MeetingNote {
+    let questioned: MeetingNote = note.openQuestions.map { note.with(openQuestions: $0.map(clean)) } ?? note
+    return note.outline.map { (outline: [OutlineItem]) -> MeetingNote in
+        questioned.with(outline: outline.map { OutlineItem(startSec: $0.startSec, title: clean($0.title), summary: clean($0.summary)) })
+    } ?? questioned
 }
 
 // Şemadaki Türkçe alan adları.

@@ -196,6 +196,8 @@ export interface AdminClientCopy {
   readonly opsWebhookNever: string;
   /** `{feedback}`, `{crash}`, `{contact}`. */
   readonly opsReportsSub: string;
+  /** `{objects}`, `{size}`, `{classA}`, `{classB}`: eşitlenen nesneler, boyut ve bu ayın R2 işlemleri (bütçenin yüzdesi). */
+  readonly opsSyncSub: string;
   /** Huni adımlarının adları. */
   readonly funnelSteps: {
     readonly downloads: string;
@@ -377,6 +379,7 @@ export const clientCopy: ClientCopy = {
     opsWebhookSub: "{count} events in the last 24 hours",
     opsWebhookNever: "No events stored in the last 90 days",
     opsReportsSub: "{feedback} feedback · {crash} crashes · {contact} contact",
+    opsSyncSub: "{objects} encrypted objects · {size} · R2 this month: writes {classA}, reads {classB} of the free-tier cap",
     funnelSteps: {
       downloads: "Downloads",
       accounts: "Accounts created",

@@ -435,6 +435,18 @@ export interface Operations {
     readonly last7Days: { readonly feedback: number; readonly crash: number; readonly contact: number };
     readonly recentCrashes: readonly RecentCrash[];
   };
+  /** Mac ↔ iPhone eşitlemesi: yalnız sayılar ve bu ayın R2 işlemleri (ücretsiz katmanın %80'inde durur). */
+  readonly sync: {
+    readonly accounts: number;
+    readonly objects: number;
+    readonly storedBytes: number;
+    readonly pendingPurges: number;
+    readonly classAThisMonth: number;
+    readonly classABudget: number;
+    readonly classBThisMonth: number;
+    readonly classBBudget: number;
+    readonly storedBytesBudget: number;
+  };
 }
 
 /** Kullanıcı listesi süzgeci; null süzmez. */
@@ -1069,6 +1081,7 @@ export function parseOperations(response: RawResponse, path: string): Operations
   const stripe: JsonObject = objectField(body, "stripe", response, path);
   const reports: JsonObject = objectField(body, "reports", response, path);
   const reportsLast7Days: JsonObject = objectField(reports, "last7Days", response, path);
+  const sync: JsonObject = objectField(body, "sync", response, path);
   return {
     generatedAt: timestampField(body, "generatedAt", response, path),
     meetings: {
@@ -1116,6 +1129,17 @@ export function parseOperations(response: RawResponse, path: string): Operations
           summary: stringField(item, "summary", response, path),
         }),
       ),
+    },
+    sync: {
+      accounts: numberField(sync, "accounts", response, path),
+      objects: numberField(sync, "objects", response, path),
+      storedBytes: numberField(sync, "storedBytes", response, path),
+      pendingPurges: numberField(sync, "pendingPurges", response, path),
+      classAThisMonth: numberField(sync, "classAThisMonth", response, path),
+      classABudget: numberField(sync, "classABudget", response, path),
+      classBThisMonth: numberField(sync, "classBThisMonth", response, path),
+      classBBudget: numberField(sync, "classBBudget", response, path),
+      storedBytesBudget: numberField(sync, "storedBytesBudget", response, path),
     },
   };
 }

@@ -65,6 +65,8 @@ public enum AccountDataWriter: Equatable, Sendable {
     case askAnswering
     /// Notlar bağlı hedeflere kendiliğinden gönderiliyor (hesabın Anahtar Zinciri'ndeki bağlantılarla).
     case noteSending
+    /// Mac ↔ iPhone eşitlemesi çalışıyor (hesabın klasörüne yazar; hesap değişince önce durdurulur).
+    case syncing
 }
 
 /// Bir hesap oturumunun (bellekteki toplantılar ve onlara yazan nesneler) bağlı olduğu hesap: kurulduğunda yüklü

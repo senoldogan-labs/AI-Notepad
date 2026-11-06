@@ -6,7 +6,8 @@ import SwiftUI
 /// Kişiler: toplantılarda adı verilen konuşmacılar ve elle eklenenler, sütunları sıralanabilen bir tabloda (kişi,
 /// ünvan, toplantı sayısı, konuşma süresi, son görüldüğü gün, sesinden tanınıyor mu). Satırdaki göz düğmesi, çift tık
 /// ya da Return kişinin sayfasını küçük bir pencerede açar (düzenle, kaldır, toplantıları ve görevleri); sağ tık menüsü
-/// aynı eylemleri sunar. Üstte arama ve "Kişi ekle".
+/// aynı eylemleri sunar. Üstte arama ve "Kişi ekle". Şirketler sekmesi kişileri e-posta alan adına göre gruplar (bkz.
+/// `companies`); şirketin penceresi kişilerini (dokununca kişinin sayfası aynı pencerede) ve toplantılarını listeler.
 struct PeoplePage: View {
     let model: AppModel
     let router: MainWindowRouter
@@ -16,6 +17,12 @@ struct PeoplePage: View {
     @State private var isAdding: Bool = false
     @State private var filter: String = ""
     @State private var sortOrder: [KeyPathComparator<PersonSummary>] = [KeyPathComparator(\PersonSummary.lastSeen, order: .reverse)]
+    @State private var companySelection: String?
+    /// Penceresi açık şirket (alan adı; şirketin son kişisi gidince pencere kapanır).
+    @State private var openedCompanyID: String?
+    /// Şirket penceresinde açılan kişi (kimliği); nil ise şirketin kendisi gösterilir.
+    @State private var companyPersonID: String?
+    @State private var companySortOrder: [KeyPathComparator<CompanySummary>] = [KeyPathComparator(\CompanySummary.lastSeenSort, order: .reverse)]
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
@@ -28,6 +35,11 @@ struct PeoplePage: View {
             $0.name.localizedCaseInsensitiveContains(query) || $0.role.localizedCaseInsensitiveContains(query)
                 || $0.email.localizedCaseInsensitiveContains(query)
         }).sorted(using: sortOrder)
+        let allCompanies: [CompanySummary] = companies(people: people, ownEmail: ownAccountEmail())
+        let shownCompanies: [CompanySummary] = (query.isEmpty ? allCompanies : allCompanies.filter { (company: CompanySummary) -> Bool in
+            company.name.localizedCaseInsensitiveContains(query) || company.domain.localizedCaseInsensitiveContains(query)
+                || company.people.contains { $0.name.localizedCaseInsensitiveContains(query) }
+        }).sorted(using: companySortOrder)
         VStack(alignment: .leading, spacing: 0) {
             if people.isEmpty, model.peopleBookError == nil {
                 CenteredScroll {
@@ -48,14 +60,36 @@ struct PeoplePage: View {
                         .padding(.horizontal, 24)
                         .padding(.bottom, 8)
                 }
-                table(shown: shown)
-                    .overlay {
-                        if shown.isEmpty, !people.isEmpty {
-                            Text("Eşleşen kişi yok")
-                                .appFont(size: 13, weight: .regular)
-                                .foregroundStyle(Theme.muted)
+                switch router.peopleTab {
+                case .people:
+                    table(shown: shown)
+                        .overlay {
+                            if shown.isEmpty, !people.isEmpty {
+                                Text("Eşleşen kişi yok")
+                                    .appFont(size: 13, weight: .regular)
+                                    .foregroundStyle(Theme.muted)
+                            }
                         }
+                case .companies:
+                    if allCompanies.isEmpty {
+                        QuietEmptyCard(
+                            symbol: "building.2", title: "Henüz şirket yok",
+                            message: "Şirketler kişilerin e-posta adreslerinden gelir; bir kişiye iş e-postası ekleyince şirketi burada görünür."
+                        )
+                        .frame(maxWidth: 560)
+                        .padding(.horizontal, 24)
+                        .padding(.top, 8)
+                    } else {
+                        companyTable(shown: shownCompanies)
+                            .overlay {
+                                if shownCompanies.isEmpty {
+                                    Text("Eşleşen şirket yok")
+                                        .appFont(size: 13, weight: .regular)
+                                        .foregroundStyle(Theme.muted)
+                                }
+                            }
                     }
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -80,12 +114,35 @@ struct PeoplePage: View {
             }
         )) {
             if let person = people.first(where: { $0.id == openedID }) {
-                personSheet(person: person)
+                personSheet(person: person) { (id: String?) -> Void in openedID = id }
+            }
+        }
+        .sheet(isPresented: Binding<Bool>(
+            get: { openedCompanyID.map { (id: String) -> Bool in allCompanies.contains { $0.id == id } } ?? false },
+            set: { (shown: Bool) -> Void in
+                if !shown {
+                    openedCompanyID = nil
+                    companyPersonID = nil
+                }
+            }
+        )) {
+            if let personID = companyPersonID, let person = people.first(where: { $0.id == personID }) {
+                // Şirketin kişisi aynı pencerede açılır; kapatınca şirkete dönülür.
+                personSheet(person: person) { (id: String?) -> Void in companyPersonID = id }
+            } else if let company = allCompanies.first(where: { $0.id == openedCompanyID }) {
+                CompanyDetail(company: company, router: router) { (id: String) -> Void in
+                    companyPersonID = id
+                } onClose: {
+                    openedCompanyID = nil
+                }
+                .frame(width: 640, height: 600)
+                .modifier(AppSheetChrome())
             }
         }
     }
 
-    /// Başlık satırı: ad ve kişi sayısı, arama, "Kişi ekle".
+    /// Başlık satırı: ad ve kişi sayısı, arama, "Kişi ekle"; altında Kişiler | Şirketler sekmeleri.
+    @ViewBuilder
     private func header(count: Int) -> some View {
         HStack(alignment: .center, spacing: 12) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -98,7 +155,7 @@ struct PeoplePage: View {
             Spacer(minLength: 12)
             HStack(spacing: 6) {
                 Image(systemName: "magnifyingglass").foregroundStyle(Theme.muted)
-                TextField("Kişi ara", text: $filter).textFieldStyle(.plain)
+                TextField(router.peopleTab == .people ? "Kişi ara" : "Şirket ara", text: $filter).textFieldStyle(.plain)
             }
             .appFont(size: 13, weight: .regular)
             .padding(.horizontal, 10)
@@ -110,7 +167,12 @@ struct PeoplePage: View {
         }
         .padding(.horizontal, 24)
         .padding(.top, 20)
-        .padding(.bottom, 14)
+        .padding(.bottom, 10)
+        UnderlineTabs(selection: Binding<PeopleTab>(get: { router.peopleTab }, set: { router.peopleTab = $0 }), options: [
+            (value: PeopleTab.people, title: "Kişiler"), (value: PeopleTab.companies, title: "Şirketler"),
+        ])
+        .padding(.horizontal, 24)
+        .padding(.bottom, 10)
     }
 
     /// Kişi tablosu: başlıklara tıklayınca sıralanır; satır seçilir, çift tık ya da Return kişiyi açar.
@@ -187,6 +249,96 @@ struct PeoplePage: View {
         .padding(.horizontal, 12)
     }
 
+    /// Şirket tablosu: kişi tablosuyla aynı biçimde (sıralanabilir sütunlar, sistem mavisi olmadan seçim, çift tık ya da
+    /// Return şirketin penceresini açar).
+    private func companyTable(shown: [CompanySummary]) -> some View {
+        Table(shown, selection: $companySelection, sortOrder: $companySortOrder) {
+            TableColumn("Şirket", value: \.name) { (company: CompanySummary) in
+                HStack(spacing: 10) {
+                    CompanyTile(name: company.name, size: 30)
+                    VStack(alignment: .leading, spacing: 1) {
+                        HStack(spacing: 6) {
+                            Text(verbatim: company.name)
+                                .appFont(size: 14, weight: .medium)
+                                .foregroundStyle(companySelection == company.id ? appearance.accent.color : Theme.ink)
+                                .lineLimit(1)
+                            if company.isOwn {
+                                OwnCompanyBadge()
+                            }
+                        }
+                        Text(verbatim: company.domain).appFont(size: 12, weight: .regular).foregroundStyle(Theme.muted).lineLimit(1)
+                    }
+                }
+                .padding(.vertical, 6)
+                .frame(minHeight: 44, alignment: .leading)
+            }
+            .width(min: 180, ideal: 260)
+            TableColumn("Kişiler", value: \.peopleCount) { (company: CompanySummary) in
+                Text(verbatim: "\(company.peopleCount)")
+                    .appFont(size: 13, weight: .regular)
+                    .monospacedDigit()
+            }
+            .width(min: 64, ideal: 84)
+            .alignment(.numeric)
+            TableColumn("Toplantılar", value: \.meetingCount) { (company: CompanySummary) in
+                Text(verbatim: "\(company.meetingCount)")
+                    .appFont(size: 13, weight: .regular)
+                    .monospacedDigit()
+            }
+            .width(min: 72, ideal: 96)
+            .alignment(.numeric)
+            TableColumn("Konuşma", value: \.totalSeconds) { (company: CompanySummary) in
+                Text(talkMinutes(seconds: company.totalSeconds))
+                    .appFont(size: 13, weight: .regular)
+                    .monospacedDigit()
+            }
+            .width(min: 72, ideal: 96)
+            .alignment(.numeric)
+            TableColumn("Son görüldü", value: \.lastSeenSort) { (company: CompanySummary) in
+                Group {
+                    if let date = company.lastSeen {
+                        Text(lastSeenText(date: date, now: Date()))
+                    } else {
+                        Text(verbatim: "—").foregroundStyle(Theme.muted)
+                    }
+                }
+                .appFont(size: 13, weight: .regular)
+                .monospacedDigit()
+            }
+            .width(min: 90, ideal: 110)
+            TableColumn("") { (company: CompanySummary) in
+                HStack(spacing: 6) {
+                    Spacer(minLength: 0)
+                    Button {
+                        companySelection = company.id
+                        openedCompanyID = company.id
+                    } label: {
+                        Image(systemName: "eye")
+                            .appFont(size: 13, weight: .medium)
+                            .foregroundStyle(Theme.muted)
+                            .frame(width: 28, height: 24)
+                    }
+                    .buttonStyle(.hoverPlain)
+                    .accessibilityLabel(Text("Bilgilerini göster"))
+                    .hoverHint("Bilgilerini göster", alignment: .trailing, edge: .bottom)
+                }
+            }
+            .width(64)
+        }
+        .tableStyle(.inset)
+        .alternatingRowBackgrounds(.disabled)
+        .scrollContentBackground(.hidden)
+        .background(PlainTableSelection())
+        .contextMenu(forSelectionType: String.self) { (ids: Set<String>) in
+            if let id = ids.first {
+                Button("Bilgilerini göster", systemImage: "eye") { openedCompanyID = id }
+            }
+        } primaryAction: { (ids: Set<String>) -> Void in
+            openedCompanyID = ids.first
+        }
+        .padding(.horizontal, 12)
+    }
+
     /// Satırın sağı: sesinden tanınıyorsa dalga simgesi, göz (bilgileri pencerede açar).
     private func rowActions(person: PersonSummary) -> some View {
         HStack(spacing: 6) {
@@ -213,8 +365,9 @@ struct PeoplePage: View {
         }
     }
 
-    /// Kişinin penceresi: kişinin sayfası, sağ üstte kapat.
-    private func personSheet(person: PersonSummary) -> some View {
+    /// Kişinin penceresi: kişinin sayfası, sağ üstte kapat. `show` pencerede gösterilen kişiyi değiştirir (adı değişince
+    /// yeni kimlik, kaldırılınca ya da kapatılınca nil).
+    private func personSheet(person: PersonSummary, show: @escaping @MainActor (String?) -> Void) -> some View {
         PersonDetail(person: person, router: router) { (name: String, role: String, email: String) -> Void in
             // Toplantılarda adı geçen kişinin adı toplantılarda verildiği için değişmez (değişirse kişi ikiye
             // bölünürdü); yalnızca toplantısız, elle eklenen kişinin adı değişir.
@@ -222,20 +375,36 @@ struct PeoplePage: View {
                 model.renamePerson(oldName: person.name, name: name, role: role, email: email)
                 let renamed: String = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
                 selection = renamed
-                openedID = renamed
+                show(renamed)
             } else {
                 model.savePerson(name: person.name, role: role, email: email)
             }
         } onRemove: {
             model.removePerson(name: person.name)
-            openedID = nil
+            show(nil)
             selection = nil
         } onClose: {
-            openedID = nil
+            show(nil)
         }
         .frame(width: 640, height: 600)
         .modifier(AppSheetChrome())
     }
+}
+
+/// Kişiler sayfasının sekmeleri.
+enum PeopleTab: Hashable {
+    case people
+    case companies
+}
+
+/// Hesabın giriş e-postası (kendi şirketini işaretlemek için); geliştirici sürümünde ve kimliği bilinmeyen hesapta nil.
+@MainActor
+private func ownAccountEmail() -> String? {
+    #if HOSTED_EDITION
+    HostedAccount.shared.signedInIdentity?.email
+    #else
+    nil
+    #endif
 }
 
 /// Tablonun seçim boyasını kapatır: macOS seçili satırı sistem vurgu rengiyle (çoğunlukla mavi) doldurur, bu da
@@ -287,7 +456,12 @@ private final class TableSelectionProbe: NSView {
 
 /// Konuşma süresi: konuşması olan kişide en az 1 dk; hiç konuşmayan (elle eklenen) kişide 0. Saf fonksiyondur.
 private func talkMinutes(person: PersonSummary) -> String {
-    String(localized: "\(person.totalSeconds > 0 ? max(1, Int((person.totalSeconds / 60).rounded())) : 0) dk")
+    talkMinutes(seconds: person.totalSeconds)
+}
+
+/// Konuşma süresi dakika olarak: konuşma varsa en az 1 dk, yoksa 0. Saf fonksiyondur.
+private func talkMinutes(seconds: Double) -> String {
+    String(localized: "\(seconds > 0 ? max(1, Int((seconds / 60).rounded())) : 0) dk")
 }
 
 /// Son görüldüğü gün: bu yıl içindeyse yılsız ("5 Kas"), değilse yıllı ("5 Kas 2025"). Saf fonksiyondur.
@@ -304,6 +478,13 @@ extension PersonSummary {
     var meetingCount: Int { meetings.count }
     /// Son görüldüğü toplantının tarihi (toplantılar yeniden eskiye); toplantısız kişide en eski tarih.
     var lastSeen: Date { meetings.first?.date ?? .distantPast }
+}
+
+/// Şirket tablosunun sıralama anahtarları.
+extension CompanySummary {
+    var peopleCount: Int { people.count }
+    /// Son toplantının tarihi; toplantısız şirkette en eski tarih.
+    var lastSeenSort: Date { lastSeen ?? .distantPast }
 }
 
 /// Formun alanları (odak hangi alanda: çerçevesi vurgu renginde).
@@ -579,6 +760,140 @@ private struct PersonDetail: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .cardSurface(cornerRadius: 12)
                         }
+                    }
+                }
+            }
+            .padding(32)
+            .frame(maxWidth: 720, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func stat(value: String, label: LocalizedStringKey) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(value).appFont(size: 22, weight: .regular).tracking(-0.4)
+            Text(label).appFont(size: 12, weight: .regular).foregroundStyle(Theme.muted)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardSurface(cornerRadius: 14)
+    }
+}
+
+/// Şirketin sayfası: başlık (harf karosu, ad, alan adı), özet sayılar, kişileri (dokununca kişinin sayfası aynı
+/// pencerede) ve toplantıları (dokununca toplantı açılır, kişinin sayfasındaki gibi).
+private struct CompanyDetail: View {
+    let company: CompanySummary
+    let router: MainWindowRouter
+    let onOpenPerson: @MainActor (String) -> Void
+    /// Pencereyi kapatır.
+    let onClose: @MainActor () -> Void
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                HStack(alignment: .top, spacing: 16) {
+                    CompanyTile(name: company.name, size: 56)
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text(verbatim: company.name).appFont(size: 28, weight: .regular).tracking(-0.4)
+                            if company.isOwn {
+                                OwnCompanyBadge()
+                            }
+                        }
+                        Label(company.domain, systemImage: "globe")
+                            .appFont(size: 13, weight: .regular)
+                            .foregroundStyle(Theme.muted)
+                    }
+                    Spacer(minLength: 12)
+                    Button {
+                        onClose()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .appFont(size: 12, weight: .semibold)
+                            .frame(width: 28, height: 28)
+                    }
+                    .buttonStyle(.hoverCapsule)
+                    .keyboardShortcut(.cancelAction)
+                    .accessibilityLabel(Text("Kapat"))
+                    .controlSize(.small)
+                }
+                HStack(spacing: 12) {
+                    stat(value: "\(company.people.count)", label: "kişi")
+                    stat(value: "\(company.meetingCount)", label: "toplantı")
+                    stat(value: talkMinutes(seconds: company.totalSeconds), label: "konuşma")
+                }
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("KİŞİLERİ").appFont(size: 11, weight: .semibold).tracking(DesignTokens.labelTracking).foregroundStyle(Theme.muted)
+                    VStack(spacing: 0) {
+                        ForEach(Array(company.people.enumerated()), id: \.offset) { (item: (offset: Int, element: PersonSummary)) in
+                            if item.offset > 0 {
+                                Rectangle().fill(Theme.line).frame(height: 1)
+                            }
+                            Button {
+                                onOpenPerson(item.element.id)
+                            } label: {
+                                HStack(spacing: 12) {
+                                    PersonAvatar(name: item.element.name, size: 30)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(item.element.name).appFont(size: 14, weight: .medium).lineLimit(1)
+                                        Text(item.element.role.isEmpty ? item.element.email : item.element.role)
+                                            .appFont(size: 12, weight: .regular)
+                                            .foregroundStyle(Theme.muted)
+                                            .lineLimit(1)
+                                    }
+                                    Spacer(minLength: 8)
+                                    Image(systemName: "chevron.right").foregroundStyle(Theme.muted)
+                                }
+                                .padding(.vertical, 10)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.hoverPlain)
+                        }
+                    }
+                    .padding(.horizontal, 14)
+                    .cardSurface(cornerRadius: 14)
+                }
+                if company.meetings.isEmpty {
+                    QuietEmptyCard(
+                        symbol: "calendar.badge.clock", title: "Henüz toplantı yok",
+                        message: "Bir toplantının transkriptinde konuşmacıya bu şirketten birinin adını verince toplantıları burada görünür."
+                    )
+                } else {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("TOPLANTILARI").appFont(size: 11, weight: .semibold).tracking(DesignTokens.labelTracking).foregroundStyle(Theme.muted)
+                        VStack(spacing: 0) {
+                            ForEach(Array(company.meetings.enumerated()), id: \.offset) { (item: (offset: Int, element: CompanyMeeting)) in
+                                if item.offset > 0 {
+                                    Rectangle().fill(Theme.line).frame(height: 1)
+                                }
+                                Button {
+                                    router.selectedMeetingID = item.element.meetingID
+                                    router.section = .meetings
+                                } label: {
+                                    HStack(spacing: 12) {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(item.element.title).appFont(size: 14, weight: .medium).lineLimit(1)
+                                            Text(item.element.date.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(interfaceLocale())))
+                                                .appFont(size: 12, weight: .regular)
+                                                .foregroundStyle(Theme.muted)
+                                        }
+                                        Spacer(minLength: 8)
+                                        // Şirketten bu toplantıda konuşanlar.
+                                        Text(verbatim: item.element.people.formatted(.list(type: .and).locale(interfaceLocale())))
+                                            .appFont(size: 12, weight: .medium)
+                                            .foregroundStyle(Theme.muted)
+                                            .lineLimit(1)
+                                        Image(systemName: "chevron.right").foregroundStyle(Theme.muted)
+                                    }
+                                    .padding(.vertical, 10)
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.hoverPlain)
+                            }
+                        }
+                        .padding(.horizontal, 14)
+                        .cardSurface(cornerRadius: 14)
                     }
                 }
             }

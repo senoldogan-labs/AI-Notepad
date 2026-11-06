@@ -81,8 +81,20 @@ export const dataHandling: DataHandlingCopy = {
       id: "on-device",
       data: "Notes, transcripts, recordings, screen snapshots, and the people and terms you add",
       where: "In the app's folder on your Mac, or on your iPhone once the iPhone app is available on the App Store.",
-      stored: "On your device only. No cloud sync; meetings recorded on one device don't appear on the other.",
+      stored:
+        "On your device. Unless you turn on sync between Mac and iPhone (off by default), meetings recorded on one device don't appear on the other. Audio and screen snapshots never leave the device that recorded them.",
       retention: "Until you delete them in the app",
+      policySection: "meetings",
+    },
+    {
+      id: "sync",
+      data: "Sync between Mac and iPhone (off by default): your meetings' text, the people you save, Ask chats, saved folders, Ask recipes and synced settings",
+      where:
+        "Encrypted end to end on your device with a key we never receive; your other device gets the key from a link code shown in Settings. Audio, screen snapshots and voice profiles are not synced.",
+      stored:
+        "An encrypted copy we cannot read, in Cloudflare R2 storage in the EU jurisdiction. We see only each item's random identifier, type, size and change time.",
+      retention:
+        "While sync is on; deleted immediately when you turn it off or delete your account, 90 days after your subscription ends",
       policySection: "meetings",
     },
     {

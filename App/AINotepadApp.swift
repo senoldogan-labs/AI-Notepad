@@ -569,6 +569,8 @@ struct AINotepadApp: App {
                     // Çıkış yapılınca bildirimler kalkar (bkz. `AppModel.engagementDataState`).
                     EngagementNotifier.shared.scheduleRefresh()
                 }
+                // Mac ↔ iPhone eşitlemesi (isteğe bağlı; bkz. `HostedSyncCenter`).
+                .modifier(HostedSyncMacBindings(model: model))
                 #endif
                 // Uygulama öne gelince kurulum eksikleri yenilenir (Anahtar Zinciri ya da Sistem Ayarları'nda yapılan
                 // değişiklikler eskimesin).

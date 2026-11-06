@@ -1,14 +1,14 @@
-// Astro yapılandırması: durağan çıktı (Cloudflare Pages), sonda eğik çizgisiz adresler, satır içi betik ve stil yok
-// (CSP 'unsafe-inline' istemez). Derleme sonunda `_headers` yapılandırmadan yazılır; yazı tipi lisansı ve uygulama
+// Astro yapılandırması: durağan çıktı (Cloudflare Pages), sonda eğik çizgisiz adresler. Sitenin tek CSS'i ve tema betiği
+// sayfaya gömülür; CSP onlara 'unsafe-inline' ile değil, derlenen sayfalardan hesaplanan sha256 özetleriyle izin verir. Derleme sonunda `_headers` yapılandırmadan yazılır; yazı tipi lisansı ve uygulama
 // simgesi uygulamanın dosyalarından kopyalanır (tek kaynak).
-import { copyFile, writeFile } from "node:fs/promises";
+import { copyFile, readdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { satteri } from "@astrojs/markdown-satteri";
 import { defineConfig } from "astro/config";
 import type { AstroIntegration } from "astro";
 import { type SiteConfig, parseWebTarget, siteConfigs } from "./src/config";
 import { blogImagesPlugin } from "./src/lib/blog-images";
-import { pagesHeaders } from "./src/lib/headers";
+import { type InlineHashes, inlineHashes, pagesHeaders } from "./src/lib/headers";
 
 const config: SiteConfig = siteConfigs[parseWebTarget(process.env["PUBLIC_WEB_TARGET"])];
 
@@ -24,7 +24,12 @@ function cloudflarePagesFiles(siteConfig: SiteConfig): AstroIntegration {
     name: "ainotepad-cloudflare-pages",
     hooks: {
       "astro:build:done": async ({ dir }: { dir: URL }): Promise<void> => {
-        await writeFile(new URL("_headers", dir), pagesHeaders(siteConfig), "utf8");
+        const htmlFiles: readonly string[] = (await readdir(dir, { recursive: true }))
+          .filter((path: string): boolean => path.endsWith(".html"))
+          .map((path: string): string => fileURLToPath(new URL(path, dir)));
+        const pages: readonly string[] = await Promise.all(htmlFiles.map((path: string): Promise<string> => readFile(path, "utf8")));
+        const hashes: InlineHashes = inlineHashes(pages);
+        await writeFile(new URL("_headers", dir), pagesHeaders(siteConfig, hashes), "utf8");
         const repoRoot: URL = new URL("../", import.meta.url);
         for (const file of appFiles) {
           await copyFile(fileURLToPath(new URL(file.from, repoRoot)), fileURLToPath(new URL(file.to, dir)));
@@ -40,14 +45,15 @@ export default defineConfig({
   trailingSlash: "never",
   build: {
     format: "file",
-    inlineStylesheets: "never",
+    // Tek CSS dosyası yavaş telefonda ilk boyamayı bir gidiş dönüş geciktiriyordu (Lighthouse mobil LCP ~2,3 sn); gömülü
+    // stil ilk yanıtla gelir.
+    inlineStylesheets: "always",
   },
   vite: {
     build: {
-      // Küçük betikler de dosya olarak çıkar: CSP satır içi betiğe izin vermez.
+      // Küçük betikler de dosya olarak çıkar: satır içi yalnız tema betiği (özetle izinli).
       assetsInlineLimit: 0,
-      // Tüm sitenin CSS'i tek dosya (~20 KB brotli): yavaş telefonda ilk boyamayı engelleyen her ek stil isteği bir gidiş
-      // dönüş süresi ekliyordu (ana sayfada beş dosya); tek dosya bir kez iner, sonraki sayfalarda önbellekten gelir.
+      // Tüm sitenin CSS'i tek parça (~20 KB brotli) ve her sayfaya aynısı gömülür: CSP'de tek stil özeti olur.
       cssCodeSplit: false,
     },
   },

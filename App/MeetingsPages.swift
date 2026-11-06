@@ -1163,13 +1163,14 @@ struct MeetingDetailPage: View {
         Button("Yeniden adlandır", systemImage: "pencil") { startRename() }
             .disabled(isLocked)
         // Örnek toplantı (karşılamadaki deneme) işlenmez: sesi sunucuya gitmez, kullanıma yazılmaz.
+        // Başka cihazdan eşitlenen toplantının sesi o cihazda: burada işlenemez ve silinemez.
         Button("Tekrar işle", systemImage: "arrow.clockwise") { model.reprocess(meetingID: record.id) }
-            .disabled(isLocked || record.audioDeleted || record.isSampleMeeting)
+            .disabled(isLocked || record.audioDeleted || record.isSampleMeeting || isRecordedElsewhere)
         Divider()
         Button("Sesi sil", systemImage: "speaker.slash", role: .destructive) {
             export = .confirmDeleteAudio
         }
-        .disabled(isLocked || record.audioDeleted)
+        .disabled(isLocked || record.audioDeleted || isRecordedElsewhere)
         Button("Toplantıyı sil", systemImage: "trash", role: .destructive) { export = .confirmDelete }
             .disabled(isLocked)
     }
@@ -1273,6 +1274,10 @@ struct MeetingDetailPage: View {
         case .none:
             if record.audioDeleted {
                 Text("Ses dosyaları silindi; metin ve not duruyor.")
+                    .appFont(size: 11, weight: .regular)
+                    .foregroundStyle(.secondary)
+            } else if isRecordedElsewhere {
+                Text("Başka bir cihazında kaydedildi; sesi o cihazda kalır.")
                     .appFont(size: 11, weight: .regular)
                     .foregroundStyle(.secondary)
             }
@@ -1479,6 +1484,11 @@ struct MeetingDetailPage: View {
             meetingsLogger.error("Dışa aktarılamadı, uzantı: \(fileExtension, privacy: .public), hata: \(String(describing: error), privacy: .private)")
             return .failed(exportFailureMessage(error: error))
         }
+    }
+
+    /// Başka cihazdan eşitlenen toplantı (sesi o cihazda).
+    private var isRecordedElsewhere: Bool {
+        model.meetingsRecordedElsewhere.contains(record.id)
     }
 
     /// Çalınabilir kayıtlar ("Sen" ve "Diğerleri"): ses silinmediyse, toplantı kayıtta/işlemede değilse (dosya

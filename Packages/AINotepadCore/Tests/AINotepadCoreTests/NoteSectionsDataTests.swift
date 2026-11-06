@@ -89,7 +89,7 @@ import Testing
         )
         #expect(meetingMarkdown(record: record).contains("- [03:42] Q"))
         #expect(shareText(record: record, note: note, language: .english).contains("## Open questions\n\n- [03:42] Q"))
-        #expect(archivePassages(records: [record]).first?.text.contains("Açık konu: [03:42] Q") == true)
+        #expect(archivePassages(records: [record], userLabel: promptUserLabel).first?.text.contains("Açık konu: [03:42] Q") == true)
         let old: MeetingNote = MeetingNote(title: "T", summary: "S", decisions: [], tasks: [], glossary: [])
         #expect(!shareText(record: record, note: old, language: .english).contains("Open questions"))
     }
