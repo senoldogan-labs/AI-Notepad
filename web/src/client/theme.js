@@ -1,7 +1,7 @@
 // @ts-check
-// Açık/koyu tema. <head> içinde engelleyici, harici bir betik olarak yüklenir (CSP satır içi betiğe izin vermez): ilk
-// boyamadan önce `<html data-theme>` yazılır, sayfa yanlış temada yanıp sönmez. Kullanıcı seçim yapmadıysa sistem
-// tercihi izlenir; düğmeyle yapılan seçim localStorage'da kalır. Tema değişince `gistsmith:themechange` olayı yayılır
+// Açık/koyu tema. <head> içinde satır içi betik olarak çalışır (Base.astro; CSP bu betiğe derlemede hesaplanan sha256
+// özetiyle izin verir; ayrı istek ilk boyamayı geciktirirdi): ilk boyamadan önce `<html data-theme>` yazılır, sayfa
+// yanlış temada yanıp sönmez. Kullanıcı seçim yapmadıysa sistem tercihi izlenir; düğmeyle yapılan seçim localStorage'da kalır. Tema değişince `gistsmith:themechange` olayı yayılır
 // (Turnstile parçacığı temayı buradan alır). Tarayıcı çubuğunun rengi (`<meta name="theme-color">`) de seçilen temaya
 // uyar; bu yüzden Base.astro'da meta etiketleri bu betikten önce gelir. Derlenmez: TypeScript denetimi JSDoc
 // tipleriyle yapılır.

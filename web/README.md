@@ -102,7 +102,7 @@ Ad değişince elle güncellenecekler: `public/og.png` (`make-og.ts` ile yeniden
 (`gistsmith.theme`, `gistsmith.session`, `gistsmith.invite`, `gistsmith.plan`) ürün adını taşır ve gizlilik politikasında adlarıyla geçer. İç kimlikler bilerek
 eski adı taşır: uygulama adres şeması (`com.senoldogan.ainotepad.hosted://`) ve Apple Services ID.
 
-**Tema.** `public/theme.js` `<head>`'de engelleyici harici betik olarak yüklenir (CSP satır içi betiğe izin vermez) ve
+**Tema.** `src/client/theme.js` `<head>`'e satır içi gömülür (CSP izni derlemede hesaplanan sha256 özetiyle) ve
 ilk boyamadan önce `<html data-theme>` yazar: kullanıcının seçimi (`localStorage`) yoksa sistem tercihi. Renkler
 `global.css`'te `light-dark()` ile tek yerde tanımlıdır; betik yoksa `color-scheme` sistemi izler.
 
