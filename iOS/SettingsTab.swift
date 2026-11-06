@@ -28,6 +28,7 @@ struct PhoneSettingsTab: View {
     @AppStorage(PhoneSettingsKey.displayMode) private var displayMode: String = DisplayMode.bilingual.rawValue
     @AppStorage(PhoneSettingsKey.noteTemplate) private var noteTemplate: String = NoteTemplateKind.general.rawValue
     @AppStorage(PhoneSettingsKey.customTemplate) private var customTemplate: String = ""
+    @AppStorage(PhoneSettingsKey.customTemplateName) private var customTemplateName: String = ""
     @AppStorage(PhoneSettingsKey.templateFromTitle) private var templateFromTitle: Bool = true
     @AppStorage(PhoneSettingsKey.missedWindowMinutes) private var missedMinutes: Int = 3
     /// Sor'da web araması (varsayılan açık; `askWebSearchAllowed` okur).
@@ -147,22 +148,20 @@ struct PhoneSettingsTab: View {
                 NotificationSettingsSection()
                 Section {
                     PhoneSettingMenuRow(icon: "doc.text", title: "Not şablonu", selection: $noteTemplate, options: NoteTemplateKind.allCases.map { (kind: NoteTemplateKind) -> MenuPickerOption<String> in
-                        MenuPickerOption(value: kind.rawValue, label: Text(verbatim: kind.displayName))
+                        MenuPickerOption(value: kind.rawValue, label: Text(verbatim: kind == .custom ? customTemplateDisplayName(name: customTemplateName) : kind.displayName))
                     })
                     if noteTemplate == NoteTemplateKind.custom.rawValue {
-                        NavigationLink {
-                            PhoneTextSettingScreen(
-                                title: "Kendi şablonun",
-                                help: "Notta neyin öne çıkacağını yaz; ör. “Riskleri ayrı say, kararların gerekçesini yaz.”",
-                                load: { () -> String in UserDefaults.standard.string(forKey: PhoneSettingsKey.customTemplate) ?? "" },
-                                save: { (value: String) -> Void in UserDefaults.standard.set(value, forKey: PhoneSettingsKey.customTemplate) }
-                            )
-                        } label: {
+                        NavigationLink(value: PhoneSettingsRoute.customTemplate) {
                             LabeledContent {
                                 Text(customTemplate.isEmpty ? LocalizedStringKey("Boş") : LocalizedStringKey("Yazıldı"))
                             } label: {
                                 PhoneSettingLabel(icon: "pencil.line", title: Text("Kendi şablonun"))
                             }
+                        }
+                    }
+                    NavigationLink(value: PhoneSettingsRoute.templateGallery) {
+                        PhoneSettingLabel(icon: "square.grid.2x2", title: Text("Şablon galerisi")) {
+                            Text("Hazır şablonlara göz at, kullan ya da kopyasını düzenle.")
                         }
                     }
                     Toggle(isOn: $templateFromTitle) {
@@ -265,6 +264,14 @@ struct PhoneSettingsTab: View {
                 switch route {
                 case .account:
                     PhoneAccountScreen(account: account, isMeetingInFlight: isMeetingInFlight, store: store)
+                case .templateGallery:
+                    TemplateGalleryScreen()
+                case .templatePreview(let id):
+                    if let template = templateGallery().first(where: { $0.id == id }) {
+                        TemplatePreviewScreen(template: template, router: router)
+                    }
+                case .customTemplate:
+                    CustomTemplateScreen()
                 }
             }
         }

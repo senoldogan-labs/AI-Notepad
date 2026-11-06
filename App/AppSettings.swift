@@ -63,6 +63,8 @@ enum SettingsKey {
     /// Yeni toplantıların not şablonu (`NoteTemplateKind`) ve kendi şablonunun yönergesi.
     static let noteTemplate: String = "noteTemplate"
     static let customTemplate: String = "customTemplate"
+    /// Kendi şablonunun adı (galeriden kopyalanınca "<ad> (kopya)"); boşsa "Kendi şablonum" yazılır.
+    static let customTemplateName: String = "customTemplate.name"
     /// "Şablonu toplantı adına göre seç": ad türü açıkça gösteriyorsa yeni toplantı o şablonla yazılır.
     static let templateFromTitle: String = "noteTemplate.fromTitle"
     /// Takvim: yaklaşan toplantılar, 1 dk önce hatırlatma, görüşme başlayınca öneri.
@@ -365,6 +367,7 @@ func registerDefaultSettings() {
         SettingsKey.stopWhenCallEnds: true,
         SettingsKey.noteTemplate: NoteTemplateKind.general.rawValue,
         SettingsKey.customTemplate: "",
+        SettingsKey.customTemplateName: "",
         SettingsKey.templateFromTitle: true,
         SettingsKey.theme: AppTheme.light.rawValue,
         SettingsKey.accent: PanelAppearance.standard.accent.rawValue,

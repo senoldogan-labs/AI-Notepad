@@ -240,7 +240,12 @@ private struct GeneralSettings: View {
     @AppStorage(SettingsKey.stopWhenCallEnds) private var stopWhenCallEnds: Bool = true
     @AppStorage(SettingsKey.noteTemplate) private var noteTemplate: String = NoteTemplateKind.general.rawValue
     @AppStorage(SettingsKey.customTemplate) private var customTemplate: String = ""
+    @AppStorage(SettingsKey.customTemplateName) private var customTemplateName: String = ""
     @AppStorage(SettingsKey.templateFromTitle) private var templateFromTitle: Bool = true
+    /// Not bölümünün altındaki şablon galerisi açık mı.
+    @State private var showsTemplateGallery: Bool = false
+    /// "Kopyasını düzenle"den sonra kendi şablonunun metnine odaklanılır.
+    @FocusState private var customTemplateFocused: Bool
     @AppStorage(SettingsKey.noteLanguage) private var noteLanguage: String = defaultNoteLanguage(interfaceLanguages: Bundle.main.preferredLocalizations).rawValue
     @State private var interfaceLanguage: InterfaceLanguage = storedInterfaceLanguage()
     @State private var relaunchError: String?
@@ -517,15 +522,28 @@ private struct GeneralSettings: View {
                     Text("Yeni notlar bu şablonla yazılır; eski bir notu ⋯ menüsünden yeniden yazabilirsin.")
                 } control: {
                     SettingsMenu(selection: $noteTemplate, options: NoteTemplateKind.allCases.map { (kind: NoteTemplateKind) -> (String, Text) in
-                        (kind.rawValue, Text(verbatim: kind.displayName))
+                        (kind.rawValue, Text(verbatim: kind == .custom ? customTemplateDisplayName(name: customTemplateName) : kind.displayName))
                     })
                 }
                 if noteTemplate == NoteTemplateKind.custom.rawValue {
                     SettingsStackedRow(icon: "pencil.line", title: Text("Kendi şablonun")) {
                         Text("Notta neyin öne çıkacağını yaz; ör. “Riskleri ayrı say, kararların gerekçesini yaz.”")
                     } content: {
-                        SettingsTextEditor(text: $customTemplate, height: 90)
+                        TextField(text: $customTemplateName) {
+                            Text("Şablon adı")
+                        }
+                        .settingsField(width: 260)
+                        SettingsTextEditor(text: $customTemplate, height: 120)
+                            .focused($customTemplateFocused)
                     }
+                }
+                SettingsRow(icon: "square.grid.2x2", title: Text("Şablon galerisi")) {
+                    Text("Kategorilere ayrılmış hazır şablonlar: önizle, kullan ya da kopyasını düzenleyip kendine göre değiştir.")
+                } control: {
+                    Button(showsTemplateGallery ? LocalizedStringKey("Galeriyi gizle") : LocalizedStringKey("Galeriyi aç")) {
+                        withAnimation(.smooth(duration: 0.2)) { showsTemplateGallery.toggle() }
+                    }
+                    .buttonStyle(.pill)
                 }
                 SettingsRow(icon: "wand.and.stars", title: Text("Şablonu toplantı adına göre seç")) {
                     SettingsMoreText(
@@ -536,6 +554,19 @@ private struct GeneralSettings: View {
                     Toggle("Şablonu toplantı adına göre seç", isOn: $templateFromTitle)
                         .settingsToggle()
                 }
+            }
+            if showsTemplateGallery {
+                VStack(alignment: .leading, spacing: 8) {
+                    SettingsSectionTitle(title: Text("Şablon galerisi"))
+                    TemplateGalleryView(
+                        sections: templateGallerySections(templates: templateGallery()), selectedKind: noteTemplate,
+                        customName: customTemplateName, customInstructions: customTemplate, initialPreviewID: nil,
+                        onUse: { (template: GalleryTemplate) -> Void in useGalleryTemplate(template: template) },
+                        onEditCopy: { (template: GalleryTemplate) -> Void in editGalleryTemplateCopy(template: template) }
+                    )
+                }
+                .padding(.top, 26)
+                .transition(.opacity)
             }
             SettingsGroup(title: Text("Canlı çeviri ve Sor")) {
                 SettingsRow(icon: "character.bubble", title: Text("Kayıt sırasında \(noteLanguageName) diline çevir")) {
@@ -619,6 +650,30 @@ private struct GeneralSettings: View {
                 FeedbackSettingsRow { await diagnosticsReportText(model: model, updater: updater) }
             }
         }
+    }
+
+    /// Galerideki "Kullan": yerleşik tür seçilir; hazır şablon kendi şablonun olarak kaydedilip seçilir.
+    private func useGalleryTemplate(template: GalleryTemplate) {
+        switch template.source {
+        case .builtIn(let kind):
+            noteTemplate = kind.rawValue
+        case .preset:
+            let choice: TemplateCopy = templatePresetChoice(template: template)
+            customTemplateName = choice.name
+            customTemplate = choice.instructions
+            noteTemplate = NoteTemplateKind.custom.rawValue
+        }
+    }
+
+    /// "Kopyasını düzenle": kendi şablonun şablonun kopyasıyla dolar ve seçilir; galeri kapanır, düzenleyici (Not
+    /// bölümünde, galerinin hemen üstünde) odak alır.
+    private func editGalleryTemplateCopy(template: GalleryTemplate) {
+        let copy: TemplateCopy = templateEditableCopy(template: template)
+        customTemplateName = copy.name
+        customTemplate = copy.instructions
+        noteTemplate = NoteTemplateKind.custom.rawValue
+        withAnimation(.smooth(duration: 0.2)) { showsTemplateGallery = false }
+        Task { @MainActor in customTemplateFocused = true }
     }
 }
 
