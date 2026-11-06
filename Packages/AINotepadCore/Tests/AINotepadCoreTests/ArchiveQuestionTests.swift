@@ -172,7 +172,7 @@ extension CloudTests {
         let provider: LLMProvider = .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic)))
         let answer: ArchiveAnswer = try await askArchive(
             question: "Kahve makinesi bozulduğunda ne yapılmasına karar verildi, kim ilgilenecek?",
-            history: [], records: archive(), userName: "Senol", language: .turkish, llm: provider, maxChars: 60_000, screens: .off, webSearch: false, now: Date(timeIntervalSince1970: 1_792_000_000)
+            history: [], records: archive(), userName: "Senol", profile: .empty, language: .turkish, llm: provider, maxChars: 60_000, screens: .off, webSearch: false, now: Date(timeIntervalSince1970: 1_792_000_000)
         ) { (_: ArchiveProgress) -> Void in }
         #expect(answer.text.contains("Mikko"), "\(answer.text)")
         #expect(answer.sources.contains { $0.meetingID == "a" }, "\(answer.sources.map(\.id))")
@@ -183,7 +183,7 @@ extension CloudTests {
         let provider: LLMProvider = .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic)))
         let events: ProgressBox = ProgressBox()
         let answer: ArchiveAnswer = try await askAboutMeetings(
-            question: "Bu toplantıda neler konuşuldu?", history: [], records: archive().filter { $0.id == "a" }, userName: "Senol", language: .turkish, llm: provider,
+            question: "Bu toplantıda neler konuşuldu?", history: [], records: archive().filter { $0.id == "a" }, userName: "Senol", profile: .empty, language: .turkish, llm: provider,
             maxChars: 60_000, screens: .off, webSearch: false, now: Date(timeIntervalSince1970: 1_792_000_000)
         ) { (progress: ArchiveProgress) -> Void in
             events.append(progress)
@@ -199,7 +199,7 @@ extension CloudTests {
         let provider: LLMProvider = .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic)))
         let recipe: Recipe = try #require(builtInRecipes().first { $0.id == "takip-epostasi" })
         let answer: ArchiveAnswer = try await askAboutMeetings(
-            question: recipe.prompt, history: [], records: archive().filter { $0.id == "a" }, userName: "Senol", language: .turkish, llm: provider,
+            question: recipe.prompt, history: [], records: archive().filter { $0.id == "a" }, userName: "Senol", profile: .empty, language: .turkish, llm: provider,
             maxChars: 60_000, screens: .off, webSearch: false, now: Date(timeIntervalSince1970: 1_792_000_000)
         ) { (_: ArchiveProgress) -> Void in }
         let text: String = answer.text.lowercased()
@@ -215,7 +215,7 @@ extension CloudTests {
         let answer: ArchiveAnswer = try await askArchive(
             question: "Peki bunu kim halledecek ve ne zaman?",
             history: [ArchiveTurn(question: "Kahve makinesiyle ilgili ne konuşuldu?", answer: "Haftalık ekip toplantısında kahve makinesinin yine bozulduğu söylendi [1].", sources: earlier)],
-            records: archive(), userName: "Senol", language: .turkish, llm: provider, maxChars: 60_000, screens: .off, webSearch: false, now: Date(timeIntervalSince1970: 1_792_000_000)
+            records: archive(), userName: "Senol", profile: .empty, language: .turkish, llm: provider, maxChars: 60_000, screens: .off, webSearch: false, now: Date(timeIntervalSince1970: 1_792_000_000)
         ) { (progress: ArchiveProgress) -> Void in
             events.append(progress)
         }
@@ -236,7 +236,7 @@ extension CloudTests {
         let provider: LLMProvider = .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic)))
         let meeting: CalendarMeeting = CalendarMeeting(id: "c", title: "Viikkopalaveri", start: Date(timeIntervalSince1970: 1_792_000_000), end: Date(timeIntervalSince1970: 1_792_001_800), attendees: ["Mikko"], joinURL: nil)
         let answer: ArchiveAnswer = try await askArchive(
-            question: briefingQuestion(meeting: meeting), history: [], records: archive(), userName: "Senol", language: .turkish, llm: provider, maxChars: 60_000,
+            question: briefingQuestion(meeting: meeting), history: [], records: archive(), userName: "Senol", profile: .empty, language: .turkish, llm: provider, maxChars: 60_000,
             screens: .off, webSearch: false, now: Date(timeIntervalSince1970: 1_791_999_000)
         ) { (_: ArchiveProgress) -> Void in }
         let text: String = answer.text.lowercased()

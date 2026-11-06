@@ -251,7 +251,7 @@ struct PhoneVoiceSettingsSection<LeadingRows: View>: View {
                 }
             }
         } header: {
-            Text("Sen ve konuşmacılar")
+            Text("Tanıma ve konuşmacılar")
         } footer: {
             Text("Ses izi (biyometrik veri) yalnız bu iPhone'da saklanır; ad verdiğin kişi sonraki toplantılarda sesinden tanınır. Başkalarının ses izini saklamadan önce onaylarını al.")
         }

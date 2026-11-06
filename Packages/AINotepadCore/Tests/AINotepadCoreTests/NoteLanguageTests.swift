@@ -15,24 +15,24 @@ private func noteLanguagePrompts(language: ShareLanguage) throws -> [(name: Stri
         ("ne kaçırdım", try #require(missedSummaryRequest(segments: live, nowSec: 12, windowSec: 180, language: language)).system),
         ("canlı soru", try #require(questionRequest(segments: live, question: "Mitä minulta pyydettiin?", language: language)).system),
         ("not", try #require(meetingNoteRequest(
-            segments: saved, speakerNames: [1: "Aino"], userName: "Doğan", template: .general, myNotes: "", language: language,
+            segments: saved, speakerNames: [1: "Aino"], userName: "Doğan", profile: .empty, template: .general, myNotes: "", language: language,
             screens: []
         )).system),
         ("not parçası", noteChunkRequest(
-            chunk: saved, part: 1, partCount: 2, state: .empty, speakerNames: [:], userName: "Doğan", template: .general, myNotes: "",
+            chunk: saved, part: 1, partCount: 2, state: .empty, speakerNames: [:], userName: "Doğan", profile: .empty, template: .general, myNotes: "",
             language: language
         ).system),
-        ("not özeti", noteOverviewRequest(state: .empty, userName: "Doğan", template: .general, myNotes: "", language: language, screens: []).system),
+        ("not özeti", noteOverviewRequest(state: .empty, userName: "Doğan", profile: .empty, template: .general, myNotes: "", language: language, screens: []).system),
         ("not düzenleme", noteEditRequest(
-            note: note, instruction: "Kısalt", segments: saved, speakerNames: [:], userName: "Doğan", language: language
+            note: note, instruction: "Kısalt", segments: saved, speakerNames: [:], userName: "Doğan", profile: .empty, language: language
         ).system),
         ("takip e-postası", followUpEmailRequest(
-            note: note, startedAt: Date(timeIntervalSince1970: 1_792_000_000), attendees: ["Aino"], userName: "Doğan", language: language,
+            note: note, startedAt: Date(timeIntervalSince1970: 1_792_000_000), attendees: ["Aino"], userName: "Doğan", profile: .empty, language: language,
             timeZone: TimeZone.gmt
         ).system),
         ("arama terimleri", searchTermsRequest(question: "Diat?", history: [], languages: [.finnish, .turkish], language: language).system),
         ("arşiv cevabı", archiveAnswerRequest(
-            question: "Diat?", passages: [], coverage: ArchiveCoverage(read: [], skipped: []), screens: [], history: [], userName: "Doğan", now: Date(timeIntervalSince1970: 1_792_000_000), language: language,
+            question: "Diat?", passages: [], coverage: ArchiveCoverage(read: [], skipped: []), screens: [], history: [], userName: "Doğan", profile: .empty, now: Date(timeIntervalSince1970: 1_792_000_000), language: language,
             webSearch: false
         ).system),
         ("konuşmacı incelemesi", try #require(speakerReviewRequest(

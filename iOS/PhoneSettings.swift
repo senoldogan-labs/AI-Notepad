@@ -17,6 +17,10 @@ enum PhoneSettingsKey {
     static let noteLanguageMigrated: String = "migration.noteLanguage"
     /// Kullanıcı adı (notta "Sen" ve sana düşen görevler); hesabın ayar alanında (bkz. `PhoneStore.userName`).
     static let userName: String = userNameDefaultsKey
+    /// Profilin unvanı, şirketi ve şirket açıklaması; ad gibi hesabın ayar alanında (bkz. `PhoneStore.userProfile`).
+    static let jobTitle: String = userJobTitleDefaultsKey
+    static let companyName: String = userCompanyNameDefaultsKey
+    static let companyDescription: String = userCompanyDescriptionDefaultsKey
     /// Kayıt başında "katılımcılara haber ver" kartı.
     static let consentReminder: String = "consentReminder"
     /// Ses dosyalarının saklama süresi (gün).

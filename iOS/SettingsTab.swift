@@ -103,19 +103,14 @@ struct PhoneSettingsTab: View {
                         Text("Arayüz dili iPhone Ayarları › \(appName) › Dil'den değişir. Dil satırı yoksa önce iPhone Ayarları › Genel › Dil ve Bölge'ye ikinci bir dil ekle.")
                     }
                 }
+                Section {
+                    PhoneProfileFields(store: store)
+                } header: {
+                    Text("Profil")
+                } footer: {
+                    Text("Notlar bağlamını anlamak için bunu kullanır; yalnızca not ya da cevap yazılırken toplantı metniyle gönderilir.")
+                }
                 PhoneVoiceSettingsSection(voices: store.voices) {
-                    // Etiketli satır: ad yazılınca alan yalnızca adı gösteriyor, neyin adı olduğu anlaşılmıyordu.
-                    PhoneCaptionedRow(caption: Text("Notta sana düşen görevleri ayırmak için kullanılır.")) {
-                        LabeledContent {
-                            TextField("Adın", text: Binding<String>(get: { store.userName }, set: { (name: String) -> Void in store.setUserName(name: name) }), prompt: Text("İsteğe bağlı"))
-                                .multilineTextAlignment(.trailing)
-                                .textContentType(.givenName)
-                                .textInputAutocapitalization(.words)
-                                .autocorrectionDisabled()
-                        } label: {
-                            PhoneSettingLabel(icon: "person.crop.circle", title: Text("Adın"))
-                        }
-                    }
                     NavigationLink {
                         // Sözlük hesabındır (bkz. `PhoneStore.vocabulary`): aynı iPhone'daki başka hesap görmez.
                         PhoneTextSettingScreen(

@@ -181,8 +181,10 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         through our server to Anthropic's Claude model, and the answer returns to your device. The same applies when you
         create Linear or Jira issues from your tasks (the tasks, the meeting title and Linear's or Jira's replies are sent),
         when you translate a note to send it in another language, and when you draft a follow-up email from a note (the
-        note, the meeting title and date, the attendee names of a linked calendar event and your name are sent). Our server
-        does not store or log this text; it records only the number of tokens used.
+        note, the meeting title and date, the attendee names of a linked calendar event and your name are sent). The optional
+        profile fields in Settings (job title, company and company description) are stored on your device and sent with the
+        meeting text when a note, an Ask answer or a follow-up email is written, so Claude understands your context. Our
+        server does not store or log this text; it records only the number of tokens used.
       </li>
       <li>
         <strong>Web search in Ask (on by default).</strong> When a question on the Ask page needs information that isn't in

@@ -808,7 +808,7 @@ private func silentFlac(directory: URL) throws -> URL {
         #expect(images.count == screenNoteBudget.maxImages)
         let provider: LLMProvider = .hosted(HostedLLMConfig(baseURL: baseURL, credentials: user.client, scope: .recordedMeeting(serverMeetingID: started.meetingId)))
         let note: LLMRequest = try #require(meetingNoteRequest(
-            segments: record.liveSegments, speakerNames: [:], userName: "Doğan", template: .general, myNotes: "", language: .turkish, screens: images
+            segments: record.liveSegments, speakerNames: [:], userName: "Doğan", profile: .empty, template: .general, myNotes: "", language: .turkish, screens: images
         ))
         do {
             _ = try await sendLLM(provider: provider, request: note)
@@ -817,7 +817,7 @@ private func silentFlac(directory: URL) throws -> URL {
         }
         let first: LLMImage = try #require(images.first)
         let tooMany: LLMRequest = try #require(meetingNoteRequest(
-            segments: record.liveSegments, speakerNames: [:], userName: "Doğan", template: .general, myNotes: "", language: .turkish,
+            segments: record.liveSegments, speakerNames: [:], userName: "Doğan", profile: .empty, template: .general, myNotes: "", language: .turkish,
             screens: images + [first]
         ))
         let overCount: HostedAPIError? = await hostedError { _ = try await sendLLM(provider: provider, request: tooMany) }
@@ -891,7 +891,7 @@ private func transcribedRecord(id: String) -> MeetingRecord {
         let directory: URL = try temporaryDirectory()
         let provider: LLMProvider = .hosted(HostedLLMConfig(baseURL: baseURL, credentials: user.client, scope: .recordedMeeting(serverMeetingID: started.meetingId)))
         let result: MeetingRecord = await regenerateNote(
-            record: transcribedRecord(id: directory.lastPathComponent), directory: directory, llm: provider, userName: "Doğan", language: .turkish, screens: .off
+            record: transcribedRecord(id: directory.lastPathComponent), directory: directory, llm: provider, userName: "Doğan", profile: .empty, language: .turkish, screens: .off
         )
         #expect(result.status == .done, "hata: \(result.failureMessage ?? "")")
         #expect(result.note != nil)
@@ -912,7 +912,7 @@ private func transcribedRecord(id: String) -> MeetingRecord {
         let directory: URL = try temporaryDirectory()
         let provider: LLMProvider = .hosted(HostedLLMConfig(baseURL: baseURL, credentials: user.client, scope: .recordedMeeting(serverMeetingID: started.meetingId)))
         let result: MeetingRecord = await regenerateNote(
-            record: transcribedRecord(id: directory.lastPathComponent), directory: directory, llm: provider, userName: "Doğan", language: .turkish, screens: .off
+            record: transcribedRecord(id: directory.lastPathComponent), directory: directory, llm: provider, userName: "Doğan", profile: .empty, language: .turkish, screens: .off
         )
         #expect(result.status == .done, "hata: \(result.failureMessage ?? "")")
         #expect(result.note != nil)
@@ -999,7 +999,7 @@ private struct WebSearchRow: Decodable {
         let record: MeetingRecord = transcribedRecord(id: UUID().uuidString)
         let queries: LockedQueries = LockedQueries()
         let answer: ArchiveAnswer = try await askAboutMeetings(
-            question: "Haiku 5.5 ne kadar?", history: [], records: [record], userName: "Doğan", language: .turkish, llm: provider, maxChars: 60_000,
+            question: "Haiku 5.5 ne kadar?", history: [], records: [record], userName: "Doğan", profile: .empty, language: .turkish, llm: provider, maxChars: 60_000,
             screens: .off, webSearch: true, now: Date()
         ) { (progress: ArchiveProgress) -> Void in
             if case .web(let found, let notice) = progress {
@@ -1017,7 +1017,7 @@ private struct WebSearchRow: Decodable {
         try executeLocalD1(sql: "UPDATE monthly_usage SET web_searches = 100 WHERE user_id = '\(user.userID)';")
         let capped: LockedQueries = LockedQueries()
         let plain: ArchiveAnswer = try await askAboutMeetings(
-            question: "Haiku 5.5 ne kadar?", history: [], records: [record], userName: "Doğan", language: .turkish, llm: provider, maxChars: 60_000,
+            question: "Haiku 5.5 ne kadar?", history: [], records: [record], userName: "Doğan", profile: .empty, language: .turkish, llm: provider, maxChars: 60_000,
             screens: .off, webSearch: true, now: Date()
         ) { (progress: ArchiveProgress) -> Void in
             if case .web(let found, let notice) = progress {
@@ -1038,7 +1038,7 @@ private struct WebSearchRow: Decodable {
         let record: MeetingRecord = transcribedRecord(id: UUID().uuidString)
         let states: LockedQueries = LockedQueries()
         let answer: ArchiveAnswer = try await askAboutMeetings(
-            question: "Haiku 5.5 ne kadar? \(fakeWebSearchDisabledMarker)", history: [], records: [record], userName: "Doğan", language: .turkish, llm: provider,
+            question: "Haiku 5.5 ne kadar? \(fakeWebSearchDisabledMarker)", history: [], records: [record], userName: "Doğan", profile: .empty, language: .turkish, llm: provider,
             maxChars: 60_000, screens: .off, webSearch: true, now: Date()
         ) { (progress: ArchiveProgress) -> Void in
             if case .web(let found, let notice) = progress {

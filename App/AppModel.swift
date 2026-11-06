@@ -1768,6 +1768,7 @@ final class AppModel {
         // İlerleme kartı yalnızca kayıt sonrası işleme (adımlı) için; "Notu yenile" adım bildirmez, kart açmaz.
         processingSteps[record.id] = .convertingAudio
         let userName: String = self.userName
+        let profile: UserProfile = userProfile
         let languageMode: LanguageMode = record.language.map { LanguageMode.fixed($0) } ?? .automatic
         Task {
             // "Yüz yüze" kapalıyken odada kaydedilen toplantı (herkes "Sen" diye yazıldı, son geçiş çalışmazdı) yüz yüze
@@ -1780,7 +1781,7 @@ final class AppModel {
             let result: MeetingRecord = await processMeeting(
                 record: record, directory: directory,
                 resolveFinalPass: resolveFinalPass,
-                resolveLLM: resolveLLM, languageMode: languageMode, userName: userName,
+                resolveLLM: resolveLLM, languageMode: languageMode, userName: userName, profile: profile,
                 noteLanguage: selectedNoteLanguage(), voiceEmbedder: voiceEmbedderIfEnabled(), registry: registeredVoices, screens: screens
             ) { (step: ProcessingStep) async -> Void in
                 self.processingSteps[record.id] = step
@@ -2104,6 +2105,7 @@ final class AppModel {
             return
         }
         let userName: String = self.userName
+        let profile: UserProfile = userProfile
         withSessionDirectory(id: meetingID) { (directory: URL) -> Void in
             processingMeetingIDs.insert(meetingID)
             Task {
@@ -2114,7 +2116,7 @@ final class AppModel {
                     return
                 }
                 do {
-                    let edited: MeetingRecord = try await editMeetingNote(record: record, instruction: trimmed, llm: llm, userName: userName)
+                    let edited: MeetingRecord = try await editMeetingNote(record: record, instruction: trimmed, llm: llm, userName: userName, profile: profile)
                     // Eski not geçmişe girer ("Geri al"); düzenleme sürerken konan işaretler kaybolmasın.
                     let versioned: MeetingRecord = withNoteVersion(
                         updated: edited, previous: record, reason: String(localized: "Düzenlendi: \(trimmed)"), savedAt: Date()
@@ -2199,10 +2201,11 @@ final class AppModel {
             return .subscriptionRequired
         }
         let userName: String = self.userName
+        let profile: UserProfile = userProfile
         do {
             let provider: LLMProvider = try await resolveLLMProvider()
             let draft: FollowUpEmailDraft = try await AINotepadCore.draftFollowUpEmail(
-                record: record, userName: userName, language: language, timeZone: TimeZone.current, llm: provider
+                record: record, userName: userName, profile: profile, language: language, timeZone: TimeZone.current, llm: provider
             )
             return .drafted(draft)
         } catch is CancellationError {
@@ -2231,6 +2234,7 @@ final class AppModel {
         }
         let meetingID: String = record.id
         let userName: String = self.userName
+        let profile: UserProfile = userProfile
         withSessionDirectory(id: meetingID) { (directory: URL) -> Void in
             processingMeetingIDs.insert(meetingID)
             // Kabul edilen öneriler artık notta; bekleyen öneri yoksa inceleme kartı kapanır.
@@ -2240,7 +2244,7 @@ final class AppModel {
                 let noteStartedAt: ContinuousClock.Instant = .now
                 let screens: ScreenNotesPlan = screenNotesPlan()
                 let result: MeetingRecord = await AINotepadCore.regenerateNote(
-                    record: record, directory: directory, llm: llm, userName: userName, language: selectedNoteLanguage(), screens: screens
+                    record: record, directory: directory, llm: llm, userName: userName, profile: profile, language: selectedNoteLanguage(), screens: screens
                 )
                 recordNoteOutcome(result: result, writingStartedAt: noteStartedAt)
                 recordScreenNotesUsage(plan: screens, result: result, directory: directory)
@@ -2757,6 +2761,7 @@ final class AppModel {
         archiveExchanges.append(startedExchange(id: id, question: trimmed, scope: scoped, recipeTitle: recipeTitle, startedAt: Date()))
         let records: [MeetingRecord] = meetings
         let userName: String = self.userName
+        let profile: UserProfile = userProfile
         let webSearch: Bool = askWebSearchAllowed(defaults: UserDefaults.standard)
         archiveTask = Task { [weak self] in
             do {
@@ -2772,13 +2777,13 @@ final class AppModel {
                     // Cihaz içi modelde dili desteklenmeyen toplantılar okunmaz.
                     let readable: OnDeviceReadableRecords = try onDeviceAskableArchive(records: records, provider: provider, outputLanguage: selectedNoteLanguage())
                     _ = try await AINotepadCore.askArchive(
-                        question: trimmed, history: history, records: readable.records, userName: userName, language: selectedNoteLanguage(), llm: provider,
+                        question: trimmed, history: history, records: readable.records, userName: userName, profile: profile, language: selectedNoteLanguage(), llm: provider,
                         maxChars: noteLimits(provider: provider).archiveChars, screens: screens, webSearch: webSearch, now: Date(), onProgress: onProgress
                     )
                 } else {
                     try requireOnDeviceLanguages(provider: provider, meetingLanguages: scoped.compactMap(\.language), outputLanguage: selectedNoteLanguage())
                     _ = try await askAboutMeetings(
-                        question: trimmed, history: history, records: scoped, userName: userName, language: selectedNoteLanguage(), llm: provider,
+                        question: trimmed, history: history, records: scoped, userName: userName, profile: profile, language: selectedNoteLanguage(), llm: provider,
                         maxChars: noteLimits(provider: provider).archiveChars, screens: screens, webSearch: webSearch, now: Date(),
                         onProgress: onProgress
                     )
@@ -3687,6 +3692,16 @@ final class AppModel {
     private(set) var userName: String = ""
     /// Kullanıcının tanıma sözlüğü (satır başına bir ad ya da terim); ad gibi saklanır.
     private(set) var vocabulary: String = ""
+    /// Profilin unvanı, şirketi ve şirket açıklaması (Ayarlar > Profil); ad gibi saklanır, notlara bağlam olarak gider
+    /// (bkz. `userProfilePromptBlock`).
+    private(set) var jobTitle: String = ""
+    private(set) var companyName: String = ""
+    private(set) var companyDescription: String = ""
+
+    /// Kullanıcının profili (not, düzenleme, Sor ve takip e-postası istemlerine).
+    var userProfile: UserProfile {
+        UserProfile(name: userName, jobTitle: jobTitle, companyName: companyName, companyDescription: companyDescription)
+    }
 
     /// Adı ve tanıma sözlüğünü okur (açılışta; abonelikte hesap verisi yüklenince). Okunamazsa neden gösterilir.
     func loadIdentitySettings() {
@@ -3694,6 +3709,9 @@ final class AppModel {
             let defaults: UserDefaults = try userContentDefaults()
             userName = defaults.string(forKey: SettingsKey.userName) ?? ""
             vocabulary = defaults.string(forKey: SettingsKey.customVocabulary) ?? ""
+            jobTitle = defaults.string(forKey: SettingsKey.jobTitle) ?? ""
+            companyName = defaults.string(forKey: SettingsKey.companyName) ?? ""
+            companyDescription = defaults.string(forKey: SettingsKey.companyDescription) ?? ""
         } catch {
             errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
         }
@@ -3709,6 +3727,33 @@ final class AppModel {
         } catch {
             errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
         }
+    }
+
+    /// Profil alanını (`key`) en fazla `limit` karakterle saklar; saklanan metni, saklanamazsa (neden gösterilir) nil döner.
+    private func storeProfileText(text: String, limit: Int, key: String) -> String? {
+        let capped: String = cappedProfileText(text: text, limit: limit)
+        do {
+            try userContentDefaults().set(capped, forKey: key)
+            return capped
+        } catch {
+            errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
+            return nil
+        }
+    }
+
+    /// Unvanı saklar.
+    func setJobTitle(text: String) {
+        jobTitle = storeProfileText(text: text, limit: profileFieldLimit, key: SettingsKey.jobTitle) ?? jobTitle
+    }
+
+    /// Şirket adını saklar.
+    func setCompanyName(text: String) {
+        companyName = storeProfileText(text: text, limit: profileFieldLimit, key: SettingsKey.companyName) ?? companyName
+    }
+
+    /// Şirket açıklamasını saklar.
+    func setCompanyDescription(text: String) {
+        companyDescription = storeProfileText(text: text, limit: profileDescriptionLimit, key: SettingsKey.companyDescription) ?? companyDescription
     }
 
     /// Tanıma sözlüğünü saklar; saklanamazsa neden gösterilir.
