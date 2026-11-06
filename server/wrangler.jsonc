@@ -257,15 +257,15 @@
           "database_name": "ainotepad-production",
           "database_id": "d732acfd-fdb3-4f52-ac79-7c2654d9388b",
           "migrations_dir": "migrations"
+        },
+        // Yapay zekâ asistanı kopyası (src/assistant/): MCP Worker'la aynı AB veritabanı; göçleri wrangler.mcp.jsonc
+        // üzerinden uygulanır (`npm run migrate:assistant:production`).
+        {
+          "binding": "ASSISTANT_DB",
+          "database_name": "gistsmith-assistant",
+          "database_id": "edf506e0-5d35-4ea8-b026-b9e5395c0e4f",
+          "migrations_dir": "migrations-assistant"
         }
-        // ASSISTANT_DB burada bilerek yok: yapay zekâ asistanı erişimi (src/assistant/) açılana kadar API Worker'ın
-        // asistan kodu etkisizdir (ASSISTANT_POLICY "off"; bkz. config.ts `assistantStorageOf`). Açılış sırası:
-        // 1. `npx wrangler d1 create gistsmith-assistant --jurisdiction eu`; kimliği wrangler.mcp.jsonc'ye yaz.
-        // 2. `npm run migrate:assistant:production` (göçler wrangler.mcp.jsonc üzerinden uygulanır).
-        // 3. Buraya ASSISTANT_DB'yi (aynı kimlik, "migrations_dir": "migrations-assistant") ve aşağıdaki r2_buckets'a
-        //    ASSISTANT_BUCKET'ı ("gistsmith-sync", "jurisdiction": "eu") ekle.
-        // 4. ASSISTANT_POLICY'yi "on" yap ve dağıt. Politika "on" iken bağlama eksikse sunucu ilk istekte durur
-        //    (`ConfigError`), istek anında değil.
       ],
       "ratelimits": [
         { "name": "AUTH_IP_LIMITER", "namespace_id": "2001", "simple": { "limit": 10, "period": 60 } },
@@ -282,8 +282,11 @@
       ],
       // Bkz. üstteki geliştirme `r2_buckets` açıklaması. Kova dağıtımdan önce oluşturulmalı:
       // `npx wrangler r2 bucket create gistsmith-sync --jurisdiction eu` (yoksa `wrangler deploy` başarısız olur).
-      // ASSISTANT_BUCKET açılış sırasının 3. adımında eklenir (bkz. üstteki d1_databases açıklaması).
-      "r2_buckets": [{ "binding": "SYNC_BUCKET", "bucket_name": "gistsmith-sync", "jurisdiction": "eu" }],
+      // ASSISTANT_BUCKET aynı kovada `a/` önekini kullanır (yapay zekâ asistanı kopyası).
+      "r2_buckets": [
+        { "binding": "SYNC_BUCKET", "bucket_name": "gistsmith-sync", "jurisdiction": "eu" },
+        { "binding": "ASSISTANT_BUCKET", "bucket_name": "gistsmith-sync", "jurisdiction": "eu" }
+      ],
       "vars": {
         "ENVIRONMENT": "production",
         // Site; API özel alan adı `https://api.gistsmith.com` (Worker'ın tek adresi; workers.dev kapalı).
@@ -311,10 +314,9 @@
         // Bkz. üstteki geliştirme `vars` açıklaması. Açık: uygulamalar ve gizlilik metni yayında; eski sürümler eşitleme
         // satırını göstermez, yeni sürümler sunucu açık dediği için gösterir.
         "SYNC_POLICY": "on",
-        // Bkz. üstteki geliştirme `vars` açıklaması. Kapalı: uygulamalar (2. aşama), gizlilik metni ve onay sayfaları
-        // (3. aşama) yayınlanınca, d1_databases açıklamasındaki sırayla açılır. Açıldıktan sonra yeniden "off" yapma:
-        // kapalıyken hesap silme asistan kopyasını silmez (yeniden açılınca günlük temizlik yetimleri siler).
-        "ASSISTANT_POLICY": "off",
+        // Bkz. üstteki geliştirme `vars` açıklaması. Açık: uygulamalar (0.2.1), gizlilik metni ve onay sayfaları yayında.
+        // Yeniden "off" yapma: kapalıyken hesap silme asistan kopyasını silmez (yeniden açılınca günlük temizlik yetimleri siler).
+        "ASSISTANT_POLICY": "on",
         // Bkz. üstteki geliştirme `vars` açıklaması.
         "REFERRAL_MAX_PENDING": "3",
         // Bkz. üstteki geliştirme `vars` açıklaması.
