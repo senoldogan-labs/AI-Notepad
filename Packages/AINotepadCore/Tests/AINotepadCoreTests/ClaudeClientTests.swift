@@ -37,7 +37,12 @@ func request(model: ClaudeModel, schema: String?) -> LLMRequest {
         #expect((body["output_config"] as? [String: Any])?["effort"] as? String == "low")
         #expect(body["fallbacks"] == nil)
         #expect(body["temperature"] == nil)
-        #expect(body["system"] as? String == "sistem")
+        // The system prompt is one text block ending in the prompt-cache breakpoint; the user turn carries none.
+        let system: [[String: Any]] = try #require(body["system"] as? [[String: Any]])
+        #expect(system.count == 1)
+        #expect(system[0]["type"] as? String == "text")
+        #expect(system[0]["text"] as? String == "sistem")
+        #expect((system[0]["cache_control"] as? [String: Any])?["type"] as? String == "ephemeral")
         let messages: [[String: Any]] = try #require(body["messages"] as? [[String: Any]])
         #expect(messages.count == 1)
         #expect(messages[0]["role"] as? String == "user")

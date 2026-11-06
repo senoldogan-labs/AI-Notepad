@@ -351,10 +351,16 @@ function deleteReservationStatement(db: D1Database, reservation: UsageReservatio
   return db.prepare("DELETE FROM usage_reservations WHERE id = ?").bind(reservation.id);
 }
 
-/** Gerçekleşen token kullanımı. */
+/**
+ * Gerçekleşen token kullanımı. `inputTokens` is the whole prompt (uncached, cache write and cache read together): the
+ * budgets count every prompt token alike. `cacheWriteTokens` and `cacheReadTokens` are its cached parts, which only the
+ * cost prices differently (`llmUsageCostMicroUsd`).
+ */
 export interface TokenUsage {
   readonly inputTokens: number;
   readonly outputTokens: number;
+  readonly cacheWriteTokens: number;
+  readonly cacheReadTokens: number;
 }
 
 /**

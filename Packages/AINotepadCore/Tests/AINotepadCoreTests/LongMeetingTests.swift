@@ -43,6 +43,7 @@ private func syntheticMeeting(hours: Double) -> [StoredSegment] {
             tasks: (0..<150).map { NoteTask(owner: "Aino", description: "Valmistele esitys asiakkaalle numero \($0) ja lähetä se tiimille", dueDate: "2026-11-20", isMine: false) },
             glossary: [], openQuestions: []
         )
+        var systems: Set<String> = []
         for (index, chunk) in chunks.enumerated() {
             let request: LLMRequest = noteChunkRequest(
                 chunk: chunk, part: index + 1, partCount: chunks.count, state: state, speakerNames: [1: "Aino"], userName: "Doğan",
@@ -51,7 +52,12 @@ private func syntheticMeeting(hours: Double) -> [StoredSegment] {
             #expect(request.userText.utf8.count + request.system.utf8.count < serverMaxRequestBytes)
             #expect(serverInputEstimate(request: request) < serverMaxInputTokens)
             #expect(request.maxTokens <= 16000)
+            #expect(request.userText.hasPrefix("Şu an \(chunks.count) parçanın \(index + 1). parçasındasın."))
+            systems.insert(request.system)
         }
+        // The system prompt is the same for every part (the part number is in the user turn): it is the prompt-cache
+        // prefix the parts read back (`claudeSystemBlocks`, server `cachedSystem`).
+        #expect(systems.count == 1)
         let overview: LLMRequest = noteOverviewRequest(state: state, userName: "Doğan", template: .general, myNotes: "", language: .turkish, screens: [])
         #expect(serverInputEstimate(request: overview) < serverMaxInputTokens)
         // Abonelik sunucusunda (büyük bağlam) özetler kısaltılmaz.

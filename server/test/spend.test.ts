@@ -199,7 +199,7 @@ describe("hesap silinirken süren çağrı", () => {
     // Silme, süren ayırmaların tahminini yazar.
     expect(await spend()).toEqual({ micro_usd: before.micro_usd + 1000, audio_seconds: before.audio_seconds + 10 });
     // Üst servis yanıtı sonra gelir: kesinleştirme hata vermez, ikinci kez yazmaz, silinmiş hesaba sayaç açmaz.
-    await env.DB.batch(settleLLMStatements(env.DB, llm, { inputTokens: 50, outputTokens: 50 }, 600, now));
+    await env.DB.batch(settleLLMStatements(env.DB, llm, { inputTokens: 50, outputTokens: 50, cacheWriteTokens: 0, cacheReadTokens: 0 }, 600, now));
     await env.DB.batch(settleAudioStatements(env.DB, audio, 10, false, 300, 10, now));
     expect(await spend()).toEqual({ micro_usd: before.micro_usd + 1000, audio_seconds: before.audio_seconds + 10 });
     const counters = await env.DB.prepare(

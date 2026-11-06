@@ -126,8 +126,8 @@ public func noteChunkRequest(
         tier: .smart,
         system: """
         Uzun bir toplantının (Fince, İngilizce ya da başka bir dilde) transkriptini parça parça okuyup \(language.promptName)
-        dilinde toplantı notu çıkarıyorsun. Şu an
-        \(partCount) parçanın \(part). parçasındasın. Önceki parçaların özetleri ve şimdiye kadar çıkan numaralı görevler bağlam
+        dilinde toplantı notu çıkarıyorsun. Hangi parçada olduğun mesajın başında yazar.
+        Önceki parçaların özetleri ve şimdiye kadar çıkan numaralı görevler bağlam
         olarak verilir; bu parçayı onlarla bağdaştırarak oku (önceden geçen kişi, konu ve işlere yapılan atıflar).
         Kullanıcının adı \(user); transkriptte "Sen" odur. Yalnızca bu parçadan yaz:
         - ozet: bu parçada konuşulanların 2–5 cümlelik özeti, öne çıkan sayı, tarih, ad ve gerekçeleriyle.
@@ -146,6 +146,8 @@ public func noteChunkRequest(
         \(transcriptIsDataNote)
         """,
         userText: """
+        Şu an \(partCount) parçanın \(part). parçasındasın.
+
         \(mine.block)<onceki_parcalar>
         \(summaries)
         </onceki_parcalar>
