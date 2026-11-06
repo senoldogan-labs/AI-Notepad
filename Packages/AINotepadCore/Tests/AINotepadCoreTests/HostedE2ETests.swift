@@ -859,6 +859,11 @@ private func ageMeeting(meetingID: String, ms: Int) throws {
         """)
 }
 
+/// `llm_purpose_usage`'tan bir amacın toplam çağrı sayısı.
+private struct PurposeCallsRow: Decodable {
+    let calls: Int?
+}
+
 /// Son geçişi bitmiş, notu henüz yazılmamış toplantı (iPhone'da "Hazırlanıyor"da askıya alınmış kayıt).
 private func transcribedRecord(id: String) -> MeetingRecord {
     MeetingRecord(
@@ -912,6 +917,34 @@ private func transcribedRecord(id: String) -> MeetingRecord {
         #expect(result.status == .done, "hata: \(result.failureMessage ?? "")")
         #expect(result.note != nil)
         #expect(try processingRow(meetingID: started.meetingId).reprocess_count == 1)
+    }
+
+    // Toplantı sonu çevirisi: son geçiş transkripti kaydın kendi oturumuyla (işleme amacı `transcript_translation`,
+    // ek süreden sonra da) parça parça çevrilir ve toplantının bütçesine sayılır; çevrilemeyen parçanın "Tekrar dene"si
+    // hesaptan gider. Sahte Anthropic her `<parca>` için bir çeviri döndürür.
+    @Test func transcriptTranslationRunsOnTheMeetingAndRetriesFromTheAccount() async throws {
+        let baseURL: URL = try localServerBase()
+        let user: SignedInUser = try await signedInUser(baseURL: baseURL)
+        try markTrialStarted(userID: user.userID, usedMeetings: 1, startedAtMs: nowMs())
+        let started: HostedStartedMeeting = try await user.client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: UUID().uuidString.lowercased(), deferred: false)
+        _ = try await user.client.endMeeting(meetingID: started.meetingId)
+        try ageMeeting(meetingID: started.meetingId, ms: 32 * 60_000)
+        let watched: MeetingRecord = transcribedRecord(id: UUID().uuidString).with(translations: ["others-0": "canlı"])
+        let provider: LLMProvider = .hosted(HostedLLMConfig(baseURL: baseURL, credentials: user.client, scope: .recordedMeeting(serverMeetingID: started.meetingId)))
+        let translated: MeetingRecord = await translatingTranscript(record: watched, llm: provider, language: .turkish, userName: "Doğan")
+        #expect(translated.failedTranslationKeys == nil)
+        #expect(translated.translations["final-0"] == "Uçtan uca çeviri 1")
+        #expect(translated.translations["final-1"] == "Uçtan uca çeviri 2")
+        let row: ProcessingRow = try processingRow(meetingID: started.meetingId)
+        #expect(row.reprocess_count == 0 && row.tokens_used > 0)
+        let account: LLMProvider = .hosted(HostedLLMConfig(baseURL: baseURL, credentials: user.client, scope: .account))
+        let retried: MeetingRecord = await retryingFailedTranscriptTranslations(
+            record: watched.with(failedTranslationKeys: ["final-1"]), llm: account, language: .turkish, userName: "Doğan"
+        )
+        #expect(retried.failedTranslationKeys == nil)
+        #expect(retried.translations["final-1"] == "Uçtan uca çeviri 1")
+        let calls: [PurposeCallsRow] = try localD1Rows(sql: "SELECT SUM(calls) AS calls FROM llm_purpose_usage WHERE purpose = 'transcript_translation';", as: PurposeCallsRow.self)
+        #expect((calls.first?.calls ?? 0) >= 2)
     }
 
     // Son geçiş de ek süreden sonra yapılabilir; parça ilerlemesi kaydedilir ve aynı kayıt yeniden işlenince (uygulama

@@ -164,10 +164,13 @@ public struct MeetingSyncContent: Sendable, Equatable, Codable {
     public let liveSegments: [StoredSegment]
     public let finalSegments: [StoredSegment]
     public let translations: [String: String]
+    /// Pieces whose end-of-meeting translation failed (`MeetingRecord.failedTranslationKeys`). Added without a schema
+    /// bump: optional, nil is not encoded (older payload bytes unchanged) and an older app ignores it when decoding.
+    public let failedTranslationKeys: [String]?
 
     public init(
         schema: Int, language: MeetingLanguage?, fixedLanguage: MeetingLanguage?, engine: RecordingEngine?, meNeedsFinalPass: Bool?,
-        liveSegments: [StoredSegment], finalSegments: [StoredSegment], translations: [String: String]
+        liveSegments: [StoredSegment], finalSegments: [StoredSegment], translations: [String: String], failedTranslationKeys: [String]?
     ) {
         self.schema = schema
         self.language = language
@@ -177,6 +180,7 @@ public struct MeetingSyncContent: Sendable, Equatable, Codable {
         self.liveSegments = liveSegments
         self.finalSegments = finalSegments
         self.translations = translations
+        self.failedTranslationKeys = failedTranslationKeys
     }
 }
 
@@ -245,7 +249,7 @@ public func meetingSyncParts(record: MeetingRecord, contentObjectID: String, ori
     let content: MeetingSyncContent = MeetingSyncContent(
         schema: syncPayloadSchema, language: record.language, fixedLanguage: record.fixedLanguage, engine: record.engine,
         meNeedsFinalPass: record.meNeedsFinalPass, liveSegments: record.liveSegments, finalSegments: record.finalSegments,
-        translations: record.translations
+        translations: record.translations, failedTranslationKeys: record.failedTranslationKeys
     )
     return MeetingSyncParts(state: state, content: content)
 }
@@ -264,6 +268,7 @@ public func joinedMeetingRecord(state: MeetingSyncState, content: MeetingSyncCon
         sharedNotes: state.sharedNotes, notesSentAt: state.notesSentAt, myNotes: state.myNotes, sentDestinationIDs: state.sentDestinationIDs,
         sentTaskKeys: state.sentTaskKeys, noteHistory: state.noteHistory, fixedLanguage: content.fixedLanguage
     )
+    .with(failedTranslationKeys: content.failedTranslationKeys ?? [])
 }
 
 /// Only finished meetings sync: recording, processing and offline-queued meetings live on their device until done.

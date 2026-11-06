@@ -196,7 +196,8 @@ public struct MeetingRecord: Sendable, Equatable, Codable, Identifiable {
     public private(set) var failureMessage: String?
     public private(set) var liveSegments: [StoredSegment]
     public private(set) var finalSegments: [StoredSegment]
-    /// Bölüm anahtarı → not dilindeki canlı çevirisi.
+    /// Bölüm anahtarı → not dilindeki çevirisi: canlı bölümlerde canlı çeviri, son geçiş okuma parçalarında
+    /// (`readingPieces`) toplantı sonunda yapılan çeviri (bkz. `translatingTranscript`).
     public private(set) var translations: [String: String]
     /// Kişi numarası → kullanıcının verdiği ad.
     public private(set) var speakerNames: [Int: String]
@@ -253,6 +254,9 @@ public struct MeetingRecord: Sendable, Equatable, Codable, Identifiable {
     /// Karşılamadaki rehberli denemenin örnek toplantısı (bkz. `SampleMeeting.swift`); gerçek toplantılarda nil. Bu
     /// cihaza özgüdür: eşitlenmez, kullanım ve telemetri sayılarına, bildirimlere ve MCP'ye girmez (`realMeetings`).
     public private(set) var isSample: Bool?
+    /// Toplantı sonu çevirisi yapılamayan son geçiş okuma parçalarının anahtarları (bkz. `translatingTranscript`):
+    /// transkriptte "Çeviri yapılamadı · Tekrar dene" görünür. Hepsi çevrildiyse ve eski toplantılarda nil.
+    public private(set) var failedTranslationKeys: [String]?
 
     public init(
         id: String, title: String, startedAt: Date, endedAt: Date?, language: MeetingLanguage?, status: MeetingStatus,
@@ -430,6 +434,13 @@ public struct MeetingRecord: Sendable, Equatable, Codable, Identifiable {
     public func with(translations newTranslations: [String: String]) -> MeetingRecord {
         var copy: MeetingRecord = self
         copy.translations = newTranslations
+        return copy
+    }
+
+    /// Çevrilemeyen parçaları değişmiş kopya (boş liste nil olarak saklanır).
+    public func with(failedTranslationKeys newKeys: [String]) -> MeetingRecord {
+        var copy: MeetingRecord = self
+        copy.failedTranslationKeys = newKeys.isEmpty ? nil : newKeys
         return copy
     }
 

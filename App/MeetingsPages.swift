@@ -579,7 +579,8 @@ struct MeetingDetailPage: View {
                             onPlay: { (startSec: Double) -> Void in play(from: startSec) },
                             canEdit: !isLocked,
                             onToggleHighlight: { (paragraph: TranscriptParagraph) -> Void in model.toggleHighlight(meetingID: record.id, paragraph: paragraph) },
-                            onClip: { (paragraph: TranscriptParagraph) -> Void in exportClip(paragraph: paragraph) }
+                            onClip: { (paragraph: TranscriptParagraph) -> Void in exportClip(paragraph: paragraph) },
+                            onRetryTranslation: { () -> Void in model.retryTranscriptTranslations(meetingID: record.id) }
                         )
                         .frame(maxWidth: 820, alignment: .leading)
                     case .screens:
@@ -2974,6 +2975,8 @@ private struct TranscriptSection: View {
     let onToggleHighlight: @MainActor (TranscriptParagraph) -> Void
     /// Paragrafın sesini klip olarak kaydeder (sağ tık).
     let onClip: @MainActor (TranscriptParagraph) -> Void
+    /// Toplantı sonu çevirisi yapılamayan parçaları yeniden çevirir ("Çeviri alınamadı · Tekrar dene").
+    let onRetryTranslation: @MainActor () -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     /// Çalan paragraf: konum her güncellendiğinde değil, yalnızca paragraf değişince yazılır (tüm transkript saniyede
@@ -3040,6 +3043,16 @@ private struct TranscriptSection: View {
                                 .padding(.leading, 10)
                                 .overlay(alignment: .leading) { Rectangle().fill(Theme.line).frame(width: 2) }
                                 .padding(.top, 2)
+                        }
+                        if paragraph.translationFailed {
+                            Button(action: onRetryTranslation) {
+                                Label("Çeviri alınamadı · Tekrar dene", systemImage: "arrow.clockwise")
+                                    .appFont(size: 12, weight: .medium)
+                            }
+                            .buttonStyle(.hoverPlain)
+                            .foregroundStyle(NoticeSeverity.attention.tint)
+                            .disabled(!canEdit)
+                            .padding(.top, 2)
                         }
                     }
                     // Çal düğmesi metnin üstüne binmesin.

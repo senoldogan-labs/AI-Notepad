@@ -30,7 +30,7 @@ private func partly(base: UInt8, value: UInt8, cells: Int) -> ScreenFingerprint 
 }
 
 private func paragraph(_ id: String, _ start: Double, _ end: Double, _ text: String) -> TranscriptParagraph {
-    TranscriptParagraph(id: id, speaker: .others, person: 1, startSec: start, endSec: end, text: text, turkish: nil, words: [])
+    TranscriptParagraph(id: id, speaker: .others, person: 1, startSec: start, endSec: end, text: text, turkish: nil, translationFailed: false, words: [])
 }
 
 /// Bakışları 3 sn arayla kurallardan geçirir; saklananların zamanları. Yüzlerce karelik benzetimler saniyelerce CPU

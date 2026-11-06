@@ -79,7 +79,7 @@ import Testing
         let record: MeetingRecord = syncSampleRecord().with(title: "Edited")
         let content: MeetingSyncContent = MeetingSyncContent(
             schema: syncPayloadSchema, language: .english, fixedLanguage: nil, engine: .cloud, meNeedsFinalPass: nil, liveSegments: [], finalSegments: [],
-            translations: [:]
+            translations: [:], failedTranslationKeys: nil
         )
         let replaced: MeetingRecord = replacingContent(record: record, content: content)
         #expect(replaced.title == "Edited" && replaced.finalSegments.isEmpty && replaced.voiceprints == record.voiceprints && replaced.id == record.id)

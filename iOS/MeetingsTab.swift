@@ -841,7 +841,8 @@ struct MeetingReadView: View {
                         TranscriptList(
                             record: record, paragraphs: paragraphs, player: player, canPlay: canPlay, proxy: proxy,
                             highlighted: highlightedParagraphIDs(paragraphs: paragraphs, highlights: record.highlights ?? []),
-                            isEditable: isEditable, onToggleHighlight: toggleHighlight(paragraph:), onClip: exportClip(paragraph:)
+                            isEditable: isEditable, onToggleHighlight: toggleHighlight(paragraph:), onClip: exportClip(paragraph:),
+                            onRetryTranslation: { () -> Void in Task { await store.retryTranscriptTranslations(meetingID: record.id) } }
                         ) { (startSec: Double) -> Void in
                             play(from: startSec)
                         }
@@ -2014,6 +2015,8 @@ private struct TranscriptList: View {
     let onToggleHighlight: @MainActor (TranscriptParagraph) -> Void
     /// Paragrafın sesini klip olarak paylaşır (uzun basınca).
     let onClip: @MainActor (TranscriptParagraph) -> Void
+    /// Toplantı sonu çevirisi yapılamayan parçaları yeniden çevirir ("Çeviri alınamadı · Tekrar dene").
+    let onRetryTranslation: @MainActor () -> Void
     let onPlay: @MainActor (Double) -> Void
     /// Çalan paragraf: yalnızca paragraf değişince yazılır (tüm liste saniyede onlarca kez yeniden çizilmesin).
     @State private var activeID: String?
@@ -2099,6 +2102,19 @@ private struct TranscriptList: View {
                     }
                 }
                 .id(paragraph.id)
+                // Oynatma düğmesinin içinde değil, altında: iç içe düğme dokunuşu oynatmaya giderdi.
+                if paragraph.translationFailed {
+                    Button(action: onRetryTranslation) {
+                        Label("Çeviri alınamadı · Tekrar dene", systemImage: "arrow.clockwise")
+                            .appFont(size: 13, weight: .medium)
+                            .foregroundStyle(NoticeSeverity.attention.tint)
+                            .padding(.vertical, 4)
+                            .padding(.leading, 50)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!isEditable)
+                }
             }
         }
         .padding(.horizontal, -10)
