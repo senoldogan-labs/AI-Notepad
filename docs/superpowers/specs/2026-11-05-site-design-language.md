@@ -64,17 +64,17 @@ Tokens live once in `web/src/styles/global.css` (`light-dark()` pairs; `public/t
 
 | Token | Light | Dark | Source |
 |---|---|---|---|
-| `--bg` (paper) | `#fbfbfa` | `#0b1015` | snow / polar night |
-| `--card` | `#ffffff` | `#11181f` | |
-| `--soft` (mist) | `#eff2f2` | `#16202a` | lake fog |
-| `--line` (hairline) | `#dfe4e6` | `#24313b` | |
-| `--ink` | `#0f1a22` | `#eef2f4` | deep lake water |
-| `--muted` | `#4d5b64` | `#a2b2bd` | slate shore (≥ 6:1 on paper) |
-| `--primary` / `--on-primary` | `#0f1a22` / `#f6f8f8` | `#eef2f4` / `#0b1015` | the one dark pill |
-| `--night` (band) | `#0f1c25` | `#15212b` | dusk sky over water (lifted above the dark page) |
+| `--bg` (paper) | `#ffffff` | `#000000` | white / black |
+| `--card` | `#faf8f4` | `#0e0e0e` | near-white cream / near-black |
+| `--soft` (mist) | `#f4f1eb` | `#151515` | alternate sections, chips |
+| `--line` (hairline) | `#e5e2dc` | `#262626` | |
+| `--ink` | `#0a0a0a` | `#f2f2f2` | near-black / near-white |
+| `--muted` | `#575757` | `#a6a6a6` | neutral grey (≥ 6:1 on every surface) |
+| `--primary` / `--on-primary` | `#0a0a0a` / `#ffffff` | `#f2f2f2` / `#000000` | the one dark pill |
+| `--night` (band) | `#111111` | `#141414` | near-black (lifted above the black dark page) |
 | `--accent` | `#e9896a` | `#f0ae92` | existing dusk-coral accent; marks and rules only, never body text |
 
-The CTA is a deep lake-ink pill, not a brand colour, so the only saturated colour on a page is the coral of the
+The page chrome is neutral black and white (only cards and alternate sections take a near-white cream or a near-black grey). The CTA is a near-black ink pill, not a brand colour, so the only saturated colour on a page is the coral of the
 waveform marks and the photographs themselves.
 
 ### Photography
@@ -96,7 +96,7 @@ waveform marks and the photographs themselves.
 
 - Radii: photo panels 24 px, cards 16 px, app windows keep the screenshot's own macOS corners, controls and chips are
   full pills. (Granola's 4 px image corners are deliberately not used.)
-- Depth: app windows get a layered, offset shadow tinted with the lake ink; chips a short soft shadow. No glow halos.
+- Depth: app windows get a layered, offset shadow in neutral black; chips a short soft shadow. No glow halos.
 - Spacing: 8 px base; sections `clamp(88px, 11vw, 152px)`; content width 1240 px, gutters 20–40 px.
 
 ### Signature move 2: the horizon waveform

@@ -1,4 +1,4 @@
-/* Product site: "Nordic dusk" (docs/superpowers/specs/2026-11-05-site-design-language.md). White paper, deep lake ink,
+/* Product site: "Nordic dusk" (docs/superpowers/specs/2026-11-05-site-design-language.md). White paper (black in dark mode), near-black ink,
    Newsreader for headings at one regular weight (hierarchy by size), Inter for text and UI; photographs of Finnish
    lakes and forests in their own colours (`.photo`) with app windows over them; pastel film covers for blog covers and small
    cards. Nothing blurred or filtered ever animates; content only fades and slides in, and not at all under
@@ -36,32 +36,32 @@
    visitor's choice or the system preference); without the script `color-scheme` follows the system. */
 :root {
   color-scheme: light dark;
-  --bg: light-dark(#fbfbfa, #0b1015);
-  --card: light-dark(#ffffff, #11181f);
-  --line: light-dark(#dfe4e6, #24313b);
-  --soft: light-dark(#eff2f2, #16202a);
-  --selected: light-dark(#e6ebec, #1d2933);
-  --ink: light-dark(#0f1a22, #eef2f4);
-  --muted: light-dark(#4d5b64, #a2b2bd);
-  --primary: light-dark(#0f1a22, #eef2f4);
-  --on-primary: light-dark(#f6f8f8, #0b1015);
+  --bg: light-dark(#ffffff, #000000);
+  --card: light-dark(#faf8f4, #0e0e0e);
+  --line: light-dark(#e5e2dc, #262626);
+  --soft: light-dark(#f4f1eb, #151515);
+  --selected: light-dark(#ebe7e0, #1f1f1f);
+  --ink: light-dark(#0a0a0a, #f2f2f2);
+  --muted: light-dark(#575757, #a6a6a6);
+  --primary: light-dark(#0a0a0a, #f2f2f2);
+  --on-primary: light-dark(#ffffff, #000000);
   --focus: light-dark(#2f5f8a, #8fb5d8);
   --danger: light-dark(#b42318, #ff8a7a);
   --on-danger: light-dark(#ffffff, #0a0a0a);
   --ok: light-dark(#2f7a55, #7fcfa3);
   --warn: light-dark(#9a5b00, #f2b863);
   --accent: light-dark(#e9896a, #f0ae92);
-  /* The night band (privacy on the home page): the same in both themes, a step darker than the dark page. */
-  --night: light-dark(#0f1c25, #15212b);
-  --on-night: #eef2f4;
-  --on-night-muted: #a9b9c4;
-  --night-line: rgb(238 242 244 / 0.16);
-  /* Shadows are tinted with the lake ink, never neutral black. */
-  --shadow: light-dark(rgb(15 26 34 / 0.07), rgb(0 0 0 / 0.38));
-  --shadow-near: light-dark(rgb(15 26 34 / 0.05), rgb(0 0 0 / 0.42));
+  /* The night band (privacy on the home page): near-black in both themes, a step lighter than the black dark page. */
+  --night: light-dark(#111111, #141414);
+  --on-night: #f2f2f2;
+  --on-night-muted: #ababab;
+  --night-line: rgb(242 242 242 / 0.16);
+  /* Shadows are neutral black. */
+  --shadow: light-dark(rgb(0 0 0 / 0.06), rgb(0 0 0 / 0.5));
+  --shadow-near: light-dark(rgb(0 0 0 / 0.04), rgb(0 0 0 / 0.55));
   --elevation: 0 1px 2px var(--shadow-near), 0 8px 24px var(--shadow);
-  --shadow-chip: 0 1px 2px rgb(15 26 34 / 0.08), 0 6px 16px -4px rgb(15 26 34 / 0.22);
-  --shadow-window: 0 1px 2px rgb(15 26 34 / 0.12), 0 14px 28px -8px rgb(15 26 34 / 0.28), 0 44px 80px -28px rgb(15 26 34 / 0.45);
+  --shadow-chip: 0 1px 2px rgb(0 0 0 / 0.08), 0 6px 16px -4px rgb(0 0 0 / 0.22);
+  --shadow-window: 0 1px 2px rgb(0 0 0 / 0.12), 0 14px 28px -8px rgb(0 0 0 / 0.28), 0 44px 80px -28px rgb(0 0 0 / 0.45);
   --radius-panel: 24px;
   --radius-l: 24px;
   --radius-m: 16px;
@@ -751,8 +751,8 @@ p {
   isolation: isolate;
   overflow: hidden;
   border-radius: var(--radius-panel);
-  background-color: #6d7f8c;
-  color: #0f1a22;
+  background-color: #7a7a7a;
+  color: #0a0a0a;
 }
 
 .photo__media,
@@ -809,10 +809,10 @@ p {
   gap: 8px;
   min-height: 40px;
   padding: 5px 14px 5px 5px;
-  border: 1px solid rgb(15 26 34 / 0.06);
+  border: 1px solid rgb(0 0 0 / 0.06);
   border-radius: 999px;
   background: #ffffff;
-  color: #0f1a22;
+  color: #0a0a0a;
   box-shadow: var(--shadow-chip);
   font-size: 0.875rem;
   font-weight: 600;

@@ -13,8 +13,8 @@
   const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
   const root = document.documentElement;
   // Tarayıcı çubuğunun rengi; global.css `--bg` ile aynı kalmalı.
-  const lightBarColor = "#fbfbfa";
-  const darkBarColor = "#0b1015";
+  const lightBarColor = "#ffffff";
+  const darkBarColor = "#000000";
 
   /**
    * Saklanan seçim; yoksa null. Depolama kapalıysa (ör. tarayıcı ayarı) uyarı yazılır ve sistem tercihi kullanılır.

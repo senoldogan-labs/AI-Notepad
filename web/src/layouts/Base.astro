@@ -60,8 +60,8 @@ const hreflangLinks: ReadonlyArray<{ readonly lang: string; readonly href: strin
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     {/* Tarayıcı çubuğunun rengi; theme.js elle seçilen temaya göre ikisini de günceller, bu yüzden betikten önce gelir. */}
-    <meta name="theme-color" content="#fbfbfa" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0b1015" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
     {/* Tema ilk boyamadan önce uygulanır. Satır içi: ayrı istek yavaş telefonda ilk boyamayı geciktiriyordu; CSP izni
         derlemede hesaplanan sha256 özetiyle verilir (astro.config.ts). */}
     <script is:inline set:html={themeScript}></script>
