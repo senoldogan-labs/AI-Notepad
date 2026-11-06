@@ -15,7 +15,6 @@ struct PhoneHome: View {
     let account: HostedAccount
     let onBriefing: @MainActor (CalendarMeeting) -> Void
     @Environment(PhoneImportState.self) private var imports: PhoneImportState
-    @Environment(\.panelAppearance) private var appearance: PanelAppearance
     /// Uzun basınca silme onayı bekleyen toplantı.
     @State private var pendingDelete: MeetingRecord?
     /// Silme ve klasöre taşıma hataları.
