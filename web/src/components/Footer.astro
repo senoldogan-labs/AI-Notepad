@@ -1,5 +1,5 @@
 ---
-// Footer on the mist surface: the tagline set in the serif, then product, learn (compare, languages, integrations,
+// Footer on the mist surface: the brand line set in the serif and where it is made, then product, learn (compare, languages, integrations,
 // blog, MCP), account and company (contact, legal, font licences) links; a horizon rule; at the bottom the copyright
 // line and the language choice (routes.ts `siteLanguages`: each language goes to its own home page, the current one is
 // plain text). The operator's identity and address are on the privacy, terms and contact pages (single source:
@@ -73,6 +73,7 @@ const columns: readonly { readonly title: string; readonly links: readonly { rea
         <span>{productName}</span>
       </a>
       <p class="site-footer__tagline">{text.footer.tagline}</p>
+      <p class="site-footer__made">{text.footer.madeIn}</p>
     </div>
     {
       columns.map((column) => (
@@ -151,6 +152,10 @@ const columns: readonly { readonly title: string; readonly links: readonly { rea
     line-height: 1.12;
     letter-spacing: -0.015em;
     text-wrap: balance;
+  }
+
+  .site-footer__made {
+    color: var(--muted);
   }
 
   .site-footer__title {

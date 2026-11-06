@@ -47,8 +47,10 @@ a window. Calm, competent, northern. The photographs carry warmth; the interface
   "institution", not "typewriter", so it cannot be mistaken for their face.
 - **Text and UI: Inter** (self-hosted from `App/Fonts`, SIL OFL 1.1), cut by `web/scripts/subset-font.sh` to weights
   400–700 at optical size 16, the body size (38 KB).
-- Scale (desktop → 360 px, one weight for the serif): display 84 → 44 px, page title (H1) 64 → 40, section title 52
-  → 32, row title 40 → 28. The serif is used only from about 26 px up (its optical size is 48); card titles
+- Scale (desktop → 360 px, one weight for the serif): display 108 → 44 px (line height 0.96, tracking -0.025em), page
+  title (H1) 64 → 40, section title 52 → 32, row title 32 → 26. The home page uses three serif steps only: display,
+  section title and row title. Text blocks keep to a reading measure of 800 px (`--measure`); photographs and windows
+  use the 1240 px page width. The serif is used only from about 26 px up (its optical size is 48); card titles
   (`.title-m`) are Inter 600 at 20 px. Line height 1.02–1.12, tracking -0.022em to -0.01em. Lead 21 → 18 px
   Inter 400 in the muted ink. Body 16/1.6, long-form posts 18/1.75 at a 68ch measure.
 - **Signature move 1: two-tone headings.** Where other sites put a kicker/eyebrow above a heading, we set the context
@@ -112,7 +114,7 @@ It is drawn from `Waveform`'s seeded heights (deterministic per label), static, 
   "Download" pill. It is the same object at every width (unlike their full-width mobile bar): below 860 px the links,
   Sign in and the theme switch fold into a `<details>` sheet under the pill (Escape and outside clicks close it),
   Download stays visible.
-- **Footer:** mist surface, the tagline set in the serif, the link columns, a horizon-waveform rule, then copyright,
+- **Footer:** mist surface, the brand line set in the serif with "Made in Oulu, Finland." under it, the link columns, a horizon-waveform rule, then copyright,
   languages and both font licences. No giant wordmark.
 
 ### Components
@@ -140,12 +142,16 @@ under `prefers-reduced-motion`. Nothing blurred or filtered animates.
 
 ### Page templates
 
-- **Home (`/`, `/fi`):** hero (display headline left, lead with the category as its bold lead-in, CTAs and
-  assurances) → full-width dusk-lake panel with the Mac main window and floating chips → recent-meeting cards →
-  launch video → integration marquee → four alternating rows (copy left/right, photo panel with the real screen) →
-  feature cards (pastel) → capabilities list → integrations (copy + desk panel with the MCP chat window and
-  integration chips) → privacy on the night band (typographic, four points under hairlines) → price card over lake islands → FAQ →
-  centred CTA card over the dusk archipelago.
+- **Home (`/`, `/fi`), six sections, about 900 words:** hero in one column (display headline, one line with the
+  category as its bold lead-in, one Download button, one line of assurances) → full-width lake panel with the Mac note
+  window → a factual trust strip (made in Oulu, EU company, notarized by Apple, no bot; never testimonials, ratings or
+  logos we do not have) → recent-meeting cards. Features under the brand line "Quiet while you talk. Yours when you're
+  done." (launch video, three alternating rows with real screens, five pastel feature cards with one sentence each,
+  one line for the rest of the plan) → integrations (copy + panel with the MCP chat window and chips) → privacy on the
+  night band → price card with the FAQ under it → centred CTA card over the dusk archipelago.
+- **Brand line:** "Quiet while you talk. Yours when you're done." heads the home features, opens the home meta
+  description and sits in the footer (with "Made in Oulu, Finland.") and on the sign-in page. Title and H1 still say
+  what the product is.
 - **Inner marketing pages (pricing, compare, `/vs/*`, MCP, languages, integrations, download, invite, contact):**
   two-tone H1 + lead on paper, content in hairline-separated sections, closing CTA card over a photograph.
 - **Blog index:** two-tone H1, grid of cards with pastel covers. **Post:** pastel cover header (unchanged, it feeds the

@@ -169,23 +169,3 @@ export const brands: Readonly<Record<Brand, BrandMark>> = {
     viewBox: { x: 0, y: 0, width: 24, height: 24 },
   },
 };
-
-/** Kayan şeridin sırası: bütün entegrasyonlar, gruplar karışık. */
-export const marqueeBrands: readonly Brand[] = [
-  "notion",
-  "slack",
-  "claude",
-  "teams",
-  "linear",
-  "apple-notes",
-  "zoom",
-  "cursor",
-  "jira",
-  "discord",
-  "obsidian",
-  "reminders",
-  "vscode",
-  "calendar",
-  "markdown",
-  "webhook",
-];
