@@ -2,7 +2,7 @@ import AINotepadCore
 import AINotepadUI
 import SwiftUI
 
-/// Görevler sekmesinin süzgeci.
+/// Görevlerim sayfasının süzgeci.
 private enum TaskFilter: Hashable {
     case open
     case done
@@ -30,25 +30,22 @@ struct TasksTab: View {
                 result.append((record: item.record, tasks: [item.task]))
             }
         }
-        NavigationStack {
-            Group {
-                if all.isEmpty {
-                    // Hiç görev yok: ilerleme ve süzgeç yerine yalnız ortada boş durum; konuşmacısı seçilmemiş yüz yüze
-                    // toplantı varsa üstte (görevleri seçilince buraya gelir).
-                    VStack(spacing: 0) {
-                        pendingSpeakerMeetings
-                            .padding(.horizontal, 20)
-                            .padding(.top, 8)
-                        emptyState(hasTasks: false, doneCount: 0)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    }
-                    .background(Theme.background)
-                    .navigationTitle("Görevlerim")
-                } else {
-                    taskList(all: all, doneCount: doneCount, shown: shown, groups: groups)
+        Group {
+            if all.isEmpty {
+                // Hiç görev yok: ilerleme ve süzgeç yerine yalnız ortada boş durum; konuşmacısı seçilmemiş yüz yüze
+                // toplantı varsa üstte (görevleri seçilince buraya gelir).
+                VStack(spacing: 0) {
+                    pendingSpeakerMeetings
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+                    emptyState(hasTasks: false, doneCount: 0)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
+                .background(Theme.background)
+                .navigationTitle("Görevlerim")
+            } else {
+                taskList(all: all, doneCount: doneCount, shown: shown, groups: groups)
             }
-            .phoneTabSwipe(router: router, isEnabled: true)
         }
     }
 
@@ -144,7 +141,7 @@ struct TasksTab: View {
                 message: "Toplantılarda sana düşen işler burada toplanır; bitirdiklerini işaretle, ilerlemen üstte görünsün."
             ) {
                 if userName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Button("Adını yaz", systemImage: "person.text.rectangle") { router.tab = .settings }
+                    Button("Adını yaz", systemImage: "person.text.rectangle") { router.push(route: .profile) }
                         .buttonStyle(.accentPill)
                         .controlSize(.large)
                 }

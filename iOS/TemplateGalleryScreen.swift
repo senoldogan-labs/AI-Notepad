@@ -14,7 +14,7 @@ struct TemplateGalleryScreen: View {
             ForEach(templateGallerySections(templates: templateGallery())) { (section: TemplateGallerySection) in
                 Section {
                     ForEach(section.templates) { (template: GalleryTemplate) in
-                        NavigationLink(value: PhoneSettingsRoute.templatePreview(id: template.id)) {
+                        NavigationLink(value: PhoneRoute.templatePreview(template.id)) {
                             LabeledContent {
                                 if isGalleryTemplateSelected(template: template, selectedKind: noteTemplate, customName: customTemplateName, customInstructions: customTemplate) {
                                     Image(systemName: "checkmark")
@@ -126,7 +126,7 @@ struct TemplatePreviewScreen: View {
         customTemplateName = copy.name
         customTemplate = copy.instructions
         noteTemplate = NoteTemplateKind.custom.rawValue
-        router.settingsPath = [.customTemplate]
+        router.path = templateEditorPath(path: router.path)
     }
 }
 
@@ -166,14 +166,26 @@ struct CustomTemplateScreen: View {
     }
 }
 
+/// "Kopyasını düzenle"den sonraki yığın: sondaki galeri ve önizleme sayfaları kendi şablonunun düzenleyicisiyle
+/// değişir (geri, galeriyi açan sayfaya, ör. Ayarlar'a döner). Saf fonksiyondur.
+func templateEditorPath(path: [PhoneRoute]) -> [PhoneRoute] {
+    let base: [PhoneRoute] = Array(path.reversed().drop(while: { (route: PhoneRoute) -> Bool in
+        switch route {
+        case .templateGallery, .templatePreview: true
+        default: false
+        }
+    }).reversed())
+    return base + [.customTemplate]
+}
+
 /// `--sablon-galerisi [<şablon kimliği>]` başlatma argümanı (yalnız Debug, görsel kontrol): Ayarlar'da galeriyi, kimlik
 /// verildiyse o şablonun önizlemesini açar; yoksa boş. Saf fonksiyondur.
-func launchTemplateGalleryPath(arguments: [String]) -> [PhoneSettingsRoute] {
+func launchTemplateGalleryPath(arguments: [String]) -> [PhoneRoute] {
     guard let index = arguments.firstIndex(of: "--sablon-galerisi") else {
         return []
     }
     guard arguments.indices.contains(index + 1), !arguments[index + 1].hasPrefix("--") else {
-        return [.templateGallery]
+        return [.settings, .templateGallery]
     }
-    return [.templateGallery, .templatePreview(id: arguments[index + 1])]
+    return [.settings, .templateGallery, .templatePreview(arguments[index + 1])]
 }

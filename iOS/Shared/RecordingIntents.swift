@@ -48,7 +48,7 @@ struct StartRecordingIntent: AppIntent {
     @MainActor
     func perform() async throws -> some IntentResult {
         #if !WIDGET_EXTENSION
-        router.tab = .record
+        router.showHome()
         await sessions.session.recorder.start()
         #endif
         return .result()

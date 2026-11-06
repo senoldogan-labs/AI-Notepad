@@ -278,12 +278,6 @@ final class PhoneAsk {
     }
 }
 
-/// Sor sekmesinin gezinme hedefleri (`PhoneRouter.askPath`): sohbet (tam ekran, sekme çubuğu gizli) ve sohbet geçmişi.
-enum AskRoute: Hashable {
-    case conversation
-    case history
-}
-
 /// Soru alanından gönderilen soru: metin, `@` ile etiketlenen toplantılar ve (tariften geldiyse) tarifin adı.
 struct AskSubmission {
     let question: String
@@ -291,13 +285,13 @@ struct AskSubmission {
     let recipeTitle: String?
 }
 
-/// Sor sekmesinin kökü: sakin başlangıç (başlık, örnek soru hapları, son sohbetler) ve altta soru alanı; web araması
-/// ayarı Ayarlar'da. Sor baştan sona tam ekrandır: sekme çubuğu gizli, sol üstteki geri Sor'a gelinen sekmeye döner.
-/// Soru gönderilince ya da bir sohbet açılınca sohbet üstüne açılır; onun geri oku kökü getirir.
+/// Sor (ana ekrandaki "Bir şey sor"): sakin başlangıç (başlık, örnek soru hapları, son sohbetler) ve altta soru alanı;
+/// web araması ayarı Ayarlar'da. Soru gönderilince ya da bir sohbet açılınca sohbet üstüne açılır; onun geri oku buraya,
+/// buranın geri oku ana ekrana döner.
 struct AskTab: View {
     let ask: PhoneAsk
     let store: PhoneStore
-    @Bindable var router: PhoneRouter
+    let router: PhoneRouter
 
     /// Son sohbetlerde kaydedilmemiş (süren) sohbetin satır kimliği.
     private let currentChatID: String = "current"
@@ -306,81 +300,59 @@ struct AskTab: View {
     private let recentLimit: Int = 3
 
     var body: some View {
-        NavigationStack(path: $router.askPath) {
-            Group {
-                if isEmpty {
-                    // Henüz toplantı ve sohbet yok: sorulacak bir şey yok, ortada kısa bir boş durum ve kayda geçiş.
-                    PhoneEmptyScene(
-                        symbol: "sparkle.magnifyingglass", palette: .violet, title: "Sorulacak toplantı yok",
-                        message: "İlk toplantını kaydet; sonra notlarına buradan soru sor, cevap kaynağıyla gelsin."
-                    ) {
-                        Button("Kaydı başlat", systemImage: "mic.fill") { router.tab = .record }
-                            .buttonStyle(.accentPill)
-                            .controlSize(.large)
-                    }
-                } else {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 24) {
-                            PhoneErrorList(messages: [ask.historyError, ask.recipeError].compactMap { $0 })
-                            AskStartHeader()
-                            // Toplantı yokken örnek sorular boş cevap verirdi: yerine kısa bir satır.
-                            if store.meetings.isEmpty {
-                                Text("Sorulacak toplantı yok")
-                                    .appFont(size: 14, weight: .regular)
-                                    .foregroundStyle(Theme.muted)
-                            } else {
-                                AskExampleChips(questions: askExampleQuestions) { (question: AskExampleQuestion) -> Void in
-                                    startConversation(submission: AskSubmission(question: question.localized, meetingIDs: [], recipeTitle: nil))
-                                }
-                            }
-                            if hasRecent {
-                                AskRecentChats(
-                                    chats: recentChats,
-                                    onOpen: { (id: String) -> Void in openRecent(id: id) },
-                                    onSeeAll: ask.conversations.isEmpty ? nil : { router.askPath = [.history] }
-                                )
-                                .padding(.top, 4)
+        Group {
+            if isEmpty {
+                // Henüz toplantı ve sohbet yok: sorulacak bir şey yok, ortada kısa bir boş durum ve kayda geçiş.
+                PhoneEmptyScene(
+                    symbol: "sparkle.magnifyingglass", palette: .violet, title: "Sorulacak toplantı yok",
+                    message: "İlk toplantını kaydet; sonra notlarına buradan soru sor, cevap kaynağıyla gelsin."
+                ) {
+                    Button("Kaydı başlat", systemImage: "mic.fill") { router.showHome() }
+                        .buttonStyle(.accentPill)
+                        .controlSize(.large)
+                }
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        PhoneErrorList(messages: [ask.historyError, ask.recipeError].compactMap { $0 })
+                        AskStartHeader()
+                        // Toplantı yokken örnek sorular boş cevap verirdi: yerine kısa bir satır.
+                        if store.meetings.isEmpty {
+                            Text("Sorulacak toplantı yok")
+                                .appFont(size: 14, weight: .regular)
+                                .foregroundStyle(Theme.muted)
+                        } else {
+                            AskExampleChips(questions: askExampleQuestions) { (question: AskExampleQuestion) -> Void in
+                                startConversation(submission: AskSubmission(question: question.localized, meetingIDs: [], recipeTitle: nil))
                             }
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.top, 12)
-                        // İçerik soru alanına yapışmasın: alanın üstündeki dokunuş bir hapa ya da satıra değil boşluğa düşer.
-                        .padding(.bottom, 40)
+                        if hasRecent {
+                            AskRecentChats(
+                                chats: recentChats,
+                                onOpen: { (id: String) -> Void in openRecent(id: id) },
+                                onSeeAll: ask.conversations.isEmpty ? nil : { router.push(route: .askHistory) }
+                            )
+                            .padding(.top, 4)
+                        }
                     }
-                    .scrollDismissesKeyboard(.interactively)
-                    .safeAreaInset(edge: .bottom) {
-                        AskComposer(
-                            ask: ask, store: store, placeholder: "Sor… (@ toplantı, / tarif)", isAnswering: false, followUp: nil,
-                            onSubmit: { (submission: AskSubmission) -> Void in startConversation(submission: submission) },
-                            onStop: { ask.stop() }
-                        )
-                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+                    // İçerik soru alanına yapışmasın: alanın üstündeki dokunuş bir hapa ya da satıra değil boşluğa düşer.
+                    .padding(.bottom, 40)
                 }
-            }
-            .phoneTabSwipe(router: router, isEnabled: true)
-            .background(Theme.background)
-            .navigationTitle("Sor")
-            .navigationBarTitleDisplayMode(.inline)
-            // Kökte de sekme çubuğu gizli (yalnız sohbette gizlemek yetmedi: Sor'u açan kullanıcı ilk bu ekranı görüyor).
-            .toolbar(.hidden, for: .tabBar)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    // Sistem geri okuyla aynı renk (sohbet ve toplantı sayfasındaki geri gibi).
-                    Button("Geri", systemImage: "chevron.left") { router.leaveAsk() }
-                        .tint(Theme.ink)
-                }
-            }
-            .navigationDestination(for: AskRoute.self) { (route: AskRoute) in
-                switch route {
-                case .conversation:
-                    AskConversationView(ask: ask, store: store, router: router)
-                case .history:
-                    AskHistoryList(ask: ask) { (id: UUID) -> Void in
-                        openConversation(id: id)
-                    }
+                .scrollDismissesKeyboard(.interactively)
+                .safeAreaInset(edge: .bottom) {
+                    AskComposer(
+                        ask: ask, store: store, placeholder: "Sor… (@ toplantı, / tarif)", isAnswering: false, followUp: nil,
+                        onSubmit: { (submission: AskSubmission) -> Void in startConversation(submission: submission) },
+                        onStop: { ask.stop() }
+                    )
                 }
             }
         }
+        .background(Theme.background)
+        .navigationTitle("Sor")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     /// Kaydedilmemiş (ilk cevabı süren ya da yarıda kalan) açık sohbet: son sohbetlerin başında "sohbete dön" satırı.
@@ -419,7 +391,7 @@ struct AskTab: View {
     /// Son sohbetler satırı: süren sohbete döner ya da saklanan sohbeti açar.
     private func openRecent(id: String) {
         guard id != currentChatID else {
-            router.askPath = [.conversation]
+            router.openAskConversation()
             return
         }
         guard let uuid = UUID(uuidString: id) else {
@@ -432,21 +404,40 @@ struct AskTab: View {
     private func startConversation(submission: AskSubmission) {
         ask.clear()
         ask.ask(question: submission.question, meetingIDs: submission.meetingIDs, recipeTitle: submission.recipeTitle)
-        router.askPath = [.conversation]
+        router.openAskConversation()
     }
 
-    /// Saklanan sohbeti açar; zaten açık olan sohbet yeniden yüklenmez (süren cevabı kesilmez).
+    /// Saklanan sohbeti açar.
     private func openConversation(id: UUID) {
-        if ask.currentConversationID != id || ask.exchanges.isEmpty {
-            ask.open(conversationID: id)
-        }
-        router.askPath = [.conversation]
+        openAskConversation(ask: ask, router: router, id: id)
     }
 }
 
-/// Sohbet (tam ekran): soru-cevaplar (Mac'teki ile aynı görünüm) ve altta yalnızca devam sorusu alanı. Sekme çubuğu
-/// gizlidir; sol üstteki geri kökü getirir (süren cevap durmaz), sağ üstteki "Yeni sohbet" sohbeti kapatıp köke döner.
-private struct AskConversationView: View {
+/// Saklanan sohbeti açar (Sor'un üstünde; geçmiş kapanır); zaten açık olan sohbet yeniden yüklenmez (süren cevabı
+/// kesilmez).
+@MainActor
+private func openAskConversation(ask: PhoneAsk, router: PhoneRouter, id: UUID) {
+    if ask.currentConversationID != id || ask.exchanges.isEmpty {
+        ask.open(conversationID: id)
+    }
+    router.openAskConversation()
+}
+
+/// Sohbet geçmişi sayfası: sohbete dokununca sohbet geçmişin yerine açılır.
+struct AskHistoryScreen: View {
+    let ask: PhoneAsk
+    let router: PhoneRouter
+
+    var body: some View {
+        AskHistoryList(ask: ask) { (id: UUID) -> Void in
+            openAskConversation(ask: ask, router: router, id: id)
+        }
+    }
+}
+
+/// Sohbet: soru-cevaplar (Mac'teki ile aynı görünüm) ve altta yalnızca devam sorusu alanı. Sol üstteki geri Sor'u getirir
+/// (süren cevap durmaz), sağ üstteki "Yeni sohbet" sohbeti kapatıp Sor'a döner.
+struct AskConversationView: View {
     let ask: PhoneAsk
     let store: PhoneStore
     let router: PhoneRouter
@@ -519,12 +510,11 @@ private struct AskConversationView: View {
         .background(Theme.background)
         .navigationTitle(Text(verbatim: title))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .tabBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Yeni sohbet", systemImage: "square.and.pencil") {
                     ask.clear()
-                    router.askPath = []
+                    router.returnToAsk()
                 }
             }
         }
@@ -846,6 +836,5 @@ private struct AskHistoryList: View {
         }
         .navigationTitle("Geçmiş")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .tabBar)
     }
 }

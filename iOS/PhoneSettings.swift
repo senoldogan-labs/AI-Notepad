@@ -69,6 +69,8 @@ enum PhoneSettingsKey {
     static let aiDisclosureAccepted: String = "hosted.aiDisclosureAccepted"
     /// Toplantı sayfasında sözlük açık mı (Mac'teki ayarla aynı ad); varsayılan kapalı, tercih tüm toplantılar için.
     static let glossaryExpanded: String = "meeting.glossaryExpanded"
+    /// Toplantı sayfasında "Ayrıntılar" (konuşma payları, sözlük) açık mı; varsayılan kapalı, tercih tüm toplantılar için.
+    static let meetingDetailsExpanded: String = "phone.meetingDetailsExpanded"
     /// Konuşmacıları sesinden tanı (Mac'teki ayarla aynı ad; bkz. `PhoneVoices`); varsayılan kapalı.
     static let voiceRecognition: String = "voiceRecognition"
 }

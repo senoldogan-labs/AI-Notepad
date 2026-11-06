@@ -10,8 +10,8 @@ import UserNotifications
 private let phoneAppLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "App")
 
 /// iPhone uygulaması (Gistsmith): önce giriş (Apple ya da Google, Mac'teki Gistsmith'le aynı hesap), sonra bir kez yapay
-/// zekâ işleme açıklaması, sonra sekmeler (Kayıt, Toplantılar, Sor, Görevler, Ayarlar). Mac'le aynı çekirdeği ve
-/// görünümü kullanır; toplantılar giriş yapan hesabın bu iPhone'daki klasöründe durur (iCloud eşitlemesi yok).
+/// zekâ işleme açıklaması, sonra tek ana ekran (bugün, geçmiş toplantılar, altta "Bir şey sor" ve kayıt düğmesi; görevler,
+/// arama, ayarlar ve kitaplık bir dokunuş ötede). Mac'le aynı çekirdeği ve görünümü kullanır; toplantılar giriş yapan hesabın bu iPhone'daki klasöründe durur (iCloud eşitlemesi yok).
 @main
 struct AINotepadiOSApp: App {
     /// Abonelik hesabı (giriş, hak durumu, toplantı oturumu); Mac'teki Gistsmith'le ortak.
@@ -79,9 +79,8 @@ struct AINotepadiOSApp: App {
         }
         let calendar: PhoneCalendar = PhoneCalendar()
         let sessions: PhoneSessionHost = PhoneSessionHost(session: makePhoneAccountSession(calendar: calendar))
-        let router: PhoneRouter = PhoneRouter(
-            tab: launchTab(arguments: CommandLine.arguments), meetingsPath: launchMeetingPath(arguments: CommandLine.arguments), askPath: []
-        )
+        let router: PhoneRouter = PhoneRouter(path: launchPath(arguments: CommandLine.arguments))
+        router.isLibraryOpen = launchOpensLibrary(arguments: CommandLine.arguments)
         _sessions = State(initialValue: sessions)
         _router = State(initialValue: router)
         _calendar = State(initialValue: calendar)
@@ -91,7 +90,7 @@ struct AINotepadiOSApp: App {
         AppDependencyManager.shared.add(dependency: router)
         // Toplantı hatırlatmasındaki "Dinlemeye başla" kaydı başlatır (kısayoldaki gibi).
         PhoneNotificationDelegate.onStartRecording = { () -> Void in
-            router.tab = .record
+            router.showHome()
             Task { await sessions.session.recorder.start() }
         }
         // Not hazır, görev günü, haftalık özet ve kayıtsız hafta bildirimleri: dokunma yerini açar, "Tamamlandı" görevi
@@ -99,11 +98,11 @@ struct AINotepadiOSApp: App {
         PhoneNotificationDelegate.onEngagementResponse = { (route: EngagementRoute) async -> Void in
             switch route {
             case .openMeeting(let meetingID):
-                router.open(meetingID: meetingID)
+                router.show(meetingID: meetingID)
             case .openTasks:
-                router.tab = .tasks
+                router.showTasks()
             case .openRecording:
-                router.tab = .record
+                router.showHome()
             case .completeTask(let meetingID, let taskKey):
                 guard account.isAccountDataLoaded else {
                     phoneAppLogger.warning("Bildirimdeki görev işaretlenemedi: hesap verisi yüklü değil, toplantı: \(meetingID, privacy: .public)")
@@ -286,14 +285,12 @@ private struct PhoneAppRoot: View {
             // `--sohbet <kimlik>`: saklanan Sor sohbeti tam ekran açılır (ekran görüntüleri).
             if let conversationID = launchConversationID(arguments: CommandLine.arguments) {
                 ask.open(conversationID: conversationID)
-                router.tab = .ask
-                router.askPath = [.conversation]
+                router.path = [.ask, .askConversation]
             }
             // `--sablon-galerisi [<kimlik>]`: Ayarlar'da şablon galerisi (ve o şablonun önizlemesi) açılır.
-            let templateGalleryPath: [PhoneSettingsRoute] = launchTemplateGalleryPath(arguments: CommandLine.arguments)
+            let templateGalleryPath: [PhoneRoute] = launchTemplateGalleryPath(arguments: CommandLine.arguments)
             if !templateGalleryPath.isEmpty {
-                router.tab = .settings
-                router.settingsPath = templateGalleryPath
+                router.path = templateGalleryPath
             }
             if CommandLine.arguments.contains("--ornek-takvim") {
                 calendar.showSampleMeetings(now: Date())
@@ -316,7 +313,7 @@ private struct PhoneAppRoot: View {
             }
             if let index = CommandLine.arguments.firstIndex(of: "--soru"), CommandLine.arguments.indices.contains(index + 1) {
                 ask.ask(question: CommandLine.arguments[index + 1], meetingIDs: [], recipeTitle: nil)
-                router.askPath = [.conversation]
+                router.path = [.ask, .askConversation]
             }
             #endif
             await recorder.resumeUnfinished()
@@ -538,7 +535,7 @@ final class PhoneSessionHost {
     }
 }
 
-/// Sekmelerin üstündeki tam ekran sunum: ilk açılış karşılaması ya da abonelik ekranı (açılma nedeniyle).
+/// Ana ekranın üstündeki tam ekran sunum: ilk açılış karşılaması ya da abonelik ekranı (açılma nedeniyle).
 enum PhoneRootCover: Identifiable, Equatable {
     case onboarding
     case paywall(HostedUpsellMoment)
@@ -562,113 +559,184 @@ func phoneRootCover(onboardingCompleted: Bool, upsell: HostedUpsellMoment?) -> P
     return upsell.map { PhoneRootCover.paywall($0) }
 }
 
-/// Sekmeler; sıra sekme çubuğundaki sıradır (sekmeler arası kaydırma bu sırayla gider, bkz. `phoneTab(after:)`).
-enum PhoneTab: String, Hashable, CaseIterable {
-    case record = "kayit"
-    case meetings = "toplantilar"
-    case ask = "sor"
-    case tasks = "gorevler"
-    case settings = "ayarlar"
+/// Ana ekrandan açılan sayfalar (tek gezinme yığını; sıra yığındaki sıradır).
+enum PhoneRoute: Hashable {
+    /// Toplantı sayfası (kimliği).
+    case meeting(String)
+    /// Görevlerim.
+    case tasks
+    /// Arama: toplantılarda başlık, not, görev ve kişi adıyla.
+    case search
+    /// Toplantı kitaplığı: süzgeçler, klasörler, seçme, toplu taşıma ve silme (açılan kapsamla).
+    case library(MeetingListScope)
+    /// Kişiler.
+    case people
+    /// Son silinenler.
+    case recentlyDeleted
+    /// Sor: örnek sorular, son sohbetler ve soru alanı.
+    case ask
+    /// Açık Sor sohbeti.
+    case askConversation
+    /// Sor sohbet geçmişi.
+    case askHistory
+    /// Ayarlar.
+    case settings
+    /// Ayarlar › Hesap (kullanım, plan, aboneliği yönet).
+    case account
+    /// Profil: ad, unvan, şirket ve şirket açıklaması.
+    case profile
+    /// Ayarlar › Not şablonu galerisi.
+    case templateGallery
+    /// Galerideki bir şablonun önizlemesi (`GalleryTemplate.id`).
+    case templatePreview(String)
+    /// Ayarlar › Kendi şablonun (adı ve yönergesi).
+    case customTemplate
 }
 
-/// Gezinme durumu: seçili sekme, Toplantılar'da açık toplantı (Sor'daki kaynak, görev ya da mini çalar oraya götürür),
-/// Sor'da açık sohbet ya da geçmiş ve Sor'un sol üstteki geri okunun döneceği sekme.
+/// Gezinme durumu: ana ekranın üstündeki sayfa yığını ve kitaplık sayfası. Uygulama içindeki bağlantılar yığına ekler
+/// (geri, gelinen sayfaya döner); bildirim, kısayol ve canlı etkinlik gibi dışarıdan gelen açılışlar yığını baştan kurar.
 @MainActor
 @Observable
 final class PhoneRouter {
-    var tab: PhoneTab {
-        didSet {
-            if let returnTab = askReturnTarget(previous: oldValue, current: tab) {
-                askReturnTab = returnTab
-            }
-        }
-    }
-    var meetingsPath: [String]
-    var askPath: [AskRoute]
-    /// Ayarlar'da açık sayfa (yalnız başka sekmeden açılanlar; ör. kayıt engelinin "Kullanımı gör"ü hesabı açar).
-    var settingsPath: [PhoneSettingsRoute] = []
-    /// Sor tam ekrandır (sekme çubuğu gizli): sol üstteki geri Sor'a gelinen sekmeye döner.
-    private(set) var askReturnTab: PhoneTab = .record
-    /// Sekmeler arası kaydırma (bkz. `PhoneTabSwipeGesture`): parmakla sürüklenen kök ekranın kayması (nokta).
-    var tabSwipeDrag: CGFloat = 0
-    /// Son kaydırmayla açılan sekme ve girdiği yan; açılan sekme bununla yandan kayarak girer.
-    var tabSwipeEntry: PhoneTabSwipeEntry?
+    var path: [PhoneRoute]
+    /// Ana ekranın sol üstündeki kitaplık sayfası (tüm toplantılar, görevler, kişiler, klasörler, içe aktarma) açık.
+    var isLibraryOpen: Bool = false
 
-    init(tab: PhoneTab, meetingsPath: [String], askPath: [AskRoute]) {
-        self.tab = tab
-        self.meetingsPath = meetingsPath
-        self.askPath = askPath
+    init(path: [PhoneRoute]) {
+        self.path = path
     }
 
-    /// Sor'dan çıkar: Sor'a gelinen sekmeye döner.
-    func leaveAsk() {
-        tab = askReturnTab
+    /// Ana ekran görünüyor (üstünde açık sayfa yok).
+    var isOnHome: Bool {
+        path.isEmpty
     }
 
-    /// Hesap değişince gezinme başa döner: açık toplantı ve sohbet eski hesabındır.
-    func reset() {
-        tab = .record
-        meetingsPath = []
-        askPath = []
-        settingsPath = []
-        askReturnTab = .record
+    /// Sayfayı yığının üstüne açar (uygulama içi bağlantı).
+    func push(route: PhoneRoute) {
+        path.append(route)
     }
 
-    /// Toplantıyı Toplantılar sekmesinde açar.
+    /// Toplantıyı yığının üstünde açar (Sor'daki kaynak, görev, kişi); zaten üstteyse yeniden açılmaz.
     func open(meetingID: String) {
-        tab = .meetings
-        meetingsPath = [meetingID]
+        guard path.last != .meeting(meetingID) else {
+            return
+        }
+        path.append(.meeting(meetingID))
+    }
+
+    /// Toplantıyı ana ekranın üstünde tek sayfa olarak açar (bildirim, mini çalar, işleme bitişi, karşılama).
+    func show(meetingID: String) {
+        isLibraryOpen = false
+        path = [.meeting(meetingID)]
+    }
+
+    /// Görevlerim'i ana ekranın üstünde açar (görev bildirimi).
+    func showTasks() {
+        isLibraryOpen = false
+        path = [.tasks]
     }
 
     /// Ayarlar › Hesap'ı açar (kullanım, plan, aboneliği yönet; Mac'teki `openAccountSettings`).
     func openAccount() {
-        tab = .settings
-        settingsPath = [.account]
+        isLibraryOpen = false
+        path = [.settings, .account]
+    }
+
+    /// Ana ekrana döner: açık sayfalar ve kitaplık kapanır (kayıt başlarken, "Kaydı başlat" bağlantıları).
+    func showHome() {
+        isLibraryOpen = false
+        path = []
+    }
+
+    /// Hesap değişince gezinme başa döner: açık toplantı ve sohbet eski hesabındır.
+    func reset() {
+        showHome()
+    }
+
+    /// Sor sohbetini açar: yığında Sor varsa onun üstünde (geçmiş kapanır), yoksa açık sayfanın üstünde Sor ile birlikte
+    /// (geri önce Sor'a, sonra gelinen sayfaya döner).
+    func openAskConversation() {
+        path = askBase(path: path) + [.askConversation]
+    }
+
+    /// Sor'un ilk sayfasına döner ("Yeni sohbet").
+    func returnToAsk() {
+        path = askBase(path: path)
+    }
+
+    /// Silinen toplantıların açık sayfaları kapanır.
+    func closeMeetings(ids: Set<String>) {
+        path.removeAll { (route: PhoneRoute) -> Bool in
+            if case .meeting(let id) = route {
+                return ids.contains(id)
+            }
+            return false
+        }
     }
 }
 
-/// Ayarlar'ın başka sekmeden açılabilen sayfaları.
-enum PhoneSettingsRoute: Hashable {
-    case account
-    /// Not şablonu galerisi, bir şablonun önizlemesi (`GalleryTemplate.id`) ve kendi şablonunun düzenleyicisi.
-    case templateGallery
-    case templatePreview(id: String)
-    case customTemplate
-}
-
-/// Sekme değişiminde Sor'un geri okunun döneceği sekme: başka bir sekmeden Sor'a geçildiyse o sekme, yoksa nil (değişmez).
-/// Saf fonksiyondur.
-func askReturnTarget(previous: PhoneTab, current: PhoneTab) -> PhoneTab? {
-    current == .ask && previous != .ask ? previous : nil
-}
-
-/// `--sekme kayit|toplantilar|sor|gorevler|ayarlar` başlatma argümanı (görsel kontrol için); yoksa Kayıt. Saf fonksiyondur.
-func launchTab(arguments: [String]) -> PhoneTab {
-    guard let index = arguments.firstIndex(of: "--sekme"), arguments.indices.contains(index + 1),
-          let tab = PhoneTab(rawValue: arguments[index + 1]) else {
-        return .record
+/// Yığının Sor'a kadar olan kısmı (Sor dahil); Sor yoksa yığın ve sonunda Sor. Saf fonksiyondur.
+func askBase(path: [PhoneRoute]) -> [PhoneRoute] {
+    guard let index = path.lastIndex(of: .ask) else {
+        return path + [.ask]
     }
-    return tab
+    return Array(path[...index])
+}
+
+/// Başlatma argümanlarından ilk sayfa yığını (görsel kontrol ve App Store görselleri için; yoksa ana ekran). Saf
+/// fonksiyondur.
+/// - `--sekme kayit|toplantilar|sor|gorevler|ayarlar`: eski sekmeler; kayıt ve toplantılar ana ekrandır.
+/// - `--ekran kitaplik|arama|kisiler|profil`: kitaplık, arama, kişiler ya da profil.
+/// - `--toplanti <kimlik>`: toplantı bunların üstünde açılır.
+func launchPath(arguments: [String]) -> [PhoneRoute] {
+    let base: [PhoneRoute] = launchValue(arguments: arguments, flag: "--sekme").map(launchTabRoutes(tab:))
+        ?? launchValue(arguments: arguments, flag: "--ekran").map(launchScreenRoutes(screen:))
+        ?? []
+    let meeting: [PhoneRoute] = launchValue(arguments: arguments, flag: "--toplanti").map { [PhoneRoute.meeting($0)] } ?? []
+    return base + meeting
+}
+
+/// Bayraktan sonraki değer; bayrak ya da değer yoksa nil. Saf fonksiyondur.
+private func launchValue(arguments: [String], flag: String) -> String? {
+    guard let index = arguments.firstIndex(of: flag), arguments.indices.contains(index + 1) else {
+        return nil
+    }
+    return arguments[index + 1]
+}
+
+/// Eski `--sekme` değerinin yığını (bilinmeyen değer ana ekran). Saf fonksiyondur.
+private func launchTabRoutes(tab: String) -> [PhoneRoute] {
+    switch tab {
+    case "sor": [.ask]
+    case "gorevler": [.tasks]
+    case "ayarlar": [.settings]
+    default: []
+    }
+}
+
+/// `--ekran` değerinin yığını (bilinmeyen değer ana ekran). Saf fonksiyondur.
+private func launchScreenRoutes(screen: String) -> [PhoneRoute] {
+    switch screen {
+    case "kitaplik": [.library(.filter(.all))]
+    case "arama": [.search]
+    case "kisiler": [.people]
+    case "profil": [.settings, .profile]
+    default: []
+    }
 }
 
 /// `--sohbet <kimlik>` başlatma argümanı: saklanan Sor sohbetinin kimliği (görsel kontrol için); yoksa ya da UUID değilse
 /// nil. Saf fonksiyondur.
 func launchConversationID(arguments: [String]) -> UUID? {
-    guard let index = arguments.firstIndex(of: "--sohbet"), arguments.indices.contains(index + 1) else {
-        return nil
-    }
-    return UUID(uuidString: arguments[index + 1])
+    launchValue(arguments: arguments, flag: "--sohbet").flatMap { UUID(uuidString: $0) }
 }
 
-/// `--toplanti <kimlik>` başlatma argümanı toplantıyı doğrudan açar (görsel kontrol için). Saf fonksiyondur.
-func launchMeetingPath(arguments: [String]) -> [String] {
-    guard let index = arguments.firstIndex(of: "--toplanti"), arguments.indices.contains(index + 1) else {
-        return []
-    }
-    return [arguments[index + 1]]
+/// `--ekran klasorler`: kitaplık sayfası açık başlar (görsel kontrol için). Saf fonksiyondur.
+func launchOpensLibrary(arguments: [String]) -> Bool {
+    launchValue(arguments: arguments, flag: "--ekran") == "klasorler"
 }
 
-/// Sekme çubuğu; bir toplantı çalarken sekme çubuğunun üstünde mini çalar.
+/// Ana ekran ve üstündeki sayfalar; tam ekran karşılama ve abonelik ekranı, kayıt ve uygulama yaşam döngüsü.
 struct RootView: View {
     let store: PhoneStore
     let recorder: PhoneRecorder
@@ -685,6 +753,8 @@ struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase: ScenePhase
     /// Uygulama arka plana geçti: öne dönünce yarım kalan işleme sürdürülür.
     @State private var wasInBackground: Bool = false
+    /// İçe aktarma isteği, seçici hatası ve Fotoğraflar kopyası (ana ekran ve kitaplık gösterir).
+    @State private var imports: PhoneImportState = PhoneImportState()
 
     /// Toplantı öncesi brifing (Mac'teki "Brifing"): yeni bir Sor sohbeti açar; arşive aynı kişilerle ya da konuda önceki
     /// görüşmeler, kararlar ve açık görevler sorulur.
@@ -697,8 +767,7 @@ struct RootView: View {
         // Brifing yeni bir konu: önceki sohbet bağlam olmasın (önceki sohbet geçmişte kalır).
         ask.clear()
         ask.ask(question: briefingQuestion(meeting: meeting), meetingIDs: [], recipeTitle: nil)
-        router.askPath = [.conversation]
-        router.tab = .ask
+        router.openAskConversation()
     }
 
     /// Toplantıya tarif uygular (Mac'teki "Tarif"): yeni bir Sor sohbetinde yalnız o toplantıya sorulur.
@@ -709,8 +778,7 @@ struct RootView: View {
         }
         ask.clear()
         ask.ask(question: recipe.prompt, meetingIDs: [meetingID], recipeTitle: recipe.title)
-        router.askPath = [.conversation]
-        router.tab = .ask
+        router.openAskConversation()
     }
 
     /// Deneme bitince (ya da abonelik sona erince) abonelik ekranı bir kez kendiliğinden açılır (bkz.
@@ -728,42 +796,25 @@ struct RootView: View {
     }
 
     var body: some View {
-        // Her sekmenin kök ekranında yatay kaydırma komşu sekmeye geçer (bkz. `PhoneTabSwipeGesture`); sekme içeriği parmakla
-        // kayar, açılan sekme yandan girer.
-        TabView(selection: $router.tab) {
-            Tab("Kayıt", systemImage: "record.circle", value: PhoneTab.record) {
-                RecordTab(recorder: recorder, store: store, router: router, calendar: calendar, onBriefing: startBriefing(meeting:))
-                    .modifier(PhoneTabSwipeTransition(tab: .record, router: router))
-            }
-            Tab("Toplantılar", systemImage: "list.bullet.rectangle", value: PhoneTab.meetings) {
-                MeetingsTab(
-                    store: store, recorder: recorder, router: router, player: player, isRecording: recorder.phase != .idle, recipes: ask.recipes,
-                    onRunRecipe: runRecipe(recipe:meetingID:)
-                )
-                .modifier(PhoneTabSwipeTransition(tab: .meetings, router: router))
-            }
-            Tab("Sor", systemImage: "sparkle.magnifyingglass", value: PhoneTab.ask) {
-                AskTab(ask: ask, store: store, router: router)
-                    .modifier(PhoneTabSwipeTransition(tab: .ask, router: router))
-            }
-            Tab("Görevler", systemImage: "checkmark.circle", value: PhoneTab.tasks) {
-                TasksTab(store: store, router: router)
-                    .modifier(PhoneTabSwipeTransition(tab: .tasks, router: router))
-            }
-            Tab("Ayarlar", systemImage: "gearshape", value: PhoneTab.settings) {
-                PhoneSettingsTab(
-                    store: store, ask: ask, calendar: calendar, account: account,
-                    isMeetingInFlight: !phoneOpenWriters(store: store, recorder: recorder, ask: ask, integrations: integrations).filter { $0 != .syncing }.isEmpty, crashReports: crashReports,
-                    router: router
-                )
-                .modifier(PhoneTabSwipeTransition(tab: .settings, router: router))
-            }
+        // Tek gezinme yığını: kökte ana ekran (kayıtta canlı kayıt), üstünde toplantı, görevler, arama, kitaplık, Sor ve
+        // ayarlar sayfaları.
+        NavigationStack(path: $router.path) {
+            PhoneHomeRoot(recorder: recorder, store: store, router: router, calendar: calendar, player: player, account: account, onBriefing: startBriefing(meeting:))
+                .navigationDestination(for: PhoneRoute.self) { (route: PhoneRoute) in
+                    PhoneDestination(
+                        route: route, store: store, recorder: recorder, ask: ask, router: router, player: player, calendar: calendar,
+                        account: account, crashReports: crashReports,
+                        isMeetingInFlight: !phoneOpenWriters(store: store, recorder: recorder, ask: ask, integrations: integrations).filter { $0 != .syncing }.isEmpty,
+                        onRunRecipe: runRecipe(recipe:meetingID:)
+                    )
+                }
         }
-        // Görev satırları (Kayıt, Toplantılar, Görevler) Anımsatıcılar'a eklemek için arşive buradan ulaşır.
+        // Görev satırları Anımsatıcılar'a eklemek için arşive, toplantı sayfasındaki "Şimdi dene" kaydediciye buradan ulaşır.
         .environment(store)
-        .tabViewBottomAccessory(isEnabled: player.meetingID != nil) {
-            MiniPlayer(player: player, store: store, router: router)
-        }
+        .environment(recorder)
+        .environment(imports)
+        // Ses ya da video içe aktarma (kitaplık ve kayıt düğmesinin menüsü) ve deneysel görüşme kaydı.
+        .modifier(PhoneImportHost(recorder: recorder, state: imports))
         // Tam ekran sunum tektir (iki ayrı `fullScreenCover` aynı anda sunulamaz): önce ilk açılış karşılaması, bitince
         // abonelik ekranı ("Abone ol" — Hesap, kayıt kartı —, deneme bitince bir kez ve sunucu aboneliği isteyince;
         // `HostedAccount.upsell`). Karşılama sürerken istenen abonelik ekranı karşılama bitince açılır.
@@ -787,7 +838,7 @@ struct RootView: View {
                     UserDefaults.standard.removeObject(forKey: onboardingStepKey)
                     // Örnek toplantı denendiyse kullanıcı onun notuna iner.
                     if let sampleMeetingID {
-                        router.open(meetingID: sampleMeetingID)
+                        router.show(meetingID: sampleMeetingID)
                     }
                     onboardingCompleted = true
                 }
@@ -820,9 +871,11 @@ struct RootView: View {
             store.playingMeetingID = id
         }
         .onChange(of: recorder.phase) { (_: RecorderPhase, phase: RecorderPhase) in
-            // Kayıt başlarken çalma durur (mikrofon ve hoparlör aynı oturumu paylaşamaz).
-            if phase == .starting {
+            // Kayıt başlarken çalma durur (mikrofon ve hoparlör aynı oturumu paylaşamaz); açık sayfalar kapanır, canlı kayıt
+            // ana ekranın yerinde görünür (kısayol, bildirim ya da canlı etkinlikle başlatıldıysa da).
+            if phase == .starting || phase == .recording {
                 player.stop()
+                router.showHome()
             }
         }
         .onChange(of: scenePhase, initial: true) { (_: ScenePhase, phase: ScenePhase) in
