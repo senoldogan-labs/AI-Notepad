@@ -135,7 +135,7 @@ func streamUsage(body: Data) -> (input: Int, output: Int) {
 final class MeteredAnthropicProtocol: URLProtocol, @unchecked Sendable {
     static let spend: OSAllocatedUnfairLock<[String: EvalSpend]> = OSAllocatedUnfairLock(initialState: [:])
     private static let forwarder: URLSession = URLSession(configuration: .ephemeral)
-    private var forwarding: Task<Void, Never>?
+    private var forwarding: URLSessionDataTask?
 
     override class func canInit(with request: URLRequest) -> Bool {
         request.url?.host() == "api.anthropic.com"
@@ -152,27 +152,29 @@ final class MeteredAnthropicProtocol: URLProtocol, @unchecked Sendable {
         let forwarded: URLRequest = body
         let model: String = forwarded.httpBody.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }?["model"] as? String ?? "?"
         let sink: ProtocolSink = ProtocolSink(owner: self, client: client)
-        forwarding = Task { await Self.forward(request: forwarded, model: model, sink: sink) }
+        // Tamamlanma bloğu: Xcode 26.6'nın bölge denetimi bu testteki görev kalıbını çözümleyemiyordu.
+        let task: URLSessionDataTask = Self.forwarder.dataTask(with: forwarded) { (data: Data?, response: URLResponse?, error: (any Error)?) -> Void in
+            guard let data, let response else {
+                sink.fail(error: error ?? URLError(.badServerResponse))
+                return
+            }
+            Self.record(model: model, body: data)
+            sink.finish(response: response, data: data)
+        }
+        forwarding = task
+        task.resume()
     }
 
-    /// İsteği gerçek API'ye iletir, harcamayı kaydeder ve sonucu URL yükleme sistemine verir. Ayrı statik fonksiyon:
-    /// CI'daki derleyicinin bölge denetimi, gövdesi görevin içinde olunca kalıbı çözümleyemiyordu.
-    private static func forward(request: URLRequest, model: String, sink: ProtocolSink) async {
-        do {
-            let result: (Data, URLResponse) = try await forwarder.data(for: request)
-            let data: Data = result.0
-            let usage: (input: Int, output: Int) = streamUsage(body: data)
-            let price: (input: Double, output: Double) = evalPrice(model: model, inputTokens: usage.input)
-            spend.withLock { (spend: inout [String: EvalSpend]) -> Void in
-                var current: EvalSpend = spend[model] ?? EvalSpend(inputTokens: 0, outputTokens: 0, dollars: 0)
-                current.inputTokens += usage.input
-                current.outputTokens += usage.output
-                current.dollars += Double(usage.input) * price.input / 1_000_000 + Double(usage.output) * price.output / 1_000_000
-                spend[model] = current
-            }
-            sink.finish(response: result.1, data: data)
-        } catch {
-            sink.fail(error: error)
+    /// Yanıttaki token kullanımını modele göre harcamaya ekler.
+    private static func record(model: String, body: Data) {
+        let usage: (input: Int, output: Int) = streamUsage(body: body)
+        let price: (input: Double, output: Double) = evalPrice(model: model, inputTokens: usage.input)
+        spend.withLock { (spend: inout [String: EvalSpend]) -> Void in
+            var current: EvalSpend = spend[model] ?? EvalSpend(inputTokens: 0, outputTokens: 0, dollars: 0)
+            current.inputTokens += usage.input
+            current.outputTokens += usage.output
+            current.dollars += Double(usage.input) * price.input / 1_000_000 + Double(usage.output) * price.output / 1_000_000
+            spend[model] = current
         }
     }
 
