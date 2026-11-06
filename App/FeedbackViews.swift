@@ -23,7 +23,7 @@ struct FeedbackSettingsRow: View {
     @State private var isOpen: Bool = false
 
     var body: some View {
-        SettingsRow(title: Text("Geri bildirim gönder")) {
+        SettingsRow(icon: "bubble.left.and.text.bubble.right", title: Text("Geri bildirim gönder")) {
             Text("Hata, öneri ya da soru: doğrudan Gistsmith'in geliştiricisine yaz.")
         } control: {
             Button("Yaz…") { isOpen = true }

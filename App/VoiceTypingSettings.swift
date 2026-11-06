@@ -37,51 +37,56 @@ struct VoiceTypingSettings: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SettingsRow(title: Text("Sesle yazma")) {
-                Text(summary)
-            } control: {
-                Toggle("Sesle yazma", isOn: $isEnabled).settingsToggle()
-            }
-            .onChange(of: isEnabled) { (_: Bool, _: Bool) in
-                shortcuts.sync()
-            }
-            SettingsRow(title: Text("Kısayol")) {
-                Text("Basılı tut: konuştuğun sürece dinler, bırakınca yazar. Kısa dokun: eller serbest dinler; bitirmek için yeniden dokun ya da Esc'ye bas.")
-                if let error = shortcuts.errors[.dictate] {
-                    NoticeText(error, severity: .error)
-                } else if let reason = shortcuts.unsetDefaults[.dictate] {
-                    // Varsayılan kısayol çakıştı: menü uyarmaz, kısayol burada seçilir.
-                    NoticeText(String(localized: "Varsayılan kısayol atanmadı: \(reason) Sesle yazmak için bir kısayol seç."), severity: .attention)
+            SettingsGroup(title: Text("Dikte")) {
+                SettingsRow(icon: "waveform.and.mic", title: Text("Sesle yazma")) {
+                    SettingsMoreText(summary: Text("Kısayola basıp konuş; söylediğin, imlecin olduğu yere yazılır."), details: Text(summary))
+                } control: {
+                    Toggle("Sesle yazma", isOn: $isEnabled).settingsToggle()
                 }
-            } control: {
-                ShortcutRecorder(shortcuts: shortcuts, action: .dictate, binding: shortcuts.assignedBinding(action: .dictate))
-                .disabled(!isEnabled)
-            }
-            SettingsRow(title: Text("Erişilebilirlik izni")) {
-                Text("Metni yazdığın yere yapıştırmak (⌘V) için gerekir. \(appName) yalnızca dikte ettiğin metni yapıştırır; tuş vuruşlarını, ekranı ya da diğer uygulamaların içeriğini okumaz. İzin yoksa metin panoya kopyalanır, ⌘V ile kendin yapıştırırsın.")
-                if !isTrusted {
-                    NoticeText("İzin verilmedi: metin yalnızca panoya kopyalanır.", severity: .attention)
+                .onChange(of: isEnabled) { (_: Bool, _: Bool) in
+                    shortcuts.sync()
                 }
-            } control: {
-                if isTrusted {
-                    Label("İzin verildi", systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(.tint)
-                } else {
-                    Button("İzin ver") {
-                        requestAccessibilityPermission()
+                SettingsRow(icon: "keyboard", title: Text("Kısayol")) {
+                    SettingsMoreText(
+                        summary: Text("Basılı tut ya da kısa dokun."),
+                        details: Text("Basılı tut: konuştuğun sürece dinler, bırakınca yazar. Kısa dokun: eller serbest dinler; bitirmek için yeniden dokun ya da Esc'ye bas.")
+                    )
+                    if let error = shortcuts.errors[.dictate] {
+                        NoticeText(error, severity: .error)
+                    } else if let reason = shortcuts.unsetDefaults[.dictate] {
+                        // Varsayılan kısayol çakıştı: menü uyarmaz, kısayol burada seçilir.
+                        NoticeText(String(localized: "Varsayılan kısayol atanmadı: \(reason) Sesle yazmak için bir kısayol seç."), severity: .attention)
+                    }
+                } control: {
+                    ShortcutRecorder(shortcuts: shortcuts, action: .dictate, binding: shortcuts.assignedBinding(action: .dictate))
+                    .disabled(!isEnabled)
+                }
+                SettingsRow(icon: "accessibility", title: Text("Erişilebilirlik izni")) {
+                    SettingsMoreText(
+                        summary: Text("Metni yazdığın yere yapıştırmak (⌘V) için gerekir."),
+                        details: Text("Metni yazdığın yere yapıştırmak (⌘V) için gerekir. \(appName) yalnızca dikte ettiğin metni yapıştırır; tuş vuruşlarını, ekranı ya da diğer uygulamaların içeriğini okumaz. İzin yoksa metin panoya kopyalanır, ⌘V ile kendin yapıştırırsın.")
+                    )
+                    if !isTrusted {
+                        NoticeText("İzin verilmedi: metin yalnızca panoya kopyalanır.", severity: .attention)
+                    }
+                } control: {
+                    if isTrusted {
+                        Label("İzin verildi", systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(.tint)
+                    } else {
+                        Button("İzin ver") {
+                            requestAccessibilityPermission()
+                        }
                     }
                 }
+                SettingsRow(icon: "globe", title: Text("Dil")) {
+                    languageDetail
+                } control: {
+                    EmptyView()
+                }
+            } footer: {
+                Text("Toplantı kaydı sürerken sesle yazma kapalıdır (mikrofon toplantıda). Parola alanlarına yazmaz.")
             }
-            SettingsRow(title: Text("Dil")) {
-                languageDetail
-            } control: {
-                EmptyView()
-            }
-            Text("Toplantı kaydı sürerken sesle yazma kapalıdır (mikrofon toplantıda). Parola alanlarına yazmaz.")
-                .appFont(size: 13, weight: .regular)
-                .foregroundStyle(Theme.muted)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 16)
         }
         .onAppear { isTrusted = isAccessibilityTrusted() }
         // İzin Sistem Ayarları'nda verilip uygulamaya dönülünce durum yenilenir.

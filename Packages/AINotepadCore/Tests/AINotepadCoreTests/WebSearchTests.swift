@@ -94,7 +94,7 @@ import Testing
         #expect(!isWebSearchDisabledError(error: LLMError.http(status: 400, body: "web search is not enabled", model: "m", requestID: nil)))
         #expect(!isWebSearchDisabledError(error: LLMError.empty))
         let request: LLMRequest = archiveAnswerRequest(
-            question: "Fiyat ne?", passages: [], screens: [], history: [], userName: "", now: Date(timeIntervalSince1970: 0), language: .turkish, webSearch: true
+            question: "Fiyat ne?", passages: [], coverage: ArchiveCoverage(read: [], skipped: []), screens: [], history: [], userName: "", now: Date(timeIntervalSince1970: 0), language: .turkish, webSearch: true
         )
         let plain: LLMRequest = withoutWebSearch(request: request)
         #expect(plain.webSearch == nil && plain.system == request.system && plain.userText == request.userText)
@@ -103,7 +103,7 @@ import Testing
     // Kendi anahtarlı Claude: araç doğrudan çağrıyla; abonelik sunucusu: yalnız tür, ad ve arama sayısı. Araçsız istekte alan yok.
     @Test func requestBodiesCarryTheTool() throws {
         let request: LLMRequest = archiveAnswerRequest(
-            question: "Fiyat ne?", passages: [], screens: [], history: [], userName: "", now: Date(timeIntervalSince1970: 0), language: .turkish, webSearch: true
+            question: "Fiyat ne?", passages: [], coverage: ArchiveCoverage(read: [], skipped: []), screens: [], history: [], userName: "", now: Date(timeIntervalSince1970: 0), language: .turkish, webSearch: true
         )
         #expect(request.webSearch == LLMWebSearch(maxUses: 3) && request.system.contains("Web araması"))
         let claude: [String: Any] = try #require(try JSONSerialization.jsonObject(with: claudeRequestBody(request: request, model: .haiku, effort: .medium)) as? [String: Any])
@@ -115,7 +115,7 @@ import Testing
         let hostedTools: [[String: Any]] = try #require(hosted["tools"] as? [[String: Any]])
         #expect(Set(hostedTools[0].keys) == ["type", "name", "max_uses"])
         let plain: LLMRequest = archiveAnswerRequest(
-            question: "Fiyat ne?", passages: [], screens: [], history: [], userName: "", now: Date(timeIntervalSince1970: 0), language: .turkish, webSearch: false
+            question: "Fiyat ne?", passages: [], coverage: ArchiveCoverage(read: [], skipped: []), screens: [], history: [], userName: "", now: Date(timeIntervalSince1970: 0), language: .turkish, webSearch: false
         )
         #expect(plain.webSearch == nil && !plain.system.contains("Web araması"))
         let plainBody: [String: Any] = try #require(try JSONSerialization.jsonObject(with: hostedLLMRequestBody(request: plain, effort: .medium, maxTokensCap: 8192)) as? [String: Any])

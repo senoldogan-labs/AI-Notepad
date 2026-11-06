@@ -51,7 +51,7 @@ public func condensedNoteState(state: ChunkedNoteState, maxChars: Int) -> Chunke
     let share: Int = max(maxChars / state.partSummaries.count, 1)
     return ChunkedNoteState(
         partSummaries: state.partSummaries.map { truncatedAtWord(text: $0, maxChars: share) },
-        decisions: state.decisions, tasks: state.tasks, glossary: state.glossary
+        decisions: state.decisions, tasks: state.tasks, glossary: state.glossary, openQuestions: state.openQuestions
     )
 }
 

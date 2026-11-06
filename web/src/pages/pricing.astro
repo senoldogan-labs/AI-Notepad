@@ -7,9 +7,8 @@
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
 import Faq from "../components/Faq.astro";
-import Film from "../components/Film.astro";
 import Icon from "../components/Icon.astro";
-import Waveform from "../components/Waveform.astro";
+import PhotoPanel from "../components/PhotoPanel.astro";
 import { copy, type CommonCopy, type IconItem, type IconText, type PlanOptionCopy, type PricingCopy } from "../copy";
 import { faqStructuredData, structuredDataJson } from "../lib/structured-data";
 import { recommendedPlan } from "../lib/plans";
@@ -34,22 +33,19 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
   {/* Veri bloğu: Astro işlemez ve paketlemez (`is:inline`), tarayıcı çalıştırmaz; CSP'ye takılmaz. */}
   <script is:inline type="application/ld+json" set:html={structuredData} />
   <section class="page intro">
-    <p class="eyebrow">{common.nav.pricing}</p>
     <h1 class="title-xl">{text.title}</h1>
     <p class="lead">{text.lead}</p>
   </section>
 
   <section class="page" aria-labelledby="plans-title">
     <h2 class="visually-hidden" id="plans-title">{text.plansTitle}</h2>
+    <PhotoPanel photo="midsummer-sunset" focus="center" widths={[480, 720, 960, 1280, 1680, 2400]} sizes="(max-width: 640px) calc(100vw - 40px), min(1240px, 100vw - 80px)" priority="lcp" class="plans-panel">
     <div class="plans">
       {
         text.plans.map((option: PlanOptionCopy) => {
           const featured: boolean = option.plan === recommendedPlan;
           return (
             <article class:list={["plan-option", { "plan-option--featured": featured }]} aria-labelledby={`plan-${option.plan}`}>
-              <Film palette={featured ? "rose" : "ocean"} layout={featured ? "clouds-left" : "streaks"} class="plan-option__cover">
-                <Waveform seed={option.name} width={160} height={40} class="plan-option__wave" />
-              </Film>
               <div class="plan-option__body">
                 <div class="plan-option__head">
                   <h3 class="title-m" id={`plan-${option.plan}`}>{option.name}</h3>
@@ -72,6 +68,7 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
         })
       }
     </div>
+    </PhotoPanel>
     <div class="plans__foot">
       <p class="muted">
         {noteBefore}<a class="text-link" href={routes.invite}>{text.plansInviteLink}</a>{noteAfter}
@@ -92,9 +89,7 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
           {
             text.included.map((item: IconItem) => (
               <li class="included__item">
-                <span class="icon-chip">
-                  <Icon name={item.icon} size={18} class="" />
-                </span>
+                <Icon name={item.icon} size={18} class="included__icon" />
                 <span>{item.text}</span>
               </li>
             ))
@@ -109,10 +104,8 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
     <div class="limits">
       {
         text.limits.map((limit: IconText) => (
-          <div class="card limit reveal">
-            <span class="icon-chip">
-              <Icon name={limit.icon} size={20} class="" />
-            </span>
+          <div class="limit reveal">
+            <Icon name={limit.icon} size={20} class="limit__icon" />
             <h3 class="title-m">{limit.title}</h3>
             <p class="muted">{limit.text}</p>
           </div>
@@ -134,46 +127,49 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
 <style>
   .intro {
     display: grid;
-    gap: 18px;
-    padding-block: clamp(48px, 8vw, 96px) clamp(32px, 5vw, 56px);
+    gap: 20px;
+    padding-block: clamp(56px, 8vw, 104px) clamp(32px, 5vw, 56px);
   }
 
-  /* ---------- Plan kartları ---------- */
+  .intro h1 {
+    max-width: 16ch;
+  }
+
+  /* ---------- Plans, on the lake photograph ---------- */
+
+  .page :global(.plans-panel) {
+    padding: clamp(28px, 6vw, 88px) clamp(14px, 5vw, 72px);
+  }
 
   .plans {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px;
+    gap: clamp(14px, 2vw, 24px);
     max-width: 880px;
+    margin-inline: auto;
   }
 
   .plan-option {
     display: grid;
-    grid-template-rows: auto 1fr;
     border: 1px solid var(--line);
-    border-radius: var(--radius-l);
+    border-radius: var(--radius-m);
     background: var(--card);
-    overflow: hidden;
+    color: var(--ink);
+    box-shadow: var(--shadow-window);
   }
 
-  /* Önerilen plan (yıllık): vurgulu kenar. */
+  /* The recommended plan (yearly): an ink hairline. */
   .plan-option--featured {
     border-color: color-mix(in srgb, var(--ink) 55%, var(--line));
-    box-shadow: var(--elevation);
   }
 
-  .plan-option :global(.plan-option__cover) {
-    display: grid;
-    place-items: center;
-    height: clamp(88px, 10vw, 112px);
-    border-radius: 0;
-  }
-
+  /* The button sits at the bottom of each card, so both plans' buttons line up whatever the detail text's length. */
   .plan-option__body {
-    display: grid;
-    align-content: start;
+    display: flex;
+    flex-direction: column;
     gap: 8px;
-    padding: clamp(22px, 3vw, 32px);
+    height: 100%;
+    padding: clamp(24px, 3vw, 36px);
   }
 
   .plan-option__head {
@@ -188,14 +184,15 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
     display: flex;
     align-items: baseline;
     gap: 8px;
-    margin-top: 8px;
-    font-size: clamp(2.5rem, 5vw, 3.25rem);
-    font-weight: 600;
-    letter-spacing: -0.045em;
+    margin-top: 10px;
+    font-family: var(--serif);
+    font-size: clamp(3rem, 5vw, 4rem);
+    letter-spacing: -0.02em;
     line-height: 1;
   }
 
   .plan-option__per {
+    font-family: var(--font);
     font-size: 1rem;
     font-weight: 500;
     letter-spacing: 0;
@@ -203,7 +200,11 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
   }
 
   .plan-option .button {
-    margin-top: 14px;
+    margin-top: auto;
+  }
+
+  .plan-option .small {
+    margin-bottom: 16px;
   }
 
   .plans__foot {
@@ -211,39 +212,30 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
     justify-items: start;
     gap: 10px;
     max-width: 46rem;
-    margin-top: 24px;
+    margin-top: 28px;
   }
 
-  /* ---------- Neler dahil ---------- */
+  /* ---------- What's included ---------- */
 
   .included-section {
-    margin-top: clamp(48px, 7vw, 88px);
-  }
-
-  .plan {
-    border: 1px solid var(--line);
-    border-radius: var(--radius-l);
-    background: var(--card);
-    overflow: hidden;
+    margin-top: var(--section);
   }
 
   .plan__body {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
     gap: clamp(24px, 5vw, 64px);
-    padding: clamp(24px, 4vw, 48px);
   }
 
   .plan__summary {
     display: grid;
     align-content: start;
-    gap: 12px;
+    gap: 16px;
   }
 
   .included {
     display: grid;
     align-content: start;
-    gap: 14px;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -253,13 +245,23 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
     display: flex;
     align-items: center;
     gap: 14px;
+    padding-block: 14px;
+    border-top: 1px solid var(--line);
     line-height: 1.45;
   }
+
+  .included__item :global(.included__icon),
+  .limit :global(.limit__icon) {
+    flex: none;
+    color: var(--accent);
+  }
+
+  /* ---------- Limits: a calm four-column list under a hairline, no boxes ---------- */
 
   .limits {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 16px;
+    gap: 28px clamp(20px, 3vw, 36px);
     margin-top: clamp(28px, 4vw, 44px);
   }
 
@@ -268,10 +270,8 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
     align-content: start;
     justify-items: start;
     gap: 10px;
-  }
-
-  .limit .icon-chip {
-    margin-bottom: 6px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
   }
 
   .tax {
@@ -281,7 +281,7 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
     margin-top: clamp(40px, 5vw, 64px);
   }
 
-  /* SSS ana sayfadaki gibi: başlık solda, sorular sağda; sayfanın sol kenarıyla hizalı. */
+  /* FAQ as on the home page: title left, questions right. */
   .faq-section {
     display: grid;
     grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
@@ -306,7 +306,7 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
       grid-template-columns: minmax(0, 1fr);
     }
 
-    /* Tek sütunda önerilen plan önce gelir. */
+    /* In one column the recommended plan comes first. */
     .plan-option--featured {
       order: -1;
     }

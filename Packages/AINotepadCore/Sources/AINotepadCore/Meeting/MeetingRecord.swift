@@ -118,11 +118,15 @@ public struct GlossaryEntry: Sendable, Equatable, Codable {
 public struct MeetingNote: Sendable, Equatable, Codable {
     public let title: String
     public let summary: String
+    /// Kararlar ve (transkriptte varsa) gerekçeleri; yeni notlarda başta alındığı an ("[12:34] …", bkz. `anchoredLine`).
     public let decisions: [String]
     public let tasks: [NoteTask]
     public let glossary: [GlossaryEntry]
     /// Konu akışı: toplantının bölümleri, başladıkları anla (eski notlarda nil).
     public private(set) var outline: [OutlineItem]?
+    /// Açık konular: çözülmeyen sorunlar, belirsizlikler ve birinin takip etmesi gerekenler; başta konuşulduğu an
+    /// ("[12:34] …"). Bu bölümden önce yazılan notlarda nil.
+    public private(set) var openQuestions: [String]?
     /// Notun yazıldığı dil (Ayarlar › "Not ve çeviri dili"); dil seçimi gelmeden yazılan eski notlarda nil (bkz.
     /// `writtenLanguage`).
     public private(set) var language: ShareLanguage?
@@ -142,10 +146,27 @@ public struct MeetingNote: Sendable, Equatable, Codable {
         return copy
     }
 
-    /// Başlığı değişmiş kopya (konu akışı ve dil korunur).
+    /// Açık konuları değişmiş kopya.
+    public func with(openQuestions newOpenQuestions: [String]) -> MeetingNote {
+        var copy: MeetingNote = self
+        copy.openQuestions = newOpenQuestions
+        return copy
+    }
+
+    /// Başlığı değişmiş kopya (konu akışı, açık konular ve dil korunur).
     public func with(title newTitle: String) -> MeetingNote {
         var copy: MeetingNote = MeetingNote(title: newTitle, summary: summary, decisions: decisions, tasks: tasks, glossary: glossary)
         copy.outline = outline
+        copy.openQuestions = openQuestions
+        copy.language = language
+        return copy
+    }
+
+    /// Bölümleri (başlık, özet, kararlar, görevler, sözlük) değişmiş kopya; konu akışı, açık konular ve dil korunur.
+    public func with(title newTitle: String, summary newSummary: String, decisions newDecisions: [String], tasks newTasks: [NoteTask], glossary newGlossary: [GlossaryEntry]) -> MeetingNote {
+        var copy: MeetingNote = MeetingNote(title: newTitle, summary: newSummary, decisions: newDecisions, tasks: newTasks, glossary: newGlossary)
+        copy.outline = outline
+        copy.openQuestions = openQuestions
         copy.language = language
         return copy
     }
@@ -196,7 +217,8 @@ public struct MeetingRecord: Sendable, Equatable, Codable, Identifiable {
     public private(set) var failureMessage: String?
     public private(set) var liveSegments: [StoredSegment]
     public private(set) var finalSegments: [StoredSegment]
-    /// Bölüm anahtarı → not dilindeki canlı çevirisi.
+    /// Bölüm anahtarı → not dilindeki çevirisi: canlı bölümlerde canlı çeviri, son geçiş okuma parçalarında
+    /// (`readingPieces`) toplantı sonunda yapılan çeviri (bkz. `translatingTranscript`).
     public private(set) var translations: [String: String]
     /// Kişi numarası → kullanıcının verdiği ad.
     public private(set) var speakerNames: [Int: String]
@@ -253,6 +275,9 @@ public struct MeetingRecord: Sendable, Equatable, Codable, Identifiable {
     /// Karşılamadaki rehberli denemenin örnek toplantısı (bkz. `SampleMeeting.swift`); gerçek toplantılarda nil. Bu
     /// cihaza özgüdür: eşitlenmez, kullanım ve telemetri sayılarına, bildirimlere ve MCP'ye girmez (`realMeetings`).
     public private(set) var isSample: Bool?
+    /// Toplantı sonu çevirisi yapılamayan son geçiş okuma parçalarının anahtarları (bkz. `translatingTranscript`):
+    /// transkriptte "Çeviri yapılamadı · Tekrar dene" görünür. Hepsi çevrildiyse ve eski toplantılarda nil.
+    public private(set) var failedTranslationKeys: [String]?
 
     public init(
         id: String, title: String, startedAt: Date, endedAt: Date?, language: MeetingLanguage?, status: MeetingStatus,
@@ -430,6 +455,13 @@ public struct MeetingRecord: Sendable, Equatable, Codable, Identifiable {
     public func with(translations newTranslations: [String: String]) -> MeetingRecord {
         var copy: MeetingRecord = self
         copy.translations = newTranslations
+        return copy
+    }
+
+    /// Çevrilemeyen parçaları değişmiş kopya (boş liste nil olarak saklanır).
+    public func with(failedTranslationKeys newKeys: [String]) -> MeetingRecord {
+        var copy: MeetingRecord = self
+        copy.failedTranslationKeys = newKeys.isEmpty ? nil : newKeys
         return copy
     }
 

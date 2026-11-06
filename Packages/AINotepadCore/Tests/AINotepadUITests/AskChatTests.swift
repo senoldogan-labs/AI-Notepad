@@ -75,7 +75,7 @@ private func meeting(id: String, title: String) -> MeetingRecord {
         #expect(history.map(\.question) == ["Kahve makinesi ne oldu?", "Bütçe konusu ne?"])
         let terms: LLMRequest = searchTermsRequest(question: "Bu konuyu webde ara", history: history, languages: [.finnish], language: .turkish)
         let answer: LLMRequest = archiveAnswerRequest(
-            question: "Bu konuyu webde ara", passages: [], screens: [], history: history, userName: "", now: Date(timeIntervalSince1970: 0), language: .turkish,
+            question: "Bu konuyu webde ara", passages: [], coverage: ArchiveCoverage(read: [], skipped: []), screens: [], history: history, userName: "", now: Date(timeIntervalSince1970: 0), language: .turkish,
             webSearch: true
         )
         for request in [terms, answer] {

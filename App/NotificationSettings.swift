@@ -14,48 +14,47 @@ struct NotificationSettingsGroup: View {
     private let notifier: EngagementNotifier = .shared
 
     var body: some View {
-        SettingsGroupHeader(title: "Bildirimler")
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Bildirimler kilit ekranında da görünebilir: yalnız toplantı adı, sayılar ve görev metni yazar; konuşma metni ve özet yazmaz.")
-                .appFont(size: 13, weight: .regular)
-                .foregroundStyle(Theme.muted)
-                .fixedSize(horizontal: false, vertical: true)
+        SettingsGroup(title: Text("Bildirimler")) {
             if notifier.authorization == .denied {
-                HStack(spacing: 12) {
+                SettingsRow(icon: "bell.slash", title: Text("Bildirim izni yok")) {
                     NoticeText(notificationMessage(error: NotificationError.denied), severity: .attention)
+                } control: {
                     Button("Sistem Ayarları'nı aç") { openSystemNotificationSettings() }
                 }
             }
+            row(
+                icon: "bell.badge", title: "Not hazır olunca bildir",
+                summary: "Not hazırlanınca bildirir; tıklayınca toplantı açılır.",
+                help: "Toplantının notu hazırlanınca, uygulama öndeyken değilse bildirim gelir: başlık, sana düşen görev ve karar sayısı. Tıklayınca toplantı açılır. Not hazırlanamadıysa bildirim gelmez.",
+                isOn: $noteReady, kind: .noteReady
+            )
+            row(
+                icon: "checklist", title: "Görevin günü gelince hatırlat",
+                summary: "O gün 09:00'da; \"Tamamlandı\" ile işaretlenir.",
+                help: "Sana düşen açık bir görevin notta günü yazıyorsa (tarih, gün adı ya da \"yarın\") o gün saat 09:00'da bildirim gelir. \"Tamamlandı\" görevi uygulamayı açmadan işaretler; tıklayınca toplantı açılır. Belirsiz günler (\"gelecek hafta\") hatırlatılmaz.",
+                isOn: $taskDue, kind: .taskDue
+            )
+            row(
+                icon: "calendar.badge.clock", title: "Haftalık özet",
+                summary: "Pazartesi 09:00'da açık görevler ve toplantı sayısı.",
+                help: "Pazartesi saat 09:00'da açık görev sayın, ilk üç açık görev ve geçen haftanın toplantı sayısı. Açık görev ve toplantı yoksa gelmez. Tıklayınca Görevler açılır.",
+                isOn: $weeklySummary, kind: .weeklySummary
+            )
+            row(
+                icon: "hourglass", title: "Bir hafta kayıt yoksa hatırlat",
+                summary: "Son kayıttan 7 gün sonra 10:00'da bir kez.",
+                help: "Son kayıttan 7 gün sonra saat 10:00'da bir kez, bir sonraki toplantını kaydetmeyi hatırlatır; takvim açıksa o günün toplantısı yazar. Yeni bir kayıtla yeniden kurulur.",
+                isOn: $inactive, kind: .inactive
+            )
+        } footer: {
+            Text("Bildirimler kilit ekranında da görünebilir: yalnız toplantı adı, sayılar ve görev metni yazar; konuşma metni ve özet yazmaz.")
         }
-        .padding(.bottom, 4)
-        row(
-            title: "Not hazır olunca bildir",
-            help: "Toplantının notu hazırlanınca, uygulama öndeyken değilse bildirim gelir: başlık, sana düşen görev ve karar sayısı. Tıklayınca toplantı açılır. Not hazırlanamadıysa bildirim gelmez.",
-            isOn: $noteReady, kind: .noteReady
-        )
-        row(
-            title: "Görevin günü gelince hatırlat",
-            help: "Sana düşen açık bir görevin notta günü yazıyorsa (tarih, gün adı ya da \"yarın\") o gün saat 09:00'da bildirim gelir. \"Tamamlandı\" görevi uygulamayı açmadan işaretler; tıklayınca toplantı açılır. Belirsiz günler (\"gelecek hafta\") hatırlatılmaz.",
-            isOn: $taskDue, kind: .taskDue
-        )
-        row(
-            title: "Haftalık özet",
-            help: "Pazartesi saat 09:00'da açık görev sayın, ilk üç açık görev ve geçen haftanın toplantı sayısı. Açık görev ve toplantı yoksa gelmez. Tıklayınca Görevler açılır.",
-            isOn: $weeklySummary, kind: .weeklySummary
-        )
-        row(
-            title: "Bir hafta kayıt yoksa hatırlat",
-            help: "Son kayıttan 7 gün sonra saat 10:00'da bir kez, bir sonraki toplantını kaydetmeyi hatırlatır; takvim açıksa o günün toplantısı yazar. Yeni bir kayıtla yeniden kurulur.",
-            isOn: $inactive, kind: .inactive
-        )
-        SettingsDivider().opacity(0)
-            .padding(.bottom, 16)
-            .task { await notifier.refreshAuthorization() }
+        .task { await notifier.refreshAuthorization() }
     }
 
-    private func row(title: LocalizedStringKey, help: LocalizedStringKey, isOn: Binding<Bool>, kind: EngagementKind) -> some View {
-        SettingsRow(title: Text(title)) {
-            Text(help)
+    private func row(icon: String, title: LocalizedStringKey, summary: LocalizedStringKey, help: LocalizedStringKey, isOn: Binding<Bool>, kind: EngagementKind) -> some View {
+        SettingsRow(icon: icon, title: Text(title)) {
+            SettingsMoreText(summary: Text(summary), details: Text(help))
         } control: {
             Toggle(title, isOn: isOn)
                 .settingsToggle()

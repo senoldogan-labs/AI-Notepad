@@ -69,21 +69,57 @@ public struct TranslationUnitBuilder: Sendable, Equatable {
     public let closedUntilSec: [Speaker: Double]
     /// Birime girmiş bölümler: ikinci kez birime girmez (aynı bölüm iki kez çevrilmez).
     public let assigned: Set<SegmentID>
+    /// Konuşmacı başına kapanmış birimlere girmiş bölümlerin süreleri (sırayla): geç gelen bölümün sesi bunlarla zaten çevrildiyse
+    /// (yeniden gönderilen ses aynı konuşmayı yeni kimlikle yeniden yazıya döktü) bölüm ikinci kez çevrilmez.
+    public let closedSpans: [Speaker: [TimeSpan]]
 
-    public init(pending: [Speaker: [LiveSegment]], lastFinalAt: [Speaker: Double], closedUntilSec: [Speaker: Double], assigned: Set<SegmentID>) {
+    public init(
+        pending: [Speaker: [LiveSegment]], lastFinalAt: [Speaker: Double], closedUntilSec: [Speaker: Double], assigned: Set<SegmentID>,
+        closedSpans: [Speaker: [TimeSpan]]
+    ) {
         self.pending = pending
         self.lastFinalAt = lastFinalAt
         self.closedUntilSec = closedUntilSec
         self.assigned = assigned
+        self.closedSpans = closedSpans
     }
 
     /// Kayıt başındaki boş durum.
-    public static let empty: TranslationUnitBuilder = TranslationUnitBuilder(pending: [:], lastFinalAt: [:], closedUntilSec: [:], assigned: [])
+    public static let empty: TranslationUnitBuilder = TranslationUnitBuilder(
+        pending: [:], lastFinalAt: [:], closedUntilSec: [:], assigned: [], closedSpans: [:]
+    )
 
     /// Konuşmacının bekleyen bölümleri.
     public func pendingSegments(speaker: Speaker) -> [LiveSegment] {
         pending[speaker] ?? []
     }
+}
+
+/// Bir ses süresi (saniye).
+public struct TimeSpan: Sendable, Equatable {
+    public let startSec: Double
+    public let endSec: Double
+
+    public init(startSec: Double, endSec: Double) {
+        self.startSec = startSec
+        self.endSec = endSec
+    }
+}
+
+/// Geç bölümün en az bu kadarı kapanmış birimlerle örtüşüyorsa aynı konuşmanın yinelenmesi sayılır (çevrilmez); daha
+/// azı Deepgram'ın boş bıraktığı yerin doldurulmasıdır (kendi başına çevrilir).
+let replayedCoverageShare: Double = 0.5
+
+/// Sürenin `spans` ile örtüşen payı (0...1; süresiz bölümde 0). Saf fonksiyondur.
+public func coveredShare(startSec: Double, endSec: Double, spans: [TimeSpan]) -> Double {
+    let duration: Double = endSec - startSec
+    guard duration > 0 else {
+        return 0
+    }
+    let covered: Double = spans.reduce(0) { (sum: Double, span: TimeSpan) -> Double in
+        sum + max(0, min(endSec, span.endSec) - max(startSec, span.startSec))
+    }
+    return min(1, covered / duration)
 }
 
 /// Kurucunun bir adımı: yeni durum ve çevrilmeye hazır birimler (sırayla).
@@ -144,19 +180,30 @@ public func addingFinal(builder: TranslationUnitBuilder, segment: LiveSegment, n
         return TranslationUnitStep(builder: builder, ready: [])
     }
     let speaker: Speaker = segment.id.speaker
-    // Kapanmış birimlerden önce biten geç bölüm (Deepgram'ın boş bıraktığı yerin doldurulması) tek başına çevrilir.
+    // Kapanmış birimlerden önce biten geç bölüm: sesi zaten çevrildiyse (yeniden gönderilen sesin yeni kimlikli kesin
+    // sonucu) yinelenmedir, çevrilmez; yoksa Deepgram'ın boş bıraktığı yerin doldurulmasıdır, tek başına çevrilir.
     if let closedUntil = builder.closedUntilSec[speaker], segment.endSec <= closedUntil {
+        if coveredShare(startSec: segment.startSec, endSec: segment.endSec, spans: builder.closedSpans[speaker] ?? []) >= replayedCoverageShare {
+            return TranslationUnitStep(builder: TranslationUnitBuilder(
+                pending: builder.pending, lastFinalAt: builder.lastFinalAt, closedUntilSec: builder.closedUntilSec,
+                assigned: builder.assigned.union([segment.id]), closedSpans: builder.closedSpans
+            ), ready: [])
+        }
         let unit: TranslationUnit = makeUnit(fragments: [segment])
-        return TranslationUnitStep(builder: closing(builder: builder, speaker: speaker, units: [unit], open: builder.pendingSegments(speaker: speaker)), ready: [unit])
+        return TranslationUnitStep(builder: closing(builder: builder, speaker: speaker, units: [unit], fragments: [segment], open: builder.pendingSegments(speaker: speaker)), ready: [unit])
     }
     let fragments: [LiveSegment] = (builder.pendingSegments(speaker: speaker).filter { $0.id != segment.id } + [segment])
         .sorted { (left: LiveSegment, right: LiveSegment) -> Bool in left.startSec < right.startSec }
     let split: (units: [TranslationUnit], open: [LiveSegment]) = closingUnits(fragments: fragments, limits: limits)
     let touched: TranslationUnitBuilder = TranslationUnitBuilder(
         pending: builder.pending, lastFinalAt: builder.lastFinalAt.merging([speaker: nowSec]) { (_: Double, new: Double) -> Double in new },
-        closedUntilSec: builder.closedUntilSec, assigned: builder.assigned
+        closedUntilSec: builder.closedUntilSec, assigned: builder.assigned, closedSpans: builder.closedSpans
     )
-    return TranslationUnitStep(builder: closing(builder: touched, speaker: speaker, units: split.units, open: split.open), ready: split.units)
+    let closedIDs: Set<SegmentID> = Set(split.units.flatMap(\.segmentIDs))
+    return TranslationUnitStep(
+        builder: closing(builder: touched, speaker: speaker, units: split.units, fragments: fragments.filter { closedIDs.contains($0.id) }, open: split.open),
+        ready: split.units
+    )
 }
 
 /// Konuşmacısından `limits.idleSec` boyunca yeni kesin bölüm gelmeyen bekleyen bölümleri birim yapar (konuşma durdu ya
@@ -183,7 +230,7 @@ private func flushing(builder: TranslationUnitBuilder, speakers: [Speaker]) -> T
             return step
         }
         let unit: TranslationUnit = makeUnit(fragments: fragments)
-        return TranslationUnitStep(builder: closing(builder: step.builder, speaker: speaker, units: [unit], open: []), ready: step.ready + [unit])
+        return TranslationUnitStep(builder: closing(builder: step.builder, speaker: speaker, units: [unit], fragments: fragments, open: []), ready: step.ready + [unit])
     }
 }
 
@@ -215,7 +262,9 @@ private func isComplete(fragments: [LiveSegment], limits: TranslationUnitLimits)
 }
 
 /// Kapanan birimleri duruma işler: bekleyenler `open` olur, birimin bölümleri "birime girdi" sayılır. Saf fonksiyondur.
-private func closing(builder: TranslationUnitBuilder, speaker: Speaker, units: [TranslationUnit], open: [LiveSegment]) -> TranslationUnitBuilder {
+private func closing(
+    builder: TranslationUnitBuilder, speaker: Speaker, units: [TranslationUnit], fragments: [LiveSegment], open: [LiveSegment]
+) -> TranslationUnitBuilder {
     let closedUntil: Double? = (units.map(\.endSec) + [builder.closedUntilSec[speaker]].compactMap { $0 }).max()
     return TranslationUnitBuilder(
         pending: builder.pending.merging([speaker: open]) { (_: [LiveSegment], new: [LiveSegment]) -> [LiveSegment] in new }.filter { !$0.value.isEmpty },
@@ -223,7 +272,12 @@ private func closing(builder: TranslationUnitBuilder, speaker: Speaker, units: [
         closedUntilSec: closedUntil.map { (end: Double) -> [Speaker: Double] in
             builder.closedUntilSec.merging([speaker: end]) { (_: Double, new: Double) -> Double in new }
         } ?? builder.closedUntilSec,
-        assigned: builder.assigned.union(units.flatMap(\.segmentIDs))
+        assigned: builder.assigned.union(units.flatMap(\.segmentIDs)),
+        closedSpans: units.isEmpty ? builder.closedSpans : builder.closedSpans.merging([
+            // Bölümlerin kendi süreleri (birimin başından sonuna değil): birim içindeki sessiz aralığı sonradan dolduran
+            // geç bölüm yineleme sayılmasın.
+            speaker: (builder.closedSpans[speaker] ?? []) + fragments.map { TimeSpan(startSec: $0.startSec, endSec: $0.endSec) },
+        ]) { (_: [TimeSpan], new: [TimeSpan]) -> [TimeSpan] in new }
     )
 }
 

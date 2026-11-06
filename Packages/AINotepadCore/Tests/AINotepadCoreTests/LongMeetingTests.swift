@@ -41,7 +41,7 @@ private func syntheticMeeting(hours: Double) -> [StoredSegment] {
             partSummaries: (0..<chunks.count).map { "[\($0 * 12):00–\($0 * 12 + 12):00] \(summary)" },
             decisions: (0..<60).map { "Päätös numero \($0): budjetti hyväksytään ja aikataulu pidetään." },
             tasks: (0..<150).map { NoteTask(owner: "Aino", description: "Valmistele esitys asiakkaalle numero \($0) ja lähetä se tiimille", dueDate: "2026-11-20", isMine: false) },
-            glossary: []
+            glossary: [], openQuestions: []
         )
         for (index, chunk) in chunks.enumerated() {
             let request: LLMRequest = noteChunkRequest(

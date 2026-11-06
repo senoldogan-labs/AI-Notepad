@@ -1,0 +1,45 @@
+# names: 1=Ayşe, 2=Mehmet, 3=Elif
+# user: Doğan
+# language: tr
+00:04 p1: Herkese günaydın. Bugün üç konumuz var: 2.4 sürümünün çıkış tarihi, ödeme ekranındaki hata ve yük testi bütçesi. Sonra kalan zamanda KVKK metnine bakarız.
+00:18 p2: Günaydın. Ben ödeme hatasıyla ilgili son durumu hazırladım, istersen ondan başlayayım.
+00:24 p1: Önce tarihten gidelim, çünkü diğer her şey ona bağlı. Elif, Android tarafında çökme oranı ne durumda?
+00:33 p3: Son beta sürümünde çökme oranı yüzde 2,1. Bizim çıkış eşiğimiz yüzde 1'in altıydı. Çökmelerin çoğu Android 12 cihazlarda, kamera izni ekranında oluyor.
+00:49 p1: Yüzde 2,1 epey yüksek. iOS tarafı nasıl?
+00:53 p3: iOS'ta yüzde 0,4, orada sorun yok. App Store incelemesine de gönderilebilir durumda.
+01:02 me: O zaman iki platformu ayırabiliriz. iOS'u planlandığı gibi 18 Kasım'da çıkaralım, Android'i bir hafta sonraya, 25 Kasım'a alalım. Kamera izni hatası düzelmeden Android'i çıkarmak, geçen sefer olduğu gibi yorum puanımızı düşürür.
+01:20 p2: Katılıyorum. Geçen sürümde puan 4,6'dan 4,3'e düşmüştü, toparlaması iki ay sürdü.
+01:28 p1: Tamam, karar: iOS 18 Kasım'da çıkıyor, Android 25 Kasım'a erteleniyor. Gerekçe çökme oranının eşiğin iki katından fazla olması. Elif, kamera izni hatasını kim düzeltecek?
+01:42 p3: Ben bakarım. Perşembeye kadar düzeltmeyi beta kanalına koyarım, sonra iki gün çökme oranını izleriz.
+01:52 p1: Süper. Doğan, mağaza açıklamalarını iki platform için ayrı tarihlerle güncelleyebilir misin?
+01:58 me: Olur, cuma gününe kadar güncellerim.
+02:05 p1: Şimdi ödeme hatası. Mehmet?
+02:08 p2: Kartla ödemede yaklaşık her 200 işlemden birinde zaman aşımı alıyoruz. Sağlayıcının 3D Secure yönlendirmesi 30 saniyeyi geçince bizim istemci isteği iptal ediyor. Geçen hafta 1.240 başarısız işlem oldu.
+02:31 p1: Bunun bize maliyeti ne kadar, bir fikrin var mı?
+02:35 p2: Kullanıcıların yarısı tekrar deniyor, ama yarısı vazgeçiyor gibi görünüyor. Ortalama sepet 340 lira, yani kabaca haftada 200 bin lira civarı kayıp olabilir. Ama bu tahmin, kesin değil.
+02:55 me: Zaman aşımını 30 saniyeden 90 saniyeye çıkarmak yeterli mi, yoksa sağlayıcı tarafında da bir sorun mu var?
+03:03 p2: Zaman aşımını 90 saniyeye çıkarmak hatanın çoğunu çözer ama sağlayıcının neden bu kadar yavaş olduğunu bilmiyoruz. Onlara destek kaydı açtım, henüz cevap gelmedi.
+03:18 p1: Tamam, zaman aşımını 90 saniyeye çıkaralım, bu hafta içinde canlıya alalım. Mehmet sen yaparsın, değil mi?
+03:25 p2: Evet, çarşamba akşamına kadar canlıda olur.
+03:30 p1: Sağlayıcının yavaşlığı ise açık kalıyor. Cevap gelmezse sağlayıcıyı değiştirmeyi konuşmamız gerekebilir ama bunu şimdi karara bağlamayalım.
+03:42 me: Sağlayıcı değişikliği gündeme gelirse sözleşmede çıkış maddesi var mı, onu kim biliyor?
+03:48 p1: Bilmiyorum, sözleşmeyi Selin imzalamıştı. Ona sormak lazım ama Selin bu hafta izinde.
+03:56 p2: Ben de bilmiyorum.
+04:00 p1: Neyse, onu not alalım, Selin dönünce bakarız. Üçüncü konu yük testi bütçesi.
+04:08 p2: Kara Cuma için yük testi yapmak istiyoruz. Dış bir firmadan teklif aldık, 18.000 lira. Kendi altyapımızla yaparsak bulut maliyeti 6.500 lira civarı ama iki hafta mühendislik zamanı gidiyor.
+04:28 me: İki hafta mühendislik zamanının maliyeti 18.000'den çok daha fazla. Dış firmayla gidelim derim. Ayrıca onların raporu yatırımcı sunumunda da işimize yarar.
+04:41 p1: Mantıklı. Karar: yük testini dış firmayla 18.000 liraya yapıyoruz. Kim sipariş verecek?
+04:48 me: Ben satın alma formunu doldururum, yarın gönderirim.
+04:53 p1: Teşekkürler. Test tarihi ne zaman olur?
+04:57 p2: Firma 20 Kasım dedi ama kesinleştirmedi. Bizim tarafta 20'si de 21'i de olur.
+05:06 p1: Tamam. Son konu KVKK metni. Elif, hukuktan haber var mı?
+05:12 p3: Hukuk yeni aydınlatma metnini okudu, iki değişiklik istediler: konum verisinin saklama süresini yazmamız ve yurt dışına aktarım için ayrı onay almamız. Saklama süresine ne yazacağımızı bilmiyoruz, ürün tarafının karar vermesi lazım.
+05:34 p1: Konum verisini şu an ne kadar tutuyoruz?
+05:37 p2: Teknik olarak 12 ay tutuyoruz ama bunun bilinçli bir karar olduğunu sanmıyorum, varsayılan ayar öyle kalmış.
+05:46 p1: Bunu bugün karara bağlayamayız. Hem hukuk hem pazarlama görüşü lazım. Gelecek haftaki toplantıya kadar herkes düşünsün.
+05:55 me: Yurt dışına aktarım onayı 2.4 sürümüne yetişmek zorunda mı? Yetişmesi gerekiyorsa iOS tarihi de riske girer.
+06:03 p3: Hukuk bunun için bir tarih vermedi. Sorarım ama şu an bilmiyoruz.
+06:09 p1: Tamam Elif, hukuka bu tarihi sor, cevabı bize yaz. Başka bir şey var mı?
+06:15 p2: Benden yok.
+06:17 me: Benden de yok. Teşekkürler.
+06:19 p1: Herkese teşekkürler, iyi çalışmalar.

@@ -65,7 +65,7 @@ func syncSampleRecord() -> MeetingRecord {
         let content: MeetingSyncContent = MeetingSyncContent(
             schema: 1, language: .finnish, fixedLanguage: nil, engine: .local, meNeedsFinalPass: nil,
             liveSegments: [StoredSegment(key: "me-0", speaker: .me, person: nil, startSec: 1.5, endSec: 2, text: "Hei / moi", words: nil)],
-            finalSegments: [], translations: ["me-0": "Hi"]
+            finalSegments: [], translations: ["me-0": "Hi"], failedTranslationKeys: nil
         )
         let json: String = String(decoding: try canonicalSyncJSON(value: content), as: UTF8.self)
         #expect(json == #"{"engine":"local","finalSegments":[],"language":"fi","liveSegments":[{"endSec":2,"key":"me-0","speaker":"me","startSec":1.5,"text":"Hei / moi"}],"schema":1,"translations":{"me-0":"Hi"}}"#)

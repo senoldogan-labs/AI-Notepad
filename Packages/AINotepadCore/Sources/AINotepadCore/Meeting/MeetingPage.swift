@@ -32,6 +32,9 @@ public func meetingHTML(record: MeetingRecord, note: MeetingNote, language: Shar
     if !note.decisions.isEmpty {
         sections += ["<h2>\(htmlEscaped(headings.decisions))</h2>", "<ul>"] + note.decisions.map { "<li>\(htmlEscaped($0))</li>" } + ["</ul>"]
     }
+    if let questions = note.openQuestions, !questions.isEmpty {
+        sections += ["<h2>\(htmlEscaped(headings.openQuestions))</h2>", "<ul>"] + questions.map { "<li>\(htmlEscaped($0))</li>" } + ["</ul>"]
+    }
     if !note.tasks.isEmpty {
         sections += ["<h2>\(htmlEscaped(headings.tasks))</h2>", "<ul class=\"tasks\">"]
             + note.tasks.map { (task: NoteTask) -> String in

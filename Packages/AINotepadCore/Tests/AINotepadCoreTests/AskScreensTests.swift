@@ -80,10 +80,10 @@ import Testing
     @Test func answerRequestCarriesScreensOnlyWhenGiven() {
         let image: LLMImage = LLMImage(label: "Ekran 1 · \"m\" [00:00–01:00]", jpeg: Data([0xFF, 0xD8]))
         let with: LLMRequest = archiveAnswerRequest(
-            question: "Slaytta ne vardı?", passages: [], screens: [image], history: [], userName: "", now: Date(timeIntervalSince1970: 0), language: .turkish, webSearch: false
+            question: "Slaytta ne vardı?", passages: [], coverage: ArchiveCoverage(read: [], skipped: []), screens: [image], history: [], userName: "", now: Date(timeIntervalSince1970: 0), language: .turkish, webSearch: false
         )
         let without: LLMRequest = archiveAnswerRequest(
-            question: "Slaytta ne vardı?", passages: [], screens: [], history: [], userName: "", now: Date(timeIntervalSince1970: 0), language: .turkish, webSearch: false
+            question: "Slaytta ne vardı?", passages: [], coverage: ArchiveCoverage(read: [], skipped: []), screens: [], history: [], userName: "", now: Date(timeIntervalSince1970: 0), language: .turkish, webSearch: false
         )
         #expect(with.images == [image] && with.purpose == .askAnswer && with.system.contains("ekranın birkaç görüntüsü"))
         #expect(without.images.isEmpty && !without.system.contains("ekranın birkaç görüntüsü"))

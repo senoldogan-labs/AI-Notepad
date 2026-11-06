@@ -7,7 +7,10 @@ https://api.gistsmith.com) tarayıcıdan konuşur.
 
 **Yığın:** Astro (durağan çıktı) ve katı TypeScript. Sayfalar derlemede HTML olur; tarayıcıya yalnızca küçük betikler
 gider. Satır içi betik ve stil yoktur (CSP `'unsafe-inline'` istemez). Reklam ya da izleme betiği ve CDN yazı tipi
-yoktur; Inter uygulamanın dosyasından (`../App/Fonts`) küçültülüp sunulur. Ziyaret istatistiği yalnızca Cloudflare Web
+yoktur; Inter uygulamanın dosyasından (`../App/Fonts`) küçültülüp sunulur. Headings use Newsreader (SIL OFL 1.1), one static
+cut made by `scripts/subset-serif.sh` (`public/fonts/`). The design language (type, colours, photo grade, page templates)
+is described in `../docs/superpowers/specs/2026-11-05-site-design-language.md`; photographs and their licences are in
+`src/assets/photos/` (`CREDITS.md`). Ziyaret istatistiği yalnızca Cloudflare Web
 Analytics'tir: Cloudflare panelinde Pages projesi (`ainotepad`) için açılır ve işaretçi betiğini Cloudflare her sayfaya
 kendisi ekler (repoda kodu yoktur). Çerez ya da tarayıcı depolaması kullanmaz, kişisel veri ya da parmak izi toplamaz;
 yalnızca toplu sayfa görüntüleme, yönlendiren site, ülke ve cihaz türü sayar. Gizlilik politikasında anlatılır.
@@ -65,7 +68,7 @@ ihlali varsa çıkış kodu 1'dir. Hesap ve yönetim sayfaları için sekmeye ö
 betikteki örnek verilerle karşılanır (yalnızca görünüm denetimi; sunucu akışı sunucunun testlerindedir).
 
 Yalnızca kaynak değişince elle çalıştırılanlar (çıktıları repodadır): `scripts/subset-font.sh` (yazı tipi),
-`node scripts/make-grain.ts <chrome>` (film greni, `scripts/grain.svg`'den), `node scripts/make-og.ts <site> <chrome>`
+`node scripts/make-grain.ts <chrome>` (film greni `public/grain.webp` ve `.png`, `scripts/grain.svg`'den), `node scripts/make-og.ts <site> <chrome>`
 (paylaşım kartı `public/og.png`, site sunulurken; ürün adını `productName`'den alır).
 
 **Paylaşım görselleri.** Chrome'un 1200×630 ekran görüntüsü gren yüzünden ~1,1 MB'tır; bazı önizleyiciler (ör. WhatsApp)

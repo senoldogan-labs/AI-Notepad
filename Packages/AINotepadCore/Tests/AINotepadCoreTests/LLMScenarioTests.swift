@@ -233,29 +233,32 @@ struct LLMScenarioTests {
         let state: ChunkedNoteState = ChunkedNoteState(
             partSummaries: ["[00:00–10:00] Giriş."], decisions: ["A"],
             tasks: [NoteTask(owner: "Sen", description: "Rapor", dueDate: "Cuma", isMine: true), NoteTask(owner: "Aino", description: "Slayt", dueDate: nil, isMine: false)],
-            glossary: [GlossaryEntry(term: "raportti", meaning: "rapor")]
+            glossary: [GlossaryEntry(term: "raportti", meaning: "rapor")], openQuestions: ["[05:00] Bütçe onayı kimde?", "[07:00] Slayt şablonu belli değil."]
         )
         let chunk: NoteChunk = NoteChunk(
             summary: "Erteleme.", decisions: ["B"],
             newTasks: [NoteTask(owner: "Mikko", description: "Bütçe", dueDate: nil, isMine: false)],
             changedTasks: [TaskChange(number: 1, description: "Rapor", dueDate: "Pazartesi", isCancelled: false), TaskChange(number: 2, description: "", dueDate: nil, isCancelled: true), TaskChange(number: 9, description: "yok", dueDate: nil, isCancelled: true)],
-            glossary: [GlossaryEntry(term: "Raportti", meaning: "rapor"), GlossaryEntry(term: "budjetti", meaning: "bütçe")]
+            glossary: [GlossaryEntry(term: "Raportti", meaning: "rapor"), GlossaryEntry(term: "budjetti", meaning: "bütçe")],
+            openQuestions: ["[12:00] Q3 hedefi belirsiz."], resolvedQuestions: [1, 9]
         )
         let next: ChunkedNoteState = applyNoteChunk(state: state, chunk: chunk, startSec: 600, endSec: 1200)
         #expect(next.tasks == [NoteTask(owner: "Sen", description: "Rapor", dueDate: "Pazartesi", isMine: true), NoteTask(owner: "Mikko", description: "Bütçe", dueDate: nil, isMine: false)])
         #expect(next.decisions == ["A", "B"])
         #expect(next.glossary.map(\.term) == ["raportti", "budjetti"])
         #expect(next.partSummaries.last == "[10:00–20:00] Erteleme.")
+        // Çözülen açık konu düşer (listede olmayan numara yok sayılır), yeni açık konu sona eklenir.
+        #expect(next.openQuestions == ["[07:00] Slayt şablonu belli değil.", "[12:00] Q3 hedefi belirsiz."])
         // Yalnızca kapsam değişti (tarih boş): eski tarih kalır; yalnızca tarih değişti (açıklama boş): eski açıklama kalır.
         let widened: ChunkedNoteState = applyNoteChunk(
             state: next,
-            chunk: NoteChunk(summary: "Kapsam.", decisions: [], newTasks: [], changedTasks: [TaskChange(number: 1, description: "Rapor + Q3", dueDate: nil, isCancelled: false)], glossary: []),
+            chunk: NoteChunk(summary: "Kapsam.", decisions: [], newTasks: [], changedTasks: [TaskChange(number: 1, description: "Rapor + Q3", dueDate: nil, isCancelled: false)], glossary: [], openQuestions: [], resolvedQuestions: []),
             startSec: 1200, endSec: 1800
         )
         #expect(widened.tasks.first == NoteTask(owner: "Sen", description: "Rapor + Q3", dueDate: "Pazartesi", isMine: true))
         let moved: ChunkedNoteState = applyNoteChunk(
             state: widened,
-            chunk: NoteChunk(summary: "Tarih.", decisions: [], newTasks: [], changedTasks: [TaskChange(number: 1, description: " ", dueDate: "Salı", isCancelled: false)], glossary: []),
+            chunk: NoteChunk(summary: "Tarih.", decisions: [], newTasks: [], changedTasks: [TaskChange(number: 1, description: " ", dueDate: "Salı", isCancelled: false)], glossary: [], openQuestions: [], resolvedQuestions: []),
             startSec: 1800, endSec: 2400
         )
         #expect(moved.tasks.first == NoteTask(owner: "Sen", description: "Rapor + Q3", dueDate: "Salı", isMine: true))

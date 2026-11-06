@@ -115,27 +115,35 @@ struct HostedAccountSettings: View {
             case .loading:
                 ProgressView().controlSize(.small).padding(.vertical, 16)
             case .unavailable(let message):
-                SettingsRow(title: Text("Hesap kullanılamıyor")) {
-                    NoticeText(message as String, severity: .error)
-                } control: {
-                    EmptyView()
+                SettingsCard {
+                    SettingsRow(icon: "exclamationmark.triangle", title: Text("Hesap kullanılamıyor")) {
+                        NoticeText(message as String, severity: .error)
+                    } control: {
+                        EmptyView()
+                    }
                 }
+                .padding(.top, 26)
             case .signedOut:
                 HostedSignInPanel(account: account)
-                    .padding(.vertical, 16)
+                    .padding(.top, 26)
+                    .padding(.bottom, 16)
             case .signedIn(let entitlements):
                 signedIn(entitlements: entitlements)
             case .signedInStatusUnknown(let message):
-                SettingsRow(title: Text("Plan")) {
-                    Text("Giriş yapıldı; hesap durumu şu an okunamıyor. Bağlantı gelince kendiliğinden yenilenir.")
-                    NoticeText(message as String, severity: .attention)
-                } control: {
-                    Button("Yeniden dene") { Task { await account.refresh() } }
-                        .disabled(account.isWorking)
+                SettingsGroup(title: Text("Abonelik")) {
+                    SettingsRow(icon: "creditcard", title: Text("Plan")) {
+                        Text("Giriş yapıldı; hesap durumu şu an okunamıyor. Bağlantı gelince kendiliğinden yenilenir.")
+                        NoticeText(message as String, severity: .attention)
+                    } control: {
+                        Button("Yeniden dene") { Task { await account.refresh() } }
+                            .disabled(account.isWorking)
+                    }
                 }
-                HostedSignOutRow(account: account, isMeetingInFlight: isMeetingInFlight)
-                HostedAccountError(account: account)
-                    .padding(.top, 12)
+                SettingsGroup(title: Text("Hesap")) {
+                    HostedSignOutRow(account: account, isMeetingInFlight: isMeetingInFlight)
+                } footer: {
+                    HostedAccountError(account: account)
+                }
             }
         }
         .task {
@@ -149,91 +157,98 @@ struct HostedAccountSettings: View {
         let status: HostedPlanStatus = hostedPlanStatus(entitlements: entitlements)
         // iPhone'dan (App Store) alınan abonelik yalnızca Apple'da yönetilir: Stripe portalı ve kart güncelleme yok.
         let appStoreManaged: Bool = isHostedAppStoreManaged(entitlements: entitlements)
-        SettingsRow(title: Text("Plan")) {
-            // Erişimi olan aboneliğin planı (aylık ya da yıllık); bitmiş abonelikte ve ücretsiz erişimde gösterilmez.
-            if let subscription = entitlements.subscription, subscription.access != .none, !subscription.complimentary, let plan = subscription.billingPlan {
-                Text(verbatim: hostedPlanLineText(plan: plan))
-                    .foregroundStyle(Theme.ink)
-            }
-            switch status {
-            case .trial:
-                // Kalan toplantılar, bitiş ve "Abone ol" aşağıdaki kullanım kartında.
-                Text("Ücretsiz deneme")
-            case .subscribed(let renewsAt):
-                Text("Abonelik etkin; dönem \(hostedDayText(date: renewsAt)) tarihinde yenilenir.")
-            case .complimentary:
-                // Bitiş tarihli ücretsiz erişimde (sunucu bitişi `cancelAt`'e yazar) erişim o gün kendiliğinden biter: tarih
-                // önceden görünür.
-                if let until = entitlements.subscription?.cancelAt {
-                    Text("Ücretsiz tam erişim: ödeme yok; \(hostedDayText(date: until)) tarihine kadar.")
-                        .foregroundStyle(Theme.ink)
-                } else {
-                    Text("Ücretsiz tam erişim: ödeme ve yenileme yok.")
+        SettingsGroup(title: Text("Abonelik")) {
+            SettingsRow(icon: "creditcard", title: Text("Plan")) {
+                // Erişimi olan aboneliğin planı (aylık ya da yıllık); bitmiş abonelikte ve ücretsiz erişimde gösterilmez.
+                if let subscription = entitlements.subscription, subscription.access != .none, !subscription.complimentary, let plan = subscription.billingPlan {
+                    Text(verbatim: hostedPlanLineText(plan: plan))
                         .foregroundStyle(Theme.ink)
                 }
-            case .ending(let endsAt):
-                Text("Abonelik iptal edildi; \(hostedDayText(date: endsAt)) tarihine kadar kullanabilirsin, yenilenmez.")
-            case .grace(let endsAt):
-                if appStoreManaged {
-                    NoticeText("Apple ödemeyi alamadı; erişimin \(hostedDayText(date: endsAt)) tarihine kadar sürer. iPhone'da Ayarlar › Apple Hesabı'ndan ödeme yöntemini güncelle.", severity: .attention)
-                } else {
-                    NoticeText("Ödeme alınamadı; erişimin \(hostedDayText(date: endsAt)) tarihine kadar sürer. \"Hesabı yönet\"ten kartını güncelle.", severity: .attention)
-                }
-            case .expired(let endedAt):
-                Text("Aboneliğin \(hostedDayText(date: endedAt)) tarihinde sona erdi; toplantıların ve notların bu Mac'te.")
-            case .paymentOverdue:
-                NoticeText("Ödeme alınamadı; kartını güncelleyene dek yeni toplantı başlatılamaz. \"Hesabı yönet\"ten kartını güncelle.", severity: .attention)
-            }
-            if appStoreManaged {
-                Text("Aboneliğin iPhone'dan (App Store) alındı. iPhone'da Ayarlar › Apple Hesabı › Abonelikler'den yönetebilir ya da iptal edebilirsin.")
-                    .foregroundStyle(Theme.muted)
-            }
-        } control: {
-            HStack(spacing: 8) {
-                // Ücretsiz erişimde ve App Store aboneliğinde Stripe'ta yönetilecek bir şey yoktur.
-                if let subscription = entitlements.subscription, !subscription.complimentary, !appStoreManaged {
-                    Button("Hesabı yönet") { Task { await account.manageSubscription() } }
-                        .disabled(account.isWorking)
-                }
-            }
-        }
-        HostedUsageCard(account: account, entitlements: entitlements)
-        switch status {
-        case .subscribed, .complimentary, .ending, .grace:
-            HostedReferralRow(account: account)
-        case .trial, .expired, .paymentOverdue:
-            EmptyView()
-        }
-        HostedSignOutRow(account: account, isMeetingInFlight: isMeetingInFlight)
-        HostedDeletedMeetingsRow(deleted: .shared, onMove: onMoveDeletedMeetings)
-        SettingsRow(title: Text("Hesabı sil")) {
-            Text("Hesabın, aboneliğin (hemen iptal edilir) ve sunucudaki tüm kayıtların silinir. Bu Mac'teki toplantılar ve notlar silinmez; bu Mac'te yeniden hesap açarsan yeni hesabına taşıyabilirsin.")
-            // Apple aboneliği hesapla birlikte iptal edilemez; Apple iptal edilene dek ücret almaya devam eder.
-            if entitlements.appStoreSubscription?.willRenew == true {
-                NoticeText("App Store aboneliğin hesabı silince iptal olmaz; Apple ücret almaya devam eder. Önce iPhone'da Ayarlar › Apple Hesabı › Abonelikler'den iptal et.", severity: .attention)
-            }
-            if isMeetingInFlight {
-                NoticeText("Kayıt ya da işleme sürüyor; bitince hesabı silebilirsin.", severity: .attention)
-            } else if confirmingDelete {
-                NoticeText("Emin misin? Bu işlem geri alınamaz.", severity: .error)
-            }
-        } control: {
-            HStack(spacing: 8) {
-                if confirmingDelete {
-                    Button("Vazgeç") { confirmingDelete = false }
-                    Button("Hesabı kalıcı olarak sil", role: .destructive) {
-                        confirmingDelete = false
-                        Task { await account.deleteAccount() }
+                switch status {
+                case .trial:
+                    // Kalan toplantılar, bitiş ve "Abone ol" aşağıdaki kullanım kartında.
+                    Text("Ücretsiz deneme")
+                case .subscribed(let renewsAt):
+                    Text("Abonelik etkin; dönem \(hostedDayText(date: renewsAt)) tarihinde yenilenir.")
+                case .complimentary:
+                    // Bitiş tarihli ücretsiz erişimde (sunucu bitişi `cancelAt`'e yazar) erişim o gün kendiliğinden biter: tarih
+                    // önceden görünür.
+                    if let until = entitlements.subscription?.cancelAt {
+                        Text("Ücretsiz tam erişim: ödeme yok; \(hostedDayText(date: until)) tarihine kadar.")
+                            .foregroundStyle(Theme.ink)
+                    } else {
+                        Text("Ücretsiz tam erişim: ödeme ve yenileme yok.")
+                            .foregroundStyle(Theme.ink)
                     }
-                    .disabled(account.isWorking || isMeetingInFlight)
-                } else {
-                    Button("Hesabı sil…", role: .destructive) { confirmingDelete = true }
-                        .disabled(account.isWorking || isMeetingInFlight)
+                case .ending(let endsAt):
+                    Text("Abonelik iptal edildi; \(hostedDayText(date: endsAt)) tarihine kadar kullanabilirsin, yenilenmez.")
+                case .grace(let endsAt):
+                    if appStoreManaged {
+                        NoticeText("Apple ödemeyi alamadı; erişimin \(hostedDayText(date: endsAt)) tarihine kadar sürer. iPhone'da Ayarlar › Apple Hesabı'ndan ödeme yöntemini güncelle.", severity: .attention)
+                    } else {
+                        NoticeText("Ödeme alınamadı; erişimin \(hostedDayText(date: endsAt)) tarihine kadar sürer. \"Hesabı yönet\"ten kartını güncelle.", severity: .attention)
+                    }
+                case .expired(let endedAt):
+                    Text("Aboneliğin \(hostedDayText(date: endedAt)) tarihinde sona erdi; toplantıların ve notların bu Mac'te.")
+                case .paymentOverdue:
+                    NoticeText("Ödeme alınamadı; kartını güncelleyene dek yeni toplantı başlatılamaz. \"Hesabı yönet\"ten kartını güncelle.", severity: .attention)
+                }
+                if appStoreManaged {
+                    Text("Aboneliğin iPhone'dan (App Store) alındı. iPhone'da Ayarlar › Apple Hesabı › Abonelikler'den yönetebilir ya da iptal edebilirsin.")
+                        .foregroundStyle(Theme.muted)
+                }
+            } control: {
+                HStack(spacing: 8) {
+                    // Ücretsiz erişimde ve App Store aboneliğinde Stripe'ta yönetilecek bir şey yoktur.
+                    if let subscription = entitlements.subscription, !subscription.complimentary, !appStoreManaged {
+                        Button("Hesabı yönet") { Task { await account.manageSubscription() } }
+                            .disabled(account.isWorking)
+                    }
                 }
             }
+            HostedUsageCard(account: account, entitlements: entitlements)
+            switch status {
+            case .subscribed, .complimentary, .ending, .grace:
+                HostedReferralRow(account: account)
+            case .trial, .expired, .paymentOverdue:
+                EmptyView()
+            }
         }
-        HostedAccountError(account: account)
-            .padding(.top, 12)
+        SettingsGroup(title: Text("Hesap")) {
+            HostedSignOutRow(account: account, isMeetingInFlight: isMeetingInFlight)
+            HostedDeletedMeetingsRow(deleted: .shared, onMove: onMoveDeletedMeetings)
+            SettingsRow(icon: "trash", title: Text("Hesabı sil")) {
+                SettingsMoreText(
+                    summary: Text("Hesabın, aboneliğin ve sunucudaki kayıtların silinir; bu Mac'teki notlar kalır."),
+                    details: Text("Hesabın, aboneliğin (hemen iptal edilir) ve sunucudaki tüm kayıtların silinir. Bu Mac'teki toplantılar ve notlar silinmez; bu Mac'te yeniden hesap açarsan yeni hesabına taşıyabilirsin.")
+                )
+                // Apple aboneliği hesapla birlikte iptal edilemez; Apple iptal edilene dek ücret almaya devam eder.
+                if entitlements.appStoreSubscription?.willRenew == true {
+                    NoticeText("App Store aboneliğin hesabı silince iptal olmaz; Apple ücret almaya devam eder. Önce iPhone'da Ayarlar › Apple Hesabı › Abonelikler'den iptal et.", severity: .attention)
+                }
+                if isMeetingInFlight {
+                    NoticeText("Kayıt ya da işleme sürüyor; bitince hesabı silebilirsin.", severity: .attention)
+                } else if confirmingDelete {
+                    NoticeText("Emin misin? Bu işlem geri alınamaz.", severity: .error)
+                }
+            } control: {
+                HStack(spacing: 8) {
+                    if confirmingDelete {
+                        Button("Vazgeç") { confirmingDelete = false }
+                        Button("Hesabı kalıcı olarak sil", role: .destructive) {
+                            confirmingDelete = false
+                            Task { await account.deleteAccount() }
+                        }
+                        .disabled(account.isWorking || isMeetingInFlight)
+                    } else {
+                        Button("Hesabı sil…", role: .destructive) { confirmingDelete = true }
+                            .disabled(account.isWorking || isMeetingInFlight)
+                    }
+                }
+            }
+        } footer: {
+            HostedAccountError(account: account)
+        }
     }
 }
 
@@ -243,7 +258,7 @@ private struct HostedSignOutRow: View {
     let isMeetingInFlight: Bool
 
     var body: some View {
-        SettingsRow(title: Text("Oturum")) {
+        SettingsRow(icon: "rectangle.portrait.and.arrow.right", title: Text("Oturum")) {
             Text("Bu Mac'teki oturumu kapatır; toplantıların ve notların bu Mac'te kalır.")
             if isMeetingInFlight {
                 NoticeText("Kayıt ya da işleme sürüyor; bitince çıkış yapabilirsin.", severity: .attention)
