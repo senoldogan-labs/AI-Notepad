@@ -74,7 +74,7 @@ türetmeler dosyadaki açıklamalarda). Bu sürümle gelenler:
 | `DEVICECHECK_ENVIRONMENT` | `production` (`api.devicecheck.apple.com`) ya da `development` (`api.development.devicecheck.apple.com`); üretimde `required` iken `production` olmalı. |
 | `DEEPGRAM_POLICY` | Deepgram canlı metni için tek anahtar: `on` (üretim) ya da `off` (yerel, testler, acil kapatma: jeton verilmez, `/v1/me` → `liveEngine: "whisperkit"`, uygulama canlı metni Mac'te üretir). Ayrıntı: aşağıda "Deepgram canlı metni". |
 | `DEEPGRAM_BUDGET_USD`, `DEEPGRAM_USD_PER_MINUTE` | Ücretsiz Deepgram kredisinin canlı metne ayrılan ömür boyu bütçesi (üretim 185; kredinin kalanı payı) ve akış dakikası fiyatı (Nova-3 çok dilli liste fiyatı 0,0092; temkinli). `GET /v1/admin/stats` → `deepgram: {policy, budgetUsd, estimatedUsd, percent, streamMinutes, meetings, openMeetings, usdPerMinute}`. |
-| `GITHUB_BLOG_REPO`, `GITHUB_BLOG_BRANCH` | Blog yazılarının deposu (`sahip/ad`, `senoldogann/AI-Notepad`) ve yazıların commit'lendiği dal (`main`); yazılar `web/src/content/blog/*.md`. Ayrıntı: aşağıda "Blog yayını". |
+| `GITHUB_BLOG_REPO`, `GITHUB_BLOG_BRANCH` | Blog yazılarının deposu (`sahip/ad`, `senoldogan-labs/AI-Notepad`) ve yazıların commit'lendiği dal (`main`); yazılar `web/src/content/blog/*.md`. Ayrıntı: aşağıda "Blog yayını". |
 | `APPLE_TEAM_ID`, `APPLE_SIGNIN_CLIENT_ID` | Apple ekip kimliği (`79DZ4AA4DW`; istemci sırrının `iss`'i) ve sitenin Apple ile giriş Services ID'si (`com.senoldogan.AINotepad.web`; `APPLE_CLIENT_IDS` içinde olmalı): yetkilendirme kodu bu istemciyle takas edilir. Aşağıda "Apple ile giriş jetonunun iptali". |
 | `DEVICECHECK_TEAM_ID`, `DEVICECHECK_KEY_ID` | Yetki JWT'sinin `iss`'i (Apple ekip kimliği) ve `kid`'i (DeviceCheck anahtar kimliği); `required` iken 10 karakterlik Apple biçiminde olmalı (yer tutucu `DEVICECHECK_KEY_ID_PENDING` geçmez). |
 
@@ -295,7 +295,7 @@ alt istek sınırına takılırdı). Her kayıt `GITHUB_BLOG_BRANCH` dalına bir
   loglanmaz. Kayıt, silme ve görsel yükleme kullanıcı başına dakikada 10'dur (`START_USER_LIMITER`, doğrulamadan sonra).
   Başarılı yazımlar `blog_post_saved` / `blog_post_deleted` (silinen görsel sayısıyla) / `blog_image_saved` loglanır.
 - **Jeton:** GitHub → Settings → Developer settings → Fine-grained personal access tokens → yalnızca
-  `senoldogann/AI-Notepad` deposu, "Repository permissions › Contents: Read and write" (Metadata: Read kendiliğinden gelir);
+  `senoldogan-labs/AI-Notepad` deposu, "Repository permissions › Contents: Read and write" (Metadata: Read kendiliğinden gelir);
   başka yetki gerekmez. `npx wrangler secret put GITHUB_BLOG_TOKEN --env production`. Jetonun süresi dolunca blog uçları
   `502 upstream_rejected` döner; yenisi aynı komutla girilir. `main` dalı koruma kuralıyla doğrudan gönderime kapatılırsa
   jetonun sahibi kuralı atlayabilmeli, yoksa kayıt `upstream_rejected` alır.

@@ -9,7 +9,7 @@ import type { Env } from "../src/env";
 import { type Harness, type Session, defaultHarness, envWith, expectError, req, signIn, signInWithGoogle } from "./helpers";
 
 const token: string = "github_pat_test_0123456789abcdefghij";
-const contentsRoot: string = "https://api.github.com/repos/senoldogann/AI-Notepad/contents/";
+const contentsRoot: string = "https://api.github.com/repos/senoldogan-labs/AI-Notepad/contents/";
 const contentsPrefix: string = `${contentsRoot}web/src/content/blog/`;
 const imagesPrefix: string = `${contentsRoot}web/public/blog/`;
 
@@ -65,7 +65,7 @@ async function advanceHead(fake: FakeGithub, message: string): Promise<void> {
 async function graphql(fake: FakeGithub, request: Request): Promise<Response> {
   const body: { query: string; variables: Record<string, unknown> } = await request.json();
   if (body.query.includes("query BlogPosts")) {
-    expect(body.variables).toEqual({ owner: "senoldogann", name: "AI-Notepad", expression: "main:web/src/content/blog" });
+    expect(body.variables).toEqual({ owner: "senoldogan-labs", name: "AI-Notepad", expression: "main:web/src/content/blog" });
     const entries = [
       ...[...fake.files.entries()].map(([slug, file]: [string, FakeFile]) => ({ name: `${slug}.md`, type: "blob", oid: file.sha, object: { text: file.text, isTruncated: false } })),
       ...[...fake.extra.entries()].map(([name, text]: [string, string]) => ({ name, type: "blob", oid: "e".repeat(40), object: { text, isTruncated: false } })),
@@ -95,7 +95,7 @@ async function graphql(fake: FakeGithub, request: Request): Promise<Response> {
   }
   if (body.query.includes("createCommitOnBranch")) {
     const input = (body.variables as { input: { branch: { repositoryNameWithOwner: string; branchName: string }; expectedHeadOid: string; message: { headline: string }; fileChanges: { deletions: Array<{ path: string }> } } }).input;
-    expect(input.branch.repositoryNameWithOwner).toBe("senoldogann/AI-Notepad");
+    expect(input.branch.repositoryNameWithOwner).toBe("senoldogan-labs/AI-Notepad");
     if (fake.head.staleOnce || input.expectedHeadOid !== fake.head.oid) {
       fake.head.staleOnce = false;
       await advanceHead(fake, "someone else");

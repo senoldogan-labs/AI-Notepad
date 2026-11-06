@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { appcastLatestVersion } from "../src/downloads";
 import { type Harness, blockingLimiter, defaultHarness, envWith, expectError, req } from "./helpers";
 
-const dmgUrl: string = "https://github.com/senoldogann/AI-Notepad/releases/latest/download/AI-Notepad.dmg";
+const dmgUrl: string = "https://github.com/senoldogan-labs/AI-Notepad/releases/latest/download/AI-Notepad.dmg";
 
 async function counts(): Promise<Array<{ day: string; count: number }>> {
   return (await env.DB.prepare("SELECT day, count FROM downloads ORDER BY day").all<{ day: string; count: number }>()).results;
@@ -68,7 +68,7 @@ describe("GET /v1/download/mac", () => {
   });
 });
 
-const appcastUrl: string = "https://github.com/senoldogann/AI-Notepad/releases/latest/download/appcast.xml";
+const appcastUrl: string = "https://github.com/senoldogan-labs/AI-Notepad/releases/latest/download/appcast.xml";
 
 /** İki sürümlü appcast (generate_appcast en yeniyi başa yazar). */
 const appcast: string = `<?xml version="1.0" standalone="yes"?>

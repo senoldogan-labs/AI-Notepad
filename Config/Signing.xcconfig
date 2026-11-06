@@ -17,7 +17,7 @@ SPARKLE_PUBLIC_KEY_GISTSMITH = 5X4WlDxuyl5iW4kSabxEyoQh4jVMaBLZqcaqlHXYhwc=
 // sürümü aynı depoya açar. Depo değişirse eski sürümler eski akışı okumaya devam eder: yeni depoya geçmeden önce eski
 // depoya, yeni akışa yönlendiren son bir sürüm yayınlanmalı.
 // Geliştirici sürümü: bu deponun kendi sürümleri.
-RELEASES_REPO_AINOTEPAD = senoldogann/AI-Notepad
+RELEASES_REPO_AINOTEPAD = senoldogan-labs/AI-Notepad
 // Abonelik sürümü: yalnızca sürümleri taşıyan herkese açık depo.
 RELEASES_REPO_GISTSMITH = senoldogann/gistsmith-releases
 

@@ -77,9 +77,9 @@
     "CF_ACCESS_TEAM_DOMAIN": "dry-heart-1ee2.cloudflareaccess.com",
     "CF_ACCESS_AUD": "",
     // `GET /v1/download/mac` buraya yönlendirir (302) ve günlük sayacı artırır.
-    "DMG_URL": "https://github.com/senoldogann/AI-Notepad/releases/latest/download/AI-Notepad.dmg",
+    "DMG_URL": "https://github.com/senoldogan-labs/AI-Notepad/releases/latest/download/AI-Notepad.dmg",
     // DMG ile aynı sürümdeki Sparkle akışı: `GET /v1/download/mac/version` sitedeki sürüm numarasını buradan okur.
-    "APPCAST_URL": "https://github.com/senoldogann/AI-Notepad/releases/latest/download/appcast.xml",
+    "APPCAST_URL": "https://github.com/senoldogan-labs/AI-Notepad/releases/latest/download/appcast.xml",
     // Fiyatlar Stripe fiyatlarıyla elle aynı tutulur (Stripe çağrılmaz). Aylık: yönetici MRR tahmini, davet indirimi
     // (yıllık planda tek seferlik indirim) ve davet ödülü (davet edenin müşteri bakiyesi alacağı). Yıllık: yalnızca MRR
     // (ayda 1/12'si).
@@ -230,7 +230,7 @@
     // dosyalarıdır; panel GitHub API'siyle okur, yazar ve siler (her kayıt dala bir commit). Gizli GITHUB_BLOG_TOKEN
     // (yalnızca bu depoda Contents okuma/yazma yetkili ince ayarlı jeton) girilmemişse blog uçları
     // `503 blog_unavailable` döner. Yerelde ve testlerde jeton yoktur.
-    "GITHUB_BLOG_REPO": "senoldogann/AI-Notepad",
+    "GITHUB_BLOG_REPO": "senoldogan-labs/AI-Notepad",
     "GITHUB_BLOG_BRANCH": "main",
     // Yönetim panelindeki site istatistikleri (src/siteAnalytics.ts): Cloudflare GraphQL API'sinden sitenin Web
     // Analytics toplamları (sayfa görüntüleme, ziyaret, en çok açılan sayfalar, yönlendiren siteler; son 30 gün). Hesap
@@ -397,7 +397,7 @@
         "REVENUECAT_ACCEPT_SANDBOX": "true",
         // Bkz. üstteki geliştirme `vars` açıklaması. Dala gelen her blog commit'i sitenin yayın iş akışını
         // (.github/workflows/deploy-web.yml) tetikler.
-        "GITHUB_BLOG_REPO": "senoldogann/AI-Notepad",
+        "GITHUB_BLOG_REPO": "senoldogan-labs/AI-Notepad",
         "GITHUB_BLOG_BRANCH": "main",
         // Bkz. üstteki geliştirme `vars` açıklaması. Sahibin dolduracağı değerler: Cloudflare panelinin hesap kimliği ve
         // Web Analytics › gistsmith.com sitesinin etiketi (`siteTag`); gizli CF_ANALYTICS_TOKEN ayrıca girilir.
