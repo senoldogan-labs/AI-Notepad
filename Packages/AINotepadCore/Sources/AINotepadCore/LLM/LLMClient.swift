@@ -30,6 +30,8 @@ public enum LLMPurpose: String, Sendable, Equatable, CaseIterable {
     case noteOverview = "note_overview"
     /// Konuşmacı gözden geçirmesi.
     case speakerReview = "speaker_review"
+    /// Toplantı sonunda son geçiş transkriptinin not diline çevirisi.
+    case transcriptTranslation = "transcript_translation"
     /// Not düzenleme ve yeniden yazma.
     case noteEdit = "note_edit"
     /// Notun paylaşım diline çevirisi.

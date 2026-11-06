@@ -393,7 +393,7 @@ describe("haklar ve toplantı oturumları", () => {
     await expectError(await llm("live_translation"), 403, "meeting_not_active");
     await expectError(await llm("missed_summary"), 403, "meeting_not_active");
     await expectError(await llm("live_question"), 403, "meeting_not_active");
-    for (const purpose of ["note", "note_chunk", "note_overview", "speaker_review", null]) {
+    for (const purpose of ["note", "note_chunk", "note_overview", "speaker_review", "transcript_translation", null]) {
       await expectError(await llm(purpose), 400, "invalid_body");
     }
     // İşleme süresi içinde açılan yeniden işleme (ses henüz yazılmamış) hak harcamaz.
