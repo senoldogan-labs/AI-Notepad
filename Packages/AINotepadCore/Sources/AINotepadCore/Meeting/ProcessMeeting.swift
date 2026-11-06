@@ -109,6 +109,7 @@ public func processMeeting(
     llm: LLMProvider?,
     languageMode: LanguageMode,
     userName: String,
+    profile: UserProfile,
     noteLanguage: ShareLanguage,
     voiceEmbedder: (any VoiceEmbedder)?,
     registry: [RegisteredVoice],
@@ -118,7 +119,7 @@ public func processMeeting(
     await processMeeting(
         record: record, directory: directory,
         resolveFinalPass: { () async -> FinalPassPlan in finalPass }, resolveLLM: { () async -> LLMProvider? in llm },
-        languageMode: languageMode, userName: userName, noteLanguage: noteLanguage, voiceEmbedder: voiceEmbedder, registry: registry,
+        languageMode: languageMode, userName: userName, profile: profile, noteLanguage: noteLanguage, voiceEmbedder: voiceEmbedder, registry: registry,
         screens: screens, onStep: onStep
     )
 }
@@ -139,6 +140,7 @@ public func processMeeting(
     resolveLLM: @escaping @Sendable () async -> LLMProvider?,
     languageMode: LanguageMode,
     userName: String,
+    profile: UserProfile,
     noteLanguage: ShareLanguage,
     voiceEmbedder: (any VoiceEmbedder)?,
     registry: [RegisteredVoice],
@@ -163,7 +165,7 @@ public func processMeeting(
 
     await onStep(.writingNote)
     let provider: LLMProvider? = await llm
-    let noted: MeetingRecord = await regenerateNote(record: current, directory: directory, llm: provider, userName: userName, language: noteLanguage, screens: screens)
+    let noted: MeetingRecord = await regenerateNote(record: current, directory: directory, llm: provider, userName: userName, profile: profile, language: noteLanguage, screens: screens)
     // Transkript nottan sonra çevrilir: toplantı bütçesinin nota ayrılan payını önce not kullanır (abonelik), çeviri
     // yapılamazsa not yine yazılmış olur ve parçalar "Tekrar dene"de kalır.
     return await translatingTranscript(record: noted, llm: provider, language: noteLanguage, userName: userName)
@@ -469,7 +471,7 @@ let noteProgressFileName: String = "note-progress.json"
 /// unticked ones) go with the note (`screenNoteImages`); a snapshot that cannot be read fails the note like any other
 /// note error.
 public func regenerateNote(
-    record: MeetingRecord, directory: URL, llm: LLMProvider?, userName: String, language: ShareLanguage, screens: ScreenNotesPlan
+    record: MeetingRecord, directory: URL, llm: LLMProvider?, userName: String, profile: UserProfile, language: ShareLanguage, screens: ScreenNotesPlan
 ) async -> MeetingRecord {
     // Son geçiş "Diğerleri"ni kapsar; "Sen" için canlı bölümler; hoparlör yankısı nota girmez.
     // İşaretli anlar istemde "★" ile öne çıkar.
@@ -494,7 +496,7 @@ public func regenerateNote(
         case .on: try screenNoteImages(record: record, meetingDirectory: directory, budget: screenNoteBudget, policy: screenSnapshotPolicy)
         }
         guard let note = try await writeMeetingNote(
-            segments: segments, speakerNames: record.speakerNames, userName: userName, template: record.template ?? .general,
+            segments: segments, speakerNames: record.speakerNames, userName: userName, profile: profile, template: record.template ?? .general,
             myNotes: record.myNotes ?? "", language: language, llm: llm,
             progressFile: directory.appending(path: noteProgressFileName),
             screens: images

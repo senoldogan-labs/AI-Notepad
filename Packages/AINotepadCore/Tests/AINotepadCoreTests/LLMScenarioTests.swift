@@ -123,7 +123,7 @@ struct LLMScenarioTests {
     // toplantının notunu eksiksiz yazmalı.
     @Test(arguments: ClaudeModel.allCases)
     func oneHourNoteAtHighestOfferedEffort(model: ClaudeModel) async throws {
-        let request: LLMRequest = try #require(meetingNoteRequest(segments: longMeetingSegments(rounds: 15), speakerNames: [1: "Aino", 2: "Mikko"], userName: "Doğan", template: .general, myNotes: "", language: .turkish, screens: []))
+        let request: LLMRequest = try #require(meetingNoteRequest(segments: longMeetingSegments(rounds: 15), speakerNames: [1: "Aino", 2: "Mikko"], userName: "Doğan", profile: .empty, template: .general, myNotes: "", language: .turkish, screens: []))
         let started: ContinuousClock.Instant = .now
         // Uygulamayla aynı yol: boş/bozuk not yeniden istenir.
         let note: MeetingNote = try await requestStructured(provider: try anthropic(model: model, effort: .high), request: request) { (text: String) throws -> MeetingNote in
@@ -164,7 +164,7 @@ struct LLMScenarioTests {
         let segments: [StoredSegment] = realisticMeetingSegments(rounds: rounds)
         let provider: LLMProvider = try anthropic(model: .haiku, effort: .medium)
         let started: ContinuousClock.Instant = .now
-        let note: MeetingNote = try #require(try await writeMeetingNote(segments: segments, speakerNames: [1: "Aino", 2: "Mikko"], userName: "Doğan", template: .general, myNotes: "", language: .turkish, llm: provider, progressFile: try temporaryDirectory().appending(path: "note-progress.json"), screens: []))
+        let note: MeetingNote = try #require(try await writeMeetingNote(segments: segments, speakerNames: [1: "Aino", 2: "Mikko"], userName: "Doğan", profile: .empty, template: .general, myNotes: "", language: .turkish, llm: provider, progressFile: try temporaryDirectory().appending(path: "note-progress.json"), screens: []))
         let coverage: TaskCoverage = taskCoverage(tasks: note.tasks, phases: rounds)
         print("SENARYO gerçek yoğunluk \(rounds * 4) dk, \(segments.map(\.text.count).reduce(0, +)) karakter: \(ContinuousClock.now - started), görev \(note.tasks.count), kapsanan iş \(coverage.covered)/\(rounds * 3), eksik: \(coverage.missing.prefix(12))")
         #expect(Double(coverage.covered) >= Double(rounds * 3) * 0.9, "eksik: \(coverage.missing)")
@@ -186,7 +186,7 @@ struct LLMScenarioTests {
         let provider: LLMProvider = .openAICompatible(OpenAICompatibleConfig(
             baseURL: URL(string: "http://localhost:11434/v1")!, apiKey: nil, fastModel: model, smartModel: model, fastEffort: .high, smartEffort: .high
         ))
-        let request: LLMRequest = try #require(meetingNoteRequest(segments: longMeetingSegments(rounds: 15), speakerNames: [1: "Aino", 2: "Mikko"], userName: "Doğan", template: .general, myNotes: "", language: .turkish, screens: []))
+        let request: LLMRequest = try #require(meetingNoteRequest(segments: longMeetingSegments(rounds: 15), speakerNames: [1: "Aino", 2: "Mikko"], userName: "Doğan", profile: .empty, template: .general, myNotes: "", language: .turkish, screens: []))
         let note: MeetingNote = try await requestStructured(provider: provider, request: request) { (text: String) throws -> MeetingNote in
             try parseMeetingNote(text: text)
         }
@@ -220,12 +220,50 @@ struct LLMScenarioTests {
         #expect(chunks.allSatisfy { $0.count == 1 || $0.map(\.text.count).reduce(0, +) <= 20_000 })
     }
 
-    // Transkriptte "Sen" kullanıcıdır: "Sen" ya da kullanıcının adıyla yazılmış görev adıyla ve "benim" olur.
+    // İstemde kullanıcı `promptUserLabel`: etiketle (ayraçlı ya da ayraçsız) ya da kullanıcının adıyla yazılmış görev
+    // adıyla ve "benim" olur. "Sen" artık kullanıcı sayılmaz: Türkçede başka bir konuşmacıya hitap da olabilir.
     @Test func userTasksGetNameAndMine() {
-        #expect(normalizedTask(task: NoteTask(owner: "Sen", description: "Rapor", dueDate: nil, isMine: false), userName: "Doğan")
+        #expect(normalizedTask(task: NoteTask(owner: "[Kullanıcı]", description: "Rapor", dueDate: nil, isMine: false), userName: "Doğan")
             == NoteTask(owner: "Doğan", description: "Rapor", dueDate: nil, isMine: true))
+        #expect(normalizedTask(task: NoteTask(owner: "kullanıcı", description: "Rapor", dueDate: nil, isMine: false), userName: "Doğan").isMine)
         #expect(normalizedTask(task: NoteTask(owner: "doğan", description: "Rapor", dueDate: nil, isMine: false), userName: "Doğan").isMine)
         #expect(normalizedTask(task: NoteTask(owner: "Mikko", description: "Risk", dueDate: nil, isMine: false), userName: "Doğan").owner == "Mikko")
+        #expect(normalizedTask(task: NoteTask(owner: "Sen", description: "Sor", dueDate: nil, isMine: false), userName: "Doğan")
+            == NoteTask(owner: "Sen", description: "Sor", dueDate: nil, isMine: false))
+        // Adsız kullanıcıda sahip arayüzdeki "Sen" olur (etiket notta görünmez); açıklamaya sızan etiket de değişir.
+        #expect(normalizedTask(task: NoteTask(owner: "[Kullanıcı]", description: "[Kullanıcı] raporu yollar", dueDate: nil, isMine: false), userName: "")
+            == NoteTask(owner: speakerLabel(speaker: .me, person: nil), description: "\(speakerLabel(speaker: .me, person: nil)) raporu yollar", dueDate: nil, isMine: true))
+    }
+
+    // İsteme geri verilen kullanıcı görevinin sahibi adı ya da `promptUserLabel`: arayüzdeki "Sen" istemde hitapla karışır.
+    @Test func userTasksGoBackToPromptsWithTheUserLabel() {
+        let note: MeetingNote = MeetingNote(
+            title: "Plan", summary: "S", decisions: [],
+            tasks: [NoteTask(owner: "Sen", description: "Rapor", dueDate: nil, isMine: true), NoteTask(owner: "Aino", description: "Slayt", dueDate: nil, isMine: false)],
+            glossary: []
+        )
+        let unnamed: LLMRequest = noteEditRequest(note: note, instruction: "Kısalt", segments: [], speakerNames: [:], userName: "", profile: .empty, language: .turkish)
+        #expect(unnamed.userText.contains("- [Kullanıcı] | Rapor |  | benim"))
+        #expect(unnamed.userText.contains("- Aino | Slayt |  | başkası"))
+        let named: LLMRequest = noteEditRequest(note: note, instruction: "Kısalt", segments: [], speakerNames: [:], userName: "Doğan", profile: .empty, language: .turkish)
+        #expect(named.userText.contains("- Doğan | Rapor |  | benim"))
+        #expect(!named.userText.contains("- Sen |"))
+    }
+
+    // Not metnine sızan istem etiketi (özet, kararlar, açık konular, akış, görevler) kullanıcının adıyla değişir.
+    @Test func promptUserLabelNeverReachesTheNote() {
+        let note: MeetingNote = MeetingNote(
+            title: "Plan", summary: "[Kullanıcı] bütçeyi sundu.", decisions: ["[00:10] [Kullanıcı] onayladı"],
+            tasks: [NoteTask(owner: "Aino", description: "[Kullanıcı] için slayt", dueDate: nil, isMine: false)], glossary: []
+        )
+        .with(openQuestions: ["[00:20] [Kullanıcı] fiyatı soracak mı?"])
+        .with(outline: [OutlineItem(startSec: 0, title: "[Kullanıcı] açılış", summary: "S")])
+        let clean: MeetingNote = withNormalizedTasks(note: note, userName: "Doğan")
+        #expect(clean.summary == "Doğan bütçeyi sundu.")
+        #expect(clean.decisions == ["[00:10] Doğan onayladı"])
+        #expect(clean.tasks == [NoteTask(owner: "Aino", description: "Doğan için slayt", dueDate: nil, isMine: false)])
+        #expect(clean.openQuestions == ["[00:20] Doğan fiyatı soracak mı?"])
+        #expect(clean.outline?.first?.title == "Doğan açılış")
     }
 
     // Değişiklik numarası bağlamdaki listeye göre uygulanır; iptal düşer; yeniler sona; sözlükte terim bir kez.

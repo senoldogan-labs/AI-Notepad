@@ -2,9 +2,9 @@
 // blokları geçerli JSON ve beklenen schema.org biçiminde mi (uygulama, teklifler, işletme, sık sorulan sorular, gezinti
 // izi), `/llms.txt` ve `/llms-full.txt` ürünün temel gerçeklerini ve sayfa bağlantılarını taşıyor mu, site haritasında
 // yeni sayfalar var mı. Önce `npm run build` (yayın yapılandırması) çalışmalı; `npm test` bu dosyayı `node --test` ile
-// çalıştırır.
+// çalıştırır. Sayfaların yüklediği yerel betik, stil ve görsel dosyalarının derlemede var olduğu da denetlenir.
 import { strict as assert } from "node:assert";
-import { readdir, readFile } from "node:fs/promises";
+import { access, readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -184,3 +184,27 @@ test("the privacy page has stable data-handling anchors", async () => {
 function escapeHtml(value: string): string {
   return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 }
+
+test("every local script, stylesheet and image a page loads exists in the build", async () => {
+  const files: string[] = await htmlFiles(distDir, "");
+  const missing: string[] = [];
+  for (const file of files) {
+    const html: string = await readFile(join(distDir, file), "utf8");
+    const references: string[] = [...html.matchAll(/<(?:script|img|link)\b[^>]*?\s(?:src|href)="(\/[^"/][^"]*)"/g)].map(
+      (match: RegExpMatchArray): string => match[1] ?? "",
+    );
+    for (const reference of references) {
+      const path: string = decodeURIComponent(reference.split(/[?#]/)[0] ?? "");
+      // Bağlantı etiketleri (canonical, alternate, RSS) sayfa adresidir; yalnız dosya uzantılı kaynaklar denetlenir.
+      if (!/\.[a-z0-9]+$/i.test(path)) {
+        continue;
+      }
+      try {
+        await access(join(distDir, path));
+      } catch {
+        missing.push(`${file}: ${path}`);
+      }
+    }
+  }
+  assert.deepEqual(missing, [], `missing files: ${missing.slice(0, 10).join(", ")}`);
+});

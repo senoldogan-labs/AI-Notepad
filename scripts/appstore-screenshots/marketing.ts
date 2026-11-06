@@ -29,7 +29,7 @@ class UsageError extends Error {
 }
 
 const repoRoot: string = resolve(import.meta.dirname, "../..");
-const fontPath: string = join(repoRoot, "web/public/fonts/InterVariable-latin.woff2");
+const fontPath: string = join(repoRoot, "web/src/assets/fonts/InterVariable-latin.woff2");
 const previewWidth: number = 1400;
 
 /** Ekranı 1320×2868 olan bir iPhone'un sahnedeki yeri. */

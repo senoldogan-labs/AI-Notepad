@@ -6,7 +6,7 @@
 
 @font-face {
   font-family: "Inter";
-  src: url("/fonts/InterVariable-latin.woff2") format("woff2");
+  src: url("../assets/fonts/InterVariable-latin.woff2") format("woff2");
   font-weight: 400 700;
   font-style: normal;
   font-display: swap;
@@ -16,7 +16,7 @@
    scripts/subset-serif.sh. Headings only. */
 @font-face {
   font-family: "Newsreader";
-  src: url("/fonts/Newsreader-display-latin.woff2") format("woff2");
+  src: url("../assets/fonts/Newsreader-display-latin.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -32,7 +32,7 @@
   line-gap-override: 0%;
 }
 
-/* Every colour is defined once with `light-dark()`; the theme is chosen by `<html data-theme>` (public/theme.js: the
+/* Every colour is defined once with `light-dark()`; the theme is chosen by `<html data-theme>` (src/client/theme.js: the
    visitor's choice or the system preference); without the script `color-scheme` follows the system. */
 :root {
   color-scheme: light dark;

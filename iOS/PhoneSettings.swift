@@ -17,6 +17,10 @@ enum PhoneSettingsKey {
     static let noteLanguageMigrated: String = "migration.noteLanguage"
     /// Kullanıcı adı (notta "Sen" ve sana düşen görevler); hesabın ayar alanında (bkz. `PhoneStore.userName`).
     static let userName: String = userNameDefaultsKey
+    /// Profilin unvanı, şirketi ve şirket açıklaması; ad gibi hesabın ayar alanında (bkz. `PhoneStore.userProfile`).
+    static let jobTitle: String = userJobTitleDefaultsKey
+    static let companyName: String = userCompanyNameDefaultsKey
+    static let companyDescription: String = userCompanyDescriptionDefaultsKey
     /// Kayıt başında "katılımcılara haber ver" kartı.
     static let consentReminder: String = "consentReminder"
     /// Ses dosyalarının saklama süresi (gün).
@@ -40,6 +44,8 @@ enum PhoneSettingsKey {
     /// Yeni toplantıların not şablonu (`NoteTemplateKind`) ve "Kendi şablonum"un yönergesi (Mac'teki ayarlarla aynı ad).
     static let noteTemplate: String = "noteTemplate"
     static let customTemplate: String = "customTemplate"
+    /// Kendi şablonunun adı (galeriden kopyalanınca "<ad> (kopya)"); boşsa "Kendi şablonum" yazılır.
+    static let customTemplateName: String = "customTemplate.name"
     /// "Şablonu toplantı adına göre seç" (Mac'teki ayarla aynı ad).
     static let templateFromTitle: String = "noteTemplate.fromTitle"
     /// Canlı çeviri görünümü (`DisplayMode`, Mac'teki ayarla aynı ad): `originalOnly` kayıt sırasında çevirmez,
@@ -75,6 +81,7 @@ func registerPhoneDefaults() {
         PhoneSettingsKey.primaryMeetingLanguage: MeetingLanguage.finnish.rawValue,
         PhoneSettingsKey.noteTemplate: NoteTemplateKind.general.rawValue,
         PhoneSettingsKey.customTemplate: "",
+        PhoneSettingsKey.customTemplateName: "",
         PhoneSettingsKey.templateFromTitle: true,
         // iPhone'da canlı çeviri baştan açık (kayıt kartı onu anlatır); Ayarlar › Toplantı'dan kapatılır.
         PhoneSettingsKey.displayMode: DisplayMode.bilingual.rawValue,

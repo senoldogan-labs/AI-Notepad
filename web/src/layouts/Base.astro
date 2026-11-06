@@ -6,6 +6,9 @@ import Footer from "../components/Footer.astro";
 import Header from "../components/Header.astro";
 import PullReveal from "../components/PullReveal.astro";
 import MacOnlyDialog from "../components/MacOnlyDialog.astro";
+import interFontUrl from "../assets/fonts/InterVariable-latin.woff2?url";
+import serifFontUrl from "../assets/fonts/Newsreader-display-latin.woff2?url";
+import themeScript from "../client/theme.js?raw";
 import { productName } from "../config";
 import { copy, type CommonCopy, type PageMeta } from "../copy";
 import type { SocialCard } from "../lib/social";
@@ -59,14 +62,17 @@ const hreflangLinks: ReadonlyArray<{ readonly lang: string; readonly href: strin
     {/* Tarayıcı çubuğunun rengi; theme.js elle seçilen temaya göre ikisini de günceller, bu yüzden betikten önce gelir. */}
     <meta name="theme-color" content="#fbfbfa" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0b1015" media="(prefers-color-scheme: dark)" />
-    {/* Tema ilk boyamadan önce uygulanır: engelleyici ama harici (CSP satır içi betiğe izin vermez). */}
-    <script is:inline src="/theme.js"></script>
+    {/* Tema ilk boyamadan önce uygulanır. Satır içi: ayrı istek yavaş telefonda ilk boyamayı geciktiriyordu; CSP izni
+        derlemede hesaplanan sha256 özetiyle verilir (astro.config.ts). */}
+    <script is:inline set:html={themeScript}></script>
     <title>{meta.title}</title>
     <meta name="description" content={meta.description} />
     {indexed ? <link rel="canonical" href={canonical} /> : <meta name="robots" content="noindex" />}
     {indexed ? hreflangLinks.map((link) => <link rel="alternate" hreflang={link.lang} href={link.href} />) : null}
-    <link rel="preload" href="/fonts/InterVariable-latin.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="/fonts/Newsreader-display-latin.woff2" as="font" type="font/woff2" crossorigin />
+    {/* Yazı tipleri içerik özetli adla (`/_astro/…`, değişmez önbellek) sunulur: dosya güncellenince adres de değişir,
+        CDN eski kopyayı vermez. */}
+    <link rel="preload" href={interFontUrl} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={serifFontUrl} as="font" type="font/woff2" crossorigin />
     {/* Simge köşesiz, tam siyah karedir: Google arama sonuçlarında daire içinde gösterir; yuvarlak köşeli karede köşeler beyaz kalırdı. */}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

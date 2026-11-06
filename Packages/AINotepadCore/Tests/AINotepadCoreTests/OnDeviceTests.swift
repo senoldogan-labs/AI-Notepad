@@ -111,12 +111,12 @@ import Testing
     @Test func missingLLMKeepsExistingNote() async throws {
         let note: MeetingNote = MeetingNote(title: "T", summary: "Ö", decisions: [], tasks: [], glossary: [])
         let kept: MeetingRecord = await regenerateNote(
-            record: meeting(id: "n", language: .english).with(note: note), directory: try temporaryDirectory(), llm: nil, userName: "Ada", language: .turkish,
+            record: meeting(id: "n", language: .english).with(note: note), directory: try temporaryDirectory(), llm: nil, userName: "Ada", profile: .empty, language: .turkish,
             screens: .off
         )
         #expect(kept.status == .done)
         #expect(kept.note == note)
-        let fresh: MeetingRecord = await regenerateNote(record: meeting(id: "m", language: .english), directory: try temporaryDirectory(), llm: nil, userName: "Ada", language: .turkish, screens: .off)
+        let fresh: MeetingRecord = await regenerateNote(record: meeting(id: "m", language: .english), directory: try temporaryDirectory(), llm: nil, userName: "Ada", profile: .empty, language: .turkish, screens: .off)
         #expect(fresh.status == .failed)
     }
 
@@ -143,7 +143,7 @@ import Testing
     @Test func refusesNoteBeforeRequest() async throws {
         let result: MeetingRecord = await regenerateNote(
             record: meeting(id: "fi", language: .finnish).with(status: .processing, failureMessage: nil), directory: try temporaryDirectory(),
-            llm: .onDevice(config), userName: "Ada", language: .turkish,
+            llm: .onDevice(config), userName: "Ada", profile: .empty, language: .turkish,
             screens: .off
         )
         #expect(result.status == .failed)
@@ -235,14 +235,14 @@ import Testing
             .with(finalSegments: (0..<300).map { stored("final-\($0)", .others, 1, Double($0 * 3), sentence) }, language: .finnish)
             .with(note: note)
         let local: NoteLimits = noteLimits(provider: .onDevice(config))
-        let onDevice: LLMRequest = meetingNoteEditRequest(record: long, note: note, instruction: "Kısalt.", limits: local, userName: "Senol")
+        let onDevice: LLMRequest = meetingNoteEditRequest(record: long, note: note, instruction: "Kısalt.", limits: local, userName: "Senol", profile: .empty)
         #expect(!onDevice.userText.contains(sentence))
         let schemaTokens: Int = 350
         #expect(estimatedOnDeviceTokens(text: onDevice.system + onDevice.userText) + schemaTokens < 4096 - onDeviceMinResponseTokens)
-        let inCloud: LLMRequest = meetingNoteEditRequest(record: long, note: note, instruction: "Kısalt.", limits: noteLimits(provider: cloud), userName: "Senol")
+        let inCloud: LLMRequest = meetingNoteEditRequest(record: long, note: note, instruction: "Kısalt.", limits: noteLimits(provider: cloud), userName: "Senol", profile: .empty)
         #expect(inCloud.userText.contains(sentence))
         let short: MeetingRecord = long.with(finalSegments: [stored("final-0", .others, 1, 0, sentence)], language: .finnish)
-        #expect(meetingNoteEditRequest(record: short, note: note, instruction: "Kısalt.", limits: local, userName: "Senol").userText.contains(sentence))
+        #expect(meetingNoteEditRequest(record: short, note: note, instruction: "Kısalt.", limits: local, userName: "Senol", profile: .empty).userText.contains(sentence))
     }
 
     @Test func condensesPartSummariesButKeepsTasks() {
@@ -292,7 +292,7 @@ struct OnDeviceModelTests {
         let english: String = try await engine.transcribe(samples: loadFixture(name: "en-meeting"), language: .english)
         #expect(english.lowercased().contains("report"), "metin: \(english)")
         let note: MeetingNote = try #require(try await writeMeetingNote(
-            segments: [stored("final-0", .others, 1, 0, english)], speakerNames: [1: "Aino"], userName: "Ada", template: .general, myNotes: "", language: .turkish,
+            segments: [stored("final-0", .others, 1, 0, english)], speakerNames: [1: "Aino"], userName: "Ada", profile: .empty, template: .general, myNotes: "", language: .turkish,
             llm: llm, progressFile: try temporaryDirectory().appending(path: "note-progress.json"),
             screens: []
         ))
@@ -305,7 +305,7 @@ struct OnDeviceModelTests {
             liveSegments: [], finalSegments: [stored("final-0", .others, 1, 0, finnish)], translations: [:], speakerNames: [:], note: nil,
             audioDeleted: false, engine: .local, notice: nil, meNeedsFinalPass: nil
         )
-        let refused: MeetingRecord = await regenerateNote(record: finnishRecord, directory: try temporaryDirectory(), llm: llm, userName: "Ada", language: .turkish, screens: .off)
+        let refused: MeetingRecord = await regenerateNote(record: finnishRecord, directory: try temporaryDirectory(), llm: llm, userName: "Ada", profile: .empty, language: .turkish, screens: .off)
         #expect(refused.status == .failed && refused.note == nil)
         #expect(refused.failureMessage?.contains("Fince desteklemiyor") == true, "mesaj: \(refused.failureMessage ?? "")")
 
@@ -324,7 +324,7 @@ struct OnDeviceModelTests {
             state: ChunkedNoteState(partSummaries: summaries, decisions: [], tasks: [], glossary: [], openQuestions: []), maxChars: limits.summaryChars ?? 0
         )
         let request: LLMRequest = noteChunkRequest(
-            chunk: chunk, part: 31, partCount: 40, state: state, speakerNames: [:], userName: "Ada", template: .general, myNotes: "", language: .turkish
+            chunk: chunk, part: 31, partCount: 40, state: state, speakerNames: [:], userName: "Ada", profile: .empty, template: .general, myNotes: "", language: .turkish
         )
         let part: NoteChunk = try await requestStructured(provider: llm, request: request) { (text: String) throws -> NoteChunk in
             try parseNoteChunk(text: text)

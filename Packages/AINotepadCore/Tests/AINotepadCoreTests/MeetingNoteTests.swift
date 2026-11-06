@@ -11,7 +11,7 @@ func stored(_ key: String, _ speaker: Speaker, _ person: Int?, _ start: Double, 
         let request: LLMRequest = try #require(meetingNoteRequest(
             segments: [stored("final-0", .others, 1, 5, "Voisitko tehdä diat?"), stored("me-0", .me, nil, 9, "Teen ne.")],
             speakerNames: [1: "Aino"],
-            userName: "Doğan",
+            userName: "Doğan", profile: .empty,
             template: .general,
             myNotes: "", language: .turkish,
             screens: []
@@ -19,18 +19,22 @@ func stored(_ key: String, _ speaker: Speaker, _ person: Int?, _ start: Double, 
         #expect(request.tier == .smart)
         #expect(request.jsonSchema?.contains("gorevler") == true)
         #expect(request.userText.contains("[00:05] Aino: Voisitko tehdä diat?"))
-        #expect(request.userText.contains("[00:09] Sen: Teen ne."))
+        // Kullanıcının satırı "Sen" değil `promptUserLabel`: Türkçe "sen" hitabıyla karışmasın; sistem istemi bunu açıklar.
+        #expect(request.userText.contains("[00:09] [Kullanıcı]: Teen ne."))
+        #expect(!request.userText.contains("Sen:"))
+        #expect(request.system.contains("\"[Kullanıcı]\" etiketli satırlar kullanıcının (adı Doğan)"))
+        #expect(request.system.contains("hitapla verilen işin sahibi hitap edilen konuşmacıdır"))
         #expect(!request.userText.contains("benim_notlarim"))
         // Kendi notları istemde öncelik olarak yer alır.
         let withNotes: LLMRequest = try #require(meetingNoteRequest(
-            segments: [stored("final-0", .others, 1, 5, "Voisitko tehdä diat?")], speakerNames: [:], userName: "Doğan",
+            segments: [stored("final-0", .others, 1, 5, "Voisitko tehdä diat?")], speakerNames: [:], userName: "Doğan", profile: .empty,
             template: .general, myNotes: "- diat perjantaihin\n## Riskit", language: .turkish,
             screens: []
         ))
         #expect(withNotes.userText.hasPrefix("<benim_notlarim>\n- diat perjantaihin"))
         #expect(withNotes.system.contains("önceliğidir"))
         #expect(request.system.contains("Doğan"))
-        #expect(meetingNoteRequest(segments: [], speakerNames: [:], userName: "Doğan", template: .general, myNotes: "", language: .turkish, screens: []) == nil)
+        #expect(meetingNoteRequest(segments: [], speakerNames: [:], userName: "Doğan", profile: .empty, template: .general, myNotes: "", language: .turkish, screens: []) == nil)
     }
 
     @Test func parseMeetingNoteJSON() throws {
@@ -87,7 +91,7 @@ extension CloudTests {
     // Not dili İngilizceyken not İngilizce yazılır: Türkçeye özgü harf yok, görev kullanıcınındır.
     @Test func englishNoteFromDialog() async throws {
         let request: LLMRequest = try #require(meetingNoteRequest(
-            segments: finnishDialog, speakerNames: [1: "Aino"], userName: "Doğan", template: .general, myNotes: "", language: .english,
+            segments: finnishDialog, speakerNames: [1: "Aino"], userName: "Doğan", profile: .empty, template: .general, myNotes: "", language: .english,
             screens: []
         ))
         let note: MeetingNote = try await requestStructured(provider: .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic))), request: request) { (text: String) throws -> MeetingNote in
@@ -103,7 +107,7 @@ extension CloudTests {
         let request: LLMRequest = try #require(meetingNoteRequest(
             segments: finnishDialog,
             speakerNames: [1: "Aino"],
-            userName: "Doğan",
+            userName: "Doğan", profile: .empty,
             template: .general,
             myNotes: "", language: .turkish,
             screens: []

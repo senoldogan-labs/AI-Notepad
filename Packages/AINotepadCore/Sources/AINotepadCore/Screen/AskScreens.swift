@@ -44,7 +44,7 @@ public struct AskScreenSpan: Sendable, Equatable {
 /// Time spans of the meeting's transcript passages whose ids are in `passageIDs`: a passage runs from its first line
 /// to the start of the next passage (the last one to the end of the last paragraph). Pure function.
 func transcriptPassageSpans(record: MeetingRecord, passageIDs: Set<String>) -> [(start: Double, end: Double)] {
-    let transcript: [ArchivePassage] = archivePassages(records: [record]).filter { $0.kind == .transcript }
+    let transcript: [ArchivePassage] = archivePassages(records: [record], userLabel: promptUserLabel).filter { $0.kind == .transcript }
     let meetingEnd: Double = transcriptParagraphs(record: record).map(\.endSec).max() ?? 0
     return transcript.indices.compactMap { (index: Int) -> (start: Double, end: Double)? in
         guard passageIDs.contains(transcript[index].id) else {

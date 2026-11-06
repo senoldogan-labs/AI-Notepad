@@ -44,7 +44,7 @@ extension CloudTests {
             finalPass: .run(ElevenLabsFinalTranscriber(apiKey: try cloudKey(account: .elevenlabs), keyterms: ["Aino", "raportti"])),
             llm: .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic))),
             languageMode: .automatic,
-            userName: "Doğan",
+            userName: "Doğan", profile: .empty,
             noteLanguage: .turkish, voiceEmbedder: nil, registry: [],
             screens: .off,
             onStep: { (step: ProcessingStep) async -> Void in log.steps.append(step) }
@@ -71,7 +71,7 @@ extension CloudTests {
         )
         let result: MeetingRecord = await processMeeting(
             record: recording, directory: directory, finalPass: .stop(HostedClientError.serverOutdated(path: "/v1/meetings/{id}/reprocess")),
-            llm: nil, languageMode: .automatic, userName: "Doğan", noteLanguage: .turkish, voiceEmbedder: nil, registry: [],
+            llm: nil, languageMode: .automatic, userName: "Doğan", profile: .empty, noteLanguage: .turkish, voiceEmbedder: nil, registry: [],
             screens: .off,
             onStep: { (_: ProcessingStep) async -> Void in }
         )
@@ -93,7 +93,7 @@ extension CloudTests {
         )
         let result: MeetingRecord = await processMeeting(
             record: recording, directory: directory, finalPass: .run(ElevenLabsFinalTranscriber(apiKey: "gecersiz", keyterms: [])),
-            llm: .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic))), languageMode: .automatic, userName: "Doğan",
+            llm: .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic))), languageMode: .automatic, userName: "Doğan", profile: .empty,
             noteLanguage: .turkish, voiceEmbedder: nil, registry: [],
             screens: .off,
             onStep: { (_: ProcessingStep) async -> Void in }
@@ -117,7 +117,7 @@ extension CloudTests {
         )
         let result: MeetingRecord = await processMeeting(
             record: recording, directory: directory, finalPass: .run(ElevenLabsFinalTranscriber(apiKey: try cloudKey(account: .elevenlabs), keyterms: ["Aino", "raportti"])),
-            llm: nil, languageMode: .fixed(.finnish), userName: "Doğan",
+            llm: nil, languageMode: .fixed(.finnish), userName: "Doğan", profile: .empty,
             noteLanguage: .turkish, voiceEmbedder: nil, registry: [],
             screens: .off,
             onStep: { (_: ProcessingStep) async -> Void in }
@@ -138,7 +138,7 @@ extension CloudTests {
         )
         let result: MeetingRecord = await processMeeting(
             record: recording, directory: directory, finalPass: .run(ElevenLabsFinalTranscriber(apiKey: try cloudKey(account: .elevenlabs), keyterms: ["Aino", "raportti"])),
-            llm: nil, languageMode: .automatic, userName: "Doğan",
+            llm: nil, languageMode: .automatic, userName: "Doğan", profile: .empty,
             noteLanguage: .turkish, voiceEmbedder: nil, registry: [],
             screens: .off,
             onStep: { (_: ProcessingStep) async -> Void in }
@@ -202,7 +202,7 @@ private struct WholeWindowEmbedder: VoiceEmbedder {
         await processMeeting(
             record: record, directory: directory,
             resolveFinalPass: { () async -> FinalPassPlan in .run(transcriber) }, resolveLLM: { () async -> LLMProvider? in nil },
-            languageMode: .fixed(.finnish), userName: "Doğan", noteLanguage: .turkish, voiceEmbedder: voiceEmbedder, registry: [], screens: .off,
+            languageMode: .fixed(.finnish), userName: "Doğan", profile: .empty, noteLanguage: .turkish, voiceEmbedder: voiceEmbedder, registry: [], screens: .off,
             onStep: { (step: ProcessingStep) async -> Void in log.steps.append(step) }
         )
     }

@@ -29,6 +29,10 @@ enum SettingsKey {
     static let displayMode: String = "displayMode"
     /// Kullanıcı adı (not görevlerinde "benim" tespiti için; `userContentDefaults` alanında: abonelikte hesabın).
     static let userName: String = userNameDefaultsKey
+    /// Profilin unvanı, şirketi ve şirket açıklaması (ad gibi `userContentDefaults` alanında).
+    static let jobTitle: String = userJobTitleDefaultsKey
+    static let companyName: String = userCompanyNameDefaultsKey
+    static let companyDescription: String = userCompanyDescriptionDefaultsKey
     static let hideFromScreenCapture: String = "hideFromScreenCapture"
     /// "Ne kaçırdım?" penceresi (dakika).
     static let missedWindowMinutes: String = "missedWindowMinutes"
@@ -59,6 +63,8 @@ enum SettingsKey {
     /// Yeni toplantıların not şablonu (`NoteTemplateKind`) ve kendi şablonunun yönergesi.
     static let noteTemplate: String = "noteTemplate"
     static let customTemplate: String = "customTemplate"
+    /// Kendi şablonunun adı (galeriden kopyalanınca "<ad> (kopya)"); boşsa "Kendi şablonum" yazılır.
+    static let customTemplateName: String = "customTemplate.name"
     /// "Şablonu toplantı adına göre seç": ad türü açıkça gösteriyorsa yeni toplantı o şablonla yazılır.
     static let templateFromTitle: String = "noteTemplate.fromTitle"
     /// Takvim: yaklaşan toplantılar, 1 dk önce hatırlatma, görüşme başlayınca öneri.
@@ -105,8 +111,8 @@ enum SettingsKey {
     static let customVocabulary: String = customVocabularyDefaultsKey
     /// Kullanıcının oluşturduğu klasörler (boş olanlar da listede kalsın).
     static let folders: String = savedFoldersKey
-    /// Toplantı özetinde sözlük açık mı.
-    static let glossaryExpanded: String = "meeting.glossaryExpanded"
+    /// Toplantı sayfasında "Ayrıntılar" (konuşma payları, sözlük) açık mı; varsayılan kapalı, tercih bütün toplantılar için.
+    static let meetingDetailsExpanded: String = "meeting.detailsExpanded"
     /// Toplantı sayfasında notun gösterildiği dil (`ShareLanguage` kodu; boşsa notun yazıldığı dil): seçim bütün
     /// toplantılarda ve yeniden açılışta sürer.
     static let meetingNoteDisplayLanguage: String = "meeting.noteDisplayLanguage"
@@ -361,6 +367,7 @@ func registerDefaultSettings() {
         SettingsKey.stopWhenCallEnds: true,
         SettingsKey.noteTemplate: NoteTemplateKind.general.rawValue,
         SettingsKey.customTemplate: "",
+        SettingsKey.customTemplateName: "",
         SettingsKey.templateFromTitle: true,
         SettingsKey.theme: AppTheme.light.rawValue,
         SettingsKey.accent: PanelAppearance.standard.accent.rawValue,

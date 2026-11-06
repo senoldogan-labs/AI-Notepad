@@ -47,7 +47,7 @@ import Testing
         for index in 0..<31 {
             try writeTestSlide(meetingDirectory: meeting, offsetSec: Double(index) * 60 + 5, index: index, width: 1600, height: 1000)
         }
-        let transcript: [ArchivePassage] = archivePassages(records: [record]).filter { $0.kind == .transcript }
+        let transcript: [ArchivePassage] = archivePassages(records: [record], userLabel: promptUserLabel).filter { $0.kind == .transcript }
         let read: ArchivePassage = transcript[2]
         let span: (start: Double, end: Double) = try #require(transcriptPassageSpans(record: record, passageIDs: [read.id]).first)
         let overlapping: [AskScreenSpan] = askScreenSpans(record: record, passageIDs: [read.id], snapshots: try listScreenSnapshots(meetingDirectory: meeting), leadSec: 3)
@@ -80,10 +80,10 @@ import Testing
     @Test func answerRequestCarriesScreensOnlyWhenGiven() {
         let image: LLMImage = LLMImage(label: "Ekran 1 · \"m\" [00:00–01:00]", jpeg: Data([0xFF, 0xD8]))
         let with: LLMRequest = archiveAnswerRequest(
-            question: "Slaytta ne vardı?", passages: [], coverage: ArchiveCoverage(read: [], skipped: []), screens: [image], history: [], userName: "", now: Date(timeIntervalSince1970: 0), language: .turkish, webSearch: false
+            question: "Slaytta ne vardı?", passages: [], coverage: ArchiveCoverage(read: [], skipped: []), screens: [image], history: [], userName: "", profile: .empty, now: Date(timeIntervalSince1970: 0), language: .turkish, webSearch: false
         )
         let without: LLMRequest = archiveAnswerRequest(
-            question: "Slaytta ne vardı?", passages: [], coverage: ArchiveCoverage(read: [], skipped: []), screens: [], history: [], userName: "", now: Date(timeIntervalSince1970: 0), language: .turkish, webSearch: false
+            question: "Slaytta ne vardı?", passages: [], coverage: ArchiveCoverage(read: [], skipped: []), screens: [], history: [], userName: "", profile: .empty, now: Date(timeIntervalSince1970: 0), language: .turkish, webSearch: false
         )
         #expect(with.images == [image] && with.purpose == .askAnswer && with.system.contains("ekranın birkaç görüntüsü"))
         #expect(without.images.isEmpty && !without.system.contains("ekranın birkaç görüntüsü"))

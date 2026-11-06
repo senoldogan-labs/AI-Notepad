@@ -53,7 +53,7 @@ class CaptureError extends Error {
 const repoRoot: string = resolve(import.meta.dirname, "../..");
 const outputRoot: string = join(repoRoot, ".build/appstore-screenshots");
 const rawDirectory: string = join(outputRoot, "raw");
-const fontPath: string = join(repoRoot, "web/public/fonts/InterVariable-latin.woff2");
+const fontPath: string = join(repoRoot, "web/src/assets/fonts/InterVariable-latin.woff2");
 const seederPackage: string = join(repoRoot, "scripts/appstore-screenshots/seeder");
 const packageResolved: string = "Packages/AINotepadCore/Package.resolved";
 const headlineLimit: number = 30;
