@@ -1,6 +1,6 @@
 import Foundation
 
-/// İstemdeki bölüm etiketi: kullanıcının verdiği ad, yoksa sabit Türkçe "Konuşmacı N", "Sen" ya da "Diğerleri".
+/// İstemdeki bölüm etiketi: kullanıcının verdiği ad, yoksa sabit Türkçe "Konuşmacı N", `promptUserLabel` ya da "Diğerleri".
 public func storedLabel(segment: StoredSegment, speakerNames: [Int: String]) -> String {
     if let person = segment.person, let name = speakerNames[person], !name.isEmpty {
         return name
@@ -30,12 +30,14 @@ func noteRules(user: String, template: NoteTemplate, language: ShareLanguage) ->
       sözlükteki anlamlar bu dilde cümlelerdir; transkript başka dildeyse içinde o dilden kelime bırakma (ör. Fince "Vaiheen 3
       yhteenvedon lähettäminen" ya da "5. marraskuuta" aynen kalmaz, \(language.promptName) diline çevrilir). Transkriptin
       dilindeki sözcükler yalnızca sözlükteki terim alanında kalır.
-    - Kullanıcıya ("Sen") düşen görevlerde sahip "\(user)" ve benimMi true; diğerlerinde sahip konuşan kişinin adı ya da
-      etiketi ve benimMi false. Görev yalnızca "Sen" satırında üstlenildiyse ya da kullanıcıya adıyla ("\(user)")
-      verildiyse kullanıcınındır. "Ben yaparım", "minä voin", "I'll do it" gibi birinci tekil
-      sözler onu söyleyen konuşmacıya aittir: başka bir konuşmacının satırındaysa sahip o konuşmacıdır, benimMi false.
-      Konuşmadaki "sen", "you", "sinä" gibi hitaplar kullanıcıyı göstermez: hitap edilen, konuşanın o an seslendiği kişidir
-      (çoğu zaman bir önceki satırda konuşan). Kullanıcı yalnızca satır etiketi "Sen" olan konuşmacıdır.
+    - Kullanıcıya düşen görevlerde sahip "\(user)" ve benimMi true; diğerlerinde sahip konuşan kişinin adı ya da
+      etiketi ve benimMi false. Görev yalnızca "\(promptUserLabel)" satırında üstlenildiyse, kullanıcıya adıyla
+      ("\(user)") verildiyse ya da hitapla verilip hitap edilenin "\(promptUserLabel)" olduğu açıksa (işi o satır kabul
+      ediyor ya da konuşan yalnızca onunla konuşuyor) kullanıcınındır. "Ben yaparım", "minä voin", "I'll do it" gibi
+      birinci tekil sözler onu söyleyen konuşmacıya aittir: başka bir konuşmacının satırındaysa sahip o konuşmacıdır,
+      benimMi false. "Sen sor", "sen hallet", "can you check" gibi hitapla verilen işin sahibi hitap edilen konuşmacıdır
+      (çoğu zaman bir önceki ya da sonraki satırda konuşan, işi kabul eden). Kime verildiği belli değilse işi kullanıcıya
+      yazma. Sahip alanına "sen", "you" gibi bir hitap sözcüğü yazma: kişinin adını ya da etiketini yaz.
     - Adı verilmemiş kişiler transkriptte "Konuşmacı N" etiketiyle geçer. Notun her yerinde (özet, kararlar, görevler ve
       sahipleri, açık konular, konu akışı, sözlük) onları tam olarak "\(speakerLabelWord(language: language)) N" biçiminde yaz (numara aynı
       kalır; ör. "\(speakerLabelWord(language: language)) 2"); başka bir sözcük ya da biçim kullanma. Kullanıcı adları
@@ -57,16 +59,43 @@ func noteRules(user: String, template: NoteTemplate, language: ShareLanguage) ->
     """
 }
 
-/// Görev sahibini düzeltir: transkriptte "Sen" kullanıcıdır; model "Sen" ya da kullanıcının adını yazdıysa sahip
-/// kullanıcının adı (ad yoksa "Sen") ve görev "benim" olur. Model bunu arada bir karıştırıyordu (ölçüm). Saf fonksiyondur.
+/// İstemde kullanıcının adı yoksa yerine geçen sözcük (sahip alanında da bu yazılır; bkz. `normalizedTask`).
+let promptUnnamedUser: String = "kullanıcı"
+
+/// Görev sahibi kullanıcıyı mı gösteriyor: istem etiketi (`promptUserLabel`, ayraçlı ya da ayraçsız), adsız kullanıcı
+/// sözcüğü ya da kullanıcının adı. "Sen" sayılmaz: Türkçede başka bir konuşmacıya hitap da olabilir. Saf fonksiyondur.
+func ownerIsPromptUser(owner: String, userName: String) -> Bool {
+    let trimmed: String = owner.trimmingCharacters(in: .whitespacesAndNewlines)
+    let markers: [String] = [promptUserLabel, promptUserLabel.trimmingCharacters(in: CharacterSet(charactersIn: "[]")), promptUnnamedUser]
+    return markers.contains { trimmed.caseInsensitiveCompare($0) == .orderedSame }
+        || (!userName.isEmpty && trimmed.caseInsensitiveCompare(userName) == .orderedSame)
+}
+
+/// Görev sahibini düzeltir: model kullanıcının etiketini (`promptUserLabel`) ya da adını yazdıysa sahip kullanıcının adı
+/// (ad yoksa arayüzdeki "Sen") ve görev "benim" olur. Model bunu arada bir karıştırıyordu (ölçüm). Açıklama ve tarihe
+/// sızan etiket de adla değişir. Saf fonksiyondur.
 public func normalizedTask(task: NoteTask, userName: String) -> NoteTask {
-    let owner: String = task.owner.trimmingCharacters(in: .whitespacesAndNewlines)
-    let isUser: Bool = owner.caseInsensitiveCompare(promptSpeakerLabel(speaker: .me, person: nil)) == .orderedSame
-        || (!userName.isEmpty && owner.caseInsensitiveCompare(userName) == .orderedSame)
-    guard isUser else {
-        return task
+    let isUser: Bool = ownerIsPromptUser(owner: task.owner, userName: userName)
+    return NoteTask(
+        owner: isUser ? (userName.isEmpty ? speakerLabel(speaker: .me, person: nil) : userName) : withoutPromptUserLabel(text: task.owner, userName: userName),
+        description: withoutPromptUserLabel(text: task.description, userName: userName),
+        dueDate: task.dueDate.map { withoutPromptUserLabel(text: $0, userName: userName) }, isMine: isUser || task.isMine
+    )
+}
+
+/// İsteme geri verilen görevin sahibi: kullanıcının görevinde adı, ad yoksa `promptUserLabel` (arayüzdeki "Sen" ya da
+/// "You" istemde başka bir konuşmacıya hitapla karışır); diğerlerinde saklanan sahip. Saf fonksiyondur.
+func promptTaskOwner(task: NoteTask, userName: String) -> String {
+    guard task.isMine else {
+        return task.owner
     }
-    return NoteTask(owner: userName.isEmpty ? owner : userName, description: task.description, dueDate: task.dueDate, isMine: true)
+    return userName.isEmpty ? promptUserLabel : userName
+}
+
+/// Not metnine sızan istem etiketini (`promptUserLabel`) kullanıcının adıyla (ad yoksa arayüzdeki "Sen") değiştirir.
+/// Saf fonksiyondur.
+func withoutPromptUserLabel(text: String, userName: String) -> String {
+    text.replacingOccurrences(of: promptUserLabel, with: userName.isEmpty ? speakerLabel(speaker: .me, person: nil) : userName)
 }
 
 /// Kullanıcının kendi notları için kural (sistem istemine) ve metin bloğu (kullanıcı metninin başına); not yoksa ikisi
@@ -129,7 +158,7 @@ public func meetingNoteRequest(
     guard !transcript.isEmpty else {
         return nil
     }
-    let user: String = userName.isEmpty ? "kullanıcı" : userName
+    let user: String = userName.isEmpty ? promptUnnamedUser : userName
     let mine: (rule: String, block: String) = myNotesPrompt(myNotes: myNotes)
     return LLMRequest(
         purpose: .note,
@@ -138,7 +167,7 @@ public func meetingNoteRequest(
         Bir toplantının (Fince, İngilizce ya da başka bir dilde) transkriptinden \(language.promptName) dilinde toplantı notu
         çıkarıyorsun. Not, toplantıyı kaçıran birinin ne konuşulduğunu, neyin neden kararlaştırıldığını, kimin neyi ne zamana
         kadar yapacağını ve neyin açık kaldığını aklında soru kalmadan anlamasını sağlar; her bilgisi transkripte uyar.
-        Kullanıcının adı \(user); transkriptte "Sen" odur. Yaz:
+        \(promptUserRule(userName: userName)) Yaz:
         - baslik: kısa başlık.
         - ozet: toplantının özü, öne çıkan sayı, tarih, ad ve gerekçeleriyle (kısa toplantıda bir paragraf, uzunda birkaç).
         - \(decisionsRule(language: language))

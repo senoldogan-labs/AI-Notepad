@@ -46,8 +46,9 @@ public struct ArchiveAnswer: Sendable, Equatable {
 let archivePassageChars: Int = 1500
 
 /// Arşivin parçaları: her toplantının notu (başlık, özet, kararlar, görevler, sözlük) ve transkripti (konuşmacılı
-/// satırlar, `archivePassageChars`'lık parçalar). Saf fonksiyondur.
-public func archivePassages(records: [MeetingRecord]) -> [ArchivePassage] {
+/// satırlar, `archivePassageChars`'lık parçalar). `userLabel` kullanıcının satır etiketi: Sor isteminde
+/// `promptUserLabel`, MCP'de arayüzdeki "Sen". Saf fonksiyondur.
+public func archivePassages(records: [MeetingRecord], userLabel: String) -> [ArchivePassage] {
     records.flatMap { (record: MeetingRecord) -> [ArchivePassage] in
         let title: String = record.note?.title ?? record.title
         let note: [ArchivePassage] = record.note.map { (note: MeetingNote) -> [ArchivePassage] in
@@ -59,7 +60,7 @@ public func archivePassages(records: [MeetingRecord]) -> [ArchivePassage] {
             return [ArchivePassage(id: "\(record.id)-note", meetingID: record.id, meetingTitle: title, meetingDate: record.startedAt, kind: .note, startSec: 0, text: lines.joined(separator: "\n"))]
         } ?? []
         let lines: [(start: Double, text: String)] = transcriptParagraphs(record: record).map { (paragraph: TranscriptParagraph) -> (start: Double, text: String) in
-            (paragraph.startSec, "[\(timestamp(seconds: paragraph.startSec))] \(paragraphLabel(paragraph: paragraph, speakerNames: record.speakerNames)): \(paragraph.text)")
+            (paragraph.startSec, "[\(timestamp(seconds: paragraph.startSec))] \(paragraph.speaker == .me && paragraph.person == nil ? userLabel : paragraphLabel(paragraph: paragraph, speakerNames: record.speakerNames)): \(paragraph.text)")
         }
         let groups: [[(start: Double, text: String)]] = lines.reduce(into: [[(start: Double, text: String)]]()) { (groups: inout [[(start: Double, text: String)]], line: (start: Double, text: String)) -> Void in
             if let last = groups.last, last.map(\.text.count).reduce(0, +) + line.text.count <= archivePassageChars {
@@ -355,7 +356,7 @@ public func archiveAnswerRequest(
         purpose: .askAnswer,
         tier: .smart,
         system: """
-        Kullanıcının (\(user); transkriptte "Sen") toplantı arşivinden soru cevaplıyorsun. Bugün \(formatter.string(from: now)).
+        Kullanıcının (\(user)) toplantı arşivinden soru cevaplıyorsun. \(promptUserRule(userName: userName)) Bugün \(formatter.string(from: now)).
         Kurallar:
         - Toplantılara dair her bilgi yalnızca verilen parçalara dayanır; parçalarda cevap yoksa bunu açıkça söyle, uydurma.
           Hangi toplantıda (adı ve tarihi) geçtiğini belirt.
@@ -510,7 +511,7 @@ public func questionPassages(question: String, terms: [String], history: [Archiv
     // Devam sorusunda son turun kaynakları da okunur ("bunu" o parçalardadır); aramayla gelenler kalan yere sığar.
     let carried: [ArchivePassage] = carriedPassages(history: history, meetingIDs: Set(records.map(\.id)), maxChars: maxChars / 3)
     let found: [ArchivePassage] = relevantPassages(
-        passages: archivePassages(records: records).filter { !carried.map(\.id).contains($0.id) }, terms: terms + [question],
+        passages: archivePassages(records: records, userLabel: promptUserLabel).filter { !carried.map(\.id).contains($0.id) }, terms: terms + [question],
         maxChars: maxChars - carried.map(\.text.count).reduce(0, +)
     )
     return chronological(passages: carried + found)
@@ -568,7 +569,7 @@ public func askArchive(
     await onProgress(.passages(passages))
     // Kapsamda yalnız arama terimleri sayılır: sorunun genel sözcükleri ("toplantı", "neler") her parçayla eşleşirdi.
     let coverage: ArchiveCoverage = archiveCoverage(
-        read: passages, candidates: stronglyMatchedPassages(passages: archivePassages(records: records), terms: terms)
+        read: passages, candidates: stronglyMatchedPassages(passages: archivePassages(records: records, userLabel: promptUserLabel), terms: terms)
     )
     return try await answerFromPassages(
         question: question, passages: passages, coverage: coverage, records: records, screens: screens, history: history, userName: userName, language: language, llm: llm,
@@ -584,7 +585,7 @@ public func askAboutMeetings(
     screens: ArchiveScreensPlan, webSearch: Bool, now: Date, onProgress: ArchiveProgressHandler
 ) async throws -> ArchiveAnswer {
     let records: [MeetingRecord] = namedRecords(records: storedRecords, userName: userName)
-    let all: [ArchivePassage] = archivePassages(records: records)
+    let all: [ArchivePassage] = archivePassages(records: records, userLabel: promptUserLabel)
     guard all.map(\.text.count).reduce(0, +) > maxChars else {
         await onProgress(.searchTerms([]))
         let passages: [ArchivePassage] = chronological(passages: all)

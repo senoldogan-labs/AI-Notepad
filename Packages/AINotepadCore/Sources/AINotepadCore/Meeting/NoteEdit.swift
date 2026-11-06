@@ -12,7 +12,7 @@ public func noteEditRequest(
             userName: userName, language: language, sourceRule: "Yeni bilgi gerekirse yalnızca transkriptten al, uydurma."
         ),
         userText: """
-        \(noteEditInstructionAndNote(note: note, instruction: instruction))
+        \(noteEditInstructionAndNote(note: note, instruction: instruction, userName: userName))
 
         <transkript>
         \(storedLines(segments: segments, speakerNames: speakerNames))
@@ -35,7 +35,7 @@ public func noteOnlyEditRequest(note: MeetingNote, instruction: String, userName
             userName: userName, language: language,
             sourceRule: "Transkript verilmedi: yalnızca mevcut nottaki bilgiyi kullan; notta olmayan bilgi isteniyorsa ekleme, uydurma."
         ),
-        userText: noteEditInstructionAndNote(note: note, instruction: instruction),
+        userText: noteEditInstructionAndNote(note: note, instruction: instruction, userName: userName),
         maxTokens: 16000,
         jsonSchema: meetingNoteSchema,
         timeoutSec: 300,
@@ -45,9 +45,8 @@ public func noteOnlyEditRequest(note: MeetingNote, instruction: String, userName
 
 /// Not düzenleme isteğinin sistem metni; `sourceRule` yeni bilginin nereden alınacağını söyler. Saf fonksiyondur.
 private func noteEditSystem(userName: String, language: ShareLanguage, sourceRule: String) -> String {
-    let user: String = userName.isEmpty ? "kullanıcı" : userName
     return """
-    Bir toplantının notunu kullanıcının isteğine göre düzenliyorsun. Kullanıcının adı \(user). Yalnızca
+    Bir toplantının notunu kullanıcının isteğine göre düzenliyorsun. \(promptUserRule(userName: userName)) Yalnızca
     istenen değişikliği yap; istenmeyen bölümlerin (başlık, özet, kararlar, görevler, açık konular, sözlük, konu akışı)
     içeriğini aynen koru. Kararlar ve açık konularda satırın başındaki [mm:ss] zamanı zaman alanına yaz (değişmeyen
     satırda aynen, yeni satırda transkriptteki zaman; bilinmiyorsa boş).
@@ -62,9 +61,9 @@ private func noteEditSystem(userName: String, language: ShareLanguage, sourceRul
 }
 
 /// Not düzenleme isteğinde kullanıcının isteği ve mevcut not. Saf fonksiyondur.
-private func noteEditInstructionAndNote(note: MeetingNote, instruction: String) -> String {
+private func noteEditInstructionAndNote(note: MeetingNote, instruction: String, userName: String) -> String {
     let outline: String = (note.outline ?? []).map { "- [\(timestamp(seconds: $0.startSec))] \($0.title): \($0.summary)" }.joined(separator: "\n")
-    let tasks: String = note.tasks.map { "- \($0.owner) | \($0.description) | \($0.dueDate ?? "") | \($0.isMine ? "benim" : "başkası")" }.joined(separator: "\n")
+    let tasks: String = note.tasks.map { "- \(promptTaskOwner(task: $0, userName: userName)) | \($0.description) | \($0.dueDate ?? "") | \($0.isMine ? "benim" : "başkası")" }.joined(separator: "\n")
     return """
     <istek>
     \(instruction)
@@ -98,7 +97,7 @@ public func meetingNoteEditRequest(record: MeetingRecord, note: MeetingNote, ins
         )
     }
     let transcriptChars: Int = storedLines(segments: segments, speakerNames: record.speakerNames).count
-    let noteChars: Int = noteEditInstructionAndNote(note: note, instruction: instruction).count
+    let noteChars: Int = noteEditInstructionAndNote(note: note, instruction: instruction, userName: userName).count
     guard transcriptChars + noteChars <= limits.chunkChars + summaryChars else {
         return noteOnlyEditRequest(note: note, instruction: instruction, userName: userName, language: note.writtenLanguage)
     }

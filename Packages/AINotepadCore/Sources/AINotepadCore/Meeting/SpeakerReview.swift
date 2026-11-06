@@ -189,7 +189,6 @@ public func speakerReviewRequest(
     guard !persons.isEmpty else {
         return nil
     }
-    let user: String = userName.isEmpty ? "kullanıcı" : userName
     // Uzun toplantının transkripti sunucunun girdi sınırına sığacak kadar seçilir (bkz. `speakerReviewSegments`).
     let reviewed: [StoredSegment] = speakerReviewSegments(segments: segments, maxBytes: speakerReviewMaxTranscriptBytes)
     let named: [String] = persons.compactMap { (person: Int) -> String? in
@@ -199,8 +198,8 @@ public func speakerReviewRequest(
         purpose: .speakerReview,
         tier: .smart,
         system: """
-        Bir toplantının (Fince, İngilizce ya da başka bir dilde) transkriptinde otomatik konuşmacı ayırmayı gözden geçiriyorsun. "Sen" kullanıcıdır \
-        (\(user)); "Konuşmacı N" etiketleri sesten otomatik verilmiştir ve yanılabilir. Nedenleri ve açıklamaları \(language.promptName) dilinde yazarak:
+        Bir toplantının (Fince, İngilizce ya da başka bir dilde) transkriptinde otomatik konuşmacı ayırmayı gözden geçiriyorsun. \
+        \(promptUserRule(userName: userName)) "Konuşmacı N" etiketleri sesten otomatik verilmiştir ve yanılabilir. Nedenleri ve açıklamaları \(language.promptName) dilinde yazarak:
         1. adlar: hangi numaranın kim olduğu transkriptte açıkça anlaşılıyorsa (kendini tanıtma, adıyla hitap edilip o kişinin \
         cevap vermesi, imza gibi) ad öner. Yalnızca adı henüz verilmemiş ya da verilen adın yanlış olduğu açık olan numaralar için.
         2. birlestirmeler: iki numara açıkça aynı kişiyse (biri cümleyi öbürü tamamlıyor, kendinden aynı rol/ad ile söz ediyor, \

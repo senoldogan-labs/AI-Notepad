@@ -323,7 +323,7 @@ func deterministicScore(note: MeetingNote, fixture: NoteEvalFixture, expectation
         score.factsFound += containsAny(text: noteText, keywords: fact) ? 1 : 0
     }
     score.unsupportedNumbers = numberTokens(text: noteText).subtracting(numberTokens(text: transcript)).sorted()
-    let known: [String] = [fixture.userName, "Sen", "You"] + Array(fixture.speakerNames.values)
+    let known: [String] = [fixture.userName, "Sen", "You", promptUserLabel] + Array(fixture.speakerNames.values)
     score.unknownOwners = Set(note.tasks.map(\.owner)).filter { (owner: String) -> Bool in
         let isLabel: Bool = owner.wholeMatch(of: /(Konuşmacı|Speaker) \d+/) != nil
         return !isLabel && !known.contains { folded($0) == folded(owner) } && !folded(transcript).contains(folded(owner))
@@ -360,7 +360,7 @@ func noteJudgeRequest(fixture: NoteEvalFixture, note: MeetingNote) -> LLMRequest
         tier: .smart,
         system: """
         You are a strict reviewer of AI-written meeting notes. The note's goal: be as correct as possible, detailed where
-        it matters, and leave no question in a reader's head that the transcript could answer. The user ("Sen" in the
+        it matters, and leave no question in a reader's head that the transcript could answer. The user ("\(promptUserLabel)" in the
         transcript) is \(fixture.userName). Unnamed speakers appear as "Konuşmacı N"; the note may write them as
         "Konuşmacı N" or "Speaker N". Score each dimension from 1 (bad) to 5 (excellent):
         - accuracy: every statement is supported by the transcript (names, numbers, dates, owners, who said what). Any

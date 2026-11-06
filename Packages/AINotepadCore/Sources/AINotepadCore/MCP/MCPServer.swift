@@ -205,7 +205,7 @@ func callMCPTool(name: String, arguments: [String: JSONValue], records: [Meeting
         guard case .string(let query) = arguments["query"], !query.trimmingCharacters(in: .whitespaces).isEmpty else {
             return ("query is required", true)
         }
-        let passages: [ArchivePassage] = relevantPassages(passages: archivePassages(records: sorted), terms: [query], maxChars: 12_000)
+        let passages: [ArchivePassage] = relevantPassages(passages: archivePassages(records: sorted, userLabel: speakerLabel(speaker: .me, person: nil)), terms: [query], maxChars: 12_000)
         guard !searchTokens(text: query).isEmpty, !passages.isEmpty, passages.contains(where: { passage in
             searchTokens(text: query).contains { token in searchTokens(text: passage.text).contains { $0.hasPrefix(String(token.prefix(5))) } }
         }) else {

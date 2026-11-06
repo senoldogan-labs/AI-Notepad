@@ -13,7 +13,7 @@ func block(_ speaker: Speaker, _ index: Int, _ start: Double, _ text: String, pe
             block(.others, 1, 8, "Aloitetaan.", person: 1),
             block(.me, 0, 62, "Kiitos.", person: nil),
         ]
-        #expect(transcriptLines(segments: segments) == "[00:05] Konuşmacı 1: Hyvää huomenta.\n[00:08] Konuşmacı 1: Aloitetaan.\n[01:02] Sen: Kiitos.")
+        #expect(transcriptLines(segments: segments) == "[00:05] Konuşmacı 1: Hyvää huomenta.\n[00:08] Konuşmacı 1: Aloitetaan.\n[01:02] [Kullanıcı]: Kiitos.")
     }
 
     @Test func emptyWindowNeedsNoRequest() {
