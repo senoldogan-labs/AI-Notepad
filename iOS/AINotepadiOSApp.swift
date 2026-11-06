@@ -694,7 +694,7 @@ func askBase(path: [PhoneRoute]) -> [PhoneRoute] {
 /// Başlatma argümanlarından ilk sayfa yığını (görsel kontrol ve App Store görselleri için; yoksa ana ekran). Saf
 /// fonksiyondur.
 /// - `--sekme kayit|toplantilar|sor|gorevler|ayarlar`: eski sekmeler; kayıt ve toplantılar ana ekrandır.
-/// - `--ekran kitaplik|arama|kisiler|profil|asistan`: kitaplık, arama, kişiler, profil ya da yapay zekâ asistanı erişimi.
+/// - `--ekran kitaplik|arama|kisiler|profil|hesap|asistan`: kitaplık, arama, kişiler, profil, hesap ya da yapay zekâ asistanı erişimi.
 /// - `--toplanti <kimlik>`: toplantı bunların üstünde açılır.
 func launchPath(arguments: [String]) -> [PhoneRoute] {
     let base: [PhoneRoute] = launchValue(arguments: arguments, flag: "--sekme").map(launchTabRoutes(tab:))
@@ -729,6 +729,7 @@ private func launchScreenRoutes(screen: String) -> [PhoneRoute] {
     case "arama": [.search]
     case "kisiler": [.people]
     case "profil": [.settings, .profile]
+    case "hesap": [.settings, .account]
     case "asistan": [.settings, .assistantAccess]
     default: []
     }
@@ -738,6 +739,12 @@ private func launchScreenRoutes(screen: String) -> [PhoneRoute] {
 /// nil. Saf fonksiyondur.
 func launchConversationID(arguments: [String]) -> UUID? {
     launchValue(arguments: arguments, flag: "--sohbet").flatMap { UUID(uuidString: $0) }
+}
+
+/// `--ayar <bölüm>` başlatma argümanı: Ayarlar açılınca o bölüme kaydırılır (görsel kontrol için; ör. `konusmacilar`);
+/// yoksa nil. Saf fonksiyondur.
+func launchSettingsSection(arguments: [String]) -> String? {
+    launchValue(arguments: arguments, flag: "--ayar")
 }
 
 /// `--ekran klasorler`: kitaplık sayfası açık başlar (görsel kontrol için). Saf fonksiyondur.

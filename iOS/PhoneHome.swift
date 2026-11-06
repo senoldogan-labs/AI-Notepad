@@ -4,8 +4,8 @@ import SwiftUI
 
 /// Ana ekran (sekme çubuğu yok): solda kitaplık, sağda görevler, arama ve profil; büyük "Bugün" başlığı ve günün takvim
 /// toplantıları; gerektiğinde hesap, kullanım ve hata bildirimleri; sana düşen açık görevler; güne göre gruplu geçmiş
-/// toplantılar (henüz yoksa nasıl çalıştığı). Altta yüzen çubukta "Bir şey sor" ve büyük kayıt düğmesi; üstünde kayıt
-/// seçenekleri (dil, canlı çeviri, içe aktarma).
+/// toplantılar (henüz yoksa nasıl çalıştığı). Kayıt seçenekleri (dil, canlı çeviri, içe aktarma) başlıktaki günün
+/// altında küçük menü; altta yüzen çubukta yalnız "Bir şey sor" ve büyük kayıt düğmesi.
 struct PhoneHome: View {
     let recorder: PhoneRecorder
     let store: PhoneStore
@@ -91,7 +91,7 @@ struct PhoneHome: View {
         .task { recorder.refreshRecordingDiskSpace() }
     }
 
-    /// Büyük "Bugün" ve altında günün adı.
+    /// Büyük "Bugün", altında günün adı ve kayıt seçenekleri.
     private var todayHeader: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Bugün")
@@ -102,6 +102,8 @@ struct PhoneHome: View {
             Text(verbatim: longDayTitle(date: Date(), locale: interfaceLocale()))
                 .appFont(size: 15, weight: .regular)
                 .foregroundStyle(Theme.muted)
+            HomeRecordOptionsChip(recorder: recorder)
+                .padding(.top, 8)
         }
         .padding(.top, 8)
     }
@@ -398,16 +400,13 @@ func homeMeetingSubtitle(record: MeetingRecord, now: Date, calendar: Calendar, l
     return ([time] + minutes + state).joined(separator: " · ")
 }
 
-/// Ana ekranın altında yüzen çubuk: üstte kayıt seçenekleri (toplantı dili, canlı çeviri, içe aktarma; görünür, dokununca
-/// menü), altında "Bir şey sor" ve büyük kayıt düğmesi. Başlarken (konuşma modeli iniyorsa ilerlemesiyle) kısa durum.
+/// Ana ekranın altında yüzen çubuk: "Bir şey sor" ve büyük kayıt düğmesi; başlarken (konuşma modeli iniyorsa
+/// ilerlemesiyle) üstünde kısa durum.
 private struct HomeBottomBar: View {
     let recorder: PhoneRecorder
     let router: PhoneRouter
     let account: HostedAccount
-    @Environment(PhoneImportState.self) private var imports: PhoneImportState
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
-    /// Canlı çeviri (Ayarlar'daki gösterimle aynı ayar).
-    @AppStorage(PhoneSettingsKey.displayMode) private var displayMode: String = DisplayMode.bilingual.rawValue
 
     var body: some View {
         VStack(alignment: .trailing, spacing: 10) {
@@ -420,8 +419,6 @@ private struct HomeBottomBar: View {
                     .glassEffect(.regular, in: Capsule())
                     .frame(maxWidth: .infinity)
                     .transition(.opacity)
-            } else {
-                recordOptions
             }
             HStack(spacing: 12) {
                 Button {
@@ -448,19 +445,19 @@ private struct HomeBottomBar: View {
         .padding(.horizontal, 16)
         .padding(.top, 6)
         .padding(.bottom, 6)
-        // Altına kayan içerik çubuğun üstünde solmaya başlar ve kayıt seçenekleri hapının arkasında artık görünmez (hap
-        // liste satırının yazısıyla üst üste binmesin); durağan geçiş.
+        // Altına kayan içerik çubuğun hemen üstünde solar: cam düğmelerin arkasında liste yazısı okunmaz hâle gelmez;
+        // durağan geçiş.
         .background {
             LinearGradient(
                 stops: [
                     .init(color: Theme.background.opacity(0), location: 0),
-                    .init(color: Theme.background.opacity(0.97), location: 0.3),
+                    .init(color: Theme.background.opacity(0.9), location: 0.35),
                     .init(color: Theme.background, location: 1),
                 ],
                 startPoint: .top,
                 endPoint: .bottom
             )
-            .padding(.top, -28)
+            .padding(.top, -16)
             .ignoresSafeArea(edges: .bottom)
             .allowsHitTesting(false)
         }
@@ -494,8 +491,23 @@ private struct HomeBottomBar: View {
         .accessibilityHint(phoneStartBlockMessage(account: account, now: Date()).map { Text(verbatim: $0) } ?? Text("Odadaki toplantıyı dinler; bitince notu yazar."))
     }
 
-    /// Kayıt seçenekleri: seçili dil ve canlı çeviri görünür; dokununca dil, canlı çeviri ve içe aktarma menüsü.
-    private var recordOptions: some View {
+    /// Başlarken (cihaz içi konuşma modeli iniyorsa ilerlemesiyle) kısa durum.
+    private var startTitle: String {
+        recorder.speechModelProgress.map { (fraction: Double) -> String in
+            String(localized: "Konuşma modeli indiriliyor… \(fraction.formatted(.percent.precision(.fractionLength(0))))")
+        } ?? String(localized: "Başlatılıyor…")
+    }
+}
+
+/// Ana ekran başlığındaki kayıt seçenekleri: seçili toplantı dili ve canlı çeviri küçük bir çipte görünür; dokununca dil,
+/// canlı çeviri ve içe aktarma menüsü. Kayıt başlarken kapalı.
+private struct HomeRecordOptionsChip: View {
+    let recorder: PhoneRecorder
+    @Environment(PhoneImportState.self) private var imports: PhoneImportState
+    /// Canlı çeviri (Ayarlar'daki gösterimle aynı ayar).
+    @AppStorage(PhoneSettingsKey.displayMode) private var displayMode: String = DisplayMode.bilingual.rawValue
+
+    var body: some View {
         Menu {
             Section("Toplantı dili") {
                 Button("Otomatik") { recorder.languageMode = .automatic }
@@ -520,24 +532,19 @@ private struct HomeBottomBar: View {
                     .accessibilityHidden(true)
             }
             .appFont(size: 13, weight: .medium)
-            .foregroundStyle(Theme.muted)
+            .foregroundStyle(Theme.ink)
             .padding(.horizontal, 12)
             .padding(.vertical, 7)
-            .glassEffect(.regular.interactive(), in: Capsule())
+            .background(Theme.soft, in: Capsule())
+            .contentShape(Capsule())
         }
+        .disabled(recorder.phase == .starting)
         .accessibilityLabel(Text("Kayıt seçenekleri"))
     }
 
     /// Canlı çeviri açık mı (Ayarlar'daki gösterimle aynı ayar).
     private var liveTranslationOn: Bool {
         (DisplayMode(rawValue: displayMode) ?? .bilingual).needsLiveTranslation
-    }
-
-    /// Başlarken (cihaz içi konuşma modeli iniyorsa ilerlemesiyle) kısa durum.
-    private var startTitle: String {
-        recorder.speechModelProgress.map { (fraction: Double) -> String in
-            String(localized: "Konuşma modeli indiriliyor… \(fraction.formatted(.percent.precision(.fractionLength(0))))")
-        } ?? String(localized: "Başlatılıyor…")
     }
 }
 

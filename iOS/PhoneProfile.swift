@@ -98,5 +98,5 @@ struct PhoneAvatar: View {
 /// Profil simgesinin harfi: adın, yoksa e-postanın ilk harfi (büyük); ikisi de yoksa boş. Saf fonksiyondur.
 func phoneAvatarInitial(userName: String, email: String?) -> String {
     let source: String = userName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? (email ?? "") : userName
-    return meetingInitial(title: source)
+    return source.trimmingCharacters(in: .whitespacesAndNewlines).first.map { String($0).uppercased() } ?? ""
 }

@@ -104,9 +104,14 @@ Arguments (listed in AGENTS.md, defined in `iOS/`): `--tanitim` fake trial accou
 subscriber with invite code; `--paywall` subscription screen; `--sohbet <uuid>` a saved Ask chat; `--ornek-kayit`
 sample live recording, plus `--ornek-bitir` (finishing layer), `--ornek-duraklat` (paused), `--ornek-sinir` (offline,
 shortened by the monthly limit); `--ornek-takvim` sample upcoming meetings; there is no tab bar: `--sekme sor|gorevler|ayarlar` and `--ekran
-kitaplik|arama|kisiler|profil|asistan` open that screen over the home (`--ekran klasorler` the library sheet), `--toplanti <id>` a
+kitaplik|arama|kisiler|profil|hesap|asistan` open that screen over the home (`--ekran klasorler` the library sheet), `--toplanti <id>` a
 meeting; `--karsilama` first-run onboarding (with
 `--karsilama-adim <step>` and `--karsilama-ornek <canli|not>`).
+
+`--ayar konusmacilar` scrolls Settings to the speakers section. Without a working device tool, the `qa-*` raw scenes
+in `scripts/appstore-screenshots/config.ts` capture home, Settings › speakers, Account and a meeting page in light and
+dark (`npm --prefix scripts/appstore-screenshots run make -- --raw-only qa-home-light --raw-only qa-home-dark …`;
+output in `.build/appstore-screenshots/raw-only/`).
 
 StoreKit purchases cannot be tested this way (`xcodebuild`/`simctl` launches use the sandbox, see AGENTS.md).
 Check light and dark (`xcrun simctl ui booted appearance dark|light`) and every state the change touches.

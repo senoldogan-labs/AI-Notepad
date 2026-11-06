@@ -7,7 +7,8 @@
 // Kullanım (repo kökünden):
 //   npm --prefix scripts/appstore-screenshots run make                         # tüm set
 //   npm --prefix scripts/appstore-screenshots run make -- --scene live --scene note
-//   npm --prefix scripts/appstore-screenshots run make -- --raw-only <sahne>   # yalnız ham çekim (abonelik inceleme görseli)
+//   npm --prefix scripts/appstore-screenshots run make -- --raw-only <sahne>   # yalnız ham çekim (abonelik inceleme görseli;
+//                                                                             # birden çok --raw-only aynı açılışta çekilir)
 //   npm --prefix scripts/appstore-screenshots run make -- --compose-only       # son ham çekimlerden yalnız yeniden düzenle
 //
 // Çıktı (.build/appstore-screenshots/, repoya girmez):
@@ -74,7 +75,7 @@ interface SeedManifest {
 /** Komut satırından seçilen iş. */
 type Job =
   | { readonly kind: "full"; readonly scenes: readonly Scene[]; readonly chrome: string }
-  | { readonly kind: "raw-only"; readonly scene: RawScene }
+  | { readonly kind: "raw-only"; readonly scenes: readonly RawScene[] }
   | { readonly kind: "compose-only"; readonly scenes: readonly Scene[]; readonly chrome: string };
 
 /** Ayar dosyasının sorunları (boşsa geçerli). Saf fonksiyondur. */
@@ -150,18 +151,18 @@ function parseJob(argv: readonly string[]): Job {
     options: {
       chrome: { type: "string" },
       scene: { type: "string", multiple: true },
-      "raw-only": { type: "string" },
+      "raw-only": { type: "string", multiple: true },
       "compose-only": { type: "boolean" },
     },
     strict: true,
     allowPositionals: false,
   });
-  const rawOnly: string | undefined = values["raw-only"];
+  const rawOnly: readonly string[] | undefined = values["raw-only"];
   if (rawOnly !== undefined) {
     if (values.scene !== undefined || values["compose-only"] === true) {
       throw new ConfigError("--raw-only tek başına kullanılır (--scene ve --compose-only ile değil)");
     }
-    return { kind: "raw-only", scene: findScene<RawScene>([...scenes, ...rawScenes], rawOnly) };
+    return { kind: "raw-only", scenes: rawOnly.map((id: string) => findScene<RawScene>([...scenes, ...rawScenes], id)) };
   }
   const chrome: string | undefined = values.chrome;
   if (chrome === undefined || chrome === "") {
@@ -352,15 +353,17 @@ async function main(): Promise<void> {
       break;
     case "raw-only": {
       const directory: string = join(outputRoot, "raw-only");
-      const captures: ReadonlyMap<string, string> = await capture([job.scene], join(directory, "capture"));
-      const file: string | undefined = captures.get(job.scene.id);
-      if (file === undefined) {
-        throw new CaptureError(`${job.scene.id}: çekim yok`);
+      const captures: ReadonlyMap<string, string> = await capture(job.scenes, join(directory, "capture"));
+      for (const scene of job.scenes) {
+        const file: string | undefined = captures.get(scene.id);
+        if (file === undefined) {
+          throw new CaptureError(`${scene.id}: çekim yok`);
+        }
+        const output: string = join(directory, `${scene.id}.png`);
+        await writeFile(output, await flattenToSrgbPng(await readFile(file), simulator.screenWidth, simulator.screenHeight));
+        console.log(output);
       }
-      const output: string = join(directory, `${job.scene.id}.png`);
-      await writeFile(output, await flattenToSrgbPng(await readFile(file), simulator.screenWidth, simulator.screenHeight));
       await rm(join(directory, "capture"), { recursive: true, force: true });
-      console.log(output);
       break;
     }
   }
