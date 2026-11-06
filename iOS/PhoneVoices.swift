@@ -201,15 +201,23 @@ func phoneVoiceRecognitionEnabled() -> Bool {
     UserDefaults.standard.bool(forKey: PhoneSettingsKey.voiceRecognition)
 }
 
-/// Ayarlar › Konuşmacılar: sesinden tanıma (açılınca model indirilir, ilerleme ve boyutuyla), modelin durumu ve tanınan
-/// seslerin listesi. Liste, ayar kapalıyken de açılır (saklanan sesler her zaman silinebilsin).
-struct PhoneVoiceSettingsSection: View {
+/// Ayarlar › Sen ve konuşmacılar (Mac'teki aynı adlı grup): önce verilen satırlar (ad, tanıma sözlüğü), sonra sesinden
+/// tanıma (açılınca model indirilir, ilerleme ve boyutuyla), modelin durumu ve tanınan seslerin listesi. Liste, ayar
+/// kapalıyken de açılır (saklanan sesler her zaman silinebilsin).
+struct PhoneVoiceSettingsSection<LeadingRows: View>: View {
     let voices: PhoneVoices
+    let leadingRows: LeadingRows
     @AppStorage(PhoneSettingsKey.voiceRecognition) private var isEnabled: Bool = false
+
+    init(voices: PhoneVoices, @ViewBuilder leadingRows: () -> LeadingRows) {
+        self.voices = voices
+        self.leadingRows = leadingRows()
+    }
 
     var body: some View {
         Section {
-            Toggle("Konuşmacıları sesinden tanı", isOn: Binding<Bool>(
+            leadingRows
+            Toggle(isOn: Binding<Bool>(
                 get: { isEnabled },
                 set: { (enabled: Bool) -> Void in
                     isEnabled = enabled
@@ -221,7 +229,9 @@ struct PhoneVoiceSettingsSection: View {
                         voices.cancelDownload()
                     }
                 }
-            ))
+            )) {
+                PhoneSettingLabel(icon: "person.wave.2", title: Text("Konuşmacıları sesinden tanı"))
+            }
             if isEnabled {
                 modelRow
             }
@@ -233,11 +243,15 @@ struct PhoneVoiceSettingsSection: View {
                 NavigationLink {
                     PhoneRecognizedVoicesScreen(voices: voices)
                 } label: {
-                    LabeledContent("Tanınan sesler", value: "\(voices.registered.count)")
+                    LabeledContent {
+                        Text(verbatim: "\(voices.registered.count)")
+                    } label: {
+                        PhoneSettingLabel(icon: "person.crop.circle.badge.checkmark", title: Text("Tanınan sesler"))
+                    }
                 }
             }
         } header: {
-            Text("Konuşmacılar")
+            Text("Sen ve konuşmacılar")
         } footer: {
             Text("Ses izi (biyometrik veri) yalnız bu iPhone'da saklanır; ad verdiğin kişi sonraki toplantılarda sesinden tanınır. Başkalarının ses izini saklamadan önce onaylarını al.")
         }

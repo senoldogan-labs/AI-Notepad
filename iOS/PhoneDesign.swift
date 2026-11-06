@@ -34,6 +34,56 @@ struct PhoneSectionHeader: View {
     }
 }
 
+/// Ayar satırının etiketi: solda simge kutusu (Mac'teki ayar kartlarıyla aynı `SettingsIconTile`), başlık ve varsa altında
+/// tek cümlelik kısa açıklama. Anahtar, açılır seçim ve bağlantı satırlarının etiketi olarak kullanılır.
+struct PhoneSettingLabel<Detail: View>: View {
+    let icon: String
+    let title: Text
+    let detail: Detail
+
+    init(icon: String, title: Text, @ViewBuilder detail: () -> Detail) {
+        self.icon = icon
+        self.title = title
+        self.detail = detail()
+    }
+
+    init(icon: String, title: Text) where Detail == EmptyView {
+        self.init(icon: icon, title: title) { EmptyView() }
+    }
+
+    var body: some View {
+        Label {
+            VStack(alignment: .leading, spacing: 2) {
+                title
+                detail
+                    .appFont(size: 13, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        } icon: {
+            SettingsIconTile(systemImage: icon)
+        }
+    }
+}
+
+/// Simgeli ayar satırında açılır seçim (`MenuPickerRow`'un simgeli karşılığı): solda simge ve ad, sağda seçili değer.
+/// VoiceOver adı bir kez, seçimle birlikte okur.
+struct PhoneSettingMenuRow<Value: Hashable>: View {
+    let icon: String
+    let title: LocalizedStringKey
+    @Binding var selection: Value
+    let options: [MenuPickerOption<Value>]
+
+    var body: some View {
+        LabeledContent {
+            MenuPicker(title: title, selection: $selection, options: options, size: 15)
+        } label: {
+            PhoneSettingLabel(icon: icon, title: Text(title))
+                .accessibilityHidden(true)
+        }
+    }
+}
+
 /// Satır ve altında kısa açıklama (yalnız o satırı anlatan tek cümle; bölümü anlatan açıklama bölüm altına yazılır).
 struct PhoneCaptionedRow<Content: View>: View {
     let caption: Text

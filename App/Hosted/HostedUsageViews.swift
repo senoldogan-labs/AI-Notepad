@@ -113,10 +113,10 @@ struct HostedUsageCard: View {
                 paymentOverdue
             }
         }
-        .padding(18)
+        // Ayarlar › Hesap'taki Plan kartının bir satırı: kartı ve çizgiyi `SettingsGroup` çizer.
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .cardSurface(cornerRadius: 16)
-        .padding(.vertical, 12)
     }
 
     @ViewBuilder
