@@ -1207,6 +1207,7 @@ struct MeetingReadView: View {
         switch anchor {
         case .myTasks: noteSection = .tasks
         case .decisions: noteSection = .decisions
+        case .openQuestions: noteSection = .openQuestions
         case .sections: break
         }
         Task { @MainActor in
@@ -1252,12 +1253,21 @@ struct MeetingReadView: View {
                 }
                 if let note = record.note {
                     let decisions: Int = note.decisions.count
+                    let questions: Int = (note.openQuestions ?? []).count
                     let mine: Int = note.tasks.filter(\.isMine).count
                     if decisions > 0 {
                         Button {
                             reveal(anchor: .decisions, proxy: proxy)
                         } label: {
                             GlassChip(text: String(localized: "\(decisions) karar"), systemImage: "checkmark.seal")
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    if questions > 0 {
+                        Button {
+                            reveal(anchor: .openQuestions, proxy: proxy)
+                        } label: {
+                            GlassChip(text: String(localized: "\(questions) açık konu"), systemImage: "questionmark.circle")
                         }
                         .buttonStyle(.plain)
                     }
@@ -1435,7 +1445,10 @@ private struct MeetingSummary: View {
     private func sectionsPanel(note: MeetingNote) -> some View {
         let marked: [TranscriptParagraph] = markedParagraphs
         let outline: [OutlineItem] = note.outline ?? []
-        let counts: [NoteSectionTab: Int] = [.tasks: note.tasks.count, .outline: outline.count, .decisions: note.decisions.count, .moments: marked.count]
+        let counts: [NoteSectionTab: Int] = [
+            .tasks: note.tasks.count, .outline: outline.count, .decisions: note.decisions.count, .openQuestions: (note.openQuestions ?? []).count,
+            .moments: marked.count,
+        ]
         let available: [NoteSectionTab] = NoteSectionTab.allCases.filter { (counts[$0] ?? 0) > 0 }
         if let current = visibleNoteSection(requested: section, available: available) {
             VStack(alignment: .leading, spacing: 16) {
@@ -1456,6 +1469,7 @@ private struct MeetingSummary: View {
                     case .tasks: tasksSection(note: note)
                     case .outline: OutlineTimeline(items: outline, canPlay: canPlay, onPlay: onPlay)
                     case .decisions: decisionsSection(note: note)
+                    case .openQuestions: openQuestionsSection(note: note)
                     case .moments: momentsSection(marked: marked)
                     }
                 }
@@ -1497,21 +1511,45 @@ private struct MeetingSummary: View {
         .id(task.trackingKey)
     }
 
-    /// Kararlar: numaralı, ince çizgilerle ayrılmış.
+    /// Kararlar: numaralı, ince çizgilerle ayrılmış; alındığı an (yeni notlarda) metnin altında, dokununca oradan çalar.
     private func decisionsSection(note: MeetingNote) -> some View {
         HairlineList(items: Array(note.decisions.enumerated()), tint: nil) { (item: (offset: Int, element: String)) in
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
+            anchoredRow(line: anchoredLine(text: item.element)) {
                 Text(verbatim: "\(item.offset + 1)")
                     .appFont(size: 13, weight: .semibold)
                     .monospacedDigit()
                     .foregroundStyle(appearance.accent.color)
                     .frame(width: 18, alignment: .trailing)
-                Text(item.element)
-                    .readingText(size: 16, weight: .regular, lineSpacing: 3)
-                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(14)
         }
+    }
+
+    /// Açık konular: çözülmeyen ve takip gereken şeyler; konuşulduğu an metnin altında, dokununca oradan çalar.
+    private func openQuestionsSection(note: MeetingNote) -> some View {
+        HairlineList(items: note.openQuestions ?? [], tint: nil) { (question: String) in
+            anchoredRow(line: anchoredLine(text: question)) {
+                Image(systemName: "questionmark.circle")
+                    .appFont(size: 13, weight: .semibold)
+                    .foregroundStyle(appearance.accent.color)
+                    .frame(width: 18, alignment: .trailing)
+            }
+        }
+    }
+
+    /// Karar ya da açık konu satırı: solda işaret; metin ve altında (varsa) zaman çipi (dar ekranda metne yer kalsın).
+    private func anchoredRow<Marker: View>(line: AnchoredLine, @ViewBuilder marker: () -> Marker) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            marker()
+            VStack(alignment: .leading, spacing: 8) {
+                Text(line.text)
+                    .readingText(size: 16, weight: .regular, lineSpacing: 3)
+                if let start = line.startSec {
+                    NoteTimeChip(startSec: start, canPlay: canPlay, onPlay: onPlay)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(14)
     }
 
     /// İşaretlediğin anlar: dokununca oradan çalar; uzun basınca ses klibi.

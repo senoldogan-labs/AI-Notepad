@@ -1,0 +1,23 @@
+{
+  "noteLanguage": "tr",
+  "tasks": [
+    {"owner": "Elif", "keywords": ["kamera"], "dueStated": true},
+    {"owner": "Doğan", "keywords": ["mağaza"], "dueStated": true},
+    {"owner": "Mehmet", "keywords": ["zaman aşımı", "90"], "dueStated": true},
+    {"owner": "Doğan", "keywords": ["satın alma"], "dueStated": true},
+    {"owner": "Elif", "keywords": ["hukuk"], "dueStated": false}
+  ],
+  "decisions": [
+    {"keywords": ["android"], "fromSec": 60, "toSec": 150, "rationale": ["çökme", "2,1", "2.1", "eşi"]},
+    {"keywords": ["90 saniye", "90 sn", "zaman aşımı"], "fromSec": 170, "toSec": 240, "rationale": ["1.240", "başarısız", "hata", "iptal", "zaman aşımı al"]},
+    {"keywords": ["yük testi"], "fromSec": 260, "toSec": 320, "rationale": ["mühendislik", "iki hafta", "yatırımcı"]}
+  ],
+  "openQuestions": [
+    {"keywords": ["sağlayıcı"]},
+    {"keywords": ["sözleşme", "çıkış madde"]},
+    {"keywords": ["saklama"]},
+    {"keywords": ["yurt dışı", "aktarım"]},
+    {"keywords": ["test tarihi", "20 kasım", "21"]}
+  ],
+  "facts": [["2,1", "2.1"], ["18 kasım"], ["25 kasım"], ["1.240", "1240"], ["18.000", "18000", "18 bin"], ["90"], ["selin"]]
+}

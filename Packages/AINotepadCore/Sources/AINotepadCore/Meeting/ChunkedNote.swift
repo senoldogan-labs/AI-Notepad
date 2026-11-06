@@ -11,18 +11,28 @@ let noteChunkMaxChars: Int = 20_000
 public struct NoteChunk: Sendable, Equatable {
     /// Bu parçanın kısa özeti (sonraki parçalara bağlam, son özete malzeme).
     public let summary: String
+    /// Bu parçada alınan kararlar ("[mm:ss] karar, gerekçesi").
     public let decisions: [String]
     public let newTasks: [NoteTask]
     /// Önceki parçalardaki görevlerde değişiklik (numara 1'den başlar, bağlamdaki listeye göre).
     public let changedTasks: [TaskChange]
     public let glossary: [GlossaryEntry]
+    /// Bu parçada açık kalan yeni konular ("[mm:ss] konu").
+    public let openQuestions: [String]
+    /// Önceki parçaların açık konularından bu parçada çözülenlerin numaraları (1'den başlar, bağlamdaki listeye göre).
+    public let resolvedQuestions: [Int]
 
-    public init(summary: String, decisions: [String], newTasks: [NoteTask], changedTasks: [TaskChange], glossary: [GlossaryEntry]) {
+    public init(
+        summary: String, decisions: [String], newTasks: [NoteTask], changedTasks: [TaskChange], glossary: [GlossaryEntry], openQuestions: [String],
+        resolvedQuestions: [Int]
+    ) {
         self.summary = summary
         self.decisions = decisions
         self.newTasks = newTasks
         self.changedTasks = changedTasks
         self.glossary = glossary
+        self.openQuestions = openQuestions
+        self.resolvedQuestions = resolvedQuestions
     }
 }
 
@@ -42,22 +52,26 @@ public struct TaskChange: Sendable, Equatable {
     }
 }
 
-/// Parçalar işlendikçe biriken not.
+/// Parçalar işlendikçe biriken not. Açık konular bölümünden önce kaydedilmiş ilerleme dosyası çözülemez; not o zaman
+/// baştan yazılır (bkz. `loadedProgress`).
 public struct ChunkedNoteState: Sendable, Equatable, Codable {
     /// Parça başına "[mm:ss–mm:ss] özet".
     public let partSummaries: [String]
     public let decisions: [String]
     public let tasks: [NoteTask]
     public let glossary: [GlossaryEntry]
+    /// Şimdiye kadar açık kalan konular (sonraki parçada çözülen düşer).
+    public let openQuestions: [String]
 
-    public init(partSummaries: [String], decisions: [String], tasks: [NoteTask], glossary: [GlossaryEntry]) {
+    public init(partSummaries: [String], decisions: [String], tasks: [NoteTask], glossary: [GlossaryEntry], openQuestions: [String]) {
         self.partSummaries = partSummaries
         self.decisions = decisions
         self.tasks = tasks
         self.glossary = glossary
+        self.openQuestions = openQuestions
     }
 
-    public static let empty: ChunkedNoteState = ChunkedNoteState(partSummaries: [], decisions: [], tasks: [], glossary: [])
+    public static let empty: ChunkedNoteState = ChunkedNoteState(partSummaries: [], decisions: [], tasks: [], glossary: [], openQuestions: [])
 }
 
 /// Bölümleri (zamana göre sıralı) en fazla `maxChars` metin karakterlik parçalara böler. Sınırın son %20'sinde
@@ -83,6 +97,11 @@ public func noteChunks(segments: [StoredSegment], maxChars: Int) -> [[StoredSegm
         chunks.append(current)
     }
     return chunks
+}
+
+/// Numaralı liste satırları ("1. …"); liste boşsa "(yok)". Saf fonksiyondur.
+private func numberedLines(lines: [String]) -> String {
+    lines.isEmpty ? "(yok)" : lines.enumerated().map { "\($0.offset + 1). \($0.element)" }.joined(separator: "\n")
 }
 
 /// Görevin bağlamdaki satırı: "3. Aino — Raporu gönder (Cuma)". Saf fonksiyondur.
@@ -111,13 +130,16 @@ public func noteChunkRequest(
         \(partCount) parçanın \(part). parçasındasın. Önceki parçaların özetleri ve şimdiye kadar çıkan numaralı görevler bağlam
         olarak verilir; bu parçayı onlarla bağdaştırarak oku (önceden geçen kişi, konu ve işlere yapılan atıflar).
         Kullanıcının adı \(user); transkriptte "Sen" odur. Yalnızca bu parçadan yaz:
-        - ozet: bu parçada konuşulanların 2–5 cümlelik özeti.
-        - kararlar: bu parçada alınan kararlar (görevler buraya değil, görevlere).
+        - ozet: bu parçada konuşulanların 2–5 cümlelik özeti, öne çıkan sayı, tarih, ad ve gerekçeleriyle.
+        - \(decisionsRule(language: language))
         - yeniGorevler: bu parçada verilen yeni işler. Listede aynı iş (aynı kişi, aynı konu) zaten varsa yeniden yazma;
           başka bir konunun benzer işi yenidir.
         - degisenGorevler: listedeki bir görev bu parçada değiştiyse (tarih, kapsam) ya da iptal edildiyse numarasıyla yaz;
           aciklama ve tarih görevin güncel tam hali olur: değişmeyen açıklamayı ve tarihi aynen tekrarla (boş tarih eski
           tarihi korur).
+        - \(openQuestionsRule(language: language)) Yalnızca bu parçada açılan ve parça sonunda hâlâ açık olan yeni konular; listedeki
+          (<acik_konular>) bir konu zaten varsa yeniden yazma.
+        - cozulenKonular: <acik_konular> listesinden bu parçada çözülen ya da karara bağlananların numaraları.
         - sozluk: bu parçada geçen önemli yabancı dildeki terimler ve \(language.promptName) dilinde anlamları.
         \(noteRules(user: user, template: template, language: language))
         \(mine.rule)
@@ -132,20 +154,27 @@ public func noteChunkRequest(
         \(tasks)
         </gorevler>
 
+        <acik_konular>
+        \(numberedLines(lines: state.openQuestions))
+        </acik_konular>
+
         <transkript>
         \(storedLines(segments: chunk, speakerNames: speakerNames))
         </transkript>
+
+        \(outputLanguageReminder(language: language))
         """,
         maxTokens: 16000,
         jsonSchema: """
-        {"type":"object","properties":{"ozet":{"type":"string"},"kararlar":{"type":"array","items":{"type":"string"}},\
+        {"type":"object","properties":{"ozet":{"type":"string"},"kararlar":\(anchoredListSchema(field: "karar")),\
         "yeniGorevler":{"type":"array","items":{"type":"object","properties":{"sahip":{"type":"string"},"aciklama":{"type":"string"},\
         "tarih":{"type":"string"},"benimMi":{"type":"boolean"}},"required":["sahip","aciklama","tarih","benimMi"],"additionalProperties":false}},\
         "degisenGorevler":{"type":"array","items":{"type":"object","properties":{"no":{"type":"integer"},"aciklama":{"type":"string"},\
         "tarih":{"type":"string"},"iptal":{"type":"boolean"}},"required":["no","aciklama","tarih","iptal"],"additionalProperties":false}},\
+        "acikKonular":\(anchoredListSchema(field: "konu")),"cozulenKonular":{"type":"array","items":{"type":"integer"}},\
         "sozluk":{"type":"array","items":{"type":"object","properties":{"terim":{"type":"string"},"anlam":{"type":"string"}},\
         "required":["terim","anlam"],"additionalProperties":false}}},\
-        "required":["ozet","kararlar","yeniGorevler","degisenGorevler","sozluk"],"additionalProperties":false}
+        "required":["ozet","kararlar","yeniGorevler","degisenGorevler","acikKonular","cozulenKonular","sozluk"],"additionalProperties":false}
         """,
         timeoutSec: 300,
         images: [], webSearch: nil
@@ -166,17 +195,20 @@ public func parseNoteChunk(text: String) throws -> NoteChunk {
     }
     return NoteChunk(
         summary: raw.ozet,
-        decisions: raw.kararlar,
+        decisions: raw.kararlar.map(\.line),
         newTasks: raw.yeniGorevler.map { NoteTask(owner: $0.sahip, description: $0.aciklama, dueDate: $0.tarih.isEmpty ? nil : $0.tarih, isMine: $0.benimMi) },
         changedTasks: raw.degisenGorevler.map { TaskChange(number: $0.no, description: $0.aciklama, dueDate: $0.tarih.isEmpty ? nil : $0.tarih, isCancelled: $0.iptal) },
-        glossary: raw.sozluk.map { GlossaryEntry(term: $0.terim, meaning: $0.anlam) }
+        glossary: raw.sozluk.map { GlossaryEntry(term: $0.terim, meaning: $0.anlam) },
+        openQuestions: (raw.acikKonular ?? []).map(\.line),
+        resolvedQuestions: raw.cozulenKonular ?? []
     )
 }
 
 /// Parçayı birikmiş nota ekler: önce değişiklikler (numaralar bağlamdaki listeye göre; boş açıklama ya da tarih
 /// görevin eskisini korur, model yalnızca kapsamı ya da yalnızca tarihi değiştirdiğinde öbürü silinmesin), sonra
 /// iptaller düşer, yeni görevler ve kararlar sona eklenir, sözlükte aynı terim (büyük/küçük harf duyarsız) bir kez
-/// kalır. Listede olmayan numaraya değişiklik uygulanamaz, yok sayılır. Saf fonksiyondur.
+/// kalır. Listede olmayan numaraya değişiklik uygulanamaz, yok sayılır. Çözülen açık konular düşer, yenileri sona
+/// eklenir. Saf fonksiyondur.
 public func applyNoteChunk(state: ChunkedNoteState, chunk: NoteChunk, startSec: Double, endSec: Double) -> ChunkedNoteState {
     let changes: [Int: TaskChange] = Dictionary(chunk.changedTasks.map { ($0.number, $0) }) { (_: TaskChange, last: TaskChange) -> TaskChange in last }
     let updated: [NoteTask] = state.tasks.enumerated().compactMap { (item: (offset: Int, element: NoteTask)) -> NoteTask? in
@@ -199,12 +231,23 @@ public func applyNoteChunk(state: ChunkedNoteState, chunk: NoteChunk, startSec: 
             result.append(entry)
         }
     }
+    let resolved: Set<Int> = Set(chunk.resolvedQuestions)
+    let stillOpen: [String] = state.openQuestions.enumerated().filter { !resolved.contains($0.offset + 1) }.map(\.element)
     return ChunkedNoteState(
         partSummaries: state.partSummaries + ["[\(timestamp(seconds: startSec))–\(timestamp(seconds: endSec))] \(chunk.summary)"],
         decisions: state.decisions + chunk.decisions,
         tasks: updated + chunk.newTasks,
-        glossary: state.glossary + newTerms
+        glossary: state.glossary + newTerms,
+        openQuestions: stillOpen + chunk.openQuestions
     )
+}
+
+/// Uzun notun konu akışındaki bölüm sayısı aralığı: her parçadan en az bir bölüm (en az 5, en çok 20). Ölçümde 12'lik
+/// üst sınır 10'dan fazla parçalı toplantıda son parçaları tek bölüme sıkıştırıyordu. Saf fonksiyondur.
+func outlineRange(parts: Int) -> String {
+    let low: Int = min(max(parts, 5), 20)
+    let high: Int = min(max(parts * 2, 12), 20)
+    return low == high ? "\(low)" : "\(low)–\(high)"
 }
 
 /// Parçalar bitince başlık ve tüm toplantının özeti için istek (görev ve kararlar yalnızca bağlam; yeniden yazılmaz).
@@ -221,9 +264,14 @@ public func noteOverviewRequest(
         tier: .smart,
         system: """
         Uzun bir toplantının parça parça çıkarılmış notları veriliyor. Kullanıcının adı \(user). Tüm toplantı için
-        kısa bir başlık ve konuların akışını, alınan ana kararları ve kullanıcıya düşen önemli işleri anlatan birkaç
-        paragraflık özet yaz. Başlık, özet ve akış \(language.promptName) dilinde olur. akis alanına konuların sırasını yaz: her bölümün başladığı [mm:ss] zamanı (parça
-        özetlerindeki aralıklardan), kısa başlığı ve tek cümlelik özeti (5–12 bölüm). Notlarda olmayan bir şey uydurma. \(templateInstructions(template: template))
+        kısa bir başlık ve konuların akışını, alınan ana kararları ve gerekçelerini, açık kalan önemli konuları ve
+        kullanıcıya düşen önemli işleri anlatan birkaç paragraflık özet yaz. Özet toplantının başından sonuna her parçaya
+        ağırlığıyla orantılı yer verir: son parçaları kısaltma ya da atlama. Başlık, özet ve akış \(language.promptName)
+        dilinde olur. akis alanına konuların sırasını yaz: her bölümün başladığı [mm:ss] zamanı (parça özetlerindeki
+        aralıklardan), kısa başlığı ve tek cümlelik özeti; her parçadan en az bir bölüm, toplam \(outlineRange(parts: state.partSummaries.count)) bölüm.
+        Notlarda olmayan bir şey uydurma; sayı, tarih ve adları notlardaki gibi yaz. <acik_konular>'daki konuları
+        kesinleşmiş gibi yazma; bir kararın gerekçesini yalnızca <kararlar>'da yazıyorsa ver. "Konuşmacı N" etiketlerini
+        "\(speakerLabelWord(language: language)) N" biçiminde yaz. \(templateInstructions(template: template))
         \(mine.rule)
         \(screens.isEmpty ? "" : screenNotesRule(language: language))
         \(transcriptIsDataNote)
@@ -240,6 +288,10 @@ public func noteOverviewRequest(
         <gorevler>
         \(tasks.isEmpty ? "(yok)" : tasks)
         </gorevler>
+
+        <acik_konular>
+        \(state.openQuestions.isEmpty ? "(yok)" : state.openQuestions.map { "- \($0)" }.joined(separator: "\n"))
+        </acik_konular>
         """,
         maxTokens: 16000,
         jsonSchema: """
@@ -265,6 +317,7 @@ public func parseNoteOverview(text: String, state: ChunkedNoteState) throws -> M
         throw LLMError.empty
     }
     let note: MeetingNote = MeetingNote(title: raw.baslik, summary: raw.ozet, decisions: state.decisions, tasks: state.tasks, glossary: state.glossary)
+        .with(openQuestions: state.openQuestions)
     // Şemayı uygulamayan sunucular (ör. Ollama) akis'i atlayabilir; o zaman not akışsız yazılır.
     return raw.akis.map { note.with(outline: outlineItems(raw: $0)) } ?? note
 }
@@ -342,7 +395,7 @@ public func writeMeetingNote(
         let note: MeetingNote = try await requestStructured(provider: llm, request: request) { (text: String) throws -> MeetingNote in
             try parseMeetingNote(text: text)
         }
-        return withNormalizedTasks(note: note, userName: userName).with(language: language)
+        return withValidAnchors(note: withNormalizedTasks(note: note, userName: userName), durationSec: meetingEndSec(segments: segments)).with(language: language)
     }
     let chunks: [[StoredSegment]] = noteChunks(segments: segments, maxChars: limits.chunkChars)
     // Parça boyutu da parmak izine girer: sağlayıcı değişince parçalar farklıdır, kalınan yer geçersizdir.
@@ -366,10 +419,13 @@ public func writeMeetingNote(
             try parseNoteChunk(text: text)
         }
         // Bağlamdaki görev listesi de tutarlı olsun: sonraki parçalar kullanıcının görevlerini adıyla görür.
+        // Parçanın kararları ve açık konuları parçanın kendi aralığında olmalı (dışındaki an uydurmadır, atılır).
+        let partRange: ClosedRange<Double> = (chunk.first?.startSec ?? 0)...max(chunk.first?.startSec ?? 0, (chunk.last?.endSec ?? 0) + 1)
         let normalized: NoteChunk = NoteChunk(
-            summary: part.summary, decisions: part.decisions,
+            summary: part.summary, decisions: part.decisions.map { validAnchor(line: $0, range: partRange) },
             newTasks: part.newTasks.map { normalizedTask(task: $0, userName: userName) },
-            changedTasks: part.changedTasks, glossary: part.glossary
+            changedTasks: part.changedTasks, glossary: part.glossary,
+            openQuestions: part.openQuestions.map { validAnchor(line: $0, range: partRange) }, resolvedQuestions: part.resolvedQuestions
         )
         state = applyNoteChunk(state: state, chunk: normalized, startSec: chunk.first?.startSec ?? 0, endSec: chunk.last?.endSec ?? 0)
         saveProgress(progress: ChunkedNoteProgress(fingerprint: fingerprint, completedParts: index + 1, state: state), file: progressFile)
@@ -386,12 +442,17 @@ public func writeMeetingNote(
     } catch {
         noteLogger.error("Not ilerleme dosyası silinemedi, hata: \(String(describing: error), privacy: .private)")
     }
-    return withNormalizedTasks(note: note, userName: userName).with(language: language)
+    return withValidAnchors(note: withNormalizedTasks(note: note, userName: userName), durationSec: meetingEndSec(segments: segments)).with(language: language)
 }
 
-/// Notun görevlerinde sahibi düzeltilmiş kopya (bkz. `normalizedTask`); konu akışı ve dil korunur. Saf fonksiyondur.
+/// Toplantının son anı (saniye): en geç biten bölümün sonu. Saf fonksiyondur.
+func meetingEndSec(segments: [StoredSegment]) -> Double {
+    segments.map(\.endSec).max() ?? 0
+}
+
+/// Notun görevlerinde sahibi düzeltilmiş kopya (bkz. `normalizedTask`); konu akışı, açık konular ve dil korunur. Saf fonksiyondur.
 func withNormalizedTasks(note: MeetingNote, userName: String) -> MeetingNote {
-    let normalized: MeetingNote = MeetingNote(
+    note.with(
         title: note.title, summary: note.summary, decisions: note.decisions,
         tasks: note.tasks.map { normalizedTask(task: $0, userName: userName) }
             // Aynı sahip ve işle iki kez yazılan görev tek görev olur (aynı kimliği paylaşıp birlikte işaretlenmesinler).
@@ -402,16 +463,17 @@ func withNormalizedTasks(note: MeetingNote, userName: String) -> MeetingNote {
             },
         glossary: note.glossary
     )
-    let outlined: MeetingNote = note.outline.map { normalized.with(outline: $0) } ?? normalized
-    return note.language.map { outlined.with(language: $0) } ?? outlined
 }
 
 // Şemadaki Türkçe alan adları.
 private struct RawNoteChunk: Decodable {
     let ozet: String
-    let kararlar: [String]
+    let kararlar: [RawAnchored]
     let yeniGorevler: [RawChunkTask]
     let degisenGorevler: [RawTaskChange]
+    /// Şemayı uygulamayan sunucular (ör. Ollama) atlayabilir.
+    let acikKonular: [RawAnchored]?
+    let cozulenKonular: [Int]?
     let sozluk: [RawChunkGlossary]
 }
 

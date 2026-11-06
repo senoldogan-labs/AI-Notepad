@@ -1,0 +1,18 @@
+{
+  "noteLanguage": "tr",
+  "tasks": [
+    {"owner": "Doğan", "keywords": ["internet"], "dueStated": true},
+    {"owner": "Konuşmacı 1", "keywords": ["hukuk"], "dueStated": true},
+    {"owner": "Konuşmacı 2", "keywords": ["ev sahib", "artış"], "dueStated": false},
+    {"owner": "Konuşmacı 3", "keywords": ["teklif"], "dueStated": true}
+  ],
+  "decisions": [
+    {"keywords": ["maslak"], "fromSec": 60, "toSec": 90, "rationale": ["otopark", "ucuz", "geniş", "metrekare"]},
+    {"keywords": ["20 aralık"], "fromSec": 90, "toSec": 115, "rationale": ["internet", "hat", "yılbaşı", "pay"]}
+  ],
+  "openQuestions": [
+    {"keywords": ["artış"]},
+    {"keywords": ["mobilya"]}
+  ],
+  "facts": [["185.000", "185000", "185 bin"], ["160.000", "160000", "160 bin"], ["420"], ["31 aralık"], ["1 aralık"], ["4.000", "4000"]]
+}

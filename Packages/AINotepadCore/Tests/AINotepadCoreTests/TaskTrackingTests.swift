@@ -222,7 +222,7 @@ extension CloudTests {
             partSummaries: ["[00:00–50:00] Budjetti ja markkinointisuunnitelma käytiin läpi; aikataulu sovittiin."],
             decisions: ["Markkinointibudjetti kasvaa 10 %."],
             tasks: [NoteTask(owner: "Senol", description: "Aikataulun lähettäminen tiimille", dueDate: "perjantai", isMine: true)],
-            glossary: []
+            glossary: [], openQuestions: []
         )
         // `writeMeetingNote` parmak izine kendi notlarını ve parça boyutunu da katar.
         let fingerprint: String = noteFingerprint(

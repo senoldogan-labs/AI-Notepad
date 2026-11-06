@@ -160,6 +160,10 @@ describe("assistant projection", () => {
     expect(markdown).toContain("- [x] Linus: Update the hiring plan");
     expect(markdown).toContain("- 1:05 Travel: Cut by a fifth.");
     expect(markdown).toContain("## My notes");
+    expect(markdown).not.toContain("## Open questions");
+    const withQuestions: string = noteMarkdown({ ...projection, note: { ...projection.note!, openQuestions: ["[12:40] Who signs the contract?"] } });
+    expect(withQuestions).toContain("## Open questions\n\n- [12:40] Who signs the contract?");
+    expect(searchText({ ...projection, note: { ...projection.note!, openQuestions: ["Offsite venue unclear"] } })).toContain("Offsite venue unclear");
     expect(noteMarkdown({ ...projection, note: null, myNotes: null })).toContain("No note was written");
   });
 });
