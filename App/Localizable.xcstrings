@@ -77863,72 +77863,72 @@
         }
       }
     },
-    "Not hazır olunca Toplantılar'da görünür. Uygulamayı kapatırsan hazırlık sonraki açılışta sürer.": {
+    "Not hazır olunca ana ekranda görünür. Uygulamayı kapatırsan hazırlık sonraki açılışta sürer.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Die Notiz erscheint unter „Meetings“, sobald sie fertig ist. Wenn du die App schließt, wird die Vorbereitung beim nächsten Öffnen fortgesetzt."
+            "value": "Die Notiz erscheint auf dem Startbildschirm, sobald sie fertig ist. Wenn du die App schließt, wird die Vorbereitung beim nächsten Öffnen fortgesetzt."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The note appears in Meetings when it's ready. If you close the app, preparation continues the next time you open it."
+            "value": "The note appears on the home screen when it's ready. If you close the app, preparation continues the next time you open it."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "La nota aparecerá en Reuniones cuando esté lista. Si cierras la app, la preparación continuará la próxima vez que la abras."
+            "value": "La nota aparecerá en la pantalla de inicio cuando esté lista. Si cierras la app, la preparación continuará la próxima vez que la abras."
           }
         },
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Muistiinpano näkyy Kokouksissa, kun se on valmis. Jos suljet sovelluksen, valmistelu jatkuu, kun avaat sen seuraavan kerran."
+            "value": "Muistiinpano näkyy aloitusnäkymässä, kun se on valmis. Jos suljet sovelluksen, valmistelu jatkuu, kun avaat sen seuraavan kerran."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "La note apparaît dans Réunions lorsqu’elle est prête. Si vous fermez l’app, la préparation reprend à la prochaine ouverture."
+            "value": "La note apparaît sur l’écran d’accueil lorsqu’elle est prête. Si vous fermez l’app, la préparation reprend à la prochaine ouverture."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "La nota appare in Riunioni quando è pronta. Se chiudi l’app, la preparazione continua alla prossima apertura."
+            "value": "La nota appare nella schermata principale quando è pronta. Se chiudi l’app, la preparazione continua alla prossima apertura."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "ノートは準備ができると「会議」に表示されます。アプリを閉じた場合は、次に開いたときに準備が続行されます。"
+            "value": "ノートは準備ができるとホーム画面に表示されます。アプリを閉じた場合は、次に開いたときに準備が続行されます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "노트가 준비되면 회의에 표시됩니다. 앱을 닫아도 다음에 열 때 준비가 계속됩니다."
+            "value": "노트가 준비되면 홈 화면에 표시됩니다. 앱을 닫아도 다음에 열 때 준비가 계속됩니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "De notitie verschijnt in Vergaderingen als ze klaar is. Als je de app sluit, gaat het voorbereiden verder de volgende keer dat je hem opent."
+            "value": "De notitie verschijnt op het startscherm als ze klaar is. Als je de app sluit, gaat het voorbereiden verder de volgende keer dat je hem opent."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "A nota aparece em Reuniões quando estiver pronta. Se você fechar o app, a preparação continua na próxima vez que você abri-lo."
+            "value": "A nota aparece na tela inicial quando estiver pronta. Se você fechar o app, a preparação continua na próxima vez que você abri-lo."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "笔记准备好后会显示在“会议”中。如果你关闭 App，下次打开时会继续准备。"
+            "value": "笔记准备好后会显示在主屏幕上。如果你关闭 App，下次打开时会继续准备。"
           }
         }
       }
@@ -137505,72 +137505,72 @@
         }
       }
     },
-    "Sıradaki toplantılar Kayıt'ta görünür; kayıt toplantının adını ve kişilerini alır.": {
+    "Sıradaki toplantılar ana ekranda görünür; kayıt toplantının adını ve kişilerini alır.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Anstehende Meetings erscheinen unter „Aufnehmen“; eine Aufnahme übernimmt Name und Teilnehmende des Meetings."
+            "value": "Anstehende Meetings erscheinen auf dem Startbildschirm; eine Aufnahme übernimmt Name und Teilnehmende des Meetings."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Upcoming meetings show on Record; a recording takes the meeting's name and attendees."
+            "value": "Upcoming meetings show on the home screen; a recording takes the meeting's name and attendees."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Las próximas reuniones aparecen en Grabar; una grabación toma el nombre y los asistentes de la reunión."
+            "value": "Las próximas reuniones aparecen en la pantalla de inicio; una grabación toma el nombre y los asistentes de la reunión."
           }
         },
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tulevat kokoukset näkyvät Nauhoita-välilehdellä; nauhoitus saa kokouksen nimen ja osallistujat."
+            "value": "Tulevat kokoukset näkyvät aloitusnäkymässä; nauhoitus saa kokouksen nimen ja osallistujat."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Les réunions à venir s’affichent dans Enregistrer ; un enregistrement reprend le nom et les participants de la réunion."
+            "value": "Les réunions à venir s’affichent sur l’écran d’accueil ; un enregistrement reprend le nom et les participants de la réunion."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Le prossime riunioni appaiono in Registra; una registrazione prende il nome e i partecipanti della riunione."
+            "value": "Le prossime riunioni appaiono nella schermata principale; una registrazione prende il nome e i partecipanti della riunione."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "今後の会議は「録音」に表示されます。録音には会議の名前と参加者が使われます。"
+            "value": "今後の会議はホーム画面に表示されます。録音には会議の名前と参加者が使われます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "예정된 회의가 녹음 화면에 표시됩니다. 녹음에는 회의 이름과 참석자가 적용됩니다."
+            "value": "예정된 회의가 홈 화면에 표시됩니다. 녹음에는 회의 이름과 참석자가 적용됩니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Komende vergaderingen staan op Opnemen; een opname neemt de naam en deelnemers van de vergadering over."
+            "value": "Komende vergaderingen staan op het startscherm; een opname neemt de naam en deelnemers van de vergadering over."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "As próximas reuniões aparecem em Gravar; uma gravação recebe o nome e os participantes da reunião."
+            "value": "As próximas reuniões aparecem na tela inicial; uma gravação recebe o nome e os participantes da reunião."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "即将开始的会议会显示在“录制”中；录音会采用会议的名称和参与者。"
+            "value": "即将开始的会议会显示在主屏幕上；录音会采用会议的名称和参与者。"
           }
         }
       }
@@ -155025,72 +155025,72 @@
         }
       }
     },
-    "Örnek toplantı Toplantılar'da; istediğin zaman silebilirsin.": {
+    "Örnek toplantı ana ekranda; istediğin zaman silebilirsin.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Das Beispiel-Meeting ist unter „Meetings“; lösch es, wann immer du willst."
+            "value": "Das Beispiel-Meeting ist auf dem Startbildschirm; lösch es, wann immer du willst."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The sample meeting is in Meetings; delete it whenever you like."
+            "value": "The sample meeting is on the home screen; delete it whenever you like."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "La reunión de ejemplo está en Reuniones; elimínala cuando quieras."
+            "value": "La reunión de ejemplo está en la pantalla de inicio; elimínala cuando quieras."
           }
         },
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Esimerkkikokous on Kokouksissa; voit poistaa sen milloin haluat."
+            "value": "Esimerkkikokous on aloitusnäkymässä; voit poistaa sen milloin haluat."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "La réunion d’exemple se trouve dans Réunions ; supprimez-la quand vous voulez."
+            "value": "La réunion d’exemple se trouve sur l’écran d’accueil ; supprimez-la quand vous voulez."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "La riunione di esempio è in Riunioni; eliminala quando vuoi."
+            "value": "La riunione di esempio è nella schermata principale; eliminala quando vuoi."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "サンプル会議は「会議」にあります。いつでも削除できます。"
+            "value": "サンプル会議はホーム画面にあります。いつでも削除できます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "샘플 회의는 회의에 있습니다. 언제든지 삭제할 수 있습니다."
+            "value": "샘플 회의는 홈 화면에 있습니다. 언제든지 삭제할 수 있습니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "De voorbeeldvergadering staat in Vergaderingen; verwijder deze wanneer je wilt."
+            "value": "De voorbeeldvergadering staat op het startscherm; verwijder deze wanneer je wilt."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "A reunião de exemplo está em Reuniões; apague quando quiser."
+            "value": "A reunião de exemplo está na tela inicial; apague quando quiser."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "示例会议在“会议”中；你可以随时删除它。"
+            "value": "示例会议在主屏幕上；你可以随时删除它。"
           }
         }
       }
@@ -155515,72 +155515,72 @@
         }
       }
     },
-    "Toplantılar'da seni bekliyor; istediğin zaman silebilirsin.": {
+    "Ana ekranda seni bekliyor; istediğin zaman silebilirsin.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Es wartet unter „Meetings“; lösch es, wann immer du willst."
+            "value": "Es wartet auf dem Startbildschirm; lösch es, wann immer du willst."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "It's waiting in Meetings; delete it whenever you like."
+            "value": "It's waiting on the home screen; delete it whenever you like."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Te espera en Reuniones; elimínala cuando quieras."
+            "value": "Te espera en la pantalla de inicio; elimínala cuando quieras."
           }
         },
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Se odottaa Kokouksissa; voit poistaa sen milloin haluat."
+            "value": "Se odottaa aloitusnäkymässä; voit poistaa sen milloin haluat."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Elle vous attend dans Réunions ; supprimez-la quand vous voulez."
+            "value": "Elle vous attend sur l’écran d’accueil ; supprimez-la quand vous voulez."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ti aspetta in Riunioni; eliminala quando vuoi."
+            "value": "Ti aspetta nella schermata principale; eliminala quando vuoi."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "「会議」にあります。いつでも削除できます。"
+            "value": "ホーム画面にあります。いつでも削除できます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "회의에서 기다리고 있습니다. 언제든지 삭제할 수 있습니다."
+            "value": "홈 화면에서 기다리고 있습니다. 언제든지 삭제할 수 있습니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hij wacht op je in Vergaderingen; verwijder hem wanneer je wilt."
+            "value": "Hij wacht op je op het startscherm; verwijder hem wanneer je wilt."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ela espera por você em Reuniões; apague quando quiser."
+            "value": "Ela espera por você na tela inicial; apague quando quiser."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "它在“会议”中等你；你可以随时删除它。"
+            "value": "它在主屏幕上等你；你可以随时删除它。"
           }
         }
       }
@@ -155865,72 +155865,72 @@
         }
       }
     },
-    "Önümüzdeki gün takviminde toplantı yok; eklenince burada ve Kayıt'ta görünür.": {
+    "Önümüzdeki gün takviminde toplantı yok; eklenince burada ve ana ekranda görünür.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Keine Meetings in deinem Kalender für den nächsten Tag; neue erscheinen hier und unter „Aufnehmen“."
+            "value": "Keine Meetings in deinem Kalender für den nächsten Tag; neue erscheinen hier und auf dem Startbildschirm."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No meetings on your calendar for the next day; new ones appear here and in Record."
+            "value": "No meetings on your calendar for the next day; new ones appear here and on the home screen."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No hay reuniones en tu calendario para el próximo día; las nuevas aparecen aquí y en Grabar."
+            "value": "No hay reuniones en tu calendario para el próximo día; las nuevas aparecen aquí y en la pantalla de inicio."
           }
         },
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kalenterissasi ei ole kokouksia seuraavan vuorokauden aikana; uudet näkyvät täällä ja Nauhoita-välilehdellä."
+            "value": "Kalenterissasi ei ole kokouksia seuraavan vuorokauden aikana; uudet näkyvät täällä ja aloitusnäkymässä."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aucune réunion dans votre calendrier pour le jour à venir ; les nouvelles apparaissent ici et dans Enregistrer."
+            "value": "Aucune réunion dans votre calendrier pour le jour à venir ; les nouvelles apparaissent ici et sur l’écran d’accueil."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nessuna riunione nel tuo calendario per il prossimo giorno; quelle nuove compaiono qui e in Registra."
+            "value": "Nessuna riunione nel tuo calendario per il prossimo giorno; quelle nuove compaiono qui e nella schermata principale."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "今後1日、カレンダーに会議はありません。新しい会議はここと「録音」に表示されます。"
+            "value": "今後1日、カレンダーに会議はありません。新しい会議はこことホーム画面に表示されます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "앞으로 하루 동안 캘린더에 회의가 없습니다. 새 회의는 여기와 녹음에 표시됩니다."
+            "value": "앞으로 하루 동안 캘린더에 회의가 없습니다. 새 회의는 여기와 홈 화면에 표시됩니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Geen vergaderingen in je agenda voor de komende dag; nieuwe verschijnen hier en in Opnemen."
+            "value": "Geen vergaderingen in je agenda voor de komende dag; nieuwe verschijnen hier en op het startscherm."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nenhuma reunião no seu calendário para o próximo dia; as novas aparecem aqui e em Gravar."
+            "value": "Nenhuma reunião no seu calendário para o próximo dia; as novas aparecem aqui e na tela inicial."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "未来一天你的日历中没有会议；新会议会显示在这里和“录制”中。"
+            "value": "未来一天你的日历中没有会议；新会议会显示在这里和主屏幕上。"
           }
         }
       }
@@ -156285,72 +156285,72 @@
         }
       }
     },
-    "Kayıt sekmesindeki büyük düğme, Denetim Merkezi ya da Eylem düğmesi.": {
+    "Ana ekrandaki büyük mikrofon düğmesi, Denetim Merkezi ya da Eylem düğmesi.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Die große Taste im Tab „Aufnehmen“, das Kontrollzentrum oder die Aktionstaste."
+            "value": "Die große Mikrofontaste auf dem Startbildschirm, das Kontrollzentrum oder die Aktionstaste."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The big button on the Record tab, Control Center or the Action button."
+            "value": "The big microphone button on the home screen, Control Center or the Action button."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "El botón grande de la pestaña Grabar, el centro de control o el botón de acción."
+            "value": "El botón grande del micrófono en la pantalla de inicio, el centro de control o el botón de acción."
           }
         },
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nauhoita-välilehden iso painike, Ohjauskeskus tai Toimintopainike."
+            "value": "Aloitusnäkymän iso mikrofonipainike, Ohjauskeskus tai Toimintopainike."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Le grand bouton de l’onglet Enregistrer, le centre de contrôle ou le bouton Action."
+            "value": "Le grand bouton micro de l’écran d’accueil, le centre de contrôle ou le bouton Action."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Il pulsante grande nella scheda Registra, Centro di Controllo o il tasto Azione."
+            "value": "Il grande pulsante del microfono nella schermata principale, Centro di Controllo o il tasto Azione."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "「録音」タブの大きなボタン、コントロールセンター、またはアクションボタン。"
+            "value": "ホーム画面の大きなマイクボタン、コントロールセンター、またはアクションボタン。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "녹음 탭의 큰 버튼, 제어 센터 또는 동작 버튼."
+            "value": "홈 화면의 큰 마이크 버튼, 제어 센터 또는 동작 버튼."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "De grote knop op het tabblad Opnemen, het bedieningspaneel of de actieknop."
+            "value": "De grote microfoonknop op het startscherm, het bedieningspaneel of de actieknop."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "O botão grande na aba Gravar, a Central de Controle ou o botão de Ação."
+            "value": "O botão grande de microfone na tela inicial, a Central de Controle ou o botão de Ação."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "“录制”标签页中的大按钮、控制中心或操作按钮。"
+            "value": "主屏幕上的大麦克风按钮、控制中心或操作按钮。"
           }
         }
       }

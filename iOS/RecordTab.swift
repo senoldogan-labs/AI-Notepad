@@ -1149,7 +1149,7 @@ struct PreparingCard: View {
                         .foregroundStyle(item.offset > step.rawValue ? Theme.muted : Theme.ink)
                 }
             }
-            Text("Not hazır olunca Toplantılar'da görünür. Uygulamayı kapatırsan hazırlık sonraki açılışta sürer.")
+            Text("Not hazır olunca ana ekranda görünür. Uygulamayı kapatırsan hazırlık sonraki açılışta sürer.")
                 .appFont(size: 12, weight: .regular)
                 .foregroundStyle(Theme.muted)
         }

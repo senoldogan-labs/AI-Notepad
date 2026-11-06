@@ -358,7 +358,7 @@ private struct PhoneCalendarStep: View {
             .accessibilityElement(children: .combine)
             OnboardingCard {
                 if upcoming.isEmpty {
-                    Text("Önümüzdeki gün takviminde toplantı yok; eklenince burada ve Kayıt'ta görünür.")
+                    Text("Önümüzdeki gün takviminde toplantı yok; eklenince burada ve ana ekranda görünür.")
                         .appFont(size: 14, weight: .regular)
                         .foregroundStyle(Theme.muted)
                         .fixedSize(horizontal: false, vertical: true)
@@ -662,7 +662,7 @@ private struct PhoneSampleMeetingStep: View {
                 NoticeText(saveProblem as String, severity: .error)
                     .appFont(size: 13, weight: .regular)
             } else {
-                Label("Örnek toplantı Toplantılar'da; istediğin zaman silebilirsin.", systemImage: "tray.full")
+                Label("Örnek toplantı ana ekranda; istediğin zaman silebilirsin.", systemImage: "tray.full")
                     .appFont(size: 13, weight: .regular)
                     .foregroundStyle(Theme.muted)
             }
@@ -747,14 +747,14 @@ private struct PhoneReadyStep: View {
 
     var body: some View {
         OnboardingCard {
-            pointer(symbol: "record.circle", title: "Kayıt", text: "Kayıt sekmesindeki büyük düğme, Denetim Merkezi ya da Eylem düğmesi.")
+            pointer(symbol: "record.circle", title: "Kayıt", text: "Ana ekrandaki büyük mikrofon düğmesi, Denetim Merkezi ya da Eylem düğmesi.")
             OnboardingRowDivider()
             pointer(symbol: "hand.raised.fill", title: "Önce haber ver", text: "Kayıt başlarken katılımcılara söylemeyi hatırlatır.")
             OnboardingRowDivider()
             pointer(symbol: "bubble.left.and.text.bubble.right", title: "Sor ve tarifler", text: "Toplantılarına soru sor; sık sorduğunu tarif olarak kaydet, \"/\" ile çalıştır.")
             if hasSampleMeeting {
                 OnboardingRowDivider()
-                pointer(symbol: "doc.text", title: "Örnek toplantı", text: "Toplantılar'da seni bekliyor; istediğin zaman silebilirsin.")
+                pointer(symbol: "doc.text", title: "Örnek toplantı", text: "Ana ekranda seni bekliyor; istediğin zaman silebilirsin.")
             }
         }
     }

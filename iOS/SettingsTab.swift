@@ -323,7 +323,7 @@ private struct CalendarSettingsSection: View {
         } header: {
             Text("Takvim")
         } footer: {
-            Text("Sıradaki toplantılar Kayıt'ta görünür; kayıt toplantının adını ve kişilerini alır.")
+            Text("Sıradaki toplantılar ana ekranda görünür; kayıt toplantının adını ve kişilerini alır.")
         }
     }
 }
