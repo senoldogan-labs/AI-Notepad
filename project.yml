@@ -174,7 +174,7 @@ targets:
         DEVELOPMENT_LANGUAGE: en
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_HARDENED_RUNTIME: YES
-        # Geliştirici sürümünün yetkileri, iCloud hariç (eşitleme bu sürümde kapalı). Apple ile giriş yetkisi yok
+        # Geliştirici sürümünün yetkileri, iCloud hariç (Mac ↔ iPhone eşitlemesi iCloud'la değil, kendi sunucumuzla; bkz. App/Hosted/HostedSync.swift). Apple ile giriş yetkisi yok
         # (Developer ID profillerine verilmez); giriş sitede, uygulama içi giriş penceresinde (bkz.
         # Packages/AINotepadCore/Sources/AINotepadCore/Hosted/HostedBrowserSignIn.swift).
         CODE_SIGN_ENTITLEMENTS: App/Hosted/AINotepadHosted.entitlements
@@ -198,7 +198,8 @@ targets:
           HOSTED_KEYCHAIN_SERVICE: "AINotepadHosted"
   # iPhone uygulaması: Gistsmith (abonelik sürümü), yalnızca hesapla. Mac'teki Gistsmith'le aynı paket kimliği (Apple ile
   # girişin birincil App ID'si), aynı sunucu ve giriş akışı (App/Hosted'daki ortak dosyalar); `HOSTED_EDITION` bayrağı
-  # açık. Kendi anahtarlarınla çalışma ve geliştirici sürümüyle iCloud eşitlemesi yok: toplantılar telefonda kalır.
+  # açık. Kendi anahtarlarınla çalışma ve geliştirici sürümüyle iCloud eşitlemesi yok; Mac'le eşitleme isteğe bağlı, kendi
+  # sunucumuz üzerinden (bkz. App/Hosted/HostedSync.swift).
   AINotepadiOS:
     type: application
     platform: iOS
@@ -242,6 +243,9 @@ targets:
       - path: App/Hosted/HostedSeams.swift
       - path: App/Hosted/HostedTelemetryCenter.swift
       - path: App/Hosted/HostedTexts.swift
+      # Mac ↔ iPhone eşitlemesinin uygulama tarafı (durum, anahtar, motor) Mac'le ortak; Ayarlar satırı ve bağlar
+      # iOS/Hosted/PhoneSync.swift'te.
+      - path: App/Hosted/HostedSync.swift
     dependencies:
       - package: AINotepadCore
         product: AINotepadCore

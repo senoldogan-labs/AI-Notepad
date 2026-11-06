@@ -204,6 +204,7 @@ struct HostedAccountSettings: View {
         case .trial, .expired, .paymentOverdue:
             EmptyView()
         }
+        HostedSyncSettingsRow()
         HostedSignOutRow(account: account, isMeetingInFlight: isMeetingInFlight)
         HostedDeletedMeetingsRow(deleted: .shared, onMove: onMoveDeletedMeetings)
         SettingsRow(title: Text("Hesabı sil")) {

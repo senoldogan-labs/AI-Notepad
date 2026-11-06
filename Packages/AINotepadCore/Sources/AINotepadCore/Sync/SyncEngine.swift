@@ -363,6 +363,21 @@ public actor SyncEngine {
         pending
     }
 
+    /// Local ids of the synced meetings another device recorded: their audio and screen snapshots stay on that device
+    /// (phase 1), so the apps neither offer playback nor reprocessing for them. Read from the stored merge bases.
+    public func meetingsRecordedElsewhere() throws -> Set<String> {
+        var ids: Set<String> = []
+        for entry in ledger.entries.values where entry.kind == .meetingState {
+            guard let base = try files.readBase(objectID: entry.objectID, type: MeetingSyncState.self) else {
+                continue
+            }
+            if base.originDeviceID != client.deviceID {
+                ids.insert(entry.localID)
+            }
+        }
+        return ids
+    }
+
     // MARK: Pass
 
     private func scheduleDebouncedPass() {

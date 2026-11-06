@@ -48,6 +48,7 @@ struct PhoneSettingsTab: View {
                 } header: {
                     Text("Hesap")
                 }
+                PhoneSyncSection()
                 Section {
                     NavigationLink {
                         PhoneAppearanceScreen()

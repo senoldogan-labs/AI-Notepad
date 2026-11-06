@@ -793,11 +793,16 @@ struct MeetingReadView: View {
                             .foregroundStyle(Theme.muted)
                         // Hazırlanamayan ya da yarıda kalan toplantı: ses durdukça yeniden denemek tek dokunuş (⋯ menüsünde
                         // aranmasın). Son geçiş ve not yeniden yapılır.
-                        if record.status == .failed || record.status == .interrupted, !record.audioDeleted, isEditable, !isRecording {
+                        if record.status == .failed || record.status == .interrupted, !record.audioDeleted, !isRecordedElsewhere, isEditable, !isRecording {
                             Button("Tekrar işle", systemImage: "arrow.triangle.2.circlepath") { reprocess() }
                                 .buttonStyle(.accentPill)
                                 .controlSize(.small)
                         }
+                    }
+                    if isRecordedElsewhere {
+                        Label("Başka bir cihazında kaydedildi; sesi o cihazda kalır.", systemImage: "laptopcomputer.and.iphone")
+                            .appFont(size: 13, weight: .regular)
+                            .foregroundStyle(Theme.muted)
                     }
                     // Sekmeler ve notun dili tek satırda (Mac'teki gibi): dil, notun başka dildeki sürümünü gösterir.
                     HStack(spacing: 8) {
@@ -961,12 +966,13 @@ struct MeetingReadView: View {
                         }
                         .disabled(record.status == .recording || record.status == .processing || store.regeneratingIDs.contains(record.id))
                     }
-                    // Örnek toplantı (karşılamadaki deneme) işlenmez: sesi sunucuya gitmez, kullanıma yazılmaz.
+                    // Örnek toplantı (karşılamadaki deneme) işlenmez: sesi sunucuya gitmez, kullanıma yazılmaz. Mac'ten
+                    // eşitlenen toplantının sesi Mac'te: burada işlenemez ve silinemez.
                     Button("Tekrar işle", systemImage: "arrow.triangle.2.circlepath") { reprocess() }
-                        .disabled(!isEditable || record.audioDeleted || record.isSampleMeeting)
+                        .disabled(!isEditable || record.audioDeleted || record.isSampleMeeting || isRecordedElsewhere)
                     Divider()
                     Button("Sesi sil", systemImage: "speaker.slash", role: .destructive) { isConfirmingAudioDelete = true }
-                        .disabled(!isEditable || record.audioDeleted || record.status == .queued)
+                        .disabled(!isEditable || record.audioDeleted || record.status == .queued || isRecordedElsewhere)
                     Button("Sil", systemImage: "trash", role: .destructive) { pendingDelete = record }
                         .disabled(!isEditable)
                 } label: {
@@ -1319,9 +1325,14 @@ struct MeetingReadView: View {
         .environment(\.colorScheme, .dark)
     }
 
-    /// Ses varsa ve kayıt sürmüyorsa çalınabilir.
+    /// Ses varsa ve kayıt sürmüyorsa çalınabilir (başka cihazdan eşitlenen toplantının sesi o cihazda).
     private var canPlay: Bool {
-        !isRecording && !record.audioDeleted && (record.status == .done || record.status == .failed || record.status == .interrupted)
+        !isRecording && !record.audioDeleted && !isRecordedElsewhere && (record.status == .done || record.status == .failed || record.status == .interrupted)
+    }
+
+    /// Mac'ten eşitlenen toplantı (sesi kaydedildiği cihazda).
+    private var isRecordedElsewhere: Bool {
+        store.meetingsRecordedElsewhere.contains(record.id)
     }
 
     private func play(from startSec: Double) {
