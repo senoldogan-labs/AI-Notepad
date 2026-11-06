@@ -222,6 +222,9 @@ final class AppModel {
     private(set) var sharedKeyAccounts: [SecretAccount] = []
     /// İşlenmekte olan toplantıların kimlikleri.
     var processingMeetingIDs: Set<String> = []
+    /// Mac ↔ iPhone eşitlemesiyle başka cihazdan gelen toplantılar (yalnız Gistsmith; bkz. `HostedSyncCenter`): sesleri
+    /// kaydedildiği cihazda kalır, burada oynatılmaz, silinmez ve yeniden işlenmez.
+    var meetingsRecordedElsewhere: Set<String> = []
     /// İşlenen toplantının şu anki adımı (panelde ilerleme kartı).
     var processingSteps: [String: ProcessingStep] = [:]
     /// Kayıttaki toplantının kimliği: bu toplantı için tekrar işle / ses sil / ad verme kilitli.
@@ -3951,7 +3954,7 @@ final class AppModel {
     /// Defter okundu: okunamadıysa üzerine yazılmaz (boş defterle eski kişiler silinmesin).
     @ObservationIgnored private var peopleBookLoaded: Bool = false
 
-    private func loadPeople() {
+    func loadPeople() {
         do {
             peopleBook = try loadPeopleBook(url: try peopleFileURL())
             peopleBookLoaded = true

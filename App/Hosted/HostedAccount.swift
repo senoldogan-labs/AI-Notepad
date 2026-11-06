@@ -1099,6 +1099,9 @@ final class HostedAccount {
         }
         UserDefaults.standard.removeObject(forKey: hostedIdentityKey(userId: userID))
         UserDefaults.standard.removeObject(forKey: hostedAvatarKey(userId: userID))
+        // Sunucudaki eşitleme kopyası hesapla silindi; bu cihazdaki eşitleme anahtarı ve kayıtları da gider (toplantılar
+        // kalır).
+        Task { await HostedSyncCenter.shared.forgetAfterAccountDeletion(userID: userID) }
         do {
             clearHostedOpenMeetingIDs(defaults: try hostedOpenMeetingsDefaults(userID: userID))
         } catch {

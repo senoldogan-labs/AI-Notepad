@@ -185,6 +185,23 @@ private func edit(device: EngineDevice, id: String, change: (MeetingRecord) -> M
     try await device.engine.queueEverything()
 }
 
+/// The sync key a device keeps (the apps: the account's Keychain item; here memory, so no real Keychain item is touched).
+private final class MemorySyncKeyStore: SyncKeyStore {
+    private let stored: Mutex<SyncDeviceKey?> = Mutex(nil)
+
+    func load() throws -> SyncDeviceKey? {
+        stored.withLock { $0 }
+    }
+
+    func save(key: SyncDeviceKey) throws {
+        stored.withLock { $0 = key }
+    }
+
+    func delete() throws {
+        stored.withLock { $0 = nil }
+    }
+}
+
 @Suite(.enabled(if: hostedE2EEnabled), .serialized) struct HostedSyncE2ETests {
     // Two sync engines on temporary account folders (the Mac and the iPhone of one account) converge through the local
     // server: a meeting, a person, a folder and an Ask chat made on the Mac appear on the iPhone, whose own meeting of the
@@ -550,6 +567,126 @@ private func edit(device: EngineDevice, id: String, change: (MeetingRecord) -> M
             await engine.stop()
         }
         _ = try await macDevice.client.disableAndWipe()
+    }
+
+    // The apps' path from setup to deletion: the Mac turns sync on (new key and link code), the iPhone is told to type
+    // the code, a wrong code is refused and the right one brings the key over. The Mac's meeting reaches the iPhone (its
+    // onboarding sample meeting never does) and is marked as recorded elsewhere (the audio stays on the Mac); the
+    // iPhone's edit goes back to the Mac and its own meeting reaches the Mac; deletes on either side propagate. Turning
+    // sync off on the Mac wipes the server copy, and the iPhone's next pass learns that it was turned off elsewhere.
+    @Test func macToPhoneAndBackWithLinkCodeAgainstLocalServer() async throws {
+        let baseURL: URL = try localServerBase()
+        let macRefresh: String = randomToken()
+        let userID: String = try insertSession(refreshToken: macRefresh)
+        let phoneRefresh: String = randomToken()
+        try insertDeviceSession(userID: userID, refreshToken: phoneRefresh)
+        try executeLocalD1(sql: "UPDATE users SET trial_started_at = \(nowMs()) WHERE id = '\(userID)';")
+        let macDevice: SyncDevice = try await device(baseURL: baseURL, userID: userID, refreshToken: macRefresh)
+        let phoneDevice: SyncDevice = try await device(baseURL: baseURL, userID: userID, refreshToken: phoneRefresh)
+        let macKeys: MemorySyncKeyStore = MemorySyncKeyStore()
+        let phoneKeys: MemorySyncKeyStore = MemorySyncKeyStore()
+
+        // Setup: the Mac creates the key; the iPhone needs the Mac's link code.
+        guard case .ready(let macKey, createdAccountKey: true) = try await startSync(client: macDevice.client, keyStore: macKeys, userID: userID) else {
+            Issue.record("The Mac did not turn sync on with a new key")
+            return
+        }
+        #expect(try macKeys.load() == macKey)
+        #expect(try await startSync(client: phoneDevice.client, keyStore: phoneKeys, userID: userID) == .needsLinkCode)
+        let wrongCode: String = newSyncRecoveryCode().formatted
+        await #expect(throws: SyncCryptoError.authenticationFailed) {
+            try await joinSync(client: phoneDevice.client, keyStore: phoneKeys, userID: userID, codeText: wrongCode)
+        }
+        #expect(try phoneKeys.load() == nil)
+        let phoneKey: SyncDeviceKey = try await joinSync(client: phoneDevice.client, keyStore: phoneKeys, userID: userID, codeText: macKey.code.lowercased())
+        #expect(phoneKey.accountKey.keyID == macKey.accountKey.keyID)
+        #expect(try await startSync(client: phoneDevice.client, keyStore: phoneKeys, userID: userID) == .ready(key: phoneKey, createdAccountKey: false))
+
+        let root: URL = FileManager.default.temporaryDirectory.appending(path: "sync-link-e2e-\(UUID().uuidString)", directoryHint: .isDirectory)
+        let mac: EngineDevice = try await engineDevice(device: macDevice, key: macKey.accountKey, userID: userID, root: root) { (_: Result<SyncPassReport, any Error>) -> Void in }
+        let phone: EngineDevice = try await engineDevice(device: phoneDevice, key: phoneKey.accountKey, userID: userID, root: root) { (_: Result<SyncPassReport, any Error>) -> Void in }
+        defer {
+            for device in [mac, phone] {
+                device.removeDomains()
+            }
+            try? FileManager.default.removeItem(at: root)
+        }
+
+        // The Mac: a finished meeting and the onboarding sample meeting.
+        let record: MeetingRecord = syncSampleRecord()
+        let meetingID: String = record.id
+        let tasks: [NoteTask] = try #require(record.note?.tasks)
+        let sample: MeetingRecord = sampleMeetingRecord(
+            id: "20261101-090000", script: SampleMeetingScript(durationSec: 4, lines: [SampleMeetingLine(person: 1, text: "Sample line", startSec: 0, endSec: 3)]),
+            note: MeetingNote(title: "Sample", summary: "A sample.", decisions: [], tasks: [], glossary: []), speakerNames: [:], startedAt: Date(timeIntervalSince1970: 1_800_000_000),
+            myNotes: ""
+        )
+        #expect(sample.isSampleMeeting)
+        for meeting in [record, sample] {
+            #expect(try await mac.store.writeMeeting(record: meeting, replacing: nil) == .written)
+        }
+        try await mac.engine.queueEverything()
+        let macFirst: SyncPassReport = try await mac.engine.syncNow()
+        #expect(macFirst.failures.isEmpty && macFirst.uploaded >= 2)
+        try await phone.engine.queueEverything()
+        let phoneFirst: SyncPassReport = try await phone.engine.syncNow()
+        #expect(phoneFirst.failures.isEmpty && phoneFirst.changedMeetingIDs == [meetingID])
+        #expect(try await phone.store.meetingIDs() == [meetingID])
+        #expect(try await phone.store.meeting(id: meetingID)?.title == record.title)
+        #expect(try await phone.engine.meetingsRecordedElsewhere() == [meetingID])
+        #expect(try await mac.engine.meetingsRecordedElsewhere().isEmpty)
+        #expect(try localServerStateContainsNone(of: ["Sample line", "approve the budget"]))
+
+        // The iPhone edits the meeting and records its own: both reach the Mac.
+        try await edit(device: phone, id: meetingID) { (current: MeetingRecord) -> MeetingRecord in
+            togglingTask(record: current, task: tasks[0]).with(title: "Budget from the iPhone")
+        }
+        let phoneRecord: MeetingRecord = syncSampleRecord().with(title: "Phone standup").with(translations: [:])
+        let phoneMeetingID: String = "20261104-080000"
+        let phoneOwn: MeetingRecord = localMeetingRecord(
+            state: try newMeetingState(record: phoneRecord, contentObjectID: "", originDeviceID: "", now: Date()), content: meetingSyncContent(record: phoneRecord),
+            localID: phoneMeetingID, voiceprints: nil
+        )
+        #expect(try await phone.store.writeMeeting(record: phoneOwn, replacing: nil) == .written)
+        try await phone.engine.queueEverything()
+        #expect(try await phone.engine.syncNow().failures.isEmpty)
+        let macBack: SyncPassReport = try await mac.engine.syncNow()
+        #expect(macBack.failures.isEmpty && Set(macBack.changedMeetingIDs) == [meetingID, phoneMeetingID])
+        let macCopy: MeetingRecord = try #require(try await mac.store.meeting(id: meetingID))
+        #expect(macCopy.title == "Budget from the iPhone")
+        #expect(Set(macCopy.completedTasks ?? []) == Set(tasks.map { taskKey(task: $0) }))
+        #expect(try await mac.store.meeting(id: phoneMeetingID)?.title == "Phone standup")
+        #expect(try await mac.engine.meetingsRecordedElsewhere() == [phoneMeetingID])
+        #expect(try await mac.store.meeting(id: sample.id)?.isSampleMeeting == true)
+
+        // Deletes: the Mac deletes its meeting, the iPhone deletes its own; each other's copy goes to Recently Deleted.
+        try await mac.store.deleteMeeting(id: meetingID)
+        #expect(try await mac.engine.syncNow().deletedOnServer == 2)
+        try await phone.store.deleteMeeting(id: phoneMeetingID)
+        let phoneDeletes: SyncPassReport = try await phone.engine.syncNow()
+        #expect(phoneDeletes.deletedLocally == 1 && phoneDeletes.deletedOnServer == 2 && phoneDeletes.failures.isEmpty)
+        #expect(try await phone.store.meetingIDs().isEmpty)
+        let macDeletes: SyncPassReport = try await mac.engine.syncNow()
+        #expect(macDeletes.deletedLocally == 1 && macDeletes.failures.isEmpty)
+        #expect(try await mac.store.meetingIDs() == [sample.id])
+        #expect(try await phone.engine.meetingsRecordedElsewhere().isEmpty)
+        #expect(try await mac.engine.meetingsRecordedElsewhere().isEmpty)
+
+        // The Mac turns sync off: the server copy is wiped and the Mac forgets its key; the iPhone learns it on its next
+        // pass and keeps its local data.
+        await mac.engine.stop()
+        let macMetadata: URL = mac.store.accountDirectory.appending(path: syncFolderName)
+        #expect(FileManager.default.fileExists(atPath: macMetadata.appending(path: "ledger.json").path))
+        try await stopSync(client: macDevice.client, keyStore: macKeys, metadataDirectory: macMetadata)
+        #expect(try macKeys.load() == nil && !FileManager.default.fileExists(atPath: macMetadata.path))
+        do {
+            _ = try await phone.engine.syncNow()
+            Issue.record("The iPhone's pass succeeded after sync was turned off on the Mac")
+        } catch {
+            #expect(syncFailureKind(error: error) == .turnedOffElsewhere)
+        }
+        await phone.engine.stop()
+        #expect(try localD1Rows(sql: "SELECT object_id, kind, rev, size, deleted FROM sync_objects WHERE user_id = '\(userID)';", as: ObjectRow.self).isEmpty)
     }
 }
 

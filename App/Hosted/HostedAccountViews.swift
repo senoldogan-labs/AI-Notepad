@@ -215,6 +215,7 @@ struct HostedAccountSettings: View {
             }
         }
         SettingsGroup(title: Text("Hesap")) {
+            HostedSyncSettingsRow()
             HostedSignOutRow(account: account, isMeetingInFlight: isMeetingInFlight)
             HostedDeletedMeetingsRow(deleted: .shared, onMove: onMoveDeletedMeetings)
             SettingsRow(icon: "trash", title: Text("Hesabı sil")) {

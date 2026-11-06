@@ -207,6 +207,17 @@ interface OperationsBody {
     last7Days: { feedback: number; crash: number; contact: number };
     recentCrashes: Array<{ id: string; status: string; createdAt: string; appVersion: string | null; os: string | null; summary: string }>;
   };
+  readonly sync: {
+    accounts: number;
+    objects: number;
+    storedBytes: number;
+    pendingPurges: number;
+    classAThisMonth: number;
+    classABudget: number;
+    classBThisMonth: number;
+    classBBudget: number;
+    storedBytesBudget: number;
+  };
 }
 
 describe("yönetici API'si", () => {
@@ -842,6 +853,9 @@ describe("yönetici API'si", () => {
       env.DB.prepare("DELETE FROM deepgram_live_meetings"),
       env.DB.prepare("DELETE FROM stripe_events"),
       env.DB.prepare("DELETE FROM reports"),
+      env.DB.prepare("DELETE FROM sync_accounts"),
+      env.DB.prepare("DELETE FROM sync_purges"),
+      env.DB.prepare("DELETE FROM sync_r2_usage"),
     ]);
     const userId: string = await insertUser(nowMs - dayMs);
     const open: string = randomId();
@@ -889,9 +903,31 @@ describe("yönetici API'si", () => {
       ).bind(crash, randomId(), nowMs - hourMs, nowMs - 9 * dayMs, randomId(), nowMs - dayMs, randomId(), nowMs - 2 * dayMs),
     ]);
 
+    // Eşitlemesi açık iki hesap ve silinmeyi bekleyen bir R2 öneki (yalnız sayılar).
+    const syncUser: string = await insertUser(nowMs - dayMs);
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO sync_accounts (user_id, key_id, enabled_at, object_count, stored_bytes, access_seen_at, updated_at)
+         VALUES (?1, 'k1', ?3, 3, 1000, ?3, ?3), (?2, 'k2', ?3, 2, 500, ?3, ?3)`,
+      ).bind(userId, syncUser, nowMs - dayMs),
+      env.DB.prepare("INSERT INTO sync_purges (prefix, requested_at) VALUES ('u/x/1/', ?1)").bind(nowMs - hourMs),
+      env.DB.prepare("INSERT INTO sync_r2_usage (month, class_a, class_b) VALUES (?1, 40, 90)").bind(new Date(nowMs).toISOString().slice(0, 7)),
+    ]);
+
     const response: Response = await adminGet(harness, admin, "/v1/admin/operations");
     expect(response.status).toBe(200);
     const ops: OperationsBody = await response.json<OperationsBody>();
+    expect(ops.sync).toEqual({
+      accounts: 2,
+      objects: 5,
+      storedBytes: 1500,
+      pendingPurges: 1,
+      classAThisMonth: 40,
+      classABudget: 800_000,
+      classBThisMonth: 90,
+      classBBudget: 8_000_000,
+      storedBytesBudget: 8_000_000_000,
+    });
     expect(ops.generatedAt).toBe(iso(nowMs));
     expect(ops.meetings).toEqual({
       open: 1,
