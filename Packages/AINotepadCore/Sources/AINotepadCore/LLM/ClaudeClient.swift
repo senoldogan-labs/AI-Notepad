@@ -65,7 +65,7 @@ public func claudeRequestBody(request: LLMRequest, model: ClaudeModel, effort: L
         model: model.rawValue,
         maxTokens: claudeMaxTokens(requested: request.maxTokens, thinking: thinking),
         stream: true,
-        system: request.system,
+        system: claudeSystemBlocks(system: request.system),
         messages: [LLMChatMessage(role: "user", content: request.userText)],
         outputConfig: ClaudeRequestBody.OutputConfig(effort: effort.rawValue, format: format),
         thinking: thinking,
@@ -77,8 +77,36 @@ public func claudeRequestBody(request: LLMRequest, model: ClaudeModel, effort: L
     return try llmRequestEncoder().encode(body)
 }
 
+/// The system prompt as one text block that ends in a prompt-cache breakpoint (5-minute TTL); an empty prompt is nil and
+/// left out of the body (an empty text block is rejected). Every request is the purpose's fixed instructions (system) plus one user turn with
+/// the per-call transcript, and the instructions repeat: every sentence of a live translation, every batch of a
+/// transcript translation, every part of a long note. The breakpoint ends at the system prompt, never after the unique
+/// user turn, so an unrepeated call pays the cache-write premium (1.25×) only on the instructions and a repeated one reads
+/// them at 0.1×. A prompt under the model's minimum cacheable length is not cached (no write, no charge). Pure function.
+func claudeSystemBlocks(system: String) -> [ClaudeRequestBody.SystemBlock]? {
+    system.isEmpty ? nil : [ClaudeRequestBody.SystemBlock(type: "text", text: system, cacheControl: ClaudeRequestBody.CacheControl(type: "ephemeral"))]
+}
+
 /// Claude Messages isteğinin gövdesi; alan adları API'ninkilerdir. Boş (nil) alanlar gövdeye yazılmaz.
 struct ClaudeRequestBody: Encodable {
+    /// Prompt-cache breakpoint of a block.
+    struct CacheControl: Encodable {
+        let type: String
+    }
+
+    /// A system prompt text block (see `claudeSystemBlocks`).
+    struct SystemBlock: Encodable {
+        let type: String
+        let text: String
+        let cacheControl: CacheControl
+
+        enum CodingKeys: String, CodingKey {
+            case type
+            case text
+            case cacheControl = "cache_control"
+        }
+    }
+
     /// Yanıt biçimi: JSON şeması.
     struct OutputFormat: Encodable {
         let type: String
@@ -93,7 +121,8 @@ struct ClaudeRequestBody: Encodable {
     let model: String
     let maxTokens: Int
     let stream: Bool
-    let system: String
+    /// The system prompt (see `claudeSystemBlocks`).
+    let system: [SystemBlock]?
     let messages: [LLMChatMessage]
     let outputConfig: OutputConfig
     /// Düşünmeyi kapatan alan (bkz. `claudeThinking`).

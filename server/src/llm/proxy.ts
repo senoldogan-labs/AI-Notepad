@@ -27,7 +27,7 @@ import {
   trialAccountTokenLimit,
 } from "../reservations";
 import { recordMeetingFailure, recordOpsEvents } from "../opsEvents";
-import { llmCostMicroUsd } from "../usage";
+import { llmCostMicroUsd, llmUsageCostMicroUsd } from "../usage";
 import { type LLMPurpose, liveLLMPurposes, purposeUsageStatement } from "./purpose";
 import { type ScreenImageUsage, screenImageUsage } from "./images";
 import { type LLMRequest, clampMaxTokens, estimateInputTokens, requestImages, requestTextBytes, upstreamParams } from "./request";
@@ -83,7 +83,7 @@ interface WebSearchCount {
 
 /** Çağrının gerçek maliyeti: tokenlar ve yapılan aramalar (mikro dolar). Saf fonksiyondur. */
 export function callCostMicroUsd(usage: TokenUsage, webSearches: number): number {
-  return llmCostMicroUsd(usage.inputTokens, usage.outputTokens) + webSearches * webSearchMicroUsd;
+  return llmUsageCostMicroUsd(usage) + webSearches * webSearchMicroUsd;
 }
 
 /** Üst servis çağrısının sonucu: değer ya da istemciye dönecek hata (kesinleştirme her iki durumda yapılmıştır). */
@@ -178,9 +178,26 @@ function mapAnthropicError(error: unknown, userId: string, meetingId: string | n
   return new ProviderApiError("anthropic", "upstream_unavailable", "The AI service is not responding right now; try again shortly.");
 }
 
-/** Toplam girdi tokenı (önbellek okuma/yazma dahil). Saf fonksiyondur. */
-function totalInputTokens(usage: { input_tokens: number | null; cache_creation_input_tokens: number | null; cache_read_input_tokens: number | null }): number {
-  return (usage.input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0);
+/** The prompt side of a call's usage: the whole prompt and its cached parts. */
+type InputUsage = Pick<TokenUsage, "inputTokens" | "cacheWriteTokens" | "cacheReadTokens">;
+
+/** Toplam girdi tokenı (önbellek okuma/yazma dahil) and its cache write and read parts. Saf fonksiyondur. */
+function inputUsageOf(usage: { input_tokens: number | null; cache_creation_input_tokens: number | null; cache_read_input_tokens: number | null }): InputUsage {
+  const cacheWriteTokens: number = usage.cache_creation_input_tokens ?? 0;
+  const cacheReadTokens: number = usage.cache_read_input_tokens ?? 0;
+  return { inputTokens: (usage.input_tokens ?? 0) + cacheWriteTokens + cacheReadTokens, cacheWriteTokens, cacheReadTokens };
+}
+
+/**
+ * The larger of two reports of the same call's prompt, field by field: a stream's `message_delta` may restate the
+ * prompt with server-tool input added, and may leave out the cache parts that `message_start` gave. Saf fonksiyondur.
+ */
+function largerInputUsage(first: InputUsage, second: InputUsage): InputUsage {
+  return {
+    inputTokens: Math.max(first.inputTokens, second.inputTokens),
+    cacheWriteTokens: Math.max(first.cacheWriteTokens, second.cacheWriteTokens),
+    cacheReadTokens: Math.max(first.cacheReadTokens, second.cacheReadTokens),
+  };
 }
 
 /**
@@ -224,6 +241,8 @@ async function chargeUsage(
     meetingId: scopeMeetingId(scope),
     inputTokens: usage.inputTokens,
     outputTokens: usage.outputTokens,
+    cacheWriteTokens: usage.cacheWriteTokens,
+    cacheReadTokens: usage.cacheReadTokens,
     webSearches: webSearches.used,
   });
 }
@@ -236,7 +255,7 @@ async function chargeUsage(
 async function chargeFailure(db: D1Database, reservation: UsageReservation, estimatedInput: number, grantedWebSearches: number, now: Date): Promise<void> {
   await db.batch([
     ...webSearchRefundStatement(db, reservation.userId, reservation.month, grantedWebSearches, 0),
-    ...settleLLMStatements(db, reservation, { inputTokens: 0, outputTokens: 0 }, llmCostMicroUsd(estimatedInput, 0), now),
+    ...settleLLMStatements(db, reservation, { inputTokens: 0, outputTokens: 0, cacheWriteTokens: 0, cacheReadTokens: 0 }, llmCostMicroUsd(estimatedInput, 0), now),
   ]);
 }
 
@@ -294,7 +313,7 @@ async function callMessage(
     return { ok: false, error: mapAnthropicError(error, scope.userId, scopeMeetingId(scope)) };
   }
   logWebSearchErrors(scope, webSearchErrorCodes(message.content));
-  const usage: TokenUsage = { inputTokens: totalInputTokens(message.usage), outputTokens: message.usage.output_tokens };
+  const usage: TokenUsage = { ...inputUsageOf(message.usage), outputTokens: message.usage.output_tokens };
   const webSearches: WebSearchCount = { granted: grantedWebSearches, used: webSearchesOf(message.usage) };
   await chargeUsage(db, scope, reservation, usage, webSearches, usageTag, noteMeetingId, now);
   return { ok: true, value: { value: message, webSearchWithdrawn: false } };
@@ -524,7 +543,7 @@ async function pumpStream(
 ): Promise<void> {
   const writer: WritableStreamDefaultWriter<Uint8Array> = client.writable.getWriter();
   const encoder: TextEncoder = new TextEncoder();
-  let inputTokens: number | null = null;
+  let input: InputUsage | null = null;
   let outputTokens: number | null = null;
   let webSearches: number = 0;
   /** Akıştaki hatalı web aramalarının kodları (`logWebSearchErrors`). */
@@ -556,12 +575,12 @@ async function pumpStream(
   try {
     for await (const event of stream) {
       if (event.type === "message_start") {
-        inputTokens = totalInputTokens(event.message.usage);
+        input = inputUsageOf(event.message.usage);
       } else if (event.type === "message_delta") {
         outputTokens = event.usage.output_tokens;
         webSearches = Math.max(webSearches, webSearchesOf(event.usage));
         if (typeof event.usage.input_tokens === "number") {
-          inputTokens = Math.max(inputTokens ?? 0, totalInputTokens(event.usage));
+          input = input === null ? inputUsageOf(event.usage) : largerInputUsage(input, inputUsageOf(event.usage));
         }
       } else if (event.type === "message_stop") {
         completed = true;
@@ -588,9 +607,8 @@ async function pumpStream(
   } finally {
     clearTimeout(deadline);
     const finished: boolean = completed && outputTokens !== null;
-    const usage: TokenUsage = finished
-      ? { inputTokens: inputTokens ?? estimatedInput, outputTokens: outputTokens ?? maxTokens }
-      : { inputTokens: inputTokens ?? estimatedInput, outputTokens: maxTokens };
+    const known: InputUsage = input ?? { inputTokens: estimatedInput, cacheWriteTokens: 0, cacheReadTokens: 0 };
+    const usage: TokenUsage = finished ? { ...known, outputTokens: outputTokens ?? maxTokens } : { ...known, outputTokens: maxTokens };
     // Tamamlanmayan akışta verilen arama hakkının tamamı yapılmış sayılır (tokenlar gibi üstten).
     const searches: WebSearchCount = { granted: grantedWebSearches, used: finished ? webSearches : grantedWebSearches };
     // Akış kesinleştirmeden önce kapanır: istemci (ör. parça parça yazılan notun sonraki isteği) D1 yazımını beklemez.

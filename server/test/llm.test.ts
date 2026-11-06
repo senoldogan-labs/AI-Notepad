@@ -155,7 +155,7 @@ describe("LLM vekili: üst istek ve muhasebe", () => {
     expect(upstream).toEqual({
       model: "claude-haiku-5-5",
       max_tokens: 8192,
-      system: "Türkçe yaz.",
+      system: [{ type: "text", text: "Türkçe yaz.", cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: [{ type: "text", text: "Özetle." }] }],
       output_config: { effort: "medium", format: { type: "json_schema", schema } },
     });
@@ -318,6 +318,36 @@ describe("LLM vekili: üst istek ve muhasebe", () => {
     // 100 girdi × 0,10 $/M + 20 çıktı × 0,50 $/M = 20 mikro dolar.
     expect((spendAfter?.trial_micro_usd ?? 0) - (spendBefore?.trial_micro_usd ?? 0)).toBe(20);
     expect((await abandoned).status).toBe(200);
+  });
+
+  it("prompt cache: the system prompt ends in the breakpoint; cached tokens count in full and cost at cache prices", async () => {
+    const context: Context = await setup();
+    let upstream: { system?: unknown; messages?: unknown } = {};
+    context.harness.stub(anthropicUrl, async (request: Request): Promise<Response> => {
+      upstream = await request.json<{ system?: unknown; messages?: unknown }>();
+      const cached = { ...message(100, 50), usage: { input_tokens: 100, output_tokens: 50, cache_creation_input_tokens: 1000, cache_read_input_tokens: 9000 } };
+      return Response.json(cached);
+    });
+    const day: string = new Date(context.harness.clock.nowMs).toISOString().slice(0, 10);
+    const spend = async (): Promise<number> =>
+      (await env.DB.prepare("SELECT micro_usd FROM daily_spend WHERE day = ?").bind(day).first<{ micro_usd: number }>())?.micro_usd ?? 0;
+    const before: number = await spend();
+    const tokensBefore: number = await meetingTokens(context.meeting.meetingId);
+    const body = {
+      ...basic,
+      system: [{ type: "text", text: "Kurallar." }, { type: "text", text: "Çevir." }],
+      messages: [{ role: "user", content: "Merhaba" }],
+    };
+    expect((await llm(context, body, null)).status).toBe(200);
+    // Only the last system block carries the breakpoint; the unique user turn after it is never written to the cache.
+    expect(upstream.system).toEqual([
+      { type: "text", text: "Kurallar." },
+      { type: "text", text: "Çevir.", cache_control: { type: "ephemeral" } },
+    ]);
+    expect(upstream.messages).toEqual([{ role: "user", content: "Merhaba" }]);
+    // Budgets count the whole prompt; the spend prices 100 uncached + 1000 written (1.25×) + 9000 read (0.1×) + 50 out.
+    expect(await meetingTokens(context.meeting.meetingId)).toBe(tokensBefore + 10_150);
+    expect((await spend()) - before).toBe(Math.ceil((100 + 1000 * 1.25 + 9000 * 0.1) * 0.1 + 50 * 0.5));
   });
 
   it("üst servis hatasında tahmini girdi maliyeti harcamaya sayılır, kullanıcıya yazılmaz", async () => {

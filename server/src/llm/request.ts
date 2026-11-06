@@ -97,10 +97,31 @@ function upstreamBlock(block: ContentBlock): Anthropic.TextBlockParam | Anthropi
 }
 
 /**
+ * The upstream system prompt with a prompt-cache breakpoint on its last block (5-minute TTL). Every request is one
+ * system prompt plus one user turn: the system prompt is the purpose's fixed instructions, sent again for every
+ * sentence of a live translation, every batch of a transcript translation and every part of a long note, and shared by
+ * every user of the same purpose and language (one API key, one workspace cache); the user turn is the per-call
+ * transcript. The breakpoint therefore ends at the system prompt, never after the unique user turn, so a call that is
+ * not repeated pays the write premium (1.25×) only on the system prompt, and a repeated one reads it at 0.1×. A system
+ * prompt under the model's minimum cacheable length is sent as is by the API (no write, no charge). An empty system
+ * string stays a string: an empty text block is rejected upstream. Pure function.
+ */
+export function cachedSystem(system: string | readonly { readonly text: string }[]): string | Anthropic.TextBlockParam[] {
+  if (system === "") {
+    return system;
+  }
+  const texts: readonly string[] = typeof system === "string" ? [system] : system.map((block): string => block.text);
+  return texts.map((text: string, index: number): Anthropic.TextBlockParam =>
+    index === texts.length - 1 ? { type: "text", text, cache_control: { type: "ephemeral" } } : { type: "text", text },
+  );
+}
+
+/**
  * Anthropic'e gidecek gövde: model sabit, `max_tokens` sınırlanır (`clampedMaxTokens`), effort isteğin doğrulanmış
  * `low`/`medium` değeri. Örnekleme parametreleri, `thinking` ve `fallbacks` gönderilmez (Haiku 5.5'te 400 ya da
  * gereksiz; düşünme varsayılan uyarlamalıdır ve `effort` ile ölçeklenir). `webSearches` > 0 ise (Sor cevabına verilen
- * arama hakkı) web araması aracı o kadar aramayla eklenir; 0 ise araç gönderilmez. Saf fonksiyondur.
+ * arama hakkı) web araması aracı o kadar aramayla eklenir; 0 ise araç gönderilmez. The system prompt carries the
+ * server's own prompt-cache breakpoint (`cachedSystem`); the client cannot send cache markers. Saf fonksiyondur.
  */
 export function upstreamParams(request: LLMRequest, clampedMaxTokens: number, webSearches: number): Anthropic.MessageCreateParamsNonStreaming {
   const format = request.output_config?.format;
@@ -111,12 +132,7 @@ export function upstreamParams(request: LLMRequest, clampedMaxTokens: number, we
       role: message.role,
       content: typeof message.content === "string" ? message.content : message.content.map(upstreamBlock),
     })),
-    ...(request.system === undefined
-      ? {}
-      : {
-          system:
-            typeof request.system === "string" ? request.system : request.system.map((block): Anthropic.TextBlockParam => ({ type: "text", text: block.text })),
-        }),
+    ...(request.system === undefined ? {} : { system: cachedSystem(request.system) }),
     output_config: {
       effort: request.effort,
       ...(format === undefined ? {} : { format: { type: "json_schema", schema: format.schema } }),
