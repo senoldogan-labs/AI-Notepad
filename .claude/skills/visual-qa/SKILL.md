@@ -103,7 +103,9 @@ the same arguments instead of `simctl`.
 Arguments (listed in AGENTS.md, defined in `iOS/`): `--tanitim` fake trial account; `--abone` with it: App Store
 subscriber with invite code; `--paywall` subscription screen; `--sohbet <uuid>` a saved Ask chat; `--ornek-kayit`
 sample live recording, plus `--ornek-bitir` (finishing layer), `--ornek-duraklat` (paused), `--ornek-sinir` (offline,
-shortened by the monthly limit); `--ornek-takvim` sample upcoming meetings; `--karsilama` first-run onboarding (with
+shortened by the monthly limit); `--ornek-takvim` sample upcoming meetings; there is no tab bar: `--sekme sor|gorevler|ayarlar` and `--ekran
+kitaplik|arama|kisiler|profil` open that screen over the home (`--ekran klasorler` the library sheet), `--toplanti <id>` a
+meeting; `--karsilama` first-run onboarding (with
 `--karsilama-adim <step>` and `--karsilama-ornek <canli|not>`).
 
 StoreKit purchases cannot be tested this way (`xcodebuild`/`simctl` launches use the sandbox, see AGENTS.md).

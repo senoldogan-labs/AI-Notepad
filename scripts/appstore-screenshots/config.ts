@@ -129,7 +129,7 @@ export const scenes: readonly Scene[] = [
     id: "meetings",
     headline: "Every meeting, searchable",
     subhead: "Find any decision by title, person or word.",
-    launchArgs: ["--sekme", "toplantilar"],
+    launchArgs: ["--ekran", "kitaplik"],
     settleMs: 4000,
     palette: "rose",
     clouds: "left",
