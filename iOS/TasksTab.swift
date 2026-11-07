@@ -144,7 +144,7 @@ struct TasksTab: View {
     /// Tamamlananlar: toplantıya göre (en yeni toplantı önce), başlık toplantının adı.
     private func doneSections(done: [(record: MeetingRecord, task: NoteTask)]) -> [TaskSection] {
         done.reduce(into: [TaskSection]()) { (result: inout [TaskSection], item: (record: MeetingRecord, task: NoteTask)) -> Void in
-            let dated: DatedTask = DatedTask(record: item.record, task: item.task, dueDay: nil)
+            let dated: DatedTask = DatedTask(record: item.record, task: item.task, due: nil)
             if let last = result.last, last.id == item.record.id {
                 result[result.count - 1] = TaskSection(id: last.id, title: last.title, isOverdue: false, items: last.items + [dated])
             } else {

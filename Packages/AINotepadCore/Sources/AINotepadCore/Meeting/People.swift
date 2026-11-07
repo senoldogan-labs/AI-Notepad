@@ -14,7 +14,7 @@ public struct PersonTask: Sendable, Equatable {
     public let meetingID: String
     public let meetingTitle: String
     public let task: NoteTask
-    /// Toplantının başladığı an ve notun dili: görevin göreli tarihi ("Cuma") bunlara göre çözülür (`taskDueDay`).
+    /// Toplantının başladığı an ve notun dili: görevin göreli tarihi ("Cuma") bunlara göre çözülür (`taskDue`).
     public let meetingStartedAt: Date
     public let noteLanguage: ShareLanguage
 }
