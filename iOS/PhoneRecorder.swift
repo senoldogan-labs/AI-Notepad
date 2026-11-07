@@ -1515,8 +1515,20 @@ final class PhoneRecorder {
         await runQueue()
     }
 
-    /// Tek dosyayı içe aktarır; olmazsa yarım klasör silinir ve neden listede görünür.
-    private func importOne(url: URL) async {
+    /// Uygulamadan yapılan aramanın indirilen kaydını içe aktarır (`importFiles` gibi); toplantı oluştuysa true. Çağıran
+    /// sağlayıcıdaki kopyayı yalnızca o zaman siler: içe aktarma başarısızsa kayıt orada kalır, yeniden denenir.
+    func importCallRecording(url: URL) async -> Bool {
+        importErrors = []
+        importingCount += 1
+        let imported: Bool = await importOne(url: url)
+        importingCount -= 1
+        await runQueue()
+        return imported
+    }
+
+    /// Tek dosyayı içe aktarır; toplantı oluştuysa true. Olmazsa yarım klasör silinir ve neden listede görünür.
+    @discardableResult
+    private func importOne(url: URL) async -> Bool {
         let accessed: Bool = url.startAccessingSecurityScopedResource()
         defer {
             if accessed {
@@ -1548,6 +1560,7 @@ final class PhoneRecorder {
                 record: record.with(status: .queued, failureMessage: nil).with(notice: String(localized: "İçe aktarıldı; sunucuda işlenmeyi bekliyor.")),
                 directory: session.url
             )
+            return true
         } catch {
             Self.logger.error("Dosya içe aktarılamadı, hata: \(String(describing: error), privacy: .private)")
             importErrors = appendUnique(
@@ -1560,6 +1573,7 @@ final class PhoneRecorder {
                     Self.logger.error("Yarım içe aktarma klasörü silinemedi, hata: \(String(describing: error), privacy: .private)")
                 }
             }
+            return false
         }
     }
 

@@ -90,10 +90,10 @@ export default {
       // (bkz. `assistant/cleanup.ts`).
       // `ASSISTANT_POLICY` kapalıyken (üretimde AB D1'i oluşturulana kadar bağlama yoktur) adım açıkça atlanır.
       { name: "assistant_cleanup", run: () => scheduledAssistantCleanup(env, config, now) },
-      // Bekleme süresi dolmuş davet ödülleri (davet edenin Stripe müşteri bakiyesi; bkz. `referralRewards.ts`).
       // In-app dialer: unsettled calls past their reservation, unfetched recordings and queued provider deletions
       // (see `phone/calls.ts`); the provider steps are skipped while `PHONE_CALLS_POLICY` is off.
       { name: "phone_cleanup", run: () => phoneCleanup(env.DB, platform, config, now) },
+      // Bekleme süresi dolmuş davet ödülleri (davet edenin Stripe müşteri bakiyesi; bkz. `referralRewards.ts`).
       { name: "referral_rewards", run: () => grantDueReferralRewards(env.DB, platform, config, now) },
       // Apple ve Google anahtarları önceden alınır: girişler sağlayıcıyı beklemesin (bkz. `persistedIssuerKeys`).
       { name: "apple_jwks", run: () => refreshPersistedIssuerKeys(env.DB, platform, appleTokenIssuer(config)) },

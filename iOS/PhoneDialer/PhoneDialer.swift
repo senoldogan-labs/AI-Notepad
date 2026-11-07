@@ -86,13 +86,13 @@ func launchOpensDialer(arguments: [String]) -> Bool {
 /// placing a call through CallKit and the Twilio Voice SDK (`PhoneCallController`), and after the call importing the
 /// provider's two-channel recording as an ordinary meeting (the existing import: transcription, speakers, note, tasks,
 /// sync) and deleting it at the provider. Calls waiting for their recording survive an app restart
-/// (`pendingRecordingsKey`). Numbers are not logged.
+/// (`pendingRecordingsKey()`, per account). Numbers are not logged.
 @MainActor
 @Observable
 final class PhoneDialer {
     private static let logger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "PhoneDialer")
     /// Calls whose recording hasn't been imported yet: call id → number (E.164).
-    private static let pendingRecordingsKey: String = "phoneDialer.pendingRecordings"
+    private static let pendingRecordingsPrefix: String = "phoneDialer.pendingRecordings"
     /// Recording polls after a call (every `pollSeconds`); the provider sends it within seconds.
     private static let recordingPolls: Int = 40
     private static let pollSeconds: UInt64 = 3
@@ -346,6 +346,7 @@ final class PhoneDialer {
                 }
             }
             await self.importRecording(callID: callID, e164: e164, recorder: recorder)
+            self.recordingTask = nil
         }
     }
 
@@ -367,12 +368,20 @@ final class PhoneDialer {
                     recording = .importing
                     let file: URL = try recordingFileURL(callID: callID, e164: e164)
                     try await client.downloadRecording(callID: callID, destination: file)
-                    await recorder.importSharedFiles(urls: [file]) { (url: URL) -> Void in
-                        do {
-                            try FileManager.default.removeItem(at: url.deletingLastPathComponent())
-                        } catch {
-                            Self.logger.error("Downloaded call recording could not be removed, error: \(String(describing: error), privacy: .private)")
-                        }
+                    let imported: Bool = await recorder.importCallRecording(url: file)
+                    // The import copied the audio into the meeting (or failed); the download is not needed either way. A
+                    // leftover temporary file doesn't stop the provider copy's deletion (a retry would import it twice).
+                    do {
+                        try FileManager.default.removeItem(at: file.deletingLastPathComponent())
+                    } catch {
+                        Self.logger.error("Downloaded call recording could not be removed, error: \(String(describing: error), privacy: .private)")
+                    }
+                    guard imported else {
+                        // The recording stays at the provider and in the pending list: the next launch retries until the
+                        // server deletes it (a day); the reason is on the home screen (`importErrors`).
+                        Self.logger.error("Call recording import failed, kept at the provider, call: \(callID, privacy: .public)")
+                        recording = .failed(recorder.importErrors.first ?? String(localized: "Aramanın kaydı henüz gelmedi; uygulama bir sonraki açılışta yeniden dener."))
+                        return
                     }
                     _ = try await client.deleteRecording(callID: callID)
                     forgetPending(callID: callID)
@@ -382,6 +391,11 @@ final class PhoneDialer {
                 }
             }
             recording = .failed(String(localized: "Aramanın kaydı henüz gelmedi; uygulama bir sonraki açılışta yeniden dener."))
+        } catch let error as HostedAPIError where error.code == .notFound {
+            // Not this account's call (signed in with another account since) or already deleted: nothing to import here.
+            Self.logger.warning("Pending call not found on the server, forgotten, call: \(callID, privacy: .public)")
+            forgetPending(callID: callID)
+            recording = .idle
         } catch {
             Self.logger.error("Call recording import failed, call: \(callID, privacy: .public), error: \(String(describing: error), privacy: .private)")
             recording = .failed(userFacingMessage(error: error))
@@ -397,20 +411,35 @@ final class PhoneDialer {
         return folder.appending(path: "\(title).mp3")
     }
 
+    /// The signed-in account's list (a call belongs to the account that placed it); `nil` without an account.
+    private func pendingRecordingsKey() -> String? {
+        phoneSignedInAccountKey().map { (account: String) -> String in "\(Self.pendingRecordingsPrefix).\(account)" }
+    }
+
     private func pendingRecordings() -> [String: String] {
-        UserDefaults.standard.dictionary(forKey: Self.pendingRecordingsKey) as? [String: String] ?? [:]
+        guard let key = pendingRecordingsKey() else {
+            return [:]
+        }
+        return UserDefaults.standard.dictionary(forKey: key) as? [String: String] ?? [:]
     }
 
     private func rememberPending(callID: String, e164: String) {
+        guard let key = pendingRecordingsKey() else {
+            Self.logger.warning("No signed-in account; the call's recording isn't kept for a later launch")
+            return
+        }
         var pending: [String: String] = pendingRecordings()
         pending[callID] = e164
-        UserDefaults.standard.set(pending, forKey: Self.pendingRecordingsKey)
+        UserDefaults.standard.set(pending, forKey: key)
     }
 
     private func forgetPending(callID: String) {
+        guard let key = pendingRecordingsKey() else {
+            return
+        }
         var pending: [String: String] = pendingRecordings()
         pending.removeValue(forKey: callID)
-        UserDefaults.standard.set(pending, forKey: Self.pendingRecordingsKey)
+        UserDefaults.standard.set(pending, forKey: key)
     }
 
     /// Imports recordings of calls that ended while the app was closed (one at a time; the server deletes unfetched
