@@ -22,7 +22,7 @@ struct PhoneDestination: View {
     var body: some View {
         switch route {
         case .meeting(let id):
-            PhoneMeetingDestination(meetingID: id, store: store, recorder: recorder, router: router, player: player, recipes: ask.recipes) { (recipe: Recipe) -> Void in
+            PhoneMeetingDestination(meetingID: id, store: store, recorder: recorder, router: router, player: player, ask: ask) { (recipe: Recipe) -> Void in
                 onRunRecipe(recipe, id)
             }
         case .tasks:
@@ -75,7 +75,8 @@ private struct PhoneMeetingDestination: View {
     let recorder: PhoneRecorder
     let router: PhoneRouter
     let player: MeetingAudioPlayer
-    let recipes: [Recipe]
+    /// Sor: tarifler ve toplantı sayfasının "Bir şey sor" çubuğu.
+    let ask: PhoneAsk
     let onRunRecipe: @MainActor (Recipe) -> Void
     /// Silme ya da geri yükleme hataları.
     @State private var errors: [String] = []
@@ -85,7 +86,7 @@ private struct PhoneMeetingDestination: View {
         let meetings: [MeetingRecord] = namedRecords(records: store.meetings, userName: store.userName)
         Group {
             if let record = meetings.first(where: { $0.id == meetingID }) {
-                MeetingReadView(record: record, store: store, player: player, isRecording: recorder.phase != .idle, recipes: recipes) {
+                MeetingReadView(record: record, store: store, player: player, isRecording: recorder.phase != .idle, ask: ask) {
                     errors = phoneTrashMeetings(ids: [meetingID], store: store, recorder: recorder, player: player, router: router)
                 } onReprocess: {
                     try recorder.reprocess(meetingID: meetingID)

@@ -526,14 +526,6 @@ struct MeetingTile: View {
     }
 }
 
-/// Toplantı başlığının altındaki bilgiler: süre, dil ve konuşmacı sayısı (olanlar, bu sırayla). Saf fonksiyondur.
-func meetingHeaderFacts(minutes: Int?, language: String?, speakers: Int?) -> [String] {
-    let duration: [String] = minutes.map { [String(localized: "\($0) dk")] } ?? []
-    let languages: [String] = language.map { [$0] } ?? []
-    let people: [String] = speakers.map { [String(localized: "\($0) konuşmacı")] } ?? []
-    return duration + languages + people
-}
-
 /// Toplantı sayfasının sonunda kapalı başlayan "Ayrıntılar" bölümü (konuşma payları, sözlük); açık/kapalı tercihi tüm
 /// toplantılar için hatırlanır.
 struct MeetingDetailsDisclosure<Content: View>: View {

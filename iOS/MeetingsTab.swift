@@ -570,8 +570,8 @@ struct MeetingReadView: View {
     let store: PhoneStore
     let player: MeetingAudioPlayer
     let isRecording: Bool
-    /// ⋯ › Tarif uygula: yerleşik ve kullanıcı tarifleri.
-    let recipes: [Recipe]
+    /// Sor: tarifler (⋯ › Tarif uygula) ve alttaki "Bir şey sor" çubuğunun sohbeti.
+    let ask: PhoneAsk
     /// Onaylanan silme: toplantıyı siler ve sayfayı kapatır (onay bu sayfada sorulur).
     let onDelete: @MainActor () -> Void
     /// "Tekrar işle": son geçiş ve not yeniden (bkz. `PhoneRecorder.reprocess`).
@@ -579,8 +579,10 @@ struct MeetingReadView: View {
     /// ⋯ › Tarif uygula: seçilen tarif bu toplantıya Sor'da uygulanır.
     let onRunRecipe: @MainActor (Recipe) -> Void
     @State private var pane: MeetingPane = .summary
-    /// Özetteki seçili not bölümü (görevler, konu akışı, kararlar, işaretli anlar); kapaktaki çipler de seçer.
-    @State private var noteSection: NoteSectionTab = .tasks
+    /// Alttaki çubuğun transkript çekmecesi açık.
+    @State private var isTranscriptOpen: Bool = false
+    /// Çekmecede kayılacak ve vurgulanacak paragraf (not maddesinin kaynağından gelinince).
+    @State private var transcriptFocusID: String?
     /// Silme onayı bekleyen toplantı (⋯ › Sil).
     @State private var pendingDelete: MeetingRecord?
     @State private var errorMessage: String?
@@ -726,6 +728,10 @@ struct MeetingReadView: View {
                 .padding(.bottom, 28)
             }
             .scrollIndicators(.hidden)
+            // Altta yüzen "Bir şey sor" çubuğu ve üstünde açılan transkript çekmecesi (Mac'teki gibi).
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                bottomBar(paragraphs: paragraphs)
+            }
         }
         .background(Theme.background)
         .navigationBarTitleDisplayMode(.inline)
@@ -787,7 +793,7 @@ struct MeetingReadView: View {
                     PhoneSendMenuItems(record: record)
                     // Mac'teki "Tarif": bu toplantıya tarif uygular, cevap Sor'da açılır.
                     Menu("Tarif uygula", systemImage: "wand.and.stars") {
-                        ForEach(recipes) { (recipe: Recipe) in
+                        ForEach(ask.recipes) { (recipe: Recipe) in
                             Button(recipe.title, systemImage: recipe.symbol) { onRunRecipe(recipe) }
                         }
                     }
@@ -916,7 +922,24 @@ struct MeetingReadView: View {
             if CommandLine.arguments.contains("--konusmacilar") {
                 isNamingSpeakers = true
             }
+            // `--cekmece` (yalnız Debug, görsel kontrol): transkript çekmecesini toplantının ortasında açar.
+            if CommandLine.arguments.contains("--cekmece") {
+                transcriptFocusID = paragraphs.isEmpty ? nil : paragraphs[paragraphs.count / 2].id
+                isTranscriptOpen = true
+            }
+            // `--sor-ornek` (yalnız Debug, görsel kontrol): "Bir şey sor" paneli bitmiş bir soruyla açılır (sahte cevap,
+            // yapay zekâ çağrılmaz).
+            if CommandLine.arguments.contains("--sor-ornek"), ask.meetingAsk.exchanges(meetingID: record.id).isEmpty {
+                do {
+                    try await Task.sleep(for: .milliseconds(600))
+                } catch {
+                    return
+                }
+                ask.meetingAsk.restore(exchange: phoneDemoMeetingExchange(record: record, paragraphs: paragraphs), meetingID: record.id)
+            }
         }
+        // `--kaynak` (yalnız Debug, görsel kontrol): özetin ilk maddesinin "Transkriptten" kutusu açık.
+        .environment(\.noteSourceAutoOpenText, CommandLine.arguments.contains("--kaynak") ? record.note.flatMap { noteSummaryBullets(summary: $0.summary).first } : nil)
         #endif
     }
 
@@ -978,11 +1001,110 @@ struct MeetingReadView: View {
         MeetingSummary(
             record: record, note: note, paragraphs: paragraphs, store: store, canPlay: canPlay, isEditable: isEditable,
             onNameSpeakers: { isNamingSpeakers = true }, onEditMyNotes: { isEditingMyNotes = true }, onClip: exportClip(paragraph:),
-            section: $noteSection
+            onJump: { (paragraph: TranscriptParagraph) -> Void in jump(to: paragraph, paragraphs: paragraphs) },
+            onAskSource: { (text: String) -> Void in askAboutLine(text: text) }
         ) { (startSec: Double) -> Void in
             play(from: startSec)
         }
         .transition(.opacity)
+    }
+
+    /// Altta yüzen çubuk: Sor'un okuyabileceği toplantıda (kayıtta ya da işlenirken değil) "Bir şey sor" ve transkript
+    /// çekmecesi; kayıt süren toplantıda yok.
+    @ViewBuilder
+    private func bottomBar(paragraphs: [TranscriptParagraph]) -> some View {
+        if isMentionableMeeting(record: record) {
+            VStack(spacing: 8) {
+                if isTranscriptOpen {
+                    TranscriptDrawer(
+                        paragraphs: paragraphs, speakerNames: record.speakerNames, focusID: transcriptFocusID, canPlay: canPlay,
+                        onPlay: { (startSec: Double) -> Void in playInPlace(from: startSec) },
+                        onClose: { isTranscriptOpen = false }
+                    )
+                    .frame(height: 340)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+                MeetingAskBar(
+                    exchanges: ask.meetingAsk.exchanges(meetingID: record.id), isAnswering: ask.meetingAsk.isAnswering(meetingID: record.id),
+                    quickActions: record.note == nil ? [] : meetingQuickActions(recipes: ask.recipes), recipes: ask.recipes,
+                    isEditingNote: store.regeneratingIDs.contains(record.id), isTranscriptOpen: isTranscriptOpen,
+                    onAsk: { (question: String, recipeTitle: String?) -> Void in
+                        ask.askAboutMeeting(meetingID: record.id, question: question, recipeTitle: recipeTitle)
+                    },
+                    onQuickAction: { (action: MeetingQuickAction) -> Void in run(action: action) },
+                    onStop: { ask.meetingAsk.stop(meetingID: record.id) },
+                    onClear: { ask.meetingAsk.clear(meetingID: record.id) },
+                    onRegenerate: { ask.regenerateMeetingAnswer(meetingID: record.id) },
+                    onOpenSource: { (passage: ArchivePassage) -> Void in openSource(passage: passage, paragraphs: paragraphs) },
+                    onSaveRecipe: { (question: String) -> Void in ask.saveRecipe(question: question) },
+                    onToggleTranscript: {
+                        transcriptFocusID = nil
+                        isTranscriptOpen.toggle()
+                    }
+                )
+            }
+            .padding(.horizontal, 12)
+            .padding(.bottom, 8)
+            // Çubuğun arkasında zemine durgun geçiş: altından kayan not çubukla panel arasında görünmesin.
+            .background(alignment: .bottom) {
+                LinearGradient(stops: [.init(color: Theme.background.opacity(0), location: 0), .init(color: Theme.background, location: 0.35)], startPoint: .top, endPoint: .bottom)
+                    .frame(height: 90)
+                    .ignoresSafeArea(edges: .bottom)
+                    .allowsHitTesting(false)
+            }
+            .animation(.smooth(duration: 0.25), value: isTranscriptOpen)
+        }
+    }
+
+    /// Hazır eylem: tarif bu sayfada sorulur, "Notu uzat" notu yeniden yazar.
+    private func run(action: MeetingQuickAction) {
+        switch action.kind {
+        case .ask(let prompt, let recipeTitle):
+            ask.askAboutMeeting(meetingID: record.id, question: prompt, recipeTitle: recipeTitle)
+        case .editNote(let instruction):
+            Task { await store.editNote(meetingID: record.id, instruction: instruction) }
+        }
+    }
+
+    /// Kaynak kutusundaki "Sor": maddenin toplantıda nasıl konuşulduğunu bu toplantıya sorar.
+    private func askAboutLine(text: String) {
+        ask.askAboutMeeting(
+            meetingID: record.id, question: String(localized: "Notta \"\(text)\" yazıyor. Bu toplantıda nasıl konuşuldu: kim ne dedi, neden bu sonuca varıldı?"),
+            recipeTitle: nil
+        )
+    }
+
+    /// Cevaptaki kaynak: transkript parçasıysa çekmecede o ana gidilir; not parçası Özet'i gösterir.
+    private func openSource(passage: ArchivePassage, paragraphs: [TranscriptParagraph]) {
+        guard passage.kind == .transcript, let paragraph = paragraphs.last(where: { $0.startSec <= passage.startSec + 0.5 }) ?? paragraphs.first else {
+            withAnimation(.smooth(duration: 0.25)) { pane = .summary }
+            return
+        }
+        jump(to: paragraph, paragraphs: paragraphs)
+    }
+
+    /// Kaynaktan transkriptte o ana gider: çekmece açılır, paragrafa kayıp vurgular; ses varsa oradan çalar (sekme
+    /// değişmez, not görünür kalır).
+    private func jump(to paragraph: TranscriptParagraph, paragraphs: [TranscriptParagraph]) {
+        transcriptFocusID = paragraph.id
+        isTranscriptOpen = true
+        playInPlace(from: paragraph.startSec)
+    }
+
+    /// Sekmeyi değiştirmeden verilen andan çalar (ses yoksa bir şey yapmaz).
+    private func playInPlace(from startSec: Double) {
+        guard canPlay else {
+            return
+        }
+        do {
+            let urls: [URL] = try store.audioURLs(record: record)
+            guard !urls.isEmpty else {
+                return
+            }
+            player.play(record: record, urls: urls, startSec: startSec)
+        } catch {
+            errorMessage = userFacingMessage(error: error)
+        }
     }
 
     /// Paragrafın sesini (iki kayıt karışık) M4A klip olarak hazırlar ve paylaşım sayfasını açar (Mac'teki "Klip olarak
@@ -1101,12 +1223,6 @@ struct MeetingReadView: View {
     private func reveal(anchor: MeetingNoteAnchor, proxy: ScrollViewProxy) {
         let needsSwitch: Bool = pane != .summary
         withAnimation(.smooth(duration: 0.25)) { pane = .summary }
-        switch anchor {
-        case .myTasks: noteSection = .tasks
-        case .decisions: noteSection = .decisions
-        case .openQuestions: noteSection = .openQuestions
-        case .sections: break
-        }
         Task { @MainActor in
             if needsSwitch {
                 do {
@@ -1116,52 +1232,34 @@ struct MeetingReadView: View {
                     return
                 }
             }
-            withAnimation(.smooth(duration: 0.35)) { proxy.scrollTo(MeetingNoteAnchor.sections, anchor: .top) }
+            withAnimation(.smooth(duration: 0.35)) { proxy.scrollTo(anchor, anchor: .top) }
         }
     }
 
-    /// Sakin başlık: küçük pastel kutu ve tarih, başlık, tek satır özet bilgi (süre, dil, konuşmacı sayısı; sana düşen
-    /// görev varsa sayısı, dokununca nottaki görevlere gider). Karar ve açık konu sayıları not bölümlerinin sekmelerinde.
+    /// Sakin başlık (Mac'teki gibi): küçük pastel kutu, başlık, tek satır bilgi çipleri (şablon, tarih, süre, konuşmacı
+    /// sayısı, klasör, dil) ve sana düşen görev varsa sayısı (dokununca nottaki görevlere gider).
     private func header(paragraphs: [TranscriptParagraph], proxy: ScrollViewProxy) -> some View {
-        let shares: [SpeakerShare] = speakerShares(paragraphs: paragraphs)
         // Kısa konuşmalar (bkz. `groupedSpeakers`) konuşmacı sayısına girmez.
-        let majorCount: Int = groupedSpeakers(shares: shares, speakerNames: record.speakerNames).major.count
+        let majorCount: Int = groupedSpeakers(shares: speakerShares(paragraphs: paragraphs), speakerNames: record.speakerNames).major.count
         let mine: Int = (record.note?.tasks ?? []).filter(\.isMine).count
-        let facts: [String] = meetingHeaderFacts(
-            minutes: meetingDurationMinutes(record: record), language: record.language.map { languageName(language: $0) },
-            speakers: shares.isEmpty ? nil : majorCount
-        )
-        return VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
-                MeetingTile(record: record, size: 28)
-                Text(record.startedAt.formatted(Date.FormatStyle(date: .long, time: .shortened).locale(interfaceLocale())))
-                    .appFont(size: 13, weight: .medium)
-                    .foregroundStyle(Theme.muted)
-            }
+        return VStack(alignment: .leading, spacing: 12) {
+            MeetingTile(record: record, size: 26)
             Text(record.note?.title ?? record.title)
-                .appFont(size: 27, weight: .regular)
-                .tracking(-0.5)
+                .appFont(size: 28, weight: .semibold)
+                .tracking(-0.6)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
-            HStack(spacing: 6) {
-                if !facts.isEmpty {
-                    Text(verbatim: facts.joined(separator: " · "))
-                        .foregroundStyle(Theme.muted)
+            MeetingInfoChips(chips: meetingInfoChips(record: record, speakers: majorCount, locale: interfaceLocale()))
+            if mine > 0 {
+                Button {
+                    reveal(anchor: .myTasks, proxy: proxy)
+                } label: {
+                    Text("Sana \(mine) görev")
                 }
-                if mine > 0 {
-                    if !facts.isEmpty {
-                        Text(verbatim: "·").foregroundStyle(Theme.muted).accessibilityHidden(true)
-                    }
-                    Button {
-                        reveal(anchor: .myTasks, proxy: proxy)
-                    } label: {
-                        Text("Sana \(mine) görev")
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.tint)
-                }
+                .buttonStyle(.plain)
+                .appFont(size: 13, weight: .semibold)
+                .foregroundStyle(.tint)
             }
-            .appFont(size: 14, weight: .regular)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, 4)
@@ -1212,24 +1310,21 @@ private struct MeetingSummary: View {
     let onEditMyNotes: @MainActor () -> Void
     /// İşaretli anın sesini klip olarak paylaşır (uzun basınca).
     let onClip: @MainActor (TranscriptParagraph) -> Void
-    /// Seçili not bölümü (kapaktaki görev ve karar çipleri de seçer).
-    @Binding var section: NoteSectionTab
+    /// Maddenin kaynağından transkriptte o ana gider (çekmece açılır, ses varsa oradan çalar).
+    let onJump: @MainActor (TranscriptParagraph) -> Void
+    /// Kaynak kutusundaki "Sor": maddenin nasıl konuşulduğunu bu toplantıya sorar.
+    let onAskSource: @MainActor (String) -> Void
     let onPlay: @MainActor (Double) -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
-    @State private var showsMyTasks: Bool = true
-    @State private var showsOtherTasks: Bool = true
 
     var body: some View {
         if let note {
             let mine: [NoteTask] = note.tasks.filter(\.isMine)
             let shares: [SpeakerShare] = speakerShares(paragraphs: paragraphs)
             let groups: SpeakerGroups = groupedSpeakers(shares: shares, speakerNames: record.speakerNames)
-            VStack(alignment: .leading, spacing: 26) {
-                // Önce sonuç: görevler (ve diğer bölümler) özetin üstünde.
-                sectionsPanel(note: note)
-                Text(note.summary)
-                    .readingText(size: 18, weight: .regular, lineSpacing: 6)
-                    .textSelection(.enabled)
+            VStack(alignment: .leading, spacing: 28) {
+                // Not bir belge gibi: başlıklar ve maddeler; maddeye dokununca kaynağı (Mac'te üstüne gelince büyüteç).
+                noteDocument(note: note)
                 // Özetin altındaki sakin blok: yüz yüze toplantıda "Hangisi sendin?", kendi notların (varsa) ve not
                 // düzenleme satırı (kendi notun yoksa sonunda "Notlarım").
                 VStack(alignment: .leading, spacing: 12) {
@@ -1306,126 +1401,157 @@ private struct MeetingSummary: View {
         return paragraphs.filter { ids.contains($0.id) }
     }
 
-    /// Notun sekmeli bölümleri (Mac'teki gibi): görevler, konu akışı, kararlar, işaretli anlar; boş olanın sekmesi yok.
-    /// Kapaktaki çipler sekmeyi seçip buraya kaydırır (`MeetingNoteAnchor.sections`).
+    /// Not belgesi (Mac'teki gibi): Özet, Görevler, Kararlar, Açık konular, Konu akışı ve İşaretli anlar başlıkları ve
+    /// maddeleri; boş bölüm yok.
     @ViewBuilder
-    private func sectionsPanel(note: MeetingNote) -> some View {
+    private func noteDocument(note: MeetingNote) -> some View {
         let marked: [TranscriptParagraph] = markedParagraphs
         let outline: [OutlineItem] = note.outline ?? []
-        let counts: [NoteSectionTab: Int] = [
-            .tasks: note.tasks.count, .outline: outline.count, .decisions: note.decisions.count, .openQuestions: (note.openQuestions ?? []).count,
-            .moments: marked.count,
-        ]
-        let available: [NoteSectionTab] = NoteSectionTab.allCases.filter { (counts[$0] ?? 0) > 0 }
-        if let current = visibleNoteSection(requested: section, available: available) {
-            VStack(alignment: .leading, spacing: 16) {
-                if available.count > 1 {
-                    ScrollView(.horizontal) {
-                        UnderlineTabs(
-                            selection: Binding<NoteSectionTab>(get: { current }, set: { (tab: NoteSectionTab) -> Void in section = tab }),
-                            options: available.map { (tab: NoteSectionTab) -> (value: NoteSectionTab, title: LocalizedStringKey) in
-                                (value: tab, title: noteSectionTitle(tab: tab, count: counts[tab] ?? 0))
-                            }
-                        )
-                        .fixedSize()
+        noteBlock(title: "Özet") {
+            ForEach(Array(noteSummaryBullets(summary: note.summary).enumerated()), id: \.offset) { (item: (offset: Int, element: String)) in
+                bullet(text: item.element, anchorSec: nil) {
+                    Text(item.element)
+                }
+            }
+        }
+        .id(MeetingNoteAnchor.sections)
+        if !note.tasks.isEmpty {
+            tasksSection(note: note)
+                .id(MeetingNoteAnchor.myTasks)
+        }
+        if !note.decisions.isEmpty {
+            noteBlock(title: "Kararlar") {
+                ForEach(Array(note.decisions.enumerated()), id: \.offset) { (item: (offset: Int, element: String)) in
+                    anchoredBullet(line: anchoredLine(text: item.element))
+                }
+            }
+            .id(MeetingNoteAnchor.decisions)
+        }
+        if let questions = note.openQuestions, !questions.isEmpty {
+            noteBlock(title: "Açık konular") {
+                ForEach(Array(questions.enumerated()), id: \.offset) { (item: (offset: Int, element: String)) in
+                    anchoredBullet(line: anchoredLine(text: item.element))
+                }
+            }
+            .id(MeetingNoteAnchor.openQuestions)
+        }
+        if !outline.isEmpty {
+            noteBlock(title: "Konu akışı") {
+                ForEach(Array(outline.enumerated()), id: \.offset) { (item: (offset: Int, element: OutlineItem)) in
+                    bullet(text: item.element.title + ". " + item.element.summary, anchorSec: item.element.startSec) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(item.element.title).fontWeight(.semibold)
+                            Text(item.element.summary).foregroundStyle(Theme.ink.opacity(0.8))
+                            NoteTimeChip(startSec: item.element.startSec, canPlay: canPlay, onPlay: onPlay)
+                        }
                     }
-                    .scrollIndicators(.hidden)
-                }
-                Group {
-                    switch current {
-                    case .tasks: tasksSection(note: note)
-                    case .outline: OutlineTimeline(items: outline, canPlay: canPlay, onPlay: onPlay)
-                    case .decisions: decisionsSection(note: note)
-                    case .openQuestions: openQuestionsSection(note: note)
-                    case .moments: momentsSection(marked: marked)
-                    }
-                }
-                .transition(.opacity)
-            }
-            .animation(.smooth(duration: 0.2), value: current)
-            .id(MeetingNoteAnchor.sections)
-        }
-    }
-
-    /// Görevler: önce senin görevlerin, sonra diğerleri; iki grup da açılıp kapanır.
-    private func tasksSection(note: MeetingNote) -> some View {
-        // Tamamlananlar grubun sonunda (sıraları korunur).
-        let ordered: [NoteTask] = note.tasks.filter { !isTaskDone(record: record, task: $0) } + note.tasks.filter { isTaskDone(record: record, task: $0) }
-        let mine: [NoteTask] = ordered.filter(\.isMine)
-        let others: [NoteTask] = ordered.filter { !$0.isMine }
-        let doneMine: Int = mine.filter { isTaskDone(record: record, task: $0) }.count
-        return VStack(alignment: .leading, spacing: 18) {
-            if !mine.isEmpty {
-                CollapsibleGroup(
-                    title: "Senin görevlerin", count: mine.count,
-                    detail: String(localized: "\(doneMine)/\(mine.count) tamamlandı"), tint: appearance.accent.color, isExpanded: $showsMyTasks
-                ) {
-                    HairlineList(items: mine, tint: appearance.accent.color) { (task: NoteTask) in taskRow(task: task) }
-                }
-            }
-            if !others.isEmpty {
-                CollapsibleGroup(title: "Diğer görevler", count: others.count, detail: nil, tint: nil, isExpanded: $showsOtherTasks) {
-                    HairlineList(items: others, tint: nil) { (task: NoteTask) in taskRow(task: task) }
                 }
             }
         }
-    }
-
-    private func taskRow(task: NoteTask) -> some View {
-        PhoneTaskRowContent(record: record, task: task, showsMeeting: false) {
-            withAnimation(.smooth(duration: 0.25)) { store.toggleTask(meetingID: record.id, task: task) }
-        }
-        .id(task.trackingKey)
-    }
-
-    /// Kararlar: numaralı, ince çizgilerle ayrılmış; alındığı an (yeni notlarda) metnin altında, dokununca oradan çalar.
-    private func decisionsSection(note: MeetingNote) -> some View {
-        HairlineList(items: Array(note.decisions.enumerated()), tint: nil) { (item: (offset: Int, element: String)) in
-            anchoredRow(line: anchoredLine(text: item.element)) {
-                Text(verbatim: "\(item.offset + 1)")
-                    .appFont(size: 13, weight: .semibold)
-                    .monospacedDigit()
-                    .foregroundStyle(appearance.accent.color)
-                    .frame(width: 18, alignment: .trailing)
+        if !marked.isEmpty {
+            noteBlock(title: "İşaretli anlar") {
+                momentsSection(marked: marked)
             }
         }
     }
 
-    /// Açık konular: çözülmeyen ve takip gereken şeyler; konuşulduğu an metnin altında, dokununca oradan çalar.
-    private func openQuestionsSection(note: MeetingNote) -> some View {
-        HairlineList(items: note.openQuestions ?? [], tint: nil) { (question: String) in
-            anchoredRow(line: anchoredLine(text: question)) {
-                Image(systemName: "questionmark.circle")
-                    .appFont(size: 13, weight: .semibold)
-                    .foregroundStyle(appearance.accent.color)
-                    .frame(width: 18, alignment: .trailing)
+    /// Notun bir bölümü: başlık ve altında maddeler.
+    private func noteBlock<Content: View>(title: LocalizedStringKey, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            NoteDocumentHeading(title: title)
+            VStack(alignment: .leading, spacing: 2) {
+                content()
             }
+            .padding(.horizontal, -10)
         }
     }
 
-    /// Karar ya da açık konu satırı: solda işaret; metin ve altında (varsa) zaman çipi (dar ekranda metne yer kalsın).
-    private func anchoredRow<Marker: View>(line: AnchoredLine, @ViewBuilder marker: () -> Marker) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
-            marker()
-            VStack(alignment: .leading, spacing: 8) {
+    /// Kaynağı gösterilebilen nokta işaretli madde (dokununca ya da basılı tutunca "Transkriptten").
+    private func bullet<Content: View>(text: String, anchorSec: Double?, @ViewBuilder content: @escaping () -> Content) -> some View {
+        sourceRow(text: text, anchorSec: anchorSec) {
+            NoteBulletDot()
+        } content: {
+            content()
+                .readingText(size: 16, weight: .regular, lineSpacing: 4)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    /// Karar ya da açık konu maddesi: metin ve altında (varsa) konuşulduğu an (dar ekranda metne yer kalsın).
+    private func anchoredBullet(line: AnchoredLine) -> some View {
+        bullet(text: line.text, anchorSec: line.startSec) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(line.text)
-                    .readingText(size: 16, weight: .regular, lineSpacing: 3)
                 if let start = line.startSec {
                     NoteTimeChip(startSec: start, canPlay: canPlay, onPlay: onPlay)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(14)
+    }
+
+    private func sourceRow<Leading: View, Content: View>(
+        text: String, anchorSec: Double?, @ViewBuilder leading: @escaping () -> Leading, @ViewBuilder content: @escaping () -> Content
+    ) -> some View {
+        NoteSourceRow(
+            text: text, anchorSec: anchorSec, paragraphs: paragraphs, outline: record.note?.outline ?? [],
+            speakerNames: record.speakerNames, canPlay: canPlay, onJump: onJump, onAsk: { onAskSource(text) },
+            leading: leading, content: content
+        )
+    }
+
+    /// Görevler: önce senin görevlerin, sonra diğerleri (tamamlananlar grubun sonunda); her görevin kaynağı da gösterilir.
+    private func tasksSection(note: MeetingNote) -> some View {
+        let ordered: [NoteTask] = note.tasks.filter { !isTaskDone(record: record, task: $0) } + note.tasks.filter { isTaskDone(record: record, task: $0) }
+        let mine: [NoteTask] = ordered.filter(\.isMine)
+        let others: [NoteTask] = ordered.filter { !$0.isMine }
+        let doneMine: Int = mine.filter { isTaskDone(record: record, task: $0) }.count
+        return noteBlock(title: "Görevler") {
+            if !mine.isEmpty {
+                taskGroupLabel(title: "Senin görevlerin", detail: String(localized: "\(doneMine)/\(mine.count) tamamlandı"), tint: appearance.accent.color)
+                ForEach(mine, id: \.trackingKey) { (task: NoteTask) in taskRow(task: task) }
+            }
+            if !others.isEmpty {
+                taskGroupLabel(title: "Diğer görevler", detail: nil, tint: Theme.muted)
+                    .padding(.top, mine.isEmpty ? 0 : 10)
+                ForEach(others, id: \.trackingKey) { (task: NoteTask) in taskRow(task: task) }
+            }
+        }
+    }
+
+    /// Görev grubunun küçük etiketi ("Senin görevlerin · 1/3 tamamlandı").
+    private func taskGroupLabel(title: LocalizedStringKey, detail: String?, tint: Color) -> some View {
+        HStack(spacing: 6) {
+            Text(title)
+                .appFont(size: 12, weight: .semibold)
+                .foregroundStyle(tint)
+            if let detail {
+                Text(verbatim: "· \(detail)")
+                    .appFont(size: 12, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.top, 4)
+    }
+
+    private func taskRow(task: NoteTask) -> some View {
+        sourceRow(text: task.description, anchorSec: nil) {
+            EmptyView()
+        } content: {
+            PhoneTaskRowContent(record: record, task: task, showsMeeting: false) {
+                withAnimation(.smooth(duration: 0.25)) { store.toggleTask(meetingID: record.id, task: task) }
+            }
+        }
+        .id(task.trackingKey)
     }
 
     /// İşaretlediğin anlar: dokununca oradan çalar; uzun basınca ses klibi.
     private func momentsSection(marked: [TranscriptParagraph]) -> some View {
-        HairlineList(items: marked, tint: nil) { (paragraph: TranscriptParagraph) in
+        ForEach(marked) { (paragraph: TranscriptParagraph) in
             HighlightRow(paragraph: paragraph, speakerNames: record.speakerNames, canPlay: canPlay) {
                 onPlay(paragraph.startSec)
             }
-            .padding(.horizontal, 14)
+            .padding(.horizontal, 10)
             // Uzun basınca (Mac'teki sağ tık): anın sesini klip olarak paylaş.
             .contextMenu {
                 Button("Ses klibini paylaş", systemImage: "waveform") { onClip(paragraph) }
@@ -2035,3 +2161,23 @@ private struct TranscriptList: View {
 }
 
 private let meetingReadLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "Meetings")
+
+#if DEBUG
+/// Görsel kontrolün sahte toplantı sorusu (`--sor-ornek`): transkriptin ilk sözüne dayanan kısa bir cevap. Saf
+/// fonksiyondur.
+private func phoneDemoMeetingExchange(record: MeetingRecord, paragraphs: [TranscriptParagraph]) -> ArchiveExchange {
+    let sources: [ArchivePassage] = paragraphs.prefix(1).map { (paragraph: TranscriptParagraph) -> ArchivePassage in
+        ArchivePassage(
+            id: "demo-\(paragraph.id)", meetingID: record.id, meetingTitle: record.note?.title ?? record.title, meetingDate: record.startedAt, kind: .transcript,
+            startSec: paragraph.startSec, text: paragraph.text
+        )
+    }
+    let tasks: [String] = (record.note?.tasks ?? []).filter(\.isMine).prefix(2).map { "- **\($0.description)**\($0.dueDate.map { " (\($0))" } ?? "")" }
+    let answer: String = (["You have \(tasks.count) tasks from this meeting [1]:", ""] + tasks).joined(separator: "\n")
+    return ArchiveExchange(
+        id: UUID(), question: "What do I owe people after this meeting?", scopeMeetingIDs: [record.id], scopeTitles: [], recipeTitle: nil, startedAt: Date(),
+        phase: .done, terms: [], passages: sources, screens: 0, answer: ArchiveAnswer(text: answer, sources: sources, webSources: []), webQueries: [],
+        webSearchNotice: .ok, finishedAt: Date()
+    )
+}
+#endif

@@ -342,7 +342,7 @@ private struct ThinkingLine: View {
 }
 
 /// Metnin üstünden soldan sağa yavaşça geçen ışık (düşünme göstergesi); "Hareketi azalt" açıksa durgun ve soluk.
-private struct ShimmerText: View {
+struct ShimmerText: View {
     let text: Text
     @Environment(\.accessibilityReduceMotion) private var reduceMotion: Bool
 
