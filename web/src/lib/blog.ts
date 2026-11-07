@@ -3,7 +3,7 @@
 import { type CollectionEntry, getCollection } from "astro:content";
 import { productName, siteLocale } from "../config";
 import { blogOgImagePath, blogPostPath } from "../routes";
-import { type FilmCover, coverFilm } from "./film";
+import type { FilmPalette } from "./film";
 
 /** Bir blog yazısının sayfada ve akışta kullanılan bilgileri. */
 export interface BlogPost {
@@ -16,8 +16,8 @@ export interface BlogPost {
   readonly updated: Date | null;
   /** Son anlamlı değişiklik: `updated`, yoksa `published` (dateModified, `<lastmod>`, article:modified_time). */
   readonly modified: Date;
-  /** Kapağın gradyanı: ön bilgideki `cover` ya da kısa addan (`coverFilm`). */
-  readonly cover: FilmCover;
+  /** Ön bilgideki `cover` (kapak fotoğrafının renk ailesi); verilmemişse null ve fotoğraf yayın sırasından seçilir (BlogCover.astro). */
+  readonly cover: FilmPalette | null;
   /** Yaklaşık okuma süresi (dakika). */
   readonly minutes: number;
 }
@@ -65,7 +65,7 @@ export function blogPost(entry: CollectionEntry<"blog">): BlogPost {
     published: entry.data.published,
     updated,
     modified: updated ?? entry.data.published,
-    cover: coverFilm(entry.id, entry.data.cover ?? null),
+    cover: entry.data.cover ?? null,
     minutes: readingMinutes(entry.body),
   };
 }

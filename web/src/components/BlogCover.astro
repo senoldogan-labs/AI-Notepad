@@ -21,8 +21,9 @@ interface Props {
 const { post, class: extraClass, sizes = "(max-width: 760px) calc(100vw - 40px), 400px", eager = false } = Astro.props;
 /**
  * Kapak görselleri sırayla dağıtılır: yazılar (taslak ve tarihi gelmemiş olanlar dahil, böylece yayımlanınca kapak
- * değişmez) yayın tarihine göre eskiden yeniye dizilir ve her biri sıradaki görseli alır. Komşu yazıların kapakları
- * hep farklıdır; liste bitince başa döner.
+ * değişmez) yayın tarihine göre eskiden yeniye dizilir ve her biri sıradaki görseli alır; liste bitince başa döner.
+ * `cover` verilmemiş komşu yazılar böylece farklı görsel alır (renk ailesi seçilmiş bir yazı komşusuyla aynı görsele
+ * denk gelebilir).
  */
 const coverOrder: readonly PhotoName[] = [
   "dune-sunset",
@@ -57,12 +58,11 @@ const paletteCovers: Readonly<Record<FilmPalette, PhotoName>> = {
   violet: "wave-lilac",
 };
 const rank: number = allPosts.findIndex((entry: CollectionEntry<"blog">): boolean => entry.id === post.slug);
-const chosen: FilmPalette | undefined = allPosts[rank]?.data.cover;
 const ordered: PhotoName | undefined = coverOrder[rank % coverOrder.length];
 if (rank < 0 || ordered === undefined) {
   throw new Error(`BlogCover: post ${JSON.stringify(post.slug)} is not in the blog collection`);
 }
-const photo: PhotoName = chosen === undefined ? ordered : paletteCovers[chosen];
+const photo: PhotoName = post.cover === null ? ordered : paletteCovers[post.cover];
 ---
 
 <div class:list={["blog-cover", `blog-cover--${coverTitleSize(post.title)}`, extraClass]} data-og-cover={post.slug}>

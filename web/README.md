@@ -184,9 +184,10 @@ Her yazı `src/content/blog/<kısa ad>.md`'dir; ön bilgi alanları `title` (10�
 çıkarır (`src/lib/blog.ts` → `isBlogPostPublic`; tüm sayfalar `blogEntries`'i kullanır).
 
 - **Kapak:** her yazının kapağı bir fotoğraf ya da dalga görseli (`src/lib/photos.ts`) ve üstünde kâğıt kartta
-  başlıktır (`BlogCover.astro`). Görsel yayın sırasına göre dağıtılır (`coverOrder`; taslaklar da sayılır, komşu
-  yazıların kapakları farklıdır); `cover` verilmişse o renk ailesinin görseli seçilir (ör. `ocean` → `wave-ocean`).
-  Yönetim panelindeki kapak seçici aynı aileleri seçer; paneldeki önizleme aileyi renk gradyanıyla gösterir. Kapak
+  başlıktır (`BlogCover.astro`). Görsel yayın sırasına göre dağıtılır (`coverOrder`; taslaklar da sayılır, `cover`'sız
+  komşu yazıların kapakları farklıdır); `cover` verilmişse o renk ailesinin görseli seçilir (ör. `ocean` → `wave-ocean`;
+  komşusuyla aynı görsele denk gelebilir). Yönetim panelindeki kapak seçici aynı aileleri seçer; panel fotoğrafları
+  taşımaz, seçilen ailenin rengini, "Auto"da nötr bir örnek ve sitenin yayın sırasıyla seçtiğini gösterir. Kapak
   yazı sayfasının başıdır (başlık `h1`), dizinde ve yazı sonundaki "More from the blog"da kart görselidir; dizinde en
   yeni yazı büyük kapakla öne çıkar. Paylaşım görseli aynı kapaktan üretilir.
 - **Görseller:** panelden yüklenen WebP'ler `public/blog/<kısa ad>/<ad>.webp`'dir. Markdown derlenirken her görsele
