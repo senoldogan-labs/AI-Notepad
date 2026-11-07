@@ -3157,12 +3157,19 @@ final class AppModel {
         }
     }
 
-    /// Kullanıcının elle yazdığı görevi toplantının notuna ekler (kilitli, notsuz toplantıda ya da aynı iş varsa
-    /// eklenmez; nedeni loglanır). Görev Görevlerim'de ve eşitlemeyle iPhone'da görünür.
+    /// Kullanıcının elle yazdığı görevi toplantının notuna ekler; kilitli toplantıda ya da aynı iş varsa eklenmez,
+    /// nedeni hatalarda görünür (iPhone'daki gibi). Görev Görevlerim'de ve eşitlemeyle iPhone'da görünür.
     func addTask(meetingID: String, description: String, dueDay: Date?) {
-        guard let record = meetings.first(where: { $0.id == meetingID }), !isLocked(meetingID: meetingID),
-              let updated = addingTask(record: record, description: description, dueDay: dueDay, userName: userName, calendar: Calendar.current) else {
-            Self.logger.warning("Görev eklenemedi (toplantı yok, kilitli, notsuz ya da aynı görev var), toplantı: \(meetingID, privacy: .public)")
+        guard let record = meetings.first(where: { $0.id == meetingID }) else {
+            Self.logger.warning("Görev eklenemedi: toplantı yok, toplantı: \(meetingID, privacy: .public)")
+            return
+        }
+        guard !isLocked(meetingID: meetingID) else {
+            errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Toplantı işlenirken görev eklenemez; işleme bitince yeniden dene."))
+            return
+        }
+        guard let updated = addingTask(record: record, description: description, dueDay: dueDay, userName: userName, calendar: Calendar.current) else {
+            errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Görev eklenemedi: bu toplantıda aynı görev zaten var."))
             return
         }
         withSessionDirectory(id: meetingID) { (directory: URL) -> Void in

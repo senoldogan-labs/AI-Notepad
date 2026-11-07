@@ -249,7 +249,7 @@ struct MainWindowView: View {
                             #if HOSTED_EDITION
                             // Kendiliğinden gelen teklif (not hazır, deneme bitti) sayfayı kapatmaz: altta ince şerit,
                             // not ve arşiv okunur kalır. Kayıt ya da işleme sürerken ve kurulumda görünmez.
-                            if let moment = HostedAccount.shared.upsell, !HostedAccount.shared.isUpsellSheetVisible, !model.isBusy {
+                            if let moment = HostedAccount.shared.upsell, !HostedAccount.shared.isUpsellSheetVisible, !model.isBusy, router.section != .setup {
                                 HostedUpsellStrip(account: .shared, moment: moment)
                                     .frame(maxWidth: 720)
                                     .transition(.move(edge: .bottom).combined(with: .opacity))
