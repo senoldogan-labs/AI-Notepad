@@ -56,8 +56,9 @@ final class PhoneSharedFileInbox {
     /// paylaşımda yeniden kullanabilir). İçe aktarma başarısız olsa da silinir: neden ana ekranda görünür, asıl kayıt
     /// kaynak uygulamada durur; kalsaydı her açılışta yeniden denenirdi.
     func finish(url: URL) {
-        removeSharedInboxCopy(url: url)
+        // Yol, dosya silinmeden çözülür: silinen dosyanın yolu `receive`'dekiyle aynı biçime çözülmeyebilir.
         received.remove(url.resolvingSymlinksInPath().path)
+        removeSharedInboxCopy(url: url)
     }
 
     /// Bekleyen dosyaları verir ve kutuyu boşaltır.
