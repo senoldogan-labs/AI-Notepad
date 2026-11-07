@@ -27,7 +27,7 @@ struct PhoneHome: View {
     var body: some View {
         let userName: String = store.userName
         // Satırlar konuşmacı adlarıyla (saklı not genel etiketleri korur).
-        let meetings: [MeetingRecord] = namedRecords(records: store.meetings, userName: userName)
+        let meetings: [MeetingRecord] = store.namedMeetings()
         let sections: [MeetingSection] = meetingSections(records: meetings, now: Date(), calendar: .current, locale: interfaceLocale())
         // Aciliyet sırasıyla: önce gecikmiş ve bugünün görevleri, sonra yaklaşanlar.
         let openItems: [DatedTask] = openTasksByUrgency(items: myTasks(meetings: store.meetings, userName: userName), now: Date(), calendar: Calendar.current)
@@ -532,6 +532,8 @@ private struct HomeRecordOptionsChip: View {
     let recorder: PhoneRecorder
     @Environment(PhoneImportState.self) private var imports: PhoneImportState
     /// Canlı çeviri (Ayarlar'daki gösterimle aynı ayar).
+    /// Erişilebilirlik boyutlarında çipte yalnız dil yazar ("Otomatik / dil" iki satıra bölünüyordu); canlı çeviri menüde.
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize: DynamicTypeSize
     @AppStorage(PhoneSettingsKey.displayMode) private var displayMode: String = DisplayMode.bilingual.rawValue
 
     var body: some View {
@@ -550,7 +552,7 @@ private struct HomeRecordOptionsChip: View {
         } label: {
             HStack(spacing: 5) {
                 Text(verbatim: languageText(locked: nil, mode: recorder.languageMode, isRecording: false))
-                if liveTranslationOn {
+                if liveTranslationOn, !dynamicTypeSize.isAccessibilitySize {
                     Text(verbatim: "·").accessibilityHidden(true)
                     Text("Canlı çeviri")
                 }
@@ -558,6 +560,7 @@ private struct HomeRecordOptionsChip: View {
                     .appFont(size: 10, weight: .semibold)
                     .accessibilityHidden(true)
             }
+            .lineLimit(1)
             .appFont(size: 13, weight: .medium)
             .foregroundStyle(Theme.ink)
             .padding(.horizontal, 12)
@@ -655,16 +658,22 @@ private struct PhoneLibrarySheet: View {
 }
 
 /// Arama: boşken ortada kısa açıklama, alan altta (iOS 26); yazınca eşleşen toplantılar (başlık, not, görev, kişi adı,
-/// transkript). Klasör ya da süzgeç içinde arama kitaplıkta.
+/// transkript) eşleşen cümleleri ve transkriptteki anlarıyla, en üstte soruyu Sor'a soran satır. Arama yazmayı
+/// `searchDebounce` kadar bekler ve ana iş parçacığının dışında önbellekli çalışır (`PhoneStore.searchCache`). Klasör ya
+/// da süzgeç içinde arama kitaplıkta.
 struct PhoneSearchScreen: View {
     let store: PhoneStore
     let router: PhoneRouter
+    let ask: PhoneAsk
     @State private var query: String = ""
     @State private var isSearching: Bool = false
+    /// Son biten aramanın sorgusu ve sonuçları (yeni arama bitene dek eskisi görünür).
+    @State private var searched: PhoneSearchResults = PhoneSearchResults(query: "", hits: [])
 
     var body: some View {
         let trimmed: String = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        let results: [MeetingRecord] = trimmed.isEmpty ? [] : filterMeetings(records: namedRecords(records: store.meetings, userName: store.userName), query: trimmed)
+        let meetings: [MeetingRecord] = store.namedMeetings()
+        let byID: [String: MeetingRecord] = Dictionary(meetings.map { ($0.id, $0) }) { (first: MeetingRecord, _: MeetingRecord) -> MeetingRecord in first }
         Group {
             if trimmed.isEmpty {
                 VStack(spacing: 10) {
@@ -682,18 +691,23 @@ struct PhoneSearchScreen: View {
                 }
                 .padding(.horizontal, 32)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if results.isEmpty {
-                PhoneEmptyState(symbol: "magnifyingglass", title: "Eşleşen toplantı yok", message: "Başka bir kelimeyle ara.") {
-                    EmptyView()
-                }
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 2) {
-                        ForEach(results, id: \.id) { (record: MeetingRecord) in
-                            NavigationLink(value: PhoneRoute.meeting(record.id)) {
-                                HomeMeetingRow(record: record)
+                        askRow(question: trimmed)
+                        if searched.query == trimmed, searched.hits.isEmpty {
+                            Text("Eşleşen toplantı yok")
+                                .appFont(size: 15, weight: .regular)
+                                .foregroundStyle(Theme.muted)
+                                .padding(.vertical, 16)
+                        }
+                        ForEach(searched.hits) { (hit: MeetingSearchHit) in
+                            if let record = byID[hit.meetingID] {
+                                NavigationLink(value: PhoneRoute.meeting(record.id)) {
+                                    PhoneSearchHitRow(record: record, hit: hit)
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
                         }
                     }
                     .padding(.horizontal, 20)
@@ -701,6 +715,23 @@ struct PhoneSearchScreen: View {
                 }
                 .scrollDismissesKeyboard(.interactively)
             }
+        }
+        .task(id: PhoneSearchRequest(query: trimmed, stamps: meetings.map(searchStamp(record:)))) {
+            guard !trimmed.isEmpty else {
+                searched = PhoneSearchResults(query: "", hits: [])
+                return
+            }
+            // Yazarken her harfte aranmaz: yeni harf bu görevi iptal eder.
+            do {
+                try await Task.sleep(for: searchDebounce)
+            } catch {
+                return
+            }
+            let hits: [MeetingSearchHit] = await store.searchCache.search(records: meetings, query: trimmed)
+            guard !Task.isCancelled else {
+                return
+            }
+            searched = PhoneSearchResults(query: trimmed, hits: hits)
         }
         .background(Theme.background)
         .navigationTitle("Ara")
@@ -710,5 +741,97 @@ struct PhoneSearchScreen: View {
             DefaultToolbarItem(kind: .search, placement: .bottomBar)
         }
         .onAppear { isSearching = true }
+    }
+
+    /// Aramanın en üstündeki satır: sorguyu bütün toplantılara Sor'da sorar.
+    private func askRow(question: String) -> some View {
+        Button {
+            askEverything(question: question)
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "sparkles")
+                    .appFont(size: 17, weight: .medium)
+                    .foregroundStyle(Color.accentColor)
+                    .frame(width: 44, height: 44)
+                    .background(Theme.soft, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .accessibilityHidden(true)
+                Text("Sor: \u{201C}\(question)\u{201D}")
+                    .appFont(size: 16, weight: .medium)
+                    .foregroundStyle(Theme.ink)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                Spacer(minLength: 0)
+            }
+            .padding(.vertical, 8)
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint(Text("Bütün toplantılarına sorar"))
+    }
+
+    /// Sorguyu yeni bir Sor sohbetinde bütün toplantılara sorar; hakkı yoksa abonelik ekranı açılır.
+    private func askEverything(question: String) {
+        guard !HostedAccount.shared.requiresSubscription else {
+            HostedAccount.shared.requestSubscription()
+            return
+        }
+        ask.clear()
+        ask.ask(question: question, meetingIDs: [], recipeTitle: nil)
+        router.openAskConversation()
+    }
+}
+
+/// Aramanın son sonucu: hangi sorgunun sonucu olduğu ve eşleşen toplantılar.
+private struct PhoneSearchResults: Equatable {
+    let query: String
+    let hits: [MeetingSearchHit]
+}
+
+/// Aramayı yeniden çalıştıran girdiler: sorgu ve toplantıların değişiklik izleri (`searchStamp`).
+struct PhoneSearchRequest: Equatable {
+    let query: String
+    let stamps: [MeetingSearchStamp]
+}
+
+/// Arama sonucu satırı: toplantı, altında eşleşen cümle ve transkriptteki anı.
+struct PhoneSearchHitRow: View {
+    let record: MeetingRecord
+    let hit: MeetingSearchHit
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 14) {
+            MeetingTile(record: record, size: 44)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(record.note?.title ?? record.title)
+                    .appFont(size: 16, weight: .medium)
+                    .foregroundStyle(Theme.ink)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                if let snippet = hit.snippet {
+                    Text(verbatim: snippet)
+                        .appFont(size: 14, weight: .regular)
+                        .foregroundStyle(Theme.ink.opacity(0.8))
+                        .lineLimit(3)
+                        .multilineTextAlignment(.leading)
+                }
+                HStack(spacing: 6) {
+                    if let startSec = hit.startSec {
+                        Text(verbatim: timestamp(seconds: startSec))
+                            .monospacedDigit()
+                            .accessibilityLabel(Text("Transkriptte \(timestamp(seconds: startSec))"))
+                        Text(verbatim: "·").accessibilityHidden(true)
+                    }
+                    Text(verbatim: homeMeetingSubtitle(record: record, now: Date(), calendar: .current, locale: interfaceLocale()))
+                        .lineLimit(1)
+                }
+                .appFont(size: 13, weight: .regular)
+                .foregroundStyle(Theme.muted)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 8)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
     }
 }

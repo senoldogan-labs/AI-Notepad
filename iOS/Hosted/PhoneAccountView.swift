@@ -20,7 +20,8 @@ struct PhoneAccountRow: View {
                 Text(verbatim: phoneAccountSummary(state: account.state))
                     .appFont(size: 13, weight: .regular)
                     .foregroundStyle(Theme.muted)
-                    .lineLimit(2)
+                    // Satır sınırı yok: büyük yazıda yenilenme tarihi "Dec 7, 20…" diye kesiliyordu.
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(.vertical, 4)

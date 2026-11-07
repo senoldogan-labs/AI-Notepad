@@ -2099,7 +2099,7 @@ private func continuedProcessingCompletedUnits(step: ProcessingStep?) -> Int64 {
 
 /// Sistem görevinin alt başlığı: toplantının adı ve başlangıç saati ("Toplantı · 14:30"). Saf fonksiyondur.
 private func continuedProcessingSubtitle(title: String, startedAt: Date) -> String {
-    "\(title) · \(startedAt.formatted(date: .omitted, time: .shortened))"
+    "\(title) · \(startedAt.formatted(Date.FormatStyle(date: .omitted, time: .shortened).locale(interfaceLocale())))"
 }
 
 /// Canlı etkinliğin eskimiş sayılma süresi: kayıt 30 sn'de bir tazeler; uygulama kapanırsa kilit ekranında saymayı

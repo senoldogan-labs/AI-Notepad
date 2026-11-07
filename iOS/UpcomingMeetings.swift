@@ -49,7 +49,7 @@ struct UpcomingCalendarSection: View {
             } label: {
                 Label("Takvime erişim izni yok; sıradaki toplantılar görünmüyor. Ayarlar'a git.", systemImage: "calendar.badge.exclamationmark")
                     .appFont(size: 13, weight: .regular)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(NoticeSeverity.attention.tint)
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -148,12 +148,17 @@ private struct UpcomingMeetingRow: View {
     /// Brifing: bu kişilerle ya da konuda önceki toplantılar, kararlar ve açık görevler (Sor'da açılır).
     let onBriefing: @MainActor (CalendarMeeting) -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize: DynamicTypeSize
 
     var body: some View {
+        // Erişilebilirlik boyutlarında düğmeler başlığın altına iner (yan yana saat dört satıra, başlık "Viikkop…"a
+        // bölünüyordu).
+        let isLarge: Bool = dynamicTypeSize.isAccessibilitySize
+        let rowLayout: AnyLayout = isLarge ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10)) : AnyLayout(HStackLayout(spacing: 12))
         let isSoon: Bool = isCurrent || meeting.start.timeIntervalSince(now) <= 600
         let format: Date.FormatStyle = Date.FormatStyle(date: .omitted, time: .shortened).locale(interfaceLocale())
         let time: String = meeting.start.formatted(format) + "–" + meeting.end.formatted(format)
-        HStack(spacing: 12) {
+        rowLayout {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
                     if isCurrent {
@@ -165,11 +170,13 @@ private struct UpcomingMeetingRow: View {
                         .appFont(size: 12, weight: .medium)
                         .monospacedDigit()
                         .foregroundStyle(isSoon ? appearance.accent.color : Theme.muted)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
                 Text(meeting.title)
                     .appFont(size: 15, weight: .medium)
                     .foregroundStyle(Theme.ink)
-                    .lineLimit(1)
+                    .lineLimit(isLarge ? 3 : 1)
                 if !meeting.attendees.isEmpty {
                     Text(verbatim: meeting.attendees.prefix(3).joined(separator: ", ") + (meeting.attendees.count > 3 ? " +\(meeting.attendees.count - 3)" : ""))
                         .appFont(size: 12, weight: .regular)
@@ -177,32 +184,40 @@ private struct UpcomingMeetingRow: View {
                         .lineLimit(1)
                 }
             }
-            Spacer(minLength: 8)
-            if canBrief {
-                Button {
-                    onBriefing(meeting)
-                } label: {
-                    Text("Brifing")
-                        .appFont(size: 13, weight: .semibold)
-                        .foregroundStyle(appearance.accent.color)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
-                        .background(appearance.accent.color.opacity(0.14), in: Capsule())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(Text("Brifing: \(meeting.title)"))
-                .accessibilityHint(Text("Bu kişilerle ve konuda önceki toplantılar, kararlar, açık görevler"))
+            if !isLarge {
+                Spacer(minLength: 8)
             }
-            if let url = meeting.joinURL {
-                Link(destination: url) {
-                    Text("Katıl")
-                        .appFont(size: 13, weight: .semibold)
-                        .foregroundStyle(Theme.ink)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 7)
-                        .background(Theme.soft, in: Capsule())
+            HStack(spacing: 8) {
+                if canBrief {
+                    Button {
+                        onBriefing(meeting)
+                    } label: {
+                        Text("Brifing")
+                            .appFont(size: 13, weight: .semibold)
+                            .foregroundStyle(appearance.accent.color)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .background(appearance.accent.color.opacity(0.14), in: Capsule())
+                            .frame(minHeight: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text("Brifing: \(meeting.title)"))
+                    .accessibilityHint(Text("Bu kişilerle ve konuda önceki toplantılar, kararlar, açık görevler"))
                 }
-                .accessibilityLabel(Text("Görüşmeye katıl: \(meeting.title)"))
+                if let url = meeting.joinURL {
+                    Link(destination: url) {
+                        Text("Katıl")
+                            .appFont(size: 13, weight: .semibold)
+                            .foregroundStyle(Theme.ink)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 7)
+                            .background(Theme.soft, in: Capsule())
+                            .frame(minHeight: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .accessibilityLabel(Text("Görüşmeye katıl: \(meeting.title)"))
+                }
             }
         }
         .padding(.horizontal, 14)

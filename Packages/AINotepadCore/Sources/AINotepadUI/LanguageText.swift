@@ -15,5 +15,5 @@ public func languageText(locked: MeetingLanguage?, mode: LanguageMode, isRecordi
 
 /// Dil adı, arayüz dilinde. Bayraksız: diller ülke değildir (İngilizce için İngiltere bayrağı, Portekizce için hangisi?).
 public func languageName(language: MeetingLanguage) -> String {
-    meetingLanguageName(language: language)
+    capitalizedLanguageName(name: meetingLanguageName(language: language), locale: interfaceLocale())
 }

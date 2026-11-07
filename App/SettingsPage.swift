@@ -164,52 +164,100 @@ struct SettingsPage: View {
     }
 }
 
-/// Altı çizili sekmeler: seçili sekme ince çerçeveli kutu, altında çizginin üstünde koyu çizgi; geçiş kayarak.
+/// Altı çizili sekmeler: seçili sekme ince çerçeveli kutu, altında çizginin üstünde koyu çizgi; geçiş kayarak. Sekmeler
+/// sığmazsa (Almanca, Fince) sondakiler "Daha fazla" menüsüne geçer: satır kartın dışına taşmaz.
 private struct SettingsTabs: View {
     @Binding var selection: SettingsSection
     @Namespace private var marker
 
     var body: some View {
+        let all: [SettingsSection] = SettingsSection.visible
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 4) {
-                ForEach(SettingsSection.visible, id: \.self) { (item: SettingsSection) in
-                    let isSelected: Bool = item == selection
-                    Button {
-                        selection = item
-                    } label: {
-                        // Sekme adı bölünmez (dar pencerede "Appearanc/e" oluyordu).
-                        Text(item.title)
-                            .appFont(size: 14, weight: isSelected ? .medium : .regular)
-                            .foregroundStyle(isSelected ? Theme.ink : Theme.muted)
-                            .lineLimit(1)
-                            .fixedSize()
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 7)
-                            .background {
-                                if isSelected {
-                                    RoundedRectangle(cornerRadius: 9, style: .continuous)
-                                        .fill(Theme.card)
-                                        .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(Theme.line))
-                                        .matchedGeometryEffect(id: "box", in: marker)
-                                }
-                            }
-                    }
-                    .buttonStyle(.hoverPlain)
-                    .overlay(alignment: .bottom) {
-                        if isSelected {
-                            Rectangle()
-                                .fill(Theme.ink)
-                                .frame(height: 2)
-                                .offset(y: 9)
-                                .matchedGeometryEffect(id: "line", in: marker)
-                        }
-                    }
+            ViewThatFits(in: .horizontal) {
+                ForEach(0..<all.count, id: \.self) { (hidden: Int) in
+                    row(shown: Array(all.dropLast(hidden)), overflow: Array(all.suffix(hidden)))
                 }
             }
             .padding(.bottom, 8)
             Rectangle().fill(Theme.line).frame(height: 1)
         }
         .animation(.smooth(duration: 0.25), value: selection)
+    }
+
+    private func row(shown: [SettingsSection], overflow: [SettingsSection]) -> some View {
+        HStack(spacing: 4) {
+            ForEach(shown, id: \.self) { (item: SettingsSection) in
+                let isSelected: Bool = item == selection
+                Button {
+                    selection = item
+                } label: {
+                    tabLabel(title: Text(item.title), isSelected: isSelected)
+                }
+                .buttonStyle(.hoverPlain)
+                .overlay(alignment: .bottom) { underline(isSelected: isSelected) }
+            }
+            if !overflow.isEmpty {
+                let selectedOverflow: SettingsSection? = overflow.first { $0 == selection }
+                Menu {
+                    ForEach(overflow, id: \.self) { (item: SettingsSection) in
+                        Button(item.title) { selection = item }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        selectedOverflow.map { Text($0.title) } ?? Text("Daha fazla")
+                        Image(systemName: "chevron.down")
+                            .appFont(size: 9, weight: .semibold)
+                            .accessibilityHidden(true)
+                    }
+                    .modifier(TabLabelStyle(isSelected: selectedOverflow != nil, marker: marker))
+                }
+                .menuStyle(.button)
+                .buttonStyle(.hoverPlain)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .overlay(alignment: .bottom) { underline(isSelected: selectedOverflow != nil) }
+            }
+        }
+    }
+
+    private func tabLabel(title: Text, isSelected: Bool) -> some View {
+        // Sekme adı bölünmez (dar pencerede "Appearanc/e" oluyordu).
+        title.modifier(TabLabelStyle(isSelected: isSelected, marker: marker))
+    }
+
+    @ViewBuilder
+    private func underline(isSelected: Bool) -> some View {
+        if isSelected {
+            Rectangle()
+                .fill(Theme.ink)
+                .frame(height: 2)
+                .offset(y: 9)
+                .matchedGeometryEffect(id: "line", in: marker)
+        }
+    }
+}
+
+/// Sekme adının görünümü: tek satır, seçiliyse ince çerçeveli kart kutusu.
+private struct TabLabelStyle: ViewModifier {
+    let isSelected: Bool
+    let marker: Namespace.ID
+
+    func body(content: Content) -> some View {
+        content
+            .appFont(size: 14, weight: isSelected ? .medium : .regular)
+            .foregroundStyle(isSelected ? Theme.ink : Theme.muted)
+            .lineLimit(1)
+            .fixedSize()
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background {
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(Theme.card)
+                        .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(Theme.line))
+                        .matchedGeometryEffect(id: "box", in: marker)
+                }
+            }
     }
 }
 
@@ -230,6 +278,8 @@ private struct GeneralSettings: View {
     let onShowSetup: @MainActor () -> Void
     @AppStorage(SettingsKey.missedWindowMinutes) private var missedMinutes: Int = 3
     @AppStorage(SettingsKey.audioRetentionDays) private var retentionDays: Int = 30
+    /// Kısalan saklama süresi eski sesleri hemen siler: onay bekleyen seçim.
+    @State private var pendingRetention: PendingAudioRetention?
     @AppStorage(SettingsKey.voiceRecognition) private var voiceRecognition: Bool = false
     @AppStorage(SettingsKey.consentReminder) private var consentReminder: Bool = true
     @AppStorage(SettingsKey.calendarEnabled) private var calendarEnabled: Bool = false
@@ -249,6 +299,21 @@ private struct GeneralSettings: View {
     @AppStorage(SettingsKey.noteLanguage) private var noteLanguage: String = defaultNoteLanguage(interfaceLanguages: Bundle.main.preferredLocalizations).rawValue
     @State private var interfaceLanguage: InterfaceLanguage = storedInterfaceLanguage()
     @State private var relaunchError: String?
+
+    /// Saklama süresi seçimi: süre kısalıp eski sesler hemen silinecekse önce sorulur (`pendingRetention`).
+    private var retentionSelection: Binding<Int> {
+        Binding<Int>(
+            get: { retentionDays },
+            set: { (days: Int) -> Void in
+                let count: Int = audioDeletedByRetentionChange(records: model.meetings, now: Date(), setting: days).count
+                if count > 0 {
+                    pendingRetention = PendingAudioRetention(days: days, meetingCount: count)
+                } else {
+                    retentionDays = days
+                }
+            }
+        )
+    }
 
     var body: some View {
         // Kayıt ya da toplantı işleme sürerken yeniden başlatılırsa o toplantı yarıda kalır.
@@ -293,7 +358,7 @@ private struct GeneralSettings: View {
                     )
                 } control: {
                     SettingsMenu(selection: $noteLanguage, options: ShareLanguage.allCases.map { (language: ShareLanguage) -> (String, Text) in
-                        (language.rawValue, Text(verbatim: language.nativeName))
+                        (language.rawValue, Text(verbatim: language.interfaceTitle))
                     })
                 }
                 // Cihaz içi modelin bu dili yazıp yazamadığı uyarısı yenilensin.
@@ -620,12 +685,22 @@ private struct GeneralSettings: View {
                     )
                     #endif
                 } control: {
-                    SettingsMenu(selection: $retentionDays, options: [7, 14, 30, 60, 90, 180, 365].map { (days: Int) -> (Int, Text) in
-                        (days, Text("\(days) gün"))
+                    SettingsMenu(selection: retentionSelection, options: audioRetentionChoices.map { (days: Int) -> (Int, Text) in
+                        (days, days == audioRetentionNever ? Text("Hiç silme") : Text("\(days) gün"))
                     })
                 }
                 .onChange(of: retentionDays) { (_: Int, _: Int) in
                     model.applyRetention()
+                }
+                .alert(
+                    "Sesler silinsin mi?",
+                    isPresented: Binding<Bool>(get: { pendingRetention != nil }, set: { if !$0 { pendingRetention = nil } }),
+                    presenting: pendingRetention
+                ) { (pending: PendingAudioRetention) in
+                    Button("Sesleri sil", role: .destructive) { retentionDays = pending.days }
+                    Button("Vazgeç", role: .cancel) {}
+                } message: { (pending: PendingAudioRetention) in
+                    Text("\(pending.meetingCount) toplantının sesi şimdi silinecek; metin ve not kalır. Bu geri alınamaz.")
                 }
                 #if !HOSTED_EDITION
                 // Abonelik sürümünde iCloud yetkisi yok (eşitleme geliştirici sürümünün kapsayıcısıyla karışmasın).
@@ -1629,4 +1704,10 @@ struct LocalLLMSetup: View {
         model.settingsChanged()
         state = .applied(name)
     }
+}
+
+/// Onay bekleyen ses saklama seçimi: yeni süre ve sesi hemen silinecek toplantı sayısı.
+struct PendingAudioRetention: Equatable {
+    let days: Int
+    let meetingCount: Int
 }

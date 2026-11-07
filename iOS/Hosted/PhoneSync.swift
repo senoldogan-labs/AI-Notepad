@@ -151,7 +151,7 @@ struct PhoneSyncSection: View {
                 TextField("Bağlantı kodu", text: $codeText, prompt: Text("XXXX-XXXX-…"))
                     .textInputAutocapitalization(.characters)
                     .autocorrectionDisabled()
-                    .font(.system(size: 15, design: .monospaced))
+                    .font(.system(.subheadline, design: .monospaced))
                 Button("Katıl") {
                     Task {
                         if await center.join(codeText: codeText) {
@@ -163,7 +163,7 @@ struct PhoneSyncSection: View {
             } else if center.isOn, let code = center.linkCode {
                 if showsCode {
                     Text(verbatim: code)
-                        .font(.system(size: 14, design: .monospaced))
+                        .font(.system(.subheadline, design: .monospaced))
                         .textSelection(.enabled)
                     Button(codeCopied ? LocalizedStringKey("Kopyalandı") : LocalizedStringKey("Kopyala")) {
                         UIPasteboard.general.string = code

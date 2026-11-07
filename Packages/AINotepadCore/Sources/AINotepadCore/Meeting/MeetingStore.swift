@@ -236,7 +236,7 @@ func loadMeetings(sessionsDirectory: URL, cache: MeetingLoadCache) -> (result: M
         folders = try FileManager.default.contentsOfDirectory(at: sessionsDirectory, includingPropertiesForKeys: nil)
             .sorted { (left: URL, right: URL) -> Bool in left.lastPathComponent > right.lastPathComponent }
     } catch {
-        return (MeetingLoadResult(meetings: [], failures: [MeetingLoadFailure(folder: sessionsDirectory.lastPathComponent, reason: String(describing: error))], downloading: []), .empty)
+        return (MeetingLoadResult(meetings: [], failures: [MeetingLoadFailure(folder: sessionsDirectory.lastPathComponent, reason: userFacingMessage(error: error))], downloading: []), .empty)
     }
     let outcomes: Mutex<[FolderLoadOutcome]> = Mutex(Array(repeating: FolderLoadOutcome.skipped, count: folders.count))
     DispatchQueue.concurrentPerform(iterations: folders.count) { (index: Int) -> Void in
@@ -297,7 +297,7 @@ private func loadMeetingFolder(folder: URL, cache: MeetingLoadCache) -> FolderLo
             try FileManager.default.startDownloadingUbiquitousItem(at: file)
             return .downloading(folder.lastPathComponent)
         } catch {
-            return .failure(MeetingLoadFailure(folder: folder.lastPathComponent, reason: String(describing: error)))
+            return .failure(MeetingLoadFailure(folder: folder.lastPathComponent, reason: userFacingMessage(error: error)))
         }
     }
     do {
@@ -313,7 +313,7 @@ private func loadMeetingFolder(folder: URL, cache: MeetingLoadCache) -> FolderLo
         let record: MeetingRecord = try meetingDecoder().decode(MeetingRecord.self, from: Data(contentsOf: file))
         return .meeting(path: path, CachedMeeting(signature: signature, record: record))
     } catch {
-        return .failure(MeetingLoadFailure(folder: folder.lastPathComponent, reason: String(describing: error)))
+        return .failure(MeetingLoadFailure(folder: folder.lastPathComponent, reason: userFacingMessage(error: error)))
     }
 }
 
@@ -375,6 +375,27 @@ public func staleStatusesToInterrupt(records: [MeetingRecord]) -> [MeetingRecord
             }
             return interrupted.with(endedAt: record.startedAt.addingTimeInterval(lastSec))
         }
+}
+
+/// Ses saklama ayarının (Ayarlar › Sesleri sakla) "Hiç silme" değeri: kayıtlı 0 sesin hiç silinmediği anlamına gelir.
+public let audioRetentionNever: Int = 0
+
+/// Ses saklama ayarında sunulan seçenekler (gün), sonda "Hiç silme" (`audioRetentionNever`).
+public let audioRetentionChoices: [Int] = [7, 14, 30, 60, 90, 180, 365, audioRetentionNever]
+
+/// Kayıtlı ses saklama ayarının uygulanacak gün sayısı: "Hiç silme"de nil, öteki değerler 7–365 güne sıkıştırılır
+/// (elle bozulmuş ayar sesi bir günde silmesin). Saf fonksiyondur.
+public func effectiveAudioRetentionDays(setting: Int) -> Int? {
+    setting == audioRetentionNever ? nil : min(365, max(7, setting))
+}
+
+/// Ses saklama ayarı `setting` değerine geçince sesi hemen silinecek toplantılar: ayar kısaldıysa kullanıcıya
+/// sorulur ("N toplantının sesi şimdi silinecek"), "Hiç silme"de liste boştur. Saf fonksiyondur.
+public func audioDeletedByRetentionChange(records: [MeetingRecord], now: Date, setting: Int) -> [String] {
+    guard let days = effectiveAudioRetentionDays(setting: setting) else {
+        return []
+    }
+    return audioToDelete(records: records, now: now, retentionDays: days)
 }
 
 /// Saklama süresi dolmuş ve sesi henüz silinmemiş toplantıların klasör adları. Bitmiş (`done`) toplantının sesi süre
@@ -463,9 +484,6 @@ public func deleteMeetingDirectory(directory: URL) throws {
     try coordinatedRemoveItem(at: directory)
 }
 
-/// Aramada alanları ayıran karakter (birim ayırıcı): kullanıcının sorgusunda bulunmaz.
-private let searchFieldSeparator: String = "\u{1F}"
-
 /// Aramada katlanmış metin: büyük/küçük harf ve aksan duyarsız, Türkçe noktasız "ı" da "i" olur ("Işık", "ışık" ve
 /// "isik" aynı). Yerel ayardan bağımsız (`locale: nil`): Türkçe yerel ayarda "I" → "ı" olur ve Fince/İngilizce metinde
 /// "RAPORTTI" bulunamazdı. Uygulamadaki tüm aramalar (toplantı listesi, @ seçici, tarifler, arşiv soruları) bunu
@@ -483,21 +501,9 @@ public func filterMeetings(records: [MeetingRecord], query: String) -> [MeetingR
         return records
     }
     let folded: String = searchFolded(needle)
-    return records.filter { (record: MeetingRecord) -> Bool in
-        // Listede görünen başlık notun başlığıdır; görevler, konuşmacı adları ve kendi notların da aranır.
-        let haystack: [String] = [record.title, record.note?.title ?? "", record.note?.summary ?? "", record.myNotes ?? ""]
-            + (record.note?.decisions ?? [])
-            + (record.note?.openQuestions ?? [])
-            + (record.note?.tasks ?? []).flatMap { [$0.owner, $0.description] }
-            + Array(record.speakerNames.values)
-            + (record.liveSegments + record.finalSegments).map(\.text)
-            + Array(record.translations.values)
-        // Alanlar tek metinde birleşir, büyük/küçük harf ve aksanlar bir kez katlanır, sonra düz karşılaştırılır
-        // (her bölümde ayrı harf duyarsız arama 500 toplantıda tuş başına saniyeyi aşıyordu). Ayırıcı sorguda
-        // bulunmayan bir denetim karakteridir, eşleşme iki alanın sınırını aşamaz.
-        return searchFolded(haystack.joined(separator: searchFieldSeparator))
-            .range(of: folded, options: .literal) != nil
-    }
+    // Alanlar tek metinde birleşir, büyük/küçük harf ve aksanlar bir kez katlanır, sonra düz karşılaştırılır (bkz.
+    // `foldedSearchText`). Yazarken her tuşta çağrılan aramalar bunun yerine `MeetingSearchCache` kullanır.
+    return records.filter { foldedSearchText(record: $0).range(of: folded, options: .literal) != nil }
 }
 
 /// Kaydedilen toplantıyı bellekteki listeye yerleştirir (varsa değiştirir), yeniden eskiye sıralı. Her kayıttan

@@ -12,8 +12,8 @@ struct AskWebSearchSettingsRow: View {
             SettingsRow(icon: "magnifyingglass", title: Text("Sor'da web aramasına izin ver")) {
                 #if HOSTED_EDITION
                 SettingsMoreText(
-                    summary: Text("Toplantılarda olmayan bilgi için cevap başına en çok 3 arama; sorgu Anthropic üzerinden arama sağlayıcısına gider."),
-                    details: Text("Açıkken Sor, soru toplantılarında olmayan bir bilgi gerektirdiğinde (güncel bilgi, tanım, ürün, fiyat ya da dış kaynak) cevap başına en çok 3 kez webde arar; web kaynakları cevapta alan adıyla ve cevabın altındaki \"Web\" listesinde ayrıca görünür, tıklayınca tarayıcıda açılır. Aramayı Anthropic (Claude) yapar: modelin sorundan (ve okunan toplantı parçalarından) yazdığı kısa arama sorgusu sunucumuz üzerinden Anthropic'e, oradan arama sağlayıcısına gider; arama sağlayıcısına yalnız bu sorgu gider. Ayda 100 arama hakkın var; dolunca Sor ay sonuna kadar yalnız toplantılardan cevaplar. Kapalıyken webde hiç aranmaz.")
+                    summary: Text("Toplantılarda olmayan bilgi için cevap başına en çok 3 arama; web arama hizmetine yalnızca kısa arama sorgusu gider."),
+                    details: Text("Açıkken Sor, soru toplantılarında olmayan bir bilgi gerektirdiğinde (güncel bilgi, tanım, ürün, fiyat ya da dış kaynak) cevap başına en çok 3 kez webde arar; web kaynakları cevapta alan adıyla ve cevabın altındaki \"Web\" listesinde ayrıca görünür, tıklayınca tarayıcıda açılır. Modelin sorundan (ve okunan toplantı parçalarından) yazdığı kısa arama sorgusu sunucumuz üzerinden yapay zekâ hizmetine, oradan web arama hizmetine gider; web arama hizmetine yalnız bu sorgu gider. Ayda 100 arama hakkın var; dolunca Sor ay sonuna kadar yalnız toplantılardan cevaplar. Kapalıyken webde hiç aranmaz.")
                 )
                 #else
                 SettingsMoreText(

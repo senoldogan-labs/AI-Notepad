@@ -880,6 +880,10 @@ struct RootView: View {
                     )
                 }
         }
+        // Ses ya da video içe aktarma (kitaplık ve kayıt düğmesinin menüsü), telefon görüşmesi rehberi ve deneysel görüşme
+        // kaydı. Ortam nesnelerinden ÖNCE gelmeli: sayfalar yalnızca sunuldukları görünüme verilen ortamı alır; rehber
+        // `PhoneDialer` ve `PhoneRecorder` okur, sonra eklenirse açılışta çöker (`SourceLintTests.phoneImportHostIsInsideTheEnvironment`).
+        .modifier(PhoneImportHost(recorder: recorder, state: imports))
         // Görev satırları Anımsatıcılar'a eklemek için arşive, toplantı sayfasındaki "Şimdi dene" kaydediciye buradan ulaşır.
         .environment(store)
         .environment(recorder)
@@ -887,8 +891,6 @@ struct RootView: View {
         #if PHONE_DIALER
         .environment(dialer)
         #endif
-        // Ses ya da video içe aktarma (kitaplık ve kayıt düğmesinin menüsü) ve deneysel görüşme kaydı.
-        .modifier(PhoneImportHost(recorder: recorder, state: imports))
         // Tam ekran sunum tektir (iki ayrı `fullScreenCover` aynı anda sunulamaz): önce ilk açılış karşılaması, bitince
         // abonelik ekranı ("Abone ol" — Hesap, kayıt kartı —, deneme bitince bir kez ve sunucu aboneliği isteyince;
         // `HostedAccount.upsell`). Karşılama sürerken istenen abonelik ekranı karşılama bitince açılır.
@@ -1306,6 +1308,21 @@ final class PhoneStore {
 
     // MARK: Ad ve tanıma sözlüğü
 
+    /// `namedMeetings` için son adlandırılan notlar: görünüm her çizimde bütün notlarda etiket aramasın.
+    @ObservationIgnored private var namedMeetingsCache: NamedRecordsCache = .empty
+    /// Arama önbelleği (katlanmış metinler); arama ana iş parçacığının dışında çalışır.
+    @ObservationIgnored let searchCache: MeetingSearchCache = MeetingSearchCache()
+
+    /// Toplantılar konuşmacı adlarıyla (`namedRecords`), `meetings` ile aynı sırada; yalnız okumak için (saklı not genel
+    /// etiketleri korur, değişiklikler kimlikle saklı kayda yapılır). Notu, adları ya da kullanıcı adı değişmeyen
+    /// toplantılar önbellekten gelir; `meetings` ve `userName` okunduğu için görünümler değişince yenilenir. Adlandırma
+    /// bu yoldan yapılır (`SourceLintTests`).
+    func namedMeetings() -> [MeetingRecord] {
+        let result: (records: [MeetingRecord], cache: NamedRecordsCache) = namedRecords(records: meetings, userName: userName, cache: namedMeetingsCache)
+        namedMeetingsCache = result.cache
+        return result.records
+    }
+
     /// Kullanıcının adı (notta "Sen" ve sana düşen görevler, Sor, konuşmacılar, takip e-postası): hesabın ayar alanında
     /// (Mac'teki Gistsmith'le aynı anahtar); aynı iPhone'daki başka bir hesap bu adı görmez. Hesap verisi yüklenince
     /// okunur (bkz. `loadIdentity`).
@@ -1591,7 +1608,10 @@ final class PhoneStore {
     /// Saklama süresi (Ayarlar) dolan toplantıların sesini ve ses izlerini siler; metin ve not kalır. Silinemeyenin
     /// nedeni sorunlarda görünür, bir sonraki açılışta yeniden denenir.
     func applyRetention(now: Date) {
-        let days: Int = min(365, max(7, UserDefaults.standard.integer(forKey: PhoneSettingsKey.audioRetentionDays)))
+        // "Hiç silme": ne toplantıların ne de sahipsiz kayıtların sesi silinir.
+        guard let days = effectiveAudioRetentionDays(setting: UserDefaults.standard.integer(forKey: PhoneSettingsKey.audioRetentionDays)) else {
+            return
+        }
         // Çalan toplantının sesi kalır.
         for id in audioToDelete(records: meetings.filter { $0.id != playingMeetingID }, now: now, retentionDays: days) {
             do {

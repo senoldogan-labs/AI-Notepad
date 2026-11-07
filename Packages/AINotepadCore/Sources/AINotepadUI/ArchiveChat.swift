@@ -832,6 +832,10 @@ private struct StreamingAnswer: View {
     let exchange: ArchiveExchange
     let onCitation: @MainActor (Int) -> Void
     @State private var shown: Int = 0
+    /// Akarken çizilen bloklar ve önceki karenin ayrıştırması (`streamingMarkdown`): her karede yalnız yarım paragraf
+    /// ayrıştırılır. nil iken (ilk kare) bütün metin ayrıştırılır.
+    @State private var rendered: [MarkdownBlock]?
+    @State private var parsed: StreamingMarkdown = .empty
 
     private var isWriting: Bool {
         exchange.phase == .writing
@@ -839,9 +843,7 @@ private struct StreamingAnswer: View {
 
     var body: some View {
         let full: String = exchange.answer.text
-        let visible: String = String(full.prefix(shown))
-        let isRevealing: Bool = isWriting || shown < full.count
-        AnswerMarkdownView(blocks: parseMarkdown(text: isRevealing ? visible + streamingCaret : visible), webSources: exchange.answer.webSources)
+        AnswerMarkdownView(blocks: rendered ?? parseMarkdown(text: isWriting ? streamingCaret : full), webSources: exchange.answer.webSources)
             .environment(\.openURL, OpenURLAction { (url: URL) -> OpenURLAction.Result in
                 guard url.scheme == citationScheme, let number = Int(url.host() ?? "") else {
                     // Yalnız web adresleri sisteme verilir; başka şemalar (file:, smb:, uygulama şemaları) açılmaz.
@@ -851,18 +853,34 @@ private struct StreamingAnswer: View {
                 return .handled
             })
             .task(id: full) {
+                let total: Int = full.count
                 // Bitmiş (ya da yeniden çizilen) cevap beklemeden görünür; akan cevap yakalanana dek açılır.
                 if !isWriting, shown == 0 {
-                    shown = full.count
+                    shown = total
+                    rendered = parseMarkdown(text: full)
                     return
                 }
-                while shown < full.count, !Task.isCancelled {
-                    shown = min(full.count, shown + max(1, (full.count - shown) / 10))
+                while shown < total, !Task.isCancelled {
+                    shown = min(total, shown + max(1, (total - shown) / 10))
+                    let step: (state: StreamingMarkdown, blocks: [MarkdownBlock]) = streamingMarkdown(
+                        previous: parsed, text: String(full.prefix(shown)) + streamingCaret
+                    )
+                    parsed = step.state
+                    rendered = step.blocks
                     do {
                         try await Task.sleep(for: .milliseconds(18))
                     } catch {
                         return
                     }
+                }
+                // Bitince imleçsiz ve bütün olarak (akıştaki önek/kalan ayrımı olmadan) çizilir.
+                if !isWriting {
+                    rendered = parseMarkdown(text: full)
+                }
+            }
+            .onChange(of: isWriting) { (_: Bool, writing: Bool) in
+                if !writing, shown >= full.count {
+                    rendered = parseMarkdown(text: full)
                 }
             }
     }

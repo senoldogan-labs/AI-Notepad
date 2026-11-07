@@ -187,7 +187,14 @@ public struct NoteSourceRow<Leading: View, Content: View>: View {
         // Dokunuş açar; uzun basma satırın kendi menüsüne kalır (görevde "Anımsatıcılara ekle", "Metni kopyala").
         .onTapGesture { isOpen.wrappedValue = true }
         .popover(isPresented: isOpen, arrowEdge: .top) {
-            popoverContent.presentationCompactAdaptation(.popover)
+            // Küçük ekranda (iPhone SE, büyük yazı) kutu ekrana sığmayınca başlığı kaybedip alttaki çubuğun altına taşıyordu:
+            // sığmazsa en çok 360 pt yüksekliğinde kayar.
+            ViewThatFits(in: .vertical) {
+                popoverContent
+                ScrollView { popoverContent }
+            }
+            .frame(maxHeight: 360)
+            .presentationCompactAdaptation(.popover)
         }
         .accessibilityAction(named: Text("Kaynağı göster")) { isOpen.wrappedValue = true }
         #endif

@@ -77,6 +77,8 @@ private struct PhoneSpeakerReviewCard: View {
                         .appFont(size: 12, weight: .semibold)
                         .foregroundStyle(Theme.muted)
                         .frame(width: 30, height: 30)
+                        // Dokunma alanı en az 44 pt (Apple HIG); simge küçük kalır.
+                        .frame(minWidth: 44, minHeight: 44)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -185,6 +187,8 @@ private struct PhoneSpeakerReviewCard: View {
                     .foregroundStyle(.white)
                     .frame(width: 34, height: 34)
                     .background(appearance.accent.color, in: Circle())
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .disabled(!isEditable)
@@ -196,6 +200,8 @@ private struct PhoneSpeakerReviewCard: View {
                     .foregroundStyle(Theme.muted)
                     .frame(width: 34, height: 34)
                     .background(Theme.soft, in: Circle())
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Öneriyi reddet")

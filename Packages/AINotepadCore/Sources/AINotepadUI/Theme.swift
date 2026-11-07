@@ -32,7 +32,7 @@ public struct ThemeColorSet: Equatable, Sendable {
 
     /// ElevenLabs açık: süt beyazı zemin, beyaz kart, neredeyse siyah yazı.
     public static let light: ThemeColorSet = ThemeColorSet(
-        background: 0xFDFCFC, card: 0xFFFFFF, line: 0xE5E5E5, soft: 0xF5F5F5, selected: 0xEFEEED, ink: 0x0A0A0A, muted: 0x737373, primary: 0x171717, onPrimary: 0xFAFAFA
+        background: 0xFDFCFC, card: 0xFFFFFF, line: 0xE5E5E5, soft: 0xF5F5F5, selected: 0xEFEEED, ink: 0x0A0A0A, muted: 0x6B6B6B, primary: 0x171717, onPrimary: 0xFAFAFA
     )
     /// ElevenLabs koyu: aynı düzen ters renklerle.
     public static let dark: ThemeColorSet = ThemeColorSet(
@@ -40,11 +40,11 @@ public struct ThemeColorSet: Equatable, Sendable {
     )
     /// Kâğıt: krem zemin, sıcak kahve yazı (uzun okuma).
     public static let paper: ThemeColorSet = ThemeColorSet(
-        background: 0xF6F1E8, card: 0xFCF9F3, line: 0xE2DACC, soft: 0xEFE8DB, selected: 0xE8DFD0, ink: 0x2B2520, muted: 0x8A7E70, primary: 0x2B2520, onPrimary: 0xFCF9F3
+        background: 0xF6F1E8, card: 0xFCF9F3, line: 0xE2DACC, soft: 0xEFE8DB, selected: 0xE8DFD0, ink: 0x2B2520, muted: 0x6A5F53, primary: 0x2B2520, onPrimary: 0xFCF9F3
     )
     /// Kum: taş grisi zemin, serin nötr yazı.
     public static let sand: ThemeColorSet = ThemeColorSet(
-        background: 0xF1F0EC, card: 0xFAFAF8, line: 0xDCDAD4, soft: 0xE9E7E1, selected: 0xE1DFD8, ink: 0x1C1B19, muted: 0x74726C, primary: 0x1C1B19, onPrimary: 0xFAFAF8
+        background: 0xF1F0EC, card: 0xFAFAF8, line: 0xDCDAD4, soft: 0xE9E7E1, selected: 0xE1DFD8, ink: 0x1C1B19, muted: 0x63615B, primary: 0x1C1B19, onPrimary: 0xFAFAF8
     )
     /// Gece: lacivert siyah zemin, buz beyazı yazı.
     public static let midnight: ThemeColorSet = ThemeColorSet(
@@ -54,6 +54,21 @@ public struct ThemeColorSet: Equatable, Sendable {
     public static let graphite: ThemeColorSet = ThemeColorSet(
         background: 0x1A1A1C, card: 0x242427, line: 0x333337, soft: 0x2A2A2E, selected: 0x303035, ink: 0xF5F5F4, muted: 0xA9A9A6, primary: 0xF5F5F4, onPrimary: 0x1A1A1C
     )
+}
+
+/// İki rengin WCAG 2 karşıtlık oranı (1–21; normal yazı için en az 4,5). `ThemeTests` soluk yazının (`muted`) her
+/// temada bütün zeminlerde okunur kaldığını bununla denetler. Saf fonksiyondur.
+public func contrastRatio(foreground: UInt32, background: UInt32) -> Double {
+    let luminance: (UInt32) -> Double = { (hex: UInt32) -> Double in
+        let channel: (UInt32) -> Double = { (value: UInt32) -> Double in
+            let srgb: Double = Double(value & 0xFF) / 255
+            return srgb <= 0.03928 ? srgb / 12.92 : pow((srgb + 0.055) / 1.055, 2.4)
+        }
+        return 0.2126 * channel(hex >> 16) + 0.7152 * channel(hex >> 8) + 0.0722 * channel(hex)
+    }
+    let lighter: Double = max(luminance(foreground), luminance(background))
+    let darker: Double = min(luminance(foreground), luminance(background))
+    return (lighter + 0.05) / (darker + 0.05)
 }
 
 /// Tema takımları: Sistem (ElevenLabs açık/koyu, sistemi izler), Açık, Koyu ve kendi renk takımı olan temalar. Mac ve

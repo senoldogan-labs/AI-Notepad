@@ -49,7 +49,9 @@ struct PanelHost: View {
         case .live:
             VStack(spacing: 0) {
                 if model.consentReminderVisible {
-                    ConsentBanner { withAnimation(.smooth(duration: 0.25)) { model.consentReminderVisible = false } }
+                    ConsentBanner(language: model.lockedLanguage ?? primaryMeetingLanguage()) {
+                        withAnimation(.smooth(duration: 0.25)) { model.consentReminderVisible = false }
+                    }
                         .transition(.move(edge: .top).combined(with: .opacity))
                 }
                 #if HOSTED_EDITION
@@ -407,27 +409,17 @@ private struct ProcessingOverlay: View {
     }
 }
 
-#if HOSTED_EDITION
-/// Katılımcılara kayıttan haber verme metni (toplantı sohbetine yapıştırılır). Gistsmith herkese açık ve İngilizce
-/// satılır: yalnızca İngilizce.
-let consentNoticeText: String = "Hi! I'm recording this meeting so I can take notes."
-#else
-/// Katılımcılara kayıttan haber verme metni (Fince ve İngilizce; toplantı sohbetine yapıştırılır).
-let consentNoticeText: String = "Hei! Tallennan tämän palaverin, jotta voin tehdä siitä muistiinpanot.\nHi! I'm recording this meeting so I can take notes."
-#endif
-
-/// Bildirimi kopyala düğmesinin ipucu: bildirimin dilleri sürüme göre.
-private var consentNoticeHint: LocalizedStringKey {
-    #if HOSTED_EDITION
-    "İngilizce kısa bildirim; toplantı sohbetine yapıştır"
-    #else
-    "Fince ve İngilizce kısa bildirim; toplantı sohbetine yapıştır"
-    #endif
+/// Katılımcılara kayıttan haber verme metni (toplantı sohbetine yapıştırılır): toplantının dilinde ve İngilizce
+/// (`consentNoticeSentences`). Saf fonksiyondur.
+func consentNoticeText(language: MeetingLanguage) -> String {
+    consentNoticeSentences(language: language).joined(separator: "\n")
 }
 
 /// Kayıt başında panelin üstünde: katılımcılara haber verme hatırlatması ve kopyalanabilir bildirim. Kapatılınca o
 /// kayıt boyunca görünmez; Ayarlar'dan tamamen kapatılabilir.
 private struct ConsentBanner: View {
+    /// Toplantının dili (kilitli dil ya da ana toplantı dili): bildirim bu dilde ve İngilizce.
+    let language: MeetingLanguage
     let onDismiss: @MainActor () -> Void
     @State private var copied: Bool = false
 
@@ -435,10 +427,10 @@ private struct ConsentBanner: View {
         NoticeBar(severity: .info, title: Text("Kayıt yapıyorsun: katılımcılara haber ver."), detail: nil, onDismiss: onDismiss) {
             Button(copied ? "Kopyalandı" : "Bildirimi kopyala", systemImage: copied ? "checkmark" : "doc.on.doc") {
                 NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(consentNoticeText, forType: .string)
+                NSPasteboard.general.setString(consentNoticeText(language: language), forType: .string)
                 copied = true
             }
-            .hoverHint(consentNoticeHint, alignment: .trailing, edge: .bottom)
+            .hoverHint("Toplantının dilinde ve İngilizce kısa bildirim; toplantı sohbetine yapıştır", alignment: .trailing, edge: .bottom)
         }
     }
 }

@@ -736,6 +736,8 @@ private struct AskComposer: View {
                         .foregroundStyle(Theme.onPrimary)
                         .frame(width: 34, height: 34)
                         .background(isEmpty && !isAnswering ? Theme.muted.opacity(0.5) : Theme.primary, in: Circle())
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .disabled(isEmpty && !isAnswering)

@@ -27,7 +27,7 @@ struct CrashReportNotice: View {
                     if case .failed(let message) = state {
                         Text(verbatim: message)
                             .appFont(size: 13, weight: .regular)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(NoticeSeverity.attention.tint)
                     }
                 }
                 .padding(.vertical, 4)
@@ -92,7 +92,7 @@ private struct CrashReportsList: View {
                         case .failed(let message):
                             Text(verbatim: message)
                                 .appFont(size: 12, weight: .regular)
-                                .foregroundStyle(.orange)
+                                .foregroundStyle(NoticeSeverity.attention.tint)
                             sendButton(report: report)
                         case .none:
                             sendButton(report: report)
@@ -107,7 +107,7 @@ private struct CrashReportsList: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Raporlar bu iPhone'da kalır; \"Gönder\" toplantı içeriği olmadan geliştiriciye yollar.")
                     if let problem = center.problem {
-                        Text(problem).foregroundStyle(.orange)
+                        Text(problem).foregroundStyle(NoticeSeverity.attention.tint)
                     }
                     if !center.unreadableFiles.isEmpty {
                         Button("Okunamayanları sil", role: .destructive) { center.deleteUnreadable() }
