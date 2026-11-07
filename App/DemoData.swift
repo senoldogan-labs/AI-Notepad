@@ -40,7 +40,8 @@ enum DemoScene: String {
     /// Ayarlar (sekme `--ayar` ile seçilir; görsel kontrol için).
     case settings = "ayarlar"
     /// Ayarlar › Bağlantılar: yapay zekâ asistanı erişimi açık, iki bağlı asistan, yükleme sürüyor (yalnız abonelik
-    /// sürümünde; betik `--ayar baglantilar` ekler).
+    /// sürümünde; betik `--ayar baglantilar` ekler; `--reddedilen` kabul edilmeyen toplantıları, `--asistan-acik`
+    /// açılmış kartı, `--baglanti <ad>` bir entegrasyonun sayfasını gösterir).
     case settingsAssistant = "ayarlar-asistan"
     /// Kişiler (görsel kontrol için).
     case people = "kisiler"
@@ -271,7 +272,12 @@ func showDemoScene(scene: DemoScene, model: AppModel, router: MainWindowRouter, 
         router.section = .settings
         #if HOSTED_EDITION
         HostedAccount.shared.showAccountForDemo(entitlements: demoEntitlements(trialLeft: nil, now: now), referral: demoReferral(now: now))
-        HostedAssistantCenter.shared.showForDemo(now: now)
+        // `--reddedilen`: yükleme bitmiş, sunucunun kabul etmediği toplantılar var (görsel kontrol).
+        if CommandLine.arguments.contains("--reddedilen") {
+            HostedAssistantCenter.shared.showRefusedForDemo(now: now)
+        } else {
+            HostedAssistantCenter.shared.showForDemo(now: now)
+        }
         #endif
     case .people:
         router.section = .people

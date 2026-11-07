@@ -5,6 +5,9 @@ import os
 import SwiftUI
 import UniformTypeIdentifiers
 
+// Ayarlar › Bağlantılar (iPhone): entegrasyonların listesi ve her birinin sayfası (Mac'teki App/ConnectionsSettings.swift
+// ile aynı içerik; ortak kısım App/ConnectionCatalog.swift). Girişler uygulama içi tarayıcıda.
+
 private let phoneConnectionsLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "PhoneConnections")
 
 /// Ayarlar › Bağlantılar satırı: bağlı yer ve araç sayısı; dokununca bağlantılar açılır.
@@ -12,9 +15,7 @@ struct PhoneConnectionsRow: View {
     @Environment(PhoneIntegrations.self) private var integrations: PhoneIntegrations
 
     var body: some View {
-        NavigationLink {
-            PhoneConnectionsScreen()
-        } label: {
+        NavigationLink(value: PhoneRoute.connections) {
             LabeledContent {
                 Text(verbatim: "\(integrations.destinations.count + integrations.taskTrackers.count)")
             } label: {
@@ -24,38 +25,228 @@ struct PhoneConnectionsRow: View {
     }
 }
 
-/// Bağlantılar › Klasör (Mac'teki "Klasör (Obsidian, iCloud)" kartı): Dosyalar'dan seçilen klasöre (iCloud Drive,
-/// Obsidian kasası, iPhone'umda…) not Markdown dosyası olarak yazılır; "Klasöre yaz" açıkken not hazır olunca ve her
-/// değişince kendiliğinden.
-private struct PhoneMarkdownFolderSection: View {
+/// Bağlantılar: bölümlere ayrılmış entegrasyon listesi (notların gittiği yerler, görev araçları); her satırda marka
+/// kutusu, ad, tek satır açıklama ve durum rozeti. Dokununca entegrasyonun sayfası açılır.
+struct PhoneConnectionsScreen: View {
+    @Environment(PhoneIntegrations.self) private var integrations: PhoneIntegrations
+    /// `--baglanti <ad>` (görsel kontrol): o entegrasyonun sayfası açık başlar.
+    @State private var launched: IntegrationKind? = launchIntegration(arguments: CommandLine.arguments)
+
+    var body: some View {
+        List {
+            if !integrations.problems.isEmpty {
+                Section {
+                    PhoneDismissibleErrorList(messages: integrations.problems) { integrations.dismissProblems() }
+                        .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                        .listRowBackground(Color.clear)
+                }
+            }
+            ForEach([IntegrationGroup.destinations, IntegrationGroup.taskTools], id: \.self) { (group: IntegrationGroup) in
+                Section {
+                    ForEach(group.phoneKinds) { (kind: IntegrationKind) in
+                        NavigationLink {
+                            PhoneIntegrationDetail(kind: kind)
+                        } label: {
+                            row(kind: kind)
+                        }
+                    }
+                } header: {
+                    Text(group.title)
+                } footer: {
+                    if group == .destinations {
+                        Text("Otomatik gönderim açık yerlere, açtıktan sonra biten toplantıların notu hazır olunca gider; eski notlar toplantının ⋯ menüsünden elle gönderilir.")
+                    } else {
+                        Text("Toplantının ⋯ menüsünden görevleri Linear ya da Jira'da iş olarak açar.")
+                    }
+                }
+            }
+        }
+        .navigationTitle("Bağlantılar")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(item: $launched) { (kind: IntegrationKind) in
+            PhoneIntegrationDetail(kind: kind)
+        }
+        .task { await integrations.load() }
+    }
+
+    private func row(kind: IntegrationKind) -> some View {
+        HStack(spacing: 12) {
+            IntegrationTile(style: kind.tileStyle, size: 34)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(verbatim: kind.name)
+                    .appFont(size: 15, weight: .semibold)
+                    .foregroundStyle(Theme.ink)
+                Text(kind.summary)
+                    .appFont(size: 13, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 8)
+            IntegrationStatusPill(status: phoneIntegrationStatus(kind: kind, integrations: integrations))
+        }
+        .padding(.vertical, 2)
+    }
+}
+
+/// Entegrasyonun iPhone'daki durumu.
+@MainActor
+private func phoneIntegrationStatus(kind: IntegrationKind, integrations: PhoneIntegrations) -> IntegrationStatus {
+    if let destination = kind.destinationKind {
+        return destinationIntegrationStatus(kind: destination, destinations: integrations.destinations)
+    }
+    if let service = kind.trackerService {
+        return integrations.taskTrackers.contains { $0.service == service } ? .connected(count: 1) : .notConnected
+    }
+    if kind == .folder {
+        return integrations.markdownFolderName == nil ? .notConnected : .connected(count: 1)
+    }
+    return .notConnected
+}
+
+/// Entegrasyonun sayfası: türüne göre kurulum ve ayarları.
+private struct PhoneIntegrationDetail: View {
+    let kind: IntegrationKind
+
+    var body: some View {
+        if let destination = kind.destinationKind {
+            PhoneDestinationDetail(kind: kind, channelKind: destination)
+        } else if let service = kind.trackerService {
+            PhoneTrackerDetail(kind: kind, service: service)
+        } else {
+            PhoneFolderDetail()
+        }
+    }
+}
+
+/// Entegrasyon sayfasının düzeni: büyük marka kutusu, ad ve durum, açıklama, tam genişlik ana eylem; altında
+/// bağlantının kendi bölümleri, "İçerir" ve "<Ad> nasıl kullanılır".
+private struct PhoneIntegrationPage<Primary: View, Sections: View>: View {
+    let kind: IntegrationKind
+    let status: IntegrationStatus
+    let primary: Primary
+    let state: Sections
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
+
+    init(kind: IntegrationKind, status: IntegrationStatus, @ViewBuilder primary: () -> Primary, @ViewBuilder state: () -> Sections) {
+        self.kind = kind
+        self.status = status
+        self.primary = primary()
+        self.state = state()
+    }
+
+    var body: some View {
+        List {
+            Section {
+                VStack(spacing: 12) {
+                    IntegrationTile(style: kind.tileStyle, size: 68)
+                    VStack(spacing: 6) {
+                        Text(verbatim: kind.name)
+                            .appFont(size: 22, weight: .semibold)
+                            .foregroundStyle(Theme.ink)
+                        IntegrationStatusPill(status: status)
+                        Text(kind.summary)
+                            .appFont(size: 14, weight: .regular)
+                            .foregroundStyle(Theme.muted)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    primary
+                        .padding(.top, 4)
+                }
+                .frame(maxWidth: .infinity)
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+            }
+            state
+            Section {
+                ForEach(kind.features, id: \.self) { (feature: IntegrationFeature) in
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: feature.symbol)
+                            .appFont(size: 15, weight: .semibold)
+                            .foregroundStyle(appearance.accent.color)
+                            .frame(width: 32, height: 32)
+                            .background(appearance.accent.color.opacity(0.12), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(feature.title)
+                                .appFont(size: 15, weight: .semibold)
+                                .foregroundStyle(Theme.ink)
+                            Text(feature.detail)
+                                .appFont(size: 13, weight: .regular)
+                                .foregroundStyle(Theme.muted)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+            } header: {
+                Text("İçerir")
+            }
+            Section {
+                ForEach(kind.privacy, id: \.self) { (point: IntegrationPrivacyPoint) in
+                    HStack(alignment: .firstTextBaseline, spacing: 12) {
+                        Image(systemName: point.symbol)
+                            .appFont(size: 14, weight: .medium)
+                            .foregroundStyle(Theme.muted)
+                            .frame(width: 22)
+                            .accessibilityHidden(true)
+                        Text(point.text)
+                            .appFont(size: 14, weight: .regular)
+                            .foregroundStyle(Theme.ink)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            } header: {
+                Text("\(kind.name) nasıl kullanılır")
+            }
+        }
+        .navigationTitle(Text(verbatim: kind.name))
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// Klasörün sayfası (Mac'teki "Klasör (Obsidian, iCloud)"): Dosyalar'dan seçilen klasöre (iCloud Drive, Obsidian kasası,
+/// iPhone'umda…) not Markdown dosyası olarak yazılır; "Klasöre yaz" açıkken not hazır olunca ve her değişince
+/// kendiliğinden.
+private struct PhoneFolderDetail: View {
     @Environment(PhoneIntegrations.self) private var integrations: PhoneIntegrations
     @State private var isPicking: Bool = false
     /// Klasör seçilemedi ya da ayar saklanamadı: nedeni bölümün altında.
     @State private var status: String?
 
     var body: some View {
-        Section {
-            LabeledContent {
-                Text(verbatim: integrations.markdownFolderName ?? String(localized: "Markdown dosyası olarak"))
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+        PhoneIntegrationPage(kind: .folder, status: integrations.markdownFolderName == nil ? .notConnected : .connected(count: 1)) {
+            Button {
+                isPicking = true
             } label: {
-                Label("Klasör (Obsidian, iCloud)", systemImage: "folder.fill")
+                PhonePrimaryButtonLabel(title: integrations.markdownFolderName == nil ? "Seç…" : "Değiştir")
             }
-            Button(integrations.markdownFolderName == nil ? "Seç…" : "Değiştir") { isPicking = true }
-            if integrations.markdownFolderName != nil {
-                Toggle("Klasöre yaz", isOn: Binding<Bool>(
-                    get: { integrations.markdownAutoExport },
-                    set: { (enabled: Bool) -> Void in status = integrations.setMarkdownAutoExport(enabled: enabled) }
-                ))
+            .buttonStyle(.plain)
+        } state: {
+            if let folder = integrations.markdownFolderName {
+                Section {
+                    LabeledContent {
+                        Text(verbatim: folder)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    } label: {
+                        Label("Klasör (Obsidian, iCloud)", systemImage: "folder.fill")
+                    }
+                    Toggle("Klasöre yaz", isOn: Binding<Bool>(
+                        get: { integrations.markdownAutoExport },
+                        set: { (enabled: Bool) -> Void in status = integrations.setMarkdownAutoExport(enabled: enabled) }
+                    ))
+                } footer: {
+                    Text("\"Klasöre yaz\" açıkken not hazır olunca ve her değişince bu klasöre yazılır; eski notları toplantının ⋯ menüsünden kaydet.")
+                }
             }
             if let status {
-                NoticeText(status, severity: .error)
-                    .appFont(size: 13, weight: .regular)
-                    .fixedSize(horizontal: false, vertical: true)
+                Section {
+                    NoticeText(status, severity: .error)
+                        .appFont(size: 13, weight: .regular)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
-        } footer: {
-            Text("\"Klasöre yaz\" açıkken not hazır olunca ve her değişince bu klasöre yazılır; eski notları toplantının ⋯ menüsünden kaydet.")
         }
         .fileImporter(isPresented: $isPicking, allowedContentTypes: [.folder]) { (result: Result<URL, any Error>) in
             switch result {
@@ -64,6 +255,85 @@ private struct PhoneMarkdownFolderSection: View {
             case .failure(let error):
                 phoneConnectionsLogger.error("Klasör seçilemedi, hata: \(String(describing: error), privacy: .private)")
                 status = String(localized: "Klasör seçilemedi: \(userFacingMessage(error: error))")
+            }
+        }
+    }
+}
+
+/// Görev aracının sayfası (Linear, Jira): bağlıysa takım/proje seçimi ve kaldır; değilse "Bağlan" (girişte "Vazgeç").
+private struct PhoneTrackerDetail: View {
+    let kind: IntegrationKind
+    let service: MCPService
+    @Environment(PhoneIntegrations.self) private var integrations: PhoneIntegrations
+    /// Görev aracı girişi (yerel dönüşlü uygulama içi tarayıcı).
+    @State private var browser: PhoneMCPSignIn = PhoneMCPSignIn()
+    @State private var signIn: Task<Void, Never>?
+    @State private var isConnecting: Bool = false
+    @State private var status: String?
+
+    var body: some View {
+        let tracker: TaskTracker? = integrations.taskTrackers.first { $0.service == service }
+        PhoneIntegrationPage(kind: kind, status: tracker == nil ? .notConnected : .connected(count: 1)) {
+            if tracker == nil {
+                VStack(spacing: 8) {
+                    Button {
+                        connect()
+                    } label: {
+                        PhonePrimaryButtonLabel(title: isConnecting ? "İzin bekleniyor…" : "Bağlan")
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isConnecting)
+                    if isConnecting, let signIn {
+                        Button("Vazgeç") { signIn.cancel() }
+                            .buttonStyle(.borderless)
+                            .foregroundStyle(Theme.muted)
+                    }
+                }
+            }
+        } state: {
+            if let tracker {
+                Section {
+                    HStack(spacing: 12) {
+                        PhoneTrackerTargetPicker(tracker: tracker)
+                        Spacer(minLength: 8)
+                        Menu {
+                            Button("Kaldır", systemImage: "trash", role: .destructive) { Task { await integrations.removeTracker(id: tracker.id) } }
+                        } label: {
+                            Image(systemName: "ellipsis")
+                                .frame(width: 32, height: 32)
+                                .contentShape(Rectangle())
+                        }
+                        .accessibilityLabel("Diğer işlemler")
+                    }
+                } header: {
+                    Text("Bağlı")
+                }
+            }
+            if let status {
+                Section {
+                    Text(verbatim: status)
+                        .appFont(size: 13, weight: .regular)
+                        .foregroundStyle(Theme.muted)
+                }
+            }
+        }
+    }
+
+    private func connect() {
+        isConnecting = true
+        status = nil
+        signIn = Task {
+            defer {
+                isConnecting = false
+                signIn = nil
+            }
+            do {
+                try await integrations.connectTracker(service: service, browser: browser)
+                status = String(localized: "\(service.displayName) bağlandı.")
+            } catch is CancellationError {
+                status = nil
+            } catch {
+                status = userFacingMessage(error: error)
             }
         }
     }
@@ -104,9 +374,11 @@ private func phoneSetupFadeDelay(setup: PhoneChannelSetup) -> Duration? {
     }
 }
 
-/// Bağlantılar (Mac'teki Ayarlar › Bağlantılar): notun gittiği yerler (Slack, Teams, Discord, Notion, Zoom Team Chat,
-/// webhook; her birinde otomatik gönderim ayrı) ve görev araçları (Linear, Jira). Girişler uygulama içi tarayıcıda.
-struct PhoneConnectionsScreen: View {
+/// Not hedefinin sayfası (Slack, Teams, Discord, Notion, Zoom Team Chat, webhook): bu türden bağlı hedefler (her
+/// birinde otomatik gönderim ayrı; ⋯ menüsünde dene, kanalı değiştir, yeniden bağlan, kaldır), "Bağlan" ya da "Ekle".
+private struct PhoneDestinationDetail: View {
+    let kind: IntegrationKind
+    let channelKind: DestinationKind
     @Environment(PhoneIntegrations.self) private var integrations: PhoneIntegrations
     @Environment(\.webAuthenticationSession) private var webAuthenticationSession: WebAuthenticationSession
     @State private var setup: PhoneChannelSetup = .idle
@@ -114,57 +386,39 @@ struct PhoneConnectionsScreen: View {
     @State private var selectedChannelID: String = ""
     @State private var manualAddress: String = ""
     @State private var zoomToken: String = ""
-    /// Notion ile görev araçlarının girişleri (yerel dönüşlü uygulama içi tarayıcı); ikisi aynı anda sürebilir.
+    /// Notion girişi (yerel dönüşlü uygulama içi tarayıcı).
     @State private var notionBrowser: PhoneMCPSignIn = PhoneMCPSignIn()
-    @State private var trackerBrowser: PhoneMCPSignIn = PhoneMCPSignIn()
     /// Süren Notion girişi: "Vazgeç" bunu iptal eder.
     @State private var notionSignIn: Task<Void, Never>?
-    /// Bağlanan görev aracı ve süren girişi.
-    @State private var connectingTracker: MCPService?
-    @State private var trackerSignIn: Task<Void, Never>?
-    @State private var trackerStatus: String?
+
+    private var connected: [NoteDestination] {
+        integrations.destinations.filter { destinationKind(destination: $0) == channelKind }
+    }
 
     var body: some View {
-        List {
-            if !integrations.problems.isEmpty {
+        let isPasted: Bool = channelKind == .zoom || channelKind == .webhook
+        PhoneIntegrationPage(kind: kind, status: destinationIntegrationStatus(kind: channelKind, destinations: integrations.destinations)) {
+            Button {
+                start()
+            } label: {
+                PhonePrimaryButtonLabel(title: !connected.isEmpty ? "Ekle" : (isPasted ? "Yapıştır" : "Bağlan"))
+            }
+            .buttonStyle(.plain)
+            .disabled(isBusy)
+        } state: {
+            if !connected.isEmpty || setup != .idle {
                 Section {
-                    PhoneDismissibleErrorList(messages: integrations.problems) { integrations.dismissProblems() }
-                        .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                        .listRowBackground(Color.clear)
+                    ForEach(connected) { (destination: NoteDestination) in
+                        destinationRow(destination: destination)
+                    }
+                    setupStatus
+                } header: {
+                    if !connected.isEmpty {
+                        Text("Bağlı")
+                    }
                 }
-            }
-            Section {
-                ForEach(integrations.destinations) { (destination: NoteDestination) in
-                    destinationRow(destination: destination)
-                }
-                setupStatus
-                ForEach(DestinationKind.allCases) { (kind: DestinationKind) in
-                    addRow(kind: kind)
-                }
-            } header: {
-                Text("Notların gittiği yerler")
-            } footer: {
-                Text("Otomatik gönderim açık yerlere, açtıktan sonra biten toplantıların notu hazır olunca gider; eski notlar toplantının ⋯ menüsünden elle gönderilir.")
-            }
-            PhoneMarkdownFolderSection()
-            Section {
-                ForEach([MCPService.linear, MCPService.atlassian], id: \.self) { (service: MCPService) in
-                    trackerRow(service: service)
-                }
-                if let trackerStatus {
-                    Text(verbatim: trackerStatus)
-                        .appFont(size: 13, weight: .regular)
-                        .foregroundStyle(Theme.muted)
-                }
-            } header: {
-                Text("Görev araçları")
-            } footer: {
-                Text("Toplantının ⋯ menüsünden görevleri Linear ya da Jira'da iş olarak açar.")
             }
         }
-        .navigationTitle("Bağlantılar")
-        .navigationBarTitleDisplayMode(.inline)
-        .task { await integrations.load() }
         .task(id: setup) { await fadeSetupResult(shown: setup) }
         .sheet(item: $sheet) { (shown: PhoneConnectionSheet) in
             switch shown {
@@ -195,12 +449,11 @@ struct PhoneConnectionsScreen: View {
 
     // MARK: Satırlar
 
-    /// Bağlı hedef: marka kutusu, ad ve kanal (ya da "yeniden bağlan" uyarısı), ⋯ menüsünde dene, kanalı değiştir,
-    /// yeniden bağlan ve kaldır; altında otomatik gönderim.
+    /// Bağlı hedef: ad ve kanal (ya da "yeniden bağlan" uyarısı), ⋯ menüsünde dene, kanalı değiştir, yeniden bağlan ve
+    /// kaldır; altında otomatik gönderim.
     private func destinationRow(destination: NoteDestination) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 12) {
-                PhoneBrandTile(kind: destinationKind(destination: destination), size: 34)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(verbatim: destinationName(destination: destination))
                         .appFont(size: 15, weight: .semibold)
@@ -247,32 +500,6 @@ struct PhoneConnectionsScreen: View {
         .padding(.vertical, 4)
     }
 
-    /// Ekleme satırı: servis, kısa açıklama ve eylem ("Bağlan", adresle bağlananlarda "Yapıştır", bağlıysa "Ekle").
-    private func addRow(kind: DestinationKind) -> some View {
-        let count: Int = integrations.destinations.filter { destinationKind(destination: $0) == kind }.count
-        let action: LocalizedStringKey = count > 0 ? "Ekle" : (kind == .zoom || kind == .webhook ? "Yapıştır" : "Bağlan")
-        return Button {
-            start(kind: kind)
-        } label: {
-            HStack(spacing: 12) {
-                PhoneBrandTile(kind: kind, size: 34)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(verbatim: kindName(kind: kind))
-                        .appFont(size: 15, weight: .semibold)
-                        .foregroundStyle(Theme.ink)
-                    Text(kindDetail(kind: kind))
-                        .appFont(size: 13, weight: .regular)
-                        .foregroundStyle(Theme.muted)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer(minLength: 8)
-                Text(action)
-                    .appFont(size: 14, weight: .semibold)
-            }
-        }
-        .disabled(isBusy)
-    }
-
     @ViewBuilder
     private var setupStatus: some View {
         switch setup {
@@ -311,57 +538,6 @@ struct PhoneConnectionsScreen: View {
         }
     }
 
-    /// Görev aracı: bağlıysa takım/proje seçimi ve ⋯ menüsünde kaldır; değilse "Bağlan" (girişte "Vazgeç").
-    @ViewBuilder
-    private func trackerRow(service: MCPService) -> some View {
-        let tile: PhoneBrandTile = PhoneBrandTile(tracker: service, size: 34)
-        let detail: LocalizedStringKey = service == .linear ? "Takımındaki işler" : "Jira projesindeki işler"
-        if let tracker = integrations.taskTrackers.first(where: { $0.service == service }) {
-            HStack(spacing: 12) {
-                tile
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(verbatim: service.displayName)
-                        .appFont(size: 15, weight: .semibold)
-                        .foregroundStyle(Theme.ink)
-                    PhoneTrackerTargetPicker(tracker: tracker)
-                }
-                Spacer(minLength: 8)
-                Menu {
-                    Button("Kaldır", systemImage: "trash", role: .destructive) { Task { await integrations.removeTracker(id: tracker.id) } }
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .frame(width: 32, height: 32)
-                        .contentShape(Rectangle())
-                }
-                .accessibilityLabel("Diğer işlemler")
-            }
-            .padding(.vertical, 4)
-        } else {
-            HStack(spacing: 12) {
-                tile
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(verbatim: service.displayName)
-                        .appFont(size: 15, weight: .semibold)
-                        .foregroundStyle(Theme.ink)
-                    Text(detail)
-                        .appFont(size: 13, weight: .regular)
-                        .foregroundStyle(Theme.muted)
-                }
-                Spacer(minLength: 8)
-                if connectingTracker == service, let trackerSignIn {
-                    Button("Vazgeç") { trackerSignIn.cancel() }
-                        .buttonStyle(.borderless)
-                        .foregroundStyle(Theme.muted)
-                }
-                Button(connectingTracker == service ? "İzin bekleniyor…" : "Bağlan") { connect(service: service) }
-                    .buttonStyle(.borderless)
-                    .appFont(size: 14, weight: .semibold)
-                    .disabled(connectingTracker != nil)
-            }
-            .padding(.vertical, 4)
-        }
-    }
-
     // MARK: Kurulum
 
     /// Giriş, gönderim ya da deneme sürüyor: ikinci bir kurulum başlamasın.
@@ -389,10 +565,10 @@ struct PhoneConnectionsScreen: View {
         withAnimation(.easeOut(duration: 0.4)) { setup = .idle }
     }
 
-    private func start(kind: DestinationKind) {
+    private func start() {
         manualAddress = ""
         zoomToken = ""
-        switch kind {
+        switch channelKind {
         case .zoom:
             sheet = .zoom
         case .webhook:
@@ -400,7 +576,7 @@ struct PhoneConnectionsScreen: View {
         case .notion:
             notionSignIn = Task { await connectNotion() }
         case .slack, .teams, .discord:
-            if let service = kind.channelService {
+            if let service = channelKind.channelService {
                 Task { await signIn(service: service, replacing: nil) }
             }
         }
@@ -562,120 +738,6 @@ struct PhoneConnectionsScreen: View {
             setup = .done(String(localized: "\(name) bağlandı; deneme mesajı gönderildi."))
         }
     }
-
-    private func connect(service: MCPService) {
-        connectingTracker = service
-        trackerStatus = nil
-        trackerSignIn = Task {
-            defer {
-                connectingTracker = nil
-                trackerSignIn = nil
-            }
-            do {
-                try await integrations.connectTracker(service: service, browser: trackerBrowser)
-                trackerStatus = String(localized: "\(service.displayName) bağlandı.")
-            } catch is CancellationError {
-                trackerStatus = nil
-            } catch {
-                trackerStatus = userFacingMessage(error: error)
-            }
-        }
-    }
-}
-
-/// Ekleme satırındaki ad (Mac'teki kartlarla aynı). Saf fonksiyondur.
-private func kindName(kind: DestinationKind) -> String {
-    switch kind {
-    case .slack: "Slack"
-    case .teams: "Microsoft Teams"
-    case .discord: "Discord"
-    case .notion: "Notion"
-    case .zoom: "Zoom Team Chat"
-    case .webhook: String(localized: "Webhook adresi")
-    }
-}
-
-/// Ekleme satırındaki kısa açıklama (Mac'teki kartlarla aynı). Saf fonksiyondur.
-private func kindDetail(kind: DestinationKind) -> LocalizedStringKey {
-    switch kind {
-    case .slack: "Kendi adınla, seçtiğin kanala"
-    case .teams: "İş ya da okul hesabı (kişisel hesaplar desteklenmiyor)"
-    case .discord: "Sunucu ve kanalı Discord'da seç"
-    case .notion: "Her toplantı için yeni sayfa"
-    case .zoom: "Kanalda /inc connect yaz, adresi ve anahtarı yapıştır"
-    case .webhook: "Zapier, Make, n8n, Teams iş akışı"
-    }
-}
-
-/// Servis kutusu (Mac'teki `BrandTile`): uygulamanın pastel film gradyanı üstünde servisin kendi logosu, koyu mürekkep
-/// renginde.
-private struct PhoneBrandTile: View {
-    private enum Mark {
-        case logo(String)
-        /// Yazıdan oluşan geniş logo (Zoom): kutuyu daha çok doldurur.
-        case wordmark(String)
-        case symbol(String)
-    }
-
-    private let mark: Mark
-    private let palette: FilmPalette
-    private let seed: String
-    let size: CGFloat
-
-    init(kind: DestinationKind, size: CGFloat) {
-        let style: (mark: Mark, palette: FilmPalette) = switch kind {
-        case .slack: (.logo("brand-slack"), .rose)
-        case .teams: (.logo("brand-microsoftteams"), .violet)
-        case .discord: (.logo("brand-discord"), .ocean)
-        case .notion: (.logo("brand-notion"), .coral)
-        case .zoom: (.wordmark("brand-zoom"), .ocean)
-        case .webhook: (.symbol("bolt.horizontal.fill"), .mint)
-        }
-        mark = style.mark
-        palette = style.palette
-        seed = kind.rawValue
-        self.size = size
-    }
-
-    init(tracker: MCPService, size: CGFloat) {
-        let style: (mark: Mark, palette: FilmPalette, seed: String) = switch tracker {
-        case .linear: (.logo("brand-linear"), .violet, "linear")
-        case .atlassian: (.logo("brand-jira"), .ocean, "jira")
-        case .notion: (.logo("brand-notion"), .coral, "notion")
-        }
-        mark = style.mark
-        palette = style.palette
-        seed = style.seed
-        self.size = size
-    }
-
-    var body: some View {
-        let shape: RoundedRectangle = RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
-        Group {
-            switch mark {
-            case .logo(let name):
-                Image(name)
-                    .renderingMode(.template)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: size * 0.46, height: size * 0.46)
-            case .wordmark(let name):
-                Image(name)
-                    .renderingMode(.template)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: size * 0.76, height: size * 0.76)
-            case .symbol(let name):
-                Image(systemName: name).appFont(size: size * 0.4, weight: .semibold)
-            }
-        }
-        .foregroundStyle(Color.black.opacity(0.8))
-        .frame(width: size, height: size)
-        .background { FilmGradient(seed: "marka-\(seed)", palette: palette) }
-        .clipShape(shape)
-        .overlay(shape.strokeBorder(Color.white.opacity(0.2)))
-        .accessibilityHidden(true)
-    }
 }
 
 /// Girişten sonra notların gideceği kanalın seçimi (Slack kanalları, Teams'te "Takım › Kanal"). Kanal önceden seçilmez.
@@ -749,10 +811,10 @@ private struct PhoneAddressEntry: View {
                             .autocorrectionDisabled()
                     }
                 } footer: {
-                    Text(kindDetail(kind: kind))
+                    Text(kind.integrationKind.summary)
                 }
             }
-            .navigationTitle(Text(verbatim: kindName(kind: kind)))
+            .navigationTitle(Text(verbatim: kind.integrationKind.name))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

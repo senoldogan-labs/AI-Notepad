@@ -15,16 +15,45 @@ public struct AssistantUploadLedger: Sendable, Equatable, Codable {
     public var epoch: Int64?
     /// Toplantı kimliği → sunucudaki kopyanın parmak izi.
     public var uploaded: [String: String]
-    /// Sunucunun kalıcı olarak reddettiği (ör. çok büyük) kopyalar: kimlik → parmak izi. Toplantı değişince yeniden denenir.
+    /// Sunucunun kalıcı olarak reddettiği (ör. çok büyük) kopyalar: kimlik → parmak izi. Toplantı değişince ya da
+    /// kullanıcı "Yeniden dene" deyince yeniden denenir.
     public var rejected: [String: String]
+    /// Reddedilen kopyaların nedeni: kimlik → neden. Bu alan eklenmeden önce yazılan defterlerin reddedilenlerinde
+    /// neden yoktur.
+    public var rejectionReasons: [String: AssistantRejectionReason]
 
-    public init(epoch: Int64?, uploaded: [String: String], rejected: [String: String]) {
+    public init(epoch: Int64?, uploaded: [String: String], rejected: [String: String], rejectionReasons: [String: AssistantRejectionReason]) {
         self.epoch = epoch
         self.uploaded = uploaded
         self.rejected = rejected
+        self.rejectionReasons = rejectionReasons
     }
 
-    public static let empty: AssistantUploadLedger = AssistantUploadLedger(epoch: nil, uploaded: [:], rejected: [:])
+    private enum CodingKeys: String, CodingKey {
+        case epoch
+        case uploaded
+        case rejected
+        case rejectionReasons
+    }
+
+    /// Eski sürümlerin defterinde `rejectionReasons` yoktur: o defterler nedensiz okunur (dosya biçiminin eski hâli).
+    public init(from decoder: any Decoder) throws {
+        let container: KeyedDecodingContainer<CodingKeys> = try decoder.container(keyedBy: CodingKeys.self)
+        epoch = try container.decodeIfPresent(Int64.self, forKey: .epoch)
+        uploaded = try container.decode([String: String].self, forKey: .uploaded)
+        rejected = try container.decode([String: String].self, forKey: .rejected)
+        rejectionReasons = try container.decodeIfPresent([String: AssistantRejectionReason].self, forKey: .rejectionReasons) ?? [:]
+    }
+
+    public static let empty: AssistantUploadLedger = AssistantUploadLedger(epoch: nil, uploaded: [:], rejected: [:], rejectionReasons: [:])
+}
+
+/// Sunucunun bir kopyayı kalıcı olarak reddetme nedeni.
+public enum AssistantRejectionReason: String, Sendable, Equatable, Codable {
+    /// Not, kopyanın üst sınırından büyük (`payload_too_large` ya da istemcideki sınır).
+    case tooLarge = "too_large"
+    /// Sunucu isteği geçersiz buldu (`bad_request`, `invalid_body`).
+    case invalid
 }
 
 /// Kopyaya girecek bir yerel toplantı: kopya ve parmak izi.
@@ -50,17 +79,26 @@ public struct AssistantUploadPlan: Sendable, Equatable {
     public var isEmpty: Bool { deletions.isEmpty && uploads.isEmpty }
 }
 
-/// Bu cihazdaki toplantılardan kaçının kopyası güncel.
+/// Bu cihazdaki toplantılardan kaçının kopyası güncel, kaçını sunucu kabul etmedi.
 public struct AssistantUploadProgress: Sendable, Equatable {
+    /// Kopyası sunucuda güncel olanlar.
     public let uploaded: Int
+    /// Sunucunun bu hâliyle reddettiği toplantılar: güncel sayılmaz, toplantı değişene ya da yeniden denenene dek
+    /// beklemede.
+    public let rejected: Int
+    /// Reddedilenlerin ortak nedeni; hiç yoksa, nedenler karışıksa ya da kaydedilmediyse nil.
+    public let rejectionReason: AssistantRejectionReason?
     public let total: Int
 
-    public init(uploaded: Int, total: Int) {
+    public init(uploaded: Int, rejected: Int, rejectionReason: AssistantRejectionReason?, total: Int) {
         self.uploaded = uploaded
+        self.rejected = rejected
+        self.rejectionReason = rejectionReason
         self.total = total
     }
 
-    public var isComplete: Bool { uploaded >= total }
+    /// Yapılacak yükleme kalmadı (reddedilenler bekler; güncel oldukları anlamına gelmez).
+    public var isComplete: Bool { uploaded + rejected >= total }
 }
 
 /// Toplantıların kopyaya girenleri (`assistantMeetingCopy`), parmak izleriyle. Saf fonksiyondur.
@@ -81,9 +119,14 @@ public func assistantLedger(ledger: AssistantUploadLedger, settings: HostedAssis
         return .empty
     }
     guard ledger.epoch == settings.epoch else {
-        return AssistantUploadLedger(epoch: settings.epoch, uploaded: [:], rejected: [:])
+        return AssistantUploadLedger(epoch: settings.epoch, uploaded: [:], rejected: [:], rejectionReasons: [:])
     }
     return ledger
+}
+
+/// Reddedilenler unutulmuş defter: sonraki geçiş onları yeniden yükler ("Yeniden dene"). Saf fonksiyondur.
+public func assistantLedgerRetryingRejected(ledger: AssistantUploadLedger) -> AssistantUploadLedger {
+    AssistantUploadLedger(epoch: ledger.epoch, uploaded: ledger.uploaded, rejected: [:], rejectionReasons: [:])
 }
 
 /// Geçişin planı: defterde olup yerelde olmayanlar silinir; yeni ya da değişen (parmak izi farklı, reddedilen hâliyle de
@@ -102,10 +145,15 @@ public func assistantUploadPlan(local: [AssistantLocalMeeting], ledger: Assistan
     return AssistantUploadPlan(deletions: deletions, uploads: uploads)
 }
 
-/// Kopyası güncel olan yerel toplantılar (reddedilenler bitmiş sayılır: yeniden denenmez). Saf fonksiyondur.
+/// Yerel toplantılardan kopyası güncel olanlar ve sunucunun bu hâliyle reddettikleri (ayrı sayılır: reddedilen güncel
+/// değildir, yalnızca toplantı değişene ya da yeniden denenene dek yüklenmez). Saf fonksiyondur.
 public func assistantUploadProgress(local: [AssistantLocalMeeting], ledger: AssistantUploadLedger) -> AssistantUploadProgress {
-    let current: Int = local.filter { ledger.uploaded[$0.id] == $0.fingerprint || ledger.rejected[$0.id] == $0.fingerprint }.count
-    return AssistantUploadProgress(uploaded: current, total: local.count)
+    let current: Int = local.filter { ledger.uploaded[$0.id] == $0.fingerprint }.count
+    let refused: [String] = local
+        .filter { ledger.uploaded[$0.id] != $0.fingerprint && ledger.rejected[$0.id] == $0.fingerprint }
+        .map(\.id)
+    let reasons: Set<AssistantRejectionReason?> = Set(refused.map { ledger.rejectionReasons[$0] })
+    return AssistantUploadProgress(uploaded: current, rejected: refused.count, rejectionReason: reasons.count == 1 ? reasons.first.flatMap { $0 } : nil, total: local.count)
 }
 
 /// Bilinenlerde olmayan bağlantılar (yeni bağlanan asistan bildirimi). Bilinen liste hiç kaydedilmediyse (bu cihaz ilk
@@ -124,15 +172,20 @@ public func assistantGrantDisplayName(grant: HostedAssistantGrant) -> String {
     return grant.verified && !name.isEmpty ? name : grant.redirectHost
 }
 
-/// Sunucunun bir kopyayı kalıcı olarak reddettiği hata (yeniden denemek aynı sonucu verir). Saf fonksiyondur.
-func isPermanentAssistantRejection(error: any Error) -> Bool {
+/// Sunucunun bir kopyayı kalıcı olarak reddettiği hatanın nedeni (yeniden denemek aynı sonucu verir); geçici ya da
+/// başka bir hatada nil. Saf fonksiyondur.
+func assistantRejectionReason(error: any Error) -> AssistantRejectionReason? {
     if case HostedAssistantError.copyTooLarge = error {
-        return true
+        return .tooLarge
     }
     guard let apiError = error as? HostedAPIError else {
-        return false
+        return nil
     }
-    return apiError.code == .payloadTooLarge || apiError.code == .invalidBody || apiError.code == .badRequest
+    switch apiError.code {
+    case .payloadTooLarge: return .tooLarge
+    case .invalidBody, .badRequest: return .invalid
+    default: return nil
+    }
 }
 
 /// Defter dosyası.
@@ -186,6 +239,9 @@ public actor AssistantUploader {
     private let deviceID: String
     /// Bir geçişte en fazla bu kadar dönem değişikliği izlenir (sonsuz döngü olmasın).
     private let maxEpochRounds: Int = 3
+    /// "Yeniden dene" bir geçiş sürerken geldi: geçiş defteri bellekte tuttuğu için bir sonraki yazımda reddedilenleri
+    /// o da unutur (yoksa eski hâlini yazıp isteği geri alırdı).
+    private var retryRequested: Bool = false
 
     public init(client: any HostedAssistantAPI, file: AssistantLedgerFile, deviceID: String) {
         self.client = client
@@ -228,6 +284,7 @@ public actor AssistantUploader {
                     try await client.putMeeting(meetingID: meetingID, upload: AssistantMeetingUpload(epoch: epoch, deviceId: deviceID, copy: meeting.copy))
                     ledger.uploaded[meetingID] = meeting.fingerprint
                     ledger.rejected[meetingID] = nil
+                    ledger.rejectionReasons[meetingID] = nil
                     uploaded += 1
                 } catch HostedAssistantError.epochMismatch, HostedAssistantError.notEnabled {
                     rounds += 1
@@ -238,9 +295,12 @@ public actor AssistantUploader {
                     settings = try await client.settings()
                     ledger = try store(ledger: assistantLedger(ledger: ledger, settings: settings))
                     continue passLoop
-                } catch let error where isPermanentAssistantRejection(error: error) {
+                } catch let error where assistantRejectionReason(error: error) != nil {
                     assistantUploadLogger.error("Assistant copy refused, skipped until the meeting changes, error: \(String(describing: error), privacy: .private)")
+                    // Sunucudaki eski kopya (varsa) defterde kalır: toplantı silinirse o da silinir; parmak izi farklı
+                    // olduğu için güncel sayılmaz.
                     ledger.rejected[meetingID] = meeting.fingerprint
+                    ledger.rejectionReasons[meetingID] = assistantRejectionReason(error: error)
                     rejected += 1
                 }
                 ledger = try store(ledger: ledger)
@@ -261,12 +321,23 @@ public actor AssistantUploader {
     /// sonraki geçiş zaten yeni dönemi okur).
     public func forgetUploads() throws {
         let current: AssistantUploadLedger = try file.read()
-        _ = try store(ledger: AssistantUploadLedger(epoch: current.epoch, uploaded: [:], rejected: [:]))
+        _ = try store(ledger: AssistantUploadLedger(epoch: current.epoch, uploaded: [:], rejected: [:], rejectionReasons: [:]))
     }
 
+    /// Reddedilenleri unutur: sonraki geçiş onları yeniden yükler (Ayarlar'daki "Yeniden dene").
+    public func retryRejected() throws {
+        // Bayrak, süren bir geçişin bellekteki defteri için kalır (onun sonraki yazımı da unutur); geçiş yoksa sonraki
+        // geçişin ilk yazımı onu düşürür.
+        try file.write(ledger: assistantLedgerRetryingRejected(ledger: try file.read()))
+        retryRequested = true
+    }
+
+    /// Defteri diske yazar; bekleyen "Yeniden dene" varsa önce reddedilenler unutulur.
     private func store(ledger: AssistantUploadLedger) throws -> AssistantUploadLedger {
-        try file.write(ledger: ledger)
-        return ledger
+        let next: AssistantUploadLedger = retryRequested ? assistantLedgerRetryingRejected(ledger: ledger) : ledger
+        try file.write(ledger: next)
+        retryRequested = false
+        return next
     }
 }
 

@@ -43,12 +43,15 @@ struct HostedAssistantMacBindings: ViewModifier {
     }
 }
 
-/// Ayarlar › Bağlantılar'daki "Yapay zekâ asistanı erişimi" bölümü: varsayılan kapalı anahtar ve açık rıza metni;
-/// açıkken bağlayıcı adresi, Claude ve ChatGPT'ye ekleme adımları, bağlı asistanlar (bağlantıyı kes), bu Mac'in
-/// yüklemesi ve "bu cihazın toplantılarını kaldır". Sunucu özelliği sunmuyorsa (ve hesapta açık değilse) görünmez.
+/// Ayarlar › Bağlantılar'daki "Yapay zekâ asistanı erişimi" kartı. Kapalı (varsayılan) başlıkta durum özeti (kapalı,
+/// açık ve bağlı asistan sayısı, kabul edilmeyen toplantılar) ve açma oku; açılınca varsayılan kapalı anahtar ve açık
+/// rıza metni, açıkken bağlayıcı adresi, Claude ve ChatGPT'ye ekleme adımları, bağlı asistanlar (bağlantıyı kes),
+/// sunucunun kabul etmediği toplantılar ("Yeniden dene"), bu Mac'in yüklemesi ve "bu cihazın toplantılarını kaldır".
+/// Açık/kapalı yalnızca bu görünüm yaşadıkça hatırlanır. Sunucu özelliği sunmuyorsa (ve hesapta açık değilse) görünmez.
 /// Kapatma ve kaldırma satır içinde onaylanır (açılır pencere yok).
 struct HostedAssistantSettingsSection: View {
     @State private var center: HostedAssistantCenter = .shared
+    @State private var isExpanded: Bool = launchExpandsAssistantAccess(arguments: CommandLine.arguments)
     @State private var confirmingOff: Bool = false
     @State private var confirmingRemove: Bool = false
     @State private var copied: Bool = false
@@ -56,28 +59,100 @@ struct HostedAssistantSettingsSection: View {
     var body: some View {
         Group {
             if center.availability == .available || center.isOn {
-                SettingsGroup(title: Text("Yapay zekâ asistanı erişimi")) {
-                    toggleRow
-                    if center.isOn {
-                        addressRow
-                        stepsRow(title: Text("Claude'a ekle"), steps: [
-                            Text("Claude'da Ayarlar › Bağlayıcılar'ı aç ve \"Özel bağlayıcı ekle\"yi seç."),
-                            Text("Ad olarak \(appName) yaz, yukarıdaki adresi yapıştır ve ekle."),
-                            Text("\"Bağlan\"a bas, \(appName) hesabınla giriş yap ve izin ver."),
-                        ])
-                        stepsRow(title: Text("ChatGPT'ye ekle"), steps: [
-                            Text("ChatGPT'de Ayarlar › Uygulamalar ve Bağlayıcılar › Gelişmiş ayarlar'da geliştirici modunu aç."),
-                            Text("\"Oluştur\"a bas, ad olarak \(appName) yaz, adresi yapıştır ve kimlik doğrulamada OAuth'u seç."),
-                            Text("Kaydet, \(appName) hesabınla giriş yap ve izin ver."),
-                        ])
-                        grantRows
-                        deviceRow
+                SettingsCard {
+                    headerRow
+                    if isExpanded {
+                        expandedRows
                     }
                 }
+                .padding(.top, 26)
             }
         }
         // Ayarlar açılınca sunucudan yeniden sorulur (bağlantılar, başka cihazdaki değişiklik).
         .task { await center.refresh() }
+    }
+
+    /// Kabul edilmeyen toplantılar (bu Mac yüklüyorken).
+    private var refused: AssistantUploadProgress? {
+        guard center.isOn, !center.isDeviceExcluded, let progress = center.progress, progress.rejected > 0 else {
+            return nil
+        }
+        return progress
+    }
+
+    /// Başlık: marka kutusu, ad, durum özeti, (varsa) kabul edilmeyen toplantılar ve açma oku; bütün satır basılabilir.
+    private var headerRow: some View {
+        Button {
+            withAnimation(.smooth(duration: 0.2)) { isExpanded.toggle() }
+        } label: {
+            HStack(spacing: 12) {
+                IntegrationTile(style: IntegrationTileStyle(mark: .symbol("sparkles"), palette: .violet, seed: "asistan"), size: 34)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Yapay zekâ asistanı erişimi")
+                        .appFont(size: 14, weight: .semibold)
+                        .foregroundStyle(Theme.ink)
+                    assistantAccessSummary(isOn: center.isOn, grants: center.grants.count)
+                        .appFont(size: 12, weight: .regular)
+                        .foregroundStyle(Theme.muted)
+                    if let refused {
+                        Label {
+                            assistantRefusedText(progress: refused).foregroundStyle(Theme.ink)
+                        } icon: {
+                            Image(systemName: NoticeSeverity.attention.symbol).foregroundStyle(NoticeSeverity.attention.tint)
+                        }
+                        .appFont(size: 12, weight: .regular)
+                        .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right")
+                    .appFont(size: 11, weight: .semibold)
+                    .foregroundStyle(Theme.muted)
+                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                    .accessibilityHidden(true)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityHint(Text(isExpanded ? LocalizedStringKey("Ayrıntıları gizler") : LocalizedStringKey("Ayrıntıları gösterir")))
+    }
+
+    @ViewBuilder
+    private var expandedRows: some View {
+        toggleRow
+        // Kabul edilmeyen toplantılar anahtarın hemen altında: açınca ilk görülen sorun.
+        if let refused {
+            refusedRow(progress: refused)
+        }
+        if center.isOn {
+            addressRow
+            stepsRow(title: Text("Claude'a ekle"), steps: [
+                Text("Claude'da Ayarlar › Bağlayıcılar'ı aç ve \"Özel bağlayıcı ekle\"yi seç."),
+                Text("Ad olarak \(appName) yaz, yukarıdaki adresi yapıştır ve ekle."),
+                Text("\"Bağlan\"a bas, \(appName) hesabınla giriş yap ve izin ver."),
+            ])
+            stepsRow(title: Text("ChatGPT'ye ekle"), steps: [
+                Text("ChatGPT'de Ayarlar › Uygulamalar ve Bağlayıcılar › Gelişmiş ayarlar'da geliştirici modunu aç."),
+                Text("\"Oluştur\"a bas, ad olarak \(appName) yaz, adresi yapıştır ve kimlik doğrulamada OAuth'u seç."),
+                Text("Kaydet, \(appName) hesabınla giriş yap ve izin ver."),
+            ])
+            grantRows
+            deviceRow
+        }
+    }
+
+    /// Sunucunun kabul etmediği toplantılar: sayı, kısa neden ve "Yeniden dene" (toplantı değişince zaten denenir).
+    private func refusedRow(progress: AssistantUploadProgress) -> some View {
+        SettingsRow(icon: "exclamationmark.arrow.circlepath", title: assistantRefusedText(progress: progress)) {
+            Text("Bu toplantılar asistanlara açık değil. Toplantı değişince kendiliğinden yeniden denenir.")
+        } control: {
+            Button("Yeniden dene") { Task { await center.retryRejected() } }
+        }
     }
 
     private var toggleRow: some View {
@@ -234,10 +309,11 @@ struct HostedAssistantSettingsSection: View {
         case .idle, .uploading:
             if let progress = center.progress {
                 if progress.isComplete {
-                    Text("Bu Mac'teki \(progress.total) toplantının kopyası güncel.")
+                    // Kabul edilmeyenler güncel sayılmaz (ayrı satırda).
+                    Text("Bu Mac'teki \(progress.uploaded) toplantının kopyası güncel.")
                 } else {
-                    Text("Yükleniyor, en yeniden eskiye: \(progress.uploaded) / \(progress.total) toplantı")
-                    ProgressView(value: Double(progress.uploaded), total: Double(max(progress.total, 1)))
+                    Text("Yükleniyor, en yeniden eskiye: \(progress.uploaded + progress.rejected) / \(progress.total) toplantı")
+                    ProgressView(value: Double(progress.uploaded + progress.rejected), total: Double(max(progress.total, 1)))
                         .progressViewStyle(.linear)
                         .frame(maxWidth: 260)
                 }

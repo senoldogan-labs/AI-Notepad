@@ -29,6 +29,8 @@ private struct FakeAssistantState {
 /// In-memory `/v1/assistant` that checks the epoch like the server does.
 private final class FakeAssistantServer: HostedAssistantAPI {
     let state: Mutex<FakeAssistantState>
+    /// Runs before each upload (outside the lock), e.g. to press "retry" while a pass is uploading.
+    let beforePut: Mutex<(@Sendable () async -> Void)?> = Mutex(nil)
 
     init(settings: HostedAssistantSettings) {
         state = Mutex(FakeAssistantState(settings: settings))
@@ -54,6 +56,12 @@ private final class FakeAssistantServer: HostedAssistantAPI {
     }
 
     func putMeeting(meetingID: String, upload: AssistantMeetingUpload) async throws {
+        if let hook = beforePut.withLock({ (hook: inout (@Sendable () async -> Void)?) -> (@Sendable () async -> Void)? in
+            defer { hook = nil }
+            return hook
+        }) {
+            await hook()
+        }
         try state.withLock { (state: inout FakeAssistantState) throws -> Void in
             state.calls.append("put \(meetingID)")
             if let failure = state.failNextUpload {
@@ -179,24 +187,24 @@ private let deviceID: String = "6f1c1b7e-8a8a-4c4c-9d9d-1e1e1e1e1e1e"
     // Backfill goes newest first; deleted meetings are removed; unchanged and rejected-unchanged ones are skipped.
     @Test func planOrdersNewestFirstAndPropagatesDeletes() throws {
         let local: [AssistantLocalMeeting] = try assistantLocalMeetings(records: [meeting(id: "old", startedAt: 100), meeting(id: "new", startedAt: 300), meeting(id: "mid", startedAt: 200)], userName: "")
-        let fresh: AssistantUploadPlan = assistantUploadPlan(local: local, ledger: AssistantUploadLedger(epoch: 1, uploaded: [:], rejected: [:]))
+        let fresh: AssistantUploadPlan = assistantUploadPlan(local: local, ledger: AssistantUploadLedger(epoch: 1, uploaded: [:], rejected: [:], rejectionReasons: [:]))
         #expect(fresh.uploads == ["new", "mid", "old"])
         #expect(fresh.deletions.isEmpty)
         let mid: String = try #require(local.first { $0.id == "mid" }).fingerprint
         let old: String = try #require(local.first { $0.id == "old" }).fingerprint
-        let ledger: AssistantUploadLedger = AssistantUploadLedger(epoch: 1, uploaded: ["mid": mid, "gone": "x", "new": "stale"], rejected: ["old": old])
+        let ledger: AssistantUploadLedger = AssistantUploadLedger(epoch: 1, uploaded: ["mid": mid, "gone": "x", "new": "stale"], rejected: ["old": old], rejectionReasons: ["old": .tooLarge])
         let plan: AssistantUploadPlan = assistantUploadPlan(local: local, ledger: ledger)
         #expect(plan.uploads == ["new"])
         #expect(plan.deletions == ["gone"])
-        #expect(assistantUploadProgress(local: local, ledger: ledger) == AssistantUploadProgress(uploaded: 2, total: 3))
+        #expect(assistantUploadProgress(local: local, ledger: ledger) == AssistantUploadProgress(uploaded: 1, rejected: 1, rejectionReason: .tooLarge, total: 3))
     }
 
     // A new epoch forgets every upload (backfill again); off empties the ledger; same epoch keeps it.
     @Test func epochDecidesLedger() {
-        let ledger: AssistantUploadLedger = AssistantUploadLedger(epoch: 2, uploaded: ["a": "f"], rejected: ["b": "g"])
+        let ledger: AssistantUploadLedger = AssistantUploadLedger(epoch: 2, uploaded: ["a": "f"], rejected: ["b": "g"], rejectionReasons: ["b": .invalid])
         #expect(assistantLedger(ledger: ledger, settings: HostedAssistantSettings(enabled: true, epoch: 2, meetings: 1, maxMeetings: 5000)) == ledger)
         #expect(assistantLedger(ledger: ledger, settings: HostedAssistantSettings(enabled: true, epoch: 3, meetings: 0, maxMeetings: 5000))
-            == AssistantUploadLedger(epoch: 3, uploaded: [:], rejected: [:]))
+            == AssistantUploadLedger(epoch: 3, uploaded: [:], rejected: [:], rejectionReasons: [:]))
         #expect(assistantLedger(ledger: ledger, settings: HostedAssistantSettings(enabled: false, epoch: 3, meetings: 0, maxMeetings: 5000)) == .empty)
     }
 
@@ -234,10 +242,10 @@ private let deviceID: String = "6f1c1b7e-8a8a-4c4c-9d9d-1e1e1e1e1e1e"
         let log: ProgressLog = ProgressLog()
         let first: AssistantPassReport = try await AssistantUploader(client: server, file: file, deviceID: deviceID).pass(records: records, userName: "") { log.add(progress: $0) }
         #expect(first.uploaded == 2)
-        #expect(first.progress == AssistantUploadProgress(uploaded: 2, total: 2))
+        #expect(first.progress == AssistantUploadProgress(uploaded: 2, rejected: 0, rejectionReason: nil, total: 2))
         #expect(first.settings.meetings == 2)
         #expect(server.state.withLock { $0.calls.filter { $0.hasPrefix("put") } } == ["put b", "put a"])
-        #expect(log.values.withLock { $0 }.first == AssistantUploadProgress(uploaded: 0, total: 2))
+        #expect(log.values.withLock { $0 }.first == AssistantUploadProgress(uploaded: 0, rejected: 0, rejectionReason: nil, total: 2))
         #expect(server.state.withLock { $0.stored.keys.sorted() } == ["a", "b"])
 
         let restarted: AssistantUploader = AssistantUploader(client: server, file: file, deviceID: deviceID)
@@ -295,11 +303,63 @@ private let deviceID: String = "6f1c1b7e-8a8a-4c4c-9d9d-1e1e1e1e1e1e"
         let records: [MeetingRecord] = [meeting(id: "a", startedAt: 100), meeting(id: "b", startedAt: 200)]
         let first: AssistantPassReport = try await uploader.pass(records: records, userName: "") { _ in }
         #expect(first.rejected == 1 && first.uploaded == 1)
+        // Refused is not up to date: counted apart, with its reason, and nothing is left to upload.
+        #expect(first.progress == AssistantUploadProgress(uploaded: 1, rejected: 1, rejectionReason: .invalid, total: 2))
+        #expect(first.progress.isComplete)
         let second: AssistantPassReport = try await uploader.pass(records: records, userName: "") { _ in }
         #expect(second.rejected == 0 && second.uploaded == 0)
+        #expect(second.progress.rejected == 1)
         server.state.withLock { $0.invalid = [] }
         let changed: AssistantPassReport = try await uploader.pass(records: [records[0].with(myNotes: "fixed"), records[1]], userName: "") { _ in }
         #expect(changed.uploaded == 1)
+        #expect(changed.progress == AssistantUploadProgress(uploaded: 2, rejected: 0, rejectionReason: nil, total: 2))
+    }
+
+    // "Retry" forgets the refusals: the next pass uploads the unchanged meeting again.
+    @Test func retryRejectedUploadsAgain() async throws {
+        let server: FakeAssistantServer = FakeAssistantServer(settings: HostedAssistantSettings(enabled: true, epoch: 1, meetings: 0, maxMeetings: 5000))
+        server.state.withLock { $0.invalid = ["a"] }
+        let file: AssistantLedgerFile = temporaryLedger()
+        defer { try? FileManager.default.removeItem(at: file.url.deletingLastPathComponent()) }
+        let uploader: AssistantUploader = AssistantUploader(client: server, file: file, deviceID: deviceID)
+        let records: [MeetingRecord] = [meeting(id: "a", startedAt: 100)]
+        _ = try await uploader.pass(records: records, userName: "") { _ in }
+        server.state.withLock { $0.invalid = [] }
+        try await uploader.retryRejected()
+        let retried: AssistantPassReport = try await uploader.pass(records: records, userName: "") { _ in }
+        #expect(retried.uploaded == 1)
+        #expect(retried.progress == AssistantUploadProgress(uploaded: 1, rejected: 0, rejectionReason: nil, total: 1))
+        #expect(try await uploader.ledger().rejectionReasons.isEmpty)
+    }
+
+    // "Retry" pressed while a pass is uploading is not undone by that pass writing its in-memory ledger.
+    @Test func retryDuringPassSticks() async throws {
+        let server: FakeAssistantServer = FakeAssistantServer(settings: HostedAssistantSettings(enabled: true, epoch: 1, meetings: 0, maxMeetings: 5000))
+        server.state.withLock { $0.invalid = ["a"] }
+        let file: AssistantLedgerFile = temporaryLedger()
+        defer { try? FileManager.default.removeItem(at: file.url.deletingLastPathComponent()) }
+        let uploader: AssistantUploader = AssistantUploader(client: server, file: file, deviceID: deviceID)
+        _ = try await uploader.pass(records: [meeting(id: "a", startedAt: 100)], userName: "") { _ in }
+        server.state.withLock { $0.invalid = [] }
+        server.beforePut.withLock { $0 = { try? await uploader.retryRejected() } }
+        _ = try await uploader.pass(records: [meeting(id: "a", startedAt: 100), meeting(id: "b", startedAt: 200)], userName: "") { _ in }
+        #expect(try await uploader.ledger().rejected.isEmpty)
+        let next: AssistantPassReport = try await uploader.pass(records: [meeting(id: "a", startedAt: 100), meeting(id: "b", startedAt: 200)], userName: "") { _ in }
+        #expect(next.uploaded == 1)
+        #expect(next.progress == AssistantUploadProgress(uploaded: 2, rejected: 0, rejectionReason: nil, total: 2))
+    }
+
+    // Mixed reasons give no single reason; ledgers written before reasons existed still read.
+    @Test func rejectionReasonsAndOldLedgers() throws {
+        let local: [AssistantLocalMeeting] = try assistantLocalMeetings(records: [meeting(id: "a", startedAt: 100), meeting(id: "b", startedAt: 200)], userName: "")
+        let prints: [String: String] = Dictionary(uniqueKeysWithValues: local.map { ($0.id, $0.fingerprint) })
+        let mixed: AssistantUploadLedger = AssistantUploadLedger(epoch: 1, uploaded: [:], rejected: prints, rejectionReasons: ["a": .tooLarge, "b": .invalid])
+        #expect(assistantUploadProgress(local: local, ledger: mixed) == AssistantUploadProgress(uploaded: 0, rejected: 2, rejectionReason: nil, total: 2))
+        let old: Data = Data(#"{"epoch":1,"rejected":{"a":"f"},"uploaded":{}}"#.utf8)
+        let decoded: AssistantUploadLedger = try JSONDecoder().decode(AssistantUploadLedger.self, from: old)
+        #expect(decoded == AssistantUploadLedger(epoch: 1, uploaded: [:], rejected: ["a": "f"], rejectionReasons: [:]))
+        #expect(assistantRejectionReason(error: HostedAssistantError.copyTooLarge(meetingID: "a", byteCount: 1)) == .tooLarge)
+        #expect(assistantRejectionReason(error: HostedAssistantError.quotaExceeded) == nil)
     }
 
     // "Remove this device's meetings": the server drops them and the ledger forgets them but keeps the epoch.
@@ -311,6 +371,6 @@ private let deviceID: String = "6f1c1b7e-8a8a-4c4c-9d9d-1e1e1e1e1e1e"
         _ = try await uploader.pass(records: [meeting(id: "a", startedAt: 100)], userName: "") { _ in }
         #expect(try await server.deleteDevice(deviceID: deviceID) == 1)
         try await uploader.forgetUploads()
-        #expect(try await uploader.ledger() == AssistantUploadLedger(epoch: 4, uploaded: [:], rejected: [:]))
+        #expect(try await uploader.ledger() == AssistantUploadLedger(epoch: 4, uploaded: [:], rejected: [:], rejectionReasons: [:]))
     }
 }

@@ -47,7 +47,8 @@ struct PhoneAssistantBindings: ViewModifier {
     }
 }
 
-/// Ayarlar › Bağlantılar'daki "Yapay zekâ asistanı erişimi" satırı (açık/kapalı); dokununca sayfası açılır. Sunucu
+/// Ayarlar › Bağlantılar'daki "Yapay zekâ asistanı erişimi" satırı (Mac'teki kapalı kartın başlığı): durum özeti
+/// (kapalı, açık ve bağlı asistan sayısı) ve varsa kabul edilmeyen toplantılar; dokununca sayfası açılır. Sunucu
 /// özelliği sunmuyorsa (ve hesapta açık değilse) görünmez.
 struct PhoneAssistantRow: View {
     @State private var center: HostedAssistantCenter = .shared
@@ -56,10 +57,15 @@ struct PhoneAssistantRow: View {
         Group {
             if center.availability == .available || center.isOn {
                 NavigationLink(value: PhoneRoute.assistantAccess) {
-                    LabeledContent {
-                        Text(center.isOn ? LocalizedStringKey("Etkin") : LocalizedStringKey("Kapalı"))
-                    } label: {
-                        PhoneSettingLabel(icon: "sparkles", title: Text("Yapay zekâ asistanı erişimi"))
+                    PhoneSettingLabel(icon: "sparkles", title: Text("Yapay zekâ asistanı erişimi")) {
+                        assistantAccessSummary(isOn: center.isOn, grants: center.grants.count)
+                        if let refused = phoneRefusedUploads(center: center) {
+                            Label {
+                                assistantRefusedText(progress: refused).foregroundStyle(Theme.ink)
+                            } icon: {
+                                Image(systemName: NoticeSeverity.attention.symbol).foregroundStyle(NoticeSeverity.attention.tint)
+                            }
+                        }
                     }
                 }
             }
@@ -72,11 +78,23 @@ struct PhoneAssistantRow: View {
     }
 }
 
-/// Yapay zekâ asistanı erişimi sayfası: varsayılan kapalı anahtar ve rıza metni; açıkken bağlayıcı adresi, Claude ve
-/// ChatGPT'ye ekleme adımları, bağlı asistanlar, bu iPhone'un yüklemesi ve "bu cihazın toplantılarını kaldır".
-/// Kapatma ve kaldırma satır içinde onaylanır.
+/// Kabul edilmeyen toplantılar (bu iPhone yüklüyorken); yoksa nil.
+@MainActor
+private func phoneRefusedUploads(center: HostedAssistantCenter) -> AssistantUploadProgress? {
+    guard center.isOn, !center.isDeviceExcluded, let progress = center.progress, progress.rejected > 0 else {
+        return nil
+    }
+    return progress
+}
+
+/// Yapay zekâ asistanı erişimi sayfası: varsayılan kapalı anahtar ve rıza metni; açıkken bağlı asistanlar, sunucunun
+/// kabul etmediği toplantılar ("Yeniden dene"), bu iPhone'un yüklemesi ve "bu cihazın toplantılarını kaldır"; bağlayıcı
+/// adresi ve Claude ile ChatGPT'ye ekleme adımları "Nasıl bağlanır"ın altında, kapalı başlar (açık/kapalı yalnızca sayfa
+/// açıkken hatırlanır). Kapatma ve kaldırma satır içinde onaylanır.
 struct PhoneAssistantScreen: View {
     @State private var center: HostedAssistantCenter = .shared
+    /// Bağlayıcı adresi ve ekleme adımları gösteriliyor.
+    @State private var showsSetup: Bool = launchExpandsAssistantAccess(arguments: CommandLine.arguments)
     @State private var confirmingOff: Bool = false
     @State private var confirmingRemove: Bool = false
     @State private var copied: Bool = false
@@ -126,6 +144,41 @@ struct PhoneAssistantScreen: View {
                 }
             }
             if center.isOn {
+                if let refused = phoneRefusedUploads(center: center) {
+                    Section {
+                        Label {
+                            assistantRefusedText(progress: refused)
+                                .fixedSize(horizontal: false, vertical: true)
+                        } icon: {
+                            Image(systemName: NoticeSeverity.attention.symbol).foregroundStyle(NoticeSeverity.attention.tint)
+                        }
+                        Button("Yeniden dene") { Task { await center.retryRejected() } }
+                    } footer: {
+                        Text("Bu toplantılar asistanlara açık değil. Toplantı değişince kendiliğinden yeniden denenir.")
+                    }
+                }
+                grantsSection
+                deviceSection
+                Section {
+                    Button {
+                        withAnimation(.smooth(duration: 0.2)) { showsSetup.toggle() }
+                    } label: {
+                        HStack {
+                            Text("Nasıl bağlanır")
+                                .foregroundStyle(Theme.ink)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .appFont(size: 13, weight: .semibold)
+                                .foregroundStyle(Theme.muted)
+                                .rotationEffect(.degrees(showsSetup ? 90 : 0))
+                                .accessibilityHidden(true)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .accessibilityHint(Text(showsSetup ? LocalizedStringKey("Ayrıntıları gizler") : LocalizedStringKey("Ayrıntıları gösterir")))
+                }
+            }
+            if center.isOn, showsSetup {
                 Section {
                     Text(verbatim: hostedAssistantConnectorURL)
                         .font(.system(size: 14, design: .monospaced))
@@ -153,8 +206,6 @@ struct PhoneAssistantScreen: View {
                     Text("\"Oluştur\"a bas, ad olarak \(appName) yaz, adresi yapıştır ve kimlik doğrulamada OAuth'u seç."),
                     Text("Kaydet, \(appName) hesabınla giriş yap ve izin ver."),
                 ])
-                grantsSection
-                deviceSection
             }
         }
         .navigationTitle("Yapay zekâ asistanı erişimi")
@@ -262,11 +313,12 @@ struct PhoneAssistantScreen: View {
         case .idle, .uploading:
             if let progress = center.progress {
                 if progress.isComplete {
-                    Text("Bu iPhone'daki \(progress.total) toplantının kopyası güncel.")
+                    // Kabul edilmeyenler güncel sayılmaz (ayrı bölümde).
+                    Text("Bu iPhone'daki \(progress.uploaded) toplantının kopyası güncel.")
                 } else {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Yükleniyor, en yeniden eskiye: \(progress.uploaded) / \(progress.total) toplantı")
-                        ProgressView(value: Double(progress.uploaded), total: Double(max(progress.total, 1)))
+                        Text("Yükleniyor, en yeniden eskiye: \(progress.uploaded + progress.rejected) / \(progress.total) toplantı")
+                        ProgressView(value: Double(progress.uploaded + progress.rejected), total: Double(max(progress.total, 1)))
                     }
                 }
             } else {
