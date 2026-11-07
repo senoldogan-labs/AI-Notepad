@@ -181,7 +181,7 @@ struct PhoneAssistantScreen: View {
             if center.isOn, showsSetup {
                 Section {
                     Text(verbatim: hostedAssistantConnectorURL)
-                        .font(.system(size: 14, design: .monospaced))
+                        .font(.system(.subheadline, design: .monospaced))
                         .textSelection(.enabled)
                     Button(copied ? LocalizedStringKey("Kopyalandı") : LocalizedStringKey("Adresi kopyala")) {
                         UIPasteboard.general.string = hostedAssistantConnectorURL
@@ -254,11 +254,11 @@ struct PhoneAssistantScreen: View {
                         NoticeText("Doğrulanmamış uygulama. Bu bağlantıyı sen kurmadıysan kes.", severity: .attention)
                             .appFont(size: 13, weight: .regular)
                     }
-                    Text("Bağlandı: \(grant.createdAt.formatted(date: .abbreviated, time: .shortened))")
+                    Text("Bağlandı: \(grant.createdAt.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(interfaceLocale())))")
                         .appFont(size: 13, weight: .regular)
                         .foregroundStyle(Theme.muted)
                     if let heavyReadAt = grant.heavyReadAt {
-                        NoticeText("\(heavyReadAt.formatted(date: .abbreviated, time: .shortened)) civarında bir saatte 100'den fazla toplantı okudu.", severity: .attention)
+                        NoticeText("\(heavyReadAt.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(interfaceLocale()))) civarında bir saatte 100'den fazla toplantı okudu.", severity: .attention)
                             .appFont(size: 13, weight: .regular)
                     }
                 }

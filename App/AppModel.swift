@@ -193,6 +193,8 @@ final class AppModel {
     @ObservationIgnored private(set) var meetingsLoaded: Bool = false
     /// `namedMeetings` için son adlandırılan notlar: görünüm her çizimde bütün notlarda etiket aramasın.
     @ObservationIgnored private var namedMeetingsCache: NamedRecordsCache = .empty
+    /// Arama önbelleği (katlanmış metinler); arama ana iş parçacığının dışında çalışır.
+    @ObservationIgnored let searchCache: MeetingSearchCache = MeetingSearchCache()
 
     /// Toplantılar konuşmacı adlarıyla (`namedRecords`), `meetings` ile aynı sırada; yalnız okumak için. Notu, adları ya
     /// da kullanıcı adı değişmeyen toplantılar önbellekten gelir; `meetings` okunduğu için görünümler değişince yenilenir.
@@ -2975,6 +2977,20 @@ final class AppModel {
         return true
     }
 
+    /// Aramadaki "Sor: …" satırı: soru yeni bir Sor sohbetinde bütün toplantılara sorulur. Abonelikte hak yoksa
+    /// abone olma teklifi açılır ve false döner (Sor açılmasın).
+    func startAskingEverything(question: String) -> Bool {
+        #if HOSTED_EDITION
+        if HostedAccount.shared.requiresSubscription {
+            HostedAccount.shared.requestSubscription()
+            return false
+        }
+        #endif
+        clearArchiveConversation()
+        askArchive(question: question, meetingIDs: [], recipeTitle: nil)
+        return true
+    }
+
     /// Saklanan sohbeti açar; devam soruları onun cevaplarını bağlam alır. Süren cevap durdurulur.
     func openConversation(id: UUID) {
         guard let conversation = askConversations.first(where: { $0.id == id }) else {
@@ -4454,7 +4470,10 @@ final class AppModel {
 
     /// Saklama süresi (Ayarlar) dolan toplantıların sesini siler; kilitli toplantılar atlanır.
     func applyRetention() {
-        let days: Int = clampedSetting(key: SettingsKey.audioRetentionDays, range: SettingsRange.audioRetentionDays)
+        // "Hiç silme": ne toplantıların ne de sahipsiz kayıtların sesi silinir.
+        guard let days = effectiveAudioRetentionDays(setting: UserDefaults.standard.integer(forKey: SettingsKey.audioRetentionDays)) else {
+            return
+        }
         // iCloud'daki toplantılar da: eşitleme açıkken biten her toplantı iCloud'a taşınır, yalnız yerelde silinseydi
         // hiçbir cihaz sesi silmezdi. Çalan toplantının sesi kalır.
         for id in audioToDelete(records: meetings.filter { $0.id != player.meetingID }, now: Date(), retentionDays: days) where !isLocked(meetingID: id) {

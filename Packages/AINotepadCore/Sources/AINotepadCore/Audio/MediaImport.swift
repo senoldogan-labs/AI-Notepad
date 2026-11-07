@@ -103,10 +103,11 @@ public func mediaImportMessage(error: any Error) -> String {
     switch error {
     case MediaImportError.noAudioTrack:
         String(localized: "dosyada ses yok")
-    case MediaImportError.readFailed(_, let reason):
-        String(localized: "okunamadı (\(reason))")
-    case MediaImportError.writeFailed(_, let reason):
-        String(localized: "kaydedilemedi (\(reason))")
+    // Teknik neden (sistem ya da sabit metin) yalnızca günlüğe: arayüz dilinde olmayabilir.
+    case MediaImportError.readFailed:
+        String(localized: "dosya okunamadı; desteklenen bir ses ya da video dosyası olduğunu kontrol et")
+    case MediaImportError.writeFailed:
+        String(localized: "ses kaydedilemedi; disk alanını kontrol et")
     case HostedImportError.longerThanMeetingAllowance(let durationMinutes, let maxMinutes):
         String(localized: "dosya \(durationMinutes) dakika; bir toplantı şu an en çok \(maxMinutes) dakika işlenebilir. Dosyayı bölüp parçaları ayrı içe aktar.")
     default:

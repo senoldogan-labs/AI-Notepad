@@ -42,7 +42,7 @@ public func recentErrorsDiagnostics(errors: Result<[DiagnosticErrorEntry], any E
         return DiagnosticsSection(title: title, items: [DiagnosticsItem(label: String(localized: "Kayıt"), value: String(localized: "Bu oturumda hata yok"), status: .plain)])
     case .success(let entries):
         return DiagnosticsSection(title: title, items: entries.map { (entry: DiagnosticErrorEntry) -> DiagnosticsItem in
-            DiagnosticsItem(label: entry.date.formatted(date: .abbreviated, time: .standard), value: diagnosticErrorArea(code: entry.code), status: .plain)
+            DiagnosticsItem(label: entry.date.formatted(Date.FormatStyle(date: .abbreviated, time: .standard).locale(interfaceLocale())), value: diagnosticErrorArea(code: entry.code), status: .plain)
         })
     }
 }

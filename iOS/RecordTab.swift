@@ -34,7 +34,7 @@ struct PhoneHomeRoot: View {
 func longDayTitle(date: Date, locale: Locale) -> String {
     let formatter: DateFormatter = DateFormatter()
     // Yalnız dil: bölge (ör. Finlandiya) biçimi ayı sayıya çeviriyordu ("Salı 27.10.").
-    formatter.locale = Locale(identifier: locale.language.languageCode?.identifier ?? "tr")
+    formatter.locale = Locale(identifier: locale.language.languageCode?.identifier ?? "en")
     formatter.setLocalizedDateFormatFromTemplate("EEEEdMMMM")
     return formatter.string(from: date)
 }
@@ -152,6 +152,8 @@ struct PhoneUsageNotice: View {
                         .appFont(size: 11, weight: .semibold)
                         .foregroundStyle(Theme.muted)
                         .frame(width: 28, height: 28)
+                        // Dokunma alanı en az 44 pt (Apple HIG); simge küçük kalır.
+                        .frame(minWidth: 44, minHeight: 44)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -289,7 +291,7 @@ private struct LiveRecordingView: View {
         }
         .overlay(alignment: .top) {
             if recorder.consentReminderVisible {
-                ConsentToast { recorder.consentReminderVisible = false }
+                ConsentToast(language: recorder.lockedLanguage ?? phonePrimaryMeetingLanguage()) { recorder.consentReminderVisible = false }
                     .padding(.horizontal, 16)
                     .padding(.top, 4)
                     .transition(.opacity.combined(with: .move(edge: .top)))
@@ -821,6 +823,8 @@ private struct PhoneRelatedTasksCard: View {
                         .appFont(size: 12, weight: .semibold)
                         .foregroundStyle(Theme.muted)
                         .frame(width: 28, height: 28)
+                        // Dokunma alanı en az 44 pt (Apple HIG); simge küçük kalır.
+                        .frame(minWidth: 44, minHeight: 44)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -942,9 +946,11 @@ private struct PhoneLevelBars: View {
     }
 }
 
-/// "Kaydettiğini katılımcılara söyle": kayıt başında üstte 3 saniye görünen bildirim (Fince ve İngilizce söylenecek
-/// cümleyle); dokununca hemen kapanır. Ayarlar'daki hatırlatma kapalıysa hiç görünmez.
+/// "Kaydettiğini katılımcılara söyle": kayıt başında üstte 3 saniye görünen bildirim (toplantının dilinde ve İngilizce
+/// söylenecek cümleyle; `consentNoticeSentences`); dokununca hemen kapanır. Ayarlar'daki hatırlatma kapalıysa hiç
+/// görünmez.
 private struct ConsentToast: View {
+    let language: MeetingLanguage
     let onDismiss: @MainActor () -> Void
 
     var body: some View {
@@ -959,7 +965,7 @@ private struct ConsentToast: View {
                     Text("Kaydettiğini katılımcılara söyle")
                         .appFont(size: 14, weight: .semibold)
                         .foregroundStyle(Theme.ink)
-                    Text(verbatim: "„Nauhoitan tämän palaverin muistiinpanoja varten.“ · “I'm recording this meeting for my notes.”")
+                    Text(verbatim: consentNoticeSentences(language: language).map { "\u{201C}\($0)\u{201D}" }.joined(separator: " · "))
                         .appFont(size: 12, weight: .regular)
                         .foregroundStyle(Theme.muted)
                         .fixedSize(horizontal: false, vertical: true)

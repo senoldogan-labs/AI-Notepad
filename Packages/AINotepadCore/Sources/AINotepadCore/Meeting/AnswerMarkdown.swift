@@ -48,6 +48,60 @@ public func parseMarkdown(text: String) -> [MarkdownBlock] {
     parseBlocks(lines: text.replacingOccurrences(of: "\r\n", with: "\n").split(separator: "\n", omittingEmptySubsequences: false).map(String.init))
 }
 
+/// Akan cevabın ayrıştırması: metnin kararlı öneki (son boş satıra kadar; açık kod çiti içinde değil) ve onun blokları.
+/// Akış sırasında her karede bütün cevap yeniden ayrıştırılmaz: önek yalnız yeni bir paragraf bitince ayrıştırılır, her
+/// karede yalnız sondaki yarım paragraf.
+public struct StreamingMarkdown: Sendable, Equatable {
+    let stablePrefix: String
+    let stableBlocks: [MarkdownBlock]
+
+    public static let empty: StreamingMarkdown = StreamingMarkdown(stablePrefix: "", stableBlocks: [])
+}
+
+/// Akan metnin blokları ve sonraki kare için durum (bkz. `StreamingMarkdown`). Önek değişmediyse blokları yeniden
+/// kullanılır; metin öncekinin devamı değilse (cevap yeniden başladı) baştan ayrıştırılır. Sonuç, öneki ve kalanı ayrı
+/// ayrı ayrıştırmaktır: boş satırla ayrılan iki liste maddesi akış sırasında iki liste görünebilir; bitmiş cevap
+/// `parseMarkdown` ile bütün olarak çizilir. Saf fonksiyondur.
+public func streamingMarkdown(previous: StreamingMarkdown, text: String) -> (state: StreamingMarkdown, blocks: [MarkdownBlock]) {
+    let split: String.Index = stableSplit(text: text)
+    let prefix: Substring = text[..<split]
+    let state: StreamingMarkdown = prefix == previous.stablePrefix
+        ? previous
+        : StreamingMarkdown(stablePrefix: String(prefix), stableBlocks: parseMarkdown(text: String(prefix)))
+    let tail: Substring = text[split...]
+    return (state: state, blocks: state.stableBlocks + (tail.isEmpty ? [] : parseMarkdown(text: String(tail))))
+}
+
+/// Metnin kararlı ön ekinin sonu: açık kod çiti dışında kalan son boş satırdan (`\n\n`) sonrası; yoksa baş. Saf
+/// fonksiyondur.
+func stableSplit(text: String) -> String.Index {
+    var split: String.Index = text.startIndex
+    var fence: MarkdownFence?
+    var lineStart: String.Index = text.startIndex
+    var previousLineBlank: Bool = false
+    while lineStart < text.endIndex {
+        let lineEnd: String.Index = text[lineStart...].firstIndex(of: "\n") ?? text.endIndex
+        let line: String = String(text[lineStart..<lineEnd])
+        let isBlank: Bool = line.trimmingCharacters(in: .whitespaces).isEmpty
+        if let open = fence {
+            if closesFence(line: line, fence: open) {
+                fence = nil
+            }
+        } else if let opened = openingFence(line: line) {
+            fence = opened
+        } else if !isBlank, previousLineBlank, lineStart > text.startIndex {
+            // Boş satırdan sonra başlayan satır: önceki bloklar bitti.
+            split = lineStart
+        }
+        previousLineBlank = isBlank && fence == nil
+        guard lineEnd < text.endIndex else {
+            break
+        }
+        lineStart = text.index(after: lineEnd)
+    }
+    return split
+}
+
 // MARK: Bloklar
 
 /// Satırın baştaki boşluk sayısı (sekme 4 boşluk sayılır). Saf fonksiyondur.

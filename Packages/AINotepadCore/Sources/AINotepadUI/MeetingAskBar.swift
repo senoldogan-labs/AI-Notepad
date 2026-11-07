@@ -13,6 +13,8 @@ public struct MeetingAskBar: View {
     /// Not şu an yeniden yazılıyor ("Notu uzat" ya da notu sorarak düzenleme).
     let isEditingNote: Bool
     let isTranscriptOpen: Bool
+    /// Sohbet panelinin en çok yüksekliği (sayfanın yaklaşık %45'i: panel sayfayı örtmesin).
+    let conversationMaxHeight: CGFloat
     let onAsk: @MainActor (String, String?) -> Void
     let onQuickAction: @MainActor (MeetingQuickAction) -> Void
     let onStop: @MainActor () -> Void
@@ -22,12 +24,14 @@ public struct MeetingAskBar: View {
     let onSaveRecipe: @MainActor (String) -> Void
     let onToggleTranscript: @MainActor () -> Void
     @State private var draft: String = ""
-    @State private var isExpanded: Bool = false
+    /// Sohbet paneli açık: sayfa tutar, transkript çekmecesiyle aynı anda açık olmaz (biri açılınca öteki kapanır).
+    @Binding private var isExpanded: Bool
     @FocusState private var isFocused: Bool
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     public init(
         exchanges: [ArchiveExchange], isAnswering: Bool, quickActions: [MeetingQuickAction], recipes: [Recipe], isEditingNote: Bool, isTranscriptOpen: Bool,
+        isPanelOpen: Binding<Bool>, conversationMaxHeight: CGFloat,
         onAsk: @escaping @MainActor (String, String?) -> Void, onQuickAction: @escaping @MainActor (MeetingQuickAction) -> Void, onStop: @escaping @MainActor () -> Void,
         onClear: @escaping @MainActor () -> Void, onRegenerate: @escaping @MainActor () -> Void, onOpenSource: @escaping @MainActor (ArchivePassage) -> Void,
         onSaveRecipe: @escaping @MainActor (String) -> Void, onToggleTranscript: @escaping @MainActor () -> Void
@@ -38,6 +42,8 @@ public struct MeetingAskBar: View {
         self.recipes = recipes
         self.isEditingNote = isEditingNote
         self.isTranscriptOpen = isTranscriptOpen
+        self._isExpanded = isPanelOpen
+        self.conversationMaxHeight = conversationMaxHeight
         self.onAsk = onAsk
         self.onQuickAction = onQuickAction
         self.onStop = onStop
@@ -74,12 +80,21 @@ public struct MeetingAskBar: View {
     /// Alttaki çubuk.
     private var bar: some View {
         HStack(alignment: .bottom, spacing: 8) {
-            Button(action: onToggleTranscript) {
+            Button {
+                // Çekmece açılırken sohbet paneli kapanır (ikisi birlikte sayfayı örterdi).
+                if !isTranscriptOpen {
+                    isFocused = false
+                    isExpanded = false
+                }
+                onToggleTranscript()
+            } label: {
                 Image(systemName: "text.bubble")
                     .appFont(size: 14, weight: .semibold)
                     .foregroundStyle(isTranscriptOpen ? appearance.accent.color : Theme.ink)
                     .frame(width: 34, height: 34)
                     .background(isTranscriptOpen ? appearance.accent.color.opacity(0.14) : Theme.soft, in: Circle())
+                    .frame(minWidth: minimumHitSize, minHeight: minimumHitSize)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .linkPointer(isEnabled: true)
@@ -108,6 +123,8 @@ public struct MeetingAskBar: View {
                         .appFont(size: 13, weight: .semibold)
                         .foregroundStyle(Theme.muted)
                         .frame(width: 30, height: 34)
+                        .frame(minWidth: minimumHitSize, minHeight: minimumHitSize)
+                        .contentShape(Rectangle())
                 }
                 .menuStyle(.button)
                 .buttonStyle(.plain)
@@ -146,6 +163,8 @@ public struct MeetingAskBar: View {
                     .foregroundStyle(Theme.onPrimary)
                     .frame(width: 34, height: 34)
                     .background(Theme.primary, in: Circle())
+                    .frame(minWidth: minimumHitSize, minHeight: minimumHitSize)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(Text("Durdur"))
@@ -157,6 +176,8 @@ public struct MeetingAskBar: View {
                     .foregroundStyle(canSend ? Theme.onPrimary : Theme.muted)
                     .frame(width: 34, height: 34)
                     .background(canSend ? Theme.primary : Theme.soft, in: Circle())
+                    .frame(minWidth: minimumHitSize, minHeight: minimumHitSize)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .disabled(!canSend)
@@ -237,7 +258,7 @@ public struct MeetingAskBar: View {
                 }
                 .padding(.vertical, 4)
             }
-            .frame(maxHeight: 340)
+            .frame(maxHeight: conversationMaxHeight)
             .fixedSize(horizontal: false, vertical: true)
             .onAppear { proxy.scrollTo(exchanges.last?.id, anchor: .bottom) }
             .onChange(of: exchanges.last?.answer.text) { (_: String?, _: String?) -> Void in
@@ -435,5 +456,32 @@ public struct TranscriptDrawer: View {
         }
         .frame(maxWidth: .infinity, alignment: isMe ? .trailing : .leading)
         .padding(isMe ? .leading : .trailing, 40)
+    }
+}
+
+/// Dokunma hedefinin en küçük boyu: iPhone'da 44 pt (Apple HIG), Mac'te çizildiği kadar.
+#if os(iOS)
+let minimumHitSize: CGFloat = 44
+#else
+let minimumHitSize: CGFloat = 0
+#endif
+
+/// Sayfanın altındaki sohbet paneli ya da transkript çekmecesinin en çok yüksekliği: sayfanın %45'i, en çok `cap`
+/// (sayfa yüksekliği henüz ölçülmediyse `cap`). Saf fonksiyondur.
+public func bottomPanelMaxHeight(pageHeight: CGFloat, cap: CGFloat) -> CGFloat {
+    pageHeight > 0 ? min(cap, (pageHeight * 0.45).rounded()) : cap
+}
+
+/// İçeriği kendi gövdesinde kuran kap: içerikte okunan gözlenen değerler (ör. akan Sor cevabı) yalnız bu kabı yeniden
+/// çizer, onu kuran sayfayı değil. Toplantı sayfası her cevap parçasında bütün transkripti yeniden hesaplamasın diye.
+public struct ObservationScope<Content: View>: View {
+    let content: () -> Content
+
+    public init(@ViewBuilder content: @escaping () -> Content) {
+        self.content = content
+    }
+
+    public var body: some View {
+        content()
     }
 }

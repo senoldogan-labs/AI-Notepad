@@ -42,6 +42,8 @@ struct PhoneNoteEditBar: View {
                             .foregroundStyle(Theme.onPrimary)
                             .frame(width: 26, height: 26)
                             .background(appearance.accent.color, in: Circle())
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(PressableCardStyle())
                     .accessibilityLabel("Notu düzenle")
@@ -196,6 +198,8 @@ struct SpeakerNamingSheet: View {
                     Image(systemName: "arrow.triangle.merge")
                         .appFont(size: 15, weight: .medium)
                         .frame(width: 36, height: 36)
+                        // Dokunma alanı en az 44 pt (Apple HIG); simge küçük kalır.
+                        .frame(minWidth: 44, minHeight: 44)
                         .contentShape(Rectangle())
                 }
                 .accessibilityLabel(Text("Şununla birleştir"))

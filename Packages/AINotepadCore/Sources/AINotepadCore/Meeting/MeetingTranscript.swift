@@ -292,9 +292,10 @@ public func meetingLanguageName(language: MeetingLanguage) -> String {
 }
 
 /// Arayüz dilinin yerel ayarı (tarih biçimleri için): uygulamanın seçili dili, bölge sistemden (Finlandiya'da İngilizce
-/// arayüz 24 saatlik saat ve gün.ay.yıl kullanır). Paketin yerelleştirmesi yoksa (testler) geliştirme dili Türkçe.
+/// arayüz 24 saatlik saat ve gün.ay.yıl kullanır). Paketin yerelleştirmesi yoksa (testler) İngilizce: çevirinin
+/// eksik kaldığı yerde de uygulama İngilizceye düşer, tarih biçimi metinle aynı dilde olsun.
 public func interfaceLocale() -> Locale {
-    var components: Locale.Components = Locale.Components(identifier: Bundle.main.preferredLocalizations.first ?? "tr")
+    var components: Locale.Components = Locale.Components(identifier: Bundle.main.preferredLocalizations.first ?? "en")
     components.region = Locale.current.region
     return Locale(components: components)
 }
@@ -308,7 +309,7 @@ public func interfaceShareLanguage() -> ShareLanguage {
 /// Arayüz dilinde büyük harf ("ekim" → Türkçede "EKİM"). Yalnız dil kodu kullanılır: bölgeli yerel ayar
 /// (`tr@rg=fizzzz`) Türkçe büyük harf kuralını uygulamıyor ve "EKIM" yazıyordu. Saf fonksiyondur.
 public func interfaceUppercased(text: String) -> String {
-    text.uppercased(with: Locale(identifier: interfaceLocale().language.languageCode?.identifier ?? "tr"))
+    text.uppercased(with: Locale(identifier: interfaceLocale().language.languageCode?.identifier ?? "en"))
 }
 
 /// Toplantının süresi (dakika, en az 1); henüz bitmediyse nil. Saf fonksiyondur.
@@ -327,4 +328,13 @@ public func meetingMetaLine(record: MeetingRecord) -> String {
     } ?? []
     let language: [String] = record.language.map { [meetingLanguageName(language: $0)] } ?? []
     return ([formatter.string(from: record.startedAt)] + duration + language).joined(separator: " · ")
+}
+
+/// Tek başına duran dil adı (seçici, çip): ilk harf büyük ("englanti" → "Englanti"). Cümle içindeki ad olduğu gibi
+/// kalır (Fincede ve Fransızcada dil adları küçük harfle yazılır). Saf fonksiyondur.
+public func capitalizedLanguageName(name: String, locale: Locale) -> String {
+    guard let first = name.first else {
+        return name
+    }
+    return String(first).uppercased(with: locale) + name.dropFirst()
 }

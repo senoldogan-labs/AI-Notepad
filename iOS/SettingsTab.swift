@@ -20,6 +20,8 @@ struct PhoneSettingsTab: View {
     @AppStorage(PhoneSettingsKey.noteLanguage) private var noteLanguage: String = defaultNoteLanguage(interfaceLanguages: Bundle.main.preferredLocalizations).rawValue
     @AppStorage(PhoneSettingsKey.consentReminder) private var consentReminder: Bool = true
     @AppStorage(PhoneSettingsKey.audioRetentionDays) private var retentionDays: Int = 30
+    /// Kısalan saklama süresi eski sesleri hemen siler: onay bekleyen seçim.
+    @State private var pendingRetention: PendingAudioRetention?
     @AppStorage(PhoneSettingsKey.theme) private var theme: String = AppTheme.system.rawValue
     @AppStorage(PhoneSettingsKey.accent) private var accent: String = PanelAppearance.standard.accent.rawValue
     @AppStorage(shareUsageStatisticsDefaultsKey) private var shareUsageStatistics: Bool = true
@@ -34,6 +36,21 @@ struct PhoneSettingsTab: View {
     /// "Kurulumu yeniden aç" bunu kapatır: kök görünüm karşılamayı yeniden sunar.
     @AppStorage(PhoneSettingsKey.onboardingCompleted) private var onboardingCompleted: Bool = true
     @Environment(\.openURL) private var openURL: OpenURLAction
+
+    /// Saklama süresi seçimi: süre kısalıp eski sesler hemen silinecekse önce sorulur (`pendingRetention`).
+    private var retentionSelection: Binding<Int> {
+        Binding<Int>(
+            get: { retentionDays },
+            set: { (days: Int) -> Void in
+                let count: Int = audioDeletedByRetentionChange(records: store.meetings, now: Date(), setting: days).count
+                if count > 0 {
+                    pendingRetention = PendingAudioRetention(days: days, meetingCount: count)
+                } else {
+                    retentionDays = days
+                }
+            }
+        )
+    }
 
     var body: some View {
         // Seçili not dilinin adı (arayüz dilinde): çeviri ayarlarında geçer.
@@ -94,7 +111,7 @@ struct PhoneSettingsTab: View {
                         .accessibilityHint(Text("iPhone Ayarları'nı açar"))
                     }
                     PhoneSettingMenuRow(icon: "text.bubble", title: "Not ve çeviri dili", selection: $noteLanguage, options: ShareLanguage.allCases.map { (language: ShareLanguage) -> MenuPickerOption<String> in
-                        MenuPickerOption(value: language.rawValue, label: Text(verbatim: language.nativeName))
+                        MenuPickerOption(value: language.rawValue, label: Text(verbatim: language.interfaceTitle))
                     })
                     PhoneSettingMenuRow(icon: "waveform", title: "Ana toplantı dili", selection: $primaryLanguage, options: MeetingLanguage.allCases.map { (language: MeetingLanguage) -> MenuPickerOption<String> in
                         MenuPickerOption(value: language.rawValue, label: Text(languageName(language: language)))
@@ -133,11 +150,21 @@ struct PhoneSettingsTab: View {
                             Text("Kayıttan önce katılımcılara haber vermek çoğu yerde yasal zorunluluktur.")
                         }
                     }
-                    PhoneSettingMenuRow(icon: "waveform.badge.minus", title: "Sesleri sakla", selection: $retentionDays, options: [7, 14, 30, 60, 90, 180, 365].map { (days: Int) -> MenuPickerOption<Int> in
-                        MenuPickerOption(value: days, label: Text("\(days) gün"))
+                    PhoneSettingMenuRow(icon: "waveform.badge.minus", title: "Sesleri sakla", selection: retentionSelection, options: audioRetentionChoices.map { (days: Int) -> MenuPickerOption<Int> in
+                        MenuPickerOption(value: days, label: days == audioRetentionNever ? Text("Hiç silme") : Text("\(days) gün"))
                     })
                     .onChange(of: retentionDays) { (_: Int, _: Int) in
                         store.applyRetention(now: Date())
+                    }
+                    .alert(
+                        "Sesler silinsin mi?",
+                        isPresented: Binding<Bool>(get: { pendingRetention != nil }, set: { if !$0 { pendingRetention = nil } }),
+                        presenting: pendingRetention
+                    ) { (pending: PendingAudioRetention) in
+                        Button("Sesleri sil", role: .destructive) { retentionDays = pending.days }
+                        Button("Vazgeç", role: .cancel) {}
+                    } message: { (pending: PendingAudioRetention) in
+                        Text("\(pending.meetingCount) toplantının sesi şimdi silinecek; metin ve not kalır. Bu geri alınamaz.")
                     }
                 } header: {
                     Text("Kayıt")
@@ -191,7 +218,7 @@ struct PhoneSettingsTab: View {
                     }
                     Toggle(isOn: $askWebSearch) {
                         PhoneSettingLabel(icon: "magnifyingglass", title: Text("Sor'da web aramasına izin ver")) {
-                            Text("Toplantılarda olmayan bilgi için cevap başına en çok 3 arama; sorgu Anthropic üzerinden arama sağlayıcısına gider.")
+                            Text("Toplantılarda olmayan bilgi için cevap başına en çok 3 arama; web arama hizmetine yalnızca kısa arama sorgusu gider.")
                         }
                     }
                 } header: {
@@ -306,14 +333,14 @@ private struct CalendarSettingsSection: View {
             case .denied:
                 VStack(alignment: .leading, spacing: 8) {
                     Label("Takvime erişim izni yok. iPhone Ayarları › Gizlilik ve Güvenlik › Takvimler'den Gistsmith'e tam erişim ver.", systemImage: "calendar.badge.exclamationmark")
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(NoticeSeverity.attention.tint)
                     if let url = URL(string: UIApplication.openSettingsURLString) {
                         Button("Ayarlar'ı aç") { openURL(url) }
                     }
                 }
             case .failed(let message):
                 Label(message, systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(NoticeSeverity.attention.tint)
             case .off:
                 EmptyView()
             case .on:
@@ -331,7 +358,7 @@ private struct CalendarSettingsSection: View {
                 }
                 if let problem = calendar.reminderProblem {
                     Label(problem, systemImage: "bell.slash")
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(NoticeSeverity.attention.tint)
                 }
             }
         } header: {
@@ -358,7 +385,7 @@ private struct NotificationSettingsSection: View {
             if notifier.authorization == .denied {
                 VStack(alignment: .leading, spacing: 8) {
                     Label(notificationMessage(error: NotificationError.denied), systemImage: "bell.slash")
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(NoticeSeverity.attention.tint)
                     if let url = URL(string: UIApplication.openNotificationSettingsURLString) {
                         Button("Ayarlar'ı aç") { openURL(url) }
                     }
@@ -456,7 +483,13 @@ private struct PhoneAppearanceRow: View {
 
 /// Uygulamanın şu anki arayüz dilinin kendi dilindeki adı ("Türkçe", "English"). Saf değildir: paketin dil seçimini okur.
 private func interfaceLanguageName() -> String {
-    let code: String = Bundle.main.preferredLocalizations.first ?? "tr"
+    let code: String = Bundle.main.preferredLocalizations.first ?? "en"
     let locale: Locale = Locale(identifier: code)
     return locale.localizedString(forLanguageCode: code).map { $0.capitalized(with: locale) } ?? code
+}
+
+/// Onay bekleyen ses saklama seçimi: yeni süre ve sesi hemen silinecek toplantı sayısı.
+struct PendingAudioRetention: Equatable {
+    let days: Int
+    let meetingCount: Int
 }

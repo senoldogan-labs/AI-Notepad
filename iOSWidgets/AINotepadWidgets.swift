@@ -32,21 +32,21 @@ struct RecordingLiveActivity: Widget {
                     HStack(spacing: 6) {
                         StatusDot(state: context.state, size: 8)
                         Text(statusTitle(state: context.state))
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(.footnote, weight: .semibold))
                             .lineLimit(1)
                     }
                     .padding(.leading, 4)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     ElapsedText(startedAt: context.attributes.startedAt, state: context.state)
-                        .font(.system(size: 15, weight: .semibold).monospacedDigit())
+                        .font(.system(.subheadline, weight: .semibold).monospacedDigit())
                         .multilineTextAlignment(.trailing)
                         .frame(maxWidth: 80, alignment: .trailing)
                         .padding(.trailing, 4)
                 }
                 DynamicIslandExpandedRegion(.center) {
                     Text(context.attributes.title)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(.subheadline, weight: .semibold))
                         .lineLimit(1)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
@@ -61,19 +61,19 @@ struct RecordingLiveActivity: Widget {
                 HStack(spacing: 4) {
                     StatusDot(state: context.state, size: 7)
                     Image(systemName: statusSymbol(state: context.state, running: "waveform"))
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(.caption, weight: .semibold))
                         .foregroundStyle(statusColor(state: context.state))
                 }
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(Text(statusTitle(state: context.state)))
             } compactTrailing: {
                 ElapsedText(startedAt: context.attributes.startedAt, state: context.state)
-                    .font(.system(size: 13, weight: .semibold).monospacedDigit())
+                    .font(.system(.footnote, weight: .semibold).monospacedDigit())
                     .multilineTextAlignment(.trailing)
                     .frame(maxWidth: 52, alignment: .trailing)
             } minimal: {
                 Image(systemName: statusSymbol(state: context.state, running: "mic.fill"))
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(.caption, weight: .semibold))
                     .foregroundStyle(statusColor(state: context.state))
                     .accessibilityLabel(Text(statusTitle(state: context.state)))
             }
@@ -145,11 +145,11 @@ private struct LockScreenRecording: View {
             HStack(spacing: 8) {
                 StatusDot(state: context.state, size: 9)
                 Text(context.attributes.title)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(.subheadline, weight: .semibold))
                     .lineLimit(1)
                 Spacer(minLength: 8)
                 ElapsedText(startedAt: context.attributes.startedAt, state: context.state)
-                    .font(.system(size: 14, weight: .semibold).monospacedDigit())
+                    .font(.system(.subheadline, weight: .semibold).monospacedDigit())
                     .multilineTextAlignment(.trailing)
                     .frame(maxWidth: 80, alignment: .trailing)
                     .foregroundStyle(.white.opacity(0.75))
@@ -157,7 +157,7 @@ private struct LockScreenRecording: View {
             HStack(alignment: .center, spacing: 10) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(statusTitle(state: context.state))
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(.caption, weight: .semibold))
                         .foregroundStyle(context.state.isMicrophonePaused && !context.state.isFinishing && !context.state.isPaused ? .orange : .white.opacity(0.6))
                     LastLine(state: context.state)
                 }
@@ -177,11 +177,11 @@ private struct LastLine: View {
         VStack(alignment: .leading, spacing: 2) {
             if !state.speaker.isEmpty {
                 Text(state.speaker)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(.caption2, weight: .semibold))
                     .foregroundStyle(accent)
             }
             Text(state.lastLine.isEmpty ? String(localized: "Dinliyor…") : state.lastLine)
-                .font(.system(size: 14))
+                .font(.system(.subheadline))
                 .lineLimit(2)
                 .foregroundStyle(.white.opacity(state.lastLine.isEmpty ? 0.6 : 0.95))
         }
@@ -197,7 +197,7 @@ private struct StopButton: View {
         if !isFinishing {
             Button(intent: StopRecordingIntent()) {
                 Label("Bitir", systemImage: "stop.fill")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(.footnote, weight: .semibold))
             }
             .buttonStyle(.borderedProminent)
             .tint(accent)
@@ -224,7 +224,7 @@ private struct PauseButton: View {
                     .accessibilityLabel(Text("Kaydı duraklat"))
                 }
             }
-            .font(.system(size: 13, weight: .semibold))
+            .font(.system(.footnote, weight: .semibold))
             .buttonStyle(.bordered)
             .tint(.white)
         }
@@ -285,7 +285,7 @@ private struct QuickRecordView: View {
             if family == .accessoryCircular {
                 ZStack {
                     AccessoryWidgetBackground()
-                    Image(systemName: "mic.fill").font(.system(size: 22, weight: .semibold))
+                    Image(systemName: "mic.fill").font(.system(.title2, weight: .semibold))
                 }
                 // Yalnız simge var: VoiceOver simgenin adını değil eylemi okusun.
                 .accessibilityElement(children: .ignore)
@@ -295,15 +295,15 @@ private struct QuickRecordView: View {
                     ZStack {
                         Circle().fill(accent).frame(width: 52, height: 52)
                         Image(systemName: "mic.fill")
-                            .font(.system(size: 22, weight: .semibold))
+                            .font(.system(.title2, weight: .semibold))
                             .foregroundStyle(.white)
                     }
                     Spacer(minLength: 0)
                     Text("Toplantıyı kaydet")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(.subheadline, weight: .semibold))
                         .foregroundStyle(Color(red: 0.04, green: 0.04, blue: 0.04))
                     Text(verbatim: "Gistsmith")
-                        .font(.system(size: 12))
+                        .font(.system(.caption))
                         .foregroundStyle(Color(red: 0.45, green: 0.45, blue: 0.45))
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)

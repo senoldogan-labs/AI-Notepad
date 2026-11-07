@@ -301,6 +301,8 @@ private struct PhoneTrackerDetail: View {
                         } label: {
                             Image(systemName: "ellipsis")
                                 .frame(width: 32, height: 32)
+                                // Dokunma alanı en az 44 pt (Apple HIG); simge küçük kalır.
+                                .frame(minWidth: 44, minHeight: 44)
                                 .contentShape(Rectangle())
                         }
                         .accessibilityLabel("Diğer işlemler")
@@ -487,6 +489,8 @@ private struct PhoneDestinationDetail: View {
                 } label: {
                     Image(systemName: "ellipsis")
                         .frame(width: 32, height: 32)
+                        // Dokunma alanı en az 44 pt (Apple HIG); simge küçük kalır.
+                        .frame(minWidth: 44, minHeight: 44)
                         .contentShape(Rectangle())
                 }
                 .accessibilityLabel("Diğer işlemler")

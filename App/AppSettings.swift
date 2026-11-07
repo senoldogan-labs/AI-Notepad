@@ -298,7 +298,6 @@ func applyTheme(theme: AppTheme) {
 /// Ayar aralıkları.
 enum SettingsRange {
     static let missedWindowMinutes: ClosedRange<Int> = missedWindowMinutesRange
-    static let audioRetentionDays: ClosedRange<Int> = 7...365
 }
 
 /// Görünüm ayarlarını varsayılana döndürür.
