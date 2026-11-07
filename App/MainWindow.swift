@@ -457,8 +457,8 @@ private struct Sidebar: View {
     }
 }
 
-/// Kenar çubuğunun altındaki avatar: abonelikte oturumdaki hesabın Google resmi ya da hesaba özel küre, tıklanınca
-/// Ayarlar › Hesap; geliştirici sürümünde kullanıcı adına özel küre, tıklanınca Ayarlar.
+/// Kenar çubuğunun altındaki avatar: abonelikte oturumdaki hesabın Google resmi ya da baş harfi (ad, yoksa e-posta),
+/// tıklanınca Ayarlar › Hesap; geliştirici sürümünde adın baş harfi, tıklanınca Ayarlar. iPhone'daki avatarla aynı.
 private struct SidebarAvatar: View {
     let model: AppModel
     let router: MainWindowRouter
@@ -473,9 +473,13 @@ private struct SidebarAvatar: View {
             #endif
         } label: {
             #if HOSTED_EDITION
-            ProfileAvatar(imageURL: HostedAccount.shared.avatarURL, seed: HostedAccount.shared.signedInUserIDCache ?? userName, size: 28)
+            ProfileAvatar(
+                imageURL: HostedAccount.shared.avatarURL,
+                initial: accountAvatarInitial(userName: userName, email: HostedAccount.shared.signedInIdentity?.email),
+                size: 28
+            )
             #else
-            AvatarOrb(seed: userName, size: 28)
+            InitialAvatar(initial: accountAvatarInitial(userName: userName, email: nil), size: 28)
             #endif
         }
         .buttonStyle(.hoverPlain)

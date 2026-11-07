@@ -187,7 +187,7 @@ struct PhoneHome: View {
             Button {
                 router.push(route: .settings)
             } label: {
-                PhoneAvatar(initial: phoneAvatarInitial(userName: store.userName, email: account.signedInIdentity?.email), size: 28)
+                ProfileAvatar(imageURL: account.avatarURL, initial: accountAvatarInitial(userName: store.userName, email: account.signedInIdentity?.email), size: 28)
             }
             .accessibilityLabel(Text("Ayarlar"))
         }

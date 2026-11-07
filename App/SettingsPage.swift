@@ -2317,44 +2317,6 @@ private struct SkillSettings: View {
 
 private let channelSettingsLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "Settings")
 
-/// Kısayol satırının simgesi. Saf fonksiyondur.
-private func shortcutSymbol(action: ShortcutAction) -> String {
-    switch action {
-    case .record: "record.circle"
-    case .toggleWindows: "rectangle.on.rectangle"
-    case .dictate: "mic"
-    }
-}
-
-/// Kısayolları değiştirme.
-private struct ShortcutSettings: View {
-    let shortcuts: ShortcutController
-
-    var body: some View {
-        // Sekmenin adı zaten "Kısayollar": kartın üstünde ayrıca bölüm adı yok.
-        VStack(alignment: .leading, spacing: 8) {
-            SettingsCard {
-                // Sesle yazmanın kısayolu kendi sekmesinde (aç/kapa ve izinle birlikte).
-                ForEach(ShortcutAction.allCases.filter { $0 != .dictate }, id: \.self) { (action: ShortcutAction) in
-                    SettingsRow(icon: shortcutSymbol(action: action), title: Text(action.title)) {
-                        if let error = shortcuts.errors[action] {
-                            NoticeText(error, severity: .error)
-                        }
-                    } control: {
-                        ShortcutRecorder(shortcuts: shortcuts, action: action, binding: shortcuts.currentBinding(action: action))
-                    }
-                }
-            }
-            Text("Kısayola tıklayıp yeni tuşlara bas; vazgeçmek için Esc. ⌃, ⌥ ya da ⌘ ile birlikte bir harf ya da rakam seç.")
-                .appFont(size: 12, weight: .regular)
-                .foregroundStyle(Theme.muted)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 4)
-        }
-        .padding(.top, 26)
-    }
-}
-
 /// Tıklanınca bir sonraki tuş bileşimini kaydeden düğme. Kısayol atanmamışsa (`binding` nil) "Kısayol seç" yazar.
 /// Kayıt `ShortcutController`'dadır: kaydedilirken uygulamanın global kısayolları askıdadır (atanmış bir bileşime basmak
 /// onu tetiklemez); Esc, düğmeye yeniden tıklamak, odak kaybı ya da sayfadan çıkmak kaydı bitirir.
@@ -2701,9 +2663,10 @@ extension View {
             .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Theme.line))
     }
 
-    /// Ayar anahtarı: etiketsiz, vurgu renginde.
+    /// Ayar anahtarı: etiketsiz, vurgu renginde, küçük boyda (sağa yaslı satırlarda ağır durmasın; karşılama ve Ayarlar'da
+    /// aynı).
     func settingsToggle() -> some View {
-        toggleStyle(.switch).labelsHidden()
+        toggleStyle(.switch).labelsHidden().controlSize(.small)
     }
 }
 
