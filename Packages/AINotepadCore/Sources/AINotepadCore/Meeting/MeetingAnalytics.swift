@@ -215,23 +215,24 @@ public func analyticsBucketSize(period: AnalyticsPeriod, start: Date, now: Date)
     }
 }
 
-/// Tarihin içinde bulunduğu çubuğun başı. Saf fonksiyondur.
-public func analyticsBucketStart(date: Date, size: AnalyticsBucketSize, calendar: Calendar) -> Date {
-    let component: Calendar.Component = switch size {
+/// Çubuğun takvim birimi. Saf fonksiyondur.
+public func analyticsCalendarComponent(size: AnalyticsBucketSize) -> Calendar.Component {
+    switch size {
     case .day: .day
     case .week: .weekOfYear
     case .month: .month
     }
+}
+
+/// Tarihin içinde bulunduğu çubuğun başı. Saf fonksiyondur.
+public func analyticsBucketStart(date: Date, size: AnalyticsBucketSize, calendar: Calendar) -> Date {
+    let component: Calendar.Component = analyticsCalendarComponent(size: size)
     return calendar.dateInterval(of: component, for: date)?.start ?? calendar.startOfDay(for: date)
 }
 
 /// Dönemin çubukları, baştan bugüne; toplantısız aralıklar sıfırla (grafik boşluğu doğru gösterir). Saf fonksiyondur.
 public func analyticsTimeline(meetings: [MeetingRecord], start: Date, now: Date, size: AnalyticsBucketSize, calendar: Calendar) -> [AnalyticsTimePoint] {
-    let component: Calendar.Component = switch size {
-    case .day: .day
-    case .week: .weekOfYear
-    case .month: .month
-    }
+    let component: Calendar.Component = analyticsCalendarComponent(size: size)
     let first: Date = analyticsBucketStart(date: start, size: size, calendar: calendar)
     let starts: [Date] = Array(sequence(first: first) { (previous: Date) -> Date? in
         guard let next = calendar.date(byAdding: component, value: 1, to: previous), next <= now else {

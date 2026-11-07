@@ -194,15 +194,6 @@ private struct AnalyticsCard<Content: View>: View {
     }
 }
 
-/// Çubuğun takvim birimi.
-private func calendarUnit(size: AnalyticsBucketSize) -> Calendar.Component {
-    switch size {
-    case .day: .day
-    case .week: .weekOfYear
-    case .month: .month
-    }
-}
-
 /// Toplantı saatleri: dönemin her aralığı için bir çubuk.
 private struct HoursChart: View {
     let timeline: [AnalyticsTimePoint]
@@ -212,7 +203,7 @@ private struct HoursChart: View {
     var body: some View {
         Chart(timeline) { (point: AnalyticsTimePoint) in
             BarMark(
-                x: .value(String(localized: "Tarih"), point.start, unit: calendarUnit(size: bucketSize)),
+                x: .value(String(localized: "Tarih"), point.start, unit: analyticsCalendarComponent(size: bucketSize)),
                 y: .value(String(localized: "Saat"), point.hours)
             )
             .foregroundStyle(accent.gradient)
@@ -246,12 +237,12 @@ private struct TasksChart: View {
         let open: String = String(localized: "Açık görev")
         Chart(timeline) { (point: AnalyticsTimePoint) in
             BarMark(
-                x: .value(String(localized: "Tarih"), point.start, unit: calendarUnit(size: bucketSize)),
+                x: .value(String(localized: "Tarih"), point.start, unit: analyticsCalendarComponent(size: bucketSize)),
                 y: .value(String(localized: "Görevler"), point.completedTasks)
             )
             .foregroundStyle(by: .value(String(localized: "Durum"), done))
             BarMark(
-                x: .value(String(localized: "Tarih"), point.start, unit: calendarUnit(size: bucketSize)),
+                x: .value(String(localized: "Tarih"), point.start, unit: analyticsCalendarComponent(size: bucketSize)),
                 y: .value(String(localized: "Görevler"), point.openTasks)
             )
             .foregroundStyle(by: .value(String(localized: "Durum"), open))
