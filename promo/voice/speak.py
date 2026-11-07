@@ -17,14 +17,14 @@ from dataclasses import asdict, dataclass
 from difflib import SequenceMatcher
 from pathlib import Path
 
+import soundfile
 import torch
-import torchaudio
 from chatterbox.tts import ChatterboxTTS
 from faster_whisper import WhisperModel
 
 from voice_script import LINES, ScriptLine, spoken_tokens
 
-MAX_ATTEMPTS = 6
+MAX_ATTEMPTS = 16  # newer torch and transformers voice some lines differently; "live" needed seed 11
 MIN_WORD_MATCH = 0.9
 
 
@@ -60,10 +60,11 @@ def generate_take(tts: ChatterboxTTS, whisper: WhisperModel, line: ScriptLine, o
     heard_attempts: list[str] = []
     for seed in range(MAX_ATTEMPTS):
         # torch leaves manual_seed's parameter unannotated, chatterbox-tts the text parameter of generate, and
-        # torchaudio.save has no return annotation.
+        # Tensor.numpy and soundfile.write are not fully annotated. The take is a Float32 mono WAV, as torchaudio.save
+        # wrote it before saving needed torchcodec.
         _ = torch.manual_seed(seed)  # pyright: ignore[reportUnknownMemberType]
         wav = tts.generate(line.spoken, exaggeration=0.55, cfg_weight=0.45, temperature=0.7)  # pyright: ignore[reportUnknownMemberType]
-        torchaudio.save(str(out), wav, tts.sr)  # pyright: ignore[reportUnknownMemberType]
+        soundfile.write(str(out), wav.squeeze(0).numpy(), tts.sr, subtype="FLOAT")  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
         heard = transcribe(whisper, out)
         heard_attempts.append(heard)
         if words_match(line.spoken, heard):
