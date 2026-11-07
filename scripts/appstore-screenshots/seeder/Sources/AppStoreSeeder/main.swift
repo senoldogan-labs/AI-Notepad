@@ -4,32 +4,55 @@ import Foundation
 // App Store ekran görüntülerinin örnek verisi: iPhone'da kaydedilmiş yüz yüze toplantılar (İngilizce) ve kaynaklı bir
 // Sor sohbeti. Mac'in tanıtım verisinden (App/DemoData.swift) iPhone'a uyarlanmıştır: görüşmeler masa başında, telefon
 // mikrofonuyla kaydedilmiş gibidir (iPhone Zoom ya da telefon görüşmesi kaydetmez).
-// Kullanım: swift run --package-path scripts/appstore-screenshots/seeder AppStoreSeeder <çıktı klasörü>
+// Üç veri seti var (`SeedPersona`): ekip toplantıları (ana sayfa ve "team meetings" özel ürün sayfası), dersler
+// (Lectures.swift) ve görüşmeler (Interviews.swift); özel ürün sayfalarının çekimleri kendi setiyle yapılır.
+// Kullanım: swift run --package-path scripts/appstore-screenshots/seeder AppStoreSeeder <team|lectures|interviews> <çıktı klasörü>
 // Çıktı: <klasör>/Sessions/<kimlik>/meeting.json, <klasör>/AskHistory/<kimlik>.json ve sahnelerin kullandığı kimlikleri
 // taşıyan <klasör>/seed-manifest.json. İlk ikisi uygulamanın veri klasörüne (Simülatör'de Library/Application
 // Support/AINotepad) kopyalanır.
 
 /// Komut satırı hatası.
 enum SeederError: Error, CustomStringConvertible {
-    /// Çıktı klasörü verilmedi.
-    case missingOutputDirectory(arguments: [String])
+    /// Veri seti ya da çıktı klasörü verilmedi.
+    case missingArguments(arguments: [String])
+    /// Bilinmeyen veri seti.
+    case unknownPersona(value: String)
     /// Çıktı klasörü boş değil: eski veri karışmasın diye araç yalnız boş ya da olmayan klasöre yazar.
     case outputNotEmpty(path: String, entries: [String])
 
     var description: String {
         switch self {
-        case .missingOutputDirectory(let arguments):
-            "Çıktı klasörü eksik (gelen: \(arguments)). Kullanım: AppStoreSeeder <çıktı klasörü>"
+        case .missingArguments(let arguments):
+            "Argüman eksik (gelen: \(arguments)). Kullanım: AppStoreSeeder <\(SeedPersona.allCases.map(\.rawValue).joined(separator: "|"))> <çıktı klasörü>"
+        case .unknownPersona(let value):
+            "Bilinmeyen veri seti: \(value). Seçenekler: \(SeedPersona.allCases.map(\.rawValue).joined(separator: ", "))"
         case .outputNotEmpty(let path, let entries):
             "Çıktı klasörü boş değil: \(path) (içinde: \(entries.prefix(5).joined(separator: ", "))). Boş bir klasör ver."
         }
     }
 }
 
+/// Örnek veri seti: kimin toplantıları.
+enum SeedPersona: String, CaseIterable {
+    /// Ekip toplantıları (ana App Store sayfası).
+    case team
+    /// Dersler ve seminerler (öğrenci özel ürün sayfası).
+    case lectures
+    /// Kullanıcı araştırması ve işe alım görüşmeleri (görüşme özel ürün sayfası).
+    case interviews
+}
+
+/// Bir veri setinin içeriği: toplantılar, notu açılan toplantının başlangıcı ve saklı Sor sohbeti.
+struct SeedSet {
+    let meetings: [SeedMeeting]
+    let featuredStart: Date
+    let conversation: AskConversation
+}
+
 /// Sahnelerin başlatma argümanlarında kullandığı kimlikler (`seed-manifest.json`).
 struct SeedManifest: Codable {
-    /// "Product weekly" toplantısının klasör adı (`--toplanti`).
-    let productWeekly: String
+    /// Notu açılan toplantının klasör adı (`--toplanti`).
+    let meeting: String
     /// Saklı Sor sohbetinin kimliği.
     let askConversation: String
 }
@@ -57,6 +80,8 @@ struct SeedMeeting {
     let outline: [OutlineItem]
     /// Tamamlanmış görevlerin açıklamaları.
     let doneTasks: [String]
+    /// Not şablonu; nil genel şablon (eski toplantılar gibi kaydedilmez).
+    let template: NoteTemplateKind?
 }
 
 /// Toplantının kimliği: oturum klasörünün adı (`yyyyMMdd-HHmmss`, yerel saat; Simülatör Mac'in saat dilimini kullanır).
@@ -102,7 +127,7 @@ func seedRecord(meeting: SeedMeeting, timeZone: TimeZone) -> MeetingRecord {
     .with(outline: meeting.outline)
     .with(language: .english)
     let done: [String] = meeting.tasks.filter { meeting.doneTasks.contains($0.description) }.map { taskKey(task: $0) }
-    return MeetingRecord(
+    let record: MeetingRecord = MeetingRecord(
         id: seedMeetingID(startedAt: meeting.startedAt, timeZone: timeZone), title: meeting.title, startedAt: meeting.startedAt,
         endedAt: meeting.startedAt.addingTimeInterval(Double(meeting.minutes * 60)), language: .english, status: .done,
         failureMessage: nil, liveSegments: [], finalSegments: segments, translations: [:], speakerNames: meeting.people, note: note,
@@ -111,6 +136,7 @@ func seedRecord(meeting: SeedMeeting, timeZone: TimeZone) -> MeetingRecord {
     .with(folder: meeting.folder)
     .with(attendees: meeting.attendees)
     .with(completedTasks: done)
+    return meeting.template.map { record.with(template: NoteTemplate(kind: $0, customInstructions: "")) } ?? record
 }
 
 /// "Product weekly"nin başlangıcı (bugün sabah); sahne bu toplantının notunu açar. Hat, tohumlayıcıyı ve uygulamayı yerel saat
@@ -124,8 +150,8 @@ func investorUpdateStart(now: Date, calendar: Calendar) -> Date {
     seedDate(now: now, calendar: calendar, days: 22, hour: 16, minute: 0)
 }
 
-/// Örnek toplantılar (yeniden eskiye). Saf fonksiyondur.
-func seedMeetings(now: Date, calendar: Calendar) -> [SeedMeeting] {
+/// Ekip toplantıları (yeniden eskiye). Saf fonksiyondur.
+func teamMeetings(now: Date, calendar: Calendar) -> [SeedMeeting] {
     [
         SeedMeeting(
             title: "Product weekly", startedAt: productWeeklyStart(now: now, calendar: calendar), minutes: 42, folder: "Product",
@@ -168,7 +194,8 @@ func seedMeetings(now: Date, calendar: Calendar) -> [SeedMeeting] {
                 OutlineItem(startSec: 612, title: "Pricing", summary: "Current tiers stay; Ayşe gets the pricing table before the Nordia visit."),
                 OutlineItem(startSec: 1310, title: "Support during the beta", summary: "A weekly Wednesday sync with the support team."),
             ],
-            doneTasks: []
+            doneTasks: [],
+            template: nil
         ),
         SeedMeeting(
             title: "Client visit · Nordia", startedAt: seedDate(now: now, calendar: calendar, days: 1, hour: 14, minute: 0), minutes: 35,
@@ -193,7 +220,8 @@ func seedMeetings(now: Date, calendar: Calendar) -> [SeedMeeting] {
                 OutlineItem(startSec: 6, title: "Nordia's meetings", summary: "40 meetings a week, half in Finnish or Swedish."),
                 OutlineItem(startSec: 44, title: "Pilot", summary: "Two weeks with the leadership team after a security review."),
             ],
-            doneTasks: []
+            doneTasks: [],
+            template: nil
         ),
         SeedMeeting(
             title: "Design review", startedAt: seedDate(now: now, calendar: calendar, days: 3, hour: 11, minute: 0), minutes: 50,
@@ -215,7 +243,8 @@ func seedMeetings(now: Date, calendar: Calendar) -> [SeedMeeting] {
             ],
             glossary: [],
             outline: [OutlineItem(startSec: 5, title: "Onboarding", summary: "Three screens; each permission explained in one sentence.")],
-            doneTasks: ["Review the new empty states"]
+            doneTasks: ["Review the new empty states"],
+            template: nil
         ),
         SeedMeeting(
             title: "Hiring sync", startedAt: seedDate(now: now, calendar: calendar, days: 4, hour: 15, minute: 30), minutes: 25,
@@ -233,7 +262,8 @@ func seedMeetings(now: Date, calendar: Calendar) -> [SeedMeeting] {
             ],
             glossary: [],
             outline: [OutlineItem(startSec: 4, title: "iOS role", summary: "Three candidates; final interviews next week.")],
-            doneTasks: []
+            doneTasks: [],
+            template: nil
         ),
         SeedMeeting(
             title: "One-on-one: Elif", startedAt: seedDate(now: now, calendar: calendar, days: 7, hour: 10, minute: 0), minutes: 30,
@@ -251,7 +281,8 @@ func seedMeetings(now: Date, calendar: Calendar) -> [SeedMeeting] {
             ],
             glossary: [],
             outline: [OutlineItem(startSec: 3, title: "Launch workload", summary: "Alex owns release notes and onboarding emails.")],
-            doneTasks: []
+            doneTasks: [],
+            template: nil
         ),
         SeedMeeting(
             title: "Roadmap planning", startedAt: seedDate(now: now, calendar: calendar, days: 10, hour: 13, minute: 0), minutes: 55,
@@ -269,7 +300,8 @@ func seedMeetings(now: Date, calendar: Calendar) -> [SeedMeeting] {
             ],
             glossary: [GlossaryEntry(term: "Workspaces", meaning: "Shared folders of meetings for a team.")],
             outline: [OutlineItem(startSec: 5, title: "Q1 focus", summary: "iPhone app first, then workspaces.")],
-            doneTasks: ["Write the Q1 roadmap one-pager"]
+            doneTasks: ["Write the Q1 roadmap one-pager"],
+            template: nil
         ),
         SeedMeeting(
             title: "Investor update", startedAt: investorUpdateStart(now: now, calendar: calendar), minutes: 45, folder: "Company",
@@ -290,32 +322,53 @@ func seedMeetings(now: Date, calendar: Calendar) -> [SeedMeeting] {
             ],
             glossary: [],
             outline: [OutlineItem(startSec: 6, title: "Budget", summary: "€40k from paid ads to research and the beta; hiring flat.")],
-            doneTasks: ["Send Maria the updated budget"]
+            doneTasks: ["Send Maria the updated budget"],
+            template: nil
         ),
     ]
 }
 
-/// Saklı Sor sohbetinin kimliği (sabit: sahne ya da bir başlatma argümanı onu açabilir).
+/// Saklı Sor sohbetinin kimliği (sabit: sahne ya da bir başlatma argümanı onu açabilir; her veri setinde aynı).
 let seedAskConversationID: UUID = UUID(uuid: (0x6B, 0x1E, 0x7C, 0x52, 0x3A, 0x0F, 0x4C, 0x4B, 0x9E, 0x58, 0x2D, 0x6F, 0x3B, 0x1A, 0x9C, 0x10))
 
+/// Tek sorulu, kaynaklı saklı Sor sohbeti (25 dakika önce sorulmuş). Saf fonksiyondur.
+func seedAskConversation(question: String, answer: String, terms: [String], sources: [ArchivePassage], now: Date) -> AskConversation {
+    let askedAt: Date = now.addingTimeInterval(-25 * 60)
+    let turn: AskConversationTurn = AskConversationTurn(
+        id: UUID(uuid: (0x0C, 0x9B, 0x6E, 0x3D, 0x7F, 0x21, 0x4E, 0x8A, 0xA1, 0xD4, 0x5B, 0x3C, 0x2E, 0x9F, 0x8A, 0x71)),
+        question: question, scopeMeetingIDs: [], scopeTitles: [], recipeTitle: nil, startedAt: askedAt,
+        finishedAt: askedAt.addingTimeInterval(6), terms: terms, readPassages: sources, readScreens: 0, answer: answer,
+        sources: sources, webSources: nil, webQueries: nil, webSearchNotice: nil
+    )
+    return askConversation(existing: nil, id: seedAskConversationID, turns: [turn], now: askedAt.addingTimeInterval(6))
+}
+
+/// Bir toplantıdan kaynak parçası. Saf fonksiyondur.
+func seedPassage(id: String, title: String, start: Date, kind: ArchivePassage.Kind, startSec: Double, text: String, timeZone: TimeZone) -> ArchivePassage {
+    ArchivePassage(
+        id: id, meetingID: seedMeetingID(startedAt: start, timeZone: timeZone), meetingTitle: title, meetingDate: start, kind: kind,
+        startSec: startSec, text: text
+    )
+}
+
 /// Bütçe sorusu ve kaynaklı cevabı (Investor update ve Product weekly). Saf fonksiyondur.
-func seedAskConversation(now: Date, calendar: Calendar) -> AskConversation {
+func teamAskConversation(now: Date, calendar: Calendar) -> AskConversation {
     let investorStart: Date = investorUpdateStart(now: now, calendar: calendar)
     let weeklyStart: Date = productWeeklyStart(now: now, calendar: calendar)
-    let investorID: String = seedMeetingID(startedAt: investorStart, timeZone: calendar.timeZone)
-    let weeklyID: String = seedMeetingID(startedAt: weeklyStart, timeZone: calendar.timeZone)
+    let zone: TimeZone = calendar.timeZone
     let sources: [ArchivePassage] = [
-        ArchivePassage(
-            id: "seed-1", meetingID: investorID, meetingTitle: "Investor update", meetingDate: investorStart, kind: .note, startSec: 0,
-            text: "€40k of the marketing budget moves from paid ads to customer research and the beta; hiring stays flat until the beta results are in."
+        seedPassage(
+            id: "seed-1", title: "Investor update", start: investorStart, kind: .note, startSec: 0,
+            text: "€40k of the marketing budget moves from paid ads to customer research and the beta; hiring stays flat until the beta results are in.",
+            timeZone: zone
         ),
-        ArchivePassage(
-            id: "seed-2", meetingID: investorID, meetingTitle: "Investor update", meetingDate: investorStart, kind: .transcript, startSec: 19,
-            text: "We'd move forty thousand euros from paid ads to customer research and the beta."
+        seedPassage(
+            id: "seed-2", title: "Investor update", start: investorStart, kind: .transcript, startSec: 19,
+            text: "We'd move forty thousand euros from paid ads to customer research and the beta.", timeZone: zone
         ),
-        ArchivePassage(
-            id: "seed-3", meetingID: weeklyID, meetingTitle: "Product weekly", meetingDate: weeklyStart, kind: .note, startSec: 0,
-            text: "Pricing stays on the current tiers during the beta. No discounts until we see the usage numbers."
+        seedPassage(
+            id: "seed-3", title: "Product weekly", start: weeklyStart, kind: .note, startSec: 0,
+            text: "Pricing stays on the current tiers during the beta. No discounts until we see the usage numbers.", timeZone: zone
         ),
     ]
     let answer: String = """
@@ -326,18 +379,34 @@ func seedAskConversation(now: Date, calendar: Calendar) -> AskConversation {
 
     For the beta itself, pricing stays on the current tiers, with no discounts until the usage numbers are in [3].
     """
-    let askedAt: Date = now.addingTimeInterval(-25 * 60)
-    let turn: AskConversationTurn = AskConversationTurn(
-        id: UUID(uuid: (0x0C, 0x9B, 0x6E, 0x3D, 0x7F, 0x21, 0x4E, 0x8A, 0xA1, 0xD4, 0x5B, 0x3C, 0x2E, 0x9F, 0x8A, 0x71)),
-        question: "What did we decide about the budget?", scopeMeetingIDs: [], scopeTitles: [], recipeTitle: nil, startedAt: askedAt,
-        finishedAt: askedAt.addingTimeInterval(6), terms: ["budget", "paid ads", "hiring", "pricing"], readPassages: sources, readScreens: 0, answer: answer,
-        sources: sources, webSources: nil, webQueries: nil, webSearchNotice: nil
+    return seedAskConversation(
+        question: "What did we decide about the budget?", answer: answer, terms: ["budget", "paid ads", "hiring", "pricing"], sources: sources, now: now
     )
-    return askConversation(existing: nil, id: seedAskConversationID, turns: [turn], now: askedAt.addingTimeInterval(6))
+}
+
+/// Veri setinin içeriği. Saf fonksiyondur.
+func seedSet(persona: SeedPersona, now: Date, calendar: Calendar) -> SeedSet {
+    switch persona {
+    case .team:
+        SeedSet(
+            meetings: teamMeetings(now: now, calendar: calendar), featuredStart: productWeeklyStart(now: now, calendar: calendar),
+            conversation: teamAskConversation(now: now, calendar: calendar)
+        )
+    case .lectures:
+        SeedSet(
+            meetings: lectureMeetings(now: now, calendar: calendar), featuredStart: memoryLectureStart(now: now, calendar: calendar),
+            conversation: lectureAskConversation(now: now, calendar: calendar)
+        )
+    case .interviews:
+        SeedSet(
+            meetings: interviewMeetings(now: now, calendar: calendar), featuredStart: saraInterviewStart(now: now, calendar: calendar),
+            conversation: interviewAskConversation(now: now, calendar: calendar)
+        )
+    }
 }
 
 /// Örnek veriyi boş (ya da olmayan) çıktı klasörüne yazar.
-func writeSeed(output: URL, now: Date, calendar: Calendar) throws {
+func writeSeed(set: SeedSet, output: URL, calendar: Calendar) throws {
     let fileManager: FileManager = FileManager.default
     if fileManager.fileExists(atPath: output.path) {
         let entries: [String] = try fileManager.contentsOfDirectory(atPath: output.path)
@@ -346,7 +415,7 @@ func writeSeed(output: URL, now: Date, calendar: Calendar) throws {
         }
     }
     let sessions: URL = output.appending(path: "Sessions", directoryHint: .isDirectory)
-    for meeting in seedMeetings(now: now, calendar: calendar) {
+    for meeting in set.meetings {
         let record: MeetingRecord = seedRecord(meeting: meeting, timeZone: calendar.timeZone)
         let folder: URL = sessions.appending(path: record.id, directoryHint: .isDirectory)
         try fileManager.createDirectory(at: folder, withIntermediateDirectories: true)
@@ -355,9 +424,9 @@ func writeSeed(output: URL, now: Date, calendar: Calendar) throws {
     }
     let askHistory: URL = output.appending(path: "AskHistory", directoryHint: .isDirectory)
     try fileManager.createDirectory(at: askHistory, withIntermediateDirectories: true)
-    try saveAskConversation(conversation: seedAskConversation(now: now, calendar: calendar), directory: askHistory)
+    try saveAskConversation(conversation: set.conversation, directory: askHistory)
     let manifest: SeedManifest = SeedManifest(
-        productWeekly: seedMeetingID(startedAt: productWeeklyStart(now: now, calendar: calendar), timeZone: calendar.timeZone),
+        meeting: seedMeetingID(startedAt: set.featuredStart, timeZone: calendar.timeZone),
         askConversation: seedAskConversationID.uuidString
     )
     let encoder: JSONEncoder = JSONEncoder()
@@ -367,7 +436,14 @@ func writeSeed(output: URL, now: Date, calendar: Calendar) throws {
 }
 
 let arguments: [String] = CommandLine.arguments
-guard arguments.count == 2 else {
-    throw SeederError.missingOutputDirectory(arguments: Array(arguments.dropFirst()))
+guard arguments.count == 3 else {
+    throw SeederError.missingArguments(arguments: Array(arguments.dropFirst()))
 }
-try writeSeed(output: URL(filePath: arguments[1], directoryHint: .isDirectory), now: Date(), calendar: Calendar.current)
+guard let persona = SeedPersona(rawValue: arguments[1]) else {
+    throw SeederError.unknownPersona(value: arguments[1])
+}
+let now: Date = Date()
+try writeSeed(
+    set: seedSet(persona: persona, now: now, calendar: Calendar.current), output: URL(filePath: arguments[2], directoryHint: .isDirectory),
+    calendar: Calendar.current
+)

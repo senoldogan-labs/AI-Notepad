@@ -1,10 +1,13 @@
 # Gistsmith for iPhone: after-approval checklist (App Store Connect)
 
 Run these in order once 0.1.15 (28) is approved. Paths start at **App Store Connect › Apps › Gistsmith**. Copy comes
-from `metadata.md` and `custom-product-pages.md`. Images come from the marketing renderer:
+from `metadata.md` and `custom-product-pages.md`. Images come from the marketing renderer. `make` captures every raw
+screen it needs (the main set and the custom product pages, each with its own seeded data) into
+`.build/appstore-screenshots/raw`:
 
 ```bash
-npm --prefix scripts/appstore-screenshots run marketing -- --raw-dir <raw captures> --out <output folder>
+npm --prefix scripts/appstore-screenshots run make
+npm --prefix scripts/appstore-screenshots run marketing -- --raw-dir "$PWD/.build/appstore-screenshots/raw" --out <absolute output folder>
 ```
 
 | File | Use |
@@ -13,8 +16,13 @@ npm --prefix scripts/appstore-screenshots run marketing -- --raw-dir <raw captur
 | `search-3840x2560.png` | Search results asset (3:2) |
 | `subscription-monthly-1024.png` | Monthly subscription promotional image |
 | `subscription-yearly-1024.png` | Yearly subscription promotional image |
-| `6.9/*.png`, `6.5/*.png` | Screenshots (currently 5 of 6; `meetings` still needs a raw capture) |
-| `previews/header-safe-area.jpg` | Header with the centred 3:2 area and the top navigation band marked |
+| `event-card-3840x2160.png` | In-App Event card (16:9) |
+| `event-details-2160x3840.png` | In-App Event details page (9:16) |
+| `6.9/*.png`, `6.5/*.png`, `6.3/*.png` | Default page screenshots (6.3" rendered, not resized) |
+| `cpp-*/6.9/*.png`, `cpp-*/6.3/*.png` | Custom product page screenshots, in page order |
+| `cpp-*/header-3840x1646.png` | Custom product page header (students and interviews; team uses the main header) |
+| `previews/*-safe-area.jpg` | Headers with the centred 3:2 area and the top navigation band marked |
+| `previews/event-*-overlay.jpg` | Event images with the bottom band kept free for Apple's text marked |
 
 Anything that changes what users pay or can buy (offer codes, win-back offers, promotion) is the owner's call. Check
 amounts and timing before saving.
@@ -96,9 +104,11 @@ Name, subtitle, description and keywords can't change on a live version, so add 
   - Short description (≤ 50): `Record in person. Your note is ready when it ends.`
   - Long description (≤ 120): `Record in person. When it ends, get a summary, decisions and tasks. First 3 meetings or 7 days free.`
   - Purpose: Attract new users. Priority: High. Deep link: none (opens the app).
-- Event media: a card image (16:9) and a details image (9:16). They are **not rendered yet**. Add both to
-  `marketing.ts` with the same film gradient and grain, and check the exact sizes in ASC before rendering. Apple shows
-  events only if they are time-limited and match what's in the app, so this must run around the real launch window.
+- Event media: `event-card-3840x2160.png` (16:9; Apple accepts 1920 × 1080 to 3840 × 2160) and
+  `event-details-2160x3840.png` (9:16; 1080 × 1920 to 2160 × 3840), PNG or JPEG. Apple asks for no text or logos in
+  the media and overlays the badge, event name and short description itself, so the images have no text and keep the
+  phones out of the bottom third. Check both in the ASC preview before submitting. Apple shows events only if they are
+  time-limited and match what's in the app, so this must run around the real launch window.
 - Later events that fit: **Major Update** for a significant feature release, and a **Special Event** for a
   "back to lectures" week in September.
 

@@ -1,6 +1,8 @@
 // App Store ekran görüntülerini üretir: iPhone uygulamasını Simülatör için derler, örnek toplantıları (seeder/) App Store
 // çekimlerine ayrılmış bir Simülatör aygıtına yükler, config.ts'teki her sahneyi başlatma argümanlarıyla açıp çeker ve
-// her çekimi başlıklı, çerçeveli bir görsele dönüştürür (compose.ts). Hesap gerekmez: uygulama Debug tanıtım moduyla
+// ana setin her çekimini başlıklı, çerçeveli bir görsele dönüştürür (compose.ts). Tam çalıştırma özel ürün sayfalarının
+// çekimlerini (`pageScenes`) de raw/'a çeker; onları marketing.ts düzenler. Her veri seti (`seed`) aygıtı temizleyip
+// kendi verisiyle açar. Hesap gerekmez: uygulama Debug tanıtım moduyla
 // (`--tanitim`) açılır, veri diskten okunur, canlı kayıt sahnesi uygulamanın Debug örnek kaydıdır (`--ornek-kayit`).
 // Abonelik ekranı (`paywall`) paketleri RevenueCat'ten, fiyatları App Store sandbox'ından okur (ağ gerekir).
 //
@@ -12,9 +14,10 @@
 //   npm --prefix scripts/appstore-screenshots run make -- --compose-only       # son ham çekimlerden yalnız yeniden düzenle
 //
 // Çıktı (.build/appstore-screenshots/, repoya girmez):
-//   raw/<sahne>.png              Simülatör çekimi (1320×2868)
+//   raw/<sahne>.png              Simülatör çekimi (1320×2868); ana set ve özel ürün sayfaları
 //   6.9/<sıra>-<sahne>.png       1320×2868, sRGB, saydamlıksız (App Store 6.9")
 //   6.5/<sıra>-<sahne>.png       1284×2778 (App Store 6.5")
+//   6.3/<sıra>-<sahne>.png       1206×2622 (App Store 6.3")
 //   raw-only/<sahne>.png         `--raw-only`: ham çekim, sRGB, saydamlıksız, aygıt çözünürlüğünde
 //   previews/<sahne>.jpg, previews/overview.jpg   küçük önizlemeler ve tüm setin paftası
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
@@ -26,15 +29,18 @@ import sharp, { type ChannelStats, type Metadata, type Stats } from "sharp";
 import { ChromeRenderer, contactSheet, flattenToSrgbPng, previewJpeg, sceneHtml } from "./compose.ts";
 import {
   app,
+  askConversationPlaceholder,
+  configProblems,
+  meetingPlaceholder,
   outputSizes,
   type OutputSize,
+  pageScenes,
   palettes,
-  productWeeklyPlaceholder,
-  askConversationPlaceholder,
   type RawScene,
   rawScenes,
   type Scene,
   scenes,
+  type SeedSet,
   simulator,
   statusBarOverride,
 } from "./config.ts";
@@ -57,8 +63,6 @@ const rawDirectory: string = join(outputRoot, "raw");
 const fontPath: string = join(repoRoot, "web/src/assets/fonts/InterVariable-latin.woff2");
 const seederPackage: string = join(repoRoot, "scripts/appstore-screenshots/seeder");
 const packageResolved: string = "Packages/AINotepadCore/Package.resolved";
-const headlineLimit: number = 30;
-const subheadLimit: number = 60;
 const previewWidth: number = 660;
 /** Isınma açılışından sonra bekleme (ms). */
 const warmUpMs: number = 8000;
@@ -68,36 +72,15 @@ const blankStdev: number = 4;
 
 /** Tohumlayıcının yazdığı kimlikler (seeder/: `SeedManifest`). */
 interface SeedManifest {
-  readonly productWeekly: string;
+  readonly meeting: string;
   readonly askConversation: string;
 }
 
 /** Komut satırından seçilen iş. */
 type Job =
-  | { readonly kind: "full"; readonly scenes: readonly Scene[]; readonly chrome: string }
+  | { readonly kind: "full"; readonly captures: readonly RawScene[]; readonly scenes: readonly Scene[]; readonly chrome: string }
   | { readonly kind: "raw-only"; readonly scenes: readonly RawScene[] }
   | { readonly kind: "compose-only"; readonly scenes: readonly Scene[]; readonly chrome: string };
-
-/** Ayar dosyasının sorunları (boşsa geçerli). Saf fonksiyondur. */
-function configProblems(list: readonly Scene[], raw: readonly RawScene[]): readonly string[] {
-  const problems: string[] = [];
-  const seen: Set<string> = new Set<string>();
-  for (const scene of [...list, ...raw]) {
-    if (seen.has(scene.id)) {
-      problems.push(`Sahne kimliği iki kez geçiyor: ${scene.id}`);
-    }
-    seen.add(scene.id);
-  }
-  for (const scene of list) {
-    if (scene.headline.length > headlineLimit) {
-      problems.push(`${scene.id}: başlık ${scene.headline.length} karakter (en çok ${headlineLimit}): "${scene.headline}"`);
-    }
-    if (scene.subhead !== null && scene.subhead.length > subheadLimit) {
-      problems.push(`${scene.id}: alt başlık ${scene.subhead.length} karakter (en çok ${subheadLimit}): "${scene.subhead}"`);
-    }
-  }
-  return problems;
-}
 
 /** Kimliği verilen sahne; yoksa bilinen kimliklerle `ConfigError`. Saf fonksiyondur. */
 function findScene<T extends RawScene>(list: readonly T[], id: string): T {
@@ -130,8 +113,8 @@ function statusBarClock(now: Date, timeZone: string): string {
 /** Yer tutucunun değeri: tohumlayıcının kimlikleri; yer tutucu değilse kendisi. Saf fonksiyondur. */
 function resolvedArgument(arg: string, manifest: SeedManifest): string {
   switch (arg) {
-    case productWeeklyPlaceholder:
-      return manifest.productWeekly;
+    case meetingPlaceholder:
+      return manifest.meeting;
     case askConversationPlaceholder:
       return manifest.askConversation;
     default:
@@ -162,14 +145,21 @@ function parseJob(argv: readonly string[]): Job {
     if (values.scene !== undefined || values["compose-only"] === true) {
       throw new ConfigError("--raw-only tek başına kullanılır (--scene ve --compose-only ile değil)");
     }
-    return { kind: "raw-only", scenes: rawOnly.map((id: string) => findScene<RawScene>([...scenes, ...rawScenes], id)) };
+    return { kind: "raw-only", scenes: rawOnly.map((id: string) => findScene<RawScene>([...scenes, ...pageScenes, ...rawScenes], id)) };
   }
   const chrome: string | undefined = values.chrome;
   if (chrome === undefined || chrome === "") {
     throw new ConfigError("Eksik: --chrome <Chrome yolu> (npm run make bunu verir)");
   }
-  const selected: readonly Scene[] = values.scene === undefined ? scenes : values.scene.map((id: string) => findScene(scenes, id));
-  return values["compose-only"] === true ? { kind: "compose-only", scenes: selected, chrome } : { kind: "full", scenes: selected, chrome };
+  if (values["compose-only"] === true) {
+    const selected: readonly Scene[] = values.scene === undefined ? scenes : values.scene.map((id: string) => findScene(scenes, id));
+    return { kind: "compose-only", scenes: selected, chrome };
+  }
+  // Tam çalıştırma ana seti ve özel ürün sayfalarının çekimlerini alır; yalnız ana set burada düzenlenir.
+  const captures: readonly RawScene[] =
+    values.scene === undefined ? [...scenes, ...pageScenes] : values.scene.map((id: string) => findScene<RawScene>([...scenes, ...pageScenes], id));
+  const ids: ReadonlySet<string> = new Set<string>(captures.map((scene: RawScene) => scene.id));
+  return { kind: "full", captures, scenes: scenes.filter((scene: Scene) => ids.has(scene.id)), chrome };
 }
 
 /** `git status` boşsa true: dosyada kaydedilmemiş değişiklik yok. */
@@ -197,10 +187,10 @@ async function buildApp(udid: string): Promise<string> {
   return join(repoRoot, app.derivedDataPath, app.productPath);
 }
 
-/** Örnek veriyi geçici bir klasöre yazar ve kimlikleri döndürür. */
-async function seed(directory: string, timeZone: string): Promise<SeedManifest> {
-  console.log("Örnek veri yazılıyor (seeder)…");
-  await runCommand("swift", ["run", "--package-path", seederPackage, "AppStoreSeeder", directory], repoRoot, { TZ: timeZone });
+/** Veri setini geçici bir klasöre yazar ve kimlikleri döndürür. */
+async function seed(set: SeedSet, directory: string, timeZone: string): Promise<SeedManifest> {
+  console.log(`Örnek veri yazılıyor (seeder: ${set})…`);
+  await runCommand("swift", ["run", "--package-path", seederPackage, "AppStoreSeeder", set, directory], repoRoot, { TZ: timeZone });
   return JSON.parse(await readFile(join(directory, "seed-manifest.json"), "utf8")) as SeedManifest;
 }
 
@@ -242,35 +232,45 @@ async function captureScene(device: Simulator, scene: RawScene, args: readonly s
   throw new CaptureError(`${scene.id}: ${captureAttempts} denemede ekran boş kaldı (${file})`);
 }
 
-/** Derler, Simülatörü hazırlar, sahneleri çeker; çekimlerin yollarını sahne kimliğiyle döndürür. Aygıt sonunda kapanır. */
+/** Sahnelerin veri setleri, ilk geçtikleri sırayla. Saf fonksiyondur. */
+function seedSets(list: readonly RawScene[]): readonly SeedSet[] {
+  return [...new Set<SeedSet>(list.map((scene: RawScene) => scene.seed))];
+}
+
+/**
+ * Derler; her veri seti için Simülatörü temizleyip o veriyle hazırlar ve setin sahnelerini çeker. Çekimlerin yollarını
+ * sahne kimliğiyle döndürür. Aygıt her setten sonra kapanır.
+ */
 async function capture(list: readonly RawScene[], directory: string): Promise<ReadonlyMap<string, string>> {
   const timeZone: string = morningTimeZone(new Date().getUTCHours());
   const device: Simulator = await Simulator.ensure(simulator.name, simulator.deviceType, repoRoot);
   const appPath: string = await buildApp(device.udid);
   const work: string = await mkdtemp(join(tmpdir(), "appstore-seed-"));
+  const captures: Map<string, string> = new Map<string, string>();
   try {
-    const seedDirectory: string = join(work, "seed");
-    const manifest: SeedManifest = await seed(seedDirectory, timeZone);
-    console.log(`Simülatör hazırlanıyor: ${simulator.name} (${device.udid})`);
-    await device.resetAndBoot(simulator.languages, simulator.locale);
-    try {
-      await device.prepareAppearance(["--time", statusBarClock(new Date(), timeZone), ...statusBarOverride]);
-      await device.install(appPath);
-      await device.copySeed(app.bundleId, app.dataFolder, seedDirectory, ["Sessions", "AskHistory"]);
-      // Isınma: yeni açılmış aygıtta ilk açılış yavaştır (SpringBoard hazırlanıyor); ilk sahne ana ekranı çekmesin.
-      await device.launch(app.bundleId, app.commonLaunchArgs, timeZone, warmUpMs);
-      await mkdir(directory, { recursive: true });
-      const captures: Map<string, string> = new Map<string, string>();
-      for (const scene of list) {
-        console.log(`Çekiliyor: ${scene.id}`);
-        const file: string = join(directory, `${scene.id}.png`);
-        await captureScene(device, scene, launchArguments(app.commonLaunchArgs, scene, manifest), timeZone, file);
-        captures.set(scene.id, file);
+    await mkdir(directory, { recursive: true });
+    for (const set of seedSets(list)) {
+      const seedDirectory: string = join(work, set);
+      const manifest: SeedManifest = await seed(set, seedDirectory, timeZone);
+      console.log(`Simülatör hazırlanıyor: ${simulator.name} (${device.udid}), veri: ${set}`);
+      await device.resetAndBoot(simulator.languages, simulator.locale);
+      try {
+        await device.prepareAppearance(["--time", statusBarClock(new Date(), timeZone), ...statusBarOverride]);
+        await device.install(appPath);
+        await device.copySeed(app.bundleId, app.dataFolder, seedDirectory, ["Sessions", "AskHistory"]);
+        // Isınma: yeni açılmış aygıtta ilk açılış yavaştır (SpringBoard hazırlanıyor); ilk sahne ana ekranı çekmesin.
+        await device.launch(app.bundleId, app.commonLaunchArgs, timeZone, warmUpMs);
+        for (const scene of list.filter((candidate: RawScene) => candidate.seed === set)) {
+          console.log(`Çekiliyor: ${scene.id}`);
+          const file: string = join(directory, `${scene.id}.png`);
+          await captureScene(device, scene, launchArguments(app.commonLaunchArgs, scene, manifest), timeZone, file);
+          captures.set(scene.id, file);
+        }
+      } finally {
+        await device.shutdown();
       }
-      return captures;
-    } finally {
-      await device.shutdown();
     }
+    return captures;
   } finally {
     await rm(work, { recursive: true, force: true });
   }
@@ -337,15 +337,17 @@ function existingCaptures(list: readonly Scene[]): ReadonlyMap<string, string> {
 }
 
 async function main(): Promise<void> {
-  const problems: readonly string[] = configProblems(scenes, rawScenes);
+  const problems: readonly string[] = configProblems();
   if (problems.length > 0) {
     throw new ConfigError(`config.ts geçersiz:\n${problems.join("\n")}`);
   }
   const job: Job = parseJob(process.argv.slice(2));
   switch (job.kind) {
     case "full": {
-      const captures: ReadonlyMap<string, string> = await capture(job.scenes, rawDirectory);
-      await compose(job.scenes, captures, job.chrome);
+      const captures: ReadonlyMap<string, string> = await capture(job.captures, rawDirectory);
+      if (job.scenes.length > 0) {
+        await compose(job.scenes, captures, job.chrome);
+      }
       break;
     }
     case "compose-only":

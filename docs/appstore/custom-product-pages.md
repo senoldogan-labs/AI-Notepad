@@ -7,9 +7,10 @@ which page converts. Limits are the same as on the main page (promotional text �
 `text` blocks, run `node scripts/appstore-screenshots/metadata-check.ts docs/appstore/custom-product-pages.md`.
 
 Screenshot headlines use the pipeline's limits (`scripts/appstore-screenshots/config.ts`: headline ≤ 30, subhead
-≤ 60). "Existing" means a raw capture already exists. "New raw" means a capture we don't have yet: it needs a seeded
-meeting in `scripts/appstore-screenshots/seeder` and a scene in `config.ts`, then a run of the pipeline. Until those
-exist, each page can launch with the existing captures and the new headlines.
+≤ 60). The tables below are mirrored in `customPages` in `config.ts`; the raws come from `pageScenes`, captured with
+their own seeded data (`seeder`: `lectures` and `interviews` sets). "Existing" means a raw from the main set; "new raw"
+means a page-only capture. The marketing renderer writes each page to `cpp-<name>/6.9` and `cpp-<name>/6.3` (see
+`after-approval-checklist.md`).
 
 Trial wording, where it fits: "first 3 meetings or 7 days free, whichever comes first". Every claim stays inside
 what the iPhone app does: it records the conversation in the room through the iPhone
