@@ -27,7 +27,8 @@ export type PageKey =
   | "privacy"
   | "terms"
   | "notFound"
-  | "share";
+  | "share"
+  | "meeting";
 
 /** Sayfaların yolları. */
 export const routes: Readonly<Record<PageKey, string>> = {
@@ -54,6 +55,9 @@ export const routes: Readonly<Record<PageKey, string>> = {
   notFound: "/404",
   // Bağlantıyla paylaşılan not (uygulamalar `https://gistsmith.com/s#<kimlik>.<anahtar>` üretir: Swift `noteShareLink`).
   share: "/s",
+  // Yapay zekâ asistanının verdiği toplantı bağlantısı (`https://gistsmith.com/m/<kimlik>`, sunucuda `meetingUrl`):
+  // public/_redirects her `/m/*` adresinde bu sayfayı sunar. Toplantının kendisi yalnızca kullanıcının uygulamalarındadır.
+  meeting: "/meeting",
 };
 
 /**
@@ -146,6 +150,9 @@ export function pageUrl(page: PageKey, origin: string): string {
 
 /** Blog yazılarının yol kalıbı (`_headers` kuralı): `/blog/<kısa ad>`. */
 export const blogPostPattern: string = `${routes.blog}/*`;
+
+/** Asistanın verdiği toplantı bağlantılarının yol kalıbı (public/_redirects bunları `meeting` sayfasına yönlendirir). */
+export const meetingLinkPattern: string = "/m/*";
 
 /** Blogun RSS akışı (src/pages/blog/rss.xml.ts). */
 export const blogFeedPath: string = `${routes.blog}/rss.xml`;

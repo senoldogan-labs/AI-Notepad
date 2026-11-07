@@ -1,0 +1,2 @@
+# Toplantı bağlantıları (asistanın verdiği /m/<kimlik>, src/routes.ts meetingLinkPattern) tek sayfada açılır; adres değişmez.
+/m/*  /meeting  200

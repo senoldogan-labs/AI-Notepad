@@ -1,0 +1,38 @@
+---
+// Yapay zekâ asistanının verdiği toplantı bağlantısı (`/m/<kimlik>`, public/_redirects bu sayfayı sunar). Notlar yalnızca
+// uygulamalardadır: sayfa toplantıyı uygulamada nasıl bulacağını söyler ve uygulaması olmayanlara indirme yolunu gösterir.
+// Arama motorlarına kapalıdır.
+import Base from "../layouts/Base.astro";
+import { websiteCard } from "../lib/social";
+import CtaBand from "../components/CtaBand.astro";
+import { copy, type MeetingLinkCopy } from "../copy";
+
+const text: MeetingLinkCopy = copy.meetingLink;
+---
+
+<Base page="meeting" meta={text.meta} indexed={false} social={websiteCard}>
+  <meta slot="head" name="referrer" content="no-referrer" />
+  <article class="narrow meeting-link">
+    <h1 class="title-xl">{text.title}</h1>
+    <p class="lead">{text.text}</p>
+    <ol class="meeting-link__steps">
+      {text.steps.map((step: string) => <li>{step}</li>)}
+    </ol>
+  </article>
+  <CtaBand id="meeting-cta" title={text.ctaTitle} text={text.ctaText} photo="aurora-lake" />
+</Base>
+
+<style>
+  .meeting-link {
+    padding-top: clamp(48px, 8vw, 96px);
+  }
+  .meeting-link .lead {
+    margin-top: 16px;
+  }
+  .meeting-link__steps {
+    margin: 24px 0 0;
+    padding-left: 1.25em;
+    display: grid;
+    gap: 8px;
+  }
+</style>

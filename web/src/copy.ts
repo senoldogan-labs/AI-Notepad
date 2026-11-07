@@ -879,6 +879,16 @@ export interface NotFoundCopy {
 }
 
 /** Bağlantıyla paylaşılan not sayfası (`/s`). Notun kendi metinleri (başlıklar dahil) gönderenin dilindedir. */
+/** Asistanın verdiği toplantı bağlantısının (`/m/<kimlik>`) sayfası. */
+export interface MeetingLinkCopy {
+  readonly meta: PageMeta;
+  readonly title: string;
+  readonly text: string;
+  readonly steps: readonly string[];
+  readonly ctaTitle: string;
+  readonly ctaText: string;
+}
+
 export interface ShareCopy {
   readonly meta: PageMeta;
   readonly loading: string;
@@ -923,6 +933,7 @@ export interface Copy {
   readonly languages: LanguagesCopy;
   readonly integrations: IntegrationsCopy;
   readonly notFound: NotFoundCopy;
+  readonly meetingLink: MeetingLinkCopy;
   readonly share: ShareCopy;
   readonly privacyMeta: PageMeta;
   readonly termsMeta: PageMeta;
@@ -2299,6 +2310,20 @@ export const copy: Copy = {
     title: "This page doesn't exist.",
     text: "The address may be mistyped, or the page has moved.",
     home: "Back to the home page",
+  },
+  meetingLink: {
+    meta: {
+      title: `Open this meeting in ${productName}`,
+      description: `This meeting note is in the ${productName} app on your Mac or iPhone.`,
+    },
+    title: `This meeting is in your ${productName} app`,
+    text: `Your AI assistant linked to a meeting note. Notes stay in the ${productName} app on your Mac and iPhone, so they don't open on the web.`,
+    steps: [
+      `Open ${productName} on your Mac or iPhone.`,
+      "Find the meeting by its title or date in your meetings, or search for it.",
+    ],
+    ctaTitle: `Don't have ${productName} yet?`,
+    ctaText: "Record your meetings and get the notes, decisions and tasks when they end.",
   },
   share: {
     meta: {
