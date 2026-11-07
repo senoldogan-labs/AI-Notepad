@@ -91,10 +91,19 @@ public struct AddTaskForm: View {
 
     public var body: some View {
         Form {
-            TextField("Ne yapılacak?", text: $text, axis: .vertical)
+            // Yer tutucu soluk renkte üstte: macOS odaksız alanın yer tutucusunu metin renginde çizer (yazılmış sanılır).
+            TextField(text: $text, axis: .vertical) { EmptyView() }
                 .lineLimit(1...3)
                 .focused($isTextFocused)
                 .onSubmit(add)
+                .accessibilityLabel(Text("Ne yapılacak?"))
+                .overlay(alignment: .leading) {
+                    if text.isEmpty {
+                        Text("Ne yapılacak?")
+                            .foregroundStyle(Theme.muted)
+                            .allowsHitTesting(false)
+                    }
+                }
             Toggle("Son gün", isOn: $hasDueDay.animation(.smooth(duration: 0.2)))
             if hasDueDay {
                 DatePicker("Tarih", selection: $dueDay, displayedComponents: .date)
