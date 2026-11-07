@@ -1401,7 +1401,7 @@ export const copy: Copy = {
       {
         question: "Where does my audio go?",
         answer:
-          "While you record, the audio streams from your Mac to our live speech-recognition provider for the live transcript; it is asked not to keep it or use it for training. If that isn't available, the live transcript is produced on your Mac instead. When the meeting ends, the audio is passed through our server to our transcription provider to separate speakers and produce the final transcript; for notes and translation the text goes to our AI model provider. Our servers don't store audio, or notes unless you turn on AI assistant access; they count the duration and hold the final transcript encrypted, only so it can be re-sent for 2 hours if the connection drops; it is deleted at the next daily cleanup, within about a day. The transcription and AI model providers may keep what they process for a time under their own retention rules (the AI model provider deletes it within 30 days). If you turn on “Use screen snapshots in notes”, up to six of the meeting's screen snapshots go to the AI model provider along with the transcript when the note is written, and up to three with an Ask question about that part of the meeting; otherwise snapshots never leave your Mac. The privacy policy names each provider and has the details.",
+          "While you record, the audio streams from your Mac to our live speech-recognition provider for the live transcript; it is asked not to keep it or use it for training. If that isn't available, the live transcript is produced on your Mac instead. When the meeting ends, the audio is passed through our server to our transcription provider to separate speakers and produce the final transcript; for notes and translation the text goes to our AI model provider. Our servers don't store audio, or notes they can read unless you turn on AI assistant access (sync and share links keep only end-to-end encrypted copies); they count the duration and hold the final transcript encrypted, only so it can be re-sent for 2 hours if the connection drops; it is deleted at the next daily cleanup, within about a day. The transcription and AI model providers may keep what they process for a time under their own retention rules (the AI model provider deletes it within 30 days). If you turn on “Use screen snapshots in notes”, up to six of the meeting's screen snapshots go to the AI model provider along with the transcript when the note is written, and up to three with an Ask question about that part of the meeting; otherwise snapshots never leave your Mac. The privacy policy names each provider and has the details.",
       },
       {
         question: "Which languages are supported?",
@@ -2502,10 +2502,10 @@ export const copy: Copy = {
       {
         id: "mcp",
         title: "Your AI apps, through MCP",
-        lead: `${productName} includes a local, read-only MCP server with six tools: list and search meetings, read a meeting's note and transcript, list your tasks, and list and view shared-screen snapshots.`,
+        lead: `${productName} includes a local, read-only MCP server with six tools: list and search meetings, read a meeting's note and transcript, list your tasks, and list and view shared-screen snapshots. Assistants on the web and phone connect through AI assistant access instead.`,
         items: [
           {
-            name: "Claude, ChatGPT, Cursor and VS Code",
+            name: "Claude, Cursor and VS Code on your Mac; Claude and ChatGPT online",
             text: "Claude, ChatGPT, Cursor and VS Code can search and read your meetings (on your Mac, or online with AI assistant access); they can never change them. On the Mac, connect with one click in Settings.",
             mark: { kind: "brands", brands: ["claude", "cursor", "vscode"] },
           },
