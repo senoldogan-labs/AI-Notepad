@@ -94,8 +94,8 @@ testlerde yer tutucular geçerlidir.
 
 ## Göçler
 
-`migrations/` altındaki SQL dosyaları sırayla uygulanır: yerelde `npm run migrate:local`, üretimde
-`npm run migrate:production`. Yeni şema değişikliği yeni bir numaralı dosyadır; uygulanmış dosya değiştirilmez.
+`migrations/` altındaki SQL dosyaları sırayla uygulanır: yerelde `npm run migrate:local`, üretimde main'e girince
+`Deploy server` workflow'u (`.github/workflows/deploy-server.yml`; DROP/RENAME içeren göç elle onay ister). Yeni şema değişikliği yeni bir numaralı dosyadır; uygulanmış dosya değiştirilmez.
 `0007` e-posta giriş tablosunu siler ve `auth_identities` tablosunu `google` sağlayıcısına izin verecek biçimde yeniden
 kurar (`email` kimliği varsa göç açıkça başarısız olur; üretimde e-posta hiç gönderilmediği için yoktur). `0008`
 raporları, indirme sayacını ve istatistik dizinlerini ekler. `0009` kimlik deneme defterini ve kullanıcının devraldığı
@@ -193,7 +193,7 @@ Kurulum (sahibin bir kez yapacakları):
    `npx wrangler secret put REVENUECAT_WEBHOOK_AUTH --env production`.
 4. **RevenueCat gizli anahtarı:** Project settings → API keys → Secret API key (v1, `sk_…`):
    `npx wrangler secret put REVENUECAT_SECRET_API_KEY --env production`.
-5. Göç (`npm run migrate:production`) ve dağıtım; RevenueCat panelinden "Send test event" → `200`, `outcome: "test"`.
+5. Göç ve dağıtım (main'e birleşince `Deploy server`); RevenueCat panelinden "Send test event" → `200`, `outcome: "test"`.
 
 ## Apple ile giriş jetonunun iptali
 
@@ -235,7 +235,7 @@ Kurulum (sahibin bir kez yapacakları):
    `npx wrangler secret put APPLE_SIGNIN_PRIVATE_KEY --env production < AuthKey_XXXXXXXXXX.p8`,
    `openssl rand -base64 32 | npx wrangler secret put APPLE_TOKEN_ENC_KEY --env production` (değiştirilirse saklanan
    jetonlar çözülemez ve o hesaplar silinirken `apple_revoke` sayılır; sonraki Apple girişinde yenisi saklanır).
-3. `npm run migrate:production`, sonra dağıtım (sunucu ve site).
+3. Göç ve dağıtım: main'e birleşince `Deploy server` ve `Deploy web`.
 
 ## Deepgram canlı metni
 
