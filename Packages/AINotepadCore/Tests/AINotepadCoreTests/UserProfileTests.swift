@@ -68,8 +68,8 @@ import Testing
         #expect(email(profile) == email(.empty) + "\n" + block)
         let ask: (UserProfile) -> String = { (profile: UserProfile) -> String in
             archiveAnswerRequest(
-                question: "Ne konuşuldu?", passages: [], coverage: archiveCoverage(read: [], candidates: []), screens: [], history: [], userName: "Doğan",
-                profile: profile, now: Date(timeIntervalSince1970: 0), language: .turkish, webSearch: false
+                question: "Ne konuşuldu?", passages: [], screens: [], history: [], userName: "Doğan",
+                profile: profile, now: Date(timeIntervalSince1970: 0), answerLanguage: .turkish, webSearch: false
             ).system
         }
         #expect(ask(profile) == ask(.empty) + "\n" + block)

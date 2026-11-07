@@ -999,7 +999,7 @@ private struct WebSearchRow: Decodable {
         let record: MeetingRecord = transcribedRecord(id: UUID().uuidString)
         let queries: LockedQueries = LockedQueries()
         let answer: ArchiveAnswer = try await askAboutMeetings(
-            question: "Haiku 5.5 ne kadar?", history: [], records: [record], userName: "Doğan", profile: .empty, language: .turkish, llm: provider, maxChars: 60_000,
+            question: "Haiku 5.5 ne kadar?", history: [], records: [record], userName: "Doğan", profile: .empty, noteLanguage: .turkish, answerLanguage: .turkish, llm: provider, maxChars: 60_000,
             screens: .off, webSearch: true, now: Date()
         ) { (progress: ArchiveProgress) -> Void in
             if case .web(let found, let notice) = progress {
@@ -1017,7 +1017,7 @@ private struct WebSearchRow: Decodable {
         try executeLocalD1(sql: "UPDATE monthly_usage SET web_searches = 100 WHERE user_id = '\(user.userID)';")
         let capped: LockedQueries = LockedQueries()
         let plain: ArchiveAnswer = try await askAboutMeetings(
-            question: "Haiku 5.5 ne kadar?", history: [], records: [record], userName: "Doğan", profile: .empty, language: .turkish, llm: provider, maxChars: 60_000,
+            question: "Haiku 5.5 ne kadar?", history: [], records: [record], userName: "Doğan", profile: .empty, noteLanguage: .turkish, answerLanguage: .turkish, llm: provider, maxChars: 60_000,
             screens: .off, webSearch: true, now: Date()
         ) { (progress: ArchiveProgress) -> Void in
             if case .web(let found, let notice) = progress {
@@ -1038,7 +1038,7 @@ private struct WebSearchRow: Decodable {
         let record: MeetingRecord = transcribedRecord(id: UUID().uuidString)
         let states: LockedQueries = LockedQueries()
         let answer: ArchiveAnswer = try await askAboutMeetings(
-            question: "Haiku 5.5 ne kadar? \(fakeWebSearchDisabledMarker)", history: [], records: [record], userName: "Doğan", profile: .empty, language: .turkish, llm: provider,
+            question: "Haiku 5.5 ne kadar? \(fakeWebSearchDisabledMarker)", history: [], records: [record], userName: "Doğan", profile: .empty, noteLanguage: .turkish, answerLanguage: .turkish, llm: provider,
             maxChars: 60_000, screens: .off, webSearch: true, now: Date()
         ) { (progress: ArchiveProgress) -> Void in
             if case .web(let found, let notice) = progress {

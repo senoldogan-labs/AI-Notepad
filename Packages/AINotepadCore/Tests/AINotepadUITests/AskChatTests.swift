@@ -8,7 +8,8 @@ private func finished(question: String, scope: [String], recipeTitle: String?) -
     ArchiveExchange(
         id: UUID(), question: question, scopeMeetingIDs: scope, scopeTitles: scope.map { "Toplantı \($0)" }, recipeTitle: recipeTitle,
         startedAt: Date(timeIntervalSince1970: 1_792_000_000), phase: .done, terms: [], passages: [],
-        screens: 0, answer: ArchiveAnswer(text: "Cevap", sources: [], webSources: []), webQueries: [], webSearchNotice: .unavailable, finishedAt: Date(timeIntervalSince1970: 1_792_000_005)
+        screens: 0, answer: ArchiveAnswer(text: "Cevap", sources: [], webSources: []), webQueries: [], webSearchNotice: .unavailable, skippedMeetings: [],
+        finishedAt: Date(timeIntervalSince1970: 1_792_000_005)
     )
 }
 
@@ -75,13 +76,54 @@ private func meeting(id: String, title: String) -> MeetingRecord {
         #expect(history.map(\.question) == ["Kahve makinesi ne oldu?", "Bütçe konusu ne?"])
         let terms: LLMRequest = searchTermsRequest(question: "Bu konuyu webde ara", history: history, languages: [.finnish], language: .turkish)
         let answer: LLMRequest = archiveAnswerRequest(
-            question: "Bu konuyu webde ara", passages: [], coverage: ArchiveCoverage(read: [], skipped: []), screens: [], history: history, userName: "", profile: .empty, now: Date(timeIntervalSince1970: 0), language: .turkish,
+            question: "Bu konuyu webde ara", passages: [], screens: [], history: history, userName: "", profile: .empty, now: Date(timeIntervalSince1970: 0), answerLanguage: .turkish,
             webSearch: true
         )
         for request in [terms, answer] {
             #expect(request.userText.contains("Kahve makinesi ne oldu?") && request.userText.contains("Bütçe konusu ne?"))
             #expect(!request.userText.contains("Yarım kalan"))
         }
+    }
+
+    // Eski sürümün sakladığı (ya da eşitlediği) cevaptaki kapsam etiketi sohbet yeniden açılınca görünmez.
+    @Test func reopenedTurnHidesEchoedCoverageTag() throws {
+        var exchange: ArchiveExchange = finished(question: "Which tasks were given to me?", scope: [], recipeTitle: nil)
+        exchange.answer = ArchiveAnswer(text: "Two tasks [1].\n\n<kapsam>10 toplantıya dayanıyor: 3 Kas 2026 - 6 Kas 2026</kapsam>", sources: [], webSources: [])
+        let turn: AskConversationTurn = try #require(askTurn(exchange: exchange))
+        #expect(archiveExchange(turn: turn).answer.text == "Two tasks [1].\n")
+    }
+
+    // Kapsam dipnotu: okunmayan toplantılar ilerleyişle soruya yazılır, geçmişe saklanır ve geri okunur; dipnot yalnız
+    // bitmiş, parça okumuş cevapta ve tüm arşive (ya da sığmayan `@` toplantılarına) sorulan soruda görünür.
+    @Test func coverageFootnoteRoundTripsAndShowsOnlyWhereUseful() throws {
+        let note: ArchivePassage = ArchivePassage(id: "a-note", meetingID: "a", meetingTitle: "A", meetingDate: Date(timeIntervalSince1970: 0), kind: .note, startSec: 0, text: "")
+        let moment: ArchivePassage = ArchivePassage(id: "b-t0", meetingID: "b", meetingTitle: "B", meetingDate: Date(timeIntervalSince1970: 86_400), kind: .transcript, startSec: 42, text: "")
+        let skipped: ArchiveMeetingRef = ArchiveMeetingRef(id: "c", title: "C", date: Date(timeIntervalSince1970: 172_800))
+        var exchange: ArchiveExchange = applying(progress: .coverage(ArchiveCoverage(read: [], skipped: [skipped])), to: finished(question: "Q", scope: [], recipeTitle: nil))
+        exchange.passages = [note, moment]
+        #expect(exchange.skippedMeetings == [skipped] && showsCoverageFootnote(exchange: exchange))
+        let reopened: ArchiveExchange = archiveExchange(turn: try #require(askTurn(exchange: exchange)))
+        #expect(reopened.skippedMeetings == [skipped])
+        #expect(coverageOpenPassage(meetingID: "a", passages: [moment, note]) == note)
+        #expect(coverageOpenPassage(meetingID: "b", passages: [note, moment]) == moment)
+        var scoped: ArchiveExchange = finished(question: "Q", scope: ["a"], recipeTitle: nil)
+        scoped.passages = [note]
+        #expect(!showsCoverageFootnote(exchange: scoped))
+        var writing: ArchiveExchange = exchange
+        writing.phase = .writing
+        #expect(!showsCoverageFootnote(exchange: writing))
+    }
+
+    // Yazılırken durdurulan cevap (o ana kadarki metniyle) saklanır ve "Durduruldu" olarak geri açılır; cevap gelmeden
+    // durdurulan soru saklanmaz.
+    @Test func stoppedAnswerIsSavedWithItsText() throws {
+        var stopped: ArchiveExchange = finished(question: "Q", scope: [], recipeTitle: nil)
+        stopped.phase = .stopped
+        let turn: AskConversationTurn = try #require(askTurn(exchange: stopped))
+        #expect(turn.wasStopped == true && archiveExchange(turn: turn).phase == .stopped)
+        stopped.answer = ArchiveAnswer(text: "", sources: [], webSources: [])
+        #expect(askTurn(exchange: stopped) == nil)
+        #expect(try #require(askTurn(exchange: finished(question: "Q", scope: [], recipeTitle: nil))).wasStopped == nil)
     }
 
     // Geçmiş satırının simgesi sohbetin türünü gösterir: web kaynaklı cevap, `@` ile toplantıya sorulan, tarif, tüm arşiv.

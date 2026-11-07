@@ -15,6 +15,8 @@ import SwiftUI
 struct AskPage: View {
     let model: AppModel
     let router: MainWindowRouter
+    /// Hiç toplantı yokken boş sayfadaki "Kaydı başlat".
+    let onStartRecording: @MainActor () -> Void
     @State private var question: String = ""
     /// Soru alanında imlecin konumu (UTF-16): `@` bahsi imlecin önünde aranır.
     @State private var cursor: Int = 0
@@ -86,7 +88,11 @@ struct AskPage: View {
                                     }
                                     model.askArchive(question: example, meetingIDs: [], recipeTitle: nil)
                                 },
-                                onOpenMeetings: { router.section = .meetings },
+                                onStartRecording: onStartRecording,
+                                onImport: {
+                                    router.section = .meetings
+                                    chooseMediaToImport(model: model)
+                                },
                                 onOpenChat: { (id: String) -> Void in openRecentChat(id: id) },
                                 onSeeAll: { isShowingHistory = true }
                             )
@@ -95,13 +101,19 @@ struct AskPage: View {
                             ExchangeView(
                                 exchange: exchange,
                                 onOpen: { (passage: ArchivePassage) -> Void in
+                                    // Toplantı kaynağın anında açılır: transkript çekmecesi o paragrafta (not kaynağında özet).
+                                    router.openingSource = passage
                                     router.selectedMeetingID = passage.meetingID
+                                    // Listedeki süzgeç (arama, klasör) açılan toplantıyı gizlemesin.
+                                    router.searchQuery = ""
+                                    router.folderFilter = nil
                                     router.section = .meetings
                                 },
                                 onSaveRecipe: { (question: String) -> Void in
                                     model.saveRecipe(question: question)
                                 },
-                                onRegenerate: regenerateAction(exchange: exchange)
+                                onRegenerate: regenerateAction(exchange: exchange),
+                                onAskMeetings: askMeetingsAction(exchange: exchange)
                             )
                             .id(exchange.id)
                             .transition(.opacity.combined(with: .offset(y: 12)))
@@ -125,6 +137,12 @@ struct AskPage: View {
                 .onChange(of: model.archiveExchanges.last?.answer.text) { (_: String?, _: String?) in
                     if model.isAnsweringArchive, isFollowingAnswer {
                         proxy.scrollTo(bottomID, anchor: .bottom)
+                    }
+                }
+                // Cevap bitince altına gelen kapsam dipnotu ve düğmeler de görünsün (izleniyorsa).
+                .onChange(of: model.archiveExchanges.last?.phase) { (_: ArchiveExchange.Phase?, phase: ArchiveExchange.Phase?) in
+                    if isFollowingAnswer, phase.map({ ![.understanding, .searching, .writing].contains($0) }) == true {
+                        withAnimation(.smooth(duration: 0.3)) { proxy.scrollTo(bottomID, anchor: .bottom) }
                     }
                 }
                 .overlay(alignment: .bottom) {
@@ -226,6 +244,17 @@ struct AskPage: View {
         return { model.regenerateLastAnswer() }
     }
 
+    /// Kapsam dipnotundaki "Bunlara da sor": aynı soru (ya da tarif) sığmayan toplantılara `@` ile sorulur; cevap sürerken
+    /// ve Sor kullanılamıyorken yok.
+    private func askMeetingsAction(exchange: ArchiveExchange) -> (@MainActor ([String]) -> Void)? {
+        guard !model.isAnsweringArchive, unavailableReason == nil else {
+            return nil
+        }
+        return { (meetingIDs: [String]) -> Void in
+            model.askArchive(question: exchange.question, meetingIDs: meetingIDs, recipeTitle: exchange.recipeTitle)
+        }
+    }
+
     /// Sor şu an kullanılamıyorsa nedeni (sunucu çağrılmadan): abonelikte denemesi henüz başlamamış hesap toplantı dışı
     /// yapay zekâyı kullanamaz (sunucu `trial_not_started` derdi).
     private var unavailableReason: String? {
@@ -297,8 +326,16 @@ struct AskPage: View {
                             .background(Theme.primary, in: Circle())
                     }
                     .buttonStyle(.hoverCapsule)
+                    // ⌘. (macOS'te işi durdurmanın alışılmış kısayolu); alan odakta değilken Esc de durdurur (aşağıda).
+                    .keyboardShortcut(".", modifiers: .command)
+                    .background {
+                        Button("Cevabı durdur", action: model.stopArchiveAnswer)
+                            .keyboardShortcut(.cancelAction)
+                            .hidden()
+                            .accessibilityHidden(true)
+                    }
                     .accessibilityLabel("Durdur")
-                    .hoverHint("Cevabı durdur", alignment: .trailing, edge: .top)
+                    .hoverHint("Cevabı durdur (⌘. ya da Esc)", alignment: .trailing, edge: .top)
                 } else {
                     Button(action: send) {
                         Image(systemName: "arrow.up")
@@ -422,6 +459,11 @@ struct AskPage: View {
             isRecipeDismissed = true
             return true
         }
+        // Cevap akarken Esc önce cevabı durdurur (yazılan devam sorusu silinmez).
+        if model.isAnsweringArchive {
+            model.stopArchiveAnswer()
+            return true
+        }
         guard !question.isEmpty || !mentioned.isEmpty else {
             return false
         }
@@ -537,8 +579,9 @@ private struct AskIntro: View {
     let hasMeetings: Bool
     let recent: [AskRecentChat]
     let onAsk: @MainActor (String) -> Void
-    /// Hiç toplantı yokken: Toplantılar bölümü (kayıt ve içe aktarma orada).
-    let onOpenMeetings: @MainActor () -> Void
+    /// Hiç toplantı yokken: kaydı başlatır ya da ses/video dosyası içe aktarır (ilk toplantı buradan da gelir).
+    let onStartRecording: @MainActor () -> Void
+    let onImport: @MainActor () -> Void
     let onOpenChat: @MainActor (String) -> Void
     /// "Tümünü gör": soldaki geçmiş sütununu açar.
     let onSeeAll: @MainActor () -> Void
@@ -561,9 +604,12 @@ private struct AskIntro: View {
                             .foregroundStyle(Theme.muted)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    Button("Toplantılara git", action: onOpenMeetings)
-                        .buttonStyle(.accentPill)
-                        .controlSize(.small)
+                    HStack(spacing: 8) {
+                        Button("Kaydı başlat", systemImage: "record.circle", action: onStartRecording)
+                            .buttonStyle(.accentPill)
+                        Button("İçe aktar", systemImage: "square.and.arrow.down", action: onImport)
+                    }
+                    .controlSize(.small)
                 }
             }
             if !recent.isEmpty {

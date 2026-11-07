@@ -39,11 +39,14 @@ public struct ArchiveExchange: Identifiable, Equatable, Sendable {
     public var webQueries: [String]
     /// Web araması yapılamadıysa nedeni (bu ayın hakkı bitti ya da şu an yok; cevap yalnız toplantılardan).
     public var webSearchNotice: WebSearchNotice
+    /// Soruyla ilgili olup bağlama sığmadığı için okunmayan toplantılar (tarih sırasıyla; kapsam dipnotunda "Bunlara da
+    /// sor"). Okunan toplantılar `passages`tan gelir.
+    public var skippedMeetings: [ArchiveMeetingRef]
     public var finishedAt: Date?
 
     public init(
         id: UUID, question: String, scopeMeetingIDs: [String], scopeTitles: [String], recipeTitle: String?, startedAt: Date, phase: Phase, terms: [String], passages: [ArchivePassage],
-        screens: Int, answer: ArchiveAnswer, webQueries: [String], webSearchNotice: WebSearchNotice, finishedAt: Date?
+        screens: Int, answer: ArchiveAnswer, webQueries: [String], webSearchNotice: WebSearchNotice, skippedMeetings: [ArchiveMeetingRef], finishedAt: Date?
     ) {
         self.id = id
         self.question = question
@@ -58,6 +61,7 @@ public struct ArchiveExchange: Identifiable, Equatable, Sendable {
         self.answer = answer
         self.webQueries = webQueries
         self.webSearchNotice = webSearchNotice
+        self.skippedMeetings = skippedMeetings
         self.finishedAt = finishedAt
     }
 }
@@ -67,7 +71,7 @@ public func startedExchange(id: UUID, question: String, scope: [MeetingRecord], 
     ArchiveExchange(
         id: id, question: question, scopeMeetingIDs: scope.map(\.id), scopeTitles: scope.map { $0.note?.title ?? $0.title }, recipeTitle: recipeTitle,
         startedAt: startedAt, phase: .understanding, terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: [], webSources: []),
-        webQueries: [], webSearchNotice: .ok, finishedAt: nil
+        webQueries: [], webSearchNotice: .ok, skippedMeetings: [], finishedAt: nil
     )
 }
 
@@ -76,7 +80,7 @@ public func startedExchange(id: UUID, question: String, scope: [MeetingRecord], 
 public func failedExchange(id: UUID, question: String, scopeMeetingIDs: [String], recipeTitle: String?, reason: String, at date: Date) -> ArchiveExchange {
     ArchiveExchange(
         id: id, question: question, scopeMeetingIDs: scopeMeetingIDs, scopeTitles: [], recipeTitle: recipeTitle, startedAt: date, phase: .failed(reason),
-        terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: [], webSources: []), webQueries: [], webSearchNotice: .ok,
+        terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: [], webSources: []), webQueries: [], webSearchNotice: .ok, skippedMeetings: [],
         finishedAt: date
     )
 }
@@ -91,10 +95,11 @@ public func followUpScope(exchanges: [ArchiveExchange], records: [MeetingRecord]
     return last.scopeMeetingIDs.compactMap { (id: String) -> MeetingRecord? in records.first { $0.id == id } }
 }
 
-/// Bitmiş soruyu sohbet geçmişine yazılacak tura çevirir (okunan parçalar metinsiz); bitmemiş, durdurulan ya da hatalı
-/// soru nil. Saf fonksiyondur.
+/// Bitmiş ya da yazılırken durdurulmuş (o ana kadar cevabı olan) soruyu sohbet geçmişine yazılacak tura çevirir (okunan
+/// parçalar metinsiz); süren, hatalı ya da cevabı yokken durdurulan soru nil. Saf fonksiyondur.
 public func askTurn(exchange: ArchiveExchange) -> AskConversationTurn? {
-    guard exchange.phase == .done, let finishedAt = exchange.finishedAt else {
+    let isStopped: Bool = exchange.phase == .stopped && !exchange.answer.text.isEmpty
+    guard exchange.phase == .done || isStopped, let finishedAt = exchange.finishedAt else {
         return nil
     }
     let read: [ArchivePassage] = exchange.passages.map { (passage: ArchivePassage) -> ArchivePassage in
@@ -107,17 +112,19 @@ public func askTurn(exchange: ArchiveExchange) -> AskConversationTurn? {
         id: exchange.id, question: exchange.question, scopeMeetingIDs: exchange.scopeMeetingIDs, scopeTitles: exchange.scopeTitles,
         recipeTitle: exchange.recipeTitle, startedAt: exchange.startedAt, finishedAt: finishedAt, terms: exchange.terms, readPassages: read,
         readScreens: exchange.screens, answer: exchange.answer.text, sources: exchange.answer.sources, webSources: exchange.answer.webSources,
-        webQueries: exchange.webQueries, webSearchNotice: exchange.webSearchNotice
+        webQueries: exchange.webQueries, webSearchNotice: exchange.webSearchNotice, skippedMeetings: exchange.skippedMeetings,
+        wasStopped: isStopped ? true : nil
     )
 }
 
-/// Saklanan turu sohbette gösterilecek bitmiş soruya çevirir. Saf fonksiyondur.
+/// Saklanan turu sohbette gösterilecek bitmiş soruya çevirir; eski sürümlerin cevaba yankılanmış istem etiketleri
+/// gösterilmez (`withoutPromptTags`). Saf fonksiyondur.
 public func archiveExchange(turn: AskConversationTurn) -> ArchiveExchange {
     ArchiveExchange(
         id: turn.id, question: turn.question, scopeMeetingIDs: turn.scopeMeetingIDs, scopeTitles: turn.scopeTitles, recipeTitle: turn.recipeTitle,
-        startedAt: turn.startedAt, phase: .done, terms: turn.terms, passages: turn.readPassages,
-        screens: turn.readScreens ?? 0, answer: ArchiveAnswer(text: turn.answer, sources: turn.sources, webSources: turn.webSources ?? []),
-        webQueries: turn.webQueries ?? [], webSearchNotice: turn.webSearchNotice ?? .ok, finishedAt: turn.finishedAt
+        startedAt: turn.startedAt, phase: turn.wasStopped == true ? .stopped : .done, terms: turn.terms, passages: turn.readPassages,
+        screens: turn.readScreens ?? 0, answer: ArchiveAnswer(text: withoutPromptTags(text: turn.answer), sources: turn.sources, webSources: turn.webSources ?? []),
+        webQueries: turn.webQueries ?? [], webSearchNotice: turn.webSearchNotice ?? .ok, skippedMeetings: turn.skippedMeetings ?? [], finishedAt: turn.finishedAt
     )
 }
 
@@ -138,6 +145,8 @@ public func applying(progress: ArchiveProgress, to exchange: ArchiveExchange) ->
     case .searchTerms(let terms):
         updated.terms = terms
         updated.phase = .searching
+    case .coverage(let coverage):
+        updated.skippedMeetings = coverage.skipped
     case .passages(let passages):
         updated.passages = passages
     case .screens(let count):
@@ -191,7 +200,8 @@ public struct ThinkingRing: View {
 }
 
 /// Bir soru ve cevabı: soru sağda, altında ajanın adımları, akan Markdown cevap (kaynak rozetleriyle) ve altında
-/// kopyala, Markdown, yeniden oluştur, kaynaklar ve nasıl cevaplandığı.
+/// kopyala, Markdown, yeniden oluştur, kaynaklar ve nasıl cevaplandığı. Tüm arşive sorulan sorunun cevabının altında
+/// kapsam dipnotu ("10 toplantıya dayanıyor · 3–6 Kas") durur.
 public struct ExchangeView: View {
     let exchange: ArchiveExchange
     let onOpen: @MainActor (ArchivePassage) -> Void
@@ -199,15 +209,19 @@ public struct ExchangeView: View {
     let onSaveRecipe: @MainActor (String) -> Void
     /// Soruyu yeniden sorar (yalnız sohbetin son sorusunda; diğerlerinde nil).
     let onRegenerate: (@MainActor () -> Void)?
+    /// Aynı soruyu verilen toplantılara (`@` kapsamı) yeniden sorar: kapsam dipnotundaki "Bunlara da sor". Soru
+    /// sorulamıyorken (cevap sürüyor, toplantı sayfasının çubuğu) nil.
+    let onAskMeetings: (@MainActor ([String]) -> Void)?
 
     public init(
         exchange: ArchiveExchange, onOpen: @escaping @MainActor (ArchivePassage) -> Void, onSaveRecipe: @escaping @MainActor (String) -> Void,
-        onRegenerate: (@MainActor () -> Void)?
+        onRegenerate: (@MainActor () -> Void)?, onAskMeetings: (@MainActor ([String]) -> Void)?
     ) {
         self.exchange = exchange
         self.onOpen = onOpen
         self.onSaveRecipe = onSaveRecipe
         self.onRegenerate = onRegenerate
+        self.onAskMeetings = onAskMeetings
     }
 
     public var body: some View {
@@ -258,6 +272,10 @@ public struct ExchangeView: View {
                 }
                 #endif
             }
+            if showsCoverageFootnote(exchange: exchange) {
+                CoverageFootnote(exchange: exchange, onOpen: onOpen, onAskMeetings: onAskMeetings)
+                    .transition(.opacity)
+            }
             switch exchange.webSearchNotice {
             case .capReached:
                 WebSearchNoticeLine(text: "Bu ayın web araması hakkı doldu; cevap yalnız toplantılardan.")
@@ -303,6 +321,124 @@ private struct WebSearchNoticeLine: View {
             .appFont(size: 12, weight: .regular)
             .foregroundStyle(Theme.muted)
             .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+/// Cevabın altında kapsam dipnotu gösterilir mi: bitmiş, toplantılardan parça okumuş bir cevap; soru tüm arşive
+/// sorulduysa ya da `@` ile seçilen toplantılardan bazıları sığmadıysa (seçilen tek toplantıda "1 toplantıya dayanıyor"
+/// gürültü olurdu). Saf fonksiyondur.
+public func showsCoverageFootnote(exchange: ArchiveExchange) -> Bool {
+    exchange.phase == .done && !exchange.answer.text.isEmpty && !exchange.passages.isEmpty
+        && (exchange.scopeMeetingIDs.isEmpty || !exchange.skippedMeetings.isEmpty)
+}
+
+/// Kapsam dipnotunda bir okunan toplantı açılınca gidilecek parça: toplantının notu, notu okunmadıysa okunan ilk
+/// transkript parçası. Okunmayan toplantı için nil. Saf fonksiyondur.
+public func coverageOpenPassage(meetingID: String, passages: [ArchivePassage]) -> ArchivePassage? {
+    passages.first { $0.meetingID == meetingID && $0.kind == .note } ?? passages.first { $0.meetingID == meetingID }
+}
+
+/// Kapsam dipnotunun özeti, arayüz dilinde: "10 toplantıya dayanıyor · 3–6 Kas".
+@MainActor
+func coverageSummary(meetings: [ArchiveMeetingRef]) -> String {
+    let count: String = String(localized: "\(meetings.count) toplantıya dayanıyor")
+    let range: String? = coverageDateRange(meetings: meetings, now: Date(), locale: interfaceLocale(), calendar: Calendar.current)
+    return ([count] + [range].compactMap { $0 }).joined(separator: " · ")
+}
+
+/// Cevabın altındaki küçük, soluk kapsam dipnotu (sayı ve tarihler koddan; model kapsam satırı yazmaz): dokununca okunan
+/// toplantılar açılır (toplantıya dokununca notu ya da okunan ilk anı açılır). Soruyla ilgili toplantılar sığmadıysa
+/// altında sayısı ve "Bunlara da sor" (aynı soru en yeni `coverageAskMoreLimit` okunmayan toplantıya `@` ile sorulur).
+private struct CoverageFootnote: View {
+    let exchange: ArchiveExchange
+    let onOpen: @MainActor (ArchivePassage) -> Void
+    let onAskMeetings: (@MainActor ([String]) -> Void)?
+    @State private var isOpen: Bool = false
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
+
+    var body: some View {
+        let meetings: [ArchiveMeetingRef] = readMeetings(passages: exchange.passages)
+        let summary: String = coverageSummary(meetings: meetings)
+        VStack(alignment: .leading, spacing: 6) {
+            Button {
+                withAnimation(.smooth(duration: 0.22)) { isOpen.toggle() }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "books.vertical")
+                        .appFont(size: 10, weight: .semibold)
+                        .accessibilityHidden(true)
+                    Text(verbatim: summary)
+                        .monospacedDigit()
+                        .fixedSize(horizontal: false, vertical: true)
+                    Image(systemName: "chevron.down")
+                        .appFont(size: 8, weight: .bold)
+                        .rotationEffect(.degrees(isOpen ? 180 : 0))
+                        .accessibilityHidden(true)
+                }
+                .appFont(size: 12, weight: .regular)
+                .foregroundStyle(isOpen ? Theme.ink : Theme.muted)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.hoverPlain)
+            .hoverHint(isOpen ? "Okunan toplantıları gizle" : "Okunan toplantıları göster", alignment: .leading, edge: .bottom)
+            .accessibilityLabel(Text(verbatim: summary))
+            .accessibilityHint(isOpen ? "Okunan toplantıları gizle" : "Okunan toplantıları göster")
+            if !exchange.skippedMeetings.isEmpty {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text("\(exchange.skippedMeetings.count) ilgili toplantı bu cevaba sığmadı")
+                        .appFont(size: 12, weight: .regular)
+                        .foregroundStyle(Theme.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let onAskMeetings {
+                        Button("Bunlara da sor") {
+                            onAskMeetings(askMoreMeetingIDs(skipped: exchange.skippedMeetings))
+                        }
+                        .appFont(size: 12, weight: .medium)
+                        .foregroundStyle(appearance.accent.color)
+                        .buttonStyle(.hoverPlain)
+                        .hoverHint("Aynı soru sığmayan en yeni toplantılara sorulur", alignment: .leading, edge: .bottom)
+                    }
+                }
+            }
+            if isOpen {
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(meetings, id: \.id) { (meeting: ArchiveMeetingRef) in
+                        Button {
+                            if let passage = coverageOpenPassage(meetingID: meeting.id, passages: exchange.passages) {
+                                onOpen(passage)
+                            }
+                        } label: {
+                            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                                Text(verbatim: meeting.title)
+                                    .appFont(size: 12, weight: .regular)
+                                    .foregroundStyle(Theme.ink.opacity(0.85))
+                                    .lineLimit(1)
+                                Spacer(minLength: 8)
+                                Text(verbatim: meeting.date.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(interfaceLocale())))
+                                    .appFont(size: 11, weight: .regular)
+                                    .monospacedDigit()
+                                    .foregroundStyle(Theme.muted)
+                                    .lineLimit(1)
+                                    .fixedSize()
+                                Image(systemName: "arrow.up.right")
+                                    .appFont(size: 9, weight: .semibold)
+                                    .foregroundStyle(Theme.muted.opacity(0.8))
+                                    .accessibilityHidden(true)
+                            }
+                            .padding(.vertical, 5)
+                            .padding(.horizontal, 6)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.hoverPlain)
+                        .hoverHint("Toplantıyı aç", alignment: .leading, edge: .bottom)
+                    }
+                }
+                .padding(6)
+                .frame(maxWidth: 560, alignment: .leading)
+                .background(Theme.soft.opacity(0.6), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
     }
 }
 

@@ -31,6 +31,8 @@ enum MainSection: Hashable {
 final class MainWindowRouter {
     var section: MainSection = .home
     var selectedMeetingID: String?
+    /// Sor'da basılan kaynak: toplantı sayfası açılınca o anı gösterir ve sıfırlar (`MeetingDetailPage.openingSource`).
+    var openingSource: ArchivePassage?
     /// Toplantılar listesini süzen arama (arama penceresinde ↩ ile uygulanır; üst çubukta görünür, × ile temizlenir).
     var searchQuery: String = ""
     /// Orta ekrandaki arama penceresi açık.
@@ -338,7 +340,7 @@ struct MainWindowView: View {
         case .meetings:
             MeetingsSplit(model: model, router: router, player: player, shortcuts: shortcuts, onStartRecording: onStartRecording)
         case .ask:
-            AskPage(model: model, router: router)
+            AskPage(model: model, router: router, onStartRecording: onStartRecording)
         case .people:
             PeoplePage(model: model, router: router)
         case .tasks:
@@ -618,7 +620,7 @@ private struct TopBar: View {
         switch router.section {
         case .home: "Ana sayfa"
         case .meetings: "Toplantılar"
-        case .ask: "Toplantılarıma sor"
+        case .ask: "Sor"
         case .people: "Kişiler"
         case .tasks: "Görevlerim"
         case .insights: "İstatistikler"
@@ -1530,11 +1532,13 @@ private struct MeetingsSplit: View {
                 if let id = router.selectedMeetingID, let stored = model.meetings.first(where: { $0.id == id }) {
                     // Sayfa notu konuşmacı adlarıyla gösterir; değişiklikler kimlikle saklı kayda yapılır.
                     let record: MeetingRecord = namedRecord(record: stored, userName: userName)
-                    MeetingDetailPage(model: model, player: player, record: record) {
+                    MeetingDetailPage(model: model, player: player, record: record, openingSource: router.openingSource) {
                         router.selectedMeetingID = nil
                     } onRunRecipe: { (recipe: Recipe) -> Void in
                         model.askArchive(question: recipe.prompt, meetingIDs: [record.id], recipeTitle: recipe.title)
                         router.section = .ask
+                    } onSourceShown: {
+                        router.openingSource = nil
                     }
                         // Toplantı değişince ad alanları gibi durumlar sıfırlansın.
                         .id(record.id)

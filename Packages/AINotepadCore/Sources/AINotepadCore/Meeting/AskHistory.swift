@@ -25,11 +25,18 @@ public struct AskConversationTurn: Sendable, Equatable, Codable, Identifiable {
     public let webQueries: [String]?
     /// Web araması yapılamadıysa cevabın altındaki not (hak bitti, şu an yok); bu alan eklenmeden önce saklanan turlarda nil.
     public let webSearchNotice: WebSearchNotice?
+    /// Soruyla ilgili olup bağlama sığmadığı için okunmayan toplantılar (kapsam dipnotundaki "Bunlara da sor"); bu alan
+    /// eklenmeden önce saklanan turlarda nil. Eski bir sürüm sohbeti yeniden yazıp eşitlerse düşer: yalnız öneri kaybolur.
+    public let skippedMeetings: [ArchiveMeetingRef]?
+    /// Cevap yazılırken durduruldu (o ana kadar yazılan saklanır, sohbette "Durduruldu" görünür); bu alan eklenmeden
+    /// önce saklanan turlarda nil (yalnız bitmiş cevaplar saklanıyordu).
+    public let wasStopped: Bool?
 
     public init(
         id: UUID, question: String, scopeMeetingIDs: [String], scopeTitles: [String], recipeTitle: String?, startedAt: Date, finishedAt: Date,
         terms: [String], readPassages: [ArchivePassage], readScreens: Int?, answer: String, sources: [ArchivePassage], webSources: [WebSource]?,
-        webQueries: [String]?, webSearchNotice: WebSearchNotice?
+        webQueries: [String]?, webSearchNotice: WebSearchNotice?, skippedMeetings: [ArchiveMeetingRef]?,
+        wasStopped: Bool?
     ) {
         self.id = id
         self.question = question
@@ -46,6 +53,8 @@ public struct AskConversationTurn: Sendable, Equatable, Codable, Identifiable {
         self.webSources = webSources
         self.webQueries = webQueries
         self.webSearchNotice = webSearchNotice
+        self.skippedMeetings = skippedMeetings
+        self.wasStopped = wasStopped
     }
 }
 
