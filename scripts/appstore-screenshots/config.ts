@@ -18,10 +18,18 @@ export interface Palette {
   readonly c3: string;
 }
 
+/**
+ * Çekimin örnek veri seti (seeder/ `SeedPersona`): ekip toplantıları, dersler ya da görüşmeler. Her set Simülatörü
+ * temizleyip kendi verisiyle açar.
+ */
+export type SeedSet = "team" | "lectures" | "interviews";
+
 /** Uygulamanın bir ekranı: nasıl açılacağı. `--raw-only` yalnız bunu kullanır (başlıksız, çerçevesiz çekim). */
 export interface RawScene {
   /** Dosya adı ve `--scene` / `--raw-only` değeri. */
   readonly id: string;
+  /** Uygulamaya yüklenen örnek veri. */
+  readonly seed: SeedSet;
   /** Uygulamanın başlatma argümanları (yalnız Debug derlemede tanınan görsel kontrol argümanları dahil). */
   readonly launchArgs: readonly string[];
   /** Açıldıktan sonra çekime dek bekleme (ms): veri okuma ve geçiş animasyonları biter. */
@@ -81,16 +89,20 @@ export const palettes: Readonly<Record<PaletteName, Palette>> = {
   violet: { base: "#c7b3ec", c0: "#ded1f5", c1: "#fff4ee", c2: "#f4c0a8", c3: "#a98bdb" },
 };
 
-/** Toplantı kimliği: tohumlayıcının "Product weekly" klasör adı, çalıştırma anında bilinir (bkz. make.ts). */
-export const productWeeklyPlaceholder: string = "{productWeekly}";
+/**
+ * Toplantı kimliği: veri setinin notu açılan toplantısı ("Product weekly", "Cognitive Psychology · Memory" ya da
+ * "User interview · Sara"); klasör adı çalıştırma anında bilinir (bkz. make.ts).
+ */
+export const meetingPlaceholder: string = "{meeting}";
 
-/** Sor sohbetinin kimliği: tohumlayıcının üç kaynaklı örnek sohbeti (bkz. make.ts). */
+/** Sor sohbetinin kimliği: veri setinin üç kaynaklı örnek sohbeti (bkz. make.ts). */
 export const askConversationPlaceholder: string = "{askConversation}";
 
 /** Görsellerin sırası App Store'daki sıradır: ilk ikisi arama sonuçlarında görünür. */
 export const scenes: readonly Scene[] = [
   {
     id: "home",
+    seed: "team",
     headline: "Your day at a glance",
     subhead: "Today's meetings and the tasks waiting for you.",
     // `--abone`: deneme satırı ("Free trial: …") görünmez.
@@ -101,6 +113,7 @@ export const scenes: readonly Scene[] = [
   },
   {
     id: "live",
+    seed: "team",
     headline: "Every word, as it’s spoken",
     subhead: "Live transcript and translation for in-person meetings.",
     launchArgs: ["--ornek-kayit"],
@@ -111,15 +124,17 @@ export const scenes: readonly Scene[] = [
   },
   {
     id: "note",
+    seed: "team",
     headline: "Notes that write themselves",
     subhead: "Summary, decisions and tasks, ready when it ends.",
-    launchArgs: ["--toplanti", productWeeklyPlaceholder],
+    launchArgs: ["--toplanti", meetingPlaceholder],
     settleMs: 5000,
     palette: "ocean",
     clouds: "left",
   },
   {
     id: "ask",
+    seed: "team",
     headline: "Ask your meetings",
     subhead: "Plain-language answers that cite the meeting.",
     launchArgs: ["--sohbet", askConversationPlaceholder],
@@ -129,6 +144,7 @@ export const scenes: readonly Scene[] = [
   },
   {
     id: "tasks",
+    seed: "team",
     headline: "Never drop a follow-up",
     subhead: "Your tasks from every meeting, in one list.",
     launchArgs: ["--sekme", "gorevler"],
@@ -138,6 +154,7 @@ export const scenes: readonly Scene[] = [
   },
   {
     id: "templates",
+    seed: "team",
     headline: "Notes shaped your way",
     subhead: "Templates for every kind of meeting.",
     launchArgs: ["--sablon-galerisi"],
@@ -156,6 +173,7 @@ export const scenes: readonly Scene[] = [
 export const rawScenes: readonly RawScene[] = [
   {
     id: "paywall",
+    seed: "team",
     launchArgs: ["--paywall"],
     settleMs: 7000,
   },
@@ -164,19 +182,182 @@ export const rawScenes: readonly RawScene[] = [
   ...(["light", "dark"] as const).flatMap((theme: "light" | "dark"): readonly RawScene[] => {
     const themeArgs: readonly string[] = ["-appearance.theme", theme];
     return [
-      { id: `qa-home-${theme}`, launchArgs: ["--abone", "--ornek-takvim", ...themeArgs], settleMs: 5000 },
-      { id: `qa-speakers-${theme}`, launchArgs: ["--sekme", "ayarlar", "--ayar", "konusmacilar", "-voiceRecognition", "YES", ...themeArgs], settleMs: 5000 },
-      { id: `qa-account-${theme}`, launchArgs: ["--abone", "--ekran", "hesap", ...themeArgs], settleMs: 5000 },
-      { id: `qa-meeting-${theme}`, launchArgs: ["--toplanti", productWeeklyPlaceholder, ...themeArgs], settleMs: 5000 },
+      { id: `qa-home-${theme}`, seed: "team", launchArgs: ["--abone", "--ornek-takvim", ...themeArgs], settleMs: 5000 },
+      { id: `qa-speakers-${theme}`, seed: "team", launchArgs: ["--sekme", "ayarlar", "--ayar", "konusmacilar", "-voiceRecognition", "YES", ...themeArgs], settleMs: 5000 },
+      { id: `qa-account-${theme}`, seed: "team", launchArgs: ["--abone", "--ekran", "hesap", ...themeArgs], settleMs: 5000 },
+      { id: `qa-meeting-${theme}`, seed: "team", launchArgs: ["--toplanti", meetingPlaceholder, ...themeArgs], settleMs: 5000 },
     ];
   }),
 ];
 
-/** 6.9" zorunlu; 6.5" aynı çekimden ucuza üretilir. */
+/**
+ * Özel ürün sayfalarının çekimleri (`customPages`; ana sete girmez). Tam çalıştırma bunları da çeker; her biri kendi
+ * veri setiyle.
+ */
+export const pageScenes: readonly RawScene[] = [
+  // Ana ekran takvimsiz: kayıt düğmesi öne çıkar ("One tap to start").
+  { id: "record", seed: "team", launchArgs: ["--abone"], settleMs: 5000 },
+  { id: "lecture-home", seed: "lectures", launchArgs: ["--abone"], settleMs: 5000 },
+  { id: "lecture-note", seed: "lectures", launchArgs: ["--toplanti", meetingPlaceholder], settleMs: 5000 },
+  { id: "lecture-ask", seed: "lectures", launchArgs: ["--sohbet", askConversationPlaceholder], settleMs: 4000 },
+  { id: "lecture-library", seed: "lectures", launchArgs: ["--ekran", "kitaplik"], settleMs: 4000 },
+  { id: "interview-note", seed: "interviews", launchArgs: ["--toplanti", meetingPlaceholder], settleMs: 5000 },
+  { id: "interview-ask", seed: "interviews", launchArgs: ["--sohbet", askConversationPlaceholder], settleMs: 4000 },
+  { id: "interview-people", seed: "interviews", launchArgs: ["--ekran", "kisiler"], settleMs: 4000 },
+  { id: "interview-library", seed: "interviews", launchArgs: ["--ekran", "kitaplik"], settleMs: 4000 },
+];
+
+/** 6.9" zorunlu; 6.5" ve 6.3" aynı çekimden piksel piksel yeniden düzenlenir (ölçekleme değil). */
 export const outputSizes: readonly OutputSize[] = [
   { id: "6.9", width: 1320, height: 2868 },
   { id: "6.5", width: 1284, height: 2778 },
+  { id: "6.3", width: 1206, height: 2622 },
 ];
+
+/** Özel ürün sayfalarının boyutları. */
+export const customPageSizes: readonly OutputSize[] = [
+  { id: "6.9", width: 1320, height: 2868 },
+  { id: "6.3", width: 1206, height: 2622 },
+];
+
+/** Ürün sayfası başlığının ve arama görselinin metni (satır satır). */
+export interface BannerCopy {
+  readonly headline: readonly string[];
+  readonly subhead: readonly string[];
+}
+
+/** Bir başlık görseli: metin, üç çekim (ortadaki öne çıkar) ve zemin. */
+export interface Banner {
+  readonly copy: BannerCopy;
+  readonly shots: readonly [string, string, string];
+  readonly palette: PaletteName;
+  readonly clouds: CloudSide;
+}
+
+/** Ana ürün sayfasının başlığı (21:9): ortada ana ekran. */
+export const productHeader: Banner = {
+  copy: { headline: ["Your meetings,", "already written up."], subhead: ["When the meeting ends,", "your note is ready."] },
+  shots: ["note", "home", "tasks"],
+  palette: "violet",
+  clouds: "left",
+};
+
+/** Arama sonucu görseli (3:2). */
+export const searchBanner: Banner = {
+  copy: { headline: ["Put your iPhone on the table."], subhead: ["When the meeting ends, your note is ready."] },
+  shots: ["live", "note", "tasks"],
+  palette: "ocean",
+  clouds: "right",
+};
+
+/** In-App Event görsellerinin (metinsiz; adı ve açıklamayı App Store bindirir) çekimleri ve zemini. */
+export const eventArt: Omit<Banner, "copy"> = {
+  shots: ["live", "note", "home"],
+  palette: "sunset",
+  clouds: "right",
+};
+
+/** Özel ürün sayfasının bir ekran görüntüsü: ham çekim (`scenes` ya da `pageScenes` kimliği) ve metin. */
+export interface PageShot {
+  readonly raw: string;
+  /** En çok 30 karakter. */
+  readonly headline: string;
+  /** En çok 60 karakter. */
+  readonly subhead: string;
+  readonly palette: PaletteName;
+  readonly clouds: CloudSide;
+}
+
+/** Özel ürün sayfası (docs/appstore/custom-product-pages.md): ekran görüntüleri sırasıyla ve varsa kendi başlığı. */
+export interface CustomPage {
+  /** App Store Connect'teki referans adı ve çıktı klasörü. */
+  readonly id: string;
+  readonly shots: readonly PageShot[];
+  /** Kendi ürün sayfası başlığı; null ana başlığı kullanır. */
+  readonly header: Banner | null;
+}
+
+export const customPages: readonly CustomPage[] = [
+  {
+    id: "cpp-students-lectures",
+    shots: [
+      { raw: "live", headline: "Never miss what was said", subhead: "Live transcript of the lecture, speaker by speaker.", palette: "sunset", clouds: "right" },
+      { raw: "lecture-note", headline: "Lecture notes, done", subhead: "Key points and to-dos, ready when class ends.", palette: "ocean", clouds: "left" },
+      { raw: "lecture-ask", headline: "Revise by asking", subhead: "“What did the lecturer say about the exam?”", palette: "violet", clouds: "right" },
+      { raw: "lecture-library", headline: "Every class, searchable", subhead: "Find any topic by word, course or date.", palette: "mint", clouds: "left" },
+      { raw: "lecture-home", headline: "One tap to start", subhead: "Put your iPhone on the desk and press record.", palette: "coral", clouds: "right" },
+    ],
+    header: {
+      copy: { headline: ["Lectures,", "already written up."], subhead: ["When class ends,", "your notes are ready."] },
+      shots: ["lecture-note", "lecture-home", "lecture-ask"],
+      palette: "ocean",
+      clouds: "left",
+    },
+  },
+  {
+    id: "cpp-interviews-research",
+    shots: [
+      { raw: "live", headline: "Every answer, word for word", subhead: "A live transcript, separated by speaker.", palette: "sunset", clouds: "right" },
+      { raw: "interview-ask", headline: "Ask across interviews", subhead: "Plain-language answers that cite each interview.", palette: "violet", clouds: "left" },
+      { raw: "interview-note", headline: "Key points, not just text", subhead: "Summary, glossary and follow-ups for each interview.", palette: "ocean", clouds: "right" },
+      { raw: "interview-people", headline: "Know who said what", subhead: "Name speakers once; see their meetings and talk time.", palette: "rose", clouds: "left" },
+      { raw: "interview-library", headline: "Bring your recordings", subhead: "Import audio or video from Files or Photos.", palette: "mint", clouds: "right" },
+    ],
+    header: {
+      copy: { headline: ["Interviews,", "word for word."], subhead: ["A transcript by speaker,", "a note when it ends."] },
+      shots: ["interview-ask", "interview-note", "interview-library"],
+      palette: "rose",
+      clouds: "left",
+    },
+  },
+  {
+    id: "cpp-team-meetings",
+    shots: [
+      { raw: "tasks", headline: "Never drop a follow-up", subhead: "Your tasks from every meeting, in one list.", palette: "mint", clouds: "left" },
+      { raw: "note", headline: "Decisions, written down", subhead: "Summary, decisions and tasks, ready when it ends.", palette: "ocean", clouds: "right" },
+      { raw: "home", headline: "Walk in prepared", subhead: "A briefing on past meetings with the same people.", palette: "coral", clouds: "left" },
+      { raw: "ask", headline: "Ask your meetings", subhead: "Plain-language answers that cite the meeting.", palette: "violet", clouds: "right" },
+      { raw: "record", headline: "One tap to start", subhead: "Put your iPhone on the table and press record.", palette: "sunset", clouds: "left" },
+    ],
+    header: null,
+  },
+];
+
+const headlineLimit: number = 30;
+const subheadLimit: number = 60;
+
+/** Bir metnin sınır sorunları (boşsa geçerli). Saf fonksiyondur. */
+function copyProblems(id: string, headline: string, subhead: string | null): readonly string[] {
+  return [
+    ...(headline.length > headlineLimit ? [`${id}: başlık ${headline.length} karakter (en çok ${headlineLimit}): "${headline}"`] : []),
+    ...(subhead !== null && subhead.length > subheadLimit ? [`${id}: alt başlık ${subhead.length} karakter (en çok ${subheadLimit}): "${subhead}"`] : []),
+  ];
+}
+
+/**
+ * Ayar dosyasının sorunları (boşsa geçerli): yinelenen sahne kimlikleri, uzun metinler, olmayan çekime başvuran sayfa
+ * ve başlık görselleri. Saf fonksiyondur.
+ */
+export function configProblems(): readonly string[] {
+  const all: readonly RawScene[] = [...scenes, ...pageScenes, ...rawScenes];
+  const ids: readonly string[] = all.map((scene: RawScene) => scene.id);
+  const duplicates: readonly string[] = ids.filter((id: string, index: number) => ids.indexOf(id) !== index);
+  const captured: ReadonlySet<string> = new Set<string>([...scenes, ...pageScenes].map((scene: RawScene) => scene.id));
+  const banners: readonly Banner[] = [productHeader, searchBanner, ...customPages.flatMap((page: CustomPage) => (page.header === null ? [] : [page.header]))];
+  const referenced: readonly string[] = [
+    ...banners.flatMap((banner: Banner) => banner.shots),
+    ...eventArt.shots,
+    ...customPages.flatMap((page: CustomPage) => page.shots.map((shot: PageShot) => shot.raw)),
+  ];
+  return [
+    ...duplicates.map((id: string) => `Sahne kimliği iki kez geçiyor: ${id}`),
+    ...scenes.flatMap((scene: Scene) => copyProblems(scene.id, scene.headline, scene.subhead)),
+    ...customPages.flatMap((page: CustomPage) =>
+      page.shots.flatMap((shot: PageShot, index: number) => copyProblems(`${page.id} #${index + 1}`, shot.headline, shot.subhead)),
+    ),
+    ...referenced.filter((id: string) => !captured.has(id)).map((id: string) => `Bilinmeyen çekim (scenes ya da pageScenes'te yok): ${id}`),
+  ];
+}
 
 export const simulator: SimulatorConfig = {
   name: "Gistsmith App Store 6.9",
