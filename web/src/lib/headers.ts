@@ -203,6 +203,11 @@ export function pagesHeaders(config: SiteConfig, hashes: InlineHashes): string {
     `  Content-Security-Policy: ${contentSecurityPolicy(config, pageServices.meeting, hashes)}`,
     "  Cache-Control: no-store",
     "",
+    // ChatGPT eklenti dizininin alan adı doğrulaması (public/.well-known/openai-apps-challenge): yalnızca jeton, düz metin.
+    "/.well-known/openai-apps-challenge",
+    "  Content-Type: text/plain; charset=utf-8",
+    "  Cache-Control: no-store",
+    "",
     // Adı içerik özeti taşıyan derleme çıktıları değişmez.
     "/_astro/*",
     "  Cache-Control: public, max-age=31536000, immutable",
