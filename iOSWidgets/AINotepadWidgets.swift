@@ -1,6 +1,7 @@
 import ActivityKit
 import AppIntents
 import SwiftUI
+import UIKit
 import WidgetKit
 
 /// Widget eklentisi: kaydın canlı etkinliği, Denetim Merkezi düğmesi ve ana ekran / kilit ekranı widget'ı.
@@ -249,7 +250,8 @@ struct QuickRecordWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "com.senoldogan.AINotepad.quickRecord", provider: QuickRecordProvider()) { (_: QuickRecordEntry) in
             QuickRecordView()
-                .containerBackground(for: .widget) { Color(red: 0.99, green: 0.99, blue: 0.99) }
+                // Sistemin widget zemini: açık temada beyaz, koyu temada koyu; renkli (tinted) ana ekranda sistem kaldırır.
+                .containerBackground(for: .widget) { Color(uiColor: .systemBackground) }
         }
         .configurationDisplayName("Toplantıyı kaydet")
         .description("Tek dokunuşla yüz yüze toplantıyı kaydetmeye başla.")
@@ -276,9 +278,11 @@ struct QuickRecordProvider: TimelineProvider {
     }
 }
 
-/// Küçük widget: turuncu mikrofon dairesi ve "Toplantıyı kaydet"; kilit ekranında yalnız daire.
+/// Küçük widget: turuncu mikrofon dairesi ve "Toplantıyı kaydet"; kilit ekranında yalnız daire. Yazılar temanın
+/// birincil/ikincil renginde (koyu ve renkli ana ekranda da okunur); renkli ana ekranda daire vurgu katmanına girer.
 private struct QuickRecordView: View {
     @Environment(\.widgetFamily) private var family: WidgetFamily
+    @Environment(\.widgetRenderingMode) private var renderingMode: WidgetRenderingMode
 
     var body: some View {
         Button(intent: StartRecordingIntent()) {
@@ -293,18 +297,22 @@ private struct QuickRecordView: View {
             } else {
                 VStack(alignment: .leading, spacing: 10) {
                     ZStack {
-                        Circle().fill(accent).frame(width: 52, height: 52)
+                        // Renkli ana ekranda dolu daire sistemin vurgu tonunu alır, simge onun üstünde zemin renginde kalır.
+                        Circle()
+                            .fill(renderingMode == .fullColor ? accent : Color.primary.opacity(0.25))
+                            .frame(width: 52, height: 52)
+                            .widgetAccentable()
                         Image(systemName: "mic.fill")
                             .font(.system(size: 22, weight: .semibold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(renderingMode == .fullColor ? Color.white : Color.primary)
                     }
                     Spacer(minLength: 0)
                     Text("Toplantıyı kaydet")
                         .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Color(red: 0.04, green: 0.04, blue: 0.04))
+                        .foregroundStyle(.primary)
                     Text(verbatim: "Gistsmith")
                         .font(.system(size: 12))
-                        .foregroundStyle(Color(red: 0.45, green: 0.45, blue: 0.45))
+                        .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             }

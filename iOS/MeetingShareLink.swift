@@ -3,8 +3,16 @@ import AINotepadUI
 import SwiftUI
 import UIKit
 
+/// Paylaşım sayfasıyla gönderilecek yeni bağlantı.
+private struct CreatedShareLink: Identifiable {
+    let url: URL
+
+    var id: String { url.absoluteString }
+}
+
 /// Mac'teki "Bağlantıyla paylaş…" kartının iPhone sayfası: süre, isteğe bağlı transkript, uçtan uca şifreli bağlantı
 /// oluşturma ve bu toplantının bu cihazdaki bağlantıları (kopyala, kaldır). Paylaşılan not sayfada seçili dildeki nottur.
+/// Oluşturulan bağlantı panoya da kopyalanır ve sistemin paylaşım sayfası açılır (Mesajlar, Mail, Slack…).
 struct PhoneNoteShareSheet: View {
     let record: MeetingRecord
     /// Sayfada seçili not dili (paylaşım sürümü); nil ise asıl not.
@@ -12,6 +20,8 @@ struct PhoneNoteShareSheet: View {
     @State private var center: NoteShareCenter = NoteShareCenter()
     @State private var expiry: NoteShareExpiry = .month
     @State private var includeTranscript: Bool = false
+    /// Az önce oluşturulan bağlantı: paylaşım sayfası açık.
+    @State private var createdLink: CreatedShareLink?
     @Environment(\.dismiss) private var dismiss: DismissAction
 
     var body: some View {
@@ -19,6 +29,7 @@ struct PhoneNoteShareSheet: View {
             ScrollView {
                 NoteSharePanel(
                     expiry: $expiry, includeTranscript: $includeTranscript, hasTranscript: !transcriptParagraphs(record: record).isEmpty,
+            isTranslationMissing: isShareTranslationMissing(record: record, language: language),
                     links: center.links(meetingID: record.id), status: center.status, copiedShareID: center.copiedShareID,
                     onCreate: create, onCopy: { (entry: NoteShareLinkEntry) in center.copy(entry: entry, copy: copyToPasteboard) },
                     onRevoke: { (entry: NoteShareLinkEntry) in Task { await center.revoke(shareID: entry.shareID) } }, onClose: nil
@@ -35,13 +46,22 @@ struct PhoneNoteShareSheet: View {
             }
         }
         .task(id: record.id) { await center.refresh() }
+        .sheet(item: $createdLink) { (link: CreatedShareLink) in
+            ActivityShareSheet(items: [link.url])
+                .presentationDetents([.medium, .large])
+        }
     }
 
     private func create() {
         guard let payload = noteSharePayload(record: record, language: language, includeTranscript: includeTranscript) else {
             return
         }
-        Task { await center.create(meetingID: record.id, payload: payload, expiry: expiry, copy: copyToPasteboard) }
+        Task {
+            await center.create(meetingID: record.id, payload: payload, expiry: expiry) { (link: URL) -> Void in
+                copyToPasteboard(link)
+                createdLink = CreatedShareLink(url: link)
+            }
+        }
     }
 
     private func copyToPasteboard(_ link: URL) {

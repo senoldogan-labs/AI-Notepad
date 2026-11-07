@@ -234,6 +234,22 @@ public enum HostedUpsellMoment: String, Sendable, Equatable {
     case planChoice
 }
 
+/// Teklifin gösterimi: kendiliğinden gelen anlar (not hazır, deneme bitiyor ya da bitti) sayfayı kapatmaz, altta ince
+/// şerit olur (kullanıcı önce notunu görür, şeritten planları açar); kullanıcının istediği ya da abonelik gerektiren bir
+/// şeyi denediği anlar planları hemen açar.
+public enum HostedUpsellPresentation: Sendable, Equatable {
+    case strip
+    case sheet
+}
+
+/// Anın gösterimi (bkz. `HostedUpsellPresentation`). Saf fonksiyondur.
+public func hostedUpsellPresentation(moment: HostedUpsellMoment) -> HostedUpsellPresentation {
+    switch moment {
+    case .trialNoteReady, .trialEnding, .trialEnded: .strip
+    case .subscriptionRequired, .planChoice: .sheet
+    }
+}
+
 /// Sunucunun abonelik reddinden açılan teklif en çok bu aralıkla bir gösterilir (saniye): arka plandaki işler (bekleyen
 /// kayıtlar, uygulama öne gelince yenileme) teklifi art arda açmasın. Kullanıcının kendi denemesi (Başlat) her zaman açar.
 public let hostedSubscriptionPromptIntervalSec: Double = 10 * 60

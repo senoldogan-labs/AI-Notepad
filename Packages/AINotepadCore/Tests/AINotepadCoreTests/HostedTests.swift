@@ -498,6 +498,15 @@ private func llmRequest(tier: LLMTier, schema: String?) -> LLMRequest {
         #expect(hostedStartBlockRemedy(block: .paymentOverdue) == .openAccount)
     }
 
+    // Kendiliğinden gelen teklif anları sayfayı kapatmaz (alt şerit); istenen ya da gerekli olanlar planları hemen açar.
+    @Test func upsellPresentation() {
+        #expect(hostedUpsellPresentation(moment: .trialNoteReady) == .strip)
+        #expect(hostedUpsellPresentation(moment: .trialEnding) == .strip)
+        #expect(hostedUpsellPresentation(moment: .trialEnded) == .strip)
+        #expect(hostedUpsellPresentation(moment: .subscriptionRequired) == .sheet)
+        #expect(hostedUpsellPresentation(moment: .planChoice) == .sheet)
+    }
+
     // Abone olma teklifi: denemede günde en çok bir, deneme bitince hesap başına bir kez; abonede hiç.
     @Test func upsellMoments() throws {
         let trialJSON: String = #"""

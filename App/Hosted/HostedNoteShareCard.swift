@@ -17,6 +17,7 @@ struct NoteShareCard: View {
     var body: some View {
         NoteSharePanel(
             expiry: $expiry, includeTranscript: $includeTranscript, hasTranscript: !transcriptParagraphs(record: record).isEmpty,
+            isTranslationMissing: isShareTranslationMissing(record: record, language: language),
             links: center.links(meetingID: record.id), status: center.status, copiedShareID: center.copiedShareID,
             onCreate: create, onCopy: { (entry: NoteShareLinkEntry) in center.copy(entry: entry, copy: copyToPasteboard) },
             onRevoke: { (entry: NoteShareLinkEntry) in Task { await center.revoke(shareID: entry.shareID) } }, onClose: onClose

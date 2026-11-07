@@ -869,6 +869,7 @@ struct MeetingDetailPage: View {
                     .accessibilityHidden(true)
                 Spacer(minLength: DesignTokens.Spacing.s)
                 listenButton
+                shareMenu
                 moreMenu
             }
             Group {
@@ -986,16 +987,81 @@ struct MeetingDetailPage: View {
         }
     }
 
-    /// "⋯" menüsü: sık kullanılanlar üstte (paylaş, kopyala, takip e-postası, notu yenile), dışa aktarma ve gönderme
-    /// alt menülerde, yönetim ve silme en altta.
-    private var moreMenu: some View {
+    /// Başlıktaki "Paylaş": notu paylaşmanın bütün yolları tek yerde (önceden "⋯ › Gönder"in altındaydı): bağlantıyla,
+    /// kanala (Slack, Teams…), e-postayla, Markdown kopyası ve sistemin paylaşım seçicisi.
+    private var shareMenu: some View {
         Menu {
+            linkShareButton
+            channelMenu
+            Button("E-postayla gönder", systemImage: "envelope") { emailNote() }
+                .disabled(record.note == nil)
+            Button("Markdown olarak kopyala", systemImage: "doc.on.doc") { copyMarkdown() }
             if let text = displayedShareText {
+                Divider()
                 ShareLink(item: text, subject: Text(record.note?.title ?? record.title)) {
-                    Label("Notu paylaş", systemImage: "square.and.arrow.up")
+                    Label("Diğer uygulamalarla paylaş…", systemImage: "square.and.arrow.up")
                 }
             }
-            Button("Markdown olarak kopyala", systemImage: "doc.on.doc") { copyMarkdown() }
+        } label: {
+            Label("Paylaş", systemImage: "square.and.arrow.up")
+        }
+        .menuStyle(.button)
+        .buttonStyle(.pill)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .hoverHint("Bağlantı, kanal, e-posta ya da kopya", alignment: .trailing, edge: .bottom)
+    }
+
+    /// "Bağlantıyla paylaş…": abonelikte uçtan uca şifreli bağlantı kartı, geliştirici sürümünde iCloud PDF bağlantısı.
+    @ViewBuilder
+    private var linkShareButton: some View {
+        #if HOSTED_EDITION
+        // Uçtan uca şifreli bağlantı: kart sayfanın üstünde açılır (süre, transkript, bağlantılar).
+        Button("Bağlantıyla paylaş…", systemImage: "link") {
+            withAnimation(.smooth(duration: 0.25)) {
+                followUpLanguage = nil
+                sharingWithLink = true
+            }
+        }
+        .disabled(record.note == nil || record.isSampleMeeting)
+        #else
+        Button("Bağlantıyla paylaş…", systemImage: "link") { shareViaLink() }
+        #endif
+    }
+
+    /// Ayarlardaki kanallara (Slack, Teams, Discord, Zapier…) gönderim: her hedefe ayrı ayrı ya da hepsine; gönderilmiş
+    /// hedef işaretli.
+    private var channelMenu: some View {
+        Menu("Kanala gönder", systemImage: "paperplane") {
+            if model.destinations.isEmpty {
+                Text("Ayarlar › Bağlantılar'dan kanal ekle")
+            } else {
+                ForEach(model.destinations) { (destination: NoteDestination) in
+                    let sent: Bool = wasSent(record: record, destination: destination)
+                    Button {
+                        Task { await model.sendNote(meetingID: record.id, destinationIDs: [destination.id]) }
+                    } label: {
+                        Label(
+                            "\(destinationName(destination: destination)) · \(destinationDetail(destination: destination))",
+                            systemImage: sent ? "checkmark" : "paperplane"
+                        )
+                    }
+                }
+                if model.destinations.count > 1 {
+                    Divider()
+                    Button("Hepsine gönder") {
+                        Task { await model.sendNote(meetingID: record.id, destinationIDs: model.destinations.map(\.id)) }
+                    }
+                }
+            }
+        }
+        .disabled(record.note == nil || model.webhookStates[record.id] == .sending)
+    }
+
+    /// "⋯" menüsü: sık kullanılanlar üstte (takip e-postası, notu yenile, tarif), dışa aktarma ve gönderme alt
+    /// menülerde, yönetim ve silme en altta. Paylaşma yolları başlıktaki "Paylaş"ta.
+    private var moreMenu: some View {
+        Menu {
             // Nottan takip e-postası: kart sayfanın üstünde açılır (taslak düzenlenir, kopyalanır ya da Mail'de açılır).
             Button("Takip e-postası yaz", systemImage: "envelope.badge") {
                 withAnimation(.smooth(duration: 0.25)) {
@@ -1032,7 +1098,7 @@ struct MeetingDetailPage: View {
         .menuIndicator(.hidden)
         .fixedSize()
         .accessibilityLabel("Diğer işlemler")
-        .hoverHint("Paylaş, dışa aktar, gönder ve diğer işlemler", alignment: .trailing, edge: .bottom)
+        .hoverHint("Dışa aktar, gönder ve diğer işlemler", alignment: .trailing, edge: .bottom)
     }
 
     /// Dosya olarak dışa aktarma (seçili not dilinde): PDF, Markdown, Word, web sayfası, transkriptin düz metni, SRT
@@ -1068,51 +1134,14 @@ struct MeetingDetailPage: View {
         .disabled(record.note == nil)
     }
 
-    /// Notu başka yere gönderir: e-posta, PDF paylaşımı (iCloud bağlantısı ya da paylaşım seçicisi), ayarlardaki
-    /// kanallar (Slack, Teams, Discord, Zapier…), görev araçları (Linear, Jira) ve Apple Notlar.
+    /// Notu başka yere gönderir: PDF paylaşımı (abonelikte), görev araçları (Linear, Jira) ve Apple Notlar. Bağlantı,
+    /// kanal ve e-posta başlıktaki "Paylaş"ta.
     @ViewBuilder
     private var sendItems: some View {
-        Button("E-postayla gönder", systemImage: "envelope") { emailNote() }
-            .disabled(record.note == nil)
         #if HOSTED_EDITION
         // Abonelik sürümünde iCloud yok: PDF geçici klasörden paylaşım seçicisiyle (Mail, AirDrop, Mesajlar…).
         Button("PDF olarak paylaş…", systemImage: "square.and.arrow.up") { sharePDF() }
-        // Uçtan uca şifreli bağlantı: kart sayfanın üstünde açılır (süre, transkript, bağlantılar).
-        Button("Bağlantıyla paylaş…", systemImage: "link") {
-            withAnimation(.smooth(duration: 0.25)) {
-                followUpLanguage = nil
-                sharingWithLink = true
-            }
-        }
-        .disabled(record.note == nil || record.isSampleMeeting)
-        #else
-        Button("Bağlantıyla paylaş…", systemImage: "link") { shareViaLink() }
         #endif
-        // Bağlı her hedefe ayrı ayrı ya da hepsine; gönderilmiş hedef işaretli.
-        Menu("Kanala gönder", systemImage: "paperplane") {
-            if model.destinations.isEmpty {
-                Text("Ayarlar › Bağlantılar'dan kanal ekle")
-            } else {
-                ForEach(model.destinations) { (destination: NoteDestination) in
-                    let sent: Bool = wasSent(record: record, destination: destination)
-                    Button {
-                        Task { await model.sendNote(meetingID: record.id, destinationIDs: [destination.id]) }
-                    } label: {
-                        Label(
-                            "\(destinationName(destination: destination)) · \(destinationDetail(destination: destination))",
-                            systemImage: sent ? "checkmark" : "paperplane"
-                        )
-                    }
-                }
-                if model.destinations.count > 1 {
-                    Divider()
-                    Button("Hepsine gönder") {
-                        Task { await model.sendNote(meetingID: record.id, destinationIDs: model.destinations.map(\.id)) }
-                    }
-                }
-            }
-        }
-        .disabled(record.note == nil || model.webhookStates[record.id] == .sending)
         // Görevleri Linear ya da Jira'da iş olarak açar. Araç adı iki noktadan sonra: Türkçe ek ada göre değişir ("Jira'ya").
         Menu("Görevleri gönder", systemImage: "checklist") {
             if model.taskTrackers.isEmpty {
