@@ -895,10 +895,15 @@ struct MeetingDetailPage: View {
             .tracking(-0.8)
             .padding(.top, 14)
             HStack(alignment: .center, spacing: 10) {
-                MeetingInfoChips(chips: meetingInfoChips(record: record, speakers: speakers.count, locale: interfaceLocale()))
+                let chips: MeetingInfoChips = MeetingInfoChips(chips: meetingInfoChips(record: record, speakers: speakers.count, locale: interfaceLocale()))
+                if speakerNamesLine.isEmpty {
+                    chips
+                } else {
                     // Konuşanların adları üstüne gelince ve VoiceOver'da.
-                    .hoverHint(verbatim: speakerNamesLine, alignment: .leading, edge: .bottom)
-                    .accessibilityHint(Text(verbatim: speakerNamesLine))
+                    chips
+                        .hoverHint(verbatim: speakerNamesLine, alignment: .leading, edge: .bottom)
+                        .accessibilityHint(Text(verbatim: speakerNamesLine))
+                }
                 if mine > 0 {
                     // Sana düşen görevler: tek vurgu; tıklayınca nottaki görevlere gider.
                     Button(String(localized: "Sana \(mine) görev")) {

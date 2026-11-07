@@ -32,7 +32,8 @@ final class PhoneAsk {
     /// Soruyu yalnız bu toplantıya sorar (toplantı sayfasının çubuğu); Sor sekmesiyle aynı hat ve denetimler: hakkı
     /// yoksa abonelik ekranı, deneme başlamadıysa neden sohbette. iPhone'da ekran görüntüsü okunmaz.
     func askAboutMeeting(meetingID: String, question: String, recipeTitle: String?) {
-        guard let record = store.meetings.first(where: { $0.id == meetingID }), isMentionableMeeting(record: record) else {
+        // Süren cevap varken yeni soru sorulmaz (kullanım da sayılmaz).
+        guard let record = store.meetings.first(where: { $0.id == meetingID }), isMentionableMeeting(record: record), !meetingAsk.isAnswering(meetingID: meetingID) else {
             return
         }
         if HostedAccount.shared.requiresSubscription {

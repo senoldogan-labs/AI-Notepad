@@ -2819,7 +2819,8 @@ final class AppModel {
     /// Soruyu yalnız bu toplantıya sorar (toplantı sayfasının çubuğu); Sor sayfasıyla aynı hat ve denetimler: abonelik,
     /// deneme, cihaz içi modelin dilleri, ekran görüntüsü planı (Ayarlar'daki "Notlarda ekran görüntülerini kullan").
     func askAboutMeeting(meetingID: String, question: String, recipeTitle: String?) {
-        guard let record = meetings.first(where: { $0.id == meetingID }), isMentionableMeeting(record: record) else {
+        // Süren cevap varken yeni soru sorulmaz (kullanım da sayılmaz).
+        guard let record = meetings.first(where: { $0.id == meetingID }), isMentionableMeeting(record: record), !meetingAsk.isAnswering(meetingID: meetingID) else {
             return
         }
         guard !isAIBlockedBySubscription() else {

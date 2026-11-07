@@ -88,8 +88,8 @@ public struct NoteDocumentHeading: View {
 }
 
 /// Kaynağı gösterilebilen not satırı. `leading` maddenin işareti (nokta, numara, görev kutusu), `content` metni.
-/// Mac'te üstüne gelince satır hafifçe dolar ve sağda büyüteç belirir; iPhone'da satıra dokununca ya da basılı tutunca
-/// (satırdaki düğmeler kendi dokunuşunu alır) kaynak kutusu açılır. Kaynaklar kutu açılırken bulunur (`noteSources`):
+/// Mac'te üstüne gelince satır hafifçe dolar ve sağda büyüteç belirir; iPhone'da satıra dokununca (satırdaki düğmeler
+/// kendi dokunuşunu alır) kaynak kutusu açılır. Kaynaklar kutu açılırken bulunur (`noteSources`):
 /// her çizimde bütün maddeler için transkript taranmaz.
 public struct NoteSourceRow<Leading: View, Content: View>: View {
     /// Maddenin metni ve (karar, açık konu, konu akışında) anı: kaynak bunlarla aranır.
@@ -165,8 +165,8 @@ public struct NoteSourceRow<Leading: View, Content: View>: View {
             withAnimation(.easeOut(duration: 0.12)) { isHovered = hovering }
         }
         #else
+        // Dokunuş açar; uzun basma satırın kendi menüsüne kalır (görevde "Anımsatıcılara ekle", "Metni kopyala").
         .onTapGesture { isOpen.wrappedValue = true }
-        .onLongPressGesture { isOpen.wrappedValue = true }
         .popover(isPresented: isOpen, arrowEdge: .top) {
             popoverContent.presentationCompactAdaptation(.popover)
         }
