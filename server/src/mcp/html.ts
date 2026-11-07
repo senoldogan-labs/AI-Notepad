@@ -27,7 +27,7 @@ export function pageHeaders(page: Page): Headers {
   const formAction: string = ["'self'", ...page.formTargets].join(" ");
   return new Headers({
     "content-type": "text/html; charset=utf-8",
-    "content-security-policy": `default-src 'none'; style-src 'nonce-${page.nonce}'; script-src 'nonce-${page.nonce}'; form-action ${formAction}; frame-ancestors 'none'; base-uri 'none'`,
+    "content-security-policy": `default-src 'none'; img-src https://gistsmith.com; style-src 'nonce-${page.nonce}'; script-src 'nonce-${page.nonce}'; form-action ${formAction}; frame-ancestors 'none'; base-uri 'none'`,
     "x-frame-options": "DENY",
     "referrer-policy": "no-referrer",
     "x-content-type-options": "nosniff",
@@ -93,9 +93,9 @@ const shieldIcon: string = `<svg viewBox="0 0 20 20" aria-hidden="true" fill="no
 const verifiedIcon: string = `<svg viewBox="0 0 20 20" aria-hidden="true" fill="currentColor"><path d="M10 1.5 12.2 3l2.6-.1.9 2.5 2.2 1.4-.8 2.5.8 2.5-2.2 1.4-.9 2.5-2.6-.1L10 18.5 7.8 17l-2.6.1-.9-2.5-2.2-1.4.8-2.5-.8-2.5 2.2-1.4.9-2.5L7.8 3 10 1.5Zm3.4 5.8-4.4 4.6-2.3-2.3-1.1 1.1 3.4 3.4 5.5-5.7-1.1-1.1Z"/></svg>`;
 
 function document(title: string, body: string, nonce: string): string {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><link rel="icon" href="https://gistsmith.com/favicon.svg" type="image/svg+xml">
 <title>${escapeHtml(title)}</title><style nonce="${nonce}">${style}</style></head><body><main><div class="brand">${logo}<span>Gistsmith</span></div><div class="panel">${body}</div></main>
-<footer><a href="https://gistsmith.com/mcp">About AI assistant access</a><a href="https://gistsmith.com/privacy">Privacy</a><a href="https://gistsmith.com/terms">Terms</a></footer></body></html>`;
+<footer><a href="https://gistsmith.com/mcp#remote">About AI assistant access</a><a href="https://gistsmith.com/privacy">Privacy</a><a href="https://gistsmith.com/terms">Terms</a></footer></body></html>`;
 }
 
 /** Heading and description of a client. Pure function. */

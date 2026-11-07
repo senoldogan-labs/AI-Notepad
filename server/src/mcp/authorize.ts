@@ -397,16 +397,23 @@ function failureResponse(error: unknown, path: string): Response {
   return pageResponse(errorPage(500, "Something went wrong", "Try again in a moment.", nonce), null);
 }
 
+/** A cacheable permanent redirect to gistsmith.com. Pure function. */
+function siteRedirect(location: string): Response {
+  return new Response(null, { status: 301, headers: { location, "cache-control": "public, max-age=86400" } });
+}
+
 /** The Worker's non-OAuth routes (the provider's `defaultHandler`). */
 export async function handleAuthorizePages(request: Request, context: AuthorizeContext, clientIp: string): Promise<Response> {
   const path: string = new URL(request.url).pathname;
   const method: string = request.method;
   const ipKey: string = clientIpKey(clientIp);
   try {
+    // People who open the server's address land on the site's explainer; icon fetchers get the app icon.
     if (path === "/" && method === "GET") {
-      return new Response("Gistsmith MCP server. Add https://mcp.gistsmith.com/mcp as a connector in your AI assistant.\n", {
-        headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=3600" },
-      });
+      return siteRedirect("https://gistsmith.com/mcp#remote");
+    }
+    if (path === "/favicon.ico" && method === "GET") {
+      return siteRedirect("https://gistsmith.com/icon-512.png");
     }
     const outcome: RateLimitOutcome = await context.env.MCP_IP_LIMITER.limit({ key: `ip:${ipKey}` });
     if (!outcome.success) {
