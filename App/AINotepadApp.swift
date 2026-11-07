@@ -490,7 +490,7 @@ struct AINotepadApp: App {
                 .disabled(model.phase == .finishing
                     || (model.phase == .idle && (!model.isReadyToRecord || model.isStarting || isSignInRequired() || startBlockNotice(model: model) != nil)))
             }
-            // Bölümler arası geçiş (⌘1–5), Mac uygulamalarının alışılmış kısayolları.
+            // Bölümler arası geçiş (⌘1–6), Mac uygulamalarının alışılmış kısayolları.
             CommandMenu("Git") {
                 Button("Ana sayfa") { openMainWindow(router: router, section: .home) }
                     .keyboardShortcut("1", modifiers: .command)
@@ -502,6 +502,8 @@ struct AINotepadApp: App {
                     .keyboardShortcut("4", modifiers: .command)
                 Button("Kişiler") { openMainWindow(router: router, section: .people) }
                     .keyboardShortcut("5", modifiers: .command)
+                Button("İstatistikler") { openMainWindow(router: router, section: .insights) }
+                    .keyboardShortcut("6", modifiers: .command)
             }
         }
         MenuBarExtra {

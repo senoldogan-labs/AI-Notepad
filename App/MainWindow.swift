@@ -20,6 +20,7 @@ enum MainSection: Hashable {
     case ask
     case people
     case tasks
+    case insights
     case settings
     case setup
 }
@@ -77,8 +78,8 @@ final class QuitGuard {
     var allowQuit: Bool = false
 }
 
-/// `--bolum ana|toplantilar|ayarlar|kurulum` başlatma argümanından ana pencere bölümü (görsel kontrol ve geliştirme
-/// için); yoksa nil. Saf fonksiyondur.
+/// `--bolum ana|toplantilar|gorevler|sor|kisiler|istatistikler|ayarlar|kurulum` başlatma argümanından ana pencere
+/// bölümü (görsel kontrol ve geliştirme için); yoksa nil. Saf fonksiyondur.
 func launchSection(arguments: [String]) -> MainSection? {
     guard let index = arguments.firstIndex(of: "--bolum"), arguments.indices.contains(index + 1) else {
         return nil
@@ -89,6 +90,7 @@ func launchSection(arguments: [String]) -> MainSection? {
     case "gorevler": return .tasks
     case "sor": return .ask
     case "kisiler": return .people
+    case "istatistikler": return .insights
     case "ayarlar": return .settings
     case "kurulum": return .setup
     default: return nil
@@ -341,6 +343,8 @@ struct MainWindowView: View {
             PeoplePage(model: model, router: router)
         case .tasks:
             TasksPage(model: model, router: router)
+        case .insights:
+            InsightsPage(model: model)
         case .settings:
             // Geniş pencerede form satırları ekran boyu uzamasın.
             // Genişlik sınırı sayfanın içinde: kaydırma çubuğu pencerenin sağ kenarında kalır.
@@ -371,6 +375,7 @@ private struct Sidebar: View {
             item(title: "Sor", symbol: "sparkle.magnifyingglass", section: .ask, badge: nil)
             item(title: "Görevlerim", symbol: "checkmark.circle", section: .tasks, badge: myTaskCount > 0 ? myTaskCount : nil)
             item(title: "Kişiler", symbol: "person.2", section: .people, badge: nil)
+            item(title: "İstatistikler", symbol: "chart.bar.xaxis", section: .insights, badge: nil)
             // Klasörler ve son toplantılar kayar: alçak pencerede ya da büyük arayüz ölçeğinde Ayarlar alttan taşmasın.
             ScrollView {
             VStack(alignment: .leading, spacing: 2) {
@@ -616,6 +621,7 @@ private struct TopBar: View {
         case .ask: "Toplantılarıma sor"
         case .people: "Kişiler"
         case .tasks: "Görevlerim"
+        case .insights: "İstatistikler"
         case .settings: "Ayarlar"
         case .setup: "Kurulum"
         }

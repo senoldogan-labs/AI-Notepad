@@ -555,8 +555,8 @@ enum PhoneLibraryAction {
     case createFolder
 }
 
-/// Kitaplık (ana ekranın sol üstü): tüm toplantılar, görevler, kişiler, son silinenler, klasörler (sayılarıyla) ve yeni
-/// klasör, ses ya da video içe aktarma.
+/// Kitaplık (ana ekranın sol üstü): tüm toplantılar, görevler, kişiler, istatistikler, son silinenler, klasörler
+/// (sayılarıyla) ve yeni klasör, ses ya da video içe aktarma.
 private struct PhoneLibrarySheet: View {
     let store: PhoneStore
     let onSelect: @MainActor (PhoneLibraryAction) -> Void
@@ -570,6 +570,7 @@ private struct PhoneLibrarySheet: View {
                     row(title: "Tüm toplantılar", symbol: "tray.full", count: store.meetings.count, action: .route(.library(.filter(.all))))
                     row(title: "Görevlerim", symbol: "checklist", count: openTasks, action: .route(.tasks))
                     row(title: "Kişiler", symbol: "person.2", count: nil, action: .route(.people))
+                    row(title: "İstatistikler", symbol: "chart.bar.xaxis", count: nil, action: .route(.insights))
                     if !store.deletedMeetings.isEmpty {
                         row(title: "Son silinenler", symbol: "trash", count: store.deletedMeetings.count, action: .route(.recentlyDeleted))
                     }

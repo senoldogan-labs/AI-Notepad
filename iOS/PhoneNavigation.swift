@@ -34,6 +34,8 @@ struct PhoneDestination: View {
             MeetingsLibraryScreen(store: store, recorder: recorder, router: router, player: player, initialScope: scope)
         case .people:
             PhonePeopleList(store: store, router: router)
+        case .insights:
+            PhoneInsightsScreen(store: store)
         case .recentlyDeleted:
             RecentlyDeletedList(store: store, recorder: recorder)
         case .ask:

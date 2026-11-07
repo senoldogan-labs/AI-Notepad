@@ -48,6 +48,8 @@ enum DemoScene: String {
     case companies = "sirketler"
     /// Görevlerim (görsel kontrol için).
     case tasks = "gorevler"
+    /// İstatistikler (görsel kontrol için).
+    case insights = "istatistikler"
     /// Toplantılar, seçili toplantı yok (görsel kontrol için).
     case meetings = "toplantilar"
     /// Hiç veri yokken Toplantılar: ilk açılış sahnesi ve takvimde sıradaki toplantı (görsel kontrol için).
@@ -56,6 +58,8 @@ enum DemoScene: String {
     case tasksEmpty = "gorevler-bos"
     /// Hiç veri yokken Kişiler (görsel kontrol için).
     case peopleEmpty = "kisiler-bos"
+    /// Hiç veri yokken İstatistikler (görsel kontrol için).
+    case insightsEmpty = "istatistikler-bos"
     /// Hiç veri yokken Sor (görsel kontrol için).
     case askEmpty = "sor-bos"
     /// "Product weekly"nin Ekranlar sekmesi: paylaşılan ekranların görüntüleri (görsel kontrol için).
@@ -82,8 +86,8 @@ enum DemoScene: String {
     /// Sahne örnek verilerle mi açılır; boş sahneler (ilk açılış) hiçbir şey yazmadan açılır.
     var hasSampleData: Bool {
         switch self {
-        case .home, .note, .ask, .live, .upsell, .trialEnding, .trialEnded, .update, .settings, .settingsAssistant, .people, .companies, .tasks, .meetings, .screens: true
-        case .meetingsEmpty, .tasksEmpty, .peopleEmpty, .askEmpty, .signIn, .setupWelcome, .setupCalendar, .setupCalendarConnected, .setupPermissions,
+        case .home, .note, .ask, .live, .upsell, .trialEnding, .trialEnded, .update, .settings, .settingsAssistant, .people, .companies, .tasks, .insights, .meetings, .screens: true
+        case .meetingsEmpty, .tasksEmpty, .peopleEmpty, .insightsEmpty, .askEmpty, .signIn, .setupWelcome, .setupCalendar, .setupCalendarConnected, .setupPermissions,
              .setupSampleIntro, .setupSample, .setupSampleNote, .setupReady: false
         }
     }
@@ -96,8 +100,8 @@ enum DemoScene: String {
         case .setupPermissions: .permissions
         case .setupSampleIntro, .setupSample, .setupSampleNote: .sampleMeeting
         case .setupReady: .ready
-        case .home, .note, .ask, .live, .upsell, .trialEnding, .trialEnded, .update, .settings, .settingsAssistant, .people, .companies, .tasks, .meetings, .meetingsEmpty, .tasksEmpty,
-             .peopleEmpty, .askEmpty, .screens, .signIn: nil
+        case .home, .note, .ask, .live, .upsell, .trialEnding, .trialEnded, .update, .settings, .settingsAssistant, .people, .companies, .tasks, .insights, .meetings, .meetingsEmpty, .tasksEmpty,
+             .peopleEmpty, .insightsEmpty, .askEmpty, .screens, .signIn: nil
         }
     }
 }
@@ -295,6 +299,8 @@ func showDemoScene(scene: DemoScene, model: AppModel, router: MainWindowRouter, 
         }
     case .peopleEmpty:
         router.section = .people
+    case .insights, .insightsEmpty:
+        router.section = .insights
     case .askEmpty:
         router.section = .ask
     case .signIn:
