@@ -82,7 +82,7 @@ Hız sınırları `ratelimits`'tedir (süre 10 ya da 60 sn): `AUTH_IP_LIMITER` (
 (her uç, 1200/dk), `START_USER_LIMITER` ve `PROXY_USER_LIMITER` (kullanıcı başına), `REPORT_IP_LIMITER` (raporlar, IP
 başına 5/dk), `DEEPGRAM_USER_LIMITER` (Deepgram jetonu, kullanıcı başına 10/dk), `FUNNEL_IP_LIMITER` (ilk açılış
 hunisi, IP başına 20/dk). Her ortamın kendi `namespace_id`'si
-vardır. IP sınırı yalnızca kimliksiz sel için kaba bir kapıdır: asıl maliyet kullanıcı başına sınırlardadır
+vardır; kimlik hesap genelindedir, bu yüzden API ve MCP Worker'ı arasında da tekrarlanmaz (`test/wranglerConfig.test.ts`). IP sınırı yalnızca kimliksiz sel için kaba bir kapıdır: asıl maliyet kullanıcı başına sınırlardadır
 (`PROXY_USER_LIMITER` 120/dk). Aynı NAT ya da operatör CGNAT'ı arkasında canlı çeviri yapan kişi dakikada ~15 istek
 attığından 300/dk ~20 kişide 429 veriyordu; 1200/dk ~80 kişiye yeter. Kimliksiz uçlar bu sınırda bile D1 yazımı
 harcatamaz: `/v1/health` D1'e dokunmaz, `/v1/download/mac` ağ başına günde bir kez yazar.

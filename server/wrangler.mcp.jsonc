@@ -37,7 +37,7 @@
   // MCP_GRANT_LIMITER: 60 MCP calls a minute per connection. MCP_IP_LIMITER: sign-in and consent pages, 30 a minute per
   // IP. MCP_REVIEWER_LIMITER: reviewer password attempts, 5 a minute per IP.
   "ratelimits": [
-    { "name": "MCP_GRANT_LIMITER", "namespace_id": "1011", "simple": { "limit": 60, "period": 60 } },
+    { "name": "MCP_GRANT_LIMITER", "namespace_id": "1014", "simple": { "limit": 60, "period": 60 } },
     { "name": "MCP_IP_LIMITER", "namespace_id": "1012", "simple": { "limit": 30, "period": 60 } },
     { "name": "MCP_REVIEWER_LIMITER", "namespace_id": "1013", "simple": { "limit": 5, "period": 60 } }
   ],
@@ -79,7 +79,7 @@
       "kv_namespaces": [{ "binding": "OAUTH_KV", "id": "2bb423dabfd54c9b877c1b4b60dbb67f" }],
       "r2_buckets": [{ "binding": "ASSISTANT_BUCKET", "bucket_name": "gistsmith-sync", "jurisdiction": "eu" }],
       "ratelimits": [
-        { "name": "MCP_GRANT_LIMITER", "namespace_id": "2011", "simple": { "limit": 60, "period": 60 } },
+        { "name": "MCP_GRANT_LIMITER", "namespace_id": "2014", "simple": { "limit": 60, "period": 60 } },
         { "name": "MCP_IP_LIMITER", "namespace_id": "2012", "simple": { "limit": 30, "period": 60 } },
         { "name": "MCP_REVIEWER_LIMITER", "namespace_id": "2013", "simple": { "limit": 5, "period": 60 } }
       ],
