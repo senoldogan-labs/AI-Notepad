@@ -11,7 +11,7 @@ import UniformTypeIdentifiers
 // çekirdek yazıcısıyla (`meetingDOCX`).
 
 /// Dışa aktarma biçimi.
-enum MeetingExportFormat: String, CaseIterable, Identifiable {
+enum MeetingExportFormat: String, CaseIterable, Identifiable, Sendable {
     case pdf
     case docx
     case html
@@ -96,22 +96,42 @@ enum MeetingExportError: Error, Equatable {
 
 /// Toplantıyı seçilen biçimde geçici klasöre yazar ve dosyanın yolunu döndürür (paylaşım sayfası bu dosyayı gönderir).
 /// `record` sayfada seçili dildeki haldir (`recordInLanguage`); `language` o dil (PDF ve web sayfasının başlıkları o
-/// dilde), asıl notta nil. Ana iş parçacığında çalışır: PDF UIKit yazdırma çizicisiyle üretilir.
+/// dilde), asıl notta nil. Yalnız PDF çizimi ana iş parçacığında (UIKit yazdırma çizicisi); içeriğin kurulması ve diske
+/// yazılması arka planda: uzun toplantıda Word belgesi ya da transkript arayüzü dondurmasın.
 @MainActor
-func writeMeetingExport(record: MeetingRecord, language: ShareLanguage?, format: MeetingExportFormat) throws -> URL {
+func writeMeetingExport(record: MeetingRecord, language: ShareLanguage?, format: MeetingExportFormat) async throws -> URL {
     guard isMeetingExportAvailable(record: record, format: format) else {
         throw MeetingExportError.contentMissing(format: format.rawValue, meetingID: record.id)
     }
+    let renderedPDF: Data?
+    switch format {
+    case .pdf:
+        guard let note = record.note else {
+            throw MeetingExportError.contentMissing(format: format.rawValue, meetingID: record.id)
+        }
+        renderedPDF = try htmlPDF(html: meetingHTML(record: record, note: note, language: language, appName: appName), meetingID: record.id)
+    case .docx, .html, .markdown, .transcriptText, .subtitles:
+        renderedPDF = nil
+    }
+    let name: String = appName
+    return try await Task.detached(priority: .userInitiated) { () throws -> URL in
+        try writeExportFile(record: record, language: language, format: format, renderedPDF: renderedPDF, appName: name)
+    }.value
+}
+
+/// Dışa aktarma dosyasının içeriğini kurar ve geçici klasöre yazar (ana iş parçacığı dışında çalışır); PDF önceden
+/// çizilmiş gelir (`renderedPDF`).
+private func writeExportFile(record: MeetingRecord, language: ShareLanguage?, format: MeetingExportFormat, renderedPDF: Data?, appName: String) throws -> URL {
     let directory: URL = FileManager.default.temporaryDirectory.appending(path: "Exports/\(UUID().uuidString)", directoryHint: .isDirectory)
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     let url: URL = try exportFileURL(directory: directory, title: record.note?.title ?? record.title, startedAt: record.startedAt, fileExtension: format.fileExtension)
     let data: Data
     switch format {
     case .pdf:
-        guard let note = record.note else {
+        guard let renderedPDF else {
             throw MeetingExportError.contentMissing(format: format.rawValue, meetingID: record.id)
         }
-        data = try htmlPDF(html: meetingHTML(record: record, note: note, language: language, appName: appName), meetingID: record.id)
+        data = renderedPDF
     case .html:
         guard let note = record.note else {
             throw MeetingExportError.contentMissing(format: format.rawValue, meetingID: record.id)

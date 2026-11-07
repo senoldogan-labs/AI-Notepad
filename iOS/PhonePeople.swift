@@ -18,7 +18,7 @@ struct PhonePeopleList: View {
     @State private var openedCompanyID: String?
 
     var body: some View {
-        let people: [PersonSummary] = peopleDirectory(records: store.meetings, voices: store.voices.registered, book: store.peopleBook, userName: store.userName)
+        let people: [PersonSummary] = store.peopleDirectory()
         let trimmed: String = query.trimmingCharacters(in: .whitespaces)
         let shown: [PersonSummary] = trimmed.isEmpty ? people : people.filter {
             $0.name.localizedCaseInsensitiveContains(trimmed) || $0.role.localizedCaseInsensitiveContains(trimmed)
@@ -325,10 +325,11 @@ private struct PhonePersonRow: View {
                     .foregroundStyle(Theme.muted)
                     .accessibilityLabel(Text("Sesinden tanınıyor"))
             }
-            Image(systemName: "eye")
-                .appFont(size: 14, weight: .medium)
+            // Satırın tamamı dokunulur: iOS'un alışılmış ileri oku (göz simgesi ne yaptığını söylemiyordu).
+            Image(systemName: "chevron.right")
+                .appFont(size: 13, weight: .semibold)
                 .foregroundStyle(Theme.muted)
-                .accessibilityLabel(Text("Bilgilerini göster"))
+                .accessibilityHidden(true)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
@@ -350,7 +351,7 @@ private struct PhonePersonPage: View {
     @Environment(\.dismiss) private var dismiss: DismissAction
 
     var body: some View {
-        let people: [PersonSummary] = peopleDirectory(records: store.meetings, voices: store.voices.registered, book: store.peopleBook, userName: store.userName)
+        let people: [PersonSummary] = store.peopleDirectory()
         if let person = people.first(where: { $0.id == (renamedID ?? personID) }) {
             content(person: person)
         } else {
@@ -516,9 +517,17 @@ private struct PhonePersonPage: View {
                     Text(item.element.task.description)
                         .appFont(size: 15, weight: .regular)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(([item.element.task.dueDate].compactMap { $0 } + [item.element.meetingTitle]).joined(separator: " · "))
-                        .appFont(size: 12, weight: .regular)
-                        .foregroundStyle(Theme.muted)
+                    // Son gün toplantı gününe göre çözülür, arayüz dilinde göreli; yanında toplantının adı.
+                    HStack(spacing: 5) {
+                        TaskDueText(personTask: item.element, size: 12)
+                        if item.element.task.dueDate != nil {
+                            Text(verbatim: "·").foregroundStyle(Theme.muted)
+                        }
+                        Text(verbatim: item.element.meetingTitle)
+                            .foregroundStyle(Theme.muted)
+                            .lineLimit(1)
+                    }
+                    .appFont(size: 12, weight: .regular)
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)

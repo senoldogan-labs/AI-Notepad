@@ -28,6 +28,27 @@ struct PhoneAccountRow: View {
     }
 }
 
+/// Hesap ekranının üstü: yalnız giriş yapan kimlik. Plan durumu aşağıdaki kartta ve Plan bölümünde; burada da yazılınca
+/// "Abonelik etkin; … yenilenir" iki kez görünüyordu.
+struct PhoneIdentityRow: View {
+    let account: HostedAccount
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "person.crop.circle.fill")
+                .appFont(size: 34, weight: .regular)
+                .foregroundStyle(.tint)
+                .accessibilityHidden(true)
+            Text(verbatim: phoneIdentityTitle(identity: account.signedInIdentity))
+                .appFont(size: 16, weight: .medium)
+                .foregroundStyle(Theme.ink)
+                .lineLimit(1)
+                .truncationMode(.middle)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
 /// Kimliğin başlığı: e-posta; bilinmiyorsa giriş sağlayıcısı, o da bilinmiyorsa "Hesap". Saf fonksiyondur.
 func phoneIdentityTitle(identity: HostedSignInIdentity?) -> String {
     if let email = identity?.email {
@@ -76,7 +97,12 @@ struct PhoneAccountScreen: View {
     var body: some View {
         List {
             Section {
-                PhoneAccountRow(account: account)
+                // Giriş yapılmamışken ya da durum okunamıyorken alt yazı tek bilgi; girişte plan aşağıda yazılı.
+                if case .signedIn = account.state {
+                    PhoneIdentityRow(account: account)
+                } else {
+                    PhoneAccountRow(account: account)
+                }
             }
             switch account.state {
             case .loading:

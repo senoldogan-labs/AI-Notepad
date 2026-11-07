@@ -55,6 +55,9 @@ final class PhoneAsk {
                 answerLanguage: askAnswerLanguage(question: asked, history: history, interfaceLanguage: interfaceShareLanguage()), llm: provider,
                 maxChars: noteLimits(provider: provider).archiveChars, screens: .off, webSearch: webSearch, now: Date(), onProgress: onProgress
             )
+        } save: { [weak self] (id: UUID, exchanges: [ArchiveExchange]) -> Void in
+            // Toplantı sohbeti Sor geçmişine yazılır (Mac'le eşitlenir, Sor'da da açılır); sayfa yeniden açılınca geri gelir.
+            self?.storeConversation(id: id, exchanges: exchanges)
         }
     }
 
@@ -286,12 +289,23 @@ final class PhoneAsk {
             return
         }
         let id: UUID = currentConversationID ?? UUID()
+        if storeConversation(id: id, exchanges: exchanges) {
+            currentConversationID = id
+        }
+    }
+
+    /// Sohbeti bitmiş sorularıyla Sor geçmişine yazar (Sor sekmesi ve toplantı sayfasının sohbeti); sınırı aşan en eski
+    /// sohbetler silinir. Saklanamazsa neden geçmişin hatasında görünür ve false döner.
+    @discardableResult
+    private func storeConversation(id: UUID, exchanges: [ArchiveExchange]) -> Bool {
         let turns: [AskConversationTurn] = exchanges.compactMap { (exchange: ArchiveExchange) -> AskConversationTurn? in askTurn(exchange: exchange) }
+        guard !turns.isEmpty else {
+            return false
+        }
         let conversation: AskConversation = askConversation(existing: conversations.first { $0.id == id }, id: id, turns: turns, now: Date())
         do {
             let directory: URL = try AppPaths.askHistoryDirectory()
             try saveAskConversation(conversation: conversation, directory: directory)
-            currentConversationID = id
             conversations = upsertAskConversation(conversations: conversations, conversation: conversation)
             for old in askConversationsBeyondLimit(conversations: conversations, limit: askHistoryLimit) {
                 try deleteAskConversation(id: old.id, directory: directory)
@@ -300,7 +314,9 @@ final class PhoneAsk {
         } catch {
             Self.logger.error("Sohbet saklanamadı, sohbet: \(id.uuidString, privacy: .public), hata: \(String(describing: error), privacy: .private)")
             historyError = String(localized: "Sohbet saklanamadı: \(userFacingMessage(error: error))")
+            return false
         }
+        return true
     }
 
     private func finish(id: UUID, phase: ArchiveExchange.Phase) {
@@ -394,7 +410,7 @@ struct AskTab: View {
                 .scrollDismissesKeyboard(.interactively)
                 .safeAreaInset(edge: .bottom) {
                     AskComposer(
-                        ask: ask, store: store, placeholder: "Sor… (@ toplantı, / tarif)", isAnswering: false, followUp: nil,
+                        ask: ask, store: store, placeholder: "Toplantılarına bir şey sor…", isAnswering: false, followUp: nil,
                         onSubmit: { (submission: AskSubmission) -> Void in startConversation(submission: submission) },
                         onStop: { ask.stop() }
                     )

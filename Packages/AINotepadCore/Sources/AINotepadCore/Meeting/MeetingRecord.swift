@@ -80,12 +80,22 @@ public struct NoteTask: Sendable, Equatable, Codable {
     /// Display copies (see `namedTask`) keep the stored task's key here so done/reminded/sent marks still match after
     /// speaker names replace the generic labels. Never encoded; nil for stored tasks.
     public private(set) var storedKey: String?
+    /// Kullanıcının elle eklediği görev (nottan gelmez): not yeniden yazılınca kaybolmasın diye yeni nota taşınır (bkz.
+    /// `withCarriedTaskMarks`). Nottan gelen görevlerde nil.
+    public private(set) var isAdded: Bool?
 
     public init(owner: String, description: String, dueDate: String?, isMine: Bool) {
         self.owner = owner
         self.description = description
         self.dueDate = dueDate
         self.isMine = isMine
+    }
+
+    /// Elle eklenmiş görev (`isAdded`) olarak işaretli kopya.
+    public func markedAdded() -> NoteTask {
+        var copy: NoteTask = self
+        copy.isAdded = true
+        return copy
     }
 
     /// Copy that keeps `key` as its tracking key (`taskKey`) whatever its text says.
@@ -100,6 +110,7 @@ public struct NoteTask: Sendable, Equatable, Codable {
         case description
         case dueDate
         case isMine
+        case isAdded
     }
 }
 

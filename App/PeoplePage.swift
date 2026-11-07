@@ -26,10 +26,7 @@ struct PeoplePage: View {
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
-        let people: [PersonSummary] = peopleDirectory(
-            records: model.meetings, voices: model.registeredVoices, book: model.peopleBook,
-            userName: model.userName
-        )
+        let people: [PersonSummary] = model.peopleDirectory()
         let query: String = filter.trimmingCharacters(in: .whitespaces)
         let shown: [PersonSummary] = (query.isEmpty ? people : people.filter {
             $0.name.localizedCaseInsensitiveContains(query) || $0.role.localizedCaseInsensitiveContains(query)
@@ -233,7 +230,7 @@ struct PeoplePage: View {
             TableColumn("") { (person: PersonSummary) in
                 rowActions(person: person)
             }
-            .width(96)
+            .width(120)
         }
         .tableStyle(.inset)
         .alternatingRowBackgrounds(.disabled)
@@ -241,7 +238,7 @@ struct PeoplePage: View {
         .background(PlainTableSelection())
         .contextMenu(forSelectionType: String.self) { (ids: Set<String>) in
             if let id = ids.first {
-                Button("Bilgilerini göster", systemImage: "eye") { openedID = id }
+                Button("Bilgilerini göster", systemImage: "info.circle") { openedID = id }
             }
         } primaryAction: { (ids: Set<String>) -> Void in
             openedID = ids.first
@@ -313,17 +310,17 @@ struct PeoplePage: View {
                         companySelection = company.id
                         openedCompanyID = company.id
                     } label: {
-                        Image(systemName: "eye")
-                            .appFont(size: 13, weight: .medium)
+                        Text("Ayrıntılar")
+                            .appFont(size: 12, weight: .medium)
                             .foregroundStyle(Theme.muted)
-                            .frame(width: 28, height: 24)
+                            .padding(.horizontal, 8)
+                            .frame(height: 24)
                     }
                     .buttonStyle(.hoverPlain)
                     .accessibilityLabel(Text("Bilgilerini göster"))
-                    .hoverHint("Bilgilerini göster", alignment: .trailing, edge: .bottom)
                 }
             }
-            .width(64)
+            .width(96)
         }
         .tableStyle(.inset)
         .alternatingRowBackgrounds(.disabled)
@@ -331,7 +328,7 @@ struct PeoplePage: View {
         .background(PlainTableSelection())
         .contextMenu(forSelectionType: String.self) { (ids: Set<String>) in
             if let id = ids.first {
-                Button("Bilgilerini göster", systemImage: "eye") { openedCompanyID = id }
+                Button("Bilgilerini göster", systemImage: "info.circle") { openedCompanyID = id }
             }
         } primaryAction: { (ids: Set<String>) -> Void in
             openedCompanyID = ids.first
@@ -339,7 +336,7 @@ struct PeoplePage: View {
         .padding(.horizontal, 12)
     }
 
-    /// Satırın sağı: sesinden tanınıyorsa dalga simgesi, göz (bilgileri pencerede açar).
+    /// Satırın sağı: sesinden tanınıyorsa dalga simgesi, "Ayrıntılar" (bilgileri pencerede açar).
     private func rowActions(person: PersonSummary) -> some View {
         HStack(spacing: 6) {
             Spacer(minLength: 0)
@@ -350,18 +347,19 @@ struct PeoplePage: View {
                     .hoverHint("Sesinden tanınıyor", alignment: .trailing, edge: .bottom)
                     .accessibilityLabel(Text("Sesinden tanınıyor"))
             }
+            // Yazılı düğme: tek başına göz simgesi ne yaptığını söylemiyordu.
             Button {
                 selection = person.id
                 openedID = person.id
             } label: {
-                Image(systemName: "eye")
-                    .appFont(size: 13, weight: .medium)
+                Text("Ayrıntılar")
+                    .appFont(size: 12, weight: .medium)
                     .foregroundStyle(Theme.muted)
-                    .frame(width: 28, height: 24)
+                    .padding(.horizontal, 8)
+                    .frame(height: 24)
             }
             .buttonStyle(.hoverPlain)
             .accessibilityLabel(Text("Bilgilerini göster"))
-            .hoverHint("Bilgilerini göster", alignment: .trailing, edge: .bottom)
         }
     }
 
@@ -752,9 +750,17 @@ private struct PersonDetail: View {
                         ForEach(Array(person.tasks.enumerated()), id: \.offset) { (item: (offset: Int, element: PersonTask)) in
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(item.element.task.description).appFont(size: 14, weight: .regular).fixedSize(horizontal: false, vertical: true)
-                                Text(([item.element.task.dueDate].compactMap { $0 } + [item.element.meetingTitle]).joined(separator: " · "))
-                                    .appFont(size: 12, weight: .regular)
-                                    .foregroundStyle(Theme.muted)
+                                // Son gün toplantı gününe göre çözülür, arayüz dilinde göreli; yanında toplantının adı.
+                                HStack(spacing: 5) {
+                                    TaskDueText(personTask: item.element, size: 12)
+                                    if item.element.task.dueDate != nil {
+                                        Text(verbatim: "·").foregroundStyle(Theme.muted)
+                                    }
+                                    Text(verbatim: item.element.meetingTitle)
+                                        .foregroundStyle(Theme.muted)
+                                        .lineLimit(1)
+                                }
+                                .appFont(size: 12, weight: .regular)
                             }
                             .padding(12)
                             .frame(maxWidth: .infinity, alignment: .leading)

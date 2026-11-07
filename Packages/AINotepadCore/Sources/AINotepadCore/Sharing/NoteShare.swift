@@ -82,6 +82,15 @@ public func noteDateLine(record: MeetingRecord, language: ShareLanguage?) -> Str
     return date + minutes
 }
 
+/// Seçili paylaşım dilinin (`language`) çevirisi henüz yok: paylaşılan not asıl dilde gider; kullanıcıya söylenmelidir.
+/// Asıl not (nil) ya da notu olmayan kayıt için false. Saf fonksiyondur.
+public func isShareTranslationMissing(record: MeetingRecord, language: ShareLanguage?) -> Bool {
+    guard let language, record.note != nil else {
+        return false
+    }
+    return record.sharedNotes?[language.rawValue] == nil
+}
+
 /// Notun paylaşım yükü: başlık, tarih, özet, konu akışı, kararlar, açık konular, görevler (sahibi ve tarihiyle),
 /// sözlük ve isteğe bağlı transkript (`transcript`; konuşmacı adları toplantı sayfasındakiyle aynı). Ses, ekran
 /// görüntüleri ve kişisel işaretler (görevin bitti işareti, "Sen") girmez. `language` paylaşım dili (başlıklar o dilde);

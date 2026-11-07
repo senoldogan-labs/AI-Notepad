@@ -277,7 +277,8 @@ public func carriedTaskKeys(oldTasks: [NoteTask], newTasks: [NoteTask], keys: [S
 
 /// Yeni not yazılmış kayıtta tamamlandı, Anımsatıcılar ve araca (Linear, Jira) gönderildi işaretlerini eski nottan
 /// taşır. Gönderildi işareti taşınmazsa yeniden yazılan not görevleri araçta ikinci kez açardı. Saf fonksiyondur.
-public func withCarriedTaskMarks(old: MeetingRecord, new: MeetingRecord) -> MeetingRecord {
+public func withCarriedTaskMarks(old: MeetingRecord, new written: MeetingRecord) -> MeetingRecord {
+    let new: MeetingRecord = withCarriedAddedTasks(old: old, new: written)
     let oldTasks: [NoteTask] = old.note?.tasks ?? []
     let newTasks: [NoteTask] = new.note?.tasks ?? []
     let carry: ([String]) -> [String] = { (keys: [String]) -> [String] in carriedTaskKeys(oldTasks: oldTasks, newTasks: newTasks, keys: keys) }
@@ -286,6 +287,25 @@ public func withCarriedTaskMarks(old: MeetingRecord, new: MeetingRecord) -> Meet
     return old.sentTaskKeys.map { (sent: [String: [String]]) -> MeetingRecord in
         reminded.with(sentTaskKeys: sent.mapValues(carry))
     } ?? reminded
+}
+
+/// Elle eklenmiş görevleri (`NoteTask.isAdded`) yeni nota taşır: yeniden yazılan not onları içermez, kullanıcının
+/// eklediği iş sessizce kaybolmasın. Yeni notta aynı kimlikle görev varsa taşınmaz (o görev elle eklenmiş sayılır).
+/// Yeni not yoksa kayıt değişmez. Saf fonksiyondur.
+func withCarriedAddedTasks(old: MeetingRecord, new: MeetingRecord) -> MeetingRecord {
+    guard let note = new.note else {
+        return new
+    }
+    let newKeys: Set<String> = Set(note.tasks.map { taskKey(task: $0) })
+    let added: [NoteTask] = (old.note?.tasks ?? []).filter { $0.isAdded == true }
+    let kept: [NoteTask] = note.tasks.map { (task: NoteTask) -> NoteTask in
+        added.contains { taskKey(task: $0) == taskKey(task: task) } && task.isAdded != true ? task.markedAdded() : task
+    }
+    let missing: [NoteTask] = added.filter { !newKeys.contains(taskKey(task: $0)) }
+    guard !missing.isEmpty || kept != note.tasks else {
+        return new
+    }
+    return new.with(note: note.with(title: note.title, summary: note.summary, decisions: note.decisions, tasks: kept + missing, glossary: note.glossary))
 }
 
 /// Listelerin sırayı koruyan, tekrarsız birleşimi; hepsi nil ise nil. Saf fonksiyondur.

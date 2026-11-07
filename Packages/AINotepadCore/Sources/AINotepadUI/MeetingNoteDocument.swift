@@ -88,8 +88,9 @@ public struct NoteDocumentHeading: View {
 }
 
 /// Kaynağı gösterilebilen not satırı. `leading` maddenin işareti (nokta, numara, görev kutusu), `content` metni.
-/// Mac'te üstüne gelince satır hafifçe dolar ve sağda büyüteç belirir; iPhone'da satıra dokununca (satırdaki düğmeler
-/// kendi dokunuşunu alır) kaynak kutusu açılır. Kaynaklar kutu açılırken bulunur (`noteSources`):
+/// Mac'te üstüne gelince satır hafifçe dolar ve sağda büyüteç belirir; büyüteç kutuyu satırın hemen altında açar ve
+/// kapatır (açılır pencere sayfanın üstündeki çiplerin ve dil düğmesinin üstüne binerdi). iPhone'da satıra dokununca
+/// (satırdaki düğmeler kendi dokunuşunu alır) kaynak kutusu açılır. Kaynaklar kutu açılırken bulunur (`noteSources`):
 /// her çizimde bütün maddeler için transkript taranmaz.
 public struct NoteSourceRow<Leading: View, Content: View>: View {
     /// Maddenin metni ve (karar, açık konu, konu akışında) anı: kaynak bunlarla aranır.
@@ -130,13 +131,32 @@ public struct NoteSourceRow<Leading: View, Content: View>: View {
     }
 
     public var body: some View {
+        #if os(macOS)
+        VStack(alignment: .leading, spacing: 6) {
+            row
+            if shown != nil {
+                popoverContent
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Theme.line))
+                    .padding(.leading, 32)
+                    .padding(.bottom, 6)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .animation(.smooth(duration: 0.2), value: shown != nil)
+        #else
+        row
+        #endif
+    }
+
+    private var row: some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             leading()
             content()
                 .frame(maxWidth: .infinity, alignment: .leading)
             #if os(macOS)
             Button {
-                isOpen.wrappedValue = true
+                isOpen.wrappedValue = shown == nil
             } label: {
                 Image(systemName: "magnifyingglass")
                     .appFont(size: 11, weight: .semibold)
@@ -148,9 +168,8 @@ public struct NoteSourceRow<Leading: View, Content: View>: View {
             .buttonStyle(.plain)
             .linkPointer(isEnabled: true)
             .opacity(isHovered || shown != nil ? 1 : 0)
-            .accessibilityLabel(Text("Kaynağı göster"))
+            .accessibilityLabel(shown == nil ? Text("Kaynağı göster") : Text("Kaynağı gizle"))
             .hoverHint("Bu maddenin transkriptte geçtiği yerler", alignment: .trailing, edge: .top)
-            .popover(isPresented: isOpen, arrowEdge: .trailing) { popoverContent }
             #endif
         }
         .padding(.horizontal, 10)
@@ -274,10 +293,17 @@ public struct NoteSourcesCard: View {
         let range: String = context.endSec - context.startSec >= 1
             ? "\(timestamp(seconds: context.startSec))–\(timestamp(seconds: context.endSec))"
             : timestamp(seconds: context.startSec)
-        if let topic = context.topic {
+        // Alıntılardan biri aralığın dışındaysa başlık "en çok" der: aralık alıntılarla çelişmesin.
+        switch (context.topic, context.isSpread) {
+        case (.some(let topic), false):
             return Text("Bu, “\(topic)” konuşulurken geçti · \(range)")
+        case (.some(let topic), true):
+            return Text("Bu en çok “\(topic)” konuşulurken geçti · \(range)")
+        case (.none, false):
+            return Text("Bu, toplantının \(range) arasında geçti")
+        case (.none, true):
+            return Text("Bu en çok toplantının \(range) arasında geçti")
         }
-        return Text("Bu, toplantının \(range) arasında geçti")
     }
 
     private func quoteRow(quote: NoteSourceQuote) -> some View {

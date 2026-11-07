@@ -191,6 +191,7 @@ struct PhoneAssistantScreen: View {
                             copied = false
                         }
                     }
+                    .sensoryFeedback(.success, trigger: copied) { (_: Bool, new: Bool) -> Bool in new }
                 } header: {
                     Text("Bağlayıcı adresi")
                 } footer: {
@@ -233,7 +234,7 @@ struct PhoneAssistantScreen: View {
     private var grantsSection: some View {
         Section {
             if center.grants.isEmpty {
-                Text("Yukarıdaki adımlarla bir asistan bağladığında burada görünür.")
+                Text("Aşağıdaki \"Nasıl bağlanır\" adımlarıyla bir asistan bağladığında burada görünür.")
                     .foregroundStyle(Theme.muted)
             }
             ForEach(center.grants) { (grant: HostedAssistantGrant) in

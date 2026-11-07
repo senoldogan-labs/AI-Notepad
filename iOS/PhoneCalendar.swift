@@ -15,7 +15,7 @@ enum PhoneCalendarState: Equatable {
 }
 
 /// iPhone takvimi (EventKit, Mac'teki bağlantıyla aynı): sıradaki toplantılar, kayda bağlanacak süren toplantı ve
-/// (açıksa) toplantıdan 1 dk önce "Dinlemeye başla" hatırlatması. İzinler yalnızca kullanıcı Ayarlar'da açınca istenir.
+/// (açıksa) toplantıdan 1 dk önce "Kaydı başlat" hatırlatması. İzinler yalnızca kullanıcı Ayarlar'da açınca istenir.
 @MainActor
 @Observable
 final class PhoneCalendar {

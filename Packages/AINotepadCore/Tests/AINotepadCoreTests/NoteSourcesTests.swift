@@ -36,7 +36,7 @@ private let weeklyOutline: [OutlineItem] = [
         text: "Ayşe gets the latest pricing table before the Nordia call.", anchorSec: nil, paragraphs: weekly, outline: weeklyOutline
     )
     #expect(sources.quotes.map(\.id) == ["p6", "p7"])
-    #expect(sources.context == NoteSourceContext(topic: "Pricing", startSec: 612, endSec: 635))
+    #expect(sources.context == NoteSourceContext(topic: "Pricing", startSec: 612, endSec: 635, isSpread: false))
     #expect(sources.quotes.first?.excerpt == "On pricing: I have the Nordia call on Thursday and I need the latest pricing table before then.")
 }
 
@@ -48,6 +48,25 @@ private let weeklyOutline: [OutlineItem] = [
     #expect(sources.quotes.map(\.paragraph.startSec) == sources.quotes.map(\.paragraph.startSec).sorted())
     #expect(sources.quotes.map(\.id).contains("p2"))
     #expect(sources.quotes.map(\.id).contains("p9"))
+    // Alıntılar toplantının iki ucunda: bağlam satırı aralığı "en çok" diye söyler (başlık alıntılarla çelişmesin).
+    #expect(sources.context?.isSpread == true)
+}
+
+/// Kaynak kutusunun başlığı alıntılarıyla çelişmez: aralığın dışında alıntı varsa bağlam `isSpread` der (tanıtımın
+/// "00:04–00:36" başlığı altında 22:02'deki alıntı böyle göründü). Tanıtım toplantısının (aynı transkript) özet
+/// maddelerinin hepsinde denetlenir.
+@Test func sourceContextNeverContradictsItsQuotes() {
+    let bullets: [String] = noteSummaryBullets(
+        summary: "The team agreed to open the beta on 14 November once the export sync bug is fixed. The first wave is capped at 200 accounts, including the 80 customers sales has lined up; the list is confirmed on Monday. Pricing stays on the current tiers during the beta, and support gets a weekly sync with product and engineering."
+    )
+    for bullet in bullets {
+        let sources: NoteSources = noteSources(text: bullet, anchorSec: nil, paragraphs: weekly, outline: weeklyOutline)
+        guard let context = sources.context else {
+            continue
+        }
+        let outside: Bool = sources.quotes.contains { $0.paragraph.startSec < context.startSec || $0.paragraph.endSec > context.endSec }
+        #expect(outside == context.isSpread, "\(bullet)")
+    }
 }
 
 @Test func anchorBreaksTiesTowardTheMomentTheLineCameFrom() {
@@ -78,7 +97,7 @@ private let weeklyOutline: [OutlineItem] = [
     let sources: NoteSources = noteSources(text: "Fiyat tablosu bugün gönderilecek.", anchorSec: nil, paragraphs: paragraphs, outline: [])
     #expect(sources.quotes.map(\.id) == ["b"])
     #expect(sources.quotes.first?.excerpt == "Fiyat tablosu bugün gönderilecek.")
-    #expect(sources.context == NoteSourceContext(topic: nil, startSec: 10, endSec: 20))
+    #expect(sources.context == NoteSourceContext(topic: nil, startSec: 10, endSec: 20, isSpread: false))
 }
 
 @Test func excerptPicksTheMatchingSentenceAndClipsLongText() {

@@ -238,7 +238,7 @@ final class PhoneRecorder {
             errorMessages = appendUnique(messages: [], message: String(localized: "Kayıt için önce giriş yap."))
             return
         }
-        guard UserDefaults.standard.bool(forKey: PhoneSettingsKey.aiDisclosureAccepted) else {
+        guard phoneAIConsentGiven(account: account) else {
             Self.logger.info("Yapay zekâ açıklaması onaylanmadan kayıt istendi, başlatılmadı")
             errorMessages = appendUnique(messages: [], message: String(localized: "Kayıt için önce uygulamayı aç ve yapay zekâ kullanımını onayla."))
             return

@@ -538,7 +538,7 @@ private struct CalendarStep: View {
                 HStack(alignment: .center, spacing: 12) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Toplantıdan 1 dk önce hatırlat").appFont(size: 14, weight: .semibold).foregroundStyle(Theme.ink)
-                        Text("Bildirimdeki \"Dinlemeye başla\" ile kayıt hemen başlar.")
+                        Text("Bildirimdeki \"Kaydı başlat\" ile kayıt hemen başlar.")
                             .appFont(size: 12.5, weight: .regular)
                             .foregroundStyle(Theme.muted)
                     }
@@ -595,13 +595,15 @@ private struct CalendarStep: View {
 
 // MARK: İzinler
 
-/// İzinler: mikrofon, sistem sesi ve bildirimler; her satırda canlı durum. Kullanıcı Sistem Ayarları'ndan dönünce
+/// İzinler: mikrofon, sistem sesi, bildirimler ve (isteğe bağlı) ekran kaydı; her satırda canlı durum. Kullanıcı Sistem Ayarları'ndan dönünce
 /// (uygulama ya da pencere yeniden etkin olunca) durumlar yeniden okunur.
 private struct PermissionsStep: View {
     let model: AppModel
     @State private var microphone: PermissionStatus = .checking
     @State private var systemAudio: PermissionStatus = .notDetermined
     @State private var systemAudioProblem: String?
+    /// Ekran Kaydı (toplantıda paylaşılan ekran nota girsin): kayıtta sessizce istenmesin, burada görünsün.
+    @State private var screenCapture: PermissionStatus = .checking
     @State private var notifier: EngagementNotifier = .shared
 
     var body: some View {
@@ -632,6 +634,14 @@ private struct PermissionsStep: View {
                     onRequest: { Task { await notifier.requestAuthorizationIfUndetermined() } },
                     onOpenSettings: { openNotificationSettings() }
                 )
+                OnboardingRowDivider()
+                OnboardingPermissionRow(
+                    symbol: "rectangle.on.rectangle", title: "Ekran Kaydı",
+                    detail: "İsteğe bağlı: görüşmede paylaşılan ekranlar nota girer.",
+                    status: screenCapture,
+                    onRequest: { requestScreenCapture() },
+                    onOpenSettings: { openPrivacySettings(anchor: "Privacy_ScreenCapture") }
+                )
             }
             if let systemAudioProblem {
                 NoticeText(systemAudioProblem, severity: .error)
@@ -643,11 +653,15 @@ private struct PermissionsStep: View {
                 .foregroundStyle(Theme.muted)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .onAppear { readMicrophone() }
+        .onAppear {
+            readMicrophone()
+            readScreenCapture()
+        }
         .task { await notifier.refreshAuthorization() }
         // Kullanıcı izni Sistem Ayarları'nda değiştirip geri dönünce durum yenilenir; okumak ucuzdur.
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { (_: Notification) in
             readMicrophone()
+            readScreenCapture()
             Task { await notifier.refreshAuthorization() }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { (_: Notification) in
@@ -671,6 +685,21 @@ private struct PermissionsStep: View {
         case .undetermined: .notDetermined
         @unknown default: .checking
         }
+    }
+
+    /// Ekran Kaydı izni: varsa verildi; yoksa sorulmadı sayılır (macOS reddedildiğini ayırt ettirmez).
+    private func readScreenCapture() {
+        if hasScreenCapturePermission() {
+            screenCapture = .granted
+        } else if screenCapture != .requested {
+            screenCapture = .notDetermined
+        }
+    }
+
+    /// İzni ister: ilk istekte macOS kendi penceresini açar; verilmezse "İstendi" (izin Sistem Ayarları'ndan da verilir,
+    /// uygulama yeniden açılınca geçerli olur).
+    private func requestScreenCapture() {
+        screenCapture = requestScreenCapturePermission() ? .granted : .requested
     }
 
     /// Sistem sesini 2 sn dener: macOS izin penceresini ilk denemede açar; durumu okunamadığı için "İstendi" olur.
@@ -857,6 +886,8 @@ private struct SampleMeetingStep: View {
             }
             .frame(maxWidth: .infinity)
             TranscriptPanel(state: viewState(elapsed: elapsed), actions: actions, levels: levels, myNotes: $myNotes)
+                // Örnek toplantıda adlar baştan bilinir: canlı metin "Konuşmacı 1/2" değil Maya ve Leo der.
+                .environment(\.liveSpeakerNames, sampleMeetingSpeakerNames)
                 .frame(width: 380, height: 470)
                 .panelSurface()
                 .clipShape(RoundedRectangle(cornerRadius: DesignTokens.panelRadius, style: .continuous))

@@ -242,7 +242,8 @@ func appStorePurchaseMessage(error: AppStorePurchaseError) -> String {
         return String(localized: "Abonelikler şu an yüklenemiyor; biraz sonra yeniden dene.")
     case .noWindowScene:
         return String(localized: "Apple'ın abonelik penceresi açılamadı; yeniden dene.")
-    case .store(let code, let detail):
+    case .store(let code, _):
+        // RevenueCat'in açıklaması İngilizce ve teknik: kullanıcıya yalnızca kod gösterilir (açıklama loglanır).
         switch RevenueCat.ErrorCode(rawValue: code) {
         case .networkError, .offlineConnectionError:
             return String(localized: "App Store'a ulaşılamadı. Bağlantını denetleyip yeniden dene.")
@@ -253,7 +254,7 @@ func appStorePurchaseMessage(error: AppStorePurchaseError) -> String {
         case .productNotAvailableForPurchaseError:
             return String(localized: "Bu abonelik şu an satın alınamıyor; biraz sonra yeniden dene.")
         default:
-            return String(localized: "Satın alma tamamlanamadı: \(detail)")
+            return String(localized: "Satın alma tamamlanamadı; yeniden dene. Sürerse destekle paylaşmak için hata kodu: \(code)")
         }
     }
 }

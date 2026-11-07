@@ -23,6 +23,8 @@ let demoKeychainService: String = "GistsmithTanitim"
 enum DemoScene: String {
     /// Ana sayfa.
     case home = "ana"
+    /// Ana sayfa, takvimde sıradaki toplantılarla (görsel kontrol için: önce sıradaki toplantılar, sonra görevler).
+    case homeCalendar = "ana-takvim"
     /// "Product weekly" toplantısının notu (görevler önce).
     case note = "not"
     /// Sor: kaynaklı cevabı olan saklı sohbet.
@@ -93,7 +95,7 @@ enum DemoScene: String {
     /// Sahne örnek verilerle mi açılır; boş sahneler (ilk açılış) hiçbir şey yazmadan açılır.
     var hasSampleData: Bool {
         switch self {
-        case .home, .note, .ask, .live, .upsell, .trialEnding, .trialEnded, .update, .settings, .settingsAssistant, .people, .companies, .tasks, .insights, .meetings, .screens, .noteSource, .noteAsk, .noteTranscript: true
+        case .home, .homeCalendar, .note, .ask, .live, .upsell, .trialEnding, .trialEnded, .update, .settings, .settingsAssistant, .people, .companies, .tasks, .insights, .meetings, .screens, .noteSource, .noteAsk, .noteTranscript: true
         case .meetingsEmpty, .tasksEmpty, .peopleEmpty, .insightsEmpty, .askEmpty, .signIn, .setupWelcome, .setupCalendar, .setupCalendarConnected, .setupPermissions,
              .setupSampleIntro, .setupSample, .setupSampleNote, .setupReady: false
         }
@@ -107,7 +109,7 @@ enum DemoScene: String {
         case .setupPermissions: .permissions
         case .setupSampleIntro, .setupSample, .setupSampleNote: .sampleMeeting
         case .setupReady: .ready
-        case .home, .note, .ask, .live, .upsell, .trialEnding, .trialEnded, .update, .settings, .settingsAssistant, .people, .companies, .tasks, .insights, .meetings, .meetingsEmpty, .tasksEmpty,
+        case .home, .homeCalendar, .note, .ask, .live, .upsell, .trialEnding, .trialEnded, .update, .settings, .settingsAssistant, .people, .companies, .tasks, .insights, .meetings, .meetingsEmpty, .tasksEmpty,
              .peopleEmpty, .insightsEmpty, .askEmpty, .screens, .noteSource, .noteAsk, .noteTranscript, .signIn: nil
         }
     }
@@ -240,6 +242,24 @@ private func seedDemoData(now: Date) throws {
 
 // MARK: Sahneler
 
+/// Tanıtımdaki sıradaki üç sahte toplantı (karşılamanın takvim adımı ve ana sayfa).
+private func demoUpcomingMeetings(now: Date) -> [CalendarMeeting] {
+    [
+        CalendarMeeting(
+            id: "tanitim-1", title: "Design review", start: now.addingTimeInterval(40 * 60), end: now.addingTimeInterval(70 * 60),
+            attendees: ["Ayşe Demir", "Jonas Berg"], joinURL: URL(string: "https://meet.google.com/abc-defg-hij")
+        ),
+        CalendarMeeting(
+            id: "tanitim-2", title: "Weekly product sync", start: now.addingTimeInterval(4 * 3600), end: now.addingTimeInterval(5 * 3600),
+            attendees: ["Elif Kaya", "Mikko Virtanen", "Ayşe Demir", "Lena Fischer"], joinURL: URL(string: "https://teams.microsoft.com/l/meetup-join/x")
+        ),
+        CalendarMeeting(
+            id: "tanitim-3", title: "Client call · Nordia", start: now.addingTimeInterval(22 * 3600), end: now.addingTimeInterval(23 * 3600),
+            attendees: ["Jonas Berg"], joinURL: nil
+        ),
+    ]
+}
+
 /// Açılıştan sonra sahneyi kurar: bölümü seçer, Sor sohbetini açar ya da sahte bir kaydı canlı panelde gösterir.
 @MainActor
 func showDemoScene(scene: DemoScene, model: AppModel, router: MainWindowRouter, panel: LivePanelController, updater: AppUpdater, now: Date) {
@@ -248,6 +268,17 @@ func showDemoScene(scene: DemoScene, model: AppModel, router: MainWindowRouter, 
     switch scene {
     case .home:
         router.section = .home
+    case .homeCalendar:
+        router.section = .home
+        // Takvim kapalıyken açılıştaki takvim kurulumu listeyi boşaltır: etkinlikler ondan sonra yazılır.
+        Task {
+            do {
+                try await Task.sleep(for: .milliseconds(1500))
+            } catch {
+                return
+            }
+            model.upcomingMeetings = demoUpcomingMeetings(now: now)
+        }
     case .note, .noteSource, .noteTranscript:
         router.section = .meetings
         router.selectedMeetingID = demoMeetingID(startedAt: productWeeklyStart(now: now))
@@ -348,34 +379,25 @@ func showDemoScene(scene: DemoScene, model: AppModel, router: MainWindowRouter, 
             } catch {
                 return
             }
-            model.upcomingMeetings = [
-                CalendarMeeting(
-                    id: "tanitim-1", title: "Design review", start: now.addingTimeInterval(40 * 60), end: now.addingTimeInterval(70 * 60),
-                    attendees: ["Ayşe Demir", "Jonas Berg"], joinURL: URL(string: "https://meet.google.com/abc-defg-hij")
-                ),
-                CalendarMeeting(
-                    id: "tanitim-2", title: "Weekly product sync", start: now.addingTimeInterval(4 * 3600), end: now.addingTimeInterval(5 * 3600),
-                    attendees: ["Elif Kaya", "Mikko Virtanen", "Ayşe Demir", "Lena Fischer"], joinURL: URL(string: "https://teams.microsoft.com/l/meetup-join/x")
-                ),
-                CalendarMeeting(
-                    id: "tanitim-3", title: "Client call · Nordia", start: now.addingTimeInterval(22 * 3600), end: now.addingTimeInterval(23 * 3600),
-                    attendees: ["Jonas Berg"], joinURL: nil
-                ),
-            ]
+            model.upcomingMeetings = demoUpcomingMeetings(now: now)
         }
     case .update:
         router.section = .home
+        // Sürüm uygulamanın kendi sürümü (eskimez); notlar o sürümün yayın notlarından (docs/release-notes; bkz.
+        // `DemoDataConsistencyTests`: her başlık gerçek bir yayın notunda geçmeli).
+        guard let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String else {
+            preconditionFailure("Tanıtım: uygulamanın Info.plist'inde CFBundleShortVersionString yok")
+        }
         updater.showUpdateForDemo(update: AvailableAppUpdate(
-            version: "0.1.6",
+            version: version,
             releaseNotes: """
-            Smoother playback and a lighter app.
+            A calmer meeting page that shows where every point came from.
 
             ## What's new
-            - **Smooth playback.** The time and the highlighted word now move without stutter.
-            - **Lighter while recording.** Gistsmith uses far less CPU during meetings.
-            - **Subscribe in one step.** A short window takes you straight to checkout.
-            - **Your avatar.** Your photo or your own colour orb next to Settings.
-            - **Faster updates.** New versions reach you within minutes.
+            - **See where a point came from.** Click the magnifier next to any line to see the moments it came from.
+            - **Ask about this meeting.** A bar at the bottom of every meeting answers questions about it.
+            - **Insights, free for everyone.** See how many meetings you had and how your tasks are going.
+            - **A friendlier start to voice typing.** A short intro lets you test your shortcut and try a sentence.
             """,
             releaseNotesURL: URL(string: "https://gistsmith.com"),
             isReadyToInstall: true

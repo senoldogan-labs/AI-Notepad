@@ -17,6 +17,8 @@ public struct NoteSharePanel: View {
     @Binding var expiry: NoteShareExpiry
     @Binding var includeTranscript: Bool
     let hasTranscript: Bool
+    /// Seçili dilin çevirisi henüz yok: bağlantı asıl dildeki notu paylaşır (bkz. `isShareTranslationMissing`).
+    let isTranslationMissing: Bool
     let links: [NoteShareLinkEntry]
     let status: NoteSharePanelStatus
     /// Az önce kopyalanan bağlantı ("Kopyalandı" görünür).
@@ -29,13 +31,15 @@ public struct NoteSharePanel: View {
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     public init(
-        expiry: Binding<NoteShareExpiry>, includeTranscript: Binding<Bool>, hasTranscript: Bool, links: [NoteShareLinkEntry], status: NoteSharePanelStatus,
+        expiry: Binding<NoteShareExpiry>, includeTranscript: Binding<Bool>, hasTranscript: Bool, isTranslationMissing: Bool, links: [NoteShareLinkEntry],
+        status: NoteSharePanelStatus,
         copiedShareID: String?, onCreate: @escaping @MainActor () -> Void, onCopy: @escaping @MainActor (NoteShareLinkEntry) -> Void,
         onRevoke: @escaping @MainActor (NoteShareLinkEntry) -> Void, onClose: (@MainActor () -> Void)?
     ) {
         _expiry = expiry
         _includeTranscript = includeTranscript
         self.hasTranscript = hasTranscript
+        self.isTranslationMissing = isTranslationMissing
         self.links = links
         self.status = status
         self.copiedShareID = copiedShareID
@@ -72,6 +76,12 @@ public struct NoteSharePanel: View {
             }
             .appFont(size: 12, weight: .regular)
             .foregroundStyle(Theme.muted)
+            // Çeviri gelmeden paylaşılırsa not sessizce asıl dilde gitmesin.
+            if isTranslationMissing {
+                NoticeText("Seçili dildeki not henüz hazır değil; bağlantı notu asıl diliyle paylaşır.", severity: .attention)
+                    .appFont(size: 12, weight: .regular)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 12) {
                     expiryPicker

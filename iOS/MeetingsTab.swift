@@ -34,6 +34,8 @@ struct MeetingsLibraryScreen: View {
     @State private var newFolderRequest: NewFolderRequest?
     /// Silinmesi onay bekleyen klasör.
     @State private var pendingFolderDelete: String?
+    /// Sıkı liste: büyük kartlar yerine satırlar (ekrana dört kart sığıyordu); seçim saklanır.
+    @AppStorage(PhoneSettingsKey.libraryCompact) private var isCompact: Bool = false
     /// Notlardaki konuşmacı etiketleri adlarla gösterilir; adı kullanıcının adı olan konuşmacının görevleri onundur.
     private var userName: String { store.userName }
     /// Gösterilen kapsam.
@@ -58,7 +60,7 @@ struct MeetingsLibraryScreen: View {
         // `emptyOverlay`).
         let hasStatusRows: Bool = !statusMessages.isEmpty || !store.actionProblems.isEmpty || recorder.importingCount > 0 || imports.isLoadingVideos
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 14) {
+            LazyVStack(alignment: .leading, spacing: isCompact ? 2 : 14) {
                 PhoneErrorList(messages: statusMessages)
                 PhoneDismissibleErrorList(messages: store.actionProblems) { store.dismissActionProblems() }
                 if recorder.importingCount > 0 || imports.isLoadingVideos {
@@ -133,6 +135,13 @@ struct MeetingsLibraryScreen: View {
                 }
             } else {
                 if !store.meetings.isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            withAnimation(.smooth(duration: 0.25)) { isCompact.toggle() }
+                        } label: {
+                            Label(isCompact ? "Kart görünümü" : "Liste görünümü", systemImage: isCompact ? "rectangle.grid.1x2" : "list.bullet")
+                        }
+                    }
                     // Simge (erişilebilirlik adı "Seç").
                     ToolbarItem(placement: .topBarTrailing) {
                         Button("Seç", systemImage: "checkmark.circle") { setSelecting(true) }
@@ -184,7 +193,11 @@ struct MeetingsLibraryScreen: View {
             }
         } else {
             NavigationLink(value: PhoneRoute.meeting(record.id)) {
-                PhoneMeetingCard(record: record, height: 132)
+                if isCompact {
+                    HomeMeetingRow(record: record)
+                } else {
+                    PhoneMeetingCard(record: record, height: 132)
+                }
             }
             .buttonStyle(PressableCardStyle())
             .contextMenu {
@@ -704,7 +717,7 @@ struct MeetingReadView: View {
                     }
                     // Sekmeler ve notun dili tek satırda (Mac'teki gibi): dil, notun başka dildeki sürümünü gösterir.
                     HStack(spacing: 8) {
-                        PillTabs(selection: $pane, options: [(MeetingPane.summary, "Özet"), (MeetingPane.transcript, "Transkript")])
+                        PillTabs(selection: $pane, options: [(MeetingPane.summary, "Not"), (MeetingPane.transcript, "Transkript")])
                         if pane == .summary, let note = record.note {
                             NoteLanguageMenu(original: note.writtenLanguage, selection: Binding<ShareLanguage?>(
                                 get: { noteLanguage },
@@ -1067,6 +1080,7 @@ struct MeetingReadView: View {
                 ObservationScope {
                     MeetingAskBar(
                         exchanges: ask.meetingAsk.exchanges(meetingID: record.id), isAnswering: ask.meetingAsk.isAnswering(meetingID: record.id),
+                        followUps: ask.meetingAsk.followUps(meetingID: record.id, note: record.note),
                         quickActions: record.note == nil ? [] : meetingQuickActions(recipes: ask.recipes), recipes: ask.recipes,
                         isEditingNote: store.regeneratingIDs.contains(record.id), isTranscriptOpen: isTranscriptOpen,
                         isPanelOpen: $isAskPanelOpen, conversationMaxHeight: bottomPanelMaxHeight(pageHeight: pageHeight, cap: 340) - 90,
@@ -1096,6 +1110,11 @@ struct MeetingReadView: View {
                     .allowsHitTesting(false)
             }
             .animation(.smooth(duration: 0.25), value: isTranscriptOpen)
+            // Toplantının saklı son sohbeti geri gelir (geçmiş açılışta arka planda okunur: gelince de denenir).
+            .onAppear { ask.meetingAsk.resume(meetingID: record.id, conversations: ask.conversations) }
+            .onChange(of: ask.conversations.count) { (_: Int, _: Int) -> Void in
+                ask.meetingAsk.resume(meetingID: record.id, conversations: ask.conversations)
+            }
             // Sohbet paneli ve transkript çekmecesi aynı anda açık olmaz: biri açılınca öteki kapanır.
             .onChange(of: isAskPanelOpen) { (_: Bool, open: Bool) in
                 if open {
@@ -1221,21 +1240,24 @@ struct MeetingReadView: View {
     /// Toplantıyı dosya olarak yazar (notlu dosyalar seçili dilde) ve paylaşım sayfasını açar; olmazsa neden sayfada
     /// görünür.
     private func export(format: MeetingExportFormat) {
-        do {
-            let source: MeetingRecord
-            if format.carriesNote {
-                guard let shown = shownRecord else {
-                    return
-                }
-                source = shown
-            } else {
-                source = record
+        let source: MeetingRecord
+        if format.carriesNote {
+            guard let shown = shownRecord else {
+                return
             }
-            exported = ExportedFile(url: try writeMeetingExport(record: source, language: format.carriesNote ? noteLanguage : nil, format: format))
-            recordFeatureUsage(feature: .export(format.telemetryFormat))
-            errorMessage = nil
-        } catch {
-            errorMessage = String(localized: "Dışa aktarılamadı: \(userFacingMessage(error: error))")
+            source = shown
+        } else {
+            source = record
+        }
+        let language: ShareLanguage? = format.carriesNote ? noteLanguage : nil
+        Task {
+            do {
+                exported = ExportedFile(url: try await writeMeetingExport(record: source, language: language, format: format))
+                recordFeatureUsage(feature: .export(format.telemetryFormat))
+                errorMessage = nil
+            } catch {
+                errorMessage = String(localized: "Dışa aktarılamadı: \(userFacingMessage(error: error))")
+            }
         }
     }
 
@@ -1296,8 +1318,8 @@ struct MeetingReadView: View {
         // Kısa konuşmalar (bkz. `groupedSpeakers`) konuşmacı sayısına girmez.
         let majorCount: Int = groupedSpeakers(shares: speakerShares(paragraphs: paragraphs), speakerNames: record.speakerNames).major.count
         let mine: Int = (record.note?.tasks ?? []).filter(\.isMine).count
+        // Başlık sayfanın en üstünde: renkli kare listede toplantıyı ayırır, sayfada bir şey söylemez.
         return VStack(alignment: .leading, spacing: 12) {
-            MeetingTile(record: record, size: 26)
             Text(record.note?.title ?? record.title)
                 .appFont(size: 28, weight: .semibold)
                 .tracking(-0.6)
@@ -1370,6 +1392,8 @@ private struct MeetingSummary: View {
     let onAskSource: @MainActor (String) -> Void
     let onPlay: @MainActor (Double) -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
+    /// "Görev ekle" sayfası açık.
+    @State private var isAddingTask: Bool = false
 
     var body: some View {
         if let note {
@@ -1386,6 +1410,9 @@ private struct MeetingSummary: View {
                         // Yüz yüze toplantıda kullanıcı da "Konuşmacı N": hangisi olduğunu seçince görevleri ona düşer.
                         UserSpeakerPrompt(record: record, userName: store.userName, isLocked: !isEditable) { (person: Int, name: String) -> Void in
                             store.nameUserSpeaker(meetingID: record.id, person: person, name: name)
+                        }
+                        if isEditable, !record.isSampleMeeting {
+                            addTaskButton
                         }
                     }
                     if let myNotes = record.myNotes {
@@ -1439,6 +1466,26 @@ private struct MeetingSummary: View {
         }
     }
 
+    /// Bu toplantıya elle görev ekleme düğmesi (kendi görevin); sayfada iş ve isteğe bağlı son gün.
+    private var addTaskButton: some View {
+        Button("Görev ekle", systemImage: "plus") { isAddingTask = true }
+            .appFont(size: 14, weight: .medium)
+            .foregroundStyle(appearance.accent.color)
+            .sheet(isPresented: $isAddingTask) {
+                NavigationStack {
+                    AddTaskForm(meetings: [record], fixedMeetingID: record.id) { (meetingID: String, text: String, dueDay: Date?) -> Void in
+                        store.addTask(meetingID: meetingID, description: text, dueDay: dueDay)
+                        isAddingTask = false
+                    } onCancel: {
+                        isAddingTask = false
+                    }
+                    .navigationTitle("Görev ekle")
+                    .navigationBarTitleDisplayMode(.inline)
+                }
+                .presentationDetents([.medium, .large])
+            }
+    }
+
     /// Adı verilmemiş (hâlâ "Konuşmacı N") konuşmacı var mı.
     private func hasUnnamedSpeakers(shares: [SpeakerShare]) -> Bool {
         shares.contains { (share: SpeakerShare) -> Bool in
@@ -1461,6 +1508,13 @@ private struct MeetingSummary: View {
     private func noteDocument(note: MeetingNote) -> some View {
         let marked: [TranscriptParagraph] = markedParagraphs
         let outline: [OutlineItem] = note.outline ?? []
+        let mine: [NoteTask] = openFirst(tasks: note.tasks.filter(\.isMine))
+        let others: [NoteTask] = openFirst(tasks: note.tasks.filter { !$0.isMine })
+        // Sana düşen işler notun en başında, kendi kartında (karşılamadaki örnek not da böyle söz verir).
+        if !mine.isEmpty {
+            myTasksCard(mine: mine)
+                .id(MeetingNoteAnchor.myTasks)
+        }
         noteBlock(title: "Özet") {
             ForEach(Array(noteSummaryBullets(summary: note.summary).enumerated()), id: \.offset) { (item: (offset: Int, element: String)) in
                 bullet(text: item.element, anchorSec: nil) {
@@ -1469,9 +1523,18 @@ private struct MeetingSummary: View {
             }
         }
         .id(MeetingNoteAnchor.sections)
-        if !note.tasks.isEmpty {
-            tasksSection(note: note)
+        if !others.isEmpty {
+            if mine.isEmpty {
+                // Senin görevin yoksa bölüm yalnız "Görevler"; kapaktaki bağlantı da buraya kayar.
+                noteBlock(title: "Görevler") {
+                    ForEach(others, id: \.trackingKey) { (task: NoteTask) in taskRow(task: task) }
+                }
                 .id(MeetingNoteAnchor.myTasks)
+            } else {
+                noteBlock(title: "Diğer görevler") {
+                    ForEach(others, id: \.trackingKey) { (task: NoteTask) in taskRow(task: task) }
+                }
+            }
         }
         if !note.decisions.isEmpty {
             noteBlock(title: "Kararlar") {
@@ -1553,39 +1616,42 @@ private struct MeetingSummary: View {
         )
     }
 
-    /// Görevler: önce senin görevlerin, sonra diğerleri (tamamlananlar grubun sonunda); her görevin kaynağı da gösterilir.
-    private func tasksSection(note: MeetingNote) -> some View {
-        let ordered: [NoteTask] = note.tasks.filter { !isTaskDone(record: record, task: $0) } + note.tasks.filter { isTaskDone(record: record, task: $0) }
-        let mine: [NoteTask] = ordered.filter(\.isMine)
-        let others: [NoteTask] = ordered.filter { !$0.isMine }
-        let doneMine: Int = mine.filter { isTaskDone(record: record, task: $0) }.count
-        return noteBlock(title: "Görevler") {
-            if !mine.isEmpty {
-                taskGroupLabel(title: "Senin görevlerin", detail: String(localized: "\(doneMine)/\(mine.count) tamamlandı"), tint: appearance.accent.color)
-                ForEach(mine, id: \.trackingKey) { (task: NoteTask) in taskRow(task: task) }
-            }
-            if !others.isEmpty {
-                taskGroupLabel(title: "Diğer görevler", detail: nil, tint: Theme.muted)
-                    .padding(.top, mine.isEmpty ? 0 : 10)
-                ForEach(others, id: \.trackingKey) { (task: NoteTask) in taskRow(task: task) }
-            }
-        }
+    /// Tamamlananlar sonda; sıra öyle kalır.
+    private func openFirst(tasks: [NoteTask]) -> [NoteTask] {
+        tasks.filter { !isTaskDone(record: record, task: $0) } + tasks.filter { isTaskDone(record: record, task: $0) }
     }
 
-    /// Görev grubunun küçük etiketi ("Senin görevlerin · 1/3 tamamlandı").
-    private func taskGroupLabel(title: LocalizedStringKey, detail: String?, tint: Color) -> some View {
-        HStack(spacing: 6) {
-            Text(title)
-                .appFont(size: 12, weight: .semibold)
-                .foregroundStyle(tint)
-            if let detail {
-                Text(verbatim: "· \(detail)")
-                    .appFont(size: 12, weight: .regular)
-                    .foregroundStyle(Theme.muted)
+    /// "Senin görevlerin" kartı (Mac'teki gibi): notun başında, vurgu renginin hafif zemininde; başlıkta ilerleme.
+    private func myTasksCard(mine: [NoteTask]) -> some View {
+        let done: Int = mine.filter { isTaskDone(record: record, task: $0) }.count
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("Senin görevlerin")
+                    .appFont(size: 17, weight: .semibold)
+                    .foregroundStyle(Theme.ink)
+                    .accessibilityAddTraits(.isHeader)
+                Text(verbatim: String(localized: "\(done)/\(mine.count) tamamlandı"))
+                    .appFont(size: 12, weight: .medium)
+                    .monospacedDigit()
+                    .foregroundStyle(appearance.accent.color)
+                Spacer(minLength: 0)
+                if isEditable, !record.isSampleMeeting {
+                    addTaskButton
+                        .labelStyle(.iconOnly)
+                        .accessibilityLabel(Text("Görev ekle"))
+                }
             }
+            .padding(.bottom, 2)
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(mine, id: \.trackingKey) { (task: NoteTask) in taskRow(task: task) }
+            }
+            .padding(.horizontal, -10)
         }
-        .padding(.horizontal, 10)
-        .padding(.top, 4)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(appearance.accent.color.opacity(0.07), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(appearance.accent.color.opacity(0.18)))
     }
 
     private func taskRow(task: NoteTask) -> some View {

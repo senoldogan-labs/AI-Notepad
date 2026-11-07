@@ -14,6 +14,9 @@ public struct PersonTask: Sendable, Equatable {
     public let meetingID: String
     public let meetingTitle: String
     public let task: NoteTask
+    /// Toplantının başladığı an ve notun dili: görevin göreli tarihi ("Cuma") bunlara göre çözülür (`taskDue`).
+    public let meetingStartedAt: Date
+    public let noteLanguage: ShareLanguage
 }
 
 /// Kullanıcının elle eklediği kişi (henüz toplantıda adı geçmese de Kişiler'de görünür; adı tanımaya verilir).
@@ -165,13 +168,18 @@ public func peopleDirectory(records storedRecords: [MeetingRecord], voices: [Reg
         }
         return person.isSaved || (person.meetings.first?.date ?? .distantPast) > removal.removedAt
     }
-    let withMeetings: [PersonSummary] = fromMeetings.sorted { ($0.meetings.first?.date ?? .distantPast) > ($1.meetings.first?.date ?? .distantPast) }
+    // Aynı son toplantıyı paylaşanlar adla sıralanır: sözlük sırası her açılışta değişir, liste oynamasın.
+    let withMeetings: [PersonSummary] = fromMeetings.sorted { (left: PersonSummary, right: PersonSummary) -> Bool in
+        let leftDate: Date = left.meetings.first?.date ?? .distantPast
+        let rightDate: Date = right.meetings.first?.date ?? .distantPast
+        return leftDate != rightDate ? leftDate > rightDate : left.name.localizedStandardCompare(right.name) == .orderedAscending
+    }
     let savedOnly: [PersonSummary] = book.saved
         .filter { (person: SavedPerson) -> Bool in
             person.name.caseInsensitiveCompare(userName) != .orderedSame
                 && !fromMeetings.contains { $0.name.caseInsensitiveCompare(person.name) == .orderedSame }
         }
-        .sorted { $0.addedAt > $1.addedAt }
+        .sorted { $0.addedAt != $1.addedAt ? $0.addedAt > $1.addedAt : $0.name.localizedStandardCompare($1.name) == .orderedAscending }
         .map { personSummary(name: $0.name, saved: $0, meetings: [], records: records, voices: voices) }
     return savedOnly + withMeetings
 }
@@ -181,7 +189,12 @@ private func personSummary(name: String, saved: SavedPerson?, meetings: [PersonM
     let tasks: [PersonTask] = records.flatMap { (record: MeetingRecord) -> [PersonTask] in
         (record.note?.tasks ?? [])
             .filter { $0.owner.caseInsensitiveCompare(name) == .orderedSame }
-            .map { PersonTask(meetingID: record.id, meetingTitle: record.note?.title ?? record.title, task: $0) }
+            .map {
+                PersonTask(
+                    meetingID: record.id, meetingTitle: record.note?.title ?? record.title, task: $0, meetingStartedAt: record.startedAt,
+                    noteLanguage: record.note?.writtenLanguage ?? .turkish
+                )
+            }
     }
     return PersonSummary(
         name: name, role: saved?.role ?? "", email: saved?.email ?? "", isSaved: saved != nil, meetings: meetings, tasks: tasks,

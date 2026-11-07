@@ -8,6 +8,8 @@ import SwiftUI
 public struct MeetingAskBar: View {
     let exchanges: [ArchiveExchange]
     let isAnswering: Bool
+    /// Son cevabın altındaki devam soruları (`meetingFollowUpSuggestions`); dokununca sorulur.
+    let followUps: [String]
     let quickActions: [MeetingQuickAction]
     let recipes: [Recipe]
     /// Not şu an yeniden yazılıyor ("Notu uzat" ya da notu sorarak düzenleme).
@@ -30,14 +32,15 @@ public struct MeetingAskBar: View {
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     public init(
-        exchanges: [ArchiveExchange], isAnswering: Bool, quickActions: [MeetingQuickAction], recipes: [Recipe], isEditingNote: Bool, isTranscriptOpen: Bool,
-        isPanelOpen: Binding<Bool>, conversationMaxHeight: CGFloat,
+        exchanges: [ArchiveExchange], isAnswering: Bool, followUps: [String], quickActions: [MeetingQuickAction], recipes: [Recipe], isEditingNote: Bool,
+        isTranscriptOpen: Bool, isPanelOpen: Binding<Bool>, conversationMaxHeight: CGFloat,
         onAsk: @escaping @MainActor (String, String?) -> Void, onQuickAction: @escaping @MainActor (MeetingQuickAction) -> Void, onStop: @escaping @MainActor () -> Void,
         onClear: @escaping @MainActor () -> Void, onRegenerate: @escaping @MainActor () -> Void, onOpenSource: @escaping @MainActor (ArchivePassage) -> Void,
         onSaveRecipe: @escaping @MainActor (String) -> Void, onToggleTranscript: @escaping @MainActor () -> Void
     ) {
         self.exchanges = exchanges
         self.isAnswering = isAnswering
+        self.followUps = followUps
         self.quickActions = quickActions
         self.recipes = recipes
         self.isEditingNote = isEditingNote
@@ -197,6 +200,9 @@ public struct MeetingAskBar: View {
                     .fixedSize(horizontal: false, vertical: true)
             } else {
                 conversation
+                if !isAnswering, !followUps.isEmpty {
+                    followUpChips
+                }
             }
             if isEditingNote {
                 HStack(spacing: 8) {
@@ -271,6 +277,31 @@ public struct MeetingAskBar: View {
         let regenerate: (@MainActor () -> Void)? = exchange.id == exchanges.last?.id ? onRegenerate : nil
         return ExchangeView(exchange: exchange, onOpen: onOpenSource, onSaveRecipe: onSaveRecipe, onRegenerate: regenerate, onAskMeetings: nil)
             .id(exchange.id)
+    }
+
+    /// Devam soruları: vurgu renginde çipler, dokununca sorulur.
+    private var followUpChips: some View {
+        FlowLayout(spacing: 6, lineSpacing: 6) {
+            ForEach(followUps, id: \.self) { (question: String) in
+                Button {
+                    onAsk(question, nil)
+                } label: {
+                    Label(question, systemImage: "arrow.turn.down.right")
+                        .appFont(size: 12, weight: .medium)
+                        .foregroundStyle(appearance.accent.color)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(appearance.accent.color.opacity(0.10), in: Capsule())
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .linkPointer(isEnabled: true)
+                .disabled(isEditingNote)
+            }
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(Text("Devam soruları"))
     }
 
     /// Hazır eylemler: çipler.
@@ -397,9 +428,10 @@ public struct TranscriptDrawer: View {
         guard let id else {
             return
         }
-        // Liste çizildikten sonra kaysın (ilk açılışta kimlik henüz yerleşmemiş olur).
+        // Liste çizildikten sonra kaysın (ilk açılışta kimlik henüz yerleşmemiş olur). Paragraf en üstte durur: ortaya
+        // kayınca üstteki paragrafın konuşmacı satırı kenarda yarım kesik görünüyordu.
         Task { @MainActor in
-            withAnimation(.smooth(duration: 0.3)) { proxy.scrollTo(id, anchor: .center) }
+            withAnimation(.smooth(duration: 0.3)) { proxy.scrollTo(id, anchor: .top) }
         }
     }
 

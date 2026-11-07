@@ -2,7 +2,7 @@ import AINotepadCore
 import Foundation
 import UserNotifications
 
-/// Bildirim yanıtları (Mac'teki `AppDelegate`'in karşılığı): toplantı hatırlatmasındaki "Dinlemeye başla" ya da
+/// Bildirim yanıtları (Mac'teki `AppDelegate`'in karşılığı): toplantı hatırlatmasındaki "Kaydı başlat" ya da
 /// bildirime dokunma Kayıt sekmesini açar ve kaydı başlatır (kayıt kısayolundaki gibi); not hazır, görev günü, haftalık
 /// özet ve kayıtsız hafta bildirimleri kendi yerini açar ya da görevi işaretler (bkz. `engagementRoute`). Uygulama
 /// öndeyken de bildirim görünür.

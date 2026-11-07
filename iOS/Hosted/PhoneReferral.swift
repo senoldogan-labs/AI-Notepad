@@ -53,6 +53,19 @@ struct PhoneReferralSection: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(Text("Davet kodunu kopyala"))
+                    .sensoryFeedback(.success, trigger: copied) { (_: Bool, new: Bool) -> Bool in new }
+                    // "Kopyalandı" kısa süre sonra "Kopyala"ya döner (yoksa ekranda hep kopyalanmış kalıyordu).
+                    .task(id: copied) {
+                        guard copied else {
+                            return
+                        }
+                        do {
+                            try await Task.sleep(for: .seconds(2))
+                        } catch {
+                            return
+                        }
+                        withAnimation(.smooth(duration: 0.2)) { copied = false }
+                    }
                     ShareLink(item: phoneInviteText(inviteURL: inviteURL)) {
                         PhonePrimaryButtonLabel(title: "Davet bağlantısını paylaş")
                     }

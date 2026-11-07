@@ -203,6 +203,29 @@ final class AppModel {
         namedMeetingsCache = result.cache
         return result.records
     }
+    @ObservationIgnored private var peopleCache: MemoCache<PeopleDirectoryInput, [PersonSummary]> = .empty
+    @ObservationIgnored private var analyticsCache: MemoCache<AnalyticsInput, MeetingAnalytics> = .empty
+
+    /// Kişiler dizini (`peopleDirectory`); toplantılar, sesler, defter ve ad değişmedikçe yeniden hesaplanmaz.
+    func peopleDirectory() -> [PersonSummary] {
+        let input: PeopleDirectoryInput = PeopleDirectoryInput(records: meetings, voices: registeredVoices, book: peopleBook, userName: userName)
+        let result: (output: [PersonSummary], cache: MemoCache<PeopleDirectoryInput, [PersonSummary]>) = memoized(input: input, cache: peopleCache) {
+            AINotepadCore.peopleDirectory(records: $0.records, voices: $0.voices, book: $0.book, userName: $0.userName)
+        }
+        peopleCache = result.cache
+        return result.output
+    }
+
+    /// İstatistikler (`meetingAnalytics`); toplantılar, dönem, ad ya da gün değişmedikçe yeniden hesaplanmaz.
+    func analytics(period: AnalyticsPeriod) -> MeetingAnalytics {
+        let now: Date = Date()
+        let input: AnalyticsInput = AnalyticsInput(records: meetings, period: period, userName: userName, day: Calendar.current.startOfDay(for: now))
+        let result: (output: MeetingAnalytics, cache: MemoCache<AnalyticsInput, MeetingAnalytics>) = memoized(input: input, cache: analyticsCache) {
+            meetingAnalytics(records: $0.records, period: $0.period, userName: $0.userName, now: now, calendar: Calendar.current)
+        }
+        analyticsCache = result.cache
+        return result.output
+    }
     var meetingLoadFailures: [MeetingLoadFailure] = []
     /// Toplantılar listesinde gösterilen okuma hataları: okunamayan toplantılar ve iCloud eşitlemesi başarısızsa nedeni.
     /// iCloud durumu eşitlemeden okunur; toplantılar yeniden okununca silinmez.
@@ -2428,12 +2451,44 @@ final class AppModel {
         !meetingsInFolder(records: meetings, folder: name).contains { isLocked(meetingID: $0.id) }
     }
 
-    /// Toplantıları klasöre taşır (nil: klasörden çıkarır); kilitli (kayıtta/işlemede) olanlar atlanır.
+    /// Toplantıları klasöre taşır (nil: klasörden çıkarır); kilitli (kayıtta/işlemede) olanlar atlanır. Kodlama ve yazım
+    /// arka planda (çok toplantı taşınırken arayüz donmasın); yazım sırası burada alınır (`claimMeetingWrite`): bu arada
+    /// toplantıya yapılan daha yeni bir yazım taşımanın eski kopyasıyla ezilmez. Liste bir kez güncellenir; arada
+    /// değişen toplantının bellekteki hâline dokunulmaz.
     func moveMeetings(ids: Set<String>, to folder: String?) {
-        for record in meetings where ids.contains(record.id) && !isLocked(meetingID: record.id) {
-            withSessionDirectory(id: record.id) { (directory: URL) -> Void in
-                saveRecord(record: record.with(folder: folder), directory: directory)
+        let moves: [(original: MeetingRecord, moved: MeetingRecord, directory: URL, ticket: MeetingWriteTicket)] = meetings
+            .filter { ids.contains($0.id) && !isLocked(meetingID: $0.id) }
+            .compactMap { (record: MeetingRecord) -> (original: MeetingRecord, moved: MeetingRecord, directory: URL, ticket: MeetingWriteTicket)? in
+                do {
+                    let directory: URL = try sessionDirectory(id: record.id)
+                    return (original: record, moved: record.with(folder: folder), directory: directory, ticket: claimMeetingWrite(directory: directory))
+                } catch {
+                    errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Toplantı klasörüne erişilemedi: \(userFacingMessage(error: error))"))
+                    return nil
+                }
             }
+        guard !moves.isEmpty else {
+            return
+        }
+        Task {
+            let results: [(original: MeetingRecord, moved: MeetingRecord, error: String?)] = await Task.detached(priority: .userInitiated) {
+                moves.map { (move: (original: MeetingRecord, moved: MeetingRecord, directory: URL, ticket: MeetingWriteTicket)) -> (original: MeetingRecord, moved: MeetingRecord, error: String?) in
+                    do {
+                        try saveMeeting(record: move.moved, directory: move.directory, ticket: move.ticket)
+                        return (original: move.original, moved: move.moved, error: nil)
+                    } catch {
+                        return (original: move.original, moved: move.moved, error: userFacingMessage(error: error))
+                    }
+                }
+            }.value
+            for failure in results.compactMap(\.error) {
+                Self.logger.error("Toplantı klasöre taşınamadı, hata: \(failure, privacy: .private)")
+                errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Toplantı kaydedilemedi: \(failure)"))
+            }
+            meetings = results.filter { $0.error == nil }.reduce(meetings) { (records: [MeetingRecord], result: (original: MeetingRecord, moved: MeetingRecord, error: String?)) -> [MeetingRecord] in
+                records.first { $0.id == result.original.id } == result.original ? upsertMeeting(records: records, record: result.moved) : records
+            }
+            meetingReloader.invalidate()
         }
     }
 
@@ -2877,6 +2932,9 @@ final class AppModel {
                 answerLanguage: answerLanguage, llm: provider, maxChars: noteLimits(provider: provider).archiveChars, screens: screens, webSearch: webSearch,
                 now: Date(), onProgress: onProgress
             )
+        } save: { [weak self] (id: UUID, exchanges: [ArchiveExchange]) -> Void in
+            // Toplantı sohbeti Sor geçmişine yazılır (eşitlenir, Sor'da da açılır); sayfa yeniden açılınca geri gelir.
+            self?.storeConversation(id: id, exchanges: exchanges)
         }
     }
 
@@ -3059,12 +3117,23 @@ final class AppModel {
             return
         }
         let id: UUID = currentConversationID ?? UUID()
-        let turns: [AskConversationTurn] = archiveExchanges.compactMap { (exchange: ArchiveExchange) -> AskConversationTurn? in askTurn(exchange: exchange) }
+        if storeConversation(id: id, exchanges: archiveExchanges) {
+            currentConversationID = id
+        }
+    }
+
+    /// Sohbeti bitmiş sorularıyla Sor geçmişine yazar (Sor sayfası ve toplantı sayfasının sohbeti); sınırı aşan en eski
+    /// sohbetler silinir. Saklanamazsa neden pencerede görünür ve false döner.
+    @discardableResult
+    private func storeConversation(id: UUID, exchanges: [ArchiveExchange]) -> Bool {
+        let turns: [AskConversationTurn] = exchanges.compactMap { (exchange: ArchiveExchange) -> AskConversationTurn? in askTurn(exchange: exchange) }
+        guard !turns.isEmpty else {
+            return false
+        }
         let conversation: AskConversation = askConversation(existing: askConversations.first { $0.id == id }, id: id, turns: turns, now: Date())
         do {
             let directory: URL = try AppPaths.askHistoryDirectory()
             try saveAskConversation(conversation: conversation, directory: directory)
-            currentConversationID = id
             askConversations = upsertAskConversation(conversations: askConversations, conversation: conversation)
             for old in askConversationsBeyondLimit(conversations: askConversations, limit: askHistoryLimit) {
                 try deleteAskConversation(id: old.id, directory: directory)
@@ -3073,7 +3142,9 @@ final class AppModel {
         } catch {
             Self.logger.error("Sohbet saklanamadı, sohbet: \(id.uuidString, privacy: .public), hata: \(String(describing: error), privacy: .private)")
             errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Sohbet saklanamadı: \(userFacingMessage(error: error))"))
+            return false
         }
+        return true
     }
 
     /// Ajanın adımını soruya yazar.
@@ -3099,6 +3170,36 @@ final class AppModel {
         }
         withSessionDirectory(id: meetingID) { (directory: URL) -> Void in
             saveRecord(record: togglingTask(record: record, task: task), directory: directory)
+        }
+    }
+
+    /// Kullanıcının elle yazdığı görevi toplantının notuna ekler; kilitli toplantıda ya da aynı iş varsa eklenmez,
+    /// nedeni hatalarda görünür (iPhone'daki gibi). Görev Görevlerim'de ve eşitlemeyle iPhone'da görünür.
+    func addTask(meetingID: String, description: String, dueDay: Date?) {
+        guard let record = meetings.first(where: { $0.id == meetingID }) else {
+            Self.logger.warning("Görev eklenemedi: toplantı yok, toplantı: \(meetingID, privacy: .public)")
+            return
+        }
+        guard !isLocked(meetingID: meetingID) else {
+            errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Toplantı işlenirken görev eklenemez; işleme bitince yeniden dene."))
+            return
+        }
+        guard let updated = addingTask(record: record, description: description, dueDay: dueDay, userName: userName, calendar: Calendar.current) else {
+            errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Görev eklenemedi: bu toplantıda aynı görev zaten var."))
+            return
+        }
+        withSessionDirectory(id: meetingID) { (directory: URL) -> Void in
+            saveRecord(record: updated, directory: directory)
+        }
+    }
+
+    /// Elle eklenmiş görevi siler (nottan gelen görev silinmez).
+    func removeAddedTask(meetingID: String, task: NoteTask) {
+        guard let record = meetings.first(where: { $0.id == meetingID }), !isLocked(meetingID: meetingID) else {
+            return
+        }
+        withSessionDirectory(id: meetingID) { (directory: URL) -> Void in
+            saveRecord(record: removingAddedTask(record: record, task: task), directory: directory)
         }
     }
 

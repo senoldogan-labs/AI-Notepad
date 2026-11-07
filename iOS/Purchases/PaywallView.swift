@@ -43,7 +43,6 @@ struct PhonePaywall: View {
                     PaywallIncluded(monthlyHours: monthlyHours)
                     PaywallPackages(model: model)
                     PaywallStatus(model: model)
-                    PaywallActions(model: model)
                     PaywallTerms()
                 }
             }
@@ -52,6 +51,17 @@ struct PhonePaywall: View {
             .padding(.bottom, 28)
         }
         .scrollIndicators(.hidden)
+        // "Abone ol" ve "Geri Yükle" altta sabit: küçük ekranda (iPhone SE) ve büyük yazıda da kaydırmadan görünür.
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if model.phase != .completed {
+                PaywallActions(model: model)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
+                    .background(Theme.background)
+                    .overlay(alignment: .top) { Rectangle().fill(Theme.line).frame(height: 1) }
+            }
+        }
         .background(Theme.background.ignoresSafeArea())
         .tint(appearance.accent.color)
         .interactiveDismissDisabled(isPaywallBusy(phase: model.phase))
@@ -81,24 +91,28 @@ func paywallReasonText(reason: HostedUpsellMoment) -> String? {
     }
 }
 
-/// Kapak: durağan film gradyanı üstünde başlık; sağ üstte kapatma düğmesi.
+/// Kapak: durağan film gradyanı üstünde başlık; sağ üstte kapatma düğmesi. Yükseklik sabit değil: küçük ekranda
+/// kısalır (satın alma düğmeleri görünür kalsın), büyük yazıda başlığa göre uzar.
 private struct PaywallCover: View {
     let onClose: () -> Void
     let isCloseEnabled: Bool
 
     var body: some View {
-        FilmGradient(seed: "gistsmith-abonelik", palette: .ocean)
-            .overlay(alignment: .bottomLeading) {
-                VStack(alignment: .leading, spacing: 8) {
-                    PastelChip(text: appName, systemImage: "sparkles")
-                    Text("Her toplantın için tam erişim")
-                        .appFont(size: 28, weight: .regular)
-                        .tracking(-0.5)
-                        .foregroundStyle(Color.black.opacity(0.8))
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(22)
-            }
+        VStack(alignment: .leading, spacing: 8) {
+            PastelChip(text: appName, systemImage: "sparkles")
+            Text("Her toplantın için tam erişim")
+                .appFont(size: 28, weight: .regular)
+                .tracking(-0.5)
+                .foregroundStyle(Color.black.opacity(0.8))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(22)
+        .padding(.top, 48)
+        .frame(maxWidth: .infinity, alignment: .bottomLeading)
+        .containerRelativeFrame(.vertical, alignment: .bottomLeading) { (length: CGFloat, _: Axis) -> CGFloat in
+            min(230, max(150, length * 0.26))
+        }
+        .background { FilmGradient(seed: "gistsmith-abonelik", palette: .ocean) }
             .overlay(alignment: .topTrailing) {
                 Button(action: onClose) {
                     Image(systemName: "xmark")
@@ -114,7 +128,6 @@ private struct PaywallCover: View {
                 .accessibilityLabel(Text("Kapat"))
                 .padding(14)
             }
-            .frame(height: 230)
             .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
             .environment(\.colorScheme, .light)
     }
@@ -215,7 +228,8 @@ private struct PaywallPackageCard: View {
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 3) {
                     titleLayout {
-                        Text(verbatim: planTitle)
+                        // App Store'daki ürün adı (3.1.2: aboneliğin adı görünmeli); boş gelirse planın adı.
+                        Text(verbatim: package.title.isEmpty ? planTitle : package.title)
                             .appFont(size: 16, weight: .semibold)
                             .foregroundStyle(Theme.ink)
                             .lineLimit(1)

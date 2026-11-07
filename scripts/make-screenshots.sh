@@ -21,7 +21,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 site_scenes=(ana not sor canli)
-check_scenes=(not-kaynak not-sor not-transkript abone deneme-bitiyor deneme-bitti guncelleme ayarlar ayarlar-asistan kisiler sirketler gorevler istatistikler toplantilar ekranlar toplantilar-bos gorevler-bos kisiler-bos istatistikler-bos sor-bos
+check_scenes=(ana-takvim not-kaynak not-sor not-transkript abone deneme-bitiyor deneme-bitti guncelleme ayarlar ayarlar-asistan kisiler sirketler gorevler istatistikler toplantilar ekranlar toplantilar-bos gorevler-bos kisiler-bos istatistikler-bos sor-bos
     giris kurulum kurulum-takvim kurulum-takvim-bagli kurulum-izinler kurulum-ornek-giris kurulum-ornek kurulum-not kurulum-hazir)
 theme="${GISTSMITH_THEME:-light}"
 if [[ "$theme" != "light" && "$theme" != "dark" ]]; then

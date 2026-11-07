@@ -99,7 +99,7 @@ struct AINotepadiOSApp: App {
         // ulaşır (hesap değişince kaydedici değişir, kayıt yeri değişmez).
         AppDependencyManager.shared.add(dependency: sessions)
         AppDependencyManager.shared.add(dependency: router)
-        // Toplantı hatırlatmasındaki "Dinlemeye başla" kaydı başlatır (kısayoldaki gibi).
+        // Toplantı hatırlatmasındaki "Kaydı başlat" kaydı başlatır (kısayoldaki gibi).
         PhoneNotificationDelegate.onStartRecording = { () -> Void in
             router.showHome()
             Task { await sessions.session.recorder.start() }
@@ -221,7 +221,11 @@ private struct PhoneAppRoot: View {
     let router: PhoneRouter
     let calendar: PhoneCalendar
     let crashReports: CrashReportCenter
-    @AppStorage(PhoneSettingsKey.aiDisclosureAccepted) private var disclosureAccepted: Bool = false
+    /// Yapay zekâ açıklaması bu oturumda onaylandı: onay hesabın ayar alanına yazılır (`recordPhoneAIConsent`), görünüm
+    /// bununla yeniden okur.
+    @State private var consentRevision: Int = 0
+    /// Onay saklanamadıysa nedeni (açıklamanın altında).
+    @State private var consentError: String?
     @AppStorage(PhoneSettingsKey.theme) private var theme: String = AppTheme.system.rawValue
 
     var body: some View {
@@ -229,8 +233,18 @@ private struct PhoneAppRoot: View {
         Group {
             if phoneShowsSignInGate(requiresSignIn: account.requiresSignIn, isRecording: session.recorder.phase != .idle) {
                 PhoneSignInGate(account: account, switchWaitsFor: session.openWriters)
-            } else if !disclosureAccepted {
-                PhoneAIDisclosure(account: account) { disclosureAccepted = true }
+            } else if !phoneAIConsentGiven(account: account), consentRevision >= 0 {
+                // Onay hesap başına: başka hesapla girince açıklama o hesaba da gösterilir. Onay ayarda saklıdır (gözlenmez);
+                // `consentRevision` okunur ki onaylayınca görünüm yeniden çizilsin.
+                PhoneAIDisclosure(account: account, errorMessage: consentError) {
+                    do {
+                        try recordPhoneAIConsent(account: account)
+                        consentError = nil
+                        consentRevision += 1
+                    } catch {
+                        consentError = userFacingMessage(error: error)
+                    }
+                }
             } else {
                 RootView(
                     store: session.store, recorder: session.recorder, ask: session.ask, router: router, player: session.player, calendar: calendar,
@@ -255,6 +269,8 @@ private struct PhoneAppRoot: View {
         .preferredColorScheme((AppTheme(rawValue: theme) ?? .system).isDark.map { $0 ? ColorScheme.dark : ColorScheme.light })
         // Hesap değişince görünümlerin durumu (açık sayfalar, seçimler, kaydırma) eski hesabınkiyle kalmasın.
         .id(sessions.generation)
+        // Önceki sürümlerin cihaz başına onayı ilk giren hesaba taşınır.
+        .task(id: account.signedInUserIDCache) { migrateLegacyPhoneAIConsent(account: account) }
         .task(id: account.dataState) {
             guard account.isAccountDataLoaded else {
                 return
@@ -1005,6 +1021,29 @@ final class PhoneStore {
     @ObservationIgnored private var peopleBookLoaded: Bool = false
     /// Sesinden tanıma: kayıtlı sesler ve ses izi modeli (bkz. `PhoneVoices`).
     let voices: PhoneVoices = PhoneVoices()
+    @ObservationIgnored private var peopleCache: MemoCache<PeopleDirectoryInput, [PersonSummary]> = .empty
+    @ObservationIgnored private var analyticsCache: MemoCache<AnalyticsInput, MeetingAnalytics> = .empty
+
+    /// Kişiler dizini (`peopleDirectory`); toplantılar, sesler, defter ve ad değişmedikçe yeniden hesaplanmaz.
+    func peopleDirectory() -> [PersonSummary] {
+        let input: PeopleDirectoryInput = PeopleDirectoryInput(records: meetings, voices: voices.registered, book: peopleBook, userName: userName)
+        let result: (output: [PersonSummary], cache: MemoCache<PeopleDirectoryInput, [PersonSummary]>) = memoized(input: input, cache: peopleCache) {
+            AINotepadCore.peopleDirectory(records: $0.records, voices: $0.voices, book: $0.book, userName: $0.userName)
+        }
+        peopleCache = result.cache
+        return result.output
+    }
+
+    /// İstatistikler (`meetingAnalytics`); toplantılar, dönem, ad ya da gün değişmedikçe yeniden hesaplanmaz.
+    func analytics(period: AnalyticsPeriod) -> MeetingAnalytics {
+        let now: Date = Date()
+        let input: AnalyticsInput = AnalyticsInput(records: meetings, period: period, userName: userName, day: Calendar.current.startOfDay(for: now))
+        let result: (output: MeetingAnalytics, cache: MemoCache<AnalyticsInput, MeetingAnalytics>) = memoized(input: input, cache: analyticsCache) {
+            meetingAnalytics(records: $0.records, period: $0.period, userName: $0.userName, now: now, calendar: Calendar.current)
+        }
+        analyticsCache = result.cache
+        return result.output
+    }
 
     /// Listeyi arka planda okur; art arda gelen istekleri birleştirir.
     @ObservationIgnored private let reloader: MeetingReloader = MeetingReloader()
@@ -1229,6 +1268,40 @@ final class PhoneStore {
             try updateMeeting(meetingID: meetingID) { (current: MeetingRecord) -> MeetingRecord in markingTaskDone(record: current, key: key) }
         } catch {
             Self.logger.error("Bildirimdeki görev işaretlenemedi, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+            actionProblems = appendUnique(messages: actionProblems, message: String(localized: "Toplantı kaydedilemedi: \(userFacingMessage(error: error))"))
+        }
+    }
+
+    /// Kullanıcının elle yazdığı görevi toplantının notuna ekler (diskteki en güncel kayda); toplantı işlenirken, notsuzken
+    /// ya da aynı iş varsa eklenmez, nedeni sorunlarda görünür.
+    func addTask(meetingID: String, description: String, dueDay: Date?) {
+        guard let record = meetings.first(where: { $0.id == meetingID }), record.status != .recording, record.status != .processing else {
+            actionProblems = appendUnique(messages: actionProblems, message: String(localized: "Toplantı işlenirken görev eklenemez; işleme bitince yeniden dene."))
+            return
+        }
+        do {
+            let name: String = userName
+            var added: Bool = false
+            try updateMeeting(meetingID: meetingID) { (current: MeetingRecord) -> MeetingRecord in
+                guard let updated = addingTask(record: current, description: description, dueDay: dueDay, userName: name, calendar: Calendar.current) else {
+                    return current
+                }
+                added = true
+                return updated
+            }
+            if !added {
+                actionProblems = appendUnique(messages: actionProblems, message: String(localized: "Görev eklenemedi: bu toplantıda aynı görev zaten var."))
+            }
+        } catch {
+            actionProblems = appendUnique(messages: actionProblems, message: String(localized: "Toplantı kaydedilemedi: \(userFacingMessage(error: error))"))
+        }
+    }
+
+    /// Elle eklenmiş görevi siler (nottan gelen görev silinmez).
+    func removeAddedTask(meetingID: String, task: NoteTask) {
+        do {
+            try updateMeeting(meetingID: meetingID) { (current: MeetingRecord) -> MeetingRecord in removingAddedTask(record: current, task: task) }
+        } catch {
             actionProblems = appendUnique(messages: actionProblems, message: String(localized: "Toplantı kaydedilemedi: \(userFacingMessage(error: error))"))
         }
     }

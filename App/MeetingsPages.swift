@@ -572,8 +572,8 @@ struct MeetingDetailPage: View {
                     HStack(spacing: 10) {
                         let hasScreens: Bool = !(model.screenSnapshots.snapshots[record.id] ?? []).isEmpty || tab == .screens
                         let tabs: [(value: MeetingTab, title: LocalizedStringKey)] = hasScreens
-                            ? [(.summary, "Özet"), (.transcript, "Transkript"), (.screens, "Ekranlar")]
-                            : [(.summary, "Özet"), (.transcript, "Transkript")]
+                            ? [(.summary, "Not"), (.transcript, "Transkript"), (.screens, "Ekranlar")]
+                            : [(.summary, "Not"), (.transcript, "Transkript")]
                         UnderlineTabs(selection: $tab, options: tabs)
                         if tab == .summary, let note = record.note {
                             noteLanguageMenu(original: note.writtenLanguage)
@@ -777,6 +777,7 @@ struct MeetingDetailPage: View {
                 ObservationScope {
                     MeetingAskBar(
                         exchanges: model.meetingAsk.exchanges(meetingID: record.id), isAnswering: model.meetingAsk.isAnswering(meetingID: record.id),
+                        followUps: model.meetingAsk.followUps(meetingID: record.id, note: record.note),
                         quickActions: record.note == nil ? [] : meetingQuickActions(recipes: model.recipes), recipes: model.recipes,
                         isEditingNote: isProcessing, isTranscriptOpen: isTranscriptOpen,
                         isPanelOpen: $isAskPanelOpen, conversationMaxHeight: bottomPanelMaxHeight(pageHeight: pageHeight, cap: 340),
@@ -806,6 +807,11 @@ struct MeetingDetailPage: View {
                     .allowsHitTesting(false)
             }
             .animation(.smooth(duration: 0.25), value: isTranscriptOpen)
+            // Toplantının saklı son sohbeti geri gelir (geçmiş açılışta arka planda okunur: gelince de denenir).
+            .onAppear { model.meetingAsk.resume(meetingID: record.id, conversations: model.askConversations) }
+            .onChange(of: model.askConversations.count) { (_: Int, _: Int) -> Void in
+                model.meetingAsk.resume(meetingID: record.id, conversations: model.askConversations)
+            }
             // Sohbet paneli ve transkript çekmecesi aynı anda açık olmaz: biri açılınca öteki kapanır.
             .onChange(of: isAskPanelOpen) { (_: Bool, open: Bool) in
                 if open {
@@ -964,6 +970,7 @@ struct MeetingDetailPage: View {
                     .accessibilityHidden(true)
                 Spacer(minLength: DesignTokens.Spacing.s)
                 listenButton
+                shareMenu
                 moreMenu
             }
             Group {
@@ -1081,16 +1088,81 @@ struct MeetingDetailPage: View {
         }
     }
 
-    /// "⋯" menüsü: sık kullanılanlar üstte (paylaş, kopyala, takip e-postası, notu yenile), dışa aktarma ve gönderme
-    /// alt menülerde, yönetim ve silme en altta.
-    private var moreMenu: some View {
+    /// Başlıktaki "Paylaş": notu paylaşmanın bütün yolları tek yerde (önceden "⋯ › Gönder"in altındaydı): bağlantıyla,
+    /// kanala (Slack, Teams…), e-postayla, Markdown kopyası ve sistemin paylaşım seçicisi.
+    private var shareMenu: some View {
         Menu {
+            linkShareButton
+            channelMenu
+            Button("E-postayla gönder", systemImage: "envelope") { emailNote() }
+                .disabled(record.note == nil)
+            Button("Markdown olarak kopyala", systemImage: "doc.on.doc") { copyMarkdown() }
             if let text = displayedShareText {
+                Divider()
                 ShareLink(item: text, subject: Text(record.note?.title ?? record.title)) {
-                    Label("Notu paylaş", systemImage: "square.and.arrow.up")
+                    Label("Diğer uygulamalarla paylaş…", systemImage: "square.and.arrow.up")
                 }
             }
-            Button("Markdown olarak kopyala", systemImage: "doc.on.doc") { copyMarkdown() }
+        } label: {
+            Label("Paylaş", systemImage: "square.and.arrow.up")
+        }
+        .menuStyle(.button)
+        .buttonStyle(.pill)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .hoverHint("Bağlantı, kanal, e-posta ya da kopya", alignment: .trailing, edge: .bottom)
+    }
+
+    /// "Bağlantıyla paylaş…": abonelikte uçtan uca şifreli bağlantı kartı, geliştirici sürümünde iCloud PDF bağlantısı.
+    @ViewBuilder
+    private var linkShareButton: some View {
+        #if HOSTED_EDITION
+        // Uçtan uca şifreli bağlantı: kart sayfanın üstünde açılır (süre, transkript, bağlantılar).
+        Button("Bağlantıyla paylaş…", systemImage: "link") {
+            withAnimation(.smooth(duration: 0.25)) {
+                followUpLanguage = nil
+                sharingWithLink = true
+            }
+        }
+        .disabled(record.note == nil || record.isSampleMeeting)
+        #else
+        Button("Bağlantıyla paylaş…", systemImage: "link") { shareViaLink() }
+        #endif
+    }
+
+    /// Ayarlardaki kanallara (Slack, Teams, Discord, Zapier…) gönderim: her hedefe ayrı ayrı ya da hepsine; gönderilmiş
+    /// hedef işaretli.
+    private var channelMenu: some View {
+        Menu("Kanala gönder", systemImage: "paperplane") {
+            if model.destinations.isEmpty {
+                Text("Ayarlar › Bağlantılar'dan kanal ekle")
+            } else {
+                ForEach(model.destinations) { (destination: NoteDestination) in
+                    let sent: Bool = wasSent(record: record, destination: destination)
+                    Button {
+                        Task { await model.sendNote(meetingID: record.id, destinationIDs: [destination.id]) }
+                    } label: {
+                        Label(
+                            "\(destinationName(destination: destination)) · \(destinationDetail(destination: destination))",
+                            systemImage: sent ? "checkmark" : "paperplane"
+                        )
+                    }
+                }
+                if model.destinations.count > 1 {
+                    Divider()
+                    Button("Hepsine gönder") {
+                        Task { await model.sendNote(meetingID: record.id, destinationIDs: model.destinations.map(\.id)) }
+                    }
+                }
+            }
+        }
+        .disabled(record.note == nil || model.webhookStates[record.id] == .sending)
+    }
+
+    /// "⋯" menüsü: sık kullanılanlar üstte (takip e-postası, notu yenile, tarif), dışa aktarma ve gönderme alt
+    /// menülerde, yönetim ve silme en altta. Paylaşma yolları başlıktaki "Paylaş"ta.
+    private var moreMenu: some View {
+        Menu {
             // Nottan takip e-postası: kart sayfanın üstünde açılır (taslak düzenlenir, kopyalanır ya da Mail'de açılır).
             Button("Takip e-postası yaz", systemImage: "envelope.badge") {
                 withAnimation(.smooth(duration: 0.25)) {
@@ -1127,7 +1199,7 @@ struct MeetingDetailPage: View {
         .menuIndicator(.hidden)
         .fixedSize()
         .accessibilityLabel("Diğer işlemler")
-        .hoverHint("Paylaş, dışa aktar, gönder ve diğer işlemler", alignment: .trailing, edge: .bottom)
+        .hoverHint("Dışa aktar, gönder ve diğer işlemler", alignment: .trailing, edge: .bottom)
     }
 
     /// Dosya olarak dışa aktarma (seçili not dilinde): PDF, Markdown, Word, web sayfası, transkriptin düz metni, SRT
@@ -1163,51 +1235,14 @@ struct MeetingDetailPage: View {
         .disabled(record.note == nil)
     }
 
-    /// Notu başka yere gönderir: e-posta, PDF paylaşımı (iCloud bağlantısı ya da paylaşım seçicisi), ayarlardaki
-    /// kanallar (Slack, Teams, Discord, Zapier…), görev araçları (Linear, Jira) ve Apple Notlar.
+    /// Notu başka yere gönderir: PDF paylaşımı (abonelikte), görev araçları (Linear, Jira) ve Apple Notlar. Bağlantı,
+    /// kanal ve e-posta başlıktaki "Paylaş"ta.
     @ViewBuilder
     private var sendItems: some View {
-        Button("E-postayla gönder", systemImage: "envelope") { emailNote() }
-            .disabled(record.note == nil)
         #if HOSTED_EDITION
         // Abonelik sürümünde iCloud yok: PDF geçici klasörden paylaşım seçicisiyle (Mail, AirDrop, Mesajlar…).
         Button("PDF olarak paylaş…", systemImage: "square.and.arrow.up") { sharePDF() }
-        // Uçtan uca şifreli bağlantı: kart sayfanın üstünde açılır (süre, transkript, bağlantılar).
-        Button("Bağlantıyla paylaş…", systemImage: "link") {
-            withAnimation(.smooth(duration: 0.25)) {
-                followUpLanguage = nil
-                sharingWithLink = true
-            }
-        }
-        .disabled(record.note == nil || record.isSampleMeeting)
-        #else
-        Button("Bağlantıyla paylaş…", systemImage: "link") { shareViaLink() }
         #endif
-        // Bağlı her hedefe ayrı ayrı ya da hepsine; gönderilmiş hedef işaretli.
-        Menu("Kanala gönder", systemImage: "paperplane") {
-            if model.destinations.isEmpty {
-                Text("Ayarlar › Bağlantılar'dan kanal ekle")
-            } else {
-                ForEach(model.destinations) { (destination: NoteDestination) in
-                    let sent: Bool = wasSent(record: record, destination: destination)
-                    Button {
-                        Task { await model.sendNote(meetingID: record.id, destinationIDs: [destination.id]) }
-                    } label: {
-                        Label(
-                            "\(destinationName(destination: destination)) · \(destinationDetail(destination: destination))",
-                            systemImage: sent ? "checkmark" : "paperplane"
-                        )
-                    }
-                }
-                if model.destinations.count > 1 {
-                    Divider()
-                    Button("Hepsine gönder") {
-                        Task { await model.sendNote(meetingID: record.id, destinationIDs: model.destinations.map(\.id)) }
-                    }
-                }
-            }
-        }
-        .disabled(record.note == nil || model.webhookStates[record.id] == .sending)
         // Görevleri Linear ya da Jira'da iş olarak açar. Araç adı iki noktadan sonra: Türkçe ek ada göre değişir ("Jira'ya").
         Menu("Görevleri gönder", systemImage: "checklist") {
             if model.taskTrackers.isEmpty {
@@ -1645,6 +1680,8 @@ private struct SummaryTab: View {
     @State private var isEditingMyNotes: Bool = false
     /// Konuşma payında kısa konuşmaların tek tek satırları açık.
     @State private var showsMinorSpeakers: Bool = false
+    /// "Görev ekle" kutusu açık.
+    @State private var isAddingTask: Bool = false
     /// Maddenin kaynağından transkriptte o ana gider (çekmece açılır, ses varsa oradan çalar).
     let onJump: @MainActor (TranscriptParagraph) -> Void
     /// Kaynak kutusundaki "Sor": maddenin nasıl konuşulduğunu bu toplantıya sorar.
@@ -1656,21 +1693,30 @@ private struct SummaryTab: View {
 
     private var main: some View {
         // Gösterilen görev asıl görevle sırayla eşleşir (`parseSharedNote` sayıyı ve sahipliği korur).
+        // Çeviriden sonra elle eklenen görevler çeviride yok: asıl metniyle sona eklenir.
         let pairs: [TaskPair] = zip(note.tasks, sourceNote.tasks).map { (pair: (NoteTask, NoteTask)) -> TaskPair in
             TaskPair(shown: pair.0, source: pair.1)
-        }
+        } + sourceNote.tasks.dropFirst(note.tasks.count).map { TaskPair(shown: $0, source: $0) }
         let mine: [TaskPair] = pairs.filter(\.source.isMine)
         let myNotes: String = record.myNotes ?? ""
         let isLocked: Bool = model.isLocked(meetingID: record.id)
         let markedIDs: Set<String> = highlightedParagraphIDs(paragraphs: paragraphs, highlights: record.highlights ?? [])
         let marked: [TranscriptParagraph] = paragraphs.filter { markedIDs.contains($0.id) }
         let outline: [OutlineItem] = note.outline ?? []
+        let others: [TaskPair] = pairs.filter { !$0.source.isMine }
         return VStack(alignment: .leading, spacing: 30) {
             if mine.isEmpty {
                 // Yüz yüze toplantıda kullanıcı da "Konuşmacı N": hangisi olduğunu seçince görevleri ona düşer.
                 UserSpeakerPrompt(record: record, userName: model.userName, isLocked: isLocked) { (person: Int, name: String) -> Void in
                     model.nameUserSpeaker(meetingID: record.id, person: person, name: name)
                 }
+                if !record.isSampleMeeting {
+                    addTaskButton(isLocked: isLocked)
+                }
+            } else {
+                // Sana düşen işler notun en başında, kendi kartında (karşılamadaki örnek not da böyle söz verir).
+                myTasksCard(mine: mine)
+                    .id(MeetingNoteAnchor.myTasks)
             }
             // Not bir belge gibi: başlıklar ve maddeler; her maddenin kaynağı üstüne gelince sağdaki büyüteçte.
             noteBlock(title: "Özet") {
@@ -1681,9 +1727,14 @@ private struct SummaryTab: View {
                 }
             }
             .id(MeetingNoteAnchor.sections)
-            if !pairs.isEmpty {
-                tasksSection(pairs: pairs)
-                    .id(MeetingNoteAnchor.myTasks)
+            if !others.isEmpty {
+                if mine.isEmpty {
+                    // Senin görevin yoksa bölüm yalnız "Görevler"; kapaktaki bağlantı da buraya kayar.
+                    othersSection(others: others, hasMine: false)
+                        .id(MeetingNoteAnchor.myTasks)
+                } else {
+                    othersSection(others: others, hasMine: true)
+                }
             }
             if !note.decisions.isEmpty {
                 noteBlock(title: "Kararlar") {
@@ -1793,44 +1844,70 @@ private struct SummaryTab: View {
         )
     }
 
-    /// Görevler: önce senin görevlerin, sonra diğerleri (tamamlananlar grubun sonunda); her görevin kaynağı da gösterilir.
-    private func tasksSection(pairs: [TaskPair]) -> some View {
-        let open: [TaskPair] = pairs.filter { !isTaskDone(record: record, task: $0.source) }
-        let ordered: [TaskPair] = open + pairs.filter { isTaskDone(record: record, task: $0.source) }
-        let mine: [TaskPair] = ordered.filter(\.source.isMine)
-        let others: [TaskPair] = ordered.filter { !$0.source.isMine }
-        let doneMine: Int = mine.filter { isTaskDone(record: record, task: $0.source) }.count
-        return noteBlock(title: "Görevler") {
-            if !mine.isEmpty {
-                taskGroupLabel(title: "Senin görevlerin", detail: String(localized: "\(doneMine)/\(mine.count) tamamlandı"), tint: appearance.accent.color)
-                ForEach(mine, id: \.source.trackingKey) { (pair: TaskPair) in
-                    taskRow(pair: pair)
-                }
-            }
-            if !others.isEmpty {
-                taskGroupLabel(title: "Diğer görevler", detail: nil, tint: Theme.muted)
-                    .padding(.top, mine.isEmpty ? 0 : 10)
-                ForEach(others, id: \.source.trackingKey) { (pair: TaskPair) in
-                    taskRow(pair: pair)
-                }
-            }
-        }
+    /// Tamamlananlar grubun sonunda; sıra öyle kalır. Saf yardımcıdır.
+    private func openFirst(pairs: [TaskPair]) -> [TaskPair] {
+        pairs.filter { !isTaskDone(record: record, task: $0.source) } + pairs.filter { isTaskDone(record: record, task: $0.source) }
     }
 
-    /// Görev grubunun küçük etiketi ("Senin görevlerin · 1/3 tamamlandı").
-    private func taskGroupLabel(title: LocalizedStringKey, detail: String?, tint: Color) -> some View {
-        HStack(spacing: 6) {
-            Text(title)
-                .appFont(size: 12, weight: .semibold)
-                .foregroundStyle(tint)
-            if let detail {
-                Text(verbatim: "· \(detail)")
-                    .appFont(size: 12, weight: .regular)
-                    .foregroundStyle(Theme.muted)
+    /// "Senin görevlerin" kartı: notun başında, vurgu renginin hafif zemininde; başlıkta ilerleme, altında görevler
+    /// (tamamlananlar sonda), her görevin kaynağı da gösterilir.
+    private func myTasksCard(mine: [TaskPair]) -> some View {
+        let ordered: [TaskPair] = openFirst(pairs: mine)
+        let done: Int = mine.filter { isTaskDone(record: record, task: $0.source) }.count
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("Senin görevlerin")
+                    .appFont(size: 17, weight: .semibold)
+                    .foregroundStyle(Theme.ink)
+                    .accessibilityAddTraits(.isHeader)
+                Text(verbatim: String(localized: "\(done)/\(mine.count) tamamlandı"))
+                    .appFont(size: 12, weight: .medium)
+                    .monospacedDigit()
+                    .foregroundStyle(appearance.accent.color)
+                Spacer(minLength: 0)
+                if !record.isSampleMeeting {
+                    addTaskButton(isLocked: model.isLocked(meetingID: record.id))
+                }
+            }
+            .padding(.bottom, 2)
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(ordered, id: \.source.trackingKey) { (pair: TaskPair) in
+                    taskRow(pair: pair)
+                }
+            }
+            .padding(.horizontal, -10)
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(appearance.accent.color.opacity(0.07), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(appearance.accent.color.opacity(0.18)))
+    }
+
+    /// Bu toplantıya elle görev ekleme düğmesi (kendi görevin); açılır kutuda iş ve isteğe bağlı son gün.
+    private func addTaskButton(isLocked: Bool) -> some View {
+        Button("Görev ekle", systemImage: "plus") { isAddingTask = true }
+            .buttonStyle(.hoverPlain)
+            .appFont(size: 12, weight: .medium)
+            .foregroundStyle(appearance.accent.color)
+            .disabled(isLocked)
+            .popover(isPresented: $isAddingTask, arrowEdge: .bottom) {
+                AddTaskForm(meetings: [record], fixedMeetingID: record.id) { (meetingID: String, text: String, dueDay: Date?) -> Void in
+                    model.addTask(meetingID: meetingID, description: text, dueDay: dueDay)
+                    isAddingTask = false
+                } onCancel: {
+                    isAddingTask = false
+                }
+            }
+    }
+
+    /// Başkalarına düşen görevler (tamamlananlar sonda); senin görevin de varsa başlık "Diğer görevler".
+    private func othersSection(others: [TaskPair], hasMine: Bool) -> some View {
+        noteBlock(title: hasMine ? "Diğer görevler" : "Görevler") {
+            ForEach(openFirst(pairs: others), id: \.source.trackingKey) { (pair: TaskPair) in
+                taskRow(pair: pair)
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.top, 4)
     }
 
     /// Görev satırı; görev kimliğiyle: liste değişince (ör. tamamlanınca) satır durumu (Anımsatıcılar hatası) başka göreve
@@ -2535,7 +2612,7 @@ private struct TaskRow: View {
                     .foregroundStyle(isDone ? Theme.muted : Theme.ink)
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
-                if showsOwner || shown.dueDate != nil {
+                if showsOwner || task.dueDate != nil {
                     HStack(spacing: 6) {
                         if showsOwner {
                             SpeakerAvatar(text: ownerInitial(owner: shown.owner), color: ownerColor(task: task, speakerNames: record.speakerNames), size: 18)
@@ -2544,13 +2621,12 @@ private struct TaskRow: View {
                                 .appFont(size: 12, weight: .medium)
                                 .foregroundStyle(Theme.muted)
                         }
-                        if let due = shown.dueDate {
+                        if task.dueDate != nil {
                             if showsOwner {
                                 Text(verbatim: "·").foregroundStyle(Theme.muted)
                             }
-                            Label(due, systemImage: "calendar")
-                                .appFont(size: 12, weight: .regular)
-                                .foregroundStyle(Theme.muted)
+                            // Son gün asıl notun tarihinden toplantı gününe göre çözülür, arayüz dilinde göreli.
+                            TaskDueText(record: record, task: task, size: 12)
                         }
                     }
                 }
@@ -2564,6 +2640,15 @@ private struct TaskRow: View {
         .onHover { (hovering: Bool) -> Void in isHovering = hovering }
         .animation(.smooth(duration: 0.2), value: isDone)
         .animation(.easeOut(duration: 0.12), value: isHovering)
+        .contextMenu {
+            // Yalnız elle eklenen görev silinir; nottan gelen görev notun parçasıdır.
+            if task.isAdded == true {
+                Button("Görevi sil", systemImage: "trash", role: .destructive) {
+                    model.removeAddedTask(meetingID: record.id, task: task)
+                }
+                .disabled(model.isLocked(meetingID: record.id))
+            }
+        }
     }
 }
 

@@ -42,9 +42,9 @@ private let taskB: NoteTask = NoteTask(owner: "Ayşe", description: "Fix build",
             meeting(id: "old", daysAgo: 40, hour: 10, minutes: 10, tasks: [], done: [], speakers: [:], folder: nil),
         ]
         let result: MeetingAnalytics = meetingAnalytics(records: records, period: .week, userName: "", now: now, calendar: utcCalendar())
-        #expect(result.totals == AnalyticsTotals(meetings: 2, seconds: 5400, timedMeetings: 2, tasksCreated: 2, tasksCompleted: 1, notes: 2))
+        #expect(result.totals == AnalyticsTotals(meetings: 2, seconds: 5400, timedMeetings: 2, tasksCreated: 2, tasksMine: 1, tasksCompleted: 1, notes: 2))
         #expect(result.totals.averageSeconds == 2700)
-        #expect(result.previous == AnalyticsTotals(meetings: 1, seconds: 2700, timedMeetings: 1, tasksCreated: 1, tasksCompleted: 0, notes: 1))
+        #expect(result.previous == AnalyticsTotals(meetings: 1, seconds: 2700, timedMeetings: 1, tasksCreated: 1, tasksMine: 1, tasksCompleted: 0, notes: 1))
         #expect(result.allTimeMeetings == 4)
         #expect(meetingAnalytics(records: records, period: .all, userName: "", now: now, calendar: utcCalendar()).previous == nil)
     }
@@ -58,11 +58,11 @@ private let taskB: NoteTask = NoteTask(owner: "Ayşe", description: "Fix build",
             id: "u", title: "u", startedAt: now, endedAt: nil, language: nil, status: .interrupted, failureMessage: nil, liveSegments: [],
             finalSegments: [], translations: [:], speakerNames: [:], note: nil, audioDeleted: false, engine: nil, notice: nil, meNeedsFinalPass: nil
         )
-        let totals: AnalyticsTotals = analyticsTotals(meetings: [base, untimed])
+        let totals: AnalyticsTotals = analyticsTotals(meetings: [base, untimed], userName: "")
         #expect(totals.meetings == 2)
         #expect(totals.timedMeetings == 1)
         #expect(totals.averageSeconds == 600)
-        #expect(analyticsTotals(meetings: [untimed]).averageSeconds == nil)
+        #expect(analyticsTotals(meetings: [untimed], userName: "").averageSeconds == nil)
     }
 
     // Çubuklar dönemin her gününü kapsar; toplantısız günler sıfır, görevler toplantının gününde açık/tamamlanan.
@@ -109,12 +109,12 @@ private let taskB: NoteTask = NoteTask(owner: "Ayşe", description: "Fix build",
         ])
     }
 
-    // Konuşmacının ilk adı aynı toplantıdaki katılımcıyla birleşir.
+    // Konuşmacının ilk adı aynı toplantıdaki katılımcıyla birleşir; Kişiler'deki gibi konuşmacı adıyla sayılır.
     @Test func speakerFirstNameMergesWithAttendee() {
         let record: MeetingRecord = meeting(id: "a", daysAgo: 0, hour: 9, minutes: 30, tasks: [], done: [], speakers: [1: "Elif", 2: "Jonas"], folder: nil)
             .with(attendees: ["Elif Kaya"])
         #expect(analyticsPeople(meetings: [record], userName: "") == [
-            AnalyticsRankedName(name: "Elif Kaya", meetings: 1), AnalyticsRankedName(name: "Jonas", meetings: 1),
+            AnalyticsRankedName(name: "Elif", meetings: 1), AnalyticsRankedName(name: "Jonas", meetings: 1),
         ])
     }
 
@@ -136,5 +136,36 @@ private let taskB: NoteTask = NoteTask(owner: "Ayşe", description: "Fix build",
         #expect(analyticsChange(current: 15, previous: 10) == 0.5)
         #expect(analyticsChange(current: 5, previous: 10) == -0.5)
         #expect(analyticsChange(current: 5, previous: 0) == nil)
+    }
+}
+
+@Suite struct AnalyticsMyTasksTests {
+    // Kullanıcının görevleri Görevlerim'deki gibi sayılır: adı kullanıcının adı olan konuşmacının görevi de onundur.
+    @Test func namedSpeakerTaskCountsAsMine() {
+        let speakerTask: NoteTask = NoteTask(owner: "Konuşmacı 2", description: "Book room", dueDate: nil, isMine: false)
+        let record: MeetingRecord = meeting(
+            id: "a", daysAgo: 0, hour: 9, minutes: 30, tasks: [taskA, taskB, speakerTask], done: [], speakers: [2: "Şenol"], folder: nil
+        )
+        let totals: AnalyticsTotals = analyticsTotals(meetings: [record], userName: "Şenol Doğan")
+        #expect(totals.tasksCreated == 3)
+        #expect(totals.tasksMine == myTasks(meetings: [record], userName: "Şenol Doğan").count)
+    }
+}
+
+@Suite struct MemoCacheTests {
+    // Girdi aynıyken hesap yeniden yapılmaz; girdi değişince yapılır.
+    @Test func recomputesOnlyWhenInputChanges() {
+        var calls: Int = 0
+        let compute: (Int) -> String = { (value: Int) -> String in
+            calls += 1
+            return String(value)
+        }
+        let first: (output: String, cache: MemoCache<Int, String>) = memoized(input: 1, cache: .empty, compute: compute)
+        let second: (output: String, cache: MemoCache<Int, String>) = memoized(input: 1, cache: first.cache, compute: compute)
+        let third: (output: String, cache: MemoCache<Int, String>) = memoized(input: 2, cache: second.cache, compute: compute)
+        #expect(first.output == "1")
+        #expect(second.output == "1")
+        #expect(third.output == "2")
+        #expect(calls == 2)
     }
 }

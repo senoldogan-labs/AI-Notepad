@@ -3,10 +3,11 @@ import Foundation
 import Observation
 import os
 
-/// Toplantı sayfasındaki "Bir şey sor" çubuğunun sohbetleri (Mac ve iPhone): her toplantının kendi sohbeti, uygulama
-/// açık kaldıkça sürer (sayfadan çıkıp dönünce yerinde). Cevabı platformun Sor hattı yazar (`MeetingAskAnswer`: hesap
-/// ve abonelik denetimi, sağlayıcı, ekran görüntüsü planı orada); burada yalnız soruların durumu tutulur. Devam soruları
-/// aynı toplantıdaki önceki cevapları bağlam alır.
+/// Toplantı sayfasındaki "Bir şey sor" çubuğunun sohbetleri (Mac ve iPhone): her toplantının kendi sohbeti. Her bitmiş
+/// cevaptan sonra sohbet Sor geçmişine yazılır (`MeetingAskSave`; platform saklar, hesapla eşitlenir ve Sor'un geçmişinde
+/// de görünür); sayfa açılınca toplantının son sohbeti geri gelir (`resume`). Cevabı platformun Sor hattı yazar
+/// (`MeetingAskAnswer`: hesap ve abonelik denetimi, sağlayıcı, ekran görüntüsü planı orada); burada yalnız soruların
+/// durumu tutulur. Devam soruları aynı toplantıdaki önceki cevapları bağlam alır.
 @MainActor
 @Observable
 public final class MeetingAskStore {
@@ -15,12 +16,32 @@ public final class MeetingAskStore {
     /// Toplantı kimliği → sohbetin soruları (eskiden yeniye).
     public private(set) var chats: [String: [ArchiveExchange]] = [:]
     @ObservationIgnored private var tasks: [String: Task<Void, Never>] = [:]
+    /// Toplantı kimliği → sohbetin geçmişteki kimliği: geri yüklenen ya da ilk cevapta atanan; "Yeni sohbet" yenisini
+    /// verir (eski sohbet geçmişte kalır, sayfaya yeniden yüklenmez).
+    @ObservationIgnored private var conversationIDs: [String: UUID] = [:]
 
     public init() {}
+
+    /// Sayfa açılınca toplantının saklı son sohbetini (`latestMeetingConversation`) geri getirir. Bu oturumda sohbet
+    /// zaten başladıysa ya da "Yeni sohbet" denildiyse dokunulmaz.
+    public func resume(meetingID: String, conversations: [AskConversation]) {
+        guard chats[meetingID] == nil, conversationIDs[meetingID] == nil,
+              let saved = latestMeetingConversation(conversations: conversations, meetingID: meetingID) else {
+            return
+        }
+        conversationIDs[meetingID] = saved.id
+        chats[meetingID] = saved.turns.map { (turn: AskConversationTurn) -> ArchiveExchange in archiveExchange(turn: turn) }
+    }
 
     /// Toplantının sohbeti.
     public func exchanges(meetingID: String) -> [ArchiveExchange] {
         chats[meetingID] ?? []
+    }
+
+    /// Son cevabın altındaki devam soruları (bkz. `meetingFollowUpSuggestions`): son soru bitmişse notun içeriğinden.
+    public func followUps(meetingID: String, note: MeetingNote?) -> [String] {
+        let chat: [ArchiveExchange] = exchanges(meetingID: meetingID)
+        return meetingFollowUpSuggestions(note: note, askedQuestions: chat.map(\.question), lastAnswerFinished: chat.last?.phase == .done)
     }
 
     /// Toplantıda bir soru cevaplanıyor (yenisi sorulamaz, durdurulabilir).
@@ -35,10 +56,13 @@ public final class MeetingAskStore {
         ]
     }
 
-    /// Soruyu bu toplantıya sorar; ilerleyiş ve akan cevap sohbete yazılır. Boş soru ya da süren cevap varken yok sayılır.
-    public func ask(record: MeetingRecord, question: String, recipeTitle: String?, answer: @escaping MeetingAskAnswer) {
+    /// Soruyu bu toplantıya sorar; ilerleyiş ve akan cevap sohbete yazılır, cevap bitince sohbet `save` ile saklanır
+    /// (örnek toplantınınki saklanmaz).
+    /// Boş soru ya da süren cevap varken yok sayılır.
+    public func ask(record: MeetingRecord, question: String, recipeTitle: String?, answer: @escaping MeetingAskAnswer, save: @escaping MeetingAskSave) {
         let trimmed: String = question.trimmingCharacters(in: .whitespacesAndNewlines)
         let meetingID: String = record.id
+        let isSample: Bool = record.isSampleMeeting
         guard !trimmed.isEmpty, !isAnswering(meetingID: meetingID) else {
             return
         }
@@ -54,6 +78,10 @@ public final class MeetingAskStore {
             do {
                 try await answer(trimmed, history, onProgress)
                 self?.finish(meetingID: meetingID, id: id, phase: .done)
+                // Örnek toplantının (karşılamadaki deneme) sohbeti saklanmaz: Sor geçmişi hesapla eşitlenir.
+                if !isSample {
+                    self?.persist(meetingID: meetingID, save: save)
+                }
             } catch is CancellationError {
                 self?.finish(meetingID: meetingID, id: id, phase: .stopped)
             } catch let error as URLError where error.code == .cancelled {
@@ -70,11 +98,19 @@ public final class MeetingAskStore {
         tasks[meetingID]?.cancel()
     }
 
-    /// Toplantının sohbetini temizler (yeni konu: önceki cevaplar bağlam olmaz).
+    /// Toplantının sohbetini temizler (yeni konu: önceki cevaplar bağlam olmaz); eski sohbet Sor geçmişinde kalır.
     public func clear(meetingID: String) {
         tasks[meetingID]?.cancel()
         tasks[meetingID] = nil
         chats[meetingID] = nil
+        conversationIDs[meetingID] = UUID()
+    }
+
+    /// Sohbetin bitmiş sorularını saklatır (sohbet kimliği ilk cevapta atanır).
+    private func persist(meetingID: String, save: MeetingAskSave) {
+        let id: UUID = conversationIDs[meetingID] ?? UUID()
+        conversationIDs[meetingID] = id
+        save(id, exchanges(meetingID: meetingID))
     }
 
     /// Son soruyu (bitmiş, durdurulmuş ya da hatalı) yeniden sormak için: sohbetten çıkarıp döndürür; çalışan soru
@@ -112,3 +148,7 @@ public final class MeetingAskStore {
 /// Toplantı sorusunu cevaplayan platform hattı: soru, önceki turlar ve ilerleyiş bildirimi. Cevap bildirimlerle
 /// sohbete yazılır; hata fırlatırsa soru hatalı biter.
 public typealias MeetingAskAnswer = @MainActor (String, [ArchiveTurn], @escaping ArchiveProgressHandler) async throws -> Void
+
+/// Toplantı sohbetini Sor geçmişine yazan platform hattı: sohbetin kimliği ve soruları (bitmemişler `askTurn` ile
+/// atlanır).
+public typealias MeetingAskSave = @MainActor (UUID, [ArchiveExchange]) -> Void

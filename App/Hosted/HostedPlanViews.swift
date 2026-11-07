@@ -49,6 +49,99 @@ func hostedReferralDiscountText(plan: HostedBillingPlan) -> String {
     }
 }
 
+/// Teklifin başlığı (tam teklif ve alttaki şerit).
+func hostedUpsellTitle(moment: HostedUpsellMoment) -> LocalizedStringKey {
+    switch moment {
+    case .trialNoteReady: "Notun hazır"
+    case .trialEnding: "Denemen bitmek üzere"
+    case .trialEnded: "Ücretsiz denemen bitti"
+    case .subscriptionRequired: "Devam etmek için abone ol"
+    case .planChoice: "Planını seç"
+    }
+}
+
+/// Teklifin açıklaması (tam teklif ve alttaki şerit); hesabın hak durumuna göre.
+@MainActor
+func hostedUpsellSubtitle(moment: HostedUpsellMoment, account: HostedAccount) -> String {
+    switch moment {
+    case .trialNoteReady:
+        guard case .signedIn(let entitlements) = account.state, case .trial(let left, _) = hostedPlanStatus(entitlements: entitlements) else {
+            return String(localized: "Abone olunca her toplantının notu böyle kendiliğinden hazırlanır.")
+        }
+        return String(localized: "Ücretsiz deneme: \(hostedTrialLeftText(left: left)). Abone olunca her toplantının notu böyle kendiliğinden hazırlanır.")
+    case .trialEnding:
+        return String(localized: "Kesintisiz devam etmek için bir plan seç. Toplantıların ve notların bu Mac'te kalır.")
+    case .trialEnded:
+        return String(localized: "Toplantıların ve notların bu Mac'te kalır. Yeni toplantıları kaydetmek için abone ol.")
+    case .subscriptionRequired:
+        return hostedSubscriptionRequiredReason(account: account)
+    case .planChoice:
+        // Saat sınırı sunucudan gelir; hak durumu bilinmiyorsa sayı yazılmaz.
+        guard case .signedIn(let entitlements) = account.state else {
+            return String(localized: "Canlı metin, hazır not ve görevler. İstediğin zaman iptal edebilirsin.")
+        }
+        let hours: String = entitlements.monthlyHoursCap.formatted(.number.precision(.fractionLength(0...1)).locale(interfaceLocale()))
+        return String(localized: "Canlı metin, hazır not ve görevler; ayda \(hours) saate kadar kayıt. İstediğin zaman iptal edebilirsin.")
+    }
+}
+
+/// Neden abone olmak gerektiği: bu Mac'te deneme kullanıldı, abonelik sona erdi ya da deneme bitti.
+@MainActor
+private func hostedSubscriptionRequiredReason(account: HostedAccount) -> String {
+    if account.isTrialRefusedOnThisMac {
+        return String(localized: "Bu Mac'te ücretsiz deneme başka bir hesapla kullanıldı. Kaydetmeye ve not almaya devam etmek için abone ol.")
+    }
+    if case .signedIn(let entitlements) = account.state, case .expired = hostedPlanStatus(entitlements: entitlements), entitlements.subscription != nil {
+        return String(localized: "Aboneliğin sona erdi. Toplantıların ve notların bu Mac'te kalır; yeniden abone olunca kaldığın yerden devam edersin.")
+    }
+    return String(localized: "Ücretsiz denemen bitti. Toplantıların ve notların bu Mac'te kalır; yeni toplantılar için abone ol.")
+}
+
+/// Kendiliğinden gelen teklif (not hazır, deneme bitiyor ya da bitti; bkz. `hostedUpsellPresentation`): sayfayı
+/// kapatmayan, pencerenin altında ince şerit. Not ve arşiv okunur kalır; "Planları gör" tam teklifi açar, "×" kapatır.
+struct HostedUpsellStrip: View {
+    let account: HostedAccount
+    let moment: HostedUpsellMoment
+
+    var body: some View {
+        HStack(spacing: 12) {
+            FilmGradient(seed: "gistsmith-abone", palette: .sunset)
+                .frame(width: 34, height: 34)
+                .overlay {
+                    Image(systemName: "sparkles")
+                        .appFont(size: 14, weight: .semibold)
+                        .foregroundStyle(Color.black.opacity(0.75))
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(hostedUpsellTitle(moment: moment))
+                    .appFont(size: 13, weight: .medium)
+                    .foregroundStyle(Theme.ink)
+                Text(verbatim: hostedUpsellSubtitle(moment: moment, account: account))
+                    .appFont(size: 12, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 8)
+            Button("Planları gör") { account.expandUpsell() }
+                .buttonStyle(.pillPrimary)
+                .fixedSize()
+            Button("Kapat", systemImage: "xmark") { account.dismissUpsell() }
+                .labelStyle(.iconOnly)
+                .buttonStyle(.hoverPlain)
+                .foregroundStyle(Theme.muted)
+                .accessibilityLabel("Teklifi kapat")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .cardSurface(cornerRadius: 16)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 12)
+    }
+}
+
 /// Abone olma teklifi (ana pencerede açılan kart): üstte durağan film gradyanı, uygulama simgesi ve "Gistsmith" rozeti;
 /// başlık ve kısa açıklama; deneme bitmek üzereyse ya da bittiyse bu Mac'te o ana dek yapılanların özeti (toplantı,
 /// görev, saat), değilse simgeli üç fayda; iki plan (yıllık seçili), isteğe bağlı davet kodu, seçilen planın ödeme
@@ -263,47 +356,11 @@ struct HostedUpsellSheet: View {
     }
 
     private var title: LocalizedStringKey {
-        switch moment {
-        case .trialNoteReady: "Notun hazır"
-        case .trialEnding: "Denemen bitmek üzere"
-        case .trialEnded: "Ücretsiz denemen bitti"
-        case .subscriptionRequired: "Devam etmek için abone ol"
-        case .planChoice: "Planını seç"
-        }
+        hostedUpsellTitle(moment: moment)
     }
 
     private var subtitle: String {
-        switch moment {
-        case .trialNoteReady:
-            guard case .signedIn(let entitlements) = account.state, case .trial(let left, _) = hostedPlanStatus(entitlements: entitlements) else {
-                return String(localized: "Abone olunca her toplantının notu böyle kendiliğinden hazırlanır.")
-            }
-            return String(localized: "Ücretsiz deneme: \(hostedTrialLeftText(left: left)). Abone olunca her toplantının notu böyle kendiliğinden hazırlanır.")
-        case .trialEnding:
-            return String(localized: "Kesintisiz devam etmek için bir plan seç. Toplantıların ve notların bu Mac'te kalır.")
-        case .trialEnded:
-            return String(localized: "Toplantıların ve notların bu Mac'te kalır. Yeni toplantıları kaydetmek için abone ol.")
-        case .subscriptionRequired:
-            return subscriptionRequiredReason
-        case .planChoice:
-            // Saat sınırı sunucudan gelir; hak durumu bilinmiyorsa sayı yazılmaz.
-            guard case .signedIn(let entitlements) = account.state else {
-                return String(localized: "Canlı metin, hazır not ve görevler. İstediğin zaman iptal edebilirsin.")
-            }
-            let hours: String = entitlements.monthlyHoursCap.formatted(.number.precision(.fractionLength(0...1)).locale(interfaceLocale()))
-            return String(localized: "Canlı metin, hazır not ve görevler; ayda \(hours) saate kadar kayıt. İstediğin zaman iptal edebilirsin.")
-        }
-    }
-
-    /// Neden abone olmak gerektiği: bu Mac'te deneme kullanıldı, abonelik sona erdi ya da deneme bitti.
-    private var subscriptionRequiredReason: String {
-        if account.isTrialRefusedOnThisMac {
-            return String(localized: "Bu Mac'te ücretsiz deneme başka bir hesapla kullanıldı. Kaydetmeye ve not almaya devam etmek için abone ol.")
-        }
-        if case .signedIn(let entitlements) = account.state, case .expired = hostedPlanStatus(entitlements: entitlements), entitlements.subscription != nil {
-            return String(localized: "Aboneliğin sona erdi. Toplantıların ve notların bu Mac'te kalır; yeniden abone olunca kaldığın yerden devam edersin.")
-        }
-        return String(localized: "Ücretsiz denemen bitti. Toplantıların ve notların bu Mac'te kalır; yeni toplantılar için abone ol.")
+        hostedUpsellSubtitle(moment: moment, account: account)
     }
 
     private func benefit(symbol: String, text: LocalizedStringKey) -> some View {

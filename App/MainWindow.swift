@@ -109,7 +109,7 @@ func openMainWindow(router: MainWindowRouter, section: MainSection) {
 /// Dock simgesine tıklanınca ana pencere açılır: ada penceresi hep açık olduğu için sistem "görünür pencere var" sayıp
 /// kendiliğinden açmazdı.
 final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
-    /// Bildirimdeki "Dinlemeye başla" (ya da bildirime tıklama) kaydı başlatır; uygulama açılışında bağlanır.
+    /// Bildirimdeki "Kaydı başlat" (ya da bildirime tıklama) kaydı başlatır; uygulama açılışında bağlanır.
     @MainActor static var onStartFromNotification: (@MainActor () -> Void)?
     /// "Kayıt başlatılamadı" bildirimine tıklama Ana sayfayı açar (neden başlat düğmesinin yanında); açılışta bağlanır.
     @MainActor static var onOpenHomeFromNotification: (@MainActor () -> Void)?
@@ -229,7 +229,8 @@ struct MainWindowView: View {
                         }
                         #if HOSTED_EDITION
                         // Kullanım bildirimi (%80, %100, son deneme toplantısı, deneme bitti); dönem başına bir kez.
-                        if let notice = HostedAccount.shared.visibleNotice {
+                        // Deneme bitti şeridi alttaki teklif şeridiyle aynı şeyi söyler: ikisi birden görünmez.
+                        if let notice = HostedAccount.shared.visibleNotice, !(notice == .trialEnded && HostedAccount.shared.upsell == .trialEnded) {
                             HostedUsageBanner(account: .shared, notice: notice) { openAccountSettings(router: router) }
                         }
                         // Bu Mac'te silinen hesaptan kalan toplantılar: bir kez önerilir ("Şimdi değil"den sonra Ayarlar › Hesap'ta).
@@ -244,11 +245,22 @@ struct MainWindowView: View {
                     }
                     // Çalan toplantı her bölümde altta görünür; sayfa değişince ses durmaz.
                     .safeAreaInset(edge: .bottom) {
-                        PlayerDock(model: model, player: player) { (id: String) -> Void in
-                            router.selectedMeetingID = id
-                            router.section = .meetings
+                        VStack(spacing: 0) {
+                            #if HOSTED_EDITION
+                            // Kendiliğinden gelen teklif (not hazır, deneme bitti) sayfayı kapatmaz: altta ince şerit,
+                            // not ve arşiv okunur kalır. Kayıt ya da işleme sürerken ve kurulumda görünmez.
+                            if let moment = HostedAccount.shared.upsell, !HostedAccount.shared.isUpsellSheetVisible, !model.isBusy, router.section != .setup {
+                                HostedUpsellStrip(account: .shared, moment: moment)
+                                    .frame(maxWidth: 720)
+                                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                            }
+                            #endif
+                            PlayerDock(model: model, player: player) { (id: String) -> Void in
+                                router.selectedMeetingID = id
+                                router.section = .meetings
+                            }
+                            .frame(maxWidth: 720)
                         }
-                        .frame(maxWidth: 720)
                     }
                     .animation(.smooth(duration: 0.25), value: router.section)
                 }
@@ -309,10 +321,11 @@ struct MainWindowView: View {
         // Toplantı hazırlanırken ana pencerede de aynı ilerleme kartı (panelle eş zamanlı).
         .modifier(ProcessingOverlayHost(model: model))
         #if HOSTED_EDITION
-        // Abone olma teklifi: deneme notu hazır olunca (günde en çok bir) ve deneme bitince bir kez. Kayıt ya da işleme
-        // sürerken ve kurulumda açılmaz; o sırada hazır olduysa bitince açılır.
+        // Planlar (tam teklif): kullanıcı istediğinde ya da abonelik gerektiren bir şeyi denediğinde hemen; kendiliğinden
+        // gelen anlarda (not hazır, deneme bitti) alttaki şeritten açılınca. Kayıt ya da işleme sürerken ve kurulumda
+        // açılmaz; o sırada istendiyse bitince açılır.
         .sheet(isPresented: Binding<Bool>(
-            get: { HostedAccount.shared.upsell != nil && !model.isBusy && router.section != .setup },
+            get: { HostedAccount.shared.isUpsellSheetVisible && !model.isBusy && router.section != .setup },
             set: { (shown: Bool) -> Void in
                 if !shown {
                     HostedAccount.shared.dismissUpsell()
@@ -702,8 +715,8 @@ private struct QuitWarning: View {
 }
 
 
-/// Ana sayfa (ElevenLabs düzeni): ortada büyük ince başlık ve kayıt çubuğu, araç kutucukları, banner karuseli,
-/// sana düşen görevler ve gradyan kapaklı son toplantılar.
+/// Ana sayfa, önem sırasıyla: selamlama ve tek satırlık kayıt çubuğu, yaklaşan toplantılar (Katıl, Dinle, Brifing),
+/// sana düşen görevler, gradyan kapaklı son toplantılar; kısayollar en altta.
 private struct HomePage: View {
     let model: AppModel
     let router: MainWindowRouter
@@ -725,7 +738,6 @@ private struct HomePage: View {
                     }
                 }
                 .padding(.top, 24)
-                Shortcuts(model: model, router: router, shortcuts: shortcuts, onShowPanel: onShowPanel)
                 UpcomingMeetings(model: model, startBlock: startBlock, onStartRecording: onStartRecording) { (meeting: CalendarMeeting) -> Void in
                     if model.startBriefing(meeting: meeting) {
                         router.section = .ask
@@ -736,6 +748,8 @@ private struct HomePage: View {
                 }
                 HomeTasks(model: model, router: router)
                 RecentMeetingCards(model: model, router: router)
+                // Kısayollar ikincil: kenar çubuğunda ve menülerde de var, sayfanın sonunda kalır.
+                Shortcuts(model: model, router: router, shortcuts: shortcuts, onShowPanel: onShowPanel)
             }
             .padding(.horizontal, 40)
             .padding(.bottom, 40)
@@ -783,8 +797,12 @@ private struct HomePage: View {
 
 }
 
+/// Koyu temada ana sayfadaki kayıt çubuğunun pastel zeminine eklenen karartma (kapakların genel kısmasının üstüne): parlak
+/// gradyan koyu sayfada göze batmasın.
+private let homeBarDarkDimming: Double = 0.3
+
 /// Kayıt kartında konuşma modelinin durumu: indiriliyorsa ilerleme, hazırlanamadıysa neden ve "Yeniden dene".
-/// Geliştirici sürümünde "Dinlemeye başla" neden kapalı, abonelikte canlı metin neden gecikecek, kart söyler.
+/// Geliştirici sürümünde "Kaydı başlat" neden kapalı, abonelikte canlı metin neden gecikecek, kart söyler.
 struct LocalModelNoticeView: View {
     let notice: LocalModelNotice
     let onRetry: @MainActor () -> Void
@@ -822,7 +840,7 @@ struct LocalModelNoticeView: View {
     }
 }
 
-/// Kayıt kartı: boşta büyük gradyan kart (küre, "Dinlemeye başla", seçenek çipleri); kayıtta ve bitirilirken çubuk
+/// Kayıt çubuğu: boşta tek satır gradyan çubuk (küre, "Kaydı başlat", seçenek çipleri); kayıtta ve bitirilirken çubuk
 /// (ElevenLabs'in "oluştur" çubuğu gibi): küre, durum, "Paneli göster" ve "Bitir".
 private struct RecordBar: View {
     @Bindable var model: AppModel
@@ -832,6 +850,7 @@ private struct RecordBar: View {
     let onShowPanel: @MainActor () -> Void
     let onResolve: @MainActor (StartBlockAction) -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
+    @Environment(\.colorScheme) private var colorScheme: ColorScheme
 
     var body: some View {
         if model.phase == .idle {
@@ -841,39 +860,58 @@ private struct RecordBar: View {
         }
     }
 
-    /// Boşta: gradyan kayıt kartı (ElevenLabs'in büyük oluştur kartı gibi): ortada küre ve "Dinlemeye başla", altında
-    /// seçenekler. Gradyan açık tonlu olduğundan kart her temada açık görünümle çizilir.
+    /// Boşta: tek satırlık kayıt çubuğu (sayfanın üçte birini kaplayan büyük kart yerine): küre, "Kaydı başlat" ve
+    /// seçenek çipleri; dar pencerede çipler alt satıra iner. Zemin durağan pastel gradyan, koyu temada belirgin
+    /// kısılır; içerik her temada açık görünümle çizilir. Engel, model ve boş yer bildirimleri çubuğun altında,
+    /// uygulamanın temasında.
     private var hero: some View {
-        VStack(spacing: 16) {
-            orb(size: 64)
-                .padding(5)
-                .background(Color.white.opacity(0.4), in: Circle())
-                .shadow(color: .black.opacity(0.14), radius: 18, y: 8)
-            Button(action: onStartRecording) {
-                Label("Dinlemeye başla", systemImage: "record.circle")
+        VStack(alignment: .leading, spacing: 10) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) {
+                    startControls
+                    Spacer(minLength: 8)
+                    options
+                }
+                VStack(alignment: .leading, spacing: 10) {
+                    startControls
+                    options
+                }
             }
-            .buttonStyle(.bannerPrimary)
-            .disabled(!model.isReadyToRecord || model.isStarting || startBlock != nil)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            // İçerik her temada açık görünümde; zemin sonra eklenir ki uygulamanın temasını görsün ve koyu temada kısılsın.
+            .environment(\.colorScheme, .light)
+            .background {
+                FilmGradient(seed: "kayit-karti", palette: .sunset)
+                    .dimmedInDarkTheme()
+                    .overlay { Color.black.opacity(colorScheme == .dark ? homeBarDarkDimming : 0).allowsHitTesting(false) }
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            }
             if let startBlock {
                 StartBlockView(notice: startBlock, onResolve: onResolve)
             } else if let notice = model.localModelNotice {
                 LocalModelNoticeView(notice: notice) { Task { await model.retryLocalModel() } }
             }
             DiskSpaceNotice(model: model)
-            options
         }
-        // Kart her göründüğünde (açılış, kayıt bitince) boş yer yeniden okunur.
+        // Çubuk her göründüğünde (açılış, kayıt bitince) boş yer yeniden okunur.
         .task { model.refreshRecordingDiskSpace() }
-        .padding(.vertical, 28)
-        .padding(.horizontal, 20)
-        .frame(maxWidth: .infinity, minHeight: 240)
-        // İçerik her temada açık görünümde; zemin sonra eklenir ki uygulamanın temasını görsün ve koyu temada kısılsın.
-        .environment(\.colorScheme, .light)
-        .background {
-            FilmGradient(seed: "kayit-karti", palette: .sunset)
-                .dimmedInDarkTheme()
-                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+    }
+
+    /// Küre ve "Kaydı başlat".
+    private var startControls: some View {
+        HStack(spacing: 10) {
+            orb(size: 30)
+                .padding(3)
+                .background(Color.white.opacity(0.4), in: Circle())
+            Button(action: onStartRecording) {
+                Label("Kaydı başlat", systemImage: "record.circle")
+            }
+            .buttonStyle(.bannerPrimary)
+            .disabled(!model.isReadyToRecord || model.isStarting || startBlock != nil)
         }
+        .fixedSize()
     }
 
     private func orb(size: CGFloat) -> some View {
@@ -886,8 +924,8 @@ private struct RecordBar: View {
             .tilt3D(maxAngle: 8)
     }
 
-    /// Seçenekler ortalı ve gerekirse alt satıra geçer: dar pencerede, İngilizcede ya da büyük arayüz boyutunda kartın
-    /// dışına taşıp kesilmez.
+    /// Seçenekler gerekirse alt satıra geçer: dar pencerede, İngilizcede ya da büyük arayüz boyutunda çubuğun dışına
+    /// taşıp kesilmez.
     private var options: some View {
         FlowLayout(spacing: 8, lineSpacing: 8) {
             languageChip
@@ -902,8 +940,7 @@ private struct RecordBar: View {
                 model.selectDisplayMode(mode: model.displayMode.needsLiveTranslation ? .originalOnly : .bilingual)
             }
         }
-        .fixedSize(horizontal: false, vertical: true)
-        .frame(maxWidth: 620)
+        .fixedSize()
     }
 
     /// Kayıtta ve bitirilirken gösterilen çubuk (boşta `hero` gösterilir).
@@ -1114,8 +1151,8 @@ private struct HomeTasks: View {
     private var userName: String { model.userName }
 
     var body: some View {
-        let items: [(record: MeetingRecord, task: NoteTask)] = myTasks(namedRecords: Array(model.namedMeetings(userName: userName).prefix(10)))
-            .filter { !isTaskDone(record: $0.record, task: $0.task) }
+        // Aciliyet sırasıyla: önce gecikmiş ve bugünün görevleri, sonra yaklaşanlar.
+        let items: [DatedTask] = openTasksByUrgency(items: myTasks(namedRecords: model.namedMeetings(userName: userName)), now: Date(), calendar: Calendar.current)
         if !items.isEmpty {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.s) {
                 HStack {
@@ -1126,14 +1163,10 @@ private struct HomeTasks: View {
                         .foregroundStyle(Theme.muted)
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    ForEach(Array(items.prefix(5).enumerated()), id: \.offset) { (item: (offset: Int, element: (record: MeetingRecord, task: NoteTask))) in
+                    ForEach(items.prefix(5), id: \.rowID) { (item: DatedTask) in
                         // Ana sayfada görevler toplantılarıyla karışık: tarihin yanında toplantının adı.
-                        let record: MeetingRecord = item.element.record
-                        TaskLine(
-                            model: model, record: record, task: item.element.task,
-                            detail: ([item.element.task.dueDate].compactMap { $0 } + [record.note?.title ?? record.title]).joined(separator: " · ")
-                        ) {
-                            router.selectedMeetingID = item.element.record.id
+                        TaskLine(model: model, record: item.record, task: item.task, meetingTitle: item.record.note?.title ?? item.record.title) {
+                            router.selectedMeetingID = item.record.id
                             router.section = .meetings
                         }
                     }
@@ -1252,7 +1285,7 @@ private struct UpcomingMeetings: View {
                     .controlSize(.small)
                     .hoverHint("Görüşme bağlantısını aç: \(url.host() ?? "")", alignment: .trailing, edge: .bottom)
             }
-            // Kayıt kartındaki "Dinlemeye başla" ile aynı koşul: bitirilirken, devredilirken, başlarken ya da model hazır
+            // Kayıt kartındaki "Kaydı başlat" ile aynı koşul: bitirilirken, devredilirken, başlarken ya da model hazır
             // değilken kapalı (yoksa boş panel açılırdı).
             if isSoon, model.phase == .idle {
                 Button("Dinle", systemImage: "record.circle") { onStartRecording() }
@@ -1270,9 +1303,10 @@ private struct TaskLine: View {
     let model: AppModel
     let record: MeetingRecord
     let task: NoteTask
-    /// İşin altındaki soluk satır (tarih, gerekirse toplantı); boşsa gösterilmez.
-    let detail: String
+    /// İşin altında son günün yanında gösterilen toplantı adı; toplantının kartındaysa nil.
+    let meetingTitle: String?
     let onOpen: @MainActor () -> Void
+    @State private var isHovering: Bool = false
 
     var body: some View {
         let isDone: Bool = isTaskDone(record: record, task: task)
@@ -1286,10 +1320,20 @@ private struct TaskLine: View {
                             .appFont(size: 14, weight: .regular)
                             .strikethrough(isDone, color: Theme.muted)
                             .foregroundStyle(isDone ? Theme.muted : Theme.ink)
-                        if !detail.isEmpty {
-                            Text(verbatim: detail)
-                                .appFont(size: 12, weight: .regular)
-                                .foregroundStyle(Theme.muted)
+                        if task.dueDate != nil || meetingTitle != nil {
+                            // Son gün toplantı gününe göre çözülür, arayüz dilinde göreli ("Yarın", "2 gün gecikti").
+                            HStack(spacing: 5) {
+                                TaskDueText(record: record, task: task, size: 12)
+                                if task.dueDate != nil, meetingTitle != nil {
+                                    Text(verbatim: "·").foregroundStyle(Theme.muted)
+                                }
+                                if let meetingTitle {
+                                    Text(verbatim: meetingTitle)
+                                        .foregroundStyle(Theme.muted)
+                                        .lineLimit(1)
+                                }
+                            }
+                            .appFont(size: 12, weight: .regular)
                         }
                     }
                     Spacer(minLength: 0)
@@ -1298,10 +1342,28 @@ private struct TaskLine: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.hoverPlain)
+            // Zil yalnız anımsatıcı eklendiyse ya da fare satırdayken (her satırda sürekli durunca gürültüydü).
             ReminderButton(model: model, record: record, task: task)
+                .opacity(isHovering || isTaskReminded(record: record, task: task) ? 1 : 0)
         }
         .padding(.horizontal, 8)
+        .contentShape(Rectangle())
+        .onHover { (hovering: Bool) -> Void in isHovering = hovering }
         .animation(.smooth(duration: 0.2), value: isDone)
+        .animation(.easeOut(duration: 0.12), value: isHovering)
+        .contextMenu {
+            Button(isDone ? "Tamamlanmadı olarak işaretle" : "Tamamlandı olarak işaretle", systemImage: isDone ? "circle" : "checkmark.circle") {
+                model.toggleTask(meetingID: record.id, task: task)
+            }
+            .disabled(model.isLocked(meetingID: record.id))
+            // Yalnız elle eklenen görev silinir; nottan gelen görev notun parçasıdır.
+            if task.isAdded == true {
+                Button("Görevi sil", systemImage: "trash", role: .destructive) {
+                    model.removeAddedTask(meetingID: record.id, task: task)
+                }
+                .disabled(model.isLocked(meetingID: record.id))
+            }
+        }
     }
 }
 
@@ -1387,11 +1449,14 @@ private struct MeetingCover: View {
     }
 }
 
-/// Görevlerim: tüm toplantılardan sana düşen işler, toplantıya göre gruplu; başlığa tıklayınca toplantı açılır.
+/// Görevlerim: tüm toplantılardan sana düşen işler. Açık görevler son günlerine göre gruplu (gecikmiş, bugün,
+/// önümüzdeki 7 gün, daha sonra, tarihsiz; grup içinde yakın tarih önce), tamamlananlar toplantıya göre. "Görev ekle"
+/// ile elle görev eklenir (bir toplantının notuna).
 private struct TasksPage: View {
     let model: AppModel
     let router: MainWindowRouter
     @State private var showsDone: Bool = false
+    @State private var isAdding: Bool = false
     /// Notlardaki konuşmacı etiketleri adlarla; adı kullanıcının adı olan konuşmacının görevleri onundur.
     private var userName: String { model.userName }
 
@@ -1399,10 +1464,13 @@ private struct TasksPage: View {
         let named: [MeetingRecord] = model.namedMeetings(userName: userName)
         let all: [(record: MeetingRecord, task: NoteTask)] = myTasks(namedRecords: named)
         let doneCount: Int = all.filter { isTaskDone(record: $0.record, task: $0.task) }.count
-        let groups: [(record: MeetingRecord, tasks: [NoteTask])] = named.compactMap { (record: MeetingRecord) -> (record: MeetingRecord, tasks: [NoteTask])? in
-            let mine: [NoteTask] = (record.note?.tasks ?? []).filter { $0.isMine && isTaskDone(record: record, task: $0) == showsDone }
+        let open: [(record: MeetingRecord, task: NoteTask)] = all.filter { !isTaskDone(record: $0.record, task: $0.task) }
+        let dueGroups: [TaskDueGroup] = groupedByDueDay(items: open, now: Date(), calendar: Calendar.current)
+        let doneGroups: [(record: MeetingRecord, tasks: [NoteTask])] = named.compactMap { (record: MeetingRecord) -> (record: MeetingRecord, tasks: [NoteTask])? in
+            let mine: [NoteTask] = (record.note?.tasks ?? []).filter { $0.isMine && isTaskDone(record: record, task: $0) }
             return mine.isEmpty ? nil : (record: record, tasks: mine)
         }
+        let isEmpty: Bool = showsDone ? doneGroups.isEmpty : dueGroups.isEmpty
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .firstTextBaseline) {
@@ -1410,6 +1478,18 @@ private struct TasksPage: View {
                         .appFont(size: 28, weight: .regular)
                         .tracking(-0.4)
                     Spacer(minLength: 0)
+                    Button("Görev ekle", systemImage: "plus") { isAdding = true }
+                        .buttonStyle(.pill)
+                        .disabled(addableMeetings(named: named).isEmpty)
+                        .hoverHint("Bir toplantıya kendi görevini ekle", alignment: .center, edge: .bottom)
+                        .popover(isPresented: $isAdding, arrowEdge: .bottom) {
+                            AddTaskForm(meetings: addableMeetings(named: named), fixedMeetingID: nil) { (meetingID: String, text: String, dueDay: Date?) -> Void in
+                                model.addTask(meetingID: meetingID, description: text, dueDay: dueDay)
+                                isAdding = false
+                            } onCancel: {
+                                isAdding = false
+                            }
+                        }
                     PillPicker(selection: $showsDone, options: [
                         (false, "Açık · \(all.count - doneCount)"), (true, "Tamamlanan · \(doneCount)"),
                     ])
@@ -1423,61 +1503,17 @@ private struct TasksPage: View {
                         router.section = .meetings
                     }
                 }
-                if groups.isEmpty {
-                    if showsDone {
-                        QuietEmptyCard(symbol: "checkmark.circle", title: "Tamamlanan görev yok", message: "Bitirdiğin görevler burada birikir.")
-                    } else if doneCount > 0 {
-                        EmptyScene(symbol: "party.popper.fill", palette: .coral, title: "Açık görevin kalmadı", message: "Hepsi tamamlandı.") {
-                            EmptyView()
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 24)
-                        .overlay { ConfettiBurst(palette: .coral) }
-                    } else {
-                        EmptyScene(
-                            symbol: "checklist", palette: .coral, title: "Henüz sana düşen görev yok",
-                            message: "Toplantı notunda senin adına yazılan işler burada toplanır."
-                        ) {
-                            if model.userName.isEmpty {
-                                Button("Adını yaz (görevlerin tanınsın)", systemImage: "person.text.rectangle") { router.section = .settings }
-                                    .buttonStyle(.accentPill)
-                                    .controlSize(.large)
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 24)
-                    }
+                if isEmpty {
+                    emptyState(doneCount: doneCount)
                 }
-                ForEach(groups, id: \.record.id) { (group: (record: MeetingRecord, tasks: [NoteTask])) in
-                    VStack(alignment: .leading, spacing: 6) {
-                        Button {
-                            router.selectedMeetingID = group.record.id
-                            router.section = .meetings
-                        } label: {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(group.record.note?.title ?? group.record.title).appFont(size: 15, weight: .medium)
-                                    Text(meetingMetaLine(record: group.record)).appFont(size: 12, weight: .regular).foregroundStyle(Theme.muted)
-                                }
-                                Spacer(minLength: 0)
-                                Image(systemName: "chevron.right").foregroundStyle(Theme.muted)
-                            }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.hoverPlain)
-                        ForEach(Array(group.tasks.enumerated()), id: \.element.trackingKey) { (item: (offset: Int, element: NoteTask)) in
-                            // Toplantının adı kartın başlığında: altta yalnız tarih.
-                            TaskLine(model: model, record: group.record, task: item.element, detail: item.element.dueDate ?? "") {
-                                router.selectedMeetingID = group.record.id
-                                router.section = .meetings
-                            }
-                        }
+                if showsDone {
+                    ForEach(doneGroups, id: \.record.id) { (group: (record: MeetingRecord, tasks: [NoteTask])) in
+                        meetingGroup(record: group.record, tasks: group.tasks)
                     }
-                    .padding(8)
-                    .cardSurface(cornerRadius: 16)
-                    .transition(.opacity)
+                } else {
+                    ForEach(dueGroups, id: \.bucket) { (group: TaskDueGroup) in
+                        dueGroup(group: group)
+                    }
                 }
             }
             .animation(.smooth(duration: 0.25), value: showsDone)
@@ -1485,6 +1521,100 @@ private struct TasksPage: View {
             .padding(36)
             .frame(maxWidth: 820, alignment: .leading)
             .frame(maxWidth: .infinity)
+        }
+    }
+
+    /// Görev eklenebilecek toplantılar: notu olan, örnek olmayan, kayıtta ya da işlenmekte olmayan (en yeni önce).
+    private func addableMeetings(named: [MeetingRecord]) -> [MeetingRecord] {
+        named.filter { $0.note != nil && !$0.isSampleMeeting && !model.isLocked(meetingID: $0.id) }
+    }
+
+    /// Son güne göre bir grup: başlık (gecikmişte kırmızı) ve görevler; her satırda toplantının adı.
+    private func dueGroup(group: TaskDueGroup) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Text(verbatim: taskDueBucketTitle(bucket: group.bucket))
+                    .appFont(size: 13, weight: .semibold)
+                    .foregroundStyle(group.bucket == .overdue ? NoticeSeverity.error.tint : Theme.ink)
+                Text(verbatim: "\(group.tasks.count)")
+                    .appFont(size: 12, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .monospacedDigit()
+            }
+            .padding(.horizontal, 10)
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isHeader)
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(group.tasks, id: \.rowID) { (item: DatedTask) in
+                    TaskLine(model: model, record: item.record, task: item.task, meetingTitle: item.record.note?.title ?? item.record.title) {
+                        router.selectedMeetingID = item.record.id
+                        router.section = .meetings
+                    }
+                }
+            }
+            .padding(8)
+            .cardSurface(cornerRadius: 16)
+        }
+        .transition(.opacity)
+    }
+
+    /// Tamamlananlarda toplantıya göre grup: başlığa tıklayınca toplantı açılır.
+    private func meetingGroup(record: MeetingRecord, tasks: [NoteTask]) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Button {
+                router.selectedMeetingID = record.id
+                router.section = .meetings
+            } label: {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(record.note?.title ?? record.title).appFont(size: 15, weight: .medium)
+                        Text(meetingMetaLine(record: record)).appFont(size: 12, weight: .regular).foregroundStyle(Theme.muted)
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right").foregroundStyle(Theme.muted)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.hoverPlain)
+            ForEach(tasks, id: \.trackingKey) { (task: NoteTask) in
+                // Toplantının adı kartın başlığında: altta yalnız tarih.
+                TaskLine(model: model, record: record, task: task, meetingTitle: nil) {
+                    router.selectedMeetingID = record.id
+                    router.section = .meetings
+                }
+            }
+        }
+        .padding(8)
+        .cardSurface(cornerRadius: 16)
+        .transition(.opacity)
+    }
+
+    @ViewBuilder
+    private func emptyState(doneCount: Int) -> some View {
+        if showsDone {
+            QuietEmptyCard(symbol: "checkmark.circle", title: "Tamamlanan görev yok", message: "Bitirdiğin görevler burada birikir.")
+        } else if doneCount > 0 {
+            EmptyScene(symbol: "party.popper.fill", palette: .coral, title: "Açık görevin kalmadı", message: "Hepsi tamamlandı.") {
+                EmptyView()
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 24)
+            .overlay { ConfettiBurst(palette: .coral) }
+        } else {
+            EmptyScene(
+                symbol: "checklist", palette: .coral, title: "Henüz sana düşen görev yok",
+                message: "Toplantı notunda senin adına yazılan işler burada toplanır."
+            ) {
+                if model.userName.isEmpty {
+                    Button("Adını yaz (görevlerin tanınsın)", systemImage: "person.text.rectangle") { router.section = .settings }
+                        .buttonStyle(.accentPill)
+                        .controlSize(.large)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 24)
         }
     }
 }
