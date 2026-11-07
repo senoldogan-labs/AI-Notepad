@@ -127,6 +127,23 @@ private func baseQuery(service: String, account: SecretAccount) -> [String: Any]
     ]
 }
 
+/// Eski sürümün "iPhone'da da kullan" ayarının iCloud Anahtar Zinciri ile eşitlediği kopyaları (veri koruma anahtar
+/// zinciri, eşitlenen öğe) her hesap adı için siler: o ayar kaldırıldı ve kopyaları hiçbir uygulama okumaz; anahtarlar
+/// iCloud'da kalmasın. Kopya yoksa hata değildir; diğer durumlar `unexpectedStatus` fırlatır (ör. uygulama iCloud'lu
+/// profille imzalanmamışsa -34018).
+public func deleteLegacySyncedSecrets(service: String) throws {
+    for account in SecretAccount.allCases {
+        let query: [String: Any] = baseQuery(service: service, account: account).merging([
+            kSecAttrSynchronizable as String: true,
+            kSecUseDataProtectionKeychain as String: true,
+        ]) { (_: Any, new: Any) -> Any in new }
+        let status: OSStatus = SecItemDelete(query as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            throw KeychainError.unexpectedStatus(operation: "SecItemDelete(synced)", status: status)
+        }
+    }
+}
+
 /// Anahtarın kayıtlı olup olmadığı. Değeri okumadığı için Keychain izin penceresi açmaz.
 public func secretExists(service: String, account: SecretAccount) throws -> Bool {
     try exists(query: baseQuery(service: service, account: account), operation: "SecItemCopyMatching(attributes)")

@@ -760,6 +760,24 @@ final class AppModel {
         }
     }
 
+    #if !HOSTED_EDITION
+    /// Kaldırılan "iPhone'da da kullan" ayarının iCloud Anahtar Zinciri'ne yazdığı anahtar kopyalarını siler (her
+    /// açılışta; kopya yoksa bir şey yapmaz). Hata loglanır: açılışı durdurmaz, bir sonraki açılışta yeniden denenir.
+    private func deleteLegacySyncedKeys() async {
+        #if DEBUG
+        // Tanıtım modu Anahtar Zinciri'ne dokunmaz.
+        if isDemoMode {
+            return
+        }
+        #endif
+        do {
+            try await runBlocking(qos: .utility) { () throws -> Void in try deleteLegacySyncedSecrets(service: appKeychainService) }
+        } catch {
+            Self.logger.error("iCloud Anahtar Zinciri'ndeki eski anahtar kopyaları silinemedi, hata: \(String(describing: error), privacy: .public)")
+        }
+    }
+    #endif
+
     /// Seçili motor ve LLM için eksik anahtar/ayarları bulur (değer okunmaz, izin penceresi açılmaz).
     func refreshSetupProblems() async {
         #if DEBUG
@@ -4248,6 +4266,9 @@ final class AppModel {
         startRetentionTimer()
         startCloudSyncIfEnabled()
         Task { await refreshSetupProblems() }
+        #if !HOSTED_EDITION
+        Task { await deleteLegacySyncedKeys() }
+        #endif
     }
 
     /// Abonelikte yarıda kalan çevrimdışı kayıt (sunucu oturumu yok) kuyruğa döner; geliştirici sürümünde değişmez.
