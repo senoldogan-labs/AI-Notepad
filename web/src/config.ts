@@ -111,7 +111,8 @@ export type DownloadSource =
   | "teams"
   | "mcp"
   | "fi"
-  | "blog";
+  | "blog"
+  | "voice-typing";
 
 /**
  * Mac indirme adresi: sunucu indirmeyi düğmenin yeriyle (`src`) sayar ve DMG'ye yönlendirir (302). Sitedeki tüm

@@ -396,6 +396,7 @@ export const clientCopy: ClientCopy = {
       "home-cta": "Home page, bottom",
       "download-page": "Download page",
       account: "Account page",
+      "voice-typing": "Voice typing page",
       direct: "Direct link (no button)",
       other: "Unknown button",
     },

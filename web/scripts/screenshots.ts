@@ -90,6 +90,7 @@ const targets: readonly Target[] = [
   { name: "vs-poffle", path: "/vs/poffle", ready: "main", signedIn: false, account: null },
   { name: "languages", path: "/languages", ready: "main", signedIn: false, account: null },
   { name: "integrations", path: "/integrations", ready: "main", signedIn: false, account: null },
+  { name: "voice-typing", path: "/voice-typing", ready: "main", signedIn: false, account: null },
   { name: "mcp", path: "/mcp", ready: "main", signedIn: false, account: null },
   { name: "blog", path: "/blog", ready: "main", signedIn: false, account: null },
   { name: "blog-no-bot", path: "/blog/meeting-notes-on-mac-without-a-bot", ready: "main", signedIn: false, account: null },

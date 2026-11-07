@@ -1,9 +1,10 @@
 ---
-// Footer on the mist surface: the brand line set in the serif and where it is made, then product, learn (compare, languages, integrations,
+// Footer on the mist surface: the flip-book band (FooterFlipbook.astro), then the brand line set in the serif and where it is made, then product, learn (compare, languages, integrations,
 // blog, MCP), account and company (contact, legal, font licences) links; a horizon rule; at the bottom the copyright
 // line and the language choice (routes.ts `siteLanguages`: each language goes to its own home page, the current one is
 // plain text). The operator's identity and address are on the privacy, terms and contact pages (single source:
 // legal/operator.ts).
+import FooterFlipbook from "./FooterFlipbook.astro";
 import Horizon from "./Horizon.astro";
 import Icon from "./Icon.astro";
 import Logo from "./Logo.astro";
@@ -25,6 +26,7 @@ const columns: readonly { readonly title: string; readonly links: readonly { rea
     title: text.footer.product,
     links: [
       { href: featuresHref, label: text.nav.features },
+      { href: routes.voiceTyping, label: text.nav.voiceTyping },
       { href: routes.pricing, label: text.nav.pricing },
       { href: routes.download, label: text.nav.download },
     ],
@@ -66,6 +68,7 @@ const columns: readonly { readonly title: string; readonly links: readonly { rea
 ---
 
 <footer class="site-footer">
+  <FooterFlipbook />
   <div class="page site-footer__grid">
     <div class="site-footer__about">
       <a class="site-footer__brand" href={routes.home} aria-label={text.homeLabel}>

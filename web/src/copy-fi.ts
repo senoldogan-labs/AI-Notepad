@@ -32,6 +32,7 @@ export const commonFi: CommonCopy = {
     mcp: "MCP tekoälysovelluksille",
     languages: "Kielet",
     integrations: "Integraatiot",
+    voiceTyping: "Sanelu",
     dataHandling: "Tietojen käsittely",
   },
   downloadCta: "Lataa Macille",
@@ -202,6 +203,7 @@ export const homeFi: HomeCopy = {
       text: "Pidä pikanäppäintä pohjassa ja puhu: sanasi kirjoitetaan sinne, missä kursori on, tekstiksi Macillasi ja maksutta millä tahansa tilillä.",
       shortcut: "Pidä ⌃⌥D",
       sample: "Kiitos, lähetän hinnaston perjantaihin mennessä.",
+      link: "Lisää sanelusta (englanniksi)",
     },
     screens: {
       title: "Palaute oikeaan diaan",

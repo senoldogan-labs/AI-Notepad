@@ -122,7 +122,7 @@ test("home page describes the app, its offers and the organisation", async () =>
 });
 
 test("FAQ answers in JSON-LD are the answers shown on the page", async () => {
-  for (const file of ["index.html", "pricing.html", "languages.html", "integrations.html"]) {
+  for (const file of ["index.html", "pricing.html", "languages.html", "integrations.html", "voice-typing.html"]) {
     const html: string = await distFile(file);
     const [faq] = nodesOfType(jsonLdBlocks(html), "FAQPage");
     const questions: JsonValue | undefined = faq?.["mainEntity"];
@@ -136,7 +136,7 @@ test("FAQ answers in JSON-LD are the answers shown on the page", async () => {
 });
 
 test("comparison and info pages carry a breadcrumb trail ending at the page", async () => {
-  const pages: readonly string[] = ["compare", "vs/granola", "vs/otter", "vs/fireflies", "vs/poffle", "languages", "integrations"];
+  const pages: readonly string[] = ["compare", "vs/granola", "vs/otter", "vs/fireflies", "vs/poffle", "languages", "integrations", "voice-typing"];
   for (const page of pages) {
     const [breadcrumbs] = nodesOfType(jsonLdBlocks(await distFile(`${page}.html`)), "BreadcrumbList");
     const items: JsonValue | undefined = breadcrumbs?.["itemListElement"];
@@ -157,7 +157,7 @@ test("llms.txt states the key facts and links every public page", async () => {
   for (const fact of ["macOS 15 or later", "Apple silicon", "iOS 26.1 or later", appStoreUrl, "$5.99", "$49", "3 meetings or 7 days", "10 hours", "4 hours", "No bot", "MCP"]) {
     assert.ok(llms.includes(fact), `llms.txt: "${fact}" yok`);
   }
-  for (const path of ["/pricing", "/download", "/languages", "/integrations", "/compare", "/vs/fireflies", "/vs/poffle", "/privacy#at-a-glance", "/mcp", "/llms-full.txt"]) {
+  for (const path of ["/pricing", "/download", "/languages", "/integrations", "/compare", "/vs/fireflies", "/vs/poffle", "/privacy#at-a-glance", "/mcp", "/voice-typing", "/llms-full.txt"]) {
     assert.ok(llms.includes(`](${origin}${path})`), `llms.txt: ${path} bağlantısı yok`);
   }
   const full: string = await distFile("llms-full.txt");
@@ -176,7 +176,7 @@ test("the home, download and compare pages link the iPhone app; pricing explains
 
 test("the sitemap lists the new pages", async () => {
   const sitemap: string = await distFile("sitemap.xml");
-  for (const path of ["/languages", "/integrations", "/vs/fireflies", "/vs/poffle"]) {
+  for (const path of ["/languages", "/integrations", "/vs/fireflies", "/vs/poffle", "/voice-typing"]) {
     assert.ok(sitemap.includes(`<loc>${origin}${path}</loc>`), `sitemap.xml: ${path} yok`);
   }
 });

@@ -55,6 +55,7 @@ export const siteDownloadSources = [
   "mcp",
   "fi",
   "blog",
+  "voice-typing",
 ] as const;
 
 /** İndirmenin kaynağı: sitedeki düğme, parametresiz (`direct`: dış bağlantı ya da elle yazılmış adres) ya da tanınmayan (`other`). */
