@@ -17,6 +17,7 @@ export type PageKey =
   | "vsPoffle"
   | "languages"
   | "integrations"
+  | "voiceTyping"
   | "blog"
   | "mcp"
   | "signIn"
@@ -43,6 +44,7 @@ export const routes: Readonly<Record<PageKey, string>> = {
   vsPoffle: "/vs/poffle",
   languages: "/languages",
   integrations: "/integrations",
+  voiceTyping: "/voice-typing",
   blog: "/blog",
   mcp: "/mcp",
   signIn: "/sign-in",
@@ -76,6 +78,7 @@ export const indexedPages: readonly PageKey[] = [
   "vsPoffle",
   "languages",
   "integrations",
+  "voiceTyping",
   "blog",
   "mcp",
   "contact",
@@ -100,6 +103,7 @@ export const pageModified: Readonly<Partial<Record<PageKey, string>>> = {
   vsPoffle: "2026-11-04",
   languages: "2026-11-04",
   integrations: "2026-11-06",
+  voiceTyping: "2026-11-07",
   mcp: "2026-11-06",
   privacy: "2026-11-07",
   terms: "2026-11-07",

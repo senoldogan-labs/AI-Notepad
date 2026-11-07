@@ -58,6 +58,8 @@ export interface CommonCopy {
     readonly mcp: string;
     readonly languages: string;
     readonly integrations: string;
+    /** Sesle yazma sayfası (`/voice-typing`). */
+    readonly voiceTyping: string;
     /** Gizlilik sayfasının başındaki veri işleme özeti (`/privacy#at-a-glance`). */
     readonly dataHandling: string;
   };
@@ -238,7 +240,7 @@ export interface HomeCopy {
     readonly followUp: TitledText & { readonly recipe: string; readonly subject: string; readonly lines: readonly string[] };
     readonly templates: TitledText & { readonly sample: readonly string[] };
     /** Sesle yazma: kısayol etiketi ve imlecin olduğu alana yazılan örnek cümle. */
-    readonly voiceTyping: TitledText & { readonly shortcut: string; readonly sample: string };
+    readonly voiceTyping: TitledText & { readonly shortcut: string; readonly sample: string; readonly link: string };
     /** Paylaşılan ekranın görüntüleri: ekran adı, konuşulduğu an ve o ekrandayken söylenen cümle. */
     readonly screens: TitledText & { readonly frame: string; readonly time: string; readonly quote: string };
   };
@@ -875,6 +877,96 @@ export interface IntegrationsCopy {
 }
 
 /** 404 sayfası. */
+/** Sesle yazma sayfasının üst gösterimi (VoiceTypingDemo.astro): e-posta taslağına dikte edilen yanıt. */
+export interface VoiceTypingDemoCopy {
+  /** Gösterimin erişilebilir anlatımı (gösterim `role="img"`). */
+  readonly label: string;
+  readonly windowTitle: string;
+  readonly toLabel: string;
+  readonly to: string;
+  readonly subjectLabel: string;
+  readonly subject: string;
+  /** Taslakta zaten yazılı olan ilk satır. */
+  readonly greeting: string;
+  /** Söylenen ve kısayol bırakılınca imlecin yerine yazılan metin; dinlerken haptaki ara metin de bundan. */
+  readonly dictated: string;
+  readonly listening: string;
+  /** Kısayol (uygulamanın varsayılanı: KeyBinding.swift `defaultDictateBinding`). */
+  readonly shortcut: string;
+  readonly pause: string;
+  readonly play: string;
+  readonly replay: string;
+}
+
+/** Hız karşılaştırması: aynı paragraf konuşarak ve yazarak (tipik hızlarla, ölçüm değil). */
+export interface SpeedRaceCopy {
+  readonly tone: string;
+  readonly title: string;
+  readonly lead: string;
+  /** Yarışılan paragraf (kelime sayısı süreleri belirler: voice-typing.astro). */
+  readonly passage: string;
+  readonly voiceLabel: string;
+  readonly typingLabel: string;
+  /** Tipik konuşma ve klavyeyle yazma hızı (dakikada kelime; yaygın ortalamalar, ölçüm değil). */
+  readonly voiceWpm: number;
+  readonly typingWpm: number;
+  /** Dakikada kelime birimi. */
+  readonly perMinute: string;
+  /** Hızlandırma notu (`{speed}` hızla dolar). */
+  readonly replayNote: string;
+  readonly note: string;
+  readonly pause: string;
+  readonly play: string;
+  readonly replay: string;
+}
+
+/** Bir kullanım örneği: uygulama türü, örnek pencere ve dikte edilen metin. */
+export interface VoiceUseCaseCopy {
+  readonly kind: "email" | "chat" | "prompt" | "doc";
+  readonly label: string;
+  readonly title: string;
+  readonly text: string;
+  /** Pencere başlığı (genel; marka yok). */
+  readonly window: string;
+  /** Pencerede zaten olan içerik (alıcı ve konu, önceki mesaj, belge başlığı…). */
+  readonly context: readonly string[];
+  readonly dictated: string;
+}
+
+/** Sesle yazma sayfası (`/voice-typing`). Her bilgi uygulamanın kodunda doğrulandı (copy nesnesindeki açıklamaya bak). */
+export interface VoiceTypingCopy {
+  readonly meta: PageMeta;
+  readonly title: string;
+  readonly lead: string;
+  readonly assurances: readonly string[];
+  readonly demo: VoiceTypingDemoCopy;
+  readonly speed: SpeedRaceCopy;
+  readonly free: {
+    readonly title: string;
+    readonly text: string;
+    readonly points: readonly string[];
+  };
+  readonly useCasesTone: string;
+  readonly useCasesTitle: string;
+  readonly useCases: readonly VoiceUseCaseCopy[];
+  readonly howTone: string;
+  readonly howTitle: string;
+  readonly modes: readonly (TitledText & { readonly keys: string })[];
+  readonly details: readonly IconText[];
+  readonly privacyTone: string;
+  readonly privacyTitle: string;
+  readonly privacyLead: string;
+  readonly privacyPoints: readonly IconText[];
+  readonly privacyLink: string;
+  readonly languagesTitle: string;
+  readonly languagesText: string;
+  readonly languagesLink: string;
+  readonly faqTitle: string;
+  readonly faq: readonly Faq[];
+  readonly ctaTitle: string;
+  readonly ctaText: string;
+}
+
 export interface NotFoundCopy {
   readonly meta: PageMeta;
   readonly title: string;
@@ -936,6 +1028,7 @@ export interface Copy {
   readonly admin: AdminCopy;
   readonly languages: LanguagesCopy;
   readonly integrations: IntegrationsCopy;
+  readonly voiceTyping: VoiceTypingCopy;
   readonly notFound: NotFoundCopy;
   readonly meetingLink: MeetingLinkCopy;
   readonly share: ShareCopy;
@@ -948,6 +1041,9 @@ const tagline: string = "Listens to your meetings, writes your notes.";
 const brandQuiet: string = "Quiet while you talk";
 const brandYours: string = "Yours when you're done.";
 const brandLine: string = `${brandQuiet}. ${brandYours}`;
+/** Commonly cited averages (words a minute) for conversational speech and keyboard typing; the voice typing page says so. */
+const typicalSpeakingWpm: number = 150;
+const typicalTypingWpm: number = 40;
 
 /** Sitenin metinleri. */
 export const copy: Copy = {
@@ -969,6 +1065,7 @@ export const copy: Copy = {
       mcp: "MCP for AI apps",
       languages: "Languages",
       integrations: "Integrations",
+      voiceTyping: "Voice typing",
       dataHandling: "Data handling",
     },
     downloadCta: "Download for Mac",
@@ -1136,6 +1233,7 @@ export const copy: Copy = {
         text: "Hold the shortcut and speak to type wherever your cursor is, transcribed on your Mac and free with any account.",
         shortcut: "Hold ⌃⌥D",
         sample: "Thanks, I'll send the pricing table by Friday.",
+        link: "More about voice typing",
       },
       screens: {
         title: "Feedback pinned to the right slide",
@@ -2316,6 +2414,166 @@ export const copy: Copy = {
         answer: `Claude, Cursor and VS Code on your Mac can, through ${productName}'s read-only MCP server, connected with one click in Settings. Other apps that support local MCP servers can connect with the same configuration. For Claude and ChatGPT on the web or on your phone there is AI assistant access, an online connector you turn on in the app under Settings › Connections. Off by default. Turn it on and an encrypted copy of your notes, never audio, is kept in the EU so the assistants you connect can read them. Turn it off and it is deleted at once (backups within 30 days). Our servers can technically read that copy (it is encrypted at rest, not end to end), and what an assistant reads falls under its provider's policies. The MCP page has the steps.`,
       },
     ],
+  },
+  // Sesle yazma: her bilgi uygulamanın kodundan. Kısayol ⌃⌥D (KeyBinding.swift `defaultDictateBinding`); basılı tut ya da
+  // dokun, eller serbestte yeniden dokun ya da Esc (Dictation.swift, DictationKeys.swift); bir seferde en çok 5 dakika
+  // (`dictationMaxListeningSec`); macOS 26+ Apple'ın cihaz içi diktesi (noktalama açık, dinlerken ara metin), macOS 15–25
+  // cihaz içi konuşma modeli (~630 MB); ses ve metin hiçbir yere gitmez, saklanmaz; ⌘V ile yapıştırır, pano eski hâline
+  // döner ve geçici işaretlenir; Erişilebilirlik izni yoksa panoya kopyalar; parola alanına yazmaz; toplantı kaydı
+  // sürerken kapalı; dil ana toplantı dili; giriş yapmış her hesapta ücretsiz ve sınırsız, deneme ve aylık süreden düşmez
+  // (VoiceTypingSettings.swift). Yapay zekâyla yeniden yazma ve özel sözlük yok: sayfa bunları vaat etmez.
+  voiceTyping: {
+    meta: {
+      title: `Voice typing for Mac, in any app: free with ${productName}`,
+      description: `Hold ⌃⌥D, speak, let go: ${productName} types your words wherever the cursor is, in Mail, Slack, Notes or the browser. Transcribed on your Mac, free and unlimited with any account.`,
+    },
+    title: "Speak anywhere you’d type.",
+    lead: `Hold ⌃⌥D, say it, let go. ${productName} types your words where the cursor is, in any app on your Mac. The audio never leaves your Mac, and it’s free with any account.`,
+    assurances: ["Free and unlimited", "Transcribed on your Mac", "Any app with a text field"],
+    demo: {
+      label:
+        "Voice typing demo: an email reply is open. The shortcut Control-Option-D is held, a small listening bar with a waveform appears at the bottom and shows the words as they are spoken; when the shortcut is released, the sentence is typed into the email at the cursor.",
+      windowTitle: "Re: Thursday’s review",
+      toLabel: "To",
+      to: "Aino Virtanen",
+      subjectLabel: "Subject",
+      subject: "Re: Thursday’s review",
+      greeting: "Hi Aino,",
+      dictated: "Thanks for the notes. Let’s move the review to Thursday at ten, and I’ll bring the updated numbers.",
+      listening: "Listening",
+      shortcut: "⌃⌥D",
+      pause: "Pause the demo",
+      play: "Play the demo",
+      replay: "Play the demo again",
+    },
+    speed: {
+      tone: "Speed",
+      title: "Say it in a quarter of the time.",
+      lead: `People typically speak around ${typicalSpeakingWpm} words a minute and type around ${typicalTypingWpm}. Here is the same short update, written both ways at those typical rates.`,
+      passage:
+        "Quick update on the launch: the build is ready, design signed off this morning, and support has the new help articles. The only open item is the pricing page copy, which I’ll finish today. If nothing else comes up, we ship on Tuesday as planned.",
+      voiceLabel: "Speaking",
+      typingLabel: "Typing",
+      voiceWpm: typicalSpeakingWpm,
+      typingWpm: typicalTypingWpm,
+      perMinute: "words a minute",
+      replayNote: "Played at {speed}× speed.",
+      note: `Typical rates, not a measurement: conversational speech averages roughly ${typicalSpeakingWpm} words a minute, and typing on a keyboard roughly ${typicalTypingWpm}. Your own speeds will differ.`,
+      pause: "Pause the comparison",
+      play: "Play the comparison",
+      replay: "Run the comparison again",
+    },
+    free: {
+      title: "Free and unlimited, with any account.",
+      text: "Voice typing is part of every account, subscribed or not. It doesn’t use your trial meetings or your monthly hours, and there’s no word limit.",
+      points: ["No weekly word cap", "Keeps working after the trial", "No subscription needed"],
+    },
+    useCasesTone: "Everywhere",
+    useCasesTitle: "Wherever the cursor blinks.",
+    useCases: [
+      {
+        kind: "email",
+        label: "Email",
+        title: "Clear the inbox out loud",
+        text: "Reply in full sentences instead of three-word answers. Click into the reply, hold the shortcut and talk it through.",
+        window: "New message",
+        context: ["Jonas Lindqvist", "Contract draft"],
+        dictated: "Hi Jonas, I read the draft over lunch. Two points: the notice period should be sixty days, and section four needs the new billing address. Otherwise it’s good to sign.",
+      },
+      {
+        kind: "chat",
+        label: "Team chat",
+        title: "Answer the thread before it moves on",
+        text: "A thoughtful reply takes about as long as a thumbs-up. Your words land in the message box, ready to send.",
+        window: "# product-launch",
+        context: ["Maya", "Can someone sum up where we are with the beta invites?"],
+        dictated: "We sent 400 invites yesterday and 130 people have signed up. Both bug reports so far are fixed in today’s build.",
+      },
+      {
+        kind: "prompt",
+        label: "AI chat",
+        title: "Give the assistant the whole picture",
+        text: "Spoken prompts come out longer and more specific, and specific prompts usually get better answers. Talk through the context instead of trimming it.",
+        window: "New chat",
+        context: ["What can I help with?"],
+        dictated: "I’m preparing a ten-minute talk for new customers. Draft an outline with five sections, keep the tone friendly, and suggest one question to open with.",
+      },
+      {
+        kind: "doc",
+        label: "Docs and notes",
+        title: "Get the first draft out of your head",
+        text: "Speaking is the fastest way past a blank page. Dictate the draft, then tidy it with the keyboard.",
+        window: "Retro notes",
+        context: ["Sprint 14 retrospective"],
+        dictated: "What went well: the new review rota halved our waiting time. What to change: we keep starting stories without acceptance criteria, so let’s add them at planning.",
+      },
+    ],
+    howTone: "How it works",
+    howTitle: "Hold to talk, or tap and talk.",
+    modes: [
+      { keys: "Hold ⌃⌥D", title: "Hold to talk", text: "It listens while you hold the shortcut and types as soon as you let go. Best for a quick sentence." },
+      { keys: "Tap ⌃⌥D", title: "Tap for hands-free", text: "Tap once and keep talking with your hands free. Tap again, or press Esc, to type it. Best for longer replies." },
+    ],
+    details: [
+      { icon: "waveform", title: "See your words as you speak", text: "On macOS 26 or later the listening bar shows the text while you talk, so you know it’s keeping up." },
+      { icon: "check", title: "Punctuation included", text: "Full stops, commas and question marks are added for you. What you say is what gets typed: no rewriting." },
+      { icon: "clock", title: "Up to five minutes at a time", text: "Long enough for a detailed email. When you stop, the whole passage is typed in one go." },
+      { icon: "grid", title: "Pick your own shortcut", text: "Prefer another key combination? Change it in Settings › Voice typing, or switch voice typing off there." },
+      { icon: "copy", title: "Typed by paste", text: "The text goes in with ⌘V, which needs macOS’s Accessibility permission. Without it, the text is copied and you paste it yourself." },
+      { icon: "lock", title: "Never into password fields", text: "If a password field has focus, nothing is typed and nothing is copied." },
+    ],
+    privacyTone: "Privacy",
+    privacyTitle: "What you say stays on your Mac.",
+    privacyLead: "Voice typing hears everything you dictate: client emails, personal messages, notes about people. So it works without a server.",
+    privacyPoints: [
+      { icon: "laptop", title: "Transcribed on your Mac", text: "The audio is turned into text on your Mac. Neither the audio nor the text is sent to us or to anyone else." },
+      { icon: "disk", title: "Nothing is kept", text: "No recording and no history of what you dictated is saved. Voice typing doesn’t start a meeting either." },
+      { icon: "copy", title: "Your clipboard comes back", text: "After pasting, whatever you had copied before is put back, and the dictated text is marked so clipboard managers skip it." },
+      { icon: "shield", title: "Only what you dictate", text: "The Accessibility permission is used only to paste. The app doesn’t read your keystrokes, your screen or other apps." },
+    ],
+    privacyLink: "How voice typing handles data",
+    languagesTitle: "Dictate in your meeting language",
+    languagesText:
+      "Voice typing uses the main meeting language you set in Settings › General. On macOS 26 or later it uses Apple’s on-device dictation, which covers the languages Apple offers for dictation on your Mac; on macOS 15 to 25 it uses an on-device speech model that downloads once (about 630 MB).",
+    languagesLink: "See all languages",
+    faqTitle: "Questions",
+    faq: [
+      {
+        question: "Is voice typing really free?",
+        answer: `Yes. It works with any ${productName} account once you’re signed in, with no word limit, and it doesn’t count toward your trial meetings or monthly hours. It keeps working if you never subscribe.`,
+      },
+      {
+        question: "Which apps does it work in?",
+        answer: "Any app where you can paste text: Mail, Slack, Messages, Notes, browsers, document and code editors, and AI chat apps. The text is typed where your cursor is. It won’t type into password fields.",
+      },
+      {
+        question: "Does my voice leave my Mac?",
+        answer: "No. The audio is transcribed on your Mac, and neither the audio nor the text is sent to us or to any provider. Nothing is saved afterwards.",
+      },
+      {
+        question: "Does it clean up what I say?",
+        answer: "It adds punctuation and types what you said, without rewriting it. There’s no AI rewrite step, which is also why nothing has to leave your Mac.",
+      },
+      {
+        question: "Which languages can I dictate in?",
+        answer:
+          "Your main meeting language, set in Settings › General. On macOS 26 or later, voice typing supports the languages Apple’s on-device dictation offers on your Mac; on macOS 15 to 25 it uses an on-device speech model, downloaded once (about 630 MB).",
+      },
+      {
+        question: "Can I change the shortcut?",
+        answer: "Yes. The default is ⌃⌥D (Control-Option-D). You can record another shortcut in Settings › Voice typing, then hold it to talk or tap it for hands-free.",
+      },
+      {
+        question: "Can I use it during a meeting?",
+        answer: `Not while ${productName} is recording a meeting, because the meeting is using the microphone. It’s available again as soon as the recording ends.`,
+      },
+      {
+        question: "Is voice typing on iPhone?",
+        answer: "Not yet. Voice typing is part of the Mac app, which runs on Macs with Apple silicon and macOS 15 or later.",
+      },
+    ],
+    ctaTitle: "Your next reply is one sentence away.",
+    ctaText: `Download ${productName} for Mac, sign in, and hold ⌃⌥D wherever you’d type.`,
   },
   notFound: {
     meta: { title: `Page not found — ${productName}`, description: "The address may be mistyped, or the page has moved." },

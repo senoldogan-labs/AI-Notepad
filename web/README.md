@@ -25,6 +25,7 @@ yalnızca toplu sayfa görüntüleme, yönlendiren site, ülke ve cihaz türü s
 | `/download` | İndirme ve kurulum |
 | `/compare`, `/vs/granola`, `/vs/otter`, `/vs/fireflies`, `/vs/poffle` | Karşılaştırma (rakip değerleri yalnızca kendi fiyat sayfalarından, ayrı fiyat sayfası olmayan Poffle için ana sayfasından ve blogundan; `copy.ts` `compare`; JSON-LD gezinti izi) |
 | `/languages` | Diller: konuşulan ve not/çeviri dilleri (listeler `src/lib/languages.ts`, uygulamanın `MeetingLanguage`/`ShareLanguage` listeleriyle aynı), karışık dilli toplantılar, SSS (JSON-LD) |
+| `/voice-typing` | Sesle yazma: canlı gösterim (HTML/CSS), tipik konuşma/yazma hızı karşılaştırması (ölçüm değil), kullanım örnekleri, nasıl çalışır, gizlilik, SSS (JSON-LD); her bilgi uygulamanın kodundan (`copy.ts` `voiceTyping` açıklaması) |
 | `/integrations` | Entegrasyonlar, webhook JSON örneği, MCP, takvim, yerleşik olmayanlar, SSS (JSON-LD) |
 | `/llms.txt`, `/llms-full.txt` | Yapay zekâ asistanları için ürün belgesi (llmstxt.org): sayfaların metinlerinden, dil listelerinden ve veri tablosundan derlemede üretilir (`src/lib/llms.ts`); elle ürün gerçeği yazılmaz |
 | `/blog`, `/blog/<kısa ad>`, `/blog/rss.xml` | Blog: yazılar `src/content/blog/*.md` (içerik koleksiyonu, `src/content.config.ts`); taslaklar ve tarihi derleme gününden sonra olan yazılar yayımlanmaz (aşağıda "Haftalık blog") |
@@ -71,7 +72,7 @@ betikteki örnek verilerle karşılanır (yalnızca görünüm denetimi; sunucu 
 Yalnızca kaynak değişince elle çalıştırılanlar (çıktıları repodadır): `node scripts/make-iphone-shots.ts home=<çekim.png>
 live=<çekim.png> ask=<çekim.png>` (iPhone ekranlarını telefon çerçevesine koyar → `src/assets/screenshots/iphone-<ad>.webp`;
 çekimler App Store çekim hattının ham görüntüleridir, `.build/appstore-screenshots/raw/`), `scripts/subset-font.sh` (yazı tipi),
-`node scripts/make-grain.ts <chrome>` (film greni `public/grain.webp` ve `.png`, `scripts/grain.svg`'den), `node scripts/make-og.ts <site> <chrome>`
+`node scripts/make-flipbook.ts` (alt bilgideki kaydırmayla oynayan göl sahnesi: 36 WebP kare → `src/assets/flipbook/`, toplam 600 KB bütçesi aşılırsa hata; `src/client/flipbook.ts` kareleri sayfa yüklendikten ve alt bilgi yaklaşınca indirir, hareket azaltılmışsa tek kare kalır), `node scripts/make-grain.ts <chrome>` (film greni `public/grain.webp` ve `.png`, `scripts/grain.svg`'den), `node scripts/make-og.ts <site> <chrome>`
 (paylaşım kartı `public/og.png`, site sunulurken; ürün adını `productName`'den alır).
 
 **Paylaşım görselleri.** Chrome'un 1200×630 ekran görüntüsü gren yüzünden ~1,1 MB'tır; bazı önizleyiciler (ör. WhatsApp)

@@ -1,0 +1,63 @@
+---
+// The footer's flip-book: a wide band at the top of every page's footer where a lake goes from late afternoon to a
+// night with northern lights as the visitor scrolls (frames drawn by scripts/make-flipbook.ts, src/assets/flipbook/).
+// Decorative and hidden from screen readers. The band has a fixed aspect ratio, so nothing shifts when it fills.
+// Without the script, with reduced motion, or until the frames arrive, one lazily loaded still frame shows (the dusk
+// frame). src/client/flipbook.ts loads the other frames only when the footer nears the screen and after the page has
+// loaded, and draws them to the canvas on scroll, only while the band is on screen.
+const frameUrls: readonly string[] = Object.entries(
+  import.meta.glob<string>("../assets/flipbook/frame-*.webp", { eager: true, query: "?url", import: "default" }),
+)
+  .sort(([a], [b]) => a.localeCompare(b))
+  .map(([, url]) => url);
+/** The still frame: the sun just set, the sky still warm (about 55 % through the evening). */
+const stillIndex: number = Math.round((frameUrls.length - 1) * 0.55);
+const stillUrl: string = frameUrls[stillIndex] ?? "";
+if (stillUrl === "") {
+  throw new Error("FooterFlipbook: no frames in src/assets/flipbook (run node scripts/make-flipbook.ts)");
+}
+---
+
+<div class="page flipbook" id="flipbook" aria-hidden="true" data-frames={frameUrls.join(" ")} data-still={String(stillIndex)}>
+  <img class="flipbook__still" src={stillUrl} alt="" width="1600" height="640" loading="lazy" decoding="async" fetchpriority="low" />
+  <canvas class="flipbook__canvas" id="flipbook-canvas" width="1600" height="640"></canvas>
+</div>
+
+<style>
+  /* Wide on desktop, taller on phones (the scene is cropped from its centre, see flipbook.ts `coverRect`). */
+  .flipbook {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 5 / 2;
+    margin-bottom: clamp(48px, 6vw, 72px);
+    border-radius: var(--radius-panel);
+    background: #b493b8;
+  }
+
+  .flipbook__still,
+  .flipbook__canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .flipbook__still {
+    object-fit: cover;
+  }
+
+  /* The canvas shows only once it has drawn a frame (flipbook.ts sets `data-ready`). */
+  .flipbook__canvas {
+    opacity: 0;
+  }
+
+  .flipbook[data-ready] .flipbook__canvas {
+    opacity: 1;
+  }
+
+  @media (max-width: 640px) {
+    .flipbook {
+      aspect-ratio: 4 / 3;
+    }
+  }
+</style>

@@ -107,6 +107,7 @@ export function llmsTxt(input: LlmsInput): string {
       linkLine("Download", url("download"), copy.download.meta.description),
       linkLine("Languages", url("languages"), copy.languages.meta.description),
       linkLine("Integrations", url("integrations"), copy.integrations.meta.description),
+      linkLine("Voice typing", url("voiceTyping"), copy.voiceTyping.meta.description),
       linkLine("MCP server", url("mcp"), copy.mcp.meta.description),
     ].join("\n"),
     [
@@ -198,6 +199,16 @@ export function llmsFullTxt(input: LlmsInput): string {
       `### ${copy.integrations.notBuiltInTitle}\n\n${copy.integrations.notBuiltIn.map((item: string): string => `- ${item}`).join("\n")}`,
     ].join("\n\n"),
     [
+      "## Voice typing (Mac)",
+      `Source: ${url("voiceTyping")}`,
+      copy.voiceTyping.lead,
+      `${copy.voiceTyping.free.title} ${copy.voiceTyping.free.text}`,
+      copy.voiceTyping.modes.map((mode: TitledText): string => `- ${mode.title}: ${mode.text}`).join("\n"),
+      copy.voiceTyping.details.map((detail: IconText): string => `- ${detail.title}: ${detail.text}`).join("\n"),
+      `### ${copy.voiceTyping.privacyTitle}\n\n${copy.voiceTyping.privacyPoints.map((point: IconText): string => `- ${point.title}: ${point.text}`).join("\n")}`,
+      `### ${copy.voiceTyping.languagesTitle}\n\n${copy.voiceTyping.languagesText}`,
+    ].join("\n\n"),
+    [
       "## MCP server",
       `Source: ${url("mcp")}`,
       copy.mcp.lead,
@@ -233,7 +244,7 @@ export function llmsFullTxt(input: LlmsInput): string {
       }),
       copy.compare.trademarks,
     ].join("\n\n"),
-    ["## Questions", faqMarkdown([...copy.home.faq, ...copy.pricing.faq, ...copy.languages.faq, ...copy.integrations.faq])].join("\n\n"),
+    ["## Questions", faqMarkdown([...copy.home.faq, ...copy.pricing.faq, ...copy.languages.faq, ...copy.integrations.faq, ...copy.voiceTyping.faq])].join("\n\n"),
     [
       "## Company",
       `${input.operator.name}, ${input.operator.legalForm}, business ID ${input.operator.businessId}, ${input.operator.address}. Contact: ${input.operator.email} or ${url("contact")}.`,

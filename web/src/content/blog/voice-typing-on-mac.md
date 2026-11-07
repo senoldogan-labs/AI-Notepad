@@ -86,7 +86,7 @@ It's less useful in open-plan offices, for code, and for anything where exact fo
 
 Gistsmith is a meeting notes app for Mac, but it also does voice typing in any app. Hold **⌃⌥D** (Control-Option-D), speak, and let go: your words are typed wherever the cursor is, in Mail, Slack, Notes or the browser.
 
-It's transcribed on your Mac, and nothing is sent anywhere. It's free with any account, and stays free after the meeting-notes trial ends, so you don't have to subscribe to use it.
+It's transcribed on your Mac, and nothing is sent anywhere. It's free with any account, and stays free after the meeting-notes trial ends, so you don't have to subscribe to use it. The [voice typing page](/voice-typing) shows how it works.
 
 If you also want meeting notes, the rest of the app is there: a live transcript of your calls with no bot joining, and a note with your tasks first when the meeting ends. That part is free for 3 meetings or 7 days, then $5.99 a month or $49 a year ([pricing](/pricing)).
 

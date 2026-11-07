@@ -1,0 +1,509 @@
+---
+// The voice typing page's hero demo, drawn in HTML and CSS over a photograph: an email reply is open with the cursor
+// after the greeting; the shortcut is held (keycap chip), the listening bar rises from the bottom with a moving
+// waveform and shows the words as they are spoken (as the app's pill does on macOS 26 or later), the shortcut is let go,
+// the bar disappears and the sentence lands at the cursor in one go (the app pastes the whole text). It loops three
+// times (10 s each) and then rests on the finished email (WCAG 2.2.2); the corner button pauses, resumes or replays it
+// (src/client/voice-typing.ts; hidden without the script). Only opacity and transforms animate; the photograph never
+// moves. Off screen or in a hidden tab the animation pauses. With reduced motion nothing animates and the finished
+// email shows.
+import Icon from "./Icon.astro";
+import type { VoiceTypingDemoCopy } from "../copy";
+import { coverWaveHeights } from "../lib/film";
+
+interface Props {
+  readonly demo: VoiceTypingDemoCopy;
+}
+const { demo } = Astro.props;
+
+/**
+ * What the listening bar shows as the words come: the text so far after each of four steps. The steps sit on top of
+ * each other and take turns (classes, no inline styles: CSP).
+ */
+const partials: readonly string[] = ((): readonly string[] => {
+  const words: readonly string[] = demo.dictated.split(" ");
+  const size: number = Math.ceil(words.length / 4);
+  return [1, 2, 3, 4].map((step: number): string => words.slice(0, step * size).join(" "));
+})();
+/** Waveform bars: height in nine steps, tempo in five groups (as in HeroDemo). */
+const bars: readonly { readonly height: number; readonly tempo: number }[] = coverWaveHeights(demo.dictated, 15).map((value: number, index: number) => ({
+  height: Math.min(9, Math.max(2, Math.round(value * 9))),
+  tempo: index % 5,
+}));
+---
+
+<div class="vt-demo-frame">
+  <div class="vt-demo" id="vt-demo" role="img" aria-label={demo.label}>
+    <div class="vt-window" aria-hidden="true">
+      <div class="vt-window__bar">
+        <span class="vt-dots"><span></span><span></span><span></span></span>
+        <span class="vt-window__title">{demo.windowTitle}</span>
+        <span class="vt-send"><Icon name="arrow-right" size={14} class="" /></span>
+      </div>
+      <dl class="vt-fields">
+        <div><dt>{demo.toLabel}</dt><dd><span class="vt-recipient">{demo.to}</span></dd></div>
+        <div><dt>{demo.subjectLabel}</dt><dd>{demo.subject}</dd></div>
+      </dl>
+      <div class="vt-body">
+        <p>{demo.greeting}</p>
+        <p class="vt-body__line">
+          <span class="vt-slot vt-slot--before"><span class="vt-caret"></span></span><span class="vt-typed">{demo.dictated}</span><span class="vt-slot vt-slot--after"><span class="vt-caret"></span></span>
+        </p>
+      </div>
+    </div>
+
+    <span class="vt-key" aria-hidden="true"><kbd>⌃</kbd><kbd>⌥</kbd><kbd>D</kbd></span>
+
+    <div class="vt-pill" aria-hidden="true">
+      <span class="vt-pill__wave">
+        {bars.map((bar) => <span class:list={["vt-bar", `vt-bar--h${bar.height}`, `vt-bar--t${bar.tempo}`]} />)}
+      </span>
+      <span class="vt-pill__text">
+        <span class="vt-pill__label">{demo.listening}</span>
+        <span class="vt-pill__words">
+          {partials.map((partial: string, index: number) => (
+            <span class:list={["vt-phrase", `vt-phrase--${index + 1}`]}>
+              <span>{partial}</span>
+            </span>
+          ))}
+        </span>
+      </span>
+    </div>
+  </div>
+  <button
+    id="vt-demo-toggle"
+    class="vt-toggle"
+    type="button"
+    hidden
+    aria-controls="vt-demo"
+    aria-label={demo.pause}
+    title={demo.pause}
+    data-label-pause={demo.pause}
+    data-label-play={demo.play}
+    data-label-replay={demo.replay}
+  >
+    <Icon name="pause" size={16} class="vt-toggle__pause" />
+    <Icon name="play" size={15} class="vt-toggle__play" />
+  </button>
+</div>
+
+<style>
+  .vt-demo-frame {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* The window and the bar are light in both themes, like everything placed on a photograph. */
+  .vt-demo {
+    --loop: 10s;
+    /* Three loops: two full ones, the third up to the finished email (75 %), where it rests (fill mode). */
+    --loops: 2.75;
+    position: relative;
+    display: grid;
+    justify-items: center;
+    padding: clamp(28px, 6vw, 72px) clamp(14px, 5vw, 64px) clamp(96px, 12vw, 132px);
+    color: #0a0a0a;
+  }
+
+  .vt-window {
+    width: min(640px, 100%);
+    overflow: hidden;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: var(--shadow-window);
+    font-size: 0.9375rem;
+  }
+
+  .vt-window__bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-bottom: 1px solid #ecebe8;
+    background: #f7f6f3;
+  }
+
+  .vt-dots {
+    display: inline-flex;
+    gap: 6px;
+  }
+
+  .vt-dots span {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: #ff5f57;
+  }
+
+  .vt-dots span:nth-child(2) {
+    background: #febc2e;
+  }
+
+  .vt-dots span:nth-child(3) {
+    background: #28c840;
+  }
+
+  .vt-window__title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #3d3d3d;
+  }
+
+  .vt-send {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #0a0a0a;
+    color: #ffffff;
+    transform: rotate(-45deg);
+  }
+
+  .vt-fields {
+    margin: 0;
+    padding: 0 18px;
+  }
+
+  .vt-fields div {
+    display: flex;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid #ecebe8;
+  }
+
+  .vt-fields dt {
+    color: #6b6b6b;
+    min-width: 4.5em;
+  }
+
+  .vt-fields dd {
+    margin: 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .vt-recipient {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #eef1f8;
+    color: #22306b;
+  }
+
+  .vt-body {
+    display: grid;
+    gap: 12px;
+    min-height: 9.5em;
+    padding: 18px 18px 22px;
+    line-height: 1.55;
+  }
+
+  .vt-body p {
+    margin: 0;
+  }
+
+  /* The dictated sentence: visible at rest (finished state); the animation hides it until the paste. */
+  .vt-typed {
+    border-radius: 3px;
+  }
+
+  /* The cursor waits at the start of the line until the paste, then sits after the sentence (at rest: after). */
+  .vt-slot--before {
+    opacity: 0;
+  }
+
+  .vt-caret {
+    display: inline-block;
+    width: 2px;
+    height: 1.15em;
+    margin-left: 2px;
+    vertical-align: -0.2em;
+    background: #2f5f8a;
+  }
+
+  /* The held shortcut: a keycap chip at the bottom left of the photograph. */
+  .vt-key {
+    position: absolute;
+    left: clamp(14px, 4vw, 40px);
+    bottom: clamp(22px, 3.4vw, 36px);
+    display: inline-flex;
+    gap: 5px;
+    padding: 7px;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: var(--shadow-chip);
+    opacity: 0;
+  }
+
+  .vt-key kbd {
+    display: grid;
+    place-items: center;
+    min-width: 30px;
+    height: 30px;
+    padding: 0 7px;
+    border: 1px solid #dedcd7;
+    border-bottom-width: 3px;
+    border-radius: 8px;
+    background: #faf9f6;
+    font: 600 0.875rem/1 var(--font);
+    color: #1a1a1a;
+  }
+
+  /* The listening bar, after the app's pill: dark, centred at the bottom, waveform and the words so far. */
+  .vt-pill {
+    position: absolute;
+    left: 50%;
+    bottom: clamp(20px, 3vw, 34px);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: min(420px, calc(100% - 28px));
+    padding: 10px 18px 10px 14px;
+    border-radius: 999px;
+    background: #121212;
+    color: #f2f2f2;
+    box-shadow: 0 12px 30px -8px rgb(0 0 0 / 0.5);
+    transform: translateX(-50%);
+    opacity: 0;
+  }
+
+  .vt-pill__wave {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 26px;
+  }
+
+  .vt-bar {
+    width: 3px;
+    border-radius: 2px;
+    background: #f0ae92;
+    transform-origin: center;
+  }
+
+  .vt-bar--h2 { height: 22%; }
+  .vt-bar--h3 { height: 33%; }
+  .vt-bar--h4 { height: 44%; }
+  .vt-bar--h5 { height: 55%; }
+  .vt-bar--h6 { height: 66%; }
+  .vt-bar--h7 { height: 77%; }
+  .vt-bar--h8 { height: 88%; }
+  .vt-bar--h9 { height: 100%; }
+
+  .vt-pill__text {
+    display: grid;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .vt-pill__label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #a6a6a6;
+  }
+
+  .vt-pill__words {
+    display: grid;
+    min-height: 1.4em;
+    font-size: 0.875rem;
+  }
+
+  /* The latest words stay in view: each step's line overflows to the left. */
+  .vt-phrase {
+    grid-area: 1 / 1;
+    display: flex;
+    justify-content: flex-end;
+    min-width: 0;
+    overflow: hidden;
+    white-space: pre;
+    opacity: 0;
+  }
+
+  .vt-phrase > span {
+    flex: none;
+  }
+
+  /* ---------- Motion ----------
+     Loop 10 s: 8 % shortcut held, 10 % bar rises, phrases at 14, 25, 36 and 47 %, 56 % shortcut released and the bar
+     sinks, 58 % the sentence lands (a short highlight), rest until 92 %, 92–98 % the sentence fades and it starts over. */
+  @media (prefers-reduced-motion: no-preference) {
+    .vt-demo[data-paused] *,
+    .vt-demo[data-user-paused] * {
+      animation-play-state: paused !important;
+    }
+
+    .vt-demo[data-restart] * {
+      animation: none !important;
+    }
+
+    .vt-demo[data-finished] .vt-bar {
+      animation: none;
+    }
+
+    .vt-key {
+      animation: vt-key var(--loop) ease var(--loops) both;
+    }
+
+    .vt-pill {
+      animation: vt-pill var(--loop) ease var(--loops) both;
+    }
+
+    .vt-phrase--1 { animation: vt-phrase-1 var(--loop) ease var(--loops) both; }
+    .vt-phrase--2 { animation: vt-phrase-2 var(--loop) ease var(--loops) both; }
+    .vt-phrase--3 { animation: vt-phrase-3 var(--loop) ease var(--loops) both; }
+    .vt-phrase--4 { animation: vt-phrase-4 var(--loop) ease var(--loops) both; }
+
+    .vt-typed {
+      animation: vt-typed var(--loop) ease var(--loops) both;
+    }
+
+    .vt-slot--before {
+      animation: vt-slot-before var(--loop) steps(1) var(--loops) both;
+    }
+
+    .vt-slot--after {
+      animation: vt-slot-after var(--loop) steps(1) var(--loops) both;
+    }
+
+    .vt-caret {
+      animation: vt-blink 1.1s steps(1) infinite;
+    }
+
+    .vt-demo[data-finished] .vt-caret {
+      animation: none;
+    }
+
+    .vt-bar {
+      animation: vt-wave 0.9s ease-in-out infinite alternate;
+    }
+
+    .vt-bar--t1 { animation-duration: 0.7s; animation-delay: -0.2s; }
+    .vt-bar--t2 { animation-duration: 1.1s; animation-delay: -0.5s; }
+    .vt-bar--t3 { animation-duration: 0.8s; animation-delay: -0.35s; }
+    .vt-bar--t4 { animation-duration: 1s; animation-delay: -0.7s; }
+  }
+
+  @keyframes vt-key {
+    0%, 6% { opacity: 0; transform: translateY(8px); }
+    9%, 55% { opacity: 1; transform: none; }
+    58%, 100% { opacity: 0; transform: translateY(8px); }
+  }
+
+  @keyframes vt-pill {
+    0%, 9% { opacity: 0; transform: translateX(-50%) translateY(14px) scale(0.96); }
+    12%, 55% { opacity: 1; transform: translateX(-50%); }
+    58%, 100% { opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.98); }
+  }
+
+  @keyframes vt-phrase-1 { 0%, 13% { opacity: 0; } 14.5%, 25% { opacity: 1; } 25.5%, 100% { opacity: 0; } }
+  @keyframes vt-phrase-2 { 0%, 25% { opacity: 0; } 25.5%, 36% { opacity: 1; } 36.5%, 100% { opacity: 0; } }
+  @keyframes vt-phrase-3 { 0%, 36% { opacity: 0; } 36.5%, 47% { opacity: 1; } 47.5%, 100% { opacity: 0; } }
+  @keyframes vt-phrase-4 { 0%, 47% { opacity: 0; } 47.5%, 56% { opacity: 1; } 58%, 100% { opacity: 0; } }
+
+  @keyframes vt-typed {
+    0%, 57% { opacity: 0; background-color: rgb(47 95 138 / 0.18); }
+    59% { opacity: 1; background-color: rgb(47 95 138 / 0.18); }
+    68%, 91% { opacity: 1; background-color: transparent; }
+    97%, 100% { opacity: 0; background-color: transparent; }
+  }
+
+  @keyframes vt-slot-before {
+    0% { opacity: 1; }
+    58% { opacity: 0; }
+    97% { opacity: 1; }
+  }
+
+  @keyframes vt-slot-after {
+    0% { opacity: 0; }
+    58% { opacity: 1; }
+    97% { opacity: 0; }
+  }
+
+  @keyframes vt-blink {
+    0% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  @keyframes vt-wave {
+    from { transform: scaleY(0.35); }
+    to { transform: scaleY(1); }
+  }
+
+  /* Pause / play / replay: a small round button in the corner (no blur). */
+  .vt-toggle {
+    position: absolute;
+    right: 14px;
+    top: 14px;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid rgb(10 10 10 / 0.1);
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.8);
+    color: #0a0a0a;
+    cursor: pointer;
+    transition: background-color 160ms ease;
+  }
+
+  .vt-toggle[hidden] {
+    display: none;
+  }
+
+  .vt-toggle:hover,
+  .vt-toggle:focus-visible {
+    background: #ffffff;
+  }
+
+  .vt-toggle :global(.icon) {
+    grid-area: 1 / 1;
+  }
+
+  .vt-toggle :global(.vt-toggle__play),
+  .vt-toggle[data-state="paused"] :global(.vt-toggle__pause),
+  .vt-toggle[data-state="finished"] :global(.vt-toggle__pause) {
+    display: none;
+  }
+
+  .vt-toggle[data-state="paused"] :global(.vt-toggle__play),
+  .vt-toggle[data-state="finished"] :global(.vt-toggle__play) {
+    display: block;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .vt-toggle {
+      display: none;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .vt-demo {
+      padding-top: 64px;
+    }
+
+    .vt-window {
+      font-size: 0.875rem;
+    }
+
+    .vt-fields div:nth-child(2) {
+      display: none;
+    }
+
+    .vt-key {
+      display: none;
+    }
+  }
+</style>

@@ -71,6 +71,7 @@ export const pageServices: Readonly<Record<PageKey, readonly ExternalService[]>>
   vsPoffle: ["webAnalytics"],
   languages: ["webAnalytics"],
   integrations: ["webAnalytics"],
+  voiceTyping: ["webAnalytics"],
   blog: ["webAnalytics"],
   mcp: ["webAnalytics"],
   signIn: ["webAnalytics", "appleSignIn"],

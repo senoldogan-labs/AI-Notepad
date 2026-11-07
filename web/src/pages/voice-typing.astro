@@ -1,0 +1,973 @@
+---
+// Voice typing page: hero (headline, lead, download button, the live demo over a lake photograph), the speed
+// comparison at typical speaking and typing rates (not a measurement; said on the page), the free-with-any-account
+// band, four places to use it (email, team chat, AI chat, docs) as generic windows on pastel covers, how it works (hold
+// or tap, details), privacy on the night band, languages, questions (JSON-LD `FAQPage` and breadcrumb) and the closing
+// card. Text comes from copy.ts `voiceTyping`, where the app code behind every claim is listed. Behaviour:
+// src/client/voice-typing.ts.
+import Base from "../layouts/Base.astro";
+import CtaBand from "../components/CtaBand.astro";
+import Faq from "../components/Faq.astro";
+import Film from "../components/Film.astro";
+import Icon from "../components/Icon.astro";
+import PhotoPanel from "../components/PhotoPanel.astro";
+import VoiceTypingDemo from "../components/VoiceTypingDemo.astro";
+import { macDownloadUrl } from "../config";
+import { copy, type IconText, type VoiceTypingCopy, type VoiceUseCaseCopy } from "../copy";
+import type { FilmLayout, FilmPalette } from "../lib/film";
+import { websiteCard } from "../lib/social";
+import { infoPageStructuredData, structuredDataJson } from "../lib/structured-data";
+import { pageUrl, routes } from "../routes";
+import { siteConfig } from "../site";
+
+const text: VoiceTypingCopy = copy.voiceTyping;
+const structuredData: string = structuredDataJson(
+  infoPageStructuredData(siteConfig, [{ name: copy.common.nav.voiceTyping, url: pageUrl("voiceTyping", siteConfig.siteOrigin) }], text.faq),
+);
+/** How much faster than real time the comparison plays. */
+const raceSpeed: number = 6;
+const passageWords: readonly string[] = text.speed.passage.split(/\s+/);
+/** The two lanes: rate and the seconds the passage takes at it. */
+const lanes: readonly { readonly id: string; readonly label: string; readonly wpm: number; readonly seconds: number }[] = [
+  { id: "voice", label: text.speed.voiceLabel, wpm: text.speed.voiceWpm, seconds: (passageWords.length / text.speed.voiceWpm) * 60 },
+  { id: "typing", label: text.speed.typingLabel, wpm: text.speed.typingWpm, seconds: (passageWords.length / text.speed.typingWpm) * 60 },
+];
+/** `m:ss`. Pure function. */
+function clock(seconds: number): string {
+  const whole: number = Math.floor(seconds);
+  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
+}
+/** The pastel cover behind each use-case window. */
+const covers: Readonly<Record<VoiceUseCaseCopy["kind"], { readonly palette: FilmPalette; readonly layout: FilmLayout }>> = {
+  email: { palette: "ocean", layout: "clouds-left" },
+  chat: { palette: "mint", layout: "clouds-right" },
+  prompt: { palette: "violet", layout: "streaks" },
+  doc: { palette: "sunset", layout: "clouds-left" },
+};
+---
+
+<Base page="voiceTyping" meta={text.meta} indexed={true} social={websiteCard}>
+  {/* Data block: Astro does not process or bundle it (`is:inline`), the browser does not run it; no CSP issue. */}
+  <script is:inline type="application/ld+json" set:html={structuredData} />
+
+  <section class="page vt-hero">
+    <div class="vt-hero__text">
+      <h1 class="display vt-hero__title">{text.title}</h1>
+      <p class="lead vt-hero__lead">{text.lead}</p>
+      <div class="vt-hero__actions">
+        <a class="button button--primary" href={macDownloadUrl(siteConfig, "voice-typing")} data-mac-download>
+          <Icon name="apple" size={16} class="button__apple" />
+          {copy.common.downloadCta}
+        </a>
+      </div>
+      <p class="vt-hero__assurance small">{[...text.assurances, copy.common.requirementsShort].join(" · ")}</p>
+    </div>
+    <PhotoPanel
+      photo="lake-pier"
+      focus="center"
+      widths={[480, 720, 960, 1280, 1680, 2400]}
+      sizes="(max-width: 640px) calc(100vw - 40px), min(1240px, 100vw - 80px)"
+      priority="lcp"
+      class="vt-hero__panel"
+    >
+      <VoiceTypingDemo demo={text.demo} />
+    </PhotoPanel>
+  </section>
+
+  {/* Speed: the same passage at typical speaking and typing rates. Without the script the finished state shows. */}
+  <section class="section page vt-speed" aria-labelledby="vt-speed-title">
+    <div class="section-head reveal">
+      <h2 class="title-l" id="vt-speed-title"><span class="tone">{text.speed.tone}.</span> {text.speed.title}</h2>
+      <p class="lead">{text.speed.lead}</p>
+    </div>
+    <div class="vt-race" id="vt-race" data-speed={String(raceSpeed)}>
+      {
+        lanes.map((lane) => (
+          <div class:list={["vt-lane", `vt-lane--${lane.id}`]} data-lane data-seconds={String(lane.seconds)}>
+            <div class="vt-lane__head">
+              <span class="vt-lane__label">
+                <Icon name={lane.id === "voice" ? "mic" : "grid"} size={16} class="" />
+                {lane.label}
+              </span>
+              <span class="vt-lane__rate small muted">
+                ~{lane.wpm} {text.speed.perMinute}
+              </span>
+              <span class="vt-lane__time tabular" data-time>
+                {clock(lane.seconds)}
+              </span>
+            </div>
+            <span class="vt-lane__track" aria-hidden="true">
+              <span class="vt-lane__fill" data-fill />
+            </span>
+            <p class="vt-lane__text">
+              {passageWords.map((word: string) => <span data-word>{word} </span>)}
+            </p>
+          </div>
+        ))
+      }
+      <div class="vt-race__foot">
+        <p class="small muted">
+          {text.speed.replayNote.replace("{speed}", String(raceSpeed))} {text.speed.note}
+        </p>
+        <button
+          id="vt-race-toggle"
+          class="button button--secondary button--small vt-race__toggle"
+          type="button"
+          hidden
+          aria-controls="vt-race"
+          data-label-pause={text.speed.pause}
+          data-label-play={text.speed.play}
+          data-label-replay={text.speed.replay}
+        >
+          <Icon name="pause" size={14} class="vt-race__pause" />
+          <Icon name="play" size={14} class="vt-race__play" />
+          <Icon name="refresh" size={14} class="vt-race__replay" />
+        </button>
+      </div>
+    </div>
+  </section>
+
+  {/* Free with any account. */}
+  <section class="page vt-free" aria-labelledby="vt-free-title">
+    <Film palette="rose" layout="streaks" class="vt-free__band">
+      <div class="vt-free__card">
+        <h2 class="title-l" id="vt-free-title">{text.free.title}</h2>
+        <p class="vt-free__text">{text.free.text}</p>
+        <ul class="vt-free__points">
+          {
+            text.free.points.map((point: string) => (
+              <li>
+                <Icon name="check" size={16} class="" />
+                {point}
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </Film>
+  </section>
+
+  {/* Where to use it: generic windows (no third-party chrome or logos) with dictated text at the cursor. */}
+  <section class="section page vt-uses" aria-labelledby="vt-uses-title">
+    <div class="section-head reveal">
+      <h2 class="title-l" id="vt-uses-title"><span class="tone">{text.useCasesTone}.</span> {text.useCasesTitle}</h2>
+    </div>
+    {
+      text.useCases.map((useCase: VoiceUseCaseCopy, index: number) => (
+        <article class:list={["vt-use", { "vt-use--flip": index % 2 === 1 }]}>
+          <div class="vt-use__text reveal">
+            <p class="vt-use__label small">{useCase.label}</p>
+            <h3 class="vt-use__title">{useCase.title}</h3>
+            <p class="muted">{useCase.text}</p>
+          </div>
+          <Film palette={covers[useCase.kind].palette} layout={covers[useCase.kind].layout} class="vt-use__cover">
+            <div class:list={["vt-mock", `vt-mock--${useCase.kind}`]} aria-hidden="true">
+              <div class="vt-mock__bar">
+                <span class="vt-mock__dots">
+                  <span />
+                  <span />
+                  <span />
+                </span>
+                <span class="vt-mock__title">{useCase.window}</span>
+              </div>
+              {useCase.kind === "email" && (
+                <div class="vt-mock__body">
+                  <p class="vt-mock__field">
+                    <span class="vt-mock__chip">{useCase.context[0]}</span>
+                  </p>
+                  <p class="vt-mock__field vt-mock__subject">{useCase.context[1]}</p>
+                  <p class="vt-mock__dictated">
+                    {useCase.dictated}
+                    <span class="vt-mock__caret" />
+                  </p>
+                </div>
+              )}
+              {useCase.kind === "chat" && (
+                <div class="vt-mock__body">
+                  <div class="vt-mock__message">
+                    <span class="vt-mock__avatar">{(useCase.context[0] ?? "").slice(0, 1)}</span>
+                    <p>
+                      <strong>{useCase.context[0]}</strong>
+                      <br />
+                      {useCase.context[1]}
+                    </p>
+                  </div>
+                  <p class="vt-mock__composer vt-mock__dictated">
+                    {useCase.dictated}
+                    <span class="vt-mock__caret" />
+                  </p>
+                </div>
+              )}
+              {useCase.kind === "prompt" && (
+                <div class="vt-mock__body vt-mock__body--prompt">
+                  <p class="vt-mock__ask">{useCase.context[0]}</p>
+                  <div class="vt-mock__prompt">
+                    <p class="vt-mock__dictated">
+                      {useCase.dictated}
+                      <span class="vt-mock__caret" />
+                    </p>
+                    <span class="vt-mock__go">
+                      <Icon name="arrow-right" size={14} class="" />
+                    </span>
+                  </div>
+                </div>
+              )}
+              {useCase.kind === "doc" && (
+                <div class="vt-mock__body vt-mock__body--doc">
+                  <p class="vt-mock__heading">{useCase.context[0]}</p>
+                  <p class="vt-mock__dictated">
+                    {useCase.dictated}
+                    <span class="vt-mock__caret" />
+                  </p>
+                  <span class="vt-mock__line" />
+                  <span class="vt-mock__line vt-mock__line--short" />
+                </div>
+              )}
+            </div>
+            <span class="vt-mock__pill" aria-hidden="true">
+              <span class="vt-mock__wave">
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
+              </span>
+              {text.demo.shortcut}
+            </span>
+          </Film>
+        </article>
+      ))
+    }
+  </section>
+
+  {/* How it works: the two ways to use the shortcut, then the details. */}
+  <section class="section page vt-how" aria-labelledby="vt-how-title">
+    <div class="section-head reveal">
+      <h2 class="title-l" id="vt-how-title"><span class="tone">{text.howTone}.</span> {text.howTitle}</h2>
+    </div>
+    <div class="vt-modes">
+      {
+        text.modes.map((mode, index: number) => (
+          <article class="card vt-mode reveal">
+            <p class="vt-mode__keys" aria-hidden="true">
+              <kbd>⌃</kbd>
+              <kbd>⌥</kbd>
+              <kbd class:list={[{ "vt-mode__held": index === 0 }]}>D</kbd>
+              <span class="vt-mode__gesture">{mode.keys}</span>
+            </p>
+            <h3 class="title-m">{mode.title}</h3>
+            <p class="muted">{mode.text}</p>
+          </article>
+        ))
+      }
+    </div>
+    <ul class="vt-details">
+      {
+        text.details.map((detail: IconText) => (
+          <li class="vt-detail reveal">
+            <span class="icon-chip icon-chip--small">
+              <Icon name={detail.icon} size={16} class="" />
+            </span>
+            <div>
+              <h3 class="vt-detail__title">{detail.title}</h3>
+              <p class="muted small">{detail.text}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  {/* Privacy on the night band (the same dark surface in both themes). */}
+  <section class="vt-night" aria-labelledby="vt-privacy-title">
+    <div class="page vt-night__inner">
+      <div class="vt-night__head">
+        <h2 class="title-l reveal" id="vt-privacy-title"><span class="vt-night__tone">{text.privacyTone}.</span> {text.privacyTitle}</h2>
+        <p class="lead vt-night__lead reveal">{text.privacyLead}</p>
+        <a class="text-link vt-night__link reveal" href={`${routes.privacy}#data-voice-typing`}>
+          {text.privacyLink} <Icon name="arrow-right" size={16} class="" />
+        </a>
+      </div>
+      <ul class="vt-trust">
+        {
+          text.privacyPoints.map((item: IconText) => (
+            <li class="vt-trust__item reveal">
+              <Icon name={item.icon} size={20} class="vt-trust__icon" />
+              <h3 class="vt-trust__title">{item.title}</h3>
+              <p>{item.text}</p>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  <section class="section page vt-langs" aria-labelledby="vt-langs-title">
+    <div class="card vt-langs__card reveal">
+      <span class="icon-chip">
+        <Icon name="globe" size={18} class="" />
+      </span>
+      <div class="vt-langs__text">
+        <h2 class="title-m" id="vt-langs-title">{text.languagesTitle}</h2>
+        <p class="muted">{text.languagesText}</p>
+      </div>
+      <a class="text-link" href={routes.languages}>
+        {text.languagesLink} <Icon name="arrow-right" size={16} class="" />
+      </a>
+    </div>
+  </section>
+
+  <section class="page vt-faq" id="faq" aria-labelledby="vt-faq-title">
+    <h2 class="title-l" id="vt-faq-title">{text.faqTitle}</h2>
+    <Faq items={text.faq} />
+  </section>
+
+  <CtaBand id="vt-cta-title" title={text.ctaTitle} text={text.ctaText} photo="sunset-archipelago" />
+</Base>
+
+<script>
+  import "../client/voice-typing";
+</script>
+
+<style>
+  /* ---------- Hero ---------- */
+  .vt-hero {
+    display: grid;
+    gap: clamp(32px, 5vw, 56px);
+    padding-top: clamp(48px, 8vw, 104px);
+  }
+
+  .vt-hero__text {
+    display: grid;
+    justify-items: center;
+    gap: 22px;
+    text-align: center;
+  }
+
+  .vt-hero__title {
+    max-width: 12ch;
+    text-wrap: balance;
+  }
+
+  .vt-hero__lead {
+    max-width: 40rem;
+    text-wrap: pretty;
+  }
+
+  .vt-hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .vt-hero__assurance {
+    color: var(--muted);
+  }
+
+  .vt-hero :global(.vt-hero__panel) {
+    display: grid;
+    place-items: center;
+    min-height: clamp(420px, 44vw, 560px);
+  }
+
+  /* ---------- Speed ---------- */
+  .vt-race {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .vt-lane {
+    display: grid;
+    align-content: start;
+    gap: 14px;
+    padding: clamp(20px, 3vw, 28px);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-m);
+    background: var(--card);
+  }
+
+  .vt-lane__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 12px;
+  }
+
+  .vt-lane__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+  }
+
+  .vt-lane__label :global(.icon) {
+    align-self: center;
+    color: var(--accent);
+  }
+
+  .vt-lane__time {
+    margin-left: auto;
+    font-family: var(--serif);
+    font-size: var(--step-3);
+    line-height: 1;
+  }
+
+  .vt-lane__track {
+    display: block;
+    height: 4px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--line);
+  }
+
+  .vt-lane__fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--ink);
+    transform-origin: left center;
+  }
+
+  .vt-lane--voice .vt-lane__fill {
+    background: var(--accent);
+  }
+
+  .vt-lane__text {
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  /* Words not written yet are ghosts (the script sets the class while the comparison runs). */
+  .vt-lane__text :global(.is-pending) {
+    color: color-mix(in srgb, var(--muted) 30%, transparent);
+  }
+
+  .vt-race__foot {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 24px;
+  }
+
+  .vt-race__foot p {
+    max-width: 52rem;
+  }
+
+  .vt-race__toggle {
+    width: 44px;
+    padding: 0;
+  }
+
+  .vt-race__toggle[hidden] {
+    display: none;
+  }
+
+  .vt-race__toggle :global(.vt-race__play),
+  .vt-race__toggle :global(.vt-race__replay),
+  .vt-race__toggle[data-state="paused"] :global(.vt-race__pause),
+  .vt-race__toggle[data-state="finished"] :global(.vt-race__pause) {
+    display: none;
+  }
+
+  .vt-race__toggle[data-state="paused"] :global(.vt-race__play),
+  .vt-race__toggle[data-state="finished"] :global(.vt-race__replay) {
+    display: block;
+  }
+
+  /* ---------- Free ---------- */
+  .vt-free :global(.vt-free__band) {
+    display: grid;
+    place-items: center;
+    padding: clamp(28px, 6vw, 80px) clamp(16px, 5vw, 64px);
+  }
+
+  .vt-free__card {
+    display: grid;
+    justify-items: center;
+    gap: 16px;
+    width: min(720px, 100%);
+    padding: clamp(28px, 5vw, 48px) clamp(20px, 5vw, 48px);
+    border-radius: var(--radius-m);
+    background: #ffffff;
+    color: #0a0a0a;
+    text-align: center;
+    box-shadow: 0 10px 30px rgb(90 58 42 / 0.14);
+  }
+
+  .vt-free__card h2 {
+    max-width: 18ch;
+    text-wrap: balance;
+  }
+
+  .vt-free__text {
+    max-width: 34rem;
+    color: #4f4f4f;
+  }
+
+  .vt-free__points {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 10px;
+    margin: 6px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .vt-free__points li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: #f4f1eb;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .vt-free__points :global(.icon) {
+    color: #b85a3c;
+  }
+
+  /* ---------- Use cases ---------- */
+  .vt-uses {
+    display: grid;
+    gap: clamp(48px, 7vw, 96px);
+  }
+
+  .vt-uses .section-head {
+    margin-bottom: 0;
+  }
+
+  .vt-use {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    align-items: center;
+    gap: clamp(28px, 5vw, 72px);
+  }
+
+  .vt-use--flip .vt-use__text {
+    order: 2;
+  }
+
+  .vt-use__text {
+    display: grid;
+    gap: 12px;
+    max-width: 30rem;
+  }
+
+  .vt-use__label {
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  .vt-use__title {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: var(--step-3);
+    letter-spacing: -0.015em;
+    line-height: 1.12;
+  }
+
+  .vt-use :global(.vt-use__cover) {
+    display: grid;
+    place-items: center;
+    min-height: clamp(300px, 32vw, 400px);
+    padding: clamp(24px, 4vw, 48px) clamp(16px, 4vw, 48px) clamp(56px, 6vw, 72px);
+  }
+
+  .vt-mock {
+    width: min(460px, 100%);
+    overflow: hidden;
+    border-radius: 12px;
+    background: #ffffff;
+    color: #0a0a0a;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 18px 40px -14px rgb(60 40 30 / 0.35);
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  .vt-mock__bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-bottom: 1px solid #ecebe8;
+    background: #f7f6f3;
+  }
+
+  .vt-mock__dots {
+    display: inline-flex;
+    gap: 5px;
+  }
+
+  .vt-mock__dots span {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #d9d6d0;
+  }
+
+  .vt-mock__title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #4a4a4a;
+  }
+
+  .vt-mock__body {
+    display: grid;
+    gap: 10px;
+    padding: 14px 16px 18px;
+  }
+
+  .vt-mock__body p {
+    margin: 0;
+  }
+
+  .vt-mock__field {
+    padding-bottom: 8px;
+    border-bottom: 1px solid #ecebe8;
+    color: #4a4a4a;
+  }
+
+  .vt-mock__subject {
+    font-weight: 600;
+    color: #0a0a0a;
+  }
+
+  .vt-mock__chip {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #eef1f8;
+    color: #22306b;
+  }
+
+  /* The dictated text, just typed: a faint wash and the cursor after it. */
+  .vt-mock__dictated {
+    border-radius: 6px;
+    background: rgb(47 95 138 / 0.07);
+    padding: 6px 8px;
+    margin-inline: -8px;
+  }
+
+  .vt-mock__caret {
+    display: inline-block;
+    width: 2px;
+    height: 1.1em;
+    margin-left: 2px;
+    vertical-align: -0.2em;
+    background: #2f5f8a;
+  }
+
+  .vt-mock__message {
+    display: flex;
+    gap: 10px;
+  }
+
+  .vt-mock__avatar {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: #cce3d4;
+    font-weight: 700;
+    color: #1f4a35;
+  }
+
+  .vt-mock__composer.vt-mock__dictated {
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid #dcdad5;
+    border-radius: 10px;
+    background: #ffffff;
+    box-shadow: inset 0 0 0 999px rgb(47 95 138 / 0.04);
+  }
+
+  .vt-mock__body--prompt {
+    padding-block: 22px;
+  }
+
+  .vt-mock__ask {
+    font-family: var(--serif);
+    font-size: 1.375rem;
+    text-align: center;
+    color: #2a2a2a;
+  }
+
+  .vt-mock__prompt {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid #dcdad5;
+    border-radius: 16px;
+  }
+
+  .vt-mock__prompt .vt-mock__dictated {
+    flex: 1;
+    margin: 0;
+    padding: 0;
+    background: none;
+  }
+
+  .vt-mock__go {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #0a0a0a;
+    color: #ffffff;
+    transform: rotate(-90deg);
+  }
+
+  .vt-mock__body--doc {
+    padding: 18px 22px 22px;
+  }
+
+  .vt-mock__heading {
+    font-family: var(--serif);
+    font-size: 1.5rem;
+    line-height: 1.15;
+  }
+
+  .vt-mock__line {
+    display: block;
+    height: 8px;
+    border-radius: 4px;
+    background: #efede8;
+  }
+
+  .vt-mock__line--short {
+    width: 62%;
+  }
+
+  /* The listening bar's little sibling: the shortcut and a still waveform under each window. */
+  .vt-mock__pill {
+    position: absolute;
+    left: 50%;
+    bottom: clamp(14px, 2vw, 22px);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 14px 7px 12px;
+    border-radius: 999px;
+    background: #121212;
+    color: #f2f2f2;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    transform: translateX(-50%);
+    box-shadow: 0 8px 20px -6px rgb(0 0 0 / 0.45);
+  }
+
+  .vt-mock__wave {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    height: 16px;
+  }
+
+  .vt-mock__wave span {
+    width: 3px;
+    height: 40%;
+    border-radius: 2px;
+    background: #f0ae92;
+  }
+
+  .vt-mock__wave span:nth-child(2),
+  .vt-mock__wave span:nth-child(4) {
+    height: 75%;
+  }
+
+  .vt-mock__wave span:nth-child(3) {
+    height: 100%;
+  }
+
+  /* ---------- How it works ---------- */
+  .vt-modes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .vt-mode {
+    display: grid;
+    gap: 12px;
+    align-content: start;
+  }
+
+  .vt-mode__keys {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 6px;
+  }
+
+  .vt-mode__keys kbd {
+    display: grid;
+    place-items: center;
+    min-width: 40px;
+    height: 40px;
+    padding: 0 10px;
+    border: 1px solid var(--line);
+    border-bottom-width: 3px;
+    border-radius: 10px;
+    background: var(--bg);
+    font: 600 1rem/1 var(--font);
+  }
+
+  .vt-mode__keys .vt-mode__held {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  }
+
+  .vt-mode__gesture {
+    margin-left: 8px;
+    font-size: 0.8125rem;
+    color: var(--muted);
+  }
+
+  .vt-details {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 28px 32px;
+    margin: clamp(32px, 4vw, 48px) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .vt-detail {
+    display: flex;
+    gap: 14px;
+    align-items: start;
+  }
+
+  .vt-detail__title {
+    margin: 4px 0 4px;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  /* ---------- Privacy (night band) ---------- */
+  .vt-night {
+    padding-block: clamp(80px, 10vw, 136px);
+    background: var(--night);
+    color: var(--on-night);
+  }
+
+  .vt-night__inner {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: clamp(40px, 6vw, 96px);
+    align-items: start;
+  }
+
+  .vt-night__head {
+    display: grid;
+    gap: 22px;
+    justify-items: start;
+  }
+
+  .vt-night__tone,
+  .vt-night__lead {
+    color: var(--on-night-muted);
+  }
+
+  .vt-night__link {
+    color: var(--on-night);
+  }
+
+  .vt-night :focus-visible {
+    outline-color: #8fb5d8;
+  }
+
+  .vt-trust {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 clamp(24px, 4vw, 48px);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .vt-trust__item {
+    display: grid;
+    gap: 8px;
+    align-content: start;
+    padding-block: 22px 26px;
+    border-top: 1px solid var(--night-line);
+  }
+
+  .vt-trust__item :global(.vt-trust__icon) {
+    color: #f0ae92;
+  }
+
+  .vt-trust__title {
+    margin: 4px 0 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .vt-trust__item p {
+    margin: 0;
+    color: var(--on-night-muted);
+  }
+
+  /* ---------- Languages, FAQ ---------- */
+  .vt-langs {
+    padding-bottom: 0;
+  }
+
+  .vt-langs__card {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px 24px;
+  }
+
+  .vt-langs__text {
+    display: grid;
+    gap: 6px;
+    flex: 1 1 28rem;
+    min-width: 0;
+  }
+
+  .vt-faq {
+    display: grid;
+    gap: 20px;
+    margin-top: clamp(56px, 8vw, 104px);
+  }
+
+  @media (max-width: 960px) {
+    .vt-use,
+    .vt-night__inner {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .vt-use--flip .vt-use__text {
+      order: 0;
+    }
+
+    .vt-details {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 760px) {
+    .vt-race,
+    .vt-modes,
+    .vt-details,
+    .vt-trust {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>
