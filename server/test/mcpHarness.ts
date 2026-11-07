@@ -247,14 +247,21 @@ export interface ApprovedCode {
   readonly verifier: string;
 }
 
+/** Where the consent decision's return page sends the browser (`returnPage`: 200 with a link, never a redirect). */
+export async function returnLocation(response: Response): Promise<URL> {
+  expect(response.status).toBe(200);
+  expect(response.headers.get("location")).toBeNull();
+  const html: string = await response.text();
+  return new URL(unescapeHtml(/id="return" href="([^"]*)"/.exec(html)?.[1] ?? ""));
+}
+
 /** Sign in and allow; returns the code the client receives. */
 export async function approvedCode(test: McpTest, client: TestClient, subject: string): Promise<ApprovedCode> {
   const { verifier, challenge } = await pkce();
   const { html, jar } = await consentPageFor(test, client, subject, challenge);
   const consent = formOf(html);
   const decided: Response = await browse(test, jar, "POST", "/authorize", { ...consent.fields, decision: "approve" });
-  expect(decided.status).toBe(302);
-  const location: URL = new URL(decided.headers.get("location") ?? "");
+  const location: URL = await returnLocation(decided);
   expect(`${location.origin}${location.pathname}`).toBe(client.redirectUri);
   expect(location.searchParams.get("state")).toBe("client-state-1");
   return { code: location.searchParams.get("code") ?? "", verifier };

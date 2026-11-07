@@ -6,7 +6,7 @@ import { mcpResource } from "../src/mcp/config";
 import type { Env } from "../src/env";
 import { type Harness, type Session, defaultHarness, envWith, expectError, req, signInWithGoogle } from "./helpers";
 import { allowingLimiter, assistantRows } from "./assistantHelpers";
-import { type McpTest, type TestClient, type Tokens, CookieJar, authorizeUrl, browse, callTool, formOf, linkOf, mcpTest, pkce, registerClient, tokenRequest, toolErrorText } from "./mcpHarness";
+import { type McpTest, type TestClient, type Tokens, CookieJar, authorizeUrl, browse, callTool, formOf, linkOf, mcpTest, pkce, registerClient, returnLocation, tokenRequest, toolErrorText } from "./mcpHarness";
 
 const adminSubject: string = "reviewer-admin-sub";
 const adminEnv: Env = envWith({ ADMIN_IDENTITIES: `google:${adminSubject}`, ASSISTANT_USER_LIMITER: allowingLimiter });
@@ -35,8 +35,7 @@ async function reviewerTokens(test: McpTest, client: TestClient): Promise<Tokens
   expect(consentPage.status).toBe(200);
   const consent = formOf(await consentPage.text());
   const decided: Response = await browse(test, jar, "POST", "/authorize", { ...consent.fields, decision: "approve" });
-  expect(decided.status).toBe(302);
-  const code: string = new URL(decided.headers.get("location") ?? "").searchParams.get("code") ?? "";
+  const code: string = (await returnLocation(decided)).searchParams.get("code") ?? "";
   const token: Response = await tokenRequest(test, {
     grant_type: "authorization_code",
     code,

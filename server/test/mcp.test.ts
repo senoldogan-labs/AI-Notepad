@@ -27,6 +27,7 @@ import {
   tokenRequest,
   toolErrorText,
   unescapeHtml,
+  returnLocation,
 } from "./mcpHarness";
 
 afterEach(() => {
@@ -194,7 +195,7 @@ describe("MCP OAuth", () => {
     // A code exchanged for another resource is refused.
     const { html, jar: consentJar } = await consentPageFor(test, client, user.subject, challenge);
     const decided: Response = await browse(test, consentJar, "POST", "/authorize", { ...formOf(html).fields, decision: "approve" });
-    const code: string = new URL(decided.headers.get("location") ?? "").searchParams.get("code") ?? "";
+    const code: string = (await returnLocation(decided)).searchParams.get("code") ?? "";
     const exchanged: Response = await tokenRequest(test, { grant_type: "authorization_code", code, redirect_uri: client.redirectUri, client_id: client.clientId, code_verifier: verifier, resource: "https://other.example/mcp" });
     expect(exchanged.status).toBe(400);
     expect(await exchanged.json()).toMatchObject({ error: "invalid_target" });
@@ -221,7 +222,7 @@ describe("MCP OAuth", () => {
     const forged: Response = await browse(test, jar, "POST", "/authorize", { ...fields, user: randomId(), decision: "approve" });
     expect(forged.status).toBe(400);
     const first: Response = await browse(test, jar, "POST", "/authorize", { ...fields, decision: "approve" });
-    expect(first.status).toBe(302);
+    expect((await returnLocation(first)).searchParams.get("code")).not.toBeNull();
     const replay: Response = await browse(test, jar, "POST", "/authorize", { ...fields, decision: "approve" });
     expect(replay.status).toBe(400);
     expect(replay.headers.get("location")).toBeNull();
@@ -237,8 +238,7 @@ describe("MCP OAuth", () => {
     const forcedAllow: Response = await browse(test, off.jar, "POST", "/authorize", { ...formOf(off.html).fields, decision: "approve" });
     expect(forcedAllow.status).toBe(403);
     const canceled: Response = await browse(test, off.jar, "POST", "/authorize", { ...formOf(off.html).fields, decision: "deny" });
-    expect(canceled.status).toBe(302);
-    expect(new URL(canceled.headers.get("location") ?? "").searchParams.get("error")).toBe("access_denied");
+    expect((await returnLocation(canceled)).searchParams.get("error")).toBe("access_denied");
   });
 
   it("does not create accounts and rejects replayed or foreign identity tokens", async () => {
