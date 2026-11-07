@@ -130,7 +130,7 @@ export const homeFi: HomeCopy = {
   launchVideo: {
     title: `${productName} 40 sekunnissa.`,
     lead: "Englanninkielinen esittelyvideo.",
-    description: `Minuutin kierros ${productName}-sovelluksessa: litterointi ja käännös kokouksen aikana, muistiinpano jossa tehtävät ovat päällimmäisenä, kysyminen kaikista kokouksista ja muistiinpanojen lähettäminen sinne, missä tiimi työskentelee.`,
+    description: `37 sekunnin esittelyvideo ${productName}-sovelluksesta (englanniksi): litterointi ja käännös puhelun aikana, muistiinpano ja tehtäväsi puhelun päätyttyä sekä kysyminen kaikista kokouksista.`,
     fallback: "Selaimesi ei voi toistaa tätä videota tässä.",
     fallbackLink: "Avaa videotiedosto",
     pause: "Keskeytä video",
