@@ -1,6 +1,6 @@
 import { type CallToolResult, McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
-import { type MeetingProjection, displayTitle, meetingUrl, noteMarkdown, normalizedUuid, untrustedMeetingContent } from "../assistant/projection";
+import { type MeetingProjection, displayTitle, meetingUrl, normalizedMeetingId, noteMarkdown, untrustedMeetingContent } from "../assistant/projection";
 import { type SearchHit, rankDocuments, sanitizeQuery } from "../assistant/search";
 import { type IndexScan, type IndexedMeeting, type ScanLimits, assistantMeeting, indexedMeetings } from "../assistant/store";
 import { Base64Error, base64Decode, base64UrlEncode, decodeUtf8Strict, randomToken } from "../crypto";
@@ -85,7 +85,7 @@ const tasksOutput = z.object({
   ),
   truncated: z.boolean(),
 });
-const cursorSchema = z.strictObject({ s: z.number().int(), m: z.uuid() });
+const cursorSchema = z.strictObject({ s: z.number().int(), m: z.string().min(1).max(64) });
 
 type Cursor = z.output<typeof cursorSchema>;
 
@@ -233,7 +233,7 @@ async function searchTool(context: ToolContext, query: string): Promise<CallTool
 
 async function fetchTool(context: ToolContext, id: string): Promise<CallToolResult> {
   await guardCall(context, true);
-  const meetingId: string | null = normalizedUuid(id);
+  const meetingId: string | null = normalizedMeetingId(id);
   const projection: MeetingProjection | null =
     meetingId === null ? null : await assistantMeeting(context.env.ASSISTANT_DB, context.env.ASSISTANT_BUCKET, context.config.keyring, context.props.userId, meetingId);
   if (meetingId === null || projection === null) {

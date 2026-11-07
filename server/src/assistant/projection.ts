@@ -234,6 +234,17 @@ export function normalizedUuid(value: string): string | null {
   return z.uuid().safeParse(value).success ? value.toLowerCase() : null;
 }
 
+/**
+ * The apps' meeting ids: a recording's session folder name (`20261105-103000`, local time), or a UUID. Letters, digits,
+ * `-` and `_` only, so an id is safe in a URL path and inside an R2 key.
+ */
+const appMeetingIdPattern: RegExp = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
+
+/** A meeting id as stored: a UUID lower-cased, any other app id unchanged; null when it is neither. Pure function. */
+export function normalizedMeetingId(value: string): string | null {
+  return normalizedUuid(value) ?? (appMeetingIdPattern.test(value) ? value : null);
+}
+
 /** Duration as "1 h 05 min" / "12 min". Pure function. */
 function durationLabel(seconds: number): string {
   const minutes: number = Math.round(seconds / 60);

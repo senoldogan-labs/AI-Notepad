@@ -129,7 +129,8 @@ describe("assistant meetings", () => {
     const harness: Harness = await defaultHarness();
     const { session, epoch } = await ready(harness);
     const call = (path: string, body: object): Promise<Response> => harness.call(req("PUT", path, { token: session.accessToken, json: body, env: assistantEnv }));
-    await expectError(await call("/v1/assistant/meetings/not-a-uuid", upload(fieldsFor(epoch, "X"))), 400, "bad_request");
+    await expectError(await call("/v1/assistant/meetings/not.an.id", upload(fieldsFor(epoch, "X"))), 400, "bad_request");
+    await expectError(await call(`/v1/assistant/meetings/${"a".repeat(65)}`, upload(fieldsFor(epoch, "X"))), 400, "bad_request");
     await expectError(await call(`/v1/assistant/meetings/${randomId()}`, upload({ ...fieldsFor(epoch, "X"), deviceId: "device-1" })), 400, "invalid_body");
     await expectError(await call(`/v1/assistant/meetings/${randomId()}`, upload({ ...fieldsFor(epoch, "X"), startedAt: "yesterday" })), 400, "invalid_body");
     await expectError(await call(`/v1/assistant/meetings/${randomId()}`, upload({ ...fieldsFor(epoch, "X"), summary: "s".repeat(40_001) })), 400, "invalid_body");
@@ -139,6 +140,8 @@ describe("assistant meetings", () => {
     // Upper-case UUIDs (Swift's uuidString) are stored lower-case.
     const upper: string = randomId().toUpperCase();
     expect(await (await call(`/v1/assistant/meetings/${upper}`, upload(fieldsFor(epoch, "Upper")))).json()).toMatchObject({ meetingId: upper.toLowerCase() });
+    // The apps' own ids are session folder names; they are stored unchanged.
+    expect(await (await call("/v1/assistant/meetings/20261105-103000", upload(fieldsFor(epoch, "Folder id")))).json()).toMatchObject({ meetingId: "20261105-103000" });
   });
 
   it("deletes a lost device's meetings only", async () => {
