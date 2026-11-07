@@ -125,7 +125,8 @@ describe("MCP OAuth", () => {
     const client: TestClient = { clientId, redirectUri };
     const { challenge } = await pkce();
     const { html } = await consentPageFor(test, client, user.subject, challenge);
-    expect(html).toContain("<h1>Claude (verified)</h1>");
+    expect(html).toContain("<h1>Connect Claude to Gistsmith</h1>");
+    expect(html).toContain("Verified app");
     expect(html).toContain("Signed in with Apple");
     expect(html).toContain("Gistsmith account created 15 October 2026");
     expect(html).not.toMatch(/[\w.+-]+@[\w-]+\.[\w.]+/);
