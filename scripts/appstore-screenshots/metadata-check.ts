@@ -201,13 +201,13 @@ export function storefrontProblems(all: readonly Field[]): readonly string[] {
       return [`${field.section}: locale ${locale} has no home storefront in metadata-check.ts`];
     }
     const others: readonly string[] = (storefrontLocales[home] ?? []).filter((other: string) => other !== locale);
-    const own: readonly string[] = keywordTerms(field.text);
+    const own: readonly string[] = [...new Set<string>(keywordTerms(field.text).flatMap((term: string) => words(term)))];
     return others.flatMap((other: string) => {
       const otherField: Field | undefined = byLocale.get(other);
       if (otherField === undefined) {
         return [`${field.section}: ${home} also reads ${other}, which has no Keywords block`];
       }
-      const theirs: ReadonlySet<string> = new Set<string>(keywordTerms(otherField.text));
+      const theirs: ReadonlySet<string> = new Set<string>(keywordTerms(otherField.text).flatMap((term: string) => words(term)));
       const shared: readonly string[] = own.filter((term: string) => theirs.has(term));
       return shared.length === 0
         ? []
