@@ -536,8 +536,8 @@ struct MeetingDetailPage: View {
                     HStack(spacing: 10) {
                         let hasScreens: Bool = !(model.screenSnapshots.snapshots[record.id] ?? []).isEmpty || tab == .screens
                         let tabs: [(value: MeetingTab, title: LocalizedStringKey)] = hasScreens
-                            ? [(.summary, "Özet"), (.transcript, "Transkript"), (.screens, "Ekranlar")]
-                            : [(.summary, "Özet"), (.transcript, "Transkript")]
+                            ? [(.summary, "Not"), (.transcript, "Transkript"), (.screens, "Ekranlar")]
+                            : [(.summary, "Not"), (.transcript, "Transkript")]
                         UnderlineTabs(selection: $tab, options: tabs)
                         if tab == .summary, let note = record.note {
                             noteLanguageMenu(original: note.writtenLanguage)
@@ -704,6 +704,7 @@ struct MeetingDetailPage: View {
                 }
                 MeetingAskBar(
                     exchanges: model.meetingAsk.exchanges(meetingID: record.id), isAnswering: model.meetingAsk.isAnswering(meetingID: record.id),
+                    followUps: model.meetingAsk.followUps(meetingID: record.id, note: record.note),
                     quickActions: record.note == nil ? [] : meetingQuickActions(recipes: model.recipes), recipes: model.recipes,
                     isEditingNote: isProcessing, isTranscriptOpen: isTranscriptOpen,
                     onAsk: { (question: String, recipeTitle: String?) -> Void in
@@ -731,6 +732,11 @@ struct MeetingDetailPage: View {
                     .allowsHitTesting(false)
             }
             .animation(.smooth(duration: 0.25), value: isTranscriptOpen)
+            // Toplantının saklı son sohbeti geri gelir (geçmiş açılışta arka planda okunur: gelince de denenir).
+            .onAppear { model.meetingAsk.resume(meetingID: record.id, conversations: model.askConversations) }
+            .onChange(of: model.askConversations.count) { (_: Int, _: Int) -> Void in
+                model.meetingAsk.resume(meetingID: record.id, conversations: model.askConversations)
+            }
         }
     }
 
@@ -1570,12 +1576,17 @@ private struct SummaryTab: View {
         let markedIDs: Set<String> = highlightedParagraphIDs(paragraphs: paragraphs, highlights: record.highlights ?? [])
         let marked: [TranscriptParagraph] = paragraphs.filter { markedIDs.contains($0.id) }
         let outline: [OutlineItem] = note.outline ?? []
+        let others: [TaskPair] = pairs.filter { !$0.source.isMine }
         return VStack(alignment: .leading, spacing: 30) {
             if mine.isEmpty {
                 // Yüz yüze toplantıda kullanıcı da "Konuşmacı N": hangisi olduğunu seçince görevleri ona düşer.
                 UserSpeakerPrompt(record: record, userName: model.userName, isLocked: isLocked) { (person: Int, name: String) -> Void in
                     model.nameUserSpeaker(meetingID: record.id, person: person, name: name)
                 }
+            } else {
+                // Sana düşen işler notun en başında, kendi kartında (karşılamadaki örnek not da böyle söz verir).
+                myTasksCard(mine: mine)
+                    .id(MeetingNoteAnchor.myTasks)
             }
             // Not bir belge gibi: başlıklar ve maddeler; her maddenin kaynağı üstüne gelince sağdaki büyüteçte.
             noteBlock(title: "Özet") {
@@ -1586,9 +1597,14 @@ private struct SummaryTab: View {
                 }
             }
             .id(MeetingNoteAnchor.sections)
-            if !pairs.isEmpty {
-                tasksSection(pairs: pairs)
-                    .id(MeetingNoteAnchor.myTasks)
+            if !others.isEmpty {
+                if mine.isEmpty {
+                    // Senin görevin yoksa bölüm yalnız "Görevler"; kapaktaki bağlantı da buraya kayar.
+                    othersSection(others: others, hasMine: false)
+                        .id(MeetingNoteAnchor.myTasks)
+                } else {
+                    othersSection(others: others, hasMine: true)
+                }
             }
             if !note.decisions.isEmpty {
                 noteBlock(title: "Kararlar") {
@@ -1698,44 +1714,49 @@ private struct SummaryTab: View {
         )
     }
 
-    /// Görevler: önce senin görevlerin, sonra diğerleri (tamamlananlar grubun sonunda); her görevin kaynağı da gösterilir.
-    private func tasksSection(pairs: [TaskPair]) -> some View {
-        let open: [TaskPair] = pairs.filter { !isTaskDone(record: record, task: $0.source) }
-        let ordered: [TaskPair] = open + pairs.filter { isTaskDone(record: record, task: $0.source) }
-        let mine: [TaskPair] = ordered.filter(\.source.isMine)
-        let others: [TaskPair] = ordered.filter { !$0.source.isMine }
-        let doneMine: Int = mine.filter { isTaskDone(record: record, task: $0.source) }.count
-        return noteBlock(title: "Görevler") {
-            if !mine.isEmpty {
-                taskGroupLabel(title: "Senin görevlerin", detail: String(localized: "\(doneMine)/\(mine.count) tamamlandı"), tint: appearance.accent.color)
-                ForEach(mine, id: \.source.trackingKey) { (pair: TaskPair) in
-                    taskRow(pair: pair)
-                }
-            }
-            if !others.isEmpty {
-                taskGroupLabel(title: "Diğer görevler", detail: nil, tint: Theme.muted)
-                    .padding(.top, mine.isEmpty ? 0 : 10)
-                ForEach(others, id: \.source.trackingKey) { (pair: TaskPair) in
-                    taskRow(pair: pair)
-                }
-            }
-        }
+    /// Tamamlananlar grubun sonunda; sıra öyle kalır. Saf yardımcıdır.
+    private func openFirst(pairs: [TaskPair]) -> [TaskPair] {
+        pairs.filter { !isTaskDone(record: record, task: $0.source) } + pairs.filter { isTaskDone(record: record, task: $0.source) }
     }
 
-    /// Görev grubunun küçük etiketi ("Senin görevlerin · 1/3 tamamlandı").
-    private func taskGroupLabel(title: LocalizedStringKey, detail: String?, tint: Color) -> some View {
-        HStack(spacing: 6) {
-            Text(title)
-                .appFont(size: 12, weight: .semibold)
-                .foregroundStyle(tint)
-            if let detail {
-                Text(verbatim: "· \(detail)")
-                    .appFont(size: 12, weight: .regular)
-                    .foregroundStyle(Theme.muted)
+    /// "Senin görevlerin" kartı: notun başında, vurgu renginin hafif zemininde; başlıkta ilerleme, altında görevler
+    /// (tamamlananlar sonda), her görevin kaynağı da gösterilir.
+    private func myTasksCard(mine: [TaskPair]) -> some View {
+        let ordered: [TaskPair] = openFirst(pairs: mine)
+        let done: Int = mine.filter { isTaskDone(record: record, task: $0.source) }.count
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("Senin görevlerin")
+                    .appFont(size: 17, weight: .semibold)
+                    .foregroundStyle(Theme.ink)
+                    .accessibilityAddTraits(.isHeader)
+                Text(verbatim: String(localized: "\(done)/\(mine.count) tamamlandı"))
+                    .appFont(size: 12, weight: .medium)
+                    .monospacedDigit()
+                    .foregroundStyle(appearance.accent.color)
+            }
+            .padding(.bottom, 2)
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(ordered, id: \.source.trackingKey) { (pair: TaskPair) in
+                    taskRow(pair: pair)
+                }
+            }
+            .padding(.horizontal, -10)
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(appearance.accent.color.opacity(0.07), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(appearance.accent.color.opacity(0.18)))
+    }
+
+    /// Başkalarına düşen görevler (tamamlananlar sonda); senin görevin de varsa başlık "Diğer görevler".
+    private func othersSection(others: [TaskPair], hasMine: Bool) -> some View {
+        noteBlock(title: hasMine ? "Diğer görevler" : "Görevler") {
+            ForEach(openFirst(pairs: others), id: \.source.trackingKey) { (pair: TaskPair) in
+                taskRow(pair: pair)
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.top, 4)
     }
 
     /// Görev satırı; görev kimliğiyle: liste değişince (ör. tamamlanınca) satır durumu (Anımsatıcılar hatası) başka göreve

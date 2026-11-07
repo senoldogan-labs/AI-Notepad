@@ -44,3 +44,26 @@ public func meetingQuickActions(recipes: [Recipe]) -> [MeetingQuickAction] {
     )
     return [fromRecipe("takip-epostasi"), fromRecipe("aksiyonlar"), tldr, longer].compactMap { $0 }
 }
+
+/// Cevaptan sonra önerilen devam soruları sayısı.
+public let meetingFollowUpLimit: Int = 3
+
+/// "Bir şey sor" çubuğunda son cevabın altındaki devam soruları: ek yapay zekâ çağrısı yapılmaz, notun içeriğinden
+/// seçilir. Önce cevabı açtıran soru, sonra notta karar varsa nasıl varıldığı, açık konu varsa kimin takip edeceği, görev
+/// varsa kimin neyi ne zamana yapacağı, en sonda e-posta taslağı; daha önce aynen sorulanlar atlanır, en çok
+/// `meetingFollowUpLimit` tanesi döner. Son soru bitmemişse (cevap akıyor, durduruldu, hatalı) ya da sohbet boşsa boş.
+/// Saf fonksiyondur.
+public func meetingFollowUpSuggestions(note: MeetingNote?, askedQuestions: [String], lastAnswerFinished: Bool) -> [String] {
+    guard lastAnswerFinished, !askedQuestions.isEmpty else {
+        return []
+    }
+    let candidates: [String?] = [
+        String(localized: "Bunu biraz daha aç"),
+        (note?.decisions.isEmpty ?? true) ? nil : String(localized: "Bu kararlara nasıl varıldı?"),
+        (note?.openQuestions ?? []).isEmpty ? nil : String(localized: "Açık kalan konuları kim takip edecek?"),
+        (note?.tasks.isEmpty ?? true) ? nil : String(localized: "Kim neyi ne zamana yapacak?"),
+        String(localized: "Bundan kısa bir e-posta taslağı yaz"),
+    ]
+    let asked: Set<String> = Set(askedQuestions.map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() })
+    return Array(candidates.compactMap { $0 }.filter { !asked.contains($0.lowercased()) }.prefix(meetingFollowUpLimit))
+}

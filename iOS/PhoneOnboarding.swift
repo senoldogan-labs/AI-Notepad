@@ -637,6 +637,8 @@ private struct PhoneSampleMeetingStep: View {
                 }
             }
             .animation(.smooth(duration: 0.25), value: blocks.count)
+            // Örnek toplantıda adlar baştan bilinir: canlı metin "Konuşmacı 1/2" değil Maya ve Leo der.
+            .environment(\.liveSpeakerNames, sampleMeetingSpeakerNames)
             VStack(alignment: .leading, spacing: 8) {
                 if showsCoach {
                     CoachMark(text: "Aklında kalmasını istediğini yaz; not bunu öncelik sayar.", symbol: "hand.point.down.fill", edge: .bottom)

@@ -213,6 +213,12 @@ struct PhoneSettingsTab: View {
                             HostedTelemetryCenter.shared.sharingDisabled()
                         }
                     }
+                    // Girişte onaylanan yapay zekâ açıklaması: neyin nereye gittiği sonradan da okunur.
+                    NavigationLink {
+                        PhoneAIDisclosureReview()
+                    } label: {
+                        PhoneSettingLabel(icon: "lock.shield", title: Text("Toplantıların nasıl işlenir"))
+                    }
                     if let privacy = phoneLegalURL(path: "privacy") {
                         Link(destination: privacy) {
                             PhoneSettingLabel(icon: "hand.raised.square", title: Text("Gizlilik politikası"))

@@ -857,6 +857,8 @@ private struct SampleMeetingStep: View {
             }
             .frame(maxWidth: .infinity)
             TranscriptPanel(state: viewState(elapsed: elapsed), actions: actions, levels: levels, myNotes: $myNotes)
+                // Örnek toplantıda adlar baştan bilinir: canlı metin "Konuşmacı 1/2" değil Maya ve Leo der.
+                .environment(\.liveSpeakerNames, sampleMeetingSpeakerNames)
                 .frame(width: 380, height: 470)
                 .panelSurface()
                 .clipShape(RoundedRectangle(cornerRadius: DesignTokens.panelRadius, style: .continuous))

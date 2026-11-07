@@ -1259,6 +1259,7 @@ private struct TaskLine: View {
     /// İşin altındaki soluk satır (tarih, gerekirse toplantı); boşsa gösterilmez.
     let detail: String
     let onOpen: @MainActor () -> Void
+    @State private var isHovering: Bool = false
 
     var body: some View {
         let isDone: Bool = isTaskDone(record: record, task: task)
@@ -1284,10 +1285,15 @@ private struct TaskLine: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.hoverPlain)
+            // Zil yalnız anımsatıcı eklendiyse ya da fare satırdayken (her satırda sürekli durunca gürültüydü).
             ReminderButton(model: model, record: record, task: task)
+                .opacity(isHovering || isTaskReminded(record: record, task: task) ? 1 : 0)
         }
         .padding(.horizontal, 8)
+        .contentShape(Rectangle())
+        .onHover { (hovering: Bool) -> Void in isHovering = hovering }
         .animation(.smooth(duration: 0.2), value: isDone)
+        .animation(.easeOut(duration: 0.12), value: isHovering)
     }
 }
 

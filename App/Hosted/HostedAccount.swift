@@ -1098,6 +1098,12 @@ final class HostedAccount {
             return
         }
         UserDefaults.standard.removeObject(forKey: hostedIdentityKey(userId: userID))
+        // Yapay zekâ açıklamasının onayı hesapla gider: aynı kimlik yeniden açılırsa açıklama yeniden gösterilir.
+        do {
+            try hostedAccountDefaults(accountKey: accountDataKey(userId: userID)).removeObject(forKey: hostedAIDisclosureAcceptedKey)
+        } catch {
+            accountLogger.error("Silinen hesabın yapay zekâ onayı silinemedi, hata: \(String(describing: error), privacy: .private)")
+        }
         UserDefaults.standard.removeObject(forKey: hostedAvatarKey(userId: userID))
         // Sunucudaki eşitleme kopyası hesapla silindi; bu cihazdaki eşitleme anahtarı ve kayıtları da gider (toplantılar
         // kalır).

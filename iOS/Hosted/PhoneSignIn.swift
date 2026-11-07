@@ -293,11 +293,91 @@ struct PhoneLegalLinks: View {
 /// İlk yapay zekâ işleminden önce bir kez (girişten hemen sonra, kayıt ve Sor açılmadan): toplantı sesinin ve metninin
 /// hizmetimize ve güvenilir üçüncü taraf yapay zekâ hizmetlerine (konuşma tanıma ve not yazma) gönderileceğini, neyin
 /// neden gittiğini açıkça söyler; hizmetlerin adları uygulamada geçmez, gizlilik politikasında (sitede) listelenir.
-/// "Devam et" ile açıkça kabul edilir (App Store 5.1.2(i)). Kabul etmeyen çıkış yapabilir; hiçbir şey gönderilmez.
+/// "Devam et" ile açıkça kabul edilir (App Store 5.1.2(i)); onay hesap başınadır (bkz. `PhoneAIConsent`). Kabul etmeyen
+/// çıkış yapabilir; hiçbir şey gönderilmez. Sonradan Ayarlar › Gizlilik'te yeniden okunur (`PhoneAIDisclosureReview`).
 struct PhoneAIDisclosure: View {
     let account: HostedAccount
+    /// Onay saklanamadıysa nedeni (düğmenin üstünde); yoksa nil.
+    let errorMessage: String?
     let onAccept: @MainActor () -> Void
 
+    var body: some View {
+        PhoneAIDisclosureContent()
+            // Onay alta sabit: küçük iPhone'da maddeler kaysa da "Devam et" ve "Çıkış yap" hep görünür.
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                consent
+            }
+            .background(Theme.background.ignoresSafeArea())
+    }
+
+    /// Açık onay: gizlilik politikası bağlantısı, ne olacağının tek cümlesi, "Devam et" ve "Çıkış yap".
+    private var consent: some View {
+        VStack(spacing: 10) {
+            if let privacy = phoneLegalURL(path: "privacy") {
+                Link(destination: privacy) {
+                    Label("Gizlilik politikasını oku", systemImage: "arrow.up.right")
+                        .appFont(size: 14, weight: .semibold)
+                        .foregroundStyle(.tint)
+                }
+            }
+            Text("Devam edersen toplantıların bu şekilde işlenir. İstemezsen çıkış yap; hiçbir şey gönderilmez.")
+                .appFont(size: 12, weight: .regular)
+                .foregroundStyle(Theme.muted)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+            if let errorMessage {
+                NoticeText(errorMessage, severity: .error)
+                    .appFont(size: 12, weight: .regular)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Button {
+                onAccept()
+            } label: {
+                PhonePrimaryButtonLabel(title: "Devam et")
+            }
+            .buttonStyle(PressableCardStyle())
+            Button("Çıkış yap") { Task { await account.signOut() } }
+                .appFont(size: 14, weight: .medium)
+                .foregroundStyle(Theme.muted)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 4)
+                .disabled(account.isWorking)
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 14)
+        .padding(.bottom, 4)
+        .background(Theme.background)
+        .overlay(alignment: .top) {
+            // Kayan maddelerle onay alanını ayıran ince çizgi.
+            Rectangle().fill(Theme.line).frame(height: 0.5)
+        }
+    }
+}
+
+/// Ayarlar › Gizlilik › "Toplantıların nasıl işlenir": girişte onaylanan açıklamanın kendisi, yeniden okumak için
+/// (onay düğmesi yok; gizlilik politikası bağlantısı altta).
+struct PhoneAIDisclosureReview: View {
+    var body: some View {
+        PhoneAIDisclosureContent()
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if let privacy = phoneLegalURL(path: "privacy") {
+                    Link(destination: privacy) {
+                        Label("Gizlilik politikasını oku", systemImage: "arrow.up.right")
+                            .appFont(size: 14, weight: .semibold)
+                            .foregroundStyle(.tint)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Theme.background)
+                }
+            }
+            .background(Theme.background.ignoresSafeArea())
+            .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// Açıklamanın içeriği: kapak, başlık, üç madde ve hizmetlerin nerede listelendiği.
+private struct PhoneAIDisclosureContent: View {
     var body: some View {
         GeometryReader { (proxy: GeometryProxy) in
             ScrollView {
@@ -361,49 +441,6 @@ struct PhoneAIDisclosure: View {
             }
             .scrollIndicators(.hidden)
             .scrollBounceBehavior(.basedOnSize)
-            // Onay alta sabit: küçük iPhone'da maddeler kaysa da "Devam et" ve "Çıkış yap" hep görünür.
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                consent
-            }
-        }
-        .background(Theme.background.ignoresSafeArea())
-    }
-
-    /// Açık onay: gizlilik politikası bağlantısı, ne olacağının tek cümlesi, "Devam et" ve "Çıkış yap".
-    private var consent: some View {
-        VStack(spacing: 10) {
-            if let privacy = phoneLegalURL(path: "privacy") {
-                Link(destination: privacy) {
-                    Label("Gizlilik politikasını oku", systemImage: "arrow.up.right")
-                        .appFont(size: 14, weight: .semibold)
-                        .foregroundStyle(.tint)
-                }
-            }
-            Text("Devam edersen toplantıların bu şekilde işlenir. İstemezsen çıkış yap; hiçbir şey gönderilmez.")
-                .appFont(size: 12, weight: .regular)
-                .foregroundStyle(Theme.muted)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-            Button {
-                onAccept()
-            } label: {
-                PhonePrimaryButtonLabel(title: "Devam et")
-            }
-            .buttonStyle(PressableCardStyle())
-            Button("Çıkış yap") { Task { await account.signOut() } }
-                .appFont(size: 14, weight: .medium)
-                .foregroundStyle(Theme.muted)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 4)
-                .disabled(account.isWorking)
-        }
-        .padding(.horizontal, 24)
-        .padding(.top, 14)
-        .padding(.bottom, 4)
-        .background(Theme.background)
-        .overlay(alignment: .top) {
-            // Kayan maddelerle onay alanını ayıran ince çizgi.
-            Rectangle().fill(Theme.line).frame(height: 0.5)
         }
     }
 

@@ -306,3 +306,12 @@ public func deleteAskConversation(id: UUID, directory: URL) throws {
         throw StorageError.deleteFailed(path: file.path, reason: error.localizedDescription)
     }
 }
+
+/// Toplantı sayfasındaki "Bir şey sor" sohbeti: turlarının hepsi yalnız bu toplantıya sorulmuş en son güncellenen
+/// sohbet (toplantı sayfası sohbetini geçmişe böyle yazar; Sor'da yalnız bu toplantı `@` ile seçilerek sorulan sohbet
+/// de sayfada sürer). Yoksa nil. Saf fonksiyondur.
+public func latestMeetingConversation(conversations: [AskConversation], meetingID: String) -> AskConversation? {
+    newestAskConversationsFirst(conversations: conversations).first { (conversation: AskConversation) -> Bool in
+        !conversation.turns.isEmpty && conversation.turns.allSatisfy { $0.scopeMeetingIDs == [meetingID] }
+    }
+}
