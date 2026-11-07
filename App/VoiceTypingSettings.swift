@@ -200,10 +200,19 @@ struct VoiceTypingSettings: View {
             } control: {
                 EmptyView()
             }
-            SettingsRow(icon: "doc.on.clipboard", title: Text("Pano eski haline döner")) {
-                Text("Metin kısa süre panoya yazılıp ⌘V ile yapıştırılır; pano hemen önceki içeriğine döner. Pano geçmişi uygulamaları (Maccy, Raycast…) bu metni geçmişe almaz.")
-            } control: {
-                EmptyView()
+            // Pano yalnızca yapıştırmada (Erişilebilirlik izni var) geri döner; izin yoksa metin panoda kalır.
+            if isTrusted {
+                SettingsRow(icon: "doc.on.clipboard", title: Text("Pano eski haline döner")) {
+                    Text("Metin kısa süre panoya yazılıp ⌘V ile yapıştırılır; pano hemen önceki içeriğine döner. Pano geçmişi uygulamaları (Maccy, Raycast…) bu metni geçmişe almaz.")
+                } control: {
+                    EmptyView()
+                }
+            } else {
+                SettingsRow(icon: "doc.on.clipboard", title: Text("Metin panoda kalır")) {
+                    Text("Erişilebilirlik izni olmadan metin panoya kopyalanır ve orada kalır; pano geçmişi uygulamaları onu da kaydedebilir.")
+                } control: {
+                    EmptyView()
+                }
             }
             #if HOSTED_EDITION
             SettingsRow(icon: "chart.bar", title: Text("Kullanım istatistiği")) {
