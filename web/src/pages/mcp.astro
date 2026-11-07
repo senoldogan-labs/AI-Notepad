@@ -1,16 +1,21 @@
 ---
-// MCP sayfası: uygulamanın yerel MCP sunucusunun araçları (MCPServer.swift `mcpTools`), bağlama adımları (Ayarlar ›
+// MCP sayfası: önce uzak bağlayıcı (yapay zekâ asistanı erişimi, mcp.gistsmith.com; Claude ve ChatGPT web/telefon), sonra
+// Mac'teki yerel MCP sunucusu (hero'dan #local'a bağlantı). Kod örneklerinde ve bağlayıcı adresinde kopyalama düğmesi
+// (CodeBlock.astro). Yerel sunucunun araçları (MCPServer.swift `mcpTools`), bağlama adımları (Ayarlar ›
 // Bağlantılar), kopyalanan yapılandırma (lib/mcp-config.ts), istemcilerin yapılandırma dosyaları, örnek sorular ve
-// sınırlar; ayrıca uzak bağlayıcı (yapay zekâ asistanı erişimi, mcp.gistsmith.com; hero'dan #remote'a bağlantı): onay
-// cümlesi, dört aracı (server/src/mcp/tools.ts), Claude ve ChatGPT adımları, uyarılar. Metinler copy.ts `mcp`'den.
+// sınırlar; uzak bağlayıcının onay cümlesi, dört aracı (server/src/mcp/tools.ts), Claude ve ChatGPT adımları, uyarılar.
+// Metinler copy.ts `mcp`'den.
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
 import CtaBand from "../components/CtaBand.astro";
+import CodeBlock from "../components/CodeBlock.astro";
 import McpChat from "../components/McpChat.astro";
 import PhotoPanel from "../components/PhotoPanel.astro";
 import { productName } from "../config";
 import { copy, type McpClientFileCopy, type McpCopy, type McpToolCopy, type PickCopy, type TitledText } from "../copy";
+import { jsonTokens, plainTokens } from "../lib/code-tokens";
 import { mcpClientConfigText } from "../lib/mcp-config";
+import { routes } from "../routes";
 
 const text: McpCopy = copy.mcp;
 const config: string = mcpClientConfigText(productName);
@@ -22,16 +27,64 @@ const setups: readonly PickCopy[] = [text.oneClick, text.manual];
     <div class="mcp-hero__text">
       <h1 class="title-xl">{text.title}</h1>
       <p class="lead">{text.lead}</p>
-      <p class="mcp-remote-hint">{text.remoteHint.text} <a href="#remote">{text.remoteHint.link}</a></p>
+      <p class="mcp-remote-hint">{text.localHint.text} <a href="#local">{text.localHint.link}</a></p>
     </div>
     <PhotoPanel photo="pink-sands" focus="bottom" widths={[480, 720, 960, 1440, 1920]} sizes="(max-width: 960px) calc(100vw - 40px), 560px" priority="lcp" class="mcp-hero__cover">
       <McpChat demo={copy.home.integrations.mcpDemo} />
     </PhotoPanel>
   </section>
 
-  <section class="page mcp-section" aria-labelledby="tools-title">
+  <section class="page mcp-section" id="remote" aria-labelledby="remote-title">
     <div class="mcp-section__head">
-      <h2 class="title-l" id="tools-title">{text.toolsTitle}</h2>
+      <h2 class="title-l" id="remote-title">{text.remote.title}</h2>
+      <p class="muted">{text.remote.lead}</p>
+      <p class="mcp-consent">{text.remote.consent}</p>
+    </div>
+    <h3 class="title-m">{text.remote.toolsTitle}</h3>
+    <ul class="mcp-tools">
+      {
+        text.remote.tools.map((tool: McpToolCopy) => (
+          <li class="card mcp-tool">
+            <h4 class="mcp-tool__name"><code>{tool.name}</code></h4>
+            <p>{tool.text}</p>
+            <p class="small muted">
+              <span class="mcp-tool__label">{text.toolInputLabel}:</span> {tool.input}
+            </p>
+          </li>
+        ))
+      }
+    </ul>
+    <CodeBlock label={text.remote.urlLabel} tokens={plainTokens(text.remote.url)} copy={text.copyButton} class="" />
+    <div class="mcp-setups">
+      {
+        text.remote.setups.map((setup: PickCopy) => (
+          <article class="card mcp-setup">
+            <h3 class="title-m">{setup.title}</h3>
+            <ol>
+              {setup.points.map((point: string) => (
+                <li>{point}</li>
+              ))}
+            </ol>
+          </article>
+        ))
+      }
+    </div>
+    <ul class="mcp-limits">
+      {
+        text.remote.notes.map((item: TitledText) => (
+          <li>
+            <h3 class="mcp-limits__title">{item.title}</h3>
+            <p class="muted">{item.text}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <section class="page mcp-section" id="local" aria-labelledby="tools-title">
+    <div class="mcp-section__head">
+      <h2 class="title-l" id="tools-title">{text.localTitle}</h2>
+      <h3 class="title-m">{text.toolsTitle}</h3>
       <p class="muted">{text.toolsLead}</p>
     </div>
     <ul class="mcp-tools">
@@ -68,11 +121,10 @@ const setups: readonly PickCopy[] = [text.oneClick, text.manual];
         ))
       }
     </div>
-    <figure class="mcp-config">
-      <figcaption class="small">{text.configLabel}</figcaption>
-      <pre><code>{config}</code></pre>
+    <div class="mcp-config">
+      <CodeBlock label={text.configLabel} tokens={jsonTokens(config)} copy={text.copyButton} class="" />
       <p class="small muted">{text.configNote}</p>
-    </figure>
+    </div>
   </section>
 
   <section class="page mcp-section" aria-labelledby="files-title">
@@ -102,56 +154,6 @@ const setups: readonly PickCopy[] = [text.oneClick, text.manual];
     <p class="small muted">{text.filesNote}</p>
   </section>
 
-  <section class="page mcp-section" id="remote" aria-labelledby="remote-title">
-    <div class="mcp-section__head">
-      <h2 class="title-l" id="remote-title">{text.remote.title}</h2>
-      <p class="muted">{text.remote.lead}</p>
-      <p class="mcp-consent">{text.remote.consent}</p>
-    </div>
-    <h3 class="title-m">{text.remote.toolsTitle}</h3>
-    <ul class="mcp-tools">
-      {
-        text.remote.tools.map((tool: McpToolCopy) => (
-          <li class="card mcp-tool">
-            <h4 class="mcp-tool__name"><code>{tool.name}</code></h4>
-            <p>{tool.text}</p>
-            <p class="small muted">
-              <span class="mcp-tool__label">{text.toolInputLabel}:</span> {tool.input}
-            </p>
-          </li>
-        ))
-      }
-    </ul>
-    <figure class="mcp-config">
-      <figcaption class="small">{text.remote.urlLabel}</figcaption>
-      <pre><code>{text.remote.url}</code></pre>
-    </figure>
-    <div class="mcp-setups">
-      {
-        text.remote.setups.map((setup: PickCopy) => (
-          <article class="card mcp-setup">
-            <h3 class="title-m">{setup.title}</h3>
-            <ol>
-              {setup.points.map((point: string) => (
-                <li>{point}</li>
-              ))}
-            </ol>
-          </article>
-        ))
-      }
-    </div>
-    <ul class="mcp-limits">
-      {
-        text.remote.notes.map((item: TitledText) => (
-          <li>
-            <h3 class="mcp-limits__title">{item.title}</h3>
-            <p class="muted">{item.text}</p>
-          </li>
-        ))
-      }
-    </ul>
-  </section>
-
   <section class="page mcp-section" aria-labelledby="questions-title">
     <div class="mcp-section__head">
       <h2 class="title-l" id="questions-title">{text.questionsTitle}</h2>
@@ -176,7 +178,7 @@ const setups: readonly PickCopy[] = [text.oneClick, text.manual];
     </ul>
   </section>
 
-  <CtaBand id="mcp-cta-title" title={copy.compare.ctaTitle} text={copy.compare.ctaText} photo="wave-ocean" />
+  <CtaBand id="mcp-cta-title" title={copy.compare.ctaTitle} text={copy.compare.ctaText} common={copy.common} macHref={routes.download} />
 </Base>
 
 <style>
@@ -280,23 +282,6 @@ const setups: readonly PickCopy[] = [text.oneClick, text.manual];
     gap: 10px;
     margin: 0;
     min-width: 0;
-  }
-
-  .mcp-config figcaption {
-    font-weight: 600;
-  }
-
-  /* Uzun yol dar ekranda satır kırar (yalnızca görünüm; kopyalanan metin aynı kalır), sayfa taşmaz. */
-  .mcp-config pre {
-    margin: 0;
-    padding: 18px 20px;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-    border: 1px solid var(--line);
-    border-radius: var(--radius-s);
-    background: var(--soft);
-    font-size: 0.8125rem;
-    line-height: 1.6;
   }
 
   .mcp-files {

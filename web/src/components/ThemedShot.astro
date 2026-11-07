@@ -1,0 +1,113 @@
+---
+// An app screenshot in the visitor's theme: the light capture in the light theme, the dark capture in the dark theme
+// (both from scripts/make-screenshots.sh; `<ad>-dark.webp`). The theme comes from `<html data-theme>` (theme.js), which
+// a media query cannot see, so there are two `<picture>` elements and CSS shows one. A narrower crop (`mobile`) can
+// replace the image below 641 px so interface text stays readable on phones (art direction through `<source media>`;
+// its own width and height keep the space reserved). Served as AVIF with a WebP fallback. Only the first paint's image
+// is eager: the light one in the hero; the dark one always loads lazily, so the light theme never downloads it.
+import { getImage } from "astro:assets";
+import type { ImageMetadata } from "astro";
+
+/** The image shown below 641 px, for both themes. */
+export interface MobileShot {
+  readonly image: ImageMetadata;
+  readonly widths: readonly number[];
+  readonly sizes: string;
+}
+
+interface Props {
+  readonly light: ImageMetadata;
+  readonly dark: ImageMetadata;
+  readonly mobile: MobileShot | null;
+  readonly alt: string;
+  readonly widths: readonly number[];
+  readonly sizes: string;
+  /** "eager": the hero's screenshot (largest paint on wide screens); "lazy": every other one. */
+  readonly loading: "eager" | "lazy";
+  readonly class: string;
+}
+const { light, dark, mobile, alt, widths, sizes, loading, class: extraClass } = Astro.props;
+/** Interface text stays crisp at 62 (checked against 72), ~20 % smaller. */
+const quality: number = 62;
+
+/** One image's AVIF and WebP srcsets and its WebP fallback. */
+interface Variant {
+  readonly avif: string;
+  readonly webp: string;
+  readonly fallback: string;
+  readonly width: number;
+  readonly height: number;
+}
+
+async function variant(image: ImageMetadata, variantWidths: readonly number[]): Promise<Variant> {
+  const usable: number[] = variantWidths.filter((width: number): boolean => width <= image.width);
+  const avif = await getImage({ src: image, widths: usable, format: "avif", quality });
+  const webp = await getImage({ src: image, widths: usable, format: "webp", quality });
+  return { avif: avif.srcSet.attribute, webp: webp.srcSet.attribute, fallback: webp.src, width: image.width, height: image.height };
+}
+
+const themes: readonly { readonly name: "light" | "dark"; readonly main: Variant }[] = [
+  { name: "light", main: await variant(light, widths) },
+  { name: "dark", main: await variant(dark, widths) },
+];
+const small: Variant | null = mobile === null ? null : await variant(mobile.image, mobile.widths);
+---
+
+{
+  themes.map((theme) => (
+    <picture class:list={["themed-shot", `themed-shot--${theme.name}`, extraClass]}>
+      {small !== null && mobile !== null && (
+        <>
+          <source media="(max-width: 640px)" type="image/avif" srcset={small.avif} sizes={mobile.sizes} width={small.width} height={small.height} />
+          <source media="(max-width: 640px)" type="image/webp" srcset={small.webp} sizes={mobile.sizes} width={small.width} height={small.height} />
+        </>
+      )}
+      <source type="image/avif" srcset={theme.main.avif} sizes={sizes} width={theme.main.width} height={theme.main.height} />
+      <img
+        src={theme.main.fallback}
+        srcset={theme.main.webp}
+        sizes={sizes}
+        width={theme.main.width}
+        height={theme.main.height}
+        alt={alt}
+        loading={theme.name === "light" ? loading : "lazy"}
+        fetchpriority={theme.name === "light" && loading === "eager" ? "high" : "auto"}
+        decoding="async"
+      />
+    </picture>
+  ))
+}
+
+<style>
+  .themed-shot {
+    display: block;
+  }
+
+  /* `contain` matches the box whenever the picture shows; it also tells audits not to compare a hidden theme's box with
+     the phone crop it would load. */
+  .themed-shot img {
+    display: block;
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+  }
+
+  .themed-shot--dark,
+  :global(:root[data-theme="dark"]) .themed-shot--light {
+    display: none;
+  }
+
+  :global(:root[data-theme="dark"]) .themed-shot--dark {
+    display: block;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-theme])) .themed-shot--light {
+      display: none;
+    }
+
+    :global(:root:not([data-theme])) .themed-shot--dark {
+      display: block;
+    }
+  }
+</style>

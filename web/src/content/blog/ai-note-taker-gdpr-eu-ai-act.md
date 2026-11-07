@@ -11,11 +11,11 @@ If you work in Europe, or with people who do, recording and transcribing a meeti
 
 That doesn't make AI note-takers off-limits. It means you need a few things in place before you press record. This checklist covers what the GDPR expects, what the EU AI Act changed in August 2026, and what to ask a vendor before you trust it with your meetings.
 
-One honest caveat first: this is a practical overview, not legal advice. Rules differ between countries, and your organisation's data protection officer has the final word.
+One honest caveat first: this is a practical overview, not legal advice. Rules differ between countries, and your organization's data protection officer has the final word.
 
 ## Who is responsible: you, not the app
 
-Under the GDPR, the organisation that decides to record a meeting is usually the **controller**. The note-taker vendor processes data on your behalf, which makes it a **processor**. You can hand the transcription to a vendor, but not the responsibility for it.
+Under the GDPR, the organization that decides to record a meeting is usually the **controller**. The note-taker vendor processes data on your behalf, which makes it a **processor**. You can hand the transcription to a vendor, but not the responsibility for it.
 
 In practice that means three questions are yours to answer:
 
@@ -29,7 +29,7 @@ If you record a meeting for your own job at a company, your employer is the cont
 
 The GDPR lists six legal bases for processing personal data. For meeting notes, two come up most:
 
-- **Legitimate interests.** You have a genuine reason, such as accurate minutes or follow-up tasks, and it isn't outweighed by the participants' interests. Many organisations use this for internal meetings, backed by a short written assessment.
+- **Legitimate interests.** You have a genuine reason, such as accurate minutes or follow-up tasks, and it isn't outweighed by the participants' interests. Many organizations use this for internal meetings, backed by a short written assessment.
 - **Consent.** Everyone agrees, freely and in a way you can show. It sounds simplest, but it has a catch: consent must be as easy to withdraw as to give, and in a workplace, "freely given" is hard to prove when your manager is asking.
 
 Whichever you choose, write it down. A two-paragraph note explaining why you record, what you keep and for how long is far better than nothing when someone asks.
@@ -111,11 +111,11 @@ Gistsmith, the app we make, is run from Finland under EU data protection law. It
 
 Notes, transcripts and recordings are stored on your Mac. While you record, audio is sent to a transcription provider for the live transcript. When the meeting ends, the recording goes through our server to a second transcription provider for the final transcript, and the text goes to an AI model for the note. Our servers don't store your audio, or your notes unless you turn on the optional AI assistant access, and your meetings aren't used to train our providers' models. The [privacy policy](/privacy) names each provider, what it receives and how long it may keep it, which is exactly the list your data protection officer will ask for.
 
-It runs on Macs with Apple silicon and macOS 15 or later. You can try it on 3 meetings or for 7 days without a card; after that it's $5.99 a month or $49 a year ([pricing](/pricing)).
+It runs on Macs with Apple silicon and macOS 15 or later, and on iPhone (iOS 26.1 or later) for meetings in the room. You can try it on 3 meetings or for 7 days without a card; after that it's $5.99 a month or $49 a year ([pricing](/pricing)).
 
 ## The short version
 
-- Your organisation is the controller; the note-taker is a processor.
+- Your organization is the controller; the note-taker is a processor.
 - Choose and document a lawful basis, usually legitimate interests or consent.
 - Tell people in the invite, at the start and in the chat.
 - Keep the note, delete the audio, set a retention period.

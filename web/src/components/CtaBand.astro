@@ -1,50 +1,101 @@
 ---
-// Closing download call on inner pages (compare, blog, MCP, languages, integrations), in the closing band: a
-// photograph, a paper panel with the serif title, a short text, the download button and the App Store badge, and a
-// second photograph. Below 860 px the panel sits under the first photograph and the second one is hidden.
-// No direct DMG link: the download source (`?src=`) is on the server's allow-list.
+// Closing call on every page that sells (home, pricing, compare, blog posts, feature pages): one page-width card with
+// a soft warm gradient, the horizon waveform, the serif title, one line and the two ways to get the app at the same
+// height. On an iPhone or iPad (src/client/platform.js) the App Store badge leads and the Mac download turns into a
+// small link to the download page.
 import AppStoreBadge from "./AppStoreBadge.astro";
+import Horizon from "./Horizon.astro";
 import Icon from "./Icon.astro";
-import PhotoPanel from "./PhotoPanel.astro";
-import { copy } from "../copy";
-import { halfPhotoWidths, type PhotoName } from "../lib/photos";
+import type { CommonCopy } from "../copy";
 import { routes } from "../routes";
 
 interface Props {
   readonly id: string;
   readonly title: string;
   readonly text: string;
-  readonly photo: PhotoName;
+  /** Shared text (button, badge), English or Finnish. */
+  readonly common: CommonCopy;
+  /**
+   * Where the Mac button goes: the counted DMG download (`macDownloadUrl`, on pages whose source the server allows) or
+   * the download page. Only the direct download carries the device check (MacOnlyDialog.astro).
+   */
+  readonly macHref: string;
 }
-const { id, title, text, photo } = Astro.props;
-/** The picture on the right: a soft wave landscape next to every photograph (and a pale dune next to a wave). */
-const partner: PhotoName = photo.startsWith("wave-") ? "dune-pale" : "wave-dawn";
-/** The photograph covers a column about 29vw wide and up to 600 px tall (3:2 source): its width follows the height. */
-const sizes: string = "(max-width: 860px) 100vw, min(66vw, 900px)";
+const { id, title, text, common, macHref } = Astro.props;
+const isDirectDownload: boolean = macHref !== routes.download;
 ---
 
-<section class="split-band cta-band" aria-labelledby={id}>
-  <PhotoPanel photo={photo} focus="center" widths={halfPhotoWidths} sizes={sizes} priority="lazy" class="split-band__photo" />
-  <div class="split-band__paper">
-    <h2 class="title-xl reveal" id={id}>{title}</h2>
-    <p class="reveal">{text}</p>
-    <div class="split-band__actions reveal">
-      <a class="button button--primary" href={routes.download}>
+<section class="page closing" aria-labelledby={id}>
+  <div class="closing__card">
+    <Horizon seed={title} class="closing__horizon" />
+    <h2 class="title-xl closing__title reveal" id={id}>{title}</h2>
+    <p class="closing__text reveal">{text}</p>
+    <div class="closing__actions reveal">
+      <a class="button button--primary not-ios" href={macHref} data-mac-download={isDirectDownload ? "" : undefined}>
         <Icon name="apple" size={16} class="button__apple" />
-        {copy.common.downloadCta}
+        {common.downloadCta}
       </a>
-      <AppStoreBadge language={copy.common.appStoreBadge.language} label={copy.common.appStoreBadge.label} height={52} class="" />
+      <AppStoreBadge language={common.appStoreBadge.language} label={common.appStoreBadge.label} height={52} class="" />
+      <a class="text-link ios-only closing__mac" href={routes.download}>{common.alsoOnMac} <Icon name="arrow-right" size={16} class="" /></a>
     </div>
   </div>
-  <PhotoPanel photo={partner} focus="center" widths={halfPhotoWidths} sizes={sizes} priority="lazy" class="split-band__photo" />
 </section>
 
 <style>
-  .cta-band {
-    margin-top: clamp(80px, 10vw, 140px);
+  .closing {
+    margin-top: clamp(64px, 9vw, 128px);
   }
 
-  .cta-band :global(.title-xl) {
-    font-size: clamp(2.5rem, 1.4rem + 3.4vw, 4rem);
+  /* Paper with a warm light rising from the bottom edge; static (nothing blurred animates). */
+  .closing__card {
+    display: grid;
+    justify-items: center;
+    gap: 22px;
+    padding: clamp(56px, 7vw, 96px) clamp(24px, 6vw, 80px);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    background:
+      radial-gradient(90% 120% at 50% 120%, var(--closing-glow) 0%, transparent 70%),
+      radial-gradient(60% 80% at 100% 0%, var(--closing-lilac) 0%, transparent 70%),
+      var(--card);
+    text-align: center;
+    --closing-glow: light-dark(#f8d2bb, #3b2216);
+    --closing-lilac: light-dark(#ece3f7, #231f2c);
+  }
+
+  .closing :global(.closing__horizon) {
+    width: min(320px, 70%);
+  }
+
+  .closing :global(.closing__horizon)::before {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+
+  .closing__title {
+    max-width: 16ch;
+  }
+
+  .closing__text {
+    max-width: 34rem;
+    color: var(--muted);
+    font-size: 1.125rem;
+  }
+
+  .closing__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin-top: 6px;
+  }
+
+  .closing__mac {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
   }
 </style>

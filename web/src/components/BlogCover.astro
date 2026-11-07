@@ -2,7 +2,7 @@
 // Blog yazısının kapağı, sitenin fotoğraf dilinde: yazının sırasına göre seçilen (aşağıda `coverOrder`)
 // bir fotoğraf ve üstünde kâğıt bir kart içinde başlık. Ölçüler kapağın genişliğine göredir (`cqi`): yazı sayfasının
 // başı, dizin kartı ve paylaşım görseli (scripts/make-blog-og.ts bu öğeyi 1200 px genişlikte çizer) aynı görünür.
-// Başlık öğesini sayfa verir (slot): yazı sayfasında `h1`, kartta süs (`aria-hidden`) olarak tekrarlanan metin.
+// Başlık öğesini sayfa verir (slot): yazı sayfasında `h1`. Kartlarda slot boştur: kapak yalnız fotoğraftır, başlık altında.
 // `data-og-cover` paylaşım görselinin kaynağını işaretler. Fotoğraf süstür (boş alt metin).
 import { Picture } from "astro:assets";
 import { type BlogPost, coverTitleSize } from "../lib/blog";
@@ -40,6 +40,10 @@ const coverOrder: readonly PhotoName[] = [
   "wave-dawn",
   "dawn-range",
   "white-dunes",
+  "dune-blush",
+  "red-mountain",
+  "dune-pale",
+  "dune-crest",
 ];
 const allPosts: readonly CollectionEntry<"blog">[] = [...(await getCollection("blog"))].sort(
   (a: CollectionEntry<"blog">, b: CollectionEntry<"blog">): number =>
@@ -63,9 +67,11 @@ if (rank < 0 || ordered === undefined) {
   throw new Error(`BlogCover: post ${JSON.stringify(post.slug)} is not in the blog collection`);
 }
 const photo: PhotoName = post.cover === null ? ordered : paletteCovers[post.cover];
+/** Cards and the featured post show the photograph alone (their title sits under it); the post page puts its title on the paper card. */
+const titled: boolean = Astro.slots.has("default");
 ---
 
-<div class:list={["blog-cover", `blog-cover--${coverTitleSize(post.title)}`, extraClass]} data-og-cover={post.slug}>
+<div class:list={["blog-cover", titled ? `blog-cover--titled blog-cover--${coverTitleSize(post.title)}` : null, extraClass]} data-og-cover={post.slug}>
   <div class="blog-cover__frame">
     <Picture
       src={photos[photo]}
@@ -80,11 +86,15 @@ const photo: PhotoName = post.cover === null ? ordered : paletteCovers[post.cove
       decoding="async"
       pictureAttributes={{ class: "blog-cover__photo" }}
     />
-    <div class="blog-cover__card">
-      <div class="blog-cover__body">
-        <slot />
-      </div>
-    </div>
+    {
+      titled && (
+        <div class="blog-cover__card">
+          <div class="blog-cover__body">
+            <slot />
+          </div>
+        </div>
+      )
+    }
   </div>
 </div>
 
@@ -158,9 +168,9 @@ const photo: PhotoName = post.cover === null ? ordered : paletteCovers[post.cove
     line-height: 1.08;
   }
 
-  /* Dar kapakta (telefon) daha yüksek oran ve daha büyük yazı: başlık okunur kalır. */
+  /* Dar kapakta (telefon) daha yüksek oran ve daha büyük yazı: başlık okunur kalır. Başlıksız kapaklar hep aynı orandadır. */
   @container (max-width: 360px) {
-    .blog-cover__frame {
+    .blog-cover--titled .blog-cover__frame {
       aspect-ratio: 5 / 4;
       padding: 6cqi;
     }

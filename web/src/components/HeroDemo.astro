@@ -64,12 +64,20 @@ const bars: readonly { readonly height: number; readonly tempo: number }[] = cov
   </div>
 
   <article class="glass note" aria-hidden="true">
-    <p class="note__pending">{demo.notePending}</p>
+    {/* While recording the card shows the note's outline (skeleton lines) and one quiet line, never an empty box. */}
+    <div class="note__pending">
+      <span class="skeleton skeleton--title"></span>
+      <span class="skeleton skeleton--meta"></span>
+      <span class="skeleton"></span>
+      <span class="skeleton"></span>
+      <span class="skeleton skeleton--short"></span>
+      <p class="note__pending-text">{demo.notePending}</p>
+    </div>
     <header class="note__head">
-      <h2 class="note__title write-1">{demo.meetingTitle}</h2>
+      <p class="note__title write-1">{demo.meetingTitle}</p>
       <p class="note__meta write-2">{demo.meetingMeta}</p>
     </header>
-    <h3 class="note__label write-3">{demo.tasksTitle}</h3>
+    <p class="note__label write-3">{demo.tasksTitle}</p>
     <ul class="checklist">
       {
         demo.tasks.map((task: string, index: number) => (
@@ -82,7 +90,7 @@ const bars: readonly { readonly height: number; readonly tempo: number }[] = cov
         ))
       }
     </ul>
-    <h3 class="note__label write-7">{demo.decisionsTitle}</h3>
+    <p class="note__label write-7">{demo.decisionsTitle}</p>
     <p class="note__decision write-8">{demo.decision}</p>
   </article>
 </div>
@@ -314,6 +322,8 @@ const bars: readonly { readonly height: number; readonly tempo: number }[] = cov
     padding: clamp(18px, 2.4vw, 28px);
     justify-self: end;
     width: min(100%, 440px);
+    min-height: 300px;
+    align-content: start;
   }
 
   .note__head {
@@ -325,16 +335,44 @@ const bars: readonly { readonly height: number; readonly tempo: number }[] = cov
     position: absolute;
     inset: 0;
     display: grid;
-    place-items: center;
-    padding: 24px;
-    text-align: center;
-    font-size: 0.9375rem;
-    color: #5f5f5f;
+    align-content: start;
+    gap: 12px;
+    padding: clamp(18px, 2.4vw, 28px);
     opacity: 0;
+  }
+
+  .skeleton {
+    display: block;
+    height: 10px;
+    border-radius: 999px;
+    background: #efeee9;
+  }
+
+  .skeleton--title {
+    width: 58%;
+    height: 18px;
+    margin-bottom: 2px;
+  }
+
+  .skeleton--meta {
+    width: 38%;
+    margin-bottom: 14px;
+  }
+
+  .skeleton--short {
+    width: 64%;
+  }
+
+  .note__pending-text {
+    margin-top: 14px;
+    font-size: 0.875rem;
+    color: #5f5f5f;
   }
 
   .note__title {
     font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.2;
     letter-spacing: -0.02em;
   }
 
@@ -642,6 +680,26 @@ const bars: readonly { readonly height: number; readonly tempo: number }[] = cov
     .note {
       justify-self: stretch;
       width: 100%;
+    }
+  }
+
+  /* Phones: the transcript and the note, no recorder card; the note keeps a fixed, compact height. */
+  @media (max-width: 640px) {
+    .demo {
+      gap: 12px;
+      padding: 8px;
+    }
+
+    .recorder {
+      display: none;
+    }
+
+    .note {
+      min-height: 250px;
+    }
+
+    .transcript__line {
+      font-size: 1rem;
     }
   }
 </style>

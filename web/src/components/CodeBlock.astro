@@ -1,0 +1,116 @@
+---
+// A code sample with its caption and a Copy button (MCP configuration, connector URL, webhook JSON). The colouring is
+// done at build time (lib/code-tokens.ts) as spans with classes. The button copies the code's text exactly as shown
+// (src/client/copy-code.ts, bundled; no inline handlers) and says "Copied" or that copying failed.
+import type { CodeToken } from "../lib/code-tokens";
+
+interface Props {
+  /** The caption above the code. */
+  readonly label: string;
+  readonly tokens: readonly CodeToken[];
+  /** Copy button text: label, success, failure. */
+  readonly copy: { readonly label: string; readonly copied: string; readonly failed: string };
+  readonly class: string;
+}
+const { label, tokens, copy, class: extraClass } = Astro.props;
+---
+
+<figure class:list={["code-block", extraClass]}>
+  <div class="code-block__head">
+    <figcaption class="code-block__label">{label}</figcaption>
+    <button class="code-block__copy" type="button" data-copy-code data-label={copy.label} data-copied={copy.copied} data-failed={copy.failed}>
+      <span class="code-block__copy-text" aria-live="polite">{copy.label}</span>
+    </button>
+  </div>
+  <pre class="code-block__pre"><code data-copy-source>{tokens.map((token: CodeToken) => (token.kind === "plain" ? token.text : <span class={`tok tok--${token.kind}`}>{token.text}</span>))}</code></pre>
+</figure>
+
+<script>
+  import "../client/copy-code";
+</script>
+
+<style>
+  .code-block {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+    margin: 0;
+  }
+
+  .code-block__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .code-block__label {
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .code-block__copy {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 76px;
+    min-height: 44px;
+    padding: 0 16px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--bg);
+    color: var(--ink);
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .code-block__copy:hover {
+    background: var(--soft);
+  }
+
+  .code-block__copy[data-state="copied"] {
+    border-color: color-mix(in srgb, var(--ok) 50%, var(--line));
+    color: var(--ok);
+  }
+
+  .code-block__copy[data-state="failed"] {
+    border-color: color-mix(in srgb, var(--danger) 50%, var(--line));
+    color: var(--danger);
+  }
+
+  /* Long paths wrap on narrow screens (display only; the copied text is unchanged), so the page never overflows. */
+  .code-block__pre {
+    margin: 0;
+    padding: 18px 20px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-s);
+    background: var(--soft);
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    line-height: 1.65;
+  }
+
+  .code-block__pre code {
+    font-family: inherit;
+  }
+
+  .tok--key {
+    color: light-dark(#8a3b12, #f2a679);
+  }
+
+  .tok--string {
+    color: light-dark(#2f6b4f, #8fd0aa);
+  }
+
+  .tok--literal {
+    color: light-dark(#2f5f8a, #8fb5d8);
+  }
+
+  .tok--punctuation {
+    color: var(--muted);
+  }
+</style>

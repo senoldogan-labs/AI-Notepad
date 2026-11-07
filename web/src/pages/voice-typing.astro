@@ -331,7 +331,7 @@ const coverSizes: string = "(max-width: 960px) 160vw, 1100px";
     <Faq items={text.faq} />
   </section>
 
-  <CtaBand id="vt-cta-title" title={text.ctaTitle} text={text.ctaText} photo="dune-sunset" />
+  <CtaBand id="vt-cta-title" title={text.ctaTitle} text={text.ctaText} common={copy.common} macHref={routes.download} />
 </Base>
 
 <script>
@@ -468,6 +468,8 @@ const coverSizes: string = "(max-width: 960px) 160vw, 1100px";
 
   .vt-race__toggle {
     width: 44px;
+    min-height: 44px;
+    height: 44px;
     padding: 0;
   }
 
@@ -517,9 +519,10 @@ const coverSizes: string = "(max-width: 960px) 160vw, 1100px";
     color: #4f4f4f;
   }
 
+  /* The three points on one line; on phones a clean centred stack. */
   .vt-free__points {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: center;
     gap: 8px 10px;
     margin: 6px 0 0;
@@ -529,6 +532,7 @@ const coverSizes: string = "(max-width: 960px) 160vw, 1100px";
 
   .vt-free__points li {
     display: inline-flex;
+    white-space: nowrap;
     align-items: center;
     gap: 6px;
     padding: 6px 12px;
@@ -540,6 +544,13 @@ const coverSizes: string = "(max-width: 960px) 160vw, 1100px";
 
   .vt-free__points :global(.icon) {
     color: #b85a3c;
+  }
+
+  @media (max-width: 640px) {
+    .vt-free__points {
+      flex-direction: column;
+      align-items: center;
+    }
   }
 
   /* ---------- Use cases ---------- */

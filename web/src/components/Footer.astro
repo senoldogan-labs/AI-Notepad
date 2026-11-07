@@ -1,11 +1,10 @@
 ---
-// Footer on the paper surface: the brand line set in the serif and where it is made, then product, learn (compare,
-// languages, integrations, blog, MCP), account and company (contact, legal, font licences) links; then the flip-book band
-// (FooterFlipbook.astro: a Finnish lake from late afternoon to northern lights as the page reaches its end), the site's
-// closing image; at the bottom the copyright line and the language choice (routes.ts `siteLanguages`: each language goes to its own home page, the current one is
-// plain text). The operator's identity and address are on the privacy, terms and contact pages (single source:
-// legal/operator.ts).
-import FooterFlipbook from "./FooterFlipbook.astro";
+// Footer on the paper surface. Left: the brand (logo, one line on what the product is, the Mac download and the App Store
+// badge). Right: three link columns (product, comparisons, company). A hairline, then the closing strip: copyright,
+// privacy, terms and cookies, the EU note and the language choice (routes.ts `siteLanguages`: each language goes to its
+// own home page, the current one is plain text); under it one line of small print naming the business behind the
+// product (legal/operator.ts) and the typeface licences. The page ends there: no closing image.
+import AppStoreBadge from "./AppStoreBadge.astro";
 import Icon from "./Icon.astro";
 import Logo from "./Logo.astro";
 import { productName } from "../config";
@@ -13,74 +12,71 @@ import { copy, type CommonCopy } from "../copy";
 import { type SiteLang, routes, siteLanguages } from "../routes";
 
 interface Props {
-  /** Alt bilginin metinleri; varsayılan İngilizce (`/fi` Fince geçer). */
-  readonly text?: CommonCopy;
-  /** "Ominaisuudet" bağlantısının hedefi; varsayılan ana sayfanın özellikler bölümü. */
-  readonly featuresHref?: string | undefined;
-  /** Sayfanın dili: dil seçiminde bağlantısız gösterilir. */
+  /** Footer text: English or Finnish (`/fi`). */
+  readonly text: CommonCopy;
+  /** Target of the "Features" link (the home page's features section, or the Finnish one). */
+  readonly featuresHref: string;
+  /** The page's language: shown without a link in the language choice. */
   readonly lang: SiteLang;
 }
-const { text = copy.common, featuresHref = `${routes.home}#features`, lang } = Astro.props;
+const { text, featuresHref, lang } = Astro.props;
 const columns: readonly { readonly title: string; readonly links: readonly { readonly href: string; readonly label: string }[] }[] = [
   {
     title: text.footer.product,
     links: [
       { href: featuresHref, label: text.nav.features },
       { href: routes.voiceTyping, label: text.nav.voiceTyping },
+      { href: routes.integrations, label: text.nav.integrations },
+      { href: routes.mcp, label: text.nav.mcp },
+      { href: routes.languages, label: text.nav.languages },
       { href: routes.pricing, label: text.nav.pricing },
       { href: routes.download, label: text.nav.download },
     ],
   },
   {
-    title: text.footer.learn,
+    title: text.footer.compare,
     links: [
-      { href: routes.compare, label: text.nav.compare },
+      { href: routes.compare, label: text.footer.allComparisons },
       { href: routes.vsGranola, label: copy.compare.competitors.granola.title },
       { href: routes.vsOtter, label: copy.compare.competitors.otter.title },
       { href: routes.vsFireflies, label: copy.compare.competitors.fireflies.title },
       { href: routes.vsPoffle, label: copy.compare.competitors.poffle.title },
-      { href: routes.languages, label: text.nav.languages },
-      { href: routes.integrations, label: text.nav.integrations },
-      { href: routes.blog, label: text.nav.blog },
-      { href: routes.mcp, label: text.nav.mcp },
-    ],
-  },
-  {
-    title: text.footer.account,
-    links: [
-      { href: routes.signIn, label: text.nav.signIn },
-      { href: routes.account, label: text.nav.account },
     ],
   },
   {
     title: text.footer.company,
     links: [
+      { href: routes.blog, label: text.nav.blog },
       { href: routes.contact, label: text.nav.contact },
+      { href: routes.account, label: text.footer.yourAccount },
       { href: routes.privacy, label: text.nav.privacy },
       { href: `${routes.privacy}#at-a-glance`, label: text.nav.dataHandling },
       { href: routes.terms, label: text.nav.terms },
-      { href: `${routes.privacy}#website`, label: text.footer.cookies },
-      { href: "/fonts/Inter-OFL.txt", label: text.footer.fontLicense },
-      { href: "/fonts/Newsreader-OFL.txt", label: text.footer.serifFontLicense },
     ],
   },
 ];
 ---
 
 <footer class="site-footer">
-  <div class="page site-footer__grid">
+  <div class="page site-footer__top">
     <div class="site-footer__about">
       <a class="site-footer__brand" href={routes.home} aria-label={text.homeLabel}>
         <Logo size={28} />
         <span>{productName}</span>
       </a>
-      <p class="site-footer__tagline">{text.footer.tagline}</p>
-      <p class="site-footer__made">{text.footer.madeIn}</p>
+      <p class="site-footer__summary">{text.footer.summary}</p>
+      <div class="site-footer__get">
+        <a class="button button--primary site-footer__download" href={routes.download}>
+          <Icon name="apple" size={15} class="button__apple" />
+          {text.downloadCta}
+        </a>
+        <AppStoreBadge language={text.appStoreBadge.language} label={text.appStoreBadge.label} height={44} class="site-footer__badge" />
+      </div>
     </div>
     {
       columns.map((column) => (
-        <nav aria-label={column.title}>
-          <h2 class="site-footer__title">{column.title}</h2>
+        <nav class="site-footer__column" aria-label={column.title}>
+          <p class="site-footer__title">{column.title}</p>
           <ul class="site-footer__links">
             {column.links.map((link) => (
               <li>
@@ -91,18 +87,48 @@ const columns: readonly { readonly title: string; readonly links: readonly { rea
         </nav>
       ))
     }
+    {/* Phones: the same groups as closed disclosures (44 px rows), so the footer stays short. */}
+    <div class="site-footer__accordion">
+      {
+        columns.map((column) => (
+          <details class="site-footer__group">
+            <summary class="site-footer__summary-row">
+              {column.title}
+              <Icon name="chevron-down" size={16} class="site-footer__chevron" />
+            </summary>
+            <ul class="site-footer__links">
+              {column.links.map((link) => (
+                <li>
+                  <a href={link.href}>{link.label}</a>
+                </li>
+              ))}
+            </ul>
+          </details>
+        ))
+      }
+    </div>
   </div>
-  <FooterFlipbook />
   <div class="page site-footer__bottom">
-    <p>{text.footer.copyright}</p>
+    <div class="site-footer__legal">
+      <p>{text.footer.copyright}</p>
+      <ul>
+        <li><a href={routes.privacy}>{text.footer.privacyShort}</a></li>
+        <li><a href={routes.terms}>{text.footer.termsShort}</a></li>
+        <li><a href={`${routes.privacy}#website`}>{text.footer.cookies}</a></li>
+      </ul>
+    </div>
+    <p class="site-footer__eu">
+      <Icon name="shield" size={14} class="site-footer__icon" />
+      {text.footer.euNote}
+    </p>
     <nav class="site-footer__languages" aria-label={text.footer.language}>
-      <Icon name="globe" size={15} class="site-footer__globe" />
+      <Icon name="globe" size={14} class="site-footer__icon" />
       <ul>
         {
           siteLanguages.map((language) => (
             <li>
               {language.lang === lang ? (
-                <span class="site-footer__language--current">{language.label}</span>
+                <span class="site-footer__language--current" aria-current="true">{language.label}</span>
               ) : (
                 <a href={routes[language.page]} hreflang={language.lang} lang={language.lang}>
                   {language.label}
@@ -113,29 +139,35 @@ const columns: readonly { readonly title: string; readonly links: readonly { rea
         }
       </ul>
     </nav>
+    <p class="site-footer__fine">
+      {text.footer.operatorLine}{" "}
+      {text.footer.typefaces}{" "}
+      <a href="/fonts/Inter-OFL.txt">Inter</a>, <a href="/fonts/Newsreader-OFL.txt">Newsreader</a> (SIL OFL 1.1).
+    </p>
   </div>
 </footer>
 
 <style>
   .site-footer {
-    margin-top: clamp(64px, 9vw, 120px);
-    padding-top: clamp(56px, 7vw, 88px);
+    margin-top: clamp(64px, 8vw, 112px);
+    padding-top: clamp(56px, 6vw, 80px);
     border-top: 1px solid var(--line);
-    background: var(--bg);
+    background: var(--card);
     font-size: 0.9375rem;
-    overflow: hidden;
   }
 
-  .site-footer__grid {
+  .site-footer__top {
     display: grid;
-    grid-template-columns: minmax(0, 1.6fr) repeat(4, minmax(0, 1fr));
-    gap: 36px 32px;
+    grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr));
+    gap: 40px 32px;
+    padding-bottom: clamp(48px, 5vw, 72px);
   }
 
   .site-footer__about {
     display: grid;
-    gap: 16px;
+    gap: 14px;
     align-content: start;
+    justify-items: start;
   }
 
   .site-footer__brand {
@@ -143,40 +175,46 @@ const columns: readonly { readonly title: string; readonly links: readonly { rea
     align-items: center;
     gap: 10px;
     min-height: 44px;
-    width: fit-content;
     font-weight: 600;
     font-size: 1.0625rem;
     letter-spacing: -0.02em;
     text-decoration: none;
   }
 
-  .site-footer__tagline {
-    max-width: 16ch;
-    font-family: var(--serif);
-    font-size: 1.5rem;
-    line-height: 1.15;
-    letter-spacing: -0.01em;
-    text-wrap: balance;
-  }
-
-  .site-footer__made {
+  .site-footer__summary {
+    max-width: 30ch;
     color: var(--muted);
-    font-size: 0.875rem;
+    font-size: 0.9375rem;
+    line-height: 1.55;
   }
 
-  /* Column titles in the serif, like the page headings. */
+  .site-footer__get {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  /* Same height as the App Store badge next to it. */
+  .site-footer__download {
+    min-height: 44px;
+    padding-inline: 18px;
+    font-size: 0.9375rem;
+  }
+
+  /* Column titles: small sans, like the navigation. */
   .site-footer__title {
-    margin-bottom: 14px;
-    font-family: var(--serif);
-    font-size: 1.25rem;
-    font-weight: 400;
-    letter-spacing: -0.005em;
+    margin-bottom: 12px;
     color: var(--ink);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0;
   }
 
   .site-footer__links {
     display: grid;
-    gap: 9px;
+    gap: 2px;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -186,43 +224,72 @@ const columns: readonly { readonly title: string; readonly links: readonly { rea
     text-decoration: none;
   }
 
+  /* Each link is a 36 px row (44 px on touch screens) so the columns stay easy to tap. */
   .site-footer__links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
     color: var(--muted);
-    font-size: 0.875rem;
+    font-size: 0.9375rem;
   }
 
-  .site-footer__links a:hover {
+  .site-footer__links a:hover,
+  .site-footer__legal a:hover,
+  .site-footer__fine a:hover,
+  .site-footer__languages a:hover {
     color: var(--ink);
   }
 
   .site-footer__bottom {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px 24px;
-    padding-block: 18px 24px;
+    gap: 14px 28px;
+    padding-block: 22px 32px;
+    border-top: 1px solid var(--line);
     color: var(--muted);
     font-size: 0.8125rem;
   }
 
+  .site-footer__legal {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 20px;
+  }
+
+  .site-footer__legal ul,
+  .site-footer__languages ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 18px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .site-footer__legal a,
+  .site-footer__languages a,
+  .site-footer__language--current {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+  }
+
+  .site-footer__eu,
   .site-footer__languages {
     display: inline-flex;
     align-items: center;
     gap: 8px;
   }
 
-  .site-footer__languages ul {
-    display: flex;
-    gap: 14px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
+  .site-footer__eu {
+    justify-self: center;
   }
 
-  .site-footer__languages a:hover {
-    color: var(--ink);
-    text-decoration: underline;
+  .site-footer :global(.site-footer__icon) {
+    flex: none;
+    opacity: 0.8;
   }
 
   .site-footer__language--current {
@@ -230,13 +297,104 @@ const columns: readonly { readonly title: string; readonly links: readonly { rea
     font-weight: 600;
   }
 
-  @media (max-width: 900px) {
-    .site-footer__grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+  .site-footer__fine {
+    grid-column: 1 / -1;
+    max-width: 80ch;
+    font-size: 0.75rem;
+    line-height: 1.6;
+    opacity: 0.9;
+  }
+
+  .site-footer__fine a {
+    text-decoration: underline;
+    text-decoration-color: var(--line);
+  }
+
+  @media (max-width: 960px) {
+    .site-footer__top {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .site-footer__about {
       grid-column: 1 / -1;
+    }
+
+    .site-footer__bottom {
+      grid-template-columns: 1fr auto;
+    }
+
+    .site-footer__eu {
+      justify-self: start;
+      grid-row: 2;
+    }
+  }
+
+  .site-footer__accordion {
+    display: none;
+  }
+
+  @media (max-width: 640px) {
+    .site-footer__top {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 28px;
+      padding-bottom: 32px;
+    }
+
+    .site-footer__column {
+      display: none;
+    }
+
+    .site-footer__accordion {
+      display: block;
+      border-top: 1px solid var(--line);
+    }
+
+    .site-footer__group {
+      border-bottom: 1px solid var(--line);
+    }
+
+    .site-footer__summary-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 52px;
+      font-weight: 600;
+      font-size: 0.9375rem;
+      list-style: none;
+      cursor: pointer;
+    }
+
+    .site-footer__summary-row::-webkit-details-marker {
+      display: none;
+    }
+
+    .site-footer :global(.site-footer__chevron) {
+      color: var(--muted);
+      transition: transform 200ms ease;
+    }
+
+    .site-footer__group[open] :global(.site-footer__chevron) {
+      transform: rotate(180deg);
+    }
+
+    .site-footer__group .site-footer__links {
+      padding-bottom: 10px;
+    }
+
+    .site-footer__links a,
+    .site-footer__legal a,
+    .site-footer__languages a,
+    .site-footer__language--current {
+      min-height: 44px;
+    }
+
+    .site-footer__bottom {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .site-footer__eu {
+      grid-row: auto;
     }
   }
 </style>

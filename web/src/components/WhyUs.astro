@@ -2,6 +2,7 @@
 // Karşılaştırma sayfalarının başındaki vurgulu özet (/compare ve /vs/*): ürünü seçmek için başlıca nedenler ve indirme
 // sayfasına düğme (CtaBand gibi: doğrudan DMG bağlantısı yok, indirme kaynağı sunucunun izin listesindedir). Metinler
 // copy.ts `compare.why`'dan; rakip değerlerinden bağımsız ürün gerçekleridir.
+import AppStoreBadge from "./AppStoreBadge.astro";
 import Icon from "./Icon.astro";
 import { copy, type CompareCopy, type IconText } from "../copy";
 import { routes } from "../routes";
@@ -18,11 +19,13 @@ const text: CompareCopy = copy.compare;
   <div class="why__head">
     <h2 class="title-m" id={id}>{text.why.title}</h2>
     <div class="why__actions">
-      <a class="button button--primary button--small" href={routes.download}>
+      <a class="button button--primary button--small why__button not-ios" href={routes.download}>
         <Icon name="apple" size={14} class="button__apple" />
         {copy.common.downloadCta}
       </a>
-      <a class="button button--secondary button--small" href={routes.pricing}>{copy.home.secondaryCta}</a>
+      {/* On an iPhone or iPad the App Store badge leads (src/client/platform.js). */}
+      <AppStoreBadge language={copy.common.appStoreBadge.language} label={copy.common.appStoreBadge.label} height={44} class="ios-only" />
+      <a class="button button--secondary button--small why__button" href={routes.pricing}>{copy.home.secondaryCta}</a>
     </div>
   </div>
   <ul class="why__grid">
@@ -61,7 +64,13 @@ const text: CompareCopy = copy.compare;
   .why__actions {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 10px;
+  }
+
+  /* Same height as the App Store badge, and a comfortable tap target. */
+  .why__button {
+    min-height: 44px;
   }
 
   .why__grid {
@@ -100,6 +109,10 @@ const text: CompareCopy = copy.compare;
   @media (max-width: 560px) {
     .why__grid {
       grid-template-columns: minmax(0, 1fr);
+    }
+
+    .why__item p {
+      font-size: 1rem;
     }
   }
 </style>

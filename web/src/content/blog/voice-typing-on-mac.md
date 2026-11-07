@@ -46,7 +46,7 @@ Dictation apps tend to fall into three groups.
 
 **Local-model apps.** Apps such as Superwhisper run speech recognition models on your Mac, with optional cloud models. They're popular with people who want more control over models and modes. Most have a free tier and a paid plan; check their sites for current prices.
 
-**Voice typing inside another app you already use.** Some meeting note apps now include voice typing as a side feature. Granola lists voice typing in any app on its free plan, and Gistsmith, the app we make, includes it free with any account.
+**Voice typing inside another app you already use.** Some meeting note apps now include voice typing as a side feature. Granola lists voice typing in any app on its free plan (in beta on Mac and Windows, checked November 2026), and Gistsmith, the app we make, includes it free with any account.
 
 For transcribing existing audio files (an interview, a podcast, a voice memo), a file transcription app such as MacWhisper is a better fit than a dictation app.
 
@@ -88,7 +88,7 @@ Gistsmith is a meeting notes app for Mac, but it also does voice typing in any a
 
 It's transcribed on your Mac, and nothing is sent anywhere. It's free with any account, and stays free after the meeting-notes trial ends, so you don't have to subscribe to use it. The [voice typing page](/voice-typing) shows how it works.
 
-If you also want meeting notes, the rest of the app is there: a live transcript of your calls with no bot joining, and a note with your tasks first when the meeting ends. That part is free for 3 meetings or 7 days, then $5.99 a month or $49 a year ([pricing](/pricing)).
+If you also want meeting notes, the rest of the app is there: a live transcript of your calls with no bot joining, and a note with a summary and your own tasks picked out when the meeting ends. That part is free for 3 meetings or 7 days, then $5.99 a month or $49 a year ([pricing](/pricing)).
 
 It runs on Macs with Apple silicon and macOS 15 or later. [Download it here](/download).
 

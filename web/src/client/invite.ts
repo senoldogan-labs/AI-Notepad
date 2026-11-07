@@ -18,7 +18,9 @@ function main(): void {
     return;
   }
   element("invite-code", HTMLElement).textContent = code;
-  element("invite-subscribe", HTMLAnchorElement).href = `${dataValue(root, "accountPath")}?code=${encodeURIComponent(code)}`;
+  const accountWithCode: string = `${dataValue(root, "accountPath")}?code=${encodeURIComponent(code)}`;
+  element("invite-subscribe", HTMLAnchorElement).href = accountWithCode;
+  element("invite-redeem", HTMLAnchorElement).href = accountWithCode;
   element("invite-code-box", HTMLElement).classList.remove("hidden");
 }
 

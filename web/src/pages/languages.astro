@@ -1,5 +1,5 @@
 ---
-// Diller sayfası: sayılar, konuşulan diller, not/çeviri dilleri ve arayüz dilleri tabloları (lib/languages.ts, uygulamanın listeleri),
+// Diller sayfası: sayılar, konuşulan diller, not/çeviri dilleri ve arayüz dilleri (dil kutucukları; kendi adı ve İngilizce adı) (lib/languages.ts, uygulamanın listeleri),
 // Türkçe ve Fince, karışık dilli toplantılar ve sık sorulan sorular (JSON-LD `FAQPage` ve gezinti izi). Metinler
 // copy.ts `languages`'tan.
 import Base from "../layouts/Base.astro";
@@ -9,7 +9,7 @@ import { copy, type LanguagesCopy, type StatCopy, type TitledText } from "../cop
 import { type AppLanguage, interfaceLanguages, noteLanguages, spokenLanguages } from "../lib/languages";
 import { websiteCard } from "../lib/social";
 import { infoPageStructuredData, structuredDataJson } from "../lib/structured-data";
-import { pageUrl } from "../routes";
+import { pageUrl, routes } from "../routes";
 import { siteConfig } from "../site";
 
 const text: LanguagesCopy = copy.languages;
@@ -65,28 +65,14 @@ const tables: readonly { readonly id: string; readonly title: string; readonly l
           </h2>
           <p class="muted">{table.lead}</p>
         </div>
-        <div class="language-table" role="region" aria-labelledby={`${table.id}-title`} tabindex="0">
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">{text.columns.name}</th>
-                <th scope="col">{text.columns.native}</th>
-                <th scope="col">{text.columns.code}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {table.languages.map((language: AppLanguage) => (
-                <tr id={`${table.id}-${language.code}`}>
-                  <th scope="row">{language.name}</th>
-                  <td lang={language.code}>{language.nativeName}</td>
-                  <td>
-                    <code>{language.code}</code>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ul class="language-grid" aria-labelledby={`${table.id}-title`}>
+          {table.languages.map((language: AppLanguage) => (
+            <li class="language-chip" id={`${table.id}-${language.code}`}>
+              <span class="language-chip__native" lang={language.code}>{language.nativeName}</span>
+              {language.nativeName === language.name ? null : <span class="language-chip__name">{language.name}</span>}
+            </li>
+          ))}
+        </ul>
       </section>
     ))
   }
@@ -110,7 +96,7 @@ const tables: readonly { readonly id: string; readonly title: string; readonly l
     <Faq items={text.faq} />
   </section>
 
-  <CtaBand id="languages-cta-title" title={copy.compare.ctaTitle} text={copy.compare.ctaText} photo="pastel-ridges" />
+  <CtaBand id="languages-cta-title" title={copy.compare.ctaTitle} text={copy.compare.ctaText} common={copy.common} macHref={routes.download} />
 </Base>
 
 <style>
@@ -169,53 +155,55 @@ const tables: readonly { readonly id: string; readonly title: string; readonly l
     gap: 10px;
   }
 
-  .language-table {
-    overflow-x: auto;
+  /* Languages as chips: the language's own name, with the English name under it when it differs. */
+  .language-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .language-chip {
+    display: grid;
+    align-content: center;
+    gap: 2px;
+    min-height: 64px;
+    padding: 12px 16px;
     border: 1px solid var(--line);
-    border-radius: var(--radius-m);
+    border-radius: var(--radius-s);
     background: var(--card);
+    scroll-margin-top: 104px;
   }
 
-  .language-table:focus-visible {
-    outline: 2px solid var(--focus);
-    outline-offset: 2px;
-  }
-
-  .language-table table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.9375rem;
-  }
-
-  .language-table th,
-  .language-table td {
-    padding: 10px 18px;
-    text-align: left;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .language-table tbody tr:last-child th,
-  .language-table tbody tr:last-child td {
-    border-bottom: 0;
-  }
-
-  .language-table thead th {
-    background: var(--soft);
-    font-size: 0.875rem;
-    font-weight: 600;
-  }
-
-  .language-table tbody th {
+  .language-chip__native {
     font-weight: 500;
+    line-height: 1.3;
   }
 
-  .language-table td {
+  .language-chip__name {
     color: var(--muted);
+    font-size: 0.875rem;
+    line-height: 1.3;
   }
 
-  .language-table code {
-    font-family: var(--mono);
-    font-size: 0.875rem;
+  @media (max-width: 1100px) {
+    .language-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 860px) {
+    .language-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 560px) {
+    .language-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
   }
 
   @media (max-width: 1000px) {

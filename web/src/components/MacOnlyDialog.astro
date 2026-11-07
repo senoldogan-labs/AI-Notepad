@@ -22,11 +22,11 @@ const mailHref: string = `mailto:?subject=${encodeURIComponent(copy.emailSubject
 
 <dialog id="mac-only" class="dialog mac-only" aria-labelledby="mac-only-title" data-share-url={shareUrl}>
   <form method="dialog" class="dialog__form">
-    <h2 class="title-m" id="mac-only-title">
+    <p class="title-m" id="mac-only-title">
       <span data-mac-only-show="not-mac">{copy.notMacTitle}</span>
       <span data-mac-only-show="intel">{copy.intelTitle}</span>
       <span data-mac-only-show="old-macos">{copy.oldMacosTitle}</span>
-    </h2>
+    </p>
     <p class="muted">
       <span data-mac-only-show="not-mac">{copy.notMacText}</span>
       <span data-mac-only-show="intel">{copy.intelText}</span>

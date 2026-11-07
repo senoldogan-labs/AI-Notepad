@@ -8,7 +8,7 @@ draft: false
 
 A meeting ends with everyone agreeing on what happens next. Two days later, three people remember three different versions. The follow-up email is how you stop that from happening: a short written record, sent while the meeting is still fresh, of what was decided and who's doing what.
 
-It's also one of the easiest ways to look organised. Most people mean to send one and don't. Here's a template that takes five minutes, and what to leave out so people actually read it.
+It's also one of the easiest ways to look organized. Most people mean to send one and don't. Here's a template that takes five minutes, and what to leave out so people actually read it.
 
 ## The template
 
@@ -121,9 +121,9 @@ A five-minute check-in with one person rarely needs a follow-up email; a chat me
 
 Writing the email is quick. Remembering the decisions and tasks accurately is the hard part, especially if you were also running the meeting.
 
-Gistsmith, the Mac app we make, writes a note when the meeting ends, with your tasks first, then a summary, decisions and a glossary. From that note, the **Follow-up email** recipe drafts this exact email: a subject line, thanks, the decisions, who does what by when, and the next step, written in the language the meeting was held in. You read it, fix anything that's off, and send it from your own email.
+Gistsmith, the Mac app we make, writes a note when the meeting ends, with a summary, your own tasks picked out with due dates, decisions and a glossary. From that note, the **Follow-up email** recipe drafts this exact email: a subject line, thanks, the decisions, who does what by when, and the next step, written in the language the meeting was held in. You read it, fix anything that's off, and send it from your own email.
 
-It listens on your Mac with no bot in the call, and runs on Macs with Apple silicon and macOS 15 or later. The first 3 meetings or 7 days are free without a card; after that it's $5.99 a month or $49 a year.
+It listens on your Mac with no bot in the call, and runs on Macs with Apple silicon and macOS 15 or later, and on iPhone (iOS 26.1 or later) for meetings in the room. The first 3 meetings or 7 days are free without a card; after that it's $5.99 a month or $49 a year.
 
 Whatever writes the first draft, read it before you send it. The follow-up is a promise to the people who were there, and it should say what they agreed, not what a tool guessed.
 

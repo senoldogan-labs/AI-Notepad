@@ -14,7 +14,8 @@
 #   istatistikler-bos sor-bos; giriş kapısı
 #   ve karşılama: giris kurulum kurulum-takvim kurulum-takvim-bagli kurulum-izinler kurulum-ornek-giris kurulum-ornek
 #   kurulum-not kurulum-hazir
-# Koyu tema: GISTSMITH_THEME=dark scripts/make-screenshots.sh … (varsayılan açık; site sahneleri açık temada çekilir).
+# Koyu tema: GISTSMITH_THEME=dark scripts/make-screenshots.sh … (varsayılan açık); koyu site sahneleri <ad>-dark.webp olarak
+# yazılır (site koyu temada onları gösterir).
 # Sahneler App/DemoData.swift'teki `DemoScene` ile aynıdır (biri değişirse ikisi birlikte değişir).
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -138,6 +139,10 @@ for scene in "${scenes[@]}"; do
             continue
             ;;
     esac
+    # The dark theme's shots sit next to the light ones (`<ad>-dark.webp`; the site picks by theme, AppShot.astro).
+    if [ "$theme" = "dark" ]; then
+        asset="$asset-dark"
+    fi
     cwebp -quiet -q 94 -m 6 -alpha_q 100 "$out/$scene.png" -o "$assets/$asset.webp"
     echo "$assets/$asset.webp ($(sips -g pixelWidth -g pixelHeight "$out/$scene.png" | awk '/pixel/ { printf "%s ", $2 }'))"
 done

@@ -28,13 +28,13 @@ How it works in practice:
 Teams has two layers:
 
 - **Intelligent recap** gives AI-generated notes, chapters and suggested tasks after a recorded or transcribed meeting. It's part of Teams Premium, and Microsoft 365 Copilot includes it too.
-- **Copilot in Teams meetings** lets you ask questions during and after the meeting ("What did we decide about the budget?") and draft follow-ups. It needs a **Microsoft 365 Copilot** licence for each user, which is a paid add-on to a Microsoft 365 plan.
+- **Copilot in Teams meetings** lets you ask questions during and after the meeting ("What did we decide about the budget?") and draft follow-ups. It needs a **Microsoft 365 Copilot** license for each user, which is a paid add-on to a Microsoft 365 plan.
 
-In 2026 Microsoft also brought recaps together in a dedicated Recap app in Teams, and added a way to get an AI recap without keeping the transcript, for organisations whose policies don't allow stored transcripts.
+In 2026 Microsoft also brought recaps together in a dedicated Recap app in Teams, and added a way to get an AI recap without keeping the transcript, for organizations whose policies don't allow stored transcripts.
 
 How it works in practice:
 
-- **Your organisation decides.** Admins control transcription, recording and Copilot policies, and licences are assigned per person.
+- **Your organization decides.** Admins control transcription, recording and Copilot policies, and licenses are assigned per person.
 - **It usually needs transcription on.** No transcript, no recap, except where the transcript-free option is enabled.
 - **It covers Teams meetings.** A client's Zoom call is outside its reach.
 
@@ -54,7 +54,7 @@ Put the three side by side and the same thing shows up each time: **the built-in
 
 That's a sensible design for a company that runs every meeting on one platform and pays for the upgrade. It leaves gaps for a lot of people:
 
-- **Guests.** In a partner's Teams meeting, what you get depends on your own licence and on their settings, and the recording and transcript stay in their organisation. In a Zoom or Meet meeting you don't host, you get the summary only if the host shares it.
+- **Guests.** In a partner's Teams meeting, what you get depends on your own license and on their settings, and the recording and transcript stay in their organization. In a Zoom or Meet meeting you don't host, you get the summary only if the host shares it.
 - **Mixed platforms.** Freelancers, consultants, salespeople and anyone who works with other companies end up on all three apps in one week. Their notes end up in three places, in three formats, or not at all.
 - **Languages.** If your meetings are in a language the built-in notes don't support well, you're back to typing.
 - **Search across everything.** "What did we agree with that client in March?" is hard to answer when March's meetings are spread over three platforms and two companies' accounts.
@@ -63,7 +63,7 @@ That's a sensible design for a company that runs every meeting on one platform a
 
 Stick with what you have if:
 
-- Nearly all your meetings are on one platform, in your own organisation.
+- Nearly all your meetings are on one platform, in your own organization.
 - Your company already pays for the AI tier.
 - Your meetings are in a well-supported language.
 - You're happy for notes to live in the platform (Zoom, Teams or Google Docs) and be governed by your admins.
@@ -78,22 +78,22 @@ A note app that runs on your own computer, independent of the call platform, is 
 - **You use more than one call app**, or meet in person as well.
 - **You want one searchable place** for all your meetings, wherever they happened.
 - **Your meetings are in other languages**, or switch between them.
-- **You'd rather keep notes on your own device** than in an organiser's cloud account.
+- **You'd rather keep notes on your own device** than in an organizer's cloud account.
 
-There's one important rule if you do: a note app on your computer doesn't show up in the call, so telling people you're recording is your job. We wrote about [how to do that](/blog/meeting-notes-on-mac-without-a-bot). And if your company has a policy on AI tools, follow it; some organisations allow only the built-in option.
+There's one important rule if you do: a note app on your computer doesn't show up in the call, so telling people you're recording is your job. We wrote about [how to do that](/blog/meeting-notes-on-mac-without-a-bot). And if your company has a policy on AI tools, follow it; some organizations allow only the built-in option.
 
 ## Where Gistsmith fits
 
 Gistsmith, the Mac app we make, is the "separate note app" kind. It listens to your Mac's audio and microphone, so it works the same in Zoom, Teams, Google Meet, browser calls and meetings in a room, with no bot and nothing for the host to enable.
 
-When the meeting ends, the note puts your own tasks first, then a summary, decisions and a glossary. All your meetings sit in one place on your Mac, and you can ask questions across them, with answers linked to the meetings they came from. It transcribes more than 30 languages live and can translate as people talk.
+When the meeting ends, the note gives you a summary, your own tasks picked out with due dates, decisions and a glossary. All your meetings sit in one place on your Mac, and you can ask questions across them, with answers linked to the meetings they came from. It transcribes more than 30 languages live and can translate as people talk.
 
-It isn't a replacement for a company-wide platform: it has one personal plan, not admin controls for a whole organisation, and it runs only on Macs with Apple silicon and macOS 15 or later, plus an iPhone app for meetings in the room. It's free for 3 meetings or 7 days, with no card; then $5.99 a month or $49 a year. See [pricing](/pricing), or read our [AI note-taker pricing overview](/blog/ai-note-taker-pricing-2026) for how other apps compare.
+It isn't a replacement for a company-wide platform: it has one personal plan, not admin controls for a whole organization, and it runs only on Macs with Apple silicon and macOS 15 or later, plus an iPhone app for meetings in the room. It's free for 3 meetings or 7 days, with no card; then $5.99 a month or $49 a year. See [pricing](/pricing), or read our [AI note-taker pricing overview](/blog/ai-note-taker-pricing-2026) for how other apps compare.
 
 ## The short version
 
 - **Zoom:** AI summaries are included with eligible paid plans; the host turns them on and owns them.
-- **Teams:** intelligent recap with Teams Premium or Copilot; Copilot in meetings needs a per-user licence.
+- **Teams:** intelligent recap with Teams Premium or Copilot; Copilot in meetings needs a per-user license.
 - **Meet:** "Take notes for me" on Business Standard and up, or Google AI Pro and Ultra; notes go to the owner's Drive.
 - Built-in notes are enough if you mostly host meetings on one platform your company pays for.
 - A separate app helps if you're often the guest, use several platforms or languages, or want one searchable place.

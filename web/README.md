@@ -72,7 +72,7 @@ betikteki örnek verilerle karşılanır (yalnızca görünüm denetimi; sunucu 
 Yalnızca kaynak değişince elle çalıştırılanlar (çıktıları repodadır): `node scripts/make-iphone-shots.ts home=<çekim.png>
 live=<çekim.png> ask=<çekim.png>` (iPhone ekranlarını telefon çerçevesine koyar → `src/assets/screenshots/iphone-<ad>.webp`;
 çekimler App Store çekim hattının ham görüntüleridir, `.build/appstore-screenshots/raw/`), `scripts/subset-font.sh` (yazı tipi),
-`node scripts/make-flipbook.ts` (alt bilgideki kaydırmayla oynayan göl sahnesi: 36 WebP kare → `src/assets/flipbook/`, toplam 600 KB bütçesi aşılırsa hata; `src/client/flipbook.ts` kareleri sayfa yüklendikten ve alt bilgi yaklaşınca indirir, hareket azaltılmışsa tek kare kalır), `node scripts/make-grain.ts <chrome>` (film greni `public/grain.webp` ve `.png`, `scripts/grain.svg`'den), `node scripts/make-og.ts <site> <chrome>`
+`node scripts/make-grain.ts <chrome>` (film greni `public/grain.webp` ve `.png`, `scripts/grain.svg`'den), `node scripts/make-og.ts <site> <chrome>`
 (paylaşım kartı `public/og.png`, site sunulurken; ürün adını `productName`'den alır).
 
 **Paylaşım görselleri.** Chrome'un 1200×630 ekran görüntüsü gren yüzünden ~1,1 MB'tır; bazı önizleyiciler (ör. WhatsApp)

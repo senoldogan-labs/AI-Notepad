@@ -5,10 +5,10 @@
 // the given widths; they always load lazily, and the home hero's is preloaded on wide screens (`priority`). iPhone
 // screens are not drawn here: the home page's iPhone section shows them in a device frame (scripts/make-iphone-shots.ts). Placement of the panel (`variant`) and narrow-screen zoom are set by the page
 // (Landing.astro).
-import { Picture } from "astro:assets";
 import type { ImageMetadata } from "astro";
 import ImagePreload from "./ImagePreload.astro";
 import PhotoPanel from "./PhotoPanel.astro";
+import ThemedShot, { type MobileShot } from "./ThemedShot.astro";
 import type { PhotoFocus, PhotoName } from "../lib/photos";
 
 /** The panel's shape: a wide window (main window) or a narrow panel (live panel). */
@@ -25,6 +25,10 @@ export interface ShotCallout {
 
 interface Props {
   readonly image: ImageMetadata;
+  /** The same screen in the dark theme (`<ad>-dark.webp`). */
+  readonly dark: ImageMetadata;
+  /** A tighter crop for phones (below 641 px), or null to scale the whole window. */
+  readonly mobile: MobileShot | null;
   readonly alt: string;
   readonly photo: PhotoName;
   readonly focus: PhotoFocus;
@@ -42,7 +46,7 @@ interface Props {
   readonly class: string;
   readonly callouts: readonly ShotCallout[];
 }
-const { image, alt, photo, focus, variant, widths, sizes, photoSizes, priority, class: extraClass, callouts } = Astro.props;
+const { image, dark, mobile, alt, photo, focus, variant, widths, sizes, photoSizes, priority, class: extraClass, callouts } = Astro.props;
 /** AVIF quality of the screenshot: interface text stays crisp at 62 (checked against 72), ~20 % smaller. */
 const quality: number = 62;
 ---
@@ -51,18 +55,7 @@ const quality: number = 62;
 <figure class:list={["shot", `shot--${variant}`, extraClass]}>
   <PhotoPanel photo={photo} focus={focus} widths={[640, 960, 1280, 1920, 2560, 3840]} sizes={photoSizes} priority="lazy" class="shot__cover">
     <div class="shot__frame">
-      <Picture
-        src={image}
-        alt={alt}
-        formats={["avif"]}
-        fallbackFormat="webp"
-        widths={[...widths]}
-        sizes={sizes}
-        quality={quality}
-        loading="lazy"
-        decoding="async"
-        class="shot__image"
-      />
+      <ThemedShot light={image} dark={dark} mobile={mobile} alt={alt} widths={widths} sizes={sizes} loading="lazy" class="shot__image" />
       {
         callouts.map((callout: ShotCallout) => (
           <span class:list={["shot__callout", `shot__callout--${callout.side}`, callout.class]} aria-hidden="true">
@@ -104,9 +97,6 @@ const quality: number = 62;
     position: relative;
   }
 
-  .shot__frame > :global(picture) {
-    display: block;
-  }
 
   /* Açıklama balonu: nokta öğenin üstünde (konum sayfanın CSS'inde), balon yanında. Durgundur. */
   .shot__callout {
@@ -148,7 +138,7 @@ const quality: number = 62;
 
   /* Dar ekranda Home pencereyi büyütüp kaydırabilir (`--shot-zoom`, `--shot-shift`); yoksa pencere kartın içine sığar. */
   /* Gölge görselin saydamlığını izler (pencerenin yuvarlak köşeleri); görsel durgun, gölge bir kez çizilir. */
-  .shot :global(.shot__image) {
+  .shot :global(.shot__image img) {
     display: block;
     width: var(--shot-zoom, 100%);
     max-width: none;

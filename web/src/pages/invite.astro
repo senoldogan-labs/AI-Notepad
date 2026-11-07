@@ -23,12 +23,14 @@ const common: CommonCopy = copy.common;
       <h1 class="title-xl">{text.title}</h1>
       <p class="lead">{text.lead}</p>
       <div class="invite-hero__actions">
-        <a class="button button--primary" href={routes.download}>
+        <a id="invite-redeem" class="button button--primary" href={routes.account}>{text.redeem}</a>
+        <a class="button button--secondary not-ios" href={routes.download}>
           <Icon name="apple" size={16} class="button__apple" />
           {common.downloadCta}
         </a>
-        <a class="button button--secondary" href={routes.pricing}>{common.nav.pricing}</a>
+        <a class="button button--secondary ios-only" href={routes.pricing}>{common.nav.pricing}</a>
       </div>
+      <p class="muted invite-hero__note">{text.redeemNote}</p>
     </div>
     <PhotoPanel photo="pink-sands" focus="center" widths={halfPhotoWidths} sizes="(max-width: 860px) calc(100vw - 40px), 720px" priority="lazy" class="invite-hero__cover">
       <div id="invite-code-box" class="glass code-box hidden">
@@ -107,6 +109,17 @@ const common: CommonCopy = copy.common;
     flex-wrap: wrap;
     gap: 12px;
     margin-top: 6px;
+  }
+
+  .invite-hero__note {
+    max-width: 34rem;
+  }
+
+  /* The inline terms link gets a 44 px tall hit area without changing the line. */
+  .rules .text-link {
+    display: inline-block;
+    padding-block: 11px;
+    margin-block: -11px;
   }
 
   .invite-hero :global(.invite-hero__cover) {

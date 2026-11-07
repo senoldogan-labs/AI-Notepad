@@ -107,6 +107,15 @@ const updated: string = new Intl.DateTimeFormat(siteLocale, { dateStyle: "long",
     background: var(--soft);
   }
 
+  /* Touch screens: 44 px rows. */
+  @media (max-width: 860px) {
+    .legal__toc a {
+      align-items: center;
+      min-height: 44px;
+      font-size: 0.9375rem;
+    }
+  }
+
   .legal__toc-number {
     flex: none;
     min-width: 1.4em;

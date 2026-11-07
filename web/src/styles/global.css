@@ -1,7 +1,7 @@
 /* Product site (docs/superpowers/specs/2026-11-05-site-design-language.md): white page with warm paper bands (near-black
    in dark mode), soft ink and one orange accent; Newsreader for headings at one regular weight (hierarchy by size),
    Inter for text and UI; warm desert photographs and our own soft 3D wave renders (`.photo`) with app windows over
-   them; the horizon waveform and the footer's Finnish-lake flip-book as signatures. Nothing blurred or filtered ever
+   them; the orange horizon waveform as the signature. Nothing blurred or filtered ever
    animates; content only fades and slides in, and not at all under "reduce motion". */
 
 @font-face {
@@ -39,7 +39,7 @@
   /* Palette: white page, warm off-white paper surfaces, soft ink, hairlines with a warm tint; the one
      colour is Gistsmith's orange on the main call to action. */
   --bg: light-dark(#ffffff, #0f0f0e);
-  --card: light-dark(#f7f7f2, #171715);
+  --card: light-dark(#f7f7f2, #1a1917);
   --line: light-dark(#e4e3dc, #2b2b28);
   --soft: light-dark(#f2f2ec, #1c1c1a);
   --selected: light-dark(#eaebe5, #262623);
@@ -56,7 +56,7 @@
   --accent-soft: light-dark(#fbe6d8, #3a1d0e);
   --hairline: light-dark(rgb(71 67 42 / 0.2), rgb(242 242 238 / 0.14));
   /* The night band (privacy on the home page): near-black in both themes, a step lighter than the black dark page. */
-  --night: light-dark(#292929, #222220);
+  --night: light-dark(#292929, #1d1c19);
   --on-night: #f2f2f2;
   --on-night-muted: #ababab;
   --night-line: rgb(242 242 242 / 0.16);
@@ -74,14 +74,15 @@
   /* Reading measure for text blocks; photographs and windows use the page width. */
   --measure: 50rem;
   --gutter: clamp(20px, 4vw, 40px);
-  --section: clamp(88px, 11vw, 152px);
+  --section: clamp(64px, 10vw, 144px);
   --font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --serif: "Newsreader", "Newsreader Fallback", Georgia, serif;
   --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
   /* Type scale (desktop → 360 px). The serif has a single weight: size carries the hierarchy. */
-  --step-display: clamp(3rem, 1rem + 6vw, 7rem);
-  --step-1: clamp(2.75rem, 1rem + 5.2vw, 6.75rem);
-  --step-2: clamp(2.125rem, 1.4rem + 2.4vw, 3.25rem);
+  /* Home hero 96–104 px on wide screens; inner page titles 56–64 px; section titles 40–48 px. */
+  --step-display: clamp(3rem, 1.2rem + 5.6vw, 6.5rem);
+  --step-1: clamp(2.5rem, 1.5rem + 2.8vw, 4rem);
+  --step-2: clamp(2rem, 1.4rem + 1.8vw, 3rem);
   --step-3: clamp(1.625rem, 1.3rem + 1vw, 2rem);
   --step-4: clamp(1.375rem, 1.25rem + 0.4vw, 1.5rem);
   --step-lead: clamp(1.125rem, 1.02rem + 0.4vw, 1.3125rem);
@@ -421,6 +422,17 @@ p {
   min-height: 40px;
   padding: 0 16px;
   font-size: 0.875rem;
+}
+
+/* Touch screens: small buttons and standalone text links get a 44 px tap target. */
+@media (max-width: 860px) {
+  .button--small {
+    min-height: 44px;
+  }
+
+  .text-link {
+    min-height: 44px;
+  }
 }
 
 .button--block {
@@ -1094,8 +1106,8 @@ p {
 
 /* ---------- Page building blocks ----------
    Bands (white, paper surface, night, accent), the small serif kicker above big headings, the feature row (hairline,
-   title left, text right, a wide photograph below), the facts wall on the night band and the closing split band
-   (photograph · paper · photograph). Shared by the home page and the inner pages. */
+   title left, text right, a wide photograph below) and the facts wall on the night band. Shared by the home page and
+   the inner pages. (The closing call to action is CtaBand.astro.) */
 
 .band {
   padding-block: var(--section);
@@ -1108,6 +1120,26 @@ p {
 .band--night {
   background: var(--night);
   color: var(--on-night);
+}
+
+/* In the dark theme the night band is only a step lighter than the page: hairlines mark its edges. */
+:root[data-theme="dark"] .band--night,
+:root[data-theme="dark"] .band--surface {
+  border-block: 1px solid var(--line);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .band--night,
+  :root:not([data-theme]) .band--surface {
+    border-block: 1px solid var(--line);
+  }
+}
+
+/* Platform-specific calls to action (src/client/platform.js sets `data-platform="ios"` before the first paint on an
+   iPhone or iPad): the App Store badge leads there, the Mac download everywhere else. */
+:root:not([data-platform="ios"]) .ios-only,
+:root[data-platform="ios"] .not-ios {
+  display: none !important;
 }
 
 .band--night .muted,
@@ -1205,52 +1237,4 @@ p {
   width: 24px;
   height: 24px;
   color: var(--on-night);
-}
-
-/* Closing split band: photograph · paper card · photograph (the closing call on every page). */
-.split-band {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr);
-  min-height: clamp(460px, 44vw, 600px);
-}
-
-.split-band__photo {
-  border-radius: 0;
-  min-height: 220px;
-}
-
-.split-band__paper {
-  display: grid;
-  align-content: center;
-  justify-items: start;
-  gap: 22px;
-  padding: clamp(40px, 6vw, 80px) clamp(28px, 5vw, 64px);
-  background: var(--card);
-}
-
-.split-band__paper h2 {
-  max-width: 13ch;
-}
-
-.split-band__paper p {
-  max-width: 30rem;
-  color: var(--muted);
-  font-size: 1.125rem;
-}
-
-.split-band__actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-}
-
-@media (max-width: 860px) {
-  .split-band {
-    grid-template-columns: 1fr;
-  }
-
-  .split-band__photo:last-child {
-    display: none;
-  }
 }

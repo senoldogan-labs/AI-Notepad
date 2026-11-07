@@ -1,6 +1,6 @@
 // Üst çubuk: sekmenin oturumu sahiplenilir (kopya sekme, bkz. session.ts); oturum varsa "Giriş yap" bağlantıları
-// hesap sayfasına gider ve "Hesap" yazar. Dar ekrandaki menü (`<details class="menu">`) Escape'le ya da dışına
-// tıklanınca kapanır.
+// hesap sayfasına gider ve "Hesap" yazar. Dar ekrandaki menü (`<details class="menu">`) Escape'le, dışına tıklanınca ya
+// da sayfa kaydırılınca kapanır (açık menünün arkasında sayfa kaymaz gibi görünmesin).
 import { MissingElementError, dataValue, element } from "./dom";
 import { claimTabSession, hasSession } from "./session";
 
@@ -43,6 +43,21 @@ function closeMenuOnDismiss(header: HTMLElement): void {
       menu.open = false;
     }
   });
+  // Scrolling the page more than a few pixels closes the open menu.
+  const scrollTolerance: number = 24;
+  let openedAt: number = window.scrollY;
+  menu.addEventListener("toggle", (): void => {
+    openedAt = window.scrollY;
+  });
+  window.addEventListener(
+    "scroll",
+    (): void => {
+      if (menu.open && Math.abs(window.scrollY - openedAt) > scrollTolerance) {
+        menu.open = false;
+      }
+    },
+    { passive: true },
+  );
 }
 
 /** Sayfa kaydırılınca üst çubuk yüzen hapa döner (`is-scrolled`); en üstte sayfanın üstünde durur. */

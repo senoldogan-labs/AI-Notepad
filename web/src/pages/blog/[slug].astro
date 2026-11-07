@@ -67,11 +67,13 @@ const structuredData: string = structuredDataJson(
   <script is:inline type="application/ld+json" set:html={structuredData} />
   <article class="post">
     <header class="post__head">
-      <a class="text-link small post__back" href={routes.blog}>{text.backToBlog}</a>
-      <BlogCover post={post} class="post__cover" sizes="(max-width: 760px) calc(100vw - 40px), 760px" eager={true}>
+      <nav class="post__back" aria-label={text.eyebrow}>
+        <a class="text-link" href={routes.blog}><span aria-hidden="true">←</span> {text.backToBlog}</a>
+      </nav>
+      <BlogCover post={post} class="post__cover" sizes="(max-width: 760px) calc(100vw - 40px), 720px" eager={true}>
         <h1 class="blog-cover__title">{post.title}</h1>
       </BlogCover>
-      <div class="narrow post__intro">
+      <div class="post__intro">
         <p class="lead">{post.description}</p>
         <p class="small muted post__meta">
           <span>{text.byline} {post.author}</span>
@@ -92,7 +94,7 @@ const structuredData: string = structuredDataJson(
         </p>
       </div>
     </header>
-    <div class="narrow prose post__body">
+    <div class="prose post__body">
       <Content />
     </div>
   </article>
@@ -104,7 +106,7 @@ const structuredData: string = structuredDataJson(
           <h2 class="title-m post-more__title" id="post-more-title">
             {text.moreTitle}
           </h2>
-          <a class="text-link small" href={routes.blog}>
+          <a class="text-link post-more__all" href={routes.blog}>
             {text.backToBlog} <Icon name="arrow-right" size={14} class="" />
           </a>
         </div>
@@ -119,7 +121,7 @@ const structuredData: string = structuredDataJson(
     )
   }
 
-  <CtaBand id="post-cta-title" title={text.ctaTitle} text={text.ctaText} photo="painted-hills" />
+  <CtaBand id="post-cta-title" title={text.ctaTitle} text={text.ctaText} common={copy.common} macHref={routes.download} />
 </Base>
 
 <style>
@@ -127,23 +129,30 @@ const structuredData: string = structuredDataJson(
     padding-top: clamp(32px, 6vw, 72px);
   }
 
+  /* One reading column for everything: the back link, the cover, the lede and the body share the same left edge. */
   .post__head {
     display: grid;
-    gap: 22px;
-    width: min(960px, 100% - 2 * var(--gutter));
+    gap: 18px;
+    width: min(720px, 100% - 2 * var(--gutter));
     margin-inline: auto;
     padding-bottom: 28px;
     margin-bottom: 8px;
   }
 
-  .post__back {
-    justify-self: start;
+  .post__back a,
+  .post-more__all {
+    min-height: 44px;
+    color: var(--muted);
+  }
+
+  .post__back a:hover,
+  .post-more__all:hover {
+    color: var(--ink);
   }
 
   .post__intro {
     display: grid;
     gap: 14px;
-    width: min(760px, 100%);
     padding-top: 10px;
     padding-bottom: 28px;
     border-bottom: 1px solid var(--line);
@@ -155,9 +164,10 @@ const structuredData: string = structuredDataJson(
     gap: 6px;
   }
 
-  /* Long-form reading: 18 px Inter at a 68ch measure. */
+  /* Long-form reading: 18 px Inter in the 720 px column. */
   .post__body {
-    width: min(68ch, 100% - 2 * var(--gutter));
+    width: min(720px, 100% - 2 * var(--gutter));
+    margin-inline: auto;
     font-size: 1.125rem;
     line-height: 1.75;
   }
