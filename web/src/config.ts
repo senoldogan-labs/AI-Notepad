@@ -65,7 +65,7 @@ const productionConfig: SiteConfig = {
   // Sunucudaki SITE_ORIGIN, Apple Services ID alan adı, Google istemcisinin izinli kaynağı ve Turnstile parçacığının
   // alan adlarıyla birlikte değişir.
   siteOrigin: "https://gistsmith.com",
-  // Üretim Worker'ı (`server/`, `npm run deploy`), özel alan adında.
+  // Üretim Worker'ı (`server/`, main'e girince `Deploy server` yayınlar), özel alan adında.
   apiBase: "https://api.gistsmith.com",
   // Cloudflare Turnstile parçacığı "ainotepad"; gistsmith.com parçacığın alan adlarında olmalı.
   turnstileSiteKey: "0x4AAAAAAFqQUwHe_RGFyX1t",

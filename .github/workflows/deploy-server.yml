@@ -1,0 +1,165 @@
+# Sunucunun yayını (Cloudflare Workers: API `server/wrangler.jsonc`, MCP `server/wrangler.mcp.jsonc`, ikisi de
+# `--env production`): main'e sunucu kodu girince ya da elle (workflow_dispatch). Elle yayın (`npm run deploy`) yalnızca
+# acil geri alma içindir (AGENTS.md → "Sunucu yayını").
+#
+# Sıra, yarıda kalan bir yayın geri alınabilsin diye böyledir:
+# 1. Birleşmiş işlemede tipler ve testler (PR'daki checkler PR'ın ucunda koştu; iki PR birlikte bozulabilir).
+# 2. İki Worker'ın derleme denetimi (--dry-run) ve jetonun okuma denetimi: göçlerden önce düşsün.
+# 3. Bekleyen göçler; DROP, RENAME ya da DELETE FROM içeren varsa yayın durur (aşağıdaki girdiyle elle onaylanır).
+# 4. İki D1'in Time Travel yer imi işin özetine yazılır (geri dönüş noktası; geri dönüş sonraki yazımları siler).
+# 5. Göçler (önce göç, sonra kod: göç iki Worker'ın da çalışan koduyla uyumlu olmalı, REVIEW.md), API, MCP.
+# 6. Her Worker'da yayındaki sürümün etiketi bu işlemeyse ve sağlık adresleri 200 dönüyorsa iş yeşil.
+#
+# Gizli değerler (`production` ortamı, yalnızca main): CLOUDFLARE_WORKERS_API_TOKEN (Workers Scripts, D1, Workers KV,
+# Workers R2: Edit; Account Settings: Read; gistsmith.com bölgesinde Workers Routes: Edit ve Zone: Read) ve
+# CLOUDFLARE_ACCOUNT_ID. Jeton yalnızca wrangler adımlarına verilir; npm ci ve testler onu görmez.
+name: Deploy server
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "server/**"
+      - "!server/test/**"
+      - "!server/README.md"
+      - ".github/workflows/deploy-server.yml"
+  workflow_dispatch:
+    inputs:
+      allow_destructive_migrations:
+        description: "Bekleyen göçlerde DROP/RENAME/DELETE FROM var ve bilerek uygulanacak (yes)"
+        required: false
+        default: "no"
+
+permissions:
+  contents: read
+
+# Yayınlar üst üste binmez: süren yayın biter, bekleyen en yenisi ardından çalışır.
+concurrency:
+  group: deploy-server
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # `production` ortamı yalnızca main dalından çalışan işlere açıktır (depo ayarları → Environments).
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: server
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      TAG: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: "26"
+          cache: npm
+          cache-dependency-path: |
+            server/package-lock.json
+            web/package-lock.json
+      - name: Bağımlılıklar
+        run: npm ci
+      # Blog testi sitenin koduyla karşılaştırır (ci.yml'deki server işiyle aynı).
+      - name: Sitenin bağımlılıkları
+        working-directory: web
+        run: npm ci
+      - name: Tipler
+        run: npm run typecheck
+      - name: Testler
+        run: npm test
+
+      - name: Derleme denetimi ve jeton
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_WORKERS_API_TOKEN }}
+        run: |
+          npx --no-install wrangler deploy --dry-run --env production --outdir "$RUNNER_TEMP/api"
+          npx --no-install wrangler deploy --dry-run --config wrangler.mcp.jsonc --env production --outdir "$RUNNER_TEMP/mcp"
+          npx --no-install wrangler deployments status --env production
+          npx --no-install wrangler deployments status --config wrangler.mcp.jsonc --env production
+
+      - name: Bekleyen göçler
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_WORKERS_API_TOKEN }}
+          ALLOW_DESTRUCTIVE: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_destructive_migrations == 'yes' }}
+        run: |
+          set -euo pipefail
+          main=$(npx --no-install wrangler d1 migrations list ainotepad-production --remote --env production)
+          assistant=$(npx --no-install wrangler d1 migrations list gistsmith-assistant --remote --config wrangler.mcp.jsonc --env production)
+          pending=$( { grep -oE '[0-9]{4}_[A-Za-z0-9_]+\.sql' <<<"$main" | sed 's#^#migrations/#' || true; grep -oE '[0-9]{4}_[A-Za-z0-9_]+\.sql' <<<"$assistant" | sed 's#^#migrations-assistant/#' || true; } )
+          echo "Bekleyen göçler: ${pending:-yok}"
+          for file in $pending; do
+            if grep -inE '\b(drop|rename)\b|\bdelete[[:space:]]+from\b' "$file"; then
+              if [[ "$ALLOW_DESTRUCTIVE" != "true" ]]; then
+                echo "::error file=server/$file::$file DROP, RENAME ya da DELETE FROM içeriyor. Çalışan kodla uyumluysa Actions → Deploy server → Run workflow, allow_destructive_migrations=yes."
+                exit 1
+              fi
+              echo "::warning file=server/$file::$file yıkıcı ifade içeriyor; elle onaylandı."
+            fi
+          done
+
+      - name: Geri dönüş noktası (Time Travel)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_WORKERS_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          main=$(npx --no-install wrangler d1 time-travel info ainotepad-production --env production --json | jq -r .bookmark)
+          assistant=$(npx --no-install wrangler d1 time-travel info gistsmith-assistant --config wrangler.mcp.jsonc --env production --json | jq -r .bookmark)
+          {
+            echo "### Göçlerden önceki D1 yer imleri"
+            echo "- ainotepad-production: \`$main\`"
+            echo "- gistsmith-assistant: \`$assistant\`"
+            echo
+            echo "Geri dönüş bu andan sonraki bütün yazımları siler; önce yeni bir göçle düzeltmeyi dene."
+          } >>"$GITHUB_STEP_SUMMARY"
+
+      - name: Göçler
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_WORKERS_API_TOKEN }}
+        run: |
+          npm run migrate:production
+          npm run migrate:assistant:production
+
+      - name: API Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_WORKERS_API_TOKEN }}
+        run: npx --no-install wrangler deploy --env production --tag "${TAG::12}" --message "$TAG"
+
+      - name: MCP Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_WORKERS_API_TOKEN }}
+        run: npx --no-install wrangler deploy --config wrangler.mcp.jsonc --env production --tag "${TAG::12}" --message "$TAG"
+
+      - name: Yayındaki sürüm ve sağlık
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_WORKERS_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          for config in wrangler.jsonc wrangler.mcp.jsonc; do
+            version=$(npx --no-install wrangler deployments status --config "$config" --env production --json | jq -r '.versions | max_by(.percentage) | .version_id')
+            tag=$(npx --no-install wrangler versions view "$version" --config "$config" --env production --json | jq -r '.annotations["workers/tag"] // ""')
+            if [[ "$tag" != "${TAG::12}" ]]; then
+              echo "::error::$config: yayındaki sürüm $version, etiketi '$tag' (beklenen ${TAG::12})"
+              exit 1
+            fi
+          done
+          for url in https://api.gistsmith.com/v1/health https://mcp.gistsmith.com/.well-known/oauth-authorization-server; do
+            curl --fail --silent --show-error --retry 5 --retry-delay 3 --retry-all-errors -o /dev/null "$url"
+            echo "$url 200"
+          done
+
+      - name: Yayın yarıda kaldıysa
+        if: failure()
+        run: |
+          {
+            echo "### Yayın düştü"
+            echo "- Göçlerden önce düştüyse üretimde hiçbir şey değişmedi: düzelt, main'e gönder."
+            echo "- Bir Worker yayınlandıktan sonra düştüyse iki Worker'ı da önceki sürüme al:"
+            echo "  \`cd server && npx wrangler rollback --env production -m <neden>\` ve"
+            echo "  \`npx wrangler rollback --config wrangler.mcp.jsonc --env production -m <neden>\`,"
+            echo "  ardından geri alma PR'ı aç (yoksa sonraki yayın aynı kodu yeniden çıkarır)."
+            echo "- Geri alma D1 göçlerini geri almaz; göç bozduysa yeni bir göçle düzelt (Time Travel son çare, yer imleri yukarıda)."
+          } >>"$GITHUB_STEP_SUMMARY"

@@ -26,6 +26,8 @@ as by how it reads. Pull requests merge on their own once CI is green, so this r
 - Data from outside (a request body, an upstream or webhook answer, a file, a model's output) used before it is
   validated
 - A server query that reads or writes a user's rows without scoping them to the authenticated account
+- A D1 migration that breaks the code either Worker is running: `deploy-server.yml` applies it before the deploy,
+  and a rollback keeps the new schema (add first, remove in a later change)
 - A test that calls a paid service or the network without its environment gate (`AINOTEPAD_CLOUD_TESTS` and the
   others in `AGENTS.md`)
 - The sample meeting (`isSampleMeeting`) reaching sync, processing, notifications, MCP or automatic sending

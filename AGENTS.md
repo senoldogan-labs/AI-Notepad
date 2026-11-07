@@ -92,6 +92,20 @@ katalogda olmalı (`LocalizationCompletenessTests`; eksik çeviri cihazda Türk�
 
 Kod değiştiren her işten önce iki test komutunu da çalıştır.
 
+## Sunucu yayını
+
+`server/` değişikliği main'e girince `.github/workflows/deploy-server.yml` yayınlar: birleşmiş işlemede testler, iki
+Worker'ın derleme denetimi, D1 yer imleri, göçler (önce göç, sonra kod), API ve MCP Worker'ı (`--tag` = işleme), sonra
+yayındaki sürüm ve sağlık denetimi. Elle `npm run deploy`/`migrate:production` yapma; sonuç Actions'ta. Göç iki Worker'ın
+çalışan koduyla uyumlu olmalı; DROP/RENAME/DELETE FROM içeren göç yayını durdurur, sahibin onayıyla Actions → Deploy server → Run
+workflow (`allow_destructive_migrations=yes`). Vars yalnız wrangler yapılandırmasında (yayın panelden girilenleri siler);
+gizli değerler elle `wrangler secret put … --env production`.
+
+Acil geri alma (elle yapılan tek yayın): `cd server && npx wrangler rollback --env production -m <neden>` ve
+`npx wrangler rollback --config wrangler.mcp.jsonc --env production -m <neden>`, sonra geri alma PR'ı (yoksa sonraki yayın
+aynı kodu çıkarır). Geri alma D1'i geri almaz: göç bozduysa yeni göç; Time Travel (`wrangler d1 time-travel restore`,
+yer imi yayın işinin özetinde) son çaredir, sonraki bütün yazımları siler.
+
 ## İnceleme
 
 [REVIEW.md](REVIEW.md) incelemenin neye baktığını söyler. `.claude/hooks/pre-push-review.sh` her push'tan önce o
