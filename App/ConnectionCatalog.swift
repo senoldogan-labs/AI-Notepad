@@ -381,6 +381,8 @@ enum IntegrationStatus: Equatable {
     case needsReconnect
     /// Yerel uygulama bu Mac'te yüklü değil.
     case notInstalled
+    /// Durum okunamadı (ör. uygulamanın yapılandırma dosyası bozuk); nedeni entegrasyonun sayfasında yazar.
+    case unreadable
 }
 
 /// Not hedefi türünün durumu: oturumu biten varsa "yeniden bağlan", yoksa bağlı sayısı. Saf fonksiyondur.
@@ -406,6 +408,8 @@ struct IntegrationStatusPill: View {
             pill(text: count > 1 ? Text("\(count) bağlı") : Text("Bağlı"), tint: appearance.accent.color)
         case .needsReconnect:
             pill(text: Text("Yeniden bağlan"), tint: NoticeSeverity.attention.tint)
+        case .unreadable:
+            pill(text: Text("Okunamadı"), tint: NoticeSeverity.attention.tint)
         case .notInstalled:
             Text("Yüklü değil")
                 .appFont(size: 12, weight: .medium)

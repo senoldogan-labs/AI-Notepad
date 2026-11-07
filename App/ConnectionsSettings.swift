@@ -19,7 +19,7 @@ struct ConnectionSettings: View {
     let model: AppModel
     @State private var selected: IntegrationKind? = launchIntegration(arguments: CommandLine.arguments)
     @State private var showsAdvanced: Bool = false
-    /// Yerel yapay zekâ uygulamalarının durumu (yapılandırma dosyasından okunur; okunamayan satırda yok).
+    /// Yerel yapay zekâ uygulamalarının durumu (yapılandırma dosyasından okunur; henüz okunmadıysa yok).
     @State private var mcpStatuses: [MCPClient: IntegrationStatus] = [:]
 
     var body: some View {
@@ -96,8 +96,8 @@ struct ConnectionSettings: View {
         }
     }
 
-    /// Yerel yapay zekâ uygulamalarının yapılandırmasını okur. Okunamayan uygulamanın satırı "bağlı değil" görünür;
-    /// nedeni o uygulamanın sayfasında yazar.
+    /// Yerel yapay zekâ uygulamalarının yapılandırmasını okur. Okunamayan uygulamanın satırında uyarı rozeti
+    /// ("Okunamadı") görünür; nedeni o uygulamanın sayfasında yazar.
     private func refreshMCPStatuses() {
         var statuses: [MCPClient: IntegrationStatus] = [:]
         for client in MCPClient.allCases {
@@ -105,6 +105,7 @@ struct ConnectionSettings: View {
                 statuses[client] = try mcpClientStatus(client: client)
             } catch {
                 channelSettingsLogger.warning("Yapay zekâ uygulamasının yapılandırması okunamadı, uygulama: \(client.rawValue, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+                statuses[client] = .unreadable
             }
         }
         mcpStatuses = statuses
@@ -263,7 +264,6 @@ private struct IntegrationPage<Primary: View, Status: View>: View {
             }
             .buttonStyle(.hoverPlain)
             .disabled(isBackDisabled)
-            .keyboardShortcut(.cancelAction)
             .padding(.top, 22)
             HStack(alignment: .center, spacing: 16) {
                 IntegrationTile(style: kind.tileStyle, size: 60)
@@ -1030,7 +1030,7 @@ private struct MCPClientDetail: View {
             switch status {
             case .notInstalled:
                 EmptyView()
-            case .connected, .needsReconnect:
+            case .connected, .needsReconnect, .unreadable:
                 Menu {
                     Button("Kaldır", systemImage: "trash", role: .destructive) { disconnect() }
                 } label: {

@@ -328,8 +328,8 @@ public actor AssistantUploader {
     public func retryRejected() throws {
         // Bayrak, süren bir geçişin bellekteki defteri için kalır (onun sonraki yazımı da unutur); geçiş yoksa sonraki
         // geçişin ilk yazımı onu düşürür.
-        retryRequested = true
         try file.write(ledger: assistantLedgerRetryingRejected(ledger: try file.read()))
+        retryRequested = true
     }
 
     /// Defteri diske yazar; bekleyen "Yeniden dene" varsa önce reddedilenler unutulur.
