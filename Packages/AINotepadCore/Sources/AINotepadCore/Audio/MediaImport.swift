@@ -1,5 +1,6 @@
 import AVFoundation
 import Foundation
+import UniformTypeIdentifiers
 
 /// Dosya içe aktarılamadı.
 public enum MediaImportError: Error, Equatable {
@@ -111,4 +112,21 @@ public func mediaImportMessage(error: any Error) -> String {
     default:
         userFacingMessage(error: error)
     }
+}
+
+/// Paylaşım sayfasından gelen adres toplantı olarak içe aktarılabilir mi: yerel dosya ve uzantısı ses ya da video
+/// türünde (ör. iPhone'un arama kaydı, Sesli Notlar, sesli mesaj). Saf fonksiyondur.
+public func isImportableSharedMedia(url: URL) -> Bool {
+    guard url.isFileURL, let type = UTType(filenameExtension: url.pathExtension) else {
+        return false
+    }
+    return type.conforms(to: .audio) || type.conforms(to: .movie)
+}
+
+/// Adres, iOS'un paylaşılan dosyayı uygulamaya kopyaladığı gelen kutusunda (`Documents/Inbox`) mı: içe aktarmadan sonra
+/// yalnız bu kopya silinir, başka bir yerdeki dosyaya dokunulmaz. Saf fonksiyondur.
+public func isSharedInboxCopy(url: URL, documentsDirectory: URL) -> Bool {
+    let inbox: [String] = documentsDirectory.appending(path: "Inbox", directoryHint: .isDirectory).standardizedFileURL.pathComponents
+    let components: [String] = url.standardizedFileURL.pathComponents
+    return url.isFileURL && components.count > inbox.count && Array(components.prefix(inbox.count)) == inbox
 }

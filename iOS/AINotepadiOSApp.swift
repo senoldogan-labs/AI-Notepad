@@ -22,6 +22,8 @@ struct AINotepadiOSApp: App {
     @State private var calendar: PhoneCalendar
     /// Çökme raporları (MetricKit; yalnız bu iPhone'da, Ayarlar'da gösterilir).
     @State private var crashReports: CrashReportCenter = CrashReportCenter()
+    /// Paylaşım sayfasından gelen ses dosyaları (ör. iPhone'un arama kaydı): giriş ve açıklama bitince içe aktarılır.
+    @State private var sharedFiles: PhoneSharedFileInbox = PhoneSharedFileInbox()
 
     init() {
         // Yarıda kalan işlemeyi sürdüren sistem görevi açılış bitmeden kaydedilmeli.
@@ -135,6 +137,10 @@ struct AINotepadiOSApp: App {
         WindowGroup {
             PhoneAppRoot(account: account, sessions: sessions, router: router, calendar: calendar, crashReports: crashReports)
             .modifier(PhoneAppearanceModifier())
+            // Paylaşım sayfasındaki "Gistsmith" (ses dosyası türleri project.yml'de): giriş kapısı açıkken gelen dosya da
+            // kaybolmaz, ana ekran açılınca içe aktarılır (`PhoneImportHost`).
+            .environment(sharedFiles)
+            .onOpenURL { (url: URL) in sharedFiles.receive(url: url) }
             .task {
                 crashReports.start()
                 HostedTelemetryCenter.shared.start()
@@ -764,6 +770,11 @@ func launchOpensLibrary(arguments: [String]) -> Bool {
     launchValue(arguments: arguments, flag: "--ekran") == "klasorler"
 }
 
+/// `--ekran telefon`: telefon görüşmesi rehberi açık başlar (görsel kontrol için); yoksa nil. Saf fonksiyondur.
+func launchImportRequest(arguments: [String]) -> PhoneImportSource? {
+    launchValue(arguments: arguments, flag: "--ekran") == "telefon" ? .phoneCall : nil
+}
+
 /// Ana ekran ve üstündeki sayfalar; tam ekran karşılama ve abonelik ekranı, kayıt ve uygulama yaşam döngüsü.
 struct RootView: View {
     let store: PhoneStore
@@ -782,7 +793,8 @@ struct RootView: View {
     /// Uygulama arka plana geçti: öne dönünce yarım kalan işleme sürdürülür.
     @State private var wasInBackground: Bool = false
     /// İçe aktarma isteği, seçici hatası ve Fotoğraflar kopyası (ana ekran ve kitaplık gösterir).
-    @State private var imports: PhoneImportState = PhoneImportState()
+    /// `--ekran telefon` ile telefon görüşmesi rehberi açık başlar (görsel kontrol).
+    @State private var imports: PhoneImportState = PhoneImportState(request: launchImportRequest(arguments: CommandLine.arguments))
 
     /// Toplantı öncesi brifing (Mac'teki "Brifing"): yeni bir Sor sohbeti açar; arşive aynı kişilerle ya da konuda önceki
     /// görüşmeler, kararlar ve açık görevler sorulur.

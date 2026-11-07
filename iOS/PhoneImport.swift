@@ -11,6 +11,8 @@ enum PhoneImportSource: Hashable {
     case files
     /// Fotoğraflar'dan video.
     case photos
+    /// Telefon görüşmesinin notunu almanın yolları (iPhone'un arama kaydını paylaşmak, Mac'te konuşmak).
+    case phoneCall
     #if CALL_CAPTURE_EXPERIMENT
     /// Deneysel: bu iPhone'daki görüşmeyi kaydet (yalnız `CALL_CAPTURE_EXPERIMENT` derlemesinde).
     case callCapture
@@ -27,13 +29,21 @@ final class PhoneImportState {
     var pickError: String?
     /// Fotoğraflar'dan seçilen videolar uygulamaya kopyalanıyor (dönüştürme ondan sonra başlar).
     var isLoadingVideos: Bool = false
+    /// Açık sayfa (telefon görüşmesi rehberi) kapanınca açılacak seçici: sayfa kapanırken yeni sunum başlatılmaz.
+    var afterSheet: PhoneImportSource?
+
+    init(request: PhoneImportSource?) {
+        self.request = request
+    }
 }
 
-/// Seçicileri ve deneysel görüşme kaydı sayfasını kökten sunar: istek ana ekrandaki menüden ya da kapanan kitaplık
-/// sayfasından gelir (sunum kökte olunca açık sayfaya bağlı kalmaz). Seçilen dosyalar kaydediciyle içe aktarılır.
+/// Seçicileri, telefon görüşmesi rehberini ve deneysel görüşme kaydı sayfasını kökten sunar: istek ana ekrandaki menüden
+/// ya da kapanan kitaplık sayfasından gelir (sunum kökte olunca açık sayfaya bağlı kalmaz). Seçilen ve paylaşım sayfasından
+/// gelen dosyalar kaydediciyle içe aktarılır.
 struct PhoneImportHost: ViewModifier {
     let recorder: PhoneRecorder
     @Bindable var state: PhoneImportState
+    @Environment(PhoneSharedFileInbox.self) private var sharedFiles: PhoneSharedFileInbox
     @State private var pickedVideos: [PhotosPickerItem] = []
 
     func body(content: Content) -> some View {
@@ -48,6 +58,12 @@ struct PhoneImportHost: ViewModifier {
                 }
             }
             .photosPicker(isPresented: isRequested(source: .photos), selection: $pickedVideos, matching: .videos, photoLibrary: .shared())
+            .sheet(isPresented: isRequested(source: .phoneCall), onDismiss: openAfterSheet) {
+                PhoneCallGuideScreen { (source: PhoneImportSource) -> Void in
+                    state.afterSheet = source
+                    state.request = nil
+                }
+            }
             #if CALL_CAPTURE_EXPERIMENT
             .sheet(isPresented: isRequested(source: .callCapture)) {
                 CallCaptureExperimentScreen(recorder: recorder, isRecording: recorder.phase != .idle)
@@ -60,6 +76,36 @@ struct PhoneImportHost: ViewModifier {
                 pickedVideos = []
                 importVideos(items: items)
             }
+            // Paylaşım sayfasından gelen dosyalar (açılışta bekleyenler de) toplantı olarak içe aktarılır; gelen kutusundaki
+            // kopyalar sonra silinir.
+            .onChange(of: sharedFiles.pending, initial: true) { (_: [URL], urls: [URL]) in
+                guard !urls.isEmpty else {
+                    return
+                }
+                let taken: [URL] = sharedFiles.takePending()
+                Task {
+                    await recorder.importFiles(urls: taken)
+                    for url in taken {
+                        removeSharedInboxCopy(url: url)
+                    }
+                }
+            }
+            .onChange(of: sharedFiles.rejected, initial: true) { (_: [String], names: [String]) in
+                guard !names.isEmpty else {
+                    return
+                }
+                let taken: [String] = sharedFiles.takeRejected()
+                state.pickError = String(localized: "Ses ya da video olmayan dosya içe aktarılmadı: \(taken.joined(separator: ", "))")
+            }
+    }
+
+    /// Rehberde seçilen seçici, rehber kapandıktan sonra açılır.
+    private func openAfterSheet() {
+        guard let next = state.afterSheet else {
+            return
+        }
+        state.afterSheet = nil
+        state.request = next
     }
 
     /// Seçicinin açık olduğu bağ: istek bu kaynaksa açık; kapanınca istek silinir.
@@ -102,11 +148,16 @@ struct PhoneImportHost: ViewModifier {
     }
 }
 
-/// İçe aktarma menüsünün öğeleri: Dosyalar, Fotoğraflar ve (deneysel derlemede) görüşme kaydı.
+/// İçe aktarma menüsünün öğeleri: telefon görüşmesi rehberi, Dosyalar, Fotoğraflar ve (deneysel derlemede) görüşme kaydı.
 struct PhoneImportMenuItems: View {
     let onSelect: @MainActor (PhoneImportSource) -> Void
 
     var body: some View {
+        Section {
+            Button { onSelect(.phoneCall) } label: {
+                Label { Text("Telefon görüşmesi") } icon: { Image(systemName: "phone") }
+            }
+        }
         Section("Ses ya da video dosyası içe aktar") {
             Button("Dosyalar'dan seç", systemImage: "folder") { onSelect(.files) }
             Button("Fotoğraflar'dan video seç", systemImage: "photo.on.rectangle") { onSelect(.photos) }
