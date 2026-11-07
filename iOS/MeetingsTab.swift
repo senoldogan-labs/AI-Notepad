@@ -1338,6 +1338,8 @@ private struct MeetingSummary: View {
     let onAskSource: @MainActor (String) -> Void
     let onPlay: @MainActor (Double) -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
+    /// "Görev ekle" sayfası açık.
+    @State private var isAddingTask: Bool = false
 
     var body: some View {
         if let note {
@@ -1354,6 +1356,9 @@ private struct MeetingSummary: View {
                         // Yüz yüze toplantıda kullanıcı da "Konuşmacı N": hangisi olduğunu seçince görevleri ona düşer.
                         UserSpeakerPrompt(record: record, userName: store.userName, isLocked: !isEditable) { (person: Int, name: String) -> Void in
                             store.nameUserSpeaker(meetingID: record.id, person: person, name: name)
+                        }
+                        if isEditable, !record.isSampleMeeting {
+                            addTaskButton
                         }
                     }
                     if let myNotes = record.myNotes {
@@ -1405,6 +1410,26 @@ private struct MeetingSummary: View {
         } else {
             EmptyStateCard(symbol: "doc.text", title: "Bu toplantının notu yok", message: nil)
         }
+    }
+
+    /// Bu toplantıya elle görev ekleme düğmesi (kendi görevin); sayfada iş ve isteğe bağlı son gün.
+    private var addTaskButton: some View {
+        Button("Görev ekle", systemImage: "plus") { isAddingTask = true }
+            .appFont(size: 14, weight: .medium)
+            .foregroundStyle(appearance.accent.color)
+            .sheet(isPresented: $isAddingTask) {
+                NavigationStack {
+                    AddTaskForm(meetings: [record], fixedMeetingID: record.id) { (meetingID: String, text: String, dueDay: Date?) -> Void in
+                        store.addTask(meetingID: meetingID, description: text, dueDay: dueDay)
+                        isAddingTask = false
+                    } onCancel: {
+                        isAddingTask = false
+                    }
+                    .navigationTitle("Görev ekle")
+                    .navigationBarTitleDisplayMode(.inline)
+                }
+                .presentationDetents([.medium, .large])
+            }
     }
 
     /// Adı verilmemiş (hâlâ "Konuşmacı N") konuşmacı var mı.
@@ -1555,6 +1580,12 @@ private struct MeetingSummary: View {
                     .appFont(size: 12, weight: .medium)
                     .monospacedDigit()
                     .foregroundStyle(appearance.accent.color)
+                Spacer(minLength: 0)
+                if isEditable, !record.isSampleMeeting {
+                    addTaskButton
+                        .labelStyle(.iconOnly)
+                        .accessibilityLabel(Text("Görev ekle"))
+                }
             }
             .padding(.bottom, 2)
             VStack(alignment: .leading, spacing: 2) {

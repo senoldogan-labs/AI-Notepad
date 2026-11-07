@@ -1585,6 +1585,8 @@ private struct SummaryTab: View {
     @State private var isEditingMyNotes: Bool = false
     /// Konuşma payında kısa konuşmaların tek tek satırları açık.
     @State private var showsMinorSpeakers: Bool = false
+    /// "Görev ekle" kutusu açık.
+    @State private var isAddingTask: Bool = false
     /// Maddenin kaynağından transkriptte o ana gider (çekmece açılır, ses varsa oradan çalar).
     let onJump: @MainActor (TranscriptParagraph) -> Void
     /// Kaynak kutusundaki "Sor": maddenin nasıl konuşulduğunu bu toplantıya sorar.
@@ -1596,9 +1598,10 @@ private struct SummaryTab: View {
 
     private var main: some View {
         // Gösterilen görev asıl görevle sırayla eşleşir (`parseSharedNote` sayıyı ve sahipliği korur).
+        // Çeviriden sonra elle eklenen görevler çeviride yok: asıl metniyle sona eklenir.
         let pairs: [TaskPair] = zip(note.tasks, sourceNote.tasks).map { (pair: (NoteTask, NoteTask)) -> TaskPair in
             TaskPair(shown: pair.0, source: pair.1)
-        }
+        } + sourceNote.tasks.dropFirst(note.tasks.count).map { TaskPair(shown: $0, source: $0) }
         let mine: [TaskPair] = pairs.filter(\.source.isMine)
         let myNotes: String = record.myNotes ?? ""
         let isLocked: Bool = model.isLocked(meetingID: record.id)
@@ -1611,6 +1614,9 @@ private struct SummaryTab: View {
                 // Yüz yüze toplantıda kullanıcı da "Konuşmacı N": hangisi olduğunu seçince görevleri ona düşer.
                 UserSpeakerPrompt(record: record, userName: model.userName, isLocked: isLocked) { (person: Int, name: String) -> Void in
                     model.nameUserSpeaker(meetingID: record.id, person: person, name: name)
+                }
+                if !record.isSampleMeeting {
+                    addTaskButton(isLocked: isLocked)
                 }
             } else {
                 // Sana düşen işler notun en başında, kendi kartında (karşılamadaki örnek not da böyle söz verir).
@@ -1763,6 +1769,10 @@ private struct SummaryTab: View {
                     .appFont(size: 12, weight: .medium)
                     .monospacedDigit()
                     .foregroundStyle(appearance.accent.color)
+                Spacer(minLength: 0)
+                if !record.isSampleMeeting {
+                    addTaskButton(isLocked: model.isLocked(meetingID: record.id))
+                }
             }
             .padding(.bottom, 2)
             VStack(alignment: .leading, spacing: 2) {
@@ -1777,6 +1787,23 @@ private struct SummaryTab: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(appearance.accent.color.opacity(0.07), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(appearance.accent.color.opacity(0.18)))
+    }
+
+    /// Bu toplantıya elle görev ekleme düğmesi (kendi görevin); açılır kutuda iş ve isteğe bağlı son gün.
+    private func addTaskButton(isLocked: Bool) -> some View {
+        Button("Görev ekle", systemImage: "plus") { isAddingTask = true }
+            .buttonStyle(.hoverPlain)
+            .appFont(size: 12, weight: .medium)
+            .foregroundStyle(appearance.accent.color)
+            .disabled(isLocked)
+            .popover(isPresented: $isAddingTask, arrowEdge: .bottom) {
+                AddTaskForm(meetings: [record], fixedMeetingID: record.id) { (meetingID: String, text: String, dueDay: Date?) -> Void in
+                    model.addTask(meetingID: meetingID, description: text, dueDay: dueDay)
+                    isAddingTask = false
+                } onCancel: {
+                    isAddingTask = false
+                }
+            }
     }
 
     /// Başkalarına düşen görevler (tamamlananlar sonda); senin görevin de varsa başlık "Diğer görevler".

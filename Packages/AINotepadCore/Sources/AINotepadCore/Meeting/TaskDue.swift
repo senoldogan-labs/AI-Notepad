@@ -195,7 +195,7 @@ public func addingTask(record: MeetingRecord, description: String, dueDay: Date?
     guard !note.tasks.contains(where: { taskKey(task: $0) == taskKey(task: task) }) else {
         return nil
     }
-    return record.with(note: note.with(title: note.title, summary: note.summary, decisions: note.decisions, tasks: note.tasks + [task], glossary: note.glossary))
+    return withTasks(record: record) { (tasks: [NoteTask]) -> [NoteTask] in tasks + [task] }
 }
 
 /// Elle eklenmiş görevi (`NoteTask.isAdded`) nottan ve işaretlerinden siler; nottan gelen görev silinmez (kayıt
@@ -205,8 +205,9 @@ public func removingAddedTask(record: MeetingRecord, task: NoteTask) -> MeetingR
     guard let note = record.note, note.tasks.contains(where: { taskKey(task: $0) == key && $0.isAdded == true }) else {
         return record
     }
-    let tasks: [NoteTask] = note.tasks.filter { taskKey(task: $0) != key }
-    let updated: MeetingRecord = record.with(note: note.with(title: note.title, summary: note.summary, decisions: note.decisions, tasks: tasks, glossary: note.glossary))
+    let updated: MeetingRecord = withTasks(record: record) { (tasks: [NoteTask]) -> [NoteTask] in
+        tasks.filter { taskKey(task: $0) != key }
+    }
     let completed: MeetingRecord = record.completedTasks.map { updated.with(completedTasks: $0.filter { $0 != key }) } ?? updated
     return record.remindedTasks.map { completed.with(remindedTasks: $0.filter { $0 != key }) } ?? completed
 }
@@ -223,4 +224,22 @@ public func taskDueDateText(record: MeetingRecord, task: NoteTask, calendar: Cal
     let style: Date.FormatStyle = Date.FormatStyle(date: .omitted, time: .omitted, locale: locale, calendar: calendar, timeZone: calendar.timeZone)
         .weekday(.abbreviated).day().month(.abbreviated).year()
     return day.formatted(style)
+}
+
+/// Notun ve saklı çevirilerinin (`sharedNotes`) görevleri `change` ile değişmiş kopya. Elle eklenen görev kullanıcının
+/// kendi metnidir, çevrilmez: çeviriler de aynı görevle güncel kalır, `with(note:)` gibi silinip yeniden çevrilmez
+/// (yeniden çeviri ücretli bir çağrıdır). Görev sayısı asıl notunkiyle tutmayan çeviri (eski) olduğu gibi bırakılır.
+/// Notsuz kayıt değişmez. Saf fonksiyondur.
+func withTasks(record: MeetingRecord, change: @escaping ([NoteTask]) -> [NoteTask]) -> MeetingRecord {
+    guard let note = record.note else {
+        return record
+    }
+    let changed: (MeetingNote) -> MeetingNote = { (version: MeetingNote) -> MeetingNote in
+        version.with(title: version.title, summary: version.summary, decisions: version.decisions, tasks: change(version.tasks), glossary: version.glossary)
+    }
+    let shared: [String: MeetingNote]? = record.sharedNotes?.mapValues { (version: MeetingNote) -> MeetingNote in
+        version.tasks.count == note.tasks.count ? changed(version) : version
+    }
+    let updated: MeetingRecord = record.with(note: changed(note))
+    return shared.map { updated.with(sharedNotes: $0) } ?? updated
 }

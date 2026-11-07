@@ -80,4 +80,19 @@ import Testing
         let decoded: MeetingRecord = try JSONDecoder().decode(MeetingRecord.self, from: JSONEncoder().encode(added))
         #expect(decoded.note?.tasks.last?.isAdded == true)
     }
+
+    // Saklı çeviri silinmez (yeniden çeviri ücretli): elle eklenen görev çevirilere de eklenir, çeviri gösterilmeye devam eder.
+    @Test func addedTaskKeepsTranslations() throws {
+        let fromNote: NoteTask = NoteTask(owner: "You", description: "Send deck", dueDate: nil, isMine: true)
+        let meeting: MeetingRecord = record(tasks: [fromNote])
+        let finnish: MeetingNote = MeetingNote(title: "Synkka", summary: "Y", decisions: [], tasks: [
+            NoteTask(owner: "Sinä", description: "Lähetä esitys", dueDate: nil, isMine: true),
+        ], glossary: [])
+        let translated: MeetingRecord = meeting.with(sharedNotes: ["fi": finnish])
+        let added: MeetingRecord = try #require(addingTask(record: translated, description: "Call Dana", dueDay: nil, userName: "Alex", calendar: calendar))
+        let version: MeetingNote = try #require(sharedNoteVersion(record: added, language: .finnish))
+        #expect(version.tasks.map(\.description) == ["Lähetä esitys", "Call Dana"])
+        let task: NoteTask = try #require(added.note?.tasks.last)
+        #expect(removingAddedTask(record: added, task: task).sharedNotes?["fi"]?.tasks.count == 1)
+    }
 }
