@@ -32,7 +32,9 @@ const common: CommonCopy = copy.common;
         <p class="muted">{text.lead}</p>
       </div>
       <div id="signin-app-intro" class="auth__intro hidden">
-        <h1 class="title-l">{text.appTitle}</h1>
+        {/* One h1 per page: this title replaces the sign-in title on screen in the app hand-off, so it is a level-1
+            heading for assistive tech only while it shows (the other one is hidden then). */}
+        <p class="title-l" role="heading" aria-level="1">{text.appTitle}</p>
         <p class="muted">{text.appLead}</p>
       </div>
 
@@ -147,9 +149,9 @@ const common: CommonCopy = copy.common;
     margin-top: 8px;
   }
 
-  /* Apple ve Google düğmeleri aynı yükseklikte (Google'ın büyük düğmesi 40 px) ve aynı hap biçiminde. */
+  /* Apple ve Google düğmeleri aynı yükseklikte (50 px: dokunmatik ekranda rahat, Google'ın en az 40 px'inin üstünde) ve aynı hap biçiminde. */
   .button--apple {
-    min-height: 40px;
+    min-height: 50px;
     background: light-dark(#000, #fff);
     color: light-dark(#fff, #000);
     font-weight: 500;
@@ -161,7 +163,7 @@ const common: CommonCopy = copy.common;
 
   /* Google'ın düğme görünümü (açık: beyaz zemin, ince çerçeve; koyu: Google'ın koyu düğmesi), renkli "G". */
   .button--google {
-    min-height: 40px;
+    min-height: 50px;
     background: light-dark(#fff, #131314);
     color: light-dark(#1f1f1f, #e3e3e3);
     border: 1px solid light-dark(#747775, #8e918f);

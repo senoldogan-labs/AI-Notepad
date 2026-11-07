@@ -42,18 +42,18 @@ Before you remove it, say why in one sentence: "I've removed the note-taker bot,
 The simplest control works on every platform: make people wait to be admitted. Bots arrive with names that give them away ("Notetaker", "AI", "Assistant"), so you can decline them from the waiting room before they hear anything.
 
 - In **Zoom**, turn on the **Waiting Room** for the meeting or in your settings.
-- In **Teams**, set **Who can bypass the lobby** in the meeting options to people in your organisation, or to only you and co-organisers.
-- In **Google Meet**, guests from outside your organisation usually have to ask to join. Hosts can also open **Host controls** and set meeting access to **Restricted**, so only invited people get in without asking.
+- In **Teams**, set **Who can bypass the lobby** in the meeting options to people in your organization, or to only you and co-organizers.
+- In **Google Meet**, guests from outside your organization usually have to ask to join. Hosts can also open **Host controls** and set meeting access to **Restricted**, so only invited people get in without asking.
 
 It costs you a click per guest, which is fine for client calls and board meetings and annoying for a large all-hands.
 
-### Ask your admin about organisation-wide controls
+### Ask your admin about organization-wide controls
 
 Admins have stronger tools than meeting hosts:
 
-- **Microsoft Teams** now identifies many external bots when they try to join. Detected bots are labelled in the lobby so the organiser can decide, and admins can set meeting policies that block identified bots automatically. Microsoft announced the automatic block on its 2026 roadmap, so check your Teams admin center for what your tenant has.
+- **Microsoft Teams** now identifies many external bots when they try to join. Detected bots are labelled in the lobby so the organizer can decide, and admins can set meeting policies that block identified bots automatically. Microsoft announced the automatic block on its 2026 roadmap, so check your Teams admin center for what your tenant has.
 - **Zoom** admins can enable **Block users in specific domains from joining meetings and webinars** and add the note-taker services' domains. It catches bots that sign in with their vendor's domain, but not those that join under a person's own account, so treat it as a filter, not a wall.
-- **Google Workspace** admins can control who joins meetings from outside the organisation. Several note-taker vendors report that Meet started treating third-party bots more strictly in 2026, but the details depend on your edition and settings.
+- **Google Workspace** admins can control who joins meetings from outside the organization. Several note-taker vendors report that Meet started treating third-party bots more strictly in 2026, but the details depend on your edition and settings.
 
 If your company has a policy on AI note-takers, this is where it should be enforced. Asking each host to remember is not a plan.
 
@@ -89,7 +89,7 @@ This changes the consent question in a useful way. With a bot, the recording hap
 
 Gistsmith, the Mac app we make, works this way. It listens to your Mac's audio and microphone, so it works with Zoom, Teams, Google Meet and calls in the browser, and it reminds you to tell participants when you start. When the meeting ends, the note is ready, with your tasks at the top, then decisions and a summary.
 
-It runs on Macs with Apple silicon and macOS 15 or later. The first 3 meetings or 7 days are free with no card; after that it's $5.99 a month or $49 a year. See the [pricing page](/pricing) for the details, or [download it](/download) and try it on your next call.
+It runs on Macs with Apple silicon and macOS 15 or later, and on iPhone (iOS 26.1 or later) for meetings in the room. The first 3 meetings or 7 days are free with no card; after that it's $5.99 a month or $49 a year. See the [pricing page](/pricing) for the details, or [download it](/download) and try it on your next call.
 
 ## The short version
 

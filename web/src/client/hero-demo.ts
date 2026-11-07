@@ -30,7 +30,8 @@ function restart(demo: HTMLElement): void {
 function main(): void {
   const demo: HTMLElement = element("hero-demo", HTMLElement);
   const toggle: HTMLButtonElement = element("hero-demo-toggle", HTMLButtonElement);
-  let onScreen: boolean = true;
+  // Paused until the observer reports the demo on screen, so it starts where the visitor first sees it.
+  let onScreen: boolean = false;
   let state: DemoState = "playing";
 
   const updateVisibility = (): void => {

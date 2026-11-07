@@ -1,13 +1,17 @@
 ---
-// Karşılaştırma tablosu: satırlar konular, sütunlar ürünler (ilk sütun bizim: vurgulu, başlığında etiket). Doğrulanmamış değer (`null`) tire olarak
-// görünür; ekran okuyucu "Not checked" okur. Dar masaüstünde tablo sıkışmaz, kutunun içinde yatay kayar (klavyeyle de
-// odaklanıp kaydırılabilir); telefonda her satır başlıklı bir karta dönüşür (sütun adı hücrenin üstünde).
-import { copy, type CompareCopy, type ComparisonTopic } from "../copy";
+// Comparison table: rows are topics, columns products (the first column is ours: highlighted, with a label in its
+// header). The topic column takes 22% and the product columns share the rest equally (fixed layout), so no product looks
+// bigger than another. A cell can carry a mark before its text (yes, partly, no; `CellMark`), read out to screen readers.
+// An unverified value (`null`) shows as a dash; screen readers hear "Not checked". On wide screens the header row
+// sticks under the floating site header while the table scrolls; on phones every row turns into a titled card (the
+// product's name above each value).
+import { copy, type CellMark, type CellMarks, type CompareCopy, type ComparisonTopic } from "../copy";
 
-/** Tablonun bir sütunu: ürün adı ve konulara göre değerleri. */
+/** A table column: the product's name, its values and marks by topic. */
 export interface ComparisonColumn {
   readonly name: string;
-  readonly values: Readonly<Record<ComparisonTopic, string | null>>;
+  readonly values: Readonly<Partial<Record<ComparisonTopic, string | null>>>;
+  readonly marks: CellMarks;
 }
 
 interface Props {
@@ -19,9 +23,14 @@ const { caption, topics, columns } = Astro.props;
 const text: CompareCopy = copy.compare;
 ---
 
-<div class="comparison" role="region" aria-label={caption} tabindex="0">
-  <table class="comparison__table">
+<div class="comparison" role="region" aria-label={caption}>
+  <table class:list={["comparison__table", { "comparison__table--many": columns.length > 2 }]}>
     <caption class="visually-hidden">{caption}</caption>
+    <colgroup>
+      <col class="comparison__topic-col" />
+      {/* Product columns have no width: the fixed layout shares the rest of the table equally among them. */}
+      {columns.map(() => <col />)}
+    </colgroup>
     <thead>
       <tr>
         <th scope="col">{text.topicColumn}</th>
@@ -44,7 +53,8 @@ const text: CompareCopy = copy.compare;
           <tr>
             <th scope="row">{text.topics[topic]}</th>
             {columns.map((column: ComparisonColumn) => {
-              const value: string | null = column.values[topic];
+              const value: string | null = column.values[topic] ?? null;
+              const mark: CellMark | undefined = column.marks[topic];
               return (
                 <td data-label={column.name}>
                   {value === null ? (
@@ -53,7 +63,20 @@ const text: CompareCopy = copy.compare;
                       <span class="visually-hidden">{text.notChecked}</span>
                     </>
                   ) : (
-                    value
+                    <span class="comparison__cell">
+                      {mark !== undefined && (
+                        <span class={`comparison__mark comparison__mark--${mark}`}>
+                          <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false">
+                            <circle cx="9" cy="9" r="8" fill="none" stroke="currentColor" stroke-width="1.4" />
+                            {mark === "yes" && <path d="M5.4 9.2l2.4 2.4 4.8-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />}
+                            {mark === "partial" && <path d="M9 1a8 8 0 0 1 0 16z" fill="currentColor" />}
+                            {mark === "no" && <path d="M5.5 9h7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />}
+                          </svg>
+                          <span class="visually-hidden">{text.markLabels[mark]}:</span>
+                        </span>
+                      )}
+                      <span>{value}</span>
+                    </span>
                   )}
                 </td>
               );
@@ -70,24 +93,26 @@ const text: CompareCopy = copy.compare;
     border: 1px solid var(--line);
     border-radius: var(--radius-m);
     background: var(--card);
-    overflow-x: auto;
   }
 
-  .comparison:focus-visible {
-    outline: 2px solid var(--focus);
-    outline-offset: 2px;
-  }
-
-  /* Sütunlar okunur genişlikte kalır; kutu daralınca tablo kayar. */
   .comparison__table {
     width: 100%;
-    min-width: 46rem;
-    border-collapse: collapse;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 0;
     font-size: 0.9375rem;
     line-height: 1.5;
   }
 
-  /* Üzerine gelinen satır hafifçe belirir (bizim sütunun yarı saydam vurgusu üstünde kalır). */
+  .comparison__topic-col {
+    width: 22%;
+  }
+
+  /* With several products (the overview) the topic column gives them more room. */
+  .comparison__table--many .comparison__topic-col {
+    width: 15%;
+  }
+
   @media (hover: hover) {
     .comparison__table tbody tr:hover {
       background: color-mix(in srgb, var(--ink) 4%, transparent);
@@ -100,6 +125,7 @@ const text: CompareCopy = copy.compare;
     text-align: left;
     vertical-align: top;
     border-bottom: 1px solid var(--line);
+    overflow-wrap: anywhere;
   }
 
   .comparison__table tbody tr:last-child th,
@@ -107,36 +133,41 @@ const text: CompareCopy = copy.compare;
     border-bottom: 0;
   }
 
+  /* The header row sticks under the floating site header (12 px from the top, 60 px tall). */
   .comparison__table thead th {
+    position: sticky;
+    top: 84px;
+    z-index: 1;
     background: var(--soft);
     font-size: 0.875rem;
     font-weight: 600;
   }
 
-  .comparison__table tbody th {
-    width: 22%;
-    font-weight: 600;
+  .comparison__table thead th:first-child {
+    border-top-left-radius: var(--radius-m);
   }
 
-  /* Our column stands out: a mist ground, a coral top rule in the header (the accent is a mark, not a fill), ink
-     text; a small label in its header. */
-  .comparison__table td:nth-of-type(1) {
-    background: color-mix(in srgb, var(--soft) 70%, transparent);
+  .comparison__table thead th:last-child {
+    border-top-right-radius: var(--radius-m);
+  }
+
+  .comparison__table tbody th {
+    font-weight: 600;
   }
 
   .comparison__table td {
     color: var(--muted);
   }
 
+  /* Our column stands out: a mist ground, an accent top rule in the header, ink text; a small label in its header. */
   .comparison__table td:nth-of-type(1) {
+    background: color-mix(in srgb, var(--soft) 70%, transparent);
     color: var(--ink);
     font-weight: 500;
   }
 
   .comparison__table thead .comparison__us {
-    background: var(--soft);
     box-shadow: inset 0 3px 0 var(--accent);
-    white-space: nowrap;
   }
 
   .comparison__badge {
@@ -150,18 +181,41 @@ const text: CompareCopy = copy.compare;
     font-weight: 600;
     letter-spacing: 0.01em;
     vertical-align: 1px;
+    white-space: nowrap;
+  }
+
+  .comparison__cell {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .comparison__mark {
+    flex: none;
+    margin-top: 2px;
+    line-height: 0;
+  }
+
+  .comparison__mark--yes {
+    color: var(--accent);
+  }
+
+  .comparison__mark--partial {
+    color: color-mix(in srgb, var(--accent) 70%, var(--muted));
+  }
+
+  .comparison__mark--no {
+    color: var(--muted);
   }
 
   .comparison__dash {
     color: var(--muted);
   }
 
+  /* Phones: each row is a card with the topic as its title and each product's name above its value. */
   @media (max-width: 640px) {
-    .comparison__table {
-      min-width: 0;
-    }
-
-    .comparison__table thead {
+    .comparison__table thead,
+    .comparison__table colgroup {
       display: none;
     }
 
@@ -175,7 +229,7 @@ const text: CompareCopy = copy.compare;
     }
 
     .comparison__table tr {
-      padding: 14px 16px;
+      padding: 16px;
       border-bottom: 1px solid var(--line);
     }
 
@@ -187,13 +241,17 @@ const text: CompareCopy = copy.compare;
     .comparison__table td,
     .comparison__table tbody tr:last-child th,
     .comparison__table tbody tr:last-child td {
-      padding: 4px 0;
+      padding: 6px 0;
       border-bottom: 0;
     }
 
     .comparison__table tbody th {
-      width: auto;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
+      font-size: 1rem;
+    }
+
+    .comparison__table td {
+      font-size: 1rem;
     }
 
     .comparison__table td:nth-of-type(1) {
@@ -203,7 +261,7 @@ const text: CompareCopy = copy.compare;
     .comparison__table td::before {
       content: attr(data-label);
       display: block;
-      font-size: 0.75rem;
+      font-size: 0.8125rem;
       font-weight: 600;
       letter-spacing: 0.01em;
       color: var(--muted);

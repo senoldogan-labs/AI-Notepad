@@ -42,7 +42,7 @@ If you denied this one, open the section above and switch the app on there.
 
 ## What about the call app's own record button?
 
-Teams, Zoom and Meet each have a recording feature of their own. Whether you can use it often depends on the host, your organisation's settings or your plan, and these recordings are usually announced to everyone in the call.
+Teams, Zoom and Meet each have a recording feature of their own. Whether you can use it often depends on the host, your organization's settings or your plan, and these recordings are usually announced to everyone in the call.
 
 That's a perfectly good option when it's available. Recording on your own Mac is useful when it isn't: when you're a guest in someone else's meeting, or when your meetings are spread across three different call apps and you want the notes in one place.
 
@@ -57,11 +57,11 @@ Capturing system audio directly avoids both: no video, no extra driver, no chang
 
 ## What doesn't work: the iPhone
 
-On an iPhone, apps can't record the sound of a Teams or Zoom call. iOS doesn't allow one app to capture another app's audio. If you join important calls from your phone, join them from your Mac instead when you need a record.
+On an iPhone, iOS doesn't let any app listen to a call in progress, so no app can record the sound of a Teams or Zoom call there. For a phone call, the iPhone's own call recording (iOS 18.1 or later, not available in every region) can record it; from the next Gistsmith iPhone update you can share that audio to the app for a note. If you join important online meetings from your phone, join them from your Mac instead when you need a record. A meeting in the room is different: the Gistsmith iPhone app records the conversation around your phone.
 
 ## How Gistsmith handles it
 
-Gistsmith, the meeting notepad we make, uses exactly these two permissions. It runs on Macs with Apple silicon and macOS 15 or later.
+Gistsmith, the AI meeting notes app we make, uses exactly these two permissions. It runs on Macs with Apple silicon and macOS 15 or later.
 
 - During setup it asks for the **microphone** (your voice) and **system audio** (the other people). The system audio step starts a short capture so macOS can show its prompt.
 - It records the two streams separately, so your lines and everyone else's stay apart, and speakers are separated in the final transcript.

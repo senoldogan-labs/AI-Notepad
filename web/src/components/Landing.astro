@@ -1,25 +1,28 @@
 ---
-// Home page view: hero (serif headline, one line, one download button, one line of assurances; a collage of a desert
-// photograph and a wave render with the Mac note window and the live panel; a factual trust strip), the brand line on
-// the paper band with the product demo, the launch video on a wave render, feature rows with real screens, the small
-// things as dark cards on the night band, the iPhone app, integrations (MCP chat window and chips), privacy on the
-// night band, price with the FAQ, and the closing band (photograph · paper · wave render). Each message appears once
-// on the page: strengthen the existing section before adding one that says the same thing. Body text keeps to the
-// reading measure (`--measure`); photographs and windows use the page width.
+// Home page view. Order: hero (the orange horizon waveform, serif headline, one line, the way to get the app for this
+// device, assurances; beside it one large, readable note screenshot on a soft wave render), the factual trust strip,
+// the brand line on the paper band with the product demo, the film (English page only), two feature rows with real
+// screens (live translation, Ask), the details as six equal dark cards on the night band, the iPhone app, integrations,
+// privacy on the night band, price with the FAQ, and the closing card. Each message appears once on the page, and each
+// backdrop photograph at most once. Body text keeps to the reading measure (`--measure`); pictures use the page width.
 // Text comes from props: the English home page (`/`, copy.home) and the Finnish page (`/fi`, copy-fi.ts) share this
-// view; the page shell (Base, header, footer) lives in the pages.
+// view; the page shell (Base, header, footer) lives in the pages. On an iPhone or iPad the App Store badge replaces the
+// Mac download (`.ios-only` / `.not-ios`, src/client/platform.js).
 import { Picture } from "astro:assets";
 import type { ImageMetadata } from "astro";
 import AppShot from "./AppShot.astro";
 import AppStoreBadge from "./AppStoreBadge.astro";
 import BrandTile from "./BrandTile.astro";
+import CtaBand from "./CtaBand.astro";
 import Faq from "./Faq.astro";
 import HeroDemo from "./HeroDemo.astro";
 import Horizon from "./Horizon.astro";
 import Icon from "./Icon.astro";
-import McpChat from "./McpChat.astro";
 import ImagePreload from "./ImagePreload.astro";
+import LaunchFilm from "./LaunchFilm.astro";
+import McpChat from "./McpChat.astro";
 import PhotoPanel from "./PhotoPanel.astro";
+import ThemedShot from "./ThemedShot.astro";
 import { macDownloadUrl } from "../config";
 import type { CommonCopy, HomeCopy, IconText } from "../copy";
 import { type Brand, brands } from "../lib/brands";
@@ -29,12 +32,15 @@ import { homeStructuredData, structuredDataJson } from "../lib/structured-data";
 import { operator } from "../legal/operator";
 import { routes } from "../routes";
 import { siteConfig } from "../site";
-import launchPoster from "../assets/video/launch-poster.jpg";
 import askShot from "../assets/screenshots/ask.webp";
+import askShotDark from "../assets/screenshots/ask-dark.webp";
 import liveShot from "../assets/screenshots/live.webp";
-import noteShot from "../assets/screenshots/note.webp";
+import liveShotDark from "../assets/screenshots/live-dark.webp";
+import notePane from "../assets/screenshots/note-pane.webp";
+import notePaneDark from "../assets/screenshots/note-pane-dark.webp";
 import iphoneAskShot from "../assets/screenshots/iphone-ask.webp";
 import iphoneHomeShot from "../assets/screenshots/iphone-home.webp";
+import iphoneHomeTop from "../assets/screenshots/iphone-home-top.webp";
 import iphoneLiveShot from "../assets/screenshots/iphone-live.webp";
 
 interface Props {
@@ -42,17 +48,18 @@ interface Props {
   readonly text: HomeCopy;
   /** Shared text (buttons, price, requirements). */
   readonly common: CommonCopy;
-  /** The page this view is drawn on: structured-data address and pricing links follow from it. */
+  /** The page this view is drawn on: structured-data address, pricing links and the (English) film follow from it. */
   readonly page: "home" | "fi";
   /** Target of the "pricing" links; the Finnish page stays in its own pricing section (`#pricing`). */
-  readonly pricingHref?: string | undefined;
+  readonly pricingHref: string;
 }
-const { text, common, page, pricingHref = routes.pricing } = Astro.props;
+const { text, common, page, pricingHref } = Astro.props;
 const heroDownloadUrl: string = macDownloadUrl(siteConfig, "home-hero");
 const ctaDownloadUrl: string = macDownloadUrl(siteConfig, "home-cta");
-/** The hero note window: its widths and `sizes` (the preload uses the same, so the preloaded file is the one shown). */
-const heroShotWidths: readonly number[] = [720, 1200, 1680];
-const heroShotSizes: string = "(max-width: 640px) 88vw, (max-width: 960px) 74vw, 520px";
+/** The hero note pane: its widths and `sizes` (the preload uses the same, so the preloaded file is the one shown). */
+const heroShotWidths: readonly number[] = [680, 1000, 1340];
+const heroShotSizes: string = "(max-width: 960px) min(88vw, 640px), 664px";
+const heroShotQuality: number = 62;
 /** Integration groups and their icons (the AI group closes the list with the MCP link). */
 const integrationGroups: readonly { readonly key: "notes" | "tasks" | "files"; readonly icon: IconName }[] = [
   { key: "notes", icon: "message" },
@@ -61,20 +68,11 @@ const integrationGroups: readonly { readonly key: "notes" | "tasks" | "files"; r
 ];
 /** Chips on the integrations photograph: tools the app really connects to (notes, tasks, files, calendar). */
 const chipBrands: readonly Brand[] = ["notion", "slack", "linear", "obsidian", "calendar"];
-/** iPhone ekranları (scripts/make-iphone-shots.ts): ortadaki önde ve büyük, yandakiler arkada. */
-const iphoneShots: readonly { readonly image: ImageMetadata; readonly alt: string; readonly position: "side" | "front" }[] = [
-  { image: iphoneLiveShot, alt: text.iphone.alt.live, position: "side" },
-  { image: iphoneHomeShot, alt: text.iphone.alt.home, position: "front" },
-  { image: iphoneAskShot, alt: text.iphone.alt.ask, position: "side" },
+/** iPhone screens (scripts/make-iphone-shots.ts): two, large enough to read; on phones only the first. */
+const iphoneShots: readonly { readonly image: ImageMetadata; readonly alt: string }[] = [
+  { image: iphoneLiveShot, alt: text.iphone.alt.live },
+  { image: iphoneHomeShot, alt: text.iphone.alt.home },
 ];
-/**
- * The launch video (public/video; 1280×720, 66 s, plays muted). Its cover is src/assets/video/launch-poster.jpg: the
- * title frame at 2 s, enlarged to 2560×1440 for Retina screens with ffmpeg
- * (`-ss 2 -vf scale=2560:1440:flags=lanczos,unsharp=5:5:0.6:5:5:0`); the video itself is 720p, so there is no sharper source.
- */
-const launchVideo: { readonly src: string } = {
-  src: "/video/gistsmith-launch-720p.mp4",
-};
 /** Arama motorları için uygulama ve işletme bilgisi (JSON-LD). */
 const structuredData: string = structuredDataJson(
   homeStructuredData(siteConfig, operator, { common, meta: text.meta, faq: text.faq, features: text.featureList, trial: common.trial, page }),
@@ -83,138 +81,66 @@ const structuredData: string = structuredDataJson(
 
   {/* Data block: Astro does not process or bundle it (`is:inline`), the browser does not run it; no CSP issue. */}
   <script is:inline type="application/ld+json" set:html={structuredData} />
-  {/* Hero: the headline, one line, one button and the assurances on the left; on the right a collage
-      of two photographs with the Mac note window and the live panel in front. The note window is the largest paint on
-      wide screens (preloaded there); on phones the headline is. */}
+
   <section class="hero page">
     <div class="hero__text">
+      <Horizon seed={text.title} class="hero__horizon" />
       <h1 class="display hero__title">{text.title}</h1>
-      <p class="hero__lead"><strong>{text.eyebrow}.</strong> {text.lead}</p>
+      <p class="hero__lead">{text.lead}</p>
       <div class="hero__actions">
-        <a class="button button--primary" href={heroDownloadUrl} data-mac-download>
+        <a class="button button--primary not-ios" href={heroDownloadUrl} data-mac-download>
           <Icon name="apple" size={16} class="button__apple" />
           {common.downloadCta}
         </a>
-        <a class="text-link hero__iphone" href="#iphone">{text.iphone.heroLink} <Icon name="arrow-right" size={16} class="" /></a>
+        <a class="text-link hero__alt not-ios" href="#iphone">{text.iphone.heroLink} <Icon name="arrow-right" size={16} class="" /></a>
+        <AppStoreBadge language={common.appStoreBadge.language} label={common.appStoreBadge.label} height={52} class="ios-only" />
+        <a class="text-link hero__alt ios-only" href={routes.download}>{common.alsoOnMac} <Icon name="arrow-right" size={16} class="" /></a>
       </div>
       <p class="hero__assurance small"><Icon name="check-circle" size={16} class="hero__assurance-icon" />{[...text.assurances, common.requirementsShort].join(" · ")}</p>
     </div>
-    <div class="collage">
-      <PhotoPanel photo="dune-ridge" focus="center" widths={halfPhotoWidths} sizes="(max-width: 960px) 62vw, 560px" priority="lazy" class="collage__poster collage__poster--a" />
-      <PhotoPanel photo="wave-lilac" focus="center" widths={halfPhotoWidths} sizes="(max-width: 960px) 62vw, 560px" priority="lazy" class="collage__poster collage__poster--b" />
-      <ImagePreload image={noteShot} widths={heroShotWidths} sizes={heroShotSizes} quality={62} media="(min-width: 641px)" />
-      <Picture
-        src={noteShot}
+    {/* One picture: the note itself (summary and your tasks), large enough to read, on one soft wave render. On phones
+        the iPhone home screen replaces it (art direction in ThemedShot). It is the largest paint on wide screens, so it
+        is preloaded there; on phones the headline is. */}
+    <div class="hero__visual">
+      <PhotoPanel photo="wave-lilac" focus="center" widths={halfPhotoWidths} sizes="(max-width: 960px) 90vw, 600px" priority="lazy" class="hero__backdrop" />
+      <ImagePreload image={notePane} widths={heroShotWidths} sizes={heroShotSizes} quality={heroShotQuality} media="(min-width: 641px)" />
+      <ThemedShot
+        light={notePane}
+        dark={notePaneDark}
+        mobile={{ image: iphoneHomeTop, widths: [480, 720, 888], sizes: "min(76vw, 300px)" }}
         alt={text.showcase.note.alt}
-        formats={["avif"]}
-        fallbackFormat="webp"
-        widths={[...heroShotWidths]}
+        widths={heroShotWidths}
         sizes={heroShotSizes}
-        quality={62}
         loading="eager"
-        fetchpriority="high"
-        decoding="async"
-        pictureAttributes={{ class: "collage__window" }}
-      />
-      <Picture
-        src={liveShot}
-        alt={text.showcase.live.alt}
-        formats={["avif"]}
-        fallbackFormat="webp"
-        widths={[240, 360, 480]}
-        sizes="(max-width: 960px) 21vw, 150px"
-        quality={62}
-        loading="lazy"
-        decoding="async"
-        pictureAttributes={{ class: "collage__tile" }}
+        class="hero__shot"
       />
     </div>
   </section>
 
   <ul class="proof page small">
     {text.proof.map((item: string) => <li><Icon name="check" size={15} class="proof__icon" />{item}</li>)}
+    <li>
+      <Icon name="sparkle" size={15} class="proof__icon" />
+      <a class="proof__link" href={text.directory.href} rel="noopener">{text.directory.text}</a>
+    </li>
   </ul>
 
-  {/* The brand line on the paper band, opened by the horizon waveform (the logo's sound crossing still water): the
-      meeting in three steps on the left, the product demo (listening → live transcript → the note) on the right. */}
+  {/* The brand line on the paper band: heading and one line, then the product demo across the page width. */}
   <section class="brandline" id="features" aria-labelledby="features-title">
-    <div class="page brandline__grid">
-      <div class="brandline__text">
-        <Horizon seed={text.showcase.title} class="brandline__horizon" />
+    <div class="page">
+      <div class="section-intro">
         <h2 class="title-l reveal" id="features-title"><span class="tone">{text.showcase.eyebrow}.</span> {text.showcase.title}</h2>
-        <ol class="steps">
-          {
-            [text.showcase.live, text.showcase.note, text.showcase.ask].map((step, index: number) => (
-              <li class="steps__item reveal">
-                <span class="steps__number">{index + 1}</span>
-                <span><strong>{step.label}.</strong> {step.title}.</span>
-              </li>
-            ))
-          }
-        </ol>
+        <p class="section-intro__lead reveal">{text.showcase.lead}</p>
       </div>
-      {/* The panel is taller than the photograph: it covers about 760 px of width on phones and 960 px on wide screens. */}
-      <PhotoPanel photo="red-rock-glow" focus="center" widths={fullPhotoWidths} sizes="(max-width: 640px) 760px, (max-width: 960px) calc(100vw - 40px), 960px" priority="lazy" class="demo-panel">
+      <PhotoPanel photo="red-rock-glow" focus="center" widths={fullPhotoWidths} sizes="(max-width: 640px) 100vw, min(1240px, 100vw - 80px)" priority="lazy" class="demo-panel">
         <HeroDemo demo={text.demo} />
       </PhotoPanel>
     </div>
   </section>
 
-  {/* The launch video stands like a product shot: no player chrome, muted, looping; it plays when it scrolls into view
-      and stops when it leaves, and with reduced motion only the poster shows (src/client/launch-video.ts). It loads
-      only when it plays (preload="none"); the size is given, so nothing shifts. */}
-  <section class="page launch" aria-label={text.launchVideo.description}>
-    <PhotoPanel photo="wave-sunset" focus="center" widths={fullPhotoWidths} sizes="(max-width: 640px) calc(100vw - 40px), min(1240px, 100vw - 80px)" priority="lazy" class="launch__panel">
-    <div class="launch__frame">
-      <Picture
-        src={launchPoster}
-        alt=""
-        formats={["avif"]}
-        fallbackFormat="webp"
-        widths={[640, 960, 1280, 1920, 2560]}
-        sizes="(max-width: 640px) calc(100vw - 80px), min(1096px, 90vw - 80px)"
-        quality={70}
-        loading="lazy"
-        decoding="async"
-        pictureAttributes={{ class: "launch__poster" }}
-      />
-      <video
-        id="launch-video"
-        class="launch__video"
-        muted
-        loop
-        playsinline
-        preload="none"
-        disablepictureinpicture
-        width="1280"
-        height="720"
-        aria-label={text.launchVideo.description}
-      >
-        <source src={launchVideo.src} type="video/mp4" />
-        <p>
-          {text.launchVideo.fallback} <a href={launchVideo.src}>{text.launchVideo.fallbackLink}</a>
-        </p>
-      </video>
-      <button
-        id="launch-video-toggle"
-        class="launch__toggle"
-        type="button"
-        hidden
-        aria-controls="launch-video"
-        aria-label={text.launchVideo.pause}
-        title={text.launchVideo.pause}
-        data-label-pause={text.launchVideo.pause}
-        data-label-play={text.launchVideo.play}
-      >
-        <Icon name="pause" size={16} class="launch__pause" />
-        <Icon name="play" size={15} class="launch__play" />
-      </button>
-    </div>
-    </PhotoPanel>
-  </section>
+  {page === "home" && <LaunchFilm text={text.launchVideo} />}
 
-  {/* During and later, as feature rows: a hairline, the title left, one line right, the screen on a
-      photograph below. */}
+  {/* Two feature rows: a hairline, the title left, one line right, the screen on a photograph below. */}
   <section class="section page moments" aria-label={text.showcase.title}>
     <article class="frow">
       <div class="frow__head">
@@ -223,13 +149,15 @@ const structuredData: string = structuredDataJson(
       </div>
       <AppShot
         image={liveShot}
+        dark={liveShotDark}
+        mobile={{ image: iphoneLiveShot, widths: [480, 720, 888], sizes: "78vw" }}
         alt={text.showcase.live.alt}
         photo="lilac-peaks"
         focus="center"
         variant="panel"
         widths={[360, 560, 840]}
-        sizes="(max-width: 640px) calc(74vw - 30px), 340px"
-        photoSizes="(max-width: 640px) calc(100vw - 40px), min(1240px, 100vw - 80px)"
+        sizes="(max-width: 640px) calc(100vw - 88px), 340px"
+        photoSizes="(max-width: 640px) 100vw, min(1240px, 100vw - 80px)"
         priority="lazy"
         class="moments__shot moments__live"
         callouts={[]}
@@ -242,13 +170,15 @@ const structuredData: string = structuredDataJson(
       </div>
       <AppShot
         image={askShot}
+        dark={askShotDark}
+        mobile={{ image: iphoneAskShot, widths: [480, 720, 888], sizes: "78vw" }}
         alt={text.showcase.ask.alt}
         photo="wave-ocean"
         focus="center"
         variant="window"
         widths={[640, 960, 1360, 1880]}
-        sizes="(max-width: 640px) calc(120vw - 48px), min(980px, 80vw)"
-        photoSizes="(max-width: 640px) calc(100vw - 40px), min(1240px, 100vw - 80px)"
+        sizes="(max-width: 640px) calc(100vw - 56px), min(980px, 80vw)"
+        photoSizes="(max-width: 640px) 100vw, min(1240px, 100vw - 80px)"
         priority="lazy"
         class="moments__shot moments__ask"
         callouts={[]}
@@ -256,30 +186,29 @@ const structuredData: string = structuredDataJson(
     </article>
   </section>
 
-  {/* The small things, on the night band: feature cards with one sentence each and one line for
-      the rest of the plan. */}
+  {/* The details on the night band: six equal cards (a small label, the example in the serif, the feature, one line);
+      the sixth lists what else is included. */}
   <section class="band band--night details" aria-labelledby="details-title">
     <div class="page">
       <h2 class="title-l details__title reveal" id="details-title">{text.featuresTitle}</h2>
-      {/* Dark cards: a small label with its icon, the example in the serif, then the feature and one line. */}
       <div class="dcards">
-        <article class="dcard dcard--wide reveal">
+        <article class="dcard reveal">
           <p class="dcard__label"><Icon name="mail" size={16} class="" />{text.features.followUp.subject}</p>
           <blockquote class="dcard__quote">“{text.features.followUp.lines.join(" ")}”</blockquote>
           <h3 class="dcard__title">{text.features.followUp.title}</h3>
           <p class="dcard__text">{text.features.followUp.text}</p>
-        </article>
-        <article class="dcard dcard--wide reveal">
-          <p class="dcard__label"><Icon name="image" size={16} class="" />{text.features.screens.frame} · {text.features.screens.time}</p>
-          <blockquote class="dcard__quote">“{text.features.screens.quote}”</blockquote>
-          <h3 class="dcard__title">{text.features.screens.title}</h3>
-          <p class="dcard__text">{text.features.screens.text}</p>
         </article>
         <article class="dcard reveal">
           <p class="dcard__label"><Icon name="rewind" size={16} class="" />{text.features.missed.button}</p>
           <blockquote class="dcard__quote">“{text.features.missed.answer}”</blockquote>
           <h3 class="dcard__title">{text.features.missed.title}</h3>
           <p class="dcard__text">{text.features.missed.text}</p>
+        </article>
+        <article class="dcard reveal">
+          <p class="dcard__label"><Icon name="image" size={16} class="" />{text.features.screens.frame} · {text.features.screens.time}</p>
+          <blockquote class="dcard__quote">“{text.features.screens.quote}”</blockquote>
+          <h3 class="dcard__title">{text.features.screens.title}</h3>
+          <p class="dcard__text">{text.features.screens.text}</p>
         </article>
         <article class="dcard reveal">
           <p class="dcard__label"><Icon name="note" size={16} class="" />{text.features.templates.title}</p>
@@ -296,17 +225,18 @@ const structuredData: string = structuredDataJson(
           <p class="dcard__text">{text.features.voiceTyping.text}</p>
           <a class="dcard__link" href={routes.voiceTyping}>{text.features.voiceTyping.link} <Icon name="arrow-right" size={16} class="" /></a>
         </article>
+        <article class="dcard dcard--list reveal">
+          <p class="dcard__label"><Icon name="check-circle" size={16} class="" />{text.capabilities.title}</p>
+          <ul class="dcard__list">
+            {text.capabilities.items.map((item: string) => <li>{item}</li>)}
+          </ul>
+          <a class="dcard__link" href={pricingHref}>{text.capabilities.link} <Icon name="arrow-right" size={16} class="" /></a>
+        </article>
       </div>
-
-      <p class="capabilities">
-        <strong>{text.capabilities.title}:</strong> {text.capabilities.items.join(" · ")}.
-        <a class="text-link capabilities__link" href={pricingHref}>{text.capabilities.link} <Icon name="arrow-right" size={16} class="" /></a>
-      </p>
     </div>
   </section>
 
-  {/* The iPhone app as a feature row: title and lead side by side, three real screens on a wide photograph,
-      the four points in a row, the App Store badge. */}
+  {/* The iPhone app: title and lead with the badge, two real screens on a wide photograph, the four points. */}
   <section class="section page iphone" id="iphone" aria-labelledby="iphone-title">
     <div class="frow">
       <div class="frow__head">
@@ -319,7 +249,7 @@ const structuredData: string = structuredDataJson(
           </div>
         </div>
       </div>
-      <PhotoPanel photo="dune-blush" focus="center" widths={fullPhotoWidths} sizes="(max-width: 640px) calc(100vw - 40px), min(1240px, 100vw - 80px)" priority="lazy" class="iphone__panel">
+      <PhotoPanel photo="dune-blush" focus="center" widths={fullPhotoWidths} sizes="(max-width: 640px) 100vw, min(1240px, 100vw - 80px)" priority="lazy" class="iphone__panel">
         <div class="phones">
           {
             iphoneShots.map((shot) => (
@@ -328,12 +258,12 @@ const structuredData: string = structuredDataJson(
                 alt={shot.alt}
                 formats={["avif"]}
                 fallbackFormat="webp"
-                widths={[240, 360, 480, 720]}
-                sizes={shot.position === "front" ? "(max-width: 960px) 34vw, 280px" : "(max-width: 960px) 28vw, 240px"}
-                quality={62}
+                widths={[300, 480, 720, 888]}
+                sizes="(max-width: 640px) 64vw, 300px"
+                quality={66}
                 loading="lazy"
                 decoding="async"
-                pictureAttributes={{ class: `phones__item phones__item--${shot.position}` }}
+                pictureAttributes={{ class: "phones__item" }}
               />
             ))
           }
@@ -349,12 +279,10 @@ const structuredData: string = structuredDataJson(
           ))
         }
       </dl>
-      <p class="small muted iphone__note reveal">{text.iphone.note}</p>
     </div>
   </section>
 
-  {/* Integrations on the paper band: heading and lead, the four groups beside the MCP chat on a
-      photograph. */}
+  {/* Integrations on the paper band: heading and lead, the four groups beside the MCP chat on a photograph. */}
   <section class="band band--surface integrations-section" id="integrations" aria-labelledby="integrations-title">
     <div class="page">
       <div class="frow__head integrations__head">
@@ -379,7 +307,7 @@ const structuredData: string = structuredDataJson(
             </dd>
           </div>
         </dl>
-        <PhotoPanel photo="wave-coral" focus="bottom" widths={halfPhotoWidths} sizes="(max-width: 960px) calc(100vw - 40px), 640px" priority="lazy" class="split__panel integrations__panel">
+        <PhotoPanel photo="wave-coral" focus="bottom" widths={halfPhotoWidths} sizes="(max-width: 960px) 100vw, 640px" priority="lazy" class="split__panel integrations__panel">
           <div class="integrations__window">
             <McpChat demo={text.integrations.mcpDemo} />
           </div>
@@ -418,7 +346,7 @@ const structuredData: string = structuredDataJson(
     </div>
   </section>
 
-  {/* Price and the questions people ask before they pay, in one section. */}
+  {/* Price (with the usage limits) and the questions people ask before they pay, in one section. */}
   <section class="section page" id="pricing" aria-labelledby="pricing-title">
     <div class="split split--price">
       <div class="split__text">
@@ -429,358 +357,387 @@ const structuredData: string = structuredDataJson(
           <a class="text-link" href={routes.compare}>{text.pricingCompare} <Icon name="arrow-right" size={16} class="" /></a>
         </div>
       </div>
-      <PhotoPanel photo="dune-pale" focus="center" widths={halfPhotoWidths} sizes="(max-width: 960px) calc(100vw - 40px), 640px" priority="lazy" class="split__panel price-panel">
+      <PhotoPanel photo="dune-pale" focus="center" widths={halfPhotoWidths} sizes="(max-width: 960px) 100vw, 640px" priority="lazy" class="split__panel price-panel">
         <div class="price-tag">
-          <p class="price-tag__amount"><span class="tabular">{common.price}</span><span class="price-tag__per">{common.perMonth}</span></p>
+          <p class="price-tag__amount"><span class="tabular">{common.priceDisplay}</span><span class="price-tag__per">{common.perMonth}</span></p>
           <p class="price-tag__offer">{common.offer}</p>
+          <p class="price-tag__limits">{text.pricingLimits}</p>
           <p class="price-tag__tax">{common.renewalNote}</p>
         </div>
       </PhotoPanel>
     </div>
     <div class="faq-block">
-      <h3 class="title-l faq-block__title reveal" id="faq-title">{text.faqTitle}</h3>
+      <h2 class="title-l faq-block__title reveal" id="faq-title">{text.faqTitle}</h2>
       <Faq items={text.faq} />
     </div>
   </section>
 
-  {/* Closing band: photograph · paper · photograph. */}
-  <section class="split-band final" aria-labelledby="final-title">
-    <PhotoPanel photo="red-mountain" focus="center" widths={halfPhotoWidths} sizes="(max-width: 860px) 100vw, min(66vw, 900px)" priority="lazy" class="split-band__photo" />
-    <div class="split-band__paper">
-      <h2 class="title-xl final__title reveal" id="final-title">{text.finalTitle}</h2>
-      <p class="reveal">{text.finalLead}</p>
-      <div class="split-band__actions reveal">
-        <a class="button button--primary" href={ctaDownloadUrl} data-mac-download>
-          <Icon name="apple" size={16} class="button__apple" />
-          {common.downloadCta}
-        </a>
-        <AppStoreBadge language={common.appStoreBadge.language} label={common.appStoreBadge.label} height={52} class="" />
-      </div>
-    </div>
-    <PhotoPanel photo="wave-lilac" focus="center" widths={halfPhotoWidths} sizes="(max-width: 860px) 100vw, min(66vw, 900px)" priority="lazy" class="split-band__photo" />
-  </section>
+  <CtaBand id="final-title" title={text.finalTitle} text={text.finalLead} common={common} macHref={ctaDownloadUrl} />
 
-{/* The home page's own behaviour in one module: the product demo (HeroDemo.astro) and the launch video. */}
+{/* The home page's own behaviour: the product demo (HeroDemo.astro). The film has its own module (LaunchFilm.astro). */}
 <script>
   import "../client/hero-demo";
-  import "../client/launch-video";
 </script>
 
 <style>
-  /* ---------- Hero ---------- */
+  /* ---------- Hero: text left, the note on a wave render right (one column below 768 px) ---------- */
   .hero {
-    padding-top: clamp(56px, 9vw, 120px);
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    align-items: center;
+    gap: clamp(32px, 4.5vw, 64px);
+    min-height: min(820px, calc(100svh - 84px));
+    padding-top: clamp(32px, 5vw, 64px);
+    padding-bottom: clamp(32px, 4vw, 56px);
   }
 
-  /* One column: headline, one line, one button, one line of assurances. */
   .hero__text {
     display: grid;
     justify-items: start;
-    gap: 28px;
-    max-width: var(--measure);
+    gap: 26px;
+  }
+
+  .hero :global(.hero__horizon) {
+    width: min(220px, 60%);
   }
 
   .hero__title {
-    max-width: 12ch;
+    max-width: 11ch;
+    hyphens: manual;
+    -webkit-hyphens: manual;
+  }
+
+  /* Finnish words are long: let the browser hyphenate the headline so it never runs into the picture. */
+  :global(html[lang="fi"]) .hero__title {
+    max-width: 100%;
+    font-size: clamp(2.75rem, 1rem + 4.4vw, 5.25rem);
+    hyphens: auto;
+    -webkit-hyphens: auto;
+    overflow-wrap: break-word;
   }
 
   .hero__lead {
-    margin-top: 4px;
+    max-width: 30rem;
+    font-size: clamp(1.125rem, 1rem + 0.45vw, 1.3125rem);
+    line-height: 1.45;
+    color: var(--muted);
   }
 
   .hero__actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    align-items: center;
+    gap: 14px 22px;
   }
 
-  .hero__actions :global(.hero__iphone) {
-    align-self: center;
+  .hero__actions :global(.hero__alt) {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
   }
 
   .hero__assurance {
-    margin-top: -12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    max-width: 34rem;
+    margin-top: -6px;
     color: var(--muted);
   }
 
-  /* The factual trust strip: one quiet line under the panel. */
+  .hero__assurance :global(.hero__assurance-icon) {
+    flex: none;
+    margin-top: 3px;
+  }
+
+  /* The wave render sits behind the upper right of the note, which overlaps it to the left and below. */
+  .hero__visual {
+    position: relative;
+    padding: 40px 0 0;
+  }
+
+  .hero__visual :global(.hero__backdrop) {
+    position: absolute;
+    inset: 0 -24px 64px 72px;
+    border-radius: 20px;
+  }
+
+  .hero__visual :global(.hero__shot) {
+    position: relative;
+    z-index: 1;
+    width: calc(100% - 24px);
+  }
+
+  .hero__visual :global(.hero__shot img) {
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: var(--shadow-window);
+  }
+
+  /* ---------- Trust strip: one quiet row; a 2 × 2 grid on narrow phones ---------- */
   .proof {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 6px 0;
-    margin: clamp(24px, 3vw, 32px) 0 0;
-    padding: 0;
+    gap: 10px 32px;
+    margin: 0 auto;
+    padding: 12px 0 clamp(48px, 7vw, 88px);
     list-style: none;
     color: var(--muted);
     font-weight: 500;
   }
 
-  .proof li + li::before {
-    content: "·";
-    margin-inline: 12px;
+  .proof li {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .proof :global(.proof__icon) {
+    flex: none;
     color: var(--accent);
   }
 
-  /* ---------- Launch video ----------
-     No cover, only the video's own frame (site radius, hairline, soft shadow; both themes). 16:9 space is reserved.
-     No player chrome: clicks and taps do not reach the video (no picture-in-picture or play overlays either). */
-  .launch__frame {
-    position: relative;
-    overflow: hidden;
-    border: 1px solid var(--line);
-    border-radius: var(--radius-panel);
-    background: var(--soft);
-    box-shadow: var(--elevation);
-  }
-
-  .launch__poster,
-  .launch__poster :global(img) {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-  }
-
-  .launch__poster :global(img) {
-    object-fit: cover;
-  }
-
-  .launch__video {
-    position: relative;
-    display: block;
-    width: 100%;
-    height: auto;
-    aspect-ratio: 16 / 9;
-    pointer-events: none;
-  }
-
-  .launch__video::-webkit-media-controls {
-    display: none !important;
-  }
-
-  .launch__video::-webkit-media-controls-start-playback-button {
-    display: none !important;
-  }
-
-  /* Pause/play: the video plays on its own while on screen, so it can always be stopped (WCAG 2.2.2). Shown by
-     src/client/launch-video.ts; hidden under reduced motion, where the video never plays. */
-  .launch__toggle {
-    position: absolute;
-    right: 16px;
-    bottom: 16px;
-    display: grid;
-    place-items: center;
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    border: 1px solid rgb(0 0 0 / 0.12);
-    border-radius: 999px;
-    background: rgb(255 255 255 / 0.92);
-    color: #0a0a0a;
-    box-shadow: var(--shadow-chip);
-    cursor: pointer;
-  }
-
-  .launch__toggle[hidden] {
-    display: none;
-  }
-
-  .launch__toggle :global(.icon) {
-    grid-area: 1 / 1;
-  }
-
-  .launch__toggle :global(.launch__play),
-  .launch__toggle[data-state="paused"] :global(.launch__pause) {
-    display: none;
-  }
-
-  .launch__toggle[data-state="paused"] :global(.launch__play) {
-    display: block;
-  }
-
-  /* ---------- The meeting, in rows ---------- */
-  .showcase {
-    display: grid;
-    gap: clamp(64px, 9vw, 128px);
-    padding-bottom: 0;
-  }
-
-  .showcase > .section-head {
-    margin-bottom: 0;
-  }
-
-  /* Text column (4 of 12) and panel (8 of 12); `--flip` swaps sides, `--wide` stacks the heading over a full-width
-     panel. */
-  .row {
-    display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: 28px clamp(20px, 3vw, 40px);
+  .proof__link {
+    display: inline-flex;
     align-items: center;
+    min-height: 44px;
+    text-decoration: underline;
+    text-decoration-color: var(--line);
   }
 
-  .row__text {
-    grid-column: 1 / span 4;
+  .proof__link:hover {
+    color: var(--ink);
+    text-decoration-color: currentColor;
+  }
+
+  /* ---------- Brand line and the product demo ---------- */
+  .brandline {
+    padding-block: var(--section);
+    background: var(--card);
+  }
+
+  /* Section intro: the two-tone heading left, one line right, on the page grid. */
+  .section-intro {
     display: grid;
-    gap: 22px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: end;
+    gap: 16px 48px;
+    margin-bottom: clamp(32px, 4vw, 48px);
   }
 
-  /* The third and smallest serif step on the page (display, section title, row title). */
-  .row__title {
-    font-family: var(--serif);
-    font-weight: 400;
-    font-size: var(--step-3);
-    letter-spacing: -0.015em;
-    line-height: 1.12;
+  .section-intro__lead {
+    max-width: 32rem;
+    color: var(--muted);
+    font-size: 1.0625rem;
   }
 
-  .row__text p {
-    margin: 0;
-    max-width: 36ch;
-  }
-
-  /* The product demo floats on the desert photograph; the photograph never moves. */
-  .row :global(.demo-panel) {
+  .brandline :global(.demo-panel) {
     display: grid;
     align-items: center;
-    min-height: clamp(400px, 46vw, 580px);
-    padding: clamp(16px, 3vw, 40px);
+    min-height: clamp(440px, 40vw, 560px);
+    padding: clamp(14px, 4vw, 56px) clamp(14px, 6vw, 96px);
   }
 
-  /* Özellikler: üstte iki geniş, altta dört kart; başlıklar kapakların altında, başlığın önünde simge. */
-  .features {
-    display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: clamp(28px, 3.4vw, 44px) clamp(16px, 2.2vw, 28px);
+  /* ---------- Feature rows ---------- */
+  .moments :global(.moments__shot) {
+    width: 100%;
   }
 
-  .feature {
-    grid-column: span 3;
-    display: grid;
-    align-content: start;
-    gap: 10px;
-    min-width: 0;
+  .moments :global(.moments__live) {
+    --shot-ratio: 16 / 8.6;
+    --shot-top: clamp(24px, 6%, 56px);
+    --shot-side: 36%;
   }
 
-  .missed {
-    display: grid;
-    gap: 10px;
-    justify-items: center;
+  .moments :global(.moments__ask) {
+    --shot-ratio: 16 / 8.6;
+    --shot-top: clamp(24px, 6%, 64px);
+    --shot-side: 10%;
+  }
+
+  /* ---------- Details on the night band: 3 × 2 equal cards ---------- */
+  .details__title {
+    max-width: 18ch;
+    margin: 0 auto clamp(40px, 5vw, 64px);
     text-align: center;
+    color: var(--on-night);
   }
 
-  /* Şablonlar: kart etiketler. */
-  .templates {
+  .dcards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-auto-rows: 1fr;
+    gap: 16px;
+  }
+
+  .dcard {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: clamp(22px, 2.4vw, 30px);
+    border: 1px solid var(--night-line);
+    border-radius: 12px;
+  }
+
+  .dcard__label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    color: var(--on-night-muted);
+  }
+
+  .dcard__quote {
+    flex: 1;
+    margin: 6px 0 12px;
+    font-family: var(--serif);
+    font-size: clamp(1.375rem, 1.1rem + 0.7vw, 1.75rem);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    color: var(--on-night);
+  }
+
+  .dcard__chips,
+  .dcard__list {
+    flex: 1;
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
+    align-content: flex-start;
     gap: 8px;
-    max-width: 260px;
-    margin: 0;
+    margin: 6px 0 12px;
     padding: 0;
     list-style: none;
   }
 
-  /* Sesle yazma: basılı tutulan kısayol ve imlecin olduğu alana yazılan cümle (imleç durağan, animasyonsuz). */
-  .voice {
+  .dcard__chips li {
+    padding: 6px 12px;
+    border: 1px solid var(--night-line);
+    border-radius: 999px;
+    font-family: var(--serif);
+    font-size: 1.125rem;
+    color: var(--on-night);
+  }
+
+  .dcard__list {
     display: grid;
-    gap: 12px;
-    justify-items: center;
-    width: min(100%, 340px);
+    gap: 0;
   }
 
-  /* Paylaşılan ekran: küçük bir tasarım çerçevesi ve ona iğnelenmiş, o sırada söylenen cümle (durağan). */
-  .screens {
-    display: grid;
-    gap: 10px;
-    justify-items: center;
-    width: min(100%, 300px);
+  .dcard__list li {
+    padding: 9px 0;
+    border-bottom: 1px solid var(--night-line);
+    color: var(--on-night);
   }
 
-  /* The rest of the plan in one line under the cards. */
-  .capabilities {
-    max-width: var(--measure);
-    margin: 0;
-    padding-top: clamp(28px, 3vw, 36px);
-    border-top: 1px solid var(--line);
-    color: var(--muted);
+  .dcard__list li::first-letter {
+    text-transform: uppercase;
   }
 
-  .capabilities strong {
-    color: var(--ink);
+  .dcard__title {
+    font-size: 1rem;
     font-weight: 600;
+    letter-spacing: -0.005em;
+    color: var(--on-night);
   }
 
-  .capabilities__link {
+  .dcard__text {
+    margin-top: -6px;
+    font-size: 0.9375rem;
+    color: var(--on-night-muted);
+  }
+
+  .dcard__link {
     display: inline-flex;
-    margin-left: 6px;
+    align-items: center;
+    gap: 6px;
+    width: fit-content;
+    min-height: 44px;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--on-night);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
   }
 
-  /* ---------- iPhone: text and points beside three phones on a photograph ---------- */
+  /* ---------- iPhone ---------- */
+  .iphone__intro {
+    display: grid;
+    gap: 20px;
+    align-content: start;
+  }
+
   .iphone__get {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 12px 18px;
-    margin-top: 4px;
-  }
-
-  .iphone__note {
-    max-width: 44ch;
-    margin: 0;
+    gap: 12px 16px;
   }
 
   .iphone :global(.iphone__panel) {
     display: grid;
     place-items: center;
-    min-height: clamp(460px, 52vw, 680px);
-    padding: clamp(28px, 5vw, 56px) clamp(12px, 3vw, 36px);
+    padding: clamp(28px, 4vw, 56px) 16px;
   }
 
-  /* Three phones side by side: the middle one in front and larger, the side ones overlap behind it (static). */
+  /* Two phones side by side, whole (never cut), large enough to read. */
   .phones {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1fr);
-    align-items: center;
-    width: min(100%, 600px);
+    display: flex;
+    justify-content: center;
+    gap: clamp(20px, 4vw, 56px);
   }
 
   .phones :global(.phones__item) {
     display: block;
-    min-width: 0;
+    width: min(300px, 38vw);
   }
 
-  .phones :global(.phones__item--side) {
-    position: relative;
-    z-index: 0;
-  }
-
-  .phones :global(.phones__item--side:first-child) {
-    margin-right: -14%;
-  }
-
-  .phones :global(.phones__item--side:last-child) {
-    margin-left: -14%;
-  }
-
-  .phones :global(.phones__item--front) {
-    position: relative;
-    z-index: 1;
-  }
-
-  /* The shadow follows the frame's transparent rounded corners (as on the Mac windows). */
   .phones :global(img) {
     display: block;
     width: 100%;
     height: auto;
-    filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.16)) drop-shadow(0 24px 40px rgb(0 0 0 / 0.34));
+    filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.16)) drop-shadow(0 24px 40px rgb(0 0 0 / 0.3));
   }
 
-  /* ---------- Integrations: text and groups beside the desk photograph ---------- */
+  .points {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 28px;
+    margin: clamp(32px, 4vw, 48px) 0 0;
+  }
+
+  .points__item {
+    display: grid;
+    gap: 8px;
+    align-content: start;
+  }
+
+  .points__title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+  }
+
+  .points dd {
+    margin: 0;
+  }
+
+  .points :global(.points__icon) {
+    flex: none;
+    color: var(--accent);
+  }
+
+  /* ---------- Integrations ---------- */
+  .integrations__head {
+    margin-bottom: clamp(36px, 5vw, 56px);
+  }
+
   .split {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
-    gap: clamp(32px, 6vw, 88px);
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: clamp(28px, 5vw, 72px);
     align-items: center;
   }
 
@@ -793,13 +750,19 @@ const structuredData: string = structuredDataJson(
   .split__links {
     display: grid;
     justify-items: start;
-    gap: 10px;
+    gap: 0;
+  }
+
+  .split__links :global(.text-link),
+  .group__link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
   }
 
   .groups {
     display: grid;
-    gap: 0;
-    margin: 8px 0 0;
+    margin: 0;
   }
 
   .group {
@@ -822,19 +785,19 @@ const structuredData: string = structuredDataJson(
   }
 
   .group dd {
-    margin: 0 0 0 28px;
+    margin: 0 0 0 30px;
   }
 
   .group__link {
     display: flex;
     width: fit-content;
-    margin-top: 8px;
+    margin-top: 2px;
   }
 
   .integrations-section :global(.integrations__panel) {
     display: grid;
     place-items: center;
-    min-height: clamp(460px, 48vw, 620px);
+    min-height: clamp(460px, 46vw, 600px);
     padding: clamp(28px, 5vw, 56px) clamp(16px, 4vw, 48px);
   }
 
@@ -842,7 +805,6 @@ const structuredData: string = structuredDataJson(
     width: min(100%, 420px);
   }
 
-  /* Chips on the photograph's edges, as if laid around the window on the desk. */
   .integrations__chips {
     position: absolute;
     inset: 0;
@@ -882,483 +844,6 @@ const structuredData: string = structuredDataJson(
   }
 
   /* ---------- Privacy on the night band ---------- */
-  .night {
-    padding-block: clamp(80px, 10vw, 136px);
-    background: var(--night);
-    color: var(--on-night);
-  }
-
-  .night :focus-visible {
-    outline-color: #8fb5d8;
-  }
-
-  .trust {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0 clamp(24px, 4vw, 48px);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  /* ---------- Price ---------- */
-  #pricing :global(.price-panel) {
-    display: grid;
-    place-items: center;
-    min-height: clamp(340px, 36vw, 440px);
-    padding: 28px;
-  }
-
-  .price-tag {
-    display: grid;
-    gap: 6px;
-    width: min(100%, 360px);
-    padding: 28px 32px;
-    border-radius: var(--radius-m);
-    background: var(--card);
-    color: var(--ink);
-    box-shadow: var(--shadow-window);
-  }
-
-  .price-tag__amount {
-    display: flex;
-    align-items: baseline;
-    gap: 6px;
-    font-family: var(--serif);
-    font-size: var(--step-2);
-    letter-spacing: -0.02em;
-    line-height: 1.05;
-  }
-
-  .price-tag__per {
-    font-family: var(--font);
-    font-size: 1rem;
-    font-weight: 500;
-    letter-spacing: 0;
-    color: var(--muted);
-  }
-
-  .price-tag__offer {
-    font-weight: 600;
-  }
-
-  .price-tag__tax {
-    font-size: 0.8125rem;
-    color: var(--muted);
-  }
-
-  /* ---------- FAQ (under the price) and closing card ---------- */
-  .faq-block {
-    display: grid;
-    gap: 20px;
-    margin-top: clamp(64px, 8vw, 112px);
-  }
-
-  .faq-block__title {
-    font-size: 1.125rem;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-  }
-
-  /* ---------- Narrower screens ---------- */
-  @media (max-width: 960px) {
-    .split {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .row {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .row__text {
-      grid-column: 1;
-      grid-row: auto;
-    }
-
-    .feature {
-      grid-column: span 6;
-    }
-  }
-
-  @media (max-width: 640px) {
-
-    .trust {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .feature {
-      grid-column: 1 / -1;
-    }
-
-    .hero__actions .button {
-      flex: 1 1 auto;
-    }
-
-    /* On a phone the three phones fill the panel's width with a tighter overlap. */
-    .iphone :global(.iphone__panel) {
-      min-height: 0;
-      padding: 32px 10px;
-    }
-
-    .phones {
-      width: 100%;
-    }
-
-    .phones :global(.phones__item--side:first-child) {
-      margin-right: -22%;
-    }
-
-    .phones :global(.phones__item--side:last-child) {
-      margin-left: -22%;
-    }
-
-    /* Chips would cover the chat window on a phone: only two stay, at the edges. */
-    .integrations__chip--linear,
-    .integrations__chip--obsidian,
-    .integrations__chip--calendar {
-      display: none;
-    }
-
-    .integrations__chip--notion {
-      left: 4%;
-      top: 4%;
-    }
-
-    .integrations__chip--slack {
-      right: 4%;
-      top: auto;
-      bottom: 4%;
-    }
-  }
-  /* ================= Two-column layout (overrides the one-column rules above) ================= */
-
-  /* Hero: text left, collage right. */
-  .hero {
-    display: grid;
-    grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
-    align-items: center;
-    gap: clamp(32px, 5vw, 64px);
-    min-height: min(820px, calc(100svh - 84px));
-    padding-top: clamp(32px, 5vw, 64px);
-    padding-bottom: clamp(32px, 4vw, 56px);
-  }
-
-  .hero__text {
-    display: grid;
-    justify-items: start;
-    gap: 28px;
-    max-width: none;
-  }
-
-  .hero__title {
-    max-width: 11ch;
-    hyphens: manual;
-    -webkit-hyphens: manual;
-  }
-
-  .hero__lead {
-    max-width: 26rem;
-    margin-top: 2px;
-    font-size: clamp(1.25rem, 1.05rem + 0.6vw, 1.5rem);
-    line-height: 1.33;
-    color: var(--muted);
-  }
-
-  .hero__lead strong {
-    color: var(--ink);
-    font-weight: 500;
-  }
-
-  .hero__actions {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 14px 20px;
-  }
-
-  .hero__assurance {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    max-width: 34rem;
-    margin-top: -8px;
-    color: var(--muted);
-  }
-
-  .hero__assurance :global(.hero__assurance-icon) {
-    flex: none;
-    margin-top: 2px;
-  }
-
-  /* Collage: two photographs as offset posters (the desert top left, the wave bottom right), each showing about a third
-     of itself around the note window; the live panel overlaps the window's lower left corner. Percentages of the
-     collage box, so phones get the same composition. */
-  .collage {
-    position: relative;
-    aspect-ratio: 1.1 / 1;
-    width: 100%;
-  }
-
-  .collage :global(.collage__poster) {
-    position: absolute;
-    border-radius: var(--radius-panel);
-  }
-
-  .collage :global(.collage__poster--a) {
-    left: 0;
-    top: 0;
-    width: 44%;
-    height: 66%;
-  }
-
-  .collage :global(.collage__poster--b) {
-    right: 0;
-    top: 36%;
-    width: 46%;
-    height: 64%;
-  }
-
-  .collage :global(.collage__window) {
-    position: absolute;
-    z-index: 2;
-    left: 14%;
-    top: 22%;
-    width: 74%;
-  }
-
-  /* On phones the note window takes more of the width so its text stays legible; the posters still show at the
-     corners. */
-  @media (max-width: 640px) {
-    .collage :global(.collage__window) {
-      left: 6%;
-      top: 20%;
-      width: 88%;
-    }
-
-    .collage :global(.collage__tile) {
-      left: 0;
-      width: 24%;
-    }
-  }
-
-  .collage :global(.collage__window img) {
-    width: 100%;
-    height: auto;
-    border-radius: 12px;
-    box-shadow: var(--shadow-window);
-  }
-
-  .collage :global(.collage__tile) {
-    position: absolute;
-    z-index: 3;
-    left: 4%;
-    bottom: 0;
-    width: 21%;
-  }
-
-  .collage :global(.collage__tile img) {
-    width: 100%;
-    height: auto;
-    border-radius: 12px;
-    box-shadow: var(--shadow-window);
-  }
-
-  /* The factual trust strip: one quiet row with ticks. */
-  .proof {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 10px 32px;
-    margin: 0 auto;
-    padding: 8px 0 clamp(48px, 7vw, 88px);
-    list-style: none;
-    color: var(--muted);
-    font-weight: 500;
-  }
-
-  .proof li {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .proof li + li::before {
-    content: none;
-  }
-
-  .proof :global(.proof__icon) {
-    color: var(--accent);
-  }
-
-  /* Paper band with the brand line and the product demo. */
-  .brandline {
-    position: relative;
-    padding-block: clamp(72px, 9vw, 128px);
-    background: var(--card);
-  }
-
-  .brandline :global(.brandline__horizon) {
-    justify-content: flex-start;
-  }
-
-  .brandline__grid {
-    display: grid;
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-    align-items: center;
-    gap: clamp(32px, 5vw, 64px);
-  }
-
-  .brandline__text {
-    display: grid;
-    gap: clamp(28px, 4vw, 48px);
-  }
-
-  .steps {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    border-top: 1px solid var(--hairline);
-  }
-
-  .steps__item {
-    display: grid;
-    grid-template-columns: 34px minmax(0, 1fr);
-    align-items: baseline;
-    gap: 12px;
-    padding: 15px 0;
-    border-bottom: 1px solid var(--hairline);
-    color: var(--muted);
-  }
-
-  .steps__item strong {
-    color: var(--ink);
-    font-weight: 600;
-  }
-
-  .steps__number {
-    font-family: var(--serif);
-    font-size: 1.375rem;
-    line-height: 1;
-    color: var(--accent);
-  }
-
-  .brandline :global(.demo-panel) {
-    display: grid;
-    align-items: center;
-    min-height: clamp(420px, 44vw, 600px);
-    padding: clamp(14px, 2.4vw, 32px);
-  }
-
-  .launch {
-    padding-top: clamp(72px, 9vw, 128px);
-  }
-
-  /* During and later: feature rows; the screens float on wide photographs. */
-  .moments {
-    padding-bottom: 0;
-  }
-
-  .moments :global(.moments__shot) {
-    width: 100%;
-  }
-
-  .moments :global(.moments__live) {
-    --shot-ratio: 16 / 8.6;
-    --shot-top: clamp(24px, 6%, 56px);
-    --shot-side: 36%;
-  }
-
-  .moments :global(.moments__ask) {
-    --shot-ratio: 16 / 8.6;
-    --shot-top: clamp(24px, 6%, 64px);
-    --shot-side: 10%;
-  }
-
-  /* The small things on the night band. */
-  .details {
-    margin-top: var(--section);
-  }
-
-  .details .capabilities {
-    margin-top: clamp(40px, 5vw, 64px);
-    padding-top: 24px;
-    border-top: 1px solid var(--night-line);
-    color: var(--on-night-muted);
-  }
-
-  .details .capabilities strong,
-  .details .capabilities :global(a) {
-    color: var(--on-night);
-  }
-
-  /* iPhone: a feature row with the phones on a wide photograph and the four points in a row. */
-  .iphone__intro {
-    display: grid;
-    gap: 20px;
-    align-content: start;
-  }
-
-  .iphone__get {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 12px 16px;
-  }
-
-  .iphone :global(.iphone__panel) {
-    min-height: clamp(420px, 48vw, 640px);
-    display: grid;
-    place-items: center;
-    padding: clamp(24px, 4vw, 56px) 16px 0;
-    overflow: hidden;
-  }
-
-  .points {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 28px;
-    margin: clamp(32px, 4vw, 48px) 0 0;
-  }
-
-  .points__item {
-    display: grid;
-    gap: 8px;
-    align-content: start;
-  }
-
-  .points__title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-weight: 600;
-  }
-
-  .points dd {
-    margin: 0;
-  }
-
-  .points :global(.points__icon) {
-    flex: none;
-    color: var(--accent);
-  }
-
-  .iphone__note {
-    margin-top: 24px;
-  }
-
-  /* Integrations on the paper band. */
-  .integrations__head {
-    margin-bottom: clamp(36px, 5vw, 56px);
-  }
-
-  .integrations-section .split {
-    display: grid;
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-    gap: clamp(28px, 4vw, 56px);
-    align-items: center;
-  }
-
-  /* Privacy: centred on the night band. */
   .trust-band {
     text-align: center;
   }
@@ -1407,76 +892,78 @@ const structuredData: string = structuredDataJson(
   }
 
   .trust-band__more {
-    margin-top: 32px;
+    margin-top: 24px;
   }
 
   .trust-band__more :global(a) {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
     color: var(--on-night);
   }
 
-  /* Closing band. */
-  .final {
-    margin-top: var(--section);
+  /* ---------- Price ---------- */
+  #pricing :global(.price-panel) {
+    display: grid;
+    place-items: center;
+    min-height: clamp(360px, 36vw, 460px);
+    padding: 28px;
   }
 
-  .final .final__title {
-    font-size: clamp(2.5rem, 1.4rem + 3.4vw, 4rem);
+  .price-tag {
+    display: grid;
+    gap: 8px;
+    width: min(100%, 380px);
+    padding: 28px 32px;
+    border-radius: var(--radius-m);
+    background: var(--card);
+    color: var(--ink);
+    box-shadow: var(--shadow-window);
   }
 
-  @media (max-width: 960px) {
-    .hero,
-    .brandline__grid,
-    .integrations-section .split {
-      grid-template-columns: 1fr;
-    }
-
-    .hero {
-      min-height: 0;
-    }
-
-    .collage {
-      max-width: 560px;
-      margin-inline: auto;
-    }
-
-    .points {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .trust-band__wall {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .trust-band__wall .wall__item:nth-child(odd) {
-      border-left: 0;
-    }
+  .price-tag__amount {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    font-family: var(--serif);
+    font-size: var(--step-2);
+    letter-spacing: -0.02em;
+    line-height: 1.05;
   }
 
-  @media (max-width: 560px) {
-    .points,
-    .trust-band__wall {
-      grid-template-columns: 1fr;
-    }
-
-    .trust-band__wall .wall__item + .wall__item {
-      border-left: 0;
-      border-top: 1px solid var(--night-line);
-    }
+  .price-tag__per {
+    font-family: var(--font);
+    font-size: 1rem;
+    font-weight: 500;
+    letter-spacing: 0;
+    color: var(--muted);
   }
 
-  /* Questions: centred title over one centred column. */
+  .price-tag__offer {
+    font-weight: 600;
+  }
+
+  .price-tag__limits {
+    padding-top: 8px;
+    border-top: 1px solid var(--line);
+    font-size: 0.9375rem;
+  }
+
+  .price-tag__tax {
+    font-size: 0.8125rem;
+    color: var(--muted);
+  }
+
+  /* ---------- Questions: centred title over one centred column ---------- */
   .faq-block {
     display: grid;
     justify-items: center;
     gap: clamp(24px, 3vw, 40px);
-    margin-top: clamp(80px, 10vw, 128px);
+    margin-top: clamp(72px, 9vw, 120px);
   }
 
   .faq-block .faq-block__title {
     margin: 0;
-    font-size: var(--step-2);
-    font-weight: 400;
-    color: var(--ink);
     text-align: center;
   }
 
@@ -1484,154 +971,155 @@ const structuredData: string = structuredDataJson(
     width: min(820px, 100%);
   }
 
-  /* ---------- Round two: the collage, the video on a photograph, the dark cards ---------- */
-  /* Two columns only on wide screens; below 961 px the hero stays one column (text, then the collage). */
-  @media (min-width: 961px) {
-    .hero {
-      grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.15fr);
-    }
-  }
-
-  .launch :global(.launch__panel) {
-    padding: clamp(18px, 5vw, 72px);
-  }
-
-  .launch :global(.launch__frame) {
-    border: 0;
-    border-radius: 12px;
-    box-shadow: var(--shadow-window);
-  }
-
-  .details__title {
-    max-width: 18ch;
-    margin: 0 auto clamp(40px, 5vw, 64px);
-    text-align: center;
-    color: var(--on-night);
-  }
-
-  .dcards {
-    display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 16px;
-  }
-
-  .dcard {
-    grid-column: span 2;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    min-height: 300px;
-    padding: clamp(22px, 2.4vw, 30px);
-    border: 1px solid var(--night-line);
-    border-radius: 6px;
-  }
-
-  .dcard--wide {
-    grid-column: span 3;
-  }
-
-  .dcard__label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.875rem;
-    color: var(--on-night-muted);
-  }
-
-  .dcard__quote {
-    flex: 1;
-    margin: 6px 0 12px;
-    font-family: var(--serif);
-    font-size: clamp(1.375rem, 1.1rem + 0.9vw, 1.875rem);
-    line-height: 1.2;
-    letter-spacing: -0.01em;
-    color: var(--on-night);
-  }
-
-  .dcard__chips {
-    flex: 1;
-    display: flex;
-    flex-wrap: wrap;
-    align-content: flex-start;
-    gap: 8px;
-    margin: 6px 0 12px;
-    padding: 0;
-    list-style: none;
-  }
-
-  .dcard__chips li {
-    padding: 6px 12px;
-    border: 1px solid var(--night-line);
-    border-radius: 999px;
-    font-family: var(--serif);
-    font-size: 1.125rem;
-    color: var(--on-night);
-  }
-
-  .dcard__title {
-    font-size: 0.9375rem;
-    font-weight: 600;
-    letter-spacing: -0.005em;
-    color: var(--on-night);
-  }
-
-  .dcard__text {
-    margin-top: -6px;
-    font-size: 0.875rem;
-    color: var(--on-night-muted);
-  }
-
-  /* The card's link: the arrow stays with its last word. */
-  .dcard__link {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    width: fit-content;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--on-night);
-    text-decoration: underline;
-    text-decoration-thickness: 1px;
-    text-underline-offset: 3px;
-  }
-
-  .dcard__link :global(svg) {
-    flex: none;
-  }
-
+  /* ---------- Narrower screens ---------- */
   @media (max-width: 960px) {
+    .split {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
     .dcards {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .dcard,
-    .dcard--wide {
-      grid-column: span 1;
+    .points,
+    .trust-band__wall {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .dcard--wide:first-child {
-      grid-column: 1 / -1;
+    .trust-band__wall .wall__item:nth-child(odd) {
+      border-left: 0;
+    }
+
+    .trust-band__wall .wall__item:nth-child(n + 3) {
+      border-top: 1px solid var(--night-line);
     }
   }
 
-  @media (max-width: 600px) {
-    .dcards {
-      grid-template-columns: 1fr;
+  /* Tablets keep the two-column hero down to 768 px. */
+  @media (max-width: 767px) {
+    .hero {
+      grid-template-columns: minmax(0, 1fr);
+      min-height: 0;
     }
 
-    .dcard,
-    .dcard--wide,
-    .dcard--wide:first-child {
-      grid-column: auto;
-      min-height: 0;
+    .section-intro {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .hero__actions :global(.button) {
+      flex: 1 1 auto;
+    }
+
+    /* The iPhone home screen, cut by the bottom of the wave render. */
+    .hero__visual {
+      overflow: hidden;
+      padding: 28px 0 0;
+      border-radius: 20px;
+    }
+
+    .hero__visual :global(.hero__backdrop) {
+      inset: 0;
+    }
+
+    .hero__visual :global(.hero__shot) {
+      width: min(76vw, 300px);
+      margin-inline: auto;
+      margin-bottom: -2px;
+    }
+
+    .hero__visual :global(.hero__shot img) {
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      filter: drop-shadow(0 18px 30px rgb(0 0 0 / 0.28));
+    }
+
+    .proof {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      justify-items: start;
+      gap: 4px 16px;
+    }
+
+    .proof li {
+      min-height: 44px;
     }
 
     .brandline :global(.demo-panel) {
       min-height: 0;
-      padding: 10px;
+      padding: 12px;
     }
 
-    /* Room above and below the chat card for the two chips, so neither covers it. */
+    /* Phones show the iPhone screens of the same features, cut by the panel's bottom edge. */
+    .moments :global(.moments__live),
+    .moments :global(.moments__ask) {
+      --shot-ratio: 4 / 4.6;
+      --shot-top: 28px;
+      --shot-side: 11%;
+    }
+
+    .moments :global(.moments__shot .shot__image img) {
+      filter: drop-shadow(0 18px 30px rgb(0 0 0 / 0.28));
+    }
+
+    .trust-band__wall .wall__item {
+      font-size: 1rem;
+    }
+
+    .dcards {
+      grid-template-columns: minmax(0, 1fr);
+      grid-auto-rows: auto;
+    }
+
+    .dcard__quote {
+      margin-bottom: 4px;
+    }
+
+    .dcard__text,
+    .trust-band__item-text,
+    .price-tag__limits {
+      font-size: 1rem;
+    }
+
+    /* One phone on a phone: two side by side would be too small to read. */
+    .phones :global(.phones__item) {
+      width: min(64vw, 260px);
+    }
+
+    .phones :global(.phones__item:nth-child(2)) {
+      display: none;
+    }
+
+    .points,
+    .trust-band__wall {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .trust-band__wall .wall__item + .wall__item {
+      border-left: 0;
+      border-top: 1px solid var(--night-line);
+    }
+
+    /* Chips would cover the chat window on a phone: only two stay, at the edges. */
+    .integrations__chip--linear,
+    .integrations__chip--obsidian,
+    .integrations__chip--calendar {
+      display: none;
+    }
+
+    .integrations__chip--notion {
+      left: 4%;
+      top: 4%;
+    }
+
+    .integrations__chip--slack {
+      right: 4%;
+      top: auto;
+      bottom: 4%;
+    }
+
     .integrations-section :global(.integrations__panel) {
       min-height: 0;
       padding-block: 72px;

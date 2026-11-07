@@ -2,7 +2,9 @@
 // İndirme sayfası, iki blok: Mac (indirme düğmesi: sunucu indirmeyi sayıp en son GitHub sürümündeki DMG'ye yönlendirir;
 // altında sürüm — sunucudan okunur, yeri baştan ayrılır, numara gelince sayfa kaymaz — ve gereksinimler etiket/değer
 // satırlarında, altında sürüm notu: her şey macOS 15'te çalışır, sesle yazmanın motoru sürüme göre) ve iPhone (App Store
-// rozeti, gereksinim, ne kaydettiği ve ortak hesap/abonelik; yanında gerçek iPhone ekranı). Sonra Mac için üç kurulum
+// rozeti, gereksinim, ne kaydettiği ve ortak hesap/abonelik; iPhone ve iPad'de bu blok önce gelir). Yanında asıl görsel
+// Mac penceresi (temaya göre açık ya da koyu çekim), köşesinde küçük iPhone ekranı. Sürümün yanında en son sürümün
+// notlarına bağlantı (herkese açık sürümler deposu). Sonra Mac için üç kurulum
 // adımı, güncellemeler ve yardım tek satırda.
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
@@ -10,12 +12,17 @@ import { Picture } from "astro:assets";
 import AppStoreBadge from "../components/AppStoreBadge.astro";
 import PhotoPanel from "../components/PhotoPanel.astro";
 import Icon from "../components/Icon.astro";
-import Logo from "../components/Logo.astro";
-import { macDownloadUrl, productName } from "../config";
+import ThemedShot from "../components/ThemedShot.astro";
+import { macDownloadUrl } from "../config";
 import { copy, type DownloadCopy, type TitledText } from "../copy";
 import { routes } from "../routes";
 import { siteConfig } from "../site";
 import iphoneHomeShot from "../assets/screenshots/iphone-home.webp";
+import noteShot from "../assets/screenshots/note.webp";
+import noteShotDark from "../assets/screenshots/note-dark.webp";
+
+/** The public release notes of the newest version (the same releases the DMG and the update feed come from). */
+const releaseNotesUrl: string = "https://github.com/senoldogann/gistsmith-releases/releases/latest";
 
 const text: DownloadCopy = copy.download;
 ---
@@ -38,9 +45,11 @@ const text: DownloadCopy = copy.download;
           <dd>{copy.common.requirementsShort}</dd>
         </dl>
         <p class="small muted download-hero__note">{text.requirementsNote}</p>
+        <a class="text-link download-hero__whats-new" href={releaseNotesUrl}>{text.whatsNew} <Icon name="arrow-right" size={14} class="" /></a>
       </div>
       <div class="download-hero__actions download-hero__actions--iphone">
         <h2 class="download-hero__platform">{text.iphoneTitle}</h2>
+        <p class="download-hero__benefit">{text.iphoneBenefit}</p>
         <AppStoreBadge language={copy.common.appStoreBadge.language} label={copy.common.appStoreBadge.label} height={54} class="" />
         <dl class="fact-list small download-hero__facts">
           <dt>{text.requirementsLabel}</dt>
@@ -49,20 +58,28 @@ const text: DownloadCopy = copy.download;
         <p class="small muted download-hero__note">{text.iphoneNote}</p>
       </div>
     </div>
-    <PhotoPanel photo="white-dunes" focus="center" widths={[480, 720, 960, 1440, 1920]} sizes="(max-width: 960px) calc(100vw - 40px), 600px" priority="lcp" class="download-hero__cover">
-      <div class="app-tile">
-        <Logo size={96} />
-        <span class="app-tile__name">{productName}</span>
-      </div>
+    {/* The Mac window is the main picture (light or dark capture with the visitor's theme); the iPhone sits in front of
+        its corner, smaller. */}
+    <PhotoPanel photo="white-dunes" focus="center" widths={[480, 720, 960, 1440, 1920]} sizes="(max-width: 960px) calc(100vw - 40px), 620px" priority="lcp" class="download-hero__cover">
+      <ThemedShot
+        light={noteShot}
+        dark={noteShotDark}
+        mobile={null}
+        alt={text.macAlt}
+        widths={[640, 960, 1280, 1680]}
+        sizes="(max-width: 960px) calc(100vw - 72px), 560px"
+        loading="eager"
+        class="download-hero__window"
+      />
       <Picture
         src={iphoneHomeShot}
         alt={text.iphoneAlt}
         formats={["avif"]}
         fallbackFormat="webp"
         widths={[240, 360, 480]}
-        sizes="(max-width: 760px) 34vw, 190px"
+        sizes="(max-width: 760px) 30vw, 150px"
         quality={62}
-        loading="eager"
+        loading="lazy"
         decoding="async"
         pictureAttributes={{ class: "download-hero__phone" }}
       />
@@ -150,20 +167,33 @@ const text: DownloadCopy = copy.download;
     visibility: hidden;
   }
 
-  /* The Mac app's tile and the iPhone app's home screen side by side over the photograph. */
+  /* The Mac window over the photograph; the phone overlaps its bottom-right corner. */
   .download-hero :global(.download-hero__cover) {
     display: grid;
-    grid-template-columns: auto auto;
     place-items: center;
-    place-content: center;
-    gap: clamp(20px, 4vw, 44px);
     aspect-ratio: 5 / 4;
-    padding: 20px;
+    padding: clamp(28px, 4vw, 48px) clamp(16px, 3vw, 36px) clamp(56px, 6vw, 72px);
+  }
+
+  .download-hero :global(.download-hero__window) {
+    display: block;
+    width: 100%;
+  }
+
+  .download-hero :global(.download-hero__window img) {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+    box-shadow: var(--shadow-window);
   }
 
   .download-hero :global(.download-hero__phone) {
+    position: absolute;
+    right: clamp(10px, 3vw, 28px);
+    bottom: clamp(12px, 2vw, 22px);
     display: block;
-    width: clamp(110px, 15vw, 190px);
+    width: clamp(92px, 12vw, 150px);
   }
 
   .download-hero :global(.download-hero__phone img) {
@@ -173,33 +203,47 @@ const text: DownloadCopy = copy.download;
     filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.16)) drop-shadow(0 22px 36px rgb(0 0 0 / 0.32));
   }
 
-  /* The app's tile on a paper card over the photograph. */
-  .app-tile {
-    display: grid;
-    justify-items: center;
-    gap: 14px;
-    padding: 32px 44px 26px;
-    border-radius: var(--radius-m);
-    background: var(--card);
+  .download-hero__whats-new {
+    min-height: 44px;
+    margin-top: -8px;
     color: var(--ink);
-    box-shadow: var(--shadow-window);
+    font-size: 0.9375rem;
   }
 
-  .app-tile :global(.logo-mark) {
-    filter: drop-shadow(0 18px 30px rgb(30 60 45 / 0.25));
+  .download-hero__benefit {
+    max-width: 30rem;
   }
 
-  .app-tile__name {
-    font-size: 1.25rem;
-    font-weight: 600;
-    letter-spacing: -0.02em;
+  /* On an iPhone or iPad (src/client/platform.js) the iPhone block comes first, right under the title and lead. */
+  :global(:root[data-platform="ios"]) .download-hero__text > h1,
+  :global(:root[data-platform="ios"]) .download-hero__text > .lead {
+    order: -2;
+  }
+
+  :global(:root[data-platform="ios"]) .download-hero__actions--iphone {
+    order: -1;
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  :global(:root[data-platform="ios"]) .download-hero__actions:not(.download-hero__actions--iphone) {
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
   }
 
   /* Kurulum: üç adım yan yana, numara üstte; altında tek satır not. */
+  /* No closing band on this page: the section ends at its footnote, with the footer's own top margin below. */
   .install {
     display: grid;
     gap: clamp(28px, 4vw, 44px);
+    padding-bottom: 0;
     scroll-margin-top: 96px;
+  }
+
+  @media (max-width: 760px) {
+    .install {
+      padding-top: 64px;
+    }
   }
 
   .install__steps {
@@ -264,10 +308,9 @@ const text: DownloadCopy = copy.download;
       justify-items: start;
     }
 
-    /* The phone is taller than the 5:4 panel on a phone screen: the panel grows to fit it. */
     .download-hero :global(.download-hero__cover) {
       aspect-ratio: auto;
-      padding: 28px 16px;
+      padding: 24px 14px 64px;
     }
   }
 </style>

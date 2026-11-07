@@ -34,6 +34,8 @@ interface TurnstileRenderOptions {
   readonly action: string;
   readonly theme: "auto" | "light" | "dark";
   readonly language: string;
+  /** "flexible": the widget fills its container's width (at least 300 px). */
+  readonly size: "normal" | "flexible" | "compact";
   readonly callback: (token: string) => void;
   readonly "expired-callback": () => void;
   readonly "error-callback": (code: string) => void;

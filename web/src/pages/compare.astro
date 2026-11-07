@@ -3,6 +3,7 @@
 // kısa özet tablosu (ilk sütun bizim). Değerler copy.ts `compare`'den.
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
+import ComparisonSummary from "../components/ComparisonSummary.astro";
 import ComparisonTable, { type ComparisonColumn } from "../components/ComparisonTable.astro";
 import CtaBand from "../components/CtaBand.astro";
 import WhyUs from "../components/WhyUs.astro";
@@ -21,9 +22,13 @@ const competitorPages: readonly { readonly competitor: Competitor; readonly page
   { competitor: "fireflies", page: "vsFireflies" },
   { competitor: "poffle", page: "vsPoffle" },
 ];
+/** The overview's short cells (the full values are on the /vs pages). */
 const columns: readonly ComparisonColumn[] = [
-  { name: productName, values: text.us },
-  ...competitorPages.map((entry): ComparisonColumn => ({ name: text.competitors[entry.competitor].name, values: text.competitors[entry.competitor].values })),
+  { name: productName, values: text.usGlance, marks: text.usMarks },
+  ...competitorPages.map((entry): ComparisonColumn => {
+    const them: CompetitorCopy = text.competitors[entry.competitor];
+    return { name: them.name, values: them.glance, marks: them.marks };
+  }),
 ];
 /** Gezinti izi: ana sayfa › karşılaştırma (JSON-LD). */
 const structuredData: string = structuredDataJson(infoPageStructuredData(siteConfig, [{ name: text.eyebrow, url: pageUrl("compare", siteConfig.siteOrigin) }], []));
@@ -33,8 +38,11 @@ const structuredData: string = structuredDataJson(infoPageStructuredData(siteCon
   {/* Veri bloğu: Astro işlemez ve paketlemez (`is:inline`), tarayıcı çalıştırmaz; CSP'ye takılmaz. */}
   <script is:inline type="application/ld+json" set:html={structuredData} />
   <section class="page compare-intro">
-    <h1 class="title-xl">{text.title}</h1>
-    <p class="lead">{text.lead}</p>
+    <div class="compare-intro__text">
+      <h1 class="title-xl">{text.title}</h1>
+      <p class="lead">{text.lead}</p>
+    </div>
+    <ComparisonSummary competitor={null} />
   </section>
 
   <WhyUs id="compare-why-title" />
@@ -60,19 +68,25 @@ const structuredData: string = structuredDataJson(infoPageStructuredData(siteCon
     <h2 class="title-l" id="overview-title">{text.overviewTitle}</h2>
     <p class="small muted">{text.checked}</p>
     <ComparisonTable caption={text.overviewTitle} topics={text.overviewTopics} columns={columns} />
-    <p class="small muted">{text.missingNote}</p>
+    <p class="small muted">{text.missingNote} {text.trademarks}</p>
   </section>
 
-  <CtaBand id="compare-cta-title" title={text.ctaTitle} text={text.ctaText} photo="wave-lilac" />
-
-  <p class="page small muted compare-trademarks">{text.trademarks}</p>
+  <CtaBand id="compare-cta-title" title={text.ctaTitle} text={text.ctaText} common={copy.common} macHref={routes.download} />
 </Base>
 
 <style>
+  /* Title and lead on the left, the summary card on the right; stacked below 900 px. */
   .compare-intro {
     display: grid;
-    gap: 18px;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 32px clamp(32px, 5vw, 72px);
     padding-block: clamp(48px, 8vw, 96px) clamp(28px, 4vw, 44px);
+  }
+
+  .compare-intro__text {
+    display: grid;
+    gap: 18px;
   }
 
   .compare-cards {
@@ -100,13 +114,22 @@ const structuredData: string = structuredDataJson(infoPageStructuredData(siteCon
     margin-top: clamp(48px, 7vw, 88px);
   }
 
-  .compare-trademarks {
-    margin-top: 32px;
+  @media (max-width: 900px) {
+    .compare-intro {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 
   @media (max-width: 760px) {
     .compare-cards {
       grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  /* Phones: running text at 16 px (the small print included). */
+  @media (max-width: 640px) {
+    .compare-overview .small {
+      font-size: 1rem;
     }
   }
 </style>

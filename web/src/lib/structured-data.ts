@@ -1,6 +1,6 @@
 // Sitenin yapılandırılmış verisi (schema.org JSON-LD): ana sayfada uygulama (`SoftwareApplication`: özellik listesi,
 // aylık ve yıllık plan ile ücretsiz deneme; işletim sistemi Mac ve iPhone gereksinimleri), onu sunan işletme (`Organization`) ve sık sorulan sorular (`FAQPage`); fiyat
-// sayfasında onun soruları; karşılaştırma, dil ve entegrasyon sayfalarında gezinti izi (`BreadcrumbList`) ve varsa
+// sayfasında abonelik ürünü (`Product`: aylık ve yıllık teklif) ve soruları; karşılaştırma, dil ve entegrasyon sayfalarında gezinti izi (`BreadcrumbList`) ve varsa
 // soruları; blog yazılarında `BlogPosting` ve gezinti izi (ön bilgisinden: src/content/blog). Değerler sitenin tek
 // kaynaklarından gelir: ürün adı (config.ts), fiyat, deneme, gereksinimler, özellikler ve sorular (copy.ts), işletme
 // (legal/operator.ts). `<script type="application/ld+json">` veri bloğudur, çalıştırılmaz; CSP onu engellemez.
@@ -94,10 +94,22 @@ export interface StructuredDataDocument {
   readonly "@graph": readonly [SoftwareApplicationNode, OrganizationNode, FaqPageNode];
 }
 
-/** Yalnızca sık sorulan soruları taşıyan JSON-LD belgesi (fiyat sayfası). */
-export interface FaqDocument {
+/** The subscription as a product (pricing page): its two plans as offers, sold by the business behind the site. */
+interface ProductNode {
+  readonly "@type": "Product";
+  readonly "@id": string;
+  readonly name: string;
+  readonly description: string;
+  readonly url: string;
+  readonly image: string;
+  readonly brand: { readonly "@type": "Brand"; readonly name: string };
+  readonly offers: readonly [OfferNode, OfferNode];
+}
+
+/** The pricing page's JSON-LD: the product with its monthly and yearly offers, and the page's questions. */
+export interface PricingDocument {
   readonly "@context": "https://schema.org";
-  readonly "@graph": readonly [FaqPageNode];
+  readonly "@graph": readonly [ProductNode, FaqPageNode];
 }
 
 /** Bilgi sayfasının JSON-LD belgesi (karşılaştırma, diller, entegrasyonlar): gezinti izi ve varsa sık sorulan sorular. */
@@ -119,9 +131,32 @@ export function faqPageNode(items: readonly Faq[], url: string): FaqPageNode {
   };
 }
 
-/** Fiyat sayfasının JSON-LD belgesi: yalnızca o sayfanın sık sorulan soruları. Saf fonksiyondur. */
-export function faqStructuredData(items: readonly Faq[], url: string): FaqDocument {
-  return { "@context": "https://schema.org", "@graph": [faqPageNode(items, url)] };
+/**
+ * The pricing page's JSON-LD: the subscription as a `Product` with the monthly and yearly plans (prices from copy.ts,
+ * taxes included; no ratings) and the page's questions. Pure function.
+ */
+export function pricingStructuredData(config: SiteConfig, common: CommonCopy, meta: PageMeta, faq: readonly Faq[]): PricingDocument {
+  const origin: string = config.siteOrigin;
+  const url: string = pageUrl("pricing", origin);
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Product",
+        "@id": `${url}#product`,
+        name: productName,
+        description: meta.description,
+        url,
+        image: `${origin}/og.png`,
+        brand: { "@type": "Brand", name: productName },
+        offers: [
+          planOffer(`${productName} monthly`, usdPrice(common.price), "month", url),
+          planOffer(`${productName} yearly`, usdPrice(common.yearlyPrice), "year", url),
+        ],
+      },
+      faqPageNode(faq, url),
+    ],
+  };
 }
 
 /** Fiyat ya da gereksinim metni beklenen biçimde değil: copy.ts değişti, yapılandırılmış veri güncellenmeli. */
@@ -374,6 +409,6 @@ export function blogPostingStructuredData(config: SiteConfig, operator: Operator
  * JSON-LD belgesini `<script>` içine güvenle yazılacak metne çevirir: `<` kaçırılır, böylece metindeki `</script>`
  * bloğu erken kapatamaz. Saf fonksiyondur.
  */
-export function structuredDataJson(document: StructuredDataDocument | FaqDocument | BlogPostingDocument | InfoPageDocument): string {
+export function structuredDataJson(document: StructuredDataDocument | PricingDocument | BlogPostingDocument | InfoPageDocument): string {
   return JSON.stringify(document).replaceAll("<", "\\u003c");
 }

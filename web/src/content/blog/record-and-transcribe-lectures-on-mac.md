@@ -71,7 +71,7 @@ Afterwards you can ask questions across all your recorded lectures ("Where did w
 
 To be upfront about whether it fits a student's week: the plan includes up to 10 hours of recording a month, with each recording up to 4 hours. That's roughly six or seven 90-minute lectures a month, so it suits recording selected courses (the hard one, or the one in another language) rather than a full timetable.
 
-It runs on Macs with Apple silicon and macOS 15 or later. The first 3 meetings or 7 days are free with no card; then it's $5.99 a month or $49 a year. See [pricing](/pricing) or [download it](/download).
+It runs on Macs with Apple silicon and macOS 15 or later, and on iPhone (iOS 26.1 or later) for meetings in the room. The first 3 meetings or 7 days are free with no card; then it's $5.99 a month or $49 a year. See [pricing](/pricing) or [download it](/download).
 
 ## The short version
 

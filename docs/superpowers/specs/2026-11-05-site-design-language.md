@@ -37,7 +37,7 @@ icons and the handwritten word in headlines; riso/halftone/torn-poster collages 
 
 Calm, competent and warm. The page is white with warm paper bands; the photographs and wave renders carry the colour;
 the interface stays precise. Our own marks: the orange accent, the horizon waveform (the logo's sound crossing still
-water), two-tone headings and the footer's Finnish-lake flip-book ("Made in Oulu, Finland").
+water) on the hero and closing card, and two-tone headings.
 
 ### Type
 
@@ -100,24 +100,25 @@ One saturated colour: the orange. No green anywhere in the chrome.
 ### Signature move 2: the horizon waveform
 
 Our logo is a waveform. On the site the waveform becomes a horizon: a hairline with a short, mirrored, seeded
-waveform burst in the accent orange, like a sound crossing still water. It opens the home page's brand line and marks
-sign-in, 404 and shared notes. It is drawn from `Waveform`'s seeded heights (deterministic per label), static, and
+waveform burst in the accent orange, like a sound crossing still water. It opens the home hero and every closing call
+to action (`CtaBand`), and marks sign-in, 404 and shared notes. It is drawn from `Waveform`'s seeded heights (deterministic per label), static, and
 `aria-hidden`.
-
-### Signature move 3: the footer flip-book
-
-Every page ends on a Finnish lake: a wide band under the footer links (`FooterFlipbook.astro`, frames from
-`web/scripts/make-flipbook.ts`) goes from late afternoon to a night with northern lights as the visitor scrolls to
-the end; the sun's reflection is the horizon waveform. Frames load only after `load` and near the footer, scroll is
-read only while the band is on screen, and reduced motion keeps one still frame.
 
 ### Navigation and footer
 
-- **Header:** at the top of the page the logo, Features / Pricing / Compare / Blog, the theme switch, an outline
-  "Sign in" pill and the orange "Download" pill sit on the page itself; once the page scrolls the bar becomes a
-  floating pill. Below 860 px the links fold into a `<details>` sheet; Download stays visible.
-- **Footer:** the brand line in the serif with "Made in Oulu, Finland.", the link columns (column titles in the
-  serif), the flip-book band, then copyright and the language choice. No giant wordmark.
+- **Header:** at the top of the page the logo, Features / Voice typing / Pricing / Compare / Blog, the theme switch, an
+  outline "Sign in" pill and the orange "Download" pill sit on the page itself, aligned to the content grid; once the
+  page scrolls the bar becomes a floating pill over a soft fade of the page colour. Below 860 px the links fold into a
+  `<details>` sheet (plus Integrations, MCP and both download buttons; it closes on scroll); Download stays visible.
+  On an iPhone or iPad (`src/client/platform.js`, before the first paint) the pill reads "Get the app" and opens the
+  App Store, and every closing call to action leads with the App Store badge.
+- **Closing call to action:** one page-width card (radius 24, paper with a warm glow, the horizon waveform), the serif
+  title, one line, the Mac button and the App Store badge at the same height.
+- **Footer:** on the paper surface: the logo, one sentence on the product, the Mac download and the App Store badge;
+  three link columns (Product, Compare, Company) with small sans titles; a hairline, then copyright, Privacy · Terms ·
+  Cookies, "Made in Oulu, Finland · EU company, GDPR" and the language choice; one line of small print with the business
+  behind the product and the typeface licences. On phones the columns become closed disclosures. No giant wordmark and
+  no closing image.
 
 ### Components
 
@@ -192,7 +193,7 @@ simulated slow 4G for mobile). What the measurements showed and what the site do
 | Newsreader | SIL Open Font License 1.1 (embedding allowed) | `web/public/fonts/Newsreader-OFL.txt` |
 | Inter | SIL Open Font License 1.1 | `App/Fonts/Inter-OFL.txt` (copied at build) |
 | Photographs | Unsplash License (commercial use, modification allowed, no attribution required) | `web/src/assets/photos/CREDITS.md` |
-| Wave renders, flip-book frames | Made for the site (`web/scripts/make-wave-backdrops.ts`, `web/scripts/make-flipbook.ts`) | `web/src/assets/photos/CREDITS.md` |
+| Wave renders | Made for the site (`web/scripts/make-wave-backdrops.ts`) | `web/src/assets/photos/CREDITS.md` |
 
 ## 4. Review record
 
@@ -219,11 +220,11 @@ practicality; it read this document and before/after screenshots of every page i
 
 | Finding | Decision |
 |---|---|
-| The giant footer wordmark is Granola's mark. | Accepted: removed; the Finnish-lake flip-book closes every page instead. |
+| The giant footer wordmark is Granola's mark. | Accepted: removed. (The Finnish-lake flip-book that replaced it was removed on the owner's request on 2026-11-07; the footer now ends on the paper surface.) |
 | The ruled notepad background is Granola's. | Accepted: a plain paper band opened by the horizon waveform. |
 | "Small things that make busy days easier." echoes Granola's "busy days" line. | Accepted: "The details, handled before you ask." |
 | Serif, centred FAQ questions with "+" match Granola's pricing FAQ; this document already said questions stay in Inter. | Accepted in part: questions in Inter 500 with an orange plus; the centred column stays (owner's layout). |
 | The dark band is barely lighter than the dark page. | Accepted: `--night` dark lifted to `#222220`. |
 | The dark card link's arrow wraps alone. | Fixed. |
 | Big serif hero headline, dark serif-quote cards, closing band right above the flip-book. | Dissent kept for the owner: these are the owner's chosen layout; listed in the pull request for his visual decision. |
-| Flip-book frames are 1600 px for a 1240 px band (0.65 of 2×). | Kept: the scene is soft vector gradients that scale cleanly, and 2400 px frames would roughly double the 524 KB the band costs. |
+| Flip-book frames are 1600 px for a 1240 px band (0.65 of 2×). | Moot: the flip-book was removed on 2026-11-07. |

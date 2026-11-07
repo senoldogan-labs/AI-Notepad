@@ -1,0 +1,108 @@
+---
+// The summary card beside the title of the comparison pages: our headline points with ticks and, on a /vs page, the
+// competitor's own headline differences under its name (fair: what it does better, a few words each).
+import Logo from "./Logo.astro";
+import { productName } from "../config";
+import { copy, type CompareCopy } from "../copy";
+
+interface Props {
+  /** The competitor and its headline differences; null on the comparison index. */
+  readonly competitor: { readonly name: string; readonly edge: readonly string[] } | null;
+}
+const { competitor } = Astro.props;
+const text: CompareCopy = copy.compare;
+---
+
+<aside class="summary" aria-label={text.overviewTitle}>
+  <div class="summary__block">
+    <p class="summary__name"><Logo size={22} />{productName}</p>
+    <ul class="summary__list summary__list--us">
+      {
+        text.highlights.map((point: string) => (
+          <li>
+            <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false">
+              <circle cx="9" cy="9" r="8" fill="none" stroke="currentColor" stroke-width="1.4" />
+              <path d="M5.4 9.2l2.4 2.4 4.8-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            {point}
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+  {
+    competitor !== null && (
+      <div class="summary__block summary__block--them">
+        <p class="summary__name">{competitor.name}</p>
+        <ul class="summary__list">
+          {competitor.edge.map((point: string) => (
+            <li>
+              <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false">
+                <circle cx="9" cy="9" r="8" fill="none" stroke="currentColor" stroke-width="1.4" />
+                <path d="M5.5 9h7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+              </svg>
+              {point}
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
+</aside>
+
+<style>
+  .summary {
+    display: grid;
+    gap: 0;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: var(--card);
+    box-shadow: var(--elevation);
+  }
+
+  .summary__block {
+    display: grid;
+    gap: 14px;
+    padding: 24px 26px;
+  }
+
+  .summary__block--them {
+    border-top: 1px solid var(--line);
+  }
+
+  .summary__name {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .summary__list {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: var(--muted);
+  }
+
+  .summary__list li {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .summary__list svg {
+    flex: none;
+    margin-top: 3px;
+  }
+
+  .summary__list--us {
+    color: var(--ink);
+  }
+
+  .summary__list--us svg {
+    color: var(--accent);
+  }
+</style>

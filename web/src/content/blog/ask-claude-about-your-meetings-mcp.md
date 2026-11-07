@@ -1,6 +1,6 @@
 ---
 title: "Ask Claude about your meetings: MCP for meeting notes, explained"
-description: What MCP is, how it lets Claude, Cursor or VS Code read your meeting notes, useful prompts to try, and the privacy questions to ask before you connect anything.
+description: What MCP is, how it lets Claude, ChatGPT, Cursor or VS Code read your meeting notes, prompts to try, and the privacy questions to ask before you connect.
 author: Senol Dogan
 published: 2026-11-26
 draft: false
@@ -45,7 +45,7 @@ Here are prompts that work well once your meeting notes are connected. They're w
 - "Has the launch date changed in any meeting since October? Show me each change."
 
 **Preparation**
-- "I'm meeting Elif tomorrow. Summarise our last three one-on-ones and list open topics."
+- "I'm meeting Elif tomorrow. Summarize our last three one-on-ones and list open topics."
 - "Draft an agenda for Thursday's steering group based on the open questions from the last two meetings."
 
 **Writing**
@@ -53,7 +53,7 @@ Here are prompts that work well once your meeting notes are connected. They're w
 - "Turn the decisions from yesterday's workshop into a short changelog."
 
 **In a code editor** (Cursor or VS Code)
-- "Find the meeting where we discussed the API rate limits and summarise the requirements."
+- "Find the meeting where we discussed the API rate limits and summarize the requirements."
 - "Did anyone mention edge cases for the import feature in meetings? List them."
 
 Two tips make the answers better. Name the meeting, person or time range when you can; "last week's client calls" is easier to search than "recently". And ask for sources: "Tell me which meeting each point came from" lets you check the answer instead of trusting it.
@@ -78,20 +78,24 @@ The broader trend in 2026 is clear: AI assistants are moving from chatting to do
 
 It's also why the format of your notes matters. Notes with clear decisions and tasks, each with an owner and a date, give an AI assistant something precise to work with. A wall of transcript works too, but answers are better when the structure is already there. Our [task list method](/blog/turn-a-meeting-into-a-task-list) helps with that whether or not you use AI.
 
-## Gistsmith's MCP server
+## Gistsmith's MCP connections
 
-Gistsmith, the Mac app we make, includes a small MCP server. It runs on your Mac and only reads; it never changes anything. It gives your AI app six tools: list your meetings, search notes and transcripts, open a meeting's note (with the transcript if needed), list your open tasks from all your meetings, and, if you turn on shared-screen snapshots, list a meeting's screens and open each one with what was said while it was up.
+Claude, ChatGPT, Cursor and VS Code can search and read your Gistsmith meetings (on your Mac, or online with AI assistant access); they can never change them. There are two ways in, and you can use either or both.
 
-You connect it in one click from **Settings › Connections** for Claude, Cursor and Visual Studio Code, or copy a configuration for any other MCP app. The [MCP page](/mcp) has the details, including exactly which configuration file each app uses.
+**On your Mac: the local MCP server.** The Mac app includes a small MCP server that runs on your Mac and only reads. It gives your AI app six tools: list your meetings, search notes and transcripts, open a meeting's note (with the transcript if needed), list your open tasks from all your meetings, and, if you turn on shared-screen snapshots, list a meeting's screens and open each one with what was said while it was up. You connect it in one click from **Settings › Connections** for Claude, Cursor and Visual Studio Code, or copy a configuration for any other MCP app.
+
+**In the browser or on your phone: AI assistant access.** Claude and ChatGPT on the web or on a phone can't start an app on your Mac, so for them there is an online connector. It's off by default: you turn on "Let AI assistants read my meeting notes" in the Gistsmith app on Mac or iPhone, under **Settings › Connections**, then add Gistsmith in Claude (it's in Claude's connector directory) or as a custom connector in ChatGPT. It reads your meeting notes only, never transcripts or audio, through four read-only tools: search, open a note, list your meetings and list your tasks. To make that work, an encrypted copy of your notes is kept in the EU; it's encrypted at rest but not end to end, so our servers can read it to answer your assistant. Turn the setting off and the copy is deleted at once.
+
+The [MCP page](/mcp) has the steps for both, including the connector address and exactly which configuration file each Mac app uses.
 
 If you prefer plain files to AI apps, Gistsmith can also save every note as Markdown in a folder, such as your Obsidian vault; we described that setup in [Meeting notes in Obsidian](/blog/meeting-notes-in-obsidian-automatically).
 
-Gistsmith runs on Macs with Apple silicon and macOS 15 or later. It records meetings with no bot in the call and writes a note with your tasks first. The first 3 meetings or 7 days are free with no card; then it's $5.99 a month or $49 a year ([pricing](/pricing)).
+Gistsmith runs on Macs with Apple silicon and macOS 15 or later, and on iPhone for meetings in the room. It records meetings with no bot in the call and writes a note with a summary, your own tasks picked out with due dates, decisions and a glossary. The first 3 meetings or 7 days are free with no card; then it's $5.99 a month or $49 a year ([pricing](/pricing)).
 
 ## The short version
 
 - MCP lets an AI app call tools, such as "search meetings", while it answers you.
 - Meeting notes are a great fit: full of commitments, spread over time, rarely reread.
 - Ask specific questions and ask for sources.
-- Before connecting, check: read-only, local or remote, the AI app's privacy terms, and visible tool calls.
+- Before connecting, check: read-only, local or remote, where any copy of your notes is kept, the AI app's privacy terms, and visible tool calls.
 - Structured notes (decisions, tasks with owners and dates) make AI answers better.

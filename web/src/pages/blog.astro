@@ -1,6 +1,7 @@
 ---
 // Blog dizini: başlık ve RSS bağlantısı, en yeni yazı büyük kapakla öne çıkar (kapak solda,
-// başlık, özet, tarih ve okuma süresi sağda), altında öbür yazılar "All posts" başlığıyla üç sütunlu kartlar.
+// başlık, özet, tarih ve okuma süresi sağda), altında öbür yazılar "All posts" başlığıyla üç sütunlu kartlar (artan
+// kartlar son satırlarda ikişer, yarım genişlikte).
 import Base from "../layouts/Base.astro";
 import BlogCard from "../components/BlogCard.astro";
 import BlogCover from "../components/BlogCover.astro";
@@ -13,22 +14,26 @@ import { blogFeedPath, blogPostPath } from "../routes";
 const text: BlogCopy = copy.blog;
 const posts: readonly BlogPost[] = (await blogEntries()).map(blogPost);
 const [latest, ...rest]: readonly BlogPost[] = posts;
+/**
+ * Three cards a row; the leftover cards fill the last rows two at a time at half width (one left over: the last four
+ * cards make two rows of two; two left over: the last two), so no row ends with a lone card or a gap.
+ */
+const leftover: number = rest.length % 3;
+const wideFrom: number = leftover === 0 || rest.length < 4 ? (leftover === 2 ? rest.length - 2 : rest.length) : rest.length - (leftover === 1 ? 4 : 2);
 ---
 
 <Base page="blog" meta={text.meta} indexed={true} social={websiteCard}>
   <section class="page blog-intro">
     <h1 class="title-xl">{text.title}</h1>
     <p class="lead">{text.lead}</p>
-    <a class="text-link small" href={blogFeedPath}>{text.feedLink} <Icon name="arrow-right" size={14} class="" /></a>
+    <a class="text-link blog-intro__feed" href={blogFeedPath}>{text.feedLink} <Icon name="arrow-right" size={14} class="" /></a>
   </section>
 
   {
     latest !== undefined && (
       <section class="page featured" aria-labelledby="featured-title">
         <a class="featured__cover" href={blogPostPath(latest.slug)} tabindex="-1" aria-hidden="true">
-          <BlogCover post={latest} class="" sizes="(max-width: 860px) calc(100vw - 40px), 720px" eager={true}>
-            <p class="blog-cover__title">{latest.title}</p>
-          </BlogCover>
+          <BlogCover post={latest} class="" sizes="(max-width: 860px) calc(100vw - 40px), 720px" eager={true} />
         </a>
         <div class="featured__text">
           <p class="kicker">{text.latest}</p>
@@ -50,8 +55,8 @@ const [latest, ...rest]: readonly BlogPost[] = posts;
     <h2 class="title-l blog-posts__title" id="blog-list-title">{text.allTitle}</h2>
     <ol class="blog-grid">
       {
-        rest.map((post: BlogPost) => (
-          <li>
+        rest.map((post: BlogPost, index: number) => (
+          <li class:list={{ "blog-grid__wide": index >= wideFrom }}>
             <BlogCard post={post} />
           </li>
         ))
@@ -70,6 +75,11 @@ const [latest, ...rest]: readonly BlogPost[] = posts;
 
   .blog-intro .lead {
     max-width: 44rem;
+  }
+
+  .blog-intro__feed {
+    min-height: 44px;
+    align-items: center;
   }
 
   /* The newest post, featured: a big cover and the text beside it. */
@@ -131,7 +141,7 @@ const [latest, ...rest]: readonly BlogPost[] = posts;
 
   .blog-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: clamp(40px, 4vw, 56px) clamp(20px, 2.6vw, 32px);
     margin: 0;
     padding: 0;
@@ -139,12 +149,18 @@ const [latest, ...rest]: readonly BlogPost[] = posts;
   }
 
   .blog-grid > li {
+    grid-column: span 2;
     min-width: 0;
   }
 
+  .blog-grid > li.blog-grid__wide {
+    grid-column: span 3;
+  }
+
   @media (max-width: 960px) {
-    .blog-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+    .blog-grid > li,
+    .blog-grid > li.blog-grid__wide {
+      grid-column: span 3;
     }
   }
 
@@ -155,8 +171,9 @@ const [latest, ...rest]: readonly BlogPost[] = posts;
   }
 
   @media (max-width: 600px) {
-    .blog-grid {
-      grid-template-columns: minmax(0, 1fr);
+    .blog-grid > li,
+    .blog-grid > li.blog-grid__wide {
+      grid-column: 1 / -1;
     }
   }
 </style>

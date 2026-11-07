@@ -9,7 +9,7 @@ draft: false
 
 Cross-border meetings are normal now. Microsoft's 2025 Work Trend Index found that close to a third of meetings in Microsoft 365 span more than one time zone, and many of those span more than one language too. The call apps have noticed: Zoom, Microsoft Teams and Google Meet all offer some form of live translation.
 
-They work very differently, though. One gives you subtitles, one speaks in a synthetic voice, one depends on the organiser's plan. Which one you can use often depends less on what you want and more on whose meeting it is.
+They work very differently, though. One gives you subtitles, one speaks in a synthetic voice, one depends on the organizer's plan. Which one you can use often depends less on what you want and more on whose meeting it is.
 
 Here's what each offers as of November 2026, what it costs to get, and what to do when the meeting is on a platform where you don't have it.
 
@@ -31,7 +31,7 @@ What to know:
 - **It's a captions feature.** Participants pick the language they want to read.
 - **It depends on the host's account.** Translated captions come with some higher Zoom Workplace plans, or as a paid add-on. If the host's account doesn't have them, participants don't get them either, whatever their own plan.
 - **The host or admin must turn it on.** It lives in the meeting settings, alongside automated captions, and the host chooses which language pairs are available.
-- **Language support isn't symmetric.** Some languages can be translated into but aren't recognised when spoken, so check both directions for your pair.
+- **Language support isn't symmetric.** Some languages can be translated into but aren't recognized when spoken, so check both directions for your pair.
 
 Zoom's own support article, "Enabling and configuring translated captions", has the current list of languages and plans.
 
@@ -43,10 +43,10 @@ What to know, based on Microsoft's admin documentation:
 
 - **You hear the meeting in your language.** Interpreter listens to the speaker and plays a translated voice. Participants can choose to have their own voice simulated in the translation, or use a preset voice.
 - **Nine languages.** Chinese (Mandarin), English, French, German, Italian, Japanese, Korean, Portuguese and Spanish.
-- **It needs a Copilot licence.** Each user who turns it on needs a Microsoft 365 Copilot licence, on top of an eligible Microsoft 365 and Teams licence. Microsoft includes 20 hours of interpretation per user per month; beyond that, it's subject to capacity.
+- **It needs a Copilot license.** Each user who turns it on needs a Microsoft 365 Copilot license, on top of an eligible Microsoft 365 and Teams license. Microsoft includes 20 hours of interpretation per user per month; beyond that, it's subject to capacity.
 - **Not everywhere.** It works in scheduled and channel meetings and 1:1 Teams calls, but not in Teams events, phone calls or the free version of Teams.
 
-Teams also has **live translated captions**, which are part of Teams Premium. If your organisation has Premium but not Copilot, that's the one you'll see.
+Teams also has **live translated captions**, which are part of Teams Premium. If your organization has Premium but not Copilot, that's the one you'll see.
 
 ## Google Meet: speech translation with Gemini
 
@@ -56,14 +56,14 @@ What to know, from Google's Workspace announcement:
 
 - **It's speech-to-speech.** You hear the other person in your language, in a voice that resembles theirs.
 - **Mixed languages work.** Participants can speak any of the supported languages in the same meeting, and Meet detects which one each person is using.
-- **It depends on the organiser's plan.** Eligible Workspace editions include Business Standard and Plus, Enterprise Standard and Plus, and Frontline Plus. On personal accounts, it comes with Google AI Pro and Ultra. Guests from other organisations can use it when the organiser is eligible.
+- **It depends on the organizer's plan.** Eligible Workspace editions include Business Standard and Plus, Enterprise Standard and Plus, and Frontline Plus. On personal accounts, it comes with Google AI Pro and Ultra. Guests from other organizations can use it when the organizer is eligible.
 - **There's a time limit.** On base Workspace plans and Google AI Pro, translation runs for up to 90 minutes per meeting; longer limits come with higher AI tiers.
 - **Some meetings are excluded**, including live streams, client-side encrypted meetings and dial-in participants.
-- **Rollout is gradual.** The update reached some organisations in late October and others from 2 November 2026, so you may not see it yet.
+- **Rollout is gradual.** The update reached some organizations in late October and others from 2 November 2026, so you may not see it yet.
 
-## The problem: it's the organiser's meeting
+## The problem: it's the organizer's meeting
 
-Look at the pattern. In Zoom, the host's account decides. In Meet, the organiser's plan decides. In Teams, every listener needs a Copilot licence.
+Look at the pattern. In Zoom, the host's account decides. In Meet, the organizer's plan decides. In Teams, every listener needs a Copilot license.
 
 That's fine inside one company that has standardised on one platform and paid for the upgrade. It's a problem for everyone else:
 
@@ -77,7 +77,7 @@ In all of these, the translation feature you need is in someone else's account.
 
 There's another approach: translate on your side, on your own computer.
 
-Your Mac already hears the whole meeting. The other people come through its speakers or headphones, whatever app they're using. An app on your Mac can transcribe that audio and show a translation next to it, for you only. Nothing changes in the meeting, no one needs a licence, and it works the same in Zoom, Teams, Meet or a client's browser-based tool. We explained what macOS allows in [Recording Teams, Zoom and Google Meet on a Mac](/blog/record-teams-zoom-google-meet-on-mac).
+Your Mac already hears the whole meeting. The other people come through its speakers or headphones, whatever app they're using. An app on your Mac can transcribe that audio and show a translation next to it, for you only. Nothing changes in the meeting, no one needs a license, and it works the same in Zoom, Teams, Meet or a client's browser-based tool. We explained what macOS allows in [Recording Teams, Zoom and Google Meet on a Mac](/blog/record-teams-zoom-google-meet-on-mac).
 
 The trade-offs are worth stating plainly:
 
@@ -98,16 +98,16 @@ Whichever tool you use, a few habits make translation work better:
 
 ## How Gistsmith does it
 
-Gistsmith, the Mac app we make, transcribes the meeting live in more than 30 languages and can show a translation into your language underneath each line, as people talk. It works in any call on your Mac, with no bot and nothing for the organiser to enable.
+Gistsmith, the Mac app we make, transcribes the meeting live in more than 30 languages and can show a translation into your language underneath each line, as people talk. It works in any call on your Mac, with no bot and nothing for the organizer to enable.
 
-When the meeting ends, the note is written in the language you choose: your tasks first, then a summary, decisions and a glossary of terms from the meeting. If you drifted off for a moment, "What did I miss?" gives you a short summary of the last few minutes.
+When the meeting ends, the note is written in the language you choose: a summary, your own tasks picked out with due dates, decisions and a glossary of terms from the meeting. If you drifted off for a moment, "What did I miss?" gives you a short summary of the last few minutes.
 
-It runs on Macs with Apple silicon and macOS 15 or later. The first 3 meetings or 7 days are free with no card; then it's $5.99 a month or $49 a year. See [pricing](/pricing) or [download it](/download).
+It runs on Macs with Apple silicon and macOS 15 or later, and on iPhone (iOS 26.1 or later) for meetings in the room. The first 3 meetings or 7 days are free with no card; then it's $5.99 a month or $49 a year. See [pricing](/pricing) or [download it](/download).
 
 ## The short version
 
 - **Zoom:** translated captions, if the host's plan or add-on includes them.
 - **Teams:** Interpreter agent with speech-to-speech in nine languages; each listener needs Microsoft 365 Copilot.
-- **Google Meet:** speech translation in 63 languages since October 2026, if the organiser's plan is eligible; 90 minutes per meeting on base plans.
+- **Google Meet:** speech translation in 63 languages since October 2026, if the organizer's plan is eligible; 90 minutes per meeting on base plans.
 - If the meeting isn't yours, translating on your own Mac works in every call app.
 - Whatever translates, confirm decisions in writing afterwards.

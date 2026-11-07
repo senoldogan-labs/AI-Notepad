@@ -4,6 +4,7 @@
 // bizim kutu), bizim güçlü yanlarımızın altında kısa "rakibin güçlü olduğu yerler" ve indirme çağrısı. Metinler ve değerler copy.ts `compare`'den.
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
+import ComparisonSummary from "./ComparisonSummary.astro";
 import ComparisonTable from "./ComparisonTable.astro";
 import CtaBand from "./CtaBand.astro";
 import Icon from "./Icon.astro";
@@ -42,16 +43,19 @@ const structuredData: string = structuredDataJson(
 <Base page={page} meta={them.meta} indexed={true} social={websiteCard}>
   {/* Veri bloğu: Astro işlemez ve paketlemez (`is:inline`), tarayıcı çalıştırmaz; CSP'ye takılmaz. */}
   <script is:inline type="application/ld+json" set:html={structuredData} />
-  <section class="page narrow-intro">
-    <a class="back-link" href={routes.compare}><Icon name="arrow-right" size={14} class="back-link__arrow" />{text.eyebrow}</a>
-    <h1 class="title-xl">{them.title}</h1>
-    <p class="lead">{them.lead}</p>
-    <p class="small muted vs-source">
-      {text.checked}
-      <span>
-        {text.source}: <a href={them.pricingUrl} rel="noopener">{sourceLabel}</a>
-      </span>
-    </p>
+  <section class="page vs-intro">
+    <div class="vs-intro__text">
+      <a class="back-link" href={routes.compare}><Icon name="arrow-right" size={14} class="back-link__arrow" />{text.eyebrow}</a>
+      <h1 class="title-xl">{them.title}</h1>
+      <p class="lead">{them.lead}</p>
+      <p class="small muted vs-source">
+        {text.checked}
+        <span>
+          {text.source}: <a href={them.pricingUrl} rel="noopener">{sourceLabel}</a>
+        </span>
+      </p>
+    </div>
+    <ComparisonSummary competitor={{ name: them.name, edge: them.edge }} />
   </section>
 
   <WhyUs id="vs-why-title" />
@@ -62,8 +66,8 @@ const structuredData: string = structuredDataJson(
       caption={them.title}
       topics={topics}
       columns={[
-        { name: productName, values: text.us },
-        { name: them.name, values: them.values },
+        { name: productName, values: text.us, marks: text.usMarks },
+        { name: them.name, values: them.values, marks: them.marks },
       ]}
     />
     <p class="small muted">{text.missingNote}</p>
@@ -101,17 +105,25 @@ const structuredData: string = structuredDataJson(
     </ul>
   </section>
 
-  <CtaBand id="vs-cta-title" title={text.ctaTitle} text={text.ctaText} photo="red-mountain" />
-
   <p class="page small muted vs-trademarks">{text.trademarks}</p>
+
+  <CtaBand id="vs-cta-title" title={text.ctaTitle} text={text.ctaText} common={copy.common} macHref={routes.download} />
 </Base>
 
 <style>
-  .narrow-intro {
+  /* Title, lead and source on the left; the summary card on the right; stacked below 900 px. */
+  .vs-intro {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 32px clamp(32px, 5vw, 72px);
+    padding-block: clamp(40px, 7vw, 88px) clamp(24px, 4vw, 40px);
+  }
+
+  .vs-intro__text {
     display: grid;
     gap: 18px;
     justify-items: start;
-    padding-block: clamp(48px, 8vw, 96px) clamp(24px, 4vw, 40px);
   }
 
   /* Breadcrumb back to the comparison overview (the arrow points left). */
@@ -119,6 +131,8 @@ const structuredData: string = structuredDataJson(
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    min-height: 44px;
+    margin-block: -10px -6px;
     font-size: 0.875rem;
     font-weight: 500;
     color: var(--muted);
@@ -215,13 +229,29 @@ const structuredData: string = structuredDataJson(
   }
 
   .vs-trademarks {
-    margin-top: 32px;
+    margin-top: 24px;
+  }
+
+  @media (max-width: 900px) {
+    .vs-intro {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 
   @media (max-width: 760px) {
     .vs-strengths,
     .vs-picks {
       grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  /* Phones: running text at 16 px (the small print included). */
+  @media (max-width: 640px) {
+    .vs-strengths,
+    .vs-section .small,
+    .vs-trademarks,
+    .vs-source {
+      font-size: 1rem;
     }
   }
 </style>

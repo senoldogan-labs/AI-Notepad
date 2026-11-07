@@ -56,7 +56,7 @@ Say it at the start, before the agenda:
 
 Wait for an answer. If someone isn't comfortable, don't record; take notes by hand. If the conversation turns to something personal or confidential, offer to pause.
 
-Rules about recording conversations vary between countries, and in some places everyone present must agree. If you meet people from other organisations, or the meeting is formal, like a board meeting, check your organisation's policy too. We cover the European side in [AI note-takers and GDPR](/blog/ai-note-taker-gdpr-eu-ai-act).
+Rules about recording conversations vary between countries, and in some places everyone present must agree. If you meet people from other organizations, or the meeting is formal, like a board meeting, check your organization's policy too. We cover the European side in [AI note-takers and GDPR](/blog/ai-note-taker-gdpr-eu-ai-act).
 
 ## Helping the transcript tell people apart
 
@@ -85,11 +85,11 @@ Whatever you use, the rules above stay the same: put it in the middle, test it, 
 
 ## Doing it with Gistsmith
 
-Gistsmith, the app we make for Mac and iPhone, works in a room as well as on calls. For an in-person meeting it uses the Mac's microphone (or the external one you selected), shows a live transcript, and writes the note when you stop: your tasks first, then decisions and a summary. If the meeting is in another language, it can show a live translation as people talk.
+Gistsmith, the app we make for Mac and iPhone, works in a room as well as on calls. For an in-person meeting it uses the Mac's microphone (or the external one you selected), shows a live transcript, and writes the note when you stop: a summary, your own tasks picked out with due dates, and decisions. If the meeting is in another language, it can show a live translation as people talk.
 
 There are note templates for different kinds of meetings, such as client calls, one-on-ones, interviews and lectures, and the finished note can go to Notion, Apple Notes, Slack or your Obsidian vault.
 
-On iPhone it's even simpler: put the phone on the table and tap record. The iPhone app records the conversation around the phone, not phone calls or online meetings, and you get the same note when the meeting ends. It's on the [App Store](https://apps.apple.com/app/gistsmith/id6829577553), and one subscription covers both apps.
+On iPhone it's even simpler: put the phone on the table and tap record. The iPhone app records the conversation around the phone (online meetings are recorded on the Mac), and you get the same note when the meeting ends. It's on the [App Store](https://apps.apple.com/app/gistsmith/id6829577553), and one subscription covers both apps.
 
 The Mac app runs on Macs with Apple silicon and macOS 15 or later, and the iPhone app on iOS 26.1 or later. The first 3 meetings or 7 days are free with no card; after that, $5.99 a month or $49 a year. See [pricing](/pricing) or [download it](/download).
 

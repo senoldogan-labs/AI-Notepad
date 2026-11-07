@@ -47,6 +47,7 @@ async function main(): Promise<void> {
       action: "contact",
       theme,
       language: "en",
+      size: "flexible",
       callback: (token: string): void => {
         state.token = token;
         submit.disabled = false;

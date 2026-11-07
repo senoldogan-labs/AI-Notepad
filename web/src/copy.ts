@@ -65,9 +65,15 @@ export interface CommonCopy {
   };
   readonly downloadCta: string;
   readonly headerDownload: string;
+  /** The header pill on an iPhone or iPad: opens the App Store. */
+  readonly headerGetApp: string;
+  /** Under the App Store badge on an iPhone or iPad: the Mac app's page. */
+  readonly alsoOnMac: string;
   /** Tema düğmesinin erişilebilir adı (basılıysa koyu tema). */
   readonly darkMode: string;
   readonly price: string;
+  /** The monthly price as shown on the page in the page's language ("$5.99", "5,99 $"); `price` stays the machine form. */
+  readonly priceDisplay: string;
   readonly perMonth: string;
   /** Yıllık planın fiyatı (`$49`). */
   readonly yearlyPrice: string;
@@ -109,19 +115,27 @@ export interface CommonCopy {
   /** Paylaşım kartı görselinin (public/og.png) metin karşılığı. */
   readonly ogImageAlt: string;
   readonly footer: {
-    /** The brand line, set in the serif (also on the sign-in page). */
+    /** The brand line, set in the serif (sign-in page). */
     readonly tagline: string;
-    /** One line under the tagline: where the product is made. */
-    readonly madeIn: string;
+    /** One sentence under the logo in the footer: what the product is. */
+    readonly summary: string;
     readonly product: string;
-    /** Karşılaştırma, blog ve MCP bağlantılarının sütunu. */
-    readonly learn: string;
-    readonly account: string;
+    /** Column of the comparison pages. */
+    readonly compare: string;
+    /** Link to the comparison index (`/compare`) in that column. */
+    readonly allComparisons: string;
     readonly company: string;
-    readonly fontLicense: string;
-    /** Licence of the heading typeface (Newsreader, public/fonts/Newsreader-OFL.txt). */
-    readonly serifFontLicense: string;
+    /** The account link (`/account`; it asks to sign in when there is no session). */
+    readonly yourAccount: string;
+    readonly privacyShort: string;
+    readonly termsShort: string;
     readonly cookies: string;
+    /** Short note on where the business is and which law applies (closing strip). */
+    readonly euNote: string;
+    /** Small print: the business behind the product (legal/operator.ts). */
+    readonly operatorLine: string;
+    /** Small print before the typeface licence links. */
+    readonly typefaces: string;
     /** Sayfa sonundaki çekmede görünen kısa teşekkür (PullReveal.astro). */
     readonly pullThanks: string;
     readonly copyright: string;
@@ -192,9 +206,14 @@ export interface HomeCopy {
   readonly assurances: readonly string[];
   /** The factual trust strip under the hero panel (one line; only true claims, no testimonials or ratings). */
   readonly proof: readonly string[];
+  /** The last item of the trust strip: the listing in Claude's connector directory, linked. */
+  readonly directory: { readonly text: string; readonly href: string };
   readonly demo: DemoCopy;
-  /** Kahramanın altındaki tanıtım videosu (public/video; sessiz, döngülü, görününce oynar). */
+  /** The product film (public/video; muted, looping, plays when on screen), English only: the Finnish page leaves it out. */
   readonly launchVideo: {
+    /** Heading and one line beside the film. */
+    readonly title: string;
+    readonly lead: string;
     /** Videonun erişilebilir adı: ekranda yazı yok, ekran okuyucular için ne gösterdiği. */
     readonly description: string;
     /** Video oynatılamazsa görünen metin ve dosya bağlantısı. */
@@ -215,6 +234,8 @@ export interface HomeCopy {
     /** Muted first phrase of the heading. */
     readonly eyebrow: string;
     readonly title: string;
+    /** One line under the heading: what happens during, after and later. */
+    readonly lead: string;
     readonly live: ShowcaseShot;
     readonly note: ShowcaseShot;
     readonly ask: ShowcaseShot;
@@ -227,9 +248,7 @@ export interface HomeCopy {
     readonly title: string;
     readonly lead: string;
     readonly points: readonly IconText[];
-    /** What the iPhone app does not record (phone calls, online meetings); the Finnish page also names the app's language. */
-    readonly note: string;
-    /** Text equivalents of the three phones (live recording, home, Ask). */
+    /** Text equivalents of the phones (live recording, home, Ask). */
     readonly alt: { readonly live: string; readonly home: string; readonly ask: string };
     /** The hero's quiet link to this section. */
     readonly heroLink: string;
@@ -288,6 +307,8 @@ export interface HomeCopy {
   };
   readonly pricingTitle: string;
   readonly pricingLead: string;
+  /** The usage limits on the home price card (same as /pricing and the terms). */
+  readonly pricingLimits: string;
   readonly pricingCta: string;
   /** Fiyat bandından karşılaştırma sayfasına bağlantı. */
   readonly pricingCompare: string;
@@ -330,8 +351,6 @@ export interface PricingCopy {
   readonly startFree: string;
   readonly limitsTitle: string;
   readonly limits: readonly IconText[];
-  readonly taxTitle: string;
-  readonly taxText: string;
   readonly faqTitle: string;
   readonly faq: readonly Faq[];
 }
@@ -350,10 +369,16 @@ export interface DownloadCopy {
   /** Mac ve iPhone bloklarının başlıkları. */
   readonly macTitle: string;
   readonly iphoneTitle: string;
+  /** One line on what the iPhone app is for, above its badge. */
+  readonly iphoneBenefit: string;
   /** iPhone bloğunun açıklaması: ne kaydettiği, aynı hesap ve abonelik, App Store aboneliği. */
   readonly iphoneNote: string;
   /** iPhone görselinin metin karşılığı. */
   readonly iphoneAlt: string;
+  /** The Mac window in the hero: its text equivalent. */
+  readonly macAlt: string;
+  /** Link to the latest release's notes (GitHub release page of the public releases repository). */
+  readonly whatsNew: string;
   readonly installTitle: string;
   readonly installSteps: readonly TitledText[];
   /** Sayfanın sonundaki tek satır: güncellemeler ve yardım bağlantısı. */
@@ -481,6 +506,9 @@ export interface InviteCopy {
   readonly steps: readonly IconText[];
   readonly rulesTitle: string;
   readonly rules: readonly string[];
+  /** The hero's main button (to the account page, with the saved code when there is one) and where to enter a code. */
+  readonly redeem: string;
+  readonly redeemNote: string;
   /** Adresteki `?code=` ile gelen kodun kutusu. */
   readonly codeLabel: string;
   readonly codeNote: string;
@@ -657,6 +685,18 @@ export type ComparisonTopic =
   | "storage"
   | "plans";
 
+/** Topics of the short overview table on /compare (each cell a few words; the detail is on the /vs pages). */
+export type OverviewTopic = "price" | "free" | "capture" | "platforms" | "languages" | "translation";
+
+/**
+ * A cell's yes/no mark next to its text: the feature is there (`yes`), there in part (`partial`, e.g. a bot by default
+ * with a bot-free app) or not offered (`no`, only when the vendor says so). Topics without a mark show text only.
+ */
+export type CellMark = "yes" | "partial" | "no";
+
+/** Marks of one product's cells, by topic. */
+export type CellMarks = Readonly<Partial<Record<ComparisonTopic, CellMark>>>;
+
 /** Karşılaştırılan ürünler. */
 export type Competitor = "granola" | "otter" | "fireflies" | "poffle";
 
@@ -679,6 +719,11 @@ export interface CompetitorCopy {
   readonly summary: string;
   readonly pricingUrl: string;
   readonly values: Readonly<Record<ComparisonTopic, string | null>>;
+  readonly marks: CellMarks;
+  /** The overview table's short cells (/compare); null when not checked. */
+  readonly glance: Readonly<Record<OverviewTopic, string | null>>;
+  /** The competitor's headline differences, a few words each (the summary card at the top of its /vs page). */
+  readonly edge: readonly string[];
   /** Rakibin daha güçlü olduğu yerler (adil karşılaştırma; sayfada bizim güçlü yanlarımızdan sonra, kısa liste). */
   readonly strengthsTitle: string;
   readonly strengths: readonly string[];
@@ -693,11 +738,18 @@ export interface CompareCopy {
   readonly title: string;
   readonly lead: string;
   /** Dizindeki özet tablonun konuları. */
-  readonly overviewTopics: readonly ComparisonTopic[];
+  readonly overviewTopics: readonly OverviewTopic[];
   readonly overviewTitle: string;
   readonly topics: Readonly<Record<ComparisonTopic, string>>;
   /** Bizim değerlerimiz (copy.ts, fiyat sayfası ve sunucu sınırlarıyla aynı). */
   readonly us: Readonly<Record<ComparisonTopic, string>>;
+  readonly usMarks: CellMarks;
+  /** Our short cells in the overview table. */
+  readonly usGlance: Readonly<Record<OverviewTopic, string>>;
+  /** The summary card at the top of the comparison pages: our headline points, a few words each. */
+  readonly highlights: readonly string[];
+  /** Screen-reader words for the cell marks. */
+  readonly markLabels: Readonly<Record<CellMark, string>>;
   /**
    * Karşılaştırma sayfalarının başındaki vurgulu özet: ürünü seçmek için başlıca nedenler (her sayfada aynı, rakip
    * değerlerinden bağımsız ürün gerçekleri).
@@ -786,8 +838,12 @@ export interface McpCopy {
   readonly eyebrow: string;
   readonly title: string;
   readonly lead: string;
-  /** Hero'daki uzak bağlayıcı yönlendirmesi: bağlantıdan önceki metin ve bağlantı metni. */
-  readonly remoteHint: { readonly text: string; readonly link: string };
+  /** Hero link to the local server section (the online connector comes first): text before the link and the link. */
+  readonly localHint: { readonly text: string; readonly link: string };
+  /** Title of the local server section (Claude Desktop, Cursor, VS Code on the Mac). */
+  readonly localTitle: string;
+  /** Copy buttons on the code blocks and the connector URL: label, success and failure. */
+  readonly copyButton: { readonly label: string; readonly copied: string; readonly failed: string };
   readonly toolsTitle: string;
   readonly toolsLead: string;
   readonly toolInputLabel: string;
@@ -830,8 +886,6 @@ export interface LanguagesCopy {
   /** Uygulamanın kendi arayüzünün dilleri (konuşulan ve not dillerinden ayrı). */
   readonly interfaceTitle: string;
   readonly interfaceLead: string;
-  /** Tablo sütunları: dil, kendi adı, kod. */
-  readonly columns: { readonly name: string; readonly native: string; readonly code: string };
   /** Öne çıkan diller (Türkçe, Fince). */
   readonly highlightsTitle: string;
   readonly highlights: readonly TitledText[];
@@ -978,6 +1032,8 @@ export interface NotFoundCopy {
   readonly title: string;
   readonly text: string;
   readonly home: string;
+  /** Accessible name of the row of other pages (pricing, download, blog, contact) under the button. */
+  readonly linksLabel: string;
 }
 
 /** Bağlantıyla paylaşılan not sayfası (`/s`). Notun kendi metinleri (başlıklar dahil) gönderenin dilindedir. */
@@ -1076,8 +1132,11 @@ export const copy: Copy = {
     },
     downloadCta: "Download for Mac",
     headerDownload: "Download",
+    headerGetApp: "Get the app",
+    alsoOnMac: "Also on Mac",
     darkMode: "Dark mode",
     price: "$5.99",
+    priceDisplay: "$5.99",
     perMonth: "/ month",
     yearlyPrice: "$49",
     offer: "3 meetings or 7 days free, then $5.99 a month or $49 a year, taxes included",
@@ -1106,14 +1165,18 @@ export const copy: Copy = {
     ogImageAlt: `The ${productName} logo and the tagline “${tagline}” on a soft pastel gradient, above a small sound wave.`,
     footer: {
       tagline: brandLine,
-      madeIn: "Made in Oulu, Finland.",
+      summary: "AI meeting notes for Mac and iPhone, with live translation and your own tasks picked out.",
       product: "Product",
-      learn: "Learn",
-      account: "Account",
+      compare: "Compare",
+      allComparisons: "All comparisons",
       company: "Company",
-      fontLicense: "Inter font licence",
-      serifFontLicense: "Newsreader font licence",
+      yourAccount: "Your account",
+      privacyShort: "Privacy",
+      termsShort: "Terms",
       cookies: "Cookies",
+      euNote: "Made in Oulu, Finland · EU company, GDPR",
+      operatorLine: `${productName} is made and sold by ${operator.name} (business ID ${operator.businessId}), Oulu, Finland.`,
+      typefaces: "Typefaces:",
       pullThanks: "Thanks for listening.",
       copyright: `© 2026 ${operator.name}`,
       language: "Language",
@@ -1123,15 +1186,16 @@ export const copy: Copy = {
   },
   home: {
     meta: {
-      title: `${productName} — ${tagline}`,
-      description: `${brandLine} AI meeting notes for Mac and iPhone: a live transcript, translation and your tasks first. No bot joins the call.`,
+      title: `${productName}: AI meeting notes for Mac and iPhone, with live translation`,
+      description: `AI meeting notes for Mac and iPhone: a live transcript, translation into ${noteLanguages.length} languages and your tasks picked out. No bot joins the call.`,
     },
     eyebrow: "AI meeting notes for Mac and iPhone",
     title: tagline,
-    lead: "No bot joins the call.",
+    lead: `AI meeting notes for Mac and iPhone, with live translation in ${noteLanguages.length} languages and your own tasks picked out. No bot joins the call.`,
     secondaryCta: "See pricing",
     assurances: ["3 meetings or 7 days free", "No credit card"],
-    proof: ["Made in Oulu, Finland", "EU company", "Notarized by Apple", "No bot in your calls"],
+    proof: ["Made in Oulu, Finland", "EU company, GDPR", "Notarized by Apple"],
+    directory: { text: "Listed in Claude's connector directory", href: "https://claude.ai/directory/connectors/gistsmith" },
     demo: {
       label: `${productName} recording a meeting and writing the note`,
       listening: "Listening",
@@ -1156,7 +1220,9 @@ export const copy: Copy = {
       replay: "Replay the demo",
     },
     launchVideo: {
-      description: `A one-minute tour of ${productName}: the live transcript and translation during a meeting, the note with your tasks on top, asking across your meetings, and sending notes where your team works.`,
+      title: `${productName} in 40 seconds.`,
+      lead: "From the first word of the call to the note in your inbox: the live transcript and translation, your tasks, and answers from every meeting.",
+      description: `A 37-second film about ${productName}: the questions a meeting leaves behind, the live transcript and translation during the call, the note with your tasks when you hang up, and asking across all your meetings.`,
       fallback: "Your browser can't play this video here.",
       fallbackLink: "Open the video file",
       pause: "Pause the video",
@@ -1174,32 +1240,38 @@ export const copy: Copy = {
     showcase: {
       eyebrow: brandQuiet,
       title: brandYours,
+      lead: "A live transcript while people talk, a note with the summary and your tasks when the call ends, and answers from all your meetings whenever you need them.",
       live: {
-        label: "During the meeting",
-        title: "Every sentence, as it's said",
+        label: "Live translation",
+        title: "Read along in your language",
         text: "Each sentence is on screen within seconds, with a translation into your language when the meeting is in another one.",
         alt: `The ${productName} live panel while recording a Finnish meeting: each speaker's Finnish sentences with the English translation underneath, your own lines in English, and a “What did I miss?” button at the bottom.`,
       },
       note: {
         label: "After the meeting",
         title: "Ready when you hang up",
-        text: "Your tasks with owners and due dates come first, then the summary, decisions and a glossary.",
-        alt: `The Product weekly note in the ${productName} app: a list of recent meetings on the left and, under the meeting cover and a who-spoke-when timeline, your three tasks with due dates: write the beta release notes by Friday, send Ayşe the pricing table today, set up a weekly call with support on Wednesday.`,
+        text: "A short summary, then your own tasks with due dates, everyone else's with owners, the decisions and a glossary.",
+        alt: `The Product weekly note in the ${productName} app: the date, 42 minutes, 4 speakers and “3 tasks for you” at the top, a three-point summary, and your three tasks with due dates: write the beta release notes by Friday, send Ayşe the latest pricing table today, set up a weekly Wednesday call with support.`,
       },
       ask: {
-        label: "Any time later",
-        title: "Search every meeting",
+        label: "Ask",
+        title: "Answers from every meeting, with sources",
         text: "Ask across all your meetings and get an answer that links back to the meeting it came from.",
-        alt: `The Ask page in ${productName}: the question “What did we decide about the budget?” answered in two bullet points with numbered citations, and a row showing 3 sources from 2 meetings.`,
+        alt: `The Ask page in ${productName}: the question “What did we decide about the budget?” answered in two bullet points with numbered citations, and a Sources button showing 3 sources.`,
       },
     },
     iphone: {
       eyebrow: "On iPhone",
       title: "Meetings in the room, too.",
-      lead: "Put your iPhone on the table and tap record. Your note is ready when the meeting ends.",
+      lead: "Put your iPhone on the table and tap record: it hears everyone in the room, and your note is ready when the meeting ends. Online meetings are recorded on the Mac.",
       points: [
         { icon: "mic", title: "In-person meetings", text: "It listens through your iPhone's microphone, with a live transcript and translation as people talk." },
         { icon: "search", title: "Ask your meetings", text: "Ask in plain words and get an answer that cites the meeting it came from." },
+        {
+          icon: "phone",
+          title: "Notes from phone calls",
+          text: "Coming in the next iPhone update: record the call with iPhone's built-in call recording, share the audio to Gistsmith, and get the note, decisions and tasks. Where call recording isn't available, take the call on your Mac.",
+        },
         { icon: "check-circle", title: "Your tasks in one list", text: "The tasks from every meeting, with their due dates, in one place." },
         {
           icon: "refresh",
@@ -1207,7 +1279,6 @@ export const copy: Copy = {
           text: "Sign in with the same account and one subscription covers both. Turn on sync to see your notes on both, encrypted end to end.",
         },
       ],
-      note: "The iPhone app records the conversation around your phone. It doesn't record phone calls or online meetings; use the Mac for those.",
       alt: {
         live: `${productName} on iPhone recording a Finnish meeting: a 12:43 timer, a sound wave and each speaker's Finnish sentences with the English translation underneath, and a Finish button at the bottom.`,
         home: `The ${productName} home screen on iPhone: today's upcoming meetings with Briefing and Join buttons, 8 open tasks, recent notes and an Ask a question button next to the record button.`,
@@ -1227,7 +1298,7 @@ export const copy: Copy = {
         text: "One click drafts the follow-up from the note, with decisions and owners, ready to edit or open in Mail.",
         recipe: "Follow-up email",
         subject: "Subject: Product weekly, next steps",
-        lines: ["Beta opens on 14 November.", "Alex: release notes by Friday."],
+        lines: ["Beta opens on 14 November.", "Release notes: me, by Friday."],
       },
       templates: {
         title: "The right note for every meeting",
@@ -1251,7 +1322,7 @@ export const copy: Copy = {
     },
     featuresTitle: "The details, handled before you ask.",
     capabilities: {
-      title: "Also in every plan",
+      title: "Also included",
       items: [
         "any call app",
         "stops when the call ends",
@@ -1296,7 +1367,7 @@ export const copy: Copy = {
       },
       ai: {
         title: "Your AI apps, through MCP",
-        text: "Claude, Cursor and VS Code can search and read your meetings, never change them.",
+        text: "Claude, ChatGPT, Cursor and VS Code can search and read your meetings (on your Mac, or online with AI assistant access); they can never change them.",
       },
       mcpLink: "How MCP works",
       files: {
@@ -1314,6 +1385,7 @@ export const copy: Copy = {
     },
     pricingTitle: "Simple pricing, monthly or yearly.",
     pricingLead: "One plan with everything in it. Try it on your own meetings before you pay.",
+    pricingLimits: "Up to 10 meeting hours a month and 4 hours per meeting. Voice typing runs on your Mac and doesn't count.",
     pricingCta: "Pricing details",
     pricingCompare: "Compare with Granola, Otter, Fireflies and Poffle",
     faqTitle: "Questions",
@@ -1329,7 +1401,7 @@ export const copy: Copy = {
       {
         question: "Where does my audio go?",
         answer:
-          "While you record, the audio streams from your Mac to Deepgram for the live transcript; Deepgram is asked not to keep it or use it for training. If that isn't available, the live transcript is produced on your Mac instead. When the meeting ends, the audio is passed through our server to ElevenLabs to separate speakers and produce the final transcript; for notes and translation the text goes to Anthropic's Claude model. Our servers don't store audio, or notes unless you turn on AI assistant access; they count the duration and hold the final transcript encrypted, only so it can be re-sent for 2 hours if the connection drops; it is deleted at the next daily cleanup, within about a day. ElevenLabs and Anthropic may keep what they process for a time under their own retention rules (Anthropic deletes it within 30 days). If you turn on “Use screen snapshots in notes”, up to six of the meeting's screen snapshots go to Anthropic along with the transcript when the note is written, and up to three with an Ask question about that part of the meeting; otherwise snapshots never leave your Mac. The privacy policy has the details.",
+          "While you record, the audio streams from your Mac to our live speech-recognition provider for the live transcript; it is asked not to keep it or use it for training. If that isn't available, the live transcript is produced on your Mac instead. When the meeting ends, the audio is passed through our server to our transcription provider to separate speakers and produce the final transcript; for notes and translation the text goes to our AI model provider. Our servers don't store audio, or notes they can read unless you turn on AI assistant access (sync and share links keep only end-to-end encrypted copies); they count the duration and hold the final transcript encrypted, only so it can be re-sent for 2 hours if the connection drops; it is deleted at the next daily cleanup, within about a day. The transcription and AI model providers may keep what they process for a time under their own retention rules (the AI model provider deletes it within 30 days). If you turn on “Use screen snapshots in notes”, up to six of the meeting's screen snapshots go to the AI model provider along with the transcript when the note is written, and up to three with an Ask question about that part of the meeting; otherwise snapshots never leave your Mac. The privacy policy names each provider and has the details.",
       },
       {
         question: "Which languages are supported?",
@@ -1338,6 +1410,10 @@ export const copy: Copy = {
       {
         question: "Does it work for in-person meetings and recordings?",
         answer: "Yes. On the Mac, turn on “In person” before you start, and its microphone records everyone in the room. On iPhone, put the phone on the table and tap record. You can also import an audio or video file, such as a recorded call or a voice memo, and get the same transcript and note; an imported file counts as a meeting.",
+      },
+      {
+        question: "Can Gistsmith record phone calls on iPhone?",
+        answer: "iOS doesn't let any app listen to a call in progress. Use iPhone's own call recording (iOS 18.1 or later, not offered in every region) and, from the next iPhone update, share the audio to Gistsmith; or take the call on your Mac. Let the other person know you're recording; the law may require their consent.",
       },
     ],
     featureList: [
@@ -1355,7 +1431,7 @@ export const copy: Copy = {
       "Follow-up questions that keep the conversation and the meetings you asked about; saved chats you can rename, search and filter",
       "Optional snapshots of the shared screen, matched to what was said",
       "Send notes to Slack, Microsoft Teams, Discord, Zoom Team Chat, Notion and Apple Notes; tasks to Linear, Jira and Apple Reminders; anything else through webhooks",
-      "Read-only MCP server for Claude, Cursor and VS Code",
+      "Read-only access for Claude, ChatGPT, Cursor and VS Code over MCP, on your Mac or online with AI assistant access",
       "Voice typing in any Mac app, transcribed on your Mac",
       "Notes, transcripts and recordings stored on your Mac or iPhone",
       "An iPhone app for in-person meetings, with the same account and subscription as the Mac app",
@@ -1418,15 +1494,16 @@ export const copy: Copy = {
       { icon: "timer", title: "4 hours per meeting", text: "Enough for long workshops and lectures; longer meetings close at 4 hours." },
       {
         icon: "card",
-        title: "Cancelling",
+        title: "Canceling",
         text: "Cancel in a click from your account page or at link.com. If you subscribed in the iPhone app, cancel on your iPhone in Settings › your name › Subscriptions. You keep access until the end of the paid period.",
       },
     ],
-    taxTitle: "Payments and taxes",
-    taxText:
-      `Checkout is hosted by Stripe, and your purchase is sold through Link, Stripe's payment service, as the merchant of record. The price of $5.99 a month or $49 a year includes sales tax, VAT or GST: Link calculates and remits the tax for your location, and checkout shows the included tax before you pay. You may see the price in your local currency. Receipts come from Link, and your card statement shows ${cardStatementDescriptor}. Your card details stay with Stripe and Link and never reach us. Purchases aren't available in some countries where Stripe can't sell, such as China, Cuba, Iran, North Korea, Russia and Syria. In the iPhone app you can also subscribe through the App Store: Apple handles that payment, the app shows the price for your country before you buy, and your Apple Account is charged.`,
     faqTitle: "Questions",
     faq: [
+      {
+        question: "Who handles payment and taxes?",
+        answer: `Checkout is hosted by Stripe, and your purchase is sold through Link, Stripe's payment service, as the merchant of record. The price of $5.99 a month or $49 a year includes sales tax, VAT or GST: Link calculates and remits the tax for your location, and checkout shows the included tax before you pay. You may see the price in your local currency. Your card details stay with Stripe and Link and never reach us. Purchases aren't available in some countries where Stripe can't sell, such as China, Cuba, Iran, North Korea, Russia and Syria. In the iPhone app you can also subscribe through the App Store: Apple handles that payment, the app shows the price for your country before you buy, and your Apple Account is charged.`,
+      },
       {
         question: "What counts toward the monthly limits?",
         answer:
@@ -1474,8 +1551,11 @@ export const copy: Copy = {
       "Everything works on macOS 15 or later on a Mac with Apple silicon (M1 or later). Voice typing uses Apple's on-device dictation on macOS 26 or later, and an on-device speech model on macOS 15 to 25.",
     macTitle: "Mac",
     iphoneTitle: "iPhone",
+    iphoneBenefit: "Put your iPhone on the table and tap record: a live transcript, translation and the same note as on your Mac.",
+    macAlt: `The ${productName} Mac app showing the Product weekly note: a list of meetings on the left, and on the right the summary and your three tasks with due dates, with a “3 tasks for you” label at the top.`,
+    whatsNew: "What's new",
     iphoneNote:
-      "For meetings in the room: it records the conversation around your iPhone, not phone calls or online meetings. Sign in with the same account as on your Mac; one subscription covers both. In the app, subscriptions go through the App Store.",
+      "For meetings in the room: it records the conversation around your iPhone. Online meetings are recorded on the Mac; sharing a phone call recorded with iPhone's own call recording comes in the next iPhone update. Sign in with the same account as on your Mac; one subscription covers both. In the app, subscriptions go through the App Store.",
     iphoneAlt: `The ${productName} home screen on iPhone: today's upcoming meetings, 8 open tasks, recent notes and an Ask a question button next to the record button.`,
     installTitle: "Three steps to your first meeting on the Mac",
     installSteps: [
@@ -1486,19 +1566,22 @@ export const copy: Copy = {
     footnote: "Updates arrive automatically inside the app.",
     helpCta: "Questions? Contact us",
   },
-  // Rakip değerleri yalnızca rakiplerin kendi fiyat sayfalarından (3 Kasım 2026'da denetlendi; Fireflies sayfası fiyatları
-  // betikle çizer, değerler sayfanın HTML'inden okundu). Poffle'ın ayrı fiyat sayfası yok: değerleri ana sayfasının
-  // fiyat ve SSS bölümlerinden ve kendi blog yazılarından (şablonlar, paylaşım), 4 Kasım 2026'da denetlendi. Bizimkiler bu dosyadaki fiyat ve SSS metinleriyle, sunucu
-  // sınırlarıyla (server/wrangler.jsonc) ve facts.ts'teki dil listeleriyle aynıdır. Yeni bir değer eklerken kaynağını
-  // denetle; doğrulanmamış rakip bilgisi yazma (değer `null` kalır).
+  // Rakip değerleri yalnızca rakiplerin kendi sitelerinden, 7 Kasım 2026'da denetlendi: fiyat sayfaları (granola.ai/pricing,
+  // otter.ai/pricing, fireflies.ai/pricing; Fireflies fiyatları betikle çizer, değerler sayfanın HTML'inden okundu), ürün
+  // sayfaları (otter.ai/desktop, fireflies.ai/desktop, fireflies.ai/talk) ve yardım merkezleri (docs.granola.ai: diller,
+  // canlı çeviri, sesle yazma, telefon görüşmeleri; guide.fireflies.ai: botsuz masaüstü kaydı). Poffle'ın ayrı fiyat sayfası
+  // yok: değerleri ana sayfasının fiyat ve SSS bölümlerinden (poffle.app). Otter'ın yardım merkezi okunamadı (403); canlı
+  // çeviri için "listelenmiyor" yazılır, "yok" değil. Bizimkiler bu dosyadaki fiyat ve SSS metinleriyle, sunucu
+  // sınırlarıyla (server/wrangler.jsonc) ve dil listeleriyle aynıdır. Yeni bir değer eklerken kaynağını denetle;
+  // doğrulanmamış rakip bilgisi yazma (değer `null` kalır).
   compare: {
     meta: {
       title: `Compare ${productName} with Granola, Otter, Fireflies and Poffle`,
-      description: `How ${productName} compares with Granola, Otter.ai, Fireflies.ai and Poffle on price, free plans, meeting bots, platforms, languages and live translation. Prices checked November 2026.`,
+      description: `Compare ${productName} with Granola, Otter.ai, Fireflies.ai and Poffle: price, free plans, bots, platforms, languages and live translation. Checked Nov 2026.`,
     },
     eyebrow: "Compare",
-    title: `${productName} compared with Granola, Otter, Fireflies and Poffle`,
-    lead: `${productName} is the meeting notepad for Mac and iPhone that works without a bot, opens every note with your tasks and translates live. Here is how it differs from four popular alternatives in price, how each one hears the meeting, platforms and languages. Where another app is stronger, we say so.`,
+    title: `How ${productName} compares`,
+    lead: `${productName} is an AI meeting notes app for Mac and iPhone: live translation in ${noteLanguages.length} languages, notes that pick out your tasks, and no bot in the call. Here is how it differs from Granola, Otter, Fireflies and Poffle in price, how each one hears the meeting, platforms and languages. Where another app is stronger, we say so.`,
     overviewTopics: ["price", "free", "capture", "platforms", "languages", "translation"],
     overviewTitle: "At a glance",
     topics: {
@@ -1521,7 +1604,7 @@ export const copy: Copy = {
     us: {
       price: "$5.99 a month or $49 a year, taxes included",
       free: "Free trial: 3 meetings or 7 days, whichever comes first; no card needed",
-      capture: "No bot. Listens to your Mac's system audio and microphone, so it works with any call app, and finishes the recording when the call ends (after a 30-second countdown you can stop); also records in-person meetings and imports audio or video files",
+      capture: "No bot. Listens to your Mac's system audio and microphone, so it works with any call app; records in-person meetings on iPhone and imports audio or video files",
       platforms: "Mac with Apple silicon, macOS 15 or later; iPhone with iOS 26.1 or later, for in-person meetings",
       limits: "Up to 10 meeting hours a month and up to 4 hours per meeting",
       languages: `${spokenLanguages.length} spoken languages, including Turkish and Finnish; notes in ${noteLanguages.length}; app in ${interfaceLanguages.length} languages`,
@@ -1532,23 +1615,39 @@ export const copy: Copy = {
       screens: "Optional snapshots of the shared screen, matched to what was said; notes and Ask can use them if you allow it",
       integrations:
         "Notion, Apple Notes, Slack, Microsoft Teams, Discord, Zoom Team Chat; tasks to Linear, Jira and Apple Reminders; Markdown folders (Obsidian) and webhooks (Zapier, Make, n8n)",
-      mcp: "Built-in read-only MCP server for Claude, Cursor and VS Code, on every plan",
-      storage: "Notes, transcripts and recordings are saved on your Mac or iPhone",
+      mcp: "Read-only access for Claude, ChatGPT, Cursor and VS Code: on your Mac, or online with AI assistant access",
+      storage: "Saved on the Mac or iPhone that recorded it, and on both with sync. Our servers hold copies only for features you turn on (sync, AI assistant access, share links) and briefly while a note is written; audio isn't kept by us",
       plans: "One personal plan, billed monthly or yearly; no shared team workspace",
     },
+    usMarks: { capture: "yes", translation: "yes", voiceTyping: "yes", mcp: "yes" },
+    usGlance: {
+      price: "$5.99 a month or $49 a year, taxes included",
+      free: "3 meetings or 7 days free, no card",
+      capture: "No bot: listens to your Mac's audio",
+      platforms: "Mac and iPhone",
+      languages: `${spokenLanguages.length} spoken; notes in ${noteLanguages.length}`,
+      translation: `Live, into any of ${noteLanguages.length} languages`,
+    },
+    highlights: [
+      `Live translation in ${noteLanguages.length} languages`,
+      "Your own tasks picked out in every note",
+      "No bot in the call",
+      "$5.99 a month, taxes included",
+    ],
+    markLabels: { yes: "Yes", partial: "Partly", no: "No" },
     why: {
-      title: `Why professionals pick ${productName}`,
+      title: `Why pick ${productName}`,
       items: [
-        { icon: "shield", title: "No bot in the call", text: "It listens to your Mac's audio, so it works with any call app and nobody sees a note-taker join." },
-        { icon: "check-circle", title: "Tasks first", text: "Every note opens with your tasks, owners and due dates, then the summary, decisions and glossary." },
         { icon: "translate", title: "Live translation", text: `Read along in your language as people talk: ${spokenLanguages.length} spoken languages, notes and translation in any of ${noteLanguages.length}.` },
+        { icon: "check-circle", title: "Your tasks, picked out", text: "Every note marks the tasks that are yours, with due dates, next to everyone else's with owners, the summary, decisions and glossary." },
+        { icon: "shield", title: "No bot in the call", text: "It listens to your Mac's audio, so it works with any call app and nobody sees a note-taker join." },
         { icon: "plug", title: "Fits your stack", text: "Notes to Slack, Microsoft Teams and Notion, tasks to Linear and Jira, and your AI apps over MCP. $5.99 a month or $49 a year, taxes included." },
       ],
     },
     usBadge: "Our app",
     topicColumn: "Topic",
     tableTitle: "Side by side",
-    checked: "Prices checked November 2026.",
+    checked: "Prices and features checked on 7 November 2026.",
     source: "Source",
     missingNote: "A dash means the point wasn't part of what we checked on the vendor's own site. It doesn't mean the feature is missing.",
     notChecked: "Not checked",
@@ -1560,35 +1659,46 @@ export const copy: Copy = {
     competitors: {
       granola: {
         meta: {
-          title: `${productName} vs Granola: meeting notes without a bot`,
-          description: `${productName} and Granola both take meeting notes without a bot. Compare price, free plans, platforms, languages, live translation and integrations. Prices checked November 2026.`,
+          title: `${productName} vs Granola: live translation and your tasks picked out`,
+          description: `${productName} vs Granola: both take notes without a bot. Compare price, free plans, platforms, languages, live translation and integrations. Checked Nov 2026.`,
         },
         name: "Granola",
         title: `${productName} vs Granola`,
-        lead: `${productName} is a Mac and iPhone app with simple pricing, notes that open with your tasks and live translation as people talk. Both take notes without a bot joining the call; Granola runs on more devices and has team plans and more business integrations.`,
-        summary: `${productName} adds live translation and notes that open with your tasks, for one simple price. Both work without a bot; Granola has a free plan, Android and Apple Watch apps, team plans and CRM integrations.`,
+        lead: `${productName} is a Mac and iPhone app with live translation as people talk, notes that pick out your tasks and one simple price. Both take notes without a bot joining the call; Granola runs on more devices, including Windows and Android, and has team plans and more business integrations.`,
+        summary: `${productName} adds live translation and notes that pick out your tasks, for one simple price. Both work without a bot; Granola has a free plan, Windows, Android and Apple Watch apps, team plans and CRM integrations.`,
         pricingUrl: "https://www.granola.ai/pricing",
         values: {
           price: "Basic $0; Business $14 per user a month; Enterprise $35 per user a month",
           free: "Basic plan at $0, with 30 days of meeting history",
-          capture: "No bot. Captures your device's audio",
-          platforms: "Desktop, iOS, Android and Apple Watch",
+          capture: "No bot. Uses your computer's audio",
+          platforms: "Mac, Windows, iPhone, Android and Apple Watch",
           limits: null,
-          languages: "Multi-language support",
-          translation: null,
+          languages: "31 languages on Mac and Windows, 17 on iPhone and Android",
+          translation: "Not offered: Granola's help center says it doesn't offer live translation during a meeting",
           notes: "Note templates",
           ask: "AI chat across meetings",
-          voiceTyping: "Voice typing in any app on your Mac, on every plan including Basic",
+          voiceTyping: "Voice typing in any app, in beta on the Mac and Windows apps; free on every plan",
           screens: null,
           integrations: "Slack on all plans; Notion, HubSpot, Zapier, Attio, Affinity and an API on Business; Salesforce on Enterprise",
           mcp: "On all plans: your own notes from the last 30 days on Basic; workspace notes on Business and Enterprise",
           storage: null,
           plans: "Per-user Business and Enterprise plans; shared folders on every plan",
         },
+        marks: { capture: "yes", translation: "no", voiceTyping: "yes", mcp: "yes" },
+        glance: {
+          price: "Business $14, Enterprise $35 per user a month",
+          free: "Basic $0, with 30 days of history",
+          capture: "No bot: uses your computer's audio",
+          platforms: "Mac, Windows, iPhone, Android, Apple Watch",
+          languages: "31 on desktop, 17 on mobile",
+          translation: "Not offered, per its help center",
+        },
+        edge: ["A free plan with 30 days of history", "Windows, Android and Apple Watch apps", "Team plans and CRM integrations"],
         strengthsTitle: "Where Granola is stronger",
         strengths: [
           "A free Basic plan, with 30 days of meeting history.",
-          "Apps for Android and Apple Watch as well as the desktop and iPhone.",
+          "Apps for Windows, Android and Apple Watch as well as Mac and iPhone.",
+          "Records outgoing phone calls made from its iPhone and Android apps.",
           "Per-user Business and Enterprise plans for teams, with shared folders, central billing and, on Enterprise, SSO and SCIM.",
           "HubSpot, Attio, Affinity and Zapier integrations and an API on the Business plan; Salesforce on Enterprise.",
         ],
@@ -1596,7 +1706,7 @@ export const copy: Copy = {
           title: "Pick Granola if",
           points: [
             "you want a free plan and 30 days of history is enough",
-            "you also take notes on an Android phone or an Apple Watch",
+            "you also work on Windows, an Android phone or an Apple Watch, or want to place and record calls from inside the app",
             "your team wants one shared workspace with per-user billing",
             "your notes need to reach HubSpot, Attio or Salesforce, or you want an API",
           ],
@@ -1604,52 +1714,63 @@ export const copy: Copy = {
         pickUs: {
           title: `Pick ${productName} if`,
           points: [
-            "you work on a Mac and want simple pricing: $5.99 a month or $49 a year, taxes included",
-            "you want every note to open with your own tasks",
             "your meetings are in another language and you want a live translation as people talk",
-            "you want notes, transcripts and recordings saved on your own Mac",
+            "you want every note to pick out your own tasks, with due dates",
+            "you work on a Mac and want simple pricing: $5.99 a month or $49 a year, taxes included",
+            "you want notes, transcripts and recordings kept on your own Mac and iPhone",
           ],
         },
       },
       otter: {
         meta: {
-          title: `${productName} vs Otter.ai: a Mac notepad without a meeting bot`,
-          description: `Otter joins calls as a bot; ${productName} listens on your Mac. Compare price, free plans, minutes, meeting length, languages and live translation. Prices checked November 2026.`,
+          title: `${productName} vs Otter.ai: live translation and your tasks, on Mac and iPhone`,
+          description: `${productName} vs Otter.ai: live translation, your tasks picked out and one simple price on Mac and iPhone. Compare price, minutes, languages and bots. Checked Nov 2026.`,
         },
         name: "Otter.ai",
         title: `${productName} vs Otter.ai`,
-        lead: `${productName} listens on your Mac, so nothing extra appears in the call, opens every note with your tasks and translates live. Otter joins Zoom, Microsoft Teams and Google Meet as a bot to write notes; it has a free tier, apps for more platforms, CRM integrations and team plans.`,
-        summary: `${productName} listens on your Mac with no bot in the call and translates live. Otter joins calls as a bot, has a free tier and runs on more platforms.`,
+        lead: `${productName} translates live as people talk, in ${spokenLanguages.length} spoken languages, and picks out your tasks in every note, for one simple price on Mac and iPhone. Otter sends a bot to Zoom, Microsoft Teams and Google Meet by default, and its Mac and Windows desktop apps record without one; it has a free tier, more platforms, CRM integrations and team plans.`,
+        summary: `${productName} translates live in ${spokenLanguages.length} spoken languages and picks out your tasks in every note. Otter has a free tier, a meeting bot and bot-free desktop apps, and runs on more platforms.`,
         pricingUrl: "https://otter.ai/pricing",
         values: {
-          price: "Basic free; Pro $16.99 per user a month billed monthly ($8.33 billed annually); Business $30 per user a month billed monthly, 20% off the first 3 months for new subscribers ($19.99 billed annually); Enterprise on request",
+          price: "Basic free; Pro $16.99 per user a month billed monthly ($8.33 billed annually); Business $30 per user a month billed monthly ($19.99 billed annually); Enterprise on request",
           free: "Basic plan: 300 transcription minutes a month, up to 30 minutes per conversation and 3 file imports in total",
-          capture: "Joins Zoom, Microsoft Teams and Google Meet as a bot to write notes",
+          capture: "A bot joins Zoom, Microsoft Teams and Google Meet by default; the Mac and Windows desktop apps record without a bot",
           platforms: "Mac and Windows desktop apps, iOS and Android apps, Chrome extension",
           limits: "Pro: 1,200 minutes a month, up to 90 minutes per meeting. Business: unlimited meetings, up to 4 hours per meeting",
           languages: "Automatic transcription in English, Spanish, French, German, Japanese and Chinese",
-          translation: null,
+          translation: "Not listed on Otter's pricing or desktop app pages (checked November 2026)",
           notes: null,
-          ask: "AI Chat (20 questions on Basic)",
+          ask: "AI Chat (20 questions a month on Basic)",
           voiceTyping: null,
           screens: null,
           integrations: "Zapier, Salesforce and HubSpot from Pro (Salesforce and HubSpot with user limits); Dropbox and Zoom cloud sync; an API with webhooks on Enterprise",
-          mcp: null,
+          mcp: "Otter MCP server, listed on every plan including Basic",
           storage: null,
           plans: "Per-user Pro, Business and Enterprise plans",
         },
+        marks: { capture: "partial", mcp: "yes" },
+        glance: {
+          price: "Pro $8.33–$16.99, Business $19.99–$30 per user a month",
+          free: "Basic: 300 minutes a month, 30 per meeting",
+          capture: "A bot by default; desktop apps record without one",
+          platforms: "Mac, Windows, iPhone, Android, Chrome",
+          languages: "6 languages listed",
+          translation: "Not listed on its pricing pages",
+        },
+        edge: ["A free tier with 300 minutes a month", "Windows and Android apps", "Team plans and CRM integrations"],
         strengthsTitle: "Where Otter is stronger",
         strengths: [
           "A free Basic plan with 300 transcription minutes a month.",
           "Apps for Mac, Windows, iOS and Android, and a Chrome extension.",
-          "Salesforce, HubSpot and Zapier integrations from the Pro plan.",
+          "A meeting bot for Zoom, Microsoft Teams and Google Meet, and desktop apps for Mac and Windows that record without one.",
+          "Salesforce, HubSpot and Zapier integrations from the Pro plan, and an MCP server on every plan.",
           "Per-user Pro, Business and Enterprise plans for teams, with unlimited meetings on Business.",
         ],
         pickCompetitor: {
           title: "Pick Otter if",
           points: [
             "you want a free tier and 300 minutes a month covers you",
-            "you'd like a note-taker to join the call as a participant",
+            "you want a bot that can join calls for you, as well as bot-free desktop apps",
             "you need Windows or Android apps, or team plans",
             "your notes need to reach Salesforce or HubSpot",
           ],
@@ -1657,46 +1778,56 @@ export const copy: Copy = {
         pickUs: {
           title: `Pick ${productName} if`,
           points: [
-            "you'd rather no bot joins your calls",
-            "you meet in a language beyond the six on Otter's pricing page, or you want a live translation",
-            "you want every note to open with your own tasks",
+            "you want a live translation as people talk",
+            `you meet in a language beyond the six on Otter's pricing page: ${productName} understands ${spokenLanguages.length}`,
+            "you want every note to pick out your own tasks, with due dates",
             "you work on a Mac and want simple pricing: $5.99 a month or $49 a year, taxes included",
           ],
         },
       },
       fireflies: {
         meta: {
-          title: `${productName} vs Fireflies.ai: meeting notes without a bot`,
-          description: `Fireflies joins calls with a bot and is built for teams; ${productName} listens on your Mac with no bot. Compare price, free plans, languages, live translation and integrations. Prices checked November 2026.`,
+          title: `${productName} vs Fireflies.ai: live translation on one simple plan`,
+          description: `${productName} vs Fireflies.ai: one personal plan with live translation, or a team platform. Compare price, free plans, bots and languages. Checked Nov 2026.`,
         },
         name: "Fireflies.ai",
         title: `${productName} vs Fireflies.ai`,
-        lead: `${productName} listens on your Mac with no bot, keeps notes on your Mac, translates live and has one simple personal plan. Fireflies sends its notetaker bot into Zoom, Google Meet and Teams, keeps meetings in its cloud and is built for teams, with a free plan, workspaces and many integrations.`,
-        summary: `${productName} listens on your Mac with no bot and keeps notes on your Mac. Fireflies joins calls with a bot and is built for teams, with a free plan and CRM integrations.`,
+        lead: `${productName} translates live as people talk, picks out your tasks in every note and has one simple personal plan. Fireflies is built for teams: its notetaker bot joins Zoom, Google Meet and Teams, its desktop app and Chrome extension record without the bot, meetings are kept in its cloud, and it has a free plan, workspaces and many integrations.`,
+        summary: `${productName} translates live and has one simple personal plan. Fireflies is built for teams, with a meeting bot, a bot-free desktop app, a free plan and CRM integrations.`,
         pricingUrl: "https://fireflies.ai/pricing",
         values: {
           price: "Free $0; Pro $18 per seat a month billed monthly ($10 billed annually); Business $29 per seat a month billed monthly ($19 billed annually); Enterprise $39 per seat a month, billed annually only",
           free: "Free plan: transcription listed as unlimited (with a footnote), limited AI summaries, 400 minutes of storage per team and 20 AI credits",
-          capture: "A bot (the Fireflies Notetaker) joins Zoom, Google Meet, Teams and more; a Chrome extension can record without the bot",
-          platforms: "Web, desktop app, iOS and Android apps, Chrome extension",
+          capture: "A bot (the Fireflies Notetaker) joins Zoom, Google Meet, Teams and more; the Mac and Windows desktop app and a Chrome extension record without the bot",
+          platforms: "Web, Mac and Windows desktop app, iOS and Android apps, Chrome extension",
           limits: "Recording limit of 2 to 4 hours per meeting depending on plan; storage of 400 minutes per team on Free, 8,000 minutes per seat on Pro, unlimited on Business",
-          languages: "Transcription in 100+ languages (beyond English, Spanish, French, Portuguese and Italian, in beta); automatic language detection; Multi-language Mode on Business",
-          translation: null,
+          languages: "Transcription in 100+ languages (beyond the main ones, in beta); automatic language detection; Multi-language Mode on Business",
+          translation: "Not listed on Fireflies' pricing or help pages (checked November 2026)",
           notes: "AI summaries (limited on Free); action items and a task manager from Pro",
           ask: "AskFred AI assistant",
-          voiceTyping: "Fireflies Talk: free dictation wherever you type",
+          voiceTyping: "Fireflies Talk: free, unlimited dictation wherever you type, on Mac, Windows, iPhone and Android",
           screens: "Records meeting video on paid plans",
           integrations: "Integrations including CRMs and a Slack assistant; unlimited integrations from Pro; an API on every plan, with rate limits",
           mcp: null,
           storage: "In Fireflies' cloud; private storage and custom data retention on Enterprise",
           plans: "Per-seat Pro, Business and Enterprise plans with team workspaces, channels and admin analytics",
         },
+        marks: { capture: "partial", voiceTyping: "yes" },
+        glance: {
+          price: "Pro $10–$18, Business $19–$29 per seat a month",
+          free: "Free plan, 400 storage minutes per team",
+          capture: "A bot by default; desktop app records without one",
+          platforms: "Web, Mac, Windows, iPhone, Android, Chrome",
+          languages: "100+, most of them in beta",
+          translation: "Not listed on its pricing or help pages",
+        },
+        edge: ["A free plan", "Web, Windows and Android apps", "Team workspaces and CRM integrations"],
         strengthsTitle: "Where Fireflies is stronger",
         strengths: [
           "A free plan, with transcription listed as unlimited, limited AI summaries and 400 minutes of storage per team.",
-          "A web app, a desktop app, iOS and Android apps and a Chrome extension.",
+          "A web app, a Mac and Windows desktop app that records without the bot, iOS and Android apps and a Chrome extension.",
           "Team workspaces, channels, conversation intelligence and analytics for admins.",
-          "Transcription in 100+ languages with automatic language detection, and a Multi-language Mode on Business.",
+          "Transcription in 100+ languages (most of them in beta) with automatic language detection, and a Multi-language Mode on Business.",
           "CRM integrations, an API on every plan, and SSO, SCIM and HIPAA compliance on Enterprise.",
           "Meeting video recording on paid plans.",
         ],
@@ -1706,15 +1837,15 @@ export const copy: Copy = {
             "your team wants shared workspaces, channels and admin analytics",
             "you need Windows or Android apps, or a web app",
             "your notes need to reach a CRM, or you want an API",
-            "you're fine with a bot joining the call, or recording through a Chrome extension",
+            "you want a bot that can join calls for you, as well as a bot-free desktop app",
           ],
         },
         pickUs: {
           title: `Pick ${productName} if`,
           points: [
-            "you'd rather no bot joins your calls, whichever call app you use",
             "you want a live translation as people talk",
-            "you want notes, transcripts and recordings saved on your own Mac, not in a vendor's cloud",
+            "you want every note to pick out your own tasks, with due dates",
+            "you want notes, transcripts and recordings kept on your own Mac and iPhone",
             "you want simple pricing for one person: $5.99 a month or $49 a year, taxes included",
           ],
         },
@@ -1722,12 +1853,12 @@ export const copy: Copy = {
       poffle: {
         meta: {
           title: `${productName} vs Poffle: cloud notes or fully on your Mac`,
-          description: `Poffle writes meeting notes entirely on your Mac with Apple Intelligence, for $25 once; ${productName} uses cloud models for ${spokenLanguages.length} spoken languages and live translation. Compare price, languages and integrations. Checked November 2026.`,
+          description: `Poffle writes notes fully on your Mac for $25 once; ${productName} brings ${spokenLanguages.length} spoken languages and live translation. Compare price and languages. Checked Nov 2026.`,
         },
         name: "Poffle",
         title: `${productName} vs Poffle`,
-        lead: `${productName} uses cloud speech recognition and a frontier AI model for the transcript and notes, which brings ${spokenLanguages.length} spoken languages, live translation and integrations, on macOS 15 or later, for a monthly or yearly subscription. Both record calls on your Mac with no bot. Poffle does everything on the Mac: Apple's on-device speech recognition writes the transcript and Apple Intelligence writes the notes, for $25 once, next to a rail of everyday Mac tools.`,
-        summary: `${productName} brings live translation, ${spokenLanguages.length} spoken languages and integrations through cloud models. Poffle works fully on your Mac with Apple Intelligence, costs $25 once and adds everyday Mac tools.`,
+        lead: `${productName} writes a live transcript, a final transcript separated by speaker and the note in the cloud, which brings ${spokenLanguages.length} spoken languages, live translation and integrations, on macOS 15 or later, for a monthly or yearly subscription. Both record calls on your Mac with no bot. Poffle does everything on the Mac: Apple's on-device speech recognition writes the transcript and Apple Intelligence writes the notes, for $25 once, next to a rail of everyday Mac tools.`,
+        summary: `${productName} brings live translation, ${spokenLanguages.length} spoken languages and integrations. Poffle works fully on your Mac with Apple Intelligence, costs $25 once and adds everyday Mac tools.`,
         pricingUrl: "https://poffle.app/",
         values: {
           price: "$25 once, plus tax; not a subscription; all future updates included",
@@ -1735,8 +1866,8 @@ export const copy: Copy = {
           capture: "No bot. Offers to record when a call starts, records your Mac's microphone and system audio, and stops when the call ends",
           platforms: "Mac with Apple silicon, macOS 26 or later; online at least every 30 days to check the license",
           limits: null,
-          languages: "Transcripts in every language Apple's on-device speech recognition supports on your Mac; notes need Apple Intelligence to support the meeting's language; app in 16 languages",
-          translation: null,
+          languages: "Transcripts in every language Apple's on-device speech recognition supports on your Mac; notes need Apple Intelligence to support the meeting's language",
+          translation: "Not listed on Poffle's site (checked November 2026)",
           notes: "Written by Apple Intelligence (it must be turned on): decisions and action items with owners first, a map of who spoke when and where each topic starts, a clean or word-for-word transcript; templates picked from the meeting title",
           ask: "Ask across your saved notes and transcripts, answered on your Mac with sources you can open",
           voiceTyping: null,
@@ -1746,13 +1877,22 @@ export const copy: Copy = {
           storage: "Recordings, transcripts and notes stay on your Mac; no cloud transcription or summary service",
           plans: "One license for one person, on up to 2 Macs, for personal and commercial use",
         },
+        marks: { capture: "yes" },
+        glance: {
+          price: "$25 once, plus tax",
+          free: "7-day trial; a card is needed",
+          capture: "No bot: records your Mac's audio",
+          platforms: "Mac with macOS 26 or later",
+          languages: "Those Apple's on-device recognition supports",
+          translation: "Not listed on its site",
+        },
+        edge: ["Everything runs on your Mac", "$25 once instead of a subscription", "Everyday Mac tools beside the notes"],
         strengthsTitle: "Where Poffle is stronger",
         strengths: [
           "Everything runs on your Mac: Apple's on-device speech recognition for transcripts and Apple Intelligence for notes, with no cloud transcription or summary service.",
           "A one-time price of $25 plus tax, with all future updates included, instead of a subscription.",
           "More than meetings: a rail at the edge of the screen with clipboard history, a file tray, Now Playing controls, an audio spectrum, your calendar agenda and a meeting countdown.",
           "Suggestions as you type in any app, accepted with Tab, drawing on your meeting notes and the text on your screen, written by a model on your Mac.",
-          `The app itself in 16 languages; ${productName}'s is in ${interfaceLanguages.length}.`,
         ],
         pickCompetitor: {
           title: "Pick Poffle if",
@@ -1766,7 +1906,7 @@ export const copy: Copy = {
         pickUs: {
           title: `Pick ${productName} if`,
           points: [
-            "you want the transcript and notes from cloud models: leading speech recognition live, a final transcript separated by speaker, and a frontier AI model for the note",
+            `you want a live transcript as people talk, a final transcript separated by speaker, and notes in any of ${noteLanguages.length} languages`,
             `you meet in one of ${spokenLanguages.length} languages, including Turkish and Finnish, and want notes in any of ${noteLanguages.length} without needing Apple Intelligence`,
             "you want a live translation as people talk",
             "your notes and tasks need to reach Slack, Microsoft Teams, Notion, Linear or Jira, or your AI apps over MCP",
@@ -1795,7 +1935,7 @@ export const copy: Copy = {
     moreTitle: "More from the blog",
     coverAlt: `“{title}” in large type on a soft pastel gradient, with the ${productName} logo and a small sound wave.`,
     ctaTitle: `Try ${productName}`,
-    ctaText: "A meeting notepad for Mac and iPhone. 3 meetings or 7 days free, then $5.99 a month or $49 a year, taxes included.",
+    ctaText: "AI meeting notes for Mac and iPhone. 3 meetings or 7 days free, then $5.99 a month or $49 a year, taxes included.",
   },
   mcp: {
     meta: {
@@ -1804,8 +1944,10 @@ export const copy: Copy = {
     },
     eyebrow: "MCP",
     title: "Ask your AI apps about your meetings.",
-    lead: `${productName} includes a small MCP server. Claude, Cursor, Visual Studio Code and other MCP apps can use it to list, search and read your meetings, your open tasks and the screens shared in your calls. It only reads; it never changes anything.`,
-    remoteHint: { text: "Using Claude or ChatGPT in the browser or on your phone?", link: "Connect AI assistant access" },
+    lead: "Claude, ChatGPT, Cursor and VS Code can search and read your meetings (on your Mac, or online with AI assistant access); they can never change them.",
+    localHint: { text: "Using Claude Desktop, Cursor or VS Code on your Mac?", link: "Set up the local server" },
+    localTitle: "On your Mac: the local MCP server",
+    copyButton: { label: "Copy", copied: "Copied", failed: "Couldn't copy" },
     toolsTitle: "What it offers",
     toolsLead: "The server gives your AI app six tools. The app decides when to call them, usually starting with a list or a search and then opening a meeting.",
     toolInputLabel: "Input",
@@ -1874,7 +2016,7 @@ export const copy: Copy = {
     questions: [
       "What did I promise Nordia last week?",
       "List my open tasks from this week's meetings, grouped by due date.",
-      "Find the meetings where we discussed the budget and summarise what we decided.",
+      "Find the meetings where we discussed the budget and summarize what we decided.",
       "Go through the screens from yesterday's design review and list the feedback on each frame.",
     ],
     privacyTitle: "What it can and can't do",
@@ -1886,7 +2028,7 @@ export const copy: Copy = {
       },
       {
         title: "Your AI app's provider sees what it reads",
-        text: "Notes, transcripts and screen snapshots your AI app reads go to that app's AI provider, such as Anthropic or OpenAI, under its own terms.",
+        text: "Notes, transcripts and screen snapshots your AI app reads go to the company behind that AI app, under its own terms.",
       },
       {
         title: "Your signed-in account only",
@@ -1916,7 +2058,7 @@ export const copy: Copy = {
           points: [
             `In Claude, open Customize › Connectors, find ${productName} in the connector directory and click Connect.`,
             `Sign in with the Apple or Google account you use in ${productName} and approve read access.`,
-            "If your organisation hides the directory, choose Add custom connector instead and paste the connector URL.",
+            "If your organization hides the directory, choose Add custom connector instead and paste the connector URL.",
           ],
         },
         {
@@ -2071,11 +2213,13 @@ export const copy: Copy = {
     rules: [
       "Up to 12 rewards per person in any 12 months, and up to 3 invites waiting for their reward at a time.",
       "One reward for each new paying account. Your own account, another account of yours, or the same card on several invited accounts doesn't count.",
-      "A reward is cancelled if your friend's first payment is refunded or disputed.",
+      "A reward is canceled if your friend's first payment is refunded or disputed.",
       "Rewards are credit on your next payments, not cash, and can't be exchanged or transferred.",
       "Accounts with free access from us can share their code, and their friends still get the discount, but they don't earn rewards while that access lasts.",
-      "We may change or end the invite programme; rewards already earned stay yours.",
+      "We may change or end the invite program; rewards already earned stay yours.",
     ],
+    redeem: "Redeem your invite",
+    redeemNote: "Got a code from a friend? Redeem it on your account page: sign in, choose a plan and enter the code under “Have an invite code?”. In the Mac app, enter it when you subscribe.",
     codeLabel: "Your friend's invite code",
     codeNote: "We've saved it in this browser. Subscribe here, or sign in to the Mac app and enter it when you subscribe.",
     subscribeWithCode: "Subscribe with this code",
@@ -2217,16 +2361,16 @@ export const copy: Copy = {
   languages: {
     meta: {
       title: `${productName} languages: ${spokenLanguages.length} spoken, ${noteLanguages.length} for notes and live translation`,
-      description: `${productName} transcribes meetings in ${spokenLanguages.length} languages, including Turkish, Finnish and English, and writes notes and live translations in ${noteLanguages.length}. The app itself is available in ${interfaceLanguages.length} languages. The full lists, and how mixed-language meetings work.`,
+      description: `${productName} transcribes meetings in ${spokenLanguages.length} languages, including Turkish and Finnish, and writes notes and live translations in ${noteLanguages.length}. See the full lists.`,
     },
     eyebrow: "Languages",
     title: `Meetings in ${spokenLanguages.length} languages. Notes in ${noteLanguages.length}.`,
-    lead: `Speak in any of ${spokenLanguages.length} languages and get your note, live translation and answers in any of ${noteLanguages.length}, whatever language the meeting was in. The app itself is available in ${interfaceLanguages.length} languages. Every language is included in every plan.`,
+    lead: `Speak in any of ${spokenLanguages.length} languages and get your note, live translation and answers in any of ${noteLanguages.length}, whatever language the meeting was in. The app itself is available in ${interfaceLanguages.length} languages. Every language is included in the subscription.`,
     stats: [
       { value: String(spokenLanguages.length), label: "languages you can speak in a meeting (live and final transcript)" },
       { value: String(noteLanguages.length), label: "languages for notes, live translation, “What did I miss?” and Ask" },
       { value: String(interfaceLanguages.length), label: "languages for the app itself: menus, settings and messages" },
-      { value: "1", label: "plan with every language included" },
+      { value: "Auto", label: "language detection from the recording, or pick the meeting's language yourself" },
     ],
     spokenTitle: "Languages you can speak",
     spokenLead:
@@ -2237,7 +2381,6 @@ export const copy: Copy = {
     interfaceTitle: "Languages for the app itself",
     interfaceLead:
       "The app's menus, settings and messages are available in these languages. It follows your Mac's language, and you can pick another one under Interface language in Settings › General. This is separate from the languages of your meetings and notes.",
-    columns: { name: "Language", native: "Own name", code: "Code" },
     highlightsTitle: "Turkish and Finnish",
     highlights: [
       {
@@ -2306,11 +2449,11 @@ export const copy: Copy = {
   integrations: {
     meta: {
       title: `${productName} integrations: Slack, Teams, Notion, Linear, Jira, webhooks and MCP`,
-      description: `Send ${productName} meeting notes to Slack, Microsoft Teams, Discord, Zoom Team Chat, Notion or Apple Notes, tasks to Linear, Jira or Reminders, anything else through a webhook (Zapier, Make, n8n), and let Claude, Cursor or VS Code read your meetings over MCP.`,
+      description: `Send ${productName} notes to Slack, Teams, Notion or Apple Notes, tasks to Linear or Jira, anything else by webhook, and let your AI apps read meetings over MCP.`,
     },
     eyebrow: "Integrations",
     title: "Your meetings, where your work happens.",
-    lead: `Everything ${productName} connects to, and how. Each integration sends from your Mac directly to the place you choose, using the account or address you connect. Two steps use our AI model through our server first: creating Linear or Jira issues, and translating a note you send in another language.`,
+    lead: `Everything ${productName} connects to, and how. Each integration sends from your Mac or iPhone directly to the place you choose, using the account or address you connect. Two steps use our AI model through our server first: creating Linear or Jira issues, and translating a note you send in another language.`,
     groups: [
       {
         id: "notes",
@@ -2328,7 +2471,7 @@ export const copy: Copy = {
       {
         id: "tasks",
         title: "Tasks to your tracker",
-        lead: "Turn the tasks in a note, with their owners and due dates, into work items. For Linear and Jira, our AI model, reached through our server, works out the issue fields; the issues are created from your Mac.",
+        lead: "Turn the tasks in a note, with their owners and due dates, into work items. For Linear and Jira, our AI model, reached through our server, works out the issue fields; the issues are created from your Mac or iPhone.",
         items: [
           { name: "Linear", text: "Create Linear issues from your tasks after signing in with Linear.", mark: { kind: "brands", brands: ["linear"] } },
           { name: "Jira", text: "Create Jira issues from your tasks after signing in with Atlassian.", mark: { kind: "brands", brands: ["jira"] } },
@@ -2359,9 +2502,13 @@ export const copy: Copy = {
       {
         id: "mcp",
         title: "Your AI apps, through MCP",
-        lead: `${productName} includes a local, read-only MCP server with six tools: list and search meetings, read a meeting's note and transcript, list your tasks, and list and view shared-screen snapshots.`,
+        lead: `${productName} includes a local, read-only MCP server with six tools: list and search meetings, read a meeting's note and transcript, list your tasks, and list and view shared-screen snapshots. Assistants on the web and phone connect through AI assistant access instead.`,
         items: [
-          { name: "Claude, Cursor and VS Code", text: "Connect with one click in Settings. They can search and read your meetings and can't change anything.", mark: { kind: "brands", brands: ["claude", "cursor", "vscode"] } },
+          {
+            name: "Claude, Cursor and VS Code on your Mac; Claude and ChatGPT online",
+            text: "Claude, ChatGPT, Cursor and VS Code can search and read your meetings (on your Mac, or online with AI assistant access); they can never change them. On the Mac, connect with one click in Settings.",
+            mark: { kind: "brands", brands: ["claude", "cursor", "vscode"] },
+          },
           { name: "Other MCP apps", text: "Any app that supports local MCP servers can connect with the configuration shown on the MCP page.", mark: { kind: "icon", icon: "plug" } },
         ],
       },
@@ -2403,7 +2550,7 @@ export const copy: Copy = {
     ],
     privacyTitle: "What leaves your Mac",
     privacyText:
-      "Only what you send, and only to the destination you choose, using the account or address you connected. It does not pass through our server, and the receiving service handles it under its own terms. Two steps are the exception: to create Linear or Jira issues, the tasks, the meeting title and Linear's or Jira's replies go through our server to Anthropic's Claude model, and so does a note you translate to send in another language. Our server doesn't store this text. MCP apps read your meetings on your Mac; what they read is then handled by that app's provider. AI assistant access, off by default, is the one exception that keeps a copy on our server: an encrypted copy of your notes in the EU, readable by our servers, so the online assistants you connect can read them.",
+      "Only what you send, and only to the destination you choose, using the account or address you connected. It does not pass through our server, and the receiving service handles it under its own terms. Two steps are the exception: to create Linear or Jira issues, the tasks, the meeting title and Linear's or Jira's replies go through our server to our AI model provider (named in the privacy policy), and so does a note you translate to send in another language. Our server doesn't store this text. MCP apps read your meetings on your Mac; what they read is then handled by that app's provider. AI assistant access, off by default, is the one feature that keeps a copy our servers can read: an encrypted copy of your notes in the EU, so the online assistants you connect can read them. Sync and share links, if you use them, keep only end-to-end encrypted copies.",
     faqTitle: "Questions",
     faq: [
       {
@@ -2416,11 +2563,11 @@ export const copy: Copy = {
       },
       {
         question: "Do integrations go through your servers?",
-        answer: "The note or tasks themselves don't. The Mac app sends them directly to the destination you chose, using the account or address you connected. Two steps use Anthropic's Claude model through our server, which doesn't store the text: creating Linear or Jira issues (it reads the tasks, the meeting title and Linear's or Jira's replies) and translating a note you send in another language.",
+        answer: "The note or tasks themselves don't. The Mac or iPhone app sends them directly to the destination you chose, using the account or address you connected. Two steps use our AI model provider (named in the privacy policy) through our server, which doesn't store the text: creating Linear or Jira issues (it reads the tasks, the meeting title and Linear's or Jira's replies) and translating a note you send in another language.",
       },
       {
         question: "Can Claude or ChatGPT read my meetings?",
-        answer: `Claude, Cursor and VS Code on your Mac can, through ${productName}'s read-only MCP server, connected with one click in Settings. Other apps that support local MCP servers can connect with the same configuration. For Claude and ChatGPT on the web or on your phone there is AI assistant access, an online connector you turn on in the app under Settings › Connections. Off by default. Turn it on and an encrypted copy of your notes, never audio, is kept in the EU so the assistants you connect can read them. Turn it off and it is deleted at once (backups within 30 days). Our servers can technically read that copy (it is encrypted at rest, not end to end), and what an assistant reads falls under its provider's policies. The MCP page has the steps.`,
+        answer: `Yes. Claude, ChatGPT, Cursor and VS Code can search and read your meetings (on your Mac, or online with AI assistant access); they can never change them. On your Mac, Claude, Cursor and VS Code connect to ${productName}'s read-only MCP server with one click in Settings. Other apps that support local MCP servers can connect with the same configuration. For Claude and ChatGPT on the web or on your phone there is AI assistant access, an online connector you turn on in the app under Settings › Connections. Off by default. Turn it on and an encrypted copy of your notes, never audio, is kept in the EU so the assistants you connect can read them. Turn it off and it is deleted at once (backups within 30 days). Our servers can technically read that copy (it is encrypted at rest, not end to end), and what an assistant reads falls under its provider's policies. The MCP page has the steps.`,
       },
     ],
   },
@@ -2436,19 +2583,19 @@ export const copy: Copy = {
       title: `Voice typing for Mac, in any app: free with ${productName}`,
       description: `Hold ⌃⌥D, speak, let go: ${productName} types your words wherever the cursor is, in Mail, Slack, Notes or the browser. Transcribed on your Mac, free and unlimited with any account.`,
     },
-    title: "Speak anywhere you’d type.",
-    lead: `Hold ⌃⌥D, say it, let go. ${productName} types your words where the cursor is, in any app on your Mac. The audio never leaves your Mac, and it’s free with any account.`,
+    title: "Speak anywhere you'd type.",
+    lead: `Hold ⌃⌥D, say it, let go. ${productName} types your words where the cursor is, in any app on your Mac. The audio never leaves your Mac, and it's free with any account.`,
     assurances: ["Free and unlimited", "Transcribed on your Mac", "Any app with a text field"],
     demo: {
       label:
         "Voice typing demo: an email reply is open. The shortcut Control-Option-D is held, a small listening bar with a waveform appears at the bottom and shows the words as they are spoken; when the shortcut is released, the sentence is typed into the email at the cursor.",
-      windowTitle: "Re: Thursday’s review",
+      windowTitle: "Re: Thursday's review",
       toLabel: "To",
       to: "Aino Virtanen",
       subjectLabel: "Subject",
-      subject: "Re: Thursday’s review",
+      subject: "Re: Thursday's review",
       greeting: "Hi Aino,",
-      dictated: "Thanks for the notes. Let’s move the review to Thursday at ten, and I’ll bring the updated numbers.",
+      dictated: "Thanks for the notes. Let's move the review to Thursday at ten, and I'll bring the updated numbers.",
       listening: "Listening",
       shortcut: "⌃⌥D",
       pause: "Pause the demo",
@@ -2460,7 +2607,7 @@ export const copy: Copy = {
       title: "Say it in a quarter of the time.",
       lead: `People typically speak around ${typicalSpeakingWpm} words a minute and type around ${typicalTypingWpm}. Here is the same short update, written both ways at those typical rates.`,
       passage:
-        "Quick update on the launch: the build is ready, design signed off this morning, and support has the new help articles. The only open item is the pricing page copy, which I’ll finish today. If nothing else comes up, we ship on Tuesday as planned.",
+        "Quick update on the launch: the build is ready, design signed off this morning, and support has the new help articles. The only open item is the pricing page copy, which I'll finish today. If nothing else comes up, we ship on Tuesday as planned.",
       voiceLabel: "Speaking",
       typingLabel: "Typing",
       voiceWpm: typicalSpeakingWpm,
@@ -2474,7 +2621,7 @@ export const copy: Copy = {
     },
     free: {
       title: "Free and unlimited, with any account.",
-      text: "Voice typing is part of every account, subscribed or not. It doesn’t use your trial meetings or your monthly hours, and there’s no word limit.",
+      text: "Voice typing is part of every account, subscribed or not. It doesn't use your trial meetings or your monthly hours, and there's no word limit.",
       points: ["No weekly word cap", "Keeps working after the trial", "No subscription needed"],
     },
     useCasesTone: "Everywhere",
@@ -2487,7 +2634,7 @@ export const copy: Copy = {
         text: "Reply in full sentences instead of three-word answers. Click into the reply, hold the shortcut and talk it through.",
         window: "New message",
         context: ["Jonas Lindqvist", "Contract draft"],
-        dictated: "Hi Jonas, I read the draft over lunch. Two points: the notice period should be sixty days, and section four needs the new billing address. Otherwise it’s good to sign.",
+        dictated: "Hi Jonas, I read the draft over lunch. Two points: the notice period should be sixty days, and section four needs the new billing address. Otherwise it's good to sign.",
       },
       {
         kind: "chat",
@@ -2496,7 +2643,7 @@ export const copy: Copy = {
         text: "A thoughtful reply takes about as long as a thumbs-up. Your words land in the message box, ready to send.",
         window: "# product-launch",
         context: ["Maya", "Can someone sum up where we are with the beta invites?"],
-        dictated: "We sent 400 invites yesterday and 130 people have signed up. Both bug reports so far are fixed in today’s build.",
+        dictated: "We sent 400 invites yesterday and 130 people have signed up. Both bug reports so far are fixed in today's build.",
       },
       {
         kind: "prompt",
@@ -2505,7 +2652,7 @@ export const copy: Copy = {
         text: "Spoken prompts come out longer and more specific, and specific prompts usually get better answers. Talk through the context instead of trimming it.",
         window: "New chat",
         context: ["What can I help with?"],
-        dictated: "I’m preparing a ten-minute talk for new customers. Draft an outline with five sections, keep the tone friendly, and suggest one question to open with.",
+        dictated: "I'm preparing a ten-minute talk for new customers. Draft an outline with five sections, keep the tone friendly, and suggest one question to open with.",
       },
       {
         kind: "doc",
@@ -2514,7 +2661,7 @@ export const copy: Copy = {
         text: "Speaking is the fastest way past a blank page. Dictate the draft, then tidy it with the keyboard.",
         window: "Retro notes",
         context: ["Sprint 14 retrospective"],
-        dictated: "What went well: the new review rota halved our waiting time. What to change: we keep starting stories without acceptance criteria, so let’s add them at planning.",
+        dictated: "What went well: the new review rotation halved our waiting time. What to change: we keep starting stories without acceptance criteria, so let's add them at planning.",
       },
     ],
     howTone: "How it works",
@@ -2524,11 +2671,11 @@ export const copy: Copy = {
       { keys: "Tap ⌃⌥D", title: "Tap for hands-free", text: "Tap once and keep talking with your hands free. Tap again, or press Esc, to type it. Best for longer replies." },
     ],
     details: [
-      { icon: "waveform", title: "See your words as you speak", text: "On macOS 26 or later the listening bar shows the text while you talk, so you know it’s keeping up." },
-      { icon: "check", title: "Punctuation included", text: "Full stops, commas and question marks are added for you. What you say is what gets typed: no rewriting." },
+      { icon: "waveform", title: "See your words as you speak", text: "On macOS 26 or later the listening bar shows the text while you talk, so you know it's keeping up." },
+      { icon: "check", title: "Punctuation included", text: "Periods, commas and question marks are added for you. What you say is what gets typed: no rewriting." },
       { icon: "clock", title: "Up to five minutes at a time", text: "Long enough for a detailed email. When you stop, the whole passage is typed in one go." },
       { icon: "grid", title: "Pick your own shortcut", text: "Prefer another key combination? Change it in Settings › Voice typing, or switch voice typing off there." },
-      { icon: "copy", title: "Typed by paste", text: "The text goes in with ⌘V, which needs macOS’s Accessibility permission. Without it, the text is copied and you paste it yourself." },
+      { icon: "copy", title: "Typed by paste", text: "The text goes in with ⌘V, which needs macOS's Accessibility permission. Without it, the text is copied and you paste it yourself." },
       { icon: "lock", title: "Never into password fields", text: "If a password field has focus, nothing is typed and nothing is copied." },
     ],
     privacyTone: "Privacy",
@@ -2536,24 +2683,24 @@ export const copy: Copy = {
     privacyLead: "Voice typing hears everything you dictate: client emails, personal messages, notes about people. So it works without a server.",
     privacyPoints: [
       { icon: "laptop", title: "Transcribed on your Mac", text: "The audio is turned into text on your Mac. Neither the audio nor the text is sent to us or to anyone else." },
-      { icon: "disk", title: "Nothing is kept", text: "No recording and no history of what you dictated is saved. Voice typing doesn’t start a meeting either." },
+      { icon: "disk", title: "Nothing is kept", text: "No recording and no history of what you dictated is saved. Voice typing doesn't start a meeting either." },
       { icon: "copy", title: "Your clipboard comes back", text: "After pasting, whatever you had copied before is put back, and the dictated text is marked so clipboard managers skip it." },
-      { icon: "shield", title: "Only what you dictate", text: "The Accessibility permission is used only to paste. The app doesn’t read your keystrokes, your screen or other apps." },
+      { icon: "shield", title: "Only what you dictate", text: "The Accessibility permission is used only to paste. The app doesn't read your keystrokes, your screen or other apps." },
     ],
     privacyLink: "How voice typing handles data",
     languagesTitle: "Dictate in your meeting language",
     languagesText:
-      "Voice typing uses the main meeting language you set in Settings › General. On macOS 26 or later it uses Apple’s on-device dictation, which covers the languages Apple offers for dictation on your Mac; on macOS 15 to 25 it uses an on-device speech model that downloads once (about 630 MB).",
+      "Voice typing uses the main meeting language you set in Settings › General. On macOS 26 or later it uses Apple's on-device dictation, which covers the languages Apple offers for dictation on your Mac; on macOS 15 to 25 it uses an on-device speech model that downloads once (about 630 MB).",
     languagesLink: "See all languages",
     faqTitle: "Questions",
     faq: [
       {
         question: "Is voice typing really free?",
-        answer: `Yes. It works with any ${productName} account once you’re signed in, with no word limit, and it doesn’t count toward your trial meetings or monthly hours. It keeps working if you never subscribe.`,
+        answer: `Yes. It works with any ${productName} account once you're signed in, with no word limit, and it doesn't count toward your trial meetings or monthly hours. It keeps working if you never subscribe.`,
       },
       {
         question: "Which apps does it work in?",
-        answer: "Any app where you can paste text: Mail, Slack, Messages, Notes, browsers, document and code editors, and AI chat apps. The text is typed where your cursor is. It won’t type into password fields.",
+        answer: "Any app where you can paste text: Mail, Slack, Messages, Notes, browsers, document and code editors, and AI chat apps. The text is typed where your cursor is. It won't type into password fields.",
       },
       {
         question: "Does my voice leave my Mac?",
@@ -2561,12 +2708,12 @@ export const copy: Copy = {
       },
       {
         question: "Does it clean up what I say?",
-        answer: "It adds punctuation and types what you said, without rewriting it. There’s no AI rewrite step, which is also why nothing has to leave your Mac.",
+        answer: "It adds punctuation and types what you said, without rewriting it. There's no AI rewrite step, which is also why nothing has to leave your Mac.",
       },
       {
         question: "Which languages can I dictate in?",
         answer:
-          "Your main meeting language, set in Settings › General. On macOS 26 or later, voice typing supports the languages Apple’s on-device dictation offers on your Mac; on macOS 15 to 25 it uses an on-device speech model, downloaded once (about 630 MB).",
+          "Your main meeting language, set in Settings › General. On macOS 26 or later, voice typing supports the languages Apple's on-device dictation offers on your Mac; on macOS 15 to 25 it uses an on-device speech model, downloaded once (about 630 MB).",
       },
       {
         question: "Can I change the shortcut?",
@@ -2574,7 +2721,7 @@ export const copy: Copy = {
       },
       {
         question: "Can I use it during a meeting?",
-        answer: `Not while ${productName} is recording a meeting, because the meeting is using the microphone. It’s available again as soon as the recording ends.`,
+        answer: `Not while ${productName} is recording a meeting, because the meeting is using the microphone. It's available again as soon as the recording ends.`,
       },
       {
         question: "Is voice typing on iPhone?",
@@ -2582,13 +2729,14 @@ export const copy: Copy = {
       },
     ],
     ctaTitle: "Your next reply is one sentence away.",
-    ctaText: `Download ${productName} for Mac, sign in, and hold ⌃⌥D wherever you’d type.`,
+    ctaText: `Download ${productName} for Mac, sign in, and hold ⌃⌥D wherever you'd type.`,
   },
   notFound: {
     meta: { title: `Page not found — ${productName}`, description: "The address may be mistyped, or the page has moved." },
     title: "This page doesn't exist.",
     text: "The address may be mistyped, or the page has moved.",
     home: "Back to the home page",
+    linksLabel: "Other pages",
   },
   meetingLink: {
     meta: {

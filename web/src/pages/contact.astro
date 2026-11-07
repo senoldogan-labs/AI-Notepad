@@ -15,9 +15,12 @@ const text: ContactCopy = copy.contact;
 
 <Base page="contact" meta={text.meta} indexed={true} social={websiteCard}>
   <section class="page contact">
-    <div class="contact__intro">
+    <div class="contact__head">
       <h1 class="title-xl">{text.title}</h1>
       <p class="lead">{text.lead}</p>
+    </div>
+    {/* The email card and the business details: beside the form on wide screens, after it on phones. */}
+    <div class="contact__intro">
       <PhotoPanel photo="wave-ocean" focus="center" widths={halfPhotoWidths} sizes="(max-width: 860px) calc(100vw - 40px), 720px" priority="lazy" class="contact__cover">
         <div class="glass contact__direct">
           <span class="icon-chip"><Icon name="mail" size={20} class="" /></span>
@@ -83,17 +86,33 @@ const text: ContactCopy = copy.contact;
 </script>
 
 <style>
+  /* Wide screens: the title and the email card on the left, the form on the right. Phones: title, form, email card. */
   .contact {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: clamp(32px, 6vw, 80px);
+    grid-template-areas:
+      "head panel"
+      "intro panel";
+    grid-template-rows: auto 1fr;
+    gap: 18px clamp(32px, 6vw, 80px);
     align-items: start;
     padding-top: clamp(48px, 8vw, 96px);
   }
 
-  .contact__intro {
+  .contact__head {
+    grid-area: head;
     display: grid;
     gap: 18px;
+  }
+
+  .contact__intro {
+    grid-area: intro;
+    display: grid;
+    gap: 18px;
+  }
+
+  .contact__panel {
+    grid-area: panel;
   }
 
   .contact__intro :global(.contact__cover) {
@@ -176,6 +195,7 @@ const text: ContactCopy = copy.contact;
 
   /* Turnstile iframe'i sayfa temasından bağımsız saydam kalsın (tema parçacığa ayrıca verilir). */
   .turnstile {
+    width: 100%;
     min-height: 65px;
     color-scheme: normal;
   }
@@ -199,6 +219,12 @@ const text: ContactCopy = copy.contact;
   @media (max-width: 860px) {
     .contact {
       grid-template-columns: minmax(0, 1fr);
+      grid-template-areas:
+        "head"
+        "panel"
+        "intro";
+      grid-template-rows: auto;
+      row-gap: 28px;
     }
   }
 </style>

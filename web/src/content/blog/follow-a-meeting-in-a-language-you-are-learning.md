@@ -50,16 +50,16 @@ A few things are worth knowing before you rely on it:
 
 ## How Gistsmith does it
 
-Gistsmith, the Mac app we make, was built partly for this situation. We're a small company in Finland, and the screenshots on our home page show a Finnish meeting for a reason.
+Gistsmith, the Mac and iPhone app we make, was built partly for this situation. We're a small company in Finland, and the screenshots on our home page show a Finnish meeting for a reason.
 
 - **You pick your language once.** In Settings, choose the language for notes and translations, for example English. A meeting that's already in English isn't translated.
 - **The meeting language can be left on Automatic.** The live transcript then follows your main meeting language, and when the meeting ends the final transcript detects the spoken language from the recording. You can also choose it yourself.
 - **The translation runs underneath.** During the meeting, each sentence appears in the original language with your translation directly below it, within a few seconds.
 - **"What did I miss?"** If you lose the thread, one click gives you a short summary of the last few minutes, in your language.
-- **The note is in your language.** When the meeting ends, you get your tasks first, then a summary, decisions, and a glossary of the terms that came up, which doubles as your vocabulary list.
+- **The note is in your language.** When the meeting ends, you get a summary, your own tasks picked out with due dates, decisions, and a glossary of the terms that came up, which doubles as your vocabulary list.
 - **No bot joins.** Gistsmith listens to your Mac's microphone and system audio, so it works the same in Teams, Zoom, Google Meet and in a meeting room.
 
-It runs on Macs with Apple silicon and macOS 15 or later. The first 3 meetings or 7 days are free, with no card; after that it's $5.99 a month or $49 a year. Details are on the [pricing page](/pricing).
+It runs on Macs with Apple silicon and macOS 15 or later, and on iPhone (iOS 26.1 or later) for meetings in the room. The first 3 meetings or 7 days are free, with no card; after that it's $5.99 a month or $49 a year. Details are on the [pricing page](/pricing).
 
 ## The short version
 

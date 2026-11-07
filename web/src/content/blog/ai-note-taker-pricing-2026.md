@@ -9,35 +9,35 @@ draft: false
 
 AI note-taker pricing pages are hard to compare. One counts minutes, another counts seats, a third counts "AI credits", and the free plan that looks generous turns out to keep your notes for 30 days. The monthly price on the banner is often the annual price divided by twelve.
 
-We make one of these apps, so take this with the appropriate pinch of salt. To keep it fair, every price below comes from the vendor's own pricing page, checked on 2 November 2026, and we note where a page doesn't state something rather than guessing. Prices are in US dollars, per person. Plans change often, so check the vendor's site before you buy.
+We make one of these apps, so take this with the appropriate pinch of salt. To keep it fair, every price below comes from the vendor's own pricing page, checked on 7 November 2026, and we note where a page doesn't state something rather than guessing. Prices are in US dollars, per person. Plans change often, so check the vendor's site before you buy.
 
 ## The quick comparison
 
 **Otter.ai**
-- Free (Basic): 300 transcription minutes a month, up to 30 minutes per conversation, and access to your 25 most recent conversations.
+- Free (Basic): 300 transcription minutes a month, up to 30 minutes per conversation, and 3 audio or video file imports in total.
 - Pro: $16.99 a month billed monthly, or $8.33 a month billed annually. 1,200 minutes a month, up to 90 minutes per conversation.
-- Business: $30 a month billed monthly (20% off the first 3 months for new subscribers), or $19.99 a month billed annually. Unlimited meeting minutes, up to 4 hours per conversation.
-- How it hears the meeting: a bot (OtterPilot) joins Zoom, Teams and Google Meet.
+- Business: $30 a month billed monthly, or $19.99 a month billed annually. Unlimited meeting minutes, up to 4 hours per conversation.
+- How it hears the meeting: a bot joins Zoom, Teams and Google Meet by default; the Mac and Windows desktop apps record without a bot.
 
 **Fireflies.ai**
 - Free: $0, with 400 minutes of storage per team.
 - Pro: $18 a month billed monthly, or $10 a month billed annually. 8,000 minutes of storage per seat.
 - Business: $29 a month billed monthly, or $19 a month billed annually.
 - Enterprise: $39 a month, billed annually only.
-- How it hears the meeting: mainly a bot that joins Zoom, Google Meet and Teams; there's also a Chrome extension for Google Meet without the bot, and a desktop app.
+- How it hears the meeting: a bot that joins Zoom, Google Meet and Teams by default; the Mac and Windows desktop app and a Chrome extension record without the bot.
 
 **Granola**
 - Basic: $0, with 30 days of meeting history.
 - Business: $14 a month per user, with unlimited history, plus integrations such as Notion, HubSpot and Zapier, and MCP and API access.
 - Enterprise: $35 a month per user.
-- How it hears the meeting: no bot; it captures your device's audio.
+- How it hears the meeting: no bot; it uses your computer's audio. Apps for Mac, Windows, iPhone and Android.
 
 **Fathom**
 - Free: $0, described as "free forever", with unlimited recordings; some AI features are limited.
 - Premium: $20 a month billed monthly, or $16 a month billed annually.
 - Team: $19 a month per user billed monthly, or $15 billed annually (2 users minimum).
 - Business: $34 a month per user billed monthly, or $25 billed annually (2 users minimum).
-- How it hears the meeting: a bot by default; a bot-free mode for Mac is in beta.
+- How it hears the meeting: a bot by default; bot-free recording is in beta on Mac, with Windows support listed as coming soon.
 
 **Gistsmith**
 - Free trial: 3 meetings or 7 days, no card needed.
@@ -77,13 +77,13 @@ Instead of starting with the price, start with your meetings. Four questions dec
 
 ## Which one fits
 
-**You want a free plan and your meetings are short.** Otter's free plan or Fathom's free plan will cover a lot, if the people you meet are fine with a bot.
+**You want a free plan and your meetings are short.** Otter's free plan or Fathom's free plan will cover a lot. Both send a bot by default; Otter's desktop apps and Fathom's Mac beta can record without one.
 
 **Your whole team needs one shared tool with admin controls.** Look at the team plans from Fireflies, Fathom, Granola and Otter. Per-user pricing is the norm here, and you're paying for shared workspaces, admin and integrations.
 
-**You want no bot and use more than one device.** Granola captures device audio without a bot and runs on desktop and mobile; check whether 30 days of history on the free plan is enough, or budget for Business.
+**You want no bot and use more than one device.** Granola uses your computer's audio without a bot and runs on Mac, Windows, iPhone and Android; Otter's and Fireflies' desktop apps also record without a bot. With Granola, check whether 30 days of history on the free plan is enough, or budget for Business.
 
-**You work on a Mac, alone or in a small team, and want one simple price.** That's who we built Gistsmith for. One plan with everything in it: live transcript and translation in more than 30 languages, a note with your tasks first, Ask across all your meetings, exports to PDF, Word and Markdown, integrations with Slack, Notion, Linear, Jira, Obsidian and Apple Notes, and an [MCP server](/mcp) for your AI apps. Voice typing in any Mac app is free with an account, even after the trial.
+**You work on a Mac, alone or in a small team, and want one simple price.** That's who we built Gistsmith for. One plan with everything in it: live transcript and translation in more than 30 languages, a note with a summary and your own tasks picked out, Ask across all your meetings, exports to PDF, Word and Markdown, integrations with Slack, Notion, Linear, Jira, Obsidian and Apple Notes, and an [MCP server](/mcp) for your AI apps. Voice typing in any Mac app is free with an account, even after the trial.
 
 To be equally clear about the limits: it runs only on Mac and iPhone, it has one personal plan rather than team plans, and the 10 hours a month cap won't suit someone who spends six hours a day in meetings.
 
@@ -107,7 +107,7 @@ Gistsmith's trial is 3 meetings or 7 days, whichever comes first, with no card. 
 
 ## The short version
 
-- Prices here were checked on the vendors' pages on 2 November 2026; check again before buying.
+- Prices here were checked on the vendors' pages on 7 November 2026; check again before buying.
 - Every free plan has a catch: minutes, history, storage or AI features. Pick the catch you can live with.
 - Team plans are per user; annual billing is often close to half price.
 - Start from your meeting hours, longest meeting, search needs and whether bots are welcome.

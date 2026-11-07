@@ -4,9 +4,10 @@
 // Download stays visible. src/client/theme.js binds every theme switch (without the script they are hidden and the theme
 // follows the system). With a session in the tab the "Sign in" links turn into "Account" (src/client/header.ts). Text
 // comes from the page (`/fi` in Finnish); the language choice is in the footer (Footer.astro).
+import AppStoreBadge from "./AppStoreBadge.astro";
 import Icon from "./Icon.astro";
 import Logo from "./Logo.astro";
-import { productName } from "../config";
+import { appStoreUrl, productName } from "../config";
 import { copy, type CommonCopy } from "../copy";
 import { type PageKey, routes } from "../routes";
 
@@ -22,9 +23,15 @@ interface Props {
 const { page, text = copy.common, featuresHref = `${routes.home}#features`, pricingHref = routes.pricing } = Astro.props;
 const menu: readonly { readonly href: string; readonly label: string }[] = [
   { href: featuresHref, label: text.nav.features },
+  { href: routes.voiceTyping, label: text.nav.voiceTyping },
   { href: pricingHref, label: text.nav.pricing },
   { href: routes.compare, label: text.nav.compare },
   { href: routes.blog, label: text.nav.blog },
+];
+/** Extra links in the phone menu only (the wide header keeps four). */
+const menuExtras: readonly { readonly href: string; readonly label: string }[] = [
+  { href: routes.integrations, label: text.nav.integrations },
+  { href: routes.mcp, label: text.nav.mcp },
 ];
 const currentPath: string = routes[page];
 ---
@@ -62,9 +69,14 @@ const currentPath: string = routes[page];
       >
         {text.nav.signIn}
       </a>
-      <a class="button button--primary button--small header-cta" href={routes.download} aria-current={routes.download === currentPath ? "page" : undefined}>
+      <a class="button button--primary button--small header-cta not-ios" href={routes.download} aria-current={routes.download === currentPath ? "page" : undefined}>
         <Icon name="apple" size={15} class="button__apple" />
         {text.headerDownload}
+      </a>
+      {/* On an iPhone or iPad (src/client/platform.js) the pill opens the App Store instead. */}
+      <a class="button button--primary button--small header-cta ios-only" href={appStoreUrl}>
+        <Icon name="apple" size={15} class="button__apple" />
+        {text.headerGetApp}
       </a>
       <details class="menu">
         <summary class="menu__button">
@@ -84,10 +96,26 @@ const currentPath: string = routes[page];
                 </li>
               ))
             }
+            {
+              menuExtras.map((link) => (
+                <li>
+                  <a href={link.href} aria-current={link.href === currentPath ? "page" : undefined}>
+                    {link.label}
+                  </a>
+                </li>
+              ))
+            }
             <li>
               <a href={routes.signIn} data-session-link>{text.nav.signIn}</a>
             </li>
           </ul>
+          <div class="menu__get">
+            <a class="button button--primary menu__download not-ios" href={routes.download}>
+              <Icon name="apple" size={15} class="button__apple" />
+              {text.downloadCta}
+            </a>
+            <AppStoreBadge language={text.appStoreBadge.language} label={text.appStoreBadge.label} height={44} class="menu__badge" />
+          </div>
           <button class="menu__theme" type="button" data-theme-toggle aria-pressed="false">
             <span class="theme-toggle__icons" aria-hidden="true">
               <Icon name="moon" size={16} class="theme-toggle__icon theme-toggle__moon" />
@@ -112,6 +140,22 @@ const currentPath: string = routes[page];
     pointer-events: none;
   }
 
+  /* Once the page scrolls, a soft fade of the page colour fills the 12 px gap above the pill and its rounded corners,
+     so content does not show through there. */
+  .site-header::before {
+    content: "";
+    position: absolute;
+    inset: -12px 0 auto;
+    height: 52px;
+    background: linear-gradient(var(--bg) 40%, color-mix(in srgb, var(--bg) 0%, transparent));
+    opacity: 0;
+    transition: opacity 240ms ease;
+  }
+
+  .site-header.is-scrolled::before {
+    opacity: 1;
+  }
+
   /* Header: at the top of the page the links sit on the page itself; once the page scrolls the bar becomes a
      floating pill (src/client/header.ts sets `is-scrolled`). The links are centred between the logo and the actions. */
   .site-header__pill {
@@ -119,8 +163,10 @@ const currentPath: string = routes[page];
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
     gap: 20px;
+    /* The pill is wider than the page by its own padding, so the logo and the Download pill line up with the content. */
+    width: calc(var(--page) + 28px);
     height: 60px;
-    padding: 0 10px 0 18px;
+    padding: 0 13px;
     border: 1px solid transparent;
     border-radius: 999px;
     background: transparent;
@@ -325,6 +371,20 @@ const currentPath: string = routes[page];
     color: var(--muted);
   }
 
+  .menu__get {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 6px 6px;
+    border-top: 1px solid var(--line);
+  }
+
+  .menu__download {
+    flex: 1 1 auto;
+    min-height: 44px;
+  }
+
   .theme-toggle__icons {
     display: grid;
   }
@@ -332,6 +392,17 @@ const currentPath: string = routes[page];
   @media (max-width: 860px) {
     .site-header__pill {
       grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    /* Touch screens: every control in the bar is at least 44 px. */
+    .site-header :global(.button--small),
+    .menu__button {
+      min-height: 44px;
+    }
+
+    .menu__button {
+      width: 44px;
+      height: 44px;
     }
 
     .nav,

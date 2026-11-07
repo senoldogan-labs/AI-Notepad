@@ -81,7 +81,7 @@ function header(input: LlmsInput): string {
     throw new LlmsSourceError("copy.home.trust.items içinde yapay zekâ eğitimi maddesi (icon: sparkle) yok; llms.ts güncellenmeli.");
   }
   const facts: readonly string[] = [
-    `Platforms: Mac and iPhone. Mac: ${copy.download.requirementsNote} iPhone (${copy.common.iphoneRequirementsShort}, on the App Store: ${appStoreUrl}): ${copy.home.iphone.lead} ${copy.home.iphone.note}`,
+    `Platforms: Mac and iPhone. Mac: ${copy.download.requirementsNote} iPhone (${copy.common.iphoneRequirementsShort}, on the App Store: ${appStoreUrl}): ${copy.home.iphone.lead}`,
     `One account for Mac and iPhone: ${(copy.pricing.faq.find((item: Faq): boolean => item.question.includes("Mac and iPhone")) ?? missingFact("copy.pricing.faq: Mac and iPhone subscription question")).answer}`,
     `Price: ${copy.compare.us.price} (${copy.pricing.plans.map((plan): string => `${plan.name.toLowerCase()}: ${plan.detail.replace(/\.$/, "")}`).join("; ")}).`,
     `${copy.common.trial}.`,
@@ -160,7 +160,7 @@ export function llmsFullTxt(input: LlmsInput): string {
     [
       "## Features",
       ...featureSections.map((feature: TitledText): string => `### ${feature.title}\n\n${feature.text}`),
-      `### ${copy.home.iphone.eyebrow}: ${copy.home.iphone.title}\n\n${copy.home.iphone.lead}\n\n${copy.home.iphone.points.map((point: IconText): string => `- ${point.title}: ${point.text}`).join("\n")}\n\n${copy.home.iphone.note}`,
+      `### ${copy.home.iphone.eyebrow}: ${copy.home.iphone.title}\n\n${copy.home.iphone.lead}\n\n${copy.home.iphone.points.map((point: IconText): string => `- ${point.title}: ${point.text}`).join("\n")}`,
       `### Everything in the plan\n\n${copy.pricing.included.map((item: IconItem): string => `- ${item.text}`).join("\n")}`,
       `### Feature list\n\n${copy.home.featureList.map((item: string): string => `- ${item}`).join("\n")}`,
     ].join("\n\n"),
@@ -169,7 +169,6 @@ export function llmsFullTxt(input: LlmsInput): string {
       `Source: ${url("pricing")}`,
       copy.pricing.plans.map((plan): string => `- ${plan.name}: ${plan.price} ${plan.per}. ${plan.detail}`).join("\n"),
       copy.pricing.limits.map((limit: IconText): string => `- ${limit.title}: ${limit.text}`).join("\n"),
-      `${copy.pricing.taxTitle}: ${copy.pricing.taxText}`,
     ].join("\n\n"),
     [
       "## Platforms and requirements",

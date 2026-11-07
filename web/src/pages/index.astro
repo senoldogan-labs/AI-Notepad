@@ -5,10 +5,11 @@ import Base from "../layouts/Base.astro";
 import Landing from "../components/Landing.astro";
 import { websiteCard } from "../lib/social";
 import { copy, type HomeCopy } from "../copy";
+import { routes } from "../routes";
 
 const text: HomeCopy = copy.home;
 ---
 
 <Base page="home" meta={text.meta} indexed={true} social={websiteCard}>
-  <Landing text={text} common={copy.common} page="home" />
+  <Landing text={text} common={copy.common} page="home" pricingHref={routes.pricing} />
 </Base>
