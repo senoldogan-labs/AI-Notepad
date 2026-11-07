@@ -93,7 +93,8 @@ import Testing
             ArchivePassage(id: "p\(index)", meetingID: "m", meetingTitle: "T", meetingDate: Date(timeIntervalSince1970: 0), kind: .note, startSec: 0, text: "x")
         }
         let answer: ArchiveAnswer = citedAnswer(
-            text: "Hedef [3].\n```\nAjan: teslim cuma [2].\nlet x = arr[1] [w1]\n```\nAyrıca `a[2]` kalır.", passages: passages, webSources: []
+            text: "Hedef [3].\n```\nAjan: teslim cuma [2].\nlet x = arr[1] [w1]\n```\nAyrıca `a[2]` kalır.", passages: passages,
+            webSources: [WebSource(url: "https://example.com", title: "Example")]
         )
         #expect(answer.text == "Hedef [1].\n```\nAjan: teslim cuma.\nlet x = arr[1]\n```\n[2][w1]\nAyrıca `a[2]` kalır.")
         #expect(answer.sources.map(\.id) == ["p3", "p2"])

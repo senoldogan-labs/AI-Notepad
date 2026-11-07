@@ -102,6 +102,30 @@ public func namingSpeakers(text: String, speakerNames: [Int: String]) -> String 
     }
 }
 
+/// Rewrites the generic speaker labels of one language ("Konuşmacı 2", `from` = "Konuşmacı") into another (`to` =
+/// "Speaker" → "Speaker 2"), so a note written in Turkish does not leak "Konuşmacı 2" into an English Ask answer.
+/// Case-insensitive; a label inside a longer word or number does not match (as in `namingSpeakers`). Pure function.
+public func relabelingSpeakers(text: String, from: String, to: String) -> String {
+    guard from.caseInsensitiveCompare(to) != .orderedSame, !text.isEmpty else {
+        return text
+    }
+    let word: String = NSRegularExpression.escapedPattern(for: from)
+    let pattern: String = isUnspacedScript(word: from) ? "\(word)[ \\u00A0]?#?(\\d+)(?!\\d)" : "(?<![\\p{L}\\p{M}])\(word)[ \\u00A0]?#?(\\d+)(?!\\d)"
+    let expression: NSRegularExpression
+    do {
+        expression = try NSRegularExpression(pattern: pattern, options: [.caseInsensitive])
+    } catch {
+        preconditionFailure("Speaker relabel pattern does not compile: \(error) pattern: \(pattern)")
+    }
+    let source: NSString = text as NSString
+    return expression.matches(in: text, range: NSRange(location: 0, length: source.length)).reversed().reduce(into: text) { (result: inout String, match: NSTextCheckingResult) -> Void in
+        guard let range = Range(match.range, in: result) else {
+            return
+        }
+        result.replaceSubrange(range, with: "\(to) \(source.substring(with: match.range(at: 1)))")
+    }
+}
+
 /// Whether `name` (a task owner or a speaker's name) is the user: the same name, or the user's first name ("Şenol" for
 /// "Şenol Doğan"); case-insensitive. Always false without a user name. Pure function.
 public func isUserName(name: String, userName: String) -> Bool {

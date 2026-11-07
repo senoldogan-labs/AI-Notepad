@@ -51,7 +51,8 @@ final class PhoneAsk {
         meetingAsk.ask(record: record, question: question, recipeTitle: recipeTitle) { (asked: String, history: [ArchiveTurn], onProgress: @escaping ArchiveProgressHandler) async throws -> Void in
             let provider: LLMProvider = try phoneAccountLLMProvider()
             _ = try await askAboutMeetings(
-                question: asked, history: history, records: [record], userName: userName, profile: profile, language: phoneNoteLanguage(), llm: provider,
+                question: asked, history: history, records: [record], userName: userName, profile: profile, noteLanguage: phoneNoteLanguage(),
+                answerLanguage: askAnswerLanguage(question: asked, history: history, interfaceLanguage: interfaceShareLanguage()), llm: provider,
                 maxChars: noteLimits(provider: provider).archiveChars, screens: .off, webSearch: webSearch, now: Date(), onProgress: onProgress
             )
         } save: { [weak self] (id: UUID, exchanges: [ArchiveExchange]) -> Void in
@@ -160,6 +161,9 @@ final class PhoneAsk {
         let userName: String = store.userName
         let profile: UserProfile = store.userProfile
         let webSearch: Bool = askWebSearchAllowed(defaults: UserDefaults.standard)
+        // Cevap sorunun dilinde (İngilizce soruya Türkçe notlardan da İngilizce); anlaşılmazsa arayüz dili.
+        let answerLanguage: ShareLanguage = askAnswerLanguage(question: trimmed, history: history, interfaceLanguage: interfaceShareLanguage())
+        let noteLanguage: ShareLanguage = phoneNoteLanguage()
         task = Task { [weak self] in
             do {
                 let provider: LLMProvider = try phoneAccountLLMProvider()
@@ -169,22 +173,26 @@ final class PhoneAsk {
                 // iPhone'da ekran görüntüsü alınmaz (başka uygulamaların ekranı yakalanamaz): Sor yalnız metni okur.
                 if scoped.isEmpty {
                     _ = try await askArchive(
-                        question: trimmed, history: history, records: records, userName: userName, profile: profile, language: phoneNoteLanguage(), llm: provider,
-                        maxChars: noteLimits(provider: provider).archiveChars, screens: .off, webSearch: webSearch, now: Date(), onProgress: onProgress
+                        question: trimmed, history: history, records: records, userName: userName, profile: profile, noteLanguage: noteLanguage,
+                        answerLanguage: answerLanguage, llm: provider, maxChars: noteLimits(provider: provider).archiveChars, screens: .off, webSearch: webSearch,
+                        now: Date(), onProgress: onProgress
                     )
                 } else {
                     _ = try await askAboutMeetings(
-                        question: trimmed, history: history, records: scoped, userName: userName, profile: profile, language: phoneNoteLanguage(), llm: provider,
-                        maxChars: noteLimits(provider: provider).archiveChars,
-                        screens: .off, webSearch: webSearch, now: Date(), onProgress: onProgress
+                        question: trimmed, history: history, records: scoped, userName: userName, profile: profile, noteLanguage: noteLanguage,
+                        answerLanguage: answerLanguage, llm: provider, maxChars: noteLimits(provider: provider).archiveChars, screens: .off, webSearch: webSearch,
+                        now: Date(), onProgress: onProgress
                     )
                 }
                 self?.finish(id: id, phase: .done)
                 self?.saveConversation(exchangeID: id)
             } catch is CancellationError {
                 self?.finish(id: id, phase: .stopped)
+                // O ana kadar yazılan cevap sohbette kalır (sohbet bu arada değiştiyse saklanmaz).
+                self?.saveConversation(exchangeID: id)
             } catch let error as URLError where error.code == .cancelled {
                 self?.finish(id: id, phase: .stopped)
+                self?.saveConversation(exchangeID: id)
             } catch {
                 Self.logger.error("Arşiv sorusu cevaplanamadı, hata: \(String(describing: error), privacy: .private)")
                 self?.finish(id: id, phase: .failed(userFacingMessage(error: error)))
@@ -277,7 +285,7 @@ final class PhoneAsk {
     /// Bitmiş soruyla açık sohbeti saklar (ilk cevapta yeni sohbet olur); sınırı aşan en eski sohbetler silinir.
     private func saveConversation(exchangeID: UUID) {
         // Sohbet bu arada değiştiyse (yeni sohbet, başka sohbet açıldı) cevap bu sohbete ait değildir.
-        guard exchanges.contains(where: { $0.id == exchangeID && $0.phase == .done }) else {
+        guard exchanges.contains(where: { $0.id == exchangeID && askTurn(exchange: $0) != nil }) else {
             return
         }
         let id: UUID = currentConversationID ?? UUID()
@@ -514,12 +522,16 @@ struct AskConversationView: View {
                         ExchangeView(
                             exchange: exchange,
                             onOpen: { (passage: ArchivePassage) -> Void in
-                                router.open(meetingID: passage.meetingID)
+                                router.open(source: passage)
                             },
                             onSaveRecipe: { (question: String) -> Void in
                                 ask.saveRecipe(question: question)
                             },
-                            onRegenerate: exchange.id == ask.exchanges.last?.id ? { @MainActor () -> Void in ask.regenerate() } : nil
+                            onRegenerate: exchange.id == ask.exchanges.last?.id ? { @MainActor () -> Void in ask.regenerate() } : nil,
+                            // Kapsam dipnotundaki "Bunlara da sor": aynı soru sığmayan toplantılara `@` ile sorulur.
+                            onAskMeetings: ask.isAnswering ? nil : { @MainActor (meetingIDs: [String]) -> Void in
+                                ask.ask(question: exchange.question, meetingIDs: meetingIDs, recipeTitle: exchange.recipeTitle)
+                            }
                         )
                         .id(exchange.id)
                     }
@@ -553,6 +565,12 @@ struct AskConversationView: View {
                 // Kullanıcı yukarı kaydırıp okuyorsa akan cevap onu aşağı çekmez.
                 if ask.isAnswering, isFollowingAnswer {
                     proxy.scrollTo(bottomID, anchor: .bottom)
+                }
+            }
+            // Cevap bitince altına gelen kapsam dipnotu ve düğmeler de görünsün (izleniyorsa).
+            .onChange(of: ask.exchanges.last?.phase) { (_: ArchiveExchange.Phase?, phase: ArchiveExchange.Phase?) in
+                if isFollowingAnswer, phase.map({ ![.understanding, .searching, .writing].contains($0) }) == true {
+                    withAnimation(.smooth(duration: 0.3)) { proxy.scrollTo(bottomID, anchor: .bottom) }
                 }
             }
         }

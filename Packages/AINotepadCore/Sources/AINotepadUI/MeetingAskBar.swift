@@ -254,7 +254,7 @@ public struct MeetingAskBar: View {
 
     private func exchangeView(exchange: ArchiveExchange) -> some View {
         let regenerate: (@MainActor () -> Void)? = exchange.id == exchanges.last?.id ? onRegenerate : nil
-        return ExchangeView(exchange: exchange, onOpen: onOpenSource, onSaveRecipe: onSaveRecipe, onRegenerate: regenerate)
+        return ExchangeView(exchange: exchange, onOpen: onOpenSource, onSaveRecipe: onSaveRecipe, onRegenerate: regenerate, onAskMeetings: nil)
             .id(exchange.id)
     }
 

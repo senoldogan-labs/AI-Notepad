@@ -89,7 +89,7 @@ import Testing
         )
         #expect(meetingMarkdown(record: record).contains("- [03:42] Q"))
         #expect(shareText(record: record, note: note, language: .english).contains("## Open questions\n\n- [03:42] Q"))
-        #expect(archivePassages(records: [record], userLabel: promptUserLabel).first?.text.contains("Açık konu: [03:42] Q") == true)
+        #expect(archivePassages(records: [record], userLabel: promptUserLabel, speakerWord: "Konuşmacı").first?.text.contains("Açık konu: [03:42] Q") == true)
         let old: MeetingNote = MeetingNote(title: "T", summary: "S", decisions: [], tasks: [], glossary: [])
         #expect(!shareText(record: record, note: old, language: .english).contains("Open questions"))
     }
@@ -103,13 +103,37 @@ import Testing
         let coverage: ArchiveCoverage = archiveCoverage(read: read, candidates: read + [passage("c", 5), passage("a", 1)])
         #expect(coverage.read.map(\.id) == ["a", "b"])
         #expect(coverage.skipped.map(\.id) == ["c"])
-        let formatter: DateFormatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.timeZone = TimeZone(identifier: "UTC")
-        let block: String = coverageBlock(coverage: coverage, formatter: formatter)
-        #expect(block.contains("Okunan toplantı: 2 (1970-01-02 – 1970-01-04)"))
-        #expect(block.contains("okunmayan toplantı: 1 (en yenileri: C, 1970-01-06)"))
-        #expect(coverageBlock(coverage: ArchiveCoverage(read: [], skipped: []), formatter: formatter).contains("Okunmayan ilgili toplantı: yok"))
+        #expect(readMeetings(passages: read + [passage("a", 1)]).map(\.id) == ["a", "b"])
+    }
+
+    // Kapsam dipnotunun tarih aralığı arayüz dilinde: aynı gün tek tarih, aynı ay "3–6", yıl dışına taşınca yıl da.
+    @Test func coverageDateRangeFollowsTheInterfaceLanguage() throws {
+        var calendar: Calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(TimeZone(identifier: "Europe/Helsinki"))
+        let day: (Int, Int, Int) throws -> Date = { (year: Int, month: Int, day: Int) throws -> Date in
+            try #require(calendar.date(from: DateComponents(year: year, month: month, day: day, hour: 10)))
+        }
+        let meetings: [ArchiveMeetingRef] = [
+            ArchiveMeetingRef(id: "a", title: "A", date: try day(2026, 11, 3)), ArchiveMeetingRef(id: "b", title: "B", date: try day(2026, 11, 6)),
+        ]
+        let now: Date = try day(2026, 11, 7)
+        let english: String = try #require(coverageDateRange(meetings: meetings, now: now, locale: Locale(identifier: "en_GB"), calendar: calendar))
+        #expect(english.contains("3") && english.contains("6") && english.contains("Nov") && !english.contains("2026"), "\(english)")
+        let turkish: String = try #require(coverageDateRange(meetings: meetings, now: now, locale: Locale(identifier: "tr_TR"), calendar: calendar))
+        #expect(turkish.contains("Kas") && !turkish.contains("Nov"), "\(turkish)")
+        let single: String = try #require(coverageDateRange(meetings: [meetings[1]], now: now, locale: Locale(identifier: "en_GB"), calendar: calendar))
+        #expect(single.contains("6") && single.contains("Nov") && !single.contains("3"), "\(single)")
+        let lastYear: String = try #require(coverageDateRange(meetings: meetings, now: try day(2027, 1, 2), locale: Locale(identifier: "en_GB"), calendar: calendar))
+        #expect(lastYear.contains("2026"), "\(lastYear)")
+        #expect(coverageDateRange(meetings: [], now: now, locale: Locale(identifier: "en_GB"), calendar: calendar) == nil)
+    }
+
+    // "Bunlara da sor" okunmayan toplantıların en yeni `coverageAskMoreLimit` tanesine, tarih sırasıyla sorar.
+    @Test func askMoreTakesTheNewestSkippedMeetings() {
+        let skipped: [ArchiveMeetingRef] = (1...12).reversed().map { (index: Int) -> ArchiveMeetingRef in
+            ArchiveMeetingRef(id: "m\(index)", title: "M\(index)", date: Date(timeIntervalSince1970: Double(index) * 86_400))
+        }
+        #expect(askMoreMeetingIDs(skipped: skipped) == (5...12).map { "m\($0)" })
+        #expect(askMoreMeetingIDs(skipped: []).isEmpty)
     }
 }

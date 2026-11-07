@@ -655,6 +655,16 @@ final class PhoneRouter {
         path.append(route)
     }
 
+    /// Sor'da basılan kaynak: toplantı sayfası açılınca o anı gösterir ve sıfırlar (`MeetingReadView.openingSource`).
+    var openingSource: ArchivePassage?
+
+    /// Sor'daki kaynağın toplantısını yığının üstünde açar; sayfa kaynağın anını gösterir (transkript çekmecesi o
+    /// paragrafta, not kaynağında özet).
+    func open(source: ArchivePassage) {
+        openingSource = source
+        open(meetingID: source.meetingID)
+    }
+
     /// Toplantıyı yığının üstünde açar (Sor'daki kaynak, görev, kişi); zaten üstteyse yeniden açılmaz.
     func open(meetingID: String) {
         guard path.last != .meeting(meetingID) else {

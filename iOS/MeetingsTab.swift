@@ -585,12 +585,17 @@ struct MeetingReadView: View {
     let isRecording: Bool
     /// Sor: tarifler (⋯ › Tarif uygula) ve alttaki "Bir şey sor" çubuğunun sohbeti.
     let ask: PhoneAsk
+    /// Sor'da basılan kaynak (cevaptaki [n], kaynak listesi, kapsam dipnotu): bu toplantınınsa sayfa o anı açar
+    /// (transkript çekmecesi o paragrafta, not kaynağında özet) ve `onSourceShown` ile tüketir.
+    let openingSource: ArchivePassage?
     /// Onaylanan silme: toplantıyı siler ve sayfayı kapatır (onay bu sayfada sorulur).
     let onDelete: @MainActor () -> Void
     /// "Tekrar işle": son geçiş ve not yeniden (bkz. `PhoneRecorder.reprocess`).
     let onReprocess: @MainActor () throws -> Void
     /// ⋯ › Tarif uygula: seçilen tarif bu toplantıya Sor'da uygulanır.
     let onRunRecipe: @MainActor (Recipe) -> Void
+    /// Sor'dan gelen kaynak açıldı (`openingSource` tüketildi).
+    let onSourceShown: @MainActor () -> Void
     @State private var pane: MeetingPane = .summary
     /// Alttaki çubuğun transkript çekmecesi açık.
     @State private var isTranscriptOpen: Bool = false
@@ -889,6 +894,14 @@ struct MeetingReadView: View {
             }
         }
         .modifier(MeetingDeleteConfirmation(pending: $pendingDelete) { (_: MeetingRecord) -> Void in onDelete() })
+        // Sor'daki kaynaktan gelindi: sayfa o anı açar (sayfa açıkken basılan yeni kaynak da).
+        .onChange(of: openingSource, initial: true) { (_: ArchivePassage?, source: ArchivePassage?) -> Void in
+            guard let source, source.meetingID == record.id else {
+                return
+            }
+            openSource(passage: source, paragraphs: paragraphs)
+            onSourceShown()
+        }
         .sheet(item: $exported) { (file: ExportedFile) in
             ActivityShareSheet(items: [file.url])
                 .presentationDetents([.medium, .large])
@@ -2238,12 +2251,12 @@ private func phoneDemoMeetingExchange(record: MeetingRecord, paragraphs: [Transc
             startSec: paragraph.startSec, text: paragraph.text
         )
     }
-    let tasks: [String] = (record.note?.tasks ?? []).filter(\.isMine).prefix(2).map { "- **\($0.description)**\($0.dueDate.map { " (\($0))" } ?? "")" }
+    let tasks: [String] = (record.note?.tasks ?? []).filter(\.isMine).map { "- **\($0.description)**\($0.dueDate.map { " (\($0))" } ?? "")" }
     let answer: String = (["You have \(tasks.count) tasks from this meeting [1]:", ""] + tasks).joined(separator: "\n")
     return ArchiveExchange(
         id: UUID(), question: "What do I owe people after this meeting?", scopeMeetingIDs: [record.id], scopeTitles: [], recipeTitle: nil, startedAt: Date(),
         phase: .done, terms: [], passages: sources, screens: 0, answer: ArchiveAnswer(text: answer, sources: sources, webSources: []), webQueries: [],
-        webSearchNotice: .ok, finishedAt: Date()
+        webSearchNotice: .ok, skippedMeetings: [], finishedAt: Date()
     )
 }
 #endif

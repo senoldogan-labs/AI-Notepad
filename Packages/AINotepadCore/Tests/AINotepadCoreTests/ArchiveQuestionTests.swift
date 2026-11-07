@@ -36,16 +36,16 @@ private func archive() -> [MeetingRecord] {
             finalSegments: [stored("final-0", .others, 1, 10, "Sen sor o zaman.")],
             translations: [:], speakerNames: [1: "Aino"], note: nil, audioDeleted: false, engine: .cloud, notice: nil, meNeedsFinalPass: nil
         )
-        let ask: String = archivePassages(records: [record], userLabel: promptUserLabel).map(\.text).joined()
+        let ask: String = archivePassages(records: [record], userLabel: promptUserLabel, speakerWord: "Konuşmacı").map(\.text).joined()
         #expect(ask.contains("[00:00] [Kullanıcı]: Ben bakarım."))
         #expect(ask.contains("[00:10] Aino: Sen sor o zaman."))
-        let mcp: String = archivePassages(records: [record], userLabel: "Sen").map(\.text).joined()
+        let mcp: String = archivePassages(records: [record], userLabel: "Sen", speakerWord: "Konuşmacı").map(\.text).joined()
         #expect(mcp.contains("[00:00] Sen: Ben bakarım."))
     }
 
     // Fince köklerle eşleşen transkript parçası seçilir; eşleşme yoksa en yeni notlar; sınır aşılmaz; kaynaklar parçalara bağlanır.
     @Test func retrievalAndSources() throws {
-        let passages: [ArchivePassage] = archivePassages(records: archive(), userLabel: promptUserLabel)
+        let passages: [ArchivePassage] = archivePassages(records: archive(), userLabel: promptUserLabel, speakerWord: "Konuşmacı")
         #expect(passages.filter { $0.kind == .note }.count == 2)
         let coffee: [ArchivePassage] = relevantPassages(passages: passages, terms: ["kahvikone", "kahvinkeitin", "kahve makinesi"], maxChars: 10_000)
         #expect(coffee.first?.meetingID == "a" && coffee.first?.kind == .transcript && coffee.first?.text.contains("Kahvikone") == true)
@@ -62,7 +62,7 @@ private func archive() -> [MeetingRecord] {
     // Önceki konuşma: son 6 tur eskiden yeniye; cevaplardaki [n]/[wn] işaretleri atılır, dayandığı toplantılar adıyla
     // kalır; uzun cevabın başı ve sonu kalır; toplam bütçeyi aşan en eski turlar atılır, en yeni tur hep kalır.
     @Test func historyKeepsRecentTurnsWithinBudget() throws {
-        let budget: ArchivePassage = try #require(archivePassages(records: archive(), userLabel: promptUserLabel).first { $0.meetingID == "b" && $0.kind == .note })
+        let budget: ArchivePassage = try #require(archivePassages(records: archive(), userLabel: promptUserLabel, speakerWord: "Konuşmacı").first { $0.meetingID == "b" && $0.kind == .note })
         let turns: [ArchiveTurn] = (1...8).map { (number: Int) -> ArchiveTurn in
             ArchiveTurn(question: "Soru \(number)", answer: "Cevap \(number) [1][w1].", sources: number == 8 ? [budget, budget] : [])
         }
@@ -105,20 +105,20 @@ private func archive() -> [MeetingRecord] {
     // gelen kaynağı devam sorusunda okunmaz; tüm arşive sorulunca okunur.
     @Test func scopedQuestionReadsOnlySelectedMeetings() throws {
         let all: [MeetingRecord] = archive()
-        let budget: ArchivePassage = try #require(archivePassages(records: all, userLabel: promptUserLabel).first { $0.meetingID == "b" && $0.kind == .note })
+        let budget: ArchivePassage = try #require(archivePassages(records: all, userLabel: promptUserLabel, speakerWord: "Konuşmacı").first { $0.meetingID == "b" && $0.kind == .note })
         let history: [ArchiveTurn] = [ArchiveTurn(question: "Bütçe ne olacak?", answer: "Yüzde 10 artacak [1].", sources: [budget])]
         let scoped: [MeetingRecord] = try archiveScope(records: all, meetingIDs: ["a"])
-        let read: [ArchivePassage] = questionPassages(question: "Peki bunu kim üstlendi?", terms: ["budjetti", "kahvikone"], history: history, records: scoped, maxChars: 60_000)
+        let read: [ArchivePassage] = questionPassages(question: "Peki bunu kim üstlendi?", terms: ["budjetti", "kahvikone"], history: history, records: scoped, speakerWord: "Konuşmacı", maxChars: 60_000)
         #expect(!read.isEmpty && read.allSatisfy { $0.meetingID == "a" }, "\(read.map(\.id))")
         let sources: [ArchivePassage] = citedAnswer(text: "Mikko [1][2][3][4].", passages: read, webSources: []).sources
         #expect(sources.allSatisfy { $0.meetingID == "a" })
-        let unscoped: [ArchivePassage] = questionPassages(question: "Peki bunu kim üstlendi?", terms: ["kahvikone"], history: history, records: all, maxChars: 60_000)
+        let unscoped: [ArchivePassage] = questionPassages(question: "Peki bunu kim üstlendi?", terms: ["kahvikone"], history: history, records: all, speakerWord: "Konuşmacı", maxChars: 60_000)
         #expect(unscoped.contains(budget))
     }
 
     // Kopyalanan cevap: kalın işaretleri atılır, [n] kalır, altında numaralı kaynak başlıkları (not ya da zaman).
     @Test func copiedAnswerHasPlainTextAndSourceTitles() throws {
-        let passages: [ArchivePassage] = archivePassages(records: archive(), userLabel: promptUserLabel)
+        let passages: [ArchivePassage] = archivePassages(records: archive(), userLabel: promptUserLabel, speakerWord: "Konuşmacı")
         let note: ArchivePassage = try #require(passages.first { $0.meetingID == "b" && $0.kind == .note })
         let transcript: ArchivePassage = try #require(passages.first { $0.meetingID == "a" && $0.kind == .transcript })
         let answer: ArchiveAnswer = ArchiveAnswer(text: "**Bütçe** %10 artacak [1].\n- Mikko kahve makinesini alacak [2].", sources: [note, transcript], webSources: [WebSource(url: "https://www.example.com/x", title: "Example")])
@@ -141,12 +141,12 @@ private func archive() -> [MeetingRecord] {
     // Etiketli soru geçmişe kapsamıyla yazılır ve aynen geri okunur (sohbet yeniden açılınca etiketler görünür).
     @Test func askHistoryKeepsMentionScope() throws {
         let directory: URL = try temporaryDirectory()
-        let source: ArchivePassage = try #require(archivePassages(records: archive(), userLabel: promptUserLabel).first { $0.meetingID == "a" })
+        let source: ArchivePassage = try #require(archivePassages(records: archive(), userLabel: promptUserLabel, speakerWord: "Konuşmacı").first { $0.meetingID == "a" })
         let turn: AskConversationTurn = AskConversationTurn(
             id: UUID(), question: "Kim ne üstlendi?", scopeMeetingIDs: ["a", "b"], scopeTitles: ["Haftalık ekip toplantısı", "Bütçe planlaması"],
             recipeTitle: nil, startedAt: Date(timeIntervalSince1970: 1_792_000_000), finishedAt: Date(timeIntervalSince1970: 1_792_000_006),
             terms: [], readPassages: [], readScreens: 2, answer: "Mikko [1].", sources: [source], webSources: [WebSource(url: "https://example.com/a", title: "A")], webQueries: ["kahvi"],
-            webSearchNotice: .capReached
+            webSearchNotice: .capReached, skippedMeetings: [ArchiveMeetingRef(id: "c", title: "Kahvikone", date: Date(timeIntervalSince1970: 1_791_000_000))], wasStopped: nil
         )
         let conversation: AskConversation = askConversation(existing: nil, id: UUID(), turns: [turn], now: Date(timeIntervalSince1970: 1_792_000_006))
         try saveAskConversation(conversation: conversation, directory: directory)
@@ -172,7 +172,7 @@ extension CloudTests {
         let provider: LLMProvider = .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic)))
         let answer: ArchiveAnswer = try await askArchive(
             question: "Kahve makinesi bozulduğunda ne yapılmasına karar verildi, kim ilgilenecek?",
-            history: [], records: archive(), userName: "Senol", profile: .empty, language: .turkish, llm: provider, maxChars: 60_000, screens: .off, webSearch: false, now: Date(timeIntervalSince1970: 1_792_000_000)
+            history: [], records: archive(), userName: "Senol", profile: .empty, noteLanguage: .turkish, answerLanguage: .turkish, llm: provider, maxChars: 60_000, screens: .off, webSearch: false, now: Date(timeIntervalSince1970: 1_792_000_000)
         ) { (_: ArchiveProgress) -> Void in }
         #expect(answer.text.contains("Mikko"), "\(answer.text)")
         #expect(answer.sources.contains { $0.meetingID == "a" }, "\(answer.sources.map(\.id))")
@@ -183,7 +183,7 @@ extension CloudTests {
         let provider: LLMProvider = .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic)))
         let events: ProgressBox = ProgressBox()
         let answer: ArchiveAnswer = try await askAboutMeetings(
-            question: "Bu toplantıda neler konuşuldu?", history: [], records: archive().filter { $0.id == "a" }, userName: "Senol", profile: .empty, language: .turkish, llm: provider,
+            question: "Bu toplantıda neler konuşuldu?", history: [], records: archive().filter { $0.id == "a" }, userName: "Senol", profile: .empty, noteLanguage: .turkish, answerLanguage: .turkish, llm: provider,
             maxChars: 60_000, screens: .off, webSearch: false, now: Date(timeIntervalSince1970: 1_792_000_000)
         ) { (progress: ArchiveProgress) -> Void in
             events.append(progress)
@@ -199,7 +199,7 @@ extension CloudTests {
         let provider: LLMProvider = .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic)))
         let recipe: Recipe = try #require(builtInRecipes().first { $0.id == "takip-epostasi" })
         let answer: ArchiveAnswer = try await askAboutMeetings(
-            question: recipe.prompt, history: [], records: archive().filter { $0.id == "a" }, userName: "Senol", profile: .empty, language: .turkish, llm: provider,
+            question: recipe.prompt, history: [], records: archive().filter { $0.id == "a" }, userName: "Senol", profile: .empty, noteLanguage: .turkish, answerLanguage: .turkish, llm: provider,
             maxChars: 60_000, screens: .off, webSearch: false, now: Date(timeIntervalSince1970: 1_792_000_000)
         ) { (_: ArchiveProgress) -> Void in }
         let text: String = answer.text.lowercased()
@@ -211,11 +211,11 @@ extension CloudTests {
     @Test func followUpStreamsWithSteps() async throws {
         let provider: LLMProvider = .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic)))
         let events: ProgressBox = ProgressBox()
-        let earlier: [ArchivePassage] = archivePassages(records: archive(), userLabel: promptUserLabel).filter { $0.text.contains("Kahvikone") }
+        let earlier: [ArchivePassage] = archivePassages(records: archive(), userLabel: promptUserLabel, speakerWord: "Konuşmacı").filter { $0.text.contains("Kahvikone") }
         let answer: ArchiveAnswer = try await askArchive(
             question: "Peki bunu kim halledecek ve ne zaman?",
             history: [ArchiveTurn(question: "Kahve makinesiyle ilgili ne konuşuldu?", answer: "Haftalık ekip toplantısında kahve makinesinin yine bozulduğu söylendi [1].", sources: earlier)],
-            records: archive(), userName: "Senol", profile: .empty, language: .turkish, llm: provider, maxChars: 60_000, screens: .off, webSearch: false, now: Date(timeIntervalSince1970: 1_792_000_000)
+            records: archive(), userName: "Senol", profile: .empty, noteLanguage: .turkish, answerLanguage: .turkish, llm: provider, maxChars: 60_000, screens: .off, webSearch: false, now: Date(timeIntervalSince1970: 1_792_000_000)
         ) { (progress: ArchiveProgress) -> Void in
             events.append(progress)
         }
@@ -236,7 +236,7 @@ extension CloudTests {
         let provider: LLMProvider = .anthropic(defaultAnthropicConfig(apiKey: try cloudKey(account: .anthropic)))
         let meeting: CalendarMeeting = CalendarMeeting(id: "c", title: "Viikkopalaveri", start: Date(timeIntervalSince1970: 1_792_000_000), end: Date(timeIntervalSince1970: 1_792_001_800), attendees: ["Mikko"], joinURL: nil)
         let answer: ArchiveAnswer = try await askArchive(
-            question: briefingQuestion(meeting: meeting), history: [], records: archive(), userName: "Senol", profile: .empty, language: .turkish, llm: provider, maxChars: 60_000,
+            question: briefingQuestion(meeting: meeting), history: [], records: archive(), userName: "Senol", profile: .empty, noteLanguage: .turkish, answerLanguage: .turkish, llm: provider, maxChars: 60_000,
             screens: .off, webSearch: false, now: Date(timeIntervalSince1970: 1_791_999_000)
         ) { (_: ArchiveProgress) -> Void in }
         let text: String = answer.text.lowercased()

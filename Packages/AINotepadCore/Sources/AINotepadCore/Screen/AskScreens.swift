@@ -42,9 +42,10 @@ public struct AskScreenSpan: Sendable, Equatable {
 }
 
 /// Time spans of the meeting's transcript passages whose ids are in `passageIDs`: a passage runs from its first line
-/// to the start of the next passage (the last one to the end of the last paragraph). Pure function.
-func transcriptPassageSpans(record: MeetingRecord, passageIDs: Set<String>) -> [(start: Double, end: Double)] {
-    let transcript: [ArchivePassage] = archivePassages(records: [record], userLabel: promptUserLabel).filter { $0.kind == .transcript }
+/// to the start of the next passage (the last one to the end of the last paragraph). `speakerWord` must be the one the
+/// passages were cut with (`archivePassages`): label length decides where passages split, so their ids. Pure function.
+func transcriptPassageSpans(record: MeetingRecord, passageIDs: Set<String>, speakerWord: String) -> [(start: Double, end: Double)] {
+    let transcript: [ArchivePassage] = archivePassages(records: [record], userLabel: promptUserLabel, speakerWord: speakerWord).filter { $0.kind == .transcript }
     let meetingEnd: Double = transcriptParagraphs(record: record).map(\.endSec).max() ?? 0
     return transcript.indices.compactMap { (index: Int) -> (start: Double, end: Double)? in
         guard passageIDs.contains(transcript[index].id) else {
@@ -58,8 +59,8 @@ func transcriptPassageSpans(record: MeetingRecord, passageIDs: Set<String>) -> [
 /// The meeting's snapshots that were on screen while a read passage (`passageIDs`) was spoken, with the overlap in
 /// seconds; snapshots that do not overlap are left out. On-screen times as in `linkScreenSnapshots` (`leadSec` early;
 /// the last one lasts until the last paragraph ends). Needs no image files. Pure function.
-public func askScreenSpans(record: MeetingRecord, passageIDs: Set<String>, snapshots: [ScreenSnapshot], leadSec: Double) -> [AskScreenSpan] {
-    let spans: [(start: Double, end: Double)] = transcriptPassageSpans(record: record, passageIDs: passageIDs)
+public func askScreenSpans(record: MeetingRecord, passageIDs: Set<String>, speakerWord: String, snapshots: [ScreenSnapshot], leadSec: Double) -> [AskScreenSpan] {
+    let spans: [(start: Double, end: Double)] = transcriptPassageSpans(record: record, passageIDs: passageIDs, speakerWord: speakerWord)
     guard !spans.isEmpty else {
         return []
     }
@@ -158,7 +159,7 @@ func askScreensRule() -> String {
 /// opened. A snapshot that cannot be read fails the question (`ScreenImageError`/`StorageError`) rather than silently
 /// answering without screens.
 public func askScreenImages(
-    records: [MeetingRecord], passages: [ArchivePassage], plan: ArchiveScreensPlan, budget: ScreenNoteBudget, policy: ScreenSnapshotPolicy
+    records: [MeetingRecord], passages: [ArchivePassage], speakerWord: String, plan: ArchiveScreensPlan, budget: ScreenNoteBudget, policy: ScreenSnapshotPolicy
 ) throws -> [LLMImage] {
     guard case .on(let directories) = plan else {
         return []
@@ -176,7 +177,7 @@ public func askScreenImages(
         }
         let excluded: Set<String> = try readScreenNoteExclusions(meetingDirectory: directory)
         let snapshots: [ScreenSnapshot] = try listScreenSnapshots(meetingDirectory: directory).filter { !excluded.contains($0.id) }
-        for span in askScreenSpans(record: record, passageIDs: readIDs, snapshots: snapshots, leadSec: policy.captureIntervalSec) {
+        for span in askScreenSpans(record: record, passageIDs: readIDs, speakerWord: speakerWord, snapshots: snapshots, leadSec: policy.captureIntervalSec) {
             let file: URL = screenSnapshotFile(meetingDirectory: directory, snapshot: span.snapshot)
             candidates.append(AskScreenCandidate(
                 meetingID: meetingID, meetingTitle: record.note?.title ?? record.title,

@@ -299,6 +299,12 @@ public func interfaceLocale() -> Locale {
     return Locale(components: components)
 }
 
+/// Arayüz dilinin yazı dili karşılığı (Sor'da sorunun dili anlaşılmadığında cevap dili): uygulamanın seçili dili,
+/// tanınmazsa İngilizce (`defaultNoteLanguage`).
+public func interfaceShareLanguage() -> ShareLanguage {
+    defaultNoteLanguage(interfaceLanguages: Bundle.main.preferredLocalizations)
+}
+
 /// Arayüz dilinde büyük harf ("ekim" → Türkçede "EKİM"). Yalnız dil kodu kullanılır: bölgeli yerel ayar
 /// (`tr@rg=fizzzz`) Türkçe büyük harf kuralını uygulamıyor ve "EKIM" yazıyordu. Saf fonksiyondur.
 public func interfaceUppercased(text: String) -> String {

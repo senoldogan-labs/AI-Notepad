@@ -86,12 +86,16 @@ private struct PhoneMeetingDestination: View {
         let meetings: [MeetingRecord] = namedRecords(records: store.meetings, userName: store.userName)
         Group {
             if let record = meetings.first(where: { $0.id == meetingID }) {
-                MeetingReadView(record: record, store: store, player: player, isRecording: recorder.phase != .idle, ask: ask) {
+                MeetingReadView(
+                    record: record, store: store, player: player, isRecording: recorder.phase != .idle, ask: ask, openingSource: router.openingSource
+                ) {
                     errors = phoneTrashMeetings(ids: [meetingID], store: store, recorder: recorder, player: player, router: router)
                 } onReprocess: {
                     try recorder.reprocess(meetingID: meetingID)
                 } onRunRecipe: { (recipe: Recipe) -> Void in
                     onRunRecipe(recipe)
+                } onSourceShown: {
+                    router.openingSource = nil
                 }
             } else if store.deletedMeetings.contains(where: { $0.id == meetingID }) {
                 PhoneEmptyState(symbol: "trash", title: "Bu toplantı silindi", message: "Son silinenler'den geri yükleyebilirsin.") {

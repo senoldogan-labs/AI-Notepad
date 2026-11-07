@@ -448,10 +448,15 @@ struct MeetingDetailPage: View {
     let model: AppModel
     let player: MeetingAudioPlayer
     let record: MeetingRecord
+    /// Sor'da basılan kaynak (cevaptaki [n], kaynak listesi, kapsam dipnotu): bu toplantınınsa sayfa o anı açar
+    /// (transkript çekmecesi o paragrafta, not kaynağında özet) ve `onSourceShown` ile tüketir.
+    let openingSource: ArchivePassage?
     /// Toplantı silinince (sayfa artık gösterilemez) çağrılır.
     let onDeleted: @MainActor () -> Void
     /// Tarifi bu toplantıya uygular (Sor sayfasında açılır).
     let onRunRecipe: @MainActor (Recipe) -> Void
+    /// Sor'dan gelen kaynak açıldı (`openingSource` tüketildi).
+    let onSourceShown: @MainActor () -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
     @State private var export: ExportStatus = .none
     @State private var tab: MeetingTab = .summary
@@ -638,6 +643,10 @@ struct MeetingDetailPage: View {
         .onChange(of: tab) { (_: MeetingTab, selected: MeetingTab) -> Void in
             model.meetingPageTabs[record.id] = selected.rawValue
         }
+        // Sayfa açıkken Sor'da bu toplantının bir kaynağına basıldı.
+        .onChange(of: openingSource) { (_: ArchivePassage?, _: ArchivePassage?) -> Void in
+            showOpeningSource(paragraphs: paragraphs)
+        }
         // Toplantının ekran görüntüleri klasöründen okunur ("Ekranlar" sekmesi yalnızca görüntü varsa görünür).
         .task(id: record.id) {
             await model.refreshScreenSnapshots(meetingID: record.id)
@@ -652,6 +661,8 @@ struct MeetingDetailPage: View {
             } else {
                 tab = record.note == nil ? .transcript : .summary
             }
+            // Sor'daki kaynaktan gelindiyse kaynağın anı açılır (sekme seçiminden sonra: not kaynağı özete geçer).
+            showOpeningSource(paragraphs: paragraphs)
             // "--not-dili fi|en": özeti paylaşım dilinde açar (görsel kontrol için).
             if let index = CommandLine.arguments.firstIndex(of: "--not-dili"), CommandLine.arguments.indices.contains(index + 1) {
                 noteLanguage = ShareLanguage(rawValue: CommandLine.arguments[index + 1])
@@ -765,6 +776,15 @@ struct MeetingDetailPage: View {
             return
         }
         jump(to: paragraph)
+    }
+
+    /// Sor'dan gelen kaynak bu toplantınınsa o an açılır (`openSource`) ve kaynak tüketilir.
+    private func showOpeningSource(paragraphs: [TranscriptParagraph]) {
+        guard let source = openingSource, source.meetingID == record.id else {
+            return
+        }
+        openSource(passage: source, paragraphs: paragraphs)
+        onSourceShown()
     }
 
     /// Kaynaktan transkriptte o ana gider: çekmece açılır, paragrafa kayıp vurgular; ses varsa oradan çalar (sekme

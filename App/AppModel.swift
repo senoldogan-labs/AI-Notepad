@@ -2832,6 +2832,9 @@ final class AppModel {
         let userName: String = self.userName
         let profile: UserProfile = userProfile
         let webSearch: Bool = askWebSearchAllowed(defaults: UserDefaults.standard)
+        // Cevap sorunun dilinde (İngilizce soruya Türkçe notlardan da İngilizce); anlaşılmazsa arayüz dili.
+        let answerLanguage: ShareLanguage = askAnswerLanguage(question: trimmed, history: history, interfaceLanguage: interfaceShareLanguage())
+        let noteLanguage: ShareLanguage = selectedNoteLanguage()
         archiveTask = Task { [weak self] in
             do {
                 // Model kapandıysa soru da biter.
@@ -2844,17 +2847,18 @@ final class AppModel {
                 }
                 if scoped.isEmpty {
                     // Cihaz içi modelde dili desteklenmeyen toplantılar okunmaz.
-                    let readable: OnDeviceReadableRecords = try onDeviceAskableArchive(records: records, provider: provider, outputLanguage: selectedNoteLanguage())
+                    let readable: OnDeviceReadableRecords = try onDeviceAskableArchive(records: records, provider: provider, outputLanguage: answerLanguage)
                     _ = try await AINotepadCore.askArchive(
-                        question: trimmed, history: history, records: readable.records, userName: userName, profile: profile, language: selectedNoteLanguage(), llm: provider,
-                        maxChars: noteLimits(provider: provider).archiveChars, screens: screens, webSearch: webSearch, now: Date(), onProgress: onProgress
+                        question: trimmed, history: history, records: readable.records, userName: userName, profile: profile, noteLanguage: noteLanguage,
+                        answerLanguage: answerLanguage, llm: provider, maxChars: noteLimits(provider: provider).archiveChars, screens: screens, webSearch: webSearch,
+                        now: Date(), onProgress: onProgress
                     )
                 } else {
-                    try requireOnDeviceLanguages(provider: provider, meetingLanguages: scoped.compactMap(\.language), outputLanguage: selectedNoteLanguage())
+                    try requireOnDeviceLanguages(provider: provider, meetingLanguages: scoped.compactMap(\.language), outputLanguage: answerLanguage)
                     _ = try await askAboutMeetings(
-                        question: trimmed, history: history, records: scoped, userName: userName, profile: profile, language: selectedNoteLanguage(), llm: provider,
-                        maxChars: noteLimits(provider: provider).archiveChars, screens: screens, webSearch: webSearch, now: Date(),
-                        onProgress: onProgress
+                        question: trimmed, history: history, records: scoped, userName: userName, profile: profile, noteLanguage: noteLanguage,
+                        answerLanguage: answerLanguage, llm: provider, maxChars: noteLimits(provider: provider).archiveChars, screens: screens, webSearch: webSearch,
+                        now: Date(), onProgress: onProgress
                     )
                 }
                 self?.updateExchange(id: id) {
@@ -2867,11 +2871,14 @@ final class AppModel {
                     $0.phase = .stopped
                     $0.finishedAt = Date()
                 }
+                // O ana kadar yazılan cevap sohbette kalır (sohbet bu arada değiştiyse saklanmaz).
+                self?.saveConversation(exchangeID: id)
             } catch let error as URLError where error.code == .cancelled {
                 self?.updateExchange(id: id) {
                     $0.phase = .stopped
                     $0.finishedAt = Date()
                 }
+                self?.saveConversation(exchangeID: id)
             } catch {
                 Self.logger.error("Arşiv sorusu cevaplanamadı, hata: \(String(describing: error), privacy: .private)")
                 self?.updateExchange(id: id) {
@@ -2916,10 +2923,12 @@ final class AppModel {
         }
         meetingAsk.ask(record: record, question: question, recipeTitle: recipeTitle) { (asked: String, history: [ArchiveTurn], onProgress: @escaping ArchiveProgressHandler) async throws -> Void in
             let provider: LLMProvider = try await resolveLLMProvider()
-            try requireOnDeviceLanguages(provider: provider, meetingLanguages: [record.language].compactMap { $0 }, outputLanguage: selectedNoteLanguage())
+            let answerLanguage: ShareLanguage = askAnswerLanguage(question: asked, history: history, interfaceLanguage: interfaceShareLanguage())
+            try requireOnDeviceLanguages(provider: provider, meetingLanguages: [record.language].compactMap { $0 }, outputLanguage: answerLanguage)
             _ = try await askAboutMeetings(
-                question: asked, history: history, records: [record], userName: userName, profile: profile, language: selectedNoteLanguage(), llm: provider,
-                maxChars: noteLimits(provider: provider).archiveChars, screens: screens, webSearch: webSearch, now: Date(), onProgress: onProgress
+                question: asked, history: history, records: [record], userName: userName, profile: profile, noteLanguage: selectedNoteLanguage(),
+                answerLanguage: answerLanguage, llm: provider, maxChars: noteLimits(provider: provider).archiveChars, screens: screens, webSearch: webSearch,
+                now: Date(), onProgress: onProgress
             )
         } save: { [weak self] (id: UUID, exchanges: [ArchiveExchange]) -> Void in
             // Toplantı sohbeti Sor geçmişine yazılır (eşitlenir, Sor'da da açılır); sayfa yeniden açılınca geri gelir.
@@ -3086,8 +3095,9 @@ final class AppModel {
 
     /// Bitmiş soruyla açık sohbeti saklar (ilk cevapta yeni sohbet olur); sınırı aşan en eski sohbetler silinir.
     private func saveConversation(exchangeID: UUID) {
-        // Sohbet bu arada değiştiyse (yeni sohbet, başka sohbet açıldı) cevap bu sohbete ait değildir.
-        guard archiveExchanges.contains(where: { $0.id == exchangeID && $0.phase == .done }) else {
+        // Sohbet bu arada değiştiyse (yeni sohbet, başka sohbet açıldı) cevap bu sohbete ait değildir; saklanacak cevap
+        // yoksa (cevap gelmeden durduruldu) sohbet de yazılmaz.
+        guard archiveExchanges.contains(where: { $0.id == exchangeID && askTurn(exchange: $0) != nil }) else {
             return
         }
         let id: UUID = currentConversationID ?? UUID()
