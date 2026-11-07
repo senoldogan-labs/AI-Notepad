@@ -22,6 +22,7 @@ import {
   remainingOf,
   reserveUsage,
   settleLLMStatements,
+  spendCeilingChecks,
   subscriberAccountTokenLimit,
   tightestLimit,
   trialAccountTokenLimit,
@@ -92,8 +93,13 @@ type CallOutcome<T> = { readonly ok: true; readonly value: T } | { readonly ok: 
 /**
  * Çağrının bağlı olduğu bütçe: açık bir toplantı (kayıt sırasında ve ek sürede; toplantı bütçesi de düşer) ya da
  * yalnızca hesap (Sor, notu yeniden yazma, düzenleme, görev aracı; kullanıcının günlük ve aylık sınırı ve daha küçük
- * çağrı başı `max_tokens`). `purpose`: çağrının amacı (`x-llm-purpose`); yalnızca amaç başına token toplamına yazılır
- * (bkz. `purposeUsageStatement`), bütçeyi etkilemez.
+ * çağrı başı `max_tokens`). `purpose`: çağrının amacı (`x-llm-purpose`; kapalı listeden, bkz. `llmPurposeOf`). İstemcinin
+ * beyanıdır ama yalnızca sayaç değildir: toplantıda canlı mı işleme mi penceresinin açık olacağını ve nota ayrılan payın
+ * kullanılıp kullanılamayacağını (`llmLimits`), hesap çağrısında Sor cevabının daha büyük `max_tokens`'ını
+ * (`callMaxTokens`), görsel taşıyabilen amaçların gövde sınırını (`llmBodyLimitBytes`) ve web aramasına izni
+ * (`requestedWebSearches`, yalnız `ask_answer`) seçer; amaç başına token toplamına da yazılır (`purposeUsageStatement`).
+ * Yanlış beyan bunların hiçbiriyle kullanıcının kendi toplantı bütçesini, günlük ve aylık sınırlarını ve günlük
+ * harcama tavanlarını aşamaz; yalnızca o sınırların içindeki paylaşımı değiştirir.
  */
 export type LLMScope =
   | { readonly kind: "meeting"; readonly userId: string; readonly meeting: MeetingRow; readonly purpose: LLMPurpose }
@@ -432,7 +438,7 @@ export async function proxyLLM(db: D1Database, context: RequestContext, config: 
   await reserveUsage(
     db,
     reservation,
-    limits.map((limit: ReservationLimit): ReservationCheck => ({ limit, amount: reservedTokens })),
+    [...limits.map((limit: ReservationLimit): ReservationCheck => ({ limit, amount: reservedTokens })), ...spendCeilingChecks(config, reservation, now)],
   );
   // Aylık arama hakkı ayırmadan sonra düşülür (ayırma reddedilirse hak harcanmaz); hak bittiyse araç sunulmaz ve
   // istemci `x-web-search: cap_reached` ile bunu söyler.

@@ -516,7 +516,9 @@ Hatalar her zaman `{"error": {"code", "message"}}` biçimindedir; yönetici olma
 Günlük harcama tavanı aşılınca toplantı başlatma ve her vekil çağrısı `503 spend_ceiling_reached` döner; günlük deneme
 harcaması tavanı aşılınca deneme harcaması açan her istek (yeni deneme toplantısı, denemedeki hesap çağrısı, açık ya da
 yeniden açılmış deneme toplantısının yapay zekâ ve yazıya dökme çağrıları, deneme toplantısını yeniden işleme)
-`503 trial_capacity_reached` döner. İki tavanın alarmı günde bir kez yazılır; retlerin sayısı yönetim panelindedir
+`503 trial_capacity_reached` döner. Günün harcaması kesinleşmiş harcamaya süren (kesinleşmemiş, süresi dolmamış)
+ayırmaların en kötü durum tahminini de katar ve vekil çağrıları tavanı ayırma ifadesinin içinde yeniden denetler:
+eşzamanlı istekler tavanı birlikte geçemez, aşım en çok bir çağrının tahmini kadardır. İki tavanın alarmı günde bir kez yazılır; retlerin sayısı yönetim panelindedir
 (`ops_events`). Site kaynağı
 (`SITE_ORIGIN`) CORS'u yalnızca site uçlarında (`src/app.ts` → `webRoutes`: `/v1/health`, `/v1/download/mac/version`,
 giriş, yenileme ve çıkış, `/v1/me`, ödeme ve Portal, `/v1/referral`, `/v1/referral/validate`, `/v1/reports`) ve yönetici

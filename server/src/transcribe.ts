@@ -17,6 +17,7 @@ import {
   monthlyAudioLimit,
   reserveUsage,
   settleAudioStatements,
+  spendCeilingChecks,
   userAudioIdleLimit,
 } from "./reservations";
 import { transcriptionCostMicroUsd } from "./usage";
@@ -504,6 +505,7 @@ export async function proxyTranscription(
       { limit: userAudioIdleLimit(meeting.user_id, now), amount: 1 },
       { limit: meetingAudioLimit(meeting.id), amount: audio.seconds },
       { limit: monthlyAudioLimit(config, meeting.user_id, meeting.id, now), amount: audio.seconds },
+      ...spendCeilingChecks(config, reservation, now),
     ]);
   } catch (error: unknown) {
     await reader.cancel();
