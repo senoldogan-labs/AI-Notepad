@@ -10,7 +10,7 @@
 // `#` parçasındadır ve sayfadaki her betik onu okuyabilir; dar politika işaretçiyi engeller (iki politika birlikte uygulanır).
 import { createHash } from "node:crypto";
 import { appleAuthScriptUrl, appleIdOrigin, type SiteConfig, turnstileOrigin } from "../config";
-import { blogPostPattern, type PageKey, privatePages, routes } from "../routes";
+import { blogPostPattern, meetingLinkPattern, type PageKey, privatePages, routes } from "../routes";
 
 /**
  * Sayfaların yüklediği dış hizmetler ve ek kaynaklar. `localImagePreview`: yönetim panelinin blog düzenleyicisi
@@ -82,6 +82,8 @@ export const pageServices: Readonly<Record<PageKey, readonly ExternalService[]>>
   terms: ["webAnalytics"],
   notFound: ["webAnalytics"],
   share: [],
+  // Adreste toplantı kimliği var: analitik yok.
+  meeting: [],
 };
 
 /** Derlenen sayfalardaki satır içi betik ve stillerin CSP kaynak ifadeleri (`'sha256-…'`). */
@@ -195,6 +197,11 @@ export function pagesHeaders(config: SiteConfig, hashes: InlineHashes): string {
     // Blog yazıları (`/blog/<kısa ad>`) sayfa kimliği taşımaz; hepsi dış hizmetsiz dar politikayı alır.
     blogPostPattern,
     `  Content-Security-Policy: ${contentSecurityPolicy(config, ["webAnalytics"], hashes)}`,
+    "",
+    // Toplantı bağlantıları `meeting` sayfasını açar; kurallar istenen adrese uyduğu için onun politikası burada da yazılır.
+    meetingLinkPattern,
+    `  Content-Security-Policy: ${contentSecurityPolicy(config, pageServices.meeting, hashes)}`,
+    "  Cache-Control: no-store",
     "",
     // Adı içerik özeti taşıyan derleme çıktıları değişmez.
     "/_astro/*",
