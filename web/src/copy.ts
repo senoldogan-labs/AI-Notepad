@@ -1178,7 +1178,7 @@ export const copy: Copy = {
       operatorLine: `${productName} is made and sold by ${operator.name} (business ID ${operator.businessId}), Oulu, Finland.`,
       typefaces: "Typefaces:",
       pullThanks: "Thanks for listening.",
-      copyright: `© 2026 ${productName}`,
+      copyright: `© 2026 ${operator.name}`,
       language: "Language",
     },
     lastUpdated: "Last updated",
@@ -1270,7 +1270,7 @@ export const copy: Copy = {
         {
           icon: "phone",
           title: "Notes from phone calls",
-          text: "Record the call with iPhone's built-in call recording, share the audio to Gistsmith, and get the note, decisions and tasks. Where call recording isn't available, take the call on your Mac.",
+          text: "Coming in the next iPhone update: record the call with iPhone's built-in call recording, share the audio to Gistsmith, and get the note, decisions and tasks. Where call recording isn't available, take the call on your Mac.",
         },
         { icon: "check-circle", title: "Your tasks in one list", text: "The tasks from every meeting, with their due dates, in one place." },
         {
@@ -1413,7 +1413,7 @@ export const copy: Copy = {
       },
       {
         question: "Can Gistsmith record phone calls on iPhone?",
-        answer: "iOS doesn't let any app listen to a call in progress. Use iPhone's own call recording (iOS 18.1 or later, not offered in every region) and share the audio to Gistsmith, or take the call on your Mac. Let the other person know you're recording; the law may require their consent.",
+        answer: "iOS doesn't let any app listen to a call in progress. Use iPhone's own call recording (iOS 18.1 or later, not offered in every region) and, from the next iPhone update, share the audio to Gistsmith; or take the call on your Mac. Let the other person know you're recording; the law may require their consent.",
       },
     ],
     featureList: [
@@ -1435,7 +1435,6 @@ export const copy: Copy = {
       "Voice typing in any Mac app, transcribed on your Mac",
       "Notes, transcripts and recordings stored on your Mac or iPhone",
       "An iPhone app for in-person meetings, with the same account and subscription as the Mac app",
-      "Notes from phone calls on iPhone: share a call recorded with iPhone's built-in call recording to get the note, decisions and tasks",
       "Optional sync between Mac and iPhone, encrypted end to end; audio stays on the device that recorded it",
     ],
     finalTitle: "Let it write the note for your next meeting.",
@@ -1556,7 +1555,7 @@ export const copy: Copy = {
     macAlt: `The ${productName} Mac app showing the Product weekly note: a list of meetings on the left, and on the right the summary and your three tasks with due dates, with a “3 tasks for you” label at the top.`,
     whatsNew: "What's new",
     iphoneNote:
-      "For meetings in the room: it records the conversation around your iPhone. For a phone call, record it with iPhone's own call recording and share the audio to Gistsmith; online meetings are recorded on the Mac. Sign in with the same account as on your Mac; one subscription covers both. In the app, subscriptions go through the App Store.",
+      "For meetings in the room: it records the conversation around your iPhone. Online meetings are recorded on the Mac; sharing a phone call recorded with iPhone's own call recording comes in the next iPhone update. Sign in with the same account as on your Mac; one subscription covers both. In the app, subscriptions go through the App Store.",
     iphoneAlt: `The ${productName} home screen on iPhone: today's upcoming meetings, 8 open tasks, recent notes and an Ask a question button next to the record button.`,
     installTitle: "Three steps to your first meeting on the Mac",
     installSteps: [
@@ -1617,7 +1616,7 @@ export const copy: Copy = {
       integrations:
         "Notion, Apple Notes, Slack, Microsoft Teams, Discord, Zoom Team Chat; tasks to Linear, Jira and Apple Reminders; Markdown folders (Obsidian) and webhooks (Zapier, Make, n8n)",
       mcp: "Read-only access for Claude, ChatGPT, Cursor and VS Code: on your Mac, or online with AI assistant access",
-      storage: "Saved on your Mac and iPhone, not on our servers; audio is processed in the cloud to write them and isn't kept by us",
+      storage: "Saved on your Mac and iPhone; our servers keep only an end-to-end encrypted copy if you turn on sync (and a readable copy of the notes if you turn on AI assistant access); audio is processed in the cloud and isn't kept by us",
       plans: "One personal plan, billed monthly or yearly; no shared team workspace",
     },
     usMarks: { capture: "yes", translation: "yes", voiceTyping: "yes", mcp: "yes" },
@@ -1718,7 +1717,7 @@ export const copy: Copy = {
             "your meetings are in another language and you want a live translation as people talk",
             "you want every note to pick out your own tasks, with due dates",
             "you work on a Mac and want simple pricing: $5.99 a month or $49 a year, taxes included",
-            "you want notes, transcripts and recordings saved on your Mac and iPhone, not on our servers",
+            "you want notes, transcripts and recordings kept on your Mac and iPhone, with only an end-to-end encrypted copy on our servers if you turn on sync",
           ],
         },
       },
@@ -1846,7 +1845,7 @@ export const copy: Copy = {
           points: [
             "you want a live translation as people talk",
             "you want every note to pick out your own tasks, with due dates",
-            "you want notes, transcripts and recordings saved on your Mac and iPhone, not on our servers",
+            "you want notes, transcripts and recordings kept on your Mac and iPhone, with only an end-to-end encrypted copy on our servers if you turn on sync",
             "you want simple pricing for one person: $5.99 a month or $49 a year, taxes included",
           ],
         },

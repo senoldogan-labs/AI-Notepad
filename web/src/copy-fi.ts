@@ -84,7 +84,7 @@ export const commonFi: CommonCopy = {
     operatorLine: `${productName}in tekee ja myy ${operator.name} (Y-tunnus ${operator.businessId}), Oulu.`,
     typefaces: "Kirjasimet:",
     pullThanks: "Kiitos, kun kuuntelit.",
-    copyright: `© 2026 ${productName}`,
+    copyright: `© 2026 ${operator.name}`,
     language: "Kieli",
   },
   lastUpdated: "Päivitetty",
@@ -178,7 +178,7 @@ export const homeFi: HomeCopy = {
       {
         icon: "phone",
         title: "Muistiinpanot puheluista",
-        text: "Nauhoita puhelu iPhonen omalla puhelunauhoituksella, jaa ääni Gistsmithiin ja saat muistiinpanon, päätökset ja tehtävät. Jos puhelunauhoitus ei ole käytettävissä, ota puhelu Macilla.",
+        text: "Tulossa seuraavaan iPhone-päivitykseen: nauhoita puhelu iPhonen omalla puhelunauhoituksella, jaa ääni Gistsmithiin ja saat muistiinpanon, päätökset ja tehtävät. Jos puhelunauhoitus ei ole käytettävissä, ota puhelu Macilla.",
       },
       { icon: "check-circle", title: "Tehtäväsi yhdessä listassa", text: "Kaikkien kokousten tehtävät määräaikoineen samassa paikassa." },
       {
@@ -322,7 +322,7 @@ export const homeFi: HomeCopy = {
     },
     {
       question: "Voiko Gistsmith nauhoittaa puheluita iPhonella?",
-      answer: "iOS ei anna minkään sovelluksen kuunnella käynnissä olevaa puhelua. Käytä iPhonen omaa puhelunauhoitusta (iOS 18.1 tai uudempi, ei saatavilla kaikilla alueilla) ja jaa ääni Gistsmithiin, tai ota puhelu Macilla. Kerro toiselle osapuolelle, että nauhoitat; laki voi edellyttää hänen suostumustaan.",
+      answer: "iOS ei anna minkään sovelluksen kuunnella käynnissä olevaa puhelua. Käytä iPhonen omaa puhelunauhoitusta (iOS 18.1 tai uudempi, ei saatavilla kaikilla alueilla) ja jaa ääni seuraavasta iPhone-päivityksestä alkaen Gistsmithiin, tai ota puhelu Macilla. Kerro toiselle osapuolelle, että nauhoitat; laki voi edellyttää hänen suostumustaan.",
     },
     {
       question: "Miten maksu ja verot toimivat Suomessa?",
@@ -348,7 +348,6 @@ export const homeFi: HomeCopy = {
     "Puhekirjoitus mihin tahansa Mac-sovellukseen, puheentunnistus Macilla",
     "Muistiinpanot, litteroinnit ja tallenteet tallennetaan Macillesi tai iPhonellesi",
     "iPhone-sovellus kasvokkaisiin kokouksiin samalla tilillä ja tilauksella kuin Mac-sovellus",
-    "Muistiinpanot puheluista iPhonella: jaa iPhonen omalla puhelunauhoituksella nauhoitettu puhelu ja saat muistiinpanon, päätökset ja tehtävät",
     "Halutessasi synkronointi Macin ja iPhonen välillä päästä päähän salattuna; ääni jää laitteelle, joka sen tallensi",
   ],
   finalTitle: "Anna sen kirjoittaa muistiinpano seuraavasta kokouksestasi.",
