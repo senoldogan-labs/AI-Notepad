@@ -2,7 +2,7 @@
 
 Three custom product pages (CPPs). Each targets one audience with its own promotional text, screenshot order and
 headlines, header, and search keywords. Each page also gets its own Apple Ads ad variation. They are written in
-English (U.S.) first because that is the only live storefront language. Translate the winner(s) once the data shows
+English (U.S.) first because the U.S. page is the primary localization. Translate the winner(s) once the data shows
 which page converts. Limits are the same as on the main page (promotional text ≤ 170, keywords ≤ 100). To check the
 `text` blocks, run `node scripts/appstore-screenshots/metadata-check.ts docs/appstore/custom-product-pages.md`.
 
@@ -33,7 +33,7 @@ Record the lecture; when it ends, your notes are ready: key points, glossary and
 ### Keywords
 
 ```text
-lecture,class,seminar,student,study,university,college,course,exam,revision,notes app,school,teacher
+lecture,class,seminar,student,study,university,college,course,exam,revision,notetaker,school,teacher
 ```
 
 ### Screenshots (order)
@@ -99,7 +99,7 @@ pricing with timestamps"). Header idea: one phone with a transcript, headline "I
 **Reference name:** `cpp-team-meetings`
 **Audience:** managers and team leads who run one-to-ones, stand-ups and client visits face to face.
 **Deep link use:** the gistsmith.com iPhone section and Gistsmith for Mac users (one account and subscription for
-Mac and iPhone; meeting sync between devices is optional and off until it launches, so the copy doesn't promise it).
+Mac and iPhone, with optional end-to-end encrypted sync).
 
 ### Promotional Text
 

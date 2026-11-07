@@ -36,27 +36,41 @@ amounts and timing before saving.
 - **Promotional Text** can be edited on the live version at any time, without review. Everything else below needs an
   editable version, a separate review, or both.
 
-## 2. Localizations: Turkish, Finnish, English (U.K.)
+## 2. Localizations: 14 languages
 
-Name, subtitle, description and keywords can't change on a live version, so add the localizations to the next one.
+Name, subtitle, description and keywords can't change on a live version, so add the localizations to the next
+editable one (the first version after 0.2.1, because the copy describes share links and AI assistant access).
 
-1. **App Store › iOS App › "+"** → create **0.1.16** (it can wait for the next build; metadata can be prepared now).
+1. **App Store › iOS App › "+"** → create the version (it can wait for the next build; metadata can be prepared now).
 2. **App Store › General › App Information › Localizable Information**: in the language pop-up (top right), add
-   **English (U.K.)**, **Finnish** and **Turkish**. For each, paste **Name**, **Subtitle** and the **Privacy Policy
-   URL** (`https://gistsmith.com/privacy`).
-3. **App Store › iOS App › 0.1.16**: for each new language in the same pop-up, paste **Promotional Text**,
-   **Description**, **Keywords**, **What's New**, **Support URL** and **Marketing URL** (copy them from the U.S.
-   page).
-4. Screenshots: if a localization has none, it shows the U.S. set. That is fine for the U.K., and acceptable for TR
-   and FI while the interface is English/Turkish.
+   **English (U.K.)**, **Turkish**, **Finnish**, **German**, **French**, **Spanish (Spain)**, **Spanish (Mexico)**,
+   **Italian**, **Portuguese (Brazil)**, **Dutch**, **Japanese**, **Korean** and **Chinese (Simplified)**. For each,
+   and for **English (U.S.)**, paste **Name** and **Subtitle** and set the **Privacy Policy URL**
+   (`https://gistsmith.com/privacy`).
+3. **App Store › iOS App › (version)**: for every language in the same pop-up, paste **Promotional Text**,
+   **Description**, **Keywords**, **What's New** (that version's release notes in the language), **Support URL** and
+   **Marketing URL** (copy them from the U.S. page).
+4. Screenshots: a localization without its own set shows the U.S. set. Localized screenshots come later from the
+   screenshot pipeline; the English set is acceptable until then.
 5. Subscriptions need localized names too: **Monetization › Subscriptions › Gistsmith (group) › Localization** and
-   each subscription's **Localization** section. Add the same three languages:
+   each subscription's **Localization** section. Display names ≤ 30 characters, descriptions ≤ 45:
 
    | Locale | Group name | Monthly name | Yearly name | Description (both) |
    |--------|-----------|--------------|-------------|--------------------|
+   | en-US | Gistsmith Pro | Gistsmith Pro Monthly | Gistsmith Pro Yearly | Mac and iPhone, 10 hours of recording a month |
    | en-GB | Gistsmith Pro | Gistsmith Pro Monthly | Gistsmith Pro Yearly | Mac and iPhone, 10 hours of recording a month |
    | tr | Gistsmith Pro | Gistsmith Pro Aylık | Gistsmith Pro Yıllık | Mac ve iPhone, ayda 10 saat kayıt |
    | fi | Gistsmith Pro | Gistsmith Pro kuukausi | Gistsmith Pro vuosi | Mac ja iPhone, 10 h tallennusta kuukaudessa |
+   | de | Gistsmith Pro | Gistsmith Pro monatlich | Gistsmith Pro jährlich | Mac und iPhone, 10 Stunden Aufnahme im Monat |
+   | fr | Gistsmith Pro | Gistsmith Pro mensuel | Gistsmith Pro annuel | Mac et iPhone, 10 h d’enregistrement par mois |
+   | es-ES | Gistsmith Pro | Gistsmith Pro mensual | Gistsmith Pro anual | Mac y iPhone, 10 horas de grabación al mes |
+   | es-MX | Gistsmith Pro | Gistsmith Pro mensual | Gistsmith Pro anual | Mac y iPhone, 10 horas de grabación al mes |
+   | it | Gistsmith Pro | Gistsmith Pro mensile | Gistsmith Pro annuale | Mac e iPhone, 10 ore di registrazione al mese |
+   | pt-BR | Gistsmith Pro | Gistsmith Pro mensal | Gistsmith Pro anual | Mac e iPhone, 10 horas de gravação por mês |
+   | nl | Gistsmith Pro | Gistsmith Pro maandelijks | Gistsmith Pro jaarlijks | Mac en iPhone, 10 uur opnemen per maand |
+   | ja | Gistsmith Pro | Gistsmith Pro 月額 | Gistsmith Pro 年額 | MacとiPhone、毎月10時間の録音 |
+   | ko | Gistsmith Pro | Gistsmith Pro 월간 | Gistsmith Pro 연간 | Mac 및 iPhone, 매월 10시간 녹음 |
+   | zh-Hans | Gistsmith Pro | Gistsmith Pro 月度 | Gistsmith Pro 年度 | Mac 和 iPhone，每月 10 小时录制 |
 
 6. Run `node scripts/appstore-screenshots/metadata-check.ts docs/appstore/metadata.md` before pasting, if the copy
    was edited.
@@ -72,7 +86,7 @@ Name, subtitle, description and keywords can't change on a live version, so add 
 - **Search results:** `search-3840x2560.png` (3:2, allowed range 1920 × 1280 to 3840 × 2560). Alternatively, one
   5244 × 2950 PNG can fill both slots; we use two dedicated files because each crop is under our control.
 - **Rules:** no prices or discounts, no URLs, no awards, no other platforms' logos, 4+ content, no transparency.
-  Assets are set per localization: upload them to en-US first and, once the localizations are live, to en-GB.
+  Assets are set per localization: upload them to en-US first and, once the localizations are live, to the others.
 - Use the **Preview** in App Store Connect on iPhone and iPad, in both orientations, before submitting.
 - These assets only show on iOS/iPadOS 27 and later. Older systems still show the screenshots.
 
