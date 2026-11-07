@@ -56,6 +56,44 @@ func record(id: String, startedAt: Date, status: MeetingStatus, audioDeleted: Bo
         #expect(result.downloading.isEmpty)
     }
 
+    // Önbellekli okuma: değişme anı ve boyutu aynı dosya yeniden çözülmez (diskteki içerik değişse de önbellekteki kayıt
+    // döner); yeniden yazılan dosya çözülür, silinen toplantı önbellekten düşer.
+    @Test func cachedLoadSkipsUnchangedFiles() throws {
+        let sessions: URL = try temporaryDirectory()
+        let folder: URL = sessions.appending(path: "20261026-100000", directoryHint: .isDirectory)
+        let other: URL = sessions.appending(path: "20261026-090000", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: other, withIntermediateDirectories: true)
+        let original: MeetingRecord = record(id: "20261026-100000", startedAt: Date(timeIntervalSince1970: 1_800_000_000), status: .done, audioDeleted: false)
+        try saveMeeting(record: original, directory: folder)
+        try saveMeeting(record: record(id: "20261026-090000", startedAt: Date(timeIntervalSince1970: 1_799_990_000), status: .done, audioDeleted: false), directory: other)
+        // Tam saniyeli değişme anı: geri yazılınca birebir aynı kalır (dosya sisteminin nanosaniyeleri yuvarlanmaz).
+        let file: URL = folder.appending(path: meetingFileName)
+        let modified: Date = Date(timeIntervalSince1970: 1_800_000_100)
+        try FileManager.default.setAttributes([.modificationDate: modified], ofItemAtPath: file.path)
+        let first: (result: MeetingLoadResult, cache: MeetingLoadCache) = loadMeetings(directories: [sessions], cache: .empty)
+        #expect(first.result.meetings.map(\.id) == ["20261026-100000", "20261026-090000"])
+        #expect(first.cache.entries.count == 2)
+
+        // Aynı boyutta başka içerik, eski değişme anıyla: imza aynı, dosya çözülmez.
+        let originalData: Data = try Data(contentsOf: file)
+        let renamed: Data = Data(String(decoding: originalData, as: UTF8.self).replacingOccurrences(of: "Palaveri", with: "Kokousta").utf8)
+        #expect(renamed.count == originalData.count)
+        try renamed.write(to: file)
+        try FileManager.default.setAttributes([.modificationDate: modified], ofItemAtPath: file.path)
+        let unchanged: (result: MeetingLoadResult, cache: MeetingLoadCache) = loadMeetings(directories: [sessions], cache: first.cache)
+        #expect(unchanged.result.meetings.first == original)
+        #expect(unchanged.cache == first.cache)
+
+        // Yeni değişme anı: yeniden çözülür. Silinen toplantı önbellekten düşer.
+        try FileManager.default.setAttributes([.modificationDate: modified.addingTimeInterval(5)], ofItemAtPath: file.path)
+        try FileManager.default.removeItem(at: other)
+        let changed: (result: MeetingLoadResult, cache: MeetingLoadCache) = loadMeetings(directories: [sessions], cache: unchanged.cache)
+        #expect(changed.result.meetings.map(\.title) == ["Kokousta"])
+        #expect(changed.cache.entries.count == 1)
+        #expect(loadMeetings(directories: [sessions]).meetings == changed.result.meetings)
+    }
+
     @Test func recoveryMarksStaleRecordingsInterrupted() {
         let records: [MeetingRecord] = [
             record(id: "a", startedAt: Date(), status: .recording, audioDeleted: false),

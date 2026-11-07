@@ -175,7 +175,15 @@ func coordinatedRemoveItem(at url: URL) throws {
 /// Klasörlerdeki tüm toplantılar (verilen sırayla; her klasörde yeniden eskiye). Aynı toplantı iki klasörde varsa ilk
 /// klasördeki kullanılır (yereldeki: kayıt ya da işleme orada sürer).
 public func loadMeetings(directories: [URL]) -> MeetingLoadResult {
-    directories.map { loadMeetings(sessionsDirectory: $0) }.reduce(MeetingLoadResult(meetings: [], failures: [], downloading: [])) { (result: MeetingLoadResult, next: MeetingLoadResult) -> MeetingLoadResult in
+    loadMeetings(directories: directories, cache: .empty).result
+}
+
+/// `loadMeetings(directories:)` ile aynı, ama değişmemiş `meeting.json` (`cache`'teki imzası aynı) yeniden çözülmez:
+/// önbellekteki kayıt kullanılır. Dönen önbellek bu okumada görülen dosyaları taşır (silinenler düşer); sık okuyan
+/// çağıran (MCP sunucusu, her araç çağrısında) onu bir sonraki okumaya verir.
+public func loadMeetings(directories: [URL], cache: MeetingLoadCache) -> (result: MeetingLoadResult, cache: MeetingLoadCache) {
+    let loads: [(result: MeetingLoadResult, cache: MeetingLoadCache)] = directories.map { loadMeetings(sessionsDirectory: $0, cache: cache) }
+    let result: MeetingLoadResult = loads.map(\.result).reduce(MeetingLoadResult(meetings: [], failures: [], downloading: [])) { (result: MeetingLoadResult, next: MeetingLoadResult) -> MeetingLoadResult in
         let known: Set<String> = Set(result.meetings.map(\.id))
         return MeetingLoadResult(
             meetings: newestFirst(records: result.meetings + next.meetings.filter { !known.contains($0.id) }),
@@ -183,6 +191,10 @@ public func loadMeetings(directories: [URL]) -> MeetingLoadResult {
             downloading: result.downloading + next.downloading.filter { !known.contains($0) }
         )
     }
+    let entries: [String: CachedMeeting] = loads.reduce(into: [:]) { (merged: inout [String: CachedMeeting], load: (result: MeetingLoadResult, cache: MeetingLoadCache)) -> Void in
+        merged.merge(load.cache.entries) { (first: CachedMeeting, _: CachedMeeting) -> CachedMeeting in first }
+    }
+    return (result, MeetingLoadCache(entries: entries))
 }
 
 /// `Sessions` altındaki tüm `meeting.json`'ları okur (yeniden eskiye). `meeting.json`'u olmayan klasörler atlanır.
@@ -190,27 +202,53 @@ public func loadMeetings(directories: [URL]) -> MeetingLoadResult {
 /// Klasörler paralel okunur (büyük arşivde çözümleme süresi çekirdeklere bölünür); sonuçların sırası klasör sırasıdır.
 /// Ana iş parçacığında çağrılmaz (bkz. `loadMeetingsInBackground`).
 public func loadMeetings(sessionsDirectory: URL) -> MeetingLoadResult {
+    loadMeetings(sessionsDirectory: sessionsDirectory, cache: .empty).result
+}
+
+/// `meeting.json`'un değiştiğini gösteren imza: içeriğin değişme anı ve boyutu. Yazımlar dosyayı yeniden adlandırarak
+/// değiştirir (`.atomic`); aynı anlı ve aynı boyutlu iki farklı içerik pratikte olmaz.
+public struct MeetingFileSignature: Sendable, Equatable {
+    public let modified: Date
+    public let size: Int
+}
+
+/// Önbellekteki toplantı: dosyanın okunduğu andaki imzası ve çözülmüş kaydı.
+public struct CachedMeeting: Sendable, Equatable {
+    public let signature: MeetingFileSignature
+    public let record: MeetingRecord
+}
+
+/// Okunmuş toplantıların önbelleği (`meeting.json` yolu → imza ve kayıt).
+public struct MeetingLoadCache: Sendable, Equatable {
+    public let entries: [String: CachedMeeting]
+
+    public static let empty: MeetingLoadCache = MeetingLoadCache(entries: [:])
+}
+
+/// `loadMeetings(sessionsDirectory:)`, değişmemiş dosyaları `cache`'ten alarak; okunan dosyaların önbelleğiyle döner.
+func loadMeetings(sessionsDirectory: URL, cache: MeetingLoadCache) -> (result: MeetingLoadResult, cache: MeetingLoadCache) {
     // Henüz hiç kayıt yapılmadıysa klasör yoktur: boş liste doğru sonuçtur.
     guard FileManager.default.fileExists(atPath: sessionsDirectory.path) else {
-        return MeetingLoadResult(meetings: [], failures: [], downloading: [])
+        return (MeetingLoadResult(meetings: [], failures: [], downloading: []), .empty)
     }
     let folders: [URL]
     do {
         folders = try FileManager.default.contentsOfDirectory(at: sessionsDirectory, includingPropertiesForKeys: nil)
             .sorted { (left: URL, right: URL) -> Bool in left.lastPathComponent > right.lastPathComponent }
     } catch {
-        return MeetingLoadResult(meetings: [], failures: [MeetingLoadFailure(folder: sessionsDirectory.lastPathComponent, reason: String(describing: error))], downloading: [])
+        return (MeetingLoadResult(meetings: [], failures: [MeetingLoadFailure(folder: sessionsDirectory.lastPathComponent, reason: String(describing: error))], downloading: []), .empty)
     }
     let outcomes: Mutex<[FolderLoadOutcome]> = Mutex(Array(repeating: FolderLoadOutcome.skipped, count: folders.count))
     DispatchQueue.concurrentPerform(iterations: folders.count) { (index: Int) -> Void in
-        let outcome: FolderLoadOutcome = loadMeetingFolder(folder: folders[index])
+        let outcome: FolderLoadOutcome = loadMeetingFolder(folder: folders[index], cache: cache)
         outcomes.withLock { (values: inout [FolderLoadOutcome]) -> Void in values[index] = outcome }
     }
     let ordered: [FolderLoadOutcome] = outcomes.withLock { (values: inout [FolderLoadOutcome]) -> [FolderLoadOutcome] in values }
-    return MeetingLoadResult(
-        meetings: newestFirst(records: ordered.compactMap { (outcome: FolderLoadOutcome) -> MeetingRecord? in
-            if case .meeting(let record) = outcome { record } else { nil }
-        }),
+    let loaded: [(path: String, meeting: CachedMeeting)] = ordered.compactMap { (outcome: FolderLoadOutcome) -> (path: String, meeting: CachedMeeting)? in
+        if case .meeting(let path, let meeting) = outcome { (path, meeting) } else { nil }
+    }
+    let result: MeetingLoadResult = MeetingLoadResult(
+        meetings: newestFirst(records: loaded.map(\.meeting.record)),
         failures: ordered.compactMap { (outcome: FolderLoadOutcome) -> MeetingLoadFailure? in
             if case .failure(let failure) = outcome { failure } else { nil }
         },
@@ -218,11 +256,14 @@ public func loadMeetings(sessionsDirectory: URL) -> MeetingLoadResult {
             if case .downloading(let folder) = outcome { folder } else { nil }
         }
     )
+    let entries: [String: CachedMeeting] = Dictionary(loaded.map { ($0.path, $0.meeting) }) { (first: CachedMeeting, _: CachedMeeting) -> CachedMeeting in first }
+    return (result, MeetingLoadCache(entries: entries))
 }
 
 /// Bir toplantı klasörünün okuma sonucu.
 private enum FolderLoadOutcome: Sendable {
-    case meeting(MeetingRecord)
+    /// Okunan toplantı: `meeting.json`'un yolu, imzası ve kaydı.
+    case meeting(path: String, CachedMeeting)
     case failure(MeetingLoadFailure)
     /// iCloud'dan iniyor (indirmesi başlatıldı); değer klasör adıdır.
     case downloading(String)
@@ -230,8 +271,21 @@ private enum FolderLoadOutcome: Sendable {
     case skipped
 }
 
+/// Dosyanın imzası (içeriğin değişme anı ve boyutu).
+private func meetingFileSignature(file: URL) throws -> MeetingFileSignature {
+    let values: URLResourceValues = try file.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
+    guard let modified = values.contentModificationDate, let size = values.fileSize else {
+        throw StorageError.readFailed(path: file.path, reason: "değişme anı ya da boyut okunamadı")
+    }
+    return MeetingFileSignature(modified: modified, size: size)
+}
+
 /// Tek bir toplantı klasörünü okur: inmemiş iCloud dosyasının indirmesini başlatır, iCloud çakışmalarını birleştirir.
-private func loadMeetingFolder(folder: URL) -> FolderLoadOutcome {
+/// İmzası `cache`'tekiyle aynı dosya yeniden çözülmez. Dosya koordinatörü kullanılmaz: yazımlar atomiktir (geçici dosya
+/// + yeniden adlandırma; iCloud da dosyayı böyle değiştirir), okuma hep tam bir sürümü görür; tek tek koordinasyon büyük
+/// arşivde okumayı çok yavaşlatıyordu (500 toplantılık başarım testi iOS Simülatörü'nde 35 sn sürdü). Bellekteki kopyanın
+/// üzerine yazmadan önceki okuma `loadMeeting(directory:)` ile koordinelidir.
+private func loadMeetingFolder(folder: URL, cache: MeetingLoadCache) -> FolderLoadOutcome {
     let file: URL = folder.appending(path: meetingFileName)
     guard FileManager.default.fileExists(atPath: file.path) else {
         // iPhone'da inmemiş iCloud dosyası yerine ".meeting.json.icloud" yer tutucusu durur: indirmesi başlatılır
@@ -251,7 +305,13 @@ private func loadMeetingFolder(folder: URL) -> FolderLoadOutcome {
             return .downloading(folder.lastPathComponent)
         }
         try resolveCloudConflicts(file: file)
-        return .meeting(try meetingDecoder().decode(MeetingRecord.self, from: Data(contentsOf: file)))
+        let path: String = file.standardizedFileURL.path
+        let signature: MeetingFileSignature = try meetingFileSignature(file: file)
+        if let cached = cache.entries[path], cached.signature == signature {
+            return .meeting(path: path, cached)
+        }
+        let record: MeetingRecord = try meetingDecoder().decode(MeetingRecord.self, from: Data(contentsOf: file))
+        return .meeting(path: path, CachedMeeting(signature: signature, record: record))
     } catch {
         return .failure(MeetingLoadFailure(folder: folder.lastPathComponent, reason: String(describing: error)))
     }
