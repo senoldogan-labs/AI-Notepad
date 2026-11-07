@@ -36,6 +36,9 @@ export interface IconItem {
   readonly text: string;
 }
 
+/** App Store rozetinin dili: Apple'ın rozeti sayfanın diliyle (`/` İngilizce, `/fi` Fince). */
+export type BadgeLanguage = "en" | "fi";
+
 /** Ortak metinler: üst çubuk, alt bilgi, fiyat. */
 export interface CommonCopy {
   readonly skipLink: string;
@@ -70,6 +73,13 @@ export interface CommonCopy {
   /** Ücretsiz denemenin koşulları (JSON-LD teklifinin açıklaması, /llms.txt). */
   readonly trial: string;
   readonly requirementsShort: string;
+  /** iPhone uygulamasının gereksinimi (ör. "iOS 26.1 or later"; project.yml iOS `deploymentTarget`). */
+  readonly iphoneRequirementsShort: string;
+  /** App Store rozetinin dili (AppStoreBadge.astro) ve bağlantısının erişilebilir adı (rozetin yazısı). */
+  readonly appStoreBadge: {
+    readonly language: BadgeLanguage;
+    readonly label: string;
+  };
   /**
    * İndirme düğmesi bu cihazda işe yaramayacaksa açılan pencere (MacOnlyDialog.astro): telefon, tablet ya da Mac
    * olmayan bilgisayar (`notMac`), Intel Mac (`intel`) ve macOS 15'ten eski Mac (`oldMacos`; `{version}` sürümle dolar).
@@ -77,6 +87,8 @@ export interface CommonCopy {
   readonly macOnly: {
     readonly notMacTitle: string;
     readonly notMacText: string;
+    /** Mac olmayan cihazda App Store rozetinin üstündeki satır (iPhone uygulaması). */
+    readonly iphoneText: string;
     readonly intelTitle: string;
     readonly intelText: string;
     readonly oldMacosTitle: string;
@@ -205,6 +217,21 @@ export interface HomeCopy {
     readonly note: ShowcaseShot;
     readonly ask: ShowcaseShot;
   };
+  /** The iPhone app: in-person meetings through the microphone, Ask, tasks, and one account and subscription with the
+   * Mac (optional sync). Real iPhone screens in a device frame (scripts/make-iphone-shots.ts) and the App Store badge. */
+  readonly iphone: {
+    /** Muted first phrase of the heading. */
+    readonly eyebrow: string;
+    readonly title: string;
+    readonly lead: string;
+    readonly points: readonly IconText[];
+    /** What the iPhone app does not record (phone calls, online meetings); the Finnish page also names the app's language. */
+    readonly note: string;
+    /** Text equivalents of the three phones (live recording, home, Ask). */
+    readonly alt: { readonly live: string; readonly home: string; readonly ask: string };
+    /** The hero's quiet link to this section. */
+    readonly heroLink: string;
+  };
   /** Feature cards: one sentence each, under a pastel cover. */
   readonly features: {
     readonly missed: TitledText & { readonly button: string; readonly answer: string };
@@ -316,6 +343,13 @@ export interface DownloadCopy {
   readonly requirementsLabel: string;
   /** Gereksinimin altındaki not: her şey macOS 15'te çalışır; sesle yazmanın motoru sürüme göre değişir. */
   readonly requirementsNote: string;
+  /** Mac ve iPhone bloklarının başlıkları. */
+  readonly macTitle: string;
+  readonly iphoneTitle: string;
+  /** iPhone bloğunun açıklaması: ne kaydettiği, aynı hesap ve abonelik, App Store aboneliği. */
+  readonly iphoneNote: string;
+  /** iPhone görselinin metin karşılığı. */
+  readonly iphoneAlt: string;
   readonly installTitle: string;
   readonly installSteps: readonly TitledText[];
   /** Sayfanın sonundaki tek satır: güncellemeler ve yardım bağlantısı. */
@@ -931,9 +965,12 @@ export const copy: Copy = {
     offer: "3 meetings or 7 days free, then $5.99 a month or $49 a year, taxes included",
     trial: "Free trial: 3 meetings or 7 days from your first meeting, whichever comes first, each up to 90 minutes; no card needed",
     requirementsShort: "macOS 15 or later · Apple silicon",
+    iphoneRequirementsShort: "iOS 26.1 or later",
+    appStoreBadge: { language: "en", label: "Download on the App Store" },
     macOnly: {
-      notMacTitle: `${productName} is a Mac app`,
-      notMacText: "It runs on Macs with Apple silicon and macOS 15 or later. Send yourself the link and download it on your Mac.",
+      notMacTitle: "Download the Mac app on your Mac",
+      notMacText: "The Mac app runs on Macs with Apple silicon and macOS 15 or later. Send yourself the link and download it on your Mac.",
+      iphoneText: `On an iPhone, get ${productName} from the App Store.`,
       intelTitle: "This Mac has an Intel processor",
       intelText: `${productName} needs a Mac with Apple silicon (M1 or later), so it won't open on this Mac.`,
       oldMacosTitle: `${productName} needs macOS 15 or later`,
@@ -969,9 +1006,9 @@ export const copy: Copy = {
   home: {
     meta: {
       title: `${productName} — ${tagline}`,
-      description: `${brandLine} AI meeting notes for Mac: a live transcript, translation and your tasks first. No bot joins the call.`,
+      description: `${brandLine} AI meeting notes for Mac and iPhone: a live transcript, translation and your tasks first. No bot joins the call.`,
     },
-    eyebrow: "AI meeting notes for Mac",
+    eyebrow: "AI meeting notes for Mac and iPhone",
     title: tagline,
     lead: "No bot joins the call.",
     secondaryCta: "See pricing",
@@ -1038,6 +1075,28 @@ export const copy: Copy = {
         alt: `The Ask page in ${productName}: the question “What did we decide about the budget?” answered in two bullet points with numbered citations, and a row showing 3 sources from 2 meetings.`,
       },
     },
+    iphone: {
+      eyebrow: "On iPhone",
+      title: "Meetings in the room, too.",
+      lead: "Put your iPhone on the table and tap record. Your note is ready when the meeting ends.",
+      points: [
+        { icon: "mic", title: "In-person meetings", text: "It listens through your iPhone's microphone, with a live transcript and translation as people talk." },
+        { icon: "search", title: "Ask your meetings", text: "Ask in plain words and get an answer that cites the meeting it came from." },
+        { icon: "check-circle", title: "Your tasks in one list", text: "The tasks from every meeting, with their due dates, in one place." },
+        {
+          icon: "refresh",
+          title: "One account for Mac and iPhone",
+          text: "Sign in with the same account and one subscription covers both. Turn on sync to see your notes on both, encrypted end to end.",
+        },
+      ],
+      note: "The iPhone app records the conversation around your phone. It doesn't record phone calls or online meetings; use the Mac for those.",
+      alt: {
+        live: `${productName} on iPhone recording a Finnish meeting: a 12:43 timer, a sound wave and each speaker's Finnish sentences with the English translation underneath, and a Finish button at the bottom.`,
+        home: `The ${productName} home screen on iPhone: today's upcoming meetings with Briefing and Join buttons, 8 open tasks, recent notes and an Ask a question button next to the record button.`,
+        ask: `Ask in ${productName} on iPhone: the question “What did we decide about the budget?” answered in two points with numbered citations to the meetings.`,
+      },
+      heroLink: "Also on iPhone",
+    },
     features: {
       missed: {
         title: "Catch up without interrupting",
@@ -1090,8 +1149,8 @@ export const copy: Copy = {
       items: [
         {
           icon: "laptop",
-          title: "Stored on your Mac",
-          text: "Notes, transcripts and recordings live on your Mac. Our servers don't store your audio, or notes we can read unless you turn on AI assistant access.",
+          title: "Stored on your devices",
+          text: "Notes, transcripts and recordings live on your Mac and iPhone. Our servers don't store your audio, or notes we can read unless you turn on AI assistant access.",
         },
         { icon: "sparkle", title: "Not used to train AI", text: "Your meetings aren't used to train our providers' models. We've opted out wherever that's a setting." },
         { icon: "globe", title: "EU company, GDPR", text: "Run from Finland under EU data protection law, with our account database in the EU." },
@@ -1158,7 +1217,7 @@ export const copy: Copy = {
       },
       {
         question: "Does it work for in-person meetings and recordings?",
-        answer: "Yes. Turn on “In person” before you start, and the Mac's microphone records everyone in the room. You can also import an audio or video file, such as a recorded call or a voice memo, and get the same transcript and note; an imported file counts as a meeting.",
+        answer: "Yes. On the Mac, turn on “In person” before you start, and its microphone records everyone in the room. On iPhone, put the phone on the table and tap record. You can also import an audio or video file, such as a recorded call or a voice memo, and get the same transcript and note; an imported file counts as a meeting.",
       },
     ],
     featureList: [
@@ -1178,14 +1237,16 @@ export const copy: Copy = {
       "Send notes to Slack, Microsoft Teams, Discord, Zoom Team Chat, Notion and Apple Notes; tasks to Linear, Jira and Apple Reminders; anything else through webhooks",
       "Read-only MCP server for Claude, Cursor and VS Code",
       "Voice typing in any Mac app, transcribed on your Mac",
-      "Notes, transcripts and recordings stored on your Mac",
+      "Notes, transcripts and recordings stored on your Mac or iPhone",
+      "An iPhone app for in-person meetings, with the same account and subscription as the Mac app",
+      "Optional sync between Mac and iPhone, encrypted end to end; audio stays on the device that recorded it",
     ],
     finalTitle: "Let it write the note for your next meeting.",
     finalLead: "Set up in a minute, then just start listening.",
   },
   pricing: {
     meta: {
-      title: `${productName} pricing: Mac meeting notes from $5.99 a month`,
+      title: `${productName} pricing: meeting notes for Mac and iPhone from $5.99 a month`,
       description: "$5.99 a month or $49 a year, taxes included. 3 meetings or 7 days free, up to 10 hours a month, up to 4 hours per meeting, cancel anytime.",
     },
     title: "Simple pricing, monthly or yearly.",
@@ -1211,7 +1272,7 @@ export const copy: Copy = {
         cta: "Choose yearly",
       },
     ],
-    plansNote: "Both plans include everything below. Got an invite from a friend? {invite}",
+    plansNote: "Both plans include everything below, on Mac and iPhone. Got an invite from a friend? {invite}",
     plansInviteLink: "How invites work",
     includedTitle: "Everything included",
     planTagline: "Everything from live transcript to tasks.",
@@ -1223,6 +1284,7 @@ export const copy: Copy = {
       { icon: "plug", text: "Send to Notion, Slack, Linear, Jira and more" },
       { icon: "sparkle", text: "Your AI apps can read your meetings through MCP, including snapshots of shared screens" },
       { icon: "mic", text: "Voice typing in any Mac app, transcribed on your Mac (free with any account)" },
+      { icon: "refresh", text: "The Mac and iPhone apps on one subscription, with optional sync encrypted end to end" },
     ],
     startFree: "Start free",
     limitsTitle: "The limits, plainly",
@@ -1234,11 +1296,15 @@ export const copy: Copy = {
         text: "A fair-use limit on meeting time that resets on the first day of each month (UTC). At the limit you can't start new meetings until the month resets; the app tells you clearly. AI outside meetings, such as Ask, has its own monthly allowance.",
       },
       { icon: "timer", title: "4 hours per meeting", text: "Enough for long workshops and lectures; longer meetings close at 4 hours." },
-      { icon: "card", title: "Cancelling", text: "Cancel in a click from your account page or at link.com. You keep access until the end of the paid period." },
+      {
+        icon: "card",
+        title: "Cancelling",
+        text: "Cancel in a click from your account page or at link.com. If you subscribed in the iPhone app, cancel on your iPhone in Settings › your name › Subscriptions. You keep access until the end of the paid period.",
+      },
     ],
     taxTitle: "Payments and taxes",
     taxText:
-      `Checkout is hosted by Stripe, and your purchase is sold through Link, Stripe's payment service, as the merchant of record. The price of $5.99 a month or $49 a year includes sales tax, VAT or GST: Link calculates and remits the tax for your location, and checkout shows the included tax before you pay. You may see the price in your local currency. Receipts come from Link, and your card statement shows ${cardStatementDescriptor}. Your card details stay with Stripe and Link and never reach us. Purchases aren't available in some countries where Stripe can't sell, such as China, Cuba, Iran, North Korea, Russia and Syria.`,
+      `Checkout is hosted by Stripe, and your purchase is sold through Link, Stripe's payment service, as the merchant of record. The price of $5.99 a month or $49 a year includes sales tax, VAT or GST: Link calculates and remits the tax for your location, and checkout shows the included tax before you pay. You may see the price in your local currency. Receipts come from Link, and your card statement shows ${cardStatementDescriptor}. Your card details stay with Stripe and Link and never reach us. Purchases aren't available in some countries where Stripe can't sell, such as China, Cuba, Iran, North Korea, Russia and Syria. In the iPhone app you can also subscribe through the App Store: Apple handles that payment, the app shows the price for your country before you buy, and your Apple Account is charged.`,
     faqTitle: "Questions",
     faq: [
       {
@@ -1247,8 +1313,13 @@ export const copy: Copy = {
           "There are two monthly allowances, and the app and your account page show how much of each you've used. Meeting hours: up to 10 hours of meetings a month. The AI that works during and right after a meeting, such as live translation, “What did I miss?” and the note, comes with the meeting and doesn't use the second allowance. AI outside meetings: Ask, rewriting a note, translating a note to share and the task tools share a separate monthly allowance; when it's used up, they pause until the month resets. Web search in Ask has its own limit of 100 searches a month; after that, Ask answers from your meetings only. All of them reset on the first day of each month (UTC). During the free trial, AI outside meetings has a daily allowance instead.",
       },
       {
+        question: "Does one subscription work on Mac and iPhone?",
+        answer:
+          "Yes. Sign in to both apps with the same Apple or Google account, and a subscription bought on this website, in the Mac app or in the iPhone app works in both. Subscriptions bought in the iPhone app go through the App Store: Apple bills them, and you manage or cancel them on your iPhone in Settings › your name › Subscriptions. Refunds for them are handled by Apple.",
+      },
+      {
         question: "What happens when the trial ends?",
-        answer: "The app lets you know. You can't start new meetings until you subscribe; your existing notes and recordings stay on your Mac and remain readable.",
+        answer: "The app lets you know. You can't start new meetings until you subscribe; your existing notes and recordings stay on your device and remain readable.",
       },
       {
         question: "What if a payment fails?",
@@ -1272,16 +1343,21 @@ export const copy: Copy = {
   },
   download: {
     meta: {
-      title: `Download ${productName} for Mac: AI meeting notes`,
-      description: `Download ${productName} for your Mac: macOS 15 or later on Apple silicon. 3 meetings or 7 days free.`,
+      title: `Download ${productName} for Mac and iPhone: AI meeting notes`,
+      description: `Download ${productName} for your Mac (macOS 15 or later on Apple silicon) or get it on the App Store for iPhone. 3 meetings or 7 days free.`,
     },
     title: `Download ${productName}`,
-    lead: "For Mac. Free for 3 meetings or 7 days, no card needed.",
+    lead: "For Mac and iPhone. Free for 3 meetings or 7 days, no card needed.",
     versionLabel: "Version",
     requirementsLabel: "Requires",
     requirementsNote:
       "Everything works on macOS 15 or later on a Mac with Apple silicon (M1 or later). Voice typing uses Apple's on-device dictation on macOS 26 or later, and an on-device speech model on macOS 15 to 25.",
-    installTitle: "Three steps to your first meeting",
+    macTitle: "Mac",
+    iphoneTitle: "iPhone",
+    iphoneNote:
+      "For meetings in the room: it records the conversation around your iPhone, not phone calls or online meetings. Sign in with the same account as on your Mac; one subscription covers both. In the app, subscriptions go through the App Store.",
+    iphoneAlt: `The ${productName} home screen on iPhone: today's upcoming meetings, 8 open tasks, recent notes and an Ask a question button next to the record button.`,
+    installTitle: "Three steps to your first meeting on the Mac",
     installSteps: [
       { title: "Install", text: `Open the disk image and drag ${productName} into Applications.` },
       { title: "Allow audio", text: "Open the app and allow the microphone and system audio, so it hears both sides of the call." },
@@ -1302,7 +1378,7 @@ export const copy: Copy = {
     },
     eyebrow: "Compare",
     title: `${productName} compared with Granola, Otter, Fireflies and Poffle`,
-    lead: `${productName} is the meeting notepad for Mac that works without a bot, opens every note with your tasks and translates live. Here is how it differs from four popular alternatives in price, how each one hears the meeting, platforms and languages. Where another app is stronger, we say so.`,
+    lead: `${productName} is the meeting notepad for Mac and iPhone that works without a bot, opens every note with your tasks and translates live. Here is how it differs from four popular alternatives in price, how each one hears the meeting, platforms and languages. Where another app is stronger, we say so.`,
     overviewTopics: ["price", "free", "capture", "platforms", "languages", "translation"],
     overviewTitle: "At a glance",
     topics: {
@@ -1326,7 +1402,7 @@ export const copy: Copy = {
       price: "$5.99 a month or $49 a year, taxes included",
       free: "Free trial: 3 meetings or 7 days, whichever comes first; no card needed",
       capture: "No bot. Listens to your Mac's system audio and microphone, so it works with any call app, and finishes the recording when the call ends (after a 30-second countdown you can stop); also records in-person meetings and imports audio or video files",
-      platforms: "Mac with Apple silicon, macOS 15 or later",
+      platforms: "Mac with Apple silicon, macOS 15 or later; iPhone with iOS 26.1 or later, for in-person meetings",
       limits: "Up to 10 meeting hours a month and up to 4 hours per meeting",
       languages: `${spokenLanguages.length} spoken languages, including Turkish and Finnish; notes in ${noteLanguages.length}; app in ${interfaceLanguages.length} languages`,
       translation: `Included: what others say is translated into your language (any of ${noteLanguages.length}) within seconds`,
@@ -1337,7 +1413,7 @@ export const copy: Copy = {
       integrations:
         "Notion, Apple Notes, Slack, Microsoft Teams, Discord, Zoom Team Chat; tasks to Linear, Jira and Apple Reminders; Markdown folders (Obsidian) and webhooks (Zapier, Make, n8n)",
       mcp: "Built-in read-only MCP server for Claude, Cursor and VS Code, on every plan",
-      storage: "Notes, transcripts and recordings are saved on your Mac",
+      storage: "Notes, transcripts and recordings are saved on your Mac or iPhone",
       plans: "One personal plan, billed monthly or yearly; no shared team workspace",
     },
     why: {
@@ -1369,8 +1445,8 @@ export const copy: Copy = {
         },
         name: "Granola",
         title: `${productName} vs Granola`,
-        lead: `${productName} is a Mac app with simple pricing, notes that open with your tasks and live translation as people talk. Both take notes without a bot joining the call; Granola runs on more devices and has team plans and more business integrations.`,
-        summary: `${productName} adds live translation and notes that open with your tasks, for one simple price. Both work without a bot; Granola has a free plan, mobile apps, team plans and CRM integrations.`,
+        lead: `${productName} is a Mac and iPhone app with simple pricing, notes that open with your tasks and live translation as people talk. Both take notes without a bot joining the call; Granola runs on more devices and has team plans and more business integrations.`,
+        summary: `${productName} adds live translation and notes that open with your tasks, for one simple price. Both work without a bot; Granola has a free plan, Android and Apple Watch apps, team plans and CRM integrations.`,
         pricingUrl: "https://www.granola.ai/pricing",
         values: {
           price: "Basic $0; Business $14 per user a month; Enterprise $35 per user a month",
@@ -1392,7 +1468,7 @@ export const copy: Copy = {
         strengthsTitle: "Where Granola is stronger",
         strengths: [
           "A free Basic plan, with 30 days of meeting history.",
-          "Apps for iOS, Android and Apple Watch as well as the desktop.",
+          "Apps for Android and Apple Watch as well as the desktop and iPhone.",
           "Per-user Business and Enterprise plans for teams, with shared folders, central billing and, on Enterprise, SSO and SCIM.",
           "HubSpot, Attio, Affinity and Zapier integrations and an API on the Business plan; Salesforce on Enterprise.",
         ],
@@ -1400,7 +1476,7 @@ export const copy: Copy = {
           title: "Pick Granola if",
           points: [
             "you want a free plan and 30 days of history is enough",
-            "you also take notes on an Android phone, an iPhone or an Apple Watch",
+            "you also take notes on an Android phone or an Apple Watch",
             "your team wants one shared workspace with per-user billing",
             "your notes need to reach HubSpot, Attio or Salesforce, or you want an API",
           ],
@@ -1454,7 +1530,7 @@ export const copy: Copy = {
           points: [
             "you want a free tier and 300 minutes a month covers you",
             "you'd like a note-taker to join the call as a participant",
-            "you need Windows, iPhone or Android apps, or team plans",
+            "you need Windows or Android apps, or team plans",
             "your notes need to reach Salesforce or HubSpot",
           ],
         },
@@ -1508,7 +1584,7 @@ export const copy: Copy = {
           title: "Pick Fireflies if",
           points: [
             "your team wants shared workspaces, channels and admin analytics",
-            "you need Windows, iPhone or Android apps, or a web app",
+            "you need Windows or Android apps, or a web app",
             "your notes need to reach a CRM, or you want an API",
             "you're fine with a bot joining the call, or recording through a Chrome extension",
           ],
@@ -1597,7 +1673,7 @@ export const copy: Copy = {
     moreTitle: "More from the blog",
     coverAlt: `“{title}” in large type on a soft pastel gradient, with the ${productName} logo and a small sound wave.`,
     ctaTitle: `Try ${productName}`,
-    ctaText: "A meeting notepad for Mac. 3 meetings or 7 days free, then $5.99 a month or $49 a year, taxes included.",
+    ctaText: "A meeting notepad for Mac and iPhone. 3 meetings or 7 days free, then $5.99 a month or $49 a year, taxes included.",
   },
   mcp: {
     meta: {
@@ -1745,7 +1821,7 @@ export const copy: Copy = {
   signIn: {
     meta: { title: `Sign in — ${productName}`, description: `Sign in to your ${productName} account with Apple or Google.` },
     title: "Sign in",
-    lead: "To manage your account and subscription. You use the same account in the Mac app.",
+    lead: "To manage your account and subscription. You use the same account in the Mac and iPhone apps.",
     apple: "Continue with Apple",
     google: "Continue with Google",
     legalBefore: "By continuing, you agree to the",
@@ -1816,12 +1892,12 @@ export const copy: Copy = {
       howItWorks: "How invites work",
     },
     appTitle: "Get the app",
-    appText: `${productName} runs on your Mac. Sign in there with the same Apple or Google account.`,
+    appText: `${productName} runs on your Mac and iPhone. Sign in to the app with the same Apple or Google account.`,
     helpTitle: "Need help?",
     helpContact: "Contact support",
     dangerTitle: "Delete account",
     dangerText:
-      "Your account, sessions, device registrations and usage history are permanently deleted, and a subscription bought on this website or in the Mac app is cancelled immediately. Your notes and recordings stay on your Mac. Receipts and payment records are kept by Stripe and Link as required by law. To prevent free-trial abuse, a pseudonymous record of how many free-trial meetings your sign-in has used is kept for up to 24 months, so signing in again with the same account continues the trial instead of restarting it. If you subscribed with an invite, a pseudonymous record that you used one is also kept for up to 24 months so it can't be used twice.",
+      "Your account, sessions, device registrations and usage history are permanently deleted, and a subscription bought on this website or in the Mac app is cancelled immediately. Your notes and recordings stay on your Mac and iPhone. Receipts and payment records are kept by Stripe and Link as required by law. To prevent free-trial abuse, a pseudonymous record of how many free-trial meetings your sign-in has used is kept for up to 24 months, so signing in again with the same account continues the trial instead of restarting it. If you subscribed with an invite, a pseudonymous record that you used one is also kept for up to 24 months so it can't be used twice.",
     deleteButton: "Delete account",
     dialogTitle: "Delete your account?",
     dialogText: "This can't be undone. A subscription bought on this website or in the Mac app is cancelled immediately and ends with your account; the remaining time is not refunded automatically.",
@@ -1830,7 +1906,7 @@ export const copy: Copy = {
     cancel: "Cancel",
     confirmDelete: "Permanently delete my account",
     deletedTitle: "Your account was deleted",
-    deletedText: "Your account data on our server is gone, apart from the pseudonymous free-trial and invite records described in the privacy policy. The notes and recordings on your Mac are still there.",
+    deletedText: "Your account data on our server is gone, apart from the pseudonymous free-trial and invite records described in the privacy policy. The notes and recordings on your Mac and iPhone are still there.",
     deletedRedirect: "Taking you to the home page…",
     backHome: "Back to the home page",
     noScript: "The account page needs JavaScript.",

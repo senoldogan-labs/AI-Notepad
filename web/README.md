@@ -68,7 +68,9 @@ seçimi hatırladığını ve gösterimin 5 saniyelik ana iş parçacığı mali
 ihlali varsa çıkış kodu 1'dir. Hesap ve yönetim sayfaları için sekmeye örnek bir oturum yazılır ve API yanıtları
 betikteki örnek verilerle karşılanır (yalnızca görünüm denetimi; sunucu akışı sunucunun testlerindedir).
 
-Yalnızca kaynak değişince elle çalıştırılanlar (çıktıları repodadır): `scripts/subset-font.sh` (yazı tipi),
+Yalnızca kaynak değişince elle çalıştırılanlar (çıktıları repodadır): `node scripts/make-iphone-shots.ts home=<çekim.png>
+live=<çekim.png> ask=<çekim.png>` (iPhone ekranlarını telefon çerçevesine koyar → `src/assets/screenshots/iphone-<ad>.webp`;
+çekimler App Store çekim hattının ham görüntüleridir, `.build/appstore-screenshots/raw/`), `scripts/subset-font.sh` (yazı tipi),
 `node scripts/make-grain.ts <chrome>` (film greni `public/grain.webp` ve `.png`, `scripts/grain.svg`'den), `node scripts/make-og.ts <site> <chrome>`
 (paylaşım kartı `public/og.png`, site sunulurken; ürün adını `productName`'den alır).
 

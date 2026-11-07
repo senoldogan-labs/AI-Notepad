@@ -1,0 +1,63 @@
+---
+// Apple's official "Download on the App Store" badge, linking to the iPhone app. The artwork comes unchanged from
+// Apple's marketing tools (toolbox.marketingtools.apple.com, black and white, en-us and fi-fi), stored locally because
+// the site CSP serves only local images; its `style="fill: …"` attributes were rewritten as `fill="…"` so the SVG needs
+// no inline styles. The black badge shows in the light theme, the white one in the dark theme (Apple's guidance: the
+// badge contrasts with the page). Apple asks for at least 40 px height on screen, with clear space around it.
+import { appStoreUrl } from "../config";
+import type { BadgeLanguage } from "../copy";
+import enBlack from "../assets/badges/app-store-en-black.svg";
+import enWhite from "../assets/badges/app-store-en-white.svg";
+import fiBlack from "../assets/badges/app-store-fi-black.svg";
+import fiWhite from "../assets/badges/app-store-fi-white.svg";
+
+interface Props {
+  readonly language: BadgeLanguage;
+  /** The link's accessible name (the badge's text, e.g. "Download on the App Store"). */
+  readonly label: string;
+  /** Badge height in CSS pixels (40 or more). */
+  readonly height: number;
+  readonly class: string;
+}
+const { language, label, height, class: extraClass } = Astro.props;
+const badges = { en: { black: enBlack, white: enWhite }, fi: { black: fiBlack, white: fiWhite } } as const;
+const { black, white } = badges[language];
+const width: number = Math.round((black.width * height) / black.height);
+---
+
+<a class:list={["app-store-badge", extraClass]} href={appStoreUrl} aria-label={label}>
+  <img class="app-store-badge__light" src={black.src} width={width} height={height} alt="" decoding="async" />
+  <img class="app-store-badge__dark" src={white.src} width={width} height={height} alt="" decoding="async" />
+</a>
+
+<style>
+  .app-store-badge {
+    display: inline-flex;
+    flex: none;
+    border-radius: 9px;
+  }
+
+  .app-store-badge img {
+    display: block;
+    max-width: none;
+  }
+
+  .app-store-badge .app-store-badge__dark,
+  :global(:root[data-theme="dark"]) .app-store-badge .app-store-badge__light {
+    display: none;
+  }
+
+  :global(:root[data-theme="dark"]) .app-store-badge .app-store-badge__dark {
+    display: block;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-theme])) .app-store-badge .app-store-badge__light {
+      display: none;
+    }
+
+    :global(:root:not([data-theme])) .app-store-badge .app-store-badge__dark {
+      display: block;
+    }
+  }
+</style>

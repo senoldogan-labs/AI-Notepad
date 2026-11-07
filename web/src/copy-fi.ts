@@ -44,9 +44,12 @@ export const commonFi: CommonCopy = {
   offer: "3 kokousta tai 7 päivää ilmaiseksi, sitten 5,99 $ kuussa tai 49 $ vuodessa, verot sisältyvät",
   trial: "Ilmainen kokeilu: 3 kokousta tai 7 päivää ensimmäisestä kokouksesta, kumpi tahansa täyttyy ensin, kukin enintään 90 minuuttia; korttia ei tarvita",
   requirementsShort: "macOS 15 tai uudempi · Apple silicon",
+  iphoneRequirementsShort: "iOS 26.1 tai uudempi",
+  appStoreBadge: { language: "fi", label: "Lataa App Storesta" },
   macOnly: {
-    notMacTitle: `${productName} on Mac-sovellus`,
-    notMacText: "Se toimii Maceissa, joissa on Apple silicon -siru ja macOS 15 tai uudempi. Lähetä linkki itsellesi ja lataa sovellus Macillasi.",
+    notMacTitle: "Lataa Mac-sovellus Macillasi",
+    notMacText: "Mac-sovellus toimii Maceissa, joissa on Apple silicon -siru ja macOS 15 tai uudempi. Lähetä linkki itsellesi ja lataa sovellus Macillasi.",
+    iphoneText: `iPhonelle ${productName} löytyy App Storesta.`,
     intelTitle: "Tässä Macissa on Intel-suoritin",
     intelText: `${productName} vaatii Macin, jossa on Apple silicon -siru (M1 tai uudempi), joten se ei avaudu tässä Macissa.`,
     oldMacosTitle: `${productName} vaatii macOS 15:n tai uudemman`,
@@ -83,10 +86,10 @@ export const commonFi: CommonCopy = {
 /** Kokousmuistiinpanoista kertova Fince sivu. */
 export const homeFi: HomeCopy = {
   meta: {
-    title: `${productName} — kokousmuistiinpanot Macilla, ilman bottia`,
-    description: `${brandLine} Kokousmuistiinpanot Macille: litterointi, käännös ja tehtäväsi ensin. Kokoukseen ei liity bottia.`,
+    title: `${productName} — kokousmuistiinpanot Macilla ja iPhonella, ilman bottia`,
+    description: `${brandLine} Kokousmuistiinpanot Macille ja iPhonelle: litterointi, käännös ja tehtäväsi ensin. Kokoukseen ei liity bottia.`,
   },
-  eyebrow: "Kokousmuistiinpanot Macille",
+  eyebrow: "Kokousmuistiinpanot Macille ja iPhonelle",
   title: tagline,
   lead: "Kokoukseen ei liity bottia.",
   secondaryCta: "Katso hinnat",
@@ -153,6 +156,28 @@ export const homeFi: HomeCopy = {
       alt: `Kysy-sivu ${productName}-sovelluksessa: kysymys ”What did we decide about the budget?” ja vastaus kahdella ranskalaisella viivalla ja numeroiduilla lähteillä, sekä rivi joka kertoo 3 lähteestä kahdessa kokouksessa.`,
     },
   },
+  iphone: {
+    eyebrow: "iPhonella",
+    title: "Myös kokoushuoneessa.",
+    lead: "Laita iPhone pöydälle ja aloita tallennus. Muistiinpano on valmis, kun kokous päättyy.",
+    points: [
+      { icon: "mic", title: "Kasvokkaiset kokoukset", text: "Sovellus kuuntelee iPhonen mikrofonilla ja näyttää litteroinnin ja käännöksen puheen aikana." },
+      { icon: "search", title: "Kysy kokouksiltasi", text: "Kysy omin sanoin, niin saat vastauksen, joka viittaa kokoukseen, josta se löytyi." },
+      { icon: "check-circle", title: "Tehtäväsi yhdessä listassa", text: "Kaikkien kokousten tehtävät määräaikoineen samassa paikassa." },
+      {
+        icon: "refresh",
+        title: "Sama tili Macilla ja iPhonella",
+        text: "Kirjaudu samalla tilillä, niin yksi tilaus kattaa molemmat. Synkronoinnilla näet muistiinpanosi kummallakin laitteella päästä päähän salattuina.",
+      },
+    ],
+    note: "iPhone-sovellus tallentaa puhelimen ympärillä käytävän keskustelun, ei puheluita eikä verkkokokouksia; niihin käytä Macia. iPhone-sovelluksen kieli on englanti.",
+    alt: {
+      live: `${productName} iPhonella tallentamassa suomenkielistä kokousta: ajastin 12:43, ääniaalto ja puhujien suomenkieliset lauseet englanninkielisine käännöksineen sekä Finish-painike alareunassa.`,
+      home: `${productName}-sovelluksen aloitusnäkymä iPhonella: päivän tulevat kokoukset Briefing- ja Join-painikkeineen, 8 avointa tehtävää, viimeisimmät muistiinpanot ja kysymyspainike tallennuspainikkeen vieressä.`,
+      ask: `Kysy-näkymä iPhonella: kysymys ”What did we decide about the budget?” ja vastaus kahdessa kohdassa numeroiduin viittauksin kokouksiin.`,
+    },
+    heroLink: "Myös iPhonelle",
+  },
   features: {
     missed: {
       title: "Pysy kärryillä keskeyttämättä",
@@ -205,8 +230,8 @@ export const homeFi: HomeCopy = {
     items: [
       {
         icon: "laptop",
-        title: "Tiedot Macillasi",
-        text: "Muistiinpanot, litteroinnit ja tallenteet ovat omalla Macillasi. Palvelimemme eivät tallenna ääntäsi, eivätkä muistiinpanojasi, ellet ota käyttöön tekoälyavustajien pääsyä.",
+        title: "Tiedot laitteillasi",
+        text: "Muistiinpanot, litteroinnit ja tallenteet ovat omalla Macillasi ja iPhonellasi. Palvelimemme eivät tallenna ääntäsi, eivätkä muistiinpanojasi, ellet ota käyttöön tekoälyavustajien pääsyä.",
       },
       { icon: "sparkle", title: "Ei tekoälyn koulutusmateriaalina", text: "Kokouksiasi ei käytetä palveluntarjoajiemme mallien kouluttamiseen. Olemme kieltäneet sen kaikkialla, missä se on asetuksissa mahdollista." },
       { icon: "globe", title: "EU-yritys, GDPR", text: "Toimimme Suomesta käsin EU:n tietosuojalainsäädännön alla, ja tilitietokantamme sijaitsee EU:ssa." },
@@ -274,7 +299,7 @@ export const homeFi: HomeCopy = {
     },
     {
       question: "Toimiiko se myös kasvokkaisissa kokouksissa ja tallenteilla?",
-      answer: "Toimii. Kytke sovelluksessa päälle ”Kasvokkain” ennen kuin aloitat, niin Macin mikrofoni tallentaa kaikki huoneessa olevat. Voit myös tuoda ääni- tai videotiedoston, kuten tallennetun puhelun tai ääniviestin, ja saat siitä saman litteroinnin ja muistiinpanon; tuotu tiedosto lasketaan kokoukseksi.",
+      answer: "Toimii. Kytke Macilla päälle ”Kasvokkain” ennen kuin aloitat, niin Macin mikrofoni tallentaa kaikki huoneessa olevat. iPhonella riittää, että laitat puhelimen pöydälle ja aloitat tallennuksen. Voit myös tuoda ääni- tai videotiedoston, kuten tallennetun puhelun tai ääniviestin, ja saat siitä saman litteroinnin ja muistiinpanon; tuotu tiedosto lasketaan kokoukseksi.",
     },
     {
       question: "Miten maksu ja verot toimivat Suomessa?",
@@ -298,7 +323,9 @@ export const homeFi: HomeCopy = {
     "Muistiinpanot Slackiin, Microsoft Teamsiin, Discordiin, Zoom Team Chatiin, Notioniin ja Apple Notesiin; tehtävät Lineariin, Jiraan ja Apple Remindersiin; kaikkeen muuhun webhookilla",
     "Vain luku -MCP-palvelin Claudelle, Cursorille ja VS Codelle",
     "Sanelu mihin tahansa Mac-sovellukseen, puheentunnistus Macilla",
-    "Muistiinpanot, litteroinnit ja tallenteet tallennetaan Macillesi",
+    "Muistiinpanot, litteroinnit ja tallenteet tallennetaan Macillesi tai iPhonellesi",
+    "iPhone-sovellus kasvokkaisiin kokouksiin samalla tilillä ja tilauksella kuin Mac-sovellus",
+    "Halutessasi synkronointi Macin ja iPhonen välillä päästä päähän salattuna; ääni jää laitteelle, joka sen tallensi",
   ],
   finalTitle: "Anna sen kirjoittaa muistiinpano seuraavasta kokouksestasi.",
   finalLead: "Käyttöönotto vie minuutin, sen jälkeen riittää että aloitat kuuntelemisen.",

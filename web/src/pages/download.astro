@@ -1,10 +1,13 @@
 ---
-// İndirme sayfası: indirme düğmesi (sunucu indirmeyi sayıp en son GitHub sürümündeki DMG'ye yönlendirir), altında
-// sürüm (sunucudan okunur; yeri baştan ayrılır, numara gelince sayfa kaymaz) ve gereksinimler etiket/değer satırlarında
-// (altında sürüm notu: her şey macOS 15'te çalışır, sesle yazmanın motoru sürüme göre),
-// üç kurulum adımı, güncellemeler ve yardım tek satırda.
+// İndirme sayfası, iki blok: Mac (indirme düğmesi: sunucu indirmeyi sayıp en son GitHub sürümündeki DMG'ye yönlendirir;
+// altında sürüm — sunucudan okunur, yeri baştan ayrılır, numara gelince sayfa kaymaz — ve gereksinimler etiket/değer
+// satırlarında, altında sürüm notu: her şey macOS 15'te çalışır, sesle yazmanın motoru sürüme göre) ve iPhone (App Store
+// rozeti, gereksinim, ne kaydettiği ve ortak hesap/abonelik; yanında gerçek iPhone ekranı). Sonra Mac için üç kurulum
+// adımı, güncellemeler ve yardım tek satırda.
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
+import { Picture } from "astro:assets";
+import AppStoreBadge from "../components/AppStoreBadge.astro";
 import PhotoPanel from "../components/PhotoPanel.astro";
 import Icon from "../components/Icon.astro";
 import Logo from "../components/Logo.astro";
@@ -12,6 +15,7 @@ import { macDownloadUrl, productName } from "../config";
 import { copy, type DownloadCopy, type TitledText } from "../copy";
 import { routes } from "../routes";
 import { siteConfig } from "../site";
+import iphoneHomeShot from "../assets/screenshots/iphone-home.webp";
 
 const text: DownloadCopy = copy.download;
 ---
@@ -22,6 +26,7 @@ const text: DownloadCopy = copy.download;
       <h1 class="title-xl">{text.title}</h1>
       <p class="lead">{text.lead}</p>
       <div class="download-hero__actions">
+        <h2 class="download-hero__platform">{text.macTitle}</h2>
         <a class="button button--primary download-button" href={macDownloadUrl(siteConfig, "download-page")} data-mac-download>
           <Icon name="apple" size={18} class="button__apple" />
           {copy.common.downloadCta}
@@ -34,12 +39,33 @@ const text: DownloadCopy = copy.download;
         </dl>
         <p class="small muted download-hero__note">{text.requirementsNote}</p>
       </div>
+      <div class="download-hero__actions download-hero__actions--iphone">
+        <h2 class="download-hero__platform">{text.iphoneTitle}</h2>
+        <AppStoreBadge language={copy.common.appStoreBadge.language} label={copy.common.appStoreBadge.label} height={54} class="" />
+        <dl class="fact-list small download-hero__facts">
+          <dt>{text.requirementsLabel}</dt>
+          <dd>{copy.common.iphoneRequirementsShort}</dd>
+        </dl>
+        <p class="small muted download-hero__note">{text.iphoneNote}</p>
+      </div>
     </div>
     <PhotoPanel photo="summer-lake" focus="center" widths={[480, 720, 960, 1280]} sizes="(max-width: 960px) calc(100vw - 40px), 600px" priority="lcp" class="download-hero__cover">
       <div class="app-tile">
         <Logo size={96} />
         <span class="app-tile__name">{productName}</span>
       </div>
+      <Picture
+        src={iphoneHomeShot}
+        alt={text.iphoneAlt}
+        formats={["avif"]}
+        fallbackFormat="webp"
+        widths={[240, 360, 480]}
+        sizes="(max-width: 760px) 34vw, 190px"
+        quality={62}
+        loading="eager"
+        decoding="async"
+        pictureAttributes={{ class: "download-hero__phone" }}
+      />
     </PhotoPanel>
   </section>
 
@@ -95,6 +121,18 @@ const text: DownloadCopy = copy.download;
     font-size: 1rem;
   }
 
+  .download-hero__platform {
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .download-hero__actions--iphone {
+    width: 100%;
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+  }
+
   .download-hero__facts {
     gap: 2px 16px;
   }
@@ -112,12 +150,27 @@ const text: DownloadCopy = copy.download;
     visibility: hidden;
   }
 
+  /* The Mac app's tile and the iPhone app's home screen side by side over the photograph. */
   .download-hero :global(.download-hero__cover) {
     display: grid;
+    grid-template-columns: auto auto;
     place-items: center;
-    align-content: center;
-    gap: 28px;
+    place-content: center;
+    gap: clamp(20px, 4vw, 44px);
     aspect-ratio: 5 / 4;
+    padding: 20px;
+  }
+
+  .download-hero :global(.download-hero__phone) {
+    display: block;
+    width: clamp(110px, 15vw, 190px);
+  }
+
+  .download-hero :global(.download-hero__phone img) {
+    display: block;
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.16)) drop-shadow(0 22px 36px rgb(0 0 0 / 0.32));
   }
 
   /* The app's tile on a paper card over the photograph. */
@@ -205,6 +258,16 @@ const text: DownloadCopy = copy.download;
     .download-hero__actions {
       justify-items: stretch;
       width: 100%;
+    }
+
+    .download-hero__actions--iphone {
+      justify-items: start;
+    }
+
+    /* The phone is taller than the 5:4 panel on a phone screen: the panel grows to fit it. */
+    .download-hero :global(.download-hero__cover) {
+      aspect-ratio: auto;
+      padding: 28px 16px;
     }
   }
 </style>

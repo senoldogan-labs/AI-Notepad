@@ -1,7 +1,8 @@
 ---
 // Closing download call on inner pages (compare, blog, MCP, languages, integrations): a centred paper card over a
-// photograph with the title, a short text and a button to the download page. No direct DMG link: the download
-// source (`?src=`) is on the server's allow-list.
+// photograph with the title, a short text, a button to the download page and the App Store badge for the iPhone app.
+// No direct DMG link: the download source (`?src=`) is on the server's allow-list.
+import AppStoreBadge from "./AppStoreBadge.astro";
 import Icon from "./Icon.astro";
 import PhotoPanel from "./PhotoPanel.astro";
 import { copy } from "../copy";
@@ -22,10 +23,13 @@ const { id, title, text, photo } = Astro.props;
     <div class="cta-card reveal">
       <h2 class="title-l" id={id}>{title}</h2>
       <p class="cta-card__text">{text}</p>
-      <a class="button button--primary" href={routes.download}>
-        <Icon name="apple" size={16} class="button__apple" />
-        {copy.common.downloadCta}
-      </a>
+      <div class="cta-card__actions">
+        <a class="button button--primary" href={routes.download}>
+          <Icon name="apple" size={16} class="button__apple" />
+          {copy.common.downloadCta}
+        </a>
+        <AppStoreBadge language={copy.common.appStoreBadge.language} label={copy.common.appStoreBadge.label} height={44} class="" />
+      </div>
     </div>
   </PhotoPanel>
 </section>
@@ -65,7 +69,12 @@ const { id, title, text, photo } = Astro.props;
     color: var(--muted);
   }
 
-  .cta-card .button {
+  .cta-card__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
     margin-top: 6px;
   }
 </style>
