@@ -21,6 +21,8 @@ struct ConnectionSettings: View {
     @State private var showsAdvanced: Bool = false
     /// Yerel yapay zekâ uygulamalarının durumu (yapılandırma dosyasından okunur; henüz okunmadıysa yok).
     @State private var mcpStatuses: [MCPClient: IntegrationStatus] = [:]
+    /// Yapılandırması okunamayan yerel yapay zekâ uygulamalarının nedeni (satırda açıklamanın yerinde gösterilir).
+    @State private var mcpProblems: [MCPClient: String] = [:]
 
     var body: some View {
         Group {
@@ -46,7 +48,7 @@ struct ConnectionSettings: View {
             #endif
             ForEach(IntegrationGroup.allCases, id: \.self) { (group: IntegrationGroup) in
                 ConnectionSectionHeader(title: group.title, subtitle: group.macSubtitle)
-                IntegrationListCard(kinds: group.macKinds, status: status(kind:)) { (kind: IntegrationKind) -> Void in
+                IntegrationListCard(kinds: group.macKinds, status: status(kind:), problem: problem(kind:)) { (kind: IntegrationKind) -> Void in
                     withAnimation(.smooth(duration: 0.2)) { selected = kind }
                 }
             }
@@ -96,19 +98,27 @@ struct ConnectionSettings: View {
         }
     }
 
+    /// Satırda açıklamanın yerinde gösterilen sorun (yapılandırması okunamayan uygulamanın nedeni); yoksa nil.
+    private func problem(kind: IntegrationKind) -> String? {
+        kind.mcpClient.flatMap { mcpProblems[$0] }
+    }
+
     /// Yerel yapay zekâ uygulamalarının yapılandırmasını okur. Okunamayan uygulamanın satırında uyarı rozeti
-    /// ("Okunamadı") görünür; nedeni o uygulamanın sayfasında yazar.
+    /// ("Okunamadı") ve açıklamanın yerinde nedeni görünür.
     private func refreshMCPStatuses() {
         var statuses: [MCPClient: IntegrationStatus] = [:]
+        var problems: [MCPClient: String] = [:]
         for client in MCPClient.allCases {
             do {
                 statuses[client] = try mcpClientStatus(client: client)
             } catch {
                 channelSettingsLogger.warning("Yapay zekâ uygulamasının yapılandırması okunamadı, uygulama: \(client.rawValue, privacy: .public), hata: \(String(describing: error), privacy: .private)")
                 statuses[client] = .unreadable
+                problems[client] = userFacingMessage(error: error)
             }
         }
         mcpStatuses = statuses
+        mcpProblems = problems
     }
 }
 
@@ -178,21 +188,24 @@ private struct ConnectionCardSurface<Content: View>: View {
 private struct IntegrationListCard: View {
     let kinds: [IntegrationKind]
     let status: (IntegrationKind) -> IntegrationStatus
+    let problem: (IntegrationKind) -> String?
     let open: (IntegrationKind) -> Void
 
     var body: some View {
         ConnectionCardSurface {
             ForEach(kinds) { (kind: IntegrationKind) in
-                IntegrationListRow(kind: kind, status: status(kind)) { open(kind) }
+                IntegrationListRow(kind: kind, status: status(kind), problem: problem(kind)) { open(kind) }
             }
         }
     }
 }
 
-/// Liste satırı: marka kutusu, ad, tek satır açıklama, durum rozeti ve sağda ok; bütün satır basılabilir.
+/// Liste satırı: marka kutusu, ad, tek satır açıklama (sorun varsa onun yerine nedeni), durum rozeti ve sağda ok;
+/// bütün satır basılabilir.
 private struct IntegrationListRow: View {
     let kind: IntegrationKind
     let status: IntegrationStatus
+    let problem: String?
     let action: () -> Void
     @State private var isHovering: Bool = false
 
@@ -204,10 +217,16 @@ private struct IntegrationListRow: View {
                     Text(verbatim: kind.name)
                         .appFont(size: 14, weight: .semibold)
                         .foregroundStyle(Theme.ink)
-                    Text(kind.summary)
-                        .appFont(size: 12, weight: .regular)
-                        .foregroundStyle(Theme.muted)
-                        .lineLimit(1)
+                    if let problem {
+                        NoticeText(problem, severity: .attention)
+                            .appFont(size: 12, weight: .regular)
+                            .lineLimit(2)
+                    } else {
+                        Text(kind.summary)
+                            .appFont(size: 12, weight: .regular)
+                            .foregroundStyle(Theme.muted)
+                            .lineLimit(1)
+                    }
                 }
                 Spacer(minLength: 8)
                 IntegrationStatusPill(status: status)
@@ -1025,12 +1044,28 @@ private struct MCPClientDetail: View {
     @State private var errorMessage: String?
     @State private var justConnected: Bool = false
 
+    /// Uygulamanın MCP yapılandırma dosyası.
+    private var configFile: URL {
+        client.configFile(home: FileManager.default.homeDirectoryForCurrentUser)
+    }
+
     var body: some View {
         IntegrationPage(kind: kind, status: status, isBackDisabled: false, onBack: onBack) {
             switch status {
             case .notInstalled:
                 EmptyView()
-            case .connected, .needsReconnect, .unreadable:
+            case .unreadable:
+                // Bozuk yapılandırma üstüne yazılmaz (kullanıcının diğer ayarları kaybolmasın): dosya gösterilir,
+                // düzeltilince yeniden okunur.
+                HStack(spacing: 8) {
+                    if FileManager.default.fileExists(atPath: configFile.path) {
+                        Button("Finder'da göster") { NSWorkspace.shared.activateFileViewerSelecting([configFile]) }
+                            .buttonStyle(.pill)
+                    }
+                    Button("Yeniden dene") { refresh() }
+                        .buttonStyle(.pillPrimary)
+                }
+            case .connected, .needsReconnect:
                 Menu {
                     Button("Kaldır", systemImage: "trash", role: .destructive) { disconnect() }
                 } label: {
