@@ -30,7 +30,7 @@ private func setupSubtitle(step: OnboardingStep) -> LocalizedStringKey {
     switch step {
     case .welcome: "Toplantılarını canlı yazıya döker; bitince notun hazır, en üstte senin görevlerin. Kurulum iki dakika sürer, her adım atlanabilir."
     case .engine: "Canlı metni ve notu nerede yazdıracağını seç; sonra Ayarlar'dan değişir."
-    case .keys: "macOS Anahtar Zinciri'nde saklanır, hiçbir yere gönderilmez; istersen iCloud ile iPhone'a gider."
+    case .keys: "macOS Anahtar Zinciri'nde saklanır, hiçbir yere gönderilmez."
     case .calendar: "Sıradaki toplantıların burada görünür; o sırada başlattığın kayıt toplantının adını ve katılımcılarını alır."
     case .permissions: "Senin sesin, toplantıdaki diğer kişilerin sesi ve not hazır olunca haber. İzinleri sonra Sistem Ayarları'ndan değiştirebilirsin."
     case .sampleMeeting: "Bir dakikalık örnek toplantı: canlı metin akarken bir not yaz, bitince notun hazır. İnternet gerekmez, kullanımına sayılmaz."

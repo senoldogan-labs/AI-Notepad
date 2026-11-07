@@ -51,6 +51,13 @@ import Testing
             #expect(secretAccessibility(account: account) == expected)
         }
     }
+
+    // Kilitliyken okunamayan öğe ayrı tanınır (kendiliğinden gönderim kilit açılınca yeniden dener); diğer hatalar değil.
+    @Test func lockedKeychainErrorIsRecognised() {
+        #expect(isLockedKeychainError(KeychainError.unexpectedStatus(operation: "SecItemCopyMatching", status: errSecInteractionNotAllowed)))
+        #expect(!isLockedKeychainError(KeychainError.unexpectedStatus(operation: "SecItemCopyMatching", status: errSecAuthFailed)))
+        #expect(!isLockedKeychainError(KeychainError.notFound(service: "s", account: "destinations")))
+    }
 }
 
 /// Anahtar Zinciri testleri yalnızca macOS'ta çalışır (bkz. `KeychainTests`).

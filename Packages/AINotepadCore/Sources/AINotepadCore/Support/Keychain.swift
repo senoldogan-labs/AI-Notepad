@@ -44,6 +44,15 @@ func secretAccessibility(account: SecretAccount) -> String? {
     #endif
 }
 
+/// Hata, cihaz kilitliyken okunamayan bir öğeden mi (`errSecInteractionNotAllowed`; ör. erişilebilirliği henüz
+/// güncellenmemiş eski öğe). Saf fonksiyondur.
+public func isLockedKeychainError(_ error: any Error) -> Bool {
+    if case KeychainError.unexpectedStatus(_, let status) = error {
+        return status == errSecInteractionNotAllowed
+    }
+    return false
+}
+
 /// Kayıtlı anahtarı okur; yoksa `.notFound`. Erişilebilirliği `secretAccessibility`'den farklı (eski sürümün yazdığı)
 /// öğe okununca güncellenir: bir sonraki kilitli okumada da açılır.
 public func readSecret(service: String, account: SecretAccount) throws -> String {

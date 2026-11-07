@@ -107775,72 +107775,72 @@
         }
       }
     },
-    "macOS Anahtar Zinciri'nde saklanır, hiçbir yere gönderilmez; istersen iCloud ile iPhone'a gider.": {
+    "macOS Anahtar Zinciri'nde saklanır, hiçbir yere gönderilmez.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Im macOS-Schlüsselbund gespeichert und nie irgendwohin gesendet; auf Wunsch gehen sie über iCloud an dein iPhone."
+            "value": "Im macOS-Schlüsselbund gespeichert und nie irgendwohin gesendet."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stored in the macOS Keychain and never sent anywhere; if you like, they go to your iPhone via iCloud."
+            "value": "Stored in the macOS Keychain and never sent anywhere."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Se guardan en el Llavero de macOS y nunca se envían a ningún sitio; si quieres, llegan a tu iPhone a través de iCloud."
+            "value": "Se guardan en el Llavero de macOS y nunca se envían a ningún sitio."
           }
         },
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tallennetaan macOS:n Avainnippuun eikä niitä lähetetä minnekään; halutessasi ne siirtyvät iPhoneesi iCloudin kautta."
+            "value": "Tallennetaan macOS:n Avainnippuun eikä niitä lähetetä minnekään."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stockées dans le trousseau macOS et jamais envoyées nulle part ; si vous le souhaitez, elles sont transmises à votre iPhone via iCloud."
+            "value": "Stockées dans le trousseau macOS et jamais envoyées nulle part."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Conservate nel Portachiavi di macOS e mai inviate da nessuna parte; se vuoi, arrivano su iPhone tramite iCloud."
+            "value": "Conservate nel Portachiavi di macOS e mai inviate da nessuna parte."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "macOSのキーチェーンに保存され、どこにも送信されません。希望すれば、iCloud経由でiPhoneに送られます。"
+            "value": "macOSのキーチェーンに保存され、どこにも送信されません。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "macOS 키체인에 저장되며 어디로도 전송되지 않습니다. 원하면 iCloud를 통해 iPhone으로 전달됩니다."
+            "value": "macOS 키체인에 저장되며 어디로도 전송되지 않습니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bewaard in de macOS-sleutelhanger en nooit ergens naartoe gestuurd; als je wilt, gaan ze via iCloud naar je iPhone."
+            "value": "Bewaard in de macOS-sleutelhanger en nooit ergens naartoe gestuurd."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Guardadas nas Chaves do macOS e nunca enviadas a lugar nenhum; se quiser, elas vão para seu iPhone pelo iCloud."
+            "value": "Guardadas nas Chaves do macOS e nunca enviadas a lugar nenhum."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "存储在 macOS 钥匙串中，绝不会发送到任何地方；如果你愿意，可以通过 iCloud 发送到你的 iPhone。"
+            "value": "存储在 macOS 钥匙串中，绝不会发送到任何地方。"
           }
         }
       }
