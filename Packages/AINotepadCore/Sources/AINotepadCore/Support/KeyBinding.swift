@@ -41,12 +41,17 @@ private let functionKeyCodes: Set<UInt32> = [0x7A, 0x78, 0x63, 0x76, 0x60, 0x61,
 
 /// Kısayolun okunur hali, ör. "⌃⌥R"; tuş bilinmiyorsa kodu. Saf fonksiyondur.
 public func keyBindingDisplay(binding: KeyBinding) -> String {
+    keyBindingKeyCaps(binding: binding).joined()
+}
+
+/// Kısayolun tuş başlıkları (tuş kapağı çipleri için), Mac sırasıyla değiştiriciler sonra tuş, ör. ["⌃", "⌥", "D"];
+/// tuş bilinmiyorsa kodu. Saf fonksiyondur.
+public func keyBindingKeyCaps(binding: KeyBinding) -> [String] {
     let symbols: [(mask: UInt32, symbol: String)] = [
         (CarbonModifier.control, "⌃"), (CarbonModifier.option, "⌥"), (CarbonModifier.shift, "⇧"), (CarbonModifier.command, "⌘"),
     ]
-    let prefix: String = symbols.filter { binding.modifiers & $0.mask != 0 }.map(\.symbol).joined()
     let key: String = binding.keyCode == 0x31 ? String(localized: "Boşluk") : (keyNames[binding.keyCode] ?? "#\(binding.keyCode)")
-    return prefix + key
+    return symbols.filter { binding.modifiers & $0.mask != 0 }.map(\.symbol) + [key]
 }
 
 /// Global kısayol olarak kullanılabilir mi: bilinen tuş ve (işlev tuşları dışında) en az bir ⌃/⌥/⌘;

@@ -74,6 +74,20 @@ enum DictationPillState: Equatable {
     case message(text: String, severity: NoticeSeverity, action: DictationPillAction?)
 }
 
+/// Sesle yazmanın kısa sesleri: dinleme başladı, dinleme bitti.
+enum DictationSoundCue: Hashable {
+    case start
+    case stop
+
+    /// macOS'un yerleşik sesi (/System/Library/Sounds).
+    var systemSoundName: NSSound.Name {
+        switch self {
+        case .start: "Tink"
+        case .stop: "Pop"
+        }
+    }
+}
+
 /// Sesle yazma: kısayolla mikrofonu açar, sesi bu Mac'te yazıya döker ve odaktaki uygulamaya yapıştırır. Toplantı
 /// oturumu açmaz; abonelikte deneme ya da aylık süreden düşmez. Tuş mantığı `dictationTransition`'da (saf).
 @MainActor
@@ -89,6 +103,13 @@ final class DictationController {
     /// Dinlerken şimdiye dek yazıya dökülen metin (macOS 26+; WhisperKit'te boş kalır). Hap gösterir.
     private(set) var partialText: String = ""
     let levels: AudioLevels = AudioLevels(count: 18, interval: 0.1)
+    /// Kısayol şu an basılı mı (tanıtımdaki tuş kapağı yanar). Kısayol denemesinde de güncellenir.
+    private(set) var isShortcutHeld: Bool = false
+    /// Kısayol denemesi başladığından beri kısayola kaç kez basıldı (tanıtım "denendi" der).
+    private(set) var keyTestPresses: Int = 0
+    /// Kısayol denemesi sürüyor: kısayol yalnızca sayılır, mikrofon açılmaz (tanıtımın ilk adımı).
+    @ObservationIgnored private var isKeyTestActive: Bool = false
+    @ObservationIgnored private var sounds: [DictationSoundCue: NSSound] = [:]
     @ObservationIgnored private var keyState: DictationKeyState = .idle
     @ObservationIgnored private var language: MeetingLanguage = .finnish
     @ObservationIgnored private var microphone: MicrophoneCapture?
@@ -114,8 +135,14 @@ final class DictationController {
         self.onAction = onAction
     }
 
-    /// Kısayola basıldı. Boştayken önce başlatma engelleri denetlenir (oturum, kayıt, parola alanı).
+    /// Kısayola basıldı. Boştayken önce başlatma engelleri denetlenir (oturum, kayıt, parola alanı). Kısayol denemesinde
+    /// yalnızca basış sayılır.
     func keyDown(at time: Double) {
+        isShortcutHeld = true
+        if isKeyTestActive {
+            keyTestPresses += 1
+            return
+        }
         if keyState == .idle,
            let refusal = dictationStartRefusal(
                isSignedIn: !isSignInRequired(), isMeetingActive: model.isRecording || model.isStarting || model.isFinishing,
@@ -128,7 +155,24 @@ final class DictationController {
     }
 
     func keyUp(at time: Double) {
+        isShortcutHeld = false
+        if isKeyTestActive {
+            return
+        }
         apply(event: .keyUp(at: time))
+    }
+
+    /// Kısayol denemesini başlatır (tanıtımın ilk adımı): süren dikte bırakılır, kısayol bitene dek yalnızca sayılır.
+    func startKeyTest() {
+        cancel()
+        keyTestPresses = 0
+        isKeyTestActive = true
+    }
+
+    /// Kısayol denemesini bitirir; kısayol yeniden dikte başlatır.
+    func endKeyTest() {
+        isKeyTestActive = false
+        isShortcutHeld = false
     }
 
     /// Dinleme sürüyorsa sesi atıp kapatır, yazıya dökülüyorsa metni yapıştırmadan atar (toplantı kaydı başlıyor,
@@ -205,6 +249,7 @@ final class DictationController {
         model.isDictationMicOpen = true
         levels.start()
         setPill(.listening(handsFree: false, canEscape: false, shortcut: shortcutName()))
+        playSound(cue: .start)
         let capture: Task<Int, any Error> = Task { [weak self, levels] () async throws -> Int in
             // Mikrofon açılamasa da akış biter: yazıya dökme sonsuza dek beklemez.
             defer { feed.finish() }
@@ -319,6 +364,7 @@ final class DictationController {
 
     private func finishListening() {
         closeMicrophone()
+        playSound(cue: .stop)
         guard let capture, let preparation, let transcription else {
             apply(event: .finished)
             return
@@ -414,6 +460,23 @@ final class DictationController {
             try await paste(text: text)
             setPill(.hidden)
         }
+    }
+
+    // MARK: Ses efektleri
+
+    /// Ayar açıksa (Ayarlar › Sesle yazma › Ses efektleri) kısa sistem sesini çalar.
+    private func playSound(cue: DictationSoundCue) {
+        guard UserDefaults.standard.bool(forKey: SettingsKey.voiceTypingSoundEffects) else {
+            return
+        }
+        guard let sound = sounds[cue] ?? NSSound(named: cue.systemSoundName) else {
+            dictationLogger.error("Sesle yazma sesi bulunamadı, ad: \(cue.systemSoundName, privacy: .public)")
+            return
+        }
+        sounds[cue] = sound
+        sound.volume = 0.35
+        sound.stop()
+        sound.play()
     }
 
     // MARK: Hap
