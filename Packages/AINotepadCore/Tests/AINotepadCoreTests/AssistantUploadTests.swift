@@ -29,6 +29,8 @@ private struct FakeAssistantState {
 /// In-memory `/v1/assistant` that checks the epoch like the server does.
 private final class FakeAssistantServer: HostedAssistantAPI {
     let state: Mutex<FakeAssistantState>
+    /// Runs before each upload (outside the lock), e.g. to press "retry" while a pass is uploading.
+    let beforePut: Mutex<(@Sendable () async -> Void)?> = Mutex(nil)
 
     init(settings: HostedAssistantSettings) {
         state = Mutex(FakeAssistantState(settings: settings))
@@ -54,6 +56,12 @@ private final class FakeAssistantServer: HostedAssistantAPI {
     }
 
     func putMeeting(meetingID: String, upload: AssistantMeetingUpload) async throws {
+        if let hook = beforePut.withLock({ (hook: inout (@Sendable () async -> Void)?) -> (@Sendable () async -> Void)? in
+            defer { hook = nil }
+            return hook
+        }) {
+            await hook()
+        }
         try state.withLock { (state: inout FakeAssistantState) throws -> Void in
             state.calls.append("put \(meetingID)")
             if let failure = state.failNextUpload {
@@ -322,6 +330,23 @@ private let deviceID: String = "6f1c1b7e-8a8a-4c4c-9d9d-1e1e1e1e1e1e"
         #expect(retried.uploaded == 1)
         #expect(retried.progress == AssistantUploadProgress(uploaded: 1, rejected: 0, rejectionReason: nil, total: 1))
         #expect(try await uploader.ledger().rejectionReasons.isEmpty)
+    }
+
+    // "Retry" pressed while a pass is uploading is not undone by that pass writing its in-memory ledger.
+    @Test func retryDuringPassSticks() async throws {
+        let server: FakeAssistantServer = FakeAssistantServer(settings: HostedAssistantSettings(enabled: true, epoch: 1, meetings: 0, maxMeetings: 5000))
+        server.state.withLock { $0.invalid = ["a"] }
+        let file: AssistantLedgerFile = temporaryLedger()
+        defer { try? FileManager.default.removeItem(at: file.url.deletingLastPathComponent()) }
+        let uploader: AssistantUploader = AssistantUploader(client: server, file: file, deviceID: deviceID)
+        _ = try await uploader.pass(records: [meeting(id: "a", startedAt: 100)], userName: "") { _ in }
+        server.state.withLock { $0.invalid = [] }
+        server.beforePut.withLock { $0 = { try? await uploader.retryRejected() } }
+        _ = try await uploader.pass(records: [meeting(id: "a", startedAt: 100), meeting(id: "b", startedAt: 200)], userName: "") { _ in }
+        #expect(try await uploader.ledger().rejected.isEmpty)
+        let next: AssistantPassReport = try await uploader.pass(records: [meeting(id: "a", startedAt: 100), meeting(id: "b", startedAt: 200)], userName: "") { _ in }
+        #expect(next.uploaded == 1)
+        #expect(next.progress == AssistantUploadProgress(uploaded: 2, rejected: 0, rejectionReason: nil, total: 2))
     }
 
     // Mixed reasons give no single reason; ledgers written before reasons existed still read.

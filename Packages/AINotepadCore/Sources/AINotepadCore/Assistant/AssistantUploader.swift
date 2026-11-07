@@ -239,6 +239,9 @@ public actor AssistantUploader {
     private let deviceID: String
     /// Bir geçişte en fazla bu kadar dönem değişikliği izlenir (sonsuz döngü olmasın).
     private let maxEpochRounds: Int = 3
+    /// "Yeniden dene" bir geçiş sürerken geldi: geçiş defteri bellekte tuttuğu için bir sonraki yazımda reddedilenleri
+    /// o da unutur (yoksa eski hâlini yazıp isteği geri alırdı).
+    private var retryRequested: Bool = false
 
     public init(client: any HostedAssistantAPI, file: AssistantLedgerFile, deviceID: String) {
         self.client = client
@@ -323,12 +326,18 @@ public actor AssistantUploader {
 
     /// Reddedilenleri unutur: sonraki geçiş onları yeniden yükler (Ayarlar'daki "Yeniden dene").
     public func retryRejected() throws {
-        _ = try store(ledger: assistantLedgerRetryingRejected(ledger: try file.read()))
+        // Bayrak, süren bir geçişin bellekteki defteri için kalır (onun sonraki yazımı da unutur); geçiş yoksa sonraki
+        // geçişin ilk yazımı onu düşürür.
+        retryRequested = true
+        try file.write(ledger: assistantLedgerRetryingRejected(ledger: try file.read()))
     }
 
+    /// Defteri diske yazar; bekleyen "Yeniden dene" varsa önce reddedilenler unutulur.
     private func store(ledger: AssistantUploadLedger) throws -> AssistantUploadLedger {
-        try file.write(ledger: ledger)
-        return ledger
+        let next: AssistantUploadLedger = retryRequested ? assistantLedgerRetryingRejected(ledger: ledger) : ledger
+        try file.write(ledger: next)
+        retryRequested = false
+        return next
     }
 }
 
