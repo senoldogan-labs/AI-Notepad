@@ -375,6 +375,14 @@ targets:
         # Kayıttan sonra işleme uygulamadan çıkılsa da sürer (BGContinuedProcessingTask); kimlik
         # `com.senoldogan.AINotepad.hosted.process.<UUID>` biçimindedir (bkz. iOS/PhoneRecorder.swift).
         BGTaskSchedulerPermittedIdentifiers: [com.senoldogan.AINotepad.hosted.process.*, com.senoldogan.AINotepad.hosted.resume]
+        # Paylaşım sayfasında ses dosyaları için "Gistsmith" (iPhone'un arama kaydı Notlar'dan, Sesli Notlar, Dosyalar):
+        # dosya uygulamanın kabına kopyalanır (yerinde açılmaz), toplantı olarak içe aktarılır (bkz. iOS/PhoneSharedFiles.swift).
+        LSSupportsOpeningDocumentsInPlace: false
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Audio
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes: [public.audio]
   AINotepadWidgets:
     type: app-extension
     platform: iOS

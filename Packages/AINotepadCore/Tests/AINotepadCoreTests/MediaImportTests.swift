@@ -172,4 +172,28 @@ private final class LevelBox: @unchecked Sendable {
         try await exportAudioClip(sources: [m4a], startSec: total - 1, endSec: total + 5, destination: tail)
         #expect(abs(try await AVURLAsset(url: tail).load(.duration).seconds - 1) < 0.3)
     }
+
+    // Paylaşım sayfasından gelen dosyalar: arama kaydı (m4a), ses kaydı (caf, mp3) ve video kabul; belge, uzantısız
+    // dosya ve web adresi reddedilir.
+    @Test func acceptsOnlySharedAudioAndVideoFiles() {
+        let inbox: URL = URL(fileURLWithPath: "/var/mobile/Containers/Data/Application/X/Documents/Inbox")
+        #expect(isImportableSharedMedia(url: inbox.appending(path: "Call with Ayşe.m4a")))
+        #expect(isImportableSharedMedia(url: inbox.appending(path: "New Recording.caf")))
+        #expect(isImportableSharedMedia(url: inbox.appending(path: "memo.MP3")))
+        #expect(isImportableSharedMedia(url: inbox.appending(path: "zoom.mp4")))
+        #expect(!isImportableSharedMedia(url: inbox.appending(path: "notes.pdf")))
+        #expect(!isImportableSharedMedia(url: inbox.appending(path: "recording")))
+        #expect(!isImportableSharedMedia(url: URL(string: "https://example.com/call.m4a")!))
+    }
+
+    // Yalnız gelen kutusundaki kopya silinir: kutunun kendisi, kardeş klasör ("Inbox2") ve kutu dışındaki dosya değil.
+    @Test func recognizesOnlyInboxCopies() {
+        let documents: URL = URL(fileURLWithPath: "/var/mobile/Containers/Data/Application/X/Documents")
+        #expect(isSharedInboxCopy(url: documents.appending(path: "Inbox/Call.m4a"), documentsDirectory: documents))
+        #expect(isSharedInboxCopy(url: documents.appending(path: "Inbox/../Inbox/Call-1.m4a"), documentsDirectory: documents))
+        #expect(!isSharedInboxCopy(url: documents.appending(path: "Inbox"), documentsDirectory: documents))
+        #expect(!isSharedInboxCopy(url: documents.appending(path: "Inbox2/Call.m4a"), documentsDirectory: documents))
+        #expect(!isSharedInboxCopy(url: documents.appending(path: "Inbox/../Call.m4a"), documentsDirectory: documents))
+        #expect(!isSharedInboxCopy(url: URL(fileURLWithPath: "/private/var/mobile/Library/Mobile Documents/Call.m4a"), documentsDirectory: documents))
+    }
 }

@@ -1501,6 +1501,20 @@ final class PhoneRecorder {
         await runQueue()
     }
 
+    /// Paylaşım sayfasından gelen dosyaları içe aktarır (`importFiles` gibi); her dosyanın içe aktarması bitince
+    /// `onImported` çağrılır (gelen kutusundaki kopya o an silinir). Uygulama kuyruk işlenirken kapanırsa kalan kopya yalnız
+    /// henüz içe aktarılmamış dosyadır (açılışta yeniden bekler, `PhoneSharedFileInbox`); aynı toplantı iki kez oluşmaz.
+    func importSharedFiles(urls: [URL], onImported: @MainActor (URL) -> Void) async {
+        importErrors = []
+        importingCount += urls.count
+        for url in urls {
+            await importOne(url: url)
+            onImported(url)
+            importingCount -= 1
+        }
+        await runQueue()
+    }
+
     /// Tek dosyayı içe aktarır; olmazsa yarım klasör silinir ve neden listede görünür.
     private func importOne(url: URL) async {
         let accessed: Bool = url.startAccessingSecurityScopedResource()

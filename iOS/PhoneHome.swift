@@ -400,13 +400,14 @@ func homeMeetingSubtitle(record: MeetingRecord, now: Date, calendar: Calendar, l
     return ([time] + minutes + state).joined(separator: " · ")
 }
 
-/// Ana ekranın altında yüzen çubuk: "Bir şey sor" ve büyük kayıt düğmesi; başlarken (konuşma modeli iniyorsa
-/// ilerlemesiyle) üstünde kısa durum.
+/// Ana ekranın altında yüzen çubuk: telefon görüşmesi, "Bir şey sor" ve büyük kayıt düğmesi; başlarken (konuşma modeli
+/// iniyorsa ilerlemesiyle) üstünde kısa durum.
 private struct HomeBottomBar: View {
     let recorder: PhoneRecorder
     let router: PhoneRouter
     let account: HostedAccount
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
+    @Environment(PhoneImportState.self) private var imports: PhoneImportState
 
     var body: some View {
         VStack(alignment: .trailing, spacing: 10) {
@@ -421,6 +422,19 @@ private struct HomeBottomBar: View {
                     .transition(.opacity)
             }
             HStack(spacing: 12) {
+                Button {
+                    imports.request = .phoneCall
+                } label: {
+                    Image(systemName: "phone")
+                        .appFont(size: 19, weight: .medium)
+                        .foregroundStyle(Theme.ink)
+                        .frame(width: 58, height: 58)
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.interactive(), in: Circle())
+                .accessibilityLabel(Text("Telefon görüşmesi"))
+                .accessibilityHint(Text("Telefon görüşmesinin notunu almanın yollarını gösterir."))
                 Button {
                     router.push(route: .ask)
                 } label: {
