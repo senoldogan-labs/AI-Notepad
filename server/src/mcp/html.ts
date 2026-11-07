@@ -32,7 +32,10 @@ export function pageHeaders(page: Page): Headers {
     "referrer-policy": "no-referrer",
     "x-content-type-options": "nosniff",
     "cache-control": "no-store",
-    "cross-origin-opener-policy": "same-origin",
+    // Assistants such as ChatGPT run sign-in in a popup and read the result through window.opener once the popup
+    // reaches their redirect page. COOP same-origin would sever that link as soon as the popup loads this page, so
+    // the authorization could never complete. Framing stays blocked by frame-ancestors and X-Frame-Options.
+    "cross-origin-opener-policy": "unsafe-none",
     "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
     "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
   });
