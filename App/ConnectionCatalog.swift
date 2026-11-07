@@ -7,7 +7,7 @@ import SwiftUI
 // Ekranlar platformun kendi dosyasında (App/ConnectionsSettings.swift, iOS/PhoneConnectionsScreen.swift).
 
 /// Bağlantılar listesindeki bir entegrasyon. iPhone'da Mac'e özgü olanlar (Apple Notlar, yerel yapay zekâ uygulamaları)
-/// listelenmez (bkz. `phoneIntegrationKinds`).
+/// listelenmez (bkz. `IntegrationGroup.phoneKinds`).
 enum IntegrationKind: String, CaseIterable, Identifiable, Hashable {
     case slack
     case teams

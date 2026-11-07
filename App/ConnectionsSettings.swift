@@ -1066,6 +1066,7 @@ private struct MCPClientDetail: View {
             status = try mcpClientStatus(client: client)
             errorMessage = nil
         } catch {
+            status = .unreadable
             errorMessage = userFacingMessage(error: error)
         }
     }
