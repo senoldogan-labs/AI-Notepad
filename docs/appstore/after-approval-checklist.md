@@ -107,7 +107,7 @@ Name, subtitle, description and keywords can't change on a live version, so add 
 - Event media: `event-card-3840x2160.png` (16:9; Apple accepts 1920 × 1080 to 3840 × 2160) and
   `event-details-2160x3840.png` (9:16; 1080 × 1920 to 2160 × 3840), PNG or JPEG. Apple asks for no text or logos in
   the media and overlays the badge, event name and short description itself, so the images have no text and keep the
-  phones out of the bottom third. Check both in the ASC preview before submitting. Apple shows events only if they are
+  phones out of the bottom 30 % (card) and 40 % (details). Check both in the ASC preview before submitting. Apple shows events only if they are
   time-limited and match what's in the app, so this must run around the real launch window.
 - Later events that fit: **Major Update** for a significant feature release, and a **Special Event** for a
   "back to lectures" week in September.

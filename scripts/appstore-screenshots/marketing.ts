@@ -14,8 +14,8 @@
 //   search-3840x2560.png              arama sonucu görseli
 //   subscription-monthly-1024.png     Aylık abonelik tanıtım görseli
 //   subscription-yearly-1024.png      Yıllık abonelik tanıtım görseli
-//   event-card-3840x2160.png          In-App Event kartı (16:9); alt üçte bir boş, adı ve açıklamayı App Store bindirir
-//   event-details-2160x3840.png       In-App Event ayrıntı sayfası (9:16); alt kısım boş
+//   event-card-3840x2160.png          In-App Event kartı (16:9); alttaki %30 boş, adı ve açıklamayı App Store bindirir
+//   event-details-2160x3840.png       In-App Event ayrıntı sayfası (9:16); alttaki %40 boş
 //   6.9/<sıra>-<sahne>.png, 6.5/…, 6.3/…   ekran görüntüleri
 //   <sayfa>/6.9/<sıra>-<çekim>.png, <sayfa>/6.3/…   özel ürün sayfasının ekran görüntüleri
 //   <sayfa>/header-3840x1646.png      sayfanın kendi başlığı (varsa)
@@ -203,8 +203,8 @@ ${phones}`;
 
 /**
  * In-App Event kartı (16:9, 3840×2160; Apple'ın en büyük ölçüsü, en küçüğü 1920×1080). Metin ve logo yok: App Store
- * rozeti, etkinlik adını ve kısa açıklamayı kendi gradyanıyla alta bindirir. Telefonlar üstteki üçte ikide, alt üçte
- * bir yalnız zemin. Saf fonksiyondur.
+ * rozeti, etkinlik adını ve kısa açıklamayı kendi gradyanıyla alta bindirir. Telefonlar üstteki %70'te, alttaki %30
+ * yalnız zemin. Saf fonksiyondur.
  */
 export function eventCardHtml(shots: readonly [string, string, string], palette: Palette, clouds: CloudSide): string {
   const phones: string = phoneFan(shots, 1920, 150, 1330, 700).map(phoneHtml).join("\n");
@@ -215,7 +215,7 @@ export function eventCardHtml(shots: readonly [string, string, string], palette:
 
 /**
  * In-App Event ayrıntı sayfası görseli (9:16, 2160×3840; en küçüğü 1080×1920). Metin yok; App Store adı, açıklamayı ve
- * düğmeyi alta bindirir: telefonlar üstteki %59'de. Saf fonksiyondur.
+ * düğmeyi alta bindirir: telefonlar üstteki %60'ta, alttaki %40 yalnız zemin. Saf fonksiyondur.
  */
 export function eventDetailsHtml(shots: readonly [string, string, string], palette: Palette, clouds: CloudSide): string {
   const phones: string = phoneFan(shots, 1080, 360, 1900, 520).map(phoneHtml).join("\n");
@@ -460,13 +460,13 @@ async function main(): Promise<void> {
       renderer, work, "event-card", eventCardHtml(eventShots, eventPalette, eventArt.clouds), { width: 3840, height: 2160 }, 3,
       join(out, "event-card-3840x2160.png"),
     );
-    const cardBand: Buffer = await sharp(card).composite([{ input: overlayBandPreview(3840, 2160, 1490) }]).png().toBuffer();
+    const cardBand: Buffer = await sharp(card).composite([{ input: overlayBandPreview(3840, 2160, 1512) }]).png().toBuffer();
     await writeFile(join(out, "previews", "event-card-overlay.jpg"), await previewJpeg(cardBand, previewWidth));
     const details: Buffer = await renderToFile(
       renderer, work, "event-details", eventDetailsHtml(eventShots, eventPalette, eventArt.clouds), { width: 2160, height: 3840 }, 3,
       join(out, "event-details-2160x3840.png"),
     );
-    const detailsBand: Buffer = await sharp(details).composite([{ input: overlayBandPreview(2160, 3840, 2420) }]).png().toBuffer();
+    const detailsBand: Buffer = await sharp(details).composite([{ input: overlayBandPreview(2160, 3840, 2304) }]).png().toBuffer();
     await writeFile(join(out, "previews", "event-details-overlay.jpg"), await previewJpeg(detailsBand, 800));
     const missing: readonly string[] = await renderScenes(renderer, work, rawDir, out);
     if (missing.length > 0) {
