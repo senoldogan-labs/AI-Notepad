@@ -154,6 +154,8 @@ describe("MCP OAuth", () => {
     expect(bad.headers.get("location")).toBeNull();
     expect(bad.headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
     expect(bad.headers.get("referrer-policy")).toBe("no-referrer");
+    // Popup sign-in (ChatGPT) needs window.opener to survive this page.
+    expect(bad.headers.get("cross-origin-opener-policy")).toBe("unsafe-none");
     const unknown: Response = await browse(test, jar, "GET", authorizeUrl({ clientId: "no-such-client", redirectUri: evil.redirectUri }, challenge, "s", mcpResource), null);
     expect(unknown.status).toBe(400);
     expect(unknown.headers.get("location")).toBeNull();
