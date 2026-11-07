@@ -216,10 +216,6 @@ final class AppModel {
     let cloud: CloudSyncController = CloudSyncController()
     /// iCloud'dan henüz inmemiş toplantı sayısı.
     private(set) var cloudDownloadingCount: Int = 0
-    /// Anahtarların iCloud Anahtar Zinciri kopyası (iPhone için) yazılıyor ya da başarısız oldu.
-    private(set) var keySync: SyncWorkState = .idle
-    /// Eşitlenen kopyası olan anahtarlar.
-    private(set) var sharedKeyAccounts: [SecretAccount] = []
     /// İşlenmekte olan toplantıların kimlikleri.
     var processingMeetingIDs: Set<String> = []
     /// Mac ↔ iPhone eşitlemesiyle başka cihazdan gelen toplantılar (yalnız Gistsmith; bkz. `HostedSyncCenter`): sesleri
@@ -4252,7 +4248,6 @@ final class AppModel {
         startRetentionTimer()
         startCloudSyncIfEnabled()
         Task { await refreshSetupProblems() }
-        Task { await refreshSharedKeys() }
     }
 
     /// Abonelikte yarıda kalan çevrimdışı kayıt (sunucu oturumu yok) kuyruğa döner; geliştirici sürümünde değişmez.
@@ -4510,56 +4505,6 @@ final class AppModel {
     /// iCloud'a taşınmayacak toplantılar: kayıtta, işlenen ya da düzenlenen ve çalınan (dosyaları kullanımda).
     private var cloudMoveExclusions: Set<String> {
         processingMeetingIDs.union([activeMeetingID, player.meetingID].compactMap { $0 })
-    }
-
-    // MARK: Anahtar eşitleme
-
-    /// Kayıtlı anahtarların iCloud Anahtar Zinciri'ne eşitlenen kopyasını yazar (iPhone uygulaması okur); yerel
-    /// öğelere dokunulmaz. Yalnızca bu Mac'te kayıtlı olan anahtarlar kopyalanır.
-    func shareKeysWithIPhone() async {
-        keySync = .working
-        do {
-            for account in [SecretAccount.deepgram, .elevenlabs, .anthropic, .openai] {
-                guard let value = try await optionalSecretInBackground(service: appKeychainService, account: account) else {
-                    // Bu Mac'te artık olmayan anahtarın iPhone kopyası da kalkar.
-                    try await runBlocking(qos: .userInitiated) { () throws -> Void in try deleteSyncedSecret(service: appKeychainService, account: account) }
-                    continue
-                }
-                try await runBlocking(qos: .userInitiated) { () throws -> Void in try saveSyncedSecret(service: appKeychainService, account: account, value: value) }
-            }
-            keySync = .idle
-        } catch {
-            Self.logger.error("Anahtarlar iCloud'a kopyalanamadı, hata: \(String(describing: error), privacy: .private)")
-            keySync = .failed(userFacingMessage(error: error))
-        }
-        await refreshSharedKeys()
-    }
-
-    /// Eşitlenen kopyaları siler (iPhone'daki uygulama da artık göremez).
-    func stopSharingKeys() async {
-        keySync = .working
-        do {
-            for account in SecretAccount.allCases {
-                try await runBlocking(qos: .userInitiated) { () throws -> Void in try deleteSyncedSecret(service: appKeychainService, account: account) }
-            }
-            keySync = .idle
-        } catch {
-            keySync = .failed(userFacingMessage(error: error))
-        }
-        await refreshSharedKeys()
-    }
-
-    /// Hangi anahtarların eşitlenen kopyası var.
-    func refreshSharedKeys() async {
-        do {
-            var shared: [SecretAccount] = []
-            for account in SecretAccount.allCases where try await runBlocking(qos: .userInitiated, operation: { () throws -> Bool in try syncedSecretExists(service: appKeychainService, account: account) }) {
-                shared.append(account)
-            }
-            sharedKeyAccounts = shared
-        } catch {
-            keySync = .failed(userFacingMessage(error: error))
-        }
     }
 
     /// Klasör gerektiren bir eylemi çalıştırır; klasör alınamazsa hata panelde görünür.

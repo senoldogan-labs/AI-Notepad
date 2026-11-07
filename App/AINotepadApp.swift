@@ -148,12 +148,6 @@ private func probeICloud() {
         let goneFromCloud: Bool = !FileManager.default.fileExists(atPath: inCloud.path)
         try FileManager.default.removeItem(at: local)
         print("iCloud tamam: \(cloud.path) | iCloud'da görüldü: \(seenInCloud) | geri geldi: \(seenLocally) (\(back.lastPathComponent)) | iCloud'dan kalktı: \(goneFromCloud)")
-        // Anahtar Zinciri eşitlemesi: ayrı servis adıyla deneme değeri (gerçek anahtarlara dokunulmaz).
-        let service: String = "AINotepad-yoklama"
-        try saveSyncedSecret(service: service, account: .webhook, value: "deneme")
-        let synced: Bool = try syncedSecretExists(service: service, account: .webhook)
-        try deleteSyncedSecret(service: service, account: .webhook)
-        print("Anahtar Zinciri eşitlemesi: yazıldı \(synced), silindi \(try !syncedSecretExists(service: service, account: .webhook))")
     } catch {
         print("iCloud hata: \(error)")
     }

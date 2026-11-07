@@ -52,10 +52,11 @@
 - **Engines:** Deepgram + ElevenLabs in the cloud (gaps in the live transcript are filled from ElevenLabs), or
   fully on-device WhisperKit + SpeakerKit.
   LLM: Claude (default Claude Haiku 5.5) or any OpenAI-compatible server (OpenAI, Ollama, …).
-- **iPhone app:** records in-person meetings with live text and Turkish translation, a Live Activity on the Lock
-  Screen and Dynamic Island, Shortcuts and a Control Center button; reads, plays and searches your meetings.
-- **iCloud sync (opt-in):** finished meetings move to your iCloud Drive and appear on both Mac and iPhone; keys can be
-  sent to the iPhone through iCloud Keychain. Off by default: meetings stay in
+- **iPhone app (Gistsmith, subscription only):** records in-person meetings with live text and Turkish translation, a
+  Live Activity on the Lock Screen and Dynamic Island, Shortcuts and a Control Center button; reads, plays and searches
+  your meetings. It works only with a Gistsmith account (no own API keys) and syncs with Gistsmith on the Mac through
+  that account, not through iCloud.
+- **iCloud sync (opt-in, Mac):** finished meetings move to your iCloud Drive. Off by default: meetings stay in
   `~/Library/Application Support/AINotepad`.
 - **Privacy:** a reminder to tell participants you are recording; API keys live only in the Keychain. With the cloud
   engine, audio is sent to Deepgram (live) and ElevenLabs (speaker windows during the meeting and the full recording
@@ -112,7 +113,9 @@ AI-Notepad, toplantıları (Fince, İngilizce ve 33 dil daha) canlı yazıya dö
 sonunda **sana düşen görevlerle başlayan** Türkçe not hazırlayan bir macOS ve iPhone uygulamasıdır. Kurulum için
 [Releases](../../releases) sayfasından DMG'yi indir, uygulamayı Uygulamalar klasörüne sürükle ve kurulum
 sayfasındaki adımları izle. Anahtarlar yalnızca Anahtar Zinciri'nde tutulur. Kayıtlar varsayılan olarak yalnızca
-Mac'indedir; istersen iCloud eşitlemesini açarsın, biten toplantılar iCloud Drive'ına taşınıp Mac ve iPhone'da görünür.
+Mac'indedir; istersen iCloud eşitlemesini açarsın, biten toplantılar iCloud Drive'ına taşınır. iPhone uygulaması
+yalnızca abonelikle çalışan Gistsmith'tir (kendi anahtarlarınla çalışmaz): toplantıları iCloud ile değil, Gistsmith
+hesabın üzerinden Mac'teki Gistsmith'le eşitler.
 
 ## License
 
