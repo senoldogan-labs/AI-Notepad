@@ -74,3 +74,13 @@ public func clampedPanelFrame(frame: CGRect, visible: CGRect, minSize: CGSize, m
     let y: CGFloat = min(max(frame.minY, available.minY), available.maxY - height)
     return CGRect(x: x, y: y, width: width, height: height)
 }
+
+/// Paneli başka bir ekrana taşır: sağ üst köşeye uzaklığı korunur (panel hep sağ üstte açılır), sonra yeni ekrana
+/// sığdırılır. Kayıt fare imlecinin olduğu ekranda başlarken panel orada görünsün diye. Saf fonksiyondur.
+public func relocatedPanelFrame(frame: CGRect, from: CGRect, to: CGRect, minSize: CGSize, margin: CGFloat) -> CGRect {
+    let moved: CGRect = CGRect(
+        x: to.maxX - (from.maxX - frame.maxX) - frame.width, y: to.maxY - (from.maxY - frame.maxY) - frame.height,
+        width: frame.width, height: frame.height
+    )
+    return clampedPanelFrame(frame: moved, visible: to, minSize: minSize, margin: margin)
+}

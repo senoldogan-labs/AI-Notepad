@@ -48,7 +48,7 @@ private struct ViewStateInputs: Equatable {
     let statusText: String
     let languageText: String
     let noteLanguageText: String
-    let errors: [String]
+    let notices: [RecordingNotice]
 }
 
 /// Süren kaydın bilgileri.
@@ -63,6 +63,10 @@ private struct RecordingSession {
 }
 
 /// Uygulamanın arayüz durumu ve kayıt yaşam döngüsü.
+/// "Bitir"den sonra canlı oturumun kapanması için en uzun bekleme (sn); aşılırsa kayıt canlı metnin sonu beklenmeden
+/// kapatılır (bkz. `AppModel.watchFinishing`). Panel ve menü bu sürenin yarısından sonra "Şimdi bitir"i gösterir.
+let finishingLimitSec: Double = 45
+
 @MainActor
 @Observable
 final class AppModel {
@@ -80,8 +84,25 @@ final class AppModel {
     @ObservationIgnored private var modelLoad: Task<Void, Never>?
     var liveEngine: LiveEngine
     var isRecording: Bool = false
-    /// İzin pencereleri açıkken ikinci bir başlatmayı engeller.
+    /// Başlatılıyor (izin pencereleri, ses akışları, toplantı oturumu): ikinci bir başlatmayı engeller; panel, ada ve menü
+    /// "Başlatılıyor…" ve iptal gösterir.
     var isStarting: Bool = false
+    /// Başlatılırken iptal istendi (bkz. `cancelStart`): başlatma her beklemeden sonra bakar.
+    @ObservationIgnored private var startCancelRequested: Bool = false
+    /// Ses akışları açılıyor (izin penceresi olabilir): iptal akışları kapatarak beklemeyi keser.
+    @ObservationIgnored private var isAwaitingCapture: Bool = false
+    /// Kayıt panelinde ve ana pencerede bilgi ve dikkat bildirimleri (uyku, süre sınırı, buluttan Mac'e geçiş, yüz yüze
+    /// modu): hata değildir, kırmızı görünmez. Yeni kayıtta ve şerit kapatılınca silinir.
+    var recordingNotices: [RecordingNotice] = []
+    /// Kayıttaki mikrofonun durumu (kesilip yeniden bağlanıyorsa panelde amber satır).
+    private(set) var microphoneStatus: MicrophoneStatus = .running
+    /// Süren mikrofon kesintisinin başladığı an ve bu kesintide yüksek sesle uyarılıp uyarılmadığı.
+    @ObservationIgnored private var microphoneOutageStartedAt: Date?
+    @ObservationIgnored private var microphoneOutageAlerted: Bool = false
+    @ObservationIgnored private var microphoneOutageTask: Task<Void, Never>?
+    /// "Bitir"e basılan an: bitirme uzarsa "Şimdi bitir" görünür, en çok `finishingLimitSec` beklenir.
+    private(set) var finishingStartedAt: Date?
+    @ObservationIgnored private var finishingWatchdogTask: Task<Void, Never>?
     /// Durduruldu; kalan metin, çeviriler ve son konuşmacı ayırma bitiyor.
     var isFinishing: Bool = false
     /// Kayıt duraklatıldı (ses sessizlikle değiştiriliyor).
@@ -169,6 +190,7 @@ final class AppModel {
     /// Hata şeridini kapatır (ana pencere ve panel aynı listeyi gösterir).
     func dismissErrors() {
         errorMessages = []
+        recordingNotices = []
     }
     var recordingStartedAt: Date?
     /// Global kısayol kaydedilemediyse menüde gösterilen hata.
@@ -329,6 +351,9 @@ final class AppModel {
     /// Kayıt sırasında paylaşılan ekranın görüntüleri ve toplantıların görüntü listesi.
     let screenSnapshots: ScreenSnapshotCenter = ScreenSnapshotCenter()
     @ObservationIgnored private var sessionTask: Task<Void, Never>?
+    /// Canlı oturumun olaylarını okuyan görev: "Şimdi bitir" yalnız bunu iptal eder, `sessionTask` toplantıyı kapatmayı
+    /// (sunucu oturumu, kayıt, işleme) iptalsiz sürdürür.
+    @ObservationIgnored private var eventsTask: Task<Void, Never>?
     /// Uyku ve çıkış bildirimlerinin gözlemcileri (uygulama boyunca yaşar).
     @ObservationIgnored private var systemObservers: [any NSObjectProtocol] = []
 
@@ -345,7 +370,13 @@ final class AppModel {
     // MARK: Görünüm
 
     var phase: RecordingPhase {
-        isFinishing ? .finishing : (isRecording ? .recording : .idle)
+        if isFinishing {
+            return .finishing
+        }
+        if isRecording {
+            return .recording
+        }
+        return isStarting ? .starting : .idle
     }
 
     /// Kayıt başlatılabilir mi: önceki kayıt bitmiş olmalı; Deepgram'da her zaman, yerel motorlarda model hazırsa.
@@ -369,8 +400,12 @@ final class AppModel {
             // Algılanan dil yalnızca kayıt sürerken anlamlı: bittikten sonra seçili mod (ör. "Otomatik") görünür.
             languageText: languageText(locked: isRecording ? lockedLanguage : nil, mode: languageMode, isRecording: isRecording),
             noteLanguageText: selectedNoteLanguage().interfaceName,
-            // Çözülmüş hatalar (ör. abone olduktan sonra "deneme bitti") panelde de kalmaz.
-            errors: visibleErrorMessages(errors: errorMessages, shownElsewhere: [], resolved: resolvedErrorMessages())
+            // Çözülmüş hatalar (ör. abone olduktan sonra "deneme bitti") panelde de kalmaz. Mikrofon kesintisi en başta
+            // (amber): kayıt sürer, ses gelince kendiliğinden kalkar.
+            notices: mergedRecordingNotices(
+                errors: visibleErrorMessages(errors: errorMessages, shownElsewhere: [], resolved: resolvedErrorMessages()),
+                notices: microphoneNotices + recordingNotices, limit: 3
+            )
         )
         if let cache = viewStateCache, cache.inputs == inputs {
             return cache.state
@@ -378,10 +413,23 @@ final class AppModel {
         let state: LiveViewState = makeLiveViewState(
             transcript: inputs.transcript, translations: inputs.translations, displayMode: inputs.displayMode,
             failedTranslations: inputs.failedTranslations, otherLanguageSegments: inputs.otherLanguageSegments, assistantCard: inputs.assistantCard, phase: inputs.phase,
-            newPersonNumber: inputs.newPersonNumber, isPaused: inputs.isPaused, isMicMuted: inputs.isMicMuted, canToggleMic: inputs.canToggleMic, isInPerson: inputs.isInPerson, canStart: inputs.canStart, startedAt: inputs.startedAt, statusText: inputs.statusText, languageText: inputs.languageText, noteLanguageText: inputs.noteLanguageText, errors: inputs.errors
+            newPersonNumber: inputs.newPersonNumber, isPaused: inputs.isPaused, isMicMuted: inputs.isMicMuted, canToggleMic: inputs.canToggleMic, isInPerson: inputs.isInPerson, canStart: inputs.canStart, startedAt: inputs.startedAt, statusText: inputs.statusText, languageText: inputs.languageText, noteLanguageText: inputs.noteLanguageText, notices: inputs.notices
         )
         viewStateCache = (inputs, state)
         return state
+    }
+
+    /// Mikrofon kesintisinin panel satırı (kayıt sürerken).
+    private var microphoneNotices: [RecordingNotice] {
+        guard isRecording, !isFinishing else {
+            return []
+        }
+        switch microphoneStatus {
+        case .running:
+            return []
+        case .interrupted, .reconnecting:
+            return [RecordingNotice(severity: .attention, text: String(localized: "Mikrofon yeniden bağlanıyor… Kayıt açık; ses gelince kendiliğinden sürer."))]
+        }
     }
 
     /// Panelde kayıt yokken gösterilen durum: hazırken boş (gereksiz yazı yok), yalnızca model hazırlanırken ya da
@@ -991,7 +1039,11 @@ final class AppModel {
         }
         #endif
         isStarting = true
-        defer { isStarting = false }
+        startCancelRequested = false
+        defer {
+            isStarting = false
+            startCancelRequested = false
+        }
         // Motor bir kez okunur: izin pencereleri açıkken ayar değişse de bulut/yerel kararı ile kaydın motoru aynı kalır
         // (yerel toplantı bulut sayılıp son geçişte buluta gönderilmesin).
         let engineAtStart: LiveEngine = liveEngine
@@ -1017,6 +1069,10 @@ final class AppModel {
         spokenLanguages = [:]
         languageSkippedSegments = []
         errorMessages = []
+        recordingNotices = []
+        microphoneStatus = .running
+        microphoneOutageStartedAt = nil
+        microphoneOutageAlerted = false
         startedSpeakers = []
         isPaused = false
         // Diskte kısa bir kayda bile yer yoksa kayıt başlamaz (başlar başlamaz bitirilirdi); az yer ana sayfada uyarılır.
@@ -1055,6 +1111,10 @@ final class AppModel {
             ? currentMeeting(meetings: upcomingMeetings, now: Date())
             : nil)
         pendingAutoMeeting = nil
+        guard !startCancelRequested else {
+            Self.logger.info("Kayıt başlarken iptal edildi, ses akışı açılmadı")
+            return
+        }
         let directory: URL
         do {
             directory = try AppPaths.newSessionDirectory(startedAt: Date())
@@ -1072,9 +1132,15 @@ final class AppModel {
         let othersAudio: AsyncStream<[Float]>
         recordingInPerson = isInPerson
         if isInPerson, linkedMeeting?.joinURL != nil {
-            // Çevrimiçi görüşmede yüz yüze modu karşı tarafı kaydetmez: açıkça uyarılır.
-            errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Yüz yüze modu açık: çevrimiçi görüşmenin karşı tarafı kaydedilmiyor. Ana sayfadaki \"Yüz yüze\"yi kapatıp kaydı yeniden başlat."))
+            // Çevrimiçi görüşmede yüz yüze modu karşı tarafı kaydetmez: açıkça (dikkat olarak, hata değil) uyarılır.
+            addRecordingNotice(severity: .attention, text: String(localized: "Yüz yüze modu açık: çevrimiçi görüşmenin karşı tarafı kaydedilmiyor. Ana sayfadaki \"Yüz yüze\"yi kapatıp kaydı yeniden başlat."))
         }
+        // Mikrofon kesilirse (cihaz çıkarıldı, ses yolu değişti) yeniden bağlanır; kesinti panelde görünür, uzarsa sesle
+        // ve bildirimle uyarılır.
+        microphone.onStatusChange = { [weak self] (status: MicrophoneStatus) -> Void in
+            self?.microphoneStatusChanged(status: status)
+        }
+        isAwaitingCapture = true
         if isInPerson {
             // Yüz yüze: odadaki herkes mikrofondan gelir; "Diğerleri" akışı olarak konuşmacılara ayrılır (kullanıcı da
             // onlardan biri). Sistem sesi dinlenmez.
@@ -1085,12 +1151,15 @@ final class AppModel {
                 othersAudio = gatedStream(audio: aligned, gate: pauseGate)
                 startedSpeakers.insert(.others)
             } catch {
-                errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
+                if !startCancelRequested {
+                    errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
+                }
                 othersAudio = finishedStream()
             }
         } else {
         if isMicMuted {
-            // Yalnızca karşı taraf: mikrofon hiç açılmaz.
+            // Yalnızca karşı taraf: mikrofon hiç açılmaz (mikrofon göstergesi yanmaz; "Sen" için bulut canlı metin akışı
+            // açılıp sessizlik ücretlendirilmez). Bu kayıtta mikrofon düğmesi kapalıdır ve nedenini söyler.
             meAudio = finishedStream()
             micOpenedForRecording = false
         } else {
@@ -1100,7 +1169,9 @@ final class AppModel {
                 startedSpeakers.insert(.me)
                 micOpenedForRecording = true
             } catch {
-                errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
+                if !startCancelRequested {
+                    errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
+                }
                 meAudio = finishedStream()
                 micOpenedForRecording = false
             }
@@ -1110,11 +1181,17 @@ final class AppModel {
             othersAudio = gatedStream(audio: aligned, gate: pauseGate)
             startedSpeakers.insert(.others)
         } catch {
-            errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
+            if !startCancelRequested {
+                errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
+            }
             othersAudio = finishedStream()
         }
         }
-        guard !startedSpeakers.isEmpty else {
+        isAwaitingCapture = false
+        // İptal ya da hiçbir akış açılamadı: açılan akış kapanır, boş toplantı klasörü kalmaz.
+        guard !startedSpeakers.isEmpty, !startCancelRequested else {
+            Self.logger.info("Kayıt başlamadı, iptal: \(self.startCancelRequested, privacy: .public), akış: \(self.startedSpeakers.count, privacy: .public)")
+            abandonStart(directory: directory)
             return
         }
         // Ses seviyesi panelde görünür (sesin geldiği anlaşılsın); iki akışın en yükseği çubuğa düşer. En yüksek değer
@@ -1157,10 +1234,7 @@ final class AppModel {
             errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
             // Ret aylık sınırdan ya da denemenin bitmesinden olabilir: göstergeler ve bildirim güncellensin.
             Task { await HostedAccount.shared.refresh() }
-            microphone.stop()
-            systemAudio.stop()
-            audioLevels.stop()
-            discardRefusedRecording(directory: directory)
+            abandonStart(directory: directory)
             return
         }
         // Çeviri sağlayıcısı toplantı oturumu açıldıktan sonra çözülür: çevrimdışı kayıtta canlı çeviri kapalıdır ve
@@ -1259,12 +1333,14 @@ final class AppModel {
         } else {
             // isReadyToRecord yerel motorlarda motoru garanti eder; buraya gelinmesi programlama hatasıdır.
             errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Konuşma tanıma modeli hazır değil."))
-            microphone.stop()
-            systemAudio.stop()
+            abandonStart(directory: directory)
             return
         }
         #endif
         isRecording = true
+        // Eski toplantı bildirimleri (hatırlatma, görüşme önerisi) kayıt başlayınca kalkar; kayıt sürerken yenileri de
+        // kurulmaz (paylaşılan ekranda çıkmasın; bkz. `refreshCalendar`). Başlamayan kayıtta hatırlatmalara dokunulmaz.
+        notifier.removeMeetingNotifications()
         #if HOSTED_EDITION
         watchRecordingLimit(deadline: meetingDeadline)
         #endif
@@ -1290,11 +1366,109 @@ final class AppModel {
         // Uygulama kayıt sırasında kapanırsa toplantı açılışta "yarıda kaldı" olarak bulunur.
         saveRecord(record: liveRecord(directory: directory, startedAt: startedAt, engine: engineAtStart, status: .recording, endedAt: nil), directory: directory)
         Self.logger.info("Kayıt başladı, klasör: \(directory.lastPathComponent, privacy: .public), motor: \(engineAtStart.rawValue, privacy: .public)")
-        sessionTask = Task { [weak self] in
+        let events: Task<Void, Never> = Task { [weak self] in
             for await event in handle.events {
                 self?.handle(event: event)
             }
+        }
+        eventsTask = events
+        sessionTask = Task { [weak self] in
+            await events.value
             await self?.sessionEnded()
+        }
+        // "İptal" toplantı oturumu açıldıktan sonra geldi: kayıt "Bitir"e basılmış gibi hemen bitirilir ve işlenir
+        // (oturum kapanır; iPhone'daki gibi).
+        if startCancelRequested {
+            Self.logger.info("Kayıt başlarken iptal edildi, oturum açılmıştı, kayıt hemen bitiriliyor")
+            stopRecording()
+        }
+    }
+
+    /// Başlamayan kaydı toparlar: açılan ses akışları ve ölçer kapanır, toplantı klasörü silinir.
+    private func abandonStart(directory: URL) {
+        microphone.stop()
+        systemAudio.stop()
+        audioLevels.stop()
+        do {
+            try FileManager.default.removeItem(at: directory)
+        } catch {
+            Self.logger.error("Başlamayan kaydın klasörü silinemedi, klasör: \(directory.lastPathComponent, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+            errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
+        }
+    }
+
+    /// Başlatılırken "İptal": izin penceresi ya da ses akışları beklenirken akışlar kapatılır ve kayıt başlamaz; toplantı
+    /// oturumu açıldıysa kayıt başlar başlamaz bitirilir.
+    func cancelStart() {
+        guard isStarting, !isRecording, !startCancelRequested else {
+            return
+        }
+        Self.logger.info("Kayıt başlatılırken iptal istendi")
+        startCancelRequested = true
+        // Akışlar açılırken (izin penceresi) kapatılır; açıldıktan sonra başlatma kendisi toparlar ya da kaydı bitirir.
+        if isAwaitingCapture {
+            microphone.stop()
+            systemAudio.stop()
+        }
+    }
+
+    /// Bilgi ya da dikkat bildirimi ekler (aynı metin bir kez).
+    private func addRecordingNotice(severity: NoticeSeverity, text: String) {
+        guard !recordingNotices.contains(where: { $0.text == text }) else {
+            return
+        }
+        recordingNotices.append(RecordingNotice(severity: severity, text: text))
+    }
+
+    /// Mikrofonun durumu değişti: kesinti panelde görünür; `microphoneOutageAlertSec`'ten uzun sürerse bir kez sesle ve
+    /// bildirimle uyarılır (panel gizli, kullanıcı başka pencerede olabilir). Ses geri gelince satır kalkar.
+    private func microphoneStatusChanged(status: MicrophoneStatus) {
+        microphoneStatus = status
+        guard isRecording || isStarting else {
+            return
+        }
+        switch status {
+        case .running:
+            if microphoneOutageStartedAt != nil {
+                Self.logger.info("Mikrofon yeniden ses veriyor, kayıt sürüyor")
+            }
+            microphoneOutageStartedAt = nil
+            microphoneOutageAlerted = false
+            microphoneOutageTask?.cancel()
+            microphoneOutageTask = nil
+            notifier.removeMicrophoneLost()
+        case .interrupted, .reconnecting:
+            guard microphoneOutageStartedAt == nil else {
+                return
+            }
+            microphoneOutageStartedAt = Date()
+            microphoneOutageTask?.cancel()
+            microphoneOutageTask = Task { [weak self] in
+                do {
+                    try await Task.sleep(for: .seconds(microphoneOutageAlertSec))
+                } catch {
+                    // İptal: ses geri geldi.
+                    return
+                }
+                self?.alertMicrophoneOutageIfDue()
+            }
+        }
+    }
+
+    private func alertMicrophoneOutageIfDue() {
+        guard isRecording, !isFinishing,
+              isMicrophoneOutageAlertDue(outageStartedAt: microphoneOutageStartedAt, now: Date(), alreadyAlerted: microphoneOutageAlerted, thresholdSec: microphoneOutageAlertSec) else {
+            return
+        }
+        microphoneOutageAlerted = true
+        Self.logger.warning("Mikrofondan uzun süredir ses gelmiyor, kullanıcı uyarıldı")
+        NSSound.beep()
+        Task {
+            do {
+                try await notifier.announceMicrophoneLost()
+            } catch {
+                Self.logger.error("Mikrofon kesildi bildirimi gösterilemedi, hata: \(String(describing: error), privacy: .private)")
+            }
         }
     }
 
@@ -1318,12 +1492,21 @@ final class AppModel {
                         warned = true
                         let time: String = deadline.formatted(Date.FormatStyle(date: .omitted, time: .shortened).locale(interfaceLocale()))
                         Self.logger.info("Toplantının süre sınırı yaklaşıyor, uyarı gösterildi")
-                        self.errorMessages = appendUnique(messages: self.errorMessages, message: String(localized: "Bu toplantının süre sınırına 5 dakika kaldı; kayıt \(time) itibarıyla bitirilecek."))
+                        let message: String = String(localized: "Bu toplantının süre sınırına 5 dakika kaldı; kayıt \(time) itibarıyla bitirilecek.")
+                        self.addRecordingNotice(severity: .attention, text: message)
+                        // Panel kapalı olabilir: uyarı bildirimle de gelir (iPhone'daki gibi).
+                        Task {
+                            do {
+                                try await self.notifier.announceRecordingLimit(message: message)
+                            } catch {
+                                Self.logger.error("Süre sınırı bildirimi gösterilemedi, hata: \(String(describing: error), privacy: .private)")
+                            }
+                        }
                     }
                 case .reached:
                     Self.logger.info("Toplantının süre sınırına ulaşıldı, kayıt bitiriliyor")
                     recordTelemetryCount(kind: .recordingOverrun)
-                    self.errorMessages = appendUnique(messages: self.errorMessages, message: String(localized: "Bu toplantının süre sınırına ulaşıldı; kayıt bitirildi."))
+                    self.addRecordingNotice(severity: .info, text: String(localized: "Bu toplantının süre sınırına ulaşıldı; kayıt bitirildi."))
                     self.stopRecording()
                     return
                 }
@@ -1358,16 +1541,58 @@ final class AppModel {
 
     /// Yakalamayı durdurur; oturum kalan bölümleri işleyip kendiliğinden biter ("Bitiriliyor…").
     func stopRecording() {
+        if isStarting, !isRecording {
+            cancelStart()
+            return
+        }
         guard isRecording, !isFinishing else {
             return
         }
         isFinishing = true
+        finishingStartedAt = Date()
+        watchFinishing()
+        microphoneOutageTask?.cancel()
+        microphoneOutageTask = nil
+        notifier.removeMicrophoneLost()
         consentReminderVisible = false
         stopCallEndWatch()
         audioLevels.stop()
         microphone.stop()
         systemAudio.stop()
         screenSnapshots.stopRecording()
+    }
+
+    /// "Bitir"den sonra canlı oturum `finishingLimitSec` içinde kapanmazsa kayıt canlı metnin sonu beklenmeden kapatılır
+    /// (iPhone'daki gibi): ses akışları "Bitir" anında kapandı, son geçiş kaydın tamamını yazıya döker.
+    private func watchFinishing() {
+        finishingWatchdogTask?.cancel()
+        let generation: Int = recordingGeneration
+        finishingWatchdogTask = Task { [weak self] in
+            do {
+                try await Task.sleep(for: .seconds(finishingLimitSec))
+            } catch {
+                // İptal: oturum kapandı.
+                return
+            }
+            guard let self, self.isFinishing, generation == self.recordingGeneration else {
+                return
+            }
+            Self.logger.error("Canlı oturum süre içinde kapanmadı, kayıt canlı metnin sonu beklenmeden kapatılıyor, süre: \(finishingLimitSec, privacy: .public) sn")
+            await self.finishNow()
+        }
+    }
+
+    /// "Şimdi bitir": canlı metnin sonu (bulut kapanışı, kalan ses) beklenmez; oturum bırakılır, toplantı kaydedilip
+    /// işlenir. Son geçiş kaydın tamamını yazıya döker.
+    func finishNow() async {
+        guard isFinishing, let session else {
+            return
+        }
+        Self.logger.info("Bitirme beklenmeden kapatılıyor")
+        addRecordingNotice(severity: .info, text: String(localized: "Canlı metnin sonu beklenmeden kayıt kapatıldı; kaydın tamamı yine yazıya dökülür."))
+        await session.handle.cancel()
+        // Olay akışını okuyan görev iptal edilince döngü biter; `sessionTask` toplantıyı bir kez kapatır.
+        eventsTask?.cancel()
     }
 
     // MARK: Görüşme bitince kaydı bitir
@@ -1408,6 +1633,16 @@ final class AppModel {
         }
         guard UserDefaults.standard.bool(forKey: SettingsKey.stopWhenCallEnds) else {
             if callEndDeadline != nil {
+                notifier.removeCallEnded()
+            }
+            callEndState = .initial
+            callEndDeadline = nil
+            return
+        }
+        // Duraklatılmış kayıt görüşme bitti diye bitirilmez: geri sayım iptal olur, sürdürülünce baştan izlenir.
+        guard !isPaused else {
+            if callEndDeadline != nil {
+                Self.logger.info("Kayıt duraklatıldı, görüşme sonu geri sayımı iptal")
                 notifier.removeCallEnded()
             }
             callEndState = .initial
@@ -1528,7 +1763,7 @@ final class AppModel {
             #if HOSTED_EDITION
             hostedLiveEngineInUse = .whisperKit
             #endif
-            errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Bulut canlı metni durdu; canlı metin bu Mac'te sürüyor, kayıt kesilmedi. (\(message))"))
+            addRecordingNotice(severity: .info, text: String(localized: "Bulut canlı metni durdu; canlı metin bu Mac'te sürüyor, kayıt kesilmedi. (\(message))"))
         case .diarizationFailed(let message):
             errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Konuşmacı ayırma başarısız: \(message)"))
         }
@@ -1562,8 +1797,16 @@ final class AppModel {
         defer { handingOffMeetingID = nil }
         isRecording = false
         isFinishing = false
+        finishingStartedAt = nil
+        finishingWatchdogTask?.cancel()
+        finishingWatchdogTask = nil
+        microphoneOutageTask?.cancel()
+        microphoneOutageTask = nil
+        microphoneStatus = .running
+        notifier.removeMicrophoneLost()
         recordingStartedAt = nil
         sessionTask = nil
+        eventsTask = nil
         checkpointTask?.cancel()
         checkpointTask = nil
         diskSpaceTask?.cancel()
@@ -1581,6 +1824,10 @@ final class AppModel {
         stopCallEndWatch()
         relatedTasks = []
         recordingCalendarMeeting = nil
+        // Kayıt sürerken kurulmayan toplantı hatırlatmaları yeniden kurulur.
+        if UserDefaults.standard.bool(forKey: SettingsKey.calendarEnabled) {
+            Task { await refreshCalendar() }
+        }
         #if HOSTED_EDITION
         recordingLimitTask?.cancel()
         recordingLimitTask = nil
@@ -1746,18 +1993,6 @@ final class AppModel {
 
     // MARK: Toplantı kayıtları
 
-    #if HOSTED_EDITION
-    /// Sunucu toplantıyı reddetti (deneme bitti, sınır…): kayıt başlamadı, o ana dek diske yazılan ses ve klasör silinir.
-    private func discardRefusedRecording(directory: URL) {
-        do {
-            try FileManager.default.removeItem(at: directory)
-        } catch {
-            Self.logger.error("Reddedilen kaydın klasörü silinemedi, klasör: \(directory.lastPathComponent, privacy: .public), hata: \(String(describing: error), privacy: .private)")
-            errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
-        }
-    }
-    #endif
-
     /// Bu toplantı üzerinde değişiklik yapılabilir mi (kayıtta ya da işlemede değil).
     func isLocked(meetingID: String) -> Bool {
         activeMeetingID == meetingID || handingOffMeetingID == meetingID || processingMeetingIDs.contains(meetingID)
@@ -1890,7 +2125,7 @@ final class AppModel {
         }
         Self.logger.info("Mac uykuya geçiyor, kayıt bitiriliyor")
         stopRecording()
-        errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Mac uykuya geçtiği için kayıt bitirildi; not hazırlanıyor."))
+        addRecordingNotice(severity: .info, text: String(localized: "Mac uykuya geçtiği için kayıt bitirildi; not hazırlanıyor."))
     }
 
     /// "Yine de çık": süren kaydın son transkripti saklanır (son kontrol noktasından sonraki metin kaybolmasın);
@@ -2717,6 +2952,11 @@ final class AppModel {
         }
         guard UserDefaults.standard.bool(forKey: SettingsKey.meetingReminders) else {
             // Hatırlatmalar kapalı: kurulu olanlar kalkar; izin reddedilip kapandıysa neden görünür kalır.
+            await notifier.removeReminders()
+            return
+        }
+        // Kayıt sürerken hatırlatma kurulmaz (paylaşılan ekranda çıkmasın, kayda ses karışmasın); kayıt bitince kurulur.
+        guard !isRecording else {
             await notifier.removeReminders()
             return
         }

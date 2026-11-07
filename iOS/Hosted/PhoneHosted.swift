@@ -1,4 +1,5 @@
 import AINotepadCore
+import AVFoundation
 import Foundation
 import os
 
@@ -110,6 +111,19 @@ func phoneStartBlockMessage(account: HostedAccount, now: Date) -> String? {
         return nil
     }
     return phoneStartBlockText(block: block, trialRefusedHere: account.isTrialRefusedOnThisMac, now: now)
+}
+
+/// Kayıt uygulama açılmadan (Denetim Merkezi, Kısayollar) başlatılabilir mi: giriş yapılmış, yapay zekâ açıklaması
+/// onaylanmış, hak durumu engellemiyor ve mikrofon izni verilmiş olmalı. Değilse niyet uygulamayı açar (izin penceresi,
+/// giriş ya da abonelik ekranı yalnız önde gösterilebilir).
+@MainActor
+func canStartRecordingInBackground() -> Bool {
+    let account: HostedAccount = HostedAccount.shared
+    guard !account.requiresSignIn, UserDefaults.standard.bool(forKey: PhoneSettingsKey.aiDisclosureAccepted),
+          phoneStartBlockMessage(account: account, now: Date()) == nil else {
+        return false
+    }
+    return AVAudioApplication.shared.recordPermission == .granted
 }
 
 /// Hâlâ geçerli hata mesajları: abonelik etkinse aboneliğin çözdüğü retler ("deneme bitti", "bu cihazda deneme

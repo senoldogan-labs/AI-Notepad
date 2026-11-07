@@ -51,12 +51,18 @@ struct RecordingLiveActivity: Widget {
                         .lineLimit(1)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    HStack(alignment: .center, spacing: 8) {
-                        LastLine(state: context.state)
-                        PauseButton(state: context.state)
-                        StopButton(isFinishing: context.state.isFinishing)
+                    if context.isStale {
+                        StaleRecording(title: context.attributes.title)
+                            .padding(.horizontal, 4)
+                    } else {
+                        HStack(alignment: .center, spacing: 8) {
+                            LastLine(state: context.state)
+                            MarkButton(state: context.state)
+                            PauseButton(state: context.state)
+                            StopButton(isFinishing: context.state.isFinishing)
+                        }
+                        .padding(.horizontal, 4)
                     }
-                    .padding(.horizontal, 4)
                 }
             } compactLeading: {
                 HStack(spacing: 4) {
@@ -68,10 +74,18 @@ struct RecordingLiveActivity: Widget {
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(Text(statusTitle(state: context.state)))
             } compactTrailing: {
-                ElapsedText(startedAt: context.attributes.startedAt, state: context.state)
-                    .font(.system(.footnote, weight: .semibold).monospacedDigit())
-                    .multilineTextAlignment(.trailing)
-                    .frame(maxWidth: 52, alignment: .trailing)
+                if context.isStale {
+                    // Eskimiş etkinlikte süre akmaz (uygulama kaydı sürdürmüyor olabilir).
+                    Image(systemName: "exclamationmark.circle.fill")
+                        .font(.system(.caption, weight: .semibold))
+                        .foregroundStyle(.orange)
+                        .accessibilityLabel(Text("Kayıt durmuş olabilir"))
+                } else {
+                    ElapsedText(startedAt: context.attributes.startedAt, state: context.state)
+                        .font(.system(.footnote, weight: .semibold).monospacedDigit())
+                        .multilineTextAlignment(.trailing)
+                        .frame(maxWidth: 52, alignment: .trailing)
+                }
             } minimal: {
                 Image(systemName: statusSymbol(state: context.state, running: "mic.fill"))
                     .font(.system(.caption, weight: .semibold))
@@ -142,6 +156,14 @@ private struct LockScreenRecording: View {
     let context: ActivityViewContext<RecordingActivityAttributes>
 
     var body: some View {
+        if context.isStale {
+            StaleRecording(title: context.attributes.title)
+        } else {
+            live
+        }
+    }
+
+    private var live: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 StatusDot(state: context.state, size: 9)
@@ -162,11 +184,57 @@ private struct LockScreenRecording: View {
                         .foregroundStyle(context.state.isMicrophonePaused && !context.state.isFinishing && !context.state.isPaused ? .orange : .white.opacity(0.6))
                     LastLine(state: context.state)
                 }
+                MarkButton(state: context.state)
                 PauseButton(state: context.state)
                 StopButton(isFinishing: context.state.isFinishing)
             }
         }
         .foregroundStyle(.white)
+    }
+}
+
+/// Uygulama kayıt sürerken etkinliği yenilemeyi bıraktı (çöktü ya da sistem kapattı): süre akmaya devam etmesin,
+/// "Kaydediliyor" yanıltmasın. Dokununca uygulama açılır; o ana kadarki ses saklıdır.
+private struct StaleRecording: View {
+    let title: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.circle.fill")
+                    .foregroundStyle(.orange)
+                    .accessibilityHidden(true)
+                Text(title)
+                    .font(.system(.subheadline, weight: .semibold))
+                    .lineLimit(1)
+            }
+            Text("Kayıt durmuş olabilir")
+                .font(.system(.subheadline, weight: .semibold))
+            Text("Durumunu görmek için uygulamayı aç; o ana kadarki ses saklandı.")
+                .font(.system(.footnote))
+                .foregroundStyle(.white.opacity(0.75))
+                .lineLimit(2)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .foregroundStyle(.white)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// Şu anı uygulamayı açmadan işaretler (notta öne çıkar); duraklatılmışken ve bitirilirken gizlenir.
+private struct MarkButton: View {
+    let state: RecordingActivityAttributes.ContentState
+
+    var body: some View {
+        if !state.isFinishing, !state.isPaused {
+            Button(intent: MarkMomentIntent()) {
+                Image(systemName: "bookmark.fill")
+            }
+            .font(.system(.footnote, weight: .semibold))
+            .buttonStyle(.bordered)
+            .tint(.white)
+            .accessibilityLabel(Text("Bu anı işaretle"))
+        }
     }
 }
 
@@ -232,16 +300,29 @@ private struct PauseButton: View {
     }
 }
 
-/// Denetim Merkezi ve Eylem düğmesi: "Toplantıyı kaydet".
+/// Denetim Merkezi ve Eylem düğmesi: kaydı başlatır ya da süren kaydı bitirir (aç/kapa). Uygulama açılmaz; kayıt kilit
+/// ekranında görünür. Durum kaydın canlı etkinliğinden okunur; uygulama durum değişince düğmeyi yeniler.
 struct RecordControl: ControlWidget {
     var body: some ControlWidgetConfiguration {
-        StaticControlConfiguration(kind: "com.senoldogan.AINotepad.record") {
-            ControlWidgetButton(action: StartRecordingIntent()) {
-                Label("Toplantıyı kaydet", systemImage: "mic.fill")
+        StaticControlConfiguration(kind: recordControlKind, provider: RecordingControlValueProvider()) { (isRecording: Bool) in
+            ControlWidgetToggle("Toplantıyı kaydet", isOn: isRecording, action: ToggleRecordingIntent()) { (isOn: Bool) in
+                Label(isOn ? "Kaydediliyor" : "Toplantıyı kaydet", systemImage: isOn ? "stop.circle.fill" : "mic.fill")
             }
+            .tint(.red)
         }
         .displayName("Toplantıyı kaydet")
-        .description("Gistsmith'i açar ve yüz yüze toplantıyı kaydetmeye başlar.")
+        .description("Yüz yüze toplantıyı uygulamayı açmadan kaydetmeye başlar; yeniden basınca bitirir.")
+    }
+}
+
+/// Denetim Merkezi düğmesinin durumu: süren (bitirilmeyen) bir kayıt etkinliği varsa açık.
+struct RecordingControlValueProvider: ControlValueProvider {
+    let previewValue: Bool = false
+
+    func currentValue() async throws -> Bool {
+        Activity<RecordingActivityAttributes>.activities.contains { (activity: Activity<RecordingActivityAttributes>) -> Bool in
+            activity.activityState == .active && !activity.content.state.isFinishing
+        }
     }
 }
 

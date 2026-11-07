@@ -9,6 +9,7 @@ struct MiniPlayer: View {
     let store: PhoneStore
     let router: PhoneRouter
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion: Bool
 
     var body: some View {
         let record: MeetingRecord? = player.meetingID.flatMap { (id: String) -> MeetingRecord? in store.meetings.first { $0.id == id } }
@@ -20,7 +21,7 @@ struct MiniPlayer: View {
             } label: {
                 HStack(spacing: 10) {
                     Image(systemName: "waveform")
-                        .symbolEffect(.variableColor.iterative, isActive: player.isPlaying)
+                        .symbolEffect(.variableColor.iterative, isActive: player.isPlaying && !reduceMotion)
                         .foregroundStyle(appearance.accent.color)
                     VStack(alignment: .leading, spacing: 1) {
                         Text(record.map { $0.note?.title ?? $0.title } ?? "")

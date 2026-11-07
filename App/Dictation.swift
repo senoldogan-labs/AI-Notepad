@@ -60,6 +60,47 @@ enum DictationPillAction: Equatable {
     case signIn
     /// Ayarlar › Sesle yazma'yı aç (izin ver).
     case openSettings
+    /// Sistem Ayarları › Gizlilik ve Güvenlik › Mikrofon'u aç (mikrofon izni yok).
+    case openMicrophonePrivacy
+}
+
+/// Hata için hapın eylemi: mikrofon izni yoksa Sistem Ayarları'nın Mikrofon bölümü; başka hatada eylem yok. Saf
+/// fonksiyondur.
+func dictationFailureAction(error: any Error) -> DictationPillAction? {
+    if case AudioCaptureError.microphonePermissionDenied = error {
+        return .openMicrophonePrivacy
+    }
+    return nil
+}
+
+/// Erişilebilirlikle odaktaki öğe: metin alanı mı (bkz. `dictationFocus`). Okunamazsa bilinmez sayılır (yapıştırmak
+/// denenir).
+@MainActor
+func focusedDictationTarget() -> DictationFocus {
+    let systemWide: AXUIElement = AXUIElementCreateSystemWide()
+    var focused: CFTypeRef?
+    let status: AXError = AXUIElementCopyAttributeValue(systemWide, kAXFocusedUIElementAttribute as CFString, &focused)
+    switch status {
+    case .success:
+        break
+    case .noValue:
+        return dictationFocus(role: nil, hasSelectedTextRange: false)
+    default:
+        dictationLogger.info("Odaktaki öğe okunamadı, yapıştırma deneniyor, kod: \(status.rawValue, privacy: .public)")
+        return .unknown
+    }
+    guard let focused, CFGetTypeID(focused) == AXUIElementGetTypeID() else {
+        return .unknown
+    }
+    let element: AXUIElement = unsafeDowncast(focused, to: AXUIElement.self)
+    var role: CFTypeRef?
+    let roleStatus: AXError = AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &role)
+    var range: CFTypeRef?
+    let hasRange: Bool = AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &range) == .success && range != nil
+    guard roleStatus == .success, let roleName = role as? String else {
+        return hasRange ? .textInput : .unknown
+    }
+    return dictationFocus(role: roleName, hasSelectedTextRange: hasRange)
 }
 
 /// Sesle yazma hapının durumu.
@@ -312,7 +353,7 @@ final class DictationController {
                 }
                 dictationLogger.error("Sesle yazma dinlerken durdu, hata: \(String(describing: error), privacy: .private)")
                 self.apply(event: .cancel)
-                self.showMessage(text: userFacingMessage(error: error), severity: dictationFailureSeverity(error: error), action: nil)
+                self.showMessage(text: userFacingMessage(error: error), severity: dictationFailureSeverity(error: error), action: dictationFailureAction(error: error))
             }
         }
     }
@@ -404,7 +445,7 @@ final class DictationController {
                     showMessage(text: userFacingMessage(error: DictationError.noSpeech), severity: .info, action: nil)
                 } else {
                     dictationLogger.error("Sesle yazma başarısız, hata: \(String(describing: error), privacy: .private)")
-                    showMessage(text: userFacingMessage(error: error), severity: dictationFailureSeverity(error: error), action: nil)
+                    showMessage(text: userFacingMessage(error: error), severity: dictationFailureSeverity(error: error), action: dictationFailureAction(error: error))
                 }
             }
             apply(event: .finished)
@@ -439,7 +480,8 @@ final class DictationController {
         guard id == listeningID else {
             throw CancellationError()
         }
-        switch dictationDelivery(isAccessibilityTrusted: isAccessibilityTrusted(), isSecureInputActive: IsSecureEventInputEnabled()) {
+        let trusted: Bool = isAccessibilityTrusted()
+        switch dictationDelivery(isAccessibilityTrusted: trusted, isSecureInputActive: IsSecureEventInputEnabled(), focus: trusted ? focusedDictationTarget() : .unknown) {
         case .refuse(let error):
             throw error
         case .copyOnly:
@@ -450,6 +492,12 @@ final class DictationController {
                 text: String(localized: "Panoya kopyalandı; ⌘V ile yapıştır. Doğrudan yazması için Erişilebilirlik izni ver (tıkla)."),
                 severity: .attention, action: .openSettings
             )
+        case .copyNoTextField:
+            // ⌘V boşa gidip pano geri yüklenince metin kaybolurdu: panoda kalır.
+            let pasteboard: NSPasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            pasteboard.setString(text, forType: .string)
+            showMessage(text: String(localized: "Yazı alanı seçili değil; metin panoya kopyalandı. ⌘V ile yapıştır."), severity: .info, action: nil)
         case .paste:
             // Kısayolun değiştiricileri bırakılsın (⌘V'ye karışmasın). Beklerken atılmış olabilir; denetimden ⌘V'ye dek
             // bekleme yok, iptal araya giremez.
@@ -500,6 +548,11 @@ final class DictationController {
 
     private func showMessage(text: String, severity: NoticeSeverity, action: DictationPillAction?) {
         setPill(.message(text: text, severity: severity, action: action))
+        // Hap odak almaz: VoiceOver kullanıcısı mesajı duyurudan öğrenir.
+        NSAccessibility.post(
+            element: NSApp as Any, notification: .announcementRequested,
+            userInfo: [.announcement: text, .priority: NSAccessibilityPriorityLevel.high.rawValue]
+        )
         hideTask?.cancel()
         hideTask = Task { [weak self] in
             do {

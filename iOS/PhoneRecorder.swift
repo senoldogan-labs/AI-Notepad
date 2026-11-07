@@ -5,6 +5,7 @@ import BackgroundTasks
 import Foundation
 import os
 import UIKit
+import WidgetKit
 
 /// Kaydın durumu.
 enum RecorderPhase: Equatable {
@@ -57,7 +58,14 @@ final class PhoneRecorder {
     /// Mikrofon yeniden ses verince bildirimin ekranda kalma süresi.
     private static let recoveryNoticeSec: Double = 4
 
-    private(set) var phase: RecorderPhase = .idle
+    private(set) var phase: RecorderPhase = .idle {
+        didSet {
+            // Denetim Merkezi'ndeki aç/kapa düğmesi kaydın durumunu göstersin.
+            if oldValue != phase {
+                ControlCenter.shared.reloadControls(ofKind: recordControlKind)
+            }
+        }
+    }
     private(set) var transcript: [LiveSegment] = []
     /// Kullanıcının kayıt sırasında yaptığı konuşmacı düzeltmeleri (otomatik ayırmanın üstüne uygulanır; Mac'teki gibi).
     private(set) var speakerCorrections: SpeakerCorrections = .none
@@ -129,6 +137,22 @@ final class PhoneRecorder {
     private(set) var microphoneRecoveredNoticeVisible: Bool = false
     /// "Bitir"e basılan an (ya da mikrofonun beklenmedik sonu): süre burada durur, bitirme sürerken saymaz.
     private(set) var stoppedAt: Date?
+    /// Toplantı bitmiş gibi (takvim bitti ya da uzun sessizlik): kayıt ekranında "Toplantı bitti mi?" sorulur; yanıtlanınca
+    /// ya da kayıt bitince nil.
+    private(set) var meetingOverPrompt: MeetingOverReason?
+    /// Bu kayıtta sorulan "Toplantı bitti mi?" nedenleri (her neden bir kez).
+    @ObservationIgnored private var askedMeetingOver: Set<MeetingOverReason> = []
+    /// Son konuşmanın (kesinleşen metin), kayıt başının ya da sürdürmenin anı: uzun sessizlik buna göre ölçülür.
+    @ObservationIgnored private var lastActivityAt: Date = Date()
+    /// Kayıt sürerken 30 sn'de bir: canlı etkinliği tazeler (kilit ekranı eskimesin), "kayıt durmuş olabilir" bildirimini
+    /// erteler ve toplantının bitip bitmediğine bakar.
+    @ObservationIgnored private var heartbeatTask: Task<Void, Never>?
+    /// Kayıt bir kesinti (arama, alarm) yüzünden kendiliğinden duraklatıldı: kesinti bitince kendiliğinden sürer.
+    /// Kesintideki sessizlik dosyaya yazılmaz, yazıya dökülmez, sunucuya gönderilmez.
+    @ObservationIgnored private var isPausedForInterruption: Bool = false
+    /// "Kaydı sil": oturum bitince toplantı işlenmez, klasörü silinir.
+    @ObservationIgnored private var discardRequested: Bool = false
+    @ObservationIgnored private let notifier: MeetingNotifier = MeetingNotifier()
     @ObservationIgnored private var recoveryNoticeTask: Task<Void, Never>?
     /// Kayıt başlarken (`.starting`) "Bitir" istendi (Kısayollar, canlı etkinlik): başlatma mikrofon açılmadan önce
     /// iptal edilir; sunucu oturumu açıldıysa kayıt başlar başlamaz bitirilir (bkz. `stop`).
@@ -263,6 +287,10 @@ final class PhoneRecorder {
         }
         phase = .starting
         stopRequestedDuringStart = false
+        discardRequested = false
+        isPausedForInterruption = false
+        meetingOverPrompt = nil
+        askedMeetingOver = []
         generation += 1
         finishingWatchdogTask?.cancel()
         finishingWatchdogTask = nil
@@ -334,6 +362,10 @@ final class PhoneRecorder {
             phase = .idle
             return
         }
+        // Canlı etkinlik mikrofon açılır açılmaz başlar (sunucu ve canlı motor beklenmeden): kayıt kilit ekranında ve
+        // Dynamic Island'da hemen görünür; arka planda (Denetim Merkezi, Kısayollar) başlatılan kayıt da öyle.
+        startedAt = started
+        startActivity(startedAt: started, title: linkedMeeting?.title ?? String(localized: "Toplantı"))
         // Arka planda başlatıldıysa (Kısayollar) çubuklar öne dönünce başlar (bkz. `enterForeground`).
         if !isInBackground {
             levels.start()
@@ -382,6 +414,8 @@ final class PhoneRecorder {
             Task { await account.refresh() }
             microphone.stop()
             levels.stop()
+            endActivity()
+            startedAt = nil
             discardUnstartedRecording(directory: directory)
             phase = .idle
             return
@@ -433,7 +467,9 @@ final class PhoneRecorder {
         saveRecord(record: liveRecord(recording: active, status: .recording, endedAt: nil), directory: directory)
         startCheckpoints()
         startDiskSpaceWatch(directory: directory, startedAt: started)
-        startActivity(startedAt: started, title: linkedMeeting?.title ?? String(localized: "Toplantı"))
+        updateActivityNow(state: activityState())
+        lastActivityAt = started
+        startHeartbeat()
         watchRecordingLimit(deadline: deadline)
         Task { await scheduleRecordingLimitNotifications(deadline: deadline, warningLeadSec: hostedLimitWarningLeadSec) }
         consentReminderVisible = UserDefaults.standard.bool(forKey: PhoneSettingsKey.consentReminder)
@@ -533,6 +569,10 @@ final class PhoneRecorder {
         phase = .finishing
         let stopped: Date = Date()
         stoppedAt = stopped
+        meetingOverPrompt = nil
+        heartbeatTask?.cancel()
+        heartbeatTask = nil
+        notifier.removeRecordingAlerts()
         // Duraklatılmışken bitirildi: süre duraklatma anında kalır; ses kapısı kapalı kalır (mikrofon kapanana dek gelen
         // ses de yazılmaz).
         pauseClock = pauseClock.resuming(at: stopped)
@@ -599,11 +639,101 @@ final class PhoneRecorder {
         guard phase == .recording else {
             return
         }
+        // Kesintide (arama, alarm) kayıt kendiliğinden duraklar: aradaki sessizlik yazılmaz, yazıya dökülmez ve sunucuya
+        // gönderilmez; kesinti bitince kayıt kendiliğinden sürer. Kullanıcı zaten duraklattıysa dokunulmaz.
+        if status == .interrupted, !pauseClock.isPaused, let active {
+            isPausedForInterruption = true
+            active.pauseGate.pause(at: .now)
+            pauseClock = pauseClock.pausing(at: Date())
+            Self.logger.info("Kesinti: kayıt kendiliğinden duraklatıldı")
+        } else if status != .interrupted, isPausedForInterruption, let active {
+            isPausedForInterruption = false
+            active.pauseGate.resume(at: .now)
+            pauseClock = pauseClock.resuming(at: Date())
+            lastActivityAt = Date()
+            Self.logger.info("Kesinti bitti: kayıt kendiliğinden sürdürüldü")
+        }
         if isMicrophoneRecovery(previous: previous, current: status) {
             Self.logger.info("Mikrofon yeniden ses veriyor, kayıt sürüyor")
             showRecoveryNotice()
         }
         updateActivityNow(state: activityState())
+    }
+
+    /// Kayıt sürerken 30 sn'de bir: canlı etkinlik tazelenir (sessiz toplantıda da eskimesin; eskirse kilit ekranı
+    /// "kayıt durmuş olabilir" der), "kayıt durmuş olabilir" bildirimi 90 sn ileri ertelenir (uygulama ölürse çıkar) ve
+    /// toplantının bitip bitmediğine bakılır.
+    private func startHeartbeat() {
+        heartbeatTask?.cancel()
+        let heartbeatGeneration: Int = generation
+        heartbeatTask = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self, self.phase == .recording, heartbeatGeneration == self.generation else {
+                    return
+                }
+                self.updateActivityNow(state: self.activityState())
+                do {
+                    try await self.notifier.deferRecordingStoppedAlert(seconds: recordingStoppedAlertSec)
+                } catch {
+                    Self.logger.warning("Kayıt durmuş olabilir bildirimi kurulamadı, hata: \(String(describing: error), privacy: .private)")
+                }
+                self.checkMeetingOver()
+                do {
+                    try await Task.sleep(for: .seconds(recordingHeartbeatSec))
+                } catch {
+                    // İptal: kayıt bitti.
+                    return
+                }
+            }
+        }
+    }
+
+    /// Toplantı bitmiş gibiyse (takvim etkinliği bitti ya da 10 dk konuşma yok) kayıt ekranında ve bildirimle sorulur.
+    private func checkMeetingOver() {
+        guard phase == .recording, let active,
+              let reason = meetingOverReason(
+                  now: Date(), calendarEnd: active.linkedMeeting?.end, lastActivityAt: lastActivityAt, isPaused: pauseClock.isPaused,
+                  asked: askedMeetingOver, calendarGraceSec: meetingOverCalendarGraceSec, silenceSec: meetingOverSilenceSec
+              ) else {
+            return
+        }
+        askedMeetingOver.insert(reason)
+        meetingOverPrompt = reason
+        Self.logger.info("Toplantı bitmiş gibi, soruluyor, neden: \(String(describing: reason), privacy: .public)")
+        Task {
+            do {
+                try await notifier.askMeetingOver(reason: reason)
+            } catch {
+                Self.logger.warning("Toplantı bitti mi bildirimi gösterilemedi, hata: \(String(describing: error), privacy: .private)")
+            }
+        }
+    }
+
+    /// "Toplantı bitti mi?" sorusuna "Sürüyor": soru kalkar; sessizlik yeniden sayılır.
+    func dismissMeetingOverPrompt() {
+        meetingOverPrompt = nil
+        lastActivityAt = Date()
+        notifier.removeRecordingAlerts()
+        if phase == .recording {
+            // Bekleyen "kayıt durmuş olabilir" bildirimi de kalktı: hemen yeniden kurulur.
+            startHeartbeat()
+        }
+    }
+
+    /// "Kaydı sil" (onaylandıktan sonra): mikrofon kapanır, toplantı işlenmez ve not yazılmaz; kaydedilen ses ve metin
+    /// silinir. Sunucu oturumu kapanır (geçen süre kullanıma sayılır).
+    func discard() {
+        guard phase == .recording else {
+            return
+        }
+        Self.logger.info("Kayıt siliniyor")
+        discardRequested = true
+        stop()
+    }
+
+    /// Kayıt hatalarını kapatır (ana ekrandaki kapatma düğmesi).
+    func dismissErrors() {
+        errorMessages = []
     }
 
     /// "Mikrofon yeniden bağlandı" bildirimi birkaç saniye görünür.
@@ -697,6 +827,8 @@ final class PhoneRecorder {
         }
         active.pauseGate.pause(at: .now)
         pauseClock = pauseClock.pausing(at: Date())
+        // Kullanıcının duraklatması: kesinti bitince kendiliğinden sürdürülmez.
+        isPausedForInterruption = false
         Self.logger.info("Kayıt duraklatıldı")
         updateActivityNow(state: activityState())
     }
@@ -710,6 +842,8 @@ final class PhoneRecorder {
         }
         active.pauseGate.resume(at: .now)
         pauseClock = pauseClock.resuming(at: Date())
+        isPausedForInterruption = false
+        lastActivityAt = Date()
         Self.logger.info("Kayıt sürdürüldü, duraklatılmış süre: \(self.pauseClock.completedSec, privacy: .public) sn")
         updateActivityNow(state: activityState())
     }
@@ -1145,6 +1279,7 @@ final class PhoneRecorder {
                 // toplantıdan atlanır.
                 spokenLanguages[segment.id] = confidentSpokenLanguage(text: segment.text)
                 addForTranslation(segment: segment, lane: .live)
+                lastActivityAt = Date()
                 updateActivityThrottled()
             }
         case .languageLocked(let language):
@@ -1212,6 +1347,10 @@ final class PhoneRecorder {
         microphone.stop()
         levels.stop()
         endActivity()
+        heartbeatTask?.cancel()
+        heartbeatTask = nil
+        notifier.removeRecordingAlerts()
+        meetingOverPrompt = nil
         recordingLimitTask?.cancel()
         recordingLimitTask = nil
         cancelRecordingLimitNotifications()
@@ -1248,6 +1387,16 @@ final class PhoneRecorder {
         microphoneRecoveredNoticeVisible = false
         lastMeetingID = record.id
         Self.logger.info("Kayıt bitti, toplantı: \(record.id, privacy: .public), çevrimdışı: \(finished.offline, privacy: .public)")
+        if discardRequested {
+            // "Kaydı sil": işlenmez; ses, metin ve klasör silinir.
+            discardRequested = false
+            lastMeetingID = nil
+            Self.logger.info("Silinen kaydın klasörü kaldırılıyor, toplantı: \(record.id, privacy: .public)")
+            discardUnstartedRecording(directory: finished.directory)
+            store.reload()
+            endBackgroundTask(id: record.id)
+            return
+        }
         if finished.offline {
             // Çevrimdışı kayıt: ses ve canlı metin bu iPhone'da; son geçiş ve not bağlantı gelince (kayıt silinmez).
             saveRecord(
@@ -1323,6 +1472,10 @@ final class PhoneRecorder {
             saveRecord(record: versioned, directory: directory)
             removeCheckpointIfDone(record: versioned, directory: directory)
             processingSteps[record.id] = nil
+            // Not hazır: kaydın uyarıları ana ekranda günlerce kalmasın.
+            if versioned.status == .done, versioned.id == lastMeetingID {
+                errorMessages = []
+            }
             onMeetingProcessed?(versioned)
             finishContinuedTask(meetingID: record.id, success: versioned.status == .done)
             // Son geçişin ses süresi aylık kullanıma sayılır: hesap durumu yenilenir.

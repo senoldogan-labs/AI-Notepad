@@ -180,7 +180,7 @@ public func isQuotaExceeded(body: String) -> Bool {
 private func audioMessage(error: AudioCaptureError) -> String {
     switch error {
     case .microphonePermissionDenied:
-        String(localized: "Mikrofon izni yok. Sistem Ayarları › Gizlilik ve Güvenlik › Mikrofon'da bu uygulamaya izin ver.")
+        microphonePermissionDeniedText()
     case .microphoneStartFailed(let code):
         String(localized: "Mikrofon başlatılamadı (kod \(Int(code))). Giriş cihazını kontrol edip kaydı yeniden başlat.")
     case .coreAudio(let operation, let status):
@@ -316,4 +316,14 @@ private func serviceDisplayName(service: String) -> String {
     case "deepgram": "Deepgram"
     default: service
     }
+}
+
+/// Mikrofon izni yok: iznin verildiği yer platforma göre (Mac'te Sistem Ayarları, iPhone'da Ayarlar'daki uygulama sayfası;
+/// iPhone'da yanında "Ayarları aç" düğmesi de görünür).
+public func microphonePermissionDeniedText() -> String {
+    #if os(iOS)
+    String(localized: "Mikrofon izni yok. Ayarlar'da bu uygulamanın sayfasında Mikrofon'u aç.")
+    #else
+    String(localized: "Mikrofon izni yok. Sistem Ayarları › Gizlilik ve Güvenlik › Mikrofon'da bu uygulamaya izin ver.")
+    #endif
 }

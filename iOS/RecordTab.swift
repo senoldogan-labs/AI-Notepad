@@ -224,6 +224,9 @@ private struct LiveRecordingView: View {
     @State private var hasUnseenText: Bool = false
     /// Canlı çeviri (Ayarlar › Toplantı'daki gösterimle aynı ayar; ⋯ menüsünden de açılıp kapanır).
     @AppStorage(PhoneSettingsKey.displayMode) private var displayMode: String = DisplayMode.bilingual.rawValue
+    /// ⋯ › "Kaydı sil…" onayı bekleniyor.
+    @State private var isConfirmingDiscard: Bool = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion: Bool
 
     /// Konuşmacı düzeltmeleri uygulanmış transkriptin blokları (kaydedicide her canlı güncellemede bir kez kurulur; bkz.
     /// `PhoneRecorder.liveView`).
@@ -249,6 +252,14 @@ private struct LiveRecordingView: View {
                 if recorder.phase == .recording, let deadline = recorder.shortMeetingDeadline {
                     MeetingLimitNotice(deadline: deadline)
                 }
+                if recorder.phase == .recording, let reason = recorder.meetingOverPrompt {
+                    MeetingOverCard(reason: reason) {
+                        recorder.stop()
+                    } onContinue: {
+                        recorder.dismissMeetingOverPrompt()
+                    }
+                    .transition(.opacity)
+                }
                 PhoneErrorList(messages: recorder.errorMessages)
                 // Açık görevler yalnız takvim toplantısına bağlı kayıtta bulunur (`relatedOpenTasks`).
                 if recorder.phase == .recording, !recorder.relatedTasks.isEmpty, let meeting = recorder.recordingCalendarMeeting {
@@ -263,6 +274,7 @@ private struct LiveRecordingView: View {
             .padding(.horizontal, 20)
             .animation(.smooth(duration: 0.25), value: recorder.isPaused)
             .animation(.smooth(duration: 0.25), value: recorder.relatedTasks.isEmpty)
+            .animation(.smooth(duration: 0.25), value: recorder.meetingOverPrompt)
             if blocks.isEmpty {
                 listening
             } else {
@@ -329,6 +341,12 @@ private struct LiveRecordingView: View {
             recorder.consentReminderVisible = false
         }
         .toolbar(.hidden, for: .navigationBar)
+        .confirmationDialog("Kayıt silinsin mi?", isPresented: $isConfirmingDiscard, titleVisibility: .visible) {
+            Button("Kaydı sil", role: .destructive) { recorder.discard() }
+            Button("Vazgeç", role: .cancel) {}
+        } message: {
+            Text("Kaydedilen ses ve metin silinir, not yazılmaz. Geçen süre aylık kullanımına sayılır.")
+        }
         .sheet(isPresented: $isNotesOpen) {
             PhoneMyNotesSheet(text: Binding<String>(get: { recorder.myNotes }, set: { (text: String) -> Void in recorder.myNotes = text }))
                 .presentationDetents([.medium, .large])
@@ -381,10 +399,18 @@ private struct LiveRecordingView: View {
         .padding(.bottom, 12)
     }
 
-    /// ⋯ menüsü (Mac panelindeki gibi): toplantıya soru sor (Mac'te panelin altındaki soru alanı), canlı metnin tümünü
-    /// ekrandaki gibi kopyala, canlı çeviriyi aç/kapat.
+    /// ⋯ menüsü (Mac panelindeki gibi): "Ne kaçırdım?", Notlarım, toplantıya soru sor (Mac'te panelin altındaki soru
+    /// alanı), canlı metnin tümünü ekrandaki gibi kopyala, canlı çeviriyi aç/kapat ve onaylı "Kaydı sil".
     private var moreMenu: some View {
         Menu {
+            Button("Ne kaçırdım?", systemImage: "sparkles") {
+                recorder.askWhatIMissed()
+            }
+            .disabled(recorder.phase != .recording || blocks.isEmpty)
+            Button("Notlarım", systemImage: recorder.myNotes.isEmpty ? "square.and.pencil" : "square.and.pencil.circle.fill") {
+                isNotesOpen = true
+            }
+            .disabled(recorder.phase != .recording)
             Button("Toplantıya sor…", systemImage: "questionmark.bubble") {
                 isAskOpen = true
             }
@@ -398,6 +424,11 @@ private struct LiveRecordingView: View {
                 recorder.selectDisplayMode(mode: isOn ? .bilingual : .originalOnly)
             })) {
                 Label("Canlı çeviri", systemImage: "character.bubble")
+            }
+            .disabled(recorder.phase != .recording)
+            Divider()
+            Button("Kaydı sil…", systemImage: "trash", role: .destructive) {
+                isConfirmingDiscard = true
             }
             .disabled(recorder.phase != .recording)
         } label: {
@@ -418,7 +449,7 @@ private struct LiveRecordingView: View {
             Image(systemName: "waveform")
                 .appFont(size: 26, weight: .regular)
                 .foregroundStyle(Theme.muted)
-                .symbolEffect(.variableColor.iterative, options: .repeating)
+                .symbolEffect(.variableColor.iterative, options: .repeating, isActive: !reduceMotion)
             Text("Dinliyor… Konuşma başlayınca metin burada akar.")
                 .appFont(size: 15, weight: .regular)
                 .foregroundStyle(Theme.muted)
@@ -570,8 +601,27 @@ private struct LiveRecordingView: View {
         isAskOpen = false
     }
 
-    /// Yüzen eylem çubuğu: solda "Ne kaçırdım?" ve "İşaretle", ortada geniş "Bitir", sağda "Duraklat"/"Devam ettir" ve
-    /// "Notlarım"; bitirilirken yalnız durum.
+    /// "Bitir" düğmesinin içi: kırmızı kare ve yazı (tek satır, gerekirse küçülür) ya da yalnız kare.
+    @ViewBuilder
+    private func finishLabel(showsTitle: Bool) -> some View {
+        HStack(spacing: 8) {
+            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                .fill(Color(red: 0.93, green: 0.27, blue: 0.23))
+                .frame(width: 13, height: 13)
+            if showsTitle {
+                Text("Bitir")
+                    .appFont(size: 17, weight: .semibold)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .fixedSize()
+            }
+        }
+        .padding(.horizontal, 12)
+    }
+
+    /// Yüzen eylem çubuğu: üç düğme, her biri yazısıyla: solda "Duraklat"/"Devam", ortada geniş "Bitir", sağda
+    /// "İşaretle" ("Ne kaçırdım?" ve "Notlarım" ⋯ menüsünde). Küçük ekranda (iPhone SE) ve büyük yazıda "Bitir" sığmazsa
+    /// küçülür, yine sığmazsa yalnız simge kalır. Bitirilirken yalnız durum.
     private var controls: some View {
         HStack(spacing: 10) {
             if recorder.phase == .finishing {
@@ -584,61 +634,42 @@ private struct LiveRecordingView: View {
                 .frame(maxWidth: .infinity, minHeight: 54)
             } else {
                 Button {
-                    recorder.askWhatIMissed()
-                } label: {
-                    RecordingControlIcon(systemImage: "sparkles")
-                }
-                .buttonStyle(PressableCardStyle())
-                .disabled(blocks.isEmpty)
-                .accessibilityLabel("Ne kaçırdım?")
-                .accessibilityHint("Son dakikaların özetini gösterir; toplantıya soru da sorabilirsin")
-                Button {
-                    recorder.markMoment()
-                    markedAt = Date()
-                } label: {
-                    RecordingControlIcon(systemImage: markedAt.map { Date().timeIntervalSince($0) < 2 } == true ? "bookmark.fill" : "bookmark")
-                }
-                .buttonStyle(PressableCardStyle())
-                // Duraklatılmışken işaretlenecek konuşma yok.
-                .disabled(recorder.isPaused)
-                .accessibilityLabel("Bu anı işaretle")
-                .sensoryFeedback(.impact(weight: .light), trigger: recorder.highlights.count)
-                Button {
-                    recorder.stop()
-                } label: {
-                    HStack(spacing: 8) {
-                        RoundedRectangle(cornerRadius: 3, style: .continuous)
-                            .fill(Color(red: 0.93, green: 0.27, blue: 0.23))
-                            .frame(width: 13, height: 13)
-                        Text("Bitir")
-                            .appFont(size: 17, weight: .semibold)
-                    }
-                    .foregroundStyle(Theme.onPrimary)
-                    .frame(maxWidth: .infinity, minHeight: 54)
-                    .background(Theme.primary, in: Capsule())
-                }
-                .buttonStyle(PressableCardStyle())
-                .accessibilityLabel("Kaydı bitir")
-                .sensoryFeedback(.success, trigger: recorder.phase)
-                Button {
                     if recorder.isPaused {
                         recorder.resume()
                     } else {
                         recorder.pause()
                     }
                 } label: {
-                    RecordingControlIcon(systemImage: recorder.isPaused ? "play.fill" : "pause.fill")
+                    RecordingControlIcon(systemImage: recorder.isPaused ? "play.fill" : "pause.fill", title: recorder.isPaused ? "Devam ettir" : "Duraklat")
                 }
                 .buttonStyle(PressableCardStyle())
                 .accessibilityLabel(recorder.isPaused ? "Devam ettir" : "Duraklat")
                 .sensoryFeedback(.impact(weight: .medium), trigger: recorder.isPaused)
                 Button {
-                    isNotesOpen = true
+                    recorder.stop()
                 } label: {
-                    RecordingControlIcon(systemImage: recorder.myNotes.isEmpty ? "square.and.pencil" : "square.and.pencil.circle.fill")
+                    ViewThatFits(in: .horizontal) {
+                        finishLabel(showsTitle: true)
+                        finishLabel(showsTitle: false)
+                    }
+                    .foregroundStyle(Theme.onPrimary)
+                    .frame(maxWidth: .infinity, minHeight: 60)
+                    .background(Theme.primary, in: Capsule())
                 }
                 .buttonStyle(PressableCardStyle())
-                .accessibilityLabel("Notlarım")
+                .accessibilityLabel("Kaydı bitir")
+                .sensoryFeedback(.success, trigger: recorder.phase)
+                Button {
+                    recorder.markMoment()
+                    markedAt = Date()
+                } label: {
+                    RecordingControlIcon(systemImage: markedAt.map { Date().timeIntervalSince($0) < 2 } == true ? "bookmark.fill" : "bookmark", title: "İşaretle")
+                }
+                .buttonStyle(PressableCardStyle())
+                // Duraklatılmışken işaretlenecek konuşma yok.
+                .disabled(recorder.isPaused)
+                .accessibilityLabel("Bu anı işaretle")
+                .sensoryFeedback(.impact(weight: .light), trigger: recorder.highlights.count)
             }
         }
         .padding(10)
@@ -660,18 +691,62 @@ private struct LiveRecordingView: View {
 /// Rıza bildiriminin ekranda kalma süresi (saniye).
 private let consentToastSeconds: Double = 3
 
-/// Kayıt çubuğundaki yuvarlak simge düğmesi (İşaretle, Notlarım): kullanıcının vurgu renginde.
+/// Kayıt çubuğundaki simge düğmesi (Duraklat, İşaretle): kullanıcının vurgu renginde yuvarlak simge ve altında kısa
+/// yazısı (simgenin ne yaptığı görülsün).
 private struct RecordingControlIcon: View {
     let systemImage: String
+    let title: LocalizedStringKey
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     var body: some View {
-        Image(systemName: systemImage)
-            .appFont(size: 18, weight: .medium)
-            .foregroundStyle(appearance.accent.color)
-            .frame(width: 54, height: 54)
-            .background(appearance.accent.color.opacity(0.12), in: Circle())
-            .contentTransition(.symbolEffect(.replace))
+        VStack(spacing: 2) {
+            Image(systemName: systemImage)
+                .appFont(size: 17, weight: .medium)
+                .frame(width: 40, height: 40)
+                .background(appearance.accent.color.opacity(0.12), in: Circle())
+                .contentTransition(.symbolEffect(.replace))
+            Text(title)
+                .appFont(size: 11, weight: .medium)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
+        .foregroundStyle(appearance.accent.color)
+        .frame(width: 64, height: 60)
+    }
+}
+
+/// "Toplantı bitti mi?": takvim etkinliği bitti ya da uzun süredir konuşma yok; "Bitir" kaydı bitirir, "Sürüyor"
+/// soruyu kapatır (aynı soru bildirim olarak da gelir).
+private struct MeetingOverCard: View {
+    let reason: MeetingOverReason
+    let onFinish: @MainActor () -> Void
+    let onContinue: @MainActor () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Toplantı bitti mi?")
+                    .appFont(size: 14, weight: .semibold)
+                    .foregroundStyle(Theme.ink)
+                Text(reason == .calendarEnded ? "Takvimdeki toplantının süresi doldu ama kayıt sürüyor." : "10 dakikadır konuşma duyulmadı ama kayıt sürüyor.")
+                    .appFont(size: 13, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            HStack(spacing: 8) {
+                Button("Kaydı bitir", action: onFinish)
+                    .buttonStyle(.accentPill)
+                Button("Sürüyor", action: onContinue)
+                    .buttonStyle(.plain)
+                    .appFont(size: 14, weight: .medium)
+                    .foregroundStyle(Theme.ink)
+                    .padding(.horizontal, 10)
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.soft, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .accessibilityElement(children: .contain)
     }
 }
 
@@ -736,10 +811,10 @@ private struct ElapsedClock: View {
 /// Kayıt duraklatıldı: tek cümlelik açıklama.
 private struct PausedNotice: View {
     var body: some View {
-        Label("Duraklatıldı; bu sırada ses kaydedilmez ve yazıya dökülmez.", systemImage: "pause.circle.fill")
-            .appFont(size: 14, weight: .medium)
+        Label("Duraklatıldı; ses kaydedilmez. Duraklatılan süre toplantının süre sınırından sayılır.", systemImage: "pause.circle.fill")
+            .appFont(size: 13, weight: .medium)
             .foregroundStyle(Theme.muted)
-            .padding(14)
+            .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Theme.soft, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .transition(.opacity)
@@ -750,16 +825,18 @@ private struct PausedNotice: View {
 /// konuşmacılar ve not bağlantı gelince hazırlanır.
 private struct OfflineRecordingNotice: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
+        // Tek satır başlık ve kısa açıklama: küçük ekranda canlı metne yer kalsın.
+        VStack(alignment: .leading, spacing: 2) {
             Label("Çevrimdışı kaydediliyor", systemImage: "wifi.slash")
-                .appFont(size: 14, weight: .semibold)
+                .appFont(size: 13, weight: .semibold)
                 .foregroundStyle(Theme.ink)
-            Text("Canlı metin bu iPhone'da yazılıyor; konuşmacılar ve not bağlantı gelince hazırlanır.")
-                .appFont(size: 13, weight: .regular)
+            Text("Not bağlantı gelince hazırlanır.")
+                .appFont(size: 12, weight: .regular)
                 .foregroundStyle(Theme.muted)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(2)
         }
-        .padding(14)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Theme.soft, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .accessibilityElement(children: .combine)
@@ -779,18 +856,19 @@ private struct MeetingLimitNotice: View {
                     .appFont(size: 13, weight: .semibold)
                     .foregroundStyle(NoticeSeverity.attention.tint)
                     .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text("Bu toplantıya \(hostedMinutesLeft(deadline: deadline, now: context.date)) dakika kaldı")
-                        .appFont(size: 14, weight: .semibold)
+                        .appFont(size: 13, weight: .semibold)
                         .foregroundStyle(Theme.ink)
                     Text("Aylık sınırına göre kayıt \(deadline.formatted(Date.FormatStyle(date: .omitted, time: .shortened).locale(interfaceLocale()))) itibarıyla biter.")
-                        .appFont(size: 13, weight: .regular)
+                        .appFont(size: 12, weight: .regular)
                         .foregroundStyle(Theme.muted)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(2)
                 }
                 .monospacedDigit()
             }
-            .padding(14)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 9)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(NoticeSeverity.attention.tint.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .accessibilityElement(children: .combine)
@@ -1120,12 +1198,18 @@ struct LiveBlockView: View {
     }
 }
 
-/// Toplantı hazırlanıyor: adımlar (biten ✓, süren gösterge, bekleyen soluk) ve ilerleme çubuğu.
+/// Toplantı hazırlanıyor: hazırlık katmanıyla aynı adımlar (biten ✓, süren gösterge, bekleyen soluk) ve ilerleme
+/// çubuğu; kayıt bitmiş olduğundan ilk adım hep tamamdır.
 struct PreparingCard: View {
     let step: ProcessingStep
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
-    private let titles: [LocalizedStringKey] = ["Ses kaydı hazırlanıyor", "Kaydın tamamı işleniyor", "Not hazırlanıyor"]
+    private let titles: [LocalizedStringKey] = phoneProcessingStepTitles
+
+    /// Gösterilen adım: işleme adımları kayıt bitirme adımından sonra gelir.
+    private var stepIndex: Int {
+        step.rawValue + 1
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -1133,19 +1217,19 @@ struct PreparingCard: View {
                 Text("Toplantı hazırlanıyor")
                     .appFont(size: 16, weight: .semibold)
                 Spacer()
-                Text(verbatim: "\(step.rawValue + 1)/\(titles.count)")
+                Text(verbatim: "\(stepIndex + 1)/\(titles.count)")
                     .appFont(size: 12, weight: .medium)
                     .monospacedDigit()
                     .foregroundStyle(Theme.muted)
             }
-            ProgressView(value: Double(step.rawValue) + 0.5, total: Double(titles.count))
+            ProgressView(value: Double(stepIndex) + 0.5, total: Double(titles.count))
                 .tint(appearance.accent.color)
             ForEach(Array(titles.enumerated()), id: \.offset) { (item: (offset: Int, element: LocalizedStringKey)) in
                 HStack(spacing: 10) {
                     Group {
-                        if item.offset < step.rawValue {
+                        if item.offset < stepIndex {
                             Image(systemName: "checkmark.circle.fill").foregroundStyle(.tint)
-                        } else if item.offset == step.rawValue {
+                        } else if item.offset == stepIndex {
                             ProgressView().controlSize(.small)
                         } else {
                             Image(systemName: "circle").foregroundStyle(.tertiary)
@@ -1154,7 +1238,7 @@ struct PreparingCard: View {
                     .frame(width: 18, height: 18)
                     Text(item.element)
                         .appFont(size: 14, weight: .regular)
-                        .foregroundStyle(item.offset > step.rawValue ? Theme.muted : Theme.ink)
+                        .foregroundStyle(item.offset > stepIndex ? Theme.muted : Theme.ink)
                 }
             }
             Text("Not hazır olunca ana ekranda görünür. Uygulamayı kapatırsan hazırlık sonraki açılışta sürer.")

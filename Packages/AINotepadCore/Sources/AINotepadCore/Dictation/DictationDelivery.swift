@@ -31,22 +31,58 @@ public func dictationStartRefusal(isSignedIn: Bool, isMeetingActive: Bool, isSec
     return nil
 }
 
+/// Odaktaki öğe (Erişilebilirlik): metin yazılabilir mi.
+public enum DictationFocus: Sendable, Equatable {
+    /// Metin alanı (alan, metin kutusu, arama, düzenlenebilir web içeriği): ⌘V buraya gider.
+    case textInput
+    /// Odakta hiçbir şey yok ya da açıkça metin almayan bir öğe (liste, düğme, Finder masaüstü): ⌘V metni kaybeder.
+    case notTextInput
+    /// Okunamadı ya da bilinmeyen rol (bazı uygulamalar rol bildirmez): yapıştırmak denenir.
+    case unknown
+}
+
+/// Metin alan rolleri (AXRole).
+private let dictationTextRoles: Set<String> = ["AXTextField", "AXTextArea", "AXComboBox", "AXSearchField", "AXWebArea"]
+/// Metin almadığı bilinen roller: ⌘V'yi yutar ya da başka bir şey yapar.
+private let dictationNonTextRoles: Set<String> = [
+    "AXList", "AXOutline", "AXTable", "AXBrowser", "AXButton", "AXImage", "AXMenu", "AXMenuBar", "AXMenuItem",
+    "AXGroup", "AXScrollArea", "AXWindow", "AXApplication", "AXCheckBox", "AXRadioButton", "AXPopUpButton", "AXSlider",
+]
+
+/// Odaktaki öğenin rolünden metin alıp almadığı: öğe yoksa (`role` nil) almaz; seçili metin aralığı olan öğe (metin
+/// imleci var) her zaman alır; rol bilinen metin rolüyse alır, metin almadığı bilinen rolse almaz, değilse bilinmez.
+/// Saf fonksiyondur.
+public func dictationFocus(role: String?, hasSelectedTextRange: Bool) -> DictationFocus {
+    guard let role else {
+        return .notTextInput
+    }
+    if hasSelectedTextRange || dictationTextRoles.contains(role) {
+        return .textInput
+    }
+    return dictationNonTextRoles.contains(role) ? .notTextInput : .unknown
+}
+
 /// Yazılan metnin hedef uygulamaya nasıl ulaşacağı.
 public enum DictationDelivery: Sendable, Equatable {
     /// Panoya yazılıp ⌘V ile yapıştırılır; pano sonra eski haline döner.
     case paste
     /// Erişilebilirlik izni yok: metin panoda kalır, kullanıcı kendisi yapıştırır.
     case copyOnly
+    /// Odakta yazı alanı yok: metin panoda kalır (⌘V boşa gidip pano geri yüklenince metin kaybolurdu).
+    case copyNoTextField
     /// Odakta parola alanı var: ne yapıştırılır ne panoya yazılır.
     case refuse(DictationError)
 }
 
-/// Metnin teslim yolu. Saf fonksiyondur.
-public func dictationDelivery(isAccessibilityTrusted: Bool, isSecureInputActive: Bool) -> DictationDelivery {
+/// Metnin teslim yolu. Odak yalnız Erişilebilirlik izniyle okunur; izin yoksa kopyalanır. Saf fonksiyondur.
+public func dictationDelivery(isAccessibilityTrusted: Bool, isSecureInputActive: Bool, focus: DictationFocus) -> DictationDelivery {
     if isSecureInputActive {
         return .refuse(.secureInputActive)
     }
-    return isAccessibilityTrusted ? .paste : .copyOnly
+    guard isAccessibilityTrusted else {
+        return .copyOnly
+    }
+    return focus == .notTextInput ? .copyNoTextField : .paste
 }
 
 /// Yapıştırılacak metin: baştaki ve sondaki boşluklar atılır, satır içindeki art arda boşluklar teke iner (satır sonları

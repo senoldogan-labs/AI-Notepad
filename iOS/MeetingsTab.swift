@@ -602,6 +602,8 @@ struct MeetingReadView: View {
     let store: PhoneStore
     let player: MeetingAudioPlayer
     let isRecording: Bool
+    /// Toplantı işleniyorsa şimdiki adımı (notu yokken hazırlık adımları gösterilir); işlenmiyorsa nil.
+    let processingStep: ProcessingStep?
     /// Sor: tarifler (⋯ › Tarif uygula) ve alttaki "Bir şey sor" çubuğunun sohbeti.
     let ask: PhoneAsk
     /// Sor'da basılan kaynak (cevaptaki [n], kaynak listesi, kapsam dipnotu): bu toplantınınsa sayfa o anı açar
@@ -1052,6 +1054,7 @@ struct MeetingReadView: View {
     private func summary(note: MeetingNote?, paragraphs: [TranscriptParagraph]) -> some View {
         MeetingSummary(
             record: record, note: note, paragraphs: paragraphs, store: store, canPlay: canPlay, isEditable: isEditable,
+            processingStep: processingStep,
             onNameSpeakers: { isNamingSpeakers = true }, onEditMyNotes: { isEditingMyNotes = true }, onClip: exportClip(paragraph:),
             onJump: { (paragraph: TranscriptParagraph) -> Void in jump(to: paragraph, paragraphs: paragraphs) },
             onAskSource: { (text: String) -> Void in askAboutLine(text: text) }
@@ -1382,6 +1385,8 @@ private struct MeetingSummary: View {
     let canPlay: Bool
     /// Not ve konuşmacı adları değiştirilebilir (kayıtta, işlenen ya da notu yazılan toplantıda değil).
     let isEditable: Bool
+    /// Toplantı işleniyorsa şimdiki adımı; işlenmiyorsa nil.
+    let processingStep: ProcessingStep?
     let onNameSpeakers: @MainActor () -> Void
     let onEditMyNotes: @MainActor () -> Void
     /// İşaretli anın sesini klip olarak paylaşır (uzun basınca).
@@ -1461,6 +1466,13 @@ private struct MeetingSummary: View {
                     }
                 }
             }
+        } else if let processingStep {
+            // Not hazırlanıyor: ana ekrandaki kartla aynı adımlar (Mac'teki işleniyor satırı gibi).
+            PreparingCard(step: processingStep)
+        } else if record.status == .recording {
+            EmptyStateCard(symbol: "waveform", title: "Kayıt sürüyor", message: "Not kayıt bitince hazırlanır.")
+        } else if record.status == .processing || record.status == .queued {
+            EmptyStateCard(symbol: "hourglass", title: "Not hazırlanıyor", message: record.status == .queued ? "Bağlantı gelince hazırlanır." : nil)
         } else {
             EmptyStateCard(symbol: "doc.text", title: "Bu toplantının notu yok", message: nil)
         }

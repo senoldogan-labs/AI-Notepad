@@ -48,9 +48,21 @@ import Testing
         #expect(dictationStartRefusal(isSignedIn: true, isMeetingActive: true, isSecureInputActive: true) == .meetingInProgress)
         #expect(dictationStartRefusal(isSignedIn: true, isMeetingActive: false, isSecureInputActive: true) == .secureInputActive)
         #expect(dictationStartRefusal(isSignedIn: true, isMeetingActive: false, isSecureInputActive: false) == nil)
-        #expect(dictationDelivery(isAccessibilityTrusted: true, isSecureInputActive: true) == .refuse(.secureInputActive))
-        #expect(dictationDelivery(isAccessibilityTrusted: false, isSecureInputActive: false) == .copyOnly)
-        #expect(dictationDelivery(isAccessibilityTrusted: true, isSecureInputActive: false) == .paste)
+        #expect(dictationDelivery(isAccessibilityTrusted: true, isSecureInputActive: true, focus: .textInput) == .refuse(.secureInputActive))
+        #expect(dictationDelivery(isAccessibilityTrusted: false, isSecureInputActive: false, focus: .unknown) == .copyOnly)
+        #expect(dictationDelivery(isAccessibilityTrusted: true, isSecureInputActive: false, focus: .textInput) == .paste)
+        #expect(dictationDelivery(isAccessibilityTrusted: true, isSecureInputActive: false, focus: .unknown) == .paste)
+        #expect(dictationDelivery(isAccessibilityTrusted: true, isSecureInputActive: false, focus: .notTextInput) == .copyNoTextField)
+    }
+
+    // Odak: hiçbir şey yoksa ya da metin almayan rolse yazı alanı yok; metin imleci olan öğe her zaman yazı alanı;
+    // bilinmeyen rolde yapıştırmak denenir.
+    @Test func focusClassification() {
+        #expect(dictationFocus(role: nil, hasSelectedTextRange: false) == .notTextInput)
+        #expect(dictationFocus(role: "AXTextArea", hasSelectedTextRange: false) == .textInput)
+        #expect(dictationFocus(role: "AXGroup", hasSelectedTextRange: true) == .textInput)
+        #expect(dictationFocus(role: "AXOutline", hasSelectedTextRange: false) == .notTextInput)
+        #expect(dictationFocus(role: "AXCustomCanvas", hasSelectedTextRange: false) == .unknown)
     }
 
     // Boşluklar düzelir, satır sonları kalır; boş metin yapıştırılmaz. Dikte edilen "Thank you." silinmez.
