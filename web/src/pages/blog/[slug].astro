@@ -68,7 +68,7 @@ const structuredData: string = structuredDataJson(
   <article class="post">
     <header class="post__head">
       <a class="text-link small post__back" href={routes.blog}>{text.backToBlog}</a>
-      <BlogCover post={post} class="post__cover">
+      <BlogCover post={post} class="post__cover" sizes="(max-width: 760px) calc(100vw - 40px), 760px" eager={true}>
         <h1 class="blog-cover__title">{post.title}</h1>
       </BlogCover>
       <div class="narrow post__intro">
@@ -119,7 +119,7 @@ const structuredData: string = structuredDataJson(
     )
   }
 
-  <CtaBand id="post-cta-title" title={text.ctaTitle} text={text.ctaText} photo="summer-lake" />
+  <CtaBand id="post-cta-title" title={text.ctaTitle} text={text.ctaText} photo="painted-hills" />
 </Base>
 
 <style>

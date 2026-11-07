@@ -1,15 +1,18 @@
 ---
-// Blog dizini: yazılar yeniden eskiye kart olarak (kapak, başlık, özet, tarih, okuma süresi) ve RSS bağlantısı.
+// Blog dizini: başlık ve RSS bağlantısı, en yeni yazı büyük kapakla öne çıkar (kapak solda,
+// başlık, özet, tarih ve okuma süresi sağda), altında öbür yazılar "All posts" başlığıyla üç sütunlu kartlar.
 import Base from "../layouts/Base.astro";
 import BlogCard from "../components/BlogCard.astro";
+import BlogCover from "../components/BlogCover.astro";
 import Icon from "../components/Icon.astro";
 import { copy, type BlogCopy } from "../copy";
-import { type BlogPost, blogEntries, blogPost } from "../lib/blog";
+import { type BlogPost, blogEntries, blogPost, publishedIso, publishedText } from "../lib/blog";
 import { websiteCard } from "../lib/social";
-import { blogFeedPath } from "../routes";
+import { blogFeedPath, blogPostPath } from "../routes";
 
 const text: BlogCopy = copy.blog;
 const posts: readonly BlogPost[] = (await blogEntries()).map(blogPost);
+const [latest, ...rest]: readonly BlogPost[] = posts;
 ---
 
 <Base page="blog" meta={text.meta} indexed={true} social={websiteCard}>
@@ -19,11 +22,35 @@ const posts: readonly BlogPost[] = (await blogEntries()).map(blogPost);
     <a class="text-link small" href={blogFeedPath}>{text.feedLink} <Icon name="arrow-right" size={14} class="" /></a>
   </section>
 
+  {
+    latest !== undefined && (
+      <section class="page featured" aria-labelledby="featured-title">
+        <a class="featured__cover" href={blogPostPath(latest.slug)} tabindex="-1" aria-hidden="true">
+          <BlogCover post={latest} class="" sizes="(max-width: 860px) calc(100vw - 40px), 720px" eager={true}>
+            <p class="blog-cover__title">{latest.title}</p>
+          </BlogCover>
+        </a>
+        <div class="featured__text">
+          <p class="kicker">{text.latest}</p>
+          <h2 class="featured__title" id="featured-title">
+            <a href={blogPostPath(latest.slug)}>{latest.title}</a>
+          </h2>
+          <p class="muted">{latest.description}</p>
+          <p class="small muted featured__meta">
+            <time datetime={publishedIso(latest.published)}>{publishedText(latest.published)}</time>
+            <span aria-hidden="true">·</span>
+            <span>{latest.minutes} {text.minutesRead}</span>
+          </p>
+        </div>
+      </section>
+    )
+  }
+
   <section class="page blog-posts" aria-labelledby="blog-list-title">
-    <h2 class="visually-hidden" id="blog-list-title">{text.title}</h2>
+    <h2 class="title-l blog-posts__title" id="blog-list-title">{text.allTitle}</h2>
     <ol class="blog-grid">
       {
-        posts.map((post: BlogPost) => (
+        rest.map((post: BlogPost) => (
           <li>
             <BlogCard post={post} />
           </li>
@@ -38,17 +65,74 @@ const posts: readonly BlogPost[] = (await blogEntries()).map(blogPost);
     display: grid;
     gap: 18px;
     justify-items: start;
-    padding-block: clamp(48px, 8vw, 96px) clamp(28px, 4vw, 48px);
+    padding-block: clamp(56px, 8vw, 104px) clamp(32px, 4vw, 56px);
   }
 
   .blog-intro .lead {
     max-width: 44rem;
   }
 
+  /* The newest post, featured: a big cover and the text beside it. */
+  .featured {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+    align-items: center;
+    gap: clamp(24px, 4vw, 56px);
+    padding-bottom: clamp(56px, 7vw, 96px);
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .featured__cover {
+    display: block;
+    text-decoration: none;
+  }
+
+  .featured__text {
+    display: grid;
+    gap: 14px;
+    align-content: center;
+  }
+
+  .featured__text .kicker {
+    margin: 0;
+    color: var(--accent);
+  }
+
+  .featured__title {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(1.875rem, 1.3rem + 1.6vw, 2.75rem);
+    line-height: 1.06;
+    letter-spacing: -0.015em;
+  }
+
+  .featured__title a {
+    text-decoration: none;
+  }
+
+  .featured__title a:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+  }
+
+  .featured__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .blog-posts {
+    padding-top: clamp(48px, 6vw, 80px);
+  }
+
+  .blog-posts__title {
+    margin-bottom: clamp(28px, 4vw, 44px);
+  }
+
   .blog-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
-    gap: clamp(36px, 4vw, 48px) clamp(20px, 2.6vw, 32px);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(40px, 4vw, 56px) clamp(20px, 2.6vw, 32px);
     margin: 0;
     padding: 0;
     list-style: none;
@@ -56,5 +140,23 @@ const posts: readonly BlogPost[] = (await blogEntries()).map(blogPost);
 
   .blog-grid > li {
     min-width: 0;
+  }
+
+  @media (max-width: 960px) {
+    .blog-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 860px) {
+    .featured {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 600px) {
+    .blog-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 </style>

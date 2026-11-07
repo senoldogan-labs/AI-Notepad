@@ -1,5 +1,5 @@
 ---
-// The footer's flip-book: a wide band at the top of every page's footer where a lake goes from late afternoon to a
+// The footer's flip-book: a wide band under every page's footer links where a lake goes from late afternoon to a
 // night with northern lights as the visitor scrolls (frames drawn by scripts/make-flipbook.ts, src/assets/flipbook/).
 // Decorative and hidden from screen readers. The band has a fixed aspect ratio, so nothing shifts when it fills.
 // Without the script, with reduced motion, or until the frames arrive, one lazily loaded still frame shows (the dusk
@@ -29,7 +29,7 @@ if (stillUrl === "") {
     position: relative;
     overflow: hidden;
     aspect-ratio: 5 / 2;
-    margin-bottom: clamp(48px, 6vw, 72px);
+    margin-top: clamp(48px, 6vw, 72px);
     border-radius: var(--radius-panel);
     background: #b493b8;
   }

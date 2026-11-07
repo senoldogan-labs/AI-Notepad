@@ -1731,6 +1731,11 @@ html.admin-app .admin > .notice {
   box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.06);
 }
 
+/* "Auto": the site picks the photograph by publish order, so the panel shows no colour. */
+.blog-cover-swatch--auto {
+  background: repeating-linear-gradient(135deg, var(--soft) 0 6px, var(--card) 6px 12px);
+}
+
 .blog-cover-picker .select {
   flex: 1 1 auto;
   min-width: 0;
@@ -1994,6 +1999,10 @@ html.admin-app .admin > .notice {
   margin-bottom: 18px;
   padding: 6.4cqi 7cqi;
   border-radius: 18px;
+}
+
+.blog-preview .blog-preview__cover--auto {
+  background: var(--soft);
 }
 
 .blog-preview .blog-preview__cover-title {

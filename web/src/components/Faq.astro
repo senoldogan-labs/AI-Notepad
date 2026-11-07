@@ -26,11 +26,11 @@ const { items } = Astro.props;
 
 <style>
   .faq {
-    border-top: 1px solid var(--line);
+    border-top: 1px solid var(--hairline);
   }
 
   .faq__item {
-    border-bottom: 1px solid var(--line);
+    border-bottom: 1px solid var(--hairline);
   }
 
   .faq__question {
@@ -38,9 +38,10 @@ const { items } = Astro.props;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    padding: 20px 0;
-    font-size: 1.0625rem;
+    padding: 22px 0;
+    font-size: clamp(1.0625rem, 1rem + 0.2vw, 1.1875rem);
     font-weight: 500;
+    line-height: 1.35;
     letter-spacing: -0.01em;
     cursor: pointer;
     list-style: none;
@@ -50,9 +51,10 @@ const { items } = Astro.props;
     display: none;
   }
 
+  /* Questions are set in Inter (the serif is for headings); the plus is the accent orange. */
   .faq__icon {
     flex: none;
-    color: var(--muted);
+    color: var(--accent);
     transition: transform 200ms ease;
   }
 

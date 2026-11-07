@@ -7,11 +7,11 @@
 // hesap sayfası abone olurken onu doldurur. Kurallar sunucunun davet kurallarıyla aynı tutulur.
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
-import Film from "../components/Film.astro";
+import PhotoPanel from "../components/PhotoPanel.astro";
 import Icon from "../components/Icon.astro";
-import Waveform from "../components/Waveform.astro";
 import { copy, type CommonCopy, type IconText, type InviteCopy } from "../copy";
 import { routes } from "../routes";
+import { halfPhotoWidths } from "../lib/photos";
 
 const text: InviteCopy = copy.invite;
 const common: CommonCopy = copy.common;
@@ -30,15 +30,14 @@ const common: CommonCopy = copy.common;
         <a class="button button--secondary" href={routes.pricing}>{common.nav.pricing}</a>
       </div>
     </div>
-    <Film palette="rose" layout="clouds-right" class="invite-hero__cover">
+    <PhotoPanel photo="pink-sands" focus="center" widths={halfPhotoWidths} sizes="(max-width: 860px) calc(100vw - 40px), 720px" priority="lazy" class="invite-hero__cover">
       <div id="invite-code-box" class="glass code-box hidden">
         <p class="code-box__label">{text.codeLabel}</p>
         <p id="invite-code" class="code-box__code tabular"></p>
         <p class="code-box__note">{text.codeNote}</p>
         <a id="invite-subscribe" class="button button--primary button--small" href={routes.account}>{text.subscribeWithCode}</a>
       </div>
-      <Waveform seed={text.title} width={200} height={48} class="invite-hero__wave" />
-    </Film>
+    </PhotoPanel>
   </section>
 
   <section class="section page" aria-labelledby="steps-title">

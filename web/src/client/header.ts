@@ -45,10 +45,20 @@ function closeMenuOnDismiss(header: HTMLElement): void {
   });
 }
 
+/** Sayfa kaydırılınca üst çubuk yüzen hapa döner (`is-scrolled`); en üstte sayfanın üstünde durur. */
+function floatOnScroll(header: HTMLElement): void {
+  const update = (): void => {
+    header.classList.toggle("is-scrolled", window.scrollY > 12);
+  };
+  update();
+  window.addEventListener("scroll", update, { passive: true });
+}
+
 /** Davranışları bağlar; hesap bağlantısı sekmenin oturumu sahiplenildikten sonra (kopya sekmede oturum silinir). */
 async function main(): Promise<void> {
   const header: HTMLElement = element("site-header", HTMLElement);
   closeMenuOnDismiss(header);
+  floatOnScroll(header);
   await claimTabSession();
   linkAccount(header);
 }

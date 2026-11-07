@@ -1,6 +1,7 @@
 // Derlenmiş siteyi (dist/) Cloudflare Pages gibi sunar: uzantısız adresler (`/tr/fiyat` → `tr/fiyat.html`), `_headers`
 // başlıkları (CSP dahil), 404.html ve Pages gibi metin dosyalarında brotli sıkıştırma (istemci `br` kabul ediyorsa). Ekran
-// görüntüleri ve Lighthouse gerçek başlıklarla ve gerçek aktarım boyutlarıyla bu sunucuya karşı çalışır.
+// görüntüleri ve Lighthouse gerçek başlıklarla ve gerçek aktarım boyutlarıyla bu sunucuya karşı çalışır; yalnızca
+// `Cache-Control` her yanıtta `no-store`'dur (aşağıda neden).
 // Kullanım: node scripts/serve.ts <kapı>
 import { readFile } from "node:fs/promises";
 import { type IncomingMessage, type ServerResponse, createServer } from "node:http";
@@ -69,11 +70,14 @@ async function main(): Promise<void> {
   if (!Number.isInteger(port) || port <= 0) {
     throw new Error(`Kapı numarası gerekli: node scripts/serve.ts <kapı> (gelen: ${JSON.stringify(process.argv[2] ?? null)})`);
   }
-  const rules: HeaderRule[] = parseHeaders(await readFile(join(distDir, "_headers"), "utf8"));
+  // Fail at start when there is no build yet.
+  await readFile(join(distDir, "_headers"), "utf8");
   const server = createServer((request: IncomingMessage, response: ServerResponse): void => {
     const pathname: string = new URL(request.url ?? "/", "http://localhost").pathname;
     resolveDistFile(distDir, pathname)
       .then(async (resolved: Resolved): Promise<void> => {
+        // Read per request: a rebuild under the running server changes the CSP hashes in `_headers`.
+        const rules: HeaderRule[] = parseHeaders(await readFile(join(distDir, "_headers"), "utf8"));
         const raw: Buffer = await readFile(resolved.file);
         const contentType: string = contentTypes[extname(resolved.file)] ?? "application/octet-stream";
         const compress: boolean = isCompressible(contentType) && /\bbr\b/.test(request.headers["accept-encoding"] ?? "");
@@ -90,6 +94,9 @@ async function main(): Promise<void> {
             response.setHeader(name, value.replaceAll("; upgrade-insecure-requests", ""));
           }
         }
+        // Production gives hashed assets a year of immutable caching. Locally `npm run build` rewrites dist/ under a
+        // running server, and a file read half-way through a rebuild would stay cached as broken; nothing is cached here.
+        response.setHeader("Cache-Control", "no-store");
         response.end(body);
       })
       .catch((error: unknown): void => {

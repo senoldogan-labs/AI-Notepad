@@ -163,8 +163,8 @@ export const adminBlogCopy: AdminBlogCopy = {
   updatedHint: "Optional. Set it after a meaningful rewrite: search engines and the sitemap get the new date.",
   draftHint: "Drafts never appear on the site.",
   coverAuto: "Auto",
-  coverAutoHint: "Auto picks {palette} for this address.",
-  coverHint: "Shown on the post, the blog index and the share image.",
+  coverAutoHint: "Auto: the site gives each post the next photograph in publish order, so neighbouring posts differ.",
+  coverHint: "Uses the {palette} photograph on the post, the blog index and the share image.",
   paletteNames: { sunset: "Sunset", coral: "Coral", ocean: "Ocean", mint: "Mint", rose: "Rose", violet: "Violet" },
   image: {
     add: "Add image",

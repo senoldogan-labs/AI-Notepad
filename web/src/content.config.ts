@@ -22,7 +22,7 @@ const blog = defineCollection({
        * haritası `<lastmod>`, `article:modified_time` ve IndexNow bildirimi bundan; yoksa yayın tarihi.
        */
       updated: z.coerce.date().optional(),
-      /** İsteğe bağlı kapak renk ailesi; yoksa kısa addan seçilir (`coverFilm`). Yerleşim her zaman kısa addan gelir. */
+      /** İsteğe bağlı kapak renk ailesi: o rengin fotoğrafı seçilir; yoksa fotoğraf yayın sırasından gelir (BlogCover.astro). */
       cover: z.enum(filmPalettes).optional(),
       /** Taslak: derlemede hiçbir yerde (dizin, yazı sayfası, RSS, site haritası) yayımlanmaz. Her yazıda açıkça yazılır. */
       draft: z.boolean(),

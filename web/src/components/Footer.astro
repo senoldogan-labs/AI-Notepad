@@ -1,11 +1,11 @@
 ---
-// Footer on the mist surface: the flip-book band (FooterFlipbook.astro), then the brand line set in the serif and where it is made, then product, learn (compare, languages, integrations,
-// blog, MCP), account and company (contact, legal, font licences) links; a horizon rule; at the bottom the copyright
-// line and the language choice (routes.ts `siteLanguages`: each language goes to its own home page, the current one is
+// Footer on the paper surface: the brand line set in the serif and where it is made, then product, learn (compare,
+// languages, integrations, blog, MCP), account and company (contact, legal, font licences) links; then the flip-book band
+// (FooterFlipbook.astro: a Finnish lake from late afternoon to northern lights as the page reaches its end), the site's
+// closing image; at the bottom the copyright line and the language choice (routes.ts `siteLanguages`: each language goes to its own home page, the current one is
 // plain text). The operator's identity and address are on the privacy, terms and contact pages (single source:
 // legal/operator.ts).
 import FooterFlipbook from "./FooterFlipbook.astro";
-import Horizon from "./Horizon.astro";
 import Icon from "./Icon.astro";
 import Logo from "./Logo.astro";
 import { productName } from "../config";
@@ -68,7 +68,6 @@ const columns: readonly { readonly title: string; readonly links: readonly { rea
 ---
 
 <footer class="site-footer">
-  <FooterFlipbook />
   <div class="page site-footer__grid">
     <div class="site-footer__about">
       <a class="site-footer__brand" href={routes.home} aria-label={text.homeLabel}>
@@ -93,7 +92,7 @@ const columns: readonly { readonly title: string; readonly links: readonly { rea
       ))
     }
   </div>
-  <Horizon seed={text.footer.tagline} class="page site-footer__horizon" />
+  <FooterFlipbook />
   <div class="page site-footer__bottom">
     <p>{text.footer.copyright}</p>
     <nav class="site-footer__languages" aria-label={text.footer.language}>
@@ -119,59 +118,65 @@ const columns: readonly { readonly title: string; readonly links: readonly { rea
 
 <style>
   .site-footer {
-    margin-top: clamp(56px, 8vw, 104px);
+    margin-top: clamp(64px, 9vw, 120px);
     padding-top: clamp(56px, 7vw, 88px);
-    background: var(--soft);
+    border-top: 1px solid var(--line);
+    background: var(--bg);
     font-size: 0.9375rem;
+    overflow: hidden;
   }
 
   .site-footer__grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.7fr) repeat(4, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1.6fr) repeat(4, minmax(0, 1fr));
     gap: 36px 32px;
   }
 
   .site-footer__about {
     display: grid;
-    gap: 18px;
+    gap: 16px;
     align-content: start;
   }
 
   .site-footer__brand {
     display: inline-flex;
     align-items: center;
-    min-height: 44px;
     gap: 10px;
+    min-height: 44px;
+    width: fit-content;
     font-weight: 600;
+    font-size: 1.0625rem;
     letter-spacing: -0.02em;
     text-decoration: none;
-    width: fit-content;
   }
 
   .site-footer__tagline {
-    max-width: 14ch;
+    max-width: 16ch;
     font-family: var(--serif);
-    font-size: var(--step-3);
-    line-height: 1.12;
-    letter-spacing: -0.015em;
+    font-size: 1.5rem;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
     text-wrap: balance;
   }
 
   .site-footer__made {
     color: var(--muted);
+    font-size: 0.875rem;
   }
 
+  /* Column titles in the serif, like the page headings. */
   .site-footer__title {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    color: var(--muted);
     margin-bottom: 14px;
+    font-family: var(--serif);
+    font-size: 1.25rem;
+    font-weight: 400;
+    letter-spacing: -0.005em;
+    color: var(--ink);
   }
 
   .site-footer__links {
     display: grid;
-    gap: 10px;
+    gap: 9px;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -181,23 +186,24 @@ const columns: readonly { readonly title: string; readonly links: readonly { rea
     text-decoration: none;
   }
 
-  .site-footer__links a:hover {
-    text-decoration: underline;
+  .site-footer__links a {
+    color: var(--muted);
+    font-size: 0.875rem;
   }
 
-  .site-footer :global(.site-footer__horizon) {
-    margin-top: clamp(48px, 6vw, 72px);
+  .site-footer__links a:hover {
+    color: var(--ink);
   }
 
   .site-footer__bottom {
-    padding-block: 20px 32px;
-    color: var(--muted);
-    font-size: 0.8125rem;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 12px 24px;
+    padding-block: 18px 24px;
+    color: var(--muted);
+    font-size: 0.8125rem;
   }
 
   .site-footer__languages {
@@ -231,10 +237,6 @@ const columns: readonly { readonly title: string; readonly links: readonly { rea
 
     .site-footer__about {
       grid-column: 1 / -1;
-    }
-
-    .site-footer__tagline {
-      max-width: 20ch;
     }
   }
 </style>

@@ -213,6 +213,7 @@ export const homeFi: HomeCopy = {
       quote: "Vuosihinnan valitsinta on vaikea huomata.",
     },
   },
+  featuresTitle: "Yksityiskohdat hoituvat ennen kuin ehdit kysyä.",
   capabilities: {
     title: "Kaikissa tilauksissa myös",
     items: [

@@ -3,11 +3,12 @@
 // adresi ve işletme bilgisi (unvan, işletme kimliği, adres) de görünür. Betik: src/client/contact.ts.
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
-import Film from "../components/Film.astro";
+import PhotoPanel from "../components/PhotoPanel.astro";
 import Icon from "../components/Icon.astro";
 import { copy, type ContactCopy } from "../copy";
 import { operator } from "../legal/operator";
 import { routes } from "../routes";
+import { halfPhotoWidths } from "../lib/photos";
 
 const text: ContactCopy = copy.contact;
 ---
@@ -17,7 +18,7 @@ const text: ContactCopy = copy.contact;
     <div class="contact__intro">
       <h1 class="title-xl">{text.title}</h1>
       <p class="lead">{text.lead}</p>
-      <Film palette="ocean" layout="clouds-left" class="contact__cover">
+      <PhotoPanel photo="wave-ocean" focus="center" widths={halfPhotoWidths} sizes="(max-width: 860px) calc(100vw - 40px), 720px" priority="lazy" class="contact__cover">
         <div class="glass contact__direct">
           <span class="icon-chip"><Icon name="mail" size={20} class="" /></span>
           <div>
@@ -25,7 +26,7 @@ const text: ContactCopy = copy.contact;
             <p class="contact__direct-text">{text.directText} <a href={`mailto:${operator.email}`}>{operator.email}</a></p>
           </div>
         </div>
-      </Film>
+      </PhotoPanel>
       <div class="contact__company small">
         <h2 class="contact__company-title">{text.companyTitle}</h2>
         <address class="muted">

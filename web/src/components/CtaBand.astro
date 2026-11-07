@@ -1,12 +1,13 @@
 ---
-// Closing download call on inner pages (compare, blog, MCP, languages, integrations): a centred paper card over a
-// photograph with the title, a short text, a button to the download page and the App Store badge for the iPhone app.
+// Closing download call on inner pages (compare, blog, MCP, languages, integrations), in the closing band: a
+// photograph, a paper panel with the serif title, a short text, the download button and the App Store badge, and a
+// second photograph. Below 860 px the panel sits under the first photograph and the second one is hidden.
 // No direct DMG link: the download source (`?src=`) is on the server's allow-list.
 import AppStoreBadge from "./AppStoreBadge.astro";
 import Icon from "./Icon.astro";
 import PhotoPanel from "./PhotoPanel.astro";
 import { copy } from "../copy";
-import type { PhotoName } from "../lib/photos";
+import { halfPhotoWidths, type PhotoName } from "../lib/photos";
 import { routes } from "../routes";
 
 interface Props {
@@ -16,65 +17,34 @@ interface Props {
   readonly photo: PhotoName;
 }
 const { id, title, text, photo } = Astro.props;
+/** The picture on the right: a soft wave landscape next to every photograph (and a pale dune next to a wave). */
+const partner: PhotoName = photo.startsWith("wave-") ? "dune-pale" : "wave-dawn";
+/** The photograph covers a column about 29vw wide and up to 600 px tall (3:2 source): its width follows the height. */
+const sizes: string = "(max-width: 860px) 100vw, min(66vw, 900px)";
 ---
 
-<section class="page cta-band" aria-labelledby={id}>
-  <PhotoPanel photo={photo} focus="center" widths={[480, 720, 960, 1280, 1680, 2400]} sizes="(max-width: 640px) calc(100vw - 40px), min(1240px, 100vw - 80px)" priority="lazy" class="cta-band__photo">
-    <div class="cta-card reveal">
-      <h2 class="title-l" id={id}>{title}</h2>
-      <p class="cta-card__text">{text}</p>
-      <div class="cta-card__actions">
-        <a class="button button--primary" href={routes.download}>
-          <Icon name="apple" size={16} class="button__apple" />
-          {copy.common.downloadCta}
-        </a>
-        <AppStoreBadge language={copy.common.appStoreBadge.language} label={copy.common.appStoreBadge.label} height={44} class="" />
-      </div>
+<section class="split-band cta-band" aria-labelledby={id}>
+  <PhotoPanel photo={photo} focus="center" widths={halfPhotoWidths} sizes={sizes} priority="lazy" class="split-band__photo" />
+  <div class="split-band__paper">
+    <h2 class="title-xl reveal" id={id}>{title}</h2>
+    <p class="reveal">{text}</p>
+    <div class="split-band__actions reveal">
+      <a class="button button--primary" href={routes.download}>
+        <Icon name="apple" size={16} class="button__apple" />
+        {copy.common.downloadCta}
+      </a>
+      <AppStoreBadge language={copy.common.appStoreBadge.language} label={copy.common.appStoreBadge.label} height={52} class="" />
     </div>
-  </PhotoPanel>
+  </div>
+  <PhotoPanel photo={partner} focus="center" widths={halfPhotoWidths} sizes={sizes} priority="lazy" class="split-band__photo" />
 </section>
 
 <style>
   .cta-band {
-    margin-top: clamp(64px, 9vw, 120px);
+    margin-top: clamp(80px, 10vw, 140px);
   }
 
-  .cta-band :global(.cta-band__photo) {
-    display: grid;
-    place-items: center;
-    min-height: clamp(380px, 42vw, 520px);
-    padding: clamp(24px, 6vw, 72px) clamp(16px, 6vw, 72px);
-  }
-
-  /* The card is paper in both themes' palettes; text never sits on the photograph itself. */
-  .cta-card {
-    display: grid;
-    justify-items: center;
-    gap: 16px;
-    width: min(560px, 100%);
-    padding: clamp(28px, 5vw, 48px) clamp(22px, 5vw, 48px);
-    border-radius: var(--radius-m);
-    background: var(--card);
-    color: var(--ink);
-    text-align: center;
-    box-shadow: var(--shadow-window);
-  }
-
-  .cta-card h2 {
-    max-width: 16ch;
-  }
-
-  .cta-card__text {
-    max-width: 34rem;
-    color: var(--muted);
-  }
-
-  .cta-card__actions {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    gap: 12px;
-    margin-top: 6px;
+  .cta-band :global(.title-xl) {
+    font-size: clamp(2.5rem, 1.4rem + 3.4vw, 4rem);
   }
 </style>

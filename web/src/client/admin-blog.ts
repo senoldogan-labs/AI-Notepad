@@ -456,12 +456,23 @@ function renderLiveLinks(post: BlogPost | null): void {
   open.classList.remove("hidden");
 }
 
-/** Kapak önizlemesini ve ipucunu çizer: aile seçilmemişse kısa addan seçilen gösterilir. */
+/**
+ * Kapak örneğini ve ipucunu çizer. Sitede kapak bir fotoğraftır (components/BlogCover.astro): aile seçilmişse o rengin
+ * fotoğrafı, seçilmemişse yayın sırasındaki fotoğraf. Panel fotoğrafları taşımaz; seçilen ailenin rengini gösterir,
+ * "Auto"da nötr bir örnek ve sitenin nasıl seçtiğini yazar.
+ */
 function renderCover(fields: EditorFields): void {
   const form: BlogForm = readForm(fields);
+  const swatch: HTMLElement = element("blog-cover-swatch", HTMLElement);
+  const hint: HTMLElement = element("blog-cover-hint", HTMLElement);
+  if (form.cover === null) {
+    swatch.className = "blog-cover-swatch blog-cover-swatch--auto";
+    hint.textContent = blogText.coverAutoHint;
+    return;
+  }
   const cover: FilmCover = coverFilm(form.slug, form.cover);
-  element("blog-cover-swatch", HTMLElement).className = `film film--${cover.palette} film--${cover.layout} blog-cover-swatch`;
-  element("blog-cover-hint", HTMLElement).textContent = form.cover === null ? fill(blogText.coverAutoHint, { palette: blogText.paletteNames[cover.palette] }) : blogText.coverHint;
+  swatch.className = `film film--${cover.palette} film--${cover.layout} blog-cover-swatch`;
+  hint.textContent = fill(blogText.coverHint, { palette: blogText.paletteNames[form.cover] });
 }
 
 /** Sayaçları, kısa adın adres satırını ve kapak önizlemesini yazar. */
@@ -473,14 +484,15 @@ function renderEditorHints(fields: EditorFields): void {
 }
 
 /**
- * Önizleme kapağı: sitedeki yazı sayfasının başı gibi durgun film gradyanı ve başlık (aile ve yerleşim `coverFilm` ile
- * sitedekiyle aynı seçilir; bkz. components/BlogCover.astro).
+ * Önizleme kapağı: başlık, seçilen ailenin renginde (sitede o rengin fotoğrafı) ya da "Auto"da nötr zeminde (sitede
+ * yayın sırasındaki fotoğraf; bkz. components/BlogCover.astro).
  */
 function previewCover(form: BlogForm): HTMLElement {
-  const cover: FilmCover = coverFilm(form.slug, form.cover);
-  const film: HTMLElement = node("div", `film film--${cover.palette} film--${cover.layout} blog-preview__cover`, "");
-  film.append(node("h1", "blog-preview__cover-title", form.title));
-  return film;
+  const surface: string =
+    form.cover === null ? "blog-preview__cover--auto" : `film film--${form.cover} film--${coverFilm(form.slug, form.cover).layout}`;
+  const cover: HTMLElement = node("div", `${surface} blog-preview__cover`, "");
+  cover.append(node("h1", "blog-preview__cover-title", form.title));
+  return cover;
 }
 
 /** Önizlemeyi çizer: kapak (başlıkla), açıklama ve gövde. */

@@ -80,9 +80,9 @@ live=<çekim.png> ask=<çekim.png>` (iPhone ekranlarını telefon çerçevesine 
 (sharp/libimagequant; 128 renkten 32'ye; en küçüğü de sığmazsa hata). Blog yazılarının görselleri derlemede değil,
 derlemeden sonra üretilir (`npm run og:blog -- <chrome>`, `scripts/make-blog-og.ts`): site haritasındaki her yazının
 sayfası Chrome'da dist/'ten açılır, sayfanın kapağı (`BlogCover.astro`, `[data-og-cover]`) 1200 px genişlikte yalnız
-bırakılır, logo, ürün adı ve alan adı eklenir. Kapak sitenin kendi CSS'iyle çizildiği için görsel sayfadakiyle aynıdır;
-satori + resvg gibi saf çiziciler kapağın katmanlı radyal gradyanlarını, `color-mix`'ini, gren ve kenar kararması
-karışımlarını (`mix-blend-mode`) çizemediği için Chrome seçildi (GitHub'ın ubuntu-latest runner'ında
+bırakılır, kâğıt karta logo, ürün adı ve alan adı eklenir (kapağın bir parçası bulunamazsa betik hata verir). Kapak
+sitenin kendi CSS'i ve AVIF görseliyle çizildiği için görsel sayfadakiyle aynıdır; bu yüzden saf çiziciler (satori +
+resvg) yerine Chrome seçildi (GitHub'ın ubuntu-latest runner'ında
 `/usr/bin/google-chrome` kurulu gelir). Görseli olmayan yazı sayfası bozuk `og:image` verir: yayından önce bu adım
 çalışmalı (iş akışı ve elle yayın komutu çalıştırır).
 
@@ -183,10 +183,13 @@ Her yazı `src/content/blog/<kısa ad>.md`'dir; ön bilgi alanları `title` (10�
 `published` günü derleme gününden (UTC) sonra olan yazıları dizinden, yazı sayfalarından, RSS'ten ve site haritasından
 çıkarır (`src/lib/blog.ts` → `isBlogPostPublic`; tüm sayfalar `blogEntries`'i kullanır).
 
-- **Kapak:** her yazının kapağı durgun pastel film gradyanı, başlık ve kısa addan sabit ses dalgasıdır
-  (`BlogCover.astro`). Aile ve yerleşim kısa addan seçilir (`src/lib/film.ts` `coverFilm`; aynı kısa ad her derlemede ve
-  panelde aynı kapağı verir); `cover` yalnızca aileyi değiştirir. Kapak yazı sayfasının başıdır (başlık `h1`), dizinde ve
-  yazı sonundaki "More from the blog"da kart görselidir; paylaşım görseli aynı kapaktan üretilir.
+- **Kapak:** her yazının kapağı bir fotoğraf ya da dalga görseli (`src/lib/photos.ts`) ve üstünde kâğıt kartta
+  başlıktır (`BlogCover.astro`). Görsel yayın sırasına göre dağıtılır (`coverOrder`; taslaklar da sayılır, `cover`'sız
+  komşu yazıların kapakları farklıdır); `cover` verilmişse o renk ailesinin görseli seçilir (ör. `ocean` → `wave-ocean`;
+  komşusuyla aynı görsele denk gelebilir). Yönetim panelindeki kapak seçici aynı aileleri seçer; panel fotoğrafları
+  taşımaz, seçilen ailenin rengini, "Auto"da nötr bir örnek ve sitenin yayın sırasıyla seçtiğini gösterir. Kapak
+  yazı sayfasının başıdır (başlık `h1`), dizinde ve yazı sonundaki "More from the blog"da kart görselidir; dizinde en
+  yeni yazı büyük kapakla öne çıkar. Paylaşım görseli aynı kapaktan üretilir.
 - **Görseller:** panelden yüklenen WebP'ler `public/blog/<kısa ad>/<ad>.webp`'dir. Markdown derlenirken her görsele
   dosyadan okunan `width`/`height`, `loading="lazy"` ve `decoding="async"` yazılır (`src/lib/blog-images.ts`; yer kayması
   olmaz). Görsel yalnızca yazının kendi klasöründen olabilir; dış adres ya da eksik dosya derlemeyi hatayla durdurur.
