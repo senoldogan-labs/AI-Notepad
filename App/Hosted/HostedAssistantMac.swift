@@ -247,12 +247,12 @@ struct HostedAssistantSettingsSection: View {
                     if !grant.verified {
                         NoticeText("Doğrulanmamış uygulama. Bu bağlantıyı sen kurmadıysan kes.", severity: .attention)
                     }
-                    Text("Bağlandı: \(grant.createdAt.formatted(date: .abbreviated, time: .shortened))")
+                    Text("Bağlandı: \(grant.createdAt.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(interfaceLocale())))")
                     if let lastUsedAt = grant.lastUsedAt {
-                        Text("Son kullanım: \(lastUsedAt.formatted(date: .abbreviated, time: .shortened))")
+                        Text("Son kullanım: \(lastUsedAt.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(interfaceLocale())))")
                     }
                     if let heavyReadAt = grant.heavyReadAt {
-                        NoticeText("\(heavyReadAt.formatted(date: .abbreviated, time: .shortened)) civarında bir saatte 100'den fazla toplantı okudu.", severity: .attention)
+                        NoticeText("\(heavyReadAt.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(interfaceLocale()))) civarında bir saatte 100'den fazla toplantı okudu.", severity: .attention)
                     }
                 } control: {
                     Button("Bağlantıyı kes", role: .destructive) {
@@ -304,7 +304,7 @@ struct HostedAssistantSettingsSection: View {
         case .failed(let message, let retryAt):
             NoticeText(message, severity: .attention)
             if let retryAt {
-                Text("Kendiliğinden yeniden denenecek: \(retryAt.formatted(date: .omitted, time: .shortened))")
+                Text("Kendiliğinden yeniden denenecek: \(retryAt.formatted(Date.FormatStyle(date: .omitted, time: .shortened).locale(interfaceLocale())))")
             }
         case .idle, .uploading:
             if let progress = center.progress {

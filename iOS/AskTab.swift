@@ -386,7 +386,7 @@ struct AskTab: View {
                 .scrollDismissesKeyboard(.interactively)
                 .safeAreaInset(edge: .bottom) {
                     AskComposer(
-                        ask: ask, store: store, placeholder: "Sor… (@ toplantı, / tarif)", isAnswering: false, followUp: nil,
+                        ask: ask, store: store, placeholder: "Toplantılarına bir şey sor…", isAnswering: false, followUp: nil,
                         onSubmit: { (submission: AskSubmission) -> Void in startConversation(submission: submission) },
                         onStop: { ask.stop() }
                     )

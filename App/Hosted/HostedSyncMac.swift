@@ -148,7 +148,7 @@ struct HostedSyncSettingsRow: View {
             Text("Eşitleniyor…").foregroundStyle(Theme.ink)
         case .synced:
             if let lastSyncedAt = center.lastSyncedAt {
-                Text("Son eşitleme: \(lastSyncedAt.formatted(date: .abbreviated, time: .shortened))").foregroundStyle(Theme.ink)
+                Text("Son eşitleme: \(lastSyncedAt.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(interfaceLocale())))").foregroundStyle(Theme.ink)
             }
         case .needsLinkCode:
             Text("Bu hesapta eşitlemeyi başka bir cihaz açtı. Katılmak için o cihazda Ayarlar'da gösterilen bağlantı kodunu aşağıya yaz.")
@@ -156,7 +156,7 @@ struct HostedSyncSettingsRow: View {
         case .failed(let message, let retryAt):
             NoticeText(message, severity: .attention)
             if let retryAt {
-                Text("Kendiliğinden yeniden denenecek: \(retryAt.formatted(date: .omitted, time: .shortened))")
+                Text("Kendiliğinden yeniden denenecek: \(retryAt.formatted(Date.FormatStyle(date: .omitted, time: .shortened).locale(interfaceLocale())))")
             }
         }
     }

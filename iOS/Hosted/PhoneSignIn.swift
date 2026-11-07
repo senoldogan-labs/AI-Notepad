@@ -61,6 +61,13 @@ struct PhoneSignInGate: View {
                         .padding(.top, 20)
                     PhoneLegalLinks()
                         .padding(.top, 8)
+                    // Girişte takılan biri bize ulaşabilsin (sitenin iletişim sayfası).
+                    if let contact = phoneLegalURL(path: "contact") {
+                        Link("Giriş yapamıyor musun? Yardım al", destination: contact)
+                            .appFont(size: 13, weight: .regular)
+                            .foregroundStyle(Theme.muted)
+                            .padding(.top, 6)
+                    }
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 12)

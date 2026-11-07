@@ -87,46 +87,6 @@ public enum MeetingLanguage: String, Sendable, Hashable, Codable, CaseIterable {
         }
     }
 
-    /// Bayrak (seçicilerde adın önünde).
-    public var flag: String {
-        switch self {
-        case .finnish: "🇫🇮"
-        case .english: "🇬🇧"
-        case .swedish: "🇸🇪"
-        case .norwegian: "🇳🇴"
-        case .danish: "🇩🇰"
-        case .estonian: "🇪🇪"
-        case .german: "🇩🇪"
-        case .dutch: "🇳🇱"
-        case .french: "🇫🇷"
-        case .spanish: "🇪🇸"
-        case .portuguese: "🇵🇹"
-        case .italian: "🇮🇹"
-        case .polish: "🇵🇱"
-        case .czech: "🇨🇿"
-        case .slovak: "🇸🇰"
-        case .hungarian: "🇭🇺"
-        case .romanian: "🇷🇴"
-        case .bulgarian: "🇧🇬"
-        case .croatian: "🇭🇷"
-        case .greek: "🇬🇷"
-        case .latvian: "🇱🇻"
-        case .lithuanian: "🇱🇹"
-        case .russian: "🇷🇺"
-        case .ukrainian: "🇺🇦"
-        case .turkish: "🇹🇷"
-        case .arabic: "🇸🇦"
-        case .hebrew: "🇮🇱"
-        case .persian: "🇮🇷"
-        case .hindi: "🇮🇳"
-        case .chinese: "🇨🇳"
-        case .japanese: "🇯🇵"
-        case .korean: "🇰🇷"
-        case .indonesian: "🇮🇩"
-        case .vietnamese: "🇻🇳"
-        case .thai: "🇹🇭"
-        }
-    }
 }
 
 /// Dilin nasıl belirleneceği: otomatik algılama ya da kullanıcının seçtiği sabit dil.

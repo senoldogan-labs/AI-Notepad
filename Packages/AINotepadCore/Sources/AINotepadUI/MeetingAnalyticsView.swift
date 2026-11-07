@@ -89,14 +89,26 @@ func analyticsDurationText(seconds: Double) -> String {
     return Duration.seconds(rounded).formatted(.units(allowed: [.hours, .minutes], width: .abbreviated).locale(interfaceLocale()))
 }
 
-/// Özet kutuları: toplantı sayısı, toplam ve ortalama süre, görevler ve notlar; önceki döneme göre değişimle.
+/// Özet kutuları: toplantı sayısı, toplam ve ortalama süre ve görevler; önceki döneme göre değişimle. Dört kutu dar
+/// ekranda 2 × 2, genişte tek sıra (boşta tek kutu kalmasın). "Yazılan not" yok: her toplantının notu yazıldığından
+/// sayısı hep toplantı sayısıydı.
 private struct AnalyticsTiles: View {
     let totals: AnalyticsTotals
     let previous: AnalyticsTotals?
     let accent: Color
 
     var body: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12, alignment: .top)], alignment: .leading, spacing: 12) {
+        ViewThatFits(in: .horizontal) {
+            tiles(columns: 4)
+                .frame(minWidth: 4 * 150 + 3 * 12)
+            tiles(columns: 2)
+        }
+    }
+
+    private func tiles(columns: Int) -> some View {
+        LazyVGrid(
+            columns: Array(repeating: GridItem(.flexible(), spacing: 12, alignment: .top), count: columns), alignment: .leading, spacing: 12
+        ) {
             tile(label: "Toplantılar", value: totals.meetings.formatted(.number.locale(interfaceLocale())), detail: nil,
                  change: change(current: Double(totals.meetings), previous: previous.map { Double($0.meetings) }))
             tile(label: "Toplantı süresi", value: analyticsDurationText(seconds: totals.seconds), detail: nil,
@@ -105,11 +117,10 @@ private struct AnalyticsTiles: View {
                  change: totals.averageSeconds.flatMap { (current: Double) -> Double? in
                      change(current: current, previous: previous?.averageSeconds)
                  })
+            // Görevlerim'le aynı sayı: toplam görevin kaçı sana düşüyor (Görevlerim yalnız seninkileri sayar).
             tile(label: "Görevler", value: totals.tasksCreated.formatted(.number.locale(interfaceLocale())),
-                 detail: Text("\(totals.tasksCompleted) tamamlandı"),
+                 detail: Text("\(totals.tasksMine) sana düşen"),
                  change: change(current: Double(totals.tasksCreated), previous: previous.map { Double($0.tasksCreated) }))
-            tile(label: "Yazılan not", value: totals.notes.formatted(.number.locale(interfaceLocale())), detail: nil,
-                 change: change(current: Double(totals.notes), previous: previous.map { Double($0.notes) }))
         }
     }
 
@@ -204,15 +215,21 @@ private struct HoursChart: View {
         Chart(timeline) { (point: AnalyticsTimePoint) in
             BarMark(
                 x: .value(String(localized: "Tarih"), point.start, unit: analyticsCalendarComponent(size: bucketSize)),
-                y: .value(String(localized: "Saat"), point.hours)
+                y: .value(String(localized: "Dakika"), point.hours * 60)
             )
             .foregroundStyle(accent.gradient)
             .cornerRadius(3)
         }
+        // Eksen dakikayla, uzun sürelerde saat ve dakikayla ("30 dk", "1 sa 30 dk"); "0,5 sa" okunmuyordu.
         .chartYAxis {
-            AxisMarks(position: .leading) { (_: AxisValue) in
+            AxisMarks(position: .leading) { (value: AxisValue) in
                 AxisGridLine().foregroundStyle(Theme.line)
-                AxisValueLabel().foregroundStyle(Theme.muted)
+                AxisValueLabel {
+                    if let minutes = value.as(Double.self) {
+                        Text(verbatim: analyticsDurationText(seconds: minutes * 60))
+                    }
+                }
+                .foregroundStyle(Theme.muted)
             }
         }
         .chartXAxis {

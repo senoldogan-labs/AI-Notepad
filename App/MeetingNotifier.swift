@@ -5,7 +5,7 @@ import CoreAudio
 import Foundation
 import UserNotifications
 
-/// Bildirimlerin "Dinlemeye başla" eylemi ve kategorileri.
+/// Bildirimlerin "Kaydı başlat" eylemi ve kategorileri.
 enum MeetingNotificationID {
     static let category: String = "meeting.start"
     /// "Kayıt başlatılamadı" bildirimi: tıklanınca nedenin yazdığı Ana sayfa açılır.
@@ -32,13 +32,13 @@ enum NotificationError: Error, Equatable {
 }
 
 /// Toplantı bildirimleri (UserNotifications): başlamadan 1 dk önce hatırlatma ve görüşme başladı önerisi; ikisinde de
-/// "Dinlemeye başla" düğmesi. iPhone yalnız hatırlatmayı kullanır (görüşme önerisi ve kendiliğinden kayıt Mac'e özgü).
+/// "Kaydı başlat" düğmesi. iPhone yalnız hatırlatmayı kullanır (görüşme önerisi ve kendiliğinden kayıt Mac'e özgü).
 @MainActor
 final class MeetingNotifier {
     private let center: UNUserNotificationCenter = UNUserNotificationCenter.current()
 
     init() {
-        let start: UNNotificationAction = UNNotificationAction(identifier: MeetingNotificationID.startAction, title: String(localized: "Dinlemeye başla"), options: [.foreground])
+        let start: UNNotificationAction = UNNotificationAction(identifier: MeetingNotificationID.startAction, title: String(localized: "Kaydı başlat"), options: [.foreground])
         // Kategoriler tek seferde bütünüyle kurulur: hatırlatma ve görev bildirimlerininkiler de (bkz. `EngagementNotifier`).
         let common: Set<UNNotificationCategory> = engagementNotificationCategories().union([
             UNNotificationCategory(identifier: MeetingNotificationID.category, actions: [start], intentIdentifiers: []),
@@ -88,8 +88,8 @@ final class MeetingNotifier {
             let content: UNMutableNotificationContent = UNMutableNotificationContent()
             content.title = String(localized: "1 dk sonra: \(meeting.title)")
             content.body = meeting.attendees.isEmpty
-                ? String(localized: "Dinlemeye başlamak için tıkla.")
-                : String(localized: "\(meeting.attendees.prefix(3).joined(separator: ", ")) · Dinlemeye başlamak için tıkla.")
+                ? String(localized: "Kaydı başlatmak için tıkla.")
+                : String(localized: "\(meeting.attendees.prefix(3).joined(separator: ", ")) · Kaydı başlatmak için tıkla.")
             content.categoryIdentifier = MeetingNotificationID.category
             content.sound = .default
             let trigger: UNTimeIntervalNotificationTrigger = UNTimeIntervalNotificationTrigger(timeInterval: fire.timeIntervalSinceNow, repeats: false)

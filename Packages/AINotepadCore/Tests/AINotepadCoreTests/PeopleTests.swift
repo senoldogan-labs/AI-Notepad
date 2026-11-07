@@ -3,6 +3,16 @@ import Testing
 @testable import AINotepadCore
 
 @Suite struct PeopleTests {
+    // Aynı toplantıda görülen kişiler her açılışta aynı sırada: adla (sözlük sırası değişkendi).
+    @Test func samePeopleKeepStableOrder() {
+        let record: MeetingRecord = MeetingRecord(
+            id: "1", title: "T", startedAt: Date(timeIntervalSince1970: 100), endedAt: nil, language: .finnish, status: .done, failureMessage: nil,
+            liveSegments: [], finalSegments: [], translations: [:], speakerNames: [1: "Mikko", 2: "Aino", 3: "Liisa", 4: "Eero"], note: nil,
+            audioDeleted: false, engine: .cloud, notice: nil, meNeedsFinalPass: nil
+        )
+        #expect(peopleDirectory(records: [record], voices: [], book: .empty, userName: "").map(\.name) == ["Aino", "Eero", "Liisa", "Mikko"])
+    }
+
     // Aynı ad iki toplantıda tek kişi; konuşma süreleri, adına görevler ve kayıtlı sesi; kullanıcı listede yok.
     @Test func directoryGroupsByNameAcrossMeetings() {
         let note: (String) -> MeetingNote = { (owner: String) -> MeetingNote in

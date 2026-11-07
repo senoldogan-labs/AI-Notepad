@@ -201,6 +201,29 @@ final class AppModel {
         namedMeetingsCache = result.cache
         return result.records
     }
+    @ObservationIgnored private var peopleCache: MemoCache<PeopleDirectoryInput, [PersonSummary]> = .empty
+    @ObservationIgnored private var analyticsCache: MemoCache<AnalyticsInput, MeetingAnalytics> = .empty
+
+    /// Kişiler dizini (`peopleDirectory`); toplantılar, sesler, defter ve ad değişmedikçe yeniden hesaplanmaz.
+    func peopleDirectory() -> [PersonSummary] {
+        let input: PeopleDirectoryInput = PeopleDirectoryInput(records: meetings, voices: registeredVoices, book: peopleBook, userName: userName)
+        let result: (output: [PersonSummary], cache: MemoCache<PeopleDirectoryInput, [PersonSummary]>) = memoized(input: input, cache: peopleCache) {
+            AINotepadCore.peopleDirectory(records: $0.records, voices: $0.voices, book: $0.book, userName: $0.userName)
+        }
+        peopleCache = result.cache
+        return result.output
+    }
+
+    /// İstatistikler (`meetingAnalytics`); toplantılar, dönem, ad ya da gün değişmedikçe yeniden hesaplanmaz.
+    func analytics(period: AnalyticsPeriod) -> MeetingAnalytics {
+        let now: Date = Date()
+        let input: AnalyticsInput = AnalyticsInput(records: meetings, period: period, userName: userName, day: Calendar.current.startOfDay(for: now))
+        let result: (output: MeetingAnalytics, cache: MemoCache<AnalyticsInput, MeetingAnalytics>) = memoized(input: input, cache: analyticsCache) {
+            meetingAnalytics(records: $0.records, period: $0.period, userName: $0.userName, now: now, calendar: Calendar.current)
+        }
+        analyticsCache = result.cache
+        return result.output
+    }
     var meetingLoadFailures: [MeetingLoadFailure] = []
     /// Toplantılar listesinde gösterilen okuma hataları: okunamayan toplantılar ve iCloud eşitlemesi başarısızsa nedeni.
     /// iCloud durumu eşitlemeden okunur; toplantılar yeniden okununca silinmez.
@@ -2426,12 +2449,44 @@ final class AppModel {
         !meetingsInFolder(records: meetings, folder: name).contains { isLocked(meetingID: $0.id) }
     }
 
-    /// Toplantıları klasöre taşır (nil: klasörden çıkarır); kilitli (kayıtta/işlemede) olanlar atlanır.
+    /// Toplantıları klasöre taşır (nil: klasörden çıkarır); kilitli (kayıtta/işlemede) olanlar atlanır. Kodlama ve yazım
+    /// arka planda (çok toplantı taşınırken arayüz donmasın); yazım sırası burada alınır (`claimMeetingWrite`): bu arada
+    /// toplantıya yapılan daha yeni bir yazım taşımanın eski kopyasıyla ezilmez. Liste bir kez güncellenir; arada
+    /// değişen toplantının bellekteki hâline dokunulmaz.
     func moveMeetings(ids: Set<String>, to folder: String?) {
-        for record in meetings where ids.contains(record.id) && !isLocked(meetingID: record.id) {
-            withSessionDirectory(id: record.id) { (directory: URL) -> Void in
-                saveRecord(record: record.with(folder: folder), directory: directory)
+        let moves: [(original: MeetingRecord, moved: MeetingRecord, directory: URL, ticket: MeetingWriteTicket)] = meetings
+            .filter { ids.contains($0.id) && !isLocked(meetingID: $0.id) }
+            .compactMap { (record: MeetingRecord) -> (original: MeetingRecord, moved: MeetingRecord, directory: URL, ticket: MeetingWriteTicket)? in
+                do {
+                    let directory: URL = try sessionDirectory(id: record.id)
+                    return (original: record, moved: record.with(folder: folder), directory: directory, ticket: claimMeetingWrite(directory: directory))
+                } catch {
+                    errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Toplantı klasörüne erişilemedi: \(userFacingMessage(error: error))"))
+                    return nil
+                }
             }
+        guard !moves.isEmpty else {
+            return
+        }
+        Task {
+            let results: [(original: MeetingRecord, moved: MeetingRecord, error: String?)] = await Task.detached(priority: .userInitiated) {
+                moves.map { (move: (original: MeetingRecord, moved: MeetingRecord, directory: URL, ticket: MeetingWriteTicket)) -> (original: MeetingRecord, moved: MeetingRecord, error: String?) in
+                    do {
+                        try saveMeeting(record: move.moved, directory: move.directory, ticket: move.ticket)
+                        return (original: move.original, moved: move.moved, error: nil)
+                    } catch {
+                        return (original: move.original, moved: move.moved, error: userFacingMessage(error: error))
+                    }
+                }
+            }.value
+            for failure in results.compactMap(\.error) {
+                Self.logger.error("Toplantı klasöre taşınamadı, hata: \(failure, privacy: .private)")
+                errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Toplantı kaydedilemedi: \(failure)"))
+            }
+            meetings = results.filter { $0.error == nil }.reduce(meetings) { (records: [MeetingRecord], result: (original: MeetingRecord, moved: MeetingRecord, error: String?)) -> [MeetingRecord] in
+                records.first { $0.id == result.original.id } == result.original ? upsertMeeting(records: records, record: result.moved) : records
+            }
+            meetingReloader.invalidate()
         }
     }
 

@@ -14,11 +14,21 @@ struct PhoneProfileScreen: View {
             Section {
                 VStack(spacing: 12) {
                     ProfileAvatar(imageURL: account.avatarURL, initial: accountAvatarInitial(userName: store.userName, email: account.signedInIdentity?.email), size: 96)
-                    Text(verbatim: phoneIdentityTitle(identity: account.signedInIdentity))
-                        .appFont(size: 15, weight: .regular)
-                        .foregroundStyle(Theme.muted)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+                    // Rozetin altında ad; e-posta biliniyorsa altında (bilinmiyorsa "Hesap" yazmak bir şey söylemiyordu).
+                    let name: String = store.userName.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !name.isEmpty {
+                        Text(verbatim: name)
+                            .appFont(size: 20, weight: .medium)
+                            .foregroundStyle(Theme.ink)
+                            .lineLimit(1)
+                    }
+                    if let email = account.signedInIdentity?.email {
+                        Text(verbatim: email)
+                            .appFont(size: 15, weight: .regular)
+                            .foregroundStyle(Theme.muted)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
                 }
                 .frame(maxWidth: .infinity)
                 .listRowBackground(Color.clear)
@@ -34,6 +44,14 @@ struct PhoneProfileScreen: View {
             } footer: {
                 Text("Notlar bağlamını anlamak için bunu kullanır; yalnızca not ya da cevap yazılırken toplantı metniyle gönderilir.")
             }
+            // Profil ve hesap Ayarlar'da tek satır: plan, kullanım, çıkış ve hesap silme buradan açılır.
+            Section {
+                NavigationLink(value: PhoneRoute.account) {
+                    PhoneAccountRow(account: account)
+                }
+            } header: {
+                Text("Hesap ve plan")
+            }
         }
         .navigationTitle("Profil")
         .navigationBarTitleDisplayMode(.inline)
@@ -41,7 +59,7 @@ struct PhoneProfileScreen: View {
     }
 }
 
-/// Ayarlar'daki profil satırı: baş harf, ad (yazılmadıysa davet) ve e-posta.
+/// Ayarlar'daki profil ve hesap satırı: baş harf, ad (yazılmadıysa davet) ve plan durumu.
 struct PhoneProfileRow: View {
     let store: PhoneStore
     let account: HostedAccount
@@ -61,9 +79,11 @@ struct PhoneProfileRow: View {
                 .appFont(size: 16, weight: .medium)
                 .foregroundStyle(Theme.ink)
                 .lineLimit(1)
-                Text("Profil")
+                // Profil ve hesap tek satır: altta plan durumu (dokununca profil, oradan hesap).
+                Text(verbatim: phoneAccountSummary(state: account.state))
                     .appFont(size: 13, weight: .regular)
                     .foregroundStyle(Theme.muted)
+                    .lineLimit(2)
             }
         }
         .padding(.vertical, 4)

@@ -296,7 +296,7 @@ struct PhoneMeetingCard: View {
     private var subtitle: String {
         let time: String = record.startedAt.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(interfaceLocale()))
         let minutes: [String] = meetingDurationMinutes(record: record).map { [String(localized: "\($0) dk")] } ?? []
-        let language: [String] = record.language.map { [$0.flag] } ?? []
+        let language: [String] = record.language.map { [meetingLanguageName(language: $0)] } ?? []
         return ([time] + minutes + language).joined(separator: " · ")
     }
 }

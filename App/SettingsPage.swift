@@ -429,7 +429,7 @@ private struct GeneralSettings: View {
                 }
                 if calendarEnabled {
                     SettingsRow(icon: "bell", title: Text("Toplantıdan 1 dk önce hatırlat")) {
-                        Text("Bildirimdeki \"Dinlemeye başla\" ile kayıt hemen başlar.")
+                        Text("Bildirimdeki \"Kaydı başlat\" ile kayıt hemen başlar.")
                         if let problem = model.notificationProblem {
                             NoticeText(problem, severity: .attention)
                         }

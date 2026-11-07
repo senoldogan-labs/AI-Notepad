@@ -99,7 +99,7 @@ struct AINotepadiOSApp: App {
         // ulaşır (hesap değişince kaydedici değişir, kayıt yeri değişmez).
         AppDependencyManager.shared.add(dependency: sessions)
         AppDependencyManager.shared.add(dependency: router)
-        // Toplantı hatırlatmasındaki "Dinlemeye başla" kaydı başlatır (kısayoldaki gibi).
+        // Toplantı hatırlatmasındaki "Kaydı başlat" kaydı başlatır (kısayoldaki gibi).
         PhoneNotificationDelegate.onStartRecording = { () -> Void in
             router.showHome()
             Task { await sessions.session.recorder.start() }
@@ -993,6 +993,29 @@ final class PhoneStore {
     @ObservationIgnored private var peopleBookLoaded: Bool = false
     /// Sesinden tanıma: kayıtlı sesler ve ses izi modeli (bkz. `PhoneVoices`).
     let voices: PhoneVoices = PhoneVoices()
+    @ObservationIgnored private var peopleCache: MemoCache<PeopleDirectoryInput, [PersonSummary]> = .empty
+    @ObservationIgnored private var analyticsCache: MemoCache<AnalyticsInput, MeetingAnalytics> = .empty
+
+    /// Kişiler dizini (`peopleDirectory`); toplantılar, sesler, defter ve ad değişmedikçe yeniden hesaplanmaz.
+    func peopleDirectory() -> [PersonSummary] {
+        let input: PeopleDirectoryInput = PeopleDirectoryInput(records: meetings, voices: voices.registered, book: peopleBook, userName: userName)
+        let result: (output: [PersonSummary], cache: MemoCache<PeopleDirectoryInput, [PersonSummary]>) = memoized(input: input, cache: peopleCache) {
+            AINotepadCore.peopleDirectory(records: $0.records, voices: $0.voices, book: $0.book, userName: $0.userName)
+        }
+        peopleCache = result.cache
+        return result.output
+    }
+
+    /// İstatistikler (`meetingAnalytics`); toplantılar, dönem, ad ya da gün değişmedikçe yeniden hesaplanmaz.
+    func analytics(period: AnalyticsPeriod) -> MeetingAnalytics {
+        let now: Date = Date()
+        let input: AnalyticsInput = AnalyticsInput(records: meetings, period: period, userName: userName, day: Calendar.current.startOfDay(for: now))
+        let result: (output: MeetingAnalytics, cache: MemoCache<AnalyticsInput, MeetingAnalytics>) = memoized(input: input, cache: analyticsCache) {
+            meetingAnalytics(records: $0.records, period: $0.period, userName: $0.userName, now: now, calendar: Calendar.current)
+        }
+        analyticsCache = result.cache
+        return result.output
+    }
 
     /// Listeyi arka planda okur; art arda gelen istekleri birleştirir.
     @ObservationIgnored private let reloader: MeetingReloader = MeetingReloader()

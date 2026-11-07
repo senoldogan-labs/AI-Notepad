@@ -79,7 +79,7 @@ private struct CrashReportsList: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(crashReportHeadline(diagnostic: diagnostic))
                             .appFont(size: 15, weight: .medium)
-                        Text(verbatim: "\(report.receivedAt.formatted(date: .abbreviated, time: .shortened)) · \(diagnostic.appVersion) · \(diagnostic.osVersion)")
+                        Text(verbatim: "\(report.receivedAt.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(interfaceLocale()))) · \(diagnostic.appVersion) · \(diagnostic.osVersion)")
                             .appFont(size: 12, weight: .regular)
                             .foregroundStyle(Theme.muted)
                         switch state {

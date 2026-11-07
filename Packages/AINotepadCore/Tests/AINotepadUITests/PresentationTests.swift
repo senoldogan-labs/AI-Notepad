@@ -54,13 +54,13 @@ func state(transcript: [LiveSegment], isRecording: Bool, errors: [String]) -> Li
 
 @Suite struct LanguageTextTests {
     @Test func lockedLanguageWins() {
-        #expect(languageText(locked: .finnish, mode: .automatic, isRecording: true) == "🇫🇮 Fince")
+        #expect(languageText(locked: .finnish, mode: .automatic, isRecording: true) == "Fince")
     }
 
     @Test func automaticShowsDetectingWhileRecording() {
         #expect(languageText(locked: nil, mode: .automatic, isRecording: true) == "Dil algılanıyor…")
         #expect(languageText(locked: nil, mode: .automatic, isRecording: false) == "Dil: Otomatik")
-        #expect(languageText(locked: nil, mode: .fixed(.english), isRecording: false) == "🇬🇧 İngilizce")
+        #expect(languageText(locked: nil, mode: .fixed(.english), isRecording: false) == "İngilizce")
     }
 }
 

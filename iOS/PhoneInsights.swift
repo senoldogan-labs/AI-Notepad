@@ -9,9 +9,7 @@ struct PhoneInsightsScreen: View {
     @State private var period: AnalyticsPeriod = .month
 
     var body: some View {
-        let analytics: MeetingAnalytics = meetingAnalytics(
-            records: store.meetings, period: period, userName: store.userName, now: Date(), calendar: Calendar.current
-        )
+        let analytics: MeetingAnalytics = store.analytics(period: period)
         ScrollView {
             MeetingAnalyticsView(analytics: analytics, period: $period)
                 .animation(.smooth(duration: 0.25), value: period)
