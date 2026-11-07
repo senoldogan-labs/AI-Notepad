@@ -164,15 +164,17 @@ function bindRace(): void {
 
   new IntersectionObserver(
     (entries: IntersectionObserverEntry[]): void => {
+      let visibleEnough: boolean = false;
       for (const entry of entries) {
         onScreen = entry.isIntersecting;
+        visibleEnough = entry.intersectionRatio >= raceStartRatio;
       }
-      if (onScreen && !started) {
+      if (visibleEnough && !started) {
         started = true;
         elapsed = 0;
         draw();
         setState("playing");
-      } else if (onScreen) {
+      } else if (onScreen && started) {
         run();
       } else {
         stop();
