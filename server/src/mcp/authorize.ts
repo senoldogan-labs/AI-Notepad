@@ -31,6 +31,7 @@ import {
   newNonce,
   pageResponse,
   relayPage,
+  returnPage,
   reviewerPage,
   signInPage,
 } from "./html";
@@ -327,7 +328,7 @@ async function decideConsent(request: Request, context: AuthorizeContext): Promi
   const body = await formOf(request, consentFormSchema);
   if (body.decision === "deny") {
     const denied = await context.oauth.denyConsent(request, body.handle);
-    return new Response(null, { status: 302, headers: denied.headers });
+    return returnResponse(denied.headers);
   }
   const expected: string = await hmacHex(await purposeKey(context.config.keyring, "consent"), `${body.handle}|${body.user}`);
   if (!(await constantTimeEqualText(expected, body.signature))) {
@@ -356,8 +357,18 @@ async function decideConsent(request: Request, context: AuthorizeContext): Promi
   });
   log("info", "assistant_consent_approved", { userId: body.user, verified: props.verified });
   approved.headers.set("location", redirectTo);
-  approved.headers.set("referrer-policy", "no-referrer");
-  return new Response(null, { status: 302, headers: approved.headers });
+  return returnResponse(approved.headers);
+}
+
+/** The decision's way back to the client (`returnPage`), with the library's cookies; the location becomes the page's link. */
+function returnResponse(headers: Headers): Response {
+  const location: string | null = headers.get("location");
+  if (location === null) {
+    throw new PageError(500, "Can't continue", "Start again from your assistant.");
+  }
+  const rest: Headers = new Headers(headers);
+  rest.delete("location");
+  return pageResponse(returnPage(location, newNonce()), rest);
 }
 
 /** Renders any failure of these pages; nothing here redirects. */

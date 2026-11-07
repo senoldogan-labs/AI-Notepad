@@ -170,6 +170,18 @@ export function consentPage(client: ClientPresentation, account: AccountSummary,
 }
 
 /**
+ * The way back to the assistant after Allow or Cancel. A form post that answers with a redirect is checked against
+ * form-action along the whole redirect chain, and some assistants bounce their callback on to another host (ChatGPT's
+ * callback continues to platform.openai.com), which the browser then blocks. A page that navigates with a script is
+ * not a form submission, so the chain is free; the link is the fallback without scripts.
+ */
+export function returnPage(location: string, nonce: string): Page {
+  const body: string = `<h1>Returning to your assistant…</h1><p>If nothing happens, continue below.</p><a class="button primary" id="return" href="${escapeHtml(location)}">Continue</a>
+<script nonce="${nonce}">location.replace(document.getElementById("return").href);</script>`;
+  return { status: 200, html: document("Returning to your assistant", body, nonce), nonce, formTargets: [] };
+}
+
+/**
  * Relay after the provider's cross-site form post: the binding cookie (SameSite=Lax) is not sent on that post, so this
  * page posts the fields again from our own origin, where it is.
  */
