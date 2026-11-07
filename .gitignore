@@ -6,9 +6,10 @@ DerivedData/
 *.xcodeproj
 Config/Local.xcconfig
 
-# Agent files: only the project skills (.claude/skills/) are tracked; worktrees, screenshots and local settings are not.
+# Agent files: only the project skills (.claude/skills/) and the pre-push review hook (.claude/hooks/) are tracked; worktrees, screenshots and local settings are not.
 .claude/*
 !.claude/skills/
+!.claude/hooks/
 
 # Sparkle appcast ve yayınlanan DMG kopyaları (scripts/release.sh, scripts/release-gistsmith.sh)
 release-archive/
