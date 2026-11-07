@@ -5,6 +5,8 @@ import os
 
 /// iPhone ayar anahtarları; adlar Mac'tekilerle aynıdır. Ayarlar cihazda kalır.
 enum PhoneSettingsKey {
+    /// Kitaplık sıkı listede mi (kartlar yerine satırlar; ekrana daha çok toplantı sığar).
+    static let libraryCompact: String = "library.compact"
     static let primaryMeetingLanguage: String = "language.primary"
     /// Not ve çeviri dili (`ShareLanguage`): not, canlı çeviri ve Sor cevapları bu dilde yazılır.
     static let noteLanguage: String = "language.note"
@@ -55,7 +57,7 @@ enum PhoneSettingsKey {
     static let missedWindowMinutes: String = "missedWindowMinutes"
     /// Takvim (sıradaki toplantılar, kaydı süren etkinliğe bağlama); varsayılan kapalı, açılınca izin istenir.
     static let calendarEnabled: String = "calendar.enabled"
-    /// Toplantıdan 1 dk önce "Dinlemeye başla" bildirimi (Mac'teki ayarla aynı ad); iPhone'da varsayılan kapalı, açılınca
+    /// Toplantıdan 1 dk önce "Kaydı başlat" bildirimi (Mac'teki ayarla aynı ad); iPhone'da varsayılan kapalı, açılınca
     /// bildirim izni istenir.
     static let meetingReminders: String = "calendar.reminders"
     /// Bildirimler (Ayarlar › Bildirimler; Mac'le aynı adlar, bkz. `EngagementSettingKey`): not hazır, görev günü,

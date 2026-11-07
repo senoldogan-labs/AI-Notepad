@@ -96,6 +96,8 @@ struct PhoneSyncSection: View {
     @State private var center: HostedSyncCenter = .shared
     @State private var confirmingOff: Bool = false
     @State private var showsCode: Bool = false
+    /// Bağlantı kodu az önce kopyalandı: düğme kısa süre "Kopyalandı" der.
+    @State private var codeCopied: Bool = false
     @State private var codeText: String = ""
 
     var body: some View {
@@ -163,7 +165,22 @@ struct PhoneSyncSection: View {
                     Text(verbatim: code)
                         .font(.system(size: 14, design: .monospaced))
                         .textSelection(.enabled)
-                    Button("Kopyala") { UIPasteboard.general.string = code }
+                    Button(codeCopied ? LocalizedStringKey("Kopyalandı") : LocalizedStringKey("Kopyala")) {
+                        UIPasteboard.general.string = code
+                        codeCopied = true
+                    }
+                    .sensoryFeedback(.success, trigger: codeCopied) { (_: Bool, new: Bool) -> Bool in new }
+                    .task(id: codeCopied) {
+                        guard codeCopied else {
+                            return
+                        }
+                        do {
+                            try await Task.sleep(for: .seconds(2))
+                        } catch {
+                            return
+                        }
+                        codeCopied = false
+                    }
                     Button("Kodu gizle") { showsCode = false }
                 } else {
                     Button("Bağlantı kodunu göster") { showsCode = true }
@@ -192,7 +209,7 @@ struct PhoneSyncSection: View {
         case .synced:
             HStack {
                 if let lastSyncedAt = center.lastSyncedAt {
-                    Text("Son eşitleme: \(lastSyncedAt.formatted(date: .abbreviated, time: .shortened))").foregroundStyle(Theme.muted)
+                    Text("Son eşitleme: \(lastSyncedAt.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(interfaceLocale())))").foregroundStyle(Theme.muted)
                 }
                 Spacer()
                 Button("Şimdi eşitle") { center.syncNow() }

@@ -32,6 +32,8 @@ struct MeetingsLibraryScreen: View {
     @State private var newFolderRequest: NewFolderRequest?
     /// Silinmesi onay bekleyen klasör.
     @State private var pendingFolderDelete: String?
+    /// Sıkı liste: büyük kartlar yerine satırlar (ekrana dört kart sığıyordu); seçim saklanır.
+    @AppStorage(PhoneSettingsKey.libraryCompact) private var isCompact: Bool = false
     /// Notlardaki konuşmacı etiketleri adlarla gösterilir; adı kullanıcının adı olan konuşmacının görevleri onundur.
     private var userName: String { store.userName }
     /// Gösterilen kapsam.
@@ -55,7 +57,7 @@ struct MeetingsLibraryScreen: View {
         // `emptyOverlay`).
         let hasStatusRows: Bool = !statusMessages.isEmpty || !store.actionProblems.isEmpty || recorder.importingCount > 0 || imports.isLoadingVideos
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 14) {
+            LazyVStack(alignment: .leading, spacing: isCompact ? 2 : 14) {
                 PhoneErrorList(messages: statusMessages)
                 PhoneDismissibleErrorList(messages: store.actionProblems) { store.dismissActionProblems() }
                 if recorder.importingCount > 0 || imports.isLoadingVideos {
@@ -114,6 +116,13 @@ struct MeetingsLibraryScreen: View {
                 }
             } else {
                 if !store.meetings.isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            withAnimation(.smooth(duration: 0.25)) { isCompact.toggle() }
+                        } label: {
+                            Label(isCompact ? "Kart görünümü" : "Liste görünümü", systemImage: isCompact ? "rectangle.grid.1x2" : "list.bullet")
+                        }
+                    }
                     // Simge (erişilebilirlik adı "Seç").
                     ToolbarItem(placement: .topBarTrailing) {
                         Button("Seç", systemImage: "checkmark.circle") { setSelecting(true) }
@@ -165,7 +174,11 @@ struct MeetingsLibraryScreen: View {
             }
         } else {
             NavigationLink(value: PhoneRoute.meeting(record.id)) {
-                PhoneMeetingCard(record: record, height: 132)
+                if isCompact {
+                    HomeMeetingRow(record: record)
+                } else {
+                    PhoneMeetingCard(record: record, height: 132)
+                }
             }
             .buttonStyle(PressableCardStyle())
             .contextMenu {
@@ -1167,21 +1180,24 @@ struct MeetingReadView: View {
     /// Toplantıyı dosya olarak yazar (notlu dosyalar seçili dilde) ve paylaşım sayfasını açar; olmazsa neden sayfada
     /// görünür.
     private func export(format: MeetingExportFormat) {
-        do {
-            let source: MeetingRecord
-            if format.carriesNote {
-                guard let shown = shownRecord else {
-                    return
-                }
-                source = shown
-            } else {
-                source = record
+        let source: MeetingRecord
+        if format.carriesNote {
+            guard let shown = shownRecord else {
+                return
             }
-            exported = ExportedFile(url: try writeMeetingExport(record: source, language: format.carriesNote ? noteLanguage : nil, format: format))
-            recordFeatureUsage(feature: .export(format.telemetryFormat))
-            errorMessage = nil
-        } catch {
-            errorMessage = String(localized: "Dışa aktarılamadı: \(userFacingMessage(error: error))")
+            source = shown
+        } else {
+            source = record
+        }
+        let language: ShareLanguage? = format.carriesNote ? noteLanguage : nil
+        Task {
+            do {
+                exported = ExportedFile(url: try await writeMeetingExport(record: source, language: language, format: format))
+                recordFeatureUsage(feature: .export(format.telemetryFormat))
+                errorMessage = nil
+            } catch {
+                errorMessage = String(localized: "Dışa aktarılamadı: \(userFacingMessage(error: error))")
+            }
         }
     }
 

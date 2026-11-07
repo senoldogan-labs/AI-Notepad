@@ -621,6 +621,8 @@ private struct PhoneLibrarySheet: View {
             }
         }
         .presentationDetents([.medium, .large])
+        // Yarım yükseklikte cam sayfanın arkasından ana ekranın turuncu kayıt düğmesi seçiliyordu: düz zemin.
+        .presentationBackground(Theme.background)
     }
 
     private func row(title: LocalizedStringKey, symbol: String, count: Int?, action: PhoneLibraryAction) -> some View {

@@ -41,16 +41,19 @@ public struct AnalyticsTotals: Sendable, Equatable {
     public let timedMeetings: Int
     /// Notlardaki görevler.
     public let tasksCreated: Int
+    /// Bunlardan kullanıcıya düşenler (Görevlerim'deki gibi konuşmacı adlarıyla; bkz. `namedTasks`).
+    public let tasksMine: Int
     /// Bunlardan tamamlanan işaretli olanlar.
     public let tasksCompleted: Int
     /// Notu yazılmış toplantılar.
     public let notes: Int
 
-    public init(meetings: Int, seconds: Double, timedMeetings: Int, tasksCreated: Int, tasksCompleted: Int, notes: Int) {
+    public init(meetings: Int, seconds: Double, timedMeetings: Int, tasksCreated: Int, tasksMine: Int, tasksCompleted: Int, notes: Int) {
         self.meetings = meetings
         self.seconds = seconds
         self.timedMeetings = timedMeetings
         self.tasksCreated = tasksCreated
+        self.tasksMine = tasksMine
         self.tasksCompleted = tasksCompleted
         self.notes = notes
     }
@@ -183,14 +186,16 @@ public func analyticsChange(current: Double, previous: Double) -> Double? {
     previous > 0 ? (current - previous) / previous : nil
 }
 
-/// Toplantıların toplamları. Saf fonksiyondur.
-public func analyticsTotals(meetings: [MeetingRecord]) -> AnalyticsTotals {
+/// Toplantıların toplamları; kullanıcının görevleri Görevlerim'deki gibi adlandırılmış görevlerden (`namedTasks`,
+/// sahibi kullanıcının adı olan da onundur). Saf fonksiyondur.
+public func analyticsTotals(meetings: [MeetingRecord], userName: String) -> AnalyticsTotals {
     let durations: [Double] = meetings.compactMap(meetingDurationSeconds(record:))
     let tasks: [(record: MeetingRecord, task: NoteTask)] = meetings.flatMap { (record: MeetingRecord) -> [(record: MeetingRecord, task: NoteTask)] in
-        (record.note?.tasks ?? []).map { (record: record, task: $0) }
+        namedTasks(record: record, userName: userName).map { (record: record, task: $0) }
     }
     return AnalyticsTotals(
         meetings: meetings.count, seconds: durations.reduce(0, +), timedMeetings: durations.count, tasksCreated: tasks.count,
+        tasksMine: tasks.filter(\.task.isMine).count,
         tasksCompleted: tasks.filter { isTaskDone(record: $0.record, task: $0.task) }.count,
         notes: meetings.filter { $0.note != nil }.count
     )
@@ -231,7 +236,7 @@ public func analyticsBucketStart(date: Date, size: AnalyticsBucketSize, calendar
 }
 
 /// Dönemin çubukları, baştan bugüne; toplantısız aralıklar sıfırla (grafik boşluğu doğru gösterir). Saf fonksiyondur.
-public func analyticsTimeline(meetings: [MeetingRecord], start: Date, now: Date, size: AnalyticsBucketSize, calendar: Calendar) -> [AnalyticsTimePoint] {
+public func analyticsTimeline(meetings: [MeetingRecord], start: Date, now: Date, size: AnalyticsBucketSize, userName: String, calendar: Calendar) -> [AnalyticsTimePoint] {
     let component: Calendar.Component = analyticsCalendarComponent(size: size)
     let first: Date = analyticsBucketStart(date: start, size: size, calendar: calendar)
     let starts: [Date] = Array(sequence(first: first) { (previous: Date) -> Date? in
@@ -243,7 +248,7 @@ public func analyticsTimeline(meetings: [MeetingRecord], start: Date, now: Date,
     let grouped: [Date: [MeetingRecord]] = Dictionary(grouping: meetings) { analyticsBucketStart(date: $0.startedAt, size: size, calendar: calendar) }
     return starts.map { (bucket: Date) -> AnalyticsTimePoint in
         let inBucket: [MeetingRecord] = grouped[bucket] ?? []
-        let totals: AnalyticsTotals = analyticsTotals(meetings: inBucket)
+        let totals: AnalyticsTotals = analyticsTotals(meetings: inBucket, userName: userName)
         return AnalyticsTimePoint(
             start: bucket, hours: totals.seconds / 3600, meetings: totals.meetings, openTasks: totals.tasksCreated - totals.tasksCompleted,
             completedTasks: totals.tasksCompleted
@@ -289,16 +294,17 @@ func rankedNames(entries: [(name: String, meetingID: String, date: Date)]) -> [A
         .map { $0 }
 }
 
-/// En çok birlikte toplantı yapılan kişiler: takvim katılımcıları ve konuşmacılara verilen adlar; kullanıcının kendisi
+/// En çok birlikte toplantı yapılan kişiler: konuşmacılara verilen adlar ve takvim katılımcıları; kullanıcının kendisi
 /// (`isUserName`) hariç. Konuşmacı adı aynı toplantıdaki bir katılımcının adı ya da ilk adıysa ("Elif" ve "Elif Kaya")
-/// o katılımcı sayılır. Saf fonksiyondur.
+/// kişi konuşmacı adıyla bir kez sayılır: Kişiler sayfası da konuşmacı adını gösterir, iki sayfa aynı adı yazsın. Saf
+/// fonksiyondur.
 public func analyticsPeople(meetings: [MeetingRecord], userName: String) -> [AnalyticsRankedName] {
     rankedNames(entries: meetings.flatMap { (record: MeetingRecord) -> [(name: String, meetingID: String, date: Date)] in
-        let attendees: [String] = record.attendees ?? []
-        let speakers: [String] = record.speakerNames.values.filter { (speaker: String) -> Bool in
-            !attendees.contains { (attendee: String) -> Bool in isUserName(name: speaker, userName: attendee) }
+        let speakers: [String] = Array(record.speakerNames.values)
+        let attendees: [String] = (record.attendees ?? []).filter { (attendee: String) -> Bool in
+            !speakers.contains { (speaker: String) -> Bool in isUserName(name: speaker, userName: attendee) }
         }
-        return (attendees + speakers)
+        return (speakers + attendees)
             .filter { !isUserName(name: $0, userName: userName) }
             .map { (name: $0, meetingID: record.id, date: record.startedAt) }
     })
@@ -332,12 +338,12 @@ public func meetingAnalytics(records: [MeetingRecord], period: AnalyticsPeriod, 
     let inPeriod: [MeetingRecord] = counted.filter { $0.startedAt >= start && $0.startedAt <= now }
     let previous: AnalyticsTotals? = period.days.map { (days: Int) -> AnalyticsTotals in
         let previousStart: Date = calendar.date(byAdding: .day, value: -days, to: start) ?? start
-        return analyticsTotals(meetings: counted.filter { $0.startedAt >= previousStart && $0.startedAt < start })
+        return analyticsTotals(meetings: counted.filter { $0.startedAt >= previousStart && $0.startedAt < start }, userName: userName)
     }
     let size: AnalyticsBucketSize = analyticsBucketSize(period: period, start: start, now: now)
     return MeetingAnalytics(
-        period: period, allTimeMeetings: counted.count, totals: analyticsTotals(meetings: inPeriod), previous: previous, bucketSize: size,
-        timeline: analyticsTimeline(meetings: inPeriod, start: start, now: now, size: size, calendar: calendar),
+        period: period, allTimeMeetings: counted.count, totals: analyticsTotals(meetings: inPeriod, userName: userName), previous: previous, bucketSize: size,
+        timeline: analyticsTimeline(meetings: inPeriod, start: start, now: now, size: size, userName: userName, calendar: calendar),
         weekdays: analyticsWeekdays(calendar: calendar), heatmap: analyticsHeatmap(meetings: inPeriod, calendar: calendar),
         folders: analyticsFolders(meetings: inPeriod), templates: analyticsTemplates(meetings: inPeriod),
         people: analyticsPeople(meetings: inPeriod, userName: userName)

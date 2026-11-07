@@ -9,9 +9,7 @@ struct InsightsPage: View {
     @State private var period: AnalyticsPeriod = .month
 
     var body: some View {
-        let analytics: MeetingAnalytics = meetingAnalytics(
-            records: model.meetings, period: period, userName: model.userName, now: Date(), calendar: Calendar.current
-        )
+        let analytics: MeetingAnalytics = model.analytics(period: period)
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 Text("İstatistikler")

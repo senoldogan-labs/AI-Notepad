@@ -26,7 +26,7 @@ public struct CompanyTile: View {
 }
 
 /// iPhone'daki şirketler listesinin satırı: harf karosu, ad (kullanıcının kendi şirketiyse işaretli), alan adı ve kişi
-/// sayısı, göz simgesi (dokununca şirketin sayfası açılır).
+/// sayısı, ileri oku (dokununca şirketin sayfası açılır).
 public struct CompanyListRow: View {
     let company: CompanySummary
 
@@ -56,10 +56,10 @@ public struct CompanyListRow: View {
                 .lineLimit(1)
             }
             Spacer(minLength: 0)
-            Image(systemName: "eye")
-                .appFont(size: 14, weight: .medium)
+            Image(systemName: "chevron.right")
+                .appFont(size: 13, weight: .semibold)
                 .foregroundStyle(Theme.muted)
-                .accessibilityLabel(Text("Bilgilerini göster"))
+                .accessibilityHidden(true)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)

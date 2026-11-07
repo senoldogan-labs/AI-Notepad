@@ -3,10 +3,11 @@ import AINotepadUI
 import SwiftUI
 
 /// Ayarlar (ana ekrandaki profil simgesinden; Mac'teki gruplarla aynı sırada, her satırda simge kutusu ve gerekirse tek
-/// cümlelik açıklama): profil (ad), hesap (giriş yapan kimlik, plan, kullanım, çıkış, hesap silme), görünüm, bağlantılar (kanallar, görev araçları), dil, sen ve
+/// cümlelik açıklama): profil ve hesap tek satırda (ad; plan, kullanım, çıkış, hesap silme profilin altından), eşitleme,
+/// bağlantılar (kanallar, görev araçları), görünüm ve dil, sen ve
 /// konuşmacılar (tanıma sözlüğü, sesinden tanıma), takvim, kayıt (rıza hatırlatması, ses saklama), bildirimler, not,
-/// canlı çeviri ve Sor (web araması), beceriler (SKILL.md), gizlilik (anonim kullanım istatistikleri, çökme raporları) ve
-/// uygulama (kurulum, sürüm, tanılama, geri bildirim).
+/// canlı çeviri ve Sor (web araması), beceriler (SKILL.md) ve uygulama ve gizlilik (kurulum, sürüm ve derleme, tanılama,
+/// geri bildirim, anonim kullanım istatistikleri, çökme raporları).
 struct PhoneSettingsTab: View {
     let store: PhoneStore
     /// Sor: SKILL.md'den içe aktarılan beceriler onun tariflerine eklenir.
@@ -42,27 +43,15 @@ struct PhoneSettingsTab: View {
             List {
                 CrashReportNotice(center: crashReports)
                 Section {
-                    // Profil (ad, unvan, şirket) ve hesap (plan, kullanım, çıkış); ana ekrandaki engel
-                    // bildiriminin "Kullanımı gör"ü hesabı açar (`PhoneRouter.openAccount`).
+                    // Profil (ad, unvan, şirket) ve hesap tek satır: hesap (plan, kullanım, çıkış) profilin altından açılır;
+                    // ana ekrandaki engel bildiriminin "Kullanımı gör"ü hesabı doğrudan açar (`PhoneRouter.openAccount`).
                     NavigationLink(value: PhoneRoute.profile) {
                         PhoneProfileRow(store: store, account: account)
-                    }
-                    NavigationLink(value: PhoneRoute.account) {
-                        PhoneAccountRow(account: account)
                     }
                 } header: {
                     Text("Hesap")
                 }
                 PhoneSyncSection()
-                Section {
-                    NavigationLink {
-                        PhoneAppearanceScreen()
-                    } label: {
-                        PhoneAppearanceRow(theme: theme, accent: accent)
-                    }
-                } header: {
-                    Text("Görünüm")
-                }
                 Section {
                     PhoneConnectionsRow()
                     // Sunucu sunmuyorsa görünmez (bkz. `PhoneAssistantRow`).
@@ -72,7 +61,13 @@ struct PhoneSettingsTab: View {
                 } footer: {
                     Text("Notlar Slack, Teams, Discord, Notion ya da Zoom'a, görevler Linear ya da Jira'ya gider.")
                 }
+                // Görünüm ve dil tek bölüm (Ayarlar daha az bölüme bölünsün).
                 Section {
+                    NavigationLink {
+                        PhoneAppearanceScreen()
+                    } label: {
+                        PhoneAppearanceRow(theme: theme, accent: accent)
+                    }
                     // Arayüz dili iOS'ta uygulama başına iPhone Ayarları'ndan seçilir (Mac'te uygulamanın içinden): satır
                     // uygulamanın Ayarlar sayfasını açar, sağdaki simge uygulamadan çıkıldığını gösterir.
                     if let settings = URL(string: UIApplication.openSettingsURLString) {
@@ -100,7 +95,7 @@ struct PhoneSettingsTab: View {
                         MenuPickerOption(value: language.rawValue, label: Text(languageName(language: language)))
                     })
                 } header: {
-                    Text("Dil")
+                    Text("Görünüm ve dil")
                 } footer: {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Notlar, canlı çeviri ve Sor cevapları not ve çeviri dilinde yazılır.")
@@ -203,26 +198,6 @@ struct PhoneSettingsTab: View {
                 }
                 PhoneSkillImportSection(ask: ask)
                 Section {
-                    Toggle(isOn: $shareUsageStatistics) {
-                        PhoneSettingLabel(icon: "chart.bar.xaxis", title: Text("Anonim kullanım istatistiklerini paylaş")) {
-                            Text("Yalnızca kullanım sayıları paylaşılır; toplantı içeriği, ses ya da metin paylaşılmaz.")
-                        }
-                    }
-                    .onChange(of: shareUsageStatistics) { (_: Bool, enabled: Bool) in
-                        if !enabled {
-                            HostedTelemetryCenter.shared.sharingDisabled()
-                        }
-                    }
-                    if let privacy = phoneLegalURL(path: "privacy") {
-                        Link(destination: privacy) {
-                            PhoneSettingLabel(icon: "hand.raised.square", title: Text("Gizlilik politikası"))
-                        }
-                    }
-                    CrashReportsLink(center: crashReports)
-                } header: {
-                    Text("Gizlilik")
-                }
-                Section {
                     // Mac'teki "Kurulumu yeniden aç": karşılama (ad, ana toplantı dili) baştan gösterilir. Kayıt ya da
                     // işleme sürerken kapalı (karşılama tam ekran açılır).
                     Button {
@@ -234,7 +209,8 @@ struct PhoneSettingsTab: View {
                     }
                     .disabled(isMeetingInFlight)
                     LabeledContent {
-                        Text(verbatim: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?")
+                        // Derleme numarası da: geri bildirimde ve TestFlight'ta hangi derleme olduğu görünsün.
+                        Text(verbatim: currentReportDiagnostics(bundle: Bundle.main, platformName: "iOS").appVersion)
                     } label: {
                         PhoneSettingLabel(icon: "info.circle", title: Text("Sürüm"))
                     }
@@ -253,8 +229,24 @@ struct PhoneSettingsTab: View {
                     } label: {
                         PhoneSettingLabel(icon: "bubble.left.and.text.bubble.right", title: Text("Geri bildirim gönder"))
                     }
+                    Toggle(isOn: $shareUsageStatistics) {
+                        PhoneSettingLabel(icon: "chart.bar.xaxis", title: Text("Anonim kullanım istatistiklerini paylaş")) {
+                            Text("Yalnızca kullanım sayıları paylaşılır; toplantı içeriği, ses ya da metin paylaşılmaz.")
+                        }
+                    }
+                    .onChange(of: shareUsageStatistics) { (_: Bool, enabled: Bool) in
+                        if !enabled {
+                            HostedTelemetryCenter.shared.sharingDisabled()
+                        }
+                    }
+                    if let privacy = phoneLegalURL(path: "privacy") {
+                        Link(destination: privacy) {
+                            PhoneSettingLabel(icon: "hand.raised.square", title: Text("Gizlilik politikası"))
+                        }
+                    }
+                    CrashReportsLink(center: crashReports)
                 } header: {
-                    Text("Uygulama")
+                    Text("Uygulama ve gizlilik")
                 }
             }
             .onAppear {
@@ -264,6 +256,8 @@ struct PhoneSettingsTab: View {
                 }
             }
         }
+        // Kayan satırlar durum çubuğunun ve başlığın arkasında yarı saydam görünmesin: üst kenar sert biter.
+        .scrollEdgeEffectStyle(.hard, for: .top)
         .navigationTitle("Ayarlar")
     }
 }

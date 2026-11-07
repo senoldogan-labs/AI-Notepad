@@ -191,6 +191,7 @@ struct PhoneAssistantScreen: View {
                             copied = false
                         }
                     }
+                    .sensoryFeedback(.success, trigger: copied) { (_: Bool, new: Bool) -> Bool in new }
                 } header: {
                     Text("Bağlayıcı adresi")
                 } footer: {
@@ -233,7 +234,7 @@ struct PhoneAssistantScreen: View {
     private var grantsSection: some View {
         Section {
             if center.grants.isEmpty {
-                Text("Yukarıdaki adımlarla bir asistan bağladığında burada görünür.")
+                Text("Aşağıdaki \"Nasıl bağlanır\" adımlarıyla bir asistan bağladığında burada görünür.")
                     .foregroundStyle(Theme.muted)
             }
             ForEach(center.grants) { (grant: HostedAssistantGrant) in
@@ -254,11 +255,11 @@ struct PhoneAssistantScreen: View {
                         NoticeText("Doğrulanmamış uygulama. Bu bağlantıyı sen kurmadıysan kes.", severity: .attention)
                             .appFont(size: 13, weight: .regular)
                     }
-                    Text("Bağlandı: \(grant.createdAt.formatted(date: .abbreviated, time: .shortened))")
+                    Text("Bağlandı: \(grant.createdAt.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(interfaceLocale())))")
                         .appFont(size: 13, weight: .regular)
                         .foregroundStyle(Theme.muted)
                     if let heavyReadAt = grant.heavyReadAt {
-                        NoticeText("\(heavyReadAt.formatted(date: .abbreviated, time: .shortened)) civarında bir saatte 100'den fazla toplantı okudu.", severity: .attention)
+                        NoticeText("\(heavyReadAt.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(interfaceLocale()))) civarında bir saatte 100'den fazla toplantı okudu.", severity: .attention)
                             .appFont(size: 13, weight: .regular)
                     }
                 }

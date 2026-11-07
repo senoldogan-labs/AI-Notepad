@@ -191,8 +191,10 @@ struct PhoneOnboarding: View {
         .background(Theme.background)
     }
 
+    /// Yalnız bu adımı geçer; üstteki "Kurulumu atla" kurulumun tamamını bitirir (ikisi aynı "Atla" sözcüğüyle
+    /// karışıyordu).
     private var skip: some View {
-        Button("Atla") { moveNext() }
+        Button("Şimdilik geç") { moveNext() }
             .appFont(size: 15, weight: .medium)
             .foregroundStyle(Theme.muted)
             .frame(minHeight: 36)
@@ -232,7 +234,8 @@ private struct PhoneWelcomeStep: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(20)
             }
-            .frame(height: 120)
+            // Büyük yazı boyutunda cümle kesilmesin: kapak yazıyla uzar.
+            .frame(minHeight: 120)
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             .accessibilityElement(children: .combine)
             OnboardingCard {
@@ -250,6 +253,11 @@ private struct PhoneWelcomeStep: View {
             .appFont(size: 13, weight: .regular)
             .foregroundStyle(Theme.muted)
             VStack(alignment: .leading, spacing: 10) {
+                // Açıklama alanların üstünde: ad yazılırken klavye ve alt çubuk alanın altını kapatıyordu.
+                Text("Adın notta sana düşen görevleri ayırır; ana dil canlı metnin hangi dille başlayacağını belirler.")
+                    .appFont(size: 12, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
                 TextField("Adın", text: Binding<String>(get: { store.userName }, set: { (name: String) -> Void in store.setUserName(name: name) }), prompt: Text("Adın (ör. Doğan)"))
                     .textInputAutocapitalization(.words)
                     .autocorrectionDisabled()
@@ -268,10 +276,6 @@ private struct PhoneWelcomeStep: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 12)
                 .cardSurface(cornerRadius: 14)
-                Text("Adın notta sana düşen görevleri ayırır; ana dil canlı metnin hangi dille başlayacağını belirler.")
-                    .appFont(size: 12, weight: .regular)
-                    .foregroundStyle(Theme.muted)
-                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -385,7 +389,7 @@ private struct PhoneCalendarStep: View {
                 )) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Toplantıdan 1 dk önce hatırlat").appFont(size: 15, weight: .semibold).foregroundStyle(Theme.ink)
-                        Text("Bildirimdeki \"Dinlemeye başla\" ile kayıt hemen başlar.")
+                        Text("Bildirimdeki \"Kaydı başlat\" ile kayıt hemen başlar.")
                             .appFont(size: 13, weight: .regular)
                             .foregroundStyle(Theme.muted)
                             .fixedSize(horizontal: false, vertical: true)
@@ -551,8 +555,9 @@ private struct PhoneSampleMeetingStep: View {
             switch stage {
             case .intro:
                 VStack(alignment: .leading, spacing: 14) {
+                    // Küçük ekranda (SE) sahne kısalır, alt çubuğun altına itilmez.
                     SampleCallStage(names: sampleMeetingSpeakerNames, speaking: nil, elapsed: 0, isLive: false)
-                        .frame(height: 200)
+                        .frame(minHeight: 140, maxHeight: 200)
                     introPoint(symbol: "waveform", text: "Canlı metin konuşmayla akar")
                     introPoint(symbol: "square.and.pencil", text: "Sen bir not yazarsın")
                     introPoint(symbol: "sparkles", text: "Bitince notun hazır")
@@ -605,7 +610,7 @@ private struct PhoneSampleMeetingStep: View {
                 names: sampleMeetingSpeakerNames, speaking: script.flatMap { sampleMeetingSpeaker(script: $0, elapsed: elapsed) },
                 elapsed: elapsed, isLive: stage == .live
             )
-            .frame(height: 170)
+            .frame(minHeight: 120, maxHeight: 170)
             HStack(spacing: 8) {
                 if stage == .finishing {
                     ProgressView().controlSize(.small)
