@@ -107,7 +107,7 @@ func openMainWindow(router: MainWindowRouter, section: MainSection) {
 /// Dock simgesine tıklanınca ana pencere açılır: ada penceresi hep açık olduğu için sistem "görünür pencere var" sayıp
 /// kendiliğinden açmazdı.
 final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
-    /// Bildirimdeki "Dinlemeye başla" (ya da bildirime tıklama) kaydı başlatır; uygulama açılışında bağlanır.
+    /// Bildirimdeki "Kaydı başlat" (ya da bildirime tıklama) kaydı başlatır; uygulama açılışında bağlanır.
     @MainActor static var onStartFromNotification: (@MainActor () -> Void)?
     /// "Kayıt başlatılamadı" bildirimine tıklama Ana sayfayı açar (neden başlat düğmesinin yanında); açılışta bağlanır.
     @MainActor static var onOpenHomeFromNotification: (@MainActor () -> Void)?
@@ -791,7 +791,7 @@ private struct HomePage: View {
 private let homeBarDarkDimming: Double = 0.3
 
 /// Kayıt kartında konuşma modelinin durumu: indiriliyorsa ilerleme, hazırlanamadıysa neden ve "Yeniden dene".
-/// Geliştirici sürümünde "Dinlemeye başla" neden kapalı, abonelikte canlı metin neden gecikecek, kart söyler.
+/// Geliştirici sürümünde "Kaydı başlat" neden kapalı, abonelikte canlı metin neden gecikecek, kart söyler.
 struct LocalModelNoticeView: View {
     let notice: LocalModelNotice
     let onRetry: @MainActor () -> Void
@@ -829,7 +829,7 @@ struct LocalModelNoticeView: View {
     }
 }
 
-/// Kayıt çubuğu: boşta tek satır gradyan çubuk (küre, "Dinlemeye başla", seçenek çipleri); kayıtta ve bitirilirken çubuk
+/// Kayıt çubuğu: boşta tek satır gradyan çubuk (küre, "Kaydı başlat", seçenek çipleri); kayıtta ve bitirilirken çubuk
 /// (ElevenLabs'in "oluştur" çubuğu gibi): küre, durum, "Paneli göster" ve "Bitir".
 private struct RecordBar: View {
     @Bindable var model: AppModel
@@ -849,7 +849,7 @@ private struct RecordBar: View {
         }
     }
 
-    /// Boşta: tek satırlık kayıt çubuğu (sayfanın üçte birini kaplayan büyük kart yerine): küre, "Dinlemeye başla" ve
+    /// Boşta: tek satırlık kayıt çubuğu (sayfanın üçte birini kaplayan büyük kart yerine): küre, "Kaydı başlat" ve
     /// seçenek çipleri; dar pencerede çipler alt satıra iner. Zemin durağan pastel gradyan, koyu temada belirgin
     /// kısılır; içerik her temada açık görünümle çizilir. Engel, model ve boş yer bildirimleri çubuğun altında,
     /// uygulamanın temasında.
@@ -888,14 +888,14 @@ private struct RecordBar: View {
         .task { model.refreshRecordingDiskSpace() }
     }
 
-    /// Küre ve "Dinlemeye başla".
+    /// Küre ve "Kaydı başlat".
     private var startControls: some View {
         HStack(spacing: 10) {
             orb(size: 30)
                 .padding(3)
                 .background(Color.white.opacity(0.4), in: Circle())
             Button(action: onStartRecording) {
-                Label("Dinlemeye başla", systemImage: "record.circle")
+                Label("Kaydı başlat", systemImage: "record.circle")
             }
             .buttonStyle(.bannerPrimary)
             .disabled(!model.isReadyToRecord || model.isStarting || startBlock != nil)
@@ -1271,7 +1271,7 @@ private struct UpcomingMeetings: View {
                     .controlSize(.small)
                     .hoverHint("Görüşme bağlantısını aç: \(url.host() ?? "")", alignment: .trailing, edge: .bottom)
             }
-            // Kayıt kartındaki "Dinlemeye başla" ile aynı koşul: bitirilirken, devredilirken, başlarken ya da model hazır
+            // Kayıt kartındaki "Kaydı başlat" ile aynı koşul: bitirilirken, devredilirken, başlarken ya da model hazır
             // değilken kapalı (yoksa boş panel açılırdı).
             if isSoon, model.phase == .idle {
                 Button("Dinle", systemImage: "record.circle") { onStartRecording() }
