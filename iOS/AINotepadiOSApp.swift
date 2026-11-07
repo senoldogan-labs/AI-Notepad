@@ -221,7 +221,11 @@ private struct PhoneAppRoot: View {
     let router: PhoneRouter
     let calendar: PhoneCalendar
     let crashReports: CrashReportCenter
-    @AppStorage(PhoneSettingsKey.aiDisclosureAccepted) private var disclosureAccepted: Bool = false
+    /// Yapay zekâ açıklaması bu oturumda onaylandı: onay hesabın ayar alanına yazılır (`recordPhoneAIConsent`), görünüm
+    /// bununla yeniden okur.
+    @State private var consentRevision: Int = 0
+    /// Onay saklanamadıysa nedeni (açıklamanın altında).
+    @State private var consentError: String?
     @AppStorage(PhoneSettingsKey.theme) private var theme: String = AppTheme.system.rawValue
 
     var body: some View {
@@ -229,8 +233,18 @@ private struct PhoneAppRoot: View {
         Group {
             if phoneShowsSignInGate(requiresSignIn: account.requiresSignIn, isRecording: session.recorder.phase != .idle) {
                 PhoneSignInGate(account: account, switchWaitsFor: session.openWriters)
-            } else if !disclosureAccepted {
-                PhoneAIDisclosure(account: account) { disclosureAccepted = true }
+            } else if !phoneAIConsentGiven(account: account), consentRevision >= 0 {
+                // Onay hesap başına: başka hesapla girince açıklama o hesaba da gösterilir. Onay ayarda saklıdır (gözlenmez);
+                // `consentRevision` okunur ki onaylayınca görünüm yeniden çizilsin.
+                PhoneAIDisclosure(account: account, errorMessage: consentError) {
+                    do {
+                        try recordPhoneAIConsent(account: account)
+                        consentError = nil
+                        consentRevision += 1
+                    } catch {
+                        consentError = userFacingMessage(error: error)
+                    }
+                }
             } else {
                 RootView(
                     store: session.store, recorder: session.recorder, ask: session.ask, router: router, player: session.player, calendar: calendar,
@@ -255,6 +269,8 @@ private struct PhoneAppRoot: View {
         .preferredColorScheme((AppTheme(rawValue: theme) ?? .system).isDark.map { $0 ? ColorScheme.dark : ColorScheme.light })
         // Hesap değişince görünümlerin durumu (açık sayfalar, seçimler, kaydırma) eski hesabınkiyle kalmasın.
         .id(sessions.generation)
+        // Önceki sürümlerin cihaz başına onayı ilk giren hesaba taşınır.
+        .task(id: account.signedInUserIDCache) { migrateLegacyPhoneAIConsent(account: account) }
         .task(id: account.dataState) {
             guard account.isAccountDataLoaded else {
                 return

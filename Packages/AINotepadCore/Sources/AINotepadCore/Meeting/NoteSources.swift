@@ -28,11 +28,15 @@ public struct NoteSourceContext: Sendable, Equatable {
     public let topic: String?
     public let startSec: Double
     public let endSec: Double
+    /// Alıntılardan biri bu aralığın dışında (toplantının başka yerinde): bağlam satırı aralığı "en çok" diye söyler,
+    /// başlık alıntılarla çelişmez.
+    public let isSpread: Bool
 
-    public init(topic: String?, startSec: Double, endSec: Double) {
+    public init(topic: String?, startSec: Double, endSec: Double, isSpread: Bool) {
         self.topic = topic
         self.startSec = startSec
         self.endSec = endSec
+        self.isSpread = isSpread
     }
 }
 
@@ -212,14 +216,16 @@ private func clipped(text: String, maxChars: Int) -> String {
 }
 
 /// Bağlam: en iyi alıntının (`best`) düştüğü konu akışı bölümü ve ona `sourceContextWindowSec` içindeki alıntıların
-/// kapsadığı aralık (toplantının başka yerindeki alıntılar aralığı bütün toplantıya yaymasın). Saf fonksiyondur.
+/// kapsadığı aralık (toplantının başka yerindeki alıntılar aralığı bütün toplantıya yaymasın; varsa `isSpread`). Saf
+/// fonksiyondur.
 private func sourceContext(best: TranscriptParagraph, quotes: [NoteSourceQuote], outline: [OutlineItem]) -> NoteSourceContext {
     let near: [TranscriptParagraph] = quotes.map(\.paragraph).filter { abs($0.startSec - best.startSec) <= sourceContextWindowSec }
     let topic: OutlineItem? = outline
         .sorted { $0.startSec < $1.startSec }
         .last { $0.startSec <= best.startSec + 1 }
     return NoteSourceContext(
-        topic: topic?.title, startSec: near.map(\.startSec).min() ?? best.startSec, endSec: near.map(\.endSec).max() ?? best.endSec
+        topic: topic?.title, startSec: near.map(\.startSec).min() ?? best.startSec, endSec: near.map(\.endSec).max() ?? best.endSec,
+        isSpread: near.count < quotes.count
     )
 }
 

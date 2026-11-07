@@ -365,17 +365,21 @@ func showDemoScene(scene: DemoScene, model: AppModel, router: MainWindowRouter, 
         }
     case .update:
         router.section = .home
+        // Sürüm uygulamanın kendi sürümü (eskimez); notlar o sürümün yayın notlarından (docs/release-notes; bkz.
+        // `DemoDataConsistencyTests`: her başlık gerçek bir yayın notunda geçmeli).
+        guard let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String else {
+            preconditionFailure("Tanıtım: uygulamanın Info.plist'inde CFBundleShortVersionString yok")
+        }
         updater.showUpdateForDemo(update: AvailableAppUpdate(
-            version: "0.1.6",
+            version: version,
             releaseNotes: """
-            Smoother playback and a lighter app.
+            A calmer meeting page that shows where every point came from.
 
             ## What's new
-            - **Smooth playback.** The time and the highlighted word now move without stutter.
-            - **Lighter while recording.** Gistsmith uses far less CPU during meetings.
-            - **Subscribe in one step.** A short window takes you straight to checkout.
-            - **Your avatar.** Your photo or your own colour orb next to Settings.
-            - **Faster updates.** New versions reach you within minutes.
+            - **See where a point came from.** Click the magnifier next to any line to see the moments it came from.
+            - **Ask about this meeting.** A bar at the bottom of every meeting answers questions about it.
+            - **Insights, free for everyone.** See how many meetings you had and how your tasks are going.
+            - **A friendlier start to voice typing.** A short intro lets you test your shortcut and try a sentence.
             """,
             releaseNotesURL: URL(string: "https://gistsmith.com"),
             isReadyToInstall: true

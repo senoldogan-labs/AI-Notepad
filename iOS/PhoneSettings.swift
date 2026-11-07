@@ -66,8 +66,8 @@ enum PhoneSettingsKey {
     static let notifyTaskDue: String = EngagementSettingKey.taskDue
     static let notifyWeeklySummary: String = EngagementSettingKey.weeklySummary
     static let notifyInactive: String = EngagementSettingKey.inactive
-    /// Ses ve metnin hizmetimize ve üçüncü taraf yapay zekâ sağlayıcılarına gönderileceği açıklaması kabul edildi (ilk
-    /// yapay zekâ işleminden önce bir kez; bkz. `PhoneAIDisclosure`).
+    /// Önceki sürümlerin cihaz başına yapay zekâ onayı (girişten sonra ilk hesaba taşınır; bkz. `PhoneAIConsent`) ve
+    /// tanıtım modunun onayı. Onay artık hesap başınadır (`hostedAIDisclosureAcceptedKey`).
     static let aiDisclosureAccepted: String = "hosted.aiDisclosureAccepted"
     /// Toplantı sayfasında sözlük açık mı (Mac'teki ayarla aynı ad); varsayılan kapalı, tercih tüm toplantılar için.
     static let glossaryExpanded: String = "meeting.glossaryExpanded"

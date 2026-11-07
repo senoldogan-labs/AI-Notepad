@@ -194,7 +194,7 @@ struct ScreenSnapshotsSection: View {
             }
             .appFont(size: 12, weight: .regular)
             .controlSize(.small)
-            Text("Her görüntü ekran değiştiğinde saklandı; yanında o ekrandayken konuşulanlar var. Bağladığın MCP istemcisi (ör. Claude) aynı eşleşmeyi list_screens ve get_screen ile okur.")
+            Text("Her görüntü ekran değiştiğinde saklandı; yanında o ekrandayken konuşulanlar var. Bağladığın yapay zekâ asistanı da bu ekranları okuyabilir.")
                 .appFont(size: 12, weight: .regular)
                 .foregroundStyle(Theme.muted)
                 .fixedSize(horizontal: false, vertical: true)

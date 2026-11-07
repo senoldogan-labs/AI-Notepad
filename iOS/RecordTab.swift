@@ -996,6 +996,8 @@ struct LiveBlockView: View {
     let onReassign: @MainActor ([SegmentID], Int) -> Void
     let onMerge: @MainActor (Int, Int) -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
+    /// Konuşmacıların bilinen adları (karşılamadaki örnek toplantı: Maya, Leo); yoksa "Konuşmacı N".
+    @Environment(\.liveSpeakerNames) private var speakerNames: [Int: String]
     /// "Sadece çeviri" (Ayarlar › Toplantı › Gösterim): çevirisi gelen blokta orijinal gizlenir.
     @AppStorage(PhoneSettingsKey.displayMode) private var displayMode: String = DisplayMode.bilingual.rawValue
 
@@ -1053,7 +1055,7 @@ struct LiveBlockView: View {
     /// Konuşmacının adı; "Diğerleri" bloğunda dokununca düzeltme menüsü açılır (otomatik ayırma yanıldıysa).
     @ViewBuilder
     private var speakerName: some View {
-        let name: some View = Text(speakerLabel(speaker: block.speaker, person: block.person))
+        let name: some View = Text(block.person.flatMap { speakerNames[$0] } ?? speakerLabel(speaker: block.speaker, person: block.person))
             .appFont(size: 13, weight: .semibold)
             .foregroundStyle(block.person.map { personColor(person: $0) } ?? Theme.ink)
         if block.speaker == .others {

@@ -2921,6 +2921,9 @@ final class AppModel {
                 question: asked, history: history, records: [record], userName: userName, profile: profile, language: selectedNoteLanguage(), llm: provider,
                 maxChars: noteLimits(provider: provider).archiveChars, screens: screens, webSearch: webSearch, now: Date(), onProgress: onProgress
             )
+        } save: { [weak self] (id: UUID, exchanges: [ArchiveExchange]) -> Void in
+            // Toplantı sohbeti Sor geçmişine yazılır (eşitlenir, Sor'da da açılır); sayfa yeniden açılınca geri gelir.
+            self?.storeConversation(id: id, exchanges: exchanges)
         }
     }
 
@@ -3088,12 +3091,23 @@ final class AppModel {
             return
         }
         let id: UUID = currentConversationID ?? UUID()
-        let turns: [AskConversationTurn] = archiveExchanges.compactMap { (exchange: ArchiveExchange) -> AskConversationTurn? in askTurn(exchange: exchange) }
+        if storeConversation(id: id, exchanges: archiveExchanges) {
+            currentConversationID = id
+        }
+    }
+
+    /// Sohbeti bitmiş sorularıyla Sor geçmişine yazar (Sor sayfası ve toplantı sayfasının sohbeti); sınırı aşan en eski
+    /// sohbetler silinir. Saklanamazsa neden pencerede görünür ve false döner.
+    @discardableResult
+    private func storeConversation(id: UUID, exchanges: [ArchiveExchange]) -> Bool {
+        let turns: [AskConversationTurn] = exchanges.compactMap { (exchange: ArchiveExchange) -> AskConversationTurn? in askTurn(exchange: exchange) }
+        guard !turns.isEmpty else {
+            return false
+        }
         let conversation: AskConversation = askConversation(existing: askConversations.first { $0.id == id }, id: id, turns: turns, now: Date())
         do {
             let directory: URL = try AppPaths.askHistoryDirectory()
             try saveAskConversation(conversation: conversation, directory: directory)
-            currentConversationID = id
             askConversations = upsertAskConversation(conversations: askConversations, conversation: conversation)
             for old in askConversationsBeyondLimit(conversations: askConversations, limit: askHistoryLimit) {
                 try deleteAskConversation(id: old.id, directory: directory)
@@ -3102,7 +3116,9 @@ final class AppModel {
         } catch {
             Self.logger.error("Sohbet saklanamadı, sohbet: \(id.uuidString, privacy: .public), hata: \(String(describing: error), privacy: .private)")
             errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Sohbet saklanamadı: \(userFacingMessage(error: error))"))
+            return false
         }
+        return true
     }
 
     /// Ajanın adımını soruya yazar.

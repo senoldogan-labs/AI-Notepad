@@ -680,6 +680,8 @@ struct BlockView: View {
     let onReassign: @MainActor ([SegmentID], Int) -> Void
     let onMerge: @MainActor (Int, Int) -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
+    /// Konuşmacıların bilinen adları (karşılamadaki örnek toplantı: Maya, Leo); yoksa "Konuşmacı N".
+    @Environment(\.liveSpeakerNames) private var speakerNames: [Int: String]
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.s) {
@@ -750,7 +752,7 @@ struct BlockView: View {
             }
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(speakerLabel(speaker: block.speaker, person: block.person))
+        .accessibilityLabel(blockSpeakerName)
         .contextMenu {
             Button("Kopyala") {
                 copyToPasteboard(text: displayedPlainText(blocks: [block], translations: translations, displayMode: displayMode))
@@ -758,8 +760,13 @@ struct BlockView: View {
         }
     }
 
+    /// Bloğun konuşmacısı: bilinen adı, yoksa "Konuşmacı N" / "Sen" / "Diğerleri".
+    private var blockSpeakerName: String {
+        block.person.flatMap { speakerNames[$0] } ?? speakerLabel(speaker: block.speaker, person: block.person)
+    }
+
     private var speakerLabelText: some View {
-        Text(interfaceUppercased(text: speakerLabel(speaker: block.speaker, person: block.person)))
+        Text(interfaceUppercased(text: blockSpeakerName))
             .appFont(size: 11, weight: .semibold)
             .tracking(DesignTokens.labelTracking)
             .foregroundStyle(.secondary)
@@ -1007,4 +1014,10 @@ public struct MyNotesEditor: View {
         .overlay(shape.strokeBorder(isFocused ? Theme.ink.opacity(0.25) : Theme.line))
         .onAppear { isFocused = true }
     }
+}
+
+public extension EnvironmentValues {
+    /// Canlı metinde konuşmacıların bilinen adları (kişi numarası → ad). Kayıtta adlar sonradan verilir (boş); karşılamadaki
+    /// örnek toplantı adları baştan bilir.
+    @Entry var liveSpeakerNames: [Int: String] = [:]
 }

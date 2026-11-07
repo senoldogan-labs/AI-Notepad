@@ -1333,6 +1333,7 @@ private struct TaskLine: View {
                 .opacity(isHovering || isTaskReminded(record: record, task: task) ? 1 : 0)
         }
         .padding(.horizontal, 8)
+        .contentShape(Rectangle())
         .onHover { (hovering: Bool) -> Void in isHovering = hovering }
         .animation(.smooth(duration: 0.2), value: isDone)
         .animation(.easeOut(duration: 0.12), value: isHovering)
