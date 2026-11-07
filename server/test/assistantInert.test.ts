@@ -6,6 +6,7 @@ import { ConfigError, parseConfig } from "../src/config";
 import type { Env } from "../src/env";
 import worker from "../src/index";
 import wranglerSource from "../wrangler.jsonc?raw";
+import { stripJsonc } from "./jsonc";
 import { type Harness, type Session, defaultHarness, expectError, req, signIn } from "./helpers";
 
 /**
@@ -21,29 +22,6 @@ afterEach(() => {
 function envWithoutAssistant(policy: "on" | "off"): Env {
   const { ASSISTANT_DB: _database, ASSISTANT_BUCKET: _bucket, ...rest } = env;
   return { ...rest, ASSISTANT_POLICY: policy };
-}
-
-/** JSONC without comments and trailing commas (strings, which hold `//` in URLs, are kept verbatim). Pure function. */
-function stripJsonc(source: string): string {
-  let output: string = "";
-  let index: number = 0;
-  while (index < source.length) {
-    const char: string = source[index] ?? "";
-    if (char === '"') {
-      const end: number = /"(?:[^"\\]|\\.)*"/y.exec(source.slice(index))?.[0].length ?? 1;
-      output += source.slice(index, index + end);
-      index += end;
-    } else if (source.startsWith("//", index)) {
-      const newline: number = source.indexOf("\n", index);
-      index = newline < 0 ? source.length : newline;
-    } else if (source.startsWith("/*", index)) {
-      index = source.indexOf("*/", index) + 2;
-    } else {
-      output += char;
-      index += 1;
-    }
-  }
-  return output.replace(/,(\s*[}\]])/g, "$1");
 }
 
 const bindingList = z.array(z.object({ binding: z.string() }).passthrough());
