@@ -2813,6 +2813,60 @@ final class AppModel {
         }
     }
 
+    /// Toplantı sayfasındaki "Bir şey sor" çubuğunun sohbetleri (toplantı başına; Sor sayfasının sohbetinden ayrı).
+    let meetingAsk: MeetingAskStore = MeetingAskStore()
+
+    /// Soruyu yalnız bu toplantıya sorar (toplantı sayfasının çubuğu); Sor sayfasıyla aynı hat ve denetimler: abonelik,
+    /// deneme, cihaz içi modelin dilleri, ekran görüntüsü planı (Ayarlar'daki "Notlarda ekran görüntülerini kullan").
+    func askAboutMeeting(meetingID: String, question: String, recipeTitle: String?) {
+        guard let record = meetings.first(where: { $0.id == meetingID }), isMentionableMeeting(record: record) else {
+            return
+        }
+        guard !isAIBlockedBySubscription() else {
+            return
+        }
+        #if HOSTED_EDITION
+        if let reason = hostedAskUnavailableReason(account: .shared) {
+            Self.logger.info("Toplantı sorusu gönderilmedi, neden: \(reason, privacy: .public)")
+            meetingAsk.fail(record: record, question: question, recipeTitle: recipeTitle, reason: reason)
+            return
+        }
+        #endif
+        recordFeatureUsage(feature: .ask)
+        let userName: String = self.userName
+        let profile: UserProfile = userProfile
+        let webSearch: Bool = askWebSearchAllowed(defaults: UserDefaults.standard)
+        let screens: ArchiveScreensPlan
+        do {
+            screens = try askScreensPlan(records: [record])
+        } catch {
+            Self.logger.error("Toplantı sorusunun ekran planı kurulamadı, hata: \(String(describing: error), privacy: .private)")
+            meetingAsk.fail(record: record, question: question, recipeTitle: recipeTitle, reason: userFacingMessage(error: error))
+            return
+        }
+        meetingAsk.ask(record: record, question: question, recipeTitle: recipeTitle) { (asked: String, history: [ArchiveTurn], onProgress: @escaping ArchiveProgressHandler) async throws -> Void in
+            let provider: LLMProvider = try await resolveLLMProvider()
+            try requireOnDeviceLanguages(provider: provider, meetingLanguages: [record.language].compactMap { $0 }, outputLanguage: selectedNoteLanguage())
+            _ = try await askAboutMeetings(
+                question: asked, history: history, records: [record], userName: userName, profile: profile, language: selectedNoteLanguage(), llm: provider,
+                maxChars: noteLimits(provider: provider).archiveChars, screens: screens, webSearch: webSearch, now: Date(), onProgress: onProgress
+            )
+        }
+    }
+
+    /// Toplantı çubuğunun son sorusunu yeniden sorar.
+    func regenerateMeetingAnswer(meetingID: String) {
+        guard let last = meetingAsk.takeLastForRegenerate(meetingID: meetingID) else {
+            return
+        }
+        let remaining: Int = meetingAsk.exchanges(meetingID: meetingID).count
+        askAboutMeeting(meetingID: meetingID, question: last.question, recipeTitle: last.recipeTitle)
+        // Soru gönderilemediyse (abonelik teklifi açıldı) eski cevap yerinde kalır.
+        if meetingAsk.exchanges(meetingID: meetingID).count == remaining {
+            meetingAsk.restore(exchange: last, meetingID: meetingID)
+        }
+    }
+
     /// Tarifler: yerleşikler ve kullanıcının kaydettikleri.
     var recipes: [Recipe] {
         builtInRecipes() + userRecipes

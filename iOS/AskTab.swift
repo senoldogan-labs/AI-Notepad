@@ -26,6 +26,48 @@ final class PhoneAsk {
         self.store = store
     }
 
+    /// Toplantı sayfasındaki "Bir şey sor" çubuğunun sohbetleri (toplantı başına; Sor sekmesinin sohbetinden ayrı).
+    let meetingAsk: MeetingAskStore = MeetingAskStore()
+
+    /// Soruyu yalnız bu toplantıya sorar (toplantı sayfasının çubuğu); Sor sekmesiyle aynı hat ve denetimler: hakkı
+    /// yoksa abonelik ekranı, deneme başlamadıysa neden sohbette. iPhone'da ekran görüntüsü okunmaz.
+    func askAboutMeeting(meetingID: String, question: String, recipeTitle: String?) {
+        guard let record = store.meetings.first(where: { $0.id == meetingID }), isMentionableMeeting(record: record) else {
+            return
+        }
+        if HostedAccount.shared.requiresSubscription {
+            HostedAccount.shared.requestSubscription()
+            return
+        }
+        if let reason = hostedAskUnavailableReason(account: HostedAccount.shared) {
+            meetingAsk.fail(record: record, question: question, recipeTitle: recipeTitle, reason: reason)
+            return
+        }
+        recordFeatureUsage(feature: .ask)
+        let userName: String = store.userName
+        let profile: UserProfile = store.userProfile
+        let webSearch: Bool = askWebSearchAllowed(defaults: UserDefaults.standard)
+        meetingAsk.ask(record: record, question: question, recipeTitle: recipeTitle) { (asked: String, history: [ArchiveTurn], onProgress: @escaping ArchiveProgressHandler) async throws -> Void in
+            let provider: LLMProvider = try phoneAccountLLMProvider()
+            _ = try await askAboutMeetings(
+                question: asked, history: history, records: [record], userName: userName, profile: profile, language: phoneNoteLanguage(), llm: provider,
+                maxChars: noteLimits(provider: provider).archiveChars, screens: .off, webSearch: webSearch, now: Date(), onProgress: onProgress
+            )
+        }
+    }
+
+    /// Toplantı çubuğunun son sorusunu yeniden sorar; sorulamazsa (abonelik ekranı açıldı) eski cevap yerinde kalır.
+    func regenerateMeetingAnswer(meetingID: String) {
+        guard let last = meetingAsk.takeLastForRegenerate(meetingID: meetingID) else {
+            return
+        }
+        let remaining: Int = meetingAsk.exchanges(meetingID: meetingID).count
+        askAboutMeeting(meetingID: meetingID, question: last.question, recipeTitle: last.recipeTitle)
+        if meetingAsk.exchanges(meetingID: meetingID).count == remaining {
+            meetingAsk.restore(exchange: last, meetingID: meetingID)
+        }
+    }
+
     /// Kullanıcının kaydettiği tarifler.
     private(set) var userRecipes: [Recipe] = []
     /// Tariflerin okunamama ya da saklanamama nedeni.

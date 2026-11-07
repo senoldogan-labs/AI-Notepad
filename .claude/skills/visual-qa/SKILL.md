@@ -17,7 +17,7 @@ scripts/make-screenshots.sh <scene> [<scene> …]      # output: .build/screensh
 Scenes (from the script; they mirror `DemoScene` in `App/DemoData.swift`):
 
 - Site scenes: `ana not sor canli` (also the default when no scene is given).
-- Check-only scenes: `abone deneme-bitiyor deneme-bitti guncelleme ayarlar ayarlar-asistan kisiler sirketler gorevler istatistikler toplantilar ekranlar`.
+- Check-only scenes: `not-kaynak not-sor not-transkript abone deneme-bitiyor deneme-bitti guncelleme ayarlar ayarlar-asistan kisiler sirketler gorevler istatistikler toplantilar ekranlar`.
 - Empty first-run scenes: `toplantilar-bos gorevler-bos kisiler-bos istatistikler-bos sor-bos`.
 - Sign-in gate and onboarding: `giris kurulum kurulum-takvim kurulum-takvim-bagli kurulum-izinler kurulum-ornek-giris
   kurulum-ornek kurulum-not kurulum-hazir`.

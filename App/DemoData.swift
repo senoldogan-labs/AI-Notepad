@@ -65,6 +65,12 @@ enum DemoScene: String {
     case askEmpty = "sor-bos"
     /// "Product weekly"nin Ekranlar sekmesi: paylaşılan ekranların görüntüleri (görsel kontrol için).
     case screens = "ekranlar"
+    /// "Product weekly"nin notu, özetin ilk maddesinin "Transkriptten" kutusu açık (görsel kontrol için).
+    case noteSource = "not-kaynak"
+    /// "Product weekly"nin notu, altta "Bir şey sor" paneli bir cevapla açık (görsel kontrol için).
+    case noteAsk = "not-sor"
+    /// "Product weekly"nin notu, altta transkript çekmecesi açık (görsel kontrol için).
+    case noteTranscript = "not-transkript"
     /// Giriş kapısı: oturum yok (yalnız abonelik sürümünde; görsel kontrol için).
     case signIn = "giris"
     /// Karşılama: hoş geldin (görsel kontrol için; diğer kurulum sahneleri de).
@@ -87,7 +93,7 @@ enum DemoScene: String {
     /// Sahne örnek verilerle mi açılır; boş sahneler (ilk açılış) hiçbir şey yazmadan açılır.
     var hasSampleData: Bool {
         switch self {
-        case .home, .note, .ask, .live, .upsell, .trialEnding, .trialEnded, .update, .settings, .settingsAssistant, .people, .companies, .tasks, .insights, .meetings, .screens: true
+        case .home, .note, .ask, .live, .upsell, .trialEnding, .trialEnded, .update, .settings, .settingsAssistant, .people, .companies, .tasks, .insights, .meetings, .screens, .noteSource, .noteAsk, .noteTranscript: true
         case .meetingsEmpty, .tasksEmpty, .peopleEmpty, .insightsEmpty, .askEmpty, .signIn, .setupWelcome, .setupCalendar, .setupCalendarConnected, .setupPermissions,
              .setupSampleIntro, .setupSample, .setupSampleNote, .setupReady: false
         }
@@ -102,7 +108,7 @@ enum DemoScene: String {
         case .setupSampleIntro, .setupSample, .setupSampleNote: .sampleMeeting
         case .setupReady: .ready
         case .home, .note, .ask, .live, .upsell, .trialEnding, .trialEnded, .update, .settings, .settingsAssistant, .people, .companies, .tasks, .insights, .meetings, .meetingsEmpty, .tasksEmpty,
-             .peopleEmpty, .insightsEmpty, .askEmpty, .screens, .signIn: nil
+             .peopleEmpty, .insightsEmpty, .askEmpty, .screens, .noteSource, .noteAsk, .noteTranscript, .signIn: nil
         }
     }
 }
@@ -242,9 +248,22 @@ func showDemoScene(scene: DemoScene, model: AppModel, router: MainWindowRouter, 
     switch scene {
     case .home:
         router.section = .home
-    case .note:
+    case .note, .noteSource, .noteTranscript:
         router.section = .meetings
         router.selectedMeetingID = demoMeetingID(startedAt: productWeeklyStart(now: now))
+    case .noteAsk:
+        router.section = .meetings
+        let meetingID: String = demoMeetingID(startedAt: productWeeklyStart(now: now))
+        router.selectedMeetingID = meetingID
+        // Sayfa açıldıktan sonra bitmiş bir soru eklenir: panel yeni soruyla açılır.
+        Task {
+            do {
+                try await Task.sleep(for: .milliseconds(1200))
+            } catch {
+                return
+            }
+            model.meetingAsk.restore(exchange: demoMeetingExchange(meetingID: meetingID, now: now), meetingID: meetingID)
+        }
     case .screens:
         router.section = .meetings
         model.meetingPageTabs[demoMeetingID(startedAt: productWeeklyStart(now: now))] = "screens"
@@ -768,6 +787,33 @@ func demoPeopleBook(now: Date) -> PeopleBook {
     return people.reduce(PeopleBook.empty) { (book: PeopleBook, person: (name: String, role: String, email: String)) -> PeopleBook in
         addingPerson(book: book, person: SavedPerson(name: person.name, role: person.role, email: person.email, addedAt: now.addingTimeInterval(-30 * 86_400)))
     }
+}
+
+/// Toplantı sayfasının "Bir şey sor" panelindeki bitmiş soru (`not-sor` sahnesi). Saf fonksiyondur.
+func demoMeetingExchange(meetingID: String, now: Date) -> ArchiveExchange {
+    let start: Date = productWeeklyStart(now: now)
+    let sources: [ArchivePassage] = [
+        ArchivePassage(
+            id: "demo-weekly-1", meetingID: meetingID, meetingTitle: "Product weekly", meetingDate: start, kind: .transcript, startSec: 612,
+            text: "On pricing: I have the Nordia call on Thursday and I need the latest pricing table before then."
+        ),
+        ArchivePassage(
+            id: "demo-weekly-2", meetingID: meetingID, meetingTitle: "Product weekly", meetingDate: start, kind: .transcript, startSec: 624,
+            text: "I'll send you the pricing table today, right after this call."
+        ),
+    ]
+    let answer: String = """
+    You have two tasks from this meeting:
+
+    - **Send Ayşe the pricing table today**, before her Nordia call on Thursday [1][2].
+    - **Write the release notes by Friday**, a week ahead of the beta.
+    """
+    let asked: Date = now.addingTimeInterval(-90)
+    return ArchiveExchange(
+        id: UUID(uuid: (0x2A, 0x71, 0x4B, 0x0E, 0x93, 0x5C, 0x4F, 0x12, 0x8D, 0x61, 0x3E, 0x7A, 0x1C, 0x55, 0x0B, 0x9D)), question: "What do I owe people after this meeting?",
+        scopeMeetingIDs: [meetingID], scopeTitles: [], recipeTitle: nil, startedAt: asked, phase: .done, terms: [], passages: sources, screens: 0,
+        answer: ArchiveAnswer(text: answer, sources: sources, webSources: []), webQueries: [], webSearchNotice: .ok, finishedAt: asked.addingTimeInterval(5)
+    )
 }
 
 /// Saklı Sor sohbetinin kimliği (sahne bunu açar).
