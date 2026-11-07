@@ -555,9 +555,7 @@ private struct CalendarStep: View {
                             }
                         }
                     ))
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    .controlSize(.small)
+                    .settingsToggle()
                 }
                 .padding(14)
             }
@@ -1048,17 +1046,7 @@ private struct ReadyStep: View {
         return HStack(spacing: 14) {
             Text(action.title).appFont(size: 14, weight: .regular).foregroundStyle(Theme.ink)
             Spacer(minLength: 8)
-            HStack(spacing: 4) {
-                ForEach(Array(keycapLabels(display: display).enumerated()), id: \.offset) { (key: (offset: Int, element: String)) in
-                    Text(verbatim: key.element)
-                        .appFont(size: 13, weight: .medium)
-                        .frame(minWidth: 26, minHeight: 26)
-                        .padding(.horizontal, 4)
-                        .background(Theme.background, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous).strokeBorder(Theme.line))
-                        .shadow(color: .black.opacity(0.06), radius: 1, y: 1)
-                }
-            }
+            KeycapRow(labels: keycapLabels(display: display), height: 26, fontSize: 13)
             // VoiceOver kısayolu harf harf değil tek bir ad olarak okur.
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text(verbatim: display))

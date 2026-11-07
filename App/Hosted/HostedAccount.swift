@@ -275,8 +275,8 @@ final class HostedAccount {
     /// giriş kapısı kullanıcıya Apple'da iptal etmesini söyler. Yeni girişte kalkar; yoksa nil.
     private(set) var deletedAppStoreSubscription: HostedDeletedAppStoreSubscription?
 
-    /// Oturumdaki hesabın profil resmi (Google ile girişte jetondan alınır, yalnızca bu Mac'te saklanır); yoksa nil
-    /// (Apple resim vermez): kenar çubuğunda hesaba özel küre görünür.
+    /// Oturumdaki hesabın profil resmi (Google ile girişte jetondan alınır, yalnızca bu cihazda saklanır); yoksa nil
+    /// (Apple resim vermez): avatar baş harfi gösterir (bkz. `ProfileAvatar`).
     var avatarURL: URL? {
         _ = avatarRevision
         return signedInUserIDCache.flatMap { (userID: String) -> URL? in UserDefaults.standard.url(forKey: hostedAvatarKey(userId: userID)) }
