@@ -117,3 +117,5 @@ kanca yalnız yeni işlemeleri okur.
 
 PR açılınca `gh pr merge <numara> --auto --squash --delete-branch`: zorunlu checkler (`test-and-build`, `ios`, `server`,
 `web`) geçince GitHub birleştirir, checkleri beklemek gerekmez. Biri kırmızı olursa birleştirmez; düzelt ve yeniden gönder.
+`nightly.yml` (her gece ve elle; zorunlu check değil) çekirdek testlerini iOS Simülatörü'nde ve AI-Notepad'in Release
+derlemesini koşar: kırmızıysa yayından önce düzelt.

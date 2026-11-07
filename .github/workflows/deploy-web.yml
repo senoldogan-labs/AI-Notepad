@@ -3,8 +3,9 @@
 # - her gün 06:00 UTC'de: zamanlanmış blog yazıları tarihleri geldiğinde yayımlansın (derleme, tarihi derleme gününden
 #   sonra olan ve taslak yazıları atlar; web/src/lib/blog.ts → isBlogPostPublic);
 # - elle (workflow_dispatch).
-# Derleme elle yayınla aynıdır (`npm run build`, üretim yapılandırması); ardından her yayımlanan blog yazısının paylaşım
-# görseli runner'ın Google Chrome'uyla üretilir (`npm run og:blog`, ubuntu-latest'te /usr/bin/google-chrome kurulu gelir).
+# Derleme elle yayınla aynıdır (`npm run build`, üretim yapılandırması); önünde tipler, ardında çıktı testleri çalışır
+# (ci.yml → web ile aynı). Ardından her yayımlanan blog yazısının paylaşım görseli runner'ın Google Chrome'uyla
+# üretilir (`npm run og:blog`, ubuntu-latest'te /usr/bin/google-chrome kurulu gelir).
 # Yükleme başarılı olunca yeni ve değişen blog yazıları IndexNow'a bildirilir (`npm run indexnow`; bildirim hatası yayını
 # geri almaz, iş kırmızı görünür). Gizli değerler: CLOUDFLARE_API_TOKEN (yalnızca "Cloudflare Pages: Edit" yetkili API
 # jetonu) ve CLOUDFLARE_ACCOUNT_ID (bkz. web/README.md). IndexNow anahtarı açıktır ve depodadır (web/src/config.ts).
@@ -52,8 +53,15 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - name: Bağımlılıklar
         run: npm ci
+      # PR denetimi (ci.yml → web) burada da çalışır: yönetim panelinden kaydedilen blog yazıları PR'sız main'e girer ve
+      # zamanlanmış yayın denetlenmemiş bir commit'i de derleyebilir. Tipler ya da çıktı testleri düşerse yükleme olmaz.
+      - name: Tipler
+        run: npm run typecheck
       - name: Derleme
         run: npm run build
+      # Derlemenin JSON-LD'si, /llms.txt, site haritası ve _headers (CSP) kuralları (scripts/check-dist.test.ts).
+      - name: Çıktı testleri
+        run: npm test
       # Görseller sayfaların kendi kapağından çizilir (web/scripts/make-blog-og.ts); Chrome yoksa adım açık hatayla durur.
       - name: Blog paylaşım görselleri
         run: |

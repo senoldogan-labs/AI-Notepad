@@ -126,9 +126,10 @@ birebir eşleşmeli).
 betiği `/sign-in`'de, Turnstile `/contact`'ta (Google ile giriş Google'a yönlendirir, betik yüklenmez). Pages aynı başlığı
 birden çok kurala uyan adreste virgülle birleştirir ve tarayıcı iki politikayı birlikte uygular: `/*` tüm hizmetlere izin
 veren geniş politikayı (sayfası olmayan adresler için), her sayfanın kuralı dar politikayı taşır. Her sayfada çalışan
-Cloudflare Web Analytics işaretçisi bu yüzden paylaşım sayfası (`/s`) dışında iki katmanın da politikalarında açıktır
+Cloudflare Web Analytics işaretçisi bu yüzden herkese açık sayfalarda iki katmanın da politikalarında açıktır
 (`webAnalytics` hizmeti): `script-src https://static.cloudflareinsights.com`, `connect-src https://cloudflareinsights.com`;
-`/s`'in dar politikası onu içermez, Cloudflare'in eklediği betik orada engellenir (konsolda bir CSP uyarısı beklenir). Yönetim panelinde
+paylaşım (`/s`: adreste notun anahtarı), hesap (`/account`) ve yönetim (`/admin`: oturum jetonu ve kullanıcı verisi)
+sayfalarının dar politikası onu içermez, Cloudflare'in eklediği betik orada engellenir (konsolda bir CSP uyarısı beklenir). Yönetim panelinde
 `img-src` ayrıca `blob:`'a izin verir: blog düzenleyicisi yüklenecek görseli ve bu oturumda yüklenenleri (site yeniden
 derlenene dek) tarayıcıdaki kopyasından gösterir. `npm run serve` başlıkları aynı biçimde birleştirir.
 

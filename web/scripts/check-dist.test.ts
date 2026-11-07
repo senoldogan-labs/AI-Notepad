@@ -203,6 +203,17 @@ test("the shared-note page runs no third-party script and is private", async () 
   assert.ok(!(await distFile("sitemap.xml")).includes(`${origin}/s<`), "sitemap.xml: /s olmamalı");
 });
 
+test("the account and admin pages run no third-party script", async () => {
+  const headers: string = await distFile("_headers");
+  for (const [path, file] of [["/account", "account.html"], ["/admin", "admin.html"]] as const) {
+    const rule: string = headers.split("\n\n").find((block: string): boolean => block.startsWith(`${path}\n`)) ?? "";
+    assert.ok(rule.includes("Content-Security-Policy: default-src 'none'"), `_headers: ${path} kuralı yok`);
+    // Oturum jetonu ve hesap verisi: Pages'in eklediği analitik işaretçisi bu sayfalarda çalışamamalı.
+    assert.ok(!rule.includes("cloudflareinsights"), `_headers: ${path} analitiğe izin veriyor`);
+    assert.ok(!/<script[^>]+src="https?:/.test(await distFile(file)), `${file}: dış betik yüklüyor`);
+  }
+});
+
 /** Astro'nun metin kaçışı (soru metinlerini HTML'de aramak için). Saf fonksiyondur. */
 function escapeHtml(value: string): string {
   return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
