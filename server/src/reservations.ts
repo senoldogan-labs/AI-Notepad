@@ -1,7 +1,21 @@
 import type { Config } from "./config";
 import { randomId } from "./crypto";
 import { ApiError } from "./errors";
-import { chunkOverlapAllowanceSql, chunkOverlapSeconds, chunkStepSeconds, dayKey, monthKey, monthStartMs, monthlyUsedSecondsSql, overlapFreeSecondsSql } from "./usage";
+import {
+  type SpendCeilingKind,
+  chunkOverlapAllowanceSql,
+  chunkOverlapSeconds,
+  chunkStepSeconds,
+  dayKey,
+  monthKey,
+  monthStartMs,
+  monthlyUsedSecondsSql,
+  overlapFreeSecondsSql,
+  spendCeilingError,
+  todaySpendBinds,
+  todaySpendSql,
+  trialCapacityError,
+} from "./usage";
 
 /**
  * Önceden ayırma (`usage_reservations`): üst servise giden her çağrı (LLM ya da ses) için tek satır. Satır, çağrının
@@ -262,6 +276,27 @@ export function monthlyAudioLimit(config: Config, userId: string, meetingId: str
     binds: [config.monthlyCapSeconds, userId, monthKey(now), now.getTime(), monthStartMs(now), meetingId],
     error: new ApiError("monthly_cap_reached", "This month's remaining usage limit isn't enough to process this recording; it resets at the start of the month."),
   };
+}
+
+/** Günlük harcama tavanından kalan (mikro dolar): tavan − bugünkü harcama (süren ayırmalar dahil, `todaySpendSql`). */
+export function dailySpendLimit(config: Config, kind: SpendCeilingKind, now: Date): ReservationLimit {
+  const ceiling: number = kind === "total" ? config.dailySpendCeilingMicroUsd : config.dailyTrialSpendCeilingMicroUsd;
+  return {
+    remainingSql: `? - (${todaySpendSql(kind)})`,
+    binds: [ceiling, ...todaySpendBinds(now)],
+    error: kind === "total" ? spendCeilingError() : trialCapacityError(),
+  };
+}
+
+/**
+ * Ayırmanın harcama tavanı denetimleri: genel tavan, deneme harcamasında deneme tavanı da. Kural ön denetimle
+ * (`requireSpendHeadroom`) aynıdır, harcama tavanın altındaysa çağrı kabul edilir (1 mikro dolar kalmalı); ayırma
+ * ifadesinin içinde çalıştığı için eşzamanlı çağrılar birbirinin ayırmasını görür ve tavanı en çok bir çağrının
+ * tahmini kadar aşabilir. Saf fonksiyondur.
+ */
+export function spendCeilingChecks(config: Config, reservation: UsageReservation, now: Date): readonly ReservationCheck[] {
+  const total: ReservationCheck = { limit: dailySpendLimit(config, "total", now), amount: 1 };
+  return reservation.trialSpend ? [total, { limit: dailySpendLimit(config, "trial", now), amount: 1 }] : [total];
 }
 
 /** Sınırların kalanlarını tek sorguda okur (sırayla). */

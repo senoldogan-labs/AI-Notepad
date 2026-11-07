@@ -1,5 +1,7 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it, vi } from "vitest";
+import { type Config, parseConfig } from "../src/config";
+import { ApiError } from "../src/errors";
 import {
   type UsageReservation,
   audioReservation,
@@ -9,6 +11,7 @@ import {
   reserveUsage,
   settleAudioStatements,
   settleLLMStatements,
+  spendCeilingChecks,
 } from "../src/reservations";
 import {
   type Harness,
@@ -208,5 +211,47 @@ describe("hesap silinirken süren çağrı", () => {
       .bind(session.userId)
       .first<{ count: number }>();
     expect(counters?.count).toBe(0);
+  });
+});
+
+describe("harcama tavanı ve süren ayırmalar", () => {
+  it("süren ayırmalar tavana sayılır; eşzamanlı ayırmalar tavanı birlikte geçemez", async () => {
+    const harness: Harness = await defaultHarness();
+    // Önceki testler kendi günlerinin harcamasını yazdı: yeni gün.
+    harness.clock.nowMs += 4 * 86_400_000;
+    const session: Session = await signIn(harness);
+    const meeting: StartedMeetingBody = await (await startMeeting(harness, session)).json<StartedMeetingBody>();
+    const config: Config = parseConfig(env);
+    const now: Date = new Date(harness.clock.nowMs);
+    const day: string = now.toISOString().slice(0, 10);
+    // Tavana 1000 mikro dolar kaldı; her çağrı en kötü durumda 600 mikro dolar harcayabilir.
+    await env.DB.prepare("INSERT INTO daily_spend (day, micro_usd) VALUES (?, ?) ON CONFLICT(day) DO UPDATE SET micro_usd = excluded.micro_usd")
+      .bind(day, config.dailySpendCeilingMicroUsd - 1000)
+      .run();
+    const reserve = async (): Promise<string> => {
+      const reservation: UsageReservation = llmReservation(
+        { userId: session.userId, meetingId: meeting.meetingId, tokens: 10, trialAccountCall: false, subscriberAccountCall: false, estimatedMicroUsd: 600, trialSpend: false },
+        now,
+      );
+      try {
+        await reserveUsage(env.DB, reservation, spendCeilingChecks(config, reservation, now));
+        return "reserved";
+      } catch (error: unknown) {
+        if (error instanceof ApiError) {
+          return error.code;
+        }
+        throw error;
+      }
+    };
+    const outcomes: string[] = await Promise.all([reserve(), reserve(), reserve(), reserve(), reserve()]);
+    // İlk ikisi tavanın altında başlar (1000, sonra 400 kaldı); ikincisinden sonra harcama tavanı geçti.
+    expect(outcomes.filter((outcome: string): boolean => outcome === "reserved")).toHaveLength(2);
+    expect(outcomes.filter((outcome: string): boolean => outcome === "spend_ceiling_reached")).toHaveLength(3);
+    // Kesinleşmemiş ayırmalar ön denetime de sayılır: yeni toplantı ve vekil çağrısı reddedilir.
+    await expectError(await startMeeting(harness, await signIn(harness)), 503, "spend_ceiling_reached");
+    await expectError(await llmCall(harness, session, meeting.meetingId), 503, "spend_ceiling_reached");
+    // Süresi dolan ayırma artık sayılmaz (temizlik tahminini harcamaya yazana dek).
+    await env.DB.prepare("UPDATE usage_reservations SET expires_at = ? WHERE user_id = ?").bind(harness.clock.nowMs, session.userId).run();
+    expect((await startMeeting(harness, await signIn(harness))).status).toBe(201);
   });
 });

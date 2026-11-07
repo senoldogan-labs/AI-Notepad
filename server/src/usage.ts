@@ -172,22 +172,43 @@ export async function monthlyUsage(db: D1Database, userId: string, now: Date): P
   return { meetingSeconds, audioSeconds, carriedSeconds, usedSeconds: Math.ceil(usedRow?.used ?? 0) };
 }
 
-/** Bugünkü tahmini toplam harcama (mikro dolar). */
-export async function todaySpendMicroUsd(db: D1Database, now: Date): Promise<number> {
-  const row: { micro_usd: number } | null = await db
-    .prepare("SELECT micro_usd FROM daily_spend WHERE day = ?")
-    .bind(dayKey(now))
-    .first<{ micro_usd: number }>();
+/** Günlük harcama tavanının türü: toplam ya da yalnızca deneme payı. */
+export type SpendCeilingKind = "total" | "trial";
+
+/**
+ * Günün harcaması (SQL ifadesi; bağlar: gün, gün, şimdi): kesinleşmiş harcama (`daily_spend`) + o gün açılmış, süresi
+ * dolmamış ayırmaların en kötü durum tahmini (`usage_reservations.estimated_micro_usd`). Süren çağrılar sayılmazsa
+ * aynı anda gelen istekler tavanı hep birlikte geçerdi. Deneme payında yalnızca deneme ayırmaları sayılır.
+ */
+export function todaySpendSql(kind: SpendCeilingKind): string {
+  const settled: string = kind === "total" ? "micro_usd" : "trial_micro_usd";
+  const reserved: string = kind === "total" ? "day = ?" : "day = ? AND trial_spend = 1";
+  return `COALESCE((SELECT ${settled} FROM daily_spend WHERE day = ?), 0)
+    + (SELECT COALESCE(SUM(estimated_micro_usd), 0) FROM usage_reservations WHERE ${reserved} AND expires_at > ?)`;
+}
+
+/** `todaySpendSql`'in bağları. Saf fonksiyondur. */
+export function todaySpendBinds(now: Date): readonly [string, string, number] {
+  return [dayKey(now), dayKey(now), now.getTime()];
+}
+
+/** Bugünkü tahmini harcama (mikro dolar): kesinleşmiş + süren ayırmalar (`todaySpendSql`). */
+async function todaySpendMicroUsd(db: D1Database, kind: SpendCeilingKind, now: Date): Promise<number> {
+  const row: { micro_usd: number | null } | null = await db
+    .prepare(`SELECT ${todaySpendSql(kind)} AS micro_usd`)
+    .bind(...todaySpendBinds(now))
+    .first<{ micro_usd: number | null }>();
   return row?.micro_usd ?? 0;
 }
 
-/** Bugünkü tahmini deneme harcaması (mikro dolar; toplamın parçası). */
-export async function todayTrialSpendMicroUsd(db: D1Database, now: Date): Promise<number> {
-  const row: { trial_micro_usd: number } | null = await db
-    .prepare("SELECT trial_micro_usd FROM daily_spend WHERE day = ?")
-    .bind(dayKey(now))
-    .first<{ trial_micro_usd: number }>();
-  return row?.trial_micro_usd ?? 0;
+/** Genel tavan dolunca istemciye dönen hata (ön denetim ve ayırma aynı hatayı verir). */
+export function spendCeilingError(): ApiError {
+  return new ApiError("spend_ceiling_reached", "The service is busy today and can't accept new requests right now. Please try again later.");
+}
+
+/** Deneme tavanı dolunca istemciye dönen hata. */
+export function trialCapacityError(): ApiError {
+  return new ApiError("trial_capacity_reached", "Free trials are at capacity today; try again tomorrow or subscribe.");
 }
 
 /** Tavan alarmının günlük işaret sütunu (`daily_spend`; sabit ad, kullanıcı girdisi değil). */
@@ -209,19 +230,21 @@ async function firstCeilingRefusalToday(db: D1Database, column: CeilingAlertColu
 }
 
 /**
- * Günlük harcama tavanı: aşıldıysa 503 `spend_ceiling_reached` fırlatır; alarm logu günde bir kez (günün ilk reddinde)
- * yazılır, sonraki retler yönetim panelinin sayacında görünür (`opsEvents.ts`). Toplantı başlatmada ve her vekil
- * çağrısında (LLM, konuşma tanıma) denetlenir.
+ * Günlük harcama tavanı: bugünkü harcama (süren ayırmalar dahil, `todaySpendSql`) tavana ulaştıysa 503
+ * `spend_ceiling_reached` fırlatır; alarm logu günde bir kez (günün ilk reddinde) yazılır, sonraki retler yönetim
+ * panelinin sayacında görünür (`opsEvents.ts`). Toplantı başlatmada ve her vekil çağrısında (LLM, konuşma tanıma)
+ * denetlenir. Bu ön denetim yarışa açıktır: vekil çağrıları aynı kuralı ayırma ifadesinin içinde yeniden denetler
+ * (`spendCeilingChecks`), eşzamanlı istekler tavanı birlikte geçemez.
  */
 export async function requireSpendHeadroom(db: D1Database, config: Config, now: Date): Promise<void> {
-  const spent: number = await todaySpendMicroUsd(db, now);
+  const spent: number = await todaySpendMicroUsd(db, "total", now);
   if (spent < config.dailySpendCeilingMicroUsd) {
     return;
   }
   if (await firstCeilingRefusalToday(db, "ceiling_alerted_at", now)) {
     log("alert", "daily_spend_ceiling_reached", { day: dayKey(now), spentMicroUsd: spent, ceilingMicroUsd: config.dailySpendCeilingMicroUsd });
   }
-  throw new ApiError("spend_ceiling_reached", "The service is busy today and can't accept new requests right now. Please try again later.");
+  throw spendCeilingError();
 }
 
 /**
@@ -233,12 +256,12 @@ export async function requireSpendHeadroom(db: D1Database, config: Config, now: 
  * yalnızca genel tavana tabidir.
  */
 export async function requireTrialSpendHeadroom(db: D1Database, config: Config, now: Date): Promise<void> {
-  const spent: number = await todayTrialSpendMicroUsd(db, now);
+  const spent: number = await todaySpendMicroUsd(db, "trial", now);
   if (spent < config.dailyTrialSpendCeilingMicroUsd) {
     return;
   }
   if (await firstCeilingRefusalToday(db, "trial_ceiling_alerted_at", now)) {
     log("alert", "daily_trial_spend_ceiling_reached", { day: dayKey(now), spentMicroUsd: spent, ceilingMicroUsd: config.dailyTrialSpendCeilingMicroUsd });
   }
-  throw new ApiError("trial_capacity_reached", "Free trials are at capacity today; try again tomorrow or subscribe.");
+  throw trialCapacityError();
 }
