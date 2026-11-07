@@ -203,6 +203,10 @@ export function pagesHeaders(config: SiteConfig, hashes: InlineHashes): string {
     `  Content-Security-Policy: ${contentSecurityPolicy(config, pageServices.meeting, hashes)}`,
     "  Cache-Control: no-store",
     "",
+    // Dizin incelemeleri için demo videosu (public/review/): hiçbir sayfadan bağlantı yok, arama motorlarına kapalı.
+    "/review/*",
+    "  X-Robots-Tag: noindex, nofollow",
+    "",
     // ChatGPT eklenti dizininin alan adı doğrulaması (public/.well-known/openai-apps-challenge): yalnızca jeton, düz metin.
     "/.well-known/openai-apps-challenge",
     "  Content-Type: text/plain; charset=utf-8",
