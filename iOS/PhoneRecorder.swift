@@ -1515,20 +1515,22 @@ final class PhoneRecorder {
         await runQueue()
     }
 
-    /// Uygulamadan yapılan aramanın indirilen kaydını içe aktarır (`importFiles` gibi); toplantı oluştuysa true. Çağıran
-    /// sağlayıcıdaki kopyayı yalnızca o zaman siler: içe aktarma başarısızsa kayıt orada kalır, yeniden denenir.
-    func importCallRecording(url: URL) async -> Bool {
+    /// Uygulamadan yapılan aramanın indirilen kaydını içe aktarır (`importFiles` gibi): toplantı oluştuysa nil, olmadıysa
+    /// bu dosyanın nedeni. Çağıran sağlayıcıdaki kopyayı yalnızca başarıda siler: içe aktarma başarısızsa kayıt orada
+    /// kalır, yeniden denenir.
+    func importCallRecording(url: URL) async -> String? {
         importErrors = []
         importingCount += 1
-        let imported: Bool = await importOne(url: url)
+        let failure: String? = await importOne(url: url)
         importingCount -= 1
         await runQueue()
-        return imported
+        return failure
     }
 
-    /// Tek dosyayı içe aktarır; toplantı oluştuysa true. Olmazsa yarım klasör silinir ve neden listede görünür.
+    /// Tek dosyayı içe aktarır; toplantı oluştuysa nil. Olmazsa yarım klasör silinir ve neden (dönüş değeri) listede de
+    /// görünür.
     @discardableResult
-    private func importOne(url: URL) async -> Bool {
+    private func importOne(url: URL) async -> String? {
         let accessed: Bool = url.startAccessingSecurityScopedResource()
         defer {
             if accessed {
@@ -1560,12 +1562,11 @@ final class PhoneRecorder {
                 record: record.with(status: .queued, failureMessage: nil).with(notice: String(localized: "İçe aktarıldı; sunucuda işlenmeyi bekliyor.")),
                 directory: session.url
             )
-            return true
+            return nil
         } catch {
             Self.logger.error("Dosya içe aktarılamadı, hata: \(String(describing: error), privacy: .private)")
-            importErrors = appendUnique(
-                messages: importErrors, message: String(localized: "\(url.lastPathComponent) içe aktarılamadı: \(mediaImportMessage(error: error))")
-            )
+            let message: String = String(localized: "\(url.lastPathComponent) içe aktarılamadı: \(mediaImportMessage(error: error))")
+            importErrors = appendUnique(messages: importErrors, message: message)
             if let created {
                 do {
                     try FileManager.default.removeItem(at: created)
@@ -1573,7 +1574,7 @@ final class PhoneRecorder {
                     Self.logger.error("Yarım içe aktarma klasörü silinemedi, hata: \(String(describing: error), privacy: .private)")
                 }
             }
-            return false
+            return message
         }
     }
 

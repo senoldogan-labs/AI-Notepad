@@ -119,7 +119,7 @@ interface PhoneNumberRow {
   readonly pending_until: number | null;
 }
 
-interface PhoneCallRow {
+export interface PhoneCallRow {
   readonly id: string;
   readonly user_id: string;
   readonly status: "reserved" | "dialing" | "completed" | "failed" | "expired";
@@ -543,10 +543,24 @@ async function callRow(db: D1Database, userId: string, callId: string): Promise<
   return row;
 }
 
-/** A call row as the app sees it. Pure function. */
-function callStateOf(row: PhoneCallRow): PhoneCallState {
+/** How long after a call settles its recording may still arrive (Twilio sends it within seconds). */
+const recordingArrivalMs: number = 10 * 60_000;
+
+/**
+ * A call row as the app sees it. A call that ended unanswered (`failed`) has no recording (it starts on answer); one
+ * whose recording hasn't come `recordingArrivalMs` after it settled has none either, so the app stops waiting. Pure
+ * function.
+ */
+export function callStateOf(row: PhoneCallRow, now: Date): PhoneCallState {
+  const overdue: boolean = row.settled_at !== null && (row.status === "failed" || now.getTime() - row.settled_at > recordingArrivalMs);
   const recording: PhoneCallState["recording"] =
-    row.recording_deleted_at !== null ? "deleted" : row.recording_status === "ready" ? "ready" : row.recording_status === "absent" ? "absent" : "pending";
+    row.recording_deleted_at !== null
+      ? "deleted"
+      : row.recording_status === "ready"
+        ? "ready"
+        : row.recording_status === "absent" || overdue
+          ? "absent"
+          : "pending";
   return { callId: row.id, status: row.status, billedSeconds: row.billed_seconds, recording };
 }
 
@@ -572,7 +586,7 @@ async function deleteRecording(db: D1Database, active: ActivePhone, userId: stri
     await db.prepare("UPDATE phone_calls SET recording_deleted_at = ? WHERE id = ?").bind(now.getTime(), callId).run();
     log("info", "phone_recording_deleted", { userId, callId });
   }
-  return callStateOf(await callRow(db, userId, callId));
+  return callStateOf(await callRow(db, userId, callId), now);
 }
 
 const callPath: RegExp = /^\/v1\/phone\/calls\/([0-9a-f-]{36})$/;
@@ -602,7 +616,7 @@ export async function routePhone(request: Request, db: D1Database, platform: Out
   }
   const call: RegExpExecArray | null = callPath.exec(path);
   if (call?.[1] !== undefined && method === "GET") {
-    return jsonResponse(200, callStateOf(await callRow(db, userId, call[1])));
+    return jsonResponse(200, callStateOf(await callRow(db, userId, call[1]), now));
   }
   const recording: RegExpExecArray | null = recordingPath.exec(path);
   if (recording?.[1] !== undefined && method === "GET") {

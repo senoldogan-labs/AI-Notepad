@@ -74,6 +74,7 @@ import Testing
         #expect(phoneRecordingStep(state: state(.failed, .absent)) == .none)
         #expect(phoneRecordingStep(state: state(.completed, .deleted)) == .none)
         #expect(phoneRecordingStep(state: state(.expired, .pending)) == .none)
+        #expect(phoneRecordingStep(state: state(.failed, .pending)) == .none)
     }
 }
 

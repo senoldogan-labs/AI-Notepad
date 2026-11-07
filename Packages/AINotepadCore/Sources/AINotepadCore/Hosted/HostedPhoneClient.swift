@@ -285,6 +285,7 @@ public func phoneRecordingStep(state: HostedPhoneCallState) -> PhoneRecordingSte
     case .absent, .deleted:
         .none
     case .pending:
-        state.status == .expired ? .none : .wait
+        // Unanswered (`failed`) and lost (`expired`) calls have no recording: it starts when the callee answers.
+        state.status == .expired || state.status == .failed ? .none : .wait
     }
 }

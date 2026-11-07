@@ -368,7 +368,7 @@ final class PhoneDialer {
                     recording = .importing
                     let file: URL = try recordingFileURL(callID: callID, e164: e164)
                     try await client.downloadRecording(callID: callID, destination: file)
-                    let imported: Bool = await recorder.importCallRecording(url: file)
+                    let failure: String? = await recorder.importCallRecording(url: file)
                     // The import copied the audio into the meeting (or failed); the download is not needed either way. A
                     // leftover temporary file doesn't stop the provider copy's deletion (a retry would import it twice).
                     do {
@@ -376,17 +376,23 @@ final class PhoneDialer {
                     } catch {
                         Self.logger.error("Downloaded call recording could not be removed, error: \(String(describing: error), privacy: .private)")
                     }
-                    guard imported else {
+                    if let failure {
                         // The recording stays at the provider and in the pending list: the next launch retries until the
-                        // server deletes it (a day); the reason is on the home screen (`importErrors`).
+                        // server deletes it (a day).
                         Self.logger.error("Call recording import failed, kept at the provider, call: \(callID, privacy: .public)")
-                        recording = .failed(recorder.importErrors.first ?? String(localized: "Aramanın kaydı henüz gelmedi; uygulama bir sonraki açılışta yeniden dener."))
+                        recording = .failed(failure)
                         return
                     }
-                    _ = try await client.deleteRecording(callID: callID)
+                    // The meeting exists: forget the call first, so a failed provider deletion can't import it twice
+                    // (the server deletes the copy after a day anyway).
                     forgetPending(callID: callID)
                     recording = .imported
                     Self.logger.info("Call recording imported, call: \(callID, privacy: .public)")
+                    do {
+                        _ = try await client.deleteRecording(callID: callID)
+                    } catch {
+                        Self.logger.warning("Imported call recording not deleted at the provider yet; the server deletes it within a day, error: \(String(describing: error), privacy: .private)")
+                    }
                     return
                 }
             }
@@ -445,11 +451,15 @@ final class PhoneDialer {
     /// Imports recordings of calls that ended while the app was closed (one at a time; the server deletes unfetched
     /// recordings after a day).
     private func resumePendingRecordings(recorder: PhoneRecorder) {
-        guard recordingTask == nil, activeCall == nil, let (callID, e164) = pendingRecordings().first else {
+        let pending: [(key: String, value: String)] = pendingRecordings().sorted { $0.key < $1.key }
+        guard recordingTask == nil, activeCall == nil, !pending.isEmpty else {
             return
         }
+        // Every pending call in turn: one that can't import yet doesn't hold back the others.
         recordingTask = Task {
-            await self.importRecording(callID: callID, e164: e164, recorder: recorder)
+            for (callID, e164) in pending {
+                await self.importRecording(callID: callID, e164: e164, recorder: recorder)
+            }
             self.recordingTask = nil
         }
     }

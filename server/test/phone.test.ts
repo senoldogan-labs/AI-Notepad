@@ -348,6 +348,24 @@ describe("in-app dialer", () => {
     expect((await reserve(harness, session, destination)).maxSeconds).toBe(600);
   });
 
+  it("tells the app an unanswered call, or one whose recording never came, has no recording", async () => {
+    const harness: Harness = await defaultHarness();
+    harness.clock.nowMs = Date.UTC(2026, 9, 24, 12);
+    fakeTwilio(harness);
+    const session: Session = await verifiedCaller(harness);
+    const state = async (callId: string): Promise<unknown> => (await call(harness, session, "GET", `/v1/phone/calls/${callId}`, null)).json();
+    const unanswered: Reserved = await reserve(harness, session, destination);
+    await voice(harness, unanswered.callId, `CA${hex32("1a")}`);
+    await webhook(harness, `/v1/phone/webhooks/dial-done?call=${unanswered.callId}`, { CallSid: `CA${hex32("1a")}`, DialCallStatus: "no-answer", DialCallDuration: "0" }, authToken);
+    expect(await state(unanswered.callId)).toMatchObject({ status: "failed", billedSeconds: 0, recording: "absent" });
+    const answered: Reserved = await reserve(harness, session, destination);
+    await voice(harness, answered.callId, `CA${hex32("2b")}`);
+    await webhook(harness, `/v1/phone/webhooks/dial-done?call=${answered.callId}`, { CallSid: `CA${hex32("2b")}`, DialCallStatus: "completed", DialCallDuration: "30" }, authToken);
+    expect(await state(answered.callId)).toMatchObject({ status: "completed", recording: "pending" });
+    harness.clock.nowMs += 11 * 60_000;
+    expect(await state(answered.callId)).toMatchObject({ recording: "absent" });
+  });
+
   it("cleanup releases unconnected calls for free, charges lost ones their worst case and purges provider objects", async () => {
     const harness: Harness = await defaultHarness();
     harness.clock.nowMs = Date.UTC(2026, 9, 23, 12);
