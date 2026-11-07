@@ -94,6 +94,7 @@ import { dayKey, requireSpendHeadroom, requireTrialSpendHeadroom } from "./usage
 import type { RequestContext } from "./platform";
 import { cachedTranscriptionResponse, parseTranscribeParams, proxyTranscription } from "./transcribe";
 import { routeSync } from "./sync";
+import { phoneWebhookPrefix, routePhone, routePhoneWebhook } from "./phone/calls";
 import { publicSharePath, readPublicShare, routeShares } from "./shares";
 import { keyringOf, routeAssistant } from "./assistant/api";
 import { removeReviewerAccount, seedReviewerAccount } from "./assistant/reviewer";
@@ -323,6 +324,11 @@ async function route(request: Request, env: Env, config: Config, context: Reques
   // Hız sınırı ve IP özeti IPv6'da /64 önekine göredir (`clientIpKey`); Turnstile gerçek IP'yi alır.
   const ipKey: string = clientIpKey(context.clientIp);
   await enforceLimit(env.API_IP_LIMITER, `ip:${ipKey}`);
+
+  // The voice provider's webhooks (in-app dialer, see `phone/calls.ts`): signed by the provider, no bearer token.
+  if (path.startsWith(phoneWebhookPrefix)) {
+    return routePhoneWebhook(request, db, context.platform, config, path, now);
+  }
 
   if (path.startsWith("/v1/auth/") && method === "POST") {
     await enforceLimit(env.AUTH_IP_LIMITER, `ip:${ipKey}`);
@@ -611,6 +617,13 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     const user: AuthedUser = await authed();
     await enforceLimit(env.SYNC_USER_LIMITER, `user:${user.userId}`);
     return routeSync(request, db, env.SYNC_BUCKET, config, path, user.userId, now);
+  }
+
+  if (path === "/v1/phone" || path.startsWith("/v1/phone/")) {
+    // In-app dialer (iPhone; see `phone/calls.ts`): the app polls a call's state, so the proxy limit (120 a minute) applies.
+    const user: AuthedUser = await authed();
+    await enforceLimit(env.PROXY_USER_LIMITER, `user:${user.userId}`);
+    return routePhone(request, db, context.platform, config, path, user.userId, context.clientCountry, now);
   }
 
   if (path.startsWith("/v1/assistant/")) {

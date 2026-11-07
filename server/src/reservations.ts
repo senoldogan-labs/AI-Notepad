@@ -283,7 +283,7 @@ export function dailySpendLimit(config: Config, kind: SpendCeilingKind, now: Dat
   const ceiling: number = kind === "total" ? config.dailySpendCeilingMicroUsd : config.dailyTrialSpendCeilingMicroUsd;
   return {
     remainingSql: `? - (${todaySpendSql(kind)})`,
-    binds: [ceiling, ...todaySpendBinds(now)],
+    binds: [ceiling, ...todaySpendBinds(kind, now)],
     error: kind === "total" ? spendCeilingError() : trialCapacityError(),
   };
 }

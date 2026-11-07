@@ -45,3 +45,16 @@ describe("rate limiter namespaces", () => {
     expect(sharedIds(all)).toEqual([]);
   });
 });
+
+const phoneVars = z.object({ PHONE_CALLS_POLICY: z.string(), PHONE_CALLS_COUNTRIES: z.string() });
+const phoneConfig = z.object({ vars: phoneVars, env: z.object({ production: z.object({ vars: phoneVars }).passthrough() }).passthrough() });
+
+describe("in-app dialer switch", () => {
+  // The dialer pilot reaches a paid voice provider: production stays off until the owner turns it on in a reviewed
+  // change (spec: docs/superpowers/specs/2026-11-08-iphone-call-recording.md › "Turning it on"), which updates this test.
+  it("is off in production and development, for US and Canada only", () => {
+    const config = phoneConfig.parse(JSON.parse(stripJsonc(apiSource)));
+    expect(config.env.production.vars).toEqual({ PHONE_CALLS_POLICY: "off", PHONE_CALLS_COUNTRIES: "US,CA" });
+    expect(config.vars).toEqual({ PHONE_CALLS_POLICY: "off", PHONE_CALLS_COUNTRIES: "US,CA" });
+  });
+});

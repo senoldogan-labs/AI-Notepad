@@ -11,10 +11,14 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
   ortak hesap dosyalarını kullanır. Debug yerel sunucuya (`localhost:8787`) bağlanır; `--tanitim` (yalnız Debug) giriş
   olmadan sahte deneme hesabıyla (`--abone` ile App Store abonesi ve davet koduyla) açar (Simülatör'de görsel kontrol); `--paywall` abonelik ekranını, `--sohbet <uuid>`
   saklı Sor sohbetini açar; sekme çubuğu yok (tek ana ekran, üstüne açılan sayfalar): `--sekme sor|gorevler|ayarlar` o sayfayı
-  (`kayit`/`toplantilar` ana ekranı), `--ekran kitaplik|arama|kisiler|istatistikler|profil|hesap|asistan|baglantilar` o sayfayı (`--baglanti <ad>` Bağlantılar'da o entegrasyonun sayfasını, ör. `slack`; `asistan` ile `--reddedilen` kabul edilmeyen toplantıları, `--asistan-acik` bağlanma adımlarını), `--ekran telefon` telefon görüşmesi rehberini, `--ekran klasorler` kitaplık
+  (`kayit`/`toplantilar` ana ekranı), `--ekran kitaplik|arama|kisiler|istatistikler|profil|hesap|asistan|baglantilar` o sayfayı (`--baglanti <ad>` Bağlantılar'da o entegrasyonun sayfasını, ör. `slack`; `asistan` ile `--reddedilen` kabul edilmeyen toplantıları, `--asistan-acik` bağlanma adımlarını), `--ekran telefon` telefon görüşmesi rehberini (`--arama izin|dogrula|kod|tus|gorusme` rehberde uygulamadan aramanın o adımını örnek veriyle), `--ekran klasorler` kitaplık
   sayfasını, `--toplanti <kimlik>` toplantıyı açar (onunla `--kaynak` özetin ilk maddesinin kaynak kutusunu, `--sor-ornek` "Bir şey sor" panelini sahte bir cevapla, `--cekmece` transkript çekmecesini açık gösterir), `--ayar konusmacilar` Ayarlar'ı o bölüme kaydırır; `--ornek-kayit` örnek canlı kaydı (`--ornek-bitir` ile bitiriliyor katmanını, `--ornek-duraklat` ile duraklatılmış hâlini, `--ornek-sinir` ile çevrimdışı ve aylık sınırla kısaltılmış hâlini) gösterir; `--ornek-takvim` örnek sıradaki toplantıları gösterir; `--karsilama` ilk açılış karşılamasını (`--karsilama-adim <welcome|calendar|permissions|sample|ready>` o adımdan, `--karsilama-ornek <canli|not>` örnek toplantıyı sürerken ya da notuyla) açar. Abonelik RevenueCat'le (`iOS/Purchases/`); şemadaki `Products.storekit` yalnızca Xcode'da
   Run'da geçerlidir — `xcodebuild`/`simctl` başlatması StoreKit sandbox'ını kullanır (Apple FB22237318), UI testi bu
   yüzden yok.
+- Uygulamadan arama pilotu (`iOS/PhoneDialer/`: CallKit + Twilio Voice SDK, sunucuda `server/src/phone/`; tasarım
+  `docs/superpowers/specs/2026-11-08-iphone-call-recording.md`): yalnız `PHONE_DIALER=YES` derlemesinde (Debug'da açık,
+  Release'de kapalı; pilot TestFlight arşivine komut satırından verilir) ve sunucu `PHONE_CALLS_POLICY=on` iken görünür
+  (üretimde kapalı). Gerçek arama Twilio hesabı ister; testler sahte Twilio'yla (`server/test/phone.test.ts`).
 - Deneysel "bu iPhone'daki görüşmeyi kaydet" (`iOS/CallCapture/`, iOS 27 ScreenCaptureKit): yalnız
   `CALL_CAPTURE_EXPERIMENT=YES` derlemesinde (Debug'da açık, Release'de kapalı; TestFlight denemesi için arşive
   komut satırından verilir). ScreenCaptureKit Simulator SDK'sında yok: yalnız cihazda çalışır.

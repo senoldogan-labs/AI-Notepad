@@ -1,5 +1,5 @@
 {
-  "originHash" : "7c09d0393ee8a2fba7d91d20a4cd828dbff8b3709f0918a6504eafd97d1c9fcf",
+  "originHash" : "f949b2c6aef25205050e4401d4a428aa971e1a006c40ea2ec50be13be3736fd0",
   "pins" : [
     {
       "identity" : "purchases-ios",
@@ -26,6 +26,15 @@
       "state" : {
         "revision" : "6a52f3251125d74daf04fcbd5e6f08a75d074382",
         "version" : "1.8.2"
+      }
+    },
+    {
+      "identity" : "twilio-voice-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/twilio/twilio-voice-ios",
+      "state" : {
+        "revision" : "9c05c86f76200aa58ae0f6d6b7266d46b112b7f0",
+        "version" : "6.13.8"
       }
     },
     {

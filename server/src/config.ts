@@ -1,5 +1,7 @@
 import { z } from "zod";
 import type { Env } from "./env";
+import { type PhoneCountry, isPhoneCountry } from "./phone/numbers";
+import type { TwilioCredentials } from "./phone/twilio";
 import { isLoopbackStubUrl } from "./upstreamStub";
 
 /** App Attest zorunluluğu: `required` ise toplantı başlatmak doğrulanmış cihaz ister. */
@@ -153,6 +155,30 @@ export interface SiteAnalyticsConfig {
   readonly token: string | null;
 }
 
+/** Limits of the in-app dialer (see `phone/calls.ts`). */
+export interface PhoneCallLimits {
+  /** Countries the dialer may call and whose numbers may be verified as caller ID (`PHONE_CALLS_COUNTRIES`). */
+  readonly countries: readonly PhoneCountry[];
+  /**
+   * Worst-case cost per minute in each allowed country (micro USD; `PHONE_USD_PER_MINUTE`): the app leg, the phone
+   * network leg and the recording together. Reservations and settlements use it; it should stay above the provider's
+   * real price.
+   */
+  readonly microUsdPerMinute: Readonly<Partial<Record<PhoneCountry, number>>>;
+  /** Longest call (`PHONE_CALL_MAX_MINUTES`), enforced by the provider (`<Dial timeLimit>`). */
+  readonly maxCallSeconds: number;
+  /** Call minutes per user per month (`PHONE_MONTHLY_MINUTES`). */
+  readonly monthlySeconds: number;
+  /** Phone spend per day across all users (`PHONE_DAILY_SPEND_CEILING_USD`); it also counts toward the global ceiling. */
+  readonly dailySpendCeilingMicroUsd: number;
+}
+
+/**
+ * The in-app dialer's switch (`PHONE_CALLS_POLICY`; see `phone/calls.ts`): `off` answers `GET /v1/phone` with
+ * `available: false` and every other phone endpoint with `503 phone_unavailable`; `on` needs the Twilio secrets.
+ */
+export type PhoneCallsConfig = { readonly policy: "off" } | ({ readonly policy: "on"; readonly twilio: TwilioCredentials } & PhoneCallLimits);
+
 /** Ortamdan doğrulanmış, tipli yapılandırma. */
 export interface Config {
   readonly environment: "development" | "production";
@@ -259,6 +285,8 @@ export interface Config {
     readonly billingDay: number;
   };
   readonly deepgram: DeepgramConfig;
+  /** In-app dialer (`PHONE_CALLS_POLICY`). */
+  readonly phoneCalls: PhoneCallsConfig;
   readonly blog: BlogConfig;
   readonly siteAnalytics: SiteAnalyticsConfig;
   /** Apple ile girişin jeton saklama ve iptali (bkz. `AppleSignInConfig`). */
@@ -500,6 +528,19 @@ const envSchema = z.object({
   DEEPGRAM_API_KEY: z.string().optional(),
   DAILY_SPEND_CEILING_USD: positiveNumber,
   DAILY_TRIAL_SPEND_CEILING_USD: positiveNumber,
+  PHONE_CALLS_POLICY: z.enum(["on", "off"]),
+  PHONE_CALLS_COUNTRIES: csv,
+  /** `US:0.025,CA:0.025`: worst-case USD per minute per country. */
+  PHONE_USD_PER_MINUTE: csv,
+  /** Twilio's `<Dial timeLimit>` allows at most 4 hours. */
+  PHONE_CALL_MAX_MINUTES: positiveInt.max(240),
+  PHONE_MONTHLY_MINUTES: positiveInt,
+  PHONE_DAILY_SPEND_CEILING_USD: positiveNumber,
+  TWILIO_ACCOUNT_SID: z.string().optional(),
+  TWILIO_API_KEY_SID: z.string().optional(),
+  TWILIO_API_KEY_SECRET: z.string().optional(),
+  TWILIO_AUTH_TOKEN: z.string().optional(),
+  TWILIO_TWIML_APP_SID: z.string().optional(),
   REFRESH_TOKEN_DAYS: positiveInt,
   STRIPE_PRICE_ID: z.string().startsWith("price_"),
   STRIPE_YEARLY_PRICE_ID: z.string().startsWith("price_"),
@@ -653,6 +694,10 @@ export function parseConfig(env: Env): Config {
   }
   const appleCredentials: AppleSignInCredentials | null = appleSignInCredentials(value);
   const deepgram: DeepgramConfig = deepgramConfig(value);
+  const phoneCalls: PhoneCallsConfig = phoneCallsConfig(value);
+  if (phoneCalls.policy === "on" && phoneCalls.dailySpendCeilingMicroUsd > Math.round(value.DAILY_SPEND_CEILING_USD * 1_000_000)) {
+    throw new ConfigError(["PHONE_DAILY_SPEND_CEILING_USD"]);
+  }
   if (value.ENVIRONMENT === "production" && deviceCheck.policy === "required" && deviceCheck.environment !== "production") {
     throw new ConfigError(["DEVICECHECK_ENVIRONMENT"]);
   }
@@ -724,6 +769,7 @@ export function parseConfig(env: Env): Config {
     },
     elevenLabs: { monthlyAudioHours: value.ELEVENLABS_MONTHLY_AUDIO_HOURS, billingDay: value.ELEVENLABS_BILLING_DAY },
     deepgram,
+    phoneCalls,
     blog: blogConfig(value.GITHUB_BLOG_REPO, value.GITHUB_BLOG_BRANCH, value.GITHUB_BLOG_TOKEN),
     siteAnalytics: {
       accountId: value.CF_ANALYTICS_ACCOUNT_ID === "" ? null : value.CF_ANALYTICS_ACCOUNT_ID,
@@ -824,6 +870,76 @@ function deepgramConfig(settings: DeepgramSettings): DeepgramConfig {
     throw new ConfigError(["DEEPGRAM_API_KEY"]);
   }
   return { access: { policy: "on", apiKey }, budgetMicroUsd, microUsdPerMinute };
+}
+
+/** Dialer settings (`PHONE_*`, `TWILIO_*`). */
+interface PhoneCallSettings {
+  readonly PHONE_CALLS_POLICY: "on" | "off";
+  readonly PHONE_CALLS_COUNTRIES: readonly string[];
+  readonly PHONE_USD_PER_MINUTE: readonly string[];
+  readonly PHONE_CALL_MAX_MINUTES: number;
+  readonly PHONE_MONTHLY_MINUTES: number;
+  readonly PHONE_DAILY_SPEND_CEILING_USD: number;
+  readonly TWILIO_ACCOUNT_SID?: string | undefined;
+  readonly TWILIO_API_KEY_SID?: string | undefined;
+  readonly TWILIO_API_KEY_SECRET?: string | undefined;
+  readonly TWILIO_AUTH_TOKEN?: string | undefined;
+  readonly TWILIO_TWIML_APP_SID?: string | undefined;
+}
+
+/** `US:0.025` entries as micro USD per country; `null` when an entry is malformed. Pure function. */
+function phoneRatesOf(entries: readonly string[]): Partial<Record<PhoneCountry, number>> | null {
+  const rates: Partial<Record<PhoneCountry, number>> = {};
+  for (const entry of entries) {
+    const match: RegExpExecArray | null = /^([A-Z]{2}):([0-9]+(?:\.[0-9]+)?)$/.exec(entry);
+    const country: string | undefined = match?.[1];
+    const usd: number = Number(match?.[2]);
+    if (country === undefined || !isPhoneCountry(country) || !(usd > 0)) {
+      return null;
+    }
+    rates[country] = Math.round(usd * 1_000_000);
+  }
+  return rates;
+}
+
+/**
+ * Dialer configuration. `off` ignores the other phone settings beyond their format. `on` needs a known, priced country
+ * list and the five Twilio values in Twilio's formats; otherwise `ConfigError` with the invalid names. Pure function.
+ */
+function phoneCallsConfig(settings: PhoneCallSettings): PhoneCallsConfig {
+  if (settings.PHONE_CALLS_POLICY === "off") {
+    return { policy: "off" };
+  }
+  const rates: Partial<Record<PhoneCountry, number>> | null = phoneRatesOf(settings.PHONE_USD_PER_MINUTE);
+  const knownCountries: PhoneCountry[] = settings.PHONE_CALLS_COUNTRIES.filter(isPhoneCountry);
+  const checks: ReadonlyArray<readonly [string, boolean]> = [
+    ["PHONE_CALLS_COUNTRIES", knownCountries.length === settings.PHONE_CALLS_COUNTRIES.length],
+    ["PHONE_USD_PER_MINUTE", rates !== null && knownCountries.every((country: PhoneCountry): boolean => rates[country] !== undefined)],
+    ["TWILIO_ACCOUNT_SID", /^AC[0-9a-f]{32}$/.test(settings.TWILIO_ACCOUNT_SID ?? "")],
+    ["TWILIO_API_KEY_SID", /^SK[0-9a-f]{32}$/.test(settings.TWILIO_API_KEY_SID ?? "")],
+    ["TWILIO_API_KEY_SECRET", /^\S{32,}$/.test(settings.TWILIO_API_KEY_SECRET ?? "")],
+    ["TWILIO_AUTH_TOKEN", /^[0-9a-f]{32}$/.test(settings.TWILIO_AUTH_TOKEN ?? "")],
+    ["TWILIO_TWIML_APP_SID", /^AP[0-9a-f]{32}$/.test(settings.TWILIO_TWIML_APP_SID ?? "")],
+  ];
+  const invalid: string[] = checks.filter(([, valid]: readonly [string, boolean]): boolean => !valid).map(([name]: readonly [string, boolean]): string => name);
+  if (invalid.length > 0 || rates === null) {
+    throw new ConfigError(invalid);
+  }
+  return {
+    policy: "on",
+    countries: knownCountries,
+    microUsdPerMinute: rates,
+    maxCallSeconds: settings.PHONE_CALL_MAX_MINUTES * 60,
+    monthlySeconds: settings.PHONE_MONTHLY_MINUTES * 60,
+    dailySpendCeilingMicroUsd: Math.round(settings.PHONE_DAILY_SPEND_CEILING_USD * 1_000_000),
+    twilio: {
+      accountSid: settings.TWILIO_ACCOUNT_SID ?? "",
+      apiKeySid: settings.TWILIO_API_KEY_SID ?? "",
+      apiKeySecret: settings.TWILIO_API_KEY_SECRET ?? "",
+      authToken: settings.TWILIO_AUTH_TOKEN ?? "",
+      twimlAppSid: settings.TWILIO_TWIML_APP_SID ?? "",
+    },
+  };
 }
 
 /** Apple ile girişin gizli değerleri. */

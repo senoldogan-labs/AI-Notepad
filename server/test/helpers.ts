@@ -34,11 +34,13 @@ export interface TestRequest {
   readonly body: BodyInit | null;
   readonly env: Env | null;
   readonly clientIp: string | null;
+  /** Cloudflare's IP country of the request (`RequestContext.clientCountry`); `null` like local development. */
+  readonly country: string | null;
 }
 
 /** Varsayılan alanlarla test isteği. */
 export function req(method: string, path: string, fields: Partial<TestRequest>): TestRequest {
-  return { method, path, token: null, json: null, headers: {}, body: null, env: null, clientIp: null, ...fields };
+  return { method, path, token: null, json: null, headers: {}, body: null, env: null, clientIp: null, country: null, ...fields };
 }
 
 /** Yeni düzenek; Apple JWKS uç noktası hazır bağlanır. */
@@ -89,6 +91,7 @@ export async function createHarness(rootPem: string): Promise<Harness> {
           pending.push(promise);
         },
         clientIp: test.clientIp ?? `198.51.100.${Math.floor(Math.random() * 250)}-${randomId()}`,
+        clientCountry: test.country,
       });
     },
     drain: async (): Promise<void> => {
