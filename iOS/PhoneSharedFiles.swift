@@ -16,6 +16,9 @@ final class PhoneSharedFileInbox {
     private(set) var pending: [URL] = []
     /// Ses ya da video olmadığı için alınmayan dosyaların adları (ana ekranda bir kez görünür).
     private(set) var rejected: [String] = []
+    /// Bu açılışta alınan dosyaların (sembolik bağları çözülmüş) yolları: soğuk açılışta aynı kopya hem gelen kutusu
+    /// taramasından hem `onOpenURL`'den gelir; ikincisi yok sayılır (toplantı iki kez oluşmaz, iki kez işlenmez).
+    @ObservationIgnored private var received: Set<String> = []
 
     /// Önceki açılışta içe aktarma bitmeden uygulama kapandıysa gelen kutusunda kalan kopyalar yeniden bekler (kopya ancak
     /// içe aktarmadan sonra silinir).
@@ -32,6 +35,13 @@ final class PhoneSharedFileInbox {
             Self.logger.info("Dosya olmayan adres açıldı, yok sayıldı, şema: \(url.scheme ?? "-", privacy: .public)")
             return
         }
+        let path: String = url.resolvingSymlinksInPath().path
+        // Kopya zaten içe aktarılıp silindiyse (soğuk açılışta tarama `onOpenURL`'den önce bitirdi) yeniden alınmaz.
+        guard !received.contains(path), FileManager.default.fileExists(atPath: path) else {
+            Self.logger.info("Paylaşılan dosya bu açılışta zaten alındı ya da artık yok, yok sayıldı")
+            return
+        }
+        received.insert(path)
         guard isImportableSharedMedia(url: url) else {
             Self.logger.warning("Paylaşılan dosya ses ya da video değil, uzantı: \(url.pathExtension, privacy: .public)")
             rejected.append(url.lastPathComponent)
@@ -40,6 +50,14 @@ final class PhoneSharedFileInbox {
         }
         Self.logger.info("Paylaşılan dosya alındı, uzantı: \(url.pathExtension, privacy: .public)")
         pending.append(url)
+    }
+
+    /// Dosyanın içe aktarması bitti: gelen kutusundaki kopya silinir, yol yeniden alınabilir (iOS aynı adı sonraki
+    /// paylaşımda yeniden kullanabilir). İçe aktarma başarısız olsa da silinir: neden ana ekranda görünür, asıl kayıt
+    /// kaynak uygulamada durur; kalsaydı her açılışta yeniden denenirdi.
+    func finish(url: URL) {
+        removeSharedInboxCopy(url: url)
+        received.remove(url.resolvingSymlinksInPath().path)
     }
 
     /// Bekleyen dosyaları verir ve kutuyu boşaltır.

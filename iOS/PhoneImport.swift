@@ -83,7 +83,9 @@ struct PhoneImportHost: ViewModifier {
                     return
                 }
                 let taken: [URL] = sharedFiles.takePending()
-                Task { await recorder.importSharedFiles(urls: taken) }
+                Task {
+                    await recorder.importSharedFiles(urls: taken) { (url: URL) -> Void in sharedFiles.finish(url: url) }
+                }
             }
             .onChange(of: sharedFiles.rejected, initial: true) { (_: [String], names: [String]) in
                 guard !names.isEmpty else {
