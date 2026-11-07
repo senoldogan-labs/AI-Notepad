@@ -426,6 +426,8 @@ yazılır, diğerleri çalışır ve sonunda `CleanupFailedError` fırlatılır.
 
 ## İlk dağıtım (sahibin bir kez yapacakları)
 
+Yalnızca hesap ve veritabanı ilk kez kurulurken elle yapılır; sonraki her yayın main'e birleşince `Deploy server`'la olur.
+
 1. `npx wrangler login`
 2. `npx wrangler d1 create ainotepad-production` → çıkan `database_id`'yi `wrangler.jsonc` → `env.production` içine yaz.
 3. `wrangler.jsonc` → `env.production`:
@@ -440,7 +442,7 @@ yazılır, diğerleri çalışır ve sonunda `CleanupFailedError` fırlatılır.
    - `ADMIN_IDENTITIES` önce boş kalır. Dağıtımdan sonra sitede kendi hesabınla giriş yap; kimliğin (`google:…` ya da
      `apple:…`) D1'de: `npx wrangler d1 execute ainotepad-production --remote --env production --command
      "SELECT provider || ':' || subject FROM auth_identities WHERE user_id = '<kullanıcı kimliği>'"` (kullanıcı kimliği
-     giriş yanıtındaki `userId` ya da `admin_forbidden` uyarısındaki `userId`); onu yazıp yeniden dağıt.
+     giriş yanıtındaki `userId` ya da `admin_forbidden` uyarısındaki `userId`); onu yazıp main'e birleştir (`Deploy server` yayınlar).
 4. Yukarıdaki gizli değerleri `wrangler secret put … --env production` ile gir.
 5. `npm run migrate:production`
 6. `npm run deploy`

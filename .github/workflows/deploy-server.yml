@@ -5,7 +5,7 @@
 # Sıra, yarıda kalan bir yayın geri alınabilsin diye böyledir:
 # 1. Birleşmiş işlemede tipler ve testler (PR'daki checkler PR'ın ucunda koştu; iki PR birlikte bozulabilir).
 # 2. İki Worker'ın derleme denetimi (--dry-run) ve jetonun okuma denetimi: göçlerden önce düşsün.
-# 3. Bekleyen göçler; DROP ya da RENAME içeren varsa yayın durur (aşağıdaki girdiyle elle onaylanır).
+# 3. Bekleyen göçler; DROP, RENAME ya da DELETE FROM içeren varsa yayın durur (aşağıdaki girdiyle elle onaylanır).
 # 4. İki D1'in Time Travel yer imi işin özetine yazılır (geri dönüş noktası; geri dönüş sonraki yazımları siler).
 # 5. Göçler (önce göç, sonra kod: göç iki Worker'ın da çalışan koduyla uyumlu olmalı, REVIEW.md), API, MCP.
 # 6. Her Worker'da yayındaki sürümün etiketi bu işlemeyse ve sağlık adresleri 200 dönüyorsa iş yeşil.
@@ -26,7 +26,7 @@ on:
   workflow_dispatch:
     inputs:
       allow_destructive_migrations:
-        description: "Bekleyen göçlerde DROP/RENAME var ve bilerek uygulanacak (yes)"
+        description: "Bekleyen göçlerde DROP/RENAME/DELETE FROM var ve bilerek uygulanacak (yes)"
         required: false
         default: "no"
 
@@ -92,12 +92,12 @@ jobs:
           pending=$( { grep -oE '[0-9]{4}_[A-Za-z0-9_]+\.sql' <<<"$main" | sed 's#^#migrations/#' || true; grep -oE '[0-9]{4}_[A-Za-z0-9_]+\.sql' <<<"$assistant" | sed 's#^#migrations-assistant/#' || true; } )
           echo "Bekleyen göçler: ${pending:-yok}"
           for file in $pending; do
-            if grep -inE '\b(drop|rename)\b' "$file"; then
+            if grep -inE '\b(drop|rename)\b|\bdelete[[:space:]]+from\b' "$file"; then
               if [[ "$ALLOW_DESTRUCTIVE" != "true" ]]; then
-                echo "::error file=server/$file::$file DROP ya da RENAME içeriyor. Çalışan kodla uyumluysa Actions → Deploy server → Run workflow, allow_destructive_migrations=yes."
+                echo "::error file=server/$file::$file DROP, RENAME ya da DELETE FROM içeriyor. Çalışan kodla uyumluysa Actions → Deploy server → Run workflow, allow_destructive_migrations=yes."
                 exit 1
               fi
-              echo "::warning file=server/$file::$file DROP/RENAME içeriyor; elle onaylandı."
+              echo "::warning file=server/$file::$file yıkıcı ifade içeriyor; elle onaylandı."
             fi
           done
 

@@ -97,7 +97,7 @@ Kod değiştiren her işten önce iki test komutunu da çalıştır.
 `server/` değişikliği main'e girince `.github/workflows/deploy-server.yml` yayınlar: birleşmiş işlemede testler, iki
 Worker'ın derleme denetimi, D1 yer imleri, göçler (önce göç, sonra kod), API ve MCP Worker'ı (`--tag` = işleme), sonra
 yayındaki sürüm ve sağlık denetimi. Elle `npm run deploy`/`migrate:production` yapma; sonuç Actions'ta. Göç iki Worker'ın
-çalışan koduyla uyumlu olmalı; DROP/RENAME içeren göç yayını durdurur, sahibin onayıyla Actions → Deploy server → Run
+çalışan koduyla uyumlu olmalı; DROP/RENAME/DELETE FROM içeren göç yayını durdurur, sahibin onayıyla Actions → Deploy server → Run
 workflow (`allow_destructive_migrations=yes`). Vars yalnız wrangler yapılandırmasında (yayın panelden girilenleri siler);
 gizli değerler elle `wrangler secret put … --env production`.
 
