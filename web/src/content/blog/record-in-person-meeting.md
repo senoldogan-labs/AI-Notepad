@@ -85,13 +85,13 @@ Whatever you use, the rules above stay the same: put it in the middle, test it, 
 
 ## Doing it with Gistsmith
 
-Gistsmith, the Mac app we make, works in a room as well as on calls. For an in-person meeting it uses the Mac's microphone (or the external one you selected), shows a live transcript, and writes the note when you stop: your tasks first, then decisions and a summary. If the meeting is in another language, it can show a live translation as people talk.
+Gistsmith, the app we make for Mac and iPhone, works in a room as well as on calls. For an in-person meeting it uses the Mac's microphone (or the external one you selected), shows a live transcript, and writes the note when you stop: your tasks first, then decisions and a summary. If the meeting is in another language, it can show a live translation as people talk.
 
 There are note templates for different kinds of meetings, such as client calls, one-on-ones, interviews and lectures, and the finished note can go to Notion, Apple Notes, Slack or your Obsidian vault.
 
-An iPhone version for in-person meetings is on the way. It isn't available yet, so for now, use the Mac.
+On iPhone it's even simpler: put the phone on the table and tap record. The iPhone app records the conversation around the phone, not phone calls or online meetings, and you get the same note when the meeting ends. It's on the [App Store](https://apps.apple.com/app/gistsmith/id6829577553), and one subscription covers both apps.
 
-Gistsmith runs on Macs with Apple silicon and macOS 15 or later. The first 3 meetings or 7 days are free with no card; after that, $5.99 a month or $49 a year. See [pricing](/pricing) or [download it](/download).
+The Mac app runs on Macs with Apple silicon and macOS 15 or later, and the iPhone app on iOS 26.1 or later. The first 3 meetings or 7 days are free with no card; after that, $5.99 a month or $49 a year. See [pricing](/pricing) or [download it](/download).
 
 ## The short version
 

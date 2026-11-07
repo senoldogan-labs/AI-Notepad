@@ -4,8 +4,7 @@
 // (server/src/transcriptionCache.ts nihai metni 2 saat şifreli tutar, satırı cleanup.ts'in günlük cron'u siler;
 // Linear/Jira ajanı ve paylaşım çevirisi sunucu üzerinden Anthropic'e gider; yapay zekâ asistanı erişimi
 // server/src/assistant/ ve src/mcp/: AB D1 + R2'de bekleyen şifreli not kopyası, KV'de bağlantı kayıtları) birebir aynı olmalı; politika
-// değişince bu dosya da değişir. iPhone uygulaması henüz App Store'da değildir: satırlar onu privacy.astro ve terms.astro
-// gibi "App Store'a çıktığında" diye anar.
+// değişince bu dosya da değişir. iPhone uygulaması App Store'dadır (privacy.astro ve terms.astro gibi).
 
 /** Bir veri türünün işlenişi. `id` gizlilik sayfasında satırın kalıcı çapasıdır (`#data-<id>`); değiştirme. */
 export interface DataHandlingRow {
@@ -40,7 +39,7 @@ export const dataHandling: DataHandlingCopy = {
       id: "live-audio",
       data: "Meeting audio while you record (live transcript)",
       where:
-        "Streamed directly from your Mac, or from your iPhone once the iPhone app is available on the App Store, to Deepgram. When Deepgram can't be used (our reserved capacity is used up, it can't be reached or you're offline), the live transcript is made on your device instead.",
+        "Streamed directly from your Mac or iPhone to Deepgram. When Deepgram can't be used (our reserved capacity is used up, it can't be reached or you're offline), the live transcript is made on your device instead.",
       stored: "Not by us: our server never receives this audio. Deepgram keeps it only while processing; every connection opts out of its model training.",
       retention: "Only while the request is processed",
       policySection: "meetings",
@@ -81,7 +80,7 @@ export const dataHandling: DataHandlingCopy = {
     {
       id: "on-device",
       data: "Notes, transcripts, recordings, screen snapshots, and the people and terms you add",
-      where: "In the app's folder on your Mac, or on your iPhone once the iPhone app is available on the App Store.",
+      where: "In the app's folder on your Mac or iPhone.",
       stored:
         "On your device. Unless you turn on sync between Mac and iPhone (off by default), meetings recorded on one device don't appear on the other. Audio and screen snapshots are never synced or kept on our server. A copy of your notes reaches our server only if you turn on AI assistant access (see that row).",
       retention: "Until you delete them in the app",

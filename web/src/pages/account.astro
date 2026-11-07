@@ -11,6 +11,7 @@
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
 import Film from "../components/Film.astro";
+import AppStoreBadge from "../components/AppStoreBadge.astro";
 import Icon from "../components/Icon.astro";
 import Waveform from "../components/Waveform.astro";
 import { macDownloadUrl } from "../config";
@@ -184,6 +185,7 @@ const helpLinks: readonly { readonly href: string; readonly label: string }[] = 
             <Icon name="apple" size={15} class="button__apple" />
             {common.downloadCta}
           </a>
+          <AppStoreBadge language={common.appStoreBadge.language} label={common.appStoreBadge.label} height={40} class="" />
         </article>
 
         <nav class="card side-card" aria-labelledby="help-title">

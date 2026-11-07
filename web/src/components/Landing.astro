@@ -2,14 +2,17 @@
 // Home page view, six sections that each do one job: hero (serif headline, one line, one download button, one line of
 // assurances; the Mac note window over the summer-lake photograph; a factual trust strip and recent meeting cards),
 // features under the brand line (launch video, the meeting in three rows on photographs, feature cards with one
-// sentence each and one line for the rest of the plan), integrations (MCP chat window and chips on a photograph),
+// sentence each and one line for the rest of the plan), the iPhone app (three real phone screens on a photograph and
+// the App Store badge), integrations (MCP chat window and chips on a photograph),
 // privacy on the night band, price with the FAQ, and the closing card over the dusk archipelago. Each message appears
 // once on the page: strengthen the existing section before adding one that says the same thing. Body text keeps to
 // the reading measure (`--measure`); photographs and windows use the page width.
 // Text comes from props: the English home page (`/`, copy.home) and the Finnish page (`/fi`, copy-fi.ts) share this
 // view; the page shell (Base, header, footer) lives in the pages.
 import { Picture } from "astro:assets";
+import type { ImageMetadata } from "astro";
 import AppShot, { type ShotCallout } from "./AppShot.astro";
+import AppStoreBadge from "./AppStoreBadge.astro";
 import BrandTile from "./BrandTile.astro";
 import Faq from "./Faq.astro";
 import HeroDemo from "./HeroDemo.astro";
@@ -30,6 +33,9 @@ import launchPoster from "../assets/video/launch-poster.jpg";
 import askShot from "../assets/screenshots/ask.webp";
 import liveShot from "../assets/screenshots/live.webp";
 import noteShot from "../assets/screenshots/note.webp";
+import iphoneAskShot from "../assets/screenshots/iphone-ask.webp";
+import iphoneHomeShot from "../assets/screenshots/iphone-home.webp";
+import iphoneLiveShot from "../assets/screenshots/iphone-live.webp";
 
 interface Props {
   /** The page's text. */
@@ -57,6 +63,12 @@ const integrationGroups: readonly { readonly key: "notes" | "tasks" | "files"; r
 ];
 /** Chips on the integrations photograph: tools the app really connects to (notes, tasks, files, calendar). */
 const chipBrands: readonly Brand[] = ["notion", "slack", "linear", "obsidian", "calendar"];
+/** iPhone ekranları (scripts/make-iphone-shots.ts): ortadaki önde ve büyük, yandakiler arkada. */
+const iphoneShots: readonly { readonly image: ImageMetadata; readonly alt: string; readonly position: "side" | "front" }[] = [
+  { image: iphoneLiveShot, alt: text.iphone.alt.live, position: "side" },
+  { image: iphoneHomeShot, alt: text.iphone.alt.home, position: "front" },
+  { image: iphoneAskShot, alt: text.iphone.alt.ask, position: "side" },
+];
 /** Tanıtım videosu (public/video; 1280×720, 66 sn; sessiz oynatılır). Kapak karesi src/assets/video/launch-poster.jpg. */
 const launchVideo: { readonly src: string } = {
   src: "/video/gistsmith-launch-720p.mp4",
@@ -78,6 +90,7 @@ const structuredData: string = structuredDataJson(
           <Icon name="apple" size={16} class="button__apple" />
           {common.downloadCta}
         </a>
+        <a class="text-link hero__iphone" href="#iphone">{text.iphone.heroLink} <Icon name="arrow-right" size={16} class="" /></a>
       </div>
       <p class="hero__assurance small">{[...text.assurances, common.requirementsShort].join(" · ")}</p>
     </div>
@@ -299,6 +312,51 @@ const structuredData: string = structuredDataJson(
     </p>
   </section>
 
+  {/* The iPhone app: what it is for (meetings in the room), three real screens on a photograph, the App Store badge. */}
+  <section class="section page iphone" id="iphone" aria-labelledby="iphone-title">
+    <div class="split">
+      <div class="split__text">
+        <h2 class="title-l reveal" id="iphone-title"><span class="tone">{text.iphone.eyebrow}.</span> {text.iphone.title}</h2>
+        <p class="lead reveal">{text.iphone.lead}</p>
+        <dl class="groups">
+          {
+            text.iphone.points.map((point: IconText) => (
+              <div class="group reveal">
+                <dt class="group__title"><Icon name={point.icon} size={18} class="group__icon" />{point.title}</dt>
+                <dd class="muted">{point.text}</dd>
+              </div>
+            ))
+          }
+        </dl>
+        <div class="iphone__get reveal">
+          <AppStoreBadge language={common.appStoreBadge.language} label={common.appStoreBadge.label} height={48} class="" />
+          <span class="small muted">{common.iphoneRequirementsShort}</span>
+        </div>
+        <p class="small muted iphone__note reveal">{text.iphone.note}</p>
+      </div>
+      <PhotoPanel photo="archipelago-aerial" focus="center" widths={[480, 720, 960, 1280, 1680]} sizes="(max-width: 960px) calc(100vw - 40px), 640px" priority="lazy" class="split__panel iphone__panel">
+        <div class="phones">
+          {
+            iphoneShots.map((shot) => (
+              <Picture
+                src={shot.image}
+                alt={shot.alt}
+                formats={["avif"]}
+                fallbackFormat="webp"
+                widths={[240, 360, 480, 720]}
+                sizes={shot.position === "front" ? "(max-width: 960px) 40vw, 250px" : "(max-width: 960px) 32vw, 200px"}
+                quality={62}
+                loading="lazy"
+                decoding="async"
+                pictureAttributes={{ class: `phones__item phones__item--${shot.position}` }}
+              />
+            ))
+          }
+        </div>
+      </PhotoPanel>
+    </div>
+  </section>
+
   <section class="section page integrations-section" id="integrations" aria-labelledby="integrations-title">
     <div class="split">
       <div class="split__text">
@@ -398,6 +456,7 @@ const structuredData: string = structuredDataJson(
             <Icon name="apple" size={16} class="button__apple" />
             {common.downloadCta}
           </a>
+          <AppStoreBadge language={common.appStoreBadge.language} label={common.appStoreBadge.label} height={44} class="" />
         </div>
       </div>
     </PhotoPanel>
@@ -435,6 +494,10 @@ const structuredData: string = structuredDataJson(
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
+  }
+
+  .hero__actions :global(.hero__iphone) {
+    align-self: center;
   }
 
   .hero__assurance {
@@ -898,6 +961,66 @@ const structuredData: string = structuredDataJson(
     margin-left: 6px;
   }
 
+  /* ---------- iPhone: text and points beside three phones on the archipelago photograph ---------- */
+  .iphone__get {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 18px;
+    margin-top: 4px;
+  }
+
+  .iphone__note {
+    max-width: 44ch;
+    margin: 0;
+  }
+
+  .iphone :global(.iphone__panel) {
+    display: grid;
+    place-items: center;
+    min-height: clamp(460px, 52vw, 680px);
+    padding: clamp(28px, 5vw, 56px) clamp(12px, 3vw, 36px);
+  }
+
+  /* Three phones side by side: the middle one in front and larger, the side ones overlap behind it (static). */
+  .phones {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1fr);
+    align-items: center;
+    width: min(100%, 600px);
+  }
+
+  .phones :global(.phones__item) {
+    display: block;
+    min-width: 0;
+  }
+
+  .phones :global(.phones__item--side) {
+    position: relative;
+    z-index: 0;
+  }
+
+  .phones :global(.phones__item--side:first-child) {
+    margin-right: -14%;
+  }
+
+  .phones :global(.phones__item--side:last-child) {
+    margin-left: -14%;
+  }
+
+  .phones :global(.phones__item--front) {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* The shadow follows the frame's transparent rounded corners (as on the Mac windows). */
+  .phones :global(img) {
+    display: block;
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.16)) drop-shadow(0 24px 40px rgb(0 0 0 / 0.34));
+  }
+
   /* ---------- Integrations: text and groups beside the desk photograph ---------- */
   .split {
     display: grid;
@@ -1253,6 +1376,24 @@ const structuredData: string = structuredDataJson(
 
     .hero__actions .button {
       flex: 1 1 auto;
+    }
+
+    /* On a phone the three phones fill the panel's width with a tighter overlap. */
+    .iphone :global(.iphone__panel) {
+      min-height: 0;
+      padding: 32px 10px;
+    }
+
+    .phones {
+      width: 100%;
+    }
+
+    .phones :global(.phones__item--side:first-child) {
+      margin-right: -22%;
+    }
+
+    .phones :global(.phones__item--side:last-child) {
+      margin-left: -22%;
     }
 
     /* Chips would cover the chat window on a phone: only two stay, at the edges. */

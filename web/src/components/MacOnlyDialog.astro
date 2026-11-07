@@ -1,9 +1,11 @@
 ---
 // İndirme düğmesi bu cihazda işe yaramayacaksa açılan pencere. `data-mac-download` taşıyan bağlantıya tıklanınca
 // src/client/mac-only.ts cihaza bakar: telefon, tablet ya da Mac olmayan bilgisayarda DMG indirilmez; bunun yerine
-// indirme sayfasının bağlantısını kendine göndermesi önerilir (kopyala, paylaş, e-posta). Chrome ve Edge'in bildirdiği
+// indirme sayfasının bağlantısını kendine göndermesi önerilir (kopyala, paylaş, e-posta); iPhone uygulaması için App Store
+// rozeti de gösterilir. Chrome ve Edge'in bildirdiği
 // Intel Mac ya da macOS 15'ten eski sürümde neden açılmayacağı söylenir, yine de indirmek isteyene bağlantı kalır.
 // Safari işlemciyi ve macOS sürümünü bildirmez; orada indirme olduğu gibi başlar. Her sayfada bir kez bulunur (Base.astro).
+import AppStoreBadge from "./AppStoreBadge.astro";
 import type { CommonCopy } from "../copy";
 import { routes } from "../routes";
 import { siteConfig } from "../site";
@@ -37,6 +39,10 @@ const mailHref: string = `mailto:?subject=${encodeURIComponent(copy.emailSubject
       <button class="button button--secondary" type="button" data-mac-only-share hidden>{copy.share}</button>
       <a class="button button--secondary" href={mailHref}>{copy.email}</a>
     </div>
+    <div class="mac-only__iphone" data-mac-only-show="not-mac">
+      <p class="small muted">{copy.iphoneText}</p>
+      <AppStoreBadge language={text.appStoreBadge.language} label={text.appStoreBadge.label} height={40} class="" />
+    </div>
     <p class="small muted mac-only__status" role="status" aria-live="polite"></p>
     <div class="dialog__actions">
       <a class="button button--secondary" href="#" data-mac-only-anyway data-mac-only-show="intel old-macos">{copy.downloadAnyway}</a>
@@ -56,6 +62,19 @@ const mailHref: string = `mailto:?subject=${encodeURIComponent(copy.emailSubject
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
+  }
+
+  .mac-only__iphone {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+  }
+
+  .mac-only__iphone p {
+    margin: 0;
   }
 
   .mac-only__status:empty {

@@ -3,7 +3,7 @@
 // metinleri ve fiyatları, lib/languages.ts dil listeleri, data-handling.ts veri tablosu, blog koleksiyonu); burada yalnızca
 // belgenin başlıkları ve bağlayıcı cümleleri vardır, ürün gerçeği elle yazılmaz. Böylece sayfalar değişince belge de
 // değişir.
-import { productName } from "../config";
+import { appStoreUrl, productName } from "../config";
 import type { ComparisonTopic, Copy, CompetitorCopy, Faq, IconItem, IconText, IntegrationGroupCopy, IntegrationItemCopy, McpToolCopy, PickCopy, TitledText } from "../copy";
 import type { DataHandlingCopy, DataHandlingRow } from "../data-handling";
 import type { Operator } from "../legal/operator";
@@ -13,6 +13,11 @@ import { type AppLanguage, languageNameList } from "./languages";
 /** Belgenin dayandığı metin beklenen biçimde değil: copy.ts değişti, llms.ts güncellenmeli. */
 export class LlmsSourceError extends Error {
   override readonly name: string = "LlmsSourceError";
+}
+
+/** Belgenin dayandığı metin yok: `LlmsSourceError` atar (ifadede kullanılır). */
+function missingFact(source: string): never {
+  throw new LlmsSourceError(`${source} bulunamadı; llms.ts güncellenmeli.`);
 }
 
 /** Belgede listelenen blog yazısı. */
@@ -76,7 +81,8 @@ function header(input: LlmsInput): string {
     throw new LlmsSourceError("copy.home.trust.items içinde yapay zekâ eğitimi maddesi (icon: sparkle) yok; llms.ts güncellenmeli.");
   }
   const facts: readonly string[] = [
-    `Platform: ${copy.download.requirementsNote}`,
+    `Platforms: Mac and iPhone. Mac: ${copy.download.requirementsNote} iPhone (${copy.common.iphoneRequirementsShort}, on the App Store: ${appStoreUrl}): ${copy.home.iphone.lead} ${copy.home.iphone.note}`,
+    `One account for Mac and iPhone: ${(copy.pricing.faq.find((item: Faq): boolean => item.question.includes("Mac and iPhone")) ?? missingFact("copy.pricing.faq: Mac and iPhone subscription question")).answer}`,
     `Price: ${copy.compare.us.price} (${copy.pricing.plans.map((plan): string => `${plan.name.toLowerCase()}: ${plan.detail.replace(/\.$/, "")}`).join("; ")}).`,
     `${copy.common.trial}.`,
     `Limits: ${copy.compare.us.limits} (fair use; the monthly hours reset on the first day of each month, UTC).`,
@@ -153,6 +159,7 @@ export function llmsFullTxt(input: LlmsInput): string {
     [
       "## Features",
       ...featureSections.map((feature: TitledText): string => `### ${feature.title}\n\n${feature.text}`),
+      `### ${copy.home.iphone.eyebrow}: ${copy.home.iphone.title}\n\n${copy.home.iphone.lead}\n\n${copy.home.iphone.points.map((point: IconText): string => `- ${point.title}: ${point.text}`).join("\n")}\n\n${copy.home.iphone.note}`,
       `### Everything in the plan\n\n${copy.pricing.included.map((item: IconItem): string => `- ${item.text}`).join("\n")}`,
       `### Feature list\n\n${copy.home.featureList.map((item: string): string => `- ${item}`).join("\n")}`,
     ].join("\n\n"),
@@ -166,7 +173,8 @@ export function llmsFullTxt(input: LlmsInput): string {
     [
       "## Platforms and requirements",
       `Source: ${url("download")}`,
-      `- ${copy.download.requirementsNote}`,
+      `- Mac: ${copy.download.requirementsNote}`,
+      `- iPhone: ${copy.common.iphoneRequirementsShort}. ${copy.download.iphoneNote} App Store: ${appStoreUrl}`,
       `- ${copy.download.installSteps.map((step: TitledText): string => `${step.title}: ${step.text}`).join(" ")}`,
     ].join("\n"),
     [

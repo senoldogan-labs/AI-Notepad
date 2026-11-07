@@ -43,7 +43,7 @@ We make one of these apps, so take this with the appropriate pinch of salt. To k
 - Free trial: 3 meetings or 7 days, no card needed.
 - One plan: $5.99 a month, or $49 a year (about $4.08 a month), taxes included.
 - Limits: up to 10 meeting hours a month, up to 4 hours per meeting.
-- How it hears the meeting: no bot; it captures your Mac's audio and microphone. Mac only.
+- How it hears the meeting: no bot; it captures your Mac's audio and microphone, and the iPhone app records meetings in the room. Mac and iPhone only.
 
 ## Free plans: what's the catch?
 
@@ -85,7 +85,7 @@ Instead of starting with the price, start with your meetings. Four questions dec
 
 **You work on a Mac, alone or in a small team, and want one simple price.** That's who we built Gistsmith for. One plan with everything in it: live transcript and translation in more than 30 languages, a note with your tasks first, Ask across all your meetings, exports to PDF, Word and Markdown, integrations with Slack, Notion, Linear, Jira, Obsidian and Apple Notes, and an [MCP server](/mcp) for your AI apps. Voice typing in any Mac app is free with an account, even after the trial.
 
-To be equally clear about the limits: it's Mac only, it has one personal plan rather than team plans, and the 10 hours a month cap won't suit someone who spends six hours a day in meetings.
+To be equally clear about the limits: it runs only on Mac and iPhone, it has one personal plan rather than team plans, and the 10 hours a month cap won't suit someone who spends six hours a day in meetings.
 
 There's a more detailed side-by-side on our [comparison page](/compare), with separate pages for [Granola](/vs/granola) and [Otter](/vs/otter).
 

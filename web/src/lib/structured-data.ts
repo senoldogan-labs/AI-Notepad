@@ -1,5 +1,5 @@
 // Sitenin yapılandırılmış verisi (schema.org JSON-LD): ana sayfada uygulama (`SoftwareApplication`: özellik listesi,
-// aylık ve yıllık plan ile ücretsiz deneme), onu sunan işletme (`Organization`) ve sık sorulan sorular (`FAQPage`); fiyat
+// aylık ve yıllık plan ile ücretsiz deneme; işletim sistemi Mac ve iPhone gereksinimleri), onu sunan işletme (`Organization`) ve sık sorulan sorular (`FAQPage`); fiyat
 // sayfasında onun soruları; karşılaştırma, dil ve entegrasyon sayfalarında gezinti izi (`BreadcrumbList`) ve varsa
 // soruları; blog yazılarında `BlogPosting` ve gezinti izi (ön bilgisinden: src/content/blog). Değerler sitenin tek
 // kaynaklarından gelir: ürün adı (config.ts), fiyat, deneme, gereksinimler, özellikler ve sorular (copy.ts), işletme
@@ -215,8 +215,8 @@ export function homeStructuredData(config: SiteConfig, operator: Operator, input
         image: `${origin}/og.png`,
         downloadUrl: pageUrl("download", origin),
         applicationCategory: "BusinessApplication",
-        operatingSystem: needs.operatingSystem,
-        processorRequirements: needs.processor,
+        operatingSystem: `${needs.operatingSystem}, ${common.iphoneRequirementsShort}`,
+        processorRequirements: `${needs.processor} (Mac)`,
         featureList: input.features,
         offers: [
           planOffer(`${productName} monthly`, usdPrice(common.price), "month", pricingUrl),

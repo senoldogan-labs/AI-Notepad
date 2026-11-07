@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 
 const distDir: string = fileURLToPath(new URL("../dist/", import.meta.url));
 const origin: string = "https://gistsmith.com";
+const appStoreUrl: string = "https://apps.apple.com/app/gistsmith/id6829577553";
 
 /** JSON-LD düğümü: türü ve diğer alanları (alan değerleri JSON'dur). */
 interface JsonLdNode {
@@ -97,7 +98,7 @@ test("home page describes the app, its offers and the organisation", async () =>
     const [app] = nodesOfType(documents, "SoftwareApplication");
     assert.ok(app !== undefined, `${file}: SoftwareApplication yok`);
     assert.equal(app["applicationCategory"], "BusinessApplication");
-    assert.match(text(app, "operatingSystem"), /^macOS 15\b/);
+    assert.match(text(app, "operatingSystem"), /^macOS 15\b.*, iOS 26\.1\b/);
     assert.match(text(app, "processorRequirements"), /Apple silicon/);
     const features: JsonValue | undefined = app["featureList"];
     assert.ok(isArray(features) && features.length >= 5 && features.every((feature: JsonValue): boolean => typeof feature === "string"), `${file}: featureList`);
@@ -153,7 +154,7 @@ test("comparison and info pages carry a breadcrumb trail ending at the page", as
 test("llms.txt states the key facts and links every public page", async () => {
   const llms: string = await distFile("llms.txt");
   assert.match(llms, /^# Gistsmith\n\n> /);
-  for (const fact of ["macOS 15 or later", "Apple silicon", "$5.99", "$49", "3 meetings or 7 days", "10 hours", "4 hours", "No bot", "MCP"]) {
+  for (const fact of ["macOS 15 or later", "Apple silicon", "iOS 26.1 or later", appStoreUrl, "$5.99", "$49", "3 meetings or 7 days", "10 hours", "4 hours", "No bot", "MCP"]) {
     assert.ok(llms.includes(fact), `llms.txt: "${fact}" yok`);
   }
   for (const path of ["/pricing", "/download", "/languages", "/integrations", "/compare", "/vs/fireflies", "/vs/poffle", "/privacy#at-a-glance", "/mcp", "/llms-full.txt"]) {
@@ -164,6 +165,13 @@ test("llms.txt states the key facts and links every public page", async () => {
     assert.ok(full.includes(fact), `llms-full.txt: "${fact}" yok`);
   }
   assert.ok(full.length > llms.length * 2, "llms-full.txt llms.txt'ten çok daha ayrıntılı olmalı");
+});
+
+test("the home, download and compare pages link the iPhone app; pricing explains the shared subscription", async () => {
+  for (const file of ["index.html", "fi.html", "download.html", "compare.html"]) {
+    assert.ok((await distFile(file)).includes(`href="${appStoreUrl}"`), `${file}: App Store bağlantısı yok`);
+  }
+  assert.ok((await distFile("pricing.html")).includes("Does one subscription work on Mac and iPhone?"), "pricing.html: Mac ve iPhone abonelik sorusu yok");
 });
 
 test("the sitemap lists the new pages", async () => {
