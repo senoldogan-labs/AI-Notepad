@@ -60,7 +60,8 @@ function pathGrantId(match: RegExpExecArray): string {
   return value;
 }
 
-function keyringOf(dataKey: string | undefined): AssistantKeyring {
+/** The parsed assistant keyring; `assistant_unavailable` (and an alert) when `ASSISTANT_DATA_KEY` is invalid. */
+export function keyringOf(dataKey: string | undefined): AssistantKeyring {
   try {
     return parseAssistantKeyring(dataKey);
   } catch (error: unknown) {

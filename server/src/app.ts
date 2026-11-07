@@ -95,7 +95,8 @@ import type { RequestContext } from "./platform";
 import { cachedTranscriptionResponse, parseTranscribeParams, proxyTranscription } from "./transcribe";
 import { routeSync } from "./sync";
 import { publicSharePath, readPublicShare, routeShares } from "./shares";
-import { routeAssistant } from "./assistant/api";
+import { keyringOf, routeAssistant } from "./assistant/api";
+import { removeReviewerAccount, seedReviewerAccount } from "./assistant/reviewer";
 
 /** Küçük JSON gövdeleri için üst sınır. */
 const smallBodyBytes: number = 16 * 1024;
@@ -727,6 +728,19 @@ async function routeAdmin(request: Request, env: Env, config: Config, context: R
       await revokeComplimentaryAccess(db, complimentaryMatch[1], user.userId, now);
     }
     return jsonResponse(200, await adminUserDetail(db, config, complimentaryMatch[1], now));
+  }
+  // Bağlayıcı dizini incelemecisinin hesabı (`assistant/reviewer.ts`): `POST` hesabı açar ya da yeniden kullanır, ücretsiz
+  // erişim ve asistan erişimi verir, örnek toplantıları yazar; `DELETE` asistan erişimini kapatır (bağlantılar düşer,
+  // kopya silinir) ve ücretsiz erişimi bitirir. Yanıtta yalnızca kullanıcı kimliği vardır; parola sunucuya hiç gelmez.
+  if (path === "/v1/admin/assistant/reviewer" && (method === "POST" || method === "DELETE")) {
+    const storage: AssistantStorage | null = assistantStorageOf(env, config);
+    if (storage === null) {
+      throw new ApiError("assistant_unavailable", "AI assistant access is not available yet.");
+    }
+    if (method === "POST") {
+      return jsonResponse(200, await seedReviewerAccount(db, storage.adb, storage.bucket, keyringOf(env.ASSISTANT_DATA_KEY), user.userId, now));
+    }
+    return jsonResponse(200, await removeReviewerAccount(db, storage.adb, storage.bucket, user.userId, now));
   }
   if (path === "/v1/admin/reports" && method === "GET") {
     return jsonResponse(200, await listReports(db, parseReportFilter(new URL(request.url))));
