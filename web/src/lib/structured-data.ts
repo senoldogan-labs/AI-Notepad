@@ -216,7 +216,7 @@ export function homeStructuredData(config: SiteConfig, operator: Operator, input
         downloadUrl: pageUrl("download", origin),
         applicationCategory: "BusinessApplication",
         operatingSystem: `${needs.operatingSystem}, ${common.iphoneRequirementsShort}`,
-        processorRequirements: needs.processor,
+        processorRequirements: `${needs.processor} (Mac)`,
         featureList: input.features,
         offers: [
           planOffer(`${productName} monthly`, usdPrice(common.price), "month", pricingUrl),
