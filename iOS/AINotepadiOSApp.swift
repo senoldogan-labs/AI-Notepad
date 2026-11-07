@@ -577,6 +577,8 @@ enum PhoneRoute: Hashable {
     case library(MeetingListScope)
     /// Kişiler.
     case people
+    /// İstatistikler: toplantılardan cihazda hesaplanan sayılar ve grafikler.
+    case insights
     /// Son silinenler.
     case recentlyDeleted
     /// Sor: örnek sorular, son sohbetler ve soru alanı.
@@ -694,7 +696,8 @@ func askBase(path: [PhoneRoute]) -> [PhoneRoute] {
 /// Başlatma argümanlarından ilk sayfa yığını (görsel kontrol ve App Store görselleri için; yoksa ana ekran). Saf
 /// fonksiyondur.
 /// - `--sekme kayit|toplantilar|sor|gorevler|ayarlar`: eski sekmeler; kayıt ve toplantılar ana ekrandır.
-/// - `--ekran kitaplik|arama|kisiler|profil|hesap|asistan`: kitaplık, arama, kişiler, profil, hesap ya da yapay zekâ asistanı erişimi.
+/// - `--ekran kitaplik|arama|kisiler|istatistikler|profil|hesap|asistan`: kitaplık, arama, kişiler, istatistikler, profil, hesap
+///   ya da yapay zekâ asistanı erişimi.
 /// - `--toplanti <kimlik>`: toplantı bunların üstünde açılır.
 func launchPath(arguments: [String]) -> [PhoneRoute] {
     let base: [PhoneRoute] = launchValue(arguments: arguments, flag: "--sekme").map(launchTabRoutes(tab:))
@@ -728,6 +731,7 @@ private func launchScreenRoutes(screen: String) -> [PhoneRoute] {
     case "kitaplik": [.library(.filter(.all))]
     case "arama": [.search]
     case "kisiler": [.people]
+    case "istatistikler": [.insights]
     case "profil": [.settings, .profile]
     case "hesap": [.settings, .account]
     case "asistan": [.settings, .assistantAccess]

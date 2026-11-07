@@ -17,8 +17,8 @@ scripts/make-screenshots.sh <scene> [<scene> …]      # output: .build/screensh
 Scenes (from the script; they mirror `DemoScene` in `App/DemoData.swift`):
 
 - Site scenes: `ana not sor canli` (also the default when no scene is given).
-- Check-only scenes: `abone deneme-bitiyor deneme-bitti guncelleme ayarlar ayarlar-asistan kisiler sirketler gorevler toplantilar ekranlar`.
-- Empty first-run scenes: `toplantilar-bos gorevler-bos kisiler-bos sor-bos`.
+- Check-only scenes: `abone deneme-bitiyor deneme-bitti guncelleme ayarlar ayarlar-asistan kisiler sirketler gorevler istatistikler toplantilar ekranlar`.
+- Empty first-run scenes: `toplantilar-bos gorevler-bos kisiler-bos istatistikler-bos sor-bos`.
 - Sign-in gate and onboarding: `giris kurulum kurulum-takvim kurulum-takvim-bagli kurulum-izinler kurulum-ornek-giris
   kurulum-ornek kurulum-not kurulum-hazir`.
 
@@ -104,7 +104,7 @@ Arguments (listed in AGENTS.md, defined in `iOS/`): `--tanitim` fake trial accou
 subscriber with invite code; `--paywall` subscription screen; `--sohbet <uuid>` a saved Ask chat; `--ornek-kayit`
 sample live recording, plus `--ornek-bitir` (finishing layer), `--ornek-duraklat` (paused), `--ornek-sinir` (offline,
 shortened by the monthly limit); `--ornek-takvim` sample upcoming meetings; there is no tab bar: `--sekme sor|gorevler|ayarlar` and `--ekran
-kitaplik|arama|kisiler|profil|hesap|asistan` open that screen over the home (`--ekran klasorler` the library sheet), `--toplanti <id>` a
+kitaplik|arama|kisiler|istatistikler|profil|hesap|asistan` open that screen over the home (`--ekran klasorler` the library sheet), `--toplanti <id>` a
 meeting; `--karsilama` first-run onboarding (with
 `--karsilama-adim <step>` and `--karsilama-ornek <canli|not>`).
 
