@@ -1,9 +1,9 @@
-# Site design language: "Nordic dusk" (gistsmith.com)
+# Site design language: paper, photographs and the horizon (gistsmith.com)
 
-Status: implemented on `feat/site-design-language`, 2026-11-05. Owner request: give gistsmith.com a design language
-in the spirit of granola.ai (expressive serif display type, floating pill navigation, photographic panels with app
-windows over them, calm alternating sections), but more corporate and premium, with our own Nordic identity and
-nothing a visitor could mistake for Granola.
+Status: current. First built 2026-11-05 ("Nordic dusk"); reworked 2026-11-07 into the paper-and-photograph layout
+below (white page with warm paper bands, big serif headings, warm desert photographs and our own wave renders behind
+the product, dark bands, a closing photograph · paper · photograph band). Owner request throughout: a design language
+in the spirit of granola.ai's calm, editorial pages, but with nothing a visitor could mistake for Granola.
 
 Scope: every public page of `web/` (home, `/fi`, pricing, compare and `/vs/*`, blog index and posts, legal pages,
 MCP, languages, integrations, download, contact, invite, sign-in, 404). The admin panel and the account page's
@@ -33,10 +33,11 @@ band colours with the cream "oats" greys; their serif/sans pairing or a typewrit
 icons and the handwritten word in headlines; riso/halftone/torn-poster collages and graph-paper portraits; the ruled
 "notepad page" background; their rainbow "enhancing" text sweep and note-taking UI motifs.
 
-## 2. Gistsmith's expression: "Nordic dusk"
+## 2. Gistsmith's expression
 
-The world: a Finnish lake at the blue hour. Still water, a birch shore, the archipelago from above, a quiet desk by
-a window. Calm, competent, northern. The photographs carry warmth; the interface stays white, precise and corporate.
+Calm, competent and warm. The page is white with warm paper bands; the photographs and wave renders carry the colour;
+the interface stays precise. Our own marks: the orange accent, the horizon waveform (the logo's sound crossing still
+water), two-tone headings and the footer's Finnish-lake flip-book ("Made in Oulu, Finland").
 
 ### Type
 
@@ -62,60 +63,61 @@ a window. Calm, competent, northern. The photographs carry warmth; the interface
 
 ### Colour
 
-Tokens live once in `web/src/styles/global.css` (`light-dark()` pairs; `public/theme.js` picks the theme).
+Tokens live once in `web/src/styles/global.css` (`light-dark()` pairs; `src/client/theme.js` picks the theme).
 
-| Token | Light | Dark | Source |
+| Token | Light | Dark | Use |
 |---|---|---|---|
-| `--bg` (paper) | `#ffffff` | `#000000` | white / black |
-| `--card` | `#faf8f4` | `#0e0e0e` | near-white cream / near-black |
-| `--soft` (mist) | `#f4f1eb` | `#151515` | alternate sections, chips |
-| `--line` (hairline) | `#e5e2dc` | `#262626` | |
-| `--ink` | `#0a0a0a` | `#f2f2f2` | near-black / near-white |
-| `--muted` | `#575757` | `#a6a6a6` | neutral grey (≥ 6:1 on every surface) |
-| `--primary` / `--on-primary` | `#0a0a0a` / `#ffffff` | `#f2f2f2` / `#000000` | the one dark pill |
-| `--night` (band) | `#111111` | `#141414` | near-black (lifted above the black dark page) |
-| `--accent` | `#e9896a` | `#f0ae92` | existing dusk-coral accent; marks and rules only, never body text |
+| `--bg` | `#ffffff` | `#0f0f0e` | page |
+| `--card` (paper) | `#f7f7f2` | `#171715` | paper bands, cards, the closing band's paper panel |
+| `--soft` | `#f2f2ec` | `#1c1c1a` | chips, photo placeholders while they load |
+| `--line` | `#e4e3dc` | `#2b2b28` | hairlines |
+| `--ink` | `#292929` | `#f2f2ee` | text |
+| `--muted` | `#72726e` | `#a6a6a0` | secondary text |
+| `--primary`, `--accent` | `#c4470a` | `#f0874f` | the Download button, step numbers, kickers, the horizon waveform |
+| `--night` | `#292929` | `#222220` | dark bands (feature cards, privacy, pricing's "Everything included") |
 
-The page chrome is neutral black and white (only cards and alternate sections take a near-white cream or a near-black grey). The CTA is a near-black ink pill, not a brand colour, so the only saturated colour on a page is the coral of the
-waveform marks and the photographs themselves.
+One saturated colour: the orange. No green anywhere in the chrome.
 
 ### Photography
 
-- Licensed photographs only, recorded in `web/src/assets/photos/CREDITS.md` (all from Unsplash under the Unsplash
-  License, each verified on its photo page as a free photo, not Unsplash+). Originals are 3888–6240 px wide; the
-  repository keeps 2400 px JPEG sources and only AVIF/WebP variants ship. Subjects, all Finnish: a summer morning lake
-  with a pier (Hossa), the Kvarken archipelago from above and at sunset, a pier over a blue lake (Karstula), a birch
-  grove in autumn, low sun through pines, northern lights over a lake (Kuopio) and a midsummer sunset (Lake Summanen).
-- **Colour, owner decision 2026-11-06:** the photographs are chosen vivid and clean and shown in their own colours.
-  The earlier CSS "dusk grade" (desaturation, a coral-to-lake gradient in `soft-light` and film grain on photos) is
-  removed: it made them look washed out. In dark mode a panel is only dimmed (`brightness(.88)`), colours kept. Grain
-  stays on the pastel covers only.
-- Text never sits directly on a photograph. Copy on a panel goes on a paper card or a chip (solid surface), so
-  contrast is the normal ink-on-paper ≥ 4.5:1 regardless of the image.
-- Pastel film covers stay for blog covers, brand tiles, meeting cards and other small cards (owner decision).
+- Two kinds of backdrop, listed with sources and licences in `web/src/assets/photos/CREDITS.md`: 13 warm-lit desert
+  and red-rock photographs from Unsplash (standard Unsplash License, each checked on its photo page as free, not
+  Unsplash+; no people, logos or brands) and five soft 3D wave landscapes rendered for the site by
+  `web/scripts/make-wave-backdrops.ts`. Sources are 3840 px wide; only AVIF (quality 74 for panels, 72 for blog
+  covers) and WebP variants ship, at widths from 480 px up to 3840 px for full-width panels on wide Retina screens.
+- Shown in their own colours: no filter, tint or grain. In dark mode a panel is only dimmed.
+- Text never sits directly on a photograph: copy goes on a paper card or a chip.
+- A photograph and a wave render sit side by side wherever two images meet (hero collage, closing band), so the
+  page alternates between the real and the rendered.
 
 ### Shapes, depth, spacing
 
-- Radii: photo panels 24 px, cards 16 px, app windows keep the screenshot's own macOS corners, controls and chips are
-  full pills. (Granola's 4 px image corners are deliberately not used.)
+- Radii: photo panels 8 px (`--radius-panel`; the closing band's full-bleed photographs are square), cards 14–16 px,
+  app windows keep the screenshot's own macOS corners, controls and chips are full pills.
 - Depth: app windows get a layered, offset shadow in neutral black; chips a short soft shadow. No glow halos.
 - Spacing: 8 px base; sections `clamp(88px, 11vw, 152px)`; content width 1240 px, gutters 20–40 px.
 
 ### Signature move 2: the horizon waveform
 
 Our logo is a waveform. On the site the waveform becomes a horizon: a hairline with a short, mirrored, seeded
-waveform burst in the dusk coral, like a sound crossing still water. It opens feature rows and sits in the footer.
-It is drawn from `Waveform`'s seeded heights (deterministic per label), static, and `aria-hidden`.
+waveform burst in the accent orange, like a sound crossing still water. It opens the home page's brand line and marks
+sign-in, 404 and shared notes. It is drawn from `Waveform`'s seeded heights (deterministic per label), static, and
+`aria-hidden`.
+
+### Signature move 3: the footer flip-book
+
+Every page ends on a Finnish lake: a wide band under the footer links (`FooterFlipbook.astro`, frames from
+`web/scripts/make-flipbook.ts`) goes from late afternoon to a night with northern lights as the visitor scrolls to
+the end; the sun's reflection is the horizon waveform. Frames load only after `load` and near the footer, scroll is
+read only while the band is on screen, and reduced motion keeps one still frame.
 
 ### Navigation and footer
 
-- **Header:** a floating pill (60 px, 12 px from the top, solid card colour at 96 %, no blur, hairline, soft shadow)
-  containing the logo, Features / Pricing / Compare / Blog, the theme switch, an outline "Sign in" pill and the dark
-  "Download" pill. It is the same object at every width (unlike their full-width mobile bar): below 860 px the links,
-  Sign in and the theme switch fold into a `<details>` sheet under the pill (Escape and outside clicks close it),
-  Download stays visible.
-- **Footer:** mist surface, the brand line set in the serif with "Made in Oulu, Finland." under it, the link columns, a horizon-waveform rule, then copyright,
-  languages and both font licences. No giant wordmark.
+- **Header:** at the top of the page the logo, Features / Pricing / Compare / Blog, the theme switch, an outline
+  "Sign in" pill and the orange "Download" pill sit on the page itself; once the page scrolls the bar becomes a
+  floating pill. Below 860 px the links fold into a `<details>` sheet; Download stays visible.
+- **Footer:** the brand line in the serif with "Made in Oulu, Finland.", the link columns (column titles in the
+  serif), the flip-book band, then copyright and the language choice. No giant wordmark.
 
 ### Components
 
@@ -142,22 +144,22 @@ under `prefers-reduced-motion`. Nothing blurred or filtered animates.
 
 ### Page templates
 
-- **Home (`/`, `/fi`), six sections, about 900 words:** hero in one column (display headline, one line with the
-  category as its bold lead-in, one Download button, one line of assurances) → full-width lake panel with the Mac note
-  window → a factual trust strip (made in Oulu, EU company, notarized by Apple, no bot; never testimonials, ratings or
-  logos we do not have) → recent-meeting cards. Features under the brand line "Quiet while you talk. Yours when you're
-  done." (launch video, three alternating rows with real screens, five pastel feature cards with one sentence each,
-  one line for the rest of the plan) → integrations (copy + panel with the MCP chat window and chips) → privacy on the
-  night band → price card with the FAQ under it → centred CTA card over the dusk archipelago.
-- **Brand line:** "Quiet while you talk. Yours when you're done." heads the home features, opens the home meta
-  description and sits in the footer (with "Made in Oulu, Finland.") and on the sign-in page. Title and H1 still say
-  what the product is.
-- **Inner marketing pages (pricing, compare, `/vs/*`, MCP, languages, integrations, download, invite, contact):**
-  two-tone H1 + lead on paper, content in hairline-separated sections, closing CTA card over a photograph.
-- **Blog index:** two-tone H1, grid of cards with pastel covers. **Post:** pastel cover header (unchanged, it feeds the
-  share image), serif title, 68ch article at 18/1.75, serif H2s, related posts, CTA card.
-- **Legal (privacy, terms):** pure typography, no photographs: serif H1/H2, 72ch measure, tables in hairline boxes.
-- **Sign-in:** only shared tokens and type; auth logic, CSP and app hand-off untouched.
+- **Home (`/`, `/fi`):** hero in two columns (display headline, one line with the category as its bold lead-in, one
+  Download button, assurances; a collage of a desert photograph and a wave render, offset so each shows about a third
+  of itself, with the Mac note window and the live panel in front) → a factual trust strip (made in Oulu, EU company,
+  notarized by Apple, no bot; never testimonials, ratings or logos we do not have) → the brand line "Quiet while you
+  talk. Yours when you're done." on the paper band, opened by the horizon, with the three steps and the product demo
+  on a photograph → the launch video on a wave render → feature rows with real screens → the small things as dark
+  cards on the night band → the iPhone app → integrations (MCP chat window and chips) → privacy on the night band →
+  price and a centred FAQ → closing band (photograph · paper · wave render).
+- **Pricing:** centred title, Monthly and Yearly side by side, a wide dark "Everything included" card, the limits,
+  a centred FAQ, closing band.
+- **Blog index:** the newest post featured with a big cover and its text beside it ("Latest"), then "All posts" in
+  three columns. Covers are a photograph or wave render with the title on a paper card (`BlogCover.astro`; spread by
+  publish order, or by the front matter's colour family); the share image is drawn from the same cover.
+- **Inner marketing pages (compare, `/vs/*`, MCP, languages, integrations, download, invite, contact, voice typing):**
+  serif H1 + lead, content in hairline-separated sections, the closing band (`CtaBand`).
+- **Legal (privacy, terms):** pure typography, no photographs.
 - **404:** a large muted serif "404" over the horizon mark (no photograph: the same view guards the admin address).
 
 ### Mobile (360–430 px)
@@ -175,8 +177,9 @@ simulated slow 4G for mobile). What the measurements showed and what the site do
   it. So the first screen requests as little as possible: one site-wide stylesheet (`cssCodeSplit: false`; the admin
   panel's styles are a separate file loaded only on `/admin`), one shared script module (`Base.astro`) plus one per page,
   fonts preloaded and small (Inter 38 KB, Newsreader 28 KB), the grain tile as a 7 KB WebP.
-- Photographs ship as AVIF/WebP from 480 px wide with `sizes` matching the rendered width, so phones get 720–1280 px
-  files; the 2400 px sources and 4K originals never ship. All images are lazy except the page's LCP image, which is
+- Photographs ship as AVIF/WebP from 480 px wide with `sizes` matching the rendered width (for `object-fit: cover`
+  panels, the covered width), so a 2× screen gets at least about 1.5 image pixels per screen pixel; the 3840 px
+  sources never ship as such. All images are lazy except the page's LCP image, which is
   preloaded with `fetchpriority="high"` (`priority="lcp"` on `PhotoPanel`, `"wide-lcp"` on the home hero window).
 - The launch video's cover frame is a lazy AVIF/WebP image under the video, not a `poster` attribute (which would load
   with the first screen).
@@ -189,6 +192,7 @@ simulated slow 4G for mobile). What the measurements showed and what the site do
 | Newsreader | SIL Open Font License 1.1 (embedding allowed) | `web/public/fonts/Newsreader-OFL.txt` |
 | Inter | SIL Open Font License 1.1 | `App/Fonts/Inter-OFL.txt` (copied at build) |
 | Photographs | Unsplash License (commercial use, modification allowed, no attribution required) | `web/src/assets/photos/CREDITS.md` |
+| Wave renders, flip-book frames | Made for the site (`web/scripts/make-wave-backdrops.ts`, `web/scripts/make-flipbook.ts`) | `web/src/assets/photos/CREDITS.md` |
 
 ## 4. Review record
 
@@ -209,3 +213,17 @@ this document, the research notes and the screenshots on 2026-11-05. Outcome:
 | Marquee motion needs a pause control. | Accepted by removing the motion: still logo row. |
 | Font/LCP: preload, metric-matched fallback, image priorities. | Accepted, then tuned on 2026-11-06 by measurement (see Performance): both fonts are preloaded (removing either preload measured worse), Inter is cut to 400–700 at optical size 16 (38 KB), a size-adjusted Georgia fallback limits the swap; only the real LCP image is preloaded at high priority. |
 | CREDITS.md missing. | Written (it was being created while the review ran). |
+
+Second review, 2026-11-07, of the paper-and-photograph rework (one independent agent: trade dress, visual design,
+practicality; it read this document and before/after screenshots of every page in both themes and at 390 px):
+
+| Finding | Decision |
+|---|---|
+| The giant footer wordmark is Granola's mark. | Accepted: removed; the Finnish-lake flip-book closes every page instead. |
+| The ruled notepad background is Granola's. | Accepted: a plain paper band opened by the horizon waveform. |
+| "Small things that make busy days easier." echoes Granola's "busy days" line. | Accepted: "The details, handled before you ask." |
+| Serif, centred FAQ questions with "+" match Granola's pricing FAQ; this document already said questions stay in Inter. | Accepted in part: questions in Inter 500 with an orange plus; the centred column stays (owner's layout). |
+| The dark band is barely lighter than the dark page. | Accepted: `--night` dark lifted to `#222220`. |
+| The dark card link's arrow wraps alone. | Fixed. |
+| Big serif hero headline, dark serif-quote cards, closing band right above the flip-book. | Dissent kept for the owner: these are the owner's chosen layout; listed in the pull request for his visual decision. |
+| Flip-book frames are 1600 px for a 1240 px band (0.65 of 2×). | Kept: the scene is soft vector gradients that scale cleanly, and 2400 px frames would roughly double the 524 KB the band costs. |

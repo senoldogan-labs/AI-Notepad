@@ -183,10 +183,12 @@ Her yazı `src/content/blog/<kısa ad>.md`'dir; ön bilgi alanları `title` (10�
 `published` günü derleme gününden (UTC) sonra olan yazıları dizinden, yazı sayfalarından, RSS'ten ve site haritasından
 çıkarır (`src/lib/blog.ts` → `isBlogPostPublic`; tüm sayfalar `blogEntries`'i kullanır).
 
-- **Kapak:** her yazının kapağı durgun pastel film gradyanı, başlık ve kısa addan sabit ses dalgasıdır
-  (`BlogCover.astro`). Aile ve yerleşim kısa addan seçilir (`src/lib/film.ts` `coverFilm`; aynı kısa ad her derlemede ve
-  panelde aynı kapağı verir); `cover` yalnızca aileyi değiştirir. Kapak yazı sayfasının başıdır (başlık `h1`), dizinde ve
-  yazı sonundaki "More from the blog"da kart görselidir; paylaşım görseli aynı kapaktan üretilir.
+- **Kapak:** her yazının kapağı bir fotoğraf ya da dalga görseli (`src/lib/photos.ts`) ve üstünde kâğıt kartta
+  başlıktır (`BlogCover.astro`). Görsel yayın sırasına göre dağıtılır (`coverOrder`; taslaklar da sayılır, komşu
+  yazıların kapakları farklıdır); `cover` verilmişse o renk ailesinin görseli seçilir (ör. `ocean` → `wave-ocean`).
+  Yönetim panelindeki kapak seçici aynı aileleri seçer; paneldeki önizleme aileyi renk gradyanıyla gösterir. Kapak
+  yazı sayfasının başıdır (başlık `h1`), dizinde ve yazı sonundaki "More from the blog"da kart görselidir; dizinde en
+  yeni yazı büyük kapakla öne çıkar. Paylaşım görseli aynı kapaktan üretilir.
 - **Görseller:** panelden yüklenen WebP'ler `public/blog/<kısa ad>/<ad>.webp`'dir. Markdown derlenirken her görsele
   dosyadan okunan `width`/`height`, `loading="lazy"` ve `decoding="async"` yazılır (`src/lib/blog-images.ts`; yer kayması
   olmaz). Görsel yalnızca yazının kendi klasöründen olabilir; dış adres ya da eksik dosya derlemeyi hatayla durdurur.

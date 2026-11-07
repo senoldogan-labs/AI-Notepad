@@ -1,20 +1,20 @@
 ---
-// Voice typing page: hero (headline, lead, download button, the live demo over a lake photograph), the speed
+// Voice typing page: hero (headline, lead, download button, the live demo over a wave render), the speed
 // comparison at typical speaking and typing rates (not a measurement; said on the page), the free-with-any-account
-// band, four places to use it (email, team chat, AI chat, docs) as generic windows on pastel covers, how it works (hold
+// band on a photograph, four places to use it (email, team chat, AI chat, docs) as generic windows on photographs and
+// wave renders (src/lib/photos.ts), how it works (hold
 // or tap, details), privacy on the night band, languages, questions (JSON-LD `FAQPage` and breadcrumb) and the closing
 // card. Text comes from copy.ts `voiceTyping`, where the app code behind every claim is listed. Behaviour:
 // src/client/voice-typing.ts.
 import Base from "../layouts/Base.astro";
 import CtaBand from "../components/CtaBand.astro";
 import Faq from "../components/Faq.astro";
-import Film from "../components/Film.astro";
 import Icon from "../components/Icon.astro";
 import PhotoPanel from "../components/PhotoPanel.astro";
 import VoiceTypingDemo from "../components/VoiceTypingDemo.astro";
 import { macDownloadUrl } from "../config";
 import { copy, type IconText, type VoiceTypingCopy, type VoiceUseCaseCopy } from "../copy";
-import type { FilmLayout, FilmPalette } from "../lib/film";
+import { fullPhotoWidths, halfPhotoWidths, type PhotoName } from "../lib/photos";
 import { websiteCard } from "../lib/social";
 import { infoPageStructuredData, structuredDataJson } from "../lib/structured-data";
 import { pageUrl, routes } from "../routes";
@@ -37,13 +37,15 @@ function clock(seconds: number): string {
   const whole: number = Math.floor(seconds);
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
 }
-/** The pastel cover behind each use-case window. */
-const covers: Readonly<Record<VoiceUseCaseCopy["kind"], { readonly palette: FilmPalette; readonly layout: FilmLayout }>> = {
-  email: { palette: "ocean", layout: "clouds-left" },
-  chat: { palette: "mint", layout: "clouds-right" },
-  prompt: { palette: "violet", layout: "streaks" },
-  doc: { palette: "sunset", layout: "clouds-left" },
+/** The backdrop behind each use-case window: photographs and wave renders alternate down the page. */
+const covers: Readonly<Record<VoiceUseCaseCopy["kind"], PhotoName>> = {
+  email: "wave-ocean",
+  chat: "dune-pale",
+  prompt: "lilac-peaks",
+  doc: "wave-coral",
 };
+/** The width the use-case backdrop covers (`object-fit: cover` in a wide, tall panel; taller still on phones). */
+const coverSizes: string = "(max-width: 960px) 160vw, 1100px";
 ---
 
 <Base page="voiceTyping" meta={text.meta} indexed={true} social={websiteCard}>
@@ -63,7 +65,7 @@ const covers: Readonly<Record<VoiceUseCaseCopy["kind"], { readonly palette: Film
       <p class="vt-hero__assurance small">{[...text.assurances, copy.common.requirementsShort].join(" · ")}</p>
     </div>
     <PhotoPanel
-      photo="lake-pier"
+      photo="wave-lilac"
       focus="center"
       widths={[480, 720, 960, 1280, 1680, 2400]}
       sizes="(max-width: 640px) calc(100vw - 40px), min(1240px, 100vw - 80px)"
@@ -129,7 +131,14 @@ const covers: Readonly<Record<VoiceUseCaseCopy["kind"], { readonly palette: Film
 
   {/* Free with any account. */}
   <section class="page vt-free" aria-labelledby="vt-free-title">
-    <Film palette="rose" layout="streaks" class="vt-free__band">
+    <PhotoPanel
+      photo="pink-sands"
+      focus="center"
+      widths={fullPhotoWidths}
+      sizes="(max-width: 640px) 200vw, min(1240px, 100vw - 80px)"
+      priority="lazy"
+      class="vt-free__band"
+    >
       <div class="vt-free__card">
         <h2 class="title-l" id="vt-free-title">{text.free.title}</h2>
         <p class="vt-free__text">{text.free.text}</p>
@@ -144,7 +153,7 @@ const covers: Readonly<Record<VoiceUseCaseCopy["kind"], { readonly palette: Film
           }
         </ul>
       </div>
-    </Film>
+    </PhotoPanel>
   </section>
 
   {/* Where to use it: generic windows (no third-party chrome or logos) with dictated text at the cursor. */}
@@ -160,7 +169,7 @@ const covers: Readonly<Record<VoiceUseCaseCopy["kind"], { readonly palette: Film
             <h3 class="vt-use__title">{useCase.title}</h3>
             <p class="muted">{useCase.text}</p>
           </div>
-          <Film palette={covers[useCase.kind].palette} layout={covers[useCase.kind].layout} class="vt-use__cover">
+          <PhotoPanel photo={covers[useCase.kind]} focus="center" widths={halfPhotoWidths} sizes={coverSizes} priority="lazy" class="vt-use__cover">
             <div class:list={["vt-mock", `vt-mock--${useCase.kind}`]} aria-hidden="true">
               <div class="vt-mock__bar">
                 <span class="vt-mock__dots">
@@ -234,7 +243,7 @@ const covers: Readonly<Record<VoiceUseCaseCopy["kind"], { readonly palette: Film
               </span>
               {text.demo.shortcut}
             </span>
-          </Film>
+          </PhotoPanel>
         </article>
       ))
     }
@@ -322,7 +331,7 @@ const covers: Readonly<Record<VoiceUseCaseCopy["kind"], { readonly palette: Film
     <Faq items={text.faq} />
   </section>
 
-  <CtaBand id="vt-cta-title" title={text.ctaTitle} text={text.ctaText} photo="sunset-archipelago" />
+  <CtaBand id="vt-cta-title" title={text.ctaTitle} text={text.ctaText} photo="dune-sunset" />
 </Base>
 
 <script>
@@ -941,10 +950,16 @@ const covers: Readonly<Record<VoiceUseCaseCopy["kind"], { readonly palette: Film
     min-width: 0;
   }
 
+  /* Questions: centred title over one centred column, as on the home and pricing pages. */
   .vt-faq {
     display: grid;
-    gap: 20px;
+    justify-items: center;
+    gap: clamp(24px, 3vw, 40px);
     margin-top: clamp(56px, 8vw, 104px);
+  }
+
+  .vt-faq > :global(*:last-child) {
+    width: min(820px, 100%);
   }
 
   @media (max-width: 960px) {

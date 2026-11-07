@@ -49,7 +49,7 @@ const quality: number = 62;
 
 {priority === "wide-lcp" && <ImagePreload image={image} widths={widths} sizes={sizes} quality={quality} media="(min-width: 641px)" />}
 <figure class:list={["shot", `shot--${variant}`, extraClass]}>
-  <PhotoPanel photo={photo} focus={focus} widths={[480, 720, 960, 1280, 1680, 2400]} sizes={photoSizes} priority="lazy" class="shot__cover">
+  <PhotoPanel photo={photo} focus={focus} widths={[640, 960, 1280, 1920, 2560, 3840]} sizes={photoSizes} priority="lazy" class="shot__cover">
     <div class="shot__frame">
       <Picture
         src={image}

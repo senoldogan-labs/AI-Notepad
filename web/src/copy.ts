@@ -244,6 +244,8 @@ export interface HomeCopy {
     /** Paylaşılan ekranın görüntüleri: ekran adı, konuşulduğu an ve o ekrandayken söylenen cümle. */
     readonly screens: TitledText & { readonly frame: string; readonly time: string; readonly quote: string };
   };
+  /** Heading of the feature cards on the night band. */
+  readonly featuresTitle: string;
   /** One line under the feature cards: the other things every plan has, and a link to the full list. */
   readonly capabilities: {
     readonly title: string;
@@ -729,6 +731,10 @@ export interface BlogCopy {
   readonly lead: string;
   readonly feedTitle: string;
   readonly feedLink: string;
+  /** Label above the newest post at the top of the index. */
+  readonly latest: string;
+  /** Heading of the list of every other post. */
+  readonly allTitle: string;
   readonly byline: string;
   /** "6 min read" gibi okuma süresinin eki. */
   readonly minutesRead: string;
@@ -1243,6 +1249,7 @@ export const copy: Copy = {
         quote: "The yearly toggle is hard to spot.",
       },
     },
+    featuresTitle: "The details, handled before you ask.",
     capabilities: {
       title: "Also in every plan",
       items: [
@@ -1385,7 +1392,7 @@ export const copy: Copy = {
         cta: "Choose yearly",
       },
     ],
-    plansNote: "Both plans include everything below, on Mac and iPhone. Got an invite from a friend? {invite}",
+    plansNote: "Both plans include everything above, on Mac and iPhone. Got an invite from a friend? {invite}",
     plansInviteLink: "How invites work",
     includedTitle: "Everything included",
     planTagline: "Everything from live transcript to tasks.",
@@ -1779,6 +1786,8 @@ export const copy: Copy = {
     lead: "Practical guides on meeting notes, follow-ups and recording calls on a Mac. Short, specific and useful whether or not you use our app.",
     feedTitle: `${productName} blog`,
     feedLink: "RSS feed",
+    latest: "Latest",
+    allTitle: "All posts",
     byline: "By",
     minutesRead: "min read",
     backToBlog: "All posts",

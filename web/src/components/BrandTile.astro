@@ -11,7 +11,7 @@ interface Props {
 }
 const { brand, size } = Astro.props;
 const mark: BrandMark = brands[brand];
-const logoSize: Readonly<Record<Props["size"], number>> = { small: 13, medium: 24 };
+const logoSize: Readonly<Record<Props["size"], number>> = { small: 18, medium: 26 };
 ---
 
 <Film palette={mark.palette} layout={mark.layout} class={`brand-tile brand-tile--${size}`}>
@@ -30,14 +30,14 @@ const logoSize: Readonly<Record<Props["size"], number>> = { small: 13, medium: 2
   }
 
   :global(.brand-tile--small) {
-    width: 24px;
-    height: 24px;
-    border-radius: 7px;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
   }
 
   :global(.brand-tile--medium) {
-    width: 50px;
-    height: 50px;
+    width: 56px;
+    height: 56px;
     border-radius: 14px;
   }
 </style>

@@ -19,8 +19,8 @@ interface Props {
   readonly class: string;
 }
 const { photo, focus, widths, sizes, priority, class: extraClass } = Astro.props;
-/** AVIF quality: the panels are backdrops, mostly covered by windows and cards. */
-const quality: number = 46;
+/** AVIF quality: high enough that soft gradients do not band and sand and rock keep their texture on 4K screens. */
+const quality: number = 74;
 ---
 
 {priority === "lcp" && <ImagePreload image={photos[photo]} widths={widths} sizes={sizes} quality={quality} media="all" />}

@@ -112,19 +112,33 @@ const currentPath: string = routes[page];
     pointer-events: none;
   }
 
+  /* Header: at the top of the page the links sit on the page itself; once the page scrolls the bar becomes a
+     floating pill (src/client/header.ts sets `is-scrolled`). The links are centred between the logo and the actions. */
   .site-header__pill {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
     gap: 20px;
     height: 60px;
     padding: 0 10px 0 18px;
-    border: 1px solid var(--line);
+    border: 1px solid transparent;
     border-radius: 999px;
-    background: color-mix(in srgb, var(--card) 96%, transparent);
+    background: transparent;
+    pointer-events: auto;
+    transition:
+      background-color 240ms ease,
+      border-color 240ms ease,
+      box-shadow 240ms ease;
+  }
+
+  .site-header.is-scrolled .site-header__pill {
+    border-color: var(--line);
+    background: color-mix(in srgb, var(--bg) 90%, transparent);
+    -webkit-backdrop-filter: blur(14px) saturate(1.4);
+    backdrop-filter: blur(14px) saturate(1.4);
     box-shadow:
       0 1px 2px var(--shadow-near),
       0 10px 30px -12px var(--shadow);
-    pointer-events: auto;
   }
 
   .brand {
@@ -140,7 +154,7 @@ const currentPath: string = routes[page];
   }
 
   .nav {
-    margin-left: 8px;
+    justify-self: center;
   }
 
   .nav__list {
@@ -175,8 +189,8 @@ const currentPath: string = routes[page];
   .site-header__actions {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 8px;
-    margin-left: auto;
   }
 
   /* Theme switch: moon (light theme) and sun (dark theme) stacked; switching only rotates, scales and fades. */
@@ -316,6 +330,10 @@ const currentPath: string = routes[page];
   }
 
   @media (max-width: 860px) {
+    .site-header__pill {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
     .nav,
     .site-header__sign-in,
     .site-header__theme {

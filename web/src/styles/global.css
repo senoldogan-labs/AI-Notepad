@@ -1,8 +1,8 @@
-/* Product site: "Nordic dusk" (docs/superpowers/specs/2026-11-05-site-design-language.md). White paper (black in dark mode), near-black ink,
-   Newsreader for headings at one regular weight (hierarchy by size), Inter for text and UI; photographs of Finnish
-   lakes and forests in their own colours (`.photo`) with app windows over them; pastel film covers for blog covers and small
-   cards. Nothing blurred or filtered ever animates; content only fades and slides in, and not at all under
-   "reduce motion". */
+/* Product site (docs/superpowers/specs/2026-11-05-site-design-language.md): white page with warm paper bands (near-black
+   in dark mode), soft ink and one orange accent; Newsreader for headings at one regular weight (hierarchy by size),
+   Inter for text and UI; warm desert photographs and our own soft 3D wave renders (`.photo`) with app windows over
+   them; the horizon waveform and the footer's Finnish-lake flip-book as signatures. Nothing blurred or filtered ever
+   animates; content only fades and slides in, and not at all under "reduce motion". */
 
 @font-face {
   font-family: "Inter";
@@ -36,23 +36,27 @@
    visitor's choice or the system preference); without the script `color-scheme` follows the system. */
 :root {
   color-scheme: light dark;
-  --bg: light-dark(#ffffff, #000000);
-  --card: light-dark(#faf8f4, #0e0e0e);
-  --line: light-dark(#e5e2dc, #262626);
-  --soft: light-dark(#f4f1eb, #151515);
-  --selected: light-dark(#ebe7e0, #1f1f1f);
-  --ink: light-dark(#0a0a0a, #f2f2f2);
-  --muted: light-dark(#575757, #a6a6a6);
-  --primary: light-dark(#0a0a0a, #f2f2f2);
-  --on-primary: light-dark(#ffffff, #000000);
+  /* Palette: white page, warm off-white paper surfaces, soft ink, hairlines with a warm tint; the one
+     colour is Gistsmith's orange on the main call to action. */
+  --bg: light-dark(#ffffff, #0f0f0e);
+  --card: light-dark(#f7f7f2, #171715);
+  --line: light-dark(#e4e3dc, #2b2b28);
+  --soft: light-dark(#f2f2ec, #1c1c1a);
+  --selected: light-dark(#eaebe5, #262623);
+  --ink: light-dark(#292929, #f2f2ee);
+  --muted: light-dark(#72726e, #a6a6a0);
+  --primary: light-dark(#c4470a, #f0874f);
+  --on-primary: light-dark(#fcfcf8, #140c07);
   --focus: light-dark(#2f5f8a, #8fb5d8);
   --danger: light-dark(#b42318, #ff8a7a);
   --on-danger: light-dark(#ffffff, #0a0a0a);
   --ok: light-dark(#2f7a55, #7fcfa3);
   --warn: light-dark(#9a5b00, #f2b863);
-  --accent: light-dark(#e9896a, #f0ae92);
+  --accent: light-dark(#c4470a, #f0874f);
+  --accent-soft: light-dark(#fbe6d8, #3a1d0e);
+  --hairline: light-dark(rgb(71 67 42 / 0.2), rgb(242 242 238 / 0.14));
   /* The night band (privacy on the home page): near-black in both themes, a step lighter than the black dark page. */
-  --night: light-dark(#111111, #141414);
+  --night: light-dark(#292929, #222220);
   --on-night: #f2f2f2;
   --on-night-muted: #ababab;
   --night-line: rgb(242 242 242 / 0.16);
@@ -62,9 +66,9 @@
   --elevation: 0 1px 2px var(--shadow-near), 0 8px 24px var(--shadow);
   --shadow-chip: 0 1px 2px rgb(0 0 0 / 0.08), 0 6px 16px -4px rgb(0 0 0 / 0.22);
   --shadow-window: 0 1px 2px rgb(0 0 0 / 0.12), 0 14px 28px -8px rgb(0 0 0 / 0.28), 0 44px 80px -28px rgb(0 0 0 / 0.45);
-  --radius-panel: 24px;
-  --radius-l: 24px;
-  --radius-m: 16px;
+  --radius-panel: 8px;
+  --radius-l: 16px;
+  --radius-m: 14px;
   --radius-s: 12px;
   --page: min(1240px, 100% - 2 * var(--gutter));
   /* Reading measure for text blocks; photographs and windows use the page width. */
@@ -75,9 +79,9 @@
   --serif: "Newsreader", "Newsreader Fallback", Georgia, serif;
   --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
   /* Type scale (desktop → 360 px). The serif has a single weight: size carries the hierarchy. */
-  --step-display: clamp(2.75rem, 1rem + 5.4vw, 6.75rem);
-  --step-1: clamp(2.5rem, 1.75rem + 3vw, 4rem);
-  --step-2: clamp(2rem, 1.4rem + 2.3vw, 3.25rem);
+  --step-display: clamp(3rem, 1rem + 6vw, 7rem);
+  --step-1: clamp(2.75rem, 1rem + 5.2vw, 6.75rem);
+  --step-2: clamp(2.125rem, 1.4rem + 2.4vw, 3.25rem);
   --step-3: clamp(1.625rem, 1.3rem + 1vw, 2rem);
   --step-4: clamp(1.375rem, 1.25rem + 0.4vw, 1.5rem);
   --step-lead: clamp(1.125rem, 1.02rem + 0.4vw, 1.3125rem);
@@ -258,15 +262,15 @@ p {
 
 .display {
   font-size: var(--step-display);
-  letter-spacing: -0.025em;
-  line-height: 0.96;
-  hyphens: auto;
+  letter-spacing: -0.02em;
+  line-height: 0.93;
+  hyphens: manual;
 }
 
 .title-xl {
   font-size: var(--step-1);
   letter-spacing: -0.02em;
-  line-height: 1.04;
+  line-height: 0.97;
 }
 
 .title-l {
@@ -340,12 +344,12 @@ p {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 48px;
+  min-height: 52px;
   padding: 0 24px;
   border: 1px solid transparent;
   border-radius: 999px;
   font: inherit;
-  font-size: 0.9375rem;
+  font-size: 1rem;
   font-weight: 500;
   letter-spacing: -0.005em;
   text-decoration: none;
@@ -374,12 +378,22 @@ p {
 }
 
 .button--primary:hover {
-  background: color-mix(in srgb, var(--primary) 86%, var(--bg));
+  background: color-mix(in srgb, var(--primary) 84%, #000);
+}
+
+/* The dark pill: the secondary call to action on light bands. */
+.button--ink {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.button--ink:hover {
+  background: color-mix(in srgb, var(--ink) 82%, var(--bg));
 }
 
 .button--secondary {
   background: transparent;
-  border-color: color-mix(in srgb, var(--ink) 22%, transparent);
+  border-color: var(--hairline);
   color: var(--ink);
 }
 
@@ -744,7 +758,7 @@ p {
 }
 
 /* ---------- Photographs ----------
-   Licensed, high-resolution Nordic photographs (src/assets/photos/CREDITS.md) shown in their own colours: no filter,
+   Licensed desert photographs and original wave renders (src/assets/photos/CREDITS.md) shown in their own colours: no filter,
    tint or grain, so they stay vivid and sharp. Text never sits on the photograph itself: copy goes on a paper card or a
    chip. Focus points are classes (`.photo--top`, …) because the CSP allows no inline styles. */
 
@@ -753,7 +767,7 @@ p {
   isolation: isolate;
   overflow: hidden;
   border-radius: var(--radius-panel);
-  background-color: #7a7a7a;
+  background-color: var(--soft);
   color: #0a0a0a;
 }
 
@@ -809,14 +823,14 @@ p {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 40px;
-  padding: 5px 14px 5px 5px;
+  min-height: 46px;
+  padding: 6px 16px 6px 6px;
   border: 1px solid rgb(0 0 0 / 0.06);
   border-radius: 999px;
   background: #ffffff;
   color: #0a0a0a;
   box-shadow: var(--shadow-chip);
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   letter-spacing: -0.01em;
   white-space: nowrap;
@@ -824,7 +838,8 @@ p {
 
 /* ---------- Horizon ----------
    Signature mark: the logo's waveform as a horizon. A hairline with a short mirrored, seeded waveform burst in the
-   dusk coral (Horizon.astro); it opens rows and sits in the footer. Decorative only. */
+   accent orange (Horizon.astro); it opens the home page's brand line and marks sign-in, 404 and shared notes.
+   Decorative only. */
 .horizon {
   display: flex;
   align-items: center;
@@ -1074,5 +1089,168 @@ p {
 @media (max-width: 560px) {
   .dialog__actions .button {
     flex: 1 1 auto;
+  }
+}
+
+/* ---------- Page building blocks ----------
+   Bands (white, paper surface, night, accent), the small serif kicker above big headings, the feature row (hairline,
+   title left, text right, a wide photograph below), the facts wall on the night band and the closing split band
+   (photograph · paper · photograph). Shared by the home page and the inner pages. */
+
+.band {
+  padding-block: var(--section);
+}
+
+.band--surface {
+  background: var(--card);
+}
+
+.band--night {
+  background: var(--night);
+  color: var(--on-night);
+}
+
+.band--night .muted,
+.band--night .lead {
+  color: var(--on-night-muted);
+}
+
+.kicker {
+  margin: 0 0 14px;
+  font-family: var(--serif);
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--ink);
+}
+
+.band--night .kicker {
+  color: var(--on-night);
+}
+
+/* Centred page head (inner pages): serif title, one lead line. */
+.page-head {
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  padding-top: clamp(72px, 10vw, 136px);
+  padding-bottom: clamp(40px, 6vw, 72px);
+  text-align: center;
+}
+
+.page-head .lead {
+  margin-inline: auto;
+}
+
+/* Feature row: a hairline, the title in the serif on the left, one paragraph on the right, the picture below. */
+.frow {
+  padding-top: 28px;
+  border-top: 1px solid var(--hairline);
+}
+
+.frow + .frow {
+  margin-top: clamp(72px, 9vw, 112px);
+}
+
+.frow__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px 40px;
+  margin-bottom: 28px;
+}
+
+.frow__title {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(1.625rem, 1.3rem + 1vw, 2rem);
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+}
+
+.frow__text {
+  max-width: 30rem;
+  color: var(--muted);
+  font-size: 1.0625rem;
+}
+
+@media (max-width: 760px) {
+  .frow__head {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Facts wall on the night band: an even grid, an icon over a short line, faint plus marks at the inner crossings. */
+.wall {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wall__item {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 12px;
+  min-height: 132px;
+  padding: 18px 14px;
+  text-align: center;
+  font-size: 0.9375rem;
+  color: color-mix(in srgb, var(--on-night) 88%, transparent);
+}
+
+.wall__item .icon {
+  width: 24px;
+  height: 24px;
+  color: var(--on-night);
+}
+
+/* Closing split band: photograph · paper card · photograph (the closing call on every page). */
+.split-band {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr);
+  min-height: clamp(460px, 44vw, 600px);
+}
+
+.split-band__photo {
+  border-radius: 0;
+  min-height: 220px;
+}
+
+.split-band__paper {
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 22px;
+  padding: clamp(40px, 6vw, 80px) clamp(28px, 5vw, 64px);
+  background: var(--card);
+}
+
+.split-band__paper h2 {
+  max-width: 13ch;
+}
+
+.split-band__paper p {
+  max-width: 30rem;
+  color: var(--muted);
+  font-size: 1.125rem;
+}
+
+.split-band__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+@media (max-width: 860px) {
+  .split-band {
+    grid-template-columns: 1fr;
+  }
+
+  .split-band__photo:last-child {
+    display: none;
   }
 }
