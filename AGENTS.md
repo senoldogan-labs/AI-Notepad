@@ -92,6 +92,13 @@ katalogda olmalı (`LocalizationCompletenessTests`; eksik çeviri cihazda Türk�
 
 Kod değiştiren her işten önce iki test komutunu da çalıştır.
 
+## İnceleme
+
+[REVIEW.md](REVIEW.md) incelemenin neye baktığını söyler. `.claude/hooks/pre-push-review.sh` her push'tan önce o
+incelemeyi `claude` komutunun aboneliğiyle yapar; Important bulgu push'u durdurur. Kurulumu ve atlaması dosyanın
+başında (genel `core.hooksPath` yüzünden yerel `core.hooksPath` da ayarlanır). Bulguların hepsini düzeltip tek push yap;
+kanca yalnız yeni işlemeleri okur.
+
 ## PR
 
 PR açılınca `gh pr merge <numara> --auto --squash --delete-branch`: zorunlu checkler (`test-and-build`, `ios`, `server`,
