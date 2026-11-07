@@ -1286,7 +1286,7 @@ export interface BlogPostSummary {
   readonly published: string;
   /** Son anlamlı güncelleme (`YYYY-MM-DD`); yazılmamışsa null. */
   readonly updated: string | null;
-  /** Elle seçilmiş kapak ailesi; null ise kısa addan seçilir (`coverFilm`). */
+  /** Elle seçilmiş kapak ailesi; null ise site fotoğrafı yayın sırasından seçer (BlogCover.astro). */
   readonly cover: FilmPalette | null;
   readonly draft: boolean;
   readonly status: BlogPostStatus;

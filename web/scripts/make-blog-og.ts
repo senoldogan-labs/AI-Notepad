@@ -77,6 +77,10 @@ async function renderPost(page: Page, slug: string): Promise<number> {
         return coverSelector;
       }
       const clone: Element = cover.cloneNode(true) as Element;
+      // The page sizes the cover for its column; the share image is 1200 px wide, so the clone asks for that width.
+      for (const source of clone.querySelectorAll("source, img")) {
+        source.setAttribute("sizes", "1200px");
+      }
       const body: Element | null = clone.querySelector(".blog-cover__body");
       const card: Element | null = clone.querySelector(".blog-cover__card");
       if (body === null) {

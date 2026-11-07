@@ -1,7 +1,8 @@
 // Uygulamanın film gradyanı ve kapak ses dalgasının site karşılığı (AINotepadUI/FilmGradient.swift,
 // CoverBackground.swift). Ailelerin renkleri yalnızca global.css `.film--<aile>` kurallarındadır ve uygulamadaki
-// `FilmPalette.colors` ile aynı kalmalıdır; dalga yükseklikleri uygulamadakiyle aynı sayıları üretir. Blog kapaklarının
-// aile ve yerleşimi de buradan seçilir (`coverFilm`; site, yönetim paneli ve paylaşım görseli aynı sonucu kullanır).
+// `FilmPalette.colors` ile aynı kalmalıdır; dalga yükseklikleri uygulamadakiyle aynı sayıları üretir. Blog yazısının
+// `cover` ön bilgisi bu ailelerden biridir (sitede o rengin fotoğrafını seçer, BlogCover.astro); yönetim paneli seçilen
+// ailenin rengini `coverFilm` ile gösterir.
 
 /** Film gradyanının renk aileleri (global.css `.film--<aile>`). Blog yazısının `cover` ön bilgisi bunlardan biridir. */
 export const filmPalettes = ["sunset", "coral", "ocean", "mint", "rose", "violet"] as const;
