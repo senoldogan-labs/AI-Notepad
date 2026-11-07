@@ -1137,9 +1137,8 @@ private struct HomeTasks: View {
     private var userName: String { model.userName }
 
     var body: some View {
-        // TODO(main): due-today filter
-        let items: [(record: MeetingRecord, task: NoteTask)] = myTasks(namedRecords: Array(model.namedMeetings(userName: userName).prefix(10)))
-            .filter { !isTaskDone(record: $0.record, task: $0.task) }
+        // Aciliyet sırasıyla: önce gecikmiş ve bugünün görevleri, sonra yaklaşanlar.
+        let items: [DatedTask] = openTasksByUrgency(items: myTasks(namedRecords: model.namedMeetings(userName: userName)), now: Date(), calendar: Calendar.current)
         if !items.isEmpty {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.s) {
                 HStack {
@@ -1150,11 +1149,10 @@ private struct HomeTasks: View {
                         .foregroundStyle(Theme.muted)
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    ForEach(Array(items.prefix(5).enumerated()), id: \.offset) { (item: (offset: Int, element: (record: MeetingRecord, task: NoteTask))) in
+                    ForEach(items.prefix(5), id: \.rowID) { (item: DatedTask) in
                         // Ana sayfada görevler toplantılarıyla karışık: tarihin yanında toplantının adı.
-                        let record: MeetingRecord = item.element.record
-                        TaskLine(model: model, record: record, task: item.element.task, meetingTitle: record.note?.title ?? record.title) {
-                            router.selectedMeetingID = item.element.record.id
+                        TaskLine(model: model, record: item.record, task: item.task, meetingTitle: item.record.note?.title ?? item.record.title) {
+                            router.selectedMeetingID = item.record.id
                             router.section = .meetings
                         }
                     }

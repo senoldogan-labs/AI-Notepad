@@ -161,7 +161,13 @@ public func groupedByDueDay(items: [(record: MeetingRecord, task: NoteTask)], no
     }
 }
 
-/// Bugün (ya da daha önce) son günü gelen, tamamlanmamış görevler: ana sayfadaki "Bugünkü görevler". Saf fonksiyondur.
+/// Tamamlanmamış görevler aciliyet sırasıyla (gecikmiş, bugün, önümüzdeki 7 gün, daha sonra, tarihsiz; bkz.
+/// `groupedByDueDay`): ana sayfada önce bugünün ve gecikmiş görevler görünür. Saf fonksiyondur.
+public func openTasksByUrgency(items: [(record: MeetingRecord, task: NoteTask)], now: Date, calendar: Calendar) -> [DatedTask] {
+    groupedByDueDay(items: items.filter { !isTaskDone(record: $0.record, task: $0.task) }, now: now, calendar: calendar).flatMap(\.tasks)
+}
+
+/// Bugün (ya da daha önce) son günü gelen, tamamlanmamış görevler. Saf fonksiyondur.
 public func dueTodayOrOverdue(items: [(record: MeetingRecord, task: NoteTask)], now: Date, calendar: Calendar) -> [DatedTask] {
     groupedByDueDay(items: items.filter { !isTaskDone(record: $0.record, task: $0.task) }, now: now, calendar: calendar)
         .filter { $0.bucket == .overdue || $0.bucket == .today }

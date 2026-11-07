@@ -29,9 +29,8 @@ struct PhoneHome: View {
         // Satırlar konuşmacı adlarıyla (saklı not genel etiketleri korur).
         let meetings: [MeetingRecord] = namedRecords(records: store.meetings, userName: userName)
         let sections: [MeetingSection] = meetingSections(records: meetings, now: Date(), calendar: .current, locale: interfaceLocale())
-        // TODO(main): due-today filter
-        let openItems: [(record: MeetingRecord, task: NoteTask)] = myTasks(meetings: store.meetings, userName: userName)
-            .filter { !isTaskDone(record: $0.record, task: $0.task) }
+        // Aciliyet sırasıyla: önce gecikmiş ve bugünün görevleri, sonra yaklaşanlar.
+        let openItems: [DatedTask] = openTasksByUrgency(items: myTasks(meetings: store.meetings, userName: userName), now: Date(), calendar: Calendar.current)
         let openTasks: Int = openItems.count
         let locked: Set<String> = phoneLockedMeetingIDs(store: store, recorder: recorder)
         ScrollView {
@@ -327,7 +326,7 @@ private struct QuietRail<Content: View>: View {
 /// Sana düşen açık görevler: başlık ve "Tümü" (açık görev sayısıyla), altında ilk birkaç görev; kutuya dokununca
 /// tamamlanır, satıra dokununca toplantı yerine Görevlerim açılır.
 private struct HomeTasksSection: View {
-    let items: [(record: MeetingRecord, task: NoteTask)]
+    let items: [DatedTask]
     /// Bütün açık görevlerin sayısı ("Tümü · 8").
     let total: Int
     let store: PhoneStore
@@ -350,7 +349,7 @@ private struct HomeTasksSection: View {
                 .foregroundStyle(.tint)
             }
             VStack(spacing: 0) {
-                ForEach(Array(items.enumerated()), id: \.element.task.trackingKey) { (item: (offset: Int, element: (record: MeetingRecord, task: NoteTask))) in
+                ForEach(Array(items.enumerated()), id: \.element.rowID) { (item: (offset: Int, element: DatedTask)) in
                     if item.offset > 0 {
                         Rectangle().fill(Theme.line).frame(height: 1).padding(.leading, 48)
                     }
