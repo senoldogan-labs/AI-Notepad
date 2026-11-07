@@ -100,7 +100,7 @@ private struct InlineText: View {
         Text(answerAttributedText(
             inlines: inlines, webSources: webSources,
             style: AnswerTextStyle(
-                accent: appearance.accent.color, citationFont: appearance.font(size: 11, weight: .semibold),
+                accent: appearance.accent.color, citationFont: appearance.font(size: 11, weight: .semibold), strongFont: font.bold(),
                 codeFont: .system(size: 13.5 * appearance.uiScale, design: .monospaced), codeBackground: Theme.soft,
                 webForeground: Theme.ink.opacity(0.7), webBackground: Theme.ink.opacity(0.07)
             )
@@ -117,6 +117,9 @@ private struct InlineText: View {
 struct AnswerTextStyle {
     let accent: Color
     let citationFont: Font
+    /// Kalın metnin yazısı: ağırlığı açıkça verilen yazı (Inter ve kurulu yazılar `.weight(...)` ile gelir) kalın
+    /// sunum niyetini (`stronglyEmphasized`) yok sayıyordu; **kalın** düz görünüyordu.
+    let strongFont: Font
     let codeFont: Font
     /// Satır içi kodun zemini.
     let codeBackground: Color
@@ -142,6 +145,10 @@ func answerAttributedText(inlines: [MarkdownInline], webSources: [WebSource], st
         case .strong(let children):
             var run: AttributedString = answerAttributedText(inlines: children, webSources: webSources, style: style)
             run.inlinePresentationIntent = .stronglyEmphasized
+            // Kendi yazısı olan parçalar (kaynak rozeti, satır içi kod) yazısını korur.
+            for (font, range) in run.runs[AttributeScopes.SwiftUIAttributes.FontAttribute.self].reversed() where font == nil {
+                run[range].swiftUI.font = style.strongFont
+            }
             result += run
         case .emphasis(let children):
             var run: AttributedString = answerAttributedText(inlines: children, webSources: webSources, style: style)
@@ -294,6 +301,7 @@ private struct TableBlockView: View {
             inlines: inlines, webSources: webSources,
             style: AnswerTextStyle(
                 accent: appearance.accent.color, citationFont: appearance.font(size: 10, weight: .semibold),
+                strongFont: appearance.font(size: 13.5, weight: .bold),
                 codeFont: .system(size: 12.5 * appearance.uiScale, design: .monospaced), codeBackground: Theme.soft,
                 webForeground: Theme.ink.opacity(0.7), webBackground: Theme.ink.opacity(0.07)
             )

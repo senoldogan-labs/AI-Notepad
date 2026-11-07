@@ -803,16 +803,17 @@ func demoMeetingExchange(meetingID: String, now: Date) -> ArchiveExchange {
         ),
     ]
     let answer: String = """
-    You have two tasks from this meeting:
+    You have three tasks from this meeting:
 
     - **Send Ayşe the pricing table today**, before her Nordia call on Thursday [1][2].
-    - **Write the release notes by Friday**, a week ahead of the beta.
+    - **Write the beta release notes by Friday.**
+    - **Set up a weekly Wednesday call with support.**
     """
     let asked: Date = now.addingTimeInterval(-90)
     return ArchiveExchange(
         id: UUID(uuid: (0x2A, 0x71, 0x4B, 0x0E, 0x93, 0x5C, 0x4F, 0x12, 0x8D, 0x61, 0x3E, 0x7A, 0x1C, 0x55, 0x0B, 0x9D)), question: "What do I owe people after this meeting?",
         scopeMeetingIDs: [meetingID], scopeTitles: [], recipeTitle: nil, startedAt: asked, phase: .done, terms: [], passages: sources, screens: 0,
-        answer: ArchiveAnswer(text: answer, sources: sources, webSources: []), webQueries: [], webSearchNotice: .ok, finishedAt: asked.addingTimeInterval(5)
+        answer: ArchiveAnswer(text: answer, sources: sources, webSources: []), webQueries: [], webSearchNotice: .ok, skippedMeetings: [], finishedAt: asked.addingTimeInterval(5)
     )
 }
 
@@ -850,7 +851,7 @@ func demoAskConversation(now: Date) -> AskConversation {
     let turn: AskConversationTurn = AskConversationTurn(
         id: UUID(uuid: (0x0C, 0x9B, 0x6E, 0x3D, 0x7F, 0x21, 0x4E, 0x8A, 0xA1, 0xD4, 0x5B, 0x3C, 0x2E, 0x9F, 0x8A, 0x71)), question: question, scopeMeetingIDs: [], scopeTitles: [], recipeTitle: nil,
         startedAt: askedAt, finishedAt: askedAt.addingTimeInterval(6), terms: ["budget", "paid ads", "hiring", "pricing"], readPassages: sources,
-        readScreens: 0, answer: answer, sources: sources, webSources: nil, webQueries: nil, webSearchNotice: nil
+        readScreens: 0, answer: answer, sources: sources, webSources: nil, webQueries: nil, webSearchNotice: nil, skippedMeetings: nil, wasStopped: nil
     )
     return askConversation(existing: nil, id: demoAskConversationID, turns: [turn], now: askedAt.addingTimeInterval(6))
 }

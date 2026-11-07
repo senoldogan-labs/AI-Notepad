@@ -47,17 +47,17 @@ import Testing
         for index in 0..<31 {
             try writeTestSlide(meetingDirectory: meeting, offsetSec: Double(index) * 60 + 5, index: index, width: 1600, height: 1000)
         }
-        let transcript: [ArchivePassage] = archivePassages(records: [record], userLabel: promptUserLabel).filter { $0.kind == .transcript }
+        let transcript: [ArchivePassage] = archivePassages(records: [record], userLabel: promptUserLabel, speakerWord: "Konuşmacı").filter { $0.kind == .transcript }
         let read: ArchivePassage = transcript[2]
-        let span: (start: Double, end: Double) = try #require(transcriptPassageSpans(record: record, passageIDs: [read.id]).first)
-        let overlapping: [AskScreenSpan] = askScreenSpans(record: record, passageIDs: [read.id], snapshots: try listScreenSnapshots(meetingDirectory: meeting), leadSec: 3)
+        let span: (start: Double, end: Double) = try #require(transcriptPassageSpans(record: record, passageIDs: [read.id], speakerWord: "Konuşmacı").first)
+        let overlapping: [AskScreenSpan] = askScreenSpans(record: record, passageIDs: [read.id], speakerWord: "Konuşmacı", snapshots: try listScreenSnapshots(meetingDirectory: meeting), leadSec: 3)
         #expect(overlapping.count > 3)
         #expect(overlapping.allSatisfy { $0.startSec < span.end && $0.endSec > span.start })
         // The best overlapping one is unticked for notes: it does not go to Ask either.
         let unticked: ScreenSnapshot = try #require(overlapping.max { $0.overlapSec < $1.overlapSec }?.snapshot)
         try writeScreenNoteExclusions(meetingDirectory: meeting, excluded: [unticked.id])
         let plan: ArchiveScreensPlan = .on(meetingDirectories: [record.id: meeting])
-        let images: [LLMImage] = try askScreenImages(records: [record], passages: [read], plan: plan, budget: askScreenBudget, policy: screenSnapshotPolicy)
+        let images: [LLMImage] = try askScreenImages(records: [record], passages: [read], speakerWord: "Konuşmacı", plan: plan, budget: askScreenBudget, policy: screenSnapshotPolicy)
         #expect(images.count == 3)
         var tokens: Int = 0
         for image in images {
@@ -68,22 +68,22 @@ import Testing
         }
         #expect(tokens <= askScreenBudget.maxTotalTokens)
         #expect(!images.contains { $0.label.contains("[\(timestamp(seconds: max(0, unticked.offsetSec - 3)))–") })
-        #expect(try askScreenImages(records: [record], passages: [read], plan: .off, budget: askScreenBudget, policy: screenSnapshotPolicy).isEmpty)
-        #expect(try askScreenImages(records: [record], passages: [read], plan: .on(meetingDirectories: [:]), budget: askScreenBudget, policy: screenSnapshotPolicy).isEmpty)
+        #expect(try askScreenImages(records: [record], passages: [read], speakerWord: "Konuşmacı", plan: .off, budget: askScreenBudget, policy: screenSnapshotPolicy).isEmpty)
+        #expect(try askScreenImages(records: [record], passages: [read], speakerWord: "Konuşmacı", plan: .on(meetingDirectories: [:]), budget: askScreenBudget, policy: screenSnapshotPolicy).isEmpty)
         let note: ArchivePassage = ArchivePassage(
             id: "m-note", meetingID: "m", meetingTitle: "m", meetingDate: record.startedAt, kind: .note, startSec: 0, text: "Özet: …"
         )
-        #expect(try askScreenImages(records: [record], passages: [note], plan: plan, budget: askScreenBudget, policy: screenSnapshotPolicy).isEmpty)
+        #expect(try askScreenImages(records: [record], passages: [note], speakerWord: "Konuşmacı", plan: plan, budget: askScreenBudget, policy: screenSnapshotPolicy).isEmpty)
     }
 
     // The answer request carries the images and the screen rule only when there are images.
     @Test func answerRequestCarriesScreensOnlyWhenGiven() {
         let image: LLMImage = LLMImage(label: "Ekran 1 · \"m\" [00:00–01:00]", jpeg: Data([0xFF, 0xD8]))
         let with: LLMRequest = archiveAnswerRequest(
-            question: "Slaytta ne vardı?", passages: [], coverage: ArchiveCoverage(read: [], skipped: []), screens: [image], history: [], userName: "", profile: .empty, now: Date(timeIntervalSince1970: 0), language: .turkish, webSearch: false
+            question: "Slaytta ne vardı?", passages: [], screens: [image], history: [], userName: "", profile: .empty, now: Date(timeIntervalSince1970: 0), answerLanguage: .turkish, webSearch: false
         )
         let without: LLMRequest = archiveAnswerRequest(
-            question: "Slaytta ne vardı?", passages: [], coverage: ArchiveCoverage(read: [], skipped: []), screens: [], history: [], userName: "", profile: .empty, now: Date(timeIntervalSince1970: 0), language: .turkish, webSearch: false
+            question: "Slaytta ne vardı?", passages: [], screens: [], history: [], userName: "", profile: .empty, now: Date(timeIntervalSince1970: 0), answerLanguage: .turkish, webSearch: false
         )
         #expect(with.images == [image] && with.purpose == .askAnswer && with.system.contains("ekranın birkaç görüntüsü"))
         #expect(without.images.isEmpty && !without.system.contains("ekranın birkaç görüntüsü"))
