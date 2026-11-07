@@ -71,11 +71,11 @@ function slotStartMs(slot: DemoSlot, now: Date): number {
  * always looks recent. Pure function.
  */
 export function reviewerDemoMeetings(epoch: number, now: Date): DemoMeeting[] {
-  const meeting = (slot: DemoSlot, body: Omit<ProjectionUpload, "epoch" | "deviceId" | "startedAt">): DemoMeeting => {
+  const meeting: (slot: DemoSlot, body: Omit<ProjectionUpload, "epoch" | "deviceId" | "startedAt">) => DemoMeeting = (slot, body) => {
     const startMs: number = slotStartMs(slot, now);
     return { meetingId: appMeetingId(startMs), upload: { epoch, deviceId: reviewerDeviceId, startedAt: new Date(startMs).toISOString(), ...body } };
   };
-  const due = (daysFromNow: number): string => isoDay(now.getTime() + daysFromNow * dayMs);
+  const due: (daysFromNow: number) => string = (daysFromNow) => isoDay(now.getTime() + daysFromNow * dayMs);
   return [
     meeting(
       { daysAgo: 13, hour: 9, minute: 30 },
@@ -286,7 +286,7 @@ export async function seedReviewerAccount(
   const settings: AssistantSettingsRow = await enableAssistant(adb, reviewerUserId, now);
   const meetings: DemoMeeting[] = reviewerDemoMeetings(settings.epoch, now);
   const current: ReadonlySet<string> = new Set(meetings.map((meeting: DemoMeeting): string => meeting.meetingId));
-  const stored = await adb.prepare("SELECT meeting_id FROM assistant_meetings WHERE user_id = ?").bind(reviewerUserId).all<{ meeting_id: string }>();
+  const stored: D1Result<{ meeting_id: string }> = await adb.prepare("SELECT meeting_id FROM assistant_meetings WHERE user_id = ?").bind(reviewerUserId).all<{ meeting_id: string }>();
   for (const row of stored.results) {
     if (!current.has(row.meeting_id)) {
       await deleteAssistantMeeting(adb, bucket, reviewerUserId, row.meeting_id);
