@@ -80,9 +80,9 @@ live=<çekim.png> ask=<çekim.png>` (iPhone ekranlarını telefon çerçevesine 
 (sharp/libimagequant; 128 renkten 32'ye; en küçüğü de sığmazsa hata). Blog yazılarının görselleri derlemede değil,
 derlemeden sonra üretilir (`npm run og:blog -- <chrome>`, `scripts/make-blog-og.ts`): site haritasındaki her yazının
 sayfası Chrome'da dist/'ten açılır, sayfanın kapağı (`BlogCover.astro`, `[data-og-cover]`) 1200 px genişlikte yalnız
-bırakılır, logo, ürün adı ve alan adı eklenir. Kapak sitenin kendi CSS'iyle çizildiği için görsel sayfadakiyle aynıdır;
-satori + resvg gibi saf çiziciler kapağın katmanlı radyal gradyanlarını, `color-mix`'ini, gren ve kenar kararması
-karışımlarını (`mix-blend-mode`) çizemediği için Chrome seçildi (GitHub'ın ubuntu-latest runner'ında
+bırakılır, kâğıt karta logo, ürün adı ve alan adı eklenir (kapağın bir parçası bulunamazsa betik hata verir). Kapak
+sitenin kendi CSS'i ve AVIF görseliyle çizildiği için görsel sayfadakiyle aynıdır; bu yüzden saf çiziciler (satori +
+resvg) yerine Chrome seçildi (GitHub'ın ubuntu-latest runner'ında
 `/usr/bin/google-chrome` kurulu gelir). Görseli olmayan yazı sayfası bozuk `og:image` verir: yayından önce bu adım
 çalışmalı (iş akışı ve elle yayın komutu çalıştırır).
 

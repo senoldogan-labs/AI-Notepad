@@ -4,10 +4,11 @@
 //
 // Yazılar derlemenin kendi çıktısından seçilir: site haritasındaki `/blog/<kısa ad>` adresleri (taslak ve tarihi
 // gelmemiş yazılar orada yoktur). Her yazı sayfası Chrome'da açılır (dosyalar dist/'ten, ağ yok), sayfanın kapağı
-// (`[data-og-cover]`, src/components/BlogCover.astro) 1200 px genişlikte yalnız bırakılır, üstüne logo ve ürün adı, altına
-// alan adı eklenir ve görüntüsü alınır. Kapak sitedeki CSS'le çizildiği için görsel sayfadakiyle birebir aynıdır (radyal
-// gradyanlar, `color-mix`, gren ve kenar kararması; saf SVG çiziciler bunları çizemez). Hedef yol sayfanın kendi
-// `og:image` adresinden okunur; beklenen `/blog/<kısa ad>/og.png` değilse ya da kapak bulunamazsa açık hata verilir.
+// (`[data-og-cover]`, src/components/BlogCover.astro: fotoğraf ve üstünde kâğıt kartta başlık) 1200 px genişlikte yalnız
+// bırakılır, kartın içine başlığın üstüne logo ve ürün adı, altına alan adı eklenir ve görüntüsü alınır. Kapak sitedeki
+// CSS'le ve sitenin AVIF görseliyle çizildiği için görsel sayfadakiyle birebir aynıdır. Hedef yol sayfanın kendi
+// `og:image` adresinden okunur; beklenen `/blog/<kısa ad>/og.png` değilse ya da kapak veya kapağın bir parçası (çerçeve,
+// kart, başlık gövdesi) bulunamazsa açık hata verilir.
 // Kullanım: node scripts/make-blog-og.ts <Chrome yolu>
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -50,9 +51,9 @@ const css: string = `
   html, body { margin: 0; background: #fdfcfc; }
   .og-frame { width: ${ogViewport.width}px; height: ${ogViewport.height}px; overflow: hidden; }
   .og-frame .blog-cover { width: ${ogViewport.width}px; }
-  .og-frame .blog-cover .blog-cover__film.film { border-radius: 0; }
+  .og-frame .blog-cover .blog-cover__frame { border-radius: 0; }
   .og-brand { display: flex; align-items: center; gap: 14px; color: #0a0a0a; font-size: 28px; font-weight: 600; letter-spacing: -0.02em; }
-  .og-domain { position: absolute; right: 84px; bottom: 66px; z-index: 1; color: rgb(10 10 10 / 0.62); font-size: 22px; font-weight: 500; letter-spacing: -0.01em; }
+  .og-domain { color: rgb(41 41 41 / 0.62); font-size: 22px; font-weight: 500; letter-spacing: -0.01em; }
 `;
 
 /** Bir yazının görselini üretir; yazılan dosyanın bayt boyunu döndürür. */
@@ -67,35 +68,47 @@ async function renderPost(page: Page, slug: string): Promise<number> {
     throw new BlogOgError(`/blog/${slug} sayfasının og:image adresi beklenen ${blogOgImagePath(slug)} değil: ${JSON.stringify(ogImage)}.`);
   }
   await page.addStyleTag({ content: css });
-  const found: boolean = await page.evaluate(
-    ({ slug: wanted, mark, name, domain }: { readonly slug: string; readonly mark: string; readonly name: string; readonly domain: string }): boolean => {
-      const cover: Element | null = document.querySelector(`[data-og-cover="${wanted}"]`);
+  // The first missing selector, or null when the cover was assembled.
+  const missing: string | null = await page.evaluate(
+    ({ slug: wanted, mark, name, domain }: { readonly slug: string; readonly mark: string; readonly name: string; readonly domain: string }): string | null => {
+      const coverSelector: string = `[data-og-cover="${wanted}"]`;
+      const cover: Element | null = document.querySelector(coverSelector);
       if (cover === null) {
-        return false;
+        return coverSelector;
       }
       const clone: Element = cover.cloneNode(true) as Element;
+      const body: Element | null = clone.querySelector(".blog-cover__body");
+      const card: Element | null = clone.querySelector(".blog-cover__card");
+      if (body === null) {
+        return ".blog-cover__body";
+      }
+      if (card === null) {
+        return ".blog-cover__card";
+      }
       const brand: HTMLDivElement = document.createElement("div");
       brand.className = "og-brand";
       brand.innerHTML = mark;
       brand.append(name);
-      clone.querySelector(".blog-cover__body")?.prepend(brand);
+      body.prepend(brand);
       const site: HTMLSpanElement = document.createElement("span");
       site.className = "og-domain";
       site.textContent = domain;
-      clone.querySelector(".blog-cover__film")?.append(site);
+      card.append(site);
       const frame: HTMLDivElement = document.createElement("div");
       frame.className = "og-frame";
       frame.append(clone);
       document.body.replaceChildren(frame);
-      return true;
+      return null;
     },
     { slug, mark: logoSvg(44), name: productName, domain: `${new URL(ogImage ?? "").host}/blog` },
   );
-  if (!found) {
-    throw new BlogOgError(`/blog/${slug} sayfasında kapak ([data-og-cover="${slug}"]) yok.`);
+  if (missing !== null) {
+    throw new BlogOgError(`/blog/${slug}: the cover is missing ${missing} (src/components/BlogCover.astro changed?).`);
   }
+  // Fonts and the cloned cover photograph must be ready before the screenshot; a photo that fails to decode is an error.
   await page.evaluate(async (): Promise<void> => {
     await document.fonts.ready;
+    await Promise.all([...document.images].map((image: HTMLImageElement): Promise<void> => image.decode()));
   });
   return writeOgPng(await page.screenshot({ clip: { x: 0, y: 0, ...ogViewport } }), join(distDir, target));
 }
