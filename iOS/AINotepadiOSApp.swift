@@ -770,9 +770,10 @@ func launchOpensLibrary(arguments: [String]) -> Bool {
     launchValue(arguments: arguments, flag: "--ekran") == "klasorler"
 }
 
-/// `--ekran telefon`: telefon görüşmesi rehberi açık başlar (görsel kontrol için); yoksa nil. Saf fonksiyondur.
+/// `--ekran telefon` ya da `--arama <adım>`: telefon görüşmesi rehberi açık başlar (görsel kontrol için); yoksa nil. Saf
+/// fonksiyondur.
 func launchImportRequest(arguments: [String]) -> PhoneImportSource? {
-    launchValue(arguments: arguments, flag: "--ekran") == "telefon" ? .phoneCall : nil
+    launchValue(arguments: arguments, flag: "--ekran") == "telefon" || arguments.contains("--arama") ? .phoneCall : nil
 }
 
 /// Ana ekran ve üstündeki sayfalar; tam ekran karşılama ve abonelik ekranı, kayıt ve uygulama yaşam döngüsü.
@@ -795,6 +796,10 @@ struct RootView: View {
     /// İçe aktarma isteği, seçici hatası ve Fotoğraflar kopyası (ana ekran ve kitaplık gösterir).
     /// `--ekran telefon` ile telefon görüşmesi rehberi açık başlar (görsel kontrol).
     @State private var imports: PhoneImportState = PhoneImportState(request: launchImportRequest(arguments: CommandLine.arguments))
+    #if PHONE_DIALER
+    /// Uygulamadan arama (pilot; hesap başına: hesap değişince kök görünüm yeniden kurulur). `--arama <adım>` örnek veriyle.
+    @State private var dialer: PhoneDialer = makePhoneDialer(arguments: CommandLine.arguments)
+    #endif
 
     /// Toplantı öncesi brifing (Mac'teki "Brifing"): yeni bir Sor sohbeti açar; arşive aynı kişilerle ya da konuda önceki
     /// görüşmeler, kararlar ve açık görevler sorulur.
@@ -853,6 +858,9 @@ struct RootView: View {
         .environment(store)
         .environment(recorder)
         .environment(imports)
+        #if PHONE_DIALER
+        .environment(dialer)
+        #endif
         // Ses ya da video içe aktarma (kitaplık ve kayıt düğmesinin menüsü) ve deneysel görüşme kaydı.
         .modifier(PhoneImportHost(recorder: recorder, state: imports))
         // Tam ekran sunum tektir (iki ayrı `fullScreenCover` aynı anda sunulamaz): önce ilk açılış karşılaması, bitince

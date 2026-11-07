@@ -35,4 +35,6 @@ export interface RequestContext {
   readonly platform: Platform;
   readonly waitUntil: (promise: Promise<void>) => void;
   readonly clientIp: string;
+  /** ISO country of the client's IP (Cloudflare `request.cf.country`); `null` when unknown (local development). */
+  readonly clientCountry: string | null;
 }

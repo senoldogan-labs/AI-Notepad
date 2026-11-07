@@ -178,25 +178,30 @@ export type SpendCeilingKind = "total" | "trial";
 /**
  * Günün harcaması (SQL ifadesi; bağlar: gün, gün, şimdi): kesinleşmiş harcama (`daily_spend`) + o gün açılmış, süresi
  * dolmamış ayırmaların en kötü durum tahmini (`usage_reservations.estimated_micro_usd`). Süren çağrılar sayılmazsa
- * aynı anda gelen istekler tavanı hep birlikte geçerdi. Deneme payında yalnızca deneme ayırmaları sayılır.
+ * aynı anda gelen istekler tavanı hep birlikte geçerdi. Deneme payında yalnızca deneme ayırmaları sayılır. The total
+ * also counts the worst case of dialer calls that are still running (`phone_calls`, see `phone/calls.ts`); calls are
+ * never trial spend.
  */
 export function todaySpendSql(kind: SpendCeilingKind): string {
   const settled: string = kind === "total" ? "micro_usd" : "trial_micro_usd";
   const reserved: string = kind === "total" ? "day = ?" : "day = ? AND trial_spend = 1";
+  const phone: string =
+    kind === "total" ? `\n    + (SELECT COALESCE(SUM(estimated_micro_usd), 0) FROM phone_calls WHERE day = ? AND settled_at IS NULL AND reserved_until > ?)` : "";
   return `COALESCE((SELECT ${settled} FROM daily_spend WHERE day = ?), 0)
-    + (SELECT COALESCE(SUM(estimated_micro_usd), 0) FROM usage_reservations WHERE ${reserved} AND expires_at > ?)`;
+    + (SELECT COALESCE(SUM(estimated_micro_usd), 0) FROM usage_reservations WHERE ${reserved} AND expires_at > ?)${phone}`;
 }
 
 /** `todaySpendSql`'in bağları. Saf fonksiyondur. */
-export function todaySpendBinds(now: Date): readonly [string, string, number] {
-  return [dayKey(now), dayKey(now), now.getTime()];
+export function todaySpendBinds(kind: SpendCeilingKind, now: Date): readonly (string | number)[] {
+  const base: readonly (string | number)[] = [dayKey(now), dayKey(now), now.getTime()];
+  return kind === "total" ? [...base, dayKey(now), now.getTime()] : base;
 }
 
 /** Bugünkü tahmini harcama (mikro dolar): kesinleşmiş + süren ayırmalar (`todaySpendSql`). */
 async function todaySpendMicroUsd(db: D1Database, kind: SpendCeilingKind, now: Date): Promise<number> {
   const row: { micro_usd: number | null } | null = await db
     .prepare(`SELECT ${todaySpendSql(kind)} AS micro_usd`)
-    .bind(...todaySpendBinds(now))
+    .bind(...todaySpendBinds(kind, now))
     .first<{ micro_usd: number | null }>();
   return row?.micro_usd ?? 0;
 }

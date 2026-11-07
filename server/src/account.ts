@@ -12,6 +12,7 @@ import { ledgerOnDeletionStatement, trialIdentityHash } from "./trialLedger";
 import type { IdentityProvider } from "./auth/users";
 import { type AppleRevocationOutcome, appleTokenDeletionStatement, revokeAppleTokensForDeletion } from "./auth/appleTokens";
 import { dayKey } from "./usage";
+import { phoneDeletionStatements } from "./phone/calls";
 import { shareDeletionStatement } from "./shares";
 import { purgeSyncPrefixNow, syncDeletionStatements, syncPrefix } from "./sync";
 import { deleteAssistantAccount } from "./assistant/store";
@@ -70,6 +71,9 @@ function accountDeletedCounterStatement(db: D1Database, userId: string, now: Dat
  * silme kuyruğuna (`sync_purges`) yazılır (`syncDeletionStatements`); bloklar `deleteAccount`'ta hemen, kalırsa günlük
  * temizlikte silinir.
  * Bağlantıyla paylaşılan notların şifreli kopyaları (`note_shares`) aynı işlemde silinir: bağlantılar hemen 404 döner.
+ * In-app dialer rows (`phone_consents`, `phone_numbers`, `phone_calls`) are deleted in the same batch; a running call's
+ * worst case goes to the day's spend and the account's recordings and caller ID are queued for deletion at the voice
+ * provider (`phoneDeletionStatements`).
  * Toplantıların Deepgram canlı metin satırları (`deepgram_live_meetings`; ömür boyu bütçeye sayıldığı için silinmez)
  * toplantılar silinmeden önce rastgele kimlikle toplantıdan koparılır (`deepgramUnlinkUserStatement`).
  * `daily_spend` (toplam, kişisel değil), `downloads`, `download_sources`, `download_visitors`, `ops_events`,
@@ -101,6 +105,7 @@ function accountDeletionStatements(db: D1Database, userId: string, identityHashe
     db.prepare("DELETE FROM transcription_results WHERE user_id = ?").bind(userId),
     ...syncDeletionStatements(db, userId, syncPrefix(userId), now),
     shareDeletionStatement(db, userId),
+    ...phoneDeletionStatements(db, userId, now),
     ...userReservationRemovalStatements(db, userId),
     deepgramUnlinkUserStatement(db, userId),
     db.prepare("DELETE FROM meeting_sessions WHERE user_id = ?").bind(userId),

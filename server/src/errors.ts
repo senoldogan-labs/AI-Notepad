@@ -68,6 +68,17 @@ export type ErrorCode =
   | "assistant_not_enabled"
   | "assistant_epoch_mismatch"
   | "assistant_quota_exceeded"
+  | "phone_unavailable"
+  | "phone_consent_required"
+  | "phone_number_required"
+  | "phone_number_invalid"
+  | "phone_number_blocked"
+  | "phone_number_in_use"
+  | "phone_verification_limit"
+  | "phone_call_active"
+  | "phone_minutes_exhausted"
+  | "phone_capacity_reached"
+  | "phone_recording_unavailable"
   | "webhook_invalid"
   | "internal_error";
 
@@ -140,6 +151,17 @@ const statusByCode: Readonly<Record<ErrorCode, number>> = {
   assistant_not_enabled: 409,
   assistant_epoch_mismatch: 409,
   assistant_quota_exceeded: 413,
+  phone_unavailable: 503,
+  phone_consent_required: 403,
+  phone_number_required: 409,
+  phone_number_invalid: 400,
+  phone_number_blocked: 403,
+  phone_number_in_use: 409,
+  phone_verification_limit: 429,
+  phone_call_active: 409,
+  phone_minutes_exhausted: 403,
+  phone_capacity_reached: 503,
+  phone_recording_unavailable: 409,
   webhook_invalid: 400,
   internal_error: 500,
 };

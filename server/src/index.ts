@@ -15,6 +15,7 @@ import { errorName, log } from "./log";
 import { retryRecorder } from "./opsEvents";
 import type { CachedJwks, Platform } from "./platform";
 import { grantDueReferralRewards } from "./referralRewards";
+import { phoneCleanup } from "./phone/calls";
 import { scheduledSyncCleanupLimits, syncCleanup } from "./sync";
 import { stubbedFetch, upstreamStubBase } from "./upstreamStub";
 import { type AssistantCleanupReport, assistantCleanup, scheduledAssistantCleanupLimits } from "./assistant/cleanup";
@@ -60,6 +61,7 @@ export default {
       waitUntil: (promise: Promise<void>): void => ctx.waitUntil(promise),
       // Cloudflare her istekte bu başlığı koyar; yerel geliştirmede yoktur.
       clientIp: request.headers.get("cf-connecting-ip") ?? "local",
+      clientCountry: typeof request.cf?.country === "string" ? request.cf.country : null,
     });
   },
   /**
@@ -89,6 +91,9 @@ export default {
       // `ASSISTANT_POLICY` kapalıyken (üretimde AB D1'i oluşturulana kadar bağlama yoktur) adım açıkça atlanır.
       { name: "assistant_cleanup", run: () => scheduledAssistantCleanup(env, config, now) },
       // Bekleme süresi dolmuş davet ödülleri (davet edenin Stripe müşteri bakiyesi; bkz. `referralRewards.ts`).
+      // In-app dialer: unsettled calls past their reservation, unfetched recordings and queued provider deletions
+      // (see `phone/calls.ts`); the provider steps are skipped while `PHONE_CALLS_POLICY` is off.
+      { name: "phone_cleanup", run: () => phoneCleanup(env.DB, platform, config, now) },
       { name: "referral_rewards", run: () => grantDueReferralRewards(env.DB, platform, config, now) },
       // Apple ve Google anahtarları önceden alınır: girişler sağlayıcıyı beklemesin (bkz. `persistedIssuerKeys`).
       { name: "apple_jwks", run: () => refreshPersistedIssuerKeys(env.DB, platform, appleTokenIssuer(config)) },

@@ -21,6 +21,11 @@ packages:
   RevenueCat:
     url: https://github.com/RevenueCat/purchases-ios
     exactVersion: 5.100.0
+  # Uygulamadan arama pilotu (yalnız iOS hedefi, `PHONE_DIALER`): Twilio Voice SDK'nın statik çerçevesi. Bayrak kapalıyken
+  # (Release) hiçbir kod ona başvurmaz ve bağlayıcı statik kitaplıktan hiçbir şey almaz: App Store derlemesi büyümez.
+  TwilioVoice:
+    url: https://github.com/twilio/twilio-voice-ios
+    exactVersion: 6.13.8
 targets:
   AINotepad:
     type: application
@@ -265,6 +270,10 @@ targets:
       # App Store aboneliği (satın alma, geri yükleme; bkz. iOS/Purchases/).
       - package: RevenueCat
         product: RevenueCat
+      # Uygulamadan arama (iOS/PhoneDialer/, `PHONE_DIALER`): VoIP ayağı. Statik çerçeve SystemConfiguration ister.
+      - package: TwilioVoice
+        product: TwilioVoice-static
+      - sdk: SystemConfiguration.framework
     configFiles:
       Debug: Config/Signing.xcconfig
       Release: Config/Signing.xcconfig
@@ -286,7 +295,14 @@ targets:
         CALL_CAPTURE_EXPERIMENT: NO
         CALL_CAPTURE_CONDITION_YES: CALL_CAPTURE_EXPERIMENT
         CALL_CAPTURE_CONDITION_NO: ""
-        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) HOSTED_EDITION $(CALL_CAPTURE_CONDITION_$(CALL_CAPTURE_EXPERIMENT))"
+        # Uygulamadan arama pilotu (docs/superpowers/specs/2026-11-08-iphone-call-recording.md, 2. aşama): YES ise
+        # `iOS/PhoneDialer/` CallKit ve Twilio Voice ile derlenir; arayüz yine yalnız sunucu (`PHONE_CALLS_POLICY`) izin
+        # verince görünür. Release'de NO: App Store derlemesinde CallKit ve Twilio kodu yok (CallKit Çin mağazasında
+        # yasak; sahip mağaza bölgelerine karar verene kadar). Pilot TestFlight derlemesi: arşive `PHONE_DIALER=YES`.
+        PHONE_DIALER: NO
+        PHONE_DIALER_CONDITION_YES: PHONE_DIALER
+        PHONE_DIALER_CONDITION_NO: ""
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) HOSTED_EDITION $(CALL_CAPTURE_CONDITION_$(CALL_CAPTURE_EXPERIMENT)) $(PHONE_DIALER_CONDITION_$(PHONE_DIALER))"
         SWIFT_EMIT_LOC_STRINGS: YES
         LOCALIZATION_PREFERS_STRING_CATALOGS: YES
         GENERATE_INFOPLIST_FILE: YES
@@ -313,6 +329,7 @@ targets:
           HOSTED_DATA_FOLDER_NAME: "AINotepad Hosted Debug"
           HOSTED_KEYCHAIN_SERVICE: "AINotepadHosted.debug"
           CALL_CAPTURE_EXPERIMENT: YES
+          PHONE_DIALER: YES
         Release:
           HOSTED_API_BASE: "https://api.gistsmith.com"
           HOSTED_SITE_BASE: "https://gistsmith.com"

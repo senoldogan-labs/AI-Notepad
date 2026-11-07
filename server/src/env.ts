@@ -94,6 +94,13 @@ export interface Env {
   readonly DEEPGRAM_USD_PER_MINUTE: string;
   readonly DAILY_SPEND_CEILING_USD: string;
   readonly DAILY_TRIAL_SPEND_CEILING_USD: string;
+  /** In-app dialer (`phone/calls.ts`): switch, countries, prices and limits. Production keeps the switch `off`. */
+  readonly PHONE_CALLS_POLICY: string;
+  readonly PHONE_CALLS_COUNTRIES: string;
+  readonly PHONE_USD_PER_MINUTE: string;
+  readonly PHONE_CALL_MAX_MINUTES: string;
+  readonly PHONE_MONTHLY_MINUTES: string;
+  readonly PHONE_DAILY_SPEND_CEILING_USD: string;
   readonly REFRESH_TOKEN_DAYS: string;
   readonly STRIPE_PRICE_ID: string;
   readonly STRIPE_YEARLY_PRICE_ID: string;
@@ -160,4 +167,14 @@ export interface Env {
    * `assistant/crypto.ts`). `gistsmith-mcp` ile aynı değer. Yoksa `/v1/assistant/…` `503 assistant_unavailable`.
    */
   readonly ASSISTANT_DATA_KEY?: string;
+  /**
+   * Twilio Programmable Voice, needed only while `PHONE_CALLS_POLICY=on` (see `phone/twilio.ts` and the dialer spec):
+   * account SID (`AC…`), an API key (`SK…` and its secret), the account auth token (webhook signatures) and the TwiML
+   * App SID (`AP…`).
+   */
+  readonly TWILIO_ACCOUNT_SID?: string;
+  readonly TWILIO_API_KEY_SID?: string;
+  readonly TWILIO_API_KEY_SECRET?: string;
+  readonly TWILIO_AUTH_TOKEN?: string;
+  readonly TWILIO_TWIML_APP_SID?: string;
 }

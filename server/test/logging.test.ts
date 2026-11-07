@@ -54,7 +54,7 @@ describe("yanıttan sonra süren iş", () => {
   it("akış kesinleştirmesi gibi yanıttan sonraki işin hatası kaybolmaz: alarm yazılır", async () => {
     const harness: Harness = await defaultHarness();
     const pending: Promise<void>[] = [];
-    const context: RequestContext = { platform: harness.platform, clientIp: "local", waitUntil: (promise: Promise<void>): void => void pending.push(promise) };
+    const context: RequestContext = { platform: harness.platform, clientIp: "local", clientCountry: null, waitUntil: (promise: Promise<void>): void => void pending.push(promise) };
     const alerts = vi.spyOn(console, "error");
     runAfterResponse(context, Promise.reject(new Error("D1 yazılamadı")), "llm_settle_failed", { reservationId: "r1" });
     await Promise.all(pending);

@@ -15,6 +15,12 @@ struct PhoneCallGuideScreen: View {
     let onPick: @MainActor (PhoneImportSource) -> Void
     @Environment(\.dismiss) private var dismiss: DismissAction
     @Environment(\.openURL) private var openURL: OpenURLAction
+    #if PHONE_DIALER
+    @Environment(PhoneDialer.self) private var dialer: PhoneDialer
+    @Environment(PhoneRecorder.self) private var recorder: PhoneRecorder
+    /// Tuş takımı rehberin gezinme yığınında açılır (`--arama` ile açık başlar).
+    @State private var showsDialer: Bool = launchOpensDialer(arguments: CommandLine.arguments)
+    #endif
 
     var body: some View {
         NavigationStack {
@@ -27,6 +33,12 @@ struct PhoneCallGuideScreen: View {
                         .fixedSize(horizontal: false, vertical: true)
                     NoticeText("Kaydetmeden önce karşı tarafa haber ver ve onayını al; birçok ülkede bu yasal zorunluluktur.", severity: .attention)
                         .appFont(size: 13, weight: .regular)
+                    #if PHONE_DIALER
+                    // Uygulamadan arama yalnız sunucu bu hesaba ve ülkeye izin verince görünür (`PHONE_CALLS_POLICY`).
+                    if dialer.isAvailable {
+                        PhoneDialerCard(dialer: dialer) { showsDialer = true }
+                    }
+                    #endif
                     VStack(alignment: .leading, spacing: 10) {
                         PhoneSectionHeader(title: "iPhone'un arama kaydıyla", actionTitle: nil, action: nil)
                         CallRecordingStepsCard(onOpenNotes: openNotes, onPickFile: { pick(source: .files) })
@@ -48,6 +60,10 @@ struct PhoneCallGuideScreen: View {
             .scrollIndicators(.hidden)
             .background(Theme.background)
             .navigationTitle(Text("Telefon görüşmesi"))
+            #if PHONE_DIALER
+            .navigationDestination(isPresented: $showsDialer) { PhoneDialerScreen(dialer: dialer) }
+            .task { await dialer.refresh(recorder: recorder) }
+            #endif
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {

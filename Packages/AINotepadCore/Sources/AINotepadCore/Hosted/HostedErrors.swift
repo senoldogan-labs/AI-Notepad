@@ -80,6 +80,18 @@ public enum HostedErrorCode: String, Sendable, CaseIterable, Equatable {
     case assistantNotEnabled = "assistant_not_enabled"
     case assistantEpochMismatch = "assistant_epoch_mismatch"
     case assistantQuotaExceeded = "assistant_quota_exceeded"
+    // Uygulamadan arama (iPhone pilotu; `server/src/phone/calls.ts`, `HostedPhoneClient`).
+    case phoneUnavailable = "phone_unavailable"
+    case phoneConsentRequired = "phone_consent_required"
+    case phoneNumberRequired = "phone_number_required"
+    case phoneNumberInvalid = "phone_number_invalid"
+    case phoneNumberBlocked = "phone_number_blocked"
+    case phoneNumberInUse = "phone_number_in_use"
+    case phoneVerificationLimit = "phone_verification_limit"
+    case phoneCallActive = "phone_call_active"
+    case phoneMinutesExhausted = "phone_minutes_exhausted"
+    case phoneCapacityReached = "phone_capacity_reached"
+    case phoneRecordingUnavailable = "phone_recording_unavailable"
     // Apple ile girişin yetkilendirme kodu yalnızca sitenindir (`server/src/auth/appleTokens.ts`); uygulama bu ucu çağırmaz.
     case appleTokensUnavailable = "apple_tokens_unavailable"
     case internalError = "internal_error"
@@ -367,6 +379,28 @@ public func hostedErrorMessage(error: HostedAPIError) -> String {
         return String(localized: "Bir hesapta en çok \(noteShareMaxActiveLinks) etkin bağlantı olabilir; eski bağlantıları kaldırıp yeniden dene.")
     case .shareExists:
         return String(localized: "Bağlantı oluşturulamadı; yeniden dene.")
+    case .phoneUnavailable:
+        return String(localized: "Gistsmith'ten arama şu an kullanılamıyor.")
+    case .phoneConsentRequired:
+        return String(localized: "Aramadan önce kayıt koşullarını kabul et.")
+    case .phoneNumberRequired:
+        return String(localized: "Aramadan önce kendi telefon numaranı doğrula.")
+    case .phoneNumberInvalid:
+        return String(localized: "Numara geçersiz. Ülke koduyla yaz, ör. +1 415 555 0100.")
+    case .phoneNumberBlocked:
+        return String(localized: "Bu numara Gistsmith'ten aranamaz: ücretli, özel ya da desteklenmeyen bir ülkedeki numaralar engelli.")
+    case .phoneNumberInUse:
+        return String(localized: "Bu numara başka bir Gistsmith hesabında kullanılıyor.")
+    case .phoneVerificationLimit:
+        return String(localized: "Bugün çok fazla doğrulama araması yapıldı; yarın yeniden dene.")
+    case .phoneCallActive:
+        return String(localized: "Hesabında süren başka bir arama var; o bitince yeniden dene.")
+    case .phoneMinutesExhausted:
+        return String(localized: "Bu ayki arama dakikaların doldu; ay başında yenilenir.")
+    case .phoneCapacityReached:
+        return String(localized: "Arama bugün çok yoğun; yarın yeniden dene.")
+    case .phoneRecordingUnavailable:
+        return String(localized: "Aramanın kaydı henüz hazır değil ya da silindi.")
     case .forbidden:
         return String(localized: "Bu işleme izin yok.")
     case .internalError:
@@ -388,6 +422,8 @@ private func monthlyCapMessage(path: String) -> String {
         String(localized: "Bu ayki kayıt saatlerin bu kaydı işlemeye yetmiyor; canlı metin kullanılır. Sınır ay başında sıfırlanır.")
     case "/v1/llm/messages":
         String(localized: "Bu ayki yapay zekâ payın doldu (Sor, notu yeniden yazma…); ay başında sıfırlanır. Kayıt yapmaya devam edebilirsin.")
+    case "/v1/phone/calls":
+        String(localized: "Bu ayki kayıt saatlerin doldu; arama da kaydedileceği için yeni arama ay başında açılır.")
     default:
         String(localized: "Bu ayki kullanım sınırına ulaştın; sınır ay başında sıfırlanır.")
     }
