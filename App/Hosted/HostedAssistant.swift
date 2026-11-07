@@ -316,6 +316,30 @@ final class HostedAssistantCenter {
         schedulePass(delaySeconds: 0)
     }
 
+    /// Sunucunun kabul etmediği toplantıları şimdi yeniden dener (Ayarlar'daki "Yeniden dene"; toplantı değişince
+    /// zaten kendiliğinden denenir).
+    func retryRejected() async {
+        if isDemo {
+            if let progress {
+                self.progress = AssistantUploadProgress(uploaded: progress.uploaded + progress.rejected, rejected: 0, rejectionReason: nil, total: progress.total)
+            }
+            return
+        }
+        guard let uploader, scope != nil else {
+            return
+        }
+        actionError = nil
+        do {
+            try await uploader.retryRejected()
+        } catch {
+            hostedAssistantLogger.error("Kabul edilmeyen toplantılar yeniden denenemedi, hata: \(String(describing: error), privacy: .private)")
+            actionError = userFacingMessage(error: error)
+            return
+        }
+        consecutiveFailures = 0
+        schedulePass(delaySeconds: 0)
+    }
+
     func dismissNotice() {
         notice = nil
     }
@@ -553,7 +577,7 @@ final class HostedAssistantCenter {
         isOn = true
         copyMeetings = 128
         maxMeetings = 5000
-        progress = AssistantUploadProgress(uploaded: 96, total: 128)
+        progress = AssistantUploadProgress(uploaded: 96, rejected: 0, rejectionReason: nil, total: 128)
         uploadStatus = .uploading
         grants = [
             HostedAssistantGrant(
@@ -566,6 +590,14 @@ final class HostedAssistantCenter {
             ),
         ]
         notice = String(localized: "\("ChatGPT") artık toplantılarını okuyabilir.")
+    }
+
+    /// Tanıtım modu, yükleme bitmiş ve sunucunun kabul etmediği toplantılarla (görsel kontrol: `--reddedilen`).
+    func showRefusedForDemo(now: Date) {
+        showForDemo(now: now)
+        notice = nil
+        progress = AssistantUploadProgress(uploaded: 125, rejected: 3, rejectionReason: .tooLarge, total: 128)
+        uploadStatus = .idle
     }
 
     // MARK: Yardımcılar

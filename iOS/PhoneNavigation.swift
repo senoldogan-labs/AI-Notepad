@@ -60,6 +60,8 @@ struct PhoneDestination: View {
             CustomTemplateScreen()
         case .assistantAccess:
             PhoneAssistantScreen()
+        case .connections:
+            PhoneConnectionsScreen()
         }
     }
 }

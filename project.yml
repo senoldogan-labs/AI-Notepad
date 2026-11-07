@@ -230,6 +230,9 @@ targets:
       - path: App/EngagementNotifier.swift
       # Görünen ad (metinlerdeki ürün adı) Mac'le aynı yoldan okunur; iPhone'da "Gistsmith".
       - path: App/AppName.swift
+      # Ayarlar › Bağlantılar'ın ortak içeriği (entegrasyon adları, açıklamaları, "İçerir" ve "nasıl kullanılır"
+      # satırları, marka kutusu) Mac'le aynı.
+      - path: App/ConnectionCatalog.swift
       # Abonelik hesabı (giriş, hak durumu, toplantı oturumu, cihaz doğrulaması), sunucu bağlantı noktaları ve telemetri
       # Mac'teki Gistsmith'le ortak; platforma özgü kısımlar dosyaların içinde `os(macOS)`/`os(iOS)` ile ayrılır.
       - path: App/AppTelemetry.swift

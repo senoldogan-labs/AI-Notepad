@@ -59,9 +59,14 @@ struct AINotepadiOSApp: App {
             } else {
                 account.showAccountForDemo(entitlements: phoneDemoEntitlements(now: Date()), referral: nil)
             }
-            // `--ekran asistan`: yapay zekâ asistanı erişimi açık, iki bağlı asistan (görsel kontrol; sunucuya gidilmez).
+            // `--ekran asistan`: yapay zekâ asistanı erişimi açık, iki bağlı asistan; `--reddedilen` ile yükleme bitmiş ve
+            // sunucunun kabul etmediği toplantılar var (görsel kontrol; sunucuya gidilmez).
             if launchPath(arguments: CommandLine.arguments).last == .assistantAccess {
-                HostedAssistantCenter.shared.showForDemo(now: Date())
+                if CommandLine.arguments.contains("--reddedilen") {
+                    HostedAssistantCenter.shared.showRefusedForDemo(now: Date())
+                } else {
+                    HostedAssistantCenter.shared.showForDemo(now: Date())
+                }
             }
             // `--aciklama`: yapay zekâ açıklaması yeniden gösterilir (görsel kontrol).
             UserDefaults.standard.set(!CommandLine.arguments.contains("--aciklama"), forKey: PhoneSettingsKey.aiDisclosureAccepted)
@@ -601,6 +606,8 @@ enum PhoneRoute: Hashable {
     case customTemplate
     /// Ayarlar › Yapay zekâ asistanı erişimi.
     case assistantAccess
+    /// Ayarlar › Bağlantılar (kanallar ve görev araçları).
+    case connections
 }
 
 /// Gezinme durumu: ana ekranın üstündeki sayfa yığını ve kitaplık sayfası. Uygulama içindeki bağlantılar yığına ekler
@@ -735,6 +742,7 @@ private func launchScreenRoutes(screen: String) -> [PhoneRoute] {
     case "profil": [.settings, .profile]
     case "hesap": [.settings, .account]
     case "asistan": [.settings, .assistantAccess]
+    case "baglantilar": [.settings, .connections]
     default: []
     }
 }
