@@ -78,7 +78,7 @@ describe("MCP OAuth", () => {
   it("connects a client end to end (DCR, PKCE, resource) and serves the tools", async () => {
     const { harness, test, client } = await setup();
     const user: Owner = await owner(harness);
-    const meetingId: string = randomId();
+    const meetingId: string = "20261105-103000";  // a session folder name, as the apps send it
     await putMeeting(harness, user.session, meetingId, { ...fieldsFor(user.epoch, "Quarterly budget"), folder: "Finance" });
     const tokens: Tokens = await connect(test, client, user.subject);
     expect(tokens.expires_in).toBe(3600);

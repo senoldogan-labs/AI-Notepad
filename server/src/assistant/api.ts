@@ -5,7 +5,7 @@ import { jsonResponse, readJsonBody } from "../http";
 import { log } from "../log";
 import { hasSyncAccess } from "../sync";
 import { type AssistantKeyring, AssistantKeyringError, parseAssistantKeyring } from "./crypto";
-import { type ProjectionUpload, normalizedUuid, projectionMaxBytes, projectionUploadSchema } from "./projection";
+import { type ProjectionUpload, normalizedMeetingId, normalizedUuid, projectionMaxBytes, projectionUploadSchema } from "./projection";
 import {
   type AssistantSettingsRow,
   assistantGrantBody,
@@ -114,7 +114,10 @@ export async function routeAssistant(
   }
   const meetingMatch: RegExpExecArray | null = meetingPath.exec(path);
   if (meetingMatch !== null) {
-    const meetingId: string = pathUuid(meetingMatch, "meeting id");
+    const meetingId: string | null = normalizedMeetingId(meetingMatch[1] ?? "");
+    if (meetingId === null) {
+      throw new ApiError("bad_request", "The meeting id is not valid.");
+    }
     if (method === "PUT") {
       await requireAccess(db, config, userId, now);
       const keyring: AssistantKeyring = keyringOf(bindings.dataKey);
