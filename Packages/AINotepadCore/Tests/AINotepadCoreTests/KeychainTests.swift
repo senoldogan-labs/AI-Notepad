@@ -1,4 +1,5 @@
 import Foundation
+import Security
 import Testing
 @testable import AINotepadCore
 
@@ -34,6 +35,28 @@ import Testing
         try saveSecret(service: service, account: .elevenlabs, value: "x")
         #expect(try secretExists(service: service, account: .elevenlabs) == true)
         try deleteSecret(service: service, account: .elevenlabs)
+    }
+}
+
+@Suite struct SecretAccessibilityTests {
+    // iPhone'da kendiliğinden gönderimin sırları (hedefler, görev araçları) kilitli ekranda da okunur ve cihazda kalır;
+    // diğer anahtarlar ve Mac sistemin varsayılanında kalır.
+    @Test func autoSendSecretsAreReadableWhileLockedOnIPhoneOnly() {
+        for account in SecretAccount.allCases {
+            #if os(iOS)
+            let expected: String? = [.destinations, .taskTrackers].contains(account) ? kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly as String : nil
+            #else
+            let expected: String? = nil
+            #endif
+            #expect(secretAccessibility(account: account) == expected)
+        }
+    }
+
+    // Kilitliyken okunamayan öğe ayrı tanınır (kendiliğinden gönderim kilit açılınca yeniden dener); diğer hatalar değil.
+    @Test func lockedKeychainErrorIsRecognised() {
+        #expect(isLockedKeychainError(KeychainError.unexpectedStatus(operation: "SecItemCopyMatching", status: errSecInteractionNotAllowed)))
+        #expect(!isLockedKeychainError(KeychainError.unexpectedStatus(operation: "SecItemCopyMatching", status: errSecAuthFailed)))
+        #expect(!isLockedKeychainError(KeychainError.notFound(service: "s", account: "destinations")))
     }
 }
 

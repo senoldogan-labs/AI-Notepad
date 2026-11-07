@@ -1195,31 +1195,6 @@ private struct KeySettings: View {
             SettingsGroup(title: Text("Konuşma tanıma")) {
                 SecretField(icon: "waveform", title: "Deepgram", account: .deepgram, onChange: model.settingsChanged)
                 SecretField(icon: "person.2.wave.2", title: "ElevenLabs", account: .elevenlabs, onChange: model.settingsChanged)
-                SettingsRow(icon: "iphone", title: Text("iPhone'da da kullan")) {
-                    SettingsMoreText(
-                        summary: Text("Anahtarların bir kopyası iCloud Anahtar Zinciri ile iPhone'a gider."),
-                        details: Text("Deepgram, ElevenLabs ve LLM anahtarlarının bir kopyası iCloud Anahtar Zinciri ile iPhone'daki AI-Notepad'e gider; telefonda yeniden girmen gerekmez. Bu Mac'teki anahtarlar değişmez.")
-                    )
-                    switch model.keySync {
-                    case .working:
-                        Text("Kopyalanıyor…").foregroundStyle(Theme.ink)
-                    case .failed(let message):
-                        NoticeText(message, severity: .error)
-                    case .idle:
-                        if !model.sharedKeyAccounts.isEmpty {
-                            Text("iPhone'da kullanılıyor: \(model.sharedKeyAccounts.map(secretAccountTitle).joined(separator: ", "))").foregroundStyle(Theme.ink)
-                        }
-                    }
-                } control: {
-                    HStack(spacing: 8) {
-                        if !model.sharedKeyAccounts.isEmpty {
-                            Button("Kaldır", role: .destructive) { Task { await model.stopSharingKeys() } }
-                                .hoverHint("Kopyalar iCloud'dan silinir; iPhone'da anahtarlar yeniden girilmeli", alignment: .trailing, edge: .bottom)
-                        }
-                        Button(model.sharedKeyAccounts.isEmpty ? "iPhone'a gönder" : "Güncelle") { Task { await model.shareKeysWithIPhone() } }
-                    }
-                    .disabled(model.keySync == .working)
-                }
             } footer: {
                 Text("Anahtarlar macOS Anahtar Zinciri'nde saklanır ve hiçbir zaman gösterilmez. Terminal'den eklediysen ilk kullanımda çıkan izin penceresinde \"Her Zaman İzin Ver\"i seç.")
             }

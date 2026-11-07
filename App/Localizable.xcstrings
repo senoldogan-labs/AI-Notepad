@@ -35940,76 +35940,6 @@
         }
       }
     },
-    "Deepgram, ElevenLabs ve LLM anahtarlarının bir kopyası iCloud Anahtar Zinciri ile iPhone'daki AI-Notepad'e gider; telefonda yeniden girmen gerekmez. Bu Mac'teki anahtarlar değişmez.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Eine Kopie deiner Deepgram-, ElevenLabs- und LLM-Schlüssel geht über den iCloud-Schlüsselbund an AI-Notepad auf deinem iPhone, damit du sie nicht erneut eingeben musst. Die Schlüssel auf diesem Mac ändern sich nicht."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A copy of your Deepgram, ElevenLabs and LLM keys goes to AI-Notepad on your iPhone via iCloud Keychain, so you don't have to enter them again. The keys on this Mac don't change."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Una copia de tus claves de Deepgram, ElevenLabs y del LLM llega a AI-Notepad en tu iPhone a través del Llavero de iCloud, para que no tengas que volver a introducirlas. Las claves de este Mac no cambian."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kopio Deepgram-, ElevenLabs- ja kielimalliavaimistasi siirtyy iCloud-avainnipun kautta iPhonesi AI-Notepadiin, joten sinun ei tarvitse syöttää niitä uudelleen. Tämän Macin avaimet eivät muutu."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Une copie de vos clés Deepgram, ElevenLabs et LLM est transmise à AI-Notepad sur votre iPhone via le trousseau iCloud ; vous n’avez donc pas à les saisir à nouveau. Les clés de ce Mac ne changent pas."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Una copia delle chiavi Deepgram, ElevenLabs e LLM arriva ad AI-Notepad su iPhone tramite il Portachiavi iCloud, così non devi inserirle di nuovo. Le chiavi su questo Mac non cambiano."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Deepgram、ElevenLabs、LLMのキーのコピーがiCloudキーチェーン経由でiPhoneのAI-Notepadに送られるため、再入力の必要はありません。このMacのキーは変更されません。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Deepgram, ElevenLabs 및 LLM 키의 사본이 iCloud 키체인을 통해 iPhone의 AI-Notepad로 전송되므로 다시 입력할 필요가 없습니다. 이 Mac의 키는 변경되지 않습니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Een kopie van je Deepgram-, ElevenLabs- en LLM-sleutels gaat via de iCloud-sleutelhanger naar AI-Notepad op je iPhone, zodat je ze niet opnieuw hoeft in te voeren. De sleutels op deze Mac veranderen niet."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Uma cópia das suas chaves do Deepgram, do ElevenLabs e do LLM vai para o AI-Notepad no seu iPhone pelas Chaves do iCloud, para que você não precise digitá-las de novo. As chaves deste Mac não mudam."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "你的 Deepgram、ElevenLabs 和 LLM 密钥会通过 iCloud 钥匙串将副本发送到你 iPhone 上的 AI-Notepad，因此无需再次输入。这台 Mac 上的密钥不会改变。"
-          }
-        }
-      }
-    },
     "Dene": {
       "localizations": {
         "de": {
@@ -70979,146 +70909,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "已拷贝"
-          }
-        }
-      }
-    },
-    "Kopyalanıyor…": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Wird kopiert …"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Copying…"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Copiando…"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kopioidaan…"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Copie…"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Copia in corso…"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コピー中…"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "복사 중…"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kopiëren…"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Copiando…"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在拷贝…"
-          }
-        }
-      }
-    },
-    "Kopyalar iCloud'dan silinir; iPhone'da anahtarlar yeniden girilmeli": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die Kopien werden aus iCloud gelöscht; die Schlüssel müssen auf dem iPhone erneut eingegeben werden"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The copies are deleted from iCloud; keys must be entered again on the iPhone"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Las copias se eliminan de iCloud; habrá que volver a introducir las claves en el iPhone"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kopiot poistetaan iCloudista; avaimet täytyy syöttää iPhonessa uudelleen"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Les copies sont supprimées d’iCloud ; les clés devront être saisies à nouveau sur l’iPhone"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le copie vengono eliminate da iCloud; le chiavi dovranno essere inserite di nuovo su iPhone"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コピーはiCloudから削除されます。iPhoneでキーを再入力する必要があります"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "사본이 iCloud에서 삭제됩니다. iPhone에서 키를 다시 입력해야 합니다"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "De kopieën worden uit iCloud verwijderd; sleutels moeten opnieuw op de iPhone worden ingevoerd"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "As cópias são apagadas do iCloud; as chaves precisarão ser digitadas de novo no iPhone"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "副本将从 iCloud 中删除；需要在 iPhone 上重新输入密钥"
           }
         }
       }
@@ -107774,216 +107564,6 @@
         }
       }
     },
-    "iPhone'a gönder": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "An iPhone senden"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Send to iPhone"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enviar al iPhone"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lähetä iPhoneen"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Envoyer vers l’iPhone"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Invia a iPhone"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iPhoneに送信"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iPhone으로 보내기"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Stuur naar iPhone"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enviar para o iPhone"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "发送到 iPhone"
-          }
-        }
-      }
-    },
-    "iPhone'da da kullan": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auch auf dem iPhone verwenden"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Use on iPhone too"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Usar también en el iPhone"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Käytä myös iPhonessa"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Utiliser aussi sur l’iPhone"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Usa anche su iPhone"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iPhoneでも使用"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iPhone에서도 사용"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gebruik ook op iPhone"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Usar também no iPhone"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "也在 iPhone 上使用"
-          }
-        }
-      }
-    },
-    "iPhone'da kullanılıyor: %@": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auf dem iPhone verwendet: %@"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Used on iPhone: %@"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Se usa en el iPhone: %@"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Käytössä iPhonessa: %@"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Utilisé sur l’iPhone : %@"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "In uso su iPhone: %@"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iPhoneで使用中：%@"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iPhone에서 사용: %@"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gebruikt op iPhone: %@"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Usado no iPhone: %@"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在 iPhone 上使用：%@"
-          }
-        }
-      }
-    },
     "ilk toplantıyla başlar": {
       "extractionState": "manual",
       "localizations": {
@@ -108195,72 +107775,72 @@
         }
       }
     },
-    "macOS Anahtar Zinciri'nde saklanır, hiçbir yere gönderilmez; istersen iCloud ile iPhone'a gider.": {
+    "macOS Anahtar Zinciri'nde saklanır, hiçbir yere gönderilmez.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Im macOS-Schlüsselbund gespeichert und nie irgendwohin gesendet; auf Wunsch gehen sie über iCloud an dein iPhone."
+            "value": "Im macOS-Schlüsselbund gespeichert und nie irgendwohin gesendet."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stored in the macOS Keychain and never sent anywhere; if you like, they go to your iPhone via iCloud."
+            "value": "Stored in the macOS Keychain and never sent anywhere."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Se guardan en el Llavero de macOS y nunca se envían a ningún sitio; si quieres, llegan a tu iPhone a través de iCloud."
+            "value": "Se guardan en el Llavero de macOS y nunca se envían a ningún sitio."
           }
         },
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tallennetaan macOS:n Avainnippuun eikä niitä lähetetä minnekään; halutessasi ne siirtyvät iPhoneesi iCloudin kautta."
+            "value": "Tallennetaan macOS:n Avainnippuun eikä niitä lähetetä minnekään."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stockées dans le trousseau macOS et jamais envoyées nulle part ; si vous le souhaitez, elles sont transmises à votre iPhone via iCloud."
+            "value": "Stockées dans le trousseau macOS et jamais envoyées nulle part."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Conservate nel Portachiavi di macOS e mai inviate da nessuna parte; se vuoi, arrivano su iPhone tramite iCloud."
+            "value": "Conservate nel Portachiavi di macOS e mai inviate da nessuna parte."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "macOSのキーチェーンに保存され、どこにも送信されません。希望すれば、iCloud経由でiPhoneに送られます。"
+            "value": "macOSのキーチェーンに保存され、どこにも送信されません。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "macOS 키체인에 저장되며 어디로도 전송되지 않습니다. 원하면 iCloud를 통해 iPhone으로 전달됩니다."
+            "value": "macOS 키체인에 저장되며 어디로도 전송되지 않습니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bewaard in de macOS-sleutelhanger en nooit ergens naartoe gestuurd; als je wilt, gaan ze via iCloud naar je iPhone."
+            "value": "Bewaard in de macOS-sleutelhanger en nooit ergens naartoe gestuurd."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Guardadas nas Chaves do macOS e nunca enviadas a lugar nenhum; se quiser, elas vão para seu iPhone pelo iCloud."
+            "value": "Guardadas nas Chaves do macOS e nunca enviadas a lugar nenhum."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "存储在 macOS 钥匙串中，绝不会发送到任何地方；如果你愿意，可以通过 iCloud 发送到你的 iPhone。"
+            "value": "存储在 macOS 钥匙串中，绝不会发送到任何地方。"
           }
         }
       }
@@ -151475,76 +151055,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "建议使用快速模型和低推理强度：翻译 1–2 秒内送达。"
-          }
-        }
-      }
-    },
-    "Anahtarların bir kopyası iCloud Anahtar Zinciri ile iPhone'a gider.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Eine Kopie deiner Schlüssel geht über den iCloud-Schlüsselbund aufs iPhone."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A copy of your keys goes to iPhone via iCloud Keychain."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Una copia de tus claves llega al iPhone mediante el Llavero de iCloud."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kopio avaimistasi siirtyy iPhoneen iCloud-avainnipun kautta."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Une copie de tes clés est envoyée sur l'iPhone via le trousseau iCloud."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Una copia delle tue chiavi arriva su iPhone tramite il Portachiavi iCloud."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キーのコピーがiCloudキーチェーン経由でiPhoneに送られます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "키 사본이 iCloud 키체인을 통해 iPhone으로 전송됩니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Een kopie van je sleutels gaat via iCloud-sleutelhanger naar de iPhone."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Uma cópia das suas chaves vai para o iPhone pelo Porta-chaves do iCloud."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "密钥的副本会通过 iCloud 钥匙串发送到 iPhone。"
           }
         }
       }

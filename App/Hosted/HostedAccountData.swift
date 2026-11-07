@@ -92,7 +92,7 @@ private func moveLegacyUserContentSecrets(destinationService: String) throws {
         } catch KeychainError.notFound {
             continue
         }
-        guard try !localSecretExists(service: destinationService, account: account) else {
+        guard try !secretExists(service: destinationService, account: account) else {
             accountDataLogger.warning("Bağlantılar hesapta zaten var, eski öğe yerinde bırakıldı, hesap: \(account.rawValue, privacy: .public)")
             continue
         }

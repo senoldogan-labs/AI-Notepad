@@ -27,33 +27,62 @@ public enum KeychainError: Error, Equatable {
     case unexpectedStatus(operation: String, status: Int32)
 }
 
-/// Kayıtlı anahtarı okur; yoksa `.notFound`. iPhone'da önce cihazda girilen, yoksa Mac'ten iCloud Anahtar Zinciri ile
-/// gelen kopya okunur.
-public func readSecret(service: String, account: SecretAccount) throws -> String {
+/// Öğenin ne zaman okunabileceği (`kSecAttrAccessible`); nil ise sistemin varsayılanı (yalnız cihaz kilitli değilken).
+/// iPhone'da notun kendiliğinden gönderildiği hedeflerin ve görev araçlarının sırları kilitli ekranda da okunabilmeli:
+/// toplantı bitip not arka planda hazırlandığında telefon çoğu zaman kilitlidir ve gönderim kilit açılana dek beklerdi.
+/// "Bu cihazda": yedekten başka cihaza taşınmaz. Mac'te (dosya tabanlı Anahtar Zinciri) değişmez. Saf fonksiyondur.
+func secretAccessibility(account: SecretAccount) -> String? {
     #if os(iOS)
-    do {
-        return try readSecret(query: baseQuery(service: service, account: account), service: service, account: account)
-    } catch KeychainError.notFound {
-        return try readSecret(query: syncedQuery(service: service, account: account), service: service, account: account)
+    switch account {
+    case .destinations, .taskTrackers:
+        return kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly as String
+    case .deepgram, .elevenlabs, .anthropic, .openai, .webhook, .channel:
+        return nil
     }
     #else
-    return try readSecret(query: baseQuery(service: service, account: account), service: service, account: account)
+    return nil
     #endif
 }
 
-private func readSecret(query base: [String: Any], service: String, account: SecretAccount) throws -> String {
-    var query: [String: Any] = base
+/// Hata, cihaz kilitliyken okunamayan bir öğeden mi (`errSecInteractionNotAllowed`; ör. erişilebilirliği henüz
+/// güncellenmemiş eski öğe). Saf fonksiyondur.
+public func isLockedKeychainError(_ error: any Error) -> Bool {
+    if case KeychainError.unexpectedStatus(_, let status) = error {
+        return status == errSecInteractionNotAllowed
+    }
+    return false
+}
+
+/// Kayıtlı anahtarı okur; yoksa `.notFound`. Erişilebilirliği `secretAccessibility`'den farklı (eski sürümün yazdığı)
+/// öğe okununca güncellenir: bir sonraki kilitli okumada da açılır.
+public func readSecret(service: String, account: SecretAccount) throws -> String {
+    var query: [String: Any] = baseQuery(service: service, account: account)
     query[kSecReturnData as String] = true
+    query[kSecReturnAttributes as String] = true
     query[kSecMatchLimit as String] = kSecMatchLimitOne
     var result: CFTypeRef?
     let status: OSStatus = SecItemCopyMatching(query as CFDictionary, &result)
     if status == errSecItemNotFound {
         throw KeychainError.notFound(service: service, account: account.rawValue)
     }
-    guard status == errSecSuccess, let data = result as? Data else {
+    guard status == errSecSuccess, let item = result as? [String: Any], let data = item[kSecValueData as String] as? Data else {
         throw KeychainError.unexpectedStatus(operation: "SecItemCopyMatching", status: status)
     }
+    if let accessibility = secretAccessibility(account: account), item[kSecAttrAccessible as String] as? String != accessibility {
+        try updateSecret(service: service, account: account, attributes: [kSecAttrAccessible as String: accessibility], operation: "SecItemUpdate(accessible)")
+    }
     return String(decoding: data, as: UTF8.self)
+}
+
+/// Var olan öğenin özniteliklerini günceller; öğe yoksa `.notFound`.
+private func updateSecret(service: String, account: SecretAccount, attributes: [String: Any], operation: String) throws {
+    let status: OSStatus = SecItemUpdate(baseQuery(service: service, account: account) as CFDictionary, attributes as CFDictionary)
+    if status == errSecItemNotFound {
+        throw KeychainError.notFound(service: service, account: account.rawValue)
+    }
+    guard status == errSecSuccess else {
+        throw KeychainError.unexpectedStatus(operation: operation, status: status)
+    }
 }
 
 /// Okumayı arka planda yapar: Keychain izin penceresi açıkken (ör. `security` aracıyla eklenmiş anahtar)
@@ -73,21 +102,18 @@ public func optionalSecretInBackground(service: String, account: SecretAccount) 
     }
 }
 
-/// Anahtarı kaydeder; varsa üzerine yazar.
+/// Anahtarı kaydeder; varsa üzerine yazar. Erişilebilirlik `secretAccessibility`'dendir (üzerine yazımda da güncellenir).
 public func saveSecret(service: String, account: SecretAccount, value: String) throws {
-    let data: Data = Data(value.utf8)
-    let updateStatus: OSStatus = SecItemUpdate(
-        baseQuery(service: service, account: account) as CFDictionary,
-        [kSecValueData as String: data] as CFDictionary
-    )
-    if updateStatus == errSecSuccess {
+    var attributes: [String: Any] = [kSecValueData as String: Data(value.utf8)]
+    if let accessibility = secretAccessibility(account: account) {
+        attributes[kSecAttrAccessible as String] = accessibility
+    }
+    do {
+        try updateSecret(service: service, account: account, attributes: attributes, operation: "SecItemUpdate")
         return
+    } catch KeychainError.notFound {
+        attributes.merge(baseQuery(service: service, account: account)) { (_: Any, new: Any) -> Any in new }
     }
-    guard updateStatus == errSecItemNotFound else {
-        throw KeychainError.unexpectedStatus(operation: "SecItemUpdate", status: updateStatus)
-    }
-    var attributes: [String: Any] = baseQuery(service: service, account: account)
-    attributes[kSecValueData as String] = data
     let addStatus: OSStatus = SecItemAdd(attributes as CFDictionary, nil)
     guard addStatus == errSecSuccess else {
         throw KeychainError.unexpectedStatus(operation: "SecItemAdd", status: addStatus)
@@ -110,69 +136,26 @@ private func baseQuery(service: String, account: SecretAccount) -> [String: Any]
     ]
 }
 
-/// iCloud Anahtar Zinciri ile eşitlenen kopya: veri koruma anahtar zinciri, uygulamanın varsayılan erişim grubu
-/// (`TAKIM.com.senoldogan.AINotepad`; Mac ve iPhone uygulamasının kimliği aynı olduğu için ikisi de okur).
-private func syncedQuery(service: String, account: SecretAccount) -> [String: Any] {
-    baseQuery(service: service, account: account).merging([
-        kSecAttrSynchronizable as String: true,
-        kSecUseDataProtectionKeychain as String: true,
-    ]) { (_: Any, new: Any) -> Any in new }
-}
-
-/// Anahtarın iPhone'da da kullanılması için iCloud Anahtar Zinciri ile eşitlenen kopyasını yazar (varsa üzerine).
-/// Yerel öğeye dokunmaz. Uygulama iCloud'lu profille imzalanmamışsa `unexpectedStatus` (-34018).
-public func saveSyncedSecret(service: String, account: SecretAccount, value: String) throws {
-    let data: Data = Data(value.utf8)
-    let updateStatus: OSStatus = SecItemUpdate(syncedQuery(service: service, account: account) as CFDictionary, [kSecValueData as String: data] as CFDictionary)
-    if updateStatus == errSecSuccess {
-        return
-    }
-    guard updateStatus == errSecItemNotFound else {
-        throw KeychainError.unexpectedStatus(operation: "SecItemUpdate(synced)", status: updateStatus)
-    }
-    var attributes: [String: Any] = syncedQuery(service: service, account: account)
-    attributes[kSecValueData as String] = data
-    attributes[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
-    let addStatus: OSStatus = SecItemAdd(attributes as CFDictionary, nil)
-    guard addStatus == errSecSuccess else {
-        throw KeychainError.unexpectedStatus(operation: "SecItemAdd(synced)", status: addStatus)
+/// Eski sürümün "iPhone'da da kullan" ayarının iCloud Anahtar Zinciri ile eşitlediği kopyaları (veri koruma anahtar
+/// zinciri, eşitlenen öğe) her hesap adı için siler: o ayar kaldırıldı ve kopyaları hiçbir uygulama okumaz; anahtarlar
+/// iCloud'da kalmasın. Kopya yoksa hata değildir; diğer durumlar `unexpectedStatus` fırlatır (ör. uygulama iCloud'lu
+/// profille imzalanmamışsa -34018).
+public func deleteLegacySyncedSecrets(service: String) throws {
+    for account in SecretAccount.allCases {
+        let query: [String: Any] = baseQuery(service: service, account: account).merging([
+            kSecAttrSynchronizable as String: true,
+            kSecUseDataProtectionKeychain as String: true,
+        ]) { (_: Any, new: Any) -> Any in new }
+        let status: OSStatus = SecItemDelete(query as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            throw KeychainError.unexpectedStatus(operation: "SecItemDelete(synced)", status: status)
+        }
     }
 }
 
-/// Eşitlenen kopyayı siler (tüm cihazlardan kalkar); zaten yoksa hata değildir.
-public func deleteSyncedSecret(service: String, account: SecretAccount) throws {
-    let status: OSStatus = SecItemDelete(syncedQuery(service: service, account: account) as CFDictionary)
-    guard status == errSecSuccess || status == errSecItemNotFound else {
-        throw KeychainError.unexpectedStatus(operation: "SecItemDelete(synced)", status: status)
-    }
-}
-
-/// Bu cihazdaki (eşitlenmeyen) öğe var mı. Değeri okumaz.
-public func localSecretExists(service: String, account: SecretAccount) throws -> Bool {
-    try exists(query: baseQuery(service: service, account: account), operation: "SecItemCopyMatching(local)")
-}
-
-/// Anahtar değişince eşitlenen kopya da güncellenir (iPhone eskimiş anahtarla kalmasın); kopya yoksa bir şey yapmaz.
-public func updateSyncedSecretIfShared(service: String, account: SecretAccount, value: String) throws {
-    if try syncedSecretExists(service: service, account: account) {
-        try saveSyncedSecret(service: service, account: account, value: value)
-    }
-}
-
-/// Eşitlenen kopya var mı. Değeri okumaz.
-public func syncedSecretExists(service: String, account: SecretAccount) throws -> Bool {
-    try exists(query: syncedQuery(service: service, account: account), operation: "SecItemCopyMatching(synced)")
-}
-
-/// Anahtarın kayıtlı olup olmadığı (iPhone'da eşitlenen kopya da sayılır). Değeri okumadığı için Keychain izin
-/// penceresi açmaz.
+/// Anahtarın kayıtlı olup olmadığı. Değeri okumadığı için Keychain izin penceresi açmaz.
 public func secretExists(service: String, account: SecretAccount) throws -> Bool {
-    #if os(iOS)
-    return try exists(query: baseQuery(service: service, account: account), operation: "SecItemCopyMatching(attributes)")
-        || syncedSecretExists(service: service, account: account)
-    #else
-    return try exists(query: baseQuery(service: service, account: account), operation: "SecItemCopyMatching(attributes)")
-    #endif
+    try exists(query: baseQuery(service: service, account: account), operation: "SecItemCopyMatching(attributes)")
 }
 
 private func exists(query base: [String: Any], operation: String) throws -> Bool {

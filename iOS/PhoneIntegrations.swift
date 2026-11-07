@@ -439,7 +439,9 @@ final class PhoneIntegrations {
 
     /// Bekleyen kendiliğinden gönderimleri yapar (Mac'teki kurallarla): toplantı işlenip notu hazır olunca, hesap
     /// yüklenince ve uygulama öne gelince. Ağ yokken kaçanlar böylece sonra gider; her (toplantı, hedef) bir kez
-    /// gönderilir. iPhone kilitliyken Anahtar Zinciri okunamadığı için tur kilit açılınca (öne gelince) yapılır.
+    /// gönderilir. Hedeflerin sırları kilitli ekranda da okunur (`secretAccessibility`): not kilitliyken hazırlansa da
+    /// gider. Eski sürümün yazdığı öğe kilitliyken okunamaz; o zaman tur kilit açılınca (öne gelince) yapılır ve ilk
+    /// okumada öğe kilitli ekranda okunur hâle gelir.
     func processPendingAutoSends() async {
         #if DEBUG
         // "--otomatik-gonderim-yok": görsel kontrol ve testlerde toplantılar hedeflere gitmesin (yalnız Debug).
@@ -451,9 +453,16 @@ final class PhoneIntegrations {
         guard isBoundAccountCurrent() else {
             return
         }
-        guard UIApplication.shared.isProtectedDataAvailable else {
-            Self.logger.info("iPhone kilitli, kendiliğinden gönderim kilit açılınca yapılacak")
-            return
+        if !UIApplication.shared.isProtectedDataAvailable {
+            do {
+                _ = try await destinationVault().all()
+            } catch where isLockedKeychainError(error) {
+                Self.logger.info("iPhone kilitli ve hedeflerin sırları henüz kilitte okunamıyor, kendiliğinden gönderim kilit açılınca yapılacak")
+                return
+            } catch {
+                report(message: userFacingMessage(error: error))
+                return
+            }
         }
         guard !isAutoSending else {
             autoSendRequested = true
