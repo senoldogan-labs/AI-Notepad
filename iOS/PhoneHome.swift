@@ -29,15 +29,19 @@ struct PhoneHome: View {
         // Satırlar konuşmacı adlarıyla (saklı not genel etiketleri korur).
         let meetings: [MeetingRecord] = namedRecords(records: store.meetings, userName: userName)
         let sections: [MeetingSection] = meetingSections(records: meetings, now: Date(), calendar: .current, locale: interfaceLocale())
-        let openTasks: Int = myTasks(meetings: store.meetings, userName: userName).filter { !isTaskDone(record: $0.record, task: $0.task) }.count
+        // TODO(main): due-today filter
+        let openItems: [(record: MeetingRecord, task: NoteTask)] = myTasks(meetings: store.meetings, userName: userName)
+            .filter { !isTaskDone(record: $0.record, task: $0.task) }
+        let openTasks: Int = openItems.count
         let locked: Set<String> = phoneLockedMeetingIDs(store: store, recorder: recorder)
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 26) {
                 todayHeader
                 notices
                 HomeTodaySection(calendar: calendar, router: router, hasMeetings: !meetings.isEmpty, onBriefing: onBriefing)
-                if openTasks > 0 {
-                    HomeTasksRow(count: openTasks) { router.push(route: .tasks) }
+                // Önem sırası (Mac'teki ana sayfa gibi): günün toplantıları, sana düşen görevler, sonra geçmiş notlar.
+                if !openItems.isEmpty {
+                    HomeTasksSection(items: Array(openItems.prefix(3)), total: openTasks, store: store) { router.push(route: .tasks) }
                 }
                 if meetings.isEmpty {
                     // Henüz toplantı yok: boş alan yerine nasıl çalıştığı, takvim ve ipuçları.
@@ -320,36 +324,46 @@ private struct QuietRail<Content: View>: View {
     }
 }
 
-/// Sana düşen açık görevler: tek satır; dokununca Görevlerim.
-private struct HomeTasksRow: View {
-    let count: Int
-    let action: @MainActor () -> Void
-    @Environment(\.panelAppearance) private var appearance: PanelAppearance
+/// Sana düşen açık görevler: başlık ve "Tümü" (açık görev sayısıyla), altında ilk birkaç görev; kutuya dokununca
+/// tamamlanır, satıra dokununca toplantı yerine Görevlerim açılır.
+private struct HomeTasksSection: View {
+    let items: [(record: MeetingRecord, task: NoteTask)]
+    /// Bütün açık görevlerin sayısı ("Tümü · 8").
+    let total: Int
+    let store: PhoneStore
+    let onShowAll: @MainActor () -> Void
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                Image(systemName: "checklist")
-                    .appFont(size: 15, weight: .semibold)
-                    .foregroundStyle(appearance.accent.color)
-                    .frame(width: 34, height: 34)
-                    .background(appearance.accent.color.opacity(0.12), in: Circle())
-                    .accessibilityHidden(true)
-                Text("Sana düşen \(count) açık görev")
-                    .appFont(size: 15, weight: .medium)
-                    .foregroundStyle(Theme.ink)
-                    .multilineTextAlignment(.leading)
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
-                    .appFont(size: 13, weight: .semibold)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Sana düşen görevler")
+                    .appFont(size: 14, weight: .medium)
                     .foregroundStyle(Theme.muted)
-                    .accessibilityHidden(true)
+                    .accessibilityAddTraits(.isHeader)
+                Spacer(minLength: 8)
+                Button(action: onShowAll) {
+                    Text("Tümü · \(total)")
+                        .appFont(size: 14, weight: .medium)
+                        .monospacedDigit()
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.tint)
             }
-            .padding(12)
+            VStack(spacing: 0) {
+                ForEach(Array(items.enumerated()), id: \.element.task.trackingKey) { (item: (offset: Int, element: (record: MeetingRecord, task: NoteTask))) in
+                    if item.offset > 0 {
+                        Rectangle().fill(Theme.line).frame(height: 1).padding(.leading, 48)
+                    }
+                    PhoneTaskRowContent(record: item.element.record, task: item.element.task, showsMeeting: true) {
+                        withAnimation(.smooth(duration: 0.25)) {
+                            store.toggleTask(meetingID: item.element.record.id, task: item.element.task)
+                        }
+                    }
+                }
+            }
             .background(Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.line))
         }
-        .buttonStyle(PressableCardStyle())
     }
 }
 

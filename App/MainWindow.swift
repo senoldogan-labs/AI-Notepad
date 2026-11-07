@@ -227,7 +227,8 @@ struct MainWindowView: View {
                         }
                         #if HOSTED_EDITION
                         // Kullanım bildirimi (%80, %100, son deneme toplantısı, deneme bitti); dönem başına bir kez.
-                        if let notice = HostedAccount.shared.visibleNotice {
+                        // Deneme bitti şeridi alttaki teklif şeridiyle aynı şeyi söyler: ikisi birden görünmez.
+                        if let notice = HostedAccount.shared.visibleNotice, !(notice == .trialEnded && HostedAccount.shared.upsell == .trialEnded) {
                             HostedUsageBanner(account: .shared, notice: notice) { openAccountSettings(router: router) }
                         }
                         // Bu Mac'te silinen hesaptan kalan toplantılar: bir kez önerilir ("Şimdi değil"den sonra Ayarlar › Hesap'ta).
@@ -242,11 +243,22 @@ struct MainWindowView: View {
                     }
                     // Çalan toplantı her bölümde altta görünür; sayfa değişince ses durmaz.
                     .safeAreaInset(edge: .bottom) {
-                        PlayerDock(model: model, player: player) { (id: String) -> Void in
-                            router.selectedMeetingID = id
-                            router.section = .meetings
+                        VStack(spacing: 0) {
+                            #if HOSTED_EDITION
+                            // Kendiliğinden gelen teklif (not hazır, deneme bitti) sayfayı kapatmaz: altta ince şerit,
+                            // not ve arşiv okunur kalır. Kayıt ya da işleme sürerken ve kurulumda görünmez.
+                            if let moment = HostedAccount.shared.upsell, !HostedAccount.shared.isUpsellSheetVisible, !model.isBusy {
+                                HostedUpsellStrip(account: .shared, moment: moment)
+                                    .frame(maxWidth: 720)
+                                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                            }
+                            #endif
+                            PlayerDock(model: model, player: player) { (id: String) -> Void in
+                                router.selectedMeetingID = id
+                                router.section = .meetings
+                            }
+                            .frame(maxWidth: 720)
                         }
-                        .frame(maxWidth: 720)
                     }
                     .animation(.smooth(duration: 0.25), value: router.section)
                 }
@@ -307,10 +319,11 @@ struct MainWindowView: View {
         // Toplantı hazırlanırken ana pencerede de aynı ilerleme kartı (panelle eş zamanlı).
         .modifier(ProcessingOverlayHost(model: model))
         #if HOSTED_EDITION
-        // Abone olma teklifi: deneme notu hazır olunca (günde en çok bir) ve deneme bitince bir kez. Kayıt ya da işleme
-        // sürerken ve kurulumda açılmaz; o sırada hazır olduysa bitince açılır.
+        // Planlar (tam teklif): kullanıcı istediğinde ya da abonelik gerektiren bir şeyi denediğinde hemen; kendiliğinden
+        // gelen anlarda (not hazır, deneme bitti) alttaki şeritten açılınca. Kayıt ya da işleme sürerken ve kurulumda
+        // açılmaz; o sırada istendiyse bitince açılır.
         .sheet(isPresented: Binding<Bool>(
-            get: { HostedAccount.shared.upsell != nil && !model.isBusy && router.section != .setup },
+            get: { HostedAccount.shared.isUpsellSheetVisible && !model.isBusy && router.section != .setup },
             set: { (shown: Bool) -> Void in
                 if !shown {
                     HostedAccount.shared.dismissUpsell()
@@ -691,8 +704,8 @@ private struct QuitWarning: View {
 }
 
 
-/// Ana sayfa (ElevenLabs düzeni): ortada büyük ince başlık ve kayıt çubuğu, araç kutucukları, banner karuseli,
-/// sana düşen görevler ve gradyan kapaklı son toplantılar.
+/// Ana sayfa, önem sırasıyla: selamlama ve tek satırlık kayıt çubuğu, yaklaşan toplantılar (Katıl, Dinle, Brifing),
+/// sana düşen görevler, gradyan kapaklı son toplantılar; kısayollar en altta.
 private struct HomePage: View {
     let model: AppModel
     let router: MainWindowRouter
@@ -714,7 +727,6 @@ private struct HomePage: View {
                     }
                 }
                 .padding(.top, 24)
-                Shortcuts(model: model, router: router, shortcuts: shortcuts, onShowPanel: onShowPanel)
                 UpcomingMeetings(model: model, startBlock: startBlock, onStartRecording: onStartRecording) { (meeting: CalendarMeeting) -> Void in
                     if model.startBriefing(meeting: meeting) {
                         router.section = .ask
@@ -725,6 +737,8 @@ private struct HomePage: View {
                 }
                 HomeTasks(model: model, router: router)
                 RecentMeetingCards(model: model, router: router)
+                // Kısayollar ikincil: kenar çubuğunda ve menülerde de var, sayfanın sonunda kalır.
+                Shortcuts(model: model, router: router, shortcuts: shortcuts, onShowPanel: onShowPanel)
             }
             .padding(.horizontal, 40)
             .padding(.bottom, 40)
@@ -772,6 +786,10 @@ private struct HomePage: View {
 
 }
 
+/// Koyu temada ana sayfadaki kayıt çubuğunun pastel zeminine eklenen karartma (kapakların genel kısmasının üstüne): parlak
+/// gradyan koyu sayfada göze batmasın.
+private let homeBarDarkDimming: Double = 0.3
+
 /// Kayıt kartında konuşma modelinin durumu: indiriliyorsa ilerleme, hazırlanamadıysa neden ve "Yeniden dene".
 /// Geliştirici sürümünde "Dinlemeye başla" neden kapalı, abonelikte canlı metin neden gecikecek, kart söyler.
 struct LocalModelNoticeView: View {
@@ -811,7 +829,7 @@ struct LocalModelNoticeView: View {
     }
 }
 
-/// Kayıt kartı: boşta büyük gradyan kart (küre, "Dinlemeye başla", seçenek çipleri); kayıtta ve bitirilirken çubuk
+/// Kayıt çubuğu: boşta tek satır gradyan çubuk (küre, "Dinlemeye başla", seçenek çipleri); kayıtta ve bitirilirken çubuk
 /// (ElevenLabs'in "oluştur" çubuğu gibi): küre, durum, "Paneli göster" ve "Bitir".
 private struct RecordBar: View {
     @Bindable var model: AppModel
@@ -821,6 +839,7 @@ private struct RecordBar: View {
     let onShowPanel: @MainActor () -> Void
     let onResolve: @MainActor (StartBlockAction) -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
+    @Environment(\.colorScheme) private var colorScheme: ColorScheme
 
     var body: some View {
         if model.phase == .idle {
@@ -830,39 +849,58 @@ private struct RecordBar: View {
         }
     }
 
-    /// Boşta: gradyan kayıt kartı (ElevenLabs'in büyük oluştur kartı gibi): ortada küre ve "Dinlemeye başla", altında
-    /// seçenekler. Gradyan açık tonlu olduğundan kart her temada açık görünümle çizilir.
+    /// Boşta: tek satırlık kayıt çubuğu (sayfanın üçte birini kaplayan büyük kart yerine): küre, "Dinlemeye başla" ve
+    /// seçenek çipleri; dar pencerede çipler alt satıra iner. Zemin durağan pastel gradyan, koyu temada belirgin
+    /// kısılır; içerik her temada açık görünümle çizilir. Engel, model ve boş yer bildirimleri çubuğun altında,
+    /// uygulamanın temasında.
     private var hero: some View {
-        VStack(spacing: 16) {
-            orb(size: 64)
-                .padding(5)
-                .background(Color.white.opacity(0.4), in: Circle())
-                .shadow(color: .black.opacity(0.14), radius: 18, y: 8)
-            Button(action: onStartRecording) {
-                Label("Dinlemeye başla", systemImage: "record.circle")
+        VStack(alignment: .leading, spacing: 10) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) {
+                    startControls
+                    Spacer(minLength: 8)
+                    options
+                }
+                VStack(alignment: .leading, spacing: 10) {
+                    startControls
+                    options
+                }
             }
-            .buttonStyle(.bannerPrimary)
-            .disabled(!model.isReadyToRecord || model.isStarting || startBlock != nil)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            // İçerik her temada açık görünümde; zemin sonra eklenir ki uygulamanın temasını görsün ve koyu temada kısılsın.
+            .environment(\.colorScheme, .light)
+            .background {
+                FilmGradient(seed: "kayit-karti", palette: .sunset)
+                    .dimmedInDarkTheme()
+                    .overlay { Color.black.opacity(colorScheme == .dark ? homeBarDarkDimming : 0).allowsHitTesting(false) }
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            }
             if let startBlock {
                 StartBlockView(notice: startBlock, onResolve: onResolve)
             } else if let notice = model.localModelNotice {
                 LocalModelNoticeView(notice: notice) { Task { await model.retryLocalModel() } }
             }
             DiskSpaceNotice(model: model)
-            options
         }
-        // Kart her göründüğünde (açılış, kayıt bitince) boş yer yeniden okunur.
+        // Çubuk her göründüğünde (açılış, kayıt bitince) boş yer yeniden okunur.
         .task { model.refreshRecordingDiskSpace() }
-        .padding(.vertical, 28)
-        .padding(.horizontal, 20)
-        .frame(maxWidth: .infinity, minHeight: 240)
-        // İçerik her temada açık görünümde; zemin sonra eklenir ki uygulamanın temasını görsün ve koyu temada kısılsın.
-        .environment(\.colorScheme, .light)
-        .background {
-            FilmGradient(seed: "kayit-karti", palette: .sunset)
-                .dimmedInDarkTheme()
-                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+    }
+
+    /// Küre ve "Dinlemeye başla".
+    private var startControls: some View {
+        HStack(spacing: 10) {
+            orb(size: 30)
+                .padding(3)
+                .background(Color.white.opacity(0.4), in: Circle())
+            Button(action: onStartRecording) {
+                Label("Dinlemeye başla", systemImage: "record.circle")
+            }
+            .buttonStyle(.bannerPrimary)
+            .disabled(!model.isReadyToRecord || model.isStarting || startBlock != nil)
         }
+        .fixedSize()
     }
 
     private func orb(size: CGFloat) -> some View {
@@ -875,8 +913,8 @@ private struct RecordBar: View {
             .tilt3D(maxAngle: 8)
     }
 
-    /// Seçenekler ortalı ve gerekirse alt satıra geçer: dar pencerede, İngilizcede ya da büyük arayüz boyutunda kartın
-    /// dışına taşıp kesilmez.
+    /// Seçenekler gerekirse alt satıra geçer: dar pencerede, İngilizcede ya da büyük arayüz boyutunda çubuğun dışına
+    /// taşıp kesilmez.
     private var options: some View {
         FlowLayout(spacing: 8, lineSpacing: 8) {
             languageChip
@@ -891,8 +929,7 @@ private struct RecordBar: View {
                 model.selectDisplayMode(mode: model.displayMode.needsLiveTranslation ? .originalOnly : .bilingual)
             }
         }
-        .fixedSize(horizontal: false, vertical: true)
-        .frame(maxWidth: 620)
+        .fixedSize()
     }
 
     /// Kayıtta ve bitirilirken gösterilen çubuk (boşta `hero` gösterilir).
@@ -1100,6 +1137,7 @@ private struct HomeTasks: View {
     private var userName: String { model.userName }
 
     var body: some View {
+        // TODO(main): due-today filter
         let items: [(record: MeetingRecord, task: NoteTask)] = myTasks(namedRecords: Array(model.namedMeetings(userName: userName).prefix(10)))
             .filter { !isTaskDone(record: $0.record, task: $0.task) }
         if !items.isEmpty {

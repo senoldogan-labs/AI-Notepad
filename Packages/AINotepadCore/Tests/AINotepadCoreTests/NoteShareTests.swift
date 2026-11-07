@@ -70,6 +70,25 @@ private let vectorPayload: SharedNotePayload = SharedNotePayload(
         #expect(sharedNotePayload(record: record, note: note, language: .arabic, transcript: nil).rtl)
     }
 
+    // Sharing in a language whose translation is not written yet is flagged; the original note and a ready translation are not.
+    @Test func missingShareTranslationIsFlagged() {
+        let note: MeetingNote = MeetingNote(title: "Bütçe", summary: "Özet.", decisions: [], tasks: [], glossary: [])
+        let make: (MeetingNote?) -> MeetingRecord = { (note: MeetingNote?) -> MeetingRecord in MeetingRecord(
+            id: "s2", title: "Toplantı", startedAt: Date(timeIntervalSince1970: 1_800_000_000), endedAt: nil,
+            language: .turkish, status: .done, failureMessage: nil, liveSegments: [], finalSegments: [], translations: [:], speakerNames: [:],
+            note: note, audioDeleted: false, engine: .cloud, notice: nil, meNeedsFinalPass: nil
+        ) }
+        #expect(!isShareTranslationMissing(record: make(nil), language: .german))
+        let record: MeetingRecord = MeetingRecord(
+            id: "s2", title: "Toplantı", startedAt: Date(timeIntervalSince1970: 1_800_000_000), endedAt: nil,
+            language: .turkish, status: .done, failureMessage: nil, liveSegments: [], finalSegments: [], translations: [:], speakerNames: [:],
+            note: note, audioDeleted: false, engine: .cloud, notice: nil, meNeedsFinalPass: nil
+        )
+        #expect(!isShareTranslationMissing(record: record, language: nil))
+        #expect(isShareTranslationMissing(record: record, language: .german))
+        #expect(!isShareTranslationMissing(record: record.with(sharedNotes: ["de": note]), language: .german))
+    }
+
     // Sealing and opening round-trips; the blob starts with the format marker and is never the plain JSON.
     @Test func sealAndOpenRoundTrip() throws {
         let secret: NoteShareSecret = newNoteShareSecret()

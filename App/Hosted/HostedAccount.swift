@@ -234,6 +234,9 @@ final class HostedAccount {
     private(set) var pendingSignInProvider: HostedSignInProvider?
     /// Ana pencerede açılacak abone olma teklifi (bkz. `meetingNoteReady`); kayıt ya da işleme sürerken açılmaz.
     private(set) var upsell: HostedUpsellMoment?
+    /// Alttaki teklif şeridinden planlar açıldı (bkz. `hostedUpsellPresentation`); teklif değişince ya da kapanınca
+    /// sıfırlanır.
+    private(set) var isUpsellExpanded: Bool = false
     /// Abonenin davet kodu ve sayıları (Ayarlar › Hesap açılınca okunur; bkz. `loadReferral`); yoksa nil.
     private(set) var referral: HostedReferral?
     /// Sunucu bu hesabın ücretsiz denemesini bu Mac'te reddetti (Mac denemesini başka bir hesapla kullandı); hak durumu
@@ -322,6 +325,7 @@ final class HostedAccount {
                 self?.hasSession = false
                 // Biten oturumun abonelik isteği ve davet kodu sonraki girişe (başka hesap olabilir) kalmasın.
                 self?.upsell = nil
+                self?.isUpsellExpanded = false
                 self?.referral = nil
                 clearHostedOfflinePermit()
                 self?.state = .signedOut
@@ -661,6 +665,7 @@ final class HostedAccount {
             UserDefaults.standard.set(true, forKey: trialEndingKey)
         }
         upsell = moment
+        isUpsellExpanded = false
         accountLogger.info("Abone olma teklifi gösteriliyor, an: \(moment.rawValue, privacy: .public)")
     }
 
@@ -668,6 +673,7 @@ final class HostedAccount {
     /// Tanıtım modu (bkz. `DemoScene.upsell`): teklif sunucuya sorulmadan açılır.
     func showUpsellForDemo(moment: HostedUpsellMoment) {
         upsell = moment
+        isUpsellExpanded = false
     }
 
     /// Tanıtım modu: hak durumu ve davet bilgisi sunucuya sorulmadan yazılır (bkz. `App/DemoData.swift`).
@@ -688,6 +694,7 @@ final class HostedAccount {
     /// abonelik sona erdiyse teklif nedenini de söyler (`subscriptionRequired`).
     func showPlans() {
         upsell = requiresSubscription ? .subscriptionRequired : .planChoice
+        isUpsellExpanded = false
     }
 
     /// Ücretli özellikler (kayıt, Sor, not) için abone olmak gerekiyor mu: deneme bitti ya da abonelik sona erdi (aylık
@@ -709,6 +716,7 @@ final class HostedAccount {
     func requestSubscription() {
         lastSubscriptionPromptAt = Date()
         upsell = .subscriptionRequired
+        isUpsellExpanded = false
     }
 
     /// Abonelik gerektiren bir istek durdu ya da sunucu reddetti (bkz. `hostedSubscriptionRequired`): teklif en çok
@@ -719,7 +727,21 @@ final class HostedAccount {
         }
         lastSubscriptionPromptAt = Date()
         upsell = .subscriptionRequired
+        isUpsellExpanded = false
         Task { await refresh() }
+    }
+
+    /// Alttaki teklif şeridinden planları açar (aynı an, tam teklif).
+    func expandUpsell() {
+        isUpsellExpanded = true
+    }
+
+    /// Ana pencerede planlar (tam teklif) açık mı: istenen anlarda hemen, kendiliğinden gelenlerde şeritten açılınca.
+    var isUpsellSheetVisible: Bool {
+        guard let upsell else {
+            return false
+        }
+        return hostedUpsellPresentation(moment: upsell) == .sheet || isUpsellExpanded
     }
 
     /// Teklifi kapatır. Deneme bitti teklifi görüldüyse aynı şeyi söyleyen şerit de kalkar (iki kez söylenmesin).
@@ -728,6 +750,7 @@ final class HostedAccount {
             visibleNotice = nil
         }
         upsell = nil
+        isUpsellExpanded = false
     }
 
     /// Bildirimi kapatır (bu dönemde yeniden gösterilmez).
@@ -997,6 +1020,7 @@ final class HostedAccount {
         stateGeneration += 1
         referral = nil
         upsell = nil
+        isUpsellExpanded = false
         do {
             try await HostedServices.requireClient().signOut()
         } catch HostedClientError.network(let path, _) {
@@ -1092,6 +1116,7 @@ final class HostedAccount {
     private func clearAfterAccountDeletion(userID: String?) {
         currentMeeting = nil
         upsell = nil
+        isUpsellExpanded = false
         referral = nil
         clearHostedOfflinePermit()
         guard let userID else {
