@@ -253,6 +253,9 @@ describe("in-app dialer", () => {
     // Past the window without a result, Twilio is asked once; the number isn't a caller ID, so it failed.
     harness.clock.nowMs += 11 * 60_000;
     expect(await (await call(harness, session, "GET", "/v1/phone/number", null)).json()).toMatchObject({ number: { status: "failed" } });
+    // Removing the number does not reset the day's count of verification calls.
+    expect((await call(harness, session, "DELETE", "/v1/phone/number", null)).status).toBe(200);
+    await expectError(await call(harness, session, "POST", "/v1/phone/number", { number: "+14155550109" }), 429, "phone_verification_limit");
   });
 
   it("places a call: one-time TwiML with the notice, caller ID and limits; settles, then serves and deletes the recording", async () => {
@@ -295,10 +298,11 @@ describe("in-app dialer", () => {
     // 125 s → 3 talk minutes + 1 minute of ringing and notice at 0.025 $/min.
     expect(settled).toEqual({ status: "completed", billed_seconds: 125, cost_micro_usd: 100_000, destination: null, caller_id: null });
     const spend = await env.DB.prepare("SELECT micro_usd, phone_micro_usd FROM daily_spend WHERE day = ?").bind(today(harness)).first();
-    expect(spend).toEqual({ micro_usd: 100_000, phone_micro_usd: 100_000 });
+    // Plus the verification call earlier that day (`verificationCallMicroUsd`).
+    expect(spend).toEqual({ micro_usd: 150_000, phone_micro_usd: 150_000 });
     // A late status callback doesn't charge twice.
     await webhook(harness, "/v1/phone/webhooks/call-status", { CallSid: callSid, CallStatus: "completed", CallDuration: "170" }, authToken);
-    expect(await env.DB.prepare("SELECT micro_usd FROM daily_spend WHERE day = ?").bind(today(harness)).first()).toEqual({ micro_usd: 100_000 });
+    expect(await env.DB.prepare("SELECT micro_usd FROM daily_spend WHERE day = ?").bind(today(harness)).first()).toEqual({ micro_usd: 150_000 });
 
     const state = async (): Promise<unknown> => (await call(harness, session, "GET", `/v1/phone/calls/${reserved.callId}`, null)).json();
     expect(await state()).toEqual({ callId: reserved.callId, status: "completed", billedSeconds: 125, recording: "pending" });
@@ -330,8 +334,8 @@ describe("in-app dialer", () => {
     const other: Session = await verifiedOther(harness);
     await expectError(await harness.call(req("POST", "/v1/phone/calls", { token: other.accessToken, json: { to: destination }, env: tight })), 503, "phone_capacity_reached");
     // The global ceiling counts the running call next to the day's other spend.
-    await env.DB.prepare("INSERT INTO daily_spend (day, micro_usd) VALUES (?, ?)").bind(today(harness), 1_500_000).run();
-    const global: Env = envWith({ ...phoneOn, DAILY_SPEND_CEILING_USD: "3.1", PHONE_DAILY_SPEND_CEILING_USD: "3.1" });
+    await env.DB.prepare("UPDATE daily_spend SET micro_usd = micro_usd + ? WHERE day = ?").bind(1_500_000, today(harness)).run();
+    const global: Env = envWith({ ...phoneOn, DAILY_SPEND_CEILING_USD: "3.2", PHONE_DAILY_SPEND_CEILING_USD: "3.2" });
     await expectError(await harness.call(req("POST", "/v1/phone/calls", { token: other.accessToken, json: { to: destination }, env: global })), 503, "spend_ceiling_reached");
     const llm: Response = await harness.call(
       req("POST", "/v1/llm/messages", { token: other.accessToken, json: {}, env: envWith({ ...phoneOn, DAILY_SPEND_CEILING_USD: "3", PHONE_DAILY_SPEND_CEILING_USD: "3" }) }),
@@ -388,7 +392,7 @@ describe("in-app dialer", () => {
       { id: unconnected.callId, status: "expired", cost_micro_usd: 0 },
       { id: lost.callId, status: "expired", cost_micro_usd: 61 * 25_000 },
     ]);
-    expect(await env.DB.prepare("SELECT phone_micro_usd FROM daily_spend WHERE day = ?").bind(today(harness)).first()).toEqual({ phone_micro_usd: 61 * 25_000 });
+    expect(await env.DB.prepare("SELECT phone_micro_usd FROM daily_spend WHERE day = ?").bind(today(harness)).first()).toEqual({ phone_micro_usd: 61 * 25_000 + 50_000 });
 
     // Account deletion queues the caller ID for deletion at Twilio; the next cleanup deletes it.
     const fresh: Session = await refreshed(harness, session);

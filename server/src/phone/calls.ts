@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Config, PhoneCallsConfig } from "../config";
+import type { Config, PhoneCallLimits, PhoneCallsConfig } from "../config";
 import { randomId } from "../crypto";
 import { hasPaidAccess } from "../entitlements";
 import { ApiError } from "../errors";
@@ -114,8 +114,6 @@ interface PhoneNumberRow {
   readonly status: "pending" | "verified" | "failed";
   readonly validation_call_sid: string | null;
   readonly provider_sid: string | null;
-  readonly attempts_day: string;
-  readonly attempts: number;
   readonly pending_until: number | null;
 }
 
@@ -317,6 +315,43 @@ async function startVerificationCall(provider: VoiceProvider, e164: string, call
   }
 }
 
+/** Worst-case cost of one verification call (a short outbound call to the user's number, about $0.02 at list price). */
+export const verificationCallMicroUsd: number = 50_000;
+
+/**
+ * Claims one of the user's verification calls for today and charges its worst case to the day's spend, or refuses:
+ * `phone_verification_limit` past `phoneVerificationsPerDay` (counted per account and day in
+ * `phone_verification_days`, so removing the number doesn't reset it), `phone_capacity_reached` or
+ * `spend_ceiling_reached` when the ceilings can't take the call. One statement claims the slot only while all three
+ * hold. Returns the attempt number.
+ */
+async function claimVerificationCall(db: D1Database, phone: PhoneCallLimits, config: Config, userId: string, now: Date): Promise<number> {
+  const limits: readonly ReservationLimit[] = [phoneDailySpendLimit(phone.dailySpendCeilingMicroUsd, now), dailySpendLimit(config, "total", now)];
+  const conditions: string = limits.map((limit: ReservationLimit): string => `(${limit.remainingSql}) >= ?`).join(" AND ");
+  const day: string = dayKey(now);
+  const claimed: { attempts: number } | null = await db
+    .prepare(
+      `INSERT INTO phone_verification_days (user_id, day, attempts) SELECT ?, ?, 1 WHERE ${conditions}
+       ON CONFLICT(user_id, day) DO UPDATE SET attempts = attempts + 1 WHERE attempts < ?
+       RETURNING attempts`,
+    )
+    .bind(userId, day, ...limits.flatMap((limit: ReservationLimit) => [...limit.binds, verificationCallMicroUsd]), phoneVerificationsPerDay)
+    .first<{ attempts: number }>();
+  if (claimed === null) {
+    const remaining: number[] = await remainingOf(db, limits);
+    const short: ReservationLimit | undefined = limits.find((_: ReservationLimit, index: number): boolean => (remaining[index] ?? 0) < verificationCallMicroUsd);
+    throw short?.error ?? new ApiError("phone_verification_limit", "Too many verification calls today; try again tomorrow.");
+  }
+  await db
+    .prepare(
+      `INSERT INTO daily_spend (day, micro_usd, phone_micro_usd) VALUES (?1, ?2, ?2)
+       ON CONFLICT(day) DO UPDATE SET micro_usd = micro_usd + excluded.micro_usd, phone_micro_usd = phone_micro_usd + excluded.phone_micro_usd`,
+    )
+    .bind(day, verificationCallMicroUsd)
+    .run();
+  return claimed.attempts;
+}
+
 /**
  * `POST /v1/phone/number`: starts verifying the user's own number (the provider calls it; the user types the code).
  * The number must be callable in an allowed country and not held by another account; at most
@@ -331,11 +366,6 @@ async function startVerification(db: D1Database, active: ActivePhone, config: Co
   if (existing !== null && existing.e164 === number.e164 && existing.status === "verified") {
     return { e164: existing.e164, status: "verified" };
   }
-  const today: string = dayKey(now);
-  const attempts: number = existing !== null && existing.attempts_day === today ? existing.attempts : 0;
-  if (attempts >= phoneVerificationsPerDay) {
-    throw new ApiError("phone_verification_limit", "Too many verification calls today; try again tomorrow.");
-  }
   const holder: { user_id: string } | null = await db
     .prepare("SELECT user_id FROM phone_numbers WHERE e164 = ? AND user_id != ? AND (status = 'verified' OR (status = 'pending' AND pending_until > ?)) LIMIT 1")
     .bind(number.e164, userId, now.getTime())
@@ -343,6 +373,7 @@ async function startVerification(db: D1Database, active: ActivePhone, config: Co
   if (holder !== null) {
     throw new ApiError("phone_number_in_use", "This number is already used by another Gistsmith account.");
   }
+  const attempt: number = await claimVerificationCall(db, active.config, config, userId, now);
   const callbackUrl: string = `${new URL(request.url).origin}/v1/phone/webhooks/verification`;
   const started: CallerIdVerificationStart = await startVerificationCall(active.provider, number.e164, callbackUrl);
   const pendingUntil: number = now.getTime() + verificationWindowMs;
@@ -353,15 +384,15 @@ async function startVerification(db: D1Database, active: ActivePhone, config: Co
     ...replaced,
     db
       .prepare(
-        `INSERT INTO phone_numbers (user_id, e164, country, status, validation_call_sid, provider_sid, attempts_day, attempts, created_at, pending_until, verified_at)
-         VALUES (?1, ?2, ?3, 'pending', ?4, NULL, ?5, ?6, ?7, ?8, NULL)
+        `INSERT INTO phone_numbers (user_id, e164, country, status, validation_call_sid, provider_sid, created_at, pending_until, verified_at)
+         VALUES (?1, ?2, ?3, 'pending', ?4, NULL, ?5, ?6, NULL)
          ON CONFLICT(user_id) DO UPDATE SET e164 = excluded.e164, country = excluded.country, status = 'pending',
-           validation_call_sid = excluded.validation_call_sid, provider_sid = NULL, attempts_day = excluded.attempts_day,
-           attempts = excluded.attempts, created_at = excluded.created_at, pending_until = excluded.pending_until, verified_at = NULL`,
+           validation_call_sid = excluded.validation_call_sid, provider_sid = NULL, created_at = excluded.created_at,
+           pending_until = excluded.pending_until, verified_at = NULL`,
       )
-      .bind(userId, number.e164, number.country, started.callSid, today, attempts + 1, now.getTime(), pendingUntil),
+      .bind(userId, number.e164, number.country, started.callSid, now.getTime(), pendingUntil),
   ]);
-  log("info", "phone_verification_started", { userId, number: maskedNumber(number.e164), country: number.country, attempt: attempts + 1 });
+  log("info", "phone_verification_started", { userId, number: maskedNumber(number.e164), country: number.country, attempt });
   return { e164: number.e164, status: "pending", validationCode: started.validationCode, expiresAt: pendingUntil };
 }
 
@@ -869,6 +900,7 @@ export function phoneDeletionStatements(db: D1Database, userId: string, now: Dat
     db.prepare("DELETE FROM phone_calls WHERE user_id = ?").bind(userId),
     db.prepare("DELETE FROM phone_numbers WHERE user_id = ?").bind(userId),
     db.prepare("DELETE FROM phone_consents WHERE user_id = ?").bind(userId),
+    db.prepare("DELETE FROM phone_verification_days WHERE user_id = ?").bind(userId),
   ];
 }
 
@@ -939,6 +971,8 @@ export async function phoneCleanup(db: D1Database, platform: OutboundPlatform, c
     .prepare("DELETE FROM phone_calls WHERE settled_at IS NOT NULL AND created_at <= ? AND (recording_sid IS NULL OR recording_deleted_at IS NOT NULL)")
     .bind(nowMs - settledCallRetentionMs)
     .run();
+  // Verification counters only matter for their own day.
+  await db.prepare("DELETE FROM phone_verification_days WHERE day < ?").bind(dayKey(now)).run();
   const report: PhoneCleanupReport = { expiredCalls: expired[1]?.meta.changes ?? 0, recordingsDeleted, purged, oldCallsDeleted: old.meta.changes };
   log("info", "phone_cleanup", { ...report });
   return report;

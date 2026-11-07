@@ -121,7 +121,8 @@ in an allowed country, while the server switch is on.
    the note is made, own number as caller ID, no emergency calls) and an explicit opt-in (`POST /v1/phone/consent`,
    stored with its version).
 3. The user verifies their own number: Twilio calls it and the user types the 6-digit code shown in the app (Twilio
-   Outgoing Caller IDs). One account per number; 5 verification calls per day.
+   Outgoing Caller IDs). One account per number; 5 verification calls per account and day (removing the number
+   doesn't reset it), each charged to the spend ceilings at a worst case of $0.05.
 4. Dialing: the app classifies the number like the server (`PhoneDialNumber.swift` mirrors `server/src/phone/numbers.ts`,
    checked by `PhoneDialerParityTests`). Emergency and short numbers (911, 112, 988, N11…) open the Phone app with
    `tel:`. Premium and special ranges (NANP 900, 976, 5XX, 700, 710; Caribbean and US-territory area codes; Finnish and

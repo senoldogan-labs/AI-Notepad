@@ -362,6 +362,12 @@ final class PhoneDialer {
             Self.logger.info("Call recording import already running, call: \(callID, privacy: .public)")
             return
         }
+        // A call forgotten meanwhile was imported already (or isn't this account's): a resume working from an older
+        // snapshot of the list must not import it again.
+        guard pendingRecordings()[callID] != nil else {
+            Self.logger.info("Call no longer pending, skipped, call: \(callID, privacy: .public)")
+            return
+        }
         importingCalls.insert(callID)
         defer { importingCalls.remove(callID) }
         recording = .waiting

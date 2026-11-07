@@ -10,7 +10,7 @@ CREATE TABLE phone_consents (
 );
 
 -- The user's own number as caller ID, verified by the provider calling it (one per account). `provider_sid` is the
--- provider's caller ID id once verified; `attempts` counts verification calls on `attempts_day` (UTC).
+-- provider's caller ID id once verified.
 CREATE TABLE phone_numbers (
   user_id TEXT PRIMARY KEY REFERENCES users(id),
   e164 TEXT NOT NULL,
@@ -18,8 +18,6 @@ CREATE TABLE phone_numbers (
   status TEXT NOT NULL CHECK (status IN ('pending', 'verified', 'failed')),
   validation_call_sid TEXT,
   provider_sid TEXT,
-  attempts_day TEXT NOT NULL,
-  attempts INTEGER NOT NULL,
   created_at INTEGER NOT NULL,
   pending_until INTEGER,
   verified_at INTEGER
@@ -27,6 +25,14 @@ CREATE TABLE phone_numbers (
 -- A number can be verified by one account only.
 CREATE UNIQUE INDEX phone_numbers_verified_e164 ON phone_numbers (e164) WHERE status = 'verified';
 CREATE INDEX phone_numbers_e164 ON phone_numbers (e164);
+
+-- Verification calls per account and day (UTC): kept apart from the number so removing it doesn't reset the limit.
+CREATE TABLE phone_verification_days (
+  user_id TEXT NOT NULL REFERENCES users(id),
+  day TEXT NOT NULL,
+  attempts INTEGER NOT NULL,
+  PRIMARY KEY (user_id, day)
+);
 
 -- One row per dialer call. While `settled_at` is NULL and `reserved_until` is in the future, `estimated_micro_usd` (the
 -- call's worst case: longest duration × the country's price) counts toward the daily spend ceilings; settling writes
