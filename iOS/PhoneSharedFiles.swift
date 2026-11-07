@@ -17,6 +17,14 @@ final class PhoneSharedFileInbox {
     /// Ses ya da video olmadığı için alınmayan dosyaların adları (ana ekranda bir kez görünür).
     private(set) var rejected: [String] = []
 
+    /// Önceki açılışta içe aktarma bitmeden uygulama kapandıysa gelen kutusunda kalan kopyalar yeniden bekler (kopya ancak
+    /// içe aktarmadan sonra silinir).
+    init() {
+        for url in leftoverSharedInboxFiles() {
+            receive(url: url)
+        }
+    }
+
     /// Sistemin verdiği adresi alır. Dosya olmayan adres bu kutunun işi değildir (giriş dönüşü kendi oturumuna gelir);
     /// ses ya da video olmayan dosyanın kopyası silinir, adı bildirilir.
     func receive(url: URL) {
@@ -63,6 +71,21 @@ func removeSharedInboxCopy(url: URL) {
         try FileManager.default.removeItem(at: url)
     } catch {
         sharedFilesLogger.error("Paylaşılan dosyanın kopyası silinemedi, hata: \(String(describing: error), privacy: .private)")
+    }
+}
+
+/// Gelen kutusunda kalan dosyalar (yoksa boş). Okunamazsa loglanır; kopyalar bir sonraki açılışta yeniden denenir.
+@MainActor
+private func leftoverSharedInboxFiles() -> [URL] {
+    let inbox: URL = URL.documentsDirectory.appending(path: "Inbox", directoryHint: .isDirectory)
+    guard FileManager.default.fileExists(atPath: inbox.path) else {
+        return []
+    }
+    do {
+        return try FileManager.default.contentsOfDirectory(at: inbox, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])
+    } catch {
+        sharedFilesLogger.error("Gelen kutusu okunamadı, hata: \(String(describing: error), privacy: .private)")
+        return []
     }
 }
 

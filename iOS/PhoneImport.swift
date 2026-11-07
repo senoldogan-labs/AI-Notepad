@@ -76,19 +76,14 @@ struct PhoneImportHost: ViewModifier {
                 pickedVideos = []
                 importVideos(items: items)
             }
-            // Paylaşım sayfasından gelen dosyalar (açılışta bekleyenler de) toplantı olarak içe aktarılır; gelen kutusundaki
-            // kopyalar sonra silinir.
+            // Paylaşım sayfasından gelen dosyalar (açılışta gelen kutusunda kalanlar da) toplantı olarak içe aktarılır; her
+            // kopya kendi içe aktarması bitince silinir.
             .onChange(of: sharedFiles.pending, initial: true) { (_: [URL], urls: [URL]) in
                 guard !urls.isEmpty else {
                     return
                 }
                 let taken: [URL] = sharedFiles.takePending()
-                Task {
-                    await recorder.importFiles(urls: taken)
-                    for url in taken {
-                        removeSharedInboxCopy(url: url)
-                    }
-                }
+                Task { await recorder.importSharedFiles(urls: taken) }
             }
             .onChange(of: sharedFiles.rejected, initial: true) { (_: [String], names: [String]) in
                 guard !names.isEmpty else {
