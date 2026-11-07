@@ -62,6 +62,7 @@ struct ShortcutSettings: View {
                 FixedShortcutRow(icon: "sparkle.magnifyingglass", title: Text("Sor"), keys: [["⌘", "3"]])
                 FixedShortcutRow(icon: "checkmark.circle", title: Text("Görevlerim"), keys: [["⌘", "4"]])
                 FixedShortcutRow(icon: "person.2", title: Text("Kişiler"), keys: [["⌘", "5"]])
+                FixedShortcutRow(icon: "chart.bar.xaxis", title: Text("İstatistikler"), keys: [["⌘", "6"]])
             }
             SettingsGroup(title: Text("Sor")) {
                 FixedShortcutRow(icon: "arrow.up.circle", title: Text("Soruyu gönder"), keys: [["↩"]])
