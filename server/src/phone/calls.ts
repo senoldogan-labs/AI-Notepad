@@ -135,6 +135,7 @@ export interface PhoneCallRow {
   readonly recording_status: "ready" | "absent" | null;
   readonly recording_sid: string | null;
   readonly recording_deleted_at: number | null;
+  readonly reserved_until: number;
   readonly settled_at: number | null;
 }
 
@@ -547,12 +548,13 @@ async function callRow(db: D1Database, userId: string, callId: string): Promise<
 const recordingArrivalMs: number = 10 * 60_000;
 
 /**
- * A call row as the app sees it. A call that ended unanswered (`failed`) has no recording (it starts on answer); one
- * whose recording hasn't come `recordingArrivalMs` after it settled has none either, so the app stops waiting. Pure
- * function.
+ * A call row as the app sees it. A call that never connected or ended unanswered (`failed`) has no recording (it starts
+ * on answer); one whose recording hasn't come `recordingArrivalMs` after it settled has none either, so the app stops
+ * waiting. Pure function.
  */
 export function callStateOf(row: PhoneCallRow, now: Date): PhoneCallState {
-  const overdue: boolean = row.settled_at !== null && (row.status === "failed" || now.getTime() - row.settled_at > recordingArrivalMs);
+  const neverConnected: boolean = row.status === "reserved" && row.reserved_until <= now.getTime();
+  const overdue: boolean = neverConnected || (row.settled_at !== null && (row.status === "failed" || now.getTime() - row.settled_at > recordingArrivalMs));
   const recording: PhoneCallState["recording"] =
     row.recording_deleted_at !== null
       ? "deleted"

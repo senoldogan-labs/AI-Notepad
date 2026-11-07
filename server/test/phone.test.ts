@@ -364,6 +364,9 @@ describe("in-app dialer", () => {
     expect(await state(answered.callId)).toMatchObject({ status: "completed", recording: "pending" });
     harness.clock.nowMs += 11 * 60_000;
     expect(await state(answered.callId)).toMatchObject({ recording: "absent" });
+    const neverConnected: Reserved = await reserve(harness, session, destination);
+    harness.clock.nowMs += 3 * 60_000;
+    expect(await state(neverConnected.callId)).toMatchObject({ status: "reserved", recording: "absent" });
   });
 
   it("cleanup releases unconnected calls for free, charges lost ones their worst case and purges provider objects", async () => {

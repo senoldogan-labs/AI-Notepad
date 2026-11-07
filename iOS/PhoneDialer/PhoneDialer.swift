@@ -108,6 +108,8 @@ final class PhoneDialer {
     @ObservationIgnored private let isPreview: Bool
     @ObservationIgnored private var verificationTask: Task<Void, Never>?
     @ObservationIgnored private var recordingTask: Task<Void, Never>?
+    /// Calls whose recording is being imported now (`importRecording`).
+    @ObservationIgnored private var importingCalls: Set<String> = []
 
     init() {
         controller = PhoneCallController()
@@ -269,6 +271,10 @@ final class PhoneDialer {
                 return .started
             } catch {
                 Self.logger.error("Call could not start, error: \(String(describing: error), privacy: .private)")
+                // A reservation that never connected has nothing to import (the server releases it).
+                if let reserved = activeCall?.id {
+                    forgetPending(callID: reserved)
+                }
                 activeCall = nil
                 return .refused(userFacingMessage(error: error))
             }
@@ -351,6 +357,13 @@ final class PhoneDialer {
     }
 
     private func importRecording(callID: String, e164: String, recorder: PhoneRecorder) async {
+        // One import per call at a time: the call's own watcher and a resume after a refresh may both reach it.
+        guard !importingCalls.contains(callID) else {
+            Self.logger.info("Call recording import already running, call: \(callID, privacy: .public)")
+            return
+        }
+        importingCalls.insert(callID)
+        defer { importingCalls.remove(callID) }
         recording = .waiting
         do {
             let client: HostedPhoneClient = try client()
