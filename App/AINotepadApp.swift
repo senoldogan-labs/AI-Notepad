@@ -804,13 +804,13 @@ private struct MenuContent: View {
         }
         .menuShortcut(binding: shortcuts.currentBinding(action: .toggleWindows))
 
-        // Sıradaki toplantı (takvim açıksa): kayıt yokken "Katıl ve dinle" bağlantıyı açıp kaydı başlatır.
+        // Sıradaki toplantı (takvim açıksa): kayıt yokken "Katıl ve kaydet" bağlantıyı açıp kaydı başlatır.
         if model.phase == .idle, let next = upcomingMeetings(meetings: model.upcomingMeetings, now: Date(), horizonSec: 12 * 3600).first {
             Divider()
             let time: String = next.start.formatted(Date.FormatStyle(date: .omitted, time: .shortened).locale(interfaceLocale()))
             Text(String(localized: "Sıradaki: \(next.title) · \(time)"))
             if let joinURL = next.joinURL {
-                Button("Katıl ve dinle", systemImage: "video") {
+                Button("Katıl ve kaydet", systemImage: "video") {
                     NSWorkspace.shared.open(joinURL)
                     Task { await toggleRecordingFlow(model: model, panel: panel, island: island) }
                 }
