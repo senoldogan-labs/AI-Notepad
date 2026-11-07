@@ -680,7 +680,7 @@ struct MeetingDetailPage: View {
                     .environment(\.noteSourceAutoOpenText, demoOpenSourceText)
                 }
                 // ⌘F transkript sekmesinde transkriptte bulur (yoksa ana pencerenin araması açılır; bkz. `TopBar`).
-                .focusedSceneValue(\.transcriptFind, tab == .transcript ? TranscriptFindAction { isFindFocused = true } : nil)
+                .focusedSceneValue(\.transcriptFind, tab == .transcript && !paragraphs.isEmpty ? TranscriptFindAction { isFindFocused = true } : nil)
                 .animation(.smooth(duration: 0.25), value: tab)
                 .animation(.smooth(duration: 0.25), value: export)
                 .animation(.smooth(duration: 0.25), value: followUpLanguage)

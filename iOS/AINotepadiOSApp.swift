@@ -866,7 +866,7 @@ struct RootView: View {
         }
         // Ses ya da video içe aktarma (kitaplık ve kayıt düğmesinin menüsü), telefon görüşmesi rehberi ve deneysel görüşme
         // kaydı. Ortam nesnelerinden ÖNCE gelmeli: sayfalar yalnızca sunuldukları görünüme verilen ortamı alır; rehber
-        // `PhoneDialer` ve `PhoneRecorder` okur, sonra eklenirse açılışta çöker (`PhoneEnvironmentOrderTests`).
+        // `PhoneDialer` ve `PhoneRecorder` okur, sonra eklenirse açılışta çöker (`SourceLintTests.phoneImportHostIsInsideTheEnvironment`).
         .modifier(PhoneImportHost(recorder: recorder, state: imports))
         // Görev satırları Anımsatıcılar'a eklemek için arşive, toplantı sayfasındaki "Şimdi dene" kaydediciye buradan ulaşır.
         .environment(store)
