@@ -50913,7 +50913,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hyvää huomenta kaikille, aloitetaan palaveri."
+            "value": "Hyvää huomenta kaikille, aloitetaan kokous."
           }
         },
         "fr": {
@@ -133188,7 +133188,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Viikoittainen tuotepalaveri"
+            "value": "Viikoittainen tuotekokous"
           }
         },
         "fr": {
@@ -151624,7 +151624,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Löscht dein Konto, dein Abo und die Daten auf dem Server; Notizen auf diesem Mac bleiben."
+            "value": "Löscht deinen Account, dein Abo und die Daten auf dem Server; Notizen auf diesem Mac bleiben."
           }
         },
         "en": {
@@ -158533,7 +158533,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ein anderes Gerät hat die Synchronisierung für dieses Konto eingeschaltet. Gib zum Beitreten unten den Verbindungscode ein, der dort in den Einstellungen angezeigt wird."
+            "value": "Ein anderes Gerät hat die Synchronisierung für diesen Account eingeschaltet. Gib zum Beitreten unten den Verbindungscode ein, der dort in den Einstellungen angezeigt wird."
           }
         },
         "en": {
@@ -159023,7 +159023,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Die Synchronisierung ist für dieses Konto aus. Schalte sie hier ein, um zu beginnen."
+            "value": "Die Synchronisierung ist für diesen Account aus. Schalte sie hier ein, um zu beginnen."
           }
         },
         "en": {
@@ -159653,7 +159653,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dieser Code gehört nicht zu diesem Konto. Prüfe den Code in den Einstellungen deines anderen Geräts noch einmal."
+            "value": "Dieser Code gehört nicht zu diesem Account. Prüfe den Code in den Einstellungen deines anderen Geräts noch einmal."
           }
         },
         "en": {
@@ -160143,7 +160143,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Transkripte, Notizen, Aufgaben, Personen und Chats in „Fragen“ erscheinen auf dem Mac und iPhone, auf denen du mit demselben Konto angemeldet bist. Alles wird auf diesem Mac verschlüsselt; unser Server (in der EU) speichert nur eine verschlüsselte Kopie, die er nicht lesen kann. Ton und Bildschirmfotos bleiben auf dem Gerät, das sie aufgenommen hat."
+            "value": "Transkripte, Notizen, Aufgaben, Personen und Chats in „Fragen“ erscheinen auf dem Mac und iPhone, auf denen du mit demselben Account angemeldet bist. Alles wird auf diesem Mac verschlüsselt; unser Server (in der EU) speichert nur eine verschlüsselte Kopie, die er nicht lesen kann. Ton und Bildschirmfotos bleiben auf dem Gerät, das sie aufgenommen hat."
           }
         },
         "en": {
@@ -161901,7 +161901,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lyhyet päivittäiset tiimipalaverit henkilö kerrallaan."
+            "value": "Lyhyet päivittäiset tiimikokoukset henkilö kerrallaan."
           }
         },
         "fr": {
@@ -163108,7 +163108,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Myynti-, demo- ja asiakkuuspalaverit."
+            "value": "Myynti-, demo- ja asiakkuuskokoukset."
           }
         },
         "fr": {
@@ -178352,7 +178352,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pidä pikanäppäintä painettuna, sano lause ja päästä irti. Esim. ”Pidetään huomenna kymmeneltä lyhyt palaveri.”"
+            "value": "Pidä pikanäppäintä painettuna, sano lause ja päästä irti. Esim. ”Pidetään huomenna kymmeneltä lyhyt kokous.”"
           }
         }
       }
@@ -179262,7 +179262,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pidetään huomenna kymmeneltä lyhyt palaveri, tuon diat."
+            "value": "Pidetään huomenna kymmeneltä lyhyt kokous, tuon diat."
           }
         }
       }
@@ -182282,7 +182282,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wird auf diesem Mac in die Notizen-App geschrieben; kein Konto nötig."
+            "value": "Wird auf diesem Mac in die Notizen-App geschrieben; kein Account nötig."
           }
         },
         "en": {
@@ -184937,7 +184937,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kysy mitä tahansa tästä palaverista"
+            "value": "Kysy mitä tahansa tästä kokouksesta"
           }
         },
         "fr": {
@@ -185008,7 +185008,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Käytä reseptiä tähän palaveriin"
+            "value": "Käytä reseptiä tähän kokoukseen"
           }
         },
         "fr": {
@@ -185079,7 +185079,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kysy tältä palaverilta"
+            "value": "Kysy tältä kokoukselta"
           }
         },
         "fr": {
@@ -185221,7 +185221,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Päätökset, tehtävät tai kuka sanoi mitä: vastaus tulee tämän palaverin muistiinpanosta ja litteroinnista lähteineen."
+            "value": "Päätökset, tehtävät tai kuka sanoi mitä: vastaus tulee tämän kokouksen muistiinpanosta ja litteroinnista lähteineen."
           }
         },
         "fr": {
@@ -185505,7 +185505,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tiivistä tämä palaveri enintään kolmeen lyhyeen kohtaan: mistä puhuttiin, mitä päätettiin, mitä seuraavaksi."
+            "value": "Tiivistä tämä kokous enintään kolmeen lyhyeen kohtaan: mistä puhuttiin, mitä päätettiin, mitä seuraavaksi."
           }
         },
         "fr": {
@@ -185787,7 +185787,7 @@
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Muistiinpanossa lukee ”%@”. Miten tästä puhuttiin palaverissa: kuka sanoi mitä ja miksi päädyttiin tähän?"
+            "value": "Muistiinpanossa lukee ”%@”. Miten tästä puhuttiin kokouksessa: kuka sanoi mitä ja miksi päädyttiin tähän?"
           }
         },
         "fr": {
@@ -187461,7 +187461,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Diese Nummer wird bereits von einem anderen Gistsmith-Konto verwendet."
+            "value": "Diese Nummer wird bereits von einem anderen Gistsmith-Account verwendet."
           }
         },
         "fr": {
@@ -187603,7 +187603,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "In deinem Konto läuft bereits ein anderer Anruf; versuche es erneut, wenn er beendet ist."
+            "value": "In deinem Account läuft bereits ein anderer Anruf; versuche es erneut, wenn er beendet ist."
           }
         },
         "fr": {
@@ -191648,6 +191648,1551 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pysäytä vastaus (⌘. tai Esc)"
+          }
+        }
+      }
+    },
+    "Toplantılarda olmayan bilgi için cevap başına en çok 3 arama; web arama hizmetine yalnızca kısa arama sorgusu gider.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Up to 3 searches per answer for information not in your meetings; only a short search query goes to the web search service."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bis zu 3 Suchen pro Antwort für Informationen, die nicht in deinen Meetings stehen; nur eine kurze Suchanfrage geht an den Websuchdienst."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jusqu'à 3 recherches par réponse pour les informations absentes de tes réunions ; seule une courte requête est envoyée au service de recherche web."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hasta 3 búsquedas por respuesta para información que no está en tus reuniones; solo se envía una consulta breve al servicio de búsqueda web."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fino a 3 ricerche per risposta per informazioni che non sono nelle tue riunioni; al servizio di ricerca web va solo una breve query."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Até 3 buscas por resposta para informações que não estão nas suas reuniões; só uma consulta curta vai para o serviço de busca na web."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maximaal 3 zoekopdrachten per antwoord voor informatie die niet in je vergaderingen staat; alleen een korte zoekvraag gaat naar de webzoekdienst."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議にない情報について、回答ごとに最大3回検索します。Web検索サービスに送られるのは短い検索クエリだけです。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의에 없는 정보는 답변마다 최대 3번 검색합니다. 웹 검색 서비스에는 짧은 검색어만 전송됩니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对于会议中没有的信息，每个回答最多搜索 3 次；只有简短的搜索词会发送到网页搜索服务。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enintään 3 hakua vastausta kohden tiedoille, joita kokouksissasi ei ole; verkkohakupalveluun lähtee vain lyhyt hakulauseke."
+          }
+        }
+      }
+    },
+    "Açıkken Sor, soru toplantılarında olmayan bir bilgi gerektirdiğinde (güncel bilgi, tanım, ürün, fiyat ya da dış kaynak) cevap başına en çok 3 kez webde arar; web kaynakları cevapta alan adıyla ve cevabın altındaki \"Web\" listesinde ayrıca görünür, tıklayınca tarayıcıda açılır. Modelin sorundan (ve okunan toplantı parçalarından) yazdığı kısa arama sorgusu sunucumuz üzerinden yapay zekâ hizmetine, oradan web arama hizmetine gider; web arama hizmetine yalnız bu sorgu gider. Ayda 100 arama hakkın var; dolunca Sor ay sonuna kadar yalnız toplantılardan cevaplar. Kapalıyken webde hiç aranmaz.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When on, Ask searches the web up to 3 times per answer when a question needs information that isn't in your meetings (current facts, definitions, products, prices or outside sources); web sources show in the answer by domain and in the \"Web\" list below it, and open in your browser. The short search query the model writes from your question (and the meeting excerpts it read) goes through our server to the AI service and from there to the web search service; only this query reaches the web search service. You have 100 searches a month; after that, Ask answers only from your meetings until the month ends. When off, nothing is searched on the web."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wenn aktiviert, sucht Fragen bis zu 3-mal pro Antwort im Web, wenn eine Frage Informationen braucht, die nicht in deinen Meetings stehen (Aktuelles, Definitionen, Produkte, Preise oder externe Quellen); Webquellen erscheinen in der Antwort mit ihrer Domain und in der Liste „Web“ darunter und öffnen sich im Browser. Die kurze Suchanfrage, die das Modell aus deiner Frage (und den gelesenen Meeting-Auszügen) schreibt, geht über unseren Server an den KI-Dienst und von dort an den Websuchdienst; nur diese Anfrage erreicht den Websuchdienst. Du hast 100 Suchen pro Monat; danach antwortet Fragen bis Monatsende nur aus deinen Meetings. Wenn deaktiviert, wird nie im Web gesucht."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activé, Demander cherche sur le web jusqu'à 3 fois par réponse quand une question demande une information absente de tes réunions (actualité, définition, produit, prix ou source externe) ; les sources web apparaissent dans la réponse avec leur domaine et dans la liste « Web » en dessous, et s'ouvrent dans le navigateur. La courte requête que le modèle rédige à partir de ta question (et des extraits de réunion lus) passe par notre serveur vers le service d'IA, puis vers le service de recherche web ; seule cette requête atteint le service de recherche web. Tu as 100 recherches par mois ; ensuite, Demander ne répond qu'à partir de tes réunions jusqu'à la fin du mois. Désactivé, rien n'est recherché sur le web."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si está activado, Preguntar busca en la web hasta 3 veces por respuesta cuando una pregunta necesita información que no está en tus reuniones (actualidad, definiciones, productos, precios o fuentes externas); las fuentes web aparecen en la respuesta con su dominio y en la lista «Web» debajo, y se abren en el navegador. La consulta breve que el modelo escribe a partir de tu pregunta (y de los fragmentos de reuniones leídos) pasa por nuestro servidor al servicio de IA y de ahí al servicio de búsqueda web; solo esta consulta llega al servicio de búsqueda web. Tienes 100 búsquedas al mes; después, Preguntar responde solo con tus reuniones hasta fin de mes. Si está desactivado, no se busca nada en la web."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se attivo, Chiedi cerca sul web fino a 3 volte per risposta quando una domanda richiede informazioni che non sono nelle tue riunioni (attualità, definizioni, prodotti, prezzi o fonti esterne); le fonti web compaiono nella risposta con il loro dominio e nell'elenco «Web» sotto, e si aprono nel browser. La breve query che il modello scrive dalla tua domanda (e dagli estratti di riunione letti) passa dal nostro server al servizio di IA e da lì al servizio di ricerca web; solo questa query raggiunge il servizio di ricerca web. Hai 100 ricerche al mese; poi Chiedi risponde solo dalle tue riunioni fino a fine mese. Se disattivato, non si cerca nulla sul web."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando ativado, Perguntar busca na web até 3 vezes por resposta quando uma pergunta precisa de informações que não estão nas suas reuniões (fatos atuais, definições, produtos, preços ou fontes externas); as fontes da web aparecem na resposta com o domínio e na lista \"Web\" abaixo dela, e abrem no navegador. A consulta curta que o modelo escreve a partir da sua pergunta (e dos trechos de reunião lidos) passa pelo nosso servidor até o serviço de IA e de lá para o serviço de busca na web; só essa consulta chega ao serviço de busca na web. Você tem 100 buscas por mês; depois, Perguntar responde só com suas reuniões até o fim do mês. Quando desativado, nada é buscado na web."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als dit aan staat, zoekt Vragen tot 3 keer per antwoord op het web wanneer een vraag informatie nodig heeft die niet in je vergaderingen staat (actuele feiten, definities, producten, prijzen of externe bronnen); webbronnen staan in het antwoord met hun domein en in de lijst 'Web' eronder, en openen in je browser. De korte zoekvraag die het model uit je vraag (en de gelezen vergaderfragmenten) schrijft, gaat via onze server naar de AI-dienst en van daar naar de webzoekdienst; alleen deze zoekvraag bereikt de webzoekdienst. Je hebt 100 zoekopdrachten per maand; daarna antwoordt Vragen tot het einde van de maand alleen uit je vergaderingen. Als dit uit staat, wordt er nooit op het web gezocht."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オンにすると、会議にない情報（最新情報、定義、製品、価格、外部の情報源）が必要な質問では、回答ごとに最大3回Webを検索します。Webの情報源は回答内にドメイン名で、また回答の下の「Web」リストに表示され、クリックするとブラウザで開きます。モデルが質問（と読んだ会議の抜粋）から作る短い検索クエリは、当社のサーバー経由でAIサービスへ、そこからWeb検索サービスへ送られます。Web検索サービスに届くのはこのクエリだけです。検索は月100回までで、上限に達すると月末まで「質問」は会議の内容だけで回答します。オフのときはWebを検索しません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "켜 두면 질문에 회의에 없는 정보(최신 정보, 정의, 제품, 가격, 외부 자료)가 필요할 때 답변마다 최대 3번 웹을 검색합니다. 웹 출처는 답변에 도메인으로, 답변 아래 '웹' 목록에 표시되며 클릭하면 브라우저에서 열립니다. 모델이 질문(과 읽은 회의 발췌)으로 만든 짧은 검색어는 당사 서버를 거쳐 AI 서비스로, 다시 웹 검색 서비스로 전송됩니다. 웹 검색 서비스에는 이 검색어만 전달됩니다. 매월 100회 검색할 수 있으며, 다 쓰면 월말까지 회의 내용으로만 답합니다. 끄면 웹을 전혀 검색하지 않습니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开启后，当问题需要会议中没有的信息（最新信息、定义、产品、价格或外部来源）时，“提问”每个回答最多搜索网页 3 次；网页来源会以域名显示在回答中，并列在回答下方的“网页”列表里，点按即可在浏览器中打开。模型根据你的问题（以及读取的会议片段）写出的简短搜索词会经由我们的服务器发送到 AI 服务，再发送到网页搜索服务；网页搜索服务只会收到这条搜索词。每月可搜索 100 次；用完后，到月底前“提问”只根据你的会议回答。关闭后不会进行任何网页搜索。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kun asetus on päällä, Kysy hakee verkosta enintään 3 kertaa vastausta kohden, kun kysymys tarvitsee tietoa, jota kokouksissasi ei ole (ajankohtaista tietoa, määritelmiä, tuotteita, hintoja tai ulkoisia lähteitä); verkkolähteet näkyvät vastauksessa verkkotunnuksella ja sen alla Verkko-luettelossa, ja ne avautuvat selaimeen. Lyhyt hakulauseke, jonka malli kirjoittaa kysymyksestäsi (ja luetuista kokousotteista), kulkee palvelimemme kautta tekoälypalveluun ja sieltä verkkohakupalveluun; verkkohakupalveluun päätyy vain tämä hakulauseke. Sinulla on 100 hakua kuukaudessa; sen jälkeen Kysy vastaa kuun loppuun asti vain kokouksistasi. Kun asetus on pois päältä, verkosta ei haeta mitään."
+          }
+        }
+      }
+    },
+    "Hızlı eylemler": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quick actions"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schnellaktionen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actions rapides"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acciones rápidas"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Azioni rapide"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ações rápidas"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snelle acties"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クイックアクション"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "빠른 작업"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快捷操作"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pikatoiminnot"
+          }
+        }
+      }
+    },
+    "Transkriptte %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In transcript at %@"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Im Transkript bei %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dans la transcription à %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En la transcripción en %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nella trascrizione a %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Na transcrição em %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In transcript op %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字起こしの%@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "스크립트 %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "转写中的 %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Litteroinnissa kohdassa %@"
+          }
+        }
+      }
+    },
+    "Sor: “%@”": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask: “%@”"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fragen: „%@“"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Demander : « %@ »"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preguntar: «%@»"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chiedi: «%@»"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perguntar: “%@”"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vragen: ‘%@’"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "質問：「%@」"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "질문: “%@”"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提问：“%@”"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kysy: ”%@”"
+          }
+        }
+      }
+    },
+    "Bütün toplantılarına sorar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Asks all your meetings"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fragt alle deine Meetings"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interroge toutes tes réunions"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pregunta a todas tus reuniones"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chiede a tutte le tue riunioni"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pergunta a todas as suas reuniões"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vraagt al je vergaderingen"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべての会議に質問します"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "모든 회의에 질문합니다"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "向你的所有会议提问"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kysyy kaikilta kokouksiltasi"
+          }
+        }
+      }
+    },
+    "Çalma konumunu 10 saniye ileri ya da geri almak için ayarla": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adjust to move playback 10 seconds forward or back"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anpassen, um die Wiedergabe 10 Sekunden vor- oder zurückzuspringen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajuster pour avancer ou reculer la lecture de 10 secondes"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajusta para avanzar o retroceder la reproducción 10 segundos"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Regola per spostare la riproduzione di 10 secondi avanti o indietro"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajuste para avançar ou voltar a reprodução 10 segundos"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aanpassen om het afspelen 10 seconden vooruit of terug te zetten"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "調整すると再生位置を10秒進めたり戻したりします"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "조정하면 재생 위치를 10초 앞뒤로 이동합니다"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "调整以将播放位置前进或后退 10 秒"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Säädä siirtääksesi toistoa 10 sekuntia eteen- tai taaksepäin"
+          }
+        }
+      }
+    },
+    "Transkriptte bul": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find in transcript"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Im Transkript suchen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rechercher dans la transcription"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar en la transcripción"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trova nella trascrizione"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar na transcrição"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zoeken in transcript"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字起こし内を検索"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "스크립트에서 찾기"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在转写中查找"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Etsi litteroinnista"
+          }
+        }
+      }
+    },
+    "Eşleşme yok": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No matches"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Treffer"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun résultat"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin coincidencias"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessuna corrispondenza"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum resultado"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geen resultaten"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一致なし"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "일치 항목 없음"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无匹配项"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ei osumia"
+          }
+        }
+      }
+    },
+    "Önceki eşleşme": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Previous match"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorheriger Treffer"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Résultat précédent"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coincidencia anterior"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corrispondenza precedente"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resultado anterior"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorig resultaat"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前の一致"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이전 일치 항목"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上一个匹配项"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edellinen osuma"
+          }
+        }
+      }
+    },
+    "Sonraki eşleşme": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next match"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nächster Treffer"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Résultat suivant"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Siguiente coincidencia"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corrispondenza successiva"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Próximo resultado"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volgend resultaat"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "次の一致"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다음 일치 항목"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下一个匹配项"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seuraava osuma"
+          }
+        }
+      }
+    },
+    "Toplantının dilinde ve İngilizce kısa bildirim; toplantı sohbetine yapıştır": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Short notice in the meeting's language and English; paste it into the meeting chat"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kurzer Hinweis in der Sprache des Meetings und auf Englisch; in den Meeting-Chat einfügen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Court message dans la langue de la réunion et en anglais ; colle-le dans le chat de la réunion"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aviso breve en el idioma de la reunión y en inglés; pégalo en el chat de la reunión"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Breve avviso nella lingua della riunione e in inglese; incollalo nella chat della riunione"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aviso curto no idioma da reunião e em inglês; cole no chat da reunião"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Korte melding in de taal van de vergadering en in het Engels; plak hem in de vergaderchat"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議の言語と英語の短いお知らせ。会議のチャットに貼り付けます"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의 언어와 영어로 된 짧은 안내. 회의 채팅에 붙여 넣으세요"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会议语言和英语的简短通知；粘贴到会议聊天中"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lyhyt ilmoitus kokouksen kielellä ja englanniksi; liitä se kokouksen chattiin"
+          }
+        }
+      }
+    },
+    "Daha fazla": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mehr"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Más"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Altro"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mais"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meer"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "その他"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "더 보기"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更多"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lisää"
+          }
+        }
+      }
+    },
+    "Hiç silme": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Never delete"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nie löschen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ne jamais supprimer"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No borrar nunca"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non eliminare mai"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nunca apagar"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nooit verwijderen"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除しない"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "삭제 안 함"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "永不删除"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Älä poista koskaan"
+          }
+        }
+      }
+    },
+    "Sesler silinsin mi?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete audio?"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio löschen?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer l'audio ?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Borrar el audio?"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminare l'audio?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apagar o áudio?"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio verwijderen?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音声を削除しますか？"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "오디오를 삭제할까요?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除音频？"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poistetaanko äänet?"
+          }
+        }
+      }
+    },
+    "Sesleri sil": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete audio"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio löschen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer l'audio"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Borrar audio"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elimina audio"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apagar áudio"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio verwijderen"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音声を削除"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "오디오 삭제"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除音频"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poista äänet"
+          }
+        }
+      }
+    },
+    "%lld toplantının sesi şimdi silinecek; metin ve not kalır. Bu geri alınamaz.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio of %lld meetings will be deleted now; transcripts and notes stay. This can't be undone."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Audio von %lld Meetings wird jetzt gelöscht; Transkripte und Notizen bleiben. Das lässt sich nicht rückgängig machen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'audio de %lld réunions sera supprimé maintenant ; transcriptions et notes restent. Action irréversible."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El audio de %lld reuniones se borrará ahora; las transcripciones y notas se conservan. No se puede deshacer."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'audio di %lld riunioni verrà eliminato ora; trascrizioni e note restano. L'operazione non si può annullare."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O áudio de %lld reuniões será apagado agora; transcrições e notas ficam. Isso não pode ser desfeito."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De audio van %lld vergaderingen wordt nu verwijderd; transcripten en notities blijven. Dit kan niet ongedaan worden gemaakt."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld件の会議の音声を今すぐ削除します。文字起こしとメモは残ります。元に戻せません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의 %lld개의 오디오가 지금 삭제됩니다. 스크립트와 노트는 남습니다. 되돌릴 수 없습니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 个会议的音频将立即删除；转写和笔记会保留。此操作无法撤销。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld kokouksen äänet poistetaan nyt; litteroinnit ja muistiinpanot säilyvät. Tätä ei voi perua."
+          }
+        }
+      }
+    },
+    "dosya okunamadı; desteklenen bir ses ya da video dosyası olduğunu kontrol et": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "couldn't read the file; check that it's a supported audio or video file"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datei konnte nicht gelesen werden; prüfe, ob es eine unterstützte Audio- oder Videodatei ist"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "impossible de lire le fichier ; vérifie qu'il s'agit d'un fichier audio ou vidéo pris en charge"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "no se pudo leer el archivo; comprueba que sea un archivo de audio o vídeo compatible"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "impossibile leggere il file; verifica che sia un file audio o video supportato"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "não foi possível ler o arquivo; verifique se é um arquivo de áudio ou vídeo compatível"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "bestand kon niet worden gelezen; controleer of het een ondersteund audio- of videobestand is"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルを読み込めませんでした。対応する音声または動画ファイルか確認してください"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "파일을 읽을 수 없습니다. 지원되는 오디오 또는 비디오 파일인지 확인하세요"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取文件；请检查它是否为受支持的音频或视频文件"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tiedostoa ei voitu lukea; tarkista, että se on tuettu ääni- tai videotiedosto"
+          }
+        }
+      }
+    },
+    "ses kaydedilemedi; disk alanını kontrol et": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "couldn't save the audio; check disk space"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio konnte nicht gespeichert werden; prüfe den Speicherplatz"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "impossible d'enregistrer l'audio ; vérifie l'espace disque"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "no se pudo guardar el audio; comprueba el espacio en disco"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "impossibile salvare l'audio; controlla lo spazio su disco"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "não foi possível salvar o áudio; verifique o espaço em disco"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "audio kon niet worden opgeslagen; controleer de schijfruimte"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音声を保存できませんでした。ディスクの空き容量を確認してください"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "오디오를 저장할 수 없습니다. 디스크 공간을 확인하세요"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法保存音频；请检查磁盘空间"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ääntä ei voitu tallentaa; tarkista levytila"
+          }
+        }
+      }
+    },
+    "Dosyanın biçimi tanınmadı: bozuk ya da daha yeni bir sürümle yazılmış olabilir. Uygulamayı güncelle; sürerse geri bildirim gönder.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The file's format wasn't recognized: it may be damaged or written by a newer version. Update the app; if it continues, send feedback."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Dateiformat wurde nicht erkannt: Die Datei ist evtl. beschädigt oder mit einer neueren Version geschrieben. Aktualisiere die App; falls es weiter auftritt, sende Feedback."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Format de fichier non reconnu : il est peut-être endommagé ou écrit par une version plus récente. Mets l'app à jour ; si cela persiste, envoie un retour."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se reconoció el formato del archivo: puede estar dañado o haberse escrito con una versión más reciente. Actualiza la app; si continúa, envía tus comentarios."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Formato del file non riconosciuto: potrebbe essere danneggiato o scritto da una versione più recente. Aggiorna l'app; se continua, invia un feedback."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O formato do arquivo não foi reconhecido: ele pode estar danificado ou ter sido gravado por uma versão mais nova. Atualize o app; se continuar, envie feedback."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De bestandsindeling werd niet herkend: het bestand is mogelijk beschadigd of door een nieuwere versie geschreven. Werk de app bij; blijft het gebeuren, stuur dan feedback."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイル形式を認識できませんでした。破損しているか、新しいバージョンで書き込まれた可能性があります。アプリをアップデートし、解決しない場合はフィードバックを送信してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "파일 형식을 인식하지 못했습니다. 손상되었거나 더 최신 버전에서 작성되었을 수 있습니다. 앱을 업데이트하고, 계속되면 피드백을 보내 주세요."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法识别文件格式：文件可能已损坏，或由更新版本写入。请更新 App；如果问题仍然存在，请发送反馈。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tiedoston muotoa ei tunnistettu: se voi olla vioittunut tai uudemman version kirjoittama. Päivitä sovellus; jos ongelma jatkuu, lähetä palautetta."
+          }
+        }
+      }
+    },
+    "Klip kaydedilemedi: toplantının sesi okunamadı ya da dışa aktarılamadı. Yeniden dene.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't save the clip: the meeting audio couldn't be read or exported. Try again."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clip konnte nicht gespeichert werden: Das Meeting-Audio ließ sich nicht lesen oder exportieren. Versuche es erneut."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d'enregistrer l'extrait : l'audio de la réunion n'a pas pu être lu ou exporté. Réessaie."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo guardar el clip: no se pudo leer ni exportar el audio de la reunión. Inténtalo de nuevo."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile salvare la clip: non è stato possibile leggere o esportare l'audio della riunione. Riprova."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível salvar o clipe: o áudio da reunião não pôde ser lido ou exportado. Tente de novo."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clip kon niet worden opgeslagen: de audio van de vergadering kon niet worden gelezen of geëxporteerd. Probeer het opnieuw."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クリップを保存できませんでした：会議の音声を読み込むか書き出すことができませんでした。もう一度お試しください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "클립을 저장할 수 없습니다. 회의 오디오를 읽거나 내보낼 수 없었습니다. 다시 시도하세요."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法保存片段：无法读取或导出会议音频。请重试。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leikettä ei voitu tallentaa: kokouksen ääntä ei voitu lukea tai viedä. Yritä uudelleen."
+          }
+        }
+      }
+    },
+    "Önceki toplantılar hesabına taşınamadı (%@). Hiçbir şey silinmedi; taşınamayanlar eski yerinde kaldı, yeniden dene.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't move earlier meetings to your account (%@). Nothing was deleted; what couldn't be moved stayed where it was. Try again."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frühere Meetings konnten nicht in deinen Account verschoben werden (%@). Nichts wurde gelöscht; was nicht verschoben werden konnte, blieb an seinem Ort. Versuche es erneut."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de déplacer les réunions précédentes vers ton compte (%@). Rien n'a été supprimé ; ce qui n'a pas pu être déplacé est resté en place. Réessaie."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudieron mover las reuniones anteriores a tu cuenta (%@). No se borró nada; lo que no se pudo mover sigue en su sitio. Inténtalo de nuevo."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile spostare le riunioni precedenti nel tuo account (%@). Non è stato eliminato nulla; ciò che non è stato spostato è rimasto al suo posto. Riprova."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível mover as reuniões anteriores para sua conta (%@). Nada foi apagado; o que não pôde ser movido ficou no lugar. Tente de novo."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eerdere vergaderingen konden niet naar je account worden verplaatst (%@). Er is niets verwijderd; wat niet kon worden verplaatst, bleef op zijn plek. Probeer het opnieuw."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以前の会議をアカウントに移動できませんでした（%@）。何も削除されていません。移動できなかったものは元の場所に残っています。もう一度お試しください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이전 회의를 계정으로 옮길 수 없습니다(%@). 아무것도 삭제되지 않았으며, 옮기지 못한 항목은 원래 위치에 남아 있습니다. 다시 시도하세요."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法将之前的会议移到你的账户（%@）。没有删除任何内容；未能移动的内容仍在原处。请重试。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aiempia kokouksia ei voitu siirtää tilillesi (%@). Mitään ei poistettu; siirtämättä jääneet ovat yhä paikallaan. Yritä uudelleen."
           }
         }
       }

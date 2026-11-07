@@ -28,13 +28,18 @@ struct MeetingsListPage: View {
     @State private var isConfirmingDelete: Bool = false
     @State private var deleteErrors: [String] = []
     @State private var listFilter: MeetingListFilter = .all
+    /// Son biten aramanın eşleşen toplantıları.
+    @State private var matchedIDs: Set<String> = []
     /// Notlardaki konuşmacı etiketleri adlarla; adı kullanıcının adı olan konuşmacının görevleri onundur.
     private var userName: String { model.userName }
 
     var body: some View {
         // Satırlar notu konuşmacı adlarıyla gösterir (başlık, görev sayısı); süzgeç saklı kayıtlara uygulanır, sıra korunur.
+        // Arama önbellekli ve ana iş parçacığının dışında (`matchedIDs`); yeni sonuç gelene dek eskisi görünür.
+        let inFolder: [MeetingRecord] = meetingsInFolder(records: model.meetings, folder: folder)
+        let trimmedQuery: String = query.trimmingCharacters(in: .whitespacesAndNewlines)
         let shownIDs: Set<String> = Set(filterMeetings(
-            records: filterMeetings(records: meetingsInFolder(records: model.meetings, folder: folder), query: query),
+            records: trimmedQuery.isEmpty ? inFolder : inFolder.filter { matchedIDs.contains($0.id) },
             listFilter: listFilter, userName: userName
         ).map(\.id))
         let visible: [MeetingRecord] = model.namedMeetings(userName: userName).filter { shownIDs.contains($0.id) }
@@ -129,6 +134,24 @@ struct MeetingsListPage: View {
         }
         .animation(.smooth(duration: 0.25), value: isSelecting)
         .animation(.smooth(duration: 0.25), value: isConfirmingDelete)
+        .task(id: MacSearchRequest(query: trimmedQuery, stamps: inFolder.map(searchStamp(record:)))) {
+            guard !trimmedQuery.isEmpty else {
+                matchedIDs = []
+                return
+            }
+            do {
+                try await Task.sleep(for: searchDebounce)
+            } catch {
+                return
+            }
+            let folderIDs: Set<String> = Set(inFolder.map(\.id))
+            let named: [MeetingRecord] = model.namedMeetings(userName: userName).filter { folderIDs.contains($0.id) }
+            let hits: [MeetingSearchHit] = await model.searchCache.search(records: named, query: trimmedQuery)
+            guard !Task.isCancelled else {
+                return
+            }
+            matchedIDs = Set(hits.map(\.meetingID))
+        }
     }
 
     /// Görünen toplantı yokken: süzgeç açıksa "Hepsini göster", boş klasörde "Tüm toplantılar", aramada başka kelime.
@@ -487,6 +510,14 @@ struct MeetingDetailPage: View {
     @State private var followUpLanguage: ShareLanguage?
     /// "Bağlantıyla paylaş" kartı açık (abonelik sürümü; takip e-postası kartıyla aynı anda açılmaz).
     @State private var sharingWithLink: Bool = false
+    /// "Bu toplantıya sor" sohbet paneli açık (transkript çekmecesiyle aynı anda açık olmaz).
+    @State private var isAskPanelOpen: Bool = false
+    /// Sayfanın yüksekliği: alttaki panel ve çekmece en çok %45'ini kaplar.
+    @State private var pageHeight: CGFloat = 0
+    /// Transkriptte bul (⌘F transkript sekmesindeyken): sorgu ve gösterilen eşleşmenin sırası.
+    @State private var findQuery: String = ""
+    @State private var findIndex: Int = 0
+    @FocusState private var isFindFocused: Bool
 
     private var isProcessing: Bool {
         model.processingMeetingIDs.contains(record.id)
@@ -602,8 +633,32 @@ struct MeetingDetailPage: View {
                         if paragraphs.isEmpty {
                             QuietEmptyCard(symbol: "text.bubble", title: "Bu toplantının metni yok", message: "Kayıt sırasında konuşma algılanmadı.")
                         }
+                        let findMatches: [String] = searchMatchingIndices(
+                            texts: paragraphs.map { $0.text + "\u{1F}" + ($0.turkish ?? "") }, query: findQuery
+                        ).map { paragraphs[$0].id }
+                        let currentFindID: String? = findMatches.isEmpty ? nil : findMatches[min(findIndex, findMatches.count - 1)]
+                        if !paragraphs.isEmpty {
+                            TranscriptFindBar(
+                                query: $findQuery, isFocused: $isFindFocused, matchCount: findMatches.count,
+                                current: min(findIndex, max(0, findMatches.count - 1))
+                            ) { (step: Int) -> Void in
+                                guard !findMatches.isEmpty else {
+                                    return
+                                }
+                                findIndex = (min(findIndex, findMatches.count - 1) + step + findMatches.count) % findMatches.count
+                                withAnimation(.smooth(duration: 0.3)) { proxy.scrollTo(findMatches[findIndex], anchor: UnitPoint(x: 0.5, y: 0.3)) }
+                            }
+                            .frame(maxWidth: 820, alignment: .leading)
+                            .onChange(of: findQuery) { (_: String, _: String) in
+                                findIndex = 0
+                                if let first = findMatches.first {
+                                    withAnimation(.smooth(duration: 0.3)) { proxy.scrollTo(first, anchor: UnitPoint(x: 0.5, y: 0.3)) }
+                                }
+                            }
+                        }
                         TranscriptSection(
                             record: record, paragraphs: paragraphs, player: player, proxy: proxy,
+                            findMatchIDs: Set(findMatches), currentFindID: currentFindID,
                             canPlay: !playableAudio.isEmpty,
                             onPlay: { (startSec: Double) -> Void in play(from: startSec) },
                             canEdit: !isLocked,
@@ -624,6 +679,8 @@ struct MeetingDetailPage: View {
                     .transition(.opacity)
                     .environment(\.noteSourceAutoOpenText, demoOpenSourceText)
                 }
+                // ⌘F transkript sekmesinde transkriptte bulur (yoksa ana pencerenin araması açılır; bkz. `TopBar`).
+                .focusedSceneValue(\.transcriptFind, tab == .transcript ? TranscriptFindAction { isFindFocused = true } : nil)
                 .animation(.smooth(duration: 0.25), value: tab)
                 .animation(.smooth(duration: 0.25), value: export)
                 .animation(.smooth(duration: 0.25), value: followUpLanguage)
@@ -638,6 +695,9 @@ struct MeetingDetailPage: View {
             // Altta yüzen "Bir şey sor" çubuğu ve üstünde açılan transkript çekmecesi (içerik altından kayar).
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 bottomBar(paragraphs: paragraphs)
+            }
+            .onGeometryChange(for: CGFloat.self) { (proxy: GeometryProxy) -> CGFloat in proxy.size.height } action: { (height: CGFloat) -> Void in
+                pageHeight = height
             }
         }
         .onChange(of: tab) { (_: MeetingTab, selected: MeetingTab) -> Void in
@@ -709,28 +769,32 @@ struct MeetingDetailPage: View {
                         onPlay: { (startSec: Double) -> Void in playInPlace(from: startSec) },
                         onClose: { isTranscriptOpen = false }
                     )
-                    .frame(height: 360)
+                    .frame(height: bottomPanelMaxHeight(pageHeight: pageHeight, cap: 360))
                     .frame(maxWidth: 700)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                MeetingAskBar(
-                    exchanges: model.meetingAsk.exchanges(meetingID: record.id), isAnswering: model.meetingAsk.isAnswering(meetingID: record.id),
-                    quickActions: record.note == nil ? [] : meetingQuickActions(recipes: model.recipes), recipes: model.recipes,
-                    isEditingNote: isProcessing, isTranscriptOpen: isTranscriptOpen,
-                    onAsk: { (question: String, recipeTitle: String?) -> Void in
-                        model.askAboutMeeting(meetingID: record.id, question: question, recipeTitle: recipeTitle)
-                    },
-                    onQuickAction: { (action: MeetingQuickAction) -> Void in run(action: action) },
-                    onStop: { model.meetingAsk.stop(meetingID: record.id) },
-                    onClear: { model.meetingAsk.clear(meetingID: record.id) },
-                    onRegenerate: { model.regenerateMeetingAnswer(meetingID: record.id) },
-                    onOpenSource: { (passage: ArchivePassage) -> Void in openSource(passage: passage, paragraphs: paragraphs) },
-                    onSaveRecipe: { (question: String) -> Void in model.saveRecipe(question: question) },
-                    onToggleTranscript: {
-                        transcriptFocusID = nil
-                        isTranscriptOpen.toggle()
-                    }
-                )
+                // Akan cevap yalnız çubuğu yeniden çizer (bkz. `ObservationScope`).
+                ObservationScope {
+                    MeetingAskBar(
+                        exchanges: model.meetingAsk.exchanges(meetingID: record.id), isAnswering: model.meetingAsk.isAnswering(meetingID: record.id),
+                        quickActions: record.note == nil ? [] : meetingQuickActions(recipes: model.recipes), recipes: model.recipes,
+                        isEditingNote: isProcessing, isTranscriptOpen: isTranscriptOpen,
+                        isPanelOpen: $isAskPanelOpen, conversationMaxHeight: bottomPanelMaxHeight(pageHeight: pageHeight, cap: 340),
+                        onAsk: { (question: String, recipeTitle: String?) -> Void in
+                            model.askAboutMeeting(meetingID: record.id, question: question, recipeTitle: recipeTitle)
+                        },
+                        onQuickAction: { (action: MeetingQuickAction) -> Void in run(action: action) },
+                        onStop: { model.meetingAsk.stop(meetingID: record.id) },
+                        onClear: { model.meetingAsk.clear(meetingID: record.id) },
+                        onRegenerate: { model.regenerateMeetingAnswer(meetingID: record.id) },
+                        onOpenSource: { (passage: ArchivePassage) -> Void in openSource(passage: passage, paragraphs: paragraphs) },
+                        onSaveRecipe: { (question: String) -> Void in model.saveRecipe(question: question) },
+                        onToggleTranscript: {
+                            transcriptFocusID = nil
+                            isTranscriptOpen.toggle()
+                        }
+                    )
+                }
             }
             .padding(.horizontal, DesignTokens.Spacing.l)
             .padding(.bottom, 14)
@@ -742,6 +806,17 @@ struct MeetingDetailPage: View {
                     .allowsHitTesting(false)
             }
             .animation(.smooth(duration: 0.25), value: isTranscriptOpen)
+            // Sohbet paneli ve transkript çekmecesi aynı anda açık olmaz: biri açılınca öteki kapanır.
+            .onChange(of: isAskPanelOpen) { (_: Bool, open: Bool) in
+                if open {
+                    isTranscriptOpen = false
+                }
+            }
+            .onChange(of: isTranscriptOpen) { (_: Bool, open: Bool) in
+                if open {
+                    isAskPanelOpen = false
+                }
+            }
         }
     }
 
@@ -949,19 +1024,19 @@ struct MeetingDetailPage: View {
     private func noteLanguageMenu(original: ShareLanguage) -> some View {
         let choices: ShareLanguageChoices = shareLanguageChoices(original: original)
         return Menu {
-            Button(original.interfaceName) { noteLanguage = nil }
+            Button(original.interfaceTitle) { noteLanguage = nil }
             ForEach(choices.featured, id: \.self) { (language: ShareLanguage) in
-                Button(language.interfaceName) { noteLanguage = language }
+                Button(language.interfaceTitle) { noteLanguage = language }
             }
             Divider()
             Menu("Diğer diller") {
                 ForEach(choices.others, id: \.self) { (language: ShareLanguage) in
-                    Button(language.interfaceName) { noteLanguage = language }
+                    Button(language.interfaceTitle) { noteLanguage = language }
                 }
             }
         } label: {
             Label {
-                Text(verbatim: (noteLanguage ?? original).interfaceName)
+                Text(verbatim: (noteLanguage ?? original).interfaceTitle)
             } icon: {
                 Image(systemName: "globe")
             }
@@ -2367,19 +2442,19 @@ private struct FollowUpEmailCard: View {
     private var languageMenu: some View {
         let choices: ShareLanguageChoices = shareLanguageChoices(original: noteLanguage)
         return Menu {
-            Button(noteLanguage.interfaceName) { language = noteLanguage }
+            Button(noteLanguage.interfaceTitle) { language = noteLanguage }
             ForEach(choices.featured, id: \.self) { (choice: ShareLanguage) in
-                Button(choice.interfaceName) { language = choice }
+                Button(choice.interfaceTitle) { language = choice }
             }
             Divider()
             Menu("Diğer diller") {
                 ForEach(choices.others, id: \.self) { (choice: ShareLanguage) in
-                    Button(choice.interfaceName) { language = choice }
+                    Button(choice.interfaceTitle) { language = choice }
                 }
             }
         } label: {
             Label {
-                Text(verbatim: language.interfaceName)
+                Text(verbatim: language.interfaceTitle)
             } icon: {
                 Image(systemName: "globe")
             }
@@ -2631,6 +2706,9 @@ private struct SpeakerAvatar: View {
     }
 }
 
+/// Klavye ve VoiceOver ile konuşmacı şeridinde bir adım (saniye).
+private let timelineStepSec: Double = 10
+
 /// Başlık kartındaki konuşmacı zaman çizgisi: kim ne zaman konuştu; çalarken okuma çizgisi; tıklayınca oradan çalar.
 private struct SpeakerTimeline: View {
     let spans: [SpeakerSpan]
@@ -2639,6 +2717,20 @@ private struct SpeakerTimeline: View {
     let meetingID: String
     let canPlay: Bool
     let onSeek: @MainActor (Double) -> Void
+
+    /// Bu toplantının çalma konumu (başka toplantı çalıyorsa baş).
+    private var currentSecond: Double {
+        player.meetingID == meetingID ? Double(player.currentSecond) : 0
+    }
+
+    /// Klavye ya da VoiceOver adımı: konumu `seconds` kadar kaydırıp oradan çalar (toplantı sınırları içinde).
+    private func step(by seconds: Double) -> KeyPress.Result {
+        guard canPlay else {
+            return .ignored
+        }
+        onSeek(min(totalSec, max(0, currentSecond + seconds)))
+        return .handled
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
@@ -2669,6 +2761,22 @@ private struct SpeakerTimeline: View {
                 .pointerStyle(canPlay ? .link : nil)
             }
             .frame(height: 14)
+            // VoiceOver ve klavye: şerit ayarlanabilir tek öğe; yukarı/aşağı kaydırma (VoiceOver) ya da ←/→ (odaktayken)
+            // çalma konumunu 10 saniye ileri ya da geri alır.
+            .focusable(canPlay)
+            .onKeyPress(.leftArrow) { step(by: -timelineStepSec) }
+            .onKeyPress(.rightArrow) { step(by: timelineStepSec) }
+            .accessibilityElement()
+            .accessibilityLabel(Text("Kim ne zaman konuştu"))
+            .accessibilityValue(Text(verbatim: "\(timestamp(seconds: currentSecond)) / \(timestamp(seconds: totalSec))"))
+            .accessibilityHint(canPlay ? Text("Çalma konumunu 10 saniye ileri ya da geri almak için ayarla") : Text(verbatim: ""))
+            .accessibilityAdjustableAction { (direction: AccessibilityAdjustmentDirection) in
+                switch direction {
+                case .increment: _ = step(by: timelineStepSec)
+                case .decrement: _ = step(by: -timelineStepSec)
+                @unknown default: break
+                }
+            }
             HStack(spacing: DesignTokens.Spacing.s) {
                 Text(verbatim: timestamp(seconds: 0))
                 Spacer(minLength: 0)
@@ -3087,6 +3195,9 @@ private struct TranscriptSection: View {
     let paragraphs: [TranscriptParagraph]
     let player: MeetingAudioPlayer
     let proxy: ScrollViewProxy
+    /// Transkriptte bul: eşleşen paragraflar ve gösterilen eşleşme.
+    let findMatchIDs: Set<String>
+    let currentFindID: String?
     /// Ses var (silinmemiş, kayıtta değil): paragrafa tıklayınca oradan çalar.
     let canPlay: Bool
     let onPlay: @MainActor (Double) -> Void
@@ -3102,6 +3213,17 @@ private struct TranscriptSection: View {
     /// Çalan paragraf: konum her güncellendiğinde değil, yalnızca paragraf değişince yazılır (tüm transkript saniyede
     /// onlarca kez yeniden çizilmesin; kelime vurgusu yalnızca çalan paragrafın içinde güncellenir).
     @State private var activeID: String?
+
+    /// Paragrafın zemini: çalan paragraf, gösterilen bul eşleşmesi (vurgu rengi) ya da öteki eşleşmeler (soluk vurgu).
+    private func paragraphBackground(id: String, isActive: Bool) -> Color {
+        if isActive {
+            return Theme.soft
+        }
+        if id == currentFindID {
+            return appearance.accent.color.opacity(0.22)
+        }
+        return findMatchIDs.contains(id) ? appearance.accent.color.opacity(0.08) : Color.clear
+    }
 
     var body: some View {
         let markedIDs: Set<String> = highlightedParagraphIDs(paragraphs: paragraphs, highlights: record.highlights ?? [])
@@ -3181,7 +3303,7 @@ private struct TranscriptSection: View {
                 }
                 .padding(.vertical, continues ? 6 : 12)
                 .padding(.horizontal, 10)
-                .background(isActive ? Theme.soft : Color.clear, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .background(paragraphBackground(id: paragraph.id, isActive: isActive), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .animation(.easeOut(duration: 0.25), value: isActive)
                 .modifier(PlayableTurn(canPlay: canPlay) { onPlay(paragraph.startSec) })
                 .contextMenu {
@@ -3205,6 +3327,56 @@ private struct TranscriptSection: View {
                 }
             }
         }
+    }
+}
+
+/// ⌘F'nin transkriptte bul eylemi: transkript sekmesi açıkken sayfa yayınlar, ana pencerenin ⌘F'si onu çağırır.
+struct TranscriptFindAction {
+    let focus: @MainActor () -> Void
+}
+
+extension FocusedValues {
+    @Entry var transcriptFind: TranscriptFindAction?
+}
+
+/// Transkript sekmesinin üstündeki "Transkriptte bul" alanı: eşleşme sayısı ve önceki/sonraki (↩ sonraki).
+private struct TranscriptFindBar: View {
+    @Binding var query: String
+    var isFocused: FocusState<Bool>.Binding
+    let matchCount: Int
+    let current: Int
+    /// Önceki (-1) ya da sonraki (+1) eşleşmeye geçer.
+    let onStep: @MainActor (Int) -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "text.magnifyingglass")
+                .foregroundStyle(Theme.muted)
+                .accessibilityHidden(true)
+            TextField("Transkriptte bul", text: $query)
+                .textFieldStyle(.plain)
+                .focused(isFocused)
+                .onSubmit { onStep(1) }
+                .onExitCommand { query = "" }
+            if !query.trimmingCharacters(in: .whitespaces).isEmpty {
+                Text(matchCount == 0 ? String(localized: "Eşleşme yok") : String(localized: "\(current + 1)/\(matchCount)"))
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.muted)
+                Button("Önceki eşleşme", systemImage: "chevron.up") { onStep(-1) }
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.hoverPlain)
+                    .disabled(matchCount == 0)
+                Button("Sonraki eşleşme", systemImage: "chevron.down") { onStep(1) }
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.hoverPlain)
+                    .disabled(matchCount == 0)
+            }
+        }
+        .appFont(size: 13, weight: .regular)
+        .padding(.horizontal, 10)
+        .frame(height: 30)
+        .background(Theme.card, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(Theme.line))
     }
 }
 

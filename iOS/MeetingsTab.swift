@@ -19,6 +19,8 @@ struct MeetingsLibraryScreen: View {
     let initialScope: MeetingListScope
     @Environment(PhoneImportState.self) private var imports: PhoneImportState
     @State private var query: String = ""
+    /// Son biten aramanın eşleşen toplantıları.
+    @State private var matchedIDs: Set<String> = []
     /// Çiplerle seçilen süzgeç (Mac'teki Hepsi / Görevlerim / Hatalı) ya da klasör; seçilmediyse açılış kapsamı.
     @State private var selectedScope: MeetingListScope?
     @State private var pendingDelete: MeetingRecord?
@@ -40,11 +42,12 @@ struct MeetingsLibraryScreen: View {
     var body: some View {
         // Kartlar ve sayfa notu konuşmacı adlarıyla gösterir (saklı not genel etiketleri korur, değişiklikler kimlikle
         // saklı kayda yapılır).
-        let meetings: [MeetingRecord] = namedRecords(records: store.meetings, userName: userName)
+        let meetings: [MeetingRecord] = store.namedMeetings()
         let scoped: [MeetingRecord] = meetingsInScope(records: meetings, scope: scope, userName: userName)
-        let sections: [MeetingSection] = meetingSections(
-            records: filterMeetings(records: scoped, query: query), now: Date(), calendar: .current, locale: interfaceLocale()
-        )
+        // Arama önbellekli ve ana iş parçacığının dışında (bkz. `PhoneSearchScreen`); yeni sonuç gelene dek eskisi görünür.
+        let trimmedQuery: String = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let shown: [MeetingRecord] = trimmedQuery.isEmpty ? scoped : scoped.filter { matchedIDs.contains($0.id) }
+        let sections: [MeetingSection] = meetingSections(records: shown, now: Date(), calendar: .current, locale: interfaceLocale())
         let locked: Set<String> = phoneLockedMeetingIDs(store: store, recorder: recorder)
         // Yalnız görünen işaretliler sayılır ve işlenir (Mac'teki gibi): arama, klasör ya da süzgeç değişince gizlenen
         // işaretliler işlemden çıkar.
@@ -97,6 +100,22 @@ struct MeetingsLibraryScreen: View {
         .background(Theme.background)
         .navigationTitle(libraryTitle)
         .searchable(text: $query, prompt: "Toplantılarda ara")
+        .task(id: PhoneSearchRequest(query: trimmedQuery, stamps: scoped.map(searchStamp(record:)))) {
+            guard !trimmedQuery.isEmpty else {
+                matchedIDs = []
+                return
+            }
+            do {
+                try await Task.sleep(for: searchDebounce)
+            } catch {
+                return
+            }
+            let hits: [MeetingSearchHit] = await store.searchCache.search(records: scoped, query: trimmedQuery)
+            guard !Task.isCancelled else {
+                return
+            }
+            matchedIDs = Set(hits.map(\.meetingID))
+        }
         // Çalan toplantı altta (seç modunda alt çubuk onun yerini alır, Fotoğraflar'daki gibi).
         .modifier(PhoneMiniPlayerInset(player: player, store: store, router: router, isHidden: isSelecting))
         .toolbar {
@@ -586,6 +605,10 @@ struct MeetingReadView: View {
     @State private var pane: MeetingPane = .summary
     /// Alttaki çubuğun transkript çekmecesi açık.
     @State private var isTranscriptOpen: Bool = false
+    /// "Bu toplantıya sor" sohbet paneli açık (transkript çekmecesiyle aynı anda açık olmaz).
+    @State private var isAskPanelOpen: Bool = false
+    /// Sayfanın yüksekliği: alttaki panel ve çekmece en çok %45'ini kaplar.
+    @State private var pageHeight: CGFloat = 0
     /// Çekmecede kayılacak ve vurgulanacak paragraf (not maddesinin kaynağından gelinince).
     @State private var transcriptFocusID: String?
     /// Silme onayı bekleyen toplantı (⋯ › Sil).
@@ -736,6 +759,9 @@ struct MeetingReadView: View {
             // Altta yüzen "Bir şey sor" çubuğu ve üstünde açılan transkript çekmecesi (Mac'teki gibi).
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 bottomBar(paragraphs: paragraphs)
+            }
+            .onGeometryChange(for: CGFloat.self) { (proxy: GeometryProxy) -> CGFloat in proxy.size.height } action: { (height: CGFloat) -> Void in
+                pageHeight = height
             }
         }
         .background(Theme.background)
@@ -1034,27 +1060,31 @@ struct MeetingReadView: View {
                         onPlay: { (startSec: Double) -> Void in playInPlace(from: startSec) },
                         onClose: { isTranscriptOpen = false }
                     )
-                    .frame(height: 340)
+                    .frame(height: bottomPanelMaxHeight(pageHeight: pageHeight, cap: 340))
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                MeetingAskBar(
-                    exchanges: ask.meetingAsk.exchanges(meetingID: record.id), isAnswering: ask.meetingAsk.isAnswering(meetingID: record.id),
-                    quickActions: record.note == nil ? [] : meetingQuickActions(recipes: ask.recipes), recipes: ask.recipes,
-                    isEditingNote: store.regeneratingIDs.contains(record.id), isTranscriptOpen: isTranscriptOpen,
-                    onAsk: { (question: String, recipeTitle: String?) -> Void in
-                        ask.askAboutMeeting(meetingID: record.id, question: question, recipeTitle: recipeTitle)
-                    },
-                    onQuickAction: { (action: MeetingQuickAction) -> Void in run(action: action) },
-                    onStop: { ask.meetingAsk.stop(meetingID: record.id) },
-                    onClear: { ask.meetingAsk.clear(meetingID: record.id) },
-                    onRegenerate: { ask.regenerateMeetingAnswer(meetingID: record.id) },
-                    onOpenSource: { (passage: ArchivePassage) -> Void in openSource(passage: passage, paragraphs: paragraphs) },
-                    onSaveRecipe: { (question: String) -> Void in ask.saveRecipe(question: question) },
-                    onToggleTranscript: {
-                        transcriptFocusID = nil
-                        isTranscriptOpen.toggle()
-                    }
-                )
+                // Akan cevap yalnız çubuğu yeniden çizer (bkz. `ObservationScope`).
+                ObservationScope {
+                    MeetingAskBar(
+                        exchanges: ask.meetingAsk.exchanges(meetingID: record.id), isAnswering: ask.meetingAsk.isAnswering(meetingID: record.id),
+                        quickActions: record.note == nil ? [] : meetingQuickActions(recipes: ask.recipes), recipes: ask.recipes,
+                        isEditingNote: store.regeneratingIDs.contains(record.id), isTranscriptOpen: isTranscriptOpen,
+                        isPanelOpen: $isAskPanelOpen, conversationMaxHeight: bottomPanelMaxHeight(pageHeight: pageHeight, cap: 340) - 90,
+                        onAsk: { (question: String, recipeTitle: String?) -> Void in
+                            ask.askAboutMeeting(meetingID: record.id, question: question, recipeTitle: recipeTitle)
+                        },
+                        onQuickAction: { (action: MeetingQuickAction) -> Void in run(action: action) },
+                        onStop: { ask.meetingAsk.stop(meetingID: record.id) },
+                        onClear: { ask.meetingAsk.clear(meetingID: record.id) },
+                        onRegenerate: { ask.regenerateMeetingAnswer(meetingID: record.id) },
+                        onOpenSource: { (passage: ArchivePassage) -> Void in openSource(passage: passage, paragraphs: paragraphs) },
+                        onSaveRecipe: { (question: String) -> Void in ask.saveRecipe(question: question) },
+                        onToggleTranscript: {
+                            transcriptFocusID = nil
+                            isTranscriptOpen.toggle()
+                        }
+                    )
+                }
             }
             .padding(.horizontal, 12)
             .padding(.bottom, 8)
@@ -1066,6 +1096,17 @@ struct MeetingReadView: View {
                     .allowsHitTesting(false)
             }
             .animation(.smooth(duration: 0.25), value: isTranscriptOpen)
+            // Sohbet paneli ve transkript çekmecesi aynı anda açık olmaz: biri açılınca öteki kapanır.
+            .onChange(of: isAskPanelOpen) { (_: Bool, open: Bool) in
+                if open {
+                    isTranscriptOpen = false
+                }
+            }
+            .onChange(of: isTranscriptOpen) { (_: Bool, open: Bool) in
+                if open {
+                    isAskPanelOpen = false
+                }
+            }
         }
     }
 
@@ -1998,18 +2039,18 @@ private struct PhoneFollowUpEmailSheet: View {
     private var languageMenu: some View {
         let choices: ShareLanguageChoices = shareLanguageChoices(original: noteLanguage)
         return Menu {
-            Button(noteLanguage.interfaceName) { language = noteLanguage }
+            Button(noteLanguage.interfaceTitle) { language = noteLanguage }
             ForEach(choices.featured, id: \.self) { (choice: ShareLanguage) in
-                Button(choice.interfaceName) { language = choice }
+                Button(choice.interfaceTitle) { language = choice }
             }
             Menu("Diğer diller") {
                 ForEach(choices.others, id: \.self) { (choice: ShareLanguage) in
-                    Button(choice.interfaceName) { language = choice }
+                    Button(choice.interfaceTitle) { language = choice }
                 }
             }
         } label: {
             Label {
-                Text(verbatim: language.interfaceName)
+                Text(verbatim: language.interfaceTitle)
             } icon: {
                 Image(systemName: "globe")
             }

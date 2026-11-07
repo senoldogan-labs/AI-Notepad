@@ -26,7 +26,7 @@ struct PhoneSkillImportSection: View {
             }
             if let error = ask.recipeError {
                 Label(error, systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(NoticeSeverity.attention.tint)
             }
         } header: {
             Text("Beceriler (Agent Skills)")

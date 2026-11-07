@@ -72,7 +72,11 @@ struct PhoneOnboarding: View {
                 .padding(.bottom, 24)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .scrollIndicators(.hidden)
+            // Küçük ekranda (iPhone SE) adımın sonu alttaki "Devam et" çubuğunun altında kalır: kaydırma çubuğu açılışta
+            // yanıp devamı olduğunu gösterir.
+            .scrollIndicators(.automatic)
+            .scrollIndicatorsFlash(trigger: step)
+            .scrollIndicatorsFlash(onAppear: true)
             .scrollDismissesKeyboard(.interactively)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 bottomBar

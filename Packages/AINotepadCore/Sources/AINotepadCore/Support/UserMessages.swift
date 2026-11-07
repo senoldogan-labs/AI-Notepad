@@ -31,6 +31,9 @@ public func userFacingMessage(error: any Error) -> String {
         return cloudMessage(error: error)
     case let error as StorageError:
         return storageMessage(error: error)
+    // Bozuk ya da daha yeni sürümün yazdığı dosya (ör. toplantı okunurken).
+    case is DecodingError:
+        return String(localized: "Dosyanın biçimi tanınmadı: bozuk ya da daha yeni bir sürümle yazılmış olabilir. Uygulamayı güncelle; sürerse geri bildirim gönder.")
     case NoteShareError.tooLarge:
         return String(localized: "Not bağlantı için fazla uzun; transkripti eklemeden yeniden dene.")
     case is NoteShareError:
@@ -59,8 +62,9 @@ public func userFacingMessage(error: any Error) -> String {
         return String(localized: "Bu not sürümü artık geçmişte yok; menüyü yeniden açıp tekrar seç.")
     case AudioClipError.noAudio:
         return String(localized: "Bu an için ses yok (kayıt silinmiş ya da bu bölümde ses kaydedilmemiş).")
-    case AudioClipError.exportFailed(_, let reason):
-        return String(localized: "Klip kaydedilemedi: \(reason)")
+    // Teknik neden (sistem ya da sabit metin) yalnızca günlüğe: arayüz dilinde olmayabilir.
+    case AudioClipError.exportFailed:
+        return String(localized: "Klip kaydedilemedi: toplantının sesi okunamadı ya da dışa aktarılamadı. Yeniden dene.")
     case WebhookError.invalidURL:
         return String(localized: "Webhook adresi geçersiz: https:// ile başlayan tam adresi yapıştır.")
     case WebhookError.http(let host, _, _):
@@ -285,8 +289,8 @@ private func storageMessage(error: StorageError) -> String {
         String(localized: "Başka bir hesapla giriş yapıldı; o hesabın toplantıları için uygulama yeniden başlamalı.")
     case .accountSwitchStale:
         String(localized: "Hesap değiştirilirken yüklü hesap değişti. Yeniden dene.")
-    case .legacyDataMoveFailed(let source, _, let reason, _):
-        String(localized: "Önceki toplantılar hesabına taşınamadı (\((source as NSString).lastPathComponent): \(reason)). Hiçbir şey silinmedi; taşınamayanlar eski yerinde kaldı, yeniden dene.")
+    case .legacyDataMoveFailed(let source, _, _, _):
+        String(localized: "Önceki toplantılar hesabına taşınamadı (\((source as NSString).lastPathComponent)). Hiçbir şey silinmedi; taşınamayanlar eski yerinde kaldı, yeniden dene.")
     }
 }
 

@@ -148,8 +148,8 @@ public struct NoteSharePanel: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Text(entry.includesTranscript
-                    ? String(localized: "\(entry.expiresAt.formatted(date: .abbreviated, time: .omitted)) tarihine kadar · transkriptli")
-                    : String(localized: "\(entry.expiresAt.formatted(date: .abbreviated, time: .omitted)) tarihine kadar"))
+                    ? String(localized: "\(entry.expiresAt.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(interfaceLocale()))) tarihine kadar · transkriptli")
+                    : String(localized: "\(entry.expiresAt.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(interfaceLocale()))) tarihine kadar"))
                     .appFont(size: 11, weight: .regular)
                     .foregroundStyle(Theme.muted)
             }

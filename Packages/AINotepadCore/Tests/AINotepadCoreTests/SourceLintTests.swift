@@ -1,0 +1,155 @@
+import Foundation
+import Testing
+
+/// Deponun kökü (bu dosya `Packages/AINotepadCore/Tests/AINotepadCoreTests` içinde).
+private func lintRepositoryRoot() -> URL {
+    URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        .deletingLastPathComponent().deletingLastPathComponent()
+}
+
+/// Taranan arayüz kaynakları (uygulamalar, widget'lar ve paylaşılan arayüz paketi).
+private let lintedFolders: [String] = ["App", "iOS", "iOSWidgets", "Packages/AINotepadCore/Sources/AINotepadUI"]
+
+/// Bir kaynak kuralı: adı, ne yakaladığı ve dosya metnindeki ihlal sayısı (saf fonksiyon).
+private struct SourceRule: Sendable {
+    let name: String
+    let reason: String
+    let folders: [String]
+    let violations: @Sendable (String) -> Int
+}
+
+/// Metinde düzenli ifadenin eşleşme sayısı. Saf fonksiyondur.
+private func matchCount(pattern: String, text: String) -> Int {
+    guard let regex = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]) else {
+        Issue.record("Geçersiz desen: \(pattern)")
+        return 0
+    }
+    return regex.numberOfMatches(in: text, range: NSRange(text.startIndex..., in: text))
+}
+
+/// Simgeli düğmeler: `} label: {` hemen ardından tek bir `Image(systemName:` ve sonraki 14 satırda erişilebilirlik adı yok
+/// (`accessibilityLabel`, `labelStyle`, `Label(`, `hoverHint` — o da adı verir). VoiceOver böyle düğmeyi "düğme" diye okur. Saf fonksiyondur.
+private func unlabeledIconButtons(text: String) -> Int {
+    let lines: [Substring] = text.split(separator: "\n", omittingEmptySubsequences: false)
+    var count: Int = 0
+    for (index, line) in lines.enumerated() where line.hasSuffix("} label: {") && index + 1 < lines.count {
+        guard lines[index + 1].trimmingCharacters(in: .whitespaces).hasPrefix("Image(systemName:") else {
+            continue
+        }
+        let window: String = lines[(index + 1)..<min(lines.count, index + 15)].joined(separator: "\n")
+        if !window.contains("accessibilityLabel"), !window.contains("labelStyle"), !window.contains("Label("), !window.contains("hoverHint(") {
+            count += 1
+        }
+    }
+    return count
+}
+
+private let sourceRules: [SourceRule] = [
+    SourceRule(
+        name: "raw-reason-in-message",
+        reason: "Kullanıcı metnine hatanın teknik nedeni (`reason`, sistem ya da sabit Türkçe metin) eklenmez: arayüz dilinde olmayabilir. Nedeni günlüğe yaz, metni `String(localized:)` ile kur.",
+        folders: lintedFolders + ["Packages/AINotepadCore/Sources/AINotepadCore"],
+        violations: { matchCount(pattern: #"String\(localized: "[^"\n]*\\\(reason\)"#, text: $0) }
+    ),
+    SourceRule(
+        name: "describing-error-in-ui",
+        reason: "`String(describing: error)` yalnız günlüğe gider; arayüzde `userFacingMessage(error:)` kullan.",
+        folders: lintedFolders,
+        violations: { matchCount(pattern: #"(reason|message|Text\(verbatim): String\(describing: error\)"#, text: $0) }
+    ),
+    SourceRule(
+        name: "fixed-system-font",
+        reason: "Sabit `.system(size:)` Dinamik Yazı ile büyümez: `appFont(size:weight:)` ya da metin stili (`.system(.footnote)`) kullan.",
+        folders: lintedFolders,
+        violations: { matchCount(pattern: #"\.system\(size: \d"#, text: $0) }
+    ),
+    SourceRule(
+        name: "uncached-naming",
+        reason: "iPhone'da bütün arşivi adlandırma (`namedRecords(records:`) her çizimde etiket araması yapar: `store.namedMeetings()` kullan.",
+        folders: ["iOS"],
+        violations: { matchCount(pattern: #"namedRecords\(records: store\.meetings"#, text: $0) }
+    ),
+    SourceRule(
+        name: "unlabeled-icon-button",
+        reason: "Yalnız simgeli düğmeye `accessibilityLabel` ver (VoiceOver aksi hâlde yalnız \"düğme\" der).",
+        folders: lintedFolders,
+        violations: unlabeledIconButtons(text:)
+    ),
+    SourceRule(
+        name: "system-orange-text",
+        reason: "Sistem turuncusu açık zeminde okunmaz (~2:1): uyarı yazısı için `NoticeSeverity.attention.tint`.",
+        folders: ["iOS", "App"],
+        violations: { matchCount(pattern: #"\.foregroundStyle\(\.orange\)"#, text: $0) }
+    ),
+]
+
+/// Bu testin eklendiği gün var olan ihlaller ("kural|dosya" → sayı). Yeni ihlal (sayı artarsa) test başarısız olur;
+/// düzeltilen ihlalin sayısını burada da düşür ki geri gelmesin.
+private let sourceLintBaseline: [String: Int] = [
+    "fixed-system-font|App/Hosted/HostedAccountViews.swift": 1,
+    "fixed-system-font|App/Hosted/HostedAssistantMac.swift": 1,
+    "fixed-system-font|App/Hosted/HostedPlanViews.swift": 4,
+    "fixed-system-font|App/Hosted/HostedSyncMac.swift": 1,
+    "fixed-system-font|App/Toasts.swift": 1,
+    "fixed-system-font|Packages/AINotepadCore/Sources/AINotepadUI/AnswerMarkdownView.swift": 3,
+    "fixed-system-font|Packages/AINotepadCore/Sources/AINotepadUI/SettingsIconTile.swift": 1,
+    "fixed-system-font|Packages/AINotepadCore/Sources/AINotepadUI/TemplateGalleryView.swift": 1,
+    "raw-reason-in-message|App/DiagnosticsViews.swift": 1,
+    "raw-reason-in-message|App/EventKitConnector.swift": 2,
+    "raw-reason-in-message|App/MeetingNotifier.swift": 2,
+    "raw-reason-in-message|App/ShortcutSettings.swift": 1,
+    "raw-reason-in-message|App/VoiceTypingSettings.swift": 1,
+    "raw-reason-in-message|Packages/AINotepadCore/Sources/AINotepadCore/Hosted/HostedFinalTranscriber.swift": 1,
+    "raw-reason-in-message|Packages/AINotepadCore/Sources/AINotepadCore/Meeting/ProcessMeeting.swift": 2,
+    "raw-reason-in-message|Packages/AINotepadCore/Sources/AINotepadCore/Support/UserMessages.swift": 3,
+    "raw-reason-in-message|iOS/TasksTab.swift": 1,
+]
+
+@Suite struct SourceLintTests {
+    @Test func noNewViolations() throws {
+        let root: URL = lintRepositoryRoot()
+        var found: [String: Int] = [:]
+        for rule in sourceRules {
+            for folder in rule.folders {
+                let base: URL = root.appending(path: folder)
+                guard let enumerator = FileManager.default.enumerator(at: base, includingPropertiesForKeys: nil) else {
+                    Issue.record("Klasör okunamadı: \(folder)")
+                    continue
+                }
+                for case let url as URL in enumerator where url.pathExtension == "swift" {
+                    let count: Int = rule.violations(try String(contentsOf: url, encoding: .utf8))
+                    if count > 0 {
+                        let relative: String = String(url.path.dropFirst(root.path.count + 1))
+                        found["\(rule.name)|\(relative)"] = count
+                    }
+                }
+            }
+        }
+        let increased: [String] = found.keys.sorted().filter { found[$0, default: 0] > sourceLintBaseline[$0, default: 0] }
+        for key in increased {
+            let rule: String = String(key.split(separator: "|").first ?? "")
+            let why: String = sourceRules.first { $0.name == rule }?.reason ?? ""
+            Issue.record("Yeni ihlal \(key): \(found[key, default: 0]) (taban \(sourceLintBaseline[key, default: 0])). \(why)")
+        }
+        if !increased.isEmpty {
+            print("SOURCE_LINT_FOUND " + found.keys.sorted().map { "\"\($0)\": \(found[$0, default: 0])," }.joined(separator: " "))
+        }
+    }
+
+    /// Telefon görüşmesi rehberi (`PhoneCallGuideScreen`) `PhoneImportHost`'un sayfasında açılır ve `PhoneDialer`,
+    /// `PhoneRecorder` ortam nesnelerini okur. Sayfa yalnız sunulduğu görünüme verilen ortamı alır: içe aktarma kabı ortam
+    /// nesnelerinden sonra eklenirse rehber açılışta çöker (I-P0-1).
+    @Test func phoneImportHostIsInsideTheEnvironment() throws {
+        let text: String = try String(contentsOf: lintRepositoryRoot().appending(path: "iOS/AINotepadiOSApp.swift"), encoding: .utf8)
+        let host: Range<String.Index> = try #require(text.range(of: ".modifier(PhoneImportHost("))
+        for injected in [".environment(store)", ".environment(recorder)", ".environment(imports)", ".environment(dialer)"] {
+            let position: Range<String.Index> = try #require(text.range(of: injected, range: host.upperBound..<text.endIndex), "\(injected) içe aktarma kabından sonra gelmeli")
+            #expect(position.lowerBound > host.lowerBound)
+        }
+        let guide: String = try String(contentsOf: lintRepositoryRoot().appending(path: "iOS/PhoneCallGuide.swift"), encoding: .utf8)
+        // Rehberin okuduğu ortam nesneleri yukarıda denetlenenlerden biri olmalı.
+        let objects: [String] = guide.matches(of: /@Environment\(([A-Za-z]+)\.self\)/).map { String($0.output.1) }
+        #expect(Set(objects).isSubset(of: ["PhoneDialer", "PhoneRecorder", "PhoneStore", "PhoneImportState"]), "\(objects)")
+    }
+}

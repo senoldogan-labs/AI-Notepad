@@ -29,7 +29,7 @@ struct PhoneDestination: View {
             TasksTab(store: store, router: router)
                 .modifier(PhoneMiniPlayerInset(player: player, store: store, router: router, isHidden: false))
         case .search:
-            PhoneSearchScreen(store: store, router: router)
+            PhoneSearchScreen(store: store, router: router, ask: ask)
         case .library(let scope):
             MeetingsLibraryScreen(store: store, recorder: recorder, router: router, player: player, initialScope: scope)
         case .people:
@@ -83,9 +83,8 @@ private struct PhoneMeetingDestination: View {
 
     var body: some View {
         // Sayfa notu konuşmacı adlarıyla gösterir (saklı not genel etiketleri korur).
-        let meetings: [MeetingRecord] = namedRecords(records: store.meetings, userName: store.userName)
         Group {
-            if let record = meetings.first(where: { $0.id == meetingID }) {
+            if let record = store.namedMeetings().first(where: { $0.id == meetingID }) {
                 MeetingReadView(
                     record: record, store: store, player: player, isRecording: recorder.phase != .idle, ask: ask, openingSource: router.openingSource
                 ) {

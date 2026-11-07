@@ -15,20 +15,20 @@ struct NoteLanguageMenu: View {
     var body: some View {
         let choices: ShareLanguageChoices = shareLanguageChoices(original: original)
         Menu {
-            item(language: nil, name: original.interfaceName)
+            item(language: nil, name: original.interfaceTitle)
             ForEach(choices.featured, id: \.rawValue) { (language: ShareLanguage) in
-                item(language: language, name: language.interfaceName)
+                item(language: language, name: language.interfaceTitle)
             }
             Menu("Diğer diller") {
                 ForEach(choices.others, id: \.rawValue) { (language: ShareLanguage) in
-                    item(language: language, name: language.interfaceName)
+                    item(language: language, name: language.interfaceTitle)
                 }
             }
         } label: {
             HStack(spacing: 5) {
                 Image(systemName: "globe")
                     .foregroundStyle(selection == nil ? Theme.muted : appearance.accent.color)
-                Text(verbatim: (selection ?? original).interfaceName)
+                Text(verbatim: (selection ?? original).interfaceTitle)
                     .foregroundStyle(Theme.ink)
                     .lineLimit(1)
             }

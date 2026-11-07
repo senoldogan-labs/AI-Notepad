@@ -106,6 +106,8 @@ private struct PaywallCover: View {
                         .foregroundStyle(Color.black.opacity(0.75))
                         .frame(width: 32, height: 32)
                         .background(Color.white.opacity(0.85), in: Circle())
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .disabled(!isCloseEnabled)
@@ -198,18 +200,26 @@ private struct PaywallPackageCard: View {
     let isSelected: Bool
     let onSelect: () -> Void
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize: DynamicTypeSize
+
     var body: some View {
+        // Erişilebilirlik boyutlarında fiyat ve tasarruf alta iner (yan yana sığmayınca kelimeler harf harf bölünüyordu).
+        let isLarge: Bool = dynamicTypeSize.isAccessibilitySize
+        let rowLayout: AnyLayout = isLarge ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10)) : AnyLayout(HStackLayout(alignment: .center, spacing: 14))
+        let titleLayout: AnyLayout = isLarge ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6)) : AnyLayout(HStackLayout(spacing: 8))
         Button(action: onSelect) {
-            HStack(alignment: .center, spacing: 14) {
+            rowLayout {
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .appFont(size: 22, weight: .regular)
                     .foregroundStyle(isSelected ? AnyShapeStyle(.tint) : AnyShapeStyle(Theme.muted))
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 8) {
+                    titleLayout {
                         Text(verbatim: planTitle)
                             .appFont(size: 16, weight: .semibold)
                             .foregroundStyle(Theme.ink)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
                         if let savings {
                             Text("\(savingsText(percent: savings)) tasarruf")
                                 .appFont(size: 11, weight: .semibold)
@@ -229,8 +239,10 @@ private struct PaywallPackageCard: View {
                             .foregroundStyle(Theme.muted)
                     }
                 }
-                Spacer(minLength: 8)
-                VStack(alignment: .trailing, spacing: 2) {
+                if !isLarge {
+                    Spacer(minLength: 8)
+                }
+                VStack(alignment: isLarge ? .leading : .trailing, spacing: 2) {
                     Text(verbatim: package.priceText)
                         .appFont(size: 17, weight: .semibold)
                         .foregroundStyle(Theme.ink)
@@ -389,6 +401,6 @@ private struct PaywallCompleted: View {
 
 /// Tasarruf yüzdesi arayüz dilinin biçiminde ("31%", "%31"); bölge biçimi (ör. "31 %") değil, dil. Saf fonksiyondur.
 func savingsText(percent: Int) -> String {
-    let language: Locale = Locale(identifier: interfaceLocale().language.languageCode?.identifier ?? "tr")
+    let language: Locale = Locale(identifier: interfaceLocale().language.languageCode?.identifier ?? "en")
     return (Double(percent) / 100).formatted(.percent.locale(language))
 }

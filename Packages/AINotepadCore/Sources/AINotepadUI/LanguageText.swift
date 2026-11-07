@@ -15,5 +15,5 @@ public func languageText(locked: MeetingLanguage?, mode: LanguageMode, isRecordi
 
 /// Bayraklı dil adı.
 public func languageName(language: MeetingLanguage) -> String {
-    language.flag + " " + meetingLanguageName(language: language)
+    language.flag + " " + capitalizedLanguageName(name: meetingLanguageName(language: language), locale: interfaceLocale())
 }

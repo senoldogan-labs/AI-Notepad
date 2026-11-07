@@ -237,7 +237,7 @@ struct PhoneVoiceSettingsSection<LeadingRows: View>: View {
             }
             if let error = voices.registryError {
                 Label(error, systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(NoticeSeverity.attention.tint)
             }
             if !voices.registered.isEmpty || voices.registryError != nil {
                 NavigationLink {
@@ -297,7 +297,7 @@ struct PhoneVoiceSettingsSection<LeadingRows: View>: View {
         case .failed(let message):
             VStack(alignment: .leading, spacing: 8) {
                 Label(message, systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(NoticeSeverity.attention.tint)
                 Button("Yeniden dene") { voices.downloadModel() }
             }
         }

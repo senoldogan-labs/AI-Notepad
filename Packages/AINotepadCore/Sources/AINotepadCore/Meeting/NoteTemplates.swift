@@ -219,6 +219,13 @@ public enum ShareLanguage: String, Sendable, Codable, CaseIterable {
         interfaceLocale().localizedString(forIdentifier: rawValue) ?? nativeName
     }
 
+    /// Seçicilerde ve çiplerde tek başına duran adı: arayüz dilinde, ilk harfi büyük (bkz. `capitalizedLanguageName`).
+    /// Not dili ve toplantı dili seçicileri aynı kuralla yazılır; yalnız arayüz dili seçicisi dillerin kendi adlarını
+    /// gösterir (arayüzü okuyamayan kullanıcı kendi dilini bulsun).
+    public var interfaceTitle: String {
+        capitalizedLanguageName(name: interfaceName, locale: interfaceLocale())
+    }
+
     /// Aynı dilin toplantı dili karşılığı (toplantı not diliyle aynıysa canlı çeviri gerekmez); Azerice konuşma dili
     /// olarak desteklenmez (nil). Norveççe Bokmål "nb" toplantıda "no", Çincenin iki yazımı toplantıda "zh"dir.
     public var meetingLanguage: MeetingLanguage? {

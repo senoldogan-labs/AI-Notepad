@@ -136,8 +136,53 @@ struct PillTabs<Value: Hashable>: View {
     let options: [(value: Value, title: LocalizedStringKey)]
     @Namespace private var namespace: Namespace.ID
     @Environment(\.colorScheme) private var colorScheme: ColorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize: DynamicTypeSize
 
     var body: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            verticalTabs
+        } else {
+            pills
+        }
+    }
+
+    /// Erişilebilirlik boyutlarında sekmeler alt alta, tam genişlikte (yan yana sığmayınca "Summar/y" gibi bölünüyordu).
+    private var verticalTabs: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(options.enumerated()), id: \.offset) { (item: (offset: Int, element: (value: Value, title: LocalizedStringKey))) in
+                let isSelected: Bool = selection == item.element.value
+                Button {
+                    selection = item.element.value
+                } label: {
+                    HStack(spacing: 10) {
+                        Text(item.element.title)
+                            .appFont(size: 14, weight: isSelected ? .semibold : .medium)
+                            .foregroundStyle(Theme.ink)
+                            .multilineTextAlignment(.leading)
+                        Spacer(minLength: 0)
+                        if isSelected {
+                            Image(systemName: "checkmark")
+                                .appFont(size: 13, weight: .semibold)
+                                .foregroundStyle(Color.accentColor)
+                                .accessibilityHidden(true)
+                        }
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+                if item.offset < options.count - 1 {
+                    Divider().padding(.leading, 14)
+                }
+            }
+        }
+        .background(Theme.soft, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private var pills: some View {
         HStack(spacing: 2) {
             ForEach(Array(options.enumerated()), id: \.offset) { (item: (offset: Int, element: (value: Value, title: LocalizedStringKey))) in
                 let isSelected: Bool = selection == item.element.value
@@ -147,8 +192,11 @@ struct PillTabs<Value: Hashable>: View {
                     Text(item.element.title)
                         .appFont(size: 14, weight: isSelected ? .semibold : .medium)
                         .foregroundStyle(isSelected ? Theme.ink : Theme.muted)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 9)
+                        .frame(minHeight: 44)
                         .background {
                             if isSelected {
                                 Capsule()
@@ -311,7 +359,7 @@ struct PhoneErrorList: View {
                 ForEach(messages, id: \.self) { (message: String) in
                     Label(message, systemImage: "exclamationmark.triangle.fill")
                         .appFont(size: 13, weight: .regular)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(NoticeSeverity.attention.tint)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
@@ -340,12 +388,14 @@ struct PhoneDismissibleErrorList: View {
                     Image(systemName: "xmark")
                         .appFont(size: 11, weight: .semibold)
                         .frame(width: 28, height: 28)
+                        // Dokunma alanı en az 44 pt (Apple HIG); simge küçük kalır.
+                        .frame(minWidth: 44, minHeight: 44)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Kapat")
             }
-            .foregroundStyle(.orange)
+            .foregroundStyle(NoticeSeverity.attention.tint)
             .padding(.vertical, 14)
             .padding(.leading, 14)
             .padding(.trailing, 6)

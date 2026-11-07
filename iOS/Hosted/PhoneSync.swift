@@ -149,7 +149,7 @@ struct PhoneSyncSection: View {
                 TextField("Bağlantı kodu", text: $codeText, prompt: Text("XXXX-XXXX-…"))
                     .textInputAutocapitalization(.characters)
                     .autocorrectionDisabled()
-                    .font(.system(size: 15, design: .monospaced))
+                    .font(.system(.subheadline, design: .monospaced))
                 Button("Katıl") {
                     Task {
                         if await center.join(codeText: codeText) {
@@ -161,7 +161,7 @@ struct PhoneSyncSection: View {
             } else if center.isOn, let code = center.linkCode {
                 if showsCode {
                     Text(verbatim: code)
-                        .font(.system(size: 14, design: .monospaced))
+                        .font(.system(.subheadline, design: .monospaced))
                         .textSelection(.enabled)
                     Button("Kopyala") { UIPasteboard.general.string = code }
                     Button("Kodu gizle") { showsCode = false }
@@ -192,7 +192,7 @@ struct PhoneSyncSection: View {
         case .synced:
             HStack {
                 if let lastSyncedAt = center.lastSyncedAt {
-                    Text("Son eşitleme: \(lastSyncedAt.formatted(date: .abbreviated, time: .shortened))").foregroundStyle(Theme.muted)
+                    Text("Son eşitleme: \(lastSyncedAt.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(interfaceLocale())))").foregroundStyle(Theme.muted)
                 }
                 Spacer()
                 Button("Şimdi eşitle") { center.syncNow() }

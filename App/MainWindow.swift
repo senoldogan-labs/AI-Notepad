@@ -507,6 +507,8 @@ private struct TopBar: View {
 
     @AppStorage(SettingsKey.meetingsListVisible) private var meetingsListVisible: Bool = true
     @AppStorage(SettingsKey.askHistoryVisible) private var askHistoryVisible: Bool = false
+    /// Transkript sekmesi açık toplantı sayfası (⌘F orada transkriptte bulur).
+    @FocusedValue(\.transcriptFind) private var transcriptFind: TranscriptFindAction?
 
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.m) {
@@ -587,7 +589,14 @@ private struct TopBar: View {
                     .keyboardShortcut("k", modifiers: .command)
                     .opacity(0)
                     .accessibilityHidden(true)
-                Button { router.isSearchPresented = true } label: { Text(verbatim: "") }
+                Button {
+                    // Transkript sekmesi açıkken ⌘F transkriptte bulur.
+                    if let transcriptFind {
+                        transcriptFind.focus()
+                    } else {
+                        router.isSearchPresented = true
+                    }
+                } label: { Text(verbatim: "") }
                     .keyboardShortcut("f", modifiers: .command)
                     .opacity(0)
                     .accessibilityHidden(true)
@@ -1018,7 +1027,7 @@ private struct Shortcuts: View {
     var body: some View {
         let openTasks: Int = myTasks(namedRecords: model.namedMeetings(userName: userName)).filter { !isTaskDone(record: $0.record, task: $0.task) }.count
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.m) {
-            Text("Kısayollar").appFont(size: 15, weight: .medium)
+            Text("Hızlı eylemler").appFont(size: 15, weight: .medium)
             // Beş kart satırı doldurur; dar pencerede üçerli iki satıra iner.
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .top, spacing: 12) { cards(openTasks: openTasks) }
@@ -1073,14 +1082,17 @@ private struct Shortcuts: View {
                     .background { FilmGradient(seed: "kisayol-\(symbol)", palette: palette) }
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 VStack(alignment: .leading, spacing: 1) {
+                    // Uzun dillerde (Fince, Almanca) açıklama iki satıra iner, ad sığmazsa biraz küçülür; "…" ile kesilmez.
                     Text(title)
                         .appFont(size: 13, weight: .medium)
                         .foregroundStyle(Theme.ink)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                     Text(verbatim: detail)
                         .appFont(size: 12, weight: .regular)
                         .foregroundStyle(Theme.muted)
-                        .lineLimit(1)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 0)
             }
@@ -1683,18 +1695,27 @@ func homeGreeting(name: String, hour: Int) -> String {
 }
 
 /// Orta ekrandaki arama penceresi (Spotlight gibi): arka plan bulanıklaşır ve kararır; büyük arama alanı yazıldıkça
-/// toplantıları anında süzer (başlık, not, görevler, adlar, transkript). ↑↓ seçer, ↩ seçileni açar (seçim yoksa aramayı
-/// Toplantılar listesine uygular), Esc ya da dışarı tıklama kapatır.
+/// toplantıları süzer (başlık, not, görevler, adlar, transkript) ve her sonucun altında eşleşen cümleyi ve
+/// transkriptteki anını gösterir; sonda soruyu Sor'da bütün toplantılara soran satır. Arama yazmayı `searchDebounce`
+/// kadar bekler ve ana iş parçacığının dışında önbellekli çalışır (`AppModel.searchCache`). ↑↓ seçer, ↩ seçileni açar
+/// (seçim yoksa aramayı Toplantılar listesine uygular), Esc ya da dışarı tıklama kapatır.
 private struct SearchComposer: View {
     let model: AppModel
     let router: MainWindowRouter
     @State private var query: String = ""
     @State private var highlighted: Int = 0
+    /// Son biten aramanın sorgusu ve sonuçları (yeni arama bitene dek eskisi görünür).
+    @State private var searched: MacSearchResults = MacSearchResults(query: "", hits: [])
     @FocusState private var isFocused: Bool
 
     var body: some View {
         let trimmed: String = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        let results: [MeetingRecord] = Array((trimmed.isEmpty ? model.meetings : filterMeetings(records: model.meetings, query: trimmed)).prefix(8))
+        let meetings: [MeetingRecord] = model.namedMeetings(userName: model.userName)
+        let byID: [String: MeetingRecord] = Dictionary(meetings.map { ($0.id, $0) }) { (first: MeetingRecord, _: MeetingRecord) -> MeetingRecord in first }
+        let hits: [MeetingSearchHit] = trimmed.isEmpty
+            ? meetings.prefix(8).map { MeetingSearchHit(meetingID: $0.id, field: .title, snippet: nil, startSec: nil) }
+            : Array(searched.hits.filter { byID[$0.meetingID] != nil }.prefix(8))
+        let items: [SearchComposerItem] = hits.map { SearchComposerItem.meeting($0) } + (trimmed.isEmpty ? [] : [SearchComposerItem.ask(trimmed)])
         ZStack(alignment: .top) {
             // Arkadaki içerik pencerede bulanıklaşır; burada yalnızca dışarı tıklayınca kapatan saydam katman.
             Color.clear
@@ -1710,7 +1731,7 @@ private struct SearchComposer: View {
                         .textFieldStyle(.plain)
                         .appFont(size: 20, weight: .regular)
                         .focused($isFocused)
-                        .onSubmit { open(results: results) }
+                        .onSubmit { open(items: items) }
                     Text("esc")
                         .appFont(size: 11, weight: .medium)
                         .foregroundStyle(Theme.muted)
@@ -1721,14 +1742,14 @@ private struct SearchComposer: View {
                 .padding(.horizontal, 18)
                 .frame(height: 60)
                 Rectangle().fill(Theme.line).frame(height: 1)
-                if results.isEmpty {
-                    Text("Eşleşen toplantı yok")
-                        .appFont(size: 13, weight: .regular)
-                        .foregroundStyle(Theme.muted)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 28)
-                } else {
-                    VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 2) {
+                    if hits.isEmpty, searched.query == trimmed {
+                        Text("Eşleşen toplantı yok")
+                            .appFont(size: 13, weight: .regular)
+                            .foregroundStyle(Theme.muted)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                    } else if !hits.isEmpty {
                         Text(trimmed.isEmpty ? "Son toplantılar" : "Toplantılar")
                             .appFont(size: 11, weight: .semibold)
                             .tracking(DesignTokens.labelTracking)
@@ -1737,17 +1758,27 @@ private struct SearchComposer: View {
                             .padding(.horizontal, 10)
                             .padding(.top, 10)
                             .padding(.bottom, 4)
-                        ForEach(Array(results.enumerated()), id: \.element.id) { (item: (offset: Int, element: MeetingRecord)) in
-                            row(record: item.element, isHighlighted: item.offset == min(highlighted, results.count - 1))
-                                .onHover { (hovering: Bool) -> Void in
-                                    if hovering {
-                                        highlighted = item.offset
-                                    }
+                    }
+                    ForEach(Array(items.enumerated()), id: \.element.id) { (item: (offset: Int, element: SearchComposerItem)) in
+                        let isHighlighted: Bool = item.offset == min(highlighted, items.count - 1)
+                        Group {
+                            switch item.element {
+                            case .meeting(let hit):
+                                if let record = byID[hit.meetingID] {
+                                    row(record: record, hit: hit, isHighlighted: isHighlighted)
                                 }
+                            case .ask(let question):
+                                askRow(question: question, isHighlighted: isHighlighted)
+                            }
+                        }
+                        .onHover { (hovering: Bool) -> Void in
+                            if hovering {
+                                highlighted = item.offset
+                            }
                         }
                     }
-                    .padding(8)
                 }
+                .padding(8)
                 Rectangle().fill(Theme.line).frame(height: 1)
                 HStack(spacing: 14) {
                     Text("↑↓ seç")
@@ -1776,8 +1807,25 @@ private struct SearchComposer: View {
             isFocused = true
         }
         .onChange(of: query) { (_: String, _: String) -> Void in highlighted = 0 }
+        .task(id: MacSearchRequest(query: trimmed, stamps: meetings.map(searchStamp(record:)))) {
+            guard !trimmed.isEmpty else {
+                searched = MacSearchResults(query: "", hits: [])
+                return
+            }
+            // Yazarken her harfte aranmaz: yeni harf bu görevi iptal eder.
+            do {
+                try await Task.sleep(for: searchDebounce)
+            } catch {
+                return
+            }
+            let found: [MeetingSearchHit] = await model.searchCache.search(records: meetings, query: trimmed)
+            guard !Task.isCancelled else {
+                return
+            }
+            searched = MacSearchResults(query: trimmed, hits: found)
+        }
         .onKeyPress(.downArrow) {
-            highlighted = min(highlighted + 1, max(0, results.count - 1))
+            highlighted = min(highlighted + 1, max(0, items.count - 1))
             return .handled
         }
         .onKeyPress(.upArrow) {
@@ -1787,7 +1835,7 @@ private struct SearchComposer: View {
         .onExitCommand { close() }
     }
 
-    private func row(record: MeetingRecord, isHighlighted: Bool) -> some View {
+    private func row(record: MeetingRecord, hit: MeetingSearchHit, isHighlighted: Bool) -> some View {
         Button {
             openMeeting(id: record.id)
         } label: {
@@ -1800,15 +1848,30 @@ private struct SearchComposer: View {
                         .appFont(size: 14, weight: .medium)
                         .foregroundStyle(Theme.ink)
                         .lineLimit(1)
-                    Text(record.startedAt.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(interfaceLocale())))
-                        .appFont(size: 12, weight: .regular)
-                        .foregroundStyle(Theme.muted)
+                    if let snippet = hit.snippet {
+                        Text(verbatim: snippet)
+                            .appFont(size: 12, weight: .regular)
+                            .foregroundStyle(Theme.ink.opacity(0.8))
+                            .lineLimit(2)
+                    }
+                    HStack(spacing: 6) {
+                        if let startSec = hit.startSec {
+                            Text(verbatim: timestamp(seconds: startSec))
+                                .monospacedDigit()
+                                .accessibilityLabel(Text("Transkriptte \(timestamp(seconds: startSec))"))
+                            Text(verbatim: "·").accessibilityHidden(true)
+                        }
+                        Text(record.startedAt.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(interfaceLocale())))
+                    }
+                    .appFont(size: 12, weight: .regular)
+                    .foregroundStyle(Theme.muted)
                 }
                 Spacer(minLength: 0)
                 if isHighlighted {
                     Image(systemName: "return")
                         .appFont(size: 11, weight: .medium)
                         .foregroundStyle(Theme.muted)
+                        .accessibilityHidden(true)
                 }
             }
             .padding(.horizontal, 10)
@@ -1819,13 +1882,50 @@ private struct SearchComposer: View {
         .buttonStyle(.plain)
     }
 
-    /// ↩: vurgulanan toplantıyı açar; sonuç yoksa aramayı listeye uygular.
-    private func open(results: [MeetingRecord]) {
-        guard !results.isEmpty else {
+    /// Sonların altındaki satır: sorguyu Sor'da bütün toplantılara sorar.
+    private func askRow(question: String, isHighlighted: Bool) -> some View {
+        Button {
+            askEverything(question: question)
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "sparkle.magnifyingglass")
+                    .appFont(size: 14, weight: .medium)
+                    .foregroundStyle(Color.accentColor)
+                    .frame(width: 40, height: 28)
+                    .background(Theme.soft, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                    .accessibilityHidden(true)
+                Text("Sor: \u{201C}\(question)\u{201D}")
+                    .appFont(size: 14, weight: .medium)
+                    .foregroundStyle(Theme.ink)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(isHighlighted ? Theme.selected : Color.clear, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint(Text("Bütün toplantılarına sorar"))
+    }
+
+    /// ↩: vurgulanan satırı açar (toplantı ya da Sor); sonuç yoksa aramayı listeye uygular.
+    private func open(items: [SearchComposerItem]) {
+        guard !items.isEmpty else {
             applyToList()
             return
         }
-        openMeeting(id: results[min(highlighted, results.count - 1)].id)
+        switch items[min(highlighted, items.count - 1)] {
+        case .meeting(let hit): openMeeting(id: hit.meetingID)
+        case .ask(let question): askEverything(question: question)
+        }
+    }
+
+    private func askEverything(question: String) {
+        if model.startAskingEverything(question: question) {
+            router.section = .ask
+        }
+        close()
     }
 
     private func openMeeting(id: String) {
@@ -1847,6 +1947,31 @@ private struct SearchComposer: View {
     private func close() {
         router.isSearchPresented = false
     }
+}
+
+/// Arama penceresinin satırı: eşleşen toplantı ya da soruyu Sor'a soran satır.
+private enum SearchComposerItem: Identifiable {
+    case meeting(MeetingSearchHit)
+    case ask(String)
+
+    var id: String {
+        switch self {
+        case .meeting(let hit): "meeting-\(hit.meetingID)"
+        case .ask: "ask"
+        }
+    }
+}
+
+/// Aramanın son sonucu: hangi sorgunun sonucu olduğu ve eşleşen toplantılar.
+private struct MacSearchResults: Equatable {
+    let query: String
+    let hits: [MeetingSearchHit]
+}
+
+/// Aramayı yeniden çalıştıran girdiler: sorgu ve toplantıların değişiklik izleri (`searchStamp`).
+struct MacSearchRequest: Equatable {
+    let query: String
+    let stamps: [MeetingSearchStamp]
 }
 
 /// Kısayol kartının zemini: Sor'daki örnek kartlar gibi kart yüzeyi, sağa doğru beliren ince çapraz çizgiler ve çerçeve.

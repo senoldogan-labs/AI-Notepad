@@ -24,6 +24,9 @@ public struct PillPicker<Value: Hashable>: View {
                     Text(item.element.title)
                         .appFont(size: 12, weight: isSelected ? .semibold : .regular)
                         .lineLimit(1)
+                        // Dar listede uzun adlar ("Omat tehtävät") kesilmeden biraz küçülür.
+                        .minimumScaleFactor(0.7)
+                        .allowsTightening(true)
                         .contentTransition(.numericText())
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
