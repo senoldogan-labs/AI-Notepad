@@ -516,9 +516,17 @@ private struct PhonePersonPage: View {
                     Text(item.element.task.description)
                         .appFont(size: 15, weight: .regular)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(([item.element.task.dueDate].compactMap { $0 } + [item.element.meetingTitle]).joined(separator: " · "))
-                        .appFont(size: 12, weight: .regular)
-                        .foregroundStyle(Theme.muted)
+                    // Son gün toplantı gününe göre çözülür, arayüz dilinde göreli; yanında toplantının adı.
+                    HStack(spacing: 5) {
+                        TaskDueText(personTask: item.element, size: 12)
+                        if item.element.task.dueDate != nil {
+                            Text(verbatim: "·").foregroundStyle(Theme.muted)
+                        }
+                        Text(verbatim: item.element.meetingTitle)
+                            .foregroundStyle(Theme.muted)
+                            .lineLimit(1)
+                    }
+                    .appFont(size: 12, weight: .regular)
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)

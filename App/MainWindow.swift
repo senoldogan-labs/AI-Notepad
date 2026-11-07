@@ -1115,10 +1115,7 @@ private struct HomeTasks: View {
                     ForEach(Array(items.prefix(5).enumerated()), id: \.offset) { (item: (offset: Int, element: (record: MeetingRecord, task: NoteTask))) in
                         // Ana sayfada görevler toplantılarıyla karışık: tarihin yanında toplantının adı.
                         let record: MeetingRecord = item.element.record
-                        TaskLine(
-                            model: model, record: record, task: item.element.task,
-                            detail: ([item.element.task.dueDate].compactMap { $0 } + [record.note?.title ?? record.title]).joined(separator: " · ")
-                        ) {
+                        TaskLine(model: model, record: record, task: item.element.task, meetingTitle: record.note?.title ?? record.title) {
                             router.selectedMeetingID = item.element.record.id
                             router.section = .meetings
                         }
@@ -1256,9 +1253,10 @@ private struct TaskLine: View {
     let model: AppModel
     let record: MeetingRecord
     let task: NoteTask
-    /// İşin altındaki soluk satır (tarih, gerekirse toplantı); boşsa gösterilmez.
-    let detail: String
+    /// İşin altında son günün yanında gösterilen toplantı adı; toplantının kartındaysa nil.
+    let meetingTitle: String?
     let onOpen: @MainActor () -> Void
+    @State private var isHovering: Bool = false
 
     var body: some View {
         let isDone: Bool = isTaskDone(record: record, task: task)
@@ -1272,10 +1270,20 @@ private struct TaskLine: View {
                             .appFont(size: 14, weight: .regular)
                             .strikethrough(isDone, color: Theme.muted)
                             .foregroundStyle(isDone ? Theme.muted : Theme.ink)
-                        if !detail.isEmpty {
-                            Text(verbatim: detail)
-                                .appFont(size: 12, weight: .regular)
-                                .foregroundStyle(Theme.muted)
+                        if task.dueDate != nil || meetingTitle != nil {
+                            // Son gün toplantı gününe göre çözülür, arayüz dilinde göreli ("Yarın", "2 gün gecikti").
+                            HStack(spacing: 5) {
+                                TaskDueText(record: record, task: task, size: 12)
+                                if task.dueDate != nil, meetingTitle != nil {
+                                    Text(verbatim: "·").foregroundStyle(Theme.muted)
+                                }
+                                if let meetingTitle {
+                                    Text(verbatim: meetingTitle)
+                                        .foregroundStyle(Theme.muted)
+                                        .lineLimit(1)
+                                }
+                            }
+                            .appFont(size: 12, weight: .regular)
                         }
                     }
                     Spacer(minLength: 0)
@@ -1284,10 +1292,27 @@ private struct TaskLine: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.hoverPlain)
+            // Zil yalnız anımsatıcı eklendiyse ya da fare satırdayken (her satırda sürekli durunca gürültüydü).
             ReminderButton(model: model, record: record, task: task)
+                .opacity(isHovering || isTaskReminded(record: record, task: task) ? 1 : 0)
         }
         .padding(.horizontal, 8)
+        .onHover { (hovering: Bool) -> Void in isHovering = hovering }
         .animation(.smooth(duration: 0.2), value: isDone)
+        .animation(.easeOut(duration: 0.12), value: isHovering)
+        .contextMenu {
+            Button(isDone ? "Tamamlanmadı olarak işaretle" : "Tamamlandı olarak işaretle", systemImage: isDone ? "circle" : "checkmark.circle") {
+                model.toggleTask(meetingID: record.id, task: task)
+            }
+            .disabled(model.isLocked(meetingID: record.id))
+            // Yalnız elle eklenen görev silinir; nottan gelen görev notun parçasıdır.
+            if task.isAdded == true {
+                Button("Görevi sil", systemImage: "trash", role: .destructive) {
+                    model.removeAddedTask(meetingID: record.id, task: task)
+                }
+                .disabled(model.isLocked(meetingID: record.id))
+            }
+        }
     }
 }
 
@@ -1373,11 +1398,14 @@ private struct MeetingCover: View {
     }
 }
 
-/// Görevlerim: tüm toplantılardan sana düşen işler, toplantıya göre gruplu; başlığa tıklayınca toplantı açılır.
+/// Görevlerim: tüm toplantılardan sana düşen işler. Açık görevler son günlerine göre gruplu (gecikmiş, bugün,
+/// önümüzdeki 7 gün, daha sonra, tarihsiz; grup içinde yakın tarih önce), tamamlananlar toplantıya göre. "Görev ekle"
+/// ile elle görev eklenir (bir toplantının notuna).
 private struct TasksPage: View {
     let model: AppModel
     let router: MainWindowRouter
     @State private var showsDone: Bool = false
+    @State private var isAdding: Bool = false
     /// Notlardaki konuşmacı etiketleri adlarla; adı kullanıcının adı olan konuşmacının görevleri onundur.
     private var userName: String { model.userName }
 
@@ -1385,10 +1413,13 @@ private struct TasksPage: View {
         let named: [MeetingRecord] = model.namedMeetings(userName: userName)
         let all: [(record: MeetingRecord, task: NoteTask)] = myTasks(namedRecords: named)
         let doneCount: Int = all.filter { isTaskDone(record: $0.record, task: $0.task) }.count
-        let groups: [(record: MeetingRecord, tasks: [NoteTask])] = named.compactMap { (record: MeetingRecord) -> (record: MeetingRecord, tasks: [NoteTask])? in
-            let mine: [NoteTask] = (record.note?.tasks ?? []).filter { $0.isMine && isTaskDone(record: record, task: $0) == showsDone }
+        let open: [(record: MeetingRecord, task: NoteTask)] = all.filter { !isTaskDone(record: $0.record, task: $0.task) }
+        let dueGroups: [TaskDueGroup] = groupedByDueDay(items: open, now: Date(), calendar: Calendar.current)
+        let doneGroups: [(record: MeetingRecord, tasks: [NoteTask])] = named.compactMap { (record: MeetingRecord) -> (record: MeetingRecord, tasks: [NoteTask])? in
+            let mine: [NoteTask] = (record.note?.tasks ?? []).filter { $0.isMine && isTaskDone(record: record, task: $0) }
             return mine.isEmpty ? nil : (record: record, tasks: mine)
         }
+        let isEmpty: Bool = showsDone ? doneGroups.isEmpty : dueGroups.isEmpty
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .firstTextBaseline) {
@@ -1396,6 +1427,18 @@ private struct TasksPage: View {
                         .appFont(size: 28, weight: .regular)
                         .tracking(-0.4)
                     Spacer(minLength: 0)
+                    Button("Görev ekle", systemImage: "plus") { isAdding = true }
+                        .buttonStyle(.pill)
+                        .disabled(addableMeetings(named: named).isEmpty)
+                        .hoverHint("Bir toplantıya kendi görevini ekle", alignment: .center, edge: .bottom)
+                        .popover(isPresented: $isAdding, arrowEdge: .bottom) {
+                            AddTaskForm(meetings: addableMeetings(named: named), fixedMeetingID: nil) { (meetingID: String, text: String, dueDay: Date?) -> Void in
+                                model.addTask(meetingID: meetingID, description: text, dueDay: dueDay)
+                                isAdding = false
+                            } onCancel: {
+                                isAdding = false
+                            }
+                        }
                     PillPicker(selection: $showsDone, options: [
                         (false, "Açık · \(all.count - doneCount)"), (true, "Tamamlanan · \(doneCount)"),
                     ])
@@ -1409,61 +1452,17 @@ private struct TasksPage: View {
                         router.section = .meetings
                     }
                 }
-                if groups.isEmpty {
-                    if showsDone {
-                        QuietEmptyCard(symbol: "checkmark.circle", title: "Tamamlanan görev yok", message: "Bitirdiğin görevler burada birikir.")
-                    } else if doneCount > 0 {
-                        EmptyScene(symbol: "party.popper.fill", palette: .coral, title: "Açık görevin kalmadı", message: "Hepsi tamamlandı.") {
-                            EmptyView()
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 24)
-                        .overlay { ConfettiBurst(palette: .coral) }
-                    } else {
-                        EmptyScene(
-                            symbol: "checklist", palette: .coral, title: "Henüz sana düşen görev yok",
-                            message: "Toplantı notunda senin adına yazılan işler burada toplanır."
-                        ) {
-                            if model.userName.isEmpty {
-                                Button("Adını yaz (görevlerin tanınsın)", systemImage: "person.text.rectangle") { router.section = .settings }
-                                    .buttonStyle(.accentPill)
-                                    .controlSize(.large)
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 24)
-                    }
+                if isEmpty {
+                    emptyState(doneCount: doneCount)
                 }
-                ForEach(groups, id: \.record.id) { (group: (record: MeetingRecord, tasks: [NoteTask])) in
-                    VStack(alignment: .leading, spacing: 6) {
-                        Button {
-                            router.selectedMeetingID = group.record.id
-                            router.section = .meetings
-                        } label: {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(group.record.note?.title ?? group.record.title).appFont(size: 15, weight: .medium)
-                                    Text(meetingMetaLine(record: group.record)).appFont(size: 12, weight: .regular).foregroundStyle(Theme.muted)
-                                }
-                                Spacer(minLength: 0)
-                                Image(systemName: "chevron.right").foregroundStyle(Theme.muted)
-                            }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.hoverPlain)
-                        ForEach(Array(group.tasks.enumerated()), id: \.element.trackingKey) { (item: (offset: Int, element: NoteTask)) in
-                            // Toplantının adı kartın başlığında: altta yalnız tarih.
-                            TaskLine(model: model, record: group.record, task: item.element, detail: item.element.dueDate ?? "") {
-                                router.selectedMeetingID = group.record.id
-                                router.section = .meetings
-                            }
-                        }
+                if showsDone {
+                    ForEach(doneGroups, id: \.record.id) { (group: (record: MeetingRecord, tasks: [NoteTask])) in
+                        meetingGroup(record: group.record, tasks: group.tasks)
                     }
-                    .padding(8)
-                    .cardSurface(cornerRadius: 16)
-                    .transition(.opacity)
+                } else {
+                    ForEach(dueGroups, id: \.bucket) { (group: TaskDueGroup) in
+                        dueGroup(group: group)
+                    }
                 }
             }
             .animation(.smooth(duration: 0.25), value: showsDone)
@@ -1471,6 +1470,100 @@ private struct TasksPage: View {
             .padding(36)
             .frame(maxWidth: 820, alignment: .leading)
             .frame(maxWidth: .infinity)
+        }
+    }
+
+    /// Görev eklenebilecek toplantılar: notu olan, örnek olmayan, kayıtta ya da işlenmekte olmayan (en yeni önce).
+    private func addableMeetings(named: [MeetingRecord]) -> [MeetingRecord] {
+        named.filter { $0.note != nil && !$0.isSampleMeeting && !model.isLocked(meetingID: $0.id) }
+    }
+
+    /// Son güne göre bir grup: başlık (gecikmişte kırmızı) ve görevler; her satırda toplantının adı.
+    private func dueGroup(group: TaskDueGroup) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Text(verbatim: taskDueBucketTitle(bucket: group.bucket))
+                    .appFont(size: 13, weight: .semibold)
+                    .foregroundStyle(group.bucket == .overdue ? NoticeSeverity.error.tint : Theme.ink)
+                Text(verbatim: "\(group.tasks.count)")
+                    .appFont(size: 12, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .monospacedDigit()
+            }
+            .padding(.horizontal, 10)
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isHeader)
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(group.tasks, id: \.rowID) { (item: DatedTask) in
+                    TaskLine(model: model, record: item.record, task: item.task, meetingTitle: item.record.note?.title ?? item.record.title) {
+                        router.selectedMeetingID = item.record.id
+                        router.section = .meetings
+                    }
+                }
+            }
+            .padding(8)
+            .cardSurface(cornerRadius: 16)
+        }
+        .transition(.opacity)
+    }
+
+    /// Tamamlananlarda toplantıya göre grup: başlığa tıklayınca toplantı açılır.
+    private func meetingGroup(record: MeetingRecord, tasks: [NoteTask]) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Button {
+                router.selectedMeetingID = record.id
+                router.section = .meetings
+            } label: {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(record.note?.title ?? record.title).appFont(size: 15, weight: .medium)
+                        Text(meetingMetaLine(record: record)).appFont(size: 12, weight: .regular).foregroundStyle(Theme.muted)
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right").foregroundStyle(Theme.muted)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.hoverPlain)
+            ForEach(tasks, id: \.trackingKey) { (task: NoteTask) in
+                // Toplantının adı kartın başlığında: altta yalnız tarih.
+                TaskLine(model: model, record: record, task: task, meetingTitle: nil) {
+                    router.selectedMeetingID = record.id
+                    router.section = .meetings
+                }
+            }
+        }
+        .padding(8)
+        .cardSurface(cornerRadius: 16)
+        .transition(.opacity)
+    }
+
+    @ViewBuilder
+    private func emptyState(doneCount: Int) -> some View {
+        if showsDone {
+            QuietEmptyCard(symbol: "checkmark.circle", title: "Tamamlanan görev yok", message: "Bitirdiğin görevler burada birikir.")
+        } else if doneCount > 0 {
+            EmptyScene(symbol: "party.popper.fill", palette: .coral, title: "Açık görevin kalmadı", message: "Hepsi tamamlandı.") {
+                EmptyView()
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 24)
+            .overlay { ConfettiBurst(palette: .coral) }
+        } else {
+            EmptyScene(
+                symbol: "checklist", palette: .coral, title: "Henüz sana düşen görev yok",
+                message: "Toplantı notunda senin adına yazılan işler burada toplanır."
+            ) {
+                if model.userName.isEmpty {
+                    Button("Adını yaz (görevlerin tanınsın)", systemImage: "person.text.rectangle") { router.section = .settings }
+                        .buttonStyle(.accentPill)
+                        .controlSize(.large)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 24)
         }
     }
 }

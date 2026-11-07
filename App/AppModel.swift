@@ -3076,6 +3076,29 @@ final class AppModel {
         }
     }
 
+    /// Kullanıcının elle yazdığı görevi toplantının notuna ekler (kilitli, notsuz toplantıda ya da aynı iş varsa
+    /// eklenmez; nedeni loglanır). Görev Görevlerim'de ve eşitlemeyle iPhone'da görünür.
+    func addTask(meetingID: String, description: String, dueDay: Date?) {
+        guard let record = meetings.first(where: { $0.id == meetingID }), !isLocked(meetingID: meetingID),
+              let updated = addingTask(record: record, description: description, dueDay: dueDay, userName: userName, calendar: Calendar.current) else {
+            Self.logger.warning("Görev eklenemedi (toplantı yok, kilitli, notsuz ya da aynı görev var), toplantı: \(meetingID, privacy: .public)")
+            return
+        }
+        withSessionDirectory(id: meetingID) { (directory: URL) -> Void in
+            saveRecord(record: updated, directory: directory)
+        }
+    }
+
+    /// Elle eklenmiş görevi siler (nottan gelen görev silinmez).
+    func removeAddedTask(meetingID: String, task: NoteTask) {
+        guard let record = meetings.first(where: { $0.id == meetingID }), !isLocked(meetingID: meetingID) else {
+            return
+        }
+        withSessionDirectory(id: meetingID) { (directory: URL) -> Void in
+            saveRecord(record: removingAddedTask(record: record, task: task), directory: directory)
+        }
+    }
+
     /// Görev bildirimindeki "Tamamlandı": görev tamamlandı diye işaretlenir (zaten tamamlandıysa değişmez). Toplantı
     /// kayıtta ya da işlenirken veya not bu arada yeniden yazılıp görev artık yoksa işaretlenmez, neden loglanır.
     func completeTaskFromNotification(meetingID: String, taskKey key: String) {

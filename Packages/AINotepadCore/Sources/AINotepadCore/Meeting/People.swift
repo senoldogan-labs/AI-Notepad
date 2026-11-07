@@ -14,6 +14,9 @@ public struct PersonTask: Sendable, Equatable {
     public let meetingID: String
     public let meetingTitle: String
     public let task: NoteTask
+    /// Toplantının başladığı an ve notun dili: görevin göreli tarihi ("Cuma") bunlara göre çözülür (`taskDueDay`).
+    public let meetingStartedAt: Date
+    public let noteLanguage: ShareLanguage
 }
 
 /// Kullanıcının elle eklediği kişi (henüz toplantıda adı geçmese de Kişiler'de görünür; adı tanımaya verilir).
@@ -181,7 +184,12 @@ private func personSummary(name: String, saved: SavedPerson?, meetings: [PersonM
     let tasks: [PersonTask] = records.flatMap { (record: MeetingRecord) -> [PersonTask] in
         (record.note?.tasks ?? [])
             .filter { $0.owner.caseInsensitiveCompare(name) == .orderedSame }
-            .map { PersonTask(meetingID: record.id, meetingTitle: record.note?.title ?? record.title, task: $0) }
+            .map {
+                PersonTask(
+                    meetingID: record.id, meetingTitle: record.note?.title ?? record.title, task: $0, meetingStartedAt: record.startedAt,
+                    noteLanguage: record.note?.writtenLanguage ?? .turkish
+                )
+            }
     }
     return PersonSummary(
         name: name, role: saved?.role ?? "", email: saved?.email ?? "", isSaved: saved != nil, meetings: meetings, tasks: tasks,

@@ -20,7 +20,7 @@ public func meetingDocument(record: MeetingRecord) -> NSAttributedString {
         let others: [NoteTask] = note.tasks.filter { !$0.isMine }
         if !mine.isEmpty {
             document.append(styled(text: String(localized: "SENİN GÖREVLERİN") + "\n", style: .heading))
-            mine.forEach { document.append(taskParagraph(task: $0)) }
+            mine.forEach { document.append(taskParagraph(record: record, task: $0)) }
         } else {
             document.append(styled(text: String(localized: "SENİN GÖREVLERİN") + "\n", style: .heading))
             document.append(styled(text: String(localized: "Sana düşen görev yok.") + "\n", style: .listItemMuted))
@@ -37,7 +37,7 @@ public func meetingDocument(record: MeetingRecord) -> NSAttributedString {
         }
         if !others.isEmpty {
             document.append(styled(text: String(localized: "DİĞER GÖREVLER") + "\n", style: .heading))
-            others.forEach { document.append(taskParagraph(task: $0)) }
+            others.forEach { document.append(taskParagraph(record: record, task: $0)) }
         }
         if !note.glossary.isEmpty {
             document.append(styled(text: String(localized: "SÖZLÜK") + "\n", style: .heading))
@@ -107,12 +107,13 @@ public func meetingPDF(record: MeetingRecord) throws -> Data {
     return data as Data
 }
 
-private func taskParagraph(task: NoteTask) -> NSAttributedString {
+/// Görev satırı; son gün toplantı gününe göre çözülmüş tarih olarak (belge sonra okunur, "Bugün" yanıltır).
+private func taskParagraph(record: MeetingRecord, task: NoteTask) -> NSAttributedString {
     let line: NSMutableAttributedString = NSMutableAttributedString()
     line.append(styled(text: "☐  ", style: .listItem))
     line.append(styled(text: task.owner, style: .listItemStrong))
     line.append(styled(text: " — \(task.description)", style: .listItem))
-    if let due = task.dueDate {
+    if let due = taskDueDateText(record: record, task: task, calendar: Calendar.current, locale: interfaceLocale()) {
         line.append(styled(text: "  (\(due))", style: .listItemMuted))
     }
     line.append(styled(text: "\n", style: .listItem))

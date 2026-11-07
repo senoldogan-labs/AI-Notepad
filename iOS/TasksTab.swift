@@ -8,13 +8,15 @@ private enum TaskFilter: Hashable {
     case done
 }
 
-/// Görevlerim: toplantı notlarında sana yazılan işler; açık ya da tamamlanan, toplantıya göre gruplu (en yeni toplantı
-/// önce), üstte ilerleme. İşaretlenince toplantıya yazılır (Mac'te de aynı işaret görünür); toplantı adına dokununca
-/// toplantı açılır.
+/// Görevlerim: toplantı notlarında sana yazılan işler. Açık görevler son günlerine göre gruplu (gecikmiş, bugün,
+/// önümüzdeki 7 gün, daha sonra, tarihsiz; grup içinde yakın tarih önce), tamamlananlar toplantıya göre (en yeni
+/// toplantı önce); üstte ilerleme. Satır sağa kaydırılınca tamamlanır, sola kaydırılınca toplantı açılır (elle eklenen
+/// görev silinir); "+" ile elle görev eklenir. İşaretler toplantıya yazılır (Mac'te de aynı işaret görünür).
 struct TasksTab: View {
     let store: PhoneStore
     let router: PhoneRouter
     @State private var filter: TaskFilter = .open
+    @State private var isAdding: Bool = false
     /// Kullanıcının adı (Ayarlar): girilince "Adını yaz" düğmesi hemen kalksın.
     private var userName: String { store.userName }
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
@@ -22,14 +24,8 @@ struct TasksTab: View {
     var body: some View {
         let all: [(record: MeetingRecord, task: NoteTask)] = myTasks(meetings: store.meetings, userName: userName)
         let doneCount: Int = all.filter { isTaskDone(record: $0.record, task: $0.task) }.count
-        let shown: [(record: MeetingRecord, task: NoteTask)] = all.filter { isTaskDone(record: $0.record, task: $0.task) == (filter == .done) }
-        let groups: [(record: MeetingRecord, tasks: [NoteTask])] = shown.reduce(into: [(record: MeetingRecord, tasks: [NoteTask])]()) { (result: inout [(record: MeetingRecord, tasks: [NoteTask])], item: (record: MeetingRecord, task: NoteTask)) -> Void in
-            if let last = result.last, last.record.id == item.record.id {
-                result[result.count - 1] = (record: last.record, tasks: last.tasks + [item.task])
-            } else {
-                result.append((record: item.record, tasks: [item.task]))
-            }
-        }
+        let open: [(record: MeetingRecord, task: NoteTask)] = all.filter { !isTaskDone(record: $0.record, task: $0.task) }
+        let done: [(record: MeetingRecord, task: NoteTask)] = all.filter { isTaskDone(record: $0.record, task: $0.task) }
         Group {
             if all.isEmpty {
                 // Hiç görev yok: ilerleme ve süzgeç yerine yalnız ortada boş durum; konuşmacısı seçilmemiş yüz yüze
@@ -44,78 +40,98 @@ struct TasksTab: View {
                 .background(Theme.background)
                 .navigationTitle("Görevlerim")
             } else {
-                taskList(all: all, doneCount: doneCount, shown: shown, groups: groups)
+                taskList(all: all, doneCount: doneCount, open: open, done: done)
             }
+        }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button("Görev ekle", systemImage: "plus") { isAdding = true }
+                    .disabled(addableMeetings.isEmpty)
+            }
+        }
+        .sheet(isPresented: $isAdding) {
+            NavigationStack {
+                AddTaskForm(meetings: addableMeetings, fixedMeetingID: nil) { (meetingID: String, text: String, dueDay: Date?) -> Void in
+                    store.addTask(meetingID: meetingID, description: text, dueDay: dueDay)
+                    isAdding = false
+                } onCancel: {
+                    isAdding = false
+                }
+                .navigationTitle("Görev ekle")
+                .navigationBarTitleDisplayMode(.inline)
+            }
+            .presentationDetents([.medium, .large])
         }
     }
 
-    /// Görev listesi: ilerleme, süzgeç ve toplantıya göre gruplu görevler; süzgeçte görev yoksa ortada boş durum.
+    /// Görev eklenebilecek toplantılar: notu olan, örnek olmayan, kayıtta ya da işlenmekte olmayan (en yeni önce).
+    private var addableMeetings: [MeetingRecord] {
+        store.meetings.filter { $0.note != nil && !$0.isSampleMeeting && $0.status != .recording && $0.status != .processing }
+    }
+
+    /// Görev listesi: ilerleme, süzgeç ve gruplu görevler; süzgeçte görev yoksa ortada boş durum.
     private func taskList(
-        all: [(record: MeetingRecord, task: NoteTask)], doneCount: Int, shown: [(record: MeetingRecord, task: NoteTask)],
-        groups: [(record: MeetingRecord, tasks: [NoteTask])]
+        all: [(record: MeetingRecord, task: NoteTask)], doneCount: Int, open: [(record: MeetingRecord, task: NoteTask)],
+        done: [(record: MeetingRecord, task: NoteTask)]
     ) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                // Görev işareti saklanamadıysa (ya da toplantı işlenirken) nedeni burada.
-                PhoneDismissibleErrorList(messages: store.actionProblems) { store.dismissActionProblems() }
-                if filter == .open {
-                    pendingSpeakerMeetings
-                }
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text(verbatim: "\(doneCount)/\(all.count)")
-                            .appFont(size: 30, weight: .regular)
-                            .tracking(-0.6)
-                            .monospacedDigit()
-                        Text("tamamlandı")
-                            .appFont(size: 14, weight: .regular)
-                            .foregroundStyle(Theme.muted)
+        let shown: [(record: MeetingRecord, task: NoteTask)] = filter == .done ? done : open
+        let sections: [TaskSection] = filter == .done
+            ? doneSections(done: done)
+            : groupedByDueDay(items: open, now: Date(), calendar: Calendar.current).map { (group: TaskDueGroup) -> TaskSection in
+                TaskSection(id: "\(group.bucket.rawValue)", title: taskDueBucketTitle(bucket: group.bucket), isOverdue: group.bucket == .overdue, items: group.tasks)
+            }
+        return List {
+            Section {
+                VStack(alignment: .leading, spacing: 18) {
+                    // Görev işareti saklanamadıysa (ya da toplantı işlenirken) nedeni burada.
+                    PhoneDismissibleErrorList(messages: store.actionProblems) { store.dismissActionProblems() }
+                    if filter == .open {
+                        pendingSpeakerMeetings
                     }
-                    ProgressView(value: Double(doneCount), total: Double(max(all.count, 1)))
-                        .tint(appearance.accent.color)
-                }
-                PillTabs(selection: $filter, options: [
-                    (TaskFilter.open, "Açık · \(all.count - doneCount)"),
-                    (TaskFilter.done, "Tamamlanan · \(doneCount)"),
-                ])
-                ForEach(groups, id: \.record.id) { (group: (record: MeetingRecord, tasks: [NoteTask])) in
                     VStack(alignment: .leading, spacing: 8) {
-                        Button {
-                            router.open(meetingID: group.record.id)
-                        } label: {
-                            HStack(spacing: 8) {
-                                CoverBackground(seed: group.record.id)
-                                    .frame(width: 18, height: 18)
-                                    .clipShape(Circle())
-                                Text(group.record.note?.title ?? group.record.title)
-                                    .appFont(size: 13, weight: .semibold)
-                                    .lineLimit(1)
-                                Text(group.record.startedAt.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(interfaceLocale())))
-                                    .appFont(size: 12, weight: .regular)
-                                    .foregroundStyle(Theme.muted)
-                                Image(systemName: "chevron.right")
-                                    .appFont(size: 10, weight: .semibold)
-                                    .foregroundStyle(Theme.muted)
-                            }
-                            .foregroundStyle(Theme.ink)
+                        HStack(alignment: .firstTextBaseline) {
+                            Text(verbatim: "\(doneCount)/\(all.count)")
+                                .appFont(size: 30, weight: .regular)
+                                .tracking(-0.6)
+                                .monospacedDigit()
+                            Text("tamamlandı")
+                                .appFont(size: 14, weight: .regular)
+                                .foregroundStyle(Theme.muted)
                         }
-                        .buttonStyle(.plain)
-                        ForEach(group.tasks, id: \.trackingKey) { (task: NoteTask) in
-                            PhoneTaskRow(record: group.record, task: task, showsMeeting: false) {
-                                withAnimation(.smooth(duration: 0.25)) {
-                                    store.toggleTask(meetingID: group.record.id, task: task)
-                                }
-                            }
-                        }
+                        ProgressView(value: Double(doneCount), total: Double(max(all.count, 1)))
+                            .tint(appearance.accent.color)
                     }
-                    .transition(.opacity)
+                    PillTabs(selection: $filter, options: [
+                        (TaskFilter.open, "Açık · \(all.count - doneCount)"),
+                        (TaskFilter.done, "Tamamlanan · \(doneCount)"),
+                    ])
+                }
+                .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 4, trailing: 20))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+            }
+            ForEach(sections, id: \.id) { (section: TaskSection) in
+                Section {
+                    ForEach(section.items, id: \.rowID) { (item: DatedTask) in
+                        row(item: item)
+                    }
+                } header: {
+                    HStack(spacing: 6) {
+                        Text(verbatim: section.title)
+                            .foregroundStyle(section.isOverdue ? NoticeSeverity.error.tint : Theme.ink)
+                            .lineLimit(1)
+                        Text(verbatim: "\(section.items.count)")
+                            .foregroundStyle(Theme.muted)
+                            .monospacedDigit()
+                    }
+                    .appFont(size: 13, weight: .semibold)
+                    .textCase(nil)
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 8)
-            .animation(.smooth(duration: 0.3), value: shown.map(\.task.trackingKey))
         }
-        .scrollIndicators(.hidden)
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .animation(.smooth(duration: 0.3), value: shown.map(\.task.trackingKey))
         .overlay {
             if shown.isEmpty {
                 emptyState(hasTasks: !all.isEmpty, doneCount: doneCount)
@@ -123,6 +139,49 @@ struct TasksTab: View {
         }
         .background(Theme.background)
         .navigationTitle("Görevlerim")
+    }
+
+    /// Tamamlananlar: toplantıya göre (en yeni toplantı önce), başlık toplantının adı.
+    private func doneSections(done: [(record: MeetingRecord, task: NoteTask)]) -> [TaskSection] {
+        done.reduce(into: [TaskSection]()) { (result: inout [TaskSection], item: (record: MeetingRecord, task: NoteTask)) -> Void in
+            let dated: DatedTask = DatedTask(record: item.record, task: item.task, dueDay: nil)
+            if let last = result.last, last.id == item.record.id {
+                result[result.count - 1] = TaskSection(id: last.id, title: last.title, isOverdue: false, items: last.items + [dated])
+            } else {
+                result.append(TaskSection(id: item.record.id, title: item.record.note?.title ?? item.record.title, isOverdue: false, items: [dated]))
+            }
+        }
+    }
+
+    /// Görev satırı: kutuya dokununca işaretlenir; sağa kaydırınca tamamlanır (tamamlananda geri alınır), sola
+    /// kaydırınca toplantı açılır ya da elle eklenen görev silinir. Açık görevlerde altta toplantının adı.
+    private func row(item: DatedTask) -> some View {
+        let isDone: Bool = isTaskDone(record: item.record, task: item.task)
+        return PhoneTaskRowContent(record: item.record, task: item.task, showsMeeting: filter == .open) {
+            withAnimation(.smooth(duration: 0.25)) {
+                store.toggleTask(meetingID: item.record.id, task: item.task)
+            }
+        }
+        .listRowInsets(EdgeInsets())
+        .listRowBackground(Theme.card)
+        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+            Button(isDone ? "Tamamlanmadı olarak işaretle" : "Tamamlandı olarak işaretle", systemImage: isDone ? "arrow.uturn.backward" : "checkmark") {
+                withAnimation(.smooth(duration: 0.25)) {
+                    store.toggleTask(meetingID: item.record.id, task: item.task)
+                }
+            }
+            .labelStyle(.iconOnly)
+            .tint(appearance.accent.color)
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            if item.task.isAdded == true {
+                Button("Görevi sil", systemImage: "trash", role: .destructive) {
+                    store.removeAddedTask(meetingID: item.record.id, task: item.task)
+                }
+            }
+            Button("Toplantıyı aç", systemImage: "doc.text") { router.open(meetingID: item.record.id) }
+                .tint(Theme.muted)
+        }
     }
 
     /// Yüz yüze toplantıda kullanıcı da "Konuşmacı N": hangisi olduğu seçilmemiş toplantılar (dokununca toplantı açılır).
@@ -157,6 +216,14 @@ struct TasksTab: View {
             .overlay { ConfettiBurst(palette: .sunset) }
         }
     }
+}
+
+/// Görevlerim'de bir bölüm: son güne göre grup ya da (tamamlananlarda) toplantı.
+private struct TaskSection {
+    let id: String
+    let title: String
+    let isOverdue: Bool
+    let items: [DatedTask]
 }
 
 /// Görev satırı: tamamlandı kutusu, iş, sahibi ve tarihi; istenirse toplantı adı. Uzun basınca Anımsatıcılar'a eklenir
@@ -209,6 +276,11 @@ struct PhoneTaskRowContent: View {
                             .foregroundStyle(appearance.accent.color)
                             .accessibilityLabel(Text("Anımsatıcılarda"))
                     }
+                    // Son gün toplantı gününe göre çözülür, arayüz dilinde göreli ("Yarın", "2 gün gecikti").
+                    TaskDueText(record: record, task: task, size: 12)
+                    if task.dueDate != nil, !detail.isEmpty {
+                        Text(verbatim: "·").appFont(size: 12, weight: .regular).foregroundStyle(Theme.muted)
+                    }
                     if !detail.isEmpty {
                         Text(detail)
                             .appFont(size: 12, weight: .regular)
@@ -238,6 +310,12 @@ struct PhoneTaskRowContent: View {
             Button("Metni kopyala", systemImage: "doc.on.doc") {
                 UIPasteboard.general.string = task.description
             }
+            // Yalnız elle eklenen görev silinir; nottan gelen görev notun parçasıdır.
+            if task.isAdded == true {
+                Button("Görevi sil", systemImage: "trash", role: .destructive) {
+                    store.removeAddedTask(meetingID: record.id, task: task)
+                }
+            }
         }
     }
 
@@ -251,11 +329,11 @@ struct PhoneTaskRowContent: View {
         }
     }
 
+    /// Tarihin yanındaki soluk metin: sahibi (kendi görevinde yazılmaz) ve istenirse toplantının adı.
     private var detail: String {
         let meeting: [String] = showsMeeting ? [record.note?.title ?? record.title] : []
-        // Kendi görevinde sahip (kendi adın) yazılmaz.
         let owner: [String] = task.isMine ? [] : [task.owner]
-        return (owner + [task.dueDate].compactMap { $0 } + meeting).joined(separator: " · ")
+        return (owner + meeting).joined(separator: " · ")
     }
 }
 

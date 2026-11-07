@@ -1221,6 +1221,40 @@ final class PhoneStore {
         }
     }
 
+    /// Kullanıcının elle yazdığı görevi toplantının notuna ekler (diskteki en güncel kayda); toplantı işlenirken, notsuzken
+    /// ya da aynı iş varsa eklenmez, nedeni sorunlarda görünür.
+    func addTask(meetingID: String, description: String, dueDay: Date?) {
+        guard let record = meetings.first(where: { $0.id == meetingID }), record.status != .recording, record.status != .processing else {
+            actionProblems = appendUnique(messages: actionProblems, message: String(localized: "Toplantı işlenirken görev eklenemez; işleme bitince yeniden dene."))
+            return
+        }
+        do {
+            let name: String = userName
+            var added: Bool = false
+            try updateMeeting(meetingID: meetingID) { (current: MeetingRecord) -> MeetingRecord in
+                guard let updated = addingTask(record: current, description: description, dueDay: dueDay, userName: name, calendar: Calendar.current) else {
+                    return current
+                }
+                added = true
+                return updated
+            }
+            if !added {
+                actionProblems = appendUnique(messages: actionProblems, message: String(localized: "Görev eklenemedi: bu toplantıda aynı görev zaten var."))
+            }
+        } catch {
+            actionProblems = appendUnique(messages: actionProblems, message: String(localized: "Toplantı kaydedilemedi: \(userFacingMessage(error: error))"))
+        }
+    }
+
+    /// Elle eklenmiş görevi siler (nottan gelen görev silinmez).
+    func removeAddedTask(meetingID: String, task: NoteTask) {
+        do {
+            try updateMeeting(meetingID: meetingID) { (current: MeetingRecord) -> MeetingRecord in removingAddedTask(record: current, task: task) }
+        } catch {
+            actionProblems = appendUnique(messages: actionProblems, message: String(localized: "Toplantı kaydedilemedi: \(userFacingMessage(error: error))"))
+        }
+    }
+
     // MARK: Ad ve tanıma sözlüğü
 
     /// Kullanıcının adı (notta "Sen" ve sana düşen görevler, Sor, konuşmacılar, takip e-postası): hesabın ayar alanında

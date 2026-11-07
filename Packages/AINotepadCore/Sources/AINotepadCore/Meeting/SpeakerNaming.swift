@@ -119,13 +119,14 @@ public func isUserName(name: String, userName: String) -> Bool {
 /// reminded and sent marks keep matching. Pure function.
 public func namedTask(task: NoteTask, speakerNames: [Int: String], userName: String) -> NoteTask {
     let owner: String = namingSpeakers(text: task.owner, speakerNames: speakerNames)
-    return NoteTask(
+    let named: NoteTask = NoteTask(
         owner: owner,
         description: namingSpeakers(text: task.description, speakerNames: speakerNames),
         dueDate: task.dueDate.map { namingSpeakers(text: $0, speakerNames: speakerNames) },
         isMine: task.isMine || isUserName(name: owner, userName: userName)
     )
-    .with(storedKey: taskKey(task: task))
+    // Elle eklenmiş görev görüntü kopyasında da öyle görünsün (silinebilir).
+    return (task.isAdded == true ? named.markedAdded() : named).with(storedKey: taskKey(task: task))
 }
 
 /// The note with speaker names applied to every text (title, summary, topic flow, decisions, open questions, tasks,

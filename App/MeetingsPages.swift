@@ -2440,7 +2440,7 @@ private struct TaskRow: View {
                     .foregroundStyle(isDone ? Theme.muted : Theme.ink)
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
-                if showsOwner || shown.dueDate != nil {
+                if showsOwner || task.dueDate != nil {
                     HStack(spacing: 6) {
                         if showsOwner {
                             SpeakerAvatar(text: ownerInitial(owner: shown.owner), color: ownerColor(task: task, speakerNames: record.speakerNames), size: 18)
@@ -2449,13 +2449,12 @@ private struct TaskRow: View {
                                 .appFont(size: 12, weight: .medium)
                                 .foregroundStyle(Theme.muted)
                         }
-                        if let due = shown.dueDate {
+                        if task.dueDate != nil {
                             if showsOwner {
                                 Text(verbatim: "·").foregroundStyle(Theme.muted)
                             }
-                            Label(due, systemImage: "calendar")
-                                .appFont(size: 12, weight: .regular)
-                                .foregroundStyle(Theme.muted)
+                            // Son gün asıl notun tarihinden toplantı gününe göre çözülür, arayüz dilinde göreli.
+                            TaskDueText(record: record, task: task, size: 12)
                         }
                     }
                 }
@@ -2469,6 +2468,15 @@ private struct TaskRow: View {
         .onHover { (hovering: Bool) -> Void in isHovering = hovering }
         .animation(.smooth(duration: 0.2), value: isDone)
         .animation(.easeOut(duration: 0.12), value: isHovering)
+        .contextMenu {
+            // Yalnız elle eklenen görev silinir; nottan gelen görev notun parçasıdır.
+            if task.isAdded == true {
+                Button("Görevi sil", systemImage: "trash", role: .destructive) {
+                    model.removeAddedTask(meetingID: record.id, task: task)
+                }
+                .disabled(model.isLocked(meetingID: record.id))
+            }
+        }
     }
 }
 
