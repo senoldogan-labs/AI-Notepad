@@ -1616,7 +1616,7 @@ export const copy: Copy = {
       integrations:
         "Notion, Apple Notes, Slack, Microsoft Teams, Discord, Zoom Team Chat; tasks to Linear, Jira and Apple Reminders; Markdown folders (Obsidian) and webhooks (Zapier, Make, n8n)",
       mcp: "Read-only access for Claude, ChatGPT, Cursor and VS Code: on your Mac, or online with AI assistant access",
-      storage: "Saved on your Mac and iPhone; our servers keep only an end-to-end encrypted copy if you turn on sync (and a readable copy of the notes if you turn on AI assistant access); audio is processed in the cloud and isn't kept by us",
+      storage: "Saved on your Mac and iPhone. Our servers hold copies only for features you turn on (sync, AI assistant access, share links) and briefly while a note is written; audio isn't kept by us",
       plans: "One personal plan, billed monthly or yearly; no shared team workspace",
     },
     usMarks: { capture: "yes", translation: "yes", voiceTyping: "yes", mcp: "yes" },
@@ -1717,7 +1717,7 @@ export const copy: Copy = {
             "your meetings are in another language and you want a live translation as people talk",
             "you want every note to pick out your own tasks, with due dates",
             "you work on a Mac and want simple pricing: $5.99 a month or $49 a year, taxes included",
-            "you want notes, transcripts and recordings kept on your Mac and iPhone, with only an end-to-end encrypted copy on our servers if you turn on sync",
+            "you want notes, transcripts and recordings kept on your own Mac and iPhone",
           ],
         },
       },
@@ -1845,7 +1845,7 @@ export const copy: Copy = {
           points: [
             "you want a live translation as people talk",
             "you want every note to pick out your own tasks, with due dates",
-            "you want notes, transcripts and recordings kept on your Mac and iPhone, with only an end-to-end encrypted copy on our servers if you turn on sync",
+            "you want notes, transcripts and recordings kept on your own Mac and iPhone",
             "you want simple pricing for one person: $5.99 a month or $49 a year, taxes included",
           ],
         },
