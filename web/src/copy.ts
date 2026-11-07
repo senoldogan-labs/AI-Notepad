@@ -1616,7 +1616,7 @@ export const copy: Copy = {
       integrations:
         "Notion, Apple Notes, Slack, Microsoft Teams, Discord, Zoom Team Chat; tasks to Linear, Jira and Apple Reminders; Markdown folders (Obsidian) and webhooks (Zapier, Make, n8n)",
       mcp: "Read-only access for Claude, ChatGPT, Cursor and VS Code: on your Mac, or online with AI assistant access",
-      storage: "Saved on your Mac and iPhone. Our servers hold copies only for features you turn on (sync, AI assistant access, share links) and briefly while a note is written; audio isn't kept by us",
+      storage: "Saved on the Mac or iPhone that recorded it, and on both with sync. Our servers hold copies only for features you turn on (sync, AI assistant access, share links) and briefly while a note is written; audio isn't kept by us",
       plans: "One personal plan, billed monthly or yearly; no shared team workspace",
     },
     usMarks: { capture: "yes", translation: "yes", voiceTyping: "yes", mcp: "yes" },
