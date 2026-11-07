@@ -62,11 +62,11 @@ private struct RecordingSession {
     let micGate: AudioGate
 }
 
-/// Uygulamanın arayüz durumu ve kayıt yaşam döngüsü.
 /// "Bitir"den sonra canlı oturumun kapanması için en uzun bekleme (sn); aşılırsa kayıt canlı metnin sonu beklenmeden
-/// kapatılır (bkz. `AppModel.watchFinishing`). Panel ve menü bu sürenin yarısından sonra "Şimdi bitir"i gösterir.
+/// kapatılır (bkz. `AppModel.watchFinishing`). Panel ve menü bu sürenin üçte biri geçince (15 sn) "Şimdi bitir"i gösterir.
 let finishingLimitSec: Double = 45
 
+/// Uygulamanın arayüz durumu ve kayıt yaşam döngüsü.
 @MainActor
 @Observable
 final class AppModel {
