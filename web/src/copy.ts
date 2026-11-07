@@ -764,6 +764,8 @@ export interface McpRemoteCopy {
   readonly lead: string;
   /** Spesifikasyonun zorunlu onay cümlesi. */
   readonly consent: string;
+  readonly toolsTitle: string;
+  readonly tools: readonly McpToolCopy[];
   readonly urlLabel: string;
   readonly url: string;
   readonly setups: readonly PickCopy[];
@@ -776,6 +778,8 @@ export interface McpCopy {
   readonly eyebrow: string;
   readonly title: string;
   readonly lead: string;
+  /** Hero'daki uzak bağlayıcı yönlendirmesi: bağlantıdan önceki metin ve bağlantı metni. */
+  readonly remoteHint: { readonly text: string; readonly link: string };
   readonly toolsTitle: string;
   readonly toolsLead: string;
   readonly toolInputLabel: string;
@@ -1688,12 +1692,13 @@ export const copy: Copy = {
   },
   mcp: {
     meta: {
-      title: `${productName} MCP server: your meetings in Claude and Cursor`,
-      description: `${productName} includes a local, read-only MCP server. Let Claude, Cursor, VS Code and other MCP apps list, search and read your meeting notes, tasks and shared-screen snapshots.`,
+      title: `${productName} MCP server: your meetings in Claude, ChatGPT and Cursor`,
+      description: `${productName} connects your meeting notes to AI apps, read-only: a local MCP server for Claude Desktop, Cursor and VS Code, and an online connector for Claude and ChatGPT on the web and phone.`,
     },
     eyebrow: "MCP",
     title: "Ask your AI apps about your meetings.",
     lead: `${productName} includes a small MCP server. Claude, Cursor, Visual Studio Code and other MCP apps can use it to list, search and read your meetings, your open tasks and the screens shared in your calls. It only reads; it never changes anything.`,
+    remoteHint: { text: "Using Claude or ChatGPT in the browser or on your phone?", link: "Connect AI assistant access" },
     toolsTitle: "What it offers",
     toolsLead: "The server gives your AI app six tools. The app decides when to call them, usually starting with a list or a search and then opening a meeting.",
     toolInputLabel: "Input",
@@ -1787,17 +1792,24 @@ export const copy: Copy = {
     ],
     remote: {
       title: "Claude and ChatGPT on the web: AI assistant access",
-      lead: `Assistants in the browser or on your phone can't start ${productName} on your Mac. For them there is AI assistant access, an online connector with four read-only tools: search, fetch, list_meetings and list_my_tasks. It reads your notes, not transcripts. You turn it on in the Mac or iPhone app under Settings › Connections › AI assistant access, then add the connector to your assistant. The setting is being rolled out; if your app doesn't offer it yet, it will in an update.`,
+      lead: `Assistants in the browser or on your phone can't start ${productName} on your Mac. For them there is AI assistant access, an online connector that reads your meeting notes (never transcripts or audio) and changes nothing. Turn on "Let AI assistants read my meeting notes" in the ${productName} app on Mac or iPhone under Settings › Connections (version 0.2.1 or later), then add ${productName} to your assistant.`,
       consent: "Off by default. Turn it on and an encrypted copy of your notes, never audio, is kept in the EU so the assistants you connect can read them. Turn it off and it is deleted at once (backups within 30 days).",
+      toolsTitle: "Its four tools, all read-only",
+      tools: [
+        { name: "search", text: "Finds meetings by the words in their titles, summaries, decisions, open questions, tasks and outlines, best match first.", input: "query (required)" },
+        { name: "fetch", text: "Opens one meeting note as Markdown: summary, decisions, open questions, tasks, outline and your own notes, with the date, length, folder and attendees.", input: "id from search or list_meetings (required)" },
+        { name: "list_meetings", text: "Lists your meetings, newest first, optionally within a time range or a folder.", input: "since, until, folder, limit and cursor (all optional)" },
+        { name: "list_my_tasks", text: "Lists the tasks assigned to you across your meetings, open ones only unless you ask for done ones too.", input: "include_done (optional)" },
+      ],
       urlLabel: "Connector URL",
       url: "https://mcp.gistsmith.com/mcp",
       setups: [
         {
           title: "Claude",
           points: [
-            "In Claude, open Settings › Connectors and choose Add custom connector.",
-            `Name it ${productName} and paste the connector URL.`,
-            `Click Connect, sign in with the Apple or Google account you use in ${productName} and approve read access.`,
+            `In Claude, open Customize › Connectors, find ${productName} in the connector directory and click Connect.`,
+            `Sign in with the Apple or Google account you use in ${productName} and approve read access.`,
+            "If your organisation hides the directory, choose Add custom connector instead and paste the connector URL.",
           ],
         },
         {

@@ -1,8 +1,8 @@
 ---
 // MCP sayfası: uygulamanın yerel MCP sunucusunun araçları (MCPServer.swift `mcpTools`), bağlama adımları (Ayarlar ›
 // Bağlantılar), kopyalanan yapılandırma (lib/mcp-config.ts), istemcilerin yapılandırma dosyaları, örnek sorular ve
-// sınırlar; ayrıca uzak bağlayıcı (yapay zekâ asistanı erişimi, mcp.gistsmith.com): onay cümlesi, Claude ve ChatGPT
-// adımları, uyarılar. Metinler copy.ts `mcp`'den.
+// sınırlar; ayrıca uzak bağlayıcı (yapay zekâ asistanı erişimi, mcp.gistsmith.com; hero'dan #remote'a bağlantı): onay
+// cümlesi, dört aracı (server/src/mcp/tools.ts), Claude ve ChatGPT adımları, uyarılar. Metinler copy.ts `mcp`'den.
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
 import CtaBand from "../components/CtaBand.astro";
@@ -22,6 +22,7 @@ const setups: readonly PickCopy[] = [text.oneClick, text.manual];
     <div class="mcp-hero__text">
       <h1 class="title-xl">{text.title}</h1>
       <p class="lead">{text.lead}</p>
+      <p class="mcp-remote-hint">{text.remoteHint.text} <a href="#remote">{text.remoteHint.link}</a></p>
     </div>
     <PhotoPanel photo="aurora-lake" focus="bottom" widths={[480, 720, 960, 1280]} sizes="(max-width: 960px) calc(100vw - 40px), 560px" priority="lcp" class="mcp-hero__cover">
       <McpChat demo={copy.home.integrations.mcpDemo} />
@@ -107,6 +108,20 @@ const setups: readonly PickCopy[] = [text.oneClick, text.manual];
       <p class="muted">{text.remote.lead}</p>
       <p class="mcp-consent">{text.remote.consent}</p>
     </div>
+    <h3 class="title-m">{text.remote.toolsTitle}</h3>
+    <ul class="mcp-tools">
+      {
+        text.remote.tools.map((tool: McpToolCopy) => (
+          <li class="card mcp-tool">
+            <h4 class="mcp-tool__name"><code>{tool.name}</code></h4>
+            <p>{tool.text}</p>
+            <p class="small muted">
+              <span class="mcp-tool__label">{text.toolInputLabel}:</span> {tool.input}
+            </p>
+          </li>
+        ))
+      }
+    </ul>
     <figure class="mcp-config">
       <figcaption class="small">{text.remote.urlLabel}</figcaption>
       <pre><code>{text.remote.url}</code></pre>
@@ -185,6 +200,14 @@ const setups: readonly PickCopy[] = [text.oneClick, text.manual];
     padding: clamp(24px, 4vw, 44px);
   }
 
+  .mcp-remote-hint {
+    margin: 0;
+  }
+
+  .mcp-remote-hint a {
+    font-weight: 600;
+  }
+
   .mcp-section {
     display: grid;
     gap: 22px;
@@ -213,6 +236,7 @@ const setups: readonly PickCopy[] = [text.oneClick, text.manual];
   }
 
   .mcp-tool__name {
+    margin: 0;
     font-size: 1rem;
     letter-spacing: 0;
   }

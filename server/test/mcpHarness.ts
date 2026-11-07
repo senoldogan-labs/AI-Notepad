@@ -293,6 +293,8 @@ export interface RpcResponse {
     readonly content?: ReadonlyArray<{ readonly type: string; readonly text: string }>;
     readonly structuredContent?: Record<string, unknown>;
     readonly tools?: ReadonlyArray<Record<string, unknown>>;
+    readonly serverInfo?: Record<string, unknown>;
+    readonly instructions?: string;
   };
   readonly error?: { readonly code: number; readonly message: string };
 }

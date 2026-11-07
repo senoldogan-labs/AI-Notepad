@@ -71,6 +71,10 @@ describe("MCP OAuth", () => {
     expect(metadata["token_endpoint_auth_methods_supported"]).toContain("none");
     const resource = await (await test.fetch(new Request(`${mcpBase}/.well-known/oauth-protected-resource/mcp`))).json<Record<string, unknown>>();
     expect(resource).toMatchObject({ resource: mcpResource, authorization_servers: [mcpBase], scopes_supported: ["notes:read"] });
+    const home: Response = await test.fetch(new Request(`${mcpBase}/`, { redirect: "manual" }));
+    expect([home.status, home.headers.get("location")]).toEqual([301, "https://gistsmith.com/mcp#remote"]);
+    const favicon: Response = await test.fetch(new Request(`${mcpBase}/favicon.ico`, { redirect: "manual" }));
+    expect([favicon.status, favicon.headers.get("location")]).toEqual([301, "https://gistsmith.com/icon-512.png"]);
     const unauthenticated: Response = await test.fetch(new Request(`${mcpBase}/mcp`, { method: "POST", body: "{}" }));
     expect(unauthenticated.status).toBe(401);
     expect(unauthenticated.headers.get("www-authenticate")).toContain("resource_metadata");
@@ -84,6 +88,10 @@ describe("MCP OAuth", () => {
     const tokens: Tokens = await connect(test, client, user.subject);
     expect(tokens.expires_in).toBe(3600);
     expect(tokens.scope).toBe("notes:read");
+    const initialized = await mcpRequest(test, tokens.access_token, "initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "test", version: "1" } });
+    expect(initialized.body?.result?.serverInfo).toMatchObject({ name: "gistsmith", title: "Gistsmith", websiteUrl: "https://gistsmith.com/mcp#remote" });
+    expect(initialized.body?.result?.serverInfo?.["icons"]).toContainEqual({ src: "https://gistsmith.com/icon-512.png", mimeType: "image/png", sizes: ["512x512"] });
+    expect(initialized.body?.result?.instructions).toContain("list_my_tasks");
     const listed = await mcpRequest(test, tokens.access_token, "tools/list", {});
     const tools = listed.body?.result?.tools ?? [];
     expect(tools.map((tool) => tool["name"])).toEqual(["search", "fetch", "list_meetings", "list_my_tasks"]);

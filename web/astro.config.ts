@@ -16,6 +16,7 @@ const config: SiteConfig = siteConfigs[parseWebTarget(process.env["PUBLIC_WEB_TA
 const appFiles: readonly { readonly from: string; readonly to: string }[] = [
   { from: "App/Fonts/Inter-OFL.txt", to: "fonts/Inter-OFL.txt" },
   { from: "App/Assets.xcassets/AppIcon.appiconset/icon_256.png", to: "apple-touch-icon.png" },
+  { from: "App/Assets.xcassets/AppIcon.appiconset/icon_512.png", to: "icon-512.png" },
 ];
 
 /** Derleme sonunda Cloudflare Pages dosyalarını yazar ve uygulama dosyalarını kopyalar. */
