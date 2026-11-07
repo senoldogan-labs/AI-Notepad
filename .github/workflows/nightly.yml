@@ -1,0 +1,91 @@
+# Her gece (ve elle): PR denetiminde olmayan iki derleme. Zorunlu check değildir, PR'ların CI süresini uzatmaz; kırmızı
+# koşu main'de bir sonraki yayından önce düzeltilir.
+# - Çekirdek paketin testleri iOS Simülatörü'nde: iPhone uygulaması aynı paketi kullanır, `#if os(iOS)` dalları ve iOS'a
+#   özgü davranış (Anahtar Zinciri, dosya koruması) macOS testlerinde koşmaz.
+# - Geliştirici sürümünün (AI-Notepad) Release derlemesi: PR'larda yalnız Debug'ı derlenir; yayın betiği gibi
+#   Config/Package.resolved'daki sabitlerle (-onlyUsePackageVersionsFromResolvedFile) ve yalnız arm64.
+# İmza yok (CODE_SIGNING_ALLOWED=NO); gerçek bulut ve model testleri burada da koşmaz.
+name: Nightly
+
+on:
+  schedule:
+    - cron: "30 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Hesabın macOS runner'ları paylaşılır: üst üste binen gece koşusu beklemez, yenisi eskisinin yerini alır.
+concurrency:
+  group: nightly
+  cancel-in-progress: true
+
+# Eylemler commit özetine sabittir (ci.yml ile aynı sürüm); checkout GITHUB_TOKEN'ı .git/config'e yazmaz.
+
+jobs:
+  core-ios:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - name: Araç sürümleri
+        run: |
+          xcodebuild -version
+          swift --version
+      # Runner'ın simülatör adları Xcode sürümüyle değişir: kurulu ilk iPhone seçilir, yoksa iş açık hatayla durur.
+      - name: Simülatör seç
+        id: simulator
+        run: |
+          udid=$(xcrun simctl list devices available --json \
+            | jq -r '[.devices | to_entries[] | select(.key | test("iOS")) | .value[] | select(.name | startswith("iPhone"))][0].udid // empty')
+          if [ -z "$udid" ]; then
+            echo "::error::Kurulu iPhone simülatörü yok"
+            xcrun simctl list devices available
+            exit 1
+          fi
+          echo "udid=$udid" | tee -a "$GITHUB_OUTPUT"
+      - name: Çekirdek testleri (iOS Simülatörü)
+        working-directory: Packages/AINotepadCore
+        # Simülatördeki test süreci ortamı yalnız TEST_RUNNER_ önekiyle alır: başarım testleri CI payını (`CI=true`) görsün.
+        env:
+          UDID: ${{ steps.simulator.outputs.udid }}
+          TEST_RUNNER_CI: "true"
+        run: xcodebuild test -scheme AINotepadCore-Package -destination "platform=iOS Simulator,id=$UDID" -quiet
+
+  mac-release:
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - name: Araç sürümleri
+        run: |
+          xcodebuild -version
+          swift --version
+      - name: Paket sabitleri
+        run: scripts/check-package-pins.sh
+      - name: Projeyi üret
+        # ci.yml'deki adımın aynısı; sürümü ve özeti üç yerde birlikte güncelle.
+        env:
+          XCODEGEN_VERSION: "2.45.3"
+          XCODEGEN_SHA256: "0c90f4d28ca57335f9fa78cf5bf6dabfe20a232036dabe36de2eef79cb7c0878"
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/xcodegen.zip" \
+            "https://github.com/yonaskolb/XcodeGen/releases/download/$XCODEGEN_VERSION/xcodegen.zip"
+          echo "$XCODEGEN_SHA256  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 -c -
+          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP"
+          "$RUNNER_TEMP/xcodegen/bin/xcodegen" generate
+      # Yayın gibi: uygulamanın paket sabitleri üretilen projeye kopyalanır ve yalnız onlar kullanılır.
+      - name: Paket sabitlerini projeye koy
+        run: |
+          mkdir -p AINotepad.xcodeproj/project.xcworkspace/xcshareddata/swiftpm
+          cp Config/Package.resolved AINotepad.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+      - name: AI-Notepad Release derlemesi
+        run: >
+          xcodebuild -project AINotepad.xcodeproj -scheme AINotepad -configuration Release
+          -derivedDataPath .build/xcode -destination 'platform=macOS,arch=arm64'
+          -onlyUsePackageVersionsFromResolvedFile
+          ARCHS=arm64 CODE_SIGNING_ALLOWED=NO build -quiet

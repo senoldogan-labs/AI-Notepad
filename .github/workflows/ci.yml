@@ -153,7 +153,7 @@ jobs:
           xcodebuild -version
           swift --version
       - name: Projeyi üret
-        # test-and-build'deki adımın aynısı; sürümü ve özeti ikisinde birlikte güncelle.
+        # test-and-build'deki adımın aynısı; sürümü ve özeti ikisinde ve nightly.yml'de birlikte güncelle.
         env:
           XCODEGEN_VERSION: "2.45.3"
           XCODEGEN_SHA256: "0c90f4d28ca57335f9fa78cf5bf6dabfe20a232036dabe36de2eef79cb7c0878"

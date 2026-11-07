@@ -6,8 +6,10 @@
 // geniş politikayı taşır (sayfası olmayan adresler, ör. bilinmeyen adresin 404'ü, için); her sayfanın kendi kuralı
 // yalnızca o sayfanın kullandığı hizmetlere izin veren dar politikayı ekler. Böylece Apple betiği yalnızca giriş
 // sayfasında, Turnstile yalnızca iletişim sayfasında çalışabilir. Google ile giriş Google'a yönlendirir; betik yüklenmez.
-// Cloudflare Web Analytics işaretçisi paylaşım sayfası (`/s`) dışındaki her sayfada açıktır: orada notun anahtarı adresin
-// `#` parçasındadır ve sayfadaki her betik onu okuyabilir; dar politika işaretçiyi engeller (iki politika birlikte uygulanır).
+// Cloudflare Web Analytics işaretçisi herkese açık sayfalarda açıktır. Paylaşım sayfasında (`/s`) notun anahtarı adresin
+// `#` parçasındadır ve sayfadaki her betik onu okuyabilir; hesap (`/account`) ve yönetim (`/admin`) sayfaları oturum
+// jetonu ve kullanıcı verisi taşır. Bu sayfaların dar politikası işaretçiyi engeller (iki politika birlikte uygulanır):
+// orada hiçbir üçüncü taraf betiği çalışmaz.
 import { createHash } from "node:crypto";
 import { appleAuthScriptUrl, appleIdOrigin, type SiteConfig, turnstileOrigin } from "../config";
 import { blogPostPattern, meetingLinkPattern, type PageKey, privatePages, routes } from "../routes";
@@ -15,7 +17,7 @@ import { blogPostPattern, meetingLinkPattern, type PageKey, privatePages, routes
 /**
  * Sayfaların yüklediği dış hizmetler ve ek kaynaklar. `localImagePreview`: yönetim panelinin blog düzenleyicisi
  * yüklenecek görseli ve bu oturumda yüklenenleri tarayıcıdaki kopyasından (`blob:`) gösterir. `webAnalytics`:
- * Cloudflare Web Analytics işaretçisi (çerezsiz); paylaşım sayfası dışındaki her sayfada.
+ * Cloudflare Web Analytics işaretçisi (çerezsiz); herkese açık sayfalarda (paylaşım, hesap ve yönetim sayfalarında yok).
  */
 export type ExternalService = "appleSignIn" | "turnstile" | "localImagePreview" | "webAnalytics";
 
@@ -36,8 +38,9 @@ function originOf(url: string): string {
 
 /**
  * Cloudflare Web Analytics (çerezsiz): Pages projesinde panelden açılır ve işaretçi betiğini her sayfaya kendisi ekler.
- * Betik ilk kaynaktan yüklenir, ölçümleri ikinci kaynağa gönderir. Paylaşım sayfasının dar politikası onu içermez:
- * eklenen betik orada engellenir (notun anahtarını okuyabilecek hiçbir üçüncü taraf betiği çalışmaz).
+ * Betik ilk kaynaktan yüklenir, ölçümleri ikinci kaynağa gönderir. Paylaşım, hesap ve yönetim sayfalarının dar politikası
+ * onu içermez: eklenen betik orada engellenir (notun anahtarını ya da oturum jetonunu okuyabilecek üçüncü taraf betiği
+ * çalışmaz).
  */
 const webAnalyticsScriptOrigin: string = "https://static.cloudflareinsights.com";
 const webAnalyticsConnectOrigin: string = "https://cloudflareinsights.com";
@@ -56,8 +59,8 @@ const serviceSources: Readonly<Record<ExternalService, ServiceSources>> = {
 const allServices: readonly ExternalService[] = ["appleSignIn", "turnstile", "localImagePreview", "webAnalytics"];
 
 /**
- * Sayfaların kullandığı dış hizmetler: her sayfada analitik işaretçisi; ayrıca giriş sayfası Apple, iletişim sayfası
- * Turnstile, yönetim paneli yerel görsel önizlemesi. Paylaşım sayfası hiçbirini kullanmaz (analitik de yok).
+ * Sayfaların kullandığı dış hizmetler: herkese açık sayfalarda analitik işaretçisi; ayrıca giriş sayfası Apple, iletişim
+ * sayfası Turnstile, yönetim paneli yerel görsel önizlemesi. Paylaşım, hesap ve yönetim sayfalarında analitik yoktur.
  */
 export const pageServices: Readonly<Record<PageKey, readonly ExternalService[]>> = {
   home: ["webAnalytics"],
@@ -75,10 +78,11 @@ export const pageServices: Readonly<Record<PageKey, readonly ExternalService[]>>
   blog: ["webAnalytics"],
   mcp: ["webAnalytics"],
   signIn: ["webAnalytics", "appleSignIn"],
-  account: ["webAnalytics"],
+  // Oturum jetonu ve hesap verisi: üçüncü taraf betiği yok.
+  account: [],
   invite: ["webAnalytics"],
   contact: ["webAnalytics", "turnstile"],
-  admin: ["webAnalytics", "localImagePreview"],
+  admin: ["localImagePreview"],
   privacy: ["webAnalytics"],
   terms: ["webAnalytics"],
   notFound: ["webAnalytics"],
