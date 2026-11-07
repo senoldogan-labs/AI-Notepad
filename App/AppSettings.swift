@@ -55,6 +55,10 @@ enum SettingsKey {
     static let dictateShortcut: String = "shortcut.dictate"
     /// Sesle yazma (dikte) açık mı: açıkken kısayolu her uygulamada çalışır.
     static let voiceTypingEnabled: String = "voiceTyping.enabled"
+    /// Sesle yazma başlarken ve metin yazılınca kısa ses çalınsın mı (varsayılan kapalı).
+    static let voiceTypingSoundEffects: String = "voiceTyping.soundEffects"
+    /// Sesle yazma tanıtımı (kısayolu dene, konuşup yazdır) gösterildi mi: bir kez açılır.
+    static let voiceTypingIntroShown: String = "voiceTyping.introShown"
     static let onboardingCompleted: String = "onboardingCompleted"
     /// "Sen" (mikrofon) kapalı mı.
     static let micMuted: String = "micMuted"
@@ -359,6 +363,8 @@ func registerDefaultSettings() {
         SettingsKey.notifyInactive: true,
         // Sesle yazma baştan açık: kısayol (⌃⌥D) yalnızca basılınca mikrofonu açar.
         SettingsKey.voiceTypingEnabled: true,
+        SettingsKey.voiceTypingSoundEffects: false,
+        SettingsKey.voiceTypingIntroShown: false,
         SettingsKey.webhookAutoSend: false,
         SettingsKey.primaryMeetingLanguage: MeetingLanguage.finnish.rawValue,
         // Arayüz dili: Türkçe arayüzde mevcut kullanıcıların notu eskisi gibi Türkçe sürer.

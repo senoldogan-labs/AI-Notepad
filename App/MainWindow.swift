@@ -714,7 +714,7 @@ private struct HomePage: View {
                     }
                 }
                 .padding(.top, 24)
-                Shortcuts(model: model, router: router, onShowPanel: onShowPanel)
+                Shortcuts(model: model, router: router, shortcuts: shortcuts, onShowPanel: onShowPanel)
                 UpcomingMeetings(model: model, startBlock: startBlock, onStartRecording: onStartRecording) { (meeting: CalendarMeeting) -> Void in
                     if model.startBriefing(meeting: meeting) {
                         router.section = .ask
@@ -1002,12 +1002,14 @@ private struct HeroChipBody: View {
     }
 }
 
-/// Kısayollar: dört sade, yatay kart: solda küçük gradyan kutuda simge, yanında ad ve kısa bilgi. Kayıt büyük kartta,
+/// Kısayollar: beş sade, yatay kart: solda küçük gradyan kutuda simge, yanında ad ve kısa bilgi. Kayıt büyük kartta,
 /// Ayarlar kenar çubuğunda olduğu için burada yok.
 private struct Shortcuts: View {
     let model: AppModel
     let router: MainWindowRouter
+    let shortcuts: ShortcutController
     let onShowPanel: @MainActor () -> Void
+    @AppStorage(SettingsKey.voiceTypingEnabled) private var isVoiceTypingEnabled: Bool = true
     /// Notlardaki konuşmacı etiketleri adlarla; adı kullanıcının adı olan konuşmacının görevleri onundur.
     private var userName: String { model.userName }
 
@@ -1015,11 +1017,11 @@ private struct Shortcuts: View {
         let openTasks: Int = myTasks(namedRecords: model.namedMeetings(userName: userName)).filter { !isTaskDone(record: $0.record, task: $0.task) }.count
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.m) {
             Text("Kısayollar").appFont(size: 15, weight: .medium)
-            // Dört kart satırı doldurur; dar pencerede ikişerli iki satıra iner.
+            // Beş kart satırı doldurur; dar pencerede üçerli iki satıra iner.
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .top, spacing: 12) { cards(openTasks: openTasks) }
-                    .frame(minWidth: 720)
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 12, alignment: .top), GridItem(.flexible(), spacing: 12, alignment: .top)], spacing: 12) {
+                    .frame(minWidth: 840)
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12, alignment: .top), count: 3), spacing: 12) {
                     cards(openTasks: openTasks)
                 }
             }
@@ -1041,7 +1043,22 @@ private struct Shortcuts: View {
             card(title: "Görevlerim", detail: String(localized: "\(openTasks) açık"), symbol: "checkmark.circle", palette: .coral) {
                 router.section = .tasks
             }
+            // Sesle yazma her uygulamada çalışır; kart Ayarlar › Sesle yazma'yı (tanıtım ve "Dene") açar.
+            card(title: "Sesle yazma", detail: voiceTypingDetail, symbol: "waveform.and.mic", palette: .rose) {
+                openVoiceTypingSettings(router: router)
+            }
         }
+    }
+
+    /// Sesle yazma kartının alt satırı: kısayol ve "her uygulamada"; kapalıysa ya da kısayol yoksa bunu söyler.
+    private var voiceTypingDetail: String {
+        guard isVoiceTypingEnabled else {
+            return String(localized: "Kapalı · aç")
+        }
+        guard let binding = shortcuts.assignedBinding(action: .dictate) else {
+            return String(localized: "Kısayol seç")
+        }
+        return String(localized: "\(keyBindingDisplay(binding: binding)) · her uygulamada")
     }
 
     private func card(title: LocalizedStringKey, detail: String, symbol: String, palette: FilmPalette, action: @escaping @MainActor () -> Void) -> some View {

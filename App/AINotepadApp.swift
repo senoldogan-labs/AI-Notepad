@@ -171,6 +171,8 @@ struct AINotepadApp: App {
     @State private var player: MeetingAudioPlayer
     @State private var updater: AppUpdater
     @State private var crashReports: CrashReportCenter
+    /// Sesle yazma: Ayarlar'daki tanıtım kısayol basışını ve dikteyi buradan izler (ortamla verilir).
+    @State private var dictation: DictationController
 
     init() {
         registerDefaultSettings()
@@ -220,6 +222,7 @@ struct AINotepadApp: App {
                 }
             }
         )
+        _dictation = State(initialValue: dictation)
         model.onRecordingWillStart = { dictation.cancel() }
         let shortcuts: ShortcutController = ShortcutController(
             hotKeys: hotKeys, model: model,
@@ -602,6 +605,7 @@ struct AINotepadApp: App {
                 island.show()
             }
         )
+        .environment(dictation)
     }
 
     private var menuSymbol: String {
