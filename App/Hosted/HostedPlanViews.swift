@@ -504,11 +504,12 @@ struct HostedPurchaseConfirmationSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Label(tier == .pro ? "Pro aboneliğin etkin" : "Aboneliğin etkin", systemImage: "checkmark.circle.fill")
-                .appFont(size: 20, weight: .medium)
+            Image(systemName: "checkmark.circle.fill")
+                .appFont(size: 28, weight: .medium)
                 .foregroundStyle(.tint)
+                .accessibilityHidden(true)
             Text(verbatim: hostedPurchaseConfirmationText(tier: tier))
-                .appFont(size: 13, weight: .regular)
+                .appFont(size: 17, weight: .medium)
                 .foregroundStyle(Theme.ink)
                 .fixedSize(horizontal: false, vertical: true)
             Text("Sıradaki adım: takvimini bağla. Toplantıların listede hazır bekler, kayıt tek tıkla başlar.")

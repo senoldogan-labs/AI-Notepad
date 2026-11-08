@@ -48,13 +48,15 @@ struct PhonePaywall: View {
                         .appFont(size: 20, weight: .semibold)
                         .foregroundStyle(Theme.ink)
                         .fixedSize(horizontal: false, vertical: true)
-                    if let reasonText = paywallReasonText(reason: reason) {
+                    // Kayıt başlatma anında başlık nedeni zaten söyler; ikinci cümle seçimi ekranın altına itmesin.
+                    if model.trigger != .meetingStart, let reasonText = paywallReasonText(reason: reason) {
                         Text(reasonText)
                             .appFont(size: 15, weight: .regular)
                             .foregroundStyle(Theme.muted)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    PaywallIncluded(monthlyHours: model.monthlyHours)
+                    // Katman kartları saatleri gösteriyorsa saat satırı tekrarlanmaz.
+                    PaywallIncluded(monthlyHours: model.tierOffers.count > 1 ? nil : model.monthlyHours)
                     if model.tierOffers.count > 1 {
                         PaywallTierPicker(model: model)
                     }
@@ -156,12 +158,13 @@ private struct PaywallCover: View {
 
 /// Aboneliğe neler dahil.
 private struct PaywallIncluded: View {
+    /// Aylık saat; katman kartları saatleri gösterdiğinde nil (satır yazılmaz, toplantı başına süre kalır).
     let monthlyHours: Double?
 
     var body: some View {
         // Üç satır: ekran küçük telefonda ve büyük yazıda da kaydırmadan seçim ve düğmeye insin.
         VStack(alignment: .leading, spacing: 12) {
-            row(systemImage: "clock", text: hoursText)
+            row(systemImage: "clock", text: monthlyHours == nil ? String(localized: "Toplantı başına en çok 4 saat kayıt") : hoursText)
             row(systemImage: "doc.text", text: String(localized: "Canlı metin ve yapay zekâ notu: özet, kararlar, görevler"))
             row(systemImage: "laptopcomputer.and.iphone", text: String(localized: "Mac ve iPhone'da tek abonelik"))
         }
