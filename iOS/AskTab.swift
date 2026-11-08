@@ -654,6 +654,11 @@ private struct AskComposer: View {
     /// `@` ile etiketlenen toplantılar: soru yalnız onlara sorulur; soru gönderilince alandan kalkar.
     @State private var mentioned: [MeetingRecord] = []
     @FocusState private var isFocused: Bool
+    /// Sesle soru (mikrofon düğmesi); uygulamada tek, bu alan `dictationOwner` kimliğiyle kullanır.
+    @Environment(AskDictation.self) private var askDictation: AskDictation
+    @Environment(PhoneRecorder.self) private var recorder: PhoneRecorder
+    @Environment(\.scenePhase) private var scenePhase: ScenePhase
+    @State private var dictationOwner: UUID = UUID()
 
     var body: some View {
         VStack(spacing: 8) {
@@ -688,12 +693,21 @@ private struct AskComposer: View {
                         HostedAccount.shared.requestSubscription()
                         return
                     }
+                    cancelDictation()
                     onSubmit(AskSubmission(question: suggestion, meetingIDs: [], recipeTitle: nil))
                 }
             }
             field
         }
         .animation(.smooth(duration: 0.2), value: isMentioning || isPickingRecipe)
+        .animation(.smooth(duration: 0.2), value: askDictation.phase(owner: dictationOwner))
+        // Sayfadan çıkınca ya da uygulama arkaya geçince dinleme bırakılır (mikrofon açık kalmaz).
+        .onDisappear { cancelDictation() }
+        .onChange(of: scenePhase) { (_: ScenePhase, phase: ScenePhase) in
+            if phase != .active {
+                cancelDictation()
+            }
+        }
         .onChange(of: question) { (old: String, new: String) in
             if let edited = editedCursor(old: old, new: new) {
                 cursor = edited
@@ -746,6 +760,7 @@ private struct AskComposer: View {
                 .padding(.top, 6)
                 .padding(.horizontal, 10)
             }
+            AskDictationStatus(dictation: askDictation, owner: dictationOwner)
             TextField(
                 mentioned.isEmpty ? placeholder : String(localized: "Etiketlenen toplantılara sor…"),
                 text: $question, selection: $selection, axis: .vertical
@@ -779,6 +794,16 @@ private struct AskComposer: View {
                     AskScopeChip(menu: scopeMenu, isEnabled: !isAnswering, onSelect: onSelectScope)
                 }
                 Spacer(minLength: 4)
+                // Sesle sor: söylenen soru alana gelir (gönderilmez); kayıt sürerken mikrofon toplantıdadır.
+                AskMicButton(
+                    dictation: askDictation, owner: dictationOwner, isMeetingActive: recorder.state.activeID != nil,
+                    diameter: 34, minTapSize: 44, idleBackground: Theme.soft
+                ) { (text: String) -> Void in
+                    question = askQuestionAppending(question: question, dictated: text)
+                    cursor = question.utf16.count
+                    selection = nil
+                    isFocused = true
+                }
                 Button {
                     if isAnswering {
                         onStop()
@@ -873,10 +898,19 @@ private struct AskComposer: View {
     }
 
     /// Soru alanını boşaltır; seçim de birlikte sıfırlanır: eski metnin indeksi boş metinde geçersizdir.
+    /// Süren sesle soru bırakılır (gönderilen soruya sonradan metin eklenmez).
     private func clearQuestion() {
+        cancelDictation()
         question = ""
         selection = nil
         cursor = nil
+    }
+
+    /// Bu alanın sesle sorusu sürüyorsa ya da notu varsa bırakılır.
+    private func cancelDictation() {
+        if askDictation.owner == dictationOwner {
+            askDictation.cancel()
+        }
     }
 
     private func send() {

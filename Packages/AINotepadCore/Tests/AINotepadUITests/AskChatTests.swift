@@ -360,3 +360,38 @@ private func meeting(id: String, title: String) -> MeetingRecord {
         #expect(saved.last?.1.map(\.question) == ["Genel", "Sonra"])
     }
 }
+
+/// Cevabın adımları ("N not sonucu") ve sesle sorunun notu.
+@Suite struct AskProgressAndDictationTests {
+    // "N not sonucu": okunan toplantılar tekilleşir (sıra korunur); soru tek toplantıya sorulduysa liste yok.
+    @Test func noteResultsListReadMeetingsOutsideMeetingScope() {
+        let passages: [ArchivePassage] = [
+            ArchivePassage(id: "a-note", meetingID: "a", meetingTitle: "A", meetingDate: Date(timeIntervalSince1970: 0), kind: .note, startSec: 0, text: ""),
+            ArchivePassage(id: "b-t0", meetingID: "b", meetingTitle: "B", meetingDate: Date(timeIntervalSince1970: 86_400), kind: .transcript, startSec: 4, text: ""),
+            ArchivePassage(id: "a-t1", meetingID: "a", meetingTitle: "A", meetingDate: Date(timeIntervalSince1970: 0), kind: .transcript, startSec: 9, text: ""),
+        ]
+        var exchange: ArchiveExchange = finished(question: "Bütçe?", scope: [], recipeTitle: nil)
+        exchange.passages = passages
+        #expect(askNoteResults(exchange: exchange).map(\.id) == ["a", "b"])
+        let meetingScoped: ArchiveExchange = ArchiveExchange(
+            id: exchange.id, question: exchange.question, scope: .meeting(id: "a"), scopeMeetingIDs: ["a"], scopeTitles: ["A"], recipeTitle: nil,
+            startedAt: exchange.startedAt, phase: .done, terms: [], passages: passages, screens: 0, answer: exchange.answer, webQueries: [],
+            webSearchNotice: .ok, skippedMeetings: [], finishedAt: exchange.finishedAt
+        )
+        #expect(askNoteResults(exchange: meetingScoped).isEmpty)
+        #expect(!isExchangeRunning(exchange: exchange))
+        exchange.phase = .searching
+        #expect(isExchangeRunning(exchange: exchange))
+    }
+
+    // Sesle sorunun notu: izin yoksa dikkat ve ayar düğmesi, konuşma duyulmadıysa bilgi, desteklenmeyen dil dikkat,
+    // başka hata kırmızı.
+    @Test func askDictationNoticeSeverity() {
+        let denied: AskDictationNotice = askDictationNotice(error: AudioCaptureError.microphonePermissionDenied)
+        #expect(denied.severity == .attention && denied.opensMicrophoneSettings)
+        #expect(askDictationNotice(error: DictationError.noSpeech).severity == .info)
+        #expect(askDictationNotice(error: DictationError.unsupportedLanguage(.finnish)).severity == .attention)
+        let failed: AskDictationNotice = askDictationNotice(error: AppleSpeechError.analysisFailed(locale: "fi_FI", reason: "x"))
+        #expect(failed.severity == .error && !failed.opensMicrophoneSettings)
+    }
+}

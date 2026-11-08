@@ -87,6 +87,9 @@ final class PhoneRecorder {
             }
         }
     }
+    /// Kayıt başlamak üzere (oturum bağlar): Sor alanındaki sesle soru bırakılır. Ses oturumu tektir; dikte mikrofonu
+    /// kaydınkini açtıktan sonra kapansaydı oturumu kapatıp kaydı keserdi.
+    @ObservationIgnored var onRecordingWillStart: (@MainActor () -> Void)?
     /// Ekranların gösterdiği aşama.
     var phase: RecorderPhase {
         recorderPhase(state: state)
@@ -325,6 +328,8 @@ final class PhoneRecorder {
         guard send(event: .startRequested(id: id, micMuted: false)).contains(.beginStart(id: id)) else {
             return
         }
+        // Sor alanındaki sesle soru mikrofonu kayıt ses oturumunu açmadan önce kapanır (oturum kuyruğunda sıra korunur).
+        onRecordingWillStart?()
         meetingOverPrompt = nil
         askedMeetingOver = []
         generation += 1
