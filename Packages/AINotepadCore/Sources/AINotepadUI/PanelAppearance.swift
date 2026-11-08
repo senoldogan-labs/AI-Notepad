@@ -124,10 +124,13 @@ public struct PanelAppearance: Equatable, Sendable {
     public let surface: WindowSurface
     /// Cam yüzeyde zemin renginin camın üstündeki opaklığı (0,35–0,95); dolu yüzeyde kullanılmaz.
     public let surfaceOpacity: Double
+    /// Sistemin "Kalın Metin" erişilebilirlik ayarı açık (iPhone; bkz. `withBoldText`): gömülü ve yüklü ailelerde her
+    /// yazı `legibleWeight` ile kalınlaşır (SF'yi sistem kendisi kalınlaştırır).
+    public let boldText: Bool
 
     public init(
         fontChoice: AppFontChoice, uiScale: Double, textSize: Double, lineSpacing: Double, bottomSpacing: Double, accent: PanelAccent,
-        surface: WindowSurface, surfaceOpacity: Double
+        surface: WindowSurface, surfaceOpacity: Double, boldText: Bool
     ) {
         self.fontChoice = fontChoice
         self.uiScale = uiScale
@@ -137,12 +140,13 @@ public struct PanelAppearance: Equatable, Sendable {
         self.accent = accent
         self.surface = surface
         self.surfaceOpacity = surfaceOpacity
+        self.boldText = boldText
     }
 
     /// Varsayılan görünüm: Inter, turuncu vurgu, dolu yüzey (cam yüzey seçilebilir).
     public static let standard: PanelAppearance = PanelAppearance(
         fontChoice: .design(.inter), uiScale: 1, textSize: 14, lineSpacing: 4, bottomSpacing: 32, accent: .orange,
-        surface: .solid, surfaceOpacity: 0.7
+        surface: .solid, surfaceOpacity: 0.7, boldText: false
     )
 
     /// Sistem yazısının tasarımı (yuvarlak, tırnaklı, eş aralıklı); Inter ve yüklü ailede nil. `fontDesign` değiştiricisi
@@ -163,14 +167,6 @@ public struct PanelAppearance: Equatable, Sendable {
     /// arayüz ölçeğiyle çarpılır.
     public func monoFont(size: CGFloat, weight: Font.Weight) -> Font {
         .system(size: size * uiScale, weight: weight, design: .monospaced)
-    }
-
-    /// Gömülü ya da yüklü aile mi (SF tasarımı değil): sistem "Kalın Metin"i yalnız SF'yi kendisi kalınlaştırır.
-    public var usesCustomFamily: Bool {
-        switch fontChoice {
-        case .design(.inter), .installed: true
-        case .design: false
-        }
     }
 
     /// Okuma metni (transkript, özet, cevap): boyut "Okuma metni"nden gelir, arayüz ölçeğiyle çarpılmaz (ayarda
@@ -195,10 +191,23 @@ public struct PanelAppearance: Equatable, Sendable {
     /// çarpılır, bkz. `dynamicTypeScaled`); özel yazı tipleri ayrıca kendiliğinden büyüseydi iki kez büyürdü.
     private func familyFont(size: CGFloat, weight: Font.Weight) -> Font {
         switch fontChoice {
-        case .design(.inter): .custom(Theme.interFamily, fixedSize: size).weight(weight)
+        case .design(.inter): .custom(Theme.interFamily, fixedSize: size).weight(customWeight(weight: weight))
         case .design(let design): .system(size: size, weight: weight, design: design.design)
-        case .installed(let family): .custom(family, fixedSize: size).weight(weight)
+        case .installed(let family): .custom(family, fixedSize: size).weight(customWeight(weight: weight))
         }
+    }
+
+    /// Gömülü ya da yüklü ailedeki ağırlık: "Kalın Metin" açıkken `legibleWeight` ile kalın. Saf fonksiyondur.
+    private func customWeight(weight: Font.Weight) -> Font.Weight {
+        legibleWeight(weight: weight, legibility: boldText ? .bold : .regular)
+    }
+
+    /// "Kalın Metin" ayarıyla görünüm (iPhone kökü `legibilityWeight` ortamından verir). Saf fonksiyondur.
+    public func withBoldText(_ isOn: Bool) -> PanelAppearance {
+        PanelAppearance(
+            fontChoice: fontChoice, uiScale: uiScale, textSize: textSize, lineSpacing: lineSpacing, bottomSpacing: bottomSpacing, accent: accent,
+            surface: surface, surfaceOpacity: surfaceOpacity, boldText: isOn
+        )
     }
 
     /// Sistemin yazı boyutu (iPhone'da Dinamik Yazı) çarpanıyla görünüm: arayüz ölçeği ve okuma metni boyutu çarpanla
@@ -206,7 +215,7 @@ public struct PanelAppearance: Equatable, Sendable {
     public func dynamicTypeScaled(factor: Double) -> PanelAppearance {
         PanelAppearance(
             fontChoice: fontChoice, uiScale: uiScale * factor, textSize: textSize * factor, lineSpacing: lineSpacing * factor,
-            bottomSpacing: bottomSpacing, accent: accent, surface: surface, surfaceOpacity: surfaceOpacity
+            bottomSpacing: bottomSpacing, accent: accent, surface: surface, surfaceOpacity: surfaceOpacity, boldText: boldText
         )
     }
 
@@ -296,7 +305,8 @@ public func resolvedPanelAppearance(stored: StoredAppearance, isFontFamilyInstal
         bottomSpacing: clamped(value: stored.bottomSpacing, range: AppearanceRange.bottomSpacing),
         accent: PanelAccent(rawValue: stored.accent) ?? standard.accent,
         surface: WindowSurface(rawValue: stored.surface) ?? standard.surface,
-        surfaceOpacity: clamped(value: stored.surfaceOpacity, range: AppearanceRange.surfaceOpacity)
+        surfaceOpacity: clamped(value: stored.surfaceOpacity, range: AppearanceRange.surfaceOpacity),
+        boldText: false
     )
 }
 
@@ -311,12 +321,10 @@ private struct ReadingText: ViewModifier {
     let weight: Font.Weight
     let lineSpacing: CGFloat
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
-    @Environment(\.legibilityWeight) private var legibility: LegibilityWeight?
 
     func body(content: Content) -> some View {
-        let shown: Font.Weight = appearance.usesCustomFamily ? legibleWeight(weight: weight, legibility: legibility) : weight
         content
-            .font(appearance.readingFont(size: appearance.readingSize(base: size), weight: shown))
+            .font(appearance.readingFont(size: appearance.readingSize(base: size), weight: weight))
             .lineSpacing(appearance.readingLineSpacing(base: lineSpacing))
     }
 }

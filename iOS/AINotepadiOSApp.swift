@@ -211,6 +211,7 @@ private struct PhoneAppearanceModifier: ViewModifier {
     @AppStorage(PhoneSettingsKey.lineSpacing) private var lineSpacing: Double = PanelAppearance.standard.lineSpacing
     @AppStorage(PhoneSettingsKey.bottomSpacing) private var bottomSpacing: Double = PanelAppearance.standard.bottomSpacing
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize: DynamicTypeSize
+    @Environment(\.legibilityWeight) private var legibilityWeight: LegibilityWeight?
 
     func body(content: Content) -> some View {
         let standard: PanelAppearance = .standard
@@ -219,6 +220,7 @@ private struct PhoneAppearanceModifier: ViewModifier {
             accent: accent, surface: standard.surface.rawValue, surfaceOpacity: standard.surfaceOpacity
         ), isFontFamilyInstalled: { (family: String) -> Bool in !UIFont.fontNames(forFamilyName: family).isEmpty })
         .dynamicTypeScaled(factor: dynamicTypeFactor(size: dynamicTypeSize))
+        .withBoldText(legibilityWeight == .bold)
         content
             .environment(\.panelAppearance, appearance)
             .fontDesign(appearance.systemFontDesign)
@@ -253,8 +255,11 @@ private func dynamicTypeFactor(size: DynamicTypeSize) -> Double {
 /// başlık 34 pt kalın).
 private func applyNavigationTitleFont(appearance: PanelAppearance) {
     let scale: CGFloat = CGFloat(navigationTitleScale(uiScale: appearance.uiScale))
-    let inline: UIFont = platformFont(choice: appearance.fontChoice, points: 17 * scale, weight: .semibold)
-    let large: UIFont = platformFont(choice: appearance.fontChoice, points: 34 * scale, weight: .bold)
+    // "Kalın Metin"de gömülü ve yüklü aileler de kalınlaşır (`legibleWeight` ile aynı ~200 birim; SF'yi UIKit kendisi
+    // kalınlaştırır).
+    let bolder: Bool = appearance.boldText && appearance.systemFontDesign == nil
+    let inline: UIFont = platformFont(choice: appearance.fontChoice, points: 17 * scale, weight: bolder ? .heavy : .semibold)
+    let large: UIFont = platformFont(choice: appearance.fontChoice, points: 34 * scale, weight: bolder ? .black : .bold)
     let proxy: UINavigationBar = UINavigationBar.appearance()
     proxy.titleTextAttributes = [.font: inline]
     proxy.largeTitleTextAttributes = [.font: large]

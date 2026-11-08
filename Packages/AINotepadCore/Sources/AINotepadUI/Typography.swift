@@ -77,7 +77,7 @@ public func fontChoicePreview(choice: AppFontChoice, size: CGFloat) -> Font {
     let standard: PanelAppearance = .standard
     return PanelAppearance(
         fontChoice: choice, uiScale: 1, textSize: standard.textSize, lineSpacing: standard.lineSpacing, bottomSpacing: standard.bottomSpacing,
-        accent: standard.accent, surface: standard.surface, surfaceOpacity: standard.surfaceOpacity
+        accent: standard.accent, surface: standard.surface, surfaceOpacity: standard.surfaceOpacity, boldText: false
     )
     .font(size: size, weight: .regular)
 }

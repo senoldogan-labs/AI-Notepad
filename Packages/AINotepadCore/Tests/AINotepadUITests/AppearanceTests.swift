@@ -92,11 +92,15 @@ import Testing
         #expect(legibleWeight(weight: .heavy, legibility: .bold) == .black)
         #expect(legibleWeight(weight: .regular, legibility: .regular) == .regular)
         #expect(legibleWeight(weight: .medium, legibility: nil) == .medium)
-        #expect(PanelAppearance.standard.usesCustomFamily)
+        // Görünüm "Kalın Metin"i taşır: her yazı yolu (appFont, okuma metni, kök yazı) aynı ağırlığı alır; SF dokunulmaz.
+        let bold: PanelAppearance = PanelAppearance.standard.withBoldText(true)
+        #expect(bold.font(size: 14, weight: .regular) == PanelAppearance.standard.font(size: 14, weight: .semibold))
+        #expect(bold.bodyFont == PanelAppearance.standard.readingFont(size: 14, weight: .semibold))
+        #expect(bold.dynamicTypeScaled(factor: 1.5).boldText)
         let serif: PanelAppearance = resolvedPanelAppearance(stored: StoredAppearance(
             fontDesign: "serif", uiScale: 1, textSize: 14, lineSpacing: 4, bottomSpacing: 32, accent: "orange", surface: "solid", surfaceOpacity: 0.7
         ), isFontFamilyInstalled: { _ in true })
-        #expect(!serif.usesCustomFamily)
+        #expect(serif.withBoldText(true).font(size: 14, weight: .regular) == serif.font(size: 14, weight: .regular))
     }
 
     // Ayarın yüzdesi Mac ve iPhone'da aynı: varsayılana oran.
