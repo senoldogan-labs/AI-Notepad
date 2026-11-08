@@ -534,9 +534,12 @@ export function invoiceChargedPeriodMs(invoice: Stripe.Invoice): { readonly star
  * subscription is then cancelled at once, and each paid invoice is refunded pro rata for the unused part of its own paid
  * period (`invoiceChargedPeriodMs`, `withdrawalRefundCents`) at that stored moment, to the original payment method; Link
  * emails the refund receipt. A retry after a failed Stripe call (cancellation or a refund) resumes from the stored
- * moment even after the period or the subscription ended: the refunds have the same amounts and idempotency keys, so
- * nothing is refunded twice and nothing is left half done. Refused with `withdrawal_unavailable` after the period (and
- * no request stored), for complimentary access or without a Stripe subscription.
+ * moment even after the period or the subscription ended. Double refunds are prevented by the payment's refund list: a
+ * live (`succeeded`, `pending`, `requires_action`) refund tagged `purpose=withdrawal` counts as done; a failed or
+ * canceled one is retried under a fresh idempotency key (`-<attempt>`), and a new refund never exceeds what is still
+ * refundable on the payment. A pending refund that fails later is not retried by the server (no `refund.failed`
+ * handler yet); the subscriber's next withdrawal request refunds it again. Refused with `withdrawal_unavailable` after
+ * the period (and no request stored), for complimentary access or without a Stripe subscription.
  */
 export async function withdrawSubscription(db: D1Database, platform: Platform, config: Config, userId: string): Promise<WithdrawalResult> {
   const unavailable: ApiError = new ApiError("withdrawal_unavailable", "Withdrawal from this subscription isn't available; the 14-day period may have passed.");
