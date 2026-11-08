@@ -53,24 +53,28 @@ editable one (the first version after 0.2.1, because the copy describes share li
 4. Screenshots: a localization without its own set shows the U.S. set. Localized screenshots come later from the
    screenshot pipeline; the English set is acceptable until then.
 5. Subscriptions need localized names too: **Monetization › Subscriptions › Gistsmith (group) › Localization** and
-   each subscription's **Localization** section. Display names ≤ 30 characters, descriptions ≤ 45:
+   each subscription's **Localization** section. Display names ≤ 30 characters, descriptions ≤ 45. The existing
+   products (`…monthly`, `…yearly`, today "Gistsmith Monthly/Yearly") take the Personal names; the Pro products
+   (`…pro.monthly`, `…pro.yearly`) take the Pro names and can be named before Pro goes on sale. Turkish uses "Kişisel",
+   the plan name the Turkish app shows. The Pro description names no hour count, so it stays right whatever
+   `PRO_MONTHLY_CAP_HOURS` is:
 
-   | Locale | Group name | Monthly name | Yearly name | Description (both) |
-   |--------|-----------|--------------|-------------|--------------------|
-   | en-US | Gistsmith Pro | Gistsmith Pro Monthly | Gistsmith Pro Yearly | Mac and iPhone, 10 hours of recording a month |
-   | en-GB | Gistsmith Pro | Gistsmith Pro Monthly | Gistsmith Pro Yearly | Mac and iPhone, 10 hours of recording a month |
-   | tr | Gistsmith Pro | Gistsmith Pro Aylık | Gistsmith Pro Yıllık | Mac ve iPhone, ayda 10 saat kayıt |
-   | fi | Gistsmith Pro | Gistsmith Pro kuukausi | Gistsmith Pro vuosi | Mac ja iPhone, 10 h tallennusta kuukaudessa |
-   | de | Gistsmith Pro | Gistsmith Pro monatlich | Gistsmith Pro jährlich | Mac und iPhone, 10 Stunden Aufnahme im Monat |
-   | fr | Gistsmith Pro | Gistsmith Pro mensuel | Gistsmith Pro annuel | Mac et iPhone, 10 h d’enregistrement par mois |
-   | es-ES | Gistsmith Pro | Gistsmith Pro mensual | Gistsmith Pro anual | Mac y iPhone, 10 horas de grabación al mes |
-   | es-MX | Gistsmith Pro | Gistsmith Pro mensual | Gistsmith Pro anual | Mac y iPhone, 10 horas de grabación al mes |
-   | it | Gistsmith Pro | Gistsmith Pro mensile | Gistsmith Pro annuale | Mac e iPhone, 10 ore di registrazione al mese |
-   | pt-BR | Gistsmith Pro | Gistsmith Pro mensal | Gistsmith Pro anual | Mac e iPhone, 10 horas de gravação por mês |
-   | nl | Gistsmith Pro | Gistsmith Pro maandelijks | Gistsmith Pro jaarlijks | Mac en iPhone, 10 uur opnemen per maand |
-   | ja | Gistsmith Pro | Gistsmith Pro 月額 | Gistsmith Pro 年額 | MacとiPhone、毎月10時間の録音 |
-   | ko | Gistsmith Pro | Gistsmith Pro 월간 | Gistsmith Pro 연간 | Mac 및 iPhone, 매월 10시간 녹음 |
-   | zh-Hans | Gistsmith Pro | Gistsmith Pro 月度 | Gistsmith Pro 年度 | Mac 和 iPhone，每月 10 小时录制 |
+   | Locale | Group name | Personal monthly | Personal yearly | Pro monthly | Pro yearly | Personal description (both) | Pro description (both) |
+   |--------|-----------|------------------|-----------------|-------------|------------|-----------------------------|------------------------|
+   | en-US | Gistsmith | Gistsmith Personal Monthly | Gistsmith Personal Yearly | Gistsmith Pro Monthly | Gistsmith Pro Yearly | Mac and iPhone, 10 hours of recording a month | Mac and iPhone, more recording hours a month |
+   | en-GB | Gistsmith | Gistsmith Personal Monthly | Gistsmith Personal Yearly | Gistsmith Pro Monthly | Gistsmith Pro Yearly | Mac and iPhone, 10 hours of recording a month | Mac and iPhone, more recording hours a month |
+   | tr | Gistsmith | Gistsmith Kişisel Aylık | Gistsmith Kişisel Yıllık | Gistsmith Pro Aylık | Gistsmith Pro Yıllık | Mac ve iPhone, ayda 10 saat kayıt | Mac ve iPhone, ayda daha çok kayıt saati |
+   | fi | Gistsmith | Gistsmith Personal kuukausi | Gistsmith Personal vuosi | Gistsmith Pro kuukausi | Gistsmith Pro vuosi | Mac ja iPhone, 10 h tallennusta kuukaudessa | Mac ja iPhone, enemmän tallennustunteja |
+   | de | Gistsmith | Gistsmith Personal monatlich | Gistsmith Personal jährlich | Gistsmith Pro monatlich | Gistsmith Pro jährlich | Mac und iPhone, 10 Stunden Aufnahme im Monat | Mac und iPhone, mehr Aufnahmestunden im Monat |
+   | fr | Gistsmith | Gistsmith Personal mensuel | Gistsmith Personal annuel | Gistsmith Pro mensuel | Gistsmith Pro annuel | Mac et iPhone, 10 h d’enregistrement par mois | Mac et iPhone, plus d’heures d’enregistrement |
+   | es-ES | Gistsmith | Gistsmith Personal mensual | Gistsmith Personal anual | Gistsmith Pro mensual | Gistsmith Pro anual | Mac y iPhone, 10 horas de grabación al mes | Mac y iPhone, más horas de grabación al mes |
+   | es-MX | Gistsmith | Gistsmith Personal mensual | Gistsmith Personal anual | Gistsmith Pro mensual | Gistsmith Pro anual | Mac y iPhone, 10 horas de grabación al mes | Mac y iPhone, más horas de grabación al mes |
+   | it | Gistsmith | Gistsmith Personal mensile | Gistsmith Personal annuale | Gistsmith Pro mensile | Gistsmith Pro annuale | Mac e iPhone, 10 ore di registrazione al mese | Mac e iPhone, più ore di registrazione |
+   | pt-BR | Gistsmith | Gistsmith Personal mensal | Gistsmith Personal anual | Gistsmith Pro mensal | Gistsmith Pro anual | Mac e iPhone, 10 horas de gravação por mês | Mac e iPhone, mais horas de gravação por mês |
+   | nl | Gistsmith | Gistsmith Personal maandelijks | Gistsmith Personal jaarlijks | Gistsmith Pro maandelijks | Gistsmith Pro jaarlijks | Mac en iPhone, 10 uur opnemen per maand | Mac en iPhone, meer opname-uren per maand |
+   | ja | Gistsmith | Gistsmith Personal 月額 | Gistsmith Personal 年額 | Gistsmith Pro 月額 | Gistsmith Pro 年額 | MacとiPhone、毎月10時間の録音 | MacとiPhone、より多くの録音時間 |
+   | ko | Gistsmith | Gistsmith Personal 월간 | Gistsmith Personal 연간 | Gistsmith Pro 월간 | Gistsmith Pro 연간 | Mac 및 iPhone, 매월 10시간 녹음 | Mac 및 iPhone, 더 많은 월간 녹음 시간 |
+   | zh-Hans | Gistsmith | Gistsmith Personal 月度 | Gistsmith Personal 年度 | Gistsmith Pro 月度 | Gistsmith Pro 年度 | Mac 和 iPhone，每月 10 小时录制 | Mac 和 iPhone，每月更多录制时长 |
 
 6. Run `node scripts/appstore-screenshots/metadata-check.ts docs/appstore/metadata.md` before pasting, if the copy
    was edited.

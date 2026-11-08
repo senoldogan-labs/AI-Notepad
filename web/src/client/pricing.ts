@@ -1,18 +1,12 @@
 // Fiyat sayfasının Pro katmanı: sayfa durağandır ve Pro kartı HTML'de gizlidir. Betik herkese açık `GET /v1/pricing`'i
 // okur; sunucu Pro'yu sunuyorsa (üretimde `PRO_TIER_POLICY` açıkken) Pro kartını ve Personal kartlarının katman satırını
-// sunucunun saatleriyle doldurup gösterir. Sunucu Pro'yu sunmuyorsa ya da yanıt alınamazsa Pro gizli kalır (hata
-// konsola yazılır); sayfanın geri kalanı (Personal planları) betik olmadan da tamdır.
-import { type RawResponse, parsePricing, send } from "./api";
+// sunucunun saatleriyle doldurup gösterir, sınırların ve SSS'nin Pro'lu kalıplarını yazar (`./pro-text`). Sunucu Pro'yu
+// sunmuyorsa ya da yanıt alınamazsa Pro gizli kalır ve metinler değişmez (hata konsola yazılır); sayfanın geri kalanı
+// (Personal planları) betik olmadan da tamdır.
 import { dataValue, element } from "./dom";
+import { applyProTexts, fetchTiers, offeredProValues } from "./pro-text";
 import { siteLocale } from "../config";
-import { type PricingTierLines, type TierLimitsTemplates, type TierOffer, pricingTierLines } from "../lib/plans";
-
-/** `GET /v1/pricing`: kimliksiz, ağ hatası ve 502/503/504'te iki deneme. */
-async function fetchTiers(): Promise<TierOffer[]> {
-  const path: string = "/v1/pricing";
-  const response: RawResponse = await send({ method: "GET", path, body: null, accessToken: null, attempts: 2 });
-  return parsePricing(response, path);
-}
+import { type PricingTierLines, type ProTextValues, type TierLimitsTemplates, type TierOffer, pricingTierLines } from "../lib/plans";
 
 /** Katman satırlarını yazar ve Pro kartıyla Personal kartlarının katman satırlarını gösterir. */
 function reveal(lines: PricingTierLines): void {
@@ -39,11 +33,12 @@ async function main(): Promise<void> {
     return;
   }
   const lines: PricingTierLines | null = pricingTierLines(offers, siteLocale, templates);
-  if (lines === null) {
-    console.info("pricing_pro_not_offered", { tiers: offers.map((offer: TierOffer): string => offer.tier) });
+  const values: ProTextValues | null = offeredProValues(offers, templates.meetingLength);
+  if (lines === null || values === null) {
     return;
   }
   reveal(lines);
+  applyProTexts(values);
 }
 
 void main();

@@ -6,16 +6,17 @@
 // Pro katmanı (12,99 $ / 109 $) HTML'de gizli bir karttır: src/client/pricing.ts herkese açık `GET /v1/pricing`'i okur ve
 // sunucu Pro'yu sunuyorsa kartı ve Personal kartlarının katman satırını sunucunun saatleriyle gösterir (saatler sayfada
 // sabit yazılmaz). Pro düğmeleri `/account?plan=…&tier=pro&checkout=1`'e gider. Yapılandırılmış veri yalnızca Personal'i
-// anlatır (Pro gizliyken arama motorlarına Pro sunulmaz).
+// anlatır (Pro gizliyken arama motorlarına Pro sunulmaz). Sınırlar ve SSS bugünkü (Pro'suz) metinleriyle çizilir; Pro'lu
+// kalıpları öğelerin `data-pro-text` özniteliklerindedir ve betik Pro sunulunca onları yazar.
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
 import Faq from "../components/Faq.astro";
 import Icon from "../components/Icon.astro";
 import GetApp from "../components/GetApp.astro";
 import CtaBand from "../components/CtaBand.astro";
-import { copy, type CommonCopy, type IconItem, type IconText, type PlanOptionCopy, type PricingCopy, type ProTierCopy } from "../copy";
+import { copy, type CommonCopy, type IconItem, type PlanOptionCopy, type PricingCopy, type PricingLimit, type ProTierCopy } from "../copy";
 import { pricingStructuredData, structuredDataJson } from "../lib/structured-data";
-import { recommendedPlan } from "../lib/plans";
+import { proTextAttributes, recommendedPlan } from "../lib/plans";
 import { routes } from "../routes";
 import { siteConfig } from "../site";
 
@@ -145,11 +146,11 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
     <h2 class="title-l reveal" id="limits-title">{text.limitsTitle}</h2>
     <div class="limits">
       {
-        text.limits.map((limit: IconText) => (
+        text.limits.map((limit: PricingLimit) => (
           <div class="limit reveal">
             <Icon name={limit.icon} size={22} class="limit__icon" />
-            <h3 class="limit__title">{limit.title}</h3>
-            <p class="muted">{limit.text}</p>
+            <h3 class="limit__title" {...proTextAttributes(limit.pro === null ? null : limit.pro.title)}>{limit.title}</h3>
+            <p class="muted" {...proTextAttributes(limit.pro === null ? null : limit.pro.text)}>{limit.text}</p>
           </div>
         ))
       }

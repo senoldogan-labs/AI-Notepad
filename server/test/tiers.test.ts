@@ -151,6 +151,30 @@ describe("tiers: entitlements and limits", () => {
   });
 });
 
+describe("tiers: reprocessing", () => {
+  it("tops a reprocessed meeting up from the account's own tier budget", async () => {
+    const harness: Harness = await defaultHarness();
+    // Pro's meeting budget is larger here, so taking Pro's share would show.
+    const tuned = envWith({ PRO_MEETING_TOKEN_BUDGET: "4000000" });
+    const reprocessed = async (tier: "personal" | "pro"): Promise<number> => {
+      const session: Session = await signIn(harness);
+      await grantStripe(session.userId, tier, "monthly", harness.clock.nowMs + 20 * dayMs);
+      const started: StartedMeetingBody = await (
+        await harness.call(req("POST", "/v1/meetings/start", { token: session.accessToken, json: {}, env: tuned }))
+      ).json<StartedMeetingBody>();
+      await harness.call(req("POST", `/v1/meetings/${started.meetingId}/end`, { token: session.accessToken, env: tuned }));
+      await env.DB.prepare("UPDATE meeting_sessions SET audio_seconds = 600, tokens_used = 1000 WHERE id = ?").bind(started.meetingId).run();
+      const response: Response = await harness.call(req("POST", `/v1/meetings/${started.meetingId}/reprocess`, { token: session.accessToken, env: tuned }));
+      expect(response.status).toBe(200);
+      const row = await env.DB.prepare("SELECT token_budget FROM meeting_sessions WHERE id = ?").bind(started.meetingId).first<{ token_budget: number }>();
+      return (row?.token_budget ?? 0) - 1000;
+    };
+    // 15 % note reserve of each tier's budget.
+    expect(await reprocessed("personal")).toBe(Math.floor(2_600_000 * 0.15));
+    expect(await reprocessed("pro")).toBe(Math.floor(4_000_000 * 0.15));
+  });
+});
+
 describe("tiers: billing", () => {
   it("GET /v1/pricing lists the tiers on sale without a session", async () => {
     const harness: Harness = await defaultHarness();

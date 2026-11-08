@@ -2,7 +2,19 @@
 // ve fiyat sayfasının Pro kartını yalnızca sunucu Pro'yu (ve Personal'i) sunduğunda açan satırlar. Derleme gerektirmez.
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { type TierLimitsTemplates, type TierOffer, formatHourCount, meetingLengthText, pricingTierLines, subscriptionTierOf } from "../src/lib/plans.ts";
+import {
+  type ProTextTemplates,
+  type ProTextValues,
+  type TierLimitsTemplates,
+  type TierOffer,
+  formatHourCount,
+  meetingLengthText,
+  pricingTierLines,
+  proText,
+  proTextAttributes,
+  proTextValues,
+  subscriptionTierOf,
+} from "../src/lib/plans.ts";
 
 const templates: TierLimitsTemplates = {
   limits: "{hours} meeting hours a month, up to {meetingLength} per meeting",
@@ -35,4 +47,31 @@ test("the pricing page shows Pro only when the server offers it", () => {
   assert.equal(pricingTierLines([], "en-GB", templates), null);
   // A response with Pro but without Personal is incomplete: Pro stays hidden.
   assert.equal(pricingTierLines([pro], "en-GB", templates), null);
+});
+
+test("page texts switch to their Pro variant only when the server offers Pro", () => {
+  const variant: ProTextTemplates = {
+    always: "10 or {proHours} hours a month ({proHours} on Pro)",
+    meetingLengthDiffers: "{proHours} hours, {proMeetingLength} per meeting on Pro",
+  };
+  assert.equal(proTextValues([personal], "en-GB", templates.meetingLength), null);
+  assert.equal(proTextValues([pro], "en-GB", templates.meetingLength), null);
+  // Same meeting length as Personal: the plain variant, with every placeholder filled from the server's hours.
+  const sameLength: ProTextValues | null = proTextValues([personal, { ...pro, monthlyHours: 20 }], "en-GB", templates.meetingLength);
+  assert.ok(sameLength !== null);
+  assert.equal(proText(variant, sameLength), "10 or 20 hours a month (20 on Pro)");
+  // A text whose only variant is about meeting length stays as it is.
+  assert.equal(proText({ always: null, meetingLengthDiffers: variant.meetingLengthDiffers }, sameLength), null);
+  // A longer Pro meeting: the meeting-length variant wins, or the plain one when the text has none.
+  const longer: ProTextValues | null = proTextValues([personal, { ...pro, meetingMaxMinutes: 360 }], "en-GB", templates.meetingLength);
+  assert.ok(longer !== null);
+  assert.equal(proText(variant, longer), "30 hours, 6 hours per meeting on Pro");
+  assert.equal(proText({ always: variant.always, meetingLengthDiffers: null }, longer), "10 or 30 hours a month (30 on Pro)");
+});
+
+test("Pro templates become data attributes only when they exist", () => {
+  assert.deepEqual(proTextAttributes(null), {});
+  assert.deepEqual(proTextAttributes({ always: null, meetingLengthDiffers: null }), {});
+  assert.deepEqual(proTextAttributes({ always: "a {proHours}", meetingLengthDiffers: null }), { "data-pro-text": "a {proHours}" });
+  assert.deepEqual(proTextAttributes({ always: "a", meetingLengthDiffers: "b" }), { "data-pro-text": "a", "data-pro-meeting-text": "b" });
 });

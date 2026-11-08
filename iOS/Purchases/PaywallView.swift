@@ -95,20 +95,23 @@ private struct PaywallCover: View {
     let isCloseEnabled: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            PastelChip(text: appName, systemImage: "sparkles")
-            Text("Her toplantın için tam erişim")
-                .appFont(size: 28, weight: .regular)
-                .tracking(-0.5)
-                .foregroundStyle(Color.black.opacity(0.8))
-                .fixedSize(horizontal: false, vertical: true)
+        // Ekrana göre yükseklik en az değerdir: büyük yazıda kapak başlığa göre uzar (başlığın üstü kırpılmaz).
+        ZStack(alignment: .bottomLeading) {
+            Color.clear
+                .containerRelativeFrame(.vertical) { (length: CGFloat, _: Axis) -> CGFloat in
+                    min(230, max(150, length * 0.26))
+                }
+            VStack(alignment: .leading, spacing: 8) {
+                PastelChip(text: appName, systemImage: "sparkles")
+                Text("Her toplantın için tam erişim")
+                    .appFont(size: 28, weight: .regular)
+                    .tracking(-0.5)
+                    .foregroundStyle(Color.black.opacity(0.8))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(22)
         }
-        .padding(22)
-        .padding(.top, 48)
         .frame(maxWidth: .infinity, alignment: .bottomLeading)
-        .containerRelativeFrame(.vertical, alignment: .bottomLeading) { (length: CGFloat, _: Axis) -> CGFloat in
-            min(230, max(150, length * 0.26))
-        }
         .background { FilmGradient(seed: "gistsmith-abonelik", palette: .ocean) }
             .overlay(alignment: .topTrailing) {
                 Button(action: onClose) {
@@ -176,8 +179,12 @@ private struct PaywallIncluded: View {
 private struct PaywallTierPicker: View {
     @Bindable var model: PaywallModel
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize: DynamicTypeSize
+
     var body: some View {
-        HStack(spacing: 10) {
+        // Erişilebilirlik boyutlarında kartlar alt alta: yan yana katman adı harf harf bölünüyordu ("Kişise" / "l").
+        let layout: AnyLayout = dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 10)) : AnyLayout(HStackLayout(spacing: 10))
+        layout {
             ForEach(model.tierOffers, id: \.tier) { (offer: HostedTierOffer) in
                 card(offer: offer)
             }
@@ -279,8 +286,9 @@ private struct PaywallPackageCard: View {
         // Erişilebilirlik boyutlarında fiyat ve tasarruf alta iner (yan yana sığmayınca kelimeler harf harf bölünüyordu).
         let isLarge: Bool = dynamicTypeSize.isAccessibilitySize
         let rowLayout: AnyLayout = isLarge ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10)) : AnyLayout(HStackLayout(alignment: .center, spacing: 14))
-        // Pro'nun App Store adı uzun ("Gistsmith Pro Yearly"): tasarruf rozeti adın altına iner, ad kesilmez.
-        let stacksTitle: Bool = isLarge || package.tier == .pro
+        // Tasarruf rozeti adın altına iner: ad ve rozet yan yana sığmayınca ad küçülüyordu ("Gistsmith Yearly",
+        // "Monthly"den küçük görünüyordu).
+        let stacksTitle: Bool = isLarge || savings != nil
         let titleLayout: AnyLayout = stacksTitle ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6)) : AnyLayout(HStackLayout(spacing: 8))
         Button(action: onSelect) {
             rowLayout {
@@ -304,6 +312,8 @@ private struct PaywallPackageCard: View {
                             .foregroundStyle(Theme.muted)
                     }
                 }
+                // Ad sütunu yeri Spacer'dan önce alır; yoksa paylaşılan genişlik ürün adını gereksiz yere küçültür.
+                .layoutPriority(1)
                 if !isLarge {
                     Spacer(minLength: 8)
                 }
@@ -316,7 +326,11 @@ private struct PaywallPackageCard: View {
                         .appFont(size: 12, weight: .regular)
                         .foregroundStyle(Theme.muted)
                 }
+                // Fiyat hiç bölünmez ("$49" / ".00"); ad sütunu kalan yeri alır.
+                .fixedSize()
             }
+            // Erişilebilirlik boyutlarındaki dikey düzende de kart tam genişlikte (diğer kartlarla hizalı).
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(16)
             .background(Theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay(
@@ -335,8 +349,7 @@ private struct PaywallPackageCard: View {
         Text(verbatim: package.title.isEmpty ? planTitle : package.title)
             .appFont(size: 16, weight: .semibold)
             .foregroundStyle(Theme.ink)
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
+            .fixedSize(horizontal: false, vertical: true)
         if let savings {
             Text("\(savingsText(percent: savings)) tasarruf")
                 .appFont(size: 11, weight: .semibold)

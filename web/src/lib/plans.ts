@@ -89,6 +89,68 @@ export function pricingTierLines(offers: readonly TierOffer[], locale: string, t
   return { personal: tierLimitsText(personal, locale, templates), pro: tierLimitsText(pro, locale, templates) };
 }
 
+/**
+ * Pro sunulunca sayfa metinlerinin (sınırlar, SSS, ana sayfanın sınır satırı) Pro'lu kalıpları. `always`: Pro sunulunca
+ * yazılır; `meetingLengthDiffers`: Pro'nun toplantı süresi sınırı Personal'inkinden farklıysa `always`'un yerine yazılır.
+ * İkisi de null ya da koşul tutmuyorsa sayfadaki metin olduğu gibi kalır. Kalıplarda `{proHours}` ve
+ * `{proMeetingLength}` sunucunun Pro sınırlarıyla değişir (Personal'in saatleri metinde sabittir).
+ */
+export interface ProTextTemplates {
+  readonly always: string | null;
+  readonly meetingLengthDiffers: string | null;
+}
+
+/** Pro'lu kalıpların doldurulacağı değerler (sunucunun sınırlarından). */
+export interface ProTextValues {
+  readonly proHours: string;
+  readonly proMeetingLength: string;
+  /** Pro'nun toplantı süresi sınırı Personal'inkinden farklı mı. */
+  readonly meetingLengthDiffers: boolean;
+}
+
+/**
+ * Sunucu Pro'yu ve Personal'i sunuyorsa kalıpların değerleri, değilse null (sayfa bugünkü metinleriyle kalır). Saf
+ * fonksiyondur.
+ */
+export function proTextValues(
+  offers: readonly TierOffer[],
+  locale: string,
+  meetingLength: { readonly hours: string; readonly minutes: string },
+): ProTextValues | null {
+  const personal: TierOffer | null = tierOffer(offers, "personal");
+  const pro: TierOffer | null = tierOffer(offers, "pro");
+  if (personal === null || pro === null) {
+    return null;
+  }
+  return {
+    proHours: formatHourCount(pro.monthlyHours, locale),
+    proMeetingLength: meetingLengthText(pro.meetingMaxMinutes, locale, meetingLength),
+    meetingLengthDiffers: pro.meetingMaxMinutes !== personal.meetingMaxMinutes,
+  };
+}
+
+/** Pro sunulunca yazılacak metin; kalıp yoksa ya da koşulu tutmuyorsa null (metin değişmez). Saf fonksiyondur. */
+export function proText(templates: ProTextTemplates, values: ProTextValues): string | null {
+  const template: string | null =
+    values.meetingLengthDiffers && templates.meetingLengthDiffers !== null ? templates.meetingLengthDiffers : templates.always;
+  return template === null ? null : template.replaceAll("{proHours}", values.proHours).replaceAll("{proMeetingLength}", values.proMeetingLength);
+}
+
+/**
+ * Pro'lu kalıpların sayfadaki öğeye yazıldığı `data-*` öznitelikleri (`data-pro-text`, `data-pro-meeting-text`; boş
+ * kalıp yazılmaz). Tarayıcı betiği (`src/client/pro-text.ts`) bunları okuyup `proText` ile metni değiştirir. Saf
+ * fonksiyondur.
+ */
+export function proTextAttributes(templates: ProTextTemplates | null): Readonly<Record<string, string>> {
+  if (templates === null) {
+    return {};
+  }
+  return {
+    ...(templates.always === null ? {} : { "data-pro-text": templates.always }),
+    ...(templates.meetingLengthDiffers === null ? {} : { "data-pro-meeting-text": templates.meetingLengthDiffers }),
+  };
+}
+
 /** Davet kodunun biçimi (sunucu büyük harfe çevirir, boşluk ve tireyi atar; burada yalnızca kaba denetim). */
 const inviteCodePattern: RegExp = /^[A-Z0-9]{6,16}$/;
 

@@ -26,8 +26,9 @@ import PhotoPanel from "./PhotoPanel.astro";
 import SocialProof from "./SocialProof.astro";
 import ThemedShot from "./ThemedShot.astro";
 import { macDownloadUrl } from "../config";
-import type { CommonCopy, HomeCopy, IconText } from "../copy";
+import { copy, type CommonCopy, type HomeCopy, type IconText } from "../copy";
 import { type Brand, brands } from "../lib/brands";
+import { proTextAttributes } from "../lib/plans";
 import type { IconName } from "../lib/icons";
 import { fullPhotoWidths, halfPhotoWidths } from "../lib/photos";
 import { homeStructuredData, structuredDataJson } from "../lib/structured-data";
@@ -55,6 +56,11 @@ interface Props {
   readonly pricingHref: string;
 }
 const { text, common, page, pricingHref } = Astro.props;
+/**
+ * Whether the price band describes Pro once the server offers it (English page only): the lead and limit lines carry
+ * their Pro templates and src/client/home-pricing.ts fills them with the server's Pro hours.
+ */
+const describesPro: boolean = text.pricingLeadPro !== null || text.pricingLimitsPro !== null;
 const heroDownloadUrl: string = macDownloadUrl(siteConfig, "home-hero");
 const ctaDownloadUrl: string = macDownloadUrl(siteConfig, "home-cta");
 /** The hero note pane: its widths and `sizes` (the preload uses the same, so the preloaded file is the one shown). */
@@ -360,11 +366,17 @@ const structuredData: string = structuredDataJson(
   <SocialProof language={page === "fi" ? "fi" : "en"} />
 
   {/* Price (with the usage limits) and the questions people ask before they pay, in one section. */}
-  <section class="section page" id="pricing" aria-labelledby="pricing-title">
+  <section
+    class="section page"
+    id="pricing"
+    aria-labelledby="pricing-title"
+    data-meeting-hours={describesPro ? copy.pricing.pro.meetingLength.hours : undefined}
+    data-meeting-minutes={describesPro ? copy.pricing.pro.meetingLength.minutes : undefined}
+  >
     <div class="split split--price">
       <div class="split__text">
         <h2 class="title-l reveal" id="pricing-title">{text.pricingTitle}</h2>
-        <p class="lead reveal">{text.pricingLead}</p>
+        <p class="lead reveal" {...proTextAttributes(text.pricingLeadPro)}>{text.pricingLead}</p>
         <div class="split__links reveal">
           <a class="text-link" href={routes.pricing}>{text.pricingCta} <Icon name="arrow-right" size={16} class="" /></a>
           <a class="text-link" href={routes.compare}>{text.pricingCompare} <Icon name="arrow-right" size={16} class="" /></a>
@@ -374,7 +386,7 @@ const structuredData: string = structuredDataJson(
         <div class="price-tag">
           <p class="price-tag__amount"><span class="tabular">{common.priceDisplay}</span><span class="price-tag__per">{common.perMonth}</span></p>
           <p class="price-tag__offer">{common.offer}</p>
-          <p class="price-tag__limits">{text.pricingLimits}</p>
+          <p class="price-tag__limits" {...proTextAttributes(text.pricingLimitsPro)}>{text.pricingLimits}</p>
           <p class="price-tag__tax">{common.renewalNote}</p>
         </div>
       </PhotoPanel>
@@ -390,6 +402,7 @@ const structuredData: string = structuredDataJson(
 {/* The home page's own behaviour: the product demo (HeroDemo.astro). The film has its own module (LaunchFilm.astro). */}
 <script>
   import "../client/hero-demo";
+  import "../client/home-pricing";
 </script>
 
 <style>

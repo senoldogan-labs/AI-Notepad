@@ -76,11 +76,16 @@ The second tier (server `PRO_TIER_POLICY`, `server/README.md` › "Pro katmanı"
 `com.senoldogan.gistsmith.pro.monthly` and `.pro.yearly` in the same subscription group as the existing products.
 Until the owner launches it, the copy on this page stays as it is.
 
-- **Naming.** The existing products are shown in the App Store as "Gistsmith Pro" (group display name and the localized
-  product names in `after-approval-checklist.md`). Before Pro goes on sale, rename the group to "Gistsmith" and the
-  existing products to "Gistsmith Personal Monthly/Yearly" in every localization, and give the new products "Gistsmith
-  Pro Monthly/Yearly", otherwise two different subscriptions carry the same name. The PRICING paragraphs below then
-  name both tiers; their hours come from the server (`PRO_MONTHLY_CAP_HOURS`), so write them only once that value is final.
+- **Naming.** In App Store Connect the subscription group's display name is already "Gistsmith" and the existing
+  products are "Gistsmith Monthly/Yearly"; only the Description's PRICING paragraph called the existing plan "Gistsmith
+  Pro". It now names it "Gistsmith Personal" ("Gistsmith Kişisel" in Turkish, the plan name the Turkish app shows),
+  which is the copy for 0.2.3 while Pro stays off. At 0.2.3 submission the owner pushes this store metadata and renames
+  the existing products to the Personal names, and names the Pro products, through the App Store Connect API, using the
+  table in `after-approval-checklist.md` (§2 step 5).
+- **PRICING at Pro launch.** Each locale below has a "PRICING — when Pro is on" block after its Description: at launch
+  it replaces the PRICING heading and paragraph inside that Description (every Description stays ≤ 4000 characters
+  with a two-digit hour count). Replace `{PRO_HOURS}` with the production `PRO_MONTHLY_CAP_HOURS` value
+  (`server/wrangler.jsonc`, production vars) before pasting; prices stay in the U.S. description only.
 - **Group levels.** Pro above Personal (level 1 Pro, level 2 Personal): Personal → Pro is then an immediate upgrade with a
   prorated refund, Pro → Personal starts at the next renewal.
 - **Review screenshot** (each new in-app purchase › App Review Information › Screenshot): the iPhone paywall with the
@@ -244,10 +249,17 @@ PRIVACY
 Your meetings are not used to train AI models. Audio is sent only to make the transcript and the note, and our servers don't keep it. Sync stores only an end-to-end encrypted copy. AI assistant access is off by default; when you turn it on, an encrypted copy of your notes (never audio) is kept in the EU so the assistants you connect can read it, and turning it off deletes it at once. You choose how long recordings stay on your iPhone, from 7 to 365 days. Tell the people in the room before you record.
 
 PRICING
-Your first 3 meetings or 7 days are free, whichever comes first (sign-in required; trial meetings up to 90 minutes each). After that, Gistsmith Pro is a monthly ($5.99) or yearly ($49) auto-renewing subscription with 10 hours of recording a month (fair use) and up to 4 hours per meeting. Prices are in U.S. dollars; the app shows the price for your country before you buy. Payment is charged to your Apple Account when you confirm. The subscription renews automatically unless you turn it off at least 24 hours before the end of the current period. Manage or cancel it in your Apple Account settings.
+Your first 3 meetings or 7 days are free, whichever comes first (sign-in required; trial meetings up to 90 minutes each). After that, Gistsmith Personal is a monthly ($5.99) or yearly ($49) auto-renewing subscription with 10 hours of recording a month (fair use) and up to 4 hours per meeting. Prices are in U.S. dollars; the app shows the price for your country before you buy. Payment is charged to your Apple Account when you confirm. The subscription renews automatically unless you turn it off at least 24 hours before the end of the current period. Manage or cancel it in your Apple Account settings.
 
 Terms of Use: https://gistsmith.com/terms
 Privacy Policy: https://gistsmith.com/privacy
+```
+
+### PRICING — when Pro is on (replace the paragraph above at Pro launch)
+
+```text
+PRICING
+Your first 3 meetings or 7 days are free, whichever comes first (sign-in required; trial meetings up to 90 minutes each). After that, choose an auto-renewing subscription: Gistsmith Personal, monthly ($5.99) or yearly ($49), with 10 hours of recording a month, or Gistsmith Pro, monthly ($12.99) or yearly ($109), with {PRO_HOURS} hours of recording a month. Both are fair use, with up to 4 hours per meeting. Prices are in U.S. dollars; the app shows the price for your country before you buy. Payment is charged to your Apple Account when you confirm. The subscription renews automatically unless you turn it off at least 24 hours before the end of the current period. Manage or cancel it in your Apple Account settings.
 ```
 
 ---
@@ -325,10 +337,17 @@ PRIVACY
 Your meetings are not used to train AI models. Audio is sent only to make the transcript and the note, and our servers don't keep it. Sync stores only an end-to-end encrypted copy. AI assistant access is off by default; when you turn it on, an encrypted copy of your notes (never audio) is kept in the EU so the assistants you connect can read it, and turning it off deletes it at once. You choose how long recordings stay on your iPhone, from 7 to 365 days. Tell the people in the room before you record.
 
 PRICING
-Your first 3 meetings or 7 days are free, whichever comes first (sign-in required; trial meetings up to 90 minutes each). After that, Gistsmith Pro is a monthly or yearly auto-renewing subscription with 10 hours of recording a month (fair use) and up to 4 hours per meeting. The price for your country is shown in the app before you buy. Payment is charged to your Apple Account when you confirm. The subscription renews automatically unless you turn it off at least 24 hours before the end of the current period. Manage or cancel it in your Apple Account settings.
+Your first 3 meetings or 7 days are free, whichever comes first (sign-in required; trial meetings up to 90 minutes each). After that, Gistsmith Personal is a monthly or yearly auto-renewing subscription with 10 hours of recording a month (fair use) and up to 4 hours per meeting. The price for your country is shown in the app before you buy. Payment is charged to your Apple Account when you confirm. The subscription renews automatically unless you turn it off at least 24 hours before the end of the current period. Manage or cancel it in your Apple Account settings.
 
 Terms of Use: https://gistsmith.com/terms
 Privacy Policy: https://gistsmith.com/privacy
+```
+
+### PRICING — when Pro is on (replace the paragraph above at Pro launch)
+
+```text
+PRICING
+Your first 3 meetings or 7 days are free, whichever comes first (sign-in required; trial meetings up to 90 minutes each). After that, choose a monthly or yearly auto-renewing subscription: Gistsmith Personal, with 10 hours of recording a month, or Gistsmith Pro, with {PRO_HOURS} hours of recording a month. Both are fair use, with up to 4 hours per meeting. The price for your country is shown in the app before you buy. Payment is charged to your Apple Account when you confirm. The subscription renews automatically unless you turn it off at least 24 hours before the end of the current period. Manage or cancel it in your Apple Account settings.
 ```
 
 ### What's New (template for feature updates)
@@ -427,10 +446,17 @@ GİZLİLİK
 Toplantıların yapay zekâ modellerini eğitmek için kullanılmaz. Ses yalnızca transkript ve not üretmek için gönderilir; sunucularımız sesini saklamaz. Eşitleme yalnızca uçtan uca şifreli bir kopya tutar. Yapay zekâ asistanı erişimi varsayılan olarak kapalıdır; açarsan notlarının şifreli bir kopyası (ses asla) bağladığın asistanlar okuyabilsin diye AB'de saklanır, kapatınca hemen silinir. Kayıtların iPhone'unda ne kadar kalacağını sen seçersin: 7 ile 365 gün arası. Kayda başlamadan önce odadakilere söyle.
 
 FİYAT
-İlk 3 toplantı ya da 7 gün ücretsiz, hangisi önce dolarsa (giriş gerekir; deneme toplantıları en çok 90 dakika). Sonrasında Gistsmith Pro, aylık ya da yıllık otomatik yenilenen bir aboneliktir: ayda 10 saat kayıt (adil kullanım) ve toplantı başına en çok 4 saat. Ülkendeki fiyat satın almadan önce uygulamada gösterilir. Ödeme, onayladığında Apple Hesabı'ndan alınır. Abonelik, dönem bitmeden en az 24 saat önce kapatılmazsa kendiliğinden yenilenir. Apple Hesabı ayarlarından yönetebilir ya da iptal edebilirsin.
+İlk 3 toplantı ya da 7 gün ücretsiz, hangisi önce dolarsa (giriş gerekir; deneme toplantıları en çok 90 dakika). Sonrasında Gistsmith Kişisel, aylık ya da yıllık otomatik yenilenen bir aboneliktir: ayda 10 saat kayıt (adil kullanım) ve toplantı başına en çok 4 saat. Ülkendeki fiyat satın almadan önce uygulamada gösterilir. Ödeme, onayladığında Apple Hesabı'ndan alınır. Abonelik, dönem bitmeden en az 24 saat önce kapatılmazsa kendiliğinden yenilenir. Apple Hesabı ayarlarından yönetebilir ya da iptal edebilirsin.
 
 Kullanım Koşulları: https://gistsmith.com/terms
 Gizlilik Politikası: https://gistsmith.com/privacy
+```
+
+### PRICING — when Pro is on (replace the paragraph above at Pro launch)
+
+```text
+FİYAT
+İlk 3 toplantı ya da 7 gün ücretsiz, hangisi önce dolarsa (giriş gerekir; deneme toplantıları en çok 90 dakika). Sonrasında aylık ya da yıllık otomatik yenilenen iki abonelikten birini seçersin: ayda 10 saat kayıtla Gistsmith Kişisel ya da ayda {PRO_HOURS} saat kayıtla Gistsmith Pro. İkisinde de adil kullanım geçerlidir ve toplantı başına en çok 4 saat kaydedilir. Ülkendeki fiyat satın almadan önce uygulamada gösterilir. Ödeme, onayladığında Apple Hesabı'ndan alınır. Abonelik, dönem bitmeden en az 24 saat önce kapatılmazsa kendiliğinden yenilenir. Apple Hesabı ayarlarından yönetebilir ya da iptal edebilirsin.
 ```
 
 ### What's New (template)
@@ -528,10 +554,17 @@ TIETOSUOJA
 Kokouksiasi ei käytetä tekoälymallien kouluttamiseen. Ääni lähetetään vain litterointia ja muistiinpanoa varten, eivätkä palvelimemme säilytä sitä. Synkronointi säilyttää vain päästä päähän salatun kopion. Valitset itse, kuinka kauan nauhoitteet säilyvät iPhonessasi: 7–365 päivää. Kerro huoneessa oleville ennen nauhoitusta.
 
 HINNOITTELU
-3 ensimmäistä kokousta tai 7 päivää ilmaiseksi, kumpi täyttyy ensin (vaatii kirjautumisen; kokeilukokous enintään 90 minuuttia). Sen jälkeen Gistsmith Pro on kuukausittain tai vuosittain automaattisesti uusiutuva tilaus: 10 tuntia nauhoitusta kuukaudessa (kohtuullinen käyttö) ja enintään 4 tuntia kokousta kohden. Maasi hinta näytetään sovelluksessa ennen ostoa. Maksu veloitetaan Apple-tililtäsi, kun vahvistat oston. Tilaus uusiutuu automaattisesti, ellet peru sitä viimeistään 24 tuntia ennen kauden päättymistä. Voit hallita tai perua tilauksen Apple-tilisi asetuksissa.
+3 ensimmäistä kokousta tai 7 päivää ilmaiseksi, kumpi täyttyy ensin (vaatii kirjautumisen; kokeilukokous enintään 90 minuuttia). Sen jälkeen Gistsmith Personal on kuukausittain tai vuosittain automaattisesti uusiutuva tilaus: 10 tuntia nauhoitusta kuukaudessa (kohtuullinen käyttö) ja enintään 4 tuntia kokousta kohden. Maasi hinta näytetään sovelluksessa ennen ostoa. Maksu veloitetaan Apple-tililtäsi, kun vahvistat oston. Tilaus uusiutuu automaattisesti, ellet peru sitä viimeistään 24 tuntia ennen kauden päättymistä. Voit hallita tai perua tilauksen Apple-tilisi asetuksissa.
 
 Käyttöehdot: https://gistsmith.com/terms
 Tietosuojaseloste: https://gistsmith.com/privacy
+```
+
+### PRICING — when Pro is on (replace the paragraph above at Pro launch)
+
+```text
+HINNOITTELU
+3 ensimmäistä kokousta tai 7 päivää ilmaiseksi, kumpi täyttyy ensin (vaatii kirjautumisen; kokeilukokous enintään 90 min). Sen jälkeen valitse automaattisesti uusiutuva kuukausi- tai vuositilaus: Gistsmith Personal (10 h nauhoitusta kuukaudessa) tai Gistsmith Pro ({PRO_HOURS} h kuukaudessa), kummassakin kohtuullinen käyttö ja enintään 4 h kokousta kohden. Hinta näkyy sovelluksessa ennen ostoa. Maksu veloitetaan Apple-tililtäsi vahvistaessasi. Tilaus uusiutuu automaattisesti, ellet peru sitä viimeistään 24 tuntia ennen kauden loppua. Hallitse tai peru tilaus Apple-tilisi asetuksissa.
 ```
 
 ### What's New (template)
@@ -625,10 +658,17 @@ DATENSCHUTZ
 Deine Meetings werden nicht zum Training von KI-Modellen verwendet. Audio wird nur für Transkript und Notiz gesendet, und unsere Server speichern es nicht. Du bestimmst, wie lange Aufnahmen auf deinem iPhone bleiben: 7 bis 365 Tage. Sag den Anwesenden Bescheid, bevor du aufnimmst.
 
 PREISE
-Die ersten 3 Meetings oder 7 Tage sind kostenlos, je nachdem, was zuerst eintritt (Anmeldung erforderlich; Test-Meetings bis 90 Minuten). Danach ist Gistsmith Pro ein monatliches oder jährliches, sich automatisch verlängerndes Abo mit 10 Stunden Aufnahme pro Monat (Fair Use) und bis zu 4 Stunden pro Meeting. Den Preis für dein Land zeigt die App vor dem Kauf. Die Zahlung wird bei der Bestätigung über deinen Apple Account abgerechnet. Das Abo verlängert sich automatisch, wenn du es nicht spätestens 24 Stunden vor Ende des laufenden Zeitraums kündigst. Verwalten oder kündigen kannst du es in den Einstellungen deines Apple Accounts.
+Die ersten 3 Meetings oder 7 Tage sind kostenlos, je nachdem, was zuerst eintritt (Anmeldung erforderlich; Test-Meetings bis 90 Minuten). Danach ist Gistsmith Personal ein monatliches oder jährliches, sich automatisch verlängerndes Abo mit 10 Stunden Aufnahme pro Monat (Fair Use) und bis zu 4 Stunden pro Meeting. Den Preis für dein Land zeigt die App vor dem Kauf. Die Zahlung wird bei der Bestätigung über deinen Apple Account abgerechnet. Das Abo verlängert sich automatisch, wenn du es nicht spätestens 24 Stunden vor Ende des laufenden Zeitraums kündigst. Verwalten oder kündigen kannst du es in den Einstellungen deines Apple Accounts.
 
 Nutzungsbedingungen: https://gistsmith.com/terms
 Datenschutzerklärung: https://gistsmith.com/privacy
+```
+
+### PRICING — when Pro is on (replace the paragraph above at Pro launch)
+
+```text
+PREISE
+Die ersten 3 Meetings oder 7 Tage sind kostenlos, je nachdem, was zuerst eintritt (Anmeldung erforderlich; Test-Meetings bis 90 Min.). Danach wählst du ein monatliches oder jährliches, sich automatisch verlängerndes Abo: Gistsmith Personal (10 Stunden Aufnahme pro Monat) oder Gistsmith Pro ({PRO_HOURS} Stunden pro Monat), beide mit Fair Use und bis zu 4 Stunden pro Meeting. Den Preis für dein Land zeigt die App vor dem Kauf. Bezahlt wird bei der Bestätigung über deinen Apple Account. Das Abo verlängert sich automatisch, wenn du es nicht spätestens 24 Stunden vor Ende des Zeitraums kündigst. Verwalten oder kündigen kannst du es in den Einstellungen deines Apple Accounts.
 ```
 
 ---
@@ -703,10 +743,17 @@ CONFIDENTIALITÉ
 Vos réunions ne servent pas à entraîner des modèles d’IA. L’audio n’est envoyé que pour produire la transcription et le compte rendu, et nos serveurs ne le conservent pas. Vous choisissez combien de temps les enregistrements restent sur votre iPhone, de 7 à 365 jours. Prévenez les personnes présentes avant d’enregistrer.
 
 TARIFS
-Vos 3 premières réunions ou 7 jours sont offerts, selon ce qui arrive en premier (connexion requise ; 90 minutes maximum par réunion d’essai). Ensuite, Gistsmith Pro est un abonnement mensuel ou annuel à renouvellement automatique, avec 10 heures d’enregistrement par mois (usage raisonnable) et jusqu’à 4 heures par réunion. Le prix local s’affiche dans l’app avant l’achat. Le paiement est débité de votre compte Apple lorsque vous confirmez. L’abonnement se renouvelle automatiquement, sauf si vous le résiliez au moins 24 heures avant la fin de la période en cours. Gérez-le ou résiliez-le dans les réglages de votre compte Apple.
+Vos 3 premières réunions ou 7 jours sont offerts, selon ce qui arrive en premier (connexion requise ; 90 minutes maximum par réunion d’essai). Ensuite, Gistsmith Personal est un abonnement mensuel ou annuel à renouvellement automatique, avec 10 heures d’enregistrement par mois (usage raisonnable) et jusqu’à 4 heures par réunion. Le prix local s’affiche dans l’app avant l’achat. Le paiement est débité de votre compte Apple lorsque vous confirmez. L’abonnement se renouvelle automatiquement, sauf si vous le résiliez au moins 24 heures avant la fin de la période en cours. Gérez-le ou résiliez-le dans les réglages de votre compte Apple.
 
 Conditions d’utilisation : https://gistsmith.com/terms
 Politique de confidentialité : https://gistsmith.com/privacy
+```
+
+### PRICING — when Pro is on (replace the paragraph above at Pro launch)
+
+```text
+TARIFS
+Vos 3 premières réunions ou 7 jours sont offerts, selon ce qui arrive en premier (connexion requise ; 90 minutes maximum par réunion d’essai). Ensuite, choisissez un abonnement mensuel ou annuel à renouvellement automatique : Gistsmith Personal (10 h d’enregistrement par mois) ou Gistsmith Pro ({PRO_HOURS} h par mois), en usage raisonnable et jusqu’à 4 h par réunion. Le prix local s’affiche dans l’app avant l’achat. Le paiement est débité de votre compte Apple à la confirmation. L’abonnement se renouvelle automatiquement, sauf résiliation au moins 24 h avant la fin de la période. Gérez-le ou résiliez-le dans les réglages de votre compte Apple.
 ```
 
 ---
@@ -782,10 +829,17 @@ PRIVACIDAD
 Tus reuniones no se usan para entrenar modelos de IA. El audio solo se envía para crear la transcripción y la nota, y nuestros servidores no lo guardan. Tú eliges cuánto tiempo se quedan las grabaciones en tu iPhone, de 7 a 365 días. Avisa a los presentes antes de grabar.
 
 PRECIOS
-Tus 3 primeras reuniones o 7 días son gratis, lo que ocurra antes (requiere iniciar sesión; reuniones de prueba de hasta 90 minutos). Después, Gistsmith Pro es una suscripción mensual o anual con renovación automática, con 10 horas de grabación al mes (uso razonable) y hasta 4 horas por reunión. La app muestra el precio de tu país antes de la compra. El pago se carga en tu cuenta de Apple al confirmar. La suscripción se renueva automáticamente salvo que la canceles al menos 24 horas antes de que termine el periodo actual. Gestiónala o cancélala en los ajustes de tu cuenta de Apple.
+Tus 3 primeras reuniones o 7 días son gratis, lo que ocurra antes (requiere iniciar sesión; reuniones de prueba de hasta 90 minutos). Después, Gistsmith Personal es una suscripción mensual o anual con renovación automática, con 10 horas de grabación al mes (uso razonable) y hasta 4 horas por reunión. La app muestra el precio de tu país antes de la compra. El pago se carga en tu cuenta de Apple al confirmar. La suscripción se renueva automáticamente salvo que la canceles al menos 24 horas antes de que termine el periodo actual. Gestiónala o cancélala en los ajustes de tu cuenta de Apple.
 
 Condiciones de uso: https://gistsmith.com/terms
 Política de privacidad: https://gistsmith.com/privacy
+```
+
+### PRICING — when Pro is on (replace the paragraph above at Pro launch)
+
+```text
+PRECIOS
+Tus 3 primeras reuniones o 7 días son gratis, lo que ocurra antes (requiere iniciar sesión; reuniones de prueba de hasta 90 minutos). Después, elige una suscripción mensual o anual con renovación automática: Gistsmith Personal (10 horas de grabación al mes) o Gistsmith Pro ({PRO_HOURS} horas al mes), ambas con uso razonable y hasta 4 horas por reunión. La app muestra el precio de tu país antes de la compra. El pago se carga en tu cuenta de Apple al confirmar. La suscripción se renueva automáticamente salvo que la canceles al menos 24 horas antes de que termine el periodo actual. Gestiónala o cancélala en los ajustes de tu cuenta de Apple.
 ```
 
 ---
@@ -863,10 +917,17 @@ PRIVACIDAD
 Tus juntas no se usan para entrenar modelos de IA. El audio solo se envía para crear la transcripción y la nota, y nuestros servidores no lo guardan. La sincronización solo guarda una copia cifrada de extremo a extremo. Tú eliges cuánto tiempo se quedan las grabaciones en tu iPhone, de 7 a 365 días. Avísales a los presentes antes de grabar.
 
 PRECIOS
-Tus primeras 3 juntas o 7 días son gratis, lo que pase primero (requiere iniciar sesión; juntas de prueba de hasta 90 minutos). Después, Gistsmith Pro es una suscripción mensual o anual con renovación automática, con 10 horas de grabación al mes (uso razonable) y hasta 4 horas por junta. La app muestra el precio de tu país antes de comprar. El pago se carga a tu cuenta de Apple cuando confirmas. La suscripción se renueva automáticamente a menos que la canceles al menos 24 horas antes de que termine el periodo actual. Adminístrala o cancélala en la configuración de tu cuenta de Apple.
+Tus primeras 3 juntas o 7 días son gratis, lo que pase primero (requiere iniciar sesión; juntas de prueba de hasta 90 minutos). Después, Gistsmith Personal es una suscripción mensual o anual con renovación automática, con 10 horas de grabación al mes (uso razonable) y hasta 4 horas por junta. La app muestra el precio de tu país antes de comprar. El pago se carga a tu cuenta de Apple cuando confirmas. La suscripción se renueva automáticamente a menos que la canceles al menos 24 horas antes de que termine el periodo actual. Adminístrala o cancélala en la configuración de tu cuenta de Apple.
 
 Términos de uso: https://gistsmith.com/terms
 Política de privacidad: https://gistsmith.com/privacy
+```
+
+### PRICING — when Pro is on (replace the paragraph above at Pro launch)
+
+```text
+PRECIOS
+Tus primeras 3 juntas o 7 días son gratis, lo que pase primero (requiere iniciar sesión; juntas de prueba de hasta 90 minutos). Después, elige una suscripción mensual o anual con renovación automática: Gistsmith Personal (10 horas de grabación al mes) o Gistsmith Pro ({PRO_HOURS} horas al mes), ambas con uso razonable y hasta 4 horas por junta. La app muestra el precio de tu país antes de comprar. El pago se carga a tu cuenta de Apple cuando confirmas. La suscripción se renueva automáticamente a menos que la canceles al menos 24 horas antes de que termine el periodo actual. Adminístrala o cancélala en la configuración de tu cuenta de Apple.
 ```
 
 ---
@@ -942,10 +1003,17 @@ PRIVACY
 Le tue riunioni non vengono usate per addestrare modelli di intelligenza artificiale. L'audio viene inviato solo per creare la trascrizione e la nota, e i nostri server non lo conservano. Scegli tu per quanto tempo le registrazioni restano sul tuo iPhone, da 7 a 365 giorni. Avvisa i presenti prima di registrare.
 
 PREZZI
-Le prime 3 riunioni o 7 giorni sono gratis, a seconda di cosa arriva prima (serve l'accesso; riunioni di prova fino a 90 minuti). Dopo, Gistsmith Pro è un abbonamento mensile o annuale a rinnovo automatico, con 10 ore di registrazione al mese (uso corretto) e fino a 4 ore per riunione. L'app mostra il prezzo per il tuo paese prima dell'acquisto. Il pagamento viene addebitato sul tuo Account Apple alla conferma. L'abbonamento si rinnova automaticamente se non lo disattivi almeno 24 ore prima della fine del periodo in corso. Puoi gestirlo o annullarlo nelle impostazioni del tuo Account Apple.
+Le prime 3 riunioni o 7 giorni sono gratis, a seconda di cosa arriva prima (serve l'accesso; riunioni di prova fino a 90 minuti). Dopo, Gistsmith Personal è un abbonamento mensile o annuale a rinnovo automatico, con 10 ore di registrazione al mese (uso corretto) e fino a 4 ore per riunione. L'app mostra il prezzo per il tuo paese prima dell'acquisto. Il pagamento viene addebitato sul tuo Account Apple alla conferma. L'abbonamento si rinnova automaticamente se non lo disattivi almeno 24 ore prima della fine del periodo in corso. Puoi gestirlo o annullarlo nelle impostazioni del tuo Account Apple.
 
 Condizioni d'uso: https://gistsmith.com/terms
 Informativa sulla privacy: https://gistsmith.com/privacy
+```
+
+### PRICING — when Pro is on (replace the paragraph above at Pro launch)
+
+```text
+PREZZI
+Le prime 3 riunioni o 7 giorni sono gratis, a seconda di cosa arriva prima (serve l'accesso; riunioni di prova fino a 90 minuti). Dopo, scegli un abbonamento mensile o annuale a rinnovo automatico: Gistsmith Personal (10 ore di registrazione al mese) o Gistsmith Pro ({PRO_HOURS} ore al mese), entrambi con uso corretto e fino a 4 ore per riunione. L'app mostra il prezzo del tuo paese prima dell'acquisto. Il pagamento è addebitato sul tuo Account Apple alla conferma. L'abbonamento si rinnova automaticamente se non lo disattivi almeno 24 ore prima della fine del periodo. Gestiscilo o annullalo nelle impostazioni del tuo Account Apple.
 ```
 
 ---
@@ -1021,10 +1089,17 @@ PRIVACIDADE
 Suas reuniões não são usadas para treinar modelos de IA. O áudio é enviado só para criar a transcrição e a nota, e nossos servidores não o guardam. A sincronização guarda apenas uma cópia com criptografia de ponta a ponta. Você escolhe por quanto tempo as gravações ficam no iPhone, de 7 a 365 dias. Avise as pessoas presentes antes de gravar.
 
 PREÇOS
-Suas 3 primeiras reuniões ou 7 dias são grátis, o que acontecer primeiro (é preciso entrar na conta; reuniões de teste de até 90 minutos). Depois, o Gistsmith Pro é uma assinatura mensal ou anual com renovação automática, com 10 horas de gravação por mês (uso justo) e até 4 horas por reunião. O app mostra o preço do seu país antes da compra. O pagamento é cobrado na sua Conta Apple quando você confirma. A assinatura é renovada automaticamente, a menos que seja cancelada pelo menos 24 horas antes do fim do período atual. Gerencie ou cancele nos ajustes da sua Conta Apple.
+Suas 3 primeiras reuniões ou 7 dias são grátis, o que acontecer primeiro (é preciso entrar na conta; reuniões de teste de até 90 minutos). Depois, o Gistsmith Personal é uma assinatura mensal ou anual com renovação automática, com 10 horas de gravação por mês (uso justo) e até 4 horas por reunião. O app mostra o preço do seu país antes da compra. O pagamento é cobrado na sua Conta Apple quando você confirma. A assinatura é renovada automaticamente, a menos que seja cancelada pelo menos 24 horas antes do fim do período atual. Gerencie ou cancele nos ajustes da sua Conta Apple.
 
 Termos de Uso: https://gistsmith.com/terms
 Política de Privacidade: https://gistsmith.com/privacy
+```
+
+### PRICING — when Pro is on (replace the paragraph above at Pro launch)
+
+```text
+PREÇOS
+Suas 3 primeiras reuniões ou 7 dias são grátis, o que acontecer primeiro (é preciso entrar na conta; reuniões de teste de até 90 minutos). Depois, escolha uma assinatura mensal ou anual com renovação automática: o Gistsmith Personal, com 10 horas de gravação por mês, ou o Gistsmith Pro, com {PRO_HOURS} horas de gravação por mês. As duas seguem o uso justo e permitem até 4 horas por reunião. O app mostra o preço do seu país antes da compra. O pagamento é cobrado na sua Conta Apple quando você confirma. A assinatura é renovada automaticamente, a menos que seja cancelada pelo menos 24 horas antes do fim do período atual. Gerencie ou cancele nos ajustes da sua Conta Apple.
 ```
 
 ---
@@ -1100,10 +1175,17 @@ PRIVACY
 Je vergaderingen worden niet gebruikt om AI-modellen te trainen. Audio wordt alleen verstuurd om de transcriptie en het verslag te maken, en onze servers bewaren hem niet. Synchronisatie bewaart alleen een end-to-end versleutelde kopie. Je kiest zelf hoe lang opnamen op je iPhone blijven: 7 tot 365 dagen. Laat de aanwezigen weten dat je opneemt.
 
 PRIJZEN
-Je eerste 3 vergaderingen of 7 dagen zijn gratis, wat het eerst komt (inloggen vereist; proefvergaderingen tot 90 minuten). Daarna is Gistsmith Pro een maand- of jaarabonnement dat automatisch wordt verlengd, met 10 uur opnemen per maand (redelijk gebruik) en tot 4 uur per vergadering. De app toont de prijs voor jouw land voordat je koopt. De betaling wordt bij bevestiging via je Apple Account afgeschreven. Het abonnement wordt automatisch verlengd, tenzij je het uiterlijk 24 uur voor het einde van de lopende periode opzegt. Beheer of annuleer het in de instellingen van je Apple Account.
+Je eerste 3 vergaderingen of 7 dagen zijn gratis, wat het eerst komt (inloggen vereist; proefvergaderingen tot 90 minuten). Daarna is Gistsmith Personal een maand- of jaarabonnement dat automatisch wordt verlengd, met 10 uur opnemen per maand (redelijk gebruik) en tot 4 uur per vergadering. De app toont de prijs voor jouw land voordat je koopt. De betaling wordt bij bevestiging via je Apple Account afgeschreven. Het abonnement wordt automatisch verlengd, tenzij je het uiterlijk 24 uur voor het einde van de lopende periode opzegt. Beheer of annuleer het in de instellingen van je Apple Account.
 
 Gebruiksvoorwaarden: https://gistsmith.com/terms
 Privacybeleid: https://gistsmith.com/privacy
+```
+
+### PRICING — when Pro is on (replace the paragraph above at Pro launch)
+
+```text
+PRIJZEN
+Je eerste 3 vergaderingen of 7 dagen zijn gratis, wat het eerst komt (inloggen vereist; proefvergaderingen tot 90 minuten). Daarna kies je een maand- of jaarabonnement dat automatisch wordt verlengd: Gistsmith Personal (10 uur opnemen per maand) of Gistsmith Pro ({PRO_HOURS} uur per maand), allebei met redelijk gebruik en tot 4 uur per vergadering. De app toont de prijs voor jouw land voordat je koopt. De betaling wordt bij bevestiging via je Apple Account afgeschreven. Het abonnement wordt automatisch verlengd, tenzij je het uiterlijk 24 uur voor het einde van de lopende periode opzegt. Beheer of annuleer het in de instellingen van je Apple Account.
 ```
 
 ---
@@ -1181,10 +1263,17 @@ AIアシスタント
 会議の内容がAIモデルの学習に使われることはありません。音声は文字起こしとノートの作成のためだけに送信され、サーバーには保存されません。同期で保存されるのはエンドツーエンドで暗号化されたコピーだけです。AIアシスタントのアクセスは初期設定でオフ。オンにすると、接続したアシスタントが読めるよう、ノートの暗号化コピー（音声は含みません）がEU内に保存され、オフにするとすぐに削除されます。録音をiPhoneに残す期間は7〜365日から選べます。録音する前に、その場の人に伝えてください。
 
 料金
-最初の3回の会議または7日間のどちらか早いほうまで無料（サインインが必要。お試しの会議は1回最大90分）。その後、Gistsmith Proは月額または年額の自動更新サブスクリプションで、録音は月10時間（フェアユース）、1回の会議につき最大4時間です。お住まいの国の価格は購入前にアプリに表示されます。お支払いは購入の確定時にApple Accountに請求されます。現在の期間が終了する24時間前までに解約しない限り、サブスクリプションは自動的に更新されます。管理や解約はApple Accountの設定から行えます。
+最初の3回の会議または7日間のどちらか早いほうまで無料（サインインが必要。お試しの会議は1回最大90分）。その後、Gistsmith Personalは月額または年額の自動更新サブスクリプションで、録音は月10時間（フェアユース）、1回の会議につき最大4時間です。お住まいの国の価格は購入前にアプリに表示されます。お支払いは購入の確定時にApple Accountに請求されます。現在の期間が終了する24時間前までに解約しない限り、サブスクリプションは自動的に更新されます。管理や解約はApple Accountの設定から行えます。
 
 利用規約：https://gistsmith.com/terms
 プライバシーポリシー：https://gistsmith.com/privacy
+```
+
+### PRICING — when Pro is on (replace the paragraph above at Pro launch)
+
+```text
+料金
+最初の3回の会議または7日間のどちらか早いほうまで無料（サインインが必要。お試しの会議は1回最大90分）。その後は、月額または年額の自動更新サブスクリプションをお選びいただけます。録音はGistsmith Personalが月10時間、Gistsmith Proが月{PRO_HOURS}時間で、どちらもフェアユース、1回の会議につき最大4時間です。お住まいの国の価格は購入前にアプリに表示されます。お支払いは購入の確定時にApple Accountに請求されます。現在の期間が終了する24時間前までに解約しない限り、サブスクリプションは自動的に更新されます。管理や解約はApple Accountの設定から行えます。
 ```
 
 ---
@@ -1262,10 +1351,17 @@ AI 어시스턴트
 회의 내용은 AI 모델 학습에 사용되지 않습니다. 오디오는 받아쓰기와 노트를 만들 때만 전송되며, 서버에 보관되지 않습니다. 동기화는 종단간 암호화된 사본만 보관합니다. AI 어시스턴트 접근은 기본적으로 꺼져 있으며, 켜면 연결한 어시스턴트가 읽을 수 있도록 노트의 암호화된 사본(오디오 제외)이 EU에 보관되고, 끄면 즉시 삭제됩니다. 녹음을 iPhone에 보관할 기간은 7일부터 365일까지 직접 고를 수 있습니다. 녹음 전에 함께 있는 사람들에게 알려 주세요.
 
 요금
-처음 3번의 회의 또는 7일 중 먼저 끝나는 시점까지 무료입니다(로그인 필요, 체험 회의는 회당 최대 90분). 이후 Gistsmith Pro는 월간 또는 연간 자동 갱신 구독이며, 매월 10시간 녹음(공정 사용)과 회의당 최대 4시간을 제공합니다. 국가별 가격은 구매 전에 앱에 표시됩니다. 결제는 구매를 확인할 때 Apple 계정으로 청구됩니다. 현재 기간이 끝나기 최소 24시간 전에 해지하지 않으면 구독은 자동으로 갱신됩니다. Apple 계정 설정에서 관리하거나 해지할 수 있습니다.
+처음 3번의 회의 또는 7일 중 먼저 끝나는 시점까지 무료입니다(로그인 필요, 체험 회의는 회당 최대 90분). 이후 Gistsmith Personal은 월간 또는 연간 자동 갱신 구독이며, 매월 10시간 녹음(공정 사용)과 회의당 최대 4시간을 제공합니다. 국가별 가격은 구매 전에 앱에 표시됩니다. 결제는 구매를 확인할 때 Apple 계정으로 청구됩니다. 현재 기간이 끝나기 최소 24시간 전에 해지하지 않으면 구독은 자동으로 갱신됩니다. Apple 계정 설정에서 관리하거나 해지할 수 있습니다.
 
 이용약관: https://gistsmith.com/terms
 개인정보 처리방침: https://gistsmith.com/privacy
+```
+
+### PRICING — when Pro is on (replace the paragraph above at Pro launch)
+
+```text
+요금
+처음 3번의 회의 또는 7일 중 먼저 끝나는 시점까지 무료입니다(로그인 필요, 체험 회의는 회당 최대 90분). 이후 월간 또는 연간 자동 갱신 구독을 선택할 수 있습니다. Gistsmith Personal은 매월 10시간, Gistsmith Pro는 매월 {PRO_HOURS}시간 녹음을 제공하며, 둘 다 공정 사용 기준으로 회의당 최대 4시간입니다. 국가별 가격은 구매 전에 앱에 표시됩니다. 결제는 구매를 확인할 때 Apple 계정으로 청구됩니다. 현재 기간이 끝나기 최소 24시간 전에 해지하지 않으면 구독은 자동으로 갱신됩니다. Apple 계정 설정에서 관리하거나 해지할 수 있습니다.
 ```
 
 ---
@@ -1343,8 +1439,15 @@ Mac 和 iPhone 上的 Gistsmith 共用一个账户和一份订阅。打开同步
 你的会议不会被用于训练 AI 模型。音频仅用于生成转写和笔记，我们的服务器不会保存。同步只保存端到端加密的副本。AI 助手访问默认关闭；开启后，你的笔记会以加密副本（绝不包含音频）保存在欧盟，供你连接的助手读取，关闭后立即删除。录音在 iPhone 上保留多久由你决定，可选 7 至 365 天。录制前请告知在场的人。
 
 价格
-前 3 场会议或 7 天免费，以先到者为准（需要登录；试用会议每场最长 90 分钟）。之后，Gistsmith Pro 为按月或按年自动续订的订阅，每月 10 小时录制时长（合理使用），每场会议最长 4 小时。购买前，App 会显示你所在国家或地区的价格。确认购买后，费用将从你的 Apple 账户中扣除。除非在当前订阅期结束前至少 24 小时关闭自动续订，否则订阅将自动续订。可在 Apple 账户设置中管理或取消订阅。
+前 3 场会议或 7 天免费，以先到者为准（需要登录；试用会议每场最长 90 分钟）。之后，Gistsmith Personal 为按月或按年自动续订的订阅，每月 10 小时录制时长（合理使用），每场会议最长 4 小时。购买前，App 会显示你所在国家或地区的价格。确认购买后，费用将从你的 Apple 账户中扣除。除非在当前订阅期结束前至少 24 小时关闭自动续订，否则订阅将自动续订。可在 Apple 账户设置中管理或取消订阅。
 
 使用条款：https://gistsmith.com/terms
 隐私政策：https://gistsmith.com/privacy
+```
+
+### PRICING — when Pro is on (replace the paragraph above at Pro launch)
+
+```text
+价格
+前 3 场会议或 7 天免费，以先到者为准（需要登录；试用会议每场最长 90 分钟）。之后，你可以选择按月或按年自动续订的订阅：Gistsmith Personal 每月 10 小时录制时长，Gistsmith Pro 每月 {PRO_HOURS} 小时录制时长；两者均为合理使用，每场会议最长 4 小时。购买前，App 会显示你所在国家或地区的价格。确认购买后，费用将从你的 Apple 账户中扣除。除非在当前订阅期结束前至少 24 小时关闭自动续订，否则订阅将自动续订。可在 Apple 账户设置中管理或取消订阅。
 ```
