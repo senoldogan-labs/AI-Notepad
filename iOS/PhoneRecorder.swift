@@ -119,8 +119,10 @@ final class PhoneRecorder {
     var startedAt: Date? {
         state.startedAt
     }
-    /// İşlenen toplantıların adımı (kimlik → adım).
-    private(set) var processingSteps: [String: ProcessingStep] = [:]
+    /// İşlenen toplantıların adımı (kimlik → adım; toplantı işleri depoda tek haritadadır, bkz. `PhoneStore.meetingJobs`).
+    var processingSteps: [String: ProcessingStep] {
+        store.processingSteps
+    }
     /// Son biten kaydın kimliği (hazırlanma kartı bunu izler).
     private(set) var lastMeetingID: String?
     /// Bir sonraki kaydın dil modu; seçim saklanır, yeniden açılışta sürer.
@@ -1215,7 +1217,7 @@ final class PhoneRecorder {
             errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
             return
         }
-        let candidates: [MeetingRecord] = store.meetings.filter { processingSteps[$0.id] == nil && !store.regeneratingIDs.contains($0.id) }
+        let candidates: [MeetingRecord] = store.meetings.filter { store.meetingJobs[$0.id] == nil }
         for record in meetingsToRetryAutomatically(records: candidates, linkedRecordIDs: linked, now: Date()) {
             do {
                 let directory: URL = try store.sessionDirectory(id: record.id)
@@ -1274,7 +1276,7 @@ final class PhoneRecorder {
     /// toplantı işlenirken, notu yazılırken ya da sesi silinmişse yapılmaz (hata fırlar).
     func reprocess(meetingID: String) throws {
         guard phase == .idle, let record = store.meetings.first(where: { $0.id == meetingID }), record.status != .recording,
-              record.status != .processing, !record.audioDeleted, !store.regeneratingIDs.contains(meetingID), processingSteps[meetingID] == nil else {
+              record.status != .processing, !record.audioDeleted, store.meetingJobs[meetingID] == nil else {
             throw StorageError.writeFailed(path: meetingID, reason: "kayıtta, işleniyor ya da sesi yok")
         }
         if record.status == .queued {
@@ -1618,12 +1620,10 @@ final class PhoneRecorder {
     private func process(
         record: MeetingRecord, directory: URL, finalPass resolveFinalPass: @escaping @Sendable ([String], String) async -> FinalPassPlan
     ) -> Bool {
-        guard processingSteps[record.id] == nil else {
-            Self.logger.warning("Toplantı zaten işleniyor, ikinci işleme başlatılmadı, toplantı: \(record.id, privacy: .public)")
+        guard store.beginMeetingJob(meetingID: record.id, job: .processing(.convertingAudio)) else {
             return false
         }
         saveRecord(record: record, directory: directory)
-        processingSteps[record.id] = .convertingAudio
         beginBackgroundTask(id: record.id)
         processingTasks[record.id] = Task {
             // İşleme sırasında bağlantı koparsa ya da uygulama arka plana geçerse (sistem askıya alıp istekleri keser)
@@ -1645,7 +1645,7 @@ final class PhoneRecorder {
                 // (SpeakerKit) when voice recognition is on; they never leave the device.
                 noteLanguage: phoneNoteLanguage(), voiceEmbedder: store.voices.embedderIfEnabled(), registry: store.voices.registered, screens: phoneScreenNotesPlan()
             ) { (step: ProcessingStep) async -> Void in
-                self.processingSteps[record.id] = step
+                self.store.advanceProcessing(meetingID: record.id, step: step)
                 self.continuedTasks[record.id]?.progress.completedUnitCount = continuedProcessingCompletedUnits(step: step)
                 if step == .writingNote {
                     self.noteWritingStartedAt[record.id] = .now
@@ -1659,7 +1659,7 @@ final class PhoneRecorder {
                 // Sistem görevi sona erdi: yarım sonuç saklanmaz; toplantı diskte `processing` kalır ve açılışta
                 // kaldığı yerden işlenir (`resumeUnfinished`).
                 Self.logger.warning("İşleme iptal edildi, toplantı açılışta yeniden işlenecek, toplantı: \(record.id, privacy: .public)")
-                processingSteps[record.id] = nil
+                store.endMeetingJob(meetingID: record.id)
                 endBackgroundTask(id: record.id)
                 return
             }
@@ -1671,7 +1671,7 @@ final class PhoneRecorder {
             let versioned: MeetingRecord = withNoteVersion(updated: result, previous: record, reason: String(localized: "Tekrar işlendi"), savedAt: Date())
             saveRecord(record: versioned, directory: directory)
             removeCheckpointIfDone(record: versioned, directory: directory)
-            processingSteps[record.id] = nil
+            store.endMeetingJob(meetingID: record.id)
             // Not hazır: kaydın uyarıları ana ekranda günlerce kalmasın.
             if versioned.status == .done, versioned.id == lastMeetingID {
                 errorMessages = []
@@ -1731,7 +1731,7 @@ final class PhoneRecorder {
             attempt += 1
             lossMark = network.lossCount
             backgroundMark = backgroundEntries
-            processingSteps[current.id] = .writingNote
+            store.advanceProcessing(meetingID: current.id, step: .writingNote)
             noteWritingStartedAt[current.id] = .now
             current = await regenerateNote(
                 record: current.with(status: .processing, failureMessage: nil), directory: directory, llm: recordedMeetingLLMReportingFailure(recordID: current.id),
@@ -1835,21 +1835,28 @@ final class PhoneRecorder {
 
     // MARK: Dosya içe aktarma
 
+    /// İçe aktarma işleri (dosyalar ve görüşme kayıtları ayrı; bkz. `ImportJob`): her işin kalan dosyası ve hataları.
+    private(set) var importJobs: [ImportJob] = []
+
     /// İçe aktarılmakta olan dosya sayısı (ses izi dönüştürülürken).
-    private(set) var importingCount: Int = 0
-    /// İçe aktarılamayan dosyalar ve nedenleri (Toplantılar'da görünür; yeni içe aktarma temizler).
-    private(set) var importErrors: [String] = []
+    var importingCount: Int {
+        AINotepadCore.importingCount(jobs: importJobs)
+    }
+
+    /// İçe aktarılamayan dosyalar ve nedenleri (Toplantılar'da görünür; aynı kaynaktan yeni içe aktarma bitenlerinkini
+    /// temizler, arka planda gelen görüşme kaydı dosyalarınkine dokunmaz).
+    var importErrors: [String] {
+        AINotepadCore.importErrors(jobs: importJobs)
+    }
 
     /// Ses ya da video dosyalarını toplantı olarak içe aktarır (Mac'teki "İçe aktar"): ses izi `others.m4a` olur
     /// (kayıtla aynı biçim), toplantı bekleyen olarak kuyruğa girer; sunucu oturumu, son geçiş (konuşmacılar) ve not
     /// çevrimdışı kayıt gibi kuyrukta üretilir (haklar, deneme ve aylık süre sunucuda denetlenir). Dosyalar sırayla
     /// dönüştürülür; hepsi bitince döner. Kaynak dosyalara dokunulmaz (Dosyalar'dan seçilenler güvenlik kapsamıyla okunur).
     func importFiles(urls: [URL]) async {
-        importErrors = []
-        importingCount += urls.count
+        let job: UUID = beginImportJob(source: .files, count: urls.count)
         for url in urls {
-            await importOne(url: url)
-            importingCount -= 1
+            await importOne(url: url, job: job)
         }
         await runQueue()
     }
@@ -1858,32 +1865,35 @@ final class PhoneRecorder {
     /// `onImported` çağrılır (gelen kutusundaki kopya o an silinir). Uygulama kuyruk işlenirken kapanırsa kalan kopya yalnız
     /// henüz içe aktarılmamış dosyadır (açılışta yeniden bekler, `PhoneSharedFileInbox`); aynı toplantı iki kez oluşmaz.
     func importSharedFiles(urls: [URL], onImported: @MainActor (URL) -> Void) async {
-        importErrors = []
-        importingCount += urls.count
+        let job: UUID = beginImportJob(source: .files, count: urls.count)
         for url in urls {
-            await importOne(url: url)
+            await importOne(url: url, job: job)
             onImported(url)
-            importingCount -= 1
         }
         await runQueue()
     }
 
-    /// Uygulamadan yapılan aramanın indirilen kaydını içe aktarır (`importFiles` gibi): toplantı oluştuysa nil, olmadıysa
-    /// bu dosyanın nedeni. Çağıran sağlayıcıdaki kopyayı yalnızca başarıda siler: içe aktarma başarısızsa kayıt orada
-    /// kalır, yeniden denenir.
+    /// Görüşme kaydını (uygulamadan yapılan aramanın indirilen kaydı, deneysel görüşme yakalama) içe aktarır
+    /// (`importFiles` gibi): toplantı oluştuysa nil, olmadıysa bu dosyanın nedeni. Çağıran kaynağı yalnızca başarıda siler:
+    /// içe aktarma başarısızsa kayıt orada kalır, yeniden denenir.
     func importCallRecording(url: URL) async -> String? {
-        importErrors = []
-        importingCount += 1
-        let failure: String? = await importOne(url: url)
-        importingCount -= 1
+        let job: UUID = beginImportJob(source: .callRecording, count: 1)
+        let failure: String? = await importOne(url: url, job: job)
         await runQueue()
         return failure
     }
 
-    /// Tek dosyayı içe aktarır; toplantı oluştuysa nil. Olmazsa yarım klasör silinir ve neden (dönüş değeri) listede de
-    /// görünür.
+    /// Yeni içe aktarma işi açar (aynı kaynağın biten işleri düşer; bkz. `beginningImportJob`).
+    private func beginImportJob(source: ImportSource, count: Int) -> UUID {
+        let id: UUID = UUID()
+        importJobs = beginningImportJob(jobs: importJobs, id: id, source: source, count: count)
+        return id
+    }
+
+    /// Tek dosyayı içe aktarır ve işinde bitmiş sayar; toplantı oluştuysa nil. Olmazsa yarım klasör silinir ve neden (dönüş
+    /// değeri) işin hatalarına yazılır (listede görünür).
     @discardableResult
-    private func importOne(url: URL) async -> String? {
+    private func importOne(url: URL, job: UUID) async -> String? {
         let accessed: Bool = url.startAccessingSecurityScopedResource()
         defer {
             if accessed {
@@ -1915,11 +1925,12 @@ final class PhoneRecorder {
                 record: record.with(status: .queued, failureMessage: nil).with(notice: String(localized: "İçe aktarıldı; sunucuda işlenmeyi bekliyor.")),
                 directory: session.url
             )
+            importJobs = finishingImportItem(jobs: importJobs, id: job)
             return nil
         } catch {
             Self.logger.error("Dosya içe aktarılamadı, hata: \(String(describing: error), privacy: .private)")
             let message: String = String(localized: "\(url.lastPathComponent) içe aktarılamadı: \(mediaImportMessage(error: error))")
-            importErrors = appendUnique(messages: importErrors, message: message)
+            importJobs = failingImportItem(jobs: importJobs, id: job, message: message)
             if let created {
                 do {
                     try FileManager.default.removeItem(at: created)
@@ -2056,13 +2067,13 @@ final class PhoneRecorder {
         return (last.text, last.person.map { speakerLabel(speaker: last.id.speaker, person: $0) } ?? "")
     }
 
-    /// Canlı etkinliğin şimdiki durumu: son cümle, bitiriliyor mu, mikrofon bekleniyor mu, duraklatıldı mı, süre durduysa
-    /// anı ve duraklatılan süre (sayaç duraklatmayı saymaz).
+    /// Canlı etkinliğin şimdiki durumu: son cümle, kaydın durumu (bkz. `liveRecordingStatus`) ve duraklatılan süre (sayaç
+    /// duraklatmayı saymaz).
     private func activityState() -> RecordingActivityAttributes.ContentState {
         let line: (text: String, speaker: String) = activityLine
         return RecordingActivityAttributes.ContentState(
-            lastLine: line.text, speaker: line.speaker, isFinishing: phase == .finishing, isMicrophonePaused: microphoneStatus != .running,
-            stoppedAt: stoppedAt, pausedAt: pauseClock.pausedAt, pausedSec: pauseClock.completedSec
+            lastLine: line.text, speaker: line.speaker, status: liveRecordingStatus(state: state, microphoneRunning: microphoneStatus == .running),
+            pausedSec: pauseClock.completedSec
         )
     }
 
@@ -2466,4 +2477,24 @@ private let activityRelevanceScore: Double = 100
 /// Canlı etkinliğin içeriği: durum, eskime anı ve öncelik.
 private func activityContent(state: RecordingActivityAttributes.ContentState) -> ActivityContent<RecordingActivityAttributes.ContentState> {
     ActivityContent(state: state, staleDate: Date().addingTimeInterval(activityStaleSec), relevanceScore: activityRelevanceScore)
+}
+
+/// Canlı etkinliğin durumu: bitiriliyorsa "Bitir" anı, kullanıcı duraklattıysa (kesinti de sürse) duraklatma,
+/// kesintide ya da mikrofon yeniden bağlanırken "mikrofon bekleniyor" (kesintide süre durur), değilse kaydediliyor.
+/// Saf fonksiyondur.
+private func liveRecordingStatus(state: RecorderState, microphoneRunning: Bool) -> LiveRecordingStatus {
+    switch state {
+    case .finishing(let finishing):
+        return .finishing(stoppedAt: finishing.stoppedAt)
+    case .recording(let recording):
+        if recording.pause.isPausedByUser, let since = recording.clock.pausedAt {
+            return .paused(since: since)
+        }
+        if recording.pause.isPaused || !microphoneRunning {
+            return .waitingForMicrophone(timerStoppedAt: recording.clock.pausedAt)
+        }
+        return .recording
+    case .idle, .starting, .failed:
+        return microphoneRunning ? .recording : .waitingForMicrophone(timerStoppedAt: nil)
+    }
 }

@@ -173,12 +173,16 @@ struct AINotepadiOSApp: App {
                 let store: PhoneStore = sessions.session.store
                 openPhoneAppLink(route: route, router: router, account: account, meetingIDs: store.meetings.map(\.id) + store.deletedMeetings.map(\.id))
             }
-            // Spotlight'taki toplantı sonucu o toplantıyı açar (hesapta yoksa açılmaz).
+            // Spotlight'taki toplantı sonucu bağlantı gibi açılır: oturum yoksa ya da toplantılar henüz okunmadıysa yeri
+            // yığında bekler (girişten, okumadan sonra eşleşir), hesapta yoksa "Toplantı bulunamadı".
             .onContinueUserActivity(CSSearchableItemActionType) { (activity: NSUserActivity) in
                 guard let meetingID = spotlightMeetingID(activity: activity) else {
                     return
                 }
-                Task { await openSpotlightMeeting(meetingID: meetingID) }
+                let store: PhoneStore = sessions.session.store
+                openPhoneAppLink(
+                    route: .meeting(meetingID), router: router, account: account, meetingIDs: store.meetings.map(\.id) + store.deletedMeetings.map(\.id)
+                )
             }
             .task {
                 crashReports.start()
@@ -270,11 +274,15 @@ private struct PhoneAppRoot: View {
     var body: some View {
         let session: PhoneAccountSession = sessions.session
         Group {
-            if phoneShowsSignInGate(requiresSignIn: account.requiresSignIn, isRecording: session.recorder.phase != .idle) {
+            // Onay hesap başına: başka hesapla girince açıklama o hesaba da gösterilir. Onay ayarda saklıdır (gözlenmez);
+            // `consentRevision` okunur ki onaylayınca görünüm yeniden çizilsin.
+            switch phoneAppGate(
+                requiresSignIn: account.requiresSignIn, isRecording: session.recorder.phase != .idle,
+                aiConsentGiven: consentRevision >= 0 && phoneAIConsentGiven(account: account)
+            ) {
+            case .signIn:
                 PhoneSignInGate(account: account, switchWaitsFor: session.openWriters, isLinkWaiting: router.isLinkWaitingForSignIn)
-            } else if !phoneAIConsentGiven(account: account), consentRevision >= 0 {
-                // Onay hesap başına: başka hesapla girince açıklama o hesaba da gösterilir. Onay ayarda saklıdır (gözlenmez);
-                // `consentRevision` okunur ki onaylayınca görünüm yeniden çizilsin.
+            case .aiConsent:
                 PhoneAIDisclosure(account: account, errorMessage: consentError) {
                     do {
                         try recordPhoneAIConsent(account: account)
@@ -284,7 +292,7 @@ private struct PhoneAppRoot: View {
                         consentError = userFacingMessage(error: error)
                     }
                 }
-            } else {
+            case .main:
                 RootView(
                     store: session.store, recorder: session.recorder, ask: session.ask, router: router, player: session.player, calendar: calendar,
                     crashReports: crashReports, account: account
@@ -531,12 +539,6 @@ func phoneIsDemoLaunch() -> Bool {
     #endif
 }
 
-/// Giriş kapısı gösterilsin mi: giriş gerekiyorsa, ama kayıt sürerken değil (oturum kayıt sırasında kapandıysa kayıt
-/// ekranı ve "Bitir" kalır; kapı kayıt bitip toplantı saklanınca açılır). Saf fonksiyondur.
-func phoneShowsSignInGate(requiresSignIn: Bool, isRecording: Bool) -> Bool {
-    requiresSignIn && !isRecording
-}
-
 /// Hesabın verisine yazan açık işler (bkz. `accountSwitchReadiness`): kayıt, işleme, bekleyen kayıtların kuyruğu, dosya
 /// içe aktarma, not yazma, Sor cevabı, notların kendiliğinden gönderimi ve eşitleme. Hesap değişimi bunları bekler
 /// (eşitleme hesap değişirken kendiliğinden durur); çıkış ve hesap silme eşitleme dışındakiler sürerken kapalıdır
@@ -617,30 +619,6 @@ final class PhoneSessionHost {
     }
 }
 
-/// Ana ekranın üstündeki tam ekran sunum: ilk açılış karşılaması ya da abonelik ekranı (açılma nedeniyle).
-enum PhoneRootCover: Identifiable, Equatable {
-    case onboarding
-    case paywall(HostedUpsellMoment)
-
-    var id: String {
-        switch self {
-        case .onboarding:
-            "onboarding"
-        case .paywall(let reason):
-            "paywall.\(reason.rawValue)"
-        }
-    }
-}
-
-/// Gösterilecek tam ekran sunum: karşılama bitmediyse karşılama (abonelik isteği bekler), bittiyse istenen abonelik
-/// ekranı, yoksa nil. Saf fonksiyondur.
-func phoneRootCover(onboardingCompleted: Bool, upsell: HostedUpsellMoment?) -> PhoneRootCover? {
-    guard onboardingCompleted else {
-        return .onboarding
-    }
-    return upsell.map { PhoneRootCover.paywall($0) }
-}
-
 /// Ana ekrandan açılan sayfalar (tek gezinme yığını; sıra yığındaki sıradır).
 enum PhoneRoute: Hashable {
     /// Toplantı sayfası (kimliği).
@@ -686,7 +664,15 @@ enum PhoneRoute: Hashable {
 @MainActor
 @Observable
 final class PhoneRouter {
-    var path: [PhoneRoute]
+    var path: [PhoneRoute] {
+        didSet {
+            // Bekleyen kaynak yalnız üstteki toplantı sayfasınındır: sayfa açılmadan başka yere gidildiyse düşer (sonra
+            // açılan toplantı sayfası beklenmedik bir anı göstermesin).
+            if let source = openingSource, path.last != .meeting(source.meetingID) {
+                openingSource = nil
+            }
+        }
+    }
     /// Ana ekranın sol üstündeki kitaplık sayfası (tüm toplantılar, görevler, kişiler, klasörler, içe aktarma) açık.
     var isLibraryOpen: Bool = false
     /// Oturum yokken bir bağlantı (`gistsmith://…`) geldi: giriş kapısı bağlantının girişten sonra açılacağını söyler.
@@ -706,7 +692,8 @@ final class PhoneRouter {
         path.append(route)
     }
 
-    /// Sor'da basılan kaynak: toplantı sayfası açılınca o anı gösterir ve sıfırlar (`MeetingReadView.openingSource`).
+    /// Sor'da basılan kaynak: toplantı sayfası açılınca o anı gösterir ve sıfırlar (`MeetingReadView.openingSource`);
+    /// yığın başka yere giderse düşer (bkz. `path`).
     var openingSource: ArchivePassage?
 
     /// Sor'daki kaynağın toplantısını yığının üstünde açar; sayfa kaynağın anını gösterir (transkript çekmecesi o
@@ -1279,7 +1266,7 @@ final class PhoneStore {
 
     func renameSpeakers(meetingID: String, names: [Int: String]) throws {
         guard let record = meetings.first(where: { $0.id == meetingID }), record.status != .recording, record.status != .processing,
-              !regeneratingIDs.contains(meetingID) else {
+              meetingJobs[meetingID] == nil else {
             throw StorageError.writeFailed(path: meetingID, reason: "kayıtta ya da işleniyor")
         }
         let directory: URL = try sessionDirectory(id: meetingID)
@@ -1311,7 +1298,7 @@ final class PhoneStore {
     /// güncel kayda uygulanır (Mac'te iCloud'la gelmiş düzenlemeler bellekteki eski kopyayla ezilmesin).
     func updateMeeting(meetingID: String, change: (MeetingRecord) -> MeetingRecord) throws {
         guard let record = meetings.first(where: { $0.id == meetingID }), record.status != .recording, record.status != .processing,
-              !regeneratingIDs.contains(meetingID) else {
+              meetingJobs[meetingID] == nil else {
             throw StorageError.writeFailed(path: meetingID, reason: "kayıtta ya da işleniyor")
         }
         let directory: URL = try sessionDirectory(id: meetingID)
@@ -1737,8 +1724,41 @@ final class PhoneStore {
         }
     }
 
-    /// Notu yeniden yazılan toplantılar (menüde "Not yazılıyor…").
-    private(set) var regeneratingIDs: Set<String> = []
+    /// Toplantılarda süren işler (Mac'teki `meetingJobs`): işleme kaydedicide (`PhoneRecorder.process`), not yazma,
+    /// düzenleme ve çeviri denemesi burada başlar. Toplantı başına tek iş (bkz. `beginningMeetingJob`); iş sürerken toplantı
+    /// kilitli.
+    private(set) var meetingJobs: [String: MeetingJob] = [:]
+
+    /// Notu yazılan, düzenlenen ya da çevirisi yenilenen toplantılar (menüde "Not yazılıyor…").
+    var regeneratingIDs: Set<String> {
+        noteJobMeetingIDs(jobs: meetingJobs)
+    }
+
+    /// İşlenen toplantıların şu anki adımı (ilerleme kartı).
+    var processingSteps: [String: ProcessingStep] {
+        AINotepadCore.processingSteps(jobs: meetingJobs)
+    }
+
+    /// Toplantıya iş başlatır (kilitler); toplantıda başka iş sürüyorsa başlatmaz, loglar ve false döner (iki iş aynı
+    /// toplantıyı birbirinin üstüne yazmasın; biri bitince öbürünün kilidi de kalkardı).
+    func beginMeetingJob(meetingID: String, job: MeetingJob) -> Bool {
+        guard let next = beginningMeetingJob(jobs: meetingJobs, meetingID: meetingID, job: job) else {
+            Self.logger.warning("Toplantıda başka iş sürüyor, yeni iş başlatılmadı, toplantı: \(meetingID, privacy: .public), iş: \(String(describing: job), privacy: .public), süren: \(String(describing: self.meetingJobs[meetingID]), privacy: .public)")
+            return false
+        }
+        meetingJobs = next
+        return true
+    }
+
+    /// İşlemenin yeni adımı (yalnızca toplantıda işleme sürüyorsa yazılır).
+    func advanceProcessing(meetingID: String, step: ProcessingStep) {
+        meetingJobs = advancingMeetingJob(jobs: meetingJobs, meetingID: meetingID, step: step)
+    }
+
+    /// Toplantının işi bitti: kilit kalkar.
+    func endMeetingJob(meetingID: String) {
+        meetingJobs = endingMeetingJob(jobs: meetingJobs, meetingID: meetingID)
+    }
 
     /// Mac ile eşitlemeyle başka cihazdan gelen toplantılar (bkz. `HostedSyncCenter`): sesleri kaydedildiği cihazda
     /// kalır, burada oynatılmaz, silinmez ve yeniden işlenmez.
@@ -1762,15 +1782,17 @@ final class PhoneStore {
 
     /// Notu yeniden yazılabilecek toplantı: kayıtta, işlenen ya da notu zaten yazılan toplantı değil.
     private func rewritableRecord(meetingID: String) -> MeetingRecord? {
-        meetings.first { $0.id == meetingID && $0.status != .recording && $0.status != .processing && !regeneratingIDs.contains(meetingID) }
+        meetings.first { $0.id == meetingID && $0.status != .recording && $0.status != .processing && meetingJobs[meetingID] == nil }
     }
 
     /// Notu verilen kayıtla (şablon, adlar) yeniden yazar; eski not `reason` ile geçmişe girer. Yeni not diskteki güncel
     /// kayda uygulanır (Mac'te bu arada yapılan düzenlemeler korunur); olmazsa neden sorunlarda görünür.
     private func rewriteNote(record: MeetingRecord, reason: String) async {
         let meetingID: String = record.id
-        regeneratingIDs.insert(meetingID)
-        defer { regeneratingIDs.remove(meetingID) }
+        guard beginMeetingJob(meetingID: meetingID, job: .rewritingNote) else {
+            return
+        }
+        defer { endMeetingJob(meetingID: meetingID) }
         // Kabul edilen konuşmacı önerileri artık notta; bekleyen öneri yoksa inceleme kartı kapanır.
         speakerReviews[meetingID] = speakerReviewAfterNoteRewrite(state: speakerReviews[meetingID])
         do {
@@ -1802,8 +1824,10 @@ final class PhoneStore {
         guard let record = rewritableRecord(meetingID: meetingID), !(record.failedTranslationKeys ?? []).isEmpty else {
             return
         }
-        regeneratingIDs.insert(meetingID)
-        defer { regeneratingIDs.remove(meetingID) }
+        guard beginMeetingJob(meetingID: meetingID, job: .retryingTranslations) else {
+            return
+        }
+        defer { endMeetingJob(meetingID: meetingID) }
         do {
             let llm: LLMProvider = try phoneAccountLLMProvider()
             let directory: URL = try sessionDirectory(id: meetingID)
@@ -1856,7 +1880,7 @@ final class PhoneStore {
     /// Kayıttaki, işlenen ya da notu yazılan toplantıda ya da numaralı konuşmacı yoksa yapılmaz.
     func reviewSpeakers(meetingID: String) {
         guard let record = meetings.first(where: { $0.id == meetingID }), record.status != .recording, record.status != .processing,
-              !regeneratingIDs.contains(meetingID) else {
+              meetingJobs[meetingID] == nil else {
             return
         }
         let segments: [StoredSegment] = meetingSegments(record: record)
@@ -1965,7 +1989,7 @@ final class PhoneStore {
     /// Toplantının yalnız sesini (ve ses izlerini) siler; metin ve not kalır (Mac'teki "Sesi sil").
     func deleteAudio(meetingID: String) throws {
         guard meetingID != playingMeetingID, let record = meetings.first(where: { $0.id == meetingID }), record.status != .recording,
-              record.status != .processing, record.status != .queued, !regeneratingIDs.contains(meetingID) else {
+              record.status != .processing, record.status != .queued, meetingJobs[meetingID] == nil else {
             throw StorageError.deleteFailed(path: meetingID, reason: "çalıyor, kayıtta, işleniyor ya da işlenmeyi bekliyor")
         }
         let directory: URL = try sessionDirectory(id: meetingID)
@@ -1982,11 +2006,13 @@ final class PhoneStore {
     func editNote(meetingID: String, instruction: String) async {
         let trimmed: String = instruction.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, let record = meetings.first(where: { $0.id == meetingID }), record.note != nil,
-              record.status != .recording, record.status != .processing, !regeneratingIDs.contains(meetingID) else {
+              record.status != .recording, record.status != .processing, meetingJobs[meetingID] == nil else {
             return
         }
-        regeneratingIDs.insert(meetingID)
-        defer { regeneratingIDs.remove(meetingID) }
+        guard beginMeetingJob(meetingID: meetingID, job: .editingNote) else {
+            return
+        }
+        defer { endMeetingJob(meetingID: meetingID) }
         do {
             let llm: LLMProvider = try phoneAccountLLMProvider()
             let directory: URL = try sessionDirectory(id: meetingID)
@@ -2035,7 +2061,7 @@ final class PhoneStore {
     /// geri yüklenir, artık yoksa `versionNotFound`.
     func restoreNoteVersion(meetingID: String, index: Int) throws {
         guard let record = meetings.first(where: { $0.id == meetingID }), record.status != .recording, record.status != .processing,
-              !regeneratingIDs.contains(meetingID) else {
+              meetingJobs[meetingID] == nil else {
             throw StorageError.writeFailed(path: meetingID, reason: "kayıtta ya da işleniyor")
         }
         let shown: [NoteVersion] = record.noteHistory ?? []

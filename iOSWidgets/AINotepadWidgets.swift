@@ -59,7 +59,7 @@ struct RecordingLiveActivity: Widget {
                             LastLine(state: context.state)
                             MarkButton(state: context.state)
                             PauseButton(state: context.state, recordingID: context.attributes.recordingID)
-                            StopButton(isFinishing: context.state.isFinishing, recordingID: context.attributes.recordingID)
+                            StopButton(isFinishing: context.state.status.isFinishing, recordingID: context.attributes.recordingID)
                         }
                         .padding(.horizontal, 4)
                     }
@@ -99,29 +99,48 @@ struct RecordingLiveActivity: Widget {
 
 /// Kaydın durum başlığı: bitiriliyor, duraklatıldı, mikrofon bekleniyor ya da kaydediliyor.
 private func statusTitle(state: RecordingActivityAttributes.ContentState) -> LocalizedStringResource {
-    if state.isFinishing {
-        return "Bitiriliyor…"
+    switch state.status {
+    case .finishing:
+        "Bitiriliyor…"
+    case .paused:
+        "Duraklatıldı"
+    case .waitingForMicrophone:
+        "Mikrofon bekleniyor"
+    case .recording:
+        "Kaydediliyor"
     }
-    if state.isPaused {
-        return "Duraklatıldı"
-    }
-    return state.isMicrophonePaused ? "Mikrofon bekleniyor" : "Kaydediliyor"
 }
 
 /// Durumun rengi: kayıtta kırmızı, mikrofon beklenirken turuncu, duraklatılmışken ve bitirilirken gri.
 private func statusColor(state: RecordingActivityAttributes.ContentState) -> Color {
-    if state.isFinishing || state.isPaused {
-        return .gray
+    switch state.status {
+    case .finishing, .paused:
+        .gray
+    case .waitingForMicrophone:
+        .orange
+    case .recording:
+        .red
     }
-    return state.isMicrophonePaused ? .orange : .red
 }
 
 /// Dynamic Island'daki durum simgesi: duraklatılmışken duraklatma, mikrofon beklenirken kapalı mikrofon.
 private func statusSymbol(state: RecordingActivityAttributes.ContentState, running: String) -> String {
-    if state.isPaused {
-        return "pause.fill"
+    switch state.status {
+    case .paused:
+        "pause.fill"
+    case .waitingForMicrophone:
+        "mic.slash.fill"
+    case .recording, .finishing:
+        running
     }
-    return state.isMicrophonePaused ? "mic.slash.fill" : running
+}
+
+/// Kilit ekranındaki durum başlığının rengi: mikrofon beklenirken turuncu, değilse soluk beyaz.
+private func statusTitleColor(status: LiveRecordingStatus) -> Color {
+    if case .waitingForMicrophone = status {
+        return .orange
+    }
+    return .white.opacity(0.6)
 }
 
 /// Durum noktası (renk `statusColor`).
@@ -145,7 +164,7 @@ private struct ElapsedText: View {
 
     var body: some View {
         Text(
-            timerInterval: startedAt.addingTimeInterval(state.pausedSec)...Date.distantFuture, pauseTime: state.pausedAt ?? state.stoppedAt,
+            timerInterval: startedAt.addingTimeInterval(state.pausedSec)...Date.distantFuture, pauseTime: state.status.timerStoppedAt,
             countsDown: false, showsHours: true
         )
     }
@@ -181,12 +200,12 @@ private struct LockScreenRecording: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(statusTitle(state: context.state))
                         .font(.system(.caption, weight: .semibold))
-                        .foregroundStyle(context.state.isMicrophonePaused && !context.state.isFinishing && !context.state.isPaused ? .orange : .white.opacity(0.6))
+                        .foregroundStyle(statusTitleColor(status: context.state.status))
                     LastLine(state: context.state)
                 }
                 MarkButton(state: context.state)
                 PauseButton(state: context.state, recordingID: context.attributes.recordingID)
-                StopButton(isFinishing: context.state.isFinishing, recordingID: context.attributes.recordingID)
+                StopButton(isFinishing: context.state.status.isFinishing, recordingID: context.attributes.recordingID)
             }
         }
         .foregroundStyle(.white)
@@ -221,12 +240,12 @@ private struct StaleRecording: View {
     }
 }
 
-/// Şu anı uygulamayı açmadan işaretler (notta öne çıkar); duraklatılmışken ve bitirilirken gizlenir.
+/// Şu anı uygulamayı açmadan işaretler (notta öne çıkar); süre durmuşken (duraklatma, kesinti) ve bitirilirken gizlenir.
 private struct MarkButton: View {
     let state: RecordingActivityAttributes.ContentState
 
     var body: some View {
-        if !state.isFinishing, !state.isPaused {
+        if state.status.timerStoppedAt == nil {
             Button(intent: MarkMomentIntent()) {
                 Image(systemName: "bookmark.fill")
             }
@@ -291,9 +310,9 @@ private struct PauseButton: View {
     let recordingID: String?
 
     var body: some View {
-        if !state.isFinishing {
+        if !state.status.isFinishing {
             Group {
-                if state.isPaused {
+                if state.status.isPausedByUser {
                     resumeButton
                         .accessibilityLabel(Text("Kayda devam et"))
                 } else {
@@ -353,7 +372,7 @@ struct RecordingControlValueProvider: ControlValueProvider {
 
     func currentValue() async throws -> Bool {
         Activity<RecordingActivityAttributes>.activities.contains { (activity: Activity<RecordingActivityAttributes>) -> Bool in
-            activity.activityState == .active && !activity.content.state.isFinishing
+            activity.activityState == .active && !activity.content.state.status.isFinishing
         }
     }
 }

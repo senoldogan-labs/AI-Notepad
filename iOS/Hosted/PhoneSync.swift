@@ -20,7 +20,7 @@ struct PhoneSyncBindings: ViewModifier {
         content
             .onChange(of: hostedSyncScopeKey(account: account), initial: true) { (_: HostedSyncScopeKey, scopeKey: HostedSyncScopeKey) in
                 HostedSyncCenter.shared.attach(hooks: HostedSyncHooks(
-                    busyMeetingIDs: { () -> Set<String> in Set(recorder.processingSteps.keys).union(store.regeneratingIDs) },
+                    busyMeetingIDs: { () -> Set<String> in Set(store.meetingJobs.keys) },
                     recordingInProgress: { () -> Bool in recorder.phase != .idle },
                     applyReport: { (report: SyncPassReport) -> Void in applyPhoneSyncReport(report: report, store: store, ask: ask) }
                 ))

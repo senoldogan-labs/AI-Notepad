@@ -8,16 +8,33 @@ import Observation
 import ScreenCaptureKit
 import os
 
-/// Deneysel görüşme kaydının aşaması.
+/// Deneysel görüşme kaydının aşaması. Akış ve dosyaları yalnız yakalanırken ve bitirilirken vardır (`CallCaptureTake`).
+@available(iOS 27.0, *)
 enum CallCapturePhase: Equatable {
     case idle
     /// Sistem seçicisi açık (kullanıcı ekranı paylaşmayı ve mikrofonu onaylıyor).
     case picking
-    case capturing(startedAt: Date)
+    case capturing(CallCaptureTake)
     /// Akış durdu, dosyalar kapanıyor ve karıştırılıyor.
-    case finishing
+    case finishing(CallCaptureTake)
     /// Karışık dosya hazır; içe aktarılabilir.
     case finished(mixed: URL)
+    /// Karışık dosya toplantı olarak içe aktarılıyor; olmazsa `finished`e döner (kayıt silinmez).
+    case importing(mixed: URL)
+}
+
+/// Süren yakalama: akış, ses çıkışı, akış temsilcisi (akış onu tutmaz) ve dosyaların klasörü.
+@available(iOS 27.0, *)
+struct CallCaptureTake: Equatable {
+    let stream: SCStream
+    let output: CallStreamOutput
+    let delegate: CallStreamDelegate
+    let directory: URL
+    let startedAt: Date
+
+    static func == (lhs: CallCaptureTake, rhs: CallCaptureTake) -> Bool {
+        lhs.stream === rhs.stream
+    }
 }
 
 /// Ham dosyaların klasörü: her yeni kayıt öncekini siler (deneysel; yalnız son kayıt saklanır).
@@ -56,12 +73,7 @@ final class CallCaptureController {
     private(set) var rawFiles: [URL] = []
     let systemLevels: AudioLevels = AudioLevels(count: 36, interval: 0.08)
     let microphoneLevels: AudioLevels = AudioLevels(count: 36, interval: 0.08)
-    @ObservationIgnored private var stream: SCStream?
-    @ObservationIgnored private var output: CallStreamOutput?
-    @ObservationIgnored private var directory: URL?
-    @ObservationIgnored private var startedAt: Date?
     @ObservationIgnored private var pickerObserver: CallPickerObserver?
-    @ObservationIgnored private var streamDelegate: CallStreamDelegate?
 
     /// Cihazda ekran kaydı destekleniyor ve izinli (ör. Ekran Süresi kısıtlaması yok).
     var isAvailable: Bool {
@@ -102,26 +114,34 @@ final class CallCaptureController {
 
     /// Akışı durdurur, dosyaları kapatıp karıştırır.
     func stop() async {
-        guard case .capturing = phase, let stream else {
+        guard case .capturing(let take) = phase else {
             return
         }
-        phase = .finishing
+        phase = .finishing(take)
         do {
-            try await stream.stopCapture()
+            try await take.stream.stopCapture()
         } catch {
             Self.logger.error("Akış durdurulamadı, hata: \(String(describing: error), privacy: .public)")
             errorMessages.append(String(localized: "Akış durdurulamadı: \(String(describing: error))"))
         }
-        await finish()
+        await finish(take: take)
     }
 
-    /// Karışık dosyayı mevcut içe aktarma hattına verir (toplantı kuyruğa girer); sonra ekran baştaki haline döner.
-    func importAsMeeting(recorder: PhoneRecorder) async {
+    /// Karışık dosyayı görüşme kaydı olarak içe aktarma hattına verir (toplantı kuyruğa girer): olduysa ekran baştaki
+    /// haline döner ve true; olmadıysa neden hatalarda görünür, kayıt kalır (yeniden denenebilir, paylaşılabilir) ve false.
+    func importAsMeeting(recorder: PhoneRecorder) async -> Bool {
         guard case .finished(let mixed) = phase else {
-            return
+            return false
         }
-        await recorder.importFiles(urls: [mixed])
+        phase = .importing(mixed: mixed)
+        if let failure = await recorder.importCallRecording(url: mixed) {
+            Self.logger.error("Görüşme kaydı içe aktarılamadı, kayıt saklı kaldı")
+            errorMessages.append(failure)
+            phase = .finished(mixed: mixed)
+            return false
+        }
         phase = .idle
+        return true
     }
 
     private var isFinished: Bool {
@@ -158,6 +178,8 @@ final class CallCaptureController {
         // yukarıdaki koşulla yok sayılır.
         let now: Date = Date()
         let folder: URL
+        // Yalnız son kayıt saklanır: yeni kayıt (ya da "Yeniden kaydet") öncekini siler. İçe aktarılamayan kayıt burada
+        // kalır; kullanıcı onu yeniden kaydetmeyi seçmedikçe ekran `finished`te durur.
         do {
             let root: URL = try callCaptureRootDirectory()
             if FileManager.default.fileExists(atPath: root.path) {
@@ -169,8 +191,6 @@ final class CallCaptureController {
             fail(message: String(localized: "Klasör açılamadı: \(error.localizedDescription)"))
             return
         }
-        directory = folder
-        startedAt = now
         microphoneEnabled = filter.isMicrophoneEnabled
         systemStats = .empty
         microphoneStats = .empty
@@ -216,12 +236,9 @@ final class CallCaptureController {
             fail(message: String(localized: "Yakalama başlamadı: \(String(describing: error))"))
             return
         }
-        stream = created
-        self.output = output
-        streamDelegate = delegate
         systemLevels.start()
         microphoneLevels.start()
-        phase = .capturing(startedAt: now)
+        phase = .capturing(CallCaptureTake(stream: created, output: output, delegate: delegate, directory: folder, startedAt: now))
         Self.logger.info("Görüşme yakalama başladı, mikrofon: \(filter.isMicrophoneEnabled, privacy: .public)")
     }
 
@@ -230,25 +247,19 @@ final class CallCaptureController {
     private func streamStopped(code: Int, message: String) async {
         Self.logger.error("Akış durdu, kod: \(code, privacy: .public), hata: \(message, privacy: .public)")
         errorMessages.append(String(localized: "Akış durdu (kod \(code)): \(message)"))
-        guard case .capturing = phase else {
+        guard case .capturing(let take) = phase else {
             return
         }
-        phase = .finishing
-        await finish()
+        phase = .finishing(take)
+        await finish(take: take)
     }
 
-    private func finish() async {
+    private func finish(take: CallCaptureTake) async {
         detachPicker()
         systemLevels.stop()
         microphoneLevels.stop()
-        guard let output, let directory, let startedAt else {
-            phase = .idle
-            return
-        }
-        let stats: [CallAudioSource: CallSourceStats] = await output.finish()
-        stream = nil
-        self.output = nil
-        streamDelegate = nil
+        let directory: URL = take.directory
+        let stats: [CallAudioSource: CallSourceStats] = await take.output.finish()
         systemStats = stats[.system] ?? .empty
         microphoneStats = stats[.microphone] ?? .empty
         let files: [(url: URL, firstTime: Double?)] = CallAudioSource.allCases.map { (source: CallAudioSource) -> (url: URL, firstTime: Double?) in
@@ -256,7 +267,7 @@ final class CallCaptureController {
         }
         let tracks: [CallTrack] = callTracks(files: files)
         rawFiles = tracks.map(\.url)
-        let mixed: URL = directory.appending(path: callMixedFileName(startedAt: startedAt, timeZone: .current))
+        let mixed: URL = directory.appending(path: callMixedFileName(startedAt: take.startedAt, timeZone: .current))
         do {
             try await mixCallAudio(tracks: tracks, destination: mixed)
         } catch {
@@ -273,9 +284,6 @@ final class CallCaptureController {
         detachPicker()
         systemLevels.stop()
         microphoneLevels.stop()
-        stream = nil
-        output = nil
-        streamDelegate = nil
         phase = .idle
     }
 }

@@ -11,27 +11,98 @@ import Foundation
 /// Denetim Merkezi düğmesinin türü: uygulama kayıt durumu değişince bu türü yeniler.
 let recordControlKind: String = "com.senoldogan.AINotepad.record"
 
+/// Canlı etkinliğin gösterdiği durum (tek değer; öncelik: bitiriliyor, kullanıcı duraklattı, mikrofon bekleniyor,
+/// kaydediliyor). Uygulama yalnız bunu verir; widget başlığı, rengi, simgeyi, sayacı ve düğmeleri bundan seçer.
+enum LiveRecordingStatus: Hashable {
+    case recording
+    /// Mikrofon kesildi (çağrı, alarm) ya da yeniden bağlanıyor; kayıt açık, ses gelince kendiliğinden sürer. Kesintide
+    /// süre `timerStoppedAt`te durur; yeniden bağlanırken akar (nil). "Devam" görünmez (kayıt kendiliğinden sürer).
+    case waitingForMicrophone(timerStoppedAt: Date?)
+    /// Kullanıcı duraklattı: süre `since`te durur, "Devam" görünür.
+    case paused(since: Date)
+    /// Mikrofon kapandı, son bölümler bitiriliyor: süre `stoppedAt`te durur (önceki sürümün etkinliğinde yoksa akar),
+    /// düğmeler gizlenir.
+    case finishing(stoppedAt: Date?)
+
+    /// Son bölümler bitiriliyor (düğmeler gizlenir).
+    var isFinishing: Bool {
+        if case .finishing = self {
+            return true
+        }
+        return false
+    }
+
+    /// Kullanıcı duraklattı ("Devam" görünür).
+    var isPausedByUser: Bool {
+        if case .paused = self {
+            return true
+        }
+        return false
+    }
+
+    /// Sayacın durduğu an; akıyorsa nil.
+    var timerStoppedAt: Date? {
+        switch self {
+        case .recording:
+            nil
+        case .waitingForMicrophone(let timerStoppedAt):
+            timerStoppedAt
+        case .paused(let since):
+            since
+        case .finishing(let stoppedAt):
+            stoppedAt
+        }
+    }
+}
+
 /// Kaydın canlı etkinliği: kilit ekranı ve Dynamic Island'da başlık, süre, durum ve son cümle.
 struct RecordingActivityAttributes: ActivityAttributes {
+    /// Saklanan alanlar ActivityKit'in kodlanmış biçimidir (uygulama güncellenirken süren etkinlik okunabilsin diye
+    /// adları ve anlamları korunur); birbirini tutsunlar diye yalnız `init(lastLine:speaker:status:pausedSec:)` ile
+    /// kurulur ve `status` ile okunur.
     struct ContentState: Codable, Hashable {
         /// Son kesinleşen cümle; henüz yoksa boş.
-        var lastLine: String
+        let lastLine: String
         /// Cümlenin konuşmacısı ("Konuşmacı 2"); bilinmiyorsa boş.
-        var speaker: String
-        /// Mikrofon kapandı, son bölümler bitiriliyor.
-        var isFinishing: Bool
-        /// Mikrofon kesildi (çağrı, alarm) ya da yeniden bağlanıyor; kayıt açık.
-        var isMicrophonePaused: Bool
-        /// "Bitir"e basılan an: süre burada durur; kayıt sürüyorsa nil.
-        var stoppedAt: Date?
-        /// Kullanıcı kaydı duraklattı: süren duraklatmanın başladığı an (süre burada durur); duraklatılmamışsa nil.
-        var pausedAt: Date?
+        let speaker: String
         /// Biten duraklatmaların toplamı (sn): sayaç kayıt başından bu kadar sonra başlamış gibi akar.
-        var pausedSec: Double
+        let pausedSec: Double
+        private let isFinishing: Bool
+        private let isMicrophonePaused: Bool
+        private let stoppedAt: Date?
+        /// Sayacın durduğu an (kullanıcı duraklatması ya da kesinti); bitirilirken nil.
+        private let pausedAt: Date?
+        /// Duraklatmayı kullanıcı yaptı. Önceki sürümün etkinliğinde yoksa nil: o sürümde `pausedAt` duraklatma sayılırdı.
+        private let isPausedByUser: Bool?
 
-        /// Duraklatılmış ve bitirilmiyor.
-        var isPaused: Bool {
-            pausedAt != nil && !isFinishing
+        init(lastLine: String, speaker: String, status: LiveRecordingStatus, pausedSec: Double) {
+            self.lastLine = lastLine
+            self.speaker = speaker
+            self.pausedSec = pausedSec
+            switch status {
+            case .recording:
+                (isFinishing, isMicrophonePaused, stoppedAt, pausedAt, isPausedByUser) = (false, false, nil, nil, false)
+            case .waitingForMicrophone(let timerStoppedAt):
+                (isFinishing, isMicrophonePaused, stoppedAt, pausedAt, isPausedByUser) = (false, true, nil, timerStoppedAt, false)
+            case .paused(let since):
+                (isFinishing, isMicrophonePaused, stoppedAt, pausedAt, isPausedByUser) = (false, false, nil, since, true)
+            case .finishing(let finishedAt):
+                (isFinishing, isMicrophonePaused, stoppedAt, pausedAt, isPausedByUser) = (true, false, finishedAt, nil, false)
+            }
+        }
+
+        /// Gösterilen durum (önceki sürümün etkinliğinde "Bitir" anı yoksa duraklatmanın başı).
+        var status: LiveRecordingStatus {
+            if isFinishing {
+                return .finishing(stoppedAt: stoppedAt ?? pausedAt)
+            }
+            if let pausedAt, isPausedByUser ?? true {
+                return .paused(since: pausedAt)
+            }
+            if isMicrophonePaused {
+                return .waitingForMicrophone(timerStoppedAt: pausedAt)
+            }
+            return .recording
         }
     }
 

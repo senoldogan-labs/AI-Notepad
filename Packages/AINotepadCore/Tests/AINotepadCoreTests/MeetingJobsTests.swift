@@ -21,4 +21,13 @@ struct MeetingJobsTests {
         #expect(advancingMeetingJob(jobs: endingMeetingJob(jobs: advanced, meetingID: "a"), meetingID: "a", step: .finalPass)["a"] == nil)
         #expect(processingSteps(jobs: advanced) == ["a": .writingNote])
     }
+
+    // "Not yazılıyor…" yalnız işleme dışındaki işlerde görünür; işleme sürerken aynı toplantıda not işi başlamaz (iPhone'da
+    // işleme kaydedicide, not işleri depoda başlar; ikisi aynı haritayı paylaşır).
+    @Test func noteJobsExcludeProcessing() {
+        let jobs: [String: MeetingJob] = ["a": .processing(.writingNote), "b": .editingNote, "c": .retryingTranslations]
+        #expect(noteJobMeetingIDs(jobs: jobs) == ["b", "c"])
+        #expect(beginningMeetingJob(jobs: jobs, meetingID: "a", job: .rewritingNote) == nil)
+        #expect(beginningMeetingJob(jobs: jobs, meetingID: "b", job: .processing(.convertingAudio)) == nil)
+    }
 }
