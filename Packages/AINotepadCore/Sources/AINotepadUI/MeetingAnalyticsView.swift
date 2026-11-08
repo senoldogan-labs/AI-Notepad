@@ -238,9 +238,10 @@ struct HoursChart: View {
                 .foregroundStyle(Theme.muted)
             }
         }
+        // Uç etiketler çizim alanının içinde kalır, sığmayan etiket atlanır: son tarih "No…" diye kesilmez.
         .chartXAxis {
-            AxisMarks { (_: AxisValue) in
-                AxisValueLabel().foregroundStyle(Theme.muted)
+            AxisMarks(preset: .aligned) { (_: AxisValue) in
+                AxisValueLabel(collisionResolution: .greedy).foregroundStyle(Theme.muted)
             }
         }
         .environment(\.locale, interfaceLocale())
@@ -279,9 +280,10 @@ struct TasksChart: View {
                 AxisValueLabel().foregroundStyle(Theme.muted)
             }
         }
+        // Uç etiketler çizim alanının içinde kalır (bkz. `HoursChart`).
         .chartXAxis {
-            AxisMarks { (_: AxisValue) in
-                AxisValueLabel().foregroundStyle(Theme.muted)
+            AxisMarks(preset: .aligned) { (_: AxisValue) in
+                AxisValueLabel(collisionResolution: .greedy).foregroundStyle(Theme.muted)
             }
         }
         .environment(\.locale, interfaceLocale())
