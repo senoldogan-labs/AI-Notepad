@@ -502,7 +502,7 @@ final class AppModel {
         switch microphoneStatus {
         case .running:
             return []
-        case .interrupted, .reconnecting:
+        case .interrupted, .heldByCall, .reconnecting:
             return [RecordingNotice(severity: .attention, text: String(localized: "Mikrofon yeniden bağlanıyor… Kayıt açık; ses gelince kendiliğinden sürer."))]
         }
     }
@@ -1562,7 +1562,7 @@ final class AppModel {
             microphoneOutageTask?.cancel()
             microphoneOutageTask = nil
             notifier.removeMicrophoneLost()
-        case .interrupted, .reconnecting:
+        case .interrupted, .heldByCall, .reconnecting:
             guard microphoneOutageStartedAt == nil else {
                 return
             }

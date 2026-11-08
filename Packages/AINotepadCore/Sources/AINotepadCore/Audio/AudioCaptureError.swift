@@ -5,6 +5,9 @@ public enum AudioCaptureError: Error, Equatable {
     case microphonePermissionDenied
     /// Mikrofon motoru (`AVAudioEngine`) başlatılamadı.
     case microphoneStartFailed(code: Int32)
+    /// iOS: başka bir uygulama görüşme yürütüyor (Zoom, Teams, FaceTime, telefon); sistem görüşme sürerken mikrofonu
+    /// başka uygulamaya vermez (`AVAudioSession.ErrorCode.insufficientPriority`, bkz. `isCallHoldingMicrophone`).
+    case microphoneHeldByCall
     /// `start()` yakalama zaten çalışırken çağrıldı.
     case alreadyRunning(source: String)
     case converterCreationFailed(inputDescription: String)

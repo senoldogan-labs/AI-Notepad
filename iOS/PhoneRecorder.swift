@@ -829,7 +829,7 @@ final class PhoneRecorder {
         // gönderilmez; kesinti bitince kayıt kendiliğinden sürer. Kullanıcının duraklatması ayrıdır: kesinti bitince
         // kalkmaz, kesinti sürerken "Devam" kaydı sürdürmez. Kayıt başlarken gelen kesinti kayıt başlayınca uygulanır.
         let wasPaused: Bool = state.pause.isPaused
-        send(event: .interruptionChanged(interrupted: status == .interrupted, at: Date()))
+        send(event: .interruptionChanged(interrupted: isMicrophoneInterrupted(status: status), at: Date()))
         guard phase == .recording else {
             return
         }
@@ -1460,6 +1460,22 @@ final class PhoneRecorder {
             ))
         }
         levels.stop()
+        updateActivityNow(state: activityState())
+    }
+
+    /// `--ornek-gorusme` (yalnız Debug, görsel kontrol): bu iPhone'daki bir görüşme mikrofonu tutuyor. Örnek kayıtla
+    /// (`--ornek-kayit`) kayıt ekranındaki uyarı ve duraklatılmış kayıt, tek başına ana ekrandaki başlatma hatası.
+    func showSampleCallHold() {
+        guard case .recording(let recording) = state else {
+            errorMessages = [microphoneHeldByCallText()]
+            return
+        }
+        let heldAt: Date = Date().addingTimeInterval(-20)
+        state = .recording(RecorderRecording(
+            id: recording.id, server: recording.server, startedAt: recording.startedAt, pause: .interruption(since: heldAt),
+            clock: PauseClock.running.pausing(at: heldAt), micMuted: false
+        ))
+        microphoneStatus = .heldByCall
         updateActivityNow(state: activityState())
     }
     #endif

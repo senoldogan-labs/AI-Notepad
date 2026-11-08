@@ -452,7 +452,15 @@ private struct PhoneAppRoot: View {
                 if CommandLine.arguments.contains("--ornek-bitir") {
                     recorder.showSampleFinishing()
                 }
+                // `--ornek-gorusme`: bu iPhone'daki görüşme mikrofonu tutuyor (kayıt duraklatılmış, nedeni yazılı).
+                if CommandLine.arguments.contains("--ornek-gorusme") {
+                    recorder.showSampleCallHold()
+                }
                 return
+            }
+            // `--ornek-gorusme` örnek kayıt olmadan: kayıt görüşme yüzünden başlamadı (ana ekrandaki hata ve rehber düğmesi).
+            if CommandLine.arguments.contains("--ornek-gorusme") {
+                recorder.showSampleCallHold()
             }
             if let index = CommandLine.arguments.firstIndex(of: "--soru"), CommandLine.arguments.indices.contains(index + 1) {
                 ask.ask(context: .allMeetings, question: CommandLine.arguments[index + 1], scope: .allMeetings, mentionIDs: [], recipeTitle: nil)

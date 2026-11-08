@@ -6,6 +6,10 @@ public enum MicrophoneStatus: Sendable, Equatable {
     case running
     /// Ses oturumu kesildi (telefon çağrısı, alarm): kesinti bitince yakalama kendiliğinden sürer.
     case interrupted
+    /// Ses oturumu kesildi ve yeniden açılamıyor çünkü bu iPhone'da başka bir uygulama görüşme yürütüyor (Zoom, Teams,
+    /// FaceTime, telefon): iOS görüşme sürerken mikrofonu yalnızca görüşme uygulamasına verir. Görüşme bitince yakalama
+    /// kendiliğinden sürer; kesinti gibi kaydı duraklatır.
+    case heldByCall
     /// Ses gelmiyor ve motor yeniden kuruluyor (ses yolu değişti, motor durdu, ses servisleri sıfırlandı); kayıt
     /// açık kalır, aradaki boşluk sessizlikle doldurulur.
     case reconnecting(reason: MicrophoneRecoveryReason)
@@ -21,6 +25,32 @@ public enum MicrophoneRecoveryReason: String, Sendable, Equatable {
     case mediaServicesReset
     /// Kesinti (çağrı, alarm) bitti: ses oturumu yeniden açılıp motor kurulur.
     case interruptionEnded
+}
+
+/// `AVAudioSession.ErrorCode.insufficientPriority` ('!pri'): başka bir uygulama görüşme yürütürken `record` ya da
+/// `playAndRecord` oturumu açılmak istendi (Apple: "not permitted to capture the microphone of the active call").
+public let audioSessionInsufficientPriorityCode: Int = 561_017_449
+
+/// Ses oturumu hatasının kodu, bu iPhone'daki bir görüşmenin mikrofonu tuttuğunu mu söylüyor. Saf fonksiyondur.
+public func isCallHoldingMicrophone(code: Int) -> Bool {
+    code == audioSessionInsufficientPriorityCode
+}
+
+/// Mikrofon kesinti yüzünden ses vermiyor mu (çağrı, alarm ya da görüşme); kayıt bu sürede duraklar. Saf fonksiyondur.
+public func isMicrophoneInterrupted(status: MicrophoneStatus) -> Bool {
+    switch status {
+    case .interrupted, .heldByCall: true
+    case .running, .reconnecting: false
+    }
+}
+
+/// Görüşme mikrofonu tutarken oturumu yeniden açma zamanı geldi mi: görüşme uygulamaları kesintinin bittiğini her zaman
+/// bildirmez, deneme görüşme sürerken zararsızca reddedilir. Saf fonksiyondur.
+public func shouldRetryAfterCall(status: MicrophoneStatus, isRestarting: Bool, sinceLastAttemptSec: Double, retryIntervalSec: Double) -> Bool {
+    guard status == .heldByCall, !isRestarting else {
+        return false
+    }
+    return sinceLastAttemptSec >= retryIntervalSec
 }
 
 /// Yakalama sonu (`.captureEnded`) kullanıcıya "mikrofon durdu" olarak gösterilmeli mi: yalnızca kayıt sürerken ve

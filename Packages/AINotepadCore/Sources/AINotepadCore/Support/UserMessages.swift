@@ -185,6 +185,8 @@ private func audioMessage(error: AudioCaptureError) -> String {
         microphonePermissionDeniedText()
     case .microphoneStartFailed(let code):
         String(localized: "Mikrofon başlatılamadı (kod \(Int(code))). Giriş cihazını kontrol edip kaydı yeniden başlat.")
+    case .microphoneHeldByCall:
+        microphoneHeldByCallText()
     case .coreAudio(let operation, let status):
         String(localized: "Sistem sesi yakalanamadı (\(operation), kod \(Int(status))). Çıkış cihazını kontrol edip kaydı yeniden başlat.")
     case .alreadyRunning:
@@ -318,6 +320,12 @@ private func serviceDisplayName(service: String) -> String {
     case "deepgram": "Deepgram"
     default: service
     }
+}
+
+/// Kayıt başlamadı çünkü bu iPhone'da bir görüşme sürüyor; iPhone ana ekranı yanında görüşme rehberine giden düğmeyi
+/// gösterir.
+public func microphoneHeldByCallText() -> String {
+    String(localized: "Bu iPhone'da bir görüşme sürüyor (Zoom, Teams, FaceTime ya da telefon). iPhone görüşme sırasında mikrofonu yalnızca görüşme uygulamasına verir, bu yüzden kayıt başlamadı. Görüşmeyi Mac'te yapıp oradan kaydet ya da görüşme bitince kaydı başlat.")
 }
 
 /// Mikrofon izni yok: iznin verildiği yer platforma göre (Mac'te Sistem Ayarları, iPhone'da Ayarlar'daki uygulama sayfası;
