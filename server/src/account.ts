@@ -13,6 +13,7 @@ import type { IdentityProvider } from "./auth/users";
 import { type AppleRevocationOutcome, appleTokenDeletionStatement, revokeAppleTokensForDeletion } from "./auth/appleTokens";
 import { dayKey } from "./usage";
 import { phoneDeletionStatements } from "./phone/calls";
+import { purgeOwnedFolderBlobs, sharedFolderDeletionStatements } from "./sharedFolders";
 import { shareDeletionStatement } from "./shares";
 import { purgeSyncPrefixNow, syncDeletionStatements, syncPrefix } from "./sync";
 import { deleteAssistantAccount } from "./assistant/store";
@@ -71,6 +72,9 @@ function accountDeletedCounterStatement(db: D1Database, userId: string, now: Dat
  * silme kuyruğuna (`sync_purges`) yazılır (`syncDeletionStatements`); bloklar `deleteAccount`'ta hemen, kalırsa günlük
  * temizlikte silinir.
  * Bağlantıyla paylaşılan notların şifreli kopyaları (`note_shares`) aynı işlemde silinir: bağlantılar hemen 404 döner.
+ * Shared folders (`sharedFolderDeletionStatements`): folders the account belongs to get `needs_rotation`; its
+ * memberships, its own folders (members, items; blobs queued in `sync_purges` and deleted right after) and its sharing
+ * identity are deleted in the same batch.
  * In-app dialer rows (`phone_consents`, `phone_numbers`, `phone_calls`) are deleted in the same batch; a running call's
  * worst case goes to the day's spend and the account's recordings and caller ID are queued for deletion at the voice
  * provider (`phoneDeletionStatements`).
@@ -105,6 +109,7 @@ function accountDeletionStatements(db: D1Database, userId: string, identityHashe
     db.prepare("DELETE FROM transcription_results WHERE user_id = ?").bind(userId),
     ...syncDeletionStatements(db, userId, syncPrefix(userId), now),
     shareDeletionStatement(db, userId),
+    ...sharedFolderDeletionStatements(db, userId, now),
     ...phoneDeletionStatements(db, userId, now),
     ...userReservationRemovalStatements(db, userId),
     deepgramUnlinkUserStatement(db, userId),
@@ -201,7 +206,13 @@ export async function deleteAccount(
   } else {
     await deleteAssistantAccount(assistant.adb, assistant.bucket, userId, now);
   }
+  const ownedFolders: D1Result<{ folder_id: string }> = await db
+    .prepare("SELECT folder_id FROM shared_folders WHERE owner_id = ?")
+    .bind(userId)
+    .all<{ folder_id: string }>();
   await db.batch(accountDeletionStatements(db, userId, identityHashes, now));
+  // Shared folders' blobs: the rows are gone (nothing can read them); an R2 failure stays queued for the daily cleanup.
+  await purgeOwnedFolderBlobs(db, syncBucket, userId, ownedFolders.results.map((row: { folder_id: string }): string => row.folder_id), now);
   // Eşitlemenin şifreli blokları: satırlar zaten silindi (kopya erişilemez); R2 hatası günlük temizliğe kalır.
   await purgeSyncPrefixNow(db, syncBucket, userId, syncPrefix(userId), now);
   log("info", "account_deleted", { userId, canceledSubscriptions, appleRevocation, appStoreSubscriptionActive: result.appStoreSubscription !== null });

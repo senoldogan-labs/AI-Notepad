@@ -76,6 +76,12 @@ public enum HostedErrorCode: String, Sendable, CaseIterable, Equatable {
     case shareUnavailable = "share_unavailable"
     case shareLimitReached = "share_limit_reached"
     case shareExists = "share_exists"
+    // Shared folders (`server/src/sharedFolders.ts`, `HostedSharedFolderClient`).
+    case sharedFoldersUnavailable = "shared_folders_unavailable"
+    case sharedFolderConflict = "shared_folder_conflict"
+    case sharedFolderLimitReached = "shared_folder_limit_reached"
+    case sharedInviteUnavailable = "shared_invite_unavailable"
+    case sharingIdentityRequired = "sharing_identity_required"
     // Yapay zekâ asistanı erişimi (`server/src/assistant/`); uygulamalar bu uçları 2. aşamada çağırmaya başlar, o zaman
     // kendi metinlerini alırlar.
     case assistantUnavailable = "assistant_unavailable"
@@ -383,6 +389,16 @@ public func hostedErrorMessage(error: HostedAPIError) -> String {
         return String(localized: "Bir hesapta en çok \(noteShareMaxActiveLinks) etkin bağlantı olabilir; eski bağlantıları kaldırıp yeniden dene.")
     case .shareExists:
         return String(localized: "Bağlantı oluşturulamadı; yeniden dene.")
+    case .sharedFoldersUnavailable:
+        return String(localized: "Paylaşılan klasörler şu an kullanılamıyor; biraz sonra yeniden dene.")
+    case .sharedFolderConflict:
+        return String(localized: "Paylaşılan klasör başka bir cihazda değişti; yenileyip yeniden dene.")
+    case .sharedFolderLimitReached:
+        return String(localized: "Paylaşılan klasör sınırına ulaşıldı (klasör, üye, davet ya da not sayısı).")
+    case .sharedInviteUnavailable:
+        return String(localized: "Bu davet kullanılmış ya da süresi dolmuş; klasörü paylaşandan yeni bir davet iste.")
+    case .sharingIdentityRequired:
+        return String(localized: "Paylaşılan klasörler bu hesapta henüz kurulmadı; yeniden dene.")
     case .phoneUnavailable:
         return String(localized: "Gistsmith'ten arama şu an kullanılamıyor.")
     case .phoneConsentRequired:

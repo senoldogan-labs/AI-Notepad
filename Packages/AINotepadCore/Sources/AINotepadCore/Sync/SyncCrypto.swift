@@ -120,7 +120,7 @@ extension Data {
 
 /// Length-prefixed concatenation (4-byte big-endian length + bytes per field): unambiguous associated data. Pure
 /// function.
-private func framed(_ fields: [Data]) -> Data {
+func framed(_ fields: [Data]) -> Data {
     fields.reduce(into: Data()) { (result: inout Data, field: Data) -> Void in
         withUnsafeBytes(of: UInt32(field.count).bigEndian) { result.append(contentsOf: $0) }
         result.append(field)

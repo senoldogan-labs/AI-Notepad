@@ -65,6 +65,11 @@ export type ErrorCode =
   | "share_unavailable"
   | "share_limit_reached"
   | "share_exists"
+  | "shared_folders_unavailable"
+  | "shared_folder_conflict"
+  | "shared_folder_limit_reached"
+  | "shared_invite_unavailable"
+  | "sharing_identity_required"
   | "assistant_unavailable"
   | "assistant_not_enabled"
   | "assistant_epoch_mismatch"
@@ -149,6 +154,11 @@ const statusByCode: Readonly<Record<ErrorCode, number>> = {
   share_unavailable: 503,
   share_limit_reached: 409,
   share_exists: 409,
+  shared_folders_unavailable: 503,
+  shared_folder_conflict: 409,
+  shared_folder_limit_reached: 409,
+  shared_invite_unavailable: 410,
+  sharing_identity_required: 409,
   assistant_unavailable: 503,
   assistant_not_enabled: 409,
   assistant_epoch_mismatch: 409,

@@ -16,6 +16,7 @@ import { retryRecorder } from "./opsEvents";
 import type { CachedJwks, Platform } from "./platform";
 import { grantDueReferralRewards } from "./referralRewards";
 import { phoneCleanup } from "./phone/calls";
+import { sharedFolderCleanup } from "./sharedFolders";
 import { scheduledSyncCleanupLimits, syncCleanup } from "./sync";
 import { stubbedFetch, upstreamStubBase } from "./upstreamStub";
 import { type AssistantCleanupReport, assistantCleanup, scheduledAssistantCleanupLimits } from "./assistant/cleanup";
@@ -85,6 +86,9 @@ export default {
       { name: "daily_metrics", run: () => recordDailyMetrics(env.DB, config, now) },
       { name: "cleanup", run: () => cleanupExpiredRows(env.DB, now, scheduledCleanupLimits) },
       // Eşitleme: erişimi 90 gün önce biten hesapların şifreli kopyası ve silme kuyruğundaki R2 önekleri (bkz. `sync.ts`).
+      // Shared folders: expired invites and folders of owners without access for 90 days; their R2 prefixes are queued
+      // for the sync purge step right after (see `sharedFolders.ts`).
+      { name: "shared_folder_cleanup", run: () => sharedFolderCleanup(env.DB, config, now, 50) },
       { name: "sync_cleanup", run: () => syncCleanup(env.DB, env.SYNC_BUCKET, config, now, scheduledSyncCleanupLimits) },
       // Yapay zekâ asistanı kopyası: erişimi biten hesabın kopyası 7 gün içinde, silinmiş hesabınki hemen; R2 kuyruğu
       // (bkz. `assistant/cleanup.ts`).
