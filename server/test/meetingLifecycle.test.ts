@@ -6,6 +6,7 @@ import {
   type MeetingEvent,
   type MeetingPhase,
   type MeetingPhaseColumns,
+  type MeetingTransition,
   MeetingStateError,
   meetingPhase,
   meetingPhaseSql,
@@ -89,21 +90,21 @@ describe("meeting lifecycle (pure)", () => {
     expect(() => meetingPhase(columns({ deferred: 1 }), nowMs)).toThrow(MeetingStateError);
   });
 
-  it("gives every event exactly one outcome per phase", () => {
-    const phases: readonly MeetingPhase[] = ["recording", "paused", "expired", "ended"];
+  it("pins the outcome of every event in every phase", () => {
+    const expected: Readonly<Record<MeetingEvent, Readonly<Record<MeetingPhase, MeetingTransition>>>> = {
+      pause: { recording: "apply", paused: "noop", expired: "refuse", ended: "refuse" },
+      resume: { recording: "noop", paused: "apply", expired: "noop", ended: "noop" },
+      closePauseForAudio: { recording: "noop", paused: "apply", expired: "noop", ended: "noop" },
+      end: { recording: "apply", paused: "apply", expired: "apply", ended: "noop" },
+      supersede: { recording: "apply", paused: "apply", expired: "apply", ended: "noop" },
+      reprocess: { recording: "refuse", paused: "refuse", expired: "apply", ended: "apply" },
+      liveGrant: { recording: "apply", paused: "apply", expired: "refuse", ended: "refuse" },
+    };
     for (const event of Object.keys(meetingTransitions) as MeetingEvent[]) {
-      const { from, noop } = meetingTransitions[event];
-      expect(from.filter((phase: MeetingPhase): boolean => noop.includes(phase))).toEqual([]);
-      for (const phase of phases) {
-        expect(["apply", "noop", "refuse"]).toContain(meetingTransition(phase, event));
+      for (const phase of Object.keys(expected[event]) as MeetingPhase[]) {
+        expect([event, phase, meetingTransition(phase, event)]).toEqual([event, phase, expected[event][phase]]);
       }
     }
-    expect(meetingTransition("recording", "reprocess")).toBe("refuse");
-    expect(meetingTransition("paused", "reprocess")).toBe("refuse");
-    expect(meetingTransition("expired", "reprocess")).toBe("apply");
-    expect(meetingTransition("expired", "pause")).toBe("refuse");
-    expect(meetingTransition("expired", "resume")).toBe("noop");
-    expect(meetingTransition("ended", "liveGrant")).toBe("refuse");
   });
 });
 
@@ -112,6 +113,7 @@ describe("meeting lifecycle (bad orderings)", () => {
     const harness: Harness = await defaultHarness();
     const session: Session = await signIn(harness);
     const meetingId: string = await openMeeting(harness, session);
+    await expectError(await call(harness, session, `/v1/meetings/${meetingId}/reprocess`, null), 409, "meeting_in_progress");
     // Long meetings upload audio while recording: the live meeting already has written audio.
     await env.DB.prepare("UPDATE meeting_sessions SET audio_seconds = 120, tokens_used = 5000 WHERE id = ?").bind(meetingId).run();
     const before: MeetingSnapshot | null = await snapshot(meetingId);

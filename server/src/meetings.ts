@@ -649,6 +649,12 @@ export async function reprocessMeeting(db: D1Database, platform: Platform, confi
     throw new ApiError("not_found", "Meeting session not found.");
   }
   const nowMs: number = now.getTime();
+  // Canlı toplantı yeniden işlenmez (bütçesi ve ses hakkı yeniden yazılmazdı); ses hakkı kapanmış toplantıda hak
+  // harcanmaz (ses yine reddedilirdi).
+  const refusal: ReprocessRefusal | null = reprocessRefusal(row, nowMs);
+  if (refusal !== null) {
+    throw reprocessRefusalError(refusal);
+  }
   // İşleme süresi içinde ses henüz yazılmamışsa toplantı son geçiş ve not için zaten açıktır: hak harcanmaz.
   const processingUntil: number = meetingProcessingUntil(row, meetingWindows(config));
   if (nowMs < processingUntil && row.audio_seconds <= 0) {
@@ -657,12 +663,6 @@ export async function reprocessMeeting(db: D1Database, platform: Platform, confi
       usableUntil: new Date(processingUntil).toISOString(),
       reprocessesLeft: Math.max(0, maxMeetingReprocesses - row.reprocess_count),
     };
-  }
-  // Canlı toplantı yeniden işlenmez (bütçesi ve ses hakkı yeniden yazılmazdı); ses hakkı kapanmış toplantıda hak
-  // harcanmaz (ses yine reddedilirdi).
-  const refusal: ReprocessRefusal | null = reprocessRefusal(row, nowMs);
-  if (refusal !== null) {
-    throw reprocessRefusalError(refusal);
   }
   const [subscribed, trial]: [boolean, TrialState] = await Promise.all([hasPaidAccess(db, config, userId, now), userTrialState(db, userId)]);
   const hasAccess: boolean = subscribed || hasRunningTrial(trial, config, now);
