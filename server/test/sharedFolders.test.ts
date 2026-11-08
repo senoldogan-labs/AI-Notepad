@@ -335,6 +335,35 @@ describe("shared folders", () => {
     await expectError(await changeRoster(harness, owner, folderId, 1, [], []), 409, "shared_folder_conflict");
   });
 
+  it("lets only one of two concurrent rotations write envelopes", async () => {
+    const harness: Harness = await defaultHarness();
+    const { owner, member, folderId, memberId } = await folderWithMember(harness);
+    const current = await folderOf(harness, owner, folderId);
+    const rotation = (envelope: string): object => ({
+      keyEpoch: 2,
+      expectedMembersVersion: current.membersVersion,
+      roster: roster(folderId, current.rosterVersion + 1, 2, [memberOf(member, memberId)]),
+      rosterSignature: randomBase64(64),
+      sealedMeta: randomBase64(80),
+      ownerEnvelope: randomBase64(120),
+      envelopes: [{ memberId, envelope }],
+    });
+    const winner: string = randomBase64(150);
+    const [first, second] = await Promise.all([
+      call(harness, owner, "PUT", `/v1/shared-folders/${folderId}/roster`, rotation(winner)),
+      call(harness, owner, "PUT", `/v1/shared-folders/${folderId}/roster`, rotation(randomBase64(150))),
+    ]);
+    const statuses: number[] = [first.status, second.status].sort();
+    expect(statuses).toEqual([200, 409]);
+    const won: string = first.status === 200 ? winner : "";
+    const stored: { envelope: string } | null = await env.DB.prepare("SELECT envelope FROM shared_folder_members WHERE member_id = ?").bind(memberId).first<{ envelope: string }>();
+    if (won !== "") {
+      expect(stored?.envelope).toBe(winner);
+    } else {
+      expect(stored?.envelope).not.toBe(winner);
+    }
+  });
+
   it("blocks new items after a member leaves until the key is rotated", async () => {
     const harness: Harness = await defaultHarness();
     const { owner, member, folderId, device } = await folderWithMember(harness);

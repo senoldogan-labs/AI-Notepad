@@ -546,7 +546,8 @@ export function checkRosterChange(folder: FolderRow, members: readonly MemberRow
 
 /**
  * Activation or rotation. The first statement is the compare-and-set on epoch, roster version and `members_version`;
- * every later statement is guarded by the new state, so a lost race changes nothing. A rotation removes the active
+ * every later statement is guarded by this exact change (the new roster signature, which no concurrent request can
+ * produce: the owner's signatures are randomized and cover the roster text), so a lost race changes nothing. A rotation removes the active
  * members the new roster leaves out. A retry of a change that already went through answers as the first time.
  */
 async function changeRoster(db: D1Database, userId: string, folderId: string, request: Request, now: Date): Promise<object> {
@@ -563,7 +564,10 @@ async function changeRoster(db: D1Database, userId: string, folderId: string, re
   const kind: "activation" | "rotation" = checkRosterChange(folder, members.results, roster, change);
   const nowMs: number = now.getTime();
   const newVersion: number = folder.members_version + 1;
-  const guard: string = "EXISTS (SELECT 1 FROM shared_folders WHERE folder_id = ?1 AND roster_version = ?2 AND members_version = ?3)";
+  // Version numbers alone are not enough: two owner devices that read the same state compute the same numbers, and the
+  // loser's later statements would still match after the winner committed. The signature is unique to this change.
+  const guard = (signatureParameter: number): string =>
+    `EXISTS (SELECT 1 FROM shared_folders WHERE folder_id = ?1 AND roster_version = ?2 AND members_version = ?3 AND roster_signature = ?${signatureParameter})`;
   const rosterIds: string = JSON.stringify(roster.members.map((member) => member.memberId));
   const statements: D1PreparedStatement[] = [
     db
@@ -593,18 +597,18 @@ async function changeRoster(db: D1Database, userId: string, folderId: string, re
         db
           .prepare(
             `UPDATE shared_folder_members SET status = 'active', envelope = ?4, envelope_epoch = ?5, updated_at = ?6
-             WHERE folder_id = ?1 AND member_id = ?7 AND ${guard}`,
+             WHERE folder_id = ?1 AND member_id = ?7 AND ${guard(8)}`,
           )
-          .bind(folderId, roster.version, newVersion, entry.envelope, change.keyEpoch, nowMs, entry.memberId),
+          .bind(folderId, roster.version, newVersion, entry.envelope, change.keyEpoch, nowMs, entry.memberId, change.rosterSignature),
     ),
     ...(kind === "rotation"
       ? [
           db
             .prepare(
               `DELETE FROM shared_folder_members WHERE folder_id = ?1 AND status = 'active'
-                 AND member_id NOT IN (SELECT value FROM json_each(?4)) AND ${guard}`,
+                 AND member_id NOT IN (SELECT value FROM json_each(?4)) AND ${guard(5)}`,
             )
-            .bind(folderId, roster.version, newVersion, rosterIds),
+            .bind(folderId, roster.version, newVersion, rosterIds, change.rosterSignature),
         ]
       : []),
   ];
