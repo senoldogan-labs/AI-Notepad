@@ -213001,6 +213001,77 @@
           }
         }
       }
+    },
+    "Bu toplantı hâlâ kaydediliyor; yeniden işlemeden önce kaydı bitir.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This meeting is still recording; end the recording before reprocessing it."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Meeting wird noch aufgenommen; beende die Aufnahme, bevor du es neu verarbeitest."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette réunion est encore en cours d’enregistrement ; terminez l’enregistrement avant de la retraiter."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta reunión todavía se está grabando; termina la grabación antes de reprocesarla."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questa riunione è ancora in registrazione; termina la registrazione prima di rielaborarla."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta reunião ainda está sendo gravada; encerre a gravação antes de reprocessá-la."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deze vergadering wordt nog opgenomen; beëindig de opname voordat je hem opnieuw verwerkt."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この会議はまだ録音中です。再処理する前に録音を終了してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 회의는 아직 녹음 중입니다. 다시 처리하기 전에 녹음을 끝내세요."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此会议仍在录制中；请先结束录制再重新处理。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tätä kokousta tallennetaan yhä; lopeta tallennus ennen kuin käsittelet sen uudelleen."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
