@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Env } from "./env";
-import { type PhoneCountry, isPhoneCountry } from "./phone/numbers";
+import { type PhoneCountry, hasRegularNumberList, isPhoneCountry } from "./phone/numbers";
 import type { TwilioCredentials } from "./phone/twilio";
 import { isLoopbackStubUrl } from "./upstreamStub";
 
@@ -157,8 +157,14 @@ export interface SiteAnalyticsConfig {
 
 /** Limits of the in-app dialer (see `phone/calls.ts`). */
 export interface PhoneCallLimits {
-  /** Countries the dialer may call and whose numbers may be verified as caller ID (`PHONE_CALLS_COUNTRIES`). */
+  /** Countries the dialer may call (`PHONE_CALLS_COUNTRIES`). */
   readonly countries: readonly PhoneCountry[];
+  /**
+   * Countries whose numbers may be verified as the caller ID, and so where the dialer is offered
+   * (`PHONE_CALLER_COUNTRIES`). A call into the caller's own country is refused where its carriers block such caller
+   * IDs from abroad (`callerIdBlockedInto`).
+   */
+  readonly callerCountries: readonly PhoneCountry[];
   /**
    * Worst-case cost per minute in each allowed country (micro USD; `PHONE_USD_PER_MINUTE`): the app leg, the phone
    * network leg and the recording together. Reservations and settlements use it; it should stay above the provider's
@@ -171,6 +177,11 @@ export interface PhoneCallLimits {
   readonly monthlySeconds: number;
   /** Phone spend per day across all users (`PHONE_DAILY_SPEND_CEILING_USD`); it also counts toward the global ceiling. */
   readonly dailySpendCeilingMicroUsd: number;
+  /**
+   * Phone spend per user per month (`PHONE_USER_MONTHLY_SPEND_USD`): calls to pricier countries use it up in fewer
+   * minutes, so no destination can cost more per user than this.
+   */
+  readonly userMonthlySpendMicroUsd: number;
 }
 
 /**
@@ -530,12 +541,16 @@ const envSchema = z.object({
   DAILY_TRIAL_SPEND_CEILING_USD: positiveNumber,
   PHONE_CALLS_POLICY: z.enum(["on", "off"]),
   PHONE_CALLS_COUNTRIES: csv,
+  PHONE_CALLER_COUNTRIES: csv,
   /** `US:0.025,CA:0.025`: worst-case USD per minute per country. */
   PHONE_USD_PER_MINUTE: csv,
   /** Twilio's `<Dial timeLimit>` allows at most 4 hours. */
   PHONE_CALL_MAX_MINUTES: positiveInt.max(240),
   PHONE_MONTHLY_MINUTES: positiveInt,
   PHONE_DAILY_SPEND_CEILING_USD: positiveNumber,
+  /** Hard cap on any country's `PHONE_USD_PER_MINUTE` price: a country priced above it can't be enabled. */
+  PHONE_MAX_USD_PER_MINUTE: positiveNumber,
+  PHONE_USER_MONTHLY_SPEND_USD: positiveNumber,
   TWILIO_ACCOUNT_SID: z.string().optional(),
   TWILIO_API_KEY_SID: z.string().optional(),
   TWILIO_API_KEY_SECRET: z.string().optional(),
@@ -876,10 +891,13 @@ function deepgramConfig(settings: DeepgramSettings): DeepgramConfig {
 interface PhoneCallSettings {
   readonly PHONE_CALLS_POLICY: "on" | "off";
   readonly PHONE_CALLS_COUNTRIES: readonly string[];
+  readonly PHONE_CALLER_COUNTRIES: readonly string[];
   readonly PHONE_USD_PER_MINUTE: readonly string[];
   readonly PHONE_CALL_MAX_MINUTES: number;
   readonly PHONE_MONTHLY_MINUTES: number;
   readonly PHONE_DAILY_SPEND_CEILING_USD: number;
+  readonly PHONE_MAX_USD_PER_MINUTE: number;
+  readonly PHONE_USER_MONTHLY_SPEND_USD: number;
   readonly TWILIO_ACCOUNT_SID?: string | undefined;
   readonly TWILIO_API_KEY_SID?: string | undefined;
   readonly TWILIO_API_KEY_SECRET?: string | undefined;
@@ -911,10 +929,17 @@ function phoneCallsConfig(settings: PhoneCallSettings): PhoneCallsConfig {
     return { policy: "off" };
   }
   const rates: Partial<Record<PhoneCountry, number>> | null = phoneRatesOf(settings.PHONE_USD_PER_MINUTE);
+  const maxRate: number = Math.round(settings.PHONE_MAX_USD_PER_MINUTE * 1_000_000);
   const knownCountries: PhoneCountry[] = settings.PHONE_CALLS_COUNTRIES.filter(isPhoneCountry);
+  const callerCountries: PhoneCountry[] = settings.PHONE_CALLER_COUNTRIES.filter(isPhoneCountry);
   const checks: ReadonlyArray<readonly [string, boolean]> = [
-    ["PHONE_CALLS_COUNTRIES", knownCountries.length === settings.PHONE_CALLS_COUNTRIES.length],
-    ["PHONE_USD_PER_MINUTE", rates !== null && knownCountries.every((country: PhoneCountry): boolean => rates[country] !== undefined)],
+    // A destination needs an allow-list of regular numbers (a block list alone leaves unknown ranges open).
+    ["PHONE_CALLS_COUNTRIES", knownCountries.length === settings.PHONE_CALLS_COUNTRIES.length && knownCountries.every(hasRegularNumberList)],
+    ["PHONE_CALLER_COUNTRIES", callerCountries.length === settings.PHONE_CALLER_COUNTRIES.length && callerCountries.length > 0],
+    // Destinations are priced for calls, caller countries for the verification call Twilio places to the user's number.
+    ["PHONE_USD_PER_MINUTE", rates !== null && [...knownCountries, ...callerCountries].every((country: PhoneCountry): boolean => rates[country] !== undefined)],
+    // A price above the cap (an expensive destination, or a typo) refuses the whole configuration.
+    ["PHONE_MAX_USD_PER_MINUTE", rates !== null && Object.values(rates).every((rate: number): boolean => rate <= maxRate)],
     ["TWILIO_ACCOUNT_SID", /^AC[0-9a-f]{32}$/.test(settings.TWILIO_ACCOUNT_SID ?? "")],
     ["TWILIO_API_KEY_SID", /^SK[0-9a-f]{32}$/.test(settings.TWILIO_API_KEY_SID ?? "")],
     ["TWILIO_API_KEY_SECRET", /^\S{32,}$/.test(settings.TWILIO_API_KEY_SECRET ?? "")],
@@ -928,10 +953,12 @@ function phoneCallsConfig(settings: PhoneCallSettings): PhoneCallsConfig {
   return {
     policy: "on",
     countries: knownCountries,
+    callerCountries,
     microUsdPerMinute: rates,
     maxCallSeconds: settings.PHONE_CALL_MAX_MINUTES * 60,
     monthlySeconds: settings.PHONE_MONTHLY_MINUTES * 60,
     dailySpendCeilingMicroUsd: Math.round(settings.PHONE_DAILY_SPEND_CEILING_USD * 1_000_000),
+    userMonthlySpendMicroUsd: Math.round(settings.PHONE_USER_MONTHLY_SPEND_USD * 1_000_000),
     twilio: {
       accountSid: settings.TWILIO_ACCOUNT_SID ?? "",
       apiKeySid: settings.TWILIO_API_KEY_SID ?? "",

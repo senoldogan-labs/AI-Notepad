@@ -187301,77 +187301,6 @@
         }
       }
     },
-    "Kendi numaranı ülke koduyla yaz, ör. +1 415 555 0100.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enter your own number with the country code, e.g. +1 415 555 0100."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gib deine eigene Nummer mit Ländervorwahl ein, z. B. +1 415 555 0100."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Saisis ton propre numéro avec l'indicatif du pays, par ex. +1 415 555 0100."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Escribe tu propio número con el prefijo del país, p. ej. +1 415 555 0100."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inserisci il tuo numero con il prefisso internazionale, ad es. +1 415 555 0100."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Digite seu próprio número com o código do país, por ex. +1 415 555 0100."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Voer je eigen nummer in met de landcode, bijv. +1 415 555 0100."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ご自身の番号を国番号付きで入力してください（例: +1 415 555 0100）。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "국가 번호를 포함해 내 번호를 입력하세요(예: +1 415 555 0100)."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "请输入带国家代码的你自己的号码，例如 +1 415 555 0100。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kirjoita oma numerosi maatunnuksen kanssa, esim. +1 415 555 0100."
-          }
-        }
-      }
-    },
     "Numara doğrulanamadı. Aramayı açıp kodu tuşladığından emin ol ve yeniden dene.": {
       "extractionState": "manual",
       "localizations": {
@@ -188082,645 +188011,6 @@
         }
       }
     },
-    "Numarayı buradan ara; görüşme kaydedilir, not ve görevler yüz yüze kayıttaki gibi hazırlanır.": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Wähle die Nummer hier; der Anruf wird aufgezeichnet, Notiz und Aufgaben entstehen wie bei einer Aufnahme vor Ort."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dial the number here; the call is recorded and the note and tasks are prepared like an in-person recording."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Marca el número aquí; la llamada se graba y la nota y las tareas se preparan como en una grabación en persona."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Soita numeroon täältä; puhelu nauhoitetaan, ja muistiinpano ja tehtävät valmistellaan kuten paikan päällä nauhoitetusta kokouksesta."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Compose le numéro ici ; l'appel est enregistré, et la note et les tâches sont préparées comme pour un enregistrement en personne."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Componi il numero qui; la chiamata viene registrata e la nota e le attività vengono preparate come per una registrazione di persona."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ここから番号に発信します。通話は録音され、対面の録音と同じようにメモとタスクが作成されます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "여기에서 번호로 전화를 겁니다. 통화가 녹음되고 대면 녹음처럼 노트와 할 일이 준비됩니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bel het nummer hier; het gesprek wordt opgenomen en de notitie en taken worden gemaakt zoals bij een opname ter plekke."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Disque o número aqui; a chamada é gravada e a nota e as tarefas são preparadas como numa gravação presencial."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在这里拨打号码；通话会被录音，并像面对面录音一样生成笔记和任务。"
-          }
-        }
-      }
-    },
-    "Tuş takımını aç": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Open keypad"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tastenfeld öffnen"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ouvrir le clavier"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Abrir el teclado"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Apri il tastierino"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Abrir o teclado"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Toetsenblok openen"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キーパッドを開く"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "키패드 열기"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "打开拨号键盘"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Avaa näppäimistö"
-          }
-        }
-      }
-    },
-    "Aramalar kaydedilir": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Anrufe werden aufgezeichnet"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Calls are recorded"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Las llamadas se graban"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Puhelut nauhoitetaan"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Les appels sont enregistrés"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le chiamate vengono registrate"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "通話は録音されます"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "통화는 녹음됩니다"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gesprekken worden opgenomen"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "As chamadas são gravadas"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "通话会被录音"
-          }
-        }
-      }
-    },
-    "Gistsmith'ten yaptığın aramalar iki taraflı kaydedilir, yazıya dökülür ve not olur.": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Anrufe, die du über Gistsmith führst, werden beidseitig aufgezeichnet, transkribiert und zu einer Notiz."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Calls you make from Gistsmith are recorded on both sides, transcribed and turned into a note."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Las llamadas que haces desde Gistsmith se graban por ambas partes, se transcriben y se convierten en una nota."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gistsmithistä soittamasi puhelut nauhoitetaan molemmilta osapuolilta, litteroidaan ja niistä tulee muistiinpano."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Les appels que tu passes depuis Gistsmith sont enregistrés des deux côtés, transcrits et transformés en note."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le chiamate che fai da Gistsmith vengono registrate da entrambe le parti, trascritte e trasformate in una nota."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gistsmith からの通話は双方とも録音され、文字起こしされてメモになります。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gistsmith에서 건 통화는 양쪽 모두 녹음되고 전사되어 노트가 됩니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gesprekken die je via Gistsmith voert, worden aan beide kanten opgenomen, uitgeschreven en omgezet in een notitie."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "As chamadas que você faz pelo Gistsmith são gravadas dos dois lados, transcritas e viram uma nota."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "你通过 Gistsmith 拨打的电话会双方录音、转写并生成笔记。"
-          }
-        }
-      }
-    },
-    "Karşı taraf bağlanmadan önce görüşmenin kaydedildiğini söyleyen bir duyuru duyar.": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bevor die Verbindung steht, hört die andere Person eine Ansage, dass der Anruf aufgezeichnet wird."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Before being connected, the other person hears an announcement that the call is recorded."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Antes de conectarse, la otra persona escucha un aviso de que la llamada se graba."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ennen yhdistämistä toinen osapuoli kuulee ilmoituksen, että puhelu nauhoitetaan."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Avant d'être mise en relation, l'autre personne entend une annonce indiquant que l'appel est enregistré."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Prima di essere collegata, l'altra persona sente un annuncio che la chiamata è registrata."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "相手はつながる前に、通話が録音されることを知らせるアナウンスを聞きます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "상대방은 연결되기 전에 통화가 녹음된다는 안내를 듣습니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Voordat de verbinding er is, hoort de ander een melding dat het gesprek wordt opgenomen."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Antes de ser conectada, a outra pessoa ouve um aviso de que a chamada é gravada."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "接通前，对方会听到通话正在录音的提示。"
-          }
-        }
-      }
-    },
-    "Arama %@ üzerinden yapılır: %@ görüşmeyi taşır ve kaydı not hazırlanana dek (en çok bir gün) saklar, sonra silinir. Kayıt diğer kayıtların gibi yazıya dökülür.": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Anrufe laufen über %@: %@ überträgt den Anruf und speichert die Aufnahme, bis die Notiz fertig ist (höchstens einen Tag), danach wird sie gelöscht. Die Aufnahme wird wie deine anderen Aufnahmen transkribiert."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Calls go through %@: %@ carries the call and keeps the recording until the note is ready (at most a day), then it's deleted. The recording is transcribed like your other recordings."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Las llamadas pasan por %@: %@ transporta la llamada y guarda la grabación hasta que la nota está lista (como mucho un día); después se elimina. La grabación se transcribe como tus otras grabaciones."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Puhelut kulkevat %@-palvelun kautta: %@ välittää puhelun ja säilyttää nauhoitteen, kunnes muistiinpano on valmis (enintään päivän), minkä jälkeen se poistetaan. Nauhoite litteroidaan kuten muutkin nauhoitteesi."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Les appels passent par %@ : %@ achemine l'appel et conserve l'enregistrement jusqu'à ce que la note soit prête (un jour au plus), puis il est supprimé. L'enregistrement est transcrit comme tes autres enregistrements."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le chiamate passano tramite %@: %@ trasporta la chiamata e conserva la registrazione finché la nota è pronta (al massimo un giorno), poi viene eliminata. La registrazione viene trascritta come le altre."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "通話は %@ を経由します。%@ が通話を中継し、メモができるまで（最長 1 日）録音を保存した後、削除されます。録音は他の録音と同じように文字起こしされます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "통화는 %@를 통해 이루어집니다. %@가 통화를 전달하고 노트가 준비될 때까지(최대 하루) 녹음을 보관한 뒤 삭제합니다. 녹음은 다른 녹음처럼 전사됩니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gesprekken lopen via %@: %@ verzorgt het gesprek en bewaart de opname tot de notitie klaar is (hoogstens een dag), daarna wordt die verwijderd. De opname wordt uitgeschreven zoals je andere opnamen."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "As chamadas passam pela %@: a %@ transporta a chamada e guarda a gravação até a nota ficar pronta (no máximo um dia); depois ela é excluída. A gravação é transcrita como suas outras gravações."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "通话经由 %@ 进行：%@ 负责传输通话，并在笔记生成前（最多一天）保存录音，之后删除。录音会像你的其他录音一样被转写。"
-          }
-        }
-      }
-    },
-    "Arayan numara olarak yalnızca kendi numaran görünür; numaranı seni arayarak doğrularız.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Only your own number is shown as caller ID; we verify it by calling you."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Als Anrufer-ID wird nur deine eigene Nummer angezeigt; wir bestätigen sie, indem wir dich anrufen."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Seul ton propre numéro s'affiche comme appelant ; nous le vérifions en t'appelant."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Solo se muestra tu propio número como identificador de llamada; lo verificamos llamándote."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Come ID chiamante viene mostrato solo il tuo numero; lo verifichiamo chiamandoti."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Apenas seu próprio número aparece como identificador de chamada; nós o verificamos ligando para você."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Alleen je eigen nummer wordt als beller getoond; we verifiëren het door je te bellen."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "発信者番号にはご自身の番号だけが表示されます。お電話して番号を確認します。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "발신자 번호로는 내 번호만 표시됩니다. 전화를 걸어 번호를 인증합니다."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "来电显示只会显示你自己的号码；我们会打电话给你来验证。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Soittajan numerona näytetään vain oma numerosi; vahvistamme sen soittamalla sinulle."
-          }
-        }
-      }
-    },
-    "Acil aramalar Gistsmith'ten yapılamaz; acil numaralar Telefon uygulamasında açılır.": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notrufe sind über Gistsmith nicht möglich; Notrufnummern werden in der Telefon-App geöffnet."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Emergency calls can't be made from Gistsmith; emergency numbers open in the Phone app."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No se pueden hacer llamadas de emergencia desde Gistsmith; los números de emergencia se abren en la app Teléfono."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hätäpuheluita ei voi soittaa Gistsmithistä; hätänumerot avautuvat Puhelin-sovelluksessa."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Les appels d'urgence ne peuvent pas être passés depuis Gistsmith ; les numéros d'urgence s'ouvrent dans l'app Téléphone."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le chiamate di emergenza non si possono fare da Gistsmith; i numeri di emergenza si aprono nell'app Telefono."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "緊急通報は Gistsmith からはできません。緊急番号は電話アプリで開きます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "긴급 전화는 Gistsmith에서 걸 수 없습니다. 긴급 번호는 전화 앱에서 열립니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Noodoproepen kunnen niet via Gistsmith; noodnummers worden geopend in de Telefoon-app."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Não é possível fazer chamadas de emergência pelo Gistsmith; números de emergência abrem no app Telefone."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "无法通过 Gistsmith 拨打紧急电话；紧急号码会在“电话” App 中打开。"
-          }
-        }
-      }
-    },
-    "Aramalarımın kaydedileceğini ve karşı tarafın onayını alacağımı kabul ediyorum.": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ich verstehe, dass meine Anrufe aufgezeichnet werden, und hole die Zustimmung der anderen Person ein."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "I understand my calls are recorded, and I'll get the other person's consent."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Entiendo que mis llamadas se graban y obtendré el consentimiento de la otra persona."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ymmärrän, että puheluni nauhoitetaan, ja pyydän toiselta osapuolelta suostumuksen."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Je comprends que mes appels sont enregistrés et j'obtiendrai le consentement de l'autre personne."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Capisco che le mie chiamate vengono registrate e otterrò il consenso dell'altra persona."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "通話が録音されることを理解し、相手の同意を得ます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "통화가 녹음된다는 것을 이해하며 상대방의 동의를 받겠습니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ik begrijp dat mijn gesprekken worden opgenomen en ik vraag de ander om toestemming."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Entendo que minhas chamadas são gravadas e vou obter o consentimento da outra pessoa."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "我了解我的通话会被录音，并会征得对方同意。"
-          }
-        }
-      }
-    },
     "Kabul et ve devam et": {
       "extractionState": "manual",
       "localizations": {
@@ -188859,148 +188149,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Vahvista numerosi"
-          }
-        }
-      }
-    },
-    "Aradığın kişi arayan olarak kendi numaranı görür. Numaranın senin olduğunu doğrulamak için seni arayacağız; aramayı aç ve ekrandaki kodu tuşla.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The person you call sees your own number. To confirm it's yours, we'll call you; answer and type the code shown here."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die angerufene Person sieht deine eigene Nummer. Um zu bestätigen, dass sie dir gehört, rufen wir dich an; nimm ab und gib den hier angezeigten Code ein."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La personne appelée voit ton propre numéro. Pour confirmer qu'il t'appartient, nous allons t'appeler ; réponds et saisis le code affiché ici."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La persona a la que llamas ve tu propio número. Para confirmar que es tuyo, te llamaremos; contesta y marca el código que aparece aquí."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La persona che chiami vede il tuo numero. Per confermare che è tuo ti chiameremo: rispondi e digita il codice mostrato qui."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A pessoa para quem você liga vê seu próprio número. Para confirmar que ele é seu, vamos ligar para você; atenda e digite o código mostrado aqui."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Degene die je belt ziet je eigen nummer. Om te bevestigen dat het van jou is, bellen we je; neem op en toets de code in die hier staat."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "相手にはご自身の番号が表示されます。番号の確認のためにお電話しますので、電話に出てここに表示されたコードを入力してください。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "상대방에게는 내 번호가 표시됩니다. 번호가 본인 것인지 확인하기 위해 전화를 드립니다. 전화를 받고 여기 표시된 코드를 입력하세요."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "对方会看到你自己的号码。为确认号码属于你，我们会给你打电话；请接听并输入此处显示的验证码。"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Soitettava näkee oman numerosi. Varmistaaksemme, että numero on sinun, soitamme sinulle; vastaa ja näppäile tässä näkyvä koodi."
-          }
-        }
-      }
-    },
-    "%@ aranıyor. Aramayı aç ve bu kodu tuşla:": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Calling %@. Answer and type this code:"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ wird angerufen. Nimm ab und gib diesen Code ein:"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Appel de %@ en cours. Réponds et saisis ce code :"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Llamando a %@. Contesta y marca este código:"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Chiamata a %@ in corso. Rispondi e digita questo codice:"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ligando para %@. Atenda e digite este código:"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ wordt gebeld. Neem op en toets deze code in:"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ に発信中です。電話に出て、このコードを入力してください:"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@(으)로 전화하는 중입니다. 전화를 받고 이 코드를 입력하세요:"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在呼叫 %@。请接听并输入以下验证码："
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Soitetaan numeroon %@. Vastaa ja näppäile tämä koodi:"
           }
         }
       }
@@ -189427,77 +188575,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Soittajan numero: %@"
-          }
-        }
-      }
-    },
-    "Bu ay kalan arama dakikası: %lld": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Call minutes left this month: %lld"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Verbleibende Anrufminuten diesen Monat: %lld"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Minutes d'appel restantes ce mois-ci : %lld"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Minutos de llamada restantes este mes: %lld"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Minuti di chiamata rimasti questo mese: %lld"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Minutos de chamada restantes neste mês: %lld"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Resterende belminuten deze maand: %lld"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "今月の残り通話時間（分）: %lld"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "이번 달 남은 통화 시간(분): %lld"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "本月剩余通话分钟数：%lld"
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Puheluminuutteja jäljellä tässä kuussa: %lld"
           }
         }
       }
@@ -190137,148 +189214,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Kaiutin"
-          }
-        }
-      }
-    },
-    "Kayıt alındı; not ana ekranda hazırlanıyor.": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aufnahme erhalten; die Notiz wird auf dem Startbildschirm erstellt."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recording received; the note is being prepared on the home screen."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Grabación recibida; la nota se está preparando en la pantalla de inicio."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nauhoite vastaanotettu; muistiinpanoa valmistellaan aloitusnäkymässä."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enregistrement reçu ; la note est en préparation sur l'écran d'accueil."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Registrazione ricevuta; la nota è in preparazione nella schermata iniziale."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "録音を受け取りました。ホーム画面でメモを作成しています。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "녹음을 받았습니다. 홈 화면에서 노트를 준비하고 있습니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Opname ontvangen; de notitie wordt op het beginscherm gemaakt."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gravação recebida; a nota está sendo preparada na tela inicial."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已收到录音，正在主屏幕上生成笔记。"
-          }
-        }
-      }
-    },
-    "Kayıt alınıyor; not ana ekranda hazırlanacak.": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aufnahme wird abgerufen; die Notiz wird auf dem Startbildschirm erstellt."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fetching the recording; the note will be prepared on the home screen."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Obteniendo la grabación; la nota se preparará en la pantalla de inicio."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Haetaan nauhoitetta; muistiinpano valmistellaan aloitusnäkymässä."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Récupération de l'enregistrement ; la note sera préparée sur l'écran d'accueil."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recupero della registrazione; la nota verrà preparata nella schermata iniziale."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "録音を取得しています。メモはホーム画面で作成されます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "녹음을 가져오는 중입니다. 노트는 홈 화면에서 준비됩니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Opname ophalen; de notitie wordt op het beginscherm gemaakt."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Obtendo a gravação; a nota será preparada na tela inicial."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在获取录音，笔记将在主屏幕上生成。"
           }
         }
       }
@@ -210070,6 +209005,3296 @@
           "stringUnit": {
             "state": "translated",
             "value": "Kehittäjäversio: omat avaimet, ei tiliä."
+          }
+        }
+      }
+    },
+    "Ülke: %@, +%@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Land: %@, +%@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Country: %@, +%@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "País: %@, +%@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maa: %@, +%@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pays : %@, +%@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paese: %@, +%@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "国または地域: %@、+%@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "국가: %@, +%@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Land: %@, +%@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "País: %@, +%@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "国家/地区：%@，+%@"
+          }
+        }
+      }
+    },
+    "Ülke listesini açar": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffnet die Länderliste"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens the list of countries"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre la lista de países"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avaa maaluettelon"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvre la liste des pays"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apre l'elenco dei paesi"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "国または地域のリストを開きます"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "국가 목록을 엽니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opent de lijst met landen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre a lista de países"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开国家/地区列表"
+          }
+        }
+      }
+    },
+    "%lld dk kaldı": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noch %lld Min."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld min left"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quedan %lld min"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld min jäljellä"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld min restantes"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld min rimasti"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "残り%lld分"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld분 남음"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nog %lld min"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld min restantes"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剩余 %lld 分钟"
+          }
+        }
+      }
+    },
+    "Ülke ara": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Länder suchen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search countries"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar países"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hae maita"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rechercher un pays"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cerca paesi"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "国または地域を検索"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "국가 검색"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zoek landen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar países"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索国家/地区"
+          }
+        }
+      }
+    },
+    "Ülke": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Land"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Country"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "País"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pays"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paese"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "国または地域"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "국가"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Land"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "País"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "国家/地区"
+          }
+        }
+      }
+    },
+    "Telefon görüşmelerinden not çıkar": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notizen aus Telefonaten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn phone calls into notes"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Convierte llamadas en notas"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muistiinpanot puheluista"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Des notes à partir de tes appels"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trasforma le telefonate in note"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "電話からメモを作成"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "전화 통화를 노트로"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maak notities van telefoongesprekken"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transforme ligações em notas"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "把电话通话变成笔记"
+          }
+        }
+      }
+    },
+    "Numarayı Gistsmith'ten ara; görüşme kaydedilir, not, kararlar ve görevler yüz yüze kayıttaki gibi hazırlanır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ruf die Nummer über Gistsmith an; das Telefonat wird aufgenommen, und Notiz, Entscheidungen und Aufgaben entstehen wie bei einer Aufnahme vor Ort."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Call the number from Gistsmith; the call is recorded and the note, decisions and tasks are prepared just like for an in-person recording."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Llama al número desde Gistsmith; la llamada se graba y la nota, las decisiones y las tareas se preparan igual que en una grabación en persona."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Soita numeroon Gistsmithistä; puhelu nauhoitetaan, ja muistiinpano, päätökset ja tehtävät valmistellaan kuten kasvokkaisessa nauhoituksessa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appelle le numéro depuis Gistsmith ; l'appel est enregistré, et la note, les décisions et les tâches sont préparées comme pour un enregistrement en personne."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chiama il numero da Gistsmith; la telefonata viene registrata e nota, decisioni e attività vengono preparate come per una registrazione di persona."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith から番号に発信すると、通話が録音され、対面の録音と同じようにメモ、決定事項、タスクが作成されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith에서 번호로 전화를 걸면 통화가 녹음되고, 대면 녹음과 똑같이 노트, 결정 사항, 할 일이 준비됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bel het nummer via Gistsmith; het gesprek wordt opgenomen en de notitie, besluiten en taken worden gemaakt net als bij een opname ter plaatse."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ligue para o número pelo Gistsmith; a ligação é gravada e a nota, as decisões e as tarefas são preparadas como em uma gravação presencial."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通过 Gistsmith 拨打号码；通话会被录音，笔记、决定和任务的生成方式与面对面录音相同。"
+          }
+        }
+      }
+    },
+    "Buradan ararsın": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du rufst von hier an"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You call from here"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Llamas desde aquí"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Soitat täältä"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu appelles d'ici"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chiami da qui"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ここから発信します"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "여기에서 전화를 겁니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je belt vanaf hier"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você liga daqui"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在这里拨打"
+          }
+        }
+      }
+    },
+    "Arama internet üzerinden gider. Karşı taraf arayan olarak kendi numaranı görür.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Anruf läuft über das Internet. Die andere Person sieht deine eigene Nummer als Anrufer."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The call goes over the internet. The other person sees your own number as the caller."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La llamada va por internet. La otra persona ve tu propio número como llamante."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puhelu kulkee internetin kautta. Toinen osapuoli näkee soittajana oman numerosi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'appel passe par Internet. Ton interlocuteur voit ton propre numéro comme appelant."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La chiamata passa da internet. L'altra persona vede il tuo numero come chiamante."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通話はインターネット経由で行われます。相手にはあなた自身の番号が発信者として表示されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "통화는 인터넷을 통해 연결됩니다. 상대방에게는 내 번호가 발신자로 표시됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het gesprek gaat via internet. De ander ziet je eigen nummer als beller."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A ligação passa pela internet. A outra pessoa vê seu próprio número como quem está ligando."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通话通过互联网进行。对方看到的来电号码是你自己的号码。"
+          }
+        }
+      }
+    },
+    "İki taraf da kaydedilir": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beide Seiten werden aufgenommen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Both sides are recorded"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se graban ambas partes"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Molemmat osapuolet nauhoitetaan"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les deux côtés sont enregistrés"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vengono registrate entrambe le parti"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "双方が録音されます"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "양쪽 모두 녹음됩니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beide kanten worden opgenomen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os dois lados são gravados"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "双方都会被录音"
+          }
+        }
+      }
+    },
+    "Karşı taraf açınca, bağlanmadan önce görüşmenin kaydedildiğini kendi dilinde duyar.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wenn die andere Person abhebt, hört sie in ihrer Sprache, dass das Telefonat aufgenommen wird, bevor ihr verbunden werdet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When the other person answers, they hear in their language that the call is recorded, before you're connected."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuando la otra persona contesta, oye en su idioma que la llamada se graba, antes de que os conecten."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kun toinen osapuoli vastaa, hän kuulee omalla kielellään, että puhelu nauhoitetaan, ennen kuin teidät yhdistetään."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quand ton interlocuteur décroche, il entend dans sa langue que l'appel est enregistré, avant que vous soyez mis en relation."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando l'altra persona risponde, sente nella sua lingua che la telefonata viene registrata, prima che siate collegati."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "相手が応答すると、つながる前に、通話が録音されることが相手の言語で伝えられます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "상대방이 전화를 받으면 연결되기 전에 통화가 녹음된다는 안내를 상대방의 언어로 듣습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als de ander opneemt, hoort die in de eigen taal dat het gesprek wordt opgenomen, voordat jullie worden verbonden."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando a outra pessoa atende, ela ouve no idioma dela que a ligação está sendo gravada, antes de vocês serem conectados."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对方接听后，在接通之前会用其语言听到通话将被录音的提示。"
+          }
+        }
+      }
+    },
+    "Planına dahil": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In deinem Tarif enthalten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Included in your plan"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incluido en tu plan"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sisältyy tilaukseesi"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inclus dans ton forfait"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incluso nel tuo piano"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プランに含まれています"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "플랜에 포함"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inbegrepen in je abonnement"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incluído no seu plano"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已包含在你的方案中"
+          }
+        }
+      }
+    },
+    "Ayda %lld dakikaya kadar, arama başına en çok %lld dakika; ek ücret yok. Bazı ülkelere aramalar bu süreyi daha hızlı kullanır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bis zu %lld Minuten im Monat, höchstens %lld Minuten pro Anruf, ohne Aufpreis. Anrufe in manche Länder verbrauchen diese Zeit schneller."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Up to %lld minutes a month, at most %lld minutes per call, at no extra cost. Calls to some countries use this time up faster."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hasta %lld minutos al mes, como máximo %lld minutos por llamada, sin coste adicional. Las llamadas a algunos países consumen este tiempo más rápido."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enintään %lld minuuttia kuukaudessa, enintään %lld minuuttia puhelua kohden, ilman lisämaksua. Puhelut joihinkin maihin kuluttavat tätä aikaa nopeammin."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jusqu'à %lld minutes par mois, %lld minutes maximum par appel, sans frais supplémentaires. Les appels vers certains pays consomment ce temps plus vite."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fino a %lld minuti al mese, al massimo %lld minuti per chiamata, senza costi aggiuntivi. Le chiamate verso alcuni paesi consumano questo tempo più in fretta."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "毎月%lld分まで、1回の通話は最大%lld分で、追加料金はかかりません。一部の国への通話はこの時間を早く消費します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "한 달에 최대 %lld분, 통화당 최대 %lld분까지 추가 요금 없이 사용할 수 있습니다. 일부 국가로 거는 통화는 이 시간을 더 빨리 소모합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tot %lld minuten per maand, maximaal %lld minuten per gesprek, zonder extra kosten. Gesprekken naar sommige landen gebruiken deze tijd sneller."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Até %lld minutos por mês, no máximo %lld minutos por ligação, sem custo extra. Ligações para alguns países consomem esse tempo mais rápido."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每月最多 %lld 分钟，每次通话最多 %lld 分钟，无需额外付费。拨打某些国家/地区会更快用完这些时间。"
+          }
+        }
+      }
+    },
+    "%@ taşır": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Übertragen von %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carried by %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gestionado por %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välittäjä: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acheminé par %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gestita da %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ が通話を中継"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@에서 통화 연결"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verzorgd door %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transmitido por %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "由 %@ 承载"
+          }
+        }
+      }
+    },
+    "Acil aramalar için değil": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nicht für Notrufe"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not for emergency calls"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No es para llamadas de emergencia"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ei hätäpuheluihin"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pas pour les appels d'urgence"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non per le chiamate di emergenza"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "緊急通報には使えません"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "긴급 전화용이 아닙니다"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niet voor noodoproepen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não serve para chamadas de emergência"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不能用于紧急呼叫"
+          }
+        }
+      }
+    },
+    "Acil numaralar Telefon uygulamasında açılır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notrufnummern werden in der Telefon-App geöffnet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Emergency numbers open in the Phone app."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los números de emergencia se abren en la app Teléfono."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hätänumerot avautuvat Puhelin-sovelluksessa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les numéros d'urgence s'ouvrent dans l'app Téléphone."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I numeri di emergenza si aprono nell'app Telefono."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "緊急番号は電話アプリで開きます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "긴급 번호는 전화 앱에서 열립니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noodnummers worden geopend in de Telefoon-app."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Números de emergência abrem no app Telefone."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "紧急号码会在“电话” App 中打开。"
+          }
+        }
+      }
+    },
+    "Aramayı başka yoldan kaydet": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anruf auf andere Weise aufnehmen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record a call another way"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabar una llamada de otra forma"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nauhoita puhelu muulla tavalla"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrer un appel autrement"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registra una chiamata in un altro modo"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "別の方法で通話を録音"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다른 방법으로 통화 녹음"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Een gesprek op een andere manier opnemen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gravar uma ligação de outro jeito"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用其他方式录制通话"
+          }
+        }
+      }
+    },
+    "Aradığın kişiler arayan olarak bu numarayı görür. Senin olduğunu doğrulamak için seni arayacağız; aramayı açıp kodu tuşlayacaksın.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Personen, die du anrufst, sehen diese Nummer als Anrufer. Um zu bestätigen, dass sie dir gehört, rufen wir dich an; nimm ab und gib den Code ein."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The people you call see this number as the caller. To confirm it's yours, we'll call you; answer and type the code."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las personas a las que llamas ven este número como llamante. Para confirmar que es tuyo, te llamaremos; contesta e introduce el código."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ihmiset, joille soitat, näkevät soittajana tämän numeron. Vahvistaaksemme, että se on sinun, soitamme sinulle; vastaa ja näppäile koodi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les personnes que tu appelles voient ce numéro comme appelant. Pour confirmer qu'il t'appartient, nous allons t'appeler ; décroche et saisis le code."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le persone che chiami vedono questo numero come chiamante. Per confermare che è tuo ti chiameremo; rispondi e digita il codice."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あなたが発信した相手には、この番号が発信者として表示されます。あなたの番号であることを確認するためにお電話します。応答してコードを入力してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "내가 전화를 거는 사람에게는 이 번호가 발신자로 표시됩니다. 내 번호인지 확인하기 위해 전화를 드립니다. 전화를 받고 코드를 입력하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De mensen die je belt zien dit nummer als beller. Om te bevestigen dat het van jou is, bellen we je; neem op en toets de code in."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As pessoas para quem você liga veem este número como quem está ligando. Para confirmar que ele é seu, vamos ligar para você; atenda e digite o código."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你拨打的人会看到此号码作为来电号码。为确认号码属于你，我们会给你打电话；接听后输入验证码。"
+          }
+        }
+      }
+    },
+    "Aramayı aç": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anruf annehmen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Answer the call"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contesta la llamada"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vastaa puheluun"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Décroche"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rispondi alla chiamata"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "電話に出てください"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "전화를 받으세요"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neem de oproep aan"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atenda a ligação"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接听来电"
+          }
+        }
+      }
+    },
+    "%@ aranıyor. Aramayı aç ve sorulunca bu kodu tuşla:": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ wird angerufen. Nimm ab und gib diesen Code ein, wenn du gefragt wirst:"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Calling %@. Answer and type this code when asked:"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Llamando a %@. Contesta e introduce este código cuando se te pida:"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Soitetaan numeroon %@. Vastaa ja näppäile tämä koodi, kun sitä pyydetään:"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appel vers %@. Décroche et saisis ce code quand on te le demande :"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chiamata a %@ in corso. Rispondi e digita questo codice quando richiesto:"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ に発信しています。応答し、求められたらこのコードを入力してください:"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 번호로 전화하는 중입니다. 전화를 받고 요청하면 이 코드를 입력하세요:"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ wordt gebeld. Neem op en toets deze code in als daarom wordt gevraagd:"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ligando para %@. Atenda e digite este código quando for pedido:"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在呼叫 %@。接听后按提示输入此验证码："
+          }
+        }
+      }
+    },
+    "Kod: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Code: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Code: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código: %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Koodi: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Code : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Codice: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コード: %@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "코드: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Code: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "验证码：%@"
+          }
+        }
+      }
+    },
+    "Kaydetmeden önce": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bevor du aufnimmst"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Before you record"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Antes de grabar"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ennen nauhoitusta"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avant d'enregistrer"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prima di registrare"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音する前に"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹음하기 전에"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voordat je opneemt"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Antes de gravar"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "录音前须知"
+          }
+        }
+      }
+    },
+    "Gistsmith'ten yaptığın her arama iki taraflı kaydedilir. Karşı tarafı bilgilendirmek senin sorumluluğunda.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jeder Anruf, den du über Gistsmith tätigst, wird auf beiden Seiten aufgenommen. Die andere Person zu informieren, liegt in deiner Verantwortung."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Every call you make from Gistsmith records both sides. Telling the other person is your responsibility."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada llamada que haces desde Gistsmith graba ambas partes. Avisar a la otra persona es tu responsabilidad."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jokainen Gistsmithistä soittamasi puhelu nauhoitetaan molemmilta osapuolilta. Toisen osapuolen kertominen on sinun vastuullasi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chaque appel passé depuis Gistsmith est enregistré des deux côtés. Prévenir ton interlocuteur relève de ta responsabilité."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ogni chiamata che fai da Gistsmith registra entrambe le parti. Avvisare l'altra persona è una tua responsabilità."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith から発信した通話はすべて双方が録音されます。相手に伝えるのはあなたの責任です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith에서 거는 모든 통화는 양쪽 모두 녹음됩니다. 상대방에게 알리는 것은 사용자의 책임입니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elk gesprek dat je via Gistsmith voert, neemt beide kanten op. De ander inlichten is jouw verantwoordelijkheid."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toda ligação que você faz pelo Gistsmith grava os dois lados. Avisar a outra pessoa é responsabilidade sua."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你通过 Gistsmith 拨打的每通电话都会录下双方。告知对方是你的责任。"
+          }
+        }
+      }
+    },
+    "Otomatik duyuru": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatischer Hinweis"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic notice"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aviso automático"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automaattinen ilmoitus"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Annonce automatique"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avviso automatico"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動アナウンス"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "자동 안내"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatische melding"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aviso automático"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动提示"
+          }
+        }
+      }
+    },
+    "Karşı taraf açınca, bağlanmadan önce kaydı duyuran kısa bir mesaj duyar.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wenn die andere Person abhebt, hört sie eine kurze Ansage zur Aufnahme, bevor ihr verbunden werdet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When the other person answers, they hear a short message announcing the recording before you're connected."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuando la otra persona contesta, oye un breve mensaje que anuncia la grabación antes de que os conecten."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kun toinen osapuoli vastaa, hän kuulee lyhyen nauhoituksesta kertovan viestin ennen kuin teidät yhdistetään."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quand ton interlocuteur décroche, il entend un court message annonçant l'enregistrement avant que vous soyez mis en relation."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando l'altra persona risponde, sente un breve messaggio che annuncia la registrazione prima che siate collegati."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "相手が応答すると、つながる前に録音を知らせる短いメッセージが流れます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "상대방이 전화를 받으면 연결되기 전에 녹음을 알리는 짧은 메시지를 듣습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als de ander opneemt, hoort die een korte melding over de opname voordat jullie worden verbonden."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando a outra pessoa atende, ela ouve uma mensagem curta avisando da gravação antes de vocês serem conectados."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对方接听后，在接通之前会听到一段简短的录音提示。"
+          }
+        }
+      }
+    },
+    "Herkese haber ver": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sag es allen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tell everyone"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avisa a todos"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kerro kaikille"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Préviens tout le monde"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avvisa tutti"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全員に伝える"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "모두에게 알리기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laat het iedereen weten"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avise todo mundo"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "告知所有人"
+          }
+        }
+      }
+    },
+    "Görüşmenin başında kaydettiğini söyle. Kabul etmeyen olursa aramayı kapat.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sag zu Beginn des Telefonats, dass du aufnimmst. Wenn jemand nicht einverstanden ist, leg auf."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Say at the start of the call that you're recording. If anyone doesn't agree, hang up."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Di al principio de la llamada que estás grabando. Si alguien no está de acuerdo, cuelga."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kerro puhelun alussa, että nauhoitat. Jos joku ei hyväksy, lopeta puhelu."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dis au début de l'appel que tu enregistres. Si quelqu'un n'est pas d'accord, raccroche."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All'inizio della telefonata di' che stai registrando. Se qualcuno non è d'accordo, riattacca."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通話の最初に録音していることを伝えてください。同意しない人がいれば電話を切ってください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "통화를 시작할 때 녹음 중이라고 말하세요. 동의하지 않는 사람이 있으면 전화를 끊으세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeg aan het begin van het gesprek dat je opneemt. Gaat iemand niet akkoord, hang dan op."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diga no início da ligação que você está gravando. Se alguém não concordar, desligue."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在通话开始时说明你正在录音。如有人不同意，请挂断。"
+          }
+        }
+      }
+    },
+    "Ülkelere göre": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nach Land"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "By country"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por país"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maittain"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Par pays"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Per paese"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "国別"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "국가별"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Per land"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por país"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按国家/地区"
+          }
+        }
+      }
+    },
+    "Bu bir hukuki danışmanlık değildir; kuralları ülkene ve sektörüne göre denetle.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dies ist keine Rechtsberatung; prüfe die Regeln für dein Land und deine Branche."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This isn't legal advice; check the rules for your country and industry."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esto no es asesoramiento legal; consulta las normas de tu país y tu sector."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämä ei ole oikeudellista neuvontaa; tarkista maasi ja alasi säännöt."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ceci n'est pas un conseil juridique ; vérifie les règles de ton pays et de ton secteur."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questa non è una consulenza legale; verifica le regole del tuo paese e del tuo settore."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "これは法的助言ではありません。お住まいの国と業界のルールを確認してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 내용은 법률 자문이 아닙니다. 국가와 업종의 규정을 확인하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dit is geen juridisch advies; controleer de regels voor je land en je sector."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Isto não é aconselhamento jurídico; confira as regras do seu país e do seu setor."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这不是法律建议；请查看你所在国家/地区和行业的规定。"
+          }
+        }
+      }
+    },
+    "Görüşmeye katılan herkese kaydı söyleyeceğimi ve gereken yerde onaylarını alacağımı kabul ediyorum.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ich sage allen im Telefonat, dass es aufgenommen wird, und hole ihre Zustimmung ein, wo nötig."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I'll tell everyone on the call that it's recorded and get their consent where required."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diré a todos los participantes de la llamada que se está grabando y obtendré su consentimiento cuando sea necesario."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kerron kaikille puhelussa oleville, että se nauhoitetaan, ja pyydän heidän suostumuksensa, kun sitä vaaditaan."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je préviendrai toutes les personnes présentes dans l'appel qu'il est enregistré et j'obtiendrai leur consentement lorsque c'est requis."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dirò a tutti i partecipanti alla telefonata che è registrata e otterrò il loro consenso dove richiesto."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通話の参加者全員に録音していることを伝え、必要な場合は同意を得ます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "통화 참여자 모두에게 녹음 사실을 알리고 필요한 경우 동의를 받겠습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ik vertel iedereen in het gesprek dat het wordt opgenomen en vraag waar nodig hun toestemming."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vou avisar todos na ligação que ela está sendo gravada e obter o consentimento deles quando for exigido."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我会告知通话中的每个人正在录音，并在需要时征得他们的同意。"
+          }
+        }
+      }
+    },
+    "Avrupa (AB, AEA, Birleşik Krallık): veri koruma kuralları gereği kayıttan önce herkes bilgilendirilmeli.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Europa (EU, EWR, Vereinigtes Königreich): Datenschutzregeln verlangen, dass alle vor der Aufnahme informiert werden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Europe (EU, EEA, United Kingdom): data protection rules require telling everyone before recording."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Europa (UE, EEE, Reino Unido): las normas de protección de datos exigen avisar a todos antes de grabar."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eurooppa (EU, ETA, Yhdistynyt kuningaskunta): tietosuojasäännöt edellyttävät, että kaikille kerrotaan ennen nauhoitusta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Europe (UE, EEE, Royaume-Uni) : les règles de protection des données imposent de prévenir tout le monde avant d'enregistrer."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Europa (UE, SEE, Regno Unito): le norme sulla protezione dei dati richiedono di avvisare tutti prima di registrare."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヨーロッパ（EU、EEA、英国）: データ保護のルールにより、録音の前に全員に知らせる必要があります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "유럽(EU, EEA, 영국): 데이터 보호 규정에 따라 녹음 전에 모두에게 알려야 합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Europa (EU, EER, Verenigd Koninkrijk): volgens de regels voor gegevensbescherming moet iedereen vóór de opname worden ingelicht."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Europa (UE, EEE, Reino Unido): as regras de proteção de dados exigem avisar todos antes de gravar."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "欧洲（欧盟、欧洲经济区、英国）：数据保护规定要求在录音前告知所有人。"
+          }
+        }
+      }
+    },
+    "ABD: Kaliforniya, Florida, Illinois, Washington gibi bazı eyaletlerde herkesin onayı gerekir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "USA: Einige Bundesstaaten wie Kalifornien, Florida, Illinois und Washington verlangen die Zustimmung aller."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "US: some states, such as California, Florida, Illinois and Washington, require everyone's consent."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EE. UU.: algunos estados, como California, Florida, Illinois y Washington, exigen el consentimiento de todos."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yhdysvallat: jotkin osavaltiot, kuten Kalifornia, Florida, Illinois ja Washington, edellyttävät kaikkien suostumusta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "États-Unis : certains États, comme la Californie, la Floride, l'Illinois et Washington, exigent le consentement de tous."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "USA: alcuni stati, come California, Florida, Illinois e Washington, richiedono il consenso di tutti."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "米国: カリフォルニア、フロリダ、イリノイ、ワシントンなど一部の州では全員の同意が必要です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "미국: 캘리포니아, 플로리다, 일리노이, 워싱턴 등 일부 주에서는 모두의 동의가 필요합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "VS: sommige staten, zoals Californië, Florida, Illinois en Washington, vereisen toestemming van iedereen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EUA: alguns estados, como Califórnia, Flórida, Illinois e Washington, exigem o consentimento de todos."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "美国：部分州（如加利福尼亚州、佛罗里达州、伊利诺伊州和华盛顿州）要求征得所有人同意。"
+          }
+        }
+      }
+    },
+    "Kanada: taraflardan birinin onayı yeter; kişisel bilgilerin korunması yasası yine de haber vermeyi ister.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kanada: Die Zustimmung einer Partei genügt; das Datenschutzrecht erwartet trotzdem, dass du die andere Person informierst."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Canada: one party's consent is enough; privacy law still expects you to tell the other person."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Canadá: basta con el consentimiento de una de las partes; aun así, la ley de privacidad espera que avises a la otra persona."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kanada: yhden osapuolen suostumus riittää; tietosuojalaki edellyttää silti, että kerrot asiasta toiselle osapuolelle."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Canada : le consentement d'une seule partie suffit ; la loi sur la protection des renseignements personnels attend tout de même que tu préviennes l'autre personne."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Canada: basta il consenso di una delle parti; la legge sulla privacy chiede comunque di avvisare l'altra persona."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カナダ: 当事者の一方の同意で足ります。ただしプライバシー法では、相手に伝えることが求められます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "캐나다: 한쪽 당사자의 동의로 충분하지만, 개인정보 보호법은 상대방에게 알릴 것을 요구합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Canada: toestemming van één partij is genoeg; de privacywet verwacht toch dat je de ander inlicht."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Canadá: o consentimento de uma das partes basta; mesmo assim, a lei de privacidade espera que você avise a outra pessoa."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "加拿大：一方同意即可；但隐私法仍要求你告知对方。"
+          }
+        }
+      }
+    },
+    "Türkiye: görüşmedeki herkesin açık onayı gerekir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Türkei: Alle im Telefonat müssen ausdrücklich zustimmen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turkey: everyone on the call must explicitly agree."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turquía: todos los participantes de la llamada deben dar su consentimiento explícito."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turkki: kaikkien puhelussa olevien on annettava nimenomainen suostumus."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turquie : toutes les personnes présentes dans l'appel doivent donner leur accord explicite."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turchia: tutti i partecipanti alla telefonata devono dare un consenso esplicito."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "トルコ: 通話の参加者全員の明示的な同意が必要です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "튀르키예: 통화 참여자 모두의 명시적 동의가 필요합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turkije: iedereen in het gesprek moet uitdrukkelijk toestemming geven."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turquia: todos na ligação precisam concordar explicitamente."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "土耳其：通话中的每个人都必须明确同意。"
+          }
+        }
+      }
+    },
+    "Ücretli ve özel servis numaraları aranamaz.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Premium- und Sonderrufnummern können nicht angerufen werden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Premium-rate and special service numbers can't be called."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se puede llamar a números de tarificación adicional ni de servicios especiales."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maksullisiin palvelunumeroihin ja erikoispalvelunumeroihin ei voi soittaa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les numéros surtaxés et de services spéciaux ne peuvent pas être appelés."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non si possono chiamare numeri a tariffa maggiorata o di servizi speciali."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有料番号や特殊サービス番号には発信できません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "유료 번호와 특수 서비스 번호로는 전화를 걸 수 없습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Betaalnummers en speciale servicenummers kunnen niet worden gebeld."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não é possível ligar para números de tarifa premium e de serviços especiais."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不能拨打付费号码和特殊服务号码。"
+          }
+        }
+      }
+    },
+    "Bu ülke desteklenmiyor.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Land wird nicht unterstützt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This country isn't supported."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este país no es compatible."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tätä maata ei tueta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce pays n'est pas pris en charge."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questo paese non è supportato."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この国または地域には対応していません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 국가는 지원되지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dit land wordt niet ondersteund."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este país não é compatível."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支持此国家/地区。"
+          }
+        }
+      }
+    },
+    "Bu ülkenin operatörleri, yurt dışından gelen ve aynı ülkenin numarasını gösteren aramaları engelliyor.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Netzbetreiber in diesem Land sperren Anrufe aus dem Ausland, die eine Nummer aus demselben Land anzeigen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carriers in this country block calls from abroad that show a number from the same country."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los operadores de este país bloquean las llamadas desde el extranjero que muestran un número del mismo país."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämän maan operaattorit estävät ulkomailta tulevat puhelut, joissa näkyy saman maan numero."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les opérateurs de ce pays bloquent les appels venant de l'étranger qui affichent un numéro du même pays."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gli operatori di questo paese bloccano le chiamate dall'estero che mostrano un numero dello stesso paese."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この国の通信事業者は、同じ国の番号を表示した海外からの通話をブロックしています。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 국가의 통신사는 같은 국가 번호를 표시하는 해외 발신 통화를 차단합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Providers in dit land blokkeren gesprekken uit het buitenland die een nummer uit hetzelfde land tonen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As operadoras deste país bloqueiam ligações do exterior que mostram um número do mesmo país."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此国家/地区的运营商会屏蔽来自境外、显示同一国家/地区号码的来电。"
+          }
+        }
+      }
+    },
+    "Tuş takımı": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ziffernblock"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keypad"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teclado"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näppäimistö"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clavier"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tastierino"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーパッド"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "키패드"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toetsen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teclado"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拨号键盘"
+          }
+        }
+      }
+    },
+    "Kayıt alınıyor": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aufnahme wird abgerufen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fetching the recording"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obteniendo la grabación"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Haetaan nauhoitetta"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Récupération de l'enregistrement"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recupero della registrazione"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音を取得中"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹음을 가져오는 중"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opname ophalen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obtendo a gravação"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在获取录音"
+          }
+        }
+      }
+    },
+    "Not ana ekranda": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notiz auf dem Startbildschirm"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note on the home screen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nota en la pantalla de inicio"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muistiinpano aloitusnäkymässä"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note sur l'écran d'accueil"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nota nella schermata iniziale"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メモはホーム画面に"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "노트는 홈 화면에"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notitie op het beginscherm"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nota na tela inicial"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "笔记在主屏幕上"
+          }
+        }
+      }
+    },
+    "Bu ekranı kapatabilirsin; not hazırlanınca ana ekranda görünür.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du kannst diesen Bildschirm schließen; die Notiz erscheint auf dem Startbildschirm, sobald sie fertig ist."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can close this screen; the note appears on the home screen when it's ready."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puedes cerrar esta pantalla; la nota aparece en la pantalla de inicio cuando esté lista."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voit sulkea tämän näkymän; muistiinpano näkyy aloitusnäkymässä, kun se on valmis."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu peux fermer cet écran ; la note apparaît sur l'écran d'accueil quand elle est prête."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puoi chiudere questa schermata; la nota compare nella schermata iniziale quando è pronta."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この画面は閉じてもかまいません。メモが作成されるとホーム画面に表示されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 화면을 닫아도 됩니다. 노트가 준비되면 홈 화면에 표시됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je kunt dit scherm sluiten; de notitie verschijnt op het beginscherm zodra die klaar is."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você pode fechar esta tela; a nota aparece na tela inicial quando ficar pronta."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你可以关闭此页面；笔记生成后会显示在主屏幕上。"
+          }
+        }
+      }
+    },
+    "Bu numara doğrulanamıyor. Ülkeyi seç ve cep numaranı yaz.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Nummer kann nicht bestätigt werden. Wähle das Land und gib deine Handynummer ein."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This number can't be verified. Choose the country and enter your mobile number."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se puede verificar este número. Elige el país e introduce tu número de móvil."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tätä numeroa ei voi vahvistaa. Valitse maa ja kirjoita matkapuhelinnumerosi."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce numéro ne peut pas être vérifié. Choisis le pays et saisis ton numéro de mobile."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questo numero non può essere verificato. Scegli il paese e inserisci il tuo numero di cellulare."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この番号は確認できません。国または地域を選んで、携帯電話番号を入力してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 번호는 인증할 수 없습니다. 국가를 선택하고 휴대폰 번호를 입력하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dit nummer kan niet worden geverifieerd. Kies het land en voer je mobiele nummer in."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não é possível verificar este número. Escolha o país e digite seu número de celular."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法验证此号码。请选择国家/地区并输入你的手机号码。"
+          }
+        }
+      }
+    },
+    "Numara eksik ya da geçersiz.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Nummer ist unvollständig oder ungültig."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The number is incomplete or invalid."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El número está incompleto o no es válido."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Numero on puutteellinen tai virheellinen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le numéro est incomplet ou non valide."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il numero è incompleto o non valido."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "番号が不完全か無効です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "번호가 불완전하거나 유효하지 않습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het nummer is onvolledig of ongeldig."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O número está incompleto ou é inválido."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "号码不完整或无效。"
+          }
+        }
+      }
+    },
+    "Bu ülkenin operatörleri, yurt dışından gelen ve aynı ülkenin numarasını gösteren aramaları engelliyor; numaran burada arayan olarak gösterilemez.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Netzbetreiber in diesem Land sperren Anrufe aus dem Ausland, die eine Nummer aus demselben Land anzeigen; deine Nummer kann hier daher nicht als Anrufer angezeigt werden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carriers in this country block calls from abroad that show a number from the same country, so your number can't be shown as the caller here."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los operadores de este país bloquean las llamadas desde el extranjero que muestran un número del mismo país, así que tu número no puede mostrarse aquí como llamante."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämän maan operaattorit estävät ulkomailta tulevat puhelut, joissa näkyy saman maan numero, joten numeroasi ei voi näyttää täällä soittajana."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les opérateurs de ce pays bloquent les appels venant de l'étranger qui affichent un numéro du même pays ; ton numéro ne peut donc pas s'afficher comme appelant ici."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gli operatori di questo paese bloccano le chiamate dall'estero che mostrano un numero dello stesso paese, quindi qui il tuo numero non può essere mostrato come chiamante."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この国の通信事業者は、同じ国の番号を表示した海外からの通話をブロックしているため、ここではあなたの番号を発信者として表示できません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 국가의 통신사는 같은 국가 번호를 표시하는 해외 발신 통화를 차단하므로 여기에서는 내 번호를 발신자로 표시할 수 없습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Providers in dit land blokkeren gesprekken uit het buitenland die een nummer uit hetzelfde land tonen; je nummer kan hier dus niet als beller worden getoond."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As operadoras deste país bloqueiam ligações do exterior que mostram um número do mesmo país, então seu número não pode aparecer aqui como quem está ligando."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此国家/地区的运营商会屏蔽来自境外、显示同一国家/地区号码的来电，因此这里无法将你的号码显示为来电号码。"
+          }
+        }
+      }
+    },
+    "Numaran ve görüşme, doğrulama ve arama için ABD'deki %@'ya gider; kayıt not hazırlanana dek (en çok bir gün) orada kalır, sonra silinir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your number and the call go to %@ in the US for verification and calling; the recording stays there until the note is ready (at most a day), then it is deleted."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Nummer und der Anruf gehen zur Verifizierung und zum Telefonieren an %@ in den USA; die Aufnahme bleibt dort, bis die Notiz fertig ist (höchstens einen Tag), und wird dann gelöscht."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ton numéro et l'appel passent par %@ aux États-Unis pour la vérification et l'appel ; l'enregistrement y reste jusqu'à ce que la note soit prête (un jour au plus), puis il est supprimé."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu número y la llamada pasan por %@ en EE. UU. para la verificación y la llamada; la grabación se queda allí hasta que la nota esté lista (un día como máximo) y después se elimina."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il tuo numero e la chiamata passano da %@ negli USA per la verifica e la chiamata; la registrazione resta lì finché la nota è pronta (al massimo un giorno), poi viene eliminata."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seu número e a ligação passam pela %@ nos EUA para verificação e chamada; a gravação fica lá até a nota ficar pronta (no máximo um dia) e depois é apagada."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je nummer en het gesprek gaan naar %@ in de VS voor verificatie en het bellen; de opname blijft daar tot de notitie klaar is (hooguit een dag) en wordt dan verwijderd."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "番号の確認と通話のため、あなたの番号と通話は米国の%@を経由します。録音はメモが完成するまで（最長1日）そこに保存され、その後削除されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "번호 확인과 통화를 위해 번호와 통화가 미국의 %@를 거칩니다. 녹음은 노트가 준비될 때까지(최대 하루) 그곳에 있다가 삭제됩니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "为了验证号码和通话，你的号码和通话会经过美国的 %@；录音会保留到笔记生成为止（最多一天），之后删除。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Numerosi ja puhelu kulkevat vahvistusta ja soittamista varten yhdysvaltalaisen %@-palvelun kautta; nauhoite säilyy siellä, kunnes muistiinpano on valmis (enintään vuorokauden), ja poistetaan sitten."
+          }
+        }
+      }
+    },
+    "Arama %@'dan, İngilizce bir sesle gelir. Günde en çok 5, ayda en çok 10 doğrulama araması yapılabilir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Anruf kommt von %@ mit einer englischen Stimme. Höchstens 5 Bestätigungsanrufe pro Tag und 10 pro Monat."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The call comes from %@ with an English voice. At most 5 verification calls a day and 10 a month."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La llamada llega desde %@ con una voz en inglés. Como máximo 5 llamadas de verificación al día y 10 al mes."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puhelu tulee palvelusta %@ englanninkielisellä äänellä. Enintään 5 vahvistuspuhelua päivässä ja 10 kuukaudessa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'appel vient de %@, avec une voix en anglais. 5 appels de vérification par jour et 10 par mois au maximum."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La chiamata arriva da %@ con una voce in inglese. Al massimo 5 chiamate di verifica al giorno e 10 al mese."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ から英語の音声で電話がかかってきます。確認の電話は1日5回、1か月10回までです。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@에서 영어 음성으로 전화가 옵니다. 인증 전화는 하루 최대 5번, 한 달 최대 10번입니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het gesprek komt van %@, met een Engelse stem. Maximaal 5 verificatiegesprekken per dag en 10 per maand."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A ligação vem de %@ com uma voz em inglês. No máximo 5 ligações de verificação por dia e 10 por mês."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "来电来自 %@，使用英语语音。每天最多 5 次、每月最多 10 次验证来电。"
+          }
+        }
+      }
+    },
+    "Tuş sesi gönderilemedi; yeniden dene.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The keypad tone didn't go through; try again."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Tastenton wurde nicht gesendet; versuch es noch einmal."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La tonalité n'a pas été envoyée ; réessaie."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo enviar el tono; vuelve a intentarlo."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il tono non è stato inviato; riprova."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O tom do teclado não foi enviado; tente de novo."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De toetstoon is niet verstuurd; probeer het opnieuw."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーパッドのトーンを送信できませんでした。もう一度お試しください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "키패드 톤을 보내지 못했습니다. 다시 시도하세요."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按键音未能发送，请重试。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näppäinääntä ei saatu lähetettyä; yritä uudelleen."
           }
         }
       }

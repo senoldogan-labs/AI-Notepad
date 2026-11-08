@@ -18,60 +18,93 @@ struct PhoneCallGuideScreen: View {
     #if PHONE_DIALER
     @Environment(PhoneDialer.self) private var dialer: PhoneDialer
     @Environment(PhoneRecorder.self) private var recorder: PhoneRecorder
-    /// Tuş takımı rehberin gezinme yığınında açılır (`--arama` ile açık başlar).
-    @State private var showsDialer: Bool = launchOpensDialer(arguments: CommandLine.arguments)
+    /// Uygulamadan arama açıkken rehber, adımların "Aramayı başka yoldan kaydet" bağlantısıyla yığına itilir.
+    @State private var showsGuide: Bool = false
     #endif
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
-                    Text("iPhone, uygulamaların süren bir aramayı dinlemesine izin vermez. Görüşmeyi iPhone'un kendi arama kaydıyla kaydet ve sesi Gistsmith'e gönder; not, kararlar ve görevler yüz yüze kayıttaki gibi hazırlanır.")
-                        .appFont(size: 15, weight: .regular)
-                        .foregroundStyle(Theme.muted)
-                        .lineSpacing(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                    NoticeText("Kaydetmeden önce karşı tarafa haber ver ve onayını al; birçok ülkede bu yasal zorunluluktur.", severity: .attention)
-                        .appFont(size: 13, weight: .regular)
-                    #if PHONE_DIALER
-                    // Uygulamadan arama yalnız sunucu bu hesaba ve ülkeye izin verince görünür (`PHONE_CALLS_POLICY`).
-                    if dialer.isAvailable {
-                        PhoneDialerCard(dialer: dialer) { showsDialer = true }
-                    }
-                    #endif
-                    VStack(alignment: .leading, spacing: 10) {
-                        PhoneSectionHeader(title: "iPhone'un arama kaydıyla", actionTitle: nil, action: nil)
-                        CallRecordingStepsCard(onOpenNotes: openNotes, onPickFile: { pick(source: .files) })
-                        Text("iOS 18.1 ya da sonrası gerekir. Arama kaydı her bölgede yok (ör. Avrupa Birliği); aramada kayıt düğmesi görünmüyorsa bölgende kullanılamıyordur. Sesli Notlar'daki ve diğer uygulamalardaki ses kayıtlarını da aynı yolla gönderebilirsin.")
-                            .appFont(size: 12, weight: .regular)
-                            .foregroundStyle(Theme.muted)
-                            .lineSpacing(2)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    VStack(alignment: .leading, spacing: 10) {
-                        PhoneSectionHeader(title: "Mac'te konuşarak", actionTitle: nil, action: nil)
-                        MacCallCard()
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-                .padding(.bottom, 28)
-            }
-            .scrollIndicators(.hidden)
-            .background(Theme.background)
-            .navigationTitle(Text("Telefon görüşmesi"))
             #if PHONE_DIALER
-            .navigationDestination(isPresented: $showsDialer) { PhoneDialerScreen(dialer: dialer) }
+            // Sunucu bu hesaba ve ülkeye izin verince (`PHONE_CALLS_POLICY`) telefon simgesi doğrudan arama adımlarını açar;
+            // yanıt gelene dek kısa bir bekleme, izin yoksa rehber.
+            Group {
+                if dialer.isAvailable {
+                    PhoneDialerScreen(dialer: dialer) { showsGuide = true }
+                        .navigationTitle(Text("Gistsmith'ten ara"))
+                        .toolbar {
+                            // The guide (iPhone's own call recording, the Mac) stays one tap away after setup too.
+                            ToolbarItem(placement: .topBarLeading) {
+                                Menu {
+                                    Button("Aramayı başka yoldan kaydet", systemImage: "phone.badge.waveform") { showsGuide = true }
+                                } label: {
+                                    Image(systemName: "ellipsis")
+                                }
+                                .accessibilityLabel(Text("Aramayı başka yoldan kaydet"))
+                            }
+                        }
+                        .navigationDestination(isPresented: $showsGuide) {
+                            guide.navigationTitle(Text("Telefon görüşmesi"))
+                        }
+                } else if dialer.status == nil, dialer.statusError == nil {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Theme.background)
+                } else {
+                    guide.navigationTitle(Text("Telefon görüşmesi"))
+                }
+            }
             .task { await dialer.refresh(recorder: recorder) }
-            #endif
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(role: .close) { dismiss() }
                 }
             }
+            #else
+            guide
+                .navigationTitle(Text("Telefon görüşmesi"))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(role: .close) { dismiss() }
+                    }
+                }
+            #endif
         }
         .presentationDetents([.large])
+    }
+
+    /// iPhone'un kendi arama kaydı ve Mac'teki yol.
+    private var guide: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 22) {
+                Text("iPhone, uygulamaların süren bir aramayı dinlemesine izin vermez. Görüşmeyi iPhone'un kendi arama kaydıyla kaydet ve sesi Gistsmith'e gönder; not, kararlar ve görevler yüz yüze kayıttaki gibi hazırlanır.")
+                    .appFont(size: 15, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                NoticeText("Kaydetmeden önce karşı tarafa haber ver ve onayını al; birçok ülkede bu yasal zorunluluktur.", severity: .attention)
+                    .appFont(size: 13, weight: .regular)
+                VStack(alignment: .leading, spacing: 10) {
+                    PhoneSectionHeader(title: "iPhone'un arama kaydıyla", actionTitle: nil, action: nil)
+                    CallRecordingStepsCard(onOpenNotes: openNotes, onPickFile: { pick(source: .files) })
+                    Text("iOS 18.1 ya da sonrası gerekir. Arama kaydı her bölgede yok (ör. Avrupa Birliği); aramada kayıt düğmesi görünmüyorsa bölgende kullanılamıyordur. Sesli Notlar'daki ve diğer uygulamalardaki ses kayıtlarını da aynı yolla gönderebilirsin.")
+                        .appFont(size: 12, weight: .regular)
+                        .foregroundStyle(Theme.muted)
+                        .lineSpacing(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                VStack(alignment: .leading, spacing: 10) {
+                    PhoneSectionHeader(title: "Mac'te konuşarak", actionTitle: nil, action: nil)
+                    MacCallCard()
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 28)
+        }
+        .scrollIndicators(.hidden)
+        .background(Theme.background)
     }
 
     /// Notlar'ı açar (arama kayıtları "Arama Kayıtları" klasöründedir). Açılamazsa loglanır; düğme bir kısayoldur, adımlar

@@ -4,23 +4,21 @@ import Foundation
 import Observation
 import os
 
-/// Verification of the user's own number (caller ID).
-enum PhoneVerificationPhase: Equatable {
-    case idle
-    case starting
-    /// The provider is calling `e164`; the user types `code` on that call's keypad.
-    case waiting(code: String, e164: String)
-    case verified
-    case failed(String)
-}
-
 /// A call's progress as the in-call screen shows it.
 enum PhoneCallPhase: Equatable {
     case connecting
     case ringing
     case connected(since: Date)
     case reconnecting(since: Date)
-    case ended
+    /// The call ended; `duration` is the talk time in seconds when it connected.
+    case ended(duration: Int?)
+
+    var isEnded: Bool {
+        if case .ended = self {
+            return true
+        }
+        return false
+    }
 }
 
 /// The call on screen (one at a time).
@@ -33,6 +31,10 @@ struct PhoneActiveCall: Identifiable, Equatable {
     var phase: PhoneCallPhase
     var isMuted: Bool
     var isSpeaker: Bool
+    /// Keypad tones sent during the call (shown above the in-call keypad).
+    var sentDigits: String = ""
+    /// A problem during the call the user should see (a keypad tone that didn't go through); `nil` when none.
+    var notice: String? = nil
     /// Why the call ended early (failed to connect, dropped); `nil` for a normal end.
     var endMessage: String?
 }
@@ -45,13 +47,21 @@ enum PhoneDialAction: Equatable {
     case refused(String)
 }
 
-/// Debug screenshots of the dialer's steps (`--arama izin|dogrula|kod|tus|gorusme`); the screens run without a server.
+/// Debug screenshots of the dialer's steps (`--arama giris|dogrula|kod|izin|tus|ulke|gorusme|tuslar|bitti`); the
+/// screens run without a server.
 enum PhoneDialerPreview: String {
-    case consent = "izin"
+    case intro = "giris"
     case verify = "dogrula"
     case code = "kod"
+    case consent = "izin"
     case keypad = "tus"
+    /// The keypad with the country list open.
+    case countries = "ulke"
     case inCall = "gorusme"
+    /// The in-call screen with its keypad open.
+    case inCallKeypad = "tuslar"
+    /// The call has ended; its recording is on the way to a note.
+    case ended = "bitti"
 }
 
 /// The dialer for this launch: in Debug, `--arama <step>` shows that step with sample data (no server). Pure apart from
@@ -65,11 +75,6 @@ func makePhoneDialer(arguments: [String]) -> PhoneDialer {
     }
     #endif
     return PhoneDialer()
-}
-
-/// `--arama <step>`: the phone call guide opens with the dialer pushed (visual check). Pure function.
-func launchOpensDialer(arguments: [String]) -> Bool {
-    arguments.contains("--arama")
 }
 
 /// The in-app dialer (pilot; design in docs/superpowers/specs/2026-11-08-iphone-call-recording.md, phase 2): the
@@ -98,6 +103,14 @@ final class PhoneDialer {
     private(set) var recordingImports: [String: PhoneRecordingImport] = [:]
     /// The keypad's inline error (refused number, server refusal).
     var keypadMessage: String?
+    /// The user tapped "Get started" on the introduction (a number on file counts too: `phoneDialerStep`).
+    private(set) var introDone: Bool = false
+    /// The country the number fields start with (`phoneDefaultCountry`): the device's region in Debug previews is
+    /// fixed to Finland.
+    @ObservationIgnored let region: String?
+    /// Debug preview: the keypad opens with its country list (`--arama ulke`) or the in-call keypad open (`tuslar`).
+    @ObservationIgnored let previewOpensCountries: Bool
+    @ObservationIgnored let previewOpensCallKeypad: Bool
     @ObservationIgnored private let controller: PhoneCallController
     @ObservationIgnored private let isPreview: Bool
     @ObservationIgnored private var verificationTask: Task<Void, Never>?
@@ -111,6 +124,9 @@ final class PhoneDialer {
     init() {
         controller = PhoneCallController()
         isPreview = false
+        region = Locale.current.region?.identifier
+        previewOpensCountries = false
+        previewOpensCallKeypad = false
         controller.onEvent = { [weak self] (event: PhoneCallEvent) -> Void in self?.handle(event: event) }
     }
 
@@ -119,20 +135,32 @@ final class PhoneDialer {
     init(preview: PhoneDialerPreview) {
         controller = PhoneCallController()
         isPreview = true
-        let verified: Bool = preview == .keypad || preview == .inCall
+        region = "FI"
+        previewOpensCountries = preview == .countries
+        previewOpensCallKeypad = preview == .inCallKeypad
+        let own: String = "+358401234567"
+        let setUp: Bool = [.keypad, .countries, .inCall, .inCallKeypad, .ended].contains(preview)
+        // The Finland pilot's lists (spec › Countries): a Finnish caller reaches the US, Canada and the UK, not Finland.
+        let countries: [PhoneDialCountry] = [.us, .ca, .fi, .gb]
         status = HostedPhoneStatus(
-            available: true, reason: nil, countries: [.us, .ca], provider: "Twilio", consentVersion: phoneDialerConsentVersion,
-            consentAccepted: preview != .consent, number: verified ? HostedPhoneNumber(e164: "+14155550142", status: .verified) : nil,
-            maxCallMinutes: 60, monthlyMinutes: 120, usedMinutes: 34
+            available: true, reason: nil, countries: countries, callerCountries: [.us, .ca, .fi], provider: "Twilio", consentVersion: phoneDialerConsentVersion,
+            consentAccepted: setUp, number: setUp || preview == .consent ? HostedPhoneNumber(e164: own, status: .verified) : nil,
+            maxCallMinutes: 60, monthlyMinutes: 120, usedMinutes: 34,
+            minutesByCountry: [.us: 86, .ca: 86, .fi: 0, .gb: 72]
         )
+        introDone = preview != .intro
         if preview == .code {
-            verification = .waiting(code: "482913", e164: "+14155550142")
+            verification = .waiting(code: "482913", e164: own)
         }
-        if preview == .inCall {
+        if preview == .inCall || preview == .inCallKeypad || preview == .ended {
+            let ended: Bool = preview == .ended
             activeCall = PhoneActiveCall(
-                id: "preview", uuid: UUID(), e164: "+12125550199", maxSeconds: 3600, phase: .connected(since: Date().addingTimeInterval(-125)),
-                isMuted: false, isSpeaker: true, endMessage: nil
+                id: "preview", uuid: UUID(), e164: "+447400123456", maxSeconds: 3600,
+                phase: ended ? .ended(duration: 754) : .connected(since: Date().addingTimeInterval(-125)), isMuted: false, isSpeaker: !ended, endMessage: nil
             )
+            if ended {
+                recordingImports["preview"] = .importing
+            }
         }
     }
     #endif
@@ -140,6 +168,21 @@ final class PhoneDialer {
     /// Whether the dialer is available to this account (the server's switch, country and plan).
     var isAvailable: Bool {
         status?.available == true
+    }
+
+    /// The step on screen (`phoneDialerStep`); `nil` until the server's answer.
+    var step: PhoneDialerStep? {
+        status.map { phoneDialerStep(status: $0, verification: verification, introDone: introDone) }
+    }
+
+    /// The country a number field offering `allowed` starts with.
+    func defaultCountry(allowed: [PhoneDialCountry]) -> PhoneDialCountry? {
+        phoneDefaultCountry(region: region, verifiedE164: status?.number?.e164, allowed: allowed)
+    }
+
+    /// The introduction's "Get started".
+    func finishIntro() {
+        introDone = true
     }
 
     private func client() throws -> HostedPhoneClient {
@@ -179,12 +222,12 @@ final class PhoneDialer {
     }
 
     /// Starts verifying `input` as the user's own number: the provider calls it and the screen shows the code.
-    func startVerification(input: String, recorder: PhoneRecorder) async {
+    func startVerification(input: String, country: PhoneDialCountry, recorder: PhoneRecorder) async {
         guard let status else {
             return
         }
-        guard case .call(let e164, _) = phoneDialTarget(input: input, allowed: status.countries) else {
-            verification = .failed(String(localized: "Kendi numaranı ülke koduyla yaz, ör. +1 415 555 0100."))
+        guard case .call(let e164, _) = phoneDialTarget(input: input, country: country, allowed: status.callerCountries, callerCountry: nil) else {
+            verification = .failed(String(localized: "Bu numara doğrulanamıyor. Ülkeyi seç ve cep numaranı yaz."))
             return
         }
         // The previous number's poll stops before the new request: it must not report that number's result meanwhile.
@@ -243,20 +286,22 @@ final class PhoneDialer {
 
     /// Dials `input`: emergency and short numbers go to the Phone app; other numbers are checked like the server checks
     /// them, reserved on the server and placed through CallKit.
-    func call(input: String, recorder: PhoneRecorder) async -> PhoneDialAction {
+    func call(input: String, country: PhoneDialCountry, recorder: PhoneRecorder) async -> PhoneDialAction {
         guard let status, activeCall == nil, !isPlacing else {
             return .refused(String(localized: "Süren bir arama var."))
         }
-        switch phoneDialTarget(input: input, allowed: status.countries) {
+        switch phoneDialTarget(input: input, country: country, allowed: status.countries, callerCountry: status.callerCountry) {
         case .phoneApp(let number):
             guard let url = phoneTelURL(number: number) else {
-                return .refused(String(localized: "Numara geçersiz. Ülke koduyla yaz, ör. +1 415 555 0100."))
+                return .refused(String(localized: "Numara eksik ya da geçersiz."))
             }
             return .openPhoneApp(url)
         case .invalid:
-            return .refused(String(localized: "Numara geçersiz. Ülke koduyla yaz, ör. +1 415 555 0100."))
+            return .refused(String(localized: "Numara eksik ya da geçersiz."))
         case .blocked(.notAllowed):
             return .refused(String(localized: "Bu ülkedeki numaralar henüz aranamıyor."))
+        case .blocked(.callerIdBlocked):
+            return .refused(String(localized: "Bu ülkenin operatörleri, yurt dışından gelen ve aynı ülkenin numarasını gösteren aramaları engelliyor; numaran burada arayan olarak gösterilemez."))
         case .blocked:
             return .refused(String(localized: "Bu numara Gistsmith'ten aranamaz: ücretli, özel ya da desteklenmeyen bir ülkedeki numaralar engelli."))
         case .call(let e164, _):
@@ -291,7 +336,7 @@ final class PhoneDialer {
 
     /// Hangs up the call on screen.
     func hangUp() async {
-        guard let call = activeCall, call.phase != .ended else {
+        guard let call = activeCall, !call.phase.isEnded else {
             return
         }
         do {
@@ -319,9 +364,36 @@ final class PhoneDialer {
         activeCall?.isSpeaker = on
     }
 
+    /// Plays a keypad tone into the call (menus, extensions) and keeps the digits typed for the in-call keypad.
+    func sendDigit(_ digit: String) async {
+        guard let call = activeCall, case .connected = call.phase else {
+            return
+        }
+        guard !isPreview else {
+            activeCall?.sentDigits.append(digit)
+            return
+        }
+        do {
+            try await controller.sendDigits(uuid: call.uuid, digits: digit)
+            // Shown only once CallKit played it: a refused tone must not look sent (a menu or PIN would stall silently).
+            // Another call on screen by now keeps its own display.
+            guard activeCall?.id == call.id else {
+                return
+            }
+            activeCall?.sentDigits.append(digit)
+            activeCall?.notice = nil
+        } catch {
+            Self.logger.error("Keypad tone request failed, error: \(String(describing: error), privacy: .private)")
+            guard activeCall?.id == call.id else {
+                return
+            }
+            activeCall?.notice = String(localized: "Tuş sesi gönderilemedi; yeniden dene.")
+        }
+    }
+
     /// Closes the in-call screen after the call ended.
     func dismissEndedCall() {
-        if activeCall?.phase == .ended {
+        if case .ended = activeCall?.phase {
             activeCall = nil
         }
     }
@@ -341,7 +413,13 @@ final class PhoneDialer {
                 activeCall?.phase = .connected(since: since)
             }
         case .ended(let message):
-            activeCall?.phase = .ended
+            if case .connected(let since) = activeCall?.phase {
+                activeCall?.phase = .ended(duration: Int(Date().timeIntervalSince(since)))
+            } else if case .reconnecting(let since) = activeCall?.phase {
+                activeCall?.phase = .ended(duration: Int(Date().timeIntervalSince(since)))
+            } else {
+                activeCall?.phase = .ended(duration: nil)
+            }
             activeCall?.endMessage = message
         }
     }
@@ -352,7 +430,7 @@ final class PhoneDialer {
     private func watchRecording(callID: String, e164: String, recorder: PhoneRecorder) {
         watchTasks[callID]?.cancel()
         watchTasks[callID] = Task {
-            while self.activeCall?.id == callID, self.activeCall?.phase != .ended {
+            while self.activeCall?.id == callID, self.activeCall?.phase.isEnded == false {
                 do {
                     try await Task.sleep(nanoseconds: 1_000_000_000)
                 } catch {

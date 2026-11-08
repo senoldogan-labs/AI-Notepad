@@ -1,14 +1,15 @@
 import { z } from "zod";
 import type { Config, PhoneCallLimits, PhoneCallsConfig } from "../config";
 import { randomId } from "../crypto";
-import { hasPaidAccess } from "../entitlements";
+import { type AccessConfig, type PaidSubscriptions, paidSubscriptions, subscriptionAccess } from "../entitlements";
+import { appStoreAccess } from "../appStore";
 import { ApiError } from "../errors";
 import { jsonResponse, readBodyBytes, readJsonBody } from "../http";
 import { log } from "../log";
 import type { OutboundPlatform } from "../platform";
 import { type ReservationLimit, dailySpendLimit, remainingOf } from "../reservations";
 import { dayKey, monthKey, monthlyUsage } from "../usage";
-import { type NumberClass, type PhoneCountry, classifyNumber, isPhoneCountry, maskedNumber } from "./numbers";
+import { type NumberClass, type PhoneCountry, callerIdBlockedInto, classifyNumber, isPhoneCountry, maskedNumber } from "./numbers";
 import {
   type PhoneCallEvent,
   type PhoneCallStatus,
@@ -38,23 +39,30 @@ import { announcementTwiml, dialTwiml, emptyTwiml, hangupTwiml, ringTimeoutSecon
  * (transcription, speakers, note, tasks and sync run as for any imported recording) and deletes it at Twilio.
  *
  * Everything is off unless `PHONE_CALLS_POLICY=on` (production keeps it off). Guards:
- * - subscribers only, after an explicit opt-in to the disclosure (`phone_consents`, `phoneConsentVersion`);
+ * - subscribers only; calls only after an explicit opt-in to the recording terms (`phone_consents`, `phoneConsentVersion`);
  * - caller ID is only the user's own number, verified by Twilio calling it (no spoofing); one account per number;
  * - destinations: E.164, a country in `PHONE_CALLS_COUNTRIES`, no premium-rate or special ranges (`numbers.ts`);
  *   emergency and short numbers are opened in the Phone app by the app and never reach the server;
  * - spend: each call reserves its worst case (longest duration × the country's price) in `phone_calls`; the reservation
  *   counts toward the global daily ceiling (`todaySpendSql`) and the dialer's own `PHONE_DAILY_SPEND_CEILING_USD`, and
- *   is replaced by the real cost when the call ends; a user has one call at a time, `phoneCallsPerDay` calls a day and
- *   `PHONE_MONTHLY_MINUTES` a month; a call never runs past the plan's remaining monthly minutes;
+ *   is replaced by the real cost when the call ends; a user has one call at a time, `phoneCallsPerDay` calls a day,
+ *   `PHONE_MONTHLY_MINUTES` and `PHONE_USER_MONTHLY_SPEND_USD` a month (a pricier country uses the spend up in fewer
+ *   minutes); a call never runs past the plan's remaining monthly minutes; no country priced above
+ *   `PHONE_MAX_USD_PER_MINUTE` can be enabled (`config.ts`);
  * - every webhook must carry Twilio's signature and our account id; the destination comes from our row, never from
  *   the webhook.
  * Numbers are personal data: the destination and caller ID of a call are cleared when it settles, logs mask numbers.
  */
 
-/** Version of the disclosure the user accepts in the app; raising it asks every user again. */
-export const phoneConsentVersion: number = 1;
+/**
+ * Version of the recording terms the user accepts in the app (after verifying their number); raising it asks every user
+ * again. 2: the per-country consent notes of the step-by-step setup.
+ */
+export const phoneConsentVersion: number = 2;
 /** Verification calls per user per day (each one rings a phone and costs money). */
 export const phoneVerificationsPerDay: number = 5;
+/** Verification calls per user per month (they ring other people's phones too, so they are capped beyond the day). */
+export const phoneVerificationsPerMonth: number = 10;
 /** Calls per user per day. */
 export const phoneCallsPerDay: number = 30;
 /** How long a pending verification waits for its result. */
@@ -80,7 +88,10 @@ export interface PhoneStatus {
   readonly available: boolean;
   /** Why the dialer is hidden; `null` when available. */
   readonly reason: "policy_off" | "country_not_allowed" | "subscription_required" | null;
+  /** Countries the user may call. */
   readonly countries: readonly PhoneCountry[];
+  /** Countries whose numbers may be verified as the caller ID. */
+  readonly callerCountries: readonly PhoneCountry[];
   /** The voice provider named in the disclosure; `null` while off. */
   readonly provider: string | null;
   readonly consentVersion: number;
@@ -89,6 +100,11 @@ export interface PhoneStatus {
   readonly maxCallMinutes: number;
   readonly monthlyMinutes: number;
   readonly usedMinutes: number;
+  /**
+   * Minutes the user can still talk this month per allowed country: the remaining call minutes, or fewer where the
+   * country's price would use up the monthly spend first. Empty while off.
+   */
+  readonly minutesByCountry: Readonly<Partial<Record<PhoneCountry, number>>>;
 }
 
 /** The user's caller ID number. */
@@ -213,6 +229,7 @@ export async function phoneStatus(db: D1Database, config: Config, userId: string
       available: false,
       reason: "policy_off",
       countries: [],
+      callerCountries: [],
       provider: null,
       consentVersion: phoneConsentVersion,
       consentAccepted: false,
@@ -220,21 +237,24 @@ export async function phoneStatus(db: D1Database, config: Config, userId: string
       maxCallMinutes: 0,
       monthlyMinutes: 0,
       usedMinutes: 0,
+      minutesByCountry: {},
     };
   }
-  const [row, accepted, paid, used]: [PhoneNumberRow | null, boolean, boolean, number] = await Promise.all([
+  const [row, accepted, paid, used, spent]: [PhoneNumberRow | null, boolean, boolean, number, number] = await Promise.all([
     numberRow(db, userId),
     consentAccepted(db, userId),
-    hasPaidAccess(db, config, userId, now),
+    phonePaid(db, config, userId, now),
     usedPhoneSeconds(db, userId, now),
+    spentPhoneMicroUsd(db, userId, now),
   ]);
   // The user's country: their verified number's, otherwise where they connect from (Cloudflare's IP country).
   const country: string | null = row?.status === "verified" ? row.country : clientCountry;
-  const reason: PhoneStatus["reason"] = !allowedCountry(phone.countries, country) ? "country_not_allowed" : paid ? null : "subscription_required";
+  const reason: PhoneStatus["reason"] = !allowedCountry(phone.callerCountries, country) ? "country_not_allowed" : paid ? null : "subscription_required";
   return {
     available: reason === null,
     reason,
     countries: phone.countries,
+    callerCountries: phone.callerCountries,
     provider: "Twilio",
     consentVersion: phoneConsentVersion,
     consentAccepted: accepted,
@@ -242,7 +262,40 @@ export async function phoneStatus(db: D1Database, config: Config, userId: string
     maxCallMinutes: Math.floor(phone.maxCallSeconds / 60),
     monthlyMinutes: Math.floor(phone.monthlySeconds / 60),
     usedMinutes: Math.ceil(used / 60),
+    minutesByCountry: Object.fromEntries(
+      phone.countries.map((code: PhoneCountry): [PhoneCountry, number] => [
+        code,
+        // A call into the caller's own country that its carriers would block has no minutes.
+        allowedCountry(phone.callerCountries, country) && callerIdBlockedInto(country, code)
+          ? 0
+          : Math.floor(callableSeconds(phone.monthlySeconds - used, phone.userMonthlySpendMicroUsd - spent, phone.microUsdPerMinute[code] ?? Number.MAX_SAFE_INTEGER) / 60),
+      ]),
+    ),
   };
+}
+
+/**
+ * The longest call (whole minutes, in seconds) that fits `remainingSeconds` of call time and `remainingMicroUsd` of
+ * spend at `microUsdPerMinute`, with the extra minute of ringing and notice every reservation carries
+ * (`callEstimateMicroUsd`). Pure function.
+ */
+export function callableSeconds(remainingSeconds: number, remainingMicroUsd: number, microUsdPerMinute: number): number {
+  const bySpend: number = Math.floor(remainingMicroUsd / microUsdPerMinute) - 1;
+  return Math.max(0, Math.min(Math.floor(remainingSeconds / 60), bySpend)) * 60;
+}
+
+/** The user's settled and running phone spend this month (running calls count at their worst case). */
+function monthlyPhoneSpendSql(): string {
+  return `(SELECT COALESCE(SUM(CASE WHEN settled_at IS NOT NULL THEN COALESCE(cost_micro_usd, 0) WHEN ${unsettledCallCountsSql()} THEN estimated_micro_usd ELSE 0 END), 0)
+    FROM phone_calls WHERE user_id = ? AND month = ?)`;
+}
+
+async function spentPhoneMicroUsd(db: D1Database, userId: string, now: Date): Promise<number> {
+  const row: { spent: number } | null = await db
+    .prepare(`SELECT ${monthlyPhoneSpendSql()} AS spent`)
+    .bind(now.getTime(), userId, monthKey(now))
+    .first<{ spent: number }>();
+  return row?.spent ?? 0;
 }
 
 /** A pending verification past its window counts as failed. Pure function. */
@@ -250,8 +303,27 @@ function numberStatusOf(row: PhoneNumberRow, now: Date): PhoneNumberState["statu
   return row.status === "pending" && (row.pending_until ?? 0) <= now.getTime() ? "failed" : row.status;
 }
 
+/**
+ * Whether the account pays for calls: a Stripe subscription that is `active` (not trialing, not past due in its grace
+ * period) or an App Store subscription with access in a normal or prepaid period (not a free trial, intro or promotional
+ * offer). Calls cost real money per minute, so an account that hasn't paid yet (a throwaway card in a trial) gets no
+ * minutes. Pure function.
+ */
+export function phonePaidAccess(subscriptions: PaidSubscriptions, config: AccessConfig, now: Date): boolean {
+  const stripe: boolean = subscriptions.stripe !== null && subscriptions.stripe.status === "active" && subscriptionAccess(subscriptions.stripe, now, config.pastDueGraceMs) === "active";
+  const appStore: boolean =
+    subscriptions.appStore !== null &&
+    ["normal", "prepaid"].includes(subscriptions.appStore.periodType.toLowerCase()) &&
+    appStoreAccess(subscriptions.appStore, config.appStore.acceptSandbox, now) === "active";
+  return stripe || appStore;
+}
+
+async function phonePaid(db: D1Database, config: Config, userId: string, now: Date): Promise<boolean> {
+  return phonePaidAccess(await paidSubscriptions(db, userId), config, now);
+}
+
 async function requireSubscriber(db: D1Database, config: Config, userId: string, now: Date): Promise<void> {
-  if (!(await hasPaidAccess(db, config, userId, now))) {
+  if (!(await phonePaid(db, config, userId, now))) {
     throw new ApiError("subscription_required", "Calling from Gistsmith needs a subscription.");
   }
 }
@@ -329,8 +401,19 @@ async function startVerificationCall(provider: VoiceProvider, e164: string, call
   }
 }
 
-/** Worst-case cost of one verification call (a short outbound call to the user's number, about $0.02 at list price). */
+/** Least charged for one verification call (a short outbound call to the user's number, about $0.02 to US/CA numbers). */
 export const verificationCallMicroUsd: number = 50_000;
+/** Minutes a verification call is charged for at the number's country price (Twilio calls from its US number). */
+const verificationCallMinutes: number = 2;
+
+/**
+ * Worst-case cost of a verification call to a number of a country priced `microUsdPerMinute`: two minutes at that price,
+ * at least `verificationCallMicroUsd` (a Finnish mobile called from Twilio's US number costs about $0.52 a minute).
+ * Pure function.
+ */
+export function verificationCostMicroUsd(microUsdPerMinute: number): number {
+  return Math.max(verificationCallMicroUsd, verificationCallMinutes * microUsdPerMinute);
+}
 
 /**
  * Claims one of the user's verification calls for today and charges its worst case to the day's spend, or refuses:
@@ -339,43 +422,53 @@ export const verificationCallMicroUsd: number = 50_000;
  * `spend_ceiling_reached` when the ceilings can't take the call. One statement claims the slot only while all three
  * hold. Returns the attempt number.
  */
-async function claimVerificationCall(db: D1Database, phone: PhoneCallLimits, config: Config, userId: string, now: Date): Promise<number> {
+async function claimVerificationCall(db: D1Database, phone: PhoneCallLimits, config: Config, userId: string, cost: number, now: Date): Promise<number> {
   const limits: readonly ReservationLimit[] = [phoneDailySpendLimit(phone.dailySpendCeilingMicroUsd, now), dailySpendLimit(config, "total", now)];
   const conditions: string = limits.map((limit: ReservationLimit): string => `(${limit.remainingSql}) >= ?`).join(" AND ");
   const day: string = dayKey(now);
   const claimed: { attempts: number } | null = await db
     .prepare(
       `INSERT INTO phone_verification_days (user_id, day, attempts) SELECT ?, ?, 1 WHERE ${conditions}
+         AND (SELECT COALESCE(SUM(attempts), 0) FROM phone_verification_days WHERE user_id = ? AND day LIKE ?) < ?
        ON CONFLICT(user_id, day) DO UPDATE SET attempts = attempts + 1 WHERE attempts < ?
        RETURNING attempts`,
     )
-    .bind(userId, day, ...limits.flatMap((limit: ReservationLimit) => [...limit.binds, verificationCallMicroUsd]), phoneVerificationsPerDay)
+    .bind(
+      userId,
+      day,
+      ...limits.flatMap((limit: ReservationLimit) => [...limit.binds, cost]),
+      userId,
+      `${monthKey(now)}-%`,
+      phoneVerificationsPerMonth,
+      phoneVerificationsPerDay,
+    )
     .first<{ attempts: number }>();
   if (claimed === null) {
     const remaining: number[] = await remainingOf(db, limits);
-    const short: ReservationLimit | undefined = limits.find((_: ReservationLimit, index: number): boolean => (remaining[index] ?? 0) < verificationCallMicroUsd);
-    throw short?.error ?? new ApiError("phone_verification_limit", "Too many verification calls today; try again tomorrow.");
+    const short: ReservationLimit | undefined = limits.find((_: ReservationLimit, index: number): boolean => (remaining[index] ?? 0) < cost);
+    throw short?.error ?? new ApiError("phone_verification_limit", "Too many verification calls; try again tomorrow or next month.");
   }
   await db
     .prepare(
       `INSERT INTO daily_spend (day, micro_usd, phone_micro_usd) VALUES (?1, ?2, ?2)
        ON CONFLICT(day) DO UPDATE SET micro_usd = micro_usd + excluded.micro_usd, phone_micro_usd = phone_micro_usd + excluded.phone_micro_usd`,
     )
-    .bind(day, verificationCallMicroUsd)
+    .bind(day, cost)
     .run();
   return claimed.attempts;
 }
 
 /**
- * `POST /v1/phone/number`: starts verifying the user's own number (the provider calls it; the user types the code).
+ * `POST /v1/phone/number`: starts verifying the user's own number (the provider calls it; the user types the code). The
+ * app's introduction names the provider before this step sends the number to it.
  * The number must be callable in an allowed country and not held by another account; at most
  * `phoneVerificationsPerDay` calls a day. A number already verified for this user answers without a call.
  */
 async function startVerification(db: D1Database, active: ActivePhone, config: Config, request: Request, userId: string, now: Date): Promise<PhoneVerificationStarted | PhoneNumberState> {
+  // The recording terms come after this step in the app; verifying places no call of the user's and records nothing.
   await requireSubscriber(db, config, userId, now);
-  await requireConsent(db, userId);
   const body = await readJsonBody(request, numberSchema, smallBodyBytes);
-  const number = requireCallableNumber(active.config.countries, body.number);
+  const number = requireCallableNumber(active.config.callerCountries, body.number);
   const existing: PhoneNumberRow | null = await numberRow(db, userId);
   if (existing !== null && existing.e164 === number.e164 && existing.status === "verified") {
     return { e164: existing.e164, status: "verified" };
@@ -387,7 +480,11 @@ async function startVerification(db: D1Database, active: ActivePhone, config: Co
   if (holder !== null) {
     throw new ApiError("phone_number_in_use", "This number is already used by another Gistsmith account.");
   }
-  const attempt: number = await claimVerificationCall(db, active.config, config, userId, now);
+  const rate: number | undefined = active.config.microUsdPerMinute[number.country];
+  if (rate === undefined) {
+    throw new ApiError("phone_number_blocked", "Numbers in this country can't be verified yet.");
+  }
+  const attempt: number = await claimVerificationCall(db, active.config, config, userId, verificationCostMicroUsd(rate), now);
   const callbackUrl: string = `${new URL(request.url).origin}/v1/phone/webhooks/verification`;
   const started: CallerIdVerificationStart = await startVerificationCall(active.provider, number.e164, callbackUrl);
   const pendingUntil: number = now.getTime() + verificationWindowMs;
@@ -472,6 +569,14 @@ function phoneDailySpendLimit(ceilingMicroUsd: number, now: Date): ReservationLi
   };
 }
 
+function monthlyPhoneSpendLimit(monthlyMicroUsd: number, userId: string, now: Date): ReservationLimit {
+  return {
+    remainingSql: `? - ${monthlyPhoneSpendSql()}`,
+    binds: [monthlyMicroUsd, now.getTime(), userId, monthKey(now)],
+    error: new ApiError("phone_minutes_exhausted", "You have used this month's calling allowance; it resets at the start of the month."),
+  };
+}
+
 function monthlyPhoneLimit(monthlySeconds: number, userId: string, now: Date): ReservationLimit {
   return {
     remainingSql: `? - ${monthlyPhoneSecondsSql()}`,
@@ -517,20 +622,24 @@ async function reserveCall(db: D1Database, active: ActivePhone, config: Config, 
   await requireConsent(db, userId);
   const body = await readJsonBody(request, callSchema, smallBodyBytes);
   const caller: PhoneNumberRow | null = await numberRow(db, userId);
-  if (caller === null || caller.status !== "verified" || !allowedCountry(active.config.countries, caller.country)) {
+  if (caller === null || caller.status !== "verified" || !allowedCountry(active.config.callerCountries, caller.country)) {
     throw new ApiError("phone_number_required", "Verify your own phone number before calling.");
   }
   const destination = requireCallableNumber(active.config.countries, body.to);
   if (destination.e164 === caller.e164) {
     throw new ApiError("phone_number_invalid", "You can't call your own number.");
   }
+  if (callerIdBlockedInto(caller.country, destination.country)) {
+    throw new ApiError("phone_number_blocked", "Carriers in this country block calls from abroad that show a number of the same country, so your number can't be the caller ID here.");
+  }
   const rate: number | undefined = active.config.microUsdPerMinute[destination.country];
   if (rate === undefined) {
     throw new ApiError("phone_number_blocked", "Numbers in this country can't be called from Gistsmith yet.");
   }
-  const [phoneUsed, usage] = await Promise.all([usedPhoneSeconds(db, userId, now), monthlyUsage(db, userId, now)]);
+  const [phoneUsed, phoneSpent, usage] = await Promise.all([usedPhoneSeconds(db, userId, now), spentPhoneMicroUsd(db, userId, now), monthlyUsage(db, userId, now)]);
   const planRemaining: number = config.monthlyCapSeconds - usage.usedSeconds;
-  const phoneRemaining: number = active.config.monthlySeconds - phoneUsed;
+  // The call minutes left, fewer where this country's price would use up the user's monthly spend first.
+  const phoneRemaining: number = callableSeconds(active.config.monthlySeconds - phoneUsed, active.config.userMonthlySpendMicroUsd - phoneSpent, rate);
   const maxSeconds: number = Math.floor(Math.min(active.config.maxCallSeconds, phoneRemaining, planRemaining) / 60) * 60;
   if (maxSeconds < minimumCallSeconds) {
     throw planRemaining < phoneRemaining
@@ -542,6 +651,7 @@ async function reserveCall(db: D1Database, active: ActivePhone, config: Config, 
     { limit: oneCallAtATimeLimit(userId, now), amount: 1 },
     { limit: dailyCallsLimit(userId, now), amount: 1 },
     { limit: monthlyPhoneLimit(active.config.monthlySeconds, userId, now), amount: maxSeconds },
+    { limit: monthlyPhoneSpendLimit(active.config.userMonthlySpendMicroUsd, userId, now), amount: estimate },
     { limit: phoneDailySpendLimit(active.config.dailySpendCeilingMicroUsd, now), amount: estimate },
     { limit: dailySpendLimit(config, "total", now), amount: estimate },
   ];
@@ -1029,8 +1139,8 @@ export async function phoneCleanup(db: D1Database, platform: OutboundPlatform, c
     .prepare("DELETE FROM phone_calls WHERE settled_at IS NOT NULL AND created_at <= ? AND (recording_sid IS NULL OR recording_deleted_at IS NOT NULL)")
     .bind(nowMs - settledCallRetentionMs)
     .run();
-  // Verification counters only matter for their own day.
-  await db.prepare("DELETE FROM phone_verification_days WHERE day < ?").bind(dayKey(now)).run();
+  // Verification counters matter for their day and their month (`phoneVerificationsPerMonth`).
+  await db.prepare("DELETE FROM phone_verification_days WHERE day < ?").bind(`${monthKey(now)}-01`).run();
   const report: PhoneCleanupReport = { expiredCalls: expired[1]?.meta.changes ?? 0, recordingsDeleted, purged, oldCallsDeleted: old.meta.changes };
   log("info", "phone_cleanup", { ...report });
   return report;
