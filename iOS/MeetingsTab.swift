@@ -55,13 +55,16 @@ struct MeetingsLibraryScreen: View {
         // işaretliler işlemden çıkar.
         let visibleIDs: Set<String> = Set(sections.flatMap(\.meetings).map(\.id))
         let effective: Set<String> = checked.intersection(visibleIDs)
-        let statusMessages: [String] = store.loadProblems + recorder.importErrors + libraryErrors + [imports.pickError].compactMap { $0 }
+        let statusMessages: [String] = store.loadProblems + libraryErrors + [imports.pickError].compactMap { $0 }
         // Listenin üstündeki hata ve içe aktarma satırları: varken "Henüz toplantı yok" sahnesi gösterilmez (bkz.
         // `emptyOverlay`).
-        let hasStatusRows: Bool = !statusMessages.isEmpty || !store.actionProblems.isEmpty || recorder.importingCount > 0 || imports.isLoadingVideos
+        let hasStatusRows: Bool = !statusMessages.isEmpty || !recorder.importErrors.isEmpty || !store.actionProblems.isEmpty
+            || recorder.importingCount > 0 || imports.isLoadingVideos
         ScrollView {
             LazyVStack(alignment: .leading, spacing: isCompact ? 2 : 14) {
                 PhoneErrorList(messages: statusMessages)
+                // İçe aktarma hataları (görüşme kaydınınki dahil) kullanıcı kapatana ya da aynı kaynaktan yeni içe aktarmaya dek.
+                PhoneDismissibleErrorList(messages: recorder.importErrors) { recorder.dismissImportErrors() }
                 PhoneDismissibleErrorList(messages: store.actionProblems) { store.dismissActionProblems() }
                 if recorder.importingCount > 0 || imports.isLoadingVideos {
                     ImportProgressRow()

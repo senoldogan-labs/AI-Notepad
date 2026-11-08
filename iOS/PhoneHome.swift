@@ -116,7 +116,7 @@ struct PhoneHome: View {
     @ViewBuilder
     private var notices: some View {
         let recordingErrors: [String] = phoneUnresolvedErrors(messages: recorder.errorMessages, account: account)
-        let errors: [String] = store.loadProblems + recorder.importErrors + libraryErrors + [imports.pickError].compactMap { $0 }
+        let errors: [String] = store.loadProblems + libraryErrors + [imports.pickError].compactMap { $0 }
         PhonePlanNotice(account: account, router: router)
         if let diskSpace = phoneDiskSpaceText(space: recorder.recordingDiskSpace) {
             NoticeText(diskSpace, severity: .attention)
@@ -126,6 +126,8 @@ struct PhoneHome: View {
         PhoneDeletedMeetingsCard(deleted: .shared, store: store)
         // Sunucunun "deneme bitti" gibi reddi abone olunca artık geçerli değil (Mac'teki `resolvedErrorMessages`).
         PhoneErrorList(messages: errors)
+        // İçe aktarma hataları (görüşme kaydınınki dahil) kullanıcı kapatana ya da aynı kaynaktan yeni içe aktarmaya dek.
+        PhoneDismissibleErrorList(messages: recorder.importErrors) { recorder.dismissImportErrors() }
         // Kaydın hataları kapatılabilir (not hazır olunca kendiliğinden de kalkar); mikrofon izni yoksa Ayarlar'a götürür.
         PhoneDismissibleErrorList(messages: recordingErrors) { recorder.dismissErrors() }
         if recordingErrors.contains(microphonePermissionDeniedText()) {

@@ -70,3 +70,13 @@ public func importErrors(jobs: [ImportJob]) -> [String] {
         }
     }
 }
+
+/// Kullanıcı içe aktarma hatalarını kapattı (listedeki kapatma düğmesi): biten işler düşer, süren işler kalan
+/// dosyalarıyla sürer ama gösterilen hataları silinir. Hata başka türlü kalkmaz: yalnız bu ya da aynı kaynaktan yeni bir
+/// içe aktarma (`beginningImportJob`) kaldırır; arka planda gelen görüşme kaydı dosya hatalarına dokunmaz. Saf
+/// fonksiyondur.
+public func dismissingImportErrors(jobs: [ImportJob]) -> [ImportJob] {
+    jobs.compactMap { (job: ImportJob) -> ImportJob? in
+        job.remaining > 0 ? ImportJob(id: job.id, source: job.source, remaining: job.remaining, errors: []) : nil
+    }
+}
