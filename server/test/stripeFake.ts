@@ -120,6 +120,8 @@ export interface FakeStripe {
   readonly customerCards: Map<string, FakePaymentMethod[]>;
   /** Doluysa her istekten önce çağrılır (araya giren webhook gibi yarışlar için; kanca kendini kaldırmalıdır). */
   beforeRequest: ((method: string, path: string) => Promise<void>) | null;
+  /** Ödeme niyeti → ödemenin tutarı (yoksa `fakeChargeAmount`); kısmi iadeler `refundForms` tutarlarından düşülür. */
+  readonly chargeAmounts: Map<string, number>;
 }
 
 /** Form gövdesi. */
@@ -165,6 +167,7 @@ export function stubStripeApi(harness: Harness): FakeStripe {
     loseBalanceResponses: false,
     customerCards: new Map(),
     beforeRequest: null,
+    chargeAmounts: new Map(),
   };
   harness.stub("https://api.stripe.com/v1/", async (request: Request): Promise<Response> => {
     const url: URL = new URL(request.url);
@@ -254,18 +257,22 @@ export function stubStripeApi(harness: Harness): FakeStripe {
       fake.refundForms.push(form);
       fake.refundKeys.push(request.headers.get("idempotency-key") ?? "");
       fake.operations.push(`refund:${intent}`);
-      return Response.json({ id: `re_${randomToken(6)}`, object: "refund", status: "succeeded" });
+      return Response.json({ id: `re_${randomToken(6)}`, object: "refund", status: "succeeded", amount: Number(form.get("amount") ?? fakeChargeAmount) });
     }
     if (method === "GET" && path === "/v1/charges") {
       const intent: string = url.searchParams.get("payment_intent") ?? "";
+      const amount: number = fake.chargeAmounts.get(intent) ?? fakeChargeAmount;
+      const partial: number = fake.refundForms
+        .filter((form: URLSearchParams): boolean => form.get("payment_intent") === intent && (form.get("fake_status") ?? "succeeded") === "succeeded")
+        .reduce((total: number, form: URLSearchParams): number => total + Number(form.get("amount") ?? amount), 0);
       return list("/v1/charges", [
         {
           id: `ch_${intent}`,
           object: "charge",
           payment_intent: intent,
           paid: true,
-          amount: fakeChargeAmount,
-          amount_refunded: fake.refundedIntents.has(intent) ? fakeChargeAmount : 0,
+          amount,
+          amount_refunded: fake.chargeAmounts.has(intent) ? Math.min(amount, partial) : fake.refundedIntents.has(intent) ? fakeChargeAmount : 0,
           disputed: fake.disputedIntents.has(intent),
         },
       ]);

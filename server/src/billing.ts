@@ -590,11 +590,17 @@ export async function withdrawSubscription(db: D1Database, platform: Platform, c
     // A repeated withdrawal (also after the idempotency key's 24 hours): the earlier request's refund on this payment
     // (`metadata.purpose = withdrawal`, not failed or canceled) is counted, not made again; other refunds (e.g. by
     // support) and a failed or canceled withdrawal refund don't count, so the refund is made (again).
+    // One payment has a handful of refunds at most (the duplicate and dispute paths refund whole payments): one page.
     const earlier: Stripe.ApiList<Stripe.Refund> = await callStripe(platform, "refunds.list", userId, () =>
       stripe.refunds.list({ ...target, limit: 100 }),
     );
-    const done: number = earlier.data
-      .filter((refund: Stripe.Refund): boolean => refund.metadata?.["purpose"] === "withdrawal" && isLiveRefund(refund))
+    if (earlier.has_more) {
+      log("alert", "withdrawal_refunds_truncated", { userId, subscriptionId: subscription.id, invoiceId: invoice.id });
+      throw new ProviderApiError("stripe", "upstream_unavailable", "The payment's refunds couldn't be read; try again or contact support.");
+    }
+    const withdrawalRefunds: Stripe.Refund[] = earlier.data.filter((refund: Stripe.Refund): boolean => refund.metadata?.["purpose"] === "withdrawal");
+    const done: number = withdrawalRefunds
+      .filter(isLiveRefund)
       .reduce((total: number, refund: Stripe.Refund): number => total + refund.amount, 0);
     if (done > 0) {
       log("info", "withdrawal_refund_already_done", { userId, subscriptionId: subscription.id, invoiceId: invoice.id, refundedCents: done });
@@ -602,13 +608,33 @@ export async function withdrawSubscription(db: D1Database, platform: Platform, c
       currency = invoice.currency;
       continue;
     }
-    await callStripe(platform, "refunds.create", userId, () =>
+    // Never more than is still refundable on the payment (e.g. support refunded part of it earlier).
+    const charges: Stripe.Charge[] =
+      "payment_intent" in target
+        ? (await callStripe(platform, "charges.list", userId, () => stripe.charges.list({ payment_intent: target.payment_intent, limit: 100 }))).data
+        : [await callStripe(platform, "charges.retrieve", userId, () => stripe.charges.retrieve(target.charge))];
+    const refundable: number = charges
+      .filter((charge: Stripe.Charge): boolean => charge.paid)
+      .reduce((total: number, charge: Stripe.Charge): number => total + Math.max(0, charge.amount - charge.amount_refunded), 0);
+    const refundAmount: number = Math.min(amount, refundable);
+    if (refundAmount <= 0) {
+      log("warn", "withdrawal_refund_nothing_left", { userId, subscriptionId: subscription.id, invoiceId: invoice.id });
+      continue;
+    }
+    // A failed or canceled earlier withdrawal refund gets a fresh idempotency key (Stripe would replay the dead refund
+    // for 24 hours under the old key).
+    const attempt: number = withdrawalRefunds.length;
+    const refund: Stripe.Refund = await callStripe(platform, "refunds.create", userId, () =>
       stripe.refunds.create(
-        { ...target, amount, reason: "requested_by_customer", metadata: { purpose: "withdrawal", subscription_id: subscription.id, user_id: userId } },
-        { idempotencyKey: `refund-withdrawal-${subscription.id}-${invoice.id ?? ""}` },
+        { ...target, amount: refundAmount, reason: "requested_by_customer", metadata: { purpose: "withdrawal", subscription_id: subscription.id, user_id: userId } },
+        { idempotencyKey: `refund-withdrawal-${subscription.id}-${invoice.id ?? ""}-${attempt}` },
       ),
     );
-    refundedCents += amount;
+    if (!isLiveRefund(refund)) {
+      log("alert", "withdrawal_refund_failed", { userId, subscriptionId: subscription.id, invoiceId: invoice.id, refundId: refund.id, status: refund.status });
+      throw new ProviderApiError("stripe", "upstream_rejected", "The refund didn't go through; try again or contact support.");
+    }
+    refundedCents += refundAmount;
     currency = invoice.currency;
   }
   log("info", "subscription_withdrawn", { userId, subscriptionId: subscription.id, refundedCents, currency, resumed });

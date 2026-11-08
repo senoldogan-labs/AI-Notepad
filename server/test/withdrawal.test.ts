@@ -24,6 +24,7 @@ async function yearlySubscriber(harness: Harness, stripe: FakeStripe, ageDays: n
   const intent: string = `pi_${randomToken(6)}`;
   stripe.invoices.set(invoiceId, { subscription: subscriptionId, paid: true, amountPaid: 4900, created, periodEnd: created + 365 * 86_400 });
   stripe.invoicePayments.set(invoiceId, [intent]);
+  stripe.chargeAmounts.set(intent, 4900);
   const subscription = fakeYearlySubscription(subscriptionId, customer, "active", created, created + 365 * 86_400);
   expect((await sendSubscription(harness, stripe, `evt_${randomToken(6)}`, "customer.subscription.created", created, subscription)).status).toBe(200);
   return { session, subscriptionId };
@@ -86,8 +87,10 @@ describe("EU online withdrawal function", () => {
     stripe.refundForms.push(new URLSearchParams({ payment_intent: intent, amount: "4859", "metadata[purpose]": "withdrawal", fake_status: "failed" }));
     const response: Response = await harness.call(req("POST", "/v1/billing/withdraw", { token: session.accessToken }));
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ refundedCents: 4859, currency: "usd" });
-    expect(stripe.refundForms).toHaveLength(3);
+    // Pro rata 4859, but only 4700 is still refundable on the payment; a fresh idempotency key (the failed refund had #0).
+    expect(await response.json()).toEqual({ refundedCents: 4700, currency: "usd" });
+    expect(stripe.refundForms.at(-1)?.get("amount")).toBe("4700");
+    expect(stripe.refundKeys.at(-1)).toMatch(/-1$/);
   });
 
   it("refunds each invoice for its own charged period", () => {
