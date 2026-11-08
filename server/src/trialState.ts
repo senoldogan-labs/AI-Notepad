@@ -2,7 +2,7 @@ import type { AccessConfig, TrialState } from "./entitlements";
 
 /**
  * Trial rules shared by the TypeScript decisions and the SQL gate of `startTrialMeeting` (src/meetings.ts), so the two
- * cannot drift; `test/trialState.test.ts` checks them against each other row by row. Migration 0059 keeps the stored
+ * cannot drift; `test/stateGuards.test.ts` checks them against each other row by row. Migration 0059 keeps the stored
  * columns moving forward only: `users.trial_started_at` is never cleared or moved later, `carried_trial_meetings` never
  * shrinks, and a Mac binding (`trial_device_verified_at`) is final and never coexists with a pending claim.
  *

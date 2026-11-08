@@ -75,6 +75,10 @@ export async function assistantCleanup(
           .bind(row.user_id, nowMs, row.epoch)
           .run();
         accessLostMarked += marked.meta.changes;
+        if (marked.meta.changes === 0) {
+          // Not marked: still rotate the row to the back of the check order.
+          await adb.prepare("UPDATE assistant_settings SET access_checked_at = ? WHERE user_id = ?").bind(nowMs, row.user_id).run();
+        }
         continue;
       }
       if (row.access_lost_at <= nowMs - accessLossDeleteDays * dayMs && (await disableAssistantAfterAccessLoss(adb, bucket, row.user_id, row.epoch, row.access_lost_at, now))) {
