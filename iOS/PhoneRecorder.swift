@@ -558,9 +558,18 @@ final class PhoneRecorder {
                     self.shortMeetingDeadline = deadline
                 }
                 self.showPauseConfirmation()
-                // Sınır değiştiyse (duraklatma bitti ya da sunucu onayladı) kilit ekranı bildirimleri yeni sınırla kurulur;
-                // duraklatmada kurulmaz (sınır ilerliyor).
-                if !self.pauseClock.isPaused, self.scheduledLimitDeadline.map({ abs($0.timeIntervalSince(deadline)) > 1 }) ?? true {
+                // Kilit ekranı bildirimleri sınır duruyorken, o sınırla kurulur (sınır değişince yeniden). Sınır ilerlerken
+                // (onaylanmış duraklatma sayılırken: duraklatmada ya da sürdürme sunucuya henüz varmadığında, en çok
+                // duraklatma hakkı dolana dek) kurulmaz: sınır o sürede gelemez, eski sınırla kurulan bildirim erken
+                // çıkardı. Duraklatma onaylanmadıysa ya da hak dolduysa sınır durur ve bildirimler kurulu kalır.
+                let now: Date = Date()
+                let isMoving: Bool = self.currentRecordingDeadline(now: now.addingTimeInterval(1)).map { $0.timeIntervalSince(deadline) > 0.5 } ?? false
+                if isMoving {
+                    if self.scheduledLimitDeadline != nil {
+                        self.scheduledLimitDeadline = nil
+                        cancelRecordingLimitNotifications()
+                    }
+                } else if self.scheduledLimitDeadline.map({ abs($0.timeIntervalSince(deadline)) > 1 }) ?? true {
                     self.scheduledLimitDeadline = deadline
                     Task { await scheduleRecordingLimitNotifications(deadline: deadline, warningLeadSec: hostedLimitWarningLeadSec) }
                 }
@@ -903,14 +912,13 @@ final class PhoneRecorder {
         updateActivityNow(state: activityState())
     }
 
-    /// Duraklatmayı uygular (kullanıcı ya da kesinti): ses kapısı ve süre saati değişir, süre sınırı bildirimleri
-    /// duraklatmada kalkar, sürdürünce yeni sınırla yeniden kurulur. Çevrimiçi kayıtta duraklatma sunucuya bildirilir
+    /// Duraklatmayı uygular (kullanıcı ya da kesinti): ses kapısı ve süre saati değişir; süre sınırı bildirimlerini sınır
+    /// izleyici sınıra göre kurar ya da kaldırır (bkz. `watchRecordingLimit`). Çevrimiçi kayıtta duraklatma sunucuya bildirilir
     /// (Mac'teki gibi): duraklatılan süre toplantının süre sınırına ve aylık kullanıma sayılmaz.
     private func setPaused(_ paused: Bool, active: ActiveRecording) {
         if paused {
             active.pauseGate.pause(at: .now)
             pauseClock = pauseClock.pausing(at: Date())
-            cancelRecordingLimitNotifications()
         } else {
             active.pauseGate.resume(at: .now)
             pauseClock = pauseClock.resuming(at: Date())
