@@ -48,3 +48,15 @@ public func addMeetingPhoto(meetingDirectory: URL, offsetSec: Double, imageData:
 public func photoOffsetAfterMeeting(record: MeetingRecord) -> Double {
     transcriptParagraphs(record: record).map(\.endSec).max() ?? 0
 }
+
+/// The user-facing text when a photo can't be added (Mac and iPhone).
+public func meetingPhotoErrorMessage(error: any Error) -> String {
+    switch error {
+    case MeetingPhotoError.limitReached(let limit):
+        String(localized: "Bu toplantıya en fazla \(limit) fotoğraf eklenebilir.")
+    case is ScreenImageError:
+        String(localized: "Fotoğraf okunamadı; başka bir görüntü dene.")
+    default:
+        String(localized: "Fotoğraf eklenemedi: \(userFacingMessage(error: error))")
+    }
+}

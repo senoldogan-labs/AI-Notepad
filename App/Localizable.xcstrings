@@ -62359,76 +62359,6 @@
         }
       }
     },
-    "Kapalıyken yalnızca bilgisayardan gelen ses (karşı taraf) kaydedilir: mikrofon hiç açılmaz, hoparlör yankısı \"Sen\" diye yazılmaz. Paneldeki mikrofon düğmesiyle kayıttan önce de seçilebilir; mikrofonla başlayan kayıtta düğme yalnızca susturur. Yüz yüze modunda mikrofon her zaman açıktır (odadaki herkesi kaydeder).": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Wenn deaktiviert, wird nur das Audio vom Computer (die andere Seite) aufgenommen: Das Mikrofon wird nie geöffnet und Lautsprecher-Echo wird nicht als „Du“ geschrieben. Du kannst das auch vor der Aufnahme mit der Mikrofontaste im Panel wählen; bei einer mit Mikrofon gestarteten Aufnahme schaltet die Taste es nur stumm. Im Modus „Vor Ort“ ist das Mikrofon immer an (es nimmt alle im Raum auf)."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "When off, only the audio coming from the computer (the other side) is recorded: the microphone is never opened and speaker echo isn't written as \"You\". You can also choose with the microphone button in the panel before recording; in a recording started with the microphone, the button only mutes it. In in-person mode the microphone is always on (it records everyone in the room)."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Si está desactivado, solo se graba el audio que sale del ordenador (la otra parte): el micrófono nunca se abre y el eco de los altavoces no se escribe como “Tú”. También puedes elegirlo con el botón del micrófono en el panel antes de grabar; en una grabación iniciada con el micrófono, el botón solo lo silencia. En el modo presencial el micrófono siempre está activado (graba a todos los presentes en la sala)."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kun tämä on pois päältä, nauhoitetaan vain tietokoneesta tuleva ääni (toinen osapuoli): mikrofonia ei koskaan avata, eikä kaiuttimen kaikua kirjoiteta nimellä ”Sinä”. Voit valita myös paneelin mikrofonipainikkeella ennen nauhoitusta; mikrofonilla aloitetussa nauhoituksessa painike vain mykistää sen. Kasvokkain-tilassa mikrofoni on aina päällä (se nauhoittaa kaikki huoneessa olevat)."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lorsque cette option est désactivée, seul l’audio provenant de l’ordinateur (l’autre partie) est enregistré : le micro n’est jamais ouvert et l’écho des haut-parleurs n’est pas transcrit comme « Vous ». Vous pouvez aussi choisir avec le bouton du micro dans le panneau avant l’enregistrement ; dans un enregistrement démarré avec le micro, le bouton ne fait que le couper. En mode présentiel, le micro est toujours activé (il enregistre toutes les personnes présentes dans la pièce)."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Se disattivo, viene registrato solo l’audio proveniente dal computer (l’altra parte): il microfono non viene mai aperto e l’eco degli altoparlanti non viene scritto come “Tu”. Puoi anche scegliere con il pulsante del microfono nel pannello prima di registrare; in una registrazione avviata con il microfono, il pulsante lo silenzia soltanto. In modalità di persona il microfono è sempre attivo (registra tutti i presenti nella stanza)."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オフの場合、コンピュータから出る音声（相手側）のみを録音します：マイクは一切使用されず、スピーカーのエコーが「自分」として書き込まれることもありません。録音前にパネルのマイクボタンで選ぶこともできます。マイクありで開始した録音では、ボタンはミュートするだけです。対面モードでは、マイクは常にオンです（部屋にいる全員を録音します）。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "끄면 컴퓨터에서 나오는 오디오(상대방)만 녹음됩니다. 마이크는 열리지 않으며 스피커 에코가 \"나\"로 기록되지 않습니다. 녹음 전에 패널의 마이크 버튼으로 선택할 수도 있습니다. 마이크를 켜고 시작한 녹음에서는 버튼이 마이크를 음소거하기만 합니다. 대면 모드에서는 마이크가 항상 켜져 있습니다(방 안의 모든 사람을 녹음함)."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Als dit uitstaat, wordt alleen de audio van de computer (de andere kant) opgenomen: de microfoon wordt nooit geopend en echo uit de luidspreker wordt niet als \"Jij\" geschreven. Je kunt ook vóór de opname kiezen met de microfoonknop in het paneel; in een opname die met de microfoon is gestart, dempt de knop hem alleen. In de modus Fysiek staat de microfoon altijd aan (hij neemt iedereen in de ruimte op)."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Quando desativado, só o áudio que vem do computador (o outro lado) é gravado: o microfone nunca é aberto e o eco do alto-falante não é escrito como \"Você\". Você também pode escolher com o botão do microfone no painel antes de gravar; em uma gravação iniciada com o microfone, o botão só o silencia. No modo presencial, o microfone fica sempre ativado (ele grava todos na sala)."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "关闭后，只录制来自电脑的音频（对方的声音）：绝不会打开麦克风，扬声器回声也不会被记为“你”。你也可以在录制前通过面板中的麦克风按钮进行选择；在开启麦克风的录制中，该按钮只会将其静音。在面对面模式下，麦克风始终开启（会录下房间里的所有人）。"
-          }
-        }
-      }
-    },
     "Kapat": {
       "localizations": {
         "de": {
@@ -198655,76 +198585,6 @@
         }
       }
     },
-    "Duraklatıldı; ses kaydedilmez. Duraklatılan süre toplantının süre sınırından sayılır.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pausiert; es wird kein Ton aufgenommen. Die Pausenzeit zählt zum Zeitlimit des Meetings."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Paused; audio isn't recorded. Paused time still counts toward the meeting's time limit."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "En pausa; no se graba audio. El tiempo en pausa cuenta para el límite de tiempo de la reunión."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tauolla; ääntä ei nauhoiteta. Tauon aika lasketaan kokouksen aikarajaan."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "En pause ; l’audio n’est pas enregistré. Le temps de pause compte dans la limite de durée de la réunion."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "In pausa; l’audio non viene registrato. Il tempo in pausa conta nel limite di tempo della riunione."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "一時停止中。音声は録音されません。一時停止した時間も会議の時間上限に含まれます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "일시정지됨. 오디오가 녹음되지 않습니다. 일시정지한 시간도 회의 시간 한도에 포함됩니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gepauzeerd; er wordt geen audio opgenomen. De pauzetijd telt mee voor de tijdslimiet van de vergadering."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pausado; o áudio não é gravado. O tempo em pausa conta no limite de tempo da reunião."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已暂停；不会录制音频。暂停时间仍计入会议时长上限。"
-          }
-        }
-      }
-    },
     "Not bağlantı gelince hazırlanır.": {
       "localizations": {
         "de": {
@@ -200618,6 +200478,7 @@
       }
     },
     "Bu toplantıya en fazla %lld fotoğraf eklenebilir.": {
+      "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -201108,6 +200969,7 @@
       }
     },
     "Fotoğraf eklenemedi: %@": {
+      "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
@@ -203343,6 +203205,707 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tämä kokous on ehkä poistettu tai se on toisella tilillä."
+          }
+        }
+      }
+    },
+    "Duraklatıldı; ses kaydedilmez. Duraklatılan süre toplantının süre sınırına ve aylık kullanıma sayılmaz.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paused; audio isn't recorded. Paused time doesn't count toward the meeting's time limit or your monthly usage."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausiert; es wird kein Ton aufgenommen. Die Pausenzeit zählt weder zum Zeitlimit des Meetings noch zu deiner monatlichen Nutzung."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En pause ; l’audio n’est pas enregistré. Le temps de pause ne compte ni dans la limite de durée de la réunion ni dans votre utilisation mensuelle."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En pausa; no se graba audio. El tiempo en pausa no cuenta para el límite de tiempo de la reunión ni para tu uso mensual."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In pausa; l’audio non viene registrato. Il tempo in pausa non conta nel limite di tempo della riunione né nel tuo utilizzo mensile."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausado; o áudio não é gravado. O tempo em pausa não conta no limite de tempo da reunião nem no seu uso mensal."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gepauzeerd; er wordt geen audio opgenomen. De pauzetijd telt niet mee voor de tijdslimiet van de vergadering of je maandelijkse gebruik."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一時停止中。音声は録音されません。一時停止した時間は会議の時間上限にも月間の利用量にも含まれません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "일시정지됨. 오디오가 녹음되지 않습니다. 일시정지한 시간은 회의 시간 한도와 월간 사용량에 포함되지 않습니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已暂停；不会录制音频。暂停时间不计入会议时长上限，也不计入你的每月用量。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tauolla; ääntä ei nauhoiteta. Tauon aikaa ei lasketa kokouksen aikarajaan eikä kuukausikäyttöösi."
+          }
+        }
+      }
+    },
+    "Duraklatıldı; ses kaydedilmez.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paused; audio isn't recorded."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausiert; es wird kein Ton aufgenommen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En pause ; l’audio n’est pas enregistré."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En pausa; no se graba audio."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In pausa; l’audio non viene registrato."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausado; o áudio não é gravado."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gepauzeerd; er wordt geen audio opgenomen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一時停止中。音声は録音されません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "일시정지됨. 오디오가 녹음되지 않습니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已暂停；不会录制音频。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tauolla; ääntä ei nauhoiteta."
+          }
+        }
+      }
+    },
+    "(Mikrofon açıldı; \"Sen\" bu andan itibaren kaydediliyor.)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Microphone turned on; \"You\" is recorded from this point on.)"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Mikrofon eingeschaltet; „Du“ wird ab jetzt aufgenommen.)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Micro activé ; « Vous » est enregistré à partir de maintenant.)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Micrófono activado; “Tú” se graba a partir de este momento.)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Microfono attivato; “Tu” viene registrato da questo momento.)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Microfone ligado; \"Você\" é gravado a partir deste momento.)"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Microfoon aangezet; \"Jij\" wordt vanaf nu opgenomen.)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（マイクをオンにしました。この時点から「自分」が録音されます。）"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(마이크를 켰습니다. 이 시점부터 \"나\"가 녹음됩니다.)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（已打开麦克风；从此刻起录制“你”的声音。）"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Mikrofoni kytketty päälle; ”Sinä” nauhoitetaan tästä hetkestä alkaen.)"
+          }
+        }
+      }
+    },
+    "Bu toplantı çok kez duraklatıldı; bundan sonraki duraklatmalar toplantının süre sınırına sayılır.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This meeting was paused too many times; further pauses count toward the meeting's time limit."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Meeting wurde zu oft pausiert; weitere Pausen zählen zum Zeitlimit des Meetings."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette réunion a été mise en pause trop de fois ; les prochaines pauses comptent dans la limite de durée de la réunion."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta reunión se ha pausado demasiadas veces; las siguientes pausas cuentan para el límite de tiempo de la reunión."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questa riunione è stata messa in pausa troppe volte; le pause successive contano nel limite di tempo della riunione."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta reunião foi pausada vezes demais; as próximas pausas contam no limite de tempo da reunião."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deze vergadering is te vaak gepauzeerd; volgende pauzes tellen mee voor de tijdslimiet van de vergadering."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この会議は一時停止の回数が多すぎます。以降の一時停止は会議の時間上限に含まれます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 회의는 너무 많이 일시정지되었습니다. 이후 일시정지는 회의 시간 한도에 포함됩니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此会议暂停次数过多；之后的暂停将计入会议时长上限。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämä kokous on tauotettu liian monta kertaa; seuraavat tauot lasketaan kokouksen aikarajaan."
+          }
+        }
+      }
+    },
+    "Mikrofonu aç": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn On Microphone"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mikrofon einschalten"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activer le micro"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activar micrófono"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Attiva microfono"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ligar microfone"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microfoon aanzetten"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "マイクをオン"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "마이크 켜기"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开麦克风"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kytke mikrofoni päälle"
+          }
+        }
+      }
+    },
+    "Mikrofonu kapat": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn Off Microphone"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mikrofon ausschalten"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Désactiver le micro"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desactivar micrófono"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disattiva microfono"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desligar microfone"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microfoon uitzetten"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "マイクをオフ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "마이크 끄기"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭麦克风"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kytke mikrofoni pois"
+          }
+        }
+      }
+    },
+    "Fotoğraf eklenemedi": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't Add the Photo"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto konnte nicht hinzugefügt werden"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d’ajouter la photo"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo añadir la foto"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile aggiungere la foto"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível adicionar a foto"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kan foto niet toevoegen"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真を追加できませんでした"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "사진을 추가할 수 없음"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法添加照片"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kuvaa ei voitu lisätä"
+          }
+        }
+      }
+    },
+    "Kapalıyken yalnızca bilgisayardan gelen ses (karşı taraf) kaydedilir: mikrofon hiç açılmaz, hoparlör yankısı \"Sen\" diye yazılmaz. Paneldeki mikrofon düğmesiyle kayıttan önce de seçilebilir. Mikrofonsuz başlayan kayıtta mikrofon kayıt sırasında açılabilir; açıldığı andan itibaren kaydedilir, sonra kapatmak yalnızca susturur. Yüz yüze modunda mikrofon her zaman açıktır (odadaki herkesi kaydeder).": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When off, only the audio coming from the computer (the other side) is recorded: the microphone is never opened and speaker echo isn't written as \"You\". You can also choose with the microphone button in the panel before recording. In a recording started without the microphone, you can turn it on during the recording; it's recorded from that moment on, and turning it off again only mutes it. In in-person mode the microphone is always on (it records everyone in the room)."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wenn deaktiviert, wird nur das Audio vom Computer (die andere Seite) aufgenommen: Das Mikrofon wird nie geöffnet und Lautsprecher-Echo wird nicht als „Du“ geschrieben. Du kannst das auch vor der Aufnahme mit der Mikrofontaste im Panel wählen. Bei einer ohne Mikrofon gestarteten Aufnahme kannst du es während der Aufnahme einschalten; es wird ab diesem Moment aufgenommen, und erneutes Ausschalten schaltet es nur stumm. Im Modus „Vor Ort“ ist das Mikrofon immer an (es nimmt alle im Raum auf)."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lorsque cette option est désactivée, seul l’audio provenant de l’ordinateur (l’autre partie) est enregistré : le micro n’est jamais ouvert et l’écho des haut-parleurs n’est pas transcrit comme « Vous ». Vous pouvez aussi choisir avec le bouton du micro dans le panneau avant l’enregistrement. Dans un enregistrement démarré sans le micro, vous pouvez l’activer pendant l’enregistrement ; il est enregistré à partir de ce moment, et le désactiver ensuite ne fait que le couper. En mode présentiel, le micro est toujours activé (il enregistre toutes les personnes présentes dans la pièce)."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si está desactivado, solo se graba el audio que sale del ordenador (la otra parte): el micrófono nunca se abre y el eco de los altavoces no se escribe como “Tú”. También puedes elegirlo con el botón del micrófono en el panel antes de grabar. En una grabación iniciada sin el micrófono, puedes activarlo durante la grabación; se graba desde ese momento, y desactivarlo de nuevo solo lo silencia. En el modo presencial el micrófono siempre está activado (graba a todos los presentes en la sala)."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se disattivo, viene registrato solo l’audio proveniente dal computer (l’altra parte): il microfono non viene mai aperto e l’eco degli altoparlanti non viene scritto come “Tu”. Puoi anche scegliere con il pulsante del microfono nel pannello prima di registrare. In una registrazione avviata senza microfono puoi attivarlo durante la registrazione; viene registrato da quel momento e disattivarlo di nuovo lo silenzia soltanto. In modalità di persona il microfono è sempre attivo (registra tutti i presenti nella stanza)."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando desativado, só o áudio que vem do computador (o outro lado) é gravado: o microfone nunca é aberto e o eco do alto-falante não é escrito como \"Você\". Você também pode escolher com o botão do microfone no painel antes de gravar. Em uma gravação iniciada sem o microfone, você pode ligá-lo durante a gravação; ele é gravado a partir desse momento, e desligá-lo de novo só o silencia. No modo presencial, o microfone fica sempre ativado (ele grava todos na sala)."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als dit uitstaat, wordt alleen de audio van de computer (de andere kant) opgenomen: de microfoon wordt nooit geopend en echo uit de luidspreker wordt niet als \"Jij\" geschreven. Je kunt ook vóór de opname kiezen met de microfoonknop in het paneel. In een opname die zonder microfoon is gestart, kun je hem tijdens de opname aanzetten; vanaf dat moment wordt hij opgenomen, en weer uitzetten dempt hem alleen. In de modus Fysiek staat de microfoon altijd aan (hij neemt iedereen in de ruimte op)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフの場合、コンピュータから出る音声（相手側）のみを録音します：マイクは一切使用されず、スピーカーのエコーが「自分」として書き込まれることもありません。録音前にパネルのマイクボタンで選ぶこともできます。マイクなしで開始した録音でも、録音中にマイクをオンにできます。その時点から録音され、再びオフにするとミュートされるだけです。対面モードでは、マイクは常にオンです（部屋にいる全員を録音します）。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "끄면 컴퓨터에서 나오는 오디오(상대방)만 녹음됩니다. 마이크는 열리지 않으며 스피커 에코가 \"나\"로 기록되지 않습니다. 녹음 전에 패널의 마이크 버튼으로 선택할 수도 있습니다. 마이크 없이 시작한 녹음에서도 녹음 중에 마이크를 켤 수 있습니다. 그 순간부터 녹음되며, 다시 끄면 음소거만 됩니다. 대면 모드에서는 마이크가 항상 켜져 있습니다(방 안의 모든 사람을 녹음함)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭后，只录制来自电脑的音频（对方的声音）：绝不会打开麦克风，扬声器回声也不会被记为“你”。你也可以在录制前通过面板中的麦克风按钮进行选择。在未开启麦克风的录制中，你可以在录制期间打开麦克风；从那一刻起开始录制，之后再关闭只会将其静音。在面对面模式下，麦克风始终开启（会录下房间里的所有人）。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kun tämä on pois päältä, nauhoitetaan vain tietokoneesta tuleva ääni (toinen osapuoli): mikrofonia ei koskaan avata, eikä kaiuttimen kaikua kirjoiteta nimellä ”Sinä”. Voit valita myös paneelin mikrofonipainikkeella ennen nauhoitusta. Ilman mikrofonia aloitetussa nauhoituksessa voit kytkeä mikrofonin päälle nauhoituksen aikana; se nauhoitetaan siitä hetkestä alkaen, ja pois kytkeminen vain mykistää sen. Kasvokkain-tilassa mikrofoni on aina päällä (se nauhoittaa kaikki huoneessa olevat)."
+          }
+        }
+      }
+    },
+    "Duraklatma henüz sunucuya bildirilemedi; bağlantı gelince yeniden denenecek. Onaylanana dek bu duraklatma süre sınırına sayılabilir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The pause hasn't reached the server yet; it will be retried when you're back online. Until it's confirmed, this pause may count toward the time limit."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Pause hat den Server noch nicht erreicht; sie wird erneut gesendet, sobald du wieder online bist. Bis sie bestätigt ist, kann diese Pause zum Zeitlimit zählen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La pause n’a pas encore atteint le serveur ; elle sera renvoyée dès que vous serez de nouveau en ligne. Tant qu’elle n’est pas confirmée, elle peut compter dans la limite de durée."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La pausa aún no ha llegado al servidor; se volverá a enviar cuando vuelvas a tener conexión. Hasta que se confirme, esta pausa puede contar para el límite de tiempo."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La pausa non ha ancora raggiunto il server; verrà inviata di nuovo quando tornerai online. Finché non viene confermata, questa pausa può contare nel limite di tempo."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A pausa ainda não chegou ao servidor; ela será reenviada quando você voltar a ficar online. Até ser confirmada, esta pausa pode contar no limite de tempo."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De pauze heeft de server nog niet bereikt; hij wordt opnieuw verstuurd zodra je weer online bent. Tot hij is bevestigd, kan deze pauze meetellen voor de tijdslimiet."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一時停止はまだサーバーに届いていません。オンラインに戻ると再送されます。確認されるまで、この一時停止は時間上限に含まれる場合があります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "일시정지가 아직 서버에 전달되지 않았습니다. 다시 온라인이 되면 재전송됩니다. 확인될 때까지 이 일시정지는 시간 한도에 포함될 수 있습니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂停尚未送达服务器；恢复联网后会重新发送。确认之前，这次暂停可能计入时长上限。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tauko ei ole vielä tavoittanut palvelinta; se lähetetään uudelleen, kun olet taas verkossa. Kunnes se on vahvistettu, tämä tauko voidaan laskea aikarajaan."
+          }
+        }
+      }
+    },
+    "Bir duraklatma sunucuda kaydedilemedi; o duraklatma toplantının süre sınırına sayılıyor.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A pause couldn't be saved on the server; that pause counts toward the meeting's time limit."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eine Pause konnte auf dem Server nicht gespeichert werden; diese Pause zählt zum Zeitlimit des Meetings."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une pause n’a pas pu être enregistrée sur le serveur ; elle compte dans la limite de durée de la réunion."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo guardar una pausa en el servidor; esa pausa cuenta para el límite de tiempo de la reunión."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non è stato possibile salvare una pausa sul server; quella pausa conta nel limite di tempo della riunione."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível salvar uma pausa no servidor; essa pausa conta no limite de tempo da reunião."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Een pauze kon niet op de server worden opgeslagen; die pauze telt mee voor de tijdslimiet van de vergadering."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一時停止をサーバーに保存できませんでした。その一時停止は会議の時間上限に含まれます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "일시정지를 서버에 저장할 수 없었습니다. 해당 일시정지는 회의 시간 한도에 포함됩니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有一次暂停无法保存到服务器；该暂停计入会议时长上限。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taukoa ei voitu tallentaa palvelimelle; se tauko lasketaan kokouksen aikarajaan."
           }
         }
       }

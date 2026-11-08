@@ -1,6 +1,7 @@
 import type { Config } from "./config";
 import { ApiError } from "./errors";
 import { log } from "./log";
+import { meetingRecordedMsSql } from "./meetingPause";
 import { unsettledCallCountsSql } from "./phone/lifecycle";
 import type { TokenUsage } from "./reservations";
 
@@ -106,7 +107,7 @@ export interface MonthlyUsageRefs {
 
 /**
  * Kullanıcının bu ay sınıra sayılan süresi (saniye; SQL ifadesi): devralınan süre + bu ay başlayan her toplantının
- * süresi ile örtüşmesiz sesinin (kesinleşmiş + süren ayırma; `overlapFreeSecondsSql`) büyüğü + önceki aylarda başlamış toplantıların bu ay yazılan sesi ve
+ * kaydedilen süresi (duraklatılan süre düşülür, `meetingRecordedMsSql`) ile örtüşmesiz sesinin (kesinleşmiş + süren ayırma; `overlapFreeSecondsSql`) büyüğü + önceki aylarda başlamış toplantıların bu ay yazılan sesi ve
  * süren ayırmaları. Toplantı başına büyüğü alınır: uzun canlı toplantılar ile uzun içe aktarmalar birbirini örtmez
  * (toplamların büyüğü değil).
  */
@@ -116,7 +117,7 @@ export function monthlyUsedSecondsSql(refs: MonthlyUsageRefs): string {
   return `(
     COALESCE((SELECT carried_seconds FROM monthly_usage WHERE user_id = ${user} AND month = ${month}), 0)
     + COALESCE((SELECT SUM(MAX(
-        MAX(0, MIN(COALESCE(s.ended_at, ${now}), s.max_ends_at, ${now}) - s.started_at) / 1000.0,
+        ${meetingRecordedMsSql("s.", now)} / 1000.0,
         ${overlapFreeSecondsSql(`s.audio_seconds + COALESCE((SELECT SUM(r.audio_seconds) FROM usage_reservations r WHERE r.meeting_id = s.id AND r.kind = 'audio' AND r.expires_at > ${now}), 0)`)}
       )) FROM meeting_sessions s WHERE s.${thisMonth}), 0)
     + MAX(0, COALESCE((SELECT audio_seconds FROM monthly_usage WHERE user_id = ${user} AND month = ${month}), 0)
@@ -128,7 +129,7 @@ export function monthlyUsedSecondsSql(refs: MonthlyUsageRefs): string {
 
 /** Aylık kullanım özeti. */
 export interface MonthlyUsage {
-  /** Bu ay başlayan toplantıların süresi (açık olanlar şimdiye ya da en çok süreye kadar). */
+  /** Bu ay başlayan toplantıların kaydedilen süresi (açık olanlar şimdiye ya da en çok süreye kadar; duraklatmalar düşülür). */
   readonly meetingSeconds: number;
   /** Kesinleşmiş ses süresi + süresi dolmamış ses ayırmaları. */
   readonly audioSeconds: number;
@@ -148,10 +149,10 @@ export async function monthlyUsage(db: D1Database, userId: string, now: Date): P
   ] = await Promise.all([
     db
       .prepare(
-        `SELECT SUM(MAX(0, MIN(COALESCE(ended_at, ?), max_ends_at, ?) - started_at)) / 1000.0 AS seconds
-         FROM meeting_sessions WHERE user_id = ? AND started_at >= ?`,
+        `SELECT SUM(${meetingRecordedMsSql("", "?1")}) / 1000.0 AS seconds
+         FROM meeting_sessions WHERE user_id = ?2 AND started_at >= ?3`,
       )
-      .bind(nowMs, nowMs, userId, monthStartMs(now))
+      .bind(nowMs, userId, monthStartMs(now))
       .first<{ seconds: number | null }>(),
     db
       .prepare(

@@ -373,7 +373,7 @@ public struct TranscriptPanel: View {
         } else if state.canToggleMic {
             IconButton(symbol: state.isMicMuted ? "mic.slash" : "mic", help: state.isMicMuted ? "Mikrofonu aç (Sen)" : "Mikrofonu kapat (yalnızca dinliyorum)", action: actions.onToggleMic)
         } else {
-            // Kayıt mikrofonsuz başladı: mikrofon hiç açılmadı, bu kayıtta açılamaz.
+            // Mikrofon seçilemiyor (örnek toplantı gösterimi).
             IconButton(symbol: "mic.slash", help: "Bu kayıt yalnızca bilgisayardan gelen sesi alıyor", action: actions.onToggleMic)
                 .disabled(true)
         }

@@ -13,6 +13,15 @@ struct PhoneHomeRoot: View {
     let account: HostedAccount
     /// Sıradaki toplantının brifingini Sor'da açar.
     let onBriefing: @MainActor (CalendarMeeting) -> Void
+    /// Kayıt ekranından açılan fotoğraf kaynağı (tarayıcı, Fotoğraflar). Kökte tutulur: kayıt ekranı kayıt bitince
+    /// kalkar, açık tarayıcı ya da seçici onunla kapanıp fotoğraf kaybolmasın.
+    @State private var photoSource: PhotoCaptureSource?
+    /// Fotoğrafın gideceği toplantı ve an: kaynak açılırken alınır; kaynak açıkken kayıt bitse de fotoğraf biten
+    /// toplantıya, çekilmek istendiği ana eklenir.
+    @State private var photoTarget: LivePhotoTarget?
+    /// Bu kayıtta eklenen fotoğraflar ve son ekleme hatası.
+    @State private var photosAdded: Int = 0
+    @State private var photoError: String?
 
     var body: some View {
         Group {
@@ -20,13 +29,64 @@ struct PhoneHomeRoot: View {
             case .idle, .starting:
                 PhoneHome(recorder: recorder, store: store, router: router, calendar: calendar, player: player, account: account, onBriefing: onBriefing)
             case .recording, .finishing:
-                LiveRecordingView(recorder: recorder, onBriefing: onBriefing)
+                LiveRecordingView(recorder: recorder, onBriefing: onBriefing, photosAdded: photosAdded, photoError: photoError) { (source: PhotoCaptureSource) -> Void in
+                    openPhotoSource(source: source)
+                }
+            }
+        }
+        .photoCapture(source: $photoSource) { (images: [Data]) -> Void in
+            addPhotos(images: images)
+        } onError: { (message: String) -> Void in
+            photoError = message
+        }
+        // Kayıt bittikten sonra eklenemeyen fotoğrafın nedeni (kayıt ekranı artık yok).
+        .alert(
+            "Fotoğraf eklenemedi",
+            isPresented: Binding<Bool>(
+                get: { photoError != nil && (recorder.phase == .idle || recorder.phase == .starting) },
+                set: { if !$0 { photoError = nil } }
+            )
+        ) {
+            Button("Kapat", role: .cancel) { photoError = nil }
+        } message: {
+            Text(verbatim: photoError ?? "")
+        }
+        .onChange(of: recorder.startedAt) { (_: Date?, started: Date?) in
+            // Yeni kayıt: sayaç ve eski hata sıfırlanır.
+            if started != nil {
+                photosAdded = 0
+                photoError = nil
             }
         }
         .background(Theme.background)
         .animation(.smooth(duration: 0.35), value: recorder.phase == .recording || recorder.phase == .finishing)
         // Bitirilirken ve biten toplantı işlenirken ekran durağan bulanıklaşır, ortada hazırlık kartı (Mac'teki gibi).
         .modifier(PhoneProcessingOverlayHost(recorder: recorder, store: store, router: router))
+    }
+}
+
+extension PhoneHomeRoot {
+    /// Kaynağı açar; fotoğrafın yeri (toplantı ve kayıttaki an) şimdi alınır. Kayıt yoksa açılmaz.
+    private func openPhotoSource(source: PhotoCaptureSource) {
+        guard let target = recorder.livePhotoTarget() else {
+            return
+        }
+        photoTarget = target
+        photoSource = source
+    }
+
+    /// Çekilen ya da seçilen fotoğrafları kaynak açılırken alınan yere ekler (kayıt bu arada bittiyse biten toplantıya).
+    private func addPhotos(images: [Data]) {
+        guard !images.isEmpty, let target = photoTarget else {
+            return
+        }
+        Task {
+            let result: (added: [ScreenSnapshot], error: String?) = await AINotepadiOS.addPhotos(
+                meetingID: target.meetingID, directory: target.directory, offsetSec: target.offsetSec, images: images
+            )
+            photosAdded += result.added.count
+            photoError = result.error
+        }
     }
 }
 
@@ -206,13 +266,13 @@ private struct LiveRecordingView: View {
     let recorder: PhoneRecorder
     /// "Açık görevler"in "Tümünü gör"ü kaydın takvim toplantısının brifingini Sor'da açar (Mac'teki gibi; kayıt sürer).
     let onBriefing: @MainActor (CalendarMeeting) -> Void
+    /// Bu kayıtta eklenen fotoğraflar ve son ekleme hatası (kökte tutulur, bkz. `PhoneHomeRoot`).
+    let photosAdded: Int
+    let photoError: String?
+    /// Fotoğraf kaynağını açar (tahta ya da slayt tarayıcısı, Fotoğraflar); fotoğraf kaydın şu anına eklenir.
+    let onCapturePhoto: @MainActor (PhotoCaptureSource) -> Void
     @State private var markedAt: Date?
     @State private var isNotesOpen: Bool = false
-    /// Açık fotoğraf kaynağı (tahta ya da slayt tarayıcısı, Fotoğraflar).
-    @State private var captureSource: PhotoCaptureSource?
-    /// Bu kayıtta eklenen fotoğraflar ve son ekleme hatası.
-    @State private var photosAdded: Int = 0
-    @State private var photoError: String?
     /// Asistana sorulacak soru (kart açıkken ya da soru alanı ⋯ menüsünden açıldıysa).
     @State private var question: String = ""
     /// Soru alanı kartsız açık (⋯ › "Toplantıya sor…").
@@ -352,11 +412,6 @@ private struct LiveRecordingView: View {
         } message: {
             Text("Kaydedilen ses ve metin silinir, not yazılmaz. Geçen süre aylık kullanımına sayılır.")
         }
-        .photoCapture(source: $captureSource) { (images: [Data]) -> Void in
-            addLivePhotos(images: images)
-        } onError: { (message: String) -> Void in
-            photoError = message
-        }
         .sheet(isPresented: $isNotesOpen) {
             PhoneMyNotesSheet(text: Binding<String>(get: { recorder.myNotes }, set: { (text: String) -> Void in recorder.myNotes = text }))
                 .presentationDetents([.medium, .large])
@@ -424,7 +479,14 @@ private struct LiveRecordingView: View {
     /// birlikte okunur; ayar açıksa). Kayıt sürer.
     private var photoMenu: some View {
         Menu {
-            PhotoCaptureMenuItems(source: $captureSource)
+            PhotoCaptureMenuItems(source: Binding<PhotoCaptureSource?>(
+                get: { nil },
+                set: { (source: PhotoCaptureSource?) -> Void in
+                    if let source {
+                        onCapturePhoto(source)
+                    }
+                }
+            ))
         } label: {
             Image(systemName: "camera")
                 .appFont(size: 14, weight: .semibold)
@@ -437,20 +499,6 @@ private struct LiveRecordingView: View {
         .disabled(recorder.phase != .recording)
         .accessibilityLabel("Fotoğraf ekle")
         .sensoryFeedback(.success, trigger: photosAdded)
-    }
-
-    /// Çekilen ya da seçilen fotoğrafları süren kaydın şu anına ekler.
-    private func addLivePhotos(images: [Data]) {
-        guard !images.isEmpty, let target = recorder.livePhotoTarget() else {
-            return
-        }
-        Task {
-            let result: (added: [ScreenSnapshot], error: String?) = await addPhotos(
-                meetingID: target.meetingID, directory: target.directory, offsetSec: target.offsetSec, images: images
-            )
-            photosAdded += result.added.count
-            photoError = result.error
-        }
     }
 
     /// ⋯ menüsü (Mac panelindeki gibi): "Ne kaçırdım?", Notlarım, toplantıya soru sor (Mac'te panelin altındaki soru
@@ -865,7 +913,7 @@ private struct ElapsedClock: View {
 /// Kayıt duraklatıldı: tek cümlelik açıklama.
 private struct PausedNotice: View {
     var body: some View {
-        Label("Duraklatıldı; ses kaydedilmez. Duraklatılan süre toplantının süre sınırından sayılır.", systemImage: "pause.circle.fill")
+        Label("Duraklatıldı; ses kaydedilmez. Duraklatılan süre toplantının süre sınırına ve aylık kullanıma sayılmaz.", systemImage: "pause.circle.fill")
             .appFont(size: 13, weight: .medium)
             .foregroundStyle(Theme.muted)
             .padding(12)

@@ -37,6 +37,8 @@ public enum HostedErrorCode: String, Sendable, CaseIterable, Equatable {
     case transcriptionInProgress = "transcription_in_progress"
     case meetingNotActive = "meeting_not_active"
     case reprocessLimitReached = "reprocess_limit_reached"
+    /// Toplantı en çok duraklatma sayısına ulaştı: sonraki duraklatmalar süre sınırından sayılır, kayıt sürer.
+    case pauseLimitReached = "pause_limit_reached"
     case meetingBudgetExhausted = "meeting_budget_exhausted"
     case audioTooLong = "audio_too_long"
     case upstreamRejected = "upstream_rejected"
@@ -308,6 +310,8 @@ public func hostedErrorMessage(error: HostedAPIError) -> String {
         return String(localized: "Bu toplantının sunucu oturumu kapandı. Kayıtlı toplantıyı \"Tekrar işle\" ile yeniden işleyebilir ya da yeni bir toplantı başlatabilirsin.")
     case .reprocessLimitReached:
         return String(localized: "Bu toplantı en çok iki kez yeniden işlenebilir; mevcut metin ve not korunur.")
+    case .pauseLimitReached:
+        return String(localized: "Bu toplantı çok kez duraklatıldı; bundan sonraki duraklatmalar toplantının süre sınırına sayılır.")
     case .transcriptionClosed:
         return String(localized: "Bu toplantının ses işleme hakkı kapandı (gönderilen ses toplantının süresini aştı). Canlı metin kullanılır.")
     case .transcriptionInProgress:

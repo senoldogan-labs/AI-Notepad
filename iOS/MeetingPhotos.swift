@@ -41,6 +41,13 @@ func phoneAskScreensPlan(store: PhoneStore, records: [MeetingRecord]) throws -> 
     }
 }
 
+/// Kayıt sırasında çekilen fotoğrafın yeri: toplantı, klasörü ve kaydedilen sesin zaman çizgisindeki an.
+struct LivePhotoTarget: Equatable {
+    let meetingID: String
+    let directory: URL
+    let offsetSec: Double
+}
+
 /// Fotoğrafları sırayla toplantının klasörüne ekler (arka planda); eklenenler ve ilk hatanın metni.
 func addPhotos(meetingID: String, directory: URL, offsetSec: Double, images: [Data]) async -> (added: [ScreenSnapshot], error: String?) {
     var added: [ScreenSnapshot] = []
@@ -53,22 +60,10 @@ func addPhotos(meetingID: String, directory: URL, offsetSec: Double, images: [Da
             added.append(snapshot)
         case .failure(let error):
             meetingPhotosLogger.error("Fotoğraf eklenemedi, toplantı: \(meetingID, privacy: .public), bayt: \(data.count, privacy: .public), hata: \(String(describing: error), privacy: .public)")
-            return (added: added, error: phoneMeetingPhotoErrorMessage(error: error))
+            return (added: added, error: meetingPhotoErrorMessage(error: error))
         }
     }
     return (added: added, error: nil)
-}
-
-/// Fotoğraf eklenemeyince kullanıcı metni (Mac'teki `meetingPhotoErrorMessage` ile aynı metinler).
-func phoneMeetingPhotoErrorMessage(error: any Error) -> String {
-    switch error {
-    case MeetingPhotoError.limitReached(let limit):
-        String(localized: "Bu toplantıya en fazla \(limit) fotoğraf eklenebilir.")
-    case is ScreenImageError:
-        String(localized: "Fotoğraf okunamadı; başka bir görüntü dene.")
-    default:
-        String(localized: "Fotoğraf eklenemedi: \(userFacingMessage(error: error))")
-    }
 }
 
 // MARK: Çekme ve seçme
@@ -138,7 +133,7 @@ struct PhotoCaptureModifier: ViewModifier {
                 images.append(data)
             } catch {
                 meetingPhotosLogger.error("Seçilen fotoğraf okunamadı, hata: \(String(describing: error), privacy: .public)")
-                onError(phoneMeetingPhotoErrorMessage(error: error))
+                onError(meetingPhotoErrorMessage(error: error))
             }
         }
         if !images.isEmpty {

@@ -54,10 +54,11 @@ public final class ScreenSnapshotRecorder {
 
     public init() {}
 
-    /// Görüntü almayı başlatır. `origin`: kaydın zaman çizgisinin başı (görüntüler transkriptle aynı saniyeleri taşır).
+    /// Görüntü almayı başlatır. `timeline`: kaydedilen sesin zaman çizgisi (görüntüler transkriptle aynı saniyeleri taşır;
+    /// duraklatılan süre düşülür).
     /// İzin yoksa `permissionDenied`; zaten çalışıyorsa önce durdurulur.
     public func start(
-        meetingDirectory: URL, origin: ContinuousClock.Instant, policy: ScreenSnapshotPolicy, onEvent: @escaping @MainActor @Sendable (ScreenSnapshotEvent) -> Void
+        meetingDirectory: URL, timeline: RecordingPauseGate, policy: ScreenSnapshotPolicy, onEvent: @escaping @MainActor @Sendable (ScreenSnapshotEvent) -> Void
     ) throws(ScreenCaptureError) {
         stop()
         guard hasScreenCapturePermission() else {
@@ -72,7 +73,7 @@ public final class ScreenSnapshotRecorder {
         paused.set(false)
         let flag: PauseFlag = paused
         task = Task.detached(priority: .utility) {
-            await runSnapshotLoop(meetingDirectory: meetingDirectory, origin: origin, policy: policy, existing: existing, paused: flag, onEvent: onEvent)
+            await runSnapshotLoop(meetingDirectory: meetingDirectory, timeline: timeline, policy: policy, existing: existing, paused: flag, onEvent: onEvent)
         }
         screenLogger.info("Ekran görüntüsü alma başladı, klasör: \(meetingDirectory.lastPathComponent, privacy: .public)")
     }
@@ -108,7 +109,7 @@ private final class PauseFlag: Sendable {
 
 /// Bakış döngüsü: iptal edilene, sınır dolana ya da art arda başarısız olana dek.
 private func runSnapshotLoop(
-    meetingDirectory: URL, origin: ContinuousClock.Instant, policy: ScreenSnapshotPolicy, existing: Int, paused: PauseFlag,
+    meetingDirectory: URL, timeline: RecordingPauseGate, policy: ScreenSnapshotPolicy, existing: Int, paused: PauseFlag,
     onEvent: @escaping @MainActor @Sendable (ScreenSnapshotEvent) -> Void
 ) async {
     var state: ScreenSnapshotState = initialScreenSnapshotState(storedCount: existing)
@@ -135,7 +136,7 @@ private func runSnapshotLoop(
                 state = pausedScreenSnapshotState(state: state)
                 continue
             }
-            let offsetSec: Double = (ContinuousClock.now - origin) / .seconds(1)
+            let offsetSec: Double = timeline.keptSeconds(at: .now)
             let fingerprint: ScreenFingerprint = try screenFingerprint(image: image)
             let decision: ScreenSnapshotDecision = screenSnapshotDecision(policy: policy, state: state, candidate: fingerprint, offsetSec: offsetSec)
             failures = 0

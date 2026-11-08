@@ -20,6 +20,7 @@ private struct FixedTextEngine: TranscriptionEngine {
 private func hybridConfig(directory: URL) -> HybridLiveSessionConfig {
     HybridLiveSessionConfig(
         speakers: [.others],
+        lateSpeakers: [],
         local: LiveSessionConfig(
             languageMode: .fixed(.finnish), segmenter: .live, recordingDirectory: directory,
             partialIntervalSec: 1000, minPartialSpeechSec: 1.0, languageLockAfterSec: 30, candidateLanguages: [.finnish]

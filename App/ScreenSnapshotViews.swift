@@ -110,6 +110,9 @@ struct ScreenSnapshotsSection: View {
     @Binding var isImportingPhoto: Bool
     let onPlay: @MainActor (Double) -> Void
     @State private var expandedID: String?
+    /// "Fotoğraf ekle" seçicisinin açıldığı andaki yer (`AppModel.photoOffset`): seçici açıkken kayıt bitse de fotoğraf
+    /// toplantının o anına eklenir.
+    @State private var importOffsetSec: Double = 0
     @State private var confirmation: ScreenDeleteConfirmation = .none
     #if HOSTED_EDITION
     @AppStorage(SettingsKey.screenNotes) private var usesScreensInNotes: Bool = false
@@ -172,7 +175,12 @@ struct ScreenSnapshotsSection: View {
         .animation(.smooth(duration: 0.25), value: expandedID)
         .animation(.smooth(duration: 0.2), value: confirmation)
         .fileImporter(isPresented: $isImportingPhoto, allowedContentTypes: [.image], allowsMultipleSelection: true) { (result: Result<[URL], any Error>) in
-            importPhotos(result: result)
+            importPhotos(result: result, offsetSec: importOffsetSec)
+        }
+        .onChange(of: isImportingPhoto, initial: true) { (_: Bool, isOpen: Bool) in
+            if isOpen {
+                importOffsetSec = model.photoOffset(meetingID: record.id)
+            }
         }
         // Continuity Kamera (Dosya › iPhone'dan içe aktar › Fotoğraf çek / Belgeleri tara) ve sürüklenen görüntüler.
         .importsItemProviders([.image]) { (providers: [NSItemProvider]) -> Bool in
@@ -184,7 +192,7 @@ struct ScreenSnapshotsSection: View {
             }
             Task {
                 for data in items {
-                    await model.addMeetingPhoto(meetingID: record.id, imageData: data)
+                    await model.addMeetingPhoto(meetingID: record.id, offsetSec: model.photoOffset(meetingID: record.id), imageData: data)
                 }
             }
             return !items.isEmpty
@@ -200,7 +208,7 @@ struct ScreenSnapshotsSection: View {
     }
 
     /// Seçilen dosyaları sırayla ekler; okunamayan dosyanın nedeni sayfada görünür.
-    private func importPhotos(result: Result<[URL], any Error>) {
+    private func importPhotos(result: Result<[URL], any Error>, offsetSec: Double) {
         switch result {
         case .success(let urls):
             let meetingID: String = record.id
@@ -214,7 +222,7 @@ struct ScreenSnapshotsSection: View {
                     }
                     do {
                         let data: Data = try Data(contentsOf: url)
-                        await model.addMeetingPhoto(meetingID: meetingID, imageData: data)
+                        await model.addMeetingPhoto(meetingID: meetingID, offsetSec: offsetSec, imageData: data)
                     } catch {
                         model.screenSnapshots.record(error: error, meetingID: meetingID)
                     }
@@ -236,7 +244,7 @@ struct ScreenSnapshotsSection: View {
             _ = provider.loadDataRepresentation(for: .image) { (data: Data?, error: (any Error)?) -> Void in
                 Task { @MainActor in
                     if let data {
-                        await model.addMeetingPhoto(meetingID: meetingID, imageData: data)
+                        await model.addMeetingPhoto(meetingID: meetingID, offsetSec: model.photoOffset(meetingID: meetingID), imageData: data)
                     } else if let error {
                         model.screenSnapshots.record(error: error, meetingID: meetingID)
                     }

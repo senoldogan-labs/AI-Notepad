@@ -60,14 +60,19 @@ public func startHybridRecording(directory: URL, meAudio: AsyncStream<[Float]>, 
 public struct HybridLiveSessionConfig: Sendable {
     /// Canlı metni üretilecek konuşmacılar (sesi başlamış olanlar): sessiz akış için Deepgram bağlantısı açılmaz.
     public let speakers: Set<Speaker>
+    /// Kayıt sırasında katılabilecek konuşmacılar (mikrofon kapalı başlayan kayıtta "Sen"): Deepgram bağlantısı kayıt
+    /// başında değil, ilk sesli parçada açılır (bkz. `startDeepgramStreamOnFirstSound`); öncesindeki sessizlik
+    /// gönderilmez.
+    public let lateSpeakers: Set<Speaker>
     /// Mac'teki yazıya dökmenin ayarları; `recordingDirectory` alanı kullanılmaz.
     public let local: LiveSessionConfig
     /// Mac motoru hazırlanırken (model inerken) konuşmacı başına bekletilen en uzun ses; daha eskisi canlı metne
     /// katılmaz (kayıtta durur, son geçiş kapsar).
     public let maxPendingAudioSec: Double
 
-    public init(speakers: Set<Speaker>, local: LiveSessionConfig, maxPendingAudioSec: Double) {
+    public init(speakers: Set<Speaker>, lateSpeakers: Set<Speaker>, local: LiveSessionConfig, maxPendingAudioSec: Double) {
         self.speakers = speakers
+        self.lateSpeakers = lateSpeakers.subtracting(speakers)
         self.local = local
         self.maxPendingAudioSec = maxPendingAudioSec
     }
@@ -97,7 +102,7 @@ public func runHybridLiveSession(
     let sink: AsyncStream<LiveSessionEvent>.Continuation = recording.sink
     let recorded: [(Speaker, AsyncStream<[Float]>)] = [(.me, recording.me), (.others, recording.others)]
     let maxPendingSamples: Int = Int(config.maxPendingAudioSec * Double(hybridSampleRate))
-    let liveSpeakers: [Speaker] = [Speaker.me, Speaker.others].filter { config.speakers.contains($0) }
+    let liveSpeakers: [Speaker] = [Speaker.me, Speaker.others].filter { config.speakers.contains($0) || config.lateSpeakers.contains($0) }
     let router: HybridRouter
     switch start {
     case .deepgram(let source):
@@ -106,10 +111,17 @@ public func runHybridLiveSession(
         for speaker in liveSpeakers {
             let (audio, input): (AsyncStream<[Float]>, AsyncStream<[Float]>.Continuation) = AsyncStream.makeStream(of: [Float].self)
             inputs[speaker] = input
-            streams.append((speaker, startDeepgramStream(
-                token: source.token, options: source.options, language: source.language, keyterms: source.keyterms, onConnectionEvent: source.onConnectionEvent,
-                audio: audio
-            )))
+            let connect: @Sendable (AsyncStream<[Float]>) -> DeepgramStream = { (forward: AsyncStream<[Float]>) -> DeepgramStream in
+                startDeepgramStream(
+                    token: source.token, options: source.options, language: source.language, keyterms: source.keyterms, onConnectionEvent: source.onConnectionEvent,
+                    audio: forward
+                )
+            }
+            // Sonradan katılan konuşmacının bağlantısı ilk seste açılır (kayıt başından beri sessiz akış ücretlenmez).
+            let stream: DeepgramStream = config.speakers.contains(speaker)
+                ? connect(audio)
+                : startDeepgramStreamOnFirstSound(audio: audio, sampleRate: hybridSampleRate, start: connect)
+            streams.append((speaker, stream))
         }
         router = HybridRouter(backend: .deepgram(inputs: inputs, streams: streams.map(\.1)), consumers: streams.count, maxPendingSamples: maxPendingSamples)
         for (speaker, stream) in streams {
@@ -412,7 +424,7 @@ private func startLocalTranscription(
             hybridLogger.error("Mac'teki konuşma tanıma hazırlanamadı, canlı metin durdu, hata: \(String(describing: error), privacy: .private)")
             await router.localUnavailable()
             let message: String = userFacingMessage(error: error)
-            for speaker in [Speaker.me, Speaker.others] where config.speakers.contains(speaker) {
+            for speaker in [Speaker.me, Speaker.others] where config.speakers.contains(speaker) || config.lateSpeakers.contains(speaker) {
                 events.yield(.streamFailed(speaker: speaker, message: message))
             }
             return

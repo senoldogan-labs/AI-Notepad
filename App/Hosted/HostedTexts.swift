@@ -81,3 +81,21 @@ func hostedReferralStatsText(referral: HostedReferral) -> String {
     }
     return stats + " · " + String(localized: "Sıradaki ödül: \(hostedDayText(date: next)) civarı")
 }
+
+/// Duraklatma bildirimlerinin kayıt ekranındaki uyarısı; hepsi onaylandıysa nil. Onaylanmayan duraklatma süre sınırını
+/// ileri itmez (sunucu bitişin tek kaynağıdır).
+func pauseConfirmationText(confirmation: PauseConfirmation) -> String? {
+    switch confirmation {
+    case .confirmed:
+        nil
+    case .unconfirmed:
+        String(localized: "Duraklatma henüz sunucuya bildirilemedi; bağlantı gelince yeniden denenecek. Onaylanana dek bu duraklatma süre sınırına sayılabilir.")
+    case .refused:
+        String(localized: "Bir duraklatma sunucuda kaydedilemedi; o duraklatma toplantının süre sınırına sayılıyor.")
+    }
+}
+
+/// Uyarının olası bütün metinleri (değişince eskisi kaldırılır).
+func pauseConfirmationTexts() -> [String] {
+    [PauseConfirmation.unconfirmed, .refused].compactMap { pauseConfirmationText(confirmation: $0) }
+}

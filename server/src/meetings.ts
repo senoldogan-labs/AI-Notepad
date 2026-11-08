@@ -18,6 +18,15 @@ import { log } from "./log";
 import type { Platform, RequestContext } from "./platform";
 import { type TrialRefusalReason, recordTrialRefusal } from "./trialRefusals";
 import { requireElevenLabsTrialHeadroom } from "./elevenLabsCapacity";
+import {
+  type MeetingPauseState,
+  closePauseSetSql,
+  endMeetingSetSql,
+  maxPausesPerMeeting,
+  meetingBaseMs,
+  meetingPauseState,
+  meetingRecordedMs,
+} from "./meetingPause";
 import { meetingNoteReserveTokens } from "./reservations";
 import { type MonthlyUsage, chunkOverlapAllowance, dayKey, monthlyUsage, requireSpendHeadroom, requireTrialSpendHeadroom } from "./usage";
 
@@ -51,6 +60,13 @@ export interface MeetingRow {
   readonly reprocess_count: number;
   readonly reprocess_until: number | null;
   readonly reprocess_audio_cap: number | null;
+  /** 1: sonradan işlenen kayıt (bkz. `MeetingStartRequest.deferred`). */
+  readonly deferred: number;
+  /** Duraklatma sütunları (bkz. `meetingPause.ts`). */
+  readonly paused_ms: number;
+  readonly paused_at: number | null;
+  readonly pause_extension_ms: number;
+  readonly pause_count: number;
 }
 
 /** Bir toplantının en çok yeniden işlenme sayısı. */
@@ -174,14 +190,14 @@ async function insertMeeting(
       )
       .bind(meeting.userId, day, meeting.id),
     // Sonradan işlenen kayıt açık toplantıyı kapatmaz (`deferred`): koşul her zaman yanlış olur.
+    // Süren duraklatma da kapanır; dakika kaydedilen süredir (bkz. `endMeetingSetSql`).
     db
       .prepare(
         `UPDATE meeting_sessions
-         SET ended_at = MIN(?, max_ends_at), minutes = CAST((MIN(?, max_ends_at) - started_at + 59999) / 60000 AS INTEGER),
-           end_reason = 'superseded'
-         WHERE ? = 0 AND user_id = ? AND ended_at IS NULL AND id <> ? AND EXISTS (SELECT 1 FROM meeting_sessions WHERE id = ?)`,
+         SET ${endMeetingSetSql()}, end_reason = 'superseded'
+         WHERE ?2 = 0 AND user_id = ?3 AND ended_at IS NULL AND id <> ?4 AND EXISTS (SELECT 1 FROM meeting_sessions WHERE id = ?4)`,
       )
-      .bind(nowMs, nowMs, meeting.deferred ? 1 : 0, meeting.userId, meeting.id, meeting.id),
+      .bind(nowMs, meeting.deferred ? 1 : 0, meeting.userId, meeting.id),
     ...followUps,
   ]);
   return results[1]?.meta.changes === 1;
@@ -489,18 +505,17 @@ function trialRefusalError(config: Config, reason: Exclude<TrialRefusalReason, "
 }
 
 /**
- * Toplantıyı bitirir; zaten bittiyse kayıtlı sonucu döndürür. Başkasının toplantısı `not_found`. Biten toplantıların
+ * Toplantıyı bitirir; zaten bittiyse kayıtlı sonucu döndürür. Süren duraklatma bitişte kapanır; `minutes` kaydedilen
+ * (duraklatılmamış) süredir. Başkasının toplantısı `not_found`. Biten toplantıların
  * (bu ve yeni toplantı başlayınca kapananlar) Deepgram tahmini gerçek süreye indirilir.
  */
 export async function endMeeting(db: D1Database, userId: string, meetingId: string, now: Date): Promise<MeetingRow> {
   await db
     .prepare(
-      `UPDATE meeting_sessions
-       SET ended_at = MIN(?, max_ends_at), minutes = CAST((MIN(?, max_ends_at) - started_at + 59999) / 60000 AS INTEGER),
-         end_reason = 'ended'
-       WHERE id = ? AND user_id = ? AND ended_at IS NULL`,
+      `UPDATE meeting_sessions SET ${endMeetingSetSql()}, end_reason = 'ended'
+       WHERE id = ?2 AND user_id = ?3 AND ended_at IS NULL`,
     )
-    .bind(now.getTime(), now.getTime(), meetingId, userId)
+    .bind(now.getTime(), meetingId, userId)
     .run();
   const row: MeetingRow | null = await findMeeting(db, userId, meetingId);
   if (row === null) {
@@ -531,7 +546,8 @@ async function startedByClientRef(db: D1Database, config: Config, userId: string
     meetingId: row.id,
     kind: row.kind,
     tokenBudget: row.token_budget,
-    maxDurationMinutes: Math.max(1, Math.round((row.max_ends_at - row.started_at) / 60_000)),
+    // Taban süre: duraklatma uzatması en çok süreye sayılmaz.
+    maxDurationMinutes: Math.max(1, Math.round(meetingBaseMs(row) / 60_000)),
     expiresAt: new Date(row.max_ends_at).toISOString(),
     trialMeetingsLeft: row.kind === "trial" ? trialMeetingsLeft(await userTrialState(db, userId), config, now) : null,
   };
@@ -684,7 +700,8 @@ export async function reprocessMeeting(db: D1Database, config: Config, userId: s
   }
   await requireSpendHeadroom(db, config, now);
   const until: number = nowMs + config.meetingGraceMs;
-  const audioCap: number | null = reprocessAudioCap(row.audio_seconds, Math.max(0, endMs - row.started_at) / 1000, row.reprocess_count);
+  // Kaydın süresi duraklatmaları saymaz (duraklatılan ses kaydedilmedi).
+  const audioCap: number | null = reprocessAudioCap(row.audio_seconds, meetingRecordedMs(row, nowMs) / 1000, row.reprocess_count);
   const updated: D1Result = await db
     .prepare(
       `UPDATE meeting_sessions SET reprocess_count = reprocess_count + 1, reprocess_until = ?, reprocess_audio_cap = ?,
@@ -710,4 +727,72 @@ export async function requireUsableMeeting(db: D1Database, config: Config, userI
     throw new ApiError("meeting_not_active", "The meeting session is not open; reprocess the saved meeting or start a new meeting.");
   }
   return row;
+}
+
+/**
+ * Toplantıyı duraklatır (`POST /v1/meetings/{id}/pause`; zaman sunucu saatidir): `paused_at` şimdi olur ve
+ * `max_ends_at` kalan duraklatma hakkı (taban süre − sayılan duraklatma) kadar ileri alınır; süren duraklatmada
+ * toplantının süresi dolmaz. Zaten duraklatılmışsa değişmez. Başkasının ya da olmayan toplantı `not_found`; bitmiş, süresi
+ * geçmiş ya da sonradan işlenen kayıt `meeting_not_active`; `maxPausesPerMeeting` duraklatmadan sonra
+ * `pause_limit_reached`. Tek koşullu ifadedir (eşzamanlı istekler hakkı katlayamaz).
+ */
+export async function pauseMeeting(db: D1Database, userId: string, meetingId: string, now: Date): Promise<MeetingPauseState> {
+  const nowMs: number = now.getTime();
+  const row: MeetingRow | null = await findMeeting(db, userId, meetingId);
+  if (row === null) {
+    throw new ApiError("not_found", "Meeting session not found.");
+  }
+  if (row.ended_at !== null || nowMs >= row.max_ends_at || row.deferred === 1) {
+    throw new ApiError("meeting_not_active", "The meeting recording has ended; only a running recording can be paused.");
+  }
+  if (row.paused_at !== null) {
+    return meetingPauseState(row, nowMs);
+  }
+  const updated: MeetingRow | null = await db
+    .prepare(
+      `UPDATE meeting_sessions
+       SET paused_at = ?1, pause_count = pause_count + 1,
+         max_ends_at = max_ends_at + MAX(0, max_ends_at - pause_extension_ms - started_at - paused_ms),
+         pause_extension_ms = paused_ms + MAX(0, max_ends_at - pause_extension_ms - started_at - paused_ms)
+       WHERE id = ?2 AND user_id = ?3 AND ended_at IS NULL AND paused_at IS NULL AND deferred = 0 AND max_ends_at > ?1
+         AND pause_count < ?4
+       RETURNING *`,
+    )
+    .bind(nowMs, meetingId, userId, maxPausesPerMeeting)
+    .first<MeetingRow>();
+  if (updated !== null) {
+    log("info", "meeting_paused", { userId, meetingId, pauseCount: updated.pause_count, pausedMs: updated.paused_ms });
+    return meetingPauseState(updated, nowMs);
+  }
+  // Koşul tutmadı: eşzamanlı duraklatma kazandı, toplantı bu arada bitti ya da sınır doldu.
+  const current: MeetingRow | null = await findMeeting(db, userId, meetingId);
+  if (current !== null && current.ended_at === null && current.paused_at !== null) {
+    return meetingPauseState(current, nowMs);
+  }
+  if (current !== null && current.pause_count >= maxPausesPerMeeting) {
+    throw new ApiError("pause_limit_reached", `A meeting can be paused at most ${maxPausesPerMeeting} times; the recording continues.`);
+  }
+  throw new ApiError("meeting_not_active", "The meeting recording has ended; only a running recording can be paused.");
+}
+
+/**
+ * Duraklatılan toplantıyı sürdürür (`POST /v1/meetings/{id}/resume`): duraklatmanın sayılan kısmı (en çok kalan hak)
+ * `paused_ms`'e eklenir, kullanılmayan uzatma `max_ends_at`'ten geri alınır. Duraklatılmamış ya da bitmiş toplantıda
+ * değişmez (durum döner). Başkasının ya da olmayan toplantı `not_found`.
+ */
+export async function resumeMeeting(db: D1Database, userId: string, meetingId: string, now: Date): Promise<MeetingPauseState> {
+  const nowMs: number = now.getTime();
+  const updated: MeetingRow | null = await db
+    .prepare(`UPDATE meeting_sessions SET ${closePauseSetSql()} WHERE id = ?2 AND user_id = ?3 AND ended_at IS NULL AND paused_at IS NOT NULL RETURNING *`)
+    .bind(nowMs, meetingId, userId)
+    .first<MeetingRow>();
+  if (updated !== null) {
+    log("info", "meeting_resumed", { userId, meetingId, pausedMs: updated.paused_ms });
+    return meetingPauseState(updated, nowMs);
+  }
+  const row: MeetingRow | null = await findMeeting(db, userId, meetingId);
+  if (row === null) {
+    throw new ApiError("not_found", "Meeting session not found.");
+  }
+  return meetingPauseState(row, nowMs);
 }

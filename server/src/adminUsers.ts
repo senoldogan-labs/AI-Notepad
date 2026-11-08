@@ -13,6 +13,7 @@ import {
   trialMeetingsLeft,
 } from "./entitlements";
 import { ApiError } from "./errors";
+import { meetingRecordedMs, meetingRecordedMsSql } from "./meetingPause";
 import { parseWithSchema } from "./http";
 import { type ReferralStatus, type ReferrerCounts, freeInviteMonthSql, referralRewardsPerYear, referrerCounts } from "./referrals";
 import { type MonthlyUsage, monthKey, monthStartMs, monthlyUsage } from "./usage";
@@ -425,7 +426,7 @@ function userColumnsSql(appStoreAccess: string): string {
   s.status, s.current_period_end, s.cancel_at, s.past_due_since, s.updated_at, s.plan, s.complimentary,
   (SELECT COUNT(*) FROM meeting_sessions m WHERE m.user_id = u.id) AS meetings,
   (SELECT COUNT(*) FROM meeting_sessions m WHERE m.user_id = u.id AND m.kind = 'trial') AS trial_meetings,
-  (SELECT COALESCE(SUM(MAX(0, MIN(COALESCE(m.ended_at, ?1), m.max_ends_at, ?1) - m.started_at)), 0)
+  (SELECT COALESCE(SUM(${meetingRecordedMsSql("m.", "?1")}), 0)
      FROM meeting_sessions m WHERE m.user_id = u.id AND m.started_at >= ?3) AS month_ms,
   (SELECT MAX(m.started_at) FROM meeting_sessions m WHERE m.user_id = u.id) AS last_meeting_at,
   (SELECT MAX(t.created_at) FROM refresh_families f JOIN refresh_tokens t ON t.family_id = f.id WHERE f.user_id = u.id) AS last_token_at,
@@ -560,6 +561,9 @@ interface MeetingRow {
   readonly failure_count: number;
   readonly last_failure_code: string | null;
   readonly last_failure_at: number | null;
+  readonly paused_ms: number;
+  readonly paused_at: number | null;
+  readonly pause_extension_ms: number;
 }
 
 /** Toplantının durumu. Saf fonksiyondur. */
@@ -572,7 +576,6 @@ export function meetingState(row: Pick<MeetingRow, "ended_at" | "end_reason" | "
 
 /** Satırın ayrıntıdaki toplantısı. Saf fonksiyondur. */
 function adminMeeting(row: MeetingRow, nowMs: number): AdminMeeting {
-  const end: number = Math.min(row.ended_at ?? nowMs, row.max_ends_at, nowMs);
   return {
     id: row.id,
     kind: row.kind,
@@ -580,7 +583,8 @@ function adminMeeting(row: MeetingRow, nowMs: number): AdminMeeting {
     startedAt: new Date(row.started_at).toISOString(),
     endedAt: isoOrNull(row.ended_at),
     maxEndsAt: new Date(row.max_ends_at).toISOString(),
-    durationMinutes: Math.round(Math.max(0, end - row.started_at) / 60_000),
+    // Kaydedilen süre: duraklatmalar düşülür.
+    durationMinutes: Math.round(meetingRecordedMs(row, nowMs) / 60_000),
     deferred: row.deferred === 1,
     reprocessCount: row.reprocess_count,
     audioMinutes: Math.round((row.audio_seconds / 60) * 10) / 10,
@@ -765,7 +769,7 @@ export async function adminUserDetail(db: D1Database, config: Config, userId: st
         `SELECT m.id, m.kind, m.started_at, m.max_ends_at, m.ended_at, m.end_reason, m.deferred, m.reprocess_count,
            m.audio_seconds, m.tokens_used, m.token_budget, m.device_id IS NOT NULL AS attested,
            EXISTS (SELECT 1 FROM deepgram_live_meetings d WHERE d.meeting_id = m.id) AS deepgram,
-           m.first_note_at, m.failure_count, m.last_failure_code, m.last_failure_at
+           m.first_note_at, m.failure_count, m.last_failure_code, m.last_failure_at, m.paused_ms, m.paused_at, m.pause_extension_ms
          FROM meeting_sessions m WHERE m.user_id = ? ORDER BY m.started_at DESC LIMIT ?`,
       )
       .bind(userId, adminUserMeetingLimit)

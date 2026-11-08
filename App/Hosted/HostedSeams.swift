@@ -56,7 +56,9 @@ func hostedLiveChoice(language: MeetingLanguage, keyterms: [String]) async -> Ho
             }
         }
     ) { () async throws -> String in
-        try await client.deepgramGrant(meetingID: meetingID).accessToken
+        // Duraklatmada jeton istenmez (sunucu duraklatmayı kapatırdı): kopan bağlantı kayıt sürünce yeniden kurulur.
+        await HostedAccount.shared.waitWhileMeetingPaused(meetingID: meetingID)
+        return try await client.deepgramGrant(meetingID: meetingID).accessToken
     }
     return HostedLiveChoice(start: .deepgram(source), engine: .deepgram)
 }

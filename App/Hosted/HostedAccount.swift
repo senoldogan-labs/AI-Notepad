@@ -257,6 +257,17 @@ final class HostedAccount {
     private(set) var queueTrigger: Int = 0
     /// Ödeme ya da müşteri portalı tarayıcıda açıldı: uygulama öne gelince hak durumu beklemeden yeniden okunur.
     @ObservationIgnored private var awaitingBillingReturn: Bool = false
+    /// Duraklatma bildirimlerinin kuyruğu ve sunucunun onayladığı duraklatma (bkz. `PauseReportQueue`): kayıt ekranları
+    /// süre sınırını ve "duraklatma onaylanmadı" uyarısını buradan okur.
+    private(set) var pauseReportQueue: PauseReportQueue = .empty
+    /// Süren kayıt şu an duraklatılmış mı (son bildirime göre).
+    @ObservationIgnored private var isRecordingPaused: Bool = false
+    /// Kuyruğu sunucuya gönderen görev (biri çalışır); bekleyen bildirim kalmayınca biter.
+    @ObservationIgnored private var pauseReportWorker: Task<Void, Never>?
+    /// Ağ geri geldi: bekleyen bildirim beklemeden yeniden denensin.
+    @ObservationIgnored private var pauseRetryRequested: Bool = false
+    /// Duraklatmanın bitmesini bekleyen canlı metin jetonu istekleri (bkz. `waitWhileMeetingPaused`).
+    @ObservationIgnored private var pauseWaiters: [CheckedContinuation<Void, Never>] = []
     /// Ödeme sayfası açıkken aboneliği bekleyen izleme (bkz. `watchCheckout`); yoksa nil.
     @ObservationIgnored private var checkoutWatch: Task<Void, Never>?
     /// "Abonelik gerekli" teklifinin son açılışı (bkz. `subscriptionRequiredByServer`).
@@ -849,6 +860,9 @@ final class HostedAccount {
     /// Ağ geri geldi: hak durumu bilinmiyorsa yeniden okunur, kapatılamamış sunucu oturumu kapatılır ve bekleyen
     /// (çevrimdışı) kayıtlar işlenmeye başlar.
     private func networkBecameAvailable() async {
+        // Gönderilemeyen duraklatma bildirimi beklemeden yeniden denenir.
+        pauseRetryRequested = true
+        startPauseReportWorker()
         await readUnknownStatus()
         await closeOrphanedMeeting()
         queueTrigger += 1
@@ -1360,16 +1374,143 @@ final class HostedAccount {
         }
     }
 
+    /// Kaydın duraklatıldığını ya da sürdüğünü sunucuya bildirir: sunucu duraklatmayı kendi saatiyle ölçer, duraklatılan
+    /// süre toplantının süre sınırına ve aylık kullanıma sayılmaz (bkz. `HostedClient.pauseMeeting`). Bildirim kuyruğa
+    /// girer ve sırayla gider; ağ ya da geçici sunucu hatasında kuyrukta kalır, geri çekilerek (ve ağ gelince hemen)
+    /// sunucu onaylayana dek yeniden denenir. Sunucu toplantının bitişinin tek kaynağıdır: kayıt ekranları süre sınırını
+    /// yalnızca onaylanan duraklatma kadar ileri iter (`confirmedPauseSec`), onaylanmayanı uyarıyla gösterir.
+    func reportPause(meetingID: String, paused: Bool) {
+        isRecordingPaused = paused
+        pauseReportQueue = queueingPauseReport(queue: pauseReportQueue, meetingID: meetingID, paused: paused)
+        releasePauseWaitersIfRunning()
+        startPauseReportWorker()
+    }
+
+    /// Toplantının sunucuca onaylanmış duraklatması (sn) `now` anında, en çok `maxPauseSec`.
+    func confirmedPauseSec(meetingID: String, now: Date, maxPauseSec: Double) -> Double {
+        AINotepadCore.confirmedPauseSec(queue: pauseReportQueue, meetingID: meetingID, now: now, maxPauseSec: maxPauseSec)
+    }
+
+    /// Toplantının duraklatma bildirimlerinin durumu (kayıt ekranındaki uyarı için).
+    func pauseConfirmation(meetingID: String) -> PauseConfirmation {
+        AINotepadCore.pauseConfirmation(queue: pauseReportQueue, meetingID: meetingID)
+    }
+
+    /// Kuyruğu gönderen görevi başlatır (çalışıyorsa bir şey yapmaz).
+    private func startPauseReportWorker() {
+        guard pauseReportWorker == nil, nextPauseReport(queue: pauseReportQueue) != nil else {
+            return
+        }
+        pauseReportWorker = Task {
+            await sendPauseReports()
+            pauseReportWorker = nil
+        }
+    }
+
+    /// Bekleyen bildirimleri sırayla gönderir. Onay sunucunun sayılan süresini kuyruğa yazar; ağ ya da geçici sunucu
+    /// hatasında bildirim kuyrukta kalır ve `pauseReportRetryDelaySec` kadar (ağ gelince hemen) sonra yeniden denenir;
+    /// sunucunun reddi (ör. `pause_limit_reached`, toplantı kapalı) bildirimi düşürür. Kuyruk başka toplantıya geçtiyse eski
+    /// yanıt yok sayılır.
+    private func sendPauseReports() async {
+        var attempt: Int = 0
+        var attemptMeetingID: String?
+        while let next = nextPauseReport(queue: pauseReportQueue), let meetingID = next.queue.meetingID {
+            pauseReportQueue = next.queue
+            // Yeni toplantının bildirimleri öncekinin geri çekilmesini devralmaz.
+            if attemptMeetingID != meetingID {
+                attemptMeetingID = meetingID
+                attempt = 0
+            }
+            do {
+                let client: HostedClient = try HostedServices.requireClient()
+                let state: HostedMeetingPause = next.report.paused
+                    ? try await client.pauseMeeting(meetingID: meetingID)
+                    : try await client.resumeMeeting(meetingID: meetingID)
+                attempt = 0
+                if pauseReportQueue.meetingID == meetingID {
+                    pauseReportQueue = acknowledgingPauseReport(queue: pauseReportQueue, paused: state.paused, pausedSeconds: state.pausedSeconds, at: Date())
+                }
+                accountLogger.info("Duraklatma onaylandı, duraklatıldı: \(state.paused, privacy: .public), sayılmayan: \(state.pausedSeconds, privacy: .public) sn")
+            } catch let error as HostedAPIError where !isRetryableHostedError(error: error) {
+                accountLogger.warning("Sunucu duraklatma bildirimini reddetti, kod: \(error.rawCode, privacy: .public)")
+                if pauseReportQueue.meetingID == meetingID {
+                    pauseReportQueue = refusingPauseReport(queue: pauseReportQueue)
+                }
+            } catch {
+                accountLogger.warning("Duraklatma sunucuya bildirilemedi, yeniden denenecek, deneme: \(attempt + 1, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+                if pauseReportQueue.meetingID == meetingID {
+                    pauseReportQueue = failingPauseReport(queue: pauseReportQueue)
+                }
+                let retryAt: Date = Date().addingTimeInterval(pauseReportRetryDelaySec(attempt: attempt))
+                attempt += 1
+                // Ağ geri geldiyse ya da kuyruk başka toplantıya geçtiyse (önceki kayıt bitti) beklenmez.
+                while Date() < retryAt, !pauseRetryRequested, pauseReportQueue.meetingID == meetingID {
+                    do {
+                        try await Task.sleep(for: .seconds(1))
+                    } catch {
+                        // Görev iptal edilmez; edilirse kuyruk sonraki bildirimde ya da ağ gelince yeniden başlar.
+                        return
+                    }
+                }
+                pauseRetryRequested = false
+            }
+            releasePauseWaitersIfRunning()
+        }
+    }
+
+    /// Toplantı duraklatılmışsa ya da sürdürme henüz sunucuya varmadıysa bekler (kayıt bitince de biter). Canlı metnin
+    /// Deepgram jetonu bunu bekler: sunucu duraklatmada verilen jetonu ses sayıp duraklatmayı kapatır; duraklatmada kopan
+    /// bağlantı ya da dil değişimi jeton isterse duraklatmanın kalanı sessizce süreye sayılırdı. Bağlantı kayıt sürünce
+    /// kurulur.
+    func waitWhileMeetingPaused(meetingID: String) async {
+        while pauseBlocksLiveToken(queue: pauseReportQueue, meetingID: meetingID, locallyPaused: isRecordingPaused) {
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) -> Void in
+                pauseWaiters.append(continuation)
+            }
+        }
+    }
+
+    /// Bekleyen jeton isteklerini uyandırır (her biri durumu yeniden okur).
+    private func releasePauseWaitersIfRunning() {
+        let waiters: [CheckedContinuation<Void, Never>] = pauseWaiters
+        pauseWaiters = []
+        waiters.forEach { $0.resume() }
+    }
+
+    /// Kayıt bitti: kapatmadan önce bekleyen bildirimler en çok `timeoutSec` beklenir (sunucu kapatırken süren
+    /// duraklatmayı zaten düşer; gitmeyen bildirimin önemi kalmaz), sonra kuyruk temizlenir ve jeton istekleri bırakılır.
+    private func finishPauseReports(meetingID: String, timeoutSec: Double) async {
+        let deadline: Date = Date().addingTimeInterval(timeoutSec)
+        while pauseReportQueue.meetingID == meetingID, !pauseReportQueue.pending.isEmpty, Date() < deadline {
+            do {
+                try await Task.sleep(for: .milliseconds(200))
+            } catch {
+                break
+            }
+        }
+        if pauseReportQueue.meetingID == meetingID {
+            pauseReportQueue = .empty
+        }
+        // Yeniden deneme beklemesi sürüyorsa hemen biter: sonraki kaydın bildirimleri beklemesin.
+        pauseRetryRequested = true
+        isRecordingPaused = false
+        releasePauseWaitersIfRunning()
+    }
+
     /// Kayıt bitince toplantı oturumunu kapatır; not ve son geçiş sunucunun ek süresinde aynı toplantıyla sürer.
     /// Kapatılamazsa oturum kimliği saklı kalır, ağ gelince ya da sonraki açılışta yeniden denenir (aylık süre boşuna
     /// akmasın). Her durumda hak durumu yenilenir (göstergeler güncel kalsın).
     func endMeeting(meetingID: String?) async throws {
         isOfflineRecording = false
         guard let meetingID else {
+            isRecordingPaused = false
+            releasePauseWaitersIfRunning()
             return
         }
         defer { Task { await refresh() } }
         let client: HostedClient = try HostedServices.requireClient()
+        // Son duraklatma bildirimi kapatmadan önce varsın (çevrimdışıysa uzun beklenmez).
+        await finishPauseReports(meetingID: meetingID, timeoutSec: 10)
         do {
             let ended: HostedEndedMeeting = try await client.endMeeting(meetingID: meetingID)
             removeHostedOpenMeetingID(meetingID: meetingID, defaults: try await signedInOpenMeetingsDefaults(client: client))

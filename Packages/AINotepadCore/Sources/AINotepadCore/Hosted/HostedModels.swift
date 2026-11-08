@@ -309,6 +309,18 @@ public struct HostedEndedMeeting: Decodable, Sendable, Equatable {
     public let audioSeconds: Double
 }
 
+/// `POST /v1/meetings/{id}/pause` ve `/resume` yanıtı: duraklatılan süre toplantının süre sınırından ve aylık
+/// süreden sayılmaz (sunucu saatiyle ölçülür, en çok toplantının en uzun süresi kadar).
+public struct HostedMeetingPause: Decodable, Sendable, Equatable {
+    public let meetingId: String
+    public let paused: Bool
+    /// Toplantının şimdiki en geç bitişi: duraklatmada kalan duraklatma hakkının tamamı kadar ileridedir, sürdürünce
+    /// gerçek duraklatma kadar kısalır.
+    public let expiresAt: Date
+    /// Sayılmayan (duraklatılmış) toplam süre, süren duraklatma dahil.
+    public let pausedSeconds: Int
+}
+
 /// Ödeme ve portal uçlarının yanıtı.
 struct HostedURLResponse: Decodable {
     let url: URL
