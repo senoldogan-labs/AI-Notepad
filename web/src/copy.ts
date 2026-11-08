@@ -330,6 +330,21 @@ export interface PlanOptionCopy {
   readonly cta: string;
 }
 
+/**
+ * Pro katmanı: fiyat sayfasında sunucu sunana dek gizli kart (saatler `GET /v1/pricing`'den), hesap sayfasında plan
+ * seçimindeki Pro fiyatları. `limits` kartın saat satırıdır (`{hours}`, `{meetingLength}`); `meetingLength` süre
+ * sınırının saat ya da dakika kalıbıdır (`{count}`). `personalName` Pro görününce Personal kartlarının üstündeki addır
+ * (saat satırı aynı `limits` kalıbıyla). Fiyatlar sabittir (Personal'inkiler gibi).
+ */
+export interface ProTierCopy {
+  readonly name: string;
+  readonly tagline: string;
+  readonly limits: string;
+  readonly meetingLength: { readonly hours: string; readonly minutes: string };
+  readonly plans: readonly PlanOptionCopy[];
+  readonly personalName: string;
+}
+
 /** Fiyat sayfası. */
 export interface PricingCopy {
   readonly meta: PageMeta;
@@ -338,6 +353,7 @@ export interface PricingCopy {
   /** Plan kartlarının başlığı (ekran okuyucular için). */
   readonly plansTitle: string;
   readonly plans: readonly PlanOptionCopy[];
+  readonly pro: ProTierCopy;
   /** Plan kartlarının altındaki not: deneme ve davet kodu ("{invite}" bağlantının yeri). */
   readonly plansNote: string;
   readonly plansInviteLink: string;
@@ -446,8 +462,12 @@ export interface AccountCopy {
   /** O ölçerden neyin düştüğü. */
   readonly aiNote: string;
   readonly subscribe: string;
-  /** Abone olmadan önce plan seçimi (seçenekler `copy.pricing.plans`'tan). */
+  /** Abone olmadan önce plan seçimi (seçenekler `copy.pricing.plans`'tan; Pro seçiliyken `copy.pricing.pro.plans`'tan). */
   readonly planChoiceLegend: string;
+  /** Sunucu Pro'yu sunuyorsa plan seçiminin üstündeki katman seçimi (adlar ve saatler betikte, `clientCopy.tiers`). */
+  readonly tierChoiceLegend: string;
+  /** Stripe abonesinin katman değiştirme düğmesinin altında: onay ve ücret farkı Stripe'ta gösterilir. */
+  readonly switchTierNote: string;
   /** Davet kodu alanı (abone ol düğmesinin üstünde, varsayılan kapalı). */
   readonly invite: {
     readonly summary: string;
@@ -1477,7 +1497,34 @@ export const copy: Copy = {
         cta: "Choose yearly",
       },
     ],
-    plansNote: "Both plans include everything above, on Mac and iPhone. Got an invite from a friend? {invite}",
+    pro: {
+      name: "Pro",
+      tagline: "Everything in Personal, with more meeting hours for people who spend their day in meetings.",
+      limits: "{hours} meeting hours a month, up to {meetingLength} per meeting",
+      meetingLength: { hours: "{count} hours", minutes: "{count} minutes" },
+      plans: [
+        {
+          plan: "monthly",
+          name: "Monthly",
+          price: "$12.99",
+          per: "/ month",
+          detail: "Billed every month. Taxes included.",
+          badge: null,
+          cta: "Choose Pro monthly",
+        },
+        {
+          plan: "yearly",
+          name: "Yearly",
+          price: "$109",
+          per: "/ year",
+          detail: "About $9.08 a month, billed once a year. Taxes included.",
+          badge: "Save 30%",
+          cta: "Choose Pro yearly",
+        },
+      ],
+      personalName: "Personal",
+    },
+    plansNote: "Every plan includes everything above, on Mac and iPhone. Got an invite from a friend? {invite}",
     plansInviteLink: "How invites work",
     includedTitle: "Everything included",
     planTagline: "Everything from live transcript to tasks.",
@@ -2154,6 +2201,8 @@ export const copy: Copy = {
     aiNote: "Ask, note rewriting, shared-note translation and task tools use this allowance. AI during a meeting doesn't.",
     subscribe: "Subscribe",
     planChoiceLegend: "Choose a plan",
+    tierChoiceLegend: "Meeting hours",
+    switchTierNote: "You confirm the change on Stripe's page, which shows what you pay now or the credit you get for unused time.",
     invite: {
       summary: "Have an invite code?",
       label: "Invite code",

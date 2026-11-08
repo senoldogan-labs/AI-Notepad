@@ -301,6 +301,17 @@ const legendPlans: { readonly main: string; readonly accent: string } = { main: 
                     { id: "near", label: facts.capacity.nearCap },
                   ]}
                 />
+                <FactsPanel
+                  id="ov-tiers"
+                  title={facts.tiers.title}
+                  hint={null}
+                  span={4}
+                  rows={[
+                    { id: "personal", label: facts.tiers.personal },
+                    { id: "pro", label: facts.tiers.pro },
+                    { id: "policy", label: facts.tiers.policy },
+                  ]}
+                />
               </div>
               <ChartPanel id="ov-users" title={layout.charts.newUsers} hint={null} span={6} legend={null} size="small" />
               <ChartPanel id="ov-downloads" title={layout.charts.downloads} hint={null} span={6} legend={null} size="small" />

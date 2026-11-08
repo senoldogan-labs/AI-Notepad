@@ -1,15 +1,17 @@
 // Abone olmadan önceki seçimlerin tarayıcıdaki kaydı: davet sayfasından ya da davet bağlantısından gelen kod ve fiyat
-// sayfasında seçilen plan (localStorage: kullanıcı önce uygulamayı indirip sonra abone olabilir, giriş başka bir sekmede
-// ya da daha sonraki bir ziyarette bitebilir; seçim girişten sonra kaybolmaz) ve "ödemeye devam et" niyeti
+// sayfasında seçilen plan ve katman (localStorage: kullanıcı önce uygulamayı indirip sonra abone olabilir, giriş başka
+// bir sekmede ya da daha sonraki bir ziyarette bitebilir; seçim girişten sonra kaybolmaz) ve "ödemeye devam et" niyeti
 // (sessionStorage: yalnızca seçimin yapıldığı sekmede, giriş yönlendirmesi aynı sekmede kalır; başka sekmede hesabı
 // açan kullanıcı kendiliğinden ödeme sayfasına gitmez). Depolama kapalıysa uyarı yazılır, seçim yalnızca o sayfada
 // kalır (temanın davranışıyla aynı).
-import { type BillingPlan, billingPlanOf, normalizedInviteCode } from "../lib/plans";
+import { type BillingPlan, type SubscriptionTier, billingPlanOf, normalizedInviteCode, subscriptionTierOf } from "../lib/plans";
 
 /** Davet kodunun anahtarı (localStorage). */
 const inviteKey: string = "gistsmith.invite";
 /** Seçilen planın anahtarı (localStorage). */
 const planKey: string = "gistsmith.plan";
+/** Seçilen katmanın anahtarı (localStorage; fiyat sayfasında Pro seçilince yazılır). */
+const tierKey: string = "gistsmith.tier";
 /** "Seçilen planla ödemeye devam et" niyetinin anahtarı (sessionStorage). */
 const checkoutKey: string = "gistsmith.checkout";
 
@@ -52,6 +54,21 @@ export function storePlan(plan: BillingPlan): void {
 /** Kayıtlı planı siler (abonelik başlayınca seçim anlamını yitirir). */
 export function forgetPlan(): void {
   withStorage("remove_plan", (): void => window.localStorage.removeItem(planKey));
+}
+
+/** Seçilen katman; yoksa null. Plan gibi girişten ve sekme kapanmasından sonra da durur. */
+export function storedTier(): SubscriptionTier | null {
+  return subscriptionTierOf(withStorage("read_tier", (): string | null => window.localStorage.getItem(tierKey)));
+}
+
+/** Seçilen katmanı kaydeder. */
+export function storeTier(tier: SubscriptionTier): void {
+  withStorage("write_tier", (): void => window.localStorage.setItem(tierKey, tier));
+}
+
+/** Kayıtlı katmanı siler (abonelik başlayınca seçim anlamını yitirir). */
+export function forgetTier(): void {
+  withStorage("remove_tier", (): void => window.localStorage.removeItem(tierKey));
 }
 
 /** Bu sekmede ödemeye devam etme niyeti var mı. */

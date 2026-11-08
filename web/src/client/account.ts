@@ -3,9 +3,12 @@
 // eylemin yanında uyarı ve duruma uyan eylem: Abone ol, Aboneliği yönet ya da ücretsiz erişimde hiçbiri). Hesap
 // yüklenemezse hata ve yeniden deneme düğmesi görünür. Abone olurken plan seçimi (yıllık seçili) ve davet kodu
 // (`POST /v1/referral/validate`) Checkout'a taşınır; abonenin davet kartı `GET /v1/referral`'dan; çıkış ve onaylı hesap
-// silme (`DELETE /v1/me`). Adresteki `?plan=`, `?code=` ve `?checkout=1` (fiyat ve davet sayfalarından) girişten önce
-// saklanır; oturum yoksa giriş sayfasına geçilir. Plan seçimi tarayıcıda kalıcıdır (giriş başka bir sekmede bitse de
-// kaybolmaz); `?checkout=1` niyeti giriş bitince hesap sayfasını doğrudan Stripe Checkout'a gönderir.
+// silme (`DELETE /v1/me`). Adresteki `?plan=`, `?tier=`, `?code=` ve `?checkout=1` (fiyat ve davet sayfalarından) girişten
+// önce saklanır; oturum yoksa giriş sayfasına geçilir. Plan ve katman seçimi tarayıcıda kalıcıdır (giriş başka bir
+// sekmede bitse de kaybolmaz); `?checkout=1` niyeti giriş bitince hesap sayfasını doğrudan Stripe Checkout'a gönderir.
+// Katman (Personal ya da Pro): sunucu Pro'yu sunuyorsa (`offeredTiers`) plan seçiminin üstünde katman seçimi görünür ve
+// Checkout'a `tier` gider; Stripe abonesi katmanını `POST /v1/billing/change-plan`'ın Stripe sayfasında değiştirir,
+// App Store abonesine iPhone'da değiştirmesi söylenir. Plan adı katmanı, saat ölçeri sunucunun sınırını yazar.
 import {
   ApiRequestError,
   type Entitlements,
@@ -22,18 +25,31 @@ import {
   forgetCheckoutIntent,
   forgetInviteCode,
   forgetPlan,
+  forgetTier,
   storeCheckoutIntent,
   storeInviteCode,
   storePlan,
+  storeTier,
   storedInviteCode,
   storedPlan,
+  storedTier,
 } from "./checkout-choice";
 import { type ClientCopy, clientCopy, fill } from "./copy";
 import { type CheckoutEvent, type CheckoutState, checkoutControlsLocked, checkoutTransition, idleCheckout } from "../lib/checkout-state";
 import { dataValue, element, errorText, hideNotice, showNotice } from "./dom";
 import { SignedOutError, authorizedSend, claimTabSession, clearSession, hasSession, signOut } from "./session";
 import { siteLocale } from "../config";
-import { type BillingPlan, billingPlanOf, normalizedInviteCode, recommendedPlan } from "../lib/plans";
+import {
+  type BillingPlan,
+  type SubscriptionTier,
+  type TierOffer,
+  billingPlanOf,
+  formatHourCount,
+  normalizedInviteCode,
+  recommendedPlan,
+  subscriptionTierOf,
+  tierOffer,
+} from "../lib/plans";
 import { type PlanState, type TrialState, hasSubscriptionAccess, planState } from "../lib/plan-status";
 
 /** Ödeme dönüşünde aboneliğin görünmesi için en çok kaç kez, kaç ms arayla yeniden bakılır (webhook gecikmesi). */
@@ -104,6 +120,20 @@ interface AiMeter {
   readonly limitReached: string | null;
 }
 
+/** Plan seçimindeki bir katman: ad ve sunucunun aylık saat sınırı metni. */
+interface TierChoice {
+  readonly tier: SubscriptionTier;
+  readonly name: string;
+  readonly hours: string;
+}
+
+/** Stripe abonesinin katman değiştirmesi: hedef katman, korunan plan (aylık/yıllık) ve düğme metni. */
+interface TierSwitch {
+  readonly tier: SubscriptionTier;
+  readonly plan: BillingPlan;
+  readonly label: string;
+}
+
 /** Hesap sayfasında gösterilecek değerler. */
 interface AccountView {
   readonly plan: string;
@@ -120,6 +150,10 @@ interface AccountView {
   readonly alert: string | null;
   readonly canSubscribe: boolean;
   readonly canManage: boolean;
+  /** Abone olurken katman seçimi: sunucu Pro'yu sunuyorsa sunulan katmanlar; yoksa (ya da abone olunamıyorsa) null. */
+  readonly tierChoices: readonly TierChoice[] | null;
+  /** Stripe abonesinin katman değiştirme düğmesi; değiştirilemiyorsa null. */
+  readonly tierSwitch: TierSwitch | null;
   /** Hesap silme penceresindeki App Store uyarısı (yenilenecek App Store aboneliği varsa); yoksa null. */
   readonly deleteWarning: string | null;
 }
@@ -150,8 +184,8 @@ function formatHours(hours: number, locale: string): string {
 }
 
 /**
- * Planın adı: abonelik erişiminde aylık, yıllık, ücretsiz erişim ya da (fiyat tanınmıyorsa) yalnızca ürün adı; abonelik
- * bitmiş ve denemesi kalmamış hesapta "plan yok"; denemede deneme. Saf fonksiyondur.
+ * Planın adı: abonelik erişiminde katmanla aylık, yıllık ya da (fiyat tanınmıyorsa) yalnızca katman; ücretsiz erişim;
+ * abonelik bitmiş ve denemesi kalmamış hesapta "plan yok"; denemede deneme. Saf fonksiyondur.
  */
 function planName(state: PlanState, text: ClientCopy): string {
   switch (state.kind) {
@@ -161,8 +195,10 @@ function planName(state: PlanState, text: ClientCopy): string {
       return text.plan.complimentary;
     case "subscribed":
     case "ending":
-    case "grace":
-      return state.subscription.plan === null ? text.plan.subscription : text.plan[state.subscription.plan];
+    case "grace": {
+      const tier: string = text.tiers[state.subscription.tier];
+      return fill(state.subscription.plan === null ? text.plan.subscription : text.plan[state.subscription.plan], { tier });
+    }
     case "paymentOverdue":
       return state.trial.kind === "ended" ? text.plan.none : text.plan.trial;
     case "complimentaryEnded":
@@ -197,12 +233,50 @@ function trialStatus(trial: TrialState, trialDays: number, text: ClientCopy, loc
  * Aboneliğin durumu. Ücretsiz erişimde ödeme ve yenileme yoktur: ileti yazılır (bitiş tarihi varsa onunla), bittiyse
  * "ücretsiz erişim bitti" (abonelik bitti değil: hiç ödeme yapılmadı). Etkin, iptal edilmiş ve ek süredeki abonelik
  * tarihleri satır olarak gösterir; ödeme alınamadıysa neden eylemin yanındaki uyarıdadır (`paymentAlert`). App Store
- * aboneliği erişim sürerken nerede yönetileceğini söyleyen iletiyi de taşır. Saf fonksiyondur.
+ * aboneliği erişim sürerken nerede yönetileceğini söyleyen iletiyi de taşır; Pro sunuluyorsa ya da abonelik Pro ise
+ * katmanın da iPhone'da değiştirileceğini söyler. Saf fonksiyondur.
  */
-function planStatus(state: PlanState, trialDays: number, text: ClientCopy, locale: string): PlanStatus {
+function planStatus(state: PlanState, trialDays: number, proOffered: boolean, text: ClientCopy, locale: string): PlanStatus {
   const facts: PlanStatus = subscriptionFacts(state, trialDays, text, locale);
-  const appStoreAccess: boolean = hasSubscriptionAccess(state) && state.kind !== "trial" && state.subscription.source === "app_store";
-  return appStoreAccess ? { message: text.subscriptionAppStore, facts: facts.facts } : facts;
+  if (!hasSubscriptionAccess(state) || state.kind === "trial" || state.subscription.source !== "app_store") {
+    return facts;
+  }
+  const tiersMatter: boolean = proOffered || state.subscription.tier === "pro";
+  return { message: tiersMatter ? text.subscriptionAppStoreTiers : text.subscriptionAppStore, facts: facts.facts };
+}
+
+/**
+ * Abone olurken katman seçimi: sunucu Pro'yu sunuyorsa sunulan her katman, adı ve aylık saat sınırıyla; Pro
+ * sunulmuyorsa (eski sunucu da) ya da abone olunamıyorsa null (yalnızca Personal satılır, seçim gösterilmez). Saf
+ * fonksiyondur.
+ */
+function tierChoices(offers: readonly TierOffer[], canSubscribe: boolean, text: ClientCopy, locale: string): readonly TierChoice[] | null {
+  if (!canSubscribe || tierOffer(offers, "pro") === null) {
+    return null;
+  }
+  return offers.map(
+    (offer: TierOffer): TierChoice => ({
+      tier: offer.tier,
+      name: text.tiers[offer.tier],
+      hours: fill(text.tierHours, { hours: formatHourCount(offer.monthlyHours, locale) }),
+    }),
+  );
+}
+
+/**
+ * Stripe abonesinin katman değiştirmesi: yalnızca yenilenecek (iptal edilmemiş, ek sürede olmayan), ücretsiz erişim
+ * olmayan ve planı bilinen Stripe aboneliğinde. Personal abone Pro sunuluyorsa Pro'ya, Pro abone Personal'a geçebilir;
+ * aylık/yıllık plan korunur (onay ve ücret farkı Stripe'ın sayfasında). Saf fonksiyondur.
+ */
+function tierSwitch(state: PlanState, offers: readonly TierOffer[], text: ClientCopy): TierSwitch | null {
+  if (state.kind !== "subscribed" || state.subscription.source !== "stripe" || state.subscription.complimentary || state.subscription.plan === null) {
+    return null;
+  }
+  const plan: BillingPlan = state.subscription.plan;
+  if (state.subscription.tier === "pro") {
+    return { tier: "personal", plan, label: text.switchTier.personal };
+  }
+  return tierOffer(offers, "pro") === null ? null : { tier: "pro", plan, label: text.switchTier.pro };
 }
 
 /** Plan durumunun ileti ve satırları (tanımlar `planStatus`'ta; App Store iletisi olmadan). Saf fonksiyondur. */
@@ -329,16 +403,19 @@ function aiMeter(me: Entitlements, text: ClientCopy, locale: string): AiMeter {
 export function accountView(me: Entitlements, text: ClientCopy, locale: string, now: Date): AccountView {
   const state: PlanState = planState(me, now);
   const subscribed: boolean = hasSubscriptionAccess(state);
+  const proOffered: boolean = tierOffer(me.offeredTiers, "pro") !== null;
   return {
     plan: planName(state, text),
     planPill: planPill(state, text),
-    status: planStatus(state, me.trialDays, text, locale),
+    status: planStatus(state, me.trialDays, proOffered, text, locale),
     trialMeter: trialMeter(state, text),
     hours: subscribed ? hoursMeter(me, text, locale) : null,
     ai: subscribed ? aiMeter(me, text, locale) : null,
     alert: paymentAlert(state, text),
     canSubscribe: !subscribed,
     canManage: me.subscription !== null && !me.subscription.complimentary && me.subscription.source === "stripe",
+    tierChoices: tierChoices(me.offeredTiers, !subscribed, text, locale),
+    tierSwitch: tierSwitch(state, me.offeredTiers, text),
     deleteWarning:
       me.subscription !== null && me.subscription.source === "app_store" && me.subscription.access !== "none" && me.subscription.cancelAt === null
         ? text.deleteAppStoreWarning
@@ -420,6 +497,30 @@ function renderMeters(trial: TrialMeter | null, hours: HoursMeter | null): void 
   }
 }
 
+/** Katman seçimini yazar (adlar ve saatler); Pro sunulmuyorsa gizler. */
+function renderTierChoices(choices: readonly TierChoice[] | null): void {
+  const fieldset: HTMLElement = element("tier-choice", HTMLElement);
+  fieldset.classList.toggle("hidden", choices === null);
+  for (const option of Array.from(fieldset.querySelectorAll<HTMLElement>("[data-tier-option]"))) {
+    const choice: TierChoice | undefined = choices?.find((item: TierChoice): boolean => item.tier === option.dataset["tierOption"]);
+    option.classList.toggle("hidden", choice === undefined);
+    if (choice !== undefined) {
+      element(`tier-name-${choice.tier}`, HTMLElement).textContent = choice.name;
+      element(`tier-hours-${choice.tier}`, HTMLElement).textContent = choice.hours;
+    }
+  }
+}
+
+/** Katman değiştirme düğmesini ve notunu yazar; hedef katman ve plan düğmenin `data-*` değerlerindedir. */
+function renderTierSwitch(value: TierSwitch | null): void {
+  const button: HTMLButtonElement = element("switch-tier-button", HTMLButtonElement);
+  button.classList.toggle("hidden", value === null);
+  element("switch-tier-note", HTMLElement).classList.toggle("hidden", value === null);
+  button.textContent = value === null ? "" : value.label;
+  button.dataset["tier"] = value === null ? "" : value.tier;
+  button.dataset["plan"] = value === null ? "" : value.plan;
+}
+
 /** Değerleri sayfaya yazar. */
 function render(view: AccountView): void {
   element("plan-value", HTMLElement).textContent = view.plan;
@@ -436,6 +537,8 @@ function render(view: AccountView): void {
   element("manage-button", HTMLButtonElement).classList.toggle("hidden", !view.canManage);
   element("subscribe-note", HTMLElement).classList.toggle("hidden", !view.canSubscribe);
   element("manage-note", HTMLElement).classList.toggle("hidden", view.canSubscribe || !view.canManage);
+  renderTierChoices(view.tierChoices);
+  renderTierSwitch(view.tierSwitch);
   const deleteWarning: HTMLElement = element("delete-app-store-warning", HTMLElement);
   deleteWarning.classList.toggle("hidden", view.deleteWarning === null);
   deleteWarning.textContent = view.deleteWarning ?? "";
@@ -469,7 +572,7 @@ async function fetchMeAfterPayment(): Promise<Entitlements> {
 let checkout: CheckoutState = idleCheckout;
 
 /** Ödeme durumu kilitliyken kapanan düğmeler. */
-const checkoutButtonIds: readonly string[] = ["subscribe-button", "manage-button", "invite-apply", "invite-remove"];
+const checkoutButtonIds: readonly string[] = ["subscribe-button", "manage-button", "switch-tier-button", "invite-apply", "invite-remove"];
 
 /** Ödeme olayını uygular ve düğmeleri yeni duruma göre açar ya da kapatır; olay bu durumda geçersizse false. */
 function applyCheckout(event: CheckoutEvent): boolean {
@@ -503,8 +606,8 @@ async function runCheckout(start: "validateInvite" | "openBilling", action: () =
   }
 }
 
-/** Checkout ya da Portal adresini alıp oraya geçer (`runCheckout("openBilling", …)` içinde çağrılır). */
-async function openBilling(path: "/v1/billing/checkout" | "/v1/billing/portal", body: JsonObject): Promise<void> {
+/** Checkout, Portal ya da katman değiştirme (Stripe) adresini alıp oraya geçer (`runCheckout("openBilling", …)` içinde çağrılır). */
+async function openBilling(path: "/v1/billing/checkout" | "/v1/billing/portal" | "/v1/billing/change-plan", body: JsonObject): Promise<void> {
   const response: RawResponse = await authorizedSend({ method: "POST", path, body, attempts: 1 });
   const url: string = parseRedirectUrl(response, path);
   if (!applyCheckout({ type: "redirect" })) {
@@ -513,9 +616,23 @@ async function openBilling(path: "/v1/billing/checkout" | "/v1/billing/portal", 
   window.location.assign(url);
 }
 
-/** Checkout gövdesi: seçilen plan ve (doğrulanmışsa) davet kodu. Saf fonksiyondur. */
-export function checkoutBody(plan: BillingPlan, referralCode: string | null): JsonObject {
-  return referralCode === null ? { plan } : { plan, referralCode };
+/**
+ * Checkout gövdesi: seçilen plan, Pro ise katman (Personal varsayılandır; katmanı bilmeyen eski sunucu bilinmeyen alanı
+ * reddettiği için Personal'de gönderilmez) ve (doğrulanmışsa) davet kodu. Saf fonksiyondur.
+ */
+export function checkoutBody(plan: BillingPlan, tier: SubscriptionTier, referralCode: string | null): JsonObject {
+  const tierField: JsonObject = tier === "pro" ? { tier } : {};
+  return referralCode === null ? { plan, ...tierField } : { plan, ...tierField, referralCode };
+}
+
+/** Stripe abonesinin katman değiştirmesi: düğmenin hedef katmanı ve planıyla Stripe'ın onay sayfasını açar. */
+async function changeTier(button: HTMLButtonElement): Promise<void> {
+  const tier: SubscriptionTier | null = subscriptionTierOf(button.dataset["tier"] ?? null);
+  const plan: BillingPlan | null = billingPlanOf(button.dataset["plan"] ?? null);
+  if (tier === null || plan === null) {
+    throw new Error(`Katman değiştirme düğmesinde hedef yok: tier=${String(button.dataset["tier"])}, plan=${String(button.dataset["plan"])}.`);
+  }
+  await openBilling("/v1/billing/change-plan", { tier, plan });
 }
 
 /** Davet hatasının kodu (sunucunun `referral_*` kodları); başka hata null. Saf fonksiyondur. */
@@ -543,6 +660,36 @@ function selectedPlan(): BillingPlan {
   return plan;
 }
 
+/** Seçili katman: katman seçimi gizliyse (Pro sunulmuyor) Personal, değilse seçili radyo düğmesi. */
+function selectedTier(): SubscriptionTier {
+  if (element("tier-choice", HTMLElement).classList.contains("hidden")) {
+    return "personal";
+  }
+  const checked: HTMLInputElement | null = document.querySelector<HTMLInputElement>('#tier-choice input[name="tier"]:checked');
+  const tier: SubscriptionTier | null = subscriptionTierOf(checked === null ? null : checked.value);
+  if (tier === null) {
+    throw new Error("Katman seçimi okunamadı: seçili radyo düğmesi yok.");
+  }
+  return tier;
+}
+
+/** Katmanı seçer ve plan seçeneklerinde o katmanın fiyatlarını gösterir. */
+function selectTier(tier: SubscriptionTier): void {
+  const input: HTMLInputElement | null = document.querySelector<HTMLInputElement>(`#tier-choice input[name="tier"][value="${tier}"]`);
+  if (input === null) {
+    throw new Error(`Katman seçiminde "${tier}" düğmesi yok.`);
+  }
+  input.checked = true;
+  showTierPrices(tier);
+}
+
+/** Plan seçeneklerinde yalnızca katmanın fiyatlarını (fiyat, ayrıntı, rozet) gösterir. */
+function showTierPrices(tier: SubscriptionTier): void {
+  for (const price of Array.from(document.querySelectorAll<HTMLElement>("#plan-choice [data-price-tier]"))) {
+    price.classList.toggle("hidden", price.dataset["priceTier"] !== tier);
+  }
+}
+
 /** Planı seçer. */
 function selectPlan(plan: BillingPlan): void {
   const input: HTMLInputElement | null = document.querySelector<HTMLInputElement>(`#plan-choice input[name="plan"][value="${plan}"]`);
@@ -565,7 +712,7 @@ function showInviteStatus(message: string | null, tone: "ok" | "error" | "plain"
 function renderAppliedInvite(form: CheckoutForm, text: ClientCopy): void {
   element("invite-remove", HTMLButtonElement).classList.toggle("hidden", form.validatedCode === null);
   if (form.validatedCode !== null) {
-    showInviteStatus(text.inviteApplied[selectedPlan()], "ok");
+    showInviteStatus(text.inviteApplied[selectedTier()][selectedPlan()], "ok");
   }
 }
 
@@ -639,7 +786,7 @@ async function subscribe(form: CheckoutForm, text: ClientCopy): Promise<void> {
     return;
   }
   try {
-    await openBilling("/v1/billing/checkout", checkoutBody(selectedPlan(), form.validatedCode));
+    await openBilling("/v1/billing/checkout", checkoutBody(selectedPlan(), selectedTier(), form.validatedCode));
   } catch (error: unknown) {
     if (error instanceof ApiRequestError && error.code === "subscription_exists") {
       await openBilling("/v1/billing/portal", {});
@@ -663,6 +810,14 @@ function bindCheckoutForm(form: CheckoutForm, text: ClientCopy, notice: HTMLElem
   for (const input of Array.from(document.querySelectorAll<HTMLInputElement>('#plan-choice input[name="plan"]'))) {
     input.addEventListener("change", (): void => {
       storePlan(selectedPlan());
+      renderAppliedInvite(form, text);
+    });
+  }
+  for (const input of Array.from(document.querySelectorAll<HTMLInputElement>('#tier-choice input[name="tier"]'))) {
+    input.addEventListener("change", (): void => {
+      const tier: SubscriptionTier = selectedTier();
+      storeTier(tier);
+      showTierPrices(tier);
       renderAppliedInvite(form, text);
     });
   }
@@ -826,11 +981,18 @@ async function loadReferral(text: ClientCopy, notice: HTMLElement): Promise<void
 }
 
 /**
- * Adresteki `?plan=` ve `?code=` seçimlerini saklar (girişe yönlendirmeden önce; sorgu adresten silinir). Biçimsiz kod
- * saklanmaz.
+ * Adresteki `?plan=`, `?tier=` ve `?code=` seçimlerini saklar (girişe yönlendirmeden önce; sorgu adresten silinir).
+ * Biçimsiz kod saklanmaz. Fiyat sayfasının Personal düğmeleri katman göndermez: plan seçildiyse katman Personal'dir
+ * (önceki bir Pro seçimi kalmaz).
  */
 function rememberQueryChoices(params: URLSearchParams): boolean {
   const plan: BillingPlan | null = billingPlanOf(params.get("plan"));
+  const tier: SubscriptionTier | null = subscriptionTierOf(params.get("tier"));
+  if (tier !== null) {
+    storeTier(tier);
+  } else if (plan !== null) {
+    storeTier("personal");
+  }
   const rawCode: string | null = params.get("code");
   const code: string | null = rawCode === null ? null : normalizedInviteCode(rawCode);
   const checkout: boolean = params.get("checkout") === "1";
@@ -844,7 +1006,7 @@ function rememberQueryChoices(params: URLSearchParams): boolean {
     // Fiyat sayfasındaki plan düğmesi: seçim yapıldı, ödeme sayfasına gidilecek (giriş gerekirse sonra).
     storeCheckoutIntent();
   }
-  return params.has("plan") || params.has("code") || checkout;
+  return params.has("plan") || params.has("tier") || params.has("code") || checkout;
 }
 
 /** Düğme eyleminin hatası: oturum düştüyse giriş sayfasına geçilir, değilse bildirimde yazar. */
@@ -950,12 +1112,17 @@ function showPaidSignedOut(): void {
 }
 
 /**
- * Yüklenen hesabı çizer ve sonrasını yürütür: abone olabilen hesapta kayıtlı davet kodu doğrulanır, abonede davet kartı
- * yüklenir, fiyat sayfasından gelen ödeme niyeti varsa Checkout açılır.
+ * Yüklenen hesabı çizer ve sonrasını yürütür: abone olabilen hesapta kayıtlı katman (sunuluyorsa) seçilir ve kayıtlı
+ * davet kodu doğrulanır, abonede davet kartı yüklenir, fiyat sayfasından gelen ödeme niyeti varsa Checkout açılır.
+ * Fiyat sayfasında Pro seçilmiş ama sunucu Pro'yu artık sunmuyorsa Checkout açılmaz (yerine Personal satılmaz):
+ * bildirim Pro'nun satılmadığını söyler, seçim Personal kalır.
  */
 async function showAccount(me: Entitlements, form: CheckoutForm, text: ClientCopy, notice: HTMLElement): Promise<void> {
   const view: AccountView = accountView(me, text, siteLocale, new Date());
   render(view);
+  const wantedTier: SubscriptionTier | null = storedTier();
+  const proUnavailable: boolean = wantedTier === "pro" && view.tierChoices === null;
+  selectTier(wantedTier !== null && !proUnavailable ? wantedTier : "personal");
   element("account-loading", HTMLElement).classList.add("hidden");
   element("account-content", HTMLElement).classList.remove("hidden");
   if (view.canSubscribe) {
@@ -968,6 +1135,11 @@ async function showAccount(me: Entitlements, form: CheckoutForm, text: ClientCop
   // (niyet yalnızca seçimin yapıldığı sekmede tutulur ve bir kez kullanılır).
   if (checkoutIntended()) {
     forgetCheckoutIntent();
+    if (view.canSubscribe && proUnavailable) {
+      console.warn("checkout_pro_unavailable", { offeredTiers: me.offeredTiers.map((offer: TierOffer): SubscriptionTier => offer.tier) });
+      showNotice(notice, text.errors.proUnavailable);
+      return;
+    }
     if (view.canSubscribe) {
       await runCheckout("openBilling", (): Promise<void> => subscribe(form, text));
     }
@@ -1032,6 +1204,7 @@ async function main(): Promise<void> {
     // Ödeme tamamlandı: davet kodu kullanıldı (ya da artık gerekmiyor), seçilen plan aboneliğe dönüştü.
     forgetInviteCode();
     forgetPlan();
+    forgetTier();
     forgetCheckoutIntent();
   }
   await claimTabSession();
@@ -1057,6 +1230,10 @@ async function main(): Promise<void> {
   );
   bindCheckoutAction(element("manage-button", HTMLButtonElement), notice, text, signInPath, (): Promise<void> =>
     runCheckout("openBilling", (): Promise<void> => openBilling("/v1/billing/portal", {})),
+  );
+  const switchButton: HTMLButtonElement = element("switch-tier-button", HTMLButtonElement);
+  bindCheckoutAction(switchButton, notice, text, signInPath, (): Promise<void> =>
+    runCheckout("openBilling", (): Promise<void> => changeTier(switchButton)),
   );
   // Stripe'tan Geri ile dönülünce sayfa geri/ileri önbellekten olduğu gibi açılabilir: yönlendirme kilidi açılır.
   window.addEventListener("pageshow", (event: PageTransitionEvent): void => {

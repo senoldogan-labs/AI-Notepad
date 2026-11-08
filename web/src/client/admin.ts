@@ -15,11 +15,13 @@ import {
   type DayMeetings,
   type Insights,
   type Operations,
+  type ProTierPolicy,
   type ReportDetail,
   type ReportKind,
   type ReportPage,
   type ReportStatus,
   type ReportSummary,
+  type TierSubscriptions,
   fetchReport,
   fetchReports,
   fetchStats,
@@ -193,6 +195,15 @@ function renderOverview(stats: AdminStats): void {
     stats.deepgram.percent >= capacityWarnRatio * 100,
   );
   setFact("ov-capacity", "near", formatCount(stats.usage.usersNearTokenCap), stats.usage.usersNearTokenCap > 0);
+  renderTiers(stats.subscriptions.byTier, stats.subscriptions.proTierPolicy);
+}
+
+/** Genel bakışın katman kartı: Personal ve Pro aboneleri plana göre ve Pro'nun satış durumu (eski sunucuda bilinmiyor). */
+function renderTiers(byTier: TierSubscriptions | null, policy: ProTierPolicy | null): void {
+  const tiers: AdminLayoutCopy["facts"]["tiers"] = layout.facts.tiers;
+  setFact("ov-tiers", "personal", byTier === null ? tiers.unknown : fillCounts(layout.subs.plans, { monthly: byTier.personal.monthly, yearly: byTier.personal.yearly }), false);
+  setFact("ov-tiers", "pro", byTier === null ? tiers.unknown : fillCounts(layout.subs.plans, { monthly: byTier.pro.monthly, yearly: byTier.pro.yearly }), false);
+  setFact("ov-tiers", "policy", policy === null ? tiers.unknown : { on: tiers.policyOn, off: tiers.policyOff }[policy], false);
 }
 
 /** Genel bakışın gelir eğrileri (günlük anlık görüntülerden; görüntüsüz gün boşluk). */

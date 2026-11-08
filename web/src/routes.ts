@@ -105,8 +105,8 @@ export const pageModified: Readonly<Partial<Record<PageKey, string>>> = {
   integrations: "2026-11-06",
   voiceTyping: "2026-11-07",
   mcp: "2026-11-06",
-  privacy: "2026-11-07",
-  terms: "2026-11-07",
+  privacy: "2026-11-08",
+  terms: "2026-11-08",
 };
 
 /** Sitenin dilleri (`<html lang>`, `hreflang`). */

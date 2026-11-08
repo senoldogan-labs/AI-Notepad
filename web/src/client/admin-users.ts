@@ -111,8 +111,10 @@ function planBadge(user: UserSummary): HTMLSpanElement {
   if (user.plan === "subscription" && user.subscription === null && user.trial.left > 0) {
     return pill(`${adminText.plans.trial} · ${fillCounts(adminText.trialCell, { used: user.trial.used, left: user.trial.left })}`, "warn");
   }
-  const billing: BillingPlan | null = user.plan === "subscription" && user.subscription !== null ? user.subscription.plan : null;
-  const label: string = billing === null ? adminText.plans[user.plan] : `${adminText.plans[user.plan]} · ${adminText.billingPlans[billing]}`;
+  const subscription: UserSubscription | null = user.plan === "subscription" ? user.subscription : null;
+  const billing: BillingPlan | null = subscription === null ? null : subscription.plan;
+  const tier: string = subscription === null ? "" : ` · ${adminText.tiers[subscription.tier]}`;
+  const label: string = billing === null ? `${adminText.plans[user.plan]}${tier}` : `${adminText.plans[user.plan]}${tier} · ${adminText.billingPlans[billing]}`;
   return pill(label, user.plan === "subscription" ? "ok" : "");
 }
 
@@ -321,7 +323,7 @@ function subscriptionText(subscription: UserSubscription | null): string {
   }
   const end: number = subscription.graceEndsAt ?? subscription.cancelAt ?? subscription.currentPeriodEnd;
   const plan: string = subscription.plan === null ? "" : `${adminText.billingPlans[subscription.plan]} · `;
-  return `${plan}${subscription.status} · ${formatDate(end)}`;
+  return `${adminText.tiers[subscription.tier]} · ${plan}${subscription.status} · ${formatDate(end)}`;
 }
 
 /**
