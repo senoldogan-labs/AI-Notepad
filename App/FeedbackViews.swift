@@ -36,6 +36,22 @@ struct FeedbackSettingsRow: View {
     }
 }
 
+/// Geri bildirim formunda yazılan, henüz gönderilmemiş mesaj ve e-posta. Form kendiliğinden kapansa da (ör. kayıt
+/// başlarken) yeniden açılınca yazılan geri gelir; gönderilince ya da "Vazgeç"le boşalır. Uygulama açık kaldıkça durur
+/// (diske yazılmaz).
+@MainActor
+@Observable
+final class FeedbackDraft {
+    static let shared: FeedbackDraft = FeedbackDraft()
+    var message: String = ""
+    var email: String = ""
+
+    func discard() {
+        message = ""
+        email = ""
+    }
+}
+
 /// Formun gönderim durumu.
 private enum FeedbackSendState: Equatable {
     case editing
@@ -51,8 +67,7 @@ private enum FeedbackSendState: Equatable {
 private struct FeedbackSheet: View {
     let makeDiagnostics: @MainActor () async -> String
     let onClose: @MainActor () -> Void
-    @State private var message: String = ""
-    @State private var email: String = ""
+    @Bindable private var draft: FeedbackDraft = FeedbackDraft.shared
     @State private var includeDiagnostics: Bool = true
     /// Ayarlar › Tanılama'daki metin de eklensin mi (baştan kapalı).
     @State private var includeFullDiagnostics: Bool = false
@@ -88,7 +103,7 @@ private struct FeedbackSheet: View {
 
     @ViewBuilder
     private var form: some View {
-        let length: Int = reportMessageLength(text: message.trimmingCharacters(in: .whitespacesAndNewlines))
+        let length: Int = reportMessageLength(text: draft.message.trimmingCharacters(in: .whitespacesAndNewlines))
         let isSending: Bool = state == .sending
         let canSend: Bool = !isSending && length > 0 && length <= reportMessageLimit
         VStack(alignment: .leading, spacing: 12) {
@@ -100,7 +115,7 @@ private struct FeedbackSheet: View {
                         .appFont(size: 11, weight: .regular)
                         .foregroundStyle(length > reportMessageLimit ? NoticeSeverity.error.tint : Theme.muted)
                 }
-                TextEditor(text: $message)
+                TextEditor(text: $draft.message)
                     .appFont(size: 14, weight: .regular)
                     .scrollContentBackground(.hidden)
                     .focused($messageFocused)
@@ -110,7 +125,7 @@ private struct FeedbackSheet: View {
             }
             VStack(alignment: .leading, spacing: 5) {
                 Text("Yanıt için e-posta (isteğe bağlı)").appFont(size: 12, weight: .medium).foregroundStyle(Theme.muted)
-                TextField("Yanıt için e-posta (isteğe bağlı)", text: $email, prompt: Text("ad@ornek.com"))
+                TextField("Yanıt için e-posta (isteğe bağlı)", text: $draft.email, prompt: Text("ad@ornek.com"))
                     .textFieldStyle(.plain)
                     .textContentType(.emailAddress)
                     .appFont(size: 14, weight: .regular)
@@ -158,7 +173,10 @@ private struct FeedbackSheet: View {
                 .buttonStyle(.pillPrimary)
                 .disabled(!canSend)
                 .keyboardShortcut(.defaultAction)
-            Button("Vazgeç") { onClose() }
+            Button("Vazgeç") {
+                draft.discard()
+                onClose()
+            }
                 .keyboardShortcut(.cancelAction)
                 .disabled(isSending)
             if isSending {
@@ -180,7 +198,7 @@ private struct FeedbackSheet: View {
     private func send() {
         let report: ReportRequest
         do {
-            report = try feedbackReport(message: message, email: email, diagnostics: includeDiagnostics ? diagnostics : nil)
+            report = try feedbackReport(message: draft.message, email: draft.email, diagnostics: includeDiagnostics ? diagnostics : nil)
         } catch {
             state = .failed(message: userFacingMessage(error: error))
             return
@@ -192,6 +210,7 @@ private struct FeedbackSheet: View {
                     ? try appendingDiagnostics(report: report, diagnosticsText: await makeDiagnostics(), limit: reportMessageLimit)
                     : report
                 try await submitReport(report: final, destination: try await reportDestination())
+                draft.discard()
                 state = .sent
             } catch {
                 feedbackLogger.error("Geri bildirim gönderilemedi, hata: \(String(describing: error), privacy: .private)")

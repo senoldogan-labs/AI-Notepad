@@ -35,10 +35,8 @@ final class PhoneCallController: NSObject {
     /// Audio session changes run off the main thread, in order (the SDK's advice).
     private let audioQueue: DispatchQueue = DispatchQueue(label: "com.senoldogan.AINotepad.phone-audio")
     private var call: Call?
-    /// The call being started: its CallKit id, Voice SDK token and the server's call id (a connect parameter).
-    private var starting: (uuid: UUID, accessToken: String, callID: String)?
-    /// The user ended the call here (CallKit already knows; it isn't reported again).
-    private var endedLocally: Bool = false
+    /// The CallKit call (`phoneCallKitTransition`): starting, active, or ended by a CallKit end action.
+    private var state: PhoneCallKitState = .idle
 
     override init() {
         let configuration: CXProviderConfiguration = CXProviderConfiguration()
@@ -56,15 +54,24 @@ final class PhoneCallController: NSObject {
 
     /// Starts an outgoing call to `e164` through CallKit; CallKit asks back to perform it (`CXStartCallAction`).
     func start(uuid: UUID, e164: String, accessToken: String, callID: String) async throws {
-        starting = (uuid, accessToken, callID)
-        endedLocally = false
+        apply(event: .startRequested(uuid: uuid, accessToken: accessToken, callID: callID))
         let action: CXStartCallAction = CXStartCallAction(call: uuid, handle: CXHandle(type: .phoneNumber, value: e164))
-        try await callController.request(CXTransaction(action: action))
+        do {
+            try await callController.request(CXTransaction(action: action))
+        } catch {
+            apply(event: .startRequestFailed(uuid: uuid))
+            throw error
+        }
     }
 
+    /// Asks CallKit to end the call; the call counts as ended by CallKit only once CallKit performs the action
+    /// (`CXEndCallAction`), so a failed request still lets the remote end be reported.
     func end(uuid: UUID) async throws {
-        endedLocally = true
         try await callController.request(CXTransaction(action: CXEndCallAction(call: uuid)))
+    }
+
+    private func apply(event: PhoneCallKitEvent) {
+        state = phoneCallKitTransition(state: state, event: event)
     }
 
     func setMuted(uuid: UUID, muted: Bool) async throws {
@@ -91,25 +98,26 @@ final class PhoneCallController: NSObject {
 
     /// Connects the Voice SDK leg of the call CallKit is starting; false when it isn't the call being started.
     private func connect(uuid: UUID) -> Bool {
-        guard let starting, starting.uuid == uuid else {
+        guard case .starting(let startingUUID, let accessToken, let callID) = state, startingUUID == uuid else {
             return false
         }
+        apply(event: .startPerformed(uuid: uuid))
         // CallKit activates the audio session; the SDK's audio starts in `didActivate`.
         audioDevice.isEnabled = false
-        let options: ConnectOptions = ConnectOptions(accessToken: starting.accessToken) { (builder: ConnectOptionsBuilder) in
-            builder.params = ["callId": starting.callID]
-            builder.uuid = starting.uuid
+        let options: ConnectOptions = ConnectOptions(accessToken: accessToken) { (builder: ConnectOptionsBuilder) in
+            builder.params = ["callId": callID]
+            builder.uuid = uuid
         }
         call = TwilioVoiceSDK.connect(options: options, delegate: self)
         return true
     }
 
     private func finish(uuid: UUID?, reason: CXCallEndedReason?, message: String?) {
-        if let uuid, let reason, !endedLocally {
+        if let uuid, let reason, phoneCallKitReportsEnd(state: state, uuid: uuid) {
             provider.reportCall(with: uuid, endedAt: Date(), reason: reason)
         }
         call = nil
-        starting = nil
+        apply(event: .finished)
         UIDevice.current.isProximityMonitoringEnabled = false
         onEvent?(.ended(message))
     }
@@ -139,7 +147,9 @@ extension PhoneCallController: CXProviderDelegate {
     }
 
     nonisolated func provider(_ provider: CXProvider, perform action: CXEndCallAction) {
+        let uuid: UUID = action.callUUID
         MainActor.assumeIsolated {
+            apply(event: .endPerformed(uuid: uuid))
             call?.disconnect()
         }
         action.fulfill()

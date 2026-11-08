@@ -207243,6 +207243,77 @@
           }
         }
       }
+    },
+    "Aramanın kaydı alınamadı: oturum açık değil.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't get the call's recording: you're not signed in."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Aufnahme des Anrufs konnte nicht abgerufen werden: Du bist nicht angemeldet."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de récupérer l'enregistrement de l'appel : tu n'es pas connecté."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se ha podido obtener la grabación de la llamada: no has iniciado sesión."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile ottenere la registrazione della chiamata: non hai effettuato l'accesso."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível obter a gravação da chamada: você não está conectado."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kan de opname van het gesprek niet ophalen: je bent niet ingelogd."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通話の録音を取得できませんでした。サインインしていません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "통화 녹음을 가져올 수 없습니다. 로그인되어 있지 않습니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法获取通话录音：你尚未登录。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puhelun tallennetta ei saatu: et ole kirjautunut sisään."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

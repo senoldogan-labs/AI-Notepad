@@ -234,7 +234,6 @@ struct PhoneKeypadView: View {
     @Environment(PhoneRecorder.self) private var recorder: PhoneRecorder
     @Environment(\.openURL) private var openURL: OpenURLAction
     @State private var number: String = ""
-    @State private var isPlacing: Bool = false
 
     var body: some View {
         VStack(spacing: 18) {
@@ -274,7 +273,7 @@ struct PhoneKeypadView: View {
                         .background(Color.green, in: Circle())
                 }
                 .buttonStyle(.plain)
-                .disabled(number.isEmpty || isPlacing)
+                .disabled(number.isEmpty || dialer.isPlacing)
                 .accessibilityLabel(Text("Aramayı başlat"))
                 .frame(width: 84)
                 Button {
@@ -333,10 +332,8 @@ struct PhoneKeypadView: View {
     }
 
     private func place() {
-        isPlacing = true
         Task {
             let action: PhoneDialAction = await dialer.call(input: number, recorder: recorder)
-            isPlacing = false
             switch action {
             case .openPhoneApp(let url):
                 openURL(url)
@@ -457,7 +454,7 @@ struct PhoneInCallView: View {
                 NoticeText(message, severity: .error)
                     .appFont(size: 13, weight: .regular)
             }
-            switch dialer.recording {
+            switch phoneRecordingImport(callID: call.id, imports: dialer.recordingImports) {
             case .failed(let message):
                 NoticeText(message, severity: .attention)
                     .appFont(size: 13, weight: .regular)
@@ -465,7 +462,9 @@ struct PhoneInCallView: View {
                 Text("Kayıt alındı; not ana ekranda hazırlanıyor.")
                     .appFont(size: 14, weight: .regular)
                     .foregroundStyle(Theme.muted)
-            default:
+            case .noRecording:
+                EmptyView()
+            case .waiting, .importing:
                 HStack(spacing: 8) {
                     ProgressView()
                     Text("Kayıt alınıyor; not ana ekranda hazırlanacak.")

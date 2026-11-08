@@ -1,4 +1,5 @@
 import AppKit
+import AINotepadCore
 import Foundation
 import Observation
 import os
@@ -33,18 +34,6 @@ func shouldCheckForUpdatesAtLaunch(lastCheck: Date?, now: Date, minimumIntervalS
         return true
     }
     return now.timeIntervalSince(lastCheck) >= minimumIntervalSec
-}
-
-/// Kartta ve menüde gösterilen güncelleme: sürüm, sürüm notları ve indirilip kurulmaya hazır olup olmadığı.
-struct AvailableAppUpdate: Equatable {
-    /// Kullanıcıya görünen sürüm (ör. "0.1.6").
-    let version: String
-    /// Appcast'e gömülü sürüm notları (Markdown); yoksa nil.
-    let releaseNotes: String?
-    /// Sürüm notlarının sayfası (güncelleme kartındaki "Tüm notlar" bunu açar); yoksa nil.
-    let releaseNotesURL: URL?
-    /// İndirildi; uygulama yeniden başlatılınca (ya da çıkışta) kurulur.
-    let isReadyToInstall: Bool
 }
 
 /// Sparkle öğesinden kart bilgisi.
@@ -114,6 +103,8 @@ private final class SparkleDelegate: NSObject, SPUUpdaterDelegate, @preconcurren
     /// Sparkle "güncelleme yok" ve kullanıcının vazgeçmesini de bu yoldan bildirir: bunlar hata değildir (Tanılama'nın
     /// son hatalarında görünmesin), yalnızca gerçek kesintiler uyarı olarak loglanır.
     func updater(_ updater: SPUUpdater, didAbortWithError error: any Error) {
+        // Kurulum sürerken yarıda kaldıysa kart yeniden kullanılabilir olur (bkz. `appUpdateTransition`).
+        owner?.aborted()
         let nsError: NSError = error as NSError
         if nsError.domain == SUSparkleErrorDomain, [Int(SUError.noUpdateError.rawValue), Int(SUError.installationCanceledError.rawValue)].contains(nsError.code) {
             updateLogger.info("Güncelleme denetimi bitti, yeni sürüm yok ya da kullanıcı vazgeçti, kod: \(nsError.code, privacy: .public)")
@@ -137,21 +128,19 @@ final class AppUpdater {
     private(set) var canCheckForUpdates: Bool = false
     /// Güncellemeler arka planda indirilip çıkışta kurulur.
     private(set) var automaticallyUpdates: Bool = false
-    /// İndirilmiş, yeniden başlatınca kurulacak güncelleme.
-    private(set) var readyUpdate: AvailableAppUpdate?
-    /// Bulunmuş ama indirilmemiş güncelleme (otomatik indirme kapalıyken).
-    private(set) var foundUpdate: AvailableAppUpdate?
+    /// Bekleyen güncellemenin durumu (bkz. `appUpdateTransition`).
+    private(set) var state: AppUpdateState = .idle
     /// Kullanıcı kartı bu sürüm için kapattı (menüde görünmeye devam eder).
     private(set) var dismissedVersion: String?
-    /// Yeniden başlatma, kayıt ya da işleme bitince yapılacak.
-    private(set) var isRelaunchPostponed: Bool = false
     /// Yeniden başlatma beklesin mi: kayıt, işleme ya da kendiliğinden not gönderimi sürüyor (uygulama bağlar; bkz.
     /// `AppModel.blocksUpdateRelaunch`).
     @ObservationIgnored let isBusy: @MainActor () -> Bool
     @ObservationIgnored private let controller: SPUStandardUpdaterController?
     @ObservationIgnored private let delegate: SparkleDelegate = SparkleDelegate()
     @ObservationIgnored private var observation: NSKeyValueObservation?
+    /// Sparkle'ın hemen kurma bloğu; yalnızca `state == .ready` iken var.
     @ObservationIgnored private var installNow: (() -> Void)?
+    /// Sparkle'ın ertelenen yeniden başlatma bloğu; yalnızca `state == .relaunchPostponed` iken var.
     @ObservationIgnored private var postponedRelaunch: (() -> Void)?
     /// Sık denetim döngüsü (bkz. `frequentCheckIntervalSec`).
     @ObservationIgnored private var frequentChecks: Task<Void, Never>?
@@ -214,7 +203,7 @@ final class AppUpdater {
     #if DEBUG
     /// Tanıtım modu (bkz. `DemoScene.update`): güncelleme kartı Sparkle'a sorulmadan gösterilir.
     func showUpdateForDemo(update: AvailableAppUpdate) {
-        foundUpdate = update
+        apply(event: .found(update))
     }
     #endif
 
@@ -223,9 +212,14 @@ final class AppUpdater {
         controller?.updater.lastUpdateCheckDate
     }
 
-    /// Kartta ve menüde gösterilecek güncelleme: indirilmiş olan önce.
+    /// Kartta ve menüde gösterilecek güncelleme.
     var availableUpdate: AvailableAppUpdate? {
-        readyUpdate ?? foundUpdate
+        state.update
+    }
+
+    /// Yeniden başlatma, kayıt ya da işleme bitince yapılacak.
+    var isRelaunchPostponed: Bool {
+        state.isRelaunchPostponed
     }
 
     /// Ana penceredeki kart görünsün mü (kullanıcı bu sürüm için kapatmadıysa).
@@ -252,12 +246,19 @@ final class AppUpdater {
             updateLogger.warning("Güncelleme kurulmadı: kayıt ya da işleme sürüyor")
             return
         }
-        if let installNow {
+        switch state {
+        case .ready:
+            guard let installNow else {
+                preconditionFailure("Güncelleyici: hazır durumda hemen kurma bloğu yok")
+            }
             updateLogger.info("Güncelleme kuruluyor, uygulama yeniden açılacak")
+            apply(event: .installStarted)
             installNow()
-            return
+        case .installing, .relaunchPostponed:
+            updateLogger.info("Güncelleme zaten kuruluyor ya da yeniden başlatma bekliyor, düğme yok sayıldı")
+        case .idle, .found:
+            checkForUpdates()
         }
-        checkForUpdates()
     }
 
     /// Kartı bu sürüm için kapatır (menüde görünmeye devam eder; yeni sürüm gelince kart yeniden çıkar).
@@ -270,8 +271,7 @@ final class AppUpdater {
         guard let postponedRelaunch, !isBusy() else {
             return
         }
-        self.postponedRelaunch = nil
-        isRelaunchPostponed = false
+        apply(event: .relaunchResumed)
         updateLogger.info("Kayıt bitti, ertelenen güncelleme kuruluyor")
         postponedRelaunch()
     }
@@ -296,21 +296,38 @@ final class AppUpdater {
     /// Zamanlanmış denetimde bulunan güncelleme. Önceki oturumda indirilmiş olsa da anında kurma bloğu yoksa
     /// karttaki düğme Sparkle'ın penceresini öne getirir (bkz. `installUpdate`).
     fileprivate func showFound(update: AvailableAppUpdate) {
-        foundUpdate = update
+        apply(event: .found(update))
+    }
+
+    fileprivate func aborted() {
+        apply(event: .aborted)
     }
 
     fileprivate func clearFound() {
-        foundUpdate = nil
+        apply(event: .sessionFinished)
     }
 
     fileprivate func showReady(update: AvailableAppUpdate, install: @escaping () -> Void) {
-        installNow = install
-        readyUpdate = update
-        foundUpdate = nil
+        apply(event: .downloaded(update))
+        if case .ready = state {
+            installNow = install
+        }
     }
 
     fileprivate func postpone(relaunch: @escaping () -> Void) {
+        apply(event: .relaunchPostponed)
         postponedRelaunch = relaunch
-        isRelaunchPostponed = true
+    }
+
+    /// Durumu ilerletir ve yeni durumda geçersiz kalan Sparkle bloklarını bırakır.
+    private func apply(event: AppUpdateEvent) {
+        let next: AppUpdateState = appUpdateTransition(state: state, event: event)
+        if case .ready = next {} else {
+            installNow = nil
+        }
+        if !next.isRelaunchPostponed {
+            postponedRelaunch = nil
+        }
+        state = next
     }
 }

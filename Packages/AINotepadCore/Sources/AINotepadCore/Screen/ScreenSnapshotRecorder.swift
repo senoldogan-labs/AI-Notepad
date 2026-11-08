@@ -50,7 +50,8 @@ private let maxConsecutiveFailures: Int = 5
 @MainActor
 public final class ScreenSnapshotRecorder {
     private var task: Task<Void, Never>?
-    private let paused: PauseFlag = PauseFlag()
+    /// Bu çalıştırmanın durumu (çalışıyor, duraklatıldı, durdu); bakış döngüsüyle paylaşılır.
+    private var run: ScreenCaptureRun?
 
     public init() {}
 
@@ -70,17 +71,17 @@ public final class ScreenSnapshotRecorder {
         } catch {
             throw ScreenCaptureError.storeFailed(reason: String(describing: error))
         }
-        paused.set(false)
-        let flag: PauseFlag = paused
+        let run: ScreenCaptureRun = ScreenCaptureRun()
+        self.run = run
         task = Task.detached(priority: .utility) {
-            await runSnapshotLoop(meetingDirectory: meetingDirectory, timeline: timeline, policy: policy, existing: existing, paused: flag, onEvent: onEvent)
+            await runSnapshotLoop(meetingDirectory: meetingDirectory, timeline: timeline, policy: policy, existing: existing, run: run, onEvent: onEvent)
         }
         screenLogger.info("Ekran görüntüsü alma başladı, klasör: \(meetingDirectory.lastPathComponent, privacy: .public)")
     }
 
     /// Duraklatılınca bakılmaz; sürdürülünce ekranın yeniden durulması beklenir.
     public func setPaused(_ isPaused: Bool) {
-        paused.set(isPaused)
+        run?.apply(event: isPaused ? .pause : .resume)
     }
 
     /// Görüntü almayı bitirir; o an alınmakta olan görüntü yazılmaz. İkinci kez çağrılması zararsızdır.
@@ -88,28 +89,44 @@ public final class ScreenSnapshotRecorder {
         guard let task else {
             return
         }
+        // Önce durum "durdu" olur: süren bir yazım bitene dek beklenir, sonra hiçbir görüntü yazılmaz.
+        run?.apply(event: .stop)
+        run = nil
         task.cancel()
         self.task = nil
         screenLogger.info("Ekran görüntüsü alma durdu")
     }
 }
 
-/// Duraklatma bayrağı (ana iş parçacığı yazar, bakış döngüsü okur).
-private final class PauseFlag: Sendable {
-    private let value: Mutex<Bool> = Mutex(false)
+/// Bir görüntü alma çalıştırmasının paylaşılan durumu (ana iş parçacığı geçirir, bakış döngüsü okur). Görüntü
+/// `writeIfRunning` içinde, durumla aynı kilidin altında yazılır: `stop()` döndükten sonra hiçbir görüntü yazılmaz
+/// (toplantı klasörü silinmiş olabilir; yazmak Screens klasörünü yeniden kurardı).
+private final class ScreenCaptureRun: Sendable {
+    private let state: Mutex<ScreenCaptureRunState> = Mutex(.running)
 
-    func set(_ newValue: Bool) {
-        value.withLock { $0 = newValue }
+    func apply(event: ScreenCaptureRunEvent) {
+        state.withLock { $0 = screenCaptureRunTransition(state: $0, event: event) }
     }
 
-    func get() -> Bool {
-        value.withLock { $0 }
+    var current: ScreenCaptureRunState {
+        state.withLock { $0 }
+    }
+
+    /// Çalışıyorsa `write`'ı kilit altında çalıştırır ve true döner; duraklatılmış ya da durmuşsa yazmaz, false döner.
+    func writeIfRunning(_ write: () throws -> Void) throws -> Bool {
+        try state.withLock { (value: inout ScreenCaptureRunState) throws -> Bool in
+            guard value == .running else {
+                return false
+            }
+            try write()
+            return true
+        }
     }
 }
 
 /// Bakış döngüsü: iptal edilene, sınır dolana ya da art arda başarısız olana dek.
 private func runSnapshotLoop(
-    meetingDirectory: URL, timeline: RecordingPauseGate, policy: ScreenSnapshotPolicy, existing: Int, paused: PauseFlag,
+    meetingDirectory: URL, timeline: RecordingPauseGate, policy: ScreenSnapshotPolicy, existing: Int, run: ScreenCaptureRun,
     onEvent: @escaping @MainActor @Sendable (ScreenSnapshotEvent) -> Void
 ) async {
     var state: ScreenSnapshotState = initialScreenSnapshotState(storedCount: existing)
@@ -120,7 +137,7 @@ private func runSnapshotLoop(
         } catch {
             return
         }
-        guard !paused.get() else {
+        guard run.current == .running else {
             // Duraklatma boyunca ekran değişmiş olabilir: sürdürünce önce durulması beklenir.
             state = pausedScreenSnapshotState(state: state)
             continue
@@ -129,12 +146,14 @@ private func runSnapshotLoop(
             let image: CGImage = try await captureScreenImage(maxPixelSize: policy.maxPixelSize)
             // Bakış sürerken kayıt bitti ya da duraklatıldı: görüntü yazılmaz (bitince toplantı klasörü silinmiş olabilir;
             // yazmak Screens klasörünü yeniden kurardı). Duraklatmada sürdürünce ekranın yeniden durulması beklenir.
-            if Task.isCancelled {
+            switch run.current {
+            case .stopped:
                 return
-            }
-            guard !paused.get() else {
+            case .paused:
                 state = pausedScreenSnapshotState(state: state)
                 continue
+            case .running:
+                break
             }
             let offsetSec: Double = timeline.keptSeconds(at: .now)
             let fingerprint: ScreenFingerprint = try screenFingerprint(image: image)
@@ -143,7 +162,13 @@ private func runSnapshotLoop(
             switch decision {
             case .store:
                 let snapshot: ScreenSnapshot = screenSnapshot(offsetSec: offsetSec)
-                try writeScreenSnapshot(meetingDirectory: meetingDirectory, snapshot: snapshot, jpeg: try jpegData(image: image, quality: policy.jpegQuality))
+                let jpeg: Data = try jpegData(image: image, quality: policy.jpegQuality)
+                // Kodlama sürerken durdurulduysa ya da duraklatıldıysa yazılmaz (bkz. `ScreenCaptureRun`).
+                guard try run.writeIfRunning({ () throws -> Void in
+                    try writeScreenSnapshot(meetingDirectory: meetingDirectory, snapshot: snapshot, jpeg: jpeg)
+                }) else {
+                    continue
+                }
                 state = advancedScreenSnapshotState(policy: policy, state: state, candidate: fingerprint, offsetSec: offsetSec, stored: true)
                 await onEvent(.stored(snapshot))
             case .capReached:
