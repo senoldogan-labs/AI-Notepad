@@ -9,7 +9,7 @@ private let phoneRequestTimeoutSec: Double = 30
 private let phoneRecordingTimeoutSec: Double = 300
 
 /// The current disclosure version the app shows (`phoneConsentVersion` in `server/src/phone/calls.ts`).
-public let phoneDialerConsentVersion: Int = 1
+public let phoneDialerConsentVersion: Int = 2
 
 /// Why the server hides the dialer.
 public enum HostedPhoneUnavailableReason: String, Sendable, Decodable, Equatable {
@@ -39,8 +39,10 @@ public struct HostedPhoneNumber: Sendable, Decodable, Equatable {
 public struct HostedPhoneStatus: Sendable, Decodable, Equatable {
     public let available: Bool
     public let reason: HostedPhoneUnavailableReason?
-    /// Allowed countries; unknown codes from a newer server are dropped.
+    /// Countries the user may call; unknown codes from a newer server are dropped.
     public let countries: [PhoneDialCountry]
+    /// Countries whose numbers may be verified as the caller ID.
+    public let callerCountries: [PhoneDialCountry]
     /// The voice provider named in the disclosure (`Twilio`); `nil` while off.
     public let provider: String?
     public let consentVersion: Int
@@ -49,14 +51,17 @@ public struct HostedPhoneStatus: Sendable, Decodable, Equatable {
     public let maxCallMinutes: Int
     public let monthlyMinutes: Int
     public let usedMinutes: Int
+    /// Minutes left this month per allowed country (fewer for pricier countries); unknown codes are dropped.
+    public let minutesByCountry: [PhoneDialCountry: Int]
 
     public init(
-        available: Bool, reason: HostedPhoneUnavailableReason?, countries: [PhoneDialCountry], provider: String?, consentVersion: Int, consentAccepted: Bool,
-        number: HostedPhoneNumber?, maxCallMinutes: Int, monthlyMinutes: Int, usedMinutes: Int
+        available: Bool, reason: HostedPhoneUnavailableReason?, countries: [PhoneDialCountry], callerCountries: [PhoneDialCountry], provider: String?, consentVersion: Int, consentAccepted: Bool,
+        number: HostedPhoneNumber?, maxCallMinutes: Int, monthlyMinutes: Int, usedMinutes: Int, minutesByCountry: [PhoneDialCountry: Int]
     ) {
         self.available = available
         self.reason = reason
         self.countries = countries
+        self.callerCountries = callerCountries
         self.provider = provider
         self.consentVersion = consentVersion
         self.consentAccepted = consentAccepted
@@ -64,10 +69,11 @@ public struct HostedPhoneStatus: Sendable, Decodable, Equatable {
         self.maxCallMinutes = maxCallMinutes
         self.monthlyMinutes = monthlyMinutes
         self.usedMinutes = usedMinutes
+        self.minutesByCountry = minutesByCountry
     }
 
     private enum CodingKeys: String, CodingKey {
-        case available, reason, countries, provider, consentVersion, consentAccepted, number, maxCallMinutes, monthlyMinutes, usedMinutes
+        case available, reason, countries, callerCountries, provider, consentVersion, consentAccepted, number, maxCallMinutes, monthlyMinutes, usedMinutes, minutesByCountry
     }
 
     public init(from decoder: any Decoder) throws {
@@ -76,19 +82,35 @@ public struct HostedPhoneStatus: Sendable, Decodable, Equatable {
             available: try container.decode(Bool.self, forKey: .available),
             reason: try container.decodeIfPresent(HostedPhoneUnavailableReason.self, forKey: .reason),
             countries: try container.decode([String].self, forKey: .countries).compactMap(PhoneDialCountry.init(rawValue:)),
+            callerCountries: try container.decode([String].self, forKey: .callerCountries).compactMap(PhoneDialCountry.init(rawValue:)),
             provider: try container.decodeIfPresent(String.self, forKey: .provider),
             consentVersion: try container.decode(Int.self, forKey: .consentVersion),
             consentAccepted: try container.decode(Bool.self, forKey: .consentAccepted),
             number: try container.decodeIfPresent(HostedPhoneNumber.self, forKey: .number),
             maxCallMinutes: try container.decode(Int.self, forKey: .maxCallMinutes),
             monthlyMinutes: try container.decode(Int.self, forKey: .monthlyMinutes),
-            usedMinutes: try container.decode(Int.self, forKey: .usedMinutes)
+            usedMinutes: try container.decode(Int.self, forKey: .usedMinutes),
+            minutesByCountry: Dictionary(
+                uniqueKeysWithValues: try container.decode([String: Int].self, forKey: .minutesByCountry).compactMap { (code: String, minutes: Int) -> (PhoneDialCountry, Int)? in
+                    PhoneDialCountry(rawValue: code).map { ($0, minutes) }
+                }
+            )
         )
     }
 
     /// Call minutes left this month. Pure.
     public var remainingMinutes: Int {
         max(0, monthlyMinutes - usedMinutes)
+    }
+
+    /// The verified number's country (the caller ID's); `nil` before verification. Pure.
+    public var callerCountry: PhoneDialCountry? {
+        number.flatMap { $0.status == .verified ? phoneCountry(e164: $0.e164) : nil }
+    }
+
+    /// Minutes left this month for calls to `country` (its price may use the monthly allowance up sooner). Pure.
+    public func remainingMinutes(country: PhoneDialCountry) -> Int {
+        min(remainingMinutes, minutesByCountry[country] ?? 0)
     }
 }
 

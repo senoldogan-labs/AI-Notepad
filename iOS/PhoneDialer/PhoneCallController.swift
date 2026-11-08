@@ -78,6 +78,11 @@ final class PhoneCallController: NSObject {
         try await callController.request(CXTransaction(action: CXSetMutedCallAction(call: uuid, muted: muted)))
     }
 
+    /// Plays keypad tones into the call through CallKit (`CXPlayDTMFCallAction`, which the Voice SDK sends in-band).
+    func sendDigits(uuid: UUID, digits: String) async throws {
+        try await callController.request(CXTransaction(action: CXPlayDTMFCallAction(call: uuid, digits: digits, type: .singleTone)))
+    }
+
     /// Speaker or receiver: the SDK's audio session block reapplied with the route override.
     func setSpeaker(_ on: Bool) {
         // The SDK documents running its audio session block on a serial queue of the app; the device is only read there.
@@ -161,6 +166,22 @@ extension PhoneCallController: CXProviderDelegate {
             call?.isMuted = muted
         }
         action.fulfill()
+    }
+
+    nonisolated func provider(_ provider: CXProvider, perform action: CXPlayDTMFCallAction) {
+        let digits: String = action.digits
+        let sent: Bool = MainActor.assumeIsolated { () -> Bool in
+            guard let call else {
+                return false
+            }
+            call.sendDigits(digits)
+            return true
+        }
+        if sent {
+            action.fulfill()
+        } else {
+            action.fail()
+        }
     }
 
     nonisolated func provider(_ provider: CXProvider, didActivate audioSession: AVAudioSession) {

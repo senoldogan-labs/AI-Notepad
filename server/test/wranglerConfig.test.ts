@@ -46,7 +46,7 @@ describe("rate limiter namespaces", () => {
   });
 });
 
-const phoneVars = z.object({ PHONE_CALLS_POLICY: z.string(), PHONE_CALLS_COUNTRIES: z.string() });
+const phoneVars = z.object({ PHONE_CALLS_POLICY: z.string(), PHONE_CALLS_COUNTRIES: z.string(), PHONE_CALLER_COUNTRIES: z.string() });
 const phoneConfig = z.object({ vars: phoneVars, env: z.object({ production: z.object({ vars: phoneVars }).passthrough() }).passthrough() });
 
 describe("in-app dialer switch", () => {
@@ -54,7 +54,8 @@ describe("in-app dialer switch", () => {
   // change (spec: docs/superpowers/specs/2026-11-08-iphone-call-recording.md › "Turning it on"), which updates this test.
   it("is off in production and development, for US and Canada only", () => {
     const config = phoneConfig.parse(JSON.parse(stripJsonc(apiSource)));
-    expect(config.env.production.vars).toEqual({ PHONE_CALLS_POLICY: "off", PHONE_CALLS_COUNTRIES: "US,CA" });
-    expect(config.vars).toEqual({ PHONE_CALLS_POLICY: "off", PHONE_CALLS_COUNTRIES: "US,CA" });
+    const expected = { PHONE_CALLS_POLICY: "off", PHONE_CALLS_COUNTRIES: "US,CA", PHONE_CALLER_COUNTRIES: "US,CA" };
+    expect(config.env.production.vars).toEqual(expected);
+    expect(config.vars).toEqual(expected);
   });
 });

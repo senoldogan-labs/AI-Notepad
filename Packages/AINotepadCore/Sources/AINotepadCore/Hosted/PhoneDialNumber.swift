@@ -6,6 +6,7 @@ public enum PhoneDialCountry: String, Sendable, CaseIterable, Codable, Equatable
     case us = "US"
     case ca = "CA"
     case fi = "FI"
+    case gb = "GB"
     case tr = "TR"
 }
 
@@ -17,6 +18,9 @@ public enum PhoneDialBlock: Sendable, Equatable {
     case unsupported
     /// A supported country that the server doesn't allow (yet).
     case notAllowed
+    /// The caller's own country, whose carriers block calls from abroad showing a number of that country
+    /// (`phoneDomesticCallerIdBlocked`).
+    case callerIdBlocked
 }
 
 /// What dialing the typed number does.
@@ -42,7 +46,7 @@ public let phoneAppOnlyNumbers: Set<String> = [
 public let phoneCanadianAreaCodes: Set<String> = [
     "204", "226", "236", "249", "250", "257", "263", "289", "306", "343", "354", "365", "367", "368", "382", "403", "416",
     "418", "428", "431", "437", "438", "450", "460", "468", "474", "506", "514", "519", "548", "579", "581", "584", "587",
-    "600", "604", "613", "622", "639", "647", "672", "683", "705", "709", "742", "753", "778", "780", "782", "807", "819",
+    "604", "613", "639", "647", "672", "683", "705", "709", "742", "753", "778", "780", "782", "807", "819",
     "825", "867", "873", "879", "902", "905", "942",
 ]
 
@@ -55,54 +59,53 @@ public let phoneOtherNanpAreaCodes: Set<String> = [
 /// NANP premium-rate and special-service area codes (mirrors `nanpBlockedAreaCodes`).
 public let phoneNanpBlockedAreaCodes: Set<String> = [
     "500", "521", "522", "523", "524", "525", "526", "527", "528", "529", "532", "533", "535", "538", "542", "543", "544",
-    "545", "546", "547", "549", "550", "552", "553", "554", "556", "558", "566", "569", "577", "578", "588", "589", "700",
-    "710", "900",
+    "545", "546", "547", "549", "550", "552", "553", "554", "556", "558", "566", "569", "577", "578", "588", "589", "600",
+    "622", "700", "710", "900",
 ]
 
 /// NANP premium-rate exchange codes (mirrors `nanpBlockedExchanges`).
 public let phoneNanpBlockedExchanges: Set<String> = ["976"]
 
-/// Blocked national prefixes outside NANP (mirrors `blockedNationalPrefixes`).
-public let phoneBlockedNationalPrefixes: [PhoneDialCountry: [String]] = [
-    .fi: ["100", "106", "118", "200", "202", "203", "204", "209", "600", "700"],
-    .tr: ["444", "800", "822", "888", "900"],
+/// A non-NANP country's numbering (mirrors `NationalPlan` in `server/src/phone/numbers.ts`; sources there).
+struct PhoneNationalPlan: Sendable, Equatable {
+    let country: PhoneDialCountry
+    let code: String
+    let minLength: Int
+    let maxLength: Int
+    /// Callable national prefixes (mobile and geographic); `""` allows every prefix.
+    let allowed: [String]
+    /// Refused national prefixes inside the allowed ones.
+    let blocked: [String]
+}
+
+/// Non-NANP numbering plans (mirrors `nationalPlans`; `PhoneDialerParityTests`).
+let phoneNationalPlans: [PhoneNationalPlan] = [
+    PhoneNationalPlan(
+        country: .fi, code: "358", minLength: 5, maxLength: 12,
+        allowed: ["13", "14", "15", "16", "17", "18", "19", "2", "3", "40", "41", "42", "43", "44", "45", "46", "47", "48", "5", "6", "8", "9"],
+        blocked: ["200", "202", "203", "204", "209", "300", "600", "601", "602", "900"]
+    ),
+    PhoneNationalPlan(
+        country: .gb, code: "44", minLength: 9, maxLength: 10, allowed: ["1", "2", "3", "71", "72", "73", "74", "75", "77", "78", "79"],
+        blocked: ["1481", "1534", "1624", "7509", "7524", "7624", "7700", "7781", "7797", "7829", "7839", "7911", "7924", "7937"]
+    ),
+    PhoneNationalPlan(country: .tr, code: "90", minLength: 10, maxLength: 10, allowed: [""], blocked: ["444", "800", "822", "888", "900"]),
 ]
 
-/// Calling code and national number length of the non-NANP countries (mirrors `nationalNumbers`).
-private let phoneNationalPlans: [(country: PhoneDialCountry, code: String, minLength: Int, maxLength: Int)] = [
-    (.fi, "358", 5, 12),
-    (.tr, "90", 10, 10),
-]
+/// Countries whose carriers block calls from abroad showing a number of their own (mirrors `domesticCallerIdBlocked`).
+public let phoneDomesticCallerIdBlocked: Set<PhoneDialCountry> = [.fi, .gb, .tr]
+
+/// Whether a caller ID of `caller`'s country is blocked on calls into `destination` (mirrors `callerIdBlockedInto`).
+/// Pure function.
+public func phoneCallerIdBlocked(caller: PhoneDialCountry, destination: PhoneDialCountry) -> Bool {
+    caller == destination && phoneDomesticCallerIdBlocked.contains(destination)
+}
 
 /// The digits of the input, with a leading `+` kept: spaces, dashes, dots and brackets are dropped. Pure function.
 public func phoneDialDigits(input: String) -> String {
     let trimmed: String = input.trimmingCharacters(in: .whitespacesAndNewlines)
     let digits: String = trimmed.filter(\.isASCIIDigit)
     return trimmed.hasPrefix("+") ? "+" + digits : digits
-}
-
-/// The input as an E.164 candidate: `+…` as typed, `00…` and (with US or Canada allowed) `011…` as international
-/// prefixes, and (with US or Canada allowed) 10 digits or 11 digits starting with 1 as a NANP number. `nil` otherwise
-/// (national formats of other countries need the `+` and country code). Pure function.
-public func phoneE164Candidate(input: String, allowed: [PhoneDialCountry]) -> String? {
-    let digits: String = phoneDialDigits(input: input)
-    let nanp: Bool = allowed.contains(.us) || allowed.contains(.ca)
-    if digits.hasPrefix("+") {
-        return digits
-    }
-    if digits.hasPrefix("00") {
-        return "+" + digits.dropFirst(2)
-    }
-    if nanp, digits.hasPrefix("011") {
-        return "+" + digits.dropFirst(3)
-    }
-    if nanp, digits.count == 10 {
-        return "+1" + digits
-    }
-    if nanp, digits.count == 11, digits.hasPrefix("1") {
-        return "+" + digits
-    }
-    return nil
 }
 
 /// Classifies a +1 number's 10 national digits. Pure function.
@@ -145,30 +148,15 @@ public func phoneClassifyE164(_ value: String) -> PhoneDialTarget {
     guard (plan.minLength...plan.maxLength).contains(national.count), !national.hasPrefix("0") else {
         return .invalid
     }
-    if (phoneBlockedNationalPrefixes[plan.country] ?? []).contains(where: { national.hasPrefix($0) }) {
+    let regular: Bool = plan.allowed.contains { national.hasPrefix($0) }
+    if !regular || plan.blocked.contains(where: { national.hasPrefix($0) }) {
         return .blocked(.premium)
     }
     return .call(e164: value, country: plan.country)
 }
 
-/// What dialing `input` does when the server allows `allowed`: emergency and short numbers go to the Phone app, full
-/// numbers are classified, a supported country the server doesn't allow is `notAllowed`. Pure function.
-public func phoneDialTarget(input: String, allowed: [PhoneDialCountry]) -> PhoneDialTarget {
-    let digits: String = phoneDialDigits(input: input)
-    if !digits.hasPrefix("+"), phoneAppOnlyNumbers.contains(digits) {
-        return .phoneApp(number: digits)
-    }
-    guard let candidate = phoneE164Candidate(input: input, allowed: allowed) else {
-        return .invalid
-    }
-    let classified: PhoneDialTarget = phoneClassifyE164(candidate)
-    if case .call(_, let country) = classified, !allowed.contains(country) {
-        return .blocked(.notAllowed)
-    }
-    return classified
-}
-
-/// An E.164 number grouped for reading: `+1 212 555 0199`, `+90 532 123 4567`, `+358 40 123 4567`. Pure function.
+/// An E.164 number grouped for reading: `+1 212 555 0199`, `+90 532 123 4567`, `+358 40 123 4567`, `+44 7700 900123`.
+/// Pure function.
 public func phoneNumberDisplay(e164: String) -> String {
     let digits: String = String(e164.drop { $0 == "+" })
     let code: String
@@ -184,6 +172,11 @@ public func phoneNumberDisplay(e164: String) -> String {
     let groups: [String]
     if code == "1", national.count == 10 {
         groups = [String(national[0..<3]), String(national[3..<6]), String(national[6...])]
+    } else if code == "44", national.count == 10 {
+        // UK: London and other 02 numbers as 2-4-4, the rest (mobiles, 01) as 4-6.
+        let head: Int = national.first == "2" ? 2 : 4
+        let split: [Int] = head == 2 ? [2, 6] : [4]
+        groups = zip([0] + split, split + [national.count]).map { String(national[$0..<$1]) }
     } else if national.count > 7 {
         let head: Int = national.count - 7
         groups = [String(national[0..<head]), String(national[head..<(head + 3)]), String(national[(head + 3)...])]

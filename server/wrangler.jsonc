@@ -224,12 +224,20 @@
     // PHONE_CALL_MAX_MINUTES: longest call (Twilio `<Dial timeLimit>`); PHONE_MONTHLY_MINUTES: call minutes per user per
     // month (120 × 0.025 = at most 3 $/user/month, half a subscription); PHONE_DAILY_SPEND_CEILING_USD: all calls per
     // day, also counted in DAILY_SPEND_CEILING_USD (must not exceed it).
+    // PHONE_CALLS_COUNTRIES: countries the user may call; PHONE_CALLER_COUNTRIES: countries whose numbers may be verified
+    // as caller ID (where the dialer is offered). Only US and Canada: elsewhere a verified own number is blocked or
+    // withheld when the call comes from abroad, or the price is far higher (spec › "Countries").
+    // PHONE_MAX_USD_PER_MINUTE: no country priced above it can be enabled; PHONE_USER_MONTHLY_SPEND_USD: phone spend per
+    // user per month, so a pricier country uses the minutes up sooner.
     "PHONE_CALLS_POLICY": "off",
     "PHONE_CALLS_COUNTRIES": "US,CA",
+    "PHONE_CALLER_COUNTRIES": "US,CA",
     "PHONE_USD_PER_MINUTE": "US:0.025,CA:0.025",
     "PHONE_CALL_MAX_MINUTES": "60",
     "PHONE_MONTHLY_MINUTES": "120",
     "PHONE_DAILY_SPEND_CEILING_USD": "10",
+    "PHONE_MAX_USD_PER_MINUTE": "0.05",
+    "PHONE_USER_MONTHLY_SPEND_USD": "3",
     "REFRESH_TOKEN_DAYS": "60",
     // Aynı ürünün iki fiyatı: aylık (varsayılan plan) ve yıllık. İkisi de "bizim" sayılır (webhook, iade, itiraz).
     "STRIPE_PRICE_ID": "price_placeholder",
@@ -407,10 +415,13 @@
         // the pilot's; see the development `vars` for what each one means. `wranglerConfig.test.ts` checks it is off.
         "PHONE_CALLS_POLICY": "off",
         "PHONE_CALLS_COUNTRIES": "US,CA",
+        "PHONE_CALLER_COUNTRIES": "US,CA",
         "PHONE_USD_PER_MINUTE": "US:0.025,CA:0.025",
         "PHONE_CALL_MAX_MINUTES": "60",
         "PHONE_MONTHLY_MINUTES": "120",
         "PHONE_DAILY_SPEND_CEILING_USD": "10",
+        "PHONE_MAX_USD_PER_MINUTE": "0.05",
+        "PHONE_USER_MONTHLY_SPEND_USD": "3",
         "REFRESH_TOKEN_DAYS": "60",
         "STRIPE_PRICE_ID": "price_1UVi9QLYGoRn8lDP4oA916Gt",
         // Yıllık fiyat (arama anahtarı `gistsmith_yearly`, vergi dahil, aylıkla aynı ürün).

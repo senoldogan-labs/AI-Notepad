@@ -108,7 +108,7 @@ function call(harness: Harness, session: Session, method: string, path: string, 
 /** Accepts the disclosure and verifies `callerFor(harness)` through the fake verification call. */
 async function verifiedCaller(harness: Harness): Promise<Session> {
   const session: Session = await subscriber(harness);
-  expect((await call(harness, session, "POST", "/v1/phone/consent", { version: 1 })).status).toBe(200);
+  expect((await call(harness, session, "POST", "/v1/phone/consent", { version: 2 })).status).toBe(200);
   const started: Response = await call(harness, session, "POST", "/v1/phone/number", { number: callerFor(harness) });
   expect(started.status).toBe(200);
   expect(await started.json()).toMatchObject({ e164: callerFor(harness), status: "pending", validationCode: "482913" });
@@ -144,15 +144,29 @@ describe("phone numbers", () => {
   it("classifies destinations: US, Canada, toll-free, premium, Caribbean, foreign, malformed", () => {
     expect(classifyNumber("+12125550199")).toEqual({ kind: "callable", e164: "+12125550199", country: "US" });
     expect(classifyNumber("+14165550199")).toEqual({ kind: "callable", e164: "+14165550199", country: "CA" });
+    // Canada's non-geographic 600/622 services.
+    expect(classifyNumber("+16005550199")).toEqual({ kind: "blocked", reason: "premium" });
     expect(classifyNumber("+18005550199")).toMatchObject({ kind: "callable", country: "US" });
     expect(classifyNumber("+19005550199")).toEqual({ kind: "blocked", reason: "premium" });
     expect(classifyNumber("+12129765555")).toEqual({ kind: "blocked", reason: "premium" });
     expect(classifyNumber("+18765550199")).toEqual({ kind: "blocked", reason: "unsupported" });
-    expect(classifyNumber("+447700900123")).toEqual({ kind: "blocked", reason: "unsupported" });
+    expect(classifyNumber("+46701234567")).toEqual({ kind: "blocked", reason: "unsupported" });
     expect(classifyNumber("+905321234567")).toEqual({ kind: "callable", e164: "+905321234567", country: "TR" });
     expect(classifyNumber("+909001234567")).toEqual({ kind: "blocked", reason: "premium" });
     expect(classifyNumber("+358401234567")).toEqual({ kind: "callable", e164: "+358401234567", country: "FI" });
     expect(classifyNumber("+3586001234")).toEqual({ kind: "blocked", reason: "premium" });
+    expect(classifyNumber("+35891234567")).toEqual({ kind: "callable", e164: "+35891234567", country: "FI" });
+    // Finland: machine-to-machine 049, nationwide and premium 07, service 0100 are not regular numbers.
+    for (const special of ["+3584912345678", "+358712345678", "+358700123456", "+3581001234"]) {
+      expect(classifyNumber(special)).toEqual({ kind: "blocked", reason: "premium" });
+    }
+    // United Kingdom: geographic and mobile ranges only; personal 070, pagers 076, Isle of Man 07624, 08 and 09 refused.
+    expect(classifyNumber("+442071234567")).toEqual({ kind: "callable", e164: "+442071234567", country: "GB" });
+    expect(classifyNumber("+447400123456")).toEqual({ kind: "callable", e164: "+447400123456", country: "GB" });
+    // Personal, pager, 08/09, and the Crown Dependencies' ranges under +44 (priced as separate destinations).
+    for (const special of ["+447012345678", "+447612345678", "+448712345678", "+449012345678", "+447624123456", "+447700900123", "+441534123456", "+447911123456"]) {
+      expect(classifyNumber(special)).toEqual({ kind: "blocked", reason: "premium" });
+    }
     for (const malformed of ["911", "+1911", "+19115550199", "+12121115555", "2125550199", "+1212555019", "+0123456789"]) {
       expect(classifyNumber(malformed)).toEqual({ kind: "invalid" });
     }
@@ -164,7 +178,12 @@ describe("phone configuration", () => {
     expect(parseConfig(env).phoneCalls).toEqual({ policy: "off" });
     expect(parseConfig(phoneOn).phoneCalls).toMatchObject({ policy: "on", countries: ["US", "CA"], maxCallSeconds: 3600 });
     expect(() => parseConfig(envWith({ ...phoneOn, TWILIO_AUTH_TOKEN: "not-a-token" }))).toThrow(/TWILIO_AUTH_TOKEN/);
-    expect(() => parseConfig(envWith({ ...phoneOn, PHONE_CALLS_COUNTRIES: "US,GB" }))).toThrow(/PHONE_CALLS_COUNTRIES/);
+    expect(() => parseConfig(envWith({ ...phoneOn, PHONE_CALLS_COUNTRIES: "US,SE" }))).toThrow(/PHONE_CALLS_COUNTRIES/);
+    expect(() => parseConfig(envWith({ ...phoneOn, PHONE_CALLER_COUNTRIES: "US,SE" }))).toThrow(/PHONE_CALLER_COUNTRIES/);
+    // Turkey has only a block list: it can't be a destination.
+    expect(() => parseConfig(envWith({ ...phoneOn, PHONE_CALLS_COUNTRIES: "US,CA,TR", PHONE_USD_PER_MINUTE: "US:0.025,CA:0.025,TR:0.03" }))).toThrow(/PHONE_CALLS_COUNTRIES/);
+    // A country priced above the per-minute cap can't be enabled (Finnish mobiles cost ~$0.52/min from a US caller ID).
+    expect(() => parseConfig(envWith({ ...phoneOn, PHONE_CALLS_COUNTRIES: "US,CA,FI", PHONE_USD_PER_MINUTE: "US:0.025,CA:0.025,FI:0.53" }))).toThrow(/PHONE_MAX_USD_PER_MINUTE/);
     expect(() => parseConfig(envWith({ ...phoneOn, PHONE_USD_PER_MINUTE: "US:0.025" }))).toThrow(/PHONE_USD_PER_MINUTE/);
     expect(() => parseConfig(envWith({ ...phoneOn, PHONE_DAILY_SPEND_CEILING_USD: "100" }))).toThrow(/PHONE_DAILY_SPEND_CEILING_USD/);
   });
@@ -196,6 +215,7 @@ describe("in-app dialer", () => {
       available: true,
       reason: null,
       countries: ["US", "CA"],
+      callerCountries: ["US", "CA"],
       provider: "Twilio",
       consentAccepted: false,
       number: null,
@@ -209,7 +229,8 @@ describe("in-app dialer", () => {
     harness.clock.nowMs = Date.UTC(2026, 9, 18, 12);
     const twilio: FakeTwilio = fakeTwilio(harness);
     const first: Session = await subscriber(harness);
-    await expectError(await call(harness, first, "POST", "/v1/phone/number", { number: callerFor(harness) }), 403, "phone_consent_required");
+    // Calls need the recording terms; the number is verified before them (the app's order).
+    await expectError(await call(harness, first, "POST", "/v1/phone/calls", { to: destination }), 403, "phone_consent_required");
     const session: Session = await verifiedCaller(harness);
     expect(await (await call(harness, session, "GET", "/v1/phone/number", null)).json()).toEqual({ number: { e164: callerFor(harness), status: "verified" } });
     expect(await (await call(harness, session, "GET", "/v1/phone", null)).json()).toMatchObject({ consentAccepted: true, number: { status: "verified" } });
@@ -217,7 +238,7 @@ describe("in-app dialer", () => {
     expect(await (await call(harness, session, "POST", "/v1/phone/number", { number: callerFor(harness) })).json()).toEqual({ e164: callerFor(harness), status: "verified" });
     expect(twilio.verificationCalls).toBe(1);
     // Another account can't take a verified number.
-    expect((await call(harness, first, "POST", "/v1/phone/consent", { version: 1 })).status).toBe(200);
+    expect((await call(harness, first, "POST", "/v1/phone/consent", { version: 2 })).status).toBe(200);
     await expectError(await call(harness, first, "POST", "/v1/phone/number", { number: callerFor(harness) }), 409, "phone_number_in_use");
     // Premium, Caribbean, foreign and malformed numbers are refused before any call.
     await expectError(await call(harness, first, "POST", "/v1/phone/number", { number: "+19005550100" }), 403, "phone_number_blocked");
@@ -231,7 +252,7 @@ describe("in-app dialer", () => {
     harness.clock.nowMs = Date.UTC(2026, 9, 19, 12);
     const twilio: FakeTwilio = fakeTwilio(harness);
     const session: Session = await subscriber(harness);
-    expect((await call(harness, session, "POST", "/v1/phone/consent", { version: 1 })).status).toBe(200);
+    expect((await call(harness, session, "POST", "/v1/phone/consent", { version: 2 })).status).toBe(200);
     // A caller ID left at Twilio by an account deleted earlier: removed, then verified again by a new call.
     twilio.callerIds.set("+14155550100", `PN${hex32("9")}`);
     expect((await call(harness, session, "POST", "/v1/phone/number", { number: "+14155550100" })).status).toBe(200);
@@ -496,10 +517,78 @@ describe("in-app dialer", () => {
   });
 });
 
+/** The dialer for callers in the US, Canada and Finland, calling those and the UK, with a $1 monthly allowance. */
+const crossBorder: Env = envWith({
+  ...phoneOn,
+  PHONE_CALLS_COUNTRIES: "US,CA,FI,GB",
+  PHONE_CALLER_COUNTRIES: "US,CA,FI",
+  PHONE_USD_PER_MINUTE: "US:0.025,CA:0.025,FI:0.05,GB:0.04",
+  PHONE_USER_MONTHLY_SPEND_USD: "1",
+});
+
+describe("in-app dialer across countries", () => {
+  it("offers Finnish callers the dialer, refuses calls their own country's carriers block and sizes calls by the monthly allowance", async () => {
+    const harness: Harness = await defaultHarness();
+    harness.clock.nowMs = Date.UTC(2026, 9, 27, 12);
+    const twilio: FakeTwilio = fakeTwilio(harness);
+    const session: Session = await subscriber(harness);
+    const send = (method: string, path: string, json: object | null): Promise<Response> =>
+      harness.call(req(method, path, { token: session.accessToken, json, env: crossBorder, country: "FI" }));
+    expect(await (await send("GET", "/v1/phone", null)).json()).toMatchObject({
+      available: true,
+      countries: ["US", "CA", "FI", "GB"],
+      callerCountries: ["US", "CA", "FI"],
+      // $1 a month: the extra minute of ringing and notice comes off each country's share; none into Finland from a
+      // Finnish caller (its carriers block that caller ID from abroad).
+      minutesByCountry: { US: 39, CA: 39, FI: 0, GB: 24 },
+    });
+    // A free trial or intro offer gets no paid minutes.
+    const trial: Session = await signIn(harness);
+    await grantAppStoreSubscription(trial.userId, { status: "active", periodType: "TRIAL", environment: "PRODUCTION", expiresAtMs: harness.clock.nowMs + 7 * 86_400_000 });
+    expect(await (await harness.call(req("GET", "/v1/phone", { token: trial.accessToken, env: crossBorder, country: "FI" }))).json()).toMatchObject({
+      available: false,
+      reason: "subscription_required",
+    });
+    // A UK number can be called but not verified as the caller ID here.
+    await expectError(await send("POST", "/v1/phone/number", { number: "+447400123456" }), 403, "phone_number_blocked");
+    // Nine verification calls earlier this month: one more is allowed, then the monthly cap holds.
+    await env.DB.prepare("INSERT INTO phone_verification_days (user_id, day, attempts) VALUES (?, '2026-10-02', 5), (?, '2026-10-03', 4)").bind(session.userId, session.userId).run();
+    const own: string = "+358401234567";
+    expect((await send("POST", "/v1/phone/number", { number: own })).status).toBe(200);
+    await expectError(await send("POST", "/v1/phone/number", { number: "+358401234568" }), 429, "phone_verification_limit");
+    const row = await env.DB.prepare("SELECT validation_call_sid FROM phone_numbers WHERE user_id = ?").bind(session.userId).first<{ validation_call_sid: string }>();
+    const verified: Response = await harness.call(
+      req("POST", "/v1/phone/webhooks/verification", {
+        body: new URLSearchParams({ AccountSid: accountSid, CallSid: row?.validation_call_sid ?? "", VerificationStatus: "success", OutgoingCallerIdSid: `PN${hex32("6")}` }).toString(),
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          "x-twilio-signature": await twilioSignature(
+            authToken,
+            "https://api.test/v1/phone/webhooks/verification",
+            new Map(Object.entries({ AccountSid: accountSid, CallSid: row?.validation_call_sid ?? "", VerificationStatus: "success", OutgoingCallerIdSid: `PN${hex32("6")}` })),
+          ),
+        },
+        env: crossBorder,
+      }),
+    );
+    expect(verified.status).toBe(200);
+    expect(twilio.verificationCalls).toBe(1);
+    expect((await send("POST", "/v1/phone/consent", { version: 2 })).status).toBe(200);
+    // Finnish carriers block calls from abroad that show a Finnish number (Traficom).
+    await expectError(await send("POST", "/v1/phone/calls", { to: "+358501234567" }), 403, "phone_number_blocked");
+    // Finland has no minutes for this Finnish caller.
+    expect(await (await send("GET", "/v1/phone", null)).json()).toMatchObject({ minutesByCountry: { US: 39, FI: 0, GB: 24 } });
+    // Into the UK: the longest call is what $1 buys at $0.04 a minute, less the minute of ringing.
+    const reserved: Response = await send("POST", "/v1/phone/calls", { to: "+447400123456" });
+    expect(reserved.status).toBe(201);
+    expect(await reserved.json()).toMatchObject({ country: "GB", maxSeconds: 24 * 60 });
+  });
+});
+
 /** A second subscriber with its own verified number. */
 async function verifiedOther(harness: Harness): Promise<Session> {
   const session: Session = await subscriber(harness);
-  expect((await call(harness, session, "POST", "/v1/phone/consent", { version: 1 })).status).toBe(200);
+  expect((await call(harness, session, "POST", "/v1/phone/consent", { version: 2 })).status).toBe(200);
   expect((await call(harness, session, "POST", "/v1/phone/number", { number: "+16045550123" })).status).toBe(200);
   const row = await env.DB.prepare("SELECT validation_call_sid FROM phone_numbers WHERE user_id = ?").bind(session.userId).first<{ validation_call_sid: string }>();
   await webhook(harness, "/v1/phone/webhooks/verification", { CallSid: row?.validation_call_sid ?? "", VerificationStatus: "success", OutgoingCallerIdSid: `PN${hex32("8")}` }, authToken);

@@ -18,7 +18,8 @@ interface Announcement {
 const announcements: Readonly<Record<PhoneCountry, Announcement>> = {
   US: { language: "en-US", text: "Hello. This call is recorded and transcribed by Gistsmith for the caller's notes." },
   CA: { language: "en-US", text: "Hello. This call is recorded and transcribed by Gistsmith for the caller's notes." },
-  FI: { language: "fi-FI", text: "Hei. Tämä puhelu tallennetaan ja litteroidaan Gistsmithillä soittajan muistiinpanoja varten." },
+  GB: { language: "en-GB", text: "Hello. This call is recorded and transcribed by Gistsmith for the caller's notes." },
+  FI: { language: "fi-FI", text: "Hei. Tämä puhelu tallennetaan ja litteroidaan Gistsmithillä soittajan muistiinpanoja varten. This call is recorded by Gistsmith." },
   TR: { language: "tr-TR", text: "Merhaba. Bu görüşme, arayan kişinin notları için Gistsmith tarafından kaydediliyor ve yazıya dökülüyor." },
 };
 
@@ -62,9 +63,13 @@ export function dialTwiml(fields: DialFields): string {
 }
 
 /** The recording notice the callee hears before the call connects. Pure function. */
+/** Canada hears the notice in French too (Quebec, official languages). */
+const canadianFrench: Announcement = { language: "fr-CA", text: "Bonjour. Cet appel est enregistré et transcrit par Gistsmith pour les notes de l'appelant." };
+
 export function announcementTwiml(country: PhoneCountry): string {
-  const announcement: Announcement = announcements[country];
-  return `${declaration}<Response><Say language="${announcement.language}">${xmlEscape(announcement.text)}</Say></Response>`;
+  const spoken: readonly Announcement[] = country === "CA" ? [announcements.CA, canadianFrench] : [announcements[country]];
+  const says: string = spoken.map((announcement: Announcement): string => `<Say language="${announcement.language}">${xmlEscape(announcement.text)}</Say>`).join("");
+  return `${declaration}<Response>${says}</Response>`;
 }
 
 /** Ends the call (refused or finished). Pure function. */

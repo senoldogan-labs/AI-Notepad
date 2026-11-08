@@ -97,10 +97,13 @@ export interface Env {
   /** In-app dialer (`phone/calls.ts`): switch, countries, prices and limits. Production keeps the switch `off`. */
   readonly PHONE_CALLS_POLICY: string;
   readonly PHONE_CALLS_COUNTRIES: string;
+  readonly PHONE_CALLER_COUNTRIES: string;
   readonly PHONE_USD_PER_MINUTE: string;
   readonly PHONE_CALL_MAX_MINUTES: string;
   readonly PHONE_MONTHLY_MINUTES: string;
   readonly PHONE_DAILY_SPEND_CEILING_USD: string;
+  readonly PHONE_MAX_USD_PER_MINUTE: string;
+  readonly PHONE_USER_MONTHLY_SPEND_USD: string;
   readonly REFRESH_TOKEN_DAYS: string;
   readonly STRIPE_PRICE_ID: string;
   readonly STRIPE_YEARLY_PRICE_ID: string;
