@@ -246,11 +246,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
 
 /// Menü çubuğu simgesi; kayıt sürerken yanında süre ("23:19"; duraklatılınca simge değişir, süre gizlenir). Ana
 /// pencereyi açma isteklerini dinler (simge uygulama boyunca çizili kalır).
+///
+/// Süre `TimelineView` ya da `Text(timerInterval:)` ile değil, saniyede bir uyanan bir görevle ilerler: macOS 26'da
+/// `MenuBarExtra` etiketindeki her zaman çizelgesi (`.periodic`, `.everyMinute`, zamanlayıcı metni) güncellemeyi hemen
+/// yeniden ister, ana iş parçacığı tek bir çalışma döngüsü geçişinde sonsuza dek etiketi çizer (%100 CPU, panel ve
+/// pencereler donar).
 struct MenuBarLabel: View {
     let symbol: String
     /// Süren (duraklatılmamış) kaydın başladığı an; değilse nil (yalnız simge).
     let recordingStartedAt: Date?
     @Environment(\.openWindow) private var openWindow: OpenWindowAction
+    /// Etiketin gösterdiği an; kayıt sürerken saniyede bir ilerler.
+    @State private var now: Date = Date()
 
     var body: some View {
         content
@@ -263,17 +270,37 @@ struct MenuBarLabel: View {
     @ViewBuilder
     private var content: some View {
         if let recordingStartedAt {
-            TimelineView(.periodic(from: recordingStartedAt, by: 1)) { (context: TimelineViewDefaultContext) in
-                HStack(spacing: 3) {
-                    Image(systemName: symbol)
-                    Text(verbatim: timestamp(seconds: context.date.timeIntervalSince(recordingStartedAt)))
-                        .monospacedDigit()
-                }
+            HStack(spacing: 3) {
+                Image(systemName: symbol)
+                Text(verbatim: timestamp(seconds: max(0, now.timeIntervalSince(recordingStartedAt))))
+                    .monospacedDigit()
+            }
+            // Başlangıç değişince (yeni kayıt, duraklatmadan dönüş) görev yeniden kurulur; etiket gizlenince iptal olur.
+            .task(id: recordingStartedAt) {
+                await tickEverySecond(startedAt: recordingStartedAt)
             }
         } else {
             Image(systemName: symbol)
         }
     }
+
+    /// `now`'u kaydın tam saniyelerinde günceller; görev iptal edilince döner.
+    private func tickEverySecond(startedAt: Date) async {
+        while true {
+            now = Date()
+            do {
+                try await Task.sleep(for: .seconds(secondsUntilNextWholeSecond(elapsed: now.timeIntervalSince(startedAt))))
+            } catch {
+                // `Task.sleep` yalnız iptalde fırlatır: etiket kayıt süresini artık göstermiyor.
+                return
+            }
+        }
+    }
+}
+
+/// Geçen süre bir sonraki tam saniyeye ulaşana kadar beklenecek süre (0'dan büyük, en çok 1 saniye).
+private func secondsUntilNextWholeSecond(elapsed: TimeInterval) -> TimeInterval {
+    1 - (elapsed - elapsed.rounded(.down))
 }
 
 /// Uygulamanın ana penceresi (ElevenLabs düzeni): solda kendi kenar çubuğu (Ana sayfa, Toplantılar, Görevlerim,
