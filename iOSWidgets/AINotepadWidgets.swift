@@ -58,8 +58,8 @@ struct RecordingLiveActivity: Widget {
                         HStack(alignment: .center, spacing: 8) {
                             LastLine(state: context.state)
                             MarkButton(state: context.state)
-                            PauseButton(state: context.state)
-                            StopButton(isFinishing: context.state.isFinishing)
+                            PauseButton(state: context.state, recordingID: context.attributes.recordingID)
+                            StopButton(isFinishing: context.state.isFinishing, recordingID: context.attributes.recordingID)
                         }
                         .padding(.horizontal, 4)
                     }
@@ -185,8 +185,8 @@ private struct LockScreenRecording: View {
                     LastLine(state: context.state)
                 }
                 MarkButton(state: context.state)
-                PauseButton(state: context.state)
-                StopButton(isFinishing: context.state.isFinishing)
+                PauseButton(state: context.state, recordingID: context.attributes.recordingID)
+                StopButton(isFinishing: context.state.isFinishing, recordingID: context.attributes.recordingID)
             }
         }
         .foregroundStyle(.white)
@@ -258,44 +258,76 @@ private struct LastLine: View {
     }
 }
 
-/// Kaydı uygulamayı açmadan bitiren düğme (App Intent); bitirilirken gizlenir.
+/// Kaydı uygulamayı açmadan bitiren düğme (App Intent); bitirilirken gizlenir. Düğme etkinliğin kaydını hedefler: eski
+/// bir etkinlikten basılırsa yeni kaydı bitirmez (eski sürümün etkinliğinde kimlik yoksa süren kaydı bitirir).
 private struct StopButton: View {
     let isFinishing: Bool
+    let recordingID: String?
 
     var body: some View {
         if !isFinishing {
-            Button(intent: StopRecordingIntent()) {
-                Label("Bitir", systemImage: "stop.fill")
-                    .font(.system(.footnote, weight: .semibold))
+            Group {
+                if let recordingID {
+                    Button(intent: StopLiveRecordingIntent(recordingID: recordingID)) {
+                        Label("Bitir", systemImage: "stop.fill")
+                    }
+                } else {
+                    Button(intent: StopRecordingIntent()) {
+                        Label("Bitir", systemImage: "stop.fill")
+                    }
+                }
             }
+            .font(.system(.footnote, weight: .semibold))
             .buttonStyle(.borderedProminent)
             .tint(accent)
         }
     }
 }
 
-/// Kaydı uygulamayı açmadan duraklatan ya da sürdüren düğme (App Intent); bitirilirken gizlenir.
+/// Kaydı uygulamayı açmadan duraklatan ya da sürdüren düğme (App Intent); bitirilirken gizlenir. Düğme etkinliğin kaydını
+/// hedefler (bkz. `StopButton`).
 private struct PauseButton: View {
     let state: RecordingActivityAttributes.ContentState
+    let recordingID: String?
 
     var body: some View {
         if !state.isFinishing {
             Group {
                 if state.isPaused {
-                    Button(intent: ResumeRecordingIntent()) {
-                        Image(systemName: "play.fill")
-                    }
-                    .accessibilityLabel(Text("Kayda devam et"))
+                    resumeButton
+                        .accessibilityLabel(Text("Kayda devam et"))
                 } else {
-                    Button(intent: PauseRecordingIntent()) {
-                        Image(systemName: "pause.fill")
-                    }
-                    .accessibilityLabel(Text("Kaydı duraklat"))
+                    pauseButton
+                        .accessibilityLabel(Text("Kaydı duraklat"))
                 }
             }
             .font(.system(.footnote, weight: .semibold))
             .buttonStyle(.bordered)
             .tint(.white)
+        }
+    }
+
+    @ViewBuilder private var resumeButton: some View {
+        if let recordingID {
+            Button(intent: ResumeLiveRecordingIntent(recordingID: recordingID)) {
+                Image(systemName: "play.fill")
+            }
+        } else {
+            Button(intent: ResumeRecordingIntent()) {
+                Image(systemName: "play.fill")
+            }
+        }
+    }
+
+    @ViewBuilder private var pauseButton: some View {
+        if let recordingID {
+            Button(intent: PauseLiveRecordingIntent(recordingID: recordingID)) {
+                Image(systemName: "pause.fill")
+            }
+        } else {
+            Button(intent: PauseRecordingIntent()) {
+                Image(systemName: "pause.fill")
+            }
         }
     }
 }

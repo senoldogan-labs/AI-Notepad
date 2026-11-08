@@ -243,7 +243,8 @@ struct AINotepadApp: App {
         AppDelegate.onMeetingNotification = { (isStartAction: Bool, deliveredAt: Date) -> Void in
             switch meetingNotificationTap(isStartAction: isStartAction, deliveredAt: deliveredAt, now: Date(), isRecording: model.phase != .idle) {
             case .startRecording:
-                Task { await toggleRecordingFlow(model: model, panel: panel, island: island) }
+                // Yalnız başlatır: kayıt başlatılırken bildirimden gelen "Kaydı başlat" başlatmayı iptal etmez.
+                Task { await startRecordingFlow(model: model, panel: panel, island: island) }
             case .openHome:
                 openMainWindow(router: router, section: .home)
             }
@@ -251,13 +252,17 @@ struct AINotepadApp: App {
         AppDelegate.onOpenHomeFromNotification = {
             openMainWindow(router: router, section: .home)
         }
-        AppDelegate.onCallEndedResponse = { (action: String) -> Void in
+        AppDelegate.onCallEndedResponse = { (action: String, recordingID: RecordingID?) -> Void in
+            // Bildirim kayda bağlıdır: bayat bildirimin eylemi yeni bir kayda uygulanmaz (kimliksiz eski bildirim yok sayılır).
+            guard let recordingID, recordingID == model.recorderState.activeID else {
+                return
+            }
             switch action {
             case MeetingNotificationID.keepRecordingAction:
                 model.keepRecordingAfterCallEnd()
             case MeetingNotificationID.stopRecordingAction:
                 // Kullanıcının "Bitir"iyle aynı yol (not hazırlanması dahil).
-                model.stopRecording()
+                model.stopRecording(target: .recording(recordingID))
             default:
                 // Bildirime tıklama: geri sayım uyarısı canlı panelde görünür.
                 if model.isRecording {
@@ -280,7 +285,7 @@ struct AINotepadApp: App {
         // Kısayollar, Siri ve Spotlight sonucu toplantılara ve Sor'a buradan ulaşır.
         MeetingIntentsHost.backend = MacMeetingIntentsBackend(model: model, router: router)
         MacRecordingControls.model = model
-        MacRecordingControls.start = { await toggleRecordingFlow(model: model, panel: panel, island: island) }
+        MacRecordingControls.start = { await startRecordingFlow(model: model, panel: panel, island: island) }
         AppDelegate.onOpenSpotlightMeeting = { (meetingID: String) -> Void in
             Task { await openSpotlightMeeting(meetingID: meetingID) }
         }
@@ -288,10 +293,7 @@ struct AINotepadApp: App {
             openMacAppLink(route: route, router: router, meetingIDs: model.meetings.map(\.id))
         }
         model.onAutoRecord = {
-            guard !model.isRecording else {
-                return
-            }
-            await toggleRecordingFlow(model: model, panel: panel, island: island)
+            await startRecordingFlow(model: model, panel: panel, island: island)
         }
         QuitGuard.shared.onBlocked = {
             router.quitWarning = true
@@ -630,16 +632,28 @@ struct AINotepadApp: App {
     }
 }
 
-/// Kaydı başlatır (paneli ve gizlenmiş adayı da gösterir) ya da durdurur. Menü ve kısayol aynı yolu kullanır.
+/// Kaydı başlatır (paneli ve gizlenmiş adayı da gösterir) ya da durdurur. Menü ve kısayol aynı yolu kullanır; başlatılırken
+/// ikinci basış başlatmayı iptal eder. Siri, Kısayollar, takvim ve bildirim yalnız başlatır (`startRecordingFlow`).
 @MainActor
 func toggleRecordingFlow(model: AppModel, panel: LivePanelController, island: IslandController) async {
-    if model.isRecording {
+    switch model.phase {
+    case .recording:
         model.stopRecording()
-        return
-    }
-    // Başlatılırken ikinci basış başlatmayı iptal eder.
-    if model.isStarting {
+    case .starting:
         model.cancelStart()
+    case .finishing:
+        // Bitiriliyor: yeni kayıt bitince başlar; basış bir şey yapmaz.
+        break
+    case .idle:
+        await startRecordingFlow(model: model, panel: panel, island: island)
+    }
+}
+
+/// Kaydı başlatır (paneli ve gizlenmiş adayı da gösterir). Kayıt sürerken ya da başlatılırken bir şey yapmaz: Siri,
+/// Kısayollar, takvimle kendiliğinden kayıt ve bildirimdeki "Kaydı başlat" süren başlatmayı asla iptal etmez.
+@MainActor
+func startRecordingFlow(model: AppModel, panel: LivePanelController, island: IslandController) async {
+    guard model.phase == .idle else {
         return
     }
     // Giriş kapısı: kayıt başlamaz, ana pencere (giriş ekranı) açılır. Menü, kısayol, bildirim, takvimle otomatik

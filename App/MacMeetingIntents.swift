@@ -140,8 +140,9 @@ struct MacStartRecordingIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult {
-        let model: AppModel = try MacRecordingControls.requireModel()
-        guard !model.isRecording, let start = MacRecordingControls.start else {
+        // Başlatma yolu kayıt sürerken ya da başlatılırken bir şey yapmaz (süren başlatmayı iptal etmez).
+        _ = try MacRecordingControls.requireModel()
+        guard let start = MacRecordingControls.start else {
             return .result()
         }
         await start()

@@ -31,6 +31,14 @@ enum MeetingNotificationID {
     static let meetingOver: String = "recording.meetingOver"
     static let finishMeetingAction: String = "recording.meetingOver.finish"
     static let continueMeetingAction: String = "recording.meetingOver.continue"
+    /// Kayda bağlı bildirimlerin (`userInfo`) kayıt kimliği anahtarı: eylem yalnız o kayda uygulanır (bayat bildirim yeni
+    /// kaydı bitirmez).
+    static let recordingIDKey: String = "recordingID"
+}
+
+/// Bildirimin bağlı olduğu kayıt (`MeetingNotificationID.recordingIDKey`); kimliksiz bildirimde nil.
+func notificationRecordingID(userInfo: [AnyHashable: Any]) -> RecordingID? {
+    (userInfo[MeetingNotificationID.recordingIDKey] as? String).map { RecordingID(rawValue: $0) }
 }
 
 /// Bildirim izni ya da kurulumu hatası.
@@ -214,9 +222,11 @@ func keepRecordingTitle() -> String {
 }
 
 extension MeetingNotifier {
-    /// Görüşme bitti gibi görünüyor: kayıt `seconds` sn sonra bitecek (pencere gizliyken de görülsün).
-    func announceCallEnded(seconds: Int) async throws {
+    /// Görüşme bitti gibi görünüyor: kayıt `seconds` sn sonra bitecek (pencere gizliyken de görülsün). Bildirim kayda
+    /// bağlıdır: "Şimdi bitir" yalnız o kaydı bitirir.
+    func announceCallEnded(seconds: Int, recordingID: RecordingID) async throws {
         let content: UNMutableNotificationContent = UNMutableNotificationContent()
+        content.userInfo = [MeetingNotificationID.recordingIDKey: recordingID.rawValue]
         content.title = String(localized: "Görüşme bitti gibi görünüyor")
         content.body = String(localized: "Kayıt \(seconds) sn sonra bitecek. Sürmesini istiyorsan \"Kayda devam et\".")
         content.categoryIdentifier = MeetingNotificationID.callEndedCategory
@@ -327,9 +337,16 @@ extension MeetingNotifier {
         center.removeDeliveredNotifications(withIdentifiers: [MeetingNotificationID.recordingStopped, MeetingNotificationID.meetingOver])
     }
 
-    /// Toplantı bitmiş gibi: kaydı bitirmek ya da sürdürmek sorulur (uygulamayı açmadan).
-    func askMeetingOver(reason: MeetingOverReason) async throws {
+    /// Kayıt bitti ya da yenisi başladı: "Toplantı bitti mi?" sorusu kalkar.
+    func removeMeetingOverPrompt() {
+        center.removeDeliveredNotifications(withIdentifiers: [MeetingNotificationID.meetingOver])
+    }
+
+    /// Toplantı bitmiş gibi: kaydı bitirmek ya da sürdürmek sorulur (uygulamayı açmadan). Bildirim kayda bağlıdır: "Kaydı
+    /// bitir" yalnız o kaydı bitirir.
+    func askMeetingOver(reason: MeetingOverReason, recordingID: RecordingID) async throws {
         let content: UNMutableNotificationContent = UNMutableNotificationContent()
+        content.userInfo = [MeetingNotificationID.recordingIDKey: recordingID.rawValue]
         content.title = String(localized: "Toplantı bitti mi?")
         content.body = switch reason {
         case .calendarEnded: String(localized: "Takvimdeki toplantının süresi doldu ama kayıt sürüyor.")

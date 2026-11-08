@@ -167,8 +167,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     @MainActor static var onMeetingNotification: (@MainActor (Bool, Date) -> Void)?
     /// "Kayıt başlatılamadı" bildirimine tıklama Ana sayfayı açar (neden başlat düğmesinin yanında); açılışta bağlanır.
     @MainActor static var onOpenHomeFromNotification: (@MainActor () -> Void)?
-    /// "Görüşme bitti gibi" bildiriminin yanıtı (eylem kimliği: devam, bitir ya da bildirime tıklama); açılışta bağlanır.
-    @MainActor static var onCallEndedResponse: (@MainActor (String) -> Void)?
+    /// "Görüşme bitti gibi" bildiriminin yanıtı (eylem kimliği: devam, bitir ya da bildirime tıklama) ve bildirimin bağlı
+    /// olduğu kayıt (eski sürümün bildiriminde nil); açılışta bağlanır.
+    @MainActor static var onCallEndedResponse: (@MainActor (String, RecordingID?) -> Void)?
     /// Not hazır, görev günü, haftalık özet ve kayıtsız hafta bildirimlerinin yanıtı (bkz. `engagementRoute`); açılışta
     /// bağlanır.
     @MainActor static var onEngagementResponse: (@MainActor (EngagementRoute) -> Void)?
@@ -215,7 +216,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             await MainActor.run { AppDelegate.onOpenHomeFromNotification?() }
         case MeetingNotificationID.callEndedCategory:
             let action: String = response.actionIdentifier
-            await MainActor.run { AppDelegate.onCallEndedResponse?(action) }
+            let recordingID: RecordingID? = notificationRecordingID(userInfo: response.notification.request.content.userInfo)
+            await MainActor.run { AppDelegate.onCallEndedResponse?(action, recordingID) }
         default:
             guard let route = engagementRoute(response: response) else {
                 return

@@ -332,7 +332,12 @@ final class HostedAccount {
         })
         observers.append(NotificationCenter.default.addObserver(forName: .hostedSessionEnded, object: nil, queue: .main) { [weak self] (_: Notification) -> Void in
             MainActor.assumeIsolated {
-                self?.currentMeeting = nil
+                // Süren kaydın toplantı oturumu bırakılmaz: kayıt kendi oturum kimliğini taşır ve bitince onu kapatmayı
+                // dener (kapatılamazsa kimlik açık oturumlar listesinde kalır); aynı hesapla yeniden girişte yetim kapatma
+                // süren kaydın oturumunu kapatmaz. Kayıt bitince `endMeeting` bırakır.
+                // Çıkıştaki gibi kuşak artar: oturum kapanmadan önce başlamış bir okuma geç dönüp hesabı yeniden "giriş
+                // yapıldı" göstermez.
+                self?.stateGeneration += 1
                 self?.hasSession = false
                 // Biten oturumun abonelik isteği ve davet kodu sonraki girişe (başka hesap olabilir) kalmasın.
                 self?.upsell = nil

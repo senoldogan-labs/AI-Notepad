@@ -113,10 +113,16 @@ struct AINotepadiOSApp: App {
             Task { await recorder.start() }
         }
         // "Toplantı bitti mi?": "Kaydı bitir" uygulamayı açmadan bitirir, "Sürüyor" soruyu kapatır.
-        PhoneNotificationDelegate.onMeetingOverResponse = { (finish: Bool) -> Void in
+        // Bildirim kayda bağlıdır: bayat bildirimin "Kaydı bitir"i yeni bir kaydı bitirmez (kimliksiz eski bildirim yok
+        // sayılır).
+        PhoneNotificationDelegate.onMeetingOverResponse = { (finish: Bool, recordingID: RecordingID?) -> Void in
             let recorder: PhoneRecorder = sessions.session.recorder
+            guard let recordingID, recordingID == recorder.recordingID else {
+                phoneAppLogger.info("Başka kayda ait \"Toplantı bitti mi?\" yanıtı yok sayıldı")
+                return
+            }
             if finish {
-                recorder.stop()
+                recorder.stop(target: .recording(recordingID))
             } else {
                 recorder.dismissMeetingOverPrompt()
             }
