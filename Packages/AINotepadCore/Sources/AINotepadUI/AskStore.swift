@@ -37,6 +37,9 @@ public final class AskStore {
     @ObservationIgnored private var tasks: [AskScope: Task<Void, Never>] = [:]
     /// Bağlamda süren cevabın saklama hattı (`ask`'a verilen); cevap bitince ya da sohbetten ayrılınca kalkar.
     @ObservationIgnored private var saves: [AskScope: AskSave] = [:]
+    /// Sohbetinden ayrılırken durdurulup saklanan sorular: görevlerinin geç gelen ilerlemesi ve sonucu (iptal) yok
+    /// sayılır; tur, sohbet yeniden açılınca da durduğu gibi kalır ve ikinci kez saklanmaz.
+    @ObservationIgnored private var retiredExchangeIDs: Set<UUID> = []
 
     public init() {}
 
@@ -103,14 +106,25 @@ public final class AskStore {
     /// alır. Bağlamda süren cevap durur. Aynı sohbet başka bir bağlamda açıksa oradan kalkar: iki alan aynı sohbeti
     /// birbirinin üstüne yazmasın.
     public func open(conversation: AskConversation, context: AskScope) {
-        for (other, chat) in chats where other != context && chat.conversationID == conversation.id {
+        // Sohbet geçmişteki kopyasından kurulur (başka cihazdan eşitlenen turlar da onda). Sohbet bir alanda açık ve cevabı
+        // akıyorsa `leave` cevabı durdurup saklar; çağıranın kopyası ondan eskidir, durdurulan tur eklenir (yoksa sonraki
+        // soru sohbeti o tur olmadan yeniden yazardı). Örnek toplantıya soru sorulmuş sohbette tur saklanmadığından eklenmez.
+        var stopped: [ArchiveExchange] = []
+        for other in chats.filter({ $0.value.conversationID == conversation.id }).map(\.key) {
+            let wasAnswering: Bool = isAnswering(context: other)
             leave(context: other)
-            chats[other] = nil
+            if wasAnswering, let open = chats[other], !open.askedSampleMeeting, let last = open.exchanges.last {
+                stopped.append(last)
+            }
+            if other != context {
+                chats[other] = nil
+            }
         }
         leave(context: context)
+        let saved: [ArchiveExchange] = conversation.turns.map { archiveExchange(turn: $0) }
+        let missing: [ArchiveExchange] = stopped.filter { (exchange: ArchiveExchange) -> Bool in !saved.contains { $0.id == exchange.id } }
         chats[context] = AskChat(
-            scope: askConversationScope(conversation: conversation), exchanges: conversation.turns.map { archiveExchange(turn: $0) }, conversationID: conversation.id,
-            askedSampleMeeting: false
+            scope: askConversationScope(conversation: conversation), exchanges: saved + missing, conversationID: conversation.id, askedSampleMeeting: false
         )
     }
 
@@ -142,8 +156,8 @@ public final class AskStore {
     }
 
     /// Bağlamın sohbetinden ayrılırken (temizleme, başka sohbet açma) süren cevabı durdurur; o ana kadar yazılan cevap
-    /// "durduruldu" olarak sohbete işlenir ve sohbet saklanır (`stop` ile aynı sonuç). Görevin geç gelen sonucu yeni
-    /// sohbete dokunmaz (soru kimliği orada yok).
+    /// "durduruldu" olarak sohbete işlenir ve sohbet saklanır (`stop` ile aynı sonuç). Görevin geç gelen ilerlemesi ve
+    /// sonucu yok sayılır (`retiredExchangeIDs`): sohbet aynı alanda yeniden açılsa da tur durduğu gibi kalır.
     private func leave(context: AskScope) {
         let task: Task<Void, Never>? = tasks[context]
         let save: AskSave? = saves[context]
@@ -155,6 +169,7 @@ public final class AskStore {
         }
         finish(context: context, id: running.id, phase: .stopped)
         persist(context: context, exchangeID: running.id, save: save)
+        retiredExchangeIDs.insert(running.id)
     }
 
     /// Sorulmadan başarısız olan soru (Sor kullanılamıyor): soru ve neden sohbette görünür.
@@ -272,7 +287,7 @@ public final class AskStore {
     /// hata) yazılmaz. Sohbette örnek toplantıya soru sorulduysa hiç yazılmaz: Sor geçmişi hesapla eşitlenir.
     private func persist(context: AskScope, exchangeID: UUID, save: AskSave) {
         var current: AskChat = chat(context: context)
-        guard !current.askedSampleMeeting, current.exchanges.contains(where: { $0.id == exchangeID && askTurn(exchange: $0) != nil }) else {
+        guard !retiredExchangeIDs.contains(exchangeID), !current.askedSampleMeeting, current.exchanges.contains(where: { $0.id == exchangeID && askTurn(exchange: $0) != nil }) else {
             return
         }
         let id: UUID = current.conversationID ?? UUID()
@@ -289,8 +304,8 @@ public final class AskStore {
     }
 
     private func update(context: AskScope, id: UUID, change: (inout ArchiveExchange) -> Void) {
-        // Sohbet bu arada temizlendiyse soru artık yok: dokunulmaz.
-        guard var current = chats[context], let index = current.exchanges.firstIndex(where: { $0.id == id }) else {
+        // Sohbet bu arada temizlendiyse soru artık yok, sohbetinden ayrılırken durdurulduysa tamam: dokunulmaz.
+        guard !retiredExchangeIDs.contains(id), var current = chats[context], let index = current.exchanges.firstIndex(where: { $0.id == id }) else {
             return
         }
         change(&current.exchanges[index])

@@ -44,6 +44,8 @@ public enum AppUpdateEvent: Equatable, Sendable {
     case downloaded(AvailableAppUpdate)
     /// Hemen kurma bloğu çağrıldı.
     case installStarted
+    /// Sparkle'ın oturumu hatayla (ya da kullanıcı vazgeçince) yarıda kaldı.
+    case aborted
     /// Sparkle yeniden başlatmayı erteledi (kayıt ya da işleme sürüyor).
     case relaunchPostponed
     /// Ertelenen yeniden başlatma sürdürüldü.
@@ -57,7 +59,7 @@ public func appUpdateTransition(state: AppUpdateState, event: AppUpdateEvent) ->
     switch (state, event) {
     case (.idle, .found(let update)), (.found, .found(let update)):
         return .found(update)
-    case (.found, .sessionFinished), (.installing, .sessionFinished):
+    case (.found, .sessionFinished), (.installing, .sessionFinished), (.installing, .aborted):
         // Kurulum sürerken oturumun bitmesi kurulumun yarıda kaldığı demektir (başarılı kurulum uygulamayı kapatır).
         return .idle
     case (.idle, .downloaded(let update)), (.found, .downloaded(let update)), (.ready, .downloaded(let update)):

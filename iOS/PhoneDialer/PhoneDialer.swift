@@ -269,7 +269,10 @@ final class PhoneDialer {
                     id: reservation.callId, uuid: uuid, e164: e164, maxSeconds: reservation.maxSeconds, phase: .connecting, isMuted: false, isSpeaker: false,
                     endMessage: nil
                 )
-                rememberPending(callID: reservation.callId, e164: e164)
+                if !rememberPending(callID: reservation.callId, e164: e164) {
+                    // No signed-in account to keep the call under: nothing will import its recording.
+                    recordingImports[reservation.callId] = .failed(String(localized: "Aramanın kaydı alınamadı: oturum açık değil."))
+                }
                 Self.logger.info("Call reserved, call: \(reservation.callId, privacy: .public), max seconds: \(reservation.maxSeconds, privacy: .public)")
                 try await controller.start(uuid: uuid, e164: e164, accessToken: reservation.accessToken, callID: reservation.callId)
                 watchRecording(callID: reservation.callId, e164: e164, recorder: recorder)
@@ -373,8 +376,8 @@ final class PhoneDialer {
         guard pendingRecordings()[callID] != nil else {
             Self.logger.info("Call no longer pending, skipped, call: \(callID, privacy: .public)")
             if recordingImports[callID] == nil {
-                // Never remembered (no signed-in account when it was placed): nothing will import it.
-                recordingImports[callID] = .failed(String(localized: "Aramanın kaydı alınamadı: oturum açık değil."))
+                // Kept under another account (switched since the call): that account imports it after signing in.
+                recordingImports[callID] = .noRecording
             }
             return
         }
@@ -458,14 +461,16 @@ final class PhoneDialer {
         return UserDefaults.standard.dictionary(forKey: key) as? [String: String] ?? [:]
     }
 
-    private func rememberPending(callID: String, e164: String) {
+    /// Keeps the call in the signed-in account's pending list; false without an account.
+    private func rememberPending(callID: String, e164: String) -> Bool {
         guard let key = pendingRecordingsKey() else {
             Self.logger.warning("No signed-in account; the call's recording isn't kept for a later launch")
-            return
+            return false
         }
         var pending: [String: String] = pendingRecordings()
         pending[callID] = e164
         UserDefaults.standard.set(pending, forKey: key)
+        return true
     }
 
     private func forgetPending(callID: String) {

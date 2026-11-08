@@ -278,4 +278,76 @@ private func meeting(id: String, title: String) -> MeetingRecord {
         try await Task.sleep(for: .milliseconds(50))
         #expect(saved.count == 1 && store.exchanges(context: .allMeetings).isEmpty)
     }
+
+    // Cevap akarken aynı sohbet geçmişten (eski kopyasıyla) başka bir alanda açıldı: durdurulan cevap sohbette kalır,
+    // eski kopyadan kurulup sonraki saklamada silinmez.
+    @MainActor
+    @Test func reopeningTheStreamingChatKeepsTheStoppedAnswer() async throws {
+        let records: [MeetingRecord] = [meeting(id: "a", title: "Bütçe")]
+        let store: AskStore = AskStore()
+        var saved: [(UUID, [ArchiveExchange])] = []
+        var streams: Bool = false
+        let (written, writtenContinuation): (AsyncStream<Void>, AsyncStream<Void>.Continuation) = AsyncStream<Void>.makeStream()
+        let answer: AskAnswer = { (_: AskTarget, onProgress: @escaping ArchiveProgressHandler) async throws -> Void in
+            await onProgress(.answer(ArchiveAnswer(text: "Cevap", sources: [], webSources: [])))
+            if streams {
+                writtenContinuation.yield()
+                try await Task.sleep(for: .seconds(60))
+            }
+        }
+        let save: AskSave = { (id: UUID, exchanges: [ArchiveExchange]) -> Void in saved.append((id, exchanges)) }
+        store.ask(context: .allMeetings, question: "İlk", scope: .allMeetings, mentionIDs: [], recipeTitle: nil, records: records, answer: answer, save: save)
+        await store.waitForAnswer(context: .allMeetings)
+        let (id, firstTurns): (UUID, [ArchiveExchange]) = try #require(saved.last)
+        let oldCopy: AskConversation = askConversation(existing: nil, id: id, turns: firstTurns.compactMap { askTurn(exchange: $0) }, now: Date())
+        streams = true
+        store.ask(context: .allMeetings, question: "İkinci", scope: .allMeetings, mentionIDs: [], recipeTitle: nil, records: records, answer: answer, save: save)
+        var iterator: AsyncStream<Void>.Iterator = written.makeAsyncIterator()
+        _ = await iterator.next()
+        // Aynı alanda yeniden açılır (Sor sayfasında geçmişten).
+        store.open(conversation: oldCopy, context: .allMeetings)
+        let reopened: [ArchiveExchange] = store.exchanges(context: .allMeetings)
+        #expect(reopened.map(\.question) == ["İlk", "İkinci"])
+        #expect(reopened.last?.phase == .stopped && reopened.last?.answer.text == "Cevap")
+        let savesAfterLeave: Int = saved.count
+        // Durdurulan görevin geç sonucu turu yeniden işlemez, sohbeti ikinci kez saklamaz.
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(saved.count == savesAfterLeave && store.exchanges(context: .allMeetings) == reopened)
+        // Cevap akmıyorken sohbet geçmişteki kopyasından kurulur: başka cihazdan eşitlenen tur da gelir; açık olduğu alandan
+        // kalkar.
+        let (_, latestTurns): (UUID, [ArchiveExchange]) = try #require(saved.last)
+        let synced: ArchiveExchange = finished(question: "iPhone'dan", scope: [], recipeTitle: nil)
+        let fromHistory: AskConversation = askConversation(
+            existing: nil, id: id, turns: (latestTurns + [synced]).compactMap { askTurn(exchange: $0) }, now: Date()
+        )
+        store.open(conversation: fromHistory, context: .meeting(id: "a"))
+        #expect(store.exchanges(context: .meeting(id: "a")).map(\.question) == ["İlk", "İkinci", "iPhone'dan"])
+        #expect(store.exchanges(context: .allMeetings).isEmpty)
+    }
+
+    // Örnek toplantıya soru sorulmuş açık sohbet geçmişten yeniden açılınca saklı kopyasından kurulur: örnek tur
+    // sonraki saklamaya (eşitlemeye) girmez.
+    @MainActor
+    @Test func reopeningASampleTouchedChatStaysUnsaved() async throws {
+        let sample: MeetingRecord = meeting(id: "s", title: "Örnek").markedAsSample()
+        let records: [MeetingRecord] = [sample, meeting(id: "b", title: "Haftalık")]
+        let store: AskStore = AskStore()
+        var saved: [(UUID, [ArchiveExchange])] = []
+        let answer: AskAnswer = { (_: AskTarget, onProgress: @escaping ArchiveProgressHandler) async throws -> Void in
+            await onProgress(.answer(ArchiveAnswer(text: "Cevap", sources: [], webSources: [])))
+        }
+        let save: AskSave = { (id: UUID, exchanges: [ArchiveExchange]) -> Void in saved.append((id, exchanges)) }
+        let context: AskScope = .meeting(id: "s")
+        store.ask(context: context, question: "Genel", scope: .meeting(id: "b"), mentionIDs: [], recipeTitle: nil, records: records, answer: answer, save: save)
+        await store.waitForAnswer(context: context)
+        let (id, turns): (UUID, [ArchiveExchange]) = try #require(saved.last)
+        let conversation: AskConversation = askConversation(existing: nil, id: id, turns: turns.compactMap { askTurn(exchange: $0) }, now: Date())
+        store.ask(context: context, question: "Örnekte?", scope: context, mentionIDs: [], recipeTitle: nil, records: records, answer: answer, save: save)
+        await store.waitForAnswer(context: context)
+        #expect(saved.count == 1)
+        store.open(conversation: conversation, context: .allMeetings)
+        store.ask(context: .allMeetings, question: "Sonra", scope: .allMeetings, mentionIDs: [], recipeTitle: nil, records: records, answer: answer, save: save)
+        await store.waitForAnswer(context: .allMeetings)
+        #expect(saved.last?.1.map(\.question) == ["Genel", "Sonra"])
+    }
 }

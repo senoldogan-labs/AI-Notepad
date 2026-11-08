@@ -31,6 +31,9 @@ struct AppUpdateStateTests {
         #expect(appUpdateTransition(state: installing, event: .downloaded(downloaded)) == installing)
         // Kurulum yarıda kaldı: oturum biter, kart kalkar.
         #expect(appUpdateTransition(state: installing, event: .sessionFinished) == .idle)
+        #expect(appUpdateTransition(state: installing, event: .aborted) == .idle)
+        // Yarıda kalan başka bir denetim indirilmiş güncellemeyi kaybettirmez.
+        #expect(appUpdateTransition(state: .ready(downloaded), event: .aborted) == .ready(downloaded))
     }
 
     @Test func installWithoutDownloadIsIgnored() {
