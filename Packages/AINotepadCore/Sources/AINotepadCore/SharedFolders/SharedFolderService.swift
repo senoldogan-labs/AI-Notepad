@@ -212,7 +212,7 @@ func verifiedAcceptance(member: HostedSharedFolderMember, identity: SharingIdent
 
 /// The owner's label and the member's chosen name; an invite sealed by another identity or tampered shows without them
 /// (and is never activated). Pure function apart from the warning log.
-private func openedInviteNames(member: HostedSharedFolderMember, identity: SharingIdentity, folderID: String) -> (label: String, name: String?) {
+private func openedInviteNames(member: HostedSharedFolderMember, identity: SharingIdentity, folderID: String) throws -> (label: String, name: String?) {
     do {
         let label: String = try openSharedFolderInviteLabel(sealed: try decodedBase64(member.sealedLabel), owner: identity, folderID: folderID, inviteID: member.memberId)
         let invite: SharedFolderInvite = try openSharedFolderInviteSecret(
@@ -220,16 +220,16 @@ private func openedInviteNames(member: HostedSharedFolderMember, identity: Shari
         )
         let name: String? = try member.sealedName.map { try openSharedFolderMemberName(sealed: try decodedBase64($0), invite: invite, folderID: folderID) }
         return (label, name)
-    } catch {
+    } catch let error as SharedFolderCryptoError {
         folderServiceLogger.warning("Shared-folder invite could not be opened, error: \(String(describing: error), privacy: .public)")
         return ("", nil)
     }
 }
 
 /// The members list with labels and names opened (labels the owner cannot open show as empty). Pure function.
-public func sharedFolderMemberViews(members: [HostedSharedFolderMember], identity: SharingIdentity, folderID: String) -> [SharedFolderMemberView] {
-    members.map { (member: HostedSharedFolderMember) -> SharedFolderMemberView in
-        let opened: (label: String, name: String?) = openedInviteNames(member: member, identity: identity, folderID: folderID)
+public func sharedFolderMemberViews(members: [HostedSharedFolderMember], identity: SharingIdentity, folderID: String) throws -> [SharedFolderMemberView] {
+    try members.map { (member: HostedSharedFolderMember) -> SharedFolderMemberView in
+        let opened: (label: String, name: String?) = try openedInviteNames(member: member, identity: identity, folderID: folderID)
         let state: SharedFolderMemberView.State = switch member.status {
         case "active": .active
         case "accepted": verifiedAcceptance(member: member, identity: identity, folderID: folderID) == nil ? .unverified : .accepted

@@ -16,6 +16,14 @@ CREATE TABLE sharing_identities (
   updated_at INTEGER NOT NULL
 );
 
+-- Invites an account created on `day` (UTC `YYYY-MM-DD`): the daily invite limit. Separate from the identity so that
+-- neither revoking an invite nor resetting shared folders gives invites back; deleted with the account.
+CREATE TABLE shared_folder_invite_days (
+  user_id TEXT PRIMARY KEY REFERENCES users(id),
+  day TEXT NOT NULL,
+  count INTEGER NOT NULL
+);
+
 -- A shared folder. `sealed_meta` (name, owner name, transcripts on/off) and `owner_envelope` (the keyring wrapped to the
 -- owner) are sealed on the owner's device. `roster` is the owner-signed member list (JSON with ids and public keys only)
 -- with `roster_signature`. `members_version` changes on every membership change and `items_rev` on every item change or

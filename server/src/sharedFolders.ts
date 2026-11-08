@@ -365,6 +365,14 @@ export function sharedFolderDeletionStatements(db: D1Database, userId: string, n
   ];
 }
 
+/**
+ * Account deletion: everything `sharedFolderDeletionStatements` removes, plus the daily invite counter (which a reset
+ * keeps so that resetting cannot give invites back).
+ */
+export function sharedFolderAccountDeletionStatements(db: D1Database, userId: string, now: Date): D1PreparedStatement[] {
+  return [...sharedFolderDeletionStatements(db, userId, now), db.prepare("DELETE FROM shared_folder_invite_days WHERE user_id = ?").bind(userId)];
+}
+
 /** Deletes the R2 blobs of the account's own folders right away (after their rows are gone); failures stay queued. */
 export async function purgeOwnedFolderBlobs(db: D1Database, bucket: R2Bucket, userId: string, folderIds: readonly string[], now: Date): Promise<void> {
   for (const folderId of folderIds) {
@@ -457,7 +465,15 @@ async function createFolder(db: D1Database, config: Config, userId: string, requ
 }
 
 async function stopSharing(db: D1Database, bucket: R2Bucket, userId: string, folderId: string, now: Date): Promise<object> {
-  await ownedFolder(db, userId, folderId);
+  const owned: { folder_id: string } | null = await db
+    .prepare("SELECT folder_id FROM shared_folders WHERE folder_id = ? AND owner_id = ?")
+    .bind(folderId, userId)
+    .first<{ folder_id: string }>();
+  if (owned === null) {
+    // Already stopped (a retry after a lost response), unknown or someone else's: the same answer for all three, so
+    // the endpoint tells nobody whether a folder id exists; nothing is deleted.
+    return { deleted: true };
+  }
   await db.batch([
     db
       .prepare("INSERT INTO sync_purges (prefix, requested_at) VALUES (?, ?) ON CONFLICT (prefix) DO UPDATE SET requested_at = excluded.requested_at")
@@ -642,32 +658,48 @@ async function createInvite(db: D1Database, config: Config, userId: string, fold
   const body = await readJsonBody(request, inviteSchema, 16 * 1024);
   const nowMs: number = now.getTime();
   const expiresAt: number = nowMs + sharedFolderInviteTtlDays * dayMs;
-  const inserted: { member_id: string } | null = await db
-    .prepare(
-      `INSERT INTO shared_folder_members (folder_id, member_id, status, sealed_label, sealed_secret, owner_proof, sealed_preview, expires_at, created_at, updated_at)
-       SELECT ?1, ?2, 'invited', ?3, ?4, ?5, ?6, ?7, ?8, ?8
-       WHERE (SELECT COUNT(*) FROM shared_folder_members WHERE folder_id = ?1 AND status = 'invited' AND expires_at > ?8) < ?9
-         AND (SELECT COUNT(*) FROM shared_folder_members WHERE folder_id = ?1 AND (status <> 'invited' OR expires_at > ?8)) < ?10
-         AND (SELECT COUNT(*) FROM shared_folder_members WHERE created_at > ?8 - 86400000
-              AND folder_id IN (SELECT folder_id FROM shared_folders WHERE owner_id = ?11)) < ?12
-       ON CONFLICT DO NOTHING RETURNING member_id`,
-    )
-    .bind(
-      folderId,
-      body.memberId,
-      body.sealedLabel,
-      body.sealedSecret,
-      body.ownerProof,
-      body.sealedPreview,
-      expiresAt,
-      nowMs,
-      sharedFolderMaxOpenInvites,
-      sharedFolderMaxMembers,
-      userId,
-      sharedFolderInvitesPerDay,
-    )
-    .first<{ member_id: string }>();
-  if (inserted === null) {
+  const repeated: MemberRow | null = await db.prepare("SELECT * FROM shared_folder_members WHERE member_id = ?").bind(body.memberId).first<MemberRow>();
+  if (repeated !== null && repeated.folder_id === folderId && repeated.owner_proof === body.ownerProof) {
+    return { memberId: repeated.member_id, expiresAt: repeated.expires_at };
+  }
+  // One batch: the insert checks the folder limits and the daily limit (every invite created counts; revoking or a
+  // reset does not give one back); the counter moves only when the row was inserted.
+  const today: string = now.toISOString().slice(0, 10);
+  const results: D1Result[] = await db.batch([
+    db
+      .prepare(
+        `INSERT INTO shared_folder_members (folder_id, member_id, status, sealed_label, sealed_secret, owner_proof, sealed_preview, expires_at, created_at, updated_at)
+         SELECT ?1, ?2, 'invited', ?3, ?4, ?5, ?6, ?7, ?8, ?8
+         WHERE (SELECT COUNT(*) FROM shared_folder_members WHERE folder_id = ?1 AND status = 'invited' AND expires_at > ?8) < ?9
+           AND (SELECT COUNT(*) FROM shared_folder_members WHERE folder_id = ?1 AND (status <> 'invited' OR expires_at > ?8)) < ?10
+           AND COALESCE((SELECT count FROM shared_folder_invite_days WHERE user_id = ?11 AND day = ?12), 0) < ?13
+         ON CONFLICT DO NOTHING RETURNING member_id`,
+      )
+      .bind(
+        folderId,
+        body.memberId,
+        body.sealedLabel,
+        body.sealedSecret,
+        body.ownerProof,
+        body.sealedPreview,
+        expiresAt,
+        nowMs,
+        sharedFolderMaxOpenInvites,
+        sharedFolderMaxMembers,
+        userId,
+        today,
+        sharedFolderInvitesPerDay,
+      ),
+    db
+      .prepare(
+        `INSERT INTO shared_folder_invite_days (user_id, day, count)
+         SELECT ?1, ?2, 1 WHERE EXISTS (SELECT 1 FROM shared_folder_members WHERE member_id = ?3 AND folder_id = ?4 AND created_at = ?5)
+         ON CONFLICT (user_id) DO UPDATE SET count = CASE WHEN day = ?2 THEN count + 1 ELSE 1 END, day = ?2`,
+      )
+      .bind(userId, today, body.memberId, folderId, nowMs),
+  ]);
+  const inserted: { member_id: string } | undefined = (results[0]?.results as Array<{ member_id: string }> | undefined)?.[0];
+  if (inserted === undefined) {
     const existing: MemberRow | null = await db.prepare("SELECT * FROM shared_folder_members WHERE member_id = ?").bind(body.memberId).first<MemberRow>();
     if (existing !== null) {
       if (existing.folder_id === folderId && existing.owner_proof === body.ownerProof) {
@@ -720,10 +752,10 @@ async function leaveFolder(db: D1Database, userId: string, folderId: string, now
       .bind(folderId, userId, now.getTime()),
     db.prepare("DELETE FROM shared_folder_members WHERE folder_id = ? AND user_id = ?").bind(folderId, userId),
   ]);
-  if ((results[1]?.meta.changes ?? 0) === 0) {
-    throw new ApiError("not_found", "No such shared folder.");
+  // Nothing deleted: already left (a retry after a lost response) or never a member; both answer the same.
+  if ((results[1]?.meta.changes ?? 0) > 0) {
+    log("info", "shared_folder_left", { userId });
   }
-  log("info", "shared_folder_left", { userId });
   return { deleted: true };
 }
 

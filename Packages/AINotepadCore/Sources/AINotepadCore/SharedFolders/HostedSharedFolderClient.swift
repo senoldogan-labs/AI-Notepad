@@ -231,8 +231,8 @@ private struct DeviceBody: Encodable {
 
 /// HTTP adapter of the shared-folder endpoints (`server/src/sharedFolders.ts`). It moves sealed values only; every
 /// request has a bounded timeout and is retried with backoff on network and temporary server errors with a warning per
-/// attempt (`sendHostedRequest`); a rejected access token is refreshed once. Writes are idempotent on the server, so a
-/// retried write is safe. Nothing about content, keys or tokens is logged.
+/// attempt (`sendHostedRequest`); a rejected access token is refreshed once. Every write is idempotent on the server (the
+/// same request again answers as the first time), so a retried write is safe. Nothing about content, keys or tokens is logged.
 public struct HostedSharedFolderClient: Sendable {
     public let baseURL: URL
     let credentials: any HostedAccessTokenSource

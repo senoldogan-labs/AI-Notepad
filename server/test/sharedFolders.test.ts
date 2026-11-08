@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { parseConfig } from "../src/config";
 import type { Env } from "../src/env";
-import { sharedFolderCleanup, sharedFolderMaxOpenInvites, sharedFolderPrefix } from "../src/sharedFolders";
+import { sharedFolderCleanup, sharedFolderInvitesPerDay, sharedFolderMaxOpenInvites, sharedFolderPrefix } from "../src/sharedFolders";
 import { type Harness, type Session, defaultHarness, envWith, expectError, grantSubscription, refreshed, req, signIn } from "./helpers";
 
 // The server never decrypts, so the tests use shaped random values: 32-byte keys in base64, sealed values as random
@@ -235,6 +235,8 @@ describe("shared folders", () => {
     expect(memberId.length).toBe(22);
 
     await ok(await call(harness, owner, "DELETE", `/v1/shared-folders/${folderId}`, null), 200);
+    // A retry after a lost response answers the same.
+    await ok(await call(harness, owner, "DELETE", `/v1/shared-folders/${folderId}`, null), 200);
     expect((await folders(harness, owner)).folders).toEqual([]);
     expect((await env.SYNC_BUCKET.list({ prefix: sharedFolderPrefix(folderId) })).objects).toEqual([]);
   });
@@ -370,6 +372,50 @@ describe("shared folders", () => {
       sealedPreview: randomBase64(60),
     });
     await expectError(over, 409, "shared_folder_limit_reached");
+    // Refused attempts on a full folder do not use up the daily invites.
+    const other: string = await createFolder(harness, owner, crypto.randomUUID());
+    for (let index: number = 0; index < sharedFolderInvitesPerDay - sharedFolderMaxOpenInvites; index += 1) {
+      await invite(harness, owner, other);
+    }
+  });
+
+  it("counts every invite toward the daily limit, revoked ones too", async () => {
+    const harness: Harness = await defaultHarness();
+    const owner: Account = await account(harness, true);
+    const folderId: string = await createFolder(harness, owner, crypto.randomUUID());
+    for (let index: number = 0; index < sharedFolderInvitesPerDay; index += 1) {
+      const memberId: string = await invite(harness, owner, folderId);
+      await ok(await call(harness, owner, "DELETE", `/v1/shared-folders/${folderId}/invites/${memberId}`, null), 200);
+    }
+    await expectError(
+      await call(harness, owner, "POST", `/v1/shared-folders/${folderId}/invites`, {
+        memberId: randomInviteId(),
+        sealedLabel: randomBase64(40),
+        sealedSecret: randomBase64(60),
+        ownerProof: randomBase64(32),
+        sealedPreview: randomBase64(60),
+      }),
+      409,
+      "shared_folder_limit_reached",
+    );
+    // Resetting shared folders does not give invites back.
+    await ok(await call(harness, owner, "DELETE", "/v1/sharing/identity", null), 200);
+    await ok(await call(harness, owner, "PUT", "/v1/sharing/identity", { ...owner.keys, sealedSeed: null, seedKeyId: null }), 200);
+    const again: string = await createFolder(harness, owner, crypto.randomUUID());
+    await expectError(
+      await call(harness, owner, "POST", `/v1/shared-folders/${again}/invites`, {
+        memberId: randomInviteId(),
+        sealedLabel: randomBase64(40),
+        sealedSecret: randomBase64(60),
+        ownerProof: randomBase64(32),
+        sealedPreview: randomBase64(60),
+      }),
+      409,
+      "shared_folder_limit_reached",
+    );
+    harness.clock.nowMs += dayMs;
+    const tomorrow: Account = { session: await refreshed(harness, owner.session), keys: owner.keys };
+    await invite(harness, tomorrow, again);
   });
 
   it("asks members for a subscription only under SHARED_FOLDERS_MEMBER_ACCESS=subscription", async () => {

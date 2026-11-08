@@ -13,7 +13,7 @@ import type { IdentityProvider } from "./auth/users";
 import { type AppleRevocationOutcome, appleTokenDeletionStatement, revokeAppleTokensForDeletion } from "./auth/appleTokens";
 import { dayKey } from "./usage";
 import { phoneDeletionStatements } from "./phone/calls";
-import { purgeOwnedFolderBlobs, sharedFolderDeletionStatements } from "./sharedFolders";
+import { purgeOwnedFolderBlobs, sharedFolderAccountDeletionStatements } from "./sharedFolders";
 import { shareDeletionStatement } from "./shares";
 import { purgeSyncPrefixNow, syncDeletionStatements, syncPrefix } from "./sync";
 import { deleteAssistantAccount } from "./assistant/store";
@@ -109,7 +109,7 @@ function accountDeletionStatements(db: D1Database, userId: string, identityHashe
     db.prepare("DELETE FROM transcription_results WHERE user_id = ?").bind(userId),
     ...syncDeletionStatements(db, userId, syncPrefix(userId), now),
     shareDeletionStatement(db, userId),
-    ...sharedFolderDeletionStatements(db, userId, now),
+    ...sharedFolderAccountDeletionStatements(db, userId, now),
     ...phoneDeletionStatements(db, userId, now),
     ...userReservationRemovalStatements(db, userId),
     deepgramUnlinkUserStatement(db, userId),

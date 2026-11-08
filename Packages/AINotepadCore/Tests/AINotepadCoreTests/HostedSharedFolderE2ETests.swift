@@ -82,7 +82,7 @@ extension HostedE2ETests {
         #expect(waiting.isWaitingForOwner && waiting.folderName == "Sales weekly")
 
         // The owner's device verifies the proof and adds the member to the signed roster.
-        let views: [SharedFolderMemberView] = sharedFolderMemberViews(members: try await owner.service.client.members(folderID: folderID), identity: owner.identity, folderID: folderID)
+        let views: [SharedFolderMemberView] = try sharedFolderMemberViews(members: try await owner.service.client.members(folderID: folderID), identity: owner.identity, folderID: folderID)
         #expect(views.map(\.state) == [.accepted] && views.first?.label == "mehmet@example.com" && views.first?.displayName == "Mehmet")
         #expect(try await owner.service.reconcileRoster(folder: try await opened(owner, folderID: folderID), identity: owner.identity, removing: []))
         #expect(try await owner.service.reconcileRoster(folder: try await opened(owner, folderID: folderID), identity: owner.identity, removing: []) == false)
