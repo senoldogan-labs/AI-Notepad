@@ -605,6 +605,10 @@ func makePhoneAccountSession(calendar: PhoneCalendar) -> PhoneAccountSession {
     let dictationEngine: AppleDictationEngine = AppleDictationEngine()
     let askDictation: AskDictation = AskDictation(
         prepareEngine: { (language: MeetingLanguage, onProgress: @escaping @Sendable (Double) -> Void) async throws -> any LiveDictationEngine in
+            // Düğme iOS 26'dan eskide görünmez (`AskComposer`); yine çağrılırsa neden açıkça söylenir.
+            guard #available(iOS 26, *) else {
+                throw AppleSpeechError.requiresNewerSystem
+            }
             try await dictationEngine.prepare(language: language, onProgress: onProgress)
             return dictationEngine
         },

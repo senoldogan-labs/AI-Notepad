@@ -795,15 +795,18 @@ private struct AskComposer: View {
                     AskScopeChip(menu: scopeMenu, isEnabled: !isAnswering, onSelect: onSelectScope)
                 }
                 Spacer(minLength: 4)
-                // Sesle sor: söylenen soru alana gelir (gönderilmez); kayıt sürerken mikrofon toplantıdadır.
-                AskMicButton(
-                    dictation: askDictation, owner: dictationOwner, isMeetingActive: recorder.state.activeID != nil,
-                    diameter: 34, minTapSize: 44, idleBackground: Theme.soft
-                ) { (text: String) -> Void in
-                    question = askQuestionAppending(question: question, dictated: text)
-                    cursor = question.utf16.count
-                    selection = nil
-                    isFocused = true
+                // Sesle sor: söylenen soru alana gelir (gönderilmez); kayıt sürerken mikrofon toplantıdadır. Cihaz içi
+                // dikte (`DictationTranscriber`) iOS 26 ister; daha eski sistemde düğme yok.
+                if #available(iOS 26, *) {
+                    AskMicButton(
+                        dictation: askDictation, owner: dictationOwner, isMeetingActive: recorder.state.activeID != nil,
+                        diameter: 34, minTapSize: 44, idleBackground: Theme.soft
+                    ) { (text: String) -> Void in
+                        question = askQuestionAppending(question: question, dictated: text)
+                        cursor = question.utf16.count
+                        selection = nil
+                        isFocused = true
+                    }
                 }
                 Button {
                     if isAnswering {
