@@ -478,7 +478,9 @@ function readFilter(): UserFilter {
 
 /** Kullanıcılar görünümünü bağlar; hatalar `onFailure`'a, rapor açma `onOpenReport`'a gider. */
 export function createUsersView(onFailure: (error: unknown) => void, onOpenReport: OpenReport): UsersView {
-  const state: UsersState = { filter: { query: null, segment: null, provider: null }, items: [],
+  const state: UsersState = {
+    filter: { query: null, segment: null, provider: null },
+    items: [],
     nextCursor: null,
     openId: null,
     list: initialLoadState,

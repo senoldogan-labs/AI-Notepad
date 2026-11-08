@@ -26,7 +26,8 @@ export type TrialState =
  * - `subscribed`: etkin, `renewsAt`'te yenilenir. `ending`: iptal edildi, erişim `endsAt`'e dek sürer.
  * - `grace`: yenileme ödemesi alınamadı, erişim `endsAt`'e dek sürer.
  * - `paymentOverdue`: ek süre bitti ama abonelik Stripe'ta sürüyor (`past_due`/`unpaid`); kart güncellenince erişim
- *   döner (yeni abonelik açılamaz).
+ *   döner (yeni abonelik açılamaz). Denemeden önce gelir: denemeyi hiç kullanmadan abone olan hesabın deneme hakkı
+ *   durur, ama kullanıcıya önce kartını güncellemesi söylenmelidir. `trial` o anki denemedir (sürüyorsa gösterilir).
  * - `expired`: abonelik bitti ve deneme de bitti; yeni kayıt için yeniden abone olunmalı.
  */
 export type PlanState =
@@ -36,7 +37,7 @@ export type PlanState =
   | { readonly kind: "subscribed"; readonly subscription: SubscriptionInfo; readonly renewsAt: string }
   | { readonly kind: "ending"; readonly subscription: SubscriptionInfo; readonly endsAt: string }
   | { readonly kind: "grace"; readonly subscription: SubscriptionInfo; readonly endsAt: string }
-  | { readonly kind: "paymentOverdue"; readonly subscription: SubscriptionInfo }
+  | { readonly kind: "paymentOverdue"; readonly subscription: SubscriptionInfo; readonly trial: TrialState }
   | { readonly kind: "expired"; readonly subscription: SubscriptionInfo };
 
 /** Ödemesi alınamamış ama Stripe'ta süren aboneliğin durumları: erişim ek süreden sonra kapanır, abonelik bitmez. */
@@ -62,7 +63,8 @@ export function trialState(me: Entitlements, now: Date): TrialState {
 
 /**
  * Hak yanıtından plan durumu (bkz. `PlanState`). Ücretsiz erişimde ödeme olmadığından ek süre ya da iptal uyarısı
- * yoktur. Erişimi kapanmış abonelik yalnızca deneme bittiyse anlatılır. Saf fonksiyondur.
+ * yoktur. Ödemesi alınamamış abonelik deneme kalmış olsa da anlatılır; erişimi kapanmış başka abonelik yalnızca deneme
+ * bittiyse. Saf fonksiyondur.
  */
 export function planState(me: Entitlements, now: Date): PlanState {
   const trial: TrialState = trialState(me, now);
@@ -82,16 +84,13 @@ export function planState(me: Entitlements, now: Date): PlanState {
     }
     return { kind: "subscribed", subscription, renewsAt: subscription.currentPeriodEnd };
   }
+  if (!subscription.complimentary && unpaidSubscriptionStatuses.has(subscription.status)) {
+    return { kind: "paymentOverdue", subscription, trial };
+  }
   if (trial.kind !== "ended") {
     return { kind: "trial", trial };
   }
-  if (subscription.complimentary) {
-    return { kind: "complimentaryEnded", subscription };
-  }
-  if (unpaidSubscriptionStatuses.has(subscription.status)) {
-    return { kind: "paymentOverdue", subscription };
-  }
-  return { kind: "expired", subscription };
+  return subscription.complimentary ? { kind: "complimentaryEnded", subscription } : { kind: "expired", subscription };
 }
 
 /** Durum abonelik erişimi veriyor mu (aylık saat ve yapay zekâ ölçerleri yalnızca bunda görünür). Saf fonksiyondur. */

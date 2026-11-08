@@ -82,6 +82,8 @@ test("a lapsed subscription is described only once the trial has ended", () => {
   assert.equal(planState(entitlements(0, future, lapsed), now).kind, "expired");
   const unpaid: SubscriptionInfo = subscription({ access: "none", status: "unpaid", cancelAt: null, complimentary: false });
   assert.equal(planState(entitlements(0, past, unpaid), now).kind, "paymentOverdue");
+  // Subscribed without using the trial: the trial is still unused, but the overdue payment is what the user must see.
+  assert.deepEqual(planState(entitlements(3, null, unpaid), now), { kind: "paymentOverdue", subscription: unpaid, trial: { kind: "notStarted", left: 3, total: 3 } });
   const comp: SubscriptionInfo = subscription({ access: "none", status: "canceled", cancelAt: past, complimentary: true });
   assert.equal(planState(entitlements(0, past, comp), now).kind, "complimentaryEnded");
   for (const info of [lapsed, unpaid, comp]) {

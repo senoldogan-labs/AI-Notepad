@@ -162,8 +162,9 @@ function planName(state: PlanState, text: ClientCopy): string {
     case "ending":
     case "grace":
       return state.subscription.plan === null ? text.plan.subscription : text.plan[state.subscription.plan];
-    case "complimentaryEnded":
     case "paymentOverdue":
+      return state.trial.kind === "ended" ? text.plan.none : text.plan.trial;
+    case "complimentaryEnded":
     case "expired":
       return text.plan.none;
   }
@@ -225,7 +226,7 @@ function subscriptionFacts(state: PlanState, trialDays: number, text: ClientCopy
     case "grace":
       return { message: null, facts: [{ label: text.facts.accessUntil, value: formatDate(state.endsAt, locale) }] };
     case "paymentOverdue":
-      return { message: null, facts: [] };
+      return state.trial.kind === "ended" ? { message: null, facts: [] } : trialStatus(state.trial, trialDays, text, locale);
     case "expired":
       return { message: text.subscriptionEnded, facts: [] };
   }
@@ -268,12 +269,16 @@ function planPill(state: PlanState, text: ClientCopy): Pill {
   }
 }
 
-/** Sürmekte olan denemenin ölçeri: son toplantıda uyarır; deneme sürmüyorsa null. Saf fonksiyondur. */
+/**
+ * Sürmekte olan denemenin ölçeri (ödemesi alınamamış abonelikte de deneme sürüyorsa): son toplantıda uyarır; deneme
+ * sürmüyorsa null. Saf fonksiyondur.
+ */
 function trialMeter(state: PlanState, text: ClientCopy): TrialMeter | null {
-  if (state.kind !== "trial" || state.trial.kind !== "running") {
+  const trial: TrialState | null = state.kind === "trial" || state.kind === "paymentOverdue" ? state.trial : null;
+  if (trial === null || trial.kind !== "running") {
     return null;
   }
-  const { left, total }: { readonly left: number; readonly total: number } = state.trial;
+  const { left, total }: { readonly left: number; readonly total: number } = trial;
   return {
     text: fill(text.trialMeetings, { left: String(left), total: String(total) }),
     left,

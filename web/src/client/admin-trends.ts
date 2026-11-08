@@ -399,7 +399,6 @@ function renderSiteFailure(error: unknown): void {
   fillTrendTable("referrers", []);
 }
 
-/** Görünümün dışarıya açtığı işlemler. */
 /** Site istatistiklerinin sonucu: görünümü düşürmeyen hata kendi bölümünde çizilir (`renderSiteFailure`). */
 type SiteLoad = { readonly kind: "loaded"; readonly analytics: SiteAnalytics } | { readonly kind: "failed"; readonly error: unknown };
 
@@ -409,6 +408,7 @@ interface TrendsLoad {
   readonly site: SiteLoad;
 }
 
+/** Görünümün dışarıya açtığı işlemler. */
 export interface TrendsView {
   readonly refresh: () => Promise<void>;
   readonly ensureLoaded: () => Promise<void>;
