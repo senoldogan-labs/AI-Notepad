@@ -81,9 +81,10 @@ public actor HostedClient: HostedLLMCredentialSource {
     public nonisolated let clientInfo: HostedClientInfo
     private let storage: any HostedTokenStorage
     private let onSessionEnded: @Sendable () async -> Void
-    private var cachedTokens: HostedTokens?
-    private var tokensLoaded: Bool = false
-    private var refreshTask: Task<HostedTokens, any Error>?
+    private var tokenCache: HostedTokenCache = .unloaded
+    /// Süren yenileme ve başladığı oturum kuşağı: yalnızca aynı oturumdaki istekler ona katılır (çıkış ya da yeni
+    /// girişten sonraki bir 401 eski oturumun yenilemesini beklemez).
+    private var refreshInFlight: (generation: Int, task: Task<HostedTokens, any Error>)?
     /// Oturumun kuşağı: giriş, çıkış, hesap silme ve yenileme reddinde artar (bkz. `isCurrentSessionGeneration`).
     private var sessionGeneration: Int = 0
     /// Yapay zekâ çağrılarının bağlandığı toplantı: son başlatılan (bittikten sonra da ek süre boyunca kullanılır).
@@ -395,19 +396,37 @@ public actor HostedClient: HostedLLMCredentialSource {
         }
     }
 
-    /// Jetonları yeniler; süren bir yenileme varsa onu bekler.
+    /// Jetonları yeniler; bu oturumda süren bir yenileme varsa onu bekler.
     private func refreshedTokens() async throws -> HostedTokens {
-        if let refreshTask {
-            return try await refreshTask.value
+        let generation: Int = sessionGeneration
+        if let refreshInFlight, refreshInFlight.generation == generation {
+            return try await refreshInFlight.task.value
         }
         guard let current = try tokens() else {
             throw HostedClientError.notSignedIn
         }
-        let generation: Int = sessionGeneration
         let task: Task<HostedTokens, any Error> = Task { try await self.performRefresh(refreshToken: current.refreshToken, generation: generation) }
-        refreshTask = task
-        defer { refreshTask = nil }
+        refreshInFlight = (generation, task)
+        defer {
+            // Bu arada başlayan yeni oturumun yenilemesi silinmesin.
+            if refreshInFlight?.generation == generation {
+                refreshInFlight = nil
+            }
+        }
         return try await task.value
+    }
+
+    /// Sunucu `rejected` erişim jetonunu 401 ile reddetti: saklanan jeton başkaysa (bu arada yenilendi) o kullanılır,
+    /// değilse yenilenir (`hostedTokenActionAfterRejection`).
+    private func accessToken(afterRejecting rejected: String) async throws -> String {
+        switch hostedTokenActionAfterRejection(tokens: try tokens(), rejectedAccessToken: rejected) {
+        case .signedOut:
+            throw HostedClientError.notSignedIn
+        case .use(let accessToken):
+            return accessToken
+        case .refresh:
+            return try await refreshedTokens().accessToken
+        }
     }
 
     private func performRefresh(refreshToken: String, generation: Int) async throws -> HostedTokens {
@@ -463,11 +482,14 @@ public actor HostedClient: HostedLLMCredentialSource {
     }
 
     private func tokens() throws -> HostedTokens? {
-        if !tokensLoaded {
-            cachedTokens = try storage.load()
-            tokensLoaded = true
+        switch tokenCache {
+        case .loaded(let tokens):
+            return tokens
+        case .unloaded:
+            let loaded: HostedTokens? = try storage.load()
+            tokenCache = .loaded(loaded)
+            return loaded
         }
-        return cachedTokens
     }
 
     private func setTokens(_ tokens: HostedTokens?) throws {
@@ -476,8 +498,7 @@ public actor HostedClient: HostedLLMCredentialSource {
         } else {
             try storage.clear()
         }
-        cachedTokens = tokens
-        tokensLoaded = true
+        tokenCache = .loaded(tokens)
     }
 
     // MARK: İstekler
@@ -507,8 +528,8 @@ public actor HostedClient: HostedLLMCredentialSource {
             return try await send(path: path, isRetryable: isRetryable) { try await operation(accessToken) }.data
         } catch let error as HostedAPIError where error.status == 401 {
             hostedLogger.warning("Erişim jetonu reddedildi, yenilenip yeniden denenecek, yol: \(path, privacy: .public), kod: \(error.rawCode, privacy: .public)")
-            let refreshed: HostedTokens = try await refreshedTokens()
-            return try await send(path: path, isRetryable: isRetryable) { try await operation(refreshed.accessToken) }.data
+            let retryToken: String = try await self.accessToken(afterRejecting: accessToken)
+            return try await send(path: path, isRetryable: isRetryable) { try await operation(retryToken) }.data
         }
     }
 

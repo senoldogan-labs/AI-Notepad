@@ -361,10 +361,63 @@ func hostedJSONDecoder() -> JSONDecoder {
     return decoder
 }
 
+/// Ücretsiz denemenin bitme nedeni.
+public enum HostedTrialEndReason: Sendable, Equatable {
+    /// Deneme toplantılarının hepsi kullanıldı (ya da sunucu denemeyi bu cihazda reddetti).
+    case meetingsUsed
+    /// Deneme süresi (`trialEndsAt`) doldu; toplantı kalmış olsa da deneme biter.
+    case timeExpired
+}
+
+/// Ücretsiz denemenin durumu: sunucunun okuma anındaki kalan toplantı sayısı ve `trialEndsAt`, şimdiki ana göre
+/// yorumlanır (hak durumu bir süre bayat kalabilir; süre bu arada dolabilir).
+public enum HostedTrialState: Sendable, Equatable {
+    /// Deneme başlamadı: ilk deneme toplantısıyla başlar (sunucu o zaman `trialEndsAt` yazar); süre işlemiyor. Kalan
+    /// toplantı (en az 1) toplamdan az olabilir (önceki hesaptan devralınan deneme toplantıları).
+    case notStarted(left: Int, total: Int)
+    /// Deneme sürüyor: kalan toplantı (en az 1) ve bitiş anı. Bitişi bilmeyen eski sunucuda `endsAt` nil.
+    case running(left: Int, total: Int, endsAt: Date?)
+    /// Deneme bitti; yeni kayıt için abone olunmalı.
+    case ended(reason: HostedTrialEndReason, total: Int)
+
+    /// Kalan deneme toplantısı (bittiyse 0).
+    public var meetingsLeft: Int {
+        switch self {
+        case .notStarted(let left, _): left
+        case .running(let left, _, _): left
+        case .ended: 0
+        }
+    }
+
+    /// Toplam deneme toplantısı.
+    public var meetingsTotal: Int {
+        switch self {
+        case .notStarted(_, let total), .running(_, let total, _), .ended(_, let total): total
+        }
+    }
+}
+
+/// Hak yanıtından denemenin şimdiki durumu: süresi dolduysa (`trialEndsAt <= now`) toplantı kalmış olsa da biter;
+/// toplantı kalmadıysa biter; bitiş anı yoksa ve sunucu deneme süresini biliyorsa (`trialDays`) deneme başlamamıştır.
+/// Saf fonksiyondur.
+public func hostedTrialState(entitlements: HostedEntitlements, now: Date) -> HostedTrialState {
+    let total: Int = entitlements.trialMeetingsTotal
+    if let endsAt = entitlements.trialEndsAt, endsAt <= now {
+        return .ended(reason: .timeExpired, total: total)
+    }
+    guard entitlements.trialMeetingsLeft > 0 else {
+        return .ended(reason: .meetingsUsed, total: total)
+    }
+    if entitlements.trialEndsAt == nil, entitlements.trialDays != nil {
+        return .notStarted(left: entitlements.trialMeetingsLeft, total: total)
+    }
+    return .running(left: entitlements.trialMeetingsLeft, total: total, endsAt: entitlements.trialEndsAt)
+}
+
 /// Hesabın arayüzde gösterilen durumu.
 public enum HostedPlanStatus: Sendable, Equatable {
-    /// Deneme: kalan ve toplam ücretsiz toplantı.
-    case trial(left: Int, total: Int)
+    /// Deneme: başlamadı, sürüyor ya da bitti (bkz. `HostedTrialState`).
+    case trial(HostedTrialState)
     /// Abonelik etkin; dönem sonunda yenilenir.
     case subscribed(renewsAt: Date)
     /// Yöneticinin verdiği ücretsiz tam erişim: ödeme ve yenileme yok.
@@ -384,8 +437,8 @@ public enum HostedPlanStatus: Sendable, Equatable {
 /// denemesini başka bir hesapla kullandı; Apple DeviceCheck yalnızca toplantı açılırken sorulur, hak yanıtı bunu
 /// bilemez) ve hesap denemedeyse kalan deneme 0 gösterilir; kenar çubuğu, Hesap kartı ve Başlat düğmesi böylece aynı
 /// şeyi söyler. Abonelikte değişmez. Saf fonksiyondur.
-public func hostedEntitlementsOnThisMac(entitlements: HostedEntitlements, trialRefusedOnThisMac: Bool) -> HostedEntitlements {
-    guard trialRefusedOnThisMac, case .trial = hostedPlanStatus(entitlements: entitlements) else {
+public func hostedEntitlementsOnThisMac(entitlements: HostedEntitlements, trialRefusedOnThisMac: Bool, now: Date) -> HostedEntitlements {
+    guard trialRefusedOnThisMac, case .trial = hostedPlanStatus(entitlements: entitlements, now: now) else {
         return entitlements
     }
     var shown: HostedEntitlements = entitlements
@@ -408,9 +461,11 @@ public func isHostedTrialRefusalActive(refusedAt: Date?, now: Date, maxAgeSec: D
 /// Ödemesi alınamamış ama Stripe'ta süren aboneliğin durumları: erişim ek süreden sonra kapanır, abonelik bitmez.
 private let hostedUnpaidSubscriptionStatuses: Set<String> = ["past_due", "unpaid"]
 
-/// Hak yanıtından arayüz durumu: erişimi olan abonelik önce gelir, yoksa deneme. Erişimi kapanmış abonelikte deneme
-/// hakkı kalmadıysa ödemesi alınamamış (`paymentOverdue`) ya da bitmiş (`expired`) abonelik. Saf fonksiyondur.
-public func hostedPlanStatus(entitlements: HostedEntitlements) -> HostedPlanStatus {
+/// Hak yanıtından arayüz durumu: erişimi olan abonelik önce gelir, yoksa deneme (`hostedTrialState`, `now`'a göre).
+/// Erişimi kapanmış abonelikte deneme bittiyse ödemesi alınamamış (`paymentOverdue`) ya da bitmiş (`expired`)
+/// abonelik. Saf fonksiyondur.
+public func hostedPlanStatus(entitlements: HostedEntitlements, now: Date) -> HostedPlanStatus {
+    let trial: HostedTrialState = hostedTrialState(entitlements: entitlements, now: now)
     if let subscription = entitlements.subscription {
         switch subscription.access {
         case .active:
@@ -424,9 +479,9 @@ public func hostedPlanStatus(entitlements: HostedEntitlements) -> HostedPlanStat
         case .grace:
             return .grace(endsAt: subscription.graceEndsAt ?? subscription.currentPeriodEnd)
         case .none:
-            // Eski abone: deneme hakkı kalmadıysa "deneme bitti" değil "abonelik sona erdi". Stripe yenilemede dönem sonunu
+            // Eski abone: deneme bittiyse "deneme bitti" değil "abonelik sona erdi". Stripe yenilemede dönem sonunu
             // hemen ilerlettiği için ödemesi alınamamış abonelikte dönem sonu gelecektedir: "sona erdi" denmez.
-            if entitlements.trialMeetingsLeft == 0 {
+            if case .ended = trial {
                 if hostedUnpaidSubscriptionStatuses.contains(subscription.status) {
                     return .paymentOverdue
                 }
@@ -434,5 +489,5 @@ public func hostedPlanStatus(entitlements: HostedEntitlements) -> HostedPlanStat
             }
         }
     }
-    return .trial(left: entitlements.trialMeetingsLeft, total: entitlements.trialMeetingsTotal)
+    return .trial(trial)
 }

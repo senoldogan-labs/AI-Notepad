@@ -110,7 +110,7 @@ struct PhoneAccountScreen: View {
                 if phoneSubscriptionManagement(entitlements: entitlements) != .subscribe {
                     planSection(entitlements: entitlements)
                 }
-                switch hostedPlanStatus(entitlements: entitlements) {
+                switch hostedPlanStatus(entitlements: entitlements, now: Date()) {
                 case .subscribed, .complimentary, .ending, .grace:
                     PhoneReferralSection(account: account)
                 case .trial, .expired, .paymentOverdue:
@@ -153,7 +153,7 @@ struct PhoneAccountScreen: View {
     /// Plan durumu ve aboneliğin yönetimi. Denemede ve sona ermiş abonelikte "Abone ol" kullanım kartındadır.
     @ViewBuilder
     private func planSection(entitlements: HostedEntitlements) -> some View {
-        let status: HostedPlanStatus = hostedPlanStatus(entitlements: entitlements)
+        let status: HostedPlanStatus = hostedPlanStatus(entitlements: entitlements, now: Date())
         Section {
             Text(verbatim: hostedPlanStatusText(status: status))
             switch phoneSubscriptionManagement(entitlements: entitlements) {

@@ -117,7 +117,7 @@ private func phonePlanAction(account: HostedAccount) -> PhonePlanAction? {
     if case .signedInStatusUnknown = account.state {
         return .retry
     }
-    guard case .signedIn(let entitlements) = account.state, let block = hostedStartBlock(entitlements: entitlements) else {
+    guard case .signedIn(let entitlements) = account.state, let block = hostedStartBlock(entitlements: entitlements, now: Date()) else {
         return nil
     }
     switch hostedStartBlockRemedy(block: block) {
@@ -153,8 +153,8 @@ struct PhonePlanNotice: View {
                     .disabled(account.isWorking)
                 }
             }
-        } else if case .signedIn(let entitlements) = account.state, case .trial(let left, _) = hostedPlanStatus(entitlements: entitlements) {
-            Label(String(localized: "Ücretsiz deneme: \(hostedTrialLeftText(left: left))."), systemImage: "sparkles")
+        } else if case .signedIn(let entitlements) = account.state, case .trial(let trialState) = hostedPlanStatus(entitlements: entitlements, now: Date()) {
+            Label(String(localized: "Ücretsiz deneme: \(hostedTrialLeftText(left: trialState.meetingsLeft))."), systemImage: "sparkles")
                 .appFont(size: 13, weight: .medium)
                 .foregroundStyle(Theme.muted)
         }

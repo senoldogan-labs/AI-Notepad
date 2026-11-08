@@ -70,7 +70,7 @@ private let stripeSubscriptionJSON: String =
         #expect(phase == .finishing)
         phase = paywallPhase(current: phase, event: .entitlementTimedOut(message: "not yet"))
         #expect(phase == .finishingFailed(message: "not yet"))
-        #expect(!canChoosePaywallPackage(phase: phase))
+        #expect(!canChoosePaywallPackage(phase: phase, packagesLoaded: true))
         phase = paywallPhase(current: phase, event: .retryFinishing)
         #expect(phase == .finishing)
         #expect(paywallPhase(current: phase, event: .entitlementArrived) == .completed)
@@ -88,6 +88,18 @@ private let stripeSubscriptionJSON: String =
         #expect(paywallPhase(current: .purchaseFailed(message: "x"), event: .purchaseTapped(plan: .monthly)) == .purchasing(plan: .monthly))
         #expect(paywallPhase(current: .loadingProducts, event: .productsFailed(message: "y")) == .productsUnavailable(message: "y"))
         #expect(paywallPhase(current: .productsUnavailable(message: "y"), event: .retryProducts) == .loadingProducts)
+    }
+
+    // Fiyatlar okunamadan yapılan geri yükleme başarısız ya da boş biterse ekran seçime döner ama satın alınacak paket
+    // yoktur: satın alma açılmaz (yoksa `packagesNotLoaded` hatası alınırdı).
+    @Test func paywallPurchaseNeedsLoadedPackages() {
+        var phase: PaywallPhase = paywallPhase(current: .productsUnavailable(message: "offline"), event: .restoreTapped)
+        phase = paywallPhase(current: phase, event: .storeFailed(message: "x"))
+        #expect(phase == .purchaseFailed(message: "x"))
+        #expect(!canChoosePaywallPackage(phase: phase, packagesLoaded: false))
+        #expect(canChoosePaywallPackage(phase: phase, packagesLoaded: true))
+        #expect(!canChoosePaywallPackage(phase: .nothingToRestore, packagesLoaded: false))
+        #expect(canChoosePaywallPackage(phase: .choosing, packagesLoaded: true))
     }
 
     // Silme onayı: Stripe iptal edilir, yenilenecek App Store aboneliği Apple'da iptal edilmeli.

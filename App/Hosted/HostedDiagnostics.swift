@@ -49,12 +49,12 @@ private func hostedPlanDiagnostics(entitlements: HostedEntitlements, dateText: (
         value: hostedMonthlyUsageText(used: entitlements.monthlyHoursUsed, cap: entitlements.monthlyHoursCap),
         status: usageStatus
     )
-    switch hostedPlanStatus(entitlements: entitlements) {
-    case .trial(let left, _):
+    switch hostedPlanStatus(entitlements: entitlements, now: Date()) {
+    case .trial(let trialState):
         let ends: String = entitlements.trialEndsAt.map(dateText) ?? String(localized: "ilk toplantıyla başlar")
         return [
             DiagnosticsItem(label: planLabel, value: String(localized: "Deneme"), status: .plain),
-            DiagnosticsItem(label: String(localized: "Kalan deneme"), value: hostedTrialLeftText(left: left), status: .plain),
+            DiagnosticsItem(label: String(localized: "Kalan deneme"), value: hostedTrialLeftText(left: trialState.meetingsLeft), status: .plain),
             DiagnosticsItem(label: String(localized: "Deneme bitişi"), value: ends, status: .plain),
             usage,
         ]

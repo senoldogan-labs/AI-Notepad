@@ -9,14 +9,15 @@ import os
 
 private let consentLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "PhoneAIConsent")
 
-/// Oturumdaki hesap yapay zekâ açıklamasını onayladı mı. Oturum yoksa (giriş kapısı açık) false. Önceki sürümlerin
-/// cihaz başına onayı, ilk giren hesabın onayı sayılır (`migrateLegacyPhoneAIConsent` onu o hesaba taşır).
+/// Oturumdaki hesap yapay zekâ açıklamasını onayladı mı. Sunucu oturumu bitirdiyse son hesabınki (kayıt sürerken
+/// açıklama kaydın üstüne gelmesin; bkz. `HostedSessionState.ended`); hiç oturum yoksa (giriş kapısı açık) false. Önceki
+/// sürümlerin cihaz başına onayı, ilk giren hesabın onayı sayılır (`migrateLegacyPhoneAIConsent` onu o hesaba taşır).
 @MainActor
 func phoneAIConsentGiven(account: HostedAccount) -> Bool {
     if phoneIsDemoLaunch() {
         return UserDefaults.standard.bool(forKey: PhoneSettingsKey.aiDisclosureAccepted)
     }
-    guard let userID = account.signedInUserIDCache else {
+    guard let userID = account.session.lastUserID else {
         return false
     }
     if UserDefaults.standard.bool(forKey: PhoneSettingsKey.aiDisclosureAccepted) {

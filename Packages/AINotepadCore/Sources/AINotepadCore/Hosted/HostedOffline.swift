@@ -3,20 +3,26 @@ import Foundation
 // Abonelik sürümünde çevrimdışı kayıt: sunucuya ulaşılamazsa kayıt yine başlar (canlı metin Mac'te), toplantı
 // "işlenmeyi bekliyor" olur; bağlantı gelince sunucuda bir oturum açılır (sunucu hakları yine denetler; aynı kayıt
 // için yinelenen başlatma `clientRef` sayesinde aynı oturumu döndürür), son geçiş ve not o oturumla üretilir.
-// Çevrimdışı başlatma, son bilinen hak durumu kaydı en çok 7 gün önce izin verdiyse yapılabilir.
+// Çevrimdışı başlatma, son bilinen hak durumu kaydı en çok 7 gün önce izin verdiyse ve hakkın bitişi (deneme süresi,
+// iptal edilmiş aboneliğin ya da ek sürenin sonu) gelmediyse yapılabilir; kayıt o bitişi geçemez.
 
-/// Son bilinen hak durumunun çevrimdışı kayda izni: kimin, ne zaman, en çok kaç dakikalık kayıt.
+/// Son bilinen hak durumunun çevrimdışı kayda izni: kimin, ne zaman, en çok kaç dakikalık kayıt ve ne zamana dek.
+/// `validUntil` alanını taşımayan eski izin çözülemez (izin yok sayılır; sonraki başarılı okuma yenisini yazar).
 public struct HostedOfflinePermit: Codable, Sendable, Equatable {
     public let userId: String
     /// İzni veren hak durumunun okunduğu an.
     public let checkedAt: Date
     /// O andaki planla bir toplantının en çok süresi (deneme ya da abonelik üst sınırı ve kalan aylık süre).
     public let maxMinutes: Int
+    /// İznin bittiği an: okumadan en çok `hostedOfflinePermitMaxAgeSec` sonra, hak daha önce bitiyorsa (deneme süresi,
+    /// iptal edilmiş aboneliğin ya da ek sürenin sonu) o an.
+    public let validUntil: Date
 
-    public init(userId: String, checkedAt: Date, maxMinutes: Int) {
+    public init(userId: String, checkedAt: Date, maxMinutes: Int, validUntil: Date) {
         self.userId = userId
         self.checkedAt = checkedAt
         self.maxMinutes = maxMinutes
+        self.validUntil = validUntil
     }
 }
 
@@ -24,36 +30,56 @@ public struct HostedOfflinePermit: Codable, Sendable, Equatable {
 public let hostedOfflinePermitMaxAgeSec: Double = 7 * 86_400
 
 /// Hak durumundan çevrimdışı izin: kayıt başlatılabiliyorsa izin (süre: deneme ya da abonelik üst sınırı, abonede kalan
-/// aylık dakikayla sınırlı), başlatılamıyorsa (deneme bitti, sınır doldu) nil. Saf fonksiyondur.
-public func hostedOfflinePermit(entitlements: HostedEntitlements, now: Date) -> HostedOfflinePermit? {
-    guard hostedStartBlock(entitlements: entitlements) == nil else {
+/// aylık dakikayla sınırlı; geçerlilik: en çok `maxAgeSec`, hak daha önce bitiyorsa o ana dek), başlatılamıyorsa
+/// (deneme bitti, sınır doldu) nil. Yenilenen abonelik ve ücretsiz erişim için bitiş yoktur (yenileme ödemesi
+/// alınamazsa sunucu ek süre tanır). Saf fonksiyondur.
+public func hostedOfflinePermit(entitlements: HostedEntitlements, now: Date, maxAgeSec: Double) -> HostedOfflinePermit? {
+    let minutes: Int
+    let entitlementEnd: Date?
+    switch hostedPlanStatus(entitlements: entitlements, now: now) {
+    case .trial(.ended), .expired, .paymentOverdue:
+        return nil
+    case .trial(.notStarted):
+        // Deneme ilk toplantıyla başlar: süresi o toplantıdan sonra işler.
+        minutes = hostedUsualTrialMeetingMinutes
+        entitlementEnd = nil
+    case .trial(.running(_, _, let endsAt)):
+        minutes = hostedUsualTrialMeetingMinutes
+        entitlementEnd = endsAt
+    case .subscribed, .complimentary:
+        minutes = hostedSubscriberOfflineMinutes(entitlements: entitlements)
+        entitlementEnd = nil
+    case .ending(let endsAt), .grace(let endsAt):
+        minutes = hostedSubscriberOfflineMinutes(entitlements: entitlements)
+        entitlementEnd = endsAt
+    }
+    let maxAgeEnd: Date = now.addingTimeInterval(maxAgeSec)
+    let validUntil: Date = entitlementEnd.map { (end: Date) -> Date in min(end, maxAgeEnd) } ?? maxAgeEnd
+    guard minutes > 0, validUntil > now else {
         return nil
     }
-    let minutes: Int
-    switch hostedPlanStatus(entitlements: entitlements) {
-    case .trial:
-        minutes = hostedUsualTrialMeetingMinutes
-    case .expired, .paymentOverdue:
-        // `hostedStartBlock` bu durumda kaydı engeller; buraya gelinmez.
-        minutes = 0
-    case .subscribed, .complimentary, .ending, .grace:
-        let remaining: Int = Int(((entitlements.monthlyHoursCap - entitlements.monthlyHoursUsed) * 60).rounded(.down))
-        minutes = max(0, min(hostedUsualSubscriberMeetingMinutes, remaining))
-    }
-    return minutes > 0 ? HostedOfflinePermit(userId: entitlements.userId, checkedAt: now, maxMinutes: minutes) : nil
+    return HostedOfflinePermit(userId: entitlements.userId, checkedAt: now, maxMinutes: minutes, validUntil: validUntil)
 }
 
-/// Çevrimdışı kayıt yapılabilir mi: izin aynı hesabın ve en çok `maxAgeSec` önceki olmalı; yapılabiliyorsa en çok süre
-/// (dakika), yapılamıyorsa nil. Saf fonksiyondur.
-public func hostedOfflineRecordingMinutes(permit: HostedOfflinePermit?, userId: String?, now: Date, maxAgeSec: Double) -> Int? {
+/// Abonenin çevrimdışı toplantısının en çok süresi: olağan üst süre, kalan aylık dakikayla sınırlı (en az 0).
+private func hostedSubscriberOfflineMinutes(entitlements: HostedEntitlements) -> Int {
+    let remaining: Int = Int(((entitlements.monthlyHoursCap - entitlements.monthlyHoursUsed) * 60).rounded(.down))
+    return max(0, min(hostedUsualSubscriberMeetingMinutes, remaining))
+}
+
+/// Çevrimdışı kayıt yapılabilir mi: izin aynı hesabın olmalı, okunduğu andan sonra ve bitişinden (`validUntil`) önce
+/// olunmalı. Yapılabiliyorsa en çok süre (dakika): iznin süresi, iznin bitişine kalan tam dakikayla sınırlı (kayıt
+/// deneme ya da abonelik bittikten sonra sürmez); bir dakikadan az kaldıysa ya da yapılamıyorsa nil. Saf fonksiyondur.
+public func hostedOfflineRecordingMinutes(permit: HostedOfflinePermit?, userId: String?, now: Date) -> Int? {
     guard let permit, let userId, permit.userId == userId else {
         return nil
     }
-    let age: Double = now.timeIntervalSince(permit.checkedAt)
-    guard age >= 0, age <= maxAgeSec else {
+    guard now >= permit.checkedAt, now < permit.validUntil else {
         return nil
     }
-    return permit.maxMinutes
+    let untilEnd: Int = Int((permit.validUntil.timeIntervalSince(now) / 60).rounded(.down))
+    let minutes: Int = min(permit.maxMinutes, untilEnd)
+    return minutes > 0 ? minutes : nil
 }
 
 /// Toplantı başlatma hatası sunucuya ulaşılamamaktan mı (ağ yok, sunucu ya da önündeki vekil yanıt vermiyor): öyleyse

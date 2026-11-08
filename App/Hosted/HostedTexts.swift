@@ -104,8 +104,10 @@ func pauseConfirmationTexts() -> [String] {
 /// Plan durumunun tek cümlesi (Ayarlar'ın üstündeki plan kartı, iPhone'daki hesap ekranı). Saf fonksiyondur.
 func hostedPlanStatusText(status: HostedPlanStatus) -> String {
     switch status {
-    case .trial(let left, _):
-        left == 0 ? String(localized: "Ücretsiz denemen bitti.") : String(localized: "Ücretsiz deneme: \(hostedTrialLeftText(left: left)).")
+    case .trial(.ended):
+        String(localized: "Ücretsiz denemen bitti.")
+    case .trial(let trialState):
+        String(localized: "Ücretsiz deneme: \(hostedTrialLeftText(left: trialState.meetingsLeft)).")
     case .subscribed(let renewsAt):
         String(localized: "Abonelik etkin; dönem \(hostedDayText(date: renewsAt)) tarihinde yenilenir.")
     case .complimentary:
@@ -129,7 +131,7 @@ func hostedAccountSummary(state: HostedAccountState) -> String {
     case .signedOut:
         String(localized: "Giriş yapılmadı")
     case .signedIn(let entitlements):
-        hostedPlanStatusText(status: hostedPlanStatus(entitlements: entitlements))
+        hostedPlanStatusText(status: hostedPlanStatus(entitlements: entitlements, now: Date()))
     case .signedInStatusUnknown:
         String(localized: "Hesap durumu şu an okunamıyor.")
     case .unavailable(let message):
@@ -143,14 +145,16 @@ func hostedBannerPlanStatus(state: HostedAccountState) -> HostedPlanStatus? {
     guard case .signedIn(let entitlements) = state else {
         return nil
     }
-    return hostedPlanStatus(entitlements: entitlements)
+    return hostedPlanStatus(entitlements: entitlements, now: Date())
 }
 
 /// Ayarlar'ın üstündeki plan kartının başlığı: planın tek bakışta adı. Saf fonksiyondur.
 func hostedPlanHeadline(status: HostedPlanStatus) -> String {
     switch status {
-    case .trial(let left, _):
-        left == 0 ? String(localized: "Deneme bitti") : String(localized: "Ücretsiz deneme")
+    case .trial(.ended):
+        String(localized: "Deneme bitti")
+    case .trial:
+        String(localized: "Ücretsiz deneme")
     case .subscribed, .ending:
         String(localized: "Abonelik")
     case .complimentary:
@@ -166,8 +170,10 @@ func hostedPlanHeadline(status: HostedPlanStatus) -> String {
 /// denemede ne yapılacağı; başka durumda planın cümlesi. Saf fonksiyondur.
 func hostedPlanBannerDetail(status: HostedPlanStatus) -> String {
     switch status {
-    case .trial(let left, _):
-        left == 0 ? String(localized: "Yeni toplantılar için abone ol; toplantıların ve notların kalır.") : hostedTrialLeftText(left: left)
+    case .trial(.ended):
+        String(localized: "Yeni toplantılar için abone ol; toplantıların ve notların kalır.")
+    case .trial(let trialState):
+        hostedTrialLeftText(left: trialState.meetingsLeft)
     case .subscribed, .complimentary, .ending, .grace, .paymentOverdue, .expired:
         hostedPlanStatusText(status: status)
     }

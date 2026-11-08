@@ -24,6 +24,26 @@ public func hostedTokenAction(tokens: HostedTokens?, now: Date, leewaySec: Doubl
     return .refresh(refreshToken: tokens.refreshToken)
 }
 
+/// Sunucu bir erişim jetonunu 401 ile reddettikten sonra ne yapılacağı. Saf fonksiyondur: saklanan jetonlar reddedilen
+/// jetondan farklıysa (bu arada başka bir istek yeniledi ya da yeni giriş yapıldı) yenilemeden onlar kullanılır; yoksa
+/// yenilenir. Böylece geç gelen bayat 401 gereksiz bir yenileme (ve yenileme jetonu döndürme) yapmaz.
+public func hostedTokenActionAfterRejection(tokens: HostedTokens?, rejectedAccessToken: String) -> HostedTokenAction {
+    guard let tokens else {
+        return .signedOut
+    }
+    if tokens.accessToken != rejectedAccessToken {
+        return .use(accessToken: tokens.accessToken)
+    }
+    return .refresh(refreshToken: tokens.refreshToken)
+}
+
+/// Bellekteki jeton önbelleği: saklama alanı henüz okunmadı ya da okundu (oturum yoksa nil). Tek değer "okunmadı" ile
+/// "okundu, oturum yok"u karıştırmaz.
+public enum HostedTokenCache: Sendable, Equatable {
+    case unloaded
+    case loaded(HostedTokens?)
+}
+
 /// Yenileme başladığından beri oturum değişmedi mi (çıkış, hesap silme, yeni giriş ya da ret kuşağı artırır): değiştiyse
 /// dönen jetonlar yazılmaz (çıkış yapılmış oturum geri gelmez) ve ret yeni oturumu silmez. Saf fonksiyondur.
 public func isCurrentSessionGeneration(started: Int, current: Int) -> Bool {

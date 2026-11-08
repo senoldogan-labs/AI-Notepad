@@ -79,13 +79,12 @@ public enum HostedUsageNotice: String, Sendable, Equatable, CaseIterable {
 }
 
 /// Hak durumundan gösterilecek bildirim (varsa): abonede aylık doluluk, denemede kalan toplantı. Saf fonksiyondur.
-public func hostedUsageNotice(entitlements: HostedEntitlements) -> HostedUsageNotice? {
-    switch hostedPlanStatus(entitlements: entitlements) {
-    case .trial(let left, _):
-        if left == 0 {
-            return .trialEnded
-        }
-        return left == 1 ? .trialOneLeft : nil
+public func hostedUsageNotice(entitlements: HostedEntitlements, now: Date) -> HostedUsageNotice? {
+    switch hostedPlanStatus(entitlements: entitlements, now: now) {
+    case .trial(.ended):
+        return .trialEnded
+    case .trial(let trial):
+        return trial.meetingsLeft == 1 ? .trialOneLeft : nil
     case .expired, .paymentOverdue:
         // Başlat düğmesinin yanındaki neden yeterli (bkz. `hostedStartBlock`).
         return nil
@@ -137,11 +136,14 @@ public enum HostedStartBlock: Sendable, Equatable {
 }
 
 /// Hak durumuna göre kayıt başlayabilir mi; başlayamıyorsa neden. Ek süredeki ve iptal edilip dönemi süren abonelik
-/// kayıt yapabilir (sınır dolmadıkça). Saf fonksiyondur.
-public func hostedStartBlock(entitlements: HostedEntitlements) -> HostedStartBlock? {
-    switch hostedPlanStatus(entitlements: entitlements) {
-    case .trial(let left, _):
-        return left == 0 ? .trialEnded : nil
+/// kayıt yapabilir (sınır dolmadıkça). Deneme süresi hak durumu okunduktan sonra dolduysa da kayıt başlamaz (`now`).
+/// Saf fonksiyondur.
+public func hostedStartBlock(entitlements: HostedEntitlements, now: Date) -> HostedStartBlock? {
+    switch hostedPlanStatus(entitlements: entitlements, now: now) {
+    case .trial(.ended):
+        return .trialEnded
+    case .trial(.notStarted), .trial(.running):
+        return nil
     case .expired:
         return .subscriptionEnded
     case .paymentOverdue:
@@ -260,16 +262,16 @@ public let hostedUpsellIntervalSec: Double = 24 * 60 * 60
 /// Deneme süresinin bitmesine bu kadar (saniye) kala deneme "bitmek üzere" sayılır.
 public let hostedTrialEndingWindowSec: Double = 48 * 60 * 60
 
-/// Deneme bitmek üzere mi: tek toplantı kaldı ya da süresi `hostedTrialEndingWindowSec` içinde doluyor (kalan 0 ise
-/// bitmiştir, bitmek üzere değil). Saf fonksiyondur.
-public func isHostedTrialEnding(entitlements: HostedEntitlements, left: Int, now: Date) -> Bool {
-    guard left > 0 else {
+/// Deneme bitmek üzere mi: sürüyor ve tek toplantı kaldı ya da süresi `hostedTrialEndingWindowSec` içinde doluyor
+/// (bitmiş ya da başlamamış deneme bitmek üzere değildir). Saf fonksiyondur.
+public func isHostedTrialEnding(trial: HostedTrialState, now: Date) -> Bool {
+    guard case .running(let left, _, let endsAt) = trial else {
         return false
     }
     if left == 1 {
         return true
     }
-    guard let endsAt = entitlements.trialEndsAt else {
+    guard let endsAt else {
         return false
     }
     return endsAt.timeIntervalSince(now) <= hostedTrialEndingWindowSec
@@ -282,13 +284,13 @@ public func isHostedTrialEnding(entitlements: HostedEntitlements, left: Int, now
 public func hostedUpsellMoment(
     entitlements: HostedEntitlements, lastShownAt: Date?, trialEndedShown: Bool, trialEndingShown: Bool, now: Date, intervalSec: Double
 ) -> HostedUpsellMoment? {
-    guard case .trial(let left, _) = hostedPlanStatus(entitlements: entitlements) else {
+    guard case .trial(let trial) = hostedPlanStatus(entitlements: entitlements, now: now) else {
         return nil
     }
-    if left == 0 {
+    if case .ended = trial {
         return trialEndedShown ? nil : .trialEnded
     }
-    if !trialEndingShown && isHostedTrialEnding(entitlements: entitlements, left: left, now: now) {
+    if !trialEndingShown && isHostedTrialEnding(trial: trial, now: now) {
         return .trialEnding
     }
     if let lastShownAt, now.timeIntervalSince(lastShownAt) < intervalSec {

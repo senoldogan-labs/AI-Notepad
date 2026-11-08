@@ -93,8 +93,7 @@ func hostedExpectedLiveEngine(account: HostedAccount) -> HostedLiveEngine {
 @MainActor
 func hostedAskUnavailableReason(account: HostedAccount) -> String? {
     // Hakkı yoksa (deneme bitti, bu Mac'te kullanıldı) "önce toplantı kaydet" denmez: sorunca abone olma teklifi açılır.
-    guard case .signedIn(let entitlements) = account.state, entitlements.plan == .trial, entitlements.trialEndsAt == nil,
-          !account.requiresSubscription else {
+    guard case .signedIn(let entitlements) = account.state, case .trial(.notStarted) = hostedPlanStatus(entitlements: entitlements, now: Date()) else {
         return nil
     }
     return String(localized: "Önce bir toplantı kaydet: ücretsiz deneme ilk toplantıyla başlar, sonra toplantılarına soru sorabilirsin.")
@@ -298,12 +297,12 @@ func hostedStartBlockNotice() -> StartBlockNotice? {
     if case .signedInStatusUnknown = HostedAccount.shared.state {
         // İzin oturumdaki kullanıcınınsa geçer (başka hesabın son izni bu hesaba kayıt açmaz).
         let permit: HostedOfflinePermit? = loadHostedOfflinePermit()
-        guard hostedOfflineRecordingMinutes(permit: permit, userId: HostedAccount.shared.signedInUserIDCache, now: Date(), maxAgeSec: hostedOfflinePermitMaxAgeSec) == nil else {
+        guard hostedOfflineRecordingMinutes(permit: permit, userId: HostedAccount.shared.signedInUserIDCache, now: Date()) == nil else {
             return nil
         }
         return StartBlockNotice(reason: userFacingMessage(error: HostedClientError.offlineNotAllowed), action: .retry)
     }
-    guard case .signedIn(let entitlements) = HostedAccount.shared.state, let block = hostedStartBlock(entitlements: entitlements) else {
+    guard case .signedIn(let entitlements) = HostedAccount.shared.state, let block = hostedStartBlock(entitlements: entitlements, now: Date()) else {
         return nil
     }
     switch block {

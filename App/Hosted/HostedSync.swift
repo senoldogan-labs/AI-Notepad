@@ -251,11 +251,20 @@ final class HostedSyncCenter {
         isChangingSetup = true
         defer { isChangingSetup = false }
         setupError = nil
-        await stopEngine()
+        let stamp: HostedScopeStamp = HostedScopeStamp(generation: await stopEngine(), accountKey: scope.accountKey, userID: scope.userID)
+        // İstek oturumdaki hesapla gider: motor dururken hesap değiştiyse ya da oturum bittiyse başka hesabın eşitlemesi
+        // kapanırdı (yeni kapsamı `update` kurar).
+        guard isActionCurrent(stamp: stamp) else {
+            hostedSyncLogger.info("Eşitlemeyi kapatırken hesap değişti; istek gönderilmedi")
+            return
+        }
         do {
             try await stopSync(client: try makeClient(), keyStore: try keyStore(accountKey: scope.accountKey), metadataDirectory: try metadataDirectory(accountKey: scope.accountKey))
         } catch {
             hostedSyncLogger.error("Eşitleme kapatılamadı, hata: \(String(describing: error), privacy: .private)")
+            guard isActionCurrent(stamp: stamp) else {
+                return
+            }
             setupError = hostedSyncMessage(error: error)
             // Kapatılamadı: eşitleme açık kalır ve sürer.
             if isOn {
@@ -263,8 +272,22 @@ final class HostedSyncCenter {
             }
             return
         }
-        markOff(accountKey: scope.accountKey)
+        // Sunucuda kapandı: o hesabın kaydı her durumda kapalı yazılır; ekran yalnızca hesap değişmediyse güncellenir.
+        storeOff(accountKey: scope.accountKey)
+        guard isActionCurrent(stamp: stamp) else {
+            hostedSyncLogger.info("Eşitleme kapatıldı; hesap bu arada değiştiği için ekran güncellenmedi")
+            return
+        }
+        showOff()
         hostedSyncLogger.info("Eşitleme kapatıldı, sunucudaki kopya silindi")
+    }
+
+    /// Bekleyen bir hesap eylemi (`stamp`) hâlâ bu hesabın bu çalışmasına mı ait ve oturum hâlâ o hesapta mı (bkz.
+    /// `hostedAccountActionIsCurrent`).
+    private func isActionCurrent(stamp: HostedScopeStamp) -> Bool {
+        hostedAccountActionIsCurrent(
+            stamp: stamp, generation: generation, accountKey: scope?.accountKey, userID: scope?.userID, sessionUserID: HostedAccount.shared.signedInUserIDCache
+        )
     }
 
     /// Bağlantı kodu girilmesi beklenirken eşitlemeyi bu cihazda vazgeçerek kapatır (sunucuya dokunulmaz).
@@ -699,8 +722,14 @@ final class HostedSyncCenter {
         return stopped
     }
 
-    /// Eşitlemeyi bu hesapta bu cihaz için kapalı yazar.
+    /// Eşitlemeyi bu hesapta bu cihaz için kapalı yazar ve gösterir.
     private func markOff(accountKey: String) {
+        storeOff(accountKey: accountKey)
+        showOff()
+    }
+
+    /// Eşitlemeyi `accountKey` hesabının ayarlarına bu cihaz için kapalı yazar (ekrana dokunmaz).
+    private func storeOff(accountKey: String) {
         do {
             let defaults: UserDefaults = try hostedAccountDefaults(accountKey: accountKey)
             defaults.set(false, forKey: HostedSyncDefaultsKey.enabled)
@@ -709,6 +738,10 @@ final class HostedSyncCenter {
         } catch {
             hostedSyncLogger.error("Eşitleme ayarı yazılamadı, hata: \(String(describing: error), privacy: .private)")
         }
+    }
+
+    /// Ekrandaki eşitlemeyi kapalı gösterir.
+    private func showOff() {
         isOn = false
         status = .off
         linkCode = nil

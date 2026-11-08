@@ -159,9 +159,13 @@ public func isPaywallBusy(phase: PaywallPhase) -> Bool {
     }
 }
 
-/// Paket seçimi yapılabilir mi (fiyatlar okundu, iş sürmüyor). Saf fonksiyondur.
-public func canChoosePaywallPackage(phase: PaywallPhase) -> Bool {
-    switch phase {
+/// Paket seçimi yapılabilir mi: fiyatlar okundu (`packagesLoaded`) ve iş sürmüyor. Fiyatlar okunamadan yapılan geri
+/// yükleme bitince (bulunamadı ya da başarısız) ekran seçime döner ama satın alınacak paket yoktur. Saf fonksiyondur.
+public func canChoosePaywallPackage(phase: PaywallPhase, packagesLoaded: Bool) -> Bool {
+    guard packagesLoaded else {
+        return false
+    }
+    return switch phase {
     case .choosing, .nothingToRestore, .purchaseFailed:
         true
     case .loadingProducts, .productsUnavailable, .purchasing, .restoring, .finishing, .completed, .finishingFailed:

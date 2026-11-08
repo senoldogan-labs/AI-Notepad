@@ -152,7 +152,7 @@ struct HostedAccountSettings: View {
 
     @ViewBuilder
     private func signedIn(entitlements: HostedEntitlements) -> some View {
-        let status: HostedPlanStatus = hostedPlanStatus(entitlements: entitlements)
+        let status: HostedPlanStatus = hostedPlanStatus(entitlements: entitlements, now: Date())
         // iPhone'dan (App Store) alınan abonelik yalnızca Apple'da yönetilir: Stripe portalı ve kart güncelleme yok.
         let appStoreManaged: Bool = isHostedAppStoreManaged(entitlements: entitlements)
         SettingsGroup(title: Text("Abonelik")) {
