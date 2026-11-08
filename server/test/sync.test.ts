@@ -15,6 +15,7 @@ import {
   syncR2ClassABudget,
   syncR2ClassBBudget,
   syncR2StoredBytesBudget,
+  syncRetentionWipeStatements,
   syncUsageMonth,
 } from "../src/sync";
 import { parseConfig } from "../src/config";
@@ -474,5 +475,48 @@ describe("sync cleanup and account deletion", () => {
     expect(await blobKeys(reader.session.userId)).toHaveLength(1);
     expect((await env.SYNC_BUCKET.list({ prefix: orphanPrefix })).objects).toEqual([]);
     expect(await env.DB.prepare("SELECT COUNT(*) AS count FROM sync_purges WHERE prefix = ?").bind(orphanPrefix).first<{ count: number }>()).toEqual({ count: 0 });
+  });
+
+  it("the retention wipe removes nothing when access came back or sync was reset after the cleanup read the account", async () => {
+    const harness: Harness = await defaultHarness();
+    const cutoff: number = harness.clock.nowMs - 90 * dayMs;
+    const stale = async (user: SyncUser): Promise<number> => {
+      // Unseen with access for 91 days, as the cleanup reads it.
+      await env.DB.prepare("UPDATE sync_accounts SET access_seen_at = ? WHERE user_id = ?").bind(harness.clock.nowMs - 91 * dayMs, user.session.userId).run();
+      const row = await env.DB.prepare("SELECT enabled_at FROM sync_accounts WHERE user_id = ?").bind(user.session.userId).first<{ enabled_at: number }>();
+      return row?.enabled_at ?? 0;
+    };
+    const wipe = async (user: SyncUser, epoch: number): Promise<number> => {
+      const results: D1Result[] = await env.DB.batch(syncRetentionWipeStatements(env.DB, user.session.userId, epoch, cutoff, new Date(harness.clock.nowMs)));
+      return results.reduce((sum: number, result: D1Result): number => sum + result.meta.changes, 0);
+    };
+    const queued = async (user: SyncUser): Promise<number> => count("SELECT COUNT(*) AS count FROM sync_purges WHERE prefix LIKE ? || '%'", syncPrefix(user.session.userId));
+
+    // The user writes between the cleanup's read and its wipe: the fresh object stays.
+    const writer: SyncUser = await syncUser(harness);
+    const epoch: number = await stale(writer);
+    const fresh: string = randomId();
+    await putRev(harness, writer, fresh, "meeting.state", 0);
+    expect(await wipe(writer, epoch)).toBe(0);
+    expect(await count("SELECT COUNT(*) AS count FROM sync_objects WHERE user_id = ?", writer.session.userId)).toBe(1);
+    expect(await blobKeys(writer.session.userId)).toHaveLength(1);
+    expect(await queued(writer)).toBe(0);
+
+    // Sync was turned off and on again (a new epoch) in between: the new epoch's copy stays.
+    const resetter: SyncUser = await syncUser(harness);
+    const oldEpoch: number = await stale(resetter);
+    await env.DB.prepare("UPDATE sync_accounts SET enabled_at = enabled_at + 1 WHERE user_id = ?").bind(resetter.session.userId).run();
+    expect(await wipe(resetter, oldEpoch)).toBe(0);
+    expect(await count("SELECT COUNT(*) AS count FROM sync_accounts WHERE user_id = ?", resetter.session.userId)).toBe(1);
+    expect(await queued(resetter)).toBe(0);
+
+    // Unchanged since the read: the copy is wiped and the epoch queued for R2 deletion.
+    const lapsed: SyncUser = await syncUser(harness);
+    await putRev(harness, lapsed, randomId(), "meeting.state", 0);
+    const lapsedEpoch: number = await stale(lapsed);
+    expect(await wipe(lapsed, lapsedEpoch)).toBe(3);
+    expect(await count("SELECT COUNT(*) AS count FROM sync_accounts WHERE user_id = ?", lapsed.session.userId)).toBe(0);
+    expect(await count("SELECT COUNT(*) AS count FROM sync_objects WHERE user_id = ?", lapsed.session.userId)).toBe(0);
+    expect(await queued(lapsed)).toBe(1);
   });
 });
