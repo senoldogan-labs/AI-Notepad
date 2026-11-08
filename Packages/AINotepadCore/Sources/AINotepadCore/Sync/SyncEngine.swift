@@ -298,6 +298,7 @@ public actor SyncEngine {
     private var generationCounter: UInt64 = 0
     private var debounceTask: Task<Void, Never>?
     private var lastPass: Task<Void, Never>?
+    private var lifecycle: SyncEngineLifecycle = .open
     private var tally: SyncTally = SyncTally()
 
     /// Opens the engine with the ledger and queue stored in `files`. `userID` binds every object to the account
@@ -320,30 +321,40 @@ public actor SyncEngine {
 
     // MARK: Public
 
-    /// A local item changed: queue it and sync after the debounce wait.
+    /// A local item changed: queue it and sync after the debounce wait. Throws `SyncEngineError.stopped` after `stop()`.
     public func noteLocalChange(item: SyncLocalItem) throws {
+        try require(request: .queue)
         try enqueue(items: [item])
         scheduleDebouncedPass()
     }
 
     /// Queues every local item (sync was just turned on, or the bookkeeping was reset); the next pass compares them all.
     public func queueEverything() async throws {
+        try require(request: .queue)
         let meetings: [SyncLocalItem] = try await store.meetingIDs().sorted().map { SyncLocalItem.meeting(id: $0) }
         let chats: [SyncLocalItem] = try await store.askChatIDs().sorted { $0.uuidString < $1.uuidString }.map { SyncLocalItem.askChat(id: $0) }
+        // Listing awaited the store: `stop()` may have come meanwhile.
+        try require(request: .queue)
         try enqueue(items: meetings + chats + [.people, .prefs])
     }
 
-    /// Runs a pass now (after the running one, if any) and returns what it did.
+    /// Runs a pass now (after the running one, if any) and returns what it did. Throws `SyncEngineError.stopped` after
+    /// `stop()`, also for a pass that was still waiting for the one before it; that is not handed to the observer.
     public func syncNow() async throws -> SyncPassReport {
+        try require(request: .pass)
         let previous: Task<Void, Never>? = lastPass
         let pass: Task<SyncPassReport, any Error> = Task { () async throws -> SyncPassReport in
             await previous?.value
+            try self.require(request: .pass)
             return try await self.runPass()
         }
         lastPass = Task { () async -> Void in
             _ = await pass.result
         }
         let result: Result<SyncPassReport, any Error> = await pass.result
+        if case .failure(SyncEngineError.stopped) = result {
+            throw SyncEngineError.stopped
+        }
         if case .failure(let error) = result {
             engineLogger.error("Sync pass failed: \(String(describing: error), privacy: .private)")
         }
@@ -351,8 +362,11 @@ public actor SyncEngine {
         return try result.get()
     }
 
-    /// Stops the debounce timer and waits for the running pass (before the account is switched or signed out).
+    /// Stops the engine for good: cancels the debounce timer and waits for the running pass (before the account is
+    /// switched or signed out). Afterwards the engine takes no more work (`SyncEngineError.stopped`), so a debounce timer
+    /// that had already fired or a `syncNow` still on its way cannot start a pass for the old account.
     public func stop() async {
+        lifecycle = .stopped
         debounceTask?.cancel()
         debounceTask = nil
         await lastPass?.value
@@ -379,6 +393,12 @@ public actor SyncEngine {
     }
 
     // MARK: Pass
+
+    private func require(request: SyncEngineRequest) throws {
+        guard syncEngineAccepts(lifecycle: lifecycle, request: request) else {
+            throw SyncEngineError.stopped
+        }
+    }
 
     private func scheduleDebouncedPass() {
         debounceTask?.cancel()

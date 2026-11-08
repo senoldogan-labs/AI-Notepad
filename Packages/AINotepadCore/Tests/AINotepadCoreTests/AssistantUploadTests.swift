@@ -373,4 +373,22 @@ private let deviceID: String = "6f1c1b7e-8a8a-4c4c-9d9d-1e1e1e1e1e1e"
         try await uploader.forgetUploads()
         #expect(try await uploader.ledger() == AssistantUploadLedger(epoch: 4, uploaded: [:], rejected: [:], rejectionReasons: [:]))
     }
+
+    // The audit's ordering: "remove this device" forgets the ledger while a pass waits on an upload. The pass must not
+    // write its old ledger back (the next pass, after "add this device again", would think nothing needs uploading).
+    @Test func forgetDuringPassIsNotUndone() async throws {
+        let server: FakeAssistantServer = FakeAssistantServer(settings: HostedAssistantSettings(enabled: true, epoch: 1, meetings: 0, maxMeetings: 5000))
+        let file: AssistantLedgerFile = temporaryLedger()
+        defer { try? FileManager.default.removeItem(at: file.url.deletingLastPathComponent()) }
+        let uploader: AssistantUploader = AssistantUploader(client: server, file: file, deviceID: deviceID)
+        let records: [MeetingRecord] = [meeting(id: "a", startedAt: 100), meeting(id: "b", startedAt: 200)]
+        _ = try await uploader.pass(records: [records[0]], userName: "") { _ in }
+        server.beforePut.withLock { $0 = { try? await uploader.forgetUploads() } }
+        await #expect(throws: AssistantUploaderError.ledgerForgotten) { _ = try await uploader.pass(records: records, userName: "") { _ in } }
+        #expect(try await uploader.ledger() == AssistantUploadLedger(epoch: 1, uploaded: [:], rejected: [:], rejectionReasons: [:]))
+        // Nothing after the forget was uploaded except the one already on its way.
+        #expect(server.state.withLock { $0.calls.filter { $0.hasPrefix("put") } } == ["put a", "put b"])
+        let again: AssistantPassReport = try await uploader.pass(records: records, userName: "") { _ in }
+        #expect(again.uploaded == 2)
+    }
 }

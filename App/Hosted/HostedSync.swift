@@ -377,18 +377,35 @@ final class HostedSyncCenter {
             waitingItems.append(contentsOf: items)
             return
         }
+        let current: Int = generation
+        let accountKey: String? = scope?.accountKey
         Task {
-            for item in items {
+            for (index, item) in items.enumerated() {
                 do {
                     try await engine.noteLocalChange(item: item)
+                } catch SyncEngineError.stopped {
+                    self.renote(items: Array(items[index...]), accountKey: accountKey)
+                    return
                 } catch {
                     // Kuyruk diske yazılamadı: değişiklik kaybolmasın diye sonraki geçişte her şey denetlenir.
                     hostedSyncLogger.error("Eşitleme kuyruğu yazılamadı, hata: \(String(describing: error), privacy: .private)")
-                    self.fail(error: error)
+                    if current == self.generation {
+                        self.fail(error: error)
+                    }
                     return
                 }
             }
         }
+    }
+
+    /// Durdurulan bir motorun almadığı değişiklikler: aynı hesabın eşitlemesi sürüyorsa yeni motora (kurulana dek
+    /// bekleyenlere) gider; durdurulan motor kuyruğa yazmaz, yoksa yeni motorun kuyruk dosyasını eski hâliyle ezerdi.
+    private func renote(items: [SyncLocalItem], accountKey: String?) {
+        guard accountKey != nil, scope?.accountKey == accountKey else {
+            hostedSyncLogger.warning("Eşitleme hesabı değişti, önceki hesabın değişiklikleri kuyruğa girmedi, sayı: \(items.count, privacy: .public)")
+            return
+        }
+        note(items: items)
     }
 
     // MARK: Motor
@@ -478,6 +495,11 @@ final class HostedSyncCenter {
                 for item in waiting {
                     try await engine.noteLocalChange(item: item)
                 }
+            } catch SyncEngineError.stopped {
+                // Motor kurulur kurulmaz durduruldu: bekleyenler süren motora gider; tam denetim (`setupPending`) bir
+                // sonraki kurulumda yeniden yapılır.
+                self.renote(items: waiting, accountKey: scope.accountKey)
+                return
             } catch {
                 hostedSyncLogger.error("Eşitleme kuyruğu yazılamadı, hata: \(String(describing: error), privacy: .private)")
                 if current == self.generation {
@@ -562,30 +584,32 @@ final class HostedSyncCenter {
     }
 
     /// Hatanın türüne göre: yeniden deneme (artan beklemeyle), kod isteme ya da başka cihazda kapatılınca bu cihazda
-    /// bırakma. Hiçbir yerel veri silinmez.
+    /// bırakma. Hiçbir yerel veri silinmez. Motor durdurulurken hesap değişirse (ya da eşitleme yeniden kurulursa) eski
+    /// hesabın sonucu yalnızca o hesabın kayıtlarına yazılır; görünen durum yenisinindir.
     private func fail(error: any Error) {
         guard let scope else {
             return
         }
+        let current: Int = generation
         switch syncFailureKind(error: error) {
         case .turnedOffElsewhere:
             Task {
-                await stopEngine()
-                do {
-                    try forgetSyncOnDevice(keyStore: try keyStore(accountKey: scope.accountKey), metadataDirectory: try metadataDirectory(accountKey: scope.accountKey))
-                } catch {
-                    hostedSyncLogger.error("Eşitleme bu cihazda bırakılamadı, hata: \(String(describing: error), privacy: .private)")
+                guard let stopped = await stopEngineForFailure(scope: scope, generation: current) else {
+                    return
                 }
-                markOff(accountKey: scope.accountKey)
+                persistOff(accountKey: scope.accountKey)
+                guard hostedStampIsCurrent(stamp: stopped, generation: generation, accountKey: self.scope?.accountKey, userID: self.scope?.userID) else {
+                    return
+                }
+                showOff()
                 notice = String(localized: "Eşitleme başka bir cihazda kapatıldı. Bu cihazdaki toplantılar yerinde kalır.")
             }
         case .needsLinkCode:
             Task {
-                await stopEngine()
-                do {
-                    try forgetSyncOnDevice(keyStore: try keyStore(accountKey: scope.accountKey), metadataDirectory: try metadataDirectory(accountKey: scope.accountKey))
-                } catch {
-                    hostedSyncLogger.error("Eski eşitleme anahtarı silinemedi, hata: \(String(describing: error), privacy: .private)")
+                guard let stopped = await stopEngineForFailure(scope: scope, generation: current),
+                    hostedStampIsCurrent(stamp: stopped, generation: generation, accountKey: self.scope?.accountKey, userID: self.scope?.userID)
+                else {
+                    return
                 }
                 linkCode = nil
                 status = .needsLinkCode
@@ -593,6 +617,23 @@ final class HostedSyncCenter {
         case .transient, .unavailable, .quotaExceeded, .subscriptionRequired, .other:
             scheduleRetry(message: hostedSyncMessage(error: error))
         }
+    }
+
+    /// Kalıcı bir hatadan sonra motoru durdurur ve bu hesabın anahtarını ile eşitleme kayıtlarını bu cihazdan siler.
+    /// Hata geldikten sonra eşitleme yeniden kurulduysa, durdurulduysa ya da hesap değiştiyse bir şey yapmaz ve nil
+    /// döner; yoksa durdurmanın damgasını döndürür (çağıran, beklerken bir şey değişmediyse durumu yazar).
+    private func stopEngineForFailure(scope failed: (accountKey: String, userID: String), generation failedGeneration: Int) async -> HostedScopeStamp? {
+        guard failedGeneration == generation, let scope, scope == failed else {
+            return nil
+        }
+        await stopEngine()
+        let stamp: HostedScopeStamp = HostedScopeStamp(generation: generation, accountKey: failed.accountKey, userID: failed.userID)
+        do {
+            try forgetSyncOnDevice(keyStore: try keyStore(accountKey: failed.accountKey), metadataDirectory: try metadataDirectory(accountKey: failed.accountKey))
+        } catch {
+            hostedSyncLogger.error("Eşitleme bu cihazda bırakılamadı, hata: \(String(describing: error), privacy: .private)")
+        }
+        return stamp
     }
 
     private func scheduleRetry(message: String) {
@@ -653,8 +694,14 @@ final class HostedSyncCenter {
         isEngineRunning = false
     }
 
-    /// Eşitlemeyi bu hesapta bu cihaz için kapalı yazar.
+    /// Eşitlemeyi bu hesapta bu cihaz için kapalı yazar ve kapalı gösterir.
     private func markOff(accountKey: String) {
+        persistOff(accountKey: accountKey)
+        showOff()
+    }
+
+    /// Eşitlemeyi bu hesabın kayıtlarında bu cihaz için kapalı yazar (görünen duruma dokunmaz).
+    private func persistOff(accountKey: String) {
         do {
             let defaults: UserDefaults = try hostedAccountDefaults(accountKey: accountKey)
             defaults.set(false, forKey: HostedSyncDefaultsKey.enabled)
@@ -663,6 +710,10 @@ final class HostedSyncCenter {
         } catch {
             hostedSyncLogger.error("Eşitleme ayarı yazılamadı, hata: \(String(describing: error), privacy: .private)")
         }
+    }
+
+    /// Eşitlemeyi kapalı gösterir.
+    private func showOff() {
         isOn = false
         status = .off
         linkCode = nil

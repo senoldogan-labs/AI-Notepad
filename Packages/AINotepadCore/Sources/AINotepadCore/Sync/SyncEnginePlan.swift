@@ -238,6 +238,34 @@ public enum SyncEngineError: Error, Sendable, Equatable {
     case kindMismatch(objectID: String, expected: SyncObjectKind, found: SyncObjectKind)
     /// An account object (people, prefs) is deleted on the server; only turning sync off and on again restores it.
     case singletonDeleted(kind: SyncObjectKind)
+    /// The engine was stopped (account switched, signed out, sync turned off): it takes no more work.
+    case stopped
+}
+
+/// Lifecycle of a sync engine. An engine is open from creation until `stop()`, then stopped for good: the app makes a
+/// new engine for the next account or when sync is turned on again.
+public enum SyncEngineLifecycle: Sendable, Equatable {
+    case open
+    case stopped
+}
+
+/// What the engine is asked to do.
+public enum SyncEngineRequest: Sendable, Equatable {
+    /// Queue local changes (`noteLocalChange`, `queueEverything`).
+    case queue
+    /// Run a pass (`syncNow`, the debounced pass), also a pass that waited for the one before it.
+    case pass
+}
+
+/// Whether the engine in `lifecycle` takes `request`: an open engine takes everything, a stopped one nothing (a pass
+/// that started after `stop()` would write the old account's queue and ledger after the app moved on). Pure function.
+public func syncEngineAccepts(lifecycle: SyncEngineLifecycle, request: SyncEngineRequest) -> Bool {
+    switch (lifecycle, request) {
+    case (.open, .queue), (.open, .pass):
+        return true
+    case (.stopped, .queue), (.stopped, .pass):
+        return false
+    }
 }
 
 /// Whether a failure concerns one object only (record it, keep syncing the rest, retry next pass) rather than the whole
@@ -256,6 +284,8 @@ public func isItemSyncError(error: any Error) -> Bool {
             return false
         }
         return true
+    case SyncEngineError.stopped:
+        return false
     case is SyncPayloadError, is SyncEngineError, is StorageError, is SyncedSettingsError:
         return true
     default:

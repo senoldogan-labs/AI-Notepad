@@ -86,15 +86,17 @@ final class HostedAssistantCenter {
     /// Son görülen toplantılar (bu cihazda kaydedilenler) ve kullanıcının adı.
     @ObservationIgnored private var meetings: [MeetingRecord]?
     @ObservationIgnored private var userName: String = ""
+    /// Yükleme geçişlerinin durumu (`assistantPassStep`); görevler yan etkidir: zamanlayıcı (kısa bekleme ya da yeniden
+    /// deneme beklemesi) ve süren geçiş.
+    @ObservationIgnored private var passPhase: AssistantPassPhase = .idle
+    @ObservationIgnored private var timerTask: Task<Void, Never>?
     @ObservationIgnored private var passTask: Task<Void, Never>?
-    @ObservationIgnored private var debounceTask: Task<Void, Never>?
-    @ObservationIgnored private var retryTask: Task<Void, Never>?
+    /// Dönemsel yenileme: hesap kurulduğundan ve özellik açık olduğundan durdurulana dek sürer (geçişlerin iptali onu
+    /// durdurmaz).
     @ObservationIgnored private var periodicTask: Task<Void, Never>?
-    /// Geçiş sürerken yeni değişiklik geldi: geçiş bitince bir geçiş daha.
-    @ObservationIgnored private var needsAnotherPass: Bool = false
     @ObservationIgnored private var consecutiveFailures: Int = 0
     @ObservationIgnored private var lastRefreshAt: Date?
-    /// Her kurulum ve durdurmada artar: eski işin geç gelen sonucu yenisinin durumunu yazmaz.
+    /// Her kurulumda ve geçişlerin her iptalinde artar: eski işin geç gelen sonucu yenisinin durumunu yazmaz.
     @ObservationIgnored private var generation: Int = 0
     /// Tanıtım modu: sunucuya hiç gidilmez.
     @ObservationIgnored private var isDemo: Bool = false
@@ -233,7 +235,7 @@ final class HostedAssistantCenter {
         isChanging = true
         defer { isChanging = false }
         actionError = nil
-        cancelPasses()
+        await cancelPassesAndWait()
         do {
             let settings: HostedAssistantSettings = try await makeClient().setEnabled(enabled: false)
             apply(settings: settings)
@@ -277,7 +279,8 @@ final class HostedAssistantCenter {
         isChanging = true
         defer { isChanging = false }
         actionError = nil
-        cancelPasses()
+        // Süren yükleme sunucuda silmeden sonra bitmesin (kaldırılan toplantı geri yüklenirdi).
+        await cancelPassesAndWait()
         do {
             let defaults: UserDefaults = try hostedAccountDefaults(accountKey: scope.accountKey)
             _ = try await makeClient().deleteDevice(deviceID: try deviceID(defaults: defaults))
@@ -410,41 +413,60 @@ final class HostedAssistantCenter {
         defaults.set(listed.map(\.grantId), forKey: HostedAssistantDefaultsKey.knownGrantIDs)
     }
 
+    /// Bir geçiş ister (0 saniye: hemen); özellik kapalıysa, bu cihaz kaldırıldıysa ya da toplantılar okunmadıysa bir şey
+    /// yapmaz.
     private func schedulePass(delaySeconds: Double) {
         guard isOn, !isDeviceExcluded, meetings != nil, !isDemo else {
             return
         }
-        if passTask != nil {
-            needsAnotherPass = true
-            return
+        send(event: .requested(delaySeconds: delaySeconds))
+    }
+
+    /// Zamanlamaya bir olay verir ve geçiş fonksiyonunun istediği yan etkiyi yapar.
+    private func send(event: AssistantPassEvent) {
+        let step: AssistantPassStep = assistantPassStep(phase: passPhase, event: event)
+        passPhase = step.phase
+        switch step.effect {
+        case .none:
+            break
+        case .startTimer(let seconds):
+            startTimer(seconds: seconds)
+        case .startPass:
+            timerTask?.cancel()
+            timerTask = nil
+            startPass()
+        case .cancelWork:
+            timerTask?.cancel()
+            timerTask = nil
+            passTask?.cancel()
+            passTask = nil
         }
-        debounceTask?.cancel()
+    }
+
+    private func startTimer(seconds: Double) {
+        timerTask?.cancel()
         let current: Int = generation
-        debounceTask = Task {
-            if delaySeconds > 0 {
-                do {
-                    try await Task.sleep(for: .seconds(delaySeconds))
-                } catch {
-                    return
-                }
+        timerTask = Task {
+            do {
+                try await Task.sleep(for: .seconds(seconds))
+            } catch {
+                return
             }
             guard current == self.generation else {
                 return
             }
-            self.debounceTask = nil
-            self.runPass()
+            self.timerTask = nil
+            self.send(event: .timerFired)
         }
     }
 
-    private func runPass() {
-        guard let uploader, let meetings, isOn, !isDeviceExcluded, passTask == nil else {
+    private func startPass() {
+        guard let uploader, let meetings, isOn, !isDeviceExcluded else {
+            send(event: .passStopped)
             return
         }
         let current: Int = generation
         let name: String = userName
-        retryTask?.cancel()
-        retryTask = nil
-        needsAnotherPass = false
         uploadStatus = .uploading
         passTask = Task {
             let result: Result<AssistantPassReport, any Error>
@@ -473,53 +495,40 @@ final class HostedAssistantCenter {
             consecutiveFailures = 0
             uploadStatus = .idle
             progress = report.progress
+            // Kapalı bildirildiyse `apply` işi sıfırlar; o zaman aşağıdaki olay geç gelmiş sayılır.
             apply(settings: report.settings)
             if report.rejected > 0 {
                 hostedAssistantLogger.warning("Asistan kopyası bazı toplantıları kabul etmedi, sayı: \(report.rejected, privacy: .public)")
             }
-            if needsAnotherPass {
-                schedulePass(delaySeconds: 0)
-            }
+            send(event: .passSucceeded)
         case .failure(HostedAssistantError.unavailable):
             availability = .unavailable
             uploadStatus = .idle
             stopPeriodic()
-        case .failure(let error) where error is CancellationError:
+            send(event: .passStopped)
+        case .failure(let error) where error is CancellationError || error as? AssistantUploaderError == .ledgerForgotten:
             uploadStatus = .idle
+            send(event: .passStopped)
         case .failure(let error):
             hostedAssistantLogger.warning("Asistan kopyası yüklenemedi, yeniden denenecek, hata: \(String(describing: error), privacy: .private)")
             consecutiveFailures += 1
             let delay: Double = syncRetryDelaySeconds(failures: consecutiveFailures)
             uploadStatus = .failed(message: hostedAssistantMessage(error: error), retryAt: Date().addingTimeInterval(delay))
-            let current: Int = generation
-            retryTask = Task {
-                do {
-                    try await Task.sleep(for: .seconds(delay))
-                } catch {
-                    return
-                }
-                guard current == self.generation else {
-                    return
-                }
-                self.retryTask = nil
-                self.schedulePass(delaySeconds: 0)
-            }
+            send(event: .passFailed(retryDelaySeconds: delay))
         }
     }
 
+    /// Dönemsel yenilemeyi başlatır (sürüyorsa bir şey yapmaz). Döngü yalnızca `stopPeriodic` ile biter: geçişlerin
+    /// iptali (kapatma denemesi, "bu cihazı kaldır") onu öldürmez.
     private func startPeriodic() {
         guard periodicTask == nil, !isDemo else {
             return
         }
-        let current: Int = generation
         periodicTask = Task {
             while !Task.isCancelled {
                 do {
                     try await Task.sleep(for: .seconds(hostedAssistantRefreshSeconds))
                 } catch {
-                    return
-                }
-                guard current == self.generation else {
                     return
                 }
                 await self.refresh()
@@ -532,17 +541,20 @@ final class HostedAssistantCenter {
         periodicTask = nil
     }
 
-    /// Süren ve bekleyen geçişleri durdurur (defter diskte kalır).
-    private func cancelPasses() {
+    /// Süren ve bekleyen geçişleri durdurur (defter diskte kalır); iptal edilen geçişin görevini döndürür.
+    @discardableResult
+    private func cancelPasses() -> Task<Void, Never>? {
+        let running: Task<Void, Never>? = passTask
         generation += 1
-        debounceTask?.cancel()
-        debounceTask = nil
-        retryTask?.cancel()
-        retryTask = nil
-        passTask?.cancel()
-        passTask = nil
-        needsAnotherPass = false
+        send(event: .reset)
         consecutiveFailures = 0
+        return running
+    }
+
+    /// Geçişleri durdurur ve süren geçişin bitmesini bekler: ardından gelen sunucu isteği (kapatma, cihazı kaldırma)
+    /// ondan sonra çalışır ve geçiş defteri geri yazamaz (`AssistantUploaderError.ledgerForgotten`).
+    private func cancelPassesAndWait() async {
+        await cancelPasses()?.value
     }
 
     private func stop() {
