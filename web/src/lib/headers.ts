@@ -217,6 +217,12 @@ export function pagesHeaders(config: SiteConfig, hashes: InlineHashes): string {
     "  Content-Type: text/plain; charset=utf-8",
     "  Cache-Control: no-store",
     "",
+    // Evrensel bağlantılar (public/.well-known/apple-app-site-association): Apple dosyayı yönlendirmesiz ve JSON olarak
+    // ister; uzantısız dosyanın türü burada verilir. Apple'ın CDN'i kendi önbelleğini tutar, burada bir saat yeter.
+    "/.well-known/apple-app-site-association",
+    "  Content-Type: application/json",
+    "  Cache-Control: public, max-age=3600",
+    "",
     // Adı içerik özeti taşıyan derleme çıktıları değişmez.
     "/_astro/*",
     "  Cache-Control: public, max-age=31536000, immutable",

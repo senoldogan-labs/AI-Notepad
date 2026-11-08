@@ -1,2 +1,5 @@
 # Toplantı bağlantıları (asistanın verdiği /m/<kimlik>, src/routes.ts meetingLinkPattern) tek sayfada açılır; adres değişmez.
 /m/*  /meeting  200
+# Uygulamadaki yerlerin evrensel bağlantıları (/open/record …; public/.well-known/apple-app-site-association): uygulama
+# yüklüyse iPhone bağlantıyı uygulamada açar, buraya gelinmez; yüklü değilse indirme sayfası açılır.
+/open/*  /download  302

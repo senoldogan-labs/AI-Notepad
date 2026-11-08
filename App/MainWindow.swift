@@ -1,8 +1,11 @@
 import AINotepadCore
 import AINotepadUI
 import AppKit
+import os
 import SwiftUI
 import UserNotifications
+
+private let appDelegateLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "AppDelegate")
 
 /// Ana pencerenin sahne kimliği.
 let mainWindowID: String = "main"
@@ -53,6 +56,8 @@ final class MainWindowRouter {
     var opensVoiceTypingSettings: Bool = false
     /// Kişiler sayfasında seçili sekme (kişiler ya da şirketler).
     var peopleTab: PeopleTab = .people
+    /// Oturum yokken bir bağlantı (`gistsmith://…`) geldi: giriş kapısı bağlantının girişten sonra açılacağını söyler.
+    var isLinkWaitingForSignIn: Bool = false
 }
 
 /// Ayarlar › Sesle yazma'yı açar.
@@ -123,6 +128,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     /// Spotlight'taki toplantı sonucuna tıklama o toplantıyı açar; açılışta bağlanır.
     @MainActor static var onOpenSpotlightMeeting: (@MainActor (String) -> Void)?
 
+    /// `gistsmith://…` bağlantısı (yalnız Gistsmith adres şemasını kaydeder; bkz. `appLinkRoute`) yerini açar; açılışta
+    /// bağlanır.
+    @MainActor static var onAppLink: (@MainActor (AppLinkRoute) -> Void)?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         UNUserNotificationCenter.current().delegate = self
     }
@@ -133,6 +142,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         }
         AppDelegate.onOpenSpotlightMeeting?(meetingID)
         return true
+    }
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls {
+            guard let route = appLinkRoute(url: url) else {
+                appDelegateLogger.warning("Tanınmayan adres açıldı, yok sayıldı, şema: \(url.scheme ?? "-", privacy: .public)")
+                continue
+            }
+            AppDelegate.onAppLink?(route)
+        }
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
@@ -1733,6 +1752,15 @@ private struct MeetingsSplit: View {
                         // Toplantı değişince ad alanları gibi durumlar sıfırlansın.
                         .id(record.id)
                         .transition(.opacity)
+                } else if router.selectedMeetingID != nil {
+                    // Seçilen toplantı bu hesapta yok (bağlantı başka hesabın ya da silinmiş toplantısını gösterdi).
+                    QuietEmptyState(symbol: "doc.questionmark", title: "Toplantı bulunamadı", message: "Bu toplantı silinmiş ya da başka bir hesapta olabilir.") {
+                        if let latest = model.meetings.first {
+                            Button("Son toplantıyı aç") { router.selectedMeetingID = latest.id }
+                                .buttonStyle(.pill)
+                        }
+                    }
+                    .transition(.opacity)
                 } else {
                     // Seçim yokken sakin yer tutucu: en son toplantı tek tıkla açılır. Kendiliğinden açılmaz: klasör
                     // seçince ve silince seçim bilerek boşalır, ağır toplantı sayfası (transkript, ses) istenmeden yüklenmez.

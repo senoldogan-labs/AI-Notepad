@@ -23,6 +23,8 @@ private func hostedLegalURL(path: String) -> URL? {
 /// Giriş tamamlanınca karşılama ya da ana sayfa açılır.
 struct HostedSignInGate: View {
     let account: HostedAccount
+    /// Oturum yokken bir bağlantı (`gistsmith://…`) geldi: girişten sonra açılacağı söylenir.
+    let isLinkWaiting: Bool
 
     var body: some View {
         ZStack {
@@ -81,6 +83,11 @@ struct HostedSignInGate: View {
                 }
                 .padding(.top, 26)
                 VStack(spacing: 8) {
+                    if isLinkWaiting {
+                        NoticeText("Bağlantıyı açmak için giriş yap; giriş yapınca açılır.", severity: .info)
+                            .appFont(size: 13, weight: .regular)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                     HostedAccountError(account: account)
                     HostedAccountDataNotice(account: account)
                 }

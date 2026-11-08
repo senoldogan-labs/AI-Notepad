@@ -157,7 +157,15 @@ struct AINotepadiOSApp: App {
             // Paylaşım sayfasındaki "Gistsmith" (ses dosyası türleri project.yml'de): giriş kapısı açıkken gelen dosya da
             // kaybolmaz, ana ekran açılınca içe aktarılır (`PhoneImportHost`).
             .environment(sharedFiles)
-            .onOpenURL { (url: URL) in sharedFiles.receive(url: url) }
+            // `gistsmith://…` ve evrensel bağlantılar (`https://gistsmith.com/m/<kimlik>`) yerini açar; geri kalan adres
+            // paylaşım sayfasından gelen dosyadır.
+            .onOpenURL { (url: URL) in
+                guard let route = appLinkRoute(url: url) else {
+                    sharedFiles.receive(url: url)
+                    return
+                }
+                Task { await openPhoneAppLink(route: route, router: router, sessions: sessions, account: account) }
+            }
             // Spotlight'taki toplantı sonucu o toplantıyı açar (hesapta yoksa açılmaz).
             .onContinueUserActivity(CSSearchableItemActionType) { (activity: NSUserActivity) in
                 guard let meetingID = spotlightMeetingID(activity: activity) else {
@@ -256,7 +264,7 @@ private struct PhoneAppRoot: View {
         let session: PhoneAccountSession = sessions.session
         Group {
             if phoneShowsSignInGate(requiresSignIn: account.requiresSignIn, isRecording: session.recorder.phase != .idle) {
-                PhoneSignInGate(account: account, switchWaitsFor: session.openWriters)
+                PhoneSignInGate(account: account, switchWaitsFor: session.openWriters, isLinkWaiting: router.isLinkWaitingForSignIn)
             } else if !phoneAIConsentGiven(account: account), consentRevision >= 0 {
                 // Onay hesap başına: başka hesapla girince açıklama o hesaba da gösterilir. Onay ayarda saklıdır (gözlenmez);
                 // `consentRevision` okunur ki onaylayınca görünüm yeniden çizilsin.
@@ -295,6 +303,12 @@ private struct PhoneAppRoot: View {
         .id(sessions.generation)
         // Önceki sürümlerin cihaz başına onayı ilk giren hesaba taşınır.
         .task(id: account.signedInUserIDCache) { migrateLegacyPhoneAIConsent(account: account) }
+        // Girişten sonra kapıdaki "bağlantı girişten sonra açılır" notu kalkar (bağlantının yeri yığında bekler).
+        .onChange(of: account.requiresSignIn) { (_: Bool, requiresSignIn: Bool) in
+            if !requiresSignIn {
+                router.isLinkWaitingForSignIn = false
+            }
+        }
         .task(id: account.dataState) {
             guard account.isAccountDataLoaded else {
                 return
@@ -664,6 +678,8 @@ final class PhoneRouter {
     var path: [PhoneRoute]
     /// Ana ekranın sol üstündeki kitaplık sayfası (tüm toplantılar, görevler, kişiler, klasörler, içe aktarma) açık.
     var isLibraryOpen: Bool = false
+    /// Oturum yokken bir bağlantı (`gistsmith://…`) geldi: giriş kapısı bağlantının girişten sonra açılacağını söyler.
+    var isLinkWaitingForSignIn: Bool = false
 
     init(path: [PhoneRoute]) {
         self.path = path
@@ -701,6 +717,12 @@ final class PhoneRouter {
     func show(meetingID: String) {
         isLibraryOpen = false
         path = [.meeting(meetingID)]
+    }
+
+    /// Sayfayı ana ekranın üstünde tek sayfa olarak açar (dışarıdan gelen bağlantı: Sor, İstatistikler).
+    func showAlone(route: PhoneRoute) {
+        isLibraryOpen = false
+        path = [route]
     }
 
     /// Görevlerim'i ana ekranın üstünde açar (görev bildirimi).

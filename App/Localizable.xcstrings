@@ -203206,6 +203206,146 @@
           }
         }
       }
+    },
+    "Bağlantıyı açmak için giriş yap; giriş yapınca açılır.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to open the link. It opens once you're signed in."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Melde dich an, um den Link zu öffnen. Er öffnet sich nach der Anmeldung."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connecte-toi pour ouvrir le lien. Il s'ouvrira une fois connecté."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inicia sesión para abrir el enlace. Se abrirá cuando inicies sesión."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accedi per aprire il link. Si aprirà dopo l'accesso."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entre para abrir o link. Ele abre assim que você entrar."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log in om de link te openen. Hij opent zodra je bent ingelogd."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンクを開くにはサインインしてください。サインインすると開きます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "링크를 열려면 로그인하세요. 로그인하면 열립니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登录后即可打开此链接。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirjaudu sisään avataksesi linkin. Se avautuu, kun olet kirjautunut."
+          }
+        }
+      }
+    },
+    "Bu toplantı silinmiş ya da başka bir hesapta olabilir.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This meeting may have been deleted or be in another account."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Meeting wurde vielleicht gelöscht oder gehört zu einem anderen Konto."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette réunion a peut-être été supprimée ou se trouve dans un autre compte."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puede que esta reunión se haya eliminado o esté en otra cuenta."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questa riunione potrebbe essere stata eliminata o trovarsi in un altro account."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta reunião pode ter sido apagada ou estar em outra conta."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deze meeting is misschien verwijderd of staat in een ander account."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このミーティングは削除されたか、別のアカウントにある可能性があります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 회의는 삭제되었거나 다른 계정에 있을 수 있습니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此会议可能已被删除，或位于其他账户中。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämä kokous on ehkä poistettu tai se on toisella tilillä."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
