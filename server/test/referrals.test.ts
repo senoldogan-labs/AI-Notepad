@@ -5,7 +5,8 @@ import { type Config, parseConfig } from "../src/config";
 import type { Env } from "../src/env";
 import { randomId, randomToken } from "../src/crypto";
 import { ReferralRewardFailedError, type ReferralRewardReport, grantDueReferralRewards } from "../src/referralRewards";
-import { newReferralCode, normalizeReferralCode, referralCodeAlphabet, referralCodeFromBytes } from "../src/referrals";
+import { newReferralCode, normalizeReferralCode, referralCodeAlphabet, referralCodeFromBytes, referralDeletionStatements } from "../src/referrals";
+import { referralClaimLeaseMs } from "../src/referralState";
 import { type Harness, type Session, defaultHarness, envWith, expectError, grantAppStoreSubscription, grantSubscription, refreshed, req, signIn, signInWithGoogle } from "./helpers";
 import { eventOf, invoicePaidEvent, postEvent, sendSubscription } from "./stripeEvents";
 import { type FakePaymentMethod, type FakeStripe, type FakeSubscription, fakeCard, fakeSubscription, fakeYearlySubscription, stubStripeApi } from "./stripeFake";
@@ -983,5 +984,219 @@ describe("yönetim panelinde davet", () => {
     expect(paidDetail.invitedBy).toMatchObject({ status: "qualified", inFreeMonth: false, qualifiedAt: iso(paidAt), rewardDueAt: iso(paidAt + 30 * dayMs) });
     expect(paidDetail.timeline).toContainEqual({ kind: "invite_first_payment", at: iso(paidAt), detail: null });
     expect(paidDetail.timeline).toContainEqual({ kind: "invite_reward_due", at: iso(paidAt + 30 * dayMs), detail: null });
+  });
+});
+
+/** Davet edilen arkadaş ilk ödemesini (yıllık, hemen `qualified`) yapmış. */
+async function qualifiedFriend(
+  harness: Harness,
+  stripe: FakeStripe,
+  id: (name: string) => string,
+  name: string,
+  code: string,
+): Promise<{ session: Session; friend: { customer: string; subscriptionId: string }; intent: string }> {
+  const session: Session = await signIn(harness);
+  const friend = await referredFriend(harness, stripe, id, name, session, code, true, null);
+  await payInvoice(harness, stripe, friend, id(`in_${name}`), 4301, code);
+  expect((await redemptionStatus(session.userId))?.status).toBe("qualified");
+  return { session, friend, intent: `pi_${id(`in_${name}`)}` };
+}
+
+/** Ödemenin kısmi iadesi: Stripe'ta iade görünür ve `charge.refunded` webhook'u gönderilir. */
+async function refundWebhook(harness: Harness, stripe: FakeStripe, id: (name: string) => string, name: string, customer: string, intent: string): Promise<void> {
+  stripe.refundedIntents.add(intent);
+  const refund: string = eventOf(id(`evt_refund_${name}`), "charge.refunded", Math.floor(harness.clock.nowMs / 1000), {
+    id: id(`ch_${name}`),
+    object: "charge",
+    customer,
+    payment_intent: intent,
+    amount_refunded: 1000,
+    currency: "usd",
+    refunded: false,
+  });
+  expect((await postEvent(harness, refund)).status).toBe(200);
+}
+
+async function claimedAt(referredUserId: string): Promise<number | null> {
+  const row = await env.DB.prepare("SELECT reward_claimed_at FROM referral_redemptions WHERE referred_user_id = ?")
+    .bind(referredUserId)
+    .first<{ reward_claimed_at: number | null }>();
+  return row?.reward_claimed_at ?? null;
+}
+
+async function storedTransaction(referredUserId: string): Promise<string | null> {
+  const row = await env.DB.prepare("SELECT stripe_balance_transaction_id AS id FROM referral_redemptions WHERE referred_user_id = ?")
+    .bind(referredUserId)
+    .first<{ id: string | null }>();
+  return row?.id ?? null;
+}
+
+const noRewards: ReferralRewardReport = { processed: 0, granted: 0, capped: 0, voided: 0, failed: 0 };
+
+describe("davet ödülü ile iade yarışı", () => {
+  it("iade webhook'u Cron'dan önce: satır düşer, Cron sahiplenemez, Stripe'a alacak yazılmaz", async () => {
+    const harness: Harness = await defaultHarness();
+    const stripe: FakeStripe = stubStripeApi(harness);
+    const id = uniqueIds();
+    const owner = await subscriber(harness, stripe, id, "owner");
+    const code: string = (await referral(harness, owner.session)).code ?? "";
+    const { session, friend, intent } = await qualifiedFriend(harness, stripe, id, "friend", code);
+    harness.clock.nowMs += 31 * dayMs;
+    await refundWebhook(harness, stripe, id, "friend", friend.customer, intent);
+    expect(await redemptionStatus(session.userId)).toEqual({ status: "void", void_reason: "refunded" });
+    expect(await grant(harness)).toEqual(noRewards);
+    expect(stripe.balanceTransactions).toHaveLength(0);
+  });
+
+  it("iade webhook'u sahiplenmeden sonra, Cron'un Stripe denetiminden önce: webhook sahiplenilmiş satırı düşürmez, Cron iadeyi görür ve düşürür", async () => {
+    const harness: Harness = await defaultHarness();
+    const stripe: FakeStripe = stubStripeApi(harness);
+    const id = uniqueIds();
+    const owner = await subscriber(harness, stripe, id, "owner");
+    const code: string = (await referral(harness, owner.session)).code ?? "";
+    const { session, friend, intent } = await qualifiedFriend(harness, stripe, id, "friend", code);
+    harness.clock.nowMs += 31 * dayMs;
+    const seen: { claimedAt: number | null; duringWebhook: { status: string; void_reason: string | null } | null }[] = [];
+    stripe.beforeRequest = async (method: string, path: string): Promise<void> => {
+      if (method === "GET" && path === "/v1/invoice_payments") {
+        stripe.beforeRequest = null;
+        const claim: number | null = await claimedAt(session.userId);
+        await refundWebhook(harness, stripe, id, "friend", friend.customer, intent);
+        seen.push({ claimedAt: claim, duringWebhook: await redemptionStatus(session.userId) });
+      }
+    };
+    expect(await grant(harness)).toEqual({ ...noRewards, processed: 1, voided: 1 });
+    expect(seen).toEqual([{ claimedAt: harness.clock.nowMs, duringWebhook: { status: "qualified", void_reason: null } }]);
+    expect(await redemptionStatus(session.userId)).toEqual({ status: "void", void_reason: "refunded" });
+    expect(stripe.balanceTransactions).toHaveLength(0);
+  });
+
+  it("sahiplenmeden sonra başka bir ödemeye itiraz: Stripe'taki ödül faturası temiz görünse de Cron bekleyen düşmeyi okur ve satırı düşürür", async () => {
+    const harness: Harness = await defaultHarness();
+    const stripe: FakeStripe = stubStripeApi(harness);
+    const id = uniqueIds();
+    const owner = await subscriber(harness, stripe, id, "owner");
+    const code: string = (await referral(harness, owner.session)).code ?? "";
+    const { session, friend } = await qualifiedFriend(harness, stripe, id, "friend", code);
+    harness.clock.nowMs += 31 * dayMs;
+    stripe.charges.set(id("ch_other"), friend.customer);
+    const pending: (string | null)[] = [];
+    stripe.beforeRequest = async (method: string, path: string): Promise<void> => {
+      if (method === "GET" && path === "/v1/invoice_payments") {
+        stripe.beforeRequest = null;
+        const dispute: string = eventOf(id("evt_dispute"), "charge.dispute.created", Math.floor(harness.clock.nowMs / 1000), {
+          id: id("dp"),
+          object: "dispute",
+          charge: id("ch_other"),
+          amount: 4301,
+          currency: "usd",
+          reason: "fraudulent",
+        });
+        expect((await postEvent(harness, dispute)).status).toBe(200);
+        const row = await env.DB.prepare("SELECT status, reward_void_pending FROM referral_redemptions WHERE referred_user_id = ?")
+          .bind(session.userId)
+          .first<{ status: string; reward_void_pending: string | null }>();
+        pending.push(row === null ? null : `${row.status}:${row.reward_void_pending}`);
+      }
+    };
+    // Kanca Cron'un ilk Stripe okumasında (sahiplenmeden sonra) çalışır; itiraz bekleyen düşme olur.
+    expect(await grant(harness)).toEqual({ ...noRewards, processed: 1, voided: 1 });
+    expect(pending).toEqual(["qualified:disputed"]);
+    expect(await redemptionStatus(session.userId)).toEqual({ status: "void", void_reason: "disputed" });
+    expect(stripe.balanceTransactions).toHaveLength(0);
+  });
+
+  it("iade webhook'u Stripe denetiminden sonra, alacak yazılırken: satır alacakla birlikte granted kalır (void ve alacak birlikte oluşmaz)", async () => {
+    const harness: Harness = await defaultHarness();
+    const stripe: FakeStripe = stubStripeApi(harness);
+    const id = uniqueIds();
+    const owner = await subscriber(harness, stripe, id, "owner");
+    const code: string = (await referral(harness, owner.session)).code ?? "";
+    const { session, friend, intent } = await qualifiedFriend(harness, stripe, id, "friend", code);
+    harness.clock.nowMs += 31 * dayMs;
+    stripe.beforeRequest = async (method: string, path: string): Promise<void> => {
+      if (method === "POST" && path === `/v1/customers/${owner.customer}/balance_transactions`) {
+        stripe.beforeRequest = null;
+        await refundWebhook(harness, stripe, id, "friend", friend.customer, intent);
+      }
+    };
+    expect(await grant(harness)).toEqual({ ...noRewards, processed: 1, granted: 1 });
+    expect(await redemptionStatus(session.userId)).toEqual({ status: "granted", void_reason: null });
+    expect(stripe.balanceTransactions).toHaveLength(1);
+    expect(await storedTransaction(session.userId)).toBe(stripe.balanceTransactions[0]?.id);
+  });
+
+  it("sahiplenip Stripe'tan önce çöken çalışma: sahiplenme süresince satır atlanır ve webhook'la düşmez; süre dolunca yeniden denenir", async () => {
+    const harness: Harness = await defaultHarness();
+    const stripe: FakeStripe = stubStripeApi(harness);
+    const id = uniqueIds();
+    const owner = await subscriber(harness, stripe, id, "owner");
+    const code: string = (await referral(harness, owner.session)).code ?? "";
+    const clean = await qualifiedFriend(harness, stripe, id, "clean", code);
+    const refunded = await qualifiedFriend(harness, stripe, id, "refunded", code);
+    harness.clock.nowMs += 31 * dayMs;
+    // Çöken çalışmanın sahiplenmesi: iki satır da sahiplenilmiş, Stripe çağrılmamış.
+    const crashedAt: number = harness.clock.nowMs;
+    await env.DB.prepare("UPDATE referral_redemptions SET reward_claimed_at = ? WHERE referred_user_id IN (?, ?)")
+      .bind(crashedAt, clean.session.userId, refunded.session.userId)
+      .run();
+    await refundWebhook(harness, stripe, id, "refunded", refunded.friend.customer, refunded.intent);
+    expect((await redemptionStatus(refunded.session.userId))?.status).toBe("qualified");
+
+    harness.clock.nowMs = crashedAt + referralClaimLeaseMs - 1;
+    expect(await grant(harness)).toEqual(noRewards);
+    expect(stripe.balanceTransactions).toHaveLength(0);
+
+    harness.clock.nowMs = crashedAt + referralClaimLeaseMs;
+    expect(await grant(harness)).toEqual({ ...noRewards, processed: 2, granted: 1, voided: 1 });
+    expect(await redemptionStatus(clean.session.userId)).toEqual({ status: "granted", void_reason: null });
+    expect(await redemptionStatus(refunded.session.userId)).toEqual({ status: "void", void_reason: "refunded" });
+    expect(stripe.balanceTransactions).toHaveLength(1);
+    expect(await grant(harness)).toEqual(noRewards);
+  });
+
+  it("alacak yazıldıktan sonra çöken çalışma ve ardından gelen iade: yeniden deneme yazılmış alacağı bulur, satır granted olur, ikinci alacak yok", async () => {
+    const harness: Harness = await defaultHarness();
+    const stripe: FakeStripe = stubStripeApi(harness);
+    const id = uniqueIds();
+    const owner = await subscriber(harness, stripe, id, "owner");
+    const code: string = (await referral(harness, owner.session)).code ?? "";
+    const { session, friend, intent } = await qualifiedFriend(harness, stripe, id, "friend", code);
+    harness.clock.nowMs += 31 * dayMs;
+    stripe.loseBalanceResponses = true;
+    await expect(grant(harness)).rejects.toBeInstanceOf(ReferralRewardFailedError);
+    stripe.loseBalanceResponses = false;
+    expect(stripe.balanceTransactions).toHaveLength(1);
+    await refundWebhook(harness, stripe, id, "friend", friend.customer, intent);
+    expect((await redemptionStatus(session.userId))?.status).toBe("qualified");
+    stripe.balanceKeys.clear();
+    harness.clock.nowMs += referralClaimLeaseMs;
+    expect(await grant(harness)).toEqual({ ...noRewards, processed: 1, granted: 1 });
+    expect(await redemptionStatus(session.userId)).toEqual({ status: "granted", void_reason: null });
+    expect(stripe.balanceTransactions).toHaveLength(1);
+    expect(await storedTransaction(session.userId)).toBe(stripe.balanceTransactions[0]?.id);
+  });
+
+  it("davet eden alacak yazılırken silinir: sonuç yazılamaz, alarm verilir ve satır başarısız sayılır", async () => {
+    const harness: Harness = await defaultHarness();
+    const stripe: FakeStripe = stubStripeApi(harness);
+    const id = uniqueIds();
+    const owner = await subscriber(harness, stripe, id, "owner");
+    const code: string = (await referral(harness, owner.session)).code ?? "";
+    const { session } = await qualifiedFriend(harness, stripe, id, "friend", code);
+    harness.clock.nowMs += 31 * dayMs;
+    stripe.beforeRequest = async (method: string, path: string): Promise<void> => {
+      if (method === "POST" && path === `/v1/customers/${owner.customer}/balance_transactions`) {
+        stripe.beforeRequest = null;
+        await env.DB.batch(referralDeletionStatements(env.DB, owner.session.userId, harness.clock.nowMs));
+      }
+    };
+    const alerts = vi.spyOn(console, "error");
+    await expect(grant(harness)).rejects.toBeInstanceOf(ReferralRewardFailedError);
+    const lines: string[] = alerts.mock.calls.map((call: unknown[]): string => String(call[0]));
+    alerts.mockRestore();
+    expect(lines.some((line: string): boolean => line.includes('"event":"referral_reward_settle_missed"'))).toBe(true);
+    expect(await redemptionStatus(session.userId)).toEqual({ status: "void", void_reason: "referrer_deleted" });
+    expect(await grant(harness)).toEqual(noRewards);
   });
 });

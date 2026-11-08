@@ -79,6 +79,9 @@ export type ReferralVoidReason =
   | "self_card"
   | "canceled_before_payment";
 
+/** Ödemenin geri dönmesi (iade ya da itiraz webhook'u); `reward_void_pending` sütununun değerleri. */
+export type PaymentReversalReason = "refunded" | "disputed";
+
 /** Davet indirimi: aylıkta ilk ay ücretsiz, yıllıkta ilk yıla bir aylık fiyat kadar indirim. */
 export type ReferralDiscount = "first_month_free" | "first_year_month_off";
 
@@ -535,12 +538,22 @@ export function referralInvoicePaidStatements(db: D1Database, paid: PaidInvoice)
   return [...joined, ...paidStatements];
 }
 
-/** Aboneliğin bekleyen ödülünü düşüren ifade (iade). */
-export function referralVoidBySubscriptionStatement(db: D1Database, subscriptionId: string, reason: ReferralVoidReason, nowMs: number): D1PreparedStatement {
+/**
+ * İade ya da itirazın bekleyen ödüle etkisi (`referralState.ts`, `payment_reversed`; bağlar: ?1 neden, ?2 an): ödül
+ * Cron'unun sahiplenmediği satır hemen düşer; sahiplendiği satır düşmez, neden `reward_void_pending`'e yazılır (ilk
+ * neden kalır) ve Cron sonuçlandırmadan önce onu okur.
+ */
+const paymentReversedSetSql: string = `status = CASE WHEN reward_claimed_at IS NULL THEN 'void' ELSE status END,
+  void_reason = CASE WHEN reward_claimed_at IS NULL THEN ?1 ELSE void_reason END,
+  reward_void_pending = CASE WHEN reward_claimed_at IS NULL THEN reward_void_pending ELSE COALESCE(reward_void_pending, ?1) END,
+  updated_at = ?2`;
+
+/** Aboneliğin bekleyen ödülünü düşüren ifade (iade; sahiplenilmiş satırda bekleyen düşme, `paymentReversedSetSql`). */
+export function referralVoidBySubscriptionStatement(db: D1Database, subscriptionId: string, reason: PaymentReversalReason, nowMs: number): D1PreparedStatement {
   return db
     .prepare(
-      `UPDATE referral_redemptions SET status = 'void', void_reason = ?, updated_at = ?
-       WHERE stripe_subscription_id = ? AND status IN ('joined', 'qualified')`,
+      `UPDATE referral_redemptions SET ${paymentReversedSetSql}
+       WHERE stripe_subscription_id = ?3 AND status IN ('joined', 'qualified')`,
     )
     .bind(reason, nowMs, subscriptionId);
 }
@@ -568,12 +581,12 @@ function referralVoidUnpaidByReferredStatement(db: D1Database, referredUserId: s
     .bind(nowMs, referredUserId);
 }
 
-/** Davet edilen hesabın bekleyen ödülünü düşüren ifade (itiraz). */
-export function referralVoidByReferredStatement(db: D1Database, referredUserId: string, reason: ReferralVoidReason, nowMs: number): D1PreparedStatement {
+/** Davet edilen hesabın bekleyen ödülünü düşüren ifade (itiraz; sahiplenilmiş satırda bekleyen düşme, `paymentReversedSetSql`). */
+export function referralVoidByReferredStatement(db: D1Database, referredUserId: string, reason: PaymentReversalReason, nowMs: number): D1PreparedStatement {
   return db
     .prepare(
-      `UPDATE referral_redemptions SET status = 'void', void_reason = ?, updated_at = ?
-       WHERE referred_user_id = ? AND status IN ('joined', 'qualified')`,
+      `UPDATE referral_redemptions SET ${paymentReversedSetSql}
+       WHERE referred_user_id = ?3 AND status IN ('joined', 'qualified')`,
     )
     .bind(reason, nowMs, referredUserId);
 }
@@ -581,7 +594,8 @@ export function referralVoidByReferredStatement(db: D1Database, referredUserId: 
 /**
  * Hesap silinirken davet ifadeleri: kodu silinir; abonelik açmamış satırı silinir; davetle abone olmuş satırında hesap
  * bağı kaldırılır (kimlik ve kart özeti ve zamanlar kalır, `cleanup.ts` 730 gün sonra siler); davet ettiklerinin
- * satırlarında davet eden bağı kaldırılır ve bekleyen ödül düşer.
+ * satırlarında davet eden bağı kaldırılır ve bekleyen ödül düşer. Ödül Cron'unun sahiplendiği satır da düşer
+ * (`referralState.ts`, `referrer_deleted`): hesap kapanmıştır; Cron'un sonucu yazılamaz ve alarm verir.
  */
 export function referralDeletionStatements(db: D1Database, userId: string, nowMs: number): D1PreparedStatement[] {
   return [

@@ -130,7 +130,8 @@ aboneliğinin son "yok" okumasının anını (`users.app_store_absent_synced_at`
 `pause_count`; aşağıda "Toplantı duraklatma"), `0056` ElevenLabs'in bildirdiği kredi durumunun tek satırlık önbelleğini
 (`elevenlabs_capacity`; yukarıda `ELEVENLABS_*`), `0057` toplantının geri dönüşsüz geçişlerini zorlayan tetikleyicileri
 (bitiş son evredir; bitiş nedeni ve duraklatmanın kapanmasıyla yazılır; bitmiş toplantı duraklatılamaz; aşağıda
-"Toplantı yaşam döngüsü") ekler.
+"Toplantı yaşam döngüsü"), `0064` davet ödülünün sahiplenmesini (`referral_redemptions.reward_claimed_at`) ve davet durum
+geçişlerini zorlayan tetikleyicileri (aşağıda "Davet programı") ekler.
 
 ## App Store abonelikleri (RevenueCat)
 
@@ -448,7 +449,11 @@ yönetim panelinin sürüm listesi işletim sisteminin adıyla Mac ile iPhone'u 
 - Günlük Cron günü gelen ödülleri verir: davet edenin Stripe müşterisine `-599` sent (USD) müşteri bakiyesi hareketi
   (`metadata.purpose=referral_reward`); Stripe sonraki faturalarından düşer. Müşteri bakiyesi seçildi çünkü plandan
   bağımsızdır, birden çok ödül birikir ve aboneliği değiştirmez. Çift ödül yok: satır durumu, idempotency anahtarı ve
-  çağrıdan önce bakiye hareketlerinde aynı ödül araması.
+  çağrıdan önce bakiye hareketlerinde aynı ödül araması. Cron satırı Stripe'tan önce sahiplenir (`reward_claimed_at`,
+  göç `0064`, durum makinesi `src/referralState.ts`); iade ve itiraz webhook'u sahiplenilmiş satırı düşürmez, nedenini
+  `reward_void_pending`'e yazar; Cron onu ve ödül faturasının iadesini sahiplendikten sonra okur ve satırı düşürür. Ödül yazıldıktan sonra gelen iade ödülü geri almaz (koruma 30 günlük
+  beklemedir). Sonuç yazılamazsa `referral_reward_settle_missed` alarmı; çöken çalışmanın sahiplenmesi bir saat sonra
+  düşer ve sonraki Cron önce Stripe'ta yazılmış ödülü arar. Durum geçişleri D1 tetikleyicileriyle de zorlanır.
 - Ücretsiz ayında aboneliği biten (Stripe'ta `canceled`/`incomplete_expired`) ya da hesabını silen arkadaşın daveti
   düşer (`void`/`canceled_before_payment`): davet edenin "bekleyen" sayısında ve tahmini ödül tarihinde kalmaz.
 - Kötüye kullanım:

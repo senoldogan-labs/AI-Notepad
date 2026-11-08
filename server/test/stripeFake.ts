@@ -116,6 +116,8 @@ export interface FakeStripe {
   loseBalanceResponses: boolean;
   /** Müşteri → kayıtlı kartları (`GET /v1/customers/{id}/payment_methods`). */
   readonly customerCards: Map<string, FakePaymentMethod[]>;
+  /** Doluysa her istekten önce çağrılır (araya giren webhook gibi yarışlar için; kanca kendini kaldırmalıdır). */
+  beforeRequest: ((method: string, path: string) => Promise<void>) | null;
 }
 
 /** Form gövdesi. */
@@ -160,11 +162,15 @@ export function stubStripeApi(harness: Harness): FakeStripe {
     disputedIntents: new Set(),
     loseBalanceResponses: false,
     customerCards: new Map(),
+    beforeRequest: null,
   };
   harness.stub("https://api.stripe.com/v1/", async (request: Request): Promise<Response> => {
     const url: URL = new URL(request.url);
     const path: string = url.pathname;
     const method: string = request.method;
+    if (fake.beforeRequest !== null) {
+      await fake.beforeRequest(method, path);
+    }
     if (method === "POST" && path === "/v1/customers") {
       const key: string = request.headers.get("idempotency-key") ?? randomToken(6);
       const cached: string | undefined = fake.customerKeys.get(key);
