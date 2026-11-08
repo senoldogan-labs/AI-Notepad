@@ -310,6 +310,16 @@ async function finishSiteGoogleReturn(
   }
   try {
     await signInOnSite("/v1/auth/google", result.idToken, pending.rawNonce, accountPath);
+    // Hesap sayfasından Geri ile dönülünce sayfa geri/ileri önbellekten açılabilir: giriş o zaman yeniden sunulur.
+    window.addEventListener(
+      "pageshow",
+      (event: PageTransitionEvent): void => {
+        if (event.persisted) {
+          startSiteSignIn(text, notice, accountPath, redirectUri);
+        }
+      },
+      { once: true },
+    );
   } catch (error: unknown) {
     startSiteSignIn(text, notice, accountPath, redirectUri);
     showNotice(notice, errorText(error, text));

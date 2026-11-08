@@ -201,8 +201,11 @@ function refresh(generation: number): Promise<void> {
       apply({ type: "refreshSucceeded", generation, tokens: toStored(parseSession(response, path), Date.now()) });
     } catch (error: unknown) {
       if (error instanceof ApiRequestError && (error.status === 401 || error.status === 400)) {
-        apply({ type: "refreshRejected", generation });
-        throw new SignedOutError(`Oturum yenilenemedi (${error.code}).`);
+        if (apply({ type: "refreshRejected", generation })) {
+          throw new SignedOutError(`Oturum yenilenemedi (${error.code}).`);
+        }
+        // Bu arada çıkış ya da yeni giriş oldu: eski ailenin reddi geçerli oturumu bitirmez, çağıran durumu yeniden okur.
+        return;
       }
       apply({ type: "refreshFailed", generation });
       throw error;
