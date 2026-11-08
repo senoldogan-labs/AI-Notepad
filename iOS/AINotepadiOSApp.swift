@@ -164,7 +164,8 @@ struct AINotepadiOSApp: App {
                     sharedFiles.receive(url: url)
                     return
                 }
-                Task { await openPhoneAppLink(route: route, router: router, sessions: sessions, account: account) }
+                let store: PhoneStore = sessions.session.store
+                openPhoneAppLink(route: route, router: router, account: account, meetingIDs: store.meetings.map(\.id) + store.deletedMeetings.map(\.id))
             }
             // Spotlight'taki toplantı sonucu o toplantıyı açar (hesapta yoksa açılmaz).
             .onContinueUserActivity(CSSearchableItemActionType) { (activity: NSUserActivity) in
@@ -303,6 +304,10 @@ private struct PhoneAppRoot: View {
         .id(sessions.generation)
         // Önceki sürümlerin cihaz başına onayı ilk giren hesaba taşınır.
         .task(id: account.signedInUserIDCache) { migrateLegacyPhoneAIConsent(account: account) }
+        // Bağlantı toplantılar okunmadan (açılışta, girişten önce) geldiyse kimliği okununca cihazdakiyle eşleşir.
+        .onChange(of: session.store.meetings.count + session.store.deletedMeetings.count, initial: true) { (_: Int, _: Int) in
+            router.matchLinkedMeetings(meetingIDs: session.store.meetings.map(\.id) + session.store.deletedMeetings.map(\.id))
+        }
         // Girişten sonra kapıdaki "bağlantı girişten sonra açılır" notu kalkar (bağlantının yeri yığında bekler).
         .onChange(of: account.requiresSignIn) { (_: Bool, requiresSignIn: Bool) in
             if !requiresSignIn {
@@ -723,6 +728,21 @@ final class PhoneRouter {
     func showAlone(route: PhoneRoute) {
         isLibraryOpen = false
         path = [route]
+    }
+
+    /// Yığındaki toplantı sayfalarının kimliğini cihazdaki toplantınınkiyle değiştirir (bağlantıdaki UUID'nin harf
+    /// büyüklüğü farklı olabilir; bkz. `linkedMeetingID`): silme sayfayı kapatsın, karşılaştırmalar tutsun. Bağlantı
+    /// açılınca ve toplantılar okunup değişince çağrılır; eşleşmeyen kimlik kalır ("Toplantı bulunamadı").
+    func matchLinkedMeetings(meetingIDs: [String]) {
+        let matched: [PhoneRoute] = path.map { (route: PhoneRoute) -> PhoneRoute in
+            guard case .meeting(let id) = route, let found = linkedMeetingID(linkID: id, meetingIDs: meetingIDs) else {
+                return route
+            }
+            return .meeting(found)
+        }
+        if matched != path {
+            path = matched
+        }
     }
 
     /// Görevlerim'i ana ekranın üstünde açar (görev bildirimi).

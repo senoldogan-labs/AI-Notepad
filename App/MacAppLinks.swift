@@ -8,7 +8,7 @@ private let macAppLinkLogger: Logger = Logger(subsystem: "com.senoldogan.AINotep
 /// sayfayı açar, kaydı kullanıcı başlatır. Oturum yoksa yer yine seçilir, giriş kapısı bağlantının girişten sonra
 /// açılacağını söyler. Hesapta olmayan toplantı "Toplantı bulunamadı" gösterir.
 @MainActor
-func openMacAppLink(route: AppLinkRoute, router: MainWindowRouter, model: AppModel) async {
+func openMacAppLink(route: AppLinkRoute, router: MainWindowRouter, meetingIDs: [String]) {
     macAppLinkLogger.info("Bağlantı açılıyor, yer: \(String(describing: route), privacy: .private), oturum gerekli: \(isSignInRequired(), privacy: .public)")
     router.isLinkWaitingForSignIn = isSignInRequired()
     switch route {
@@ -21,29 +21,19 @@ func openMacAppLink(route: AppLinkRoute, router: MainWindowRouter, model: AppMod
     case .insights:
         openMainWindow(router: router, section: .insights)
     case .meeting(let linkID):
-        openMeetingInMainWindow(router: router, meetingID: await macLinkedMeetingID(linkID: linkID, model: model))
+        // Toplantılar henüz okunmadıysa kimlik okununca eşleşir (`matchLinkedMeeting`).
+        openMeetingInMainWindow(router: router, meetingID: linkID)
+        matchLinkedMeeting(router: router, meetingIDs: meetingIDs)
     }
 }
 
-/// Bağlantıdaki toplantının bu hesaptaki kimliği (UUID harf büyüklüğü farklı olabilir; bkz. `linkedMeetingID`). Oturum
-/// yoksa, hesabın verisi hazır değilse ya da toplantı yoksa bağlantıdaki kimlik döner: Toplantılar toplantı gelince onu,
-/// gelmezse "bulunamadı" gösterir.
+/// Seçili toplantının kimliğini cihazdaki toplantınınkiyle değiştirir (bağlantıdaki UUID'nin harf büyüklüğü farklı
+/// olabilir; bkz. `linkedMeetingID`): listedeki vurgu ve silme seçimi tutsun. Bağlantı açılınca ve toplantılar okunup
+/// değişince çağrılır; eşleşmeyen kimlik kalır ("Toplantı bulunamadı").
 @MainActor
-private func macLinkedMeetingID(linkID: String, model: AppModel) async -> String {
-    // Oturum yokken toplantılar okunmaz (`meetingsForIntents` hazır değil der): kimlik girişten sonra açılır.
-    guard !isSignInRequired() else {
-        return linkID
+func matchLinkedMeeting(router: MainWindowRouter, meetingIDs: [String]) {
+    guard let selected = router.selectedMeetingID, let found = linkedMeetingID(linkID: selected, meetingIDs: meetingIDs), found != selected else {
+        return
     }
-    let meetings: [MeetingRecord]
-    do {
-        meetings = try await model.meetingsForIntents()
-    } catch {
-        macAppLinkLogger.warning("Bağlantıdaki toplantı aranamadı, kimlik olduğu gibi açılıyor, hata: \(String(describing: error), privacy: .public)")
-        return linkID
-    }
-    guard let id = linkedMeetingID(linkID: linkID, meetingIDs: meetings.map(\.id)) else {
-        macAppLinkLogger.warning("Bağlantıdaki toplantı bu hesapta yok, toplantı: \(linkID, privacy: .private)")
-        return linkID
-    }
-    return id
+    router.selectedMeetingID = found
 }

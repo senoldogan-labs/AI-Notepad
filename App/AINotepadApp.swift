@@ -285,7 +285,7 @@ struct AINotepadApp: App {
             Task { await openSpotlightMeeting(meetingID: meetingID) }
         }
         AppDelegate.onAppLink = { (route: AppLinkRoute) -> Void in
-            Task { await openMacAppLink(route: route, router: router, model: model) }
+            openMacAppLink(route: route, router: router, meetingIDs: model.meetings.map(\.id))
         }
         model.onAutoRecord = {
             guard !model.isRecording else {
@@ -614,6 +614,10 @@ struct AINotepadApp: App {
             }
         )
         .environment(dictation)
+        // Bağlantı toplantılar okunmadan (açılışta, girişten önce) geldiyse kimliği okununca cihazdakiyle eşleşir.
+        .onChange(of: model.meetings.count, initial: true) { (_: Int, _: Int) in
+            matchLinkedMeeting(router: router, meetingIDs: model.meetings.map(\.id))
+        }
     }
 
     private var menuSymbol: String {
