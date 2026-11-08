@@ -420,7 +420,7 @@ struct ScreenSnapshotCaptureTests {
         var events: [ScreenSnapshotEvent] = []
         let wallStart: ContinuousClock.Instant = .now
         let cpuStart: Double = processCPUSeconds()
-        try recorder.start(meetingDirectory: meeting, origin: .now, policy: screenSnapshotPolicy) { (event: ScreenSnapshotEvent) -> Void in
+        try recorder.start(meetingDirectory: meeting, timeline: RecordingPauseGate(sampleRate: 16000, origin: .now), policy: screenSnapshotPolicy) { (event: ScreenSnapshotEvent) -> Void in
             events.append(event)
         }
         try await Task.sleep(for: .seconds(60))

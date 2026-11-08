@@ -71,7 +71,11 @@ public func runCloudLiveSession(
     let startLanguage: MeetingLanguage = initialLanguage(languageMode: config.languageMode, automaticStart: config.automaticStartLanguage)
     let (meForward, meInput): (AsyncStream<[Float]>, AsyncStream<[Float]>.Continuation) = AsyncStream.makeStream(of: [Float].self)
     let (othersForward, othersInput): (AsyncStream<[Float]>, AsyncStream<[Float]>.Continuation) = AsyncStream.makeStream(of: [Float].self)
-    let meStream: DeepgramStream = startDeepgramStream(apiKey: config.deepgramKey, language: startLanguage, keyterms: config.keyterms, audio: meForward)
+    // "Sen" mikrofon kapalı başlayıp kayıt sırasında açılabilir: bağlantı ilk seste açılır, öncesindeki sessizlik
+    // gönderilmez (mikrofonsuz kayıtta hiç açılmaz).
+    let meStream: DeepgramStream = startDeepgramStreamOnFirstSound(audio: meForward, sampleRate: cloudSampleRate) { (forward: AsyncStream<[Float]>) -> DeepgramStream in
+        startDeepgramStream(apiKey: config.deepgramKey, language: startLanguage, keyterms: config.keyterms, audio: forward)
+    }
     let othersStream: DeepgramStream = startDeepgramStream(apiKey: config.deepgramKey, language: startLanguage, keyterms: config.keyterms, audio: othersForward)
     let streams: [DeepgramStream] = [meStream, othersStream]
 

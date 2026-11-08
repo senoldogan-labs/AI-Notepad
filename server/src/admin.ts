@@ -5,6 +5,7 @@ import { type ElevenLabsUsage, elevenLabsUsage } from "./elevenLabsCapacity";
 import { subscriptionRenewalGraceMs } from "./entitlements";
 import { ApiError } from "./errors";
 import { log } from "./log";
+import { meetingRecordedMsSql } from "./meetingPause";
 import { freeInviteMonthSql } from "./referrals";
 import { utcDayStartMs } from "./reports";
 import type { TrialRefusalReason } from "./trialRefusals";
@@ -559,7 +560,7 @@ export async function adminStats(db: D1Database, config: Config, now: Date): Pro
       .all<DayKindRow>(),
     db
       .prepare(
-        `SELECT COALESCE(SUM(MAX(0, MIN(COALESCE(ended_at, ?1), max_ends_at, ?1) - started_at)), 0) AS value
+        `SELECT COALESCE(SUM(${meetingRecordedMsSql("", "?1")}), 0) AS value
          FROM meeting_sessions WHERE started_at >= ?2`,
       )
       .bind(nowMs, monthStartMs(now))

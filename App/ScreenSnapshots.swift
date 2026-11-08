@@ -32,10 +32,10 @@ final class ScreenSnapshotCenter {
     @ObservationIgnored private var storedThisRecording: Bool = false
 
     /// Kayıt başında görüntü almayı başlatır. Başlatılamazsa (izin yok) hata atar; kayıt etkilenmez.
-    func startRecording(meetingID: String, directory: URL, origin: ContinuousClock.Instant, onStopped: @escaping @MainActor (ScreenCaptureError) -> Void) throws(ScreenCaptureError) {
+    func startRecording(meetingID: String, directory: URL, timeline: RecordingPauseGate, onStopped: @escaping @MainActor (ScreenCaptureError) -> Void) throws(ScreenCaptureError) {
         recordingMeetingID = meetingID
         storedThisRecording = false
-        try recorder.start(meetingDirectory: directory, origin: origin, policy: screenSnapshotPolicy) { [weak self] (event: ScreenSnapshotEvent) -> Void in
+        try recorder.start(meetingDirectory: directory, timeline: timeline, policy: screenSnapshotPolicy) { [weak self] (event: ScreenSnapshotEvent) -> Void in
             self?.handle(event: event, meetingID: meetingID, onStopped: onStopped)
         }
     }
@@ -180,18 +180,6 @@ private let screenNotesLogger: Logger = Logger(subsystem: "com.senoldogan.AINote
 /// Listedeki küçük resimlerin uzun kenarı (piksel; Retina'da 280 noktalık genişliğe yeter).
 let screenThumbnailPixels: Int = 640
 
-/// Fotoğraf eklenemeyince kullanıcı metni.
-func meetingPhotoErrorMessage(error: any Error) -> String {
-    switch error {
-    case MeetingPhotoError.limitReached(let limit):
-        String(localized: "Bu toplantıya en fazla \(limit) fotoğraf eklenebilir.")
-    case is ScreenImageError:
-        String(localized: "Fotoğraf okunamadı; başka bir görüntü dene.")
-    default:
-        String(localized: "Fotoğraf eklenemedi: \(userFacingMessage(error: error))")
-    }
-}
-
 /// Görüntü alma hatasının kullanıcı metni.
 func screenCaptureMessage(error: ScreenCaptureError) -> String {
     switch error {
@@ -209,12 +197,12 @@ func screenCaptureMessage(error: ScreenCaptureError) -> String {
 extension AppModel {
     /// Kayıt başında: ayar açıksa ve görüşme çevrimiçiyse (yüz yüze modunda paylaşılan ekran yoktur) görüntü almayı
     /// başlatır. Başlatılamaz ya da sonradan durursa nedeni paneldeki hatalarda görünür; kayıt sürer.
-    func startScreenSnapshots(meetingID: String, directory: URL, origin: ContinuousClock.Instant, isInPerson: Bool) {
+    func startScreenSnapshots(meetingID: String, directory: URL, timeline: RecordingPauseGate, isInPerson: Bool) {
         guard UserDefaults.standard.bool(forKey: SettingsKey.screenSnapshots), !isInPerson else {
             return
         }
         do {
-            try screenSnapshots.startRecording(meetingID: meetingID, directory: directory, origin: origin) { [weak self] (error: ScreenCaptureError) -> Void in
+            try screenSnapshots.startRecording(meetingID: meetingID, directory: directory, timeline: timeline) { [weak self] (error: ScreenCaptureError) -> Void in
                 guard let self else {
                     return
                 }
@@ -252,11 +240,12 @@ extension AppModel {
         }
     }
 
-    /// Fotoğrafı toplantıya ekler (kayıtta şu ana, sonra toplantının sonuna); hata Ekranlar sekmesinde görünür.
-    func addMeetingPhoto(meetingID: String, imageData: Data) async {
+    /// Fotoğrafı toplantıya `offsetSec`'e ekler (bkz. `photoOffset`; dosya seçicide seçicinin açıldığı an: seçici açıkken kayıt
+    /// bitse de fotoğraf bu toplantıya, çekildiği ana eklenir); hata Ekranlar sekmesinde görünür.
+    func addMeetingPhoto(meetingID: String, offsetSec: Double, imageData: Data) async {
         do {
             _ = await screenSnapshots.addPhoto(
-                meetingID: meetingID, directory: try sessionDirectory(id: meetingID), offsetSec: photoOffset(meetingID: meetingID), imageData: imageData
+                meetingID: meetingID, directory: try sessionDirectory(id: meetingID), offsetSec: offsetSec, imageData: imageData
             )
         } catch {
             screenSnapshots.record(error: error, meetingID: meetingID)

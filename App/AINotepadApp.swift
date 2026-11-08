@@ -520,7 +520,7 @@ struct AINotepadApp: App {
         MenuBarExtra {
             MenuContent(model: model, panel: panel, island: island, shortcuts: shortcuts, router: router, updater: updater)
         } label: {
-            MenuBarLabel(symbol: menuSymbol, recordingStartedAt: model.phase == .recording && !model.isPaused ? model.recordingStartedAt : nil)
+            MenuBarLabel(symbol: menuSymbol, recordingStartedAt: model.phase == .recording && !model.isPaused ? model.recordingTimerStart : nil)
                 // Menü çubuğu simgesi hep açık: kayıt, işleme ve kendiliğinden gönderim bitince ertelenen güncelleme
                 // (varsa) burada sürdürülür, ana pencere kapalı olsa da.
                 .onChange(of: model.blocksUpdateRelaunch) { (_: Bool, blocks: Bool) in
@@ -782,10 +782,11 @@ private struct MenuContent: View {
             .menuShortcut(binding: shortcuts.currentBinding(action: .record))
         case .recording:
             if let startedAt = model.recordingStartedAt {
-                // Menü açılırken bir kez okunur.
+                // Menü açılırken bir kez okunur; süre duraklatılan zamanı saymaz.
+                let activeSec: TimeInterval = recordingActiveSec(startedAt: startedAt, stoppedAt: nil, pause: model.pauseClock, now: Date())
                 Text(model.isPaused
-                    ? String(localized: "Duraklatıldı · \(timestamp(seconds: Date().timeIntervalSince(startedAt)))")
-                    : String(localized: "Kayıtta · \(timestamp(seconds: Date().timeIntervalSince(startedAt)))"))
+                    ? String(localized: "Duraklatıldı · \(timestamp(seconds: activeSec))")
+                    : String(localized: "Kayıtta · \(timestamp(seconds: activeSec))"))
             }
             Button("Kaydı bitir", systemImage: "stop.circle") {
                 model.stopRecording()
@@ -793,6 +794,12 @@ private struct MenuContent: View {
             .menuShortcut(binding: shortcuts.currentBinding(action: .record))
             Button(model.isPaused ? "Devam ettir" : "Duraklat", systemImage: model.isPaused ? "play.circle" : "pause.circle") {
                 model.togglePause()
+            }
+            // Mikrofon kapalı başlayan kayıtta da açılabilir (o andan itibaren kaydedilir); yüz yüze kayıtta tek kaynaktır.
+            if !model.viewState.isInPerson {
+                Button(model.isMicMuted ? "Mikrofonu aç" : "Mikrofonu kapat", systemImage: model.isMicMuted ? "mic" : "mic.slash") {
+                    model.toggleMicrophone()
+                }
             }
         case .finishing:
             Button("Bitiriliyor…", systemImage: "hourglass") {}

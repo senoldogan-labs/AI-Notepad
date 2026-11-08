@@ -6,6 +6,7 @@ import { deepgramStreamsPerMeeting } from "./deepgram";
 import { freeInviteMonthSql } from "./referrals";
 import { utcDayStartMs } from "./reports";
 import { dayKey, haikuShortInputUsdPerMTok, haikuShortOutputUsdPerMTok, monthKey } from "./usage";
+import { meetingRecordedMsSql } from "./meetingPause";
 
 /**
  * Yönetim panelinin "Ürün" görünümü (`GET /v1/admin/product`): etkinlik (WAU/MAU, haftalık etkin kullanıcı ve
@@ -730,7 +731,7 @@ export async function adminProduct(db: D1Database, config: Config, now: Date): P
     db
       .prepare(
         `SELECT strftime('%Y-%m', started_at / 1000, 'unixepoch') AS month, COUNT(*) AS meetings,
-           COALESCE(SUM(MAX(0, MIN(COALESCE(ended_at, ?1), max_ends_at, ?1) - started_at)), 0) AS duration_ms
+           COALESCE(SUM(${meetingRecordedMsSql("", "?1")}), 0) AS duration_ms
          FROM meeting_sessions WHERE started_at >= ?2 GROUP BY month`,
       )
       .bind(nowMs, firstMonthMs)

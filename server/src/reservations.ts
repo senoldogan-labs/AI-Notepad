@@ -1,6 +1,7 @@
 import type { Config } from "./config";
 import { randomId } from "./crypto";
 import { ApiError } from "./errors";
+import { meetingBaseMsSql, meetingRecordedMsSql } from "./meetingPause";
 import {
   type SpendCeilingKind,
   chunkOverlapAllowanceSql,
@@ -220,13 +221,15 @@ export function subscriberAccountTokenLimit(config: Config, userId: string, now:
 }
 
 /**
- * Toplantının ses süresinden kalan: ilk geçişte en uzun süresi + parça örtüşme payı − yazılmış ses; yeniden işlemede
+ * Toplantının ses süresinden kalan: ilk geçişte taban en uzun süresi (duraklatma uzatması sayılmaz, `meetingBaseMsSql`) + parça örtüşme payı − yazılmış ses; yeniden işlemede
  * `reprocess_audio_cap` − yazılmış ses (sınır toplam yerine geçer: ikinci geçiş kaydın tamamını yeniden yazabilmeli);
  * ses hakkı kapandıysa 0. Toplantıda aynı anda tek ses isteği olabildiği için
  * (`meetingAudioIdleLimit`) süren ayırma düşülmez.
  */
 export function meetingAudioLimit(meetingId: string): ReservationLimit {
-  const total: string = `(max_ends_at - started_at) / 1000.0 + ${chunkOverlapAllowanceSql("(max_ends_at - started_at) / 1000.0")}`;
+  // Taban süre: duraklatma uzatması ses hakkını büyütmez (duraklatılan ses kaydedilmez).
+  const base: string = `${meetingBaseMsSql("")} / 1000.0`;
+  const total: string = `${base} + ${chunkOverlapAllowanceSql(base)}`;
   return {
     remainingSql: `(SELECT CASE WHEN transcription_closed = 0 THEN COALESCE(reprocess_audio_cap, ${total}) - audio_seconds ELSE 0 END FROM meeting_sessions WHERE id = ?)`,
     binds: [meetingId],
@@ -267,7 +270,7 @@ export function userAudioIdleLimit(userId: string, now: Date): ReservationLimit 
 export function monthlyAudioLimit(config: Config, userId: string, meetingId: string, now: Date): ReservationLimit {
   const used: string = monthlyUsedSecondsSql({ user: "p.user_id", month: "p.month", now: "p.now", monthStart: "p.month_start" });
   const written: string = `(s.audio_seconds + COALESCE((SELECT SUM(r.audio_seconds) FROM usage_reservations r WHERE r.meeting_id = s.id AND r.kind = 'audio' AND r.expires_at > p.now), 0))`;
-  const headroom: string = `COALESCE((SELECT MAX(0, MAX(0, MIN(COALESCE(s.ended_at, p.now), s.max_ends_at, p.now) - s.started_at) / 1000.0 - ${overlapFreeSecondsSql(written)})
+  const headroom: string = `COALESCE((SELECT MAX(0, ${meetingRecordedMsSql("s.", "p.now")} / 1000.0 - ${overlapFreeSecondsSql(written)})
     FROM meeting_sessions s WHERE s.id = p.meeting_id AND s.started_at >= p.month_start), 0)`;
   const overlap: string = `COALESCE((SELECT CASE WHEN s.audio_seconds >= ${chunkStepSeconds} THEN ${chunkOverlapSeconds} ELSE 0 END FROM meeting_sessions s WHERE s.id = p.meeting_id), 0)`;
   return {

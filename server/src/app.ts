@@ -76,7 +76,18 @@ import { llmRequestSchema } from "./llm/request";
 import { proxyLLM } from "./llm/proxy";
 import { type LLMPurpose, liveLLMPurposes, llmPurposeOf } from "./llm/purpose";
 import { errorName, log } from "./log";
-import { type MeetingRow, type MeetingStartRequest, type MeetingUse, endMeeting, reprocessMeeting, requireUsableMeeting, startMeeting } from "./meetings";
+import { endPauseForAudio } from "./meetingPause";
+import {
+  type MeetingRow,
+  type MeetingStartRequest,
+  type MeetingUse,
+  endMeeting,
+  pauseMeeting,
+  reprocessMeeting,
+  requireUsableMeeting,
+  resumeMeeting,
+  startMeeting,
+} from "./meetings";
 import {
   type ReportInput,
   createReport,
@@ -308,6 +319,7 @@ async function checkoutRequest(request: Request): Promise<CheckoutRequest> {
 
 const meetingEndPath: RegExp = /^\/v1\/meetings\/([0-9a-f-]{36})\/end$/;
 const meetingReprocessPath: RegExp = /^\/v1\/meetings\/([0-9a-f-]{36})\/reprocess$/;
+const meetingPausePath: RegExp = /^\/v1\/meetings\/([0-9a-f-]{36})\/(pause|resume)$/;
 
 /** İstek bağlamı ve yapılandırmayla yönlendirme. */
 async function route(request: Request, env: Env, config: Config, context: RequestContext, path: string): Promise<Response> {
@@ -426,6 +438,18 @@ async function route(request: Request, env: Env, config: Config, context: Reques
       return jsonResponse(200, { meetingId: row.id, minutes: row.minutes, tokensUsed: row.tokens_used, audioSeconds: row.audio_seconds });
     });
   }
+  const pauseMatch: RegExpExecArray | null = meetingPausePath.exec(path);
+  if (pauseMatch !== null && pauseMatch[1] !== undefined && method === "POST") {
+    // Duraklatma ve sürdürme (zaman sunucu saatidir; bkz. `meetingPause.ts`): duraklatılan süre süre sınırına ve aylık
+    // süreye sayılmaz. Kullanıcı sık basabilir: vekil sınırı (dakikada 120).
+    const user: AuthedUser = await authed();
+    await enforceLimit(env.PROXY_USER_LIMITER, `user:${user.userId}`);
+    const meetingId: string = pauseMatch[1];
+    const pausing: boolean = pauseMatch[2] === "pause";
+    return withMeetingFailures(db, user.userId, meetingId, now, async (): Promise<Response> =>
+      jsonResponse(200, pausing ? await pauseMeeting(db, user.userId, meetingId, now) : await resumeMeeting(db, user.userId, meetingId, now)),
+    );
+  }
   const reprocessMatch: RegExpExecArray | null = meetingReprocessPath.exec(path);
   if (reprocessMatch !== null && reprocessMatch[1] !== undefined && method === "POST") {
     const user: AuthedUser = await authed();
@@ -478,11 +502,13 @@ async function route(request: Request, env: Env, config: Config, context: Reques
         return repeated;
       }
       // Son geçiş sesi kaydın işlenmesidir: düzgün biten toplantıda işleme süresi boyunca açıktır.
-      const meeting: MeetingRow = await requireUsableMeeting(db, config, user.userId, meetingId, "processing", now);
-      if (meeting.kind === "trial") {
+      const usable: MeetingRow = await requireUsableMeeting(db, config, user.userId, meetingId, "processing", now);
+      if (usable.kind === "trial") {
         await requireTrialSpendHeadroom(db, config, now);
       }
       await requireSpendHeadroom(db, config, now);
+      // Duraklatılmış toplantıya ses yüklemesi duraklatmayı kapatır (duraklatılan süre ses yazıya dökülürken sayılmaz).
+      const meeting: MeetingRow = await endPauseForAudio(db, usable, now);
       const params = parseTranscribeParams(new URL(request.url), request.headers.get("x-keyterms"), config.transcribe.maxKeyterms);
       return proxyTranscription(db, context, config, meeting, request, params);
     });

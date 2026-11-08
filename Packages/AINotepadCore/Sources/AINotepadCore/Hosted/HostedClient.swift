@@ -221,6 +221,19 @@ public actor HostedClient: HostedLLMCredentialSource {
         return try decode(HostedEndedMeeting.self, data: try await authorized(path: path, method: "POST", body: nil, isRetryable: isRetryableRepeatableRequest), path: path)
     }
 
+    /// Toplantının kaydı duraklatıldı (`POST /v1/meetings/{id}/pause`): sunucu duraklatmanın başını kendi saatiyle yazar,
+    /// sürdürülene dek geçen süre toplantının süre sınırından ve aylık süreden sayılmaz. Zaten duraklatılmışsa durum döner.
+    public func pauseMeeting(meetingID paused: String) async throws -> HostedMeetingPause {
+        let path: String = "/v1/meetings/\(paused)/pause"
+        return try decode(HostedMeetingPause.self, data: try await authorized(path: path, method: "POST", body: nil, isRetryable: isRetryableRepeatableRequest), path: path)
+    }
+
+    /// Duraklatılan kayıt sürdü (`POST /v1/meetings/{id}/resume`): duraklatılan süre toplantının bitişine eklenir. Duraklatılmamışsa durum döner.
+    public func resumeMeeting(meetingID resumed: String) async throws -> HostedMeetingPause {
+        let path: String = "/v1/meetings/\(resumed)/resume"
+        return try decode(HostedMeetingPause.self, data: try await authorized(path: path, method: "POST", body: nil, isRetryable: isRetryableRepeatableRequest), path: path)
+    }
+
     /// Yapay zekâ çağrılarının toplantısını bırakır (çevrimdışı kayıt başladı): canlı istekler önceki bir toplantının
     /// bütçesine yazılmasın.
     public func clearCurrentMeeting() {

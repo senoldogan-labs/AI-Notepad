@@ -184,6 +184,7 @@ private struct IslandHost: View {
                 onHover: { (hovering: Bool) -> Void in isExpanded = hovering },
                 onStop: { model.stopRecording() },
                 onTogglePause: { model.togglePause() },
+                onToggleMic: { model.toggleMicrophone() },
                 onSetLanguage: { (language: MeetingLanguage) -> Void in model.setLanguage(language: language) }
             )
         } else {

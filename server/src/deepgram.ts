@@ -3,6 +3,7 @@ import type { Config, DeepgramConfig } from "./config";
 import { crossedThreshold } from "./elevenLabsCapacity";
 import { ApiError, UpstreamError } from "./errors";
 import { log } from "./log";
+import { endPauseForAudio } from "./meetingPause";
 import type { MeetingRow } from "./meetings";
 import type { Platform } from "./platform";
 import { fetchUpstream } from "./upstream";
@@ -383,14 +384,20 @@ async function requestDeepgramToken(platform: Platform, apiKey: string, ttlSecon
  * toplam ya da pencere sınırı dolduysa (`mayGrantMore`) `deepgram_grant_limit`. Jetonun ömrü toplantının en çok
  * süresinin sonunu geçmez (`grantTtlSeconds`). Önce biten toplantıların tahmini indirilir ve hak okunur (boşuna
  * Deepgram çağrılmasın), sonra jeton alınır, sonra hak tek koşullu ifadeyle ayrılır (ayrılamazsa alınan jeton atılır;
- * kullanılmayan jeton ücretsizdir).
+ * kullanılmayan jeton ücretsizdir). Toplantı duraklatılmışsa duraklatma şimdi kapanır (`endPauseForAudio`): duraklatılan
+ * süreye canlı metin alınamaz.
  */
-export async function issueDeepgramGrant(db: D1Database, platform: Platform, config: Config, meeting: MeetingRow, now: Date): Promise<DeepgramGrant> {
+export async function issueDeepgramGrant(db: D1Database, platform: Platform, config: Config, requested: MeetingRow, now: Date): Promise<DeepgramGrant> {
   const access: Config["deepgram"]["access"] = config.deepgram.access;
   if (access.policy === "off") {
     throw budgetExhausted();
   }
-  if (meeting.ended_at !== null || now.getTime() >= meeting.max_ends_at) {
+  if (requested.ended_at !== null || now.getTime() >= requested.max_ends_at) {
+    throw new ApiError("meeting_not_active", "The meeting recording has ended; cloud live transcript is only available while recording.");
+  }
+  // Duraklatmada canlı metin bağlantısı duraklatmayı kapatır (bkz. `endPauseForAudio`); en çok bitiş güncellenir.
+  const meeting: MeetingRow = await endPauseForAudio(db, requested, now);
+  if (now.getTime() >= meeting.max_ends_at) {
     throw new ApiError("meeting_not_active", "The meeting recording has ended; cloud live transcript is only available while recording.");
   }
   const limit: number = deepgramGrantLimit(meeting.kind, now.getTime() - meeting.started_at);

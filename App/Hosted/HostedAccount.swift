@@ -257,6 +257,9 @@ final class HostedAccount {
     private(set) var queueTrigger: Int = 0
     /// Ödeme ya da müşteri portalı tarayıcıda açıldı: uygulama öne gelince hak durumu beklemeden yeniden okunur.
     @ObservationIgnored private var awaitingBillingReturn: Bool = false
+    /// Süren duraklatma bildirimleri: sırayla gider (sürdürme duraklatmadan önce varmasın); toplantı kapatılmadan önce
+    /// beklenir (bkz. `reportPause`, `endMeeting`).
+    @ObservationIgnored private var pauseReports: Task<Void, Never>?
     /// Ödeme sayfası açıkken aboneliği bekleyen izleme (bkz. `watchCheckout`); yoksa nil.
     @ObservationIgnored private var checkoutWatch: Task<Void, Never>?
     /// "Abonelik gerekli" teklifinin son açılışı (bkz. `subscriptionRequiredByServer`).
@@ -1360,6 +1363,27 @@ final class HostedAccount {
         }
     }
 
+    /// Kaydın duraklatıldığını ya da sürdüğünü sunucuya bildirir: sunucu duraklatmayı kendi saatiyle ölçer, duraklatılan
+    /// süre toplantının süre sınırına ve aylık kullanıma sayılmaz (bkz. `HostedClient.pauseMeeting`). Bildirimler sırayla
+    /// gider; ağ ve geçici sunucu hataları istemcide yeniden denenir. Yine de bildirilemezse kayıt sürer, yalnızca sunucu bu
+    /// duraklatmayı süreden düşmez: neden `onFailure`'a gider (kayıt ekranında görünür).
+    func reportPause(meetingID: String, paused: Bool, onFailure: @escaping @MainActor (any Error) -> Void) {
+        let previous: Task<Void, Never>? = pauseReports
+        pauseReports = Task {
+            await previous?.value
+            do {
+                let client: HostedClient = try HostedServices.requireClient()
+                let state: HostedMeetingPause = paused
+                    ? try await client.pauseMeeting(meetingID: meetingID)
+                    : try await client.resumeMeeting(meetingID: meetingID)
+                accountLogger.info("Duraklatma bildirildi, duraklatıldı: \(state.paused, privacy: .public), sayılmayan: \(state.pausedSeconds, privacy: .public) sn")
+            } catch {
+                accountLogger.warning("Duraklatma sunucuya bildirilemedi, duraklatıldı: \(paused, privacy: .public), hata: \(String(describing: error), privacy: .private)")
+                onFailure(error)
+            }
+        }
+    }
+
     /// Kayıt bitince toplantı oturumunu kapatır; not ve son geçiş sunucunun ek süresinde aynı toplantıyla sürer.
     /// Kapatılamazsa oturum kimliği saklı kalır, ağ gelince ya da sonraki açılışta yeniden denenir (aylık süre boşuna
     /// akmasın). Her durumda hak durumu yenilenir (göstergeler güncel kalsın).
@@ -1370,6 +1394,8 @@ final class HostedAccount {
         }
         defer { Task { await refresh() } }
         let client: HostedClient = try HostedServices.requireClient()
+        // Son duraklatma bildirimi kapatmadan önce varsın (sunucu kapatırken süren duraklatmayı da düşer).
+        await pauseReports?.value
         do {
             let ended: HostedEndedMeeting = try await client.endMeeting(meetingID: meetingID)
             removeHostedOpenMeetingID(meetingID: meetingID, defaults: try await signedInOpenMeetingsDefaults(client: client))

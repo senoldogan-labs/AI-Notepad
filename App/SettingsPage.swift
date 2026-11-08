@@ -536,7 +536,7 @@ private struct GeneralSettings: View {
                 SettingsRow(icon: "mic", title: Text("Kendi sesimi de kaydet (mikrofon)")) {
                     SettingsMoreText(
                         summary: Text("Kapalıyken yalnızca bilgisayardan gelen ses kaydedilir."),
-                        details: Text("Kapalıyken yalnızca bilgisayardan gelen ses (karşı taraf) kaydedilir: mikrofon hiç açılmaz, hoparlör yankısı \"Sen\" diye yazılmaz. Paneldeki mikrofon düğmesiyle kayıttan önce de seçilebilir; mikrofonla başlayan kayıtta düğme yalnızca susturur. Yüz yüze modunda mikrofon her zaman açıktır (odadaki herkesi kaydeder).")
+                        details: Text("Kapalıyken yalnızca bilgisayardan gelen ses (karşı taraf) kaydedilir: mikrofon hiç açılmaz, hoparlör yankısı \"Sen\" diye yazılmaz. Paneldeki mikrofon düğmesiyle kayıttan önce de seçilebilir. Mikrofonsuz başlayan kayıtta mikrofon kayıt sırasında açılabilir; açıldığı andan itibaren kaydedilir, sonra kapatmak yalnızca susturur. Yüz yüze modunda mikrofon her zaman açıktır (odadaki herkesi kaydeder).")
                     )
                 } control: {
                     Toggle("Kendi sesimi de kaydet (mikrofon)", isOn: Binding<Bool>(
@@ -548,8 +548,8 @@ private struct GeneralSettings: View {
                         }
                     ))
                     .settingsToggle()
-                    // Mikrofonsuz başlayan kayıtta mikrofon açılamaz (bkz. `toggleMicrophone`); anahtar geri sıçramasın.
-                    .disabled(model.isRecording && !model.micOpenedForRecording)
+                    // Yüz yüze kayıtta mikrofon tek kaynaktır, değişmez (bkz. `toggleMicrophone`); anahtar geri sıçramasın.
+                    .disabled(model.viewState.isInPerson)
                 }
                 SettingsRow(icon: "hand.raised", title: Text("Kayıt başlarken haber vermeyi hatırlat")) {
                     #if HOSTED_EDITION

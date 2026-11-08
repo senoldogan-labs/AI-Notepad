@@ -169,6 +169,9 @@ final class PhoneRecorder {
     @ObservationIgnored private let speechEngine: AppleSpeechEngine = AppleSpeechEngine()
     /// Toplantının süre sınırını izleyen görev (bkz. `watchRecordingLimit`).
     @ObservationIgnored private var recordingLimitTask: Task<Void, Never>?
+    /// Kayıt başında hesaplanan süre sınırı ve sınırı en çok ne kadar duraklatmanın ileri itebileceği (toplantının en
+    /// uzun süresi; sunucudaki sınırla aynı). Duraklatılan süre sınıra sayılmaz (bkz. `currentRecordingDeadline`).
+    @ObservationIgnored private var recordingLimit: (deadline: Date, maxPauseSec: Double)?
     /// Bekleyen (çevrimdışı) kayıtların kuyruğu çalışıyor (eşzamanlı tetiklemeler ikinci kez çalıştırmasın; hesap
     /// değişimi biterken bekler).
     private(set) var isRunningQueue: Bool = false
@@ -429,6 +432,8 @@ final class PhoneRecorder {
         let handle: LiveSessionHandle = runHybridLiveSession(
             config: HybridLiveSessionConfig(
                 speakers: Self.capturedSpeakers,
+                // iPhone tek akış kaydeder (mikrofon, "Diğerleri"): sonradan katılan konuşmacı yok.
+                lateSpeakers: [],
                 local: LiveSessionConfig(
                     languageMode: .fixed(speechLanguage), segmenter: .live, recordingDirectory: directory, partialIntervalSec: 1.5,
                     minPartialSpeechSec: 1.0, languageLockAfterSec: 30, candidateLanguages: [speechLanguage]
@@ -470,7 +475,8 @@ final class PhoneRecorder {
         updateActivityNow(state: activityState())
         lastActivityAt = started
         startHeartbeat()
-        watchRecordingLimit(deadline: deadline)
+        recordingLimit = (deadline: deadline, maxPauseSec: max(0, deadline.timeIntervalSince(started)))
+        watchRecordingLimit()
         Task { await scheduleRecordingLimitNotifications(deadline: deadline, warningLeadSec: hostedLimitWarningLeadSec) }
         consentReminderVisible = UserDefaults.standard.bool(forKey: PhoneSettingsKey.consentReminder)
         relatedTasks = linkedMeeting.map { (meeting: CalendarMeeting) -> [RelatedOpenTask] in
@@ -503,16 +509,26 @@ final class PhoneRecorder {
         return speechEngine
     }
 
+    /// Toplantının şimdiki süre sınırı: kayıt başındaki sınır, duraklatılan süre kadar ileri (en çok toplantının en uzun
+    /// süresi kadar; sunucu da aynı süreyi ekler). Kayıt yoksa nil.
+    private func currentRecordingDeadline(now: Date) -> Date? {
+        recordingLimit.map { pausedRecordingDeadline(deadline: $0.deadline, pause: pauseClock, maxPauseSec: $0.maxPauseSec, now: now) }
+    }
+
     /// Toplantının süre sınırından 5 dk önce kayıt ekranında uyarı, sınırda kayıt "Bitir"e basılmış gibi bitirilir ve
-    /// normal işlenir (Mac'teki gibi). Kayıt bitince (ya da yenisi başlayınca) görev kendiliğinden sona erer.
-    private func watchRecordingLimit(deadline: Date) {
+    /// normal işlenir (Mac'teki gibi). Duraklatılan süre sınırı ileri iter. Kayıt bitince (ya da yenisi başlayınca) görev
+    /// kendiliğinden sona erer.
+    private func watchRecordingLimit() {
         recordingLimitTask?.cancel()
         let limitGeneration: Int = generation
         recordingLimitTask = Task { [weak self] in
             var warned: Bool = false
             while !Task.isCancelled {
-                guard let self, self.phase == .recording, limitGeneration == self.generation else {
+                guard let self, self.phase == .recording, limitGeneration == self.generation, let deadline = self.currentRecordingDeadline(now: Date()) else {
                     return
+                }
+                if self.shortMeetingDeadline != nil, self.shortMeetingDeadline != deadline {
+                    self.shortMeetingDeadline = deadline
                 }
                 switch hostedRecordingLimitState(now: Date(), deadline: deadline, warningLeadSec: hostedLimitWarningLeadSec) {
                 case .running:
@@ -643,13 +659,11 @@ final class PhoneRecorder {
         // gönderilmez; kesinti bitince kayıt kendiliğinden sürer. Kullanıcı zaten duraklattıysa dokunulmaz.
         if status == .interrupted, !pauseClock.isPaused, let active {
             isPausedForInterruption = true
-            active.pauseGate.pause(at: .now)
-            pauseClock = pauseClock.pausing(at: Date())
+            setPaused(true, active: active)
             Self.logger.info("Kesinti: kayıt kendiliğinden duraklatıldı")
         } else if status != .interrupted, isPausedForInterruption, let active {
             isPausedForInterruption = false
-            active.pauseGate.resume(at: .now)
-            pauseClock = pauseClock.resuming(at: Date())
+            setPaused(false, active: active)
             lastActivityAt = Date()
             Self.logger.info("Kesinti bitti: kayıt kendiliğinden sürdürüldü")
         }
@@ -812,11 +826,11 @@ final class PhoneRecorder {
 
     /// Kayıt sürerken çekilen fotoğrafın yeri: toplantının klasörü ve kaydedilen sesin zaman çizgisinde şu an
     /// (duraklatılan süre düşülür; işaretlenen anlar ve transkriptle aynı çizgi). Kayıt yoksa nil.
-    func livePhotoTarget() -> (meetingID: String, directory: URL, offsetSec: Double)? {
+    func livePhotoTarget() -> LivePhotoTarget? {
         guard phase == .recording, let active else {
             return nil
         }
-        return (meetingID: active.directory.lastPathComponent, directory: active.directory, offsetSec: active.pauseGate.keptSeconds(at: .now))
+        return LivePhotoTarget(meetingID: active.directory.lastPathComponent, directory: active.directory, offsetSec: active.pauseGate.keptSeconds(at: .now))
     }
 
     /// Kayıt sürüyor ve duraklatılmış mı.
@@ -834,8 +848,7 @@ final class PhoneRecorder {
             endStaleActivities()
             return
         }
-        active.pauseGate.pause(at: .now)
-        pauseClock = pauseClock.pausing(at: Date())
+        setPaused(true, active: active)
         // Kullanıcının duraklatması: kesinti bitince kendiliğinden sürdürülmez.
         isPausedForInterruption = false
         Self.logger.info("Kayıt duraklatıldı")
@@ -849,12 +862,37 @@ final class PhoneRecorder {
             endStaleActivities()
             return
         }
-        active.pauseGate.resume(at: .now)
-        pauseClock = pauseClock.resuming(at: Date())
+        setPaused(false, active: active)
         isPausedForInterruption = false
         lastActivityAt = Date()
         Self.logger.info("Kayıt sürdürüldü, duraklatılmış süre: \(self.pauseClock.completedSec, privacy: .public) sn")
         updateActivityNow(state: activityState())
+    }
+
+    /// Duraklatmayı uygular (kullanıcı ya da kesinti): ses kapısı ve süre saati değişir, süre sınırı bildirimleri
+    /// duraklatmada kalkar, sürdürünce yeni sınırla yeniden kurulur. Çevrimiçi kayıtta duraklatma sunucuya bildirilir
+    /// (Mac'teki gibi): duraklatılan süre toplantının süre sınırına ve aylık kullanıma sayılmaz.
+    private func setPaused(_ paused: Bool, active: ActiveRecording) {
+        if paused {
+            active.pauseGate.pause(at: .now)
+            pauseClock = pauseClock.pausing(at: Date())
+            cancelRecordingLimitNotifications()
+        } else {
+            active.pauseGate.resume(at: .now)
+            pauseClock = pauseClock.resuming(at: Date())
+            if let deadline = currentRecordingDeadline(now: Date()) {
+                Task { await scheduleRecordingLimitNotifications(deadline: deadline, warningLeadSec: hostedLimitWarningLeadSec) }
+            }
+        }
+        guard !active.offline, let serverMeetingID = HostedAccount.shared.currentMeeting?.meetingId else {
+            return
+        }
+        HostedAccount.shared.reportPause(meetingID: serverMeetingID, paused: paused) { [weak self] (error: any Error) -> Void in
+            guard let self else {
+                return
+            }
+            self.errorMessages = appendUnique(messages: self.errorMessages, message: pauseReportFailedText(error: error))
+        }
     }
 
     /// Kayıt sırasında dili değiştirir; o andan sonraki metin yeni dille yazılır.
@@ -1362,6 +1400,7 @@ final class PhoneRecorder {
         meetingOverPrompt = nil
         recordingLimitTask?.cancel()
         recordingLimitTask = nil
+        recordingLimit = nil
         cancelRecordingLimitNotifications()
         consentReminderVisible = false
         relatedTasks = []

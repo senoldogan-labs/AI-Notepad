@@ -601,6 +601,28 @@ private func silentFlac(directory: URL) throws -> URL {
         _ = try await user.client.endMeeting(meetingID: started.meetingId)
     }
 
+    // Duraklatma: istemcinin çözdüğü yanıt sunucunun sözleşmesiyle aynı; duraklatmada bitiş kalan hak kadar ileri gider,
+    // sürdürünce yalnızca gerçekten duraklatılan süre kadar uzamış kalır; yinelenen istekler durumu döndürür.
+    @Test func pauseAndResumeMoveTheMeetingEndAgainstLocalServer() async throws {
+        let baseURL: URL = try localServerBase()
+        let user: SignedInUser = try await signedInUser(baseURL: baseURL)
+        try markTrialStarted(userID: user.userID, usedMeetings: 1, startedAtMs: nowMs())
+        let started: HostedStartedMeeting = try await user.client.startMeeting(device: nil, deviceCheckToken: nil, clientRef: UUID().uuidString.lowercased(), deferred: false)
+        let paused: HostedMeetingPause = try await user.client.pauseMeeting(meetingID: started.meetingId)
+        #expect(paused.paused)
+        #expect(paused.meetingId == started.meetingId)
+        #expect(paused.expiresAt > started.expiresAt.addingTimeInterval(Double(started.maxDurationMinutes) * 60 - 60))
+        #expect(try await user.client.pauseMeeting(meetingID: started.meetingId).paused)
+        let resumed: HostedMeetingPause = try await user.client.resumeMeeting(meetingID: started.meetingId)
+        #expect(!resumed.paused)
+        #expect(resumed.expiresAt >= started.expiresAt)
+        #expect(resumed.expiresAt < started.expiresAt.addingTimeInterval(60))
+        #expect(!(try await user.client.resumeMeeting(meetingID: started.meetingId).paused))
+        _ = try await user.client.endMeeting(meetingID: started.meetingId)
+        let afterEnd: HostedAPIError? = await hostedError { _ = try await user.client.pauseMeeting(meetingID: started.meetingId) }
+        #expect(afterEnd?.code == .meetingNotActive)
+    }
+
     // Çevrimdışı kaydedilmiş toplantı bağlantı gelince açılır: aynı kayıt kimliğiyle (`clientRef`) yinelenen başlatma
     // (yanıt kaybolduysa, uygulama yeniden açıldıysa) aynı oturumu döndürür, deneme bir kez düşer; oturum hemen
     // kapatılsa da ses hakkı en çok sürece açıktır ve not için ek süre başlar.

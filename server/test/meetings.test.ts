@@ -455,6 +455,11 @@ describe("haklar ve toplantı oturumları", () => {
       reprocess_count: 0,
       reprocess_until: null,
       reprocess_audio_cap: null,
+      deferred: 0,
+      paused_ms: 0,
+      paused_at: null,
+      pause_extension_ms: 0,
+      pause_count: 0,
     };
     expect(meetingOpenUntil(base, windows, "live")).toBe(3_600_000 + 30 * 60_000);
     expect(meetingOpenUntil(base, windows, "processing")).toBe(3_600_000 + processingWindowMs);

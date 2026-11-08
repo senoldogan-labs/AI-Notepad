@@ -825,7 +825,7 @@ private struct HomePage: View {
                 // yoruyordu (kayıt sırasında uygulama hafif kalmalı); duraklatılınca soluklaşır.
                 Image(systemName: "record.circle.fill")
                     .foregroundStyle(.red.opacity(model.isPaused ? 0.45 : 1))
-                if let startedAt = model.recordingStartedAt {
+                if let startedAt = model.recordingTimerStart {
                     Text(timerInterval: startedAt...Date.distantFuture, countsDown: false)
                         .monospacedDigit()
                 }
@@ -2222,7 +2222,7 @@ private struct RecordingFocus: View {
                 LargeLevelMeter(levels: model.audioLevels)
                     .opacity(model.isPaused ? 0.35 : 1)
                 VStack(spacing: 6) {
-                    if let startedAt = model.recordingStartedAt {
+                    if let startedAt = model.recordingTimerStart {
                         TimelineView(.periodic(from: startedAt, by: 1)) { (context: TimelineViewDefaultContext) in
                             Text(timestamp(seconds: context.date.timeIntervalSince(startedAt)))
                                 .appFont(size: 40, weight: .semibold)

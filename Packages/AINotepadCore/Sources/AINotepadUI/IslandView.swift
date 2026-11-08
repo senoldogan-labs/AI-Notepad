@@ -26,6 +26,8 @@ public struct IslandView: View {
     let onStop: @MainActor () -> Void
     /// Sağ tık menüsündeki "Duraklat" / "Devam ettir".
     let onTogglePause: @MainActor () -> Void
+    /// Sağ tık menüsündeki "Mikrofonu aç" / "Mikrofonu kapat" (mikrofon kapalı başlayan kayıtta da açılır).
+    let onToggleMic: @MainActor () -> Void
     /// Sağ tık menüsünden toplantı dilini değiştirme.
     let onSetLanguage: @MainActor (MeetingLanguage) -> Void
 
@@ -39,6 +41,7 @@ public struct IslandView: View {
         onHover: @escaping @MainActor (Bool) -> Void,
         onStop: @escaping @MainActor () -> Void,
         onTogglePause: @escaping @MainActor () -> Void,
+        onToggleMic: @escaping @MainActor () -> Void,
         onSetLanguage: @escaping @MainActor (MeetingLanguage) -> Void
     ) {
         self.appName = appName
@@ -50,6 +53,7 @@ public struct IslandView: View {
         self.onHover = onHover
         self.onStop = onStop
         self.onTogglePause = onTogglePause
+        self.onToggleMic = onToggleMic
         self.onSetLanguage = onSetLanguage
     }
 
@@ -107,6 +111,10 @@ public struct IslandView: View {
                     .disabled(!state.isRecording)
                 Button(state.isPaused ? "Devam ettir" : "Duraklat", systemImage: state.isPaused ? "play.circle" : "pause.circle") { onTogglePause() }
                     .disabled(!state.isRecording)
+                if !state.isInPerson {
+                    Button(state.isMicMuted ? "Mikrofonu aç" : "Mikrofonu kapat", systemImage: state.isMicMuted ? "mic" : "mic.slash") { onToggleMic() }
+                        .disabled(!state.isRecording || !state.canToggleMic)
+                }
             }
             Menu("Dili değiştir", systemImage: "globe") {
                 LanguageMenuItems(onSetLanguage: onSetLanguage)

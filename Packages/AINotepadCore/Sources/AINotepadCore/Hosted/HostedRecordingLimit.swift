@@ -10,6 +10,14 @@ public func hostedRecordingDeadline(requestedAt: Date, maxDurationMinutes: Int, 
     min(requestedAt.addingTimeInterval(Double(maxDurationMinutes) * 60), serverEndsAt)
 }
 
+/// Duraklatmalarla ileri kayan sınır: `deadline` (kayıt başında hesaplanan) + duraklatılan süre (süren duraklatma dahil),
+/// duraklatılan süre en çok `maxPauseSec` sayılır (toplantının en uzun süresi; sunucudaki sınırla aynı). Duraklatılan
+/// süre toplantının süre sınırından sayılmaz; duraklatma sürerken sınır şimdiyle birlikte ilerler. Saf fonksiyondur.
+public func pausedRecordingDeadline(deadline: Date, pause: PauseClock, maxPauseSec: Double, now: Date) -> Date {
+    let open: Double = pause.pausedAt.map { max(0, now.timeIntervalSince($0)) } ?? 0
+    return deadline.addingTimeInterval(min(max(0, maxPauseSec), pause.completedSec + open))
+}
+
 /// Kaydın süre sınırına göre durumu.
 public enum HostedRecordingLimitState: Sendable, Equatable {
     /// Sınır uzakta.

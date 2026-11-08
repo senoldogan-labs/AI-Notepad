@@ -773,6 +773,19 @@ private func googleTestToken(claims: String) -> String {
             == requested.addingTimeInterval(89 * 60))
     }
 
+    // Duraklatılan süre sınırdan sayılmaz: biten duraklatmalar ve süren duraklatma sınırı ileri iter, en çok toplantının
+    // en uzun süresi kadar (sunucudaki sınırla aynı).
+    @Test func pausedTimeMovesTheDeadline() {
+        let deadline: Date = Date(timeIntervalSince1970: 1_000_000)
+        let now: Date = deadline.addingTimeInterval(-1800)
+        #expect(pausedRecordingDeadline(deadline: deadline, pause: .running, maxPauseSec: 5400, now: now) == deadline)
+        let completed: PauseClock = PauseClock(pausedAt: nil, completedSec: 600)
+        #expect(pausedRecordingDeadline(deadline: deadline, pause: completed, maxPauseSec: 5400, now: now) == deadline.addingTimeInterval(600))
+        let open: PauseClock = PauseClock(pausedAt: now.addingTimeInterval(-120), completedSec: 600)
+        #expect(pausedRecordingDeadline(deadline: deadline, pause: open, maxPauseSec: 5400, now: now) == deadline.addingTimeInterval(720))
+        #expect(pausedRecordingDeadline(deadline: deadline, pause: open, maxPauseSec: 300, now: now) == deadline.addingTimeInterval(300))
+    }
+
     @Test func warnsFiveMinutesBeforeAndStopsAtLimit() {
         let deadline: Date = Date(timeIntervalSince1970: 2_000_000)
         func state(_ secondsBefore: Double) -> HostedRecordingLimitState {

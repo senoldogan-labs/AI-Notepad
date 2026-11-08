@@ -81,3 +81,9 @@ func hostedReferralStatsText(referral: HostedReferral) -> String {
     }
     return stats + " · " + String(localized: "Sıradaki ödül: \(hostedDayText(date: next)) civarı")
 }
+
+/// Duraklatma sunucuya bildirilemeyince kayıt ekranındaki uyarı: kayıt sürer, yalnızca bu duraklatma süre sınırına
+/// sayılabilir.
+func pauseReportFailedText(error: any Error) -> String {
+    String(localized: "Duraklatma sunucuya bildirilemedi; bu duraklatma toplantının süre sınırına sayılabilir. (\(userFacingMessage(error: error)))")
+}

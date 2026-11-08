@@ -64,23 +64,45 @@ public func reconnectDelays(budgetSec: Double, initialSec: Double, capSec: Doubl
 /// Çalışan bir Deepgram akışı: olaylar ve dil değiştirme.
 public struct DeepgramStream: Sendable {
     public let events: AsyncStream<StreamingEvent>
-    fileprivate let connection: DeepgramConnection
+    fileprivate let control: DeepgramStreamControl
 
     /// Akışı yeni dille yeniden bağlar; zaman çizelgesi kesintisiz devam eder.
     public func switchLanguage(to language: MeetingLanguage) async {
-        await connection.switchLanguage(to: language)
+        switch control {
+        case .connection(let connection):
+            await connection.switchLanguage(to: language)
+        case .onFirstSound(let start):
+            await start.switchLanguage(to: language)
+        }
     }
 
     /// Akışı kapanış beklemeden bırakır: WebSocket hemen kesilir, yeniden bağlanılmaz, sonraki ses gönderilmez ve olay
     /// akışı biter. Ses akışı bitmese de (ör. yukarıdaki boru hattı takıldı) bağlantı açık kalmaz.
     public func cancel() async {
-        await connection.abort()
+        switch control {
+        case .connection(let connection):
+            await connection.abort()
+        case .onFirstSound(let start):
+            await start.cancel()
+        }
     }
 
     /// Yalnızca testler için: ağ kopmuş gibi geçerli bağlantıyı aniden kapatır.
     func dropConnectionForTesting() async {
-        await connection.dropConnectionForTesting()
+        switch control {
+        case .connection(let connection):
+            await connection.dropConnectionForTesting()
+        case .onFirstSound(let start):
+            await start.dropConnectionForTesting()
+        }
     }
+}
+
+/// Akışın denetlendiği yer: doğrudan bağlantı ya da ilk sesli parçada açılacak akış (bkz.
+/// `startDeepgramStreamOnFirstSound`).
+fileprivate enum DeepgramStreamControl: Sendable {
+    case connection(DeepgramConnection)
+    case onFirstSound(DeferredDeepgramStart)
 }
 
 /// Sesi Deepgram'a canlı akıtır ve geçici/kesin metin olaylarını yayınlar.
@@ -165,7 +187,55 @@ func startDeepgramStream(
     Task {
         await connection.run(audio: audio)
     }
-    return DeepgramStream(events: events, connection: connection)
+    return DeepgramStream(events: events, control: .connection(connection))
+}
+
+/// Sessizlikle başlayabilen ses için Deepgram akışı: bağlantı ilk sesli parçada açılır (`start` o andan sonraki sesle
+/// çağrılır). Öncesindeki tam sessizlik (kayıt sırasında açılan mikrofonun kayıt başına hizalama dolgusu) gönderilmez,
+/// ücretlendirilmez; olay zamanları atlanan süre kadar kaydırılır, akışın zaman çizgisinde kalır. Ses hiç gelmezse
+/// bağlantı açılmaz ve olay akışı ses bitince biter. Bağlantı açılmadan seçilen dil açılınca uygulanır; bırakılan
+/// (`cancel`) akış bağlantı açmaz.
+public func startDeepgramStreamOnFirstSound(
+    audio: AsyncStream<[Float]>, sampleRate: Int, start: @escaping @Sendable (AsyncStream<[Float]>) -> DeepgramStream
+) -> DeepgramStream {
+    let (events, sink): (AsyncStream<StreamingEvent>, AsyncStream<StreamingEvent>.Continuation) = AsyncStream.makeStream(of: StreamingEvent.self)
+    let deferred: DeferredDeepgramStart = DeferredDeepgramStart(events: sink)
+    Task {
+        var skippedSamples: Int = 0
+        var input: AsyncStream<[Float]>.Continuation?
+        for await chunk in audio {
+            if let input {
+                input.yield(chunk)
+                continue
+            }
+            guard !isSilentChunk(samples: chunk) else {
+                skippedSamples += chunk.count
+                continue
+            }
+            let (forward, newInput): (AsyncStream<[Float]>, AsyncStream<[Float]>.Continuation) = AsyncStream.makeStream(of: [Float].self)
+            guard let stream = await deferred.open(start: { () -> DeepgramStream in start(forward) }) else {
+                // Bırakıldı: kalan ses tüketilir (üretici tarafta birikmesin), bağlantı açılmaz.
+                skippedSamples += chunk.count
+                continue
+            }
+            newInput.yield(chunk)
+            input = newInput
+            let offsetSec: Double = Double(skippedSamples) / Double(sampleRate)
+            deepgramLogger.info("Deepgram akışı ilk seste açıldı, atlanan sessizlik: \(offsetSec, privacy: .public) sn")
+            Task {
+                for await event in stream.events {
+                    sink.yield(shiftedStreamingEvent(event: event, offsetSec: offsetSec))
+                }
+                sink.finish()
+            }
+        }
+        if let input {
+            input.finish()
+        } else {
+            sink.finish()
+        }
+    }
+    return DeepgramStream(events: events, control: .onFirstSound(deferred))
 }
 
 /// Bağlantının `Authorization` başlığı; jeton alınamazsa `DeepgramTokenError`.
