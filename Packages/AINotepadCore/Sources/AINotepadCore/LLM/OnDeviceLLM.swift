@@ -23,7 +23,7 @@ public enum OnDeviceUnavailableReason: Sendable, Equatable {
     case appleIntelligenceNotEnabled
     /// Model henüz indirilmedi ya da hazırlanıyor.
     case modelNotReady
-    /// Sistem `FoundationModels`'ı içermiyor (macOS 26'dan eski).
+    /// Sistem `FoundationModels`'ı içermiyor (macOS 26'dan ya da iOS 26'dan eski).
     case requiresNewerSystem
     /// Sistemin bu sürümde tanımadığımız bir neden bildirdi.
     case unknown(detail: String)

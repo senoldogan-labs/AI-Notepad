@@ -1352,7 +1352,9 @@ final class AppModel {
         // Deepgram akışı dil algılamaz: cihaz içi tanımadaki kural (sabit dil ya da ana toplantı dili).
         let liveLanguage: MeetingLanguage = appleSpeechLanguage(mode: languageMode, primary: primaryMeetingLanguage())
         let choice: HostedLiveChoice = await hostedLiveChoice(
-            language: liveLanguage, keyterms: keytermsWithAttendees(attendees: linkedMeeting?.attendees ?? [], keyterms: recognitionKeyterms, limit: 30)
+            language: liveLanguage, keyterms: keytermsWithAttendees(attendees: linkedMeeting?.attendees ?? [], keyterms: recognitionKeyterms, limit: 30),
+            // Mac'te cihazdaki motor (WhisperKit) her zaman var.
+            localSpeechAvailable: true
         )
         hostedLiveEngineInUse = choice.engine
         Self.logger.info("Canlı motor seçildi, motor: \(choice.engine.rawValue, privacy: .public)")
@@ -1370,7 +1372,8 @@ final class AppModel {
                     languageLockAfterSec: 30,
                     candidateLanguages: automaticCandidates(primary: primaryMeetingLanguage())
                 ),
-                maxPendingAudioSec: 600
+                maxPendingAudioSec: 600,
+                cloudFailure: .switchToLocal
             ),
             start: choice.start,
             localEngine: { [weak self] () async throws -> any TranscriptionEngine in
@@ -2090,6 +2093,9 @@ final class AppModel {
             hostedLiveEngineInUse = .whisperKit
             #endif
             addRecordingNotice(severity: .info, text: String(localized: "Bulut canlı metni durdu; canlı metin bu Mac'te sürüyor, kayıt kesilmedi. (\(message))"))
+        case .liveTextReconnecting, .liveTextReconnected:
+            // Mac bulut durunca kendi motoruna geçer (`cloudFailure: .switchToLocal`); bu olaylar gelmez.
+            break
         case .diarizationFailed(let message):
             errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Konuşmacı ayırma başarısız: \(message)"))
         }

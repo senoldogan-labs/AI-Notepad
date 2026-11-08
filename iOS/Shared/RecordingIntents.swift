@@ -180,38 +180,36 @@ struct ToggleRecordingIntent: SetValueIntent, AudioRecordingIntent {
     }
 }
 
-/// iOS 18–25: kaydı başlatan niyetler arka planda başlayamayınca uygulamayı öne getirmek için eski yolu kullanır
-/// (`ForegroundContinuableIntent`; `supportedModes` iOS 26'da geldi). iOS 26+ `supportedModes` ve
-/// `continueInForeground` ile çalışır.
+/// iOS 18–25'te kayıt arka planda başlayamadı (giriş, yapay zekâ onayı, abonelik ya da mikrofon izni gerekiyor; bunlar
+/// yalnız önde sorulabilir): niyet ne yapılacağını söyleyen hatayla biter. Uygulamayı öne getiren `supportedModes` ve
+/// `continueInForeground` iOS 26'da geldi; eski yol `ForegroundContinuableIntent` uygulama eklentisinde yok, niyetin
+/// tanımı uygulamayla eklentide ayrışırdı.
+struct OpenAppToRecordError: Error, CustomLocalizedStringResourceConvertible {
+    var localizedStringResource: LocalizedStringResource {
+        "Kaydı başlatmak için Gistsmith'i aç: önce giriş, onay ya da mikrofon izni gerekiyor."
+    }
+}
+
 #if !WIDGET_EXTENSION
-// Eklentide yok (`ForegroundContinuableIntent` uygulama eklentilerinde kullanılamaz; niyetler uygulamada çalışır).
-@available(iOS, introduced: 18.0, deprecated: 26.0, message: "iOS 26+ uses supportedModes and continueInForeground")
-extension StartRecordingIntent: ForegroundContinuableIntent {}
-
-@available(iOS, introduced: 18.0, deprecated: 26.0, message: "iOS 26+ uses supportedModes and continueInForeground")
-extension ToggleRecordingIntent: ForegroundContinuableIntent {}
-
 extension StartRecordingIntent {
-    /// Uygulamayı öne getirip kaydı orada sürdürür (giriş, onay ya da izin gerekiyor).
+    /// Uygulamayı öne getirip kaydı orada sürdürür (iOS 26+); eski sürümde `OpenAppToRecordError`.
     @MainActor
     fileprivate func continueRecordingInForeground() async throws {
-        if #available(iOS 26.0, *) {
-            try await continueInForeground(nil, alwaysConfirm: false)
-        } else {
-            try await requestToContinueInForeground()
+        guard #available(iOS 26.0, *) else {
+            throw OpenAppToRecordError()
         }
+        try await continueInForeground(nil, alwaysConfirm: false)
     }
 }
 
 extension ToggleRecordingIntent {
-    /// Uygulamayı öne getirip kaydı orada sürdürür (giriş, onay ya da izin gerekiyor).
+    /// Uygulamayı öne getirip kaydı orada sürdürür (iOS 26+); eski sürümde `OpenAppToRecordError`.
     @MainActor
     fileprivate func continueRecordingInForeground() async throws {
-        if #available(iOS 26.0, *) {
-            try await continueInForeground(nil, alwaysConfirm: false)
-        } else {
-            try await requestToContinueInForeground()
+        guard #available(iOS 26.0, *) else {
+            throw OpenAppToRecordError()
         }
+        try await continueInForeground(nil, alwaysConfirm: false)
     }
 }
 #endif

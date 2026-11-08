@@ -460,7 +460,8 @@ final class PhoneRecorder {
         // Canlı motoru sunucu seçer (Deepgram jetonu); jeton alınamazsa ya da akış durursa canlı metin bu iPhone'da.
         let choice: HostedLiveChoice = await hostedLiveChoice(
             language: speechLanguage,
-            keyterms: keytermsWithAttendees(attendees: linkedMeeting?.attendees ?? [], keyterms: phoneRecognitionKeyterms(store: store), limit: 30)
+            keyterms: keytermsWithAttendees(attendees: linkedMeeting?.attendees ?? [], keyterms: phoneRecognitionKeyterms(store: store), limit: 30),
+            localSpeechAvailable: appleSpeechSupportedBySystem()
         )
         Self.logger.info("Canlı motor seçildi, motor: \(choice.engine.rawValue, privacy: .public)")
         let handle: LiveSessionHandle = runHybridLiveSession(
@@ -472,7 +473,9 @@ final class PhoneRecorder {
                     languageMode: .fixed(speechLanguage), segmenter: .live, recordingDirectory: directory, partialIntervalSec: 1.5,
                     minPartialSpeechSec: 1.0, languageLockAfterSec: 30, candidateLanguages: [speechLanguage]
                 ),
-                maxPendingAudioSec: 600
+                maxPendingAudioSec: 600,
+                // iOS 18–25'te cihaz içi tanıma yok: bulut akışı kopunca yeniden bağlanılır (cihaza geçilmez).
+                cloudFailure: hybridCloudFailure(localSpeechAvailable: appleSpeechSupportedBySystem(), reconnectDelaysSec: cloudReconnectDelaysSec)
             ),
             start: choice.start,
             localEngine: { [weak self] () async throws -> any TranscriptionEngine in
@@ -1500,8 +1503,12 @@ final class PhoneRecorder {
         case .speakersAssigned:
             break
         case .liveEngineFellBack(let message):
-            // iPhone hibrit oturum kullanmaz; olay gelirse yine görünür.
+            // Bulut durdu, canlı metin bu iPhone'da sürüyor (iOS 26+).
             errorMessages = appendUnique(messages: errorMessages, message: message)
+        case .liveTextReconnecting(let message):
+            errorMessages = appendUnique(messages: errorMessages, message: message)
+        case .liveTextReconnected(let message):
+            errorMessages = errorMessages.filter { $0 != message }
         }
     }
 

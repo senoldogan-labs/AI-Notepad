@@ -21,6 +21,12 @@ public enum LiveSessionEvent: Sendable, Equatable {
     /// Bulut canlı metni (Deepgram) durdu; canlı metin bu andan sonra Mac'te (WhisperKit) sürer. Ses kaydı kesilmez;
     /// geçiş sırasında kesinleşmemiş metin toplantı sonunda kayıttan yazıya dökülür. `message` nedeni söyler.
     case liveEngineFellBack(message: String)
+    /// Bulut canlı metni durdu ve cihazda motor yok (iPhone, iOS 18–25): bağlantı geri çekilerek yeniden kuruluyor
+    /// (`HybridCloudFailure.reconnectCloud`). Ses kaydı kesilmez; aradaki metin toplantı sonunda kayıttan yazılır.
+    /// `message` kullanıcıya gösterilir.
+    case liveTextReconnecting(message: String)
+    /// Yeniden kurulan bulut bağlantısından ilk sonuç geldi: `liveTextReconnecting`'in aynı `message`'ı kalkar.
+    case liveTextReconnected(message: String)
 }
 
 /// Çalışan canlı oturum: olay akışı ve kayıt sırasında verilebilen komutlar.

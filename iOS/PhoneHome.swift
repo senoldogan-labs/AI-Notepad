@@ -200,7 +200,7 @@ struct PhoneHome: View {
             Button("Kitaplık", systemImage: "folder") { router.isLibraryOpen = true }
                 .tint(Theme.ink)
         }
-        // Sağdaki üç düğme tek cam kapsülde (iOS 26): görevler (VoiceOver açık görev sayısını okur), arama ve profil
+        // Sağdaki üç düğme tek cam kapsülde (iOS 26; iOS 18–25 ayrı simgeler): görevler (VoiceOver açık görev sayısını okur), arama ve profil
         // (Ayarlar).
         ToolbarItemGroup(placement: .topBarTrailing) {
             Button {
@@ -683,7 +683,7 @@ private struct PhoneLibrarySheet: View {
     }
 }
 
-/// Arama: boşken ortada kısa açıklama, alan altta (iOS 26); yazınca eşleşen toplantılar (başlık, not, görev, kişi adı,
+/// Arama: boşken ortada kısa açıklama, alan altta (iOS 26; iOS 18–25 başlığın altında); yazınca eşleşen toplantılar (başlık, not, görev, kişi adı,
 /// transkript) eşleşen cümleleri ve transkriptteki anlarıyla, en üstte soruyu Sor'a soran satır. Arama yazmayı
 /// `searchDebounce` kadar bekler ve ana iş parçacığının dışında önbellekli çalışır (`PhoneStore.searchCache`). Klasör ya
 /// da süzgeç içinde arama kitaplıkta.
