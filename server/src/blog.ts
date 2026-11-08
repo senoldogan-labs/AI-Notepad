@@ -511,7 +511,10 @@ async function graphqlData<Data extends z.ZodType>(
 /** Branch prefix of panel pull requests. */
 export const blogBranchPrefix: string = "blog/";
 
-/** `blog/<slug>-<YYYYMMDDHHMMSS>`: the slug pattern cannot end in a 14-digit run after a dash, so the split is unambiguous. */
+/**
+ * `blog/<slug>-<YYYYMMDDHHMMSS>`: the timestamp is always the last part (anchored at the end), so a slug that itself ends
+ * in digits still splits correctly.
+ */
 const blogBranchPattern: RegExp = /^blog\/([a-z0-9]+(?:-[a-z0-9]+)*)-(\d{14})$/;
 
 /** Pull request state as the panel shows it. */
@@ -790,6 +793,17 @@ async function pullRequestNow(platform: Platform, blog: ActiveBlog, number: numb
 
 // MARK: Branch contents
 
+/** Deletes a panel branch; one that is already gone (404/422) is logged as `blog_branch_delete_skipped`. */
+async function deleteBranch(platform: Platform, blog: ActiveBlog, branch: string): Promise<void> {
+  const removed: GithubReply = await github(platform, blog, "delete_branch", "DELETE", repoUrl(blog, `git/refs/heads/${branch}`), null);
+  if (removed.status !== 204 && removed.status !== 422 && removed.status !== 404) {
+    throw unexpectedGithubStatus(removed, "delete_branch");
+  }
+  if (removed.status !== 204) {
+    log("warn", "blog_branch_delete_skipped", { branch, status: removed.status });
+  }
+}
+
 /** A branch's head commit, the post's version on it (null if absent) and the names of the post's image files. */
 interface BranchState {
   readonly headOid: string;
@@ -981,6 +995,11 @@ async function writeThroughPullRequest(
     const commit: Commit | null = await commitOnBranch(platform, blog, branch, state.headOid, planned);
     if (commit === null) {
       log("warn", "blog_write_retry", { slug, attempt, reason: "stale_branch" });
+      // The branch this attempt created holds no commit and has no pull request: remove it so the next attempt can
+      // create it again from the new head.
+      if (pending === null) {
+        await deleteBranch(platform, blog, branch);
+      }
       continue;
     }
     const pull: BlogPullRequest = pending === null ? await openPullRequest(platform, blog, branch, slug, title) : await pullRequestNow(platform, blog, pending.number);
@@ -1057,7 +1076,7 @@ const postsQuery: string = `query BlogPosts($owner: String!, $name: String!, $ex
       }
     }
     open: pullRequests(states: OPEN, baseRefName: $base, first: ${openPullRequestLimit}, orderBy: { field: CREATED_AT, direction: DESC }) { nodes { ${pullRequestFields} } }
-    finished: pullRequests(states: [MERGED, CLOSED], baseRefName: $base, first: 30, orderBy: { field: UPDATED_AT, direction: DESC }) { nodes { ${pullRequestFields} } }
+    finished: pullRequests(states: [MERGED, CLOSED], baseRefName: $base, first: 100, orderBy: { field: UPDATED_AT, direction: DESC }) { nodes { ${pullRequestFields} } }
   }
 }`;
 
@@ -1274,13 +1293,7 @@ async function discardPendingPost(platform: Platform, blog: ActiveBlog, pull: Bl
     throw unexpectedGithubStatus(closed, "close_pull_request");
   }
   const result = githubJson(closedPullSchema, closed, "close_pull_request");
-  const removed: GithubReply = await github(platform, blog, "delete_branch", "DELETE", repoUrl(blog, `git/refs/heads/${pull.branch}`), null);
-  if (removed.status !== 204 && removed.status !== 422 && removed.status !== 404) {
-    throw unexpectedGithubStatus(removed, "delete_branch");
-  }
-  if (removed.status !== 204) {
-    log("warn", "blog_branch_delete_skipped", { branch: pull.branch, status: removed.status });
-  }
+  await deleteBranch(platform, blog, pull.branch);
   return {
     images: planned.changes.deletions.length - 1,
     change: { ...blogChangeOf(pull), state: "closed", autoMerge: false, updatedAt: result.updated_at },

@@ -809,6 +809,18 @@ describe("/v1/admin/blog", () => {
     expect(fileText(fake, "blog/weekly-notes-20261015120100", `${postDirectory}weekly-notes.md`)).toContain("After the merge.");
   });
 
+  it("a new branch that moved before its first commit is removed and created again under the same name", async () => {
+    const context: Setup = await setup();
+    const { admin, fake } = context;
+    fake.flags.staleOnce = true;
+    const response: Response = await call(context, admin, "PUT", "/v1/admin/blog/posts/weekly-notes", input({}));
+    expect(response.status).toBe(201);
+    expect(await response.json<SavedBody>()).toMatchObject({ change: { number: 1, state: "open" } });
+    expect(fake.pulls.map((pull) => pull.branch)).toEqual([branchOne]);
+    expect(fake.commits.map((commit) => commit.branch)).toEqual([branchOne]);
+    expect(fileText(fake, branchOne, `${postDirectory}weekly-notes.md`)).toContain("Intro paragraph.");
+  });
+
   it("two open pull requests for one post refuse writes until one is merged or closed", async () => {
     const context: Setup = await setup();
     const { admin, fake } = context;
