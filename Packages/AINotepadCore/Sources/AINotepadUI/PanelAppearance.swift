@@ -159,13 +159,27 @@ public struct PanelAppearance: Equatable, Sendable {
         familyFont(size: size * uiScale, weight: weight)
     }
 
-    /// Okuma metni (transkript, özet, cevap): boyut "Metin boyutu"ndan gelir, arayüz ölçeğiyle çarpılmaz (ayarda
+    /// Eş aralıklı yazı (kod, davet ve eşleme kodu, adres): her ailede SF Mono (seçili aile hizayı bozmasın), boyut
+    /// arayüz ölçeğiyle çarpılır.
+    public func monoFont(size: CGFloat, weight: Font.Weight) -> Font {
+        .system(size: size * uiScale, weight: weight, design: .monospaced)
+    }
+
+    /// Gömülü ya da yüklü aile mi (SF tasarımı değil): sistem "Kalın Metin"i yalnız SF'yi kendisi kalınlaştırır.
+    public var usesCustomFamily: Bool {
+        switch fontChoice {
+        case .design(.inter), .installed: true
+        case .design: false
+        }
+    }
+
+    /// Okuma metni (transkript, özet, cevap): boyut "Okuma metni"nden gelir, arayüz ölçeğiyle çarpılmaz (ayarda
     /// görünen punto gerçek boyuttur).
     public func readingFont(size: CGFloat, weight: Font.Weight) -> Font {
         familyFont(size: size, weight: weight)
     }
 
-    /// Tasarımda `base` punto olan okuma metninin "Metin boyutu"na göre boyutu: varsayılan boyutta `base`, ayar büyüdükçe
+    /// Tasarımda `base` punto olan okuma metninin "Okuma metni" ayarına göre boyutu: varsayılan boyutta `base`, ayar büyüdükçe
     /// orantılı büyür (iPhone'un okuma metinleri farklı puntolarda tasarlandı; oranları korunur). Saf fonksiyondur.
     public func readingSize(base: CGFloat) -> CGFloat {
         base * textSize / PanelAppearance.standard.textSize
@@ -290,17 +304,19 @@ private func clamped(value: Double, range: ClosedRange<Double>) -> Double {
     min(max(value, range.lowerBound), range.upperBound)
 }
 
-/// Okuma metni (özet, transkript, kararlar, notların): tasarımdaki boyut ve satır aralığı kullanıcının "Metin boyutu" ve
+/// Okuma metni (özet, transkript, kararlar, notların): tasarımdaki boyut ve satır aralığı kullanıcının "Okuma metni" ve
 /// "Satır aralığı" ayarlarıyla orantılanır, yazı seçili ailededir.
 private struct ReadingText: ViewModifier {
     let size: CGFloat
     let weight: Font.Weight
     let lineSpacing: CGFloat
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
+    @Environment(\.legibilityWeight) private var legibility: LegibilityWeight?
 
     func body(content: Content) -> some View {
+        let shown: Font.Weight = appearance.usesCustomFamily ? legibleWeight(weight: weight, legibility: legibility) : weight
         content
-            .font(appearance.readingFont(size: appearance.readingSize(base: size), weight: weight))
+            .font(appearance.readingFont(size: appearance.readingSize(base: size), weight: shown))
             .lineSpacing(appearance.readingLineSpacing(base: lineSpacing))
     }
 }

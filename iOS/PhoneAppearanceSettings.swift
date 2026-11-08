@@ -47,11 +47,11 @@ struct PhoneAppearanceScreen: View {
             }
             Section {
                 PhoneSettingSlider(
-                    title: Text("Arayüz yazısı: %\(percent(value: uiScale, reference: 1))"), value: $uiScale, range: AppearanceRange.uiScale, step: 0.05,
+                    title: Text("Arayüz yazısı: %\(appearancePercent(value: uiScale, reference: 1))"), value: $uiScale, range: AppearanceRange.uiScale, step: 0.05,
                     minSymbol: "textformat.size.smaller", maxSymbol: "textformat.size.larger"
                 )
                 PhoneSettingSlider(
-                    title: Text("Okuma metni: %\(percent(value: textSize, reference: PanelAppearance.standard.textSize))"), value: $textSize,
+                    title: Text("Okuma metni: %\(appearancePercent(value: textSize, reference: PanelAppearance.standard.textSize))"), value: $textSize,
                     range: AppearanceRange.textSize, step: 1, minSymbol: "textformat.size.smaller", maxSymbol: "textformat.size.larger"
                 )
                 PhoneSettingSlider(
@@ -78,11 +78,6 @@ struct PhoneAppearanceScreen: View {
         }
         .navigationTitle("Görünüm")
         .navigationBarTitleDisplayMode(.inline)
-    }
-
-    /// Değerin başvuru değerine oranı, yüzde olarak. Saf fonksiyondur.
-    private func percent(value: Double, reference: Double) -> Int {
-        Int((value / reference * 100).rounded())
     }
 }
 
@@ -227,7 +222,7 @@ private struct PhoneFontPicker: View {
                 // Kökteki sistem tasarımı (ör. tırnaklı) özel yazı tiplerini de sistem yazısına çevirirdi: her satır kendi
                 // yazı tipini göstersin.
                 Text(verbatim: fontChoiceName(choice: choice))
-                    .font(fontPreview(choice: choice))
+                    .font(fontChoicePreview(choice: choice, size: 17))
                     .fontDesign(nil)
                     .foregroundStyle(Theme.ink)
                 Spacer()
@@ -249,14 +244,4 @@ func fontChoiceName(choice: AppFontChoice) -> String {
     case .design(let design): design.displayName
     case .installed(let family): family
     }
-}
-
-/// Seçimin kendi yazı tipiyle satır yazısı (17 pt, normal).
-private func fontPreview(choice: AppFontChoice) -> Font {
-    let standard: PanelAppearance = .standard
-    return PanelAppearance(
-        fontChoice: choice, uiScale: standard.uiScale, textSize: standard.textSize, lineSpacing: standard.lineSpacing,
-        bottomSpacing: standard.bottomSpacing, accent: standard.accent, surface: standard.surface, surfaceOpacity: standard.surfaceOpacity
-    )
-    .font(size: 17, weight: .regular)
 }

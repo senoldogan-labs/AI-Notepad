@@ -13,7 +13,7 @@ public struct SettingsIconTile: View {
 
     public var body: some View {
         Image(systemName: systemImage)
-            .font(.system(size: 13, weight: .medium))
+            .shapeSymbol(size: 13, weight: .medium)
             .symbolRenderingMode(.monochrome)
             .foregroundStyle(appearance.accent.color)
             .frame(width: 28, height: 28)

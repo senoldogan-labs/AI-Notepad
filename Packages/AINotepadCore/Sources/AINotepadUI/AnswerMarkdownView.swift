@@ -101,7 +101,7 @@ private struct InlineText: View {
             inlines: inlines, webSources: webSources,
             style: AnswerTextStyle(
                 accent: appearance.accent.color, citationFont: appearance.font(size: 11, weight: .semibold), strongFont: font.bold(),
-                codeFont: .system(size: 13.5 * appearance.uiScale, design: .monospaced), codeBackground: Theme.soft,
+                codeFont: appearance.monoFont(size: 13.5, weight: .regular), codeBackground: Theme.soft,
                 webForeground: Theme.ink.opacity(0.7), webBackground: Theme.ink.opacity(0.07)
             )
         ))
@@ -237,7 +237,7 @@ private struct CodeBlockView: View {
             Rectangle().fill(Theme.line).frame(height: 1)
             ScrollView(.horizontal) {
                 Text(verbatim: code)
-                    .font(.system(size: 13 * appearance.uiScale, design: .monospaced))
+                    .appMonoFont(size: 13, weight: .regular)
                     .foregroundStyle(Theme.ink)
                     .lineSpacing(3)
                     .fixedSize(horizontal: true, vertical: true)
@@ -302,7 +302,7 @@ private struct TableBlockView: View {
             style: AnswerTextStyle(
                 accent: appearance.accent.color, citationFont: appearance.font(size: 10, weight: .semibold),
                 strongFont: appearance.font(size: 13.5, weight: .bold),
-                codeFont: .system(size: 12.5 * appearance.uiScale, design: .monospaced), codeBackground: Theme.soft,
+                codeFont: appearance.monoFont(size: 12.5, weight: .regular), codeBackground: Theme.soft,
                 webForeground: Theme.ink.opacity(0.7), webBackground: Theme.ink.opacity(0.07)
             )
         ))

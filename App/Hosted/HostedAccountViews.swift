@@ -16,7 +16,7 @@ struct HostedProviderButtons: View {
             } label: {
                 label(provider: .apple, title: Text("Apple ile devam et")) {
                     Image(systemName: "apple.logo")
-                        .font(.system(size: 15, weight: .medium))
+                        .appFont(size: 15, weight: .medium)
                 }
             }
             .buttonStyle(.pillPrimary)

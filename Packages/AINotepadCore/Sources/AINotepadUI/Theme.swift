@@ -205,14 +205,17 @@ public enum Theme {
     }
 }
 
-/// Seçili yazı tipi ailesinde (varsayılan Inter) verilen boyut ve ağırlık.
+/// Seçili yazı tipi ailesinde (varsayılan Inter) verilen boyut ve ağırlık; iPhone'un "Kalın Metin" ayarında
+/// daha kalın (bkz. `legibleWeight`).
 private struct AppFont: ViewModifier {
     let size: CGFloat
     let weight: Font.Weight
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
+    @Environment(\.legibilityWeight) private var legibility: LegibilityWeight?
 
     func body(content: Content) -> some View {
-        content.font(appearance.font(size: size, weight: weight))
+        let shown: Font.Weight = appearance.usesCustomFamily ? legibleWeight(weight: weight, legibility: legibility) : weight
+        content.font(appearance.font(size: size, weight: shown))
     }
 }
 
