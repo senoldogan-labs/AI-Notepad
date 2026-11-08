@@ -77,7 +77,7 @@ export interface CommonCopy {
   /** Ücretsiz denemenin koşulları (JSON-LD teklifinin açıklaması, /llms.txt). */
   readonly trial: string;
   readonly requirementsShort: string;
-  /** iPhone uygulamasının gereksinimi (ör. "iOS 26.1 or later"; project.yml iOS `deploymentTarget`). */
+  /** iPhone uygulamasının gereksinimi (ör. "iOS 18 or later"; project.yml iOS `deploymentTarget`). */
   readonly iphoneRequirementsShort: string;
   /** Both apps' requirements, Mac first then iPhone (the home hero; each part stays on one line). */
   readonly platformsShort: readonly [string, string];
@@ -1143,8 +1143,8 @@ export const copy: Copy = {
     offer: "3 meetings or 7 days free, then $5.99 a month or $49 a year, taxes included",
     trial: "Free trial: 3 meetings or 7 days from your first meeting, whichever comes first, each up to 90 minutes; no card needed",
     requirementsShort: "macOS 15 or later · Apple silicon",
-    iphoneRequirementsShort: "iOS 26.1 or later",
-    platformsShort: ["Mac: macOS 15 or later, Apple silicon", "iPhone: iOS 26.1 or later"],
+    iphoneRequirementsShort: "iOS 18 or later",
+    platformsShort: ["Mac: macOS 15 or later, Apple silicon", "iPhone: iOS 18 or later"],
     appStoreBadge: { language: "en", label: "Download on the App Store" },
     macOnly: {
       notMacTitle: "Download the Mac app on your Mac",
@@ -1606,7 +1606,7 @@ export const copy: Copy = {
       price: "$5.99 a month or $49 a year, taxes included",
       free: "Free trial: 3 meetings or 7 days, whichever comes first; no card needed",
       capture: "No bot. Listens to your Mac's system audio and microphone, so it works with any call app; records in-person meetings on iPhone and imports audio or video files",
-      platforms: "Mac with Apple silicon, macOS 15 or later; iPhone with iOS 26.1 or later, for in-person meetings",
+      platforms: "Mac with Apple silicon, macOS 15 or later; iPhone with iOS 18 or later, for in-person meetings",
       limits: "Up to 10 meeting hours a month and up to 4 hours per meeting",
       languages: `${spokenLanguages.length} spoken languages, including Turkish and Finnish; notes in ${noteLanguages.length}; app in ${interfaceLanguages.length} languages`,
       translation: `Included: what others say is translated into your language (any of ${noteLanguages.length}) within seconds`,

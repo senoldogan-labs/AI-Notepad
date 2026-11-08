@@ -98,7 +98,7 @@ test("home page describes the app, its offers and the organisation", async () =>
     const [app] = nodesOfType(documents, "SoftwareApplication");
     assert.ok(app !== undefined, `${file}: SoftwareApplication yok`);
     assert.equal(app["applicationCategory"], "BusinessApplication");
-    assert.match(text(app, "operatingSystem"), /^macOS 15\b.*, iOS 26\.1\b/);
+    assert.match(text(app, "operatingSystem"), /^macOS 15\b.*, iOS 18\b/);
     assert.match(text(app, "processorRequirements"), /Apple silicon/);
     const features: JsonValue | undefined = app["featureList"];
     assert.ok(isArray(features) && features.length >= 5 && features.every((feature: JsonValue): boolean => typeof feature === "string"), `${file}: featureList`);
@@ -154,7 +154,7 @@ test("comparison and info pages carry a breadcrumb trail ending at the page", as
 test("llms.txt states the key facts and links every public page", async () => {
   const llms: string = await distFile("llms.txt");
   assert.match(llms, /^# Gistsmith\n\n> /);
-  for (const fact of ["macOS 15 or later", "Apple silicon", "iOS 26.1 or later", appStoreUrl, "$5.99", "$49", "3 meetings or 7 days", "10 hours", "4 hours", "No bot", "MCP"]) {
+  for (const fact of ["macOS 15 or later", "Apple silicon", "iOS 18 or later", appStoreUrl, "$5.99", "$49", "3 meetings or 7 days", "10 hours", "4 hours", "No bot", "MCP"]) {
     assert.ok(llms.includes(fact), `llms.txt: "${fact}" yok`);
   }
   for (const path of ["/pricing", "/download", "/languages", "/integrations", "/compare", "/vs/fireflies", "/vs/poffle", "/privacy#at-a-glance", "/mcp", "/voice-typing", "/llms-full.txt"]) {

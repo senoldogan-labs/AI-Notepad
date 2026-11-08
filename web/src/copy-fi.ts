@@ -45,8 +45,8 @@ export const commonFi: CommonCopy = {
   offer: "3 kokousta tai 7 päivää ilmaiseksi, sitten 5,99 $ kuussa tai 49 $ vuodessa, verot sisältyvät",
   trial: "Ilmainen kokeilu: 3 kokousta tai 7 päivää ensimmäisestä kokouksesta, kumpi tahansa täyttyy ensin, kukin enintään 90 minuuttia; korttia ei tarvita",
   requirementsShort: "macOS 15 tai uudempi · Apple silicon",
-  iphoneRequirementsShort: "iOS 26.1 tai uudempi",
-  platformsShort: ["Mac: macOS 15 tai uudempi, Apple silicon", "iPhone: iOS 26.1 tai uudempi"],
+  iphoneRequirementsShort: "iOS 18 tai uudempi",
+  platformsShort: ["Mac: macOS 15 tai uudempi, Apple silicon", "iPhone: iOS 18 tai uudempi"],
   appStoreBadge: { language: "fi", label: "Lataa App Storesta" },
   macOnly: {
     notMacTitle: "Lataa Mac-sovellus Macillasi",
