@@ -24,8 +24,21 @@ export const llmPurposes = [
 ] as const;
 export type LlmPurpose = (typeof llmPurposes)[number];
 
-/** Sayılan istemci olayları. */
-export const countEventKinds = ["deepgram_socket_drop", "deepgram_reconnect", "final_pass_give_up", "note_generation_failed", "recording_overrun"] as const;
+/** Sayılan istemci olayları: güvenilirlik ve "öbür uygulamayı al" tanıtımının adımları. */
+export const countEventKinds = [
+  "deepgram_socket_drop",
+  "deepgram_reconnect",
+  "final_pass_give_up",
+  "note_generation_failed",
+  "recording_overrun",
+  "mac_promo_shown",
+  "mac_promo_opened",
+  "mac_promo_shared",
+  "mac_promo_reminded",
+  "iphone_promo_shown",
+  "iphone_promo_opened",
+  "iphone_promo_copied",
+] as const;
 export type CountEventKind = (typeof countEventKinds)[number];
 
 /** Süresi ölçülen istemci olayları. */
@@ -125,10 +138,10 @@ export const adminTelemetryCopy: AdminTelemetryCopy = {
     connection_test: "Connection test",
     unattributed: "Older app versions (no purpose header)",
   },
-  reliabilityTitle: "Client reliability",
+  reliabilityTitle: "Client events",
   reliabilityColumns: { event: "Event", total: "Total", versions: "By app version" },
-  noEvents: "No reliability events in this window.",
-  reliabilityDailyTitle: "Reliability events per day",
+  noEvents: "No client events in this window.",
+  reliabilityDailyTitle: "Client events per day",
   dayColumn: "Day",
   countKinds: {
     deepgram_socket_drop: "Live transcript connection drops",
@@ -136,6 +149,13 @@ export const adminTelemetryCopy: AdminTelemetryCopy = {
     final_pass_give_up: "Final transcription gave up",
     note_generation_failed: "Note generation failed",
     recording_overrun: "Recording hit the time limit",
+    mac_promo_shown: "iPhone: Mac app banner shown (once per launch)",
+    mac_promo_opened: "iPhone: Mac app page opened",
+    mac_promo_shared: "iPhone: share sheet for the Mac link opened",
+    mac_promo_reminded: "iPhone: Mac app reminder set",
+    iphone_promo_shown: "Mac: iPhone app card shown (once per launch)",
+    iphone_promo_opened: "Mac: iPhone app page opened",
+    iphone_promo_copied: "Mac: App Store link copied",
   },
   countKindsShort: {
     deepgram_socket_drop: "Drops",
@@ -143,6 +163,13 @@ export const adminTelemetryCopy: AdminTelemetryCopy = {
     final_pass_give_up: "Final pass gave up",
     note_generation_failed: "Note failed",
     recording_overrun: "Time limit",
+    mac_promo_shown: "Mac banner",
+    mac_promo_opened: "Mac page",
+    mac_promo_shared: "Mac shared",
+    mac_promo_reminded: "Mac reminder",
+    iphone_promo_shown: "iPhone card",
+    iphone_promo_opened: "iPhone page",
+    iphone_promo_copied: "iPhone copied",
   },
   durationKinds: {
     final_pass_duration: "Final transcription duration",

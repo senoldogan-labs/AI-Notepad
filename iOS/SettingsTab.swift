@@ -3,13 +3,14 @@ import AINotepadUI
 import SwiftUI
 
 /// Ayarlar (ana ekrandaki profil simgesinden; Mac'teki gruplarla aynı sırada): üstte plan kartı (plan durumu, denemede
-/// "Abone ol"), sonra Hesap (profil, plan ve faturalandırma, eşitleme), Özellikler (her biri kendi sayfasında: kayıt ve
+/// "Abone ol") ve gizlenmediyse "Mac için Gistsmith" satırı (tanıtım sayfası bunun üstünde açılır), sonra Hesap (profil, plan ve faturalandırma, eşitleme), Özellikler (her biri kendi sayfasında: kayıt ve
 /// diller, notlar, canlı çeviri ve Sor, takvim, bildirimler, bağlantılar, yapay zekâ asistanı, beceriler, telefon
 /// görüşmesi), Görünüm, Destek, Veri ve paylaşım, çıkış ve en altta sürüm. Her satırda vurgu renkli simge kutusu ve
 /// gerekirse tek cümlelik açıklama.
 struct PhoneSettingsTab: View {
     let store: PhoneStore
     let account: HostedAccount
+    let router: PhoneRouter
     /// Hesabın verisine yazan bir iş sürüyor (bkz. `phoneOpenWriters`): çıkış, hesap silme ve kurulum kapalı.
     let isMeetingInFlight: Bool
     let crashReports: CrashReportCenter
@@ -58,6 +59,7 @@ struct PhoneSettingsTab: View {
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
             }
+            PhoneMacAppBanner(router: router)
             accountSection
             PhoneSyncSection()
             featuresSection
@@ -72,6 +74,9 @@ struct PhoneSettingsTab: View {
         // Kayan satırlar durum çubuğunun ve başlığın arkasında yarı saydam görünmesin: üst kenar sert biter.
         .hardTopScrollEdge()
         .navigationTitle("Ayarlar")
+        .sheet(isPresented: Binding<Bool>(get: { router.isMacAppIntroOpen }, set: { router.isMacAppIntroOpen = $0 })) {
+            PhoneMacAppSheet()
+        }
     }
 
     private var accountSection: some View {

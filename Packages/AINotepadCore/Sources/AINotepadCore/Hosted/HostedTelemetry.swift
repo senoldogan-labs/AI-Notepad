@@ -23,7 +23,7 @@ public func telemetrySendingAllowed(edition: AppEdition, sharingEnabled: Bool) -
 /// "Anonim kullanım istatistiklerini paylaş" ayarının UserDefaults anahtarı (Mac ve iPhone'da aynı; varsayılan açık).
 public let shareUsageStatisticsDefaultsKey: String = "privacy.shareUsageStatistics"
 
-/// Sayılan güvenilirlik olayları.
+/// Sayılan olaylar: güvenilirlik olayları ve "öbür uygulamayı al" tanıtımının adımları.
 public enum TelemetryCountKind: String, Sendable, Codable, CaseIterable {
     /// Deepgram canlı metin bağlantısı koptu.
     case deepgramSocketDrop = "deepgram_socket_drop"
@@ -35,6 +35,20 @@ public enum TelemetryCountKind: String, Sendable, Codable, CaseIterable {
     case noteGenerationFailed = "note_generation_failed"
     /// Kayıt toplantının süre sınırına ulaştı ve kendiliğinden bitirildi.
     case recordingOverrun = "recording_overrun"
+    /// iPhone: Ayarlar'daki "Mac için Gistsmith" satırı göründü (uygulama açılışı başına bir kez).
+    case macPromoShown = "mac_promo_shown"
+    /// iPhone: satıra dokunuldu, Mac uygulamasının sayfası açıldı.
+    case macPromoOpened = "mac_promo_opened"
+    /// iPhone: "Bağlantıyı paylaş"a dokunuldu (paylaşım sayfası açıldı; paylaşılıp paylaşılmadığı bilinmez).
+    case macPromoShared = "mac_promo_shared"
+    /// iPhone: "Sonra hatırlat" ertesi sabahın bildirimini kurdu.
+    case macPromoReminded = "mac_promo_reminded"
+    /// Mac: Ayarlar'daki "iPhone için Gistsmith" kartı göründü (uygulama açılışı başına bir kez).
+    case iPhonePromoShown = "iphone_promo_shown"
+    /// Mac: karta tıklandı, iPhone uygulamasının sayfası açıldı.
+    case iPhonePromoOpened = "iphone_promo_opened"
+    /// Mac: App Store bağlantısı kopyalandı.
+    case iPhonePromoCopied = "iphone_promo_copied"
 }
 
 /// Süresi ölçülen işler (saniye).

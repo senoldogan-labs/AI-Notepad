@@ -13,9 +13,24 @@ import { dayKey } from "./usage";
  * Listeler istemcinin enum'larıyla birebir aynıdır (Swift `ServerParityTests` bu dizileri okur).
  */
 
-/** Sayılan güvenilirlik olayları: Deepgram canlı bağlantısının kopması ve yeniden kurulması, son geçişin yarıda
- * bırakılması, not üretiminin başarısızlığı, kaydın süre sınırına ulaşıp kendiliğinden bitmesi. */
-export const telemetryCountKinds = ["deepgram_socket_drop", "deepgram_reconnect", "final_pass_give_up", "note_generation_failed", "recording_overrun"] as const;
+/** Sayılan olaylar. Güvenilirlik: Deepgram canlı bağlantısının kopması ve yeniden kurulması, son geçişin yarıda
+ * bırakılması, not üretiminin başarısızlığı, kaydın süre sınırına ulaşıp kendiliğinden bitmesi. "Öbür uygulamayı al"
+ * tanıtımı: iPhone'da Mac uygulamasının satırı göründü, açıldı, bağlantı paylaşıldı, hatırlatma kuruldu; Mac'te iPhone
+ * uygulamasının kartı göründü, açıldı, App Store bağlantısı kopyalandı. */
+export const telemetryCountKinds = [
+  "deepgram_socket_drop",
+  "deepgram_reconnect",
+  "final_pass_give_up",
+  "note_generation_failed",
+  "recording_overrun",
+  "mac_promo_shown",
+  "mac_promo_opened",
+  "mac_promo_shared",
+  "mac_promo_reminded",
+  "iphone_promo_shown",
+  "iphone_promo_opened",
+  "iphone_promo_copied",
+] as const;
 
 /** Süresi ölçülen işler: son geçiş ve not yazımı (saniye). */
 export const telemetryDurationKinds = ["final_pass_duration", "note_generation_duration"] as const;

@@ -16,6 +16,8 @@ final class PhoneNotificationDelegate: NSObject, UNUserNotificationCenterDelegat
     /// Not hazır, görev günü, haftalık özet ve kayıtsız hafta bildirimlerinin yanıtı; uygulama açılışında bağlanır.
     /// "Tamamlandı" uygulama arka planda açılmışken de gelir: iş bitene dek beklenir.
     @MainActor static var onEngagementResponse: (@MainActor (EngagementRoute) async -> Void)?
+    /// "Sonra hatırlat" bildirimine dokunuldu: Mac uygulamasının sayfası açılır; uygulama açılışında bağlanır.
+    @MainActor static var onMacAppReminder: (@MainActor () -> Void)?
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
         guard response.actionIdentifier != UNNotificationDismissActionIdentifier else {
@@ -36,6 +38,10 @@ final class PhoneNotificationDelegate: NSObject, UNUserNotificationCenterDelegat
             let finish: Bool = response.actionIdentifier == MeetingNotificationID.finishMeetingAction
             let recordingID: RecordingID? = notificationRecordingID(userInfo: response.notification.request.content.userInfo)
             await MainActor.run { PhoneNotificationDelegate.onMeetingOverResponse?(finish, recordingID) }
+            return
+        }
+        if category == macAppReminderCategory {
+            await MainActor.run { PhoneNotificationDelegate.onMacAppReminder?() }
             return
         }
         guard let route = engagementRoute(response: response) else {

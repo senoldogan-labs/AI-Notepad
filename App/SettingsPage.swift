@@ -258,7 +258,8 @@ struct SettingsPage: View {
 }
 
 /// Ayarlar'ın sol sütunu (sayfa adı "Ayarlar" pencerenin üst çubuğunda): plan kartı (abonelikte plan durumu ve "Abone
-/// ol"; geliştirici sürümünde profil), gruplu sayfa listesi (seçili sayfa vurgu renginde), abonelikte çıkış ve en altta
+/// ol"; geliştirici sürümünde profil), gruplu sayfa listesi (seçili sayfa vurgu renginde), abonelikte iPhone uygulaması
+/// önerisi ve çıkış, en altta
 /// sürüm.
 private struct SettingsNavigation: View {
     @Binding var selection: SettingsSection
@@ -289,6 +290,9 @@ private struct SettingsNavigation: View {
                     }
                 }
                 #if HOSTED_EDITION
+                // iPhone uygulamasının önerisi (gizlenebilir); tıklayınca tanıtım sayfası açılır.
+                HostedIPhoneAppCard()
+                    .padding(.top, 20)
                 HostedSettingsSignOut(account: .shared, isMeetingInFlight: isMeetingInFlight)
                     .padding(.top, 20)
                 #endif

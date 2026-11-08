@@ -93,6 +93,7 @@ struct AINotepadiOSApp: App {
         let sessions: PhoneSessionHost = PhoneSessionHost(session: makePhoneAccountSession(calendar: calendar))
         let router: PhoneRouter = PhoneRouter(path: launchPath(arguments: CommandLine.arguments))
         router.isLibraryOpen = launchOpensLibrary(arguments: CommandLine.arguments)
+        router.isMacAppIntroOpen = launchOpensMacAppIntro(arguments: CommandLine.arguments)
         _sessions = State(initialValue: sessions)
         _router = State(initialValue: router)
         _calendar = State(initialValue: calendar)
@@ -149,6 +150,10 @@ struct AINotepadiOSApp: App {
                 }
                 store.completeTaskFromNotification(meetingID: meetingID, taskKey: taskKey)
             }
+        }
+        // "Sonra hatırlat" bildirimi: Ayarlar'da Mac uygulamasının sayfası yeniden açılır.
+        PhoneNotificationDelegate.onMacAppReminder = { () -> Void in
+            router.showMacAppIntro()
         }
         UNUserNotificationCenter.current().delegate = PhoneNotificationDelegate.shared
         EngagementNotifier.shared.start { () -> EngagementDataState in
@@ -701,6 +706,8 @@ final class PhoneRouter {
     var isLibraryOpen: Bool = false
     /// Oturum yokken bir bağlantı (`gistsmith://…`) geldi: giriş kapısı bağlantının girişten sonra açılacağını söyler.
     var isLinkWaitingForSignIn: Bool = false
+    /// Ayarlar'ın üstünde Mac uygulamasının tanıtım sayfası açık (Ayarlar'daki satır ya da "Sonra hatırlat" bildirimi).
+    var isMacAppIntroOpen: Bool = false
 
     init(path: [PhoneRoute]) {
         self.path = path
@@ -791,6 +798,13 @@ final class PhoneRouter {
     func openAccount() {
         isLibraryOpen = false
         path = [.settings, .account]
+    }
+
+    /// Ayarlar'ı açıp Mac uygulamasının tanıtım sayfasını üstünde açar ("Sonra hatırlat" bildirimi).
+    func showMacAppIntro() {
+        isLibraryOpen = false
+        path = [.settings]
+        isMacAppIntroOpen = true
     }
 
     /// Ana ekrana döner: açık sayfalar ve kitaplık kapanır (kayıt başlarken, "Kaydı başlat" bağlantıları).
@@ -932,6 +946,7 @@ private func launchScreenRoutes(screen: String) -> [PhoneRoute] {
     case "hesap": [.settings, .account]
     case "asistan": [.settings, .assistantAccess]
     case "baglantilar": [.settings, .connections]
+    case "mac": [.settings]
     default: []
     }
 }
@@ -951,6 +966,11 @@ func launchSettingsSection(arguments: [String]) -> String? {
 /// `--ekran klasorler`: kitaplık sayfası açık başlar (görsel kontrol için). Saf fonksiyondur.
 func launchOpensLibrary(arguments: [String]) -> Bool {
     launchValue(arguments: arguments, flag: "--ekran") == "klasorler"
+}
+
+/// `--ekran mac`: Ayarlar ve üstünde Mac uygulamasının tanıtım sayfası açık başlar (görsel kontrol için). Saf fonksiyondur.
+func launchOpensMacAppIntro(arguments: [String]) -> Bool {
+    launchValue(arguments: arguments, flag: "--ekran") == "mac"
 }
 
 /// `--ekran telefon` ya da `--arama <adım>`: telefon görüşmesi rehberi açık başlar (görsel kontrol için); yoksa nil. Saf

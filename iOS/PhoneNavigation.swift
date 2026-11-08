@@ -45,7 +45,7 @@ struct PhoneDestination: View {
         case .askHistory:
             AskHistoryScreen(ask: ask, router: router)
         case .settings:
-            PhoneSettingsTab(store: store, account: account, isMeetingInFlight: isMeetingInFlight, crashReports: crashReports)
+            PhoneSettingsTab(store: store, account: account, router: router, isMeetingInFlight: isMeetingInFlight, crashReports: crashReports)
         case .settingsPage(let page):
             PhoneSettingsPageScreen(page: page, store: store, ask: ask, calendar: calendar)
         case .account:
