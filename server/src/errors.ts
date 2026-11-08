@@ -185,7 +185,8 @@ export class ApiError extends Error {
 }
 
 /**
- * Üst servisin başarısızlığından doğan istemci hatası (`upstream_rejected` ya da `upstream_unavailable`): hangi servisin
+ * Üst servisin başarısızlığından doğan istemci hatası (`upstream_rejected`, `upstream_unavailable` ya da sağlayıcının
+ * kredisi bittiğinde `spend_ceiling_reached`): hangi servisin
  * (`anthropic`, `elevenlabs`, `stripe`, `turnstile`, kimlik sağlayıcısı anahtarları) başarısız olduğunu taşır; yönetim
  * panelindeki servis hatası sayacı bundan yazılır (`opsEvents.ts`). İstemciye giden gövde `ApiError` ile aynıdır.
  */
@@ -193,7 +194,7 @@ export class ProviderApiError extends ApiError {
   override readonly name: string = "ProviderApiError";
   readonly service: string;
 
-  constructor(service: string, code: "upstream_rejected" | "upstream_unavailable", message: string) {
+  constructor(service: string, code: "upstream_rejected" | "upstream_unavailable" | "spend_ceiling_reached", message: string) {
     super(code, message);
     this.service = service;
   }

@@ -86,7 +86,7 @@ export interface AdminStats {
   readonly reports: { readonly openFeedback: number; readonly openCrash: number; readonly openContact: number };
   /** Stripe anahtarının modu (canlı ya da test). */
   readonly stripe: { readonly mode: StripeMode };
-  /** ElevenLabs plan döngüsündeki yazıya çevirme saatleri ve planın sınırı. */
+  /** ElevenLabs döngüsündeki yazıya çevirme saatleri ve geçerli sınır (elle konan üst sınır ile ElevenLabs'in bildirdiği kalan kredinin darı). */
   readonly elevenLabs: { readonly usedHours: number; readonly capHours: number; readonly percent: number };
   /** Deepgram canlı metin bütçesi (ömür boyu, tahmini): harcanan, tavan, yüzde ve bütçeye sayılan akış dakikası. */
   readonly deepgram: { readonly estimatedUsd: number; readonly budgetUsd: number; readonly percent: number; readonly streamMinutes: number };

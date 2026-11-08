@@ -9,6 +9,7 @@
 //   ve `usage.server_tool_use.web_search_requests: 1`. Araçlı istek `webSearchDisabledMarker`'ı taşıyorsa Anthropic'in
 //   "kuruluşta web araması kapalı" reddi döner (400 `invalid_request_error`; sunucunun araçsız yinelemesini dener).
 // - POST /v1/speech-to-text: kısa bir Fince yazıya dökme (1 sn).
+// - GET /v1/user/subscription: bol kredili etkin ElevenLabs planı (ses ayırmadan önceki kapasite okuması).
 import { type IncomingMessage, type ServerResponse, createServer } from "node:http";
 
 /** JSON şemasının kullanılan alt kümesi. */
@@ -160,6 +161,18 @@ const transcription = {
   audio_duration_secs: 1,
 } as const;
 
+/** ElevenLabs hesabının kredi durumu: bol kredili etkin plan (sunucu ses ayırmadan önce okur). */
+const subscription = {
+  tier: "creator",
+  character_count: 0,
+  character_limit: 100_000_000,
+  can_extend_character_limit: false,
+  max_credit_limit_extension: 0,
+  next_character_count_reset_unix: 1_794_355_200,
+  status: "active",
+  has_open_invoices: false,
+} as const;
+
 async function handle(request: IncomingMessage, response: ServerResponse): Promise<void> {
   const path: string = (request.url ?? "").split("?")[0] ?? "";
   const body: Buffer = await readBody(request);
@@ -188,6 +201,12 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
     console.log(`speech-to-text bytes=${body.length}`);
     response.writeHead(200, { "content-type": "application/json" });
     response.end(JSON.stringify(transcription));
+    return;
+  }
+  if (request.method === "GET" && path === "/v1/user/subscription") {
+    console.log("user/subscription");
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end(JSON.stringify(subscription));
     return;
   }
   console.log(`unknown ${request.method ?? ""} ${path}`);

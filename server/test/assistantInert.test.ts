@@ -7,7 +7,7 @@ import type { Env } from "../src/env";
 import worker from "../src/index";
 import wranglerSource from "../wrangler.jsonc?raw";
 import { stripJsonc } from "./jsonc";
-import { type Harness, type Session, defaultHarness, expectError, req, signIn } from "./helpers";
+import { type Harness, type Session, cronUpstreams, defaultHarness, expectError, req, signIn } from "./helpers";
 
 /**
  * The API Worker's assistant code is inert while ASSISTANT_POLICY is "off" (no ASSISTANT_DB / ASSISTANT_BUCKET bindings,
@@ -90,8 +90,8 @@ describe("assistant code in the API Worker before the EU database exists", () =>
   });
 
   it("with the policy off, the daily cron skips the assistant cleanup and every other step still runs", async () => {
-    // The cron also refreshes Apple's and Google's keys: answered with a fake key set.
-    vi.spyOn(globalThis, "fetch").mockImplementation(async (): Promise<Response> => Response.json({ keys: [{ kty: "RSA", kid: "cron-key", n: "AQAB", e: "AQAB" }] }));
+    // The cron also refreshes Apple's and Google's keys and the ElevenLabs credits: answered with fakes.
+    vi.spyOn(globalThis, "fetch").mockImplementation(cronUpstreams);
     const info = vi.spyOn(console, "log");
     const controller: ScheduledController = createScheduledController({ scheduledTime: Date.UTC(2026, 9, 15, 3, 17), cron: "17 3 * * *" });
     await worker.scheduled(controller, envWithoutAssistant("off"));

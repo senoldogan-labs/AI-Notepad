@@ -279,10 +279,14 @@ export interface Config {
     readonly usdPerHour: number;
     readonly keytermsUsdPerHour: number;
   };
-  /** ElevenLabs aylık kredi planı: dönemde işlenebilen ses saati ve dönemin yenilendiği gün (1–28, UTC). */
+  /**
+   * ElevenLabs kapasitesi: dönemde işlenebilen ses saatinin elle konan güvenlik üst sınırı, dönemin yenilendiği gün
+   * (1–28, UTC) ve ölçülen kredi/ses saati oranı (hesabın canlı kalan kredisini saate çevirir; bkz. `elevenLabsCapacity.ts`).
+   */
   readonly elevenLabs: {
     readonly monthlyAudioHours: number;
     readonly billingDay: number;
+    readonly creditsPerAudioHour: number;
   };
   readonly deepgram: DeepgramConfig;
   /** In-app dialer (`PHONE_CALLS_POLICY`). */
@@ -522,6 +526,7 @@ const envSchema = z.object({
   SCRIBE_KEYTERMS_USD_PER_HOUR: positiveNumber,
   ELEVENLABS_MONTHLY_AUDIO_HOURS: positiveNumber,
   ELEVENLABS_BILLING_DAY: positiveInt.max(28),
+  ELEVENLABS_CREDITS_PER_AUDIO_HOUR: positiveNumber,
   DEEPGRAM_POLICY: z.enum(["on", "off"]),
   DEEPGRAM_BUDGET_USD: positiveNumber,
   DEEPGRAM_USD_PER_MINUTE: positiveNumber,
@@ -767,7 +772,11 @@ export function parseConfig(env: Env): Config {
       usdPerHour: value.SCRIBE_USD_PER_HOUR,
       keytermsUsdPerHour: value.SCRIBE_KEYTERMS_USD_PER_HOUR,
     },
-    elevenLabs: { monthlyAudioHours: value.ELEVENLABS_MONTHLY_AUDIO_HOURS, billingDay: value.ELEVENLABS_BILLING_DAY },
+    elevenLabs: {
+      monthlyAudioHours: value.ELEVENLABS_MONTHLY_AUDIO_HOURS,
+      billingDay: value.ELEVENLABS_BILLING_DAY,
+      creditsPerAudioHour: value.ELEVENLABS_CREDITS_PER_AUDIO_HOUR,
+    },
     deepgram,
     phoneCalls,
     blog: blogConfig(value.GITHUB_BLOG_REPO, value.GITHUB_BLOG_BRANCH, value.GITHUB_BLOG_TOKEN),
