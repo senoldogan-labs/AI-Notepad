@@ -235,6 +235,11 @@ targets:
       - path: App/EngagementNotifier.swift
       # Görünen ad (metinlerdeki ürün adı) Mac'le aynı yoldan okunur; iPhone'da "Gistsmith".
       - path: App/AppName.swift
+      # Kısayollar, Siri ve Spotlight: toplantı ve görev varlıkları, niyetler, Spotlight dizini ve kısayol ifadelerinin
+      # çevirileri Mac'le ortak.
+      - path: App/MeetingIntents.swift
+      - path: App/MeetingSpotlightIndex.swift
+      - path: App/AppShortcuts.xcstrings
       # Ayarlar › Bağlantılar'ın ortak içeriği (entegrasyon adları, açıklamaları, "İçerir" ve "nasıl kullanılır"
       # satırları, marka kutusu) Mac'le aynı.
       - path: App/ConnectionCatalog.swift
@@ -385,6 +390,8 @@ targets:
         UIAppFonts: [InterVariable.ttf]
         # Takvim yalnızca Ayarlar'da açılınca okunur (sıradaki toplantılar, kaydı süren etkinliğe bağlama).
         NSCalendarsFullAccessUsageDescription: "Gistsmith sıradaki toplantılarını gösterir ve kaydı süren toplantının adı ve katılımcılarıyla kaydeder."
+        # Toplantıya tahtanın, slaytın ya da bir krokinin fotoğrafı eklenir (belge tarayıcı).
+        NSCameraUsageDescription: "Gistsmith toplantıya tahtanın, slaytın ya da bir krokinin fotoğrafını eklemek için kamerayı kullanır."
         # Görev, istenince Anımsatıcılar'a eklenir (görev satırına uzun basınca).
         NSRemindersFullAccessUsageDescription: "Gistsmith toplantı notundaki görevleri istediğinde Anımsatıcılar'a ekler."
         # Kayıt kilit ekranında ve Dynamic Island'da canlı etkinlik olarak görünür.

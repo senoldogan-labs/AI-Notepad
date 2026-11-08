@@ -203,16 +203,34 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
         the web. The Mac app with your own Anthropic key offers the same setting and sends the query straight to Anthropic.
       </li>
       <li>
-        <strong>Screen snapshots in notes (Mac app, off by default).</strong> If you also turn on “Use screen snapshots in
-        notes” in Settings › General, then when a note is written the app picks up to 6 of the meeting's shared-screen
-        snapshots (the ones talked about most, leaving out any you unticked on the meeting's Screens tab), downscales them
+        <strong>Screen snapshots and photos in notes (off by default).</strong> If you turn on “Use screen snapshots in
+        notes” (Mac: Settings › General) or “Use photos in notes” (iPhone: Settings › Note, or the meeting's Screens tab),
+        then when a note is written the app picks up to 6 of the meeting's shared-screen snapshots and the photos you added
+        to it (the ones talked about most, leaving out any you unticked on the meeting's Screens tab), downscales them
         to about 800 pixels and sends them with the note request through our server to Anthropic's Claude model, so the note
         can refer to what was on screen. Our server checks their number and size and passes them on; it does not store or
         log the images, and records only the number of tokens used, as for the text. Anthropic handles them on the same
         terms as the transcript (see section 8). With the same setting on, when you ask a question on the Ask page, up to 3
         snapshots that were on screen while the transcript passages Ask read were spoken (again leaving out the unticked
         ones) are downscaled the same way and sent with the question; the answer says how many snapshots it read. With the
-        setting off, snapshots are never sent.
+        setting off, snapshots and photos are never sent.
+      </li>
+      <li>
+        <strong>Photos you add to a meeting.</strong> You can add a photo of a whiteboard, a slide or a sketch to a meeting:
+        on the iPhone with the camera (the document scanner) or from Photos, on the Mac from a file or with Continuity
+        Camera. The app stores it with the meeting in its folder on your device, scaled down and re-encoded, which drops the
+        original's metadata such as its location. Photos are not synced between your devices and are not sent anywhere
+        unless the setting above is on; an AI app you connect through the app's MCP connection can read them like screen
+        snapshots. Deleting a photo on the meeting's Screens tab, or deleting the meeting, deletes it.
+      </li>
+      <li>
+        <strong>Spotlight, Siri and Shortcuts (on by default).</strong> The app adds each meeting's title, date, attendee and
+        speaker names, the note's summary and its tasks to the system search index on your Mac or iPhone, so Spotlight finds
+        them and Siri and Shortcuts can ask your meetings, list your open tasks or open a meeting. The transcript, audio,
+        screen snapshots, photos and your own notes are never indexed, nor is the sample meeting. The index stays on the
+        device; we don't receive it. Turn it off with “Show meetings in Spotlight” (Mac: Settings › General; iPhone:
+        Settings); turning it off, signing out or deleting your account removes the index. A question you ask through Siri
+        or Shortcuts goes the same way as one typed on the Ask page.
       </li>
       <li>
         <strong>Calendar.</strong> If you allow calendar access, the app reads your calendar events on your device to show
@@ -778,7 +796,7 @@ const linkTermsUrl: string = "https://link.com/terms#sold-through-link-terms";
             <td>
               The relevant parts of meeting transcripts and notes, your questions, the participant names and terms you add,
               meeting titles and the attendee names of linked calendar events, tasks and Linear's or Jira's replies when you
-              create issues there, notes you translate to share or turn into a follow-up email, and, if you turn on “Use screen snapshots in notes”, up to 6 downscaled shared-screen snapshots per note and up to 3 per Ask answer; with web search in Ask on, the search queries Claude writes from your questions, which Anthropic sends to its web search provider
+              create issues there, notes you translate to share or turn into a follow-up email, and, if you turn on “Use screen snapshots in notes” or “Use photos in notes”, up to 6 downscaled shared-screen snapshots and photos you added per note and up to 3 per Ask answer; with web search in Ask on, the search queries Claude writes from your questions, which Anthropic sends to its web search provider
             </td>
             <td>
               Stored in the USA; the model may run in other countries where Anthropic operates. Standard Contractual

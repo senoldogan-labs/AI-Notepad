@@ -17,7 +17,7 @@ private let catalogPaths: [String] = [
     "App/InfoPlist.xcstrings",
     "App/Hosted/InfoPlist.xcstrings",
     "iOS/InfoPlist.xcstrings",
-    "iOS/AppShortcuts.xcstrings",
+    "App/AppShortcuts.xcstrings",
 ]
 
 /// Ürün adları her dilde aynı kalır; çeviri istenmez.

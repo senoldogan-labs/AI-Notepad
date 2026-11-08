@@ -440,7 +440,7 @@ private func statusText(record: MeetingRecord, isProcessing: Bool) -> String? {
 private enum MeetingTab: String {
     case summary
     case transcript
-    /// Kayıt sırasında saklanan ekran görüntüleri (yalnızca görüntüsü olan toplantıda görünür).
+    /// Kayıt sırasında saklanan ekran görüntüleri ve eklenen fotoğraflar (yalnızca görüntüsü olan toplantıda görünür).
     case screens
 }
 
@@ -483,6 +483,8 @@ struct MeetingDetailPage: View {
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
     @State private var export: ExportStatus = .none
     @State private var tab: MeetingTab = .summary
+    /// "Fotoğraf ekle" dosya seçicisi açık (Ekranlar sekmesinde).
+    @State private var isImportingPhoto: Bool = false
     /// Alttaki çubuğun transkript çekmecesi açık.
     @State private var isTranscriptOpen: Bool = false
     /// Çekmecede kayılacak ve vurgulanacak paragraf (not maddesinin kaynağından gelinince).
@@ -670,6 +672,7 @@ struct MeetingDetailPage: View {
                     case .screens:
                         ScreenSnapshotsSection(
                             model: model, record: record, paragraphs: paragraphs, isLocked: isLocked, canPlay: !playableAudio.isEmpty,
+                            isImportingPhoto: $isImportingPhoto,
                             onPlay: { (startSec: Double) -> Void in play(from: startSec) }
                         )
                     }
@@ -1174,6 +1177,13 @@ struct MeetingDetailPage: View {
             // Notu yeniden yazar (konuşmacı adlarıyla).
             Button("Notu yenile", systemImage: "sparkles") { model.regenerateNote(meetingID: record.id) }
                 .disabled(isLocked)
+            // Tahta, slayt ya da kroki fotoğrafı: Ekranlar sekmesinde görünür ve notta kullanılabilir (Dosya › iPhone'dan
+            // içe aktar ile Continuity Kamera da aynı sekmeye ekler).
+            Button("Fotoğraf ekle…", systemImage: "camera") {
+                tab = .screens
+                isImportingPhoto = true
+            }
+            .disabled(record.isSampleMeeting)
             // Tarif Sor sayfasında bu toplantıya uygulanır (alttaki çubuktan uygulanınca cevap bu sayfada açılır).
             Menu("Sor'da tarif uygula", systemImage: "wand.and.stars") {
                 ForEach(model.recipes) { (recipe: Recipe) in

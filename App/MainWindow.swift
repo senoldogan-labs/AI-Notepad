@@ -120,8 +120,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     /// bağlanır.
     @MainActor static var onEngagementResponse: (@MainActor (EngagementRoute) -> Void)?
 
+    /// Spotlight'taki toplantı sonucuna tıklama o toplantıyı açar; açılışta bağlanır.
+    @MainActor static var onOpenSpotlightMeeting: (@MainActor (String) -> Void)?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         UNUserNotificationCenter.current().delegate = self
+    }
+
+    func application(_ application: NSApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([any NSUserActivityRestoring]) -> Void) -> Bool {
+        guard let meetingID = spotlightMeetingID(activity: userActivity) else {
+            return false
+        }
+        AppDelegate.onOpenSpotlightMeeting?(meetingID)
+        return true
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {

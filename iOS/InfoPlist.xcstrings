@@ -104,6 +104,83 @@
         }
       }
     },
+    "NSCameraUsageDescription": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith verwendet die Kamera, um einem Meeting ein Foto eines Whiteboards, einer Folie oder Skizze hinzuzufügen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith uses the camera to add a photo of a whiteboard, slide or sketch to a meeting."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith usa la cámara para añadir a una reunión una foto de una pizarra, diapositiva o boceto."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith käyttää kameraa lisätäkseen kokoukseen kuvan taulusta, diasta tai luonnoksesta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith utilise l'appareil photo pour ajouter à une réunion la photo d'un tableau blanc, d'une diapositive ou d'un croquis."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith usa la fotocamera per aggiungere a una riunione la foto di una lavagna, slide o schizzo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmithは、ホワイトボード、スライド、スケッチの写真を会議に追加するためにカメラを使用します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith는 화이트보드, 슬라이드, 스케치 사진을 회의에 추가하기 위해 카메라를 사용해요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith gebruikt de camera om een foto van een whiteboard, dia of schets aan een vergadering toe te voegen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Gistsmith usa a câmera para adicionar a uma reunião a foto de um quadro, slide ou rascunho."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith toplantıya tahtanın, slaytın ya da bir krokinin fotoğrafını eklemek için kamerayı kullanır."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gistsmith 使用相机为会议添加白板、幻灯片或草图的照片。"
+          }
+        }
+      },
+      "comment": "Privacy - Camera Usage Description"
+    },
     "NSMicrophoneUsageDescription": {
       "comment": "Privacy - Microphone Usage Description",
       "localizations": {

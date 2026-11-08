@@ -116,6 +116,24 @@ final class ScreenSnapshotCenter {
         }
     }
 
+    /// Fotoğrafı (tahta, slayt, kroki) toplantının klasörüne ekler: küçültülür, üst verisi (konum) atılır. Hata sayfada
+    /// görünür; eklenen görüntü döner.
+    func addPhoto(meetingID: String, directory: URL, offsetSec: Double, imageData: Data) async -> ScreenSnapshot? {
+        let result: Result<ScreenSnapshot, any Error> = await runBlocking(qos: .userInitiated) { () -> Result<ScreenSnapshot, any Error> in
+            Result { try addMeetingPhoto(meetingDirectory: directory, offsetSec: offsetSec, imageData: imageData) }
+        }
+        switch result {
+        case .success(let snapshot):
+            snapshots[meetingID] = ((snapshots[meetingID] ?? []).filter { $0 != snapshot } + [snapshot]).sorted { $0.offsetSec < $1.offsetSec }
+            errors[meetingID] = nil
+            return snapshot
+        case .failure(let error):
+            Self.logger.error("Fotoğraf eklenemedi, toplantı: \(meetingID, privacy: .public), bayt: \(imageData.count, privacy: .public), hata: \(String(describing: error), privacy: .public)")
+            errors[meetingID] = meetingPhotoErrorMessage(error: error)
+            return nil
+        }
+    }
+
     /// Ticks or unticks a snapshot for notes and saves the choice in the meeting's folder; the next note uses it.
     func toggleNoteExclusion(meetingID: String, directory: URL, snapshot: ScreenSnapshot) {
         let updated: Set<String> = toggledScreenNoteExclusion(excluded: noteExclusions[meetingID] ?? [], snapshotID: snapshot.id)
@@ -161,6 +179,18 @@ private let screenNotesLogger: Logger = Logger(subsystem: "com.senoldogan.AINote
 
 /// Listedeki küçük resimlerin uzun kenarı (piksel; Retina'da 280 noktalık genişliğe yeter).
 let screenThumbnailPixels: Int = 640
+
+/// Fotoğraf eklenemeyince kullanıcı metni.
+func meetingPhotoErrorMessage(error: any Error) -> String {
+    switch error {
+    case MeetingPhotoError.limitReached(let limit):
+        String(localized: "Bu toplantıya en fazla \(limit) fotoğraf eklenebilir.")
+    case is ScreenImageError:
+        String(localized: "Fotoğraf okunamadı; başka bir görüntü dene.")
+    default:
+        String(localized: "Fotoğraf eklenemedi: \(userFacingMessage(error: error))")
+    }
+}
 
 /// Görüntü alma hatasının kullanıcı metni.
 func screenCaptureMessage(error: ScreenCaptureError) -> String {
@@ -217,6 +247,17 @@ extension AppModel {
     func deleteAllScreenSnapshots(meetingID: String) {
         do {
             screenSnapshots.deleteAll(meetingID: meetingID, directory: try sessionDirectory(id: meetingID))
+        } catch {
+            screenSnapshots.record(error: error, meetingID: meetingID)
+        }
+    }
+
+    /// Fotoğrafı toplantıya ekler (kayıtta şu ana, sonra toplantının sonuna); hata Ekranlar sekmesinde görünür.
+    func addMeetingPhoto(meetingID: String, imageData: Data) async {
+        do {
+            _ = await screenSnapshots.addPhoto(
+                meetingID: meetingID, directory: try sessionDirectory(id: meetingID), offsetSec: photoOffset(meetingID: meetingID), imageData: imageData
+            )
         } catch {
             screenSnapshots.record(error: error, meetingID: meetingID)
         }

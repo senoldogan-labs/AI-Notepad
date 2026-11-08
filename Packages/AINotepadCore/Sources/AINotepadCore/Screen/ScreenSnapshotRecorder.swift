@@ -65,7 +65,7 @@ public final class ScreenSnapshotRecorder {
         }
         let existing: Int
         do {
-            existing = try listScreenSnapshots(meetingDirectory: meetingDirectory).count
+            existing = try listScreenSnapshots(meetingDirectory: meetingDirectory).filter { $0.kind == .screen }.count
         } catch {
             throw ScreenCaptureError.storeFailed(reason: String(describing: error))
         }

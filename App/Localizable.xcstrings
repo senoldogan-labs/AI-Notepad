@@ -199636,6 +199636,3576 @@
           }
         }
       }
+    },
+    "%lld açık görevin var: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du hast %lld offene Aufgaben: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You have %lld open tasks: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tienes %lld tareas abiertas: %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sinulla on %lld avointa tehtävää: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous avez %lld tâches en cours : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hai %lld attività aperte: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未完了のタスクが%lld件あります: %@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "열린 할 일이 %lld개 있어요: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je hebt %lld openstaande taken: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você tem %lld tarefas abertas: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你有 %lld 项未完成的任务：%@"
+          }
+        }
+      }
+    },
+    "%lld fotoğraf eklendi": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld Fotos hinzugefügt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld photos added"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld fotos añadidas"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld kuvaa lisätty"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld photos ajoutées"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld foto aggiunte"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真を%lld枚追加しました"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "사진 %lld장 추가됨"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld foto's toegevoegd"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld fotos adicionadas"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已添加 %lld 张照片"
+          }
+        }
+      }
+    },
+    "%lld görüntü": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld Bilder"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld images"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld imágenes"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld kuvaa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld images"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld immagini"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld枚の画像"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이미지 %lld개"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld afbeeldingen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld imagens"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 张图像"
+          }
+        }
+      }
+    },
+    "Ad, tarih, kişiler, özet ve görevler bu iPhone'un aramasına girer; transkript ve ses girmez. Siri ve Kısayollar da toplantılarına buradan ulaşır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titel, Datum, Personen, Zusammenfassung und Aufgaben kommen in die Suche dieses iPhones; Transkript und Audio nicht. Auch Siri und Kurzbefehle erreichen deine Meetings so."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Title, date, people, summary and tasks go into this iPhone's search; the transcript and audio don't. Siri and Shortcuts reach your meetings this way too."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El título, la fecha, las personas, el resumen y las tareas entran en la búsqueda de este iPhone; la transcripción y el audio no. Siri y Atajos también llegan así a tus reuniones."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otsikko, päivä, henkilöt, yhteenveto ja tehtävät tulevat tämän iPhonen hakuun; litterointi ja ääni eivät. Myös Siri ja Pikakomennot löytävät kokouksesi näin."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le titre, la date, les personnes, le résumé et les tâches entrent dans la recherche de cet iPhone ; pas la transcription ni l'audio. Siri et Raccourcis accèdent aussi à vos réunions ainsi."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titolo, data, persone, riepilogo e attività entrano nella ricerca di questo iPhone; trascrizione e audio no. Anche Siri e Comandi raggiungono così le tue riunioni."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タイトル、日付、参加者、要約、タスクがこのiPhoneの検索に入ります。文字起こしと音声は入りません。Siriとショートカットもここから会議にアクセスします。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "제목, 날짜, 참석자, 요약, 할 일이 이 iPhone의 검색에 들어가고 대화록과 오디오는 들어가지 않아요. Siri와 단축어도 이렇게 회의에 접근해요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titel, datum, personen, samenvatting en taken komen in de zoekfunctie van deze iPhone; transcript en audio niet. Siri en Opdrachten bereiken je vergaderingen ook zo."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Título, data, pessoas, resumo e tarefas entram na busca deste iPhone; a transcrição e o áudio não. A Siri e os Atalhos também chegam às suas reuniões assim."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "标题、日期、人员、摘要和任务会进入此 iPhone 的搜索；转录和音频不会。Siri 和快捷指令也通过这里访问你的会议。"
+          }
+        }
+      }
+    },
+    "Ayarlar › Genel'de \"Paylaşılan ekranın görüntülerini al\" açıkken, çevrimiçi görüşmede ekran değişince görüntüsü burada konuşulanlarla birlikte görünür. Tahtanın, slaytın ya da bir krokinin fotoğrafını da ekleyebilirsin: \"Fotoğraf ekle…\" ya da Dosya › iPhone'dan içe aktar (Continuity Kamera).": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ist unter Einstellungen › Allgemein „Bilder des geteilten Bildschirms aufnehmen“ aktiv, erscheint hier bei jedem Bildschirmwechsel in einem Online-Call ein Bild mit dem Gesagten. Du kannst auch ein Foto eines Whiteboards, einer Folie oder einer Skizze hinzufügen: „Foto hinzufügen …“ oder Ablage › Von iPhone importieren (Integrierte Kamera)."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "With \"Take snapshots of the shared screen\" on in Settings › General, a snapshot appears here with what was said whenever the screen changes in an online call. You can also add a photo of a whiteboard, slide or sketch: \"Add photo…\" or File › Import from iPhone (Continuity Camera)."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Con «Tomar capturas de la pantalla compartida» activado en Ajustes › General, aparece aquí una captura con lo que se dijo cada vez que cambia la pantalla en una llamada en línea. También puedes añadir una foto de una pizarra, una diapositiva o un boceto: «Añadir foto…» o Archivo › Importar desde iPhone (Cámara de Continuidad)."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kun Asetukset › Yleiset -kohdassa \"Ota kuvia jaetusta näytöstä\" on päällä, verkkopuhelussa näkyy tässä kuva ja sen aikana puhuttu aina, kun näyttö vaihtuu. Voit myös lisätä kuvan taulusta, diasta tai luonnoksesta: \"Lisää kuva…\" tai Arkisto › Tuo iPhonesta (Jatkuvuuskamera)."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lorsque « Prendre des captures de l'écran partagé » est activé dans Réglages › Général, une capture apparaît ici avec ce qui a été dit à chaque changement d'écran pendant un appel en ligne. Vous pouvez aussi ajouter la photo d'un tableau blanc, d'une diapositive ou d'un croquis : « Ajouter une photo… » ou Fichier › Importer depuis l'iPhone (Caméra de continuité)."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Con «Acquisisci immagini dello schermo condiviso» attivo in Impostazioni › Generali, qui compare un'immagine con quanto detto ogni volta che lo schermo cambia in una chiamata online. Puoi anche aggiungere la foto di una lavagna, di una slide o di uno schizzo: «Aggiungi foto…» o File › Importa da iPhone (Fotocamera Continuity)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定 › 一般で「共有画面の画像を撮る」がオンなら、オンライン通話で画面が変わるたびに、話された内容とともに画像がここに表示されます。ホワイトボード、スライド、スケッチの写真も追加できます:「写真を追加…」またはファイル › iPhoneから読み込む(連係カメラ)。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "설정 › 일반에서 '공유 화면 이미지 저장'이 켜져 있으면 온라인 통화에서 화면이 바뀔 때마다 그때 나눈 대화와 함께 이미지가 여기에 표시돼요. 화이트보드, 슬라이드, 스케치 사진도 추가할 수 있어요: '사진 추가…' 또는 파일 › iPhone에서 가져오기(연속성 카메라)."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Staat 'Afbeeldingen van het gedeelde scherm maken' aan in Instellingen › Algemeen, dan verschijnt hier bij elke schermwissel in een online gesprek een afbeelding met wat er gezegd werd. Je kunt ook een foto van een whiteboard, dia of schets toevoegen: 'Foto toevoegen…' of Archief › Importeer van iPhone (Continuïteitscamera)."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Com \"Capturar imagens da tela compartilhada\" ativado em Ajustes › Geral, uma imagem aparece aqui com o que foi dito sempre que a tela muda em uma chamada online. Você também pode adicionar a foto de um quadro, slide ou rascunho: \"Adicionar foto…\" ou Arquivo › Importar do iPhone (Câmera de Continuidade)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在“设置 › 通用”中打开“截取共享屏幕的图像”后，在线通话中屏幕每次变化时，这里都会显示一张图像及当时所说的内容。你也可以添加白板、幻灯片或草图的照片：“添加照片…”或“文件 › 从 iPhone 导入”（连续互通相机）。"
+          }
+        }
+      }
+    },
+    "Açık görevin yok.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du hast keine offenen Aufgaben."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You have no open tasks."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No tienes tareas abiertas."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sinulla ei ole avoimia tehtäviä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous n'avez aucune tâche en cours."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non hai attività aperte."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未完了のタスクはありません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "열린 할 일이 없어요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je hebt geen openstaande taken."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você não tem tarefas abertas."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你没有未完成的任务。"
+          }
+        }
+      }
+    },
+    "Açık görevlerim": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meine offenen Aufgaben"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "My open tasks"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mis tareas abiertas"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avoimet tehtäväni"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mes tâches en cours"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le mie attività aperte"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未完了のタスク"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "열린 할 일"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mijn openstaande taken"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Minhas tarefas abertas"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我的未完成任务"
+          }
+        }
+      }
+    },
+    "Başlık": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titel"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Title"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Título"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otsikko"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titre"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titolo"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タイトル"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "제목"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titel"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Título"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "标题"
+          }
+        }
+      }
+    },
+    "Bu Mac'te duraklatılan kaydı sürdürür.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Setzt die pausierte Aufnahme auf diesem Mac fort."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resumes the paused recording on this Mac."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reanuda la grabación en pausa en este Mac."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jatkaa tauotettua tallennusta tällä Macilla."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reprend l'enregistrement en pause sur ce Mac."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riprende la registrazione in pausa su questo Mac."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このMacで一時停止中の録音を再開します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 Mac에서 일시 정지된 녹음을 이어서 해요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hervat de gepauzeerde opname op deze Mac."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retoma a gravação pausada neste Mac."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "继续此 Mac 上已暂停的录制。"
+          }
+        }
+      }
+    },
+    "Bu Mac'te toplantıyı kaydetmeye başlar; canlı metin panelde akar.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Startet die Aufnahme des Meetings auf diesem Mac; der Live-Text läuft im Panel."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starts recording the meeting on this Mac; the live text flows in the panel."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empieza a grabar la reunión en este Mac; el texto en vivo aparece en el panel."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aloittaa kokouksen tallennuksen tällä Macilla; reaaliaikainen teksti näkyy paneelissa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lance l'enregistrement de la réunion sur ce Mac ; le texte en direct défile dans le panneau."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avvia la registrazione della riunione su questo Mac; il testo dal vivo scorre nel pannello."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このMacで会議の録音を開始します。ライブテキストはパネルに表示されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 Mac에서 회의 녹음을 시작해요. 실시간 텍스트는 패널에 표시돼요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start de opname van de vergadering op deze Mac; de live tekst verschijnt in het paneel."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Começa a gravar a reunião neste Mac; o texto ao vivo aparece no painel."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在此 Mac 上开始录制会议；实时文本显示在面板中。"
+          }
+        }
+      }
+    },
+    "Bu Mac'teki kaydı bitirir; not hazırlanır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beendet die Aufnahme auf diesem Mac; die Notiz wird erstellt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ends the recording on this Mac; the note is prepared."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Termina la grabación en este Mac; se prepara la nota."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lopettaa tallennuksen tällä Macilla; muistiinpano valmistellaan."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Termine l'enregistrement sur ce Mac ; la note est préparée."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Termina la registrazione su questo Mac; la nota viene preparata."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このMacの録音を終了し、ノートを作成します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 Mac의 녹음을 끝내고 노트를 준비해요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beëindigt de opname op deze Mac; de notitie wordt gemaakt."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Encerra a gravação neste Mac; a nota é preparada."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "结束此 Mac 上的录制并生成笔记。"
+          }
+        }
+      }
+    },
+    "Bu Mac'teki kaydı duraklatır; duraklatılan süre kaydedilmez.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausiert die Aufnahme auf diesem Mac; die pausierte Zeit wird nicht aufgenommen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pauses the recording on this Mac; the paused time isn't recorded."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausa la grabación en este Mac; el tiempo en pausa no se graba."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keskeyttää tallennuksen tällä Macilla; tauon aikaa ei tallenneta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Met en pause l'enregistrement sur ce Mac ; la durée de pause n'est pas enregistrée."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mette in pausa la registrazione su questo Mac; il tempo in pausa non viene registrato."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このMacの録音を一時停止します。一時停止中は録音されません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 Mac의 녹음을 일시 정지해요. 일시 정지한 시간은 녹음되지 않아요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pauzeert de opname op deze Mac; de gepauzeerde tijd wordt niet opgenomen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausa a gravação neste Mac; o tempo pausado não é gravado."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂停此 Mac 上的录制；暂停期间不会录制。"
+          }
+        }
+      }
+    },
+    "Bu toplantı bulunamadı; silinmiş olabilir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Meeting wurde nicht gefunden; es wurde vielleicht gelöscht."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This meeting wasn't found; it may have been deleted."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se encontró esta reunión; puede que se haya eliminado."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kokousta ei löytynyt; se on ehkä poistettu."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette réunion est introuvable ; elle a peut-être été supprimée."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riunione non trovata; potrebbe essere stata eliminata."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この会議は見つかりません。削除された可能性があります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 회의를 찾을 수 없어요. 삭제되었을 수 있어요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deze vergadering is niet gevonden; misschien is ze verwijderd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta reunião não foi encontrada; talvez tenha sido apagada."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到此会议；它可能已被删除。"
+          }
+        }
+      }
+    },
+    "Bu toplantıda görüntü yok": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Bilder in diesem Meeting"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No images in this meeting"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay imágenes en esta reunión"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tässä kokouksessa ei ole kuvia"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucune image dans cette réunion"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessuna immagine in questa riunione"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この会議に画像はありません"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 회의에는 이미지가 없어요"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geen afbeeldingen in deze vergadering"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhuma imagem nesta reunião"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此会议没有图像"
+          }
+        }
+      }
+    },
+    "Bu toplantıya en fazla %lld fotoğraf eklenebilir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du kannst diesem Meeting höchstens %lld Fotos hinzufügen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can add at most %lld photos to this meeting."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puedes añadir como máximo %lld fotos a esta reunión."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tähän kokoukseen voi lisätä enintään %lld kuvaa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous pouvez ajouter au maximum %lld photos à cette réunion."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puoi aggiungere al massimo %lld foto a questa riunione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この会議に追加できる写真は最大%lld枚です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 회의에는 사진을 최대 %lld장까지 추가할 수 있어요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je kunt maximaal %lld foto's aan deze vergadering toevoegen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você pode adicionar no máximo %lld fotos a esta reunião."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此会议最多可添加 %lld 张照片。"
+          }
+        }
+      }
+    },
+    "Bütün toplantılarına bir soru sorar ve cevabı söyler; sohbet Sor geçmişinde kalır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stellt allen deinen Meetings eine Frage und sagt dir die Antwort; der Chat bleibt im Fragen-Verlauf."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Asks all your meetings a question and tells you the answer; the chat stays in your Ask history."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hace una pregunta a todas tus reuniones y te dice la respuesta; el chat queda en tu historial de Preguntar."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kysyy kaikilta kokouksiltasi ja kertoo vastauksen; keskustelu jää Kysy-historiaan."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pose une question à toutes vos réunions et vous donne la réponse ; la conversation reste dans l'historique Demander."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fa una domanda a tutte le tue riunioni e ti dice la risposta; la chat resta nella cronologia di Chiedi."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべての会議に質問して答えを伝えます。会話は質問の履歴に残ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "모든 회의에 질문하고 답을 알려줘요. 대화는 질문하기 기록에 남아요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stelt al je vergaderingen een vraag en vertelt je het antwoord; het gesprek blijft in je Vraag-geschiedenis."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Faz uma pergunta a todas as suas reuniões e diz a resposta; a conversa fica no histórico de Perguntar."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "向你的所有会议提问并告诉你答案；对话会保留在提问记录中。"
+          }
+        }
+      }
+    },
+    "Cevap yarıda kaldı.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Antwort wurde abgebrochen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The answer was cut short."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La respuesta quedó a medias."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vastaus jäi kesken."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La réponse a été interrompue."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La risposta si è interrotta."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回答が途中で止まりました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "답변이 중간에 멈췄어요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Het antwoord is afgebroken."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A resposta foi interrompida."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回答被中断。"
+          }
+        }
+      }
+    },
+    "Ekran görüntüleri ekran değiştiğinde saklandı, fotoğraflar çekildikleri anda durur; yanlarında o sırada konuşulanlar var. Bağladığın MCP istemcisi (ör. Claude) aynı eşleşmeyi list_screens ve get_screen ile okur.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bildschirmbilder wurden beim Bildschirmwechsel gespeichert, Fotos stehen beim Moment ihrer Aufnahme; daneben steht, was gerade gesagt wurde. Dein verbundener MCP-Client (z. B. Claude) liest dieselbe Zuordnung mit list_screens und get_screen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snapshots were saved when the screen changed, photos sit at the moment they were taken; next to each is what was said then. Your connected MCP client (e.g. Claude) reads the same pairing with list_screens and get_screen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las capturas se guardaron cuando cambió la pantalla y las fotos quedan en el momento en que se tomaron; al lado está lo que se dijo entonces. Tu cliente MCP conectado (p. ej., Claude) lee la misma relación con list_screens y get_screen."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näyttökuvat tallennettiin näytön vaihtuessa, kuvat ovat ottohetkellään; vieressä on silloin puhuttu. Yhdistetty MCP-asiakas (esim. Claude) lukee saman parituksen list_screens- ja get_screen-työkaluilla."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les captures ont été enregistrées quand l'écran changeait, les photos se placent au moment où elles ont été prises ; à côté figure ce qui a été dit alors. Votre client MCP connecté (p. ex. Claude) lit la même association avec list_screens et get_screen."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le immagini dello schermo sono state salvate quando lo schermo cambiava, le foto si trovano nel momento in cui sono state scattate; accanto c'è quanto detto in quel momento. Il client MCP collegato (ad es. Claude) legge la stessa associazione con list_screens e get_screen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画面の画像は画面が変わったときに保存され、写真は撮影した時点に置かれます。横にはそのときの発言があります。接続したMCPクライアント(例: Claude)はlist_screensとget_screenで同じ対応を読み取ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "화면 이미지는 화면이 바뀔 때 저장되었고, 사진은 찍은 시점에 놓여요. 옆에는 그때 나눈 대화가 있어요. 연결한 MCP 클라이언트(예: Claude)는 list_screens와 get_screen으로 같은 연결을 읽어요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schermafbeeldingen zijn bewaard toen het scherm veranderde, foto's staan op het moment dat ze zijn gemaakt; ernaast staat wat er toen gezegd werd. Je gekoppelde MCP-client (bijv. Claude) leest dezelfde koppeling met list_screens en get_screen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As capturas foram salvas quando a tela mudou e as fotos ficam no momento em que foram tiradas; ao lado está o que foi dito naquele momento. Seu cliente MCP conectado (ex.: Claude) lê a mesma relação com list_screens e get_screen."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "屏幕图像在屏幕变化时保存，照片位于拍摄时刻；旁边是当时所说的内容。已连接的 MCP 客户端（例如 Claude）通过 list_screens 和 get_screen 读取相同的对应关系。"
+          }
+        }
+      }
+    },
+    "Ekran görüntüsü": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bildschirmbild"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screen snapshot"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Captura de pantalla"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näyttökuva"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Capture d'écran"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Immagine dello schermo"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画面の画像"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "화면 이미지"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schermafbeelding"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Captura de tela"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "屏幕图像"
+          }
+        }
+      }
+    },
+    "Fotoğraf": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photo"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kuva"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photo"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "사진"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "照片"
+          }
+        }
+      }
+    },
+    "Fotoğraf ekle": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto hinzufügen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add photo"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadir foto"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lisää kuva"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouter une photo"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiungi foto"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真を追加"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "사진 추가"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto toevoegen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicionar foto"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加照片"
+          }
+        }
+      }
+    },
+    "Fotoğraf eklenemedi: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto konnte nicht hinzugefügt werden: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't add the photo: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo añadir la foto: %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kuvaa ei voitu lisätä: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d'ajouter la photo : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile aggiungere la foto: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真を追加できませんでした: %@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "사진을 추가할 수 없어요: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kan foto niet toevoegen: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível adicionar a foto: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法添加照片：%@"
+          }
+        }
+      }
+    },
+    "Fotoğraf ekle…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto hinzufügen …"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add photo…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadir foto…"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lisää kuva…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouter une photo…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiungi foto…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真を追加…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "사진 추가…"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto toevoegen…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicionar foto…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加照片…"
+          }
+        }
+      }
+    },
+    "Fotoğraf okunamadı; başka bir görüntü dene.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto konnte nicht gelesen werden; versuche ein anderes Bild."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't read the photo; try another image."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo leer la foto; prueba con otra imagen."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kuvaa ei voitu lukea; kokeile toista kuvaa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de lire la photo ; essayez une autre image."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile leggere la foto; prova un'altra immagine."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真を読み込めませんでした。別の画像を試してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "사진을 읽을 수 없어요. 다른 이미지를 사용해 보세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kan foto niet lezen; probeer een andere afbeelding."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível ler a foto; tente outra imagem."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取照片；请尝试其他图像。"
+          }
+        }
+      }
+    },
+    "Fotoğraflar'dan seç": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus Fotos auswählen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose from Photos"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegir de Fotos"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valitse Kuvista"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisir dans Photos"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegli da Foto"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真から選択"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "사진에서 선택"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kies uit Foto's"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolher em Fotos"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从“照片”中选取"
+          }
+        }
+      }
+    },
+    "Görev": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aufgabe"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Task"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tarea"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tehtävä"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tâche"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Attività"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タスク"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "할 일"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taak"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tarefa"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任务"
+          }
+        }
+      }
+    },
+    "Görüntü okunamadı": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bild konnte nicht gelesen werden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't read the image"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo leer la imagen"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kuvaa ei voitu lukea"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de lire l'image"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile leggere l'immagine"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画像を読み込めませんでした"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이미지를 읽을 수 없어요"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kan afbeelding niet lezen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível ler a imagem"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取图像"
+          }
+        }
+      }
+    },
+    "Hangi toplantı?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welches Meeting?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Which meeting?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Qué reunión?"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mikä kokous?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quelle réunion ?"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quale riunione?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "どの会議ですか?"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "어떤 회의인가요?"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welke vergadering?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qual reunião?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "哪个会议？"
+          }
+        }
+      }
+    },
+    "Kamera açılamadı: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kamera konnte nicht geöffnet werden: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't open the camera: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo abrir la cámara: %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kameraa ei voitu avata: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d'ouvrir l'appareil photo : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile aprire la fotocamera: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カメラを開けませんでした: %@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "카메라를 열 수 없어요: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kan camera niet openen: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível abrir a câmera: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法打开相机：%@"
+          }
+        }
+      }
+    },
+    "Notta en fazla 6, Sor'da en fazla 3 fotoğraf küçültülüp sunucumuz üzerinden Anthropic'e (Claude) gönderilir; sunucumuz saklamaz. Kapalıyken fotoğraflar bu iPhone'dan çıkmaz.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bis zu 6 Fotos pro Notiz und bis zu 3 in Fragen werden verkleinert über unseren Server an Anthropic (Claude) gesendet; unser Server speichert sie nicht. Ist es aus, verlassen Fotos dieses iPhone nie."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Up to 6 photos per note and up to 3 in Ask are scaled down and sent through our server to Anthropic (Claude); our server doesn't keep them. When off, photos never leave this iPhone."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se envían hasta 6 fotos por nota y hasta 3 en Preguntar, reducidas, a través de nuestro servidor a Anthropic (Claude); nuestro servidor no las guarda. Si está desactivado, las fotos nunca salen de este iPhone."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enintään 6 kuvaa muistiinpanoa kohden ja enintään 3 Kysy-toiminnossa pienennetään ja lähetetään palvelimemme kautta Anthropicille (Claude); palvelimemme ei säilytä niitä. Kun tämä on pois, kuvat eivät koskaan lähde tästä iPhonesta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jusqu'à 6 photos par note et jusqu'à 3 dans Demander sont réduites et envoyées via notre serveur à Anthropic (Claude) ; notre serveur ne les conserve pas. Désactivé, les photos ne quittent jamais cet iPhone."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fino a 6 foto per nota e fino a 3 in Chiedi vengono ridotte e inviate tramite il nostro server ad Anthropic (Claude); il nostro server non le conserva. Se disattivato, le foto non lasciano mai questo iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートでは最大6枚、質問では最大3枚の写真が縮小され、当社サーバー経由でAnthropic(Claude)に送信されます。当社サーバーは保存しません。オフのとき、写真はこのiPhoneから出ません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "노트에는 최대 6장, 질문하기에는 최대 3장의 사진을 줄여 저희 서버를 거쳐 Anthropic(Claude)으로 보내요. 저희 서버는 저장하지 않아요. 끄면 사진은 이 iPhone을 떠나지 않아요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tot 6 foto's per notitie en tot 3 in Vraag worden verkleind via onze server naar Anthropic (Claude) gestuurd; onze server bewaart ze niet. Staat het uit, dan verlaten foto's deze iPhone nooit."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Até 6 fotos por nota e até 3 em Perguntar são reduzidas e enviadas pelo nosso servidor à Anthropic (Claude); nosso servidor não as guarda. Desativado, as fotos nunca saem deste iPhone."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每条笔记最多 6 张、提问中最多 3 张照片会被缩小并经我们的服务器发送给 Anthropic（Claude）；我们的服务器不会保存。关闭时，照片绝不会离开此 iPhone。"
+          }
+        }
+      }
+    },
+    "Notta fotoğrafları kullan": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotos in Notizen verwenden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use photos in notes"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar fotos en las notas"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Käytä kuvia muistiinpanoissa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utiliser les photos dans les notes"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa le foto nelle note"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートで写真を使う"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "노트에 사진 사용"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto's gebruiken in notities"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar fotos nas notas"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在笔记中使用照片"
+          }
+        }
+      }
+    },
+    "Notta ve Sor'da birkaç ekran görüntüsü ve fotoğraf Anthropic'e (Claude) gönderilir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In Notizen und Fragen werden einige Bildschirmbilder und Fotos an Anthropic (Claude) gesendet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A few screen snapshots and photos are sent to Anthropic (Claude) in notes and Ask."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En las notas y en Preguntar se envían algunas capturas y fotos a Anthropic (Claude)."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muistiinpanoissa ja Kysy-toiminnossa muutama näyttökuva ja valokuva lähetetään Anthropicille (Claude)."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quelques captures d'écran et photos sont envoyées à Anthropic (Claude) dans les notes et Demander."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nelle note e in Chiedi alcune immagini dello schermo e foto vengono inviate ad Anthropic (Claude)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートと質問では、いくつかの画面の画像と写真がAnthropic(Claude)に送信されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "노트와 질문하기에서 화면 이미지와 사진 몇 장이 Anthropic(Claude)으로 전송돼요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In notities en Vraag worden enkele schermafbeeldingen en foto's naar Anthropic (Claude) gestuurd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nas notas e em Perguntar, algumas capturas de tela e fotos são enviadas à Anthropic (Claude)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在笔记和提问中，会将少量屏幕图像和照片发送给 Anthropic（Claude）。"
+          }
+        }
+      }
+    },
+    "Notu fotoğraflarla yenile": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notiz mit Fotos aktualisieren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh note with photos"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualizar la nota con las fotos"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Päivitä muistiinpano kuvien kanssa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualiser la note avec les photos"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiorna la nota con le foto"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真を使ってノートを更新"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "사진으로 노트 새로 고침"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notitie vernieuwen met foto's"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atualizar a nota com as fotos"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用照片刷新笔记"
+          }
+        }
+      }
+    },
+    "Seçtiğin toplantının notunu uygulamada açar.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffnet die Notiz des gewählten Meetings in der App."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens the note of the meeting you choose in the app."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre en la app la nota de la reunión que elijas."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avaa valitsemasi kokouksen muistiinpanon sovelluksessa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvre la note de la réunion choisie dans l'app."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apre nell'app la nota della riunione scelta."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選んだ会議のノートをアプリで開きます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "선택한 회의의 노트를 앱에서 열어요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opent de notitie van de gekozen vergadering in de app."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre no app a nota da reunião escolhida."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在应用中打开所选会议的笔记。"
+          }
+        }
+      }
+    },
+    "Son tarih": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fällig"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Due date"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fecha límite"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Määräpäivä"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Échéance"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scadenza"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "期限"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "마감일"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deadline"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prazo"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "截止日期"
+          }
+        }
+      }
+    },
+    "Sor için abonelik gerekiyor; uygulamayı açıp bir plan seç.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fragen erfordert ein Abo; öffne die App und wähle einen Plan."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask needs a subscription; open the app and choose a plan."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preguntar necesita una suscripción; abre la app y elige un plan."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kysy vaatii tilauksen; avaa sovellus ja valitse paketti."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Demander nécessite un abonnement ; ouvrez l'app et choisissez une offre."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chiedi richiede un abbonamento; apri l'app e scegli un piano."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "質問にはサブスクリプションが必要です。アプリを開いてプランを選んでください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "질문하기는 구독이 필요해요. 앱을 열고 요금제를 선택하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vraag vereist een abonnement; open de app en kies een abonnement."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perguntar exige uma assinatura; abra o app e escolha um plano."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提问需要订阅；请打开应用并选择方案。"
+          }
+        }
+      }
+    },
+    "Sor'da başka bir soru cevaplanıyor; o bitince yeniden dene.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In Fragen wird gerade eine andere Frage beantwortet; versuche es danach erneut."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Another question is being answered in Ask; try again when it's done."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se está respondiendo otra pregunta en Preguntar; vuelve a intentarlo cuando termine."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kysy-toiminnossa vastataan toiseen kysymykseen; yritä uudelleen, kun se on valmis."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une autre question est en cours de réponse dans Demander ; réessayez ensuite."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In Chiedi si sta rispondendo a un'altra domanda; riprova quando ha finito."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "質問で別の質問に回答中です。終わったらもう一度お試しください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "질문하기에서 다른 질문에 답하는 중이에요. 끝나면 다시 시도하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In Vraag wordt een andere vraag beantwoord; probeer het opnieuw als die klaar is."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Outra pergunta está sendo respondida em Perguntar; tente de novo quando terminar."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提问中正在回答另一个问题；完成后请重试。"
+          }
+        }
+      }
+    },
+    "Soru": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frage"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Question"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pregunta"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kysymys"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Question"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Domanda"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "質問"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "질문"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vraag"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pergunta"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "问题"
+          }
+        }
+      }
+    },
+    "Soru boş.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Frage ist leer."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The question is empty."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La pregunta está vacía."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kysymys on tyhjä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La question est vide."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La domanda è vuota."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "質問が空です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "질문이 비어 있어요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De vraag is leeg."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A pergunta está vazia."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "问题为空。"
+          }
+        }
+      }
+    },
+    "Soru cevaplanamadı: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Frage konnte nicht beantwortet werden: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The question couldn't be answered: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo responder la pregunta: %@"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kysymykseen ei voitu vastata: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de répondre à la question : %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile rispondere alla domanda: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "質問に回答できませんでした: %@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "질문에 답할 수 없었어요: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De vraag kon niet worden beantwoord: %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível responder à pergunta: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法回答问题：%@"
+          }
+        }
+      }
+    },
+    "Soru gönderilemedi.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Frage konnte nicht gesendet werden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The question couldn't be sent."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo enviar la pregunta."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kysymystä ei voitu lähettää."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d'envoyer la question."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile inviare la domanda."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "質問を送信できませんでした。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "질문을 보낼 수 없었어요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De vraag kon niet worden verstuurd."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível enviar a pergunta."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法发送问题。"
+          }
+        }
+      }
+    },
+    "Spotlight'a toplantının adı, tarihi, katılımcıları, notun özeti ve görevleri girer; transkript, ses, ekran görüntüleri ve kendi notların girmez. Dizin yalnızca bu Mac'te durur ve Apple'a gönderilmez. Siri ve Kısayollar da toplantılarına buradan ulaşır (\"toplantılarıma sor\", \"görevlerim ne\"). Kapatınca dizin hemen silinir; oturumu kapatınca da silinir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In Spotlight kommen Titel, Datum, Teilnehmende, Zusammenfassung und Aufgaben des Meetings; nicht Transkript, Audio, Bildschirmbilder oder deine eigenen Notizen. Der Index bleibt nur auf diesem Mac und wird nicht an Apple gesendet. Auch Siri und Kurzbefehle erreichen deine Meetings so („frag meine Meetings“, „was sind meine Aufgaben“). Ausschalten löscht den Index sofort; Abmelden ebenfalls."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spotlight gets the meeting's title, date, attendees, the note's summary and its tasks; not the transcript, audio, screen snapshots or your own notes. The index stays on this Mac only and isn't sent to Apple. Siri and Shortcuts reach your meetings this way too (\"ask my meetings\", \"what are my tasks\"). Turning it off deletes the index right away; signing out deletes it too."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spotlight recibe el título, la fecha, los asistentes, el resumen y las tareas de la reunión; no la transcripción, el audio, las capturas ni tus propias notas. El índice solo está en este Mac y no se envía a Apple. Siri y Atajos también llegan así a tus reuniones («pregunta a mis reuniones», «cuáles son mis tareas»). Al desactivarlo, el índice se borra al instante; al cerrar sesión, también."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spotlightiin tulevat kokouksen otsikko, päivä, osallistujat, muistiinpanon yhteenveto ja tehtävät; ei litterointia, ääntä, näyttökuvia tai omia muistiinpanojasi. Hakemisto on vain tällä Macilla eikä sitä lähetetä Applelle. Myös Siri ja Pikakomennot löytävät kokouksesi näin (\"kysy kokouksiltani\", \"mitkä ovat tehtäväni\"). Pois kytkeminen poistaa hakemiston heti; samoin uloskirjautuminen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spotlight reçoit le titre, la date, les participants, le résumé et les tâches de la réunion ; pas la transcription, l'audio, les captures d'écran ni vos propres notes. L'index reste uniquement sur ce Mac et n'est pas envoyé à Apple. Siri et Raccourcis accèdent aussi ainsi à vos réunions (« demande à mes réunions », « quelles sont mes tâches »). Le désactiver supprime aussitôt l'index ; se déconnecter aussi."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spotlight riceve titolo, data, partecipanti, riepilogo e attività della riunione; non trascrizione, audio, immagini dello schermo o le tue note. L'indice resta solo su questo Mac e non viene inviato ad Apple. Anche Siri e Comandi raggiungono così le tue riunioni («chiedi alle mie riunioni», «quali sono le mie attività»). Disattivandolo l'indice viene eliminato subito; anche uscendo dall'account."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spotlightには会議のタイトル、日付、参加者、ノートの要約とタスクが入ります。文字起こし、音声、画面の画像、自分のメモは入りません。索引はこのMacにのみあり、Appleには送信されません。Siriとショートカットもここから会議にアクセスします(「会議に質問」「タスクは何」)。オフにすると索引はすぐに削除されます。サインアウトしても削除されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spotlight에는 회의 제목, 날짜, 참석자, 노트 요약과 할 일이 들어가고 대화록, 오디오, 화면 이미지, 내 메모는 들어가지 않아요. 색인은 이 Mac에만 있고 Apple로 전송되지 않아요. Siri와 단축어도 이렇게 회의에 접근해요('내 회의에 질문', '내 할 일은'). 끄면 색인이 바로 삭제되고, 로그아웃해도 삭제돼요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spotlight krijgt de titel, datum, deelnemers, samenvatting en taken van de vergadering; niet het transcript, de audio, schermafbeeldingen of je eigen notities. De index blijft alleen op deze Mac en wordt niet naar Apple gestuurd. Siri en Opdrachten bereiken je vergaderingen ook zo ('vraag mijn vergaderingen', 'wat zijn mijn taken'). Uitzetten verwijdert de index meteen; afmelden ook."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Spotlight recebe o título, a data, os participantes, o resumo e as tarefas da reunião; não a transcrição, o áudio, as capturas de tela nem suas próprias notas. O índice fica só neste Mac e não é enviado à Apple. A Siri e os Atalhos também chegam às suas reuniões assim (\"pergunte às minhas reuniões\", \"quais são minhas tarefas\"). Desativar apaga o índice na hora; sair da conta também."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spotlight 会收录会议的标题、日期、参与者、笔记摘要和任务；不包括转录、音频、屏幕图像或你自己的笔记。索引仅保存在此 Mac 上，不会发送给 Apple。Siri 和快捷指令也通过这里访问你的会议（“问我的会议”“我的任务是什么”）。关闭后索引会立即删除；退出登录也会删除。"
+          }
+        }
+      }
+    },
+    "Spotlight'ta toplantının adını, kişileri ya da bir görevi yazınca not açılır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gib in Spotlight den Titel eines Meetings, eine Person oder eine Aufgabe ein, um die Notiz zu öffnen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type a meeting's title, a person or a task in Spotlight to open the note."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribe en Spotlight el título de una reunión, una persona o una tarea para abrir la nota."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirjoita Spotlightiin kokouksen nimi, henkilö tai tehtävä, niin muistiinpano aukeaa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saisissez dans Spotlight le titre d'une réunion, une personne ou une tâche pour ouvrir la note."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digita in Spotlight il titolo di una riunione, una persona o un'attività per aprire la nota."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spotlightで会議名、人、タスクを入力するとノートが開きます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spotlight에서 회의 제목, 사람 또는 할 일을 입력하면 노트가 열려요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Typ in Spotlight de titel van een vergadering, een persoon of een taak om de notitie te openen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digite no Spotlight o título de uma reunião, uma pessoa ou uma tarefa para abrir a nota."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 Spotlight 中输入会议标题、人名或任务即可打开笔记。"
+          }
+        }
+      }
+    },
+    "Tahtanın, slaytın ya da bir krokinin fotoğrafı; notta kullanılabilir": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein Foto eines Whiteboards, einer Folie oder Skizze; kann in der Notiz verwendet werden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A photo of a whiteboard, slide or sketch; it can be used in the note"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto de una pizarra, diapositiva o boceto; se puede usar en la nota"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kuva taulusta, diasta tai luonnoksesta; voidaan käyttää muistiinpanossa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photo d'un tableau blanc, d'une diapositive ou d'un croquis ; utilisable dans la note"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto di una lavagna, slide o schizzo; utilizzabile nella nota"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ホワイトボード、スライド、スケッチの写真。ノートで使えます"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "화이트보드, 슬라이드, 스케치 사진. 노트에 사용할 수 있어요"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto van een whiteboard, dia of schets; bruikbaar in de notitie"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto de um quadro, slide ou rascunho; pode ser usada na nota"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "白板、幻灯片或草图的照片；可用于笔记"
+          }
+        }
+      }
+    },
+    "Tahtanın, slaytın ya da bir krokinin fotoğrafını ekle: notta o anda konuşulanlarla birlikte kullanılabilir. Kayıt sırasında üstteki kamera düğmesi de çeker.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Füge ein Foto eines Whiteboards, einer Folie oder Skizze hinzu: Die Notiz kann es zusammen mit dem in dem Moment Gesagten nutzen. Während der Aufnahme macht auch die Kamerataste oben eines."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a photo of a whiteboard, slide or sketch: the note can use it together with what was said at that moment. While recording, the camera button at the top takes one too."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añade una foto de una pizarra, diapositiva o boceto: la nota puede usarla junto con lo que se dijo en ese momento. Durante la grabación, el botón de cámara de arriba también la toma."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lisää kuva taulusta, diasta tai luonnoksesta: muistiinpano voi käyttää sitä yhdessä sillä hetkellä puhutun kanssa. Tallennuksen aikana myös yläreunan kamerapainike ottaa kuvan."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajoutez la photo d'un tableau blanc, d'une diapositive ou d'un croquis : la note peut l'utiliser avec ce qui a été dit à ce moment. Pendant l'enregistrement, le bouton appareil photo en haut en prend aussi."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiungi la foto di una lavagna, slide o schizzo: la nota può usarla insieme a quanto detto in quel momento. Durante la registrazione la scatta anche il pulsante fotocamera in alto."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ホワイトボード、スライド、スケッチの写真を追加すると、ノートはそのときの発言と合わせて使えます。録音中は上部のカメラボタンでも撮影できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "화이트보드, 슬라이드, 스케치 사진을 추가하면 노트가 그 순간의 대화와 함께 사용할 수 있어요. 녹음 중에는 위쪽 카메라 버튼으로도 찍을 수 있어요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voeg een foto van een whiteboard, dia of schets toe: de notitie kan die gebruiken samen met wat er op dat moment gezegd werd. Tijdens de opname maakt de cameraknop bovenaan er ook een."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicione a foto de um quadro, slide ou rascunho: a nota pode usá-la junto com o que foi dito naquele momento. Durante a gravação, o botão de câmera no topo também tira."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加白板、幻灯片或草图的照片：笔记可结合当时所说的内容使用它。录制时，顶部的相机按钮也可以拍摄。"
+          }
+        }
+      }
+    },
+    "Tahtayı ya da slaytı tara": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Whiteboard oder Folie scannen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scan whiteboard or slide"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escanear pizarra o diapositiva"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skannaa taulu tai dia"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scanner le tableau ou la diapositive"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scansiona lavagna o slide"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ホワイトボードやスライドをスキャン"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "화이트보드나 슬라이드 스캔"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Whiteboard of dia scannen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digitalizar quadro ou slide"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扫描白板或幻灯片"
+          }
+        }
+      }
+    },
+    "Toplantıları Spotlight'ta göster": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings in Spotlight anzeigen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show meetings in Spotlight"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar reuniones en Spotlight"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näytä kokoukset Spotlightissa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher les réunions dans Spotlight"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra le riunioni in Spotlight"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議をSpotlightに表示"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spotlight에 회의 표시"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vergaderingen tonen in Spotlight"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar reuniões no Spotlight"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 Spotlight 中显示会议"
+          }
+        }
+      }
+    },
+    "Toplantılarına ne sormak istiyorsun?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Was möchtest du deine Meetings fragen?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What do you want to ask your meetings?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Qué quieres preguntar a tus reuniones?"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mitä haluat kysyä kokouksiltasi?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Que voulez-vous demander à vos réunions ?"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cosa vuoi chiedere alle tue riunioni?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議に何を質問しますか?"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의에 무엇을 물어볼까요?"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wat wil je je vergaderingen vragen?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O que você quer perguntar às suas reuniões?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你想问会议什么？"
+          }
+        }
+      }
+    },
+    "Toplantılarına sor: ${question}": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frag deine Meetings: ${question}"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask your meetings: ${question}"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pregunta a tus reuniones: ${question}"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kysy kokouksiltasi: ${question}"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Demander à vos réunions : ${question}"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chiedi alle tue riunioni: ${question}"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議に質問: ${question}"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의에 질문: ${question}"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vraag je vergaderingen: ${question}"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pergunte às suas reuniões: ${question}"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "问你的会议：${question}"
+          }
+        }
+      }
+    },
+    "Toplantılarından sana düşen ve henüz bitmemiş görevleri söyler.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nennt dir die Aufgaben aus deinen Meetings, die dir gehören und noch offen sind."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tells you the tasks from your meetings that are yours and not done yet."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Te dice las tareas de tus reuniones que te tocan y aún no están hechas."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kertoo kokouksistasi sinulle kuuluvat tehtävät, joita ei ole vielä tehty."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous indique les tâches de vos réunions qui vous reviennent et ne sont pas encore faites."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ti dice le attività delle tue riunioni che spettano a te e non sono ancora fatte."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議から自分に割り当てられた未完了のタスクを伝えます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의에서 나에게 배정되었고 아직 끝나지 않은 할 일을 알려줘요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noemt de taken uit je vergaderingen die van jou zijn en nog niet klaar."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diz as tarefas das suas reuniões que são suas e ainda não foram feitas."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "告诉你会议中分配给你且尚未完成的任务。"
+          }
+        }
+      }
+    },
+    "Önce uygulamayı açıp giriş yap; toplantıların yüklenince yeniden dene.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffne zuerst die App und melde dich an; versuche es erneut, wenn deine Meetings geladen sind."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open the app and sign in first; try again once your meetings have loaded."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Primero abre la app e inicia sesión; vuelve a intentarlo cuando se carguen tus reuniones."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avaa ensin sovellus ja kirjaudu sisään; yritä uudelleen, kun kokouksesi on ladattu."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrez d'abord l'app et connectez-vous ; réessayez une fois vos réunions chargées."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apri prima l'app e accedi; riprova quando le riunioni sono caricate."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まずアプリを開いてサインインし、会議が読み込まれたらもう一度お試しください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "먼저 앱을 열고 로그인하세요. 회의가 불러와지면 다시 시도하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open eerst de app en log in; probeer het opnieuw als je vergaderingen zijn geladen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Primeiro abra o app e entre; tente de novo quando suas reuniões carregarem."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请先打开应用并登录；会议加载完成后再试。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

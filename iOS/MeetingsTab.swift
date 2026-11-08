@@ -591,6 +591,8 @@ private struct MeetingScopeChips: View {
 private enum MeetingPane: Hashable {
     case summary
     case transcript
+    /// Eklenen fotoğraflar (ve varsa ekran görüntüleri); yalnız görüntüsü olan toplantıda görünür.
+    case screens
 }
 
 /// Toplantı sayfası: sakin başlık (tarih, başlık, tek satır bilgi), Özet (not bölümleri: görevler, konu akışı, kararlar,
@@ -618,6 +620,11 @@ struct MeetingReadView: View {
     /// Sor'dan gelen kaynak açıldı (`openingSource` tüketildi).
     let onSourceShown: @MainActor () -> Void
     @State private var pane: MeetingPane = .summary
+    /// Toplantının görüntüleri (Ekranlar sekmesi) ve klasörü; klasör çözülemezse nedeni sekmede görünür.
+    @State private var images: PhoneMeetingImages = PhoneMeetingImages()
+    @State private var imagesDirectory: URL?
+    /// Açık fotoğraf kaynağı (tarayıcı ya da Fotoğraflar).
+    @State private var captureSource: PhotoCaptureSource?
     /// Alttaki çubuğun transkript çekmecesi açık.
     @State private var isTranscriptOpen: Bool = false
     /// "Bu toplantıya sor" sohbet paneli açık (transkript çekmecesiyle aynı anda açık olmaz).
@@ -719,7 +726,10 @@ struct MeetingReadView: View {
                     }
                     // Sekmeler ve notun dili tek satırda (Mac'teki gibi): dil, notun başka dildeki sürümünü gösterir.
                     HStack(spacing: 8) {
-                        PillTabs(selection: $pane, options: [(MeetingPane.summary, "Not"), (MeetingPane.transcript, "Transkript")])
+                        let tabs: [(value: MeetingPane, title: LocalizedStringKey)] = !images.snapshots.isEmpty || pane == .screens
+                            ? [(.summary, "Not"), (.transcript, "Transkript"), (.screens, "Ekranlar")]
+                            : [(.summary, "Not"), (.transcript, "Transkript")]
+                        PillTabs(selection: $pane, options: tabs)
                         if pane == .summary, let note = record.note {
                             NoteLanguageMenu(original: note.writtenLanguage, selection: Binding<ShareLanguage?>(
                                 get: { noteLanguage },
@@ -765,6 +775,18 @@ struct MeetingReadView: View {
                             play(from: startSec)
                         }
                         .transition(.opacity)
+                    case .screens:
+                        if let directory = imagesDirectory {
+                            PhoneScreensPane(
+                                record: record, paragraphs: paragraphs, directory: directory, images: images, isEditable: isEditable, canPlay: canPlay,
+                                captureSource: $captureSource,
+                                onRegenerate: { () -> Void in Task { await store.regenerateNote(meetingID: record.id) } },
+                                onPlay: { (startSec: Double) -> Void in play(from: startSec) }
+                            )
+                            .transition(.opacity)
+                        } else if let error = images.error {
+                            PhoneErrorList(messages: [error])
+                        }
                     }
                 }
                 .padding(.horizontal, 16)
@@ -835,6 +857,11 @@ struct MeetingReadView: View {
                     // Mac'teki "Bağlantıyla paylaş…": uçtan uca şifreli bağlantı (sunucu notu okuyamaz).
                     Button("Bağlantıyla paylaş…", systemImage: "link") { isSharingWithLink = true }
                         .disabled(record.note == nil || record.isSampleMeeting)
+                    // Tahtanın, slaytın ya da bir krokinin fotoğrafı: Ekranlar sekmesinde görünür, notta kullanılabilir.
+                    Menu("Fotoğraf ekle", systemImage: "camera") {
+                        PhotoCaptureMenuItems(source: $captureSource)
+                    }
+                    .disabled(record.isSampleMeeting || imagesDirectory == nil)
                     // Mac'teki "Kanala gönder" ve "Görevleri gönder".
                     PhoneSendMenuItems(record: record)
                     // Mac'teki "Tarif": bu toplantıya tarif uygular, cevap Sor'da açılır.
@@ -929,6 +956,26 @@ struct MeetingReadView: View {
             }
             openSource(passage: source, paragraphs: paragraphs)
             onSourceShown()
+        }
+        .photoCapture(source: $captureSource) { (data: [Data]) -> Void in
+            guard let directory = imagesDirectory else {
+                return
+            }
+            pane = .screens
+            let offset: Double = photoOffsetAfterMeeting(record: record)
+            Task { await images.add(meetingID: record.id, directory: directory, offsetSec: offset, images: data) }
+        } onError: { (message: String) -> Void in
+            pane = .screens
+            images.show(error: message)
+        }
+        .task(id: record.id) {
+            do {
+                let directory: URL = try store.sessionDirectory(id: record.id)
+                imagesDirectory = directory
+                await images.load(directory: directory)
+            } catch {
+                images.show(error: String(localized: "Ekran görüntüleri açılamadı: \(userFacingMessage(error: error))"))
+            }
         }
         .sheet(item: $exported) { (file: ExportedFile) in
             ActivityShareSheet(items: [file.url])
