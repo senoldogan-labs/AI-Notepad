@@ -601,8 +601,8 @@ async function deleteEnvelope(db: D1Database, userId: string, envelopeId: string
 
 /**
  * Statements that remove an account's sync data from D1 and queue an R2 prefix for deletion (`sync_purges`), in
- * child-first order: account deletion (`account.ts`) queues the whole account (`syncPrefix`), opting out and the end
- * of retention queue the wiped epoch (`syncEpochPrefix`).
+ * child-first order: account deletion (`account.ts`) queues the whole account (`syncPrefix`), opting out queues the
+ * wiped epoch (`syncEpochPrefix`). The end of retention uses the conditional `syncRetentionWipeStatements`.
  */
 export function syncDeletionStatements(db: D1Database, userId: string, prefix: string, now: Date): D1PreparedStatement[] {
   return [
@@ -612,6 +612,28 @@ export function syncDeletionStatements(db: D1Database, userId: string, prefix: s
     db.prepare("DELETE FROM sync_objects WHERE user_id = ?").bind(userId),
     db.prepare("DELETE FROM sync_key_envelopes WHERE user_id = ?").bind(userId),
     db.prepare("DELETE FROM sync_accounts WHERE user_id = ?").bind(userId),
+  ];
+}
+
+/**
+ * `syncDeletionStatements` for the end of retention, in one transaction: every statement runs only while the account is
+ * still on the epoch the cleanup read and still unseen with access since `cutoff` (the condition is checked again inside
+ * each statement, and the account row goes last). A write that brought access back (it moves `access_seen_at`) or a
+ * reset to a new epoch in between leaves everything in place. The last statement's row count says whether the copy was
+ * wiped.
+ */
+export function syncRetentionWipeStatements(db: D1Database, userId: string, epoch: number, cutoff: number, now: Date): D1PreparedStatement[] {
+  const stillStale: string = "EXISTS (SELECT 1 FROM sync_accounts WHERE user_id = ?1 AND enabled_at = ?2 AND access_seen_at < ?3)";
+  return [
+    db
+      .prepare(
+        `INSERT INTO sync_purges (prefix, requested_at) SELECT ?4, ?5 WHERE ${stillStale}
+         ON CONFLICT(prefix) DO UPDATE SET requested_at = excluded.requested_at`,
+      )
+      .bind(userId, epoch, cutoff, syncEpochPrefix(userId, epoch), now.getTime()),
+    db.prepare(`DELETE FROM sync_objects WHERE user_id = ?1 AND ${stillStale}`).bind(userId, epoch, cutoff),
+    db.prepare(`DELETE FROM sync_key_envelopes WHERE user_id = ?1 AND ${stillStale}`).bind(userId, epoch, cutoff),
+    db.prepare("DELETE FROM sync_accounts WHERE user_id = ?1 AND enabled_at = ?2 AND access_seen_at < ?3").bind(userId, epoch, cutoff),
   ];
 }
 
@@ -753,11 +775,16 @@ export async function syncCleanup(db: D1Database, bucket: R2Bucket, config: Conf
   let wiped: number = 0;
   for (const { user_id: userId, enabled_at: epoch } of stale.results) {
     if (await hasSyncAccess(db, config, userId, now)) {
-      await db.prepare("UPDATE sync_accounts SET access_seen_at = ? WHERE user_id = ?").bind(now.getTime(), userId).run();
+      await db.prepare("UPDATE sync_accounts SET access_seen_at = ? WHERE user_id = ? AND enabled_at = ?").bind(now.getTime(), userId, epoch).run();
     } else {
-      await db.batch(syncDeletionStatements(db, userId, syncEpochPrefix(userId, epoch), now));
-      log("info", "sync_retention_wiped", { userId });
-      wiped += 1;
+      const results: D1Result[] = await db.batch(syncRetentionWipeStatements(db, userId, epoch, cutoff, now));
+      if (results[results.length - 1]?.meta.changes === 1) {
+        log("info", "sync_retention_wiped", { userId });
+        wiped += 1;
+      } else {
+        // Access came back with a write, or sync was reset to a new epoch, after the account was read: nothing was removed.
+        log("info", "sync_retention_skipped", { userId, reason: "account_changed" });
+      }
     }
   }
   const prefixes: D1Result<{ prefix: string }> = await db

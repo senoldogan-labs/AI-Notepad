@@ -402,6 +402,98 @@ describe("in-app dialer", () => {
     expect(twilio.deleted).toContain(`/OutgoingCallerIds/PN${hex32("7")}.json`);
     expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM phone_provider_purges").first()).toEqual({ n: 0 });
   });
+
+  it("keeps a known recording through repeated, late and out-of-order callbacks and deletes every recording at Twilio", async () => {
+    const harness: Harness = await defaultHarness();
+    harness.clock.nowMs = Date.UTC(2026, 9, 25, 12);
+    const twilio: FakeTwilio = fakeTwilio(harness);
+    const session: Session = await verifiedCaller(harness);
+    const recordingRow = (callId: string): Promise<unknown> =>
+      env.DB.prepare("SELECT recording_status, recording_sid, recording_deleted_at FROM phone_calls WHERE id = ?").bind(callId).first();
+    const queued = async (sid: string): Promise<number> =>
+      (await env.DB.prepare("SELECT COUNT(*) AS n FROM phone_provider_purges WHERE provider_sid = ?").bind(sid).first<{ n: number }>())?.n ?? 0;
+    const recording = (callId: string, callSid: string, fields: Record<string, string>): Promise<Response> =>
+      webhook(harness, `/v1/phone/webhooks/recording?call=${callId}`, { CallSid: callSid, ...fields }, authToken);
+
+    const reserved: Reserved = await reserve(harness, session, destination);
+    const callSid: string = `CA${hex32("3c")}`;
+    await voice(harness, reserved.callId, callSid);
+    await webhook(harness, `/v1/phone/webhooks/dial-done?call=${reserved.callId}`, { CallSid: callSid, DialCallStatus: "completed", DialCallDuration: "90" }, authToken);
+    const first: string = `RE${hex32("a1")}`;
+    const second: string = `RE${hex32("b2")}`;
+    expect((await recording(reserved.callId, callSid, { RecordingSid: first, RecordingStatus: "completed", RecordingDuration: "88" })).status).toBe(200);
+    // Twilio retries the same callback: nothing changes, nothing is purged.
+    await recording(reserved.callId, callSid, { RecordingSid: first, RecordingStatus: "completed", RecordingDuration: "88" });
+    // A late "no recording" callback no longer clears the known sid (it used to, and the recording stayed at Twilio).
+    await recording(reserved.callId, callSid, { RecordingStatus: "absent" });
+    // A second recording of the same call is queued for deletion; the known one stays.
+    await recording(reserved.callId, callSid, { RecordingSid: second, RecordingStatus: "completed", RecordingDuration: "10" });
+    expect(await recordingRow(reserved.callId)).toEqual({ recording_status: "ready", recording_sid: first, recording_deleted_at: null });
+    expect(await queued(first)).toBe(0);
+    expect(await queued(second)).toBe(1);
+    // A callback for another call sid of this call id changes nothing and its recording is purged.
+    const stray: string = `RE${hex32("c3")}`;
+    await recording(reserved.callId, `CA${hex32("4d")}`, { RecordingSid: stray, RecordingStatus: "completed" });
+    expect(await queued(stray)).toBe(1);
+
+    // "No recording" first, then the recording after all: it is stored.
+    const late: Reserved = await reserve(harness, session, destination);
+    const lateSid: string = `CA${hex32("5e")}`;
+    await voice(harness, late.callId, lateSid);
+    await webhook(harness, `/v1/phone/webhooks/dial-done?call=${late.callId}`, { CallSid: lateSid, DialCallStatus: "completed", DialCallDuration: "40" }, authToken);
+    await recording(late.callId, lateSid, { RecordingStatus: "absent" });
+    expect(await recordingRow(late.callId)).toEqual({ recording_status: "absent", recording_sid: null, recording_deleted_at: null });
+    const lateRecording: string = `RE${hex32("d4")}`;
+    await recording(late.callId, lateSid, { RecordingSid: lateRecording, RecordingStatus: "completed", RecordingDuration: "38" });
+    expect(await recordingRow(late.callId)).toEqual({ recording_status: "ready", recording_sid: lateRecording, recording_deleted_at: null });
+
+    // The app deletes the first recording; a retried callback afterwards neither restores nor purges it again.
+    expect((await call(harness, session, "DELETE", `/v1/phone/calls/${reserved.callId}/recording`, null)).status).toBe(200);
+    await recording(reserved.callId, callSid, { RecordingSid: first, RecordingStatus: "completed", RecordingDuration: "88" });
+    expect(await recordingRow(reserved.callId)).toMatchObject({ recording_status: "ready", recording_sid: first });
+    expect(await queued(first)).toBe(0);
+
+    // A recording of a call that no longer exists is purged.
+    const orphan: string = `RE${hex32("e5")}`;
+    await webhook(harness, `/v1/phone/webhooks/recording?call=${crypto.randomUUID()}`, { CallSid: callSid, RecordingSid: orphan, RecordingStatus: "completed" }, authToken);
+    expect(await queued(orphan)).toBe(1);
+
+    // A late dial-done after the call settled doesn't settle or charge it again.
+    const spend = async (): Promise<unknown> => env.DB.prepare("SELECT phone_micro_usd FROM daily_spend WHERE day = ?").bind(today(harness)).first();
+    const before: unknown = await spend();
+    await webhook(harness, `/v1/phone/webhooks/dial-done?call=${late.callId}`, { CallSid: lateSid, DialCallStatus: "no-answer", DialCallDuration: "0" }, authToken);
+    expect(await spend()).toEqual(before);
+    expect(await env.DB.prepare("SELECT status, billed_seconds FROM phone_calls WHERE id = ?").bind(late.callId).first()).toEqual({ status: "completed", billed_seconds: 40 });
+
+    // A day later the cleanup deletes the unfetched recording and every queued one at Twilio.
+    harness.clock.nowMs += 25 * 3_600_000;
+    await phoneCleanup(env.DB, harness.platform, parseConfig(phoneOn), new Date(harness.clock.nowMs));
+    for (const sid of [first, second, stray, lateRecording, orphan]) {
+      expect(twilio.deleted).toContain(`/Recordings/${sid}.json`);
+    }
+    expect(await recordingRow(late.callId)).toMatchObject({ recording_sid: lateRecording, recording_deleted_at: harness.clock.nowMs });
+    expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM phone_provider_purges").first()).toEqual({ n: 0 });
+  });
+
+  it("counts a connected call whose callbacks are late at its longest until it settles", async () => {
+    const harness: Harness = await defaultHarness();
+    harness.clock.nowMs = Date.UTC(2026, 9, 26, 12);
+    fakeTwilio(harness);
+    const session: Session = await verifiedCaller(harness);
+    const reserved: Reserved = await reserve(harness, session, destination);
+    await voice(harness, reserved.callId, `CA${hex32("6f")}`);
+    // Past the call's longest duration plus the callbacks' allowance, before the daily cleanup.
+    harness.clock.nowMs += 2 * 3_600_000;
+    const later: Session = await refreshed(harness, session);
+    expect(await (await call(harness, later, "GET", "/v1/phone", null)).json()).toMatchObject({ usedMinutes: reserved.maxSeconds / 60 });
+    // Its worst case still counts toward the dialer's daily ceiling: 61 × 0.025 $ plus the verification call leaves too little of 2 $.
+    const tight: Env = envWith({ ...phoneOn, PHONE_DAILY_SPEND_CEILING_USD: "2" });
+    await expectError(await harness.call(req("POST", "/v1/phone/calls", { token: later.accessToken, json: { to: destination }, env: tight })), 503, "phone_capacity_reached");
+    // And toward the global daily ceiling (the day's other spend fills it; the dialer's own ceiling has room).
+    await env.DB.prepare("UPDATE daily_spend SET micro_usd = micro_usd + ? WHERE day = ?").bind(1_000_000, today(harness)).run();
+    const global: Env = envWith({ ...phoneOn, DAILY_SPEND_CEILING_USD: "4", PHONE_DAILY_SPEND_CEILING_USD: "4" });
+    await expectError(await harness.call(req("POST", "/v1/phone/calls", { token: later.accessToken, json: { to: destination }, env: global })), 503, "spend_ceiling_reached");
+  });
 });
 
 /** A second subscriber with its own verified number. */

@@ -9,6 +9,20 @@ import type { OutboundPlatform } from "../platform";
 import { type ReservationLimit, dailySpendLimit, remainingOf } from "../reservations";
 import { dayKey, monthKey, monthlyUsage } from "../usage";
 import { type NumberClass, type PhoneCountry, classifyNumber, isPhoneCountry, maskedNumber } from "./numbers";
+import {
+  type PhoneCallEvent,
+  type PhoneCallStatus,
+  type RecordingDecision,
+  type RecordingEvent,
+  callSourceSql,
+  callStatusAfter,
+  nextCallStatus,
+  orphanRecordingDecision,
+  recordingSourceSql,
+  recordingStateOf,
+  recordingTransition,
+  unsettledCallCountsSql,
+} from "./lifecycle";
 import { CallerIdAlreadyRegisteredError, type CallerIdVerificationStart, type VoiceProvider } from "./provider";
 import { type TwilioCredentials, twilioProvider } from "./twilio";
 import { announcementTwiml, dialTwiml, emptyTwiml, hangupTwiml, ringTimeoutSeconds, twimlResponse } from "./twiml";
@@ -120,7 +134,7 @@ interface PhoneNumberRow {
 export interface PhoneCallRow {
   readonly id: string;
   readonly user_id: string;
-  readonly status: "reserved" | "dialing" | "completed" | "failed" | "expired";
+  readonly status: PhoneCallStatus;
   readonly destination: string | null;
   readonly caller_id: string | null;
   readonly country: string;
@@ -177,9 +191,9 @@ async function consentAccepted(db: D1Database, userId: string): Promise<boolean>
   return row !== null && row.version >= phoneConsentVersion;
 }
 
-/** The user's billed and running call seconds this month (running calls count at their longest). */
+/** The user's billed and running call seconds this month (running calls count at their longest, `unsettledCallCountsSql`). */
 function monthlyPhoneSecondsSql(): string {
-  return `(SELECT COALESCE(SUM(CASE WHEN settled_at IS NOT NULL THEN COALESCE(billed_seconds, 0) WHEN reserved_until > ? THEN max_seconds ELSE 0 END), 0)
+  return `(SELECT COALESCE(SUM(CASE WHEN settled_at IS NOT NULL THEN COALESCE(billed_seconds, 0) WHEN ${unsettledCallCountsSql()} THEN max_seconds ELSE 0 END), 0)
     FROM phone_calls WHERE user_id = ? AND month = ?)`;
 }
 
@@ -448,11 +462,11 @@ async function removeNumber(db: D1Database, userId: string, now: Date): Promise<
   return { removed: true };
 }
 
-/** The dialer's remaining spend today (micro USD): its ceiling − settled phone spend − running reservations. */
+/** The dialer's remaining spend today (micro USD): its ceiling − settled phone spend − running calls (`unsettledCallCountsSql`). */
 function phoneDailySpendLimit(ceilingMicroUsd: number, now: Date): ReservationLimit {
   return {
     remainingSql: `? - (COALESCE((SELECT phone_micro_usd FROM daily_spend WHERE day = ?), 0)
-      + (SELECT COALESCE(SUM(estimated_micro_usd), 0) FROM phone_calls WHERE day = ? AND settled_at IS NULL AND reserved_until > ?))`,
+      + (SELECT COALESCE(SUM(estimated_micro_usd), 0) FROM phone_calls WHERE day = ? AND settled_at IS NULL AND ${unsettledCallCountsSql()}))`,
     binds: [ceilingMicroUsd, dayKey(now), dayKey(now), now.getTime()],
     error: new ApiError("phone_capacity_reached", "Calling is busy today; try again tomorrow."),
   };
@@ -616,10 +630,17 @@ async function deleteRecording(db: D1Database, active: ActivePhone, userId: stri
   const row: PhoneCallRow = await callRow(db, userId, callId);
   if (row.recording_sid !== null && row.recording_deleted_at === null) {
     await active.provider.deleteRecording(row.recording_sid);
-    await db.prepare("UPDATE phone_calls SET recording_deleted_at = ? WHERE id = ?").bind(now.getTime(), callId).run();
+    await recordingDeletedStatement(db, callId, row.recording_sid, now.getTime()).run();
     log("info", "phone_recording_deleted", { userId, callId });
   }
   return callStateOf(await callRow(db, userId, callId), now);
+}
+
+/** Marks the stored recording deleted at the provider (only that sid, once). */
+function recordingDeletedStatement(db: D1Database, callId: string, recordingSid: string, nowMs: number): D1PreparedStatement {
+  return db
+    .prepare("UPDATE phone_calls SET recording_deleted_at = ? WHERE id = ? AND recording_sid = ? AND recording_deleted_at IS NULL")
+    .bind(nowMs, callId, recordingSid);
 }
 
 const callPath: RegExp = /^\/v1\/phone\/calls\/([0-9a-f-]{36})$/;
@@ -705,8 +726,8 @@ async function voiceWebhook(db: D1Database, request: Request, provider: VoicePro
   }
   const claimed: PhoneCallRow | null = await db
     .prepare(
-      `UPDATE phone_calls SET status = 'dialing', provider_call_sid = ?, reserved_until = ? + (max_seconds + ?) * 1000 + ?
-       WHERE id = ? AND status = 'reserved' AND reserved_until > ? RETURNING *`,
+      `UPDATE phone_calls SET status = '${callStatusAfter("connect")}', provider_call_sid = ?, reserved_until = ? + (max_seconds + ?) * 1000 + ?
+       WHERE id = ? AND ${callSourceSql("connect")} AND reserved_until > ? RETURNING *`,
     )
     .bind(callSid, now.getTime(), ringTimeoutSeconds, settleSlackMs, callId, now.getTime())
     .first<PhoneCallRow>();
@@ -746,14 +767,16 @@ async function announcementWebhook(db: D1Database, request: Request, provider: V
 
 /**
  * Settles a call once: the real cost goes to the day's spend (and the dialer's share), the row gets its billed seconds
- * and loses its numbers. The spend is written only while the row is still unsettled (the update runs last).
+ * and loses its numbers. Only a connected (`dialing`) call settles, and the spend is written only while the row is still
+ * in that state (the update runs last and its row count says whether this callback settled it).
  */
-async function settleCall(db: D1Database, callId: string, providerCallSid: string, status: "completed" | "failed", billedSeconds: number, now: Date): Promise<boolean> {
+async function settleCall(db: D1Database, callId: string, providerCallSid: string, event: Extract<PhoneCallEvent, "end_answered" | "end_unanswered">, billedSeconds: number, now: Date): Promise<boolean> {
   const row: PhoneCallRow | null = await db
-    .prepare("SELECT * FROM phone_calls WHERE id = ? AND provider_call_sid = ? AND settled_at IS NULL")
+    .prepare("SELECT * FROM phone_calls WHERE id = ? AND provider_call_sid = ?")
     .bind(callId, providerCallSid)
     .first<PhoneCallRow>();
-  if (row === null) {
+  const status: PhoneCallStatus | null = row === null ? null : nextCallStatus(row.status, event);
+  if (row === null || status === null || row.settled_at !== null) {
     return false;
   }
   const cost: number = callCostMicroUsd(billedSeconds, row.micro_usd_per_minute, row.estimated_micro_usd);
@@ -761,14 +784,14 @@ async function settleCall(db: D1Database, callId: string, providerCallSid: strin
     db
       .prepare(
         `INSERT INTO daily_spend (day, micro_usd, phone_micro_usd)
-         SELECT ?1, ?2, ?2 WHERE EXISTS (SELECT 1 FROM phone_calls WHERE id = ?3 AND settled_at IS NULL)
+         SELECT ?1, ?2, ?2 WHERE EXISTS (SELECT 1 FROM phone_calls WHERE id = ?3 AND ${callSourceSql(event)})
          ON CONFLICT(day) DO UPDATE SET micro_usd = micro_usd + excluded.micro_usd, phone_micro_usd = phone_micro_usd + excluded.phone_micro_usd`,
       )
       .bind(row.day, cost, callId),
     db
       .prepare(
         `UPDATE phone_calls SET status = ?, billed_seconds = ?, cost_micro_usd = ?, settled_at = ?, destination = NULL, caller_id = NULL
-         WHERE id = ? AND settled_at IS NULL`,
+         WHERE id = ? AND ${callSourceSql(event)}`,
       )
       .bind(status, billedSeconds, cost, now.getTime(), callId),
   ]);
@@ -785,7 +808,7 @@ async function dialDoneWebhook(db: D1Database, request: Request, provider: Voice
   if (webhook.callId !== null) {
     const answered: boolean = webhook.fields.get("DialCallStatus") === "completed";
     const seconds: number = answered ? secondsField(webhook.fields.get("DialCallDuration")) : 0;
-    await settleCall(db, webhook.callId, webhook.fields.get("CallSid") ?? "", answered ? "completed" : "failed", seconds, now);
+    await settleCall(db, webhook.callId, webhook.fields.get("CallSid") ?? "", answered ? "end_answered" : "end_unanswered", seconds, now);
   }
   return twimlResponse(hangupTwiml());
 }
@@ -803,29 +826,64 @@ async function callStatusWebhook(db: D1Database, request: Request, provider: Voi
   if (callSid !== "" && terminalCallStatuses.has(status)) {
     const row: { id: string } | null = await db.prepare("SELECT id FROM phone_calls WHERE provider_call_sid = ? AND settled_at IS NULL").bind(callSid).first<{ id: string }>();
     if (row !== null) {
-      await settleCall(db, row.id, callSid, status === "completed" ? "completed" : "failed", secondsField(webhook.fields.get("CallDuration")), now);
+      await settleCall(db, row.id, callSid, status === "completed" ? "end_answered" : "end_unanswered", secondsField(webhook.fields.get("CallDuration")), now);
     }
   }
   return twimlResponse(emptyTwiml());
 }
 
-/** Recording status callback: the recording is ready (or there is none). A recording of a deleted call is purged. */
+/** The recording callback as an event of the recording state machine. Pure function. */
+function recordingEventOf(fields: ReadonlyMap<string, string>): RecordingEvent {
+  const raw: string = fields.get("RecordingSid") ?? "";
+  const sid: string | null = /^RE[0-9a-f]{32}$/.test(raw) ? raw : null;
+  return fields.get("RecordingStatus") === "completed" && sid !== null ? { kind: "ready", sid } : { kind: "absent", sid };
+}
+
+/** A recording callback stays unapplied after this many lost races (each one means another callback moved the row). */
+const recordingWebhookAttempts: number = 3;
+
+/**
+ * Recording status callback: the recording is ready (or there is none). The transition comes from `recordingTransition`
+ * and is stored only while the row is still in its source state; a lost race decides again on the new state. A known
+ * recording is never replaced or cleared, and any other recording (a duplicate, a late one, one of a deleted call) is
+ * queued for deletion at the provider.
+ */
 async function recordingWebhook(db: D1Database, request: Request, provider: VoiceProvider, now: Date): Promise<Response> {
   const webhook: Webhook = await verifiedWebhook(request, provider);
-  const sid: string = webhook.fields.get("RecordingSid") ?? "";
-  const ready: boolean = webhook.fields.get("RecordingStatus") === "completed" && /^RE[0-9a-f]{32}$/.test(sid);
-  const result: D1Result | null =
-    webhook.callId === null
-      ? null
-      : await db
-          .prepare("UPDATE phone_calls SET recording_status = ?, recording_sid = ?, recording_seconds = ? WHERE id = ? AND provider_call_sid = ?")
-          .bind(ready ? "ready" : "absent", ready ? sid : null, secondsField(webhook.fields.get("RecordingDuration")), webhook.callId, webhook.fields.get("CallSid") ?? "")
-          .run();
-  if ((result === null || result.meta.changes !== 1) && /^RE[0-9a-f]{32}$/.test(sid)) {
-    await purgeStatement(db, "recording", sid, now).run();
-    log("warn", "phone_recording_orphaned", { callId: webhook.callId });
+  const event: RecordingEvent = recordingEventOf(webhook.fields);
+  const callSid: string = webhook.fields.get("CallSid") ?? "";
+  const seconds: number = secondsField(webhook.fields.get("RecordingDuration"));
+  const decision: RecordingDecision =
+    webhook.callId === null ? orphanRecordingDecision(event) : await applyRecordingEvent(db, webhook.callId, callSid, event, seconds, recordingWebhookAttempts);
+  if (decision.purge !== null) {
+    await purgeStatement(db, "recording", decision.purge, now).run();
+    log("warn", "phone_recording_purged", { callId: webhook.callId, stored: decision.store });
   }
   return twimlResponse(emptyTwiml());
+}
+
+/** Applies a recording event to the call's row with a conditional update; returns the decision that took effect. */
+async function applyRecordingEvent(db: D1Database, callId: string, callSid: string, event: RecordingEvent, seconds: number, attempts: number): Promise<RecordingDecision> {
+  const row: PhoneCallRow | null = await db.prepare("SELECT * FROM phone_calls WHERE id = ? AND provider_call_sid = ?").bind(callId, callSid).first<PhoneCallRow>();
+  if (row === null) {
+    return orphanRecordingDecision(event);
+  }
+  const decision: RecordingDecision = recordingTransition(recordingStateOf(row), event);
+  if (decision.store === null) {
+    return decision;
+  }
+  const result: D1Result = await db
+    .prepare(`UPDATE phone_calls SET recording_status = ?, recording_sid = ?, recording_seconds = ? WHERE id = ? AND provider_call_sid = ? AND ${recordingSourceSql(decision.store)}`)
+    .bind(decision.store, event.kind === "ready" ? event.sid : null, seconds, callId, callSid)
+    .run();
+  if (result.meta.changes === 1) {
+    log("info", "phone_recording_stored", { userId: row.user_id, callId, recording: decision.store });
+    return decision;
+  }
+  if (attempts <= 1) {
+    throw new Error(`Phone recording callback for call ${callId} lost ${recordingWebhookAttempts} races; the provider retries it.`);
+  }
+  return applyRecordingEvent(db, callId, callSid, event, seconds, attempts - 1);
 }
 
 /** Caller ID verification result. A success for a number no pending row expects is purged (account deleted meanwhile). */
@@ -938,8 +996,8 @@ export async function phoneCleanup(db: D1Database, platform: OutboundPlatform, c
         `UPDATE phone_calls SET
            cost_micro_usd = CASE WHEN status = 'dialing' THEN estimated_micro_usd ELSE 0 END,
            billed_seconds = CASE WHEN status = 'dialing' THEN max_seconds ELSE 0 END,
-           status = 'expired', settled_at = ?, destination = NULL, caller_id = NULL
-         WHERE settled_at IS NULL AND reserved_until <= ?`,
+           status = '${callStatusAfter("expire")}', settled_at = ?, destination = NULL, caller_id = NULL
+         WHERE ${callSourceSql("expire")} AND reserved_until <= ?`,
       )
       .bind(nowMs, nowMs),
   ]);
@@ -955,7 +1013,7 @@ export async function phoneCleanup(db: D1Database, platform: OutboundPlatform, c
       .all<{ id: string; recording_sid: string }>();
     for (const row of stale.results) {
       await provider.deleteRecording(row.recording_sid);
-      await db.prepare("UPDATE phone_calls SET recording_deleted_at = ? WHERE id = ?").bind(nowMs, row.id).run();
+      await recordingDeletedStatement(db, row.id, row.recording_sid, nowMs).run();
       recordingsDeleted += 1;
     }
     const queue = await db
