@@ -3,81 +3,93 @@ import AINotepadUI
 import os
 import SwiftUI
 
-/// Arşiv sohbeti: soru-cevaplar ve süren cevap. Cevabı Mac'teki `askArchive` yazar (arama terimleri → parçalar → akan
-/// cevap); devam soruları önceki cevapları bağlam alır; yapay zekâ çağrısı hesabın payından (sunucu üzerinden Claude).
-/// Sohbetler her cevaptan sonra bu iPhone'da hesabın klasöründe saklanır ve geçmişten yeniden açılır.
+/// Sor (iPhone): sohbetler `AskStore`'da (Mac'le aynı motor; Sor sayfası, toplantı sayfasının çubuğu, klasör ve kişi
+/// sayfalarından açılan Sor), cevabı `answerAskTarget` yazar (arama terimleri → parçalar → akan cevap); yapay zekâ
+/// çağrısı hesabın payından (sunucu üzerinden Claude). Sohbetler her cevaptan sonra bu iPhone'da hesabın klasöründe
+/// saklanır ve geçmişten yeniden açılır.
 @MainActor
 @Observable
 final class PhoneAsk {
     private static let logger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "PhoneAsk")
 
-    private(set) var exchanges: [ArchiveExchange] = []
-    private(set) var isAnswering: Bool = false
+    /// Sor alanlarının sohbetleri (bağlam → sohbet; bkz. `AskStore`).
+    let chats: AskStore = AskStore()
     /// Saklanan sohbetler (yeniden eskiye; en fazla `askHistoryLimit`).
     private(set) var conversations: [AskConversation] = []
-    /// Açık sohbetin kimliği: ilk cevap saklanınca atanır, "Yeni sohbet"te nil.
-    private(set) var currentConversationID: UUID?
     /// Sohbet geçmişinin okunamama, saklanamama ya da silinememe nedeni.
     private(set) var historyError: String?
     @ObservationIgnored private let store: PhoneStore
-    @ObservationIgnored private var task: Task<Void, Never>?
 
     init(store: PhoneStore) {
         self.store = store
     }
 
-    /// Toplantı sayfasındaki "Bir şey sor" çubuğunun sohbetleri (toplantı başına; Sor sekmesinin sohbetinden ayrı).
-    let meetingAsk: MeetingAskStore = MeetingAskStore()
+    /// Bir Sor alanında (`context`) cevap sürüyor.
+    var isAnsweringAny: Bool {
+        chats.chats.keys.contains { chats.isAnswering(context: $0) }
+    }
 
-    /// Soruyu yalnız bu toplantıya sorar (toplantı sayfasının çubuğu); Sor sekmesiyle aynı hat ve denetimler: hakkı
-    /// yoksa abonelik ekranı, deneme başlamadıysa neden sohbette. iPhone'da ekran görüntüsü okunmaz.
-    func askAboutMeeting(meetingID: String, question: String, recipeTitle: String?) {
-        // Süren cevap varken yeni soru sorulmaz (kullanım da sayılmaz).
-        guard let record = store.meetings.first(where: { $0.id == meetingID }), isMentionableMeeting(record: record), !meetingAsk.isAnswering(meetingID: meetingID) else {
+    /// Soruyu bir Sor alanından (`context`) `scope` kapsamına sorar; `mentionIDs` doluysa yalnız o toplantılara (`@`).
+    /// Hakkı yoksa abonelik ekranı açılır (Mac'teki gibi), deneme başlamadıysa neden sohbette. Süren cevap varken yeni
+    /// soru sorulmaz (kullanım da sayılmaz). iPhone ekran görüntüsü almaz; "Notta fotoğrafları kullan" açıksa okunan
+    /// parçalar konuşulurken çekilen fotoğraflar soruyla gider.
+    func ask(context: AskScope, question: String, scope: AskScope, mentionIDs: [String], recipeTitle: String?) {
+        guard !question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, !chats.isAnswering(context: context) else {
             return
         }
         if HostedAccount.shared.requiresSubscription {
             HostedAccount.shared.requestSubscription()
             return
         }
+        // Deneme ilk toplantıyla başlar: henüz toplantısı olmayan denemedeki hesap önce kayıt yapmalı (sunucu
+        // çağrılmaz; diğer retler sunucunun hatasıyla gösterilir).
         if let reason = hostedAskUnavailableReason(account: HostedAccount.shared) {
-            meetingAsk.fail(record: record, question: question, recipeTitle: recipeTitle, reason: reason)
+            chats.fail(context: context, question: question, scope: scope, mentionIDs: mentionIDs, recipeTitle: recipeTitle, reason: reason)
             return
         }
         recordFeatureUsage(feature: .ask)
+        let records: [MeetingRecord] = store.meetings
         let userName: String = store.userName
         let profile: UserProfile = store.userProfile
         let webSearch: Bool = askWebSearchAllowed(defaults: UserDefaults.standard)
-        let screens: ArchiveScreensPlan
-        do {
-            screens = try phoneAskScreensPlan(store: store, records: [record])
-        } catch {
-            meetingAsk.fail(record: record, question: question, recipeTitle: recipeTitle, reason: userFacingMessage(error: error))
-            return
-        }
-        meetingAsk.ask(record: record, question: question, recipeTitle: recipeTitle) { (asked: String, history: [ArchiveTurn], onProgress: @escaping ArchiveProgressHandler) async throws -> Void in
+        let noteLanguage: ShareLanguage = phoneNoteLanguage()
+        let store: PhoneStore = self.store
+        chats.ask(
+            context: context, question: question, scope: scope, mentionIDs: mentionIDs, recipeTitle: recipeTitle, records: records
+        ) { (target: AskTarget, onProgress: @escaping ArchiveProgressHandler) async throws -> Void in
+            let screens: ArchiveScreensPlan = try phoneAskScreensPlan(store: store, records: target.meetings ?? records)
             let provider: LLMProvider = try phoneAccountLLMProvider()
-            _ = try await askAboutMeetings(
-                question: asked, history: history, records: [record], userName: userName, profile: profile, noteLanguage: phoneNoteLanguage(),
-                answerLanguage: askAnswerLanguage(question: asked, history: history, interfaceLanguage: interfaceShareLanguage()), llm: provider,
-                maxChars: noteLimits(provider: provider).archiveChars, screens: screens, webSearch: webSearch, now: Date(), onProgress: onProgress
+            // Cevap sorunun dilinde (İngilizce soruya Türkçe notlardan da İngilizce); anlaşılmazsa arayüz dili.
+            let answerLanguage: ShareLanguage = askAnswerLanguage(question: target.question, history: target.history, interfaceLanguage: interfaceShareLanguage())
+            _ = try await answerAskTarget(
+                target: target, archive: records, userName: userName, profile: profile, noteLanguage: noteLanguage, answerLanguage: answerLanguage,
+                provider: provider, screens: screens, webSearch: webSearch, onProgress: onProgress
             )
         } save: { [weak self] (id: UUID, exchanges: [ArchiveExchange]) -> Void in
-            // Toplantı sohbeti Sor geçmişine yazılır (Mac'le eşitlenir, Sor'da da açılır); sayfa yeniden açılınca geri gelir.
+            // Sohbet Sor geçmişine yazılır (Mac'le eşitlenir, Sor'da da açılır); toplantı sayfası yeniden açılınca geri gelir.
             self?.storeConversation(id: id, exchanges: exchanges)
         }
     }
 
-    /// Toplantı çubuğunun son sorusunu yeniden sorar; sorulamazsa (abonelik ekranı açıldı) eski cevap yerinde kalır.
-    func regenerateMeetingAnswer(meetingID: String) {
-        guard let last = meetingAsk.takeLastForRegenerate(meetingID: meetingID) else {
+    /// Sor alanının son sorusunu aynı kapsam, etiketler ve tarifle yeniden sorar; sorulamazsa (abonelik ekranı açıldı)
+    /// eski cevap yerinde kalır.
+    func regenerate(context: AskScope) {
+        guard let last = chats.takeLastForRegenerate(context: context) else {
             return
         }
-        let remaining: Int = meetingAsk.exchanges(meetingID: meetingID).count
-        askAboutMeeting(meetingID: meetingID, question: last.question, recipeTitle: last.recipeTitle)
-        if meetingAsk.exchanges(meetingID: meetingID).count == remaining {
-            meetingAsk.restore(exchange: last, meetingID: meetingID)
+        let remaining: Int = chats.exchanges(context: context).count
+        ask(context: context, question: last.question, scope: last.scope, mentionIDs: exchangeMentionIDs(exchange: last), recipeTitle: last.recipeTitle)
+        if chats.exchanges(context: context).count == remaining {
+            chats.restore(exchange: last, context: context)
         }
+    }
+
+    /// Yeni bir sohbette soruyu Sor sayfasında sorar (ana ekrandaki soru, brifing, tarif): süren cevap durur, önceki sohbet
+    /// geçmişte kalır.
+    func startConversation(question: String, scope: AskScope, mentionIDs: [String], recipeTitle: String?) {
+        chats.clear(context: .allMeetings)
+        chats.select(scope: scope, context: .allMeetings)
+        ask(context: .allMeetings, question: question, scope: scope, mentionIDs: mentionIDs, recipeTitle: recipeTitle)
     }
 
     /// Kullanıcının kaydettiği tarifler.
@@ -131,93 +143,9 @@ final class PhoneAsk {
         }
     }
 
-    /// Soruyu arşive sorar; cevap akarak gelir. `meetingIDs` boş değilse yalnız o toplantılara (`@` ile etiketlenenler).
-    func ask(question: String, meetingIDs: [String], recipeTitle: String?) {
-        let trimmed: String = question.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, !isAnswering else {
-            return
-        }
-        // Hakkı yoksa (deneme bitti, abonelik sona erdi) soru gönderilmez, abonelik ekranı her seferinde açılır (Mac'teki
-        // gibi; sunucunun reddi ekranı en çok on dakikada bir açar ve soru başarısız cevap olarak kalırdı).
-        if HostedAccount.shared.requiresSubscription {
-            HostedAccount.shared.requestSubscription()
-            return
-        }
-        // Deneme ilk toplantıyla başlar: henüz toplantısı olmayan denemedeki hesap önce kayıt yapmalı (sunucu
-        // çağrılmaz; diğer retler sunucunun hatasıyla gösterilir).
-        if let reason = hostedAskUnavailableReason(account: HostedAccount.shared) {
-            exchanges.append(failedExchange(id: UUID(), question: trimmed, scopeMeetingIDs: meetingIDs, recipeTitle: recipeTitle, reason: reason, at: Date()))
-            return
-        }
-        recordFeatureUsage(feature: .ask)
-        let history: [ArchiveTurn] = archiveHistory(exchanges: exchanges)
-        let id: UUID = UUID()
-        let scoped: [MeetingRecord]
-        do {
-            scoped = try archiveScope(records: store.meetings, meetingIDs: meetingIDs)
-        } catch {
-            // Etiketli toplantı silinmişse soru tüm arşive genişletilmez; soru ve neden sohbette görünür.
-            exchanges.append(failedExchange(
-                id: id, question: trimmed, scopeMeetingIDs: meetingIDs, recipeTitle: recipeTitle, reason: userFacingMessage(error: error), at: Date()
-            ))
-            return
-        }
-        exchanges.append(startedExchange(id: id, question: trimmed, scope: scoped, recipeTitle: recipeTitle, startedAt: Date()))
-        isAnswering = true
-        let records: [MeetingRecord] = store.meetings
-        let userName: String = store.userName
-        let profile: UserProfile = store.userProfile
-        let webSearch: Bool = askWebSearchAllowed(defaults: UserDefaults.standard)
-        // Cevap sorunun dilinde (İngilizce soruya Türkçe notlardan da İngilizce); anlaşılmazsa arayüz dili.
-        let answerLanguage: ShareLanguage = askAnswerLanguage(question: trimmed, history: history, interfaceLanguage: interfaceShareLanguage())
-        let noteLanguage: ShareLanguage = phoneNoteLanguage()
-        let screens: ArchiveScreensPlan
-        do {
-            screens = try phoneAskScreensPlan(store: store, records: records)
-        } catch {
-            finish(id: id, phase: .failed(userFacingMessage(error: error)))
-            return
-        }
-        task = Task { [weak self] in
-            do {
-                let provider: LLMProvider = try phoneAccountLLMProvider()
-                let onProgress: ArchiveProgressHandler = { [weak self] (progress: ArchiveProgress) -> Void in
-                    await self?.apply(progress: progress, id: id)
-                }
-                // iPhone ekran görüntüsü almaz; "Notta fotoğrafları kullan" açıksa okunan parçalar konuşulurken
-                // çekilen fotoğraflar soruyla gider.
-                if scoped.isEmpty {
-                    _ = try await askArchive(
-                        question: trimmed, history: history, records: records, userName: userName, profile: profile, noteLanguage: noteLanguage,
-                        answerLanguage: answerLanguage, llm: provider, maxChars: noteLimits(provider: provider).archiveChars, screens: screens, webSearch: webSearch,
-                        now: Date(), onProgress: onProgress
-                    )
-                } else {
-                    _ = try await askAboutMeetings(
-                        question: trimmed, history: history, records: scoped, userName: userName, profile: profile, noteLanguage: noteLanguage,
-                        answerLanguage: answerLanguage, llm: provider, maxChars: noteLimits(provider: provider).archiveChars, screens: screens, webSearch: webSearch,
-                        now: Date(), onProgress: onProgress
-                    )
-                }
-                self?.finish(id: id, phase: .done)
-                self?.saveConversation(exchangeID: id)
-            } catch is CancellationError {
-                self?.finish(id: id, phase: .stopped)
-                // O ana kadar yazılan cevap sohbette kalır (sohbet bu arada değiştiyse saklanmaz).
-                self?.saveConversation(exchangeID: id)
-            } catch let error as URLError where error.code == .cancelled {
-                self?.finish(id: id, phase: .stopped)
-                self?.saveConversation(exchangeID: id)
-            } catch {
-                Self.logger.error("Arşiv sorusu cevaplanamadı, hata: \(String(describing: error), privacy: .private)")
-                self?.finish(id: id, phase: .failed(userFacingMessage(error: error)))
-            }
-        }
-    }
-
-    /// Kısayollar ve Siri: soruyu bütün toplantılara Sor'daki hatla sorar ve cevabı bekler (sohbet geçmişte kalır).
-    /// Sorulamazsa (abonelik, deneme, süren başka soru) ya da cevap yarıda kalırsa nedeni hata olarak döner; abonelik
-    /// ekranı açılmaz (uygulama arka planda olabilir).
+    /// Kısayollar ve Siri: soruyu Sor sayfasındaki sohbette bütün toplantılara sorar ve cevabı bekler (sohbet geçmişte
+    /// kalır). Sorulamazsa (abonelik, deneme, süren başka soru) ya da cevap yarıda kalırsa nedeni hata olarak döner;
+    /// abonelik ekranı açılmaz (uygulama arka planda olabilir).
     func askForIntent(question: String) async throws -> String {
         let trimmed: String = question.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
@@ -229,16 +157,16 @@ final class PhoneAsk {
         if let reason = hostedAskUnavailableReason(account: HostedAccount.shared) {
             throw MeetingIntentError.askFailed(reason: reason)
         }
-        guard !isAnswering else {
+        guard !chats.isAnswering(context: .allMeetings) else {
             throw MeetingIntentError.askFailed(reason: String(localized: "Sor'da başka bir soru cevaplanıyor; o bitince yeniden dene."))
         }
-        let before: Int = exchanges.count
-        ask(question: trimmed, meetingIDs: [], recipeTitle: nil)
-        guard exchanges.count > before, let id = exchanges.last?.id else {
+        let before: Int = chats.exchanges(context: .allMeetings).count
+        ask(context: .allMeetings, question: trimmed, scope: .allMeetings, mentionIDs: [], recipeTitle: nil)
+        guard chats.exchanges(context: .allMeetings).count > before, let id = chats.exchanges(context: .allMeetings).last?.id else {
             throw MeetingIntentError.askFailed(reason: String(localized: "Soru gönderilemedi."))
         }
-        await task?.value
-        guard let exchange = exchanges.first(where: { $0.id == id }) else {
+        await chats.waitForAnswer(context: .allMeetings)
+        guard let exchange = chats.exchanges(context: .allMeetings).first(where: { $0.id == id }) else {
             throw MeetingIntentError.askFailed(reason: String(localized: "Soru gönderilemedi."))
         }
         switch exchange.phase {
@@ -249,33 +177,6 @@ final class PhoneAsk {
         case .understanding, .searching, .writing, .stopped:
             throw MeetingIntentError.askFailed(reason: String(localized: "Cevap yarıda kaldı."))
         }
-    }
-
-    /// Akan cevabı durdurur; o ana kadar yazılan kalır.
-    func stop() {
-        task?.cancel()
-    }
-
-    /// Son soruyu (bitmiş, durdurulmuş ya da hatalı) aynı kapsam ve tarifle yeniden sorar; eski cevabın yerini yenisi
-    /// alır. Soru gönderilemezse (abonelik ekranı açıldı) eski cevap yerinde kalır.
-    func regenerate() {
-        guard let last = regeneratableExchange(exchanges: exchanges) else {
-            return
-        }
-        exchanges.removeLast()
-        let remaining: Int = exchanges.count
-        ask(question: last.question, meetingIDs: last.scopeMeetingIDs, recipeTitle: last.recipeTitle)
-        if exchanges.count == remaining {
-            exchanges.append(last)
-        }
-    }
-
-    /// Sohbeti temizler (yeni konu: önceki cevaplar bağlam olmaz); önceki sohbet geçmişte kalır.
-    func clear() {
-        task?.cancel()
-        exchanges = []
-        currentConversationID = nil
-        isAnswering = false
     }
 
     /// Saklanan sohbetleri okur (açılışta); okunamayan dosyalar loglanır ve sayısı gösterilir.
@@ -293,15 +194,13 @@ final class PhoneAsk {
         }
     }
 
-    /// Saklanan sohbeti açar; devam soruları onun cevaplarını bağlam alır. Süren cevap durdurulur.
-    func open(conversationID: UUID) {
+    /// Saklanan sohbeti Sor alanında kendi kapsamıyla açar; devam soruları onun cevaplarını bağlam alır. Süren cevap
+    /// durdurulur.
+    func open(conversationID: UUID, context: AskScope) {
         guard let conversation = conversations.first(where: { $0.id == conversationID }) else {
             return
         }
-        task?.cancel()
-        exchanges = conversation.turns.map { (turn: AskConversationTurn) -> ArchiveExchange in archiveExchange(turn: turn) }
-        currentConversationID = conversationID
-        isAnswering = false
+        chats.open(conversation: conversation, context: context)
     }
 
     /// Sohbetin adını değiştirir (boş ya da aynı ad yok sayılır); sohbetin listedeki yeri değişmez.
@@ -324,24 +223,10 @@ final class PhoneAsk {
         do {
             try deleteAskConversation(id: conversationID, directory: try AppPaths.askHistoryDirectory())
             conversations.removeAll { $0.id == conversationID }
-            if currentConversationID == conversationID {
-                clear()
-            }
+            chats.forget(conversationID: conversationID)
         } catch {
             Self.logger.error("Sohbet silinemedi, sohbet: \(conversationID.uuidString, privacy: .public), hata: \(String(describing: error), privacy: .private)")
             historyError = String(localized: "Sohbet silinemedi: \(userFacingMessage(error: error))")
-        }
-    }
-
-    /// Bitmiş soruyla açık sohbeti saklar (ilk cevapta yeni sohbet olur); sınırı aşan en eski sohbetler silinir.
-    private func saveConversation(exchangeID: UUID) {
-        // Sohbet bu arada değiştiyse (yeni sohbet, başka sohbet açıldı) cevap bu sohbete ait değildir.
-        guard exchanges.contains(where: { $0.id == exchangeID && askTurn(exchange: $0) != nil }) else {
-            return
-        }
-        let id: UUID = currentConversationID ?? UUID()
-        if storeConversation(id: id, exchanges: exchanges) {
-            currentConversationID = id
         }
     }
 
@@ -369,31 +254,6 @@ final class PhoneAsk {
         }
         return true
     }
-
-    private func finish(id: UUID, phase: ArchiveExchange.Phase) {
-        // Sohbet bu arada temizlendi ya da değişti: yeni sorunun durumuna dokunulmaz.
-        guard exchanges.contains(where: { $0.id == id }) else {
-            return
-        }
-        update(id: id) {
-            $0.phase = phase
-            $0.finishedAt = Date()
-        }
-        isAnswering = false
-    }
-
-    private func apply(progress: ArchiveProgress, id: UUID) {
-        update(id: id) { (exchange: inout ArchiveExchange) -> Void in
-            exchange = applying(progress: progress, to: exchange)
-        }
-    }
-
-    private func update(id: UUID, change: (inout ArchiveExchange) -> Void) {
-        guard let index = exchanges.firstIndex(where: { $0.id == id }) else {
-            return
-        }
-        change(&exchanges[index])
-    }
 }
 
 /// Soru alanından gönderilen soru: metin, `@` ile etiketlenen toplantılar ve (tariften geldiyse) tarifin adı.
@@ -414,8 +274,10 @@ struct AskTab: View {
     /// Son sohbetlerde kaydedilmemiş (süren) sohbetin satır kimliği.
     private let currentChatID: String = "current"
 
-    /// Kökte gösterilen en yeni sohbet sayısı; tümü geçmişte.
-    private let recentLimit: Int = 3
+    /// Kökte gösterilen en yeni sohbet sayısı (toplantıda, klasörde ya da kişide sorulanlar da); tümü geçmişte.
+    private let recentLimit: Int = 5
+    /// Kökteki soru alanının kapsamı (yeni sohbet buna sorulur; çipten değişir).
+    @State private var rootScope: AskScope = .allMeetings
 
     var body: some View {
         Group {
@@ -433,16 +295,15 @@ struct AskTab: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
                         PhoneErrorList(messages: [ask.historyError, ask.recipeError].compactMap { $0 })
-                        AskStartHeader()
-                        // Toplantı yokken örnek sorular boş cevap verirdi: yerine kısa bir satır.
+                        AskGreeting(firstName: askFirstName(userName: store.userName), size: 28)
+                            .padding(.top, 48)
+                            .padding(.bottom, 12)
+                        // Toplantı yokken öneriler boş cevap verirdi: yerine kısa bir satır.
                         if store.meetings.isEmpty {
                             Text("Sorulacak toplantı yok")
                                 .appFont(size: 14, weight: .regular)
                                 .foregroundStyle(Theme.muted)
-                        } else {
-                            AskExampleChips(questions: askExampleQuestions) { (question: AskExampleQuestion) -> Void in
-                                startConversation(submission: AskSubmission(question: question.localized, meetingIDs: [], recipeTitle: nil))
-                            }
+                                .frame(maxWidth: .infinity)
                         }
                         if hasRecent {
                             AskRecentChats(
@@ -461,9 +322,12 @@ struct AskTab: View {
                 .scrollDismissesKeyboard(.interactively)
                 .safeAreaInset(edge: .bottom) {
                     AskComposer(
-                        ask: ask, store: store, placeholder: "Toplantılarına bir şey sor…", isAnswering: false, followUp: nil,
+                        ask: ask, store: store, placeholder: askScopePlaceholder(scope: rootScope), isAnswering: false, followUp: nil,
+                        suggestions: askSuggestions(scope: rootScope, records: store.meetings, userName: store.userName, now: Date(), calendar: Calendar.current, limit: 4).map { askSuggestionText(suggestion: $0) },
+                        scopeMenu: askScopeMenu(context: .allMeetings, selected: rootScope, records: store.meetings, folders: store.folders, userName: store.userName),
+                        onSelectScope: { (scope: AskScope) -> Void in rootScope = scope },
                         onSubmit: { (submission: AskSubmission) -> Void in startConversation(submission: submission) },
-                        onStop: { ask.stop() }
+                        onStop: { ask.chats.stop(context: .allMeetings) }
                     )
                 }
             }
@@ -471,11 +335,23 @@ struct AskTab: View {
         .background(Theme.background)
         .navigationTitle("Sor")
         .navigationBarTitleDisplayMode(.inline)
+        // Tam ekran Sor: sol üstte kapat, sağ üstte geçmiş.
+        .navigationBarBackButtonHidden()
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Kapat", systemImage: "xmark") { router.closeAsk() }
+            }
+            if !ask.conversations.isEmpty {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Geçmiş", systemImage: "clock.arrow.circlepath") { router.push(route: .askHistory) }
+                }
+            }
+        }
     }
 
     /// Kaydedilmemiş (ilk cevabı süren ya da yarıda kalan) açık sohbet: son sohbetlerin başında "sohbete dön" satırı.
     private var unsavedQuestion: String? {
-        ask.currentConversationID == nil ? ask.exchanges.first?.question : nil
+        ask.chats.conversationID(context: .allMeetings) == nil ? ask.chats.exchanges(context: .allMeetings).first?.question : nil
     }
 
     private var hasRecent: Bool {
@@ -490,17 +366,18 @@ struct AskTab: View {
     /// Son sohbetler: varsa süren (kaydedilmemiş) sohbet, sonra en yeni saklanan sohbetler; tek satır ve göreli zaman.
     private var recentChats: [AskRecentChat] {
         let now: Date = Date()
+        let isAnswering: Bool = ask.chats.isAnswering(context: .allMeetings)
         let current: [AskRecentChat] = unsavedQuestion.map { (question: String) -> [AskRecentChat] in
             [AskRecentChat(
                 id: currentChatID, title: question,
-                detail: ask.isAnswering ? String(localized: "Cevaplanıyor…") : String(localized: "Şimdi"), isAnswering: ask.isAnswering
+                detail: isAnswering ? String(localized: "Cevaplanıyor…") : String(localized: "Şimdi"), isAnswering: isAnswering
             )]
         } ?? []
         let saved: [AskRecentChat] = ask.conversations.prefix(recentLimit - current.count).map { (conversation: AskConversation) -> AskRecentChat in
             AskRecentChat(
                 id: conversation.id.uuidString, title: askConversationDisplayTitle(conversation: conversation),
-                detail: askRecentChatTime(date: conversation.updatedAt, now: now),
-                isAnswering: ask.isAnswering && ask.currentConversationID == conversation.id
+                detail: askRecentChatDetail(conversation: conversation, now: now),
+                isAnswering: ask.chats.isAnswering(conversationID: conversation.id)
             )
         }
         return current + saved
@@ -520,8 +397,8 @@ struct AskTab: View {
 
     /// Kökten gönderilen soru yeni sohbet başlatır (süren cevap durur; önceki sohbet geçmişte kalır) ve sohbeti açar.
     private func startConversation(submission: AskSubmission) {
-        ask.clear()
-        ask.ask(question: submission.question, meetingIDs: submission.meetingIDs, recipeTitle: submission.recipeTitle)
+        ask.startConversation(question: submission.question, scope: rootScope, mentionIDs: submission.meetingIDs, recipeTitle: submission.recipeTitle)
+        rootScope = .allMeetings
         router.openAskConversation()
     }
 
@@ -535,8 +412,8 @@ struct AskTab: View {
 /// kesilmez).
 @MainActor
 private func openAskConversation(ask: PhoneAsk, router: PhoneRouter, id: UUID) {
-    if ask.currentConversationID != id || ask.exchanges.isEmpty {
-        ask.open(conversationID: id)
+    if ask.chats.conversationID(context: .allMeetings) != id || ask.chats.exchanges(context: .allMeetings).isEmpty {
+        ask.open(conversationID: id, context: .allMeetings)
     }
     router.openAskConversation()
 }
@@ -553,23 +430,47 @@ struct AskHistoryScreen: View {
     }
 }
 
-/// Sohbet: soru-cevaplar (Mac'teki ile aynı görünüm) ve altta yalnızca devam sorusu alanı. Sol üstteki geri Sor'u getirir
-/// (süren cevap durmaz), sağ üstteki "Yeni sohbet" sohbeti kapatıp Sor'a döner.
+/// Sohbet: soru-cevaplar (Mac'teki ile aynı görünüm) ve altta kapsam çipiyle soru alanı. Bağlam Sor sayfasıysa sol
+/// üstteki geri Sor'u getirir (süren cevap durmaz), sağ üstteki "Yeni sohbet" sohbeti kapatıp Sor'a döner; klasörden ya
+/// da kişiden açılan Sor'da (bağlam o kapsam) "Yeni sohbet" sohbeti burada boşaltır. Kapsam bir toplantıysa hazır
+/// eylemler ve devam soruları da görünür.
 struct AskConversationView: View {
     let ask: PhoneAsk
     let store: PhoneStore
     let router: PhoneRouter
+    /// Sor alanının bağlamı (bkz. `AskStore`).
+    let context: AskScope
 
     private let bottomID: String = "ask-bottom"
     /// Sohbetin sonu görünüyor: akan cevap izlenir; yukarı kaydırınca izleme durur, "sona git" düğmesi çıkar.
     @State private var isFollowingAnswer: Bool = true
+
+    private var exchanges: [ArchiveExchange] {
+        ask.chats.exchanges(context: context)
+    }
+
+    private var isAnswering: Bool {
+        ask.chats.isAnswering(context: context)
+    }
+
+    private var scope: AskScope {
+        ask.chats.scope(context: context)
+    }
+
+    /// Kapsamdaki toplantının notu (kapsam bir toplantıysa): hazır eylemler ve devam soruları ondan.
+    private var scopeNote: MeetingNote? {
+        askScopeMeetingID(scope: scope).flatMap { (id: String) -> MeetingNote? in store.meetings.first { $0.id == id }?.note }
+    }
 
     var body: some View {
         ScrollViewReader { (proxy: ScrollViewProxy) in
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
                     PhoneErrorList(messages: [ask.historyError, ask.recipeError].compactMap { $0 })
-                    ForEach(ask.exchanges) { (exchange: ArchiveExchange) in
+                    if exchanges.isEmpty {
+                        intro
+                    }
+                    ForEach(exchanges) { (exchange: ArchiveExchange) in
                         ExchangeView(
                             exchange: exchange,
                             onOpen: { (passage: ArchivePassage) -> Void in
@@ -578,13 +479,19 @@ struct AskConversationView: View {
                             onSaveRecipe: { (question: String) -> Void in
                                 ask.saveRecipe(question: question)
                             },
-                            onRegenerate: exchange.id == ask.exchanges.last?.id ? { @MainActor () -> Void in ask.regenerate() } : nil,
+                            onRegenerate: exchange.id == exchanges.last?.id ? { @MainActor () -> Void in ask.regenerate(context: context) } : nil,
                             // Kapsam dipnotundaki "Bunlara da sor": aynı soru sığmayan toplantılara `@` ile sorulur.
-                            onAskMeetings: ask.isAnswering ? nil : { @MainActor (meetingIDs: [String]) -> Void in
-                                ask.ask(question: exchange.question, meetingIDs: meetingIDs, recipeTitle: exchange.recipeTitle)
+                            onAskMeetings: isAnswering ? nil : { @MainActor (meetingIDs: [String]) -> Void in
+                                ask.ask(context: context, question: exchange.question, scope: exchange.scope, mentionIDs: meetingIDs, recipeTitle: exchange.recipeTitle)
                             }
                         )
                         .id(exchange.id)
+                    }
+                    let followUps: [String] = ask.chats.followUps(context: context, note: scopeNote)
+                    if !isAnswering, !followUps.isEmpty {
+                        AskFollowUpChips(questions: followUps) { (question: String) -> Void in
+                            ask.ask(context: context, question: question, scope: scope, mentionIDs: [], recipeTitle: nil)
+                        }
                     }
                     Color.clear.frame(height: 1).id(bottomID)
                 }
@@ -597,7 +504,7 @@ struct AskConversationView: View {
                 isFollowingAnswer = near
             }
             .overlay(alignment: .bottom) {
-                if !isFollowingAnswer, !ask.exchanges.isEmpty {
+                if !isFollowingAnswer, !exchanges.isEmpty {
                     JumpToLatestButton {
                         withAnimation(.smooth(duration: 0.3)) { proxy.scrollTo(bottomID, anchor: .bottom) }
                     }
@@ -606,51 +513,106 @@ struct AskConversationView: View {
                 }
             }
             .animation(.smooth(duration: 0.2), value: isFollowingAnswer)
-            .onChange(of: ask.exchanges.last?.id) { (_: UUID?, id: UUID?) in
+            .onChange(of: exchanges.last?.id) { (_: UUID?, id: UUID?) in
                 // Yeni devam sorusu: sorusu ekranın üstüne gelir, cevap altına akar.
-                if ask.isAnswering, let id {
+                if isAnswering, let id {
                     withAnimation(.smooth(duration: 0.25)) { proxy.scrollTo(id, anchor: .top) }
                 }
             }
-            .onChange(of: ask.exchanges.last?.answer.text) { (_: String?, _: String?) in
+            .onChange(of: exchanges.last?.answer.text) { (_: String?, _: String?) in
                 // Kullanıcı yukarı kaydırıp okuyorsa akan cevap onu aşağı çekmez.
-                if ask.isAnswering, isFollowingAnswer {
+                if isAnswering, isFollowingAnswer {
                     proxy.scrollTo(bottomID, anchor: .bottom)
                 }
             }
             // Cevap bitince altına gelen kapsam dipnotu ve düğmeler de görünsün (izleniyorsa).
-            .onChange(of: ask.exchanges.last?.phase) { (_: ArchiveExchange.Phase?, phase: ArchiveExchange.Phase?) in
+            .onChange(of: exchanges.last?.phase) { (_: ArchiveExchange.Phase?, phase: ArchiveExchange.Phase?) in
                 if isFollowingAnswer, phase.map({ ![.understanding, .searching, .writing].contains($0) }) == true {
                     withAnimation(.smooth(duration: 0.3)) { proxy.scrollTo(bottomID, anchor: .bottom) }
                 }
             }
         }
         .safeAreaInset(edge: .bottom) {
-            AskComposer(
-                ask: ask, store: store, placeholder: "Devam sorusu sor…", isAnswering: ask.isAnswering,
-                followUp: AskFollowUp(exchangeID: ask.exchanges.last?.id, scope: followUpScope(exchanges: ask.exchanges, records: store.meetings)),
-                onSubmit: { (submission: AskSubmission) -> Void in
-                    ask.ask(question: submission.question, meetingIDs: submission.meetingIDs, recipeTitle: submission.recipeTitle)
-                },
-                onStop: { ask.stop() }
-            )
+            VStack(spacing: 6) {
+                if scopeNote != nil, !isAnswering {
+                    AskQuickActionChips(actions: meetingQuickActions(recipes: ask.recipes), isEnabled: !isAnswering) { (action: MeetingQuickAction) -> Void in
+                        run(action: action)
+                    }
+                    .padding(.horizontal, 16)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                AskComposer(
+                    ask: ask, store: store,
+                    placeholder: exchanges.isEmpty || scope != .allMeetings ? askScopePlaceholder(scope: scope) : String(localized: "Devam sorusu sor…"),
+                    isAnswering: isAnswering,
+                    followUp: AskFollowUp(exchangeID: exchanges.last?.id, scope: followUpScope(exchanges: exchanges, records: store.meetings)),
+                    suggestions: exchanges.isEmpty ? askSuggestions(scope: scope, records: store.meetings, userName: store.userName, now: Date(), calendar: Calendar.current, limit: 4).map { askSuggestionText(suggestion: $0) } : [],
+                    scopeMenu: askScopeMenu(context: context, selected: scope, records: store.meetings, folders: store.folders, userName: store.userName),
+                    onSelectScope: { (selected: AskScope) -> Void in ask.chats.select(scope: selected, context: context) },
+                    onSubmit: { (submission: AskSubmission) -> Void in
+                        ask.ask(context: context, question: submission.question, scope: scope, mentionIDs: submission.meetingIDs, recipeTitle: submission.recipeTitle)
+                    },
+                    onStop: { ask.chats.stop(context: context) }
+                )
+            }
         }
         .background(Theme.background)
         .navigationTitle(Text(verbatim: title))
         .navigationBarTitleDisplayMode(.inline)
+        // Tam ekran Sor: sol üstte kapat (Sor kapanır, gelinen sayfa kalır), sağ üstte geçmiş ve yeni sohbet.
+        .navigationBarBackButtonHidden()
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("Yeni sohbet", systemImage: "square.and.pencil") {
-                    ask.clear()
-                    router.returnToAsk()
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Kapat", systemImage: "xmark") { router.closeAsk() }
+            }
+            if !ask.conversations.isEmpty {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Geçmiş", systemImage: "clock.arrow.circlepath") { router.push(route: .askHistory) }
+                }
+            }
+            if !exchanges.isEmpty {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Yeni sohbet", systemImage: "square.and.pencil") {
+                        ask.chats.clear(context: context)
+                        if context == .allMeetings {
+                            router.returnToAsk()
+                        }
+                    }
                 }
             }
         }
     }
 
-    /// Başlık: saklanan sohbetin adı, henüz saklanmadıysa ilk soru.
+    /// Boş sohbet (klasörden ya da kişiden açılan Sor): selamlama ve ne okunduğu; öneriler soru alanının üstünde.
+    private var intro: some View {
+        VStack(spacing: 12) {
+            AskGreeting(firstName: askFirstName(userName: store.userName), size: 28)
+            Text("Kararlar, görevler ya da kimin ne dediği: cevap kapsamdaki toplantıların notlarından ve transkriptlerinden, kaynağıyla gelir.")
+                .appFont(size: 14, weight: .regular)
+                .foregroundStyle(Theme.muted)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.top, 48)
+    }
+
+    /// Hazır eylem: tarif kapsamdaki toplantıya sorulur, "Notu uzat" o toplantının notunu yeniden yazar.
+    private func run(action: MeetingQuickAction) {
+        guard let meetingID = askScopeMeetingID(scope: scope) else {
+            return
+        }
+        switch action.kind {
+        case .ask(let prompt, let recipeTitle):
+            ask.ask(context: context, question: prompt, scope: scope, mentionIDs: [], recipeTitle: recipeTitle)
+        case .editNote(let instruction):
+            Task { await store.editNote(meetingID: meetingID, instruction: instruction) }
+        }
+    }
+
+    /// Başlık: saklanan sohbetin adı, henüz saklanmadıysa ilk soru, boşsa kapsamın adı.
     private var title: String {
-        ask.conversations.first { $0.id == ask.currentConversationID }.map { askConversationDisplayTitle(conversation: $0) } ?? ask.exchanges.first?.question ?? ""
+        ask.conversations.first { $0.id == ask.chats.conversationID(context: context) }.map { askConversationDisplayTitle(conversation: $0) }
+            ?? exchanges.first?.question ?? askScopeTitle(scope: scope, context: context, meetingTitle: nil)
     }
 }
 
@@ -665,13 +627,18 @@ struct AskFollowUp {
 private struct AskComposer: View {
     let ask: PhoneAsk
     let store: PhoneStore
-    /// Etiketlenen toplantı yokken alanın ipucu.
-    let placeholder: LocalizedStringKey
+    /// Etiketlenen toplantı yokken alanın ipucu (kapsama göre).
+    let placeholder: String
     /// Bu alanın sohbetinde cevap sürüyor: düğme durdurur.
     let isAnswering: Bool
     /// Sohbetteki alanda devam kapsamı: son soru `@` toplantılara sorulduysa etiketler alanda kalır (kaldırılabilir) ve
     /// devam sorusu da onlara gider. Kökte nil: gönderilince etiketler kalkar.
     let followUp: AskFollowUp?
+    /// Boş sohbette alanın üstünde yana kayan öneriler (kullanıcının verisinden); dokununca sorulur.
+    let suggestions: [String]
+    /// Alanın üstündeki kapsam çipi (etiket yokken görünür).
+    let scopeMenu: AskScopeMenu
+    let onSelectScope: @MainActor (AskScope) -> Void
     let onSubmit: @MainActor (AskSubmission) -> Void
     let onStop: @MainActor () -> Void
     @State private var question: String = ""
@@ -711,6 +678,15 @@ private struct AskComposer: View {
                     ask.deleteRecipe(id: recipe.id)
                 }
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
+            } else if question.isEmpty, mentioned.isEmpty, !isAnswering, !suggestions.isEmpty {
+                AskSuggestionRow(suggestions: suggestions) { (suggestion: String) -> Void in
+                    // Hakkı yoksa abonelik ekranı açılır (soru gönderilmez).
+                    if HostedAccount.shared.requiresSubscription {
+                        HostedAccount.shared.requestSubscription()
+                        return
+                    }
+                    onSubmit(AskSubmission(question: suggestion, meetingIDs: [], recipeTitle: nil))
+                }
             }
             field
         }
@@ -751,7 +727,8 @@ private struct AskComposer: View {
     private var field: some View {
         let isEmpty: Bool = question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         let shape: RoundedRectangle = RoundedRectangle(cornerRadius: 24, style: .continuous)
-        return VStack(alignment: .leading, spacing: 6) {
+        // Üstte etiketler ve soru, altta tek satır: toplantı ekle (@), kapsam çipi ve gönder/durdur.
+        return VStack(alignment: .leading, spacing: 4) {
             if !mentioned.isEmpty {
                 ScrollView(.horizontal) {
                     HStack(spacing: 6) {
@@ -764,17 +741,41 @@ private struct AskComposer: View {
                 }
                 .scrollIndicators(.hidden)
                 .padding(.top, 6)
+                .padding(.horizontal, 10)
             }
-            HStack(alignment: .bottom, spacing: 10) {
-                TextField(
-                    mentioned.isEmpty ? placeholder : "Etiketlenen toplantılara sor…",
-                    text: $question, selection: $selection, axis: .vertical
-                )
-                .appFont(size: 16, weight: .regular)
-                // Return yeni satır ekler (çok satırlı soru); gönderme sağdaki düğmeyle.
-                .lineLimit(1...5)
-                .focused($isFocused)
-                .padding(.vertical, 8)
+            TextField(
+                mentioned.isEmpty ? placeholder : String(localized: "Etiketlenen toplantılara sor…"),
+                text: $question, selection: $selection, axis: .vertical
+            )
+            .appFont(size: 16, weight: .regular)
+            // Return yeni satır ekler (çok satırlı soru); gönderme sağdaki düğmeyle.
+            .lineLimit(1...5)
+            .focused($isFocused)
+            .padding(.horizontal, 12)
+            .padding(.top, 10)
+            .padding(.bottom, 2)
+            HStack(spacing: 4) {
+                // Toplantı ekle: alana "@" yazar, toplantı önerileri açılır (soru yalnız seçilen toplantılara gider).
+                Button {
+                    let needsSpace: Bool = !question.isEmpty && question.last?.isWhitespace == false
+                    question += needsSpace ? " @" : "@"
+                    cursor = question.utf16.count
+                    isFocused = true
+                } label: {
+                    Image(systemName: "at")
+                        .appFont(size: 15, weight: .semibold)
+                        .foregroundStyle(Theme.muted)
+                        .frame(width: 34, height: 34)
+                        .background(Theme.soft, in: Circle())
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("Toplantı ekle"))
+                if mentioned.isEmpty {
+                    AskScopeChip(menu: scopeMenu, isEnabled: !isAnswering, onSelect: onSelectScope)
+                }
+                Spacer(minLength: 4)
                 Button {
                     if isAnswering {
                         onStop()
@@ -795,7 +796,7 @@ private struct AskComposer: View {
                 .accessibilityLabel(isAnswering ? "Durdur" : "Sor")
             }
         }
-        .padding(.leading, 16)
+        .padding(.leading, 6)
         .padding(.trailing, 6)
         .padding(.vertical, 6)
         // Kutunun tamamı (yalnız yazı satırı değil) alanı odaklar; gönder düğmesi ve etiket çipleri kendi dokunuşunu alır.
@@ -923,7 +924,7 @@ private struct AskHistoryList: View {
                     Button {
                         onOpen(conversation.id)
                     } label: {
-                        AskHistoryRowLabel(conversation: conversation, isSelected: ask.currentConversationID == conversation.id, titleSize: 15)
+                        AskHistoryRowLabel(conversation: conversation, isSelected: ask.chats.conversationID(context: .allMeetings) == conversation.id, titleSize: 15)
                             .padding(.vertical, 2)
                     }
                     .swipeActions {

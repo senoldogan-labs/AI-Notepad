@@ -3184,117 +3184,59 @@ final class AppModel {
 
     // MARK: Toplantılarıma sor
 
-    /// Açık sohbetin soruları ve cevapları.
-    var archiveExchanges: [ArchiveExchange] = []
+    /// Sor'un sohbetleri (Sor sayfası, toplantı sayfasının çubuğu, ⌘J paneli; bkz. `AskStore`).
+    let askChats: AskStore = AskStore()
     /// Saklanan sohbetler (yeniden eskiye; en fazla `askHistoryLimit`).
     var askConversations: [AskConversation] = []
-    /// Açık sohbetin kimliği: ilk cevap saklanınca atanır, "Yeni sohbet"te nil.
-    var currentConversationID: UUID?
-    /// Cevaplanan soru (durdurulabilir).
-    @ObservationIgnored private var archiveTask: Task<Void, Never>?
 
-    /// Bir soru cevaplanıyor (yenisi sorulamaz, durdurulabilir).
-    var isAnsweringArchive: Bool {
-        archiveExchanges.last.map { [.understanding, .searching, .writing].contains($0.phase) } ?? false
-    }
-
-    /// Tüm toplantılara soru sorar; ajanın adımları (terimler, okunan parçalar) ve akan cevap listede güncellenir.
-    /// Önceki cevaplar devam soruları için bağlamdır.
-    /// Arşive sorar; `meetingIDs` boş değilse soru yalnız o toplantılara sorulur (`@` ile etiketlenenler).
-    func askArchive(question: String, meetingIDs: [String], recipeTitle: String?) {
-        let trimmed: String = question.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, !isAnsweringArchive else {
+    /// Soruyu bir Sor alanından (`context`: Sor sayfası tüm toplantılar, toplantı sayfası o toplantı, ⌘J paneli bulunulan
+    /// yer) `scope` kapsamına sorar; `mentionIDs` doluysa yalnız o toplantılara (`@`). Sor sayfası ve toplantı sayfası
+    /// aynı hattı kullanır: abonelik, deneme, cihaz içi modelin dilleri, ekran görüntüsü planı (Ayarlar'daki "Notlarda
+    /// ekran görüntülerini kullan"). Süren cevap varken yeni soru sorulmaz (kullanım da sayılmaz).
+    func askQuestion(context: AskScope, question: String, scope: AskScope, mentionIDs: [String], recipeTitle: String?) {
+        guard !question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, !askChats.isAnswering(context: context) else {
             return
         }
         guard !isAIBlockedBySubscription() else {
             return
         }
         #if HOSTED_EDITION
-        // Denemesi henüz başlamamış hesap soru soramaz (sunucu `trial_not_started` der); neden Sor sayfasında yazar.
+        // Denemesi henüz başlamamış hesap soru soramaz (sunucu `trial_not_started` der): soru ve neden sohbette görünür.
         if let reason = hostedAskUnavailableReason(account: .shared) {
             Self.logger.info("Sor kullanılamıyor, soru gönderilmedi, neden: \(reason, privacy: .public)")
+            askChats.fail(context: context, question: question, scope: scope, mentionIDs: mentionIDs, recipeTitle: recipeTitle, reason: reason)
             return
         }
         #endif
         recordFeatureUsage(feature: .ask)
-        let history: [ArchiveTurn] = archiveHistory(exchanges: archiveExchanges)
-        let id: UUID = UUID()
-        let scoped: [MeetingRecord]
-        do {
-            scoped = try archiveScope(records: meetings, meetingIDs: meetingIDs)
-        } catch {
-            // Etiketli toplantı silinmişse soru tüm arşive genişletilmez; soru ve neden sohbette görünür.
-            Self.logger.error("Etiketli toplantı bulunamadı, hata: \(String(describing: error), privacy: .private)")
-            archiveExchanges.append(failedExchange(
-                id: id, question: trimmed, scopeMeetingIDs: meetingIDs, recipeTitle: recipeTitle, reason: userFacingMessage(error: error), at: Date()
-            ))
-            return
-        }
-        archiveExchanges.append(startedExchange(id: id, question: trimmed, scope: scoped, recipeTitle: recipeTitle, startedAt: Date()))
         let records: [MeetingRecord] = meetings
         let userName: String = self.userName
         let profile: UserProfile = userProfile
         let webSearch: Bool = askWebSearchAllowed(defaults: UserDefaults.standard)
-        // Cevap sorunun dilinde (İngilizce soruya Türkçe notlardan da İngilizce); anlaşılmazsa arayüz dili.
-        let answerLanguage: ShareLanguage = askAnswerLanguage(question: trimmed, history: history, interfaceLanguage: interfaceShareLanguage())
         let noteLanguage: ShareLanguage = selectedNoteLanguage()
-        archiveTask = Task { [weak self] in
-            do {
-                // Model kapandıysa soru da biter.
-                guard let screens: ArchiveScreensPlan = try self?.askScreensPlan(records: records) else {
-                    return
-                }
-                let provider: LLMProvider = try await resolveLLMProvider()
-                let onProgress: ArchiveProgressHandler = { [weak self] (progress: ArchiveProgress) -> Void in
-                    await self?.apply(progress: progress, id: id)
-                }
-                if scoped.isEmpty {
-                    // Cihaz içi modelde dili desteklenmeyen toplantılar okunmaz.
-                    let readable: OnDeviceReadableRecords = try onDeviceAskableArchive(records: records, provider: provider, outputLanguage: answerLanguage)
-                    _ = try await AINotepadCore.askArchive(
-                        question: trimmed, history: history, records: readable.records, userName: userName, profile: profile, noteLanguage: noteLanguage,
-                        answerLanguage: answerLanguage, llm: provider, maxChars: noteLimits(provider: provider).archiveChars, screens: screens, webSearch: webSearch,
-                        now: Date(), onProgress: onProgress
-                    )
-                } else {
-                    try requireOnDeviceLanguages(provider: provider, meetingLanguages: scoped.compactMap(\.language), outputLanguage: answerLanguage)
-                    _ = try await askAboutMeetings(
-                        question: trimmed, history: history, records: scoped, userName: userName, profile: profile, noteLanguage: noteLanguage,
-                        answerLanguage: answerLanguage, llm: provider, maxChars: noteLimits(provider: provider).archiveChars, screens: screens, webSearch: webSearch,
-                        now: Date(), onProgress: onProgress
-                    )
-                }
-                self?.updateExchange(id: id) {
-                    $0.phase = .done
-                    $0.finishedAt = Date()
-                }
-                self?.saveConversation(exchangeID: id)
-            } catch is CancellationError {
-                self?.updateExchange(id: id) {
-                    $0.phase = .stopped
-                    $0.finishedAt = Date()
-                }
-                // O ana kadar yazılan cevap sohbette kalır (sohbet bu arada değiştiyse saklanmaz).
-                self?.saveConversation(exchangeID: id)
-            } catch let error as URLError where error.code == .cancelled {
-                self?.updateExchange(id: id) {
-                    $0.phase = .stopped
-                    $0.finishedAt = Date()
-                }
-                self?.saveConversation(exchangeID: id)
-            } catch {
-                Self.logger.error("Arşiv sorusu cevaplanamadı, hata: \(String(describing: error), privacy: .private)")
-                self?.updateExchange(id: id) {
-                    $0.phase = .failed(userFacingMessage(error: error))
-                    $0.finishedAt = Date()
-                }
+        askChats.ask(
+            context: context, question: question, scope: scope, mentionIDs: mentionIDs, recipeTitle: recipeTitle, records: records
+        ) { [weak self] (target: AskTarget, onProgress: @escaping ArchiveProgressHandler) async throws -> Void in
+            // Model kapandıysa soru da biter.
+            guard let screens: ArchiveScreensPlan = try self?.askScreensPlan(records: target.meetings ?? records) else {
+                return
             }
+            let provider: LLMProvider = try await resolveLLMProvider()
+            // Cevap sorunun dilinde (İngilizce soruya Türkçe notlardan da İngilizce); anlaşılmazsa arayüz dili.
+            let answerLanguage: ShareLanguage = askAnswerLanguage(question: target.question, history: target.history, interfaceLanguage: interfaceShareLanguage())
+            _ = try await answerAskTarget(
+                target: target, archive: records, userName: userName, profile: profile, noteLanguage: noteLanguage, answerLanguage: answerLanguage,
+                provider: provider, screens: screens, webSearch: webSearch, onProgress: onProgress
+            )
+        } save: { [weak self] (id: UUID, exchanges: [ArchiveExchange]) -> Void in
+            // Sohbet Sor geçmişine yazılır (eşitlenir, Sor'da da açılır); toplantı sayfası yeniden açılınca geri gelir.
+            self?.storeConversation(id: id, exchanges: exchanges)
         }
     }
 
-    /// Kısayollar ve Siri: soruyu Sor'daki hatla bütün toplantılara sorar ve cevabı bekler (sohbet Sor geçmişinde kalır).
-    /// Sorulamazsa (abonelik, deneme, süren başka soru) ya da cevap yarıda kalırsa nedeni hata olarak döner; abonelik
-    /// ekranı açılmaz (uygulama arka planda olabilir).
+    /// Kısayollar ve Siri: soruyu Sor sayfasındaki sohbette bütün toplantılara sorar ve cevabı bekler (sohbet Sor
+    /// geçmişinde kalır). Sorulamazsa (abonelik, deneme, süren başka soru) ya da cevap yarıda kalırsa nedeni hata olarak
+    /// döner; abonelik ekranı açılmaz (uygulama arka planda olabilir).
     func askArchiveForIntent(question: String) async throws -> String {
         let trimmed: String = question.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
@@ -3308,16 +3250,16 @@ final class AppModel {
             throw MeetingIntentError.askFailed(reason: reason)
         }
         #endif
-        guard !isAnsweringArchive else {
+        guard !askChats.isAnswering(context: .allMeetings) else {
             throw MeetingIntentError.askFailed(reason: String(localized: "Sor'da başka bir soru cevaplanıyor; o bitince yeniden dene."))
         }
-        let before: Int = archiveExchanges.count
-        askArchive(question: trimmed, meetingIDs: [], recipeTitle: nil)
-        guard archiveExchanges.count > before, let id = archiveExchanges.last?.id else {
+        let before: Int = askChats.exchanges(context: .allMeetings).count
+        askQuestion(context: .allMeetings, question: trimmed, scope: .allMeetings, mentionIDs: [], recipeTitle: nil)
+        guard askChats.exchanges(context: .allMeetings).count > before, let id = askChats.exchanges(context: .allMeetings).last?.id else {
             throw MeetingIntentError.askFailed(reason: String(localized: "Soru gönderilemedi."))
         }
-        await archiveTask?.value
-        guard let exchange = archiveExchanges.first(where: { $0.id == id }) else {
+        await askChats.waitForAnswer(context: .allMeetings)
+        guard let exchange = askChats.exchanges(context: .allMeetings).first(where: { $0.id == id }) else {
             throw MeetingIntentError.askFailed(reason: String(localized: "Soru gönderilemedi."))
         }
         switch exchange.phase {
@@ -3342,63 +3284,16 @@ final class AppModel {
         return meetings
     }
 
-    /// Toplantı sayfasındaki "Bir şey sor" çubuğunun sohbetleri (toplantı başına; Sor sayfasının sohbetinden ayrı).
-    let meetingAsk: MeetingAskStore = MeetingAskStore()
-
-    /// Soruyu yalnız bu toplantıya sorar (toplantı sayfasının çubuğu); Sor sayfasıyla aynı hat ve denetimler: abonelik,
-    /// deneme, cihaz içi modelin dilleri, ekran görüntüsü planı (Ayarlar'daki "Notlarda ekran görüntülerini kullan").
-    func askAboutMeeting(meetingID: String, question: String, recipeTitle: String?) {
-        // Süren cevap varken yeni soru sorulmaz (kullanım da sayılmaz).
-        guard let record = meetings.first(where: { $0.id == meetingID }), isMentionableMeeting(record: record), !meetingAsk.isAnswering(meetingID: meetingID) else {
+    /// Sor alanının son sorusunu (bitmiş, durdurulmuş ya da hatalı) aynı kapsam, etiketler ve tarifle yeniden sorar; eski
+    /// cevabın yerini yenisi alır. Soru gönderilemediyse (abonelik teklifi açıldı) eski cevap yerinde kalır.
+    func regenerateAnswer(context: AskScope) {
+        guard let last = askChats.takeLastForRegenerate(context: context) else {
             return
         }
-        guard !isAIBlockedBySubscription() else {
-            return
-        }
-        #if HOSTED_EDITION
-        if let reason = hostedAskUnavailableReason(account: .shared) {
-            Self.logger.info("Toplantı sorusu gönderilmedi, neden: \(reason, privacy: .public)")
-            meetingAsk.fail(record: record, question: question, recipeTitle: recipeTitle, reason: reason)
-            return
-        }
-        #endif
-        recordFeatureUsage(feature: .ask)
-        let userName: String = self.userName
-        let profile: UserProfile = userProfile
-        let webSearch: Bool = askWebSearchAllowed(defaults: UserDefaults.standard)
-        let screens: ArchiveScreensPlan
-        do {
-            screens = try askScreensPlan(records: [record])
-        } catch {
-            Self.logger.error("Toplantı sorusunun ekran planı kurulamadı, hata: \(String(describing: error), privacy: .private)")
-            meetingAsk.fail(record: record, question: question, recipeTitle: recipeTitle, reason: userFacingMessage(error: error))
-            return
-        }
-        meetingAsk.ask(record: record, question: question, recipeTitle: recipeTitle) { (asked: String, history: [ArchiveTurn], onProgress: @escaping ArchiveProgressHandler) async throws -> Void in
-            let provider: LLMProvider = try await resolveLLMProvider()
-            let answerLanguage: ShareLanguage = askAnswerLanguage(question: asked, history: history, interfaceLanguage: interfaceShareLanguage())
-            try requireOnDeviceLanguages(provider: provider, meetingLanguages: [record.language].compactMap { $0 }, outputLanguage: answerLanguage)
-            _ = try await askAboutMeetings(
-                question: asked, history: history, records: [record], userName: userName, profile: profile, noteLanguage: selectedNoteLanguage(),
-                answerLanguage: answerLanguage, llm: provider, maxChars: noteLimits(provider: provider).archiveChars, screens: screens, webSearch: webSearch,
-                now: Date(), onProgress: onProgress
-            )
-        } save: { [weak self] (id: UUID, exchanges: [ArchiveExchange]) -> Void in
-            // Toplantı sohbeti Sor geçmişine yazılır (eşitlenir, Sor'da da açılır); sayfa yeniden açılınca geri gelir.
-            self?.storeConversation(id: id, exchanges: exchanges)
-        }
-    }
-
-    /// Toplantı çubuğunun son sorusunu yeniden sorar.
-    func regenerateMeetingAnswer(meetingID: String) {
-        guard let last = meetingAsk.takeLastForRegenerate(meetingID: meetingID) else {
-            return
-        }
-        let remaining: Int = meetingAsk.exchanges(meetingID: meetingID).count
-        askAboutMeeting(meetingID: meetingID, question: last.question, recipeTitle: last.recipeTitle)
-        // Soru gönderilemediyse (abonelik teklifi açıldı) eski cevap yerinde kalır.
-        if meetingAsk.exchanges(meetingID: meetingID).count == remaining {
-            meetingAsk.restore(exchange: last, meetingID: meetingID)
+        let remaining: Int = askChats.exchanges(context: context).count
+        askQuestion(context: context, question: last.question, scope: last.scope, mentionIDs: exchangeMentionIDs(exchange: last), recipeTitle: last.recipeTitle)
+        if askChats.exchanges(context: context).count == remaining {
+            askChats.restore(exchange: last, context: context)
         }
     }
 
@@ -3444,50 +3339,15 @@ final class AppModel {
         }
     }
 
-    /// Akan cevabı durdurur; o ana kadar yazılan kalır.
-    func stopArchiveAnswer() {
-        archiveTask?.cancel()
-    }
-
-    /// Son soruyu (bitmiş, durdurulmuş ya da hatalı) aynı kapsam ve tarifle yeniden sorar; eski cevabın yerini yenisi alır.
-    func regenerateLastAnswer() {
-        guard let last = regeneratableExchange(exchanges: archiveExchanges) else {
-            return
-        }
-        archiveExchanges.removeLast()
-        let remaining: Int = archiveExchanges.count
-        askArchive(question: last.question, meetingIDs: last.scopeMeetingIDs, recipeTitle: last.recipeTitle)
-        // Soru gönderilemediyse (abonelik teklifi açıldı) eski cevap yerinde kalır.
-        if archiveExchanges.count == remaining {
-            archiveExchanges.append(last)
-        }
-    }
-
-    /// Sohbeti temizler (yeni konu: önceki cevaplar bağlam olmaz); önceki sohbet geçmişte kalır.
-    func clearArchiveConversation() {
-        archiveTask?.cancel()
-        archiveExchanges = []
-        currentConversationID = nil
-    }
-
-    /// Toplantı öncesi brifing (Ana sayfadaki "Brifing", kayıttaki açık görevlerin "Tümünü gör"ü): yeni bir Sor sohbetinde
-    /// aynı kişilerle ya da konuda önceki toplantılar, kararlar ve açık görevler sorulur. Abonelikte hak yoksa sohbet
-    /// silinmez, abone olma teklifi açılır ve false döner (Sor açılmasın).
+    /// Toplantı öncesi brifing (Ana sayfadaki "Brifing", kayıttaki açık görevlerin "Tümünü gör"ü): Sor sayfasında yeni bir
+    /// sohbette aynı kişilerle ya da konuda önceki toplantılar, kararlar ve açık görevler sorulur. Abonelikte hak yoksa
+    /// sohbet silinmez, abone olma teklifi açılır ve false döner (Sor açılmasın).
     func startBriefing(meeting: CalendarMeeting) -> Bool {
-        #if HOSTED_EDITION
-        if HostedAccount.shared.requiresSubscription {
-            HostedAccount.shared.requestSubscription()
-            return false
-        }
-        #endif
-        // Brifing yeni bir konu: önceki sohbet bağlam olmasın.
-        clearArchiveConversation()
-        askArchive(question: briefingQuestion(meeting: meeting), meetingIDs: [], recipeTitle: nil)
-        return true
+        startAskingEverything(question: briefingQuestion(meeting: meeting))
     }
 
-    /// Aramadaki "Sor: …" satırı: soru yeni bir Sor sohbetinde bütün toplantılara sorulur. Abonelikte hak yoksa
-    /// abone olma teklifi açılır ve false döner (Sor açılmasın).
+    /// Aramadaki "Sor: …" satırı ve brifing: soru Sor sayfasında yeni bir sohbette bütün toplantılara sorulur. Abonelikte
+    /// hak yoksa abone olma teklifi açılır ve false döner (Sor açılmasın).
     func startAskingEverything(question: String) -> Bool {
         #if HOSTED_EDITION
         if HostedAccount.shared.requiresSubscription {
@@ -3495,19 +3355,19 @@ final class AppModel {
             return false
         }
         #endif
-        clearArchiveConversation()
-        askArchive(question: question, meetingIDs: [], recipeTitle: nil)
+        // Yeni bir konu: önceki sohbet bağlam olmasın.
+        askChats.clear(context: .allMeetings)
+        askQuestion(context: .allMeetings, question: question, scope: .allMeetings, mentionIDs: [], recipeTitle: nil)
         return true
     }
 
-    /// Saklanan sohbeti açar; devam soruları onun cevaplarını bağlam alır. Süren cevap durdurulur.
-    func openConversation(id: UUID) {
+    /// Saklanan sohbeti Sor alanında kendi kapsamıyla açar; devam soruları onun cevaplarını bağlam alır. Süren cevap
+    /// durdurulur.
+    func openConversation(id: UUID, context: AskScope) {
         guard let conversation = askConversations.first(where: { $0.id == id }) else {
             return
         }
-        archiveTask?.cancel()
-        archiveExchanges = conversation.turns.map { (turn: AskConversationTurn) -> ArchiveExchange in archiveExchange(turn: turn) }
-        currentConversationID = id
+        askChats.open(conversation: conversation, context: context)
     }
 
     /// Sohbetin adını değiştirir (boş ya da aynı ad yok sayılır); sohbetin listedeki yeri değişmez.
@@ -3530,9 +3390,7 @@ final class AppModel {
         do {
             try deleteAskConversation(id: id, directory: try AppPaths.askHistoryDirectory())
             askConversations.removeAll { $0.id == id }
-            if currentConversationID == id {
-                clearArchiveConversation()
-            }
+            askChats.forget(conversationID: id)
         } catch {
             Self.logger.error("Sohbet silinemedi, sohbet: \(id.uuidString, privacy: .public), hata: \(String(describing: error), privacy: .private)")
             errorMessages = appendUnique(messages: errorMessages, message: String(localized: "Sohbet silinemedi: \(userFacingMessage(error: error))"))
@@ -3560,19 +3418,6 @@ final class AppModel {
         }
     }
 
-    /// Bitmiş soruyla açık sohbeti saklar (ilk cevapta yeni sohbet olur); sınırı aşan en eski sohbetler silinir.
-    private func saveConversation(exchangeID: UUID) {
-        // Sohbet bu arada değiştiyse (yeni sohbet, başka sohbet açıldı) cevap bu sohbete ait değildir; saklanacak cevap
-        // yoksa (cevap gelmeden durduruldu) sohbet de yazılmaz.
-        guard archiveExchanges.contains(where: { $0.id == exchangeID && askTurn(exchange: $0) != nil }) else {
-            return
-        }
-        let id: UUID = currentConversationID ?? UUID()
-        if storeConversation(id: id, exchanges: archiveExchanges) {
-            currentConversationID = id
-        }
-    }
-
     /// Sohbeti bitmiş sorularıyla Sor geçmişine yazar (Sor sayfası ve toplantı sayfasının sohbeti); sınırı aşan en eski
     /// sohbetler silinir. Saklanamazsa neden pencerede görünür ve false döner.
     @discardableResult
@@ -3596,20 +3441,6 @@ final class AppModel {
             return false
         }
         return true
-    }
-
-    /// Ajanın adımını soruya yazar.
-    private func apply(progress: ArchiveProgress, id: UUID) {
-        updateExchange(id: id) { (exchange: inout ArchiveExchange) -> Void in
-            exchange = applying(progress: progress, to: exchange)
-        }
-    }
-
-    private func updateExchange(id: UUID, change: (inout ArchiveExchange) -> Void) {
-        guard let index = archiveExchanges.firstIndex(where: { $0.id == id }) else {
-            return
-        }
-        change(&archiveExchanges[index])
     }
 
     // MARK: Görevler

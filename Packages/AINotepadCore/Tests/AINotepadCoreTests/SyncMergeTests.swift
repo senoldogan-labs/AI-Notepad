@@ -165,7 +165,7 @@ private func merge(base: MeetingSyncState?, local: MeetingSyncState, remote: Mee
         let turn: (String, Double) -> AskConversationTurn = { (question: String, offset: Double) -> AskConversationTurn in
             AskConversationTurn(
                 id: UUID(), question: question, scopeMeetingIDs: [], scopeTitles: [], recipeTitle: nil, startedAt: t0.addingTimeInterval(offset),
-                finishedAt: t0.addingTimeInterval(offset + 5), terms: [], readPassages: [], readScreens: nil, answer: "a", sources: [], webSources: nil, webQueries: nil, webSearchNotice: nil, skippedMeetings: nil, wasStopped: nil
+                finishedAt: t0.addingTimeInterval(offset + 5), terms: [], readPassages: [], readScreens: nil, answer: "a", sources: [], webSources: nil, webQueries: nil, webSearchNotice: nil, skippedMeetings: nil, wasStopped: nil, scope: nil
             )
         }
         let first: AskConversationTurn = turn("First?", 0)
@@ -183,7 +183,7 @@ private func merge(base: MeetingSyncState?, local: MeetingSyncState, remote: Mee
     @Test func askConversationKeepsTheNewestRename() throws {
         let turn: AskConversationTurn = AskConversationTurn(
             id: UUID(), question: "First?", scopeMeetingIDs: [], scopeTitles: [], recipeTitle: nil, startedAt: t0, finishedAt: t0.addingTimeInterval(5),
-            terms: [], readPassages: [], readScreens: nil, answer: "a", sources: [], webSources: nil, webQueries: nil, webSearchNotice: nil, skippedMeetings: nil, wasStopped: nil
+            terms: [], readPassages: [], readScreens: nil, answer: "a", sources: [], webSources: nil, webQueries: nil, webSearchNotice: nil, skippedMeetings: nil, wasStopped: nil, scope: nil
         )
         let base: AskConversation = askConversation(existing: nil, id: UUID(), turns: [turn], now: t0)
         let onMac: AskConversation = try #require(renamedAskConversation(conversation: base, title: "Budget on Mac", now: t1))
@@ -198,7 +198,7 @@ private func merge(base: MeetingSyncState?, local: MeetingSyncState, remote: Mee
         // Renamed on the Mac, a follow-up asked on the iPhone: the name and both turns stay.
         let followUp: AskConversationTurn = AskConversationTurn(
             id: UUID(), question: "And then?", scopeMeetingIDs: [], scopeTitles: [], recipeTitle: nil, startedAt: t2, finishedAt: t2.addingTimeInterval(5),
-            terms: [], readPassages: [], readScreens: nil, answer: "b", sources: [], webSources: nil, webQueries: nil, webSearchNotice: nil, skippedMeetings: nil, wasStopped: nil
+            terms: [], readPassages: [], readScreens: nil, answer: "b", sources: [], webSources: nil, webQueries: nil, webSearchNotice: nil, skippedMeetings: nil, wasStopped: nil, scope: nil
         )
         let phoneFollowUp: AskConversation = askConversation(existing: base, id: base.id, turns: [turn, followUp], now: t2)
         let merged: AskConversation = mergeAskConversation(local: phoneFollowUp, remote: onMac)

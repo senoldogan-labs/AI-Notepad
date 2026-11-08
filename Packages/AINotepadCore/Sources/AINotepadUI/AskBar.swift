@@ -1,11 +1,23 @@
 import AINotepadCore
 import SwiftUI
 
-/// Toplantı sayfasının altında yüzen "Bir şey sor" çubuğu (Mac ve iPhone): solda transkript çekmecesi düğmesi, ortada
-/// soru alanı, sağda tarifler ve gönder/durdur. Soru alanına girince ya da bir cevap gelince üstünde bir panel açılır:
-/// bu toplantının sohbeti (cevaplar kaynaklarıyla, devam soruları önceki cevapları bağlam alır) ve hazır eylemler
-/// (takip e-postası, aksiyonlar, kısaca, notu uzat).
-public struct MeetingAskBar: View {
+/// Çubuğun transkript düğmesi (yalnız toplantı sayfasında): çekmece açık mı ve aç/kapat.
+public struct AskBarTranscript {
+    let isOpen: Bool
+    let onToggle: @MainActor () -> Void
+
+    public init(isOpen: Bool, onToggle: @escaping @MainActor () -> Void) {
+        self.isOpen = isOpen
+        self.onToggle = onToggle
+    }
+}
+
+/// Sayfanın altında yüzen Sor çubuğu (Mac ve iPhone; toplantı sayfası ve Mac'te ⌘J paneli): solda (toplantı
+/// sayfasında) transkript çekmecesi düğmesi, ortada soru alanı, sağda tarifler ve gönder/durdur. Soru alanına girince
+/// ya da bir cevap gelince üstünde bir panel açılır: üstte kapsam çipi (bu toplantı, tüm toplantılar, klasör, kişi,
+/// tarih aralığı), sohbet (cevaplar kaynaklarıyla, devam soruları önceki cevapları bağlam alır) ve kapsam bu toplantıyken
+/// hazır eylemler (takip e-postası, aksiyonlar, kısaca, notu uzat).
+public struct AskBar: View {
     let exchanges: [ArchiveExchange]
     let isAnswering: Bool
     /// Son cevabın altındaki devam soruları (`meetingFollowUpSuggestions`); dokununca sorulur.
@@ -14,9 +26,16 @@ public struct MeetingAskBar: View {
     let recipes: [Recipe]
     /// Not şu an yeniden yazılıyor ("Notu uzat" ya da notu sorarak düzenleme).
     let isEditingNote: Bool
-    let isTranscriptOpen: Bool
+    let scopeMenu: AskScopeMenu
+    /// Boş sohbette selamlamadaki ad (`askFirstName`) ve soru alanının üstündeki öneriler (kullanıcının verisinden).
+    let firstName: String
+    let suggestions: [String]
+    let transcript: AskBarTranscript?
     /// Sohbet panelinin en çok yüksekliği (sayfanın yaklaşık %45'i: panel sayfayı örtmesin).
     let conversationMaxHeight: CGFloat
+    /// Arttıkça soru alanı odağı alır ve panel açılır (Mac'te ⌘J).
+    let focusRequest: Int
+    let onSelectScope: @MainActor (AskScope) -> Void
     let onAsk: @MainActor (String, String?) -> Void
     let onQuickAction: @MainActor (MeetingQuickAction) -> Void
     let onStop: @MainActor () -> Void
@@ -24,7 +43,8 @@ public struct MeetingAskBar: View {
     let onRegenerate: @MainActor () -> Void
     let onOpenSource: @MainActor (ArchivePassage) -> Void
     let onSaveRecipe: @MainActor (String) -> Void
-    let onToggleTranscript: @MainActor () -> Void
+    /// Kapsam dipnotundaki "Bunlara da sor": aynı soru sığmayan toplantılara sorulur; cevap sürerken nil.
+    let onAskMeetings: (@MainActor ([String]) -> Void)?
     @State private var draft: String = ""
     /// Sohbet paneli açık: sayfa tutar, transkript çekmecesiyle aynı anda açık olmaz (biri açılınca öteki kapanır).
     @Binding private var isExpanded: Bool
@@ -33,10 +53,11 @@ public struct MeetingAskBar: View {
 
     public init(
         exchanges: [ArchiveExchange], isAnswering: Bool, followUps: [String], quickActions: [MeetingQuickAction], recipes: [Recipe], isEditingNote: Bool,
-        isTranscriptOpen: Bool, isPanelOpen: Binding<Bool>, conversationMaxHeight: CGFloat,
+        scopeMenu: AskScopeMenu, firstName: String, suggestions: [String], transcript: AskBarTranscript?, isPanelOpen: Binding<Bool>, conversationMaxHeight: CGFloat, focusRequest: Int,
+        onSelectScope: @escaping @MainActor (AskScope) -> Void,
         onAsk: @escaping @MainActor (String, String?) -> Void, onQuickAction: @escaping @MainActor (MeetingQuickAction) -> Void, onStop: @escaping @MainActor () -> Void,
         onClear: @escaping @MainActor () -> Void, onRegenerate: @escaping @MainActor () -> Void, onOpenSource: @escaping @MainActor (ArchivePassage) -> Void,
-        onSaveRecipe: @escaping @MainActor (String) -> Void, onToggleTranscript: @escaping @MainActor () -> Void
+        onSaveRecipe: @escaping @MainActor (String) -> Void, onAskMeetings: (@MainActor ([String]) -> Void)?
     ) {
         self.exchanges = exchanges
         self.isAnswering = isAnswering
@@ -44,9 +65,14 @@ public struct MeetingAskBar: View {
         self.quickActions = quickActions
         self.recipes = recipes
         self.isEditingNote = isEditingNote
-        self.isTranscriptOpen = isTranscriptOpen
+        self.scopeMenu = scopeMenu
+        self.firstName = firstName
+        self.suggestions = suggestions
+        self.transcript = transcript
         self._isExpanded = isPanelOpen
         self.conversationMaxHeight = conversationMaxHeight
+        self.focusRequest = focusRequest
+        self.onSelectScope = onSelectScope
         self.onAsk = onAsk
         self.onQuickAction = onQuickAction
         self.onStop = onStop
@@ -54,7 +80,7 @@ public struct MeetingAskBar: View {
         self.onRegenerate = onRegenerate
         self.onOpenSource = onOpenSource
         self.onSaveRecipe = onSaveRecipe
-        self.onToggleTranscript = onToggleTranscript
+        self.onAskMeetings = onAskMeetings
     }
 
     public var body: some View {
@@ -78,32 +104,26 @@ public struct MeetingAskBar: View {
                 isExpanded = true
             }
         }
+        .onChange(of: focusRequest) { (_: Int, _: Int) -> Void in
+            isExpanded = true
+            isFocused = true
+        }
     }
 
     /// Alttaki çubuk.
     private var bar: some View {
         HStack(alignment: .bottom, spacing: 8) {
-            Button {
-                // Çekmece açılırken sohbet paneli kapanır (ikisi birlikte sayfayı örterdi).
-                if !isTranscriptOpen {
-                    isFocused = false
-                    isExpanded = false
-                }
-                onToggleTranscript()
-            } label: {
-                Image(systemName: "text.bubble")
-                    .appFont(size: 14, weight: .semibold)
-                    .foregroundStyle(isTranscriptOpen ? appearance.accent.color : Theme.ink)
+            if let transcript {
+                transcriptButton(transcript: transcript)
+            } else {
+                Image(systemName: "sparkle")
+                    .appFont(size: 13, weight: .semibold)
+                    .foregroundStyle(Theme.muted)
                     .frame(width: 34, height: 34)
-                    .background(isTranscriptOpen ? appearance.accent.color.opacity(0.14) : Theme.soft, in: Circle())
                     .frame(minWidth: minimumHitSize, minHeight: minimumHitSize)
-                    .contentShape(Rectangle())
+                    .accessibilityHidden(true)
             }
-            .buttonStyle(.plain)
-            .linkPointer(isEnabled: true)
-            .accessibilityLabel(isTranscriptOpen ? Text("Transkripti kapat") : Text("Transkripti aç"))
-            .hoverHint(isTranscriptOpen ? "Transkripti kapat" : "Transkripti aç", alignment: .leading, edge: .top)
-            TextField("Bu toplantıya bir şey sor", text: $draft, axis: .vertical)
+            TextField(askScopePlaceholder(scope: scopeMenu.selected), text: $draft, axis: .vertical)
                 .textFieldStyle(.plain)
                 .lineLimit(1...4)
                 .focused($isFocused)
@@ -135,7 +155,7 @@ public struct MeetingAskBar: View {
                 .fixedSize()
                 .disabled(isAnswering)
                 .accessibilityLabel(Text("Tarif uygula"))
-                .hoverHint("Bu toplantıya tarif uygula", alignment: .trailing, edge: .top)
+                .hoverHint("Tarif uygula", alignment: .trailing, edge: .top)
             }
             sendButton
         }
@@ -155,6 +175,31 @@ public struct MeetingAskBar: View {
                 ThinkingRing(shape: RoundedRectangle(cornerRadius: 23, style: .continuous))
             }
         }
+    }
+
+    /// Transkript çekmecesini açıp kapatan düğme (toplantı sayfası).
+    private func transcriptButton(transcript: AskBarTranscript) -> some View {
+        let isTranscriptOpen: Bool = transcript.isOpen
+        return Button {
+            // Çekmece açılırken sohbet paneli kapanır (ikisi birlikte sayfayı örterdi).
+            if !isTranscriptOpen {
+                isFocused = false
+                isExpanded = false
+            }
+            transcript.onToggle()
+        } label: {
+            Image(systemName: "text.bubble")
+                .appFont(size: 14, weight: .semibold)
+                .foregroundStyle(isTranscriptOpen ? appearance.accent.color : Theme.ink)
+                .frame(width: 34, height: 34)
+                .background(isTranscriptOpen ? appearance.accent.color.opacity(0.14) : Theme.soft, in: Circle())
+                .frame(minWidth: minimumHitSize, minHeight: minimumHitSize)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .linkPointer(isEnabled: true)
+        .accessibilityLabel(isTranscriptOpen ? Text("Transkripti kapat") : Text("Transkripti aç"))
+        .hoverHint(isTranscriptOpen ? "Transkripti kapat" : "Transkripti aç", alignment: .leading, edge: .top)
     }
 
     @ViewBuilder
@@ -194,7 +239,14 @@ public struct MeetingAskBar: View {
         VStack(alignment: .leading, spacing: 12) {
             panelHeader
             if exchanges.isEmpty {
-                Text("Kararlar, görevler ya da kimin ne dediği: cevap bu toplantının notundan ve transkriptinden, kaynağıyla gelir.")
+                AskGreeting(firstName: firstName, size: 20)
+                    .padding(.vertical, 6)
+                if !suggestions.isEmpty {
+                    AskSuggestionRow(suggestions: suggestions) { (suggestion: String) -> Void in onAsk(suggestion, nil) }
+                }
+                Text(askScopeMeetingID(scope: scopeMenu.selected) != nil
+                    ? "Kararlar, görevler ya da kimin ne dediği: cevap bu toplantının notundan ve transkriptinden, kaynağıyla gelir."
+                    : "Kararlar, görevler ya da kimin ne dediği: cevap kapsamdaki toplantıların notlarından ve transkriptlerinden, kaynağıyla gelir.")
                     .appFont(size: 13, weight: .regular)
                     .foregroundStyle(Theme.muted)
                     .fixedSize(horizontal: false, vertical: true)
@@ -211,7 +263,9 @@ public struct MeetingAskBar: View {
                         .appFont(size: 13, weight: .medium)
                 }
             }
-            quickActionChips
+            if !quickActions.isEmpty {
+                quickActionChips
+            }
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -227,8 +281,7 @@ public struct MeetingAskBar: View {
 
     private var panelHeader: some View {
         HStack(spacing: 8) {
-            Label("Bu toplantıya sor", systemImage: "sparkle")
-                .foregroundStyle(Theme.muted)
+            AskScopeChip(menu: scopeMenu, isEnabled: !isAnswering, onSelect: onSelectScope)
             Spacer(minLength: 8)
             if !exchanges.isEmpty {
                 Button {
@@ -275,16 +328,45 @@ public struct MeetingAskBar: View {
 
     private func exchangeView(exchange: ArchiveExchange) -> some View {
         let regenerate: (@MainActor () -> Void)? = exchange.id == exchanges.last?.id ? onRegenerate : nil
-        return ExchangeView(exchange: exchange, onOpen: onOpenSource, onSaveRecipe: onSaveRecipe, onRegenerate: regenerate, onAskMeetings: nil)
+        return ExchangeView(exchange: exchange, onOpen: onOpenSource, onSaveRecipe: onSaveRecipe, onRegenerate: regenerate, onAskMeetings: isAnswering ? nil : onAskMeetings)
             .id(exchange.id)
     }
 
-    /// Devam soruları: vurgu renginde çipler, dokununca sorulur.
     private var followUpChips: some View {
+        AskFollowUpChips(questions: followUps) { (question: String) -> Void in onAsk(question, nil) }
+            .disabled(isEditingNote)
+    }
+
+    private var quickActionChips: some View {
+        AskQuickActionChips(actions: quickActions, isEnabled: !isAnswering && !isEditingNote, onRun: onQuickAction)
+    }
+
+    private func submit() {
+        let question: String = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !question.isEmpty, !isAnswering else {
+            return
+        }
+        onAsk(question, nil)
+        draft = ""
+    }
+}
+
+/// Devam soruları (Mac ve iPhone; toplantı çubuğu ve Sor sayfası): vurgu renginde çipler, dokununca sorulur.
+public struct AskFollowUpChips: View {
+    let questions: [String]
+    let onAsk: @MainActor (String) -> Void
+    @Environment(\.panelAppearance) private var appearance: PanelAppearance
+
+    public init(questions: [String], onAsk: @escaping @MainActor (String) -> Void) {
+        self.questions = questions
+        self.onAsk = onAsk
+    }
+
+    public var body: some View {
         FlowLayout(spacing: 6, lineSpacing: 6) {
-            ForEach(followUps, id: \.self) { (question: String) in
+            ForEach(questions, id: \.self) { (question: String) in
                 Button {
-                    onAsk(question, nil)
+                    onAsk(question)
                 } label: {
                     Label(question, systemImage: "arrow.turn.down.right")
                         .appFont(size: 12, weight: .medium)
@@ -296,20 +378,31 @@ public struct MeetingAskBar: View {
                 }
                 .buttonStyle(.plain)
                 .linkPointer(isEnabled: true)
-                .disabled(isEditingNote)
             }
         }
         .fixedSize(horizontal: false, vertical: true)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text("Devam soruları"))
     }
+}
 
-    /// Hazır eylemler: çipler.
-    private var quickActionChips: some View {
+/// Toplantının hazır eylemleri (Mac ve iPhone; kapsam bir toplantıyken): sade çipler.
+public struct AskQuickActionChips: View {
+    let actions: [MeetingQuickAction]
+    let isEnabled: Bool
+    let onRun: @MainActor (MeetingQuickAction) -> Void
+
+    public init(actions: [MeetingQuickAction], isEnabled: Bool, onRun: @escaping @MainActor (MeetingQuickAction) -> Void) {
+        self.actions = actions
+        self.isEnabled = isEnabled
+        self.onRun = onRun
+    }
+
+    public var body: some View {
         FlowLayout(spacing: 6, lineSpacing: 6) {
-            ForEach(quickActions) { (action: MeetingQuickAction) in
+            ForEach(actions) { (action: MeetingQuickAction) in
                 Button {
-                    onQuickAction(action)
+                    onRun(action)
                 } label: {
                     Label(action.title, systemImage: action.symbol)
                         .appFont(size: 12, weight: .medium)
@@ -320,20 +413,11 @@ public struct MeetingAskBar: View {
                         .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
-                .linkPointer(isEnabled: true)
-                .disabled(isAnswering || isEditingNote)
+                .linkPointer(isEnabled: isEnabled)
+                .disabled(!isEnabled)
             }
         }
         .fixedSize(horizontal: false, vertical: true)
-    }
-
-    private func submit() {
-        let question: String = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !question.isEmpty, !isAnswering else {
-            return
-        }
-        onAsk(question, nil)
-        draft = ""
     }
 }
 

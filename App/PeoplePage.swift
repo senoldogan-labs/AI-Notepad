@@ -90,6 +90,11 @@ struct PeoplePage: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        // ⌘J seçili kişiyle Sor'u açar.
+        .onChange(of: selection, initial: true) { (_: String?, id: String?) -> Void in
+            // Yalnız Sor'un okuyabileceği toplantısı olan kişi (örnek toplantının kurgusal kişisi değil).
+            router.selectedPersonName = people.first { $0.id == id && hasAskableMeetings(person: $0) }?.name
+        }
         // "Kişi ekle" ayrı sayfa değil, küçük bir pencere: kullanıcı tablodan ayrılmaz.
         .sheet(isPresented: $isAdding) {
             PersonForm(title: "Kişi ekle", initialName: "", lockedName: nil, initialRole: "", initialEmail: "") { (name: String, role: String, email: String) -> Void in
@@ -363,10 +368,15 @@ struct PeoplePage: View {
         }
     }
 
+    /// Kişinin Sor'un okuyabileceği toplantısı var mı (örnek toplantı kişi kapsamına girmez; bkz. `askScopeMeetings`).
+    private func hasAskableMeetings(person: PersonSummary) -> Bool {
+        !askScopeMeetings(scope: .person(name: person.name), records: model.meetings, now: Date(), calendar: Calendar.current).isEmpty
+    }
+
     /// Kişinin penceresi: kişinin sayfası, sağ üstte kapat. `show` pencerede gösterilen kişiyi değiştirir (adı değişince
     /// yeni kimlik, kaldırılınca ya da kapatılınca nil).
     private func personSheet(person: PersonSummary, show: @escaping @MainActor (String?) -> Void) -> some View {
-        PersonDetail(person: person, router: router) { (name: String, role: String, email: String) -> Void in
+        PersonDetail(person: person, router: router, hasAskableMeetings: hasAskableMeetings(person: person)) { (name: String, role: String, email: String) -> Void in
             // Toplantılarda adı geçen kişinin adı toplantılarda verildiği için değişmez (değişirse kişi ikiye
             // bölünürdü); yalnızca toplantısız, elle eklenen kişinin adı değişir.
             if person.isSaved, person.meetings.isEmpty {
@@ -620,6 +630,8 @@ private struct PersonForm: View {
 private struct PersonDetail: View {
     let person: PersonSummary
     let router: MainWindowRouter
+    /// Sor'un okuyabileceği toplantısı var (örnek toplantıdaki kurgusal kişide yok): "Sor" düğmesi görünür.
+    let hasAskableMeetings: Bool
     let onSave: @MainActor (String, String, String) -> Void
     let onRemove: @MainActor () -> Void
     /// Pencereyi kapatır.
@@ -678,6 +690,15 @@ private struct PersonDetail: View {
                         .transition(.opacity)
                     } else {
                         HStack(spacing: 6) {
+                            // Kişinin toplantılarına sor: pencere kapanır, Sor paneli bu kişiyle açılır (⌘J ile aynı).
+                            if hasAskableMeetings {
+                                Button("Sor", systemImage: "sparkle") {
+                                    onClose()
+                                    router.askOverlay = .person(name: person.name)
+                                    router.askFocusRequest += 1
+                                }
+                                .hoverHint("Bu kişiyle toplantılarına sor (⌘J)", alignment: .trailing, edge: .bottom)
+                            }
                             Button("Düzenle", systemImage: "pencil") { isEditing = true }
                             Button("Kaldır", systemImage: "trash") { confirmRemove = true }
                                 .hoverHint("Kişiler'den kaldırır ve sesini unutur; toplantılardaki adı kalır", alignment: .trailing, edge: .bottom)

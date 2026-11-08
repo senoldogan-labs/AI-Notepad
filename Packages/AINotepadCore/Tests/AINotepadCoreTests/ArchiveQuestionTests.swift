@@ -146,7 +146,7 @@ private func archive() -> [MeetingRecord] {
             id: UUID(), question: "Kim ne üstlendi?", scopeMeetingIDs: ["a", "b"], scopeTitles: ["Haftalık ekip toplantısı", "Bütçe planlaması"],
             recipeTitle: nil, startedAt: Date(timeIntervalSince1970: 1_792_000_000), finishedAt: Date(timeIntervalSince1970: 1_792_000_006),
             terms: [], readPassages: [], readScreens: 2, answer: "Mikko [1].", sources: [source], webSources: [WebSource(url: "https://example.com/a", title: "A")], webQueries: ["kahvi"],
-            webSearchNotice: .capReached, skippedMeetings: [ArchiveMeetingRef(id: "c", title: "Kahvikone", date: Date(timeIntervalSince1970: 1_791_000_000))], wasStopped: nil
+            webSearchNotice: .capReached, skippedMeetings: [ArchiveMeetingRef(id: "c", title: "Kahvikone", date: Date(timeIntervalSince1970: 1_791_000_000))], wasStopped: nil, scope: nil
         )
         let conversation: AskConversation = askConversation(existing: nil, id: UUID(), turns: [turn], now: Date(timeIntervalSince1970: 1_792_000_006))
         try saveAskConversation(conversation: conversation, directory: directory)
