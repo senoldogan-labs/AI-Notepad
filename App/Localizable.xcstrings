@@ -210073,6 +210073,218 @@
           }
         }
       }
+    },
+    "Bu iPhone'da cihaz içi canlı metin iOS 26 gerektirir. Kayıt sürüyor; metin ve not kayıttan sonra hazırlanır (internet gerekir).": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On this iPhone, on-device live text needs iOS 26. Recording continues; the transcript and note are prepared after the recording (internet needed)."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf diesem iPhone braucht Live-Text auf dem Gerät iOS 26. Die Aufnahme läuft weiter; Transkript und Notiz werden nach der Aufnahme erstellt (Internet nötig)."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sur cet iPhone, le texte en direct sur l'appareil nécessite iOS 26. L'enregistrement continue ; la transcription et la note sont préparées après l'enregistrement (connexion Internet requise)."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En este iPhone, el texto en directo en el dispositivo requiere iOS 26. La grabación continúa; la transcripción y la nota se preparan después de la grabación (se necesita internet)."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Su questo iPhone il testo dal vivo sul dispositivo richiede iOS 26. La registrazione continua; trascrizione e nota vengono preparate dopo la registrazione (serve internet)."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neste iPhone, o texto ao vivo no dispositivo exige iOS 26. A gravação continua; a transcrição e a nota são preparadas depois da gravação (é preciso internet)."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Op deze iPhone heeft live tekst op het apparaat iOS 26 nodig. De opname gaat door; transcript en notitie worden na de opname gemaakt (internet nodig)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このiPhoneでデバイス上のライブ文字起こしを使うにはiOS 26が必要です。録音は続いています。文字起こしとノートは録音後に作成されます（インターネット接続が必要）。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 iPhone에서 기기 내 실시간 텍스트를 사용하려면 iOS 26이 필요합니다. 녹음은 계속됩니다. 녹취록과 노트는 녹음 후에 준비됩니다(인터넷 필요)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在这台 iPhone 上，设备端实时文本需要 iOS 26。录音仍在继续；转写和笔记将在录音结束后生成（需要联网）。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tässä iPhonessa laitteella toimiva reaaliaikainen teksti vaatii iOS 26:n. Tallennus jatkuu; litterointi ja muistiinpano valmistellaan tallennuksen jälkeen (vaatii internetyhteyden)."
+          }
+        }
+      }
+    },
+    "Canlı metin bağlantısı koptu, yeniden bağlanılıyor. Kayıt sürüyor; eksik kalan metin notta tamamlanır.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live transcript connection lost, reconnecting. Recording continues; the missing text is filled in for the note."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verbindung des Live-Transkripts unterbrochen, wird neu verbunden. Die Aufnahme läuft weiter; fehlender Text wird für die Notiz ergänzt."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connexion de la transcription en direct perdue, reconnexion en cours. L'enregistrement continue ; le texte manquant est complété pour la note."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se perdió la conexión de la transcripción en directo; reconectando. La grabación continúa; el texto que falte se completa para la nota."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connessione della trascrizione dal vivo persa, riconnessione in corso. La registrazione continua; il testo mancante viene completato per la nota."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A conexão da transcrição ao vivo caiu; reconectando. A gravação continua; o texto que faltar é completado para a nota."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verbinding van het live-transcript verbroken, opnieuw verbinden. De opname gaat door; ontbrekende tekst wordt voor de notitie aangevuld."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライブ文字起こしの接続が切れました。再接続しています。録音は続いています。抜けた部分はノート作成時に補完されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실시간 녹취 연결이 끊어져 다시 연결하는 중입니다. 녹음은 계속됩니다. 빠진 텍스트는 노트를 만들 때 채워집니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "实时转写连接已断开，正在重新连接。录音仍在继续；缺失的文本会在生成笔记时补全。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reaaliaikaisen litteroinnin yhteys katkesi, yhdistetään uudelleen. Tallennus jatkuu; puuttuva teksti täydennetään muistiinpanoa varten."
+          }
+        }
+      }
+    },
+    "Kaydı başlatmak için Gistsmith'i aç: önce giriş, onay ya da mikrofon izni gerekiyor.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Gistsmith to start recording: it first needs you to sign in, accept, or allow the microphone."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffne Gistsmith, um die Aufnahme zu starten: Zuerst ist eine Anmeldung, eine Zustimmung oder der Mikrofonzugriff nötig."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrez Gistsmith pour lancer l'enregistrement : il faut d'abord vous connecter, accepter ou autoriser le micro."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre Gistsmith para empezar a grabar: primero hace falta iniciar sesión, aceptar o permitir el micrófono."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apri Gistsmith per avviare la registrazione: prima serve accedere, accettare o consentire il microfono."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abra o Gistsmith para começar a gravar: primeiro é preciso entrar, aceitar ou permitir o microfone."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Gistsmith om de opname te starten: eerst moet je inloggen, akkoord gaan of de microfoon toestaan."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音を始めるにはGistsmithを開いてください。先にサインイン、同意、またはマイクの許可が必要です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹음을 시작하려면 Gistsmith를 여세요. 먼저 로그인, 동의 또는 마이크 허용이 필요합니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请打开 Gistsmith 开始录音：需要先登录、同意或允许使用麦克风。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avaa Gistsmith aloittaaksesi tallennuksen: ensin tarvitaan kirjautuminen, hyväksyntä tai mikrofonin lupa."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

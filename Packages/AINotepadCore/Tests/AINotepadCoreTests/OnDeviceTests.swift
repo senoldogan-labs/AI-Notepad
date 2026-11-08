@@ -4,7 +4,7 @@ import Testing
 @testable import AINotepadCore
 
 @Suite struct OnDeviceLLMTests {
-    @available(macOS 26.0, *)
+    @available(macOS 26.0, iOS 26.0, *)
     @Test func mapsAvailabilityToReason() {
         #expect(onDeviceUnavailableReason(availability: .available) == nil)
         #expect(onDeviceUnavailableReason(availability: .unavailable(.deviceNotEligible)) == .deviceNotEligible)

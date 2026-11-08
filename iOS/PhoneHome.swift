@@ -200,7 +200,7 @@ struct PhoneHome: View {
             Button("Kitaplık", systemImage: "folder") { router.isLibraryOpen = true }
                 .tint(Theme.ink)
         }
-        // Sağdaki üç düğme tek cam kapsülde (iOS 26): görevler (VoiceOver açık görev sayısını okur), arama ve profil
+        // Sağdaki üç düğme tek cam kapsülde (iOS 26; iOS 18–25 ayrı simgeler): görevler (VoiceOver açık görev sayısını okur), arama ve profil
         // (Ayarlar).
         ToolbarItemGroup(placement: .topBarTrailing) {
             Button {
@@ -456,7 +456,7 @@ private struct HomeBottomBar: View {
                     .foregroundStyle(Theme.ink)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
-                    .glassEffect(.regular, in: Capsule())
+                    .glassSurface(in: Capsule())
                     .frame(maxWidth: .infinity)
                     .transition(.opacity)
             }
@@ -471,7 +471,7 @@ private struct HomeBottomBar: View {
                         .contentShape(Circle())
                 }
                 .buttonStyle(.plain)
-                .glassEffect(.regular.interactive(), in: Circle())
+                .interactiveGlassSurface(in: Circle())
                 .accessibilityLabel(Text("Telefon görüşmesi"))
                 .accessibilityHint(Text("Telefon görüşmesinin notunu almanın yollarını gösterir."))
                 Button {
@@ -491,7 +491,7 @@ private struct HomeBottomBar: View {
                     .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
-                .glassEffect(.regular.interactive(), in: Capsule())
+                .interactiveGlassSurface(in: Capsule())
                 recordButton
             }
         }
@@ -658,7 +658,7 @@ private struct PhoneLibrarySheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(role: .close) { dismiss() }
+                    CloseToolbarButton { dismiss() }
                 }
             }
         }
@@ -683,7 +683,7 @@ private struct PhoneLibrarySheet: View {
     }
 }
 
-/// Arama: boşken ortada kısa açıklama, alan altta (iOS 26); yazınca eşleşen toplantılar (başlık, not, görev, kişi adı,
+/// Arama: boşken ortada kısa açıklama, alan altta (iOS 26; iOS 18–25 başlığın altında); yazınca eşleşen toplantılar (başlık, not, görev, kişi adı,
 /// transkript) eşleşen cümleleri ve transkriptteki anlarıyla, en üstte soruyu Sor'a soran satır. Arama yazmayı
 /// `searchDebounce` kadar bekler ve ana iş parçacığının dışında önbellekli çalışır (`PhoneStore.searchCache`). Klasör ya
 /// da süzgeç içinde arama kitaplıkta.
@@ -763,9 +763,7 @@ struct PhoneSearchScreen: View {
         .navigationTitle("Ara")
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $query, isPresented: $isSearching, prompt: Text("Toplantılarda ara"))
-        .toolbar {
-            DefaultToolbarItem(kind: .search, placement: .bottomBar)
-        }
+        .searchFieldInBottomBar()
         .onAppear { isSearching = true }
     }
 

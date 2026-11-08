@@ -34,14 +34,14 @@ public enum AppleSpeechError: Error, Equatable {
     case analysisFailed(locale: String, reason: String)
     /// Bu motor dil algılamaz: oturum sabit dille çalıştırılmalı (programlama hatası).
     case languageDetectionUnsupported
-    /// Sistem `SpeechAnalyzer`'ı içermiyor (macOS 26'dan eski).
+    /// Sistem `SpeechAnalyzer`'ı içermiyor (macOS 26'dan ya da iOS 26'dan eski).
     case requiresNewerSystem
 }
 
-/// Cihaz içi konuşma tanıma (`SpeechAnalyzer`) bu sistemde var mı: macOS 26 ve sonrası, iPhone'da (iOS 26+) her zaman.
+/// Cihaz içi konuşma tanıma (`SpeechAnalyzer`) bu sistemde var mı: macOS 26 ve iOS 26 ve sonrası.
 /// Arayüz seçeneği bununla kapatır; motorun girişleri aynı koşulda `AppleSpeechError.requiresNewerSystem` atar.
 public func appleSpeechSupportedBySystem() -> Bool {
-    if #available(macOS 26.0, *) {
+    if #available(macOS 26.0, iOS 26.0, *) {
         return true
     }
     return false
@@ -74,7 +74,7 @@ public func appleSpeechChoice(language: MeetingLanguage, speechLocales: [String]
 }
 
 /// Cihazın desteklediği yerel ayarlarla toplantı dili için modül seçer.
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 public func appleSpeechChoice(language: MeetingLanguage) async -> AppleSpeechChoice? {
     let speech: [String] = SpeechTranscriber.isAvailable ? await SpeechTranscriber.supportedLocales.map(\.identifier) : []
     let dictation: [String] = await DictationTranscriber.supportedLocales.map(\.identifier)
@@ -82,7 +82,7 @@ public func appleSpeechChoice(language: MeetingLanguage) async -> AppleSpeechCho
 }
 
 /// Cihaz içi konuşma tanımanın desteklediği toplantı dilleri.
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 public func appleSpeechLanguages() async -> [MeetingLanguage] {
     let speech: [String] = SpeechTranscriber.isAvailable ? await SpeechTranscriber.supportedLocales.map(\.identifier) : []
     let dictation: [String] = await DictationTranscriber.supportedLocales.map(\.identifier)
@@ -92,7 +92,7 @@ public func appleSpeechLanguages() async -> [MeetingLanguage] {
 }
 
 /// Seçime göre yeni modül (her çözümleyici kendi modülünü ister).
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 private func makeModule(choice: AppleSpeechChoice) -> any SpeechModule {
     let locale: Locale = Locale(identifier: choice.localeIdentifier)
     return switch choice.kind {
@@ -106,14 +106,14 @@ let speechLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", categor
 /// Toplantı dilinin cihaz içi konuşma modelini hazırlar: dil desteklenmiyorsa `unsupportedLanguage`; model yüklü
 /// değilse indirilir, ilerleme (0…1) `onProgress`'e yarım saniyede bir verilir. Sistem eskiyse `requiresNewerSystem`.
 public func prepareAppleSpeech(language: MeetingLanguage, onProgress: @escaping @Sendable (Double) -> Void) async throws -> AppleSpeechChoice {
-    guard #available(macOS 26.0, *) else {
+    guard #available(macOS 26.0, iOS 26.0, *) else {
         throw AppleSpeechError.requiresNewerSystem
     }
     return try await installedAppleSpeech(language: language, onProgress: onProgress)
 }
 
 /// `prepareAppleSpeech`'in gövdesi: modül seçilir, model yüklü değilse indirilip kurulur.
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 private func installedAppleSpeech(language: MeetingLanguage, onProgress: @escaping @Sendable (Double) -> Void) async throws -> AppleSpeechChoice {
     guard let choice = await appleSpeechChoice(language: language) else {
         throw AppleSpeechError.unsupportedLanguage(language: language.rawValue)
@@ -124,7 +124,7 @@ private func installedAppleSpeech(language: MeetingLanguage, onProgress: @escapi
 
 /// Modülün dil modeli yüklü değilse indirip kurar; ilerleme (0…1) `onProgress`'e yarım saniyede bir verilir, sonunda 1.
 /// İndirilemezse `AppleSpeechError.assetInstallFailed`.
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 func installSpeechAssets(module: any SpeechModule, localeIdentifier: String, onProgress: @escaping @Sendable (Double) -> Void) async throws {
     let request: AssetInstallationRequest?
     do {
@@ -176,7 +176,7 @@ public actor AppleSpeechEngine: TranscriptionEngine {
 
     /// Sistem eskiyse `requiresNewerSystem`.
     public func transcribe(samples: [Float], language: MeetingLanguage) async throws -> String {
-        guard #available(macOS 26.0, *) else {
+        guard #available(macOS 26.0, iOS 26.0, *) else {
             throw AppleSpeechError.requiresNewerSystem
         }
         let choice: AppleSpeechChoice = try await preparedChoice(language: language)
@@ -210,7 +210,7 @@ private struct TimedText: Sendable {
 }
 
 /// Örnekleri seçilen modülle yazıya döker.
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 private func choiceText(samples: [Float], choice: AppleSpeechChoice) async throws -> String {
     let locale: Locale = Locale(identifier: choice.localeIdentifier)
     switch choice.kind {
@@ -241,7 +241,7 @@ public struct AppleSpeechFinalTranscriber: FinalTranscriber {
     }
 
     public func transcribeFinal(audioURL: URL, languageMode: LanguageMode) async throws -> FinalPassResult {
-        guard #available(macOS 26.0, *) else {
+        guard #available(macOS 26.0, iOS 26.0, *) else {
             throw AppleSpeechError.requiresNewerSystem
         }
         let language: MeetingLanguage = appleSpeechLanguage(mode: languageMode, primary: primaryLanguage)
@@ -282,7 +282,7 @@ public struct AppleSpeechFinalTranscriber: FinalTranscriber {
 }
 
 /// Ses dosyasını tek bir çözümleyiciyle yazıya döker; kesin sonuçlar zamanlarıyla döner.
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 private func analyzedFile<Module: SpeechModule>(
     file: AVAudioFile, module: Module, localeIdentifier: String, timed: @escaping @Sendable (Module.Result) -> TimedText
 ) async throws -> [TimedText] {
@@ -304,7 +304,7 @@ private func analyzedFile<Module: SpeechModule>(
 }
 
 /// Örnekleri tek bir çözümleyiciyle yazıya döker ve kesin sonuçların metnini birleştirir; konuşma yoksa boş metin.
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 func analyzedText<Module: SpeechModule>(
     samples: [Float], module: Module, localeIdentifier: String, text: @escaping @Sendable (Module.Result) -> String
 ) async throws -> String {
@@ -396,8 +396,18 @@ func appleSpeechMessage(error: AppleSpeechError) -> String {
     case .languageDetectionUnsupported:
         String(localized: "Cihaz içi konuşma tanıma dili kendisi algılamaz; toplantı dilini seç.")
     case .requiresNewerSystem:
-        String(localized: "Cihaz içi konuşma tanıma macOS 26 gerektirir. Ayarlar'dan Mac'te (WhisperKit) ya da bulut (Deepgram) motorunu seç.")
+        requiresNewerSystemMessage()
     }
+}
+
+/// Sistem eski metni: Mac'te Ayarlar'daki diğer motorlar önerilir; iPhone'da (iOS 18–25) motor seçimi yoktur, cihaz içi
+/// canlı metin yalnızca bulut canlı metni kullanılamayınca denenir ve kaydın metni sonra sunucuda yazılır. Saf fonksiyondur.
+private func requiresNewerSystemMessage() -> String {
+    #if os(macOS)
+    String(localized: "Cihaz içi konuşma tanıma macOS 26 gerektirir. Ayarlar'dan Mac'te (WhisperKit) ya da bulut (Deepgram) motorunu seç.")
+    #else
+    String(localized: "Bu iPhone'da cihaz içi canlı metin iOS 26 gerektirir. Kayıt sürüyor; metin ve not kayıttan sonra hazırlanır (internet gerekir).")
+    #endif
 }
 
 /// Dil desteklenmiyor metni: Mac'te Ayarlar'daki bulut motoru önerilir; iPhone'da motor seçimi yoktur (canlı metin

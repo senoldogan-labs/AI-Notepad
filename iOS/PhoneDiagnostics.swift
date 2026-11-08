@@ -99,7 +99,8 @@ private func phoneLiveDiagnostics(account: HostedAccount) -> DiagnosticsSection 
     case .deepgram:
         place = String(localized: "Bulut")
     case .whisperKit:
-        place = String(localized: "Bu iPhone'da")
+        // iOS 18–25'te cihaz içi tanıma yok: bulut önerilmezse canlı metin de yok (kayıt ve not sürer).
+        place = appleSpeechSupportedBySystem() ? String(localized: "Bu iPhone'da") : String(localized: "Kullanılamıyor")
     }
     return DiagnosticsSection(title: String(localized: "Canlı metin"), items: [DiagnosticsItem(label: String(localized: "Çalıştığı yer"), value: place, status: .plain)])
 }

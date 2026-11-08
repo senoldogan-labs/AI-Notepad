@@ -31,6 +31,9 @@ public enum HybridLiveStart: Sendable {
     case deepgram(DeepgramLiveSource)
     /// Doğrudan Mac (WhisperKit); motor hazırlanırken gelen ses bekletilir.
     case local
+    /// Canlı metin yok (bulut kullanılamıyor, cihazda motor yok: iPhone, iOS 18–25): konuşmacılar için `.streamFailed`
+    /// `message`'la bildirilir, kayıt sürer.
+    case unavailable(message: String)
 }
 
 /// Hibrit oturumun kaydı (`startHybridRecording`): iki ses akışı oluşturulduğu anda `me.caf` ve `others.caf`'a yazılır;
@@ -69,12 +72,17 @@ public struct HybridLiveSessionConfig: Sendable {
     /// Mac motoru hazırlanırken (model inerken) konuşmacı başına bekletilen en uzun ses; daha eskisi canlı metne
     /// katılmaz (kayıtta durur, son geçiş kapsar).
     public let maxPendingAudioSec: Double
+    /// Bulut akışı kalıcı olarak durunca: cihazdaki motora geçiş ya da bulutu yeniden deneme (bkz. `hybridCloudFailure`).
+    public let cloudFailure: HybridCloudFailure
 
-    public init(speakers: Set<Speaker>, lateSpeakers: Set<Speaker>, local: LiveSessionConfig, maxPendingAudioSec: Double) {
+    public init(
+        speakers: Set<Speaker>, lateSpeakers: Set<Speaker>, local: LiveSessionConfig, maxPendingAudioSec: Double, cloudFailure: HybridCloudFailure
+    ) {
         self.speakers = speakers
         self.lateSpeakers = lateSpeakers.subtracting(speakers)
         self.local = local
         self.maxPendingAudioSec = maxPendingAudioSec
+        self.cloudFailure = cloudFailure
     }
 }
 
@@ -86,7 +94,9 @@ private let hybridLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad",
 
 /// Abonelik sürümünün canlı oturumu: kaydı süren (`startHybridRecording`) iki ses akışının canlı metnini Deepgram'la (bulut) üretir;
 /// Deepgram akışı kalıcı olarak durursa (jeton alınamadı: bütçe, sunucu, ağ; ya da bağlantı kurulamadı) oturum Mac'teki
-/// motora (WhisperKit) geçer ve `.liveEngineFellBack` yayınlar. `localEngine` motoru gerektiğinde hazırlar (ilk seferde
+/// motora (WhisperKit) geçer ve `.liveEngineFellBack` yayınlar. Cihazda motor yoksa (`config.cloudFailure`
+/// `.reconnectCloud`: iPhone, iOS 18–25) geçilmez: o konuşmacının bulut akışı geri çekilerek yeniden açılır
+/// (`.liveTextReconnecting`, ilk sonuçta `.liveTextReconnected`). `localEngine` motoru gerektiğinde hazırlar (ilk seferde
 /// modeli indirir); hazırlanırken gelen ses `maxPendingAudioSec`'e dek bekletilip sonra yazıya dökülür. Motor
 /// hazırlanamazsa canlı metin durur (`.streamFailed`), kayıt sürer. Mac'te başlayan oturum (`.local`) aynı yolu kullanır.
 ///
@@ -107,31 +117,35 @@ public func runHybridLiveSession(
     switch start {
     case .deepgram(let source):
         var inputs: [Speaker: AsyncStream<[Float]>.Continuation] = [:]
-        var streams: [(Speaker, DeepgramStream)] = []
+        var streams: [Speaker: DeepgramStream] = [:]
         for speaker in liveSpeakers {
             let (audio, input): (AsyncStream<[Float]>, AsyncStream<[Float]>.Continuation) = AsyncStream.makeStream(of: [Float].self)
             inputs[speaker] = input
             let connect: @Sendable (AsyncStream<[Float]>) -> DeepgramStream = { (forward: AsyncStream<[Float]>) -> DeepgramStream in
-                startDeepgramStream(
-                    token: source.token, options: source.options, language: source.language, keyterms: source.keyterms, onConnectionEvent: source.onConnectionEvent,
-                    audio: forward
-                )
+                connectDeepgram(source: source, language: source.language, audio: forward)
             }
             // Sonradan katılan konuşmacının bağlantısı ilk seste açılır (kayıt başından beri sessiz akış ücretlenmez).
-            let stream: DeepgramStream = config.speakers.contains(speaker)
+            streams[speaker] = config.speakers.contains(speaker)
                 ? connect(audio)
                 : startDeepgramStreamOnFirstSound(audio: audio, sampleRate: hybridSampleRate, start: connect)
-            streams.append((speaker, stream))
         }
-        router = HybridRouter(backend: .deepgram(inputs: inputs, streams: streams.map(\.1)), consumers: streams.count, maxPendingSamples: maxPendingSamples)
+        router = HybridRouter(backend: .deepgram(inputs: inputs, streams: streams), consumers: streams.count, maxPendingSamples: maxPendingSamples)
         for (speaker, stream) in streams {
             Task {
-                await consumeDeepgram(speaker: speaker, stream: stream, router: router, config: config, localEngine: localEngine, events: sink)
+                await consumeDeepgram(
+                    speaker: speaker, stream: stream, source: source, router: router, config: config, localEngine: localEngine, events: sink
+                )
             }
         }
     case .local:
         router = HybridRouter(backend: .preparingLocal, consumers: 0, maxPendingSamples: maxPendingSamples)
         startLocalTranscription(router: router, config: config, localEngine: localEngine, events: sink)
+    case .unavailable(let message):
+        router = HybridRouter(backend: .unavailable, consumers: 0, maxPendingSamples: maxPendingSamples)
+        hybridLogger.info("Canlı metin bu kayıtta yok (bulut yok, cihazda motor yok)")
+        for speaker in liveSpeakers {
+            sink.yield(.streamFailed(speaker: speaker, message: message))
+        }
     }
 
     Task {
@@ -155,7 +169,7 @@ public func runHybridLiveSession(
             sink.yield(.languageLocked(language))
             switch backend {
             case .deepgram(_, let streams):
-                for stream in streams {
+                for stream in streams.values {
                     await stream.switchLanguage(to: language)
                 }
             case .local(_, let handle):
@@ -170,7 +184,7 @@ public func runHybridLiveSession(
             // bırakılır; olay akışı biter.
             switch await router.cancel() {
             case .deepgram(_, let streams):
-                for stream in streams {
+                for stream in streams.values {
                     await stream.cancel()
                 }
             case .local(_, let handle):
@@ -185,7 +199,7 @@ public func runHybridLiveSession(
 
 /// Hibrit oturumun o anki yazıya dökme arka ucu.
 private enum HybridBackend: Sendable {
-    case deepgram(inputs: [Speaker: AsyncStream<[Float]>.Continuation], streams: [DeepgramStream])
+    case deepgram(inputs: [Speaker: AsyncStream<[Float]>.Continuation], streams: [Speaker: DeepgramStream])
     /// Mac motoru hazırlanıyor: ses bekletilir.
     case preparingLocal
     case local(inputs: [Speaker: AsyncStream<[Float]>.Continuation], handle: LiveSessionHandle)
@@ -330,6 +344,39 @@ private actor HybridRouter {
         return previous
     }
 
+    /// Bulut akışı yeniden kurulacak (cihazda motor yok): konuşmacının girişi bırakılır; ses kayda yazılmaya sürer ama
+    /// yeni bağlantıya dek canlı metne gitmez. Konuşmacının sesi bittiyse ya da oturum bırakıldıysa false (yeniden
+    /// bağlanılmaz).
+    func detachCloud(speaker: Speaker) -> Bool {
+        guard case .deepgram(var inputs, let streams) = backend, !ended.contains(speaker) else {
+            return false
+        }
+        inputs[speaker]?.finish()
+        inputs[speaker] = nil
+        backend = .deepgram(inputs: inputs, streams: streams)
+        return true
+    }
+
+    /// Konuşmacının sesi sürüyor ve oturum bulutta (yeniden bağlanma beklemesi bu sürece sürer).
+    func isCloudOpen(speaker: Speaker) -> Bool {
+        guard case .deepgram = backend else {
+            return false
+        }
+        return !ended.contains(speaker)
+    }
+
+    /// Yeni bulut akışı bağlandı: bundan sonraki ses ona gider. Akışın zaman çizgisinin kayıttaki başlangıcı (sn) döner;
+    /// konuşmacının sesi bittiyse ya da oturum bırakıldıysa nil (çağıran akışı kapatır).
+    func attachCloud(speaker: Speaker, input: AsyncStream<[Float]>.Continuation, stream: DeepgramStream) -> Double? {
+        guard case .deepgram(var inputs, var streams) = backend, !ended.contains(speaker) else {
+            return nil
+        }
+        inputs[speaker] = input
+        streams[speaker] = stream
+        backend = .deepgram(inputs: inputs, streams: streams)
+        return Double(routed[speaker, default: 0]) / Double(hybridSampleRate)
+    }
+
     /// Mac motoru hazırlanamadı: bekletilen ses bırakılır, canlı metin durur.
     func localUnavailable() {
         pending = [.me: [], .others: []]
@@ -366,31 +413,62 @@ private actor HybridRouter {
     }
 }
 
-/// Deepgram olaylarını bölümlere çevirir; akış kalıcı olarak durursa Mac'e geçişi başlatır.
+/// Kaynağın ayarlarıyla verilen dilde Deepgram akışı açar.
+private func connectDeepgram(source: DeepgramLiveSource, language: MeetingLanguage, audio: AsyncStream<[Float]>) -> DeepgramStream {
+    startDeepgramStream(
+        token: source.token, options: source.options, language: language, keyterms: source.keyterms, onConnectionEvent: source.onConnectionEvent,
+        audio: audio
+    )
+}
+
+/// Deepgram olaylarını bölümlere çevirir; akış kalıcı olarak durursa `config.cloudFailure`'a göre Mac'e geçişi başlatır
+/// ya da konuşmacının akışını geri çekilerek yeniden açar. Yeniden açılan akışın zamanları bağlandığı kayıt konumu kadar
+/// kayar; bölüm numaraları sürer (kopan akışın geçici metni silinir, numarası yeni akışta yeniden kullanılır).
 private func consumeDeepgram(
     speaker: Speaker,
     stream: DeepgramStream,
+    source: DeepgramLiveSource,
     router: HybridRouter,
     config: HybridLiveSessionConfig,
     localEngine: @escaping @Sendable () async throws -> any TranscriptionEngine,
     events: AsyncStream<LiveSessionEvent>.Continuation
 ) async {
     var index: Int = 0
-    for await event in stream.events {
-        switch event {
-        case .partial(let text, let start, let end):
-            events.yield(.segment(LiveSegment(
-                id: SegmentID(speaker: speaker, index: index), startSec: start, endSec: end, text: text, isFinal: false, failureMessage: nil, person: nil
-            )))
-        case .final(let text, let start, let end):
-            // Boş kesin sonuç da yayınlanır: reducer ekrandaki geçici metni siler.
-            events.yield(.segment(LiveSegment(
-                id: SegmentID(speaker: speaker, index: index), startSec: start, endSec: end, text: text, isFinal: true, failureMessage: nil, person: nil
-            )))
-            index += 1
-        case .failed(let message):
-            // Mac'e geçişte bölüm numaraları başka yerden başlar: bu kimliğin geçici metni hiç yenilenmez, silinir.
-            events.yield(.segment(clearingPartial(id: SegmentID(speaker: speaker, index: index))))
+    var current: DeepgramStream = stream
+    var offsetSec: Double = 0
+    var attempt: Int = 0
+    var reconnectingMessage: String?
+    while true {
+        var failure: String?
+        for await event in current.events {
+            switch event {
+            case .partial(let text, let start, let end):
+                announceReconnected(message: &reconnectingMessage, attempt: &attempt, events: events)
+                events.yield(.segment(LiveSegment(
+                    id: SegmentID(speaker: speaker, index: index), startSec: start + offsetSec, endSec: end + offsetSec, text: text, isFinal: false,
+                    failureMessage: nil, person: nil
+                )))
+            case .final(let text, let start, let end):
+                announceReconnected(message: &reconnectingMessage, attempt: &attempt, events: events)
+                // Boş kesin sonuç da yayınlanır: reducer ekrandaki geçici metni siler.
+                events.yield(.segment(LiveSegment(
+                    id: SegmentID(speaker: speaker, index: index), startSec: start + offsetSec, endSec: end + offsetSec, text: text, isFinal: true,
+                    failureMessage: nil, person: nil
+                )))
+                index += 1
+            case .failed(let message):
+                // Geçişte ya da yeniden bağlanmada bu kimliğin geçici metni yenilenmeyebilir: silinir.
+                events.yield(.segment(clearingPartial(id: SegmentID(speaker: speaker, index: index))))
+                failure = message
+            case .incomplete(let untranscribedSec):
+                events.yield(.streamIncomplete(speaker: speaker, untranscribedSec: untranscribedSec))
+            }
+        }
+        guard let message = failure else {
+            break
+        }
+        switch config.cloudFailure {
+        case .switchToLocal:
             switch await router.beginFallback() {
             case .started:
                 hybridLogger.warning("Deepgram akışı durdu, canlı metin Mac'e geçiyor, konuşmacı: \(speaker.rawValue, privacy: .public), neden: \(message, privacy: .private)")
@@ -401,11 +479,63 @@ private func consumeDeepgram(
             case .ended:
                 events.yield(.streamFailed(speaker: speaker, message: message))
             }
-        case .incomplete(let untranscribedSec):
-            events.yield(.streamIncomplete(speaker: speaker, untranscribedSec: untranscribedSec))
+        case .reconnectCloud(let delaysSec):
+            guard await router.detachCloud(speaker: speaker) else {
+                events.yield(.streamFailed(speaker: speaker, message: message))
+                break
+            }
+            if reconnectingMessage == nil {
+                let notice: String = String(localized: "Canlı metin bağlantısı koptu, yeniden bağlanılıyor. Kayıt sürüyor; eksik kalan metin notta tamamlanır.")
+                reconnectingMessage = notice
+                events.yield(.liveTextReconnecting(message: notice))
+            }
+            let delay: Double = cloudReconnectDelaySec(attempt: attempt, delaysSec: delaysSec)
+            attempt += 1
+            hybridLogger.warning("Deepgram akışı durdu, \(delay, privacy: .public) sn sonra yeniden bağlanılacak, konuşmacı: \(speaker.rawValue, privacy: .public), deneme: \(attempt, privacy: .public), neden: \(message, privacy: .private)")
+            guard await waitWhileCloudOpen(speaker: speaker, router: router, seconds: delay) else {
+                break
+            }
+            let (audio, input): (AsyncStream<[Float]>, AsyncStream<[Float]>.Continuation) = AsyncStream.makeStream(of: [Float].self)
+            let next: DeepgramStream = connectDeepgram(source: source, language: await router.locked() ?? source.language, audio: audio)
+            guard let start = await router.attachCloud(speaker: speaker, input: input, stream: next) else {
+                input.finish()
+                await next.cancel()
+                break
+            }
+            current = next
+            offsetSec = start
+            continue
         }
+        break
     }
     await router.consumerFinished()
+}
+
+/// Yeniden bağlanan akıştan ilk sonuç geldi: "yeniden bağlanılıyor" bildirimi kalkar, beklemeler baştan başlar.
+private func announceReconnected(message: inout String?, attempt: inout Int, events: AsyncStream<LiveSessionEvent>.Continuation) {
+    guard let notice = message else {
+        return
+    }
+    events.yield(.liveTextReconnected(message: notice))
+    message = nil
+    attempt = 0
+}
+
+/// Yeniden bağlanmadan önce `seconds` bekler; konuşmacının sesi biterse ya da oturum bırakılırsa beklemeyi keser ve
+/// false döner (kayıt bitince oturum en uzun beklemeyi beklemeden kapanır).
+private func waitWhileCloudOpen(speaker: Speaker, router: HybridRouter, seconds: Double) async -> Bool {
+    let deadline: Date = Date().addingTimeInterval(seconds)
+    while Date() < deadline {
+        guard await router.isCloudOpen(speaker: speaker) else {
+            return false
+        }
+        do {
+            try await Task.sleep(for: .seconds(min(0.25, max(0, deadline.timeIntervalSinceNow))))
+        } catch {
+            return false
+        }
+    }
+    return await router.isCloudOpen(speaker: speaker)
 }
 
 /// Mac motorunu hazırlar ve bekletilen sesten başlayarak Mac oturumunu çalıştırır; olayları zaman çizgisine kaydırıp
@@ -481,7 +611,8 @@ func shiftedLocalEvent(event: LiveSessionEvent, timeline: LocalTimeline) -> Live
         ))
     case .captureEnded:
         return nil
-    case .languageLocked, .recordingFailed, .speakersAssigned, .streamFailed, .streamIncomplete, .diarizationFailed, .liveEngineFellBack:
+    case .languageLocked, .recordingFailed, .speakersAssigned, .streamFailed, .streamIncomplete, .diarizationFailed, .liveEngineFellBack,
+         .liveTextReconnecting, .liveTextReconnected:
         return event
     }
 }

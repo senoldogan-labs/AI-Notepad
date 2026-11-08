@@ -70,7 +70,7 @@ struct PhoneSettingsTab: View {
             versionFooter
         }
         // Kayan satırlar durum çubuğunun ve başlığın arkasında yarı saydam görünmesin: üst kenar sert biter.
-        .scrollEdgeEffectStyle(.hard, for: .top)
+        .hardTopScrollEdge()
         .navigationTitle("Ayarlar")
     }
 

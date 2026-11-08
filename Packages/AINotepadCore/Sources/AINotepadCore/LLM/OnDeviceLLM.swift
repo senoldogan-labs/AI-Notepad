@@ -23,7 +23,7 @@ public enum OnDeviceUnavailableReason: Sendable, Equatable {
     case appleIntelligenceNotEnabled
     /// Model henüz indirilmedi ya da hazırlanıyor.
     case modelNotReady
-    /// Sistem `FoundationModels`'ı içermiyor (macOS 26'dan eski).
+    /// Sistem `FoundationModels`'ı içermiyor (macOS 26'dan ya da iOS 26'dan eski).
     case requiresNewerSystem
     /// Sistemin bu sürümde tanımadığımız bir neden bildirdi.
     case unknown(detail: String)
@@ -50,17 +50,17 @@ public enum OnDeviceLLMError: Error, Equatable {
     case generationFailed(detail: String)
 }
 
-/// Cihaz içi model (`FoundationModels`) bu sistemde var mı: macOS 26 ve sonrası, iPhone'da (iOS 26+) her zaman. Arayüz
+/// Cihaz içi model (`FoundationModels`) bu sistemde var mı: macOS 26 ve iOS 26 ve sonrası. Arayüz
 /// seçeneği bununla kapatır; `onDeviceConfig` ve istekler aynı koşulda `unavailable(reason: .requiresNewerSystem)` atar.
 public func onDeviceLLMSupportedBySystem() -> Bool {
-    if #available(macOS 26.0, *) {
+    if #available(macOS 26.0, iOS 26.0, *) {
         return true
     }
     return false
 }
 
 /// Sistemin bildirdiği kullanılabilirliği nedene çevirir; kullanılabiliyorsa nil. Saf fonksiyondur.
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 public func onDeviceUnavailableReason(availability: SystemLanguageModel.Availability) -> OnDeviceUnavailableReason? {
     switch availability {
     case .available:
@@ -96,7 +96,7 @@ public func onDeviceUnavailableMessage(reason: OnDeviceUnavailableReason) -> Str
 /// `OnDeviceLLMError.unavailable`. Sağlayıcı dilden bağımsızdır: istemler dili kendileri taşır, iş başlatan yer dili
 /// `requireOnDeviceLanguages` ile denetler. Sistem eskiyse `unavailable(reason: .requiresNewerSystem)`.
 public func onDeviceConfig() throws -> OnDeviceConfig {
-    guard #available(macOS 26.0, *) else {
+    guard #available(macOS 26.0, iOS 26.0, *) else {
         throw OnDeviceLLMError.unavailable(reason: .requiresNewerSystem)
     }
     let model: SystemLanguageModel = onDeviceModel()
@@ -364,7 +364,7 @@ private final class RawJSONSchema: Decodable {
 }
 
 /// Şema düğümünü sistemin dinamik şemasına çevirir; iç içe nesneler yol adlarıyla tekil adlandırılır.
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 private func dynamicSchema(node: JSONSchemaNode, name: String) -> DynamicGenerationSchema {
     switch node {
     case .string(let choices):
@@ -390,7 +390,7 @@ private func dynamicSchema(node: JSONSchemaNode, name: String) -> DynamicGenerat
 }
 
 /// Şema metninden yönlendirmeli üretim şeması; çevrilemezse `LLMError.invalidSchema`.
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 private func generationSchema(schemaText: String) throws -> GenerationSchema {
     do {
         return try GenerationSchema(root: dynamicSchema(node: try parseJSONSchema(text: schemaText), name: "Yanit"), dependencies: [])
@@ -408,13 +408,13 @@ private let onDeviceAttempts: Int = 3
 
 /// Toplantı metnini özetleyip çeviren istekler için model: güvenlik denetimi kullanıcının verdiği metni dönüştürmeye
 /// izin veren ayarda (toplantıda geçen sıradan sözler yanlışlıkla engellenmesin).
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 private func onDeviceModel() -> SystemLanguageModel {
     SystemLanguageModel(useCase: .general, guardrails: .permissiveContentTransformations)
 }
 
 /// İstemin token sayısı: sistem sayabiliyorsa (macOS/iOS 26.4+) gerçek sayı, değilse tahmin.
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 private func promptTokens(model: SystemLanguageModel, instructions: String, prompt: String, schema: GenerationSchema?) async throws -> Int {
     if #available(macOS 26.4, iOS 26.4, *) {
         var schemaTokens: Int = 0
@@ -428,7 +428,7 @@ private func promptTokens(model: SystemLanguageModel, instructions: String, prom
 
 /// Sistemin üretim hatasını uygulamanın hatasına çevirir: bozuk/boş yanıt ve reddetme `LLMError` olarak kalır ki
 /// `requestStructured` yeniden sorsun ve mesajlar ortak olsun.
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 private func mappedGenerationError(error: LanguageModelSession.GenerationError, promptTokens: Int, contextTokens: Int) -> any Error {
     switch error {
     case .exceededContextWindowSize:
@@ -453,7 +453,7 @@ private func mappedGenerationError(error: LanguageModelSession.GenerationError, 
 }
 
 /// Hazırlanmış cihaz içi çağrı: model, sıkıştırılmış istem, şema ve yanıt sınırı.
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 private struct PreparedOnDeviceCall {
     let model: SystemLanguageModel
     let instructions: String
@@ -464,7 +464,7 @@ private struct PreparedOnDeviceCall {
 }
 
 /// İsteği cihaz içi model için hazırlar: kullanılabilirlik, şema ve bağlam bütçesi denetlenir.
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 private func prepareOnDeviceCall(config: OnDeviceConfig, request: LLMRequest) async throws -> PreparedOnDeviceCall {
     let model: SystemLanguageModel = onDeviceModel()
     if let reason = onDeviceUnavailableReason(availability: model.availability) {
@@ -484,7 +484,7 @@ private func prepareOnDeviceCall(config: OnDeviceConfig, request: LLMRequest) as
 
 /// İsteği cihaz içi modelle yanıtlar; şema varsa yönlendirmeli üretimle JSON döner (mevcut ayrıştırıcılar aynen
 /// kullanılır). Sistem kısıtlarsa (`rateLimited`) 3 deneme (uyarı logu); diğer hatalar kesindir.
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 func sendOnDevice(config: OnDeviceConfig, request: LLMRequest) async throws -> String {
     let call: PreparedOnDeviceCall = try await prepareOnDeviceCall(config: config, request: request)
     var lastError: any Error = LLMError.empty
@@ -513,7 +513,7 @@ func sendOnDevice(config: OnDeviceConfig, request: LLMRequest) async throws -> S
 
 /// İsteği cihaz içi modelle akışla yanıtlar: her ara görüntüde o ana kadarki metin `onText`'e verilir, sonunda tam
 /// metin döner. Akış yeniden denenmez (kullanıcı yarım cevabı görmüş olabilir).
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 func streamOnDevice(config: OnDeviceConfig, request: LLMRequest, onText: LLMTextHandler) async throws -> String {
     let call: PreparedOnDeviceCall = try await prepareOnDeviceCall(config: config, request: request)
     let session: LanguageModelSession = LanguageModelSession(model: call.model, tools: [], instructions: call.instructions)

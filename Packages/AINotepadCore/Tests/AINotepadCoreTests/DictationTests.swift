@@ -143,7 +143,7 @@ import Testing
 struct DictationOnDeviceTests {
     // İngilizce ve Fince fikstür, yapıştırılacak noktalamalı metne dönüşür; ses hiçbir yere gönderilmez.
     @Test func dictatesFixturesOnDevice() async throws {
-        guard #available(macOS 26.0, *) else {
+        guard #available(macOS 26.0, iOS 26.0, *) else {
             return
         }
         let engine: AppleDictationEngine = AppleDictationEngine()
@@ -160,7 +160,7 @@ struct DictationOnDeviceTests {
     // Akış yolu: fikstür mikrofon gibi gerçek zamanlı parçalarla gelir; dinlerken ara metin oluşur, akış bitince tüm metin
     // döner.
     @Test func streamsFixtureWhileListening() async throws {
-        guard #available(macOS 26.0, *) else {
+        guard #available(macOS 26.0, iOS 26.0, *) else {
             return
         }
         let engine: AppleDictationEngine = AppleDictationEngine()
@@ -180,7 +180,7 @@ struct DictationOnDeviceTests {
     // Bırakma → metin gecikmesi: eski yol (kayıt bitince tümü) ve akış yolu (yalnız kuyruk), ~3 sn ve ~15 sn dikte.
     // Sayılar test çıktısına yazılır (PR'daki ölçüm).
     @Test func measuresReleaseLatency() async throws {
-        guard #available(macOS 26.0, *) else {
+        guard #available(macOS 26.0, iOS 26.0, *) else {
             return
         }
         let engine: AppleDictationEngine = AppleDictationEngine()

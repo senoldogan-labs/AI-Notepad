@@ -121,6 +121,7 @@ struct RecordingActivityAttributes: ActivityAttributes {
 struct StartRecordingIntent: AudioRecordingIntent {
     static let title: LocalizedStringResource = "Toplantıyı kaydet"
     static let description: IntentDescription = IntentDescription("Gistsmith'le yüz yüze toplantıyı kaydetmeye başlar; uygulama açılmadan kilit ekranında görünür.")
+    @available(iOS 26.0, *)
     static let supportedModes: IntentModes = [.background, .foreground(.dynamic)]
 
     #if !WIDGET_EXTENSION
@@ -134,7 +135,7 @@ struct StartRecordingIntent: AudioRecordingIntent {
         let recorder: PhoneRecorder = sessions.session.recorder
         router.showHome()
         if !canStartRecordingInBackground() {
-            try await continueInForeground(nil, alwaysConfirm: false)
+            try await continueRecordingInForeground()
         }
         await recorder.start()
         #endif
@@ -147,6 +148,7 @@ struct StartRecordingIntent: AudioRecordingIntent {
 /// kayıt yoksa `stop` yalnız kalan canlı etkinliği kaldırır); açma süren kayda dokunmaz.
 struct ToggleRecordingIntent: SetValueIntent, AudioRecordingIntent {
     static let title: LocalizedStringResource = "Kaydı başlat ya da bitir"
+    @available(iOS 26.0, *)
     static let supportedModes: IntentModes = [.background, .foreground(.dynamic)]
 
     @Parameter(title: "Kayıt")
@@ -170,13 +172,47 @@ struct ToggleRecordingIntent: SetValueIntent, AudioRecordingIntent {
         }
         router.showHome()
         if !canStartRecordingInBackground() {
-            try await continueInForeground(nil, alwaysConfirm: false)
+            try await continueRecordingInForeground()
         }
         await recorder.start()
         #endif
         return .result()
     }
 }
+
+/// iOS 18–25'te kayıt arka planda başlayamadı (giriş, yapay zekâ onayı, abonelik ya da mikrofon izni gerekiyor; bunlar
+/// yalnız önde sorulabilir): niyet ne yapılacağını söyleyen hatayla biter. Uygulamayı öne getiren `supportedModes` ve
+/// `continueInForeground` iOS 26'da geldi; eski yol `ForegroundContinuableIntent` uygulama eklentisinde yok, niyetin
+/// tanımı uygulamayla eklentide ayrışırdı.
+struct OpenAppToRecordError: Error, CustomLocalizedStringResourceConvertible {
+    var localizedStringResource: LocalizedStringResource {
+        "Kaydı başlatmak için Gistsmith'i aç: önce giriş, onay ya da mikrofon izni gerekiyor."
+    }
+}
+
+#if !WIDGET_EXTENSION
+extension StartRecordingIntent {
+    /// Uygulamayı öne getirip kaydı orada sürdürür (iOS 26+); eski sürümde `OpenAppToRecordError`.
+    @MainActor
+    fileprivate func continueRecordingInForeground() async throws {
+        guard #available(iOS 26.0, *) else {
+            throw OpenAppToRecordError()
+        }
+        try await continueInForeground(nil, alwaysConfirm: false)
+    }
+}
+
+extension ToggleRecordingIntent {
+    /// Uygulamayı öne getirip kaydı orada sürdürür (iOS 26+); eski sürümde `OpenAppToRecordError`.
+    @MainActor
+    fileprivate func continueRecordingInForeground() async throws {
+        guard #available(iOS 26.0, *) else {
+            throw OpenAppToRecordError()
+        }
+        try await continueInForeground(nil, alwaysConfirm: false)
+    }
+}
+#endif
 
 /// Bu anı işaretle (canlı etkinlikteki düğme, Kısayollar): uygulamayı açmadan notta öne çıkacak anı işaretler.
 struct MarkMomentIntent: LiveActivityIntent {

@@ -256,7 +256,7 @@ public func sendLLM(provider: LLMProvider, request: LLMRequest) async throws -> 
     case .onDevice(let config):
         try requireNoImages(request: request, provider: "Apple Intelligence")
         try requireNoWebSearch(request: request, provider: "Apple Intelligence")
-        guard #available(macOS 26.0, *) else {
+        guard #available(macOS 26.0, iOS 26.0, *) else {
             throw OnDeviceLLMError.unavailable(reason: .requiresNewerSystem)
         }
         return try await sendOnDevice(config: config, request: request)

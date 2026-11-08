@@ -22,13 +22,13 @@ struct HostedLiveChoice {
 /// Kaydın canlı motorunu seçer (toplantı oturumu açıldıktan sonra): sunucu `liveEngine: deepgram` diyorsa ilk jeton
 /// istenir; alınırsa Deepgram (model ve adres seçenekleri jetondan, sonraki her bağlantı yeni jeton alır; ilk jeton
 /// kullanılmadan atılır, yalnızca hakkı ve seçenekleri doğrular). Sunucu Mac'i önerirse, hak durumu bilinmiyorsa ya da
-/// jeton alınamazsa (bütçe, ağ, sunucu) Mac'te. Tanılamada yalnızca motor görünür (neden ve sağlayıcı yazılmaz). Jeton
-/// saklanmaz ve loglanmaz.
+/// jeton alınamazsa (bütçe, ağ, sunucu) cihazdaki motor (`localSpeechAvailable`: Mac'te her zaman, iPhone'da iOS 26+);
+/// o da yoksa canlı metin yok (`hostedLiveStartPlan`). Tanılamada yalnızca motor görünür (neden ve sağlayıcı yazılmaz).
+/// Jeton saklanmaz ve loglanmaz.
 @MainActor
-func hostedLiveChoice(language: MeetingLanguage, keyterms: [String]) async -> HostedLiveChoice {
+func hostedLiveChoice(language: MeetingLanguage, keyterms: [String], localSpeechAvailable: Bool) async -> HostedLiveChoice {
     guard hostedExpectedLiveEngine(account: .shared) == .deepgram else {
-        recordFeatureUsage(feature: .onDeviceLive)
-        return HostedLiveChoice(start: .local, engine: .whisperKit)
+        return hostedLiveChoiceWithoutCloud(localSpeechAvailable: localSpeechAvailable)
     }
     let client: HostedClient
     let meetingID: String
@@ -41,9 +41,8 @@ func hostedLiveChoice(language: MeetingLanguage, keyterms: [String]) async -> Ho
         meetingID = current
         grant = try await client.deepgramGrant(meetingID: meetingID)
     } catch {
-        seamsLogger.warning("Deepgram jetonu alınamadı, canlı metin Mac'te, hata: \(String(describing: error), privacy: .private)")
-        recordFeatureUsage(feature: .onDeviceLive)
-        return HostedLiveChoice(start: .local, engine: .whisperKit)
+        seamsLogger.warning("Deepgram jetonu alınamadı, canlı metin bulutta değil, hata: \(String(describing: error), privacy: .private)")
+        return hostedLiveChoiceWithoutCloud(localSpeechAvailable: localSpeechAvailable)
     }
     let source: DeepgramLiveSource = DeepgramLiveSource(
         language: language, keyterms: keyterms, options: hostedDeepgramListenOptions(grant: grant),
@@ -61,6 +60,19 @@ func hostedLiveChoice(language: MeetingLanguage, keyterms: [String]) async -> Ho
         return try await client.deepgramGrant(meetingID: meetingID).accessToken
     }
     return HostedLiveChoice(start: .deepgram(source), engine: .deepgram)
+}
+
+/// Bulut olmadan canlı metin: cihazdaki motor (kullanımı sayılır) ya da yok (iPhone, iOS 18–25: kayıt sürer, metin ve
+/// not kayıttan sonra; cihaz içi kullanım sayılmaz).
+@MainActor
+private func hostedLiveChoiceWithoutCloud(localSpeechAvailable: Bool) -> HostedLiveChoice {
+    switch hostedLiveStartPlan(cloudGranted: false, localSpeechAvailable: localSpeechAvailable) {
+    case .local, .cloud:
+        recordFeatureUsage(feature: .onDeviceLive)
+        return HostedLiveChoice(start: .local, engine: .whisperKit)
+    case .unavailable:
+        return HostedLiveChoice(start: .unavailable(message: userFacingMessage(error: AppleSpeechError.requiresNewerSystem)), engine: .whisperKit)
+    }
 }
 
 /// Sunucunun önerdiği canlı motor (son okunan hak durumundan): giriş yapılmış ve sunucu `deepgram` diyorsa bulut,
