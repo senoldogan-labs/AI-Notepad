@@ -12,6 +12,8 @@ struct PhoneSignInGate: View {
     let account: HostedAccount
     /// Başka bir hesapla giriş yapıldıysa hesap değişiminin beklediği, eski hesabın verisine yazan işler.
     let switchWaitsFor: [AccountDataWriter]
+    /// Oturum yokken bir bağlantı (`gistsmith://…`) geldi: girişten sonra açılacağı söylenir.
+    let isLinkWaiting: Bool
     /// Hesap hizmeti kullanılamıyorken "Yeniden dene"ye basıldı, okuma sürüyor.
     @State private var isRetrying: Bool = false
 
@@ -51,6 +53,11 @@ struct PhoneSignInGate: View {
                     Spacer(minLength: 32)
                     actions
                     VStack(spacing: 10) {
+                        if isLinkWaiting {
+                            NoticeText("Bağlantıyı açmak için giriş yap; giriş yapınca açılır.", severity: .info)
+                                .appFont(size: 13, weight: .regular)
+                                .frame(maxWidth: .infinity)
+                        }
                         PhoneAccountErrorText(account: account)
                         PhoneDeletedSubscriptionNotice(account: account)
                         PhoneAccountDataNotice(account: account, switchWaitsFor: switchWaitsFor)

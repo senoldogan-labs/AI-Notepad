@@ -1039,6 +1039,12 @@ export interface MeetingLinkCopy {
   readonly meta: PageMeta;
   readonly title: string;
   readonly text: string;
+  /** Uygulamada toplantıyı açan düğme (`gistsmith://meeting/<kimlik>`). */
+  readonly openButton: string;
+  /** Düğmenin altında: uygulama bu cihazda yoksa ne yapılacağı. */
+  readonly openHint: string;
+  /** Adımların başlığı (düğme işe yaramazsa toplantıyı elle bulmak). */
+  readonly stepsTitle: string;
   readonly steps: readonly string[];
   readonly ctaTitle: string;
   readonly ctaText: string;
@@ -2741,6 +2747,9 @@ export const copy: Copy = {
     },
     title: `This meeting is in your ${productName} app`,
     text: `Your AI assistant linked to a meeting note. Notes stay in the ${productName} app on your Mac and iPhone, so they don't open on the web.`,
+    openButton: `Open in ${productName}`,
+    openHint: `Nothing happened? ${productName} isn't on this device yet. Get it for iPhone or Mac below.`,
+    stepsTitle: "Or find it yourself",
     steps: [
       `Open ${productName} on your Mac or iPhone.`,
       "Find the meeting by its title or date in your meetings, or search for it.",

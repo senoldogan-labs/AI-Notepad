@@ -157,7 +157,16 @@ struct AINotepadiOSApp: App {
             // Paylaşım sayfasındaki "Gistsmith" (ses dosyası türleri project.yml'de): giriş kapısı açıkken gelen dosya da
             // kaybolmaz, ana ekran açılınca içe aktarılır (`PhoneImportHost`).
             .environment(sharedFiles)
-            .onOpenURL { (url: URL) in sharedFiles.receive(url: url) }
+            // `gistsmith://…` ve evrensel bağlantılar (`https://gistsmith.com/m/<kimlik>`) yerini açar; geri kalan adres
+            // paylaşım sayfasından gelen dosyadır.
+            .onOpenURL { (url: URL) in
+                guard let route = appLinkRoute(url: url) else {
+                    sharedFiles.receive(url: url)
+                    return
+                }
+                let store: PhoneStore = sessions.session.store
+                openPhoneAppLink(route: route, router: router, account: account, meetingIDs: store.meetings.map(\.id) + store.deletedMeetings.map(\.id))
+            }
             // Spotlight'taki toplantı sonucu o toplantıyı açar (hesapta yoksa açılmaz).
             .onContinueUserActivity(CSSearchableItemActionType) { (activity: NSUserActivity) in
                 guard let meetingID = spotlightMeetingID(activity: activity) else {
@@ -256,7 +265,7 @@ private struct PhoneAppRoot: View {
         let session: PhoneAccountSession = sessions.session
         Group {
             if phoneShowsSignInGate(requiresSignIn: account.requiresSignIn, isRecording: session.recorder.phase != .idle) {
-                PhoneSignInGate(account: account, switchWaitsFor: session.openWriters)
+                PhoneSignInGate(account: account, switchWaitsFor: session.openWriters, isLinkWaiting: router.isLinkWaitingForSignIn)
             } else if !phoneAIConsentGiven(account: account), consentRevision >= 0 {
                 // Onay hesap başına: başka hesapla girince açıklama o hesaba da gösterilir. Onay ayarda saklıdır (gözlenmez);
                 // `consentRevision` okunur ki onaylayınca görünüm yeniden çizilsin.
@@ -295,6 +304,16 @@ private struct PhoneAppRoot: View {
         .id(sessions.generation)
         // Önceki sürümlerin cihaz başına onayı ilk giren hesaba taşınır.
         .task(id: account.signedInUserIDCache) { migrateLegacyPhoneAIConsent(account: account) }
+        // Bağlantı toplantılar okunmadan (açılışta, girişten önce) geldiyse kimliği okununca cihazdakiyle eşleşir.
+        .onChange(of: session.store.meetings.count + session.store.deletedMeetings.count, initial: true) { (_: Int, _: Int) in
+            router.matchLinkedMeetings(meetingIDs: session.store.meetings.map(\.id) + session.store.deletedMeetings.map(\.id))
+        }
+        // Girişten sonra kapıdaki "bağlantı girişten sonra açılır" notu kalkar (bağlantının yeri yığında bekler).
+        .onChange(of: account.requiresSignIn) { (_: Bool, requiresSignIn: Bool) in
+            if !requiresSignIn {
+                router.isLinkWaitingForSignIn = false
+            }
+        }
         .task(id: account.dataState) {
             guard account.isAccountDataLoaded else {
                 return
@@ -664,6 +683,8 @@ final class PhoneRouter {
     var path: [PhoneRoute]
     /// Ana ekranın sol üstündeki kitaplık sayfası (tüm toplantılar, görevler, kişiler, klasörler, içe aktarma) açık.
     var isLibraryOpen: Bool = false
+    /// Oturum yokken bir bağlantı (`gistsmith://…`) geldi: giriş kapısı bağlantının girişten sonra açılacağını söyler.
+    var isLinkWaitingForSignIn: Bool = false
 
     init(path: [PhoneRoute]) {
         self.path = path
@@ -701,6 +722,27 @@ final class PhoneRouter {
     func show(meetingID: String) {
         isLibraryOpen = false
         path = [.meeting(meetingID)]
+    }
+
+    /// Sayfayı ana ekranın üstünde tek sayfa olarak açar (dışarıdan gelen bağlantı: Sor, İstatistikler).
+    func showAlone(route: PhoneRoute) {
+        isLibraryOpen = false
+        path = [route]
+    }
+
+    /// Yığındaki toplantı sayfalarının kimliğini cihazdaki toplantınınkiyle değiştirir (bağlantıdaki UUID'nin harf
+    /// büyüklüğü farklı olabilir; bkz. `linkedMeetingID`): silme sayfayı kapatsın, karşılaştırmalar tutsun. Bağlantı
+    /// açılınca ve toplantılar okunup değişince çağrılır; eşleşmeyen kimlik kalır ("Toplantı bulunamadı").
+    func matchLinkedMeetings(meetingIDs: [String]) {
+        let matched: [PhoneRoute] = path.map { (route: PhoneRoute) -> PhoneRoute in
+            guard case .meeting(let id) = route, let found = linkedMeetingID(linkID: id, meetingIDs: meetingIDs) else {
+                return route
+            }
+            return .meeting(found)
+        }
+        if matched != path {
+            path = matched
+        }
     }
 
     /// Görevlerim'i ana ekranın üstünde açar (görev bildirimi).

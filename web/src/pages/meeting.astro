@@ -1,13 +1,16 @@
 ---
 // Yapay zekâ asistanının verdiği toplantı bağlantısı (`/m/<kimlik>`, public/_redirects bu sayfayı sunar). Notlar yalnızca
-// uygulamalardadır: sayfa toplantıyı uygulamada nasıl bulacağını söyler ve uygulaması olmayanlara indirme yolunu gösterir.
-// Uygulamaların toplantı açan bir adresi yoktur (iPhone uygulamasında evrensel bağlantı ya da toplantı adresi yok); iki
-// uygulamaya da giden yol adımların altındaki kapanış kartındadır (CtaBand: Mac indirmesi ve App Store rozeti yan yana).
+// uygulamalardadır. iPhone'da uygulama yüklüyse bağlantı bu sayfaya hiç gelmez: evrensel bağlantı
+// (public/.well-known/apple-app-site-association) toplantıyı uygulamada açar. Buraya gelen (Mac, uygulamasız cihaz ya da
+// bağlantının tarayıcıda açıldığı yer) için birincil düğme "Open in Gistsmith" toplantıyı `gistsmith://meeting/<kimlik>`
+// ile açar (src/client/meeting-link.ts; kimlik geçersizse düğme gizli kalır). Altında uygulama yoksa ne yapılacağı ve
+// toplantıyı elle bulma adımları, en altta iki uygulamanın indirme yolu (CtaBand: Mac indirmesi ve App Store rozeti).
 // Metin sayfa ızgarasına (logoyla aynı sol kenar) hizalıdır. Arama motorlarına kapalıdır.
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
 import CtaBand from "../components/CtaBand.astro";
 import { copy, type MeetingLinkCopy } from "../copy";
+import Icon from "../components/Icon.astro";
 import { routes } from "../routes";
 
 const text: MeetingLinkCopy = copy.meetingLink;
@@ -19,6 +22,14 @@ const text: MeetingLinkCopy = copy.meetingLink;
     <div class="meeting-link__body">
       <h1 class="title-xl">{text.title}</h1>
       <p class="lead">{text.text}</p>
+      <div class="meeting-link__open hidden" id="meeting-open-box">
+        <a class="button button--primary" id="meeting-open" href={routes.download}>
+          {text.openButton}
+          <Icon name="arrow-right" size={18} class="" />
+        </a>
+        <p class="muted meeting-link__hint">{text.openHint}</p>
+      </div>
+      <h2 class="meeting-link__steps-title">{text.stepsTitle}</h2>
       <ol class="meeting-link__steps">
         {text.steps.map((step: string) => <li>{step}</li>)}
       </ol>
@@ -26,6 +37,10 @@ const text: MeetingLinkCopy = copy.meetingLink;
   </article>
   <CtaBand id="meeting-cta" title={text.ctaTitle} text={text.ctaText} common={copy.common} macHref={routes.download} />
 </Base>
+
+<script>
+  import "../client/meeting-link";
+</script>
 
 <style>
   .meeting-link {
@@ -39,10 +54,28 @@ const text: MeetingLinkCopy = copy.meetingLink;
     max-width: 46rem;
   }
 
+  .meeting-link__open {
+    display: grid;
+    justify-items: start;
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  .meeting-link__hint {
+    margin: 0;
+    font-size: 0.9375rem;
+  }
+
+  .meeting-link__steps-title {
+    margin: 16px 0 0;
+    font-size: 1.0625rem;
+    font-weight: 600;
+  }
+
   .meeting-link__steps {
     display: grid;
     gap: 8px;
-    margin: 8px 0 0;
+    margin: 0;
     padding-left: 1.25em;
     font-size: 1.0625rem;
   }

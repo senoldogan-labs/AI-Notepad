@@ -284,6 +284,9 @@ struct AINotepadApp: App {
         AppDelegate.onOpenSpotlightMeeting = { (meetingID: String) -> Void in
             Task { await openSpotlightMeeting(meetingID: meetingID) }
         }
+        AppDelegate.onAppLink = { (route: AppLinkRoute) -> Void in
+            openMacAppLink(route: route, router: router, meetingIDs: model.meetings.map(\.id))
+        }
         model.onAutoRecord = {
             guard !model.isRecording else {
                 return
@@ -456,9 +459,11 @@ struct AINotepadApp: App {
                 #if HOSTED_EDITION
                 // Giriş kapısı: oturum yoksa yalnızca giriş ekranı (kenar çubuğu, toplantılar, ayarlar ve kayıt yok).
                 if HostedAccount.shared.requiresSignIn {
-                    HostedSignInGate(account: .shared)
+                    HostedSignInGate(account: .shared, isLinkWaiting: router.isLinkWaitingForSignIn)
                 } else {
                     mainWindow
+                        // Girişten sonra kapıdaki "bağlantı girişten sonra açılır" notu kalkar.
+                        .onAppear { router.isLinkWaitingForSignIn = false }
                 }
                 #else
                 mainWindow
@@ -609,6 +614,10 @@ struct AINotepadApp: App {
             }
         )
         .environment(dictation)
+        // Bağlantı toplantılar okunmadan (açılışta, girişten önce) geldiyse kimliği okununca cihazdakiyle eşleşir.
+        .onChange(of: model.meetings.count, initial: true) { (_: Int, _: Int) in
+            matchLinkedMeeting(router: router, meetingIDs: model.meetings.map(\.id))
+        }
     }
 
     private var menuSymbol: String {

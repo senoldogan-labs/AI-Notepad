@@ -153,9 +153,16 @@ targets:
         # planda indirilir (Ayarlar › Genel'den kapatılabilir) ve uygulamadaki şeritte haber verilir.
         SUScheduledCheckInterval: 21600
         SUAutomaticallyUpdate: true
-        # Adres şeması kaydı yok: giriş ASWebAuthenticationSession ile yapılır, dönüş
+        # Girişin adres şeması kayıtlı değil: giriş ASWebAuthenticationSession ile yapılır, dönüş
         # (com.senoldogan.ainotepad.hosted://auth/<apple|google>#idToken=…) Launch Services'e uğramadan doğrudan o
         # oturuma gelir (bkz. App/Hosted/HostedAccount.swift). Başka bir uygulama ya da eski bir kopya dönüşü alamaz.
+        # Kayıtlı tek şema `gistsmith://` (iPhone'la aynı): sitedeki "Open in Gistsmith" düğmesi ve uygulama içi etkinlik
+        # bağlantısı uygulamada bir yer açar (bkz. Packages/AINotepadCore/.../Meeting/AppLinks.swift, App/MacAppLinks.swift).
+        # Evrensel bağlantı (Associated Domains) Mac'te yok: Developer ID imzası bu yetki için profil ister; Mac'te
+        # https://gistsmith.com/m/<kimlik> sitede açılır, oradaki düğme `gistsmith://` ile uygulamaya geçer.
+        CFBundleURLTypes:
+          - CFBundleURLName: com.senoldogan.AINotepad.hosted.links
+            CFBundleURLSchemes: [gistsmith]
         # Sunucu ve site adresleri derleme ayarlarından (aşağıda `configs`).
         HostedAPIBase: "$(HOSTED_API_BASE)"
         HostedSiteBase: "$(HOSTED_SITE_BASE)"
@@ -321,8 +328,11 @@ targets:
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "Gistsmith yüz yüze toplantıyı yazıya dökmek için mikrofonu kullanır."
         # RevenueCat projesi "Gistsmith", uygulama "Gistsmith iOS"; herkese açık SDK anahtarı (tasarım gereği gizli değil).
         REVENUECAT_API_KEY: appl_ieKXerVuheTnPCIeSxTSxcEuefx
-        # Yetki dosyası yok: giriş ASWebAuthenticationSession ile sitede (Apple ile giriş yetkisi gerekmez), iCloud
-        # eşitlemesi bu sürümde kapalı, DeviceCheck yetki istemez.
+        # Tek yetki evrensel bağlantılar (Associated Domains, `applinks:gistsmith.com`): yapay zekâ asistanının verdiği
+        # https://gistsmith.com/m/<kimlik> uygulamada açılır. Arşivde -allowProvisioningUpdates App ID'ye yeteneği ekler.
+        # Giriş ASWebAuthenticationSession ile sitede (Apple ile giriş yetkisi gerekmez), iCloud eşitlemesi bu sürümde
+        # kapalı, DeviceCheck yetki istemez.
+        CODE_SIGN_ENTITLEMENTS: iOS/AINotepadiOS.entitlements
         MARKETING_VERSION: "0.2.2"
         CURRENT_PROJECT_VERSION: "46"
       configs:
@@ -380,6 +390,12 @@ targets:
         HostedKeychainService: "$(HOSTED_KEYCHAIN_SERVICE)"
         # Giriş: ASWebAuthenticationSession; dönüş (com.senoldogan.ainotepad.hosted://auth/…) adres şeması kaydı olmadan
         # doğrudan o oturuma gelir (bkz. App/Hosted/HostedAccount.swift).
+        # Bağlantılar: `gistsmith://record|ask|tasks|insights|meeting/<kimlik>` (App Store'daki uygulama içi etkinlik,
+        # sitedeki "Open in Gistsmith") ve evrensel bağlantılar (iOS/AINotepadiOS.entitlements; site
+        # web/public/.well-known/apple-app-site-association). Ayrıştırıcı Packages/AINotepadCore/.../Meeting/AppLinks.swift.
+        CFBundleURLTypes:
+          - CFBundleURLName: com.senoldogan.AINotepad.hosted.links
+            CFBundleURLSchemes: [gistsmith]
         HostedAPIBase: "$(HOSTED_API_BASE)"
         HostedSiteBase: "$(HOSTED_SITE_BASE)"
         # RevenueCat'in herkese açık iOS SDK anahtarı (gizli değildir; Debug ve Release aynı, bkz. iOS/Purchases/).

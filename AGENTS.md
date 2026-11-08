@@ -15,6 +15,10 @@ Tasarım: `docs/superpowers/specs/`. Planlar: `docs/superpowers/plans/`.
   sayfasını, `--toplanti <kimlik>` toplantıyı açar (onunla `--kaynak` özetin ilk maddesinin kaynak kutusunu, `--sor-ornek` "Bir şey sor" panelini sahte bir cevapla, `--cekmece` transkript çekmecesini açık gösterir), `--ayar konusmacilar` Ayarlar'ı o bölüme kaydırır; `--ornek-kayit` örnek canlı kaydı (`--ornek-bitir` ile bitiriliyor katmanını, `--ornek-duraklat` ile duraklatılmış hâlini, `--ornek-sinir` ile çevrimdışı ve aylık sınırla kısaltılmış hâlini) gösterir; `--ornek-takvim` örnek sıradaki toplantıları gösterir; `--karsilama` ilk açılış karşılamasını (`--karsilama-adim <welcome|calendar|permissions|sample|ready>` o adımdan, `--karsilama-ornek <canli|not>` örnek toplantıyı sürerken ya da notuyla) açar. Abonelik RevenueCat'le (`iOS/Purchases/`); şemadaki `Products.storekit` yalnızca Xcode'da
   Run'da geçerlidir — `xcodebuild`/`simctl` başlatması StoreKit sandbox'ını kullanır (Apple FB22237318), UI testi bu
   yüzden yok.
+- Bağlantılar (iPhone ve Mac'teki Gistsmith): `gistsmith://record|ask|tasks|insights|meeting/<kimlik>` (ayrıştırıcı
+  `Meeting/AppLinks.swift`; `record` kaydı başlatmaz). iPhone'da evrensel bağlantı `https://gistsmith.com/m/<kimlik>` ve
+  `/open/<yol>` (`iOS/AINotepadiOS.entitlements`, site `web/public/.well-known/apple-app-site-association`); Mac'te
+  Developer ID yüzünden yalnız şema. Simülatörde ilk açılışta sistem "ile Açılsın mı?" diye sorar.
 - Uygulamadan arama pilotu (`iOS/PhoneDialer/`: CallKit + Twilio Voice SDK, sunucuda `server/src/phone/`; tasarım
   `docs/superpowers/specs/2026-11-08-iphone-call-recording.md`): yalnız `PHONE_DIALER=YES` derlemesinde (Debug'da açık,
   Release'de kapalı; pilot TestFlight arşivine komut satırından verilir) ve sunucu `PHONE_CALLS_POLICY=on` iken görünür

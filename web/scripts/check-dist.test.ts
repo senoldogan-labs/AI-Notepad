@@ -242,3 +242,34 @@ test("every local script, stylesheet and image a page loads exists in the build"
   }
   assert.deepEqual(missing, [], `missing files: ${missing.slice(0, 10).join(", ")}`);
 });
+
+/** Evrensel bağlantı dosyasındaki bir uygulamanın kaydı (public/.well-known/apple-app-site-association). */
+interface AppLinkDetail {
+  readonly appIDs: readonly string[];
+  readonly components: readonly { readonly "/": string }[];
+}
+
+/** Evrensel bağlantı dosyası. */
+interface AppSiteAssociation {
+  readonly applinks: { readonly details: readonly AppLinkDetail[] };
+}
+
+test("universal links: the association file names the iPhone app and its paths, served as JSON without a redirect", async () => {
+  const association: AppSiteAssociation = JSON.parse(await distFile(".well-known/apple-app-site-association")) as AppSiteAssociation;
+  const details: readonly AppLinkDetail[] = association.applinks.details;
+  assert.deepEqual(
+    details.map((detail: AppLinkDetail): readonly string[] => detail.appIDs),
+    [["79DZ4AA4DW.com.senoldogan.AINotepad.hosted"]],
+  );
+  assert.deepEqual(
+    details.flatMap((detail: AppLinkDetail): string[] => detail.components.map((component: { readonly "/": string }): string => component["/"])),
+    ["/m/*", "/open/*"],
+  );
+  const headers: string = await distFile("_headers");
+  const rule: string = headers.split("\n\n").find((block: string): boolean => block.startsWith("/.well-known/apple-app-site-association\n")) ?? "";
+  assert.ok(rule.includes("Content-Type: application/json"), "_headers: apple-app-site-association JSON değil");
+  const redirects: string = await distFile("_redirects");
+  assert.ok(!/^\/\.well-known/m.test(redirects), "_redirects: .well-known yönlendiriliyor");
+  assert.match(redirects, /^\/open\/\*\s+\/download\s+302$/m);
+  assert.ok((await distFile("meeting.html")).includes('id="meeting-open"'), "meeting.html: Open in Gistsmith düğmesi yok");
+});
