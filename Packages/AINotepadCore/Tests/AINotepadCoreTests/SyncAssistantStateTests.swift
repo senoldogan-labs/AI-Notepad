@@ -47,6 +47,21 @@ import Testing
         #expect(step(.running(needsAnother: false), .timerFired) == AssistantPassStep(phase: .running(needsAnother: false), effect: .none))
         #expect(step(.waiting, .passSucceeded) == AssistantPassStep(phase: .waiting, effect: .none))
     }
+
+    // While turning off or removing this device runs, no pass starts: a change or a periodic refresh asking for one is
+    // ignored (its upload could land after the server deleted the copy); release opens it again, reset (account switch)
+    // too.
+    @Test func holdBlocksPassesUntilRelease() {
+        for phase in [AssistantPassPhase.idle, .waiting, .running(needsAnother: true), .held] {
+            #expect(step(phase, .hold) == AssistantPassStep(phase: .held, effect: .cancelWork))
+        }
+        for event in [AssistantPassEvent.requested(delaySeconds: 0), .requested(delaySeconds: 3), .timerFired, .passSucceeded, .passFailed(retryDelaySeconds: 30), .passStopped] {
+            #expect(step(.held, event) == AssistantPassStep(phase: .held, effect: .none))
+        }
+        #expect(step(.held, .release) == AssistantPassStep(phase: .idle, effect: .none))
+        #expect(step(.held, .reset) == AssistantPassStep(phase: .idle, effect: .cancelWork))
+        #expect(step(.running(needsAnother: false), .release) == AssistantPassStep(phase: .running(needsAnother: false), effect: .none))
+    }
 }
 
 @Suite struct AssistantLedgerWriteTests {

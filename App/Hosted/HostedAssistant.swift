@@ -235,7 +235,7 @@ final class HostedAssistantCenter {
         isChanging = true
         defer { isChanging = false }
         actionError = nil
-        await cancelPassesAndWait()
+        await holdPasses()
         do {
             let settings: HostedAssistantSettings = try await makeClient().setEnabled(enabled: false)
             apply(settings: settings)
@@ -243,11 +243,13 @@ final class HostedAssistantCenter {
         } catch {
             hostedAssistantLogger.error("Asistan erişimi kapatılamadı, hata: \(String(describing: error), privacy: .private)")
             actionError = hostedAssistantMessage(error: error)
+            send(event: .release)
             if isOn {
                 schedulePass(delaySeconds: 0)
             }
             return
         }
+        send(event: .release)
         hostedAssistantLogger.info("Asistan erişimi kapatıldı, kopya silindi")
     }
 
@@ -279,8 +281,8 @@ final class HostedAssistantCenter {
         isChanging = true
         defer { isChanging = false }
         actionError = nil
-        // Süren yükleme sunucuda silmeden sonra bitmesin (kaldırılan toplantı geri yüklenirdi).
-        await cancelPassesAndWait()
+        // Yükleme sunucuda silmeden sonra bitmesin (kaldırılan toplantı geri yüklenirdi).
+        await holdPasses()
         do {
             let defaults: UserDefaults = try hostedAccountDefaults(accountKey: scope.accountKey)
             _ = try await makeClient().deleteDevice(deviceID: try deviceID(defaults: defaults))
@@ -289,10 +291,12 @@ final class HostedAssistantCenter {
         } catch {
             hostedAssistantLogger.error("Bu cihazın toplantıları kopyadan kaldırılamadı, hata: \(String(describing: error), privacy: .private)")
             actionError = hostedAssistantMessage(error: error)
+            send(event: .release)
             schedulePass(delaySeconds: 0)
             return
         }
         isDeviceExcluded = true
+        send(event: .release)
         progress = nil
         uploadStatus = .idle
         await refresh()
@@ -541,20 +545,22 @@ final class HostedAssistantCenter {
         periodicTask = nil
     }
 
-    /// Süren ve bekleyen geçişleri durdurur (defter diskte kalır); iptal edilen geçişin görevini döndürür.
-    @discardableResult
-    private func cancelPasses() -> Task<Void, Never>? {
-        let running: Task<Void, Never>? = passTask
+    /// Süren ve bekleyen geçişleri durdurur (defter diskte kalır).
+    private func cancelPasses() {
         generation += 1
         send(event: .reset)
         consecutiveFailures = 0
-        return running
     }
 
-    /// Geçişleri durdurur ve süren geçişin bitmesini bekler: ardından gelen sunucu isteği (kapatma, cihazı kaldırma)
-    /// ondan sonra çalışır ve geçiş defteri geri yazamaz (`AssistantUploaderError.ledgerForgotten`).
-    private func cancelPassesAndWait() async {
-        await cancelPasses()?.value
+    /// Kopyayı değiştiren eylemden önce: süren ve bekleyen geçişler durur, süren geçişin bitmesi beklenir ve eylem
+    /// `send(event: .release)` diyene dek yeni geçiş başlamaz. Böylece eylemin sunucu isteği (kapatma, cihazı kaldırma)
+    /// hiçbir yüklemeyle iç içe geçmez ve geçiş defteri geri yazamaz (`AssistantUploaderError.ledgerForgotten`).
+    private func holdPasses() async {
+        let running: Task<Void, Never>? = passTask
+        generation += 1
+        send(event: .hold)
+        consecutiveFailures = 0
+        await running?.value
     }
 
     private func stop() {

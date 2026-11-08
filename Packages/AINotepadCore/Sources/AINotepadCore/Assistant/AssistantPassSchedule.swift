@@ -13,6 +13,9 @@ public enum AssistantPassPhase: Sendable, Equatable {
     case waiting
     /// Bir geçiş sürüyor; `needsAnother`: bu sırada yeni değişiklik geldi, geçiş başarıyla bitince bir geçiş daha.
     case running(needsAnother: Bool)
+    /// Sunucuda kopyayı değiştiren bir eylem (kapatma, "bu cihazı kaldır") sürüyor: geçiş başlamaz, istekler yok sayılır
+    /// (eylemden sonra biten bir yükleme kaldırılan toplantıyı geri koyardı). Yalnızca `release` ya da `reset` çıkarır.
+    case held
 }
 
 /// Zamanlamayı değiştiren olaylar.
@@ -26,8 +29,12 @@ public enum AssistantPassEvent: Sendable, Equatable {
     case passFailed(retryDelaySeconds: Double)
     /// Geçiş iptal edildi ya da başlayamadı (özellik kapandı, defter unutuldu): yeniden denenmez.
     case passStopped
-    /// Bütün iş durduruldu (kapatma, cihazı kaldırma, hesap değişimi).
+    /// Bütün iş durduruldu (özellik kapandı, hesap değişti).
     case reset
+    /// Kopyayı değiştiren eylem başlıyor: süren iş durur, eylem bitene dek geçiş başlamaz.
+    case hold
+    /// Eylem bitti: geçişler yeniden istenebilir.
+    case release
 }
 
 /// Uygulamanın geçişten sonra yapacağı yan etki.
@@ -59,6 +66,13 @@ public func assistantPassStep(phase: AssistantPassPhase, event: AssistantPassEve
     switch (phase, event) {
     case (_, .reset):
         return AssistantPassStep(phase: .idle, effect: .cancelWork)
+    case (_, .hold):
+        return AssistantPassStep(phase: .held, effect: .cancelWork)
+    case (.held, .release):
+        return AssistantPassStep(phase: .idle, effect: .none)
+    case (.held, .requested), (.held, .timerFired), (.held, .passSucceeded), (.held, .passFailed), (.held, .passStopped),
+        (.idle, .release), (.waiting, .release), (.running, .release):
+        return unchanged
     case (.running, .requested):
         return AssistantPassStep(phase: .running(needsAnother: true), effect: .none)
     case (.idle, .requested(let delay)), (.waiting, .requested(let delay)):

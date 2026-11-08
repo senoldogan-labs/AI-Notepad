@@ -584,8 +584,8 @@ final class HostedSyncCenter {
     }
 
     /// Hatanın türüne göre: yeniden deneme (artan beklemeyle), kod isteme ya da başka cihazda kapatılınca bu cihazda
-    /// bırakma. Hiçbir yerel veri silinmez. Motor durdurulurken hesap değişirse (ya da eşitleme yeniden kurulursa) eski
-    /// hesabın sonucu yalnızca o hesabın kayıtlarına yazılır; görünen durum yenisinindir.
+    /// bırakma. Hiçbir yerel veri silinmez. Motor durdurulurken eşitleme yeniden kurulur ya da hesap değişirse hata
+    /// eskimiştir: yeni çalışmaya dokunulmaz (hesap hâlâ kapalıysa ya da kod gerekiyorsa yeni çalışma da aynı hatayı alır).
     private func fail(error: any Error) {
         guard let scope else {
             return
@@ -594,21 +594,15 @@ final class HostedSyncCenter {
         switch syncFailureKind(error: error) {
         case .turnedOffElsewhere:
             Task {
-                guard let stopped = await stopEngineForFailure(scope: scope, generation: current) else {
+                guard await stopEngineForFailure(scope: scope, generation: current) else {
                     return
                 }
-                persistOff(accountKey: scope.accountKey)
-                guard hostedStampIsCurrent(stamp: stopped, generation: generation, accountKey: self.scope?.accountKey, userID: self.scope?.userID) else {
-                    return
-                }
-                showOff()
+                markOff(accountKey: scope.accountKey)
                 notice = String(localized: "Eşitleme başka bir cihazda kapatıldı. Bu cihazdaki toplantılar yerinde kalır.")
             }
         case .needsLinkCode:
             Task {
-                guard let stopped = await stopEngineForFailure(scope: scope, generation: current),
-                    hostedStampIsCurrent(stamp: stopped, generation: generation, accountKey: self.scope?.accountKey, userID: self.scope?.userID)
-                else {
+                guard await stopEngineForFailure(scope: scope, generation: current) else {
                     return
                 }
                 linkCode = nil
@@ -619,21 +613,25 @@ final class HostedSyncCenter {
         }
     }
 
-    /// Kalıcı bir hatadan sonra motoru durdurur ve bu hesabın anahtarını ile eşitleme kayıtlarını bu cihazdan siler.
-    /// Hata geldikten sonra eşitleme yeniden kurulduysa, durdurulduysa ya da hesap değiştiyse bir şey yapmaz ve nil
-    /// döner; yoksa durdurmanın damgasını döndürür (çağıran, beklerken bir şey değişmediyse durumu yazar).
-    private func stopEngineForFailure(scope failed: (accountKey: String, userID: String), generation failedGeneration: Int) async -> HostedScopeStamp? {
+    /// Kalıcı bir hatadan sonra motoru durdurur ve bu hesabın anahtarını ve eşitleme kayıtlarını bu cihazdan siler; true
+    /// döndürürse çağıran durumu hemen (arada beklemeden) yazar. Hata geldikten sonra ya da motor dururken eşitleme
+    /// yeniden kurulduysa, durdurulduysa ya da hesap değiştiyse hiçbir şey silinmez ve false döner: yeni motorun anahtarı
+    /// eski çalışmanın hatasıyla silinmesin.
+    private func stopEngineForFailure(scope failed: (accountKey: String, userID: String), generation failedGeneration: Int) async -> Bool {
         guard failedGeneration == generation, let scope, scope == failed else {
-            return nil
+            return false
         }
-        await stopEngine()
-        let stamp: HostedScopeStamp = HostedScopeStamp(generation: generation, accountKey: failed.accountKey, userID: failed.userID)
+        let stopped: HostedScopeStamp = HostedScopeStamp(generation: await stopEngine(), accountKey: failed.accountKey, userID: failed.userID)
+        guard hostedStampIsCurrent(stamp: stopped, generation: generation, accountKey: self.scope?.accountKey, userID: self.scope?.userID) else {
+            hostedSyncLogger.info("Eşitleme motor dururken yeniden kuruldu ya da hesap değişti; eski hata uygulanmadı")
+            return false
+        }
         do {
             try forgetSyncOnDevice(keyStore: try keyStore(accountKey: failed.accountKey), metadataDirectory: try metadataDirectory(accountKey: failed.accountKey))
         } catch {
             hostedSyncLogger.error("Eşitleme bu cihazda bırakılamadı, hata: \(String(describing: error), privacy: .private)")
         }
-        return stamp
+        return true
     }
 
     private func scheduleRetry(message: String) {
@@ -679,9 +677,12 @@ final class HostedSyncCenter {
         }
     }
 
-    /// Motoru durdurur (süren geçiş biter); bekleyen iş diskte kalır, sonraki açılışta sürer.
-    private func stopEngine() async {
+    /// Motoru durdurur (süren geçiş biter); bekleyen iş diskte kalır, sonraki açılışta sürer. Beklemeden önce verdiği
+    /// kuşağı döndürür: beklemeden sonra onu karşılaştıran iş, arada gelen yeniden kurulumu görür.
+    @discardableResult
+    private func stopEngine() async -> Int {
         generation += 1
+        let stopped: Int = generation
         periodicTask?.cancel()
         periodicTask = nil
         retryTask?.cancel()
@@ -691,17 +692,15 @@ final class HostedSyncCenter {
             self.engine = nil
             await engine.stop()
         }
-        isEngineRunning = false
+        // Eski motor geçişini bitirirken yenisi kurulmuş olabilir.
+        if stopped == generation {
+            isEngineRunning = false
+        }
+        return stopped
     }
 
-    /// Eşitlemeyi bu hesapta bu cihaz için kapalı yazar ve kapalı gösterir.
+    /// Eşitlemeyi bu hesapta bu cihaz için kapalı yazar.
     private func markOff(accountKey: String) {
-        persistOff(accountKey: accountKey)
-        showOff()
-    }
-
-    /// Eşitlemeyi bu hesabın kayıtlarında bu cihaz için kapalı yazar (görünen duruma dokunmaz).
-    private func persistOff(accountKey: String) {
         do {
             let defaults: UserDefaults = try hostedAccountDefaults(accountKey: accountKey)
             defaults.set(false, forKey: HostedSyncDefaultsKey.enabled)
@@ -710,10 +709,6 @@ final class HostedSyncCenter {
         } catch {
             hostedSyncLogger.error("Eşitleme ayarı yazılamadı, hata: \(String(describing: error), privacy: .private)")
         }
-    }
-
-    /// Eşitlemeyi kapalı gösterir.
-    private func showOff() {
         isOn = false
         status = .off
         linkCode = nil
