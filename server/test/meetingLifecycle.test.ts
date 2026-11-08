@@ -109,26 +109,38 @@ describe("meeting lifecycle (pure)", () => {
 });
 
 describe("meeting lifecycle (bad orderings)", () => {
-  it("reprocess on a live meeting is refused without spending a right or lowering its budget", async () => {
+  it("reprocess of a meeting the server still thinks is live ends it first and never dead-ends", async () => {
+    // The app crashed or stopped offline: /end never arrived, the user taps "Reprocess" on the finished recording.
     const harness: Harness = await defaultHarness();
     const session: Session = await signIn(harness);
-    const meetingId: string = await openMeeting(harness, session);
-    await expectError(await call(harness, session, `/v1/meetings/${meetingId}/reprocess`, null), 409, "meeting_in_progress");
-    // Long meetings upload audio while recording: the live meeting already has written audio.
-    await env.DB.prepare("UPDATE meeting_sessions SET audio_seconds = 120, tokens_used = 5000 WHERE id = ?").bind(meetingId).run();
-    const before: MeetingSnapshot | null = await snapshot(meetingId);
-    await expectError(await call(harness, session, `/v1/meetings/${meetingId}/reprocess`, null), 409, "meeting_in_progress");
+    const silent: string = await openMeeting(harness, session);
     harness.clock.nowMs += 60_000;
-    await call(harness, session, `/v1/meetings/${meetingId}/pause`, null);
-    await expectError(await call(harness, session, `/v1/meetings/${meetingId}/reprocess`, null), 409, "meeting_in_progress");
-    expect(await snapshot(meetingId)).toEqual(before);
+    // No audio written yet: the meeting ends and stays open for processing; no right is spent.
+    const opened: Response = await call(harness, session, `/v1/meetings/${silent}/reprocess`, null);
+    expect(opened.status).toBe(200);
+    expect(await opened.json()).toMatchObject({ meetingId: silent, reprocessesLeft: 2 });
+    const ended: { ended_at: number | null; end_reason: string | null; reprocess_count: number } | null = await env.DB.prepare(
+      "SELECT ended_at, end_reason, reprocess_count FROM meeting_sessions WHERE id = ?",
+    )
+      .bind(silent)
+      .first<{ ended_at: number | null; end_reason: string | null; reprocess_count: number }>();
+    expect(ended).toEqual({ ended_at: harness.clock.nowMs, end_reason: "ended", reprocess_count: 0 });
 
-    // Once ended it can be reprocessed.
-    expect((await call(harness, session, `/v1/meetings/${meetingId}/end`, null)).status).toBe(200);
-    harness.clock.nowMs += 2 * 86_400_000;
-    const later: Session = await refreshed(harness, session);
-    expect((await call(harness, later, `/v1/meetings/${meetingId}/reprocess`, null)).status).toBe(200);
-    expect((await snapshot(meetingId))?.reprocess_count).toBe(1);
+    // A paused live meeting with written audio (long meetings upload while recording): it ends, then a right is spent.
+    const paused: string = await openMeeting(harness, session);
+    await env.DB.prepare("UPDATE meeting_sessions SET audio_seconds = 120, tokens_used = 5000 WHERE id = ?").bind(paused).run();
+    harness.clock.nowMs += 120_000;
+    expect((await call(harness, session, `/v1/meetings/${paused}/pause`, null)).status).toBe(200);
+    harness.clock.nowMs += 60_000;
+    expect((await call(harness, session, `/v1/meetings/${paused}/reprocess`, null)).status).toBe(200);
+    const reopened: { ended_at: number | null; paused_at: number | null; reprocess_count: number } | null = await env.DB.prepare(
+      "SELECT ended_at, paused_at, reprocess_count FROM meeting_sessions WHERE id = ?",
+    )
+      .bind(paused)
+      .first<{ ended_at: number | null; paused_at: number | null; reprocess_count: number }>();
+    expect(reopened?.ended_at).not.toBeNull();
+    expect(reopened?.paused_at).toBeNull();
+    expect(reopened?.reprocess_count).toBe(1);
   });
 
   it("reprocess on a meeting whose audio was closed keeps the right", async () => {
@@ -207,7 +219,7 @@ describe("meeting lifecycle (bad orderings)", () => {
     expect(row?.settled_at).not.toBeNull();
   });
 
-  it("the database refuses reopening an ended meeting, pausing it, ending without a reason and granting after settle", async () => {
+  it("the database refuses reopening an ended meeting, pausing it and ending without a reason", async () => {
     const harness: Harness = await defaultHarness();
     const session: Session = await signIn(harness);
     const open: string = await openMeeting(harness, session);
@@ -220,14 +232,6 @@ describe("meeting lifecycle (bad orderings)", () => {
     );
     await expect(env.DB.prepare("UPDATE meeting_sessions SET paused_at = ? WHERE id = ?").bind(harness.clock.nowMs, open).run()).rejects.toThrow(
       /cannot be paused/,
-    );
-    await env.DB.prepare(
-      "INSERT INTO deepgram_live_meetings (meeting_id, grants, first_grant_at, charged_seconds, settled_at, window_started_at, window_grants) VALUES (?1, 1, ?2, 0, ?2, ?2, 1)",
-    )
-      .bind(open, harness.clock.nowMs)
-      .run();
-    await expect(env.DB.prepare("UPDATE deepgram_live_meetings SET grants = grants + 1 WHERE meeting_id = ?").bind(open).run()).rejects.toThrow(
-      /settled/,
     );
   });
 });

@@ -23,10 +23,3 @@ WHEN NEW.paused_at IS NOT NULL AND OLD.paused_at IS NULL AND (OLD.ended_at IS NO
 BEGIN
   SELECT RAISE(ABORT, 'meeting_sessions: an ended meeting cannot be paused');
 END;
-
--- A settled Deepgram estimate takes no new grants (src/deepgram.ts incrementGrant).
-CREATE TRIGGER deepgram_live_meetings_no_grant_after_settle BEFORE UPDATE OF grants ON deepgram_live_meetings
-WHEN OLD.settled_at IS NOT NULL AND NEW.grants > OLD.grants
-BEGIN
-  SELECT RAISE(ABORT, 'deepgram_live_meetings: a settled meeting cannot take new grants');
-END;

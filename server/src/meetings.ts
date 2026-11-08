@@ -32,6 +32,7 @@ import {
   type MeetingPhase,
   type MeetingUse,
   type ReprocessRefusal,
+  isMeetingLive,
   meetingEndMs,
   meetingOpenUntil,
   meetingPhase,
@@ -638,19 +639,24 @@ export interface ReprocessedMeeting {
  * (yapay zekâ çağrıları zaten reddedilir) hak harcanmadan `503 spend_ceiling_reached`; deneme toplantısında deneme
  * tavanı doluysa ya da ElevenLabs kullanımı deneme durağını (`elevenLabsTrialStopRatio`) geçtiyse hak harcanmadan
  * `503 trial_capacity_reached`.
- * Yalnızca kaydı bitmiş toplantı (`meetingTransitions.reprocess`): canlı toplantı `meeting_in_progress`, ses hakkı kapanmış
- * toplantı `transcription_closed` (hak harcanmaz; koşul UPDATE'in kendisindedir, arada değişen durum da yakalanır).
+ * Yalnızca kaydı bitmiş toplantı (`meetingTransitions.reprocess`): sunucuda hâlâ canlı görünen toplantı önce bitirilir
+ * (istemci yalnızca bitmiş kaydı yeniden işler; `/end` gelmemiştir); ses hakkı kapanmış toplantı `transcription_closed`
+ * (hak harcanmaz). Koşul UPDATE'in kendisindedir: arada değişen durum `meeting_in_progress` ya da `transcription_closed`.
  * En çok `maxMeetingReprocesses` kez; aşılırsa `reprocess_limit_reached`. Başkasının ya da olmayan toplantı
  * `not_found`. Sayaç tek koşullu ifadeyle artar (eşzamanlı istekler sınırı aşamaz).
  */
 export async function reprocessMeeting(db: D1Database, platform: Platform, config: Config, userId: string, meetingId: string, now: Date): Promise<ReprocessedMeeting> {
-  const row: MeetingRow | null = await findMeeting(db, userId, meetingId);
-  if (row === null) {
+  const found: MeetingRow | null = await findMeeting(db, userId, meetingId);
+  if (found === null) {
     throw new ApiError("not_found", "Meeting session not found.");
   }
   const nowMs: number = now.getTime();
-  // Canlı toplantı yeniden işlenmez (bütçesi ve ses hakkı yeniden yazılmazdı); ses hakkı kapanmış toplantıda hak
-  // harcanmaz (ses yine reddedilirdi).
+  // İstemci yalnızca kaydı bitmiş toplantıyı yeniden işler ("Tekrar işle", not ya da son geçiş): sunucu toplantıyı hâlâ
+  // canlı sanıyorsa `/end` hiç gelmemiştir (uygulama çöktü ya da çevrimdışı durdu). Toplantı önce bitirilir
+  // (`meetingTransitions.end`), sonra yeniden işleme bitmiş toplantıdaki gibi sürer: canlı bütçe ve ses hakkı yeniden
+  // yazılmaz, kullanıcı çıkmaza girmez.
+  const row: MeetingRow = isMeetingLive(found, nowMs) ? await endStaleLiveMeeting(db, userId, meetingId, now) : found;
+  // Ses hakkı kapanmış toplantıda hak harcanmaz (ses yine reddedilirdi).
   const refusal: ReprocessRefusal | null = reprocessRefusal(row, nowMs);
   if (refusal !== null) {
     throw reprocessRefusalError(refusal);
@@ -700,6 +706,12 @@ export async function reprocessMeeting(db: D1Database, platform: Platform, confi
   }
   log("info", "meeting_reprocess_opened", { userId, meetingId, count: row.reprocess_count + 1, hasAccess, audioCap });
   return { meetingId, usableUntil: new Date(until).toISOString(), reprocessesLeft: Math.max(0, maxMeetingReprocesses - row.reprocess_count - 1) };
+}
+
+/** Yeniden işlenmek istenen ama sunucuda hâlâ canlı görünen toplantıyı bitirir (bkz. `reprocessMeeting`). */
+async function endStaleLiveMeeting(db: D1Database, userId: string, meetingId: string, now: Date): Promise<MeetingRow> {
+  log("warn", "meeting_ended_by_reprocess", { userId, meetingId });
+  return endMeeting(db, userId, meetingId, now);
 }
 
 /** Yeniden işleme reddinin hatası. Saf fonksiyondur. */
