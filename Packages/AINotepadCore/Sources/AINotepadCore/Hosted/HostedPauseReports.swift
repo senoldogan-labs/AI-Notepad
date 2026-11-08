@@ -3,9 +3,13 @@ import Foundation
 /// Sunucuya bildirilecek duraklatma ya da sürdürme (`POST /v1/meetings/{id}/pause` / `resume`).
 public struct PauseReport: Sendable, Equatable {
     public let paused: Bool
+    /// En az bir kez gönderilmeye çalışıldı: ağ hatası isteğin sunucuya varmadığı anlamına gelmez (yanıt yolda kaybolmuş
+    /// olabilir), denenmiş bildirim artık geri alınamaz sayılır.
+    public let attempted: Bool
 
-    public init(paused: Bool) {
+    public init(paused: Bool, attempted: Bool) {
         self.paused = paused
+        self.attempted = attempted
     }
 }
 
@@ -70,15 +74,20 @@ public enum PauseConfirmation: Sendable, Equatable {
     case refused
 }
 
-/// Kuyruğa yeni bildirim ekler. Başka toplantının kuyruğu yenisiyle değişir. Sürdürme, henüz gönderilmemiş bir
+/// Kuyruğa yeni bildirim ekler. Başka toplantının kuyruğu yenisiyle değişir. Sürdürme, hiç gönderilmeye çalışılmamış bir
 /// duraklatmayı izliyorsa ikisi de düşer: sunucu duraklatmayı isteğin vardığı andan sayar, sonradan ikisini birden
-/// göndermek bir şey kazandırmaz. Saf fonksiyondur.
+/// göndermek bir şey kazandırmaz. Denenmiş (gönderiliyor ya da ağ hatasıyla dönmüş) duraklatma sunucuya varmış
+/// olabilir: arkasından sürdürme sıraya girer (sürdürme duraklatılmamış toplantıda yalnızca durumu döndürür). Saf
+/// fonksiyondur.
 public func queueingPauseReport(queue: PauseReportQueue, meetingID: String, paused: Bool) -> PauseReportQueue {
     let current: PauseReportQueue = queue.meetingID == meetingID
         ? queue
         : PauseReportQueue(meetingID: meetingID, pending: [], isSending: false, confirmedPausedSec: 0, confirmedOpenSince: nil, lastAttemptFailed: false, hasRefusal: false)
-    let unsentPause: Bool = current.pending.last?.paused == true && (current.pending.count > 1 || !current.isSending)
-    let pending: [PauseReport] = !paused && unsentPause ? Array(current.pending.dropLast()) : current.pending + [PauseReport(paused: paused)]
+    let lastIsInFlight: Bool = current.isSending && current.pending.count == 1
+    let neverSentPause: Bool = current.pending.last.map { $0.paused && !$0.attempted } == true && !lastIsInFlight
+    let pending: [PauseReport] = !paused && neverSentPause
+        ? Array(current.pending.dropLast())
+        : current.pending + [PauseReport(paused: paused, attempted: false)]
     return current.with(
         pending: pending, isSending: current.isSending, confirmedPausedSec: current.confirmedPausedSec, confirmedOpenSince: current.confirmedOpenSince,
         lastAttemptFailed: current.lastAttemptFailed && !pending.isEmpty, hasRefusal: current.hasRefusal
@@ -91,9 +100,10 @@ public func nextPauseReport(queue: PauseReportQueue) -> (queue: PauseReportQueue
     guard !queue.isSending, let first = queue.pending.first else {
         return nil
     }
+    let sent: PauseReport = PauseReport(paused: first.paused, attempted: true)
     return (
         queue.with(
-            pending: queue.pending, isSending: true, confirmedPausedSec: queue.confirmedPausedSec, confirmedOpenSince: queue.confirmedOpenSince,
+            pending: [sent] + queue.pending.dropFirst(), isSending: true, confirmedPausedSec: queue.confirmedPausedSec, confirmedOpenSince: queue.confirmedOpenSince,
             lastAttemptFailed: queue.lastAttemptFailed, hasRefusal: queue.hasRefusal
         ),
         first

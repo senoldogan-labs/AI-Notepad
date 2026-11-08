@@ -1413,8 +1413,14 @@ final class HostedAccount {
     /// yanıt yok sayılır.
     private func sendPauseReports() async {
         var attempt: Int = 0
+        var attemptMeetingID: String?
         while let next = nextPauseReport(queue: pauseReportQueue), let meetingID = next.queue.meetingID {
             pauseReportQueue = next.queue
+            // Yeni toplantının bildirimleri öncekinin geri çekilmesini devralmaz.
+            if attemptMeetingID != meetingID {
+                attemptMeetingID = meetingID
+                attempt = 0
+            }
             do {
                 let client: HostedClient = try HostedServices.requireClient()
                 let state: HostedMeetingPause = next.report.paused
@@ -1437,7 +1443,8 @@ final class HostedAccount {
                 }
                 let retryAt: Date = Date().addingTimeInterval(pauseReportRetryDelaySec(attempt: attempt))
                 attempt += 1
-                while Date() < retryAt, !pauseRetryRequested {
+                // Ağ geri geldiyse ya da kuyruk başka toplantıya geçtiyse (önceki kayıt bitti) beklenmez.
+                while Date() < retryAt, !pauseRetryRequested, pauseReportQueue.meetingID == meetingID {
                     do {
                         try await Task.sleep(for: .seconds(1))
                     } catch {
@@ -1484,6 +1491,8 @@ final class HostedAccount {
         if pauseReportQueue.meetingID == meetingID {
             pauseReportQueue = .empty
         }
+        // Yeniden deneme beklemesi sürüyorsa hemen biter: sonraki kaydın bildirimleri beklemesin.
+        pauseRetryRequested = true
         isRecordingPaused = false
         releasePauseWaitersIfRunning()
     }

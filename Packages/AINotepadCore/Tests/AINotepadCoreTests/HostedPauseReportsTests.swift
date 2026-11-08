@@ -37,7 +37,7 @@ import Testing
         let sending: (queue: PauseReportQueue, report: PauseReport) = try #require(nextPauseReport(queue: queued))
         #expect(nextPauseReport(queue: sending.queue)?.report == nil)
         let failed: PauseReportQueue = failingPauseReport(queue: sending.queue)
-        #expect(failed.pending == [PauseReport(paused: true)])
+        #expect(failed.pending == [PauseReport(paused: true, attempted: true)])
         #expect(pauseConfirmation(queue: failed, meetingID: meeting) == .unconfirmed)
         #expect(confirmedPauseSec(queue: failed, meetingID: meeting, now: start.addingTimeInterval(600), maxPauseSec: 3600) == 0)
         let acked: PauseReportQueue = try acknowledgeNext(queue: failed, paused: true, pausedSeconds: 0, at: start.addingTimeInterval(600))
@@ -45,15 +45,21 @@ import Testing
         #expect(acked.pending.isEmpty)
     }
 
-    // Hiç gönderilmemiş duraklatmayı izleyen sürdürme ikisini de düşürür (sunucu ancak varış anından sayardı); gönderimi
-    // süren duraklatmada sürdürme sıraya girer.
-    @Test func unsentPauseAndResumeCancelOut() throws {
+    // Hiç gönderilmeye çalışılmamış duraklatmayı izleyen sürdürme ikisini de düşürür (sunucu ancak varış anından sayardı).
+    // Denenmiş duraklatma (gönderiliyor ya da ağ hatası: istek sunucuya varmış olabilir) geri alınmaz, sürdürme sıraya
+    // girer; yoksa sunucuda duraklatma toplantının sonuna dek açık kalabilirdi.
+    @Test func onlyNeverSentPauseCancelsOutWithResume() throws {
+        let queuedBehindSend: PauseReportQueue = queueingPauseReport(
+            queue: try #require(nextPauseReport(queue: queueingPauseReport(queue: .empty, meetingID: meeting, paused: true))).queue, meetingID: meeting, paused: false
+        )
+        let unsent: PauseReportQueue = queueingPauseReport(queue: queuedBehindSend, meetingID: meeting, paused: true)
+        #expect(queueingPauseReport(queue: unsent, meetingID: meeting, paused: false).pending == queuedBehindSend.pending)
         let failed: PauseReportQueue = failingPauseReport(queue: try #require(nextPauseReport(queue: queueingPauseReport(queue: .empty, meetingID: meeting, paused: true))).queue)
-        let resumed: PauseReportQueue = queueingPauseReport(queue: failed, meetingID: meeting, paused: false)
-        #expect(resumed.pending.isEmpty)
-        #expect(pauseConfirmation(queue: resumed, meetingID: meeting) == .confirmed)
+        let resumedAfterFailure: PauseReportQueue = queueingPauseReport(queue: failed, meetingID: meeting, paused: false)
+        #expect(resumedAfterFailure.pending == [PauseReport(paused: true, attempted: true), PauseReport(paused: false, attempted: false)])
+        #expect(pauseConfirmation(queue: resumedAfterFailure, meetingID: meeting) == .unconfirmed)
         let sending: PauseReportQueue = try #require(nextPauseReport(queue: queueingPauseReport(queue: .empty, meetingID: meeting, paused: true))).queue
-        #expect(queueingPauseReport(queue: sending, meetingID: meeting, paused: false).pending == [PauseReport(paused: true), PauseReport(paused: false)])
+        #expect(queueingPauseReport(queue: sending, meetingID: meeting, paused: false).pending == [PauseReport(paused: true, attempted: true), PauseReport(paused: false, attempted: false)])
     }
 
     // Sunucunun reddi (ör. duraklatma sınırı) düşer, uyarı toplantı boyunca kalır; yeni toplantı kuyruğu sıfırlar.
@@ -64,7 +70,7 @@ import Testing
         #expect(pauseConfirmation(queue: refused, meetingID: meeting) == .refused)
         let next: PauseReportQueue = queueingPauseReport(queue: refused, meetingID: "m2", paused: true)
         #expect(pauseConfirmation(queue: next, meetingID: "m2") == .confirmed)
-        #expect(next.pending == [PauseReport(paused: true)])
+        #expect(next.pending == [PauseReport(paused: true, attempted: false)])
     }
 
     // Canlı metin jetonu duraklatmada ve sürdürme sunucuya varana dek bekler.
