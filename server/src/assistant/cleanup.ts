@@ -1,7 +1,7 @@
 import { log } from "../log";
 import type { AccessConfig } from "../entitlements";
 import { hasSyncAccess } from "../sync";
-import { type AssistantPurgeResult, deleteAssistantAccount, disableAssistant, purgeAssistantPrefix } from "./store";
+import { type AssistantPurgeResult, deleteAssistantAccount, disableAssistantAfterAccessLoss, purgeAssistantPrefix } from "./store";
 
 /**
  * Daily cleanup of the AI assistant copy (API Worker cron, `index.ts`):
@@ -40,6 +40,7 @@ export interface AssistantCleanupReport {
 interface CheckedRow {
   readonly user_id: string;
   readonly enabled: number;
+  readonly epoch: number;
   readonly access_lost_at: number | null;
 }
 
@@ -53,7 +54,7 @@ export async function assistantCleanup(
 ): Promise<AssistantCleanupReport> {
   const nowMs: number = now.getTime();
   const rows: D1Result<CheckedRow> = await adb
-    .prepare("SELECT user_id, enabled, access_lost_at FROM assistant_settings ORDER BY access_checked_at LIMIT ?")
+    .prepare("SELECT user_id, enabled, epoch, access_lost_at FROM assistant_settings ORDER BY access_checked_at LIMIT ?")
     .bind(limits.accounts)
     .all<CheckedRow>();
   let orphansDeleted: number = 0;
@@ -68,12 +69,19 @@ export async function assistantCleanup(
     }
     if (row.enabled === 1 && !(await hasSyncAccess(db, config, row.user_id, now))) {
       if (row.access_lost_at === null) {
-        await adb.prepare("UPDATE assistant_settings SET access_lost_at = ?2, access_checked_at = ?2 WHERE user_id = ?1").bind(row.user_id, nowMs).run();
-        accessLostMarked += 1;
+        // Marked only while still on at the epoch read (a turn-off in between leaves no mark on a disabled row).
+        const marked: D1Result = await adb
+          .prepare("UPDATE assistant_settings SET access_lost_at = ?2, access_checked_at = ?2 WHERE user_id = ?1 AND enabled = 1 AND epoch = ?3 AND access_lost_at IS NULL")
+          .bind(row.user_id, nowMs, row.epoch)
+          .run();
+        accessLostMarked += marked.meta.changes;
+        if (marked.meta.changes === 0) {
+          // Not marked: still rotate the row to the back of the check order.
+          await adb.prepare("UPDATE assistant_settings SET access_checked_at = ? WHERE user_id = ?").bind(nowMs, row.user_id).run();
+        }
         continue;
       }
-      if (row.access_lost_at <= nowMs - accessLossDeleteDays * dayMs) {
-        await disableAssistant(adb, bucket, row.user_id, now);
+      if (row.access_lost_at <= nowMs - accessLossDeleteDays * dayMs && (await disableAssistantAfterAccessLoss(adb, bucket, row.user_id, row.epoch, row.access_lost_at, now))) {
         log("info", "assistant_access_ended_deleted", { userId: row.user_id });
         copiesDeleted += 1;
       }

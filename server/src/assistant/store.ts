@@ -173,19 +173,68 @@ function purgeQueueStatement(adb: D1Database, prefix: string, nowMs: number): D1
 }
 
 /**
+ * The settings state a turn-off was decided on, re-checked inside the turn-off's own transaction so a decision made on
+ * an older read never touches a newer state:
+ * - `enabled`: the user turned the feature off while it was on at `epoch`;
+ * - `access_lost`: the daily cleanup saw it on at `epoch` with access lost since `accessLostAt` (a re-enable, a new
+ *   subscription clearing the mark, or an off/on cycle in between all change one of these columns).
+ */
+export type AssistantDisableGuard =
+  | { readonly kind: "enabled"; readonly epoch: number }
+  | { readonly kind: "access_lost"; readonly epoch: number; readonly accessLostAt: number };
+
+/** The guard as an `EXISTS` condition over `assistant_settings` with its positional binds. Pure function. */
+export function assistantDisableGuardSql(userId: string, guard: AssistantDisableGuard): { readonly sql: string; readonly binds: readonly (string | number)[] } {
+  const base: string = "SELECT 1 FROM assistant_settings WHERE user_id = ? AND enabled = 1 AND epoch = ?";
+  return guard.kind === "enabled"
+    ? { sql: `EXISTS (${base})`, binds: [userId, guard.epoch] }
+    : { sql: `EXISTS (${base} AND access_lost_at = ?)`, binds: [userId, guard.epoch, guard.accessLostAt] };
+}
+
+/**
  * Turning off (or access ended for 7 days): one D1 transaction queues the revocation of every connection, deletes the
  * connections and meeting rows, queues the epoch's R2 prefix and moves to the next epoch, so uploads prepared under the
- * old epoch are refused.
+ * old epoch are refused. Every statement carries the guard (`assistantDisableGuardSql`) and the epoch moves last, so
+ * either all of them apply to the state the turn-off was decided on or none does; the last statement's row count
+ * says which.
  */
-function disableStatements(adb: D1Database, userId: string, epoch: number, nowMs: number): D1PreparedStatement[] {
+function disableStatements(adb: D1Database, userId: string, guard: AssistantDisableGuard, nowMs: number): D1PreparedStatement[] {
+  const condition: { readonly sql: string; readonly binds: readonly (string | number)[] } = assistantDisableGuardSql(userId, guard);
   return [
-    ...grantRemovalStatements(adb, userId, null, nowMs),
-    adb.prepare("DELETE FROM assistant_meetings WHERE user_id = ?").bind(userId),
-    purgeQueueStatement(adb, assistantEpochPrefix(userId, epoch), nowMs),
     adb
-      .prepare("UPDATE assistant_settings SET enabled = 0, epoch = epoch + 1, updated_at = ?2, access_lost_at = NULL WHERE user_id = ?1 AND epoch = ?3")
-      .bind(userId, nowMs, epoch),
+      .prepare(
+        `INSERT INTO assistant_revocations (user_id, grant_id, requested_at)
+         SELECT user_id, grant_id, ? FROM assistant_grants WHERE user_id = ? AND ${condition.sql}
+         ON CONFLICT(user_id, grant_id) DO NOTHING`,
+      )
+      .bind(nowMs, userId, ...condition.binds),
+    adb.prepare(`DELETE FROM assistant_grants WHERE user_id = ? AND ${condition.sql}`).bind(userId, ...condition.binds),
+    adb.prepare(`DELETE FROM assistant_meetings WHERE user_id = ? AND ${condition.sql}`).bind(userId, ...condition.binds),
+    adb
+      .prepare(
+        `INSERT INTO assistant_purges (prefix, requested_at) SELECT ?, ? WHERE ${condition.sql}
+         ON CONFLICT(prefix) DO UPDATE SET requested_at = excluded.requested_at`,
+      )
+      .bind(assistantEpochPrefix(userId, guard.epoch), nowMs, ...condition.binds),
+    adb
+      .prepare(`UPDATE assistant_settings SET enabled = 0, epoch = epoch + 1, updated_at = ?, access_lost_at = NULL WHERE user_id = ? AND ${condition.sql}`)
+      .bind(nowMs, userId, ...condition.binds),
   ];
+}
+
+/**
+ * Applies a guarded turn-off and deletes the epoch's objects at once; true if it applied (false: the state changed
+ * since it was read, nothing was touched).
+ */
+async function applyDisable(adb: D1Database, bucket: R2Bucket, userId: string, guard: AssistantDisableGuard, now: Date): Promise<boolean> {
+  const results: D1Result[] = await adb.batch(disableStatements(adb, userId, guard, now.getTime()));
+  if (results.at(-1)?.meta.changes !== 1) {
+    log("info", "assistant_disable_skipped", { userId, guard: guard.kind, epoch: guard.epoch });
+    return false;
+  }
+  const purge: AssistantPurgeResult = await purgeAssistantPrefixNow(adb, bucket, userId, assistantEpochPrefix(userId, guard.epoch));
+  log("info", "assistant_disabled", { userId, guard: guard.kind, purged: purge.complete });
+  return true;
 }
 
 /**
@@ -231,16 +280,25 @@ export async function purgeAssistantPrefixNow(adb: D1Database, bucket: R2Bucket,
   }
 }
 
-/** Turns the feature off and deletes the copy at once (idempotent). */
+/**
+ * Turns the feature off and deletes the copy at once (idempotent). If another turn-off moved the epoch in between, that
+ * one already did the work; the current settings are returned either way.
+ */
 export async function disableAssistant(adb: D1Database, bucket: R2Bucket, userId: string, now: Date): Promise<AssistantSettingsRow | null> {
   const row: AssistantSettingsRow | null = await assistantSettings(adb, userId);
   if (row === null || row.enabled === 0) {
     return row;
   }
-  await adb.batch(disableStatements(adb, userId, row.epoch, now.getTime()));
-  const purge: AssistantPurgeResult = await purgeAssistantPrefixNow(adb, bucket, userId, assistantEpochPrefix(userId, row.epoch));
-  log("info", "assistant_disabled", { userId, purged: purge.complete });
+  await applyDisable(adb, bucket, userId, { kind: "enabled", epoch: row.epoch }, now);
   return assistantSettings(adb, userId);
+}
+
+/**
+ * The daily cleanup's deletion after access ended: turns the feature off only if it is still on at `epoch` with the
+ * same access-loss mark the cleanup read; true if it applied.
+ */
+export async function disableAssistantAfterAccessLoss(adb: D1Database, bucket: R2Bucket, userId: string, epoch: number, accessLostAt: number, now: Date): Promise<boolean> {
+  return applyDisable(adb, bucket, userId, { kind: "access_lost", epoch, accessLostAt }, now);
 }
 
 /** Removes an account's whole copy (account deletion, or the account no longer exists). */

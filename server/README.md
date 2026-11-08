@@ -293,6 +293,11 @@ hedefe `<Dial>` döner: zaman sınırı, iki kanallı kayıt ve karşı tarafa b
 `TWILIO_AUTH_TOKEN`) ve hesap kimliği ister, yoksa `403`. Görüşme bitince uygulama kaydı sunucu üzerinden indirir, içe
 aktarılan kayıt gibi işler ve Twilio'da siler; alınmayan kayıt bir gün sonra günlük temizlikte silinir.
 
+Aramanın durumu `reserved` → `dialing` → `completed` | `failed` ya da `reserved` | `dialing` → `expired`; kaydınki
+bekliyor → `ready` | `absent` (`absent` → `ready`) → silindi (`src/phone/lifecycle.ts`). Göç `0059`'un tetikleyicileri
+bunu veritabanında da zorlar: arama yalnızca bitmişken kesinleşmiştir (`settled_at`), kesinleşmiş arama değişmez, saklanan
+kayıt kimliği (`recording_sid`) değişmez ve silinmez (her kayıt Twilio'da silinsin), silindi işareti kimliksiz yazılamaz.
+
 Harcama: her arama en kötü durumunu (en uzun süre + 1 dk × ülkenin `PHONE_USD_PER_MINUTE`'ı) `phone_calls`'ta ayırır;
 ayırma genel günlük tavana (`DAILY_SPEND_CEILING_USD`) ve aramaların günlük tavanına (`PHONE_DAILY_SPEND_CEILING_USD`)
 sayılır, arama bitince (`<Dial action>` ya da TwiML App durum geri çağrısı) gerçek maliyetle değişir (`daily_spend.
@@ -397,6 +402,11 @@ engel vardır:
   sonra `502 upstream_unavailable`. Abonelik toplantısı ve denemesi bitmiş hesap DeviceCheck çağırmaz. `off` iken
   DeviceCheck hiç çağrılmaz.
 - **IP başına yeni deneme hesabı**: `TRIAL_ACCOUNTS_PER_IP_PER_DAY` (IP'nin HMAC özeti, gün sonunda silinir).
+
+Deneme kuralları tek yerdedir (`src/trialState.ts`; başlatma kapısının SQL'i ve `trialMeetingsLeft` aynı sonucu verir).
+Göç `0059`'un tetikleyicileri yeni deneme açacak yazımı reddeder: `users.trial_started_at` silinemez ve ileri alınamaz,
+`carried_trial_meetings` azalamaz, Mac'e bağlanmış deneme (`trial_device_verified_at`) bağlı kalır ve bekleyen talep
+(`trial_device_claim_started_at`) ile birlikte bulunamaz.
 
 App Attest (`APP_ATTEST_POLICY`) macOS'ta desteklenmediği için bugün cihaz sınırı vermez; kodu yerinde durur. Bu
 yüzden davet programındaki cihaz denetimi (`sharesDevice`) de Mac'te eşleşmez (aşağıda "Davet programı"). iPhone

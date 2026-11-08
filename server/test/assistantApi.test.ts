@@ -3,7 +3,15 @@ import { describe, expect, it } from "vitest";
 import { accessLossDeleteDays, assistantCleanup, scheduledAssistantCleanupLimits } from "../src/assistant/cleanup";
 import { type AssistantKeyring, parseAssistantKeyring } from "../src/assistant/crypto";
 import { assistantAccountMaxBytes } from "../src/assistant/projection";
-import { type IndexScan, assistantEpochPrefix, assistantMeeting, assistantPrefix, disableAssistant, indexedMeetings } from "../src/assistant/store";
+import {
+  type IndexScan,
+  assistantEpochPrefix,
+  assistantMeeting,
+  assistantPrefix,
+  disableAssistant,
+  disableAssistantAfterAccessLoss,
+  indexedMeetings,
+} from "../src/assistant/store";
 import { parseConfig } from "../src/config";
 import { randomId } from "../src/crypto";
 import { type Harness, type Session, defaultHarness, envWith, expectError, grantSubscription, req, signIn } from "./helpers";
@@ -343,4 +351,33 @@ describe("assistant copy lifecycle", () => {
     const settings = await env.ASSISTANT_DB.prepare("SELECT enabled, epoch FROM assistant_settings WHERE user_id = ?").bind(session.userId).first();
     expect(settings).toEqual({ enabled: 0, epoch: epoch + 1 });
   });
+
+  it("an access-loss deletion decided on an older read never touches a re-enabled or newer copy", async () => {
+    const harness: Harness = await defaultHarness();
+    const { session, epoch } = await ready(harness);
+    await putMeeting(harness, session, randomId(), fieldsFor(epoch, "Kept"));
+    const now: Date = new Date(harness.clock.nowMs);
+    const lostAt: number = harness.clock.nowMs - 10 * dayMs;
+    const settings = async (): Promise<unknown> =>
+      env.ASSISTANT_DB.prepare("SELECT enabled, epoch, access_lost_at FROM assistant_settings WHERE user_id = ?").bind(session.userId).first();
+    // The cleanup read the mark, then the user turned the feature on again (which clears the mark): nothing is deleted.
+    await env.ASSISTANT_DB.prepare("UPDATE assistant_settings SET access_lost_at = ? WHERE user_id = ?").bind(lostAt, session.userId).run();
+    await setAssistant(harness, session, true);
+    expect(await disableAssistantAfterAccessLoss(env.ASSISTANT_DB, env.ASSISTANT_BUCKET, session.userId, epoch, lostAt, now)).toBe(false);
+    expect(await assistantRows("assistant_meetings", session.userId)).toBe(1);
+    expect(await settings()).toEqual({ enabled: 1, epoch, access_lost_at: null });
+    // The user turned it off and on again (new epoch) and access was lost again: the old epoch's decision is void.
+    await setAssistant(harness, session, false);
+    const fresh = await setAssistant(harness, session, true);
+    await putMeeting(harness, session, randomId(), fieldsFor(fresh.epoch, "Fresh"));
+    await env.ASSISTANT_DB.prepare("UPDATE assistant_settings SET access_lost_at = ? WHERE user_id = ?").bind(lostAt, session.userId).run();
+    expect(await disableAssistantAfterAccessLoss(env.ASSISTANT_DB, env.ASSISTANT_BUCKET, session.userId, epoch, lostAt, now)).toBe(false);
+    expect(await assistantRows("assistant_meetings", session.userId)).toBe(1);
+    expect(await objectKeys(assistantEpochPrefix(session.userId, fresh.epoch))).toHaveLength(1);
+    // The matching decision applies.
+    expect(await disableAssistantAfterAccessLoss(env.ASSISTANT_DB, env.ASSISTANT_BUCKET, session.userId, fresh.epoch, lostAt, now)).toBe(true);
+    expect(await assistantRows("assistant_meetings", session.userId)).toBe(0);
+    expect(await settings()).toEqual({ enabled: 0, epoch: fresh.epoch + 1, access_lost_at: null });
+  });
+
 });
