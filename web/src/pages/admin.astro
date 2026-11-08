@@ -46,6 +46,7 @@ const blogText: AdminBlogCopy = adminBlogCopy;
 const productText: AdminProductCopy = adminProductCopy;
 const trendsText: AdminTrendsCopy = adminTrendsCopy;
 const telemetryText: AdminTelemetryCopy = adminTelemetryCopy;
+const conv: AdminTelemetryCopy["conversion"] = telemetryText.conversion;
 const productColumns: AdminProductCopy["columns"] = productText.columns;
 
 /** Menüdeki simgeler. */
@@ -438,6 +439,100 @@ const legendPlans: { readonly main: string; readonly accent: string } = { main: 
                 span={7}
                 empty={null}
                 note=""
+                scroll={false}
+              />
+            </Section>
+            {/* Abonelik hunisi: uygulamaların plan ekranı adımları (istatistik paylaşanlar; alt sınır) ve sunucunun saydığı
+                Stripe ödeme sayfaları. Veri telemetri yanıtının `conversion` alanından (admin-telemetry.ts). */}
+            <Section id="revenue-plan-screens" title={sections.planScreens.title} description={sections.planScreens.description}>
+              <div class="span-12 site-lead">
+                <p id="telemetry-conversion-lead" class="site-lead__note"></p>
+              </div>
+              <TablePanel
+                id="telemetry-conversion-funnel"
+                title={conv.funnelTitle}
+                hint={null}
+                columns={[
+                  textColumn(conv.funnelColumns.platform),
+                  textColumn(conv.funnelColumns.trigger),
+                  numberColumn(conv.funnelColumns.shown),
+                  numberColumn(conv.funnelColumns.selected),
+                  numberColumn(conv.funnelColumns.started),
+                  numberColumn(conv.funnelColumns.completed),
+                  numberColumn(conv.funnelColumns.cancelled),
+                  numberColumn(conv.funnelColumns.failed),
+                  textColumn(conv.funnelColumns.startRate),
+                  textColumn(conv.funnelColumns.completeRate),
+                ]}
+                span={12}
+                empty={conv.empty}
+                note={null}
+                scroll={false}
+              />
+              <TablePanel
+                id="telemetry-conversion-plans"
+                title={conv.planMixTitle}
+                hint={null}
+                columns={[
+                  textColumn(conv.columns.platform),
+                  textColumn(conv.columns.tier),
+                  textColumn(conv.columns.plan),
+                  numberColumn(conv.columns.started),
+                  numberColumn(conv.columns.completed),
+                ]}
+                span={6}
+                empty={conv.empty}
+                note={null}
+                scroll={false}
+              />
+              <TablePanel
+                id="telemetry-conversion-checkouts"
+                title={conv.checkoutsTitle}
+                hint={null}
+                columns={[textColumn(conv.columns.source), textColumn(conv.columns.tier), textColumn(conv.columns.plan), numberColumn(conv.columns.checkouts)]}
+                span={6}
+                empty={conv.empty}
+                note={conv.checkoutsNote}
+                scroll={false}
+              />
+              <TablePanel
+                id="telemetry-conversion-failures"
+                title={conv.failuresTitle}
+                hint={null}
+                columns={[textColumn(conv.columns.platform), textColumn(conv.columns.reason), numberColumn(conv.columns.count)]}
+                span={6}
+                empty={conv.empty}
+                note={null}
+                scroll={false}
+              />
+              <TablePanel
+                id="telemetry-conversion-restores"
+                title={conv.restoresTitle}
+                hint={null}
+                columns={[textColumn(conv.columns.platform), textColumn(conv.columns.result), numberColumn(conv.columns.count)]}
+                span={6}
+                empty={conv.empty}
+                note={null}
+                scroll={false}
+              />
+              <TablePanel
+                id="telemetry-conversion-upsells"
+                title={conv.upsellsTitle}
+                hint={null}
+                columns={[textColumn(conv.columns.trigger), numberColumn(conv.columns.shown), numberColumn(conv.columns.tapped), textColumn(conv.columns.tapRate)]}
+                span={6}
+                empty={conv.empty}
+                note={null}
+                scroll={false}
+              />
+              <TablePanel
+                id="telemetry-conversion-reminders"
+                title={conv.remindersTitle}
+                hint={null}
+                columns={[textColumn(conv.columns.step), textColumn(conv.columns.channel), numberColumn(conv.columns.count)]}
+                span={6}
+                empty={conv.empty}
+                note={null}
                 scroll={false}
               />
             </Section>

@@ -53,6 +53,9 @@ export function errorText(error: unknown, text: ClientCopy): string {
     if (error.code === "plan_unchanged") {
       return text.errors.planUnchanged;
     }
+    if (error.code === "withdrawal_unavailable") {
+      return text.errors.withdrawalUnavailable;
+    }
     return fill(text.errors.generic, { code: error.code });
   }
   return fill(text.errors.generic, { code: error instanceof Error ? error.name : "unknown" });

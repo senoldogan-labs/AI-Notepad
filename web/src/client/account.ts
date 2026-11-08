@@ -9,6 +9,12 @@
 // Katman (Personal ya da Pro): sunucu Pro'yu sunuyorsa (`offeredTiers`) plan seçiminin üstünde katman seçimi görünür ve
 // Checkout'a `tier` gider; Stripe abonesi katmanını `POST /v1/billing/change-plan`'ın Stripe sayfasında değiştirir,
 // App Store abonesine iPhone'da değiştirmesi söylenir. Plan adı katmanı, saat ölçeri sunucunun sınırını yazar.
+// Abone ol düğmesi seçili katmanın planının tutarını, altındaki satır yenileme koşullarını taşır (src/lib/subscribe-copy.ts);
+// süren denemede başlık sunucunun deneme sayısıyla, hiç abone olmamış hesapta deneme bitince sakin bir "kaldığın yerden
+// devam et" kartı görünür. `?payment=done` dönüşünde abonelik görününce onay kartı (plan ve tek sonraki adım), birkaç
+// denemede görünmezse "Refresh my plan" düğmeli bekleme satırı. Stripe aboneliğinin ilk 14 gününde cayma işlevi (AB CRD
+// Art. 11a): "Withdraw from contract" → onay adımı → `POST /v1/billing/withdraw`; sonuç (tarih ve saat, iade tutarı)
+// ekranda kalır.
 import {
   ApiRequestError,
   type Entitlements,
@@ -17,8 +23,10 @@ import {
   type ReferralInfo,
   parseEntitlements,
   parseRedirectUrl,
+  type WithdrawalResult,
   parseReferral,
   parseValidatedReferralCode,
+  parseWithdrawal,
 } from "./api";
 import {
   checkoutIntended,
@@ -45,20 +53,31 @@ import {
   type TierOffer,
   billingPlanOf,
   formatHourCount,
+  formatUsdCents,
   normalizedInviteCode,
+  planPriceCents,
   recommendedPlan,
   subscriptionTierOf,
   tierOffer,
+  tierPrices,
 } from "../lib/plans";
 import { type PlanState, type TrialState, hasSubscriptionAccess, planState } from "../lib/plan-status";
+import {
+  type CheckoutTerms,
+  checkoutTerms,
+  formatRefund,
+  subscribeLabel,
+  switchTierLabel,
+  switchTierNote,
+  trialHeadline,
+  trialMeetingsUsed,
+  winBackText,
+  withdrawalDeadline,
+} from "../lib/subscribe-copy";
 
 /** Ödeme dönüşünde aboneliğin görünmesi için en çok kaç kez, kaç ms arayla yeniden bakılır (webhook gecikmesi). */
 const paymentPollAttempts: number = 6;
 const paymentPollIntervalMs: number = 2000;
-/** Ödeme bildirimi bu kadar görünür kalır, sonra solup kaybolur. */
-const paymentNoticeMs: number = 6000;
-/** Solma süresi (global.css `.notice--fading`). */
-const noticeFadeMs: number = 400;
 /** Hesap silinince ana sayfaya geçmeden önce bekleme. */
 const deletedRedirectMs: number = 3000;
 
@@ -127,11 +146,12 @@ interface TierChoice {
   readonly hours: string;
 }
 
-/** Stripe abonesinin katman değiştirmesi: hedef katman, korunan plan (aylık/yıllık) ve düğme metni. */
+/** Stripe abonesinin katman değiştirmesi: hedef katman, korunan plan (aylık/yıllık), düğme metni ve ücret notu. */
 interface TierSwitch {
   readonly tier: SubscriptionTier;
   readonly plan: BillingPlan;
   readonly label: string;
+  readonly note: string;
 }
 
 /** Hesap sayfasında gösterilecek değerler. */
@@ -140,6 +160,8 @@ interface AccountView {
   readonly planPill: Pill;
   /** Plan kartının ileti satırı ve etiket/değer satırları: abonelik durumu ya da deneme. */
   readonly status: PlanStatus;
+  /** Hiç abone olmamış hesapta deneme bittiyse "kaldığın yerden devam et" metni; yoksa null. */
+  readonly winBack: string | null;
   /** Deneme sürüyorsa kalan toplantı göstergesi; yoksa null. */
   readonly trialMeter: TrialMeter | null;
   /** Aylık saat yalnızca abonelik erişiminde görünür (sınır aboneliğindir; denemede kafa karıştırır); yoksa null. */
@@ -156,6 +178,8 @@ interface AccountView {
   readonly tierSwitch: TierSwitch | null;
   /** Hesap silme penceresindeki App Store uyarısı (yenilenecek App Store aboneliği varsa); yoksa null. */
   readonly deleteWarning: string | null;
+  /** Cayma kartının metni (son günüyle); cayılamıyorsa null (kart gizli). */
+  readonly withdrawal: string | null;
 }
 
 /** Saat ölçeri kullanımın bu oranından sonra uyarır. */
@@ -212,20 +236,21 @@ function planName(state: PlanState, text: ClientCopy): string {
  * olabilir) ve başlangıcı, sürüyorsa bitiş tarihi (kalan toplantı ölçerdedir) satır olarak; bittiyse ileti. Saf
  * fonksiyondur.
  */
-function trialStatus(trial: TrialState, trialDays: number, text: ClientCopy, locale: string): PlanStatus {
+function trialStatus(trial: TrialState, trialDays: number, used: number, text: ClientCopy, locale: string): PlanStatus {
   switch (trial.kind) {
     case "notStarted":
       return {
-        message: null,
+        message: trialHeadline(used, text.trialHeadline),
         facts: [
           { label: text.facts.trialIncludes, value: fill(text.facts.trialIncludesValue, { total: String(trial.left), days: String(trialDays) }) },
           { label: text.facts.trialStarts, value: text.facts.trialStartsValue },
         ],
       };
     case "running":
-      return { message: null, facts: [{ label: text.facts.trialEnds, value: formatDate(trial.endsAt, locale) }] };
+      return { message: trialHeadline(used, text.trialHeadline), facts: [{ label: text.facts.trialEnds, value: formatDate(trial.endsAt, locale) }] };
     case "ended":
-      return { message: text.trialEnded, facts: [] };
+      // Toplantı kaydedildiyse "kaldığın yerden devam et" kartı anlatır (`winBackText`); ileti satırı boş kalır.
+      return { message: used > 0 ? null : text.trialEnded, facts: [] };
   }
 }
 
@@ -236,8 +261,8 @@ function trialStatus(trial: TrialState, trialDays: number, text: ClientCopy, loc
  * aboneliği erişim sürerken nerede yönetileceğini söyleyen iletiyi de taşır; Pro sunuluyorsa ya da abonelik Pro ise
  * katmanın da iPhone'da değiştirileceğini söyler. Saf fonksiyondur.
  */
-function planStatus(state: PlanState, trialDays: number, proOffered: boolean, text: ClientCopy, locale: string): PlanStatus {
-  const facts: PlanStatus = subscriptionFacts(state, trialDays, text, locale);
+function planStatus(state: PlanState, trialDays: number, used: number, proOffered: boolean, text: ClientCopy, locale: string): PlanStatus {
+  const facts: PlanStatus = subscriptionFacts(state, trialDays, used, text, locale);
   if (!hasSubscriptionAccess(state) || state.kind === "trial" || state.subscription.source !== "app_store") {
     return facts;
   }
@@ -273,17 +298,18 @@ function tierSwitch(state: PlanState, offers: readonly TierOffer[], text: Client
     return null;
   }
   const plan: BillingPlan = state.subscription.plan;
-  if (state.subscription.tier === "pro") {
-    return { tier: "personal", plan, label: text.switchTier.personal };
+  const target: SubscriptionTier = state.subscription.tier === "pro" ? "personal" : "pro";
+  if (target === "pro" && tierOffer(offers, "pro") === null) {
+    return null;
   }
-  return tierOffer(offers, "pro") === null ? null : { tier: "pro", plan, label: text.switchTier.pro };
+  return { tier: target, plan, label: switchTierLabel(target, plan, text), note: switchTierNote(target, plan, text) };
 }
 
 /** Plan durumunun ileti ve satırları (tanımlar `planStatus`'ta; App Store iletisi olmadan). Saf fonksiyondur. */
-function subscriptionFacts(state: PlanState, trialDays: number, text: ClientCopy, locale: string): PlanStatus {
+function subscriptionFacts(state: PlanState, trialDays: number, used: number, text: ClientCopy, locale: string): PlanStatus {
   switch (state.kind) {
     case "trial":
-      return trialStatus(state.trial, trialDays, text, locale);
+      return trialStatus(state.trial, trialDays, used, text, locale);
     case "complimentary":
       return { message: state.until === null ? text.subscriptionComplimentary : fill(text.subscriptionComplimentaryUntil, { date: formatDate(state.until, locale) }), facts: [] };
     case "complimentaryEnded":
@@ -301,7 +327,7 @@ function subscriptionFacts(state: PlanState, trialDays: number, text: ClientCopy
     case "grace":
       return { message: null, facts: [{ label: text.facts.accessUntil, value: formatDate(state.endsAt, locale) }] };
     case "paymentOverdue":
-      return state.trial.kind === "ended" ? { message: null, facts: [] } : trialStatus(state.trial, trialDays, text, locale);
+      return state.trial.kind === "ended" ? { message: null, facts: [] } : trialStatus(state.trial, trialDays, used, text, locale);
     case "expired":
       return { message: text.subscriptionEnded, facts: [] };
   }
@@ -404,10 +430,12 @@ export function accountView(me: Entitlements, text: ClientCopy, locale: string, 
   const state: PlanState = planState(me, now);
   const subscribed: boolean = hasSubscriptionAccess(state);
   const proOffered: boolean = tierOffer(me.offeredTiers, "pro") !== null;
+  const used: number = trialMeetingsUsed(me);
   return {
     plan: planName(state, text),
     planPill: planPill(state, text),
-    status: planStatus(state, me.trialDays, proOffered, text, locale),
+    status: planStatus(state, me.trialDays, used, proOffered, text, locale),
+    winBack: winBackText(state, used, text.winBack),
     trialMeter: trialMeter(state, text),
     hours: subscribed ? hoursMeter(me, text, locale) : null,
     ai: subscribed ? aiMeter(me, text, locale) : null,
@@ -416,6 +444,9 @@ export function accountView(me: Entitlements, text: ClientCopy, locale: string, 
     canManage: me.subscription !== null && !me.subscription.complimentary && me.subscription.source === "stripe",
     tierChoices: tierChoices(me.offeredTiers, !subscribed, text, locale),
     tierSwitch: tierSwitch(state, me.offeredTiers, text),
+    withdrawal: ((until: string | null): string | null => (until === null ? null : fill(text.withdrawal.text, { date: formatDate(until, locale) })))(
+      withdrawalDeadline(state, now),
+    ),
     deleteWarning:
       me.subscription !== null && me.subscription.source === "app_store" && me.subscription.access !== "none" && me.subscription.cancelAt === null
         ? text.deleteAppStoreWarning
@@ -515,7 +546,9 @@ function renderTierChoices(choices: readonly TierChoice[] | null): void {
 function renderTierSwitch(value: TierSwitch | null): void {
   const button: HTMLButtonElement = element("switch-tier-button", HTMLButtonElement);
   button.classList.toggle("hidden", value === null);
-  element("switch-tier-note", HTMLElement).classList.toggle("hidden", value === null);
+  const note: HTMLElement = element("switch-tier-note", HTMLElement);
+  note.classList.toggle("hidden", value === null);
+  note.textContent = value === null ? "" : value.note;
   button.textContent = value === null ? "" : value.label;
   button.dataset["tier"] = value === null ? "" : value.tier;
   button.dataset["plan"] = value === null ? "" : value.plan;
@@ -526,6 +559,8 @@ function render(view: AccountView): void {
   element("plan-value", HTMLElement).textContent = view.plan;
   renderPill(element("plan-pill", HTMLElement), view.planPill);
   renderStatus(view.status);
+  element("win-back", HTMLElement).classList.toggle("hidden", view.winBack === null);
+  element("win-back-text", HTMLElement).textContent = view.winBack ?? "";
   renderMeters(view.trialMeter, view.hours);
   renderAiMeter(view.ai);
   const alert: HTMLElement = element("plan-alert", HTMLElement);
@@ -539,6 +574,8 @@ function render(view: AccountView): void {
   element("manage-note", HTMLElement).classList.toggle("hidden", view.canSubscribe || !view.canManage);
   renderTierChoices(view.tierChoices);
   renderTierSwitch(view.tierSwitch);
+  element("withdraw-card", HTMLElement).classList.toggle("hidden", view.withdrawal === null);
+  element("withdraw-text", HTMLElement).textContent = view.withdrawal ?? "";
   const deleteWarning: HTMLElement = element("delete-app-store-warning", HTMLElement);
   deleteWarning.classList.toggle("hidden", view.deleteWarning === null);
   deleteWarning.textContent = view.deleteWarning ?? "";
@@ -683,6 +720,22 @@ function selectTier(tier: SubscriptionTier): void {
   showTierPrices(tier);
 }
 
+/**
+ * Seçime bağlı metinleri yazar: Abone ol düğmesi (katman ve tutar), altındaki yenileme koşulları ve katman seçiminde her
+ * katmanın seçili plandaki tutarı.
+ */
+function renderSelection(text: ClientCopy): void {
+  const tier: SubscriptionTier = selectedTier();
+  const plan: BillingPlan = selectedPlan();
+  element("subscribe-button", HTMLButtonElement).textContent = subscribeLabel(tier, plan, text);
+  const terms: CheckoutTerms = checkoutTerms(tier, plan, text);
+  element("subscribe-terms-lead", HTMLElement).textContent = terms.lead;
+  element("subscribe-terms-rest", HTMLElement).textContent = terms.rest;
+  for (const option of ["personal", "pro"] as const) {
+    element(`tier-price-${option}`, HTMLElement).textContent = fill(text.billedTotal[plan], { price: formatUsdCents(planPriceCents(tierPrices[option], plan)) });
+  }
+}
+
 /** Plan seçeneklerinde yalnızca katmanın fiyatlarını (fiyat, ayrıntı, rozet) gösterir. */
 function showTierPrices(tier: SubscriptionTier): void {
   for (const price of Array.from(document.querySelectorAll<HTMLElement>("#plan-choice [data-price-tier]"))) {
@@ -811,6 +864,7 @@ function bindCheckoutForm(form: CheckoutForm, text: ClientCopy, notice: HTMLElem
     input.addEventListener("change", (): void => {
       storePlan(selectedPlan());
       renderAppliedInvite(form, text);
+      renderSelection(text);
     });
   }
   for (const input of Array.from(document.querySelectorAll<HTMLInputElement>('#tier-choice input[name="tier"]'))) {
@@ -819,6 +873,7 @@ function bindCheckoutForm(form: CheckoutForm, text: ClientCopy, notice: HTMLElem
       storeTier(tier);
       showTierPrices(tier);
       renderAppliedInvite(form, text);
+      renderSelection(text);
     });
   }
   bindCheckoutAction(element("invite-apply", HTMLButtonElement), notice, text, signInPath, (): Promise<void> =>
@@ -1043,16 +1098,21 @@ function bindCheckoutAction(button: HTMLButtonElement, notice: HTMLElement, text
   });
 }
 
-/** Ödeme bildirimini gösterir; `paymentNoticeMs` sonra solar ve gizlenir. */
-function showPaymentNotice(): void {
-  const notice: HTMLElement = element("payment-done", HTMLElement);
-  notice.classList.remove("hidden");
-  setTimeout((): void => {
-    notice.classList.add("notice--fading");
-    setTimeout((): void => {
-      notice.classList.add("hidden");
-    }, noticeFadeMs);
-  }, paymentNoticeMs);
+/**
+ * Ödeme dönüşünün sonucu: abonelik erişimi göründüyse onay kartı (plan adı ve aylık saat; tek sonraki adım takvim),
+ * görünmediyse (webhook gecikti) "Refresh my plan" düğmeli bekleme satırı.
+ */
+function renderPaymentResult(me: Entitlements, text: ClientCopy): void {
+  const state: PlanState = planState(me, new Date());
+  const subscribed: boolean = hasSubscriptionAccess(state);
+  element("payment-done", HTMLElement).classList.toggle("hidden", !subscribed);
+  element("payment-pending", HTMLElement).classList.toggle("hidden", subscribed);
+  if (subscribed) {
+    element("confirmation-plan", HTMLElement).textContent = fill(text.confirmation.text, {
+      plan: planName(state, text),
+      hours: formatHourCount(me.monthlyHoursCap, siteLocale),
+    });
+  }
 }
 
 /**
@@ -1123,6 +1183,7 @@ async function showAccount(me: Entitlements, form: CheckoutForm, text: ClientCop
   const wantedTier: SubscriptionTier | null = storedTier();
   const proUnavailable: boolean = wantedTier === "pro" && view.tierChoices === null;
   selectTier(wantedTier !== null && !proUnavailable ? wantedTier : "personal");
+  renderSelection(text);
   element("account-loading", HTMLElement).classList.add("hidden");
   element("account-content", HTMLElement).classList.remove("hidden");
   if (view.canSubscribe) {
@@ -1176,6 +1237,62 @@ async function loadAccount(fetchAccount: () => Promise<Entitlements>, form: Chec
   }
 }
 
+/**
+ * Ödeme dönüşünde hesabı yükler (abonelik görünene dek birkaç kez bakar) ve sonucu gösterir. "Refresh my plan" aynı
+ * işi yeniden yapar.
+ */
+function loadAfterPayment(form: CheckoutForm, text: ClientCopy, notice: HTMLElement, signInPath: string): Promise<void> {
+  return loadAccount(
+    async (): Promise<Entitlements> => {
+      const me: Entitlements = await fetchMeAfterPayment();
+      renderPaymentResult(me, text);
+      return me;
+    },
+    form,
+    text,
+    notice,
+    signInPath,
+  );
+}
+
+/** Cayma onay adımını açar ya da kapatır (açıkken "Withdraw from contract" düğmesi gizlenir). */
+function showWithdrawConfirm(open: boolean): void {
+  element("withdraw-confirm", HTMLElement).classList.toggle("hidden", !open);
+  element("withdraw-button", HTMLButtonElement).classList.toggle("hidden", open);
+  hideNotice(element("withdraw-error", HTMLElement));
+}
+
+/**
+ * Cayma işlevini bağlar: düğme onay adımını açar; "Confirm withdrawal" `POST /v1/billing/withdraw`'u çağırır, sonucu
+ * (yerel tarih ve saat, plan, iade tutarı) kalıcı onay kartına yazar ve hesabı yeniden yükler (abonelik bitti).
+ */
+function bindWithdrawal(form: CheckoutForm, text: ClientCopy, notice: HTMLElement, signInPath: string): void {
+  element("withdraw-button", HTMLButtonElement).addEventListener("click", (): void => {
+    showWithdrawConfirm(true);
+  });
+  element("withdraw-cancel", HTMLButtonElement).addEventListener("click", (): void => {
+    showWithdrawConfirm(false);
+  });
+  bindAction(element("withdraw-confirm-button", HTMLButtonElement), element("withdraw-error", HTMLElement), text, signInPath, async (): Promise<void> => {
+    const path: string = "/v1/billing/withdraw";
+    const plan: string = element("plan-value", HTMLElement).textContent ?? "";
+    const response: RawResponse = await authorizedSend({ method: "POST", path, body: null, attempts: 1 });
+    const result: WithdrawalResult = parseWithdrawal(response, path);
+    const at: string = new Intl.DateTimeFormat(siteLocale, { dateStyle: "long", timeStyle: "short" }).format(new Date());
+    element("withdraw-done-text", HTMLElement).textContent = fill(text.withdrawal.doneText, {
+      dateTime: at,
+      plan,
+      amount: formatRefund(result.refundedCents, result.currency, siteLocale),
+    });
+    showWithdrawConfirm(false);
+    element("withdraw-card", HTMLElement).classList.add("hidden");
+    const done: HTMLElement = element("withdraw-done", HTMLElement);
+    done.classList.remove("hidden");
+    done.focus();
+    await loadAccount(fetchMe, form, text, notice, signInPath);
+  });
+}
+
 /** Yeniden deneme düğmesini bağlar: bildirim ve düğme gizlenir, "yükleniyor" görünür, hesap yeniden okunur. */
 function bindRetry(form: CheckoutForm, text: ClientCopy, notice: HTMLElement, signInPath: string): void {
   const retry: HTMLButtonElement = element("account-retry", HTMLButtonElement);
@@ -1219,7 +1336,6 @@ async function main(): Promise<void> {
     return;
   }
   if (paymentDone) {
-    showPaymentNotice();
     history.replaceState(null, "", window.location.pathname);
   }
 
@@ -1250,7 +1366,9 @@ async function main(): Promise<void> {
   });
   bindDeletion(text, signInPath, homePath);
   bindRetry(form, text, notice, signInPath);
-  await loadAccount(paymentDone ? fetchMeAfterPayment : fetchMe, form, text, notice, signInPath);
+  bindWithdrawal(form, text, notice, signInPath);
+  bindAction(element("payment-refresh", HTMLButtonElement), notice, text, signInPath, (): Promise<void> => loadAfterPayment(form, text, notice, signInPath));
+  await (paymentDone ? loadAfterPayment(form, text, notice, signInPath) : loadAccount(fetchMe, form, text, notice, signInPath));
 }
 
 void main();

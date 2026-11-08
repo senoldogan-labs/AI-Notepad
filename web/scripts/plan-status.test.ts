@@ -38,7 +38,7 @@ interface SubscriptionFields {
 }
 
 function subscription(fields: SubscriptionFields): SubscriptionInfo {
-  return { source: "stripe", plan: "yearly", tier: "personal", currentPeriodEnd: future, graceEndsAt: null, ...fields };
+  return { source: "stripe", plan: "yearly", tier: "personal", currentPeriodEnd: future, graceEndsAt: null, withdrawableUntil: null, ...fields };
 }
 
 const grace: SubscriptionInfo = {
@@ -46,6 +46,7 @@ const grace: SubscriptionInfo = {
   status: "past_due",
   plan: "monthly",
   tier: "personal",
+  withdrawableUntil: null,
   currentPeriodEnd: future,
   cancelAt: null,
   complimentary: false,

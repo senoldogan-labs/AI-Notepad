@@ -58,7 +58,7 @@ type DataSource = "insights" | "product" | "trends" | "telemetry" | "operations"
 /** Görünüm başına kaynaklar. */
 const viewSources: Readonly<Record<AdminView, readonly DataSource[]>> = {
   overview: ["insights", "operations", "trends"],
-  revenue: ["insights", "product", "trends"],
+  revenue: ["insights", "product", "trends", "telemetry"],
   growth: ["insights", "product", "trends"],
   engagement: ["product", "telemetry", "trends"],
   reliability: ["product", "telemetry", "insights"],

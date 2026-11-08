@@ -2,7 +2,8 @@
 // Kullanım şartları. Sınırlar ve ödeme davranışı sunucuyla aynıdır (server/wrangler.jsonc `vars`, server/src/billing.ts,
 // server/src/account.ts, trialLedger.ts, deviceCheck.ts). Ödeme Stripe Managed Payments ile alınır: satıcı (merchant of
 // record) Link'tir; iade ve cayma hakkı Link'in şartlarına bağlıdır (link.com/terms "Sold Through Link Terms": AB
-// tüketicisine erişimden itibaren 14 gün, Link desteğine "cooling off period" gerekçesiyle başvurulur). Davet programının
+// tüketicisine erişimden itibaren 14 gün, Link desteğine "cooling off period" gerekçesiyle başvurulur); hesap sayfası
+// ayrıca AB CRD Art. 11a cayma işlevini sunar ("Withdraw from contract" → "Confirm withdrawal", `POST /v1/billing/withdraw`). Davet programının
 // kuralları (ödül, bekleme süresi, yıllık sınır) sunucunun davet kurallarıyla aynı tutulur. iPhone uygulamasının App Store
 // abonelikleri (server/src/appStore.ts) Apple'ın satışıdır: otomatik yenileme açıklaması App Store Review Guidelines
 // 3.1.2 ve developer.apple.com/app-store/subscriptions; iOS uygulaması Apple'ın standart lisans sözleşmesiyle (Standard
@@ -144,7 +145,8 @@ const appleRefundUrl: string = "https://reportaproblem.apple.com";
         You subscribe from your <a href={routes.account}>account page</a> or in the app. The subscription starts when the
         payment is confirmed. <strong>It renews automatically</strong> at the end of each billing period — every month on
         the same day of the month, or every year on the same date — and each renewal is charged to your saved payment
-        method, <strong>until you cancel</strong>. You can cancel at any time (see section 6).
+        method, <strong>until you cancel</strong>. You can cancel at any time (see section 6). On yearly plans, Link emails
+        you a reminder at least 15 days before each renewal.
       </li>
       <li>
         To move between the monthly and yearly plan, cancel your current plan and, once it has ended, subscribe again with
@@ -218,14 +220,17 @@ const appleRefundUrl: string = "https://reportaproblem.apple.com";
   <LegalSection sections={sections} id="withdrawal">
     <p>
       Link is the merchant of record for the subscription, so payment questions, refunds and the statutory right of
-      withdrawal are handled by Link under <a href={linkTermsUrl}>Link's terms</a>, which also provide the way to withdraw.
+      withdrawal are handled by Link under <a href={linkTermsUrl}>Link's terms</a>. You can withdraw directly on your
+      account page, as described below.
     </p>
     <ul>
       <li>
-        <strong>Right of withdrawal (EU and EEA consumers).</strong> Under Link's terms, you can cancel your order within 14
-        days from the day you get access to the subscription. To do so, contact{" "}
-        <a href={linkSupportUrl}>Link support</a>, follow its instructions for requesting a refund and give “cooling off
-        period” as the reason.
+        <strong>Right of withdrawal.</strong> You can withdraw from a subscription bought on our website or in the Mac app
+        within 14 days of its start. On your <a href={routes.account}>account page</a>, choose “Withdraw from contract” and
+        then “Confirm withdrawal”. The subscription ends straight away and the page shows a confirmation with the date and
+        time and the refund amount; keep it for your records. You get back what you paid, minus a proportionate charge for
+        the days you used, on your original payment method, and Link emails you the refund receipt. You can also contact{" "}
+        <a href={linkSupportUrl}>Link support</a> and give “cooling off period” as the reason.
       </li>
       <li>
         <strong>A service that has already started.</strong> The subscription is a digital service that starts, at your

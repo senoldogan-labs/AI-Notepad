@@ -30,6 +30,8 @@ export interface ClientCopy {
     readonly proUnavailable: string;
     /** Katman değiştirmede seçilen plan zaten geçerli (`plan_unchanged`). */
     readonly planUnchanged: string;
+    /** Cayma artık yapılamıyor (`withdrawal_unavailable`: 14 gün geçti, Stripe aboneliği değil ya da ücretsiz erişim). */
+    readonly withdrawalUnavailable: string;
     /** Bilinmeyen hata; `{code}` sunucunun hata koduyla değişir. */
     readonly generic: string;
   };
@@ -82,8 +84,64 @@ export interface ClientCopy {
   readonly tiers: { readonly personal: string; readonly pro: string };
   /** Katman seçimindeki saat satırı: `{hours}` sunucunun aylık saat sınırı. */
   readonly tierHours: string;
-  /** Stripe abonesinin katman değiştirme düğmesi, hedef katmana göre. */
+  /** Stripe abonesinin katman değiştirme düğmesi, hedef katmana göre: `{price}` yeni katmanın faturalanan tutarı. */
   readonly switchTier: { readonly personal: string; readonly pro: string };
+  /**
+   * Katman değiştirme düğmesinin altındaki not, hedef katmana göre: Pro'ya geçişte bugün ödenecek fark, Personal'a
+   * geçişte alacak (`{period}` "month"/"year", `{price}` yeni katmanın tutarı; terms.astro ile aynı).
+   */
+  readonly switchTierNote: { readonly personal: string; readonly pro: string };
+  /** Faturalanan tutarın plan başına kalıbı (`{price}`; düğmeler ve katman seçimi). */
+  readonly billedTotal: { readonly monthly: string; readonly yearly: string };
+  /** Dönemin adı (yenileme koşulları). */
+  readonly period: { readonly monthly: string; readonly yearly: string };
+  /** Abone ol düğmesi, katmana göre: `{price}` seçili planın faturalanan tutarı ("Subscribe · $49/year"). */
+  readonly subscribeCta: { readonly personal: string; readonly pro: string };
+  /**
+   * Abone ol düğmesinin altındaki yenileme koşulları (Checkout'tan önce; ROSCA, Kaliforniya otomatik yenileme yasası):
+   * `lead` kalın satır (`{price}`, `{period}`), `rest` ödeme günü, iptal yolu, dönem sonuna dek erişim, iade ve satıcı.
+   */
+  readonly checkoutTerms: { readonly lead: string; readonly rest: string };
+  /**
+   * Süren denemenin başlığı (sunucunun deneme sayılarından; görev sayısı web'de yoktur): `one`/`other` kullanılan
+   * toplantı (`{count}`), `none` henüz toplantı yok.
+   */
+  readonly trialHeadline: { readonly none: string; readonly one: string; readonly other: string };
+  /**
+   * Hiç abone olmamış hesapta deneme bitti: sakin bir kart (geri sayım yok). `title` başlık, `one`/`other` kaydedilen
+   * toplantı sayısıyla (`{count}`) metin; hiç toplantı yoksa `trialEnded` iletisi yazılır, kart görünmez.
+   */
+  readonly winBack: { readonly title: string; readonly one: string; readonly other: string };
+  /**
+   * Ödeme dönüşündeki onay kartı: başlık, plan satırı (`{plan}`, `{hours}`), tek sonraki adım (takvim) ve uygulamaya
+   * bağlantı; abonelik birkaç denemede görünmezse bekleme satırı ve yenileme düğmesi.
+   */
+  /**
+   * Cayma işlevi (AB CRD Art. 11a): kart başlığı ve son günlü metin (`{date}`), "Withdraw from contract" düğmesi, onay
+   * adımı ("Confirm withdrawal") ve başarıdan sonra ekranda kalan onay (`{dateTime}`, `{plan}`, `{amount}`) ile saklama
+   * notu.
+   */
+  readonly withdrawal: {
+    readonly title: string;
+    readonly text: string;
+    readonly button: string;
+    readonly confirmTitle: string;
+    readonly confirmText: string;
+    readonly confirm: string;
+    readonly cancel: string;
+    readonly doneTitle: string;
+    readonly doneText: string;
+    readonly keep: string;
+  };
+  readonly confirmation: {
+    readonly title: string;
+    readonly text: string;
+    readonly nextTitle: string;
+    readonly nextText: string;
+    readonly getApp: string;
+    readonly pending: string;
+    readonly refresh: string;
+  };
   /** Plan kartının etiket/değer satırları (deneme ve abonelik). */
   readonly facts: {
     readonly trialIncludes: string;
@@ -283,6 +341,8 @@ export const clientCopy: ClientCopy = {
       "You already subscribe in the iPhone app, and it works here too. Manage or cancel it on your iPhone in Settings › your name › Subscriptions.",
     proUnavailable: "Pro isn't available to buy right now. You can choose Personal instead.",
     planUnchanged: "You're already on this plan.",
+    withdrawalUnavailable:
+      "Withdrawal isn't available for this subscription any more: the 14 days have passed, or it wasn't bought on the website or in the Mac app.",
     generic: "Something went wrong (code: {code}). Try again.",
   },
   inviteErrors: {
@@ -325,7 +385,51 @@ export const clientCopy: ClientCopy = {
   },
   tiers: { personal: "Personal", pro: "Pro" },
   tierHours: "{hours} meeting hours a month",
-  switchTier: { personal: "Switch to Personal", pro: "Switch to Pro" },
+  switchTier: { personal: "Switch to Personal · {price}", pro: "Switch to Pro · {price}" },
+  switchTierNote: {
+    pro: "Pro starts now. You'll pay the prorated difference for the rest of this {period} today, then {price} per {period} from your next renewal. Stripe shows the amount before anything is charged.",
+    personal:
+      "Personal starts now. The unused part of this {period} on Pro becomes a credit taken off your next payments, then {price} per {period}. Stripe shows the amount before you confirm.",
+  },
+  billedTotal: { monthly: "{price}/month", yearly: "{price}/year" },
+  period: { monthly: "month", yearly: "year" },
+  subscribeCta: { personal: "Subscribe · {price}", pro: "Subscribe to Pro · {price}" },
+  checkoutTerms: {
+    lead: "{price} per {period}, renews automatically until you cancel.",
+    rest: "You're charged today and then every {period} on the same date. Cancel anytime in Account › Manage subscription; you keep access until the end of the period you've paid for, and unused time isn't refunded except where the law requires. Taxes included. Sold and billed by Link (Stripe).",
+  },
+  trialHeadline: {
+    none: "Every meeting, written up for you.",
+    one: "1 meeting recorded in your trial, written up for you.",
+    other: "{count} meetings recorded in your trial, written up for you.",
+  },
+  winBack: {
+    title: "Pick up where you left off",
+    one: "Your free trial has ended. You recorded 1 meeting, and your notes stay in the app. Subscribe to start new meetings.",
+    other: "Your free trial has ended. You recorded {count} meetings, and your notes stay in the app. Subscribe to start new meetings.",
+  },
+  withdrawal: {
+    title: "Right of withdrawal",
+    text: "You can withdraw from this subscription until {date}. It ends straight away, and you get back what you paid, minus a proportionate charge for the days you used, on your original payment method.",
+    button: "Withdraw from contract",
+    confirmTitle: "Withdraw from your subscription?",
+    confirmText: "Your subscription ends now and can't be resumed. You get back what you paid, minus a proportionate charge for the days you used.",
+    confirm: "Confirm withdrawal",
+    cancel: "Keep my subscription",
+    doneTitle: "Withdrawal confirmed",
+    doneText:
+      "On {dateTime} you withdrew from your {plan} subscription, and it has ended. Refund: {amount}, to your original payment method. Link emails you the refund receipt.",
+    keep: "Keep this confirmation for your records: save or print this page before you leave it.",
+  },
+  confirmation: {
+    title: "You're subscribed",
+    text: "{plan}: {hours} meeting hours a month, on Mac and iPhone.",
+    nextTitle: "Next: connect your calendar",
+    nextText: `Open ${productName} on your Mac or iPhone, signed in with this account, and connect your calendar. Your upcoming meetings are then one tap away.`,
+    getApp: "Don't have the app yet? Get it for Mac or iPhone",
+    pending: "Payment received. We're still waiting for Link to confirm your subscription; this usually takes a few seconds.",
+    refresh: "Refresh my plan",
+  },
   facts: {
     trialIncludes: "Includes",
     trialIncludesValue: "{total} meetings or {days} days, whichever comes first",

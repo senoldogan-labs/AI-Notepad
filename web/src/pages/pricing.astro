@@ -1,5 +1,6 @@
 ---
-// Fiyat sayfası: iki plan (aylık 5,99 $, yıllık 49 $; vergiler dahil; yıllık önerilen), davet sayfasına bağlantı, neler
+// Fiyat sayfası: iki plan (yıllık 49 $ önce ve önerilen, aylık 5,99 $; vergiler dahil; tasarruf aşağı yuvarlanmış düz
+// metin, aylık karşılığı faturalanan tutardan küçük; düğmede tutar), davet sayfasına bağlantı, neler
 // dahil (yalnızca özellikler), sınırlar (deneme, aylık saat, toplantı süresi, iptal), SSS (ödeme ve vergiler, satıcı Link, SSS'te). Her bilgi sayfada bir kez geçer. Plan düğmeleri hesap sayfasına seçilen planla ve "ödemeye devam et" niyetiyle
 // gider (`/account?plan=…&checkout=1`); hesap sayfası oturum yoksa önce girişe yönlendirir, giriş bitince seçilen planla
 // doğrudan Stripe Checkout açılır.
@@ -69,7 +70,7 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
                 </p>
                 <div class="plan-option__head">
                   <h3 class="plan-option__name" id={`plan-${option.plan}`}>{option.name}</h3>
-                  {option.badge === null ? null : <span class="pill pill--accent">{option.badge}</span>}
+                  {option.badge === null ? null : <span class="plan-option__save">{option.badge}</span>}
                 </div>
                 <p class="plan-option__price">
                   <span class="tabular">{option.price}</span>
@@ -101,7 +102,7 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
                 <div class="pro-plan">
                   <div class="plan-option__head">
                     <h4 class="pro-plan__name" id={`plan-pro-${option.plan}`}>{option.name}</h4>
-                    {option.badge === null ? null : <span class="pill pill--accent">{option.badge}</span>}
+                    {option.badge === null ? null : <span class="plan-option__save">{option.badge}</span>}
                   </div>
                   <p class="plan-option__price">
                     <span class="tabular">{option.price}</span>
@@ -138,7 +139,7 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
       <p class="muted">
         {noteBefore}<a class="text-link plans__invite" href={routes.invite}>{text.plansInviteLink} <Icon name="arrow-right" size={14} class="" /></a>{noteAfter}
       </p>
-      <p class="small muted">{common.renewalNote}</p>
+      <p class="small muted">{text.renewalTerms}</p>
     </div>
   </section>
 
@@ -271,6 +272,13 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
 
   .plan-option__tagline {
     color: var(--muted);
+  }
+
+  /* The yearly saving: plain accent text, smaller than the billed total (Apple: savings stay subordinate). */
+  .plan-option__save {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--accent);
   }
 
   /* Pro sunulunca kartların üstündeki katman satırı: katmanın adı ve sunucunun saatleri. */

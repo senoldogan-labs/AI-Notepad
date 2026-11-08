@@ -1,8 +1,11 @@
 // Yönetim panelinin telemetri verisi (`/v1/admin/telemetry`, son 30 gün; öğeleri kullanım, güvenilirlik ve maliyet
 // görünümlerindedir): sürüm benimsenmesi (Mac uygulamasının ve
 // macOS'un sürümüne göre etkin hesaplar), amaca göre yapay zekâ tokenları, istemci güvenilirlik olayları (uygulama
-// sürümüne ve güne göre), son geçiş ve not süresinin dağılımı, günlük özellik raporları. Sürümler hesap başına son
-// değerdir; diğer her şey hesaba bağlı olmayan günlük toplamdır. Yanıt sınırda katı biçimde doğrulanır.
+// sürümüne ve güne göre), son geçiş ve not süresinin dağılımı, günlük özellik raporları ve abonelik hunisi (Conversion:
+// platform ve an başına plan ekranı adımları, hatalar, geri yükleme, plan karışımı, deneme hatırlatması, yükseltme
+// bildirimleri ve sunucunun saydığı Stripe ödeme sayfaları; gelir görünümünde). Sürümler hesap başına son değerdir;
+// diğer her şey hesaba bağlı olmayan günlük toplamdır. Yanıt sınırda katı biçimde doğrulanır; `conversion` alanı olmayan
+// eski sunucu "bildirilmedi" olarak gösterilir.
 import {
   ApiResponseError,
   type JsonObject,
@@ -17,12 +20,30 @@ import {
 import { fillTable, formatCompact, formatCount, formatDay, formatRate, node, tableRow } from "./admin-format";
 import {
   type AdminTelemetryCopy,
+  type CheckoutSource,
+  type ConversionChannel,
+  type ConversionPlan,
+  type ConversionPlatform,
+  type ConversionReason,
+  type ConversionReminderKind,
+  type ConversionRestoreResult,
+  type ConversionTier,
+  type ConversionTrigger,
   type CountEventKind,
   type DurationEventKind,
   type FeatureName,
   type FlagFeature,
   type LlmPurpose,
   adminTelemetryCopy,
+  checkoutSources,
+  conversionChannels,
+  conversionPlans,
+  conversionPlatforms,
+  conversionReasons,
+  conversionReminderKinds,
+  conversionRestoreResults,
+  conversionTiers,
+  conversionTriggers,
   countEventKinds,
   durationEventKinds,
   featureNames,
@@ -90,6 +111,35 @@ export interface FeatureRow {
   readonly total: number;
 }
 
+/** Hunide bir platform ve an: plan ekranı adımlarının toplamları. */
+export interface ConversionFunnelRow {
+  readonly platform: ConversionPlatform;
+  readonly trigger: ConversionTrigger;
+  readonly shown: number;
+  readonly selected: number;
+  readonly started: number;
+  readonly completed: number;
+  readonly cancelled: number;
+  readonly failed: number;
+}
+
+/** Abonelik hunisi (`server/src/conversion.ts` `AdminConversion`; pencerenin toplamları, kimlik yok). */
+export interface AdminConversion {
+  readonly funnel: readonly ConversionFunnelRow[];
+  readonly failures: readonly { readonly platform: ConversionPlatform; readonly reason: ConversionReason; readonly count: number }[];
+  readonly restores: readonly { readonly platform: ConversionPlatform; readonly result: ConversionRestoreResult; readonly count: number }[];
+  readonly planMix: readonly {
+    readonly platform: ConversionPlatform;
+    readonly tier: ConversionTier;
+    readonly plan: ConversionPlan;
+    readonly started: number;
+    readonly completed: number;
+  }[];
+  readonly reminders: readonly { readonly kind: ConversionReminderKind; readonly channel: ConversionChannel; readonly count: number }[];
+  readonly upsells: readonly { readonly trigger: ConversionTrigger; readonly shown: number; readonly tapped: number }[];
+  readonly checkouts: readonly { readonly source: CheckoutSource; readonly tier: ConversionTier; readonly plan: ConversionPlan; readonly count: number }[];
+}
+
 /** `GET /v1/admin/telemetry` yanıtı. */
 export interface AdminTelemetry {
   readonly windowDays: number;
@@ -102,6 +152,8 @@ export interface AdminTelemetry {
     readonly durationBuckets: readonly string[];
   };
   readonly features: { readonly reports: number; readonly rows: readonly FeatureRow[] };
+  /** Abonelik hunisi; alanı göndermeyen eski sunucuda null ("bildirilmedi"). */
+  readonly conversion: AdminConversion | null;
 }
 
 /** Telemetri görünümünün dışarıya açtığı işlemler. */
@@ -186,6 +238,66 @@ function purposeTotal(item: JsonObject, response: RawResponse, path: string): Pu
   };
 }
 
+/**
+ * Abonelik hunisini okur: her değer sunucunun listelerinden biri, her sayı negatif olmayan. Alan yoksa (eski sunucu)
+ * null; varsa bozuk değer `ApiResponseError`'dır.
+ */
+export function parseConversion(body: JsonObject, response: RawResponse, path: string): AdminConversion | null {
+  if (body["conversion"] === undefined) {
+    return null;
+  }
+  const conversion: JsonObject = objectField(body, "conversion", response, path);
+  const platform = (item: JsonObject): ConversionPlatform => literalField(item, "platform", conversionPlatforms, response, path);
+  const count = (item: JsonObject, key: string): number => countField(item, key, response, path);
+  return {
+    funnel: objectArrayField(conversion, "funnel", response, path).map(
+      (item: JsonObject): ConversionFunnelRow => ({
+        platform: platform(item),
+        trigger: literalField(item, "trigger", conversionTriggers, response, path),
+        shown: count(item, "shown"),
+        selected: count(item, "selected"),
+        started: count(item, "started"),
+        completed: count(item, "completed"),
+        cancelled: count(item, "cancelled"),
+        failed: count(item, "failed"),
+      }),
+    ),
+    failures: objectArrayField(conversion, "failures", response, path).map((item: JsonObject) => ({
+      platform: platform(item),
+      reason: literalField(item, "reason", conversionReasons, response, path),
+      count: count(item, "count"),
+    })),
+    restores: objectArrayField(conversion, "restores", response, path).map((item: JsonObject) => ({
+      platform: platform(item),
+      result: literalField(item, "result", conversionRestoreResults, response, path),
+      count: count(item, "count"),
+    })),
+    planMix: objectArrayField(conversion, "planMix", response, path).map((item: JsonObject) => ({
+      platform: platform(item),
+      tier: literalField(item, "tier", conversionTiers, response, path),
+      plan: literalField(item, "plan", conversionPlans, response, path),
+      started: count(item, "started"),
+      completed: count(item, "completed"),
+    })),
+    reminders: objectArrayField(conversion, "reminders", response, path).map((item: JsonObject) => ({
+      kind: literalField(item, "kind", conversionReminderKinds, response, path),
+      channel: literalField(item, "channel", conversionChannels, response, path),
+      count: count(item, "count"),
+    })),
+    upsells: objectArrayField(conversion, "upsells", response, path).map((item: JsonObject) => ({
+      trigger: literalField(item, "trigger", conversionTriggers, response, path),
+      shown: count(item, "shown"),
+      tapped: count(item, "tapped"),
+    })),
+    checkouts: objectArrayField(conversion, "checkouts", response, path).map((item: JsonObject) => ({
+      source: literalField(item, "source", checkoutSources, response, path),
+      tier: literalField(item, "tier", conversionTiers, response, path),
+      plan: literalField(item, "plan", conversionPlans, response, path),
+      count: count(item, "count"),
+    })),
+  };
+}
+
 /** `GET /v1/admin/telemetry` yanıtını okur. */
 export function parseAdminTelemetry(response: RawResponse, path: string): AdminTelemetry {
   const body: JsonObject = parseObject(response, path);
@@ -242,6 +354,7 @@ export function parseAdminTelemetry(response: RawResponse, path: string): AdminT
         }),
       ),
     },
+    conversion: parseConversion(body, response, path),
   };
 }
 
@@ -429,6 +542,63 @@ function renderFeatures(features: AdminTelemetry["features"], windowDays: number
   fillWithEmpty("telemetry-exports", valueRows(featureValues(features.rows, "export"), reports, (value: string): string => knownLabel(telemetryText.exports, value)));
 }
 
+/** Sayı ve oranı tek hücrede ("12 · 40%"); payda 0 ise yalnızca sayı. Saf fonksiyondur. */
+function countWithRate(part: number, whole: number): string {
+  return whole === 0 ? formatCount(part) : `${formatCount(part)} · ${formatRate(part, whole)}`;
+}
+
+/** Abonelik hunisinin tablolarını çizer; sunucu bildirmediyse tablolar boş, not "bildirilmedi" der. */
+function renderConversion(conversion: AdminConversion | null): void {
+  const text: AdminTelemetryCopy["conversion"] = telemetryText.conversion;
+  element("telemetry-conversion-lead", HTMLElement).textContent = conversion === null ? text.notReported : text.lowerBound;
+  const data: AdminConversion = conversion ?? { funnel: [], failures: [], restores: [], planMix: [], reminders: [], upsells: [], checkouts: [] };
+  fillWithEmpty(
+    "telemetry-conversion-funnel",
+    [...data.funnel]
+      .sort((left: ConversionFunnelRow, right: ConversionFunnelRow): number => right.shown - left.shown)
+      .map((row: ConversionFunnelRow): HTMLTableRowElement =>
+        tableRow([
+          text.platforms[row.platform],
+          text.triggers[row.trigger],
+          formatCount(row.shown),
+          formatCount(row.selected),
+          formatCount(row.started),
+          formatCount(row.completed),
+          formatCount(row.cancelled),
+          formatCount(row.failed),
+          shareCell(row.started, row.shown),
+          shareCell(row.completed, row.started),
+        ]),
+      ),
+  );
+  fillWithEmpty(
+    "telemetry-conversion-failures",
+    data.failures.map((row): HTMLTableRowElement => tableRow([text.platforms[row.platform], text.reasons[row.reason], formatCount(row.count)])),
+  );
+  fillWithEmpty(
+    "telemetry-conversion-restores",
+    data.restores.map((row): HTMLTableRowElement => tableRow([text.platforms[row.platform], text.restoreResults[row.result], formatCount(row.count)])),
+  );
+  fillWithEmpty(
+    "telemetry-conversion-plans",
+    data.planMix.map((row): HTMLTableRowElement =>
+      tableRow([text.platforms[row.platform], text.tiers[row.tier], text.plans[row.plan], formatCount(row.started), countWithRate(row.completed, row.started)]),
+    ),
+  );
+  fillWithEmpty(
+    "telemetry-conversion-reminders",
+    data.reminders.map((row): HTMLTableRowElement => tableRow([text.reminderKinds[row.kind], text.channels[row.channel], formatCount(row.count)])),
+  );
+  fillWithEmpty(
+    "telemetry-conversion-upsells",
+    data.upsells.map((row): HTMLTableRowElement => tableRow([text.triggers[row.trigger], formatCount(row.shown), formatCount(row.tapped), shareCell(row.tapped, row.shown)])),
+  );
+  fillWithEmpty(
+    "telemetry-conversion-checkouts",
+    data.checkouts.map((row): HTMLTableRowElement => tableRow([text.sources[row.source], text.tiers[row.tier], text.plans[row.plan], formatCount(row.count)])),
+  );
+}
+
 /** Telemetri görünümünü çizer. */
 function renderTelemetry(telemetry: AdminTelemetry): void {
   const days: string = formatCount(telemetry.windowDays);
@@ -440,6 +610,7 @@ function renderTelemetry(telemetry: AdminTelemetry): void {
   renderPurposes(telemetry.purposes);
   renderEvents(telemetry.events);
   renderFeatures(telemetry.features, telemetry.windowDays);
+  renderConversion(telemetry.conversion);
 }
 
 /** Telemetri görünümünü bağlar. */
