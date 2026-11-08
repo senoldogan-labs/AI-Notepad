@@ -438,7 +438,10 @@ private func encodeFlacChunk(pcm: FileHandle, pcmPath: String, startSample: Int,
             throw StorageError.deleteFailed(path: destination.path, reason: error.localizedDescription)
         }
     }
-    try writeFlacSamples(pcm: pcm, pcmPath: pcmPath, startSample: startSample, sampleCount: sampleCount, destination: destination)
+    // Havuz, macOS 14'te dosyanın STREAMINFO okunmadan önce bırakılıp kapanmasını garanti eder (bkz. `closeAudioFile`).
+    try autoreleasepool {
+        try writeFlacSamples(pcm: pcm, pcmPath: pcmPath, startSample: startSample, sampleCount: sampleCount, destination: destination)
+    }
     let header: Data
     let bytes: Int
     do {

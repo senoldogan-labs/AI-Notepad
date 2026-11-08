@@ -14,7 +14,7 @@ private enum DictationLanguageSupport: Equatable {
     case appleSpeech
     /// macOS 26+: desteklemiyor (sesle yazma açıkça hata verir).
     case unsupported
-    /// macOS 15–25: WhisperKit modeli.
+    /// macOS 14.2–25: WhisperKit modeli.
     case whisperKit
 }
 

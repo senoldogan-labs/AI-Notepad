@@ -22,7 +22,7 @@ Script details (one-time notary/Sparkle setup, what each check means) live in th
    ```
 2. Write `docs/release-notes/gistsmith-<new>.md`, matching the tone of the latest existing ones: one summary sentence
    ("Gistsmith <new> …"), `## New` and/or `## Improvements` with **bold lead** + one or two plain sentences per item,
-   last line `Requires macOS 15 or later on Apple silicon.` Only user benefit: no PR numbers, internal motives,
+   last line `Requires macOS 14.2 or later on Apple silicon.` Only user benefit: no PR numbers, internal motives,
    telemetry details, provider/vendor names or code terms.
 3. Commit `chore: release Gistsmith <new> (build <newbuild>)`, open the PR, wait for `test-and-build`, `server`, `web`,
    squash-merge, then wait for the **CI run on the merge commit on main** to finish green:

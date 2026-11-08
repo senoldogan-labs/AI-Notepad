@@ -9,7 +9,7 @@ import NaturalLanguage
 // ve süzme okuma anında `meetingSegments` içinde yapılır (bkz. `isSkippedForLanguage`).
 //
 // Algılama Apple'ın NaturalLanguage çerçevesiyle cihazda yapılır (ücretsiz, ağsız); çerçeve paketin desteklediği bütün
-// sürümlerde (macOS 15, iOS 26) vardır. Bir algılama ~0,5 ms sürdüğü için okuma anında değil, bölüm oluşurken bir kez
+// sürümlerde (macOS 14.2, iOS 18) vardır. Bir algılama ~0,5 ms sürdüğü için okuma anında değil, bölüm oluşurken bir kez
 // yapılır (canlı bölüm kesinleşince, son geçiş bölümleri gelince).
 //
 // Eşikler muhafazakârdır: yanlışlıkla toplantı dilindeki konuşmayı atlamak, başka dildeki bir cümleyi bırakmaktan

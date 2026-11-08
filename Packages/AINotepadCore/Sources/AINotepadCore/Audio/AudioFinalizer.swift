@@ -1,8 +1,16 @@
 import AVFoundation
 import Foundation
 
-/// Kaydı (ör. `.caf`) 16 kHz mono AAC `.m4a`'ya dönüştürür (32 kbps; saatte ~15 MB). Kaynağı silmez.
+/// Kaydı (ör. `.caf`) 16 kHz mono AAC `.m4a`'ya dönüştürür (32 kbps; saatte ~15 MB). Kaynağı silmez. Dönünce hedef
+/// dosya kapanmıştır (bkz. `closeAudioFile`).
 public func convertToM4A(source: URL, destination: URL) throws {
+    try autoreleasepool {
+        try writeM4A(source: source, destination: destination)
+    }
+}
+
+/// `convertToM4A`'nın işi; dosyalar bu işlevin yerel değişkenleridir, macOS 14'te işlev dönerken bırakılıp kapanır.
+private func writeM4A(source: URL, destination: URL) throws {
     let input: AVAudioFile
     do {
         input = try AVAudioFile(forReading: source, commonFormat: .pcmFormatFloat32, interleaved: false)
@@ -38,8 +46,9 @@ public func convertToM4A(source: URL, destination: URL) throws {
 }
 
 /// `AVAudioFile`'ı hemen kapatır; `close()` macOS 15 ister. macOS 14'te dosya son referansı bırakılınca (deinit)
-/// kapanır: çağıran dosyayı bundan sonra tutmamalı ve kapanmış hâlini okumadan önce bırakmalıdır (ör. yerel değişkeni
-/// tutan işlevden dönmek).
+/// kapanır: çağıran dosyayı bundan sonra tutmamalı ve kapanmış hâlini okumadan önce bırakmalıdır (dosyayı yerel
+/// değişkende tutan işlevi `autoreleasepool` içinde çağırıp dönmek: AVFoundation nesneyi otomatik bırakma havuzuna
+/// koyduysa da havuz boşalınca kapanır).
 func closeAudioFile(_ file: AVAudioFile) {
     if #available(macOS 15.0, *) {
         file.close()
