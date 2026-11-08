@@ -698,6 +698,19 @@ final class PhoneRouter {
         path = [route]
     }
 
+    /// Ana ekran yan sütunda, yığın sağdaki içerik sütununda (açılmış iPhone Duo; `RootView` düzen değişince yazar).
+    var showsColumns: Bool = false
+
+    /// Ana ekrandan (ya da her sayfadaki mini çalardan) bir sayfa seçildi: iki sütunda içerik sütununun yerini alır (yan
+    /// sütundaki vurgu da ona geçer), tek sütunda yığının üstüne açılır (zaten üstteyse yeniden açılmaz).
+    func select(route: PhoneRoute) {
+        if showsColumns {
+            replace(route: route)
+        } else if path.last != route {
+            path.append(route)
+        }
+    }
+
     /// Sor'da basılan kaynak: toplantı sayfası açılınca o anı gösterir ve sıfırlar (`MeetingReadView.openingSource`);
     /// yığın başka yere giderse düşer (bkz. `path`).
     var openingSource: ArchivePassage?
@@ -1011,8 +1024,14 @@ struct RootView: View {
                             isMeetingInFlight: !phoneOpenWriters(store: store, recorder: recorder, ask: ask, integrations: integrations).filter { $0 != .syncing }.isEmpty,
                             onRunRecipe: runRecipe(recipe:meetingID:)
                         )
+                        // İçerik sütununun ilk sayfasında geri yok: geri yalnız boş "Toplantı seç"e dönerdi (seçim yan
+                        // sütundan yapılır).
+                        .navigationBarBackButtonHidden(showsSidebar && router.path.first == route)
                     }
                 }
+            }
+            .onChange(of: showsSidebar, initial: true) { (_: Bool, shows: Bool) in
+                router.showsColumns = shows
             }
         }
         // Ses ya da video içe aktarma (kitaplık ve kayıt düğmesinin menüsü), telefon görüşmesi rehberi ve deneysel görüşme

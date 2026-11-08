@@ -16,7 +16,7 @@ struct MiniPlayer: View {
         HStack(spacing: 12) {
             Button {
                 if let id = player.meetingID {
-                    router.open(meetingID: id)
+                    router.select(route: .meeting(id))
                 }
             } label: {
                 HStack(spacing: 10) {
