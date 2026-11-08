@@ -39,7 +39,7 @@
 	<key>NSCalendarsFullAccessUsageDescription</key>
 	<string>Gistsmith yaklaşan toplantılarını gösterir, başlamadan önce hatırlatır ve notu toplantının adıyla kaydeder.</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>© 2026 T:mi Aslan Dogan Marketing</string>
+	<string>© 2026 Gistsmith · Made by Senol Dogan</string>
 	<key>NSRemindersFullAccessUsageDescription</key>
 	<string>Gistsmith toplantı notundaki görevleri istediğinde Anımsatıcılar'a ekler.</string>
 	<key>SUAutomaticallyUpdate</key>

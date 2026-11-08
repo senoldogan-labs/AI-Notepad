@@ -130,7 +130,7 @@ targets:
         # scripts/l10n.py) biri olmayan kullanıcı (ör. Lehçe) arayüzü İngilizce görür.
         CFBundleDevelopmentRegion: en
         LSApplicationCategoryType: public.app-category.productivity
-        NSHumanReadableCopyright: "© 2026 T:mi Aslan Dogan Marketing"
+        NSHumanReadableCopyright: "© 2026 Gistsmith · Made by Senol Dogan"
         # Kendi veri klasörü: geliştirici sürümünün ~/Library/Application Support/AINotepad'ine hiç dokunulmaz. Debug
         # derlemesi ayrı klasör ve Anahtar Zinciri servisi kullanır (aşağıda `configs`): yerel sunucuyla denenen
         # derleme yayındaki oturumu ve toplantıları okuyamaz, silemez.
@@ -372,7 +372,7 @@ targets:
         # İhracat uyumu: yalnız işletim sisteminin standart şifrelemesi (HTTPS) kullanılır; App Store Connect her
         # derlemede bu soruyu sormaz.
         ITSAppUsesNonExemptEncryption: false
-        NSHumanReadableCopyright: "© 2026 T:mi Aslan Dogan Marketing"
+        NSHumanReadableCopyright: "© 2026 Gistsmith · Made by Senol Dogan"
         # Veri klasörü (uygulamanın kendi kabında): Application Support/<ad>; Mac'teki Gistsmith'le aynı adlar.
         AINotepadDataFolderName: "$(HOSTED_DATA_FOLDER_NAME)"
         # Kullanıcı verisi giriş yapan hesaba göre ayrı klasörde (bkz. Packages/AINotepadCore/.../Support/AccountData.swift).

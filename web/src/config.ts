@@ -7,6 +7,12 @@
 export const productName: string = "Gistsmith";
 
 /**
+ * Ürünü yapan kişi: alt bilgideki "Made by", iletişim sayfası, Organization JSON-LD'nin kurucusu. İşletmenin
+ * resmî adı, kimliği ve adresi tanıtım metinlerinde geçmez; yalnızca yasal metinlerde durur (legal/operator.ts).
+ */
+export const makerName: string = "Senol Dogan";
+
+/**
  * Kart ekstresinde görünen ad (Stripe Managed Payments: satıcı Link). Stripe hesabındaki alan adı ayarından gelir; ad ya
  * da alan adı değişince Stripe panelindeki ayarla birlikte değişir.
  */

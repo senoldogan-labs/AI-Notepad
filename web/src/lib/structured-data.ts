@@ -1,15 +1,15 @@
 // Sitenin yapılandırılmış verisi (schema.org JSON-LD): ana sayfada uygulama (`SoftwareApplication`: özellik listesi,
-// aylık ve yıllık plan ile ücretsiz deneme; işletim sistemi Mac ve iPhone gereksinimleri), onu sunan işletme (`Organization`) ve sık sorulan sorular (`FAQPage`); fiyat
+// aylık ve yıllık plan ile ücretsiz deneme; işletim sistemi Mac ve iPhone gereksinimleri), ürünün markası (`Organization`: ad, kurucu) ve sık sorulan sorular (`FAQPage`); fiyat
 // sayfasında abonelik ürünü (`Product`: aylık ve yıllık teklif) ve soruları; karşılaştırma, dil ve entegrasyon sayfalarında gezinti izi (`BreadcrumbList`) ve varsa
 // soruları; blog yazılarında `BlogPosting` ve gezinti izi (ön bilgisinden: src/content/blog). Değerler sitenin tek
-// kaynaklarından gelir: ürün adı (config.ts), fiyat, deneme, gereksinimler, özellikler ve sorular (copy.ts), işletme
-// (legal/operator.ts). `<script type="application/ld+json">` veri bloğudur, çalıştırılmaz; CSP onu engellemez.
-import { productName, type SiteConfig } from "../config";
+// kaynaklarından gelir: ürün adı ve yapan kişi (config.ts), fiyat, deneme, gereksinimler, özellikler ve sorular
+// (copy.ts), iletişim adresi (legal/operator.ts). İşletmenin resmî adı ve adresi burada yoktur: yalnızca yasal metinlerde
+// durur. `<script type="application/ld+json">` veri bloğudur, çalıştırılmaz; CSP onu engellemez.
+import { makerName, productName, type SiteConfig } from "../config";
 import type { CommonCopy, Faq, PageMeta } from "../copy";
-import type { Operator } from "../legal/operator";
 import { pageUrl } from "../routes";
 
-/** İşletme düğümü. */
+/** Marka düğümü (ürünün adı ve onu yapan kişi). */
 interface OrganizationNode {
   readonly "@type": "Organization";
   readonly "@id": string;
@@ -17,7 +17,7 @@ interface OrganizationNode {
   readonly url: string;
   readonly email: string;
   readonly logo: string;
-  readonly address: string;
+  readonly founder: PersonNode;
 }
 
 /** Abonelik döneminin fiyat tanımı: aylık (`MON`, `P1M`) ya da yıllık (`ANN`, `P1Y`). */
@@ -232,8 +232,8 @@ export interface HomeStructuredDataInput {
   readonly page: "home" | "fi";
 }
 
-/** Ana sayfanın JSON-LD belgesi: uygulama, işletme ve sayfadaki sık sorulan sorular. Saf fonksiyondur. */
-export function homeStructuredData(config: SiteConfig, operator: Operator, input: HomeStructuredDataInput): StructuredDataDocument {
+/** Ana sayfanın JSON-LD belgesi: uygulama, marka (iletişim adresi `contactEmail`) ve sayfadaki sık sorulan sorular. Saf fonksiyondur. */
+export function homeStructuredData(config: SiteConfig, contactEmail: string, input: HomeStructuredDataInput): StructuredDataDocument {
   const { common, meta, faq, page } = input;
   const origin: string = config.siteOrigin;
   const organizationId: string = `${origin}/#organization`;
@@ -263,11 +263,11 @@ export function homeStructuredData(config: SiteConfig, operator: Operator, input
       {
         "@type": "Organization",
         "@id": organizationId,
-        name: operator.name,
+        name: productName,
         url: origin,
-        email: operator.email,
+        email: contactEmail,
         logo: `${origin}/apple-touch-icon.png`,
-        address: operator.address,
+        founder: { "@type": "Person", name: makerName },
       },
       faqPageNode(faq, pageUrl(page, origin)),
     ],
@@ -378,7 +378,7 @@ export interface BlogPostingInput {
 export const ogImageSize = { width: 1200, height: 630 } as const;
 
 /** Blog yazısının JSON-LD belgesi (`BlogPosting` ve `BreadcrumbList`). Saf fonksiyondur. */
-export function blogPostingStructuredData(config: SiteConfig, operator: Operator, post: BlogPostingInput): BlogPostingDocument {
+export function blogPostingStructuredData(config: SiteConfig, post: BlogPostingInput): BlogPostingDocument {
   const origin: string = config.siteOrigin;
   return {
     "@context": "https://schema.org",
@@ -395,7 +395,7 @@ export function blogPostingStructuredData(config: SiteConfig, operator: Operator
         dateModified: post.modified,
         inLanguage: "en",
         author: { "@type": "Person", name: post.author },
-        publisher: { "@type": "Organization", "@id": `${origin}/#organization`, name: operator.name, url: origin },
+        publisher: { "@type": "Organization", "@id": `${origin}/#organization`, name: productName, url: origin },
       },
       breadcrumbNode(config, [
         { name: post.blogName, url: pageUrl("blog", origin) },

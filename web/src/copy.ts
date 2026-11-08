@@ -1,11 +1,10 @@
 // Sitenin sayfa metinleri (yasal metinler hariç: onlar src/pages/privacy.astro ve terms.astro içinde). Ürün adı ve
-// işletme bilgisi tek yerden gelir (config.ts `productName`, legal/operator.ts).
-import { cardStatementDescriptor, productName } from "./config";
+// yapan kişi tek yerden gelir (config.ts `productName`, `makerName`); işletmenin resmî bilgisi yalnızca yasal metinlerdedir.
+import { cardStatementDescriptor, makerName, productName } from "./config";
 import type { Brand } from "./lib/brands";
 import type { IconName } from "./lib/icons";
 import { interfaceLanguages, languageNameList, noteLanguages, spokenLanguages } from "./lib/languages";
 import type { BillingPlan } from "./lib/plans";
-import { operator } from "./legal/operator";
 
 /** Başlık ve açıklama (arama motorları ve paylaşım kartı). */
 export interface PageMeta {
@@ -129,10 +128,10 @@ export interface CommonCopy {
     readonly privacyShort: string;
     readonly termsShort: string;
     readonly cookies: string;
-    /** Short note on which law applies (closing strip). */
-    readonly euNote: string;
-    /** Small print: the business behind the product (legal/operator.ts). */
-    readonly operatorLine: string;
+    /** Who makes the product, after the copyright (config.ts `makerName`). */
+    readonly madeBy: string;
+    /** Link to the business's legal name, business ID and address (the terms' contact section). */
+    readonly companyDetails: string;
     /** Small print before the typeface licence links. */
     readonly typefaces: string;
     /** Sayfa sonundaki çekmede görünen kısa teşekkür (PullReveal.astro). */
@@ -420,9 +419,10 @@ export interface ContactCopy {
   readonly sendAnother: string;
   readonly directTitle: string;
   readonly directText: string;
-  /** İşletme bilgisi kutusu: başlık ve işletme kimliğinin etiketi. */
+  /** Kim yapıyor kutusu: başlık, tek cümle ve işletme bilgisine (koşulların iletişim bölümü) bağlantı. */
   readonly companyTitle: string;
-  readonly businessIdLabel: string;
+  readonly companyText: string;
+  readonly companyLink: string;
   readonly noScript: string;
 }
 
@@ -1170,11 +1170,11 @@ export const copy: Copy = {
       privacyShort: "Privacy",
       termsShort: "Terms",
       cookies: "Cookies",
-      euNote: "EU company, GDPR",
-      operatorLine: `${productName} is made and sold by ${operator.name} (business ID ${operator.businessId}), Finland.`,
+      madeBy: `Made by ${makerName}`,
+      companyDetails: "Company details",
       typefaces: "Typefaces:",
       pullThanks: "Thanks for listening.",
-      copyright: `© 2026 ${operator.name}`,
+      copyright: `© 2026 ${productName}`,
       language: "Language",
     },
     lastUpdated: "Last updated",
@@ -1190,7 +1190,7 @@ export const copy: Copy = {
     lead: `AI meeting notes for Mac and iPhone, with live translation in ${noteLanguages.length} languages and your own tasks picked out. No bot joins the call.`,
     secondaryCta: "See pricing",
     assurances: ["3 meetings or 7 days free", "No credit card"],
-    proof: ["EU company, GDPR", "Mac app notarized by Apple", "iPhone app on the App Store"],
+    proof: ["Mac app notarized by Apple", "iPhone app on the App Store"],
     directory: { text: "Listed in Claude's connector directory", href: "https://claude.ai/directory/connectors/gistsmith" },
     demo: {
       label: `${productName} recording a meeting and writing the note`,
@@ -1331,7 +1331,7 @@ export const copy: Copy = {
     trust: {
       eyebrow: "Privacy",
       title: "Your meetings stay yours.",
-      lead: "Built for conversations you'd rather keep private, by a small company in Finland.",
+      lead: "Built for conversations you'd rather keep private.",
       items: [
         {
           icon: "laptop",
@@ -1339,7 +1339,7 @@ export const copy: Copy = {
           text: "Notes, transcripts and recordings live on your Mac and iPhone. Our servers don't store your audio, or notes we can read unless you turn on AI assistant access.",
         },
         { icon: "sparkle", title: "Not used to train AI", text: "Your meetings aren't used to train our providers' models. We've opted out wherever that's a setting." },
-        { icon: "globe", title: "EU company, GDPR", text: "Run from Finland under EU data protection law, with our account database in the EU." },
+        { icon: "lock", title: "Encrypted sync", text: "Optional sync between your Mac and iPhone is encrypted end to end: our server keeps only a copy it can't read." },
         { icon: "check-circle", title: "Delete any time", text: "Delete your account in the app or on the website at any time; a web or Mac subscription ends with it." },
       ],
       link: "Read the privacy policy",
@@ -2116,8 +2116,9 @@ export const copy: Copy = {
     sendAnother: "Send another message",
     directTitle: "Prefer email?",
     directText: "You can also write to us directly:",
-    companyTitle: "Company details",
-    businessIdLabel: "Business ID (Y-tunnus)",
+    companyTitle: "Who makes it",
+    companyText: `${productName} is made by ${makerName}.`,
+    companyLink: "Company details",
     noScript: "The contact form needs JavaScript. You can also email us directly.",
   },
   account: {
@@ -2384,7 +2385,7 @@ export const copy: Copy = {
       },
       {
         title: "Finnish",
-        text: `Finnish (Suomi) is supported both as a spoken language and as a note language, the app itself is available in Finnish, and ${productName} is made by a small company in Finland. Swedish, Estonian, Norwegian and Danish are supported too.`,
+        text: `Finnish (Suomi) is supported both as a spoken language and as a note language, the app itself is available in Finnish, and ${productName} is made in Finland. Swedish, Estonian, Norwegian and Danish are supported too.`,
       },
     ],
     mixedTitle: "Meetings with more than one language",

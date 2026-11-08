@@ -50,7 +50,7 @@ A few things are worth knowing before you rely on it:
 
 ## How Gistsmith does it
 
-Gistsmith, the Mac and iPhone app we make, was built partly for this situation. We're a small company in Finland, and the screenshots on our home page show a Finnish meeting for a reason.
+Gistsmith, the Mac and iPhone app we make, was built partly for this situation. It's made in Finland, and the screenshots on our home page show a Finnish meeting for a reason.
 
 - **You pick your language once.** In Settings, choose the language for notes and translations, for example English. A meeting that's already in English isn't translated.
 - **The meeting language can be left on Automatic.** The live transcript then follows your main meeting language, and when the meeting ends the final transcript detects the spoken language from the recording. You can also choose it yourself.

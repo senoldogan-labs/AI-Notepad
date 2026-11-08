@@ -57,7 +57,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Gistsmith toplantıya tahtanın, slaytın ya da bir krokinin fotoğrafını eklemek için kamerayı kullanır.</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>© 2026 T:mi Aslan Dogan Marketing</string>
+	<string>© 2026 Gistsmith · Made by Senol Dogan</string>
 	<key>NSRemindersFullAccessUsageDescription</key>
 	<string>Gistsmith toplantı notundaki görevleri istediğinde Anımsatıcılar'a ekler.</string>
 	<key>NSSupportsLiveActivities</key>

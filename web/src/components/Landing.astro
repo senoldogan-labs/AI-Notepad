@@ -75,7 +75,7 @@ const iphoneShots: readonly { readonly image: ImageMetadata; readonly alt: strin
 ];
 /** Arama motorları için uygulama ve işletme bilgisi (JSON-LD). */
 const structuredData: string = structuredDataJson(
-  homeStructuredData(siteConfig, operator, { common, meta: text.meta, faq: text.faq, features: text.featureList, trial: common.trial, page }),
+  homeStructuredData(siteConfig, operator.email, { common, meta: text.meta, faq: text.faq, features: text.featureList, trial: common.trial, page }),
 );
 ---
 

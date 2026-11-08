@@ -12,7 +12,6 @@ import CtaBand from "../../components/CtaBand.astro";
 import Icon from "../../components/Icon.astro";
 import { fill } from "../../client/copy";
 import { copy, type BlogCopy } from "../../copy";
-import { operator } from "../../legal/operator";
 import { type BlogPost, blogEntries, blogPageTitle, blogPost, publishedIso, publishedText, relatedPosts } from "../../lib/blog";
 import type { ArticleCard } from "../../lib/social";
 import { blogPostingStructuredData, structuredDataJson } from "../../lib/structured-data";
@@ -49,7 +48,7 @@ const social: ArticleCard = {
   modified: publishedIso(post.modified),
 };
 const structuredData: string = structuredDataJson(
-  blogPostingStructuredData(siteConfig, operator, {
+  blogPostingStructuredData(siteConfig, {
     url,
     title: post.title,
     description: post.description,

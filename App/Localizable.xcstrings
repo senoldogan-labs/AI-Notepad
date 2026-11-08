@@ -172457,142 +172457,142 @@
         }
       }
     },
-    "Finlandiya'dan, AB veri koruma yasasıyla. Toplantıların ve notların bu Mac'te kalır; sunucumuz ses saklamaz, notlarını da yalnızca yapay zekâ asistanı erişimini açarsan saklar. İsteğe bağlı iPhone eşitlemesi yalnızca okuyamadığımız şifreli bir kopya tutar.": {
+    "Toplantıların ve notların bu Mac'te kalır; sunucumuz ses saklamaz, notlarını da yalnızca yapay zekâ asistanı erişimini açarsan saklar. İsteğe bağlı iPhone eşitlemesi yalnızca okuyamadığımız şifreli bir kopya tutar.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aus Finnland, nach EU-Datenschutzrecht. Deine Meetings und Notizen bleiben auf diesem Mac; unser Server speichert kein Audio und speichert deine Notizen nur, wenn du den KI-Assistentenzugriff einschaltest. Die optionale iPhone-Synchronisierung speichert nur eine verschlüsselte Kopie, die wir nicht lesen können."
+            "value": "Deine Meetings und Notizen bleiben auf diesem Mac; unser Server speichert kein Audio und speichert deine Notizen nur, wenn du den KI-Assistentenzugriff einschaltest. Die optionale iPhone-Synchronisierung speichert nur eine verschlüsselte Kopie, die wir nicht lesen können."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "From Finland, under EU data protection law. Your meetings and notes stay on this Mac; our server keeps no audio, and keeps your notes only if you turn on AI assistant access. Optional iPhone sync keeps only an encrypted copy we can't read."
+            "value": "Your meetings and notes stay on this Mac; our server keeps no audio, and keeps your notes only if you turn on AI assistant access. Optional iPhone sync keeps only an encrypted copy we can't read."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Desde Finlandia, bajo la legislación de protección de datos de la UE. Tus reuniones y notas se quedan en este Mac; nuestro servidor no guarda audio, y solo guarda tus notas si activas el acceso de asistentes de IA. La sincronización opcional con el iPhone solo guarda una copia cifrada que no podemos leer."
+            "value": "Tus reuniones y notas se quedan en este Mac; nuestro servidor no guarda audio, y solo guarda tus notas si activas el acceso de asistentes de IA. La sincronización opcional con el iPhone solo guarda una copia cifrada que no podemos leer."
           }
         },
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Suomesta, EU:n tietosuojalainsäädännön mukaisesti. Kokouksesi ja muistiinpanosi pysyvät tällä Macilla; palvelimemme ei säilytä ääntä, ja muistiinpanojasi se säilyttää vain, jos otat tekoälyavustajien pääsyn käyttöön. Valinnainen iPhone-synkronointi säilyttää vain salatun kopion, jota emme voi lukea."
+            "value": "Kokouksesi ja muistiinpanosi pysyvät tällä Macilla; palvelimemme ei säilytä ääntä, ja muistiinpanojasi se säilyttää vain, jos otat tekoälyavustajien pääsyn käyttöön. Valinnainen iPhone-synkronointi säilyttää vain salatun kopion, jota emme voi lukea."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Depuis la Finlande, selon le droit européen de la protection des données. Vos réunions et notes restent sur ce Mac ; notre serveur ne conserve aucun audio, et ne conserve vos notes que si vous activez l’accès des assistants IA. La synchronisation facultative avec l’iPhone ne conserve qu’une copie chiffrée que nous ne pouvons pas lire."
+            "value": "Vos réunions et notes restent sur ce Mac ; notre serveur ne conserve aucun audio, et ne conserve vos notes que si vous activez l’accès des assistants IA. La synchronisation facultative avec l’iPhone ne conserve qu’une copie chiffrée que nous ne pouvons pas lire."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dalla Finlandia, secondo la normativa UE sulla protezione dei dati. Le tue riunioni e note restano su questo Mac; il nostro server non conserva l’audio, e conserva le tue note solo se attivi l’accesso degli assistenti AI. La sincronizzazione facoltativa con l’iPhone conserva solo una copia cifrata che non possiamo leggere."
+            "value": "Le tue riunioni e note restano su questo Mac; il nostro server non conserva l’audio, e conserva le tue note solo se attivi l’accesso degli assistenti AI. La sincronizzazione facoltativa con l’iPhone conserva solo una copia cifrata che non possiamo leggere."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "フィンランドから、EUのデータ保護法のもとで。会議とノートはこのMacに残ります。当社のサーバーは音声を保存せず、ノートもAIアシスタントのアクセスをオンにした場合にのみ保存します。オプションのiPhone同期では、当社が読めない暗号化コピーのみを保持します。"
+            "value": "会議とノートはこのMacに残ります。当社のサーバーは音声を保存せず、ノートもAIアシスタントのアクセスをオンにした場合にのみ保存します。オプションのiPhone同期では、当社が読めない暗号化コピーのみを保持します。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "핀란드에서, EU 데이터 보호법에 따라. 회의와 노트는 이 Mac에 남아 있습니다. 당사 서버는 오디오를 보관하지 않으며, 노트는 AI 어시스턴트 접근을 켠 경우에만 보관합니다. 선택 사항인 iPhone 동기화는 당사가 읽을 수 없는 암호화된 사본만 보관합니다."
+            "value": "회의와 노트는 이 Mac에 남아 있습니다. 당사 서버는 오디오를 보관하지 않으며, 노트는 AI 어시스턴트 접근을 켠 경우에만 보관합니다. 선택 사항인 iPhone 동기화는 당사가 읽을 수 없는 암호화된 사본만 보관합니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Uit Finland, onder EU-wetgeving voor gegevensbescherming. Je vergaderingen en notities blijven op deze Mac; onze server bewaart geen audio, en bewaart je notities alleen als je toegang voor AI-assistenten aanzet. De optionele iPhone-synchronisatie bewaart alleen een versleutelde kopie die wij niet kunnen lezen."
+            "value": "Je vergaderingen en notities blijven op deze Mac; onze server bewaart geen audio, en bewaart je notities alleen als je toegang voor AI-assistenten aanzet. De optionele iPhone-synchronisatie bewaart alleen een versleutelde kopie die wij niet kunnen lezen."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Da Finlândia, sob a lei de proteção de dados da UE. Suas reuniões e notas ficam neste Mac; nosso servidor não guarda áudio, e só guarda suas notas se você ativar o acesso de assistentes de IA. A sincronização opcional com o iPhone guarda apenas uma cópia criptografada que não conseguimos ler."
+            "value": "Suas reuniões e notas ficam neste Mac; nosso servidor não guarda áudio, e só guarda suas notas se você ativar o acesso de assistentes de IA. A sincronização opcional com o iPhone guarda apenas uma cópia criptografada que não conseguimos ler."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "来自芬兰，受欧盟数据保护法约束。你的会议和笔记保留在这台 Mac 上；我们的服务器不保存音频，只有在你开启 AI 助手访问时才保存你的笔记。可选的 iPhone 同步只保存我们无法读取的加密副本。"
+            "value": "你的会议和笔记保留在这台 Mac 上；我们的服务器不保存音频，只有在你开启 AI 助手访问时才保存你的笔记。可选的 iPhone 同步只保存我们无法读取的加密副本。"
           }
         }
       }
     },
-    "Finlandiya'dan, AB veri koruma yasasıyla. Toplantıların ve notların bu iPhone'da kalır; sunucumuz ses saklamaz, notlarını da yalnızca yapay zekâ asistanı erişimini açarsan saklar. İsteğe bağlı Mac eşitlemesi yalnızca okuyamadığımız şifreli bir kopya tutar.": {
+    "Toplantıların ve notların bu iPhone'da kalır; sunucumuz ses saklamaz, notlarını da yalnızca yapay zekâ asistanı erişimini açarsan saklar. İsteğe bağlı Mac eşitlemesi yalnızca okuyamadığımız şifreli bir kopya tutar.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aus Finnland, nach EU-Datenschutzrecht. Deine Meetings und Notizen bleiben auf diesem iPhone; unser Server speichert kein Audio und speichert deine Notizen nur, wenn du den KI-Assistentenzugriff einschaltest. Die optionale Mac-Synchronisierung speichert nur eine verschlüsselte Kopie, die wir nicht lesen können."
+            "value": "Deine Meetings und Notizen bleiben auf diesem iPhone; unser Server speichert kein Audio und speichert deine Notizen nur, wenn du den KI-Assistentenzugriff einschaltest. Die optionale Mac-Synchronisierung speichert nur eine verschlüsselte Kopie, die wir nicht lesen können."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "From Finland, under EU data protection law. Your meetings and notes stay on this iPhone; our server keeps no audio, and keeps your notes only if you turn on AI assistant access. Optional Mac sync keeps only an encrypted copy we can't read."
+            "value": "Your meetings and notes stay on this iPhone; our server keeps no audio, and keeps your notes only if you turn on AI assistant access. Optional Mac sync keeps only an encrypted copy we can't read."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Desde Finlandia, bajo la legislación de protección de datos de la UE. Tus reuniones y notas se quedan en este iPhone; nuestro servidor no guarda audio, y solo guarda tus notas si activas el acceso de asistentes de IA. La sincronización opcional con el Mac solo guarda una copia cifrada que no podemos leer."
+            "value": "Tus reuniones y notas se quedan en este iPhone; nuestro servidor no guarda audio, y solo guarda tus notas si activas el acceso de asistentes de IA. La sincronización opcional con el Mac solo guarda una copia cifrada que no podemos leer."
           }
         },
         "fi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Suomesta, EU:n tietosuojalainsäädännön mukaisesti. Kokouksesi ja muistiinpanosi pysyvät tällä iPhonella; palvelimemme ei säilytä ääntä, ja muistiinpanojasi se säilyttää vain, jos otat tekoälyavustajien pääsyn käyttöön. Valinnainen Mac-synkronointi säilyttää vain salatun kopion, jota emme voi lukea."
+            "value": "Kokouksesi ja muistiinpanosi pysyvät tällä iPhonella; palvelimemme ei säilytä ääntä, ja muistiinpanojasi se säilyttää vain, jos otat tekoälyavustajien pääsyn käyttöön. Valinnainen Mac-synkronointi säilyttää vain salatun kopion, jota emme voi lukea."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Depuis la Finlande, selon le droit européen de la protection des données. Vos réunions et notes restent sur cet iPhone ; notre serveur ne conserve aucun audio, et ne conserve vos notes que si vous activez l’accès des assistants IA. La synchronisation facultative avec le Mac ne conserve qu’une copie chiffrée que nous ne pouvons pas lire."
+            "value": "Vos réunions et notes restent sur cet iPhone ; notre serveur ne conserve aucun audio, et ne conserve vos notes que si vous activez l’accès des assistants IA. La synchronisation facultative avec le Mac ne conserve qu’une copie chiffrée que nous ne pouvons pas lire."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dalla Finlandia, secondo la normativa UE sulla protezione dei dati. Le tue riunioni e note restano su questo iPhone; il nostro server non conserva l’audio, e conserva le tue note solo se attivi l’accesso degli assistenti AI. La sincronizzazione facoltativa con il Mac conserva solo una copia cifrata che non possiamo leggere."
+            "value": "Le tue riunioni e note restano su questo iPhone; il nostro server non conserva l’audio, e conserva le tue note solo se attivi l’accesso degli assistenti AI. La sincronizzazione facoltativa con il Mac conserva solo una copia cifrata che non possiamo leggere."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "フィンランドから、EUのデータ保護法のもとで。会議とノートはこのiPhoneに残ります。当社のサーバーは音声を保存せず、ノートもAIアシスタントのアクセスをオンにした場合にのみ保存します。オプションのMac同期では、当社が読めない暗号化コピーのみを保持します。"
+            "value": "会議とノートはこのiPhoneに残ります。当社のサーバーは音声を保存せず、ノートもAIアシスタントのアクセスをオンにした場合にのみ保存します。オプションのMac同期では、当社が読めない暗号化コピーのみを保持します。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "핀란드에서, EU 데이터 보호법에 따라. 회의와 노트는 이 iPhone에 남아 있습니다. 당사 서버는 오디오를 보관하지 않으며, 노트는 AI 어시스턴트 접근을 켠 경우에만 보관합니다. 선택 사항인 Mac 동기화는 당사가 읽을 수 없는 암호화된 사본만 보관합니다."
+            "value": "회의와 노트는 이 iPhone에 남아 있습니다. 당사 서버는 오디오를 보관하지 않으며, 노트는 AI 어시스턴트 접근을 켠 경우에만 보관합니다. 선택 사항인 Mac 동기화는 당사가 읽을 수 없는 암호화된 사본만 보관합니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Uit Finland, onder EU-wetgeving voor gegevensbescherming. Je vergaderingen en notities blijven op deze iPhone; onze server bewaart geen audio, en bewaart je notities alleen als je toegang voor AI-assistenten aanzet. De optionele Mac-synchronisatie bewaart alleen een versleutelde kopie die wij niet kunnen lezen."
+            "value": "Je vergaderingen en notities blijven op deze iPhone; onze server bewaart geen audio, en bewaart je notities alleen als je toegang voor AI-assistenten aanzet. De optionele Mac-synchronisatie bewaart alleen een versleutelde kopie die wij niet kunnen lezen."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Da Finlândia, sob a lei de proteção de dados da UE. Suas reuniões e notas ficam neste iPhone; nosso servidor não guarda áudio, e só guarda suas notas se você ativar o acesso de assistentes de IA. A sincronização opcional com o Mac guarda apenas uma cópia criptografada que não conseguimos ler."
+            "value": "Suas reuniões e notas ficam neste iPhone; nosso servidor não guarda áudio, e só guarda suas notas se você ativar o acesso de assistentes de IA. A sincronização opcional com o Mac guarda apenas uma cópia criptografada que não conseguimos ler."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "来自芬兰，受欧盟数据保护法约束。你的会议和笔记保留在这台 iPhone 上；我们的服务器不保存音频，只有在你开启 AI 助手访问时才保存你的笔记。可选的 Mac 同步只保存我们无法读取的加密副本。"
+            "value": "你的会议和笔记保留在这台 iPhone 上；我们的服务器不保存音频，只有在你开启 AI 助手访问时才保存你的笔记。可选的 Mac 同步只保存我们无法读取的加密副本。"
           }
         }
       }

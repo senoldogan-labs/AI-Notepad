@@ -74,7 +74,7 @@ Tokens live once in `web/src/styles/global.css` (`light-dark()` pairs; `src/clie
 | `--ink` | `#292929` | `#f2f2ee` | text |
 | `--muted` | `#72726e` | `#a6a6a0` | secondary text |
 | `--primary`, `--accent` | `#c4470a` | `#f0874f` | the Download button, step numbers, kickers, the horizon waveform |
-| `--night` | `#292929` | `#222220` | dark bands (feature cards, privacy, pricing's "Everything included") |
+| `--night` | `#292929` | `#222220` | full-width dark bands only (feature cards, privacy); cards on white pages stay paper |
 
 One saturated colour: the orange. No green anywhere in the chrome.
 
@@ -118,9 +118,10 @@ to action (`CtaBand`), and marks sign-in, 404 and shared notes. It is drawn from
 - **Closing call to action:** one page-width card (radius 24, paper with a warm glow, the horizon waveform), the serif
   title, one line, the Mac button and the App Store badge (`GetApp`).
 - **Footer:** on the paper surface: the logo, one sentence on the product, the Mac download and the App Store badge;
-  three link columns (Product, Compare, Company) with small sans titles; a hairline, then copyright, Privacy · Terms ·
-  Cookies, "EU company, GDPR" and the language choice; one line of small print with the business
-  behind the product and the typeface licences. On phones the columns become closed disclosures. No giant wordmark and
+  three link columns (Product, Compare, Company) with small sans titles; a hairline, then "© 2026 Gistsmith · Made by Senol Dogan",
+  Privacy · Terms · Cookies · Company details (the terms' contact section: the business's legal name, ID and address
+  appear only in the terms and the privacy policy) and the language choice; one line of small print with the typeface
+  licences. On phones the columns become closed disclosures. No giant wordmark and
   no closing image.
 
 ### Components
@@ -150,7 +151,7 @@ under `prefers-reduced-motion`. Nothing blurred or filtered animates.
 
 - **Home (`/`, `/fi`):** hero in two columns (display headline, one line naming Mac and iPhone, both ways to get the
   app, assurances and both requirements; the Mac note window on a wave render with the iPhone home screen in front of
-  its lower corner, on phones too) → a factual trust strip (EU company, Mac app notarized by Apple, iPhone app on the
+  its lower corner, on phones too) → a factual trust strip (Mac app notarized by Apple, iPhone app on the
   App Store, the Claude directory listing; never testimonials, ratings or logos we do not have) → the brand line "Quiet while you
   talk. Yours when you're done." on the paper band, opened by the horizon, with the three steps and the product demo
   on a photograph → the launch video on a wave render → feature rows with real screens → the small things as dark
