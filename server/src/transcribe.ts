@@ -666,7 +666,7 @@ function elevenLabsQuotaError(): ProviderApiError {
 
 /**
  * Çok parçalı gövdeyi akıtarak ElevenLabs'e gönderir (toplam zaman aşımı `elevenLabsTimeoutMs`) ve yanıtı doğrular;
- * hata gövdesi okunmaz ve iletilmez. Hata fırlatmaz, sonuç döndürür: başarısızlıkta sesin tamamı gönderildi mi
+ * hata gövdesi iletilmez (401/402'de yalnızca ElevenLabs'in hata kodu okunur: kredi yokluğunu tanımak için). Hata fırlatmaz, sonuç döndürür: başarısızlıkta sesin tamamı gönderildi mi
  * (`uploaded`) bilgisiyle.
  */
 async function sendToElevenLabs(

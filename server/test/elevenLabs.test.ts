@@ -369,6 +369,37 @@ describe("ElevenLabs canlı kapasitesi", () => {
     }
   });
 
+  it("ağ hatası yeniden denenir, JSON olmayan 200 yanıtı denenmez; ikisi de okuma hatasıdır (500 değil)", async () => {
+    const harness: Harness = await defaultHarness();
+    harness.clock.nowMs = Date.UTC(2031, 4, 20, 12);
+    let calls: number = 0;
+    harness.stub(elevenLabsSubscriptionUrl, async (): Promise<Response> => {
+      calls += 1;
+      throw new TypeError("network down");
+    });
+    const config = parseConfig(env);
+    await expect(dailyElevenLabsCapacityCheck(env.DB, harness.platform, config, new Date(harness.clock.nowMs))).rejects.toMatchObject({ status: 0 });
+    expect(calls).toBe(3);
+    // Gövde okunurken kopan bağlantı da yeniden denenen okuma hatasıdır.
+    calls = 0;
+    harness.stub(elevenLabsSubscriptionUrl, async (): Promise<Response> => {
+      calls += 1;
+      const body: ReadableStream<Uint8Array> = new ReadableStream<Uint8Array>({
+        pull(controller: ReadableStreamDefaultController<Uint8Array>): void {
+          controller.error(new TypeError("connection reset"));
+        },
+      });
+      return new Response(body, { status: 200 });
+    });
+    await expect(dailyElevenLabsCapacityCheck(env.DB, harness.platform, config, new Date(harness.clock.nowMs))).rejects.toMatchObject({ status: 0 });
+    expect(calls).toBe(3);
+    stubSubscription(harness, (): Response => new Response("<html>proxy</html>", { status: 200, headers: { "content-type": "text/html" } }));
+    await expect(dailyElevenLabsCapacityCheck(env.DB, harness.platform, config, new Date(harness.clock.nowMs))).rejects.toMatchObject({
+      name: "ElevenLabsSubscriptionError",
+      status: 200,
+    });
+  });
+
   it("günlük denetim ElevenLabs okunamazsa hata fırlatır (Cron adımı alarm yazar)", async () => {
     const harness: Harness = await defaultHarness();
     harness.clock.nowMs = Date.UTC(2031, 5, 20, 12);

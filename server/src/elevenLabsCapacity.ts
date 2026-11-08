@@ -1,11 +1,11 @@
 import { z } from "zod";
 import type { Config } from "./config";
-import { ApiError, UpstreamError, isRetryableStatus } from "./errors";
+import { ApiError, isRetryableStatus } from "./errors";
 import { errorName, log } from "./log";
 import type { OutboundPlatform } from "./platform";
 import type { ReservationCheck, ReservationLimit } from "./reservations";
 import { withRetries } from "./retry";
-import { isRetryableUpstreamError, isTimeoutError } from "./upstream";
+import { isRetryableUpstreamError } from "./upstream";
 import { dayKey } from "./usage";
 
 /**
@@ -108,7 +108,10 @@ export interface ElevenLabsUsage {
   readonly live: ElevenLabsLiveUsage | null;
 }
 
-/** Canlı okuma yapılamadı: durum kodu ve ElevenLabs'in hata kodu (varsa) taşınır. */
+/** ElevenLabs'e ulaşılamadığında (ağ hatası, zaman aşımı) `ElevenLabsSubscriptionError.status`. */
+const unreachableStatus: number = 0;
+
+/** Canlı okuma yapılamadı: durum kodu (ulaşılamadıysa 0) ve ElevenLabs'in hata kodu (varsa) taşınır. */
 export class ElevenLabsSubscriptionError extends Error {
   override readonly name: string = "ElevenLabsSubscriptionError";
   readonly status: number;
@@ -275,20 +278,32 @@ export async function fetchElevenLabsSubscription(platform: OutboundPlatform, ap
       attempts: subscriptionAttempts,
       baseDelayMs: platform.retryBaseDelayMs,
       isRetryable: (error: unknown): boolean =>
-        error instanceof ElevenLabsSubscriptionError ? isRetryableStatus(error.status) : isRetryableUpstreamError(error),
+        error instanceof ElevenLabsSubscriptionError && (error.status === unreachableStatus || isRetryableStatus(error.status)),
       recordRetry: platform.recordRetry,
     },
     async (): Promise<ElevenLabsSubscription> => {
-      const response: Response = await platform.fetch(elevenLabsSubscriptionUrl, {
-        method: "GET",
-        headers: { "xi-api-key": apiKey, accept: "application/json" },
-        signal: AbortSignal.timeout(subscriptionTimeoutMs),
-      });
+      const response: Response = await overNetwork(
+        (): Promise<Response> =>
+          platform.fetch(elevenLabsSubscriptionUrl, {
+            method: "GET",
+            headers: { "xi-api-key": apiKey, accept: "application/json" },
+            signal: AbortSignal.timeout(subscriptionTimeoutMs),
+          }),
+      );
+      const text: string = await overNetwork((): Promise<string> => response.text());
       if (!response.ok) {
-        const code: string | null = elevenLabsErrorCode(await response.text());
-        throw new ElevenLabsSubscriptionError(response.status, code, "yanıt başarısız");
+        throw new ElevenLabsSubscriptionError(response.status, elevenLabsErrorCode(text), "yanıt başarısız");
       }
-      const parsed = subscriptionSchema.safeParse(await response.json());
+      let json: unknown;
+      try {
+        json = JSON.parse(text);
+      } catch (error: unknown) {
+        if (error instanceof SyntaxError) {
+          throw new ElevenLabsSubscriptionError(response.status, null, "yanıt JSON değil");
+        }
+        throw error;
+      }
+      const parsed = subscriptionSchema.safeParse(json);
       if (!parsed.success) {
         throw new ElevenLabsSubscriptionError(response.status, null, `beklenmeyen yanıt: ${parsed.error.issues.map((issue) => issue.path.join(".")).join(", ")}`);
       }
@@ -303,16 +318,29 @@ export async function fetchElevenLabsSubscription(platform: OutboundPlatform, ap
   );
 }
 
+/**
+ * Ağ adımı (istek ya da gövde okuması): ağ hatası (TypeError) ve zaman aşımı yeniden denenebilir okuma hatasına
+ * (`unreachableStatus`) çevrilir; başka hata olduğu gibi fırlatılır.
+ */
+async function overNetwork<T>(step: () => Promise<T>): Promise<T> {
+  try {
+    return await step();
+  } catch (error: unknown) {
+    if (isRetryableUpstreamError(error)) {
+      throw new ElevenLabsSubscriptionError(unreachableStatus, null, `ulaşılamadı (${errorName(error)})`);
+    }
+    throw error;
+  }
+}
+
 /** Canlı okuma hatası mı (ağ, zaman aşımı, ElevenLabs yanıtı); D1 ve programlama hataları değildir. Saf fonksiyondur. */
-function isSubscriptionReadFailure(error: unknown): boolean {
-  return error instanceof ElevenLabsSubscriptionError || error instanceof UpstreamError || error instanceof TypeError || isTimeoutError(error);
+function isSubscriptionReadFailure(error: unknown): error is ElevenLabsSubscriptionError {
+  return error instanceof ElevenLabsSubscriptionError;
 }
 
 /** Hata koduyla loglanabilir ayrıntı. Saf fonksiyondur. */
-function readFailureFields(error: unknown): { readonly error: string; readonly status: number | null; readonly code: string | null } {
-  return error instanceof ElevenLabsSubscriptionError
-    ? { error: error.name, status: error.status, code: error.code }
-    : { error: errorName(error), status: null, code: null };
+function readFailureFields(error: ElevenLabsSubscriptionError): { readonly error: string; readonly status: number; readonly code: string | null } {
+  return { error: error.name, status: error.status, code: error.code };
 }
 
 /** Okumayı, okuma anındaki ses sayacıyla birlikte saklar (tek satır; son yazan kazanır) ve saklananı döndürür. */
