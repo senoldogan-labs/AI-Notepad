@@ -241,6 +241,7 @@ describe("POST /v1/webhooks/revenuecat", () => {
       access: "active",
       graceEndsAt: null,
       plan: "monthly",
+      tier: "personal",
       complimentary: false,
     });
     expect(body.appStoreSubscription).toMatchObject({ status: "active", access: "active", willRenew: true, environment: "PRODUCTION", manageUrl: "https://apps.apple.com/account/subscriptions" });
@@ -335,6 +336,7 @@ describe("POST /v1/webhooks/revenuecat", () => {
       store: "app_store",
       productId: monthly,
       plan: "monthly",
+      tier: "personal",
       status: "active",
       periodType: "normal",
       purchasedAt: item.purchasedMs,

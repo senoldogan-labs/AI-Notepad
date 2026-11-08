@@ -107,6 +107,22 @@ export interface Env {
   readonly REFRESH_TOKEN_DAYS: string;
   readonly STRIPE_PRICE_ID: string;
   readonly STRIPE_YEARLY_PRICE_ID: string;
+  /** Pro tier (see `tiers.ts`): switch, Stripe prices, App Store products, list prices and usage limits. */
+  readonly PRO_TIER_POLICY: string;
+  readonly STRIPE_PRO_PRICE_ID: string;
+  readonly STRIPE_PRO_YEARLY_PRICE_ID: string;
+  readonly APP_STORE_PRODUCT_PRO_MONTHLY: string;
+  readonly APP_STORE_PRODUCT_PRO_YEARLY: string;
+  readonly PRO_PRICE_USD_MONTHLY: string;
+  readonly PRO_PRICE_USD_YEARLY: string;
+  readonly APP_STORE_PRO_PRICE_USD_MONTHLY: string;
+  readonly APP_STORE_PRO_PRICE_USD_YEARLY: string;
+  readonly PRO_MONTHLY_CAP_HOURS: string;
+  readonly PRO_MAX_MEETING_MINUTES: string;
+  readonly PRO_MEETING_TOKEN_BUDGET: string;
+  readonly PRO_MONTHLY_TOKEN_CAP: string;
+  readonly PRO_MONTHLY_ACCOUNT_TOKEN_CAP: string;
+  readonly PRO_DAILY_TOKEN_CAP: string;
   /** App Store abonelikleri (iPhone, RevenueCat; bkz. `appStore.ts`): ürün kimlikleri, fiyatlar ve Apple komisyonu. */
   readonly APP_STORE_PRODUCT_MONTHLY: string;
   readonly APP_STORE_PRODUCT_YEARLY: string;

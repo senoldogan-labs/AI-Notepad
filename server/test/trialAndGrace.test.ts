@@ -103,6 +103,7 @@ describe("past_due ek süresi", () => {
       access: "grace",
       graceEndsAt: new Date(periodEnd + 7 * 86_400_000).toISOString(),
       plan: "monthly",
+      tier: "personal",
       complimentary: false,
     });
     const meeting: StartedMeetingBody = await (await startFrom(harness, session, "198.51.100.1")).json<StartedMeetingBody>();

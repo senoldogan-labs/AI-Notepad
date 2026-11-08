@@ -81,3 +81,16 @@ describe("admin API behind Cloudflare Access", () => {
     expect(production.vars.CF_ACCESS_TEAM_DOMAIN).toBe("dry-heart-1ee2.cloudflareaccess.com");
   });
 });
+
+const proVars = z.object({ PRO_TIER_POLICY: z.string() });
+const proConfig = z.object({ vars: proVars, env: z.object({ production: z.object({ vars: proVars }).passthrough() }).passthrough() });
+
+describe("Pro tier switch", () => {
+  // Pro is dark-launched: production stays off until the owner launches it (and makes RevenueCat's `pro_preview`
+  // offering current) in a reviewed change that updates this test. Development and tests sell it.
+  it("is off in production and on in development", () => {
+    const config = proConfig.parse(JSON.parse(stripJsonc(apiSource)));
+    expect(config.env.production.vars).toEqual({ PRO_TIER_POLICY: "off" });
+    expect(config.vars).toEqual({ PRO_TIER_POLICY: "on" });
+  });
+});

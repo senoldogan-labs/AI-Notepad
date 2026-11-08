@@ -248,6 +248,37 @@
     // Aynı ürünün iki fiyatı: aylık (varsayılan plan) ve yıllık. İkisi de "bizim" sayılır (webhook, iade, itiraz).
     "STRIPE_PRICE_ID": "price_placeholder",
     "STRIPE_YEARLY_PRICE_ID": "price_yearly_placeholder",
+    // Pro tier (src/tiers.ts; migration 0062): a second product with more meeting hours. PRO_TIER_POLICY "on" offers it
+    // (`GET /v1/me` → `offeredTiers`, `GET /v1/pricing`, checkout, change-plan, the apps' paywalls, the site); "off" hides
+    // it everywhere and refuses Pro checkouts (`503 pro_unavailable`) — an account that already has a Pro subscription
+    // keeps Pro limits either way. Every Pro limit is configuration, tuned here without a release:
+    // - PRO_MONTHLY_CAP_HOURS: recorded meeting hours per UTC month (Personal: MONTHLY_CAP_HOURS).
+    // - PRO_MAX_MEETING_MINUTES: longest meeting (Personal: SUBSCRIBER_MAX_MEETING_MINUTES).
+    // - PRO_MEETING_TOKEN_BUDGET: AI budget of one meeting; sized for PRO_MAX_MEETING_MINUTES like
+    //   SUBSCRIBER_MEETING_TOKEN_BUDGET (4 h ≈ 3.0 M measured; raise both together).
+    // - PRO_MONTHLY_TOKEN_CAP: fair-use cap on AI tokens per month: 3 × Personal for 3 × the hours (measured live
+    //   translation + note ≈ 0.75 M/hour, so 30 h with live translation all the time can reach it near the month's end,
+    //   like Personal; at most ~2.7 $/month of AI at the list prices above).
+    // - PRO_MONTHLY_ACCOUNT_TOKEN_CAP: AI outside meetings (Ask, note rewrites) per month, part of the monthly cap.
+    // - PRO_DAILY_TOKEN_CAP: AI tokens per day: two 4-hour meetings fit.
+    // Prices: kept equal to Stripe (PRO_PRICE_USD_*) and App Store Connect (APP_STORE_PRO_PRICE_USD_*) by hand; admin MRR
+    // only. STRIPE_PRO_* are the Pro product's prices; APP_STORE_PRODUCT_PRO_* are in the Personal products' subscription
+    // group (Pro is the higher level, so Apple treats Personal → Pro as an immediate upgrade).
+    "PRO_TIER_POLICY": "on",
+    "STRIPE_PRO_PRICE_ID": "price_pro_placeholder",
+    "STRIPE_PRO_YEARLY_PRICE_ID": "price_pro_yearly_placeholder",
+    "APP_STORE_PRODUCT_PRO_MONTHLY": "com.senoldogan.gistsmith.pro.monthly",
+    "APP_STORE_PRODUCT_PRO_YEARLY": "com.senoldogan.gistsmith.pro.yearly",
+    "PRO_PRICE_USD_MONTHLY": "12.99",
+    "PRO_PRICE_USD_YEARLY": "109",
+    "APP_STORE_PRO_PRICE_USD_MONTHLY": "12.99",
+    "APP_STORE_PRO_PRICE_USD_YEARLY": "109",
+    "PRO_MONTHLY_CAP_HOURS": "30",
+    "PRO_MAX_MEETING_MINUTES": "240",
+    "PRO_MEETING_TOKEN_BUDGET": "2600000",
+    "PRO_MONTHLY_TOKEN_CAP": "19500000",
+    "PRO_MONTHLY_ACCOUNT_TOKEN_CAP": "3000000",
+    "PRO_DAILY_TOKEN_CAP": "6000000",
     // App Store abonelikleri (iPhone uygulaması RevenueCat ile satar; src/appStore.ts). Ürün kimlikleri App Store
     // Connect'teki otomatik yenilenen aboneliklerdir (aynı RevenueCat hakkı `pro`). Fiyatlar App Store Connect'teki ABD
     // fiyatlarıyla elle aynı tutulur (yalnızca yönetici MRR tahmini; Apple çağrılmaz). Komisyon Apple'ın payıdır
@@ -445,6 +476,23 @@
         "STRIPE_PRICE_ID": "price_1UVi9QLYGoRn8lDP4oA916Gt",
         // Yıllık fiyat (arama anahtarı `gistsmith_yearly`, vergi dahil, aylıkla aynı ürün).
         "STRIPE_YEARLY_PRICE_ID": "price_1UW0JgLYGoRn8lDPf8gFeNSz",
+        // Pro tier: see the development `vars`. OFF until the owner launches it (and makes RevenueCat's `pro_preview`
+        // offering current); `wranglerConfig.test.ts` checks it is off. Stripe product prod_VaYei1smoTMn47.
+        "PRO_TIER_POLICY": "off",
+        "STRIPE_PRO_PRICE_ID": "price_1UZNX3LYGoRn8lDPtsGoslxh",
+        "STRIPE_PRO_YEARLY_PRICE_ID": "price_1UZNX4LYGoRn8lDP431xwaqg",
+        "APP_STORE_PRODUCT_PRO_MONTHLY": "com.senoldogan.gistsmith.pro.monthly",
+        "APP_STORE_PRODUCT_PRO_YEARLY": "com.senoldogan.gistsmith.pro.yearly",
+        "PRO_PRICE_USD_MONTHLY": "12.99",
+        "PRO_PRICE_USD_YEARLY": "109",
+        "APP_STORE_PRO_PRICE_USD_MONTHLY": "12.99",
+        "APP_STORE_PRO_PRICE_USD_YEARLY": "109",
+        "PRO_MONTHLY_CAP_HOURS": "30",
+        "PRO_MAX_MEETING_MINUTES": "240",
+        "PRO_MEETING_TOKEN_BUDGET": "2600000",
+        "PRO_MONTHLY_TOKEN_CAP": "19500000",
+        "PRO_MONTHLY_ACCOUNT_TOKEN_CAP": "3000000",
+        "PRO_DAILY_TOKEN_CAP": "6000000",
         // Bkz. üstteki geliştirme `vars` açıklaması.
         "APP_STORE_PRODUCT_MONTHLY": "com.senoldogan.gistsmith.monthly",
         "APP_STORE_PRODUCT_YEARLY": "com.senoldogan.gistsmith.yearly",

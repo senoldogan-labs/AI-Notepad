@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { isoOrNull } from "./admin";
 import { appStoreAccessExistsSql } from "./appStore";
-import type { Config, SubscriptionPlan } from "./config";
+import type { Config, SubscriptionPlan, SubscriptionTier, UsageLimits } from "./config";
 import {
   type SubscriptionAccess,
   type SubscriptionState,
@@ -9,6 +9,7 @@ import {
   subscriptionAccess,
   trialEndsAtMs,
   trialMeetingsLeft,
+  userUsageLimits,
 } from "./entitlements";
 import { graceEndsAtMs, subscriptionAccessSql } from "./subscriptionLifecycle";
 import { type MeetingPhase, meetingPhase } from "./meetingLifecycle";
@@ -91,6 +92,8 @@ export interface AdminSubscription {
   readonly graceEndsAt: string | null;
   /** Plan (aylık ya da yıllık); fiyatı tanınmayan abonelikte null. */
   readonly plan: SubscriptionPlan | null;
+  /** Tier (Personal or Pro; complimentary access is Personal). */
+  readonly tier: SubscriptionTier;
   /** Yöneticinin verdiği ücretsiz erişim mi (`complimentary.ts`; Stripe'ta karşılığı yok). */
   readonly complimentary: boolean;
   /** Webhook'un (ücretsiz erişimde yöneticinin) satırı son yazdığı an. */
@@ -400,6 +403,7 @@ interface UserRow {
   readonly past_due_since: number | null;
   readonly updated_at: number | null;
   readonly plan: SubscriptionPlan | null;
+  readonly tier: SubscriptionTier | null;
   readonly complimentary: number | null;
   readonly meetings: number;
   readonly trial_meetings: number;
@@ -421,7 +425,7 @@ interface UserRow {
 function userColumnsSql(appStoreAccess: string): string {
   return `u.id, u.created_at, u.trial_started_at, u.trial_device_verified_at, u.carried_trial_meetings,
   (SELECT provider FROM auth_identities a WHERE a.user_id = u.id ORDER BY provider LIMIT 1) AS provider,
-  s.status, s.current_period_end, s.cancel_at, s.past_due_since, s.updated_at, s.plan, s.complimentary,
+  s.status, s.current_period_end, s.cancel_at, s.past_due_since, s.updated_at, s.plan, s.tier, s.complimentary,
   (SELECT COUNT(*) FROM meeting_sessions m WHERE m.user_id = u.id) AS meetings,
   (SELECT COUNT(*) FROM meeting_sessions m WHERE m.user_id = u.id AND m.kind = 'trial') AS trial_meetings,
   (SELECT COALESCE(SUM(${meetingRecordedMsSql("m.", "?1")}), 0)
@@ -475,6 +479,7 @@ function userSummary(row: UserRow, config: Config, now: Date): AdminUserSummary 
             pastDueSince: isoOrNull(subscription.pastDueSince),
             graceEndsAt: isoOrNull(graceEndsAtMs(subscription, config.pastDueGraceMs)),
             plan: row.plan,
+            tier: row.tier ?? "personal",
             complimentary: subscription.complimentary,
             updatedAt: new Date(row.updated_at ?? 0).toISOString(),
           },
@@ -799,6 +804,8 @@ export async function adminUserDetail(db: D1Database, config: Config, userId: st
   const trialDeviceVerifiedAt: string | null = isoOrNull(userRow.trial_device_verified_at);
   const invitedBy: AdminInvitedBy | null = invitedRow === null ? null : invitedByOf(invitedRow, user.invite === "free_month");
   const invites: AdminInvites | null = invitesOf(codeRow?.code ?? null, counts, friendRows.results);
+  // The caps of the user's tier now (Pro or Personal; Personal in trial).
+  const limits: UsageLimits = await userUsageLimits(db, config, userId, now);
   return {
     user,
     trialDeviceVerifiedAt,
@@ -814,12 +821,12 @@ export async function adminUserDetail(db: D1Database, config: Config, userId: st
           },
     usage: {
       usedHours: hoursOf(usage.usedSeconds),
-      capHours: hoursOf(config.monthlyCapSeconds),
+      capHours: hoursOf(limits.monthlyCapSeconds),
       audioHours: hoursOf(monthlyRow?.audio_seconds ?? 0),
       tokens: monthlyRow?.tokens ?? 0,
-      tokenCap: config.monthlyTokenCap,
+      tokenCap: limits.monthlyTokenCap,
       accountTokens: monthlyRow?.account_tokens ?? 0,
-      accountTokenCap: config.monthlyAccountTokenCap,
+      accountTokenCap: limits.monthlyAccountTokenCap,
     },
     meetings: meetingRows.results.map((row: MeetingRow): AdminMeeting => adminMeeting(row, nowMs)),
     reports: reportRows.results.map(

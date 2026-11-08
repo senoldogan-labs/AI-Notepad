@@ -1,5 +1,5 @@
 import { appStoreAccessExistsSql, appStoreActiveSql, appStoreGraceSql, appStorePaidSql } from "./appStore";
-import type { AppStoreConfig, Config, StripeMode } from "./config";
+import type { Config, ProTierPolicy, StripeMode, SubscriptionTier } from "./config";
 import { type DeepgramUsage, deepgramUsage } from "./deepgram";
 import { type ElevenLabsUsage, elevenLabsUsage } from "./elevenLabsCapacity";
 import { subscriptionActiveSql, subscriptionGraceSql } from "./subscriptionLifecycle";
@@ -9,6 +9,7 @@ import { meetingLiveSql } from "./meetingLifecycle";
 import { meetingRecordedMsSql } from "./meetingPause";
 import { freeInviteMonthSql } from "./referrals";
 import { utcDayStartMs } from "./reports";
+import { type TierPrices, appStoreListPrices, stripeListPrices } from "./tiers";
 import type { TrialRefusalReason } from "./trialRefusals";
 import { dayKey, monthKey, monthStartMs } from "./usage";
 
@@ -61,7 +62,11 @@ export interface AdminStats {
      */
     readonly monthly: number;
     readonly yearly: number;
-    /** Stripe liste fiyatıyla MRR + App Store'un Apple komisyonu düşülmüş (net) MRR'ı. */
+    /** `monthly` and `yearly` split by tier (Stripe + App Store; same definitions). */
+    readonly byTier: Readonly<Record<SubscriptionTier, PlanCounts>>;
+    /** Whether Pro is on sale (`PRO_TIER_POLICY`). */
+    readonly proTierPolicy: ProTierPolicy;
+    /** Stripe liste fiyatıyla MRR + App Store'un Apple komisyonu düşülmüş (net) MRR'ı (her katman kendi fiyatıyla). */
     readonly mrrUsd: number;
     readonly bySource: { readonly stripe: SourceSubscriptionStats; readonly appStore: AppStoreSubscriptionStats };
     /** Süren ücretsiz erişim (`complimentary.ts`); yukarıdaki sayılara ve gelire girmez. */
@@ -190,17 +195,20 @@ export interface AppStoreSubscriptionCounts {
   readonly ending: number;
   readonly monthly: number;
   readonly yearly: number;
+  readonly proMonthly: number;
+  readonly proYearly: number;
   readonly trial: number;
   readonly sandbox: number;
 }
 
 /**
- * App Store MRR'ı (USD): Apple komisyonundan önce (`gross`) ve sonra (`net`): aylık × aylık fiyat + yıllık × yıllık fiyat
- * / 12; net = brüt × (1 − komisyon). Vergi (Apple fiyattan düşer) ayrıca düşülmez. Yüzde bir hassasiyet. Saf fonksiyondur.
+ * App Store MRR'ı (USD): Apple komisyonundan önce (`gross`) ve sonra (`net`): her katman kendi App Store fiyatıyla, aylık
+ * × aylık fiyat + yıllık × yıllık fiyat / 12 (`tieredMrrUsd`); net = brüt × (1 − komisyon). Vergi (Apple fiyattan düşer)
+ * ayrıca düşülmez. Yüzde bir hassasiyet. Saf fonksiyondur.
  */
-export function appStoreMrrUsd(monthly: number, yearly: number, appStore: AppStoreConfig): { readonly gross: number; readonly net: number } {
-  const gross: number = monthly * appStore.priceUsdMonthly + (yearly * appStore.priceUsdYearly) / 12;
-  return { gross: roundCents(gross), net: roundCents(gross * (1 - appStore.commissionRate)) };
+export function appStoreMrrUsd(counts: TierPlanCounts, prices: TierPrices, commissionRate: number): { readonly gross: number; readonly net: number } {
+  const gross: number = tieredMrrUsd(counts, prices);
+  return { gross, net: roundCents(gross * (1 - commissionRate)) };
 }
 
 /**
@@ -217,6 +225,8 @@ export async function appStoreSubscriptionCounts(db: D1Database, nowMs: number):
          COALESCE(SUM(CASE WHEN ${production} AND ${appStoreActiveSql} AND a.status <> 'active' THEN 1 ELSE 0 END), 0) AS ending,
          COALESCE(SUM(CASE WHEN ${production} AND ${appStoreActiveSql} AND a.status = 'active' AND a.period_type <> 'trial' AND a.plan = 'monthly' THEN 1 ELSE 0 END), 0) AS monthly,
          COALESCE(SUM(CASE WHEN ${production} AND ${appStoreActiveSql} AND a.status = 'active' AND a.period_type <> 'trial' AND a.plan = 'yearly' THEN 1 ELSE 0 END), 0) AS yearly,
+         COALESCE(SUM(CASE WHEN ${production} AND ${appStoreActiveSql} AND a.status = 'active' AND a.period_type <> 'trial' AND a.plan = 'monthly' AND a.tier = 'pro' THEN 1 ELSE 0 END), 0) AS proMonthly,
+         COALESCE(SUM(CASE WHEN ${production} AND ${appStoreActiveSql} AND a.status = 'active' AND a.period_type <> 'trial' AND a.plan = 'yearly' AND a.tier = 'pro' THEN 1 ELSE 0 END), 0) AS proYearly,
          COALESCE(SUM(CASE WHEN ${production} AND ${appStoreActiveSql} AND a.period_type = 'trial' THEN 1 ELSE 0 END), 0) AS trial,
          COALESCE(SUM(CASE WHEN a.environment = 'SANDBOX' AND (${appStoreActiveSql} OR ${appStoreGraceSql}) THEN 1 ELSE 0 END), 0) AS sandbox
        FROM app_store_subscriptions a`,
@@ -241,7 +251,7 @@ export interface BillingStats {
  * toplantılar, bunların sonradan işlenenleri ve en az bir kez yeniden işlenenleri; `openMeetings`: şu an açık (bitmemiş,
  * en çok süresi dolmamış) toplantılar; `audioHoursThisMonth`: yazıya dökülen kesinleşmiş ses; `accountTokensThisMonth`:
  * kesinleşmiş toplantı dışı token (tümü `tokens.thisMonth`); `usersNearTokenCap`: kullanıcı başına aylık token
- * sınırının (`MONTHLY_TOKEN_CAP`) en az %80'ine ulaşan kullanıcılar.
+ * sınırının (`MONTHLY_TOKEN_CAP`; Pro aboneliği satırı olanlarda `PRO_MONTHLY_TOKEN_CAP`) en az %80'ine ulaşan kullanıcılar.
  */
 export interface UsageStats {
   readonly meetingsThisMonth: number;
@@ -314,10 +324,55 @@ export interface SubscriptionCounts {
   readonly grace: number;
   readonly ending: number;
   readonly canceled: number;
+  /** All tiers; the Pro part also in `proMonthly` / `proYearly`. */
   readonly monthly: number;
   readonly yearly: number;
+  readonly proMonthly: number;
+  readonly proYearly: number;
   readonly complimentary: number;
   readonly freeInviteMonth: number;
+}
+
+/** Renewing paid subscriptions of one tier per plan. */
+export interface PlanCounts {
+  readonly monthly: number;
+  readonly yearly: number;
+}
+
+/** Renewing paid subscriptions per plan, all tiers and the Pro part (`SubscriptionCounts`, `AppStoreSubscriptionCounts`). */
+export interface TierPlanCounts {
+  readonly monthly: number;
+  readonly yearly: number;
+  readonly proMonthly: number;
+  readonly proYearly: number;
+}
+
+/** Counts per tier: Personal = all − Pro. Saf fonksiyondur. */
+export function countsByTier(counts: TierPlanCounts): Readonly<Record<SubscriptionTier, PlanCounts>> {
+  return {
+    personal: { monthly: counts.monthly - counts.proMonthly, yearly: counts.yearly - counts.proYearly },
+    pro: { monthly: counts.proMonthly, yearly: counts.proYearly },
+  };
+}
+
+/** Sum of two per-tier counts. Saf fonksiyondur. */
+function addTierCounts(left: Readonly<Record<SubscriptionTier, PlanCounts>>, right: Readonly<Record<SubscriptionTier, PlanCounts>>): Readonly<Record<SubscriptionTier, PlanCounts>> {
+  return {
+    personal: { monthly: left.personal.monthly + right.personal.monthly, yearly: left.personal.yearly + right.personal.yearly },
+    pro: { monthly: left.pro.monthly + right.pro.monthly, yearly: left.pro.yearly + right.pro.yearly },
+  };
+}
+
+/**
+ * MRR at list prices (USD) of renewing subscriptions, each tier at its own price (`monthlyRecurringRevenueUsd` per tier);
+ * cent precision. Saf fonksiyondur.
+ */
+export function tieredMrrUsd(counts: TierPlanCounts, prices: TierPrices): number {
+  const tiers: Readonly<Record<SubscriptionTier, PlanCounts>> = countsByTier(counts);
+  return roundCents(
+    monthlyRecurringRevenueUsd(tiers.personal.monthly, tiers.personal.yearly, prices.personal.monthly, prices.personal.yearly) +
+      monthlyRecurringRevenueUsd(tiers.pro.monthly, tiers.pro.yearly, prices.pro.monthly, prices.pro.yearly),
+  );
 }
 
 interface DayValueRow {
@@ -467,6 +522,8 @@ export async function subscriptionCounts(db: D1Database, config: Config, nowMs: 
          COALESCE(SUM(CASE WHEN ${billedSubscriptionSql} AND s.status = 'canceled' THEN 1 ELSE 0 END), 0) AS canceled,
          COALESCE(SUM(CASE WHEN ${billedSubscriptionSql} AND ${activeAccessSql} AND s.cancel_at IS NULL AND s.plan = 'monthly' AND NOT ${freeInviteMonthSql} THEN 1 ELSE 0 END), 0) AS monthly,
          COALESCE(SUM(CASE WHEN ${billedSubscriptionSql} AND ${activeAccessSql} AND s.cancel_at IS NULL AND s.plan = 'yearly' THEN 1 ELSE 0 END), 0) AS yearly,
+         COALESCE(SUM(CASE WHEN ${billedSubscriptionSql} AND ${activeAccessSql} AND s.cancel_at IS NULL AND s.plan = 'monthly' AND s.tier = 'pro' AND NOT ${freeInviteMonthSql} THEN 1 ELSE 0 END), 0) AS proMonthly,
+         COALESCE(SUM(CASE WHEN ${billedSubscriptionSql} AND ${activeAccessSql} AND s.cancel_at IS NULL AND s.plan = 'yearly' AND s.tier = 'pro' THEN 1 ELSE 0 END), 0) AS proYearly,
          COALESCE(SUM(CASE WHEN s.complimentary = 1 AND ${activeAccessSql} THEN 1 ELSE 0 END), 0) AS complimentary,
          COALESCE(SUM(CASE WHEN ${billedSubscriptionSql} AND ${activeAccessSql} AND s.plan = 'monthly' AND ${freeInviteMonthSql} THEN 1 ELSE 0 END), 0) AS freeInviteMonth
        FROM subscriptions s`,
@@ -611,10 +668,13 @@ export async function adminStats(db: D1Database, config: Config, now: Date): Pro
       .prepare(
         `SELECT COALESCE(SUM(audio_seconds), 0) AS audio_seconds, COALESCE(SUM(input_tokens + output_tokens), 0) AS tokens,
            COALESCE(SUM(account_tokens), 0) AS account_tokens,
-           COALESCE(SUM(CASE WHEN input_tokens + output_tokens >= ?2 * 0.8 THEN 1 ELSE 0 END), 0) AS near_cap
-         FROM monthly_usage WHERE month = ?1`,
+           COALESCE(SUM(CASE WHEN input_tokens + output_tokens >= 0.8 * CASE
+             WHEN EXISTS (SELECT 1 FROM subscriptions s WHERE s.user_id = mu.user_id AND s.tier = 'pro')
+               OR EXISTS (SELECT 1 FROM app_store_subscriptions a WHERE a.user_id = mu.user_id AND a.tier = 'pro') THEN ?3
+             ELSE ?2 END THEN 1 ELSE 0 END), 0) AS near_cap
+         FROM monthly_usage mu WHERE month = ?1`,
       )
-      .bind(monthKey(now), config.monthlyTokenCap)
+      .bind(monthKey(now), config.monthlyTokenCap, config.proTier.limits.monthlyTokenCap)
       .first<MonthlyUsageRow>(),
     db.prepare("SELECT reason AS key, SUM(count) AS count FROM trial_refusals WHERE day >= ? GROUP BY reason").bind(firstDay).all<KeyCountRow>(),
     db.prepare("SELECT reason AS key, count FROM trial_refusals WHERE day = ?").bind(dayKey(now)).all<KeyCountRow>(),
@@ -644,8 +704,8 @@ export async function adminStats(db: D1Database, config: Config, now: Date): Pro
   const openReports: Map<string, number> = keyMap(reportRows.results);
   const subscriptions: SubscriptionCounts = subscriptionRow;
   const appStore: AppStoreSubscriptionCounts = appStoreRow;
-  const stripeMrrUsd: number = monthlyRecurringRevenueUsd(subscriptions.monthly, subscriptions.yearly, config.priceUsdMonthly, config.priceUsdYearly);
-  const appStoreMrr: { readonly gross: number; readonly net: number } = appStoreMrrUsd(appStore.monthly, appStore.yearly, config.appStore);
+  const stripeMrrUsd: number = tieredMrrUsd(subscriptions, stripeListPrices(config));
+  const appStoreMrr: { readonly gross: number; readonly net: number } = appStoreMrrUsd(appStore, appStoreListPrices(config), config.appStore.commissionRate);
   const billingEvents: Map<string, number> = keyMap(billingRows.results);
   const monthly: MonthlyUsageRow = monthlyUsageRow ?? { audio_seconds: 0, tokens: 0, account_tokens: 0, near_cap: 0 };
 
@@ -668,6 +728,8 @@ export async function adminStats(db: D1Database, config: Config, now: Date): Pro
       canceledTotal: subscriptions.canceled,
       monthly: subscriptions.monthly + appStore.monthly,
       yearly: subscriptions.yearly + appStore.yearly,
+      byTier: addTierCounts(countsByTier(subscriptions), countsByTier(appStore)),
+      proTierPolicy: config.proTier.policy,
       mrrUsd: roundCents(stripeMrrUsd + appStoreMrr.net),
       bySource: {
         stripe: {

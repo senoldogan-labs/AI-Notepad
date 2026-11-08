@@ -72,7 +72,7 @@ export async function grantComplimentaryAccess(db: D1Database, userId: string, u
          stripe_customer_id = CASE WHEN subscriptions.complimentary = 1 THEN subscriptions.stripe_customer_id ELSE excluded.stripe_customer_id END,
          stripe_subscription_id = CASE WHEN subscriptions.complimentary = 1 THEN subscriptions.stripe_subscription_id ELSE excluded.stripe_subscription_id END,
          status = 'active', current_period_end = excluded.current_period_end, cancel_at = excluded.cancel_at, past_due_since = NULL,
-         updated_at = excluded.updated_at, plan = 'monthly', complimentary = 1
+         updated_at = excluded.updated_at, plan = 'monthly', tier = 'personal', complimentary = 1
        WHERE subscriptions.complimentary = 1 OR ${subscriptionEndedSql("subscriptions.", "?6")}`,
     )
     .bind(userId, `comp_cus_${tag}`, `comp_sub_${tag}`, untilMs ?? nowMs + complimentaryForeverMs, untilMs, nowMs)

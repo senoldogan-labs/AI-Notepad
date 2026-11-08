@@ -1,10 +1,11 @@
 import { type AppStoreSubscription, appStoreAccess, appStoreManageUrl, appStoreSubscriptionOf } from "./appStore";
-import type { AppStoreConfig, Config, DeviceCheckConfig, SubscriptionPlan } from "./config";
+import type { AppStoreConfig, Config, DeviceCheckConfig, SubscriptionPlan, SubscriptionTier, UsageLimits } from "./config";
 import { type LiveEngine, liveEngine } from "./deepgram";
 import { liveOnDevice } from "./onDevice";
 import { ApiError } from "./errors";
 import { type ReservationLimit, remainingOf, subscriberAccountTokenLimit, trialAccountTokenLimit } from "./reservations";
 import { type SubscriptionLifecycle, graceEndsAtMs, hasActiveAccess, isEndedSubscription, subscriptionLifecycle } from "./subscriptionLifecycle";
+import { type TierOffer, accountLimits, offeredTiers, strongerTier } from "./tiers";
 import { type MonthlyUsage, monthlyUsage, nextDayStartMs, nextMonthStartMs } from "./usage";
 
 /**
@@ -31,6 +32,13 @@ export interface SubscriptionState {
   readonly complimentary: boolean;
 }
 
+/** The Stripe subscription row: its state plus the billing plan and tier the webhook wrote. */
+export interface StripeSubscription extends SubscriptionState {
+  /** Aylık ya da yıllık; fiyatı tanınmayan eski abonelikte null. */
+  readonly plan: SubscriptionPlan | null;
+  readonly tier: SubscriptionTier;
+}
+
 /** Kullanıcının planı: deneme ya da abonelik. */
 export type Plan = "trial" | "subscription";
 
@@ -48,6 +56,8 @@ export interface AppStoreSubscriptionInfo {
   /** Satırın durumu: `active`, `canceled` (yenilenmeyecek), `billing_issue`, `expired`, `refunded`. */
   readonly status: string;
   readonly plan: SubscriptionPlan | null;
+  /** Tier of the product (Personal or Pro). */
+  readonly tier: SubscriptionTier;
   readonly productId: string;
   readonly access: SubscriptionAccess;
   /** Dönem sonu (yenilenecekse yenileme anı). */
@@ -91,7 +101,15 @@ export interface Entitlements {
   /** Bildirilen cihazın kalan denemesi; cihaz bildirilmediyse ya da kayıtlı değilse null. */
   readonly deviceTrialMeetingsLeft: number | null;
   readonly monthlyHoursUsed: number;
+  /** Monthly hours of the account's tier (`tier`; Personal's in trial). */
   readonly monthlyHoursCap: number;
+  /**
+   * Tier of the account's paid access (the higher one when both Stripe and App Store give access); null without paid
+   * access (trial). Picks every limit of this response. Added field: older clients ignore it.
+   */
+  readonly tier: SubscriptionTier | null;
+  /** Tiers on sale now with their limits (Pro only while `PRO_TIER_POLICY` is `on`); the paywalls show these. */
+  readonly offeredTiers: readonly TierOffer[];
   /**
    * Yeni toplantının canlı metin motoru: `deepgram` (bulut; jeton `POST /v1/live/deepgram-token`) ya da `whisperkit`
    * (Mac'te; Deepgram kapalı ya da bütçesi dolu). Jeton yine reddedilebilir; istemci o zaman da Mac'e geçer.
@@ -147,6 +165,8 @@ export interface Entitlements {
     readonly graceEndsAt: string | null;
     /** Plan (aylık ya da yıllık); fiyatı tanınmayan eski abonelikte null. Haklar plana bakmaz. */
     readonly plan: SubscriptionPlan | null;
+    /** Tier of this subscription (complimentary access is Personal). */
+    readonly tier: SubscriptionTier;
     /**
      * Yöneticinin verdiği ücretsiz erişim mi (Stripe'ta faturası yok). Plan yine `monthly` görünür: yayındaki uygulama
      * planı yalnızca aylık/yıllık olarak çözer; bu alanı bilmeyen istemci yok sayar. Site hesap sayfası "Free access" yazar.
@@ -155,14 +175,6 @@ export interface Entitlements {
   } | null;
 }
 
-/** Kullanıcının abonelik satırındaki plan; satır yoksa ya da plan tanınmıyorsa null. */
-export async function subscriptionPlan(db: D1Database, userId: string): Promise<SubscriptionPlan | null> {
-  const row: { plan: SubscriptionPlan | null } | null = await db
-    .prepare("SELECT plan FROM subscriptions WHERE user_id = ?")
-    .bind(userId)
-    .first<{ plan: SubscriptionPlan | null }>();
-  return row?.plan ?? null;
-}
 
 /**
  * Aboneliğin erişim durumu (`active`, `grace`, `none`); kurallar `subscriptionLifecycle.ts`'te (tek kaynak; SQL eşleri
@@ -198,17 +210,36 @@ export function strongerAccess(left: SubscriptionAccess, right: SubscriptionAcce
 
 /** Hesabın iki kaynaktaki aboneliği. */
 export interface PaidSubscriptions {
-  readonly stripe: SubscriptionState | null;
+  readonly stripe: StripeSubscription | null;
   readonly appStore: AppStoreSubscription | null;
 }
 
 /** Hesabın Stripe ve App Store abonelikleri. */
 export async function paidSubscriptions(db: D1Database, userId: string): Promise<PaidSubscriptions> {
-  const [stripe, appStore]: [SubscriptionState | null, AppStoreSubscription | null] = await Promise.all([
-    subscriptionState(db, userId),
+  const [stripe, appStore]: [StripeSubscription | null, AppStoreSubscription | null] = await Promise.all([
+    stripeSubscriptionOf(db, userId),
     appStoreSubscriptionOf(db, userId),
   ]);
   return { stripe, appStore };
+}
+
+/**
+ * Tier of the account's paid access: the tier of each source that gives access (`active` or `grace`), the higher one
+ * when both do; null without paid access. Saf fonksiyondur.
+ */
+export function paidTier(subscriptions: PaidSubscriptions, config: AccessConfig, now: Date): SubscriptionTier | null {
+  const stripeTier: SubscriptionTier | null =
+    subscriptions.stripe !== null && subscriptionAccess(subscriptions.stripe, now, config.pastDueGraceMs) !== "none" ? subscriptions.stripe.tier : null;
+  const appStoreTier: SubscriptionTier | null =
+    subscriptions.appStore !== null && appStoreAccess(subscriptions.appStore, config.appStore.acceptSandbox, now) !== "none"
+      ? subscriptions.appStore.tier
+      : null;
+  return strongerTier(stripeTier, appStoreTier);
+}
+
+/** The account's usage limits now: its paid tier's (`paidTier`), Personal's in trial or without access. */
+export async function userUsageLimits(db: D1Database, config: Config, userId: string, now: Date): Promise<UsageLimits> {
+  return accountLimits(config, paidTier(await paidSubscriptions(db, userId), config, now));
 }
 
 /**
@@ -249,6 +280,7 @@ export function appStoreSubscriptionInfo(subscription: AppStoreSubscription, acc
   return {
     status: subscription.status,
     plan: subscription.plan,
+    tier: subscription.tier,
     productId: subscription.productId,
     access,
     expiresAt: new Date(subscription.expiresAt).toISOString(),
@@ -277,6 +309,31 @@ interface SubscriptionStateRow {
   readonly cancel_at: number | null;
   readonly past_due_since: number | null;
   readonly complimentary: number;
+}
+
+/** `subscriptions` row of `stripeSubscriptionOf`. */
+interface StripeSubscriptionRow extends SubscriptionStateRow {
+  readonly plan: SubscriptionPlan | null;
+  readonly tier: SubscriptionTier;
+}
+
+/** The account's Stripe (or complimentary) subscription row with its plan and tier; null without a row. */
+export async function stripeSubscriptionOf(db: D1Database, userId: string): Promise<StripeSubscription | null> {
+  const row: StripeSubscriptionRow | null = await db
+    .prepare("SELECT status, current_period_end, cancel_at, past_due_since, complimentary, plan, tier FROM subscriptions WHERE user_id = ?")
+    .bind(userId)
+    .first<StripeSubscriptionRow>();
+  return row === null
+    ? null
+    : {
+        status: row.status,
+        currentPeriodEnd: row.current_period_end,
+        cancelAt: row.cancel_at,
+        pastDueSince: row.past_due_since,
+        complimentary: row.complimentary === 1,
+        plan: row.plan,
+        tier: row.tier,
+      };
 }
 
 /** Kullanıcının abonelik durumu (yoksa null). */
@@ -397,24 +454,28 @@ export async function requireAccountLLMAccess(db: D1Database, config: Config, us
 }
 
 /**
- * Toplantı dışı yapay zekâ hakkının kullanımı: abonelik erişimi varsa aylık abone sınırı, yoksa denemenin günlük
- * sınırı. Kullanım, sınırın kendisinin denetlediği kalan miktardan çıkarılır (aynı SQL).
+ * Toplantı dışı yapay zekâ hakkının kullanımı: abonelik erişimi varsa (`tier` dolu) o katmanın aylık abone sınırı, yoksa
+ * denemenin günlük sınırı. Kullanım, sınırın kendisinin denetlediği kalan miktardan çıkarılır (aynı SQL).
  */
-export async function accountTokenAllowance(db: D1Database, config: Config, userId: string, subscriber: boolean, now: Date): Promise<AccountTokenAllowance> {
-  const limit: ReservationLimit = subscriber ? subscriberAccountTokenLimit(config, userId, now) : trialAccountTokenLimit(config, userId, now);
-  const cap: number = subscriber ? config.monthlyAccountTokenCap : config.trialAccountDailyTokens;
+export async function accountTokenAllowance(db: D1Database, config: Config, userId: string, tier: SubscriptionTier | null, now: Date): Promise<AccountTokenAllowance> {
+  const subscriberCap: number = accountLimits(config, tier).monthlyAccountTokenCap;
+  const limit: ReservationLimit = tier === null ? trialAccountTokenLimit(config, userId, now) : subscriberAccountTokenLimit(subscriberCap, userId, now);
+  const cap: number = tier === null ? config.trialAccountDailyTokens : subscriberCap;
   const [remaining]: number[] = await remainingOf(db, [limit]);
   return {
     used: Math.max(0, cap - (remaining ?? cap)),
     cap,
-    period: subscriber ? "month" : "day",
-    resetsAtMs: subscriber ? nextMonthStartMs(now) : nextDayStartMs(now),
+    period: tier === null ? "day" : "month",
+    resetsAtMs: tier === null ? nextDayStartMs(now) : nextMonthStartMs(now),
   };
 }
 
-/** Abonenin yeni toplantısının en çok süresi (dakika): üst sınır ile aylık kalanın küçüğü, en az 1. Saf fonksiyondur. */
-export function subscriberMeetingMaxMinutes(config: Config, remainingSeconds: number): number {
-  return Math.max(1, Math.min(config.subscriberMaxMeetingMinutes, Math.floor(remainingSeconds / 60)));
+/**
+ * Abonenin yeni toplantısının en çok süresi (dakika): katmanın üst sınırı ile aylık kalanın küçüğü, en az 1. Saf
+ * fonksiyondur.
+ */
+export function subscriberMeetingMaxMinutes(limits: UsageLimits, remainingSeconds: number): number {
+  return Math.max(1, Math.min(limits.maxMeetingMinutes, Math.floor(remainingSeconds / 60)));
 }
 
 /** Saatin onda biri hassasiyetle saat. Saf fonksiyondur. */
@@ -428,22 +489,20 @@ export function hoursRoundedUp(seconds: number): number {
  * gösterim içindir, hak toplantı başlatırken imzalı onayla yeniden denetlenir.
  */
 export async function entitlements(db: D1Database, config: Config, userId: string, deviceId: string | null, now: Date): Promise<Entitlements> {
-  const [subscriptions, plan, trial, deviceUsed, usage, engine]: [
+  const [subscriptions, trial, deviceUsed, usage, engine]: [
     PaidSubscriptions,
-    SubscriptionPlan | null,
     TrialState,
     number | null,
     MonthlyUsage,
     LiveEngine,
   ] = await Promise.all([
     paidSubscriptions(db, userId),
-    subscriptionPlan(db, userId),
     userTrialState(db, userId),
     deviceId === null ? Promise.resolve(null) : deviceTrialMeetingsUsed(db, deviceId),
     monthlyUsage(db, userId, now),
     liveEngine(db, config),
   ]);
-  const subscription: SubscriptionState | null = subscriptions.stripe;
+  const subscription: StripeSubscription | null = subscriptions.stripe;
   const appStore: AppStoreSubscription | null = subscriptions.appStore;
   const stripeAccess: SubscriptionAccess = subscriptionAccess(subscription, now, config.pastDueGraceMs);
   const appStoreAccessValue: SubscriptionAccess = appStoreAccess(appStore, config.appStore.acceptSandbox, now);
@@ -453,7 +512,9 @@ export async function entitlements(db: D1Database, config: Config, userId: strin
     ...(stripeAccess === "none" ? [] : ["stripe" as const]),
     ...(appStoreAccessValue === "none" ? [] : ["app_store" as const]),
   ];
-  const allowance: AccountTokenAllowance = await accountTokenAllowance(db, config, userId, access !== "none", now);
+  const tier: SubscriptionTier | null = paidTier(subscriptions, config, now);
+  const limits: UsageLimits = accountLimits(config, tier);
+  const allowance: AccountTokenAllowance = await accountTokenAllowance(db, config, userId, tier, now);
   const accountLeft: number = trialMeetingsLeft(trial, config, now);
   const trialEnd: number | null = access === "none" ? trialEndsAtMs(trial, config.trialDurationMs) : null;
   const deviceLeft: number | null = deviceUsed === null ? null : Math.max(0, config.trialMeetings - deviceUsed);
@@ -467,7 +528,9 @@ export async function entitlements(db: D1Database, config: Config, userId: strin
     trialEndsAt: trialEnd === null ? null : new Date(trialEnd).toISOString(),
     deviceTrialMeetingsLeft: deviceLeft,
     monthlyHoursUsed: hoursRoundedUp(usage.usedSeconds),
-    monthlyHoursCap: config.monthlyCapSeconds / 3600,
+    monthlyHoursCap: limits.monthlyCapSeconds / 3600,
+    tier,
+    offeredTiers: offeredTiers(config),
     liveEngine: engine,
     liveOnDevice: liveOnDevice(userId, config.onDeviceLivePercent),
     accountTokensUsed: allowance.used,
@@ -476,7 +539,7 @@ export async function entitlements(db: D1Database, config: Config, userId: strin
     accountTokensResetsAt: new Date(allowance.resetsAtMs).toISOString(),
     monthlyResetsAt: new Date(nextMonthStartMs(now)).toISOString(),
     meetingMaxMinutes:
-      access === "none" ? config.trialMaxMeetingMinutes : subscriberMeetingMaxMinutes(config, config.monthlyCapSeconds - usage.usedSeconds),
+      access === "none" ? config.trialMaxMeetingMinutes : subscriberMeetingMaxMinutes(limits, limits.monthlyCapSeconds - usage.usedSeconds),
     subscriptionSources: sources,
     appStoreSubscription: appStore === null ? null : appStoreSubscriptionInfo(appStore, appStoreAccessValue),
     subscription:
@@ -488,7 +551,8 @@ export async function entitlements(db: D1Database, config: Config, userId: strin
             cancelAt: subscription.cancelAt === null ? null : new Date(subscription.cancelAt).toISOString(),
             access: stripeAccess,
             graceEndsAt: stripeAccess === "grace" ? new Date(graceEndsAtMs(subscription, config.pastDueGraceMs) ?? 0).toISOString() : null,
-            plan,
+            plan: subscription.plan,
+            tier: subscription.tier,
             complimentary: subscription.complimentary,
           }
         : source === "app_store" && appStore !== null
@@ -500,6 +564,7 @@ export async function entitlements(db: D1Database, config: Config, userId: strin
               access: appStoreAccessValue,
               graceEndsAt: appStoreAccessValue === "grace" && appStore.graceExpiresAt !== null ? new Date(appStore.graceExpiresAt).toISOString() : null,
               plan: appStore.plan,
+              tier: appStore.tier,
               complimentary: false,
             }
           : null,

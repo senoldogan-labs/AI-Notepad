@@ -5,12 +5,13 @@ import {
   type TrialCounts,
   appStoreMrrUsd,
   appStoreSubscriptionCounts,
-  monthlyRecurringRevenueUsd,
   subscriptionCounts,
+  tieredMrrUsd,
   trialCounts,
 } from "./admin";
 import type { Config } from "./config";
 import { log } from "./log";
+import { appStoreListPrices, stripeListPrices } from "./tiers";
 import { utcDayStartMs } from "./reports";
 import { type CurrencyMrr, invoicedMrrByCurrency } from "./revenue";
 import { dayKey } from "./usage";
@@ -121,9 +122,9 @@ export async function collectDailyMetrics(db: D1Database, config: Config, now: D
     trialsStarted: activity.trials_started,
     trials,
     subscriptions,
-    mrrListCents: Math.round(monthlyRecurringRevenueUsd(subscriptions.monthly, subscriptions.yearly, config.priceUsdMonthly, config.priceUsdYearly) * 100),
+    mrrListCents: Math.round(tieredMrrUsd(subscriptions, stripeListPrices(config)) * 100),
     appStore,
-    appStoreMrrNetCents: Math.round(appStoreMrrUsd(appStore.monthly, appStore.yearly, config.appStore).net * 100),
+    appStoreMrrNetCents: Math.round(appStoreMrrUsd(appStore, appStoreListPrices(config), config.appStore.commissionRate).net * 100),
     spendAnthropicMicroUsd: spent.llm_micro_usd,
     spendElevenLabsMicroUsd: spent.micro_usd - spent.llm_micro_usd,
     spendDeepgramMicroUsd: Math.round((deepgram.seconds / 60) * config.deepgram.microUsdPerMinute),

@@ -13,8 +13,36 @@ export type AttestEnvironment = "development" | "production";
 /** Stripe anahtarının modu: canlı ya da test. */
 export type StripeMode = "live" | "test";
 
-/** Abonelik planı: aylık ya da yıllık (aynı ürünün iki fiyatı; haklar plana bakmaz). */
+/** Abonelik planı: aylık ya da yıllık fatura dönemi (haklar plana bakmaz; katmana bakar). */
 export type SubscriptionPlan = "monthly" | "yearly";
+
+/**
+ * Subscription tier: Personal (the original product) or Pro (more meeting hours). The tier picks the usage limits
+ * (`UsageLimits`, see `tiers.ts`); the plan above is only the billing interval.
+ */
+export type SubscriptionTier = "personal" | "pro";
+
+/** Pro tier switch (`PRO_TIER_POLICY`): `off` keeps Pro off sale everywhere (existing Pro subscriptions keep Pro limits). */
+export type ProTierPolicy = "on" | "off";
+
+/**
+ * Usage limits of one tier (trial accounts use Personal's monthly hours and token caps). All are server configuration:
+ * Personal from the original settings (`MONTHLY_CAP_HOURS`, `SUBSCRIBER_MAX_MEETING_MINUTES`, …), Pro from `PRO_*`.
+ */
+export interface UsageLimits {
+  /** Recorded meeting time per UTC month (seconds). */
+  readonly monthlyCapSeconds: number;
+  /** Longest subscriber meeting (minutes); also the meeting's audio allowance. */
+  readonly maxMeetingMinutes: number;
+  /** AI token budget of one subscriber meeting. */
+  readonly meetingTokenBudget: number;
+  /** AI tokens per user per UTC month (all calls). */
+  readonly monthlyTokenCap: number;
+  /** Subscriber AI tokens outside meetings per UTC month (part of `monthlyTokenCap`). */
+  readonly monthlyAccountTokenCap: number;
+  /** AI tokens per user per UTC day. */
+  readonly dailyTokenCap: number;
+}
 
 /** Davet programı anahtarı (`REFERRAL_POLICY`): `off` ise yeni kod verilmez ve kod kabul edilmez. */
 export type ReferralPolicy = "on" | "off";
@@ -25,16 +53,20 @@ export type ReferralPolicy = "on" | "off";
  */
 export type SyncPolicy = "on" | "off";
 
-/** Bizim abonelik fiyatlarımız (Stripe fiyat kimlikleri). */
+/** Bizim abonelik fiyatlarımız (Stripe fiyat kimlikleri): Personal aylık/yıllık ve Pro aylık/yıllık. */
 export interface StripePrices {
   readonly monthly: string;
   readonly yearly: string;
+  readonly proMonthly: string;
+  readonly proYearly: string;
 }
 
-/** App Store ürün kimlikleri (aylık ve yıllık; aynı hak, bkz. `appStore.ts`). */
+/** App Store ürün kimlikleri: Personal aylık/yıllık ve Pro aylık/yıllık (aynı abonelik grubu, bkz. `appStore.ts`). */
 export interface AppStoreProducts {
   readonly monthly: string;
   readonly yearly: string;
+  readonly proMonthly: string;
+  readonly proYearly: string;
 }
 
 /**
@@ -48,6 +80,9 @@ export interface AppStoreConfig {
   readonly acceptSandbox: boolean;
   readonly priceUsdMonthly: number;
   readonly priceUsdYearly: number;
+  /** Pro list prices in the App Store (USD; `APP_STORE_PRO_PRICE_USD_*`), for the admin MRR estimate only. */
+  readonly proPriceUsdMonthly: number;
+  readonly proPriceUsdYearly: number;
   readonly commissionRate: number;
   /** RevenueCat gizli API anahtarı (`REVENUECAT_SECRET_API_KEY`); girilmemişse null (eşitleme `503 app_store_unavailable`). */
   readonly revenueCatApiKey: string | null;
@@ -201,6 +236,14 @@ export interface Config {
   readonly priceUsdMonthly: number;
   /** Yıllık abonelik fiyatı (USD); yalnızca yönetici MRR tahmini için (ayda 1/12'si sayılır). */
   readonly priceUsdYearly: number;
+  /** Pro list prices on Stripe (USD; `PRO_PRICE_USD_*`), kept equal to the Stripe prices by hand; admin MRR only. */
+  readonly proPriceUsdMonthly: number;
+  readonly proPriceUsdYearly: number;
+  /**
+   * Pro tier: whether it is on sale (`PRO_TIER_POLICY`) and its limits (`PRO_*`). Personal's limits are the original
+   * flat fields below (`monthlyCapSeconds`, `subscriberMaxMeetingMinutes`, …); `tiers.tierLimits` picks one.
+   */
+  readonly proTier: { readonly policy: ProTierPolicy; readonly limits: UsageLimits };
   /** Davet programı açık mı (`REFERRAL_POLICY`). */
   readonly referralPolicy: ReferralPolicy;
   /** Eşitleme uçları açık mı (`SYNC_POLICY`). */
@@ -410,6 +453,8 @@ export interface PlaceholderCandidates {
   readonly APPCAST_URL: string;
   readonly STRIPE_PRICE_ID: string;
   readonly STRIPE_YEARLY_PRICE_ID: string;
+  readonly STRIPE_PRO_PRICE_ID: string;
+  readonly STRIPE_PRO_YEARLY_PRICE_ID: string;
 }
 
 /** Örnek (RFC 2606) ya da yerel alan adı mı. Saf fonksiyondur. */
@@ -441,6 +486,8 @@ export function placeholderSettings(settings: PlaceholderCandidates): string[] {
     ["APPCAST_URL", isPlaceholderUrl(settings.APPCAST_URL)],
     ["STRIPE_PRICE_ID", containsPlaceholder(settings.STRIPE_PRICE_ID)],
     ["STRIPE_YEARLY_PRICE_ID", containsPlaceholder(settings.STRIPE_YEARLY_PRICE_ID)],
+    ["STRIPE_PRO_PRICE_ID", containsPlaceholder(settings.STRIPE_PRO_PRICE_ID)],
+    ["STRIPE_PRO_YEARLY_PRICE_ID", containsPlaceholder(settings.STRIPE_PRO_YEARLY_PRICE_ID)],
   ];
   return checks.filter(([, placeholder]: readonly [string, boolean]): boolean => placeholder).map(([name]: readonly [string, boolean]): string => name);
 }
@@ -555,10 +602,25 @@ const envSchema = z.object({
   REFRESH_TOKEN_DAYS: positiveInt,
   STRIPE_PRICE_ID: z.string().startsWith("price_"),
   STRIPE_YEARLY_PRICE_ID: z.string().startsWith("price_"),
+  STRIPE_PRO_PRICE_ID: z.string().startsWith("price_"),
+  STRIPE_PRO_YEARLY_PRICE_ID: z.string().startsWith("price_"),
   APP_STORE_PRODUCT_MONTHLY: appStoreProductId,
   APP_STORE_PRODUCT_YEARLY: appStoreProductId,
+  APP_STORE_PRODUCT_PRO_MONTHLY: appStoreProductId,
+  APP_STORE_PRODUCT_PRO_YEARLY: appStoreProductId,
   APP_STORE_PRICE_USD_MONTHLY: positiveNumber,
   APP_STORE_PRICE_USD_YEARLY: positiveNumber,
+  APP_STORE_PRO_PRICE_USD_MONTHLY: positiveNumber,
+  APP_STORE_PRO_PRICE_USD_YEARLY: positiveNumber,
+  PRO_TIER_POLICY: z.enum(["on", "off"]),
+  PRO_PRICE_USD_MONTHLY: positiveNumber,
+  PRO_PRICE_USD_YEARLY: positiveNumber,
+  PRO_MONTHLY_CAP_HOURS: positiveNumber,
+  PRO_MAX_MEETING_MINUTES: positiveInt,
+  PRO_MEETING_TOKEN_BUDGET: positiveInt,
+  PRO_MONTHLY_TOKEN_CAP: positiveInt,
+  PRO_MONTHLY_ACCOUNT_TOKEN_CAP: positiveInt,
+  PRO_DAILY_TOKEN_CAP: positiveInt,
   /** Apple'ın payı: 0 ile 1 arası (1 hariç). */
   APP_STORE_COMMISSION_RATE: z.coerce.number().min(0).lt(1),
   REVENUECAT_ACCEPT_SANDBOX: booleanText,
@@ -597,6 +659,8 @@ const stripeWebhookSchema = envSchema.pick({
   STRIPE_WEBHOOK_SECRET: true,
   STRIPE_PRICE_ID: true,
   STRIPE_YEARLY_PRICE_ID: true,
+  STRIPE_PRO_PRICE_ID: true,
+  STRIPE_PRO_YEARLY_PRICE_ID: true,
   TRIAL_HASH_SECRET: true,
   REVENUECAT_ACCEPT_SANDBOX: true,
 });
@@ -607,16 +671,49 @@ const revenueCatWebhookSchema = envSchema
     ENVIRONMENT: true,
     APP_STORE_PRODUCT_MONTHLY: true,
     APP_STORE_PRODUCT_YEARLY: true,
+    APP_STORE_PRODUCT_PRO_MONTHLY: true,
+    APP_STORE_PRODUCT_PRO_YEARLY: true,
     REVENUECAT_ACCEPT_SANDBOX: true,
   })
   .extend({ REVENUECAT_WEBHOOK_AUTH: secret, REVENUECAT_SECRET_API_KEY: revenueCatSecretKey });
 
-/** İki App Store ürün kimliği; aynıysa `ConfigError` (aylık ve yıllık ayırt edilemez). Saf fonksiyondur. */
-function appStoreProductsOf(monthly: string, yearly: string): AppStoreProducts {
-  if (monthly === yearly) {
-    throw new ConfigError(["APP_STORE_PRODUCT_YEARLY"]);
+/** The App Store product ids of the settings (`APP_STORE_PRODUCT_*`). */
+interface AppStoreProductSettings {
+  readonly APP_STORE_PRODUCT_MONTHLY: string;
+  readonly APP_STORE_PRODUCT_YEARLY: string;
+  readonly APP_STORE_PRODUCT_PRO_MONTHLY: string;
+  readonly APP_STORE_PRODUCT_PRO_YEARLY: string;
+}
+
+/**
+ * The four App Store product ids; a repeated id is a `ConfigError` naming the later setting (plan and tier could not be
+ * told apart). Saf fonksiyondur.
+ */
+function appStoreProductsOf(settings: AppStoreProductSettings): AppStoreProducts {
+  const repeated: string[] = repeatedSettings([
+    ["APP_STORE_PRODUCT_MONTHLY", settings.APP_STORE_PRODUCT_MONTHLY],
+    ["APP_STORE_PRODUCT_YEARLY", settings.APP_STORE_PRODUCT_YEARLY],
+    ["APP_STORE_PRODUCT_PRO_MONTHLY", settings.APP_STORE_PRODUCT_PRO_MONTHLY],
+    ["APP_STORE_PRODUCT_PRO_YEARLY", settings.APP_STORE_PRODUCT_PRO_YEARLY],
+  ]);
+  if (repeated.length > 0) {
+    throw new ConfigError(repeated);
   }
-  return { monthly, yearly };
+  return {
+    monthly: settings.APP_STORE_PRODUCT_MONTHLY,
+    yearly: settings.APP_STORE_PRODUCT_YEARLY,
+    proMonthly: settings.APP_STORE_PRODUCT_PRO_MONTHLY,
+    proYearly: settings.APP_STORE_PRODUCT_PRO_YEARLY,
+  };
+}
+
+/** Names of the settings whose value an earlier setting of the list already has. Saf fonksiyondur. */
+function repeatedSettings(settings: ReadonlyArray<readonly [string, string]>): string[] {
+  return settings
+    .filter(([, value]: readonly [string, string], index: number): boolean =>
+      settings.slice(0, index).some(([, earlier]: readonly [string, string]): boolean => earlier === value),
+    )
+    .map(([name]: readonly [string, string]): string => name);
 }
 
 /** Yalnızca RevenueCat webhook'unun ayarlarını doğrular; hatada alan adlarını taşıyan `ConfigError`. */
@@ -629,17 +726,39 @@ export function parseRevenueCatWebhookConfig(env: Env): RevenueCatWebhookConfig 
     environment: parsed.data.ENVIRONMENT,
     webhookAuth: parsed.data.REVENUECAT_WEBHOOK_AUTH,
     revenueCatApiKey: parsed.data.REVENUECAT_SECRET_API_KEY,
-    products: appStoreProductsOf(parsed.data.APP_STORE_PRODUCT_MONTHLY, parsed.data.APP_STORE_PRODUCT_YEARLY),
+    products: appStoreProductsOf(parsed.data),
     acceptSandbox: parsed.data.REVENUECAT_ACCEPT_SANDBOX,
   };
 }
 
-/** İki fiyat kimliği; aynıysa `ConfigError` (aylık ve yıllık ayırt edilemez, plan ve MRR yanlış olur). Saf fonksiyondur. */
-function stripePricesOf(monthly: string, yearly: string): StripePrices {
-  if (monthly === yearly) {
-    throw new ConfigError(["STRIPE_YEARLY_PRICE_ID"]);
+/** The Stripe price ids of the settings (`STRIPE_*PRICE_ID`). */
+interface StripePriceSettings {
+  readonly STRIPE_PRICE_ID: string;
+  readonly STRIPE_YEARLY_PRICE_ID: string;
+  readonly STRIPE_PRO_PRICE_ID: string;
+  readonly STRIPE_PRO_YEARLY_PRICE_ID: string;
+}
+
+/**
+ * The four price ids; a repeated id is a `ConfigError` naming the later setting (plan, tier and MRR would be wrong).
+ * Saf fonksiyondur.
+ */
+function stripePricesOf(settings: StripePriceSettings): StripePrices {
+  const repeated: string[] = repeatedSettings([
+    ["STRIPE_PRICE_ID", settings.STRIPE_PRICE_ID],
+    ["STRIPE_YEARLY_PRICE_ID", settings.STRIPE_YEARLY_PRICE_ID],
+    ["STRIPE_PRO_PRICE_ID", settings.STRIPE_PRO_PRICE_ID],
+    ["STRIPE_PRO_YEARLY_PRICE_ID", settings.STRIPE_PRO_YEARLY_PRICE_ID],
+  ]);
+  if (repeated.length > 0) {
+    throw new ConfigError(repeated);
   }
-  return { monthly, yearly };
+  return {
+    monthly: settings.STRIPE_PRICE_ID,
+    yearly: settings.STRIPE_YEARLY_PRICE_ID,
+    proMonthly: settings.STRIPE_PRO_PRICE_ID,
+    proYearly: settings.STRIPE_PRO_YEARLY_PRICE_ID,
+  };
 }
 
 /** Anahtarın modu. Saf fonksiyondur. */
@@ -656,7 +775,7 @@ export function parseStripeWebhookConfig(env: Env): StripeWebhookConfig {
   return {
     environment: parsed.data.ENVIRONMENT,
     stripeMode: stripeModeOf(parsed.data.STRIPE_SECRET_KEY),
-    stripePrices: stripePricesOf(parsed.data.STRIPE_PRICE_ID, parsed.data.STRIPE_YEARLY_PRICE_ID),
+    stripePrices: stripePricesOf(parsed.data),
     appStore: { acceptSandbox: parsed.data.REVENUECAT_ACCEPT_SANDBOX },
     secrets: { stripe: parsed.data.STRIPE_SECRET_KEY, stripeWebhook: parsed.data.STRIPE_WEBHOOK_SECRET, trialHash: parsed.data.TRIAL_HASH_SECRET },
   };
@@ -690,6 +809,9 @@ export function parseConfig(env: Env): Config {
   }
   if (value.MONTHLY_ACCOUNT_TOKEN_CAP > value.MONTHLY_TOKEN_CAP) {
     throw new ConfigError(["MONTHLY_ACCOUNT_TOKEN_CAP"]);
+  }
+  if (value.PRO_MONTHLY_ACCOUNT_TOKEN_CAP > value.PRO_MONTHLY_TOKEN_CAP) {
+    throw new ConfigError(["PRO_MONTHLY_ACCOUNT_TOKEN_CAP"]);
   }
   if (value.ENVIRONMENT === "production" && value.APP_ATTEST_ENVIRONMENT !== "production") {
     throw new ConfigError(["APP_ATTEST_ENVIRONMENT"]);
@@ -734,6 +856,19 @@ export function parseConfig(env: Env): Config {
     appcastUrl: value.APPCAST_URL,
     priceUsdMonthly: value.PRICE_USD_MONTHLY,
     priceUsdYearly: value.PRICE_USD_YEARLY,
+    proPriceUsdMonthly: value.PRO_PRICE_USD_MONTHLY,
+    proPriceUsdYearly: value.PRO_PRICE_USD_YEARLY,
+    proTier: {
+      policy: value.PRO_TIER_POLICY,
+      limits: {
+        monthlyCapSeconds: Math.round(value.PRO_MONTHLY_CAP_HOURS * 3600),
+        maxMeetingMinutes: value.PRO_MAX_MEETING_MINUTES,
+        meetingTokenBudget: value.PRO_MEETING_TOKEN_BUDGET,
+        monthlyTokenCap: value.PRO_MONTHLY_TOKEN_CAP,
+        monthlyAccountTokenCap: value.PRO_MONTHLY_ACCOUNT_TOKEN_CAP,
+        dailyTokenCap: value.PRO_DAILY_TOKEN_CAP,
+      },
+    },
     referralPolicy: value.REFERRAL_POLICY,
     syncPolicy: value.SYNC_POLICY,
     assistantPolicy: value.ASSISTANT_POLICY,
@@ -801,13 +936,15 @@ export function parseConfig(env: Env): Config {
     dailySpendCeilingMicroUsd: Math.round(value.DAILY_SPEND_CEILING_USD * 1_000_000),
     dailyTrialSpendCeilingMicroUsd: Math.round(value.DAILY_TRIAL_SPEND_CEILING_USD * 1_000_000),
     refreshTokenMs: value.REFRESH_TOKEN_DAYS * 86_400_000,
-    stripePrices: stripePricesOf(value.STRIPE_PRICE_ID, value.STRIPE_YEARLY_PRICE_ID),
+    stripePrices: stripePricesOf(value),
     stripeMode: stripeModeOf(value.STRIPE_SECRET_KEY),
     appStore: {
-      products: appStoreProductsOf(value.APP_STORE_PRODUCT_MONTHLY, value.APP_STORE_PRODUCT_YEARLY),
+      products: appStoreProductsOf(value),
       acceptSandbox: value.REVENUECAT_ACCEPT_SANDBOX,
       priceUsdMonthly: value.APP_STORE_PRICE_USD_MONTHLY,
       priceUsdYearly: value.APP_STORE_PRICE_USD_YEARLY,
+      proPriceUsdMonthly: value.APP_STORE_PRO_PRICE_USD_MONTHLY,
+      proPriceUsdYearly: value.APP_STORE_PRO_PRICE_USD_YEARLY,
       commissionRate: value.APP_STORE_COMMISSION_RATE,
       revenueCatApiKey: value.REVENUECAT_SECRET_API_KEY ?? null,
     },

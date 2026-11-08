@@ -1,13 +1,17 @@
 import { continueAfterDisconnect } from "./background";
-import type { Config } from "./config";
+import type { Config, UsageLimits } from "./config";
 import { randomId } from "./crypto";
 import { type ActiveDeviceCheck, type DeviceBits, queryDeviceBits, updateDeviceBits } from "./deviceCheck";
 import {
+  type PaidSubscriptions,
   type TrialState,
   deviceTrialMeetingsUsed,
   hasPaidAccess,
   hasRunningTrial,
   isTrialExpired,
+  paidAccess,
+  paidSubscriptions,
+  paidTier,
   subscriberMeetingMaxMinutes,
   trialMeetingsLeft,
   userTrialState,
@@ -44,6 +48,7 @@ import {
   reprocessRefusal,
 } from "./meetingLifecycle";
 import { meetingNoteReserveTokens } from "./reservations";
+import { accountLimits } from "./tiers";
 import { type MonthlyUsage, chunkOverlapAllowance, dayKey, monthlyUsage, requireSpendHeadroom, requireTrialSpendHeadroom } from "./usage";
 
 /** Yeni toplantı oturumu. */
@@ -254,20 +259,23 @@ export async function startMeeting(
     return existing;
   }
   await requireSpendHeadroom(db, config, now);
-  if (!(await hasPaidAccess(db, config, userId, now))) {
+  const subscriptions: PaidSubscriptions = await paidSubscriptions(db, userId);
+  if (paidAccess(subscriptions, config, now) === "none") {
     await requireTrialSpendHeadroom(db, config, now);
     await requireElevenLabsTrialHeadroom(db, context.platform, config, now);
     await requireTrialDevice(db, context, config, userId, request.deviceCheckToken, now);
     return startTrialMeeting(db, config, userId, request.deviceId, request.clientIpHash, request.clientRef, request.deferred, now);
   }
   const deviceId: string | null = request.deviceId;
+  // The subscriber's tier picks the month's hours, the longest meeting and the meeting's AI budget (`tiers.ts`).
+  const limits: UsageLimits = accountLimits(config, paidTier(subscriptions, config, now));
   const usage: MonthlyUsage = await monthlyUsage(db, userId, now);
-  const remainingSeconds: number = config.monthlyCapSeconds - usage.usedSeconds;
+  const remainingSeconds: number = limits.monthlyCapSeconds - usage.usedSeconds;
   if (remainingSeconds <= 0) {
     throw new ApiError("monthly_cap_reached", "You have reached this month's usage limit; it resets at the start of the month.");
   }
   const meetingId: string = randomId();
-  const maxMinutes: number = subscriberMeetingMaxMinutes(config, remainingSeconds);
+  const maxMinutes: number = subscriberMeetingMaxMinutes(limits, remainingSeconds);
   const maxEndsAt: number = now.getTime() + maxMinutes * 60_000;
   const meeting: NewMeeting = {
     id: meetingId,
@@ -275,7 +283,7 @@ export async function startMeeting(
     deviceId,
     kind: "subscription",
     maxEndsAt,
-    tokenBudget: config.subscriberMeetingTokenBudget,
+    tokenBudget: limits.meetingTokenBudget,
     clientRef: request.clientRef,
     deferred: request.deferred,
   };
@@ -294,7 +302,7 @@ export async function startMeeting(
   return {
     meetingId,
     kind: "subscription",
-    tokenBudget: config.subscriberMeetingTokenBudget,
+    tokenBudget: limits.meetingTokenBudget,
     maxDurationMinutes: maxMinutes,
     expiresAt: new Date(maxEndsAt).toISOString(),
     trialMeetingsLeft: null,

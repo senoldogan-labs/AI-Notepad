@@ -177,22 +177,22 @@ export function meetingLiveTokenLimit(meetingId: string, now: Date): Reservation
   };
 }
 
-/** Kullanıcının aylık token sınırından kalan (tüm çağrılar). */
-export function monthlyTokenLimit(config: Config, userId: string, now: Date): ReservationLimit {
+/** Kullanıcının aylık token sınırından kalan (tüm çağrılar; sınır kullanıcının katmanınındır, `UsageLimits`). */
+export function monthlyTokenLimit(monthlyTokenCap: number, userId: string, now: Date): ReservationLimit {
   const month: string = monthKey(now);
   return {
     remainingSql: `? - COALESCE((SELECT input_tokens + output_tokens FROM monthly_usage WHERE user_id = ? AND month = ?), 0) - ${activeSum("tokens", "user_id = ? AND month = ?")}`,
-    binds: [config.monthlyTokenCap, userId, month, userId, month, now.getTime()],
+    binds: [monthlyTokenCap, userId, month, userId, month, now.getTime()],
     error: new ApiError("monthly_cap_reached", "You have reached this month's AI usage limit; it resets at the start of the month."),
   };
 }
 
-/** Kullanıcının günlük token sınırından kalan (tüm çağrılar). */
-export function dailyTokenLimit(config: Config, userId: string, now: Date): ReservationLimit {
+/** Kullanıcının günlük token sınırından kalan (tüm çağrılar; sınır kullanıcının katmanınındır). */
+export function dailyTokenLimit(dailyTokenCap: number, userId: string, now: Date): ReservationLimit {
   const day: string = dayKey(now);
   return {
     remainingSql: `? - COALESCE((SELECT tokens_used FROM daily_usage WHERE user_id = ? AND day = ?), 0) - ${activeSum("tokens", "user_id = ? AND day = ?")}`,
-    binds: [config.dailyTokenCap, userId, day, userId, day, now.getTime()],
+    binds: [dailyTokenCap, userId, day, userId, day, now.getTime()],
     error: new ApiError("daily_cap_reached", "You have reached today's AI usage limit; try again tomorrow."),
   };
 }
@@ -207,12 +207,12 @@ export function trialAccountTokenLimit(config: Config, userId: string, now: Date
   };
 }
 
-/** Abonenin toplantı dışı çağrılarının aylık sınırından kalan (`MONTHLY_ACCOUNT_TOKEN_CAP`). */
-export function subscriberAccountTokenLimit(config: Config, userId: string, now: Date): ReservationLimit {
+/** Abonenin toplantı dışı çağrılarının aylık sınırından kalan (katmanın `MONTHLY_ACCOUNT_TOKEN_CAP`'i). */
+export function subscriberAccountTokenLimit(monthlyAccountTokenCap: number, userId: string, now: Date): ReservationLimit {
   const month: string = monthKey(now);
   return {
     remainingSql: `? - COALESCE((SELECT account_tokens FROM monthly_usage WHERE user_id = ? AND month = ?), 0) - ${activeSum("account_tokens", "user_id = ? AND month = ?")}`,
-    binds: [config.monthlyAccountTokenCap, userId, month, userId, month, now.getTime()],
+    binds: [monthlyAccountTokenCap, userId, month, userId, month, now.getTime()],
     error: new ApiError(
       "monthly_cap_reached",
       "You have reached this month's limit for AI use outside meetings (Ask, note editing); meetings continue, and the limit resets at the start of the month.",
@@ -267,7 +267,7 @@ export function userAudioIdleLimit(userId: string, now: Date): ReservationLimit 
  * süresine ulaşmamış kısmı (toplantının süresi zaten sayıldı) + toplantıya en az bir tam parça yazıldıysa bir parça
  * örtüşmesi (sonraki parça öncekinin son dakikasıyla başlar; o dakika aylık süreye sayılmaz).
  */
-export function monthlyAudioLimit(config: Config, userId: string, meetingId: string, now: Date): ReservationLimit {
+export function monthlyAudioLimit(monthlyCapSeconds: number, userId: string, meetingId: string, now: Date): ReservationLimit {
   const used: string = monthlyUsedSecondsSql({ user: "p.user_id", month: "p.month", now: "p.now", monthStart: "p.month_start" });
   const written: string = `(s.audio_seconds + COALESCE((SELECT SUM(r.audio_seconds) FROM usage_reservations r WHERE r.meeting_id = s.id AND r.kind = 'audio' AND r.expires_at > p.now), 0))`;
   const headroom: string = `COALESCE((SELECT MAX(0, ${meetingRecordedMsSql("s.", "p.now")} / 1000.0 - ${overlapFreeSecondsSql(written)})
@@ -276,7 +276,7 @@ export function monthlyAudioLimit(config: Config, userId: string, meetingId: str
   return {
     remainingSql: `(SELECT p.cap - ${used} + ${headroom} + ${overlap}
       FROM (SELECT ? AS cap, ? AS user_id, ? AS month, ? AS now, ? AS month_start, ? AS meeting_id) p)`,
-    binds: [config.monthlyCapSeconds, userId, monthKey(now), now.getTime(), monthStartMs(now), meetingId],
+    binds: [monthlyCapSeconds, userId, monthKey(now), now.getTime(), monthStartMs(now), meetingId],
     error: new ApiError("monthly_cap_reached", "This month's remaining usage limit isn't enough to process this recording; it resets at the start of the month."),
   };
 }

@@ -70,6 +70,27 @@ Types that open pull requests add before they ship: the dialer pilot adds Contac
 caller number) and the called numbers as Other User Content, with Twilio as a processor; quote consent in feedback adds
 nothing new (Name and Customer Support are declared).
 
+## Pro tier (dark until launch): App Store Connect and App Review
+
+The second tier (server `PRO_TIER_POLICY`, `server/README.md` › "Pro katmanı") sells
+`com.senoldogan.gistsmith.pro.monthly` and `.pro.yearly` in the same subscription group as the existing products.
+Until the owner launches it, the copy on this page stays as it is.
+
+- **Naming.** The existing products are shown in the App Store as "Gistsmith Pro" (group display name and the localized
+  product names in `after-approval-checklist.md`). Before Pro goes on sale, rename the group to "Gistsmith" and the
+  existing products to "Gistsmith Personal Monthly/Yearly" in every localization, and give the new products "Gistsmith
+  Pro Monthly/Yearly", otherwise two different subscriptions carry the same name. The PRICING paragraphs below then
+  name both tiers; their hours come from the server (`PRO_MONTHLY_CAP_HOURS`), so write them only once that value is final.
+- **Group levels.** Pro above Personal (level 1 Pro, level 2 Personal): Personal → Pro is then an immediate upgrade with a
+  prorated refund, Pro → Personal starts at the next renewal.
+- **Review screenshot** (each new in-app purchase › App Review Information › Screenshot): the iPhone paywall with the
+  Pro option visible. Debug build in the iPhone 6.9″ Simulator with `--tanitim --paywall` (demo data offers Pro; local
+  server not needed); 1320×2868 PNG. Review note for each product, one line:
+  `Gistsmith Pro is the same app with more meeting hours per month than Gistsmith Personal; open the subscription screen (Subscribe on the home screen, or Account › Change plan when subscribed) and choose Pro. The reviewer account from the app's review notes can buy it in the sandbox.`
+- **RevenueCat.** Attach both Pro products to the access entitlement used by the app and to `pro_tier`; the
+  `pro_preview` offering holds the Personal and Pro packages. Make `pro_preview` the current offering only when the server
+  switch goes on: the iPhone shows Pro only when both the server offers it and the current offering contains it.
+
 ## Keyword strategy
 
 ### Which localizations each storefront searches

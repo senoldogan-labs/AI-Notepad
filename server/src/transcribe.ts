@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { continueAfterDisconnect } from "./background";
-import type { Config } from "./config";
+import type { Config, UsageLimits } from "./config";
 import { Base64Error, base64Decode, decodeUtf8Strict, randomToken, utf8 } from "./crypto";
 import { ApiError, ProviderApiError, UpstreamError, isRetryableStatus } from "./errors";
 import { jsonResponse } from "./http";
@@ -14,6 +14,7 @@ import {
   elevenLabsHeadroom,
   markElevenLabsExhausted,
 } from "./elevenLabsCapacity";
+import { userUsageLimits } from "./entitlements";
 import { errorName, log } from "./log";
 import type { MeetingRow } from "./meetings";
 import type { RequestContext } from "./platform";
@@ -512,6 +513,8 @@ export async function proxyTranscription(
   let capacity: ElevenLabsHeadroom;
   try {
     audio = await readAudioHead(contentType, reader, declaredBytes);
+    // The month's hours are the account's tier's now (`tiers.ts`; Personal's in trial).
+    const limits: UsageLimits = await userUsageLimits(db, config, meeting.user_id, now);
     capacity = await elevenLabsHeadroom(db, context.platform, config, audio.seconds, now);
     reservation = audioReservation(meeting.user_id, meeting.id, audio.seconds, transcriptionCostMicroUsd(audio.seconds, usdPerHour), meeting.kind === "trial", now);
     await reserveElevenLabsAudio(
@@ -523,7 +526,7 @@ export async function proxyTranscription(
         { limit: meetingAudioIdleLimit(meeting.id, now), amount: 1 },
         { limit: userAudioIdleLimit(meeting.user_id, now), amount: 1 },
         { limit: meetingAudioLimit(meeting.id), amount: audio.seconds },
-        { limit: monthlyAudioLimit(config, meeting.user_id, meeting.id, now), amount: audio.seconds },
+        { limit: monthlyAudioLimit(limits.monthlyCapSeconds, meeting.user_id, meeting.id, now), amount: audio.seconds },
         ...capacity.checks,
         ...spendCeilingChecks(config, reservation, now),
       ],
