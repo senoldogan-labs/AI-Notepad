@@ -706,7 +706,7 @@ func preparedDictationEngine(
 }
 
 /// Sor sayfasının sesle sorusu: sesle yazmanın motoru ve ana toplantı dili; mikrofon açıkken görüşme algılama onu
-/// görüşme saymaz (`AppModel.isDictationMicOpen`).
+/// görüşme saymaz (`AppModel.isAskDictationMicOpen`).
 @MainActor
 func makeAskDictation(model: AppModel) -> AskDictation {
     let appleEngine: AppleDictationEngine = AppleDictationEngine()
@@ -716,7 +716,7 @@ func makeAskDictation(model: AppModel) -> AskDictation {
         },
         language: { primaryMeetingLanguage() },
         onMicrophoneChange: { (isOpen: Bool) -> Void in
-            model.isDictationMicOpen = isOpen
+            model.isAskDictationMicOpen = isOpen
             if !isOpen {
                 model.dictationMicClosedAt = Date()
             }

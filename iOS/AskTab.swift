@@ -701,10 +701,11 @@ private struct AskComposer: View {
         }
         .animation(.smooth(duration: 0.2), value: isMentioning || isPickingRecipe)
         .animation(.smooth(duration: 0.2), value: askDictation.phase(owner: dictationOwner))
-        // Sayfadan çıkınca ya da uygulama arkaya geçince dinleme bırakılır (mikrofon açık kalmaz).
+        // Sayfadan çıkınca ya da uygulama arkaya geçince dinleme bırakılır (mikrofon açık kalmaz). Yalnız arka plan:
+        // izin penceresi, Denetim Merkezi ve bildirim perdesi sahneyi `.inactive` yapar, dinleme onlarda sürer.
         .onDisappear { cancelDictation() }
         .onChange(of: scenePhase) { (_: ScenePhase, phase: ScenePhase) in
-            if phase != .active {
+            if phase == .background {
                 cancelDictation()
             }
         }
