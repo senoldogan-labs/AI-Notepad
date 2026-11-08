@@ -36,7 +36,7 @@ struct UpcomingCalendarSection: View {
                         if !ended.isEmpty {
                             group(title: "Bugün biten toplantılar", meetings: Array(ended.prefix(4))) { (meeting: CalendarMeeting) in
                                 EndedMeetingRow(meeting: meeting, record: recordedMeeting(meeting: meeting, records: store.meetings), userName: store.userName) { (meetingID: String) -> Void in
-                                    router.open(meetingID: meetingID)
+                                    router.select(route: .meeting(meetingID))
                                 }
                             }
                         }
@@ -45,7 +45,7 @@ struct UpcomingCalendarSection: View {
             }
         case .denied:
             Button {
-                router.push(route: .settings)
+                router.select(route: .settings)
             } label: {
                 Label("Takvime erişim izni yok; sıradaki toplantılar görünmüyor. Ayarlar'a git.", systemImage: "calendar.badge.exclamationmark")
                     .appFont(size: 13, weight: .regular)
