@@ -19,7 +19,9 @@
  * süreye saydırmadan alabilir (duvar saati en çok 2B; harcama Deepgram bütçesi ve günlük tavanla sınırlı).
  */
 
+import { ApiError } from "./errors";
 import { log } from "./log";
+import { type MeetingPhaseColumns, meetingElapsedEndMs, meetingElapsedEndSql, meetingPhase, meetingTransition, meetingTransitionSql } from "./meetingLifecycle";
 
 /** Toplantı başına en çok duraklatma. */
 export const maxPausesPerMeeting: number = 100;
@@ -42,17 +44,12 @@ export function openPauseCreditSql(p: string, at: string): string {
   return `(CASE WHEN ${p}paused_at IS NULL THEN 0 ELSE MIN(MAX(0, ${at} - ${p}paused_at), ${p}pause_extension_ms - ${p}paused_ms) END)`;
 }
 
-/** Toplantının `now` anına göre bitişi (SQL): bitmişse bitişi, değilse şimdi; en çok `max_ends_at`. */
-function meetingEndAtSql(p: string, now: string): string {
-  return `MIN(COALESCE(${p}ended_at, ${now}), ${p}max_ends_at, ${now})`;
-}
-
 /**
  * Toplantının `now` anına dek kaydedilen (duraklatılmamış) süresi, milisaniye (SQL ifadesi): bitişe dek geçen süreden
  * sayılan duraklatmalar (süren dahil) düşülür; negatif olmaz. Aylık süre ve yönetim istatistikleri bunu sayar.
  */
 export function meetingRecordedMsSql(p: string, now: string): string {
-  const end: string = meetingEndAtSql(p, now);
+  const end: string = meetingElapsedEndSql(p, now);
   return `MAX(0, ${end} - ${p}started_at - (${p}paused_ms + ${openPauseCreditSql(p, end)}))`;
 }
 
@@ -96,13 +93,13 @@ export function openPauseCreditMs(row: MeetingPauseColumns, at: number): number 
 
 /** `now` anına dek sayılan toplam duraklatma (süren dahil). Saf fonksiyondur. */
 export function creditedPauseMs(row: MeetingPauseColumns, now: number): number {
-  const end: number = Math.min(row.ended_at ?? now, row.max_ends_at, now);
+  const end: number = meetingElapsedEndMs(row, now);
   return row.paused_ms + openPauseCreditMs(row, end);
 }
 
 /** `now` anına dek kaydedilen süre (`meetingRecordedMsSql`'in eşi). Saf fonksiyondur. */
 export function meetingRecordedMs(row: MeetingPauseColumns, now: number): number {
-  const end: number = Math.min(row.ended_at ?? now, row.max_ends_at, now);
+  const end: number = meetingElapsedEndMs(row, now);
   return Math.max(0, end - row.started_at - creditedPauseMs(row, now));
 }
 
@@ -121,11 +118,14 @@ export interface MeetingPauseState {
   readonly pausedSeconds: number;
 }
 
-/** Satırın duraklatma durumu. Saf fonksiyondur. */
-export function meetingPauseState(row: MeetingPauseColumns & { readonly id: string }, now: number): MeetingPauseState {
+/**
+ * Satırın duraklatma durumu: yalnızca `paused` evresindeki (canlı, süresi geçmemiş) toplantı duraklatılmış görünür.
+ * Saf fonksiyondur.
+ */
+export function meetingPauseState(row: MeetingPauseColumns & MeetingPhaseColumns & { readonly id: string }, now: number): MeetingPauseState {
   return {
     meetingId: row.id,
-    paused: row.paused_at !== null && row.ended_at === null,
+    paused: meetingPhase(row, now) === "paused",
     expiresAt: new Date(row.max_ends_at).toISOString(),
     pausedSeconds: Math.floor(creditedPauseMs(row, now) / 1000),
   };
@@ -134,20 +134,28 @@ export function meetingPauseState(row: MeetingPauseColumns & { readonly id: stri
 /**
  * Duraklatılmış toplantı ses yazıya döküyor (Deepgram jetonu, ses yüklemesi): duraklatma şimdi kapanır, bundan sonrası
  * kaydedilen süre sayılır. Dürüst uygulama duraklatmada ses göndermez; bu, sunucunun denetimidir. Duraklatma yoksa
- * bir şey yapmaz. Güncel satırı (değişmediyse verilen satırı) döndürür.
+ * bir şey yapmaz (`meetingTransitions.closePauseForAudio`). Güncel satırı döndürür.
  */
-export async function endPauseForAudio<Row extends MeetingPauseColumns & { readonly id: string; readonly user_id: string }>(
+export async function endPauseForAudio<Row extends MeetingPauseColumns & MeetingPhaseColumns & { readonly id: string; readonly user_id: string }>(
   db: D1Database,
   meeting: Row,
   now: Date,
 ): Promise<Row> {
-  if (meeting.paused_at === null || meeting.ended_at !== null) {
+  if (meetingTransition(meetingPhase(meeting, now.getTime()), "closePauseForAudio") !== "apply") {
     return meeting;
   }
   const updated: Row | null = await db
-    .prepare(`UPDATE meeting_sessions SET ${closePauseSetSql()} WHERE id = ?2 AND ended_at IS NULL AND paused_at IS NOT NULL RETURNING *`)
+    .prepare(`UPDATE meeting_sessions SET ${closePauseSetSql()} WHERE id = ?2 AND ${meetingTransitionSql("closePauseForAudio", "", "?1")} RETURNING *`)
     .bind(now.getTime(), meeting.id)
     .first<Row>();
+  if (updated === null) {
+    // Arada sürdürüldü, bitti ya da süresi geçti: güncel satır okunur (eski satır duraklatılmış görünmesin).
+    const current: Row | null = await db.prepare("SELECT * FROM meeting_sessions WHERE id = ?").bind(meeting.id).first<Row>();
+    if (current === null) {
+      throw new ApiError("not_found", "Meeting session not found.");
+    }
+    return current;
+  }
   log("warn", "meeting_pause_ended_by_audio", { userId: meeting.user_id, meetingId: meeting.id });
-  return updated ?? meeting;
+  return updated;
 }

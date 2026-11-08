@@ -1,5 +1,6 @@
 import { isoOrNull, longestMeetingMs } from "./admin";
 import type { Config } from "./config";
+import { meetingExpiredSql, meetingLiveSql } from "./meetingLifecycle";
 import { shareStoredBytesBudget } from "./shares";
 import { syncR2ClassABudget, syncR2ClassBBudget, syncR2StoredBytesBudget, syncUsageMonth } from "./sync";
 
@@ -150,8 +151,8 @@ export async function adminOperations(db: D1Database, config: Config, now: Date)
     db
       .prepare(
         `SELECT
-           (SELECT COUNT(*) FROM meeting_sessions WHERE started_at >= ?2 AND ended_at IS NULL AND max_ends_at > ?1) AS open,
-           (SELECT COUNT(*) FROM meeting_sessions WHERE started_at >= ?3 AND ended_at IS NULL AND max_ends_at <= ?1) AS unended,
+           (SELECT COUNT(*) FROM meeting_sessions WHERE started_at >= ?2 AND ${meetingLiveSql("", "?1")}) AS open,
+           (SELECT COUNT(*) FROM meeting_sessions WHERE started_at >= ?3 AND ${meetingExpiredSql("", "?1")}) AS unended,
            (SELECT COUNT(*) FROM usage_reservations WHERE expires_at > ?1) AS active_reservations,
            (SELECT COUNT(*) FROM usage_reservations WHERE expires_at <= ?1) AS expired_reservations,
            (SELECT MIN(expires_at) FROM usage_reservations WHERE expires_at <= ?1) AS oldest_expired,
@@ -175,7 +176,7 @@ export async function adminOperations(db: D1Database, config: Config, now: Date)
       .prepare(
         `SELECT m.id, m.user_id, m.kind, m.started_at, m.max_ends_at, m.deferred,
            EXISTS (SELECT 1 FROM deepgram_live_meetings d WHERE d.meeting_id = m.id) AS deepgram
-         FROM meeting_sessions m WHERE m.started_at >= ?2 AND m.ended_at IS NULL AND m.max_ends_at > ?1
+         FROM meeting_sessions m WHERE m.started_at >= ?2 AND ${meetingLiveSql("m.", "?1")}
          ORDER BY m.started_at DESC LIMIT ?3`,
       )
       .bind(nowMs, openSince, openMeetingLimit)

@@ -11,6 +11,7 @@ import {
   trialMeetingsLeft,
 } from "./entitlements";
 import { graceEndsAtMs, subscriptionAccessSql } from "./subscriptionLifecycle";
+import { type MeetingPhase, meetingPhase } from "./meetingLifecycle";
 import { ApiError } from "./errors";
 import { meetingRecordedMs, meetingRecordedMsSql } from "./meetingPause";
 import { parseWithSchema } from "./http";
@@ -563,12 +564,13 @@ interface MeetingRow {
   readonly pause_extension_ms: number;
 }
 
-/** Toplantının durumu. Saf fonksiyondur. */
-export function meetingState(row: Pick<MeetingRow, "ended_at" | "end_reason" | "max_ends_at">, nowMs: number): AdminMeetingState {
-  if (row.ended_at === null) {
-    return row.max_ends_at > nowMs ? "open" : "expired";
+/** Toplantının durumu (`meetingLifecycle.meetingPhase`; canlı evreler `open`). Saf fonksiyondur. */
+function meetingState(row: Pick<MeetingRow, "ended_at" | "end_reason" | "max_ends_at" | "deferred" | "paused_at">, nowMs: number): AdminMeetingState {
+  const phase: MeetingPhase = meetingPhase(row, nowMs);
+  if (phase === "ended") {
+    return row.end_reason === "superseded" ? "superseded" : "ended";
   }
-  return row.end_reason === "superseded" ? "superseded" : "ended";
+  return phase === "expired" ? "expired" : "open";
 }
 
 /** Satırın ayrıntıdaki toplantısı. Saf fonksiyondur. */

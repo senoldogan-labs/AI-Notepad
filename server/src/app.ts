@@ -78,11 +78,11 @@ import { llmRequestSchema } from "./llm/request";
 import { proxyLLM } from "./llm/proxy";
 import { type LLMPurpose, liveLLMPurposes, llmPurposeOf } from "./llm/purpose";
 import { errorName, log } from "./log";
+import type { MeetingUse } from "./meetingLifecycle";
 import { endPauseForAudio } from "./meetingPause";
 import {
   type MeetingRow,
   type MeetingStartRequest,
-  type MeetingUse,
   endMeeting,
   pauseMeeting,
   reprocessMeeting,

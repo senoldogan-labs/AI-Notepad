@@ -5,6 +5,7 @@ import { type ElevenLabsUsage, elevenLabsUsage } from "./elevenLabsCapacity";
 import { subscriptionActiveSql, subscriptionGraceSql } from "./subscriptionLifecycle";
 import { ApiError } from "./errors";
 import { log } from "./log";
+import { meetingLiveSql } from "./meetingLifecycle";
 import { meetingRecordedMsSql } from "./meetingPause";
 import { freeInviteMonthSql } from "./referrals";
 import { utcDayStartMs } from "./reports";
@@ -602,7 +603,7 @@ export async function adminStats(db: D1Database, config: Config, now: Date): Pro
            (SELECT COUNT(*) FROM meeting_sessions WHERE started_at >= ?1) AS started,
            (SELECT COALESCE(SUM(deferred), 0) FROM meeting_sessions WHERE started_at >= ?1) AS deferred,
            (SELECT COUNT(*) FROM meeting_sessions WHERE started_at >= ?1 AND reprocess_count > 0) AS reprocessed,
-           (SELECT COUNT(*) FROM meeting_sessions WHERE started_at >= ?3 AND ended_at IS NULL AND max_ends_at > ?2) AS open`,
+           (SELECT COUNT(*) FROM meeting_sessions WHERE started_at >= ?3 AND ${meetingLiveSql("", "?2")}) AS open`,
       )
       .bind(monthStartMs(now), nowMs, nowMs - longestMeetingMs(config))
       .first<MeetingMonthRow>(),

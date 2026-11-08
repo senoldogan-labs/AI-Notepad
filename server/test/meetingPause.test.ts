@@ -235,7 +235,9 @@ describe("duraklatma saf fonksiyonları", () => {
     expect(creditedPauseMs(paused, 30_000)).toBe(20_000);
     expect(meetingRecordedMs(paused, 30_000)).toBe(10_000);
     expect(meetingBaseMs(paused)).toBe(60_000);
-    expect(meetingPauseState({ ...paused, id: "m" }, 30_000)).toEqual({ meetingId: "m", paused: true, expiresAt: new Date(120_000).toISOString(), pausedSeconds: 20 });
+    expect(meetingPauseState({ ...paused, id: "m", deferred: 0 }, 30_000)).toEqual({ meetingId: "m", paused: true, expiresAt: new Date(120_000).toISOString(), pausedSeconds: 20 });
+    // Süresi geçmiş toplantı duraklatılmış görünmez.
+    expect(meetingPauseState({ ...paused, id: "m", deferred: 0 }, 120_000).paused).toBe(false);
   });
 
   it("kapanmış duraklatmalar düşülür; bitmiş toplantı bitişinde durur", () => {

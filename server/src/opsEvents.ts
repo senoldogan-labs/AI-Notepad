@@ -45,6 +45,7 @@ export const countedRefusalCodes: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
   "transcription_closed",
   "audio_too_long",
   "reprocess_limit_reached",
+  "meeting_in_progress",
   "deepgram_unavailable",
   "deepgram_grant_limit",
   "referral_limit_reached",

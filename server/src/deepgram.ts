@@ -3,6 +3,7 @@ import type { Config, DeepgramConfig } from "./config";
 import { crossedThreshold } from "./elevenLabsCapacity";
 import { ApiError, UpstreamError } from "./errors";
 import { log } from "./log";
+import { meetingEndSql, meetingLiveSql, meetingTransition, meetingPhase } from "./meetingLifecycle";
 import { endPauseForAudio } from "./meetingPause";
 import type { MeetingRow } from "./meetings";
 import type { Platform } from "./platform";
@@ -226,11 +227,11 @@ export async function settleDeepgramMeetings(db: D1Database, now: Date): Promise
     .prepare(
       `UPDATE deepgram_live_meetings
        SET charged_seconds = MIN(charged_seconds, COALESCE((
-             SELECT ?1 * MAX(0, CAST((MIN(COALESCE(m.ended_at, m.max_ends_at), m.max_ends_at) - deepgram_live_meetings.first_grant_at + 999) / 1000 AS INTEGER))
+             SELECT ?1 * MAX(0, CAST((${meetingEndSql("m.")} - deepgram_live_meetings.first_grant_at + 999) / 1000 AS INTEGER))
              FROM meeting_sessions m WHERE m.id = deepgram_live_meetings.meeting_id), charged_seconds)),
          settled_at = ?2
        WHERE settled_at IS NULL
-         AND NOT EXISTS (SELECT 1 FROM meeting_sessions m WHERE m.id = deepgram_live_meetings.meeting_id AND m.ended_at IS NULL AND m.max_ends_at > ?2)`,
+         AND NOT EXISTS (SELECT 1 FROM meeting_sessions m WHERE m.id = deepgram_live_meetings.meeting_id AND ${meetingLiveSql("m.", "?2")})`,
     )
     .bind(deepgramStreamsPerMeeting, now.getTime())
     .run();
@@ -264,8 +265,17 @@ async function meetingGrantCounters(db: D1Database, meetingId: string): Promise<
 }
 
 /**
+ * Jeton yazımının koşulu: toplantı hâlâ canlı (`meetingLiveSql`; eşzamanlı bitiş settle ettikten sonra jeton verilmez).
+ * Bağlar: `meeting` toplantı kimliği, `now` şimdi.
+ */
+function liveMeetingExistsSql(meeting: string, now: string): string {
+  return `EXISTS (SELECT 1 FROM meeting_sessions m WHERE m.id = ${meeting} AND ${meetingLiveSql("m.", now)})`;
+}
+
+/**
  * Jeton almış toplantının sayaçlarını `mayGrantMore` koşuluyla (tek koşullu ifade) artırır: pencere bittiyse yeni
- * pencere şimdi başlar. Yeni toplam sayıyı ya da (satır yok ya da sınırda) null döndürür.
+ * pencere şimdi başlar. Satır indirilmişse (`settled_at`) ya da toplantı artık canlı değilse artmaz. Yeni toplam sayıyı
+ * ya da (satır yok, sınırda, indirilmiş ya da toplantı bitmiş) null döndürür.
  */
 async function incrementGrant(db: D1Database, meetingId: string, limit: number, now: Date): Promise<number | null> {
   const row: { grants: number } | null = await db
@@ -275,6 +285,7 @@ async function incrementGrant(db: D1Database, meetingId: string, limit: number, 
          window_grants = CASE WHEN window_started_at + ?1 <= ?2 THEN 1 ELSE window_grants + 1 END,
          window_started_at = CASE WHEN window_started_at + ?1 <= ?2 THEN ?2 ELSE window_started_at END
        WHERE meeting_id = ?3 AND grants < ?4 AND (window_started_at + ?1 <= ?2 OR window_grants < ?5)
+         AND settled_at IS NULL AND ${liveMeetingExistsSql("?3", "?2")}
        RETURNING grants`,
     )
     .bind(deepgramGrantWindowMs, now.getTime(), meetingId, limit, deepgramGrantsPerWindow)
@@ -283,14 +294,14 @@ async function incrementGrant(db: D1Database, meetingId: string, limit: number, 
 }
 
 /**
- * Toplantının ilk jetonu: satır yalnızca tahmini harcama bütçenin altındaysa eklenir (tek koşullu ifade); peşin tahmin
- * `chargeSeconds`, jeton penceresi şimdi başlar. Eklendiyse true.
+ * Toplantının ilk jetonu: satır yalnızca tahmini harcama bütçenin altındaysa ve toplantı hâlâ canlıysa eklenir (tek
+ * koşullu ifade); peşin tahmin `chargeSeconds`, jeton penceresi şimdi başlar. Eklendiyse true.
  */
 async function insertFirstGrant(db: D1Database, meetingId: string, chargeSeconds: number, budgetSeconds: number, now: Date): Promise<boolean> {
   const row: { grants: number } | null = await db
     .prepare(
       `INSERT INTO deepgram_live_meetings (meeting_id, grants, first_grant_at, charged_seconds, settled_at, window_started_at, window_grants)
-       SELECT ?1, 1, ?2, ?3, NULL, ?2, 1 WHERE ${chargedSecondsSql} < ?4
+       SELECT ?1, 1, ?2, ?3, NULL, ?2, 1 WHERE ${chargedSecondsSql} < ?4 AND ${liveMeetingExistsSql("?1", "?2")}
        ON CONFLICT(meeting_id) DO NOTHING RETURNING grants`,
     )
     .bind(meetingId, now.getTime(), chargeSeconds, budgetSeconds)
@@ -301,6 +312,11 @@ async function insertFirstGrant(db: D1Database, meetingId: string, chargeSeconds
 /** Bütçe dolu hatası. */
 function budgetExhausted(): ApiError {
   return new ApiError("deepgram_unavailable", "Cloud live transcript is unavailable right now; the live transcript is produced on the Mac.");
+}
+
+/** Toplantı canlı değil hatası (canlı metin yalnızca kayıt sırasında). */
+function meetingNotLive(): ApiError {
+  return new ApiError("meeting_not_active", "The meeting recording has ended; cloud live transcript is only available while recording.");
 }
 
 /** Toplantının jeton sınırı doldu hatası. */
@@ -334,6 +350,12 @@ async function reserveGrant(db: D1Database, deepgram: DeepgramConfig, meeting: M
   const raced: number | null = await incrementGrant(db, meeting.id, limit, now);
   if (raced !== null) {
     return raced;
+  }
+  // Toplantı arada bitti (eşzamanlı bitiş ya da yeni toplantı): jeton yazılmadı, alınan jeton atılır.
+  const current: MeetingRow | null = await db.prepare("SELECT * FROM meeting_sessions WHERE id = ?").bind(meeting.id).first<MeetingRow>();
+  if (current === null || meetingTransition(meetingPhase(current, now.getTime()), "liveGrant") !== "apply") {
+    log("info", "deepgram_grant_meeting_closed", { userId: meeting.user_id, meetingId: meeting.id });
+    throw meetingNotLive();
   }
   if ((await meetingGrantCounters(db, meeting.id)) !== null) {
     throw grantLimitReached();
@@ -392,13 +414,13 @@ export async function issueDeepgramGrant(db: D1Database, platform: Platform, con
   if (access.policy === "off") {
     throw budgetExhausted();
   }
-  if (requested.ended_at !== null || now.getTime() >= requested.max_ends_at) {
-    throw new ApiError("meeting_not_active", "The meeting recording has ended; cloud live transcript is only available while recording.");
+  if (meetingTransition(meetingPhase(requested, now.getTime()), "liveGrant") !== "apply") {
+    throw meetingNotLive();
   }
   // Duraklatmada canlı metin bağlantısı duraklatmayı kapatır (bkz. `endPauseForAudio`); en çok bitiş güncellenir.
   const meeting: MeetingRow = await endPauseForAudio(db, requested, now);
-  if (now.getTime() >= meeting.max_ends_at) {
-    throw new ApiError("meeting_not_active", "The meeting recording has ended; cloud live transcript is only available while recording.");
+  if (meetingTransition(meetingPhase(meeting, now.getTime()), "liveGrant") !== "apply") {
+    throw meetingNotLive();
   }
   const limit: number = deepgramGrantLimit(meeting.kind, now.getTime() - meeting.started_at);
   await settleDeepgramMeetings(db, now);
