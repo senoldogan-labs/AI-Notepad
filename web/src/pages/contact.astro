@@ -1,6 +1,7 @@
 ---
 // İletişim sayfası: e-posta, mesaj ve Turnstile korumalı form (`POST /v1/reports`, tür `contact`); doğrudan e-posta
-// adresi ve işletme bilgisi (unvan, işletme kimliği, adres) de görünür. Betik: src/client/contact.ts.
+// adresi ve ürünü kimin yaptığı da görünür (işletmenin resmî adı, kimliği ve adresi yalnızca yasal metinlerde: bağlantı
+// koşulların iletişim bölümüne gider). Betik: src/client/contact.ts.
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
 import PhotoPanel from "../components/PhotoPanel.astro";
@@ -32,11 +33,9 @@ const text: ContactCopy = copy.contact;
       </PhotoPanel>
       <div class="contact__company small">
         <h2 class="contact__company-title">{text.companyTitle}</h2>
-        <address class="muted">
-          {operator.name}<br />
-          {text.businessIdLabel} {operator.businessId}<br />
-          {operator.address}
-        </address>
+        <p class="muted">
+          {text.companyText} <a class="contact__company-link" href={`${routes.terms}#contact`}>{text.companyLink}</a>
+        </p>
       </div>
     </div>
 
@@ -165,8 +164,10 @@ const text: ContactCopy = copy.contact;
     color: var(--muted);
   }
 
-  .contact__company address {
-    font-style: normal;
+  .contact__company-link {
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-color: var(--line);
   }
 
   .contact__panel {

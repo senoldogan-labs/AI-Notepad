@@ -128,7 +128,7 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
     margin-top: 6px;
   }
 
-  /* ---------- Plans: the two plan cards side by side, what every plan includes as a wide night card below ---------- */
+  /* ---------- Plans: the two plan cards side by side, what every plan includes as a wide paper card below ---------- */
 
   .plans {
     display: grid;
@@ -139,6 +139,9 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
     margin-inline: auto;
   }
 
+  /* What every plan includes: a wide paper card like the plans above it, so it follows the theme. The night surface
+     is kept for full-width bands (global.css `.band--night`); a lone dark card among paper cards read as a missing light
+     colour. */
   .plan-option--included {
     grid-column: 1 / -1;
   }
@@ -161,13 +164,6 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
   .plan-option--featured {
     border-color: var(--accent);
     box-shadow: 0 0 0 1px var(--accent);
-  }
-
-  /* What every plan includes: the night card, like the night bands. */
-  .plan-option--included {
-    border-color: transparent;
-    background: var(--night);
-    color: var(--on-night);
   }
 
   /* The button sits at the bottom of each card, so both plans' buttons line up whatever the detail text's length. */
@@ -223,7 +219,7 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
   }
 
   .plan-option__tagline {
-    color: var(--on-night-muted);
+    color: var(--muted);
   }
 
   .included {
@@ -239,7 +235,7 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
     align-items: flex-start;
     gap: 12px;
     padding-block: 11px;
-    border-top: 1px solid var(--night-line);
+    border-top: 1px solid var(--line);
     font-size: clamp(0.9375rem, 1.05rem - 0.15vw, 1rem);
     line-height: 1.45;
   }
@@ -247,7 +243,7 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
   .included__item :global(.included__icon) {
     flex: none;
     margin-top: 2px;
-    color: #f4b694;
+    color: var(--accent);
   }
 
   .plans__foot {

@@ -74,7 +74,7 @@ Tokens live once in `web/src/styles/global.css` (`light-dark()` pairs; `src/clie
 | `--ink` | `#292929` | `#f2f2ee` | text |
 | `--muted` | `#72726e` | `#a6a6a0` | secondary text |
 | `--primary`, `--accent` | `#c4470a` | `#f0874f` | the Download button, step numbers, kickers, the horizon waveform |
-| `--night` | `#292929` | `#222220` | dark bands (feature cards, privacy, pricing's "Everything included") |
+| `--night` | `#292929` | `#222220` | full-width dark bands only (feature cards, privacy); cards on white pages stay paper |
 
 One saturated colour: the orange. No green anywhere in the chrome.
 

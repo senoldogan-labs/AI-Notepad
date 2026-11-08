@@ -16,7 +16,7 @@ export async function llmsInput(): Promise<LlmsInput> {
   return {
     origin,
     copy,
-    operator,
+    contactEmail: operator.email,
     dataHandling,
     spokenLanguages,
     noteLanguages,

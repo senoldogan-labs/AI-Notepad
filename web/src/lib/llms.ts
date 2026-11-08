@@ -3,10 +3,9 @@
 // metinleri ve fiyatları, lib/languages.ts dil listeleri, data-handling.ts veri tablosu, blog koleksiyonu); burada yalnızca
 // belgenin başlıkları ve bağlayıcı cümleleri vardır, ürün gerçeği elle yazılmaz. Böylece sayfalar değişince belge de
 // değişir.
-import { appStoreUrl, productName } from "../config";
+import { appStoreUrl, makerName, productName } from "../config";
 import type { ComparisonTopic, Copy, CompetitorCopy, Faq, IconItem, IconText, IntegrationGroupCopy, IntegrationItemCopy, McpToolCopy, PickCopy, TitledText } from "../copy";
 import type { DataHandlingCopy, DataHandlingRow } from "../data-handling";
-import type { Operator } from "../legal/operator";
 import { type PageKey, pageUrl } from "../routes";
 import { type AppLanguage, languageNameList } from "./languages";
 
@@ -31,7 +30,8 @@ export interface LlmsBlogPost {
 export interface LlmsInput {
   readonly origin: string;
   readonly copy: Copy;
-  readonly operator: Operator;
+  /** Destek ve hukuki iletişim adresi (legal/operator.ts). */
+  readonly contactEmail: string;
   readonly dataHandling: DataHandlingCopy;
   readonly spokenLanguages: readonly AppLanguage[];
   readonly noteLanguages: readonly AppLanguage[];
@@ -89,7 +89,7 @@ function header(input: LlmsInput): string {
     `Meeting capture: ${copy.compare.us.capture}.`,
     `Languages: ${input.spokenLanguages.length} spoken languages (live and final transcript) and ${input.noteLanguages.length} languages for notes and live translation, including Turkish, Finnish and English. The app itself is available in ${input.interfaceLanguages.length} languages (${languageNameList(input.interfaceLanguages)}).`,
     `Data: ${copy.compare.us.storage}; our servers keep no audio, and no notes they can read unless you turn on the optional AI assistant access (optional Mac–iPhone sync stores only an end-to-end encrypted copy). AI assistant access: ${copy.mcp.remote.consent} ${training.text}`,
-    `Company: ${input.operator.name}, Finland (EU); contact ${input.operator.email}.`,
+    `Made by ${makerName}; contact ${input.contactEmail}.`,
   ];
   return [`# ${productName}`, `> ${copy.home.meta.description}`, "Key facts:", facts.map((fact: string): string => `- ${fact}`).join("\n")].join("\n\n");
 }
@@ -246,7 +246,7 @@ export function llmsFullTxt(input: LlmsInput): string {
     ["## Questions", faqMarkdown([...copy.home.faq, ...copy.pricing.faq, ...copy.languages.faq, ...copy.integrations.faq, ...copy.voiceTyping.faq])].join("\n\n"),
     [
       "## Company",
-      `${input.operator.name}, ${input.operator.legalForm}, business ID ${input.operator.businessId}, ${input.operator.address}. Contact: ${input.operator.email} or ${url("contact")}.`,
+      `${productName} is made by ${makerName}. Contact: ${input.contactEmail} or ${url("contact")}. The business's legal name, business ID and address are in the terms of service: ${url("terms")}#contact.`,
       `Privacy policy: ${url("privacy")}. Terms of service: ${url("terms")}. Blog: ${url("blog")}.`,
     ].join("\n\n"),
   ];

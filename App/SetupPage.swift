@@ -279,7 +279,7 @@ private struct WelcomeStep: View {
                     .foregroundStyle(Theme.muted)
                     .accessibilityHidden(true)
                 #if HOSTED_EDITION
-                Text("Finlandiya'dan, AB veri koruma yasasıyla. Toplantıların ve notların bu Mac'te kalır; sunucumuz ses saklamaz, notlarını da yalnızca yapay zekâ asistanı erişimini açarsan saklar. İsteğe bağlı iPhone eşitlemesi yalnızca okuyamadığımız şifreli bir kopya tutar.")
+                Text("Toplantıların ve notların bu Mac'te kalır; sunucumuz ses saklamaz, notlarını da yalnızca yapay zekâ asistanı erişimini açarsan saklar. İsteğe bağlı iPhone eşitlemesi yalnızca okuyamadığımız şifreli bir kopya tutar.")
                 #else
                 Text("Toplantıların, notların ve anahtarların bu Mac'te kalır.")
                 #endif

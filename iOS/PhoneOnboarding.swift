@@ -251,7 +251,7 @@ private struct PhoneWelcomeStep: View {
                 Image(systemName: "lock.shield")
                     .appFont(size: 14, weight: .medium)
                     .accessibilityHidden(true)
-                Text("Finlandiya'dan, AB veri koruma yasasıyla. Toplantıların ve notların bu iPhone'da kalır; sunucumuz ses saklamaz, notlarını da yalnızca yapay zekâ asistanı erişimini açarsan saklar. İsteğe bağlı Mac eşitlemesi yalnızca okuyamadığımız şifreli bir kopya tutar.")
+                Text("Toplantıların ve notların bu iPhone'da kalır; sunucumuz ses saklamaz, notlarını da yalnızca yapay zekâ asistanı erişimini açarsan saklar. İsteğe bağlı Mac eşitlemesi yalnızca okuyamadığımız şifreli bir kopya tutar.")
                     .fixedSize(horizontal: false, vertical: true)
             }
             .appFont(size: 13, weight: .regular)

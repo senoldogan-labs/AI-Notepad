@@ -1,5 +1,6 @@
-// Hizmeti sunan işletme (veri sorumlusu): yasal metinler, alt bilgi ve iletişim bağlantıları buradan okur. İşletme
-// bilgisi değişince yalnızca burası değişir.
+// Hizmeti sunan işletme (veri sorumlusu). Resmî ad, hukuki biçim, işletme kimliği ve adres yalnızca yasal metinlerde
+// (koşullar ve gizlilik, iletişim bölümleri) görünür; tanıtım metinleri ürün adını ve yapan kişiyi (config.ts) kullanır,
+// iletişim adresi her yerde buradan okunur. İşletme bilgisi değişince yalnızca burası değişir.
 
 /** İşletme bilgileri. */
 export interface Operator {

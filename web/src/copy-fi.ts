@@ -1,9 +1,8 @@
 // Fince tanıtım sayfasının (`/fi`) metinleri. İngilizce metnin birebir çevirisi değildir: Finlandiya pazarına göre
-// yazılmıştır (Teams/Zoom, suomi, EU-tietosuoja, ALV). Tip `HomeCopy`/`CommonCopy` olduğundan eksik metin derlemeyi
-// durdurur. Ürün adı ve işletme bilgisi yine tek kaynaktan gelir (config.ts, legal/operator.ts).
-import { cardStatementDescriptor, productName } from "./config";
+// yazılmıştır (Teams/Zoom, suomi, ALV). Tip `HomeCopy`/`CommonCopy` olduğundan eksik metin derlemeyi
+// durdurur. Ürün adı ve yapan kişi yine tek kaynaktan gelir (config.ts `productName`, `makerName`).
+import { cardStatementDescriptor, makerName, productName } from "./config";
 import type { CommonCopy, HomeCopy } from "./copy";
-import { operator } from "./legal/operator";
 import { interfaceLanguages, noteLanguages, spokenLanguages } from "./lib/languages";
 
 /** Sayfanın başlığındaki tek satır (paylaşım kartı ve alt bilgi de kullanır). */
@@ -79,11 +78,11 @@ export const commonFi: CommonCopy = {
     privacyShort: "Tietosuoja",
     termsShort: "Käyttöehdot",
     cookies: "Evästeet",
-    euNote: "EU-yritys, GDPR",
-    operatorLine: `${productName}in tekee ja myy ${operator.name} (Y-tunnus ${operator.businessId}), Suomi.`,
+    madeBy: `Tekijä: ${makerName}`,
+    companyDetails: "Yritystiedot",
     typefaces: "Kirjasimet:",
     pullThanks: "Kiitos, kun kuuntelit.",
-    copyright: `© 2026 ${operator.name}`,
+    copyright: `© 2026 ${productName}`,
     language: "Kieli",
   },
   lastUpdated: "Päivitetty",
@@ -101,7 +100,7 @@ export const homeFi: HomeCopy = {
   lead: `Tekoälyn kokousmuistiinpanot Macille ja iPhonelle: reaaliaikainen käännös ${noteLanguages.length} kielelle ja omat tehtäväsi poimittuina. Kokoukseen ei liity bottia.`,
   secondaryCta: "Katso hinnat",
   assurances: ["3 kokousta tai 7 päivää ilmaiseksi", "Ei korttitietoja"],
-  proof: ["EU-yritys, GDPR", "Mac-sovellus on Applen notarisoima", "iPhone-sovellus App Storessa"],
+  proof: ["Mac-sovellus on Applen notarisoima", "iPhone-sovellus App Storessa"],
   directory: { text: "Mukana Clauden liitinhakemistossa", href: "https://claude.ai/directory/connectors/gistsmith" },
   demo: {
     label: `${productName} tallentaa kokousta ja kirjoittaa muistiinpanoa`,
@@ -242,7 +241,7 @@ export const homeFi: HomeCopy = {
   trust: {
     eyebrow: "Tietosuoja",
     title: "Kokouksesi pysyvät sinun.",
-    lead: "Suomalaisen pienyrityksen tekemä keskusteluihin, jotka haluat pitää omana tietonasi. Noudatamme EU:n tietosuojalakeja.",
+    lead: "Tehty keskusteluihin, jotka haluat pitää omana tietonasi.",
     items: [
       {
         icon: "laptop",
@@ -250,7 +249,7 @@ export const homeFi: HomeCopy = {
         text: "Muistiinpanot, litteroinnit ja tallenteet ovat omalla Macillasi ja iPhonellasi. Palvelimemme eivät tallenna ääntäsi eivätkä muistiinpanoja, joita voimme lukea, ellet ota käyttöön tekoälyavustajien pääsyä.",
       },
       { icon: "sparkle", title: "Ei tekoälyn koulutusmateriaalina", text: "Kokouksiasi ei käytetä palveluntarjoajiemme mallien kouluttamiseen. Olemme kieltäneet sen kaikkialla, missä se on asetuksissa mahdollista." },
-      { icon: "globe", title: "EU-yritys, GDPR", text: "Toimimme Suomesta käsin EU:n tietosuojalainsäädännön alla, ja tilitietokantamme sijaitsee EU:ssa." },
+      { icon: "lock", title: "Salattu synkronointi", text: "Valinnainen synkronointi Macin ja iPhonen välillä on päästä päähän salattu: palvelimemme säilyttää vain kopion, jota se ei voi lukea." },
       { icon: "check-circle", title: "Poista milloin haluat", text: "Poista tilisi sovelluksessa tai verkkosivuilla milloin tahansa; verkossa tai Macilla ostettu tilaus päättyy samalla." },
     ],
     link: "Lue tietosuojaseloste (englanniksi)",

@@ -107,7 +107,7 @@ It fits on one screen, and it answers most of the questions a participant, a cli
 
 ## How Gistsmith handles it
 
-Gistsmith, the app we make, is run from Finland under EU data protection law. It records on your Mac, with no bot in the call, and reminds you to tell participants when a recording starts.
+Gistsmith, the app we make, records on your Mac, with no bot in the call, and reminds you to tell participants when a recording starts.
 
 Notes, transcripts and recordings are stored on your Mac. While you record, audio is sent to a transcription provider for the live transcript. When the meeting ends, the recording goes through our server to a second transcription provider for the final transcript, and the text goes to an AI model for the note. Our servers don't store your audio, or notes they can read unless you turn on the optional AI assistant access (sync and share links keep only end-to-end encrypted copies), and your meetings aren't used to train our providers' models. The [privacy policy](/privacy) names each provider, what it receives and how long it may keep it, which is exactly the list your data protection officer will ask for.
 
