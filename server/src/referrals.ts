@@ -1,7 +1,8 @@
 import type { Config, SubscriptionPlan } from "./config";
 import { hmacSha256Hex, randomId } from "./crypto";
 import { appStoreAccess, appStorePaidSql } from "./appStore";
-import { type PaidSubscriptions, type SubscriptionState, isTerminalSubscription, paidAccess, paidSubscriptions, primarySubscriptionSource, subscriptionAccess } from "./entitlements";
+import { type PaidSubscriptions, type SubscriptionState, paidAccess, paidSubscriptions, primarySubscriptionSource, subscriptionAccess } from "./entitlements";
+import { isRunningComplimentary, liveStripeStatusSql } from "./subscriptionLifecycle";
 import { ApiError } from "./errors";
 import { log } from "./log";
 import type { IdentityProvider } from "./auth/users";
@@ -242,7 +243,7 @@ export async function referrerCounts(db: D1Database, referrerUserId: string, now
          MIN(CASE WHEN r.status = 'qualified' THEN r.reward_due_at
                   WHEN r.status = 'joined' THEN (SELECT s.current_period_end FROM subscriptions s
                     WHERE s.stripe_subscription_id = r.stripe_subscription_id
-                      AND s.status NOT IN ('canceled', 'incomplete_expired') AND s.cancel_at IS NULL) + ?3
+                      AND ${liveStripeStatusSql("s.")} AND s.cancel_at IS NULL) + ?3
              END) AS next_reward_at
        FROM referral_redemptions r WHERE referrer_user_id = ?1`,
     )
@@ -285,7 +286,7 @@ export async function referralSummary(db: D1Database, config: Config, userId: st
   const eligible: boolean = config.referralPolicy === "on" && (await canShareReferralCode(db, config, userId, subscriptions, now));
   const code: string | null = eligible ? await ensureReferralCode(db, userId, nowMs) : null;
   const counts: ReferrerCounts = await referrerCounts(db, userId, nowMs);
-  const complimentary: boolean = subscription !== null && subscription.complimentary && !isTerminalSubscription(subscription, now);
+  const complimentary: boolean = subscription !== null && isRunningComplimentary(subscription, nowMs);
   return {
     enabled: config.referralPolicy === "on",
     code,
