@@ -281,6 +281,23 @@ private struct WholeWindowEmbedder: VoiceEmbedder {
         #expect(received.names.withLock { $0 } == ["others.caf", "others.m4a"])
     }
 
+    // Kontrol noktası yazılamazsa (disk dolu) kayıpsız kayıtlar silinmez ve toplantı "başarısız" döner: "Tekrar dene"
+    // son geçişi kayıtların kendisinden yeniden yapabilir.
+    @Test func failedCheckpointKeepsOriginalRecordings() async throws {
+        let (directory, record): (URL, MeetingRecord) = try recordedMeeting(meNeedsFinalPass: nil)
+        // Kontrol noktasının yerinde bir klasör: dosya oraya yazılamaz.
+        let blocker: URL = directory.appending(path: "processing-checkpoint.json")
+        try FileManager.default.createDirectory(at: blocker, withIntermediateDirectories: true)
+        try Data("x".utf8).write(to: blocker.appending(path: "keep"))
+        let result: MeetingRecord = await process(
+            record: record, directory: directory, transcriber: RecordingFinalTranscriber(source: .originalRecording, received: ReceivedAudio()),
+            voiceEmbedder: nil, log: await StepLog()
+        )
+        #expect(result.status == .failed)
+        #expect(result.failureMessage?.hasPrefix(String(localized: "İşleme ilerlemesi kaydedilemedi")) == true)
+        #expect(FileManager.default.fileExists(atPath: directory.appending(path: "others.caf").path))
+    }
+
     @Test func overlappedVoiceprintsEqualSequentialOnes() async throws {
         let (directory, record): (URL, MeetingRecord) = try recordedMeeting(meNeedsFinalPass: nil)
         let result: MeetingRecord = await process(
