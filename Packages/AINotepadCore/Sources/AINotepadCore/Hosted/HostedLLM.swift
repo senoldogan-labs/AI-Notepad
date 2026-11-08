@@ -35,8 +35,9 @@ public protocol HostedLLMCredentialSource: AnyObject, Sendable {
     func meetingLLMCredentials() async throws -> HostedLLMCredentials
     /// Geçerli (gerekirse yenilenmiş) erişim jetonu; giriş yoksa `notSignedIn`.
     func validAccessToken() async throws -> String
-    /// Erişim jetonunu süresine bakmadan yeniler (sunucu jetonu 401 ile reddettiyse); oturum kapandıysa `sessionEnded`.
-    func refreshAccessToken() async throws
+    /// Sunucu `rejected` jetonunu 401 ile reddettiyse yinelemenin jetonu (bkz. `HostedClient.accessToken(afterRejecting:)`);
+    /// jeton önceki bir oturumunsa `notSignedIn`, oturum kapandıysa `sessionEnded`.
+    func accessToken(afterRejecting rejected: String) async throws -> String
     /// Kaydı bitmiş toplantıyı işleme için yeniden açar (`POST /v1/meetings/{id}/reprocess`; bkz.
     /// `withRecordedMeetingReopen`). Sınır dolduysa `reprocess_limit_reached`.
     func reopenRecordedMeeting(meetingID: String) async throws
@@ -259,19 +260,21 @@ func withRecordedMeetingReopen(config: HostedLLMConfig, operation: () async thro
     }
 }
 
-/// Abonelik sunucusu çağrısını hazırlar: jeton (ve toplantıya bağlıysa toplantı) çağrı anında alınır (jeton gerekirse
-/// yenilenir).
-func prepareHostedCall(config: HostedLLMConfig, request: LLMRequest) async throws -> PreparedLLMCall {
-    let credentials: HostedLLMCredentials
+/// Çağrının jetonu ve (toplantıya bağlıysa) toplantısı, çağrı anında (jeton gerekirse yenilenir).
+func hostedLLMCredentials(config: HostedLLMConfig) async throws -> HostedLLMCredentials {
     switch config.scope {
     case .meeting:
-        credentials = try await config.credentials.meetingLLMCredentials()
+        try await config.credentials.meetingLLMCredentials()
     case .recordedMeeting(let serverMeetingID):
-        credentials = HostedLLMCredentials(accessToken: try await config.credentials.validAccessToken(), meetingID: serverMeetingID)
+        HostedLLMCredentials(accessToken: try await config.credentials.validAccessToken(), meetingID: serverMeetingID)
     case .account:
-        credentials = HostedLLMCredentials(accessToken: try await config.credentials.validAccessToken(), meetingID: nil)
+        HostedLLMCredentials(accessToken: try await config.credentials.validAccessToken(), meetingID: nil)
     }
-    return PreparedLLMCall(
+}
+
+/// Abonelik sunucusu çağrısını `credentials` ile hazırlar.
+func prepareHostedCall(config: HostedLLMConfig, request: LLMRequest, credentials: HostedLLMCredentials) throws -> PreparedLLMCall {
+    PreparedLLMCall(
         urlRequest: try hostedLLMURLRequest(baseURL: config.baseURL, credentials: credentials, clientInfo: config.credentials.clientInfo, request: request),
         model: hostedModelName,
         // Destek için Cloudflare istek kimliği.

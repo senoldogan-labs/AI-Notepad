@@ -230,14 +230,17 @@ public struct HostedPhoneClient: Sendable {
         return try decode(HostedPhoneCallState.self, data: data, path: "/v1/phone/calls/:id/recording")
     }
 
-    /// Sends with the session's token; a 401 refreshes the token once and repeats.
+    /// Sends with the session's token; a 401 repeats once with the same session's next token (never another
+    /// session's).
     private func send(path: String, method: String, body: Data?, oneShot: Bool, timeoutSec: Double) async throws -> Data {
+        let accessToken: String = try await credentials.validAccessToken()
         do {
-            return try await attempt(path: path, method: method, body: body, oneShot: oneShot, timeoutSec: timeoutSec, accessToken: try await credentials.validAccessToken())
+            return try await attempt(path: path, method: method, body: body, oneShot: oneShot, timeoutSec: timeoutSec, accessToken: accessToken)
         } catch let error as HostedAPIError where error.status == 401 {
             phoneLogger.warning("Dialer request token rejected, refreshing, code: \(error.rawCode, privacy: .public)")
-            try await credentials.refreshAccessToken()
-            return try await attempt(path: path, method: method, body: body, oneShot: oneShot, timeoutSec: timeoutSec, accessToken: try await credentials.validAccessToken())
+            return try await attempt(
+                path: path, method: method, body: body, oneShot: oneShot, timeoutSec: timeoutSec, accessToken: try await credentials.accessToken(afterRejecting: accessToken)
+            )
         }
     }
 

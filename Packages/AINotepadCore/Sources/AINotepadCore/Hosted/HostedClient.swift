@@ -87,6 +87,9 @@ public actor HostedClient: HostedLLMCredentialSource {
     private var refreshInFlight: (generation: Int, task: Task<HostedTokens, any Error>)?
     /// Oturumun kuşağı: giriş, çıkış, hesap silme ve yenileme reddinde artar (bkz. `isCurrentSessionGeneration`).
     private var sessionGeneration: Int = 0
+    /// Bir kuşağın verdiği erişim jetonları (yenilemelerle birlikte): 401 alan isteğin hangi oturumdan olduğu buna göre
+    /// anlaşılır (bkz. `hostedTokenActionAfterRejection`). Kuşak değişince eskiler sayılmaz.
+    private var issuedAccessTokens: (generation: Int, tokens: Set<String>) = (0, [])
     /// Yapay zekâ çağrılarının bağlandığı toplantı: son başlatılan (bittikten sonra da ek süre boyunca kullanılır).
     private var meetingID: String?
     /// Doğrulanmış App Attest anahtarı (base64); `/v1/me` cihazın deneme hakkını da göstersin diye gönderilir.
@@ -369,9 +372,23 @@ public actor HostedClient: HostedLLMCredentialSource {
         _ = try await sendHostedRequest(path: path, isRetryable: isRetryableOneShotRequest) { try await URLSession.shared.data(for: request) }
     }
 
-    /// Erişim jetonunu süresine bakmadan yeniler (yapay zekâ çağrısı 401 aldıysa; tek uçuşlu).
-    public func refreshAccessToken() async throws {
-        _ = try await refreshedTokens()
+    /// Sunucu `rejected` erişim jetonunu 401 ile reddetti: isteğin yinelenmesinde kullanılacak jeton. Jeton şimdiki
+    /// oturumun değilse (istek sürerken çıkış ya da başka bir giriş) `notSignedIn`: istek başka hesabın jetonuyla
+    /// yinelenmez. Aynı oturumda bu arada yenilendiyse güncel jeton, değilse yenilenmiş jeton (tek uçuşlu).
+    public func accessToken(afterRejecting rejected: String) async throws -> String {
+        let current: HostedTokens? = try tokens()
+        let sessionTokens: Set<String> = issuedAccessTokens.generation == sessionGeneration ? issuedAccessTokens.tokens : []
+        switch hostedTokenActionAfterRejection(tokens: current, rejectedAccessToken: rejected, sessionAccessTokens: sessionTokens) {
+        case .signedOut:
+            throw HostedClientError.notSignedIn
+        case .sessionChanged:
+            hostedLogger.warning("Reddedilen jeton önceki oturumun; istek yeni oturumla yinelenmedi")
+            throw HostedClientError.notSignedIn
+        case .use(let accessToken):
+            return accessToken
+        case .refresh:
+            return try await refreshedTokens().accessToken
+        }
     }
 
     /// Toplantıya bağlı yapay zekâ çağrısının jetonu ve toplantısı.
@@ -414,19 +431,6 @@ public actor HostedClient: HostedLLMCredentialSource {
             }
         }
         return try await task.value
-    }
-
-    /// Sunucu `rejected` erişim jetonunu 401 ile reddetti: saklanan jeton başkaysa (bu arada yenilendi) o kullanılır,
-    /// değilse yenilenir (`hostedTokenActionAfterRejection`).
-    private func accessToken(afterRejecting rejected: String) async throws -> String {
-        switch hostedTokenActionAfterRejection(tokens: try tokens(), rejectedAccessToken: rejected) {
-        case .signedOut:
-            throw HostedClientError.notSignedIn
-        case .use(let accessToken):
-            return accessToken
-        case .refresh:
-            return try await refreshedTokens().accessToken
-        }
     }
 
     private func performRefresh(refreshToken: String, generation: Int) async throws -> HostedTokens {
@@ -488,6 +492,7 @@ public actor HostedClient: HostedLLMCredentialSource {
         case .unloaded:
             let loaded: HostedTokens? = try storage.load()
             tokenCache = .loaded(loaded)
+            recordIssued(tokens: loaded)
             return loaded
         }
     }
@@ -499,6 +504,17 @@ public actor HostedClient: HostedLLMCredentialSource {
             try storage.clear()
         }
         tokenCache = .loaded(tokens)
+        recordIssued(tokens: tokens)
+    }
+
+    /// Şimdiki kuşağın verdiği erişim jetonlarına `tokens`'ınkini ekler (kuşak değiştiyse liste yeniden başlar).
+    private func recordIssued(tokens: HostedTokens?) {
+        let previous: Set<String> = issuedAccessTokens.generation == sessionGeneration ? issuedAccessTokens.tokens : []
+        guard let tokens else {
+            issuedAccessTokens = (sessionGeneration, previous)
+            return
+        }
+        issuedAccessTokens = (sessionGeneration, previous.union([tokens.accessToken]))
     }
 
     // MARK: İstekler

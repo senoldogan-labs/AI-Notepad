@@ -1188,7 +1188,7 @@ final class AppModel {
             ? currentMeeting(meetings: upcomingMeetings, now: Date())
             : nil)
         pendingAutoMeeting = nil
-        guard isStarting(id: id), !isStopRequestedDuringStart else {
+        guard isStarting(id: id), !isStartCancelRequested else {
             Self.logger.info("Kayıt başlarken iptal edildi, ses akışı açılmadı")
             send(event: .startFailed(id: id))
             return
@@ -1232,7 +1232,7 @@ final class AppModel {
                 othersAudio = pausableStream(audio: aligned, gate: othersPause)
                 startedSpeakers.insert(.others)
             } catch {
-                if !isStopRequestedDuringStart {
+                if !isStartCancelRequested {
                     errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
                 }
                 othersAudio = finishedStream()
@@ -1254,7 +1254,7 @@ final class AppModel {
                 startedSpeakers.insert(.me)
                 micOpenedForRecording = true
             } catch {
-                if !isStopRequestedDuringStart {
+                if !isStartCancelRequested {
                     errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
                 }
                 meAudio = finishedStream()
@@ -1266,7 +1266,7 @@ final class AppModel {
             othersAudio = pausableStream(audio: aligned, gate: othersPause)
             startedSpeakers.insert(.others)
         } catch {
-            if !isStopRequestedDuringStart {
+            if !isStartCancelRequested {
                 errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
             }
             othersAudio = finishedStream()
@@ -1323,7 +1323,7 @@ final class AppModel {
             }
         } catch {
             Self.logger.error("Toplantı oturumu açılamadı, kayıt başlatılmadı, hata: \(String(describing: error), privacy: .private)")
-            if !isStopRequestedDuringStart {
+            if !isStartCancelRequested {
                 errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
             }
             // Ret aylık sınırdan ya da denemenin bitmesinden olabilir: göstergeler ve bildirim güncellensin.
@@ -1691,8 +1691,8 @@ final class AppModel {
         return false
     }
 
-    /// Başlatılırken "İptal" istendi (başlatmanın hataları gösterilmez; "Bitir"de gösterilir).
-    private var isStopRequestedDuringStart: Bool {
+    /// Başlatma iptal istendi ("İptal"; başlatmanın hataları gösterilmez, "Bitir"de gösterilir).
+    private var isStartCancelRequested: Bool {
         if case .starting(let starting) = recorderState {
             return starting.intents.cancel
         }

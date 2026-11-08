@@ -384,7 +384,7 @@ final class PhoneRecorder {
             audio = pausableStream(audio: aligned, gate: pauseGate)
         } catch {
             // "Bitir" izin penceresi açıkken geldi: mikrofon açılmadı (`MicrophoneCapture.start` iptal etti); hata değil.
-            if isStarting(id: id), !isStopRequestedDuringStart {
+            if isStarting(id: id), !isStartAbortRequested {
                 errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
             }
             // Mikrofon açılamadı (izin yok, ses oturumu, başlarken bitirildi): boş toplantı klasörü kalmasın.
@@ -441,7 +441,7 @@ final class PhoneRecorder {
             }
         } catch {
             Self.logger.error("Toplantı oturumu açılamadı, kayıt başlatılmadı, hata: \(String(describing: error), privacy: .private)")
-            if isStarting(id: id), !isStopRequestedDuringStart {
+            if isStarting(id: id), !isStartAbortRequested {
                 errorMessages = appendUnique(messages: errorMessages, message: userFacingMessage(error: error))
                 // Sunucu abonelik istedi (deneme bitti, abonelik gerekli, deneme bu cihazda kullanıldı): abonelik ekranı açılır.
                 if let apiError = error as? HostedAPIError, let code = apiError.code, hostedSubscriptionRequiredCodes.contains(code) {
@@ -678,7 +678,7 @@ final class PhoneRecorder {
 
     /// Başlatılırken iptal istendi ("Kaydı sil" ya da mikrofon açılmadan "Bitir"): başlatmanın hatası gösterilmez. Mikrofon
     /// açıldıktan sonraki "Bitir"de kayıt korunmak istenir; korunamazsa (sunucu reddi) neden görünür.
-    private var isStopRequestedDuringStart: Bool {
+    private var isStartAbortRequested: Bool {
         if case .starting(let starting) = state {
             return starting.intents.cancel
         }

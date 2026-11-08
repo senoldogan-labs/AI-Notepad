@@ -262,24 +262,26 @@ public func sendLLM(provider: LLMProvider, request: LLMRequest) async throws -> 
         return try await sendOnDevice(config: config, request: request)
     case .hosted(let config):
         return try await withRecordedMeetingReopen(config: config) { () async throws -> String in
-            try await withHostedTokenRefresh(config: config) { () async throws -> String in
-                try await sendPreparedLLM(call: try await prepareHostedCall(config: config, request: request))
+            try await withHostedTokenRefresh(config: config) { (credentials: HostedLLMCredentials) async throws -> String in
+                try await sendPreparedLLM(call: try prepareHostedCall(config: config, request: request, credentials: credentials))
             }
         }
     }
 }
 
-/// Abonelik sunucusuna yapay zekâ çağrısı (tek istek ya da akış): erişim jetonu süresinden önce reddedilirse (401; ör.
-/// sunucu anahtarı döndü) bir kez yenilenip `operation` yeniden çalıştırılır. Abonelik gerektiren ret (deneme bitti vb.)
-/// ilk denemede de yeniden denemede de uygulamaya teklifi gösterttirir, sonra fırlatılır.
-func withHostedTokenRefresh<Value: Sendable>(config: HostedLLMConfig, operation: () async throws -> Value) async throws -> Value {
+/// Abonelik sunucusuna yapay zekâ çağrısı (tek istek ya da akış): `operation` çağrının jetonu ve toplantısıyla çalışır;
+/// erişim jetonu süresinden önce reddedilirse (401; ör. sunucu anahtarı döndü) aynı oturumun sonraki jetonuyla bir kez
+/// yeniden çalıştırılır (oturum bu arada değiştiyse yinelenmez; bkz. `accessToken(afterRejecting:)`). Abonelik
+/// gerektiren ret (deneme bitti vb.) ilk denemede de yeniden denemede de uygulamaya teklifi gösterttirir, sonra fırlatılır.
+func withHostedTokenRefresh<Value: Sendable>(config: HostedLLMConfig, operation: (HostedLLMCredentials) async throws -> Value) async throws -> Value {
     do {
+        let credentials: HostedLLMCredentials = try await hostedLLMCredentials(config: config)
         do {
-            return try await operation()
+            return try await operation(credentials)
         } catch LLMError.hosted(let error) where error.status == 401 {
             llmLogger.warning("Abonelik sunucusu jetonu reddetti, yenilenip yeniden deneniyor, kod: \(error.rawCode, privacy: .public)")
-            try await config.credentials.refreshAccessToken()
-            return try await operation()
+            let retryToken: String = try await config.credentials.accessToken(afterRejecting: credentials.accessToken)
+            return try await operation(HostedLLMCredentials(accessToken: retryToken, meetingID: credentials.meetingID))
         }
     } catch LLMError.hosted(let error) {
         announceIfSubscriptionRequired(error: error)

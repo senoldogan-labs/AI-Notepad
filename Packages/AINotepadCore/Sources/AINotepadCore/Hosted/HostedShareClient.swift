@@ -63,14 +63,15 @@ public struct HostedShareClient: Sendable {
         shareLogger.info("Shared link removed")
     }
 
-    /// Sends with the session's token; a 401 refreshes the token once and repeats.
+    /// Sends with the session's token; a 401 repeats once with the same session's next token (never another
+    /// session's).
     private func send(path: String, method: String, body: Data?, headers: [String: String]) async throws -> Data {
+        let accessToken: String = try await credentials.validAccessToken()
         do {
-            return try await attempt(path: path, method: method, body: body, headers: headers, accessToken: try await credentials.validAccessToken())
+            return try await attempt(path: path, method: method, body: body, headers: headers, accessToken: accessToken)
         } catch let error as HostedAPIError where error.status == 401 {
             shareLogger.warning("Share request token rejected, refreshing, code: \(error.rawCode, privacy: .public)")
-            try await credentials.refreshAccessToken()
-            return try await attempt(path: path, method: method, body: body, headers: headers, accessToken: try await credentials.validAccessToken())
+            return try await attempt(path: path, method: method, body: body, headers: headers, accessToken: try await credentials.accessToken(afterRejecting: accessToken))
         }
     }
 

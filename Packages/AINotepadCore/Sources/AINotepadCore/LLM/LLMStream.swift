@@ -44,8 +44,8 @@ public func streamLLM(provider: LLMProvider, request: LLMRequest, onText: LLMTex
     case .hosted(let config):
         // Sunucu Anthropic'in akış olaylarını aynen iletir. Jeton 401 ile reddedilirse (metin görünmeden) bir kez
         // yenilenip yeniden denenir.
-        return try await withHostedTokenRefresh(config: config) { () async throws -> String in
-            try await streamPreparedText(call: try await prepareHostedCall(config: config, request: request), textDelta: claudeTextDelta, onText: onText)
+        return try await withHostedTokenRefresh(config: config) { (credentials: HostedLLMCredentials) async throws -> String in
+            try await streamPreparedText(call: try prepareHostedCall(config: config, request: request, credentials: credentials), textDelta: claudeTextDelta, onText: onText)
         }
     }
 }
@@ -70,8 +70,8 @@ public func streamLLMAnswer(provider: LLMProvider, request: LLMRequest, onUpdate
             return LLMAnswer(text: answer.text, webSources: answer.webSources, webQueries: answer.webQueries, webSearchNotice: .unavailable)
         }
     case .hosted(let config):
-        return try await withHostedTokenRefresh(config: config) { () async throws -> LLMAnswer in
-            try await streamPreparedAnswer(call: try await prepareHostedCall(config: config, request: request), onUpdate: onUpdate)
+        return try await withHostedTokenRefresh(config: config) { (credentials: HostedLLMCredentials) async throws -> LLMAnswer in
+            try await streamPreparedAnswer(call: try prepareHostedCall(config: config, request: request, credentials: credentials), onUpdate: onUpdate)
         }
     case .openAICompatible, .onDevice:
         let text: String = try await streamLLM(provider: provider, request: request) { (partial: String) -> Void in

@@ -185,16 +185,22 @@ public struct HostedAssistantClient: HostedAssistantAPI {
 
     // MARK: Requests
 
-    /// Sends with the session's token; a 401 refreshes the token once and repeats. Assistant error codes become
-    /// `HostedAssistantError`.
+    /// Sends with the session's token; a 401 repeats once with the same session's next token (never another
+    /// session's). Assistant error codes become `HostedAssistantError`.
     private func send(path: String, method: String, body: Data?) async throws -> Data {
+        let accessToken: String
         do {
-            return try await attempt(path: path, method: method, body: body, accessToken: try await credentials.validAccessToken())
+            accessToken = try await credentials.validAccessToken()
+        } catch {
+            throw hostedAssistantError(error: error)
+        }
+        do {
+            return try await attempt(path: path, method: method, body: body, accessToken: accessToken)
         } catch let error as HostedAPIError where error.status == 401 {
             assistantClientLogger.warning("Assistant request token rejected, refreshing, path: \(Self.logPath(path), privacy: .public), code: \(error.rawCode, privacy: .public)")
-            try await credentials.refreshAccessToken()
+            let retryToken: String = try await credentials.accessToken(afterRejecting: accessToken)
             do {
-                return try await attempt(path: path, method: method, body: body, accessToken: try await credentials.validAccessToken())
+                return try await attempt(path: path, method: method, body: body, accessToken: retryToken)
             } catch {
                 throw hostedAssistantError(error: error)
             }

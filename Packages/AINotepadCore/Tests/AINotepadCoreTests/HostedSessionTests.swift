@@ -54,11 +54,22 @@ import Testing
         #expect(!hostedAccountActionIsCurrent(stamp: stamp, generation: 4, accountKey: "acct-u1", userID: "u1", sessionUserID: "u1"))
     }
 
-    // A late 401 for a token that another request already refreshed uses the current token instead of rotating again.
+    // A late 401 for a token that another request already refreshed in the same session uses the current token instead
+    // of rotating again.
     @Test func staleRejectionUsesTheCurrentToken() {
         let tokens: HostedTokens = HostedTokens(accessToken: "a2", refreshToken: "r2", accessExpiresAt: Date(timeIntervalSince1970: 2_000), userId: "u1")
-        #expect(hostedTokenActionAfterRejection(tokens: tokens, rejectedAccessToken: "a1") == .use(accessToken: "a2"))
-        #expect(hostedTokenActionAfterRejection(tokens: tokens, rejectedAccessToken: "a2") == .refresh(refreshToken: "r2"))
-        #expect(hostedTokenActionAfterRejection(tokens: nil, rejectedAccessToken: "a1") == .signedOut)
+        let session: Set<String> = ["a1", "a2"]
+        #expect(hostedTokenActionAfterRejection(tokens: tokens, rejectedAccessToken: "a1", sessionAccessTokens: session) == .use(accessToken: "a2"))
+        #expect(hostedTokenActionAfterRejection(tokens: tokens, rejectedAccessToken: "a2", sessionAccessTokens: session) == .refresh)
+        #expect(hostedTokenActionAfterRejection(tokens: nil, rejectedAccessToken: "a1", sessionAccessTokens: session) == .signedOut)
+    }
+
+    // Bad ordering: account A's request is in flight, the user signs in as B, then A's token gets 401. The request must
+    // not be repeated with B's token (A's data would be written to B's account).
+    @Test func rejectionFromAnEarlierSessionIsNotRepeated() {
+        let accountB: HostedTokens = HostedTokens(accessToken: "b1", refreshToken: "rb1", accessExpiresAt: Date(timeIntervalSince1970: 2_000), userId: "uB")
+        #expect(hostedTokenActionAfterRejection(tokens: accountB, rejectedAccessToken: "a1", sessionAccessTokens: ["b1"]) == .sessionChanged)
+        // Signed in again as the same account: still a new session, the old request is not repeated either.
+        #expect(hostedTokenActionAfterRejection(tokens: accountB, rejectedAccessToken: "a1", sessionAccessTokens: []) == .sessionChanged)
     }
 }

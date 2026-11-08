@@ -24,17 +24,34 @@ public func hostedTokenAction(tokens: HostedTokens?, now: Date, leewaySec: Doubl
     return .refresh(refreshToken: tokens.refreshToken)
 }
 
-/// Sunucu bir erişim jetonunu 401 ile reddettikten sonra ne yapılacağı. Saf fonksiyondur: saklanan jetonlar reddedilen
-/// jetondan farklıysa (bu arada başka bir istek yeniledi ya da yeni giriş yapıldı) yenilemeden onlar kullanılır; yoksa
-/// yenilenir. Böylece geç gelen bayat 401 gereksiz bir yenileme (ve yenileme jetonu döndürme) yapmaz.
-public func hostedTokenActionAfterRejection(tokens: HostedTokens?, rejectedAccessToken: String) -> HostedTokenAction {
+/// Sunucu bir erişim jetonunu 401 ile reddettikten sonra isteğin yinelenmesi.
+public enum HostedRejectionAction: Sendable, Equatable {
+    /// Kayıtlı oturum yok.
+    case signedOut
+    /// Reddedilen jeton şimdiki oturumun değil (istek sürerken çıkış ya da başka bir girişle oturum değişti): istek
+    /// yinelenmez; yeni oturumun jetonuyla gönderilse eski hesabın isteği yeni hesaba yazılırdı.
+    case sessionChanged
+    /// Aynı oturumda jeton bu arada yenilendi: yenilemeden güncel jetonla yinelenir.
+    case use(accessToken: String)
+    /// Reddedilen jeton güncel: önce yenilenir.
+    case refresh
+}
+
+/// 401'den sonra ne yapılacağı. `sessionAccessTokens`, şimdiki oturumun verdiği erişim jetonlarıdır (yenilemelerle
+/// birlikte; oturum değişince boşalır). Reddedilen jeton onlardan değilse istek başka bir oturumundur ve yinelenmez;
+/// saklanan jeton reddedilenden farklıysa (aynı oturumda yenilendi) yenilemeden o kullanılır, böylece bayat 401
+/// gereksiz bir yenileme yapmaz; değilse yenilenir. Saf fonksiyondur.
+public func hostedTokenActionAfterRejection(tokens: HostedTokens?, rejectedAccessToken: String, sessionAccessTokens: Set<String>) -> HostedRejectionAction {
     guard let tokens else {
         return .signedOut
+    }
+    guard sessionAccessTokens.contains(rejectedAccessToken) else {
+        return .sessionChanged
     }
     if tokens.accessToken != rejectedAccessToken {
         return .use(accessToken: tokens.accessToken)
     }
-    return .refresh(refreshToken: tokens.refreshToken)
+    return .refresh
 }
 
 /// Bellekteki jeton önbelleği: saklama alanı henüz okunmadı ya da okundu (oturum yoksa nil). Tek değer "okunmadı" ile

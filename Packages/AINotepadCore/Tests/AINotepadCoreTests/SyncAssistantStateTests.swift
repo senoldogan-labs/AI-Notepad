@@ -105,7 +105,7 @@ private final class CountingSignedOutTokens: HostedAccessTokenSource {
         throw HostedClientError.notSignedIn
     }
 
-    func refreshAccessToken() async throws {
+    func accessToken(afterRejecting rejected: String) async throws -> String {
         requests.withLock { $0 += 1 }
         throw HostedClientError.notSignedIn
     }
