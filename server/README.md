@@ -2,8 +2,10 @@ Sor cevabı (`ask_answer`) hesap çağrısında `LLM_ASK_MAX_TOKENS` (8192) kull
 
 Cloudflare Worker + D1. Mac uygulamasının abonelik sürümü kullanıcı anahtarı olmadan çalışır: bu Worker bizim Anthropic
 (yalnızca Claude Haiku 5.5) ve ElevenLabs anahtarlarımızla vekillik yapar, ödemeyi Stripe ile alır. Anahtarlar yalnızca
-Worker gizli değerlerindedir. Üretim adresi yalnızca `https://api.gistsmith.com` (özel alan adı; workers.dev ve
-önizleme adresleri kapalı, bölgenin WAF kuralı atlanamasın diye), site `https://gistsmith.com`. İç adlar (worker, D1,
+Worker gizli değerlerindedir. Üretim adresi `https://api.gistsmith.com` (özel alan adı; workers.dev ve önizleme
+adresleri kapalı, bölgenin WAF kuralı atlanamasın diye); ayrıca yalnızca yönetici API'si sitenin kaynağında,
+`https://gistsmith.com/v1/admin/*` rotasında da çalışır (Cloudflare Access için; aşağıda "Yönetici erişimi"). Site
+`https://gistsmith.com`. İç adlar (worker, D1,
 paket kimlikleri) `ainotepad` adını korur. Plan: `docs/superpowers/plans/2026-10-28-abonelik-surumu.md`.
 
 ## Yerel geliştirme
@@ -508,8 +510,9 @@ Yalnızca hesap ve veritabanı ilk kez kurulurken elle yapılır; sonraki her ya
 2. `npx wrangler d1 create ainotepad-production` → çıkan `database_id`'yi `wrangler.jsonc` → `env.production` içine yaz.
 3. `wrangler.jsonc` → `env.production`:
    - `routes`: `api.gistsmith.com` özel alan adı (gistsmith.com bölgesi aynı Cloudflare hesabında olmalı; dağıtımda
-     DNS kaydı ve sertifika kendiliğinden kurulur). `workers_dev` ve `preview_urls` üretimde `false`'tur:
-     Stripe webhook'u ve uygulamalar yalnızca `api.gistsmith.com`'u kullanmalı.
+     DNS kaydı ve sertifika kendiliğinden kurulur) ve `gistsmith.com/v1/admin/*` bölge rotası (yalnızca yönetim paneli;
+     dağıtım jetonunda gistsmith.com için "Workers Routes: Edit" gerekir). `workers_dev` ve `preview_urls` üretimde
+     `false`'tur: Stripe webhook'u ve uygulamalar yalnızca `api.gistsmith.com`'u kullanmalı.
    - `vars`: `SITE_ORIGIN` (`https://gistsmith.com`), `APP_ATTEST_APP_IDS` (`TEAMID.com.senoldogan.AINotepad.hosted`),
      `STRIPE_PRICE_ID`, `GOOGLE_CLIENT_IDS` (Google Cloud Console → sitenin OAuth web istemcisi), `DMG_URL`,
      `PRICE_USD_MONTHLY` (Stripe fiyatıyla aynı), `REPORT_BYTES_PER_DAY`. `APPLE_CLIENT_IDS` hazırdır:
@@ -531,9 +534,10 @@ Yalnızca hesap ve veritabanı ilk kez kurulurken elle yapılır; sonraki her ya
    `stripe_mode_mismatch` alarmı verir; anahtarın modu `GET /v1/admin/stats` → `stripe.mode`'dadır.
    Stripe Tax'i ve Müşteri Portalı'nı panelden aç.
 8. `curl https://api.gistsmith.com/v1/health` → `{"status":"ok"}`
-9. Önerilen: Cloudflare panelinde `api.gistsmith.com` için bir WAF hız sınırı kuralı. Workers Free planının hesap
-   genelindeki günlük 100 000 istek ve D1 yazma kotası Worker'ın kendi hız sınırlarından önce tükenebilir (fatura değil,
-   kesinti riski).
+9. Önerilen: Cloudflare panelinde `api.gistsmith.com` ve `gistsmith.com/v1/admin/*` için bir WAF hız sınırı kuralı.
+   Workers Free planının hesap genelindeki günlük 100 000 istek ve D1 yazma kotası Worker'ın kendi hız sınırlarından önce
+   tükenebilir (fatura değil, kesinti riski). Yönetici rotası Access uygulaması kurulunca Access'in arkasındadır: girişi
+   olmayan istek Worker'a ulaşmaz.
 
 ## Uçlar
 
