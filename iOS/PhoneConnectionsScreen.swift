@@ -10,7 +10,8 @@ import UniformTypeIdentifiers
 
 private let phoneConnectionsLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "PhoneConnections")
 
-/// Ayarlar › Bağlantılar satırı: bağlı yer ve araç sayısı; dokununca bağlantılar açılır.
+/// Ayarlar › Bağlantılar satırı (sayfanın başlığı ve uygulamadaki "Ayarlar › Bağlantılar" yönlendirmeleriyle aynı ad): bağlı
+/// yer ve araç sayısı; dokununca bağlantılar açılır.
 struct PhoneConnectionsRow: View {
     @Environment(PhoneIntegrations.self) private var integrations: PhoneIntegrations
 
@@ -19,7 +20,7 @@ struct PhoneConnectionsRow: View {
             LabeledContent {
                 Text(verbatim: "\(integrations.destinations.count + integrations.taskTrackers.count)")
             } label: {
-                PhoneSettingLabel(icon: "point.3.connected.trianglepath.dotted", title: Text("Kanallar ve görev araçları"))
+                PhoneSettingLabel(icon: "point.3.connected.trianglepath.dotted", title: Text("Bağlantılar"))
             }
         }
     }
