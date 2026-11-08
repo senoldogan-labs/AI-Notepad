@@ -5,6 +5,8 @@ import os
 
 /// iPhone ayar anahtarları; adlar Mac'tekilerle aynıdır. Ayarlar cihazda kalır.
 enum PhoneSettingsKey {
+    /// Ayarlar'daki "Mac için Gistsmith" satırı ✕ ile gizlendi (bu iPhone'da kalıcı).
+    static let macAppBannerDismissed: String = "promo.macAppBannerDismissed"
     /// Kitaplık sıkı listede mi (kartlar yerine satırlar; ekrana daha çok toplantı sığar).
     static let libraryCompact: String = "library.compact"
     static let primaryMeetingLanguage: String = "language.primary"

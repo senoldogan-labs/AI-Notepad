@@ -34,6 +34,8 @@ func localSpeechModel(engine: LiveEngine) -> LocalSpeechModel {
 
 /// UserDefaults anahtarları.
 enum SettingsKey {
+    /// Ayarlar'daki "Gistsmith'i iPhone'a indir" kartı ✕ ile gizlendi (bu Mac'te kalıcı; yalnız abonelik sürümünde).
+    static let iPhoneAppCardDismissed: String = "promo.iPhoneAppCardDismissed"
     static let liveEngine: String = "liveEngine"
     static let displayMode: String = "displayMode"
     /// Kullanıcı adı (not görevlerinde "benim" tespiti için; `userContentDefaults` alanında: abonelikte hesabın).
