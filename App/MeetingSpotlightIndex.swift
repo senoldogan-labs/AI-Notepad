@@ -70,9 +70,10 @@ final class MeetingSpotlightIndex {
         #endif
     }
 
-    /// Kilit açıldı: kilitliyken yazılamayan son istek (yenisi beklemiyorsa) yeniden yazılır.
+    /// Kilit açıldı: kilitliyken yazılamayan son istek yeniden yazılır; yazma sürüyor ya da yenisi bekliyorsa (eski istek
+    /// yeninin üstüne yazılmasın) dokunulmaz.
     private func retryAfterUnlock() {
-        guard let unwritten, latest == nil else {
+        guard let unwritten, latest == nil, worker == nil else {
             return
         }
         latest = unwritten
