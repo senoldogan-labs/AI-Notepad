@@ -16,3 +16,8 @@ CREATE TABLE conversion_events_daily (
   count INTEGER NOT NULL,
   PRIMARY KEY (day, kind, platform, surface, trigger, tiers, tier, plan, reason, app_version)
 );
+
+-- When the current Stripe subscription was created (ms; Stripe's `created`), written by the webhook. The EU online
+-- withdrawal function (src/billing.ts `withdrawSubscription`) is offered for 14 days from it. NULL for rows written
+-- before this migration and for complimentary access.
+ALTER TABLE subscriptions ADD COLUMN started_at INTEGER;

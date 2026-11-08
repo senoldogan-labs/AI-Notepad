@@ -10,7 +10,7 @@ import {
 import { cancellationStatements } from "./cancellations";
 import { complimentaryAccessError } from "./complimentary";
 import { type AppStoreSubscription, appStoreAccess, appStoreManageUrl, appStoreSubscriptionOf } from "./appStore";
-import { type SubscriptionState, isTerminalSubscription, subscriptionState } from "./entitlements";
+import { type SubscriptionState, isTerminalSubscription, subscriptionState, withdrawalPeriodMs } from "./entitlements";
 import { isLiveStripeStatus, isRunningComplimentary, runningComplimentarySql } from "./subscriptionLifecycle";
 import { ApiError, ProviderApiError } from "./errors";
 import { errorName, log } from "./log";
@@ -492,6 +492,83 @@ export async function createCheckout(db: D1Database, platform: Platform, config:
   return session.url;
 }
 
+/**
+ * Refund of a withdrawal: the paid amount minus the proportionate share for the time already provided (CRD Art. 14(3);
+ * the subscription starts at once on the consumer's request). `periodStartMs`/`periodEndMs` are the paid period; the
+ * refund is rounded down to the cent. Pure function.
+ */
+export function withdrawalRefundCents(amountPaidCents: number, periodStartMs: number, periodEndMs: number, nowMs: number): number {
+  if (periodEndMs <= periodStartMs || amountPaidCents <= 0) {
+    return 0;
+  }
+  const unused: number = Math.min(1, Math.max(0, (periodEndMs - nowMs) / (periodEndMs - periodStartMs)));
+  return Math.floor(amountPaidCents * unused);
+}
+
+/** Result of a withdrawal: the refunded amount (cents, all invoices) and its currency. */
+export interface WithdrawalResult {
+  readonly refundedCents: number;
+  readonly currency: string;
+}
+
+/**
+ * EU online withdrawal function (CRD Art. 11a): within `withdrawalPeriodMs` of the Stripe subscription's start, the
+ * subscriber withdraws from the contract. The subscription is cancelled at once and each paid invoice of it is refunded
+ * pro rata for the unused part of the paid period (`withdrawalRefundCents`) to the original payment method; Link emails
+ * the refund receipt. Refused with `withdrawal_unavailable` after the period, for complimentary access, App Store
+ * subscriptions or a subscription that has already ended. Refunds and the cancellation use idempotency keys, so a
+ * repeated request does not refund twice.
+ */
+export async function withdrawSubscription(db: D1Database, platform: Platform, config: Config, userId: string): Promise<WithdrawalResult> {
+  const unavailable: ApiError = new ApiError("withdrawal_unavailable", "Withdrawal from this subscription isn't available; the 14-day period may have passed.");
+  const nowMs: number = platform.now().getTime();
+  const row: { stripe_subscription_id: string; started_at: number | null; complimentary: number } | null = await db
+    .prepare("SELECT stripe_subscription_id, started_at, complimentary FROM subscriptions WHERE user_id = ?")
+    .bind(userId)
+    .first<{ stripe_subscription_id: string; started_at: number | null; complimentary: number }>();
+  if (row === null || row.complimentary === 1 || row.started_at === null || row.started_at + withdrawalPeriodMs <= nowMs) {
+    throw unavailable;
+  }
+  const stripe: Stripe = stripeClient(platform, config);
+  const subscription: Stripe.Subscription = await callStripe(platform, "subscriptions.retrieve", userId, () =>
+    stripe.subscriptions.retrieve(row.stripe_subscription_id),
+  );
+  if (!isLiveInStripe(subscription) || subscription.created * 1000 + withdrawalPeriodMs <= nowMs) {
+    throw unavailable;
+  }
+  const periodEndMs: number = subscriptionPeriodEndMs(subscription);
+  const invoices: Stripe.ApiList<Stripe.Invoice> = await callStripe(platform, "invoices.list", userId, () =>
+    stripe.invoices.list({ subscription: subscription.id, status: "paid", limit: 100 }),
+  );
+  let refundedCents: number = 0;
+  let currency: string = invoices.data[0]?.currency ?? "usd";
+  for (const invoice of invoices.data) {
+    const amount: number = withdrawalRefundCents(invoice.amount_paid, subscription.created * 1000, periodEndMs, nowMs);
+    if (invoice.id === undefined || amount <= 0) {
+      continue;
+    }
+    const payments: Stripe.ApiList<Stripe.InvoicePayment> = await callStripe(platform, "invoicePayments.list", userId, () =>
+      stripe.invoicePayments.list({ invoice: invoice.id ?? "", status: "paid", limit: 100 }),
+    );
+    const target: { payment_intent: string } | { charge: string } | null = payments.data.map(paymentTargetOf).find((found) => found !== null) ?? null;
+    if (target === null) {
+      log("alert", "withdrawal_refund_unsupported", { userId, subscriptionId: subscription.id, invoiceId: invoice.id });
+      continue;
+    }
+    await callStripe(platform, "refunds.create", userId, () =>
+      stripe.refunds.create(
+        { ...target, amount, reason: "requested_by_customer", metadata: { purpose: "withdrawal", subscription_id: subscription.id, user_id: userId } },
+        { idempotencyKey: `refund-withdrawal-${subscription.id}-${invoice.id ?? ""}` },
+      ),
+    );
+    refundedCents += amount;
+    currency = invoice.currency;
+  }
+  await cancelSubscription(stripe, platform, subscription.id, userId);
+  log("info", "subscription_withdrawn", { userId, subscriptionId: subscription.id, refundedCents, currency });
+  return { refundedCents, currency };
+}
+
 /** Plan değişikliği isteği: hedef katman ve plan. */
 export interface PlanChangeRequest {
   readonly tier: SubscriptionTier;
@@ -794,9 +871,10 @@ async function subscriptionEventStatements(
     db
       .prepare(
         `INSERT INTO subscriptions (user_id, stripe_customer_id, stripe_subscription_id, status, current_period_end, cancel_at,
-           past_due_since, last_event_created, updated_at, plan, first_paid_at, tier)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, CASE WHEN ?4 = 'past_due' THEN ?8 END, ?7, ?8, ?9, ${firstPaidAtSql("?1")}, ?10)
+           past_due_since, last_event_created, updated_at, plan, first_paid_at, tier, started_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, CASE WHEN ?4 = 'past_due' THEN ?8 END, ?7, ?8, ?9, ${firstPaidAtSql("?1")}, ?10, ?11)
          ON CONFLICT(user_id) DO UPDATE SET stripe_customer_id = excluded.stripe_customer_id, plan = excluded.plan, tier = excluded.tier,
+           started_at = excluded.started_at,
            complimentary = 0,
            first_paid_at = COALESCE(subscriptions.first_paid_at, excluded.first_paid_at),
            past_due_since = CASE
@@ -821,6 +899,7 @@ async function subscriptionEventStatements(
         nowMs,
         planOfSubscription(current, prices),
         tierOfSubscription(current, prices),
+        current.created * 1000,
       ),
     // İptal nedeni yalnızca geçerli abonelik için yazılır: bizim iptal ettiğimiz kopya aboneliklerin nedeni
     // (`cancellation_requested`) kullanıcının iptali değildir. Olayın anlık görüntüsü değil güncel hâli yazılır.

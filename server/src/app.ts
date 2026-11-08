@@ -49,7 +49,7 @@ import { verifyTurnstile } from "./auth/turnstile";
 import { findOrCreateUser } from "./auth/users";
 import { trialIdentityHash } from "./trialLedger";
 import { createChallenge, deviceAssertionSchema, registerDevice, verifyDeviceAssertion } from "./attest/devices";
-import { type CheckoutRequest, createCheckout, createPlanChange, createPortal, handleStripeWebhook } from "./billing";
+import { type CheckoutRequest, createCheckout, createPlanChange, createPortal, handleStripeWebhook, withdrawSubscription } from "./billing";
 import { offeredTiers } from "./tiers";
 import { conversionPlatformOf, recordCheckoutCreated } from "./conversion";
 import { complimentaryRequestSchema, complimentaryUntilMs, grantComplimentaryAccess, revokeComplimentaryAccess } from "./complimentary";
@@ -137,6 +137,7 @@ const webRoutes: ReadonlySet<string> = new Set([
   "/v1/me",
   "/v1/billing/checkout",
   "/v1/billing/change-plan",
+  "/v1/billing/withdraw",
   "/v1/billing/portal",
   "/v1/pricing",
   "/v1/referral",
@@ -573,6 +574,12 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     }
     await syncAppStoreSubscription(db, context.platform, { ...config.appStore, revenueCatApiKey: apiKey }, user.userId, null);
     return jsonResponse(200, await entitlements(db, config, user.userId, null, context.platform.now()));
+  }
+  if (path === "/v1/billing/withdraw" && method === "POST") {
+    // EU online withdrawal function (CRD Art. 11a; `withdrawSubscription`): no body.
+    const user: AuthedUser = await authed();
+    await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
+    return jsonResponse(200, await withdrawSubscription(db, context.platform, config, user.userId));
   }
   if (path === "/v1/billing/change-plan" && method === "POST") {
     // Stripe abonesinin katman ya da plan değişikliği: Stripe'ın orantılı ücret önizlemeli onay sayfası (`createPlanChange`).
