@@ -1,6 +1,7 @@
 import type { Config } from "./config";
 import { ApiError } from "./errors";
 import { log } from "./log";
+import { unsettledCallCountsSql } from "./phone/lifecycle";
 import type { TokenUsage } from "./reservations";
 
 /**
@@ -186,7 +187,7 @@ export function todaySpendSql(kind: SpendCeilingKind): string {
   const settled: string = kind === "total" ? "micro_usd" : "trial_micro_usd";
   const reserved: string = kind === "total" ? "day = ?" : "day = ? AND trial_spend = 1";
   const phone: string =
-    kind === "total" ? `\n    + (SELECT COALESCE(SUM(estimated_micro_usd), 0) FROM phone_calls WHERE day = ? AND settled_at IS NULL AND reserved_until > ?)` : "";
+    kind === "total" ? `\n    + (SELECT COALESCE(SUM(estimated_micro_usd), 0) FROM phone_calls WHERE day = ? AND settled_at IS NULL AND ${unsettledCallCountsSql()})` : "";
   return `COALESCE((SELECT ${settled} FROM daily_spend WHERE day = ?), 0)
     + (SELECT COALESCE(SUM(estimated_micro_usd), 0) FROM usage_reservations WHERE ${reserved} AND expires_at > ?)${phone}`;
 }

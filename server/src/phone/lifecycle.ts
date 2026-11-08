@@ -49,6 +49,15 @@ export function callSourceSql(event: PhoneCallEvent): string {
   return `(status IN (${from}) AND settled_at IS NULL)`;
 }
 
+/**
+ * The SQL condition (one `?`: now in ms) that an unsettled call still counts at its worst case toward minutes and
+ * spend: a reserved one until its connect window ends (it is released for free after), a connected one until it
+ * settles (if its callbacks never come, the cleanup charges it the worst case). Pure function.
+ */
+export function unsettledCallCountsSql(): string {
+  return `(status = '${callStatusAfter("connect")}' OR reserved_until > ?)`;
+}
+
 /** A call's recording as stored. */
 export type RecordingState =
   | { readonly kind: "pending" }

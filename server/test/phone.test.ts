@@ -489,6 +489,10 @@ describe("in-app dialer", () => {
     // Its worst case still counts toward the dialer's daily ceiling: 61 × 0.025 $ plus the verification call leaves too little of 2 $.
     const tight: Env = envWith({ ...phoneOn, PHONE_DAILY_SPEND_CEILING_USD: "2" });
     await expectError(await harness.call(req("POST", "/v1/phone/calls", { token: later.accessToken, json: { to: destination }, env: tight })), 503, "phone_capacity_reached");
+    // And toward the global daily ceiling (the day's other spend fills it; the dialer's own ceiling has room).
+    await env.DB.prepare("UPDATE daily_spend SET micro_usd = micro_usd + ? WHERE day = ?").bind(1_000_000, today(harness)).run();
+    const global: Env = envWith({ ...phoneOn, DAILY_SPEND_CEILING_USD: "4", PHONE_DAILY_SPEND_CEILING_USD: "4" });
+    await expectError(await harness.call(req("POST", "/v1/phone/calls", { token: later.accessToken, json: { to: destination }, env: global })), 503, "spend_ceiling_reached");
   });
 });
 

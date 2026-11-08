@@ -21,6 +21,7 @@ import {
   recordingSourceSql,
   recordingStateOf,
   recordingTransition,
+  unsettledCallCountsSql,
 } from "./lifecycle";
 import { CallerIdAlreadyRegisteredError, type CallerIdVerificationStart, type VoiceProvider } from "./provider";
 import { type TwilioCredentials, twilioProvider } from "./twilio";
@@ -190,13 +191,9 @@ async function consentAccepted(db: D1Database, userId: string): Promise<boolean>
   return row !== null && row.version >= phoneConsentVersion;
 }
 
-/**
- * The user's billed and running call seconds this month. Running calls count at their longest: a reserved one until its
- * connect window ends (it is released for free after), a connected one until it settles (if its callbacks never come,
- * the cleanup charges it the longest duration).
- */
+/** The user's billed and running call seconds this month (running calls count at their longest, `unsettledCallCountsSql`). */
 function monthlyPhoneSecondsSql(): string {
-  return `(SELECT COALESCE(SUM(CASE WHEN settled_at IS NOT NULL THEN COALESCE(billed_seconds, 0) WHEN status = 'dialing' OR reserved_until > ? THEN max_seconds ELSE 0 END), 0)
+  return `(SELECT COALESCE(SUM(CASE WHEN settled_at IS NOT NULL THEN COALESCE(billed_seconds, 0) WHEN ${unsettledCallCountsSql()} THEN max_seconds ELSE 0 END), 0)
     FROM phone_calls WHERE user_id = ? AND month = ?)`;
 }
 
@@ -465,14 +462,11 @@ async function removeNumber(db: D1Database, userId: string, now: Date): Promise<
   return { removed: true };
 }
 
-/**
- * The dialer's remaining spend today (micro USD): its ceiling − settled phone spend − running reservations (a connected
- * call counts until it settles, as in `monthlyPhoneSecondsSql`).
- */
+/** The dialer's remaining spend today (micro USD): its ceiling − settled phone spend − running calls (`unsettledCallCountsSql`). */
 function phoneDailySpendLimit(ceilingMicroUsd: number, now: Date): ReservationLimit {
   return {
     remainingSql: `? - (COALESCE((SELECT phone_micro_usd FROM daily_spend WHERE day = ?), 0)
-      + (SELECT COALESCE(SUM(estimated_micro_usd), 0) FROM phone_calls WHERE day = ? AND settled_at IS NULL AND (status = 'dialing' OR reserved_until > ?)))`,
+      + (SELECT COALESCE(SUM(estimated_micro_usd), 0) FROM phone_calls WHERE day = ? AND settled_at IS NULL AND ${unsettledCallCountsSql()}))`,
     binds: [ceilingMicroUsd, dayKey(now), dayKey(now), now.getTime()],
     error: new ApiError("phone_capacity_reached", "Calling is busy today; try again tomorrow."),
   };
