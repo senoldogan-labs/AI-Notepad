@@ -458,7 +458,7 @@ async function route(request: Request, env: Env, config: Config, context: Reques
     await enforceLimit(env.START_USER_LIMITER, `user:${user.userId}`);
     const meetingId: string = reprocessMatch[1];
     return withMeetingFailures(db, user.userId, meetingId, now, async (): Promise<Response> =>
-      jsonResponse(200, await reprocessMeeting(db, config, user.userId, meetingId, now)),
+      jsonResponse(200, await reprocessMeeting(db, context.platform, config, user.userId, meetingId, now)),
     );
   }
 

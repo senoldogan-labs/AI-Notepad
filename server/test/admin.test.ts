@@ -62,7 +62,7 @@ interface StatsBody {
   readonly tokens: { thisMonth: number };
   readonly reports: { openFeedback: number; openCrash: number; openContact: number };
   readonly stripe: { mode: string };
-  readonly elevenLabs: { cycleStart: string; usedHours: number; capHours: number; percent: number };
+  readonly elevenLabs: { cycleStart: string; usedHours: number; capHours: number; percent: number; live: { creditsLimit: number } | null };
   readonly conversion: { trialStarted: number; converted: number; startedLast30Days: number; convertedLast30Days: number; subscribedWithoutTrial: number };
   readonly churn: { canceledLast30Days: number; pastDue: number; unpaid: number; duplicateSubscriptions: number };
   readonly billing: { refundsLast30Days: number; disputesLast30Days: number; paymentFailuresLast30Days: number };
@@ -344,7 +344,8 @@ describe("yönetici API'si", () => {
     expect(stats.tokens).toEqual({ thisMonth: 5_201_500 });
     expect(stats.reports).toEqual({ openFeedback: 2, openCrash: 1, openContact: 0 });
     expect(stats.stripe).toEqual({ mode: "test" });
-    expect(stats.elevenLabs).toEqual({ cycleStart: "2026-10-11", usedHours: 11, capHours: 110, percent: 10 });
+    // Canlı kredi bol (sahte abonelik): sınır güvenlik üst sınırıdır.
+    expect(stats.elevenLabs).toMatchObject({ cycleStart: "2026-10-11", usedHours: 11, capHours: 110, percent: 10 });
     expect(stats.conversion).toEqual({ trialStarted: 3, converted: 1, startedLast30Days: 2, convertedLast30Days: 0, subscribedWithoutTrial: 3 });
     expect(stats.churn).toEqual({ canceledLast30Days: 1, pastDue: 1, unpaid: 0, duplicateSubscriptions: 1 });
     expect(stats.billing).toEqual({ refundsLast30Days: 1, disputesLast30Days: 0, paymentFailuresLast30Days: 1 });

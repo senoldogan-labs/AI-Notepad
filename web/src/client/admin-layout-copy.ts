@@ -202,7 +202,7 @@ export const adminLayoutCopy: AdminLayoutCopy = {
     churn: { label: "Cancellations", hint: "Subscriptions that ended in the last 30 days." },
     meetings: { label: "Meetings this month", hint: null },
     spend: { label: "AI spend today", hint: "Spend on AI models today against the daily ceiling; requests are refused at the ceiling." },
-    elevenLabs: { label: "Transcription capacity", hint: "Audio hours used in the current ElevenLabs plan cycle." },
+    elevenLabs: { label: "Transcription capacity", hint: "Audio hours used this ElevenLabs cycle against the tighter of the configured cap and the credits ElevenLabs reports left; new audio stops at the limit." },
     deepgram: { label: "Live transcript credit", hint: "Estimated Deepgram spend against the credit; past it, live text runs on the Mac." },
     tokens: { label: "Tokens this month", hint: "AI tokens used by all accounts this month, in meetings and outside them." },
   },

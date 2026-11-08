@@ -239,7 +239,7 @@ export async function startMeeting(
   await requireSpendHeadroom(db, config, now);
   if (!(await hasPaidAccess(db, config, userId, now))) {
     await requireTrialSpendHeadroom(db, config, now);
-    await requireElevenLabsTrialHeadroom(db, config, now);
+    await requireElevenLabsTrialHeadroom(db, context.platform, config, now);
     await requireTrialDevice(db, context, config, userId, request.deviceCheckToken, now);
     return startTrialMeeting(db, config, userId, request.deviceId, request.clientIpHash, request.clientRef, request.deferred, now);
   }
@@ -671,7 +671,7 @@ export interface ReprocessedMeeting {
  * En çok `maxMeetingReprocesses` kez; aşılırsa `reprocess_limit_reached`. Başkasının ya da olmayan toplantı
  * `not_found`. Sayaç tek koşullu ifadeyle artar (eşzamanlı istekler sınırı aşamaz).
  */
-export async function reprocessMeeting(db: D1Database, config: Config, userId: string, meetingId: string, now: Date): Promise<ReprocessedMeeting> {
+export async function reprocessMeeting(db: D1Database, platform: Platform, config: Config, userId: string, meetingId: string, now: Date): Promise<ReprocessedMeeting> {
   const row: MeetingRow | null = await findMeeting(db, userId, meetingId);
   if (row === null) {
     throw new ApiError("not_found", "Meeting session not found.");
@@ -696,7 +696,7 @@ export async function reprocessMeeting(db: D1Database, config: Config, userId: s
   // deneme durağını geçtiyse (yeni deneme toplantısıyla aynı kural) hak harcanmadan 503.
   if (row.kind === "trial") {
     await requireTrialSpendHeadroom(db, config, now);
-    await requireElevenLabsTrialHeadroom(db, config, now);
+    await requireElevenLabsTrialHeadroom(db, platform, config, now);
   }
   await requireSpendHeadroom(db, config, now);
   const until: number = nowMs + config.meetingGraceMs;

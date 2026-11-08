@@ -4,12 +4,22 @@ import type { Config } from "./config";
 import { Base64Error, base64Decode, decodeUtf8Strict, randomToken, utf8 } from "./crypto";
 import { ApiError, ProviderApiError, UpstreamError, isRetryableStatus } from "./errors";
 import { jsonResponse } from "./http";
-import { alertOnElevenLabsCrossing, requireElevenLabsHeadroom } from "./elevenLabsCapacity";
+import {
+  type ElevenLabsHeadroom,
+  type ElevenLabsSnapshot,
+  alertOnElevenLabsCrossing,
+  alertOnElevenLabsRefusal,
+  elevenLabsCapacityError,
+  elevenLabsErrorCode,
+  elevenLabsHeadroom,
+  markElevenLabsExhausted,
+} from "./elevenLabsCapacity";
 import { errorName, log } from "./log";
 import type { MeetingRow } from "./meetings";
 import type { RequestContext } from "./platform";
 import { cachedTranscription, storeTranscription, uploadKeyFrom } from "./transcriptionCache";
 import {
+  type ReservationCheck,
   type UsageReservation,
   audioReservation,
   meetingAudioIdleLimit,
@@ -446,10 +456,13 @@ function transcriptionLanguageStatement(db: D1Database, day: string, requested: 
 /** Üst servis çağrısının sonucu: değer ya da istemciye dönecek hata (kesinleştirme her iki durumda yapılmıştır). */
 type CallOutcome<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: ApiError };
 
-/** ElevenLabs gönderiminin sonucu; başarısızlıkta sesin tamamının ElevenLabs'e gidip gitmediği (ücretlenmiş olabilir). */
+/**
+ * ElevenLabs gönderiminin sonucu; başarısızlıkta sesin tamamının ElevenLabs'e gidip gitmediği (ücretlenmiş olabilir) ve
+ * reddin kredi yokluğu olup olmadığı (`isElevenLabsQuotaRejection`; ses işlenmedi).
+ */
 type ElevenLabsResult =
   | { readonly ok: true; readonly transcription: Transcription }
-  | { readonly ok: false; readonly error: ApiError; readonly uploaded: boolean };
+  | { readonly ok: false; readonly error: ApiError; readonly uploaded: boolean; readonly quotaExhausted: boolean };
 
 /**
  * Ses dosyasını ElevenLabs Scribe v2 toplu konuşma tanımaya iletir (konuşmacı ayırma isteğe bağlı). Gövde 16 kHz mono
@@ -496,24 +509,33 @@ export async function proxyTranscription(
   const reader: ReadableStreamDefaultReader<Uint8Array> = request.body.getReader();
   let audio: AudioHead;
   let reservation: UsageReservation;
+  let capacity: ElevenLabsHeadroom;
   try {
     audio = await readAudioHead(contentType, reader, declaredBytes);
-    await requireElevenLabsHeadroom(db, config, audio.seconds, now);
+    capacity = await elevenLabsHeadroom(db, context.platform, config, audio.seconds, now);
     reservation = audioReservation(meeting.user_id, meeting.id, audio.seconds, transcriptionCostMicroUsd(audio.seconds, usdPerHour), meeting.kind === "trial", now);
-    await reserveUsage(db, reservation, [
-      { limit: meetingAudioIdleLimit(meeting.id, now), amount: 1 },
-      { limit: userAudioIdleLimit(meeting.user_id, now), amount: 1 },
-      { limit: meetingAudioLimit(meeting.id), amount: audio.seconds },
-      { limit: monthlyAudioLimit(config, meeting.user_id, meeting.id, now), amount: audio.seconds },
-      ...spendCeilingChecks(config, reservation, now),
-    ]);
+    await reserveElevenLabsAudio(
+      db,
+      config,
+      reservation,
+      capacity,
+      [
+        { limit: meetingAudioIdleLimit(meeting.id, now), amount: 1 },
+        { limit: userAudioIdleLimit(meeting.user_id, now), amount: 1 },
+        { limit: meetingAudioLimit(meeting.id), amount: audio.seconds },
+        { limit: monthlyAudioLimit(config, meeting.user_id, meeting.id, now), amount: audio.seconds },
+        ...capacity.checks,
+        ...spendCeilingChecks(config, reservation, now),
+      ],
+      now,
+    );
   } catch (error: unknown) {
     await reader.cancel();
     throw error;
   }
   const outcome: CallOutcome<Transcription> = await continueAfterDisconnect(
     context,
-    transcribeAndSettle(db, context, config, meeting, params, contentType, declaredBytes, reader, audio, reservation, usdPerHour, uploadKey, now),
+    transcribeAndSettle(db, context, config, meeting, params, contentType, declaredBytes, reader, audio, reservation, capacity.snapshot, usdPerHour, uploadKey, now),
     "transcription_settle_failed",
     { userId: meeting.user_id, meetingId: meeting.id, reservationId: reservation.id },
   );
@@ -521,6 +543,28 @@ export async function proxyTranscription(
     throw outcome.error;
   }
   return jsonResponse(200, outcome.value);
+}
+
+/**
+ * Ses ayırmasını ekler (`reserveUsage`); ElevenLabs kapasite sınırlarından birine takılırsa önce
+ * `elevenlabs_capacity_exhausted` alarmı yazılır.
+ */
+async function reserveElevenLabsAudio(
+  db: D1Database,
+  config: Config,
+  reservation: UsageReservation,
+  capacity: ElevenLabsHeadroom,
+  checks: readonly ReservationCheck[],
+  now: Date,
+): Promise<void> {
+  try {
+    await reserveUsage(db, reservation, checks);
+  } catch (error: unknown) {
+    if (error instanceof ApiError && capacity.errors.includes(error)) {
+      await alertOnElevenLabsRefusal(db, config, capacity.snapshot, reservation.audioSeconds, now);
+    }
+    throw error;
+  }
 }
 
 /** ElevenLabs'e gönderir ve ayırmayı kesinleştirir (başarıda gerçek süre ve maliyet; hatada ayırma kapanır). */
@@ -535,6 +579,7 @@ async function transcribeAndSettle(
   reader: ReadableStreamDefaultReader<Uint8Array>,
   audio: AudioHead,
   reservation: UsageReservation,
+  capacity: ElevenLabsSnapshot,
   usdPerHour: number,
   uploadKey: string | null,
   now: Date,
@@ -542,10 +587,15 @@ async function transcribeAndSettle(
   const result: ElevenLabsResult = await sendToElevenLabs(context, config, meeting, params, contentType, declaredBytes, reader, audio.head);
   if (!result.ok) {
     // Ses ElevenLabs'e tamamen gittiyse işlenmiş (ücretlenmiş) olabilir: tahmini maliyet ve süre ElevenLabs'e sayılır.
-    const providerSeconds: number = result.uploaded ? reservation.audioSeconds : 0;
-    await db.batch(settleAudioStatements(db, reservation, 0, false, result.uploaded ? reservation.estimatedMicroUsd : 0, providerSeconds, now));
+    // Kredi yokluğu reddinde (402) ses işlenmedi: hiçbiri sayılmaz, kapasite tükenmiş işaretlenir.
+    const charged: boolean = result.uploaded && !result.quotaExhausted;
+    const providerSeconds: number = charged ? reservation.audioSeconds : 0;
+    await db.batch(settleAudioStatements(db, reservation, 0, false, charged ? reservation.estimatedMicroUsd : 0, providerSeconds, now));
+    if (result.quotaExhausted) {
+      await markElevenLabsExhausted(db, now);
+    }
     if (providerSeconds > 0) {
-      await alertOnElevenLabsCrossing(db, config, providerSeconds, now);
+      await alertOnElevenLabsCrossing(db, config, capacity, providerSeconds, now);
     }
     return { ok: false, error: result.error };
   }
@@ -559,7 +609,7 @@ async function transcribeAndSettle(
   ]);
   // Kesinleşmeden sonraki denetim yanıtı düşürmez (ses faturalandı; istemci yeniden göndermesin).
   try {
-    await alertOnElevenLabsCrossing(db, config, seconds, now);
+    await alertOnElevenLabsCrossing(db, config, capacity, seconds, now);
   } catch (error: unknown) {
     log("alert", "elevenlabs_capacity_check_failed", { userId: meeting.user_id, meetingId: meeting.id, error: errorName(error) });
   }
@@ -599,8 +649,24 @@ export async function cachedTranscriptionResponse(db: D1Database, request: Reque
 }
 
 /**
+ * ElevenLabs'in kredi yokluğu reddi mi: 402 (`payment_required`, ör. `insufficient_credits`) ya da eski biçimde 401
+ * `quota_exceeded`. Saf fonksiyondur.
+ */
+export function isElevenLabsQuotaRejection(status: number, code: string | null): boolean {
+  return status === 402 || (status === 401 && code === "quota_exceeded");
+}
+
+/**
+ * Kredi yokluğu reddinin istemci hatası: `503 spend_ceiling_reached` (yayımlanmış uygulamalar bunu "servis yoğun, biraz
+ * sonra yeniden dene" diye gösterir ve kaydı saklar); yönetim panelinin servis hatası sayacına `elevenlabs` olarak girer.
+ */
+function elevenLabsQuotaError(): ProviderApiError {
+  return new ProviderApiError("elevenlabs", "spend_ceiling_reached", elevenLabsCapacityError().message);
+}
+
+/**
  * Çok parçalı gövdeyi akıtarak ElevenLabs'e gönderir (toplam zaman aşımı `elevenLabsTimeoutMs`) ve yanıtı doğrular;
- * hata gövdesi okunmaz ve iletilmez. Hata fırlatmaz, sonuç döndürür: başarısızlıkta sesin tamamı gönderildi mi
+ * hata gövdesi iletilmez (401/402'de yalnızca ElevenLabs'in hata kodu okunur: kredi yokluğunu tanımak için). Hata fırlatmaz, sonuç döndürür: başarısızlıkta sesin tamamı gönderildi mi
  * (`uploaded`) bilgisiyle.
  */
 async function sendToElevenLabs(
@@ -633,10 +699,10 @@ async function sendToElevenLabs(
     // Gönderim bizim tarafta kesildiyse (boyut uyuşmazlığı, istemci koptu) asıl neden odur.
     const uploadError: unknown = await upload.then((): null => null, (failure: unknown): unknown => failure);
     if (uploadError instanceof ApiError) {
-      return { ok: false, error: uploadError, uploaded: false };
+      return { ok: false, error: uploadError, uploaded: false, quotaExhausted: false };
     }
     log("error", "elevenlabs_failed", { userId: meeting.user_id, meetingId: meeting.id, error: errorName(error), uploaded });
-    return { ok: false, error: new ProviderApiError("elevenlabs", "upstream_unavailable", "Could not reach the speech recognition service; try again."), uploaded };
+    return { ok: false, error: new ProviderApiError("elevenlabs", "upstream_unavailable", "Could not reach the speech recognition service; try again."), uploaded, quotaExhausted: false };
   }
   if (!response.ok) {
     // Üst servis gövdeyi okumadan yanıt verdiyse gönderim kendiliğinden kesilir; beklemeden kaydı arka planda tamamla.
@@ -645,13 +711,22 @@ async function sendToElevenLabs(
         log("info", "transcribe_upload_cancelled", { meetingId: meeting.id, error: errorName(failure) });
       }),
     );
-    await response.body?.cancel();
+    // Hata gövdesinden yalnızca ElevenLabs'in hata kodu okunur (kredi yokluğunu tanımak için); istemciye iletilmez.
+    const readsCode: boolean = response.status === 401 || response.status === 402;
+    const code: string | null = readsCode ? elevenLabsErrorCode(await response.text()) : null;
+    if (!readsCode) {
+      await response.body?.cancel();
+    }
+    if (isElevenLabsQuotaRejection(response.status, code)) {
+      log("alert", "elevenlabs_quota_exhausted", { userId: meeting.user_id, meetingId: meeting.id, status: response.status, code, uploaded });
+      return { ok: false, error: elevenLabsQuotaError(), uploaded, quotaExhausted: true };
+    }
     const upstream: UpstreamError = new UpstreamError("elevenlabs", response.status, isRetryableStatus(response.status), "yanıt başarısız");
-    log("error", "elevenlabs_failed", { userId: meeting.user_id, meetingId: meeting.id, status: upstream.status, uploaded });
+    log("error", "elevenlabs_failed", { userId: meeting.user_id, meetingId: meeting.id, status: upstream.status, code, uploaded });
     const error: ApiError = upstream.retryable
       ? new ProviderApiError("elevenlabs", "upstream_unavailable", "The speech recognition service is not responding right now; try again.")
       : new ProviderApiError("elevenlabs", "upstream_rejected", `The speech recognition request was rejected (status ${upstream.status}).`);
-    return { ok: false, error, uploaded };
+    return { ok: false, error, uploaded, quotaExhausted: false };
   }
   // Başarılı yanıt gövdenin tamamı okunduktan sonra gelir; gönderim yine de başarısız olduysa yanıt kullanılmaz.
   const uploadFailure: unknown = await upload.then((): null => null, (failure: unknown): unknown => failure);
@@ -660,19 +735,19 @@ async function sendToElevenLabs(
     log("error", "elevenlabs_upload_failed_after_response", { userId: meeting.user_id, meetingId: meeting.id, error: errorName(uploadFailure) });
     const error: ApiError =
       uploadFailure instanceof ApiError ? uploadFailure : new ProviderApiError("elevenlabs", "upstream_unavailable", "Could not send audio to the speech recognition service; try again.");
-    return { ok: false, error, uploaded: false };
+    return { ok: false, error, uploaded: false, quotaExhausted: false };
   }
   let body: unknown;
   try {
     body = await response.json();
   } catch (error: unknown) {
     log("error", "elevenlabs_malformed", { userId: meeting.user_id, meetingId: meeting.id, error: errorName(error) });
-    return { ok: false, error: new ProviderApiError("elevenlabs", "upstream_unavailable", "Could not read the speech recognition response."), uploaded: true };
+    return { ok: false, error: new ProviderApiError("elevenlabs", "upstream_unavailable", "Could not read the speech recognition response."), uploaded: true, quotaExhausted: false };
   }
   const parsed = transcriptionSchema.safeParse(body);
   if (!parsed.success) {
     log("error", "elevenlabs_malformed", { userId: meeting.user_id, meetingId: meeting.id });
-    return { ok: false, error: new ProviderApiError("elevenlabs", "upstream_unavailable", "Could not read the speech recognition response."), uploaded: true };
+    return { ok: false, error: new ProviderApiError("elevenlabs", "upstream_unavailable", "Could not read the speech recognition response."), uploaded: true, quotaExhausted: false };
   }
   return { ok: true, transcription: parsed.data };
 }

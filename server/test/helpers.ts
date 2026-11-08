@@ -5,6 +5,7 @@ import { handleRequest } from "../src/app";
 import { appleAppAttestationRootPem } from "../src/attest/appleRoot";
 import { appleIssuer, appleJwksUrl } from "../src/auth/apple";
 import { googleJwksUrl } from "../src/auth/google";
+import { elevenLabsSubscriptionUrl } from "../src/elevenLabsCapacity";
 import { randomId, randomToken, sha256Hex } from "../src/crypto";
 import type { Env } from "../src/env";
 import { retryRecorder } from "../src/opsEvents";
@@ -102,7 +103,34 @@ export async function createHarness(rootPem: string): Promise<Harness> {
   harness.stub(appleJwksUrl, async (): Promise<Response> => Response.json({ keys: [apple.publicJwk] }));
   const google: AppleKeys = await googleKeys();
   harness.stub(googleJwksUrl, async (): Promise<Response> => Response.json({ keys: [google.publicJwk] }));
+  // ElevenLabs hesabının kredi durumu (ses ayırmadan ve deneme toplantısından önce okunur): bol kredili etkin plan.
+  harness.stub(elevenLabsSubscriptionUrl, async (): Promise<Response> => Response.json(elevenLabsSubscriptionBody(0, 100_000_000)));
   return harness;
+}
+
+/**
+ * Günlük Cron'un dış istekleri için sahte global fetch: ElevenLabs kredi durumu bol kredili plan, diğerleri (Apple ve
+ * Google anahtarları) sahte anahtar kümesi.
+ */
+export async function cronUpstreams(input: RequestInfo | URL): Promise<Response> {
+  const url: string = input instanceof Request ? input.url : String(input);
+  return url === elevenLabsSubscriptionUrl
+    ? Response.json(elevenLabsSubscriptionBody(0, 100_000_000))
+    : Response.json({ keys: [{ kty: "RSA", kid: "cron-key", n: "AQAB", e: "AQAB" }] });
+}
+
+/** ElevenLabs `GET /v1/user/subscription` yanıtı (kullanılan alanlar ve birkaç gerçek alan). */
+export function elevenLabsSubscriptionBody(creditsUsed: number, creditsLimit: number): object {
+  return {
+    tier: "creator",
+    character_count: creditsUsed,
+    character_limit: creditsLimit,
+    can_extend_character_limit: false,
+    max_credit_limit_extension: 0,
+    next_character_count_reset_unix: 1_794_355_200,
+    status: "active",
+    has_open_invoices: false,
+  };
 }
 
 /** Üretim köküyle düzenek (App Attest testleri dışındaki her şey). */

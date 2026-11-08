@@ -79,7 +79,7 @@ export default {
     // Adımlar birbirinden bağımsız: biri başarısız olsa da diğerleri çalışır; her hata `alert` yazılır, sonunda hepsi
     // birlikte fırlatılır (Cron çalışması başarısız görünsün).
     const steps: ReadonlyArray<{ name: string; run: () => Promise<unknown> }> = [
-      { name: "elevenlabs_capacity", run: () => dailyElevenLabsCapacityCheck(env.DB, config, now) },
+      { name: "elevenlabs_capacity", run: () => dailyElevenLabsCapacityCheck(env.DB, platform, config, now) },
       { name: "deepgram_settle", run: () => settleDeepgramMeetings(env.DB, now) },
       // Deepgram tahmini indirildikten sonra: biten günün toplamları ve gün sonundaki durum (bkz. `dailyMetrics.ts`).
       { name: "daily_metrics", run: () => recordDailyMetrics(env.DB, config, now) },

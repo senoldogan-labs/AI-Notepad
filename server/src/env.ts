@@ -89,6 +89,7 @@ export interface Env {
   readonly SCRIBE_KEYTERMS_USD_PER_HOUR: string;
   readonly ELEVENLABS_MONTHLY_AUDIO_HOURS: string;
   readonly ELEVENLABS_BILLING_DAY: string;
+  readonly ELEVENLABS_CREDITS_PER_AUDIO_HOUR: string;
   readonly DEEPGRAM_POLICY: string;
   readonly DEEPGRAM_BUDGET_USD: string;
   readonly DEEPGRAM_USD_PER_MINUTE: string;

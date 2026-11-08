@@ -190,12 +190,21 @@
     "TRANSCRIBE_MAX_KEYTERMS": "100",
     "SCRIBE_USD_PER_HOUR": "0.22",
     "SCRIBE_KEYTERMS_USD_PER_HOUR": "0.05",
-    // ElevenLabs Creator planı: ayda 121 000 kredi, ölçülen ~1080 kredi/ses saati → ~110 saat; dönem ayın 11'inde
-    // yenilenir. Kredi bitince her konuşma tanıma isteği başarısız olur (sağlayıcı uyarmaz): kullanım %80 ve %95'i aşınca
-    // `elevenlabs_capacity_threshold` alarmı, eşiğin üstündeyken günlük `elevenlabs_capacity_high` alarmı; durum
-    // `GET /v1/admin/stats` → `elevenLabs`. Gün 1–28 olmalı.
+    // ElevenLabs kapasitesi (src/elevenLabsCapacity.ts). Asıl sınır hesabın canlı kalan kredisidir: sunucu
+    // `GET https://api.elevenlabs.io/v1/user/subscription` (character_count / character_limit; ELEVENLABS_API_KEY'in
+    // "User: Read" izni olmalı) yanıtını D1'de (`elevenlabs_capacity`) saklar, ses ayırmadan önce 10 dakikadan eskiyse
+    // tazeler, günlük Cron da tazeler. Kalan kredi ELEVENLABS_CREDITS_PER_AUDIO_HOUR (ölçülen ~1080 kredi/ses saati) ×
+    // 1,1 payla saate çevrilir, 1 saat yedek bırakılır; o zamandan beri yazılan ses düşülür. Okuma 6 saatten uzun
+    // başarısızsa yeni ses ayırmaları `503 spend_ceiling_reached` ile durur (`elevenlabs_capacity_unknown` alarmı).
+    // ELEVENLABS_MONTHLY_AUDIO_HOURS dönemin elle konan güvenlik üst sınırıdır (%97'de sert durak); ikisinden dar olan
+    // geçerlidir. ElevenLabs konuşma tanıma isteğini yine de 402 (kredi yok) ile reddederse istemciye
+    // `503 spend_ceiling_reached`, `elevenlabs_quota_exhausted` alarmı yazılır ve kapasite tükenmiş işaretlenir.
+    // Kullanım %80 ve %95'i aşınca `elevenlabs_capacity_threshold`, eşik üstündeyken günlük `elevenlabs_capacity_high`
+    // alarmı; durum `GET /v1/admin/stats` → `elevenLabs`. Gün 1–28 olmalı. Yerelde sahte servis (scripts/fake-upstreams.ts)
+    // ya da gerçek anahtar gerekir.
     "ELEVENLABS_MONTHLY_AUDIO_HOURS": "110",
     "ELEVENLABS_BILLING_DAY": "11",
+    "ELEVENLABS_CREDITS_PER_AUDIO_HOUR": "1080",
     // Deepgram canlı metni (src/deepgram.ts): "on" ise açık toplantıya kısa ömürlü Deepgram jetonu verilir (gizli
     // DEEPGRAM_API_KEY gerekir; yoksa her istek 500), "off" ise verilmez ve uygulama canlı metni Mac'te (WhisperKit)
     // üretir. Yerelde ve testlerde "off". Bütçe ömür boyudur (sahibin ücretsiz kredisinin canlı metne ayrılan kısmı);
@@ -397,12 +406,14 @@
         "TRANSCRIBE_MAX_KEYTERMS": "100",
         "SCRIBE_USD_PER_HOUR": "0.22",
         "SCRIBE_KEYTERMS_USD_PER_HOUR": "0.05",
-        // Bkz. üstteki geliştirme `vars` açıklaması.
-        // Otomatik yükleme kapalı (sahibin kararı: her ödeme önce sorulur). Bu dönem (11 Ekim–11 Kasım): Creator planı
-        // 121 K + bir kez alınan 137,5 K yükleme kredisi = 258,5 K; ölçülen ~1.080 kredi/saat ile ~239 saat. Yükleme
-        // kredisi 12 ay geçerli, ay başında sıfırlanmaz; her dönem başında hesaptaki kalan krediye göre yeniden ayarla.
+        // Bkz. üstteki geliştirme `vars` açıklaması. Asıl sınır ElevenLabs'in bildirdiği canlı kalan kredidir; bu değer
+        // yalnızca güvenlik üst sınırıdır (canlı okuma bundan fazlasına izin vermez). Otomatik yükleme kapalı (sahibin
+        // kararı: her ödeme önce sorulur). Ayar: Creator planı 121 K + bir kez alınan 137,5 K yükleme kredisi = 258,5 K
+        // (8 Kasım 2026: 14.443 kullanıldı, yenileme 11 Kasım); ~1.080 kredi/saat ile ~239 saat. Yükleme kredisi
+        // bitince ya da plan değişince canlı sınır kendiliğinden daralır; bu üst sınırı yalnızca planı büyütürken artır.
         "ELEVENLABS_MONTHLY_AUDIO_HOURS": "235",
         "ELEVENLABS_BILLING_DAY": "11",
+        "ELEVENLABS_CREDITS_PER_AUDIO_HOUR": "1080",
         // Bkz. üstteki geliştirme `vars` açıklaması. Gizli DEEPGRAM_API_KEY girilmeden "on" her istekte 500 verir.
         // Açık (sahibin kararı): kurulan akış jetonun süresi dolsa da sürebilir. DEEPGRAM_BUDGET_USD tahmini izler, kesin
         // sınır değildir (değiştirilmiş istemci akışı toplantıdan sonra açık tutabilir); kesin üst sınır Deepgram
