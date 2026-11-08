@@ -114,7 +114,8 @@ private struct CallCaptureExperimentContent: View {
                 ProgressView()
                 Text("Sistem penceresi bekleniyor…")
             }
-        case .capturing(let startedAt):
+        case .capturing(let take):
+            let startedAt: Date = take.startedAt
             TimelineView(.periodic(from: startedAt, by: 1)) { (context: TimelineViewDefaultContext) in
                 Text("Kayıt sürüyor: \(Duration.seconds(context.date.timeIntervalSince(startedAt)).formatted(.time(pattern: .minuteSecond)))")
                     .monospacedDigit()
@@ -129,11 +130,18 @@ private struct CallCaptureExperimentContent: View {
                 ProgressView()
                 Text("Dosyalar karıştırılıyor…")
             }
+        case .importing:
+            HStack(spacing: 8) {
+                ProgressView()
+                Text("İçe aktarılıyor…")
+            }
         case .finished:
             Button {
                 Task {
-                    await controller.importAsMeeting(recorder: recorder)
-                    onClose()
+                    // İçe aktarılamadıysa sayfa açık kalır: neden hatalarda, kayıt burada.
+                    if await controller.importAsMeeting(recorder: recorder) {
+                        onClose()
+                    }
                 }
             } label: {
                 Label { Text("Toplantı olarak içe aktar") } icon: { Image(systemName: "square.and.arrow.down") }
@@ -144,7 +152,7 @@ private struct CallCaptureExperimentContent: View {
 
     private func isBusy(phase: CallCapturePhase) -> Bool {
         switch phase {
-        case .picking, .capturing, .finishing: true
+        case .picking, .capturing, .finishing, .importing: true
         case .idle, .finished: false
         }
     }
