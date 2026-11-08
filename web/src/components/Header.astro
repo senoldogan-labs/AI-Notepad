@@ -4,10 +4,10 @@
 // Download stays visible. src/client/theme.js binds every theme switch (without the script they are hidden and the theme
 // follows the system). With a session in the tab the "Sign in" links turn into "Account" (src/client/header.ts). Text
 // comes from the page (`/fi` in Finnish); the language choice is in the footer (Footer.astro).
-import AppStoreBadge from "./AppStoreBadge.astro";
+import GetApp from "./GetApp.astro";
 import Icon from "./Icon.astro";
 import Logo from "./Logo.astro";
-import { appStoreUrl, productName } from "../config";
+import { productName } from "../config";
 import { copy, type CommonCopy } from "../copy";
 import { type PageKey, routes } from "../routes";
 
@@ -69,12 +69,8 @@ const currentPath: string = routes[page];
       >
         {text.nav.signIn}
       </a>
-      <a class="button button--primary button--small header-cta not-ios" href={routes.download} aria-current={routes.download === currentPath ? "page" : undefined}>
-        <Icon name="apple" size={15} class="button__apple" />
-        {text.headerDownload}
-      </a>
-      {/* On an iPhone or iPad (src/client/platform.js) the pill opens the App Store instead. */}
-      <a class="button button--primary button--small header-cta ios-only" href={appStoreUrl}>
+      {/* The same pill on every device: the download page, with the Mac app and the iPhone app side by side. */}
+      <a class="button button--primary button--small header-cta" href={routes.download} aria-current={routes.download === currentPath ? "page" : undefined}>
         <Icon name="apple" size={15} class="button__apple" />
         {text.headerGetApp}
       </a>
@@ -109,13 +105,7 @@ const currentPath: string = routes[page];
               <a href={routes.signIn} data-session-link>{text.nav.signIn}</a>
             </li>
           </ul>
-          <div class="menu__get">
-            <a class="button button--primary menu__download not-ios" href={routes.download}>
-              <Icon name="apple" size={15} class="button__apple" />
-              {text.downloadCta}
-            </a>
-            <AppStoreBadge language={text.appStoreBadge.language} label={text.appStoreBadge.label} height={44} class="menu__badge" />
-          </div>
+          <GetApp common={text} macHref={routes.download} size="small" class="menu__get" />
           <button class="menu__theme" type="button" data-theme-toggle aria-pressed="false">
             <span class="theme-toggle__icons" aria-hidden="true">
               <Icon name="moon" size={16} class="theme-toggle__icon theme-toggle__moon" />
@@ -371,18 +361,10 @@ const currentPath: string = routes[page];
     color: var(--muted);
   }
 
-  .menu__get {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
+  .menu :global(.menu__get) {
     gap: 8px;
     padding: 8px 6px 6px;
     border-top: 1px solid var(--line);
-  }
-
-  .menu__download {
-    flex: 1 1 auto;
-    min-height: 44px;
   }
 
   .theme-toggle__icons {

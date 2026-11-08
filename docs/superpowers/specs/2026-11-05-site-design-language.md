@@ -107,16 +107,19 @@ to action (`CtaBand`), and marks sign-in, 404 and shared notes. It is drawn from
 ### Navigation and footer
 
 - **Header:** at the top of the page the logo, Features / Voice typing / Pricing / Compare / Blog, the theme switch, an
-  outline "Sign in" pill and the orange "Download" pill sit on the page itself, aligned to the content grid; once the
-  page scrolls the bar becomes a floating pill over a soft fade of the page colour. Below 860 px the links fold into a
-  `<details>` sheet (plus Integrations, MCP and both download buttons; it closes on scroll); Download stays visible.
-  On an iPhone or iPad (`src/client/platform.js`, before the first paint) the pill reads "Get the app" and opens the
-  App Store, and every closing call to action leads with the App Store badge.
+  outline "Sign in" pill and the orange "Get the app" pill (the download page) sit on the page itself, aligned to the
+  content grid; once the page scrolls the bar becomes a floating pill over a soft fade of the page colour. Below 860 px
+  the links fold into a `<details>` sheet (plus Integrations, MCP and both ways to get the app; it closes on scroll);
+  "Get the app" stays visible.
+- **Mac and iPhone are equals** on every device: wherever the site offers the app it shows "Download for Mac" and the
+  App Store badge side by side (`GetApp.astro`): the same height, the Mac button drawn like the badge (black with a grey
+  hairline in the light theme, white in the dark theme). No device detection swaps or hides either one; on a phone the
+  Mac button opens the "send yourself the link" dialog.
 - **Closing call to action:** one page-width card (radius 24, paper with a warm glow, the horizon waveform), the serif
-  title, one line, the Mac button and the App Store badge at the same height.
+  title, one line, the Mac button and the App Store badge (`GetApp`).
 - **Footer:** on the paper surface: the logo, one sentence on the product, the Mac download and the App Store badge;
   three link columns (Product, Compare, Company) with small sans titles; a hairline, then copyright, Privacy · Terms ·
-  Cookies, "Made in Oulu, Finland · EU company, GDPR" and the language choice; one line of small print with the business
+  Cookies, "EU company, GDPR" and the language choice; one line of small print with the business
   behind the product and the typeface licences. On phones the columns become closed disclosures. No giant wordmark and
   no closing image.
 
@@ -126,9 +129,9 @@ to action (`CtaBand`), and marks sign-in, 404 and shared notes. It is drawn from
   with a slot for floating content. The page's largest photo (`priority="lcp"`: pricing, sign-in, download, MCP) is
   preloaded with `fetchpriority="high"`; every other panel is lazy.
 - `AppShot`: a real Mac screenshot (`scripts/make-screenshots.sh`) floating in a `PhotoPanel`, cut by the panel's
-  bottom edge on wide windows. Screenshots are lazy everywhere; the home hero's, the largest paint on wide screens, is
-  preloaded only above 640 px (`media`), because on phones the headline is the largest paint. Only Mac screenshots
-  appear (the iPhone app is not on the App Store yet).
+  bottom edge on wide windows. Screenshots are lazy everywhere; the home hero's Mac window, the largest paint on wide
+  screens, is preloaded only above 640 px (`media`), because on phones the headline is the largest paint (there the
+  hero's wave render becomes a static gradient, so no photograph outgrows the headline).
 - Chips: white pills with a brand tile and a name (Notion, Slack, Linear, Obsidian, Calendar), only on the
   integrations photograph and only for integrations the product really has; the existing two callouts on the hero note
   window use the same chip. No status chips ("processing…") over windows. The former moving logo marquee is a still,
@@ -145,10 +148,10 @@ under `prefers-reduced-motion`. Nothing blurred or filtered animates.
 
 ### Page templates
 
-- **Home (`/`, `/fi`):** hero in two columns (display headline, one line with the category as its bold lead-in, one
-  Download button, assurances; a collage of a desert photograph and a wave render, offset so each shows about a third
-  of itself, with the Mac note window and the live panel in front) → a factual trust strip (made in Oulu, EU company,
-  notarized by Apple, no bot; never testimonials, ratings or logos we do not have) → the brand line "Quiet while you
+- **Home (`/`, `/fi`):** hero in two columns (display headline, one line naming Mac and iPhone, both ways to get the
+  app, assurances and both requirements; the Mac note window on a wave render with the iPhone home screen in front of
+  its lower corner, on phones too) → a factual trust strip (EU company, Mac app notarized by Apple, iPhone app on the
+  App Store, the Claude directory listing; never testimonials, ratings or logos we do not have) → the brand line "Quiet while you
   talk. Yours when you're done." on the paper band, opened by the horizon, with the three steps and the product demo
   on a photograph → the launch video on a wave render → feature rows with real screens → the small things as dark
   cards on the night band → the iPhone app → integrations (MCP chat window and chips) → privacy on the night band →

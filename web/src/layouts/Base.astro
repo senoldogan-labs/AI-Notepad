@@ -9,7 +9,6 @@ import MacOnlyDialog from "../components/MacOnlyDialog.astro";
 import interFontUrl from "../assets/fonts/InterVariable-latin.woff2?url";
 import serifFontUrl from "../assets/fonts/Newsreader-display-latin.woff2?url";
 import themeScript from "../client/theme.js?raw";
-import platformScript from "../client/platform.js?raw";
 import { productName } from "../config";
 import { copy, type CommonCopy, type PageMeta } from "../copy";
 import type { SocialCard } from "../lib/social";
@@ -66,8 +65,6 @@ const hreflangLinks: ReadonlyArray<{ readonly lang: string; readonly href: strin
     {/* Tema ilk boyamadan önce uygulanır. Satır içi: ayrı istek yavaş telefonda ilk boyamayı geciktiriyordu; CSP izni
         derlemede hesaplanan sha256 özetiyle verilir (astro.config.ts). */}
     <script is:inline set:html={themeScript}></script>
-    {/* iPhone and iPad mark (App Store badge instead of the Mac download), also before the first paint. */}
-    <script is:inline set:html={platformScript}></script>
     <title>{meta.title}</title>
     <meta name="description" content={meta.description} />
     {indexed ? <link rel="canonical" href={canonical} /> : <meta name="robots" content="noindex" />}

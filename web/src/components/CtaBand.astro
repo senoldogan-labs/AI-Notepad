@@ -1,13 +1,10 @@
 ---
 // Closing call on every page that sells (home, pricing, compare, blog posts, feature pages): one page-width card with
 // a soft warm gradient, the horizon waveform, the serif title, one line and the two ways to get the app at the same
-// height. On an iPhone or iPad (src/client/platform.js) the App Store badge leads and the Mac download turns into a
-// small link to the download page.
-import AppStoreBadge from "./AppStoreBadge.astro";
+// height and weight on every device (GetApp.astro).
+import GetApp from "./GetApp.astro";
 import Horizon from "./Horizon.astro";
-import Icon from "./Icon.astro";
 import type { CommonCopy } from "../copy";
-import { routes } from "../routes";
 
 interface Props {
   readonly id: string;
@@ -22,7 +19,6 @@ interface Props {
   readonly macHref: string;
 }
 const { id, title, text, common, macHref } = Astro.props;
-const isDirectDownload: boolean = macHref !== routes.download;
 ---
 
 <section class="page closing" aria-labelledby={id}>
@@ -30,14 +26,7 @@ const isDirectDownload: boolean = macHref !== routes.download;
     <Horizon seed={title} class="closing__horizon" />
     <h2 class="title-xl closing__title reveal" id={id}>{title}</h2>
     <p class="closing__text reveal">{text}</p>
-    <div class="closing__actions reveal">
-      <a class="button button--primary not-ios" href={macHref} data-mac-download={isDirectDownload ? "" : undefined}>
-        <Icon name="apple" size={16} class="button__apple" />
-        {common.downloadCta}
-      </a>
-      <AppStoreBadge language={common.appStoreBadge.language} label={common.appStoreBadge.label} height={52} class="" />
-      <a class="text-link ios-only closing__mac" href={routes.download}>{common.alsoOnMac} <Icon name="arrow-right" size={16} class="" /></a>
-    </div>
+    <GetApp common={common} macHref={macHref} size="large" class="closing__actions reveal" />
   </div>
 </section>
 
@@ -84,18 +73,8 @@ const isDirectDownload: boolean = macHref !== routes.download;
     font-size: 1.125rem;
   }
 
-  .closing__actions {
-    display: flex;
-    flex-wrap: wrap;
+  .closing :global(.closing__actions) {
     justify-content: center;
-    align-items: center;
-    gap: 12px;
     margin-top: 6px;
-  }
-
-  .closing__mac {
-    min-height: 44px;
-    display: inline-flex;
-    align-items: center;
   }
 </style>

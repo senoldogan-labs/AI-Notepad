@@ -8,6 +8,7 @@
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
 import PhotoPanel from "../components/PhotoPanel.astro";
+import GetApp from "../components/GetApp.astro";
 import Icon from "../components/Icon.astro";
 import { copy, type CommonCopy, type IconText, type InviteCopy } from "../copy";
 import { routes } from "../routes";
@@ -24,11 +25,7 @@ const common: CommonCopy = copy.common;
       <p class="lead">{text.lead}</p>
       <div class="invite-hero__actions">
         <a id="invite-redeem" class="button button--primary" href={routes.account}>{text.redeem}</a>
-        <a class="button button--secondary not-ios" href={routes.download}>
-          <Icon name="apple" size={16} class="button__apple" />
-          {common.downloadCta}
-        </a>
-        <a class="button button--secondary ios-only" href={routes.pricing}>{common.nav.pricing}</a>
+        <GetApp common={common} macHref={routes.download} size="large" class="" />
       </div>
       <p class="muted invite-hero__note">{text.redeemNote}</p>
     </div>

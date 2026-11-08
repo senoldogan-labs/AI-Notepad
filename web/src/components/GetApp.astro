@@ -1,0 +1,31 @@
+---
+// The two ways to get the app, side by side with equal weight on every device: "Download for Mac" and Apple's App Store
+// badge, the same height, the same dark fill and nearly the same corner (styles in global.css, `.get-app`). The Mac
+// button goes to the counted DMG download or to the download page; only the direct download carries the device check,
+// which offers to send the link to a Mac when tapped on a phone (MacOnlyDialog.astro).
+import AppStoreBadge from "./AppStoreBadge.astro";
+import Icon from "./Icon.astro";
+import type { CommonCopy } from "../copy";
+import { routes } from "../routes";
+
+interface Props {
+  /** Shared text (button, badge), English or Finnish. */
+  readonly common: CommonCopy;
+  /** The counted DMG download (`macDownloadUrl`, from a source the server allows) or the download page. */
+  readonly macHref: string;
+  /** "large": 52 px (hero, closing card, pricing); "small": 44 px (header menu, footer, comparison summary). */
+  readonly size: "large" | "small";
+  readonly class: string;
+}
+const { common, macHref, size, class: extraClass } = Astro.props;
+const isDirectDownload: boolean = macHref !== routes.download;
+const badgeHeight: number = size === "large" ? 52 : 44;
+---
+
+<div class:list={["get-app", `get-app--${size}`, extraClass]}>
+  <a class="button get-app__mac" href={macHref} data-mac-download={isDirectDownload ? "" : undefined}>
+    <Icon name="apple" size={size === "large" ? 18 : 16} class="button__apple" />
+    {common.downloadCta}
+  </a>
+  <AppStoreBadge language={common.appStoreBadge.language} label={common.appStoreBadge.label} height={badgeHeight} class="get-app__badge" />
+</div>

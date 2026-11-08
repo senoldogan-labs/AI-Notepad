@@ -4,7 +4,7 @@
 // privacy, terms and cookies, the EU note and the language choice (routes.ts `siteLanguages`: each language goes to its
 // own home page, the current one is plain text); under it one line of small print naming the business behind the
 // product (legal/operator.ts) and the typeface licences. The page ends there: no closing image.
-import AppStoreBadge from "./AppStoreBadge.astro";
+import GetApp from "./GetApp.astro";
 import Icon from "./Icon.astro";
 import Logo from "./Logo.astro";
 import { productName } from "../config";
@@ -65,13 +65,7 @@ const columns: readonly { readonly title: string; readonly links: readonly { rea
         <span>{productName}</span>
       </a>
       <p class="site-footer__summary">{text.footer.summary}</p>
-      <div class="site-footer__get">
-        <a class="button button--primary site-footer__download" href={routes.download}>
-          <Icon name="apple" size={15} class="button__apple" />
-          {text.downloadCta}
-        </a>
-        <AppStoreBadge language={text.appStoreBadge.language} label={text.appStoreBadge.label} height={44} class="site-footer__badge" />
-      </div>
+      <GetApp common={text} macHref={routes.download} size="small" class="site-footer__get" />
     </div>
     {
       columns.map((column) => (
@@ -188,19 +182,9 @@ const columns: readonly { readonly title: string; readonly links: readonly { rea
     line-height: 1.55;
   }
 
-  .site-footer__get {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
+  .site-footer__about :global(.site-footer__get) {
     gap: 10px;
     margin-top: 8px;
-  }
-
-  /* Same height as the App Store badge next to it. */
-  .site-footer__download {
-    min-height: 44px;
-    padding-inline: 18px;
-    font-size: 0.9375rem;
   }
 
   /* Column titles: small sans, like the navigation. */

@@ -7,7 +7,7 @@ import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
 import Faq from "../components/Faq.astro";
 import Icon from "../components/Icon.astro";
-import AppStoreBadge from "../components/AppStoreBadge.astro";
+import GetApp from "../components/GetApp.astro";
 import CtaBand from "../components/CtaBand.astro";
 import { copy, type CommonCopy, type IconItem, type IconText, type PlanOptionCopy, type PricingCopy } from "../copy";
 import { pricingStructuredData, structuredDataJson } from "../lib/structured-data";
@@ -37,14 +37,8 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
   <section class="page page-head intro">
     <h1 class="title-xl">{text.title}</h1>
     <p class="lead">{text.lead}</p>
-    {/* Start free: the download on a Mac, the App Store on an iPhone or iPad (src/client/platform.js). */}
-    <div class="intro__actions">
-      <a class="button button--ink not-ios" href={routes.download}>
-        <Icon name="apple" size={16} class="button__apple" />
-        {text.startFree}
-      </a>
-      <AppStoreBadge language={common.appStoreBadge.language} label={common.appStoreBadge.label} height={52} class="ios-only" />
-    </div>
+    {/* Start free on either device: the Mac download and the App Store side by side. */}
+    <GetApp common={common} macHref={routes.download} size="large" class="intro__actions" />
   </section>
 
   <section class="page" aria-labelledby="plans-title">
@@ -129,8 +123,7 @@ const [noteBefore, noteAfter]: readonly [string, string] = ((): readonly [string
     max-width: 16ch;
   }
 
-  .intro__actions {
-    display: flex;
+  .intro :global(.intro__actions) {
     justify-content: center;
     margin-top: 6px;
   }

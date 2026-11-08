@@ -36,9 +36,7 @@ export const commonFi: CommonCopy = {
     dataHandling: "Tietojen käsittely",
   },
   downloadCta: "Lataa Macille",
-  headerDownload: "Lataa",
   headerGetApp: "Hanki sovellus",
-  alsoOnMac: "Myös Macille",
   darkMode: "Tumma tila",
   // Hinta pysyy dollarina (checkout veloittaa dollareina); structured-data.ts tämän muodon lukee.
   price: "$5.99",
@@ -49,6 +47,7 @@ export const commonFi: CommonCopy = {
   trial: "Ilmainen kokeilu: 3 kokousta tai 7 päivää ensimmäisestä kokouksesta, kumpi tahansa täyttyy ensin, kukin enintään 90 minuuttia; korttia ei tarvita",
   requirementsShort: "macOS 15 tai uudempi · Apple silicon",
   iphoneRequirementsShort: "iOS 26.1 tai uudempi",
+  platformsShort: ["Mac: macOS 15 tai uudempi, Apple silicon", "iPhone: iOS 26.1 tai uudempi"],
   appStoreBadge: { language: "fi", label: "Lataa App Storesta" },
   macOnly: {
     notMacTitle: "Lataa Mac-sovellus Macillasi",
@@ -80,8 +79,8 @@ export const commonFi: CommonCopy = {
     privacyShort: "Tietosuoja",
     termsShort: "Käyttöehdot",
     cookies: "Evästeet",
-    euNote: "Tehty Oulussa · EU-yritys, GDPR",
-    operatorLine: `${productName}in tekee ja myy ${operator.name} (Y-tunnus ${operator.businessId}), Oulu.`,
+    euNote: "EU-yritys, GDPR",
+    operatorLine: `${productName}in tekee ja myy ${operator.name} (Y-tunnus ${operator.businessId}), Suomi.`,
     typefaces: "Kirjasimet:",
     pullThanks: "Kiitos, kun kuuntelit.",
     copyright: `© 2026 ${operator.name}`,
@@ -102,7 +101,7 @@ export const homeFi: HomeCopy = {
   lead: `Tekoälyn kokousmuistiinpanot Macille ja iPhonelle: reaaliaikainen käännös ${noteLanguages.length} kielelle ja omat tehtäväsi poimittuina. Kokoukseen ei liity bottia.`,
   secondaryCta: "Katso hinnat",
   assurances: ["3 kokousta tai 7 päivää ilmaiseksi", "Ei korttitietoja"],
-  proof: ["Tehty Oulussa", "EU-yritys, GDPR", "Applen notarisoima"],
+  proof: ["EU-yritys, GDPR", "Mac-sovellus on Applen notarisoima", "iPhone-sovellus App Storessa"],
   directory: { text: "Mukana Clauden liitinhakemistossa", href: "https://claude.ai/directory/connectors/gistsmith" },
   demo: {
     label: `${productName} tallentaa kokousta ja kirjoittaa muistiinpanoa`,
@@ -192,7 +191,6 @@ export const homeFi: HomeCopy = {
       home: `${productName}-sovelluksen aloitusnäkymä iPhonella: päivän tulevat kokoukset Briefing- ja Join-painikkeineen, 8 avointa tehtävää, viimeisimmät muistiinpanot ja kysymyspainike tallennuspainikkeen vieressä.`,
       ask: `Kysy-näkymä iPhonella: kysymys ”What did we decide about the budget?” ja vastaus kahdessa kohdassa numeroiduin viittauksin kokouksiin.`,
     },
-    heroLink: "Myös iPhonelle",
   },
   features: {
     missed: {
