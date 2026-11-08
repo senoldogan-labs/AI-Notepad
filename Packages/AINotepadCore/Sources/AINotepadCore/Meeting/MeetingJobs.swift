@@ -51,3 +51,14 @@ public func processingSteps(jobs: [String: MeetingJob]) -> [String: ProcessingSt
         return nil
     }
 }
+
+/// Notu yazılan, düzenlenen ya da transkripti yeniden çevrilen (işleme dışında işi süren) toplantılar ("Not
+/// yazılıyor…"). Saf fonksiyondur.
+public func noteJobMeetingIDs(jobs: [String: MeetingJob]) -> Set<String> {
+    Set(jobs.compactMap { (meetingID: String, job: MeetingJob) -> String? in
+        if case .processing = job {
+            return nil
+        }
+        return meetingID
+    })
+}

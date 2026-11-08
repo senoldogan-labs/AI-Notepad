@@ -267,8 +267,8 @@ private struct PhoneTrackerDetail: View {
     @Environment(PhoneIntegrations.self) private var integrations: PhoneIntegrations
     /// Görev aracı girişi (yerel dönüşlü uygulama içi tarayıcı).
     @State private var browser: PhoneMCPSignIn = PhoneMCPSignIn()
+    /// Süren giriş ("İzin bekleniyor…"; "Vazgeç" bunu iptal eder); yoksa nil.
     @State private var signIn: Task<Void, Never>?
-    @State private var isConnecting: Bool = false
     @State private var status: String?
 
     var body: some View {
@@ -279,11 +279,11 @@ private struct PhoneTrackerDetail: View {
                     Button {
                         connect()
                     } label: {
-                        PhonePrimaryButtonLabel(title: isConnecting ? "İzin bekleniyor…" : "Bağlan")
+                        PhonePrimaryButtonLabel(title: signIn != nil ? "İzin bekleniyor…" : "Bağlan")
                     }
                     .buttonStyle(.plain)
-                    .disabled(isConnecting)
-                    if isConnecting, let signIn {
+                    .disabled(signIn != nil)
+                    if let signIn {
                         Button("Vazgeç") { signIn.cancel() }
                             .buttonStyle(.borderless)
                             .foregroundStyle(Theme.muted)
@@ -322,13 +322,12 @@ private struct PhoneTrackerDetail: View {
     }
 
     private func connect() {
-        isConnecting = true
+        guard signIn == nil else {
+            return
+        }
         status = nil
         signIn = Task {
-            defer {
-                isConnecting = false
-                signIn = nil
-            }
+            defer { signIn = nil }
             do {
                 try await integrations.connectTracker(service: service, browser: browser)
                 status = String(localized: "\(service.displayName) bağlandı.")
