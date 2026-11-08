@@ -385,6 +385,14 @@ public struct AskBar: View {
             .onChange(of: exchanges.last?.answer.text) { (_: String?, _: String?) -> Void in
                 proxy.scrollTo(exchanges.last?.id, anchor: .bottom)
             }
+            // Yeni soru ve cevabın bitişi (hata satırı, kaynaklar, düğmeler) de görünsün: yalnız akan metin izlenirse
+            // hatayla biten cevabın satırı sohbetin altında kesik kalıyordu.
+            .onChange(of: exchanges.count) { (_: Int, _: Int) -> Void in
+                proxy.scrollTo(exchanges.last?.id, anchor: .bottom)
+            }
+            .onChange(of: exchanges.last?.phase) { (_: ArchiveExchange.Phase?, _: ArchiveExchange.Phase?) -> Void in
+                withAnimation(.smooth(duration: 0.25)) { proxy.scrollTo(exchanges.last?.id, anchor: .bottom) }
+            }
         }
     }
 
