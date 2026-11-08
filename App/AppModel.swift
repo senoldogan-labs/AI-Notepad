@@ -400,12 +400,12 @@ final class AppModel {
             // Algılanan dil yalnızca kayıt sürerken anlamlı: bittikten sonra seçili mod (ör. "Otomatik") görünür.
             languageText: languageText(locked: isRecording ? lockedLanguage : nil, mode: languageMode, isRecording: isRecording),
             noteLanguageText: selectedNoteLanguage().interfaceName,
-            // Çözülmüş hatalar (ör. abone olduktan sonra "deneme bitti") panelde de kalmaz. Mikrofon kesintisi en başta
-            // (amber): kayıt sürer, ses gelince kendiliğinden kalkar.
+            // Çözülmüş hatalar (ör. abone olduktan sonra "deneme bitti") panelde de kalmaz. Mikrofon kesintisi (amber)
+            // hep görünür ve en sonda durur (ada son bildirimi gösterir); ses gelince kendiliğinden kalkar.
             notices: mergedRecordingNotices(
                 errors: visibleErrorMessages(errors: errorMessages, shownElsewhere: [], resolved: resolvedErrorMessages()),
-                notices: microphoneNotices + recordingNotices, limit: 3
-            )
+                notices: recordingNotices, limit: 3 - microphoneNotices.count
+            ) + microphoneNotices
         )
         if let cache = viewStateCache, cache.inputs == inputs {
             return cache.state
@@ -1563,7 +1563,8 @@ final class AppModel {
     }
 
     /// "Bitir"den sonra canlı oturum `finishingLimitSec` içinde kapanmazsa kayıt canlı metnin sonu beklenmeden kapatılır
-    /// (iPhone'daki gibi): ses akışları "Bitir" anında kapandı, son geçiş kaydın tamamını yazıya döker.
+    /// (iPhone'daki gibi): ses akışları "Bitir" anında kapandı; yazılmamış son, son geçişte kayıttan tamamlanır (bkz.
+    /// `finishNow`).
     private func watchFinishing() {
         finishingWatchdogTask?.cancel()
         let generation: Int = recordingGeneration
@@ -1583,12 +1584,16 @@ final class AppModel {
     }
 
     /// "Şimdi bitir": canlı metnin sonu (bulut kapanışı, kalan ses) beklenmez; oturum bırakılır, toplantı kaydedilip
-    /// işlenir. Son geçiş kaydın tamamını yazıya döker.
+    /// işlenir. "Diğerleri" ve (işaretlenerek) "Sen" son geçişte kayıttan yazıya dökülür; son geçiş atlanan kayıtta
+    /// (kendi anahtarınla ElevenLabs yoksa) canlı metnin sonu eksik kalır.
     func finishNow() async {
         guard isFinishing, let session else {
             return
         }
         Self.logger.info("Bitirme beklenmeden kapatılıyor")
+        // İptal kalan sesi yazıya dökmez ve eksik metni bildirmez: "Sen"in yazılmamış sonu son geçişte kayıttan yazıya
+        // dökülsün (buluttan Mac'e geçişteki gibi; "Diğerleri" son geçişten zaten geçer).
+        meStreamFailed = meStreamFailed || startedSpeakers.contains(.me)
         // Son geçiş her kayıtta çalışmayabilir (kendi anahtarınla ElevenLabs anahtarı yoksa): yalnız olanı söyler.
         addRecordingNotice(severity: .info, text: String(localized: "Canlı metnin sonu beklenmeden kayıt kapatıldı."))
         await session.handle.cancel()
