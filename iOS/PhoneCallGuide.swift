@@ -3,18 +3,23 @@ import AINotepadUI
 import os
 import SwiftUI
 
-/// Telefon görüşmesinin notunu almanın yolları (kayıt seçenekleri menüsünden ve kitaplıktan açılır).
+/// Telefon görüşmesinin notunu almanın yolları (kayıt seçenekleri menüsünden, kitaplıktan ve Ayarlar › Özellikler'den
+/// açılır).
 ///
 /// iOS, uygulamaların süren bir aramanın mikrofonunu ve sesini almasına izin vermez (`AVAudioSession` etkinleştirmesi
 /// `InsufficientPriority` ile reddedilir; bkz. docs/superpowers/specs/2026-11-08-iphone-call-recording.md). Bu yüzden
 /// iPhone'daki yol, iPhone'un kendi arama kaydıdır: iPhone iki tarafa kaydı duyurur, kayıt Notlar'a düşer, kullanıcı sesi
-/// paylaşım sayfasından Gistsmith'e gönderir (`PhoneSharedFileInbox`) ve toplantı yüz yüze kayıt gibi işlenir. Arama
-/// kaydı her bölgede yoktur (ör. AB); orada ve uygulama aramalarında (WhatsApp, Teams, Zoom) yol Mac'tir.
+/// paylaşım sayfasından Gistsmith'e gönderir (`PhoneSharedFileInbox`) ve toplantı yüz yüze kayıt gibi işlenir. Apple arama
+/// kaydını her bölgede sunmaz (`callRecordingUnavailableRegions`, ör. AB); cihazın bölgesi o listedeyse rehber çalışan
+/// yollarla başlar (Mac'te konuşmak, bir kaydı içe aktarmak) ve iPhone'un arama kaydını açık bir notla sonra gösterir.
+/// Bölge yalnız sırayı değiştirir, hiçbir yolu gizlemez: Apple'ın sunumu dil ve başka ayarlara da bağlıdır.
 struct PhoneCallGuideScreen: View {
     /// Rehberden seçilen seçici (Dosyalar); rehber kapanınca açılır.
     let onPick: @MainActor (PhoneImportSource) -> Void
     @Environment(\.dismiss) private var dismiss: DismissAction
     @Environment(\.openURL) private var openURL: OpenURLAction
+    /// Apple bu cihazın bölgesinde arama kaydını sunmuyor olabilir: Mac ve içe aktarma önce gelir.
+    private let leadsWithAlternatives: Bool = callRecordingLikelyUnavailable(regionCode: Locale.current.region?.identifier)
     #if PHONE_DIALER
     @Environment(PhoneDialer.self) private var dialer: PhoneDialer
     @Environment(PhoneRecorder.self) private var recorder: PhoneRecorder
@@ -26,7 +31,7 @@ struct PhoneCallGuideScreen: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
-                    Text("iPhone, uygulamaların süren bir aramayı dinlemesine izin vermez. Görüşmeyi iPhone'un kendi arama kaydıyla kaydet ve sesi Gistsmith'e gönder; not, kararlar ve görevler yüz yüze kayıttaki gibi hazırlanır.")
+                    intro
                         .appFont(size: 15, weight: .regular)
                         .foregroundStyle(Theme.muted)
                         .lineSpacing(2)
@@ -39,18 +44,13 @@ struct PhoneCallGuideScreen: View {
                         PhoneDialerCard(dialer: dialer) { showsDialer = true }
                     }
                     #endif
-                    VStack(alignment: .leading, spacing: 10) {
-                        PhoneSectionHeader(title: "iPhone'un arama kaydıyla", actionTitle: nil, action: nil)
-                        CallRecordingStepsCard(onOpenNotes: openNotes, onPickFile: { pick(source: .files) })
-                        Text("iOS 18.1 ya da sonrası gerekir. Arama kaydı her bölgede yok (ör. Avrupa Birliği); aramada kayıt düğmesi görünmüyorsa bölgende kullanılamıyordur. Sesli Notlar'daki ve diğer uygulamalardaki ses kayıtlarını da aynı yolla gönderebilirsin.")
-                            .appFont(size: 12, weight: .regular)
-                            .foregroundStyle(Theme.muted)
-                            .lineSpacing(2)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    VStack(alignment: .leading, spacing: 10) {
-                        PhoneSectionHeader(title: "Mac'te konuşarak", actionTitle: nil, action: nil)
-                        MacCallCard()
+                    if leadsWithAlternatives {
+                        macSection
+                        importSection
+                        unofferedCallRecordingSection
+                    } else {
+                        callRecordingSection
+                        macSection
                     }
                 }
                 .padding(.horizontal, 20)
@@ -74,6 +74,54 @@ struct PhoneCallGuideScreen: View {
         .presentationDetents([.large])
     }
 
+    /// Giriş: iOS'un sınırı ve bu bölgede önce gelen yol.
+    private var intro: Text {
+        if leadsWithAlternatives {
+            return Text("iPhone, uygulamaların süren bir aramayı dinlemesine izin vermez ve Apple iPhone'un arama kaydını bölgende sunmuyor olabilir. Görüşmeyi Mac'te yap ya da kaydını içe aktar; not, kararlar ve görevler yüz yüze kayıttaki gibi hazırlanır.")
+        }
+        return Text("iPhone, uygulamaların süren bir aramayı dinlemesine izin vermez. Görüşmeyi iPhone'un kendi arama kaydıyla kaydet ve sesi Gistsmith'e gönder; not, kararlar ve görevler yüz yüze kayıttaki gibi hazırlanır.")
+    }
+
+    /// iPhone'un arama kaydı, Apple'ın sunduğu bölgede: adımlar, Notlar ve Dosyalar düğmeleri.
+    private var callRecordingSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            GuideSectionHeader(title: "iPhone'un arama kaydıyla")
+            CallRecordingStepsCard {
+                CallRecordingActions(onOpenNotes: openNotes, onPickFile: { pick(source: .files) })
+            }
+            GuideFootnote(text: "iOS 18.1 ya da sonrası gerekir. Arama kaydı her bölgede yok (ör. Avrupa Birliği); aramada kayıt düğmesi görünmüyorsa bölgende kullanılamıyordur. Sesli Notlar'daki ve diğer uygulamalardaki ses kayıtlarını da aynı yolla gönderebilirsin.")
+        }
+    }
+
+    /// iPhone'un arama kaydı, Apple'ın sunmadığı bir bölgede: önce açık not, sonra aynı adımlar (dil ya da ayar başka
+    /// olabilir) ve Notlar düğmesi; Dosyalar düğmesi içe aktarma kartında.
+    private var unofferedCallRecordingSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            GuideSectionHeader(title: "iPhone'un arama kaydıyla")
+            GuideFootnote(text: "Apple, iPhone'un arama kaydını bölgende sunmuyor olabilir (ör. Avrupa Birliği). Aramada kayıt düğmesi görünüyorsa bu adımlar çalışır; iOS 18.1 ya da sonrası gerekir.")
+            CallRecordingStepsCard {
+                Button { openNotes() } label: {
+                    Label { Text("Notlar'ı aç") } icon: { Image(systemName: "note.text") }
+                }
+                .buttonStyle(.accentPill)
+            }
+        }
+    }
+
+    private var importSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            GuideSectionHeader(title: "Bir kaydı içe aktararak")
+            ImportRecordingCard { pick(source: .files) }
+        }
+    }
+
+    private var macSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            GuideSectionHeader(title: "Mac'te konuşarak")
+            MacCallCard()
+        }
+    }
+
     /// Notlar'ı açar (arama kayıtları "Arama Kayıtları" klasöründedir). Açılamazsa loglanır; düğme bir kısayoldur, adımlar
     /// metinde yazar.
     private func openNotes() {
@@ -93,6 +141,29 @@ struct PhoneCallGuideScreen: View {
     }
 }
 
+/// Rehberdeki bir yolun başlığı (VoiceOver'da başlık).
+private struct GuideSectionHeader: View {
+    let title: LocalizedStringKey
+
+    var body: some View {
+        PhoneSectionHeader(title: title, actionTitle: nil, action: nil)
+            .accessibilityAddTraits(.isHeader)
+    }
+}
+
+/// Bir yolun altındaki ya da üstündeki küçük açıklama.
+private struct GuideFootnote: View {
+    let text: LocalizedStringKey
+
+    var body: some View {
+        Text(text)
+            .appFont(size: 12, weight: .regular)
+            .foregroundStyle(Theme.muted)
+            .lineSpacing(2)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
 /// Arama kaydının bir adımı: sıra numarası, başlık ve tek cümle.
 private struct CallRecordingStep: Identifiable {
     let id: Int
@@ -100,10 +171,9 @@ private struct CallRecordingStep: Identifiable {
     let detail: LocalizedStringKey
 }
 
-/// Arama kaydının üç adımı (numaralı, çizgiyle bağlı) ve iki düğme: Notlar'ı aç, Dosyalar'dan seç.
-private struct CallRecordingStepsCard: View {
-    let onOpenNotes: @MainActor () -> Void
-    let onPickFile: @MainActor () -> Void
+/// Arama kaydının üç adımı (numaralı, çizgiyle bağlı) ve altında verilen düğmeler.
+private struct CallRecordingStepsCard<Actions: View>: View {
+    @ViewBuilder let actions: Actions
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     private let steps: [CallRecordingStep] = [
@@ -152,31 +222,70 @@ private struct CallRecordingStepsCard: View {
                     .accessibilityElement(children: .combine)
                 }
             }
+            actions
+        }
+        .guideCard()
+    }
+}
+
+/// Arama kaydı adımlarının düğmeleri (Notlar'ı aç, Dosyalar'dan seç) ve paylaşımda Gistsmith yoksa ne yapılacağı.
+private struct CallRecordingActions: View {
+    let onOpenNotes: @MainActor () -> Void
+    let onPickFile: @MainActor () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 10) {
                 Button { onOpenNotes() } label: {
                     Label { Text("Notlar'ı aç") } icon: { Image(systemName: "note.text") }
                 }
                 .buttonStyle(.accentPill)
-                Button { onPickFile() } label: {
-                    Label { Text("Dosyalar'dan seç") } icon: { Image(systemName: "folder") }
-                        .appFont(size: 14, weight: .semibold)
-                        .foregroundStyle(Theme.ink)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 9)
-                        .background(Theme.soft, in: Capsule())
-                        .contentShape(Capsule())
-                }
-                .buttonStyle(.plain)
+                PickFileButton(action: onPickFile)
             }
             Text("Paylaşımda Gistsmith görünmüyorsa sesi Dosyalar'a kaydet ve buradan seç.")
                 .appFont(size: 12, weight: .regular)
                 .foregroundStyle(Theme.muted)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Theme.line))
+    }
+}
+
+/// "Dosyalar'dan seç": yumuşak zeminli kapsül düğme.
+private struct PickFileButton: View {
+    let action: @MainActor () -> Void
+
+    var body: some View {
+        Button { action() } label: {
+            Label { Text("Dosyalar'dan seç") } icon: { Image(systemName: "folder") }
+                .appFont(size: 14, weight: .semibold)
+                .foregroundStyle(Theme.ink)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 9)
+                .background(Theme.soft, in: Capsule())
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// Başka bir yerde kaydedilmiş görüşmeyi içe aktarmak: paylaşım sayfasından Gistsmith'e gönder ya da Dosyalar'dan seç.
+private struct ImportRecordingCard: View {
+    let onPickFile: @MainActor () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 12) {
+                AccentSymbolTile(symbol: "waveform", size: 40)
+                Text("Görüşme başka bir cihazda ya da uygulamada kaydedildiyse sesi paylaşıp Gistsmith'i seç ya da Dosyalar'dan seç; not, yüz yüze kayıttaki gibi hazırlanır.")
+                    .appFont(size: 13, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            PickFileButton(action: onPickFile)
+        }
+        .guideCard()
     }
 }
 
@@ -193,10 +302,17 @@ private struct MacCallCard: View {
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Theme.line))
+        .guideCard()
+    }
+}
+
+private extension View {
+    /// Rehberdeki kartların zemini: iç boşluk, kart rengi ve ince kenar.
+    func guideCard() -> some View {
+        padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Theme.line))
     }
 }
 

@@ -185259,76 +185259,6 @@
         }
       }
     },
-    "Telefon görüşmesinin notunu almanın yollarını gösterir.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zeigt, wie du Notizen zu einem Telefonat bekommst."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Shows how to take notes from a phone call."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Muestra cómo tomar notas de una llamada telefónica."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Näyttää, miten puhelusta saa muistiinpanot."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Montre comment prendre des notes d’un appel téléphonique."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mostra come prendere appunti da una telefonata."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "電話のメモを取る方法を表示します。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "전화 통화를 노트로 남기는 방법을 보여줍니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Laat zien hoe je notities maakt van een telefoongesprek."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mostra como fazer anotações de uma ligação telefônica."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "显示如何为电话通话记笔记。"
-          }
-        }
-      }
-    },
     "Ses ya da video olmayan dosya içe aktarılmadı: %@": {
       "localizations": {
         "de": {
@@ -211178,6 +211108,286 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tämän iPhonen laitteella toimiva sanelu ei tue kokousten pääkieltä (%@). Valitse asetuksista toinen kokousten pääkieli."
+          }
+        }
+      }
+    },
+    "iPhone, uygulamaların süren bir aramayı dinlemesine izin vermez ve Apple iPhone'un arama kaydını bölgende sunmuyor olabilir. Görüşmeyi Mac'te yap ya da kaydını içe aktar; not, kararlar ve görevler yüz yüze kayıttaki gibi hazırlanır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das iPhone lässt Apps ein laufendes Telefonat nicht mithören, und Apple bietet die Anrufaufzeichnung des iPhone in deiner Region möglicherweise nicht an. Telefoniere am Mac oder importiere eine Aufnahme des Gesprächs; Notizen, Entscheidungen und Aufgaben entstehen wie bei einer Aufnahme vor Ort."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone doesn't let apps listen to a call in progress, and Apple may not offer iPhone call recording in your region. Take the call on your Mac or import a recording of it; your note, decisions and tasks are prepared just like an in-person recording."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El iPhone no permite que las apps escuchen una llamada en curso, y es posible que Apple no ofrezca la grabación de llamadas del iPhone en tu región. Atiende la llamada en tu Mac o importa una grabación; la nota, las decisiones y las tareas se preparan igual que en una grabación en persona."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone ei anna sovellusten kuunnella käynnissä olevaa puhelua, eikä Apple välttämättä tarjoa iPhonen puhelun nauhoitusta alueellasi. Puhu Macilla tai tuo puhelusta tehty nauhoitus; muistiinpanot, päätökset ja tehtävät valmistuvat kuten paikan päällä nauhoitettaessa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’iPhone ne permet pas aux apps d’écouter un appel en cours, et Apple ne propose peut-être pas l’enregistrement d’appels de l’iPhone dans votre région. Prenez l’appel sur votre Mac ou importez-en un enregistrement ; la note, les décisions et les tâches sont préparées comme pour un enregistrement en personne."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’iPhone non permette alle app di ascoltare una chiamata in corso e Apple potrebbe non offrire la registrazione chiamate dell’iPhone nella tua zona. Rispondi alla chiamata sul Mac o importane una registrazione; nota, decisioni e attività vengono preparate come per una registrazione di persona."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhoneでは、通話中の音声をアプリが聞くことはできません。また、お住まいの地域ではAppleがiPhoneの通話録音を提供していない場合があります。Macで通話するか、通話の録音を読み込んでください。対面の録音と同じように、ノート、決定事項、タスクが作成されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone은 앱이 진행 중인 통화를 들을 수 없게 하며, 사용하는 지역에서는 Apple이 iPhone 통화 녹음을 제공하지 않을 수 있습니다. Mac에서 통화하거나 통화 녹음을 가져오세요. 대면 녹음과 똑같이 노트, 결정 사항, 할 일이 준비됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De iPhone laat apps niet meeluisteren met een lopend gesprek, en Apple biedt de gespreksopname van de iPhone mogelijk niet aan in jouw regio. Voer het gesprek op je Mac of importeer een opname ervan; notitie, besluiten en taken worden gemaakt zoals bij een opname ter plekke."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O iPhone não permite que apps ouçam uma ligação em andamento, e a Apple pode não oferecer a gravação de chamadas do iPhone na sua região. Atenda a ligação no Mac ou importe uma gravação dela; a nota, as decisões e as tarefas são preparadas como em uma gravação presencial."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone 不允许 App 收听正在进行的通话，而且 Apple 可能未在你所在地区提供 iPhone 通话录音。请在 Mac 上通话，或导入通话录音；笔记、决策和任务会像面对面录音一样生成。"
+          }
+        }
+      }
+    },
+    "Apple, iPhone'un arama kaydını bölgende sunmuyor olabilir (ör. Avrupa Birliği). Aramada kayıt düğmesi görünüyorsa bu adımlar çalışır; iOS 18.1 ya da sonrası gerekir.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple bietet die Anrufaufzeichnung des iPhone in deiner Region möglicherweise nicht an (z. B. in der Europäischen Union). Siehst du im Anruf die Aufnahmetaste, funktionieren diese Schritte; erfordert iOS 18.1 oder neuer."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple may not offer iPhone call recording in your region (for example the European Union). If you see the record button during a call, these steps work; iOS 18.1 or later is required."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Es posible que Apple no ofrezca la grabación de llamadas del iPhone en tu región (por ejemplo, en la Unión Europea). Si ves el botón de grabar durante una llamada, estos pasos funcionan; se requiere iOS 18.1 o posterior."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple ei välttämättä tarjoa iPhonen puhelun nauhoitusta alueellasi (esim. Euroopan unionissa). Jos näet puhelun aikana nauhoituspainikkeen, nämä vaiheet toimivat; vaatii iOS 18.1:n tai uudemman."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple ne propose peut-être pas l’enregistrement d’appels de l’iPhone dans votre région (par exemple dans l’Union européenne). Si vous voyez le bouton d’enregistrement pendant un appel, ces étapes fonctionnent ; iOS 18.1 ou version ultérieure est requis."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple potrebbe non offrire la registrazione chiamate dell’iPhone nella tua zona (ad esempio nell’Unione europea). Se durante una chiamata vedi il pulsante di registrazione, questi passaggi funzionano; richiede iOS 18.1 o versioni successive."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "お住まいの地域（例: 欧州連合）では、AppleがiPhoneの通話録音を提供していない場合があります。通話中に録音ボタンが表示されれば、この手順で録音できます。iOS 18.1以降が必要です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "사용하는 지역(예: 유럽 연합)에서는 Apple이 iPhone 통화 녹음을 제공하지 않을 수 있습니다. 통화 중에 녹음 버튼이 보이면 이 단계대로 할 수 있으며, iOS 18.1 이상이 필요합니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple biedt de gespreksopname van de iPhone mogelijk niet aan in jouw regio (bijvoorbeeld in de Europese Unie). Zie je tijdens een gesprek de opnameknop, dan werken deze stappen; vereist iOS 18.1 of nieuwer."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A Apple pode não oferecer a gravação de chamadas do iPhone na sua região (por exemplo, na União Europeia). Se você vê o botão de gravar durante a ligação, estes passos funcionam; requer iOS 18.1 ou posterior."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple 可能未在你所在地区（例如欧盟）提供 iPhone 通话录音。如果通话中能看到录音按钮，就可以按这些步骤操作；需要 iOS 18.1 或更高版本。"
+          }
+        }
+      }
+    },
+    "Bir kaydı içe aktararak": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Indem du eine Aufnahme importierst"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "By importing a recording"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importando una grabación"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tuomalla nauhoituksen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En important un enregistrement"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importando una registrazione"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音を読み込んで"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "녹음을 가져와서"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Door een opname te importeren"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importando uma gravação"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导入录音"
+          }
+        }
+      }
+    },
+    "Görüşme başka bir cihazda ya da uygulamada kaydedildiyse sesi paylaşıp Gistsmith'i seç ya da Dosyalar'dan seç; not, yüz yüze kayıttaki gibi hazırlanır.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wurde das Gespräch auf einem anderen Gerät oder in einer anderen App aufgenommen, teile das Audio und wähle Gistsmith oder wähle es in Dateien aus; die Notizen entstehen wie bei einer Aufnahme vor Ort."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If the call was recorded on another device or in another app, share the audio and choose Gistsmith, or choose it from Files; your note is prepared just like an in-person recording."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si la llamada se grabó en otro dispositivo o en otra app, comparte el audio y elige Gistsmith, o elígelo en Archivos; la nota se prepara igual que en una grabación en persona."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jos puhelu nauhoitettiin toisella laitteella tai sovelluksella, jaa ääni ja valitse Gistsmith tai valitse se Tiedostoista; muistiinpanot valmistuvat kuten paikan päällä nauhoitettaessa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si l’appel a été enregistré sur un autre appareil ou dans une autre app, partagez l’audio et choisissez Gistsmith, ou choisissez-le dans Fichiers ; la note est préparée comme pour un enregistrement en personne."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se la chiamata è stata registrata su un altro dispositivo o in un’altra app, condividi l’audio e scegli Gistsmith, oppure sceglilo da File; la nota viene preparata come per una registrazione di persona."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通話をほかのデバイスやアプリで録音した場合は、オーディオを共有してGistsmithを選ぶか、「ファイル」から選んでください。対面の録音と同じようにノートが作成されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "통화를 다른 기기나 앱에서 녹음했다면 오디오를 공유하고 Gistsmith를 선택하거나 파일에서 선택하세요. 대면 녹음과 똑같이 노트가 준비됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Is het gesprek op een ander apparaat of in een andere app opgenomen, deel de audio dan en kies Gistsmith, of kies het in Bestanden; de notitie wordt gemaakt zoals bij een opname ter plekke."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se a ligação foi gravada em outro dispositivo ou em outro app, compartilhe o áudio e escolha o Gistsmith, ou escolha-o no Arquivos; a nota é preparada como em uma gravação presencial."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如果通话是在其他设备或 App 中录制的，请共享音频并选择 Gistsmith，或从“文件”中选择；笔记会像面对面录音一样生成。"
           }
         }
       }
