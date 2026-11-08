@@ -37,6 +37,12 @@ export interface SiteConfig {
   readonly siteOrigin: string;
   /** Abonelik sunucusunun (Cloudflare Worker) kaynağı; sondaki eğik çizgi yok. */
   readonly apiBase: string;
+  /**
+   * Yönetici API'sinin (`/v1/admin/…`) kaynağı. Yayında sitenin kendisidir: sunucu `gistsmith.com/v1/admin/*`'de de
+   * çalışır ve panel ile yönetici API'sini aynı Cloudflare Access uygulaması korur (ikinci etken; Access çerezi yalnızca
+   * aynı kaynağa gider). Yerelde Access yoktur, sunucunun adresidir.
+   */
+  readonly adminApiBase: string;
   /** Cloudflare Turnstile site anahtarı (açık değer; gizli anahtar yalnızca sunucuda). */
   readonly turnstileSiteKey: string;
   /** Apple ile giriş web Services ID'si; sunucunun `APPLE_CLIENT_IDS` listesinde de olmalı. */
@@ -73,6 +79,8 @@ const productionConfig: SiteConfig = {
   siteOrigin: "https://gistsmith.com",
   // Üretim Worker'ı (`server/`, main'e girince `Deploy server` yayınlar), özel alan adında.
   apiBase: "https://api.gistsmith.com",
+  // Sitenin kaynağı: `gistsmith.com/v1/admin/*` sunucu Worker'ının rotasıdır (server/wrangler.jsonc).
+  adminApiBase: "https://gistsmith.com",
   // Cloudflare Turnstile parçacığı "ainotepad"; gistsmith.com parçacığın alan adlarında olmalı.
   turnstileSiteKey: "0x4AAAAAAFqQUwHe_RGFyX1t",
   // Apple Developer'daki web Services ID'si (dönüş adresi: <siteOrigin>/sign-in).
@@ -91,6 +99,7 @@ const productionConfig: SiteConfig = {
 const localConfig: SiteConfig = {
   siteOrigin: "http://localhost:8788",
   apiBase: "http://127.0.0.1:8787",
+  adminApiBase: "http://127.0.0.1:8787",
   turnstileSiteKey: "1x00000000000000000000AA",
   appleServiceId: "com.senoldogan.AINotepad.web",
   googleClientId: googleWebClientId,

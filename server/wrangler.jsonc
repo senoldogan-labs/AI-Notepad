@@ -264,9 +264,16 @@
   "env": {
     "production": {
       "name": "ainotepad-server-production",
-      // Yalnızca özel alan adı (gistsmith.com bölgesi aynı hesapta): https://api.gistsmith.com. workers.dev adresi ve
-      // sürüm önizleme adresleri kapalıdır: onlar bölgenin WAF hız sınırı kuralını atlardı.
-      "routes": [{ "pattern": "api.gistsmith.com", "custom_domain": true }],
+      // Özel alan adı (gistsmith.com bölgesi aynı hesapta): https://api.gistsmith.com. Ek olarak yönetici API'si sitenin
+      // kendi kaynağında da çalışır (`gistsmith.com/v1/admin/*`, sitenin önündeki Worker rotası): yönetim paneli
+      // (`gistsmith.com/admin`) API'yi aynı kaynaktan çağırır, böylece ikisini birlikte koruyan Cloudflare Access
+      // uygulamasının çerezi her isteğe gider ve Access `Cf-Access-Jwt-Assertion` başlığını ekler (bkz.
+      // src/auth/access.ts). workers.dev adresi ve sürüm önizleme adresleri kapalıdır: onlar bölgenin WAF hız sınırı
+      // kuralını atlardı.
+      "routes": [
+        { "pattern": "api.gistsmith.com", "custom_domain": true },
+        { "pattern": "gistsmith.com/v1/admin/*", "zone_name": "gistsmith.com" }
+      ],
       "workers_dev": false,
       "preview_urls": false,
       "d1_databases": [
@@ -316,11 +323,14 @@
         // Sitenin Google web istemcisi (bkz. üstteki geliştirme `vars` açıklaması). `placeholder` içeren değerle üretim
         // her istekte 500 verir (ConfigPlaceholderError).
         "GOOGLE_CLIENT_IDS": "461373321454-ku1ot0ildt8b9toe7aerq1imidfgu1ah.apps.googleusercontent.com",
-        // Sahibin Google kimliği; tek yönetici kapısıdır (CF_ACCESS_AUD bilerek boş). Biçim: üstteki geliştirme `vars`
-        // açıklaması.
+        // Sahibin Google kimliği (yönetici kapısının ilk etkeni). Biçim: üstteki geliştirme `vars` açıklaması.
         "ADMIN_IDENTITIES": "google:101383806107899312129",
-        // Access uygulamasının AUD etiketi. Bilerek boş (denetim kapalı): yönetim paneli API'yi Access çerezi olmadan
-        // çağırır; açılırsa panel 403 alır (bkz. src/auth/access.ts).
+        // İkinci etken: `gistsmith.com/admin` ve `gistsmith.com/v1/admin` yollarını koruyan Access uygulamasının AUD
+        // etiketi. Panel yönetici API'sini aynı kaynaktan çağırır ve isteği Access'ten geçer; AUD yazılınca yönetici
+        // uçları geçerli Access jetonu olmayan her isteği (api.gistsmith.com'a doğrudan gelenler dahil) 403 ile reddeder.
+        // Boşken denetim kapalıdır (günlük `cf_access_check_disabled` uyarısı). Kurulum: server/README.md "Yönetici
+        // erişimi (Cloudflare Access)"; AUD ancak Access uygulaması kurulduktan sonra yazılır (önce yazılırsa panel
+        // kilitlenir).
         "CF_ACCESS_TEAM_DOMAIN": "dry-heart-1ee2.cloudflareaccess.com",
         "CF_ACCESS_AUD": "",
         "DMG_URL": "https://github.com/senoldogann/gistsmith-releases/releases/latest/download/Gistsmith.dmg",

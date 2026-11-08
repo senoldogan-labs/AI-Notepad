@@ -26,9 +26,11 @@ export function warnIfAccessCheckDisabled(access: CloudflareAccessConfig): void 
  * denetim kapalıdır ve yalnızca `ADMIN_IDENTITIES` denetlenir; bunun uyarısı her yönetici isteğinde değil günlük
  * bakımda bir kez yazılır (`warnIfAccessCheckDisabled`). Jeton yoksa ya da geçersizse 403.
  *
- * Üretimde `CF_ACCESS_AUD` bilerek boştur: yönetim paneli (site) API'yi tarayıcıdan, Access çerezi olmadan çağırır;
- * API alan adı Access'in arkasında olmadığı için başlık gelmez ve denetim açılırsa panel 403 alır. Açmadan önce API'nin
- * `/v1/admin/*` yolu panelle aynı Access uygulamasına alınmalı ve panel isteklerini çerezle göndermelidir.
+ * Panel (`gistsmith.com/admin`) yönetici API'sini aynı kaynaktan çağırır: `gistsmith.com/v1/admin/*` bu Worker'ın
+ * rotasıdır (`wrangler.jsonc`). Tek bir Access uygulaması iki yolu da korur; tarayıcı Access çerezini aynı kaynağa
+ * kendiliğinden gönderir, Access isteği doğrulayıp başlığı ekler. `api.gistsmith.com/v1/admin/*`'e doğrudan gelen istek
+ * Access'ten geçmediği için başlık taşımaz ve `CF_ACCESS_AUD` doluyken reddedilir. Kurulum `server/README.md` →
+ * "Yönetici erişimi (Cloudflare Access)".
  */
 export async function requireCloudflareAccess(platform: Platform, access: CloudflareAccessConfig, request: Request): Promise<void> {
   if (access.audience === null) {

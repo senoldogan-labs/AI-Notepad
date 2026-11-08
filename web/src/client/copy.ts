@@ -6,6 +6,8 @@ import { productName } from "../config";
 export interface ClientCopy {
   readonly errors: {
     readonly network: string;
+    /** Yönetim panelinin Cloudflare Access oturumu bitti. */
+    readonly accessExpired: string;
     readonly rateLimited: string;
     readonly turnstile: string;
     readonly appleFailed: string;
@@ -242,6 +244,7 @@ export interface AdminClientCopy {
 export const clientCopy: ClientCopy = {
   errors: {
     network: "Couldn't reach the server. Check your connection and try again.",
+    accessExpired: "Your admin access check has expired. Reload the page to verify again.",
     rateLimited: "Too many requests. Please wait a few minutes and try again.",
     turnstile: "The security check didn't pass. Try again.",
     appleFailed: "Sign in with Apple didn't complete. Try again or continue with Google.",

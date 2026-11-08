@@ -1,6 +1,6 @@
 // Tarayıcı betiklerinin ortak yardımcıları: öğe bulma, hatayı kullanıcı metnine çevirme, bildirimler, dış betik yükleme
 // ve sayfa teması.
-import { ApiNetworkError, ApiRequestError } from "./api";
+import { AccessSessionError, ApiNetworkError, ApiRequestError } from "./api";
 import { type ClientCopy, fill } from "./copy";
 
 /** Sayfada beklenen öğe yok ya da türü farklı: sayfa ile betik uyuşmuyor. */
@@ -27,6 +27,9 @@ export function errorText(error: unknown, text: ClientCopy): string {
   console.error("request_failed", { error: error instanceof Error ? error.message : String(error) });
   if (error instanceof ApiNetworkError) {
     return text.errors.network;
+  }
+  if (error instanceof AccessSessionError) {
+    return text.errors.accessExpired;
   }
   if (error instanceof ApiRequestError) {
     if (error.code === "rate_limited" || error.status === 429) {
