@@ -264,6 +264,9 @@ final class HostedAccount {
     /// `waitWhileMeetingPaused`).
     @ObservationIgnored private var pausedMeetingID: String?
     @ObservationIgnored private var pauseWaiters: [CheckedContinuation<Void, Never>] = []
+    /// Son duraklatma bildiriminin sırası: sürdürme bildirimi bitince bekleyen jetonlar ancak arada yeni duraklatma
+    /// yoksa bırakılır.
+    @ObservationIgnored private var pauseReportGeneration: Int = 0
     /// Ödeme sayfası açıkken aboneliği bekleyen izleme (bkz. `watchCheckout`); yoksa nil.
     @ObservationIgnored private var checkoutWatch: Task<Void, Never>?
     /// "Abonelik gerekli" teklifinin son açılışı (bkz. `subscriptionRequiredByServer`).
@@ -1372,10 +1375,21 @@ final class HostedAccount {
     /// gider; ağ ve geçici sunucu hataları istemcide yeniden denenir. Yine de bildirilemezse kayıt sürer, yalnızca sunucu bu
     /// duraklatmayı süreden düşmez: neden `onFailure`'a gider (kayıt ekranında görünür).
     func reportPause(meetingID: String, paused: Bool, onFailure: @escaping @MainActor (any Error) -> Void) {
-        setPausedMeeting(meetingID: paused ? meetingID : nil)
+        pauseReportGeneration += 1
+        let generation: Int = pauseReportGeneration
+        // Duraklatma hemen geçerlidir (jeton istekleri bekler); sürdürmede bekleyen jetonlar sürdürme bildirimi sunucuya
+        // vardıktan sonra bırakılır: önce varan jeton duraklatmayı "ses geldi" diye kapatırdı.
+        if paused {
+            setPausedMeeting(meetingID: meetingID)
+        }
         let previous: Task<Void, Never>? = pauseReports
         pauseReports = Task {
             await previous?.value
+            defer {
+                if !paused, generation == self.pauseReportGeneration {
+                    self.setPausedMeeting(meetingID: nil)
+                }
+            }
             do {
                 let client: HostedClient = try HostedServices.requireClient()
                 let state: HostedMeetingPause = paused
