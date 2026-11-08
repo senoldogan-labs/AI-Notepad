@@ -27,6 +27,9 @@ struct PhoneFeedbackForm: View {
     @State private var includeDiagnostics: Bool = true
     /// Ayarlar › Tanılama'daki bilgi mesajın sonuna eklenir (Mac'teki gibi varsayılan kapalı).
     @State private var includeFullDiagnostics: Bool = false
+    /// "gistsmith.com'da ön adımla alıntılanabilir" (baştan kapalı; Mac'teki gibi).
+    @State private var allowsQuote: Bool = false
+    @State private var quoteFirstName: String = ""
     @State private var state: PhoneFeedbackState = .editing
     @FocusState private var messageFocused: Bool
     private let diagnostics: ReportDiagnostics = currentReportDiagnostics(bundle: .main, platformName: "iOS")
@@ -81,6 +84,16 @@ struct PhoneFeedbackForm: View {
                 } footer: {
                     Text("Mesajın, varsa e-postan ve işaretli bilgiler hesabınla birlikte gider; toplantı içeriği gitmez.")
                 }
+                Section {
+                    Toggle("Bunu gistsmith.com'da ön adımla alıntılayabilirsiniz", isOn: $allowsQuote)
+                    if allowsQuote {
+                        TextField("Ön adın", text: $quoteFirstName, prompt: Text("Ön adın").foregroundStyle(Theme.muted))
+                            .textContentType(.givenName)
+                            .autocorrectionDisabled()
+                    }
+                } footer: {
+                    Text("İsteğe bağlı. Hiçbir şey kendiliğinden yayımlanmaz: yalnızca mesajın ve ön adın gösterilebilir; e-postan ve hesabın asla.")
+                }
                 if case .failed(let reason) = state {
                     Section {
                         NoticeText(reason as String, severity: .error)
@@ -98,7 +111,7 @@ struct PhoneFeedbackForm: View {
                         ProgressView()
                     } else {
                         Button("Gönder", action: send)
-                            .disabled(length == 0 || length > reportMessageLimit)
+                            .disabled(length == 0 || length > reportMessageLimit || (allowsQuote && quoteFirstName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
                     }
                 }
             }
@@ -109,7 +122,7 @@ struct PhoneFeedbackForm: View {
     private func send() {
         let report: ReportRequest
         do {
-            report = try feedbackReport(message: message, email: email, diagnostics: includeDiagnostics ? diagnostics : nil)
+            report = try feedbackReport(message: message, email: email, diagnostics: includeDiagnostics ? diagnostics : nil, quoteFirstName: allowsQuote ? quoteFirstName : nil)
         } catch {
             state = .failed(message: userFacingMessage(error: error))
             return

@@ -164,6 +164,10 @@ export interface AdminClientCopy {
   readonly report: {
     readonly copyPayload: string;
     readonly copyUser: string;
+    /** Copies the quotable report as an entry for web/src/testimonials.ts. */
+    readonly copyQuote: string;
+    /** Marker before a quotable report's meta line in the inbox list. */
+    readonly quotable: string;
     readonly copied: string;
     readonly copyFailed: string;
     readonly kinds: { readonly crash: string; readonly hang: string };
@@ -357,6 +361,8 @@ export const clientCopy: ClientCopy = {
     report: {
       copyPayload: "Copy crash report",
       copyUser: "Copy user ID",
+      copyQuote: "Copy as site quote",
+      quotable: "Quotable",
       copied: "Copied",
       copyFailed: "Couldn't copy to the clipboard.",
       kinds: { crash: "Crash", hang: "Hang" },

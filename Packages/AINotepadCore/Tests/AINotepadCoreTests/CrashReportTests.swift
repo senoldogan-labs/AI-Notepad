@@ -105,7 +105,7 @@ private let samplePayload: String = """
         let crash: CrashDiagnostic = try crashDiagnostics(payload: payload)[0]
         let request: ReportRequest = try crashReportRequest(payload: payload, diagnostic: crash)
         let expected: String = String(decoding: try redactedCrashPayload(payload: payload), as: UTF8.self)
-        #expect(request == ReportRequest(kind: .crash, message: nil, email: nil, appVersion: "0.1.2 (3)", os: "macOS 26.0 (25A354)", payload: expected))
+        #expect(request == ReportRequest(kind: .crash, message: nil, email: nil, appVersion: "0.1.2 (3)", os: "macOS 26.0 (25A354)", payload: expected, quoteFirstName: nil))
         #expect(try crashDiagnostics(payload: Data(expected.utf8)) == crashDiagnostics(payload: payload))
         let encoded: [String: String] = try JSONDecoder().decode([String: String].self, from: try JSONEncoder().encode(request))
         #expect(Set(encoded.keys) == ["kind", "appVersion", "os", "payload"])

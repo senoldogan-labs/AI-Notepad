@@ -92,7 +92,7 @@ import Testing
 
     // Geri bildirime eklenen tanılama sunucunun mesaj sınırına sığdırılır; kullanıcının mesajı kısaltılmaz.
     @Test func diagnosticsFitFeedbackLimit() throws {
-        let report: ReportRequest = try feedbackReport(message: "Merhaba", email: "", diagnostics: nil)
+        let report: ReportRequest = try feedbackReport(message: "Merhaba", email: "", diagnostics: nil, quoteFirstName: nil)
         let long: String = diagnosticsText(
             sections: [DiagnosticsSection(title: "Uygulama", items: (0..<500).map { DiagnosticsItem(label: "satır \($0)", value: "değer", status: .plain) })],
             generatedAt: Date(timeIntervalSince1970: 0)
@@ -102,7 +102,7 @@ import Testing
         #expect(message.hasPrefix("Merhaba"))
         #expect(reportMessageLength(text: message) <= reportMessageLimit)
         #expect(message.hasSuffix("…"))
-        let full: ReportRequest = try feedbackReport(message: String(repeating: "x", count: reportMessageLimit), email: "", diagnostics: nil)
+        let full: ReportRequest = try feedbackReport(message: String(repeating: "x", count: reportMessageLimit), email: "", diagnostics: nil, quoteFirstName: nil)
         #expect(throws: ReportError.self) { try appendingDiagnostics(report: full, diagnosticsText: long, limit: reportMessageLimit) }
     }
 

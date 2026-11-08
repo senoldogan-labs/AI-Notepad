@@ -484,6 +484,8 @@ export interface ReportSummary {
   readonly appVersion: string | null;
   readonly os: string | null;
   readonly summary: string | null;
+  /** First name the sender allowed quoting with on the site; null without consent. */
+  readonly quoteFirstName: string | null;
 }
 
 /** Bildirim listesinin bir sayfası; `nextBefore` sonraki sayfanın `before` değeri (yoksa null). */
@@ -504,6 +506,18 @@ export interface ReportDetail {
   readonly os: string | null;
   readonly message: string | null;
   readonly payload: string | null;
+  /** First name the sender allowed quoting with on the site; null without consent. */
+  readonly quoteFirstName: string | null;
+  /** With consent: the message without the attached diagnostics; otherwise null. */
+  readonly quote: string | null;
+}
+
+/**
+ * A nullable text field a server older than the field leaves out entirely (the site and the server deploy separately):
+ * missing reads as null, any other non-text value is an error.
+ */
+function laterNullableStringField(object: JsonObject, key: string, response: RawResponse, path: string): string | null {
+  return object[key] === undefined ? null : nullableStringField(object, key, response, path);
 }
 
 const dayPattern: RegExp = /^\d{4}-\d{2}-\d{2}$/;
@@ -1179,6 +1193,7 @@ function parseReportSummary(item: JsonObject, response: RawResponse, path: strin
     appVersion: nullableStringField(item, "appVersion", response, path),
     os: nullableStringField(item, "os", response, path),
     summary: nullableStringField(item, "summary", response, path),
+    quoteFirstName: laterNullableStringField(item, "quoteFirstName", response, path),
   };
 }
 
@@ -1205,6 +1220,8 @@ export function parseReportDetail(response: RawResponse, path: string): ReportDe
     os: nullableStringField(body, "os", response, path),
     message: nullableStringField(body, "message", response, path),
     payload: nullableStringField(body, "payload", response, path),
+    quoteFirstName: laterNullableStringField(body, "quoteFirstName", response, path),
+    quote: laterNullableStringField(body, "quote", response, path),
   };
 }
 
@@ -1214,11 +1231,15 @@ export async function fetchStats(): Promise<AdminStats> {
   return parseAdminStats(await authorizedSend({ method: "GET", path, body: null, attempts: 3 }), path);
 }
 
-/** Bildirim listesinin bir sayfası (`before` yoksa en yeniler). */
-export async function fetchReports(kind: ReportKind, status: ReportStatus, before: number | null): Promise<ReportPage> {
+/** Bildirim listesinin bir sayfası (`before` yoksa en yeniler; `quotableOnly`: yalnızca alıntı izinli geri bildirimler). */
+export async function fetchReports(kind: ReportKind, status: ReportStatus, before: number | null, quotableOnly: boolean): Promise<ReportPage> {
   const query: URLSearchParams = new URLSearchParams({ kind, status });
   if (before !== null) {
     query.set("before", String(before));
+  }
+  // Yalnızca açıkken gönderilir: alanı tanımayan (daha eski) sunucu bilinmeyen parametreyi reddeder.
+  if (quotableOnly) {
+    query.set("quotable", "1");
   }
   const path: string = `/v1/admin/reports?${query.toString()}`;
   return parseReportPage(await authorizedSend({ method: "GET", path, body: null, attempts: 3 }), path);

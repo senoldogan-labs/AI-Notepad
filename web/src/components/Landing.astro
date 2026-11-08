@@ -23,6 +23,7 @@ import ImagePreload from "./ImagePreload.astro";
 import LaunchFilm from "./LaunchFilm.astro";
 import McpChat from "./McpChat.astro";
 import PhotoPanel from "./PhotoPanel.astro";
+import SocialProof from "./SocialProof.astro";
 import ThemedShot from "./ThemedShot.astro";
 import { macDownloadUrl } from "../config";
 import type { CommonCopy, HomeCopy, IconText } from "../copy";
@@ -354,6 +355,9 @@ const structuredData: string = structuredDataJson(
       <p class="trust-band__more reveal"><a class="text-link" href={routes.privacy}>{text.trust.link} <Icon name="arrow-right" size={16} class="" /></a></p>
     </div>
   </section>
+
+  {/* Quotes and the App Store rating from src/testimonials.ts: renders nothing until the owner adds real ones. */}
+  <SocialProof language={page === "fi" ? "fi" : "en"} />
 
   {/* Price (with the usage limits) and the questions people ask before they pay, in one section. */}
   <section class="section page" id="pricing" aria-labelledby="pricing-title">

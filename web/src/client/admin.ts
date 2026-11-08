@@ -39,6 +39,7 @@ import { type UsersView, createUsersView } from "./admin-users";
 import { type AdminClientCopy, type ClientCopy, clientCopy, fill } from "./copy";
 import { MissingElementError, dataValue, element, errorText, hideNotice, showNotice } from "./dom";
 import { SignedOutError, claimTabSession, hasSession } from "./session";
+import { testimonialSnippet } from "../testimonials";
 
 const text: ClientCopy = clientCopy;
 const adminText: AdminClientCopy = clientCopy.admin;
@@ -83,6 +84,8 @@ interface InboxState {
   nextBefore: number | null;
   selectedId: string | null;
   listRequest: number;
+  /** Yalnızca alıntı izinli geri bildirimler. */
+  quotableOnly: boolean;
 }
 
 /** "Dikkat" satırının önemi (sıralama da buna göredir). */
@@ -427,7 +430,7 @@ function renderAttention(sources: AttentionSources, onOpen: (view: AdminView) =>
 /** Bildirimin kim/ne zaman satırı. Saf fonksiyondur. */
 function reportMeta(report: ReportSummary): string {
   const who: string = report.email ?? report.userId ?? adminText.anonymous;
-  return [who, report.appVersion, report.os, formatTime(report.createdAt)].filter((part: string | null): part is string => part !== null && part !== "").join(" · ");
+  return [report.quoteFirstName === null ? null : adminText.report.quotable, who, report.appVersion, report.os, formatTime(report.createdAt)].filter((part: string | null): part is string => part !== null && part !== "").join(" · ");
 }
 
 /** Bildirim listesini çizer. */
@@ -530,12 +533,30 @@ function renderDetail(report: ReportDetail): void {
   element("detail-os", HTMLElement).textContent = report.os ?? "—";
   element("detail-message", HTMLElement).textContent = report.message ?? adminText.noMessage;
   renderPayload(report.payload);
+  renderQuote(report);
   const toggle: HTMLButtonElement = element("detail-toggle", HTMLButtonElement);
   toggle.dataset["reportId"] = report.id;
   toggle.dataset["next"] = report.status === "open" ? "done" : "open";
   toggle.textContent = report.status === "open" ? toggle.dataset["labelDone"] ?? "" : toggle.dataset["labelReopen"] ?? "";
   element("detail-status", HTMLElement).textContent = report.status === "open" ? element("status-open", HTMLButtonElement).textContent : element("status-done", HTMLButtonElement).textContent;
   element("detail-status", HTMLElement).classList.toggle("pill--ok", report.status === "done");
+}
+
+/**
+ * Alıntı izni bölümü: gönderen izin verdiyse ön adıyla birlikte, `web/src/testimonials.ts` listesine yapıştırılacak
+ * girdiyi kopyalayan düğme. Hiçbir şey kendiliğinden yayımlanmaz.
+ */
+function renderQuote(report: ReportDetail): void {
+  const block: HTMLElement = element("detail-quote-block", HTMLElement);
+  const name: string | null = report.quoteFirstName;
+  const quote: string | null = report.quote;
+  block.classList.toggle("hidden", name === null || quote === null);
+  if (name === null || quote === null) {
+    return;
+  }
+  const consent: HTMLElement = element("detail-quote-consent", HTMLElement);
+  consent.textContent = fill(dataValue(consent, "template"), { name });
+  bindCopy(element("detail-quote-copy", HTMLButtonElement), testimonialSnippet(report.id, name, quote, report.createdAt));
 }
 
 /** Ayrıntı panelini boşaltır. */
@@ -617,7 +638,7 @@ async function main(): Promise<void> {
   const firstStats: AdminStats = await fetchStats();
   mountDashboard();
   const notice: HTMLElement = element("admin-error", HTMLElement);
-  const state: InboxState = { kind: "feedback", status: "open", items: [], nextBefore: null, selectedId: null, listRequest: 0 };
+  const state: InboxState = { kind: "feedback", status: "open", items: [], nextBefore: null, selectedId: null, listRequest: 0, quotableOnly: false };
   const view: { current: AdminView } = { current: "overview" };
   const attention: AttentionSources = { stats: firstStats, insights: null, operations: null };
 
@@ -640,7 +661,7 @@ async function main(): Promise<void> {
   const loadList = async (append: boolean): Promise<void> => {
     state.listRequest += 1;
     const request: number = state.listRequest;
-    const page: ReportPage = await fetchReports(state.kind, state.status, append ? state.nextBefore : null);
+    const page: ReportPage = await fetchReports(state.kind, state.status, append ? state.nextBefore : null, state.quotableOnly);
     if (request !== state.listRequest) {
       return;
     }
@@ -733,6 +754,14 @@ async function main(): Promise<void> {
       loadList(false).catch(showFailure);
     });
   }
+  // Alıntı izni yalnızca geri bildirimde olur: süzgeç açılınca Geri bildirim sekmesine geçilir.
+  const quotable: HTMLButtonElement = element("filter-quotable", HTMLButtonElement);
+  quotable.addEventListener("click", (): void => {
+    state.quotableOnly = !state.quotableOnly;
+    quotable.setAttribute("aria-pressed", String(state.quotableOnly));
+    setInboxFilter(state.quotableOnly ? "feedback" : state.kind, state.status);
+    loadList(false).catch(showFailure);
+  });
   element("inbox-more", HTMLButtonElement).addEventListener("click", (): void => {
     loadList(true).catch(showFailure);
   });

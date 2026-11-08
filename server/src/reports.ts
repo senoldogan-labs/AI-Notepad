@@ -51,10 +51,31 @@ const emailSchema = z.email().max(254);
 const appVersionSchema = z.string().trim().min(1).max(40);
 const osSchema = z.string().trim().min(1).max(80);
 
+/** Alıntı izniyle verilen ön adın en çok uzunluğu (Unicode kod noktası). */
+export const quoteFirstNameMaxChars: number = 40;
+
+/**
+ * Alıntı izniyle verilen ön ad: harfle başlar; yalnız harf, birleşen işaret, boşluk, kesme, nokta ve tire; en çok 40 kod
+ * noktası. Uygulamadaki kural aynıdır (`isValidQuoteFirstName`, Reports.swift); ad sitede gösterilebileceği için işaretleme
+ * ya da bağlantı taşıyamaz.
+ */
+const quoteFirstNameSchema = z
+  .string()
+  .trim()
+  .regex(/^\p{L}[\p{L}\p{M}' .-]*$/u)
+  .refine((value: string): boolean => Array.from(value).length <= quoteFirstNameMaxChars, { message: `At most ${quoteFirstNameMaxChars} characters.` });
+
+/**
+ * Uygulamanın geri bildirime eklediği tanılama metninin ayracı (`appendingDiagnostics`, Diagnostics.swift): alıntı metni
+ * bu ayraçtan önceki kısımdır.
+ */
+const diagnosticsSeparator: string = "\n\n--- Diagnostics ---\n";
+
 /**
  * `POST /v1/reports` gövdesi; alanlar türe göre:
  * - `contact` (site): `message`, `email` ve `turnstileToken` zorunlu;
- * - `feedback` (uygulama): `message` zorunlu, `email` isteğe bağlı;
+ * - `feedback` (uygulama): `message` zorunlu, `email` isteğe bağlı; `quoteFirstName` yalnızca kullanıcı "gistsmith.com'da ön
+ *   adımla alıntılanabilir" kutusunu işaretlediyse gelir (izin; hiçbir şey kendiliğinden yayımlanmaz);
  * - `crash` (uygulama): `payload` (JSON nesnesi, en çok 64 KB) zorunlu, `message` ve `email` isteğe bağlı.
  * `appVersion` ve `os` her türde isteğe bağlıdır. Türe ait olmayan alan (ör. `feedback` ile `payload`) reddedilir:
  * sessizce yok sayılmaz.
@@ -72,6 +93,7 @@ export const reportSchema = z.discriminatedUnion("kind", [
     kind: z.literal("feedback"),
     message: messageSchema,
     email: emailSchema.optional(),
+    quoteFirstName: quoteFirstNameSchema.optional(),
     appVersion: appVersionSchema.optional(),
     os: osSchema.optional(),
   }),
@@ -99,6 +121,8 @@ interface NewReport {
   readonly message: string | null;
   readonly payload: string | null;
   readonly summary: string;
+  /** Alıntı izniyle verilen ön ad; izin yoksa null. */
+  readonly quoteFirstName: string | null;
   /** Saklanan metin alanlarının UTF-8 baytı (türe göre günlük bayt bütçesi için). */
   readonly sizeBytes: number;
 }
@@ -203,6 +227,7 @@ function newReport(input: ReportInput, userId: string | null): NewReport {
   const message: string | null = input.message ?? null;
   const payload: string | null = input.kind === "crash" ? input.payload : null;
   const summary: string = reportSummary(input);
+  const quoteFirstName: string | null = input.kind === "feedback" ? (input.quoteFirstName ?? null) : null;
   return {
     kind: input.kind,
     userId,
@@ -212,7 +237,8 @@ function newReport(input: ReportInput, userId: string | null): NewReport {
     message,
     payload,
     summary,
-    sizeBytes: utf8Bytes([email, appVersion, os, message, payload, summary]),
+    quoteFirstName,
+    sizeBytes: utf8Bytes([email, appVersion, os, message, payload, summary, quoteFirstName]),
   };
 }
 
@@ -240,8 +266,8 @@ export async function createReport(db: D1Database, config: Config, input: Report
   const dayStart: number = utcDayStartMs(now);
   const inserted: D1Result = await db
     .prepare(
-      `INSERT INTO reports (id, kind, status, created_at, user_id, email, app_version, os, message, payload, summary, size_bytes)
-       SELECT ?1, ?2, 'open', ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11
+      `INSERT INTO reports (id, kind, status, created_at, user_id, email, app_version, os, message, payload, summary, size_bytes, quote_first_name)
+       SELECT ?1, ?2, 'open', ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?17
        WHERE (SELECT COALESCE(SUM(size_bytes), 0) FROM reports WHERE kind = ?2 AND created_at >= ?12) + ?11 <= ?13
          AND (?4 IS NULL OR (SELECT COUNT(*) FROM reports WHERE user_id = ?4 AND created_at >= ?12) < ?14)
          AND (?4 IS NULL
@@ -266,6 +292,7 @@ export async function createReport(db: D1Database, config: Config, input: Report
       reportsPerUserPerDay,
       anonymousReportBudgetShare,
       accountReportBudgetShare,
+      report.quoteFirstName,
     )
     .run();
   if (inserted.meta.changes !== 1) {
@@ -291,22 +318,27 @@ export async function createReport(db: D1Database, config: Config, input: Report
     log("warn", "reports_daily_cap_reached", { kind: report.kind, bytes: report.sizeBytes, capBytes: config.reportBytesPerDay });
     throw new ApiError("daily_cap_reached", "Too many reports were received today; try again tomorrow.");
   }
-  log("info", "report_received", { reportId: id, kind: report.kind, userId: report.userId, bytes: report.sizeBytes });
+  log("info", "report_received", { reportId: id, kind: report.kind, userId: report.userId, bytes: report.sizeBytes, quotable: report.quoteFirstName !== null });
   return id;
 }
 
-/** Yönetici listesi süzgeci; null süzmez. `before`: yalnızca bu andan (ms) önce oluşturulanlar. */
+/**
+ * Yönetici listesi süzgeci; null süzmez. `before`: yalnızca bu andan (ms) önce oluşturulanlar. `quotableOnly`: yalnızca
+ * alıntı izni verilmiş geri bildirimler.
+ */
 export interface ReportFilter {
   readonly kind: ReportKind | null;
   readonly status: ReportStatus | null;
   readonly before: number | null;
+  readonly quotableOnly: boolean;
 }
 
-/** `?kind=&status=&before=<ms>`; boş ya da eksik değer süzgeç yok demektir, başka parametre reddedilir. */
+/** `?kind=&status=&before=<ms>&quotable=1`; boş ya da eksik değer süzgeç yok demektir, başka parametre reddedilir. */
 const reportListQuerySchema = z.strictObject({
   kind: z.union([z.literal(""), reportKindSchema]).optional(),
   status: z.union([z.literal(""), reportStatusSchema]).optional(),
   before: z.union([z.literal(""), z.string().regex(/^[1-9][0-9]{0,14}$/)]).optional(),
+  quotable: z.enum(["", "1"]).optional(),
 });
 
 /** Sorgu parametrelerini süzgece çevirir; geçersizse `invalid_body`. Saf fonksiyondur. */
@@ -316,6 +348,7 @@ export function parseReportFilter(url: URL): ReportFilter {
     kind: query.kind === undefined || query.kind === "" ? null : query.kind,
     status: query.status === undefined || query.status === "" ? null : query.status,
     before: query.before === undefined || query.before === "" ? null : Number(query.before),
+    quotableOnly: query.quotable === "1",
   };
 }
 
@@ -331,6 +364,8 @@ export interface ReportListItem {
   readonly appVersion: string | null;
   readonly os: string | null;
   readonly summary: string;
+  /** Alıntı izniyle verilen ön ad; izin yoksa null. */
+  readonly quoteFirstName: string | null;
 }
 
 /** Liste sayfası; `nextBefore` sonraki sayfanın `before` değeri (ms), son sayfada null. */
@@ -351,6 +386,10 @@ export interface ReportDetail {
   readonly os: string | null;
   readonly message: string | null;
   readonly payload: string | null;
+  /** Alıntı izniyle verilen ön ad; izin yoksa null. */
+  readonly quoteFirstName: string | null;
+  /** İzin varsa sitede alıntılanabilecek metin (mesajın eklenen tanılamadan önceki kısmı); yoksa null. */
+  readonly quote: string | null;
 }
 
 interface ReportListRow {
@@ -363,6 +402,7 @@ interface ReportListRow {
   readonly app_version: string | null;
   readonly os: string | null;
   readonly summary: string;
+  readonly quote_first_name: string | null;
 }
 
 interface ReportDetailRow extends Omit<ReportListRow, "summary"> {
@@ -382,6 +422,7 @@ function listItem(row: ReportListRow): ReportListItem {
     appVersion: row.app_version,
     os: row.os,
     summary: row.summary,
+    quoteFirstName: row.quote_first_name,
   };
 }
 
@@ -408,11 +449,11 @@ export function pageOf(rows: readonly ReportListRow[], pageSize: number): { read
 export async function listReports(db: D1Database, filter: ReportFilter): Promise<ReportList> {
   const result = await db
     .prepare(
-      `SELECT id, kind, status, created_at, user_id, email, app_version, os, summary FROM reports
-       WHERE (?1 IS NULL OR kind = ?1) AND (?2 IS NULL OR status = ?2) AND created_at < ?3
+      `SELECT id, kind, status, created_at, user_id, email, app_version, os, summary, quote_first_name FROM reports
+       WHERE (?1 IS NULL OR kind = ?1) AND (?2 IS NULL OR status = ?2) AND created_at < ?3 AND (?5 = 0 OR quote_first_name IS NOT NULL)
        ORDER BY created_at DESC, id DESC LIMIT ?4`,
     )
-    .bind(filter.kind, filter.status, filter.before ?? Number.MAX_SAFE_INTEGER, reportPageSize + 1)
+    .bind(filter.kind, filter.status, filter.before ?? Number.MAX_SAFE_INTEGER, reportPageSize + 1, filter.quotableOnly ? 1 : 0)
     .all<ReportListRow>();
   const page = pageOf(result.results, reportPageSize);
   return { items: page.rows.map(listItem), nextBefore: page.nextBefore };
@@ -421,7 +462,7 @@ export async function listReports(db: D1Database, filter: ReportFilter): Promise
 /** Raporun tamamı; yoksa `not_found`. */
 export async function getReport(db: D1Database, id: string): Promise<ReportDetail> {
   const row: ReportDetailRow | null = await db
-    .prepare("SELECT id, kind, status, created_at, user_id, email, app_version, os, message, payload FROM reports WHERE id = ?")
+    .prepare("SELECT id, kind, status, created_at, user_id, email, app_version, os, message, payload, quote_first_name FROM reports WHERE id = ?")
     .bind(id)
     .first<ReportDetailRow>();
   if (row === null) {
@@ -438,7 +479,18 @@ export async function getReport(db: D1Database, id: string): Promise<ReportDetai
     os: row.os,
     message: row.message,
     payload: row.payload,
+    quoteFirstName: row.quote_first_name,
+    quote: row.quote_first_name === null || row.message === null ? null : quoteText(row.message),
   };
+}
+
+/**
+ * Sitede alıntılanabilecek metin: mesajın uygulamanın eklediği tanılamadan (`--- Diagnostics ---`) önceki kısmı,
+ * kırpılmış. Saf fonksiyondur.
+ */
+export function quoteText(message: string): string {
+  const end: number = message.indexOf(diagnosticsSeparator);
+  return (end === -1 ? message : message.slice(0, end)).trim();
 }
 
 /** `POST /v1/admin/reports/{id}` gövdesi. */

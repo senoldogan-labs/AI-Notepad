@@ -462,6 +462,7 @@ describe("yönetici API'si", () => {
       appVersion: "1.2.0",
       os: "macOS 26.1",
       summary: "özet 0",
+      quoteFirstName: null,
     });
     const second: ListBody = await (await adminGet(harness, admin, `/v1/admin/reports?kind=&status=&before=${first.nextBefore}`)).json<ListBody>();
     expect(second.items).toHaveLength(6);
@@ -486,6 +487,8 @@ describe("yönetici API'si", () => {
       os: "macOS 26.1",
       message: "ileti 0",
       payload: "{}",
+      quoteFirstName: null,
+      quote: null,
     });
 
     const update = (status: string): Promise<Response> =>
@@ -507,7 +510,30 @@ describe("yönetici API'si", () => {
     await expectError(await adminGet(harness, admin, "/v1/admin/reports?kind=bug"), 400, "invalid_body");
     await expectError(await adminGet(harness, admin, "/v1/admin/reports?sayfa=2"), 400, "invalid_body");
     await expectError(await adminGet(harness, admin, "/v1/admin/reports?before=-5"), 400, "invalid_body");
+    await expectError(await adminGet(harness, admin, "/v1/admin/reports?quotable=yes"), 400, "invalid_body");
     await expectError(await adminGet(harness, admin, "/v1/admin/yok"), 404, "not_found");
+  });
+
+  it("alıntı izinli geri bildirimler süzülür; ayrıntıdaki alıntı eklenen tanılamayı taşımaz", async () => {
+    const harness: Harness = await defaultHarness();
+    const admin: Session = await signInWithGoogle(harness, adminSubject);
+    await env.DB.prepare("DELETE FROM reports").run();
+    const user: Session = await signIn(harness);
+    const send = (json: object): Promise<Response> => harness.call(req("POST", "/v1/reports", { json, token: user.accessToken }));
+    expect((await send({ kind: "feedback", message: "İzin yok." })).status).toBe(202);
+    const withDiagnostics: string = "Notlar harika, toplantıdan sonra hiç yazmıyorum.\n\n--- Diagnostics ---\n- Hesap: abone";
+    expect((await send({ kind: "feedback", message: withDiagnostics, quoteFirstName: "  Aino " })).status).toBe(202);
+
+    const quotable: ListBody = await (await adminGet(harness, admin, "/v1/admin/reports?kind=feedback&status=open&quotable=1")).json<ListBody>();
+    expect(quotable.items).toHaveLength(1);
+    expect(quotable.items[0]).toMatchObject({ kind: "feedback", quoteFirstName: "Aino" });
+    const all: ListBody = await (await adminGet(harness, admin, "/v1/admin/reports?kind=feedback&quotable=")).json<ListBody>();
+    expect(all.items).toHaveLength(2);
+
+    const detail = await (await adminGet(harness, admin, `/v1/admin/reports/${quotable.items[0]?.id ?? ""}`)).json<{ message: string; quoteFirstName: string; quote: string }>();
+    expect(detail.message).toBe(withDiagnostics);
+    expect(detail.quoteFirstName).toBe("Aino");
+    expect(detail.quote).toBe("Notlar harika, toplantıdan sonra hiç yazmıyorum.");
   });
 
   it("kullanıcı listesi: biçim, süzgeçler ve imleçli sayfalama; sağlayıcı kimliği dönmez", async () => {

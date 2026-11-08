@@ -1150,6 +1150,8 @@ struct RootView: View {
         // kaydı. Ortam nesnelerinden ÖNCE gelmeli: sayfalar yalnızca sunuldukları görünüme verilen ortamı alır; rehber
         // `PhoneDialer` ve `PhoneRecorder` okur, sonra eklenirse açılışta çöker (`SourceLintTests.phoneImportHostIsInsideTheEnvironment`).
         .modifier(PhoneImportHost(recorder: recorder, state: imports))
+        // Notu yazılan üçüncü toplantıdan sonra App Store değerlendirmesi (toplantı listesinden izlenir).
+        .modifier(PhoneReviewPrompt(store: store, recorder: recorder, account: account, onboardingCompleted: onboardingCompleted))
         // Görev satırları Anımsatıcılar'a eklemek için arşive, toplantı sayfasındaki "Şimdi dene" kaydediciye buradan ulaşır.
         .environment(store)
         .environment(recorder)

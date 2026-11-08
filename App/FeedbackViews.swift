@@ -63,14 +63,19 @@ private enum FeedbackSendState: Equatable {
 
 /// Geri bildirim formu: mesaj (zorunlu), yanıt e-postası (isteğe bağlı), gönderilecek haliyle gösterilen sürüm ve
 /// sistem bilgisi ve (baştan kapalı) Ayarlar › Tanılama'daki metin; gönderim kullanıcının "Gönder"iyle olur. Tanılama
-/// mesajın sonuna eklenir ve sunucunun mesaj sınırına sığdırılır (bkz. `appendingDiagnostics`).
-private struct FeedbackSheet: View {
+/// mesajın sonuna eklenir ve sunucunun mesaj sınırına sığdırılır (bkz. `appendingDiagnostics`). İsteğe bağlı (baştan
+/// kapalı) alıntı izni: işaretlenirse ön ad da gider; hiçbir şey kendiliğinden yayımlanmaz. Ayarlar'dan ve (abonelik
+/// sürümünde) ana penceredeki öneri şeridinden açılır.
+struct FeedbackSheet: View {
     let makeDiagnostics: @MainActor () async -> String
     let onClose: @MainActor () -> Void
     @Bindable private var draft: FeedbackDraft = FeedbackDraft.shared
     @State private var includeDiagnostics: Bool = true
     /// Ayarlar › Tanılama'daki metin de eklensin mi (baştan kapalı).
     @State private var includeFullDiagnostics: Bool = false
+    /// "gistsmith.com'da ön adımla alıntılanabilir" (baştan kapalı).
+    @State private var allowsQuote: Bool = false
+    @State private var quoteFirstName: String = ""
     @State private var state: FeedbackSendState = .editing
     @FocusState private var messageFocused: Bool
     private let diagnostics: ReportDiagnostics = currentReportDiagnostics(bundle: .main, platformName: "macOS")
@@ -105,7 +110,8 @@ private struct FeedbackSheet: View {
     private var form: some View {
         let length: Int = reportMessageLength(text: draft.message.trimmingCharacters(in: .whitespacesAndNewlines))
         let isSending: Bool = state == .sending
-        let canSend: Bool = !isSending && length > 0 && length <= reportMessageLimit
+        let isQuoteNameMissing: Bool = allowsQuote && quoteFirstName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let canSend: Bool = !isSending && length > 0 && length <= reportMessageLimit && !isQuoteNameMissing
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 5) {
                 HStack {
@@ -155,6 +161,23 @@ private struct FeedbackSheet: View {
                     .foregroundStyle(Theme.muted)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            Toggle("Bunu gistsmith.com'da ön adımla alıntılayabilirsiniz", isOn: $allowsQuote)
+                .toggleStyle(.checkbox)
+                .appFont(size: 13, weight: .regular)
+            if allowsQuote {
+                TextField("Ön adın", text: $quoteFirstName, prompt: Text("Ön adın"))
+                    .textFieldStyle(.plain)
+                    .textContentType(.givenName)
+                    .appFont(size: 14, weight: .regular)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .background(Theme.soft, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    .frame(maxWidth: 240, alignment: .leading)
+                Text("İsteğe bağlı. Hiçbir şey kendiliğinden yayımlanmaz: yalnızca mesajın ve ön adın gösterilebilir; e-postan ve hesabın asla.")
+                    .appFont(size: 12, weight: .regular)
+                    .foregroundStyle(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .disabled(isSending)
         .padding(18)
@@ -198,7 +221,7 @@ private struct FeedbackSheet: View {
     private func send() {
         let report: ReportRequest
         do {
-            report = try feedbackReport(message: draft.message, email: draft.email, diagnostics: includeDiagnostics ? diagnostics : nil)
+            report = try feedbackReport(message: draft.message, email: draft.email, diagnostics: includeDiagnostics ? diagnostics : nil, quoteFirstName: allowsQuote ? quoteFirstName : nil)
         } catch {
             state = .failed(message: userFacingMessage(error: error))
             return
