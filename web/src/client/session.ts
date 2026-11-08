@@ -182,8 +182,9 @@ async function claimOnce(): Promise<void> {
 
 /**
  * `generation` kuşağının oturumunu yeniler; aynı kuşakta yoldaki yenileme varsa ona katılır. Sonuç yalnızca kuşak hâlâ
- * geçerliyse yazılır (çıkış ya da yeni girişten sonra gelen yanıt atılır). Sunucu jetonu reddederse oturum biter ve
- * `SignedOutError`; ağ hatasında eski jetonlar kalır ve hata fırlatılır.
+ * geçerliyse yazılır (çıkış ya da yeni girişten sonra gelen yanıt atılır). Sunucu güncel kuşağın jetonunu reddederse
+ * oturum biter ve `SignedOutError`; eski bir kuşağın reddi hatasız biter (çağıran durumu yeniden okur). Ağ hatasında eski
+ * jetonlar kalır ve hata fırlatılır.
  */
 function refresh(generation: number): Promise<void> {
   if (inflightRefresh !== null && inflightRefresh.generation === generation) {
