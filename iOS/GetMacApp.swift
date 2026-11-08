@@ -13,8 +13,8 @@ let macAppReminderCategory: String = "mac-app-reminder"
 
 /// Ayarlar'da plan kartının altındaki "Mac için Gistsmith" satırı: dokununca Mac uygulamasının tanıtım sayfası
 /// açılır, sağdaki ✕ satırı bu iPhone'da kalıcı olarak gizler. Sunucu hesabın hangi cihazlarda kullanıldığını
-/// söylemez: Mac'i zaten kullanan da görür, gizleyebilir. Her görünüşü ve dokunuşu (kullanım istatistikleri açıksa)
-/// sayılır.
+/// söylemez: Mac'i zaten kullanan da görür, gizleyebilir. Görünüşü (açılış başına bir kez) ve dokunuşu (kullanım
+/// istatistikleri açıksa) sayılır.
 struct PhoneMacAppBanner: View {
     let router: PhoneRouter
     @AppStorage(PhoneSettingsKey.macAppBannerDismissed) private var isDismissed: Bool = false
@@ -57,7 +57,13 @@ struct PhoneMacAppBanner: View {
                 }
                 .listRowBackground(appearance.accent.color.opacity(0.10))
             }
-            .onAppear { recordTelemetryCount(kind: .macPromoShown) }
+            .onAppear {
+                guard !otherAppPromoShownCounted else {
+                    return
+                }
+                otherAppPromoShownCounted = true
+                recordTelemetryCount(kind: .macPromoShown)
+            }
         }
     }
 }

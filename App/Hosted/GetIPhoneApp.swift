@@ -10,8 +10,8 @@ private let iPhoneAppLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepa
 
 /// Ayarlar'ın sol sütunundaki "Gistsmith'i iPhone'a indir" kartı (iPhone'daki "Mac için Gistsmith" satırının
 /// karşılığı): tıklayınca iPhone uygulamasının tanıtım sayfası açılır, ✕ kartı bu Mac'te kalıcı olarak gizler. Sunucu
-/// hesabın hangi cihazlarda kullanıldığını söylemez: iPhone'u zaten kullanan da görür, gizleyebilir. Her görünüşü ve
-/// tıklanışı (kullanım istatistikleri açıksa) sayılır.
+/// hesabın hangi cihazlarda kullanıldığını söylemez: iPhone'u zaten kullanan da görür, gizleyebilir. Görünüşü (açılış
+/// başına bir kez) ve tıklanışı (kullanım istatistikleri açıksa) sayılır.
 struct HostedIPhoneAppCard: View {
     @AppStorage(SettingsKey.iPhoneAppCardDismissed) private var isDismissed: Bool = false
     /// Görsel kontrol: `--iphone-uygulamasi` ile Ayarlar açılınca tanıtım sayfası da açık başlar.
@@ -58,7 +58,13 @@ struct HostedIPhoneAppCard: View {
                 .padding(.trailing, 6)
             }
             .background(appearance.accent.color.opacity(0.10), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-            .onAppear { recordTelemetryCount(kind: .iPhonePromoShown) }
+            .onAppear {
+                guard !otherAppPromoShownCounted else {
+                    return
+                }
+                otherAppPromoShownCounted = true
+                recordTelemetryCount(kind: .iPhonePromoShown)
+            }
             .sheet(isPresented: $isSheetOpen) {
                 HostedIPhoneAppSheet()
             }

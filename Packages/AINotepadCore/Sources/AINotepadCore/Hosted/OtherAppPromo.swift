@@ -11,6 +11,10 @@ public let gistsmithMacDownloadURL: URL = URL(string: "https://gistsmith.com/dow
 /// iPhone uygulamasının App Store sayfası (App Store kimliği 6829577553): Mac'teki QR kod ve "Bağlantıyı kopyala".
 public let gistsmithAppStoreURL: URL = URL(string: "https://apps.apple.com/app/gistsmith/id6829577553")!
 
+/// Tanıtım satırının "göründü" sayımı bu açılışta yapıldı mı: satır kaydırmayla ya da Ayarlar'a her dönüşte yeniden
+/// görünür, sayım uygulama açılışı başına birdir. Ana aktörde okunur ve yazılır.
+@MainActor public var otherAppPromoShownCounted: Bool = false
+
 /// "Sonra hatırlat" bildiriminin saati (yerel saatle ertesi sabah).
 public let otherAppReminderHour: Int = 9
 
