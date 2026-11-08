@@ -2413,7 +2413,8 @@ private struct AskOverlay: View {
                 scopeMenu: askScopeMenu(context: context, selected: scope, records: model.meetings, folders: model.folders, userName: model.userName),
                 firstName: askFirstName(userName: model.userName),
                 suggestions: model.askChats.exchanges(context: context).isEmpty ? askSuggestions(scope: scope, records: model.meetings, userName: model.userName, now: Date(), calendar: Calendar.current, limit: 4).map { askSuggestionText(suggestion: $0) } : [],
-                transcript: nil, isPanelOpen: isOpen, conversationMaxHeight: bottomPanelMaxHeight(pageHeight: pageHeight, cap: 420), focusRequest: focusRequest,
+                transcript: nil, isPanelOpen: isOpen, conversationMaxHeight: bottomPanelMaxHeight(pageHeight: pageHeight, cap: 420),
+                enlargedConversationMaxHeight: enlargedConversationMaxHeight(pageHeight: pageHeight, chrome: 200), focusRequest: focusRequest,
                 onSelectScope: { (selected: AskScope) -> Void in model.askChats.select(scope: selected, context: context) },
                 onAsk: { (question: String, recipeTitle: String?) -> Void in
                     model.askQuestion(context: context, question: question, scope: scope, mentionIDs: [], recipeTitle: recipeTitle)

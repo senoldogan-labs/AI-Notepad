@@ -323,9 +323,15 @@ struct AskTab: View {
                     .padding(.bottom, 40)
                 }
                 .scrollDismissesKeyboard(.interactively)
+                // Selamlamanın arkasında durgun pastel gradyan (sayfanın zeminine solar).
+                .background(alignment: .top) {
+                    AskBackdrop()
+                        .frame(height: 400)
+                        .ignoresSafeArea(edges: .top)
+                }
                 .safeAreaInset(edge: .bottom) {
                     AskComposer(
-                        ask: ask, store: store, placeholder: askScopePlaceholder(scope: rootScope), isAnswering: false, followUp: nil,
+                        ask: ask, store: store, placeholder: askComposerPlaceholder(scope: rootScope), isAnswering: false, followUp: nil,
                         suggestions: askSuggestions(scope: rootScope, records: store.meetings, userName: store.userName, now: Date(), calendar: Calendar.current, limit: 4).map { askSuggestionText(suggestion: $0) },
                         scopeMenu: askScopeMenu(context: .allMeetings, selected: rootScope, records: store.meetings, folders: store.folders, userName: store.userName),
                         onSelectScope: { (scope: AskScope) -> Void in rootScope = scope },
@@ -501,6 +507,14 @@ struct AskConversationView: View {
                 .padding(16)
             }
             .scrollDismissesKeyboard(.interactively)
+            // Boş sohbette (klasörden ya da kişiden açılan Sor) selamlamanın arkasında durgun pastel gradyan.
+            .background(alignment: .top) {
+                if exchanges.isEmpty {
+                    AskBackdrop()
+                        .frame(height: 400)
+                        .ignoresSafeArea(edges: .top)
+                }
+            }
             .onScrollGeometryChange(for: Bool.self) { (geometry: ScrollGeometry) -> Bool in
                 isNearScrollBottom(geometry: geometry)
             } action: { (_: Bool, near: Bool) in
@@ -546,7 +560,7 @@ struct AskConversationView: View {
                 }
                 AskComposer(
                     ask: ask, store: store,
-                    placeholder: exchanges.isEmpty || scope != .allMeetings ? askScopePlaceholder(scope: scope) : String(localized: "Devam sorusu sor…"),
+                    placeholder: exchanges.isEmpty || scope != .allMeetings ? askComposerPlaceholder(scope: scope) : String(localized: "Devam sorusu sor…"),
                     isAnswering: isAnswering,
                     followUp: AskFollowUp(exchangeID: exchanges.last?.id, scope: followUpScope(exchanges: exchanges, records: store.meetings)),
                     suggestions: exchanges.isEmpty ? askSuggestions(scope: scope, records: store.meetings, userName: store.userName, now: Date(), calendar: Calendar.current, limit: 4).map { askSuggestionText(suggestion: $0) } : [],
@@ -745,9 +759,14 @@ private struct AskComposer: View {
     private var field: some View {
         let isEmpty: Bool = question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         let shape: RoundedRectangle = RoundedRectangle(cornerRadius: 24, style: .continuous)
-        // Üstte etiketler ve soru, altta tek satır: toplantı ekle (@), kapsam çipi ve gönder/durdur.
-        return VStack(alignment: .leading, spacing: 4) {
-            if !mentioned.isEmpty {
+        // Üstte kapsam çipi ya da etiketler; altta sıradan bir yazı alanı gibi tek satır: toplantı ekle (@), soru ve
+        // gönder/durdur. Yazı düğmelerle aynı satırda ortalanır; çok satırlı soru yukarı doğru büyür, düğmeler altta kalır.
+        return VStack(alignment: .leading, spacing: 2) {
+            if mentioned.isEmpty {
+                AskScopeChip(menu: scopeMenu, isEnabled: !isAnswering, onSelect: onSelectScope)
+                    .padding(.top, 4)
+                    .padding(.leading, 6)
+            } else {
                 ScrollView(.horizontal) {
                     HStack(spacing: 6) {
                         ForEach(mentioned, id: \.id) { (record: MeetingRecord) in
@@ -759,21 +778,10 @@ private struct AskComposer: View {
                 }
                 .scrollIndicators(.hidden)
                 .padding(.top, 6)
-                .padding(.horizontal, 10)
+                .padding(.horizontal, 6)
             }
             AskDictationStatus(dictation: askDictation, owner: dictationOwner)
-            TextField(
-                mentioned.isEmpty ? placeholder : String(localized: "Etiketlenen toplantılara sor…"),
-                text: $question, selection: $selection, axis: .vertical
-            )
-            .appFont(size: 16, weight: .regular)
-            // Return yeni satır ekler (çok satırlı soru); gönderme sağdaki düğmeyle.
-            .lineLimit(1...5)
-            .focused($isFocused)
-            .padding(.horizontal, 12)
-            .padding(.top, 10)
-            .padding(.bottom, 2)
-            HStack(spacing: 4) {
+            HStack(alignment: .bottom, spacing: 2) {
                 // Toplantı ekle: alana "@" yazar, toplantı önerileri açılır (soru yalnız seçilen toplantılara gider).
                 Button {
                     let needsSpace: Bool = !question.isEmpty && question.last?.isWhitespace == false
@@ -791,10 +799,17 @@ private struct AskComposer: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(Text("Toplantı ekle"))
-                if mentioned.isEmpty {
-                    AskScopeChip(menu: scopeMenu, isEnabled: !isAnswering, onSelect: onSelectScope)
-                }
-                Spacer(minLength: 4)
+                TextField(
+                    mentioned.isEmpty ? placeholder : String(localized: "Etiketlenen toplantılara sor…"),
+                    text: $question, selection: $selection, axis: .vertical
+                )
+                .appFont(size: 16, weight: .regular)
+                // Return yeni satır ekler (çok satırlı soru); gönderme sağdaki düğmeyle.
+                .lineLimit(1...5)
+                .focused($isFocused)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 11)
+                .frame(minHeight: 44, alignment: .center)
                 // Sesle sor: söylenen soru alana gelir (gönderilmez); kayıt sürerken mikrofon toplantıdadır. Cihaz içi
                 // dikte (`DictationTranscriber`) iOS 26 ister; daha eski sistemde düğme yok.
                 if #available(iOS 26, *) {
@@ -828,9 +843,7 @@ private struct AskComposer: View {
                 .accessibilityLabel(isAnswering ? "Durdur" : "Sor")
             }
         }
-        .padding(.leading, 6)
-        .padding(.trailing, 6)
-        .padding(.vertical, 6)
+        .padding(6)
         // Kutunun tamamı (yalnız yazı satırı değil) alanı odaklar; gönder düğmesi ve etiket çipleri kendi dokunuşunu alır.
         .contentShape(shape)
         .onTapGesture {

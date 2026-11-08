@@ -53,6 +53,13 @@ public func askScopePlaceholder(scope: AskScope) -> String {
     }
 }
 
+/// Sor sayfasındaki soru alanının ipucu (Mac ve iPhone): tüm toplantılarda `@` ve "/" kısayollarını hatırlatır (kapsam
+/// zaten çipte yazılı); başka kapsamda kapsamın kendi ipucu (`askScopePlaceholder`).
+@MainActor
+public func askComposerPlaceholder(scope: AskScope) -> String {
+    scope == .allMeetings ? String(localized: "Sor… @ toplantı, / tarif") : askScopePlaceholder(scope: scope)
+}
+
 /// Sohbetin geçmişteki kapsam etiketi: son turun kapsamı; toplantı kapsamında toplantının başlığı (turda saklı).
 @MainActor
 public func askConversationScopeTitle(conversation: AskConversation) -> String {
@@ -236,11 +243,10 @@ public func askFirstName(userName: String) -> String {
 }
 
 /// Boş Sor'un selamlaması (Mac ve iPhone): ortada büyük, sıcak tek satır ("Merhaba Şenol, ne sormak istersin?"); ad
-/// bilinmiyorsa yalnız soru. Uygulamanın yazı tipiyle, üstünde vurgu renginde küçük bir parıltı.
+/// bilinmiyorsa yalnız soru. Uygulamanın yazı tipiyle; Sor sayfasında arkasında `AskBackdrop` durur.
 public struct AskGreeting: View {
     let firstName: String
     let size: CGFloat
-    @Environment(\.panelAppearance) private var appearance: PanelAppearance
 
     public init(firstName: String, size: CGFloat) {
         self.firstName = firstName
@@ -248,25 +254,19 @@ public struct AskGreeting: View {
     }
 
     public var body: some View {
-        VStack(spacing: size * 0.4) {
-            Image(systemName: "sparkle")
-                .appFont(size: size * 0.8, weight: .semibold)
-                .foregroundStyle(appearance.accent.color)
-                .accessibilityHidden(true)
-            Group {
-                if firstName.isEmpty {
-                    Text("Ne sormak istersin?")
-                } else {
-                    Text("Merhaba \(firstName), ne sormak istersin?")
-                }
+        Group {
+            if firstName.isEmpty {
+                Text("Ne sormak istersin?")
+            } else {
+                Text("Merhaba \(firstName), ne sormak istersin?")
             }
-            .appFont(size: size, weight: .semibold)
-            .tracking(-0.4)
-            .foregroundStyle(Theme.ink)
-            .multilineTextAlignment(.center)
-            .fixedSize(horizontal: false, vertical: true)
-            .accessibilityAddTraits(.isHeader)
         }
+        .appFont(size: size, weight: .semibold)
+        .tracking(-0.4)
+        .foregroundStyle(Theme.ink)
+        .multilineTextAlignment(.center)
+        .fixedSize(horizontal: false, vertical: true)
+        .accessibilityAddTraits(.isHeader)
         .frame(maxWidth: .infinity)
     }
 }
