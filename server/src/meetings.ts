@@ -17,6 +17,7 @@ import { ApiError } from "./errors";
 import { log } from "./log";
 import type { Platform, RequestContext } from "./platform";
 import { type TrialRefusalReason, recordTrialRefusal } from "./trialRefusals";
+import { type SqlCondition, type TrialDeviceColumns, type TrialDevicePhase, trialDeviceDecision, trialDevicePhaseOf, trialMeetingLeftSql, trialMeetingsLeftOnDevice } from "./trialState";
 import { requireElevenLabsTrialHeadroom } from "./elevenLabsCapacity";
 import {
   type MeetingPauseState,
@@ -315,23 +316,28 @@ async function requireTrialDevice(
   if (deviceCheck.policy === "off") {
     return;
   }
-  const row: { verified_at: number | null; claim_started_at: number | null } | null = await db
+  const row: TrialDeviceColumns | null = await db
     .prepare("SELECT trial_device_verified_at AS verified_at, trial_device_claim_started_at AS claim_started_at FROM users WHERE id = ?")
     .bind(userId)
-    .first<{ verified_at: number | null; claim_started_at: number | null }>();
-  if (row === null || row.verified_at !== null || trialMeetingsLeft(await userTrialState(db, userId), config, now) === 0) {
+    .first<TrialDeviceColumns>();
+  if (row === null) {
+    return;
+  }
+  const phase: TrialDevicePhase = trialDevicePhaseOf(row);
+  if (phase.kind === "verified" || trialMeetingsLeft(await userTrialState(db, userId), config, now) === 0) {
     return;
   }
   if (deviceCheckToken === null) {
     throw new ApiError("device_check_required", "The free trial requires this Mac's Apple DeviceCheck token; update the app.");
   }
   const bits: DeviceBits = await queryDeviceBits(context.platform, deviceCheck, deviceCheckToken, now);
-  if (bits.bit0 && row.claim_started_at !== null && now.getTime() - row.claim_started_at <= trialDeviceClaimResumeMs) {
+  const decision: "claim" | "resume" | "refuse" = trialDeviceDecision(phase, bits.bit0, now.getTime(), trialDeviceClaimResumeMs);
+  if (decision === "resume") {
     await markTrialDeviceVerified(db, userId, now);
     log("warn", "trial_device_claim_resumed", { userId, claimStartedAt: row.claim_started_at });
     return;
   }
-  if (bits.bit0) {
+  if (decision === "refuse") {
     log("info", "trial_refused", { userId, attested: false, reason: "device_used" });
     await recordTrialRefusal(db, "device_used", now);
     throw new ApiError("trial_device_used", "The free trial was already used on this Mac with another account. Subscribe to continue.");
@@ -406,23 +412,16 @@ async function startTrialMeeting(
   const meetingId: string = randomId();
   const day: string = dayKey(now);
   const maxEndsAt: number = now.getTime() + config.trialMaxMeetingMinutes * 60_000;
+  const accountGate: SqlCondition = trialMeetingLeftSql(config, userId, now.getTime());
   const gate: StartGate = {
-    sql: `(SELECT COUNT(*) FROM meeting_sessions WHERE user_id = ? AND kind = 'trial')
-        + (SELECT carried_trial_meetings FROM users WHERE id = ?) < ?
-      AND COALESCE((SELECT trial_started_at FROM users WHERE id = ?) + ?, ? + 1) > ?
+    sql: `${accountGate.sql}
       AND (? IS NULL OR (SELECT COUNT(*) FROM meeting_sessions WHERE device_id = ? AND kind = 'trial') < ?)
       AND (EXISTS (SELECT 1 FROM meeting_sessions WHERE user_id = ? AND kind = 'trial')
         OR (SELECT carried_trial_meetings FROM users WHERE id = ?) > 0
         OR (SELECT COUNT(*) FROM trial_starts WHERE ip_hash = ? AND day = ?)
           + COALESCE((SELECT accounts FROM deleted_trial_starts WHERE ip_hash = ? AND day = ?), 0) < ?)`,
     binds: [
-      userId,
-      userId,
-      config.trialMeetings,
-      userId,
-      config.trialDurationMs,
-      now.getTime(),
-      now.getTime(),
+      ...accountGate.binds,
       deviceId,
       deviceId,
       config.trialMeetings,
@@ -475,7 +474,7 @@ async function startTrialMeeting(
     tokenBudget: config.trialMeetingTokenBudget,
     maxDurationMinutes: config.trialMaxMeetingMinutes,
     expiresAt: new Date(maxEndsAt).toISOString(),
-    trialMeetingsLeft: Math.max(0, config.trialMeetings - Math.max(trial.used, deviceUsed ?? 0)),
+    trialMeetingsLeft: trialMeetingsLeftOnDevice(config, trial, deviceUsed),
   };
 }
 

@@ -36,7 +36,11 @@ export const appStoreManageUrl: string = "https://apps.apple.com/account/subscri
  */
 export const appStoreRenewalGraceMs: number = 24 * 3_600_000;
 
-/** Satırın durumu (göç 0048'deki açıklama). */
+/**
+ * Satırın durumu (göç 0048'deki açıklama): RevenueCat okumasının anındaki (`synced_at`) anlık görüntüdür, şimdiki durum
+ * değildir. Dönem sonu bir olay gelmeden geçebilir (ör. `active` satırın yenileme olayı kaybolursa): erişim ve sayımlar
+ * durumu tek başına okumaz, `appStoreAccess` / `appStoreActiveSql` / `appStoreGraceSql` ile anla birlikte türetir.
+ */
 export type AppStoreStatus = "active" | "canceled" | "billing_issue" | "expired" | "refunded";
 
 /** RevenueCat ortamı. */
@@ -45,9 +49,20 @@ export type AppStoreEnvironment = "PRODUCTION" | "SANDBOX";
 /** App Store aboneliğinin erişimi (`entitlements.SubscriptionAccess` ile aynı değerler). */
 export type AppStoreAccess = "active" | "grace" | "none";
 
+/** App Store abonelikleri RevenueCat'te bu mağazalardandır (göç 0059 tetikleyicisi aynı listeyi zorlar). */
+export const appStoreStoreNames: readonly ["app_store", "mac_app_store"] = ["app_store", "mac_app_store"];
+
+/** Satırın mağazası. */
+export type AppStoreStore = (typeof appStoreStoreNames)[number];
+
+/** RevenueCat mağaza adı bizim App Store mağazalarımızdan biri mi. Saf fonksiyondur. */
+export function isAppStoreStore(value: string): value is AppStoreStore {
+  return appStoreStoreNames.some((store: AppStoreStore): boolean => store === value);
+}
+
 /** Hesabın App Store aboneliği (`app_store_subscriptions` satırı). */
 export interface AppStoreSubscription {
-  readonly store: string;
+  readonly store: AppStoreStore;
   readonly productId: string;
   /** Ürün kimliğinden plan; tanınmayan üründe null (hak verir, MRR'a girmez). */
   readonly plan: SubscriptionPlan | null;
@@ -118,7 +133,7 @@ export function appStorePaidSql(userRef: string): string {
 
 /** `app_store_subscriptions` satırı. */
 interface AppStoreRow {
-  readonly store: string;
+  readonly store: AppStoreStore;
   readonly product_id: string;
   readonly plan: SubscriptionPlan | null;
   readonly status: AppStoreStatus;
@@ -183,9 +198,6 @@ const revenueCatSubscriberSchema = z.object({
 /** RevenueCat'in abone yanıtı. */
 export type RevenueCatSubscriber = z.output<typeof revenueCatSubscriberSchema>;
 
-/** App Store abonelikleri RevenueCat'te bu mağazalardandır. */
-const appStoreStores: ReadonlySet<string> = new Set(["app_store", "mac_app_store"]);
-
 /** ISO tarihini ms'ye çevirir (null/undefined → null). Saf fonksiyondur. */
 function msOrNull(value: string | null | undefined): number | null {
   return value === null || value === undefined ? null : Date.parse(value);
@@ -233,12 +245,13 @@ export function appStoreSubscriptionFromRevenueCat(subscriber: RevenueCatSubscri
   const candidates: AppStoreSubscription[] = Object.entries(subscriber.subscriber.subscriptions).flatMap(
     ([productId, subscription]: [string, RevenueCatSubscription]): AppStoreSubscription[] => {
       const expiresAt: number | null = msOrNull(subscription.expires_date);
-      if (!appStoreStores.has(subscription.store) || expiresAt === null || (subscription.is_sandbox && !acceptSandbox)) {
+      const store: string = subscription.store;
+      if (!isAppStoreStore(store) || expiresAt === null || (subscription.is_sandbox && !acceptSandbox)) {
         return [];
       }
       return [
         {
-          store: subscription.store,
+          store,
           productId,
           plan: appStorePlanOf(productId, products),
           status: appStoreStatusOf(subscription, expiresAt, nowMs),

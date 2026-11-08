@@ -3,6 +3,7 @@ import type { Config } from "../config";
 import { randomId, randomToken, sha256Hex, utf8 } from "../crypto";
 import { ApiError } from "../errors";
 import { log } from "../log";
+import { type RefreshTokenState, refreshTokenStateOf, supersededMarker, usedTokenOutcome } from "./refreshState";
 
 const accessTokenIssuer: string = "ainotepad-server";
 const accessTokenAudience: string = "ainotepad-app";
@@ -15,13 +16,6 @@ export const accessTokenTtlSeconds: number = 15 * 60;
  * İstemcinin istek zaman aşımından (30 sn) ve yeniden denemelerinden çok uzundur.
  */
 export const refreshRetryWindowMs: number = 10 * 60_000;
-
-/**
- * Yeniden denemede yerine yenisi verilen (kullanılmamış) eski halefin `replaced_by` işareti. Satır silinmez: o jeton
- * sonradan gelirse eski jeton iki ayrı eldeymiş demektir (biri yeniden denedi, öbürü halefi tutuyordu) ve tüm aile
- * düşürülür. Günlük temizlik (`cleanup.ts`) satırı ancak süresi dolunca ya da aile düşürülünce siler.
- */
-const supersededMarker: string = "superseded";
 
 /** Doğrulanmış istek sahibi. */
 export interface AuthedUser {
@@ -198,15 +192,17 @@ export async function rotateRefreshToken(db: D1Database, config: Config, refresh
   if (row.revoked_at !== null) {
     throw new ApiError("invalid_token", "The session was signed out; sign in again.");
   }
-  if (row.used_at === null) {
+  const state: RefreshTokenState = refreshTokenStateOf(row);
+  if (state.kind === "unused") {
     throw new ApiError("invalid_token", "The refresh token has expired.");
   }
-  if (row.replaced_by === supersededMarker) {
+  const outcome: "superseded_reuse" | "retry" | "reuse" = usedTokenOutcome(state, now.getTime(), refreshRetryWindowMs);
+  if (outcome === "superseded_reuse") {
     await revokeFamily(db, row.family_id, "refresh_superseded_reuse", now);
     log("alert", "refresh_token_superseded_reuse", { familyId: row.family_id, userId: row.user_id });
     throw new ApiError("invalid_token", "The refresh token was reused; all sessions were signed out.");
   }
-  if (await replaceUnusedSuccessor(db, config, row, tokenHash, nextHash, now)) {
+  if (outcome === "retry" && state.kind === "rotated" && (await replaceUnusedSuccessor(db, config, row.family_id, state.successor, tokenHash, nextHash, now))) {
     log("warn", "refresh_token_retried", { familyId: row.family_id, userId: row.user_id });
     return sessionFor(config, row, nextToken, now);
   }
@@ -246,13 +242,18 @@ async function claimAndRotate(db: D1Database, config: Config, tokenHash: string,
  * Yanıtı kaybolan yenilemenin yeniden denenmesi: jeton `refreshRetryWindowMs` içinde kullanılmış ve yerine geçen jeton
  * hiç kullanılmamışsa, tek toplu işlemde kullanılmamış eski halef `supersededMarker` ile geçersiz yazılır (silinmez:
  * sonradan gelirse aile düşer), yenisi eklenir ve `replaced_by` yenisini gösterir. Koşul ilk ifadededir; sonraki ifadeler yalnızca o başarılıysa etkilidir (eşzamanlı iki yeniden deneme
- * ikisi birden geçemez). Uygulandıysa true; halef kullanıldıysa ya da süre geçtiyse false (yeniden kullanım).
+ * ikisi birden geçemez). Uygulandıysa true; halef kullanıldıysa false (yeniden kullanım). Süre penceresini çağıran
+ * `usedTokenOutcome` ile denetler.
  */
-async function replaceUnusedSuccessor(db: D1Database, config: Config, row: RefreshRow, tokenHash: string, nextHash: string, now: Date): Promise<boolean> {
-  if (row.replaced_by === null || row.replaced_by === supersededMarker || row.used_at === null || now.getTime() - row.used_at > refreshRetryWindowMs) {
-    return false;
-  }
-  const previousSuccessor: string = row.replaced_by;
+async function replaceUnusedSuccessor(
+  db: D1Database,
+  config: Config,
+  familyId: string,
+  previousSuccessor: string,
+  tokenHash: string,
+  nextHash: string,
+  now: Date,
+): Promise<boolean> {
   const applied: string = "(SELECT replaced_by FROM refresh_tokens WHERE token_hash = ?) = ?";
   // Halef satırı hiç yoksa da kullanılmamış sayılır (eski sürümde jeton kullanılmış yazılıp halef eklenmeden kalmış olabilir).
   const results: D1Result[] = await db.batch([
@@ -267,7 +268,7 @@ async function replaceUnusedSuccessor(db: D1Database, config: Config, row: Refre
       .bind(now.getTime(), supersededMarker, previousSuccessor, tokenHash, nextHash),
     db
       .prepare(`INSERT INTO refresh_tokens (token_hash, family_id, created_at, expires_at) SELECT ?, ?, ?, ? WHERE ${applied}`)
-      .bind(nextHash, row.family_id, now.getTime(), now.getTime() + config.refreshTokenMs, tokenHash, nextHash),
+      .bind(nextHash, familyId, now.getTime(), now.getTime() + config.refreshTokenMs, tokenHash, nextHash),
   ]);
   return results[0]?.meta.changes === 1;
 }
