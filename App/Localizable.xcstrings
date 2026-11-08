@@ -25182,77 +25182,6 @@
         }
       }
     },
-    "Bu Mac'te ücretsiz deneme daha önce başka bir hesapla kullanıldı. Devam etmek için Ayarlar › Hesap'tan abone ol.": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dieser Mac hat bereits mit einem anderen Account einen kostenlosen Test genutzt. Schließe zum Fortfahren unter „Einstellungen“ › „Account“ ein Abo ab."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This Mac has already used a free trial with another account. To continue, subscribe in Settings › Account."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Este Mac ya ha usado una prueba gratuita con otra cuenta. Para continuar, suscríbete en Ajustes › Cuenta."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tämä Mac on jo käyttänyt ilmaisen kokeilujakson toisella tilillä. Jatka tilaamalla kohdassa Asetukset › Tili."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ce Mac a déjà utilisé un essai gratuit avec un autre compte. Pour continuer, abonnez-vous dans Réglages › Compte."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Questo Mac ha già usato una prova gratuita con un altro account. Per continuare, abbonati in Impostazioni › Account."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "このMacでは別のアカウントですでに無料トライアルが使用されています。続けるには「設定」›「アカウント」で登録してください。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "이 Mac은 이미 다른 계정으로 무료 체험을 사용했습니다. 계속하려면 설정 › 계정에서 구독하세요."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Deze Mac heeft al een gratis proefperiode met een ander account gebruikt. Neem een abonnement in Instellingen › Account om door te gaan."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Este Mac já usou um teste grátis com outra conta. Para continuar, assine em Ajustes › Conta."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "这台 Mac 已通过另一个账户使用过免费试用。要继续，请在“设置 › 账户”中订阅。"
-          }
-        }
-      }
-    },
     "Bu Mac'teki oturumu kapatır; toplantıların ve notların bu Mac'te kalır.": {
       "extractionState": "manual",
       "localizations": {
@@ -27925,77 +27854,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "这部 iPhone 上的免费试用已被另一个账户使用过。"
-          }
-        }
-      }
-    },
-    "Bu işlem için abonelik gerekiyor. Ayarlar › Hesap'tan abone ol.": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dafür ist ein Abo nötig. Schließe es unter „Einstellungen“ › „Account“ ab."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This requires a subscription. Subscribe in Settings › Account."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Esto requiere una suscripción. Suscríbete en Ajustes › Cuenta."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tämä vaatii tilauksen. Tilaa kohdassa Asetukset › Tili."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Un abonnement est nécessaire. Abonnez-vous dans Réglages › Compte."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Serve un abbonamento. Abbonati in Impostazioni › Account."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "サブスクリプションが必要です。「設定」›「アカウント」で登録してください。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "구독이 필요합니다. 설정 › 계정에서 구독하세요."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hiervoor is een abonnement nodig. Neem een abonnement in Instellingen › Account."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Isto requer uma assinatura. Assine em Ajustes › Conta."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "此功能需要订阅。请在“设置 › 账户”中订阅。"
           }
         }
       }
@@ -45140,77 +44998,6 @@
         }
       }
     },
-    "Giriş yapılmamış. Ayarlar › Hesap'tan Apple ya da Google ile giriş yap.": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nicht angemeldet. Melde dich unter „Einstellungen“ › „Account“ mit Apple oder Google an."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Not signed in. Sign in with Apple or Google in Settings › Account."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sesión no iniciada. Inicia sesión con Apple o Google en Ajustes › Cuenta."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Et ole kirjautunut sisään. Kirjaudu Applella tai Googlella kohdassa Asetukset › Tili."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Non connecté. Connectez-vous avec Apple ou Google dans Réglages › Compte."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Accesso non eseguito. Accedi con Apple o Google in Impostazioni › Account."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "サインインしていません。「設定」›「アカウント」でAppleまたはGoogleでサインインしてください。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "로그인하지 않았습니다. 설정 › 계정에서 Apple 또는 Google로 로그인하세요."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Niet ingelogd. Log in met Apple of Google in Instellingen › Account."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sessão não iniciada. Inicie sessão com Apple ou Google em Ajustes › Conta."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "未登录。请在“设置 › 账户”中通过 Apple 或 Google 登录。"
-          }
-        }
-      }
-    },
     "Giriş yap…": {
       "extractionState": "manual",
       "localizations": {
@@ -55197,146 +54984,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "完成"
-          }
-        }
-      }
-    },
-    "Toplantılar silinmez. Sonra Ayarlar › Hesap'tan da taşıyabilirsin.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Meetings werden nicht gelöscht. Du kannst sie auch später unter „Einstellungen“ › „Account“ verschieben."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Meetings are not deleted. You can also move them later in Settings › Account."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Las reuniones no se eliminan. También puedes moverlas más tarde en Ajustes › Cuenta."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kokouksia ei poisteta. Voit siirtää ne myöhemmin myös kohdassa Asetukset › Tili."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Les réunions ne sont pas supprimées. Vous pouvez aussi les déplacer plus tard dans Réglages › Compte."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le riunioni non vengono eliminate. Puoi spostarle anche più tardi in Impostazioni › Account."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "会議は削除されません。あとで「設定」›「アカウント」から移動することもできます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "회의는 삭제되지 않습니다. 나중에 설정 › 계정에서 옮길 수도 있습니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vergaderingen worden niet verwijderd. Je kunt ze ook later verplaatsen in Instellingen › Account."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "As reuniões não são apagadas. Você também pode movê-las depois em Ajustes › Conta."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "会议不会被删除。你也可以稍后在“设置 › 账户”中移动它们。"
-          }
-        }
-      }
-    },
-    "Toplantılar silinmez; taşıyınca bu hesabın toplantıları arasında görünür. Sonra Ayarlar › Hesap'tan da taşıyabilirsin.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Meetings werden nicht gelöscht; nach dem Verschieben erscheinen sie bei den Meetings dieses Accounts. Du kannst sie auch später unter „Einstellungen“ › „Account“ verschieben."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Meetings are not deleted; once moved, they appear with this account's meetings. You can also move them later in Settings › Account."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Las reuniones no se eliminan; al moverlas, aparecen con las reuniones de esta cuenta. También puedes moverlas más tarde en Ajustes › Cuenta."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kokouksia ei poisteta; siirron jälkeen ne näkyvät tämän tilin kokousten joukossa. Voit siirtää ne myöhemmin myös kohdassa Asetukset › Tili."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Les réunions ne sont pas supprimées ; une fois déplacées, elles apparaissent avec les réunions de ce compte. Vous pouvez aussi les déplacer plus tard dans Réglages › Compte."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le riunioni non vengono eliminate; una volta spostate, compaiono tra le riunioni di questo account. Puoi spostarle anche più tardi in Impostazioni › Account."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "会議は削除されません。移動するとこのアカウントの会議一覧に表示されます。あとで「設定」›「アカウント」から移動することもできます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "회의는 삭제되지 않습니다. 옮기면 이 계정의 회의 목록에 표시됩니다. 나중에 설정 › 계정에서 옮길 수도 있습니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vergaderingen worden niet verwijderd; na het verplaatsen staan ze bij de vergaderingen van dit account. Je kunt ze ook later verplaatsen in Instellingen › Account."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "As reuniões não são apagadas; depois de movidas, aparecem com as reuniões desta conta. Você também pode movê-las depois em Ajustes › Conta."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "会议不会被删除；移动后会显示在此账户的会议中。你也可以稍后在“设置 › 账户”中移动它们。"
           }
         }
       }
@@ -81510,77 +81157,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "你的会话已关闭（你已退出登录，或出于安全原因关闭了所有会话）。请重新登录。"
-          }
-        }
-      }
-    },
-    "Oturumun sona erdi; Ayarlar › Hesap'tan yeniden giriş yap.": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Deine Sitzung ist abgelaufen; melde dich unter „Einstellungen“ › „Account“ erneut an."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Your session has ended; sign in again in Settings › Account."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tu sesión ha finalizado; vuelve a iniciar sesión en Ajustes › Cuenta."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Istuntosi on päättynyt; kirjaudu uudelleen kohdassa Asetukset › Tili."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Votre session a pris fin ; reconnectez-vous dans Réglages › Compte."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La tua sessione è terminata; accedi di nuovo in Impostazioni › Account."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "セッションが終了しました。「設定」›「アカウント」でもう一度サインインしてください。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "세션이 종료되었습니다. 설정 › 계정에서 다시 로그인하세요."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Je sessie is verlopen; log opnieuw in via Instellingen › Account."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sua sessão terminou; inicie sessão de novo em Ajustes › Conta."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "你的会话已结束；请在“设置 › 账户”中重新登录。"
           }
         }
       }
@@ -112974,77 +112550,6 @@
         }
       }
     },
-    "Ücretsiz denemeler bugün kapasitede. Yarın yeniden dene ya da Ayarlar › Hesap'tan abone ol.": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die kostenlosen Tests sind heute ausgelastet. Versuche es morgen erneut oder schließe unter „Einstellungen“ › „Account“ ein Abo ab."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Free trials are at capacity today. Try again tomorrow or subscribe in Settings › Account."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Las pruebas gratuitas están completas por hoy. Inténtalo de nuevo mañana o suscríbete en Ajustes › Cuenta."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ilmaisia kokeilujaksoja ei tänään ole enää saatavilla. Yritä huomenna uudelleen tai tilaa kohdassa Asetukset › Tili."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Les essais gratuits sont complets aujourd’hui. Réessayez demain ou abonnez-vous dans Réglages › Compte."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le prove gratuite di oggi sono esaurite. Riprova domani o abbonati in Impostazioni › Account."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "本日の無料トライアルは定員に達しました。明日もう一度お試しいただくか、「設定」›「アカウント」で登録してください。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "오늘 무료 체험 인원이 모두 찼습니다. 내일 다시 시도하거나 설정 › 계정에서 구독하세요."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gratis proefperiodes zitten vandaag vol. Probeer het morgen opnieuw of neem een abonnement in Instellingen › Account."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Os testes grátis atingiram a capacidade hoje. Tente de novo amanhã ou assine em Ajustes › Conta."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "今天的免费试用名额已满。请明天再试，或在“设置 › 账户”中订阅。"
-          }
-        }
-      }
-    },
     "Ücretsiz denemeler bugün kapasitede. Yarın yeniden dene.": {
       "localizations": {
         "de": {
@@ -122973,77 +122478,6 @@
         }
       }
     },
-    "Ödeme alınamadı. Kayda devam etmek için Ayarlar › Hesap'ta \"Hesabı yönet\"ten kartını güncelle.": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zahlung fehlgeschlagen. Um weiter aufzunehmen, aktualisiere deine Karte über „Account verwalten“ unter „Einstellungen“ › „Account“."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Payment failed. To keep recording, update your card via \"Manage account\" in Settings › Account."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "El pago no se ha podido realizar. Para seguir grabando, actualiza tu tarjeta en “Gestionar cuenta”, en Ajustes › Cuenta."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Maksu epäonnistui. Jatka nauhoittamista päivittämällä korttisi kohdassa Asetukset › Tili › ”Hallitse tiliä”."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le paiement a échoué. Pour continuer à enregistrer, mettez à jour votre carte via « Gérer le compte » dans Réglages › Compte."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pagamento non riuscito. Per continuare a registrare, aggiorna la carta tramite “Gestisci account” in Impostazioni › Account."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "支払いに失敗しました。録音を続けるには、「設定」›「アカウント」の「アカウントを管理」でカード情報を更新してください。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "결제가 실패했습니다. 계속 녹음하려면 설정 › 계정의 \"계정 관리\"에서 카드를 업데이트하세요."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Betaling mislukt. Werk je kaart bij via \"Beheer account\" in Instellingen › Account om te blijven opnemen."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O pagamento falhou. Para continuar gravando, atualize seu cartão em \"Gerenciar conta\" em Ajustes › Conta."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "付款失败。要继续录制，请在“设置 › 账户”中通过“管理账户”更新你的银行卡。"
-          }
-        }
-      }
-    },
     "Ödeme alınamadı; kartını güncelleyene dek yeni toplantı başlatılamaz. \"Hesabı yönet\"ten kartını güncelle.": {
       "extractionState": "manual",
       "localizations": {
@@ -129917,77 +129351,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "你的订阅已于 %@ 结束。你的会议和笔记保留在这部 iPhone 上；重新订阅即可录制新会议。"
-          }
-        }
-      }
-    },
-    "Aboneliğin web'de (kartla) alındı; Mac uygulamasında Ayarlar › Hesap › Hesabı yönet'ten yönetebilirsin.": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dein Abo wurde im Web (per Karte) gekauft; verwalte es in der Mac-App unter „Einstellungen“ › „Account“ › „Account verwalten“."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Your subscription was bought on the web (by card); manage it in the Mac app under Settings › Account › Manage account."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tu suscripción se compró en la web (con tarjeta); gestiónala en la app para Mac en Ajustes › Cuenta › Gestionar cuenta."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tilauksesi ostettiin verkossa (kortilla); hallitse sitä Mac-sovelluksessa kohdassa Asetukset › Tili › Hallitse tiliä."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Votre abonnement a été acheté sur le web (par carte) ; gérez-le dans l’app Mac sous Réglages › Compte › Gérer le compte."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Il tuo abbonamento è stato acquistato sul web (con carta); gestiscilo nell’app per Mac in Impostazioni › Account › Gestisci account."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "サブスクリプションはWeb（カード）で購入されています。Macアプリの「設定」›「アカウント」›「アカウントを管理」で管理してください。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "웹에서(카드로) 구입한 구독입니다. Mac 앱의 설정 › 계정 › 계정 관리에서 관리하세요."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Je abonnement is via het web gekocht (met een kaart); beheer het in de Mac-app onder Instellingen › Account › Beheer account."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sua assinatura foi comprada na web (com cartão); gerencie-a no app para Mac em Ajustes › Conta › Gerenciar conta."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "你的订阅是在网页上（通过银行卡）购买的；请在 Mac App 的“设置 › 账户 › 管理账户”中管理。"
           }
         }
       }
@@ -208113,76 +207476,6 @@
         }
       }
     },
-    "Geliştirici sürümü: toplantılar ve anahtarlar bu Mac'te.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Entwicklerversion: Meetings und Schlüssel bleiben auf diesem Mac."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Developer edition: meetings and keys stay on this Mac."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Edición para desarrolladores: las reuniones y las claves se quedan en este Mac."
-          }
-        },
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kehittäjäversio: kokoukset ja avaimet pysyvät tässä Macissa."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Édition développeur : réunions et clés restent sur ce Mac."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Edizione sviluppatori: riunioni e chiavi restano su questo Mac."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "開発者版：会議とキーはこのMacに保存されます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "개발자 버전: 회의와 키는 이 Mac에 저장됩니다."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ontwikkelaarsversie: vergaderingen en sleutels blijven op deze Mac."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Edição para desenvolvedores: reuniões e chaves ficam neste Mac."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "开发者版：会议和密钥保存在这台 Mac 上。"
-          }
-        }
-      }
-    },
     "Görüşmenin notunu almanın yolları.": {
       "localizations": {
         "de": {
@@ -209999,6 +209292,784 @@
           "stringUnit": {
             "state": "translated",
             "value": "在“设置 › 录音和语言”中打开“截取共享屏幕的图像”后，在线通话中屏幕每次变化时，这里都会显示一张图像及当时所说的内容。你也可以添加白板、幻灯片或草图的照片：“添加照片…”或“文件 › 从 iPhone 导入”（连续互通相机）。"
+          }
+        }
+      }
+    },
+    "Bu Mac'te ücretsiz deneme daha önce başka bir hesapla kullanıldı. Devam etmek için Ayarlar › Plan ve faturalandırma'dan abone ol.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieser Mac hat bereits mit einem anderen Account einen kostenlosen Test genutzt. Schließe zum Fortfahren unter „Einstellungen“ › „Tarif und Abrechnung“ ein Abo ab."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This Mac has already used a free trial with another account. To continue, subscribe in Settings › Plan and billing."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este Mac ya ha usado una prueba gratuita con otra cuenta. Para continuar, suscríbete en Ajustes › Plan y facturación."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämä Mac on jo käyttänyt ilmaisen kokeilujakson toisella tilillä. Jatka tilaamalla kohdassa Asetukset › Tilaus ja laskutus."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce Mac a déjà utilisé un essai gratuit avec un autre compte. Pour continuer, abonnez-vous dans Réglages › Forfait et facturation."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questo Mac ha già usato una prova gratuita con un altro account. Per continuare, abbonati in Impostazioni › Piano e fatturazione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このMacでは別のアカウントですでに無料トライアルが使用されています。続けるには「設定」›「プランと請求」で登録してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 Mac은 이미 다른 계정으로 무료 체험을 사용했습니다. 계속하려면 설정 › 플랜 및 결제에서 구독하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deze Mac heeft al een gratis proefperiode met een ander account gebruikt. Neem een abonnement in Instellingen › Abonnement en facturering om door te gaan."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este Mac já usou um teste grátis com outra conta. Para continuar, assine em Ajustes › Plano e cobrança."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这台 Mac 已通过另一个账户使用过免费试用。要继续，请在“设置 › 方案与账单”中订阅。"
+          }
+        }
+      }
+    },
+    "Bu işlem için abonelik gerekiyor. Ayarlar › Plan ve faturalandırma'dan abone ol.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dafür ist ein Abo nötig. Schließe es unter „Einstellungen“ › „Tarif und Abrechnung“ ab."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This requires a subscription. Subscribe in Settings › Plan and billing."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esto requiere una suscripción. Suscríbete en Ajustes › Plan y facturación."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämä vaatii tilauksen. Tilaa kohdassa Asetukset › Tilaus ja laskutus."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un abonnement est nécessaire. Abonnez-vous dans Réglages › Forfait et facturation."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serve un abbonamento. Abbonati in Impostazioni › Piano e fatturazione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サブスクリプションが必要です。「設定」›「プランと請求」で登録してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "구독이 필요합니다. 설정 › 플랜 및 결제에서 구독하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hiervoor is een abonnement nodig. Neem een abonnement in Instellingen › Abonnement en facturering."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Isto requer uma assinatura. Assine em Ajustes › Plano e cobrança."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此功能需要订阅。请在“设置 › 方案与账单”中订阅。"
+          }
+        }
+      }
+    },
+    "Giriş yapılmamış. Ayarlar › Plan ve faturalandırma'dan Apple ya da Google ile giriş yap.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nicht angemeldet. Melde dich unter „Einstellungen“ › „Tarif und Abrechnung“ mit Apple oder Google an."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not signed in. Sign in with Apple or Google in Settings › Plan and billing."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sesión no iniciada. Inicia sesión con Apple o Google en Ajustes › Plan y facturación."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Et ole kirjautunut sisään. Kirjaudu Applella tai Googlella kohdassa Asetukset › Tilaus ja laskutus."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non connecté. Connectez-vous avec Apple ou Google dans Réglages › Forfait et facturation."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accesso non eseguito. Accedi con Apple o Google in Impostazioni › Piano e fatturazione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サインインしていません。「設定」›「プランと請求」でAppleまたはGoogleでサインインしてください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "로그인하지 않았습니다. 설정 › 플랜 및 결제에서 Apple 또는 Google로 로그인하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niet ingelogd. Log in met Apple of Google in Instellingen › Abonnement en facturering."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sessão não iniciada. Inicie sessão com Apple ou Google em Ajustes › Plano e cobrança."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未登录。请在“设置 › 方案与账单”中通过 Apple 或 Google 登录。"
+          }
+        }
+      }
+    },
+    "Toplantılar silinmez. Sonra Ayarlar › Plan ve faturalandırma'dan da taşıyabilirsin.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings werden nicht gelöscht. Du kannst sie auch später unter „Einstellungen“ › „Tarif und Abrechnung“ verschieben."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings are not deleted. You can also move them later in Settings › Plan and billing."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las reuniones no se eliminan. También puedes moverlas más tarde en Ajustes › Plan y facturación."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kokouksia ei poisteta. Voit siirtää ne myöhemmin myös kohdassa Asetukset › Tilaus ja laskutus."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les réunions ne sont pas supprimées. Vous pouvez aussi les déplacer plus tard dans Réglages › Forfait et facturation."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le riunioni non vengono eliminate. Puoi spostarle anche più tardi in Impostazioni › Piano e fatturazione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議は削除されません。あとで「設定」›「プランと請求」から移動することもできます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의는 삭제되지 않습니다. 나중에 설정 › 플랜 및 결제에서 옮길 수도 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vergaderingen worden niet verwijderd. Je kunt ze ook later verplaatsen in Instellingen › Abonnement en facturering."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As reuniões não são apagadas. Você também pode movê-las depois em Ajustes › Plano e cobrança."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会议不会被删除。你也可以稍后在“设置 › 方案与账单”中移动它们。"
+          }
+        }
+      }
+    },
+    "Toplantılar silinmez; taşıyınca bu hesabın toplantıları arasında görünür. Sonra Ayarlar › Plan ve faturalandırma'dan da taşıyabilirsin.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings werden nicht gelöscht; nach dem Verschieben erscheinen sie bei den Meetings dieses Accounts. Du kannst sie auch später unter „Einstellungen“ › „Tarif und Abrechnung“ verschieben."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings are not deleted; once moved, they appear with this account's meetings. You can also move them later in Settings › Plan and billing."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las reuniones no se eliminan; al moverlas, aparecen con las reuniones de esta cuenta. También puedes moverlas más tarde en Ajustes › Plan y facturación."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kokouksia ei poisteta; siirron jälkeen ne näkyvät tämän tilin kokousten joukossa. Voit siirtää ne myöhemmin myös kohdassa Asetukset › Tilaus ja laskutus."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les réunions ne sont pas supprimées ; une fois déplacées, elles apparaissent avec les réunions de ce compte. Vous pouvez aussi les déplacer plus tard dans Réglages › Forfait et facturation."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le riunioni non vengono eliminate; una volta spostate, compaiono tra le riunioni di questo account. Puoi spostarle anche più tardi in Impostazioni › Piano e fatturazione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会議は削除されません。移動するとこのアカウントの会議一覧に表示されます。あとで「設定」›「プランと請求」から移動することもできます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "회의는 삭제되지 않습니다. 옮기면 이 계정의 회의 목록에 표시됩니다. 나중에 설정 › 플랜 및 결제에서 옮길 수도 있습니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vergaderingen worden niet verwijderd; na het verplaatsen staan ze bij de vergaderingen van dit account. Je kunt ze ook later verplaatsen in Instellingen › Abonnement en facturering."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As reuniões não são apagadas; depois de movidas, aparecem com as reuniões desta conta. Você também pode movê-las depois em Ajustes › Plano e cobrança."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会议不会被删除；移动后会显示在此账户的会议中。你也可以稍后在“设置 › 方案与账单”中移动它们。"
+          }
+        }
+      }
+    },
+    "Oturumun sona erdi; Ayarlar › Plan ve faturalandırma'dan yeniden giriş yap.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Sitzung ist abgelaufen; melde dich unter „Einstellungen“ › „Tarif und Abrechnung“ erneut an."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your session has ended; sign in again in Settings › Plan and billing."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu sesión ha finalizado; vuelve a iniciar sesión en Ajustes › Plan y facturación."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Istuntosi on päättynyt; kirjaudu uudelleen kohdassa Asetukset › Tilaus ja laskutus."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre session a pris fin ; reconnectez-vous dans Réglages › Forfait et facturation."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La tua sessione è terminata; accedi di nuovo in Impostazioni › Piano e fatturazione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "セッションが終了しました。「設定」›「プランと請求」でもう一度サインインしてください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "세션이 종료되었습니다. 설정 › 플랜 및 결제에서 다시 로그인하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je sessie is verlopen; log opnieuw in via Instellingen › Abonnement en facturering."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua sessão terminou; inicie sessão de novo em Ajustes › Plano e cobrança."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的会话已结束；请在“设置 › 方案与账单”中重新登录。"
+          }
+        }
+      }
+    },
+    "Ücretsiz denemeler bugün kapasitede. Yarın yeniden dene ya da Ayarlar › Plan ve faturalandırma'dan abone ol.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die kostenlosen Tests sind heute ausgelastet. Versuche es morgen erneut oder schließe unter „Einstellungen“ › „Tarif und Abrechnung“ ein Abo ab."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free trials are at capacity today. Try again tomorrow or subscribe in Settings › Plan and billing."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las pruebas gratuitas están completas por hoy. Inténtalo de nuevo mañana o suscríbete en Ajustes › Plan y facturación."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ilmaisia kokeilujaksoja ei tänään ole enää saatavilla. Yritä huomenna uudelleen tai tilaa kohdassa Asetukset › Tilaus ja laskutus."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les essais gratuits sont complets aujourd’hui. Réessayez demain ou abonnez-vous dans Réglages › Forfait et facturation."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le prove gratuite di oggi sono esaurite. Riprova domani o abbonati in Impostazioni › Piano e fatturazione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本日の無料トライアルは定員に達しました。明日もう一度お試しいただくか、「設定」›「プランと請求」で登録してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "오늘 무료 체험 인원이 모두 찼습니다. 내일 다시 시도하거나 설정 › 플랜 및 결제에서 구독하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gratis proefperiodes zitten vandaag vol. Probeer het morgen opnieuw of neem een abonnement in Instellingen › Abonnement en facturering."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os testes grátis atingiram a capacidade hoje. Tente de novo amanhã ou assine em Ajustes › Plano e cobrança."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今天的免费试用名额已满。请明天再试，或在“设置 › 方案与账单”中订阅。"
+          }
+        }
+      }
+    },
+    "Ödeme alınamadı. Kayda devam etmek için Ayarlar › Plan ve faturalandırma'da \"Hesabı yönet\"ten kartını güncelle.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zahlung fehlgeschlagen. Um weiter aufzunehmen, aktualisiere deine Karte über „Account verwalten“ unter „Einstellungen“ › „Tarif und Abrechnung“."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Payment failed. To keep recording, update your card via \"Manage account\" in Settings › Plan and billing."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El pago no se ha podido realizar. Para seguir grabando, actualiza tu tarjeta en “Gestionar cuenta”, en Ajustes › Plan y facturación."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maksu epäonnistui. Jatka nauhoittamista päivittämällä korttisi kohdassa Asetukset › Tilaus ja laskutus › ”Hallitse tiliä”."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le paiement a échoué. Pour continuer à enregistrer, mettez à jour votre carte via « Gérer le compte » dans Réglages › Forfait et facturation."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pagamento non riuscito. Per continuare a registrare, aggiorna la carta tramite “Gestisci account” in Impostazioni › Piano e fatturazione."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支払いに失敗しました。録音を続けるには、「設定」›「プランと請求」の「アカウントを管理」でカード情報を更新してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "결제가 실패했습니다. 계속 녹음하려면 설정 › 플랜 및 결제의 \"계정 관리\"에서 카드를 업데이트하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Betaling mislukt. Werk je kaart bij via \"Beheer account\" in Instellingen › Abonnement en facturering om te blijven opnemen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O pagamento falhou. Para continuar gravando, atualize seu cartão em \"Gerenciar conta\" em Ajustes › Plano e cobrança."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "付款失败。要继续录制，请在“设置 › 方案与账单”中通过“管理账户”更新你的银行卡。"
+          }
+        }
+      }
+    },
+    "Aboneliğin web'de (kartla) alındı; Mac uygulamasında Ayarlar › Plan ve faturalandırma › Hesabı yönet'ten yönetebilirsin.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dein Abo wurde im Web (per Karte) gekauft; verwalte es in der Mac-App unter „Einstellungen“ › „Tarif und Abrechnung“ › „Account verwalten“."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your subscription was bought on the web (by card); manage it in the Mac app under Settings › Plan and billing › Manage account."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu suscripción se compró en la web (con tarjeta); gestiónala en la app para Mac en Ajustes › Plan y facturación › Gestionar cuenta."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tilauksesi ostettiin verkossa (kortilla); hallitse sitä Mac-sovelluksessa kohdassa Asetukset › Tilaus ja laskutus › Hallitse tiliä."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre abonnement a été acheté sur le web (par carte) ; gérez-le dans l’app Mac sous Réglages › Forfait et facturation › Gérer le compte."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il tuo abbonamento è stato acquistato sul web (con carta); gestiscilo nell’app per Mac in Impostazioni › Piano e fatturazione › Gestisci account."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サブスクリプションはWeb（カード）で購入されています。Macアプリの「設定」›「プランと請求」›「アカウントを管理」で管理してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "웹에서(카드로) 구입한 구독입니다. Mac 앱의 설정 › 플랜 및 결제 › 계정 관리에서 관리하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je abonnement is via het web gekocht (met een kaart); beheer het in de Mac-app onder Instellingen › Abonnement en facturering › Beheer account."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua assinatura foi comprada na web (com cartão); gerencie-a no app para Mac em Ajustes › Plano e cobrança › Gerenciar conta."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的订阅是在网页上（通过银行卡）购买的；请在 Mac App 的“设置 › 方案与账单 › 管理账户”中管理。"
+          }
+        }
+      }
+    },
+    "Notla ya da soruyla gönderilen fotoğraflar sunucunun sınırını aşıyor. Ayarlar › Notlar ve şablonlar'da \"Notta fotoğrafları kullan\"ı kapatıp ya da Ekranlar sekmesinden bazılarını nottan çıkarıp yeniden dene.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The photos sent with the note or question are over the server's limit. Turn off \"Use photos in notes\" in Settings › Notes and templates, or untick some on the Screens tab, then try again."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die mit der Notiz oder Frage gesendeten Fotos überschreiten das Limit des Servers. Deaktiviere „Fotos in Notizen verwenden“ unter „Einstellungen“ › „Notizen und Vorlagen“ oder wähle im Tab „Bildschirme“ einige ab und versuche es erneut."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les photos envoyées avec la note ou la question dépassent la limite du serveur. Désactivez « Utiliser les photos dans les notes » dans Réglages › Notes et modèles, ou décochez-en quelques-unes dans l’onglet Écrans, puis réessayez."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las fotos enviadas con la nota o la pregunta superan el límite del servidor. Desactiva “Usar fotos en las notas” en Ajustes › Notas y plantillas o desmarca algunas en la pestaña Pantallas e inténtalo de nuevo."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le foto inviate con la nota o la domanda superano il limite del server. Disattiva “Usa le foto nelle note” in Impostazioni › Note e modelli o deselezionane alcune nella scheda Schermate, poi riprova."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As fotos enviadas com a nota ou a pergunta excedem o limite do servidor. Desative \"Usar fotos nas notas\" em Ajustes › Notas e modelos ou desmarque algumas na aba Telas e tente de novo."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De foto's die met de notitie of vraag worden verstuurd, overschrijden de limiet van de server. Zet \"Gebruik foto's in notities\" uit in Instellingen › Notities en sjablonen, of vink er een paar uit op het tabblad Schermen, en probeer het opnieuw."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートまたは質問と一緒に送信される写真がサーバの上限を超えています。「設定」›「ノートとテンプレート」で「ノートで写真を使用」をオフにするか、「画面」タブでいくつかのチェックを外してから、もう一度お試しください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "노트 또는 질문과 함께 전송된 사진이 서버 한도를 초과했습니다. 설정 › 노트 및 템플릿에서 \"노트에 사진 사용\"을 끄거나 화면 탭에서 일부를 선택 해제한 후 다시 시도하세요."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "随笔记或问题发送的照片超出了服务器的限制。请在“设置 › 笔记和模板”中关闭“在笔记中使用照片”，或在“屏幕”标签页中取消勾选一些照片，然后重试。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muistiinpanon tai kysymyksen mukana lähetetyt kuvat ylittävät palvelimen rajan. Laita ”Käytä kuvia muistiinpanoissa” pois päältä kohdassa Asetukset › Muistiinpanot ja pohjat tai poista joidenkin valinta Näytöt-välilehdellä ja yritä uudelleen."
+          }
+        }
+      }
+    },
+    "Geliştirici sürümü: kendi anahtarlarınla, hesapsız.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Developer edition: your own keys, no account."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entwicklerversion: eigene Schlüssel, kein Account."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Édition développeur : vos propres clés, sans compte."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edición para desarrolladores: tus propias claves, sin cuenta."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edizione sviluppatori: le tue chiavi, nessun account."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edição para desenvolvedores: suas próprias chaves, sem conta."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ontwikkelaarsversie: je eigen sleutels, geen account."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "開発者版：自分のキーを使用、アカウント不要。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "개발자 버전: 내 키 사용, 계정 없음."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开发者版：使用你自己的密钥，无需账户。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kehittäjäversio: omat avaimet, ei tiliä."
           }
         }
       }

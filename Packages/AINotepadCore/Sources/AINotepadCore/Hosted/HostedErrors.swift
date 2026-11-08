@@ -261,7 +261,7 @@ public func hostedErrorMessage(error: HostedAPIError) -> String {
         #endif
     case .trialDeviceUsed:
         #if os(macOS)
-        return String(localized: "Bu Mac'te ücretsiz deneme daha önce başka bir hesapla kullanıldı. Devam etmek için Ayarlar › Hesap'tan abone ol.")
+        return String(localized: "Bu Mac'te ücretsiz deneme daha önce başka bir hesapla kullanıldı. Devam etmek için Ayarlar › Plan ve faturalandırma'dan abone ol.")
         #else
         return String(localized: "Bu iPhone'da ücretsiz deneme daha önce başka bir hesapla kullanıldı.")
         #endif
@@ -284,7 +284,7 @@ public func hostedErrorMessage(error: HostedAPIError) -> String {
         return dailyCapMessage(path: error.path)
     case .subscriptionRequired:
         #if os(macOS)
-        return String(localized: "Bu işlem için abonelik gerekiyor. Ayarlar › Hesap'tan abone ol.")
+        return String(localized: "Bu işlem için abonelik gerekiyor. Ayarlar › Plan ve faturalandırma'dan abone ol.")
         #else
         return String(localized: "Bu işlem için hesabında etkin bir plan gerekiyor.")
         #endif
@@ -298,7 +298,7 @@ public func hostedErrorMessage(error: HostedAPIError) -> String {
         return String(localized: "App Store satın alması şu an doğrulanamıyor; biraz sonra yeniden dene.")
     case .trialCapacityReached:
         #if os(macOS)
-        return String(localized: "Ücretsiz denemeler bugün kapasitede. Yarın yeniden dene ya da Ayarlar › Hesap'tan abone ol.")
+        return String(localized: "Ücretsiz denemeler bugün kapasitede. Yarın yeniden dene ya da Ayarlar › Plan ve faturalandırma'dan abone ol.")
         #else
         return String(localized: "Ücretsiz denemeler bugün kapasitede. Yarın yeniden dene.")
         #endif
@@ -344,7 +344,7 @@ public func hostedErrorMessage(error: HostedAPIError) -> String {
     case .audioTooLong:
         return String(localized: "Ses, toplantının süresinden ya da bu ay kalan süreden uzun; gönderilemedi.")
     case .unauthorized, .invalidToken:
-        return String(localized: "Oturumun sona erdi; Ayarlar › Hesap'tan yeniden giriş yap.")
+        return String(localized: "Oturumun sona erdi; Ayarlar › Plan ve faturalandırma'dan yeniden giriş yap.")
     case .rateLimited:
         return String(localized: "Çok fazla istek gönderildi; biraz bekleyip yeniden dene.")
     case .turnstileFailed:
@@ -364,7 +364,12 @@ public func hostedErrorMessage(error: HostedAPIError) -> String {
     case .payloadTooLarge:
         return String(localized: "Gönderilen veri sunucunun sınırını aşıyor.")
     case .screenImagesOverLimit:
+        // Ayarın adı ve sayfası platforma göre: Mac'te ekran görüntüleri, iPhone'da fotoğraflar.
+        #if os(iOS)
+        return String(localized: "Notla ya da soruyla gönderilen fotoğraflar sunucunun sınırını aşıyor. Ayarlar › Notlar ve şablonlar'da \"Notta fotoğrafları kullan\"ı kapatıp ya da Ekranlar sekmesinden bazılarını nottan çıkarıp yeniden dene.")
+        #else
         return String(localized: "Notla ya da soruyla gönderilen ekran görüntüleri sunucunun sınırını aşıyor. Ayarlar › Kayıt ve diller'de \"Notlarda ekran görüntülerini kullan\"ı kapatıp ya da Ekranlar sekmesinden bazılarını nottan çıkarıp yeniden dene.")
+        #endif
     case .syncUnavailable:
         return String(localized: "Eşitleme şu an kullanılamıyor; biraz sonra yeniden dene.")
     case .syncNotEnabled:
@@ -452,7 +457,7 @@ private func dailyCapMessage(path: String) -> String {
 public func hostedClientMessage(error: HostedClientError) -> String {
     switch error {
     case .notSignedIn:
-        String(localized: "Giriş yapılmamış. Ayarlar › Hesap'tan Apple ya da Google ile giriş yap.")
+        String(localized: "Giriş yapılmamış. Ayarlar › Plan ve faturalandırma'dan Apple ya da Google ile giriş yap.")
     case .sessionEnded:
         String(localized: "Oturumun kapandı (çıkış yapılmış ya da güvenlik nedeniyle tüm oturumlar kapatılmış). Yeniden giriş yap.")
     case .insecureBaseURL:

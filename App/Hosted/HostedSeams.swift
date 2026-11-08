@@ -306,7 +306,7 @@ func hostedStartBlockNotice() -> StartBlockNotice? {
     case .subscriptionEnded:
         return StartBlockNotice(reason: String(localized: "Aboneliğin sona erdi. Kayda devam etmek için yeniden abone ol."), action: .subscribe)
     case .paymentOverdue:
-        return StartBlockNotice(reason: String(localized: "Ödeme alınamadı. Kayda devam etmek için Ayarlar › Hesap'ta \"Hesabı yönet\"ten kartını güncelle."), action: .openAccount)
+        return StartBlockNotice(reason: String(localized: "Ödeme alınamadı. Kayda devam etmek için Ayarlar › Plan ve faturalandırma'da \"Hesabı yönet\"ten kartını güncelle."), action: .openAccount)
     }
 }
 #endif

@@ -3,7 +3,7 @@ import AINotepadUI
 import SwiftUI
 
 // Mac'te silinen hesabın toplantılarını taşıma teklifi (bkz. `HostedDeletedMeetings`): ana pencerenin üstünde bir kez
-// şerit (açılır pencere yok), "Şimdi değil"den sonra Ayarlar › Hesap'ta satır.
+// şerit (açılır pencere yok), "Şimdi değil"den sonra Ayarlar › Plan ve faturalandırma'da satır.
 
 /// Ana pencerenin üstündeki teklif şeridi: kaç toplantı olduğu, silinmeyecekleri ve "Taşı" / "Şimdi değil".
 struct HostedDeletedMeetingsBanner: View {
@@ -15,7 +15,7 @@ struct HostedDeletedMeetingsBanner: View {
             severity: deleted.problem == nil ? .info : .error,
             title: Text("Silinen hesabından \(deleted.count) toplantı bu Mac'te duruyor. Bu hesaba taşınsın mı?"),
             detail: deleted.problem.map { Text(verbatim: $0) }
-                ?? Text("Toplantılar silinmez; taşıyınca bu hesabın toplantıları arasında görünür. Sonra Ayarlar › Hesap'tan da taşıyabilirsin."),
+                ?? Text("Toplantılar silinmez; taşıyınca bu hesabın toplantıları arasında görünür. Sonra Ayarlar › Plan ve faturalandırma'dan da taşıyabilirsin."),
             onDismiss: nil
         ) {
             HStack(spacing: 8) {
