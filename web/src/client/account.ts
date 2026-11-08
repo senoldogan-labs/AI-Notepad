@@ -12,7 +12,6 @@ import {
   type JsonObject,
   type RawResponse,
   type ReferralInfo,
-  type SubscriptionInfo,
   parseEntitlements,
   parseRedirectUrl,
   parseReferral,
@@ -34,6 +33,7 @@ import { dataValue, element, errorText, hideNotice, showNotice } from "./dom";
 import { SignedOutError, authorizedSend, claimTabSession, clearSession, hasSession, signOut } from "./session";
 import { siteLocale } from "../config";
 import { type BillingPlan, billingPlanOf, normalizedInviteCode, recommendedPlan } from "../lib/plans";
+import { type PlanState, type TrialState, hasSubscriptionAccess, planState } from "../lib/plan-status";
 
 /** Ödeme dönüşünde aboneliğin görünmesi için en çok kaç kez, kaç ms arayla yeniden bakılır (webhook gecikmesi). */
 const paymentPollAttempts: number = 6;
@@ -103,9 +103,6 @@ interface AiMeter {
   readonly limitReached: string | null;
 }
 
-/** Deneme durumu: başlamadı, sürüyor ya da bitti (toplantılar harcandı veya süre doldu). */
-type TrialPhase = "notStarted" | "running" | "ended";
-
 /** Hesap sayfasında gösterilecek değerler. */
 interface AccountView {
   readonly plan: string;
@@ -151,161 +148,137 @@ function formatHours(hours: number, locale: string): string {
   return new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(hours);
 }
 
-/** Deneme durumu (bkz. `TrialPhase`). Saf fonksiyondur. */
-function trialPhase(me: Entitlements, now: Date): TrialPhase {
-  if (me.trialEndsAt === null) {
-    return "notStarted";
-  }
-  return me.trialMeetingsLeft === 0 || new Date(me.trialEndsAt).getTime() <= now.getTime() ? "ended" : "running";
-}
-
 /**
- * Plan kartı aboneliği mi anlatır: abonelik erişimi varsa ya da abonelik (ücretli ya da ücretsiz erişim) bitmiş ve
- * deneme de kalmamışsa. Bitmiş abonelikte deneme hâlâ kullanılabiliyorsa kart denemeyi anlatır. Saf fonksiyondur.
+ * Planın adı: abonelik erişiminde aylık, yıllık, ücretsiz erişim ya da (fiyat tanınmıyorsa) yalnızca ürün adı; abonelik
+ * bitmiş ve denemesi kalmamış hesapta "plan yok"; denemede deneme. Saf fonksiyondur.
  */
-function describesSubscription(me: Entitlements, now: Date): boolean {
-  return me.subscription !== null && (me.plan === "subscription" || trialPhase(me, now) === "ended");
-}
-
-/**
- * Planın adı: abonelik erişiminde aylık, yıllık, ücretsiz erişim ya da (fiyat tanınmıyorsa) yalnızca ürün adı;
- * aboneliği bitmiş ve denemesi kalmamış hesapta "plan yok"; diğerlerinde deneme. Saf fonksiyondur.
- */
-function planName(me: Entitlements, text: ClientCopy, now: Date): string {
-  const subscription: SubscriptionInfo | null = me.subscription;
-  if (me.plan === "subscription" && subscription !== null) {
-    if (subscription.complimentary) {
+function planName(state: PlanState, text: ClientCopy): string {
+  switch (state.kind) {
+    case "trial":
+      return text.plan.trial;
+    case "complimentary":
       return text.plan.complimentary;
-    }
-    return subscription.plan === null ? text.plan.subscription : text.plan[subscription.plan];
+    case "subscribed":
+    case "ending":
+    case "grace":
+      return state.subscription.plan === null ? text.plan.subscription : text.plan[state.subscription.plan];
+    case "complimentaryEnded":
+    case "paymentOverdue":
+    case "expired":
+      return text.plan.none;
   }
-  return describesSubscription(me, now) ? text.plan.none : text.plan.trial;
 }
 
 /**
- * Denemenin durumu: başlamadıysa kapsamı ve başlangıcı, sürüyorsa bitiş tarihi (kalan toplantı ölçerdedir) satır
- * olarak; bittiyse ileti. Saf fonksiyondur.
+ * Denemenin durumu: başlamadıysa kapsamı (kalan toplantı; devralınan deneme toplantıları yüzünden toplamdan az
+ * olabilir) ve başlangıcı, sürüyorsa bitiş tarihi (kalan toplantı ölçerdedir) satır olarak; bittiyse ileti. Saf
+ * fonksiyondur.
  */
-function trialStatus(me: Entitlements, text: ClientCopy, locale: string, now: Date): PlanStatus {
-  const phase: TrialPhase = trialPhase(me, now);
-  if (phase === "notStarted" || me.trialEndsAt === null) {
-    return {
-      message: null,
-      facts: [
-        { label: text.facts.trialIncludes, value: fill(text.facts.trialIncludesValue, { total: String(me.trialMeetingsTotal), days: String(me.trialDays) }) },
-        { label: text.facts.trialStarts, value: text.facts.trialStartsValue },
-      ],
-    };
+function trialStatus(trial: TrialState, trialDays: number, text: ClientCopy, locale: string): PlanStatus {
+  switch (trial.kind) {
+    case "notStarted":
+      return {
+        message: null,
+        facts: [
+          { label: text.facts.trialIncludes, value: fill(text.facts.trialIncludesValue, { total: String(trial.left), days: String(trialDays) }) },
+          { label: text.facts.trialStarts, value: text.facts.trialStartsValue },
+        ],
+      };
+    case "running":
+      return { message: null, facts: [{ label: text.facts.trialEnds, value: formatDate(trial.endsAt, locale) }] };
+    case "ended":
+      return { message: text.trialEnded, facts: [] };
   }
-  if (phase === "ended") {
-    return { message: text.trialEnded, facts: [] };
-  }
-  return { message: null, facts: [{ label: text.facts.trialEnds, value: formatDate(me.trialEndsAt, locale) }] };
 }
 
 /**
  * Aboneliğin durumu. Ücretsiz erişimde ödeme ve yenileme yoktur: ileti yazılır (bitiş tarihi varsa onunla), bittiyse
  * "ücretsiz erişim bitti" (abonelik bitti değil: hiç ödeme yapılmadı). Etkin, iptal edilmiş ve ek süredeki abonelik
- * tarihleri satır olarak gösterir; ödeme alınamadıysa neden eylemin yanındaki uyarıdadır (`paymentAlert`). Saf
- * fonksiyondur.
+ * tarihleri satır olarak gösterir; ödeme alınamadıysa neden eylemin yanındaki uyarıdadır (`paymentAlert`). App Store
+ * aboneliği erişim sürerken nerede yönetileceğini söyleyen iletiyi de taşır. Saf fonksiyondur.
  */
-function subscriptionStatus(subscription: SubscriptionInfo, text: ClientCopy, locale: string): PlanStatus {
-  if (subscription.source === "app_store" && subscription.access !== "none") {
-    const status: PlanStatus = stripeSubscriptionStatus(subscription, text, locale);
-    return { message: text.subscriptionAppStore, facts: status.facts };
-  }
-  return stripeSubscriptionStatus(subscription, text, locale);
+function planStatus(state: PlanState, trialDays: number, text: ClientCopy, locale: string): PlanStatus {
+  const facts: PlanStatus = subscriptionFacts(state, trialDays, text, locale);
+  const appStoreAccess: boolean = hasSubscriptionAccess(state) && state.kind !== "trial" && state.subscription.source === "app_store";
+  return appStoreAccess ? { message: text.subscriptionAppStore, facts: facts.facts } : facts;
 }
 
-/** Aboneliğin durumu (tanımlar `subscriptionStatus`'ta; App Store iletisi olmadan). Saf fonksiyondur. */
-function stripeSubscriptionStatus(subscription: SubscriptionInfo, text: ClientCopy, locale: string): PlanStatus {
-  if (subscription.complimentary) {
-    if (subscription.access === "none") {
+/** Plan durumunun ileti ve satırları (tanımlar `planStatus`'ta; App Store iletisi olmadan). Saf fonksiyondur. */
+function subscriptionFacts(state: PlanState, trialDays: number, text: ClientCopy, locale: string): PlanStatus {
+  switch (state.kind) {
+    case "trial":
+      return trialStatus(state.trial, trialDays, text, locale);
+    case "complimentary":
+      return { message: state.until === null ? text.subscriptionComplimentary : fill(text.subscriptionComplimentaryUntil, { date: formatDate(state.until, locale) }), facts: [] };
+    case "complimentaryEnded":
       return { message: text.subscriptionComplimentaryEnded, facts: [] };
-    }
-    const message: string =
-      subscription.cancelAt === null ? text.subscriptionComplimentary : fill(text.subscriptionComplimentaryUntil, { date: formatDate(subscription.cancelAt, locale) });
-    return { message, facts: [] };
+    case "ending":
+      return {
+        message: null,
+        facts: [
+          { label: text.facts.renewal, value: text.facts.renewalCancelled },
+          { label: text.facts.accessUntil, value: formatDate(state.endsAt, locale) },
+        ],
+      };
+    case "subscribed":
+      return { message: null, facts: [{ label: text.facts.renews, value: formatDate(state.renewsAt, locale) }] };
+    case "grace":
+      return { message: null, facts: [{ label: text.facts.accessUntil, value: formatDate(state.endsAt, locale) }] };
+    case "paymentOverdue":
+      return { message: null, facts: [] };
+    case "expired":
+      return { message: text.subscriptionEnded, facts: [] };
   }
-  if (subscription.access === "active" && subscription.cancelAt !== null) {
-    return {
-      message: null,
-      facts: [
-        { label: text.facts.renewal, value: text.facts.renewalCancelled },
-        { label: text.facts.accessUntil, value: formatDate(subscription.cancelAt, locale) },
-      ],
-    };
-  }
-  if (subscription.access === "active") {
-    return { message: null, facts: [{ label: text.facts.renews, value: formatDate(subscription.currentPeriodEnd, locale) }] };
-  }
-  if (subscription.access === "grace") {
-    return { message: null, facts: [{ label: text.facts.accessUntil, value: formatDate(subscription.graceEndsAt, locale) }] };
-  }
-  if (isPaymentOverdue(subscription)) {
-    return { message: null, facts: [] };
-  }
-  return { message: text.subscriptionEnded, facts: [] };
-}
-
-/**
- * Yenileme ödemesi alınamadı ve ek süre bitti mi: Stripe'ta abonelik sürer (`past_due`/`unpaid`), erişim yok; kart
- * "Manage subscription"dan güncellenince erişim döner. Saf fonksiyondur.
- */
-function isPaymentOverdue(subscription: SubscriptionInfo): boolean {
-  return subscription.access === "none" && !subscription.complimentary && (subscription.status === "past_due" || subscription.status === "unpaid");
 }
 
 /**
  * Ödeme alınamadıysa Aboneliği yönet düğmesinin yanındaki uyarı: ek sürede ya da süresi geçmiş ödemede. App Store
  * aboneliğinde kart Apple'dadır; durum iletisi nerede yönetileceğini söyler. Saf fonksiyondur.
  */
-function paymentAlert(subscription: SubscriptionInfo | null, text: ClientCopy): string | null {
-  if (subscription === null || subscription.complimentary || subscription.source === "app_store") {
-    return null;
-  }
-  if (subscription.access === "grace") {
+function paymentAlert(state: PlanState, text: ClientCopy): string | null {
+  if (state.kind === "grace" && state.subscription.source !== "app_store") {
     return text.subscriptionGraceAlert;
   }
-  return isPaymentOverdue(subscription) ? text.subscriptionPaymentOverdue : null;
-}
-
-/** Plan kartının durumu: abonelik anlatılıyorsa abonelik, değilse deneme. Saf fonksiyondur. */
-function planStatus(me: Entitlements, text: ClientCopy, locale: string, now: Date): PlanStatus {
-  return me.subscription !== null && describesSubscription(me, now) ? subscriptionStatus(me.subscription, text, locale) : trialStatus(me, text, locale, now);
+  if (state.kind === "paymentOverdue" && state.subscription.source !== "app_store") {
+    return text.subscriptionPaymentOverdue;
+  }
+  return null;
 }
 
 /**
- * Plan adının yanındaki durum etiketi: ücretsiz erişim (bitiş tarihi olsa da "bitiyor" uyarısı değil), ek süre,
- * iptal edilmiş, etkin; abonelik erişimi yoksa bitmiş ya da deneme. Saf fonksiyondur.
+ * Plan adının yanındaki durum etiketi: ücretsiz erişim (bitiş tarihi olsa da "bitiyor" uyarısı değil), ek süre ya da
+ * süresi geçmiş ödeme, iptal edilmiş, etkin; abonelik erişimi yoksa bitmiş ya da deneme. Saf fonksiyondur.
  */
-function planPill(me: Entitlements, text: ClientCopy, now: Date): Pill {
-  const subscription: SubscriptionInfo | null = me.subscription;
-  if (me.plan === "subscription" && subscription !== null) {
-    if (subscription.complimentary) {
+function planPill(state: PlanState, text: ClientCopy): Pill {
+  switch (state.kind) {
+    case "complimentary":
       return { text: text.pillComplimentary, tone: "ok" };
-    }
-    if (subscription.access === "grace") {
+    case "grace":
+    case "paymentOverdue":
       return { text: text.pillGrace, tone: "warn" };
-    }
-    if (subscription.cancelAt !== null) {
+    case "ending":
       return { text: text.pillCanceling, tone: "warn" };
-    }
-    return { text: text.pillActive, tone: "ok" };
+    case "subscribed":
+      return { text: text.pillActive, tone: "ok" };
+    case "complimentaryEnded":
+    case "expired":
+      return { text: text.pillEnded, tone: "plain" };
+    case "trial":
+      return state.trial.kind === "ended" ? { text: text.pillEnded, tone: "plain" } : { text: text.pillTrial, tone: "plain" };
   }
-  if (subscription !== null && isPaymentOverdue(subscription)) {
-    return { text: text.pillGrace, tone: "warn" };
-  }
-  return trialPhase(me, now) === "ended" ? { text: text.pillEnded, tone: "plain" } : { text: text.pillTrial, tone: "plain" };
 }
 
-/** Sürmekte olan denemenin ölçeri: son toplantıda uyarır. Saf fonksiyondur. */
-function trialMeter(me: Entitlements, text: ClientCopy): TrialMeter {
+/** Sürmekte olan denemenin ölçeri: son toplantıda uyarır; deneme sürmüyorsa null. Saf fonksiyondur. */
+function trialMeter(state: PlanState, text: ClientCopy): TrialMeter | null {
+  if (state.kind !== "trial" || state.trial.kind !== "running") {
+    return null;
+  }
+  const { left, total }: { readonly left: number; readonly total: number } = state.trial;
   return {
-    text: fill(text.trialMeetings, { left: String(me.trialMeetingsLeft), total: String(me.trialMeetingsTotal) }),
-    left: me.trialMeetingsLeft,
-    total: me.trialMeetingsTotal,
-    warn: me.trialMeetingsLeft <= trialWarnMeetingsLeft,
+    text: fill(text.trialMeetings, { left: String(left), total: String(total) }),
+    left,
+    total,
+    warn: left <= trialWarnMeetingsLeft,
   };
 }
 
@@ -348,15 +321,16 @@ function aiMeter(me: Entitlements, text: ClientCopy, locale: string): AiMeter {
  * söyler (hesap silme onu iptal etmez). Saf fonksiyondur.
  */
 export function accountView(me: Entitlements, text: ClientCopy, locale: string, now: Date): AccountView {
-  const subscribed: boolean = me.plan === "subscription";
+  const state: PlanState = planState(me, now);
+  const subscribed: boolean = hasSubscriptionAccess(state);
   return {
-    plan: planName(me, text, now),
-    planPill: planPill(me, text, now),
-    status: planStatus(me, text, locale, now),
-    trialMeter: !subscribed && trialPhase(me, now) === "running" ? trialMeter(me, text) : null,
+    plan: planName(state, text),
+    planPill: planPill(state, text),
+    status: planStatus(state, me.trialDays, text, locale),
+    trialMeter: trialMeter(state, text),
     hours: subscribed ? hoursMeter(me, text, locale) : null,
     ai: subscribed ? aiMeter(me, text, locale) : null,
-    alert: paymentAlert(me.subscription, text),
+    alert: paymentAlert(state, text),
     canSubscribe: !subscribed,
     canManage: me.subscription !== null && !me.subscription.complimentary && me.subscription.source === "stripe",
     deleteWarning:

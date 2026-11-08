@@ -54,7 +54,7 @@ npm ci
 npm run dev           # http://localhost:8788, yerel yapılandırma (API: http://127.0.0.1:8787)
 npm run typecheck
 npm run build         # yayın yapılandırmasıyla dist/
-npm test              # derlemenin çıktısı: JSON-LD biçimi, /llms.txt, site haritası, gizlilik çapaları (build'den sonra)
+npm test              # scripts/*.test.ts: derlemenin çıktısı (JSON-LD, /llms.txt, site haritası, gizlilik çapaları; build'den sonra) ve saf mantık
 npm run build:local && npm run serve   # yerel yapılandırmayla derle, _headers başlıklarıyla (CSP dahil) sun
 npm run og:blog -- "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"   # derlemeden sonra: yazıların paylaşım görselleri
 npm run screenshots -- http://localhost:8788 /tmp/gistsmith-web "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"

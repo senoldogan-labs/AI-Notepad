@@ -21,6 +21,7 @@ import { type ChartPart, type ChartPoint, renderDailyBars, renderSnapshots } fro
 import { fillTable, formatCompact, formatCount, formatUsd, node, tableRow } from "./admin-format";
 import { type AdminTrendsCopy, type TrendTokenBucket, adminTrendsCopy } from "./admin-trends-copy";
 import { type ClientCopy, clientCopy, fill } from "./copy";
+import { createViewLoader } from "../lib/admin-load";
 import { element, errorText, hideNotice, showNotice } from "./dom";
 import { siteLocale } from "../config";
 import { authorizedSend } from "./session";
@@ -399,6 +400,15 @@ function renderSiteFailure(error: unknown): void {
 }
 
 /** Görünümün dışarıya açtığı işlemler. */
+/** Site istatistiklerinin sonucu: görünümü düşürmeyen hata kendi bölümünde çizilir (`renderSiteFailure`). */
+type SiteLoad = { readonly kind: "loaded"; readonly analytics: SiteAnalytics } | { readonly kind: "failed"; readonly error: unknown };
+
+/** Eğilimler görünümünün tek yüklemesi: eğilimler ve site istatistikleri birlikte çizilir (eski yanıt yenisini ezmez). */
+interface TrendsLoad {
+  readonly trends: AdminTrends;
+  readonly site: SiteLoad;
+}
+
 export interface TrendsView {
   readonly refresh: () => Promise<void>;
   readonly ensureLoaded: () => Promise<void>;
@@ -409,23 +419,24 @@ export interface TrendsView {
  * `onLoaded` her yüklemeden sonra yanıtı alır (genel bakışın küçük eğrileri).
  */
 export function createTrendsView(onLoaded: (trends: AdminTrends) => void): TrendsView {
-  const state: { loaded: boolean } = { loaded: false };
-  const refresh = async (): Promise<void> => {
-    const [trends] = await Promise.all([
+  const fetchBoth = async (): Promise<TrendsLoad> => {
+    const [trends, site] = await Promise.all([
       fetchTrends(),
-      fetchSiteAnalytics().then(renderSite, renderSiteFailure),
+      fetchSiteAnalytics().then(
+        (analytics: SiteAnalytics): SiteLoad => ({ kind: "loaded", analytics }),
+        (error: unknown): SiteLoad => ({ kind: "failed", error }),
+      ),
     ]);
-    renderCharts(trends);
-    renderTables(trends);
-    onLoaded(trends);
-    state.loaded = true;
+    return { trends, site };
   };
-  return {
-    refresh,
-    ensureLoaded: async (): Promise<void> => {
-      if (!state.loaded) {
-        await refresh();
-      }
-    },
-  };
+  return createViewLoader(fetchBoth, (load: TrendsLoad): void => {
+    if (load.site.kind === "loaded") {
+      renderSite(load.site.analytics);
+    } else {
+      renderSiteFailure(load.site.error);
+    }
+    renderCharts(load.trends);
+    renderTables(load.trends);
+    onLoaded(load.trends);
+  });
 }

@@ -5,6 +5,7 @@ import { type OpenMeeting, type Operations, type RecentCrash, fetchOperations } 
 import { fillCounts, fillTable, formatCount, formatRate, formatRelative, formatStoredBytes, formatTime, node, pill, shortId, tableRow } from "./admin-format";
 import type { OpenReport } from "./admin-users";
 import { type AdminClientCopy, clientCopy, fill } from "./copy";
+import { createViewLoader } from "../lib/admin-load";
 import { element } from "./dom";
 
 const adminText: AdminClientCopy = clientCopy.admin;
@@ -15,7 +16,7 @@ const dayMs: number = 86_400_000;
 export interface OperationsView {
   /** Görünümü (yeniden) yükler. */
   readonly refresh: () => Promise<void>;
-  /** İlk açılışta yükler (sonrakilerde bir şey yapmaz). */
+  /** Görünüm açılınca: yüklenmediyse yükler, yükleme sürüyorsa onu bekler, yüklendiyse bir şey yapmaz. */
   readonly ensureLoaded: () => Promise<void>;
 }
 
@@ -121,19 +122,8 @@ function renderOperations(ops: Operations, onOpenUser: (id: string) => void, onO
 
 /** İşletim verisini bağlar. `onLoaded` her yüklemeden sonra yanıtı alır (genel bakıştaki "dikkat" listesi). */
 export function createOperationsView(onOpenUser: (id: string) => void, onOpenReport: OpenReport, onLoaded: (ops: Operations) => void): OperationsView {
-  const state: { loaded: boolean } = { loaded: false };
-  const refresh = async (): Promise<void> => {
-    const ops: Operations = await fetchOperations();
+  return createViewLoader(fetchOperations, (ops: Operations): void => {
     renderOperations(ops, onOpenUser, onOpenReport);
     onLoaded(ops);
-    state.loaded = true;
-  };
-  return {
-    refresh,
-    ensureLoaded: async (): Promise<void> => {
-      if (!state.loaded) {
-        await refresh();
-      }
-    },
-  };
+  });
 }

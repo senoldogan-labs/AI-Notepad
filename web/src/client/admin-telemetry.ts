@@ -30,6 +30,7 @@ import {
   llmPurposes,
 } from "./admin-telemetry-copy";
 import { fill } from "./copy";
+import { createViewLoader } from "../lib/admin-load";
 import { element } from "./dom";
 import { authorizedSend } from "./session";
 import { siteLocale } from "../config";
@@ -107,7 +108,7 @@ export interface AdminTelemetry {
 export interface TelemetryView {
   /** Görünümü (yeniden) yükler. */
   readonly refresh: () => Promise<void>;
-  /** İlk açılışta yükler (sonrakilerde bir şey yapmaz). */
+  /** Görünüm açılınca: yüklenmediyse yükler, yükleme sürüyorsa onu bekler, yüklendiyse bir şey yapmaz. */
   readonly ensureLoaded: () => Promise<void>;
 }
 
@@ -443,17 +444,5 @@ function renderTelemetry(telemetry: AdminTelemetry): void {
 
 /** Telemetri görünümünü bağlar. */
 export function createTelemetryView(): TelemetryView {
-  const state: { loaded: boolean } = { loaded: false };
-  const refresh = async (): Promise<void> => {
-    renderTelemetry(await fetchTelemetry());
-    state.loaded = true;
-  };
-  return {
-    refresh,
-    ensureLoaded: async (): Promise<void> => {
-      if (!state.loaded) {
-        await refresh();
-      }
-    },
-  };
+  return createViewLoader(fetchTelemetry, renderTelemetry);
 }
