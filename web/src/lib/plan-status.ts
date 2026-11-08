@@ -1,7 +1,9 @@
 // Hesabın plan durumu: `GET /v1/me` yanıtından tek saf fonksiyonla çıkarılan birleşik tip. Uygulamalardaki
-// `HostedPlanStatus` ve `HostedTrialState`'in (Packages/AINotepadCore/.../Hosted/HostedModels.swift) karşılığıdır:
-// deneme şimdiki ana göre yorumlanır (süresi dolan deneme, sunucu toplantı kalmış dese de biter). Hesap sayfası
-// (src/client/account.ts) plan adını, etiketi, durum satırlarını ve ölçerleri yalnızca bu durumdan yazar.
+// `HostedPlanStatus` ve `HostedTrialState` (Packages/AINotepadCore/.../Hosted/HostedModels.swift) ile aynı durumlar:
+// deneme şimdiki ana göre yorumlanır (süresi dolan deneme, sunucu toplantı kalmış dese de biter). Bir fark var:
+// burada ödemesi alınamamış abonelik (`paymentOverdue`) denemeden önce gelir; uygulamalar onu yalnızca deneme bittiyse
+// gösterir. Hesap sayfası (src/client/account.ts) plan adını, etiketi, durum satırlarını ve ölçerleri yalnızca bu
+// durumdan yazar.
 import type { Entitlements, SubscriptionInfo } from "../client/api";
 
 /** Ücretsiz denemenin bitme nedeni: toplantıların hepsi kullanıldı ya da deneme süresi (`trialEndsAt`) doldu. */

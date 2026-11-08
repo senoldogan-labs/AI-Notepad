@@ -415,7 +415,8 @@ export interface TrendsView {
 }
 
 /**
- * Eğilimler verisini bağlar. Site istatistiklerinin hatası görünümü düşürmez, yalnızca kendi bölümünde görünür.
+ * Eğilimler verisini bağlar. Site istatistiklerinin hatası görünümü düşürmez, yalnızca kendi bölümünde görünür; eğilimler
+ * alınamazsa site bölümü de çizilmez (hata panelin bildirimine gider, eski yanıt yenisini ezmesin diye ikisi tek yükleme).
  * `onLoaded` her yüklemeden sonra yanıtı alır (genel bakışın küçük eğrileri).
  */
 export function createTrendsView(onLoaded: (trends: AdminTrends) => void): TrendsView {

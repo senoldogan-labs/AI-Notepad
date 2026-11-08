@@ -1,5 +1,5 @@
-// Hesap sayfasının plan durumu (src/lib/plan-status.ts): uygulamalardaki `hostedPlanStatus`/`hostedTrialState` ile aynı
-// tablo. Süresi dolan deneme toplantı kalmış olsa da biter; erişimi kapanmış abonelik yalnızca deneme bittiyse anlatılır.
+// Hesap sayfasının plan durumu (src/lib/plan-status.ts). Süresi dolan deneme toplantı kalmış olsa da biter; ödemesi
+// alınamamış abonelik deneme kalmış olsa da anlatılır; erişimi kapanmış başka abonelik yalnızca deneme bittiyse.
 // Derleme gerektirmez.
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
