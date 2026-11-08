@@ -450,7 +450,9 @@ struct MainWindowView: View {
         }
         .animation(.easeInOut(duration: 0.25), value: isRecordingFocusVisible)
         .onChange(of: model.phase) { (old: RecordingPhase, new: RecordingPhase) -> Void in
-            if old == .idle, new == .recording {
+            // Kayıt "başlatılıyor"dan geçer: ekran her yeni kayıtta yeniden açılır (önceki kayıtta ya da kayıt yokken bir
+            // bağlantıyla kapatılmış olsa da).
+            if old != .recording, new == .recording {
                 // Pencerede bir form (sayfa) açıksa kayıt ekranı onun üstüne açılmaz: yazılan form kapanmasın; üst
                 // çubuktaki "Kayıtta" hapı ekranı açar.
                 router.isRecordingFocusDismissed = NSApp.windows.contains { $0.isVisible && $0.attachedSheet != nil }

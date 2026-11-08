@@ -22,24 +22,6 @@ protocol MeetingIntentsBackend: AnyObject {
     func askAcrossMeetings(question: String) async throws -> String
 }
 
-/// Spotlight sonucunun toplantısını açar: uygulama sonuçla açıldıysa önce toplantılar okunur (liste henüz boş olabilir).
-/// Hesapta olmayan (silinmiş, başka hesabın) toplantı açılmaz; nedeni loglanır.
-@MainActor
-func openSpotlightMeeting(meetingID: String) async {
-    do {
-        let backend: any MeetingIntentsBackend = try MeetingIntentsHost.require()
-        guard try await backend.intentMeetings().contains(where: { $0.id == meetingID }) else {
-            meetingIntentsLogger.warning("Spotlight sonucundaki toplantı bulunamadı, toplantı: \(meetingID, privacy: .public)")
-            return
-        }
-        backend.openMeeting(id: meetingID)
-    } catch {
-        meetingIntentsLogger.error("Spotlight sonucu açılamadı, toplantı: \(meetingID, privacy: .public), hata: \(String(describing: error), privacy: .public)")
-    }
-}
-
-private let meetingIntentsLogger: Logger = Logger(subsystem: "com.senoldogan.AINotepad", category: "MeetingIntents")
-
 /// Uygulamanın açılışta kurduğu arka uç; kurulmadan çalışan niyet `notReady` verir.
 @MainActor
 enum MeetingIntentsHost {

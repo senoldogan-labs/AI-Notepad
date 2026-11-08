@@ -33,11 +33,14 @@ final class MacMeetingIntentsBackend: MeetingIntentsBackend {
     }
 }
 
-/// Toplantıyı ana pencerede açar: listede görünsün diye arama ve klasör süzgeci kalkar (bildirim, Spotlight, Kısayollar).
+/// Toplantıyı ana pencerede açar (bildirim, bağlantı, Spotlight, Kısayollar): listede görünsün diye arama ve klasör
+/// süzgeci kalkar; kayıt sürüyorsa kayıt ekranı kapanır (açılan toplantı onun arkasında kalmasın; üst çubuktaki
+/// "Kayıtta" hapı onu yeniden açar).
 @MainActor
 func openMeetingInMainWindow(router: MainWindowRouter, meetingID: String) {
     router.searchQuery = ""
     router.folderFilter = nil
+    router.isRecordingFocusDismissed = true
     router.selectedMeetingID = meetingID
     openMainWindow(router: router, section: .meetings)
 }

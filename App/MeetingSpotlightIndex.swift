@@ -2,6 +2,9 @@ import AINotepadCore
 import CoreSpotlight
 import Foundation
 import os
+#if os(iOS)
+import UIKit
+#endif
 import UniformTypeIdentifiers
 
 // Toplantıların sistem aramasındaki (Spotlight) kopyası, Mac ve iPhone ortak. Ne girdiği `spotlightMeetingEntries`'te:
@@ -38,7 +41,18 @@ final class MeetingSpotlightIndex {
     /// Spotlight'taki alan: bütün öğeler bunun içinde (silme alanla yapılır).
     private static let domain: String = "meetings"
 
+    /// iPhone'da dizin `.complete` korumalıdır: notun özeti ve görevler cihaz kilitliyken okunamaz. Kilitliyken (arka
+    /// planda eşitleme) yazma başarısız olur; kilit açılınca son istek yeniden yazılır (`retryAfterUnlock`). Mac'te
+    /// koruma sınıfı yoktur.
+    #if os(iOS)
+    private let index: CSSearchableIndex = CSSearchableIndex(name: "meetings", protectionClass: .complete)
+    /// Aynı adlı korumasız dizin (eski sürümler yazdı): dizin baştan kurulurken ondaki kopyalar da silinir.
+    private let unprotectedIndex: CSSearchableIndex = CSSearchableIndex(name: "meetings")
+    #else
     private let index: CSSearchableIndex = CSSearchableIndex(name: "meetings")
+    #endif
+    /// Yazılamayan son istek (iPhone'da cihaz kilitliyken): kilit açılınca yeniden denenir; başarılı yazmada silinir.
+    private var unwritten: (records: [MeetingRecord], userName: String, isEmptying: Bool)?
     /// Bu süreçte dizine son yazılanlar; nil: dizinde ne olduğu bilinmiyor (açılış ya da başarısız yazma), sıradaki
     /// yazma alanı silip baştan kurar.
     private var indexed: [String: SpotlightMeetingEntry]?
@@ -46,7 +60,24 @@ final class MeetingSpotlightIndex {
     private var latest: (records: [MeetingRecord], userName: String, isEmptying: Bool)?
     private var worker: Task<Void, Never>?
 
-    private init() {}
+    private init() {
+        #if os(iOS)
+        NotificationCenter.default.addObserver(forName: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil, queue: .main) { (_: Notification) -> Void in
+            MainActor.assumeIsolated {
+                MeetingSpotlightIndex.shared.retryAfterUnlock()
+            }
+        }
+        #endif
+    }
+
+    /// Kilit açıldı: kilitliyken yazılamayan son istek (yenisi beklemiyorsa) yeniden yazılır.
+    private func retryAfterUnlock() {
+        guard let unwritten, latest == nil else {
+            return
+        }
+        latest = unwritten
+        startWorker()
+    }
 
     /// Toplantılar değişti: `isAllowed` (ayar açık, abonelikte hesap yüklü) değilse dizin boşalır, öyleyse farkla yazılır.
     func update(records: [MeetingRecord], userName: String, isAllowed: Bool) {
@@ -87,27 +118,35 @@ final class MeetingSpotlightIndex {
             }
             latest = nil
             let entries: [SpotlightMeetingEntry] = current.isEmptying ? [] : spotlightMeetingEntries(records: current.records, userName: current.userName)
-            await apply(entries: entries, isEmptying: current.isEmptying)
+            let written: Bool = await apply(entries: entries, isEmptying: current.isEmptying)
+            unwritten = written ? nil : current
         }
     }
 
-    private func apply(entries: [SpotlightMeetingEntry], isEmptying: Bool) async {
+    /// Dizini girdilere getirir; yazılamadıysa false.
+    private func apply(entries: [SpotlightMeetingEntry], isEmptying: Bool) async -> Bool {
         do {
             if isEmptying {
                 if indexed?.isEmpty != true {
                     try await index.deleteSearchableItems(withDomainIdentifiers: [Self.domain])
+                    #if os(iOS)
+                    try await unprotectedIndex.deleteSearchableItems(withDomainIdentifiers: [Self.domain])
+                    #endif
                     Self.logger.info("Spotlight dizini silindi")
                 }
                 indexed = [:]
-                return
+                return true
             }
             if indexed == nil {
                 try await index.deleteSearchableItems(withDomainIdentifiers: [Self.domain])
+                #if os(iOS)
+                try await unprotectedIndex.deleteSearchableItems(withDomainIdentifiers: [Self.domain])
+                #endif
                 indexed = [:]
             }
             let plan: SpotlightIndexPlan = spotlightIndexPlan(indexed: indexed ?? [:], current: entries)
             guard !plan.isEmpty else {
-                return
+                return true
             }
             if !plan.deletions.isEmpty {
                 try await index.deleteSearchableItems(withIdentifiers: plan.deletions)
@@ -117,10 +156,12 @@ final class MeetingSpotlightIndex {
             }
             indexed = Dictionary(uniqueKeysWithValues: entries.map { ($0.id, $0) })
             Self.logger.info("Spotlight dizini güncellendi, yazılan: \(plan.upserts.count, privacy: .public), silinen: \(plan.deletions.count, privacy: .public)")
+            return true
         } catch {
             // Dizinde ne kaldığı bilinmiyor: sıradaki güncelleme alanı silip baştan kurar.
             indexed = nil
             Self.logger.error("Spotlight dizini yazılamadı, kayıt: \(entries.count, privacy: .public), boşaltma: \(isEmptying, privacy: .public), hata: \(String(describing: error), privacy: .public)")
+            return false
         }
     }
 

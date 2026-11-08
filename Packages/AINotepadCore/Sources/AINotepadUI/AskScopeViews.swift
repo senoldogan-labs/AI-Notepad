@@ -160,7 +160,9 @@ public struct AskScopeChip: View {
             .menuStyle(.button)
             .buttonStyle(.plain)
             .menuIndicator(.hidden)
-            .fixedSize()
+            // Yalnız dikeyde sabit: uzun kapsam adı ya da büyük yazı boyutunda ad ortadan kısalır, satırdaki ✕ ve gönder
+            // düğmesi ekrandan taşmaz.
+            .fixedSize(horizontal: false, vertical: true)
             .accessibilityLabel(Text("Sorunun kapsamı: \(title(scope: menu.selected))"))
             .hoverHint("Kapsamı değiştir", alignment: .leading, edge: .top)
             if menu.selected != .allMeetings {

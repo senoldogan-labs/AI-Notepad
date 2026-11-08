@@ -286,8 +286,10 @@ struct AINotepadApp: App {
         MeetingIntentsHost.backend = MacMeetingIntentsBackend(model: model, router: router)
         MacRecordingControls.model = model
         MacRecordingControls.start = { await startRecordingFlow(model: model, panel: panel, island: island) }
+        // Spotlight'taki toplantı sonucu bağlantı gibi açılır (iPhone'daki gibi): oturum yoksa giriş kapısı bağlantının
+        // girişten sonra açılacağını söyler, hesapta olmayan toplantı "Toplantı bulunamadı" gösterir.
         AppDelegate.onOpenSpotlightMeeting = { (meetingID: String) -> Void in
-            Task { await openSpotlightMeeting(meetingID: meetingID) }
+            openMacAppLink(route: .meeting(meetingID), router: router, meetingIDs: model.meetings.map(\.id))
         }
         AppDelegate.onAppLink = { (route: AppLinkRoute) -> Void in
             openMacAppLink(route: route, router: router, meetingIDs: model.meetings.map(\.id))

@@ -704,8 +704,8 @@ final class PhoneRecorder {
             setAudioPaused(paused: paused)
         case .reportPause(let meetingID, let paused):
             HostedAccount.shared.reportPause(meetingID: meetingID, paused: paused)
-        case .stopCapture(let id):
-            stopCapture(id: id)
+        case .stopCapture(let id, let discard):
+            stopCapture(id: id, discard: discard)
         case .scheduleFinishDeadline(let id, let deadline):
             watchFinishing(id: id, deadline: deadline)
         case .cancelLiveSession(let id):
@@ -744,8 +744,9 @@ final class PhoneRecorder {
         }
     }
 
-    /// "Bitir": mikrofon kapanır; canlı oturum kalan bölümleri bitirir (bkz. `close`).
-    private func stopCapture(id: RecordingID) {
+    /// "Bitir": mikrofon kapanır; canlı oturum kalan bölümleri bitirir (bkz. `close`). `discard` ("Kaydı sil"): not
+    /// hazırlanmayacak; sistem ilerleme görevi istenmez (yoksa silinen toplantı için %0'da kalırdı).
+    private func stopCapture(id: RecordingID, discard: Bool) {
         meetingOverPrompt = nil
         heartbeatTask?.cancel()
         heartbeatTask = nil
@@ -758,7 +759,7 @@ final class PhoneRecorder {
             beginBackgroundTask(id: meetingID)
             // Sistem görevi kullanıcının "Bitir" anında istenir: istek yalnızca uygulama öndeyken kabul edilir. Çevrimdışı
             // kayıtta not şimdi hazırlanmaz (kuyruğa girer): sistem ilerlemesi istenmez (boş ilerleme ekranda kalırdı).
-            if state.server != .offline {
+            if state.server != .offline && !discard {
                 submitContinuedProcessing(id: meetingID, subtitle: continuedProcessingSubtitle(title: recording.linkedMeeting?.title ?? String(localized: "Toplantı"), startedAt: recording.startedAt))
             }
         }
@@ -1595,6 +1596,8 @@ final class PhoneRecorder {
             Self.logger.info("Silinen kaydın klasörü kaldırılıyor, toplantı: \(record.id, privacy: .public)")
             discardUnstartedRecording(directory: finished.directory)
             store.reload()
+            // "Bitir"den sonra silindiyse not için istenen sistem görevi başlamış olabilir: kapatılır.
+            finishContinuedTask(meetingID: record.id, success: false)
             endBackgroundTask(id: record.id)
             return
         }

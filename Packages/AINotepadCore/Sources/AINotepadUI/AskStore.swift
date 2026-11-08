@@ -136,15 +136,6 @@ public final class AskStore {
         chats[context] = AskChat(scope: context, exchanges: [], conversationID: nil, askedSampleMeeting: false)
     }
 
-    /// Bağlamın sohbeti saklanamıyorsa (örnek toplantıya soru soruldu) yeni sohbet açar; saklanabiliyorsa dokunmaz.
-    /// Kısayollar ve Siri sorusu böylece Sor geçmişine girer.
-    public func leaveSampleChat(context: AskScope) {
-        guard chat(context: context).askedSampleMeeting else {
-            return
-        }
-        clear(context: context)
-    }
-
     /// Silinen sohbet açık olduğu alanlardan kalkar; süren cevabı saklanmaz (sohbet silindi).
     public func forget(conversationID: UUID) {
         for (context, chat) in chats where chat.conversationID == conversationID {

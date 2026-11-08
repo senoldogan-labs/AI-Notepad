@@ -225,28 +225,37 @@ private func meeting(id: String, title: String) -> MeetingRecord {
         #expect(saves == 1)
     }
 
-    // Kısayollar ve Siri sorusu: Sor sayfasının sohbeti örnek toplantıya dokunduysa yeni sohbet açılır ve soru geçmişe
-    // girer; saklanabilen sohbete dokunulmaz.
+    // Kısayollar ve Siri sorusu yeni sohbette sorulur (`clear`): Sor sayfasında açık kalan başka kapsamlı sohbetin turları
+    // modele bağlam gitmez, Siri turu o sohbete yazılmaz; örnek toplantıya dokunan sohbetten sonra da soru geçmişe girer.
     @MainActor
-    @Test func intentQuestionLeavesSampleChat() async {
+    @Test func intentQuestionStartsAFreshChat() async throws {
         let sample: MeetingRecord = meeting(id: "s", title: "Örnek").markedAsSample()
-        let records: [MeetingRecord] = [sample, meeting(id: "b", title: "Haftalık")]
+        let records: [MeetingRecord] = [sample, meeting(id: "a", title: "Bütçe"), meeting(id: "b", title: "Haftalık")]
         let store: AskStore = AskStore()
-        var saves: Int = 0
-        let answer: AskAnswer = { (_: AskTarget, onProgress: @escaping ArchiveProgressHandler) async throws -> Void in
+        var histories: [[ArchiveTurn]] = []
+        var saved: [(UUID, [ArchiveExchange])] = []
+        let answer: AskAnswer = { (target: AskTarget, onProgress: @escaping ArchiveProgressHandler) async throws -> Void in
+            histories.append(target.history)
             await onProgress(.answer(ArchiveAnswer(text: "Cevap", sources: [], webSources: [])))
         }
-        let save: AskSave = { (_: UUID, _: [ArchiveExchange]) -> Void in saves += 1 }
-        store.ask(context: .allMeetings, question: "Örnekte ne var?", scope: .meeting(id: "s"), mentionIDs: [], recipeTitle: nil, records: records, answer: answer, save: save)
+        let save: AskSave = { (id: UUID, exchanges: [ArchiveExchange]) -> Void in saved.append((id, exchanges)) }
+        store.ask(context: .allMeetings, question: "Bütçede ne konuşuldu?", scope: .meeting(id: "a"), mentionIDs: [], recipeTitle: nil, records: records, answer: answer, save: save)
         await store.waitForAnswer(context: .allMeetings)
-        #expect(saves == 0)
-        store.leaveSampleChat(context: .allMeetings)
-        #expect(store.exchanges(context: .allMeetings).isEmpty)
+        let scoped: UUID = try #require(store.conversationID(context: .allMeetings))
+        store.clear(context: .allMeetings)
         store.ask(context: .allMeetings, question: "Siri sorusu", scope: .allMeetings, mentionIDs: [], recipeTitle: nil, records: records, answer: answer, save: save)
         await store.waitForAnswer(context: .allMeetings)
-        #expect(saves == 1)
-        store.leaveSampleChat(context: .allMeetings)
-        #expect(store.exchanges(context: .allMeetings).count == 1)
+        #expect(histories.last?.isEmpty == true)
+        #expect(saved.last?.0 != scoped && saved.last?.1.map(\.question) == ["Siri sorusu"])
+        // Örnek toplantıya dokunan sohbet saklanmaz; ondan sonra sorulan Siri sorusu saklanır.
+        store.clear(context: .allMeetings)
+        store.ask(context: .allMeetings, question: "Örnekte ne var?", scope: .meeting(id: "s"), mentionIDs: [], recipeTitle: nil, records: records, answer: answer, save: save)
+        await store.waitForAnswer(context: .allMeetings)
+        #expect(saved.count == 2)
+        store.clear(context: .allMeetings)
+        store.ask(context: .allMeetings, question: "Siri sorusu 2", scope: .allMeetings, mentionIDs: [], recipeTitle: nil, records: records, answer: answer, save: save)
+        await store.waitForAnswer(context: .allMeetings)
+        #expect(saved.count == 3 && saved.last?.1.map(\.question) == ["Siri sorusu 2"])
     }
 
     // Sor sayfasında cevap akarken toplantı sayfasından tarif çalıştırıldı (sohbet temizlendi): akan cevap kaybolmaz,
