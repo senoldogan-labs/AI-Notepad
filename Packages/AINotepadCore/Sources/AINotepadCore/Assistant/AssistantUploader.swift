@@ -217,6 +217,46 @@ public struct AssistantLedgerFile: Sendable {
     }
 }
 
+/// Bir geçiş sürerken defterde geçişin dışından yapılan değişikliklerin sayaçları: "unut" (`forgetUploads`) ve
+/// "Yeniden dene" (`retryRejected`). Geçiş son gördüğü sayaçları her yazımdan önce güncelleriyle karşılaştırır
+/// (`assistantLedgerWrite`).
+public struct AssistantLedgerResets: Sendable, Equatable {
+    public let forgets: UInt64
+    public let retries: UInt64
+
+    public init(forgets: UInt64, retries: UInt64) {
+        self.forgets = forgets
+        self.retries = retries
+    }
+}
+
+/// Geçişin bellekteki defteri diske yazarken ne yapacağı.
+public enum AssistantLedgerWrite: Sendable, Equatable {
+    /// Bu defteri yaz (gerekirse reddedilenler unutulmuş hâliyle).
+    case write(AssistantUploadLedger)
+    /// Geçiş defteri okuduktan sonra defter unutuldu ("bu cihazı kaldır", kapatma): geçiş hiçbir şey yazmadan biter;
+    /// yoksa eski defteri geri yazar ve sonraki geçiş unutulan toplantıları yüklenmiş sanardı.
+    case abandon
+}
+
+/// Geçişin son gördüğü sayaçlarla şimdikilere göre yazım kararı: arada "unut" geldiyse yazılmaz; yalnızca "Yeniden
+/// dene" geldiyse reddedilenler unutulmuş defter yazılır (isteği geri almasın). Saf fonksiyondur.
+public func assistantLedgerWrite(ledger: AssistantUploadLedger, seen: AssistantLedgerResets, current: AssistantLedgerResets) -> AssistantLedgerWrite {
+    guard seen.forgets == current.forgets else {
+        return .abandon
+    }
+    guard seen.retries == current.retries else {
+        return .write(assistantLedgerRetryingRejected(ledger: ledger))
+    }
+    return .write(ledger)
+}
+
+/// Yükleyicinin kendi hataları.
+public enum AssistantUploaderError: Error, Sendable, Equatable {
+    /// Geçiş sürerken defter unutuldu (`forgetUploads`): geçiş yazmadan durdu; yeni geçiş baştan başlar.
+    case ledgerForgotten
+}
+
 /// Bir geçişin sonucu.
 public struct AssistantPassReport: Sendable, Equatable {
     /// Geçişin sonundaki ayar (kapalıysa `enabled` false: başka cihazda kapatıldı).
@@ -239,9 +279,9 @@ public actor AssistantUploader {
     private let deviceID: String
     /// Bir geçişte en fazla bu kadar dönem değişikliği izlenir (sonsuz döngü olmasın).
     private let maxEpochRounds: Int = 3
-    /// "Yeniden dene" bir geçiş sürerken geldi: geçiş defteri bellekte tuttuğu için bir sonraki yazımda reddedilenleri
-    /// o da unutur (yoksa eski hâlini yazıp isteği geri alırdı).
-    private var retryRequested: Bool = false
+    /// Defterin geçiş dışındaki değişikliklerinin sayaçları (`assistantLedgerWrite`). Her geçiş kendi gördüğünü tutar:
+    /// aktör yeniden girişe açık olduğu için iki geçiş ya da geçişle "unut" iç içe çalışabilir.
+    private var resets: AssistantLedgerResets = AssistantLedgerResets(forgets: 0, retries: 0)
 
     public init(client: any HostedAssistantAPI, file: AssistantLedgerFile, deviceID: String) {
         self.client = client
@@ -259,8 +299,10 @@ public actor AssistantUploader {
     public func pass(records: [MeetingRecord], userName: String, progress: @Sendable (AssistantUploadProgress) -> Void) async throws -> AssistantPassReport {
         let local: [AssistantLocalMeeting] = try assistantLocalMeetings(records: records, userName: userName)
         let byID: [String: AssistantLocalMeeting] = Dictionary(local.map { ($0.id, $0) }) { (first: AssistantLocalMeeting, _: AssistantLocalMeeting) -> AssistantLocalMeeting in first }
+        var seen: AssistantLedgerResets = resets
         var settings: HostedAssistantSettings = try await client.settings()
-        var ledger: AssistantUploadLedger = try store(ledger: assistantLedger(ledger: try file.read(), settings: settings))
+        try requireLedger(seen: seen)
+        var ledger: AssistantUploadLedger = try store(ledger: assistantLedger(ledger: try file.read(), settings: settings), seen: &seen)
         var uploaded: Int = 0
         var deleted: Int = 0
         var rejected: Int = 0
@@ -270,13 +312,15 @@ public actor AssistantUploader {
             let plan: AssistantUploadPlan = assistantUploadPlan(local: local, ledger: ledger)
             for meetingID in plan.deletions {
                 try Task.checkCancellation()
+                try requireLedger(seen: seen)
                 try await client.deleteMeeting(meetingID: meetingID)
                 ledger.uploaded[meetingID] = nil
-                ledger = try store(ledger: ledger)
+                ledger = try store(ledger: ledger, seen: &seen)
                 deleted += 1
             }
             for meetingID in plan.uploads {
                 try Task.checkCancellation()
+                try requireLedger(seen: seen)
                 guard let meeting = byID[meetingID] else {
                     continue
                 }
@@ -293,7 +337,7 @@ public actor AssistantUploader {
                         throw HostedAssistantError.epochMismatch
                     }
                     settings = try await client.settings()
-                    ledger = try store(ledger: assistantLedger(ledger: ledger, settings: settings))
+                    ledger = try store(ledger: assistantLedger(ledger: ledger, settings: settings), seen: &seen)
                     continue passLoop
                 } catch let error where assistantRejectionReason(error: error) != nil {
                     assistantUploadLogger.error("Assistant copy refused, skipped until the meeting changes, error: \(String(describing: error), privacy: .private)")
@@ -303,7 +347,7 @@ public actor AssistantUploader {
                     ledger.rejectionReasons[meetingID] = assistantRejectionReason(error: error)
                     rejected += 1
                 }
-                ledger = try store(ledger: ledger)
+                ledger = try store(ledger: ledger, seen: &seen)
                 progress(assistantUploadProgress(local: local, ledger: ledger))
             }
             break
@@ -318,26 +362,38 @@ public actor AssistantUploader {
     }
 
     /// Özellik kapatıldı ya da bu cihazın toplantıları sunucudan kaldırıldı: defter boşalır (dönem kalır; kapatmada
-    /// sonraki geçiş zaten yeni dönemi okur).
+    /// sonraki geçiş zaten yeni dönemi okur). Süren bir geçiş bundan sonra defteri yazmaz, yükleme de yapmaz
+    /// (`AssistantUploaderError.ledgerForgotten`).
     public func forgetUploads() throws {
+        resets = AssistantLedgerResets(forgets: resets.forgets + 1, retries: resets.retries)
         let current: AssistantUploadLedger = try file.read()
-        _ = try store(ledger: AssistantUploadLedger(epoch: current.epoch, uploaded: [:], rejected: [:], rejectionReasons: [:]))
+        try file.write(ledger: AssistantUploadLedger(epoch: current.epoch, uploaded: [:], rejected: [:], rejectionReasons: [:]))
     }
 
-    /// Reddedilenleri unutur: sonraki geçiş onları yeniden yükler (Ayarlar'daki "Yeniden dene").
+    /// Reddedilenleri unutur: sonraki geçiş onları yeniden yükler (Ayarlar'daki "Yeniden dene"). Süren bir geçişin
+    /// sonraki yazımı da reddedilenleri unutur.
     public func retryRejected() throws {
-        // Bayrak, süren bir geçişin bellekteki defteri için kalır (onun sonraki yazımı da unutur); geçiş yoksa sonraki
-        // geçişin ilk yazımı onu düşürür.
+        resets = AssistantLedgerResets(forgets: resets.forgets, retries: resets.retries + 1)
         try file.write(ledger: assistantLedgerRetryingRejected(ledger: try file.read()))
-        retryRequested = true
     }
 
-    /// Defteri diske yazar; bekleyen "Yeniden dene" varsa önce reddedilenler unutulur.
-    private func store(ledger: AssistantUploadLedger) throws -> AssistantUploadLedger {
-        let next: AssistantUploadLedger = retryRequested ? assistantLedgerRetryingRejected(ledger: ledger) : ledger
-        try file.write(ledger: next)
-        retryRequested = false
-        return next
+    /// Geçiş defteri okuduktan sonra defter unutulduysa geçiş durur.
+    private func requireLedger(seen: AssistantLedgerResets) throws {
+        guard seen.forgets == resets.forgets else {
+            throw AssistantUploaderError.ledgerForgotten
+        }
+    }
+
+    /// Geçişin defterini `assistantLedgerWrite` kararına göre diske yazar; geçişin gördüğü sayaçlar güncellenir.
+    private func store(ledger: AssistantUploadLedger, seen: inout AssistantLedgerResets) throws -> AssistantUploadLedger {
+        switch assistantLedgerWrite(ledger: ledger, seen: seen, current: resets) {
+        case .abandon:
+            throw AssistantUploaderError.ledgerForgotten
+        case .write(let next):
+            try file.write(ledger: next)
+            seen = resets
+            return next
+        }
     }
 }
 
