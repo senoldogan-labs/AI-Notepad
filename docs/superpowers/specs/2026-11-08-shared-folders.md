@@ -140,7 +140,7 @@ accepted name and can remove the member in one tap; a forwarded link burns the i
 other shared-folder endpoint answers `503 shared_folders_unavailable`. Account deletion and the daily cleanup still
 delete shared-folder data while it is off. Apps never delete their member cache on `available: false`.
 
-### D1 schema (`0060_shared_folders.sql`, additive only; nothing else reads these tables, so a code rollback is safe)
+### D1 schema (`0060_shared_folders.sql`, additive only; a code rollback is safe only while the policy is off and the tables are empty: rows reference `users`, so code that predates the feature could not delete those accounts — after enabling, fix forward)
 
 - `sharing_identities(user_id PK → users, agreement_key, signing_key, sealed_seed, seed_key_id, created_at, updated_at)`
 - `shared_folders(folder_id PK, owner_id → users, sealed_meta, key_epoch, owner_envelope, roster, roster_signature,

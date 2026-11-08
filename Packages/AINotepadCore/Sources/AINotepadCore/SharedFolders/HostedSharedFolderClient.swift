@@ -40,10 +40,11 @@ public struct HostedSharedFolder: Sendable, Equatable, Decodable {
     public let role: String
     public let ownerAgreementKey: String
     public let ownerSigningKey: String
-    public let sealedMeta: String
+    /// Nil for a member until an owner device confirms them (they must not see the roster yet).
+    public let sealedMeta: String?
     public let keyEpoch: Int
-    public let roster: String
-    public let rosterSignature: String
+    public let roster: String?
+    public let rosterSignature: String?
     public let rosterVersion: Int
     public let membersVersion: Int
     public let itemsRev: Int

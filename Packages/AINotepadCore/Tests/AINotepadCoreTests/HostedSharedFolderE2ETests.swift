@@ -80,6 +80,8 @@ extension HostedE2ETests {
         try await member.service.accept(lookup: lookup, identity: member.identity, displayName: "Mehmet")
         let waiting: OpenedSharedFolder = try await opened(member, folderID: folderID)
         #expect(waiting.isWaitingForOwner && waiting.folderName == "Sales weekly")
+        // Until confirmed, the member sees neither the roster nor the sealed metadata.
+        #expect(waiting.roster == nil && waiting.remote.roster == nil && waiting.remote.sealedMeta == nil)
 
         // The owner's device verifies the proof and adds the member to the signed roster.
         let views: [SharedFolderMemberView] = try sharedFolderMemberViews(members: try await owner.service.client.members(folderID: folderID), identity: owner.identity, folderID: folderID)
@@ -107,7 +109,7 @@ extension HostedE2ETests {
         let memberID: String = try #require(views.first?.memberID)
         #expect(try await owner.service.reconcileRoster(folder: try await opened(owner, folderID: folderID), identity: owner.identity, removing: [memberID]))
         let rotated: OpenedSharedFolder = try await opened(owner, folderID: folderID)
-        #expect(rotated.keyring?.currentEpoch == 2 && rotated.roster.members.isEmpty)
+        #expect(rotated.keyring?.currentEpoch == 2 && rotated.roster?.members.isEmpty == true)
         #expect(try await member.service.client.folders().folders.isEmpty)
         await #expect(throws: HostedAPIError.self) { try await member.service.client.items(folderID: folderID) }
         // A note sealed after the removal does not open with the keyring the member had.

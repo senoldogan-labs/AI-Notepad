@@ -1,7 +1,9 @@
 -- Shared folders (src/sharedFolders.ts; design: docs/superpowers/specs/2026-11-08-shared-folders.md). End-to-end
 -- encrypted: the server keeps public keys, sealed values it cannot open, signatures, counters and the index of item
--- blobs (the blobs live in R2 under `f/<folder>/`). No folder names, labels, display names or note text. Additive only:
--- nothing else reads these tables, so a code rollback keeps working.
+-- blobs (the blobs live in R2 under `f/<folder>/`). No folder names, labels, display names or note text. Additive only.
+-- Rollback: while SHARED_FOLDERS_POLICY is off the tables stay empty and code without this feature keeps working. Once
+-- the feature has been used, code that predates it cannot delete those accounts (their rows reference `users` and it
+-- does not know to delete them first): after enabling, fix forward instead of rolling back past this change.
 
 -- One sharing identity per account: its X25519 and Ed25519 public keys (base64, 32 bytes each) and, when the account
 -- has sync on, the identity seed sealed with the account sync key (`sealed_seed`; `seed_key_id` is that sync key's id).

@@ -91,7 +91,8 @@ public enum SharedFolderSetupError: Error, Sendable, Equatable {
 /// A listed folder after its signatures were checked and its sealed parts opened with this account's identity.
 public struct OpenedSharedFolder: Sendable, Equatable {
     public let remote: HostedSharedFolder
-    public let roster: SharedFolderRoster
+    /// Nil while a member waits for an owner device to confirm them (the server does not show them the roster yet).
+    public let roster: SharedFolderRoster?
     public let ownerKeys: SharingPublicKeys
     /// Nil while a member waits for activation.
     public let keyring: FolderKeyring?
@@ -140,9 +141,19 @@ public func openSharedFolder(remote: HostedSharedFolder, identity: SharingIdenti
             throw SharedFolderCryptoError.proofMismatch
         }
         memberPin = pin
+        guard remote.memberStatus == "active", remote.roster != nil else {
+            // Waiting for an owner device: nothing to verify or open yet; the pin stays as it was.
+            return OpenedSharedFolder(
+                remote: remote, roster: nil, ownerKeys: keys, keyring: nil, meta: nil, folderName: pin.folderName, ownerName: pin.ownerName,
+                pin: storedPin ?? SharedFolderVersionPin(epoch: 0, rosterVersion: 0)
+            )
+        }
+    }
+    guard let rosterText = remote.roster, let rosterSignature = remote.rosterSignature, let sealedMeta = remote.sealedMeta else {
+        throw SharedFolderCryptoError.malformedBlob(byteCount: 0)
     }
     let roster: SharedFolderRoster = try verifySharedFolderRoster(
-        text: remote.roster, signature: try decodedBase64(remote.rosterSignature), ownerSigningKey: keys.signingKey, folderID: remote.folderId
+        text: rosterText, signature: try decodedBase64(rosterSignature), ownerSigningKey: keys.signingKey, folderID: remote.folderId
     )
     guard roster.epoch == remote.keyEpoch, roster.version == remote.rosterVersion else {
         throw SharedFolderCryptoError.staleVersion(seen: remote.rosterVersion, served: roster.version)
@@ -157,7 +168,7 @@ public func openSharedFolder(remote: HostedSharedFolder, identity: SharingIdenti
     let meta: SharedFolderMeta? = try current.map { (ring: FolderKeyring) -> SharedFolderMeta in
         try JSONDecoder().decode(
             SharedFolderMeta.self,
-            from: try openFolderBlob(blob: try decodedBase64(remote.sealedMeta), keyring: ring, itemID: sharedFolderMetaItemID, ownerSigningKey: keys.signingKey)
+            from: try openFolderBlob(blob: try decodedBase64(sealedMeta), keyring: ring, itemID: sharedFolderMetaItemID, ownerSigningKey: keys.signingKey)
         )
     }
     return OpenedSharedFolder(
@@ -393,21 +404,21 @@ public struct SharedFolderService: Sendable {
     /// in `removing` are rotated out with a new epoch. Returns whether the roster changed.
     @discardableResult
     public func reconcileRoster(folder: OpenedSharedFolder, identity: SharingIdentity, removing: Set<String>) async throws -> Bool {
-        guard folder.isOwner, let keyring = folder.keyring, let meta = folder.meta else {
+        guard folder.isOwner, let keyring = folder.keyring, let meta = folder.meta, let currentRoster = folder.roster else {
             return false
         }
         let members: [HostedSharedFolderMember] = try await client.members(folderID: folder.folderID)
         let acceptances: [SharedFolderAcceptance] = members.compactMap { verifiedAcceptance(member: $0, identity: identity, folderID: folder.folderID) }
         let active: Set<String> = Set(members.filter { $0.status == "active" }.map(\.memberId))
         let action: SharedFolderRosterAction = sharedFolderRosterAction(
-            roster: folder.roster, serverActiveIDs: active, needsRotation: folder.remote.needsRotation, removing: removing, acceptances: acceptances
+            roster: currentRoster, serverActiveIDs: active, needsRotation: folder.remote.needsRotation, removing: removing, acceptances: acceptances
         )
         switch action {
         case .none:
             return false
         case .activate(let rosterMembers, let added):
             let roster: SignedSharedFolderRoster = try signSharedFolderRoster(
-                roster: SharedFolderRoster(folderId: folder.folderID, version: folder.roster.version + 1, epoch: keyring.currentEpoch, members: rosterMembers), owner: identity
+                roster: SharedFolderRoster(folderId: folder.folderID, version: currentRoster.version + 1, epoch: keyring.currentEpoch, members: rosterMembers), owner: identity
             )
             let envelopes: [HostedEnvelopeUpload] = try envelopes(keyring: keyring, members: rosterMembers.filter { added.contains($0.memberId) }, identity: identity)
             try await client.changeRoster(folderID: folder.folderID, change: HostedRosterChange(
@@ -416,7 +427,7 @@ public struct SharedFolderService: Sendable {
         case .rotate(let rosterMembers):
             let rotated: FolderKeyring = rotatedFolderKeyring(keyring: keyring)
             let roster: SignedSharedFolderRoster = try signSharedFolderRoster(
-                roster: SharedFolderRoster(folderId: folder.folderID, version: folder.roster.version + 1, epoch: rotated.currentEpoch, members: rosterMembers), owner: identity
+                roster: SharedFolderRoster(folderId: folder.folderID, version: currentRoster.version + 1, epoch: rotated.currentEpoch, members: rosterMembers), owner: identity
             )
             try await client.changeRoster(folderID: folder.folderID, change: HostedRosterChange(
                 keyEpoch: rotated.currentEpoch, expectedMembersVersion: folder.remote.membersVersion, roster: roster,

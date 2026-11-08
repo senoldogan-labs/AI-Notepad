@@ -171,10 +171,14 @@ export interface SharedFolderBody {
   readonly role: "owner" | "member";
   readonly ownerAgreementKey: string;
   readonly ownerSigningKey: string;
-  readonly sealedMeta: string;
+  /**
+   * Sealed metadata and the signed roster (member ids, user ids and public keys of the active members): null for a member
+   * whose acceptance no owner device has confirmed yet, who must not learn who else is in the folder.
+   */
+  readonly sealedMeta: string | null;
   readonly keyEpoch: number;
-  readonly roster: string;
-  readonly rosterSignature: string;
+  readonly roster: string | null;
+  readonly rosterSignature: string | null;
   readonly rosterVersion: number;
   readonly membersVersion: number;
   readonly itemsRev: number;
@@ -227,15 +231,16 @@ type MemberView = Pick<MemberRow, "member_id" | "status" | "envelope" | "envelop
 
 function folderBody(row: FolderRow & IdentityRow, member: MemberView | null): SharedFolderBody {
   const owner: boolean = member === null;
+  const confirmed: boolean = owner || member?.status === "active";
   return {
     folderId: row.folder_id,
     role: owner ? "owner" : "member",
     ownerAgreementKey: row.agreement_key,
     ownerSigningKey: row.signing_key,
-    sealedMeta: row.sealed_meta,
+    sealedMeta: confirmed ? row.sealed_meta : null,
     keyEpoch: row.key_epoch,
-    roster: row.roster,
-    rosterSignature: row.roster_signature,
+    roster: confirmed ? row.roster : null,
+    rosterSignature: confirmed ? row.roster_signature : null,
     rosterVersion: row.roster_version,
     membersVersion: row.members_version,
     itemsRev: row.items_rev,
@@ -1093,7 +1098,21 @@ export interface SharedFolderCleanupReport {
  */
 export async function sharedFolderCleanup(db: D1Database, config: Config, now: Date, maxFolders: number): Promise<SharedFolderCleanupReport> {
   const nowMs: number = now.getTime();
-  const expired: D1Result = await db.prepare("DELETE FROM shared_folder_members WHERE status IN ('invited', 'accepted') AND expires_at <= ?").bind(nowMs).run();
+  // Dropping an acceptance changes the membership: `members_version` moves first (same batch), so an owner device that
+  // read the old state cannot sign a roster with the dropped member (its compare-and-set fails and it refreshes).
+  const expiredBatch: D1Result[] = await db.batch([
+    db
+      .prepare(
+        `UPDATE shared_folders SET members_version = members_version + 1, updated_at = ?1
+         WHERE folder_id IN (SELECT folder_id FROM shared_folder_members WHERE status = 'accepted' AND expires_at <= ?1)`,
+      )
+      .bind(nowMs),
+    db.prepare("DELETE FROM shared_folder_members WHERE status IN ('invited', 'accepted') AND expires_at <= ?").bind(nowMs),
+  ]);
+  const expired: D1Result | undefined = expiredBatch[1];
+  if (expired === undefined) {
+    throw new Error("The cleanup batch returned no result for the delete.");
+  }
   const stale: D1Result<{ folder_id: string; owner_id: string }> = await db
     .prepare("SELECT folder_id, owner_id FROM shared_folders WHERE access_seen_at < ? ORDER BY access_seen_at LIMIT ?")
     .bind(nowMs - sharedFolderAccessRetentionDays * dayMs, maxFolders)

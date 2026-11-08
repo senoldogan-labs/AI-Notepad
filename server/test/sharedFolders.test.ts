@@ -46,6 +46,9 @@ interface FolderListBody {
     readonly needsRotation: boolean;
     readonly envelope: string | null;
     readonly memberStatus: string | null;
+    readonly roster: string | null;
+    readonly rosterSignature: string | null;
+    readonly sealedMeta: string | null;
   }>;
 }
 
@@ -256,7 +259,8 @@ describe("shared folders", () => {
     await ok(await call(harness, first, "POST", `/v1/shared-invites/${memberId}/accept`, body), 200);
     await ok(await call(harness, first, "POST", `/v1/shared-invites/${memberId}/accept`, body), 200);
     await expectError(await call(harness, second, "POST", `/v1/shared-invites/${memberId}/accept`, acceptBody()), 410, "shared_invite_unavailable");
-    expect((await folderOf(harness, first, folderId)).memberStatus).toBe("accepted");
+    const waiting = (await folders(harness, first)).folders.find((folder) => folder.folderId === folderId);
+    expect(waiting).toMatchObject({ memberStatus: "accepted", roster: null, rosterSignature: null, sealedMeta: null, envelope: null });
     // Accepted but not activated: no items yet.
     await expectError(await call(harness, first, "GET", `/v1/shared-folders/${folderId}/items`, null), 404, "not_found");
   });
@@ -272,6 +276,20 @@ describe("shared folders", () => {
     await expectError(await call(harness, late, "POST", `/v1/shared-invites/${memberId}/accept`, acceptBody()), 410, "shared_invite_unavailable");
     const report = await sharedFolderCleanup(env.DB, parseConfig(env), new Date(harness.clock.nowMs), 50);
     expect(report.invitesExpired).toBeGreaterThanOrEqual(1);
+  });
+
+  it("moves members_version when the cleanup drops an acceptance no owner device confirmed", async () => {
+    const harness: Harness = await defaultHarness();
+    const owner: Account = await account(harness, true);
+    const member: Account = await account(harness, false);
+    const folderId: string = await createFolder(harness, owner, crypto.randomUUID());
+    const memberId: string = await invite(harness, owner, folderId);
+    await ok(await call(harness, member, "POST", `/v1/shared-invites/${memberId}/accept`, acceptBody()), 200);
+    const before: number = (await folderOf(harness, owner, folderId)).membersVersion;
+    harness.clock.nowMs += 31 * dayMs;
+    await sharedFolderCleanup(env.DB, parseConfig(env), new Date(harness.clock.nowMs), 50);
+    const later: Account = { session: await refreshed(harness, owner.session), keys: owner.keys };
+    expect((await folderOf(harness, later, folderId)).membersVersion).toBe(before + 1);
   });
 
   it("refuses a roster that does not match the member rows or a stale members version", async () => {
