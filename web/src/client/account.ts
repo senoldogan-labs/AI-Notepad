@@ -29,6 +29,7 @@ import {
   storedPlan,
 } from "./checkout-choice";
 import { type ClientCopy, clientCopy, fill } from "./copy";
+import { type CheckoutEvent, type CheckoutState, checkoutControlsLocked, checkoutTransition, idleCheckout } from "../lib/checkout-state";
 import { dataValue, element, errorText, hideNotice, showNotice } from "./dom";
 import { SignedOutError, authorizedSend, claimTabSession, clearSession, hasSession, signOut } from "./session";
 import { siteLocale } from "../config";
@@ -464,10 +465,52 @@ async function fetchMeAfterPayment(): Promise<Entitlements> {
   return me;
 }
 
-/** Checkout ya da Portal adresini alıp oraya geçer. */
+/** Ödeme eylemlerinin durumu (sayfa ömrünce; geçişler src/lib/checkout-state.ts'te). */
+let checkout: CheckoutState = idleCheckout;
+
+/** Ödeme durumu kilitliyken kapanan düğmeler. */
+const checkoutButtonIds: readonly string[] = ["subscribe-button", "manage-button", "invite-apply", "invite-remove"];
+
+/** Ödeme olayını uygular ve düğmeleri yeni duruma göre açar ya da kapatır; olay bu durumda geçersizse false. */
+function applyCheckout(event: CheckoutEvent): boolean {
+  const next: CheckoutState | null = checkoutTransition(checkout, event);
+  if (next === null) {
+    console.info("checkout_event_ignored", { event: event.type, state: checkout.kind });
+    return false;
+  }
+  checkout = next;
+  const locked: boolean = checkoutControlsLocked(next);
+  for (const id of checkoutButtonIds) {
+    element(id, HTMLButtonElement).disabled = locked;
+  }
+  return true;
+}
+
+/**
+ * Ödeme eylemini kilit altında yürütür: başka bir ödeme eylemi yürürken çağrılırsa hiçbir şey yapmaz. Eylem
+ * yönlendirmeden biterse (hata dahil) kilit açılır; yönlendirmede sayfa kapanana kadar kilitli kalır.
+ */
+async function runCheckout(start: "validateInvite" | "openBilling", action: () => Promise<void>): Promise<void> {
+  if (!applyCheckout({ type: start })) {
+    return;
+  }
+  try {
+    await action();
+  } finally {
+    if (checkout.kind !== "redirecting") {
+      applyCheckout({ type: "settled" });
+    }
+  }
+}
+
+/** Checkout ya da Portal adresini alıp oraya geçer (`runCheckout("openBilling", …)` içinde çağrılır). */
 async function openBilling(path: "/v1/billing/checkout" | "/v1/billing/portal", body: JsonObject): Promise<void> {
   const response: RawResponse = await authorizedSend({ method: "POST", path, body, attempts: 1 });
-  window.location.assign(parseRedirectUrl(response, path));
+  const url: string = parseRedirectUrl(response, path);
+  if (!applyCheckout({ type: "redirect" })) {
+    throw new Error(`${path} yönlendirmesi ödeme kilidi dışında istendi (durum ${checkout.kind}).`);
+  }
+  window.location.assign(url);
 }
 
 /** Checkout gövdesi: seçilen plan ve (doğrulanmışsa) davet kodu. Saf fonksiyondur. */
@@ -623,9 +666,11 @@ function bindCheckoutForm(form: CheckoutForm, text: ClientCopy, notice: HTMLElem
       renderAppliedInvite(form, text);
     });
   }
-  bindAction(element("invite-apply", HTMLButtonElement), notice, text, signInPath, async (): Promise<void> => {
-    await applyInvite(form, text);
-  });
+  bindCheckoutAction(element("invite-apply", HTMLButtonElement), notice, text, signInPath, (): Promise<void> =>
+    runCheckout("validateInvite", async (): Promise<void> => {
+      await applyInvite(form, text);
+    }),
+  );
   element("invite-remove", HTMLButtonElement).addEventListener("click", (): void => {
     removeInvite(form, text);
   });
@@ -645,7 +690,9 @@ async function prefillInvite(form: CheckoutForm, text: ClientCopy): Promise<void
   }
   element("invite", HTMLDetailsElement).open = true;
   element("invite-input", HTMLInputElement).value = code;
-  await applyInvite(form, text);
+  await runCheckout("validateInvite", async (): Promise<void> => {
+    await applyInvite(form, text);
+  });
 }
 
 /** `GET /v1/referral`. */
@@ -800,6 +847,15 @@ function rememberQueryChoices(params: URLSearchParams): boolean {
   return params.has("plan") || params.has("code") || checkout;
 }
 
+/** Düğme eyleminin hatası: oturum düştüyse giriş sayfasına geçilir, değilse bildirimde yazar. */
+function reportActionError(error: unknown, notice: HTMLElement, text: ClientCopy, signInPath: string): void {
+  if (error instanceof SignedOutError) {
+    window.location.replace(signInPath);
+    return;
+  }
+  showNotice(notice, errorText(error, text));
+}
+
 /** Düğmeye uzun süren bir işlem bağlar: süre boyunca düğme kapalı, hata bildirimde. */
 function bindAction(button: HTMLButtonElement, notice: HTMLElement, text: ClientCopy, signInPath: string, action: () => Promise<void>): void {
   button.addEventListener("click", (): void => {
@@ -807,15 +863,21 @@ function bindAction(button: HTMLButtonElement, notice: HTMLElement, text: Client
     button.disabled = true;
     action()
       .catch((error: unknown): void => {
-        if (error instanceof SignedOutError) {
-          window.location.replace(signInPath);
-          return;
-        }
-        showNotice(notice, errorText(error, text));
+        reportActionError(error, notice, text, signInPath);
       })
       .finally((): void => {
         button.disabled = false;
       });
+  });
+}
+
+/** Ödeme düğmesine işlem bağlar: düğmenin açık ya da kapalı oluşu ödeme durumundan gelir (`applyCheckout`), hata bildirimde. */
+function bindCheckoutAction(button: HTMLButtonElement, notice: HTMLElement, text: ClientCopy, signInPath: string, action: () => Promise<void>): void {
+  button.addEventListener("click", (): void => {
+    hideNotice(notice);
+    action().catch((error: unknown): void => {
+      reportActionError(error, notice, text, signInPath);
+    });
   });
 }
 
@@ -907,7 +969,7 @@ async function showAccount(me: Entitlements, form: CheckoutForm, text: ClientCop
   if (checkoutIntended()) {
     forgetCheckoutIntent();
     if (view.canSubscribe) {
-      await subscribe(form, text);
+      await runCheckout("openBilling", (): Promise<void> => subscribe(form, text));
     }
   }
 }
@@ -990,8 +1052,18 @@ async function main(): Promise<void> {
 
   const form: CheckoutForm = { validatedCode: null };
   bindCheckoutForm(form, text, notice, signInPath);
-  bindAction(element("subscribe-button", HTMLButtonElement), notice, text, signInPath, (): Promise<void> => subscribe(form, text));
-  bindAction(element("manage-button", HTMLButtonElement), notice, text, signInPath, (): Promise<void> => openBilling("/v1/billing/portal", {}));
+  bindCheckoutAction(element("subscribe-button", HTMLButtonElement), notice, text, signInPath, (): Promise<void> =>
+    runCheckout("openBilling", (): Promise<void> => subscribe(form, text)),
+  );
+  bindCheckoutAction(element("manage-button", HTMLButtonElement), notice, text, signInPath, (): Promise<void> =>
+    runCheckout("openBilling", (): Promise<void> => openBilling("/v1/billing/portal", {})),
+  );
+  // Stripe'tan Geri ile dönülünce sayfa geri/ileri önbellekten olduğu gibi açılabilir: yönlendirme kilidi açılır.
+  window.addEventListener("pageshow", (event: PageTransitionEvent): void => {
+    if (event.persisted) {
+      applyCheckout({ type: "pageRestored" });
+    }
+  });
   bindAction(element("signout-button", HTMLButtonElement), notice, text, signInPath, async (): Promise<void> => {
     try {
       await signOut();

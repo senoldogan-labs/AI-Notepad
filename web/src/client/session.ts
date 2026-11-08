@@ -3,8 +3,21 @@
 // her yenilemede döner (eski jeton yeniden kullanılırsa sunucu tüm oturum ailesini düşürür). Kopyalanan sekme
 // sessionStorage'ı da kopyalar; iki sekme aynı yenileme jetonunu kullanınca sunucu bunu çalıntı sayıp ikisini de
 // düşürürdü. Bu yüzden her sekmenin kimliği vardır ve kopya, sahibi açıkken kopyalanmış oturumu kullanmadan siler
-// (`claimTabSession`).
+// (`claimTabSession`). Oturumun durumu ve kuşağı src/lib/session-state.ts'teki saf geçişlerle değişir: çıkıştan ya da
+// yeni girişten sonra gelen yenileme yanıtı atılır, yenileme tek uçuşludur.
 import { type ApiCall, ApiRequestError, type RawResponse, type SessionTokens, parseSession, send } from "./api";
+import {
+  type SessionEvent,
+  type SessionState,
+  type SessionTokenAction,
+  type StoredSession,
+  freshTokenAction,
+  initialSessionState,
+  isSignedIn,
+  persistedTokens,
+  sessionTransition,
+  unauthorizedTokenAction,
+} from "../lib/session-state";
 
 const storageKey: string = "gistsmith.session";
 /** Sekmenin kimliği (sessionStorage; kopyalanan sekmeye de kopyalanır). */
@@ -28,25 +41,19 @@ function isTabMessage(value: unknown): value is TabMessage {
   const candidate: { type?: unknown; tabId?: unknown } = value as { type?: unknown; tabId?: unknown };
   return (candidate.type === "who" || candidate.type === "mine") && typeof candidate.tabId === "string";
 }
-/** Erişim jetonu bu kadar süre kala yenilenir. */
-const refreshMarginMs: number = 30_000;
-
-/** Saklanan oturum. */
-interface StoredSession {
-  readonly accessToken: string;
-  readonly refreshToken: string;
-  /** Erişim jetonunun bittiği an (Unix ms). */
-  readonly accessExpiresAt: number;
-}
 
 /** Oturum yok ya da yenilenemedi: kullanıcı yeniden giriş yapmalı. */
 export class SignedOutError extends Error {
   override readonly name: string = "SignedOutError";
 }
 
-let memory: StoredSession | null = null;
+/** Oturumun durumu; sayfada ilk kullanımda sessionStorage'dan okunur. */
+let state: SessionState | null = null;
 let claiming: Promise<void> | null = null;
-let refreshing: Promise<StoredSession> | null = null;
+/** Yoldaki yenileme ve başladığı kuşak (tek uçuş: aynı kuşaktaki çağrılar bu sözü paylaşır). */
+let inflightRefresh: { readonly generation: number; readonly promise: Promise<void> } | null = null;
+/** Bir isteğin önünde en çok kaç kez yenilenir (her yenilemeden sonra durum yeniden değerlendirilir). */
+const maxRefreshRounds: number = 3;
 
 /** Sunucu oturumunu saklanacak biçime çevirir. Saf fonksiyondur. */
 function toStored(tokens: SessionTokens, nowMs: number): StoredSession {
@@ -75,34 +82,48 @@ function readStored(): StoredSession | null {
   return null;
 }
 
-/** Oturumu bellekte ve sessionStorage'da saklar. */
-function store(session: StoredSession): void {
-  memory = session;
-  sessionStorage.setItem(storageKey, JSON.stringify(session));
-}
-
-/** Girişten dönen oturumu saklar. */
-export function saveSession(tokens: SessionTokens): void {
-  store(toStored(tokens, Date.now()));
-}
-
-/** Oturumu siler (çıkış, hesap silme, yenilenemeyen oturum). */
-export function clearSession(): void {
-  memory = null;
-  sessionStorage.removeItem(storageKey);
-}
-
-/** Geçerli oturum (bellek, yoksa sessionStorage); yoksa null. */
-function currentSession(): StoredSession | null {
-  if (memory === null) {
-    memory = readStored();
+/** Geçerli durum (ilk çağrıda sessionStorage'dan okunur). */
+function currentState(): SessionState {
+  if (state === null) {
+    state = initialSessionState(readStored());
   }
-  return memory;
+  return state;
+}
+
+/**
+ * Olayı uygular ve sessionStorage'ı yeni duruma eşitler. Olay bu durumda geçersizse ya da eski bir kuşağa aitse hiçbir
+ * şey değişmez ve false döner (eski isteğin sonucu atılır).
+ */
+function apply(event: SessionEvent): boolean {
+  const previous: SessionState = currentState();
+  const next: SessionState | null = sessionTransition(previous, event);
+  if (next === null) {
+    console.warn("session_event_dropped", { event: event.type, state: previous.kind, generation: previous.generation });
+    return false;
+  }
+  state = next;
+  const tokens: StoredSession | null = persistedTokens(next);
+  if (tokens === null) {
+    sessionStorage.removeItem(storageKey);
+  } else {
+    sessionStorage.setItem(storageKey, JSON.stringify(tokens));
+  }
+  return true;
+}
+
+/** Girişten dönen oturumu saklar (yeni kuşak). */
+export function saveSession(tokens: SessionTokens): void {
+  apply({ type: "signedIn", tokens: toStored(tokens, Date.now()) });
+}
+
+/** Oturumu siler (hesap silme, kopyalanmış sekme); yoldaki yenilemenin sonucu artık yazılmaz. */
+export function clearSession(): void {
+  apply({ type: "cleared" });
 }
 
 /** Bu sekmede oturum var mı. */
 export function hasSession(): boolean {
-  return currentSession() !== null;
+  return isSignedIn(currentState());
 }
 
 /** Yeni sekme kimliği yazar ve döner. */
@@ -159,43 +180,72 @@ async function claimOnce(): Promise<void> {
   });
 }
 
-/** Oturumu yeniler. Aynı anda gelen çağrılar tek isteği paylaşır. Jeton geçersizse oturum silinir, `SignedOutError`. */
-async function refresh(session: StoredSession): Promise<StoredSession> {
-  if (refreshing === null) {
-    refreshing = (async (): Promise<StoredSession> => {
-      const path: string = "/v1/auth/refresh";
-      try {
-        const response: RawResponse = await send({ method: "POST", path, body: { refreshToken: session.refreshToken }, accessToken: null, attempts: 1 });
-        const renewed: StoredSession = toStored(parseSession(response, path), Date.now());
-        store(renewed);
-        return renewed;
-      } catch (error: unknown) {
-        if (error instanceof ApiRequestError && (error.status === 401 || error.status === 400)) {
-          clearSession();
-          throw new SignedOutError(`Oturum yenilenemedi (${error.code}).`);
-        }
-        throw error;
-      } finally {
-        refreshing = null;
-      }
-    })();
+/**
+ * `generation` kuşağının oturumunu yeniler; aynı kuşakta yoldaki yenileme varsa ona katılır. Sonuç yalnızca kuşak hâlâ
+ * geçerliyse yazılır (çıkış ya da yeni girişten sonra gelen yanıt atılır). Sunucu jetonu reddederse oturum biter ve
+ * `SignedOutError`; ağ hatasında eski jetonlar kalır ve hata fırlatılır.
+ */
+function refresh(generation: number): Promise<void> {
+  if (inflightRefresh !== null && inflightRefresh.generation === generation) {
+    return inflightRefresh.promise;
   }
-  return refreshing;
+  const current: SessionState = currentState();
+  if (current.kind !== "signedIn" || current.generation !== generation) {
+    return Promise.reject(new Error(`Yenileme başlatılamadı: durum ${current.kind}, kuşak ${current.generation}, istenen kuşak ${generation}.`));
+  }
+  apply({ type: "refreshStarted", generation });
+  const promise: Promise<void> = (async (): Promise<void> => {
+    const path: string = "/v1/auth/refresh";
+    try {
+      const response: RawResponse = await send({ method: "POST", path, body: { refreshToken: current.tokens.refreshToken }, accessToken: null, attempts: 1 });
+      apply({ type: "refreshSucceeded", generation, tokens: toStored(parseSession(response, path), Date.now()) });
+    } catch (error: unknown) {
+      if (error instanceof ApiRequestError && (error.status === 401 || error.status === 400)) {
+        apply({ type: "refreshRejected", generation });
+        throw new SignedOutError(`Oturum yenilenemedi (${error.code}).`);
+      }
+      apply({ type: "refreshFailed", generation });
+      throw error;
+    } finally {
+      if (inflightRefresh !== null && inflightRefresh.generation === generation) {
+        inflightRefresh = null;
+      }
+    }
+  })();
+  inflightRefresh = { generation, promise };
+  return promise;
+}
+
+/**
+ * `decide`'ın seçtiği adımı yürütür: jetonu kullanır ya da yeniler; her yenilemeden sonra durum yeniden değerlendirilir
+ * (bu arada çıkış ya da yeni giriş olmuş olabilir). Oturum yoksa `SignedOutError`.
+ */
+async function resolveTokens(decide: (current: SessionState) => SessionTokenAction): Promise<StoredSession> {
+  for (let round: number = 0; round <= maxRefreshRounds; round += 1) {
+    const action: SessionTokenAction = decide(currentState());
+    if (action.kind === "use") {
+      return action.tokens;
+    }
+    if (action.kind === "signedOut") {
+      throw new SignedOutError("Bu sekmede oturum yok.");
+    }
+    await refresh(action.generation);
+  }
+  throw new Error(`Oturum ${maxRefreshRounds} yenilemeden sonra da kullanılabilir jeton vermedi.`);
 }
 
 /** Kullanıma hazır oturum: süresi dolmak üzereyse önce yenilenir. Oturum yoksa `SignedOutError`. */
-async function freshSession(): Promise<StoredSession> {
-  const session: StoredSession | null = currentSession();
-  if (session === null) {
-    throw new SignedOutError("Bu sekmede oturum yok.");
-  }
-  return session.accessExpiresAt - refreshMarginMs > Date.now() ? session : refresh(session);
+function freshSession(): Promise<StoredSession> {
+  return resolveTokens((current: SessionState): SessionTokenAction => freshTokenAction(current, Date.now()));
 }
 
 /** Kimlikli istek tanımı (jeton oturumdan eklenir). */
 export type AuthorizedCall = Omit<ApiCall, "accessToken">;
 
-/** Kimlikli istek: erişim jetonu eklenir; sunucu 401 dönerse oturum bir kez yenilenip istek tekrarlanır. */
+/**
+ * Kimlikli istek: erişim jetonu eklenir; sunucu 401 dönerse istek bir kez tekrarlanır. Jeton o arada başka bir istekle
+ * yenilendiyse güncel jeton kullanılır; değilse önce yenilenir (kullanılmış yenileme jetonu yeniden sunulmaz).
+ */
 export async function authorizedSend(call: AuthorizedCall): Promise<RawResponse> {
   const session: StoredSession = await freshSession();
   try {
@@ -205,15 +255,23 @@ export async function authorizedSend(call: AuthorizedCall): Promise<RawResponse>
       throw error;
     }
   }
-  const renewed: StoredSession = await refresh(session);
+  const renewed: StoredSession = await resolveTokens((current: SessionState): SessionTokenAction => unauthorizedTokenAction(current, session.accessToken));
   return send({ ...call, accessToken: renewed.accessToken });
 }
 
-/** Çıkış: sunucuda oturum ailesi düşürülür, sonra yerel oturum silinir (sunucu hatası yerel çıkışı engellemez). */
+/**
+ * Çıkış: yerel oturum hemen silinir (yoldaki yenilemenin sonucu artık yazılmaz), sonra sunucuda oturum ailesi
+ * düşürülür. Sunucu hatası fırlatılır ama yerel çıkışı geri almaz. Oturum yoksa hiçbir şey yapılmaz.
+ */
 export async function signOut(): Promise<void> {
-  const session: StoredSession | null = currentSession();
-  clearSession();
-  if (session !== null) {
-    await send({ method: "POST", path: "/v1/auth/logout", body: { refreshToken: session.refreshToken }, accessToken: null, attempts: 2 });
+  const tokens: StoredSession | null = persistedTokens(currentState());
+  if (tokens === null || !apply({ type: "signOutStarted" })) {
+    return;
+  }
+  const generation: number = currentState().generation;
+  try {
+    await send({ method: "POST", path: "/v1/auth/logout", body: { refreshToken: tokens.refreshToken }, accessToken: null, attempts: 2 });
+  } finally {
+    apply({ type: "signOutFinished", generation });
   }
 }
