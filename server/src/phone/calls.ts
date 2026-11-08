@@ -1139,8 +1139,8 @@ export async function phoneCleanup(db: D1Database, platform: OutboundPlatform, c
     .prepare("DELETE FROM phone_calls WHERE settled_at IS NOT NULL AND created_at <= ? AND (recording_sid IS NULL OR recording_deleted_at IS NOT NULL)")
     .bind(nowMs - settledCallRetentionMs)
     .run();
-  // Verification counters only matter for their own day.
-  await db.prepare("DELETE FROM phone_verification_days WHERE day < ?").bind(dayKey(now)).run();
+  // Verification counters matter for their day and their month (`phoneVerificationsPerMonth`).
+  await db.prepare("DELETE FROM phone_verification_days WHERE day < ?").bind(`${monthKey(now)}-01`).run();
   const report: PhoneCleanupReport = { expiredCalls: expired[1]?.meta.changes ?? 0, recordingsDeleted, purged, oldCallsDeleted: old.meta.changes };
   log("info", "phone_cleanup", { ...report });
   return report;

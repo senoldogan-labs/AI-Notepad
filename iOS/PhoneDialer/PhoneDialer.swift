@@ -376,10 +376,17 @@ final class PhoneDialer {
         do {
             try await controller.sendDigits(uuid: call.uuid, digits: digit)
             // Shown only once CallKit played it: a refused tone must not look sent (a menu or PIN would stall silently).
+            // Another call on screen by now keeps its own display.
+            guard activeCall?.id == call.id else {
+                return
+            }
             activeCall?.sentDigits.append(digit)
             activeCall?.notice = nil
         } catch {
             Self.logger.error("Keypad tone request failed, error: \(String(describing: error), privacy: .private)")
+            guard activeCall?.id == call.id else {
+                return
+            }
             activeCall?.notice = String(localized: "Tuş sesi gönderilemedi; yeniden dene.")
         }
     }

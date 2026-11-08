@@ -281,8 +281,9 @@ jeton almış toplantının yeniden bağlanmaları sürer. Bütçeyi en çok bir
 ## Uygulamadan arama (iPhone, pilot)
 
 `PHONE_CALLS_POLICY=on` iken (üretimde `off`; tasarım, sağlayıcı seçimi, maliyet ve açma adımları
-`docs/superpowers/specs/2026-11-08-iphone-call-recording.md`) `PHONE_CALLS_COUNTRIES`'teki aboneler iPhone'dan Twilio
-üzerinden arama yapar; arayan numara yalnızca kullanıcının Twilio'nun arayıp kodla doğruladığı kendi numarasıdır (hesap
+`docs/superpowers/specs/2026-11-08-iphone-call-recording.md`) numarası (doğrulanmamışsa IP'si) `PHONE_CALLER_COUNTRIES`'te
+olan ve ücretli dönemdeki aboneler (etkin Stripe aboneliği ya da normal/ön ödemeli dönemdeki App Store aboneliği; deneme,
+tanıtım ve promosyon dönemi değil) iPhone'dan Twilio üzerinden `PHONE_CALLS_COUNTRIES`'teki numaraları arar; arayan numara yalnızca kullanıcının Twilio'nun arayıp kodla doğruladığı kendi numarasıdır (hesap
 başına bir, numara başına bir hesap). Twilio'nun TwiML App'i `POST /v1/phone/webhooks/voice`'u çağırır; sunucu ayırmadaki
 hedefe `<Dial>` döner: zaman sınırı, iki kanallı kayıt ve karşı tarafa bağlanmadan önce okunan kayıt duyurusu
 (`<Number url>` → `/v1/phone/webhooks/announcement`). Her webhook Twilio imzası (`X-Twilio-Signature`,
@@ -292,9 +293,15 @@ aktarılan kayıt gibi işler ve Twilio'da siler; alınmayan kayıt bir gün son
 Harcama: her arama en kötü durumunu (en uzun süre + 1 dk × ülkenin `PHONE_USD_PER_MINUTE`'ı) `phone_calls`'ta ayırır;
 ayırma genel günlük tavana (`DAILY_SPEND_CEILING_USD`) ve aramaların günlük tavanına (`PHONE_DAILY_SPEND_CEILING_USD`)
 sayılır, arama bitince (`<Dial action>` ya da TwiML App durum geri çağrısı) gerçek maliyetle değişir (`daily_spend.
-phone_micro_usd`). Kullanıcı başına aynı anda tek arama, günde 30 arama, ayda `PHONE_MONTHLY_MINUTES` dakika; arama planın
-kalan aylık süresini aşamaz. Ücretli ve özel numaralar (NANP 900, 976, 5XX, 700, Karayipler; Fin ve Türk ücretli
-önekleri) ve izin listesi dışındaki ülkeler reddedilir; acil ve kısa numaraları uygulama Telefon uygulamasıyla açar.
+phone_micro_usd`). Kullanıcı başına aynı anda tek arama, günde 30 arama, ayda `PHONE_MONTHLY_MINUTES` dakika ve
+`PHONE_USER_MONTHLY_SPEND_USD` harcama (pahalı ülke dakikaları daha çabuk bitirir; `GET /v1/phone` → `minutesByCountry`);
+arama planın kalan aylık süresini aşamaz. `PHONE_USD_PER_MINUTE`'ta her hedef ve arayan ülkenin fiyatı olmalı ve hiçbiri
+`PHONE_MAX_USD_PER_MINUTE`'ı aşamaz (yoksa `config_invalid`). Yalnız her ülkenin olağan (cep ve coğrafi) önekleri
+aranır (`src/phone/numbers.ts`: NANP 900, 976, 5XX, 600/622, 700, 710 ve Karayipler; Finlandiya'da 049, 07, ücretli ve
+servis önekleri; Birleşik Krallık'ta 070, 076, 08, 09 ve Manş Adaları ile Man Adası aralıkları reddedilir); izin listesi
+olmayan ülke (Türkiye) hedef olamaz. Operatörleri yurt dışından gelen ve kendi numarasını gösteren aramaları engelleyen
+ülkelerde (Finlandiya, Birleşik Krallık, Türkiye) arayanın kendi ülkesine araması `403 phone_number_blocked`. Acil ve
+kısa numaraları uygulama Telefon uygulamasıyla açar.
 
 ## Blog yayını
 
@@ -460,7 +467,7 @@ başlangıçları, 2 günden eski kullanıcı günlük kullanımı, 13 aydan esk
 180 günden eski raporlar (durumundan bağımsız), 730 gündür güncellenmemiş kimlik deneme defteri satırları ve hesabı
 silinmiş davet edilenlerin davet satırları, bir günden eski ve hesaba bağlanmamış Apple ile giriş jetonları; 400 günden eski günlük token kovaları, konuşma tanıma dilleri ve indirme
 kampanyaları; süresi dolmuş paylaşım bağlantıları (`note_shares`; okuma ucu süresi dolanı zaten 404 döner); 5 yıldan eski günlük anlık görüntüler; 10 yıldan eski gelir kayıtları (önce iadeleri). Aynı Cron günü gelen davet ödüllerini de verir (`referral_rewards` adımı).
-`phone_cleanup` adımı (`src/phone/calls.ts`): ayırması dolmuş kesinleşmemiş aramalar (bağlanmamışsa ücretsiz, bağlandıysa
+`phone_cleanup` adımı (`src/phone/calls.ts`): önceki ayların doğrulama sayaçları, ayırması dolmuş kesinleşmemiş aramalar (bağlanmamışsa ücretsiz, bağlandıysa
 en kötü durumla), bir günden eski alınmamış arama kayıtları ve sırada bekleyen Twilio silmeleri (silinen hesapların
 kayıtları ve arayan numaraları); Twilio adımları yalnızca `PHONE_CALLS_POLICY=on` iken çalışır; 90 günden eski
 kesinleşmiş arama satırları silinir.
@@ -535,9 +542,9 @@ Yalnızca hesap ve veritabanı ilk kez kurulurken elle yapılır; sonraki her ya
 | `POST /v1/shares` | Bearer (abonelik ya da süren deneme) | notu bağlantıyla paylaşma: gövde `application/octet-stream` = uygulamanın şifrelediği not (`GSS1`, ≤1 MiB), başlıklar `x-share-id` (16 rastgele bayt, base64url) ve `x-share-expires-days` (7, 30, 90) → `201 {shareId, size, createdAt, expiresAt}`; aynı yüklemenin tekrarı aynı satırı döndürür, başka blokla aynı kimlik `409 share_exists`, hesapta 50 açık bağlantı `409 share_limit_reached`, tüm hesapların 1 GB bütçesi dolunca `503 share_unavailable`. Kullanıcı başına 10/dk. Bkz. `src/shares.ts` |
 | `GET /v1/shares` | Bearer | hesabın açık bağlantıları `{shares: [{shareId, size, createdAt, expiresAt}], maxActive}` (şifreli içerik yok) |
 | `DELETE /v1/shares/{id}` | Bearer | bağlantıyı hemen siler (`{deleted: true}`); başkasının ya da olmayan bağlantı `404` |
-| `GET /v1/phone` | Bearer | uygulamadan arama görünür mü: `{available, reason (policy_off \| country_not_allowed \| subscription_required \| null), countries, provider, consentVersion, consentAccepted, number: {e164, status} \| null, maxCallMinutes, monthlyMinutes, usedMinutes}`; ülke doğrulanmış numaranınki, yoksa IP'ninki (Cloudflare). Kapalıyken de `200`. Bkz. "Uygulamadan arama" |
-| `POST /v1/phone/consent` | Bearer | `{version}` (güncel açıklama sürümü, 1) → `{consentVersion, consentAccepted: true}`; numara ve aramadan önce gerekir (`403 phone_consent_required`). Politika kapalıyken bu ve aşağıdaki uçlar `503 phone_unavailable` |
-| `POST /v1/phone/number` | Bearer (abone) | `{number}` (E.164) → Twilio numarayı arar: `{e164, status: "pending", validationCode, expiresAt}` (kullanıcı kodu tuşlar); zaten doğrulanmışsa aramasız `{e164, status: "verified"}`. Başka hesabın numarası `409 phone_number_in_use`, hesap başına günde 5 doğrulama araması (numara silinse de sayılır; `429 phone_verification_limit`; her biri 0,05 $ olarak harcama tavanlarına yazılır, tavan doluysa `503 phone_capacity_reached` ya da `spend_ceiling_reached`), ücretli ya da izin dışı ülke `403 phone_number_blocked`, biçim `400 phone_number_invalid` |
+| `GET /v1/phone` | Bearer | uygulamadan arama görünür mü: `{available, reason (policy_off \| country_not_allowed \| subscription_required \| null), countries, provider, consentVersion, consentAccepted, number: {e164, status} \| null, maxCallMinutes, monthlyMinutes, usedMinutes, callerCountries, minutesByCountry}`; ülke doğrulanmış numaranınki, yoksa IP'ninki (Cloudflare) ve `PHONE_CALLER_COUNTRIES`'te olmalı; `countries` aranabilen, `callerCountries` doğrulanabilen ülkeler, `minutesByCountry` ülke başına kalan dakika (arayanın engellenen kendi ülkesinde 0). Kapalıyken de `200`. Bkz. "Uygulamadan arama" |
+| `POST /v1/phone/consent` | Bearer | `{version}` (güncel kayıt koşulları sürümü, 2) → `{consentVersion, consentAccepted: true}`; aramadan önce gerekir (`403 phone_consent_required`), numara doğrulamadan önce gerekmez (uygulamada doğrulamadan sonra gelir). Politika kapalıyken bu ve aşağıdaki uçlar `503 phone_unavailable` |
+| `POST /v1/phone/number` | Bearer (abone) | `{number}` (E.164) → Twilio numarayı arar: `{e164, status: "pending", validationCode, expiresAt}` (kullanıcı kodu tuşlar); zaten doğrulanmışsa aramasız `{e164, status: "verified"}`. Başka hesabın numarası `409 phone_number_in_use`, hesap başına günde 5, ayda 10 doğrulama araması (numara silinse de sayılır; `429 phone_verification_limit`; her biri numaranın ülke fiyatıyla 2 dakika, en az 0,05 $ olarak harcama tavanlarına yazılır, tavan doluysa `503 phone_capacity_reached` ya da `spend_ceiling_reached`), ücretli numara ya da `PHONE_CALLER_COUNTRIES` dışı ülke `403 phone_number_blocked`, biçim `400 phone_number_invalid` |
 | `GET /v1/phone/number` | Bearer | `{number: {e164, status: pending \| verified \| failed} \| null}`; süresi geçmiş bekleyen doğrulamada Twilio'ya bir kez sorulur |
 | `DELETE /v1/phone/number` | Bearer | numarayı unutur (`{removed}`); Twilio'daki arayan numarası günlük temizlikte silinir |
 | `POST /v1/phone/calls` | Bearer (abone, doğrulanmış numara) | `{to}` (E.164) → `201 {callId, accessToken, maxSeconds, country, provider}`: Voice SDK jetonu (2 dk, yalnızca giden arama). Retler: `409 phone_call_active`, `403 phone_minutes_exhausted`, `403 monthly_cap_reached`, `503 phone_capacity_reached`, `503 spend_ceiling_reached`, `429 rate_limited` (günde 30) |

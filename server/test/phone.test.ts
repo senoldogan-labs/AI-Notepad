@@ -554,7 +554,13 @@ describe("in-app dialer across countries", () => {
     // A UK number can be called but not verified as the caller ID here.
     await expectError(await send("POST", "/v1/phone/number", { number: "+447400123456" }), 403, "phone_number_blocked");
     // Nine verification calls earlier this month: one more is allowed, then the monthly cap holds.
-    await env.DB.prepare("INSERT INTO phone_verification_days (user_id, day, attempts) VALUES (?, '2026-10-02', 5), (?, '2026-10-03', 4)").bind(session.userId, session.userId).run();
+    await env.DB.prepare("INSERT INTO phone_verification_days (user_id, day, attempts) VALUES (?, '2026-09-30', 5), (?, '2026-10-02', 5), (?, '2026-10-03', 4)")
+      .bind(session.userId, session.userId, session.userId)
+      .run();
+    // The daily cleanup keeps this month's counters (the monthly cap reads them) and drops earlier months'.
+    await phoneCleanup(env.DB, harness.platform, parseConfig(crossBorder), new Date(harness.clock.nowMs));
+    const kept = await env.DB.prepare("SELECT day FROM phone_verification_days WHERE user_id = ? ORDER BY day").bind(session.userId).all<{ day: string }>();
+    expect(kept.results.map((row: { day: string }): string => row.day)).toEqual(["2026-10-02", "2026-10-03"]);
     const own: string = "+358401234567";
     expect((await send("POST", "/v1/phone/number", { number: own })).status).toBe(200);
     // The verification call is charged two minutes at Finland's price ($0.05), not the $0.05 floor.
