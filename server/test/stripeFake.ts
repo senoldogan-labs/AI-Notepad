@@ -225,6 +225,18 @@ export function stubStripeApi(harness: Harness): FakeStripe {
       }
       return Response.json(invoiceObject(id, entry));
     }
+    if (method === "GET" && path === "/v1/refunds") {
+      const intent: string | null = url.searchParams.get("payment_intent") ?? url.searchParams.get("charge");
+      const refunds: object[] = fake.refundForms
+        .filter((form: URLSearchParams): boolean => (form.get("payment_intent") ?? form.get("charge")) === intent)
+        .map((form: URLSearchParams, index: number): object => ({
+          id: `re_list_${index}`,
+          object: "refund",
+          amount: Number(form.get("amount") ?? fakeChargeAmount),
+          metadata: { purpose: form.get("metadata[purpose]") ?? "" },
+        }));
+      return list("/v1/refunds", refunds);
+    }
     if (method === "POST" && path === "/v1/refunds") {
       if (fake.failRefunds) {
         return Response.json({ error: { type: "api_error", message: "temporary" } }, { status: 500 });

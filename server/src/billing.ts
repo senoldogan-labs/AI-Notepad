@@ -582,15 +582,17 @@ export async function withdrawSubscription(db: D1Database, platform: Platform, c
       log("alert", "withdrawal_refund_unsupported", { userId, subscriptionId: subscription.id, invoiceId: invoice.id });
       continue;
     }
-    // A repeated withdrawal (after the idempotency key's 24 hours too): a payment already refunded in part or in full
-    // within the withdrawal period was refunded by the earlier request; it is counted, not refunded again.
-    const charges: Stripe.Charge[] =
-      "payment_intent" in target
-        ? (await callStripe(platform, "charges.list", userId, () => stripe.charges.list({ payment_intent: target.payment_intent, limit: 100 }))).data
-        : [await callStripe(platform, "charges.retrieve", userId, () => stripe.charges.retrieve(target.charge))];
-    if (charges.some((charge: Stripe.Charge): boolean => charge.amount_refunded > 0)) {
-      log("info", "withdrawal_refund_already_done", { userId, subscriptionId: subscription.id, invoiceId: invoice.id });
-      refundedCents += amount;
+    // A repeated withdrawal (also after the idempotency key's 24 hours): the earlier request's refund on this payment
+    // (`metadata.purpose = withdrawal`) is counted, not made again; other refunds (e.g. by support) don't count.
+    const earlier: Stripe.ApiList<Stripe.Refund> = await callStripe(platform, "refunds.list", userId, () =>
+      stripe.refunds.list({ ...target, limit: 100 }),
+    );
+    const done: number = earlier.data
+      .filter((refund: Stripe.Refund): boolean => refund.metadata?.["purpose"] === "withdrawal")
+      .reduce((total: number, refund: Stripe.Refund): number => total + refund.amount, 0);
+    if (done > 0) {
+      log("info", "withdrawal_refund_already_done", { userId, subscriptionId: subscription.id, invoiceId: invoice.id, refundedCents: done });
+      refundedCents += done;
       currency = invoice.currency;
       continue;
     }
