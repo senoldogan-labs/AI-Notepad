@@ -648,18 +648,18 @@ struct MainWindowRoot: View {
 
     var body: some View {
         Group {
-                #if HOSTED_EDITION
-                // Giriş kapısı: oturum yoksa yalnızca giriş ekranı (kenar çubuğu, toplantılar, ayarlar ve kayıt yok).
-                if HostedAccount.shared.requiresSignIn {
-                    HostedSignInGate(account: .shared, isLinkWaiting: router.isLinkWaitingForSignIn)
-                } else {
-                    mainWindow
-                        // Girişten sonra kapıdaki "bağlantı girişten sonra açılır" notu kalkar.
-                        .onAppear { router.isLinkWaitingForSignIn = false }
-                }
-                #else
+            #if HOSTED_EDITION
+            // Giriş kapısı: oturum yoksa yalnızca giriş ekranı (kenar çubuğu, toplantılar, ayarlar ve kayıt yok).
+            if HostedAccount.shared.requiresSignIn {
+                HostedSignInGate(account: .shared, isLinkWaiting: router.isLinkWaitingForSignIn)
+            } else {
                 mainWindow
-                #endif
+                    // Girişten sonra kapıdaki "bağlantı girişten sonra açılır" notu kalkar.
+                    .onAppear { router.isLinkWaitingForSignIn = false }
+            }
+            #else
+            mainWindow
+            #endif
         }
     }
 
