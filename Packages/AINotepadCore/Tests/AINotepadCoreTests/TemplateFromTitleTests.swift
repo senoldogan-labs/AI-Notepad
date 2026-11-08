@@ -8,7 +8,7 @@ import Testing
     @Test(arguments: [
         "1:1 Aino / Senol", "Senol <> Aino 1-1", "Weekly 1:1", "1on1 with Mikko", "One-on-one: Mikko", "1 on 1",
         "Birebir görüşme", "BİREBİR", "Aino ile bire bir", "Einzelgespräch mit Aino", "Mitarbeitergespräch",
-        "Kahdenkeskinen Ainon kanssa", "Kehityskeskustelu", "Reunión uno a uno", "Tête-à-tête avec Aino",
+        "Kahdenkeskinen Ainon kanssa", "Kahden kesken: Elif", "Kehityskeskustelu", "Reunión uno a uno", "Tête-à-tête avec Aino",
         "Entretien annuel", "Entretien individuel", "1:1: Aino",
         "Riunione individuale con Aino", "One-to-one Marco", "Colloquio individuale",
         "Reunião individual", "Conversa individual com Ana", "Um-a-um com Ana",

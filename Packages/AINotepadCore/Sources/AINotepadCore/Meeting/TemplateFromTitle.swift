@@ -61,7 +61,7 @@ let templateTitleRules: [TemplateTitleRule] = [
             "1 on 1", "1on1", "1o1", "one on one", "one to one",
             "birebir*", "bire bir", "teke tek",
             "einzelgesprach*", "mitarbeitergesprach*",
-            "kahdenkeskinen*", "kehityskeskustelu*",
+            "kahdenkeskinen*", "kahden kesken", "kehityskeskustelu*",
             "uno a uno", "reunion individual",
             "tete a tete", "entretien individuel", "entretien annuel", "point individuel",
             "riunione individuale", "colloquio individuale", "incontro individuale",
