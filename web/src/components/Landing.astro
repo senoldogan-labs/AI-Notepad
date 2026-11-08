@@ -1,17 +1,18 @@
 ---
-// Home page view. Order: hero (the orange horizon waveform, serif headline, one line, the way to get the app for this
-// device, assurances; beside it one large, readable note screenshot on a soft wave render), the factual trust strip,
+// Home page view. Order: hero (the orange horizon waveform, serif headline, one line, both ways to get the app,
+// assurances and both requirements; beside it the Mac note window with the iPhone in front, on a soft wave render), the factual trust strip,
 // the brand line on the paper band with the product demo, the film (English page only), two feature rows with real
 // screens (live translation, Ask), the details as six equal dark cards on the night band, the iPhone app, integrations,
 // privacy on the night band, price with the FAQ, and the closing card. Each message appears once on the page, and each
 // backdrop photograph at most once. Body text keeps to the reading measure (`--measure`); pictures use the page width.
 // Text comes from props: the English home page (`/`, copy.home) and the Finnish page (`/fi`, copy-fi.ts) share this
-// view; the page shell (Base, header, footer) lives in the pages. On an iPhone or iPad the App Store badge replaces the
-// Mac download (`.ios-only` / `.not-ios`, src/client/platform.js).
+// view; the page shell (Base, header, footer) lives in the pages. Mac and iPhone stand as equals: the hero shows both
+// apps and offers the Mac download and the App Store side by side on every device (GetApp.astro).
 import { Picture } from "astro:assets";
 import type { ImageMetadata } from "astro";
 import AppShot from "./AppShot.astro";
 import AppStoreBadge from "./AppStoreBadge.astro";
+import GetApp from "./GetApp.astro";
 import BrandTile from "./BrandTile.astro";
 import CtaBand from "./CtaBand.astro";
 import Faq from "./Faq.astro";
@@ -40,7 +41,6 @@ import notePane from "../assets/screenshots/note-pane.webp";
 import notePaneDark from "../assets/screenshots/note-pane-dark.webp";
 import iphoneAskShot from "../assets/screenshots/iphone-ask.webp";
 import iphoneHomeShot from "../assets/screenshots/iphone-home.webp";
-import iphoneHomeTop from "../assets/screenshots/iphone-home-top.webp";
 import iphoneLiveShot from "../assets/screenshots/iphone-live.webp";
 
 interface Props {
@@ -58,7 +58,7 @@ const heroDownloadUrl: string = macDownloadUrl(siteConfig, "home-hero");
 const ctaDownloadUrl: string = macDownloadUrl(siteConfig, "home-cta");
 /** The hero note pane: its widths and `sizes` (the preload uses the same, so the preloaded file is the one shown). */
 const heroShotWidths: readonly number[] = [680, 1000, 1340];
-const heroShotSizes: string = "(max-width: 960px) min(88vw, 640px), 664px";
+const heroShotSizes: string = "(max-width: 767px) 84vw, (max-width: 960px) 44vw, 600px";
 const heroShotQuality: number = 62;
 /** Integration groups and their icons (the AI group closes the list with the MCP link). */
 const integrationGroups: readonly { readonly key: "notes" | "tasks" | "files"; readonly icon: IconName }[] = [
@@ -87,32 +87,41 @@ const structuredData: string = structuredDataJson(
       <Horizon seed={text.title} class="hero__horizon" />
       <h1 class="display hero__title">{text.title}</h1>
       <p class="hero__lead">{text.lead}</p>
-      <div class="hero__actions">
-        <a class="button button--primary not-ios" href={heroDownloadUrl} data-mac-download>
-          <Icon name="apple" size={16} class="button__apple" />
-          {common.downloadCta}
-        </a>
-        <a class="text-link hero__alt not-ios" href="#iphone">{text.iphone.heroLink} <Icon name="arrow-right" size={16} class="" /></a>
-        <AppStoreBadge language={common.appStoreBadge.language} label={common.appStoreBadge.label} height={52} class="ios-only" />
-        <a class="text-link hero__alt ios-only" href={routes.download}>{common.alsoOnMac} <Icon name="arrow-right" size={16} class="" /></a>
-      </div>
-      <p class="hero__assurance small"><Icon name="check-circle" size={16} class="hero__assurance-icon" />{[...text.assurances, common.requirementsShort].join(" · ")}</p>
+      <GetApp common={common} macHref={heroDownloadUrl} size="large" class="hero__actions" />
+      <p class="hero__assurance small"><Icon name="check-circle" size={16} class="hero__assurance-icon" />{text.assurances.join(" · ")}</p>
+      <p class="hero__platforms small"><span>{common.platformsShort[0]}</span> · <span>{common.platformsShort[1]}</span></p>
     </div>
-    {/* One picture: the note itself (summary and your tasks), large enough to read, on one soft wave render. On phones
-        the iPhone home screen replaces it (art direction in ThemedShot). It is the largest paint on wide screens, so it
-        is preloaded there; on phones the headline is. */}
+    {/* Both apps in one picture, on every screen: the Mac note window (light or dark capture with the theme, a drawn
+        title bar) on a soft wave render, and the iPhone home screen standing in front of its lower corner. The Mac
+        window is the largest paint on wide screens, so it is preloaded there; on phones the headline is, and a static
+        lilac gradient stands in for the wave render (a hidden lazy image is never fetched) so it stays that way. */}
     <div class="hero__visual">
       <PhotoPanel photo="wave-lilac" focus="center" widths={halfPhotoWidths} sizes="(max-width: 960px) 90vw, 600px" priority="lazy" class="hero__backdrop" />
       <ImagePreload image={notePane} widths={heroShotWidths} sizes={heroShotSizes} quality={heroShotQuality} media="(min-width: 641px)" />
-      <ThemedShot
-        light={notePane}
-        dark={notePaneDark}
-        mobile={{ image: iphoneHomeTop, widths: [480, 720, 888], sizes: "min(76vw, 300px)" }}
-        alt={text.showcase.note.alt}
-        widths={heroShotWidths}
-        sizes={heroShotSizes}
-        loading="eager"
-        class="hero__shot"
+      <div class="hero__mac">
+        <div class="hero__mac-bar" aria-hidden="true"><span></span><span></span><span></span></div>
+        <ThemedShot
+          light={notePane}
+          dark={notePaneDark}
+          mobile={null}
+          alt={text.showcase.note.alt}
+          widths={heroShotWidths}
+          sizes={heroShotSizes}
+          loading="eager"
+          class="hero__shot"
+        />
+      </div>
+      <Picture
+        src={iphoneHomeShot}
+        alt={text.iphone.alt.home}
+        formats={["avif"]}
+        fallbackFormat="webp"
+        widths={[240, 360, 480, 720]}
+        sizes="(max-width: 767px) 40vw, 210px"
+        quality={66}
+        loading="lazy"
+        decoding="async"
+        pictureAttributes={{ class: "hero__phone" }}
       />
     </div>
   </section>
@@ -423,19 +432,6 @@ const structuredData: string = structuredDataJson(
     color: var(--muted);
   }
 
-  .hero__actions {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 14px 22px;
-  }
-
-  .hero__actions :global(.hero__alt) {
-    min-height: 44px;
-    display: inline-flex;
-    align-items: center;
-  }
-
   .hero__assurance {
     display: flex;
     align-items: flex-start;
@@ -450,28 +446,68 @@ const structuredData: string = structuredDataJson(
     margin-top: 3px;
   }
 
-  /* The wave render sits behind the upper right of the note, which overlaps it to the left and below. */
+  .hero__platforms {
+    margin-top: -20px;
+    padding-left: 24px;
+    color: var(--muted);
+  }
+
+  .hero__platforms span {
+    white-space: nowrap;
+  }
+
+  /* The wave render sits behind the upper right of the Mac window, which overlaps it to the left and below; the
+     iPhone stands in front of the window's lower right corner, beside the task list (whose lines end before the
+     middle), so both apps read as one picture and neither hides the other's text. */
   .hero__visual {
     position: relative;
-    padding: 40px 0 0;
+    padding: 40px clamp(48px, 5vw, 72px) 0 0;
   }
 
   .hero__visual :global(.hero__backdrop) {
     position: absolute;
-    inset: 0 -24px 64px 72px;
+    inset: 0 -24px 64px 120px;
     border-radius: 20px;
   }
 
-  .hero__visual :global(.hero__shot) {
+  .hero__mac {
     position: relative;
     z-index: 1;
-    width: calc(100% - 24px);
-  }
-
-  .hero__visual :global(.hero__shot img) {
+    overflow: hidden;
     border: 1px solid var(--line);
     border-radius: 14px;
+    background: light-dark(#fafafa, #1c1c1c);
     box-shadow: var(--shadow-window);
+  }
+
+  /* A Mac title bar drawn above the note pane: the three window buttons. */
+  .hero__mac-bar {
+    display: flex;
+    gap: 7px;
+    padding: 12px 14px 4px;
+  }
+
+  .hero__mac-bar span {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: light-dark(#dcdcdc, #3d3d3d);
+  }
+
+  .hero__visual :global(.hero__phone) {
+    position: absolute;
+    z-index: 2;
+    right: 0;
+    bottom: -52px;
+    display: block;
+    width: clamp(120px, 12vw, 172px);
+  }
+
+  .hero__visual :global(.hero__phone img) {
+    display: block;
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.16)) drop-shadow(0 22px 36px rgb(0 0 0 / 0.3));
   }
 
   /* ---------- Trust strip: one quiet row; a 2 × 2 grid on narrow phones ---------- */
@@ -1008,32 +1044,35 @@ const structuredData: string = structuredDataJson(
   }
 
   @media (max-width: 640px) {
-    .hero__actions :global(.button) {
-      flex: 1 1 auto;
-    }
-
-    /* The iPhone home screen, cut by the bottom of the wave render. */
+    /* Phones: the Mac window across the panel, the iPhone in front of its lower right corner, beside the tasks. */
     .hero__visual {
-      overflow: hidden;
-      padding: 28px 0 0;
+      padding: 20px 12px 150px;
       border-radius: 20px;
+      background: linear-gradient(165deg, #efe8f8 0%, #dccdf0 55%, #b9a7e4 100%);
     }
 
     .hero__visual :global(.hero__backdrop) {
-      inset: 0;
+      display: none;
     }
 
-    .hero__visual :global(.hero__shot) {
-      width: min(76vw, 300px);
-      margin-inline: auto;
-      margin-bottom: -2px;
+    .hero__mac {
+      border-radius: 10px;
     }
 
-    .hero__visual :global(.hero__shot img) {
-      border: 0;
-      border-radius: 0;
-      box-shadow: none;
-      filter: drop-shadow(0 18px 30px rgb(0 0 0 / 0.28));
+    .hero__mac-bar {
+      gap: 5px;
+      padding: 8px 9px 2px;
+    }
+
+    .hero__mac-bar span {
+      width: 7px;
+      height: 7px;
+    }
+
+    .hero__visual :global(.hero__phone) {
+      right: 14px;
+      bottom: 14px;
+      width: 42%;
     }
 
     .proof {

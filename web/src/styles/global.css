@@ -1135,11 +1135,50 @@ p {
   }
 }
 
-/* Platform-specific calls to action (src/client/platform.js sets `data-platform="ios"` before the first paint on an
-   iPhone or iPad): the App Store badge leads there, the Mac download everywhere else. */
-:root:not([data-platform="ios"]) .ios-only,
-:root[data-platform="ios"] .not-ios {
-  display: none !important;
+/* The two ways to get the app (GetApp.astro, and the download page's two columns): the Mac button is drawn like
+   Apple's badge beside it (black with a grey hairline in the light theme, white in the dark theme, a badge-like corner)
+   and both share one height, so neither platform leads. On narrow phones both shrink a little to stay on one row. */
+.get-app {
+  --get-app-height: 52px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.get-app--small {
+  --get-app-height: 44px;
+}
+
+.get-app__mac {
+  min-height: var(--get-app-height);
+  height: var(--get-app-height);
+  padding: 0 calc(var(--get-app-height) * 0.38);
+  border: 1px solid light-dark(#a6a6a6, #ffffff);
+  border-radius: calc(var(--get-app-height) * 0.2);
+  background: light-dark(#000000, #ffffff);
+  color: light-dark(#ffffff, #000000);
+  font-size: calc(var(--get-app-height) * 0.31);
+  font-weight: 600;
+}
+
+.get-app__mac:hover {
+  background: light-dark(#262626, #e8e8e8);
+}
+
+.get-app .get-app__badge img {
+  width: auto;
+  height: var(--get-app-height);
+}
+
+@media (max-width: 420px) {
+  .get-app {
+    gap: 10px;
+  }
+
+  .get-app--large {
+    --get-app-height: 46px;
+  }
 }
 
 .band--night .muted,

@@ -33,8 +33,8 @@ async function main(): Promise<void> {
     versionPath,
   );
   value.textContent = version;
-  label.classList.remove("download-hero__pending");
-  value.classList.remove("download-hero__pending");
+  label.classList.remove("download-platform__pending");
+  value.classList.remove("download-platform__pending");
 }
 
 main().catch((error: unknown): void => {

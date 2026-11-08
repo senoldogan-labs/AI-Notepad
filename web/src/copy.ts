@@ -64,11 +64,8 @@ export interface CommonCopy {
     readonly dataHandling: string;
   };
   readonly downloadCta: string;
-  readonly headerDownload: string;
-  /** The header pill on an iPhone or iPad: opens the App Store. */
+  /** The header pill: the download page, which offers the Mac app and the iPhone app side by side. */
   readonly headerGetApp: string;
-  /** Under the App Store badge on an iPhone or iPad: the Mac app's page. */
-  readonly alsoOnMac: string;
   /** Tema düğmesinin erişilebilir adı (basılıysa koyu tema). */
   readonly darkMode: string;
   readonly price: string;
@@ -83,6 +80,8 @@ export interface CommonCopy {
   readonly requirementsShort: string;
   /** iPhone uygulamasının gereksinimi (ör. "iOS 26.1 or later"; project.yml iOS `deploymentTarget`). */
   readonly iphoneRequirementsShort: string;
+  /** Both apps' requirements, Mac first then iPhone (the home hero; each part stays on one line). */
+  readonly platformsShort: readonly [string, string];
   /** App Store rozetinin dili (AppStoreBadge.astro) ve bağlantısının erişilebilir adı (rozetin yazısı). */
   readonly appStoreBadge: {
     readonly language: BadgeLanguage;
@@ -130,7 +129,7 @@ export interface CommonCopy {
     readonly privacyShort: string;
     readonly termsShort: string;
     readonly cookies: string;
-    /** Short note on where the business is and which law applies (closing strip). */
+    /** Short note on which law applies (closing strip). */
     readonly euNote: string;
     /** Small print: the business behind the product (legal/operator.ts). */
     readonly operatorLine: string;
@@ -250,8 +249,6 @@ export interface HomeCopy {
     readonly points: readonly IconText[];
     /** Text equivalents of the phones (live recording, home, Ask). */
     readonly alt: { readonly live: string; readonly home: string; readonly ask: string };
-    /** The hero's quiet link to this section. */
-    readonly heroLink: string;
   };
   /** Feature cards: one sentence each, under a pastel cover. */
   readonly features: {
@@ -348,7 +345,6 @@ export interface PricingCopy {
   readonly includedTitle: string;
   readonly planTagline: string;
   readonly included: readonly IconItem[];
-  readonly startFree: string;
   readonly limitsTitle: string;
   readonly limits: readonly IconText[];
   readonly faqTitle: string;
@@ -369,7 +365,8 @@ export interface DownloadCopy {
   /** Mac ve iPhone bloklarının başlıkları. */
   readonly macTitle: string;
   readonly iphoneTitle: string;
-  /** One line on what the iPhone app is for, above its badge. */
+  /** One line on what each app is for, above its download button or badge. */
+  readonly macBenefit: string;
   readonly iphoneBenefit: string;
   /** iPhone bloğunun açıklaması: ne kaydettiği, aynı hesap ve abonelik, App Store aboneliği. */
   readonly iphoneNote: string;
@@ -1131,9 +1128,7 @@ export const copy: Copy = {
       dataHandling: "Data handling",
     },
     downloadCta: "Download for Mac",
-    headerDownload: "Download",
     headerGetApp: "Get the app",
-    alsoOnMac: "Also on Mac",
     darkMode: "Dark mode",
     price: "$5.99",
     priceDisplay: "$5.99",
@@ -1143,6 +1138,7 @@ export const copy: Copy = {
     trial: "Free trial: 3 meetings or 7 days from your first meeting, whichever comes first, each up to 90 minutes; no card needed",
     requirementsShort: "macOS 15 or later · Apple silicon",
     iphoneRequirementsShort: "iOS 26.1 or later",
+    platformsShort: ["Mac: macOS 15 or later, Apple silicon", "iPhone: iOS 26.1 or later"],
     appStoreBadge: { language: "en", label: "Download on the App Store" },
     macOnly: {
       notMacTitle: "Download the Mac app on your Mac",
@@ -1174,8 +1170,8 @@ export const copy: Copy = {
       privacyShort: "Privacy",
       termsShort: "Terms",
       cookies: "Cookies",
-      euNote: "Made in Oulu, Finland · EU company, GDPR",
-      operatorLine: `${productName} is made and sold by ${operator.name} (business ID ${operator.businessId}), Oulu, Finland.`,
+      euNote: "EU company, GDPR",
+      operatorLine: `${productName} is made and sold by ${operator.name} (business ID ${operator.businessId}), Finland.`,
       typefaces: "Typefaces:",
       pullThanks: "Thanks for listening.",
       copyright: `© 2026 ${operator.name}`,
@@ -1194,7 +1190,7 @@ export const copy: Copy = {
     lead: `AI meeting notes for Mac and iPhone, with live translation in ${noteLanguages.length} languages and your own tasks picked out. No bot joins the call.`,
     secondaryCta: "See pricing",
     assurances: ["3 meetings or 7 days free", "No credit card"],
-    proof: ["Made in Oulu, Finland", "EU company, GDPR", "Notarized by Apple"],
+    proof: ["EU company, GDPR", "Mac app notarized by Apple", "iPhone app on the App Store"],
     directory: { text: "Listed in Claude's connector directory", href: "https://claude.ai/directory/connectors/gistsmith" },
     demo: {
       label: `${productName} recording a meeting and writing the note`,
@@ -1284,7 +1280,6 @@ export const copy: Copy = {
         home: `The ${productName} home screen on iPhone: today's upcoming meetings with Briefing and Join buttons, 8 open tasks, recent notes and an Ask a question button next to the record button.`,
         ask: `Ask in ${productName} on iPhone: the question “What did we decide about the budget?” answered in two points with numbered citations to the meetings.`,
       },
-      heroLink: "Also on iPhone",
     },
     features: {
       missed: {
@@ -1482,7 +1477,6 @@ export const copy: Copy = {
       { icon: "mic", text: "Voice typing in any Mac app, transcribed on your Mac (free with any account)" },
       { icon: "refresh", text: "The Mac and iPhone apps on one subscription, with optional sync encrypted end to end" },
     ],
-    startFree: "Start free",
     limitsTitle: "The limits, plainly",
     limits: [
       { icon: "gift", title: "Trial", text: "3 meetings or 7 days from your first meeting, whichever comes first; each meeting up to 90 minutes. Opening a new account does not reset the trial." },
@@ -1551,6 +1545,7 @@ export const copy: Copy = {
       "Everything works on macOS 15 or later on a Mac with Apple silicon (M1 or later). Voice typing uses Apple's on-device dictation on macOS 26 or later, and an on-device speech model on macOS 15 to 25.",
     macTitle: "Mac",
     iphoneTitle: "iPhone",
+    macBenefit: "Records online calls in any meeting app, both sides of the conversation: a live transcript, translation and your note when you hang up.",
     iphoneBenefit: "Put your iPhone on the table and tap record: a live transcript, translation and the same note as on your Mac.",
     macAlt: `The ${productName} Mac app showing the Product weekly note: a list of meetings on the left, and on the right the summary and your three tasks with due dates, with a “3 tasks for you” label at the top.`,
     whatsNew: "What's new",

@@ -1,11 +1,10 @@
 ---
-// İndirme sayfası, iki blok: Mac (indirme düğmesi: sunucu indirmeyi sayıp en son GitHub sürümündeki DMG'ye yönlendirir;
-// altında sürüm — sunucudan okunur, yeri baştan ayrılır, numara gelince sayfa kaymaz — ve gereksinimler etiket/değer
-// satırlarında, altında sürüm notu: her şey macOS 15'te çalışır, sesle yazmanın motoru sürüme göre) ve iPhone (App Store
-// rozeti, gereksinim, ne kaydettiği ve ortak hesap/abonelik; iPhone ve iPad'de bu blok önce gelir). Yanında asıl görsel
-// Mac penceresi (temaya göre açık ya da koyu çekim), köşesinde küçük iPhone ekranı. Sürümün yanında en son sürümün
-// notlarına bağlantı (herkese açık sürümler deposu). Sonra Mac için üç kurulum
-// adımı, güncellemeler ve yardım tek satırda.
+// Download page: the title and lead beside the Mac window (light or dark capture with the theme) with the iPhone in front
+// of its corner, then the two apps as equal columns, side by side on wide screens: Mac (one line, the download button —
+// the server counts the download and redirects to the newest DMG on GitHub — the version, read from the server into
+// space reserved up front so nothing shifts, the requirements, the note on what needs which macOS, and a link to the
+// newest release notes) and iPhone (one line, the App Store badge at the same height, the requirement, what it records
+// and the shared account and subscription). Then the three install steps for the Mac, updates and help in one line.
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
 import { Picture } from "astro:assets";
@@ -32,31 +31,6 @@ const text: DownloadCopy = copy.download;
     <div class="download-hero__text">
       <h1 class="title-xl">{text.title}</h1>
       <p class="lead">{text.lead}</p>
-      <div class="download-hero__actions">
-        <h2 class="download-hero__platform">{text.macTitle}</h2>
-        <a class="button button--primary download-button" href={macDownloadUrl(siteConfig, "download-page")} data-mac-download>
-          <Icon name="apple" size={18} class="button__apple" />
-          {copy.common.downloadCta}
-        </a>
-        <dl class="fact-list small download-hero__facts">
-          <dt id="download-version" class="download-hero__pending">{text.versionLabel}</dt>
-          <dd id="download-version-number" class="download-hero__pending"></dd>
-          <dt>{text.requirementsLabel}</dt>
-          <dd>{copy.common.requirementsShort}</dd>
-        </dl>
-        <p class="small muted download-hero__note">{text.requirementsNote}</p>
-        <a class="text-link download-hero__whats-new" href={releaseNotesUrl}>{text.whatsNew} <Icon name="arrow-right" size={14} class="" /></a>
-      </div>
-      <div class="download-hero__actions download-hero__actions--iphone">
-        <h2 class="download-hero__platform">{text.iphoneTitle}</h2>
-        <p class="download-hero__benefit">{text.iphoneBenefit}</p>
-        <AppStoreBadge language={copy.common.appStoreBadge.language} label={copy.common.appStoreBadge.label} height={54} class="" />
-        <dl class="fact-list small download-hero__facts">
-          <dt>{text.requirementsLabel}</dt>
-          <dd>{copy.common.iphoneRequirementsShort}</dd>
-        </dl>
-        <p class="small muted download-hero__note">{text.iphoneNote}</p>
-      </div>
     </div>
     {/* The Mac window is the main picture (light or dark capture with the visitor's theme); the iPhone sits in front of
         its corner, smaller. */}
@@ -76,14 +50,48 @@ const text: DownloadCopy = copy.download;
         alt={text.iphoneAlt}
         formats={["avif"]}
         fallbackFormat="webp"
-        widths={[240, 360, 480]}
-        sizes="(max-width: 760px) 30vw, 150px"
+        widths={[240, 360, 480, 720]}
+        sizes="(max-width: 760px) 30vw, 180px"
         quality={62}
         loading="lazy"
         decoding="async"
         pictureAttributes={{ class: "download-hero__phone" }}
       />
     </PhotoPanel>
+    {/* The two apps as equals: two columns of the same shape (title, one line, the way to get it at the same height,
+        requirements, a note), side by side on wide screens and stacked on phones. */}
+    <div class="download-platforms">
+      <div class="download-platform">
+        <h2 class="download-platform__title"><Icon name="laptop" size={20} class="" />{text.macTitle}</h2>
+        <p class="download-platform__benefit">{text.macBenefit}</p>
+        <div class="get-app">
+          <a class="button get-app__mac" href={macDownloadUrl(siteConfig, "download-page")} data-mac-download>
+            <Icon name="apple" size={18} class="button__apple" />
+            {copy.common.downloadCta}
+          </a>
+        </div>
+        <dl class="fact-list small download-platform__facts">
+          <dt id="download-version" class="download-platform__pending">{text.versionLabel}</dt>
+          <dd id="download-version-number" class="download-platform__pending"></dd>
+          <dt>{text.requirementsLabel}</dt>
+          <dd>{copy.common.requirementsShort}</dd>
+        </dl>
+        <p class="small muted download-platform__note">{text.requirementsNote}</p>
+        <a class="text-link download-platform__whats-new" href={releaseNotesUrl}>{text.whatsNew} <Icon name="arrow-right" size={14} class="" /></a>
+      </div>
+      <div class="download-platform">
+        <h2 class="download-platform__title"><Icon name="phone" size={20} class="" />{text.iphoneTitle}</h2>
+        <p class="download-platform__benefit">{text.iphoneBenefit}</p>
+        <div class="get-app">
+          <AppStoreBadge language={copy.common.appStoreBadge.language} label={copy.common.appStoreBadge.label} height={52} class="get-app__badge" />
+        </div>
+        <dl class="fact-list small download-platform__facts">
+          <dt>{text.requirementsLabel}</dt>
+          <dd>{copy.common.iphoneRequirementsShort}</dd>
+        </dl>
+        <p class="small muted download-platform__note">{text.iphoneNote}</p>
+      </div>
+    </div>
   </section>
 
   <section class="section page install" id="install-steps" aria-labelledby="install-title" tabindex="-1">
@@ -125,46 +133,62 @@ const text: DownloadCopy = copy.download;
     justify-items: start;
   }
 
-  .download-hero__actions {
+  .download-platforms {
+    grid-column: 1 / -1;
     display: grid;
-    gap: 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(20px, 3vw, 32px);
+  }
+
+  .download-platform {
+    display: grid;
+    align-content: start;
     justify-items: start;
-    margin-top: 6px;
+    gap: 14px;
+    padding: clamp(22px, 3vw, 32px);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-m);
+    background: var(--card);
   }
 
-  .download-button {
-    min-height: 54px;
-    padding: 0 28px;
-    font-size: 1rem;
-  }
-
-  .download-hero__platform {
-    font-size: 1.125rem;
+  .download-platform__title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    font-size: 1.375rem;
     font-weight: 600;
     letter-spacing: -0.01em;
   }
 
-  .download-hero__actions--iphone {
-    width: 100%;
-    padding-top: 22px;
-    border-top: 1px solid var(--line);
+  .download-platform__benefit {
+    max-width: 32rem;
+    margin: 0;
   }
 
-  .download-hero__facts {
+  .download-platform__facts {
     gap: 2px 16px;
   }
 
-  .download-hero__facts dd {
+  .download-platform__facts dd {
     color: var(--muted);
   }
 
-  .download-hero__note {
-    max-width: 30rem;
+  .download-platform__note {
+    max-width: 32rem;
+    margin: 0;
   }
 
   /* Sürüm satırı numara gelene dek yer kaplar ama görünmez (okunamazsa öyle kalır; hata konsolda). */
-  .download-hero__pending {
+  .download-platform__pending {
     visibility: hidden;
+  }
+
+  .download-platform__whats-new {
+    min-height: 44px;
+    margin-top: -8px;
+    color: var(--ink);
+    font-size: 0.9375rem;
   }
 
   /* The Mac window over the photograph; the phone overlaps its bottom-right corner. */
@@ -175,8 +199,8 @@ const text: DownloadCopy = copy.download;
     padding: clamp(28px, 4vw, 48px) clamp(16px, 3vw, 36px) clamp(56px, 6vw, 72px);
   }
 
+  /* Width only: ThemedShot shows one theme's picture and hides the other. */
   .download-hero :global(.download-hero__window) {
-    display: block;
     width: 100%;
   }
 
@@ -193,7 +217,7 @@ const text: DownloadCopy = copy.download;
     right: clamp(10px, 3vw, 28px);
     bottom: clamp(12px, 2vw, 22px);
     display: block;
-    width: clamp(92px, 12vw, 150px);
+    width: clamp(110px, 14vw, 180px);
   }
 
   .download-hero :global(.download-hero__phone img) {
@@ -201,34 +225,6 @@ const text: DownloadCopy = copy.download;
     width: 100%;
     height: auto;
     filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.16)) drop-shadow(0 22px 36px rgb(0 0 0 / 0.32));
-  }
-
-  .download-hero__whats-new {
-    min-height: 44px;
-    margin-top: -8px;
-    color: var(--ink);
-    font-size: 0.9375rem;
-  }
-
-  .download-hero__benefit {
-    max-width: 30rem;
-  }
-
-  /* On an iPhone or iPad (src/client/platform.js) the iPhone block comes first, right under the title and lead. */
-  :global(:root[data-platform="ios"]) .download-hero__text > h1,
-  :global(:root[data-platform="ios"]) .download-hero__text > .lead {
-    order: -2;
-  }
-
-  :global(:root[data-platform="ios"]) .download-hero__actions--iphone {
-    order: -1;
-    padding-top: 0;
-    border-top: 0;
-  }
-
-  :global(:root[data-platform="ios"]) .download-hero__actions:not(.download-hero__actions--iphone) {
-    padding-top: 22px;
-    border-top: 1px solid var(--line);
   }
 
   /* Kurulum: üç adım yan yana, numara üstte; altında tek satır not. */
@@ -295,17 +291,8 @@ const text: DownloadCopy = copy.download;
       grid-template-columns: minmax(0, 1fr);
     }
 
-    .download-button {
-      width: 100%;
-    }
-
-    .download-hero__actions {
-      justify-items: stretch;
-      width: 100%;
-    }
-
-    .download-hero__actions--iphone {
-      justify-items: start;
+    .download-platforms {
+      grid-template-columns: minmax(0, 1fr);
     }
 
     .download-hero :global(.download-hero__cover) {

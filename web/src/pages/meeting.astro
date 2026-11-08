@@ -1,12 +1,11 @@
 ---
 // Yapay zekâ asistanının verdiği toplantı bağlantısı (`/m/<kimlik>`, public/_redirects bu sayfayı sunar). Notlar yalnızca
 // uygulamalardadır: sayfa toplantıyı uygulamada nasıl bulacağını söyler ve uygulaması olmayanlara indirme yolunu gösterir.
-// Uygulamaların toplantı açan bir adresi yoktur (iPhone uygulamasında evrensel bağlantı ya da toplantı adresi yok), bu
-// yüzden iPhone ve iPad'de App Store rozeti adımların hemen altında gelir. Metin sayfa ızgarasına (logoyla aynı sol
-// kenar) hizalıdır. Arama motorlarına kapalıdır.
+// Uygulamaların toplantı açan bir adresi yoktur (iPhone uygulamasında evrensel bağlantı ya da toplantı adresi yok); iki
+// uygulamaya da giden yol adımların altındaki kapanış kartındadır (CtaBand: Mac indirmesi ve App Store rozeti yan yana).
+// Metin sayfa ızgarasına (logoyla aynı sol kenar) hizalıdır. Arama motorlarına kapalıdır.
 import Base from "../layouts/Base.astro";
 import { websiteCard } from "../lib/social";
-import AppStoreBadge from "../components/AppStoreBadge.astro";
 import CtaBand from "../components/CtaBand.astro";
 import { copy, type MeetingLinkCopy } from "../copy";
 import { routes } from "../routes";
@@ -23,7 +22,6 @@ const text: MeetingLinkCopy = copy.meetingLink;
       <ol class="meeting-link__steps">
         {text.steps.map((step: string) => <li>{step}</li>)}
       </ol>
-      <AppStoreBadge language={copy.common.appStoreBadge.language} label={copy.common.appStoreBadge.label} height={52} class="ios-only meeting-link__badge" />
     </div>
   </article>
   <CtaBand id="meeting-cta" title={text.ctaTitle} text={text.ctaText} common={copy.common} macHref={routes.download} />
@@ -47,9 +45,5 @@ const text: MeetingLinkCopy = copy.meetingLink;
     margin: 8px 0 0;
     padding-left: 1.25em;
     font-size: 1.0625rem;
-  }
-
-  .meeting-link :global(.meeting-link__badge) {
-    margin-top: 8px;
   }
 </style>

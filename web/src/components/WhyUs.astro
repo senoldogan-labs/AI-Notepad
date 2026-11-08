@@ -2,7 +2,7 @@
 // Karşılaştırma sayfalarının başındaki vurgulu özet (/compare ve /vs/*): ürünü seçmek için başlıca nedenler ve indirme
 // sayfasına düğme (CtaBand gibi: doğrudan DMG bağlantısı yok, indirme kaynağı sunucunun izin listesindedir). Metinler
 // copy.ts `compare.why`'dan; rakip değerlerinden bağımsız ürün gerçekleridir.
-import AppStoreBadge from "./AppStoreBadge.astro";
+import GetApp from "./GetApp.astro";
 import Icon from "./Icon.astro";
 import { copy, type CompareCopy, type IconText } from "../copy";
 import { routes } from "../routes";
@@ -19,12 +19,7 @@ const text: CompareCopy = copy.compare;
   <div class="why__head">
     <h2 class="title-m" id={id}>{text.why.title}</h2>
     <div class="why__actions">
-      <a class="button button--primary button--small why__button not-ios" href={routes.download}>
-        <Icon name="apple" size={14} class="button__apple" />
-        {copy.common.downloadCta}
-      </a>
-      {/* On an iPhone or iPad the App Store badge leads (src/client/platform.js). */}
-      <AppStoreBadge language={copy.common.appStoreBadge.language} label={copy.common.appStoreBadge.label} height={44} class="ios-only" />
+      <GetApp common={copy.common} macHref={routes.download} size="small" class="" />
       <a class="button button--secondary button--small why__button" href={routes.pricing}>{copy.home.secondaryCta}</a>
     </div>
   </div>
