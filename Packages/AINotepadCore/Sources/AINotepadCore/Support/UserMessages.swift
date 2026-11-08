@@ -58,6 +58,8 @@ public func userFacingMessage(error: any Error) -> String {
         return String(localized: "Ollama'nın yanıtı anlaşılamadı. Ollama'yı güncelleyip yeniden dene.")
     case ArchiveScopeError.meetingsNotFound:
         return String(localized: "Etiketlenen toplantılardan biri artık yok (silinmiş ya da taşınmış); etiketleri kaldırıp yeniden seç.")
+    case AskScopeError.noMeetings:
+        return String(localized: "Bu kapsamda sorulacak toplantı yok; kapsam çipinden başka bir kapsam seç.")
     case NoteHistoryError.versionNotFound:
         return String(localized: "Bu not sürümü artık geçmişte yok; menüyü yeniden açıp tekrar seç.")
     case AudioClipError.noAudio:

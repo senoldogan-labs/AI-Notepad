@@ -332,7 +332,7 @@ struct AINotepadApp: App {
                 // "--soru <metin>": Sor bölümünde soruyu sorar (görsel kontrol için; yalnız Debug: ücretli yapay zekâ
                 // isteğidir).
                 if !isSignInRequired(), let index = CommandLine.arguments.firstIndex(of: "--soru"), CommandLine.arguments.indices.contains(index + 1) {
-                    model.askArchive(question: CommandLine.arguments[index + 1], meetingIDs: [], recipeTitle: nil)
+                    model.askQuestion(context: .allMeetings, question: CommandLine.arguments[index + 1], scope: .allMeetings, mentionIDs: [], recipeTitle: nil)
                 }
                 // "--ara": arama penceresini açar (görsel kontrol için; yalnız Debug).
                 if CommandLine.arguments.contains("--ara") {

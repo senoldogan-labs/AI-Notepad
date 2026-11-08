@@ -9,7 +9,7 @@ private func turn(question: String, scope: [String]) -> AskConversationTurn {
     AskConversationTurn(
         id: UUID(), question: question, scopeMeetingIDs: scope, scopeTitles: scope, recipeTitle: nil, startedAt: askedAt,
         finishedAt: askedAt.addingTimeInterval(5), terms: [], readPassages: [], readScreens: nil, answer: "Cevap.", sources: [],
-        webSources: nil, webQueries: nil, webSearchNotice: nil, skippedMeetings: nil, wasStopped: nil
+        webSources: nil, webQueries: nil, webSearchNotice: nil, skippedMeetings: nil, wasStopped: nil, scope: nil
     )
 }
 

@@ -6,7 +6,7 @@ import Testing
 /// Bitmiş bir soru: `@` kapsamı ve (varsa) tarif adıyla.
 private func finished(question: String, scope: [String], recipeTitle: String?) -> ArchiveExchange {
     ArchiveExchange(
-        id: UUID(), question: question, scopeMeetingIDs: scope, scopeTitles: scope.map { "Toplantı \($0)" }, recipeTitle: recipeTitle,
+        id: UUID(), question: question, scope: .allMeetings, scopeMeetingIDs: scope, scopeTitles: scope.map { "Toplantı \($0)" }, recipeTitle: recipeTitle,
         startedAt: Date(timeIntervalSince1970: 1_792_000_000), phase: .done, terms: [], passages: [],
         screens: 0, answer: ArchiveAnswer(text: "Cevap", sources: [], webSources: []), webQueries: [], webSearchNotice: .unavailable, skippedMeetings: [],
         finishedAt: Date(timeIntervalSince1970: 1_792_000_005)
@@ -52,7 +52,7 @@ private func meeting(id: String, title: String) -> MeetingRecord {
         let scope: [MeetingRecord] = followUpScope(exchanges: [first], records: records)
         #expect(scope.map(\.id) == ["a"])
         // Devam sorusu bu kapsamla gönderilir ve yine aynı kapsamı taşır.
-        let followUp: ArchiveExchange = startedExchange(id: UUID(), question: "Peki kim üstlendi?", scope: scope, recipeTitle: nil, startedAt: Date())
+        let followUp: ArchiveExchange = startedExchange(id: UUID(), question: "Peki kim üstlendi?", scope: .allMeetings, tagged: scope, recipeTitle: nil, startedAt: Date())
         #expect(followUp.scopeMeetingIDs == ["a"] && followUp.scopeTitles == ["Bütçe"] && followUp.webSearchNotice == .ok)
         #expect(followUpScope(exchanges: [first, followUp], records: records).map(\.id) == ["a"])
         // Etiket kaldırıldı: soru tüm arşive gider, sonraki devam sorusu da.
@@ -142,5 +142,86 @@ private func meeting(id: String, title: String) -> MeetingRecord {
         #expect(try symbol([recipe]) == "wand.and.stars")
         #expect(try symbol([archive, web]) == "globe")
         #expect(askHistoryFilterSymbol(filter: .web) == "globe" && askHistoryFilterSymbol(filter: .meetings) == "at")
+    }
+
+    // Tek motor, kapsamlı soru: klasör kapsamında yalnız klasörün toplantıları okunur, tur kapsamıyla saklanır ve dipnot
+    // görünür; tüm toplantılarda bütün arşivde aranır; kapsamda toplantı yoksa sorulmaz, neden sohbette.
+    @MainActor
+    @Test func storeAsksTheSelectedScope() async throws {
+        let records: [MeetingRecord] = [meeting(id: "a", title: "Bütçe").with(folder: "Müşteriler"), meeting(id: "b", title: "Haftalık")]
+        let store: AskStore = AskStore()
+        var targets: [[String]?] = []
+        var saved: [AskConversationTurn] = []
+        let passage: ArchivePassage = ArchivePassage(id: "a-note", meetingID: "a", meetingTitle: "Bütçe", meetingDate: Date(timeIntervalSince1970: 0), kind: .note, startSec: 0, text: "x")
+        let answer: AskAnswer = { (target: AskTarget, onProgress: @escaping ArchiveProgressHandler) async throws -> Void in
+            targets.append(target.meetings?.map(\.id))
+            await onProgress(.passages([passage]))
+            await onProgress(.answer(ArchiveAnswer(text: "Cevap [1]", sources: [passage], webSources: [])))
+        }
+        let save: AskSave = { (_: UUID, exchanges: [ArchiveExchange]) -> Void in
+            saved = exchanges.compactMap { askTurn(exchange: $0) }
+        }
+        store.select(scope: .folder(name: "Müşteriler"), context: .allMeetings)
+        store.ask(context: .allMeetings, question: "Ne karar verdik?", scope: store.scope(context: .allMeetings), mentionIDs: [], recipeTitle: nil, records: records, answer: answer, save: save)
+        await store.waitForAnswer(context: .allMeetings)
+        #expect(targets == [["a"]])
+        let first: ArchiveExchange = try #require(store.exchanges(context: .allMeetings).first)
+        #expect(first.scope == .folder(name: "Müşteriler") && first.scopeMeetingIDs.isEmpty && showsCoverageFootnote(exchange: first))
+        #expect(saved.map(\.scope) == [.folder(name: "Müşteriler")])
+        store.select(scope: .allMeetings, context: .allMeetings)
+        store.ask(context: .allMeetings, question: "Ya hepsinde?", scope: .allMeetings, mentionIDs: [], recipeTitle: nil, records: records, answer: answer, save: save)
+        await store.waitForAnswer(context: .allMeetings)
+        #expect(targets == [["a"], nil])
+        store.ask(context: .allMeetings, question: "Anna?", scope: .person(name: "Anna"), mentionIDs: [], recipeTitle: nil, records: records, answer: answer, save: save)
+        #expect(targets.count == 2)
+        if case .failed = store.exchanges(context: .allMeetings).last?.phase {} else {
+            Issue.record("Kapsamı boş soru hatalı bitmeliydi")
+        }
+    }
+
+    // Toplantı sayfası sohbeti: kapsamı o toplantı, etiketi yok, dipnot "bu toplantı"; saklı sohbet sayfada geri gelir ve
+    // Sor sayfasında açılınca sayfadan kalkar (iki alan aynı sohbeti yazmasın).
+    @MainActor
+    @Test func meetingChatResumesAndMovesBetweenSurfaces() throws {
+        let store: AskStore = AskStore()
+        let exchange: ArchiveExchange = startedExchange(
+            id: UUID(), question: "Kim?", scope: .meeting(id: "a"), tagged: [meeting(id: "a", title: "Bütçe")], recipeTitle: nil, startedAt: Date(timeIntervalSince1970: 0)
+        )
+        #expect(exchangeMentionIDs(exchange: exchange).isEmpty && exchange.scopeMeetingIDs == ["a"])
+        var done: ArchiveExchange = exchange
+        done.phase = .done
+        done.finishedAt = Date(timeIntervalSince1970: 5)
+        done.answer = ArchiveAnswer(text: "Mikko", sources: [], webSources: [])
+        let conversation: AskConversation = askConversation(existing: nil, id: UUID(), turns: [try #require(askTurn(exchange: done))], now: Date(timeIntervalSince1970: 5))
+        store.resume(context: .meeting(id: "a"), conversations: [conversation])
+        #expect(store.conversationID(context: .meeting(id: "a")) == conversation.id && store.scope(context: .meeting(id: "a")) == .meeting(id: "a"))
+        store.open(conversation: conversation, context: .allMeetings)
+        #expect(store.scope(context: .allMeetings) == .meeting(id: "a") && store.exchanges(context: .meeting(id: "a")).isEmpty)
+        store.clear(context: .allMeetings)
+        #expect(store.scope(context: .allMeetings) == .allMeetings && store.conversationID(context: .allMeetings) == nil)
+    }
+
+    // Örnek toplantının sohbeti saklanmaz (eşitlenmesin): kapsam sonra tüm toplantılara genişletilse de; yeni sohbet
+    // yeniden saklanır.
+    @MainActor
+    @Test func sampleMeetingChatIsNeverSaved() async {
+        let sample: MeetingRecord = meeting(id: "s", title: "Örnek").markedAsSample()
+        let records: [MeetingRecord] = [sample, meeting(id: "b", title: "Haftalık")]
+        let store: AskStore = AskStore()
+        var saves: Int = 0
+        let answer: AskAnswer = { (_: AskTarget, onProgress: @escaping ArchiveProgressHandler) async throws -> Void in
+            await onProgress(.answer(ArchiveAnswer(text: "Cevap", sources: [], webSources: [])))
+        }
+        let save: AskSave = { (_: UUID, _: [ArchiveExchange]) -> Void in saves += 1 }
+        let context: AskScope = .meeting(id: "s")
+        store.ask(context: context, question: "Ne kararlaştırıldı?", scope: context, mentionIDs: [], recipeTitle: nil, records: records, answer: answer, save: save)
+        await store.waitForAnswer(context: context)
+        store.ask(context: context, question: "Ya hepsinde?", scope: .allMeetings, mentionIDs: [], recipeTitle: nil, records: records, answer: answer, save: save)
+        await store.waitForAnswer(context: context)
+        #expect(saves == 0 && store.exchanges(context: context).count == 2)
+        store.clear(context: context)
+        store.ask(context: context, question: "Yeni konu", scope: .allMeetings, mentionIDs: [], recipeTitle: nil, records: records, answer: answer, save: save)
+        await store.waitForAnswer(context: context)
+        #expect(saves == 1)
     }
 }

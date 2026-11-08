@@ -421,6 +421,15 @@ private struct PhonePersonPage: View {
                         message: "Bir toplantının transkriptinde konuşmacıya bu adı verince toplantıları burada görünür."
                     )
                 } else {
+                    // Kişinin toplantılarına sor: pencere kapanır, Sor bu kişinin kapsamıyla açılır (Mac'teki ⌘J gibi).
+                    // Örnek toplantının kurgusal kişisinde yok (örnek toplantı kişi kapsamına girmez).
+                    if !askScopeMeetings(scope: .person(name: person.name), records: store.meetings, now: Date(), calendar: Calendar.current).isEmpty {
+                        Button("Bu kişiyle toplantılarına sor", systemImage: "sparkle") {
+                            dismiss()
+                            router.openAsk(context: .person(name: person.name))
+                        }
+                        .buttonStyle(.accentPill)
+                    }
                     meetings(person: person)
                 }
                 if !person.tasks.isEmpty {

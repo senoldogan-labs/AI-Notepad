@@ -474,12 +474,16 @@ struct MeetingDetailPage: View {
     /// Sor'da basılan kaynak (cevaptaki [n], kaynak listesi, kapsam dipnotu): bu toplantınınsa sayfa o anı açar
     /// (transkript çekmecesi o paragrafta, not kaynağında özet) ve `onSourceShown` ile tüketir.
     let openingSource: ArchivePassage?
+    /// Arttıkça Sor çubuğu odağı alır ve paneli açılır (⌘J).
+    let askFocusRequest: Int
     /// Toplantı silinince (sayfa artık gösterilemez) çağrılır.
     let onDeleted: @MainActor () -> Void
     /// Tarifi bu toplantıya uygular (Sor sayfasında açılır).
     let onRunRecipe: @MainActor (Recipe) -> Void
     /// Sor'dan gelen kaynak açıldı (`openingSource` tüketildi).
     let onSourceShown: @MainActor () -> Void
+    /// Sor çubuğundaki cevabın başka bir toplantıdaki kaynağı (kapsam bu toplantı değilken): o toplantı açılır.
+    let onOpenOtherSource: @MainActor (ArchivePassage) -> Void
     @Environment(\.panelAppearance) private var appearance: PanelAppearance
     @State private var export: ExportStatus = .none
     @State private var tab: MeetingTab = .summary
@@ -778,24 +782,43 @@ struct MeetingDetailPage: View {
                 }
                 // Akan cevap yalnız çubuğu yeniden çizer (bkz. `ObservationScope`).
                 ObservationScope {
-                    MeetingAskBar(
-                        exchanges: model.meetingAsk.exchanges(meetingID: record.id), isAnswering: model.meetingAsk.isAnswering(meetingID: record.id),
-                        followUps: model.meetingAsk.followUps(meetingID: record.id, note: record.note),
-                        quickActions: record.note == nil ? [] : meetingQuickActions(recipes: model.recipes), recipes: model.recipes,
-                        isEditingNote: isProcessing, isTranscriptOpen: isTranscriptOpen,
-                        isPanelOpen: $isAskPanelOpen, conversationMaxHeight: bottomPanelMaxHeight(pageHeight: pageHeight, cap: 340),
-                        onAsk: { (question: String, recipeTitle: String?) -> Void in
-                            model.askAboutMeeting(meetingID: record.id, question: question, recipeTitle: recipeTitle)
-                        },
-                        onQuickAction: { (action: MeetingQuickAction) -> Void in run(action: action) },
-                        onStop: { model.meetingAsk.stop(meetingID: record.id) },
-                        onClear: { model.meetingAsk.clear(meetingID: record.id) },
-                        onRegenerate: { model.regenerateMeetingAnswer(meetingID: record.id) },
-                        onOpenSource: { (passage: ArchivePassage) -> Void in openSource(passage: passage, paragraphs: paragraphs) },
-                        onSaveRecipe: { (question: String) -> Void in model.saveRecipe(question: question) },
-                        onToggleTranscript: {
+                    let context: AskScope = .meeting(id: record.id)
+                    let scope: AskScope = model.askChats.scope(context: context)
+                    AskBar(
+                        exchanges: model.askChats.exchanges(context: context), isAnswering: model.askChats.isAnswering(context: context),
+                        followUps: model.askChats.followUps(context: context, note: record.note),
+                        // Hazır eylemler yalnız kapsam bu toplantıyken (not ve transkript bu toplantınındır).
+                        quickActions: record.note == nil || scope != context ? [] : meetingQuickActions(recipes: model.recipes), recipes: model.recipes,
+                        isEditingNote: isProcessing,
+                        scopeMenu: askScopeMenu(context: context, selected: scope, records: model.meetings, folders: model.folders, userName: model.userName),
+                        firstName: askFirstName(userName: model.userName),
+                        suggestions: model.askChats.exchanges(context: context).isEmpty ? askSuggestions(scope: scope, records: model.meetings, userName: model.userName, now: Date(), calendar: Calendar.current, limit: 4).map { askSuggestionText(suggestion: $0) } : [],
+                        transcript: AskBarTranscript(isOpen: isTranscriptOpen) {
                             transcriptFocusID = nil
                             isTranscriptOpen.toggle()
+                        },
+                        isPanelOpen: $isAskPanelOpen, conversationMaxHeight: bottomPanelMaxHeight(pageHeight: pageHeight, cap: 340), focusRequest: askFocusRequest,
+                        onSelectScope: { (selected: AskScope) -> Void in model.askChats.select(scope: selected, context: context) },
+                        onAsk: { (question: String, recipeTitle: String?) -> Void in
+                            model.askQuestion(context: context, question: question, scope: scope, mentionIDs: [], recipeTitle: recipeTitle)
+                        },
+                        onQuickAction: { (action: MeetingQuickAction) -> Void in run(action: action) },
+                        onStop: { model.askChats.stop(context: context) },
+                        onClear: { model.askChats.clear(context: context) },
+                        onRegenerate: { model.regenerateAnswer(context: context) },
+                        onOpenSource: { (passage: ArchivePassage) -> Void in
+                            if passage.meetingID == record.id {
+                                openSource(passage: passage, paragraphs: paragraphs)
+                            } else {
+                                onOpenOtherSource(passage)
+                            }
+                        },
+                        onSaveRecipe: { (question: String) -> Void in model.saveRecipe(question: question) },
+                        onAskMeetings: { (meetingIDs: [String]) -> Void in
+                            guard let last = model.askChats.exchanges(context: context).last else {
+                                return
+                            }
+                            model.askQuestion(context: context, question: last.question, scope: scope, mentionIDs: meetingIDs, recipeTitle: last.recipeTitle)
                         }
                     )
                 }
@@ -811,9 +834,9 @@ struct MeetingDetailPage: View {
             }
             .animation(.smooth(duration: 0.25), value: isTranscriptOpen)
             // Toplantının saklı son sohbeti geri gelir (geçmiş açılışta arka planda okunur: gelince de denenir).
-            .onAppear { model.meetingAsk.resume(meetingID: record.id, conversations: model.askConversations) }
+            .onAppear { model.askChats.resume(context: .meeting(id: record.id), conversations: model.askConversations) }
             .onChange(of: model.askConversations.count) { (_: Int, _: Int) -> Void in
-                model.meetingAsk.resume(meetingID: record.id, conversations: model.askConversations)
+                model.askChats.resume(context: .meeting(id: record.id), conversations: model.askConversations)
             }
             // Sohbet paneli ve transkript çekmecesi aynı anda açık olmaz: biri açılınca öteki kapanır.
             .onChange(of: isAskPanelOpen) { (_: Bool, open: Bool) in
@@ -833,7 +856,7 @@ struct MeetingDetailPage: View {
     private func run(action: MeetingQuickAction) {
         switch action.kind {
         case .ask(let prompt, let recipeTitle):
-            model.askAboutMeeting(meetingID: record.id, question: prompt, recipeTitle: recipeTitle)
+            model.askQuestion(context: .meeting(id: record.id), question: prompt, scope: .meeting(id: record.id), mentionIDs: [], recipeTitle: recipeTitle)
         case .editNote(let instruction):
             model.editNote(meetingID: record.id, instruction: instruction)
         }
@@ -841,9 +864,12 @@ struct MeetingDetailPage: View {
 
     /// Not maddesinin kaynak kutusundaki "Sor": maddenin toplantıda nasıl konuşulduğunu bu toplantıya sorar.
     private func askAboutLine(text: String) {
-        model.askAboutMeeting(
-            meetingID: record.id, question: String(localized: "Notta \"\(text)\" yazıyor. Bu toplantıda nasıl konuşuldu: kim ne dedi, neden bu sonuca varıldı?"),
-            recipeTitle: nil
+        // Kaynak kutusundaki "Sor" her zaman bu toplantıya sorar (çipte başka kapsam seçili olsa da).
+        model.askChats.select(scope: .meeting(id: record.id), context: .meeting(id: record.id))
+        model.askQuestion(
+            context: .meeting(id: record.id),
+            question: String(localized: "Notta \"\(text)\" yazıyor. Bu toplantıda nasıl konuşuldu: kim ne dedi, neden bu sonuca varıldı?"),
+            scope: .meeting(id: record.id), mentionIDs: [], recipeTitle: nil
         )
     }
 

@@ -142,6 +142,12 @@ public func askRecentChatTime(date: Date, now: Date) -> String {
     return formatter.localizedString(for: min(date, now), relativeTo: now)
 }
 
+/// Son sohbet satırının alt yazısı: göreli zaman ve sohbetin kapsamı ("2 sa önce · Haftalık toplantı").
+@MainActor
+public func askRecentChatDetail(conversation: AskConversation, now: Date) -> String {
+    [askRecentChatTime(date: conversation.updatedAt, now: now), askConversationScopeTitle(conversation: conversation)].joined(separator: " · ")
+}
+
 /// Son sohbetler: küçük başlık ve "Tümünü gör", altında çizgilerle ayrılmış düz satırlar (kart yok).
 public struct AskRecentChats: View {
     let chats: [AskRecentChat]

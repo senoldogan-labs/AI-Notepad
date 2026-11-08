@@ -58,6 +58,54 @@ final class MainWindowRouter {
     var peopleTab: PeopleTab = .people
     /// Oturum yokken bir bağlantı (`gistsmith://…`) geldi: giriş kapısı bağlantının girişten sonra açılacağını söyler.
     var isLinkWaitingForSignIn: Bool = false
+    /// Kişiler tablosunda seçili kişinin adı: ⌘J Sor'u bu kişiyle açar.
+    var selectedPersonName: String?
+    /// ⌘J ile açılan Sor paneli (bulunulan yerin kapsamıyla; bkz. `askShortcutTarget`); nil kapalı.
+    var askOverlay: AskScope?
+    /// Arttıkça bulunulan sayfanın Sor alanı (Sor sayfası, toplantı sayfasının çubuğu, ⌘J paneli) odağı alır.
+    var askFocusRequest: Int = 0
+}
+
+/// ⌘J'nin açacağı Sor: sayfanın kendi Sor alanı (Sor sayfası, toplantı sayfasının çubuğu) ya da pencere içindeki Sor
+/// paneli, bulunulan yerin kapsamıyla.
+enum AskShortcutTarget: Equatable {
+    case askPage
+    case meetingBar
+    case overlay(AskScope)
+}
+
+/// ⌘J'nin hedefi: Sor sayfasında soru alanı; açık toplantı sayfasında onun çubuğu; klasörle süzülmüş toplantı
+/// listesinde o klasör, Kişiler'de seçili kişi kapsamıyla panel; başka yerde tüm toplantılarla panel. Saf fonksiyondur.
+func askShortcutTarget(section: MainSection, selectedMeetingID: String?, folderFilter: String?, selectedPersonName: String?) -> AskShortcutTarget {
+    switch section {
+    case .ask:
+        return .askPage
+    case .meetings where selectedMeetingID != nil:
+        return .meetingBar
+    case .meetings:
+        return .overlay(folderFilter.map { AskScope.folder(name: $0) } ?? .allMeetings)
+    case .people:
+        return .overlay(selectedPersonName.map { AskScope.person(name: $0) } ?? .allMeetings)
+    case .home, .tasks, .insights, .settings, .setup:
+        return .overlay(.allMeetings)
+    }
+}
+
+/// ⌘J: bulunulan yerin Sor'unu açar (bkz. `askShortcutTarget`); kurulumda bir şey yapmaz.
+@MainActor
+func openAskShortcut(router: MainWindowRouter) {
+    guard router.section != .setup else {
+        return
+    }
+    switch askShortcutTarget(
+        section: router.section, selectedMeetingID: router.selectedMeetingID, folderFilter: router.folderFilter, selectedPersonName: router.selectedPersonName
+    ) {
+    case .askPage, .meetingBar:
+        router.askOverlay = nil
+    case .overlay(let scope):
+        router.askOverlay = scope
+    }
+    router.askFocusRequest += 1
 }
 
 /// Ayarlar › Sesle yazma'yı açar.
@@ -298,6 +346,17 @@ struct MainWindowView: View {
                             .id(router.section)
                             .transition(.opacity)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            // ⌘J: pencere içinde, sayfanın altında yüzen Sor paneli (ayrı pencere değil).
+                            .overlay(alignment: .bottom) {
+                                if let context = router.askOverlay {
+                                    AskOverlay(model: model, router: router, context: context)
+                                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                                }
+                            }
+                            .animation(.smooth(duration: 0.25), value: router.askOverlay)
+                            .onChange(of: router.section) { (_: MainSection, _: MainSection) -> Void in
+                                router.askOverlay = nil
+                            }
                     }
                     // Çalan toplantı her bölümde altta görünür; sayfa değişince ses durmaz.
                     .safeAreaInset(edge: .bottom) {
@@ -656,6 +715,11 @@ private struct TopBar: View {
                 // ⌘K ve ⌘F arama penceresini açar.
                 Button { router.isSearchPresented = true } label: { Text(verbatim: "") }
                     .keyboardShortcut("k", modifiers: .command)
+                    .opacity(0)
+                    .accessibilityHidden(true)
+                // ⌘J bulunulan yerin Sor'unu açar (bkz. `askShortcutTarget`).
+                Button { openAskShortcut(router: router) } label: { Text(verbatim: "") }
+                    .keyboardShortcut("j", modifiers: .command)
                     .opacity(0)
                     .accessibilityHidden(true)
                 Button {
@@ -1742,13 +1806,24 @@ private struct MeetingsSplit: View {
                 if let id = router.selectedMeetingID, let stored = model.meetings.first(where: { $0.id == id }) {
                     // Sayfa notu konuşmacı adlarıyla gösterir; değişiklikler kimlikle saklı kayda yapılır.
                     let record: MeetingRecord = namedRecord(record: stored, userName: userName)
-                    MeetingDetailPage(model: model, player: player, record: record, openingSource: router.openingSource) {
+                    MeetingDetailPage(
+                        model: model, player: player, record: record, openingSource: router.openingSource, askFocusRequest: router.askFocusRequest
+                    ) {
                         router.selectedMeetingID = nil
                     } onRunRecipe: { (recipe: Recipe) -> Void in
-                        model.askArchive(question: recipe.prompt, meetingIDs: [record.id], recipeTitle: recipe.title)
+                        // Tarif Sor sayfasında yeni bir sohbette bu toplantıya sorulur (kapsam çipinden genişletilebilir).
+                        model.askChats.clear(context: .allMeetings)
+                        model.askChats.select(scope: .meeting(id: record.id), context: .allMeetings)
+                        model.askQuestion(context: .allMeetings, question: recipe.prompt, scope: .meeting(id: record.id), mentionIDs: [], recipeTitle: recipe.title)
                         router.section = .ask
                     } onSourceShown: {
                         router.openingSource = nil
+                    } onOpenOtherSource: { (passage: ArchivePassage) -> Void in
+                        // Kapsam başka toplantıları da okuduysa kaynağın toplantısı o anında açılır.
+                        router.openingSource = passage
+                        router.selectedMeetingID = passage.meetingID
+                        router.searchQuery = ""
+                        router.folderFilter = nil
                     }
                         // Toplantı değişince ad alanları gibi durumlar sıfırlansın.
                         .id(record.id)
@@ -2268,5 +2343,73 @@ private struct RecordingFocus: View {
         .focused($isFocused)
         .onAppear { isFocused = true }
         .onExitCommand { router.isRecordingFocusDismissed = true }
+    }
+}
+
+/// ⌘J ile açılan Sor paneli: sayfanın altında yüzen Sor çubuğu ve sohbeti, bulunulan yerin kapsamıyla (klasör, kişi ya
+/// da tüm toplantılar; kapsam çipinden değişir). Tüm toplantılar bağlamı Sor sayfasıyla aynı sohbettir. Esc, aşağı ok
+/// ya da başka bölüme geçmek paneli kapatır; cevap sürer.
+private struct AskOverlay: View {
+    let model: AppModel
+    let router: MainWindowRouter
+    let context: AskScope
+    @State private var focusRequest: Int = 0
+    @State private var pageHeight: CGFloat = 0
+
+    var body: some View {
+        let scope: AskScope = model.askChats.scope(context: context)
+        let isOpen: Binding<Bool> = Binding<Bool>(
+            get: { true },
+            set: { (open: Bool) -> Void in
+                if !open {
+                    router.askOverlay = nil
+                }
+            }
+        )
+        ObservationScope {
+            AskBar(
+                exchanges: model.askChats.exchanges(context: context), isAnswering: model.askChats.isAnswering(context: context),
+                followUps: [], quickActions: [], recipes: model.recipes, isEditingNote: false,
+                scopeMenu: askScopeMenu(context: context, selected: scope, records: model.meetings, folders: model.folders, userName: model.userName),
+                firstName: askFirstName(userName: model.userName),
+                suggestions: model.askChats.exchanges(context: context).isEmpty ? askSuggestions(scope: scope, records: model.meetings, userName: model.userName, now: Date(), calendar: Calendar.current, limit: 4).map { askSuggestionText(suggestion: $0) } : [],
+                transcript: nil, isPanelOpen: isOpen, conversationMaxHeight: bottomPanelMaxHeight(pageHeight: pageHeight, cap: 420), focusRequest: focusRequest,
+                onSelectScope: { (selected: AskScope) -> Void in model.askChats.select(scope: selected, context: context) },
+                onAsk: { (question: String, recipeTitle: String?) -> Void in
+                    model.askQuestion(context: context, question: question, scope: scope, mentionIDs: [], recipeTitle: recipeTitle)
+                },
+                onQuickAction: { (_: MeetingQuickAction) -> Void in },
+                onStop: { model.askChats.stop(context: context) },
+                onClear: { model.askChats.clear(context: context) },
+                onRegenerate: { model.regenerateAnswer(context: context) },
+                onOpenSource: { (passage: ArchivePassage) -> Void in
+                    // Kaynak toplantı o anında açılır; panel kapanır (sohbet saklı kalır, ⌘J geri getirir).
+                    router.askOverlay = nil
+                    router.openingSource = passage
+                    router.selectedMeetingID = passage.meetingID
+                    router.searchQuery = ""
+                    router.folderFilter = nil
+                    router.section = .meetings
+                },
+                onSaveRecipe: { (question: String) -> Void in model.saveRecipe(question: question) },
+                onAskMeetings: { (meetingIDs: [String]) -> Void in
+                    guard let last = model.askChats.exchanges(context: context).last else {
+                        return
+                    }
+                    model.askQuestion(context: context, question: last.question, scope: scope, mentionIDs: meetingIDs, recipeTitle: last.recipeTitle)
+                }
+            )
+        }
+        .padding(.horizontal, DesignTokens.Spacing.l)
+        .padding(.bottom, 14)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+        .background {
+            GeometryReader { (proxy: GeometryProxy) in
+                Color.clear.onAppear { pageHeight = proxy.size.height }
+                    .onChange(of: proxy.size.height) { (_: CGFloat, height: CGFloat) -> Void in pageHeight = height }
+            }
+        }
+        .onAppear { focusRequest += 1 }
+        .onChange(of: router.askFocusRequest) { (_: Int, _: Int) -> Void in focusRequest += 1 }
     }
 }

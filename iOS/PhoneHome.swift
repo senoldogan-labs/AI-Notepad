@@ -784,8 +784,7 @@ struct PhoneSearchScreen: View {
             HostedAccount.shared.requestSubscription()
             return
         }
-        ask.clear()
-        ask.ask(question: question, meetingIDs: [], recipeTitle: nil)
+        ask.startConversation(question: question, scope: .allMeetings, mentionIDs: [], recipeTitle: nil)
         router.openAskConversation()
     }
 }

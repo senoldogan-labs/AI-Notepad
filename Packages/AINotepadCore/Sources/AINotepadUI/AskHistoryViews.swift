@@ -47,7 +47,7 @@ public func askHistoryFilterHelp(filter: AskHistoryFilter) -> LocalizedStringKey
     }
 }
 
-/// Geçmiş satırının içeriği: vurgu renkli tür simgesi, başlık (iki satıra kadar) ve son güncellenme tarihi.
+/// Geçmiş satırının içeriği: vurgu renkli tür simgesi, başlık (iki satıra kadar), son güncellenme tarihi ve kapsamı.
 public struct AskHistoryRowLabel: View {
     let conversation: AskConversation
     let isSelected: Bool
@@ -70,7 +70,12 @@ public struct AskHistoryRowLabel: View {
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(conversation.updatedAt.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(interfaceLocale())))
+                // Tarih ve sohbetin kapsamı (tüm toplantılar, toplantının adı, klasör, kişi, tarih aralığı).
+                Text(verbatim: [
+                    conversation.updatedAt.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(interfaceLocale())),
+                    askConversationScopeTitle(conversation: conversation),
+                ].joined(separator: " · "))
+                    .lineLimit(1)
                     .appFont(size: titleSize - 2, weight: .regular)
                     .monospacedDigit()
                     .foregroundStyle(Theme.muted)

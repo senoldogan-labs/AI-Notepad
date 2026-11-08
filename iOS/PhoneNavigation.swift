@@ -40,8 +40,8 @@ struct PhoneDestination: View {
             RecentlyDeletedList(store: store, recorder: recorder)
         case .ask:
             AskTab(ask: ask, store: store, router: router)
-        case .askConversation:
-            AskConversationView(ask: ask, store: store, router: router)
+        case .askConversation(let context):
+            AskConversationView(ask: ask, store: store, router: router, context: context)
         case .askHistory:
             AskHistoryScreen(ask: ask, router: router)
         case .settings:
@@ -96,6 +96,8 @@ private struct PhoneMeetingDestination: View {
                     onRunRecipe(recipe)
                 } onSourceShown: {
                     router.openingSource = nil
+                } onOpenOtherSource: { (passage: ArchivePassage) -> Void in
+                    router.open(source: passage)
                 }
             } else if store.deletedMeetings.contains(where: { $0.id == meetingID }) {
                 PhoneEmptyState(symbol: "trash", title: "Bu toplantı silindi", message: "Son silinenler'den geri yükleyebilirsin.") {

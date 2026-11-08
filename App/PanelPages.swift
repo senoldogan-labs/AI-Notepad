@@ -114,12 +114,18 @@ struct PanelHost: View {
         case .meeting(let id):
             PanelPageView(model: model, router: router, title: "Toplantı", back: .live, onHide: onHide) {
                 if let record = model.meetings.first(where: { $0.id == id }) {
-                    MeetingDetailPage(model: model, player: player, record: record, openingSource: nil) {
+                    MeetingDetailPage(model: model, player: player, record: record, openingSource: nil, askFocusRequest: 0) {
                         router.page = .live
                     } onRunRecipe: { (recipe: Recipe) -> Void in
-                        model.askArchive(question: recipe.prompt, meetingIDs: [record.id], recipeTitle: recipe.title)
+                        // Tarif Sor sayfasında yeni bir sohbette bu toplantıya sorulur (kapsam çipinden genişletilebilir).
+                        model.askChats.clear(context: .allMeetings)
+                        model.askChats.select(scope: .meeting(id: record.id), context: .allMeetings)
+                        model.askQuestion(context: .allMeetings, question: recipe.prompt, scope: .meeting(id: record.id), mentionIDs: [], recipeTitle: recipe.title)
                         onOpenMainWindow(.ask)
-                    } onSourceShown: {}
+                    } onSourceShown: {} onOpenOtherSource: { (passage: ArchivePassage) -> Void in
+                        // Paneldeki sayfada başka toplantının kaynağı o toplantının panel sayfasını açar.
+                        router.page = .meeting(id: passage.meetingID)
+                    }
                         // Toplantı değişince ad alanları gibi durumlar sıfırlansın.
                         .id(record.id)
                 } else {

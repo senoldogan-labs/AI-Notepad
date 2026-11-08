@@ -19,7 +19,11 @@ public struct ArchiveExchange: Identifiable, Equatable, Sendable {
 
     public let id: UUID
     public let question: String
-    /// `@` ile seçilen toplantılar (soru yalnız onlara soruldu); boşsa tüm arşiv.
+    /// Sorunun kapsamı (kapsam çipinde seçili olan). `@` ile toplantı seçildiyse tüm toplantılar: soruyu etiketler
+    /// daraltır (`scopeMeetingIDs`).
+    public let scope: AskScope
+    /// `@` ile seçilen toplantılar (soru yalnız onlara soruldu); kapsam bu toplantıysa o toplantı (eski sürümler sohbeti
+    /// böyle tanır); boşsa kapsamın toplantıları.
     public let scopeMeetingIDs: [String]
     /// `@` ile seçilen toplantıların başlıkları.
     public let scopeTitles: [String]
@@ -45,11 +49,13 @@ public struct ArchiveExchange: Identifiable, Equatable, Sendable {
     public var finishedAt: Date?
 
     public init(
-        id: UUID, question: String, scopeMeetingIDs: [String], scopeTitles: [String], recipeTitle: String?, startedAt: Date, phase: Phase, terms: [String], passages: [ArchivePassage],
-        screens: Int, answer: ArchiveAnswer, webQueries: [String], webSearchNotice: WebSearchNotice, skippedMeetings: [ArchiveMeetingRef], finishedAt: Date?
+        id: UUID, question: String, scope: AskScope, scopeMeetingIDs: [String], scopeTitles: [String], recipeTitle: String?, startedAt: Date, phase: Phase, terms: [String],
+        passages: [ArchivePassage], screens: Int, answer: ArchiveAnswer, webQueries: [String], webSearchNotice: WebSearchNotice, skippedMeetings: [ArchiveMeetingRef],
+        finishedAt: Date?
     ) {
         self.id = id
         self.question = question
+        self.scope = scope
         self.scopeMeetingIDs = scopeMeetingIDs
         self.scopeTitles = scopeTitles
         self.recipeTitle = recipeTitle
@@ -66,20 +72,21 @@ public struct ArchiveExchange: Identifiable, Equatable, Sendable {
     }
 }
 
-/// Henüz başlamış (cevabı boş) soru. Saf fonksiyondur.
-public func startedExchange(id: UUID, question: String, scope: [MeetingRecord], recipeTitle: String?, startedAt: Date) -> ArchiveExchange {
+/// Henüz başlamış (cevabı boş) soru: `tagged` `@` ile seçilen toplantılar, kapsam bu toplantıysa o toplantı. Saf
+/// fonksiyondur.
+public func startedExchange(id: UUID, question: String, scope: AskScope, tagged: [MeetingRecord], recipeTitle: String?, startedAt: Date) -> ArchiveExchange {
     ArchiveExchange(
-        id: id, question: question, scopeMeetingIDs: scope.map(\.id), scopeTitles: scope.map { $0.note?.title ?? $0.title }, recipeTitle: recipeTitle,
+        id: id, question: question, scope: scope, scopeMeetingIDs: tagged.map(\.id), scopeTitles: tagged.map { $0.note?.title ?? $0.title }, recipeTitle: recipeTitle,
         startedAt: startedAt, phase: .understanding, terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: [], webSources: []),
         webQueries: [], webSearchNotice: .ok, skippedMeetings: [], finishedAt: nil
     )
 }
 
 /// Sorulmadan başarısız olan soru (etiketli toplantı silinmiş, Sor kullanılamıyor): soru ve neden sohbette görünür.
-/// `scopeMeetingIDs` istenen kapsamdır. Saf fonksiyondur.
-public func failedExchange(id: UUID, question: String, scopeMeetingIDs: [String], recipeTitle: String?, reason: String, at date: Date) -> ArchiveExchange {
+/// `scope` ve `scopeMeetingIDs` istenen kapsamdır. Saf fonksiyondur.
+public func failedExchange(id: UUID, question: String, scope: AskScope, scopeMeetingIDs: [String], recipeTitle: String?, reason: String, at date: Date) -> ArchiveExchange {
     ArchiveExchange(
-        id: id, question: question, scopeMeetingIDs: scopeMeetingIDs, scopeTitles: [], recipeTitle: recipeTitle, startedAt: date, phase: .failed(reason),
+        id: id, question: question, scope: scope, scopeMeetingIDs: scopeMeetingIDs, scopeTitles: [], recipeTitle: recipeTitle, startedAt: date, phase: .failed(reason),
         terms: [], passages: [], screens: 0, answer: ArchiveAnswer(text: "", sources: [], webSources: []), webQueries: [], webSearchNotice: .ok, skippedMeetings: [],
         finishedAt: date
     )
@@ -92,7 +99,13 @@ public func followUpScope(exchanges: [ArchiveExchange], records: [MeetingRecord]
     guard let last = exchanges.last else {
         return []
     }
-    return last.scopeMeetingIDs.compactMap { (id: String) -> MeetingRecord? in records.first { $0.id == id } }
+    return exchangeMentionIDs(exchange: last).compactMap { (id: String) -> MeetingRecord? in records.first { $0.id == id } }
+}
+
+/// Sorunun `@` ile seçilen toplantıları: kapsamı tek toplantı olan soruda (toplantı sayfası) etiket yoktur. Saf
+/// fonksiyondur.
+public func exchangeMentionIDs(exchange: ArchiveExchange) -> [String] {
+    askScopeMeetingID(scope: exchange.scope) == nil ? exchange.scopeMeetingIDs : []
 }
 
 /// Bitmiş ya da yazılırken durdurulmuş (o ana kadar cevabı olan) soruyu sohbet geçmişine yazılacak tura çevirir (okunan
@@ -113,7 +126,7 @@ public func askTurn(exchange: ArchiveExchange) -> AskConversationTurn? {
         recipeTitle: exchange.recipeTitle, startedAt: exchange.startedAt, finishedAt: finishedAt, terms: exchange.terms, readPassages: read,
         readScreens: exchange.screens, answer: exchange.answer.text, sources: exchange.answer.sources, webSources: exchange.answer.webSources,
         webQueries: exchange.webQueries, webSearchNotice: exchange.webSearchNotice, skippedMeetings: exchange.skippedMeetings,
-        wasStopped: isStopped ? true : nil
+        wasStopped: isStopped ? true : nil, scope: exchange.scope
     )
 }
 
@@ -121,7 +134,7 @@ public func askTurn(exchange: ArchiveExchange) -> AskConversationTurn? {
 /// gösterilmez (`withoutPromptTags`). Saf fonksiyondur.
 public func archiveExchange(turn: AskConversationTurn) -> ArchiveExchange {
     ArchiveExchange(
-        id: turn.id, question: turn.question, scopeMeetingIDs: turn.scopeMeetingIDs, scopeTitles: turn.scopeTitles, recipeTitle: turn.recipeTitle,
+        id: turn.id, question: turn.question, scope: askTurnScope(turn: turn), scopeMeetingIDs: turn.scopeMeetingIDs, scopeTitles: turn.scopeTitles, recipeTitle: turn.recipeTitle,
         startedAt: turn.startedAt, phase: turn.wasStopped == true ? .stopped : .done, terms: turn.terms, passages: turn.readPassages,
         screens: turn.readScreens ?? 0, answer: ArchiveAnswer(text: withoutPromptTags(text: turn.answer), sources: turn.sources, webSources: turn.webSources ?? []),
         webQueries: turn.webQueries ?? [], webSearchNotice: turn.webSearchNotice ?? .ok, skippedMeetings: turn.skippedMeetings ?? [], finishedAt: turn.finishedAt
@@ -226,7 +239,7 @@ public struct ExchangeView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            if !exchange.scopeTitles.isEmpty {
+            if !exchangeMentionIDs(exchange: exchange).isEmpty, !exchange.scopeTitles.isEmpty {
                 HStack {
                     Spacer(minLength: 80)
                     FlowLayout(spacing: 6, lineSpacing: 6) {
@@ -324,12 +337,12 @@ private struct WebSearchNoticeLine: View {
     }
 }
 
-/// Cevabın altında kapsam dipnotu gösterilir mi: bitmiş, toplantılardan parça okumuş bir cevap; soru tüm arşive
-/// sorulduysa ya da `@` ile seçilen toplantılardan bazıları sığmadıysa (seçilen tek toplantıda "1 toplantıya dayanıyor"
-/// gürültü olurdu). Saf fonksiyondur.
+/// Cevabın altında kapsam dipnotu gösterilir mi: bitmiş, toplantılardan parça okumuş bir cevap; soru bir kapsama
+/// (tüm toplantılar, bu toplantı, klasör, kişi, tarih aralığı) sorulduysa ya da `@` ile seçilen toplantılardan bazıları
+/// sığmadıysa (`@` ile seçilen tek toplantıda "1 toplantıya dayanıyor" gürültü olurdu). Saf fonksiyondur.
 public func showsCoverageFootnote(exchange: ArchiveExchange) -> Bool {
     exchange.phase == .done && !exchange.answer.text.isEmpty && !exchange.passages.isEmpty
-        && (exchange.scopeMeetingIDs.isEmpty || !exchange.skippedMeetings.isEmpty)
+        && (exchangeMentionIDs(exchange: exchange).isEmpty || !exchange.skippedMeetings.isEmpty)
 }
 
 /// Kapsam dipnotunda bir okunan toplantı açılınca gidilecek parça: toplantının notu, notu okunmadıysa okunan ilk
@@ -338,11 +351,24 @@ public func coverageOpenPassage(meetingID: String, passages: [ArchivePassage]) -
     passages.first { $0.meetingID == meetingID && $0.kind == .note } ?? passages.first { $0.meetingID == meetingID }
 }
 
-/// Kapsam dipnotunun özeti, arayüz dilinde: "10 toplantıya dayanıyor · 3–6 Kas".
+/// Kapsam dipnotunun özeti, arayüz dilinde ve sorunun kapsamına göre: "Bu toplantıya dayanıyor", "Müşteriler
+/// klasöründe 6 toplantıya dayanıyor · 3–6 Kas", "Anna ile 4 toplantıya dayanıyor · …", "10 toplantıya dayanıyor · …".
 @MainActor
-func coverageSummary(meetings: [ArchiveMeetingRef]) -> String {
-    let count: String = String(localized: "\(meetings.count) toplantıya dayanıyor")
+func coverageSummary(exchange: ArchiveExchange, meetings: [ArchiveMeetingRef]) -> String {
     let range: String? = coverageDateRange(meetings: meetings, now: Date(), locale: interfaceLocale(), calendar: Calendar.current)
+    let count: String
+    switch exchangeMentionIDs(exchange: exchange).isEmpty ? exchange.scope : .allMeetings {
+    case .meeting:
+        return String(localized: "Bu toplantıya dayanıyor")
+    case .folder(let name):
+        count = String(localized: "\(meetings.count) toplantıya dayanıyor, klasör: \(name)")
+    case .person(let name):
+        count = String(localized: "\(meetings.count) toplantıya dayanıyor, kişi: \(name)")
+    case .lastDays(let days):
+        count = String(localized: "\(meetings.count) toplantıya dayanıyor, son \(days) gün")
+    case .allMeetings:
+        count = String(localized: "\(meetings.count) toplantıya dayanıyor")
+    }
     return ([count] + [range].compactMap { $0 }).joined(separator: " · ")
 }
 
@@ -358,7 +384,7 @@ private struct CoverageFootnote: View {
 
     var body: some View {
         let meetings: [ArchiveMeetingRef] = readMeetings(passages: exchange.passages)
-        let summary: String = coverageSummary(meetings: meetings)
+        let summary: String = coverageSummary(exchange: exchange, meetings: meetings)
         VStack(alignment: .leading, spacing: 6) {
             Button {
                 withAnimation(.smooth(duration: 0.22)) { isOpen.toggle() }

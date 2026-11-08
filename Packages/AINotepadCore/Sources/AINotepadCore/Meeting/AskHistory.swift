@@ -31,12 +31,15 @@ public struct AskConversationTurn: Sendable, Equatable, Codable, Identifiable {
     /// Cevap yazılırken durduruldu (o ana kadar yazılan saklanır, sohbette "Durduruldu" görünür); bu alan eklenmeden
     /// önce saklanan turlarda nil (yalnız bitmiş cevaplar saklanıyordu).
     public let wasStopped: Bool?
+    /// Sorunun kapsamı (`AskScope`); bu alan eklenmeden önce saklanan turlarda nil (bkz. `askTurnScope`). Eski bir sürüm
+    /// sohbeti yeniden yazıp eşitlerse düşer: tur `@` kapsamından çıkarılan kapsamla görünür.
+    public let scope: AskScope?
 
     public init(
         id: UUID, question: String, scopeMeetingIDs: [String], scopeTitles: [String], recipeTitle: String?, startedAt: Date, finishedAt: Date,
         terms: [String], readPassages: [ArchivePassage], readScreens: Int?, answer: String, sources: [ArchivePassage], webSources: [WebSource]?,
         webQueries: [String]?, webSearchNotice: WebSearchNotice?, skippedMeetings: [ArchiveMeetingRef]?,
-        wasStopped: Bool?
+        wasStopped: Bool?, scope: AskScope?
     ) {
         self.id = id
         self.question = question
@@ -55,6 +58,7 @@ public struct AskConversationTurn: Sendable, Equatable, Codable, Identifiable {
         self.webSearchNotice = webSearchNotice
         self.skippedMeetings = skippedMeetings
         self.wasStopped = wasStopped
+        self.scope = scope
     }
 }
 
@@ -316,11 +320,12 @@ public func deleteAskConversation(id: UUID, directory: URL) throws {
     }
 }
 
-/// Toplantı sayfasındaki "Bir şey sor" sohbeti: turlarının hepsi yalnız bu toplantıya sorulmuş en son güncellenen
-/// sohbet (toplantı sayfası sohbetini geçmişe böyle yazar; Sor'da yalnız bu toplantı `@` ile seçilerek sorulan sohbet
-/// de sayfada sürer). Yoksa nil. Saf fonksiyondur.
+/// Toplantı sayfasındaki "Bir şey sor" sohbeti: turlarının hepsi yalnız bu toplantıya sorulmuş (kapsamı bu toplantı,
+/// `askTurnScope`) en son güncellenen sohbet (toplantı sayfası sohbetini geçmişe böyle yazar; Sor'da kapsamı bu
+/// toplantı seçilerek ya da yalnız bu toplantı `@` ile seçilerek sorulan sohbet de sayfada sürer). Yoksa nil. Saf
+/// fonksiyondur.
 public func latestMeetingConversation(conversations: [AskConversation], meetingID: String) -> AskConversation? {
     newestAskConversationsFirst(conversations: conversations).first { (conversation: AskConversation) -> Bool in
-        !conversation.turns.isEmpty && conversation.turns.allSatisfy { $0.scopeMeetingIDs == [meetingID] }
+        !conversation.turns.isEmpty && conversation.turns.allSatisfy { askTurnScope(turn: $0) == .meeting(id: meetingID) || $0.scopeMeetingIDs == [meetingID] }
     }
 }

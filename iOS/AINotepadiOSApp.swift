@@ -358,8 +358,8 @@ private struct PhoneAppRoot: View {
             }
             // `--sohbet <kimlik>`: saklanan Sor sohbeti tam ekran açılır (ekran görüntüleri).
             if let conversationID = launchConversationID(arguments: CommandLine.arguments) {
-                ask.open(conversationID: conversationID)
-                router.path = [.ask, .askConversation]
+                ask.open(conversationID: conversationID, context: .allMeetings)
+                router.path = [.ask, .askConversation(.allMeetings)]
             }
             // `--sablon-galerisi [<kimlik>]`: Ayarlar'da şablon galerisi (ve o şablonun önizlemesi) açılır.
             let templateGalleryPath: [PhoneRoute] = launchTemplateGalleryPath(arguments: CommandLine.arguments)
@@ -386,8 +386,8 @@ private struct PhoneAppRoot: View {
                 return
             }
             if let index = CommandLine.arguments.firstIndex(of: "--soru"), CommandLine.arguments.indices.contains(index + 1) {
-                ask.ask(question: CommandLine.arguments[index + 1], meetingIDs: [], recipeTitle: nil)
-                router.path = [.ask, .askConversation]
+                ask.ask(context: .allMeetings, question: CommandLine.arguments[index + 1], scope: .allMeetings, mentionIDs: [], recipeTitle: nil)
+                router.path = [.ask, .askConversation(.allMeetings)]
             }
             #endif
             await recorder.resumeUnfinished()
@@ -544,7 +544,7 @@ func phoneOpenWriters(store: PhoneStore, recorder: PhoneRecorder, ask: PhoneAsk,
         (.offlineQueue, recorder.isRunningQueue),
         (.importing, recorder.importingCount > 0),
         (.noteEditing, !store.regeneratingIDs.isEmpty),
-        (.askAnswering, ask.isAnswering),
+        (.askAnswering, ask.isAnsweringAny),
         (.noteSending, integrations.isAutoSending),
         (.syncing, HostedSyncCenter.shared.isEngineRunning),
     ]
@@ -653,8 +653,8 @@ enum PhoneRoute: Hashable {
     case recentlyDeleted
     /// Sor: örnek sorular, son sohbetler ve soru alanı.
     case ask
-    /// Açık Sor sohbeti.
-    case askConversation
+    /// Açık Sor sohbeti: Sor alanının bağlamı (Sor sayfası tüm toplantılar; klasörden ve kişiden açılan Sor o kapsam).
+    case askConversation(AskScope)
     /// Sor sohbet geçmişi.
     case askHistory
     /// Ayarlar.
@@ -768,10 +768,27 @@ final class PhoneRouter {
         showHome()
     }
 
-    /// Sor sohbetini açar: yığında Sor varsa onun üstünde (geçmiş kapanır), yoksa açık sayfanın üstünde Sor ile birlikte
-    /// (geri önce Sor'a, sonra gelinen sayfaya döner).
+    /// Sor sayfasının sohbetini açar: yığında Sor varsa onun üstünde (geçmiş kapanır), yoksa açık sayfanın üstünde Sor ile
+    /// birlikte (geri önce Sor'a, sonra gelinen sayfaya döner).
     func openAskConversation() {
-        path = askBase(path: path) + [.askConversation]
+        path = askBase(path: path) + [.askConversation(.allMeetings)]
+    }
+
+    /// Bulunulan yerin (klasör, kişi) Sor'unu açık sayfanın üstünde açar; geri o sayfaya döner. Zaten üstteyse yeniden
+    /// açılmaz.
+    func openAsk(context: AskScope) {
+        guard path.last != .askConversation(context) else {
+            return
+        }
+        path.append(.askConversation(context))
+    }
+
+    /// Sor'u kapatır (sol üstteki ✕): yığının Sor'la başlayan kısmı (Sor, sohbet, geçmiş) kalkar; gelinen sayfa kalır.
+    func closeAsk() {
+        guard let index = path.firstIndex(where: isAskRoute(route:)) else {
+            return
+        }
+        path = Array(path[..<index])
     }
 
     /// Sor'un ilk sayfasına döner ("Yeni sohbet").
@@ -787,6 +804,16 @@ final class PhoneRouter {
             }
             return false
         }
+    }
+}
+
+/// Sor'a ait sayfa mı (Sor, sohbet, geçmiş). Saf fonksiyondur.
+func isAskRoute(route: PhoneRoute) -> Bool {
+    switch route {
+    case .ask, .askConversation, .askHistory:
+        return true
+    default:
+        return false
     }
 }
 
@@ -902,8 +929,7 @@ struct RootView: View {
             return
         }
         // Brifing yeni bir konu: önceki sohbet bağlam olmasın (önceki sohbet geçmişte kalır).
-        ask.clear()
-        ask.ask(question: briefingQuestion(meeting: meeting), meetingIDs: [], recipeTitle: nil)
+        ask.startConversation(question: briefingQuestion(meeting: meeting), scope: .allMeetings, mentionIDs: [], recipeTitle: nil)
         router.openAskConversation()
     }
 
@@ -913,8 +939,7 @@ struct RootView: View {
             account.requestSubscription()
             return
         }
-        ask.clear()
-        ask.ask(question: recipe.prompt, meetingIDs: [meetingID], recipeTitle: recipe.title)
+        ask.startConversation(question: recipe.prompt, scope: .meeting(id: meetingID), mentionIDs: [], recipeTitle: recipe.title)
         router.openAskConversation()
     }
 

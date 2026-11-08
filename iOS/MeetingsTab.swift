@@ -134,6 +134,12 @@ struct MeetingsLibraryScreen: View {
                     selectionBar(effective: effective, selectable: visibleIDs.subtracting(locked), locked: locked)
                 }
             } else {
+                // Klasörde: bu klasördeki toplantılara sor (Sor bu klasörün kapsamıyla açılır).
+                if case .folder(let name) = scope, !meetingsInFolder(records: store.meetings, folder: name).isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Bu klasöre sor", systemImage: "sparkle") { router.openAsk(context: .folder(name: name)) }
+                    }
+                }
                 if !store.meetings.isEmpty {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
@@ -619,6 +625,8 @@ struct MeetingReadView: View {
     let onRunRecipe: @MainActor (Recipe) -> Void
     /// Sor'dan gelen kaynak açıldı (`openingSource` tüketildi).
     let onSourceShown: @MainActor () -> Void
+    /// Sor çubuğundaki cevabın başka bir toplantıdaki kaynağı (kapsam bu toplantı değilken): o toplantı üstte açılır.
+    let onOpenOtherSource: @MainActor (ArchivePassage) -> Void
     @State private var pane: MeetingPane = .summary
     /// Toplantının görüntüleri (Ekranlar sekmesi) ve klasörü; klasör çözülemezse nedeni sekmede görünür.
     @State private var images: PhoneMeetingImages = PhoneMeetingImages()
@@ -1030,13 +1038,13 @@ struct MeetingReadView: View {
             }
             // `--sor-ornek` (yalnız Debug, görsel kontrol): "Bir şey sor" paneli bitmiş bir soruyla açılır (sahte cevap,
             // yapay zekâ çağrılmaz).
-            if CommandLine.arguments.contains("--sor-ornek"), ask.meetingAsk.exchanges(meetingID: record.id).isEmpty {
+            if CommandLine.arguments.contains("--sor-ornek"), ask.chats.exchanges(context: .meeting(id: record.id)).isEmpty {
                 do {
                     try await Task.sleep(for: .milliseconds(600))
                 } catch {
                     return
                 }
-                ask.meetingAsk.restore(exchange: phoneDemoMeetingExchange(record: record, paragraphs: paragraphs), meetingID: record.id)
+                ask.chats.restore(exchange: phoneDemoMeetingExchange(record: record, paragraphs: paragraphs), context: .meeting(id: record.id))
             }
         }
         // `--kaynak` (yalnız Debug, görsel kontrol): özetin ilk maddesinin "Transkriptten" kutusu açık.
@@ -1128,24 +1136,44 @@ struct MeetingReadView: View {
                 }
                 // Akan cevap yalnız çubuğu yeniden çizer (bkz. `ObservationScope`).
                 ObservationScope {
-                    MeetingAskBar(
-                        exchanges: ask.meetingAsk.exchanges(meetingID: record.id), isAnswering: ask.meetingAsk.isAnswering(meetingID: record.id),
-                        followUps: ask.meetingAsk.followUps(meetingID: record.id, note: record.note),
-                        quickActions: record.note == nil ? [] : meetingQuickActions(recipes: ask.recipes), recipes: ask.recipes,
-                        isEditingNote: store.regeneratingIDs.contains(record.id), isTranscriptOpen: isTranscriptOpen,
-                        isPanelOpen: $isAskPanelOpen, conversationMaxHeight: bottomPanelMaxHeight(pageHeight: pageHeight, cap: 340) - 90,
-                        onAsk: { (question: String, recipeTitle: String?) -> Void in
-                            ask.askAboutMeeting(meetingID: record.id, question: question, recipeTitle: recipeTitle)
-                        },
-                        onQuickAction: { (action: MeetingQuickAction) -> Void in run(action: action) },
-                        onStop: { ask.meetingAsk.stop(meetingID: record.id) },
-                        onClear: { ask.meetingAsk.clear(meetingID: record.id) },
-                        onRegenerate: { ask.regenerateMeetingAnswer(meetingID: record.id) },
-                        onOpenSource: { (passage: ArchivePassage) -> Void in openSource(passage: passage, paragraphs: paragraphs) },
-                        onSaveRecipe: { (question: String) -> Void in ask.saveRecipe(question: question) },
-                        onToggleTranscript: {
+                    let context: AskScope = .meeting(id: record.id)
+                    let scope: AskScope = ask.chats.scope(context: context)
+                    AskBar(
+                        exchanges: ask.chats.exchanges(context: context), isAnswering: ask.chats.isAnswering(context: context),
+                        followUps: ask.chats.followUps(context: context, note: record.note),
+                        // Hazır eylemler yalnız kapsam bu toplantıyken (not ve transkript bu toplantınındır).
+                        quickActions: record.note == nil || scope != context ? [] : meetingQuickActions(recipes: ask.recipes), recipes: ask.recipes,
+                        isEditingNote: store.regeneratingIDs.contains(record.id),
+                        scopeMenu: askScopeMenu(context: context, selected: scope, records: store.meetings, folders: store.folders, userName: store.userName),
+                        firstName: askFirstName(userName: store.userName),
+                        suggestions: ask.chats.exchanges(context: context).isEmpty ? askSuggestions(scope: scope, records: store.meetings, userName: store.userName, now: Date(), calendar: Calendar.current, limit: 4).map { askSuggestionText(suggestion: $0) } : [],
+                        transcript: AskBarTranscript(isOpen: isTranscriptOpen) {
                             transcriptFocusID = nil
                             isTranscriptOpen.toggle()
+                        },
+                        isPanelOpen: $isAskPanelOpen, conversationMaxHeight: bottomPanelMaxHeight(pageHeight: pageHeight, cap: 340) - 90, focusRequest: 0,
+                        onSelectScope: { (selected: AskScope) -> Void in ask.chats.select(scope: selected, context: context) },
+                        onAsk: { (question: String, recipeTitle: String?) -> Void in
+                            ask.ask(context: context, question: question, scope: scope, mentionIDs: [], recipeTitle: recipeTitle)
+                        },
+                        onQuickAction: { (action: MeetingQuickAction) -> Void in run(action: action) },
+                        onStop: { ask.chats.stop(context: context) },
+                        onClear: { ask.chats.clear(context: context) },
+                        onRegenerate: { ask.regenerate(context: context) },
+                        onOpenSource: { (passage: ArchivePassage) -> Void in
+                            // Kapsam başka toplantıları da okuduysa kaynağın toplantısı üstte açılır.
+                            if passage.meetingID == record.id {
+                                openSource(passage: passage, paragraphs: paragraphs)
+                            } else {
+                                onOpenOtherSource(passage)
+                            }
+                        },
+                        onSaveRecipe: { (question: String) -> Void in ask.saveRecipe(question: question) },
+                        onAskMeetings: { (meetingIDs: [String]) -> Void in
+                            guard let last = ask.chats.exchanges(context: context).last else {
+                                return
+                            }
+                            ask.ask(context: context, question: last.question, scope: scope, mentionIDs: meetingIDs, recipeTitle: last.recipeTitle)
                         }
                     )
                 }
@@ -1161,9 +1189,9 @@ struct MeetingReadView: View {
             }
             .animation(.smooth(duration: 0.25), value: isTranscriptOpen)
             // Toplantının saklı son sohbeti geri gelir (geçmiş açılışta arka planda okunur: gelince de denenir).
-            .onAppear { ask.meetingAsk.resume(meetingID: record.id, conversations: ask.conversations) }
+            .onAppear { ask.chats.resume(context: .meeting(id: record.id), conversations: ask.conversations) }
             .onChange(of: ask.conversations.count) { (_: Int, _: Int) -> Void in
-                ask.meetingAsk.resume(meetingID: record.id, conversations: ask.conversations)
+                ask.chats.resume(context: .meeting(id: record.id), conversations: ask.conversations)
             }
             // Sohbet paneli ve transkript çekmecesi aynı anda açık olmaz: biri açılınca öteki kapanır.
             .onChange(of: isAskPanelOpen) { (_: Bool, open: Bool) in
@@ -1183,7 +1211,7 @@ struct MeetingReadView: View {
     private func run(action: MeetingQuickAction) {
         switch action.kind {
         case .ask(let prompt, let recipeTitle):
-            ask.askAboutMeeting(meetingID: record.id, question: prompt, recipeTitle: recipeTitle)
+            ask.ask(context: .meeting(id: record.id), question: prompt, scope: .meeting(id: record.id), mentionIDs: [], recipeTitle: recipeTitle)
         case .editNote(let instruction):
             Task { await store.editNote(meetingID: record.id, instruction: instruction) }
         }
@@ -1191,9 +1219,12 @@ struct MeetingReadView: View {
 
     /// Kaynak kutusundaki "Sor": maddenin toplantıda nasıl konuşulduğunu bu toplantıya sorar.
     private func askAboutLine(text: String) {
-        ask.askAboutMeeting(
-            meetingID: record.id, question: String(localized: "Notta \"\(text)\" yazıyor. Bu toplantıda nasıl konuşuldu: kim ne dedi, neden bu sonuca varıldı?"),
-            recipeTitle: nil
+        // Kaynak kutusundaki "Sor" her zaman bu toplantıya sorar (çipte başka kapsam seçili olsa da).
+        ask.chats.select(scope: .meeting(id: record.id), context: .meeting(id: record.id))
+        ask.ask(
+            context: .meeting(id: record.id),
+            question: String(localized: "Notta \"\(text)\" yazıyor. Bu toplantıda nasıl konuşuldu: kim ne dedi, neden bu sonuca varıldı?"),
+            scope: .meeting(id: record.id), mentionIDs: [], recipeTitle: nil
         )
     }
 
@@ -2354,7 +2385,7 @@ private func phoneDemoMeetingExchange(record: MeetingRecord, paragraphs: [Transc
     let tasks: [String] = (record.note?.tasks ?? []).filter(\.isMine).map { "- **\($0.description)**\($0.dueDate.map { " (\($0))" } ?? "")" }
     let answer: String = (["You have \(tasks.count) tasks from this meeting [1]:", ""] + tasks).joined(separator: "\n")
     return ArchiveExchange(
-        id: UUID(), question: "What do I owe people after this meeting?", scopeMeetingIDs: [record.id], scopeTitles: [], recipeTitle: nil, startedAt: Date(),
+        id: UUID(), question: "What do I owe people after this meeting?", scope: .meeting(id: record.id), scopeMeetingIDs: [record.id], scopeTitles: [], recipeTitle: nil, startedAt: Date(),
         phase: .done, terms: [], passages: sources, screens: 0, answer: ArchiveAnswer(text: answer, sources: sources, webSources: []), webQueries: [],
         webSearchNotice: .ok, skippedMeetings: [], finishedAt: Date()
     )
