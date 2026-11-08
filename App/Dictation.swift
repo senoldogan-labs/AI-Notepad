@@ -73,8 +73,8 @@ func dictationFailureAction(error: any Error) -> DictationPillAction? {
     return nil
 }
 
-/// Erişilebilirlikle odaktaki öğe: metin alanı mı (bkz. `dictationFocus`). Okunamazsa bilinmez sayılır (yapıştırmak
-/// denenir).
+/// Erişilebilirlikle odaktaki öğe: metin alanı mı (bkz. `dictationFocus`). Okunamazsa ya da odak bildirilmezse bilinmez
+/// sayılır (yapıştırma denenir).
 @MainActor
 func focusedDictationTarget() -> DictationFocus {
     let systemWide: AXUIElement = AXUIElementCreateSystemWide()

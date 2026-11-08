@@ -649,7 +649,7 @@ func toggleRecordingFlow(model: AppModel, panel: LivePanelController, island: Is
     // Panel ve ada başlatma beklenirken açılır: "Başlatılıyor…" ve "İptal" hemen görünür (izin penceresi ya da toplantı
     // oturumu beklenirken hiçbir şey olmamış gibi görünmesin). Başlatma başarısız olsa da panel canlı sayfada kalır:
     // hata orada görünür (önceki toplantının sayfası açık kalmış olabilir). Panel fare imlecinin ekranına gelir.
-    panel.show(page: .live, onScreenWithMouse: true)
+    panel.showOnMouseScreen(page: .live)
     island.show()
     await model.startRecording()
 }

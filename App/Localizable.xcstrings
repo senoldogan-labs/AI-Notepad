@@ -199566,6 +199566,76 @@
           }
         }
       }
+    },
+    "Canlı metnin sonu beklenmeden kayıt kapatıldı.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The recording was closed without waiting for the end of the live text."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Aufnahme wurde beendet, ohne auf das Ende des Live-Texts zu warten."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’enregistrement a été fermé sans attendre la fin du texte en direct."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La grabación se cerró sin esperar al final del texto en directo."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La registrazione è stata chiusa senza attendere la fine del testo in diretta."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A gravação foi encerrada sem esperar o fim do texto ao vivo."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De opname is gesloten zonder te wachten op het einde van de live tekst."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライブテキストの終わりを待たずに録音を閉じました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실시간 텍스트의 끝을 기다리지 않고 녹음을 닫았습니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未等待实时文本结束就关闭了录制。"
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nauhoitus suljettiin odottamatta live-tekstin loppua."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

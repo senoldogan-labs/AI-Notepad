@@ -55,10 +55,12 @@ import Testing
         #expect(dictationDelivery(isAccessibilityTrusted: true, isSecureInputActive: false, focus: .notTextInput) == .copyNoTextField)
     }
 
-    // Odak: hiçbir şey yoksa ya da metin almayan rolse yazı alanı yok; metin imleci olan öğe her zaman yazı alanı;
-    // bilinmeyen rolde yapıştırmak denenir.
+    // Odak: yalnız açıkça metin almayan rolde yazı alanı yok; metin imleci olan öğe her zaman yazı alanı; rol yoksa,
+    // kap rolde (Electron'un gösterilmeyen yazı alanı) ya da bilinmeyen rolde yapıştırmak denenir.
     @Test func focusClassification() {
-        #expect(dictationFocus(role: nil, hasSelectedTextRange: false) == .notTextInput)
+        #expect(dictationFocus(role: nil, hasSelectedTextRange: false) == .unknown)
+        #expect(dictationFocus(role: "AXWindow", hasSelectedTextRange: false) == .unknown)
+        #expect(dictationFocus(role: "AXGroup", hasSelectedTextRange: false) == .unknown)
         #expect(dictationFocus(role: "AXTextArea", hasSelectedTextRange: false) == .textInput)
         #expect(dictationFocus(role: "AXGroup", hasSelectedTextRange: true) == .textInput)
         #expect(dictationFocus(role: "AXOutline", hasSelectedTextRange: false) == .notTextInput)

@@ -1589,7 +1589,8 @@ final class AppModel {
             return
         }
         Self.logger.info("Bitirme beklenmeden kapatılıyor")
-        addRecordingNotice(severity: .info, text: String(localized: "Canlı metnin sonu beklenmeden kayıt kapatıldı; kaydın tamamı yine yazıya dökülür."))
+        // Son geçiş her kayıtta çalışmayabilir (kendi anahtarınla ElevenLabs anahtarı yoksa): yalnız olanı söyler.
+        addRecordingNotice(severity: .info, text: String(localized: "Canlı metnin sonu beklenmeden kayıt kapatıldı."))
         await session.handle.cancel()
         // Olay akışını okuyan görev iptal edilince döngü biter; `sessionTask` toplantıyı bir kez kapatır.
         eventsTask?.cancel()

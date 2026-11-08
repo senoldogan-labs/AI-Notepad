@@ -182,8 +182,8 @@ final class LivePanelController {
 
     /// Kayıt başlarken: panel gizliyse ve fare başka ekrandaysa önce o ekrana taşınır (sağ üst köşeye uzaklığı
     /// korunur), sonra gösterilir. Açık paneli kullanıcının koyduğu yerden oynatmaz.
-    func show(page: PanelPage, onScreenWithMouse: Bool) {
-        if onScreenWithMouse, let panel, !panel.isVisible, let target = mouseScreen(), let current = panel.screen, target != current {
+    func showOnMouseScreen(page: PanelPage) {
+        if let panel, !panel.isVisible, let target = mouseScreen(), let current = panel.screen, target != current {
             panel.setFrame(
                 relocatedPanelFrame(frame: panel.frame, from: current.visibleFrame, to: target.visibleFrame, minSize: panelMinSize, margin: 8),
                 display: false
